@@ -308,6 +308,10 @@
                 <label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Tên người thụ hưởng</label>
                 <input type="text" id="cfg_accountName" placeholder="Tên in hoa không dấu" class="bg-slate-50 border-slate-200 font-bold uppercase">
             </div>
+            <div>
+                <label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Địa danh (In trên hóa đơn)</label>
+                <input type="text" id="cfg_location" placeholder="VD: Quy Nhơn, Đà Nẵng..." class="bg-slate-50 border-slate-200 font-bold text-primary">
+            </div>
             <div class="border-t border-slate-200 pt-3 mt-1">
                 <label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Logo CLB (Tải ảnh để đổi logo)</label>
                 <input type="file" id="cfg_logoFile" accept="image/*" class="bg-slate-50 border-slate-200 text-sm w-full" onchange="handleLogoUpload(event, 'cfg_logoPreview')">
@@ -583,7 +587,7 @@
     let allProfiles = {};
     let allTransactions = [];
     let allInventory = [];
-    let clubConfig = { bankId: "AGRIBANK", accountNo: "4300205305756", accountName: "TRUONG SANH TINH - CLB TAEKWONDO TST", branchCount: 2 };
+    let clubConfig = { bankId: "AGRIBANK", accountNo: "4300205305756", accountName: "TRUONG SANH TINH - CLB TAEKWONDO TST", branchCount: 2, location: "Quy Nhơn" };
     
     let colRef = null;
     let profRef = null;
@@ -729,7 +733,7 @@
             const batch = writeBatch(db);
             batch.set(doc(db, "clubs", clubId), { clubName: clubName, createdAt: new Date().toISOString() });
             
-            let configData = { bankId: "", accountNo: "", accountName: "", branchCount: branchCount };
+            let configData = { bankId: "", accountNo: "", accountName: "", branchCount: branchCount, location: "Quy Nhơn" };
             if(tempLogoBase64) configData.logoBase64 = tempLogoBase64; 
 
             batch.set(doc(db, "clubs", clubId, "settings", "main_config"), configData);
@@ -924,6 +928,7 @@
         document.getElementById('cfg_bankId').value = clubConfig.bankId || "";
         document.getElementById('cfg_accountNo').value = clubConfig.accountNo || "";
         document.getElementById('cfg_accountName').value = clubConfig.accountName || "";
+        document.getElementById('cfg_location').value = clubConfig.location || "Quy Nhơn";
         
         if(clubConfig.branchCount > 1) {
             document.getElementById('cfg_branchNamesBlock').style.display = 'block';
@@ -945,10 +950,11 @@
         const bankId = document.getElementById('cfg_bankId').value.trim().toUpperCase();
         const accountNo = document.getElementById('cfg_accountNo').value.trim();
         const accountName = document.getElementById('cfg_accountName').value.trim().toUpperCase();
+        const location = document.getElementById('cfg_location').value.trim();
         
         if(!bankId || !accountNo || !accountName) return alert("Vui lòng điền đầy đủ thông tin!");
         
-        let updateData = { bankId, accountNo, accountName };
+        let updateData = { bankId, accountNo, accountName, location };
         if(tempLogoBase64) updateData.logoBase64 = tempLogoBase64;
         if(clubConfig.branchCount > 1) {
             updateData.branchName1 = document.getElementById('cfg_branch1').value.trim() || "Cơ sở 1";
@@ -1456,7 +1462,9 @@
         try {
             const node = document.getElementById('receiptTemplate'); const cleanName = name.trim();
             document.getElementById('r_name').innerText = cleanName.toUpperCase(); document.getElementById('receiptTitle').innerText = receiptTitle;
-            const dParts = date ? date.split('-') : []; document.getElementById('r_date_top').innerText = dParts.length === 3 ? `Quy Nhơn, ngày ${dParts[2]} tháng ${dParts[1]} năm ${dParts[0]}` : `Quy Nhơn, ${formatDate(date)}`;
+            const dParts = date ? date.split('-') : []; 
+            let locText = clubConfig.location || "Quy Nhơn";
+            document.getElementById('r_date_top').innerText = dParts.length === 3 ? `${locText}, ngày ${dParts[2]} tháng ${dParts[1]} năm ${dParts[0]}` : `${locText}, ${formatDate(date)}`;
             const p = allProfiles[cleanName] || {}; document.getElementById('r_belt').innerText = p.belt || (cleanName.includes('&') ? 'Theo danh sách' : 'Chưa cập nhật'); 
             if (p.dob && !cleanName.includes('&')) { document.getElementById('r_dob').innerText = formatDate(p.dob); document.getElementById('r_dob_wrap').style.display = 'block'; } else document.getElementById('r_dob_wrap').style.display = 'none';
             document.getElementById('r_amount').innerText = amount.toLocaleString('vi-VN') + " ₫"; document.getElementById('r_amount_words').innerText = docTienVND(amount); 
@@ -1476,7 +1484,7 @@
             }
             
             const qrImgEl = document.getElementById('qrCodeImg');
-            if (amount > 0) { 
+            if (amount > 0 && receiptTitle !== 'BIÊN LAI THU TIỀN') { 
                 let paymentContent = type === 'Học phí' && txMonth ? (extraDesc ? removeVietnameseTonesForQR(extraDesc) : `Hoc Phi Thang ${formatMonth(txMonth)}`) : qrDesc;
                 let qrName = cleanName.includes('&') ? cleanName.replace(/ & /g, " - ") : cleanName;
                 qrImgEl.src = generateVietQR(amount, qrName, paymentContent); 
