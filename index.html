@@ -80,7 +80,7 @@
         
         #receiptTemplate { position: absolute; left: -9999px; visibility: hidden; width: 400px; background: white; padding: 30px; border-radius: 16px; border: 2px solid #0033A0; box-sizing: border-box; font-family: 'Inter', sans-serif;}
         .action-btns { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
-        .btn-sm { padding: 6px 10px; font-size: 0.75rem; font-weight: 700; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; border: 1px solid transparent; }
+        .btn-sm { padding: 6px 10px; font-size: 0.75rem; font-weight: 700; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; border: 1px solid transparent; cursor: pointer; }
 
         @media (max-width: 768px) {
             body { padding-bottom: 60px; }
@@ -183,8 +183,8 @@
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-3">
             <h4 class="text-primary font-black text-base md:text-xl flex items-center gap-2"><span>💳</span> GHI NHẬN THU HỌC PHÍ</h4>
             <div class="flex gap-2 w-full md:w-auto">
-                <button id="btnComboPay" onclick="openComboModal()" class="w-full md:w-auto bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-indigo-700 transition shadow-sm text-sm">👨‍👩‍👧‍👦 THU GỘP</button>
-                <button id="btnAddStudent" onclick="openAddModal()" class="w-full md:w-auto bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-blue-700 transition shadow-sm text-sm">➕ THÊM VÕ SINH</button>
+                <button id="btnComboPay" onclick="openComboModal()" class="w-full md:w-auto bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-indigo-700 transition shadow-sm text-sm cursor-pointer">👨‍👩‍👧‍👦 THU GỘP</button>
+                <button id="btnAddStudent" onclick="openAddModal()" class="w-full md:w-auto bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-blue-700 transition shadow-sm text-sm cursor-pointer">➕ THÊM VÕ SINH</button>
             </div>
         </div>
         <div class="bg-blue-50/50 border-l-4 border-primary p-4 rounded-xl flex flex-wrap gap-5 md:gap-8 mb-6 border border-blue-100">
@@ -265,16 +265,18 @@
     </div>
     
     <div id="tab_inventory" class="tab-content"><h4 class="text-blue-700 font-black text-base md:text-xl mb-4 flex items-center gap-2"><span>📦</span> QUẢN LÝ KHO VÕ PHỤC</h4><div class="bg-blue-50 border-l-4 border-blue-600 p-4 rounded-xl flex flex-wrap gap-5 md:gap-8 mb-6 border border-blue-100"><div><span class="text-xs font-bold text-blue-800 uppercase tracking-wide">Tổng thu bán</span> <span id="sum_uniform_in" class="block text-lg md:text-2xl font-bold text-emerald-600 mt-0.5">0 ₫</span></div><div><span class="text-xs font-bold text-blue-800 uppercase tracking-wide">Tổng chi nhập</span> <span id="sum_uniform_out" class="block text-lg md:text-2xl font-bold text-rose-600 mt-0.5">0 ₫</span></div><div><span class="text-xs font-bold text-indigo-900 uppercase tracking-wide">Lợi nhuận</span> <span id="sum_uniform_profit" class="block text-xl md:text-3xl font-black text-blue-700 mt-0.5">0 ₫</span></div></div><form id="inventoryForm" class="grid grid-cols-1 md:grid-cols-5 gap-3 md:gap-4 bg-white p-4 md:p-5 rounded-xl border border-blue-50 shadow-sm mb-6"><select id="inv_size" required class="bg-slate-50"><option value="" disabled selected>-- Chọn Size --</option><option value="Size 1m">Size 1m</option><option value="Size 1m1">Size 1m1</option><option value="Size 1m2">Size 1m2</option><option value="Size 1m3">Size 1m3</option><option value="Size 1m4">Size 1m4</option><option value="Size 1m5">Size 1m5</option><option value="Size 1m6">Size 1m6</option><option value="Size 1m7">Size 1m7</option><option value="Size 1m8">Size 1m8</option></select><select id="inv_type" onchange="toggleInvType()" required class="bg-slate-50 font-bold"><option value="Xuất bán">📤 Xuất bán</option><option value="Nhập kho">📥 Nhập kho</option></select><input type="number" id="inv_qty" placeholder="Số lượng" required min="1" oninput="calcInv()" class="bg-slate-50 font-bold"><div class="relative"><input type="text" id="inv_priceDisplay" placeholder="Đơn giá/Bộ" required class="bg-slate-50 font-bold"><input type="hidden" id="inv_priceActual"></div><div class="relative"><input type="text" id="inv_totalDisplay" placeholder="Tổng Tiền" readonly class="bg-slate-100 font-black text-blue-700 cursor-not-allowed border-slate-200"><input type="hidden" id="inv_totalActual"></div><div class="autocomplete-container md:col-span-2 relative"><input type="text" id="inv_desc" placeholder="Tên Võ sinh / Đại lý" autocomplete="off" required class="bg-slate-50"><div id="inv-autocomplete-list" class="autocomplete-items"></div></div><input type="date" id="inv_date" required class="md:col-span-1 bg-slate-50"><button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl py-3 transition shadow-sm md:col-span-2 tracking-wide">LƯU SỔ KHO</button></form><div class="grid grid-cols-1 lg:grid-cols-12 gap-5"><div class="lg:col-span-4"><h5 class="text-[0.8rem] font-black text-slate-700 mb-2 uppercase tracking-wide flex items-center gap-1.5"><span>📊</span> Bảng Tồn Kho</h5><div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden"><table id="tbl_inventory" class="w-full"><thead><tr><th>Size</th><th>Nhập</th><th>Bán/Tặng</th><th>TỒN</th></tr></thead><tbody id="inventoryList"></tbody></table></div></div><div class="lg:col-span-8"><h5 class="text-[0.8rem] font-black text-slate-700 mb-2 uppercase tracking-wide flex items-center gap-1.5"><span>📜</span> Lịch sử Giao dịch</h5><div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden"><div class="table-wrapper"><table id="tbl_uniform_tx"><thead><tr><th>Ngày</th><th>Nội dung</th><th>Loại</th><th>Kích cỡ</th><th>Tiền</th><th>Thao tác</th></tr></thead><tbody id="uniformTxList"></tbody></table></div></div></div></div></div>
-    <div id="tab_exam" class="tab-content"><h4 class="text-orange-600 font-black text-base md:text-xl mb-4 flex items-center gap-2"><span>🥋</span> QUẢN LÝ KỲ THI LÊN ĐAI</h4><div class="bg-white p-4 md:p-5 rounded-xl border border-orange-100 mb-6 shadow-sm"><h4 class="text-slate-700 font-black mb-3 flex items-center gap-2 text-xs uppercase tracking-wide">📊 BÁO CÁO TÀI CHÍNH KỲ THI</h4><div class="grid grid-cols-1 md:grid-cols-3 gap-3"><div class="bg-orange-50 border border-orange-100 p-4 rounded-xl"><div class="text-[0.7rem] font-bold text-orange-800 uppercase">Tổng thu Lệ phí</div><div id="sum_exam_tab" class="text-xl font-black text-orange-600 mt-0.5">0 ₫</div></div><div class="bg-rose-50 border border-rose-100 p-4 rounded-xl"><div class="text-[0.7rem] font-bold text-rose-800 uppercase">Tổng chi phí kỳ thi</div><div id="sum_exam_expense_tab" class="text-xl font-black text-rose-600 mt-0.5">0 ₫</div></div><div class="bg-emerald-50 border border-emerald-100 p-4 rounded-xl"><div class="text-[0.7rem] font-bold text-emerald-800 uppercase">Lợi nhuận kỳ thi</div><div id="sum_exam_profit_tab" class="text-xl font-black text-emerald-600 mt-0.5">0 ₫</div></div></div></div><div class="bg-white p-4 md:p-5 rounded-xl border border-orange-100 mb-6 shadow-sm"><h4 class="text-orange-600 font-black mb-4 flex items-center gap-2 text-base md:text-lg">⚡ THĂNG ĐAI HÀNG LOẠT</h4><div class="grid grid-cols-1 md:grid-cols-3 gap-4"><div><label class="block text-[0.7rem] font-bold text-slate-600 mb-1.5 uppercase">1. Lọc đai hiện tại</label><select id="exam_filter_belt" onchange="renderExamList()" class="bg-slate-50 font-semibold"><option value="Đai trắng - Cấp 10">Đai trắng - Cấp 10</option><option value="Đai trắng 1 vạch - Cấp 9">Đai trắng 1 vạch - Cấp 9</option><option value="Đai trắng 2 vạch - Cấp 8">Đai trắng 2 vạch - Cấp 8</option><option value="Đai vàng - Cấp 7">Đai vàng - Cấp 7</option><option value="Đai xanh lá - Cấp 6">Đai xanh lá - Cấp 6</option><option value="Đai xanh dương - Cấp 5">Đai xanh dương - Cấp 5</option><option value="Đai đỏ - Cấp 4">Đai đỏ - Cấp 4</option><option value="Đai đỏ 1 vạch - Cấp 3">Đai đỏ 1 vạch - Cấp 3</option><option value="Đai đỏ 2 vạch - Cấp 2">Đai đỏ 2 vạch - Cấp 2</option><option value="Đai đỏ 3 vạch - Cấp 1">Đai đỏ 3 vạch - Cấp 1</option><option value="Đai Đỏ - Đen">Đai Đỏ - Đen</option></select></div><div><label class="block text-[0.7rem] font-bold text-slate-600 mb-1.5 uppercase">2. Lên đai mới</label><select id="exam_new_belt" class="bg-orange-50 border-orange-200 font-bold text-orange-700" onchange="renderExamList()"><option value="Đai trắng 1 vạch - Cấp 9">Đai trắng 1 vạch - Cấp 9</option><option value="Đai trắng 2 vạch - Cấp 8">Đai trắng 2 vạch - Cấp 8</option><option value="Đai vàng - Cấp 7">Đai vàng - Cấp 7</option><option value="Đai xanh lá - Cấp 6">Đai xanh lá - Cấp 6</option><option value="Đai xanh dương - Cấp 5">Đai xanh dương - Cấp 5</option><option value="Đai đỏ - Cấp 4">Đai đỏ - Cấp 4</option><option value="Đai đỏ 1 vạch - Cấp 3">Đai đỏ 1 vạch - Cấp 3</option><option value="Đai đỏ 2 vạch - Cấp 2">Đai đỏ 2 vạch - Cấp 2</option><option value="Đai đỏ 3 vạch - Cấp 1">Đai đỏ 3 vạch - Cấp 1</option><option value="Đai Đỏ - Đen">Đai Đỏ - Đen</option><option value="Đai Đen">Đai Đen</option></select></div><div><label class="block text-[0.7rem] font-bold text-slate-600 mb-1.5 uppercase">3. Lệ phí thi</label><input type="text" id="exam_fee_all_display" value="250.000" placeholder="Số tiền" class="bg-slate-50 font-black text-orange-600"><input type="hidden" id="exam_fee_all_actual" value="250000"></div></div><button onclick="processBatchUpgrade()" class="w-full mt-5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 text-white font-bold py-3.5 rounded-xl transition shadow-sm text-sm uppercase">XÁC NHẬN THĂNG ĐAI</button></div><div class="bg-white rounded-xl border border-slate-200 shadow-sm mb-6 overflow-hidden"><div class="table-wrapper"><table id="tbl_exam_list"><thead><tr><th width="40"><input type="checkbox" id="checkAllExam" onclick="toggleAllExam(this)" class="w-4 h-4 cursor-pointer accent-orange-500 rounded"></th><th>Võ sinh</th><th class="col-branch">Cơ sở</th><th>Cấp đai hiện tại</th><th>Trạng thái nộp phí</th><th>Thao tác</th></tr></thead><tbody id="examList"></tbody></table></div></div><div class="bg-rose-50 p-4 md:p-5 rounded-xl border border-rose-100 mb-6 shadow-sm"><h4 class="text-rose-600 font-black mb-4 flex items-center gap-2 text-base md:text-lg">💸 CHI PHÍ KỲ THI</h4><form id="examExpenseForm" class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4"><input type="text" id="ee_desc" placeholder="Nội dung chi (Giám khảo, Băng rôn...)" required class="md:col-span-2 bg-white"><div><input type="text" id="ee_amountDisplay" placeholder="Số tiền chi" required class="font-black text-rose-600 bg-white"><input type="hidden" id="ee_amountActual"></div><button type="submit" class="bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl py-2.5 transition shadow-sm">LƯU CHI PHÍ</button></form><div class="bg-white rounded-xl border border-rose-100 shadow-sm overflow-hidden"><table id="tbl_exam_expense" class="w-full"><thead class="bg-rose-50 text-rose-800 border-b border-rose-100"><tr><th>Ngày chi</th><th>Nội dung chi</th><th>Số tiền</th><th>Thao tác</th></tr></thead><tbody id="examExpenseList"></tbody></table></div></div></div>
-    <div id="tab_expense" class="tab-content"><h4 class="text-rose-600 font-black text-base md:text-xl mb-4 flex items-center gap-2"><span>💸</span> CHI PHÍ VẬN HÀNH CHUNG</h4><div class="bg-rose-50 p-4 rounded-xl flex flex-wrap gap-5 mb-6 border border-rose-100 shadow-sm"><div class="text-xs font-bold text-rose-800 uppercase tracking-wide">Tổng chi vận hành: <span id="sum_expense_tab" class="block text-xl md:text-3xl font-black text-rose-600 mt-0.5">0 ₫</span></div></div><form id="expenseForm" class="grid grid-cols-1 md:grid-cols-4 gap-3 md:gap-4 bg-white p-4 md:p-5 rounded-xl border border-rose-50 shadow-sm mb-6"><select id="exp_branch" class="bg-slate-50 input-branch"><option value="CS1">Cơ sở 1</option><option value="CS2">Cơ sở 2</option><option value="Chung">Chung / Khác</option></select><input type="text" id="exp_desc" placeholder="Nội dung chi (Tiền điện, Nước...)" required class="md:col-span-2 bg-slate-50"><div><input type="text" id="exp_amountDisplay" placeholder="Số tiền chi" required class="font-black text-rose-600 bg-slate-50"><input type="hidden" id="exp_amountActual"></div><input type="date" id="exp_date" required class="bg-slate-50"><button type="submit" class="bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl md:col-span-3 py-3 transition shadow-sm">LƯU KHOẢN CHI</button></form><div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden"><div class="table-wrapper"><table id="tbl_exp"><thead><tr><th>Ngày chi</th><th class="col-branch">Cơ sở</th><th>Nội dung chi</th><th>Số tiền</th><th>Thao tác</th></tr></thead><tbody id="expenseList"></tbody></table></div></div></div>
+    
+    <div id="tab_exam" class="tab-content"><h4 class="text-orange-600 font-black text-base md:text-xl mb-4 flex items-center gap-2"><span>🥋</span> QUẢN LÝ KỲ THI LÊN ĐAI</h4><div class="bg-white p-4 md:p-5 rounded-xl border border-orange-100 mb-6 shadow-sm"><h4 class="text-slate-700 font-black mb-3 flex items-center gap-2 text-xs uppercase tracking-wide">📊 BÁO CÁO TÀI CHÍNH KỲ THI</h4><div class="grid grid-cols-1 md:grid-cols-3 gap-3"><div class="bg-orange-50 border border-orange-100 p-4 rounded-xl"><div class="text-[0.7rem] font-bold text-orange-800 uppercase">Tổng thu Lệ phí</div><div id="sum_exam_tab" class="text-xl font-black text-orange-600 mt-0.5">0 ₫</div></div><div class="bg-rose-50 border border-rose-100 p-4 rounded-xl"><div class="text-[0.7rem] font-bold text-rose-800 uppercase">Tổng chi phí kỳ thi</div><div id="sum_exam_expense_tab" class="text-xl font-black text-rose-600 mt-0.5">0 ₫</div></div><div class="bg-emerald-50 border border-emerald-100 p-4 rounded-xl"><div class="text-[0.7rem] font-bold text-emerald-800 uppercase">Lợi nhuận kỳ thi</div><div id="sum_exam_profit_tab" class="text-xl font-black text-emerald-600 mt-0.5">0 ₫</div></div></div></div><div class="bg-white p-4 md:p-5 rounded-xl border border-orange-100 mb-6 shadow-sm"><h4 class="text-orange-600 font-black mb-4 flex items-center gap-2 text-base md:text-lg">⚡ THĂNG ĐAI HÀNG LOẠT</h4><div class="grid grid-cols-1 md:grid-cols-3 gap-4"><div><label class="block text-[0.7rem] font-bold text-slate-600 mb-1.5 uppercase">1. Lọc đai hiện tại</label><select id="exam_filter_belt" onchange="renderExamList()" class="bg-slate-50 font-semibold"><option value="Đai trắng - Cấp 10">Đai trắng - Cấp 10</option><option value="Đai trắng 1 vạch - Cấp 9">Đai trắng 1 vạch - Cấp 9</option><option value="Đai trắng 2 vạch - Cấp 8">Đai trắng 2 vạch - Cấp 8</option><option value="Đai vàng - Cấp 7">Đai vàng - Cấp 7</option><option value="Đai xanh lá - Cấp 6">Đai xanh lá - Cấp 6</option><option value="Đai xanh dương - Cấp 5">Đai xanh dương - Cấp 5</option><option value="Đai đỏ - Cấp 4">Đai đỏ - Cấp 4</option><option value="Đai đỏ 1 vạch - Cấp 3">Đai đỏ 1 vạch - Cấp 3</option><option value="Đai đỏ 2 vạch - Cấp 2">Đai đỏ 2 vạch - Cấp 2</option><option value="Đai đỏ 3 vạch - Cấp 1">Đai đỏ 3 vạch - Cấp 1</option><option value="Đai Đỏ - Đen">Đai Đỏ - Đen</option></select></div><div><label class="block text-[0.7rem] font-bold text-slate-600 mb-1.5 uppercase">2. Lên đai mới</label><select id="exam_new_belt" class="bg-orange-50 border-orange-200 font-bold text-orange-700" onchange="renderExamList()"><option value="Đai trắng 1 vạch - Cấp 9">Đai trắng 1 vạch - Cấp 9</option><option value="Đai trắng 2 vạch - Cấp 8">Đai trắng 2 vạch - Cấp 8</option><option value="Đai vàng - Cấp 7">Đai vàng - Cấp 7</option><option value="Đai xanh lá - Cấp 6">Đai xanh lá - Cấp 6</option><option value="Đai xanh dương - Cấp 5">Đai xanh dương - Cấp 5</option><option value="Đai đỏ - Cấp 4">Đai đỏ - Cấp 4</option><option value="Đai đỏ 1 vạch - Cấp 3">Đai đỏ 1 vạch - Cấp 3</option><option value="Đai đỏ 2 vạch - Cấp 2">Đai đỏ 2 vạch - Cấp 2</option><option value="Đai đỏ 3 vạch - Cấp 1">Đai đỏ 3 vạch - Cấp 1</option><option value="Đai Đỏ - Đen">Đai Đỏ - Đen</option><option value="Đai Đen">Đai Đen</option></select></div><div><label class="block text-[0.7rem] font-bold text-slate-600 mb-1.5 uppercase">3. Lệ phí thi</label><input type="text" id="exam_fee_all_display" value="250.000" placeholder="Số tiền" class="bg-slate-50 font-black text-orange-600"><input type="hidden" id="exam_fee_all_actual" value="250000"></div></div><button onclick="processBatchUpgrade()" class="w-full mt-5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 text-white font-bold py-3.5 rounded-xl transition shadow-sm text-sm uppercase cursor-pointer">XÁC NHẬN THĂNG ĐAI</button></div><div class="bg-white rounded-xl border border-slate-200 shadow-sm mb-6 overflow-hidden"><div class="table-wrapper"><table id="tbl_exam_list"><thead><tr><th width="40"><input type="checkbox" id="checkAllExam" onclick="toggleAllExam(this)" class="w-4 h-4 cursor-pointer accent-orange-500 rounded"></th><th>Võ sinh</th><th class="col-branch">Cơ sở</th><th>Cấp đai hiện tại</th><th>Trạng thái nộp phí</th><th>Thao tác</th></tr></thead><tbody id="examList"></tbody></table></div></div><div class="bg-rose-50 p-4 md:p-5 rounded-xl border border-rose-100 mb-6 shadow-sm"><h4 class="text-rose-600 font-black mb-4 flex items-center gap-2 text-base md:text-lg">💸 CHI PHÍ KỲ THI</h4><form id="examExpenseForm" class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4"><input type="text" id="ee_desc" placeholder="Nội dung chi (Giám khảo, Băng rôn...)" required class="md:col-span-2 bg-white"><div><input type="text" id="ee_amountDisplay" placeholder="Số tiền chi" required class="font-black text-rose-600 bg-white"><input type="hidden" id="ee_amountActual"></div><button type="submit" class="bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl py-2.5 transition shadow-sm cursor-pointer">LƯU CHI PHÍ</button></form><div class="bg-white rounded-xl border border-rose-100 shadow-sm overflow-hidden"><table id="tbl_exam_expense" class="w-full"><thead class="bg-rose-50 text-rose-800 border-b border-rose-100"><tr><th>Ngày chi</th><th>Nội dung chi</th><th>Số tiền</th><th>Thao tác</th></tr></thead><tbody id="examExpenseList"></tbody></table></div></div></div>
+    
+    <div id="tab_expense" class="tab-content"><h4 class="text-rose-600 font-black text-base md:text-xl mb-4 flex items-center gap-2"><span>💸</span> CHI PHÍ VẬN HÀNH CHUNG</h4><div class="bg-rose-50 p-4 rounded-xl flex flex-wrap gap-5 mb-6 border border-rose-100 shadow-sm"><div class="text-xs font-bold text-rose-800 uppercase tracking-wide">Tổng chi vận hành: <span id="sum_expense_tab" class="block text-xl md:text-3xl font-black text-rose-600 mt-0.5">0 ₫</span></div></div><form id="expenseForm" class="grid grid-cols-1 md:grid-cols-4 gap-3 md:gap-4 bg-white p-4 md:p-5 rounded-xl border border-rose-50 shadow-sm mb-6"><select id="exp_branch" class="bg-slate-50 input-branch"><option value="CS1">Cơ sở 1</option><option value="CS2">Cơ sở 2</option><option value="Chung">Chung / Khác</option></select><input type="text" id="exp_desc" placeholder="Nội dung chi (Tiền điện, Nước...)" required class="md:col-span-2 bg-slate-50"><div><input type="text" id="exp_amountDisplay" placeholder="Số tiền chi" required class="font-black text-rose-600 bg-slate-50"><input type="hidden" id="exp_amountActual"></div><input type="date" id="exp_date" required class="bg-slate-50"><button type="submit" class="bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl md:col-span-3 py-3 transition shadow-sm cursor-pointer">LƯU KHOẢN CHI</button></form><div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden"><div class="table-wrapper"><table id="tbl_exp"><thead><tr><th>Ngày chi</th><th class="col-branch">Cơ sở</th><th>Nội dung chi</th><th>Số tiền</th><th>Thao tác</th></tr></thead><tbody id="expenseList"></tbody></table></div></div></div>
     
     <div id="tab_active" class="tab-content">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-3">
             <h4 class="text-blue-700 font-black text-base md:text-xl flex items-center gap-2"><span>🥋</span> DANH SÁCH ĐANG TẬP</h4>
             <div class="flex gap-2 w-full md:w-auto">
                 <input type="file" id="importExcelInput" accept=".xlsx, .xls" style="display:none" onchange="handleImportExcel(event)">
-                <button onclick="document.getElementById('importExcelInput').click()" class="w-full md:w-auto bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl font-bold transition shadow-sm text-sm">📥 NHẬP TỪ EXCEL</button>
-                <button onclick="downloadExcelTemplate()" class="w-full md:w-auto bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2.5 rounded-xl font-bold transition shadow-sm text-sm">Tải File Mẫu</button>
+                <button onclick="document.getElementById('importExcelInput').click()" class="w-full md:w-auto bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl font-bold transition shadow-sm text-sm cursor-pointer">📥 NHẬP TỪ EXCEL</button>
+                <button onclick="downloadExcelTemplate()" class="w-full md:w-auto bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2.5 rounded-xl font-bold transition shadow-sm text-sm cursor-pointer">Tải File Mẫu</button>
             </div>
         </div>
         <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
@@ -289,7 +291,7 @@
 <!-- Modal Cấu hình CLB -->
 <div id="settingsModal" class="modal">
     <div class="modal-content relative max-w-md mx-auto">
-        <button onclick="document.getElementById('settingsModal').style.display='none'" class="absolute top-4 right-4 text-slate-400 hover:text-rose-500 text-2xl font-bold transition bg-slate-100 w-8 h-8 rounded-full flex items-center justify-center leading-none">&times;</button>
+        <button onclick="document.getElementById('settingsModal').style.display='none'" class="absolute top-4 right-4 text-slate-400 hover:text-rose-500 text-2xl font-bold transition bg-slate-100 w-8 h-8 rounded-full flex items-center justify-center leading-none cursor-pointer">&times;</button>
         <h2 class="text-primary font-black text-xl border-b border-slate-100 pb-3 mb-4 flex items-center gap-2"><span>⚙️</span> CẤU HÌNH THÔNG TIN CLB</h2>
         
         <div class="grid grid-cols-1 gap-3 mb-5">
@@ -320,13 +322,13 @@
             </div>
         </div>
         
-        <button onclick="saveClubSettings()" class="w-full bg-primary hover:bg-blue-800 text-white font-bold py-3.5 rounded-xl transition shadow-sm text-sm uppercase">💾 LƯU CẤU HÌNH</button>
+        <button onclick="saveClubSettings()" class="w-full bg-primary hover:bg-blue-800 text-white font-bold py-3.5 rounded-xl transition shadow-sm text-sm uppercase cursor-pointer">💾 LƯU CẤU HÌNH</button>
     </div>
 </div>
 
 <div id="profileModal" class="modal">
     <div class="modal-content relative">
-        <button onclick="closeModal()" class="absolute top-4 right-4 text-slate-400 hover:text-rose-500 text-2xl font-bold transition bg-slate-100 w-8 h-8 rounded-full flex items-center justify-center leading-none">&times;</button>
+        <button onclick="closeModal()" class="absolute top-4 right-4 text-slate-400 hover:text-rose-500 text-2xl font-bold transition bg-slate-100 w-8 h-8 rounded-full flex items-center justify-center leading-none cursor-pointer">&times;</button>
         
         <input type="text" id="m_name_input" class="text-primary font-black text-xl md:text-2xl border-b-2 border-transparent hover:border-slate-200 focus:border-primary pb-2 mb-4 w-full bg-transparent outline-none transition-colors" placeholder="Nhập tên võ sinh">
         <input type="hidden" id="m_old_name">
@@ -342,15 +344,15 @@
         </div>
         <div class="bg-amber-50 border border-amber-100 p-3 rounded-xl mb-5 shadow-inner"><label class="block text-[0.75rem] font-black text-amber-800 mb-2 uppercase flex items-center gap-1.5"><span>⏸</span> Các tháng báo nghỉ</label><div id="m_skipped" class="flex flex-wrap gap-1.5"></div></div>
         <div class="flex flex-col gap-2">
-            <button id="btnUpdateProfile" onclick="updateProfile()" class="w-full bg-primary hover:bg-blue-800 text-white font-bold py-3.5 rounded-xl shadow-sm transition">💾 LƯU CẬP NHẬT</button>
-            <button id="btnDeleteProfile" onclick="deleteProfile()" class="w-full bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold py-3 rounded-xl transition border border-rose-200">🗑 Xóa Hồ Sơ Này</button>
+            <button id="btnUpdateProfile" onclick="updateProfile()" class="w-full bg-primary hover:bg-blue-800 text-white font-bold py-3.5 rounded-xl shadow-sm transition cursor-pointer">💾 LƯU CẬP NHẬT</button>
+            <button id="btnDeleteProfile" onclick="deleteProfile()" class="w-full bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold py-3 rounded-xl transition border border-rose-200 cursor-pointer">🗑 Xóa Hồ Sơ Này</button>
         </div>
     </div>
 </div>
 
 <div id="comboModal" class="modal">
     <div class="modal-content relative">
-        <button onclick="document.getElementById('comboModal').style.display='none'" class="absolute top-4 right-4 text-slate-400 hover:text-rose-500 text-2xl font-bold transition bg-slate-100 w-8 h-8 rounded-full flex items-center justify-center leading-none">&times;</button>
+        <button onclick="document.getElementById('comboModal').style.display='none'" class="absolute top-4 right-4 text-slate-400 hover:text-rose-500 text-2xl font-bold transition bg-slate-100 w-8 h-8 rounded-full flex items-center justify-center leading-none cursor-pointer">&times;</button>
         <h2 class="text-indigo-700 font-black text-xl border-b border-slate-100 pb-3 mb-4 uppercase flex items-center gap-2"><span>👨‍👩‍👧‍👦</span> THU TIỀN / BÁO PHÍ GỘP</h2>
         
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -387,23 +389,69 @@
         </div>
 
         <div class="flex flex-col md:flex-row gap-3">
-            <button onclick="processCombo('report')" class="w-full md:w-1/2 bg-amber-500 hover:bg-amber-600 text-white font-bold py-3.5 rounded-xl transition shadow-sm text-sm uppercase">🧾 TẠO PHIẾU BÁO (CHƯA THU)</button>
-            <button onclick="processCombo('pay')" class="w-full md:w-1/2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl transition shadow-sm text-sm uppercase">💰 GHI SỔ GỘP & IN BIÊN LAI</button>
+            <button onclick="processCombo('report')" class="w-full md:w-1/2 bg-amber-500 hover:bg-amber-600 text-white font-bold py-3.5 rounded-xl transition shadow-sm text-sm uppercase cursor-pointer">🧾 TẠO PHIẾU BÁO (CHƯA THU)</button>
+            <button onclick="processCombo('pay')" class="w-full md:w-1/2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl transition shadow-sm text-sm uppercase cursor-pointer">💰 GHI SỔ GỘP & IN BIÊN LAI</button>
         </div>
     </div>
 </div>
 
-<div id="addModal" class="modal"><div class="modal-content relative"><button onclick="closeAddModal()" class="absolute top-4 right-4 text-slate-400 hover:text-rose-500 text-2xl font-bold transition bg-slate-100 w-8 h-8 rounded-full flex items-center justify-center leading-none">&times;</button><h2 class="text-primary font-black text-xl border-b border-slate-100 pb-3 mb-4 uppercase">Thêm Võ Sinh Mới</h2><div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-4"><div class="md:col-span-2"><label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Họ và tên *</label><input type="text" id="add_name" required class="bg-slate-50"></div><div class="input-branch"><label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Cơ sở</label><select id="add_branch" class="bg-slate-50"><option value="CS1">Cơ sở 1</option><option value="CS2">Cơ sở 2</option></select></div><div><label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Cấp đai</label><select id="add_belt" class="bg-slate-50"><option value="Đai trắng - Cấp 10">Đai trắng - Cấp 10</option><option value="Đai trắng 1 vạch - Cấp 9">Đai trắng 1 vạch - Cấp 9</option><option value="Đai vàng - Cấp 7">Đai vàng - Cấp 7</option><option value="Đai xanh lá - Cấp 6">Đai xanh lá - Cấp 6</option><option value="Đai xanh dương - Cấp 5">Đai xanh dương - Cấp 5</option><option value="Đai đỏ - Cấp 4">Đai đỏ - Cấp 4</option><option value="Đai đỏ 1 vạch - Cấp 3">Đai đỏ 1 vạch - Cấp 3</option><option value="Đai đỏ 2 vạch - Cấp 2">Đai đỏ 2 vạch - Cấp 2</option><option value="Đai đỏ 3 vạch - Cấp 1">Đai đỏ 3 vạch - Cấp 1</option><option value="Đai Đỏ - Đen">Đai Đỏ - Đen</option><option value="Đai Đen">Đai Đen</option></select></div><div><label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">SĐT Phụ huynh</label><input type="tel" id="add_phone" class="bg-slate-50"></div><div><label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Ngày sinh</label><input type="text" id="add_dob" placeholder="DD/MM/YYYY" class="bg-slate-50"></div><div><label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Học phí mặc định</label><input type="text" id="add_fee_default_display" placeholder="Mức phí" class="bg-slate-50 font-black text-blue-700"><input type="hidden" id="add_fee_default_actual"></div><div><label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Ngày nhập học</label><input type="date" id="add_date" class="bg-slate-50"></div><div class="md:col-span-2"><label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Ghi chú</label><textarea id="add_notes" rows="2" class="bg-slate-50"></textarea></div></div><div class="bg-blue-50/50 border border-blue-100 p-4 rounded-xl mb-5 shadow-inner"><label class="block text-[0.8rem] font-black text-primary mb-3 flex items-center gap-1.5 uppercase"><span>💰</span> THU TIỀN NHẬP HỌC</label><div class="grid grid-cols-1 md:grid-cols-2 gap-3"><div><label class="block text-[0.7rem] text-slate-600 mb-1 uppercase font-bold">Gói học phí</label><div class="flex gap-2 items-center"><select id="add_package" class="w-full bg-white font-medium text-primary" onchange="updateAddPackageAmount()"><option value="1">1 Tháng</option><option value="3">3 Tháng</option><option value="6">6 Tháng</option><option value="12">12 Tháng</option></select><label class="flex items-center gap-1.5 cursor-pointer whitespace-nowrap bg-white px-2 py-2 border border-slate-200 rounded-lg"><input type="checkbox" id="add_discount" class="w-3.5 h-3.5 text-rose-600 rounded" onchange="updateAddPackageAmount()"><span class="text-[0.65rem] font-bold text-rose-600 uppercase">🎁Giảm 10%</span></label></div></div><div><label class="block text-[0.7rem] text-slate-600 mb-1 uppercase font-bold">Tổng tiền Học phí</label><input type="text" id="add_fee_display" placeholder="Số tiền" class="bg-white font-bold"><input type="hidden" id="add_fee_actual"></div><div class="md:col-span-2 mt-2 border-t border-blue-200 pt-3"><label class="block text-[0.7rem] text-slate-600 mb-1 uppercase font-bold">Size Võ phục</label><select id="add_uniform_size" class="w-full bg-white font-medium"><option value="">-- Chọn size --</option></select></div><div class="md:col-span-2 flex items-center gap-2"><label class="flex items-center gap-2 cursor-pointer w-full"><input type="checkbox" id="add_uniform_gift" class="w-4 h-4 text-primary bg-slate-100 border-slate-300 rounded focus:ring-primary" onchange="toggleAddUniformGift()"><span class="text-[0.8rem] font-bold text-slate-700 uppercase">🎁 Tặng võ phục (Miễn phí)</span></label></div><div class="md:col-span-2"><label class="block text-[0.7rem] text-slate-600 mb-1 uppercase font-bold">Tiền Võ phục</label><input type="text" id="add_uniform_display" placeholder="Số tiền" class="bg-white font-bold"><input type="hidden" id="add_uniform_actual"></div></div></div><button onclick="addNewStudent()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl transition shadow-sm text-sm">💾 LƯU HỒ SƠ & GHI SỔ</button></div></div>
+<!-- Thêm Modal cho Add Student -->
+<div id="addModal" class="modal">
+    <div class="modal-content relative">
+        <button onclick="closeAddModal()" class="absolute top-4 right-4 text-slate-400 hover:text-rose-500 text-2xl font-bold transition bg-slate-100 w-8 h-8 rounded-full flex items-center justify-center leading-none cursor-pointer">&times;</button>
+        <h2 class="text-primary font-black text-xl border-b border-slate-100 pb-3 mb-4 uppercase">Thêm Võ Sinh Mới</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-4">
+            <div class="md:col-span-2"><label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Họ và tên *</label><input type="text" id="add_name" required class="bg-slate-50"></div>
+            <div class="input-branch"><label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Cơ sở</label><select id="add_branch" class="bg-slate-50"><option value="CS1">Cơ sở 1</option><option value="CS2">Cơ sở 2</option></select></div>
+            <div><label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Cấp đai</label><select id="add_belt" class="bg-slate-50"><option value="Đai trắng - Cấp 10">Đai trắng - Cấp 10</option><option value="Đai trắng 1 vạch - Cấp 9">Đai trắng 1 vạch - Cấp 9</option><option value="Đai vàng - Cấp 7">Đai vàng - Cấp 7</option><option value="Đai xanh lá - Cấp 6">Đai xanh lá - Cấp 6</option><option value="Đai xanh dương - Cấp 5">Đai xanh dương - Cấp 5</option><option value="Đai đỏ - Cấp 4">Đai đỏ - Cấp 4</option><option value="Đai đỏ 1 vạch - Cấp 3">Đai đỏ 1 vạch - Cấp 3</option><option value="Đai đỏ 2 vạch - Cấp 2">Đai đỏ 2 vạch - Cấp 2</option><option value="Đai đỏ 3 vạch - Cấp 1">Đai đỏ 3 vạch - Cấp 1</option><option value="Đai Đỏ - Đen">Đai Đỏ - Đen</option><option value="Đai Đen">Đai Đen</option></select></div>
+            <div><label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">SĐT Phụ huynh</label><input type="tel" id="add_phone" class="bg-slate-50"></div>
+            <div><label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Ngày sinh</label><input type="text" id="add_dob" placeholder="DD/MM/YYYY" class="bg-slate-50"></div>
+            <div><label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Học phí mặc định</label><input type="text" id="add_fee_default_display" placeholder="Mức phí" class="bg-slate-50 font-black text-blue-700"><input type="hidden" id="add_fee_default_actual"></div>
+            <div><label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Ngày nhập học</label><input type="date" id="add_date" class="bg-slate-50"></div>
+            <div class="md:col-span-2"><label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Ghi chú</label><textarea id="add_notes" rows="2" class="bg-slate-50"></textarea></div>
+        </div>
+        <div class="bg-blue-50/50 border border-blue-100 p-4 rounded-xl mb-5 shadow-inner">
+            <label class="block text-[0.8rem] font-black text-primary mb-3 flex items-center gap-1.5 uppercase"><span>💰</span> THU TIỀN NHẬP HỌC</label>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-[0.7rem] text-slate-600 mb-1 uppercase font-bold">Gói học phí</label>
+                    <div class="flex gap-2 items-center"><select id="add_package" class="w-full bg-white font-medium text-primary" onchange="updateAddPackageAmount()"><option value="1">1 Tháng</option><option value="3">3 Tháng</option><option value="6">6 Tháng</option><option value="12">12 Tháng</option></select><label class="flex items-center gap-1.5 cursor-pointer whitespace-nowrap bg-white px-2 py-2 border border-slate-200 rounded-lg"><input type="checkbox" id="add_discount" class="w-3.5 h-3.5 text-rose-600 rounded" onchange="updateAddPackageAmount()"><span class="text-[0.65rem] font-bold text-rose-600 uppercase">🎁Giảm 10%</span></label></div>
+                </div>
+                <div><label class="block text-[0.7rem] text-slate-600 mb-1 uppercase font-bold">Tổng tiền Học phí</label><input type="text" id="add_fee_display" placeholder="Số tiền" class="bg-white font-bold"><input type="hidden" id="add_fee_actual"></div>
+                <div class="md:col-span-2 mt-2 border-t border-blue-200 pt-3"><label class="block text-[0.7rem] text-slate-600 mb-1 uppercase font-bold">Size Võ phục</label><select id="add_uniform_size" class="w-full bg-white font-medium"><option value="">-- Chọn size --</option></select></div>
+                <div class="md:col-span-2 flex items-center gap-2"><label class="flex items-center gap-2 cursor-pointer w-full"><input type="checkbox" id="add_uniform_gift" class="w-4 h-4 text-primary bg-slate-100 border-slate-300 rounded focus:ring-primary" onchange="toggleAddUniformGift()"><span class="text-[0.8rem] font-bold text-slate-700 uppercase">🎁 Tặng võ phục (Miễn phí)</span></label></div>
+                <div class="md:col-span-2"><label class="block text-[0.7rem] text-slate-600 mb-1 uppercase font-bold">Tiền Võ phục</label><input type="text" id="add_uniform_display" placeholder="Số tiền" class="bg-white font-bold"><input type="hidden" id="add_uniform_actual"></div>
+            </div>
+        </div>
+        <button onclick="addNewStudent()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl transition shadow-sm text-sm cursor-pointer">💾 LƯU HỒ SƠ & GHI SỔ</button>
+    </div>
+</div>
 
-<div id="editInvModal" class="modal"><div class="modal-content relative"><button onclick="closeEditInvModal()" class="absolute top-4 right-4 text-slate-400 hover:text-rose-500 text-2xl font-bold transition bg-slate-100 w-8 h-8 rounded-full flex items-center justify-center leading-none">&times;</button><h2 class="text-blue-700 font-black text-xl border-b border-slate-100 pb-3 mb-4 uppercase">CHỈNH SỬA KHO</h2><input type="hidden" id="ei_txId"><input type="hidden" id="ei_invId"><div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5"><div><label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Size Võ Phục</label><select id="ei_size" class="bg-slate-50"><option value="Size 1m">Size 1m</option><option value="Size 1m1">Size 1m1</option><option value="Size 1m2">Size 1m2</option><option value="Size 1m3">Size 1m3</option><option value="Size 1m4">Size 1m4</option><option value="Size 1m5">Size 1m5</option><option value="Size 1m6">Size 1m6</option><option value="Size 1m7">Size 1m7</option><option value="Size 1m8">Size 1m8</option></select></div><div><label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Loại giao dịch</label><select id="ei_type" class="bg-slate-50"><option value="Xuất bán">Xuất bán</option><option value="Nhập kho">Nhập kho</option></select></div><div><label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Số lượng</label><input type="number" id="ei_qty" min="1" class="bg-slate-50 font-bold"></div><div><label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Ngày</label><input type="date" id="ei_date" class="bg-slate-50"></div><div class="md:col-span-2"><label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Nội dung / Người giao dịch</label><input type="text" id="ei_desc" class="bg-slate-50"></div><div class="md:col-span-2"><label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Tổng tiền cập nhật (VNĐ)</label><input type="text" id="ei_amountDisplay" class="bg-slate-50 font-black text-blue-700"><input type="hidden" id="ei_amountActual"></div></div><button onclick="saveEditInv()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl transition shadow-sm text-sm">💾 LƯU THAY ĐỔI</button></div></div>
+<div id="editInvModal" class="modal"><div class="modal-content relative"><button onclick="closeEditInvModal()" class="absolute top-4 right-4 text-slate-400 hover:text-rose-500 text-2xl font-bold transition bg-slate-100 w-8 h-8 rounded-full flex items-center justify-center leading-none cursor-pointer">&times;</button><h2 class="text-blue-700 font-black text-xl border-b border-slate-100 pb-3 mb-4 uppercase">CHỈNH SỬA KHO</h2><input type="hidden" id="ei_txId"><input type="hidden" id="ei_invId"><div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5"><div><label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Size Võ Phục</label><select id="ei_size" class="bg-slate-50"><option value="Size 1m">Size 1m</option><option value="Size 1m1">Size 1m1</option><option value="Size 1m2">Size 1m2</option><option value="Size 1m3">Size 1m3</option><option value="Size 1m4">Size 1m4</option><option value="Size 1m5">Size 1m5</option><option value="Size 1m6">Size 1m6</option><option value="Size 1m7">Size 1m7</option><option value="Size 1m8">Size 1m8</option></select></div><div><label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Loại giao dịch</label><select id="ei_type" class="bg-slate-50"><option value="Xuất bán">Xuất bán</option><option value="Nhập kho">Nhập kho</option></select></div><div><label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Số lượng</label><input type="number" id="ei_qty" min="1" class="bg-slate-50 font-bold"></div><div><label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Ngày</label><input type="date" id="ei_date" class="bg-slate-50"></div><div class="md:col-span-2"><label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Nội dung / Người giao dịch</label><input type="text" id="ei_desc" class="bg-slate-50"></div><div class="md:col-span-2"><label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Tổng tiền cập nhật (VNĐ)</label><input type="text" id="ei_amountDisplay" class="bg-slate-50 font-black text-blue-700"><input type="hidden" id="ei_amountActual"></div></div><button onclick="saveEditInv()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl transition shadow-sm text-sm cursor-pointer">💾 LƯU THAY ĐỔI</button></div></div>
 
-<div id="receiptModal" class="modal"><div class="modal-content" style="text-align:center; max-width: 420px; width: 92%;"><h3 style="color:var(--primary); margin-top:0; font-weight: 900; font-size: 1.15rem;">XUẤT HÓA ĐƠN</h3><p style="font-size:0.75rem; color:#64748b; margin-bottom:12px;">📸 <strong>Mẹo Zalo:</strong> Nhấn giữ vào ảnh rồi dán thẳng vào tin nhắn.</p><div id="receiptContainer" style="display:inline-block; background:white; width: 100%;"><img id="receiptPreviewImg" style="width:100%; border-radius:12px; border: 1px solid #e2e8f0; box-shadow:0 10px 25px rgba(0,0,0,0.1); margin-bottom:15px;"></div><button class="w-full bg-primary hover:bg-blue-800 text-white font-bold py-3.5 rounded-xl mb-2.5 shadow-sm transition text-sm" id="btnDownloadReceipt">⬇️ TẢI ẢNH VỀ MÁY</button><button onclick="document.getElementById('receiptModal').style.display='none'" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-3 rounded-xl transition text-sm">ĐÓNG</button></div></div>
+<!-- Modal Sửa Chi Phí -->
+<div id="editExpModal" class="modal">
+    <div class="modal-content relative">
+        <button onclick="document.getElementById('editExpModal').style.display='none'" class="absolute top-4 right-4 text-slate-400 hover:text-rose-500 text-2xl font-bold transition bg-slate-100 w-8 h-8 rounded-full flex items-center justify-center leading-none cursor-pointer">&times;</button>
+        <h2 class="text-rose-600 font-black text-xl border-b border-slate-100 pb-3 mb-4 uppercase">CHỈNH SỬA CHI PHÍ</h2>
+        <input type="hidden" id="eexp_txId">
+        <div class="grid grid-cols-1 gap-3 mb-5">
+            <div><label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Cơ sở</label><select id="eexp_branch" class="bg-slate-50 input-branch"><option value="CS1">Cơ sở 1</option><option value="CS2">Cơ sở 2</option><option value="Chung">Chung</option></select></div>
+            <div><label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Nội dung chi</label><input type="text" id="eexp_desc" class="bg-slate-50"></div>
+            <div><label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Số tiền</label><input type="text" id="eexp_amountDisplay" class="bg-slate-50 font-black text-rose-600"><input type="hidden" id="eexp_amountActual"></div>
+            <div><label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Ngày chi</label><input type="date" id="eexp_date" class="bg-slate-50"></div>
+        </div>
+        <button onclick="saveEditExpense()" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold py-3.5 rounded-xl transition shadow-sm text-sm cursor-pointer">💾 LƯU THAY ĐỔI</button>
+    </div>
+</div>
 
-<div id="receiptTemplate"><div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; border-bottom: 2px dashed #cbd5e1; padding-bottom: 15px; margin-bottom: 15px; text-align: center;"><img id="receiptLogo" src="logo.png" alt="Logo" style="height: 55px; width: auto; max-width: 200px; object-fit: contain; display: block;" onerror="this.src='https://via.placeholder.com/150x50?text=LOGO+CLB'" class="club-logo-img"><div style="width: 100%;"><h3 style="color: #0033A0; margin: 0; font-size: 15px; font-weight: 900;" id="r_club_name">CLUB TAEKWONDO TST QUY NHƠN</h3><p id="receiptTitle" style="margin: 6px 0 0; font-size: 20px; color: #0f172a; font-weight: 900; white-space: nowrap;">BIÊN LAI THU TIỀN</p><p style="margin: 4px 0 0; font-size: 12px; font-style: italic; color: #64748b;" id="r_date_top"></p></div></div><div style="font-size: 14px; line-height: 1.6; color: #334155;"><p style="margin: 4px 0;"><strong>Họ & Tên:</strong> <span id="r_name" style="color: var(--primary); font-weight: 900; font-size:16px;"></span></p><p style="margin: 4px 0;"><strong>Cấp đai:</strong> <span id="r_belt" style="font-weight: 700;"></span></p><p style="margin: 4px 0; display: none;" id="r_dob_wrap"><strong>Ngày sinh:</strong> <span id="r_dob"></span></p><p style="margin: 4px 0;"><strong>Khoản thu:</strong> <span id="r_type"></span></p><p style="margin: 4px 0;" class="input-branch"><strong>Cơ sở:</strong> <span id="r_branch"></span></p><p style="margin: 4px 0;" id="r_month_wrap"><strong>Kỳ học phí:</strong> <span id="r_month"></span></p></div><div style="margin-top: 15px; padding: 15px; background: #f8fafc; text-align: center; border-radius: 12px; border: 1px solid #e2e8f0;"><p style="margin: 0; font-size: 13px; color: #64748b; font-weight: 800;">SỐ TIỀN THANH TOÁN</p><p style="margin: 6px 0 0; font-size: 24px; font-weight: 900; color: #C8102E;" id="r_amount">0 ₫</p><p style="margin: 6px 0 0; font-size: 12px; font-style: italic; color: #475569;" id="r_amount_words"></p></div><div id="r_qr_wrap" style="text-align: center; margin-top: 20px; display: none; width: 100%;"><p style="font-size: 12px; color: #475569; margin-bottom: 8px; font-weight: 800;">MCode QR THANH TOÁN</p><img id="qrCodeImg" crossorigin="anonymous" style="display: block; margin: 0 auto; width: 240px; height: 240px; border-radius: 12px; border: 1px solid #cbd5e1; padding: 8px; background: white;"></div><p style="text-align: center; font-size: 13px; margin-top: 20px; font-style: italic; color: #94a3b8;">Cảm ơn quý phụ huynh & võ sinh đã đồng hành!</p></div>
+<div id="receiptModal" class="modal"><div class="modal-content" style="text-align:center; max-width: 420px; width: 92%;"><h3 style="color:var(--primary); margin-top:0; font-weight: 900; font-size: 1.15rem;">XUẤT HÓA ĐƠN</h3><p style="font-size:0.75rem; color:#64748b; margin-bottom:12px;">📸 <strong>Mẹo Zalo:</strong> Nhấn giữ vào ảnh rồi dán thẳng vào tin nhắn.</p><div id="receiptContainer" style="display:inline-block; background:white; width: 100%;"><img id="receiptPreviewImg" style="width:100%; border-radius:12px; border: 1px solid #e2e8f0; box-shadow:0 10px 25px rgba(0,0,0,0.1); margin-bottom:15px;"></div><button class="w-full bg-primary hover:bg-blue-800 text-white font-bold py-3.5 rounded-xl mb-2.5 shadow-sm transition text-sm cursor-pointer" id="btnDownloadReceipt">⬇️ TẢI ẢNH VỀ MÁY</button><button onclick="document.getElementById('receiptModal').style.display='none'" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-3 rounded-xl transition text-sm cursor-pointer">ĐÓNG</button></div></div>
+
+<div id="receiptTemplate"><div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; border-bottom: 2px dashed #cbd5e1; padding-bottom: 15px; margin-bottom: 15px; text-align: center;"><img id="receiptLogo" src="logo.png" alt="Logo" style="height: 55px; width: auto; max-width: 200px; object-fit: contain; display: block;" onerror="this.src='https://via.placeholder.com/150x50?text=LOGO+CLB'" class="club-logo-img"><div style="width: 100%;"><h3 style="color: #0033A0; margin: 0; font-size: 15px; font-weight: 900;" id="r_club_name">CLUB TAEKWONDO TST QUY NHƠN</h3><p id="receiptTitle" style="margin: 6px 0 0; font-size: 20px; color: #0f172a; font-weight: 900; white-space: nowrap;">BIÊN LAI THU TIỀN</p><p style="margin: 4px 0 0; font-size: 12px; font-style: italic; color: #64748b;" id="r_date_top"></p></div></div><div style="font-size: 14px; line-height: 1.6; color: #334155;"><p style="margin: 4px 0;"><strong>Họ & Tên:</strong> <span id="r_name" style="color: var(--primary); font-weight: 900; font-size:16px;"></span></p><p style="margin: 4px 0;"><strong>Cấp đai:</strong> <span id="r_belt" style="font-weight: 700;"></span></p><p style="margin: 4px 0; display: none;" id="r_dob_wrap"><strong>Ngày sinh:</strong> <span id="r_dob"></span></p><p style="margin: 4px 0;"><strong>Khoản thu:</strong> <span id="r_type"></span></p><p style="margin: 4px 0;" class="input-branch"><strong>Cơ sở:</strong> <span id="r_branch"></span></p><p style="margin: 4px 0;" id="r_month_wrap"><strong>Kỳ học phí:</strong> <span id="r_month"></span></p></div><div style="margin-top: 15px; padding: 15px; background: #f8fafc; text-align: center; border-radius: 12px; border: 1px solid #e2e8f0;"><p style="margin: 0; font-size: 13px; color: #64748b; font-weight: 800;">SỐ TIỀN THANH TOÁN</p><p style="margin: 6px 0 0; font-size: 24px; font-weight: 900; color: #C8102E;" id="r_amount">0 ₫</p><p style="margin: 6px 0 0; font-size: 12px; font-style: italic; color: #475569;" id="r_amount_words"></p></div><div id="r_qr_wrap" style="text-align: center; margin-top: 20px; display: none; width: 100%;"><p style="font-size: 12px; color: #475569; margin-bottom: 8px; font-weight: 800;">Mã QR THANH TOÁN</p><img id="qrCodeImg" crossorigin="anonymous" style="display: block; margin: 0 auto; width: 240px; height: 240px; border-radius: 12px; border: 1px solid #cbd5e1; padding: 8px; background: white;"></div><p style="text-align: center; font-size: 13px; margin-top: 20px; font-style: italic; color: #94a3b8;">Cảm ơn quý phụ huynh & võ sinh đã đồng hành!</p></div>
 
 <div id="taxExportModal" class="modal">
     <div class="modal-content relative max-w-sm mx-auto">
-        <button onclick="closeTaxModal()" class="absolute top-4 right-4 text-slate-400 hover:text-purple-500 text-2xl font-bold transition bg-slate-100 w-8 h-8 rounded-full flex items-center justify-center leading-none">&times;</button>
+        <button onclick="closeTaxModal()" class="absolute top-4 right-4 text-slate-400 hover:text-purple-500 text-2xl font-bold transition bg-slate-100 w-8 h-8 rounded-full flex items-center justify-center leading-none cursor-pointer">&times;</button>
         <h2 class="text-purple-700 font-black text-xl border-b border-slate-100 pb-3 mb-4 flex items-center gap-2"><span>📑</span> XUẤT SỔ THUẾ S1a-HKD</h2>
         
         <div class="mb-3">
@@ -425,14 +473,14 @@
             </div>
         </div>
         
-        <button onclick="executeTaxExport()" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3.5 rounded-xl transition shadow-sm text-sm uppercase">📥 Xuất File S1a Chuẩn 2026</button>
+        <button onclick="executeTaxExport()" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3.5 rounded-xl transition shadow-sm text-sm uppercase cursor-pointer">📥 Xuất File S1a Chuẩn 2026</button>
     </div>
 </div>
 
 <!-- Modal Tạo CLB Mới -->
 <div id="newClubModal" class="modal">
     <div class="modal-content relative max-w-md mx-auto">
-        <button onclick="document.getElementById('newClubModal').style.display='none'" class="absolute top-4 right-4 text-slate-400 hover:text-rose-500 text-2xl font-bold transition bg-slate-100 w-8 h-8 rounded-full flex items-center justify-center leading-none">&times;</button>
+        <button onclick="document.getElementById('newClubModal').style.display='none'" class="absolute top-4 right-4 text-slate-400 hover:text-rose-500 text-2xl font-bold transition bg-slate-100 w-8 h-8 rounded-full flex items-center justify-center leading-none cursor-pointer">&times;</button>
         <h2 class="text-amber-600 font-black text-xl border-b border-slate-100 pb-3 mb-4 flex items-center gap-2"><span>🚀</span> TẠO TÀI KHOẢN CLB MỚI</h2>
 
         <div class="grid grid-cols-1 gap-3 mb-5">
@@ -466,7 +514,7 @@
             </div>
         </div>
 
-        <button onclick="createNewClubSystem()" id="btnCreateClubAction" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3.5 rounded-xl transition shadow-sm text-sm uppercase flex justify-center items-center gap-2">
+        <button onclick="createNewClubSystem()" id="btnCreateClubAction" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3.5 rounded-xl transition shadow-sm text-sm uppercase flex justify-center items-center gap-2 cursor-pointer">
             <span>⚡ KHỞI TẠO DỮ LIỆU</span>
         </button>
     </div>
@@ -556,6 +604,17 @@
         toast.classList.add("show"); setTimeout(() => toast.classList.remove("show"), duration);
     };
 
+    /* ==================================
+       KHÔI PHỤC CÁC HÀM MODAL BỊ THIẾU
+       ================================== */
+    window.openAddModal = () => document.getElementById('addModal').style.display = 'flex';
+    window.closeAddModal = () => document.getElementById('addModal').style.display = 'none';
+    window.openComboModal = () => document.getElementById('comboModal').style.display = 'flex';
+    window.closeModal = () => document.getElementById('profileModal').style.display = 'none';
+    
+    window.openTaxModal = () => document.getElementById('taxExportModal').style.display = 'flex';
+    window.closeTaxModal = () => document.getElementById('taxExportModal').style.display = 'none';
+
     window.switchTab = (tabId) => {
         document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active')); document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
         document.getElementById('tab_' + tabId).classList.add('active'); document.getElementById('btn_' + tabId).classList.add('active');
@@ -594,7 +653,7 @@
         const fb = document.getElementById('filterBranch');
         if(fb) fb.innerHTML = `<option value="all">🏢 Tất cả cơ sở</option><option value="CS1">📍 ${b1Name}</option><option value="CS2">📍 ${b2Name}</option>`;
         
-        const selectsToUpdate = ['branch', 'm_branch', 'add_branch', 'exp_branch'];
+        const selectsToUpdate = ['branch', 'm_branch', 'add_branch', 'exp_branch', 'eexp_branch'];
         selectsToUpdate.forEach(id => {
             const el = document.getElementById(id);
             if(el) {
@@ -784,13 +843,81 @@
 
     window.calcInv = () => { let qty = Number(document.getElementById('inv_qty').value) || 0; let price = Number(document.getElementById('inv_priceActual').value) || 0; let total = qty * price; document.getElementById('inv_totalActual').value = total; document.getElementById('inv_totalDisplay').value = total > 0 ? total.toLocaleString('vi-VN') + " ₫" : ""; };
     
-    formatCurrencyInput('amountDisplay', 'amountActual'); formatCurrencyInput('tx_exam_amountDisplay', 'tx_exam_amountActual'); formatCurrencyInput('exp_amountDisplay', 'exp_amountActual'); formatCurrencyInput('ee_amountDisplay', 'ee_amountActual'); formatCurrencyInput('inv_priceDisplay', 'inv_priceActual', window.calcInv); formatCurrencyInput('add_fee_display', 'add_fee_actual'); formatCurrencyInput('add_uniform_display', 'add_uniform_actual'); formatCurrencyInput('ei_amountDisplay', 'ei_amountActual'); formatCurrencyInput('exam_fee_all_display', 'exam_fee_all_actual'); formatCurrencyInput('add_fee_default_display', 'add_fee_default_actual', window.updateAddPackageAmount); formatCurrencyInput('m_fee_display', 'm_fee_actual'); 
+    formatCurrencyInput('amountDisplay', 'amountActual'); formatCurrencyInput('tx_exam_amountDisplay', 'tx_exam_amountActual'); formatCurrencyInput('exp_amountDisplay', 'exp_amountActual'); formatCurrencyInput('ee_amountDisplay', 'ee_amountActual'); formatCurrencyInput('inv_priceDisplay', 'inv_priceActual', window.calcInv); formatCurrencyInput('add_fee_display', 'add_fee_actual'); formatCurrencyInput('add_uniform_display', 'add_uniform_actual'); formatCurrencyInput('ei_amountDisplay', 'ei_amountActual'); formatCurrencyInput('exam_fee_all_display', 'exam_fee_all_actual'); formatCurrencyInput('add_fee_default_display', 'add_fee_default_actual', window.updateAddPackageAmount); formatCurrencyInput('m_fee_display', 'm_fee_actual'); formatCurrencyInput('eexp_amountDisplay', 'eexp_amountActual');
     
     window.updateComboTotal = () => {
         let f1 = Number(document.getElementById('combo_fee1_actual').value) || 0; let f2 = Number(document.getElementById('combo_fee2_actual').value) || 0;
         document.getElementById('combo_total').innerText = (f1 + f2).toLocaleString('vi-VN') + " ₫";
     };
     formatCurrencyInput('combo_fee1_display', 'combo_fee1_actual', window.updateComboTotal); formatCurrencyInput('combo_fee2_display', 'combo_fee2_actual', window.updateComboTotal);
+
+    /* ==================================
+       KHÔI PHỤC HÀM XỬ LÝ GIAO DIỆN HỌC PHÍ
+       ================================== */
+    window.toggleTxFormType = () => {
+        const type = document.getElementById('type').value;
+        const examWrap = document.getElementById('exam_fee_container');
+        const pkgWrap = document.getElementById('tx_package_wrapper');
+        if (type === 'Học phí + Lệ phí thi') {
+            examWrap.style.display = 'grid'; pkgWrap.style.display = 'flex';
+            window.updateExamComboQuarter();
+        } else if (type === 'Học phí') {
+            examWrap.style.display = 'none'; pkgWrap.style.display = 'flex';
+        } else {
+            examWrap.style.display = 'none'; pkgWrap.style.display = 'none';
+        }
+    };
+    
+    window.updateExamComboQuarter = () => {
+        const dateStr = document.getElementById('date').value;
+        if(!dateStr) return;
+        const m = parseInt(dateStr.split('-')[1]);
+        let q = Math.ceil(m/3);
+        document.getElementById('tx_exam_title').value = `Thi Quý ${q}/${dateStr.split('-')[0]}`;
+    };
+    
+    window.updateAmountByPackage = () => {
+        const name = document.getElementById('description').value.trim();
+        if(!name || !allProfiles[name]) return;
+        const baseFee = Number(allProfiles[name].tuitionFee) || 0;
+        const pkg = parseInt(document.getElementById('tx_package').value) || 1;
+        const isDiscount = document.getElementById('tx_discount').checked;
+        let total = baseFee * pkg;
+        if(isDiscount) total = total * 0.9;
+        document.getElementById('amountActual').value = total;
+        document.getElementById('amountDisplay').value = total.toLocaleString('vi-VN');
+    };
+
+    /* ==================================
+       KHÔI PHỤC HÀM XỬ LÝ GIAO DIỆN KHO/VÕ PHỤC
+       ================================== */
+    window.toggleInvType = () => {
+        const t = document.getElementById('inv_type').value;
+        const desc = document.getElementById('inv_desc');
+        if(t === 'Nhập kho') { desc.placeholder = "Nhập tên nhà cung cấp"; }
+        else { desc.placeholder = "Tên Võ sinh / Đại lý"; }
+    };
+
+    window.toggleAddUniformGift = () => {
+        const isGift = document.getElementById('add_uniform_gift').checked;
+        const dispEl = document.getElementById('add_uniform_display');
+        const actEl = document.getElementById('add_uniform_actual');
+        if(isGift) {
+            dispEl.value = "0"; actEl.value = 0; dispEl.disabled = true;
+        } else {
+            dispEl.disabled = false; dispEl.value = ""; actEl.value = "";
+        }
+    };
+    
+    window.updateAddPackageAmount = () => {
+        const baseFee = Number(document.getElementById('add_fee_default_actual').value) || 0;
+        const pkg = parseInt(document.getElementById('add_package').value) || 1;
+        const isDiscount = document.getElementById('add_discount').checked;
+        let total = baseFee * pkg;
+        if(isDiscount) total = total * 0.9;
+        document.getElementById('add_fee_actual').value = total;
+        document.getElementById('add_fee_display').value = total.toLocaleString('vi-VN');
+    };
 
     window.openSettingsModal = () => {
         if(window.userRole !== 'admin' && window.userRole !== 'super_admin') return alert("Chỉ Admin mới có quyền cấu hình hệ thống!");
@@ -882,6 +1009,36 @@
         e.target.reset(); document.getElementById('date').value = getLocalToday(); document.getElementById('tx_package').value = "1"; document.getElementById('tx_discount').checked = false; document.getElementById('tx_exam_amountActual').value = ""; window.toggleTxFormType(); window.showToast("✅ Đã lưu khoản thu!");
     };
 
+    /* ==================================
+       KHÔI PHỤC TÍNH NĂNG XEM/SỬA HỒ SƠ 
+       VÀ BÁO NỢ (NGHỈ TẬP)
+       ================================== */
+    window.openProfile = (name) => {
+        const p = allProfiles[name];
+        if(!p) return;
+        document.getElementById('m_old_name').value = name;
+        document.getElementById('m_name_input').value = name;
+        document.getElementById('m_status').value = p.status || 'active';
+        document.getElementById('m_branch').value = p.branch || 'CS1';
+        document.getElementById('m_belt').value = p.belt || 'Đai trắng - Cấp 10';
+        document.getElementById('m_dob').value = p.dob || '';
+        document.getElementById('m_phone').value = p.phone || '';
+        document.getElementById('m_fee_actual').value = p.tuitionFee || '';
+        document.getElementById('m_fee_display').value = p.tuitionFee ? parseInt(p.tuitionFee, 10).toLocaleString('vi-VN') : '';
+        document.getElementById('m_notes').value = p.notes || '';
+        
+        let skippedHtml = '';
+        if(p.skippedMonths && p.skippedMonths.length > 0) {
+            p.skippedMonths.forEach(m => {
+                skippedHtml += `<span class="bg-amber-200 text-amber-800 text-[0.7rem] px-2 py-1 rounded font-bold cursor-pointer hover:bg-rose-200 shadow-sm" onclick="removeSkip('${name}', '${m}')" title="Bấm để xóa">Tháng ${formatMonth(m)} ✖</span>`;
+            });
+        } else {
+            skippedHtml = '<span class="text-[0.7rem] text-amber-600/70 italic">Chưa có tháng báo nghỉ</span>';
+        }
+        document.getElementById('m_skipped').innerHTML = skippedHtml;
+        document.getElementById('profileModal').style.display = 'flex';
+    };
+
     window.updateProfile = async () => {
         if(window.userRole === 'viewer') return; 
         const oldName = document.getElementById('m_old_name').value.trim(); const newName = document.getElementById('m_name_input').value.trim(); const newStatus = document.getElementById('m_status').value;
@@ -931,8 +1088,40 @@
     };
 
     window.skipMonth = async (name, month) => { await setDoc(doc(db, "clubs", currentClubId, "profiles", name.trim()), { skippedMonths: arrayUnion(month) }, { merge: true }); window.showToast("✅ Đã miễn phí tháng!"); };
-
     window.removeSkip = async (name, month) => { if(window.userRole !== 'viewer' && confirm(`Hủy báo nghỉ tháng ${formatMonth(month)} cho ${name}?`)) { await setDoc(doc(db, "clubs", currentClubId, "profiles", name.trim()), { skippedMonths: arrayRemove(month) }, { merge: true }); closeModal(); window.showToast("✅ Đã khôi phục nợ!"); } };
+
+    window.handleQuitOption = (name, month) => {
+        if(confirm(`Võ sinh ${name} có tiếp tục tập không?\n- Bấm OK để báo NGHỈ TẬP luôn.\n- Bấm Cancel để chỉ BÁO NGHỈ THÁNG NÀY (miễn học phí tháng ${formatMonth(month)}).`)) {
+            // Quit tập
+            const p = allProfiles[name];
+            let updateData = { status: 'quit', quitDate: getLocalToday() };
+            setDoc(doc(db, "clubs", currentClubId, "profiles", name), updateData, { merge: true }).then(() => {
+                window.showToast("✅ Đã chuyển trạng thái Nghỉ tập!");
+            });
+        } else {
+            // Skip month
+            if(confirm(`Xác nhận miễn nợ học phí tháng ${formatMonth(month)} cho ${name}?`)) {
+                window.skipMonth(name, month);
+            }
+        }
+    };
+
+    window.generateMultiMonthPaymentRequest = (name, monthsStr, branch, amount) => {
+        window.exportReceipt(name, Number(amount), 'Học phí', getLocalToday(), monthsStr, branch, '', 'PHIẾU BÁO HỌC PHÍ');
+    };
+
+    window.copyAndOpenZalo = (name, month, phone) => {
+        const p = allProfiles[name];
+        let fee = p ? (p.tuitionFee || 0) : 0;
+        let msg = `CLB Taekwondo thông báo:\nHọc phí tháng ${formatMonth(month)} của võ sinh ${name} là ${parseInt(fee).toLocaleString('vi-VN')}đ.\nPhụ huynh vui lòng đóng học phí nhé!`;
+        navigator.clipboard.writeText(msg).then(() => {
+            window.showToast("✅ Đã copy tin nhắn!");
+            if(phone) {
+                let zphone = phone.replace(/^0/, '84');
+                window.open(`https://zalo.me/${zphone}`, '_blank');
+            }
+        });
+    };
 
     window.addNewStudent = async () => {
         if(window.userRole === 'viewer') return; 
@@ -965,6 +1154,35 @@
         e.target.reset(); document.getElementById('inv_priceActual').value = ""; document.getElementById('inv_totalActual').value = ""; document.getElementById('inv_date').value = getLocalToday(); window.showToast("✅ Đã cập nhật Kho!");
     };
 
+    /* ==================================
+       KHÔI PHỤC HÀM SỬA KHO VÀ SỬA CHI PHÍ
+       ================================== */
+    window.openEditInv = async (txId, invId) => {
+        if(!invId || invId === 'undefined') return alert("Sản phẩm này ghi trước bản nâng cấp, không hỗ trợ sửa tự động. Hãy dùng nút Xóa để ghi lại!");
+        try {
+            const docSnap = await getDoc(doc(db, "clubs", currentClubId, "inventory", invId));
+            if(docSnap.exists()) {
+                const data = docSnap.data();
+                document.getElementById('ei_txId').value = txId;
+                document.getElementById('ei_invId').value = invId;
+                document.getElementById('ei_size').value = data.size || '';
+                document.getElementById('ei_type').value = data.type || 'Xuất bán';
+                document.getElementById('ei_qty').value = data.qty || 1;
+                document.getElementById('ei_date').value = data.date || '';
+                
+                const txSnap = await getDoc(doc(db, "clubs", currentClubId, "transactions", txId));
+                if(txSnap.exists()) {
+                    document.getElementById('ei_desc').value = txSnap.data().description || '';
+                    document.getElementById('ei_amountActual').value = txSnap.data().amount || 0;
+                    document.getElementById('ei_amountDisplay').value = (txSnap.data().amount || 0).toLocaleString('vi-VN');
+                }
+                document.getElementById('editInvModal').style.display = 'flex';
+            }
+        } catch (e) { console.error(e); alert("Lỗi khi tải dữ liệu sửa kho!"); }
+    };
+    
+    window.closeEditInvModal = () => document.getElementById('editInvModal').style.display = 'none';
+
     window.saveEditInv = async () => {
         if(window.userRole === 'viewer') return;
         let txId = document.getElementById('ei_txId').value; let invId = document.getElementById('ei_invId').value; let size = document.getElementById('ei_size').value; let type = document.getElementById('ei_type').value; let qty = Number(document.getElementById('ei_qty').value); let date = document.getElementById('ei_date').value; let desc = document.getElementById('ei_desc').value.trim(); let amount = Number(document.getElementById('ei_amountActual').value);
@@ -972,6 +1190,34 @@
         await updateDoc(doc(db, "clubs", currentClubId, "inventory", invId), { size, type, qty, date });
         let txType = type === 'Nhập kho' ? 'Chi Võ phục' : 'Thu Võ phục'; await updateDoc(doc(db, "clubs", currentClubId, "transactions", txId), { type: txType, description: desc, amount, date });
         document.getElementById('editInvModal').style.display = 'none'; window.showToast("✅ Đã sửa thành công dữ liệu kho!");
+    };
+
+    window.openEditExpense = async (txId) => {
+        try {
+            const txSnap = await getDoc(doc(db, "clubs", currentClubId, "transactions", txId));
+            if(txSnap.exists()) {
+                const data = txSnap.data();
+                document.getElementById('eexp_txId').value = txId;
+                document.getElementById('eexp_branch').value = data.branch || 'CS1';
+                document.getElementById('eexp_desc').value = data.description || '';
+                document.getElementById('eexp_amountActual').value = data.amount || 0;
+                document.getElementById('eexp_amountDisplay').value = (data.amount || 0).toLocaleString('vi-VN');
+                document.getElementById('eexp_date').value = data.date || getLocalToday();
+                document.getElementById('editExpModal').style.display = 'flex';
+            }
+        } catch(e) { console.error(e); alert("Lỗi khi mở giao dịch!"); }
+    };
+
+    window.saveEditExpense = async () => {
+        const txId = document.getElementById('eexp_txId').value;
+        const branch = document.getElementById('eexp_branch').value;
+        const desc = document.getElementById('eexp_desc').value;
+        const amt = Number(document.getElementById('eexp_amountActual').value);
+        const date = document.getElementById('eexp_date').value;
+        
+        await updateDoc(doc(db, "clubs", currentClubId, "transactions", txId), { branch: branch, description: desc, amount: amt, date: date });
+        document.getElementById('editExpModal').style.display = 'none';
+        window.showToast("✅ Đã sửa chi phí thành công!");
     };
 
     window.deleteTx = async (id, relatedInvId) => { 
@@ -1312,12 +1558,14 @@
 
             if (!isBranchMatch || !isSearchMatch) return;
 
+            const btnEditExp = window.userRole === 'admin' ? `<button class="btn-sm bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white" onclick="openEditExpense('${t.id}')">✏️</button>` : '';
+
             if(t.type === 'Chi phí') {
                 exp += t.amount; 
-                expHtml += `<tr><td>${formatDate(t.date)}</td>${branchTdHTML}<td class="font-bold text-slate-800">${t.description}</td><td class="text-rose-600 font-bold">-${t.amount.toLocaleString()}</td><td>${btnDel}</td></tr>`;
+                expHtml += `<tr><td>${formatDate(t.date)}</td>${branchTdHTML}<td class="font-bold text-slate-800">${t.description}</td><td class="text-rose-600 font-bold">-${t.amount.toLocaleString()}</td><td class="action-btns">${btnEditExp}${btnDel}</td></tr>`;
             } else if (t.type === 'Chi phí kỳ thi') {
                 exp_exam_total += t.amount;
-                examExpHtml += `<tr><td>${formatDate(t.date)}</td><td class="font-bold text-slate-800">${t.description}</td><td class="text-rose-600 font-bold">-${t.amount.toLocaleString()}</td><td>${btnDel}</td></tr>`;
+                examExpHtml += `<tr><td>${formatDate(t.date)}</td><td class="font-bold text-slate-800">${t.description}</td><td class="text-rose-600 font-bold">-${t.amount.toLocaleString()}</td><td class="action-btns">${btnEditExp}${btnDel}</td></tr>`;
             } else {
                 let allocatedAmount = t.amount;
                 if(t.type === 'Học phí') { allocatedAmount = t.packageMonths ? t.amount / t.packageMonths.length : t.amount; inc_tuition += allocatedAmount; } 
@@ -1445,7 +1693,7 @@
                 let isPaid = paidStudents[name]; let safeName = name.replace(/'/g, "\\'");
                 let branchTdHTML = isSingleBranch ? '' : `<td class="col-branch"><span class="badge bg-slate-100 text-slate-600 border border-slate-200">${window.getBranchNameDisplay(p.branch || 'CS1')}</span></td>`;
                 let statusBadge = isPaid ? `<span class="badge badge-active">Đã nộp (${isPaid.amount.toLocaleString()} đ)</span>` : `<span class="badge badge-quit">Chưa nộp</span>`;
-                let actionBtn = isPaid ? (window.userRole === 'admin' ? `<button class="btn-sm bg-slate-200 hover:bg-slate-300 text-slate-700" onclick="deleteTx('${isPaid.id}')">Hủy</button>` : '') : (window.userRole === 'admin' ? `<button class="btn-sm bg-orange-500 hover:bg-orange-600 text-white shadow-sm" onclick="quickCollectExam('${safeName}')">💰 Thu phí</button>` : '');
+                let actionBtn = isPaid ? (window.userRole === 'admin' ? `<button class="btn-sm bg-slate-200 hover:bg-slate-300 text-slate-700" onclick="deleteTx('${isPaid.id}')">Hủy</button>` : '') : (window.userRole === 'admin' ? `<button class="btn-sm bg-orange-500 hover:bg-orange-600 text-white shadow-sm cursor-pointer" onclick="quickCollectExam('${safeName}')">💰 Thu phí</button>` : '');
                 htmlExam += `<tr><td><input type="checkbox" class="exam-check w-4 h-4 cursor-pointer accent-orange-500 rounded" value="${name.replace(/"/g, '&quot;')}"></td><td class="name-link text-[0.95rem]" onclick="openProfile('${safeName}')">${name}</td>${branchTdHTML}<td>${getBeltBadge(p.belt)}</td><td>${statusBadge}</td><td>${actionBtn}</td></tr>`;
             }
         });
