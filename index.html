@@ -1,0 +1,1459 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, viewport-fit=cover">
+    <title>Quản Lý CLB TST - Bản Pro (SaaS Architecture)</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { primary: '#0033A0', secondary: '#C8102E', surface: '#f8fafc' },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    boxShadow: { 'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)', 'float': '0 8px 25px -5px rgba(0, 51, 160, 0.12)' }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        :root { --primary: #0033A0; --secondary: #C8102E; --belt-yellow: #f1c40f; --belt-green: #2ecc71; --belt-blue: #3498db; --belt-red: #e74c3c; --belt-black: #1e293b; }
+        body { font-family: 'Inter', -apple-system, sans-serif; background: #f1f5f9; margin: 0; color: #334155; padding-bottom: calc(40px + env(safe-area-inset-bottom)); -webkit-tap-highlight-color: transparent;}
+        
+        #loginOverlay { position: fixed; inset: 0; background: radial-gradient(circle at top right, var(--primary), #001540); display: flex; justify-content: center; align-items: center; z-index: 9999; }
+        .app-container { display: none; }
+        
+        /* Tabs dính (Sticky) */
+        .tabs-wrapper { position: sticky; top: 0; z-index: 50; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px); padding-top: 12px; margin-bottom: 20px; border-bottom: 1px solid #e2e8f0; margin-left: -1rem; margin-right: -1rem; padding-left: 1rem; padding-right: 1rem; }
+        @media (min-width: 768px) { .tabs-wrapper { margin-left: 0; margin-right: 0; padding-left: 0; padding-right: 0; border-radius: 0 0 12px 12px; } }
+        
+        .tabs-nav { display: flex; gap: 6px; overflow-x: auto; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; padding-bottom: 12px; scrollbar-width: none; }
+        .tabs-nav::-webkit-scrollbar { display: none; }
+        .tab-btn { padding: 8px 16px; font-weight: 600; color: #64748b; border-radius: 9999px; cursor: pointer; transition: all 0.2s ease; white-space: nowrap; border: 1px solid #f1f5f9; font-size: 0.9rem; background: #f8fafc; }
+        .tab-btn:hover { color: var(--primary); background: #e2e8f0; border-color: #cbd5e1; }
+        .tab-btn.active { color: white; background: var(--primary); font-weight: 700; border-color: var(--primary); box-shadow: 0 4px 12px rgba(0, 51, 160, 0.2); }
+        .tab-content { display: none; animation: fadeIn 0.3s ease; }
+        .tab-content.active { display: block; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideUpSheet { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+        input, select, textarea { border: 1.5px solid #cbd5e1; padding: 10px 14px; border-radius: 10px; width: 100%; outline: none; transition: all 0.2s; background: #fff; font-size: 16px !important; color: #1e293b; }
+        input:focus, select:focus, textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(0,51,160,0.15); }
+        input:disabled, select:disabled { background: #f1f5f9; color: #94a3b8; cursor: not-allowed; border-color: #e2e8f0; }
+        
+        .table-wrapper { overflow-x: auto; overflow-y: auto; max-height: 70vh; -webkit-overflow-scrolling: touch; border-radius: 12px; width: 100%; }
+        .table-wrapper::-webkit-scrollbar { height: 8px; width: 8px; }
+        .table-wrapper::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; border: 2px solid #fff; }
+        table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: max-content; }
+        th { background: #f8fafc; color: #475569; font-size: 0.75rem; padding: 14px 12px; text-align: left; border-bottom: 2px solid #e2e8f0; text-transform: uppercase; white-space: nowrap; font-weight: 800; position: sticky; top: 0; z-index: 10; }
+        td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 0.9rem; vertical-align: middle; color: #334155; white-space: nowrap; }
+        tr:hover td { background: #f8fafc; }
+        
+        .name-link { color: var(--primary); font-weight: 700; cursor: pointer; transition: 0.2s; }
+        .name-link:hover { text-decoration: underline; color: #001540; }
+        .badge { padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; display: inline-block; white-space: nowrap; }
+        .badge-active { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+        .badge-quit { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+        
+        .modal { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.7); z-index: 10000; padding: 0; backdrop-filter: blur(5px); align-items: flex-end; justify-content: center; }
+        .modal-content { background: white; width: 100%; max-width: 650px; border-radius: 20px 20px 0 0; padding: 20px; box-shadow: 0 -10px 40px rgba(0,0,0,0.2); max-height: 85vh; overflow-y: auto; position: relative; animation: slideUpSheet 0.3s cubic-bezier(0.16, 1, 0.3, 1); padding-bottom: calc(20px + env(safe-area-inset-bottom)); }
+        @media (min-width: 768px) { .modal { padding: 20px; align-items: center; } .modal-content { border-radius: 20px; animation: fadeIn 0.2s; padding-bottom: 20px; } }
+        
+        .autocomplete-items { position: absolute; border: 1px solid #e2e8f0; z-index: 99; top: 100%; left: 0; right: 0; background: #fff; max-height: 250px; overflow-y: auto; display: none; box-shadow: 0 10px 20px -5px rgba(0,0,0,0.1); border-radius: 0 0 10px 10px; border-top: none; }
+        .autocomplete-items div { padding: 12px 14px; cursor: pointer; border-bottom: 1px solid #f1f5f9; font-size: 0.95rem; display: flex; justify-content: space-between; align-items: center; }
+        .autocomplete-items div:hover { background-color: #f0f4ff; }
+        
+        .toast { visibility: hidden; min-width: 250px; background-color: #10b981; color: #fff; text-align: center; border-radius: 10px; padding: 14px 20px; position: fixed; z-index: 10001; right: 20px; bottom: calc(20px + env(safe-area-inset-bottom)); transform: translateY(100px); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); font-size: 0.95rem; font-weight: bold; box-shadow: 0 10px 20px rgba(0,0,0,0.15); }
+        .toast.show { visibility: visible; transform: translateY(0); }
+        .toast.loading { background-color: #f59e0b; }
+        
+        #receiptTemplate { position: absolute; left: -9999px; visibility: hidden; width: 400px; background: white; padding: 30px; border-radius: 16px; border: 2px solid #0033A0; box-sizing: border-box; font-family: 'Inter', sans-serif;}
+        .action-btns { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+        .btn-sm { padding: 6px 10px; font-size: 0.75rem; font-weight: 700; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; border: 1px solid transparent; }
+
+        @media (max-width: 768px) {
+            body { padding-bottom: 60px; }
+            .app-container { padding: 12px 16px; border-radius: 0; box-shadow: none; border: none; }
+            .tab-btn { padding: 8px 14px; font-size: 0.85rem; }
+            th { padding: 10px 8px; font-size: 0.7rem; }
+            td { padding: 10px 8px; font-size: 0.85rem; }
+            .modal-content { padding: 20px 16px; }
+            .stat-card { padding: 14px; border-radius: 16px; }
+            .stat-card h3 { font-size: 0.65rem; }
+            .stat-card p { font-size: 1.15rem; }
+            #receiptModal .modal-content { padding: 20px 16px !important; }
+        }
+        
+        .loading-spinner { border: 3px solid rgba(255, 255, 255, 0.3); border-top: 3px solid #fff; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; display: inline-block; vertical-align: middle; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-slate-50">
+
+<div id="loginOverlay">
+    <div class="bg-white/95 backdrop-blur-xl p-8 rounded-[24px] w-[90%] max-w-sm text-center shadow-2xl border border-white/20">
+        <img src="logo.png" id="loginLogo" alt="Logo" onerror="this.src='https://via.placeholder.com/240x80?text=LOGO+CLB'" class="w-full max-w-[180px] mx-auto mb-6 object-contain drop-shadow-md club-logo-img">
+        <h2 class="text-primary text-xl font-black mb-6 tracking-tight">HỆ THỐNG QUẢN LÝ CÂU LẠC BỘ</h2>
+        <input type="email" id="emailInput" placeholder="Email quản trị" class="mb-3 text-center text-lg bg-slate-50 border-slate-200 focus:bg-white rounded-xl py-3 w-full">
+        <input type="password" id="passInput" placeholder="Nhập mật khẩu truy cập" class="mb-5 text-center text-lg bg-slate-50 border-slate-200 focus:bg-white rounded-xl py-3 w-full">
+        <button onclick="handleLogin()" id="btnLogin" class="w-full bg-gradient-to-r from-primary to-blue-700 hover:to-blue-800 text-white font-bold py-3.5 px-4 rounded-xl transition duration-300 shadow-float">
+            <span id="loginText">ĐĂNG NHẬP</span>
+            <div id="loginLoading" class="loading-spinner hidden ml-2"></div>
+        </button>
+    </div>
+</div>
+
+<div class="app-container max-w-[1400px] mx-auto bg-white md:rounded-[24px] md:shadow-soft md:border md:border-slate-100 md:p-6 lg:p-8 relative" id="mainApp">
+    
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center pb-4 mb-2 gap-3">
+        <div class="flex items-center gap-3">
+            <img src="logo.png" alt="Logo" onerror="this.src='https://via.placeholder.com/150x50?text=LOGO'" class="h-12 md:h-14 w-auto object-contain drop-shadow-sm club-logo-img">
+            <div>
+                <h2 id="displayClubName" class="text-primary text-lg md:text-2xl font-black uppercase m-0 tracking-tight leading-tight">HỆ THỐNG QUẢN LÝ CLB</h2>
+                <p class="text-[0.75rem] md:text-sm text-slate-500 font-semibold mt-0.5">Hệ thống quản lý thu chi CLB & Báo cáo Thuế HKD</p>
+            </div>
+        </div>
+        <div class="flex flex-col md:flex-row gap-2 w-full md:w-auto">
+            <button id="btnSuperAdmin" onclick="openNewClubModal()" style="display:none;" class="w-full md:w-auto bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all text-sm md:text-base">
+                🚀 Mở CLB Mới
+            </button>
+            <button onclick="handleLogout()" class="w-full md:w-auto bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all text-sm md:text-base border border-rose-200">
+                🚪 Đăng xuất
+            </button>
+            <button onclick="openSettingsModal()" class="w-full md:w-auto bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all text-sm md:text-base">
+                ⚙️ Cấu hình
+            </button>
+            <button id="exportTaxBtn" onclick="openTaxModal()" class="w-full md:w-auto bg-purple-600 hover:bg-purple-700 text-white font-bold py-2.5 px-5 rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all text-sm md:text-base">
+                <span>📑</span> Sổ Thuế
+            </button>
+            <button id="exportBtn" onclick="exportToExcel()" class="w-full md:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-5 rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all text-sm md:text-base">
+                <span>📥</span> File Excel
+            </button>
+        </div>
+    </div>
+
+    <div class="tabs-wrapper">
+        <div class="tabs-nav">
+            <button class="tab-btn active" id="btn_tx" onclick="switchTab('tx')">💼 Học Phí</button>
+            <button class="tab-btn" id="btn_debt" onclick="switchTab('debt')">⚠️ Báo Nợ (<span id="debtTabCountBadge">0</span>)</button>
+            <button class="tab-btn" id="btn_inventory" onclick="switchTab('inventory')">📦 Kho Đồ</button>
+            <button class="tab-btn" id="btn_exam" onclick="switchTab('exam')">🏆 Thi Đai</button>
+            <button class="tab-btn" id="btn_expense" onclick="switchTab('expense')">💸 Chi Phí</button>
+            <button class="tab-btn" id="btn_active" onclick="switchTab('active')">🥋 Đang Tập (<span id="activeStudentCount">0</span>)</button>
+            <button class="tab-btn" id="btn_quit" onclick="switchTab('quit')">🛑 Đã Nghỉ</button>
+            <button class="tab-btn" id="btn_dashboard" onclick="switchTab('dashboard')">📊 Tổng Quan</button>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-100 mb-6">
+        <div>
+            <label class="block text-[0.7rem] font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Kỳ hiển thị ứng dụng (Tháng)</label>
+            <input type="month" id="filterMonth" class="bg-white shadow-sm border-slate-200">
+        </div>
+        <div class="input-branch">
+            <label class="block text-[0.7rem] font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Lọc Cơ sở</label>
+            <select id="filterBranch" class="bg-white shadow-sm border-slate-200">
+                <option value="all">🏢 Tất cả cơ sở</option>
+                <option value="CS1">📍 Cơ sở 1</option>
+                <option value="CS2">📍 Cơ sở 2</option>
+            </select>
+        </div>
+        <div>
+            <label class="block text-[0.7rem] font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Tìm kiếm</label>
+            <div class="relative">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 text-sm">🔍</span>
+                <input type="text" id="searchInput" placeholder="Tên, SĐT, Đai..." class="pl-9 bg-white shadow-sm border-slate-200">
+            </div>
+        </div>
+    </div>
+
+    <!-- Bắt đầu phần Nội dung các tab -->
+    <div id="tab_tx" class="tab-content active">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-3">
+            <h4 class="text-primary font-black text-base md:text-xl flex items-center gap-2"><span>💳</span> GHI NHẬN THU HỌC PHÍ</h4>
+            <div class="flex gap-2 w-full md:w-auto">
+                <button id="btnComboPay" onclick="openComboModal()" class="w-full md:w-auto bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-indigo-700 transition shadow-sm text-sm">👨‍👩‍👧‍👦 THU GỘP</button>
+                <button id="btnAddStudent" onclick="openAddModal()" class="w-full md:w-auto bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-blue-700 transition shadow-sm text-sm">➕ THÊM VÕ SINH</button>
+            </div>
+        </div>
+        <div class="bg-blue-50/50 border-l-4 border-primary p-4 rounded-xl flex flex-wrap gap-5 md:gap-8 mb-6 border border-blue-100">
+            <div><span class="text-xs font-bold text-blue-800 uppercase tracking-wide">Doanh thu Học phí kỳ này</span> <span id="sum_tuition" class="block text-xl md:text-3xl font-black text-primary mt-0.5">0 ₫</span></div>
+            <div><span class="text-xs font-bold text-indigo-800 uppercase tracking-wide">Khoản thu khác</span> <span id="sum_other" class="block text-lg md:text-2xl font-bold text-indigo-900 mt-0.5">0 ₫</span></div>
+        </div>
+        <form id="transactionForm" class="grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 bg-white p-4 md:p-5 rounded-xl border border-blue-50 shadow-sm mb-6 relative z-10 items-start">
+            <input type="date" id="date" required class="md:col-span-2 bg-slate-50" onchange="updateExamComboQuarter()" title="Ngày giao dịch">
+            <select id="branch" class="md:col-span-2 bg-slate-50 input-branch">
+                <option value="CS1">Cơ sở 1</option>
+                <option value="CS2">Cơ sở 2</option>
+            </select>
+            <select id="type" onchange="toggleTxFormType()" class="md:col-span-3 bg-slate-50">
+                <option value="Học phí">Học phí</option>
+                <option value="Học phí + Lệ phí thi">Học phí + Lệ phí thi</option>
+                <option value="Thu khác">Thu khác</option>
+            </select>
+            <div class="autocomplete-container md:col-span-5 relative">
+                <input type="text" id="description" placeholder="Tên võ sinh / Nội dung" autocomplete="off" required class="bg-slate-50">
+                <div id="autocomplete-list" class="autocomplete-items"></div>
+            </div>
+            <div id="tx_package_wrapper" class="flex flex-col gap-1 md:col-span-3">
+                <select id="tx_package" class="bg-slate-50 font-bold text-primary" onchange="updateAmountByPackage()">
+                    <option value="1">Gói 1 Tháng</option>
+                    <option value="3">Gói 3 Tháng</option>
+                    <option value="6">Gói 6 Tháng</option>
+                    <option value="12">Gói 12 Tháng</option>
+                </select>
+                <label class="flex items-center gap-1.5 cursor-pointer mt-0.5">
+                    <input type="checkbox" id="tx_discount" class="w-4 h-4 text-rose-500 rounded border-slate-300 focus:ring-rose-500" onchange="updateAmountByPackage()">
+                    <span class="text-[0.7rem] font-bold text-rose-600 uppercase">🎁Giảm 10% học phí</span>
+                </label>
+            </div>
+            <div class="md:col-span-3">
+                <input type="text" id="amountDisplay" placeholder="Số tiền (VNĐ)" required class="font-black text-emerald-600 bg-slate-50 text-base md:text-lg w-full h-[46px]">
+                <input type="hidden" id="amountActual">
+            </div>
+            <button type="submit" class="bg-primary hover:bg-blue-800 text-white font-bold rounded-xl md:col-span-6 py-3 transition shadow-sm tracking-wide h-[46px]">XÁC NHẬN LƯU</button>
+            <div id="exam_fee_container" style="display:none;" class="md:col-span-12 grid grid-cols-1 md:grid-cols-2 gap-3 mt-1 bg-orange-50 p-4 rounded-xl border border-orange-100">
+                <div>
+                    <label class="block text-[0.7rem] font-bold text-orange-800 mb-1 uppercase">Nội dung Lệ phí thi</label>
+                    <input type="text" id="tx_exam_title" readonly class="bg-orange-100/50 cursor-not-allowed font-semibold text-orange-900 border-orange-200">
+                </div>
+                <div>
+                    <label class="block text-[0.7rem] font-bold text-orange-800 mb-1 uppercase">Số tiền Lệ phí thi</label>
+                    <input type="text" id="tx_exam_amountDisplay" placeholder="VNĐ" class="font-black text-orange-600 bg-white text-base md:text-lg">
+                    <input type="hidden" id="tx_exam_amountActual">
+                </div>
+            </div>
+        </form>
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="table-wrapper">
+                <table id="tbl_tx">
+                    <thead><tr><th>Ngày nộp</th><th class="col-branch">Cơ sở</th><th>Kỳ doanh thu</th><th>Võ sinh / Nội dung</th><th>Phân loại</th><th>Số tiền</th><th>Thao tác</th></tr></thead>
+                    <tbody id="txList"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div id="tab_debt" class="tab-content">
+        <div class="flex justify-between items-center mb-4">
+            <h4 class="text-amber-600 font-black text-base md:text-xl flex items-center gap-2"><span>⚠️</span> QUẢN LÝ BÁO NỢ HỌC PHÍ</h4>
+            <button onclick="openComboModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl font-bold transition shadow-sm text-sm">👨‍👩‍👧‍👦 TẠO PHIẾU GỘP</button>
+        </div>
+        <div class="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-xl flex flex-wrap gap-5 md:gap-8 mb-6 border border-amber-100">
+            <div><span class="text-xs font-bold text-amber-800 uppercase tracking-wide">Số lượng đang nợ</span> <span id="sum_debt_count_tab" class="block text-xl md:text-3xl font-black text-amber-600 mt-0.5">0 Bạn</span></div>
+            <div><span class="text-xs font-bold text-orange-800 uppercase tracking-wide">Tổng tiền dự thu</span> <span id="sum_debt_amount_tab" class="block text-lg md:text-2xl font-bold text-orange-600 mt-0.5">0 ₫</span></div>
+        </div>
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="table-wrapper">
+                <table id="tbl_debt">
+                    <thead><tr><th>Số tháng nợ</th><th>Kỳ chưa nộp</th><th class="col-branch">Cơ sở</th><th>Võ sinh</th><th>Thao tác điều hướng</th></tr></thead>
+                    <tbody id="debtList"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div id="tab_inventory" class="tab-content"><h4 class="text-blue-700 font-black text-base md:text-xl mb-4 flex items-center gap-2"><span>📦</span> QUẢN LÝ KHO VÕ PHỤC</h4><div class="bg-blue-50 border-l-4 border-blue-600 p-4 rounded-xl flex flex-wrap gap-5 md:gap-8 mb-6 border border-blue-100"><div><span class="text-xs font-bold text-blue-800 uppercase tracking-wide">Tổng thu bán</span> <span id="sum_uniform_in" class="block text-lg md:text-2xl font-bold text-emerald-600 mt-0.5">0 ₫</span></div><div><span class="text-xs font-bold text-blue-800 uppercase tracking-wide">Tổng chi nhập</span> <span id="sum_uniform_out" class="block text-lg md:text-2xl font-bold text-rose-600 mt-0.5">0 ₫</span></div><div><span class="text-xs font-bold text-indigo-900 uppercase tracking-wide">Lợi nhuận</span> <span id="sum_uniform_profit" class="block text-xl md:text-3xl font-black text-blue-700 mt-0.5">0 ₫</span></div></div><form id="inventoryForm" class="grid grid-cols-1 md:grid-cols-5 gap-3 md:gap-4 bg-white p-4 md:p-5 rounded-xl border border-blue-50 shadow-sm mb-6"><select id="inv_size" required class="bg-slate-50"><option value="" disabled selected>-- Chọn Size --</option><option value="Size 1m">Size 1m</option><option value="Size 1m1">Size 1m1</option><option value="Size 1m2">Size 1m2</option><option value="Size 1m3">Size 1m3</option><option value="Size 1m4">Size 1m4</option><option value="Size 1m5">Size 1m5</option><option value="Size 1m6">Size 1m6</option><option value="Size 1m7">Size 1m7</option><option value="Size 1m8">Size 1m8</option></select><select id="inv_type" onchange="toggleInvType()" required class="bg-slate-50 font-bold"><option value="Xuất bán">📤 Xuất bán</option><option value="Nhập kho">📥 Nhập kho</option></select><input type="number" id="inv_qty" placeholder="Số lượng" required min="1" oninput="calcInv()" class="bg-slate-50 font-bold"><div class="relative"><input type="text" id="inv_priceDisplay" placeholder="Đơn giá/Bộ" required class="bg-slate-50 font-bold"><input type="hidden" id="inv_priceActual"></div><div class="relative"><input type="text" id="inv_totalDisplay" placeholder="Tổng Tiền" readonly class="bg-slate-100 font-black text-blue-700 cursor-not-allowed border-slate-200"><input type="hidden" id="inv_totalActual"></div><div class="autocomplete-container md:col-span-2 relative"><input type="text" id="inv_desc" placeholder="Tên Võ sinh / Đại lý" autocomplete="off" required class="bg-slate-50"><div id="inv-autocomplete-list" class="autocomplete-items"></div></div><input type="date" id="inv_date" required class="md:col-span-1 bg-slate-50"><button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl py-3 transition shadow-sm md:col-span-2 tracking-wide">LƯU SỔ KHO</button></form><div class="grid grid-cols-1 lg:grid-cols-12 gap-5"><div class="lg:col-span-4"><h5 class="text-[0.8rem] font-black text-slate-700 mb-2 uppercase tracking-wide flex items-center gap-1.5"><span>📊</span> Bảng Tồn Kho</h5><div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden"><table id="tbl_inventory" class="w-full"><thead><tr><th>Size</th><th>Nhập</th><th>Bán/Tặng</th><th>TỒN</th></tr></thead><tbody id="inventoryList"></tbody></table></div></div><div class="lg:col-span-8"><h5 class="text-[0.8rem] font-black text-slate-700 mb-2 uppercase tracking-wide flex items-center gap-1.5"><span>📜</span> Lịch sử Giao dịch</h5><div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden"><div class="table-wrapper"><table id="tbl_uniform_tx"><thead><tr><th>Ngày</th><th>Nội dung</th><th>Loại</th><th>Kích cỡ</th><th>Tiền</th><th>Thao tác</th></tr></thead><tbody id="uniformTxList"></tbody></table></div></div></div></div></div>
+    <div id="tab_exam" class="tab-content"><h4 class="text-orange-600 font-black text-base md:text-xl mb-4 flex items-center gap-2"><span>🥋</span> QUẢN LÝ KỲ THI LÊN ĐAI</h4><div class="bg-white p-4 md:p-5 rounded-xl border border-orange-100 mb-6 shadow-sm"><h4 class="text-slate-700 font-black mb-3 flex items-center gap-2 text-xs uppercase tracking-wide">📊 BÁO CÁO TÀI CHÍNH KỲ THI</h4><div class="grid grid-cols-1 md:grid-cols-3 gap-3"><div class="bg-orange-50 border border-orange-100 p-4 rounded-xl"><div class="text-[0.7rem] font-bold text-orange-800 uppercase">Tổng thu Lệ phí</div><div id="sum_exam_tab" class="text-xl font-black text-orange-600 mt-0.5">0 ₫</div></div><div class="bg-rose-50 border border-rose-100 p-4 rounded-xl"><div class="text-[0.7rem] font-bold text-rose-800 uppercase">Tổng chi phí kỳ thi</div><div id="sum_exam_expense_tab" class="text-xl font-black text-rose-600 mt-0.5">0 ₫</div></div><div class="bg-emerald-50 border border-emerald-100 p-4 rounded-xl"><div class="text-[0.7rem] font-bold text-emerald-800 uppercase">Lợi nhuận kỳ thi</div><div id="sum_exam_profit_tab" class="text-xl font-black text-emerald-600 mt-0.5">0 ₫</div></div></div></div><div class="bg-white p-4 md:p-5 rounded-xl border border-orange-100 mb-6 shadow-sm"><h4 class="text-orange-600 font-black mb-4 flex items-center gap-2 text-base md:text-lg">⚡ THĂNG ĐAI HÀNG LOẠT</h4><div class="grid grid-cols-1 md:grid-cols-3 gap-4"><div><label class="block text-[0.7rem] font-bold text-slate-600 mb-1.5 uppercase">1. Lọc đai hiện tại</label><select id="exam_filter_belt" onchange="renderExamList()" class="bg-slate-50 font-semibold"><option value="Đai trắng - Cấp 10">Đai trắng - Cấp 10</option><option value="Đai trắng 1 vạch - Cấp 9">Đai trắng 1 vạch - Cấp 9</option><option value="Đai trắng 2 vạch - Cấp 8">Đai trắng 2 vạch - Cấp 8</option><option value="Đai vàng - Cấp 7">Đai vàng - Cấp 7</option><option value="Đai xanh lá - Cấp 6">Đai xanh lá - Cấp 6</option><option value="Đai xanh dương - Cấp 5">Đai xanh dương - Cấp 5</option><option value="Đai đỏ - Cấp 4">Đai đỏ - Cấp 4</option><option value="Đai đỏ 1 vạch - Cấp 3">Đai đỏ 1 vạch - Cấp 3</option><option value="Đai đỏ 2 vạch - Cấp 2">Đai đỏ 2 vạch - Cấp 2</option><option value="Đai đỏ 3 vạch - Cấp 1">Đai đỏ 3 vạch - Cấp 1</option><option value="Đai Đỏ - Đen">Đai Đỏ - Đen</option></select></div><div><label class="block text-[0.7rem] font-bold text-slate-600 mb-1.5 uppercase">2. Lên đai mới</label><select id="exam_new_belt" class="bg-orange-50 border-orange-200 font-bold text-orange-700" onchange="renderExamList()"><option value="Đai trắng 1 vạch - Cấp 9">Đai trắng 1 vạch - Cấp 9</option><option value="Đai trắng 2 vạch - Cấp 8">Đai trắng 2 vạch - Cấp 8</option><option value="Đai vàng - Cấp 7">Đai vàng - Cấp 7</option><option value="Đai xanh lá - Cấp 6">Đai xanh lá - Cấp 6</option><option value="Đai xanh dương - Cấp 5">Đai xanh dương - Cấp 5</option><option value="Đai đỏ - Cấp 4">Đai đỏ - Cấp 4</option><option value="Đai đỏ 1 vạch - Cấp 3">Đai đỏ 1 vạch - Cấp 3</option><option value="Đai đỏ 2 vạch - Cấp 2">Đai đỏ 2 vạch - Cấp 2</option><option value="Đai đỏ 3 vạch - Cấp 1">Đai đỏ 3 vạch - Cấp 1</option><option value="Đai Đỏ - Đen">Đai Đỏ - Đen</option><option value="Đai Đen">Đai Đen</option></select></div><div><label class="block text-[0.7rem] font-bold text-slate-600 mb-1.5 uppercase">3. Lệ phí thi</label><input type="text" id="exam_fee_all_display" value="250.000" placeholder="Số tiền" class="bg-slate-50 font-black text-orange-600"><input type="hidden" id="exam_fee_all_actual" value="250000"></div></div><button onclick="processBatchUpgrade()" class="w-full mt-5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 text-white font-bold py-3.5 rounded-xl transition shadow-sm text-sm uppercase">XÁC NHẬN THĂNG ĐAI</button></div><div class="bg-white rounded-xl border border-slate-200 shadow-sm mb-6 overflow-hidden"><div class="table-wrapper"><table id="tbl_exam_list"><thead><tr><th width="40"><input type="checkbox" id="checkAllExam" onclick="toggleAllExam(this)" class="w-4 h-4 cursor-pointer accent-orange-500 rounded"></th><th>Võ sinh</th><th class="col-branch">Cơ sở</th><th>Cấp đai hiện tại</th><th>Trạng thái nộp phí</th><th>Thao tác</th></tr></thead><tbody id="examList"></tbody></table></div></div><div class="bg-rose-50 p-4 md:p-5 rounded-xl border border-rose-100 mb-6 shadow-sm"><h4 class="text-rose-600 font-black mb-4 flex items-center gap-2 text-base md:text-lg">💸 CHI PHÍ KỲ THI</h4><form id="examExpenseForm" class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4"><input type="text" id="ee_desc" placeholder="Nội dung chi (Giám khảo, Băng rôn...)" required class="md:col-span-2 bg-white"><div><input type="text" id="ee_amountDisplay" placeholder="Số tiền chi" required class="font-black text-rose-600 bg-white"><input type="hidden" id="ee_amountActual"></div><button type="submit" class="bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl py-2.5 transition shadow-sm">LƯU CHI PHÍ</button></form><div class="bg-white rounded-xl border border-rose-100 shadow-sm overflow-hidden"><table id="tbl_exam_expense" class="w-full"><thead class="bg-rose-50 text-rose-800 border-b border-rose-100"><tr><th>Ngày chi</th><th>Nội dung chi</th><th>Số tiền</th><th>Thao tác</th></tr></thead><tbody id="examExpenseList"></tbody></table></div></div></div>
+    <div id="tab_expense" class="tab-content"><h4 class="text-rose-600 font-black text-base md:text-xl mb-4 flex items-center gap-2"><span>💸</span> CHI PHÍ VẬN HÀNH CHUNG</h4><div class="bg-rose-50 p-4 rounded-xl flex flex-wrap gap-5 mb-6 border border-rose-100 shadow-sm"><div class="text-xs font-bold text-rose-800 uppercase tracking-wide">Tổng chi vận hành: <span id="sum_expense_tab" class="block text-xl md:text-3xl font-black text-rose-600 mt-0.5">0 ₫</span></div></div><form id="expenseForm" class="grid grid-cols-1 md:grid-cols-4 gap-3 md:gap-4 bg-white p-4 md:p-5 rounded-xl border border-rose-50 shadow-sm mb-6"><select id="exp_branch" class="bg-slate-50 input-branch"><option value="CS1">Cơ sở 1</option><option value="CS2">Cơ sở 2</option><option value="Chung">Chung / Khác</option></select><input type="text" id="exp_desc" placeholder="Nội dung chi (Tiền điện, Nước...)" required class="md:col-span-2 bg-slate-50"><div><input type="text" id="exp_amountDisplay" placeholder="Số tiền chi" required class="font-black text-rose-600 bg-slate-50"><input type="hidden" id="exp_amountActual"></div><input type="date" id="exp_date" required class="bg-slate-50"><button type="submit" class="bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl md:col-span-3 py-3 transition shadow-sm">LƯU KHOẢN CHI</button></form><div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden"><div class="table-wrapper"><table id="tbl_exp"><thead><tr><th>Ngày chi</th><th class="col-branch">Cơ sở</th><th>Nội dung chi</th><th>Số tiền</th><th>Thao tác</th></tr></thead><tbody id="expenseList"></tbody></table></div></div></div>
+    
+    <div id="tab_active" class="tab-content">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-3">
+            <h4 class="text-blue-700 font-black text-base md:text-xl flex items-center gap-2"><span>🥋</span> DANH SÁCH ĐANG TẬP</h4>
+            <div class="flex gap-2 w-full md:w-auto">
+                <input type="file" id="importExcelInput" accept=".xlsx, .xls" style="display:none" onchange="handleImportExcel(event)">
+                <button onclick="document.getElementById('importExcelInput').click()" class="w-full md:w-auto bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl font-bold transition shadow-sm text-sm">📥 NHẬP TỪ EXCEL</button>
+                <button onclick="downloadExcelTemplate()" class="w-full md:w-auto bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2.5 rounded-xl font-bold transition shadow-sm text-sm">Tải File Mẫu</button>
+            </div>
+        </div>
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="table-wrapper"><table id="tbl_active"><thead><tr><th>Họ và tên</th><th>Cấp đai</th><th class="col-branch">Cơ sở</th><th>Ngày sinh</th><th>Đã đóng tới</th><th>SĐT</th><th>Ngày nhập</th><th>Hồ sơ</th></tr></thead><tbody id="activeList"></tbody></table></div>
+        </div>
+    </div>
+    
+    <div id="tab_quit" class="tab-content"><div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden"><div class="table-wrapper"><table id="tbl_quit"><thead><tr><th>Võ sinh</th><th>Cấp đai</th><th class="col-branch">Cơ sở</th><th>Ngày sinh</th><th>Ngày nghỉ</th><th>Thao tác</th></tr></thead><tbody id="quitList"></tbody></table></div></div></div>
+    <div id="tab_dashboard" class="tab-content"><div class="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4 mb-6"><div class="stat-card bg-gradient-to-br from-emerald-500 to-teal-600 p-4 md:p-5 rounded-2xl text-white shadow-sm relative overflow-hidden"><div class="absolute -right-2 -top-2 opacity-20 text-5xl">📈</div><h3 class="text-[0.65rem] md:text-xs uppercase font-bold opacity-90 tracking-wider">Doanh Thu Tháng</h3><p id="totalIncomeDashboard" class="text-lg md:text-2xl font-black mt-1 truncate relative z-10">0 ₫</p></div><div class="stat-card bg-gradient-to-br from-rose-500 to-red-600 p-4 md:p-5 rounded-2xl text-white shadow-sm relative overflow-hidden"><div class="absolute -right-2 -top-2 opacity-20 text-5xl">📉</div><h3 class="text-[0.65rem] md:text-xs uppercase font-bold opacity-90 tracking-wider">Chi Phí Tháng</h3><p id="totalExpenseDashboard" class="text-lg md:text-2xl font-black mt-1 truncate relative z-10">0 ₫</p></div><div class="stat-card bg-gradient-to-br from-blue-600 to-indigo-700 p-4 md:p-5 rounded-2xl text-white shadow-sm relative overflow-hidden"><div class="absolute -right-2 -top-2 opacity-20 text-5xl">💎</div><h3 class="text-[0.65rem] md:text-xs uppercase font-bold opacity-90 tracking-wider">Lãi Tháng Này</h3><p id="totalProfitDashboard" class="text-lg md:text-2xl font-black mt-1 truncate relative z-10">0 ₫</p></div><div class="stat-card bg-gradient-to-br from-fuchsia-500 to-purple-600 p-4 md:p-5 rounded-2xl text-white shadow-sm relative overflow-hidden"><div class="absolute -right-2 -top-2 opacity-20 text-5xl">🥋</div><h3 class="text-[0.65rem] md:text-xs uppercase font-bold opacity-90 tracking-wider">Lãi Võ Phục</h3><p id="totalUniformProfitDashboard" class="text-lg md:text-2xl font-black mt-1 truncate relative z-10">0 ₫</p></div><div class="col-span-2 md:col-span-1 stat-card bg-gradient-to-br from-amber-500 to-orange-500 p-4 md:p-5 rounded-2xl text-white shadow-sm relative overflow-hidden"><div class="absolute -right-2 -top-2 opacity-20 text-5xl">⚠️</div><h3 class="text-[0.65rem] md:text-xs uppercase font-bold opacity-90 tracking-wider">Chưa nộp học phí</h3><p id="debtCount" class="text-lg md:text-2xl font-black mt-1 truncate relative z-10">0 Bạn</p><div class="text-[0.65rem] md:text-[0.75rem] font-bold mt-1.5 bg-white/20 inline-block px-2 py-0.5 rounded backdrop-blur-sm relative z-10" id="debtEst">Dự thu: 0 ₫</div></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6"><div class="bg-white border border-slate-100 p-4 md:p-5 rounded-2xl shadow-sm"><h4 class="text-xs md:text-sm font-black text-slate-700 mb-4 uppercase tracking-wider">📈 Dòng tiền Doanh Thu/Chi 6 tháng</h4><div class="relative h-[200px] md:h-[240px] w-full"><canvas id="financeChart"></canvas></div></div><div class="bg-white border border-slate-100 p-4 md:p-5 rounded-2xl shadow-sm"><h4 class="text-xs md:text-sm font-black text-slate-700 mb-4 uppercase tracking-wider">👥 Biến động số lượng Võ sinh</h4><div class="relative h-[200px] md:h-[240px] w-full"><canvas id="memberChart"></canvas></div></div></div><div class="mt-8 flex justify-between items-center mb-4"><h4 class="text-primary font-black text-base md:text-xl flex items-center gap-2"><span>📑</span> BÁO CÁO DỮ LIỆU TỔNG HỢP</h4><button onclick="runMigration()" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-sm flex items-center gap-2 transition hidden">⚡ Chuẩn hóa Dữ liệu</button></div><div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden"><div class="table-wrapper"><table id="tbl_report"><thead><tr><th>Tháng</th><th>Tập thực tế</th><th>Mới nhập</th><th>Đã nghỉ</th><th>Doanh Thu H.Động</th><th>Tổng Chi</th><th>Lợi Nhuận</th></tr></thead><tbody id="reportList"></tbody></table></div></div></div></div>
+</div>
+
+<!-- Modal Cấu hình CLB -->
+<div id="settingsModal" class="modal">
+    <div class="modal-content relative max-w-md mx-auto">
+        <button onclick="document.getElementById('settingsModal').style.display='none'" class="absolute top-4 right-4 text-slate-400 hover:text-rose-500 text-2xl font-bold transition bg-slate-100 w-8 h-8 rounded-full flex items-center justify-center leading-none">&times;</button>
+        <h2 class="text-primary font-black text-xl border-b border-slate-100 pb-3 mb-4 flex items-center gap-2"><span>⚙️</span> CẤU HÌNH THÔNG TIN CLB</h2>
+        
+        <div class="grid grid-cols-1 gap-3 mb-5">
+            <div>
+                <label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Ngân hàng (Mã định danh)</label>
+                <input type="text" id="cfg_bankId" placeholder="VD: AGRIBANK, MB, VCB, BIDV..." class="bg-slate-50 border-slate-200 font-bold uppercase">
+                <p class="text-[0.65rem] text-slate-500 mt-1 italic">*Nhập đúng tên viết tắt của Ngân hàng</p>
+            </div>
+            <div>
+                <label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Số tài khoản</label>
+                <input type="text" id="cfg_accountNo" placeholder="Nhập số tài khoản" class="bg-slate-50 border-slate-200 font-bold text-primary">
+            </div>
+            <div>
+                <label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Tên người thụ hưởng</label>
+                <input type="text" id="cfg_accountName" placeholder="Tên in hoa không dấu" class="bg-slate-50 border-slate-200 font-bold uppercase">
+            </div>
+            <div class="border-t border-slate-200 pt-3 mt-1">
+                <label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Logo CLB (Tải ảnh để đổi logo)</label>
+                <input type="file" id="cfg_logoFile" accept="image/*" class="bg-slate-50 border-slate-200 text-sm w-full" onchange="handleLogoUpload(event, 'cfg_logoPreview')">
+                <img id="cfg_logoPreview" class="h-12 object-contain mt-2 rounded border border-slate-200 p-1 bg-white club-logo-img hidden">
+            </div>
+            
+            <div id="cfg_branchNamesBlock" style="display:none;" class="border-t border-slate-200 pt-3 mt-1">
+                <label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase text-indigo-700">Tên riêng Cơ sở 1</label>
+                <input type="text" id="cfg_branch1" placeholder="VD: Cơ sở Nguyễn Huệ" class="bg-slate-50 border-slate-200 font-bold mb-3">
+                <label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase text-indigo-700">Tên riêng Cơ sở 2</label>
+                <input type="text" id="cfg_branch2" placeholder="VD: Cơ sở Sân vận động" class="bg-slate-50 border-slate-200 font-bold">
+            </div>
+        </div>
+        
+        <button onclick="saveClubSettings()" class="w-full bg-primary hover:bg-blue-800 text-white font-bold py-3.5 rounded-xl transition shadow-sm text-sm uppercase">💾 LƯU CẤU HÌNH</button>
+    </div>
+</div>
+
+<div id="profileModal" class="modal">
+    <div class="modal-content relative">
+        <button onclick="closeModal()" class="absolute top-4 right-4 text-slate-400 hover:text-rose-500 text-2xl font-bold transition bg-slate-100 w-8 h-8 rounded-full flex items-center justify-center leading-none">&times;</button>
+        
+        <input type="text" id="m_name_input" class="text-primary font-black text-xl md:text-2xl border-b-2 border-transparent hover:border-slate-200 focus:border-primary pb-2 mb-4 w-full bg-transparent outline-none transition-colors" placeholder="Nhập tên võ sinh">
+        <input type="hidden" id="m_old_name">
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-5">
+            <div><label class="block text-[0.7rem] font-bold text-slate-500 mb-1 uppercase">Trạng thái</label><select id="m_status" class="bg-slate-50"><option value="active">Đang tập</option><option value="quit">Nghỉ tập</option></select></div>
+            <div class="input-branch"><label class="block text-[0.7rem] font-bold text-slate-500 mb-1 uppercase">Cơ sở</label><select id="m_branch" class="bg-slate-50"><option value="CS1">Cơ sở 1</option><option value="CS2">Cơ sở 2</option></select></div>
+            <div class="md:col-span-2"><label class="block text-[0.7rem] font-bold text-slate-500 mb-1 uppercase">Cấp đai</label><select id="m_belt" class="bg-slate-50"><option value="Đai trắng - Cấp 10">Đai trắng - Cấp 10</option><option value="Đai trắng 1 vạch - Cấp 9">Đai trắng 1 vạch - Cấp 9</option><option value="Đai trắng 2 vạch - Cấp 8">Đai trắng 2 vạch - Cấp 8</option><option value="Đai vàng - Cấp 7">Đai vàng - Cấp 7</option><option value="Đai xanh lá - Cấp 6">Đai xanh lá - Cấp 6</option><option value="Đai xanh dương - Cấp 5">Đai xanh dương - Cấp 5</option><option value="Đai đỏ - Cấp 4">Đai đỏ - Cấp 4</option><option value="Đai đỏ 1 vạch - Cấp 3">Đai đỏ 1 vạch - Cấp 3</option><option value="Đai đỏ 2 vạch - Cấp 2">Đai đỏ 2 vạch - Cấp 2</option><option value="Đai đỏ 3 vạch - Cấp 1">Đai đỏ 3 vạch - Cấp 1</option><option value="Đai Đỏ - Đen">Đai Đỏ - Đen</option><option value="Đai Đen">Đai Đen</option></select></div>
+            <div><label class="block text-[0.7rem] font-bold text-slate-500 mb-1 uppercase">Ngày sinh</label><input type="text" id="m_dob" placeholder="DD/MM/YYYY" class="bg-slate-50"></div>
+            <div><label class="block text-[0.7rem] font-bold text-slate-500 mb-1 uppercase">SĐT Zalo</label><input type="tel" id="m_phone" placeholder="Nhập SĐT" class="bg-slate-50"></div>
+            <div class="md:col-span-2"><label class="block text-[0.7rem] font-bold text-slate-500 mb-1 uppercase">Học phí chuẩn/tháng</label><input type="text" id="m_fee_display" placeholder="Mức phí (VNĐ)" class="bg-slate-50 font-black text-primary"><input type="hidden" id="m_fee_actual"></div>
+            <div class="md:col-span-2"><label class="block text-[0.7rem] font-bold text-slate-500 mb-1 uppercase">Ghi chú</label><textarea id="m_notes" rows="2" class="bg-slate-50"></textarea></div>
+        </div>
+        <div class="bg-amber-50 border border-amber-100 p-3 rounded-xl mb-5 shadow-inner"><label class="block text-[0.75rem] font-black text-amber-800 mb-2 uppercase flex items-center gap-1.5"><span>⏸</span> Các tháng báo nghỉ</label><div id="m_skipped" class="flex flex-wrap gap-1.5"></div></div>
+        <div class="flex flex-col gap-2">
+            <button id="btnUpdateProfile" onclick="updateProfile()" class="w-full bg-primary hover:bg-blue-800 text-white font-bold py-3.5 rounded-xl shadow-sm transition">💾 LƯU CẬP NHẬT</button>
+            <button id="btnDeleteProfile" onclick="deleteProfile()" class="w-full bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold py-3 rounded-xl transition border border-rose-200">🗑 Xóa Hồ Sơ Này</button>
+        </div>
+    </div>
+</div>
+
+<div id="comboModal" class="modal">
+    <div class="modal-content relative">
+        <button onclick="document.getElementById('comboModal').style.display='none'" class="absolute top-4 right-4 text-slate-400 hover:text-rose-500 text-2xl font-bold transition bg-slate-100 w-8 h-8 rounded-full flex items-center justify-center leading-none">&times;</button>
+        <h2 class="text-indigo-700 font-black text-xl border-b border-slate-100 pb-3 mb-4 uppercase flex items-center gap-2"><span>👨‍👩‍👧‍👦</span> THU TIỀN / BÁO PHÍ GỘP</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <label class="block text-[0.75rem] font-bold text-slate-600 mb-2 uppercase tracking-wide">Võ sinh 1</label>
+                <div class="autocomplete-container relative mb-3">
+                    <input type="text" id="combo_name1" placeholder="Tìm tên võ sinh 1" autocomplete="off" class="bg-white border-slate-300">
+                    <div id="combo-autocomplete-1" class="autocomplete-items"></div>
+                </div>
+                <label class="block text-[0.65rem] font-bold text-slate-500 mb-1 uppercase">Kỳ thanh toán</label>
+                <input type="month" id="combo_month1" class="bg-white mb-3 border-slate-300">
+                <label class="block text-[0.65rem] font-bold text-slate-500 mb-1 uppercase">Số tiền</label>
+                <input type="text" id="combo_fee1_display" placeholder="Nhập số tiền" class="bg-white font-black text-indigo-700 border-slate-300 text-lg">
+                <input type="hidden" id="combo_fee1_actual">
+            </div>
+            
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <label class="block text-[0.75rem] font-bold text-slate-600 mb-2 uppercase tracking-wide">Võ sinh 2</label>
+                <div class="autocomplete-container relative mb-3">
+                    <input type="text" id="combo_name2" placeholder="Tìm tên võ sinh 2" autocomplete="off" class="bg-white border-slate-300">
+                    <div id="combo-autocomplete-2" class="autocomplete-items"></div>
+                </div>
+                <label class="block text-[0.65rem] font-bold text-slate-500 mb-1 uppercase">Kỳ thanh toán</label>
+                <input type="month" id="combo_month2" class="bg-white mb-3 border-slate-300">
+                <label class="block text-[0.65rem] font-bold text-slate-500 mb-1 uppercase">Số tiền</label>
+                <input type="text" id="combo_fee2_display" placeholder="Nhập số tiền" class="bg-white font-black text-indigo-700 border-slate-300 text-lg">
+                <input type="hidden" id="combo_fee2_actual">
+            </div>
+        </div>
+        
+        <div class="bg-indigo-50 border border-indigo-200 p-4 md:p-5 rounded-xl mb-5 flex justify-between items-center shadow-inner">
+            <span class="text-sm font-bold text-indigo-800 uppercase tracking-wide">Tổng tiền gộp:</span>
+            <span id="combo_total" class="text-2xl md:text-3xl font-black text-indigo-700">0 ₫</span>
+        </div>
+
+        <div class="flex flex-col md:flex-row gap-3">
+            <button onclick="processCombo('report')" class="w-full md:w-1/2 bg-amber-500 hover:bg-amber-600 text-white font-bold py-3.5 rounded-xl transition shadow-sm text-sm uppercase">🧾 TẠO PHIẾU BÁO (CHƯA THU)</button>
+            <button onclick="processCombo('pay')" class="w-full md:w-1/2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl transition shadow-sm text-sm uppercase">💰 GHI SỔ GỘP & IN BIÊN LAI</button>
+        </div>
+    </div>
+</div>
+
+<div id="addModal" class="modal"><div class="modal-content relative"><button onclick="closeAddModal()" class="absolute top-4 right-4 text-slate-400 hover:text-rose-500 text-2xl font-bold transition bg-slate-100 w-8 h-8 rounded-full flex items-center justify-center leading-none">&times;</button><h2 class="text-primary font-black text-xl border-b border-slate-100 pb-3 mb-4 uppercase">Thêm Võ Sinh Mới</h2><div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-4"><div class="md:col-span-2"><label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Họ và tên *</label><input type="text" id="add_name" required class="bg-slate-50"></div><div class="input-branch"><label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Cơ sở</label><select id="add_branch" class="bg-slate-50"><option value="CS1">Cơ sở 1</option><option value="CS2">Cơ sở 2</option></select></div><div><label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Cấp đai</label><select id="add_belt" class="bg-slate-50"><option value="Đai trắng - Cấp 10">Đai trắng - Cấp 10</option><option value="Đai trắng 1 vạch - Cấp 9">Đai trắng 1 vạch - Cấp 9</option><option value="Đai vàng - Cấp 7">Đai vàng - Cấp 7</option><option value="Đai xanh lá - Cấp 6">Đai xanh lá - Cấp 6</option><option value="Đai xanh dương - Cấp 5">Đai xanh dương - Cấp 5</option><option value="Đai đỏ - Cấp 4">Đai đỏ - Cấp 4</option><option value="Đai đỏ 1 vạch - Cấp 3">Đai đỏ 1 vạch - Cấp 3</option><option value="Đai đỏ 2 vạch - Cấp 2">Đai đỏ 2 vạch - Cấp 2</option><option value="Đai đỏ 3 vạch - Cấp 1">Đai đỏ 3 vạch - Cấp 1</option><option value="Đai Đỏ - Đen">Đai Đỏ - Đen</option><option value="Đai Đen">Đai Đen</option></select></div><div><label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">SĐT Phụ huynh</label><input type="tel" id="add_phone" class="bg-slate-50"></div><div><label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Ngày sinh</label><input type="text" id="add_dob" placeholder="DD/MM/YYYY" class="bg-slate-50"></div><div><label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Học phí mặc định</label><input type="text" id="add_fee_default_display" placeholder="Mức phí" class="bg-slate-50 font-black text-blue-700"><input type="hidden" id="add_fee_default_actual"></div><div><label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Ngày nhập học</label><input type="date" id="add_date" class="bg-slate-50"></div><div class="md:col-span-2"><label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Ghi chú</label><textarea id="add_notes" rows="2" class="bg-slate-50"></textarea></div></div><div class="bg-blue-50/50 border border-blue-100 p-4 rounded-xl mb-5 shadow-inner"><label class="block text-[0.8rem] font-black text-primary mb-3 flex items-center gap-1.5 uppercase"><span>💰</span> THU TIỀN NHẬP HỌC</label><div class="grid grid-cols-1 md:grid-cols-2 gap-3"><div><label class="block text-[0.7rem] text-slate-600 mb-1 uppercase font-bold">Gói học phí</label><div class="flex gap-2 items-center"><select id="add_package" class="w-full bg-white font-medium text-primary" onchange="updateAddPackageAmount()"><option value="1">1 Tháng</option><option value="3">3 Tháng</option><option value="6">6 Tháng</option><option value="12">12 Tháng</option></select><label class="flex items-center gap-1.5 cursor-pointer whitespace-nowrap bg-white px-2 py-2 border border-slate-200 rounded-lg"><input type="checkbox" id="add_discount" class="w-3.5 h-3.5 text-rose-600 rounded" onchange="updateAddPackageAmount()"><span class="text-[0.65rem] font-bold text-rose-600 uppercase">🎁Giảm 10%</span></label></div></div><div><label class="block text-[0.7rem] text-slate-600 mb-1 uppercase font-bold">Tổng tiền Học phí</label><input type="text" id="add_fee_display" placeholder="Số tiền" class="bg-white font-bold"><input type="hidden" id="add_fee_actual"></div><div class="md:col-span-2 mt-2 border-t border-blue-200 pt-3"><label class="block text-[0.7rem] text-slate-600 mb-1 uppercase font-bold">Size Võ phục</label><select id="add_uniform_size" class="w-full bg-white font-medium"><option value="">-- Chọn size --</option></select></div><div class="md:col-span-2 flex items-center gap-2"><label class="flex items-center gap-2 cursor-pointer w-full"><input type="checkbox" id="add_uniform_gift" class="w-4 h-4 text-primary bg-slate-100 border-slate-300 rounded focus:ring-primary" onchange="toggleAddUniformGift()"><span class="text-[0.8rem] font-bold text-slate-700 uppercase">🎁 Tặng võ phục (Miễn phí)</span></label></div><div class="md:col-span-2"><label class="block text-[0.7rem] text-slate-600 mb-1 uppercase font-bold">Tiền Võ phục</label><input type="text" id="add_uniform_display" placeholder="Số tiền" class="bg-white font-bold"><input type="hidden" id="add_uniform_actual"></div></div></div><button onclick="addNewStudent()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl transition shadow-sm text-sm">💾 LƯU HỒ SƠ & GHI SỔ</button></div></div>
+
+<div id="editInvModal" class="modal"><div class="modal-content relative"><button onclick="closeEditInvModal()" class="absolute top-4 right-4 text-slate-400 hover:text-rose-500 text-2xl font-bold transition bg-slate-100 w-8 h-8 rounded-full flex items-center justify-center leading-none">&times;</button><h2 class="text-blue-700 font-black text-xl border-b border-slate-100 pb-3 mb-4 uppercase">CHỈNH SỬA KHO</h2><input type="hidden" id="ei_txId"><input type="hidden" id="ei_invId"><div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5"><div><label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Size Võ Phục</label><select id="ei_size" class="bg-slate-50"><option value="Size 1m">Size 1m</option><option value="Size 1m1">Size 1m1</option><option value="Size 1m2">Size 1m2</option><option value="Size 1m3">Size 1m3</option><option value="Size 1m4">Size 1m4</option><option value="Size 1m5">Size 1m5</option><option value="Size 1m6">Size 1m6</option><option value="Size 1m7">Size 1m7</option><option value="Size 1m8">Size 1m8</option></select></div><div><label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Loại giao dịch</label><select id="ei_type" class="bg-slate-50"><option value="Xuất bán">Xuất bán</option><option value="Nhập kho">Nhập kho</option></select></div><div><label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Số lượng</label><input type="number" id="ei_qty" min="1" class="bg-slate-50 font-bold"></div><div><label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Ngày</label><input type="date" id="ei_date" class="bg-slate-50"></div><div class="md:col-span-2"><label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Nội dung / Người giao dịch</label><input type="text" id="ei_desc" class="bg-slate-50"></div><div class="md:col-span-2"><label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Tổng tiền cập nhật (VNĐ)</label><input type="text" id="ei_amountDisplay" class="bg-slate-50 font-black text-blue-700"><input type="hidden" id="ei_amountActual"></div></div><button onclick="saveEditInv()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl transition shadow-sm text-sm">💾 LƯU THAY ĐỔI</button></div></div>
+
+<div id="receiptModal" class="modal"><div class="modal-content" style="text-align:center; max-width: 420px; width: 92%;"><h3 style="color:var(--primary); margin-top:0; font-weight: 900; font-size: 1.15rem;">XUẤT HÓA ĐƠN</h3><p style="font-size:0.75rem; color:#64748b; margin-bottom:12px;">📸 <strong>Mẹo Zalo:</strong> Nhấn giữ vào ảnh rồi dán thẳng vào tin nhắn.</p><div id="receiptContainer" style="display:inline-block; background:white; width: 100%;"><img id="receiptPreviewImg" style="width:100%; border-radius:12px; border: 1px solid #e2e8f0; box-shadow:0 10px 25px rgba(0,0,0,0.1); margin-bottom:15px;"></div><button class="w-full bg-primary hover:bg-blue-800 text-white font-bold py-3.5 rounded-xl mb-2.5 shadow-sm transition text-sm" id="btnDownloadReceipt">⬇️ TẢI ẢNH VỀ MÁY</button><button onclick="document.getElementById('receiptModal').style.display='none'" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-3 rounded-xl transition text-sm">ĐÓNG</button></div></div>
+
+<div id="receiptTemplate"><div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; border-bottom: 2px dashed #cbd5e1; padding-bottom: 15px; margin-bottom: 15px; text-align: center;"><img id="receiptLogo" src="logo.png" alt="Logo" style="height: 55px; width: auto; max-width: 200px; object-fit: contain; display: block;" onerror="this.src='https://via.placeholder.com/150x50?text=LOGO+CLB'" class="club-logo-img"><div style="width: 100%;"><h3 style="color: #0033A0; margin: 0; font-size: 15px; font-weight: 900;" id="r_club_name">CLUB TAEKWONDO TST QUY NHƠN</h3><p id="receiptTitle" style="margin: 6px 0 0; font-size: 20px; color: #0f172a; font-weight: 900; white-space: nowrap;">BIÊN LAI THU TIỀN</p><p style="margin: 4px 0 0; font-size: 12px; font-style: italic; color: #64748b;" id="r_date_top"></p></div></div><div style="font-size: 14px; line-height: 1.6; color: #334155;"><p style="margin: 4px 0;"><strong>Họ & Tên:</strong> <span id="r_name" style="color: var(--primary); font-weight: 900; font-size:16px;"></span></p><p style="margin: 4px 0;"><strong>Cấp đai:</strong> <span id="r_belt" style="font-weight: 700;"></span></p><p style="margin: 4px 0; display: none;" id="r_dob_wrap"><strong>Ngày sinh:</strong> <span id="r_dob"></span></p><p style="margin: 4px 0;"><strong>Khoản thu:</strong> <span id="r_type"></span></p><p style="margin: 4px 0;" class="input-branch"><strong>Cơ sở:</strong> <span id="r_branch"></span></p><p style="margin: 4px 0;" id="r_month_wrap"><strong>Kỳ học phí:</strong> <span id="r_month"></span></p></div><div style="margin-top: 15px; padding: 15px; background: #f8fafc; text-align: center; border-radius: 12px; border: 1px solid #e2e8f0;"><p style="margin: 0; font-size: 13px; color: #64748b; font-weight: 800;">SỐ TIỀN THANH TOÁN</p><p style="margin: 6px 0 0; font-size: 24px; font-weight: 900; color: #C8102E;" id="r_amount">0 ₫</p><p style="margin: 6px 0 0; font-size: 12px; font-style: italic; color: #475569;" id="r_amount_words"></p></div><div id="r_qr_wrap" style="text-align: center; margin-top: 20px; display: none; width: 100%;"><p style="font-size: 12px; color: #475569; margin-bottom: 8px; font-weight: 800;">MCode QR THANH TOÁN</p><img id="qrCodeImg" crossorigin="anonymous" style="display: block; margin: 0 auto; width: 240px; height: 240px; border-radius: 12px; border: 1px solid #cbd5e1; padding: 8px; background: white;"></div><p style="text-align: center; font-size: 13px; margin-top: 20px; font-style: italic; color: #94a3b8;">Cảm ơn quý phụ huynh & võ sinh đã đồng hành!</p></div>
+
+<div id="taxExportModal" class="modal">
+    <div class="modal-content relative max-w-sm mx-auto">
+        <button onclick="closeTaxModal()" class="absolute top-4 right-4 text-slate-400 hover:text-purple-500 text-2xl font-bold transition bg-slate-100 w-8 h-8 rounded-full flex items-center justify-center leading-none">&times;</button>
+        <h2 class="text-purple-700 font-black text-xl border-b border-slate-100 pb-3 mb-4 flex items-center gap-2"><span>📑</span> XUẤT SỔ THUẾ S1a-HKD</h2>
+        
+        <div class="mb-3">
+            <label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Năm báo cáo</label>
+            <input type="number" id="taxYear" value="2026" class="bg-slate-50 border-slate-200">
+        </div>
+        
+        <div class="mb-5">
+            <label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Kỳ kê khai</label>
+            <div class="grid grid-cols-2 gap-2">
+                <select id="taxPeriodType" class="bg-white border-slate-200 shadow-sm font-semibold text-slate-700" onchange="updateTaxPeriodOptions()">
+                    <option value="month">Từng Tháng</option>
+                    <option value="quarter">Theo Quý</option>
+                    <option value="half">6 Tháng</option>
+                    <option value="year">Cả Năm</option>
+                </select>
+                <select id="taxPeriodValue" class="bg-white border-slate-200 shadow-sm font-bold text-purple-700">
+                    </select>
+            </div>
+        </div>
+        
+        <button onclick="executeTaxExport()" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3.5 rounded-xl transition shadow-sm text-sm uppercase">📥 Xuất File S1a Chuẩn 2026</button>
+    </div>
+</div>
+
+<!-- Modal Tạo CLB Mới -->
+<div id="newClubModal" class="modal">
+    <div class="modal-content relative max-w-md mx-auto">
+        <button onclick="document.getElementById('newClubModal').style.display='none'" class="absolute top-4 right-4 text-slate-400 hover:text-rose-500 text-2xl font-bold transition bg-slate-100 w-8 h-8 rounded-full flex items-center justify-center leading-none">&times;</button>
+        <h2 class="text-amber-600 font-black text-xl border-b border-slate-100 pb-3 mb-4 flex items-center gap-2"><span>🚀</span> TẠO TÀI KHOẢN CLB MỚI</h2>
+
+        <div class="grid grid-cols-1 gap-3 mb-5">
+            <div>
+                <label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Tên CLB (Hiển thị trên hóa đơn)</label>
+                <input type="text" id="nc_clubName" placeholder="VD: CLB Taekwondo Đạo Nam" class="bg-slate-50 border-slate-200 font-bold">
+            </div>
+            <div>
+                <label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Mã Hệ Thống (Viết liền không dấu)</label>
+                <input type="text" id="nc_clubId" placeholder="VD: daonam_tkd" class="bg-slate-50 border-slate-200 font-bold text-primary">
+            </div>
+            <div class="border-t border-slate-200 pt-3 mt-1">
+                <label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Logo CLB (Tùy chọn tải ảnh lên)</label>
+                <input type="file" id="nc_logoFile" accept="image/*" class="bg-slate-50 border-slate-200 text-sm w-full" onchange="handleLogoUpload(event, 'nc_logoPreview')">
+                <img id="nc_logoPreview" class="h-12 object-contain mt-2 hidden rounded border border-slate-200 p-1 bg-white">
+            </div>
+            <div>
+                <label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Phân quyền Mô hình (Super Admin cấp)</label>
+                <select id="nc_branchCount" class="bg-slate-50 border-slate-200 font-bold text-indigo-700">
+                    <option value="1">1 Cơ sở (Chuẩn gọn)</option>
+                    <option value="2">Nhiều Cơ sở</option>
+                </select>
+            </div>
+            <div class="border-t border-slate-200 pt-3 mt-1">
+                <label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Email quản trị viên (Admin CLB)</label>
+                <input type="email" id="nc_adminEmail" placeholder="admin@daonam.com" class="bg-slate-50 border-slate-200 font-bold">
+            </div>
+            <div>
+                <label class="block text-[0.7rem] font-bold text-slate-600 mb-1 uppercase">Mật khẩu cấp phát</label>
+                <input type="text" id="nc_adminPass" placeholder="Nhập mật khẩu (ít nhất 6 ký tự)" class="bg-slate-50 border-slate-200 font-bold">
+            </div>
+        </div>
+
+        <button onclick="createNewClubSystem()" id="btnCreateClubAction" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3.5 rounded-xl transition shadow-sm text-sm uppercase flex justify-center items-center gap-2">
+            <span>⚡ KHỞI TẠO DỮ LIỆU</span>
+        </button>
+    </div>
+</div>
+
+<div id="toastMessage" class="toast">✅ Thành công!</div>
+
+<script>
+    let tempLogoBase64 = "";
+    window.handleLogoUpload = (event, previewId) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                const MAX_WIDTH = 400; 
+                let scaleSize = 1;
+                if(img.width > MAX_WIDTH) scaleSize = MAX_WIDTH / img.width;
+                
+                canvas.width = img.width * scaleSize;
+                canvas.height = img.height * scaleSize;
+                
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                tempLogoBase64 = canvas.toDataURL('image/png', 0.85); 
+                
+                const previewEl = document.getElementById(previewId);
+                if(previewEl) {
+                    previewEl.src = tempLogoBase64;
+                    previewEl.classList.remove('hidden');
+                }
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    };
+</script>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, doc, getDoc, onSnapshot, addDoc, updateDoc, deleteDoc, query, orderBy, where, writeBatch, setDoc, arrayUnion, arrayRemove, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfxbFrMabJHbARXpAqStIrSFlSAcCxgGY", 
+      authDomain: "quanly-tst.firebaseapp.com",
+      projectId: "quanly-tst",
+      storageBucket: "quanly-tst.firebasestorage.app",
+      messagingSenderId: "981970279440",
+      appId: "1:981970279440:web:8ac137ec4f72a39faa7e95",
+      measurementId: "G-Z1M9YYDZL1"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+    const secondaryApp = initializeApp(firebaseConfig, "SecondaryApp");
+    const secondaryAuth = getAuth(secondaryApp);
+
+    window.userRole = 'viewer';
+    let currentClubId = "";
+    let clubData = {};
+    let allProfiles = {};
+    let allTransactions = [];
+    let allInventory = [];
+    let clubConfig = { bankId: "AGRIBANK", accountNo: "4300205305756", accountName: "TRUONG SANH TINH - CLB TAEKWONDO TST", branchCount: 2 };
+    
+    let colRef = null;
+    let profRef = null;
+    let invRef = null;
+    let currentTxUnsub = null;
+
+    let financeChartInstance = null; 
+    let memberChartInstance = null; 
+    let logoCanvasData = null;
+
+    function getLocalToday() { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().split('T')[0]; }
+    function formatDate(dateStr) { if (!dateStr) return ""; if (dateStr.includes('/')) return dateStr; return dateStr.split('-').reverse().join('/'); }
+    function formatMonth(monthStr) { return monthStr ? monthStr.split('-').reverse().join('/') : ""; }
+    
+    window.showToast = (msg, duration = 3000, isLoading = false) => {
+        const toast = document.getElementById("toastMessage"); toast.innerText = msg;
+        if(isLoading) toast.classList.add("loading"); else toast.classList.remove("loading");
+        toast.classList.add("show"); setTimeout(() => toast.classList.remove("show"), duration);
+    };
+
+    window.switchTab = (tabId) => {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active')); document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+        document.getElementById('tab_' + tabId).classList.add('active'); document.getElementById('btn_' + tabId).classList.add('active');
+        if(tabId === 'exam' && typeof window.renderExamList === 'function') window.renderExamList();
+        window.scrollTo({top: 0, behavior: 'smooth'}); 
+    };
+
+    window.getBranchNameDisplay = (code) => {
+        if(code === 'CS1') return clubConfig.branchName1 || "Cơ sở 1";
+        if(code === 'CS2') return clubConfig.branchName2 || "Cơ sở 2";
+        return code;
+    };
+
+    window.applyClubConfigUI = () => {
+        let style = document.getElementById('dynamicStyles');
+        if (!style) { style = document.createElement('style'); style.id = 'dynamicStyles'; document.head.appendChild(style); }
+        
+        let branchCountVal = clubConfig.branchCount !== undefined ? clubConfig.branchCount : 2; 
+        if (branchCountVal === 1) {
+            style.innerHTML = `.col-branch, .input-branch { display: none !important; }`;
+        } else {
+            style.innerHTML = ``;
+        }
+
+        if(clubConfig.logoBase64) {
+            document.querySelectorAll('.club-logo-img').forEach(img => img.src = clubConfig.logoBase64);
+            logoCanvasData = clubConfig.logoBase64; 
+        } else {
+            document.querySelectorAll('.club-logo-img').forEach(img => img.src = 'logo.png');
+            loadLogoForReceipt(); 
+        }
+        
+        const b1Name = clubConfig.branchName1 || "Cơ sở 1";
+        const b2Name = clubConfig.branchName2 || "Cơ sở 2";
+        
+        const fb = document.getElementById('filterBranch');
+        if(fb) fb.innerHTML = `<option value="all">🏢 Tất cả cơ sở</option><option value="CS1">📍 ${b1Name}</option><option value="CS2">📍 ${b2Name}</option>`;
+        
+        const selectsToUpdate = ['branch', 'm_branch', 'add_branch', 'exp_branch'];
+        selectsToUpdate.forEach(id => {
+            const el = document.getElementById(id);
+            if(el) {
+                Array.from(el.options).forEach(opt => {
+                    if(opt.value === 'CS1') opt.text = b1Name;
+                    if(opt.value === 'CS2') opt.text = b2Name;
+                });
+            }
+        });
+    };
+
+    window.handleLogin = async () => {
+        const email = document.getElementById('emailInput').value;
+        const pass = document.getElementById('passInput').value;
+        const btn = document.getElementById('btnLogin');
+        const loading = document.getElementById('loginLoading');
+        const text = document.getElementById('loginText');
+
+        if(!email || !pass) return alert("Vui lòng nhập đủ thông tin đăng nhập");
+        
+        btn.disabled = true; text.innerText = "Đang xử lý..."; loading.classList.remove('hidden');
+
+        try {
+            const userCredential = await signInWithEmailAndPassword(auth, email, pass);
+            const uid = userCredential.user.uid;
+            
+            const userDoc = await getDoc(doc(db, "users", uid));
+            if (userDoc.exists()) {
+                currentClubId = userDoc.data().clubId;
+                window.userRole = userDoc.data().role || 'admin';
+                initSaaSDatabase(currentClubId);
+            } else {
+                alert("Tài khoản chưa được phân quyền. Vui lòng liên hệ Admin!");
+                await signOut(auth);
+            }
+        } catch (error) {
+            console.error(error); alert("Sai thông tin đăng nhập hoặc lỗi kết nối!");
+        } finally {
+            btn.disabled = false; text.innerText = "ĐĂNG NHẬP"; loading.classList.add('hidden');
+        }
+    };
+
+    window.handleLogout = () => signOut(auth).then(() => location.reload());
+
+    window.openNewClubModal = () => {
+        tempLogoBase64 = "";
+        document.getElementById('nc_logoPreview').classList.add('hidden');
+        document.getElementById('newClubModal').style.display = 'flex';
+    };
+
+    window.createNewClubSystem = async () => {
+        const clubName = document.getElementById('nc_clubName').value.trim();
+        let clubId = document.getElementById('nc_clubId').value.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
+        const email = document.getElementById('nc_adminEmail').value.trim();
+        const pass = document.getElementById('nc_adminPass').value.trim();
+        const branchCount = parseInt(document.getElementById('nc_branchCount').value) || 1;
+
+        if(!clubName || !clubId || !email || !pass) return alert("Vui lòng điền đầy đủ thông tin!");
+        if(pass.length < 6) return alert("Mật khẩu phải từ 6 ký tự trở lên!");
+
+        const btn = document.getElementById('btnCreateClubAction');
+        btn.innerHTML = `<div class="loading-spinner"></div> Đang xử lý...`; btn.disabled = true;
+
+        try {
+            const clubDoc = await getDoc(doc(db, "clubs", clubId));
+            if(clubDoc.exists()) throw new Error("Club ID exists");
+
+            const userCredential = await createUserWithEmailAndPassword(secondaryAuth, email, pass);
+            const newUid = userCredential.user.uid;
+
+            await setDoc(doc(db, "users", newUid), { email: email, role: "admin", clubId: clubId });
+
+            const batch = writeBatch(db);
+            batch.set(doc(db, "clubs", clubId), { clubName: clubName, createdAt: new Date().toISOString() });
+            
+            let configData = { bankId: "", accountNo: "", accountName: "", branchCount: branchCount };
+            if(tempLogoBase64) configData.logoBase64 = tempLogoBase64; 
+
+            batch.set(doc(db, "clubs", clubId, "settings", "main_config"), configData);
+            await batch.commit();
+
+            alert(`TẠO CLB THÀNH CÔNG!\n\nClub Name: ${clubName}\nID: ${clubId}\nEmail: ${email}\nMật khẩu: ${pass}`);
+            
+            document.getElementById('newClubModal').style.display = 'none';
+            ['nc_clubName', 'nc_clubId', 'nc_adminEmail', 'nc_adminPass', 'nc_logoFile'].forEach(id => document.getElementById(id).value = '');
+            tempLogoBase64 = "";
+
+        } catch (error) {
+            if(error.code === 'auth/email-already-in-use') alert("Email này đã được đăng ký cho CLB khác. Vui lòng đổi email!");
+            else if(error.message === "Club ID exists") alert("Mã Hệ Thống này đã tồn tại, vui lòng chọn mã khác!");
+            else alert("Đã xảy ra lỗi: " + error.message);
+        } finally {
+            btn.innerHTML = `<span>⚡ KHỞI TẠO DỮ LIỆU</span>`; btn.disabled = false; await signOut(secondaryAuth);
+        }
+    };
+
+    function loadLogoForReceipt() {
+        if(clubConfig && clubConfig.logoBase64) return; 
+        let img = new Image(); img.crossOrigin = "Anonymous";
+        img.onload = function(){
+            let canvas = document.createElement("canvas"); canvas.width = img.width; canvas.height = img.height;
+            let ctx = canvas.getContext("2d"); ctx.drawImage(img, 0, 0);
+            try { logoCanvasData = canvas.toDataURL("image/png"); const logoEl = document.getElementById('receiptLogo'); logoEl.src = logoCanvasData; } 
+            catch (e) { console.warn("Lỗi CORS cho Logo."); }
+        };
+        img.onerror = function() { logoCanvasData = 'https://via.placeholder.com/200x60?text=LOGO+CLB'; };
+        img.src = "logo.png";
+    }
+
+    function initSaaSDatabase(clubId) {
+        document.getElementById('loginOverlay').style.display = 'none'; document.getElementById('mainApp').style.display = 'block'; document.getElementById('passInput').value = '';
+
+        if(auth.currentUser && auth.currentUser.email && auth.currentUser.email.toLowerCase() === "admin@tstquynhon.com") {
+            document.getElementById('btnSuperAdmin').style.display = 'flex'; window.userRole = 'super_admin'; 
+        }
+
+        if(window.userRole === 'viewer') {
+            document.getElementById('transactionForm').style.display = 'none'; document.getElementById('inventoryForm').style.display = 'none';
+            document.getElementById('expenseForm').style.display = 'none'; document.getElementById('examExpenseForm').style.display = 'none';
+            document.getElementById('btnAddStudent').style.display = 'none';
+            const btnBatch = document.querySelector('#tab_exam button'); if(btnBatch && btnBatch.innerText.includes('XÁC NHẬN')) btnBatch.style.display = 'none';
+        }
+
+        const clubRef = doc(db, "clubs", clubId);
+        profRef = collection(db, "clubs", clubId, "profiles");
+        colRef = collection(db, "clubs", clubId, "transactions");
+        invRef = collection(db, "clubs", clubId, "inventory");
+        const settingsRef = doc(db, "clubs", clubId, "settings", "main_config");
+
+        onSnapshot(clubRef, (snap) => {
+            if(snap.exists()) {
+                clubData = snap.data();
+                const cName = clubData.clubName || "HỆ THỐNG QUẢN LÝ CLB";
+                document.getElementById('displayClubName').innerText = cName.toUpperCase(); document.getElementById('r_club_name').innerText = cName.toUpperCase();
+            }
+        });
+
+        onSnapshot(settingsRef, (docSnap) => {
+            if(docSnap.exists()) {
+                clubConfig = { ...clubConfig, ...docSnap.data() };
+                applyClubConfigUI(); renderApp(); 
+            }
+        });
+
+        onSnapshot(profRef, (snap) => { allProfiles = {}; snap.forEach(d => { allProfiles[d.id.trim()] = d.data(); }); renderApp(); });
+        onSnapshot(query(invRef, orderBy("timestamp", "desc")), (snap) => { allInventory = snap.docs.map(d => ({id: d.id, ...d.data()})); renderApp(); });
+
+        const lMonth = document.getElementById('filterMonth').value;
+        window.listenToData(lMonth); loadLogoForReceipt();
+    }
+
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            try {
+                const userDoc = await getDoc(doc(db, "users", user.uid));
+                if (userDoc.exists()) { currentClubId = userDoc.data().clubId; window.userRole = userDoc.data().role || 'admin'; initSaaSDatabase(currentClubId); } 
+                else { document.getElementById('loginOverlay').style.display = 'flex'; }
+            } catch(e) { console.error("Auth error:", e); }
+        } else {
+            document.getElementById('loginOverlay').style.display = 'flex'; document.getElementById('mainApp').style.display = 'none';
+        }
+    });
+
+    window.listenToData = (monthStr) => {
+        if (!monthStr || !colRef) return;
+        let start = monthStr + "-01"; let end = monthStr + "-31";
+        if (currentTxUnsub) currentTxUnsub();
+        
+        const qTx = query(colRef, where("date", ">=", start), where("date", "<=", end), orderBy("date", "desc"));
+        currentTxUnsub = onSnapshot(qTx, (snap) => { allTransactions = snap.docs.map(d => ({id: d.id, ...d.data()})); renderApp(); });
+    };
+
+    const docTienVND = (so) => {
+        if (!so || so === 0) return "Không đồng"; const mangso = ['không', 'một', 'hai', 'ba', 'bốn', 'năm', 'sáu', 'bảy', 'tám', 'chín'];
+        const dochangchuc = (so, daydu) => { let chuoi = ""; let chuc = Math.floor(so / 10); let donvi = so % 10; if (chuc > 1) { chuoi = " " + mangso[chuc] + " mươi"; if (donvi == 1) chuoi += " mốt"; } else if (chuc == 1) { chuoi = " mười"; if (donvi == 1) chuoi += " một"; } else if (daydu && donvi > 0) chuoi = " lẻ"; if (donvi == 5 && chuc > 0) chuoi += " lăm"; else if (donvi > 0 && (donvi != 1 || chuc == 0)) chuoi += " " + mangso[donvi]; return chuoi; };
+        const docblock = (so, daydu) => { let chuoi = ""; let tram = Math.floor(so / 100); so = so % 100; if (daydu || tram > 0) { chuoi = " " + mangso[tram] + " trăm"; chuoi += dochangchuc(so, true); } else chuoi = dochangchuc(so, false); return chuoi; };
+        const hang = ["", "nghìn", "triệu", "tỷ"]; let arr = []; let kq = ""; while (so > 0) { arr.push(so % 1000); so = Math.floor(so / 1000); }
+        for (let i = arr.length - 1; i >= 0; i--) if (arr[i] > 0) kq += docblock(arr[i], i < arr.length - 1 && arr.slice(i+1).some(val => val > 0)) + " " + hang[i];
+        kq = kq.trim().replace(/\s+/g, ' '); return `(${kq.charAt(0).toUpperCase() + kq.slice(1)} đồng chẵn)`;
+    };
+
+    const formatCurrencyInput = (dispId, actId, callback) => {
+        const d = document.getElementById(dispId); const a = document.getElementById(actId); if(!d || !a) return;
+        if(a.value && !d.value) d.value = parseInt(a.value, 10).toLocaleString('vi-VN');
+        d.addEventListener('input', (e) => { let v = e.target.value.replace(/\D/g, ''); a.value = v; e.target.value = v ? parseInt(v, 10).toLocaleString('vi-VN') : ''; if(callback) callback(); });
+    };
+
+    window.calcInv = () => { let qty = Number(document.getElementById('inv_qty').value) || 0; let price = Number(document.getElementById('inv_priceActual').value) || 0; let total = qty * price; document.getElementById('inv_totalActual').value = total; document.getElementById('inv_totalDisplay').value = total > 0 ? total.toLocaleString('vi-VN') + " ₫" : ""; };
+    
+    formatCurrencyInput('amountDisplay', 'amountActual'); formatCurrencyInput('tx_exam_amountDisplay', 'tx_exam_amountActual'); formatCurrencyInput('exp_amountDisplay', 'exp_amountActual'); formatCurrencyInput('ee_amountDisplay', 'ee_amountActual'); formatCurrencyInput('inv_priceDisplay', 'inv_priceActual', window.calcInv); formatCurrencyInput('add_fee_display', 'add_fee_actual'); formatCurrencyInput('add_uniform_display', 'add_uniform_actual'); formatCurrencyInput('ei_amountDisplay', 'ei_amountActual'); formatCurrencyInput('exam_fee_all_display', 'exam_fee_all_actual'); formatCurrencyInput('add_fee_default_display', 'add_fee_default_actual', window.updateAddPackageAmount); formatCurrencyInput('m_fee_display', 'm_fee_actual'); 
+    
+    window.updateComboTotal = () => {
+        let f1 = Number(document.getElementById('combo_fee1_actual').value) || 0; let f2 = Number(document.getElementById('combo_fee2_actual').value) || 0;
+        document.getElementById('combo_total').innerText = (f1 + f2).toLocaleString('vi-VN') + " ₫";
+    };
+    formatCurrencyInput('combo_fee1_display', 'combo_fee1_actual', window.updateComboTotal); formatCurrencyInput('combo_fee2_display', 'combo_fee2_actual', window.updateComboTotal);
+
+    window.openSettingsModal = () => {
+        if(window.userRole !== 'admin' && window.userRole !== 'super_admin') return alert("Chỉ Admin mới có quyền cấu hình hệ thống!");
+        document.getElementById('cfg_bankId').value = clubConfig.bankId || "";
+        document.getElementById('cfg_accountNo').value = clubConfig.accountNo || "";
+        document.getElementById('cfg_accountName').value = clubConfig.accountName || "";
+        
+        if(clubConfig.branchCount > 1) {
+            document.getElementById('cfg_branchNamesBlock').style.display = 'block';
+            document.getElementById('cfg_branch1').value = clubConfig.branchName1 || "Cơ sở 1";
+            document.getElementById('cfg_branch2').value = clubConfig.branchName2 || "Cơ sở 2";
+        } else {
+            document.getElementById('cfg_branchNamesBlock').style.display = 'none';
+        }
+        
+        tempLogoBase64 = ""; document.getElementById('cfg_logoFile').value = '';
+        if(clubConfig.logoBase64) { const pv = document.getElementById('cfg_logoPreview'); pv.src = clubConfig.logoBase64; pv.classList.remove('hidden'); } 
+        else { document.getElementById('cfg_logoPreview').classList.add('hidden'); }
+
+        document.getElementById('settingsModal').style.display = 'flex';
+    };
+
+    window.saveClubSettings = async () => {
+        if(window.userRole !== 'admin' && window.userRole !== 'super_admin') return;
+        const bankId = document.getElementById('cfg_bankId').value.trim().toUpperCase();
+        const accountNo = document.getElementById('cfg_accountNo').value.trim();
+        const accountName = document.getElementById('cfg_accountName').value.trim().toUpperCase();
+        
+        if(!bankId || !accountNo || !accountName) return alert("Vui lòng điền đầy đủ thông tin!");
+        
+        let updateData = { bankId, accountNo, accountName };
+        if(tempLogoBase64) updateData.logoBase64 = tempLogoBase64;
+        if(clubConfig.branchCount > 1) {
+            updateData.branchName1 = document.getElementById('cfg_branch1').value.trim() || "Cơ sở 1";
+            updateData.branchName2 = document.getElementById('cfg_branch2').value.trim() || "Cơ sở 2";
+        }
+
+        await setDoc(doc(db, "clubs", currentClubId, "settings", "main_config"), updateData, { merge: true });
+        tempLogoBase64 = ""; 
+        window.showToast("✅ Đã lưu cấu hình thông tin thành công!");
+        document.getElementById('settingsModal').style.display = 'none';
+    };
+
+    function removeVietnameseTonesForQR(str) { return str ? str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D') : ""; }
+    
+    function generateVietQR(amount, studentName, detailDesc) { 
+        const cName = removeVietnameseTonesForQR(studentName); 
+        const cDesc = removeVietnameseTonesForQR(detailDesc).replace(/\//g, '-'); 
+        const accName = removeVietnameseTonesForQR(clubConfig.accountName); 
+        const addInfoText = `${cName} ${cDesc}`.trim().substring(0, 48); 
+        return `https://img.vietqr.io/image/${clubConfig.bankId}-${clubConfig.accountNo}-compact2.png?amount=${amount}&addInfo=${encodeURIComponent(addInfoText)}&accountName=${encodeURIComponent(accName)}`; 
+    }
+
+    document.getElementById('transactionForm').onsubmit = async (e) => {
+        e.preventDefault(); if(window.userRole === 'viewer') return;
+        const type = document.getElementById('type').value; const name = document.getElementById('description').value.trim(); const amount = Number(document.getElementById('amountActual').value); const date = document.getElementById('date').value; 
+        
+        const isSingleBranch = (clubConfig.branchCount === 1);
+        const branch = isSingleBranch ? 'Mặc định' : document.getElementById('branch').value;
+        const txMonth = date.substring(0, 7); const packageCount = parseInt(document.getElementById('tx_package').value) || 1;
+
+        if(!name) return; let txData = { branch, type, description: name, date, timestamp: Date.now() }; 
+
+        let monthsToRecord = [];
+        if (type === 'Học phí' || type === 'Học phí + Lệ phí thi') {
+            let [y, m] = txMonth.split('-').map(Number);
+            for(let i=0; i<packageCount; i++) {
+                let curM = m + i; let curY = y;
+                while(curM > 12) { curM -= 12; curY += 1; }
+                monthsToRecord.push(`${curY}-${curM.toString().padStart(2, '0')}`);
+            }
+        }
+
+        if (type === 'Học phí + Lệ phí thi') { 
+            const examAmount = Number(document.getElementById('tx_exam_amountActual').value); const examTitle = document.getElementById('tx_exam_title').value.trim(); 
+            txData.tuitionAmount = amount; txData.examAmount = examAmount; txData.examTitle = examTitle; 
+            txData.amount = amount + examAmount; txData.txMonth = txMonth; txData.packageMonths = monthsToRecord; 
+        } else { 
+            txData.amount = amount; 
+            if(type === 'Học phí') { txData.txMonth = txMonth; txData.packageMonths = monthsToRecord; } 
+        }
+        
+        await addDoc(colRef, txData);
+        
+        let profileUpdate = { status: 'active', branch, belt: (allProfiles[name] || {}).belt || 'Đai trắng - Cấp 10', createdAt: (allProfiles[name] || {}).createdAt || getLocalToday() };
+        if(monthsToRecord.length > 0) profileUpdate.paidMonths = arrayUnion(...monthsToRecord);
+        await setDoc(doc(db, "clubs", currentClubId, "profiles", name), profileUpdate, { merge: true });
+        
+        e.target.reset(); document.getElementById('date').value = getLocalToday(); document.getElementById('tx_package').value = "1"; document.getElementById('tx_discount').checked = false; document.getElementById('tx_exam_amountActual').value = ""; window.toggleTxFormType(); window.showToast("✅ Đã lưu khoản thu!");
+    };
+
+    window.updateProfile = async () => {
+        if(window.userRole === 'viewer') return; 
+        const oldName = document.getElementById('m_old_name').value.trim(); const newName = document.getElementById('m_name_input').value.trim(); const newStatus = document.getElementById('m_status').value;
+        const isSingleBranch = (clubConfig.branchCount === 1);
+        if (!newName) return alert("Tên võ sinh không được để trống!");
+        
+        let updateData = { status: newStatus, branch: isSingleBranch ? 'Mặc định' : document.getElementById('m_branch').value, belt: document.getElementById('m_belt').value, phone: document.getElementById('m_phone').value, tuitionFee: document.getElementById('m_fee_actual').value, dob: document.getElementById('m_dob').value, notes: document.getElementById('m_notes').value };
+        
+        if (newStatus === 'quit' && (allProfiles[oldName] || {}).status !== 'quit') updateData.quitDate = getLocalToday(); 
+        else if (newStatus === 'active') updateData.quitDate = null; 
+
+        try {
+            if (oldName !== newName) {
+                if (allProfiles[newName]) return alert("Tên võ sinh đã tồn tại!");
+                if (!confirm(`Bạn có chắc muốn đổi tên từ "${oldName}" thành "${newName}"?\nHệ thống sẽ tự động cập nhật tên mới trên tất cả hóa đơn.`)) return;
+                updateData.createdAt = (allProfiles[oldName] || {}).createdAt || getLocalToday();
+                if (allProfiles[oldName].skippedMonths) updateData.skippedMonths = allProfiles[oldName].skippedMonths;
+                if (allProfiles[oldName].paidMonths) updateData.paidMonths = allProfiles[oldName].paidMonths;
+
+                const batch = writeBatch(db);
+                batch.set(doc(db, "clubs", currentClubId, "profiles", newName), updateData);
+                batch.delete(doc(db, "clubs", currentClubId, "profiles", oldName));
+                
+                const allOldTxSnap = await getDocs(query(colRef, where("description", ">=", oldName), where("description", "<=", oldName + '\uf8ff')));
+                allOldTxSnap.forEach(tDoc => {
+                    let t = tDoc.data(); let needsUpdate = false; let updatedDesc = t.description;
+                    if (t.description === oldName) { updatedDesc = newName; needsUpdate = true; } 
+                    else if (t.description && t.description.startsWith(oldName + " (Thi lên")) { updatedDesc = t.description.replace(oldName, newName); needsUpdate = true; } 
+                    else if (t.description && t.description.includes(oldName)) { updatedDesc = t.description.replace(oldName, newName); needsUpdate = true; }
+                    if (needsUpdate) batch.update(doc(db, "clubs", currentClubId, "transactions", tDoc.id), { description: updatedDesc });
+                });
+
+                await batch.commit(); window.showToast("✅ Đã cập nhật và đồng bộ tên mới thành công!");
+            } else {
+                await setDoc(doc(db, "clubs", currentClubId, "profiles", oldName), updateData, { merge: true });
+                window.showToast("✅ Đã cập nhật hồ sơ!");
+            }
+            closeModal();
+        } catch (error) { console.error("Lỗi cập nhật:", error); alert("Đã xảy ra lỗi hệ thống khi lưu thay đổi!"); }
+    };
+
+    window.deleteProfile = async () => { 
+        const targetName = document.getElementById('m_old_name').value.trim();
+        if(window.userRole !== 'viewer' && confirm(`⚠️ Xóa vĩnh viễn hồ sơ "${targetName}"? Lịch sử đóng tiền sẽ vẫn còn lưu nhưng sẽ bị mồ côi.`)) { 
+            await deleteDoc(doc(db, "clubs", currentClubId, "profiles", targetName)); closeModal(); window.showToast("✅ Đã xóa hồ sơ!"); 
+        } 
+    };
+
+    window.skipMonth = async (name, month) => { await setDoc(doc(db, "clubs", currentClubId, "profiles", name.trim()), { skippedMonths: arrayUnion(month) }, { merge: true }); window.showToast("✅ Đã miễn phí tháng!"); };
+
+    window.removeSkip = async (name, month) => { if(window.userRole !== 'viewer' && confirm(`Hủy báo nghỉ tháng ${formatMonth(month)} cho ${name}?`)) { await setDoc(doc(db, "clubs", currentClubId, "profiles", name.trim()), { skippedMonths: arrayRemove(month) }, { merge: true }); closeModal(); window.showToast("✅ Đã khôi phục nợ!"); } };
+
+    window.addNewStudent = async () => {
+        if(window.userRole === 'viewer') return; 
+        const name = document.getElementById('add_name').value.trim(); const joinDate = document.getElementById('add_date').value; const fee = Number(document.getElementById('add_fee_actual').value); const uniformSize = document.getElementById('add_uniform_size').value.trim(); const uniformFee = Number(document.getElementById('add_uniform_actual').value);
+        const packageCount = parseInt(document.getElementById('add_package').value) || 1; const isGift = document.getElementById('add_uniform_gift').checked;
+        const isSingleBranch = (clubConfig.branchCount === 1); const branch = isSingleBranch ? 'Mặc định' : document.getElementById('add_branch').value;
+        
+        if(!name) return alert("Cần nhập tên!"); if(allProfiles[name]) return alert("Võ sinh đã tồn tại!"); if(!isGift && uniformFee > 0 && !uniformSize) return alert("Vui lòng chọn Size Võ phục!");
+
+        let startMonth = joinDate.substring(0, 7); let monthsToRecord = []; let [y, m] = startMonth.split('-').map(Number);
+        for(let i=0; i<packageCount; i++) { let curM = m + i; let curY = y; while(curM > 12) { curM -= 12; curY += 1; } monthsToRecord.push(`${curY}-${curM.toString().padStart(2, '0')}`); }
+
+        await setDoc(doc(db, "clubs", currentClubId, "profiles", name), { status: 'active', branch, belt: document.getElementById('add_belt').value, dob: document.getElementById('add_dob').value, phone: document.getElementById('add_phone').value, tuitionFee: document.getElementById('add_fee_default_actual').value, notes: document.getElementById('add_notes').value.trim(), createdAt: joinDate, paidMonths: monthsToRecord });
+        
+        if(fee > 0) { await addDoc(colRef, { branch, type: 'Học phí', description: name, amount: fee, date: joinDate, txMonth: startMonth, packageMonths: monthsToRecord, timestamp: Date.now() }); }
+        
+        if(uniformSize) { 
+            const invDoc = await addDoc(invRef, { size: uniformSize, type: 'Xuất bán', qty: 1, date: joinDate, timestamp: Date.now() + 2 }); 
+            if(isGift) { await addDoc(colRef, { branch: 'Chung', type: 'Tặng Võ phục', description: `Tặng ${uniformSize} cho ${name}`, amount: 0, date: joinDate, timestamp: Date.now() + 1, relatedInvId: invDoc.id }); } 
+            else if (uniformFee > 0) { await addDoc(colRef, { branch: 'Chung', type: 'Thu Võ phục', description: `Bán ${uniformSize} cho ${name}`, amount: uniformFee, date: joinDate, timestamp: Date.now() + 1, relatedInvId: invDoc.id }); } 
+        }
+        closeAddModal(); window.showToast("✅ Đã lưu hồ sơ mới và cập nhật kho!");
+    };
+
+    document.getElementById('inventoryForm').onsubmit = async (e) => {
+        e.preventDefault(); if(window.userRole === 'viewer') return alert("Tài khoản khách không thể nhập xuất kho!");
+        const size = document.getElementById('inv_size').value.trim(); const type = document.getElementById('inv_type').value; const qty = Number(document.getElementById('inv_qty').value); const desc = document.getElementById('inv_desc').value.trim(); const amount = Number(document.getElementById('inv_totalActual').value); const date = document.getElementById('inv_date').value; const branch = 'Chung';
+        const invDoc = await addDoc(invRef, { size, type, qty, date, timestamp: Date.now() });
+        if (amount > 0) await addDoc(colRef, { branch, type: type === 'Nhập kho' ? 'Chi Võ phục' : 'Thu Võ phục', description: type === 'Nhập kho' ? `Nhập ${size} từ ${desc}` : `Bán ${size} cho ${desc}`, amount, date, timestamp: Date.now(), relatedInvId: invDoc.id });
+        e.target.reset(); document.getElementById('inv_priceActual').value = ""; document.getElementById('inv_totalActual').value = ""; document.getElementById('inv_date').value = getLocalToday(); window.showToast("✅ Đã cập nhật Kho!");
+    };
+
+    window.saveEditInv = async () => {
+        if(window.userRole === 'viewer') return;
+        let txId = document.getElementById('ei_txId').value; let invId = document.getElementById('ei_invId').value; let size = document.getElementById('ei_size').value; let type = document.getElementById('ei_type').value; let qty = Number(document.getElementById('ei_qty').value); let date = document.getElementById('ei_date').value; let desc = document.getElementById('ei_desc').value.trim(); let amount = Number(document.getElementById('ei_amountActual').value);
+        if(!txId || !invId) return alert("Lỗi ID giao dịch. Vui lòng tải lại trang!");
+        await updateDoc(doc(db, "clubs", currentClubId, "inventory", invId), { size, type, qty, date });
+        let txType = type === 'Nhập kho' ? 'Chi Võ phục' : 'Thu Võ phục'; await updateDoc(doc(db, "clubs", currentClubId, "transactions", txId), { type: txType, description: desc, amount, date });
+        document.getElementById('editInvModal').style.display = 'none'; window.showToast("✅ Đã sửa thành công dữ liệu kho!");
+    };
+
+    window.deleteTx = async (id, relatedInvId) => { 
+        if(window.userRole !== 'viewer' && confirm("⚠️ Bạn có chắc muốn xóa giao dịch này?")) { 
+            await deleteDoc(doc(db, "clubs", currentClubId, "transactions", id)); 
+            if (relatedInvId && relatedInvId !== 'undefined') await deleteDoc(doc(db, "clubs", currentClubId, "inventory", relatedInvId)); 
+            window.showToast("✅ Đã xóa!"); 
+        } 
+    };
+
+    document.getElementById('expenseForm').onsubmit = async (e) => { 
+        e.preventDefault(); 
+        if(window.userRole !== 'viewer') { 
+            const isSingleBranch = (clubConfig.branchCount === 1);
+            const branch = isSingleBranch ? 'Mặc định' : document.getElementById('exp_branch').value;
+            await addDoc(colRef, { branch: branch, type: 'Chi phí', description: document.getElementById('exp_desc').value.trim(), amount: Number(document.getElementById('exp_amountActual').value), date: document.getElementById('exp_date').value, timestamp: Date.now() }); 
+            e.target.reset(); document.getElementById('exp_date').value = getLocalToday(); window.showToast("✅ Đã lưu khoản chi!"); 
+        } 
+    };
+    
+    document.getElementById('examExpenseForm').onsubmit = async (e) => { e.preventDefault(); if(window.userRole !== 'viewer') { await addDoc(colRef, { branch: 'Chung', type: 'Chi phí kỳ thi', description: document.getElementById('ee_desc').value.trim(), amount: Number(document.getElementById('ee_amountActual').value), date: getLocalToday(), txMonth: document.getElementById('filterMonth').value || getLocalToday().substring(0, 7), timestamp: Date.now() }); e.target.reset(); window.showToast("✅ Đã lưu chi phí kỳ thi!"); } };
+
+    window.quickPay = async (name, month, branch, defaultFee) => {
+        if(window.userRole === 'viewer') return alert("Tài khoản khách không thể thu tiền!");
+        let defaultAmountStr = defaultFee ? parseInt(defaultFee, 10).toLocaleString('vi-VN') : '0';
+        let cleanName = name.replace(/\\'/g, "'");
+
+        let inputAmount = prompt(`XÁC NHẬN THU HỌC PHÍ\nVõ sinh: ${cleanName}\nKỳ học phí: ${formatMonth(month)}\n\nNhập số tiền thu (VNĐ):`, defaultAmountStr);
+        if (inputAmount === null) return; 
+        
+        let amount = Number(inputAmount.replace(/\D/g, ''));
+        if (amount <= 0) return alert("Số tiền không hợp lệ!");
+
+        try {
+            await addDoc(colRef, { branch: branch || 'CS1', type: 'Học phí', description: cleanName, amount: amount, date: getLocalToday(), txMonth: month, packageMonths: [month], timestamp: Date.now() });
+            await setDoc(doc(db, "clubs", currentClubId, "profiles", cleanName), { status: 'active', branch: branch || 'CS1', belt: (allProfiles[cleanName] || {}).belt || 'Đai trắng - Cấp 10', createdAt: (allProfiles[cleanName] || {}).createdAt || getLocalToday(), paidMonths: arrayUnion(month) }, { merge: true });
+            window.showToast(`✅ Đã thu thành công ${amount.toLocaleString('vi-VN')} ₫ của ${cleanName}!`);
+        } catch (error) { console.error("Lỗi:", error); alert("Đã xảy ra lỗi hệ thống, vui lòng thử lại!"); }
+    };
+
+    window.quickCollectExam = async (name, branch) => {
+        if(window.userRole === 'viewer') return alert("Tài khoản khách không thể thu tiền!");
+        let defaultFee = document.getElementById('exam_fee_all_actual').value || 250000;
+        let inputAmount = prompt(`Nhập lệ phí thi của ${name}:`, defaultFee); if (!inputAmount) return; 
+        let amount = Number(inputAmount.replace(/\D/g, '')); if (amount <= 0) return;
+        await addDoc(colRef, { branch: branch || 'CS1', type: 'Lệ phí thi', description: `${name} (Thi lên ${document.getElementById('exam_new_belt').value})`, amount, date: getLocalToday(), txMonth: document.getElementById('filterMonth').value || getLocalToday().substring(0, 7), timestamp: Date.now() }); window.showToast(`✅ Đã thu lệ phí thi cho ${name}!`);
+    };
+
+    window.processCombo = async (action) => {
+        let n1 = document.getElementById('combo_name1').value.trim(); let f1 = Number(document.getElementById('combo_fee1_actual').value) || 0; let m1 = document.getElementById('combo_month1').value;
+        let n2 = document.getElementById('combo_name2').value.trim(); let f2 = Number(document.getElementById('combo_fee2_actual').value) || 0; let m2 = document.getElementById('combo_month2').value;
+
+        if(!n1 && !n2) return alert("Vui lòng chọn ít nhất 1 võ sinh!");
+        if(f1 + f2 <= 0) return alert("Tổng tiền phải lớn hơn 0!");
+
+        let comboNames = []; let comboMonths = new Set();
+        let b1 = allProfiles[n1] ? allProfiles[n1].branch : 'CS1'; let b2 = allProfiles[n2] ? allProfiles[n2].branch : 'CS1'; let branch = b1 || b2 || 'CS1';
+
+        if(n1) { comboNames.push(n1); comboMonths.add(m1); }
+        if(n2) { comboNames.push(n2); comboMonths.add(m2); }
+
+        let combinedNameStr = comboNames.join(" & "); let combinedMonthStr = Array.from(comboMonths).join(", "); let totalAmt = f1 + f2;
+
+        if(action === 'pay') {
+            if(n1 && f1 > 0) {
+                await addDoc(colRef, { branch: b1, type: 'Học phí', description: n1, amount: f1, date: getLocalToday(), txMonth: m1, packageMonths: [m1], timestamp: Date.now() });
+                await setDoc(doc(db, "clubs", currentClubId, "profiles", n1), { paidMonths: arrayUnion(m1) }, { merge: true });
+            }
+            if(n2 && f2 > 0) {
+                await addDoc(colRef, { branch: b2, type: 'Học phí', description: n2, amount: f2, date: getLocalToday(), txMonth: m2, packageMonths: [m2], timestamp: Date.now() + 1 });
+                await setDoc(doc(db, "clubs", currentClubId, "profiles", n2), { paidMonths: arrayUnion(m2) }, { merge: true });
+            }
+            window.showToast("✅ Đã ghi sổ gộp thành công!");
+            exportReceipt(combinedNameStr, totalAmt, 'Học phí', getLocalToday(), combinedMonthStr, branch, 'Gộp Gia Đình', 'BIÊN LAI THU TIỀN');
+            document.getElementById('comboModal').style.display = 'none';
+        } else if (action === 'report') {
+            exportReceipt(combinedNameStr, totalAmt, 'Học phí', getLocalToday(), combinedMonthStr, branch, 'Gộp Gia Đình', 'PHIẾU BÁO HỌC PHÍ');
+            document.getElementById('comboModal').style.display = 'none';
+        }
+    };
+
+    window.processBatchUpgrade = async () => {
+        if(window.userRole === 'viewer') return alert("Tài khoản khách không thể thăng đai!");
+        const selected = Array.from(document.querySelectorAll('.exam-check:checked')).map(cb => cb.value); if(selected.length === 0) return alert("Chọn ít nhất 1 võ sinh!");
+        const newBelt = document.getElementById('exam_new_belt').value; const fee = Number(document.getElementById('exam_fee_all_actual').value) || 0; const currentMonth = document.getElementById('filterMonth').value || getLocalToday().substring(0, 7);
+        let paidStudents = {};
+        allTransactions.forEach(t => { if ((t.type === 'Lệ phí thi' || t.type === 'Học phí + Lệ phí thi') && (t.txMonth === currentMonth || (t.date && t.date.startsWith(currentMonth)))) { let stuName = t.type === 'Học phí + Lệ phí thi' ? (t.description ? t.description.trim() : "") : ((t.description || "").match(/^(.*?)\s*\(Thi lên/) ? (t.description || "").match(/^(.*?)\s*\(Thi lên/)[1].trim() : (t.description || "").trim()); if(stuName) paidStudents[stuName] = true; } });
+        let studentsToCharge = selected.filter(n => !paidStudents[n]); let chargeAmount = studentsToCharge.length * fee;
+        let confirmMsg = `Xác nhận thăng đai lên [${newBelt}] cho ${selected.length} võ sinh?` + (fee > 0 && studentsToCharge.length > 0 ? `\nHệ thống sẽ thu phí ${studentsToCharge.length} bạn (Tổng: ${chargeAmount.toLocaleString()} ₫).` : "");
+        if(!confirm(confirmMsg)) return;
+        
+        const batch = writeBatch(db); 
+        for (let name of selected) {
+            if(!allProfiles[name]) continue; batch.set(doc(db, "clubs", currentClubId, "profiles", name), { belt: newBelt }, { merge: true });
+            if(fee > 0 && !paidStudents[name]) { const newTxRef = doc(collection(db, "clubs", currentClubId, "transactions")); batch.set(newTxRef, { branch: allProfiles[name].branch || 'CS1', type: 'Lệ phí thi', description: `${name} (Thi lên ${newBelt})`, amount: fee, date: getLocalToday(), txMonth: currentMonth, timestamp: Date.now() + Math.random() }); }
+        }
+        await batch.commit(); window.showToast(`✅ Đã thăng đai thành công cho ${selected.length} võ sinh!`); document.getElementById('checkAllExam').checked = false; renderExamList(); 
+    };
+
+    window.downloadExcelTemplate = () => {
+        const ws_data = [
+            ['Họ và tên', 'Cơ sở (CS1/CS2)', 'Cấp đai', 'SĐT', 'Ngày sinh (DD/MM/YYYY)', 'Học phí (VNĐ)', 'Ngày nhập học (YYYY-MM-DD)'],
+            ['Nguyễn Văn A', 'CS1', 'Đai trắng - Cấp 10', '0909123456', '01/01/2015', 300000, '2024-01-01'],
+            ['Trần Thị B', 'CS2', 'Đai vàng - Cấp 7', '0988765432', '15/05/2014', 300000, '2024-01-01']
+        ];
+        const ws = XLSX.utils.aoa_to_sheet(ws_data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "DanhSach");
+        XLSX.writeFile(wb, "Mau_Nhap_Vo_Sinh.xlsx");
+    };
+
+    window.handleImportExcel = (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+                if(jsonData.length === 0) return alert("File Excel không có dữ liệu!");
+                if(!confirm(`Tìm thấy ${jsonData.length} võ sinh. Bạn có muốn bắt đầu nhập vào hệ thống?`)) return;
+                
+                window.showToast("⏳ Đang xử lý nhập dữ liệu...", 10000, true);
+                const batch = writeBatch(db);
+                let count = 0;
+                
+                jsonData.forEach(row => {
+                    let name = row['Họ và tên'] || row['Tên'] || row['Name'];
+                    if(!name) return; 
+                    name = String(name).trim();
+                    if(allProfiles[name]) return; 
+                    
+                    let branch = row['Cơ sở'] || row['Cơ sở (CS1/CS2)'] || 'CS1';
+                    let belt = row['Cấp đai'] || 'Đai trắng - Cấp 10';
+                    let phone = row['SĐT'] || row['Số điện thoại'] || '';
+                    let dob = row['Ngày sinh'] || row['Ngày sinh (DD/MM/YYYY)'] || '';
+                    let fee = row['Học phí (VNĐ)'] || row['Học phí'] || 0;
+                    let joinDate = row['Ngày nhập học (YYYY-MM-DD)'] || row['Ngày nhập học'] || getLocalToday();
+
+                    const docRef = doc(db, "clubs", currentClubId, "profiles", name);
+                    batch.set(docRef, {
+                        status: 'active',
+                        branch: String(branch).trim(),
+                        belt: String(belt).trim(),
+                        phone: String(phone).trim(),
+                        dob: String(dob).trim(),
+                        tuitionFee: fee,
+                        createdAt: String(joinDate).trim(),
+                        notes: 'Nhập từ Excel'
+                    });
+                    count++;
+                });
+
+                if(count > 0) {
+                    await batch.commit();
+                    window.showToast(`✅ Đã nhập thành công ${count} võ sinh mới!`);
+                } else {
+                    window.showToast("⚠️ Không có võ sinh mới nào được thêm (có thể đã trùng tên).");
+                }
+            } catch(err) {
+                console.error(err); alert("Lỗi đọc file Excel. Vui lòng dùng mẫu chuẩn.");
+            } finally {
+                event.target.value = ""; 
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    };
+
+    const setupAutocomplete = (inputId, listId, mode) => {
+        const inp = document.getElementById(inputId); const list = document.getElementById(listId);
+        inp.onfocus = function() { if(this.value) this.oninput(); };
+        inp.oninput = function() {
+            let val = this.value.toLowerCase().trim(); list.innerHTML = '';
+            if(!val || (mode === 'inv' && document.getElementById('inv_type').value !== 'Xuất bán')) { list.style.display = 'none'; return; }
+            let matches = Object.keys(allProfiles).filter(n => { 
+                if(allProfiles[n].status === 'quit') return false; 
+                let p = allProfiles[n]; 
+                return n.toLowerCase().includes(val) || (p.phone || "").includes(val) || (p.belt || "").toLowerCase().includes(val) || (p.notes || "").toLowerCase().includes(val); 
+            });
+            matches.forEach(name => {
+                let div = document.createElement('div'); 
+                let branchHtml = (!clubConfig.branchCount || clubConfig.branchCount > 1) 
+                    ? `<span class="badge bg-slate-100 text-slate-600 border border-slate-200">${window.getBranchNameDisplay(allProfiles[name].branch || 'CS1')}</span>` 
+                    : ``;
+                
+                div.innerHTML = `<strong class="text-primary">${name}</strong> ${branchHtml}`;
+                div.onclick = () => {
+                    inp.value = name; 
+                    if(mode === 'tx') {
+                        document.getElementById('branch').value = allProfiles[name].branch || 'CS1';
+                        if((document.getElementById('type').value === 'Học phí' || document.getElementById('type').value === 'Học phí + Lệ phí thi') && allProfiles[name].tuitionFee) {
+                            window.updateAmountByPackage();
+                        }
+                    } else if (mode === 'combo1' || mode === 'combo2') {
+                        let feeId = mode === 'combo1' ? 'combo_fee1_actual' : 'combo_fee2_actual';
+                        let dispId = mode === 'combo1' ? 'combo_fee1_display' : 'combo_fee2_display';
+                        if(allProfiles[name].tuitionFee) {
+                            document.getElementById(feeId).value = allProfiles[name].tuitionFee;
+                            document.getElementById(dispId).value = parseInt(allProfiles[name].tuitionFee, 10).toLocaleString('vi-VN');
+                            window.updateComboTotal();
+                        }
+                    }
+                    list.style.display = 'none';
+                }; 
+                list.appendChild(div);
+            });
+            list.style.display = matches.length ? 'block' : 'none';
+        }; 
+        document.addEventListener('click', (e) => { if (e.target !== inp) list.style.display = 'none'; });
+    };
+
+    document.addEventListener("DOMContentLoaded", () => {
+        setupAutocomplete('description', 'autocomplete-list', 'tx'); 
+        setupAutocomplete('inv_desc', 'inv-autocomplete-list', 'inv');
+        setupAutocomplete('combo_name1', 'combo-autocomplete-1', 'combo1');
+        setupAutocomplete('combo_name2', 'combo-autocomplete-2', 'combo2');
+        
+        const lToday = getLocalToday(); const lMonth = lToday.substring(0, 7);
+        document.getElementById('filterMonth').value = lMonth; 
+        document.getElementById('filterMonth').onchange = (e) => { window.listenToData(e.target.value); }; 
+        document.getElementById('filterBranch').onchange = renderApp; 
+        document.getElementById('searchInput').oninput = renderApp; 
+        document.getElementById('date').value = lToday; 
+        document.getElementById('inv_date').value = lToday; document.getElementById('exp_date').value = lToday;
+        
+        const passInp = document.getElementById('passInput'); 
+        if(passInp) passInp.addEventListener("keypress", (e) => { if(e.key === "Enter") handleLogin(); });
+    });
+
+    window.exportReceipt = async (name, amount, type, date, txMonth, branch, extraDesc = '', receiptTitle = 'BIÊN LAI THU TIỀN') => {
+        window.showToast("⏳ Đang tạo hóa đơn, vui lòng đợi...", 10000, true);
+        try {
+            const node = document.getElementById('receiptTemplate'); const cleanName = name.trim();
+            document.getElementById('r_name').innerText = cleanName.toUpperCase(); document.getElementById('receiptTitle').innerText = receiptTitle;
+            const dParts = date ? date.split('-') : []; document.getElementById('r_date_top').innerText = dParts.length === 3 ? `Quy Nhơn, ngày ${dParts[2]} tháng ${dParts[1]} năm ${dParts[0]}` : `Quy Nhơn, ${formatDate(date)}`;
+            const p = allProfiles[cleanName] || {}; document.getElementById('r_belt').innerText = p.belt || (cleanName.includes('&') ? 'Theo danh sách' : 'Chưa cập nhật'); 
+            if (p.dob && !cleanName.includes('&')) { document.getElementById('r_dob').innerText = formatDate(p.dob); document.getElementById('r_dob_wrap').style.display = 'block'; } else document.getElementById('r_dob_wrap').style.display = 'none';
+            document.getElementById('r_amount').innerText = amount.toLocaleString('vi-VN') + " ₫"; document.getElementById('r_amount_words').innerText = docTienVND(amount); 
+            
+            let displayBranch = window.getBranchNameDisplay(branch);
+            document.getElementById('r_branch').innerText = displayBranch;
+            
+            let qrDesc = type;
+            if(type === 'Học phí + Lệ phí thi') { document.getElementById('r_type').innerText = `Học phí tháng ${formatMonth(txMonth)} + Lệ phí thi ${extraDesc}`; document.getElementById('r_month_wrap').style.display = 'none'; qrDesc = `Hoc phi va Le phi thi`; } 
+            else { 
+                document.getElementById('r_type').innerText = type; 
+                if(type === 'Học phí' && txMonth) { 
+                    document.getElementById('r_month_wrap').style.display = 'block'; 
+                    let displayM = txMonth.includes(',') ? txMonth.split(',').map(formatMonth).join(', ') : formatMonth(txMonth);
+                    document.getElementById('r_month').innerText = displayM; 
+                } else document.getElementById('r_month_wrap').style.display = 'none'; 
+            }
+            
+            const qrImgEl = document.getElementById('qrCodeImg');
+            if (amount > 0) { 
+                let paymentContent = type === 'Học phí' && txMonth ? (extraDesc ? removeVietnameseTonesForQR(extraDesc) : `Hoc Phi Thang ${formatMonth(txMonth)}`) : qrDesc;
+                let qrName = cleanName.includes('&') ? cleanName.replace(/ & /g, " - ") : cleanName;
+                qrImgEl.src = generateVietQR(amount, qrName, paymentContent); 
+                document.getElementById('r_qr_wrap').style.display = 'block'; 
+                await Promise.race([new Promise((res) => { qrImgEl.onload = res; qrImgEl.onerror = res; }), new Promise((res) => setTimeout(res, 3000))]);
+            } else { document.getElementById('r_qr_wrap').style.display = 'none'; }
+            
+            const logoEl = document.getElementById('receiptLogo'); if (logoCanvasData) { logoEl.src = logoCanvasData; } 
+            node.style.position = 'absolute'; node.style.visibility = 'visible';
+            const canvas = await html2canvas(node, { scale: 3, backgroundColor: '#ffffff', useCORS: true, allowTaint: true });
+            document.getElementById('receiptPreviewImg').src = canvas.toDataURL('image/png');
+            document.getElementById('btnDownloadReceipt').onclick = () => { const link = document.createElement('a'); link.download = `Hoa_Don_${cleanName.replace(/\s/g, '_').replace(/&/g, 'va')}.png`; link.href = canvas.toDataURL('image/png'); link.click(); };
+            document.getElementById('toastMessage').classList.remove("show"); document.getElementById('receiptModal').style.display = 'flex';
+        } catch (error) { console.error(error); window.showToast("❌ Lỗi tạo hóa đơn!"); } finally { document.getElementById('receiptTemplate').style.cssText = 'position:absolute;left:-9999px;visibility:hidden;'; }
+    };
+
+    function renderApp() {
+        const selMonth = document.getElementById('filterMonth').value; const selBranch = document.getElementById('filterBranch').value; const search = document.getElementById('searchInput').value.toLowerCase().trim();
+        let txHtml = '', uniformTxHtml = '', expHtml = '', examExpHtml = '', debtHtml = '', activeHtml = '', quitHtml = '', invListHtml = '', reportHtml = '';
+        let inc_tuition = 0, inc_exam = 0, inc_other = 0, inc_uniform = 0, exp_uniform = 0, exp = 0, exp_exam_total = 0, totalDebtEst = 0; let studentPayments = {};
+        
+        let isSingleBranch = clubConfig.branchCount === 1; 
+        
+        let all_time_inc_uniform = 0, all_time_exp_uniform = 0;
+        
+        let inventoryStats = { "Size 1m": { nhap: 0, xuat: 0 }, "Size 1m1": { nhap: 0, xuat: 0 }, "Size 1m2": { nhap: 0, xuat: 0 }, "Size 1m3": { nhap: 0, xuat: 0 }, "Size 1m4": { nhap: 0, xuat: 0 }, "Size 1m5": { nhap: 0, xuat: 0 }, "Size 1m6": { nhap: 0, xuat: 0 }, "Size 1m7": { nhap: 0, xuat: 0 }, "Size 1m8": { nhap: 0, xuat: 0 } };
+        allInventory.forEach(inv => { if(!inv.size) return; if(!inventoryStats[inv.size]) inventoryStats[inv.size] = { nhap: 0, xuat: 0 }; inv.type === 'Nhập kho' ? inventoryStats[inv.size].nhap += inv.qty : inventoryStats[inv.size].xuat += inv.qty; });
+
+        let sizeSelectHtml = '<option value="">-- Không mua / Trống --</option>';
+        Object.keys(inventoryStats).forEach(size => {
+            let s = inventoryStats[size]; let ton = s.nhap - s.xuat; if(s.nhap === 0 && s.xuat === 0 && !size.startsWith("Số")) return; 
+            invListHtml += `<tr><td class="font-bold text-slate-700">${size}</td><td class="text-emerald-600 font-medium">+${s.nhap}</td><td class="text-rose-600 font-medium">-${s.xuat}</td><td class="${ton<3 ? 'text-rose-600' : 'text-emerald-600'} font-black text-base bg-slate-50">${ton}</td></tr>`;
+            if (ton > 0) sizeSelectHtml += `<option value="${size}">${size} (Còn: ${ton} bộ)</option>`; else sizeSelectHtml += `<option value="${size}" disabled>${size} (Hết hàng)</option>`;
+        });
+        const addSizeSelect = document.getElementById('add_uniform_size'); if(addSizeSelect) addSizeSelect.innerHTML = sizeSelectHtml;
+
+        Object.keys(allProfiles).forEach(name => { const p = allProfiles[name]; studentPayments[name] = new Set(p.paidMonths || []); });
+
+        allTransactions.forEach(t => { 
+            const cleanName = t.description ? t.description.trim() : ""; 
+            if((t.type === 'Học phí' || t.type === 'Học phí + Lệ phí thi') && cleanName) { 
+                if(!studentPayments[cleanName]) studentPayments[cleanName] = new Set(); 
+                if(t.packageMonths && Array.isArray(t.packageMonths)) {
+                    t.packageMonths.forEach(m => studentPayments[cleanName].add(m));
+                } else if(t.txMonth) {
+                    studentPayments[cleanName].add(t.txMonth); 
+                }
+            } 
+        });
+
+        allTransactions.forEach(t => {
+            const cleanName = t.description ? t.description.trim() : ""; 
+            let isUniformTx = (t.type === 'Thu Võ phục' || t.type === 'Chi Võ phục' || t.type === 'Võ phục' || t.type === 'Tặng Võ phục');
+            
+            let isBranchMatch = true;
+            if (!isSingleBranch && selBranch !== 'all' && t.branch !== selBranch && t.branch !== 'Chung') isBranchMatch = false;
+            let isSearchMatch = true;
+            if (search && !cleanName.toLowerCase().includes(search) && !(t.examTitle||"").toLowerCase().includes(search)) isSearchMatch = false;
+
+            let safeBranch = t.branch || "CS1"; let safeNameEscaped = cleanName.replace(/'/g, "\\'");
+            let branchTdHTML = isSingleBranch ? '' : `<td class="col-branch"><span class="badge bg-slate-100 text-slate-600 border border-slate-200">${window.getBranchNameDisplay(safeBranch)}</span></td>`;
+            const btnDel = window.userRole === 'admin' ? `<button class="btn-sm bg-rose-50 text-rose-600 hover:bg-rose-500 hover:text-white ml-1" onclick="deleteTx('${t.id}', '${t.relatedInvId || ''}')">🗑</button>` : '';
+
+            if (isUniformTx) {
+                let isInc = (t.type === 'Thu Võ phục' || t.type === 'Võ phục'); let isGift = (t.type === 'Tặng Võ phục');
+                if (isInc) all_time_inc_uniform += t.amount; else if (!isGift) all_time_exp_uniform += t.amount;
+                if (isInc) inc_uniform += t.amount; else if (!isGift) exp_uniform += t.amount;
+
+                if (isSearchMatch) {
+                    let sizeText = "-"; let matchSize = t.description.match(/(Số \d+|Size 1m\d*)/); if(matchSize) sizeText = matchSize[1];
+                    let clickToEditTag = window.userRole === 'admin' ? `onclick="openEditInv('${t.id}', '${t.relatedInvId || ''}')"` : '';
+                    let renderNameCell = window.userRole === 'admin' ? `<div class="inline-block px-1 -ml-1 rounded hover:bg-blue-50 cursor-pointer text-blue-700 font-bold" ${clickToEditTag}>${cleanName}</div>` : `<span class="font-bold text-slate-700">${cleanName}</span>`;
+                    let typeBadge = isGift ? '<span class="text-[0.7rem] font-bold uppercase text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">Tặng</span>' : `<span class="text-[0.7rem] font-bold uppercase ${isInc ? 'text-emerald-600' : 'text-rose-600'} bg-slate-50 px-1.5 py-0.5 rounded">${isInc ? 'Bán' : 'Nhập'}</span>`;
+
+                    uniformTxHtml += `<tr><td>${formatDate(t.date)}</td><td>${renderNameCell}</td><td>${typeBadge}</td><td><span class="badge bg-blue-50 text-blue-800 border border-blue-200">${sizeText}</span></td><td class="${isInc ? 'text-emerald-600' : (isGift ? 'text-slate-500' : 'text-rose-600')} font-bold">${isInc ? '+' : (isGift ? '' : '-')}${t.amount.toLocaleString()}</td><td class="action-btns">${(isInc || isGift) ? `<button class="btn-sm bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white border border-indigo-200" onclick="exportReceipt('${safeNameEscaped}', ${t.amount}, 'Võ phục', '${t.date}', '', 'Chung', '', 'BIÊN LAI THU TIỀN')">🧾 In</button>` : ''}${btnDel}</td></tr>`;
+                }
+                return;
+            }
+
+            if (!isBranchMatch || !isSearchMatch) return;
+
+            if(t.type === 'Chi phí') {
+                exp += t.amount; 
+                expHtml += `<tr><td>${formatDate(t.date)}</td>${branchTdHTML}<td class="font-bold text-slate-800">${t.description}</td><td class="text-rose-600 font-bold">-${t.amount.toLocaleString()}</td><td>${btnDel}</td></tr>`;
+            } else if (t.type === 'Chi phí kỳ thi') {
+                exp_exam_total += t.amount;
+                examExpHtml += `<tr><td>${formatDate(t.date)}</td><td class="font-bold text-slate-800">${t.description}</td><td class="text-rose-600 font-bold">-${t.amount.toLocaleString()}</td><td>${btnDel}</td></tr>`;
+            } else {
+                let allocatedAmount = t.amount;
+                if(t.type === 'Học phí') { allocatedAmount = t.packageMonths ? t.amount / t.packageMonths.length : t.amount; inc_tuition += allocatedAmount; } 
+                else if(t.type === 'Học phí + Lệ phí thi') { allocatedAmount = t.packageMonths ? (t.tuitionAmount || 0) / t.packageMonths.length : (t.tuitionAmount || 0); inc_tuition += allocatedAmount; inc_exam += (t.examAmount || 0); } 
+                else if(t.type === 'Lệ phí thi') { inc_exam += t.amount; } 
+                else { inc_other += t.amount; }
+
+                let studentNameBase = cleanName.split(' (')[0]; let safeStudentNameBase = studentNameBase.replace(/'/g, "\\'");
+                let badgeTypeClass = (t.type === 'Lệ phí thi' || t.type === 'Học phí + Lệ phí thi') ? 'bg-orange-50 text-orange-800 border-orange-200' : 'bg-indigo-50 text-indigo-700 border-indigo-200';
+                let printTypeBadge = t.type === 'Học phí + Lệ phí thi' ? 'Học phí & Thi' : t.type; let safeExamTitle = t.examTitle ? t.examTitle.replace(/'/g, "\\'") : '';
+                let displayTxMonth = t.packageMonths && t.packageMonths.length > 1 ? `${t.packageMonths.length} Tháng` : (t.txMonth ? formatMonth(t.txMonth) : "-");
+                
+                let amountHTML = '';
+                if (t.packageMonths && t.packageMonths.length > 1) {
+                    let totalAllo = t.type === 'Học phí + Lệ phí thi' ? (allocatedAmount + (t.examAmount||0)) : allocatedAmount;
+                    amountHTML = `<div class="text-emerald-600 font-black text-base">+${totalAllo.toLocaleString()}</div><div class="text-[0.65rem] text-slate-500 font-bold whitespace-nowrap">Tổng: ${t.amount.toLocaleString()}</div>`;
+                } else {
+                    amountHTML = `<span class="text-emerald-600 font-black text-base">+${t.amount.toLocaleString()}</span>`;
+                }
+
+                txHtml += `<tr><td>${formatDate(t.date)}</td>${branchTdHTML}<td><span class="badge bg-emerald-50 text-emerald-700 border border-emerald-200">${displayTxMonth}</span></td><td class="name-link text-[0.95rem]" onclick="openProfile('${safeStudentNameBase}')">${cleanName}</td><td><span class="badge ${badgeTypeClass} border">${printTypeBadge}</span></td><td>${amountHTML}</td><td class="action-btns"><button class="btn-sm bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white" onclick="exportReceipt('${safeStudentNameBase}', ${t.amount}, '${t.type}', '${t.date}', '${t.packageMonths ? t.packageMonths.join(',') : (t.txMonth||'')}', '${safeBranch}', '${safeExamTitle}', 'BIÊN LAI THU TIỀN')">🧾 In</button>${btnDel}</td></tr>`;
+            }
+        });
+
+        let activeCount = 0, debtCountRender = 0;
+        Object.keys(allProfiles).forEach(name => {
+            const p = allProfiles[name]; let safeBranch = p.branch || "CS1"; 
+            if(!isSingleBranch && selBranch !== 'all' && safeBranch !== selBranch) return;
+            let branchTdHTML = isSingleBranch ? '' : `<td class="col-branch"><span class="badge bg-slate-100 text-slate-600 border border-slate-200">${window.getBranchNameDisplay(safeBranch)}</span></td>`;
+
+            let safePhone = p.phone || ""; let safeBelt = p.belt || ""; let safeNotes = p.notes || ""; let safeNameEscaped = name.replace(/'/g, "\\'");
+            let matchesSearch = true; if (search) matchesSearch = name.toLowerCase().includes(search) || safePhone.includes(search) || safeBelt.toLowerCase().includes(search) || safeNotes.toLowerCase().includes(search);
+            if (!matchesSearch) return;
+
+            let beltHTML = window.getBeltBadge ? window.getBeltBadge(p.belt) : `<span class="badge bg-slate-100 text-slate-700 border border-slate-300">${p.belt}</span>`;
+            if(p.status === 'active') {
+                activeCount++;
+                let lastPaidStr = "Chưa đóng"; if(studentPayments[name] && studentPayments[name].size > 0) lastPaidStr = formatMonth(Array.from(studentPayments[name]).sort().pop());
+                activeHtml += `<tr><td class="name-link text-[0.95rem]" onclick="openProfile('${safeNameEscaped}')">${name}${p.notes ? ' <span title="'+p.notes+'">📝</span>' : ''}</td><td>${beltHTML}</td>${branchTdHTML}<td>${formatDate(p.dob)}</td><td><span class="badge badge-active">${lastPaidStr}</span></td><td class="font-medium text-slate-600">${safePhone}</td><td class="text-slate-500">${formatDate(p.createdAt)}</td><td><button class="btn-sm bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200" onclick="openProfile('${safeNameEscaped}')">${window.userRole === 'admin' ? '✏️ Sửa' : '👁️ Xem'}</button></td></tr>`;
+                
+                let unpaidMonths = [];
+                let startM = p.createdAt ? p.createdAt.substring(0, 7) : selMonth; let endM = selMonth;
+                let currentD = new Date(startM + "-01"); let endD = new Date(endM + "-01"); let allM = [];
+                while(currentD <= endD) { let y = currentD.getFullYear(); let m = (currentD.getMonth() + 1).toString().padStart(2, '0'); allM.push(`${y}-${m}`); currentD.setMonth(currentD.getMonth() + 1); }
+                
+                allM.forEach(m => { let isPaid = studentPayments[name] && studentPayments[name].has(m); let isSkipped = p.skippedMonths && p.skippedMonths.includes(m); if (!isPaid && !isSkipped) { unpaidMonths.push(m); } });
+
+                if(unpaidMonths.length > 0 && unpaidMonths.includes(selMonth)) {
+                    debtCountRender++; 
+                    let totalDebtAmount = unpaidMonths.length * (Number(p.tuitionFee) || 0); totalDebtEst += totalDebtAmount; 
+                    let unpaidMonthsStr = unpaidMonths.map(formatMonth).join(', ');
+
+                    debtHtml += `<tr><td><span class="badge bg-rose-50 text-rose-700 border border-rose-200" title="${unpaidMonthsStr}">${unpaidMonths.length} Tháng</span></td><td><span class="text-slate-500 text-[0.8rem]">${unpaidMonths.length > 1 ? 'Nợ dồn' : formatMonth(selMonth)}</span></td>${branchTdHTML}<td class="name-link text-[0.95rem]" onclick="openProfile('${safeNameEscaped}')">${name}</td><td class="action-btns"><button class="btn-sm bg-indigo-50 text-indigo-700 border border-indigo-200" onclick="generateMultiMonthPaymentRequest('${safeNameEscaped}', '${unpaidMonths.join(',')}', '${safeBranch}', '${totalDebtAmount}')">QR Gộp</button>${window.userRole === 'admin' ? `<button class="btn-sm bg-emerald-600 text-white shadow-sm" onclick="quickPay('${safeNameEscaped}', '${selMonth}', '${safeBranch}', '${totalDebtAmount}')">💰Thu</button>` : ''}<button class="btn-sm bg-[#0068FF] text-white shadow-sm" onclick="copyAndOpenZalo('${safeNameEscaped}', '${selMonth}', '${safePhone}')">💬 Zalo</button>${window.userRole === 'admin' ? `<button class="btn-sm bg-slate-100 text-slate-700 border border-slate-200" onclick="handleQuitOption('${safeNameEscaped}', '${selMonth}')">Nghỉ</button>` : ''}</td></tr>`;
+                }
+            } else {
+                quitHtml += `<tr><td class="name-link text-[0.95rem]" onclick="openProfile('${safeNameEscaped}')">${name}</td><td>${beltHTML}</td>${branchTdHTML}<td>${formatDate(p.dob)}</td><td>${formatDate(p.quitDate)}</td><td>${window.userRole === 'admin' ? `<button class="btn-sm bg-emerald-50 text-emerald-700 border border-emerald-200" onclick="openProfile('${safeNameEscaped}')">🔄 Khôi phục</button>` : ''}</td></tr>`;
+            }
+        });
+
+        document.getElementById('debtTabCountBadge').innerText = debtCountRender;
+
+        let chartLabels = []; let chartIncome = []; let chartExpense = []; let chartActive = []; let chronologicalMonths = [];
+        let [sy, sm] = selMonth.split('-').map(Number);
+        for(let i=0; i<6; i++) { let m = sm - i; let y = sy; if(m <= 0) { m += 12; y -= 1; } chronologicalMonths.push(`${y}-${String(m).padStart(2, '0')}`); }
+        chronologicalMonths.reverse();
+
+        let m_new = 0, m_quit = 0, m_active_theo = 0, m_skipped = 0;
+        Object.values(allProfiles).forEach(p => { const joinM = p.createdAt ? p.createdAt.substring(0, 7) : "2000-01"; const quitM = p.quitDate ? p.quitDate.substring(0, 7) : null; if (joinM === selMonth) m_new++; if (quitM === selMonth) m_quit++; if (joinM <= selMonth && (!quitM || quitM >= selMonth)) { m_active_theo++; if (p.skippedMonths && p.skippedMonths.includes(selMonth)) m_skipped++; } });
+        let m_actual = m_active_theo - m_skipped;
+        
+        reportHtml = `<tr><td class="font-black text-primary">${formatMonth(selMonth)}</td><td class="text-slate-800 font-bold text-base">${m_actual}</td><td class="text-emerald-600 font-medium">+${m_new}</td><td class="text-rose-600 font-medium">-${m_quit}</td><td class="text-emerald-600 font-bold">${(inc_tuition + inc_exam + inc_other + inc_uniform).toLocaleString()} ₫</td><td class="text-rose-600 font-bold">${(exp + exp_exam_total + exp_uniform).toLocaleString()} ₫</td><td class="${((inc_tuition + inc_exam + inc_other + inc_uniform)-(exp + exp_exam_total + exp_uniform))<0 ? 'text-rose-600' : 'text-emerald-600'} font-black text-base bg-slate-50">${((inc_tuition + inc_exam + inc_other + inc_uniform)-(exp + exp_exam_total + exp_uniform)).toLocaleString()} ₫</td></tr>`;
+
+        chronologicalMonths.forEach((m, index) => { chartLabels[index] = formatMonth(m); if (m === selMonth) { chartIncome[index] = inc_tuition + inc_exam + inc_other + inc_uniform; chartExpense[index] = exp + exp_exam_total + exp_uniform; chartActive[index] = m_actual; } else { chartIncome[index] = 0; chartExpense[index] = 0; chartActive[index] = 0; } });
+
+        document.getElementById('txList').innerHTML = txHtml; document.getElementById('uniformTxList').innerHTML = uniformTxHtml; document.getElementById('expenseList').innerHTML = expHtml; document.getElementById('examExpenseList').innerHTML = examExpHtml; document.getElementById('debtList').innerHTML = debtHtml; document.getElementById('activeList').innerHTML = activeHtml; document.getElementById('quitList').innerHTML = quitHtml; document.getElementById('inventoryList').innerHTML = invListHtml; document.getElementById('reportList').innerHTML = reportHtml;
+
+        let all_time_uniformProfit = all_time_inc_uniform - all_time_exp_uniform;
+        document.getElementById('sum_uniform_in').innerText = all_time_inc_uniform.toLocaleString() + " ₫"; document.getElementById('sum_uniform_out').innerText = all_time_exp_uniform.toLocaleString() + " ₫"; document.getElementById('sum_uniform_profit').innerText = all_time_uniformProfit.toLocaleString() + " ₫";
+
+        let tIncActive = inc_tuition + inc_other + inc_exam + inc_uniform; let tExpActive = exp + exp_exam_total + exp_uniform; let uniformProfit = inc_uniform - exp_uniform;       
+
+        document.getElementById('sum_tuition').innerText = inc_tuition.toLocaleString() + " ₫"; document.getElementById('sum_other').innerText = inc_other.toLocaleString() + " ₫";
+        if(document.getElementById('sum_exam_tab')) document.getElementById('sum_exam_tab').innerText = inc_exam.toLocaleString() + " ₫";
+        if(document.getElementById('sum_exam_expense_tab')) document.getElementById('sum_exam_expense_tab').innerText = exp_exam_total.toLocaleString() + " ₫";
+        if(document.getElementById('sum_exam_profit_tab')) document.getElementById('sum_exam_profit_tab').innerText = (inc_exam - exp_exam_total).toLocaleString() + " ₫";
+        
+        document.getElementById('totalIncomeDashboard').innerText = tIncActive.toLocaleString() + " ₫"; document.getElementById('totalExpenseDashboard').innerText = tExpActive.toLocaleString() + " ₫"; document.getElementById('totalProfitDashboard').innerText = (tIncActive - tExpActive).toLocaleString() + " ₫"; document.getElementById('totalUniformProfitDashboard').innerText = uniformProfit.toLocaleString() + " ₫";
+
+        document.getElementById('activeStudentCount').innerText = activeCount; document.getElementById('debtCount').innerText = debtCountRender + " Bạn"; document.getElementById('debtEst').innerText = `Dự thu: ${totalDebtEst.toLocaleString()} ₫`;
+        if(document.getElementById('sum_expense_tab')) document.getElementById('sum_expense_tab').innerText = exp.toLocaleString() + " ₫";
+        if(document.getElementById('sum_debt_count_tab')) document.getElementById('sum_debt_count_tab').innerText = debtCountRender + " Bạn";
+        if(document.getElementById('sum_debt_amount_tab')) document.getElementById('sum_debt_amount_tab').innerText = totalDebtEst.toLocaleString() + " ₫";
+
+        if(financeChartInstance) financeChartInstance.destroy();
+        financeChartInstance = new Chart(document.getElementById('financeChart'), {
+            type: 'bar', data: { labels: chartLabels, datasets: [{ label: 'Tổng Thu', data: chartIncome, backgroundColor: 'rgba(16, 185, 129, 0.9)', borderRadius: 6 }, { label: 'Tổng Chi', data: chartExpense, backgroundColor: 'rgba(244, 63, 94, 0.9)', borderRadius: 6 }]},
+            options: { maintainAspectRatio: false, responsive: true, scales: { y: { beginAtZero: true, grid: { color: '#f8fafc' } }, x: { grid: { display: false } } }, plugins: { legend: { labels: { font: { family: "'Inter', sans-serif", weight: 'bold' } } } } }
+        });
+
+        if(memberChartInstance) memberChartInstance.destroy();
+        memberChartInstance = new Chart(document.getElementById('memberChart'), {
+            type: 'line', data: { labels: chartLabels, datasets: [{ label: 'Võ sinh Đang tập', data: chartActive, borderColor: '#0033A0', backgroundColor: 'rgba(0, 51, 160, 0.08)', fill: true, tension: 0.4, pointRadius: 4, pointBackgroundColor: '#fff', pointBorderWidth: 2 }]},
+            options: { maintainAspectRatio: false, responsive: true, scales: { y: { beginAtZero: true, grid: { color: '#f8fafc' } }, x: { grid: { display: false } } }, plugins: { legend: { labels: { font: { family: "'Inter', sans-serif", weight: 'bold' } } } } }
+        });
+
+        if(document.getElementById('tab_exam').classList.contains('active')) window.renderExamList();
+    }
+
+    window.getBeltBadge = function(belt) {
+        if(!belt) belt = 'Đai trắng - Cấp 10'; let bg = '#fff'; let col = '#334155'; let border = '1px solid #cbd5e1';
+        if(belt.includes('trắng')) { bg = '#fff'; col = '#334155'; } else if(belt.includes('vàng')) { bg = 'var(--belt-yellow)'; border = 'none'; } else if(belt.includes('xanh lá')) { bg = 'var(--belt-green)'; col = '#fff'; border = 'none'; } else if(belt.includes('xanh dương')) { bg = 'var(--belt-blue)'; col = '#fff'; border = 'none'; } else if(belt.includes('đỏ')) { bg = 'var(--belt-red)'; col = '#fff'; border = 'none'; } else if(belt.includes('Đen') || belt.includes('Đỏ - Đen')) { bg = 'var(--belt-black)'; col = '#fff'; border = 'none'; }
+        return `<span class="badge shadow-sm" style="background:${bg}; color:${col}; border:${border}; min-width: 90px; text-align:center;">${belt}</span>`;
+    }
+
+    window.renderExamList = () => {
+        const filterBelt = document.getElementById('exam_filter_belt').value; const uiExam = document.getElementById('examList'); if(!uiExam) return;
+        const selMonth = document.getElementById('filterMonth').value; let paidStudents = {};
+        const isSingleBranch = clubConfig.branchCount === 1;
+
+        allTransactions.forEach(t => { if ((t.type === 'Lệ phí thi' || t.type === 'Học phí + Lệ phí thi') && (t.txMonth === selMonth || (t.date && t.date.startsWith(selMonth)))) { let stuName = ""; if (t.type === 'Học phí + Lệ phí thi') { stuName = t.description ? t.description.trim() : ""; paidStudents[stuName] = { id: t.id, amount: t.examAmount }; } else { let match = (t.description || "").match(/^(.*?)\s*\(Thi lên/); stuName = match ? match[1].trim() : (t.description || "").trim(); if(stuName) paidStudents[stuName] = { id: t.id, amount: t.amount }; } } });
+        let htmlExam = '';
+        Object.keys(allProfiles).forEach(name => {
+            const p = allProfiles[name];
+            if(p.status === 'active' && (p.belt || 'Đai trắng - Cấp 10') === filterBelt) {
+                let isPaid = paidStudents[name]; let safeName = name.replace(/'/g, "\\'");
+                let branchTdHTML = isSingleBranch ? '' : `<td class="col-branch"><span class="badge bg-slate-100 text-slate-600 border border-slate-200">${window.getBranchNameDisplay(p.branch || 'CS1')}</span></td>`;
+                let statusBadge = isPaid ? `<span class="badge badge-active">Đã nộp (${isPaid.amount.toLocaleString()} đ)</span>` : `<span class="badge badge-quit">Chưa nộp</span>`;
+                let actionBtn = isPaid ? (window.userRole === 'admin' ? `<button class="btn-sm bg-slate-200 hover:bg-slate-300 text-slate-700" onclick="deleteTx('${isPaid.id}')">Hủy</button>` : '') : (window.userRole === 'admin' ? `<button class="btn-sm bg-orange-500 hover:bg-orange-600 text-white shadow-sm" onclick="quickCollectExam('${safeName}')">💰 Thu phí</button>` : '');
+                htmlExam += `<tr><td><input type="checkbox" class="exam-check w-4 h-4 cursor-pointer accent-orange-500 rounded" value="${name.replace(/"/g, '&quot;')}"></td><td class="name-link text-[0.95rem]" onclick="openProfile('${safeName}')">${name}</td>${branchTdHTML}<td>${getBeltBadge(p.belt)}</td><td>${statusBadge}</td><td>${actionBtn}</td></tr>`;
+            }
+        });
+        uiExam.innerHTML = htmlExam;
+    };
+    
+    window.toggleAllExam = (source) => document.querySelectorAll('.exam-check').forEach(cb => cb.checked = source.checked);
+
+</script>
+</body>
+</html>
