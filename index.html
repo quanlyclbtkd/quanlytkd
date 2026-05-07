@@ -2816,18 +2816,18 @@
 
         // Bank list with VietQR BINs + deep links + store links
         const _banks = [
-            { n:'Vietcombank', s:'VCB',  bin:'970436', c:'#006c35', sc:'vietcombank', pkg:'com.VCB',                        ios:'895961699'  },
-            { n:'BIDV',        s:'BIDV', bin:'970418', c:'#002060', sc:'bidv',         pkg:'com.bidv.smartbanking',          ios:'839817922'  },
-            { n:'Techcombank', s:'TCB',  bin:'970407', c:'#e31837', sc:'techcombank',  pkg:'vn.techcombank.mobile',          ios:'1090449508' },
-            { n:'MB Bank',     s:'MB',   c:'#003087',  bin:'970422', sc:'mbmobile',    pkg:'com.mbmobile',                   ios:'671882567'  },
-            { n:'VietinBank',  s:'CTG',  bin:'970415', c:'#001c6c', sc:'vietinbank',   pkg:'com.vietinbank.imobilev2',       ios:'938057985'  },
-            { n:'Agribank',    s:'AGB',  bin:'970405', c:'#007a33', sc:'agribank',     pkg:'vn.agribank.mobilebanking',      ios:'1028248820' },
-            { n:'VPBank',      s:'VPB',  bin:'970432', c:'#00a651', sc:'vpbank',       pkg:'com.vpbank.vpbankmobile',        ios:'940344289'  },
-            { n:'TPBank',      s:'TPB',  bin:'970423', c:'#5a2281', sc:'tpbank',       pkg:'vn.tpb.mobilebanking',           ios:'1281082726' },
-            { n:'ACB',         s:'ACB',  bin:'970416', c:'#0066b3', sc:'acb',          pkg:'com.acb.mobile',                 ios:'906774980'  },
-            { n:'VIB',         s:'VIB',  bin:'970441', c:'#d0021b', sc:'vib',          pkg:'com.vib.mobile',                 ios:'1198940963' },
-            { n:'HDBank',      s:'HDB',  bin:'970437', c:'#003da5', sc:'hdbank',       pkg:'vn.hdbank.mobilebanking',        ios:'884122768'  },
-            { n:'Sacombank',   s:'STB',  bin:'970403', c:'#0050a0', sc:'sacombank',    pkg:'vn.com.sacombank.mobilebanking', ios:'1085226588' },
+            { n:'Vietcombank', s:'VCB',  bin:'970436', c:'#006c35', sc:'vietcombank', pkg:'com.VCB',                        ios:'895961699',  dl:true  },
+            { n:'BIDV',        s:'BIDV', bin:'970418', c:'#002060', sc:'bidv',         pkg:'com.bidv.smartbanking',          ios:'839817922',  dl:true  },
+            { n:'Techcombank', s:'TCB',  bin:'970407', c:'#e31837', sc:'techcombank',  pkg:'vn.techcombank.mobile',          ios:'1090449508', dl:true  },
+            { n:'MB Bank',     s:'MB',   c:'#003087',  bin:'970422', sc:'mbmobile',    pkg:'com.mbmobile',                   ios:'671882567',  dl:true  },
+            { n:'VietinBank',  s:'CTG',  bin:'970415', c:'#001c6c', sc:'vietinbank',   pkg:'com.vietinbank.imobilev2',       ios:'938057985',  dl:false },
+            { n:'Agribank',    s:'AGB',  bin:'970405', c:'#007a33', sc:'agribank',     pkg:'vn.agribank.mobilebanking',      ios:'1028248820', dl:false },
+            { n:'VPBank',      s:'VPB',  bin:'970432', c:'#00a651', sc:'vpbank',       pkg:'com.vpbank.vpbankmobile',        ios:'940344289',  dl:true  },
+            { n:'TPBank',      s:'TPB',  bin:'970423', c:'#5a2281', sc:'tpbank',       pkg:'vn.tpb.mobilebanking',           ios:'1281082726', dl:true  },
+            { n:'ACB',         s:'ACB',  bin:'970416', c:'#0066b3', sc:'acb',          pkg:'com.acb.mobile',                 ios:'906774980',  dl:true  },
+            { n:'VIB',         s:'VIB',  bin:'970441', c:'#d0021b', sc:'vib',          pkg:'com.vib.mobile',                 ios:'1198940963', dl:true  },
+            { n:'HDBank',      s:'HDB',  bin:'970437', c:'#003da5', sc:'hdbank',       pkg:'vn.hdbank.mobilebanking',        ios:'884122768',  dl:true  },
+            { n:'Sacombank',   s:'STB',  bin:'970403', c:'#0050a0', sc:'sacombank',    pkg:'vn.com.sacombank.mobilebanking', ios:'1085226588', dl:false },
         ];
 
         // Default selected = CLB's bank (match BIN if possible, else first)
@@ -3089,6 +3089,24 @@
             setTimeout(() => { qrEl.style.outline = 'none'; }, 2200);
         }
 
+        if (qrEl) qrEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        // Check if this bank supports VietQR Universal Deep Link
+        if (b.dl === false) {
+            // Bank does NOT support deep link (Agribank, VietinBank, Sacombank)
+            // Show QR scan instruction instead
+            if (msgEl) {
+                msgEl.style.display = 'block';
+                msgEl.style.background = 'rgba(217,119,6,0.12)';
+                msgEl.style.border = '1px solid rgba(217,119,6,0.35)';
+                msgEl.style.color = '#fcd34d';
+                msgEl.innerHTML =
+                    '&#128247; <strong>' + b.n + '</strong> chưa hỗ trợ mở app tự động.<br>' +
+                    '<span style="font-size:0.75rem;opacity:0.85;">Vui lòng mở app <strong>' + b.n + '</strong> thủ công → chọn <strong>Quét mã QR</strong> → quét mã phía trên để điền tự động.</span>';
+            }
+            return; // Do NOT open deep link for unsupported banks
+        }
+
         // Build the VietQR Universal Deep Link — opens bank app with payment pre-filled
         // Format: https://dl.vietqr.io/pay?app=VCB&ba=xxx&am=xxx&tn=xxx
         const vietQrParams = new URLSearchParams({
@@ -3104,10 +3122,8 @@
             msgEl.style.background = 'rgba(99,102,241,0.15)';
             msgEl.style.border = '1px solid rgba(99,102,241,0.3)';
             msgEl.style.color = '#a5b4fc';
-            msgEl.innerHTML = '&#128242; Đang chuyển sang <strong>' + b.n + '</strong>… Thông tin chuyển khoản đã được điền sẵn.';
+            msgEl.innerHTML = '&#128242; Đang mở <strong>' + b.n + '</strong>… Nếu chưa thấy màn hình chuyển tiền, chọn <strong>Quét QR</strong> trong app rồi quét mã phía trên.';
         }
-
-        if (qrEl) qrEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
         // Open VietQR deep link — iOS/Android Universal Link, opens bank app directly
         window.open(deepLinkUrl, '_blank');
