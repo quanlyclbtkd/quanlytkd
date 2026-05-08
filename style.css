@@ -1,4 +1,4 @@
-:root { --primary: #0033A0; --secondary: #C8102E; --belt-yellow: #f1c40f; --belt-green: #2ecc71; --belt-blue: #3498db; --belt-red: #e74c3c; --belt-black: #1e293b; }
+        :root { --primary: #0033A0; --secondary: #C8102E; --belt-yellow: #f1c40f; --belt-green: #2ecc71; --belt-blue: #3498db; --belt-red: #e74c3c; --belt-black: #1e293b; }
         body { font-family: 'Inter', -apple-system, sans-serif; background: #f1f5f9; margin: 0; color: #334155; padding-bottom: calc(40px + env(safe-area-inset-bottom)); -webkit-tap-highlight-color: transparent;}
         
         #loginOverlay { position: fixed; inset: 0; background: radial-gradient(circle at top right, var(--primary), #001540); display: flex; justify-content: center; align-items: center; z-index: 9999; }
