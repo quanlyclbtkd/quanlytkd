@@ -308,6 +308,7 @@
             batch.set(doc(db, "clubs", clubId), { 
                 clubName: clubName, 
                 adminEmail: email,
+                adminPassword: pass,
                 createdAt: new Date().toISOString(),
                 expiryDate: "2027-04-30",
                 accountStatus: "active"
@@ -703,35 +704,35 @@ service cloud.firestore {
                 const dateStr = dt ? dt.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
                 const timeStr = dt ? dt.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '—';
                 const roleLabel = item.role === 'super_admin'
-                    ? '<span style="background:#ede9fe;color:#6d28d9;padding:2px 8px;border-radius:5px;font-size:0.68rem;font-weight:800;">SUPER</span>'
+                    ? '<span style="background:#ede9fe;color:#6d28d9;padding:2px 7px;border-radius:5px;font-size:0.65rem;font-weight:800;white-space:nowrap;">SUPER</span>'
                     : item.role === 'admin'
-                    ? '<span style="background:#dbeafe;color:#1d4ed8;padding:2px 8px;border-radius:5px;font-size:0.68rem;font-weight:800;">ADMIN</span>'
-                    : '<span style="background:#f1f5f9;color:#64748b;padding:2px 8px;border-radius:5px;font-size:0.68rem;font-weight:700;">VIEWER</span>';
+                    ? '<span style="background:#dbeafe;color:#1d4ed8;padding:2px 7px;border-radius:5px;font-size:0.65rem;font-weight:800;white-space:nowrap;">ADMIN</span>'
+                    : '<span style="background:#f1f5f9;color:#64748b;padding:2px 7px;border-radius:5px;font-size:0.65rem;font-weight:700;white-space:nowrap;">VIEWER</span>';
                 const deviceIcon = item.deviceType === 'Mobile' ? '📱' : '🖥️';
                 const browserIcon = { 'Chrome': '🟡', 'Firefox': '🟠', 'Safari': '🔵', 'Edge': '💙' }[item.browser] || '🌐';
                 return `
-                    <div style="display:grid;grid-template-columns:110px 1fr 90px 110px 80px;gap:8px;align-items:center;padding:10px 14px;border-bottom:1px solid #f1f5f9;font-size:0.82rem;">
-                        <div>
-                            <div style="font-size:0.78rem;font-weight:800;color:#1e293b;">${timeStr}</div>
-                            <div style="font-size:0.65rem;color:#94a3b8;">${dateStr}</div>
+                    <div style="padding:10px 14px;border-bottom:1px solid #f1f5f9;">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:5px;">
+                            <div style="min-width:0;flex:1;">
+                                <div style="font-weight:700;color:#0033A0;font-size:0.82rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${item.email || '—'}</div>
+                                <div style="font-size:0.65rem;color:#64748b;margin-top:1px;">${item.clubId || 'System'}</div>
+                            </div>
+                            <div style="flex-shrink:0;">${roleLabel}</div>
                         </div>
-                        <div>
-                            <div style="font-weight:700;color:#0033A0;font-size:0.82rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${item.email || '—'}</div>
-                            <div style="font-size:0.65rem;color:#64748b;">${item.clubId || 'System'}</div>
+                        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px;">
+                            <div>
+                                <span style="font-size:0.78rem;font-weight:800;color:#1e293b;">${timeStr}</span>
+                                <span style="font-size:0.65rem;color:#94a3b8;margin-left:6px;">${dateStr}</span>
+                            </div>
+                            <div style="font-size:0.72rem;color:#475569;">${deviceIcon} ${item.os || '—'} &nbsp;${browserIcon} ${item.browser || '—'}</div>
                         </div>
-                        <div>${roleLabel}</div>
-                        <div style="font-size:0.75rem;color:#334155;">${deviceIcon} ${item.os || '—'}</div>
-                        <div style="font-size:0.75rem;color:#334155;">${browserIcon} ${item.browser || '—'}</div>
                     </div>`;
             });
 
             contentEl.innerHTML = `
-                <div style="display:grid;grid-template-columns:110px 1fr 90px 110px 80px;gap:8px;padding:8px 14px;background:#f8fafc;border-bottom:2px solid #e2e8f0;">
-                    <div style="font-size:0.65rem;font-weight:900;color:#475569;text-transform:uppercase;">Thời Gian</div>
-                    <div style="font-size:0.65rem;font-weight:900;color:#475569;text-transform:uppercase;">Email / CLB</div>
-                    <div style="font-size:0.65rem;font-weight:900;color:#475569;text-transform:uppercase;">Vai Trò</div>
-                    <div style="font-size:0.65rem;font-weight:900;color:#475569;text-transform:uppercase;">Thiết Bị</div>
-                    <div style="font-size:0.65rem;font-weight:900;color:#475569;text-transform:uppercase;">Trình Duyệt</div>
+                <div style="padding:7px 14px;background:#f8fafc;border-bottom:2px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;">
+                    <div style="font-size:0.65rem;font-weight:900;color:#475569;text-transform:uppercase;">Lịch Sử Đăng Nhập</div>
+                    <div style="font-size:0.65rem;color:#94a3b8;">${rows.length} bản ghi${filterClub ? ' — CLB: ' + filterClub : ''}</div>
                 </div>
                 ${rows.join('')}
                 <div style="padding:10px 14px;text-align:center;font-size:0.7rem;color:#94a3b8;">Hiển thị ${rows.length} bản ghi${filterClub ? ' cho CLB: ' + filterClub : ' gần nhất'}</div>`;
@@ -869,6 +870,10 @@ service cloud.firestore {
                 ? `<button onclick="unlockClubAccount('${cid}')" style="font-size:0.68rem;font-weight:800;background:#d1fae5;color:#065f46;border:1px solid #6ee7b7;padding:4px 6px;border-radius:7px;cursor:pointer;text-align:center;">🔓 Mở Khóa</button>`
                 : `<button onclick="lockClubAccount('${cid}','${cname.replace(/'/g,"'")}')" style="font-size:0.68rem;font-weight:800;background:#fff1f2;color:#be123c;border:1px solid #fecdd3;padding:4px 6px;border-radius:7px;cursor:pointer;text-align:center;">🔒 Khóa</button>`;
 
+            const _safePass = (data.adminPassword || '').replace(/"/g, '&quot;');
+            const _pwDeskId = 'pw_d_' + cid;
+            const _pwMobId = 'pw_m_' + cid;
+
             // ── Desktop row ──
             const desktopRow = `<div class="hidden md:grid items-center gap-2 px-4 py-3 border-b border-slate-100 hover:bg-slate-50/80 transition-colors" style="grid-template-columns:148px 1fr 185px 80px 115px 115px 1fr;${rowBg}">
                 <div>
@@ -881,7 +886,7 @@ service cloud.firestore {
                 </div>
                 <div style="overflow:hidden;">
                     <div style="font-size:0.72rem;font-weight:600;color:#475569;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${email}">${email}</div>
-                </div>
+                    ${_safePass ? `<div style="margin-top:3px;display:flex;align-items:center;gap:3px;"><span style="font-size:0.6rem;color:#94a3b8;">MK:</span><span id="${_pwDeskId}" data-pw="${_safePass}" style="font-size:0.65rem;font-family:monospace;color:#475569;letter-spacing:0.06em;">••••••</span><button type="button" onclick="const e=document.getElementById('${_pwDeskId}');e.textContent=e.textContent.includes('•')?e.dataset.pw:'••••••'" style="background:none;border:none;cursor:pointer;font-size:0.7rem;color:#94a3b8;padding:0 2px;line-height:1;">👁</button></div>` : ''}</div>
                 <div style="text-align:center;">
                     <div style="font-size:1.2rem;font-weight:900;color:#4338ca;">${activeCount}</div>
                     <div style="font-size:0.6rem;color:#94a3b8;">/ ${profileCount}</div>
@@ -907,6 +912,7 @@ service cloud.firestore {
                         <span style="font-size:0.7rem;font-weight:900;color:#4338ca;font-family:monospace;background:#eef2ff;padding:2px 7px;border-radius:5px;">${cid}</span>
                         <div style="font-size:1rem;font-weight:800;color:#0f172a;margin-top:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${cname}</div>
                         <div style="font-size:0.68rem;color:#64748b;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${email}">📧 ${email}</div>
+                        ${_safePass ? `<div style="font-size:0.65rem;color:#94a3b8;margin-top:3px;display:flex;align-items:center;gap:3px;"><span>🔑</span><span id="${_pwMobId}" data-pw="${_safePass}" style="font-family:monospace;letter-spacing:0.06em;">••••••</span><button type="button" onclick="const e=document.getElementById('${_pwMobId}');e.textContent=e.textContent.includes('•')?e.dataset.pw:'••••••'" style="background:none;border:none;cursor:pointer;font-size:0.72rem;color:#94a3b8;padding:0 2px;line-height:1;">👁</button></div>` : ''}
                     </div>
                     <div style="flex-shrink:0;">${statusBadge}</div>
                 </div>
@@ -955,7 +961,7 @@ service cloud.firestore {
             const newUid = userCredential.user.uid;
 
             await setDoc(doc(db, "users", newUid), { email: newEmail, role: "admin", clubId: clubId });
-            await updateDoc(doc(db, "clubs", clubId), { adminEmail: newEmail });
+            await updateDoc(doc(db, "clubs", clubId), { adminEmail: newEmail, adminPassword: newPass });
 
             alert(`✅ ĐÃ TẠO TÀI KHOẢN THÀNH CÔNG!\n\nBạn có thể gửi ngay Email và Mật khẩu này cho quản lý cơ sở để họ đăng nhập. Toàn bộ dữ liệu cũ vẫn ở đó.`);
             window.loadSuperAdminData(); 
@@ -1979,9 +1985,43 @@ service cloud.firestore {
         }
     }
 
+    // ── LocalStorage cache để tăng tốc khởi động ──────────────────────────
+    const _AUTH_CACHE_KEY = '_qlclb_auth_v1';
+    const _saveAuthCache = (uid, role, clubId) => {
+        try { localStorage.setItem(_AUTH_CACHE_KEY, JSON.stringify({ uid, role, clubId, ts: Date.now() })); } catch(e) {}
+    };
+    const _getAuthCache = (uid) => {
+        try {
+            const d = JSON.parse(localStorage.getItem(_AUTH_CACHE_KEY) || 'null');
+            if (d && d.uid === uid && (Date.now() - d.ts) < 7 * 24 * 3600 * 1000) return d;
+        } catch(e) {}
+        return null;
+    };
+    const _clearAuthCache = () => { try { localStorage.removeItem(_AUTH_CACHE_KEY); } catch(e) {} };
+
     onAuthStateChanged(auth, async (user) => {
         if (user) {
             try {
+                // ── FAST PATH: dùng cache để bỏ qua Firestore read, tải ngay lập tức ──
+                const _cached = _getAuthCache(user.uid);
+                if (_cached) {
+                    currentClubId = _cached.clubId;
+                    window.userRole = _cached.role;
+                    initSaaSDatabase(currentClubId);
+                    setTimeout(() => { if(typeof window._checkMonthlyReminder === 'function') window._checkMonthlyReminder(); }, 800);
+                    // Xác minh cache và cập nhật trong nền
+                    getDoc(doc(db, "users", user.uid)).then(userDoc => {
+                        if (userDoc.exists()) {
+                            const _fr = userDoc.data().role || 'admin';
+                            const _freshRole = (user.email && user.email.toLowerCase() === "admin@tstquynhon.com") ? 'super_admin' : _fr;
+                            const _freshClubId = userDoc.data().clubId;
+                            _saveAuthCache(user.uid, _freshRole, _freshClubId);
+                            _recordLoginEvent(user, _freshRole, _freshClubId);
+                        }
+                    }).catch(() => {});
+                    return;
+                }
+                // ── SLOW PATH: lần đầu đăng nhập hoặc cache hết hạn — đọc Firestore ──
                 const userDoc = await getDoc(doc(db, "users", user.uid));
                 if (userDoc.exists()) {
                     currentClubId = userDoc.data().clubId;
@@ -1992,6 +2032,7 @@ service cloud.firestore {
                     } else {
                         window.userRole = _firestoreRole;
                     }
+                    _saveAuthCache(user.uid, window.userRole, currentClubId);
                     _recordLoginEvent(user, window.userRole, currentClubId);
                     initSaaSDatabase(currentClubId);
                     // Hiện nhắc nhở tải tổng kết nếu đang trong ngày 1–3 đầu tháng
@@ -1999,6 +2040,7 @@ service cloud.firestore {
                 } else { document.getElementById('loginOverlay').style.display = 'flex'; }
             } catch(e) { console.error("Auth error:", e); }
         } else {
+            _clearAuthCache();
             // Xóa toàn bộ cờ lịch sử đăng nhập (cả format cũ lẫn mới) khi logout
             Object.keys(sessionStorage)
                 .filter(k => k.startsWith('lh_'))
