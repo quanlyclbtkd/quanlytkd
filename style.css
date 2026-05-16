@@ -126,3 +126,66 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .toggle-switch input:checked + .toggle-slider:before {
     transform: translateX(20px);
 }
+
+/* ═══════════════════════════════════════════════════════════
+   ĐIỂM DANH — CẢI THIỆN RESPONSIVE MOBILE / DESKTOP
+   ═══════════════════════════════════════════════════════════ */
+
+/* Lưới thẻ võ sinh: nhiều cột hơn trên màn hình rộng */
+#attendanceGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+    gap: 10px;
+}
+@media (min-width: 480px) {
+    #attendanceGrid { grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); }
+}
+@media (min-width: 768px) {
+    #attendanceGrid { grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 12px; }
+}
+@media (min-width: 1024px) {
+    #attendanceGrid { grid-template-columns: repeat(auto-fill, minmax(178px, 1fr)); gap: 14px; }
+}
+
+/* Sub-tab navigation cải thiện */
+#att_sub_btn_day, #att_sub_btn_month {
+    transition: all 0.18s ease;
+}
+#att_sub_btn_day:active, #att_sub_btn_month:active {
+    transform: scale(0.96);
+}
+
+/* Thẻ võ sinh: hiệu ứng hover trên desktop */
+@media (hover: hover) and (pointer: fine) {
+    #attendanceGrid > div:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 16px rgba(0,0,0,0.12) !important;
+    }
+}
+
+/* Coach add student button — nhất quán với bulk btn */
+#coach_add_btn_wrap button:active {
+    transform: scale(0.97);
+}
+
+/* Admin daily branch summary — responsive grid */
+@media (max-width: 639px) {
+    #admin_daily_branch_summary > div > div > div[style*="minmax(160px"] {
+        grid-template-columns: 1fr 1fr !important;
+    }
+}
+
+/* Bộ lọc điểm danh — cải thiện focus state */
+#att_date:focus, #att_branch:focus, #att_belt:focus {
+    border-color: #0033A0 !important;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0,51,160,0.10);
+}
+
+/* Chú thích trạng thái — wrap đẹp hơn trên mobile nhỏ */
+#attendanceSummary {
+    gap: 5px !important;
+}
+#attendanceSummary > * {
+    white-space: nowrap;
+}
