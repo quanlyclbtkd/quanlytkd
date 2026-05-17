@@ -190,22 +190,25 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
     white-space: nowrap;
 }
 
-/* BẮT ĐẦU ĐOẠN CSS SỬA LỖI LỊCH TẬP */
+/* ==========================================================================
+   BẢN VÁ LỖI HIỂN THỊ LỊCH TẬP TRÊN MOBILE (CHỐNG ĐÈ CHỮ NHAU)
+   ========================================================================== */
 .training-schedule-compact-grid {
     display: grid !important;
-    grid-template-columns: repeat(auto-fit, minmax(70px, 1fr)) !important;
-    gap: 8px !important; 
+    /* Tự động tính toán số cột dựa trên độ rộng màn hình thực tế */
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)) !important;
+    gap: 6px !important; 
     width: 100% !important;
-    margin-top: 10px !important;
+    margin-top: 8px !important;
     margin-bottom: 6px !important;
 }
 
 label:has(input.m_trainingDay) {
-    display: flex !important;
-    flex-direction: row !important;
+    display: inline-flex !important;
+    flex-direction: row !important; /* Ô tích bên trái, chữ bên phải trên cùng 1 hàng */
     align-items: center !important; 
     justify-content: center !important;
-    gap: 6px !important;
+    gap: 4px !important; /* Khoảng cách sát nhau và cân đối giữa ô tích và chữ */
     
     font-family: 'Inter', sans-serif !important;
     font-size: 0.75rem !important; 
@@ -214,32 +217,33 @@ label:has(input.m_trainingDay) {
     background: #f8fafc !important;
     border: 1px solid #e2e8f0 !important;
     
-    padding: 8px 4px !important; 
-    border-radius: 8px !important;
+    padding: 6px 4px !important; /* Thu nhỏ padding dọc để vừa vặn màn hình */
+    border-radius: 6px !important;
     cursor: pointer !important;
     width: 100% !important; 
     margin: 0 !important;
-}
-label:has(input.m_trainingDay):hover {
-    background: #e0e7ff !important;
-    border-color: #818cf8 !important;
-    color: #3730a3 !important;
+    
+    /* QUAN TRỌNG: Khóa không cho chữ xuống hàng hoặc co rúm diện tích */
+    white-space: nowrap !important;
+    box-sizing: border-box !important;
 }
 
+/* Hiệu ứng khi được chọn (Checked) */
 label:has(input.m_trainingDay:checked) {
     background: #eff6ff !important;
     border-color: #2563eb !important;
     color: #1d4ed8 !important;
-    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.1) !important;
 }
 
+/* Định dạng chuẩn kích thước ô tick */
 label:has(input.m_trainingDay) input[type="checkbox"] {
-    width: 16px !important;
-    height: 16px !important;
+    width: 14px !important;
+    height: 14px !important;
     margin: 0 !important;
     padding: 0 !important;
     cursor: pointer !important;
     accent-color: #0033A0 !important;
-    flex-shrink: 0 !important;
+    /* Khóa kích thước ô vuông, không cho flexbox bóp méo */
+    flex-shrink: 0 !important; 
 }
 /* KẾT THÚC ĐOẠN CSS */
