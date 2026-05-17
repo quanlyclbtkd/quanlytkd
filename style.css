@@ -127,26 +127,6 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
     transform: translateX(20px);
 }
 
-/* MOBILE: Phóng to toggle switch cho dễ bấm trên điện thoại */
-@media (max-width: 639px) {
-    .toggle-switch {
-        width: 58px;
-        height: 34px;
-    }
-    .toggle-slider {
-        border-radius: 34px;
-    }
-    .toggle-slider:before {
-        width: 26px;
-        height: 26px;
-        left: 4px;
-        bottom: 4px;
-    }
-    .toggle-switch input:checked + .toggle-slider:before {
-        transform: translateX(24px);
-    }
-}
-
 /* ═══════════════════════════════════════════════════════════
    ĐIỂM DANH — CẢI THIỆN RESPONSIVE MOBILE / DESKTOP
    ═══════════════════════════════════════════════════════════ */
@@ -210,63 +190,25 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
     white-space: nowrap;
 }
 
-/* ==========================================================================
-   LƯỚI LỊCH TẬP TỰ ĐỘNG THÍCH ỨNG MỌI MÀN HÌNH (CSS GRID)
-   ========================================================================== */
 
-/* 1. Container chính: Tự động chia cột linh hoạt */
-.training-schedule-compact-grid {
-    display: grid !important;
-    grid-template-columns: repeat(auto-fit, minmax(65px, 1fr));
-    gap: 8px;
-    width: 100%;
-    margin-top: 10px;
-    margin-bottom: 6px;
+/* ═══════════════════════════════════════════════════════════
+   FIX MOBILE: Lịch tập trong tuần — 2 cột trên màn hình nhỏ
+   ═══════════════════════════════════════════════════════════ */
+@media (max-width: 479px) {
+    .training-days-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+    .training-days-grid label {
+        white-space: normal !important;
+        font-size: 0.78rem !important;
+    }
 }
 
-/* 2. Chuẩn hóa khối Label (Checkbox + Thứ) */
-label:has(input.m_trainingDay) {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-
-    font-family: 'Inter', sans-serif;
-    font-size: 0.78rem;
-    font-weight: 700;
-    color: #475569;
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    padding: 10px 4px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    user-select: none;
-
-    width: 100%;
-    text-align: center;
-}
-
-/* 3. Hiệu ứng Hover và Checked */
-label:has(input.m_trainingDay):hover {
-    background: #e0e7ff;
-    border-color: #818cf8;
-    color: #3730a3;
-}
-
-label:has(input.m_trainingDay:checked) {
-    background: #eff6ff;
-    border-color: #2563eb;
-    color: #1d4ed8;
-    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.1);
-}
-
-/* 4. Tinh chỉnh ô checkbox */
-label:has(input.m_trainingDay) input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    margin: 0;
-    cursor: pointer;
-    accent-color: #0033A0;
+/* ═══════════════════════════════════════════════════════════
+   FIX MOBILE: Công tắc học bù — căn chỉnh đúng khi text 2 dòng
+   Container đã được đổi sang align-items:flex-start trong HTML
+   Toggle nhích nhẹ để căn với dòng chữ đầu tiên
+   ═══════════════════════════════════════════════════════════ */
+.toggle-switch {
+    margin-top: 2px;
 }
