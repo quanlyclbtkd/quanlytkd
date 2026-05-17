@@ -43,22 +43,23 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
   }
 }
 
-/* MOBILE: Responsive table for monthly attendance stats */
+/* MOBILE ONLY: Card 2 hàng kiểu BẢNG TỒN KHO cho thống kê tháng
+   → Không ảnh hưởng giao diện desktop (chỉ áp dụng ≤639px) */
 @media (max-width: 639px) {
     #tab_attendance .table-wrapper { overflow: unset !important; max-height: none !important; }
     #tbl_att_monthly { min-width: unset !important; }
     #tbl_att_monthly thead tr { display: none !important; }
     #tbl_att_monthly tbody tr {
         display: grid !important;
-        grid-template-columns: 1fr auto auto auto auto;
+        grid-template-columns: 1fr auto auto auto;
         grid-template-rows: auto auto;
         background: #fff;
         border-radius: 11px !important;
-        margin: 0 0 8px !important;
+        margin: 0 0 7px !important;
         border: 1px solid #e8edf5 !important;
-        padding: 10px 12px !important;
+        padding: 9px 12px !important;
         box-shadow: 0 1px 3px rgba(0,0,0,0.04) !important;
-        gap: 4px 8px;
+        gap: 2px 10px;
         align-items: center;
     }
     #tbl_att_monthly tbody td {
@@ -67,13 +68,53 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
         border: none !important;
         white-space: nowrap;
     }
-    #tbl_att_monthly tbody td:nth-child(1) { grid-column: 1; grid-row: 1; font-size: 0.93rem !important; font-weight: 800 !important; color: #0033A0; }
-    #tbl_att_monthly tbody td:nth-child(2) { grid-column: 1; grid-row: 2; font-size: 0.75rem; }
-    #tbl_att_monthly tbody td:nth-child(3) { grid-column: 2; grid-row: 1 / span 2; text-align: center; font-weight: 900; color: #16a34a; font-size: 1rem; }
-    #tbl_att_monthly tbody td:nth-child(4) { grid-column: 3; grid-row: 1 / span 2; text-align: center; font-weight: 900; color: #2563eb; font-size: 1rem; }
-    #tbl_att_monthly tbody td:nth-child(5) { grid-column: 4; grid-row: 1 / span 2; text-align: center; font-weight: 900; }
-    #tbl_att_monthly tbody td:nth-child(6) { grid-column: 5; grid-row: 1 / span 2; text-align: center; }
-    #tbl_att_monthly tbody td:nth-child(6) button { padding: 4px 8px !important; font-size: 0.65rem !important; border-radius: 7px !important; white-space: nowrap; }
+    /* Tên võ sinh — hàng 1, cột trái */
+    #tbl_att_monthly tbody td:nth-child(1) {
+        grid-column: 1; grid-row: 1;
+        font-size: 0.92rem !important; font-weight: 800 !important; color: #0033A0;
+        overflow: hidden; text-overflow: ellipsis;
+    }
+    /* Cấp đai — hàng 2, cột trái */
+    #tbl_att_monthly tbody td:nth-child(2) {
+        grid-column: 1; grid-row: 2;
+        font-size: 0.7rem !important; color: #64748b;
+    }
+    /* Có mặt — hàng 1, cột 2; label "✅ mặt" qua ::after */
+    #tbl_att_monthly tbody td:nth-child(3) {
+        grid-column: 2; grid-row: 1;
+        text-align: center; font-size: 1.05rem !important; font-weight: 900 !important; color: #16a34a;
+    }
+    #tbl_att_monthly tbody td:nth-child(3)::after {
+        content: "✅ mặt";
+        display: block;
+        font-size: 0.5rem; font-weight: 700; color: #16a34a;
+        line-height: 1; margin-top: 1px;
+    }
+    /* Nghỉ CP — hàng 1, cột 3; label "📝 phép" qua ::after */
+    #tbl_att_monthly tbody td:nth-child(4) {
+        grid-column: 3; grid-row: 1;
+        text-align: center; font-size: 1.05rem !important; font-weight: 900 !important; color: #2563eb;
+    }
+    #tbl_att_monthly tbody td:nth-child(4)::after {
+        content: "📝 phép";
+        display: block;
+        font-size: 0.5rem; font-weight: 700; color: #2563eb;
+        line-height: 1; margin-top: 1px;
+    }
+    /* Tỉ lệ — hàng 1, cột 4 */
+    #tbl_att_monthly tbody td:nth-child(5) {
+        grid-column: 4; grid-row: 1;
+        text-align: center;
+    }
+    /* Nút Zalo — hàng 2, span cột 2-4 */
+    #tbl_att_monthly tbody td:nth-child(6) {
+        grid-column: 2 / span 3; grid-row: 2;
+        display: flex !important; justify-content: flex-end; align-items: center;
+    }
+    #tbl_att_monthly tbody td:nth-child(6) button {
+        padding: 4px 14px !important; font-size: 0.68rem !important;
+        border-radius: 8px !important; white-space: nowrap; width: 100%;
+    }
 }
 
 /* Fix: prevent table wrapper from stretching beyond its card boundary */
