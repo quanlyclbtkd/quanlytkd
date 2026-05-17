@@ -124,83 +124,133 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 }
 
 /* ═══════════════════════════════════════════════════════════
-   THỐNG KÊ THÁNG — Tối ưu thêm cho điện thoại nhỏ (≤400px)
-   Đảm bảo không xuất hiện thanh trượt ngang ở bất kỳ màn hình nào
+   THỐNG KÊ THÁNG — Đảm bảo không có thanh trượt ngang trên MỌI điện thoại
+   Áp dụng cắt overflow từ cấp tab-cha cho đến từng ô con
    ═══════════════════════════════════════════════════════════ */
 
-/* Ngăn scroll ngang toàn bộ khu vực Thống kê tháng */
+/* Cấp 1: tab cha #tab_attendance — chặn scroll ngang lan lên trang */
+#tab_attendance {
+    overflow-x: hidden;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Cấp 2: sub-tab Thống kê tháng */
 #att_sub_month {
     overflow-x: hidden;
     width: 100%;
     box-sizing: border-box;
 }
 
-/* Đảm bảo table-wrapper bên trong không tạo scroll ngang */
+/* Cấp 3: wrapper bảng bên trong */
 #att_sub_month .table-wrapper {
     overflow-x: hidden !important;
     width: 100%;
     box-sizing: border-box;
 }
 
-/* Điện thoại nhỏ ≤400px — giảm padding/font thêm để vừa màn hình */
-@media (max-width: 400px) {
-    /* Thu gọn card thẻ võ sinh thống kê tháng */
-    #tbl_att_monthly tbody tr {
-        padding: 7px 8px !important;
-        gap: 1px 5px !important;
-    }
-    /* Tên võ sinh — bớt font nhưng vẫn đọc được */
-    #tbl_att_monthly tbody td:nth-child(1) {
-        font-size: 0.82rem !important;
-        max-width: calc(100vw - 130px); /* Giới hạn độ rộng tên để không đẩy layout */
-    }
-    /* Cấp đai — thu gọn hơn */
-    #tbl_att_monthly tbody td:nth-child(2) .badge,
-    #tbl_att_monthly tbody td:nth-child(2) span {
-        font-size: 0.6rem !important;
-        padding: 1px 5px !important;
-        min-width: unset !important;
-    }
-    /* Số buổi có mặt & nghỉ phép */
-    #tbl_att_monthly tbody td:nth-child(3),
-    #tbl_att_monthly tbody td:nth-child(4) {
-        font-size: 0.9rem !important;
-    }
-    /* Tỉ lệ % */
-    #tbl_att_monthly tbody td:nth-child(5) span {
-        font-size: 0.78rem !important;
-    }
-    /* Nút Zalo — thu gọn trên màn nhỏ */
-    #tbl_att_monthly tbody td:nth-child(6) button {
-        padding: 3px 8px !important;
-        font-size: 0.62rem !important;
+/* Table và tất cả phần tử con đều không được vượt quá 100% */
+#att_sub_month * {
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* MOBILE ≤639px — giao diện card tự co dãn theo chiều rộng điện thoại */
+@media (max-width: 639px) {
+    /* Bộ lọc tháng / cơ sở: xếp dọc để không bị tràn ngang */
+    #att_sub_month > div:first-child > div:nth-child(2) {
+        grid-template-columns: 1fr !important; /* 1 cột thay vì 1fr 1fr */
     }
 
-    /* Thu nhỏ filter tháng/cơ sở trên điện thoại rất nhỏ */
-    #att_month, #att_month_branch {
-        font-size: 0.72rem !important;
-        padding: 8px 6px !important;
+    /* Nút Xuất Excel: chiếm toàn bộ chiều rộng, không dùng white-space:nowrap */
+    #att_sub_month > div:first-child button[onclick*="exportAttendanceExcel"] {
+        width: 100% !important;
+        white-space: normal !important;
+        flex-shrink: 1 !important;
+    }
+
+    /* Hàng chứa nút xuất Excel: xếp dọc (mô tả trên, nút dưới) */
+    #att_sub_month > div:first-child > div:last-child {
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+
+    /* Input date/select trong bộ lọc: full-width, không overflow */
+    #att_month,
+    #att_month_branch {
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    /* Tên võ sinh trong card — cắt nếu quá dài, không đẩy rộng layout */
+    #tbl_att_monthly tbody td:nth-child(1) {
+        max-width: calc(100vw - 140px) !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+    }
+
+    /* Badge cấp đai — không cho phép vượt chiều rộng cột */
+    #tbl_att_monthly tbody td:nth-child(2) span,
+    #tbl_att_monthly tbody td:nth-child(2) .badge {
+        max-width: 100% !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
     }
 }
 
-/* Màn hình cực nhỏ ≤360px (một số điện thoại cũ) */
-@media (max-width: 360px) {
+/* Điện thoại nhỏ ≤480px — giảm thêm padding/font */
+@media (max-width: 480px) {
     #tbl_att_monthly tbody tr {
-        grid-template-columns: 1fr auto auto auto !important;
-        padding: 6px 7px !important;
+        padding: 8px 10px !important;
+        gap: 2px 8px !important;
     }
     #tbl_att_monthly tbody td:nth-child(1) {
-        font-size: 0.76rem !important;
-        max-width: calc(100vw - 120px);
+        font-size: 0.86rem !important;
+        max-width: calc(100vw - 135px) !important;
+    }
+    #tbl_att_monthly tbody td:nth-child(2) span,
+    #tbl_att_monthly tbody td:nth-child(2) .badge {
+        font-size: 0.62rem !important;
+        padding: 1px 6px !important;
+    }
+    #tbl_att_monthly tbody td:nth-child(3),
+    #tbl_att_monthly tbody td:nth-child(4) {
+        font-size: 0.95rem !important;
+    }
+    #att_month, #att_month_branch {
+        font-size: 0.78rem !important;
+        padding: 9px 8px !important;
+    }
+}
+
+/* Điện thoại rất nhỏ ≤360px */
+@media (max-width: 360px) {
+    #tbl_att_monthly tbody tr {
+        padding: 6px 8px !important;
+        gap: 1px 5px !important;
+    }
+    #tbl_att_monthly tbody td:nth-child(1) {
+        font-size: 0.78rem !important;
+        max-width: calc(100vw - 120px) !important;
     }
     #tbl_att_monthly tbody td:nth-child(3),
     #tbl_att_monthly tbody td:nth-child(4) {
         font-size: 0.82rem !important;
     }
-    /* Nhãn ::after thu gọn hơn */
     #tbl_att_monthly tbody td:nth-child(3)::after,
     #tbl_att_monthly tbody td:nth-child(4)::after {
-        font-size: 0.44rem !important;
+        font-size: 0.42rem !important;
+    }
+    #tbl_att_monthly tbody td:nth-child(6) button {
+        padding: 3px 8px !important;
+        font-size: 0.6rem !important;
+    }
+    #att_month, #att_month_branch {
+        font-size: 0.7rem !important;
+        padding: 8px 6px !important;
     }
 }
 
