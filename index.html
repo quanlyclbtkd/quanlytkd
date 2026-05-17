@@ -120,6 +120,21 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
         <input type="month" id="att_month" style="border:1.5px solid #e2e8f0;border-radius:10px;padding:10px 12px;font-size:0.83rem;font-weight:700;background:#f8fafc;width:100%;box-sizing:border-box;" onchange="window.renderAttMonthly()">
         <select id="att_month_branch" style="border:1.5px solid #e2e8f0;border-radius:10px;padding:10px 12px;font-size:0.83rem;font-weight:700;background:#f8fafc;width:100%;box-sizing:border-box;" onchange="window.renderAttMonthly()"><option value="all">🏢 Tất cả cơ sở</option></select>
       </div>
+      <!-- Nút xuất Excel báo cáo điểm danh — hiển thị sau khi chọn tháng -->
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+        <div style="font-size:0.7rem;color:#94a3b8;line-height:1.4;">
+          📎 Xuất file Excel gồm sheet tổng hợp + sheet riêng từng cơ sở để gửi phụ huynh
+        </div>
+        <button
+          type="button"
+          onclick="window.exportAttendanceExcel()"
+          style="padding:9px 16px;background:linear-gradient(135deg,#059669,#047857);color:#fff;border:none;border-radius:10px;font-size:0.8rem;font-weight:800;cursor:pointer;box-shadow:0 3px 10px rgba(5,150,105,0.3);letter-spacing:0.02em;transition:opacity 0.2s;white-space:nowrap;flex-shrink:0;"
+          onmouseenter="this.style.opacity='0.88'"
+          onmouseleave="this.style.opacity='1'"
+          title="Xuất báo cáo điểm danh tháng đã chọn ra file Excel">
+          📊 Xuất Excel Điểm Danh
+        </button>
+      </div>
     </div>
     <div class="table-wrapper">
       <table id="tbl_att_monthly">

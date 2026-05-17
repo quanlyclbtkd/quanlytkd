@@ -123,6 +123,87 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
   box-sizing: border-box;
 }
 
+/* ═══════════════════════════════════════════════════════════
+   THỐNG KÊ THÁNG — Tối ưu thêm cho điện thoại nhỏ (≤400px)
+   Đảm bảo không xuất hiện thanh trượt ngang ở bất kỳ màn hình nào
+   ═══════════════════════════════════════════════════════════ */
+
+/* Ngăn scroll ngang toàn bộ khu vực Thống kê tháng */
+#att_sub_month {
+    overflow-x: hidden;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Đảm bảo table-wrapper bên trong không tạo scroll ngang */
+#att_sub_month .table-wrapper {
+    overflow-x: hidden !important;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Điện thoại nhỏ ≤400px — giảm padding/font thêm để vừa màn hình */
+@media (max-width: 400px) {
+    /* Thu gọn card thẻ võ sinh thống kê tháng */
+    #tbl_att_monthly tbody tr {
+        padding: 7px 8px !important;
+        gap: 1px 5px !important;
+    }
+    /* Tên võ sinh — bớt font nhưng vẫn đọc được */
+    #tbl_att_monthly tbody td:nth-child(1) {
+        font-size: 0.82rem !important;
+        max-width: calc(100vw - 130px); /* Giới hạn độ rộng tên để không đẩy layout */
+    }
+    /* Cấp đai — thu gọn hơn */
+    #tbl_att_monthly tbody td:nth-child(2) .badge,
+    #tbl_att_monthly tbody td:nth-child(2) span {
+        font-size: 0.6rem !important;
+        padding: 1px 5px !important;
+        min-width: unset !important;
+    }
+    /* Số buổi có mặt & nghỉ phép */
+    #tbl_att_monthly tbody td:nth-child(3),
+    #tbl_att_monthly tbody td:nth-child(4) {
+        font-size: 0.9rem !important;
+    }
+    /* Tỉ lệ % */
+    #tbl_att_monthly tbody td:nth-child(5) span {
+        font-size: 0.78rem !important;
+    }
+    /* Nút Zalo — thu gọn trên màn nhỏ */
+    #tbl_att_monthly tbody td:nth-child(6) button {
+        padding: 3px 8px !important;
+        font-size: 0.62rem !important;
+    }
+
+    /* Thu nhỏ filter tháng/cơ sở trên điện thoại rất nhỏ */
+    #att_month, #att_month_branch {
+        font-size: 0.72rem !important;
+        padding: 8px 6px !important;
+    }
+}
+
+/* Màn hình cực nhỏ ≤360px (một số điện thoại cũ) */
+@media (max-width: 360px) {
+    #tbl_att_monthly tbody tr {
+        grid-template-columns: 1fr auto auto auto !important;
+        padding: 6px 7px !important;
+    }
+    #tbl_att_monthly tbody td:nth-child(1) {
+        font-size: 0.76rem !important;
+        max-width: calc(100vw - 120px);
+    }
+    #tbl_att_monthly tbody td:nth-child(3),
+    #tbl_att_monthly tbody td:nth-child(4) {
+        font-size: 0.82rem !important;
+    }
+    /* Nhãn ::after thu gọn hơn */
+    #tbl_att_monthly tbody td:nth-child(3)::after,
+    #tbl_att_monthly tbody td:nth-child(4)::after {
+        font-size: 0.44rem !important;
+    }
+}
+
 /* ══════════════════════════════════════════════════════
    LỊCH HỌC & HỌC BÙ — Toggle Switch CSS
    ══════════════════════════════════════════════════════ */
