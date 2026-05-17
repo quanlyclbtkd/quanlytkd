@@ -190,60 +190,93 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
     white-space: nowrap;
 }
 
-/* ==========================================================================
-   BẢN VÁ LỖI HIỂN THỊ LỊCH TẬP TRÊN MOBILE (CHỐNG ĐÈ CHỮ NHAU)
-   ========================================================================== */
-.training-schedule-compact-grid {
-    display: grid !important;
-    /* Tự động tính toán số cột dựa trên độ rộng màn hình thực tế */
-    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)) !important;
-    gap: 6px !important; 
-    width: 100% !important;
-    margin-top: 8px !important;
-    margin-bottom: 6px !important;
+
+/* ═══════════════════════════════════════════════════════════
+   FIX: LỊCH TẬP TRONG TUẦN — Checkbox & Chữ không đè nhau
+   ═══════════════════════════════════════════════════════════ */
+
+/*
+ * Sử dụng flex-wrap thay cho grid để mỗi nhãn (label) tự chiếm
+ * đủ chiều rộng cần thiết. Không bị tràn/đè dù màn hình nhỏ.
+ */
+.training-days-grid {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 6px 12px !important;
 }
 
-label:has(input.m_trainingDay) {
-    display: inline-flex !important;
-    flex-direction: row !important; /* Ô tích bên trái, chữ bên phải trên cùng 1 hàng */
-    align-items: center !important; 
-    justify-content: center !important;
-    gap: 4px !important; /* Khoảng cách sát nhau và cân đối giữa ô tích và chữ */
-    
-    font-family: 'Inter', sans-serif !important;
-    font-size: 0.75rem !important; 
-    font-weight: 700 !important;
-    color: #475569 !important;
-    background: #f8fafc !important;
-    border: 1px solid #e2e8f0 !important;
-    
-    padding: 6px 4px !important; /* Thu nhỏ padding dọc để vừa vặn màn hình */
-    border-radius: 6px !important;
-    cursor: pointer !important;
-    width: 100% !important; 
-    margin: 0 !important;
-    
-    /* QUAN TRỌNG: Khóa không cho chữ xuống hàng hoặc co rúm diện tích */
-    white-space: nowrap !important;
-    box-sizing: border-box !important;
+/* Mỗi label chứa checkbox + chữ Thứ X: đảm bảo không bị ép xuống */
+.training-days-grid label {
+    display: flex !important;
+    align-items: center !important;
+    gap: 5px !important;
+    cursor: pointer;
+    white-space: nowrap !important; /* Chữ "Thứ 2" không bao giờ bị xuống hàng */
+    flex-shrink: 0 !important;      /* Không bị thu nhỏ khi thiếu không gian */
 }
 
-/* Hiệu ứng khi được chọn (Checked) */
-label:has(input.m_trainingDay:checked) {
-    background: #eff6ff !important;
-    border-color: #2563eb !important;
-    color: #1d4ed8 !important;
+/* Checkbox trong lịch tập — kích thước rõ ràng, không bị chồng lên chữ */
+.training-days-grid input[type="checkbox"] {
+    width: 16px !important;
+    height: 16px !important;
+    flex-shrink: 0 !important;      /* Không bị ép nhỏ */
+    cursor: pointer;
+    accent-color: var(--primary);
+    vertical-align: middle;
+    margin: 0 !important;           /* Xóa margin mặc định của browser */
 }
 
-/* Định dạng chuẩn kích thước ô tick */
-label:has(input.m_trainingDay) input[type="checkbox"] {
-    width: 14px !important;
-    height: 14px !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    cursor: pointer !important;
-    accent-color: #0033A0 !important;
-    /* Khóa kích thước ô vuông, không cho flexbox bóp méo */
-    flex-shrink: 0 !important; 
+/* Inline style override dùng khi HTML đã được render với style trực tiếp */
+[style*="display:grid;grid-template-columns:repeat(4,1fr)"] {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 6px 12px !important;
 }
-/* KẾT THÚC ĐOẠN CSS */
+
+/* ═══════════════════════════════════════════════════════════
+   KHO ĐỒ — Quản lý danh mục tùy chỉnh
+   ═══════════════════════════════════════════════════════════ */
+
+/* Nút quản lý danh mục kho — chỉ hiện với admin */
+#admin_manage_cat_wrap {
+    text-align: right;
+    margin-bottom: 10px;
+}
+
+/* Modal quản lý danh mục kho — responsive */
+#manageCatModal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.75);
+    z-index: 10002;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    backdrop-filter: blur(4px);
+}
+
+#manageCatModal > div {
+    animation: slideUpModal 0.22s ease;
+}
+
+@keyframes slideUpModal {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Input trong form thêm danh mục — focus state */
+#newCatName:focus,
+#newCatSizes:focus {
+    border-color: #0033A0 !important;
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(0, 51, 160, 0.1) !important;
+}
+
+/* Mobile: đảm bảo modal không bị tràn màn hình nhỏ */
+@media (max-width: 480px) {
+    #manageCatModal > div {
+        border-radius: 16px !important;
+        max-height: 95vh !important;
+    }
+}
