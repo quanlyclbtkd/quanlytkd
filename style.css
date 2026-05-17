@@ -190,25 +190,56 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
     white-space: nowrap;
 }
 
-
-/* ═══════════════════════════════════════════════════════════
-   FIX MOBILE: Lịch tập trong tuần — 2 cột trên màn hình nhỏ
-   ═══════════════════════════════════════════════════════════ */
-@media (max-width: 479px) {
-    .training-days-grid {
-        grid-template-columns: repeat(2, 1fr) !important;
-    }
-    .training-days-grid label {
-        white-space: normal !important;
-        font-size: 0.78rem !important;
-    }
+/* BẮT ĐẦU ĐOẠN CSS SỬA LỖI LỊCH TẬP */
+.training-schedule-compact-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(70px, 1fr)) !important;
+    gap: 8px !important; 
+    width: 100% !important;
+    margin-top: 10px !important;
+    margin-bottom: 6px !important;
 }
 
-/* ═══════════════════════════════════════════════════════════
-   FIX MOBILE: Công tắc học bù — căn chỉnh đúng khi text 2 dòng
-   Container đã được đổi sang align-items:flex-start trong HTML
-   Toggle nhích nhẹ để căn với dòng chữ đầu tiên
-   ═══════════════════════════════════════════════════════════ */
-.toggle-switch {
-    margin-top: 2px;
+label:has(input.m_trainingDay) {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important; 
+    justify-content: center !important;
+    gap: 6px !important;
+    
+    font-family: 'Inter', sans-serif !important;
+    font-size: 0.75rem !important; 
+    font-weight: 700 !important;
+    color: #475569 !important;
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    
+    padding: 8px 4px !important; 
+    border-radius: 8px !important;
+    cursor: pointer !important;
+    width: 100% !important; 
+    margin: 0 !important;
 }
+label:has(input.m_trainingDay):hover {
+    background: #e0e7ff !important;
+    border-color: #818cf8 !important;
+    color: #3730a3 !important;
+}
+
+label:has(input.m_trainingDay:checked) {
+    background: #eff6ff !important;
+    border-color: #2563eb !important;
+    color: #1d4ed8 !important;
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.1) !important;
+}
+
+label:has(input.m_trainingDay) input[type="checkbox"] {
+    width: 16px !important;
+    height: 16px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    cursor: pointer !important;
+    accent-color: #0033A0 !important;
+    flex-shrink: 0 !important;
+}
+/* KẾT THÚC ĐOẠN CSS */
