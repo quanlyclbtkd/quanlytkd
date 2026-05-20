@@ -273,20 +273,20 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
    ĐIỂM DANH — CẢI THIỆN RESPONSIVE MOBILE / DESKTOP
    ═══════════════════════════════════════════════════════════ */
 
-/* Lưới thẻ võ sinh: nhiều cột hơn trên màn hình rộng */
+/* [SỬA GIAO DIỆN] Lưới thẻ võ sinh: cố định 2 cột trên mọi màn hình để tên đủ chỗ hiển thị */
 #attendanceGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+    /* 2 cột cố định — đủ rộng để tên dài hiển thị, không bị cắt */
+    grid-template-columns: repeat(2, 1fr);
     gap: 10px;
 }
-@media (min-width: 480px) {
-    #attendanceGrid { grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); }
-}
 @media (min-width: 768px) {
-    #attendanceGrid { grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 12px; }
+    /* Desktop: vẫn 2 cột, tăng gap */
+    #attendanceGrid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
 }
 @media (min-width: 1024px) {
-    #attendanceGrid { grid-template-columns: repeat(auto-fill, minmax(178px, 1fr)); gap: 14px; }
+    /* Desktop rộng: vẫn 2 cột, tăng gap thêm */
+    #attendanceGrid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
 }
 
 /* Sub-tab navigation cải thiện */
