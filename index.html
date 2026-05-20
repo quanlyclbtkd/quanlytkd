@@ -84,14 +84,16 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
         <select id="att_belt" style="grid-column:1/-1;border:1px solid #e2e8f0;border-radius:8px;padding:4px 5px;font-size:clamp(0.6rem,2.8vw,0.72rem);font-weight:700;background:#f8fafc;width:100%;box-sizing:border-box;min-width:0;" onchange="renderAttendanceList()"><option value="all">🥋 Tất cả cấp đai</option><option value="trắng - cấp 10">Đai Trắng (Cấp 10)</option><option value="trắng 1 vạch">Đai Trắng 1 Vạch (Cấp 9)</option><option value="trắng 2 vạch">Đai Trắng 2 Vạch (Cấp 8)</option><option value="vàng">Đai Vàng (Cấp 7)</option><option value="xanh lá">Đai Xanh Lá (Cấp 6)</option><option value="xanh dương">Đai Xanh Dương (Cấp 5)</option><option value="đỏ - cấp 4">Đai Đỏ (Cấp 4)</option><option value="đỏ 1 vạch">Đai Đỏ 1 Vạch (Cấp 3)</option><option value="đỏ 2 vạch">Đai Đỏ 2 Vạch (Cấp 2)</option><option value="đỏ 3 vạch">Đai Đỏ 3 Vạch (Cấp 1)</option><option value="đen - đỏ">Đai Đen - Đỏ</option><option value="đen">Đai Đen (Huyền Đai)</option></select>
       </div>
       <!-- [THÊM] Chọn ca tập — HLV/Admin chọn suất học trước khi điểm danh -->
-      <div style="display:flex;align-items:center;gap:5px;padding:4px 8px;background:#f0f9ff;border-radius:8px;border:1px solid #bae6fd;">
-        <span style="font-size:clamp(0.58rem,2.5vw,0.68rem);font-weight:700;color:#0369a1;flex-shrink:0;white-space:nowrap;">⏰ Ca tập:</span>
-        <!-- [SỬA] Giới hạn chiều ngang ô chọn ca tập để nút "Quản lý ca tập" hiển thị đầy đủ -->
-        <select id="att_shift" onchange="window.onShiftChange()" style="flex:1;max-width:130px;border:1px solid #bae6fd;border-radius:6px;padding:3px 5px;font-size:clamp(0.58rem,2.5vw,0.68rem);font-weight:600;background:#fff;min-width:0;">
+      <!-- [SỬA] Dùng CSS Grid 3 cột (auto|1fr|auto): label cố định — select co giãn — nút cố định -->
+      <!-- Đảm bảo hiển thị cân bằng, đủ nội dung trên mọi kích thước màn hình -->
+      <div style="display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:6px;padding:6px 10px;background:#f0f9ff;border-radius:8px;border:1px solid #bae6fd;box-sizing:border-box;width:100%;">
+        <span style="font-size:clamp(0.6rem,2.5vw,0.72rem);font-weight:700;color:#0369a1;white-space:nowrap;">⏰ Ca tập:</span>
+        <!-- Select co giãn lấp đầy không gian còn lại, không bị đẩy nút ra ngoài -->
+        <select id="att_shift" onchange="window.onShiftChange()" style="width:100%;min-width:0;border:1px solid #bae6fd;border-radius:6px;padding:4px 6px;font-size:clamp(0.6rem,2.5vw,0.72rem);font-weight:600;background:#fff;box-sizing:border-box;text-overflow:ellipsis;">
           <option value="">-- Chọn ca (tùy chọn) --</option>
         </select>
-        <!-- [SỬA] Hiển thị đầy đủ chữ "Quản lý ca tập" trên nút -->
-        <button onclick="window.openShiftModal()" type="button" title="Quản lý ca tập" style="flex-shrink:0;padding:3px 8px;background:#0033A0;color:#fff;border:none;border-radius:6px;font-size:clamp(0.56rem,2.4vw,0.65rem);font-weight:700;cursor:pointer;white-space:nowrap;">⚙️ Quản lý ca tập</button>
+        <!-- Nút cố định chiều rộng theo nội dung, không bao giờ bị che khuất -->
+        <button onclick="window.openShiftModal()" type="button" title="Quản lý ca tập" style="white-space:nowrap;padding:4px 10px;background:#0033A0;color:#fff;border:none;border-radius:6px;font-size:clamp(0.6rem,2.5vw,0.72rem);font-weight:700;cursor:pointer;">⚙️ Quản lý ca tập</button>
       </div>
       <!-- Coach info banner (ẩn mặc định, hiện khi login là HLV) -->
       <div id="coach_att_info" style="display:none;justify-content:center;margin-bottom:4px;"></div>
@@ -108,8 +110,8 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
     <div id="coach_add_btn_wrap" style="display:none;margin-bottom:10px;">
       <button type="button" onclick="window.openAddModal()" style="width:100%;padding:11px 16px;background:linear-gradient(135deg,#0033A0,#0052cc);color:#fff;border:none;border-radius:12px;font-size:0.88rem;font-weight:800;cursor:pointer;box-shadow:0 3px 10px rgba(0,51,160,0.3);letter-spacing:0.02em;transition:opacity 0.2s;" onmouseenter="this.style.opacity='0.88'" onmouseleave="this.style.opacity='1'">➕ Thêm Võ Sinh Mới</button>
     </div>
-    <!-- [SỬA] 2 cột cố định — ghi trực tiếp vào inline style vì style.css không được link trong HTML -->
-    <div id="attendanceGrid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;">
+    <!-- [SỬA] Bỏ grid-template-columns cứng — để CSS tự cân chỉnh responsive theo từng màn hình -->
+    <div id="attendanceGrid" style="display:grid;gap:10px;">
       <div style="grid-column:1/-1;text-align:center;padding:48px 16px;color:#94a3b8;font-style:italic;font-size:0.88rem;">Đang tải...</div>
     </div>
     <!-- ── THỐNG KÊ NHANH THEO CƠ SỞ (Admin xem kết quả điểm danh từng cơ sở) ── -->

@@ -273,20 +273,38 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
    ĐIỂM DANH — CẢI THIỆN RESPONSIVE MOBILE / DESKTOP
    ═══════════════════════════════════════════════════════════ */
 
-/* [SỬA GIAO DIỆN] Lưới thẻ võ sinh: cố định 2 cột trên mọi màn hình để tên đủ chỗ hiển thị */
+/* ═══════════════════════════════════════════════════════════
+   [SỬA] LƯỚI ĐIỂM DANH — Tự cân chỉnh số cột theo màn hình
+   Dùng auto-fill + minmax thay cho repeat(2,1fr) cố định
+   ═══════════════════════════════════════════════════════════ */
 #attendanceGrid {
     display: grid;
-    /* 2 cột cố định — đủ rộng để tên dài hiển thị, không bị cắt */
-    grid-template-columns: repeat(2, 1fr);
+    /* Tự động: mỗi ô tối thiểu 140px — điện thoại nhỏ ra 2 cột, lớn hơn ra 3-4 cột */
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 140px), 1fr));
     gap: 10px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Đảm bảo mỗi thẻ võ sinh KHÔNG tràn ra ngoài ô lưới — khắc phục lỗi overflow mobile */
+#attendanceGrid > div {
+    min-width: 0;        /* Bắt buộc cho CSS Grid — ngăn nội dung đẩy rộng ô */
+    overflow: hidden;    /* Cắt nội dung vượt biên */
+    box-sizing: border-box;
+    word-break: break-word; /* Tên dài tự xuống hàng thay vì tràn ngang */
+}
+
+@media (min-width: 480px) {
+    /* Tablet nhỏ / điện thoại nằm ngang: tăng min card lên 160px → 2-3 cột */
+    #attendanceGrid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
 }
 @media (min-width: 768px) {
-    /* Desktop: vẫn 2 cột, tăng gap */
-    #attendanceGrid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    /* Tablet / desktop nhỏ: min 180px → 3-4 cột */
+    #attendanceGrid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
 }
 @media (min-width: 1024px) {
-    /* Desktop rộng: vẫn 2 cột, tăng gap thêm */
-    #attendanceGrid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+    /* Desktop rộng: min 200px, tối đa 4 cột để thẻ không quá rộng */
+    #attendanceGrid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
 }
 
 /* Sub-tab navigation cải thiện */
