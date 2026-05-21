@@ -440,3 +440,21 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
         max-height: 95vh !important;
     }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   CẢNH BÁO NGHỈ NHIỀU — Đèn nhấp nháy
+   🟡 Vàng = 2 buổi không phép liên tiếp
+   🔴 Đỏ  = 3+ buổi không phép liên tiếp
+   ═══════════════════════════════════════════════════════════ */
+@keyframes absWarnBlink {
+    0%, 100% { opacity: 1;   }
+    50%       { opacity: 0.15; }
+}
+.abs-warn-red,
+.abs-warn-yellow {
+    display: inline-block;
+    animation: absWarnBlink 0.9s ease-in-out infinite;
+    cursor: help;
+    vertical-align: middle;
+    line-height: 1;
+}
