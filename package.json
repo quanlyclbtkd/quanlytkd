@@ -1,0 +1,14 @@
+{
+  "name": "taekwondo-club-app",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Ứng dụng Quản lý CLB Taekwondo — Vanilla JS + Firebase",
+  "scripts": {
+    "check": "node tools/check-syntax.mjs",
+    "check:verbose": "node tools/check-syntax.mjs --verbose"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

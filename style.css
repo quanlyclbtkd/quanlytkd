@@ -445,16 +445,370 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
    CẢNH BÁO NGHỈ NHIỀU — Đèn nhấp nháy
    🟡 Vàng = 2 buổi không phép liên tiếp
    🔴 Đỏ  = 3+ buổi không phép liên tiếp
+   Dùng outline thay border — không xung đột inline style,
+   không cần !important, animation hoạt động đúng
    ═══════════════════════════════════════════════════════════ */
+
+/* Badge icon (🟡🔴) nhấp nháy bên cạnh tên */
 @keyframes absWarnBlink {
-    0%, 100% { opacity: 1;   }
-    50%       { opacity: 0.15; }
+    0%, 100% { opacity: 1;   transform: scale(1);   }
+    50%       { opacity: 0.2; transform: scale(1.3); }
 }
 .abs-warn-red,
 .abs-warn-yellow {
     display: inline-block;
-    animation: absWarnBlink 0.9s ease-in-out infinite;
+    animation: absWarnBlink 0.85s ease-in-out infinite;
     cursor: help;
     vertical-align: middle;
     line-height: 1;
 }
+
+/* Viền card nhấp nháy — outline không xung đột với border inline */
+@keyframes attCardBlinkYellow {
+    0%, 100% { outline: 2px solid #ca8a04; box-shadow: 0 0 0 2px rgba(202,138,4,0.18); }
+    50%       { outline: 2px solid #fcd34d; box-shadow: 0 0 0 5px rgba(252,211,77,0.42); }
+}
+@keyframes attCardBlinkRed {
+    0%, 100% { outline: 2px solid #dc2626; box-shadow: 0 0 0 2px rgba(220,38,38,0.18); }
+    50%       { outline: 2px solid #f87171; box-shadow: 0 0 0 5px rgba(248,113,113,0.42); }
+}
+/* 2 buổi KP liên tiếp — outline vàng nhấp nháy */
+.att-card-warn-yellow {
+    outline: 2px solid #ca8a04;
+    outline-offset: 1px;
+    animation: attCardBlinkYellow 0.85s ease-in-out infinite;
+}
+/* 3+ buổi KP liên tiếp — outline đỏ nhấp nháy */
+.att-card-warn-red {
+    outline: 2px solid #dc2626;
+    outline-offset: 1px;
+    animation: attCardBlinkRed 0.85s ease-in-out infinite;
+}
+
+
+
+/* ═══════════════════════════════════════════════════════════
+   [SỬA] ĐĂNG NHẬP — Login field wrap + inline error + UI
+   Dùng flexbox: icon và input nằm trong 1 container
+   ═══════════════════════════════════════════════════════════ */
+.login-field-wrap {
+    display: flex;
+    align-items: center;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    background: #f8fafc;
+    overflow: hidden;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    margin-bottom: 12px;
+}
+.login-field-wrap:focus-within {
+    border-color: #0033A0;
+    box-shadow: 0 0 0 3px rgba(0,51,160,0.12);
+    background: #fff;
+}
+.lf-icon {
+    flex-shrink: 0;
+    width: 40px;
+    text-align: center;
+    font-size: 1rem;
+    color: #94a3b8;
+    pointer-events: none;
+    line-height: 1;
+    padding: 0 2px 0 10px;
+}
+.lf-input {
+    flex: 1;
+    border: none !important;
+    outline: none !important;
+    background: transparent !important;
+    padding: 13px 14px 13px 4px !important;
+    font-size: 1rem !important;
+    color: #334155 !important;
+    width: 100% !important;
+    min-width: 0;
+    font-family: inherit;
+}
+.lf-input::placeholder { color: #94a3b8; font-size: 0.9rem; }
+
+/* Inline error — tự ẩn */
+#loginErrorMsg {
+    display: none;
+    margin: 0 0 14px;
+    padding: 10px 14px;
+    background: #fef2f2;
+    border: 1.5px solid #fca5a5;
+    border-radius: 12px;
+    color: #dc2626;
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-align: center;
+    line-height: 1.5;
+}
+#loginErrorMsg.visible {
+    display: block;
+    animation: loginErrIn 0.25s ease;
+}
+@keyframes loginErrIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+/* Background circles trang trí */
+#loginOverlay::before, #loginOverlay::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.07);
+    pointer-events: none;
+}
+#loginOverlay::before { width: 320px; height: 320px; top: -80px; right: -80px; }
+#loginOverlay::after  { width: 220px; height: 220px; bottom: -60px; left: -60px; }
+.login-card { position: relative; z-index: 1; }
+.login-title {
+    font-size: 1.05rem; font-weight: 900; color: #0033A0;
+    letter-spacing: 0.01em; margin-bottom: 3px; line-height: 1.3;
+}
+.login-subtitle { font-size: 0.78rem; color: #94a3b8; margin-bottom: 20px; }
+
+
+/* ╔══════════════════════════════════════════════════════════════════════╗
+   ║  🎨 DESIGN UPGRADE v2 — Giao diện chuyên nghiệp                    ║
+   ║  Chỉ nâng cấp visual: màu, shadow, spacing, typography.            ║
+   ║  Không thay đổi layout, responsive, hay logic chức năng.           ║
+   ╚══════════════════════════════════════════════════════════════════════╝ */
+
+/* ── Biến design token bổ sung ─────────────────────────────────────── */
+:root {
+  --shadow-xs : 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-sm : 0 2px 8px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.04);
+  --shadow-md : 0 4px 18px rgba(0,0,0,0.09), 0 2px 6px rgba(0,0,0,0.04);
+  --shadow-lg : 0 8px 32px rgba(0,0,0,0.11), 0 4px 12px rgba(0,0,0,0.05);
+  --shadow-primary: 0 4px 14px rgba(0,51,160,0.22);
+}
+
+/* ── Nền ứng dụng: gradient nhẹ thay vì màu phẳng ─────────────────── */
+body {
+  background: linear-gradient(160deg, #eef2f9 0%, #e8edf7 40%, #edf0f7 100%) !important;
+  background-attachment: fixed !important;
+}
+
+/* ── Tabs wrapper: border & shadow rõ nét hơn ──────────────────────── */
+.tabs-wrapper {
+  background: rgba(255,255,255,0.97) !important;
+  border-bottom: 1.5px solid rgba(226,232,240,0.9) !important;
+  box-shadow: 0 2px 14px rgba(0,0,0,0.07) !important;
+}
+
+/* ── Tab buttons: bỏ border, dùng background thay thế ──────────────── */
+.tab-btn {
+  font-size: 0.83rem !important;
+  font-weight: 600 !important;
+  padding: 7px 15px !important;
+  border: none !important;
+  border-radius: 8px !important;
+  color: #64748b !important;
+  background: transparent !important;
+  transition: all 0.16s ease !important;
+}
+.tab-btn:hover {
+  color: #0033A0 !important;
+  background: rgba(0,51,160,0.07) !important;
+}
+.tab-btn.active {
+  color: #fff !important;
+  background: linear-gradient(135deg, #0033A0 0%, #1a56db 100%) !important;
+  font-weight: 700 !important;
+  box-shadow: 0 3px 10px rgba(0,51,160,0.30) !important;
+}
+
+/* ── Table header: gradient tinh tế ────────────────────────────────── */
+th {
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%) !important;
+  color: #334155 !important;
+  font-size: 0.69rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.07em !important;
+  padding: 11px 12px !important;
+  border-bottom: 2px solid #e2e8f0 !important;
+}
+
+/* ── Table cells: padding rộng hơn, dễ đọc ─────────────────────────── */
+td {
+  padding: 10px 12px !important;
+  font-size: 0.845rem !important;
+  color: #1e293b !important;
+  border-bottom: 1px solid #f0f4f8 !important;
+}
+
+/* ── Zebra striping: chỉ áp dụng khi row không có màu riêng ────────── */
+tbody tr:nth-child(even):not([style*="background"]):not([class*="warn"]):not([class*="paid"]):not([class*="unpaid"]) td {
+  background: rgba(248,250,252,0.65);
+}
+
+/* ── Row hover: hiệu ứng sáng nhẹ ──────────────────────────────────── */
+tbody tr:hover td {
+  background: rgba(0,51,160,0.035) !important;
+  transition: background 0.12s ease !important;
+}
+
+/* ── Scrollbar bảng: thanh mỏng tinh tế ────────────────────────────── */
+.table-wrapper::-webkit-scrollbar        { width: 4px; height: 4px; }
+.table-wrapper::-webkit-scrollbar-track  { background: transparent; }
+.table-wrapper::-webkit-scrollbar-thumb  { background: #cbd5e1; border-radius: 99px; }
+.table-wrapper::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* ── Badges: pill hoàn toàn, đẹp hơn ───────────────────────────────── */
+.badge {
+  border-radius: 99px !important;
+  padding: 3px 10px !important;
+  font-size: 0.7rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.01em !important;
+}
+
+/* ── Nút btn-sm: shadow + hover lift ───────────────────────────────── */
+.btn-sm {
+  border-radius: 8px !important;
+  font-size: 0.73rem !important;
+  font-weight: 700 !important;
+  padding: 6px 12px !important;
+  box-shadow: var(--shadow-xs) !important;
+  transition: all 0.14s ease !important;
+}
+.btn-sm:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: var(--shadow-sm) !important;
+  filter: brightness(1.04) !important;
+}
+.btn-sm:active {
+  transform: translateY(0) !important;
+  box-shadow: none !important;
+  filter: brightness(0.97) !important;
+}
+
+/* ── Name link: underline offset đẹp hơn ───────────────────────────── */
+.name-link {
+  text-underline-offset: 3px !important;
+  transition: color 0.14s ease !important;
+}
+.name-link:hover {
+  color: #0052cc !important;
+}
+
+/* ── Stat cards dashboard: hover lift + shadow ──────────────────────── */
+.stat-card {
+  box-shadow: var(--shadow-md) !important;
+  transition: transform 0.18s ease, box-shadow 0.18s ease !important;
+}
+@media (hover: hover) and (pointer: fine) {
+  .stat-card:hover {
+    transform: translateY(-3px) !important;
+    box-shadow: var(--shadow-lg) !important;
+  }
+}
+.stat-card h3 { letter-spacing: 0.07em !important; opacity: 0.92 !important; }
+.stat-card p  { font-weight: 900 !important; line-height: 1.2 !important; }
+
+/* ── Cards trắng (bg-white + rounded): shadow nhẹ nhàng ─────────────── */
+/* Áp dụng cho toàn bộ container card thông qua table wrapper */
+.bg-white.rounded-xl  { box-shadow: var(--shadow-sm) !important; }
+.bg-white.rounded-2xl { box-shadow: var(--shadow-sm) !important; }
+
+/* ── Toast: glass style ──────────────────────────────────────────────── */
+.toast {
+  border-radius: 14px !important;
+  padding: 13px 22px !important;
+  font-size: 0.87rem !important;
+  font-weight: 700 !important;
+  box-shadow: 0 8px 28px rgba(16,185,129,0.22), 0 2px 8px rgba(0,0,0,0.10) !important;
+  letter-spacing: 0.01em !important;
+}
+.toast.loading {
+  background: #0033A0 !important;
+  box-shadow: 0 8px 28px rgba(0,51,160,0.28) !important;
+}
+
+/* ── Modal content: shadow nâng cao hơn ─────────────────────────────── */
+.modal-content {
+  border-radius: 24px 24px 0 0 !important;
+  box-shadow: 0 -6px 40px rgba(0,0,0,0.13), 0 -2px 10px rgba(0,0,0,0.06) !important;
+}
+
+/* ── Modal backdrop: tối hơn & rõ hơn ───────────────────────────────── */
+.modal {
+  background: rgba(10,18,36,0.72) !important;
+}
+
+/* ── Form inputs: focus ring rõ nét ─────────────────────────────────── */
+input:not(.lf-input):focus,
+select:focus,
+textarea:focus {
+  border-color: #0033A0 !important;
+  box-shadow: 0 0 0 3px rgba(0,51,160,0.10) !important;
+  outline: none !important;
+}
+
+/* ── Tab content: animation mượt mà hơn ─────────────────────────────── */
+.tab-content.active {
+  animation: tabSlideIn 0.22s cubic-bezier(0.16,1,0.3,1) !important;
+}
+@keyframes tabSlideIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Mobile header: gradient đẹp hơn ────────────────────────────────── */
+@media (max-width: 767px) {
+  .mobile-header-bar {
+    background: linear-gradient(135deg, #001a60 0%, #0033A0 50%, #1a4fd8 100%) !important;
+    box-shadow: 0 4px 22px rgba(0,26,96,0.38) !important;
+  }
+}
+
+/* ── Pull-to-refresh indicator: căn chỉnh ───────────────────────────── */
+#pullToRefreshIndicator {
+  border-radius: 0 0 16px 16px !important;
+}
+
+/* ── Monthly reminder banner: tinh tế hơn ───────────────────────────── */
+#monthlyReminder {
+  box-shadow: var(--shadow-md) !important;
+  border-radius: 16px !important;
+}
+
+/* ── Admin notification banner: nâng cấp shadow ─────────────────────── */
+#admin_notif_banner {
+  box-shadow: 0 4px 16px rgba(245,158,11,0.15) !important;
+}
+
+/* ── Floating action / main buttons: tinh tế ────────────────────────── */
+button[onclick*="openAdd"]:not(.btn-sm),
+button[onclick*="openNew"]:not(.btn-sm) {
+  transition: all 0.15s ease !important;
+}
+
+/* ── Loading spinner: animation mượt hơn ────────────────────────────── */
+.loading-spinner {
+  animation-timing-function: cubic-bezier(0.5, 0, 0.5, 1) !important;
+}
+
+/* ── Desktop: max-width container cho màn hình lớn ──────────────────── */
+@media (min-width: 1280px) {
+  .app-container {
+    max-width: 1240px;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+}
+
+/* ── Scrollbar toàn trang (Chrome/Edge): mỏng & tinh tế ─────────────── */
+::-webkit-scrollbar        { width: 5px; height: 5px; }
+::-webkit-scrollbar-track  { background: transparent; }
+::-webkit-scrollbar-thumb  { background: #c8d3e0; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* ── Focus visible: ring đồng nhất ──────────────────────────────────── */
+button:focus-visible, input:focus-visible, select:focus-visible {
+  outline: 2px solid #0033A0 !important;
+  outline-offset: 2px !important;
+}
+

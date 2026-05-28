@@ -1,0 +1,170 @@
+rules_version = '2';
+// ══════════════════════════════════════════════════════════════════════════════
+// Firestore Security Rules — Taekwondo Club Management SaaS
+// Phase 4.0B-3 Baseline — tháng 5/2026
+//
+// ⚠️  ĐÂY LÀ BASELINE — CHƯA DEPLOY.
+//      Test trên Firebase Emulator trước khi deploy production.
+//      Xem SECURITY_RULES_NOTES.md để hiểu các assumptions.
+//
+// CẤU TRÚC COLLECTION (dựa trên app hiện tại):
+//   clubs/{clubId}                 — thông tin CLB
+//   clubs/{clubId}/students/...    — võ sinh
+//   clubs/{clubId}/transactions/.. — giao dịch học phí
+//   clubs/{clubId}/attendance/...  — điểm danh
+//   clubs/{clubId}/inventory/...   — kho dụng cụ
+//   clubs/{clubId}/exams/...       — thi cấp đai
+//   clubs/{clubId}/config/...      — cấu hình CLB
+//   users/{uid}                    — thông tin tài khoản người dùng
+//   super_admins/{uid}             — danh sách SuperAdmin
+// ══════════════════════════════════════════════════════════════════════════════
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helper functions ──────────────────────────────────────────────────────
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // SuperAdmin: kiểm tra qua custom claim HOẶC document trong super_admins collection
+    function isSuperAdmin() {
+      return signedIn() && (
+        request.auth.token.role == 'super_admin'
+        || exists(/databases/$(database)/documents/super_admins/$(request.auth.uid))
+      );
+    }
+
+    // Lấy document user hiện tại (cache-friendly — chỉ gọi khi cần)
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // clubId của user hiện tại (từ users/{uid}.clubId)
+    function myClubId() {
+      return signedIn()
+          && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        ? userDoc().clubId
+        : null;
+    }
+
+    // Role của user hiện tại (từ users/{uid}.role)
+    function myRole() {
+      return signedIn()
+          && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        ? userDoc().role
+        : null;
+    }
+
+    // User có thuộc về CLB này không
+    function isClubMember(clubId) {
+      return signedIn() && myClubId() == clubId;
+    }
+
+    // Admin của CLB: role = 'admin' hoặc 'owner'
+    function isClubAdmin(clubId) {
+      return isClubMember(clubId) && myRole() in ['admin', 'owner'];
+    }
+
+    // Coach của CLB
+    // TODO Phase 4.0C: Xác định chính xác role string cho HLV trong app
+    function isCoach(clubId) {
+      return isClubMember(clubId) && myRole() == 'coach';
+    }
+
+    // Parent: chỉ xem dữ liệu con mình
+    // TODO Phase 4.0C: Thêm parent rules khi có thêm parent role trong app
+    function isParent(clubId) {
+      return isClubMember(clubId) && myRole() == 'parent';
+    }
+
+    // ── CLB chính ─────────────────────────────────────────────────────────────
+
+    match /clubs/{clubId} {
+      // SuperAdmin: full access
+      // ClubMember: chỉ đọc doc CLB mình (xem tên, logo, config cơ bản)
+      // Không ai có thể list toàn bộ clubs ngoài SuperAdmin
+      allow get:    if isSuperAdmin() || isClubMember(clubId);
+      allow list:   if isSuperAdmin();
+      allow create: if isSuperAdmin();
+      allow update: if isSuperAdmin() || isClubAdmin(clubId);
+      allow delete: if isSuperAdmin();
+
+      // ── Sub-collections của CLB ─────────────────────────────────────────────
+
+      // Võ sinh
+      match /students/{studentId} {
+        allow read:   if isSuperAdmin() || isClubMember(clubId);
+        allow write:  if isSuperAdmin() || isClubAdmin(clubId);
+      }
+
+      // Giao dịch học phí
+      match /transactions/{txId} {
+        allow read:   if isSuperAdmin() || isClubMember(clubId);
+        allow create: if isSuperAdmin() || isClubAdmin(clubId);
+        // TODO: SuperAdmin xóa giao dịch nên chuyển sang Cloud Function (audit log)
+        allow update: if isSuperAdmin() || isClubAdmin(clubId);
+        allow delete: if isSuperAdmin();
+      }
+
+      // Điểm danh
+      match /attendance/{attId} {
+        allow read:   if isSuperAdmin() || isClubMember(clubId);
+        // HLV có thể ghi điểm danh nếu app phân quyền — TODO: xác nhận coach write scope
+        allow write:  if isSuperAdmin() || isClubAdmin(clubId) || isCoach(clubId);
+      }
+
+      // Kho dụng cụ
+      match /inventory/{itemId} {
+        allow read:   if isSuperAdmin() || isClubMember(clubId);
+        allow write:  if isSuperAdmin() || isClubAdmin(clubId);
+      }
+
+      // Thi cấp đai
+      match /exams/{examId} {
+        allow read:   if isSuperAdmin() || isClubMember(clubId);
+        allow write:  if isSuperAdmin() || isClubAdmin(clubId);
+      }
+
+      // Config CLB (cơ sở, ca tập, danh mục kho, v.v.)
+      match /config/{configId} {
+        allow read:   if isSuperAdmin() || isClubMember(clubId);
+        allow write:  if isSuperAdmin() || isClubAdmin(clubId);
+      }
+
+      // Catch-all cho sub-collection chưa định nghĩa rõ
+      // Mặc định: SuperAdmin hoặc ClubAdmin write, Member read
+      match /{subcollection}/{docId} {
+        allow read:  if isSuperAdmin() || isClubMember(clubId);
+        allow write: if isSuperAdmin() || isClubAdmin(clubId);
+      }
+    }
+
+    // ── Users ─────────────────────────────────────────────────────────────────
+
+    match /users/{uid} {
+      // User chỉ đọc được profile của chính mình; SuperAdmin đọc tất cả
+      allow read:   if signedIn() && (request.auth.uid == uid || isSuperAdmin());
+      // User tự cập nhật một số field của mình (ví dụ: avatar, displayName)
+      // SuperAdmin cập nhật role/clubId
+      // TODO: hạn chế field nào user được tự write (dùng request.resource.data diff)
+      allow update: if signedIn() && (request.auth.uid == uid || isSuperAdmin());
+      allow create: if isSuperAdmin();
+      allow delete: if isSuperAdmin();
+    }
+
+    // ── SuperAdmins ───────────────────────────────────────────────────────────
+
+    match /super_admins/{uid} {
+      // Chỉ SuperAdmin mới đọc/ghi được collection này
+      allow read, write: if isSuperAdmin();
+    }
+
+    // ── Deny-by-default ───────────────────────────────────────────────────────
+    // Bắt tất cả path chưa được định nghĩa — từ chối hoàn toàn
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
