@@ -659,7 +659,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
       '<div style="background:#fff;border-radius:16px;padding:28px 24px;max-width:440px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,0.5);">',
       '<div style="font-size:1.8rem;margin-bottom:8px;">🚨</div>',
       '<div style="font-size:1rem;font-weight:900;color:#dc2626;margin-bottom:10px;">Lỗi khởi động ứng dụng</div>',
-      '<div style="font-size:0.83rem;color:#334155;line-height:1.6;margin-bottom:16px;">' + String(msg).replace(/</g,'&lt;') + '</div>',
+      '<div style="font-size:0.83rem;color:#334155;line-height:1.6;margin-bottom:16px;white-space:pre-wrap;">' + String(msg).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>',
       '<div style="font-size:0.75rem;color:#64748b;line-height:1.5;background:#f8fafc;border-radius:8px;padding:10px 12px;">',
       '• Kiểm tra URL: phải truy cập qua <strong>/quanlytkd/</strong><br>',
       '• Kiểm tra thư mục deploy có đủ file <code>app.js</code> và <code>js/main.js</code><br>',
@@ -875,17 +875,17 @@ button:focus-visible, input:focus-visible, select:focus-visible {
         window.__APP_MODULES_READY   = false;
         // [Phase 3.0B-4D] Detailed error — helps diagnose deploy issues
         window.showBootstrapError(
-          'Không tải được /js/main.js.<br>' +
-          '<strong>Server hiện không phục vụ thư mục js/.</strong><br><br>' +
-          '<strong>Kiểm tra trực tiếp trong Network tab:</strong><br>' +
-          '&bull; <code>/js/main.js</code> — phải trả <strong>200 JavaScript</strong><br>' +
-          '&bull; <code>/js/modules/superadmin.js</code><br>' +
-          '&bull; <code>/js/modules/reports.js</code><br><br>' +
-          '<strong>Nếu các URL trên 404: cần sửa server, không phải sửa logic.</strong><br><br>' +
-          'Nguyên nhân thường gặp:<br>' +
-          '1. Thư mục <code>js/</code> chưa được deploy cùng <code>index.html</code>.<br>' +
-          '2. Static server đang serve sai thư mục (serve <code>public/</code> nhưng <code>js/</code> nằm ở chỗ khác).<br>' +
-          '3. Firebase Hosting public root không chứa thư mục <code>js/</code>.<br>' +
+          'Không tải được /js/main.js.\n' +
+          'Server hiện không phục vụ thư mục js/.\n\n' +
+          'Kiểm tra trong Network tab:\n' +
+          '  • /js/main.js — phải trả 200 JavaScript\n' +
+          '  • /js/modules/superadmin.js\n' +
+          '  • /js/modules/reports.js\n\n' +
+          'Nếu các URL trên 404: cần sửa server, không phải sửa logic.\n\n' +
+          'Nguyên nhân thường gặp:\n' +
+          '1. Thư mục js/ chưa được deploy cùng index.html.\n' +
+          '2. Static server đang serve sai thư mục.\n' +
+          '3. Firebase Hosting public root không chứa thư mục js/.\n' +
           '4. Bạn đang mở sai route hoặc sai build output.'
         );
         return;
