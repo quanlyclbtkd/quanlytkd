@@ -808,6 +808,12 @@ window.invCustomCategories = [];
     };
 
     window.loadSuperAdminData = async function() {
+        // [Phase 4.0B-4D] Guard: refuse to run if module bootstrap failed
+        if (window.__APP_BOOTSTRAP_FAILED) {
+          console.warn('[SuperAdmin] loadSuperAdminData blocked — bootstrap failed (__APP_BOOTSTRAP_FAILED=true).');
+          window.showToast?.('Module hệ thống chưa tải được. Vui lòng kiểm tra /js/main.js trong Network tab.', 'error');
+          return;
+        }
         // Phase 4.0B-1: fallback wrapper — see js/modules/superadmin.js
         if (window.SuperAdminModule?.loadSuperAdminDashboard) {
             if (window.__superAdminModuleMetrics) window.__superAdminModuleMetrics.fallbackCalls++;

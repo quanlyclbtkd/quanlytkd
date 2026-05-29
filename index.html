@@ -12,14 +12,17 @@
 // ── [Phase 4.0B-4B] BOOTSTRAP CONFIG ────────────────────────────────────
 // canonicalSlug : route cuối đúng của app (dễ sửa nếu đổi route)
 // legacyBadSlugs: các slug sai cần redirect → canonical
-// assetBase     : 'auto' → tự detect asset base từ pathname theo canonicalSlug
-//                 Hỗ trợ: / | /quanlytkd/ | /quanlyclbtkd/quanlytkd/
-//                 Không cần đổi khi deploy subfolder.
+// assetBase     : '/'     → assets served từ domain root (firebase.json "public":".")
+//                           Dùng khi FLAT_ROOT_MODE hoặc PUBLIC_MODE serve ở root path.
+//                 'auto'  → tự detect từ canonicalSlug trong pathname.
+//                           Hỗ trợ: / | /quanlytkd/ | /quanlyclbtkd/quanlytkd/
+//                           Dùng khi assets nằm trong subpath cùng canonical route.
+//                 '/sub/' → hardcode cho subpath cố định.
 // allowRootMode : true → local dev ở / không bị redirect/lỗi
 window.__APP_BOOTSTRAP_CONFIG = {
   canonicalSlug : 'quanlytkd',
   legacyBadSlugs: ['quanly'],
-  assetBase     : 'auto',   // [Phase 4.0B-4B] AUTO-DETECT — tự tính theo canonicalSlug
+  assetBase     : 'auto',   // [Phase 4.0B-4E] AUTO-DETECT — '/' = domain root, 'auto' = detect theo canonicalSlug
   allowRootMode : true
 };
 
@@ -667,13 +670,13 @@ button:focus-visible, input:focus-visible, select:focus-visible {
     document.body ? document.body.appendChild(overlay) : document.addEventListener('DOMContentLoaded', function(){ document.body.appendChild(overlay); });
   };
 
-  // ── checkAsset: kiểm tra URL có tồn tại không (HEAD → fallback GET) ──
+  // ── checkAsset: kiểm tra URL có tồn tại (HEAD → fallback GET) ──────
+  // Dùng cho asset thông thường (non-JS). Trả true/false.
   window.__checkAsset = async function(url) {
     try {
       var res = await fetch(url, { method: 'HEAD', cache: 'no-store' });
       return res.ok;
     } catch(_) {
-      // HEAD bị block (e.g. CORS) → thử GET nhẹ với range header
       try {
         var res2 = await fetch(url, {
           method : 'GET',
@@ -681,8 +684,61 @@ button:focus-visible, input:focus-visible, select:focus-visible {
           cache  : 'no-store'
         });
         return res2.ok || res2.status === 206;
+      } catch(__) { return false; }
+    }
+  };
+
+  // ── checkJsAsset: kiểm tra URL trả đúng JS (không nhận nhầm HTML rewrite) ──
+  // [Phase 4.0B-4E] Phát hiện 3 lỗi phổ biến:
+  //   ASSET_NOT_FOUND         — HTTP 404 / server lỗi
+  //   ASSET_REWRITTEN_TO_HTML — Firebase/SPA rewrite trả index.html thay vì JS
+  //   ASSET_INVALID_CONTENT_TYPE — Content-Type: text/html
+  //
+  // Kỹ thuật:
+  //   1. GET Range: bytes=0-512 (tránh tải toàn bộ file lớn)
+  //   2. Kiểm tra HTTP status 200 / 206
+  //   3. Kiểm tra Content-Type KHÔNG phải text/html
+  //   4. Kiểm tra 300 bytes đầu KHÔNG bắt đầu bằng HTML markers
+  //
+  // Trả object: { ok: boolean, reason?: 'ASSET_NOT_FOUND' | 'ASSET_REWRITTEN_TO_HTML' | 'ASSET_INVALID_CONTENT_TYPE' }
+  window.__checkJsAsset = async function(url) {
+    try {
+      var res = await fetch(url, {
+        method : 'GET',
+        headers: { Range: 'bytes=0-512' },
+        cache  : 'no-store'
+      });
+      if (!res.ok && res.status !== 206) {
+        return { ok: false, reason: 'ASSET_NOT_FOUND' };
+      }
+      var ct = (res.headers.get('content-type') || '').toLowerCase();
+      if (ct.indexOf('text/html') !== -1) {
+        return { ok: false, reason: 'ASSET_INVALID_CONTENT_TYPE' };
+      }
+      var text = '';
+      try { text = await res.text(); } catch(_) {}
+      var head = text.slice(0, 300).replace(/^[\s\uFEFF\xA0]+/, '');
+      if (
+        head.indexOf('<!DOCTYPE') === 0 ||
+        head.indexOf('<html')     === 0 ||
+        head.indexOf('<HTML')     === 0 ||
+        head.indexOf('<head>')    !== -1
+      ) {
+        return { ok: false, reason: 'ASSET_REWRITTEN_TO_HTML' };
+      }
+      return { ok: true };
+    } catch(_rangeErr) {
+      // Server không hỗ trợ Range — fallback sang HEAD
+      try {
+        var r2  = await fetch(url, { method: 'HEAD', cache: 'no-store' });
+        if (!r2.ok) return { ok: false, reason: 'ASSET_NOT_FOUND' };
+        var ct2 = (r2.headers.get('content-type') || '').toLowerCase();
+        if (ct2.indexOf('text/html') !== -1) {
+          return { ok: false, reason: 'ASSET_INVALID_CONTENT_TYPE' };
+        }
+        return { ok: true };
       } catch(__) {
-        return false;
+        return { ok: false, reason: 'ASSET_NOT_FOUND' };
       }
     }
   };
@@ -733,6 +789,9 @@ button:focus-visible, input:focus-visible, select:focus-visible {
     console.debug('[Bootstrap] main.js guard — skipping duplicate load (Phase 3.6D).');
     return;
   }
+  // [Phase 4.0B-4D] Module readiness gate
+  window.__APP_MODULES_READY  = false;
+  window.__APP_BOOTSTRAP_FAILED = false;
   window.MAIN_JS_LOADING = true;
 
   (async function bootstrap() {
@@ -759,11 +818,16 @@ button:focus-visible, input:focus-visible, select:focus-visible {
       var resolvedAppUrl = null;
       for (var _ai = 0; _ai < appCandidates.length; _ai++) {
         var _ac = appCandidates[_ai];
-        if (await window.__checkAsset(_ac)) {
+        var _acResult = await window.__checkJsAsset(_ac);
+        if (_acResult.ok) {
           resolvedAppUrl = _ac;
           break;
         }
-        console.warn('[Bootstrap] app.js not found at:', _ac);
+        if (_acResult.reason === 'ASSET_REWRITTEN_TO_HTML' || _acResult.reason === 'ASSET_INVALID_CONTENT_TYPE') {
+          console.warn('[Bootstrap] app.js tại', _ac, '— server trả HTML thay vì JS (' + _acResult.reason + '). SPA rewrite đang che lỗi 404.');
+        } else {
+          console.warn('[Bootstrap] app.js not found at:', _ac, '(' + _acResult.reason + ')');
+        }
       }
 
       if (!resolvedAppUrl) {
@@ -791,19 +855,38 @@ button:focus-visible, input:focus-visible, select:focus-visible {
       var resolvedMainUrl = null;
       for (var _mi = 0; _mi < mainCandidates.length; _mi++) {
         var _mc = mainCandidates[_mi];
-        if (await window.__checkAsset(_mc)) {
+        var _mcResult = await window.__checkJsAsset(_mc);
+        if (_mcResult.ok) {
           resolvedMainUrl = _mc;
           break;
         }
-        console.warn('[Bootstrap] main.js not found at:', _mc);
+        if (_mcResult.reason === 'ASSET_REWRITTEN_TO_HTML' || _mcResult.reason === 'ASSET_INVALID_CONTENT_TYPE') {
+          console.warn('[Bootstrap] main.js tại', _mc, '— server trả HTML thay vì JS (' + _mcResult.reason + '). SPA rewrite đang che lỗi 404. Server hiện không phục vụ thư mục js/.');
+        } else {
+          console.warn('[Bootstrap] main.js not found at:', _mc, '(' + _mcResult.reason + ')');
+        }
       }
 
       if (!resolvedMainUrl) {
         console.error('[Bootstrap] main.js failed to load. Modular app cannot start.');
         console.error('[Bootstrap] Check asset base / route deploy. pathname:', location.pathname);
+        // [Phase 4.0B-4D] Mark bootstrap as failed
+        window.__APP_BOOTSTRAP_FAILED = true;
+        window.__APP_MODULES_READY   = false;
+        // [Phase 3.0B-4D] Detailed error — helps diagnose deploy issues
         window.showBootstrapError(
-          'Không tìm thấy js/main.js. URL hiện tại: ' + location.pathname +
-          '. Hãy kiểm tra assetBase hoặc route deploy.'
+          'Không tải được /js/main.js.<br>' +
+          '<strong>Server hiện không phục vụ thư mục js/.</strong><br><br>' +
+          '<strong>Kiểm tra trực tiếp trong Network tab:</strong><br>' +
+          '&bull; <code>/js/main.js</code> — phải trả <strong>200 JavaScript</strong><br>' +
+          '&bull; <code>/js/modules/superadmin.js</code><br>' +
+          '&bull; <code>/js/modules/reports.js</code><br><br>' +
+          '<strong>Nếu các URL trên 404: cần sửa server, không phải sửa logic.</strong><br><br>' +
+          'Nguyên nhân thường gặp:<br>' +
+          '1. Thư mục <code>js/</code> chưa được deploy cùng <code>index.html</code>.<br>' +
+          '2. Static server đang serve sai thư mục (serve <code>public/</code> nhưng <code>js/</code> nằm ở chỗ khác).<br>' +
+          '3. Firebase Hosting public root không chứa thư mục <code>js/</code>.<br>' +
+          '4. Bạn đang mở sai route hoặc sai build output.'
         );
         return;
       }
@@ -812,8 +895,27 @@ button:focus-visible, input:focus-visible, select:focus-visible {
       await window.__loadScriptOnce(resolvedMainUrl, { module: true, key: 'main' });
       console.debug('[Bootstrap] main.js loaded ✓:', resolvedMainUrl);
 
+      // [Phase 4+5] Verify module side-effects (ES module runs async internals)
+      await new Promise(function(r) { setTimeout(r, 350); });
+      var _modOk = (
+        window.MAIN_JS_LOADED === true ||
+        window.__MAIN_MODULE_READY === true ||
+        window.ReportsModule != null ||
+        window.SuperAdminModule != null
+      );
+      if (_modOk) {
+        window.__APP_MODULES_READY = true;
+        console.debug('[Bootstrap] Module readiness verified ✓ — __APP_MODULES_READY = true');
+      } else {
+        // Modules may still initialise later (Firebase async auth)
+        window.__APP_MODULES_READY = true;
+        console.warn('[Bootstrap] main.js loaded but module globals not yet visible. App may still work — Firebase auth is async.');
+      }
+
     } catch (err) {
       console.error('[Bootstrap] Fatal error:', err);
+      window.__APP_BOOTSTRAP_FAILED = true;
+      window.__APP_MODULES_READY   = false;
       window.showBootstrapError('Lỗi khởi động: ' + err.message);
     }
   })();
