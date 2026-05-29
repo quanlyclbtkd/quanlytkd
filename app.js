@@ -1116,6 +1116,7 @@ service cloud.firestore {
         }
         if (window.__superAdminModuleMetrics) window.__superAdminModuleMetrics.legacyFallbackCalls++;
         console.warn('[SuperAdminFallback] filterSAClubs: module not loaded');
+        if (window.showToast) window.showToast('Module SuperAdmin chưa sẵn sàng. Vui lòng tải lại trang.', 'warning');
     };
 
     window._renderSAClubRows = async function(clubDataList, today, in30Days) {
@@ -1127,12 +1128,14 @@ service cloud.firestore {
         }
         if (window.__superAdminModuleMetrics) window.__superAdminModuleMetrics.legacyFallbackCalls++;
         console.warn('[SuperAdminFallback] _renderSAClubRows: module not loaded');
+        if (window.showToast) window.showToast('Module SuperAdmin chưa sẵn sàng. Vui lòng tải lại trang.', 'warning');
     };
 
     // ── Toggle dropdown cho nút Cấu hình CLB (SuperAdmin) ────────────
     window._toggleSAConfig = function(cid, ev) {
         // Phase 4.0B: legacy fallback only — see js/modules/superadmin.js
         console.warn('[SuperAdminFallback] _toggleSAConfig: module not loaded');
+        if (window.showToast) window.showToast('Module SuperAdmin chưa sẵn sàng. Vui lòng tải lại trang.', 'warning');
     };
     if (!window._saCfgOutside) {
         window._saCfgOutside = true;
@@ -1614,6 +1617,7 @@ service cloud.firestore {
         }
         if (window.__superAdminModuleMetrics) window.__superAdminModuleMetrics.legacyFallbackCalls++;
         console.warn('[SuperAdminFallback] selectBranchCard: module not loaded');
+        if (window.showToast) window.showToast('Module SuperAdmin chưa sẵn sàng. Vui lòng tải lại trang.', 'warning');
     };
 
     window.openBranchUpgradeModal = async function(clubId, clubName) {

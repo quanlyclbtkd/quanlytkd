@@ -6,7 +6,10 @@
   "description": "Ứng dụng Quản lý CLB Taekwondo — Vanilla JS + Firebase",
   "scripts": {
     "check": "node tools/check-syntax.mjs",
-    "check:verbose": "node tools/check-syntax.mjs --verbose"
+    "check:verbose": "node tools/check-syntax.mjs --verbose",
+    "check:assets": "node tools/check-assets.mjs",
+    "check:assets:verbose": "node tools/check-assets.mjs --verbose",
+    "check:all": "node tools/check-syntax.mjs && node tools/check-assets.mjs"
   },
   "engines": {
     "node": ">=18.0.0"
