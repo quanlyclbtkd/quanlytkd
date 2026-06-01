@@ -133,6 +133,19 @@ service cloud.firestore {
         allow write:  if isSuperAdmin() || isClubAdmin(clubId);
       }
 
+      // ── Ghi chú buổi tập (Phase 4.0B-4J-5) ────────────────────────────────
+      match /attendanceNotes/{noteId} {
+        allow read: if isSuperAdmin() || isClubMember(clubId);
+        allow create, update, delete: if isSuperAdmin() || isClubAdmin(clubId) || isCoach(clubId);
+      }
+
+      // ── Thông báo nội bộ admin (Phase 4.0B-4J-5) ─────────────────────────
+      match /adminNotifications/{notifId} {
+        allow read:          if isSuperAdmin() || isClubAdmin(clubId);
+        allow create, update: if isSuperAdmin() || isClubAdmin(clubId) || isCoach(clubId);
+        allow delete:        if isSuperAdmin() || isClubAdmin(clubId);
+      }
+
       // Catch-all cho sub-collection chưa định nghĩa rõ
       // Mặc định: SuperAdmin hoặc ClubAdmin write, Member read
       match /{subcollection}/{docId} {

@@ -812,3 +812,310 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   outline-offset: 2px !important;
 }
 
+
+/* Phase 4.0B-4J-2: Mobile fix for Add Student tuition package row */
+.add-package-row{display:flex;align-items:stretch;gap:8px;width:100%;min-width:0;}
+.add-package-select{flex:1 1 auto;min-width:0;width:100%;height:42px;font-size:0.95rem !important;white-space:nowrap;}
+.add-discount-row{display:flex;align-items:stretch;gap:8px;flex:0 0 auto;min-width:max-content;}
+.add-discount-check{display:flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap;background:#fff;padding:8px 10px;border:1px solid #fecaca;border-radius:10px;box-shadow:0 1px 2px rgba(15,23,42,0.04);}
+.add-discount-check span{font-size:0.7rem;font-weight:800;color:#f43f5e;text-transform:uppercase;}
+.add-discount-percent{display:flex;align-items:center;gap:4px;background:#fff;padding:7px 8px;border:1px solid #fecaca;border-radius:10px;box-shadow:0 1px 2px rgba(15,23,42,0.04);}
+.add-discount-percent input{width:42px !important;text-align:center;font-weight:900;color:#e11d48;font-size:0.86rem !important;border:1.5px solid #fecdd3 !important;border-radius:7px !important;padding:3px 4px !important;background:#fff;outline:none;}
+.add-discount-percent span{color:#e11d48;font-weight:900;font-size:0.78rem;}
+@media(max-width:420px){
+  .add-package-row{flex-direction:column;align-items:stretch;gap:8px;}
+  .add-package-select{width:100%;min-width:100%;height:44px;font-size:1rem !important;}
+  .add-discount-row{width:100%;display:grid;grid-template-columns:1fr auto;gap:8px;}
+  .add-discount-check{width:100%;min-width:0;justify-content:flex-start;}
+  .add-discount-percent{min-width:76px;justify-content:center;}
+}
+@media(max-width:340px){
+  .add-discount-row{grid-template-columns:1fr;}
+  .add-discount-percent{width:100%;justify-content:flex-start;}
+}
+
+/* Phase 4.0B-4J-2: Modal overflow-x safety */
+#addModal .modal-content{max-width:min(96vw,720px);overflow-x:hidden;}
+#addModal select,#addModal input{max-width:100%;}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   PHASE 4.0B-4J-7 — MODERN UI/UX REFRESH + MOBILE PERFORMANCE
+   Không đổi logic. Không đổi ID. Chỉ thêm CSS.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── PHASE 1: Design Tokens ─────────────────────────────────────────── */
+:root {
+  /* Map brand colours qua token mới (không override --primary / --secondary) */
+  --ui-primary       : var(--primary, #0033A0);
+  --ui-danger        : var(--secondary, #C8102E);
+
+  /* Surface & text */
+  --ui-bg            : #f6f8fc;
+  --ui-surface       : #ffffff;
+  --ui-surface-soft  : #f8fafc;
+  --ui-border        : rgba(148, 163, 184, 0.28);
+  --ui-border-strong : rgba(100, 116, 139, 0.35);
+  --ui-text          : #0f172a;
+  --ui-muted         : #64748b;
+  --ui-primary-soft  : rgba(0, 51, 160, 0.08);
+  --ui-success       : #16a34a;
+  --ui-warning       : #f59e0b;
+
+  /* Radius */
+  --ui-radius-sm : 10px;
+  --ui-radius-md : 14px;
+  --ui-radius-lg : 18px;
+  --ui-radius-xl : 22px;
+
+  /* Shadows — map qua shadow tokens đã có */
+  --ui-shadow-sm : var(--shadow-xs, 0 1px 3px rgba(15,23,42,0.06));
+  --ui-shadow-md : var(--shadow-md, 0 8px 24px rgba(15,23,42,0.08));
+  --ui-shadow-lg : var(--shadow-lg, 0 18px 42px rgba(15,23,42,0.12));
+
+  /* Touch & speed */
+  --ui-touch      : 44px;
+  --ui-speed-fast : 120ms;
+  --ui-speed      : 180ms;
+}
+
+/* ── PHASE 2: Modern card/panel polish ──────────────────────────────── */
+.app-container {
+  background  : var(--ui-surface);
+  border      : 1px solid var(--ui-border);
+  box-shadow  : var(--ui-shadow-md);
+}
+
+/* Tab content fade-in using new token */
+@keyframes uiFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.tab-content.active {
+  /* Upgrade existing tabSlideIn to use design-token speed */
+  animation-duration: var(--ui-speed) !important;
+}
+
+/* Shared panel-card class for dynamically added panels */
+.panel-card,
+.modern-card {
+  border        : 1px solid var(--ui-border);
+  border-radius : var(--ui-radius-lg);
+  box-shadow    : var(--ui-shadow-sm);
+  background    : var(--ui-surface);
+}
+
+/* ── PHASE 3: Mobile tab scroll-snap ────────────────────────────────── */
+.tabs-nav {
+  scroll-snap-type      : x proximity;
+  overscroll-behavior-x : contain;
+}
+.tab-btn {
+  scroll-snap-align : start;
+  min-height        : 36px;
+}
+.tab-btn:active {
+  transform: scale(0.97) !important;
+}
+
+@media (max-width: 767px) {
+  .tabs-wrapper {
+    background    : rgba(246, 248, 252, 0.96) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+  }
+  .tabs-nav {
+    padding : 6px 10px 10px !important;
+    gap     : 7px !important;
+  }
+  .tab-btn {
+    border-radius : 999px !important;
+    padding       : 8px 13px !important;
+    font-size     : 0.8rem !important;
+    min-height    : var(--ui-touch) !important;
+  }
+}
+
+/* ── PHASE 4: Mobile card row polish (additive) ─────────────────────── */
+@media (max-width: 767px) {
+  /* Elevate border on mobile cards slightly */
+  #tbl_tx tbody tr,
+  #tbl_debt tbody tr,
+  #tbl_active tbody tr,
+  #tbl_quit tbody tr,
+  #tbl_uniform_tx tbody tr,
+  #tbl_exp tbody tr,
+  #tbl_exam_list tbody tr,
+  #tbl_att_monthly tbody tr {
+    border  : 1px solid var(--ui-border) !important;
+    transition: box-shadow var(--ui-speed-fast) ease !important;
+  }
+  #tbl_tx tbody tr:active,
+  #tbl_debt tbody tr:active,
+  #tbl_active tbody tr:active {
+    box-shadow: none !important;
+    background: var(--ui-surface-soft) !important;
+  }
+  /* Make btn-sm touch-friendly inside mobile cards */
+  .btn-sm {
+    min-height  : 36px;
+    padding     : 6px 11px !important;
+  }
+}
+
+/* ── PHASE 5: Modal mobile bottom-sheet polish ──────────────────────── */
+@media (max-width: 767px) {
+  .modal {
+    align-items : flex-end !important;
+    padding     : 0 !important;
+  }
+  .modal-content {
+    width       : 100% !important;
+    max-width   : 100% !important;
+    max-height  : 92dvh !important;
+    max-height  : 92vh !important;
+    border-radius: var(--ui-radius-xl) var(--ui-radius-xl) 0 0 !important;
+    overflow-y  : auto !important;
+    overflow-x  : hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  /* Ensure all buttons inside modals are touch-friendly */
+  .modal-content button:not(.btn-sm) {
+    min-height : var(--ui-touch) !important;
+  }
+  /* Inputs in modals */
+  .modal-content input,
+  .modal-content select,
+  .modal-content textarea {
+    min-height : var(--ui-touch) !important;
+    font-size  : 16px !important;
+  }
+  /* Reduce shadow weight on mobile for perf */
+  .modal-content {
+    box-shadow: 0 -4px 28px rgba(0,0,0,0.11), 0 -1px 6px rgba(0,0,0,0.05) !important;
+  }
+}
+
+/* ── PHASE 6: Performance CSS ───────────────────────────────────────── */
+/* Paint isolation: tab panels that are not active are hidden */
+.tab-content:not(.active) {
+  display: none;
+}
+
+/* Containment on active tab panels only (not inactive — already hidden) */
+.tab-content.active {
+  contain: layout paint;
+}
+
+/* content-visibility for long lists below fold */
+@supports (content-visibility: auto) {
+  .table-wrapper {
+    content-visibility    : auto;
+    contain-intrinsic-size: 0 500px;
+  }
+  /* Do NOT apply to modal or attendance daily grid — they must paint immediately */
+  .modal-content .table-wrapper,
+  #attendanceGrid {
+    content-visibility    : visible !important;
+    contain-intrinsic-size: none !important;
+  }
+}
+
+/* Reduce shadow cost on mobile */
+@media (max-width: 767px) {
+  .stat-card,
+  .table-wrapper,
+  .modal-content {
+    box-shadow: var(--ui-shadow-sm) !important;
+  }
+}
+
+/* ── PHASE 7: Login / loading glass overlay ─────────────────────────── */
+.loading-soft {
+  background      : rgba(255, 255, 255, 0.88);
+  backdrop-filter : blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* ── PHASE 8: Empty state & skeleton ────────────────────────────────── */
+.ui-empty-state {
+  border        : 1px dashed var(--ui-border-strong);
+  border-radius : var(--ui-radius-lg);
+  padding       : 24px 18px;
+  text-align    : center;
+  color         : var(--ui-muted);
+  background    : var(--ui-surface-soft);
+  font-size     : 0.85rem;
+  line-height   : 1.5;
+}
+
+.ui-skeleton {
+  position   : relative;
+  overflow   : hidden;
+  background : #e2e8f0;
+  border-radius: 10px;
+}
+.ui-skeleton::after {
+  content    : "";
+  position   : absolute;
+  inset      : 0;
+  transform  : translateX(-100%);
+  background : linear-gradient(90deg,
+    transparent,
+    rgba(255, 255, 255, 0.55),
+    transparent);
+  animation  : uiSkeleton 1.2s ease-in-out infinite;
+}
+@keyframes uiSkeleton {
+  100% { transform: translateX(100%); }
+}
+
+/* ── PHASE 9: Button consistency ────────────────────────────────────── */
+.btn-primary,
+button.primary-action {
+  border-radius : 12px !important;
+  font-weight   : 800 !important;
+  box-shadow    : 0 4px 12px rgba(0, 51, 160, 0.14) !important;
+  transition    : all var(--ui-speed-fast) ease !important;
+}
+.btn-primary:hover,
+button.primary-action:hover {
+  box-shadow    : 0 6px 18px rgba(0, 51, 160, 0.22) !important;
+  transform     : translateY(-1px) !important;
+}
+
+/* Sticky action row in modal on mobile */
+@media (max-width: 767px) {
+  .modal-content .action-row {
+    position   : sticky;
+    bottom     : 0;
+    background : linear-gradient(to top, #fff 80%, rgba(255,255,255,0));
+    padding-top: 10px;
+    z-index    : 2;
+  }
+}
+
+/* ── PHASE 10: Accessibility & touch ────────────────────────────────── */
+/* Tap highlight suppression — already in body, reinforce for buttons */
+button, a, [role="button"] {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Strong focus ring */
+:focus-visible {
+  outline        : 3px solid rgba(0, 51, 160, 0.22) !important;
+  outline-offset : 2px !important;
+}
+
+/* Prefers reduced motion — disable all animations/transitions */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration       : 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration      : 0.001ms !important;
+    scroll-behavior          : auto !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   END PHASE 4.0B-4J-7
+   ═══════════════════════════════════════════════════════════════════════ */

@@ -235,3 +235,139 @@ export function initFinance() {
 
 *Cập nhật: Phase 2g — $(date)*
 *Xem thêm: firestore.rules, FIRESTORE_INDEXES.md, PHASE_2G_STABILITY.md*
+
+---
+
+## Phase 4.0B-4A — Bootstrap Stabilization (bắt đầu lại từ 4.0B-3)
+
+**Lý do:** Source 4.0B-3 ổn định nhưng thiếu bộ kiểm tra bootstrap/deploy. Phase 4.0B-4A tạo toàn bộ tooling cần thiết trước khi tiếp tục các phase nâng cấp.
+
+**Thay đổi:**
+- `index.html` — Chỉ sửa đoạn inline bootstrap script: thêm visible banner đỏ khi chạy bằng `file://`
+- `package.json` — Thêm scripts: `check:syntax`, `check:assets`, `check:deploy`, `check:functions`, `check:all`, `local`
+- `tools/check-assets.mjs` — Kiểm tra file tĩnh + imports trong main.js
+- `tools/check-deploy-contract.mjs` — Kiểm tra firebase.json và public root deploy
+- `tools/check-functions.mjs` — Kiểm tra Cloud Functions source + syntax
+- `tools/local-server.mjs` — Static HTTP server port 8000
+- `tools/check-http-assets.mjs` — Kiểm tra HTTP 200 cho tất cả assets
+- `PHASE_4B4A_BOOTSTRAP_STABILIZATION_REPORT.md` — Report đầy đủ
+
+**Không thay đổi:** business logic, Firestore schema, Firestore Rules, app.js, js/main.js, các modules.
+
+*Xem thêm: PHASE_4B4A_BOOTSTRAP_STABILIZATION_REPORT.md*
+
+---
+
+## Phase 4.0B-4B — Runtime Bootstrap Guard + Health Check Classification
+
+**Mục tiêu:** Phân loại health check theo severity (critical/warning/info) và thêm runtime guard phát hiện module/bridge thiếu sau login, mà không làm hỏng app.js legacy core.
+
+**Thay đổi trong `js/main.js`:**
+- Thêm `RUNTIME_HEALTH_CHECKS` array (module-level) — 12 checks phân loại severity + phase
+- Thêm `window.getRuntimeHealthStatus(options?)` — trả object kết quả phân loại
+- Thêm `window.printRuntimeHealth(options?)` — in console đúng level: error/warn/info
+- Thêm `window.ensureModuleRuntimeReady(name, globals[])` — guard nhẹ sau module init
+- Thêm bootstrap health check `setTimeout` bên trong IIFE
+- Thêm `app:context-ready` event listener cho after-login health check
+- Giữ nguyên `_runHealthCheck()` cũ (backward compat, guard bởi `_isDev`)
+
+**File mới:**
+- `tools/check-runtime-bootstrap.mjs` — kiểm tra source tĩnh
+- `PHASE_4B4B_RUNTIME_BOOTSTRAP_GUARD_REPORT.md`
+
+**Scripts mới:**
+- `npm run check:runtime-bootstrap`
+- `check:all` cập nhật thêm `check-runtime-bootstrap.mjs`
+
+**Không thay đổi:** business logic, Firestore schema, Firestore Rules, app.js.
+
+*Xem thêm: PHASE_4B4B_RUNTIME_BOOTSTRAP_GUARD_REPORT.md*
+
+---
+
+## Phase 4.0B-4C — App Context Ready Dispatch từ app.js
+
+**Mục tiêu:** `app.js` dispatch event `app:context-ready` sau khi login + `initSaaSDatabase` đã set context cơ bản, để after-login health check trong `main.js` chạy thật.
+
+**Thay đổi trong `app.js`:**
+- Thêm `window.__appContextReadyState` — trạng thái context ready (ready, clubId, generation, reason)
+- Thêm hàm `dispatchAppContextReady(reason)` — có guard idempotent, không throw, chỉ warn nếu chưa đủ context
+- Expose `window.dispatchAppContextReady`
+- Trong `initSaaSDatabase`: thêm `window.__store.currentClubId`, `window.currentClubId`, `window.__store.currentUser` và gọi `dispatchAppContextReady('initSaaSDatabase-store-synced')`
+- Trong logout: reset `__appContextReadyState`, `window.currentClubId = null`, `window.__store.currentClubId = null`
+
+**Cập nhật `tools/check-runtime-bootstrap.mjs`:**
+- Thêm Phần B — 16 checks mới cho app.js (dispatchAppContextReady, aliases, logout reset, idempotent guard)
+
+**File mới:**
+- `PHASE_4B4C_APP_CONTEXT_READY_REPORT.md`
+
+**Không thay đổi:** business logic, Firestore schema, Firestore Rules, login flow, logout cleanup hiện tại.
+
+*Xem thêm: PHASE_4B4C_APP_CONTEXT_READY_REPORT.md*
+
+---
+
+## Phase 4.0B-4D — Data Hydration Diagnostics
+
+**Mục tiêu:** Thêm công cụ runtime diagnostics để xác nhận dữ liệu thật có hydrate vào app và từng tab hay không.
+
+**Thêm vào `app.js`:**
+- `window.__dataHydrationMetrics` — object theo dõi số snapshot/doc của từng collection + trạng thái settings/club
+- `_updateHydrationMetrics(patch)` — helper nội bộ cập nhật metrics
+- Cập nhật metrics tại: `dispatchAppContextReady`, `_clubCb`, `_settingsCb`, `_syncAllProfilesLegacy`, fallback profiles listener, `_invCb`, `_mergeAndRender`
+- `window.printDataHydrationStatus()` — in count/status ra console (không log PII)
+- `window.printTabDataStatus()` — kiểm tra từng tab có đủ data để render không
+- `window.printFirestorePathStatus()` — async, kiểm tra path Firestore nào có doc (limit 1, không ghi)
+
+**File mới:**
+- `tools/check-data-hydration.mjs` — kiểm tra source tĩnh (33 patterns)
+- `PHASE_4B4D_DATA_HYDRATION_DIAGNOSTICS_REPORT.md`
+
+**Scripts mới:**
+- `npm run check:data-hydration`
+- `check:all` cập nhật thêm `check-data-hydration.mjs`
+
+**Không thay đổi:** business logic, Firestore schema, Firestore Rules, không ghi Firestore, không log PII.
+
+*Xem thêm: PHASE_4B4D_DATA_HYDRATION_DIAGNOSTICS_REPORT.md*
+
+---
+
+## Phase 4.0B-4E — Data Source Decision + Runtime Recovery Mode
+
+**Mục tiêu:** Xác định nguồn dữ liệu thực sự (primary SaaS path vs legacy root collections) và bật read-only legacy fallback nếu primary rỗng. Đưa hệ thống đến ngưỡng pilot thương mại có kiểm soát.
+
+**Phase 0 — Pre-flight config patch:**
+- Tạo `firestore.indexes.json` (firebase.json trỏ tới file này nhưng chưa tồn tại)
+- Thêm script `lint` vào `functions/package.json` (firebase.json predeploy gọi `npm run lint`)
+
+**Phase 1 — `printFirestorePathStatus()` mở rộng:**
+- Kiểm tra cả 6 paths: primary (clubs/{clubId}/...) + legacy root (tst_profiles, tst_transactions, tst_inventory)
+- Trả về `{ clubId, primary: {...}, legacy: {...}, recommendation }`
+
+**Phase 2+3+4 — Data Source Decision Engine + Recovery Mode:**
+- `window.__firestoreDataSourceMetrics` — object theo dõi activeDataSource, fallbackUsed, fallbackReason
+- `window.resolveActiveDataSource()` — async, trả về `{ source, primary, legacy, reason, safeToRender }`. source: 'primary' | 'legacy-root' | 'empty' | 'permission-error' | 'unknown'
+- `window.activateLegacyRootFallback()` — đọc read-only tst_profiles/tst_transactions/tst_inventory (limit 500), sync vào store, bump _dataVersion, invalidate tabs. KHÔNG ghi Firestore. KHÔNG migration.
+
+**Phase 5 — Primary empty overwrite guard:**
+- 4 guards `[DataSourceLock]` trong: `_syncAllProfilesLegacy`, fallback profiles onSnapshot, `_invCb`, `_mergeAndRender`
+- Logic: nếu `activeDataSource === 'legacy-root'` AND primary snapshot rỗng AND store đã có data → skip overwrite
+
+**Phase 6 — `window.printPilotTabReadiness()`:**
+- Trả về readiness cho từng tab: tuitionReady, debtReady, activeStudentsReady, quitStudentsReady, inventoryReady, dashboardReady
+- Không log PII
+
+**File mới:**
+- `firestore.indexes.json`
+- `tools/check-pilot-readiness.mjs` — 42 patterns
+- `PHASE_4B4E_PILOT_READINESS_REPORT.md`
+
+**Scripts cập nhật:**
+- `npm run check:pilot`
+- `npm run check:all` (thêm check-pilot-readiness.mjs)
+
+**Không thay đổi:** business logic, Firestore schema, Firestore Rules, không ghi Firestore, không log PII, không deploy.
+
+*Xem thêm: PHASE_4B4E_PILOT_READINESS_REPORT.md*
