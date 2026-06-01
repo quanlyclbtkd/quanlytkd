@@ -514,7 +514,27 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   s.type = 'module';
   s.src  = 'js/main.js';
   s.onerror = function(e) {
-    console.warn('[main.js] Module load failed — app.js standalone mode active.', e);
+    console.error('[main.js] 404 — Module load failed.', e);
+    // [Phase 4.0C-1A] Hiển thị lỗi rõ ràng — không để user thấy "Đang tải dữ liệu..." vô hạn.
+    (function() {
+      var lines = [
+        'Không tải được js/main.js. Hãy kiểm tra:',
+        '1. Chạy đúng thư mục project (npm run local).',
+        '2. Truy cập bằng http://localhost:8000 (không dùng file://).',
+        '3. Đảm bảo js/main.js tồn tại trong thư mục project.',
+        '4. Đảm bảo Firebase Hosting deploy cả thư mục js/.'
+      ];
+      function _showMainJsError() {
+        if (document.getElementById('__mainjs_load_error')) return;
+        var b = document.createElement('div');
+        b.id = '__mainjs_load_error';
+        b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999999;background:#7f1d1d;color:#fef2f2;font-family:monospace;font-size:0.83rem;font-weight:700;padding:14px 20px;box-shadow:0 2px 10px rgba(0,0,0,0.4);line-height:1.8;';
+        b.innerHTML = lines.map(function(l,i){ return (i===0?'<b>':'')+l+(i===0?'</b>':''); }).join('<br>');
+        if (document.body) { document.body.insertBefore(b, document.body.firstChild); }
+        else { document.addEventListener('DOMContentLoaded', function() { document.body && document.body.insertBefore(b, document.body.firstChild); }); }
+      }
+      _showMainJsError();
+    })();
   };
   document.head.appendChild(s);
 })();
