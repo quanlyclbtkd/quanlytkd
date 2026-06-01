@@ -19,7 +19,7 @@
     "check:one-club-gate": "node tools/check-one-club-pilot-gate.mjs",
     "check:onboarding": "node tools/check-onboarding-gate.mjs",
     "check:superadmin-audit": "node tools/check-superadmin-audit.mjs",
-    "check:all": "node tools/check-syntax.mjs && node tools/check-assets.mjs && node tools/check-deploy-contract.mjs && node tools/check-functions.mjs && node tools/check-runtime-bootstrap.mjs && node tools/check-data-hydration.mjs && node tools/check-pilot-readiness.mjs && node tools/check-tenant-isolation.mjs && node tools/check-ten-club-pilot.mjs && node tools/check-one-club-pilot-gate.mjs && node tools/check-onboarding-gate.mjs && node tools/check-superadmin-audit.mjs && node tools/check-payment-accounts.mjs && node tools/check-attendance-reliability.mjs && node tools/check-attendance-scheduled-accuracy.mjs && node tools/check-attendance-offline-shift.mjs && node tools/check-ui-modernization.mjs && node tools/check-scale-readiness.mjs && node tools/check-login-performance.mjs",
+    "check:all": "node tools/check-syntax.mjs && node tools/check-assets.mjs && node tools/check-deploy-contract.mjs && node tools/check-functions.mjs && node tools/check-runtime-bootstrap.mjs && node tools/check-data-hydration.mjs && node tools/check-pilot-readiness.mjs && node tools/check-tenant-isolation.mjs && node tools/check-ten-club-pilot.mjs && node tools/check-one-club-pilot-gate.mjs && node tools/check-onboarding-gate.mjs && node tools/check-superadmin-audit.mjs && node tools/check-payment-accounts.mjs && node tools/check-attendance-reliability.mjs && node tools/check-attendance-scheduled-accuracy.mjs && node tools/check-attendance-offline-shift.mjs && node tools/check-ui-modernization.mjs && node tools/check-scale-readiness.mjs && node tools/check-login-performance.mjs && node tools/check-appjs-decomposition-readiness.mjs",
     "local": "node tools/local-server.mjs",
     "check:payment-accounts": "node tools/check-payment-accounts.mjs",
     "check:attendance": "node tools/check-attendance-reliability.mjs",
@@ -28,7 +28,9 @@
     "check:ui": "node tools/check-ui-modernization.mjs",
     "check:scale": "node tools/check-scale-readiness.mjs",
     "check:login-performance": "node tools/check-login-performance.mjs",
-    "backfill:search-index": "node tools/backfill-student-search-index.mjs"
+    "backfill:search-index": "node tools/backfill-student-search-index.mjs",
+    "analyze:appjs": "node tools/analyze-appjs-dependencies.mjs",
+    "check:appjs-readiness": "node tools/check-appjs-decomposition-readiness.mjs"
   },
   "engines": {
     "node": ">=18.0.0"
