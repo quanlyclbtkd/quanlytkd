@@ -19,7 +19,7 @@
     "check:one-club-gate": "node tools/check-one-club-pilot-gate.mjs",
     "check:onboarding": "node tools/check-onboarding-gate.mjs",
     "check:superadmin-audit": "node tools/check-superadmin-audit.mjs",
-    "check:all": "node tools/check-syntax.mjs && node tools/check-assets.mjs && node tools/check-deploy-contract.mjs && node tools/check-functions.mjs && node tools/check-runtime-bootstrap.mjs && node tools/check-data-hydration.mjs && node tools/check-pilot-readiness.mjs && node tools/check-tenant-isolation.mjs && node tools/check-ten-club-pilot.mjs && node tools/check-one-club-pilot-gate.mjs && node tools/check-onboarding-gate.mjs && node tools/check-superadmin-audit.mjs && node tools/check-payment-accounts.mjs && node tools/check-attendance-reliability.mjs && node tools/check-attendance-scheduled-accuracy.mjs && node tools/check-attendance-offline-shift.mjs && node tools/check-ui-modernization.mjs && node tools/check-scale-readiness.mjs && node tools/check-login-performance.mjs && node tools/check-firestore-indexes.mjs && node tools/check-search-bindings.mjs && node tools/check-attendance-shift-filter.mjs && node tools/check-transaction-realtime.mjs && node tools/check-stats-aggregation.mjs && node tools/check-superadmin-counts.mjs && node tools/check-dashboard-stats.mjs && node tools/check-superadmin-hotfix.mjs && node tools/check-github-pages-paths.mjs && node tools/check-deploy-package.mjs",
+    "check:all": "node tools/check-syntax.mjs && node tools/check-assets.mjs && node tools/check-deploy-contract.mjs && node tools/check-functions.mjs && node tools/check-runtime-bootstrap.mjs && node tools/check-data-hydration.mjs && node tools/check-pilot-readiness.mjs && node tools/check-tenant-isolation.mjs && node tools/check-ten-club-pilot.mjs && node tools/check-one-club-pilot-gate.mjs && node tools/check-onboarding-gate.mjs && node tools/check-superadmin-audit.mjs && node tools/check-payment-accounts.mjs && node tools/check-attendance-reliability.mjs && node tools/check-attendance-scheduled-accuracy.mjs && node tools/check-attendance-offline-shift.mjs && node tools/check-ui-modernization.mjs && node tools/check-scale-readiness.mjs && node tools/check-login-performance.mjs && node tools/check-firestore-indexes.mjs && node tools/check-search-bindings.mjs && node tools/check-attendance-shift-filter.mjs && node tools/check-transaction-realtime.mjs && node tools/check-stats-aggregation.mjs && node tools/check-superadmin-counts.mjs && node tools/check-dashboard-stats.mjs && node tools/check-superadmin-hotfix.mjs && node tools/check-github-pages-paths.mjs && node tools/check-deploy-package.mjs && node tools/check-superadmin-monthstats.mjs && node tools/check-db-ready-guards.mjs",
     "local": "node tools/local-server.mjs",
     "check:payment-accounts": "node tools/check-payment-accounts.mjs",
     "check:attendance": "node tools/check-attendance-reliability.mjs",
@@ -38,7 +38,9 @@
     "check:dashboard-stats": "node tools/check-dashboard-stats.mjs",
     "check:superadmin-hotfix": "node tools/check-superadmin-hotfix.mjs",
     "check:github-pages-paths": "node tools/check-github-pages-paths.mjs",
-    "check:deploy-package": "node tools/check-deploy-package.mjs"
+    "check:deploy-package": "node tools/check-deploy-package.mjs",
+    "check:superadmin-monthstats": "node tools/check-superadmin-monthstats.mjs",
+    "check:db-ready-guards": "node tools/check-db-ready-guards.mjs"
   },
   "engines": {
     "node": ">=18.0.0"
