@@ -1706,6 +1706,19 @@ service cloud.firestore {
         // Phase 4.0B-4C: Dispatch app:context-ready — db + clubId + refs đã sẵn sàng.
         // Chỉ có nghĩa là context cơ bản ready, KHÔNG có nghĩa data snapshot đã load xong.
         dispatchAppContextReady('initSaaSDatabase-store-synced');
+        // Phase 4K-RUNTIME-INIT-FIX: Dispatch app:db-ready — db đã gắn vào store.
+        // Modules pagination listen event này để init an toàn sau khi db sẵn sàng.
+        // Guard __dbReadyEventDispatched ngăn dispatch lặp trong cùng session.
+        if (!window.__dbReadyEventDispatched) {
+            window.__dbReadyEventDispatched = true;
+            window.dispatchEvent(new CustomEvent('app:db-ready', {
+                detail: {
+                    db:       window.__store && window.__store.db ? window.__store.db : db,
+                    clubId:   clubId || '',
+                    userRole: window.userRole || '',
+                }
+            }));
+        }
         // Phase 4.0B-4J-8A: Dispatch app:shell-ready — shell đã hiện, dữ liệu đang tải.
         window.dispatchEvent(new CustomEvent('app:shell-ready'));
         if (typeof markLoginPerf === 'function') markLoginPerf('shellShown');
@@ -3295,7 +3308,9 @@ service cloud.firestore {
         // Phase 4J-9B: Đã reclassify marker cũ → OK_UI_DISPLAY_LIMIT (chỉ phục vụ hiển thị tab Thu Chi).
         // TODO Phase 3.9: tăng limit hoặc chuyển sang aggregation server-side cho dashboard.
         if (typeof window.warnUnsafeLimit === 'function') {
-            window.warnUnsafeLimit('transactions:byDate+byTxMonth:' + monthStr, 'listenToData:init');
+            // uiOnly: true — listener này chỉ phục vụ hiển thị tab Thu Chi,
+            // KHÔNG dùng cho tính toán dashboard/doanh thu (Phase 4K stats docs đảm nhận).
+            window.warnUnsafeLimit('transactions:byDate+byTxMonth:' + monthStr, 'listenToData:init', { uiOnly: true });
         }
         // OK_UI_DISPLAY_LIMIT [3.8D-Phase6] — finance realtime listener chỉ hiển thị giao dịch tháng hiện tại.
         // Export/report dùng loadTransactionsForDateRange / loadTransactionsForTxMonthRange (không bị limit này).
