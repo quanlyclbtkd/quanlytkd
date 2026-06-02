@@ -369,6 +369,19 @@ async function ensureTabModule(tabId) {
     }
 }
 
+// ── Phase 4K-RUNTIME-INIT-FIX: Early fallback for ensureModuleRuntimeReady ──
+// Real impl is assigned at window.ensureModuleRuntimeReady = function(...) below (line 1047+),
+// OUTSIDE the bootstrap IIFE. When bootstrap runs with __appLoaded=true there may be no
+// await before the guard call, meaning the outer module hasn't yet reached line 1047.
+// This fallback ensures the check never fires "[Bootstrap] ensureModuleRuntimeReady chưa sẵn sàng".
+window.ensureModuleRuntimeReady = window.ensureModuleRuntimeReady || function _ensureRuntimeReadyFallback(moduleName) {
+    if (!window.__runtimeReadyFallbackWarned) {
+        window.__runtimeReadyFallbackWarned = true;
+        console.warn('[RuntimeReady] fallback active before full runtime ready:', moduleName);
+    }
+    return false;
+};
+
 // ────────────────────────────────────────────────────────────────
 // BOOTSTRAP
 // ────────────────────────────────────────────────────────────────
@@ -417,6 +430,25 @@ async function ensureTabModule(tabId) {
         registerInvalidationLegacyGlobals();
 
         initStudents();
+
+        // ── Phase 4K-RUNTIME-INIT-FIX: editProfile legacy bridge ─────────────
+        // editProfile is listed as a required global (health check + module guard)
+        // but initStudents() does not expose it on window. Bridge to openProfile
+        // so clicking "Sửa hồ sơ" still works. Will be overridden by real impl if set.
+        window.editProfile = window.editProfile || function _editProfileBridge(...args) {
+            const candidates = [
+                window.__realEditProfile,
+                window.openProfile,
+                window.editStudent,
+                window.openEditProfile,
+                window.showStudentModal,
+            ].filter(fn => typeof fn === 'function');
+            if (candidates.length) return candidates[0](...args);
+            console.warn('[LegacyBridge] editProfile called before real handler ready:', args);
+            if (typeof window.showToast === 'function') window.showToast('Chức năng sửa võ sinh chưa sẵn sàng, vui lòng thử lại sau.', 'warning');
+            return null;
+        };
+
         initFinance();
         initInventory();
         initAttendance();
@@ -515,11 +547,17 @@ async function ensureTabModule(tabId) {
         setTimeout(() => {
             // [HOTFIX] Thêm check window.__store.db — StudentService._db() throw nếu thiếu
             if (window.__store && window.__store.profRef && window.__store.db) {
-                initStudentPagination();
+                if (!window.__studentPaginationInitialized) {
+                    window.__studentPaginationInitialized = true;
+                    initStudentPagination();
+                }
             } else {
                 setTimeout(() => {
                     if (window.__store && window.__store.db) {
-                        initStudentPagination();
+                        if (!window.__studentPaginationInitialized) {
+                            window.__studentPaginationInitialized = true;
+                            initStudentPagination();
+                        }
                     } else {
                         console.warn('[Bootstrap] StudentPagination: db chưa sẵn sàng sau 2s — skip. Sẽ init khi db ready.');
                     }
@@ -530,17 +568,44 @@ async function ensureTabModule(tabId) {
         setTimeout(() => {
             // [HOTFIX] Thêm check window.__store.db — FinanceService._db() throw nếu thiếu
             if (window.__store && window.__store.colRef && window.__store.db) {
-                initTransactionPagination();
+                if (!window.__transactionPaginationInitialized) {
+                    window.__transactionPaginationInitialized = true;
+                    initTransactionPagination();
+                }
             } else {
                 setTimeout(() => {
                     if (window.__store && window.__store.db) {
-                        initTransactionPagination();
+                        if (!window.__transactionPaginationInitialized) {
+                            window.__transactionPaginationInitialized = true;
+                            initTransactionPagination();
+                        }
                     } else {
                         console.warn('[Bootstrap] TransactionPagination: db chưa sẵn sàng sau 2s — skip. Sẽ init khi db ready.');
                     }
                 }, 1500);
             }
         }, 500);
+
+        // ── Phase 4K-RUNTIME-INIT-FIX: Pagination retry via app:context-ready / app:db-ready ─
+        // Nếu db chưa sẵn sàng trong window 2s, lắng nghe event để init khi db thật sự ready.
+        // Guard __studentPaginationInitialized / __transactionPaginationInitialized ngăn double-init.
+        if (!window.__paginationDbReadyListenerRegistered) {
+            window.__paginationDbReadyListenerRegistered = true;
+            function _tryInitPaginationsOnDbReady() {
+                setTimeout(function() {
+                    if (!window.__studentPaginationInitialized && window.__store && window.__store.db) {
+                        window.__studentPaginationInitialized = true;
+                        initStudentPagination();
+                    }
+                    if (!window.__transactionPaginationInitialized && window.__store && window.__store.db) {
+                        window.__transactionPaginationInitialized = true;
+                        initTransactionPagination();
+                    }
+                }, 200);
+            }
+            window.addEventListener('app:context-ready', _tryInitPaginationsOnDbReady);
+            window.addEventListener('app:db-ready',      _tryInitPaginationsOnDbReady);
+        }
 
         _patchResetStore();
 
@@ -868,6 +933,12 @@ function _patchResetStore() {
         clearAllIntervals();
         _lazyLoaded.clear();
         resetAllGuards();
+        // Phase 4K-RUNTIME-CLEANUP: Reset pagination init guards khi logout
+        // — đảm bảo login lại sẽ init pagination mới mà không bị skip bởi guard cũ.
+        window.__studentPaginationInitialized    = false;
+        window.__transactionPaginationInitialized = false;
+        window.__dbReadyEventDispatched          = false;
+        window.__runtimeReadyFallbackWarned      = false;
         // [Phase 3.6D] Reset student profile store khi logout
         // Xóa toàn bộ cached profiles — listener sẽ populate lại sau login mới.
         if (typeof resetStudentProfileStore === 'function') {
@@ -1069,3 +1140,93 @@ window.ensureModuleRuntimeReady = function ensureModuleRuntimeReady(moduleName, 
         }, 300);
     });
 })();
+
+// ── Phase 4K-RUNTIME-CLEANUP: Club Runtime Diagnostics ───────────────────────
+// Chỉ chạy khi gọi thủ công từ Console: window.printClubRuntimeDiagnostics()
+// Không tự động query khi load — an toàn trong production.
+window.printClubRuntimeDiagnostics = async function printClubRuntimeDiagnostics() {
+    console.group('[ClubDiagnostics] 🔍 Club Runtime Diagnostics');
+    try {
+        const _cid     = window.currentClubId || (window.__store && window.__store.currentClubId) || null;
+        const _role    = window.userRole || (window.__store && window.__store.userRole) || '(unknown)';
+        const _db      = (window.__store && window.__store.db) || window.db || window._db || null;
+        const _profRef = window.__store && window.__store.profRef;
+        const _colRef  = window.__store && window.__store.colRef;
+        const _user    = (window.__store && window.__store.currentUser) || window.currentUser || null;
+        const _month   = (function() {
+            const el = document.getElementById('filterMonth');
+            return el ? el.value : '(ui not ready)';
+        })();
+
+        console.log('currentClubId     :', _cid || '⚠️ MISSING');
+        console.log('userRole          :', _role);
+        console.log('db ready          :', !!_db ? '✅ yes' : '❌ no');
+        console.log('profRef ready     :', !!_profRef ? '✅ yes' : '❌ no');
+        console.log('colRef ready      :', !!_colRef ? '✅ yes' : '❌ no');
+        console.log('currentUser       :', _user ? _user.email || _user.uid : '❌ null');
+        console.log('filterMonth (UI)  :', _month);
+        console.log('__studentPagInit  :', !!window.__studentPaginationInitialized);
+        console.log('__txPagInit       :', !!window.__transactionPaginationInitialized);
+        console.log('__dbReadyDispatched:', !!window.__dbReadyEventDispatched);
+
+        if (!_cid) {
+            console.warn('[ClubDiagnostics] ⚠️ currentClubId missing — login chưa hoàn thành hoặc onAuthStateChanged chưa chạy.');
+            console.groupEnd();
+            return;
+        }
+        if (!_db) {
+            console.warn('[ClubDiagnostics] ⚠️ db chưa sẵn sàng — app:db-ready chưa dispatch hoặc initSaaSDatabase chưa chạy.');
+            console.groupEnd();
+            return;
+        }
+
+        // Profile count (getCountFromServer — không đọc full docs)
+        try {
+            const { getCountFromServer, collection, query, where } = window._fb_init || {};
+            if (getCountFromServer && _profRef) {
+                const _allCount   = await getCountFromServer(_profRef);
+                const _activeSnap = await getCountFromServer(query(_profRef, where('status', '==', 'active')));
+                const _quitSnap   = await getCountFromServer(query(_profRef, where('status', '==', 'quit')));
+                console.log('profiles total    :', _allCount.data().count);
+                console.log('profiles active   :', _activeSnap.data().count);
+                console.log('profiles quit     :', _quitSnap.data().count);
+                const _other = _allCount.data().count - _activeSnap.data().count - _quitSnap.data().count;
+                if (_other > 0) console.log('profiles other    :', _other, '(trial / no-status / legacy)');
+            } else {
+                console.log('profiles count    : (getCountFromServer or profRef not available)');
+            }
+        } catch (pErr) {
+            const _msg = (pErr && pErr.message) || String(pErr);
+            if (_msg.includes('permission-denied') || _msg.includes('PERMISSION_DENIED')) {
+                console.warn('[ClubDiagnostics] profiles: permission-denied — kiểm tra Firestore Rules cho profiles collection.');
+            } else {
+                console.warn('[ClubDiagnostics] profiles count error:', _msg);
+            }
+        }
+
+        // Stats doc check
+        try {
+            const { getDoc, doc, getFirestore } = window._fb_init || {};
+            if (getDoc && doc && _db) {
+                const _now = new Date();
+                const _ym  = _now.getFullYear() + '-' + String(_now.getMonth() + 1).padStart(2, '0');
+                const _statsPath = 'clubs/' + _cid + '/stats/monthly_' + _ym;
+                const _statsSnap = await getDoc(doc(_db, 'clubs', _cid, 'stats', 'monthly_' + _ym));
+                console.log('stats doc monthly :', _statsPath, _statsSnap.exists() ? '✅ exists' : '⚠️ missing');
+                if (_statsSnap.exists()) {
+                    const _sd = _statsSnap.data();
+                    console.log('  totalRevenue    :', _sd.totalRevenue);
+                    console.log('  totalExpense    :', _sd.totalExpense);
+                }
+            }
+        } catch (sErr) {
+            const _msg = (sErr && sErr.message) || String(sErr);
+            console.warn('[ClubDiagnostics] stats doc error:', _msg);
+        }
+
+        console.log('[ClubDiagnostics] ✅ Done. Gọi lại bất cứ lúc nào để re-check.');
+    } catch (err) {
+        console.error('[ClubDiagnostics] Error:', err);
+    }
+    console.groupEnd();
+};
