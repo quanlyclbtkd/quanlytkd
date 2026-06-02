@@ -140,6 +140,32 @@ if (pkgJson) {
 }
 
 console.log();
+console.log('▸ Section 6: app:context-ready / app:db-ready listener cho pagination');
+if (mainJs) {
+    const _hasContextReadyPagination =
+        mainJs.includes('app:context-ready') &&
+        (mainJs.includes('initStudentPagination') || mainJs.includes('_tryInitPaginations'));
+    check('app:context-ready listener trigger pagination init',
+        _hasContextReadyPagination,
+        "Thêm: window.addEventListener('app:context-ready', function() { initStudentPagination(); })");
+
+    const _hasDbReadyPagination =
+        mainJs.includes('app:db-ready') &&
+        (mainJs.includes('initStudentPagination') || mainJs.includes('_tryInitPaginations'));
+    check('app:db-ready listener trigger pagination init',
+        _hasDbReadyPagination,
+        "Thêm: window.addEventListener('app:db-ready', function() { initStudentPagination(); })");
+
+    check('__studentPaginationInitialized double-init guard tồn tại',
+        mainJs.includes('__studentPaginationInitialized'),
+        'Thêm: window.__studentPaginationInitialized = true; trước initStudentPagination()');
+
+    check('__transactionPaginationInitialized double-init guard tồn tại',
+        mainJs.includes('__transactionPaginationInitialized'),
+        'Thêm: window.__transactionPaginationInitialized = true; trước initTransactionPagination()');
+}
+
+console.log();
 console.log('══════════════════════════════════════════════════════════');
 console.log('  Total: ' + (pass + fail) + ' checks | ✅ Pass: ' + pass + ' | ❌ Fail: ' + fail);
 
