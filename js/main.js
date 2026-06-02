@@ -377,7 +377,7 @@ async function ensureTabModule(tabId) {
 window.ensureModuleRuntimeReady = window.ensureModuleRuntimeReady || function _ensureRuntimeReadyFallback(moduleName) {
     if (!window.__runtimeReadyFallbackWarned) {
         window.__runtimeReadyFallbackWarned = true;
-        console.warn('[RuntimeReady] fallback active before full runtime ready:', moduleName);
+        console.info('[RuntimeReady] fallback active before full runtime ready:', moduleName, '(expected — real impl will be assigned after bootstrap)');
     }
     return false;
 };

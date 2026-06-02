@@ -1304,8 +1304,25 @@ export function initTransactionPagination() {
                         window.scheduleRender();
                     }
                 } catch (err) {
-                    console.error('[pagination/transactions] Lỗi load trang:', err);
                     pgState.isLoading = false;
+                    const errMsg = (err && err.message) || String(err);
+                    const isIndexErr = errMsg.includes('failed-precondition') ||
+                                       errMsg.includes('requires an index') ||
+                                       errMsg.includes('The query requires an index');
+                    if (isIndexErr) {
+                        console.error('[pagination/transactions] Thiếu Firestore index cho truy vấn giao dịch. Hãy deploy firestore.indexes.json hoặc tạo index từ link Firebase Console trong console.');
+                        const linkMatch = errMsg.match(/https:\/\/console\.firebase\.google\.com\/[^\s]+/);
+                        if (linkMatch) console.info('[pagination/transactions] 🔗 Tạo index nhanh (bấm link):', linkMatch[0]);
+                        const txList = document.getElementById('txList');
+                        if (txList) {
+                            txList.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:24px 16px;color:#b91c1c;font-weight:600;line-height:1.6;">' +
+                                '⚠️ Thiếu Firestore index — danh sách giao dịch chưa tải được.<br>' +
+                                '<span style="font-weight:400;font-size:0.9em;">Admin cần deploy <code>firestore.indexes.json</code> hoặc bấm link tạo index trong Console trình duyệt.</span>' +
+                                '</td></tr>';
+                        }
+                    } else {
+                        console.error('[pagination/transactions] Lỗi load trang:', err);
+                    }
                 }
 
                 _injectControls();
