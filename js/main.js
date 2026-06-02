@@ -513,18 +513,32 @@ async function ensureTabModule(tabId) {
         if (guardOnce('initFinanceEvents'))  initFinanceEvents();
 
         setTimeout(() => {
-            if (window.__store && window.__store.profRef) {
+            // [HOTFIX] Thêm check window.__store.db — StudentService._db() throw nếu thiếu
+            if (window.__store && window.__store.profRef && window.__store.db) {
                 initStudentPagination();
             } else {
-                setTimeout(() => initStudentPagination(), 1500);
+                setTimeout(() => {
+                    if (window.__store && window.__store.db) {
+                        initStudentPagination();
+                    } else {
+                        console.warn('[Bootstrap] StudentPagination: db chưa sẵn sàng sau 2s — skip. Sẽ init khi db ready.');
+                    }
+                }, 1500);
             }
         }, 500);
 
         setTimeout(() => {
-            if (window.__store && window.__store.colRef) {
+            // [HOTFIX] Thêm check window.__store.db — FinanceService._db() throw nếu thiếu
+            if (window.__store && window.__store.colRef && window.__store.db) {
                 initTransactionPagination();
             } else {
-                setTimeout(() => initTransactionPagination(), 1500);
+                setTimeout(() => {
+                    if (window.__store && window.__store.db) {
+                        initTransactionPagination();
+                    } else {
+                        console.warn('[Bootstrap] TransactionPagination: db chưa sẵn sàng sau 2s — skip. Sẽ init khi db ready.');
+                    }
+                }, 1500);
             }
         }, 500);
 
@@ -534,9 +548,22 @@ async function ensureTabModule(tabId) {
 
         // ── Phase 4.0B-4B: Module post-login guard ───────────────────────────
         // Kiểm tra nhẹ sau khi các module đã init — chỉ warn, không throw.
-        window.ensureModuleRuntimeReady('finance',    ['quickPay', 'openQuickPayModal']);
-        window.ensureModuleRuntimeReady('inventory',  ['getInvCategories', 'loadInvCategories']);
-        window.ensureModuleRuntimeReady('students',   ['openAddModal', 'editProfile']);
+        // [HOTFIX] Guard: ensureModuleRuntimeReady có thể chưa được assign nếu
+        // bootstrap chạy synchronously trước khi outer module đến dòng 1020+.
+        if (typeof window.ensureModuleRuntimeReady === 'function') {
+            window.ensureModuleRuntimeReady('finance',    ['quickPay', 'openQuickPayModal']);
+            window.ensureModuleRuntimeReady('inventory',  ['getInvCategories', 'loadInvCategories']);
+            window.ensureModuleRuntimeReady('students',   ['openAddModal', 'editProfile']);
+        } else {
+            console.warn('[Bootstrap] ensureModuleRuntimeReady chưa sẵn sàng — skip module guard. Sẽ retry sau event loop.');
+            setTimeout(() => {
+                if (typeof window.ensureModuleRuntimeReady === 'function') {
+                    window.ensureModuleRuntimeReady('finance',    ['quickPay', 'openQuickPayModal']);
+                    window.ensureModuleRuntimeReady('inventory',  ['getInvCategories', 'loadInvCategories']);
+                    window.ensureModuleRuntimeReady('students',   ['openAddModal', 'editProfile']);
+                }
+            }, 0);
+        }
 
         // ── Phase 4.0B-4B: Bootstrap health check (phân loại severity) ───────
         // Chạy sau event loop tick — đảm bảo tất cả window globals đã expose.
