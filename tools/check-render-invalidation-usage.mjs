@@ -137,6 +137,22 @@ if (mainJs) {
 }
 
 console.log();
+console.log('▸ Section 6: main.js — retryDataHydration + isClubRuntimeReady (Phase 4K)');
+if (mainJs) {
+    check('window.retryDataHydration tồn tại (manual retry helper)',
+        mainJs.includes('window.retryDataHydration') && mainJs.includes('function retryDataHydration'),
+        'main.js phải expose: window.retryDataHydration = function retryDataHydration(reason) {...}');
+
+    check('window.isClubRuntimeReady tồn tại (db + clubId + user check)',
+        mainJs.includes('window.isClubRuntimeReady') && mainJs.includes('function isClubRuntimeReady'),
+        'main.js phải expose: window.isClubRuntimeReady = function() { return !!(db && clubId && user); }');
+
+    check('printClubRuntimeDiagnostics in retryDataHydration available?',
+        mainJs.includes('retryDataHydration') && mainJs.includes('printClubRuntimeDiagnostics'),
+        'printClubRuntimeDiagnostics phải log: retryDataHydration available? ✅/❌');
+}
+
+console.log();
 console.log('══════════════════════════════════════════════════════════');
 console.log('  Total: ' + (pass+fail) + ' | ✅ ' + pass + ' | ❌ ' + fail);
 if (fail > 0) {
