@@ -586,26 +586,100 @@ window.ensureModuleRuntimeReady = window.ensureModuleRuntimeReady || function _e
             }
         }, 500);
 
+        // ── Phase 4K-DATA-HYDRATION: isClubRuntimeReady helper ─────────────────────
+        // Kiểm tra db + currentClubId + currentUser đều sẵn sàng trước khi init.
+        // Dùng bởi _tryInitPaginationsOnDbReady, retryDataHydration, check tools.
+        window.isClubRuntimeReady = function isClubRuntimeReady() {
+            return !!(
+                ((window.__store && window.__store.db) || window.db || window._db) &&
+                ((window.__store && window.__store.currentClubId) || window.currentClubId) &&
+                ((window.__store && window.__store.currentUser) || window.currentUser)
+            );
+        };
+
+        // ── Phase 4K-DATA-HYDRATION: mountActiveProfilesListenerIfNeeded ────────────
+        // Gọi khi retry hydration — mount profile listener nếu chưa mounted.
+        window.mountActiveProfilesListenerIfNeeded = function mountActiveProfilesListenerIfNeeded(reason) {
+            const _st = window.__store;
+            if (!_st || !_st.db || !_st.currentClubId || !_st.profRef) {
+                console.warn('[ProfileHydration] mountActiveProfilesListenerIfNeeded: context chưa ready —', reason);
+                return;
+            }
+            if (typeof window.mountActiveProfilesListener === 'function') {
+                window.mountActiveProfilesListener({
+                    db:            _st.db,
+                    clubId:        _st.currentClubId,
+                    profRef:       _st.profRef,
+                    currentClubId: _st.currentClubId,
+                    reason:        reason || 'retry-hydration',
+                });
+            }
+        };
+
         // ── Phase 4K-RUNTIME-INIT-FIX: Pagination retry via app:context-ready / app:db-ready ─
-        // Nếu db chưa sẵn sàng trong window 2s, lắng nghe event để init khi db thật sự ready.
-        // Guard __studentPaginationInitialized / __transactionPaginationInitialized ngăn double-init.
+        // Phase 4K-DATA-HYDRATION: Nâng cấp dùng isClubRuntimeReady() thay vì chỉ check db.
+        // Guard __studentPaginationInitializedForClub (clubId-specific) ngăn double-init per club.
+        function _tryInitPaginationsOnDbReady(reason) {
+            setTimeout(function() {
+                if (!window.isClubRuntimeReady()) {
+                    console.info('[DataHydration] _tryInitPaginationsOnDbReady: context chưa ready —', reason || 'event');
+                    return;
+                }
+                const _cid = (window.__store && window.__store.currentClubId) || window.currentClubId;
+
+                // StudentPagination: guard theo clubId — cho phép re-init khi đổi CLB
+                if (!window.__studentPaginationInitialized ||
+                    window.__studentPaginationInitializedForClub !== _cid) {
+                    window.__studentPaginationInitialized = true;
+                    window.__studentPaginationInitializedForClub = _cid;
+                    initStudentPagination();
+                    console.info('[DataHydration] StudentPagination init —', reason || 'retry', '— clubId:', _cid);
+                }
+
+                // TransactionPagination: month-aware reset đã có trong finance.js
+                if (!window.__transactionPaginationInitialized) {
+                    window.__transactionPaginationInitialized = true;
+                    initTransactionPagination();
+                    console.info('[DataHydration] TransactionPagination init —', reason || 'retry');
+                }
+
+                // Sau init, invalidate tab hiện tại để trigger render mới nhất
+                setTimeout(function() {
+                    if (typeof window.invalidateCurrentTab === 'function') {
+                        window.invalidateCurrentTab('post-pagination-init');
+                    }
+                }, 300);
+            }, 200);
+        }
+
+        // Expose để retryDataHydration có thể gọi lại
+        window._tryInitPaginationsOnDbReady = _tryInitPaginationsOnDbReady;
+
+        // ── Phase 4K-DATA-HYDRATION: retryDataHydration public helper ───────────────
+        // Gọi từ Console hoặc programmatic để retry toàn bộ data pipeline.
+        // window.retryDataHydration('manual') — thử lại pagination + profile listener + render.
+        window.retryDataHydration = function retryDataHydration(reason) {
+            const _r = reason || 'manual';
+            console.info('[DataHydration] retryDataHydration —', _r);
+            _tryInitPaginationsOnDbReady(_r);
+            window.mountActiveProfilesListenerIfNeeded(_r);
+            if (typeof window.invalidateCurrentTab === 'function') {
+                window.invalidateCurrentTab('manual-data-hydration');
+            }
+        };
+
         if (!window.__paginationDbReadyListenerRegistered) {
             window.__paginationDbReadyListenerRegistered = true;
-            function _tryInitPaginationsOnDbReady() {
-                setTimeout(function() {
-                    if (!window.__studentPaginationInitialized && window.__store && window.__store.db) {
-                        window.__studentPaginationInitialized = true;
-                        initStudentPagination();
-                    }
-                    if (!window.__transactionPaginationInitialized && window.__store && window.__store.db) {
-                        window.__transactionPaginationInitialized = true;
-                        initTransactionPagination();
-                    }
-                }, 200);
-            }
-            window.addEventListener('app:context-ready', _tryInitPaginationsOnDbReady);
-            window.addEventListener('app:db-ready',      _tryInitPaginationsOnDbReady);
+            window.addEventListener('app:context-ready', function() { _tryInitPaginationsOnDbReady('app:context-ready'); });
+            window.addEventListener('app:db-ready',      function() { _tryInitPaginationsOnDbReady('app:db-ready'); });
         }
+
+        // Post-bootstrap immediate check: nếu db đã ready trước event, init ngay
+        setTimeout(function() {
+            if (window.isClubRuntimeReady()) {
+                _tryInitPaginationsOnDbReady('post-bootstrap-check');
+            }
+        }, 0);
 
         _patchResetStore();
 
@@ -939,6 +1013,9 @@ function _patchResetStore() {
         window.__transactionPaginationInitialized = false;
         window.__dbReadyEventDispatched          = false;
         window.__runtimeReadyFallbackWarned      = false;
+        // Phase 4K-DATA-HYDRATION: Reset clubId-specific guard + listener registration
+        window.__studentPaginationInitializedForClub = null;
+        window.__paginationDbReadyListenerRegistered = false;
         // [Phase 3.6D] Reset student profile store khi logout
         // Xóa toàn bộ cached profiles — listener sẽ populate lại sau login mới.
         if (typeof resetStudentProfileStore === 'function') {
@@ -1158,16 +1235,38 @@ window.printClubRuntimeDiagnostics = async function printClubRuntimeDiagnostics(
             return el ? el.value : '(ui not ready)';
         })();
 
+        // ── Sync memory snapshot (không query Firestore) ─────────────────────────
+        const _profMem    = window.allProfiles
+            ? Object.keys(window.allProfiles).length
+            : -1;
+        const _actMem     = (window.__store && window.__store.activeProfiles)
+            ? Object.keys(window.__store.activeProfiles).length
+            : ((window.__profileScaleMetrics && window.__profileScaleMetrics.activeCount) || -1);
+        const _txMem      = ((window.allTransactions || (window.__store && window.__store.transactions)) || []).length;
+        const _tbodyRows  = document.querySelectorAll('tbody tr').length;
+        const _profMount  = !!(window.__profileScaleMetrics && window.__profileScaleMetrics.activeListenerMounted);
+
         console.log('currentClubId     :', _cid || '⚠️ MISSING');
+        console.log('__store.clubId    :', (window.__store && window.__store.currentClubId) || '⚠️ MISSING');
         console.log('userRole          :', _role);
         console.log('db ready          :', !!_db ? '✅ yes' : '❌ no');
         console.log('profRef ready     :', !!_profRef ? '✅ yes' : '❌ no');
         console.log('colRef ready      :', !!_colRef ? '✅ yes' : '❌ no');
         console.log('currentUser       :', _user ? _user.email || _user.uid : '❌ null');
         console.log('filterMonth (UI)  :', _month);
-        console.log('__studentPagInit  :', !!window.__studentPaginationInitialized);
+        console.log('__studentPagInit  :', !!window.__studentPaginationInitialized,
+            window.__studentPaginationInitializedForClub ? '(club: ' + window.__studentPaginationInitializedForClub + ')' : '');
         console.log('__txPagInit       :', !!window.__transactionPaginationInitialized);
         console.log('__dbReadyDispatched:', !!window.__dbReadyEventDispatched);
+        // ── Memory snapshot ───────────────────────────────────────────────────
+        console.log('profiles (mem)    :', _profMem >= 0 ? _profMem : '(not in window.allProfiles)');
+        console.log('activeProfiles(mem):', _actMem >= 0 ? _actMem : '(not tracked)');
+        console.log('transactions (mem):', _txMem, '(window.allTransactions / __store.transactions)');
+        console.log('tbody rows (DOM)  :', _tbodyRows, '(document.querySelectorAll("tbody tr").length)');
+        console.log('profile listener  :', _profMount ? '✅ mounted' : '⚠️ not mounted');
+        console.log('isClubRuntimeReady:', typeof window.isClubRuntimeReady === 'function'
+            ? (window.isClubRuntimeReady() ? '✅ yes' : '❌ no') : '(function missing)');
+        console.log('retryDataHydration:', typeof window.retryDataHydration === 'function' ? '✅ available' : '❌ missing');
 
         if (!_cid) {
             console.warn('[ClubDiagnostics] ⚠️ currentClubId missing — login chưa hoàn thành hoặc onAuthStateChanged chưa chạy.');

@@ -1303,6 +1303,34 @@ export function initTransactionPagination() {
                     } else if (typeof window.scheduleRender === 'function') {
                         window.scheduleRender();
                     }
+
+                    // Phase 4K-DATA-HYDRATION: Direct row inject vào #txList
+                    // Nếu island (tx.txList) không render được từ allTransactions listener data
+                    // (allTransactions chưa populate hoặc listener chưa ready), render trực tiếp
+                    // từ pgState.currentItems để tránh tình trạng footer "1-9" nhưng rows trống.
+                    // Chỉ chạy nếu island chưa inject rows (tr[data-tx-id] chưa có).
+                    try {
+                        const _txEl = document.getElementById('txList');
+                        if (_txEl && pgState.currentItems && pgState.currentItems.length > 0) {
+                            const _hasRows = _txEl.querySelector('tr[data-tx-id]');
+                            if (!_hasRows) {
+                                const { renderTxRow } = await import('../ui/render/computation/financeRenderer.js');
+                                const _html = pgState.currentItems.map(function(tx) {
+                                    return renderTxRow(tx, {
+                                        isSingleBranch: true,
+                                        isAdmin:        false,
+                                        branchTdHTML:   '',
+                                        btnDel:         '',
+                                    });
+                                }).join('');
+                                _txEl.innerHTML = _html ||
+                                    '<tr><td colspan="10" style="text-align:center;color:#64748b;padding:16px;">Không có giao dịch</td></tr>';
+                                console.info('[pagination/transactions] Direct row render (island fallback):', pgState.currentItems.length, 'rows → #txList');
+                            }
+                        }
+                    } catch (_rowErr) {
+                        console.warn('[pagination/transactions] Direct row render lỗi (non-blocking):', _rowErr && _rowErr.message);
+                    }
                 } catch (err) {
                     pgState.isLoading = false;
                     const errMsg = (err && err.message) || String(err);
