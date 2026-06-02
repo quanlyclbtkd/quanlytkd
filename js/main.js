@@ -1224,6 +1224,63 @@ window.printClubRuntimeDiagnostics = async function printClubRuntimeDiagnostics(
             console.warn('[ClubDiagnostics] stats doc error:', _msg);
         }
 
+        // ── Transaction count cho tháng hiện tại (Phase 4K-PROFILE-HYDRATION) ──
+        // Dùng getCountFromServer — không kéo full docs, an toàn production.
+        // Không set Học Phí = 0 nếu lỗi; báo rõ permission-denied / index lỗi.
+        try {
+            const { getCountFromServer, collection, query, where } = window._fb_init || {};
+            if (getCountFromServer && _db && _cid) {
+                const _now    = new Date();
+                const _txMonth = _month && _month !== '(ui not ready)'
+                    ? _month
+                    : _now.getFullYear() + '-' + String(_now.getMonth() + 1).padStart(2, '0');
+                const _txRef   = collection(_db, 'clubs', _cid, 'transactions');
+
+                const _txAllSnap   = await getCountFromServer(_txRef);
+                console.log('transactions total:', _txAllSnap.data().count);
+
+                const _txMonthSnap = await getCountFromServer(
+                    query(_txRef, where('txMonth', '==', _txMonth))
+                );
+                console.log('transactions month:', _txMonth, '→', _txMonthSnap.data().count);
+
+                console.log('selected txMonth  :', _txMonth, '(UI filterMonth:', _month, ')');
+            } else {
+                console.log('transactions count: (getCountFromServer / db / clubId không sẵn)');
+            }
+        } catch (txErr) {
+            const _msg = (txErr && txErr.message) || String(txErr);
+            if (_msg.includes('permission-denied') || _msg.includes('PERMISSION_DENIED')) {
+                console.warn('[ClubDiagnostics] transactions: permission-denied — kiểm tra Firestore Rules cho transactions collection.');
+                console.warn('[ClubDiagnostics] ⚠️ Đây là lý do Học Phí / Doanh thu có thể hiện 0.');
+            } else if (_msg.includes('failed-precondition') || _msg.includes('requires an index')) {
+                console.warn('[ClubDiagnostics] transactions: thiếu Firestore index — deploy firestore.indexes.json.');
+                console.warn('[ClubDiagnostics] ⚠️ Đây là lý do Học Phí / Doanh thu có thể hiện 0.');
+            } else {
+                console.warn('[ClubDiagnostics] transactions count error:', _msg);
+            }
+        }
+
+        // ── Last Firestore error (nếu có) ─────────────────────────────────────
+        // Bất kỳ module nào có thể set window.__lastFirestoreError khi gặp lỗi Firestore.
+        if (window.__lastFirestoreError) {
+            const _fe = window.__lastFirestoreError;
+            console.warn('[ClubDiagnostics] last Firestore error:', {
+                code:    _fe.code    || '(no code)',
+                message: _fe.message || '(no message)',
+                module:  _fe.module  || '(unknown)',
+                ts:      _fe.ts ? new Date(_fe.ts).toLocaleString() : '(no ts)',
+            });
+        } else {
+            console.log('last Firestore err :', '(none recorded)');
+        }
+
+        // ── Legacy scheduleRender metrics (nếu có) ────────────────────────────
+        if (window.__renderLegacyMetrics) {
+            const _m = window.__renderLegacyMetrics;
+            console.log('scheduleRender calls (legacy):', _m.scheduleRenderCalls || 0);
+        }
+
         console.log('[ClubDiagnostics] ✅ Done. Gọi lại bất cứ lúc nào để re-check.');
     } catch (err) {
         console.error('[ClubDiagnostics] Error:', err);
