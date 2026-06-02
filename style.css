@@ -1,0 +1,1121 @@
+:root{--primary:#0033A0;--secondary:#C8102E;--belt-yellow:#f1c40f;--belt-green:#2ecc71;--belt-blue:#3498db;--belt-red:#e74c3c;--belt-black:#1e293b}body{font-family:'Inter',-apple-system,sans-serif;background:#f1f5f9;margin:0;color:#334155;padding-bottom:calc(40px+env(safe-area-inset-bottom));-webkit-tap-highlight-color:transparent}#loginOverlay{position:fixed;inset:0;background:radial-gradient(circle at top right,var(--primary),#001540);display:flex;justify-content:center;align-items:center;z-index:9999}@media (max-width:639px){#loginOverlay{align-items:flex-start;overflow-y:auto;padding-top:max(env(safe-area-inset-top,0px),20px);padding-bottom:20px}#loginOverlay .login-card:not(.pp-wide){margin:auto;width:92%}#loginPane_admin{padding:18px 20px 22px !important}#loginPane_admin h2{font-size:0.9rem !important;margin-bottom:14px !important;line-height:1.35 !important}.login-tabs button{font-size:0.82rem !important;padding-top:10px !important;padding-bottom:10px !important}}.app-container{display:none}.tabs-wrapper{position:sticky;top:0;z-index:50;background:rgba(255,255,255,0.95);backdrop-filter:blur(12px);padding-top:12px;margin-bottom:20px;border-bottom:1px solid #e2e8f0;margin-left:-1rem;margin-right:-1rem;padding-left:1rem;padding-right:1rem}@media (min-width:768px){.tabs-wrapper{margin-left:0;margin-right:0;padding-left:0;padding-right:0;border-radius:0 0 12px 12px}}.tabs-nav{display:flex;gap:6px;overflow-x:auto;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;padding-bottom:12px;scrollbar-width:none}.tabs-nav::-webkit-scrollbar{display:none}.tab-btn{padding:8px 16px;font-weight:600;color:#64748b;border-radius:9999px;cursor:pointer;transition:all 0.2s ease;white-space:nowrap;border:1px solid #f1f5f9;font-size:0.9rem;background:#f8fafc}.tab-btn:hover{color:var(--primary);background:#e2e8f0;border-color:#cbd5e1}.tab-btn.active{color:white;background:var(--primary);font-weight:700;border-color:var(--primary);box-shadow:0 4px 12px rgba(0,51,160,0.2)}.tab-content{display:none;animation:fadeIn 0.3s ease}.tab-content.active{display:block}@keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}@keyframes slideUpSheet{from{transform:translateY(100%)}to{transform:translateY(0)}}input,select,textarea{border:1.5px solid #cbd5e1;padding:10px 14px;border-radius:10px;width:100%;outline:none;transition:all 0.2s;background:#fff;font-size:16px !important;color:#1e293b}input:focus,select:focus,textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(0,51,160,0.15)}input:disabled,select:disabled{background:#f1f5f9;color:#94a3b8;cursor:not-allowed;border-color:#e2e8f0}.table-wrapper{overflow-x:auto;overflow-y:auto;max-height:70vh;-webkit-overflow-scrolling:touch;border-radius:12px;width:100%}.table-wrapper::-webkit-scrollbar{height:8px;width:8px}.table-wrapper::-webkit-scrollbar-thumb{background-color:#cbd5e1;border-radius:10px;border:2px solid #fff}table{width:100%;border-collapse:separate;border-spacing:0;min-width:max-content}th{background:#f8fafc;color:#475569;font-size:0.72rem;padding:9px 10px;text-align:left;border-bottom:2px solid #e2e8f0;text-transform:uppercase;white-space:nowrap;font-weight:800;position:sticky;top:0;z-index:10}td{padding:8px 10px;border-bottom:1px solid #f1f5f9;font-size:0.85rem;vertical-align:middle;color:#334155;white-space:nowrap}tr:hover td{background:#f8fafc}.name-link{color:var(--primary);font-weight:700;cursor:pointer;transition:0.2s}.name-link:hover{text-decoration:underline;color:#001540}.badge{padding:4px 10px;border-radius:6px;font-size:0.75rem;font-weight:700;display:inline-block;white-space:nowrap}.badge-active{background:#dcfce7;color:#166534;border:1px solid #bbf7d0}.badge-quit{background:#fee2e2;color:#991b1b;border:1px solid #fecaca}.modal{display:none;position:fixed;inset:0;background:rgba(15,23,42,0.7);z-index:10000;padding:0;backdrop-filter:blur(5px);align-items:flex-end;justify-content:center}.modal-content{background:white;width:100%;max-width:650px;border-radius:20px 20px 0 0;padding:20px;box-shadow:0 -10px 40px rgba(0,0,0,0.2);max-height:85vh;overflow-y:auto;position:relative;animation:slideUpSheet 0.3s cubic-bezier(0.16,1,0.3,1);padding-bottom:calc(20px+env(safe-area-inset-bottom))}@media (min-width:768px){.modal{padding:20px;align-items:center}.modal-content{border-radius:20px;animation:fadeIn 0.2s;padding-bottom:20px}}.autocomplete-items{position:absolute;border:1px solid #e2e8f0;z-index:99;top:100%;left:0;right:0;background:#fff;max-height:250px;overflow-y:auto;display:none;box-shadow:0 10px 20px -5px rgba(0,0,0,0.1);border-radius:0 0 10px 10px;border-top:none}.autocomplete-items div{padding:12px 14px;cursor:pointer;border-bottom:1px solid #f1f5f9;font-size:0.95rem;display:flex;justify-content:space-between;align-items:center}.autocomplete-items div:hover{background-color:#f0f4ff}.toast{visibility:hidden;min-width:250px;background-color:#10b981;color:#fff;text-align:center;border-radius:10px;padding:14px 20px;position:fixed;z-index:10001;right:20px;bottom:calc(20px+env(safe-area-inset-bottom));transform:translateY(100px);transition:all 0.3s cubic-bezier(0.4,0,0.2,1);font-size:0.95rem;font-weight:bold;box-shadow:0 10px 20px rgba(0,0,0,0.15)}.toast.show{visibility:visible;transform:translateY(0)}.toast.loading{background-color:#f59e0b}#monthlyReminder{display:none;align-items:center;justify-content:space-between;gap:12px;background:linear-gradient(135deg,#fffbeb,#fef3c7);border:1.5px solid #f59e0b;border-radius:14px;padding:13px 16px;margin-bottom:14px;box-shadow:0 2px 12px rgba(245,158,11,0.18);flex-wrap:wrap}#monthlyReminder .mr-left{display:flex;align-items:center;gap:11px;min-width:0;flex:1}#monthlyReminder .mr-icon{font-size:1.7rem;flex-shrink:0}#monthlyReminder .mr-title{font-size:0.85rem;font-weight:800;color:#92400e;line-height:1.3}#monthlyReminder .mr-sub{font-size:0.72rem;color:#b45309;font-weight:600;margin-top:2px}#monthlyReminder .mr-actions{display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap}#monthlyReminder .mr-btn-main{background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;font-size:0.8rem;font-weight:800;border:none;border-radius:10px;padding:9px 16px;cursor:pointer;white-space:nowrap;box-shadow:0 3px 10px rgba(245,158,11,0.4);transition:opacity 0.2s}#monthlyReminder .mr-btn-main:hover{opacity:0.88}#monthlyReminder .mr-btn-skip{background:#fff;color:#92400e;font-size:0.78rem;font-weight:700;border:1.5px solid #fcd34d;border-radius:10px;padding:9px 13px;cursor:pointer;white-space:nowrap;transition:background 0.2s}#monthlyReminder .mr-btn-skip:hover{background:#fef9c3}#receiptTemplate{position:absolute;left:-9999px;visibility:hidden;width:400px;background:white;padding:30px;border-radius:16px;border:2px solid #0033A0;box-sizing:border-box;font-family:'Inter',sans-serif}.action-btns{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.btn-sm{padding:6px 10px;font-size:0.75rem;font-weight:700;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;transition:all 0.2s;border:1px solid transparent;cursor:pointer}@media (max-width:767px){body{padding-bottom:60px}.app-container{padding:10px 14px;border-radius:0;box-shadow:none;border:none}.tab-btn{padding:7px 13px;font-size:0.82rem}th{padding:9px 7px;font-size:0.68rem}td{padding:9px 7px;font-size:0.84rem}.modal-content{padding:20px 14px}.stat-card{padding:14px;border-radius:16px}.stat-card h3{font-size:0.65rem}.stat-card p{font-size:1.15rem}#receiptModal .modal-content{padding:20px 14px !important}.desktop-action-btns{display:none !important}.mobile-menu-btn{display:flex !important}}@media (min-width:768px){.mobile-menu-btn{display:none !important}.desktop-action-btns{display:flex !important}}.mobile-menu-btn{display:none;align-items:center;justify-content:center}#mobileMenuSheet{display:none;position:fixed;inset:0;background:rgba(15,23,42,0.55);z-index:9997;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px)}#mobileMenuSheet.open{display:flex}#mobileMenuSheetContent{background:#fff;width:100%;max-width:520px;border-radius:22px 22px 0 0;padding:8px 16px 0;padding-bottom:calc(16px+env(safe-area-inset-bottom));animation:slideUpSheet 0.3s cubic-bezier(0.16,1,0.3,1)}.mms-handle{width:40px;height:5px;background:#e2e8f0;border-radius:99px;margin:8px auto 14px}.mms-btn{display:flex;align-items:center;gap:12px;width:100%;padding:13px 14px;border-radius:12px;font-weight:700;font-size:0.92rem;cursor:pointer;border:none;transition:background 0.15s;margin-bottom:8px;text-align:left}.mms-divider{height:1px;background:#f1f5f9;margin:4px 0 10px}.loading-spinner{border:3px solid rgba(255,255,255,0.3);border-top:3px solid #fff;border-radius:50%;width:20px;height:20px;animation:spin 1s linear infinite;display:inline-block;vertical-align:middle}@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}#pullToRefreshIndicator{position:fixed;top:-80px;left:50%;transform:translateX(-50%);z-index:9990;background:white;border-radius:50px;padding:10px 22px;box-shadow:0 6px 24px rgba(0,51,160,0.13);display:flex;align-items:center;gap:10px;font-weight:700;font-size:0.85rem;color:var(--primary);transition:top 0.25s cubic-bezier(0.16,1,0.3,1);border:1.5px solid #dbeafe;pointer-events:none;white-space:nowrap}#pullToRefreshIndicator.ptr-visible{top:14px}.ptr-spinner{width:18px;height:18px;border:2.5px solid #dbeafe;border-top-color:var(--primary);border-radius:50%;flex-shrink:0}.ptr-spinner.ptr-spin{animation:spin 0.7s linear infinite}.ptr-arrow{font-size:1.1rem;transition:transform 0.3s ease;display:inline-block;flex-shrink:0}.ptr-arrow.ptr-ready{transform:rotate(180deg)}.mobile-header-bar{display:none}@media (max-width:767px){.mobile-header-bar{display:flex;flex-direction:column;background:linear-gradient(135deg,#0033A0 0%,#1a56db 60%,#1e40af 100%);margin:-10px -14px 12px;padding:14px 16px 12px;border-radius:0 0 22px 22px;box-shadow:0 4px 20px rgba(0,51,160,0.25)}.mobile-header-bar .mhb-title-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.mobile-header-bar .mhb-title{color:rgba(255,255,255,0.96);font-size:1rem;font-weight:900;text-transform:uppercase;letter-spacing:0.03em;line-height:1.2;max-width:calc(100% - 56px)}.mobile-header-bar .mhb-subtitle{color:rgba(255,255,255,0.65);font-size:0.62rem;font-weight:600;margin-top:2px}.mobile-header-bar .mhb-menu-btn{width:42px;height:42px;background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.25);border-radius:12px;color:#fff;font-size:1.2rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer}.mobile-header-bar .mhb-stats{display:flex;gap:7px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}.mobile-header-bar .mhb-stats::-webkit-scrollbar{display:none}.mobile-header-bar .mhb-pill{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.14);border:1px solid rgba(255,255,255,0.22);border-radius:999px;padding:5px 11px 5px 8px;white-space:nowrap;flex-shrink:0}.mobile-header-bar .mhb-pill-icon{font-size:0.95rem}.mobile-header-bar .mhb-pill-text{color:rgba(255,255,255,0.9);font-size:0.7rem;font-weight:700;line-height:1}.mobile-header-bar .mhb-pill-val{color:#fff;font-size:0.8rem;font-weight:900}.mobile-header-original{display:none !important}}@media (min-width:768px){.mobile-header-bar{display:none !important}.mobile-header-original{display:flex !important}}@media (max-width:767px){#tab_tx .table-wrapper,#tab_debt .table-wrapper,#tab_active .table-wrapper,#tab_quit .table-wrapper{overflow:unset !important;max-height:none !important}#tbl_tx,#tbl_debt,#tbl_active,#tbl_quit,#tbl_uniform_tx,#tbl_exp{min-width:unset !important}#tbl_tx thead tr,#tbl_debt thead tr,#tbl_active thead tr,#tbl_quit thead tr,#tbl_uniform_tx thead tr,#tbl_exp thead tr{display:none !important}#tbl_tx tbody tr{display:grid !important;grid-template-columns:1fr auto;grid-template-rows:auto auto;background:#fff;border-radius:11px !important;margin:0 0 5px !important;border:1px solid #e8edf5 !important;padding:7px 10px !important;box-shadow:0 1px 3px rgba(0,0,0,0.04) !important;gap:2px 6px}#tbl_tx tbody td{display:block !important;padding:0 !important;border:none !important;white-space:normal !important;font-size:0.82rem}#tbl_tx tbody td.col-branch{display:none !important}#tbl_tx tbody td:first-child{grid-column:1;grid-row:2;color:#94a3b8;font-size:0.68rem !important;display:flex !important;align-items:center;gap:4px}#tbl_tx tbody td:nth-last-child(5){grid-column:1;grid-row:2;font-size:0.68rem !important;padding-left:2px}#tbl_tx tbody td:nth-last-child(4){grid-column:1;grid-row:1;font-size:0.92rem !important;font-weight:800 !important;color:#0033A0}#tbl_tx tbody td:nth-last-child(3){display:none !important}#tbl_tx tbody td:nth-last-child(2){grid-column:2;grid-row:1;text-align:right;font-weight:900 !important;font-size:0.88rem !important}#tbl_tx tbody td:last-child{grid-column:2;grid-row:2;display:flex !important;gap:4px;flex-wrap:nowrap;padding:0 !important;margin:0;border:none !important;align-items:center;justify-content:flex-end}#tbl_tx .btn-sm{padding:4px 7px !important;font-size:0.7rem !important;border-radius:7px !important;white-space:nowrap}#tbl_debt tbody tr{display:grid !important;grid-template-columns:1fr auto;grid-template-rows:auto auto auto;background:#fff;border-radius:11px !important;margin:0 0 6px !important;border:1px solid #e8edf5 !important;padding:8px 10px 6px !important;box-shadow:0 1px 3px rgba(0,0,0,0.04) !important;gap:0 6px}#tbl_debt tbody tr[style*="background:#fff1f2"]{background:#fff1f2 !important;border-color:#fecaca !important}#tbl_debt tbody td{display:none !important;padding:0 !important;border:none !important;white-space:normal !important}#tbl_debt tbody td.col-branch{display:none !important}#tbl_debt tbody td:first-child{display:flex !important;grid-column:2;grid-row:1;align-items:flex-start;justify-content:flex-end;padding-top:1px !important}#tbl_debt tbody td:nth-child(2){display:block !important;grid-column:1 / -1;grid-row:2;font-size:0.62rem !important;color:#94a3b8;padding:1px 0 3px !important;line-height:1.4}#tbl_debt tbody td.name-link{display:flex !important;grid-column:1;grid-row:1;font-size:0.92rem !important;font-weight:800 !important;color:#0033A0;align-items:center;overflow:hidden;padding-right:4px !important}#tbl_debt tbody td:last-child{display:flex !important;grid-column:1 / -1;grid-row:3;gap:5px;flex-wrap:nowrap;padding-top:6px !important;margin-top:2px;border-top:1px solid #f1f5f9}#tbl_debt .btn-sm{flex:1;min-width:0;padding:6px 4px !important;font-size:0.68rem !important;border-radius:8px !important;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700 !important}#tbl_active tbody tr{display:grid !important;grid-template-columns:1fr auto;grid-template-rows:auto auto;background:#fff;border-radius:11px !important;margin:0 0 5px !important;border:1px solid #e8edf5 !important;padding:7px 10px !important;box-shadow:0 1px 3px rgba(0,0,0,0.04) !important;gap:2px 5px}#tbl_active tbody td{display:none !important;padding:0 !important;border:none !important;white-space:normal !important}#tbl_active tbody td:first-child{display:block !important;grid-column:1;grid-row:1;font-size:0.93rem !important;font-weight:800 !important;color:#0033A0}#tbl_active tbody td:nth-child(3){display:block !important;grid-column:2;grid-row:1;text-align:right}#tbl_active tbody td:nth-last-child(4){display:block !important;grid-column:1;grid-row:2;font-size:0.78rem}#tbl_active tbody td:nth-last-child(3){display:none !important}#tbl_active tbody td:last-child{display:flex !important;grid-column:2;grid-row:2;align-items:center;justify-content:flex-end;padding:0 !important;margin:0;border:none !important}#tbl_active .btn-sm{padding:4px 9px !important;font-size:0.73rem !important;border-radius:7px !important;white-space:nowrap}#tbl_quit tbody tr{display:grid !important;grid-template-columns:1fr auto;grid-template-rows:auto auto;background:#fff;border-radius:11px !important;margin:0 0 5px !important;border:1px solid #e8edf5 !important;padding:7px 10px !important;box-shadow:0 1px 3px rgba(0,0,0,0.04) !important;gap:2px 5px}#tbl_quit tbody td{display:none !important;padding:0 !important;border:none !important;white-space:normal !important}#tbl_quit tbody td:first-child{display:block !important;grid-column:1;grid-row:1;font-size:0.97rem !important;font-weight:800 !important;color:#334155}#tbl_quit tbody td:nth-child(3){display:block !important;grid-column:2;grid-row:1;text-align:right}#tbl_quit tbody td:last-child{display:block !important;grid-column:1 / -1;grid-row:2;padding-top:7px !important;margin-top:3px;border-top:1px solid #f1f5f9}#tbl_uniform_tx{min-width:unset !important}#tbl_uniform_tx tbody tr{display:grid !important;background:#fff;border-radius:12px !important;margin:0 0 7px !important;border:1px solid #e2e8f0 !important;padding:9px 11px !important;box-shadow:0 1px 3px rgba(0,0,0,0.04) !important;grid-template-columns:1fr auto !important;grid-template-rows:auto auto auto !important;gap:1px 8px !important}#tbl_uniform_tx tbody tr.inv-unpaid-row{border-left:4px solid #f97316 !important;background:#fff7ed !important}#tbl_uniform_tx tbody td{display:block !important;padding:0 !important;border:none !important;white-space:normal !important}#tbl_uniform_tx tbody td:nth-child(2){grid-column:1;grid-row:1;font-size:0.93rem !important;font-weight:800 !important;color:#1e293b}#tbl_uniform_tx tbody td:nth-child(5){grid-column:2;grid-row:1;text-align:right;font-size:1rem !important;font-weight:900 !important}#tbl_uniform_tx tbody td:nth-child(4){grid-column:1;grid-row:2;font-size:0.78rem}#tbl_uniform_tx tbody td:nth-child(3){grid-column:2;grid-row:2;text-align:right}#tbl_uniform_tx tbody td:nth-child(1){grid-column:1;grid-row:3;font-size:0.7rem !important;color:#94a3b8}#tbl_uniform_tx .action-btns{grid-column:1 / span 2 !important;grid-row:4 !important;display:flex !important;gap:5px;padding-top:6px !important;border-top:1px solid #f1f5f9;margin-top:2px}#tbl_uniform_tx .btn-sm{flex:1;padding:6px 4px !important;font-size:0.7rem !important;border-radius:8px !important;font-weight:700 !important;text-align:center;white-space:nowrap}#tbl_exp{min-width:unset !important}#tbl_exp tbody tr{display:grid !important;background:#fff;border-radius:11px !important;margin:0 0 6px !important;border:1px solid #e2e8f0 !important;padding:8px 10px !important;box-shadow:0 1px 3px rgba(0,0,0,0.04) !important;grid-template-columns:1fr auto !important;grid-template-rows:auto auto !important;gap:1px 6px !important}#tbl_exp tbody td{display:block !important;padding:0 !important;border:none !important;white-space:normal !important}#tbl_exp tbody td.col-branch{display:none !important}#tbl_exp tbody td:first-child{grid-column:1;grid-row:2;font-size:0.7rem !important;color:#94a3b8}#tbl_exp tbody td:nth-last-child(3){grid-column:1;grid-row:1;font-size:0.88rem !important;font-weight:700 !important}#tbl_exp tbody td:nth-last-child(2){grid-column:2;grid-row:1;text-align:right;font-weight:900 !important;color:#dc2626}#tbl_exp .action-btns{grid-column:2 !important;grid-row:2 !important;display:flex !important;gap:4px;justify-content:flex-end}#inventoryForm{grid-template-columns:1fr 1fr !important;padding:10px !important;gap:8px !important}#inventoryForm select,#inventoryForm input{padding:9px 10px !important;font-size:14px !important}#inventoryForm #inv_size_wrap{grid-column:span 2 !important}#inventoryForm #inv_desc{grid-column:span 2 !important}#inventoryForm #inv_unpaid_wrap{grid-column:span 2 !important}#inventoryForm button[type="submit"]{grid-column:span 2 !important;padding:10px !important;font-size:0.85rem !important}#tbl_inventory{min-width:unset !important}#tbl_inventory thead{display:none !important}#tbl_inventory tbody tr{display:grid !important;grid-template-columns:1fr auto auto auto !important;grid-template-rows:auto auto !important;align-items:center;gap:1px 8px;background:#fff;border-radius:10px !important;margin:0 0 6px !important;border:1px solid #e2e8f0 !important;padding:8px 10px !important}#tbl_inventory tbody td{display:block !important;border:none !important;padding:0 !important;white-space:nowrap}#tbl_inventory tbody td:nth-child(1){grid-column:1;grid-row:2;font-size:0.6rem !important}#tbl_inventory tbody td:nth-child(2){grid-column:1;grid-row:1;font-size:0.9rem !important;font-weight:800 !important;color:#1e40af}#tbl_inventory tbody td:nth-child(3){grid-column:2;grid-row:1 / span 2;display:flex !important;align-items:center;font-size:0.78rem !important}#tbl_inventory tbody td:nth-child(4){grid-column:3;grid-row:1 / span 2;display:flex !important;align-items:center;font-size:0.78rem !important}#tbl_inventory tbody td:nth-child(5){grid-column:4;grid-row:1 / span 2;display:flex !important;align-items:center;font-size:1.1rem !important;font-weight:900 !important}#tab_exam .table-wrapper{overflow:unset !important;max-height:none !important}#tbl_exam_list{min-width:unset !important}#tbl_exam_list thead tr{display:none !important}#tbl_exam_list tbody tr{display:grid !important;grid-template-columns:auto 1fr auto;grid-template-rows:auto auto;background:#fff;border-radius:11px !important;margin:0 0 6px !important;border:1px solid #e8edf5 !important;padding:8px 10px 6px !important;box-shadow:0 1px 3px rgba(0,0,0,0.04) !important;gap:1px 6px}#tbl_exam_list tbody td{display:none !important;padding:0 !important;border:none !important;white-space:normal !important}#tbl_exam_list tbody td[colspan]{display:block !important;grid-column:1 / -1;padding:4px 0 !important;font-size:0.7rem !important}#tbl_exam_list tbody td:first-child{display:flex !important;grid-column:1;grid-row:1;align-items:center}#tbl_exam_list tbody td.name-link{display:block !important;grid-column:2;grid-row:1;font-size:0.92rem !important;font-weight:800 !important;color:#0033A0}#tbl_exam_list tbody td.col-branch{display:none !important}#tbl_exam_list tbody td:nth-last-child(3){display:block !important;grid-column:3;grid-row:1;text-align:right}#tbl_exam_list tbody td:nth-last-child(2){display:block !important;grid-column:1 / span 2;grid-row:2;font-size:0.82rem;padding-top:5px !important;border-top:1px solid #f1f5f9;margin-top:2px}#tbl_exam_list tbody td:last-child{display:flex !important;grid-column:3;grid-row:2;align-items:center;justify-content:flex-end;padding-top:5px !important;border-top:1px solid #f1f5f9;margin-top:2px}#tbl_exam_list .btn-sm{padding:6px 10px !important;font-size:0.72rem !important;border-radius:8px !important;font-weight:700 !important;white-space:nowrap}#tbl_exam_expense{min-width:unset !important}#tbl_exam_expense thead tr{display:none !important}#tbl_exam_expense tbody tr{display:grid !important;grid-template-columns:1fr auto;grid-template-rows:auto auto;background:#fff;border-radius:10px !important;margin:0 0 5px !important;border:1px solid #fde8d8 !important;padding:7px 10px !important;gap:1px 6px}#tbl_exam_expense tbody td{display:block !important;padding:0 !important;border:none !important;white-space:normal !important}#tbl_exam_expense tbody td:first-child{grid-column:1;grid-row:2;font-size:0.7rem !important;color:#94a3b8}#tbl_exam_expense tbody td:nth-child(2){grid-column:1;grid-row:1;font-size:0.88rem !important;font-weight:700 !important}#tbl_exam_expense tbody td:nth-child(3){grid-column:2;grid-row:1;text-align:right;font-weight:900 !important;color:#dc2626}#tbl_exam_expense tbody td:last-child{grid-column:2;grid-row:2;display:flex !important;justify-content:flex-end}#filterArea{grid-template-columns:1fr 1fr !important;padding:10px 12px !important;gap:8px !important}#filterArea>div:last-child{grid-column:span 2 !important}.tab-btn{padding:7px 12px !important;font-size:0.8rem !important}#tab_tx .bg-blue-50\/50,#tab_debt .bg-amber-50{padding:6px 10px !important;gap:6px !important;margin-bottom:10px !important}#tab_tx .bg-blue-50\/50 .block,#tab_debt .bg-amber-50 .block{font-size:0.9rem !important}#tab_tx .bg-blue-50\/50 .text-xs,#tab_debt .bg-amber-50 .text-xs{font-size:0.6rem !important}#transactionForm{padding:8px !important;gap:6px !important;margin-bottom:10px !important}#transactionForm input,#transactionForm select{padding:8px 10px !important;font-size:14px !important}#transactionForm button[type="submit"]{padding:8px !important;font-size:0.8rem !important}#tbl_tx tbody tr{padding:5px 8px !important;margin:0 0 4px !important}#tab_tx .flex.gap-2.w-full,#tab_debt .flex.gap-2.flex-wrap{gap:5px !important}#tab_active .flex.gap-2.w-full{gap:5px !important;flex-wrap:wrap !important}#tab_active .flex.gap-2.w-full button{font-size:0.75rem !important;padding:8px 10px !important}}#loginOverlay .login-card{transition:max-width 0.35s cubic-bezier(0.16,1,0.3,1),width 0.35s}#loginOverlay .login-card.pp-wide{max-width:820px !important;width:95vw !important}.pp-layout{display:flex;flex-direction:column}@media (min-width:640px){.pp-layout{flex-direction:row;align-items:stretch}.pp-form-col{width:290px;min-width:260px;flex-shrink:0;border-right:1px solid #f1f5f9;display:flex;flex-direction:column;justify-content:center}.pp-results-col{flex:1;overflow-y:auto;max-height:calc(100vh - 120px);padding:16px 18px}.pp-results-col::-webkit-scrollbar{width:5px}.pp-results-col::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:5px}}@media (max-width:639px){#loginOverlay .login-card.pp-wide{width:100vw !important;max-width:100vw !important;border-radius:0 !important;height:100dvh;height:100vh;display:flex;flex-direction:column;overflow:hidden}#loginOverlay .login-card.pp-wide>.login-tabs{flex-shrink:0}#loginOverlay .login-card.pp-wide #loginPane_parent{flex:1;overflow:hidden;display:flex;flex-direction:column}#loginOverlay .login-card.pp-wide .pp-layout{flex:1;overflow:hidden}.pp-form-col{flex-shrink:0;padding:12px 16px 10px !important}.pp-results-col{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px 16px 14px}.pp-results-col::-webkit-scrollbar{display:none}}.pp-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;min-height:200px;color:#cbd5e1;gap:8px;text-align:center}.pp-placeholder svg{opacity:0.3}
+/* ── PERFORMANCE OPTIMIZATIONS ──────────────────────────────────────── */
+/* GPU compositing cho sticky header và modals */
+.tabs-wrapper{will-change:transform;transform:translateZ(0)}
+/* Paint isolation cho tab content panels */
+.tab-content{contain:layout style;will-change:contents}
+/* Smooth scroll cho bảng danh sách */
+.table-scroll-wrap{-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+/* Tối ưu modal animations */
+.modal-overlay{will-change:opacity}
+/* Tăng tốc render cho badge và button */
+.badge,.btn-sm{backface-visibility:hidden}
+/* Tối ưu font rendering */
+body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility}
+/* Ngăn reflow khi hiện/ẩn elements */
+.action-btns{min-width:max-content}
+/* Smooth scrolling toàn trang */
+html{scroll-behavior:smooth}
+/* Tối ưu focus cho keyboard navigation */
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+/* Prevent content shift cho avatar/logo */
+.club-logo-img{aspect-ratio:1;object-fit:contain}
+/* Hardware acceleration cho loading spinner */
+.loading-spinner{transform:translateZ(0);will-change:transform}
+
+/* ═══════════════════════════════════════════════════════════
+   ĐIỂM DANH (ATTENDANCE) MODULE CSS
+   ═══════════════════════════════════════════════════════════ */
+
+/* Feature 2: Tuition Warning Pulse */
+@keyframes attWarnPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.45;transform:scale(1.18)} }
+.att-tuition-warn{display:inline-block;}
+/* Feature 1: Bulk button disabled */
+#att_bulk_btn:disabled{opacity:0.6;cursor:not-allowed;}
+
+/* MOBILE: Thu nhỏ input filter trong tab Điểm danh ngày */
+@media (max-width: 639px) {
+  #att_sub_day > div:first-child > div:nth-child(2) input,
+  #att_sub_day > div:first-child > div:nth-child(2) select {
+    font-size: 0.65rem !important;
+    padding: 7px 6px !important;
+    border-radius: 8px !important;
+  }
+}
+
+/* MOBILE ONLY: Card 2 hàng kiểu BẢNG TỒN KHO cho thống kê tháng
+   → Không ảnh hưởng giao diện desktop (chỉ áp dụng ≤639px) */
+@media (max-width: 639px) {
+    #tab_attendance .table-wrapper { overflow: unset !important; max-height: none !important; }
+    #tbl_att_monthly { min-width: unset !important; }
+    #tbl_att_monthly thead tr { display: none !important; }
+    #tbl_att_monthly tbody tr {
+        display: grid !important;
+        grid-template-columns: 1fr auto auto auto;
+        grid-template-rows: auto auto;
+        background: #fff;
+        border-radius: 11px !important;
+        margin: 0 0 7px !important;
+        border: 1px solid #e8edf5 !important;
+        padding: 9px 12px !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04) !important;
+        gap: 2px 10px;
+        align-items: center;
+    }
+    #tbl_att_monthly tbody td {
+        display: block !important;
+        padding: 0 !important;
+        border: none !important;
+        white-space: nowrap;
+    }
+    /* Tên võ sinh — hàng 1, cột trái */
+    #tbl_att_monthly tbody td:nth-child(1) {
+        grid-column: 1; grid-row: 1;
+        font-size: 0.92rem !important; font-weight: 800 !important; color: #0033A0;
+        overflow: hidden; text-overflow: ellipsis;
+    }
+    /* Cấp đai — hàng 2, cột trái */
+    #tbl_att_monthly tbody td:nth-child(2) {
+        grid-column: 1; grid-row: 2;
+        font-size: 0.7rem !important; color: #64748b;
+    }
+    /* Có mặt — hàng 1, cột 2; label "✅ mặt" qua ::after */
+    #tbl_att_monthly tbody td:nth-child(3) {
+        grid-column: 2; grid-row: 1;
+        text-align: center; font-size: 1.05rem !important; font-weight: 900 !important; color: #16a34a;
+    }
+    #tbl_att_monthly tbody td:nth-child(3)::after {
+        content: "✅ mặt";
+        display: block;
+        font-size: 0.5rem; font-weight: 700; color: #16a34a;
+        line-height: 1; margin-top: 1px;
+    }
+    /* Nghỉ CP — hàng 1, cột 3; label "📝 phép" qua ::after */
+    #tbl_att_monthly tbody td:nth-child(4) {
+        grid-column: 3; grid-row: 1;
+        text-align: center; font-size: 1.05rem !important; font-weight: 900 !important; color: #2563eb;
+    }
+    #tbl_att_monthly tbody td:nth-child(4)::after {
+        content: "📝 phép";
+        display: block;
+        font-size: 0.5rem; font-weight: 700; color: #2563eb;
+        line-height: 1; margin-top: 1px;
+    }
+    /* Tỉ lệ — hàng 1, cột 4 */
+    #tbl_att_monthly tbody td:nth-child(5) {
+        grid-column: 4; grid-row: 1;
+        text-align: center;
+    }
+    /* Nút Zalo — hàng 2, span cột 2-4 */
+    #tbl_att_monthly tbody td:nth-child(6) {
+        grid-column: 2 / span 3; grid-row: 2;
+        display: flex !important; justify-content: flex-end; align-items: center;
+    }
+    #tbl_att_monthly tbody td:nth-child(6) button {
+        padding: 4px 14px !important; font-size: 0.68rem !important;
+        border-radius: 8px !important; white-space: nowrap; width: 100%;
+    }
+}
+
+/* Fix: prevent table wrapper from stretching beyond its card boundary */
+.table-wrapper {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   THỐNG KÊ THÁNG — Đảm bảo không có thanh trượt ngang trên MỌI điện thoại
+   Áp dụng cắt overflow từ cấp tab-cha cho đến từng ô con
+   ═══════════════════════════════════════════════════════════ */
+
+/* Cấp 1: tab cha #tab_attendance — chặn scroll ngang lan lên trang */
+#tab_attendance {
+    overflow-x: hidden;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Cấp 2: sub-tab Thống kê tháng */
+#att_sub_month {
+    overflow-x: hidden;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Cấp 3: wrapper bảng bên trong */
+#att_sub_month .table-wrapper {
+    overflow-x: hidden !important;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Table và tất cả phần tử con đều không được vượt quá 100% */
+#att_sub_month * {
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* MOBILE ≤639px — giao diện card tự co dãn theo chiều rộng điện thoại */
+@media (max-width: 639px) {
+    /* Bộ lọc tháng / cơ sở: xếp dọc để không bị tràn ngang */
+    #att_sub_month > div:first-child > div:nth-child(2) {
+        grid-template-columns: 1fr !important; /* 1 cột thay vì 1fr 1fr */
+    }
+
+    /* Nút Xuất Excel: chiếm toàn bộ chiều rộng, không dùng white-space:nowrap */
+    #att_sub_month > div:first-child button[onclick*="exportAttendanceExcel"] {
+        width: 100% !important;
+        white-space: normal !important;
+        flex-shrink: 1 !important;
+    }
+
+    /* Hàng chứa nút xuất Excel: xếp dọc (mô tả trên, nút dưới) */
+    #att_sub_month > div:first-child > div:last-child {
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+
+    /* Input date/select trong bộ lọc: full-width, không overflow */
+    #att_month,
+    #att_month_branch {
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    /* Tên võ sinh trong card — cắt nếu quá dài, không đẩy rộng layout */
+    #tbl_att_monthly tbody td:nth-child(1) {
+        max-width: calc(100vw - 140px) !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+    }
+
+    /* Badge cấp đai — không cho phép vượt chiều rộng cột */
+    #tbl_att_monthly tbody td:nth-child(2) span,
+    #tbl_att_monthly tbody td:nth-child(2) .badge {
+        max-width: 100% !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+    }
+}
+
+/* Điện thoại nhỏ ≤480px — giảm thêm padding/font */
+@media (max-width: 480px) {
+    #tbl_att_monthly tbody tr {
+        padding: 8px 10px !important;
+        gap: 2px 8px !important;
+    }
+    #tbl_att_monthly tbody td:nth-child(1) {
+        font-size: 0.86rem !important;
+        max-width: calc(100vw - 135px) !important;
+    }
+    #tbl_att_monthly tbody td:nth-child(2) span,
+    #tbl_att_monthly tbody td:nth-child(2) .badge {
+        font-size: 0.62rem !important;
+        padding: 1px 6px !important;
+    }
+    #tbl_att_monthly tbody td:nth-child(3),
+    #tbl_att_monthly tbody td:nth-child(4) {
+        font-size: 0.95rem !important;
+    }
+    #att_month, #att_month_branch {
+        font-size: 0.78rem !important;
+        padding: 9px 8px !important;
+    }
+}
+
+/* Điện thoại rất nhỏ ≤360px */
+@media (max-width: 360px) {
+    #tbl_att_monthly tbody tr {
+        padding: 6px 8px !important;
+        gap: 1px 5px !important;
+    }
+    #tbl_att_monthly tbody td:nth-child(1) {
+        font-size: 0.78rem !important;
+        max-width: calc(100vw - 120px) !important;
+    }
+    #tbl_att_monthly tbody td:nth-child(3),
+    #tbl_att_monthly tbody td:nth-child(4) {
+        font-size: 0.82rem !important;
+    }
+    #tbl_att_monthly tbody td:nth-child(3)::after,
+    #tbl_att_monthly tbody td:nth-child(4)::after {
+        font-size: 0.42rem !important;
+    }
+    #tbl_att_monthly tbody td:nth-child(6) button {
+        padding: 3px 8px !important;
+        font-size: 0.6rem !important;
+    }
+    #att_month, #att_month_branch {
+        font-size: 0.7rem !important;
+        padding: 8px 6px !important;
+    }
+}
+
+/* ══════════════════════════════════════════════════════
+   LỊCH HỌC & HỌC BÙ — Toggle Switch CSS
+   ══════════════════════════════════════════════════════ */
+
+/* Checkbox học bù: native checkbox phóng to, không bao giờ bị lỗi CSS trên mobile */
+#chk_show_all_att {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    cursor: pointer;
+    accent-color: #0033A0;
+    flex-shrink: 0;
+    margin: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ĐIỂM DANH — CẢI THIỆN RESPONSIVE MOBILE / DESKTOP
+   ═══════════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════════════════
+   [SỬA] LƯỚI ĐIỂM DANH — Tự cân chỉnh số cột theo màn hình
+   Dùng auto-fill + minmax thay cho repeat(2,1fr) cố định
+   ═══════════════════════════════════════════════════════════ */
+#attendanceGrid {
+    display: grid;
+    /* Tự động: mỗi ô tối thiểu 140px — điện thoại nhỏ ra 2 cột, lớn hơn ra 3-4 cột */
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 140px), 1fr));
+    gap: 10px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Đảm bảo mỗi thẻ võ sinh KHÔNG tràn ra ngoài ô lưới — khắc phục lỗi overflow mobile */
+#attendanceGrid > div {
+    min-width: 0;        /* Bắt buộc cho CSS Grid — ngăn nội dung đẩy rộng ô */
+    overflow: hidden;    /* Cắt nội dung vượt biên */
+    box-sizing: border-box;
+    word-break: break-word; /* Tên dài tự xuống hàng thay vì tràn ngang */
+}
+
+@media (min-width: 480px) {
+    /* Tablet nhỏ / điện thoại nằm ngang: tăng min card lên 160px → 2-3 cột */
+    #attendanceGrid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+}
+@media (min-width: 768px) {
+    /* Tablet / desktop nhỏ: min 180px → 3-4 cột */
+    #attendanceGrid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+}
+@media (min-width: 1024px) {
+    /* Desktop rộng: min 200px, tối đa 4 cột để thẻ không quá rộng */
+    #attendanceGrid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+}
+
+/* Sub-tab navigation cải thiện */
+#att_sub_btn_day, #att_sub_btn_month {
+    transition: all 0.18s ease;
+}
+#att_sub_btn_day:active, #att_sub_btn_month:active {
+    transform: scale(0.96);
+}
+
+/* Thẻ võ sinh: hiệu ứng hover trên desktop */
+@media (hover: hover) and (pointer: fine) {
+    #attendanceGrid > div:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 16px rgba(0,0,0,0.12) !important;
+    }
+}
+
+/* Coach add student button — nhất quán với bulk btn */
+#coach_add_btn_wrap button:active {
+    transform: scale(0.97);
+}
+
+/* Admin daily branch summary — responsive grid */
+@media (max-width: 639px) {
+    #admin_daily_branch_summary > div > div > div[style*="minmax(160px"] {
+        grid-template-columns: 1fr 1fr !important;
+    }
+}
+
+/* Bộ lọc điểm danh — cải thiện focus state */
+#att_date:focus, #att_branch:focus, #att_belt:focus {
+    border-color: #0033A0 !important;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0,51,160,0.10);
+}
+
+/* Chú thích trạng thái — wrap đẹp hơn trên mobile nhỏ */
+#attendanceSummary {
+    gap: 5px !important;
+}
+#attendanceSummary > * {
+    white-space: nowrap;
+}
+
+
+/* ═══════════════════════════════════════════════════════════
+   FIX: LỊCH TẬP TRONG TUẦN — Checkbox & Chữ không đè nhau
+   ═══════════════════════════════════════════════════════════ */
+
+/*
+ * Sử dụng flex-wrap thay cho grid để mỗi nhãn (label) tự chiếm
+ * đủ chiều rộng cần thiết. Không bị tràn/đè dù màn hình nhỏ.
+ */
+.training-days-grid {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 6px 12px !important;
+}
+
+/* Mỗi label chứa checkbox + chữ Thứ X: đảm bảo không bị ép xuống */
+.training-days-grid label {
+    display: flex !important;
+    align-items: center !important;
+    gap: 5px !important;
+    cursor: pointer;
+    white-space: nowrap !important; /* Chữ "Thứ 2" không bao giờ bị xuống hàng */
+    flex-shrink: 0 !important;      /* Không bị thu nhỏ khi thiếu không gian */
+}
+
+/* Checkbox trong lịch tập — kích thước rõ ràng, không bị chồng lên chữ */
+.training-days-grid input[type="checkbox"] {
+    width: 16px !important;
+    height: 16px !important;
+    flex-shrink: 0 !important;      /* Không bị ép nhỏ */
+    cursor: pointer;
+    accent-color: var(--primary);
+    vertical-align: middle;
+    margin: 0 !important;           /* Xóa margin mặc định của browser */
+}
+
+/* Inline style override dùng khi HTML đã được render với style trực tiếp */
+[style*="display:grid;grid-template-columns:repeat(4,1fr)"] {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 6px 12px !important;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   KHO ĐỒ — Quản lý danh mục tùy chỉnh
+   ═══════════════════════════════════════════════════════════ */
+
+/* Nút quản lý danh mục kho — chỉ hiện với admin */
+#admin_manage_cat_wrap {
+    text-align: right;
+    margin-bottom: 10px;
+}
+
+/* Modal quản lý danh mục kho — responsive */
+#manageCatModal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.75);
+    z-index: 10002;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    backdrop-filter: blur(4px);
+}
+
+#manageCatModal > div {
+    animation: slideUpModal 0.22s ease;
+}
+
+@keyframes slideUpModal {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Input trong form thêm danh mục — focus state */
+#newCatName:focus,
+#newCatSizes:focus {
+    border-color: #0033A0 !important;
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(0, 51, 160, 0.1) !important;
+}
+
+/* Mobile: đảm bảo modal không bị tràn màn hình nhỏ */
+@media (max-width: 480px) {
+    #manageCatModal > div {
+        border-radius: 16px !important;
+        max-height: 95vh !important;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CẢNH BÁO NGHỈ NHIỀU — Đèn nhấp nháy
+   🟡 Vàng = 2 buổi không phép liên tiếp
+   🔴 Đỏ  = 3+ buổi không phép liên tiếp
+   Dùng outline thay border — không xung đột inline style,
+   không cần !important, animation hoạt động đúng
+   ═══════════════════════════════════════════════════════════ */
+
+/* Badge icon (🟡🔴) nhấp nháy bên cạnh tên */
+@keyframes absWarnBlink {
+    0%, 100% { opacity: 1;   transform: scale(1);   }
+    50%       { opacity: 0.2; transform: scale(1.3); }
+}
+.abs-warn-red,
+.abs-warn-yellow {
+    display: inline-block;
+    animation: absWarnBlink 0.85s ease-in-out infinite;
+    cursor: help;
+    vertical-align: middle;
+    line-height: 1;
+}
+
+/* Viền card nhấp nháy — outline không xung đột với border inline */
+@keyframes attCardBlinkYellow {
+    0%, 100% { outline: 2px solid #ca8a04; box-shadow: 0 0 0 2px rgba(202,138,4,0.18); }
+    50%       { outline: 2px solid #fcd34d; box-shadow: 0 0 0 5px rgba(252,211,77,0.42); }
+}
+@keyframes attCardBlinkRed {
+    0%, 100% { outline: 2px solid #dc2626; box-shadow: 0 0 0 2px rgba(220,38,38,0.18); }
+    50%       { outline: 2px solid #f87171; box-shadow: 0 0 0 5px rgba(248,113,113,0.42); }
+}
+/* 2 buổi KP liên tiếp — outline vàng nhấp nháy */
+.att-card-warn-yellow {
+    outline: 2px solid #ca8a04;
+    outline-offset: 1px;
+    animation: attCardBlinkYellow 0.85s ease-in-out infinite;
+}
+/* 3+ buổi KP liên tiếp — outline đỏ nhấp nháy */
+.att-card-warn-red {
+    outline: 2px solid #dc2626;
+    outline-offset: 1px;
+    animation: attCardBlinkRed 0.85s ease-in-out infinite;
+}
+
+
+
+/* ═══════════════════════════════════════════════════════════
+   [SỬA] ĐĂNG NHẬP — Login field wrap + inline error + UI
+   Dùng flexbox: icon và input nằm trong 1 container
+   ═══════════════════════════════════════════════════════════ */
+.login-field-wrap {
+    display: flex;
+    align-items: center;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    background: #f8fafc;
+    overflow: hidden;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    margin-bottom: 12px;
+}
+.login-field-wrap:focus-within {
+    border-color: #0033A0;
+    box-shadow: 0 0 0 3px rgba(0,51,160,0.12);
+    background: #fff;
+}
+.lf-icon {
+    flex-shrink: 0;
+    width: 40px;
+    text-align: center;
+    font-size: 1rem;
+    color: #94a3b8;
+    pointer-events: none;
+    line-height: 1;
+    padding: 0 2px 0 10px;
+}
+.lf-input {
+    flex: 1;
+    border: none !important;
+    outline: none !important;
+    background: transparent !important;
+    padding: 13px 14px 13px 4px !important;
+    font-size: 1rem !important;
+    color: #334155 !important;
+    width: 100% !important;
+    min-width: 0;
+    font-family: inherit;
+}
+.lf-input::placeholder { color: #94a3b8; font-size: 0.9rem; }
+
+/* Inline error — tự ẩn */
+#loginErrorMsg {
+    display: none;
+    margin: 0 0 14px;
+    padding: 10px 14px;
+    background: #fef2f2;
+    border: 1.5px solid #fca5a5;
+    border-radius: 12px;
+    color: #dc2626;
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-align: center;
+    line-height: 1.5;
+}
+#loginErrorMsg.visible {
+    display: block;
+    animation: loginErrIn 0.25s ease;
+}
+@keyframes loginErrIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+/* Background circles trang trí */
+#loginOverlay::before, #loginOverlay::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.07);
+    pointer-events: none;
+}
+#loginOverlay::before { width: 320px; height: 320px; top: -80px; right: -80px; }
+#loginOverlay::after  { width: 220px; height: 220px; bottom: -60px; left: -60px; }
+.login-card { position: relative; z-index: 1; }
+.login-title {
+    font-size: 1.05rem; font-weight: 900; color: #0033A0;
+    letter-spacing: 0.01em; margin-bottom: 3px; line-height: 1.3;
+}
+.login-subtitle { font-size: 0.78rem; color: #94a3b8; margin-bottom: 20px; }
+
+
+/* ╔══════════════════════════════════════════════════════════════════════╗
+   ║  🎨 DESIGN UPGRADE v2 — Giao diện chuyên nghiệp                    ║
+   ║  Chỉ nâng cấp visual: màu, shadow, spacing, typography.            ║
+   ║  Không thay đổi layout, responsive, hay logic chức năng.           ║
+   ╚══════════════════════════════════════════════════════════════════════╝ */
+
+/* ── Biến design token bổ sung ─────────────────────────────────────── */
+:root {
+  --shadow-xs : 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-sm : 0 2px 8px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.04);
+  --shadow-md : 0 4px 18px rgba(0,0,0,0.09), 0 2px 6px rgba(0,0,0,0.04);
+  --shadow-lg : 0 8px 32px rgba(0,0,0,0.11), 0 4px 12px rgba(0,0,0,0.05);
+  --shadow-primary: 0 4px 14px rgba(0,51,160,0.22);
+}
+
+/* ── Nền ứng dụng: gradient nhẹ thay vì màu phẳng ─────────────────── */
+body {
+  background: linear-gradient(160deg, #eef2f9 0%, #e8edf7 40%, #edf0f7 100%) !important;
+  background-attachment: fixed !important;
+}
+
+/* ── Tabs wrapper: border & shadow rõ nét hơn ──────────────────────── */
+.tabs-wrapper {
+  background: rgba(255,255,255,0.97) !important;
+  border-bottom: 1.5px solid rgba(226,232,240,0.9) !important;
+  box-shadow: 0 2px 14px rgba(0,0,0,0.07) !important;
+}
+
+/* ── Tab buttons: bỏ border, dùng background thay thế ──────────────── */
+.tab-btn {
+  font-size: 0.83rem !important;
+  font-weight: 600 !important;
+  padding: 7px 15px !important;
+  border: none !important;
+  border-radius: 8px !important;
+  color: #64748b !important;
+  background: transparent !important;
+  transition: all 0.16s ease !important;
+}
+.tab-btn:hover {
+  color: #0033A0 !important;
+  background: rgba(0,51,160,0.07) !important;
+}
+.tab-btn.active {
+  color: #fff !important;
+  background: linear-gradient(135deg, #0033A0 0%, #1a56db 100%) !important;
+  font-weight: 700 !important;
+  box-shadow: 0 3px 10px rgba(0,51,160,0.30) !important;
+}
+
+/* ── Table header: gradient tinh tế ────────────────────────────────── */
+th {
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%) !important;
+  color: #334155 !important;
+  font-size: 0.69rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.07em !important;
+  padding: 11px 12px !important;
+  border-bottom: 2px solid #e2e8f0 !important;
+}
+
+/* ── Table cells: padding rộng hơn, dễ đọc ─────────────────────────── */
+td {
+  padding: 10px 12px !important;
+  font-size: 0.845rem !important;
+  color: #1e293b !important;
+  border-bottom: 1px solid #f0f4f8 !important;
+}
+
+/* ── Zebra striping: chỉ áp dụng khi row không có màu riêng ────────── */
+tbody tr:nth-child(even):not([style*="background"]):not([class*="warn"]):not([class*="paid"]):not([class*="unpaid"]) td {
+  background: rgba(248,250,252,0.65);
+}
+
+/* ── Row hover: hiệu ứng sáng nhẹ ──────────────────────────────────── */
+tbody tr:hover td {
+  background: rgba(0,51,160,0.035) !important;
+  transition: background 0.12s ease !important;
+}
+
+/* ── Scrollbar bảng: thanh mỏng tinh tế ────────────────────────────── */
+.table-wrapper::-webkit-scrollbar        { width: 4px; height: 4px; }
+.table-wrapper::-webkit-scrollbar-track  { background: transparent; }
+.table-wrapper::-webkit-scrollbar-thumb  { background: #cbd5e1; border-radius: 99px; }
+.table-wrapper::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* ── Badges: pill hoàn toàn, đẹp hơn ───────────────────────────────── */
+.badge {
+  border-radius: 99px !important;
+  padding: 3px 10px !important;
+  font-size: 0.7rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.01em !important;
+}
+
+/* ── Nút btn-sm: shadow + hover lift ───────────────────────────────── */
+.btn-sm {
+  border-radius: 8px !important;
+  font-size: 0.73rem !important;
+  font-weight: 700 !important;
+  padding: 6px 12px !important;
+  box-shadow: var(--shadow-xs) !important;
+  transition: all 0.14s ease !important;
+}
+.btn-sm:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: var(--shadow-sm) !important;
+  filter: brightness(1.04) !important;
+}
+.btn-sm:active {
+  transform: translateY(0) !important;
+  box-shadow: none !important;
+  filter: brightness(0.97) !important;
+}
+
+/* ── Name link: underline offset đẹp hơn ───────────────────────────── */
+.name-link {
+  text-underline-offset: 3px !important;
+  transition: color 0.14s ease !important;
+}
+.name-link:hover {
+  color: #0052cc !important;
+}
+
+/* ── Stat cards dashboard: hover lift + shadow ──────────────────────── */
+.stat-card {
+  box-shadow: var(--shadow-md) !important;
+  transition: transform 0.18s ease, box-shadow 0.18s ease !important;
+}
+@media (hover: hover) and (pointer: fine) {
+  .stat-card:hover {
+    transform: translateY(-3px) !important;
+    box-shadow: var(--shadow-lg) !important;
+  }
+}
+.stat-card h3 { letter-spacing: 0.07em !important; opacity: 0.92 !important; }
+.stat-card p  { font-weight: 900 !important; line-height: 1.2 !important; }
+
+/* ── Cards trắng (bg-white + rounded): shadow nhẹ nhàng ─────────────── */
+/* Áp dụng cho toàn bộ container card thông qua table wrapper */
+.bg-white.rounded-xl  { box-shadow: var(--shadow-sm) !important; }
+.bg-white.rounded-2xl { box-shadow: var(--shadow-sm) !important; }
+
+/* ── Toast: glass style ──────────────────────────────────────────────── */
+.toast {
+  border-radius: 14px !important;
+  padding: 13px 22px !important;
+  font-size: 0.87rem !important;
+  font-weight: 700 !important;
+  box-shadow: 0 8px 28px rgba(16,185,129,0.22), 0 2px 8px rgba(0,0,0,0.10) !important;
+  letter-spacing: 0.01em !important;
+}
+.toast.loading {
+  background: #0033A0 !important;
+  box-shadow: 0 8px 28px rgba(0,51,160,0.28) !important;
+}
+
+/* ── Modal content: shadow nâng cao hơn ─────────────────────────────── */
+.modal-content {
+  border-radius: 24px 24px 0 0 !important;
+  box-shadow: 0 -6px 40px rgba(0,0,0,0.13), 0 -2px 10px rgba(0,0,0,0.06) !important;
+}
+
+/* ── Modal backdrop: tối hơn & rõ hơn ───────────────────────────────── */
+.modal {
+  background: rgba(10,18,36,0.72) !important;
+}
+
+/* ── Form inputs: focus ring rõ nét ─────────────────────────────────── */
+input:not(.lf-input):focus,
+select:focus,
+textarea:focus {
+  border-color: #0033A0 !important;
+  box-shadow: 0 0 0 3px rgba(0,51,160,0.10) !important;
+  outline: none !important;
+}
+
+/* ── Tab content: animation mượt mà hơn ─────────────────────────────── */
+.tab-content.active {
+  animation: tabSlideIn 0.22s cubic-bezier(0.16,1,0.3,1) !important;
+}
+@keyframes tabSlideIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Mobile header: gradient đẹp hơn ────────────────────────────────── */
+@media (max-width: 767px) {
+  .mobile-header-bar {
+    background: linear-gradient(135deg, #001a60 0%, #0033A0 50%, #1a4fd8 100%) !important;
+    box-shadow: 0 4px 22px rgba(0,26,96,0.38) !important;
+  }
+}
+
+/* ── Pull-to-refresh indicator: căn chỉnh ───────────────────────────── */
+#pullToRefreshIndicator {
+  border-radius: 0 0 16px 16px !important;
+}
+
+/* ── Monthly reminder banner: tinh tế hơn ───────────────────────────── */
+#monthlyReminder {
+  box-shadow: var(--shadow-md) !important;
+  border-radius: 16px !important;
+}
+
+/* ── Admin notification banner: nâng cấp shadow ─────────────────────── */
+#admin_notif_banner {
+  box-shadow: 0 4px 16px rgba(245,158,11,0.15) !important;
+}
+
+/* ── Floating action / main buttons: tinh tế ────────────────────────── */
+button[onclick*="openAdd"]:not(.btn-sm),
+button[onclick*="openNew"]:not(.btn-sm) {
+  transition: all 0.15s ease !important;
+}
+
+/* ── Loading spinner: animation mượt hơn ────────────────────────────── */
+.loading-spinner {
+  animation-timing-function: cubic-bezier(0.5, 0, 0.5, 1) !important;
+}
+
+/* ── Desktop: max-width container cho màn hình lớn ──────────────────── */
+@media (min-width: 1280px) {
+  .app-container {
+    max-width: 1240px;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+}
+
+/* ── Scrollbar toàn trang (Chrome/Edge): mỏng & tinh tế ─────────────── */
+::-webkit-scrollbar        { width: 5px; height: 5px; }
+::-webkit-scrollbar-track  { background: transparent; }
+::-webkit-scrollbar-thumb  { background: #c8d3e0; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* ── Focus visible: ring đồng nhất ──────────────────────────────────── */
+button:focus-visible, input:focus-visible, select:focus-visible {
+  outline: 2px solid #0033A0 !important;
+  outline-offset: 2px !important;
+}
+
+
+/* Phase 4.0B-4J-2: Mobile fix for Add Student tuition package row */
+.add-package-row{display:flex;align-items:stretch;gap:8px;width:100%;min-width:0;}
+.add-package-select{flex:1 1 auto;min-width:0;width:100%;height:42px;font-size:0.95rem !important;white-space:nowrap;}
+.add-discount-row{display:flex;align-items:stretch;gap:8px;flex:0 0 auto;min-width:max-content;}
+.add-discount-check{display:flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap;background:#fff;padding:8px 10px;border:1px solid #fecaca;border-radius:10px;box-shadow:0 1px 2px rgba(15,23,42,0.04);}
+.add-discount-check span{font-size:0.7rem;font-weight:800;color:#f43f5e;text-transform:uppercase;}
+.add-discount-percent{display:flex;align-items:center;gap:4px;background:#fff;padding:7px 8px;border:1px solid #fecaca;border-radius:10px;box-shadow:0 1px 2px rgba(15,23,42,0.04);}
+.add-discount-percent input{width:42px !important;text-align:center;font-weight:900;color:#e11d48;font-size:0.86rem !important;border:1.5px solid #fecdd3 !important;border-radius:7px !important;padding:3px 4px !important;background:#fff;outline:none;}
+.add-discount-percent span{color:#e11d48;font-weight:900;font-size:0.78rem;}
+@media(max-width:420px){
+  .add-package-row{flex-direction:column;align-items:stretch;gap:8px;}
+  .add-package-select{width:100%;min-width:100%;height:44px;font-size:1rem !important;}
+  .add-discount-row{width:100%;display:grid;grid-template-columns:1fr auto;gap:8px;}
+  .add-discount-check{width:100%;min-width:0;justify-content:flex-start;}
+  .add-discount-percent{min-width:76px;justify-content:center;}
+}
+@media(max-width:340px){
+  .add-discount-row{grid-template-columns:1fr;}
+  .add-discount-percent{width:100%;justify-content:flex-start;}
+}
+
+/* Phase 4.0B-4J-2: Modal overflow-x safety */
+#addModal .modal-content{max-width:min(96vw,720px);overflow-x:hidden;}
+#addModal select,#addModal input{max-width:100%;}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   PHASE 4.0B-4J-7 — MODERN UI/UX REFRESH + MOBILE PERFORMANCE
+   Không đổi logic. Không đổi ID. Chỉ thêm CSS.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── PHASE 1: Design Tokens ─────────────────────────────────────────── */
+:root {
+  /* Map brand colours qua token mới (không override --primary / --secondary) */
+  --ui-primary       : var(--primary, #0033A0);
+  --ui-danger        : var(--secondary, #C8102E);
+
+  /* Surface & text */
+  --ui-bg            : #f6f8fc;
+  --ui-surface       : #ffffff;
+  --ui-surface-soft  : #f8fafc;
+  --ui-border        : rgba(148, 163, 184, 0.28);
+  --ui-border-strong : rgba(100, 116, 139, 0.35);
+  --ui-text          : #0f172a;
+  --ui-muted         : #64748b;
+  --ui-primary-soft  : rgba(0, 51, 160, 0.08);
+  --ui-success       : #16a34a;
+  --ui-warning       : #f59e0b;
+
+  /* Radius */
+  --ui-radius-sm : 10px;
+  --ui-radius-md : 14px;
+  --ui-radius-lg : 18px;
+  --ui-radius-xl : 22px;
+
+  /* Shadows — map qua shadow tokens đã có */
+  --ui-shadow-sm : var(--shadow-xs, 0 1px 3px rgba(15,23,42,0.06));
+  --ui-shadow-md : var(--shadow-md, 0 8px 24px rgba(15,23,42,0.08));
+  --ui-shadow-lg : var(--shadow-lg, 0 18px 42px rgba(15,23,42,0.12));
+
+  /* Touch & speed */
+  --ui-touch      : 44px;
+  --ui-speed-fast : 120ms;
+  --ui-speed      : 180ms;
+}
+
+/* ── PHASE 2: Modern card/panel polish ──────────────────────────────── */
+.app-container {
+  background  : var(--ui-surface);
+  border      : 1px solid var(--ui-border);
+  box-shadow  : var(--ui-shadow-md);
+}
+
+/* Tab content fade-in using new token */
+@keyframes uiFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.tab-content.active {
+  /* Upgrade existing tabSlideIn to use design-token speed */
+  animation-duration: var(--ui-speed) !important;
+}
+
+/* Shared panel-card class for dynamically added panels */
+.panel-card,
+.modern-card {
+  border        : 1px solid var(--ui-border);
+  border-radius : var(--ui-radius-lg);
+  box-shadow    : var(--ui-shadow-sm);
+  background    : var(--ui-surface);
+}
+
+/* ── PHASE 3: Mobile tab scroll-snap ────────────────────────────────── */
+.tabs-nav {
+  scroll-snap-type      : x proximity;
+  overscroll-behavior-x : contain;
+}
+.tab-btn {
+  scroll-snap-align : start;
+  min-height        : 36px;
+}
+.tab-btn:active {
+  transform: scale(0.97) !important;
+}
+
+@media (max-width: 767px) {
+  .tabs-wrapper {
+    background    : rgba(246, 248, 252, 0.96) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+  }
+  .tabs-nav {
+    padding : 6px 10px 10px !important;
+    gap     : 7px !important;
+  }
+  .tab-btn {
+    border-radius : 999px !important;
+    padding       : 8px 13px !important;
+    font-size     : 0.8rem !important;
+    min-height    : var(--ui-touch) !important;
+  }
+}
+
+/* ── PHASE 4: Mobile card row polish (additive) ─────────────────────── */
+@media (max-width: 767px) {
+  /* Elevate border on mobile cards slightly */
+  #tbl_tx tbody tr,
+  #tbl_debt tbody tr,
+  #tbl_active tbody tr,
+  #tbl_quit tbody tr,
+  #tbl_uniform_tx tbody tr,
+  #tbl_exp tbody tr,
+  #tbl_exam_list tbody tr,
+  #tbl_att_monthly tbody tr {
+    border  : 1px solid var(--ui-border) !important;
+    transition: box-shadow var(--ui-speed-fast) ease !important;
+  }
+  #tbl_tx tbody tr:active,
+  #tbl_debt tbody tr:active,
+  #tbl_active tbody tr:active {
+    box-shadow: none !important;
+    background: var(--ui-surface-soft) !important;
+  }
+  /* Make btn-sm touch-friendly inside mobile cards */
+  .btn-sm {
+    min-height  : 36px;
+    padding     : 6px 11px !important;
+  }
+}
+
+/* ── PHASE 5: Modal mobile bottom-sheet polish ──────────────────────── */
+@media (max-width: 767px) {
+  .modal {
+    align-items : flex-end !important;
+    padding     : 0 !important;
+  }
+  .modal-content {
+    width       : 100% !important;
+    max-width   : 100% !important;
+    max-height  : 92dvh !important;
+    max-height  : 92vh !important;
+    border-radius: var(--ui-radius-xl) var(--ui-radius-xl) 0 0 !important;
+    overflow-y  : auto !important;
+    overflow-x  : hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  /* Ensure all buttons inside modals are touch-friendly */
+  .modal-content button:not(.btn-sm) {
+    min-height : var(--ui-touch) !important;
+  }
+  /* Inputs in modals */
+  .modal-content input,
+  .modal-content select,
+  .modal-content textarea {
+    min-height : var(--ui-touch) !important;
+    font-size  : 16px !important;
+  }
+  /* Reduce shadow weight on mobile for perf */
+  .modal-content {
+    box-shadow: 0 -4px 28px rgba(0,0,0,0.11), 0 -1px 6px rgba(0,0,0,0.05) !important;
+  }
+}
+
+/* ── PHASE 6: Performance CSS ───────────────────────────────────────── */
+/* Paint isolation: tab panels that are not active are hidden */
+.tab-content:not(.active) {
+  display: none;
+}
+
+/* Containment on active tab panels only (not inactive — already hidden) */
+.tab-content.active {
+  contain: layout paint;
+}
+
+/* content-visibility for long lists below fold */
+@supports (content-visibility: auto) {
+  .table-wrapper {
+    content-visibility    : auto;
+    contain-intrinsic-size: 0 500px;
+  }
+  /* Do NOT apply to modal or attendance daily grid — they must paint immediately */
+  .modal-content .table-wrapper,
+  #attendanceGrid {
+    content-visibility    : visible !important;
+    contain-intrinsic-size: none !important;
+  }
+}
+
+/* Reduce shadow cost on mobile */
+@media (max-width: 767px) {
+  .stat-card,
+  .table-wrapper,
+  .modal-content {
+    box-shadow: var(--ui-shadow-sm) !important;
+  }
+}
+
+/* ── PHASE 7: Login / loading glass overlay ─────────────────────────── */
+.loading-soft {
+  background      : rgba(255, 255, 255, 0.88);
+  backdrop-filter : blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* ── PHASE 8: Empty state & skeleton ────────────────────────────────── */
+.ui-empty-state {
+  border        : 1px dashed var(--ui-border-strong);
+  border-radius : var(--ui-radius-lg);
+  padding       : 24px 18px;
+  text-align    : center;
+  color         : var(--ui-muted);
+  background    : var(--ui-surface-soft);
+  font-size     : 0.85rem;
+  line-height   : 1.5;
+}
+
+.ui-skeleton {
+  position   : relative;
+  overflow   : hidden;
+  background : #e2e8f0;
+  border-radius: 10px;
+}
+.ui-skeleton::after {
+  content    : "";
+  position   : absolute;
+  inset      : 0;
+  transform  : translateX(-100%);
+  background : linear-gradient(90deg,
+    transparent,
+    rgba(255, 255, 255, 0.55),
+    transparent);
+  animation  : uiSkeleton 1.2s ease-in-out infinite;
+}
+@keyframes uiSkeleton {
+  100% { transform: translateX(100%); }
+}
+
+/* ── PHASE 9: Button consistency ────────────────────────────────────── */
+.btn-primary,
+button.primary-action {
+  border-radius : 12px !important;
+  font-weight   : 800 !important;
+  box-shadow    : 0 4px 12px rgba(0, 51, 160, 0.14) !important;
+  transition    : all var(--ui-speed-fast) ease !important;
+}
+.btn-primary:hover,
+button.primary-action:hover {
+  box-shadow    : 0 6px 18px rgba(0, 51, 160, 0.22) !important;
+  transform     : translateY(-1px) !important;
+}
+
+/* Sticky action row in modal on mobile */
+@media (max-width: 767px) {
+  .modal-content .action-row {
+    position   : sticky;
+    bottom     : 0;
+    background : linear-gradient(to top, #fff 80%, rgba(255,255,255,0));
+    padding-top: 10px;
+    z-index    : 2;
+  }
+}
+
+/* ── PHASE 10: Accessibility & touch ────────────────────────────────── */
+/* Tap highlight suppression — already in body, reinforce for buttons */
+button, a, [role="button"] {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Strong focus ring */
+:focus-visible {
+  outline        : 3px solid rgba(0, 51, 160, 0.22) !important;
+  outline-offset : 2px !important;
+}
+
+/* Prefers reduced motion — disable all animations/transitions */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration       : 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration      : 0.001ms !important;
+    scroll-behavior          : auto !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   END PHASE 4.0B-4J-7
+   ═══════════════════════════════════════════════════════════════════════ */
