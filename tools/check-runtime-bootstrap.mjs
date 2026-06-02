@@ -117,6 +117,23 @@ checkPattern(mainSrc, "ensureModuleRuntimeReady('finance'",    "gọi ensureModu
 checkPattern(mainSrc, "ensureModuleRuntimeReady('inventory'",  "gọi ensureModuleRuntimeReady cho 'inventory'");
 checkPattern(mainSrc, "ensureModuleRuntimeReady('students'",   "gọi ensureModuleRuntimeReady cho 'students'");
 
+// ── A4b. ensureModuleRuntimeReady typeof guard (HOTFIX) ──────────
+console.log('');
+console.log('[RuntimeBootstrapCheck] [main.js] Kiểm tra ensureModuleRuntimeReady typeof guard (HOTFIX)...');
+checkPattern(
+    mainSrc,
+    /typeof\s+window\.ensureModuleRuntimeReady\s*===\s*['"]function['"]/,
+    "typeof guard trước khi gọi ensureModuleRuntimeReady (tránh 'is not a function' crash)"
+);
+// ── A4c. db guard trước initStudentPagination ─────────────────
+console.log('');
+console.log('[RuntimeBootstrapCheck] [main.js] Kiểm tra db guard cho pagination inits...');
+checkPattern(
+    mainSrc,
+    /__store\.db/,
+    'initStudentPagination/initTransactionPagination có check window.__store.db'
+);
+
 // ── A5. app:context-ready listener ──────────────────────────────
 console.log('');
 console.log('[RuntimeBootstrapCheck] [main.js] Kiểm tra app:context-ready listener...');
