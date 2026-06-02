@@ -512,9 +512,15 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   // HTTP/HTTPS: inject main.js module layer
   var s = document.createElement('script');
   s.type = 'module';
-  s.src  = 'js/main.js';
+  s.src  = './js/main.js';
   s.onerror = function(e) {
-    console.warn('[main.js] Module load failed — app.js standalone mode active.', e);
+    // [GitHub Pages Hotfix] main.js 404 — thường do repo path hoặc thiếu file
+    var _ghMsg = '[main.js] Module load failed — app.js standalone mode active.';
+    if (window.location.hostname.includes('github.io')) {
+      _ghMsg += ' GitHub Pages: kiểm tra ./js/main.js có trong repo và .nojekyll tồn tại. URL: ' + window.location.href;
+    }
+    console.warn(_ghMsg, e);
+    window.__MAIN_JS_LOAD_FAILED = true;
   };
   document.head.appendChild(s);
 })();
