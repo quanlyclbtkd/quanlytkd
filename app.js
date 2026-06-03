@@ -729,7 +729,13 @@ window.invCustomCategories = [];
         if(tabId === 'exam' && typeof window.renderExamList === 'function') { window.renderExamList(); if(typeof window.updateNextBeltPreview === 'function') window.updateNextBeltPreview(); }
         if(tabId === 'attendance') { const _attD = document.getElementById('att_date'); if(_attD && !_attD.value) _attD.value = getLocalToday(); if(typeof window.renderAttendanceList === 'function') window.renderAttendanceList(); }
         window.scrollTo({top: 0, behavior: 'smooth'});
-        scheduleRender();
+        // [Phase 4K-STUDENT-LIST] Dùng domain invalidation thay vì scheduleRender() toàn app.
+        // Fallback về scheduleRender() nếu invalidateCurrentTab chưa load (backward compat).
+        if (typeof window.invalidateCurrentTab === 'function') {
+            window.invalidateCurrentTab('tab-switch-' + tabId);
+        } else {
+            scheduleRender();
+        }
     };
 
     window.getBranchNameDisplay = (code) => {
