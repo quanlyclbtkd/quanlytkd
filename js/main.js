@@ -1244,6 +1244,13 @@ window.printClubRuntimeDiagnostics = async function printClubRuntimeDiagnostics(
             : ((window.__profileScaleMetrics && window.__profileScaleMetrics.activeCount) || -1);
         const _txMem      = ((window.allTransactions || (window.__store && window.__store.transactions)) || []).length;
         const _tbodyRows  = document.querySelectorAll('tbody tr').length;
+        // Phase 4K-STUDENT-LIST: thêm activeList row count + pagination + fallback count
+        const _activeListRows  = document.querySelectorAll('#activeList tr[data-student-id]').length;
+        const _pgStudentsState = window.__store && window.__store.pagination && window.__store.pagination.students;
+        const _pgItemsLen      = _pgStudentsState && Array.isArray(_pgStudentsState.currentItems)
+            ? _pgStudentsState.currentItems.length : -1;
+        const _fbFallbackCnt   = window.__profileScaleMetrics
+            ? (window.__profileScaleMetrics.fallbackCount || 0) : -1;
         const _profMount  = !!(window.__profileScaleMetrics && window.__profileScaleMetrics.activeListenerMounted);
 
         console.log('currentClubId     :', _cid || '⚠️ MISSING');
@@ -1263,6 +1270,9 @@ window.printClubRuntimeDiagnostics = async function printClubRuntimeDiagnostics(
         console.log('activeProfiles(mem):', _actMem >= 0 ? _actMem : '(not tracked)');
         console.log('transactions (mem):', _txMem, '(window.allTransactions / __store.transactions)');
         console.log('tbody rows (DOM)  :', _tbodyRows, '(document.querySelectorAll("tbody tr").length)');
+        console.log('#activeList rows  :', _activeListRows, '← tr[data-student-id]; 0 nhưng pgItems>0 = island miss');
+        console.log('pgStudents items  :', _pgItemsLen >= 0 ? _pgItemsLen : '(pagination not init)', '(store.pagination.students.currentItems)');
+        console.log('fullFallbackCount :', _fbFallbackCnt >= 0 ? _fbFallbackCnt : '(not tracked)', '(profile full fallback đã chạy)');
         console.log('profile listener  :', _profMount ? '✅ mounted' : '⚠️ not mounted');
         console.log('isClubRuntimeReady:', typeof window.isClubRuntimeReady === 'function'
             ? (window.isClubRuntimeReady() ? '✅ yes' : '❌ no') : '(function missing)');
@@ -1381,8 +1391,92 @@ window.printClubRuntimeDiagnostics = async function printClubRuntimeDiagnostics(
         }
 
         console.log('[ClubDiagnostics] ✅ Done. Gọi lại bất cứ lúc nào để re-check.');
+        console.log('[ClubDiagnostics] 💡 Nếu pgStudents items > 0 nhưng #activeList rows = 0, gọi: window.debugStudentListHydration()');
     } catch (err) {
         console.error('[ClubDiagnostics] Error:', err);
+    }
+    console.groupEnd();
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DEBUG STUDENT LIST HYDRATION — Phase 4K-STUDENT-LIST
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Helper debug — chẩn đoán tại sao danh sách võ sinh hiển thị trống.
+ *
+ * Thực hiện:
+ *   1. In pgState.currentItems.length
+ *   2. In #activeList tr[data-student-id] count
+ *   3. Nếu currentItems > 0 nhưng DOM row = 0, thử trigger render lại
+ *   4. Nếu profiles collection có docs nhưng active count = 0, gọi full fallback
+ *
+ * Chỉ chạy thủ công từ Console — KHÔNG tự động query khi load.
+ */
+window.debugStudentListHydration = async function debugStudentListHydration() {
+    console.group('[DebugStudentList] 🔍 Student List Hydration Diagnostics');
+    try {
+        const _pg      = window.__store && window.__store.pagination && window.__store.pagination.students;
+        const _items   = _pg && Array.isArray(_pg.currentItems) ? _pg.currentItems.length : -1;
+        const _domRows = document.querySelectorAll('#activeList tr[data-student-id]').length;
+        const _allProf = window.allProfiles ? Object.keys(window.allProfiles).length : -1;
+        const _actProf = (window.__store && window.__store.activeProfiles)
+            ? Object.keys(window.__store.activeProfiles).length : -1;
+
+        console.log('pgState.currentItems.length :', _items >= 0 ? _items : '(pagination not init)');
+        console.log('#activeList tr[data-student-id] :', _domRows);
+        console.log('allProfiles (window) :', _allProf >= 0 ? _allProf : '(not loaded)');
+        console.log('activeProfiles (__store) :', _actProf >= 0 ? _actProf : '(not tracked)');
+
+        if (_items > 0 && _domRows === 0) {
+            console.warn('[DebugStudentList] ⚠️ pgState có items nhưng DOM trống — island chưa render');
+            console.log('[DebugStudentList] 🔧 Thử invalidate + re-render...');
+            if (typeof window.refreshListComputation === 'function') {
+                window.refreshListComputation('students.activeList', 'debug-hydration');
+            }
+            if (typeof window.invalidateList === 'function') {
+                window.invalidateList('students.activeList', 'debug-hydration');
+            } else if (typeof window.invalidateStudents === 'function') {
+                window.invalidateStudents('debug-hydration');
+            }
+            setTimeout(() => {
+                const _afterRows = document.querySelectorAll('#activeList tr[data-student-id]').length;
+                console.log('[DebugStudentList] Sau re-render: #activeList rows =', _afterRows);
+                if (_afterRows === 0) {
+                    console.warn('[DebugStudentList] Vẫn trống — gọi retryDataHydration...');
+                    if (typeof window.retryDataHydration === 'function') window.retryDataHydration('debug-hydration');
+                }
+            }, 500);
+        } else if (_items === 0 && _allProf === 0 && _actProf <= 0) {
+            // Profiles chưa load — check collection có docs không
+            const _cid    = window.currentClubId || (window.__store && window.__store.currentClubId);
+            const _db     = (window.__store && window.__store.db) || window.db || window._db;
+            const _profRef = window.__store && window.__store.profRef;
+            const { query: _q, limit: _l, getDocs: _g } = window._fb_init || {};
+            if (_g && _q && _l && _profRef) {
+                console.log('[DebugStudentList] Kiểm tra collection có docs...');
+                try {
+                    const _probe = await _g(_q(_profRef, _l(1)));
+                    if (!_probe.empty) {
+                        console.warn('[DebugStudentList] Collection có docs nhưng active count = 0 → gọi full fallback');
+                        if (typeof window.retryDataHydration === 'function') {
+                            window.retryDataHydration('debug-hydration-probe');
+                        }
+                    } else {
+                        console.log('[DebugStudentList] Collection trống — CLB chưa có võ sinh.');
+                    }
+                } catch (_pe) {
+                    console.warn('[DebugStudentList] Probe lỗi:', _pe.message || _pe.code);
+                }
+            } else {
+                console.warn('[DebugStudentList] Firebase SDK hoặc profRef chưa sẵn — gọi retryDataHydration()');
+                if (typeof window.retryDataHydration === 'function') window.retryDataHydration('debug-hydration-no-sdk');
+            }
+        } else {
+            console.log('[DebugStudentList] ✅ Data OK — items:', _items, ' DOM rows:', _domRows);
+        }
+    } catch (_err) {
+        console.error('[DebugStudentList] Error:', _err);
     }
     console.groupEnd();
 };

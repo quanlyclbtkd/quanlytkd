@@ -42,6 +42,9 @@ import {
     getBeltBadge,
 } from '../../../utils/format.js';
 
+// Phase 4K-STUDENT-LIST: Classifier chung — không dùng p.status === 'quit' trực tiếp
+import { classifyProfileStatus } from '../../../data/profileStatusConfig.js';
+
 // ── Module-local branch-name helper ──────────────────────────────────────────
 const _getBrN = (br) =>
     (window.getBranchNameDisplay && window.getBranchNameDisplay(br))
@@ -246,8 +249,13 @@ export function computeAndCacheStudents(allProfiles, params) {
         const p = allProfiles[name];
         if (!p) return;
 
-        const isQuit      = p.status === 'quit';
-        const isActive    = !isQuit;
+        // Phase 4K-STUDENT-LIST: Dùng classifier chung — xử lý data cũ thiếu status
+        // Áp dụng nhất quán cho active list, debt list, quit list, active count, quit count
+        const _pKind  = window.classifyProfileStatus
+            ? window.classifyProfileStatus(p)
+            : classifyProfileStatus(p);
+        const isQuit  = _pKind === 'quit';
+        const isActive = !isQuit;
         const safeBranch  = p.branch || 'CS1';
         const yrBadge     = _getYrBadge(name, p, nameNCount);
         const beltHTML    = getBeltBadge(p.belt);
@@ -356,8 +364,12 @@ export function computeAndCacheStudents(allProfiles, params) {
             const p    = allProfiles[name] || item;
             if (!p) return;
 
-            const isQuit      = p.status === 'quit';
-            const isActive    = !isQuit;
+            // Phase 4K-STUDENT-LIST: Dùng classifier chung trong PASS 2 (pagination override)
+            const _pKind2  = window.classifyProfileStatus
+                ? window.classifyProfileStatus(p)
+                : classifyProfileStatus(p);
+            const isQuit  = _pKind2 === 'quit';
+            const isActive = !isQuit;
             const safeBranch  = p.branch || 'CS1';
             const yrBadge     = _getYrBadge(name, p, nameNCount);
             const beltHTML    = getBeltBadge(p.belt);

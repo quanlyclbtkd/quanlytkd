@@ -191,46 +191,74 @@ export function getQuitStatusValues() {
 }
 
 /**
- * Phân loại profile theo status — dùng config + aliases.
+ * Phân loại profile theo status — dùng config + aliases + boolean flags.
  *
  * Thứ tự ưu tiên:
- *   1. Khớp chính xác với activeQueryValues / quitQueryValues
- *   2. Khớp với activeAliases / quitAliases (lowercase, trim)
- *   3. Khớp substring tiếng Việt dự phòng
- *   4. 'other' nếu không khớp
+ *   1. Boolean quit flags (quit/stopped/isQuit/active=false/isActive=false)
+ *   2. Boolean active flags (active=true/isActive=true)
+ *   3. Khớp chính xác với quitQueryValues (explicit quit string)
+ *   4. Khớp chính xác với activeQueryValues
+ *   5. Khớp với aliases (lowercase, trim)
+ *   6. Khớp substring tiếng Việt dự phòng
+ *   7. Status rỗng/thiếu → 'active' (legacy compat)
+ *   8. Unknown status → 'active' (legacy compat)
+ *
+ * Legacy profiles without status are treated as active unless explicitly quit.
  *
  * KHÔNG log thông tin profile cá nhân.
  *
- * @param {{ status?: string } | null | undefined} profile
+ * @param {{ status?: string, quit?: boolean, stopped?: boolean, isQuit?: boolean,
+ *            active?: boolean, isActive?: boolean } | null | undefined} profile
  * @returns {'active' | 'quit' | 'other'}
  */
 export function classifyProfileStatus(profile) {
+    if (!profile) return 'active';
+
+    // ── 1. Boolean quit signals — kiểm tra trước status string ───────────────
+    // Legacy profiles without status are treated as active unless explicitly quit.
+    if (profile.quit === true || profile.stopped === true || profile.isQuit === true) return 'quit';
+    if (profile.active === false || profile.isActive === false) return 'quit';
+
+    // ── 2. Boolean active signals ─────────────────────────────────────────────
+    // Nhưng vẫn kiểm tra status string để phát hiện explicit quit (quit > active)
+    if (profile.active === true || profile.isActive === true) {
+        const _rawQ = String(profile.status ?? '').toLowerCase().trim();
+        const _quitQ = _config.quitQueryValues || ['quit', 'inactive'];
+        if (_quitQ.some(v => v.toLowerCase() === _rawQ)) return 'quit';
+        if (_rawQ.includes('nghỉ') || _rawQ.includes('nghi')) return 'quit';
+        return 'active';
+    }
+
     const raw    = profile?.status;
     const status = String(raw ?? '').toLowerCase().trim();
 
-    if (!status) return 'other';
+    // ── 3. Status rỗng/thiếu → active (legacy compat) ───────────────────────
+    // Legacy profiles without status are treated as active unless explicitly quit.
+    if (!status) return 'active';
 
-    // ── Exact match: activeQueryValues ──────────────────────────────────
-    const activeQ = _config.activeQueryValues || ['active', 'trial'];
-    if (activeQ.some(v => v.toLowerCase() === status)) return 'active';
-
-    // ── Exact match: quitQueryValues ─────────────────────────────────────
+    // ── 4. Explicit quit string — kiểm tra trước active để quit > active ─────
     const quitQ = _config.quitQueryValues || ['quit', 'inactive'];
     if (quitQ.some(v => v.toLowerCase() === status)) return 'quit';
 
-    // ── Alias match: active ──────────────────────────────────────────────
-    const activeA = _config.activeAliases || [];
-    if (activeA.some(v => v.toLowerCase() === status)) return 'active';
+    // ── 5. Exact match: activeQueryValues ────────────────────────────────────
+    const activeQ = _config.activeQueryValues || ['active', 'trial'];
+    if (activeQ.some(v => v.toLowerCase() === status)) return 'active';
 
-    // ── Alias match: quit ────────────────────────────────────────────────
+    // ── 6. Alias match: quit ─────────────────────────────────────────────────
     const quitA = _config.quitAliases || [];
     if (quitA.some(v => v.toLowerCase() === status)) return 'quit';
 
-    // ── Substring fallback: tiếng Việt dự phòng ─────────────────────────
+    // ── 7. Alias match: active ───────────────────────────────────────────────
+    const activeA = _config.activeAliases || [];
+    if (activeA.some(v => v.toLowerCase() === status)) return 'active';
+
+    // ── 8. Substring fallback: tiếng Việt dự phòng ──────────────────────────
     if (status.includes('đang') || status.includes('dang')) return 'active';
     if (status.includes('nghỉ') || status.includes('nghi') || status.includes('stop') || status.includes('left')) return 'quit';
 
-    return 'other';
+    // ── 9. Unknown status → active (legacy compat, không phải 'other') ───────
+    // Legacy profiles without recognizable status are treated as active.
+    return 'active';
 }
 
 /**

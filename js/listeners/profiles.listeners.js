@@ -40,6 +40,7 @@ import {
     getActiveQueryValues,
     getQuitQueryValues,
     getProfileStatusConfig,
+    classifyProfileStatus,
 } from '../data/profileStatusConfig.js';
 
 // ── Backward compat aliases (Phase 3.7B callers dùng tên cũ) ──────────────
@@ -355,6 +356,23 @@ export function mountActiveProfilesListener(context) {
                     // [Phase 3.7C] Coverage guard — trước khi cập nhật store
                     _checkActiveProfileCoverage(activeCount);
 
+                    // Phase 4K-STUDENT-LIST: Active-zero probe —
+                    // Nếu snapshot đầu tiên trả 0 nhưng collection có docs,
+                    // data cũ có thể thiếu status field → trigger full fallback.
+                    // Dùng getDocs(limit(1)) — nhẹ, không đọc full collection.
+                    if (activeCount === 0 && _state.activeSnapshotCount === 1) {
+                        const _fb4k = window._fb_init || {};
+                        const { query: _pQ4k, limit: _pL4k, getDocs: _pG4k } = _fb4k;
+                        if (_pG4k && _pQ4k && _pL4k && profRef) {
+                            _pG4k(_pQ4k(profRef, _pL4k(1))).then(_probe => {
+                                if (!_probe.empty) {
+                                    console.warn('[ProfilesListener] active=0 nhưng collection có docs — data legacy thiếu status field → full fallback');
+                                    loadFullProfilesFallback('active-zero-but-profiles-exist');
+                                }
+                            }).catch(() => {});
+                        }
+                    }
+
                     setActiveProfiles(activeMap, 'active-profiles-snapshot');
                     _syncLegacy();
 
@@ -553,6 +571,19 @@ export async function loadFullProfilesFallback(reason) {
             if (id) fullMap[id] = d.data();
         });
 
+        // Phase 4K-STUDENT-LIST: Phân loại active/quit dùng classifyProfileStatus() mới
+        // để data cũ thiếu status (→ 'active') vào activeProfiles đúng cách
+        // Sau classifier: setActiveProfiles + setQuitProfiles riêng biệt trước syncLegacy
+        const _fallbackActive = {};
+        const _fallbackQuit   = {};
+        Object.entries(fullMap).forEach(([_fId, _fData]) => {
+            const _fKind = classifyProfileStatus(_fData);
+            if (_fKind === 'quit') _fallbackQuit[_fId] = _fData;
+            else _fallbackActive[_fId] = _fData;
+        });
+        setActiveProfiles(_fallbackActive, 'full-fallback-active:' + reason);
+        setQuitProfiles(_fallbackQuit, 'full-fallback-quit-classified:' + reason);
+
         if (window.syncProfilesToStudentStore) {
             window.syncProfilesToStudentStore(fullMap, 'full-fallback:' + reason);
         } else {
@@ -575,7 +606,10 @@ export async function loadFullProfilesFallback(reason) {
 
         _invalidateAll('full-profiles-fallback');
         if (typeof window.invalidateStudents === 'function') window.invalidateStudents('full-fallback-quit');
-        if (typeof window.invalidateList     === 'function') window.invalidateList('students.quitList', 'full-fallback-quit');
+        if (typeof window.invalidateList     === 'function') {
+            window.invalidateList('students.quitList',  'full-fallback-quit');
+            window.invalidateList('students.activeList', 'full-profiles-fallback');
+        }
 
         _updateWindowMetrics();
         return true;

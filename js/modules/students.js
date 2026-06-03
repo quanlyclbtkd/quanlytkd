@@ -1003,6 +1003,31 @@ export function initStudentPagination() {
                 });
             }
 
+            // Phase 4K-STUDENT-LIST: Fallback render nếu island không inject rows
+            // Chỉ chạy khi: #activeList tồn tại, pgState.currentItems > 0, DOM trống
+            // Không phá render island hiện tại — guard tr[data-student-id] trước khi inject
+            function _renderStudentsPageRowsFallback(pgState) {
+                try {
+                    const target = document.getElementById('activeList');
+                    if (!target) return false;
+                    if (!pgState || !Array.isArray(pgState.currentItems)) return false;
+                    if (pgState.currentItems.length === 0) return false;
+                    if (target.querySelector('tr[data-student-id]')) return false; // island đã render
+                    const rows = pgState.currentItems.map(item => {
+                        const _rawName = item.id || item.name || '';
+                        const _esc     = _rawName.replace(/'/g, "\\'");
+                        const p        = item;
+                        return `<tr data-student-id="${_esc}"><td class="name-link text-[0.95rem]" onclick="openProfile('${_esc}')">${_rawName}</td><td class="text-[0.7rem] font-bold text-slate-500">${p.memberId || '-'}</td><td>-</td><td>-</td><td>-</td><td class="badge bg-rose-50 text-rose-600 text-[0.7rem]">-</td><td class="font-medium text-slate-600">${p.phone || ''}</td><td class="text-slate-500">-</td><td><button type="button" class="btn-sm bg-slate-100 text-slate-700 border border-slate-200" onclick="openProfile('${_esc}')">👁️ Xem</button></td></tr>`;
+                    }).join('');
+                    if (!rows) return false;
+                    target.innerHTML = rows;
+                    console.warn('[students-pagination] 🔧 Fallback render —', pgState.currentItems.length, 'rows → #activeList (island miss)');
+                    return true;
+                } catch (_fe) {
+                    return false;
+                }
+            }
+
             // ── Core: thực sự load một trang profiles ──────────────────
             async function _doLoad(cursor, direction) {
                 if (pgState.isLoading) return;
@@ -1077,6 +1102,22 @@ export function initStudentPagination() {
                     } else if (typeof window.scheduleRender === 'function') {
                         window.scheduleRender();
                     }
+
+                    // Phase 4K-STUDENT-LIST: invalidate students.activeList cụ thể
+                    // để render island biết cần cập nhật list ngay sau pagination load
+                    if (typeof window.refreshListComputation === 'function') {
+                        window.refreshListComputation('students.activeList', 'students-pagination-loaded');
+                    }
+                    if (typeof window.invalidateList === 'function') {
+                        window.invalidateList('students.activeList', 'students-pagination-loaded');
+                        const _curTabId = typeof window.getCurrentActiveTabId === 'function'
+                            ? window.getCurrentActiveTabId() : '';
+                        if (_curTabId === 'quit') {
+                            window.invalidateList('students.quitList', 'students-pagination-loaded');
+                        }
+                    }
+                    // Fallback: nếu island không render sau 300ms, inject rows trực tiếp
+                    setTimeout(() => _renderStudentsPageRowsFallback(pgState), 300);
                 } catch (err) {
                     console.error('[pagination/students] Lỗi load trang:', err);
                     pgState.isLoading = false;
