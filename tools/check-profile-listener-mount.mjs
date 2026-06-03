@@ -69,7 +69,7 @@ if (!hasProfListenerLog) {
     console.log('✅ printClubRuntimeDiagnostics in profile listener field');
 }
 
-// 6. Snapshot invalidation domains — kiểm tra profiles.listeners.js
+// 6. Snapshot invalidation domains — profiles.listeners.js phải có đủ 4 domains
 let profilesListenerJs = '';
 try {
     profilesListenerJs = readFileSync(
@@ -78,13 +78,20 @@ try {
 } catch (_) {
     profilesListenerJs = '';
 }
-const invalidationDomains = ['students', 'tuition', 'debt', 'dashboard'];
 if (profilesListenerJs) {
-    const foundDomains = invalidationDomains.filter(d => profilesListenerJs.includes(d));
-    if (foundDomains.length === 0) {
-        console.warn('⚠️  profiles.listeners.js không invalidate bất kỳ domain nào (students/tuition/debt/dashboard)');
+    const requiredDomains = ['students', 'tuition', 'debt', 'dashboard'];
+    const foundDomains    = requiredDomains.filter(d => profilesListenerJs.includes(d));
+    const missingDomains  = requiredDomains.filter(d => !profilesListenerJs.includes(d));
+    if (missingDomains.length > 0) {
+        errors.push('FAIL: profiles.listeners.js thiếu invalidation cho domain: ' + missingDomains.join(', '));
     } else {
-        console.log('✅ profiles.listeners.js invalidate domains:', foundDomains.join(', '));
+        console.log('✅ profiles.listeners.js invalidate đủ 4 domains:', foundDomains.join(', '));
+    }
+    // invalidateFinance — bắt buộc để Học Phí tab cập nhật
+    if (!profilesListenerJs.includes('invalidateFinance')) {
+        errors.push('FAIL: profiles.listeners.js không gọi invalidateFinance — Học Phí tab sẽ không tự refresh');
+    } else {
+        console.log('✅ profiles.listeners.js gọi invalidateFinance (Học Phí tab)');
     }
 } else {
     console.log('ℹ️  profiles.listeners.js không tìm thấy — skip domain invalidation check');
