@@ -166,21 +166,35 @@ export function initStudentsEvents() {
         mFeeDisplay.dataset.evtBound = '1';
     }
 
-    // ── Phase 3.2A: Pagination button event delegation ────────────
+    // ── Phase 3.2A + PHẦN 5 FIX: Pagination button event delegation ────────────
     // Các nút Previous/Next được inject động vào DOM sau khi load dữ liệu.
     // Dùng event delegation trên document để không cần re-bind sau mỗi lần render.
+    // PHẦN 5 FIX: Thêm các ID mới (students_active / students_quit) vào selector.
     if (!document.body.dataset.pgStudentsBound) {
         document.addEventListener('click', (e) => {
-            const btn = e.target.closest('#pgPrev_students, #pgNext_students');
+            const btn = e.target.closest(
+                '#pgPrev_students, #pgNext_students, ' +
+                '#pgPrev_students_active, #pgNext_students_active, ' +
+                '#pgPrev_students_quit, #pgNext_students_quit'
+            );
             if (!btn) return;
-            if (btn.id === 'pgPrev_students' && typeof window._pgPrev_students === 'function') {
-                window._pgPrev_students();
-            } else if (btn.id === 'pgNext_students' && typeof window._pgNext_students === 'function') {
-                window._pgNext_students();
+            if (
+                btn.id === 'pgPrev_students' ||
+                btn.id === 'pgPrev_students_active' ||
+                btn.id === 'pgPrev_students_quit'
+            ) {
+                if (typeof window._pgPrev_students === 'function') window._pgPrev_students();
+            }
+            if (
+                btn.id === 'pgNext_students' ||
+                btn.id === 'pgNext_students_active' ||
+                btn.id === 'pgNext_students_quit'
+            ) {
+                if (typeof window._pgNext_students === 'function') window._pgNext_students();
             }
         });
         document.body.dataset.pgStudentsBound = '1';
     }
 
-    console.info('[students.events.js] ✅ Phase 3.1 + 3.2A event bindings mounted');
+    console.info('[students.events.js] ✅ Phase 3.1 + 3.2A + PHẦN5 event bindings mounted');
 }

@@ -1285,30 +1285,33 @@ export function initStudentPagination() {
                         window.__store._dataVersion = (window.__store._dataVersion || 0) + 1;
                     }
 
-                    // Phase 3.5B: Dùng domain-specific invalidation thay vì full renderApp()
-                    // invalidateStudents() chỉ invalidate students islands (activeList, v.v.)
-                    // và cross-domain dashboard — không trigger toàn bộ render cycle.
-                    // Fallback về _moduleRenderApp / scheduleRender để backward compat.
-                    if (typeof window.invalidateStudents === 'function') {
-                        window.invalidateStudents('students-pagination');
-                    } else if (typeof window._moduleRenderApp === 'function') {
-                        window._moduleRenderApp();
-                    } else if (typeof window.scheduleRender === 'function') {
-                        window.scheduleRender();
+                    // PHẦN 3 FIX: Refresh computation TRƯỚC, invalidate/render SAU
+                    // Render island phải có cache HTML sẵn trước khi invalidate.
+                    // Tránh cảnh báo: [students-pagination] Fallback render — island miss
+                    const _keys = ['students.activeList', 'dashboard.summary'];
+                    const _curTabId = typeof window.getCurrentActiveTabId === 'function'
+                        ? window.getCurrentActiveTabId() : '';
+                    if (_curTabId === 'quit') {
+                        _keys.push('students.quitList');
                     }
 
-                    // Phase 4K-STUDENT-LIST: invalidate students.activeList cụ thể
-                    // để render island biết cần cập nhật list ngay sau pagination load
-                    if (typeof window.refreshListComputation === 'function') {
-                        window.refreshListComputation('students.activeList', 'students-pagination-loaded');
+                    // Bước 1: Refresh computation cache trước
+                    if (typeof window.refreshListsComputation === 'function') {
+                        window.refreshListsComputation(_keys, 'students-pagination-loaded');
+                    } else if (typeof window.refreshListComputation === 'function') {
+                        _keys.forEach(k => window.refreshListComputation(k, 'students-pagination-loaded'));
                     }
+
+                    // Bước 2: Sau khi cache đã có, mới invalidate để render island dùng cache
                     if (typeof window.invalidateList === 'function') {
                         window.invalidateList('students.activeList', 'students-pagination-loaded');
-                        const _curTabId = typeof window.getCurrentActiveTabId === 'function'
-                            ? window.getCurrentActiveTabId() : '';
                         if (_curTabId === 'quit') {
                             window.invalidateList('students.quitList', 'students-pagination-loaded');
                         }
+                    } else if (typeof window.invalidateStudents === 'function') {
+                        window.invalidateStudents('students-pagination-loaded');
+                    } else if (typeof window.scheduleRender === 'function') {
+                        window.scheduleRender();
                     }
                     // Fallback: nếu island không render sau 300ms, inject rows trực tiếp
                     setTimeout(() => _renderStudentsPageRowsFallback(pgState), 300);

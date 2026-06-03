@@ -580,47 +580,14 @@ function _waitForExistingLegacyApp(ms) {
         if (guardOnce('initStudentsEvents')) initStudentsEvents();
         if (guardOnce('initFinanceEvents'))  initFinanceEvents();
 
-        setTimeout(() => {
-            // [HOTFIX] Thêm check window.__store.db — StudentService._db() throw nếu thiếu
-            if (window.__store && window.__store.profRef && window.__store.db) {
-                if (!window.__studentPaginationInitialized) {
-                    window.__studentPaginationInitialized = true;
-                    initStudentPagination();
-                }
-            } else {
-                setTimeout(() => {
-                    if (window.__store && window.__store.db) {
-                        if (!window.__studentPaginationInitialized) {
-                            window.__studentPaginationInitialized = true;
-                            initStudentPagination();
-                        }
-                    } else {
-                        console.warn('[Bootstrap] StudentPagination: db chưa sẵn sàng sau 2s — skip. Sẽ init khi db ready.');
-                    }
-                }, 1500);
-            }
-        }, 500);
-
-        setTimeout(() => {
-            // [HOTFIX] Thêm check window.__store.db — FinanceService._db() throw nếu thiếu
-            if (window.__store && window.__store.colRef && window.__store.db) {
-                if (!window.__transactionPaginationInitialized) {
-                    window.__transactionPaginationInitialized = true;
-                    initTransactionPagination();
-                }
-            } else {
-                setTimeout(() => {
-                    if (window.__store && window.__store.db) {
-                        if (!window.__transactionPaginationInitialized) {
-                            window.__transactionPaginationInitialized = true;
-                            initTransactionPagination();
-                        }
-                    } else {
-                        console.warn('[Bootstrap] TransactionPagination: db chưa sẵn sàng sau 2s — skip. Sẽ init khi db ready.');
-                    }
-                }, 1500);
-            }
-        }, 500);
+        // PHẦN 6 FIX: Các block setTimeout 500ms/1500ms init pagination sớm đã bị DISABLED.
+        // Lý do: chạy trước isClubRuntimeReady() → gây cảnh báo "db chưa sẵn sàng sau 2s".
+        // Thay thế: chỉ init thông qua _tryInitPaginationsOnDbReady() bên dưới,
+        // được trigger bởi app:context-ready, app:db-ready, hoặc post-bootstrap-check.
+        // Guard __studentPaginationInitializedForClub ngăn double-init per club.
+        //
+        // [DISABLED - StudentPagination early setTimeout]
+        // [DISABLED - TransactionPagination early setTimeout]
 
         // ── Phase 4K-DATA-HYDRATION: isClubRuntimeReady helper ─────────────────────
         // Kiểm tra db + currentClubId + currentUser đều sẵn sàng trước khi init.
@@ -1688,4 +1655,88 @@ window.watchActiveListMutations = function watchActiveListMutations() {
     console.log('[WatchMutation] ✅ MutationObserver mounted on #activeList.');
     console.log('[WatchMutation]    Thao tác để reproduce → xem log bên trên.');
     console.log('[WatchMutation]    Dừng: window.__activeListMutationObserver.disconnect()');
+};
+
+// ── PHẦN 7: Debug functions cho runtime parity kiểm tra GitHub/domain ─────────
+
+/**
+ * debugRuntimeParity() — Kiểm tra tình trạng runtime parity giữa local HTTP và GitHub/domain.
+ * Kết quả đúng trên GitHub/domain:
+ *   runtimeMode = "http-module", mainLoaded = true, pgCurrentItems = 50,
+ *   activeRows = 50, nextActiveExists = true, oldNextCount = 0
+ */
+window.debugRuntimeParity = function() {
+    const st = window.__store || {};
+    const pg = st.pagination && st.pagination.students;
+    const profileModal = document.getElementById('profileModal');
+
+    const result = {
+        href: location.href,
+        protocol: location.protocol,
+        runtimeMode: window.__RUNTIME_MODE || '',
+        fileMode: !!window.__APP_STANDALONE_FILE_MODE,
+        moduleDisabled: !!window.__MODULE_BOOTSTRAP_DISABLED,
+        mainLoaded: !!window.MAIN_JS_LOADED,
+        appLoaded: !!window.__appLoaded,
+
+        currentTab: typeof window.getCurrentActiveTabId === 'function'
+            ? window.getCurrentActiveTabId()
+            : '',
+
+        profilesCount: Object.keys(st.profiles || {}).length,
+
+        studentPaginationInitialized: !!window.__studentPaginationInitialized,
+        studentPaginationInitializedForClub: window.__studentPaginationInitializedForClub || '',
+        pgCurrentPage: pg ? pg.currentPage : -1,
+        pgCurrentItems: Array.isArray(pg?.currentItems) ? pg.currentItems.length : -1,
+        pgHasNext: pg ? pg.hasNext : null,
+        pgIsLoading: pg ? pg.isLoading : null,
+
+        activeRows: document.querySelectorAll('#activeList tr[data-student-id]').length,
+        nextActiveExists: !!document.getElementById('pgNext_students_active'),
+        oldNextCount: document.querySelectorAll('#pgNext_students').length,
+
+        closeModalType: typeof window.closeModal,
+        profileModalDisplay: profileModal ? profileModal.style.display : '(missing)',
+        hasRefreshListsComputation: typeof window.refreshListsComputation === 'function',
+        hasInvalidateList: typeof window.invalidateList === 'function',
+    };
+
+    console.table(result);
+    return result;
+};
+
+/**
+ * debugProfileModalClose() — Kiểm tra closeModal() đóng profileModal đúng không.
+ * Kết quả đúng: noArgCloses = true, withArgCloses = true
+ */
+window.debugProfileModalClose = function() {
+    const modal = document.getElementById('profileModal');
+    if (!modal) return { ok: false, reason: 'missing profileModal' };
+
+    modal.style.display = 'flex';
+    const before = modal.style.display;
+
+    try {
+        window.closeModal();
+    } catch (e) {
+        return { ok: false, error: e.message, before, after: modal.style.display };
+    }
+
+    const afterNoArg = modal.style.display;
+
+    modal.style.display = 'flex';
+    window.closeModal('profileModal');
+    const afterWithArg = modal.style.display;
+
+    const result = {
+        before,
+        afterNoArg,
+        afterWithArg,
+        noArgCloses: afterNoArg === 'none',
+        withArgCloses: afterWithArg === 'none',
+    };
+
+    console.table(result);
+    return result;
 };
