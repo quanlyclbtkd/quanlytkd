@@ -4711,7 +4711,15 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         }
         await setDoc(doc(db, "clubs", currentClubId, "profiles", _saveKey), _newProfileData);
         
-        if(fee > 0) { await addDoc(colRef, { branch, type: 'Học phí', description: _saveKey, amount: fee, date: joinDate, txMonth: lastMonth, paymentMonth: startMonth, packageMonths: monthsToRecord, tuitionPackageCount: tuitionPkg.packageCount, tuitionStartMonth: startMonth, tuitionPaidUntil: lastMonth, timestamp: Date.now() }); }
+        let tuitionTx = null;
+        if(fee > 0) {
+            const _txPayload = { branch, type: 'Học phí', description: _saveKey, amount: fee, date: joinDate, txMonth: lastMonth, paymentMonth: startMonth, packageMonths: monthsToRecord, tuitionPackageCount: tuitionPkg.packageCount, tuitionStartMonth: startMonth, tuitionPaidUntil: lastMonth, timestamp: Date.now() };
+            const _txDoc = await addDoc(colRef, _txPayload);
+            tuitionTx = { id: _txDoc.id, ..._txPayload };
+            if (typeof window.mergeTransactionIntoRuntimeStore === 'function') {
+                window.mergeTransactionIntoRuntimeStore(tuitionTx, 'admission-tuition-created-legacy');
+            }
+        }
         
         if(uniformSize) { 
             const invDoc = await addDoc(invRef, { size: uniformSize, type: 'Xuất bán', qty: 1, desc: _saveKey, amount: uniformFee, date: joinDate, timestamp: Date.now() + 2 }); 
@@ -5655,7 +5663,12 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         
         const lToday = getLocalToday(); const lMonth = lToday.substring(0, 7);
         document.getElementById('filterMonth').value = lMonth; 
-        document.getElementById('filterMonth').onchange = (e) => { window.listenToData(e.target.value); }; 
+        document.getElementById('filterMonth').onchange = (e) => {
+            if (window.__RUNTIME_MODE === 'http-module' && typeof window.handleFilterMonthChange === 'function') {
+                return window.handleFilterMonthChange(e.target.value, 'legacy-onchange-bridge');
+            }
+            window.listenToData(e.target.value);
+        }; 
         // [PERF] Reset pagination về trang 1 khi đổi lọc/tìm kiếm —
         // kết quả mới không liên quan đến page cũ người dùng đang xem.
         // [Phase 3.5C] Filter/search chỉ ảnh hưởng tab đang mở → invalidateCurrentTab().
