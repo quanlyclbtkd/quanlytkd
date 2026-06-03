@@ -510,19 +510,42 @@ button:focus-visible, input:focus-visible, select:focus-visible {
     return;
   }
   // HTTP/HTTPS: inject main.js module layer
-  var s = document.createElement('script');
-  s.type = 'module';
-  s.src  = './js/main.js';
-  s.onerror = function(e) {
-    // [GitHub Pages Hotfix] main.js 404 — thường do repo path hoặc thiếu file
-    var _ghMsg = '[main.js] Module load failed — app.js standalone mode active.';
-    if (window.location.hostname.includes('github.io')) {
-      _ghMsg += ' GitHub Pages: kiểm tra ./js/main.js có trong repo và .nojekyll tồn tại. URL: ' + window.location.href;
+  // [GITHUB-FIX] Chờ legacy app.js sẵn sàng TRƯỚC khi load main.js
+  // Tránh race condition giữa app.js defer và main.js module trên GitHub Pages
+  function _loadMainWhenLegacyReady() {
+    if (window.MAIN_JS_LOADING !== true || window.MAIN_JS_LOADED) return;
+    // Đánh dấu MAIN_JS_LOADING=true đã set ở trên — chỉ inject khi legacy sẵn sàng
+    if (
+      !window._fb_init ||
+      window.__appLoaded !== true ||
+      typeof window.scheduleRender !== 'function'
+    ) {
+      return setTimeout(_loadMainWhenLegacyReady, 50);
     }
-    console.warn(_ghMsg, e);
-    window.__MAIN_JS_LOAD_FAILED = true;
-  };
-  document.head.appendChild(s);
+    // Legacy app.js đã sẵn sàng — inject main.js
+    var s = document.createElement('script');
+    s.type = 'module';
+    s.src  = './js/main.js?v=student-render-github-fix-20260603';
+    s.onload = function() {
+      window.MAIN_JS_LOADED = true;
+      console.log('[BOOT] main.js loaded after legacy app.js ready');
+    };
+    s.onerror = function(e) {
+      // [GitHub Pages Hotfix] main.js 404 — thường do repo path hoặc thiếu file
+      var _ghMsg = '[main.js] Module load failed — app.js standalone mode active.';
+      if (window.location.hostname.includes('github.io')) {
+        _ghMsg += ' GitHub Pages: kiểm tra ./js/main.js có trong repo và .nojekyll tồn tại. URL: ' + window.location.href;
+      }
+      console.warn(_ghMsg, e);
+      window.__MAIN_JS_LOAD_FAILED = true;
+    };
+    document.head.appendChild(s);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _loadMainWhenLegacyReady);
+  } else {
+    _loadMainWhenLegacyReady();
+  }
 })();
 </script><!-- [Phase 3.6D] Bootstrap dedup: second inline main.js loader đã bị xóa.
      Phase 3.3A script ở trên xử lý load với window.MAIN_JS_LOADING guard — ngăn load 2 lần.
