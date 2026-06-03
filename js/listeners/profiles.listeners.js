@@ -637,13 +637,9 @@ export async function loadFullProfilesFallback(reason) {
             window.__store._lastProfileHydrateReason = reason || 'full-profiles-fallback';
         }
 
-        _invalidateAll('full-profiles-fallback');
-        if (typeof window.invalidateStudents === 'function') window.invalidateStudents('full-fallback-quit');
-        if (typeof window.invalidateList     === 'function') {
-            window.invalidateList('students.quitList',  'full-fallback-quit');
-            window.invalidateList('students.activeList', 'full-profiles-fallback');
-        }
-
+        // PHẦN 9 FIX: Consolidated pipeline thay vì 5 lệnh invalidate riêng lẻ.
+        // Thứ tự: (1) refreshListsComputation trước, (2) invalidate domain một lần duy nhất.
+        // Không còn gọi _invalidateAll + invalidateStudents + invalidateList + refreshListsComputation + invalidateDashboard cùng lúc.
         if (typeof window.refreshListsComputation === 'function') {
             window.refreshListsComputation([
                 'students.activeList',
@@ -653,8 +649,16 @@ export async function loadFullProfilesFallback(reason) {
             ], 'full-profiles-fallback');
         }
 
-        if (typeof window.invalidateDashboard === 'function') {
-            window.invalidateDashboard('full-profiles-fallback');
+        // Một lần invalidate duy nhất — dùng _invalidateAll thay vì 3 lệnh riêng lẻ
+        _invalidateAll('full-profiles-fallback');
+
+        // Phase 4K-2: Chỉ invalidate search cache của tab hiện tại — không clear toàn bộ.
+        // loadFullProfilesFallback chỉ ảnh hưởng đến dữ liệu profiles (active/quit),
+        // không cần xóa cache finance/inventory/tx của các tab khác.
+        if (typeof window.invalidateSearchCacheForCurrentTab === 'function') {
+            window.invalidateSearchCacheForCurrentTab('full-profiles-fallback');
+        } else if (typeof window.clearSearchRuntimeCache === 'function') {
+            window.clearSearchRuntimeCache('full-profiles-fallback');
         }
 
         _updateWindowMetrics();

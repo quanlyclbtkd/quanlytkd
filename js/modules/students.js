@@ -1160,12 +1160,14 @@ export function initStudentPagination() {
             }
 
             // ── Core: thực sự load một trang profiles ──────────────────
-            async function _doLoad(cursor, direction) {
+            // PHẦN 3 FIX: searchOverride cho phép searchRuntime.js truyền term trực tiếp
+            // mà không tự đọc searchInput — tránh double-read.
+            async function _doLoad(cursor, direction, searchOverride = null) {
                 if (pgState.isLoading) return;
                 pgState.isLoading = true;
                 _injectControls(); // hiện spinner ngay
 
-                const search = _getCurrentSearch();
+                const search = searchOverride !== null ? searchOverride : _getCurrentSearch();
 
                 // Phase 4.0B-4J-8A: Search status element
                 const _srStatusId = 'searchStatusMsg_students';
@@ -1411,24 +1413,42 @@ export function initStudentPagination() {
                 }
             };
 
+            // ── PHẦN 3 FIX: Expose API cho searchRuntime.js gọi trực tiếp ──────
+            // searchRuntime.js sẽ gọi window.runStudentSearchPagination(term)
+            // thay vì bind input riêng.
+            window.runStudentSearchPagination = async function(term) {
+                const searchTerm = (term !== undefined && term !== null) ? term : _getCurrentSearch();
+                resetPagination(pgState);
+                pgState.currentPage = 1;
+                return _doLoad(null, 'first', searchTerm);
+            };
+
             // ── Bind: Tự động load lại khi search thay đổi ──────────────
+            // PHẦN 3 FIX: Không bind nếu searchRuntime đã mount — tránh double-handler.
+            // Nếu searchRuntime active, chỉ giữ backup flag cho legacy mode.
             function _bindSearchReset() {
+                // Nếu Unified Search Runtime đã mount → không bind nữa
+                if (window.__searchRuntimeMounted) {
+                    console.info('[students.js] searchRuntime mounted — skip _bindSearchReset double-bind.');
+                    window.__studentSearchControllerMounted = true;
+                    return;
+                }
+
                 const el = document.getElementById('searchInput') ||
                            document.getElementById('search') ||
                            document.querySelector('input[placeholder*="tên"]');
                 if (!el || el.__pgStudentsbound) return;
                 el.__pgStudentsbound = true;
-                // Phase 4J-9B: Đánh dấu PRIMARY controller đã mount.
-                // students.events.js và app.js oninput sẽ kiểm tra flag này để tránh double-bind.
                 window.__studentSearchControllerMounted = true;
-                console.info('[students.js] ✅ PRIMARY search controller mounted (_bindSearchReset).');
+                console.info('[students.js] ✅ PRIMARY search controller mounted (_bindSearchReset) — legacy mode.');
                 let _debounce = null;
                 el.addEventListener('input', () => {
+                    // Double-check: nếu runtime đã mount sau khi bind, skip
+                    if (window.__searchRuntimeMounted) return;
                     clearTimeout(_debounce);
                     _debounce = setTimeout(() => {
                         const tab = _getCurrentTabIdSafe();
 
-                        // [PART 3 FIX] Chỉ chạy student pagination ở tab ĐANG TẬP / ĐÃ NGHỈ
                         if (tab === 'active' || tab === 'quit') {
                             resetPagination(pgState);
                             pgState.currentPage = 1;
@@ -1436,8 +1456,6 @@ export function initStudentPagination() {
                             return;
                         }
 
-                        // Với các tab khác (debt, tx, inventory, dashboard): không chạy student pagination.
-                        // Chỉ refresh computation để debtList/txList lọc theo search mới.
                         if (typeof window.refreshListsComputation === 'function') {
                             window.refreshListsComputation([
                                 'students.debtList',
@@ -1445,7 +1463,7 @@ export function initStudentPagination() {
                                 'inventory.inventoryList',
                                 'inventory.uniformTxList',
                                 'dashboard.summary',
-                            ], 'global-search-change-non-student-tab');
+                            ], 'global-search-change-non-student-tab-legacy');
                         }
 
                         if (tab === 'debt' && typeof window.invalidateList === 'function') {

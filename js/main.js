@@ -155,6 +155,14 @@ import {
 
 // ── Phase 2d–3.2A: Business modules (eager — cần khi login) ────
 import { initStudents, initStudentPagination }        from './modules/students.js';
+// PHẦN 1 FIX + Phase 4K-2: Unified Search Controller — real cache + SearchBlob + stale guard
+import {
+    initGlobalSearchRuntime,
+    disposeGlobalSearchRuntime,
+    getSearchRuntimeState,
+    invalidateSearchCache,
+    debugSearchPerformance,
+} from './modules/searchRuntime.js';
 import { initFinance, initTransactionPagination }     from './modules/finance.js';
 import { initInventory }                              from './modules/inventory.js';
 import { initAttendance }                             from './modules/attendance.js';
@@ -274,6 +282,19 @@ const RUNTIME_HEALTH_CHECKS = [
         severity: 'info',
         phase:    'after-login',
         check:    () => typeof window.invalidateByDomain === 'function' || typeof window.invalidateCurrentTab === 'function',
+    },
+    // Phase 4K-2: Unified Search Runtime + Real Cache + SearchBlob
+    {
+        key:      'check:search-runtime-real-cache',
+        label:    'Search Runtime Real Cache (Phase 4K-2)',
+        severity: 'info',
+        phase:    'after-login',
+        check:    () => !!window.__searchRuntimeMounted &&
+                        typeof window.getProfileSearchBlob     === 'function' &&
+                        typeof window.getTransactionSearchBlob === 'function' &&
+                        typeof window.getInventorySearchBlob   === 'function' &&
+                        typeof window.invalidateSearchCacheForCurrentTab === 'function' &&
+                        typeof window.debugSearchPerformance   === 'function',
     },
 ];
 
@@ -683,6 +704,44 @@ function _waitForExistingLegacyApp(ms) {
                 _tryInitPaginationsOnDbReady('post-bootstrap-check');
             }
         }, 0);
+
+        // PHẦN 1 FIX: Khởi động Unified Search Runtime sau khi DOM sẵn sàng
+        try {
+            initGlobalSearchRuntime();
+        } catch (e) {
+            console.warn('[SearchRuntime] init failed:', e);
+        }
+
+        // PHẦN 10 FIX: Flush pending domain invalidations queued bởi app.js _mergeAndRender
+        // trước khi invalidateFinance/invalidateStudents/invalidateDashboard sẵn sàng.
+        (function _flushPendingDomainInvalidations() {
+            const queue = window.__pendingDomainInvalidations;
+            if (!queue || queue.length === 0) return;
+            const domainMap = {
+                finance:   typeof window.invalidateFinance   === 'function' ? window.invalidateFinance   : null,
+                students:  typeof window.invalidateStudents  === 'function' ? window.invalidateStudents  : null,
+                dashboard: typeof window.invalidateDashboard === 'function' ? window.invalidateDashboard : null,
+            };
+            let flushed = 0;
+            queue.forEach(({ domain, reason }) => {
+                const fn = domainMap[domain];
+                if (fn) { fn(reason + '-flushed'); flushed++; }
+            });
+            window.__pendingDomainInvalidations = [];
+            if (flushed > 0) console.info('[DomainQueue] Flushed', flushed, 'pending invalidations.');
+        })();
+
+        // Expose invalidateSearchCache để listeners gọi khi data version thay đổi
+        window.invalidateSearchCache = invalidateSearchCache;
+
+        // Phase 4K-2: Expose search runtime helpers — guard existing definitions
+        // window.debugSearchPerformance is already defined below (line ~1826) with richer output.
+        // Only set if it was somehow missing (should not happen, but guard for safety).
+        if (typeof window.debugSearchPerformance !== 'function') {
+            window.debugSearchPerformance = debugSearchPerformance;
+        }
+        window.getSearchRuntimeState      = getSearchRuntimeState;
+        window.disposeGlobalSearchRuntime = disposeGlobalSearchRuntime;
 
         _patchResetStore();
 
@@ -1710,6 +1769,103 @@ window.debugRuntimeParity = function() {
  * debugProfileModalClose() — Kiểm tra closeModal() đóng profileModal đúng không.
  * Kết quả đúng: noArgCloses = true, withArgCloses = true
  */
+// ── PHẦN 6: Precompute search text cache ─────────────────────────────────────
+
+/**
+ * window.__searchTextCache — Lưu searchBlob đã normalize cho profiles/transactions/inventory.
+ * Mỗi entry được tính một lần khi dataVersion thay đổi, không tính lại mỗi lần gõ.
+ */
+window.__searchTextCache = {
+    profilesVersion:      0,
+    profiles:             new Map(),
+    transactionsVersion:  0,
+    transactions:         new Map(),
+    inventoryVersion:     0,
+    inventory:            new Map(),
+};
+
+/**
+ * Tính hoặc lấy searchBlob cho profile từ cache.
+ * Gọi từ studentsRenderer khi search.
+ */
+window.getProfileSearchBlob = function(id, profile) {
+    const cache   = window.__searchTextCache;
+    const storeVer = (window.__store && window.__store._dataVersion) || 0;
+    if (cache.profilesVersion !== storeVer) {
+        cache.profiles.clear();
+        cache.profilesVersion = storeVer;
+    }
+    if (!cache.profiles.has(id)) {
+        const p   = profile || {};
+        const nvFn = window.normalizeVNForSearch || (v => String(v || '').toLowerCase());
+        const blob = [
+            id,
+            p.name || '',
+            p.nickname || '',
+            p.memberId || '',
+            p.studentCode || '',
+            p.code || '',
+            p.belt || '',
+            p.notes || '',
+            p.phone || '',
+            p.parentPhone || '',
+            p.contactPhone || '',
+            p.guardianPhone || '',
+        ].map(v => nvFn(v)).join(' ');
+        cache.profiles.set(id, blob);
+    }
+    return cache.profiles.get(id);
+};
+
+// ── PHẦN 12: debugSearchPerformance ──────────────────────────────────────────
+
+/**
+ * debugSearchPerformance(term?) — Kiểm tra trạng thái search performance runtime.
+ * Kết quả đúng sau fix:
+ *   searchRuntimeMounted = true
+ *   legacySearchHandlerActive = false (khi http-module)
+ *   moduleRenderAppCalls không tăng khi search
+ *   scheduleRenderCalls không tăng khi search
+ */
+window.debugSearchPerformance = function(term) {
+    const input = document.getElementById('searchInput');
+    if (term !== undefined && input) input.value = term;
+
+    const m  = window.__renderLegacyMetrics || {};
+    const st = window.__store || {};
+    const sr = window.__searchRuntimeState || {};
+
+    const result = {
+        term:                       input ? input.value : '',
+        currentTab:                 typeof window.getCurrentActiveTabId === 'function' ? window.getCurrentActiveTabId() : '',
+        searchRuntimeMounted:       !!window.__searchRuntimeMounted,
+        legacySearchHandlerActive:  !!(document.getElementById('searchInput') && document.getElementById('searchInput').oninput),
+        profilesCount:              Object.keys(st.profiles || {}).length,
+        transactionsCount:          Array.isArray(st.transactions) ? st.transactions.length : -1,
+        inventoryCount:             Array.isArray(st.inventory) ? st.inventory.length : -1,
+        dataVersion:                st._dataVersion || 0,
+        scheduleRenderCalls:        m.scheduleRenderCalls || 0,
+        moduleRenderAppCalls:       m.moduleRenderAppCalls || 0,
+        invalidateCurrentTabCalls:  m.invalidateCurrentTabCalls || 0,
+        listComputationRefreshByDomain: m.listComputationRefreshByDomain || {},
+        listComputationRefreshDuration: m.listComputationRefreshDuration || {},
+        searchRuntimeState: {
+            runCount:        sr.runCount || 0,
+            skippedSameTerm: sr.skippedSameTerm || 0,
+            cacheSize:       typeof window.__searchRuntimeState !== 'undefined'
+                ? (window.getSearchRuntimeState ? window.getSearchRuntimeState().cacheSize : '?') : 0,
+            lastTerm:        sr.lastTerm || '',
+            lastTab:         sr.lastTab || '',
+        },
+        searchFallbackCount:        window.__searchFallbackCount || 0,
+        searchTextCacheProfiles:    window.__searchTextCache ? window.__searchTextCache.profiles.size : 0,
+        pendingDomainInvalidations: (window.__pendingDomainInvalidations || []).length,
+    };
+
+    console.table(result);
+    return result;
+};
+
 window.debugProfileModalClose = function() {
     const modal = document.getElementById('profileModal');
     if (!modal) return { ok: false, reason: 'missing profileModal' };

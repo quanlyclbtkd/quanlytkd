@@ -231,8 +231,20 @@ export function computeAndCacheInventory(allInventory, allTransactions, params) 
         uniformTxRows = '';
         allInventory.forEach(t => {
             let isSearchMatch = true;
-            if (search && !(t.desc || '').toLowerCase().includes(search) &&
-                !(t.size || '').toLowerCase().includes(search)) isSearchMatch = false;
+            if (search) {
+                // PHẦN 7 FIX: Dùng normalizeVNForSearch — tìm có dấu/không dấu, hoa/thường đều đúng
+                const _nvFn = window.normalizeVNForSearch || (v => String(v || '').toLowerCase());
+                const q = _nvFn(search);
+                const invBlob = [
+                    t.desc || '',
+                    t.size || '',
+                    t.category || '',
+                    t.studentName || '',
+                    t.note || '',
+                    t.type || '',
+                ].map(v => _nvFn(v)).join(' ');
+                if (q && !invBlob.includes(q)) isSearchMatch = false;
+            }
             if (!isSearchMatch) return;
 
             const isUnpaid = t.type !== 'Nhập kho' && t.unpaid === true;

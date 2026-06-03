@@ -456,14 +456,34 @@ export const StudentService = {
                 source = 'client-store-fallback';
             }
 
-            // Nếu store rỗng, thử load full profiles rồi tìm lại
+            // PHẦN 8 FIX: Chỉ gọi full fallback nếu:
+            //   1. store profiles rỗng hoặc < 50 hồ sơ
+            //   2. chưa từng fallback trong phiên này
+            //   3. term đủ dài (>= 2 ký tự) để tránh full fallback cho search trống
             if (resultMap.size === 0 && typeof window.loadFullProfilesFallback === 'function') {
-                try {
-                    await window.loadFullProfilesFallback('search-empty-server-fallback');
-                    _clientSearch();
-                    if (resultMap.size > 0) source = 'full-profile-fallback';
-                } catch (e) {
-                    console.warn('[StudentService.search] full profile fallback failed:', e);
+                const _storeProfiles = window.__store && window.__store.profiles
+                    ? Object.keys(window.__store.profiles).length : 0;
+                const _fallbackCount = window.__searchFallbackCount || 0;
+                const _termLen = (raw || '').trim().length;
+
+                if (_storeProfiles >= 50) {
+                    // Store đã có đủ data — dùng client-store-fallback, không gọi Firestore
+                    console.debug('[StudentService.search] Store có', _storeProfiles, 'profiles — skip full fallback, dùng client-store kết quả rỗng.');
+                } else if (_fallbackCount > 0) {
+                    // Đã fallback một lần trong phiên — tránh lặp lại
+                    console.debug('[StudentService.search] Full fallback đã chạy (' + _fallbackCount + 'x) — skip.');
+                } else if (_termLen < 2) {
+                    // Term quá ngắn — skip full fallback
+                    console.debug('[StudentService.search] Term quá ngắn (' + _termLen + ') — skip full fallback.');
+                } else {
+                    try {
+                        window.__searchFallbackCount = _fallbackCount + 1;
+                        await window.loadFullProfilesFallback('search-empty-server-fallback');
+                        _clientSearch();
+                        if (resultMap.size > 0) source = 'full-profile-fallback';
+                    } catch (e) {
+                        console.warn('[StudentService.search] full profile fallback failed:', e);
+                    }
                 }
             }
 

@@ -219,8 +219,19 @@ export function computeAndCacheFinance(transactions, params) {
             isBranchMatch = false;
         }
         let isSearchMatch = true;
-        if (search && !cleanName.toLowerCase().includes(search) && !(t.examTitle || '').toLowerCase().includes(search)) {
-            isSearchMatch = false;
+        if (search) {
+            // PHẦN 7 FIX: Dùng normalizeVNForSearch — tìm có dấu/không dấu, hoa/thường đều đúng
+            const _nvFn = window.normalizeVNForSearch || (v => String(v || '').toLowerCase());
+            const q = _nvFn(search);
+            const txBlob = [
+                cleanName,
+                t.examTitle || '',
+                t.studentName || '',
+                t.note || '',
+                t.description || '',
+                t.type || '',
+            ].map(v => _nvFn(v)).join(' ');
+            if (q && !txBlob.includes(q)) isSearchMatch = false;
         }
 
         const safeBranch   = t.branch || 'CS1';

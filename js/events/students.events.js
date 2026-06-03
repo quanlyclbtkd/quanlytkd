@@ -43,7 +43,8 @@ export function initStudentsEvents() {
         searchInput.addEventListener('input', () => {
             // Runtime guard: nếu PRIMARY controller đã mount sau khi fallback được bind,
             // bỏ qua callback này để tránh double render.
-            if (window.__studentSearchControllerMounted) return;
+            // Phase 4K-2: cũng guard khi Unified Search Runtime (searchRuntime.js) đã mount.
+            if (window.__studentSearchControllerMounted || window.__searchRuntimeMounted) return;
             if (typeof window.filterStudents === 'function') {
                 window.filterStudents(searchInput.value);
             } else if (typeof window.renderStudents === 'function') {
