@@ -432,64 +432,100 @@ function _findTransactionById(txId) {
 
 /**
  * _installTuitionActionBridges — mount window.printTuitionReceiptByTxId và
- * window.openStudentProfileByName nếu chưa có.
+ * window.openStudentProfileByName (hardened Phase 4K-3B).
  * Idempotent — gọi nhiều lần không gây vấn đề.
  */
 function _installTuitionActionBridges() {
-    // ── Bridge: In biên lai theo txId ──────────────────────────────
-    if (!window.printTuitionReceiptByTxId) {
-        window.printTuitionReceiptByTxId = function(txId, opts) {
-            opts = opts || {};
-            const tx = _findTransactionById(txId);
-            if (!tx) {
-                console.warn('[tuition-receipt] transaction not found for txId:', txId,
-                    '— fallback to button attrs');
-                // Fallback: dùng data attrs từ button nếu tx không còn trong store
-                if (typeof window.exportReceipt === 'function' && opts.studentName) {
-                    const sName = String(opts.studentName || '').trim();
-                    console.warn('[tuition-receipt] fallback exportReceipt for student:', sName);
-                    window.exportReceipt(sName, 0, 'Học phí', '', '', '', '', 'BIÊN LAI THU TIỀN');
-                }
-                return;
-            }
-            if (typeof window.exportReceipt !== 'function') {
-                console.warn('[tuition-receipt] window.exportReceipt not available');
-                return;
-            }
-            const name      = (tx.description ? tx.description.trim() : '') || opts.studentName || '';
-            const amount    = Number(tx.amount) || 0;
-            const type      = tx.type || 'Học phí';
-            const date      = tx.date || '';
-            const txMonths  = tx.packageMonths ? tx.packageMonths.join(',') : (tx.txMonth || '');
-            const branch    = tx.branch || 'CS1';
-            const examTitle = tx.examTitle || '';
-            window.exportReceipt(name, amount, type, date, txMonths, branch, examTitle, 'BIÊN LAI THU TIỀN');
-        };
-    }
-
-    // ── Bridge: Mở hồ sơ võ sinh theo tên ─────────────────────────
-    if (!window.openStudentProfileByName) {
-        window.openStudentProfileByName = function(studentName) {
-            const name = String(studentName || '').trim();
-            if (!name) return;
-            // Ưu tiên gọi đúng function legacy đang tồn tại
-            if (typeof window.openProfile === 'function') {
-                window.openProfile(name);
-            } else if (typeof window.editProfile === 'function') {
-                window.editProfile(name);
-            } else if (typeof window.showStudentModal === 'function') {
-                window.showStudentModal(name);
+    // ── Bridge: In biên lai theo txId (hardened — không fallback 0 đồng) ──
+    window.__printTuitionBridgeHardened = true;
+    window.printTuitionReceiptByTxId = function(txId, opts) {
+        opts = opts || {};
+        const tx = _findTransactionById(txId);
+        if (!tx) {
+            console.warn('[tuition-receipt] transaction not found for txId:', txId,
+                '— checking opts attrs');
+            // Hardened: chỉ in khi có amount thực từ button attrs (không in 0 đồng)
+            if (typeof window.exportReceipt === 'function'
+                && opts.studentName
+                && Number(opts.amount) > 0) {
+                const sName    = String(opts.studentName || '').trim();
+                const sAmt     = Number(opts.amount) || 0;
+                const sType    = String(opts.type || 'Học phí');
+                const sDate    = String(opts.date || '');
+                const sMonths  = String(opts.txMonths || '');
+                const sBranch  = String(opts.branch || 'CS1');
+                const sExam    = String(opts.examTitle || '');
+                console.info('[tuition-receipt] fallback from button attrs — amount:', sAmt);
+                window.exportReceipt(sName, sAmt, sType, sDate, sMonths, sBranch, sExam, 'BIÊN LAI THU TIỀN');
             } else {
-                console.warn('[student-profile] No profile opener available for:', name);
+                console.warn('[tuition-receipt] cannot print — txId not in store and no valid amount in opts');
             }
+            return;
+        }
+        if (typeof window.exportReceipt !== 'function') {
+            console.warn('[tuition-receipt] window.exportReceipt not available');
+            return;
+        }
+        const name      = (tx.description ? tx.description.trim() : '') || opts.studentName || '';
+        const amount    = Number(tx.amount) || 0;
+        const type      = tx.type || 'Học phí';
+        const date      = tx.date || '';
+        const txMonths  = tx.packageMonths ? tx.packageMonths.join(',') : (tx.txMonth || '');
+        const branch    = tx.branch || 'CS1';
+        const examTitle = tx.examTitle || '';
+        window.exportReceipt(name, amount, type, date, txMonths, branch, examTitle, 'BIÊN LAI THU TIỀN');
+    };
+
+    // ── Bridge: Mở hồ sơ võ sinh theo tên (+ normalize Vietnamese) ──
+    window.openStudentProfileByName = function(studentName) {
+        const name = String(studentName || '').trim();
+        if (!name) return;
+
+        // Normalize helper — dùng window.normalizeVNForSearch nếu có
+        const _nvFn = window.normalizeVNForSearch || function(v) {
+            return String(v || '')
+                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                .replace(/đ/g, 'd').replace(/Đ/g, 'D')
+                .toLowerCase().trim();
         };
-    }
+
+        if (typeof window.openProfile === 'function') {
+            // Thử trực tiếp với tên gốc trước
+            const allProfiles = (window.__store && window.__store.profiles) || window.allProfiles || {};
+            if (allProfiles[name]) {
+                window.openProfile(name);
+                return;
+            }
+            // Normalize fallback — tìm key khớp sau khi normalize tiếng Việt
+            const normName = _nvFn(name);
+            const matchedKey = Object.keys(allProfiles).find(k => _nvFn(k) === normName);
+            if (matchedKey) {
+                window.openProfile(matchedKey);
+                return;
+            }
+            // Last resort: gọi với tên gốc (để legacy app tự tìm)
+            window.openProfile(name);
+            return;
+        }
+        if (typeof window.editProfile === 'function') {
+            window.editProfile(name);
+        } else if (typeof window.showStudentModal === 'function') {
+            window.showStudentModal(name);
+        } else {
+            console.warn('[student-profile] No profile opener available for:', name);
+        }
+    };
 }
 
-// ── Phase 4K-3: Debug helper ──────────────────────────────────────────────
+// ── Phase 4K-3B: Debug helper (hardened) ────────────────────────────────
 window.debugTuitionActions = function() {
     const st   = window.__store || {};
     const rows = Array.from(document.querySelectorAll('#txList tr'));
+    const _firstPrintEl = document.querySelector(
+        '[data-action="print-tuition-receipt"], .js-print-tuition-receipt'
+    );
+    const _sampleTxIds = Array.from(document.querySelectorAll('[data-tx-id]'))
+        .slice(0, 5).map(function(el) { return el.getAttribute('data-tx-id'); });
     const result = {
         href:        location.href,
         protocol:    location.protocol,
@@ -503,18 +539,279 @@ window.debugTuitionActions = function() {
         profileButtons: document.querySelectorAll('[data-action="open-student-profile"], .js-open-student-profile').length,
         hasPrintBridge:   typeof window.printTuitionReceiptByTxId === 'function',
         hasProfileBridge: typeof window.openStudentProfileByName === 'function',
+        printBridgeHardened: !!window.__printTuitionBridgeHardened,
         hasFinanceEvents: !!window.__financeActionEventsMounted,
         storeTransactions: Array.isArray(st.transactions) ? st.transactions.length : -1,
         paginationTransactions: Array.isArray(
             st.pagination && st.pagination.transactions && st.pagination.transactions.currentItems
         ) ? st.pagination.transactions.currentItems.length : -1,
-        firstRowText:   rows[0] ? rows[0].textContent.trim().slice(0, 160) : '',
-        firstPrintBtn:  (document.querySelector('[data-action="print-tuition-receipt"], .js-print-tuition-receipt') || {}).outerHTML || '',
-        firstProfileBtn:(document.querySelector('[data-action="open-student-profile"], .js-open-student-profile') || {}).outerHTML || '',
+        firstRowText:    rows[0] ? rows[0].textContent.trim().slice(0, 160) : '',
+        firstPrintBtn:   _firstPrintEl ? _firstPrintEl.outerHTML.slice(0, 300) : '',
+        firstPrintDataset: _firstPrintEl ? Object.fromEntries(
+            Object.entries(_firstPrintEl.dataset)
+        ) : null,
+        sampleTxIds:     _sampleTxIds,
+        firstProfileBtn: (document.querySelector('[data-action="open-student-profile"], .js-open-student-profile') || {}).outerHTML || '',
     };
     console.table(result);
     return result;
 };
+
+// ── Phase 4K-3B: Admission Uniform Size Bridges ──────────────────────────
+/**
+ * _installAdmissionUniformSizeBridges — mount các bridge cần thiết cho
+ * chức năng chọn size võ phục trong form Thu tiền nhập học.
+ * Idempotent — gọi nhiều lần không gây vấn đề.
+ */
+function _installAdmissionUniformSizeBridges() {
+
+    // ── 1. ensureInventoryReady ──────────────────────────────────────
+    if (!window.ensureInventoryReady) {
+        window.ensureInventoryReady = async function(reason) {
+            reason = reason || 'inventory-needed';
+            // Guard: đang chờ promise cũ → trả về cùng promise
+            if (window.__inventoryReadyPromise) return window.__inventoryReadyPromise;
+
+            const st = window.__store || {};
+            if (Array.isArray(st.inventory) && st.inventory.length > 0) return true;
+            // Legacy allInventory đã populate
+            if (Array.isArray(window.allInventory) && window.allInventory.length > 0) {
+                if (window.__store) window.__store.inventory = window.allInventory;
+                return true;
+            }
+
+            window.__inventoryReadyPromise = (async function() {
+                for (let i = 0; i < 50; i++) {
+                    const _st = window.__store || {};
+                    if (Array.isArray(_st.inventory) && _st.inventory.length > 0) {
+                        window.__inventoryReadyLoadedAt = Date.now();
+                        window.__inventoryReadyPromise  = null;
+                        return true;
+                    }
+                    if (Array.isArray(window.allInventory) && window.allInventory.length > 0) {
+                        if (window.__store) window.__store.inventory = window.allInventory;
+                        window.__inventoryReadyLoadedAt = Date.now();
+                        window.__inventoryReadyPromise  = null;
+                        return true;
+                    }
+                    await new Promise(function(r) { setTimeout(r, 100); });
+                }
+                console.warn('[inventory-ready] timed out. reason:', reason);
+                window.__inventoryReadyPromise = null;
+                return false;
+            })();
+
+            return window.__inventoryReadyPromise;
+        };
+    }
+
+    // ── 2. getUniformSizesFromInventory ──────────────────────────────
+    if (!window.getUniformSizesFromInventory) {
+        window.getUniformSizesFromInventory = function(options) {
+            options = options || {};
+            const uniformOnly = options.uniformOnly !== false; // default true
+
+            const _nvFn = window.normalizeVNForSearch || function(v) {
+                return String(v || '')
+                    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                    .replace(/đ/g, 'd').replace(/Đ/g, 'D')
+                    .toLowerCase().trim();
+            };
+
+            // Thử dùng _liveInvMap đã build sẵn bởi legacy renderApp()
+            if (window._liveInvMap && Object.keys(window._liveInvMap).length > 0) {
+                const sizeSet = new Map();
+                Object.entries(window._liveInvMap).forEach(function(entry) {
+                    const key = entry[0]; const s = entry[1];
+                    if (uniformOnly) {
+                        const catNorm = _nvFn(s.category || '');
+                        const isUniform = catNorm.includes('vo phuc') || catNorm.includes('vophuc')
+                            || catNorm.includes('dobok') || catNorm.includes('uniform');
+                        if (!isUniform) return;
+                    }
+                    const size = String(s.size || '').trim();
+                    if (!size) return;
+                    const bal = (s.in || 0) - (s.out || 0);
+                    const nkey = _nvFn(size);
+                    if (!sizeSet.has(nkey)) sizeSet.set(nkey, { size: size, qty: 0, items: [] });
+                    const entry2 = sizeSet.get(nkey);
+                    entry2.qty += bal;
+                    entry2.items.push(s);
+                });
+                if (sizeSet.size > 0) {
+                    return Array.from(sizeSet.values()).sort(function(a, b) {
+                        return String(a.size).localeCompare(String(b.size), 'vi');
+                    });
+                }
+            }
+
+            // Build từ raw inventory transactions trong window.__store
+            const st = window.__store || {};
+            const sources = [
+                st.inventory,
+                st.uniformInventory,
+                st.pagination && st.pagination.inventory && st.pagination.inventory.currentItems,
+                window.allInventory,
+                window.__allInventory,
+            ];
+            const allItems = [];
+            sources.forEach(function(arr) {
+                if (Array.isArray(arr)) arr.forEach(function(item) { allItems.push(item); });
+            });
+            if (!allItems.length) return [];
+
+            const uniformKeywords = [
+                'vo phuc', 'vophuc', 'dobok', 'uniform',
+                'dong phuc', 'dongphuc', 'ao quan', 'aoquan',
+                'ao vo', 'quanvo',
+            ];
+
+            const sizeMap = new Map();
+            allItems.forEach(function(item) {
+                if (uniformOnly) {
+                    const catNorm  = _nvFn(item.category || '');
+                    const isUniformByCat = uniformKeywords.some(function(k) { return catNorm.includes(k); });
+                    if (!isUniformByCat) {
+                        const descBlob = _nvFn([
+                            item.name, item.desc, item.description, item.itemName, item.note,
+                        ].filter(Boolean).join(' '));
+                        const isUniformByDesc = uniformKeywords.some(function(k) { return descBlob.includes(k); });
+                        if (!isUniformByDesc) return;
+                    }
+                }
+                // Hỗ trợ nhiều field name cho size
+                const size = String(
+                    item.size || item.uniformSize || item.itemSize || item.variant || ''
+                ).trim();
+                if (!size) return;
+
+                const qty = Number(
+                    item.qty !== undefined ? item.qty
+                    : item.quantity !== undefined ? item.quantity
+                    : item.stock !== undefined ? item.stock
+                    : 0
+                );
+                const isIn  = item.type === 'Nhập kho';
+                const isOut = item.type === 'Xuất bán' || item.type === 'Xuất tặng'
+                    || String(item.type || '').startsWith('Tặng');
+
+                const nkey = _nvFn(size);
+                if (!sizeMap.has(nkey)) sizeMap.set(nkey, { size: size, qty: 0, items: [] });
+                const entry = sizeMap.get(nkey);
+                if (isIn)       entry.qty += Number.isFinite(qty) ? qty : 0;
+                else if (isOut) entry.qty -= Number.isFinite(qty) ? qty : 0;
+                else            entry.qty += Number.isFinite(qty) ? qty : 0;
+                entry.items.push(item);
+            });
+
+            return Array.from(sizeMap.values()).sort(function(a, b) {
+                return String(a.size).localeCompare(String(b.size), 'vi');
+            });
+        };
+    }
+
+    // ── 3. renderAdmissionUniformSizeOptions ────────────────────────
+    if (!window.renderAdmissionUniformSizeOptions) {
+        window.renderAdmissionUniformSizeOptions = function() {
+            const sizes = typeof window.getUniformSizesFromInventory === 'function'
+                ? window.getUniformSizesFromInventory({ uniformOnly: true })
+                : [];
+
+            const escAttr = function(v) { return String(v || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); };
+            const escHtml = function(v) { return String(v || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
+
+            const select = document.getElementById('add_uniform_size');
+            if (!sizes.length) {
+                console.warn('[admission-size] no uniform sizes from inventory', {
+                    inventoryCount: Array.isArray((window.__store || {}).inventory)
+                        ? (window.__store || {}).inventory.length : -1,
+                    liveInvMapKeys: window._liveInvMap ? Object.keys(window._liveInvMap).length : -1,
+                });
+                if (select) {
+                    select.innerHTML = '<option value="">-- Chưa có dữ liệu kho đồ --</option>';
+                }
+                return [];
+            }
+
+            if (select) {
+                select.innerHTML = '<option value="">-- Không mua / Trống --</option>'
+                    + sizes.map(function(s) {
+                        const disabled = s.qty <= 0 ? ' disabled' : '';
+                        const label = s.qty > 0
+                            ? s.size + ' (Còn: ' + s.qty + ' bộ)'
+                            : s.size + ' (Hết hàng)';
+                        return '<option value="' + escAttr(s.size) + '"' + disabled + '>'
+                            + escHtml(label) + '</option>';
+                    }).join('');
+            }
+            return sizes;
+        };
+    }
+
+    // ── 4. Hook vào openAddModal — đảm bảo sizes luôn được populate ─
+    const _origOpenAddModal = window.openAddModal;
+    if (typeof _origOpenAddModal === 'function' && !window.__addModalSizeHookInstalled) {
+        window.__addModalSizeHookInstalled = true;
+        window.openAddModal = function() {
+            _origOpenAddModal.apply(this, arguments);
+            if (typeof window.ensureInventoryReady === 'function') {
+                window.ensureInventoryReady('admission-modal-open').then(function() {
+                    if (typeof window.renderAdmissionUniformSizeOptions === 'function') {
+                        window.renderAdmissionUniformSizeOptions();
+                    }
+                });
+            } else if (typeof window.renderAdmissionUniformSizeOptions === 'function') {
+                window.renderAdmissionUniformSizeOptions();
+            }
+        };
+    }
+
+    // ── 5. debugAdmissionUniformSize ────────────────────────────────
+    window.debugAdmissionUniformSize = async function() {
+        if (typeof window.ensureInventoryReady === 'function') {
+            await window.ensureInventoryReady('debug-admission-uniform-size');
+        }
+        const st = window.__store || {};
+        const sizes = typeof window.getUniformSizesFromInventory === 'function'
+            ? window.getUniformSizesFromInventory({ uniformOnly: true })
+            : [];
+        const addSizeEl = document.getElementById('add_uniform_size');
+        const result = {
+            href:        location.href,
+            protocol:    location.protocol,
+            runtimeMode: window.__RUNTIME_MODE || '',
+            mainLoaded:  !!window.MAIN_JS_LOADED,
+            appLoaded:   !!window.__appLoaded,
+            currentTab:  typeof window.getCurrentActiveTabId === 'function'
+                ? window.getCurrentActiveTabId() : '',
+            hasEnsureInventoryReady:           typeof window.ensureInventoryReady === 'function',
+            hasGetUniformSizesFromInventory:   typeof window.getUniformSizesFromInventory === 'function',
+            hasRenderAdmissionUniformSizeOptions: typeof window.renderAdmissionUniformSizeOptions === 'function',
+            inventoryCount:  Array.isArray(st.inventory) ? st.inventory.length : -1,
+            uniformInventoryCount: Array.isArray(st.uniformInventory) ? st.uniformInventory.length : -1,
+            paginationInventoryCount: Array.isArray(
+                st.pagination && st.pagination.inventory && st.pagination.inventory.currentItems
+            ) ? st.pagination.inventory.currentItems.length : -1,
+            liveInvMapKeys: window._liveInvMap ? Object.keys(window._liveInvMap).length : -1,
+            uniformSizesCount: sizes.length,
+            uniformSizes: sizes.slice(0, 20).map(function(s) {
+                return { size: s.size, qty: s.qty, items: s.items.length };
+            }),
+            chooseSizeButtons: document.querySelectorAll(
+                '[data-action="choose-admission-uniform-size"], .js-choose-admission-uniform-size'
+            ).length,
+            sizeOptionButtons: document.querySelectorAll(
+                '[data-action="select-admission-uniform-size"]'
+            ).length,
+            addUniformSizeOptions: addSizeEl
+                ? Array.from(addSizeEl.options).map(function(o) { return o.value + ': ' + o.text; })
+                : [],
+            selectValue: (addSizeEl || {}).value || '',
+        };
+        console.table(result);
+        return result;
+    };
+}
 
 // ────────────────────────────────────────────────────────────────
 // [GITHUB-FIX] Task 3: Tránh double-boot app.js khi legacy đã load
@@ -717,6 +1014,9 @@ function _waitForExistingLegacyApp(ms) {
         // Phase 4K-3: Tuition Receipt Action Recovery + Student Profile Click Binding
         _installTuitionActionBridges();
         if (guardOnce('initFinanceActionEvents')) initFinanceActionEvents();
+
+        // Phase 4K-3B: Admission Uniform Size Recovery
+        _installAdmissionUniformSizeBridges();
 
         // PHẦN 6 FIX: Các block setTimeout 500ms/1500ms init pagination sớm đã bị DISABLED.
         // Lý do: chạy trước isClubRuntimeReady() → gây cảnh báo "db chưa sẵn sàng sau 2s".

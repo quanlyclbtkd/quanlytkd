@@ -143,9 +143,18 @@ export function initFinanceActionEvents() {
 
             const txId        = printBtn.getAttribute('data-tx-id');
             const studentName = printBtn.getAttribute('data-student-name');
+            // Phase 4K-3B: pass all attrs so hardened bridge can use them if tx not in store
+            const amount      = Number(printBtn.getAttribute('data-tx-amount') || 0);
+            const type        = printBtn.getAttribute('data-tx-type') || '';
+            const date        = printBtn.getAttribute('data-tx-date') || '';
+            const txMonths    = printBtn.getAttribute('data-tx-months') || '';
+            const branch      = printBtn.getAttribute('data-tx-branch') || '';
+            const examTitle   = printBtn.getAttribute('data-exam-title') || '';
 
             if (typeof window.printTuitionReceiptByTxId === 'function') {
-                window.printTuitionReceiptByTxId(txId, { studentName });
+                window.printTuitionReceiptByTxId(txId, {
+                    studentName, amount, type, date, txMonths, branch, examTitle,
+                });
             } else {
                 console.warn('[tuition-receipt] printTuitionReceiptByTxId missing');
             }
@@ -168,9 +177,45 @@ export function initFinanceActionEvents() {
             }
             return;
         }
+
+        // ── Phase 4K-3B: Chọn size võ phục — mở size picker ───────────
+        const chooseSizeBtn = e.target.closest(
+            '[data-action="choose-admission-uniform-size"], .js-choose-admission-uniform-size'
+        );
+        if (chooseSizeBtn) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            if (typeof window.ensureInventoryReady === 'function') {
+                window.ensureInventoryReady('choose-size-btn').then(function() {
+                    if (typeof window.renderAdmissionUniformSizeOptions === 'function') {
+                        window.renderAdmissionUniformSizeOptions();
+                    }
+                });
+            } else if (typeof window.renderAdmissionUniformSizeOptions === 'function') {
+                window.renderAdmissionUniformSizeOptions();
+            }
+            return;
+        }
+
+        // ── Phase 4K-3B: Chọn size cụ thể — ghi vào add_uniform_size ──
+        const sizeOptionBtn = e.target.closest('[data-action="select-admission-uniform-size"]');
+        if (sizeOptionBtn) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const sizeVal = sizeOptionBtn.getAttribute('data-size-value')
+                || sizeOptionBtn.textContent.trim();
+            const sizeSelect = document.getElementById('add_uniform_size');
+            if (sizeSelect && sizeVal) {
+                sizeSelect.value = sizeVal;
+                sizeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            return;
+        }
     }, true);
 
-    console.info('[finance.events.js] ✅ Phase 4K-3 tuition action event delegation mounted');
+    console.info('[finance.events.js] ✅ Phase 4K-3B tuition action + admission size event delegation mounted');
 }
 
 // Expose lên window để check tools và legacy code có thể gọi
