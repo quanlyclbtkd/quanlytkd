@@ -4584,6 +4584,66 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         window.showToast(`✅ Hoàn thành! Đã gửi thông báo cho ${_bulkZaloIdx} võ sinh.`);
     };
 
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // PHASE 4K-4C — Gói học phí nhập học (helper dùng chung)
+    // ═══════════════════════════════════════════════════════════════════════
+    window.buildAdmissionTuitionPackage = function(startDateOrMonth, packageCount) {
+        const count = Number(packageCount) || 1;
+        const safeCount = [1,3,6,9,12].includes(count) ? count : 1;
+        let startMonth = '';
+        const raw = String(startDateOrMonth || '').trim();
+        if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+            startMonth = raw.substring(0, 7);
+        } else if (/^\d{4}-\d{2}$/.test(raw)) {
+            startMonth = raw;
+        } else {
+            startMonth = getLocalToday().substring(0, 7);
+        }
+        const months = [];
+        let [y, m] = startMonth.split('-').map(Number);
+        for (let i = 0; i < safeCount; i++) {
+            let curM = m + i, curY = y;
+            while (curM > 12) { curM -= 12; curY += 1; }
+            months.push(curY + '-' + String(curM).padStart(2, '0'));
+        }
+        return {
+            packageCount: safeCount,
+            startMonth,
+            months,
+            lastMonth: months[months.length - 1],
+            monthsStr: months.join(','),
+            label: window.formatMonthCompact
+                ? window.formatMonthCompact(months.join(','))
+                : months.join(', ')
+        };
+    };
+
+    window.debugAdmissionTuitionPackage = function() {
+        const dateEl = document.getElementById('add_date');
+        const pkgEl  = document.getElementById('add_package');
+        const feeEl  = document.getElementById('add_fee_actual');
+        const date   = dateEl ? dateEl.value : '';
+        const pkg    = pkgEl ? Number(pkgEl.value || 1) : 1;
+        const info   = typeof window.buildAdmissionTuitionPackage === 'function'
+            ? window.buildAdmissionTuitionPackage(date || getLocalToday(), pkg)
+            : null;
+        const result = {
+            href: location.href,
+            runtimeMode: window.__RUNTIME_MODE || '',
+            mainLoaded: !!window.MAIN_JS_LOADED,
+            appLoaded:  !!window.__appLoaded,
+            addDate: date,
+            selectedPackage: pkg,
+            feeAmount: feeEl ? Number(feeEl.value || 0) : 0,
+            hasBuildAdmissionTuitionPackage: typeof window.buildAdmissionTuitionPackage === 'function',
+            packageInfo: info,
+            addPackageOptions: Array.from(document.querySelectorAll('#add_package option')).map(o => ({ value: o.value, text: o.textContent.trim() }))
+        };
+        console.table({ selectedPackage: result.selectedPackage, startMonth: info && info.startMonth, lastMonth: info && info.lastMonth, monthsStr: info && info.monthsStr, label: info && info.label });
+        return result;
+    };
+
     let _addStudentInProgress = false;
     window.addNewStudent = async () => {
         if(window.userRole === 'viewer') return;
@@ -4629,10 +4689,13 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             }
         }
 
-        let startMonth = joinDate.substring(0, 7); let monthsToRecord = []; let [y, m] = startMonth.split('-').map(Number);
-        for(let i=0; i<packageCount; i++) { let curM = m + i; let curY = y; while(curM > 12) { curM -= 12; curY += 1; } monthsToRecord.push(`${curY}-${curM.toString().padStart(2, '0')}`); }
-        
-        let newPaidUntil = addMonthsToYYYYMM(startMonth, packageCount - 1);
+        const tuitionPkg = window.buildAdmissionTuitionPackage
+            ? window.buildAdmissionTuitionPackage(joinDate || getLocalToday(), packageCount)
+            : (function(jd,cnt){const sm=(jd||getLocalToday()).substring(0,7);const ms=[];let [y,m]=sm.split('-').map(Number);for(let i=0;i<cnt;i++){let cm=m+i,cy=y;while(cm>12){cm-=12;cy+=1;}ms.push(cy+'-'+String(cm).padStart(2,'0'));}return{packageCount:cnt,startMonth:sm,months:ms,lastMonth:ms[ms.length-1],monthsStr:ms.join(','),label:ms.join(', ')};})(joinDate,packageCount);
+        const startMonth = tuitionPkg.startMonth;
+        const monthsToRecord = tuitionPkg.months;
+        const lastMonth = tuitionPkg.lastMonth;
+        const newPaidUntil = lastMonth;
 
         // Lấy các ngày học đã chọn trong tuần (mảng số nguyên theo Date.getDay())
         const trainingDays = Array.from(document.querySelectorAll('.add_trainingDay:checked')).map(cb => parseInt(cb.value));
@@ -4641,14 +4704,14 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         const _addNickVal = _addNickEl ? _addNickEl.value.trim() : '';
         // [SỬA] Dùng _saveKey (không phải name) làm Firestore doc ID để tránh overwrite
         const _newProfileData = { status: 'active', memberId: memberId, branch, belt: document.getElementById('add_belt').value, dob: document.getElementById('add_dob').value, gender: document.getElementById('add_gender').value, cccd: document.getElementById('add_cccd').value.trim(), phone: document.getElementById('add_phone').value, tuitionFee: document.getElementById('add_fee_default_actual').value, notes: document.getElementById('add_notes').value.trim(), nickname: _addNickVal, trainingDays: trainingDays,
-        trainingShiftId: (document.getElementById('add_shift') ? document.getElementById('add_shift').value : ''), createdAt: joinDate, paidUntil: newPaidUntil, paidMonths: monthsToRecord };
+        trainingShiftId: (document.getElementById('add_shift') ? document.getElementById('add_shift').value : ''), createdAt: joinDate, paidUntil: newPaidUntil, paidMonths: monthsToRecord, tuitionPackageCount: tuitionPkg.packageCount, lastAdmissionTuitionStartMonth: startMonth, lastAdmissionTuitionMonths: monthsToRecord };
         // Phase 4.0B-4J-8A: Ghi search index khi thêm võ sinh mới
         if (typeof buildStudentSearchIndex === 'function') {
             Object.assign(_newProfileData, buildStudentSearchIndex(_newProfileData, _saveKey));
         }
         await setDoc(doc(db, "clubs", currentClubId, "profiles", _saveKey), _newProfileData);
         
-        if(fee > 0) { await addDoc(colRef, { branch, type: 'Học phí', description: _saveKey, amount: fee, date: joinDate, txMonth: startMonth, packageMonths: monthsToRecord, timestamp: Date.now() }); }
+        if(fee > 0) { await addDoc(colRef, { branch, type: 'Học phí', description: _saveKey, amount: fee, date: joinDate, txMonth: lastMonth, paymentMonth: startMonth, packageMonths: monthsToRecord, tuitionPackageCount: tuitionPkg.packageCount, tuitionStartMonth: startMonth, tuitionPaidUntil: lastMonth, timestamp: Date.now() }); }
         
         if(uniformSize) { 
             const invDoc = await addDoc(invRef, { size: uniformSize, type: 'Xuất bán', qty: 1, desc: _saveKey, amount: uniformFee, date: joinDate, timestamp: Date.now() + 2 }); 
@@ -4667,13 +4730,14 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         const totalPayment = fee + (isGift ? 0 : uniformFee);
         if (totalPayment > 0 && window.exportReceipt) {
             const breakdown = [];
-            if (fee > 0) breakdown.push({ label: 'Học phí tháng ' + startMonth.replace('-', '/'), amount: fee });
+            const tuitionLabel = tuitionPkg.packageCount > 1 ? `Học phí gói ${tuitionPkg.packageCount} tháng (${tuitionPkg.label})` : `Học phí tháng ${tuitionPkg.label}`;
+            if (fee > 0) breakdown.push({ label: tuitionLabel, amount: fee });
             if (!isGift && uniformFee > 0) breakdown.push({ label: 'Võ phục ' + (uniformSize || ''), amount: uniformFee });
             const receiptType = fee > 0 && !isGift && uniformFee > 0 ? 'Học phí + Võ phục' : (fee > 0 ? 'Học phí' : 'Võ phục');
             if (!allProfiles[_saveKey]) {
                 allProfiles[_saveKey] = { belt: document.getElementById('add_belt').value, branch, tuitionFee: document.getElementById('add_fee_default_actual').value };
             }
-            await window.exportReceipt(_saveKey, totalPayment, receiptType, joinDate, startMonth, branch, '', 'BIÊN LAI THU TIỀN', breakdown.length > 1 ? breakdown : null);
+            await window.exportReceipt(_saveKey, totalPayment, receiptType, joinDate, tuitionPkg.monthsStr, branch, '', 'BIÊN LAI THU TIỀN', breakdown.length > 0 ? breakdown : null);
         }
         _addStudentInProgress = false;
     };
@@ -5710,7 +5774,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             // Render breakdown table if provided
             const bdWrap = document.getElementById('r_breakdown_wrap');
             const bdTable = document.getElementById('r_breakdown_table');
-            if(breakdown && breakdown.length > 1 && bdWrap && bdTable) {
+            if(breakdown && breakdown.length > 0 && bdWrap && bdTable) {
                 bdTable.innerHTML = breakdown.map((row, i) => 
                     `<tr style="border-top:${i===0?'none':'1px solid #f1f5f9'}">
                         <td style="padding:5px 10px;font-size:12px;color:#475569;">${row.label}</td>
@@ -5915,7 +5979,26 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
 
         allTransactions.forEach(t => {
             const cleanName = t.description ? t.description.trim() : ""; 
-            const _INV_CATS = window.getInvCategories ? window.getInvCategories() : ['Võ phục', 'Áo thun', 'Bảo hộ']; let isUniformTx = _INV_CATS.some(cat => t.type === `Thu ${cat}` || t.type === `Chi ${cat}` || t.type === `Tặng ${cat}`) || t.type === 'Võ phục';
+            // Phase 4K-4D: dùng classifyInventoryFinanceTx hỗ trợ custom categories
+            const _invClass = typeof window.classifyInventoryFinanceTx === 'function'
+                ? window.classifyInventoryFinanceTx(t)
+                : (function(t) {
+                    const _cats = window.getInvCategories ? window.getInvCategories() : ['Võ phục','Áo thun','Bảo hộ'];
+                    const _type = String(t && t.type || '').trim();
+                    for (const cat of _cats) {
+                        if (_type === 'Thu ' + cat)  return { isInventory:true, direction:'income',  amount: Number(t.amount||0) };
+                        if (_type === 'Chi ' + cat)  return { isInventory:true, direction:'expense', amount: Number(t.amount||0) };
+                        if (_type === 'Tặng ' + cat) return { isInventory:true, direction:'gift',    amount: 0 };
+                    }
+                    if (_type === 'Võ phục') return { isInventory:true, direction:'income', amount: Number(t.amount||0) };
+                    if (t && t.relatedInvId) {
+                        if (_type.startsWith('Thu '))  return { isInventory:true, direction:'income',  amount: Number(t.amount||0) };
+                        if (_type.startsWith('Chi '))  return { isInventory:true, direction:'expense', amount: Number(t.amount||0) };
+                        if (_type.startsWith('Tặng ')) return { isInventory:true, direction:'gift',    amount: 0 };
+                    }
+                    return { isInventory:false };
+                })(t);
+            let isUniformTx = _invClass.isInventory;
             
             let isBranchMatch = true;
             if (!isSingleBranch && selBranch !== 'all' && t.branch !== selBranch && t.branch !== 'Chung') isBranchMatch = false;
@@ -5927,8 +6010,9 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             const btnDel = window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-rose-50 text-rose-600 hover:bg-rose-500 hover:text-white ml-1" onclick="deleteTx('${t.id}', '${t.relatedInvId || ''}')">🗑</button>` : '';
 
             if (isUniformTx) {
-                let isInc = _INV_CATS.some(cat => t.type === `Thu ${cat}`) || t.type === 'Võ phục'; let isGift = _INV_CATS.some(cat => t.type === `Tặng ${cat}`);
-                if (isInc) inc_uniform += Number(t.amount) || 0; else if (!isGift) exp_uniform += Number(t.amount) || 0;
+                if      (_invClass.direction === 'income')  inc_uniform += Number(t.amount) || 0;
+                else if (_invClass.direction === 'expense') exp_uniform += Number(t.amount) || 0;
+                // direction === 'gift' → không cộng doanh thu / chi
                 return;
             }
 
