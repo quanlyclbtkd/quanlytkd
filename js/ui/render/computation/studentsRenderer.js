@@ -198,7 +198,13 @@ export function computeAndCacheStudents(allProfiles, params) {
     } = params;
 
     // ── Cache-hit detection ──
-    const paramsKey   = `${curTabId}|${selMonth}|${selBranch}|${search}|${activePage}|${debtPage}|${quitPage}|${pgStudentsActive ? '1' : '0'}`;
+    // Phase 4K-STUDENT-RENDER-OVERWRITE-FIX: thêm pagination version/count/page vào cache key
+    // Đảm bảo khi pgState.currentItems thay đổi nhưng _dataVersion chưa tăng, cache bị invalidate.
+    // _studentsPaginationVersion tăng mỗi khi _doLoad() thành công trong students.js.
+    const pgVersion   = (window.__store || {})._studentsPaginationVersion || 0;
+    const pgCount     = pgStudents?.currentItems?.length || 0;
+    const pgPage      = pgStudents?.currentPage || 0;
+    const paramsKey   = `${curTabId}|${selMonth}|${selBranch}|${search}|${activePage}|${debtPage}|${quitPage}|${pgStudentsActive ? '1' : '0'}|pgv:${pgVersion}|pgc:${pgCount}|pgp:${pgPage}`;
     const dataVersion = (window.__store || {})._dataVersion || 0;
     if (
         _cache.summary !== null &&
@@ -498,4 +504,19 @@ export function getStudentsSummary() {
  */
 export function getStudentsMetrics() {
     return { ..._metrics };
+}
+
+/**
+ * Phase 4K-STUDENT-RENDER-OVERWRITE-FIX: Cache metrics cho debug helper.
+ * Expose via window.getStudentsCacheMetrics = getStudentsCacheMetrics trong renderStudents.js.
+ * @returns {{ activeRowsLength: number, debtRowsLength: number, quitRowsLength: number, paramsKey: string|null, dataVersion: number }}
+ */
+export function getStudentsCacheMetrics() {
+    return {
+        activeRowsLength: typeof _cache.activeRows === 'string' ? _cache.activeRows.length : -1,
+        debtRowsLength:   typeof _cache.debtRows   === 'string' ? _cache.debtRows.length   : -1,
+        quitRowsLength:   typeof _cache.quitRows   === 'string' ? _cache.quitRows.length   : -1,
+        paramsKey:        _cache.paramsKey   || null,
+        dataVersion:      _cache.dataVersion || 0,
+    };
 }

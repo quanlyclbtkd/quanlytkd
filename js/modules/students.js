@@ -1028,6 +1028,30 @@ export function initStudentPagination() {
                 }
             }
 
+            // Phase 4K-STUDENT-RENDER-OVERWRITE-FIX: Global row builder dùng chung
+            // cho renderActiveIsland() và _renderStudentsPageRowsFallback().
+            // renderActiveIsland dùng khi activeRows cache rỗng nhưng pagination có items.
+            // Dùng HTML attribute escaping an toàn thay vì replace('/g) đơn giản.
+            window.buildStudentsRowsFromPagination = function buildStudentsRowsFromPagination(items, mode) {
+                if (!Array.isArray(items) || items.length === 0) return '';
+                const _esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+                const _escJs = (s) => String(s || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                try {
+                    return items.map(item => {
+                        const _rawName = item.id || item.name || '';
+                        const _a = _esc(_rawName);
+                        const _j = _escJs(_rawName);
+                        const p  = item;
+                        if (mode === 'quit') {
+                            return `<tr data-student-id="${_a}"><td class="name-link text-[0.95rem]" onclick="openProfile('${_j}')">${_a}</td><td class="text-[0.7rem] font-bold text-slate-500">${_esc(p.memberId) || '-'}</td><td>-</td><td>-</td><td>${_esc(p.quitDate) || '-'}</td><td class="text-slate-500">-</td><td><button type="button" class="btn-sm bg-slate-100 text-slate-700 border border-slate-200" onclick="openProfile('${_j}')">👁️ Xem</button></td></tr>`;
+                        }
+                        return `<tr data-student-id="${_a}"><td class="name-link text-[0.95rem]" onclick="openProfile('${_j}')">${_a}</td><td class="text-[0.7rem] font-bold text-slate-500">${_esc(p.memberId) || '-'}</td><td>-</td><td>-</td><td>-</td><td class="badge bg-rose-50 text-rose-600 text-[0.7rem]">-</td><td class="font-medium text-slate-600">${_esc(p.phone) || ''}</td><td class="text-slate-500">-</td><td><button type="button" class="btn-sm bg-slate-100 text-slate-700 border border-slate-200" onclick="openProfile('${_j}')">👁️ Xem</button></td></tr>`;
+                    }).join('');
+                } catch (_be) {
+                    return '';
+                }
+            };
+
             // ── Core: thực sự load một trang profiles ──────────────────
             async function _doLoad(cursor, direction) {
                 if (pgState.isLoading) return;
@@ -1090,6 +1114,15 @@ export function initStudentPagination() {
 
                     // Cập nhật store để render.js dùng được
                     store.pagination.students = pgState;
+
+                    // Phase 4K-STUDENT-RENDER-OVERWRITE-FIX: tăng version counters
+                    // để computeAndCacheStudents cache key bị invalidate ngay sau pagination load.
+                    // _studentsPaginationVersion → paramsKey miss → cache rebuild với data mới.
+                    // _dataVersion tăng đảm bảo dataVersion check cũng miss cache cũ.
+                    if (window.__store) {
+                        window.__store._studentsPaginationVersion = (window.__store._studentsPaginationVersion || 0) + 1;
+                        window.__store._dataVersion = (window.__store._dataVersion || 0) + 1;
+                    }
 
                     // Phase 3.5B: Dùng domain-specific invalidation thay vì full renderApp()
                     // invalidateStudents() chỉ invalidate students islands (activeList, v.v.)

@@ -1418,18 +1418,52 @@ window.debugStudentListHydration = async function debugStudentListHydration() {
     try {
         const _pg      = window.__store && window.__store.pagination && window.__store.pagination.students;
         const _items   = _pg && Array.isArray(_pg.currentItems) ? _pg.currentItems.length : -1;
+        const _pgPage  = _pg ? (_pg.currentPage || 0) : -1;
+        const _pgEnable = _pg ? !!_pg.enabled : false;
+        const _pgVer   = (window.__store && window.__store._studentsPaginationVersion) || 0;
         const _domRows = document.querySelectorAll('#activeList tr[data-student-id]').length;
+        const _activeEl = document.getElementById('activeList');
+        const _activeInnerLen = _activeEl ? _activeEl.innerHTML.length : -1;
         const _allProf = window.allProfiles ? Object.keys(window.allProfiles).length : -1;
         const _actProf = (window.__store && window.__store.activeProfiles)
             ? Object.keys(window.__store.activeProfiles).length : -1;
 
-        console.log('pgState.currentItems.length :', _items >= 0 ? _items : '(pagination not init)');
+        // Cache metrics nếu island đã expose qua registerStudentsLegacyGlobals()
+        const _cacheM = typeof window.getStudentsCacheMetrics === 'function'
+            ? window.getStudentsCacheMetrics() : null;
+
+        console.log('── Pagination state ──────────────────────────────');
+        console.log('pgState.currentItems.length :', _items >= 0 ? _items : '(not init)');
+        console.log('pgState.currentPage         :', _pgPage >= 0 ? _pgPage : '(not init)');
+        console.log('pgState.enabled             :', _pgEnable);
+        console.log('_studentsPaginationVersion  :', _pgVer, '(tăng mỗi khi _doLoad thành công)');
+        console.log('── DOM state ─────────────────────────────────────');
         console.log('#activeList tr[data-student-id] :', _domRows);
-        console.log('allProfiles (window) :', _allProf >= 0 ? _allProf : '(not loaded)');
-        console.log('activeProfiles (__store) :', _actProf >= 0 ? _actProf : '(not tracked)');
+        console.log('#activeList innerHTML.length    :', _activeInnerLen, '(0 = DOM empty)');
+        console.log('── Profile state ─────────────────────────────────');
+        console.log('allProfiles (window)        :', _allProf >= 0 ? _allProf : '(not loaded)');
+        console.log('activeProfiles (__store)    :', _actProf >= 0 ? _actProf : '(not tracked)');
+        console.log('── Render cache ──────────────────────────────────');
+        if (_cacheM) {
+            console.log('activeRows cache length     :', _cacheM.activeRowsLength,
+                _cacheM.activeRowsLength === 0 ? '⚠️ RỖNG — island sẽ clear DOM!' : '(có data)');
+            console.log('debtRows cache length       :', _cacheM.debtRowsLength);
+            console.log('quitRows cache length       :', _cacheM.quitRowsLength);
+            console.log('cache paramsKey             :', _cacheM.paramsKey);
+            console.log('cache dataVersion           :', _cacheM.dataVersion);
+        } else {
+            console.log('cache metrics               : (window.getStudentsCacheMetrics not available)');
+            console.log('                              Đợi registerStudentsLegacyGlobals() chạy hoặc check renderStudents.js');
+        }
+        console.log('─────────────────────────────────────────────────');
 
         if (_items > 0 && _domRows === 0) {
-            console.warn('[DebugStudentList] ⚠️ pgState có items nhưng DOM trống — island chưa render');
+            console.warn('[DebugStudentList] ⚠️ pgState có', _items, 'items nhưng DOM trống — island bị overwrite hoặc miss');
+            if (_cacheM && _cacheM.activeRowsLength === 0) {
+                console.warn('[DebugStudentList] 🔴 activeRows cache = 0 → renderActiveIsland() gọi replaceChildren() với HTML rỗng → xóa DOM.');
+                console.warn('[DebugStudentList]    Fix: renderActiveIsland() phải guard pagination state trước khi clear.');
+                console.warn('[DebugStudentList]    Nếu fix đã áp dụng → chạy window.watchActiveListMutations() để trace thêm.');
+            }
             console.log('[DebugStudentList] 🔧 Thử invalidate + re-render...');
             if (typeof window.refreshListComputation === 'function') {
                 window.refreshListComputation('students.activeList', 'debug-hydration');
@@ -1449,8 +1483,6 @@ window.debugStudentListHydration = async function debugStudentListHydration() {
             }, 500);
         } else if (_items === 0 && _allProf === 0 && _actProf <= 0) {
             // Profiles chưa load — check collection có docs không
-            const _cid    = window.currentClubId || (window.__store && window.__store.currentClubId);
-            const _db     = (window.__store && window.__store.db) || window.db || window._db;
             const _profRef = window.__store && window.__store.profRef;
             const { query: _q, limit: _l, getDocs: _g } = window._fb_init || {};
             if (_g && _q && _l && _profRef) {
@@ -1475,8 +1507,46 @@ window.debugStudentListHydration = async function debugStudentListHydration() {
         } else {
             console.log('[DebugStudentList] ✅ Data OK — items:', _items, ' DOM rows:', _domRows);
         }
+        console.log('[DebugStudentList] 💡 Nếu rows bị xóa ngay sau khi hiện → chạy: window.watchActiveListMutations()');
     } catch (_err) {
         console.error('[DebugStudentList] Error:', _err);
     }
     console.groupEnd();
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WATCH ACTIVE LIST MUTATIONS — Phase 4K-STUDENT-RENDER-OVERWRITE-FIX
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Helper debug — theo dõi khi #activeList bị clear hoặc thay đổi.
+ * Chỉ chạy thủ công từ Console — KHÔNG tự mount khi page load.
+ *
+ * Chạy:
+ *   window.watchActiveListMutations()
+ *   // ... switch tab, thao tác để reproduce ...
+ *   window.__activeListMutationObserver?.disconnect()  // dừng khi xong
+ */
+window.watchActiveListMutations = function watchActiveListMutations() {
+    const el = document.getElementById('activeList');
+    if (!el) { console.warn('[WatchMutation] #activeList không tìm thấy.'); return; }
+    if (window.__activeListMutationObserver) {
+        window.__activeListMutationObserver.disconnect();
+        console.log('[WatchMutation] Observer cũ đã disconnect.');
+    }
+    const obs = new MutationObserver((_mutations) => {
+        const rows = el.querySelectorAll('tr[data-student-id]').length;
+        const len  = el.innerHTML.length;
+        console.warn('[ActiveListMutation] DOM changed →', {
+            rows,
+            htmlLength: len,
+            note: rows === 0 && len < 100 ? '⚠️ LIST CLEARED' : (rows > 0 ? '✅ has rows' : '(empty html)'),
+            stack: new Error('mutation-trace').stack,
+        });
+    });
+    obs.observe(el, { childList: true, subtree: false });
+    window.__activeListMutationObserver = obs;
+    console.log('[WatchMutation] ✅ MutationObserver mounted on #activeList.');
+    console.log('[WatchMutation]    Thao tác để reproduce → xem log bên trên.');
+    console.log('[WatchMutation]    Dừng: window.__activeListMutationObserver.disconnect()');
 };
