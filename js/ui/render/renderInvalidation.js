@@ -134,6 +134,18 @@ function _scheduleIslands(keys) {
     keys.forEach(key => runRender(key));
 }
 
+function _refreshComputationForKeys(keys, reason) {
+    if (!Array.isArray(keys) || keys.length === 0) return { refreshed: [], fallback: [] };
+    try {
+        return refreshListsComputation(keys, reason || 'domain-invalidation-refresh') || { refreshed: [], fallback: [] };
+    } catch (err) {
+        if (_isDev()) {
+            console.warn('[renderInvalidation] refreshListsComputation before domain render failed:', err);
+        }
+        return { refreshed: [], fallback: keys };
+    }
+}
+
 // ── Phase 3.5C: Tab → Domain mapping ─────────────────────────────────────────
 //
 // Quyết định khi invalidateCurrentTab() / invalidateTab() được gọi,
@@ -463,6 +475,13 @@ export function invalidateByDomain(domain, reason) {
             invalidateStudentsRender('all');
             invalidateInventoryRender('all');
             invalidateDashboardCache('all');
+            // Phase 4K-DATA-HYDRATION-FINAL2: domain invalidation phải refresh
+            // computation cache trước khi island render, nếu không tbody có thể rỗng.
+            _refreshComputationForKeys([
+                ..._FINANCE_KEYS,
+                ..._STUDENTS_KEYS,
+                ..._INVENTORY_KEYS,
+            ], reason || 'all-domain-refresh');
             _scheduleIslands([
                 ..._FINANCE_KEYS,
                 ..._STUDENTS_KEYS,
@@ -494,6 +513,10 @@ export function invalidateFinance(reason) {
     // 1. Xóa finance computation cache
     invalidateFinanceRender('all');
 
+    // Phase 4K-DATA-HYDRATION-FINAL2: recompute trước khi render island.
+    // Nếu chỉ xóa cache rồi runRender(), island sẽ đọc cache rỗng → table blank.
+    _refreshComputationForKeys(_FINANCE_KEYS, reason || 'finance-domain-refresh');
+
     // 2. Mark dirty + schedule các finance islands
     //    runRender() tự skip nếu tab hidden, defer đến khi tab active
     _scheduleIslands(_FINANCE_KEYS);
@@ -522,6 +545,10 @@ export function invalidateStudents(reason) {
     // 1. Xóa students computation cache
     invalidateStudentsRender('all');
 
+    // Phase 4K-DATA-HYDRATION-FINAL2: recompute trước khi render island.
+    // Đây là lỗi làm tab Đang Tập có footer pagination nhưng tbody rỗng.
+    _refreshComputationForKeys(_STUDENTS_KEYS, reason || 'students-domain-refresh');
+
     // 2. Mark dirty + schedule các student islands
     _scheduleIslands(_STUDENTS_KEYS);
 
@@ -547,6 +574,9 @@ export function invalidateInventory(reason) {
 
     // 1. Xóa inventory computation cache
     invalidateInventoryRender('all');
+
+    // Phase 4K-DATA-HYDRATION-FINAL2: recompute trước khi render island.
+    _refreshComputationForKeys(_INVENTORY_KEYS, reason || 'inventory-domain-refresh');
 
     // 2. Mark dirty + schedule các inventory islands
     _scheduleIslands(_INVENTORY_KEYS);

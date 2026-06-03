@@ -208,7 +208,16 @@ export function classifyProfileStatus(profile) {
     const raw    = profile?.status;
     const status = String(raw ?? '').toLowerCase().trim();
 
-    if (!status) return 'other';
+    // Phase 4K-DATA-HYDRATION-FINAL2:
+    // Dữ liệu legacy nhiều CLB chưa có field `status`. Nếu trả về `other`,
+    // active listener / renderer sẽ coi như không có võ sinh đang tập. Vì vậy:
+    // - Nếu có dấu hiệu nghỉ → quit.
+    // - Nếu không có dấu hiệu nghỉ → active-like để tương thích dữ liệu cũ.
+    if (!status) {
+        const quitLike = profile?.quit === true || profile?.stopped === true || profile?.retired === true ||
+            profile?.isActive === false || profile?.active === false || !!profile?.quitDate || !!profile?.leftDate;
+        return quitLike ? 'quit' : 'active';
+    }
 
     // ── Exact match: activeQueryValues ──────────────────────────────────
     const activeQ = _config.activeQueryValues || ['active', 'trial'];
