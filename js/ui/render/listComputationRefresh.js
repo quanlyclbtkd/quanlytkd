@@ -294,6 +294,33 @@ function _cacheAndApplyDashboardSummary(reason) {
     const bStats = (fin && fin.bStats) || (window.__store && window.__store._lastBStats) || {};
     const bExamStats = (fin && fin.bExamStats) || (window.__store && window.__store._lastBExamStats) || {};
 
+    // [Part 3 FIX] Guard uses `prev` (captured at TOP of this function, BEFORE any write).
+    // Previously the guard read window.__store._lastSummaryNumbers AFTER writing summaryNumbers,
+    // making prevSummary === summaryNumbers and the guard always a no-op.
+    const incomingLooksEmpty =
+        summaryNumbers.activeCount === 0 &&
+        summaryNumbers.debtCount   === 0 &&
+        summaryNumbers.txCount     === 0 &&
+        summaryNumbers.incTuition  === 0 &&
+        summaryNumbers.incExam     === 0 &&
+        summaryNumbers.incOther    === 0 &&
+        summaryNumbers.incUniform  === 0;
+
+    const prevLooksNonEmpty =
+        Number(prev.activeCount  || 0) > 0 ||
+        Number(prev.debtCount    || 0) > 0 ||
+        Number(prev.txCount      || 0) > 0 ||
+        Number(prev.incTuition   || 0) > 0 ||
+        Number(prev.incExam      || 0) > 0 ||
+        Number(prev.incOther     || 0) > 0 ||
+        Number(prev.incUniform   || 0) > 0;
+
+    if (incomingLooksEmpty && prevLooksNonEmpty && reason !== 'logout' && reason !== 'reset') {
+        console.warn('[DashboardSummary] Skip all-zero overwrite — keeping real previous data. reason:', reason);
+        return /** @type {any} */ (prev);
+    }
+
+    // Write to cache only after guard passes
     cacheDashboardData({
         reportHtml,
         chartData,
@@ -307,33 +334,6 @@ function _cacheAndApplyDashboardSummary(reason) {
         window.__store._lastBStats = bStats;
         window.__store._lastBExamStats = bExamStats;
         window.__store._lastIncExam = incExam;
-    }
-
-    // [GITHUB-FIX Task 6] Guard: không để render cycle rỗng ghi đè dữ liệu thật
-    const prevSummary = (window.__store && window.__store._lastSummaryNumbers) || null;
-
-    const incomingLooksEmpty =
-        summaryNumbers.activeCount === 0 &&
-        summaryNumbers.debtCount   === 0 &&
-        summaryNumbers.txCount     === 0 &&
-        summaryNumbers.incTuition  === 0 &&
-        summaryNumbers.incExam     === 0 &&
-        summaryNumbers.incOther    === 0 &&
-        summaryNumbers.incUniform  === 0;
-
-    const prevLooksNonEmpty = prevSummary && (
-        Number(prevSummary.activeCount  || 0) > 0 ||
-        Number(prevSummary.debtCount    || 0) > 0 ||
-        Number(prevSummary.txCount      || 0) > 0 ||
-        Number(prevSummary.incTuition   || 0) > 0 ||
-        Number(prevSummary.incExam      || 0) > 0 ||
-        Number(prevSummary.incOther     || 0) > 0 ||
-        Number(prevSummary.incUniform   || 0) > 0
-    );
-
-    if (incomingLooksEmpty && prevLooksNonEmpty && reason !== 'logout' && reason !== 'reset') {
-        console.warn('[DashboardSummary] Skip empty summary overwrite — reason:', reason);
-        return prevSummary;
     }
 
     if (typeof window.updateSummaryNumbers === 'function') {
@@ -420,14 +420,9 @@ export function refreshListComputation(key, reason = 'list-refresh') {
                 break;
 
             case 'dashboard':
-                // Dashboard phụ thuộc finance + students đã computed → partial recompute
-                // không an toàn (thiếu data). Invalidate cache section cụ thể để dashboard
-                // island bị mark dirty → khi user mở tab dashboard sẽ trigger full renderApp().
-                if      (key === 'dashboard.reportList')  invalidateDashboardCache('reportList');
-                else if (key === 'dashboard.summary')     invalidateDashboardCache('summary');
-                else if (key === 'dashboard.charts')      invalidateDashboardCache('charts');
-                else if (key === 'dashboard.branchStats') invalidateDashboardCache('branchStats');
-                ok = false; // fallback → invalidateList() sẽ trigger invalidateCurrentTab()
+                // [Part 2 FIX] Dashboard keys now trigger refreshDashboardComputation (not ok=false)
+                refreshDashboardComputation(reason || 'dashboard-list-refresh');
+                ok = true;
                 break;
 
             default:
@@ -519,8 +514,12 @@ export function refreshListsComputation(keys, reason = 'list-refresh') {
                     ok = true;
                     break;
                 case 'attendance':
-                case 'dashboard':
                     ok = false;
+                    break;
+                case 'dashboard':
+                    // [Part 2 FIX] Dashboard batch refresh triggers real recompute
+                    refreshDashboardComputation(reason || 'dashboard-batch-refresh');
+                    ok = true;
                     break;
                 default:
                     ok = false;
@@ -565,6 +564,58 @@ export function refreshListsComputation(keys, reason = 'list-refresh') {
     }
 
     return { refreshed, fallback };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// refreshDashboardComputation — Part 2 FIX
+// Recompute ALL dashboard data (finance + students + inventory → summary/charts)
+// before rendering dashboard islands.  Always call this instead of rendering
+// from an empty/stale cache.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Full dashboard recompute: finance → students → inventory → summary → chartData.
+ *
+ * Exposed on window so renderInvalidation.js can call it without a circular import.
+ *
+ * @param {string} [reason]
+ * @returns {object|null} summaryNumbers or null on failure
+ */
+export function refreshDashboardComputation(reason = 'dashboard-refresh') {
+    try {
+        try { _refreshFinance();   } catch (_) {}
+        try { _refreshStudents();  } catch (_) {}
+        try { _refreshInventory(); } catch (_) {}
+
+        const summary = _cacheAndApplyDashboardSummary(reason);
+
+        if (window.__store) {
+            window.__store._lastDashboardRefreshReason = reason;
+            window.__store._lastDashboardRefreshAt     = Date.now();
+        }
+
+        // Fire-and-forget: load historical chart data from Firestore stats docs
+        // so the 6-month chart isn't all-zero for past months.
+        if (typeof window.fetchHistoricalDashboardFallback === 'function') {
+            const _selMonth = (window.__store && window.__store.selectedMonth) ||
+                (document.getElementById('monthPicker') ? document.getElementById('monthPicker').value : '');
+            if (_selMonth) {
+                window.fetchHistoricalDashboardFallback(_selMonth, reason).catch(function(e) {
+                    console.warn('[refreshDashboardComputation] historical fetch failed:', e);
+                });
+            }
+        }
+
+        return summary;
+    } catch (e) {
+        console.warn('[refreshDashboardComputation] failed:', e);
+        return null;
+    }
+}
+
+// Expose immediately so renderInvalidation.js can call it on first paint
+if (typeof window !== 'undefined') {
+    window.refreshDashboardComputation = refreshDashboardComputation;
 }
 
 /**

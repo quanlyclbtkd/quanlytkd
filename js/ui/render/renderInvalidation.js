@@ -618,14 +618,26 @@ export function invalidateDashboard(reason) {
  * @param {string} [reason]
  */
 function _invalidateDashboardOnly(reason) {
-    // 1. Xóa dashboard computation cache
+    // [Part 1 FIX] Correct order: clear → recompute → render
+    // Islands MUST NOT render from an empty cache.
+
+    // 1. Clear stale dashboard cache
     invalidateDashboardCache('all');
 
-    // 2. Mark dirty các dashboard islands (không force-schedule)
-    //    runRender() sẽ: nếu tab active → schedule ngay; nếu hidden → mark dirty
+    // 2. Recompute dashboard data BEFORE scheduling islands so they read fresh cache
+    if (typeof window.refreshDashboardComputation === 'function') {
+        try {
+            window.refreshDashboardComputation(reason || 'dashboard-invalidate');
+        } catch (e) {
+            console.warn('[renderInvalidation] dashboard recompute before render failed:', e);
+        }
+    }
+
+    // 3. Mark dirty + schedule — islands now read freshly rebuilt cache
+    //    runRender(): tab active → schedule immediately; hidden → mark dirty, flush on show
     _DASHBOARD_KEYS.forEach(key => {
-        invalidateRender(key); // mark dirty
-        runRender(key);        // schedule nếu active, defer nếu hidden
+        invalidateRender(key);
+        runRender(key);
     });
 }
 

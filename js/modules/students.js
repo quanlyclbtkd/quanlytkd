@@ -987,17 +987,32 @@ export function initStudentPagination() {
                     ? (pgState.currentPage - 1) * PAGE_SIZE + 1
                     : 0;
                 const to   = pgState.totalLoaded;
-                const html = renderPaginationControls(pgState, 'students', from, to);
 
                 ['activeList', 'quitList'].forEach(listId => {
-                    const table = document.getElementById(listId);
-                    if (!table) return;
-                    const ctrlId  = 'pgWrap_' + listId;
-                    let ctrlEl    = document.getElementById(ctrlId);
+                    const tbody = document.getElementById(listId);
+                    if (!tbody) return;
+
+                    // [Part 6 FIX] Navigate to <table> first, then insert AFTER it — not inside it.
+                    // A <div> inside <table> is invalid HTML and browsers will eject it unpredictably.
+                    const tbl    = tbody.closest ? tbody.closest('table') : tbody.parentElement;
+                    const anchor = tbl || tbody;
+                    const parent = anchor.parentElement;
+
+                    // [Part 6 FIX] Unique prefix per list — avoids duplicate pgNext_students IDs
+                    // renderPaginationControls builds onclick="window._pgNext_<prefix>()"
+                    const prefix = listId === 'activeList' ? 'students_active' : 'students_quit';
+                    const html   = renderPaginationControls(pgState, prefix, from, to);
+
+                    const ctrlId = 'pgWrap_' + listId;
+                    let ctrlEl   = document.getElementById(ctrlId);
                     if (!ctrlEl) {
-                        ctrlEl      = document.createElement('div');
-                        ctrlEl.id   = ctrlId;
-                        table.parentNode.insertBefore(ctrlEl, table.nextSibling);
+                        ctrlEl    = document.createElement('div');
+                        ctrlEl.id = ctrlId;
+                        if (parent) {
+                            parent.insertBefore(ctrlEl, anchor.nextSibling);
+                        } else {
+                            anchor.parentNode.insertBefore(ctrlEl, anchor.nextSibling);
+                        }
                     }
                     ctrlEl.innerHTML = html;
                 });
@@ -1139,6 +1154,14 @@ export function initStudentPagination() {
                         pgState.searchQuery = search;
                     }
 
+                    // [Part 7 FIX] Debug state — visible via debugStudentPagination()
+                    pgState._lastSnapSize    = snap.docs ? snap.docs.length : 0;
+                    pgState._lastLoadedAt    = Date.now();
+                    pgState._lastDirection   = direction;
+                    pgState._lastHasNext     = pgState.hasNext;
+                    pgState._lastHasPrevious = pgState.hasPrevious;
+                    pgState._lastCursorId    = pgState.lastVisible ? (pgState.lastVisible.id || '') : '';
+
                     // Cập nhật store để render.js dùng được
                     store.pagination.students = pgState;
 
@@ -1233,6 +1256,43 @@ export function initStudentPagination() {
                 } else {
                     await _doLoad(cursor, 'prev');
                 }
+            };
+
+            // [Part 6 FIX] Alias handlers for unique-prefix button IDs
+            // renderPaginationControls generates onclick="window._pgNext_students_active()"
+            // and onclick="window._pgNext_students_quit()" — both must resolve to real functions.
+            window._pgNext_students_active = window._pgNext_students;
+            window._pgPrev_students_active = window._pgPrev_students;
+            window._pgNext_students_quit   = window._pgNext_students;
+            window._pgPrev_students_quit   = window._pgPrev_students;
+
+            // [Part 7 FIX] Debug function for pagination diagnostics
+            window.debugStudentPagination = async function debugStudentPagination() {
+                const st = window.__store || {};
+                const pg = st.pagination && st.pagination.students;
+                const result = {
+                    currentPage:     pg ? pg.currentPage     : -1,
+                    pageSize:        pg ? pg.pageSize        : -1,
+                    currentItems:    Array.isArray(pg && pg.currentItems) ? pg.currentItems.length : -1,
+                    totalLoaded:     pg ? pg.totalLoaded     : -1,
+                    hasNext:         pg ? pg.hasNext         : null,
+                    hasPrevious:     pg ? pg.hasPrevious     : null,
+                    isLoading:       pg ? pg.isLoading       : null,
+                    lastSnapSize:    pg ? pg._lastSnapSize   : -1,
+                    lastDirection:   pg ? pg._lastDirection  : '',
+                    lastCursorId:    pg ? pg._lastCursorId   : '',
+                    searchQuery:     pg ? pg.searchQuery     : '',
+                    searchActive:    pg ? pg.searchActive    : false,
+                    activeRows:      document.querySelectorAll('#activeList tr[data-student-id]').length,
+                    nextActiveBtnHTML:  (document.getElementById('pgNext_students_active') || {}).outerHTML || '(missing)',
+                    nextOldBtnHTML:     (document.getElementById('pgNext_students')         || {}).outerHTML || '(good — no old id)',
+                    activeWrapParentTag: (document.getElementById('pgWrap_activeList') || {}).parentElement
+                        ? document.getElementById('pgWrap_activeList').parentElement.tagName : '',
+                    duplicateOldNextButtons:    document.querySelectorAll('#pgNext_students').length,
+                    duplicateActiveNextButtons: document.querySelectorAll('#pgNext_students_active').length,
+                };
+                console.table(result);
+                return result;
             };
 
             // ── API: Reload trang hiện tại (sau add/edit/delete) ────────

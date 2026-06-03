@@ -88,6 +88,18 @@ export const StudentService = {
         const clubId = _clubId();
         const colRef = collection(db, 'clubs', clubId, 'profiles');
 
+        // [Part 8 FIX] Debug log — enable with: window.__DEBUG_STUDENT_PAGINATION = true
+        if (window.__DEBUG_STUDENT_PAGINATION) {
+            console.log('[StudentService.getProfilesPage]', {
+                pageSize,
+                direction,
+                search,
+                cursorId: cursor ? (cursor.id || String(cursor)) : '',
+                statusFilter,
+                branchFilter,
+            });
+        }
+
         const constraints = [];
 
         // ── Filters (requires Firestore composite indexes for combinations) ──
