@@ -33,7 +33,9 @@ const hasFlag = (flag) => args.includes(flag);
 
 const projectId = getArg('--project');
 const clubId    = getArg('--clubId');
-const isDryRun  = !hasFlag('--execute');
+// --write là alias đơn giản của --execute (bỏ qua confirm requirement)
+const isWriteMode = hasFlag('--write');
+const isDryRun  = !hasFlag('--execute') && !isWriteMode;
 const confirmStr = getArg('--confirm') || '';
 const expectedConfirm = clubId ? `BACKFILL SEARCH INDEX ${clubId}` : '';
 
@@ -49,10 +51,11 @@ if (!clubId) {
     process.exit(1);
 }
 
-if (!isDryRun && confirmStr !== expectedConfirm) {
+if (!isDryRun && !isWriteMode && confirmStr !== expectedConfirm) {
     console.error(`❌ --execute yêu cầu --confirm "${expectedConfirm}"`);
     console.error(`   Bạn đã nhập: "${confirmStr}"`);
     console.error('   Chạy dry-run trước để kiểm tra: thêm --dry-run thay --execute');
+    console.error('   Hoặc dùng --write để bỏ qua confirm (thêm --project và --clubId).');
     process.exit(1);
 }
 
