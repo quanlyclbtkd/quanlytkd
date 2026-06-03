@@ -6,6 +6,32 @@ Thêm các index dưới đây vào **Firebase Console → Firestore → Indexes
 
 ---
 
+## ⭐ Index 0 — Transactions theo txMonth + timestamp (CRITICAL — Phase 4K-FINANCE-INDEX-HOTFIX)
+
+**Collection:** `clubs/{clubId}/transactions`
+
+Index này là nguyên nhân trực tiếp của lỗi `FirebaseError: The query requires an index` trong finance pagination.
+
+| Field | Order |
+|-------|-------|
+| `txMonth` | Ascending |
+| `timestamp` | Descending |
+
+**Query được tối ưu** (`getTransactionsPage` trong `js/services/finance.service.js`):
+```javascript
+query(colRef,
+    where("txMonth", "==", "2025-05"),
+    orderBy("timestamp", "desc"),
+    limit(51)
+)
+```
+
+**Ghi chú:** Đây là query chính của finance pagination. Firestore yêu cầu composite index khi
+kết hợp `where(field_A, '==', ...)` + `orderBy(field_B, ...)` trên hai field khác nhau.
+Đã thêm vào `firestore.indexes.json` — chạy `firebase deploy --only firestore:indexes` để kích hoạt.
+
+---
+
 ## Index 1 — Transactions theo tháng và branch (HIGH PRIORITY)
 
 **Collection:** `clubs/{clubId}/transactions`

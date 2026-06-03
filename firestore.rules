@@ -146,6 +146,28 @@ service cloud.firestore {
         allow delete:        if isSuperAdmin() || isClubAdmin(clubId);
       }
 
+      // ── Hồ sơ võ sinh — sub-collection thực tế của app ────────────────────
+      // Phase 4J-9: Tách rule rõ ràng cho /profiles thay vì chỉ dựa vào catch-all.
+      // App dùng clubs/{clubId}/profiles/{profileId} (không phải /students).
+      match /profiles/{profileId} {
+        allow read:   if isSuperAdmin() || isClubMember(clubId);
+        allow create: if isSuperAdmin() || isClubAdmin(clubId);
+        allow update: if isSuperAdmin() || isClubAdmin(clubId);
+        allow delete: if isSuperAdmin() || isClubAdmin(clubId);
+      }
+
+      // ── Settings CLB (pagination cursors, stats, shifts, v.v.) ─────────────
+      match /settings/{settingId} {
+        allow read:  if isSuperAdmin() || isClubMember(clubId);
+        allow write: if isSuperAdmin() || isClubAdmin(clubId);
+      }
+
+      // ── Stats/monthly aggregate docs ────────────────────────────────────────
+      match /stats/{statId} {
+        allow read:  if isSuperAdmin() || isClubMember(clubId);
+        allow write: if isSuperAdmin() || isClubAdmin(clubId);
+      }
+
       // Catch-all cho sub-collection chưa định nghĩa rõ
       // Mặc định: SuperAdmin hoặc ClubAdmin write, Member read
       match /{subcollection}/{docId} {
