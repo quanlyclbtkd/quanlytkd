@@ -1,250 +1,262 @@
 /**
- * tools/backfill-student-search-index.mjs — Phase 4.0B-4J-8A
- * ────────────────────────────────────────────────────────────────
- * Backfill searchName / searchPhone / searchCode / searchNickname
- * cho tất cả hồ sơ võ sinh chưa có search index.
+ * tools/backfill-student-search-index.mjs — Phase 4.0B-4J-8A (Phase 4)
+ * ─────────────────────────────────────────────────────────────────────────
+ * Backfill searchName / searchPhone / searchCode cho profile võ sinh cũ.
  *
- * MẶC ĐỊNH: dry-run (chỉ báo cáo, không ghi).
- * Phải thêm --execute --confirm "BACKFILL SEARCH INDEX <clubId>" mới ghi thật.
+ * MẶC ĐỊNH: Chỉ DRY-RUN (không ghi Firestore).
  *
- * Lệnh dry-run:
- *   node tools/backfill-student-search-index.mjs --project quanly-tst --clubId CLB_ID --dry-run
+ * Dry-run (xem sẽ update gì):
+ *   node tools/backfill-student-search-index.mjs --project quanly-tst --clubId <clubId>
  *
- * Lệnh execute (bắt buộc confirm):
- *   node tools/backfill-student-search-index.mjs --project quanly-tst --clubId CLB_ID --execute --confirm "BACKFILL SEARCH INDEX CLB_ID"
+ * Ghi thật (bắt buộc --execute + --confirm):
+ *   node tools/backfill-student-search-index.mjs \
+ *     --project quanly-tst \
+ *     --clubId <clubId> \
+ *     --execute \
+ *     --confirm "BACKFILL SEARCH INDEX <clubId>"
  *
- * Không chạy tự động. Không backfill khi login.
- * ────────────────────────────────────────────────────────────────
+ * Flags:
+ *   --project   Firebase project ID (bắt buộc)
+ *   --clubId    Club document ID (bắt buộc)
+ *   --execute   Cho phép ghi Firestore (mặc định: false)
+ *   --confirm   Phải khớp "BACKFILL SEARCH INDEX <clubId>" khi dùng --execute
+ *   --limit     Giới hạn số profile để test (mặc định: không giới hạn)
+ *   --pageSize  Số profile mỗi lần đọc (mặc định: 300)
+ * ─────────────────────────────────────────────────────────────────────────
  */
 
-import { readFileSync, writeFileSync } from 'fs';
-import { resolve, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { initializeApp, cert } from 'firebase-admin/app';
+import { getFirestore }        from 'firebase-admin/firestore';
+import { readFileSync }        from 'fs';
+import { resolve, dirname }    from 'path';
+import { fileURLToPath }       from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const ROOT      = resolve(__dirname, '..');
 
-// ── Arg parsing ────────────────────────────────────────────────
-const args = process.argv.slice(2);
-const getArg = (flag) => {
-    const idx = args.indexOf(flag);
-    return idx !== -1 ? args[idx + 1] : null;
-};
-const hasFlag = (flag) => args.includes(flag);
+// ── Parse CLI args ───────────────────────────────────────────────────────────
 
-const projectId = getArg('--project');
-const clubId    = getArg('--clubId');
-const isDryRun  = !hasFlag('--execute');
-const confirmStr = getArg('--confirm') || '';
-const expectedConfirm = clubId ? `BACKFILL SEARCH INDEX ${clubId}` : '';
+function parseArgs(argv) {
+    const args = {};
+    for (let i = 2; i < argv.length; i++) {
+        const a = argv[i];
+        if (a.startsWith('--')) {
+            const key = a.slice(2);
+            const val = argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[++i] : true;
+            args[key] = val;
+        }
+    }
+    return args;
+}
 
-// ── Validate inputs ────────────────────────────────────────────
-if (!projectId) {
-    console.error('❌ Thiếu --project. Vui lòng cung cấp Firebase project ID.');
-    console.error('   Ví dụ: node tools/backfill-student-search-index.mjs --project quanly-tst --clubId CLB_ID --dry-run');
+const args = parseArgs(process.argv);
+
+const PROJECT  = args.project;
+const CLUB_ID  = args.clubId;
+const EXECUTE  = args.execute === true || args.execute === 'true';
+const CONFIRM  = args.confirm || '';
+const LIMIT    = args.limit  ? parseInt(args.limit, 10) : Infinity;
+const PAGE_SIZE = args.pageSize ? parseInt(args.pageSize, 10) : 300;
+const BATCH_CAP = 450; // Firestore batch write max
+
+if (!PROJECT || !CLUB_ID) {
+    console.error('\n❌ Thiếu tham số bắt buộc!\n');
+    console.error('Cú pháp:');
+    console.error('  node tools/backfill-student-search-index.mjs --project <projectId> --clubId <clubId>');
+    console.error('\nVí dụ:');
+    console.error('  node tools/backfill-student-search-index.mjs --project quanly-tst --clubId CLB001\n');
     process.exit(1);
 }
 
-if (!clubId) {
-    console.error('❌ Thiếu --clubId. Không thể chạy backfill mà không có club ID.');
-    process.exit(1);
+if (EXECUTE) {
+    const expectedConfirm = `BACKFILL SEARCH INDEX ${CLUB_ID}`;
+    if (CONFIRM !== expectedConfirm) {
+        console.error('\n❌ EXECUTE mode yêu cầu --confirm chính xác!\n');
+        console.error(`   Cần: --confirm "${expectedConfirm}"`);
+        console.error(`   Nhận: --confirm "${CONFIRM}"\n`);
+        process.exit(1);
+    }
 }
 
-if (!isDryRun && confirmStr !== expectedConfirm) {
-    console.error(`❌ --execute yêu cầu --confirm "${expectedConfirm}"`);
-    console.error(`   Bạn đã nhập: "${confirmStr}"`);
-    console.error('   Chạy dry-run trước để kiểm tra: thêm --dry-run thay --execute');
-    process.exit(1);
-}
+// ── Search index helpers (không dùng module import để tránh path issues) ────
 
-// ── Normalize helpers (mirror từ app.js — không import để tránh phụ thuộc) ─
-function normalizeSearchText(value) {
-    const raw = String(value || '').trim();
-    const noTone = raw
+function removeVietnameseTones(str) {
+    if (!str) return '';
+    return String(str)
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
         .replace(/đ/g, 'd')
         .replace(/Đ/g, 'D');
-    return noTone.toLowerCase().trim().replace(/\s+/g, ' ');
 }
 
-function normalizePhoneForSearch(value) {
-    return String(value || '').replace(/\D/g, '');
+function normalizeSearchText(value) {
+    return removeVietnameseTones(String(value || ''))
+        .toLowerCase()
+        .replace(/\s+/g, ' ')
+        .trim();
 }
 
-function buildStudentSearchIndex(profile = {}, name = '') {
-    const _nameStr = String(name || profile.name || profile.profileName || '').trim();
-    const phone =
-        profile.phone ||
-        profile.parentPhone ||
-        profile.phone1 ||
-        profile.contactPhone ||
-        profile.guardianPhone ||
-        '';
-    const studentCode =
-        profile.studentCode ||
-        profile.memberId ||
-        profile.code ||
-        profile.idCode ||
-        profile.studentId ||
-        '';
-    const nickname =
-        profile.nickname ||
-        profile.shortName ||
-        profile.alias ||
-        '';
-    const searchName = normalizeSearchText(_nameStr);
+function normalizePhone(value) {
+    return String(value || '').replace(/[^\d]/g, '');
+}
+
+function buildStudentSearchIndex(profile, docId) {
+    const name  = profile?.name || docId || '';
+    const phone = profile?.phone || profile?.parentPhone || profile?.phoneNumber || '';
+    const code  = profile?.studentCode || profile?.memberId || profile?.code || '';
+
+    const sName  = normalizeSearchText(name);
+    const sPhone = normalizePhone(phone);
+    const sCode  = normalizeSearchText(code);
+
     return {
-        searchName,
-        searchNameTokens: searchName.split(' ').filter(Boolean).slice(0, 10),
-        searchPhone: normalizePhoneForSearch(phone),
-        searchCode: normalizeSearchText(studentCode),
-        searchNickname: normalizeSearchText(nickname),
+        searchName:     sName,
+        searchPhone:    sPhone,
+        searchCode:     sCode,
+        searchKeywords: [sName, sPhone, sCode].filter(Boolean),
     };
 }
 
-function needsUpdate(docData, docId) {
-    const expected = buildStudentSearchIndex(docData, docId);
-    return (
-        docData.searchName       !== expected.searchName       ||
-        docData.searchPhone      !== expected.searchPhone      ||
-        docData.searchCode       !== expected.searchCode       ||
-        docData.searchNickname   !== expected.searchNickname   ||
-        !docData.searchNameTokens
-    );
+function needsUpdate(profile, idx, docId) {
+    if (!profile.searchName && idx.searchName)  return true;
+    if (!profile.searchPhone && idx.searchPhone) return true;
+    if (!profile.searchCode  && idx.searchCode)  return true;
+    if (profile.searchName  !== idx.searchName)  return true;
+    if (profile.searchPhone !== idx.searchPhone) return true;
+    if (profile.searchCode  !== idx.searchCode)  return true;
+    return false;
 }
 
-// ── Main ───────────────────────────────────────────────────────
-async function main() {
-    console.log('\n══════════════════════════════════════════════════════════');
-    console.log('  Phase 4.0B-4J-8A — Backfill Student Search Index');
-    console.log('══════════════════════════════════════════════════════════');
-    console.log('  Project :', projectId);
-    console.log('  Club ID :', clubId);
-    console.log('  Mode    :', isDryRun ? '🔍 DRY-RUN (không ghi)' : '✍️  EXECUTE (ghi thật)');
-    console.log('');
+// ── Init Firebase Admin ──────────────────────────────────────────────────────
 
-    // Try to load firebase-admin
-    let admin;
-    try {
-        const mod = await import('firebase-admin');
-        admin = mod.default || mod;
-    } catch (_) {
-        console.error('❌ Thiếu firebase-admin. Cài đặt: npm install firebase-admin');
-        console.error('   Sau đó set GOOGLE_APPLICATION_CREDENTIALS=path/to/serviceAccount.json');
-        console.error('   Hoặc: gcloud auth application-default login');
-        process.exit(1);
-    }
-
-    // Init app
-    try {
-        if (!admin.apps.length) {
-            admin.initializeApp({ projectId });
-        }
-    } catch (e) {
-        console.error('❌ Không thể khởi tạo Firebase Admin:', e.message);
-        console.error('   Kiểm tra GOOGLE_APPLICATION_CREDENTIALS hoặc gcloud credentials.');
-        process.exit(1);
-    }
-
-    const db = admin.firestore();
-    const READ_BATCH  = 200;
-    const WRITE_BATCH = 400;
-
-    const stats = {
-        scanned: 0,
-        needUpdate: 0,
-        skipped: 0,
-        updated: 0,
-        errors: 0,
-    };
-
-    console.log(`Đang đọc hồ sơ theo batch ${READ_BATCH}...\n`);
-
-    let lastDoc = null;
-    let page = 0;
-
-    // Collect docs that need update
-    const toUpdate = [];
-
-    while (true) {
-        let q = db.collection('clubs').doc(clubId).collection('profiles')
-            .orderBy(admin.firestore.FieldPath.documentId())
-            .limit(READ_BATCH);
-        if (lastDoc) q = q.startAfter(lastDoc);
-
-        const snap = await q.get();
-        const docs = snap.docs;
-        if (docs.length === 0) break;
-
-        stats.scanned += docs.length;
-        page++;
-        process.stdout.write(`  Trang ${page}: đọc ${docs.length} docs (tổng: ${stats.scanned})\r`);
-
-        for (const d of docs) {
-            const data = d.data();
-            if (needsUpdate(data, d.id)) {
-                stats.needUpdate++;
-                const idx = buildStudentSearchIndex(data, d.id);
-                toUpdate.push({ id: d.id, idx });
-            } else {
-                stats.skipped++;
-            }
-        }
-
-        lastDoc = docs[docs.length - 1];
-        if (docs.length < READ_BATCH) break;
-    }
-
-    console.log(`\n\nKết quả scan:`);
-    console.log(`  Scanned   : ${stats.scanned}`);
-    console.log(`  Cần update: ${stats.needUpdate}`);
-    console.log(`  Đã có idx : ${stats.skipped}`);
-
-    if (isDryRun) {
-        console.log('\n🔍 DRY-RUN — Không ghi. Để thực thi:');
-        console.log(`   node tools/backfill-student-search-index.mjs --project ${projectId} --clubId ${clubId} --execute --confirm "${expectedConfirm}"`);
+let db;
+try {
+    // Thử đọc service account từ GOOGLE_APPLICATION_CREDENTIALS
+    const credPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    if (credPath) {
+        const cred = JSON.parse(readFileSync(credPath, 'utf8'));
+        initializeApp({ credential: cert(cred), projectId: PROJECT });
     } else {
-        console.log('\nĐang ghi search index...');
-        for (let i = 0; i < toUpdate.length; i += WRITE_BATCH) {
+        // Application Default Credentials (gcloud auth application-default login)
+        const { applicationDefault } = await import('firebase-admin/app');
+        initializeApp({ credential: applicationDefault(), projectId: PROJECT });
+    }
+    db = getFirestore();
+    db.settings({ ignoreUndefinedProperties: true });
+} catch (initErr) {
+    console.error('\n❌ Không thể khởi tạo Firebase Admin SDK:', initErr.message);
+    console.error('\nHướng dẫn:');
+    console.error('  1. Đặt GOOGLE_APPLICATION_CREDENTIALS=<path-to-service-account.json>');
+    console.error('  hoặc');
+    console.error('  2. Chạy: gcloud auth application-default login\n');
+    process.exit(1);
+}
+
+// ── Main logic ───────────────────────────────────────────────────────────────
+
+const MODE = EXECUTE ? '🔴 EXECUTE (sẽ ghi Firestore)' : '🟡 DRY-RUN (chỉ xem, KHÔNG ghi)';
+
+console.log('\n══════════════════════════════════════════════════════════');
+console.log('  Backfill Student Search Index — Phase 4.0B-4J-8A');
+console.log('══════════════════════════════════════════════════════════');
+console.log(`  Project : ${PROJECT}`);
+console.log(`  Club ID : ${CLUB_ID}`);
+console.log(`  Mode    : ${MODE}`);
+console.log(`  PageSize: ${PAGE_SIZE}`);
+if (isFinite(LIMIT)) console.log(`  Limit   : ${LIMIT}`);
+console.log('══════════════════════════════════════════════════════════\n');
+
+const profilesCol = db.collection(`clubs/${CLUB_ID}/profiles`);
+
+let scanned    = 0;
+let wouldUpdate = 0;
+let updated    = 0;
+let skipped    = 0;
+let errors     = 0;
+let lastDoc    = null;
+let done       = false;
+
+while (!done) {
+    let q = profilesCol.orderBy('__name__').limit(PAGE_SIZE);
+    if (lastDoc) q = q.startAfter(lastDoc);
+
+    const snap = await q.get();
+    if (snap.empty) break;
+
+    const docsToUpdate = [];
+
+    for (const docSnap of snap.docs) {
+        if (scanned >= LIMIT) { done = true; break; }
+        scanned++;
+
+        const profile = docSnap.data();
+        const docId   = docSnap.id;
+        const idx     = buildStudentSearchIndex(profile, docId);
+
+        if (needsUpdate(profile, idx, docId)) {
+            wouldUpdate++;
+            docsToUpdate.push({ ref: docSnap.ref, idx });
+        } else {
+            skipped++;
+        }
+    }
+
+    // Batch write (chỉ khi EXECUTE)
+    if (EXECUTE && docsToUpdate.length > 0) {
+        for (let i = 0; i < docsToUpdate.length; i += BATCH_CAP) {
+            const chunk = docsToUpdate.slice(i, i + BATCH_CAP);
             const batch = db.batch();
-            const chunk = toUpdate.slice(i, i + WRITE_BATCH);
-            for (const { id, idx } of chunk) {
-                const ref = db.collection('clubs').doc(clubId).collection('profiles').doc(id);
-                batch.update(ref, idx);
+            for (const { ref, idx } of chunk) {
+                batch.update(ref, {
+                    searchName:     idx.searchName,
+                    searchPhone:    idx.searchPhone,
+                    searchCode:     idx.searchCode,
+                    searchKeywords: idx.searchKeywords,
+                });
             }
             try {
                 await batch.commit();
-                stats.updated += chunk.length;
-                process.stdout.write(`  Đã ghi ${stats.updated}/${stats.needUpdate}\r`);
-            } catch (e) {
-                stats.errors += chunk.length;
-                console.error(`\n  ❌ Lỗi batch [${i}–${i + chunk.length}]:`, e.message);
+                updated += chunk.length;
+                process.stdout.write(`\r  Đã ghi: ${updated} docs...`);
+            } catch (writeErr) {
+                errors += chunk.length;
+                console.error(`\n  ❌ Lỗi batch write:`, writeErr.message);
             }
         }
-        console.log(`\n\n✅ Ghi xong: ${stats.updated} docs`);
-        if (stats.errors > 0) console.error(`❌ Lỗi: ${stats.errors} docs`);
     }
 
-    // Write report
-    const report = {
-        runAt: new Date().toISOString(),
-        projectId,
-        clubId,
-        mode: isDryRun ? 'dry-run' : 'execute',
-        stats,
-    };
-    const reportPath = resolve(__dirname, '..', 'backfill-search-index-report.json');
-    writeFileSync(reportPath, JSON.stringify(report, null, 2));
-    console.log(`\nReport: backfill-search-index-report.json`);
-    console.log('══════════════════════════════════════════════════════════\n');
+    if (snap.size < PAGE_SIZE) break;
+    lastDoc = snap.docs[snap.docs.length - 1];
 }
 
-main().catch(e => {
-    if (e.message && e.message.includes('credential')) {
-        console.error('❌ Missing Firebase Admin credentials.');
-        console.error('   Set GOOGLE_APPLICATION_CREDENTIALS hoặc: gcloud auth application-default login');
+if (EXECUTE && updated > 0) process.stdout.write('\n');
+
+// ── Report ───────────────────────────────────────────────────────────────────
+
+console.log('\n══════════════════════════════════════════════════════════');
+console.log('  Kết quả backfill:');
+console.log('══════════════════════════════════════════════════════════');
+console.log(`  Scanned    : ${scanned}`);
+console.log(`  WouldUpdate: ${wouldUpdate}`);
+if (EXECUTE) {
+    console.log(`  Updated    : ${updated}`);
+    console.log(`  Errors     : ${errors}`);
+} else {
+    console.log(`  Would write: ${wouldUpdate} (dry-run — không ghi)`);
+}
+console.log(`  Skipped    : ${skipped} (đã có index đúng)`);
+console.log('══════════════════════════════════════════════════════════');
+
+if (!EXECUTE) {
+    console.log('\n  Muốn ghi thật? Chạy lại với:');
+    console.log(`  node tools/backfill-student-search-index.mjs \\`);
+    console.log(`    --project ${PROJECT} --clubId ${CLUB_ID} \\`);
+    console.log(`    --execute --confirm "BACKFILL SEARCH INDEX ${CLUB_ID}"\n`);
+} else {
+    if (errors > 0) {
+        console.log(`\n  ⚠️  Có ${errors} lỗi batch write. Kiểm tra Firestore Rules và thử lại.\n`);
+        process.exit(1);
     } else {
-        console.error('❌ Lỗi không mong đợi:', e.message);
+        console.log('\n  ✅ Backfill hoàn tất thành công!\n');
     }
-    process.exit(1);
-});
+}

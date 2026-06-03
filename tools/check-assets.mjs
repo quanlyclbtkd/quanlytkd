@@ -106,7 +106,98 @@ if (existsSync(mainJsPath)) {
     console.error('[AssetCheck] FAIL  js/main.js  ← không thể phân tích imports');
 }
 
-// ── 5. Kết quả ──────────────────────────────────────────────────
+
+// ── 5. Kiểm tra index.html reference tới js/main.js ────────────
+console.log('');
+console.log('[AssetCheck] Kiểm tra index.html có reference tới js/main.js...');
+console.log('');
+
+const indexHtmlPath = join(ROOT, 'index.html');
+if (existsSync(indexHtmlPath)) {
+    const htmlSrc = readFileSync(indexHtmlPath, 'utf-8');
+    const hasMainJsRef = /js\/main\.js/.test(htmlSrc);
+    checked++;
+    if (hasMainJsRef) {
+        console.log('[AssetCheck] PASS  index.html → js/main.js reference found');
+    } else {
+        console.error('[AssetCheck] FAIL  index.html không có reference tới js/main.js ← MISSING');
+        errors++;
+    }
+} else {
+    console.error('[AssetCheck] FAIL  index.html không tồn tại ← không thể kiểm tra reference');
+    errors++;
+}
+
+// ── 6. Kiểm tra firebase.json public root chứa được js/main.js ──
+console.log('');
+console.log('[AssetCheck] Kiểm tra firebase.json public root...');
+console.log('');
+
+const firebaseJsonPath = join(ROOT, 'firebase.json');
+if (existsSync(firebaseJsonPath)) {
+    try {
+        const fbConfig = JSON.parse(readFileSync(firebaseJsonPath, 'utf-8'));
+        const publicRoot = fbConfig?.hosting?.public ?? null;
+        checked++;
+        if (publicRoot === null) {
+            console.error('[AssetCheck] FAIL  firebase.json: "hosting.public" không được cấu hình');
+            errors++;
+        } else {
+            // Resolve publicRoot relative to ROOT
+            const resolvedPublic = resolve(ROOT, publicRoot);
+            const mainJsInPublic = join(resolvedPublic, 'js', 'main.js');
+            if (existsSync(mainJsInPublic)) {
+                console.log(`[AssetCheck] PASS  firebase.json public="${publicRoot}" → js/main.js accessible`);
+            } else {
+                console.error(`[AssetCheck] FAIL  firebase.json public="${publicRoot}" → js/main.js KHÔNG tồn tại tại ${mainJsInPublic}`);
+                errors++;
+            }
+        }
+        // Kiểm tra ignore rules có loại bỏ thư mục js/ không
+        const ignoreRules = fbConfig?.hosting?.ignore ?? [];
+        checked++;
+        // Chỉ flag rule thực sự match thư mục js/ — không flag các rule chứa "js" ở nơi khác
+        const JS_BLOCKING_PATTERNS = ['js', 'js/', 'js/**', '/js/**', '**/js/**', 'js/*'];
+        const jsIgnored = ignoreRules.some(rule => JS_BLOCKING_PATTERNS.includes(rule.trim()));
+        if (jsIgnored) {
+            console.error('[AssetCheck] FAIL  firebase.json ignore rules có thể loại bỏ thư mục js/ ← kiểm tra lại');
+            errors++;
+        } else {
+            console.log('[AssetCheck] PASS  firebase.json ignore rules không block thư mục js/');
+        }
+    } catch(e) {
+        console.error(`[AssetCheck] FAIL  firebase.json parse error: ${e.message}`);
+        errors++;
+    }
+} else {
+    console.warn('[AssetCheck] WARN  firebase.json không tồn tại — bỏ qua Firebase hosting check');
+}
+
+// ── 7. Kiểm tra .firebaseignore không block thư mục js/ ─────────
+console.log('');
+console.log('[AssetCheck] Kiểm tra .firebaseignore...');
+console.log('');
+
+const firebaseIgnorePath = join(ROOT, '.firebaseignore');
+checked++;
+if (!existsSync(firebaseIgnorePath)) {
+    console.log('[AssetCheck] PASS  .firebaseignore không tồn tại — không có risk block js/');
+} else {
+    const ignoreSrc = readFileSync(firebaseIgnorePath, 'utf-8');
+    const lines = ignoreSrc.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#'));
+    const jsBlockingLines = lines.filter(l => {
+        return l === 'js' || l === 'js/' || l === 'js/**' || l === '/js/**' ||
+               l === '**/js/**' || (l.startsWith('js') && !l.includes('node_modules'));
+    });
+    if (jsBlockingLines.length > 0) {
+        console.error(`[AssetCheck] FAIL  .firebaseignore có rule có thể block thư mục js/: ${jsBlockingLines.join(', ')}`);
+        errors++;
+    } else {
+        console.log('[AssetCheck] PASS  .firebaseignore không block thư mục js/');
+    }
+}
+
+// ── 8. Kết quả ──────────────────────────────────────────────────
 console.log('');
 console.log(`[AssetCheck] Đã kiểm tra: ${checked} items`);
 

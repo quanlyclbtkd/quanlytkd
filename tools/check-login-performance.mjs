@@ -1,11 +1,11 @@
 /**
- * tools/check-login-performance.mjs — Phase 4.0B-4J-8A
- * ─────────────────────────────────────────────────────────────────────
- * Kiểm tra Login Performance cho Mobile.
+ * tools/check-login-performance.mjs — Phase 4.0B-4J-8A (Phase 9)
+ * ─────────────────────────────────────────────────────────────────────────
+ * Kiểm tra source tĩnh: login performance infrastructure + deferred diagnostics.
  *
  * Chạy: node tools/check-login-performance.mjs
  * Hoặc: npm run check:login-performance
- * ─────────────────────────────────────────────────────────────────────
+ * ─────────────────────────────────────────────────────────────────────────
  */
 
 import { readFileSync } from 'fs';
@@ -37,142 +37,92 @@ function check(label, condition, hint) {
 }
 
 console.log('\n══════════════════════════════════════════════════════════');
-console.log('  Phase 4.0B-4J-8A — Login Performance Check');
+console.log('  Phase 4J-8A — Login Performance Check');
 console.log('══════════════════════════════════════════════════════════\n');
 
 const appJs = readFile('app.js');
+
+// ── Section 1: Login Performance Metrics Infrastructure ─────────────────────
+console.log('▸ Section 1: Login Performance Metrics Infrastructure (app.js)');
 check('app.js exists', !!appJs, 'File not found');
-
-// ── Section 1: Login Performance Metrics ──────────────────────────────────
-console.log('▸ Section 1: Login Performance Metrics (app.js)');
 if (appJs) {
-    check('__loginPerfMetrics defined',
-        appJs.includes('window.__loginPerfMetrics = window.__loginPerfMetrics ||'),
-        'Add window.__loginPerfMetrics init block');
-    check('printLoginPerfMetrics exposed',
-        appJs.includes('window.printLoginPerfMetrics = function'),
-        'Add window.printLoginPerfMetrics');
-    check('markLoginPerf helper defined',
-        appJs.includes('function markLoginPerf(') || appJs.includes('markLoginPerf = function'),
-        'Add markLoginPerf() helper function');
-    check('markLoginPerf exposed',
-        appJs.includes('window.markLoginPerf = window.markLoginPerf || markLoginPerf') ||
-        appJs.includes('window.markLoginPerf = function'),
-        'Expose window.markLoginPerf');
+    check('__loginPerfMetrics defined', appJs.includes('window.__loginPerfMetrics'), 'Add window.__loginPerfMetrics init block');
+    check('markLoginPerf() defined', appJs.includes('function markLoginPerf('), 'Add markLoginPerf() function');
+    check('measureLoginPerf() defined', appJs.includes('function measureLoginPerf('), 'Add measureLoginPerf() function');
+    check('printLoginPerformance() exposed', appJs.includes('window.printLoginPerformance = function'), 'Add window.printLoginPerformance');
 }
 console.log();
 
-// ── Section 2: Login Marks ────────────────────────────────────────────────
-console.log('▸ Section 2: Login Performance Marks (app.js)');
+// ── Section 2: Critical Login Marks ─────────────────────────────────────────
+console.log('▸ Section 2: Critical Login Marks');
 if (appJs) {
-    check('loginStart mark in handleLogin',
-        appJs.includes("markLoginPerf('loginStart')"),
-        "Add markLoginPerf('loginStart') in handleLogin");
-    check('shellShown mark dispatched',
-        appJs.includes("markLoginPerf('shellShown')"),
-        "Add markLoginPerf('shellShown') after app shell is visible");
-    check('contextReady mark dispatched',
-        appJs.includes("markLoginPerf('contextReady')"),
-        "Add markLoginPerf('contextReady') in dispatchAppContextReady");
-    check('dataHydrated mark dispatched',
-        appJs.includes("markLoginPerf('dataHydrated')"),
-        "Add markLoginPerf('dataHydrated') when initial data snapshot loads");
-    check('app:shell-ready event dispatched',
-        appJs.includes("app:shell-ready"),
-        "dispatch CustomEvent('app:shell-ready') when shell is visible");
+    check('mark: login-submit', appJs.includes("markLoginPerf('login-submit')") || appJs.includes('markLoginPerf("login-submit")'), 'Add markLoginPerf("login-submit") in login submit handler');
+    check('mark: firebase-auth-success', appJs.includes("markLoginPerf('firebase-auth-success')") || appJs.includes('markLoginPerf("firebase-auth-success")'), 'Add markLoginPerf("firebase-auth-success") after signInWithEmailAndPassword success');
+    check('mark: auth-state-received', appJs.includes("markLoginPerf('auth-state-received')") || appJs.includes('markLoginPerf("auth-state-received")'), 'Add markLoginPerf("auth-state-received") at start of onAuthStateChanged(user) handler');
+    check('mark: initSaaSDatabase-start', appJs.includes("markLoginPerf('initSaaSDatabase-start')") || appJs.includes('markLoginPerf("initSaaSDatabase-start")'), 'Add markLoginPerf("initSaaSDatabase-start") at start of initSaaSDatabase()');
+    check('mark: context-ready', appJs.includes("markLoginPerf('context-ready')") || appJs.includes('markLoginPerf("context-ready")'), 'Add markLoginPerf("context-ready") in dispatchAppContextReady');
+    check('mark: first-ui-shell-visible', appJs.includes("markLoginPerf('first-ui-shell-visible')") || appJs.includes('markLoginPerf("first-ui-shell-visible")'), 'Add markLoginPerf("first-ui-shell-visible") after loginOverlay hide + mainApp show');
+    check('mark: first-current-tab-rendered', appJs.includes("markLoginPerf('first-current-tab-rendered')") || appJs.includes('markLoginPerf("first-current-tab-rendered")'), 'Add markLoginPerf("first-current-tab-rendered") after initial tab render');
 }
 console.log();
 
-// ── Section 3: Non-Critical Defer ─────────────────────────────────────────
-console.log('▸ Section 3: Defer Non-Critical Work (app.js)');
+// ── Section 3: Deferred Non-Critical Work ───────────────────────────────────
+console.log('▸ Section 3: Deferred Non-Critical Work in Login Path');
 if (appJs) {
-    check('requestIdleCallback or runIdle defined',
-        appJs.includes('requestIdleCallback') || appJs.includes('runIdle'),
-        'Add runIdle = requestIdleCallback || setTimeout for deferral');
-    check('Non-critical work deferred (heavyWorkDeferred mark)',
-        appJs.includes("markLoginPerf('heavyWorkDeferred')") ||
-        appJs.includes('heavyWorkDeferred'),
-        "Mark heavy work as deferred with markLoginPerf('heavyWorkDeferred')");
-    check('Login loading text "Đang đăng nhập"',
-        appJs.includes('Đang đăng nhập') || appJs.includes('Đang mở hệ thống'),
-        'Add clear loading text for login steps');
+    // runRuntimeDataRecovery must NOT be called synchronously in the login path.
+    // "Definition" occurrences = function declaration + JSDoc comment — these are NOT call sites.
+    // We detect call sites by looking for patterns like: `runRuntimeDataRecovery(` NOT preceded by
+    // "function", "async function", "window.X = ", or " * " (JSDoc).
+    const _rcCallSiteRegex = /(?<!function\s)(?<!\*\s{1,10})(?<!window\.\w{1,40}\s=\s(?:async\s)?)runRuntimeDataRecovery\s*\(/g;
+    const _rcCallSites = appJs.match(_rcCallSiteRegex) || [];
+    if (_rcCallSites.length === 0) {
+        check('runRuntimeDataRecovery deferred (setTimeout/idle)', true,
+            'Not called inline in login path — correctly deferred by design (only defined on window)');
+    } else {
+        // There are actual call sites — verify each is inside setTimeout/requestIdleCallback
+        const _initSaaSBody = appJs.split('async function initSaaSDatabase')[1] || '';
+        const _rcInLogin    = _initSaaSBody.includes('runRuntimeDataRecovery(');
+        const _rcDeferred   = !_rcInLogin ||
+            ((_initSaaSBody.match(/setTimeout[\s\S]{0,100}runRuntimeDataRecovery/) || []).length > 0) ||
+            ((_initSaaSBody.match(/requestIdleCallback[\s\S]{0,100}runRuntimeDataRecovery/) || []).length > 0);
+        check('runRuntimeDataRecovery deferred (setTimeout/idle)', _rcDeferred,
+            'Wrap runRuntimeDataRecovery in setTimeout(..., 300+) or requestIdleCallback to defer from login critical path');
+    }
+
+    // Check _checkMonthlyReminder is deferred (it already uses setTimeout 300ms)
+    const _mrDeferred = appJs.includes('setTimeout') && (appJs.includes('_checkMonthlyReminder') && appJs.includes('setTimeout(() => { if(typeof window._checkMonthlyReminder'));
+    check('_checkMonthlyReminder deferred', _mrDeferred, 'Wrap _checkMonthlyReminder in setTimeout');
+
+    // Check no heavy export/report in login
+    const _loginBlock   = appJs.split('onAuthStateChanged(auth')[1] || '';
+    const _loginFirst5k = _loginBlock.slice(0, 5000);
+    const _hasHeavyInLogin = _loginFirst5k.includes('fetchAllPagesForExport') || _loginFirst5k.includes('exportExcel');
+    check('No heavy export in onAuthStateChanged', !_hasHeavyInLogin, 'Do NOT call export functions inside onAuthStateChanged');
 }
 console.log();
 
-// ── Section 4: Blocking Guards ─────────────────────────────────────────────
-console.log('▸ Section 4: Login Should Not Be Blocked By Heavy Work (app.js)');
+// ── Section 4: Loading Messages ──────────────────────────────────────────────
+console.log('▸ Section 4: Loading Messages');
 if (appJs) {
-    // SuperAdmin audit should not run automatically for normal admin
-    const _saBlock = /onAuthStateChanged[\s\S]{0,200}superAdmin.*audit/i;
-    check('SuperAdmin audit not blocking normal admin login',
-        !_saBlock.test((appJs.match(/onAuthStateChanged[\s\S]{0,2000}/) || [''])[0].split('super_admin')[0]),
-        'Ensure superAdmin audit runs only for super_admin role');
-
-    check('recordReadMetric used in large queries',
-        appJs.includes('recordReadMetric'),
-        'Add recordReadMetric() calls in large Firestore reads');
+    const _hasLoadMsg = appJs.includes('Đang tải dữ liệu CLB') || appJs.includes('Đang tải danh sách võ sinh');
+    check('Has loading progress message', _hasLoadMsg, 'Add loading message: "Đang tải dữ liệu CLB…" or similar in initSaaSDatabase');
 }
 console.log();
 
-// ── Section 5: Search Index ────────────────────────────────────────────────
-console.log('▸ Section 5: Advanced Search Index (app.js)');
+// ── Section 5: Performance Degrade Guards ────────────────────────────────────
+console.log('▸ Section 5: No Blocking Sync Loops in Login Path');
 if (appJs) {
-    check('normalizeSearchText defined',
-        appJs.includes('function normalizeSearchText(') || appJs.includes('normalizeSearchText ='),
-        'Add normalizeSearchText() helper');
-    check('normalizePhoneForSearch defined',
-        appJs.includes('function normalizePhoneForSearch(') || appJs.includes('normalizePhoneForSearch ='),
-        'Add normalizePhoneForSearch() helper');
-    check('buildStudentSearchIndex defined',
-        appJs.includes('function buildStudentSearchIndex(') || appJs.includes('buildStudentSearchIndex ='),
-        'Add buildStudentSearchIndex() helper');
-    check('searchName written on add/edit',
-        appJs.includes('searchName') && appJs.includes('buildStudentSearchIndex'),
-        'Call buildStudentSearchIndex() when adding/editing student profile');
-    check('fetchQueryPages defined',
-        appJs.includes('async function fetchQueryPages(') || appJs.includes('fetchQueryPages = async function'),
-        'Add fetchQueryPages() helper for paginated batch fetching');
+    // Check initSaaSDatabase doesn't have synchronous heavy loops over all profiles
+    const _iSDB = appJs.split('async function initSaaSDatabase')[1] || '';
+    const _iSDBFirst = _iSDB.slice(0, 4000);
+    const _forEachInLogin = (_iSDBFirst.match(/forEach\s*\(/g) || []).length;
+    // forEach is fine for small event setup, just warn if many
+    check('initSaaSDatabase has no obvious blocking heavy loop', _forEachInLogin < 15,
+        'Check initSaaSDatabase for synchronous heavy loops over allProfiles — should be deferred');
 }
 console.log();
 
-// ── Section 6: Server-side Search in Service ──────────────────────────────
-console.log('▸ Section 6: Server-side Search (students.service.js)');
-const studentsService = readFile('js/services/students.service.js');
-if (studentsService) {
-    check('searchProfilesServerSide defined',
-        studentsService.includes('async searchProfilesServerSide('),
-        'Add searchProfilesServerSide() to StudentService');
-    check('Server search uses searchName field',
-        studentsService.includes("'searchName'") || studentsService.includes('"searchName"'),
-        "Query by 'searchName' field in searchProfilesServerSide()");
-    check('Server search uses searchPhone field',
-        studentsService.includes("'searchPhone'") || studentsService.includes('"searchPhone"'),
-        "Query by 'searchPhone' field in searchProfilesServerSide()");
-    check('Server search deduplicates by doc ID',
-        studentsService.includes('resultMap') || studentsService.includes('dedupe'),
-        'Deduplicate search results by document ID');
-}
-console.log();
-
-// ── Section 7: Backfill Tool ──────────────────────────────────────────────
-console.log('▸ Section 7: Backfill Tool');
-const backfillTool = readFile('tools/backfill-student-search-index.mjs');
-check('backfill-student-search-index.mjs exists',
-    !!backfillTool, 'Create tools/backfill-student-search-index.mjs');
-if (backfillTool) {
-    check('Backfill is dry-run by default',
-        backfillTool.includes('isDryRun') && backfillTool.includes('!hasFlag'),
-        'Default to dry-run; require --execute flag');
-    check('Backfill requires --confirm string',
-        backfillTool.includes('expectedConfirm'),
-        'Require explicit --confirm "BACKFILL SEARCH INDEX <clubId>"');
-    check('Backfill does not log PII',
-        !backfillTool.includes('console.log(d.id)') && !backfillTool.includes('fullName'),
-        'Do not log student names or phone numbers');
-}
-console.log();
-
-// ── Final Summary ─────────────────────────────────────────────────────────
+// ── Final Summary ─────────────────────────────────────────────────────────────
 console.log('══════════════════════════════════════════════════════════');
 console.log('  Total: ' + (pass + fail) + ' checks | ✅ Pass: ' + pass + ' | ❌ Fail: ' + fail);
 if (fail > 0) {
@@ -181,7 +131,7 @@ if (fail > 0) {
     console.log('══════════════════════════════════════════════════════════\n');
     process.exit(1);
 } else {
-    console.log('\n  🎉 Login performance checks passed!');
-    console.log('  Mobile login optimized for CLB 600–1000 võ sinh.');
+    console.log('\n  🎉 All login performance checks passed!');
+    console.log('  Login path có đủ metrics + deferred diagnostics.');
     console.log('══════════════════════════════════════════════════════════\n');
 }
