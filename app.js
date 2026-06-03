@@ -5581,8 +5581,21 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         // PRIMARY (students.js _bindSearchReset) có debounce 350ms + server-side search.
         // Nếu PRIMARY đã active, oninput này không làm gì để tránh double render.
         document.getElementById('searchInput').oninput = () => {
-            if (window.__studentSearchControllerMounted) return; // PRIMARY đang xử lý
+            // [PART 7 FIX] Cho phép legacy handler chạy nếu PRIMARY failed
+            if (window.__studentSearchControllerMounted && !window.__studentSearchControllerFailed) return;
             window._resetListPages && window._resetListPages();
+            // [PART 8 FIX] Cross-domain invalidation khi search thay đổi
+            if (typeof window.refreshListsComputation === 'function') {
+                window.refreshListsComputation([
+                    'students.activeList',
+                    'students.debtList',
+                    'students.quitList',
+                    'tx.txList',
+                    'inventory.inventoryList',
+                    'inventory.uniformTxList',
+                    'dashboard.summary',
+                ], 'global-search-change');
+            }
             if (window.invalidateCurrentTab) { window.invalidateCurrentTab('search-change'); } else { scheduleRender(); }
         };
         document.getElementById('date').value = lToday; 
