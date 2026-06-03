@@ -119,7 +119,7 @@ if (pkgJson) {
         !!(pkg.scripts && pkg.scripts['check:superadmin-monthstats']),
         'Thêm: "check:superadmin-monthstats": "node tools/check-superadmin-monthstats.mjs"');
     check('check:all includes check-superadmin-monthstats',
-        !!(pkg.scripts && pkg.scripts['check:all'] && pkg.scripts['check:all'].includes('check-superadmin-monthstats')),
+        !!(pkg.scripts && pkg.scripts['check:all'] && pkg.scripts['check:all'].includes('check:superadmin-monthstats')),
         'Thêm node tools/check-superadmin-monthstats.mjs vào chuỗi check:all');
 }
 

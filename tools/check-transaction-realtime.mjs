@@ -278,10 +278,10 @@ if (pkgJson) {
             !!pkg.scripts['check:stats-aggregation'],
             'Add "check:stats-aggregation": "node tools/check-stats-aggregation.mjs" to package.json');
         check('check:all includes transaction-realtime',
-            pkg.scripts['check:all'] && pkg.scripts['check:all'].includes('check-transaction-realtime'),
+            pkg.scripts['check:all'] && pkg.scripts['check:all'].includes('check:transaction-realtime'),
             'Add check:transaction-realtime to check:all');
         check('check:all includes stats-aggregation',
-            pkg.scripts['check:all'] && pkg.scripts['check:all'].includes('check-stats-aggregation'),
+            pkg.scripts['check:all'] && pkg.scripts['check:all'].includes('check:stats-aggregation'),
             'Add check:stats-aggregation to check:all');
     }
 }
