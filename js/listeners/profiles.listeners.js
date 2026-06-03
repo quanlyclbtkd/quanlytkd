@@ -261,6 +261,18 @@ function _checkActiveProfileCoverage(activeCount) {
         reason     = 'active=' + activeCount + '<30%ofPrev=' + prevActive;
     }
 
+    // Case D: GitHub/runtime pagination đã đọc được danh sách nhưng active query
+    // trả về quá ít. Thường xảy ra với data legacy thiếu/khác field status.
+    // Pagination đọc collection theo __name__, còn active listener query where(status in ...).
+    const pgCount = (window.__store && window.__store.pagination &&
+        window.__store.pagination.students &&
+        Array.isArray(window.__store.pagination.students.currentItems))
+        ? window.__store.pagination.students.currentItems.length : 0;
+    if (!suspicious && pgCount >= 10 && activeCount < Math.ceil(pgCount * 0.3)) {
+        suspicious = true;
+        reason     = 'active=' + activeCount + '<30%ofPaginationPage=' + pgCount;
+    }
+
     if (suspicious) {
         _state.activeCoverageWarnings++;
         _state.suspiciousActiveCountEvents++;

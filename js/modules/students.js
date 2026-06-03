@@ -1115,6 +1115,20 @@ export function initStudentPagination() {
                     // Cập nhật store để render.js dùng được
                     store.pagination.students = pgState;
 
+                    // ── Phase 4K-GITHUB-PROFILE-COUNT-FALLBACK ─────────────
+                    // Nếu pagination lấy được rows nhưng window.__store.profiles vẫn rỗng
+                    // hoặc ít bất thường, các badge/dashboard sẽ vẫn giữ 0.
+                    // Trigger full fallback 1 lần an toàn để hydrate legacy allProfiles.
+                    try {
+                        const _profileCount = Object.keys((store && store.profiles) || {}).length;
+                        const _pageCount = Array.isArray(pgState.currentItems) ? pgState.currentItems.length : 0;
+                        if (_pageCount > 0 && _profileCount < Math.min(10, Math.ceil(_pageCount * 0.3))) {
+                            if (typeof window.loadFullProfilesFallback === 'function') {
+                                setTimeout(() => window.loadFullProfilesFallback('pagination-items-but-profiles-empty'), 0);
+                            }
+                        }
+                    } catch (_) {}
+
                     // Phase 4K-STUDENT-RENDER-OVERWRITE-FIX: tăng version counters
                     // để computeAndCacheStudents cache key bị invalidate ngay sau pagination load.
                     // _studentsPaginationVersion → paramsKey miss → cache rebuild với data mới.

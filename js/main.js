@@ -1169,6 +1169,12 @@ window.debugGithubStudentRender = function() {
         inventoryCount:          Array.isArray(store.inventory)     ? store.inventory.length      : 0,
         activeRowsDom:           document.querySelectorAll('#activeList tr[data-student-id], #activeList .student-row, [data-student-id]').length,
         debtRowsDom:             document.querySelectorAll('#debtList tr[data-student-id], #debtList .student-row').length,
+        activeBadgeText:         document.getElementById('activeStudentCount')?.textContent || '',
+        txBadgeText:             document.getElementById('txTabCountBadge')?.textContent || '',
+        debtBadgeText:           document.getElementById('debtTabCountBadge')?.textContent || '',
+        dashboardIncomeText:     document.getElementById('totalIncomeDashboard')?.textContent || '',
+        lastSummaryActiveCount:  store._lastSummaryNumbers ? store._lastSummaryNumbers.activeCount : null,
+        lastSummaryDebtCount:    store._lastSummaryNumbers ? store._lastSummaryNumbers.debtCount : null,
     };
 
     console.table(result);

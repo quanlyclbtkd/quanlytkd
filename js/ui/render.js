@@ -322,6 +322,17 @@ function renderApp() {
         window.__store._lastSummaryNumbers = _summaryNumbers;
     }
 
+    // ── Phase 4K-GITHUB-SUMMARY-BADGE-FIX ──────────────────────────────────
+    // Các số liệu như HỌC PHÍ (badge), BÁO NỢ, ĐANG TẬP và mobile header
+    // nằm ngoài tab dashboard, nên phải cập nhật ở MỌI render cycle.
+    // Trước đây updateSummaryNumbers() bị đặt sau dashboard guard → khi dashboard
+    // đang hidden, badge vẫn giữ 0 dù computation cache đã có dữ liệu.
+    try {
+        updateSummaryNumbers(_summaryNumbers);
+    } catch (e) {
+        console.warn('[render.js] updateSummaryNumbers(global badges) failed:', e);
+    }
+
     // Phase 3.4: delegate list DOM updates to render islands via RAF scheduler.
     // Islands read from their own module-local caches (Phase 3.5A) and apply
     // via replaceChildren() — one atomic DOM mutation, no innerHTML reflow loop.
