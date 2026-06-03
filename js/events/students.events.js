@@ -34,17 +34,26 @@
 export function initStudentsEvents() {
 
     // ── 1. Search input ──────────────────────────────────────────
+    // Phase 4J-9B: Chỉ bind nếu PRIMARY controller (students.js _bindSearchReset) CHƯA mount.
+    // PRIMARY set window.__studentSearchControllerMounted = true khi init xong.
+    // Tránh double-binding: PRIMARY có debounce 350ms + server-side search.
+    // FALLBACK này (students.events.js) không debounce, chỉ dùng khi PRIMARY chưa sẵn sàng.
     const searchInput = document.getElementById('searchInput');
     if (searchInput && !searchInput.dataset.evtBound) {
         searchInput.addEventListener('input', () => {
+            // Runtime guard: nếu PRIMARY controller đã mount sau khi fallback được bind,
+            // bỏ qua callback này để tránh double render.
+            if (window.__studentSearchControllerMounted) return;
             if (typeof window.filterStudents === 'function') {
                 window.filterStudents(searchInput.value);
             } else if (typeof window.renderStudents === 'function') {
-                // Fallback: delegate sang renderStudents với filter
                 window.renderStudents({ search: searchInput.value });
             }
         });
         searchInput.dataset.evtBound = '1';
+        console.info('[students.events.js] FALLBACK search binding active (PRIMARY chưa mount).');
+    } else if (searchInput && window.__studentSearchControllerMounted) {
+        console.info('[students.events.js] Search binding skipped — PRIMARY controller (students.js) đã active.');
     }
 
     // ── 2. addModal overlay click (đóng khi bấm backdrop) ────────

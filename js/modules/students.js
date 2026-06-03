@@ -28,7 +28,6 @@
  */
 
 import { getLocalToday, formatDate, formatMonth, addMonthsToYYYYMM } from '../utils/format.js';
-import { buildStudentSearchIndex } from '../utils/helpers.js';
 import { StudentService } from '../services/students.service.js';
 
 // ════════════════════════════════════════════════════════════════
@@ -342,7 +341,7 @@ export function initStudents() {
             const _addNickVal  = _addNickEl ? _addNickEl.value.trim() : '';
 
             // ── Ghi profile ────────────────────────────────────────────────
-            const _newProfileData = {
+            await StudentService.createProfile(_saveKey, {
                 status:          'active',
                 memberId,
                 branch,
@@ -359,14 +358,7 @@ export function initStudents() {
                 createdAt:       joinDate,
                 paidUntil:       newPaidUntil,
                 paidMonths:      monthsToRecord,
-            };
-            // Phase 4J-8A: Gắn search index để hỗ trợ server-side search
-            const _newSearchIdx = buildStudentSearchIndex(_newProfileData, _saveKey);
-            _newProfileData.searchName     = _newSearchIdx.searchName;
-            _newProfileData.searchPhone    = _newSearchIdx.searchPhone;
-            _newProfileData.searchCode     = _newSearchIdx.searchCode;
-            _newProfileData.searchKeywords = _newSearchIdx.searchKeywords;
-            await StudentService.createProfile(_saveKey, _newProfileData);
+            });
 
             // ── Ghi transaction học phí ────────────────────────────────────
             if (fee > 0) {
@@ -571,13 +563,6 @@ export function initStudents() {
                 updateData.paidUntil = `${ry}-${String(rm).padStart(2, '0')}`;
             }
         }
-
-        // Phase 4J-8A: Gắn search index cho profile đang sửa
-        const _editSearchIdx = buildStudentSearchIndex(updateData, newName);
-        updateData.searchName     = _editSearchIdx.searchName;
-        updateData.searchPhone    = _editSearchIdx.searchPhone;
-        updateData.searchCode     = _editSearchIdx.searchCode;
-        updateData.searchKeywords = _editSearchIdx.searchKeywords;
 
         try {
             if (oldName !== newName) {
@@ -1018,6 +1003,55 @@ export function initStudentPagination() {
                 });
             }
 
+            // Phase 4K-STUDENT-LIST: Fallback render nếu island không inject rows
+            // Chỉ chạy khi: #activeList tồn tại, pgState.currentItems > 0, DOM trống
+            // Không phá render island hiện tại — guard tr[data-student-id] trước khi inject
+            function _renderStudentsPageRowsFallback(pgState) {
+                try {
+                    const target = document.getElementById('activeList');
+                    if (!target) return false;
+                    if (!pgState || !Array.isArray(pgState.currentItems)) return false;
+                    if (pgState.currentItems.length === 0) return false;
+                    if (target.querySelector('tr[data-student-id]')) return false; // island đã render
+                    const rows = pgState.currentItems.map(item => {
+                        const _rawName = item.id || item.name || '';
+                        const _esc     = _rawName.replace(/'/g, "\\'");
+                        const p        = item;
+                        return `<tr data-student-id="${_esc}"><td class="name-link text-[0.95rem]" onclick="openProfile('${_esc}')">${_rawName}</td><td class="text-[0.7rem] font-bold text-slate-500">${p.memberId || '-'}</td><td>-</td><td>-</td><td>-</td><td class="badge bg-rose-50 text-rose-600 text-[0.7rem]">-</td><td class="font-medium text-slate-600">${p.phone || ''}</td><td class="text-slate-500">-</td><td><button type="button" class="btn-sm bg-slate-100 text-slate-700 border border-slate-200" onclick="openProfile('${_esc}')">👁️ Xem</button></td></tr>`;
+                    }).join('');
+                    if (!rows) return false;
+                    target.innerHTML = rows;
+                    console.warn('[students-pagination] 🔧 Fallback render —', pgState.currentItems.length, 'rows → #activeList (island miss)');
+                    return true;
+                } catch (_fe) {
+                    return false;
+                }
+            }
+
+            // Phase 4K-STUDENT-RENDER-OVERWRITE-FIX: Global row builder dùng chung
+            // cho renderActiveIsland() và _renderStudentsPageRowsFallback().
+            // renderActiveIsland dùng khi activeRows cache rỗng nhưng pagination có items.
+            // Dùng HTML attribute escaping an toàn thay vì replace('/g) đơn giản.
+            window.buildStudentsRowsFromPagination = function buildStudentsRowsFromPagination(items, mode) {
+                if (!Array.isArray(items) || items.length === 0) return '';
+                const _esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+                const _escJs = (s) => String(s || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                try {
+                    return items.map(item => {
+                        const _rawName = item.id || item.name || '';
+                        const _a = _esc(_rawName);
+                        const _j = _escJs(_rawName);
+                        const p  = item;
+                        if (mode === 'quit') {
+                            return `<tr data-student-id="${_a}"><td class="name-link text-[0.95rem]" onclick="openProfile('${_j}')">${_a}</td><td class="text-[0.7rem] font-bold text-slate-500">${_esc(p.memberId) || '-'}</td><td>-</td><td>-</td><td>${_esc(p.quitDate) || '-'}</td><td class="text-slate-500">-</td><td><button type="button" class="btn-sm bg-slate-100 text-slate-700 border border-slate-200" onclick="openProfile('${_j}')">👁️ Xem</button></td></tr>`;
+                        }
+                        return `<tr data-student-id="${_a}"><td class="name-link text-[0.95rem]" onclick="openProfile('${_j}')">${_a}</td><td class="text-[0.7rem] font-bold text-slate-500">${_esc(p.memberId) || '-'}</td><td>-</td><td>-</td><td>-</td><td class="badge bg-rose-50 text-rose-600 text-[0.7rem]">-</td><td class="font-medium text-slate-600">${_esc(p.phone) || ''}</td><td class="text-slate-500">-</td><td><button type="button" class="btn-sm bg-slate-100 text-slate-700 border border-slate-200" onclick="openProfile('${_j}')">👁️ Xem</button></td></tr>`;
+                    }).join('');
+                } catch (_be) {
+                    return '';
+                }
+            };
+
             // ── Core: thực sự load một trang profiles ──────────────────
             async function _doLoad(cursor, direction) {
                 if (pgState.isLoading) return;
@@ -1026,20 +1060,69 @@ export function initStudentPagination() {
 
                 const search = _getCurrentSearch();
 
-                try {
-                    const snap = await StudentService.getProfilesPage({
-                        pageSize:  PAGE_SIZE,
-                        cursor,
-                        direction,
-                        search,
-                    });
+                // Phase 4.0B-4J-8A: Search status element
+                const _srStatusId = 'searchStatusMsg_students';
+                let _srEl = document.getElementById(_srStatusId);
+                if (!_srEl) {
+                    const _sinp = document.getElementById('searchInput');
+                    if (_sinp && _sinp.parentNode) {
+                        _srEl = document.createElement('div');
+                        _srEl.id = _srStatusId;
+                        _srEl.style.cssText = 'font-size:0.72rem;color:#64748b;padding:3px 0 0;min-height:1.1em;';
+                        _sinp.parentNode.insertBefore(_srEl, _sinp.nextSibling);
+                    }
+                }
 
-                    const items = processPage(snap, pgState);
-                    pgState.enabled     = true;
-                    pgState.searchQuery = search;
+                try {
+                    // Phase 4.0B-4J-8A: Server-side search khi có search term
+                    const _isSearch = search && search.trim().length > 0;
+                    if (_isSearch && typeof StudentService.searchProfilesServerSide === 'function') {
+                        if (_srEl) _srEl.textContent = 'Đang tìm...';
+
+                        const _sr = await StudentService.searchProfilesServerSide(search, { pageSize: PAGE_SIZE });
+
+                        pgState.currentItems = _sr.items || [];
+                        pgState.currentPage  = 1;
+                        pgState.totalLoaded  = pgState.currentItems.length;
+                        pgState.hasNext      = _sr.hasMore || false;
+                        pgState.hasPrevious  = false;
+                        pgState.isLoading    = false;
+                        pgState.enabled      = true;
+                        pgState.searchQuery  = search;
+                        pgState.searchActive = true;
+
+                        if (_srEl) {
+                            _srEl.textContent = pgState.currentItems.length === 0
+                                ? 'Không tìm thấy võ sinh'
+                                : ('Tìm thấy ' + pgState.currentItems.length + (_sr.hasMore ? '+' : '') + ' kết quả');
+                        }
+                    } else {
+                        if (_srEl) _srEl.textContent = '';
+                        pgState.searchActive = false;
+
+                        const snap = await StudentService.getProfilesPage({
+                            pageSize:  PAGE_SIZE,
+                            cursor,
+                            direction,
+                            search,
+                        });
+
+                        const items = processPage(snap, pgState);
+                        pgState.enabled     = true;
+                        pgState.searchQuery = search;
+                    }
 
                     // Cập nhật store để render.js dùng được
                     store.pagination.students = pgState;
+
+                    // Phase 4K-STUDENT-RENDER-OVERWRITE-FIX: tăng version counters
+                    // để computeAndCacheStudents cache key bị invalidate ngay sau pagination load.
+                    // _studentsPaginationVersion → paramsKey miss → cache rebuild với data mới.
+                    // _dataVersion tăng đảm bảo dataVersion check cũng miss cache cũ.
+                    if (window.__store) {
+                        window.__store._studentsPaginationVersion = (window.__store._studentsPaginationVersion || 0) + 1;
+                        window.__store._dataVersion = (window.__store._dataVersion || 0) + 1;
+                    }
 
                     // Phase 3.5B: Dùng domain-specific invalidation thay vì full renderApp()
                     // invalidateStudents() chỉ invalidate students islands (activeList, v.v.)
@@ -1052,6 +1135,22 @@ export function initStudentPagination() {
                     } else if (typeof window.scheduleRender === 'function') {
                         window.scheduleRender();
                     }
+
+                    // Phase 4K-STUDENT-LIST: invalidate students.activeList cụ thể
+                    // để render island biết cần cập nhật list ngay sau pagination load
+                    if (typeof window.refreshListComputation === 'function') {
+                        window.refreshListComputation('students.activeList', 'students-pagination-loaded');
+                    }
+                    if (typeof window.invalidateList === 'function') {
+                        window.invalidateList('students.activeList', 'students-pagination-loaded');
+                        const _curTabId = typeof window.getCurrentActiveTabId === 'function'
+                            ? window.getCurrentActiveTabId() : '';
+                        if (_curTabId === 'quit') {
+                            window.invalidateList('students.quitList', 'students-pagination-loaded');
+                        }
+                    }
+                    // Fallback: nếu island không render sau 300ms, inject rows trực tiếp
+                    setTimeout(() => _renderStudentsPageRowsFallback(pgState), 300);
                 } catch (err) {
                     console.error('[pagination/students] Lỗi load trang:', err);
                     pgState.isLoading = false;
@@ -1109,6 +1208,10 @@ export function initStudentPagination() {
                            document.querySelector('input[placeholder*="tên"]');
                 if (!el || el.__pgStudentsbound) return;
                 el.__pgStudentsbound = true;
+                // Phase 4J-9B: Đánh dấu PRIMARY controller đã mount.
+                // students.events.js và app.js oninput sẽ kiểm tra flag này để tránh double-bind.
+                window.__studentSearchControllerMounted = true;
+                console.info('[students.js] ✅ PRIMARY search controller mounted (_bindSearchReset).');
                 let _debounce = null;
                 el.addEventListener('input', () => {
                     clearTimeout(_debounce);
