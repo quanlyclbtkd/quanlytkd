@@ -3269,12 +3269,18 @@ service cloud.firestore {
         // 1. Theo date (giao dịch được nhập đúng tháng)
         // 2. Theo txMonth (giao dịch thu bù tháng cũ — date có thể khác tháng)
         // Sau đó merge + dedup theo id để không hiện trùng.
-        let _byDate = [], _byTxMonth = [];
+        let _byDate = [], _byTxMonth = [], _byPackageMonth = []; // Phase 4K-4F: packageMonths array-contains query
         const _mergeAndRender = () => {
             const seen = new Set();
-            allTransactions = [..._byDate, ..._byTxMonth].filter(t => {
+            // Phase 4K-4F: merge 3 queries (date + txMonth + packageMonths)
+            allTransactions = [..._byDate, ..._byTxMonth, ..._byPackageMonth].filter(t => {
+                if (!t || !t.id) return false;
                 if (seen.has(t.id)) return false;
                 seen.add(t.id);
+                // Only include transactions matching selected month (covers packageMonths)
+                if (typeof window.txMatchesSelectedMonth === 'function') {
+                    return window.txMatchesSelectedMonth(t, monthStr);
+                }
                 return true;
             });
             allTransactions.sort((a,b) => { const ts = (b.timestamp||0) - (a.timestamp||0); if(ts !== 0) return ts; return (b.date||'') > (a.date||'') ? 1 : -1; });
@@ -3345,6 +3351,9 @@ service cloud.firestore {
         const _txListLim  = ((window.__scaleConfig || {}).txListenerLimit) || 1200;
         const qByDate    = query(colRef, where("date", ">=", start), where("date", "<=", end), orderBy("date", "desc"), limit(_txListLim));
         const qByTxMonth = query(colRef, where("txMonth", "==", monthStr), limit(_txListLim));
+        // Phase 4K-4F: 3rd query — giao dịch gói nhiều tháng có tháng giữa (2026-07 trong gói 06-08)
+        // Không orderBy để tránh cần composite index — client sort sau khi merge
+        const qByPackageMonth = query(colRef, where("packageMonths", "array-contains", monthStr), limit(_txListLim));
 
         // [Phase 3.6C] safeRegisterSnapshot: wrap cả 2 query trong 1 factory
         // Old key đã removed qua cleanupListenersByOwner → safeRegisterSnapshot sẽ proceed
@@ -3352,7 +3361,9 @@ service cloud.firestore {
             window.safeRegisterSnapshot(_txKey, () => {
                 const u1 = onSnapshot(qByDate,    (snap) => { _byDate    = snap.docs.map(d => ({id: d.id, ...d.data()})); _mergeAndRender(); });
                 const u2 = onSnapshot(qByTxMonth, (snap) => { _byTxMonth = snap.docs.map(d => ({id: d.id, ...d.data()})); _mergeAndRender(); });
-                const _combinedUnsub = () => { try { u1(); } catch(_) {} try { u2(); } catch(_) {} };
+                // Phase 4K-4F: 3rd snapshot — giao dịch gói nhiều tháng
+                const u3 = onSnapshot(qByPackageMonth, (snap) => { _byPackageMonth = snap.docs.map(d => ({id: d.id, ...d.data()})); _mergeAndRender(); });
+                const _combinedUnsub = () => { try { u1(); } catch(_) {} try { u2(); } catch(_) {} try { u3(); } catch(_) {} };
                 currentTxUnsub = _combinedUnsub; // bridge: legacy logout cleanup
                 return _combinedUnsub;
             }, { owner: 'finance', scope: 'global', clubId: _cid, reason: 'listenToData' });
@@ -3360,7 +3371,9 @@ service cloud.firestore {
             // Fallback Phase 3.6
             const u1 = onSnapshot(qByDate,    (snap) => { _byDate    = snap.docs.map(d => ({id: d.id, ...d.data()})); _mergeAndRender(); });
             const u2 = onSnapshot(qByTxMonth, (snap) => { _byTxMonth = snap.docs.map(d => ({id: d.id, ...d.data()})); _mergeAndRender(); });
-            currentTxUnsub = () => { u1(); u2(); };
+            // Phase 4K-4F: 3rd snapshot
+            const u3 = onSnapshot(qByPackageMonth, (snap) => { _byPackageMonth = snap.docs.map(d => ({id: d.id, ...d.data()})); _mergeAndRender(); });
+            currentTxUnsub = () => { try { u1(); } catch(_) {} try { u2(); } catch(_) {} try { u3(); } catch(_) {} };
             if (window.registerListener) {
                 window.registerListener(_txKey, currentTxUnsub, { owner: 'finance', scope: 'global', reason: 'listenToData' });
             }
