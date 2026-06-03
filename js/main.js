@@ -383,14 +383,50 @@ window.ensureModuleRuntimeReady = window.ensureModuleRuntimeReady || function _e
 };
 
 // ────────────────────────────────────────────────────────────────
+// [GITHUB-FIX] Task 3: Tránh double-boot app.js khi legacy đã load
+// ────────────────────────────────────────────────────────────────
+
+function _waitForExistingLegacyApp(ms) {
+    ms = ms || 3000;
+    return new Promise(function(resolve) {
+        var started = Date.now();
+
+        function tick() {
+            if (window.__appLoaded || typeof window.scheduleRender === 'function') {
+                return resolve(true);
+            }
+
+            var hasLegacyScript = !!document.querySelector('script[src$="app.js"], script[src*="app.js"]');
+
+            if (!hasLegacyScript) {
+                return resolve(false);
+            }
+
+            if (Date.now() - started > ms) {
+                return resolve(false);
+            }
+
+            setTimeout(tick, 50);
+        }
+
+        tick();
+    });
+}
+
+// ────────────────────────────────────────────────────────────────
 // BOOTSTRAP
 // ────────────────────────────────────────────────────────────────
 
 (async function bootstrap() {
     try {
         if (!window.__appLoaded) {
-            initFirebase();
-            await _loadLegacyApp();
+            // [GITHUB-FIX] Task 3: Chờ app.js đã có trong DOM sẵn sàng thay vì load lại
+            var existingLegacyReady = await _waitForExistingLegacyApp(3000);
+
+            if (!existingLegacyReady && !window.__appLoaded) {
+                initFirebase();
+                await _loadLegacyApp();
+            }
         }
 
         if (window.__store && !window.__store._moduleLinked) {
@@ -720,6 +756,20 @@ window.ensureModuleRuntimeReady = window.ensureModuleRuntimeReady || function _e
             }, { once: false }); // false: nghe lại được sau logout-login
         }
         // ── End Phase 4.0B-4F Phase 2 ────────────────────────────────────────
+
+        // ── [GITHUB-FIX] Task 4: Replay app:context-ready nếu đã bắn trước khi main.js kịp đăng ký ──
+        // Trên GitHub Pages, main.js load sau khi app.js — event có thể đã bắn rồi
+        if (
+            window.__appContextReadyState &&
+            window.__appContextReadyState.ready
+        ) {
+            setTimeout(function() {
+                if (typeof window.runRuntimeDataRecovery === 'function') {
+                    window.runRuntimeDataRecovery('main-replay-context-ready');
+                }
+            }, 500);
+        }
+        // ── End Task 4 ────────────────────────────────────────────────────────
 
         setTimeout(() => {
             if (typeof window.forceHideLoading === 'function') window.forceHideLoading();
@@ -1093,6 +1143,37 @@ function _loadLegacyApp() {
         document.head.appendChild(script);
     });
 }
+
+// ────────────────────────────────────────────────────────────────
+// [GITHUB-FIX] Task 6: Debug helper cho GitHub Pages student render
+// ────────────────────────────────────────────────────────────────
+window.debugGithubStudentRender = function() {
+    var store = window.__store || {};
+    var profilesObj = store.profiles || {};
+    var profilesArr = Array.isArray(store.allProfiles) ? store.allProfiles : [];
+
+    var result = {
+        protocol:                window.location.protocol,
+        href:                    window.location.href,
+        appLoaded:               !!window.__appLoaded,
+        mainLoaded:              !!window.MAIN_JS_LOADED,
+        mainLoading:             !!window.MAIN_JS_LOADING,
+        hasInvalidateStudents:   typeof window.invalidateStudents   === 'function',
+        hasInvalidateFinance:    typeof window.invalidateFinance    === 'function',
+        hasInvalidateInventory:  typeof window.invalidateInventory  === 'function',
+        dataVersion:             store._dataVersion || 0,
+        lastDataVersionReason:   store._lastDataVersionReason || '',
+        profilesObjectCount:     Object.keys(profilesObj).length,
+        profilesArrayCount:      profilesArr.length,
+        transactionsCount:       Array.isArray(store.transactions)  ? store.transactions.length  : 0,
+        inventoryCount:          Array.isArray(store.inventory)     ? store.inventory.length      : 0,
+        activeRowsDom:           document.querySelectorAll('#activeList tr[data-student-id], #activeList .student-row, [data-student-id]').length,
+        debtRowsDom:             document.querySelectorAll('#debtList tr[data-student-id], #debtList .student-row').length,
+    };
+
+    console.table(result);
+    return result;
+};
 
 // ────────────────────────────────────────────────────────────────
 // Phase 3.3G: EXPOSE track/clear intervals cho modules khác

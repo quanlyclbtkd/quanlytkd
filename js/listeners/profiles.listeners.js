@@ -133,7 +133,18 @@ function _syncLegacy() {
  * @private
  */
 function _invalidateAll(reason) {
-    if (typeof window.invalidateStudents  === 'function') window.invalidateStudents(reason);
+    // [GITHUB-FIX] Task 5: Dùng invalidateLists cho tất cả student lists nếu có
+    // Đảm bảo BÁO NỢ, HỌC PHÍ, ĐANG TẬP, ĐÃ NGHỈ đều refresh khi profiles load xong
+    if (typeof window.invalidateLists === 'function') {
+        window.invalidateLists([
+            'students.activeList',
+            'students.debtList',
+            'students.quitList',
+        ], reason);
+    } else if (typeof window.invalidateStudents === 'function') {
+        window.invalidateStudents(reason);
+    }
+
     if (typeof window.invalidateDashboard === 'function') window.invalidateDashboard(reason);
     if (typeof window.invalidateByDomain  === 'function') {
         window.invalidateByDomain('attendance', reason);
@@ -144,8 +155,8 @@ function _invalidateAll(reason) {
     }
     // Finance tab (Học Phí) — tính lại tóm tắt doanh thu + báo nợ khi profiles thay đổi
     if (typeof window.invalidateFinance === 'function') window.invalidateFinance(reason);
-    // students.activeList — cập nhật counter "Đang Tập (N)"
-    if (typeof window.invalidateList === 'function') {
+    // students.activeList — cập nhật counter "Đang Tập (N)" (fallback nếu invalidateLists không có)
+    if (typeof window.invalidateList === 'function' && typeof window.invalidateLists !== 'function') {
         window.invalidateList('students.activeList', reason);
     }
 }
