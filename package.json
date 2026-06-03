@@ -70,7 +70,10 @@
     "check:active-list-mutation-debug": "node tools/check-active-list-mutation-debug.mjs",
     "check:dashboard-recompute-before-island": "node tools/check-dashboard-recompute-before-island.mjs",
     "check:dashboard-history-fallback": "node tools/check-dashboard-history-fallback.mjs",
-    "check:student-pagination-controls-dom": "node tools/check-student-pagination-controls-dom.mjs"
+    "check:student-pagination-controls-dom": "node tools/check-student-pagination-controls-dom.mjs",
+    "check:modal-close-compat": "node tools/check-modal-close-compat.mjs",
+    "check:student-pagination-render-order": "node tools/check-student-pagination-render-order.mjs",
+    "check:bootstrap-pagination-race": "node tools/check-bootstrap-pagination-race.mjs"
   },
   "engines": {
     "node": ">=18.0.0"
