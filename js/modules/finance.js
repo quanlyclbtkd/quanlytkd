@@ -1323,7 +1323,25 @@ export function initTransactionPagination() {
                         search,
                     });
 
-                    const items = processPage(snap, pgState);
+                    // Phase 4K-4F: If snap has _mergedItems (from getTransactionsForMonthInclusive),
+                    // use them directly to include packageMonths middle-month transactions
+                    let items;
+                    if (Array.isArray(snap._mergedItems)) {
+                        // Build processPage-compatible pgState update from merged items
+                        const rawItems = snap._mergedItems;
+                        pgState.totalLoaded  = rawItems.length;
+                        pgState.hasNext      = rawItems.length > PAGE_SIZE;
+                        pgState.hasPrevious  = false;
+                        pgState.currentPage  = 1;
+                        pgState.currentItems = rawItems.slice(0, PAGE_SIZE).map(t => {
+                            // Strip internal _docSnap before storing
+                            const { _docSnap, ...rest } = t; // eslint-disable-line no-unused-vars
+                            return rest;
+                        });
+                        items = pgState.currentItems;
+                    } else {
+                        items = processPage(snap, pgState);
+                    }
                     pgState.enabled     = true;
                     pgState.searchQuery = search;
 

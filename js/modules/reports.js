@@ -237,7 +237,26 @@ export function initReports() {
                     endMonth:   _endM,
                     reason:     'excel-export-txMonth-range',
                 });
-                txAll = window.dedupeDocsById([...txByDate, ...txByMonth]);
+                // Phase 4K-4F: Merge packageMonths query for middle-month coverage
+                let txByPackage = [];
+                try {
+                    const _months = [];
+                    let _mCursor = _startM;
+                    while (_mCursor <= _endM && _months.length < 36) {
+                        _months.push(_mCursor);
+                        const [_my, _mm] = _mCursor.split('-').map(Number);
+                        const _next = _mm === 12 ? (_my + 1) + '-01' : _my + '-' + String(_mm + 1).padStart(2, '0');
+                        _mCursor = _next;
+                    }
+                    if (window.FinanceService && typeof window.FinanceService.queryTxByPackageMonths === 'function') {
+                        txByPackage = await window.FinanceService.queryTxByPackageMonths(_months);
+                    } else if (typeof FinanceService !== 'undefined' && typeof FinanceService.queryTxByPackageMonths === 'function') {
+                        txByPackage = await FinanceService.queryTxByPackageMonths(_months);
+                    }
+                } catch (_pkgErr) {
+                    console.warn('[ExcelExport] packageMonths query failed (non-blocking):', _pkgErr && _pkgErr.message);
+                }
+                txAll = window.dedupeDocsById([...txByDate, ...txByMonth, ...txByPackage]);
                 txAll.sort((a, b) => a.date > b.date ? 1 : -1);
                 invAll = await window.loadInventoryForDateRange({
                     invRef,

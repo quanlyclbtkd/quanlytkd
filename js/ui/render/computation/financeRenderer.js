@@ -144,10 +144,26 @@ export function renderTxRow(tx, opts = {}) {
     const cleanName  = tx.description ? tx.description.trim() : '';
 
     // ── Phase 4K-3: Month badge (mirrors app.js displayTxMonth logic) ──
+    // Phase 4K-4F: show package date range for multi-month packages
     const displayTxMonth = tx.packageMonths && tx.packageMonths.length > 1
         ? `${tx.packageMonths.length} Tháng`
         : (tx.txMonth ? formatMonth(tx.txMonth) : '-');
-    const monthBadgeTd = `<td><span class="badge bg-emerald-50 text-emerald-700 border border-emerald-200">${_escHtml(displayTxMonth)}</span></td>`;
+    let _packageRangeLabel = '';
+    if (tx.packageMonths && tx.packageMonths.length > 1) {
+        const _first = tx.packageMonths[0] || '';
+        const _last  = tx.packageMonths[tx.packageMonths.length - 1] || '';
+        if (_first && _last) {
+            // Format: "06/2026 - 08/2026"
+            const _fmt = m => {
+                const p = String(m).split('-');
+                return p.length >= 2 ? p[1] + '/' + p[0] : m;
+            };
+            _packageRangeLabel = _fmt(_first) + ' – ' + _fmt(_last);
+        }
+    }
+    const monthBadgeTd = tx.packageMonths && tx.packageMonths.length > 1
+        ? `<td><span class="badge bg-emerald-50 text-emerald-700 border border-emerald-200" title="${_escAttr(_packageRangeLabel)}">${_escHtml(displayTxMonth)}</span>${_packageRangeLabel ? `<br><span class="text-[0.65rem] text-slate-400 whitespace-nowrap">${_escHtml(_packageRangeLabel)}</span>` : ''}</td>`
+        : `<td><span class="badge bg-emerald-50 text-emerald-700 border border-emerald-200">${_escHtml(displayTxMonth)}</span></td>`;
 
     // ── Phase 4K-3: Clickable student name with event delegation data attrs ──
     const nameTd = `<td class="name-link text-[0.95rem]"><button type="button" class="link-like js-open-student-profile" data-action="open-student-profile" data-student-name="${_escAttr(cleanName)}">${_escHtml(cleanName)}</button></td>`;
@@ -286,7 +302,20 @@ export function computeAndCacheFinance(transactions, params) {
     let examExpRows = buildExamExpRows ? '' : null;
 
     // ── Single pass — mirrors renderApp() lines 249-324 exactly ──
+    // Phase 4K-4F: guard selectedMonth to avoid cross-month contamination when store
+    // may contain merged transactions from multiple months (packageMonths rollup)
+    const _selectedMonth =
+        (document.getElementById('filterMonth') && document.getElementById('filterMonth').value) ||
+        (window.__store || {}).selectedMonth ||
+        '';
+
     transactions.forEach(t => {
+        // Phase 4K-4F: skip transactions not belonging to selected month
+        // (still counts packageMonths — txMatchesSelectedMonth covers that)
+        if (_selectedMonth && typeof window.txMatchesSelectedMonth === 'function') {
+            if (!window.txMatchesSelectedMonth(t, _selectedMonth)) return;
+        }
+
         const cleanName    = t.description ? t.description.trim() : '';
         // Phase 4K-4D: classifyInventoryFinanceTx hỗ trợ custom categories + dữ liệu cũ
         const _invClass    = typeof window.classifyInventoryFinanceTx === 'function'

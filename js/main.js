@@ -2650,6 +2650,12 @@ window.debugRuntimeSmokeTest = async function(term) {
     // Phase 4K-4E
     out.monthRuntime       = await safeCall('debugMonthRuntime',        window.debugMonthRuntime);
     out.admissionTxHydration = await safeCall('debugAdmissionTxHydration', window.debugAdmissionTxHydration, ['']);
+    // Phase 4K-4F
+    out.tuitionPackageCoverage = await safeCall(
+        'debugTuitionPackageCoverage',
+        window.debugTuitionPackageCoverage,
+        ['', (document.getElementById('filterMonth') && document.getElementById('filterMonth').value) || '']
+    );
 
     const summary = {
         runtimeMode:     out.runtimeMode,
@@ -2666,6 +2672,8 @@ window.debugRuntimeSmokeTest = async function(term) {
         // Phase 4K-4E
         monthRuntimeOk:      !!out.monthRuntime.ok,
         admissionTxHydrationOk: !!out.admissionTxHydration.ok,
+        // Phase 4K-4F
+        tuitionPackageCoverageOk: !!out.tuitionPackageCoverage.ok,
 
         overallOk:
             !!out.examFee.ok &&
@@ -2676,7 +2684,8 @@ window.debugRuntimeSmokeTest = async function(term) {
             !!out.studentPagination.ok &&
             !!out.profileModalClose.ok &&
             !!out.monthRuntime.ok &&
-            !!out.admissionTxHydration.ok
+            !!out.admissionTxHydration.ok &&
+            !!out.tuitionPackageCoverage.ok
     };
 
     console.table(summary);
@@ -2684,6 +2693,28 @@ window.debugRuntimeSmokeTest = async function(term) {
     return { summary: summary, detail: out };
 };
 
+
+// ════════════════════════════════════════════════════════════════
+// Phase 4K-4F — txMatchesSelectedMonth SHARED HELPER
+// ════════════════════════════════════════════════════════════════
+
+/**
+ * window.txMatchesSelectedMonth(tx, month) — kiểm tra transaction có thuộc tháng đang xem.
+ * Hỗ trợ cả giao dịch cũ (chỉ có txMonth/date) và mới (paymentMonth/packageMonths).
+ */
+window.txMatchesSelectedMonth = function(tx, month) {
+    const m = String(month || '').trim();
+    if (!m || !tx) return true;
+
+    if (tx.txMonth === m) return true;
+    if (tx.paymentMonth === m) return true;
+
+    if (Array.isArray(tx.packageMonths) && tx.packageMonths.includes(m)) return true;
+
+    if (tx.date && String(tx.date).startsWith(m)) return true;
+
+    return false;
+};
 
 // ════════════════════════════════════════════════════════════════
 // Phase 4K-4E — MONTH CHANGE CONTROLLER + ADMISSION TX HYDRATION
@@ -2933,6 +2964,67 @@ if (document.readyState === 'loading') {
 } else {
     if (typeof window.initFilterMonthController === 'function') window.initFilterMonthController();
 }
+
+/**
+ * debugTuitionPackageCoverage(studentName, month) — kiểm tra tháng giữa gói học phí có trong store.
+ * Chạy từ Console sau deploy: debugTuitionPackageCoverage('Nguyễn Văn A', '2026-07')
+ */
+window.debugTuitionPackageCoverage = async function(studentName, month) {
+    const st = window.__store || {};
+    const selectedMonth =
+        month ||
+        (document.getElementById('filterMonth') && document.getElementById('filterMonth').value) ||
+        st.selectedMonth ||
+        '';
+
+    const qName = String(studentName || '').trim();
+    const txs   = Array.isArray(st.transactions) ? st.transactions : [];
+
+    const matches = txs.filter(t => {
+        const nameOk  = !qName || String(t.description || '').includes(qName);
+        const monthOk = typeof window.txMatchesSelectedMonth === 'function'
+            ? window.txMatchesSelectedMonth(t, selectedMonth)
+            : true;
+        return nameOk && monthOk;
+    });
+
+    const packageMatches = matches.filter(t =>
+        Array.isArray(t.packageMonths) && t.packageMonths.includes(selectedMonth)
+    );
+
+    const result = {
+        href:                location.href,
+        runtimeMode:         window.__RUNTIME_MODE || '',
+        selectedMonth,
+        queryName:           qName,
+        storeTxCount:        txs.length,
+        matchesCount:        matches.length,
+        packageMatchesCount: packageMatches.length,
+        matches: matches.slice(0, 20).map(t => ({
+            id:              t.id,
+            type:            t.type,
+            description:     t.description,
+            amount:          t.amount,
+            allocatedAmount: Array.isArray(t.packageMonths) && t.packageMonths.length
+                ? Math.round((Number(t.amount) || 0) / t.packageMonths.length)
+                : Number(t.amount || 0),
+            date:            t.date,
+            paymentMonth:    t.paymentMonth,
+            txMonth:         t.txMonth,
+            packageMonths:   t.packageMonths,
+        })),
+        txRows: document.querySelectorAll('#txList tr[data-tx-id]').length,
+        hasTxMatchesSelectedMonth: typeof window.txMatchesSelectedMonth === 'function',
+    };
+
+    console.table({
+        selectedMonth:      result.selectedMonth,
+        matchesCount:       result.matchesCount,
+        packageMatchesCount: result.packageMatchesCount,
+        txRows:             result.txRows,
+    });
+    return result;
+};
 
 // ════════════════════════════════════════════════════════════════
 // Phase 4K-4D — INVENTORY FINANCE HELPERS

@@ -99,6 +99,13 @@ export const FinanceService = {
         monthStr  = '',
         search    = '',
     } = {}) {
+        // Phase 4K-4F: First page with monthStr → use inclusive query (txMonth + date + packageMonths)
+        // to capture gói nhiều tháng where selectedMonth is a middle month
+        if (monthStr && direction === 'first' && !cursor) {
+            const result = await this.getTransactionsForMonthInclusive({ pageSize, monthStr, search });
+            return result;
+        }
+
         const { getDocs, query, collection, orderBy, limit, startAfter, startAt, where } = _sdk();
         const db     = _db();
         const clubId = _clubId();
@@ -124,6 +131,84 @@ export const FinanceService = {
         constraints.push(limit(pageSize + 1)); // +1 để detect hasNext
 
         return getDocs(query(colRef, ...constraints));
+    },
+
+    /**
+     * Phase 4K-4F — Inclusive month query: merges txMonth + date range + packageMonths array-contains.
+     * Dùng cho first page khi chọn tháng, để không bỏ sót giao dịch gói nhiều tháng ở tháng giữa.
+     *
+     * @param {Object} options
+     * @param {number} options.pageSize
+     * @param {string} options.monthStr — YYYY-MM
+     * @param {string} options.search
+     * @returns {{ docs, _mergedItems, _source }}
+     */
+    async getTransactionsForMonthInclusive({
+        pageSize = 50,
+        monthStr = '',
+        search   = '',
+    } = {}) {
+        const { getDocs, query, collection, where, limit } = _sdk();
+        const db     = _db();
+        const clubId = _clubId();
+        const colRef = collection(db, 'clubs', clubId, 'transactions');
+
+        const start = monthStr + '-01';
+        const end   = monthStr + '-31';
+        const lim   = pageSize + 200;
+
+        const qByTxMonth  = query(colRef, where('txMonth', '==', monthStr), limit(lim));
+        const qByDate     = query(colRef, where('date', '>=', start), where('date', '<=', end), limit(lim));
+        const qByPackage  = query(colRef, where('packageMonths', 'array-contains', monthStr), limit(lim));
+
+        const snaps = await Promise.allSettled([
+            getDocs(qByTxMonth),
+            getDocs(qByDate),
+            getDocs(qByPackage),
+        ]);
+
+        const map = new Map();
+        snaps.forEach(res => {
+            if (res.status !== 'fulfilled') {
+                console.warn('[FinanceService] getTransactionsForMonthInclusive partial failure:', res.reason && res.reason.message);
+                return;
+            }
+            res.value.forEach(d => {
+                const data = d.data();
+                map.set(d.id, { id: d.id, ...data, _docSnap: d });
+            });
+        });
+
+        let arr = Array.from(map.values())
+            .filter(t => {
+                if (typeof window.txMatchesSelectedMonth === 'function') {
+                    return window.txMatchesSelectedMonth(t, monthStr);
+                }
+                return true;
+            })
+            .sort((a, b) => Number(b.timestamp || 0) - Number(a.timestamp || 0));
+
+        if (search) {
+            const q = typeof window.normalizeVNForSearch === 'function'
+                ? window.normalizeVNForSearch(search)
+                : String(search).toLowerCase();
+            arr = arr.filter(t => {
+                const blob = typeof window.getTransactionSearchBlob === 'function'
+                    ? window.getTransactionSearchBlob(t)
+                    : String([t.description, t.type, t.branch, t.txMonth, t.paymentMonth,
+                               (t.packageMonths || []).join(',')].join(' ')).toLowerCase();
+                return blob.includes(q);
+            });
+        }
+
+        // Return object compatible with processPage (has .docs) AND passes _mergedItems for direct use
+        const _mergedItems = arr;
+        const docs = arr.slice(0, pageSize + 1).map(t => t._docSnap || {
+            id: t.id,
+            data: () => t,
+        });
+
+        return { docs, _mergedItems, _source: 'inclusive-month' };
     },
 
     /**
@@ -263,6 +348,32 @@ export const FinanceService = {
         const results = [];
         snap.forEach(d => results.push({ id: d.id, ...d.data() }));
         return results;
+    },
+
+    /**
+     * Phase 4K-4F — Query transactions có packageMonths chứa một trong các tháng.
+     * Dùng cho export/report để không bỏ sót tháng giữa gói học phí.
+     *
+     * @param {string[]} months — array of YYYY-MM strings
+     * @returns {Array<{id, ...data}>}
+     */
+    async queryTxByPackageMonths(months = []) {
+        const { getDocs, query, where, limit } = _sdk();
+        const colRef = _colRef();
+        if (!colRef || !Array.isArray(months) || !months.length) return [];
+
+        const map = new Map();
+        for (const m of months) {
+            try {
+                const snap = await getDocs(
+                    query(colRef, where('packageMonths', 'array-contains', m), limit(2000))
+                );
+                snap.forEach(d => map.set(d.id, { id: d.id, ...d.data() }));
+            } catch (e) {
+                console.warn('[FinanceService] queryTxByPackageMonths partial fail for', m, ':', e && e.message);
+            }
+        }
+        return Array.from(map.values());
     },
 
     /**
