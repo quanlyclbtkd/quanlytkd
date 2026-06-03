@@ -376,18 +376,7 @@
                     if (_uidEl) _uidEl.innerText = _uid;
                 } catch (_ue) {}
             } else {
-                // [HOTFIX] Phân biệt lỗi runtime (ReferenceError/TypeError) vs lỗi khác
-                const _isRuntime = e instanceof ReferenceError || e instanceof TypeError;
-                const _isModuleMissing = e.message && e.message.includes('module');
-                let _errMsg;
-                if (_isRuntime) {
-                    _errMsg = 'Lỗi runtime SuperAdmin: ' + e.message;
-                } else if (_isModuleMissing) {
-                    _errMsg = 'Không tải được module SuperAdmin.';
-                } else {
-                    _errMsg = 'Lỗi tải dữ liệu SuperAdmin: ' + e.message;
-                }
-                listEl.innerHTML = `<div class="text-center py-10 text-rose-500"><div class="text-2xl mb-2">❌</div><p class="font-bold text-sm">${_errMsg}</p><p class="text-xs text-slate-400 mt-1">${e.message}</p></div>`;
+                listEl.innerHTML = `<div class="text-center py-10 text-rose-500"><div class="text-2xl mb-2">❌</div><p class="font-bold text-sm">Lỗi tải dữ liệu. Bạn cần quyền Super Admin!</p><p class="text-xs text-slate-400 mt-1">${e.message}</p></div>`;
             }
         } finally {
             _m().lastDurationMs = Date.now() - _t0;
@@ -519,8 +508,7 @@
 
         const maxSizeKB = Math.max(...clubDataList.map(c => c.estimatedKB), 1);
 
-        listEl.innerHTML = clubDataList.map(({ cid, data, activeCount, profileCount, txCount, invCount, estimatedKB, monthStats, curMonth }) => {
-            // [HOTFIX] monthStats và curMonth được destructure đúng từ clubDataList item
+        listEl.innerHTML = clubDataList.map(({ cid, data, activeCount, profileCount, txCount, invCount, estimatedKB }) => {
             const cname = data.clubName || 'Chưa đặt tên';
             const email = data.adminEmail || 'Không rõ';
             const created = data.createdAt ? formatDate(data.createdAt.split('T')[0]) : '-';

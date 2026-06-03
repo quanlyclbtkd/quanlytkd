@@ -1003,55 +1003,6 @@ export function initStudentPagination() {
                 });
             }
 
-            // Phase 4K-STUDENT-LIST: Fallback render nếu island không inject rows
-            // Chỉ chạy khi: #activeList tồn tại, pgState.currentItems > 0, DOM trống
-            // Không phá render island hiện tại — guard tr[data-student-id] trước khi inject
-            function _renderStudentsPageRowsFallback(pgState) {
-                try {
-                    const target = document.getElementById('activeList');
-                    if (!target) return false;
-                    if (!pgState || !Array.isArray(pgState.currentItems)) return false;
-                    if (pgState.currentItems.length === 0) return false;
-                    if (target.querySelector('tr[data-student-id]')) return false; // island đã render
-                    const rows = pgState.currentItems.map(item => {
-                        const _rawName = item.id || item.name || '';
-                        const _esc     = _rawName.replace(/'/g, "\\'");
-                        const p        = item;
-                        return `<tr data-student-id="${_esc}"><td class="name-link text-[0.95rem]" onclick="openProfile('${_esc}')">${_rawName}</td><td class="text-[0.7rem] font-bold text-slate-500">${p.memberId || '-'}</td><td>-</td><td>-</td><td>-</td><td class="badge bg-rose-50 text-rose-600 text-[0.7rem]">-</td><td class="font-medium text-slate-600">${p.phone || ''}</td><td class="text-slate-500">-</td><td><button type="button" class="btn-sm bg-slate-100 text-slate-700 border border-slate-200" onclick="openProfile('${_esc}')">👁️ Xem</button></td></tr>`;
-                    }).join('');
-                    if (!rows) return false;
-                    target.innerHTML = rows;
-                    console.warn('[students-pagination] 🔧 Fallback render —', pgState.currentItems.length, 'rows → #activeList (island miss)');
-                    return true;
-                } catch (_fe) {
-                    return false;
-                }
-            }
-
-            // Phase 4K-STUDENT-RENDER-OVERWRITE-FIX: Global row builder dùng chung
-            // cho renderActiveIsland() và _renderStudentsPageRowsFallback().
-            // renderActiveIsland dùng khi activeRows cache rỗng nhưng pagination có items.
-            // Dùng HTML attribute escaping an toàn thay vì replace('/g) đơn giản.
-            window.buildStudentsRowsFromPagination = function buildStudentsRowsFromPagination(items, mode) {
-                if (!Array.isArray(items) || items.length === 0) return '';
-                const _esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-                const _escJs = (s) => String(s || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-                try {
-                    return items.map(item => {
-                        const _rawName = item.id || item.name || '';
-                        const _a = _esc(_rawName);
-                        const _j = _escJs(_rawName);
-                        const p  = item;
-                        if (mode === 'quit') {
-                            return `<tr data-student-id="${_a}"><td class="name-link text-[0.95rem]" onclick="openProfile('${_j}')">${_a}</td><td class="text-[0.7rem] font-bold text-slate-500">${_esc(p.memberId) || '-'}</td><td>-</td><td>-</td><td>${_esc(p.quitDate) || '-'}</td><td class="text-slate-500">-</td><td><button type="button" class="btn-sm bg-slate-100 text-slate-700 border border-slate-200" onclick="openProfile('${_j}')">👁️ Xem</button></td></tr>`;
-                        }
-                        return `<tr data-student-id="${_a}"><td class="name-link text-[0.95rem]" onclick="openProfile('${_j}')">${_a}</td><td class="text-[0.7rem] font-bold text-slate-500">${_esc(p.memberId) || '-'}</td><td>-</td><td>-</td><td>-</td><td class="badge bg-rose-50 text-rose-600 text-[0.7rem]">-</td><td class="font-medium text-slate-600">${_esc(p.phone) || ''}</td><td class="text-slate-500">-</td><td><button type="button" class="btn-sm bg-slate-100 text-slate-700 border border-slate-200" onclick="openProfile('${_j}')">👁️ Xem</button></td></tr>`;
-                    }).join('');
-                } catch (_be) {
-                    return '';
-                }
-            };
-
             // ── Core: thực sự load một trang profiles ──────────────────
             async function _doLoad(cursor, direction) {
                 if (pgState.isLoading) return;
@@ -1115,15 +1066,6 @@ export function initStudentPagination() {
                     // Cập nhật store để render.js dùng được
                     store.pagination.students = pgState;
 
-                    // Phase 4K-STUDENT-RENDER-OVERWRITE-FIX: tăng version counters
-                    // để computeAndCacheStudents cache key bị invalidate ngay sau pagination load.
-                    // _studentsPaginationVersion → paramsKey miss → cache rebuild với data mới.
-                    // _dataVersion tăng đảm bảo dataVersion check cũng miss cache cũ.
-                    if (window.__store) {
-                        window.__store._studentsPaginationVersion = (window.__store._studentsPaginationVersion || 0) + 1;
-                        window.__store._dataVersion = (window.__store._dataVersion || 0) + 1;
-                    }
-
                     // Phase 3.5B: Dùng domain-specific invalidation thay vì full renderApp()
                     // invalidateStudents() chỉ invalidate students islands (activeList, v.v.)
                     // và cross-domain dashboard — không trigger toàn bộ render cycle.
@@ -1135,22 +1077,6 @@ export function initStudentPagination() {
                     } else if (typeof window.scheduleRender === 'function') {
                         window.scheduleRender();
                     }
-
-                    // Phase 4K-STUDENT-LIST: invalidate students.activeList cụ thể
-                    // để render island biết cần cập nhật list ngay sau pagination load
-                    if (typeof window.refreshListComputation === 'function') {
-                        window.refreshListComputation('students.activeList', 'students-pagination-loaded');
-                    }
-                    if (typeof window.invalidateList === 'function') {
-                        window.invalidateList('students.activeList', 'students-pagination-loaded');
-                        const _curTabId = typeof window.getCurrentActiveTabId === 'function'
-                            ? window.getCurrentActiveTabId() : '';
-                        if (_curTabId === 'quit') {
-                            window.invalidateList('students.quitList', 'students-pagination-loaded');
-                        }
-                    }
-                    // Fallback: nếu island không render sau 300ms, inject rows trực tiếp
-                    setTimeout(() => _renderStudentsPageRowsFallback(pgState), 300);
                 } catch (err) {
                     console.error('[pagination/students] Lỗi load trang:', err);
                     pgState.isLoading = false;
