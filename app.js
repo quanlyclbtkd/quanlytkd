@@ -5744,6 +5744,19 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         } catch (error) { console.error(error); window.showToast("❌ Lỗi tạo hóa đơn!"); } finally { document.getElementById('receiptTemplate').style.cssText = 'position:absolute;left:-9999px;visibility:hidden;'; }
     };
 
+    // Phase 4K-2B: Legacy renderApp search normalize — strips Vietnamese diacritics for correct matching
+    function _legacyNormalizeSearch(value) {
+        if (window.normalizeVNForSearch) return window.normalizeVNForSearch(value);
+        return String(value || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/đ/g, 'd')
+            .replace(/Đ/g, 'D')
+            .toLowerCase()
+            .trim()
+            .replace(/\s+/g, ' ');
+    }
+
     function renderApp() {
         if (typeof window._moduleRenderApp === 'function') { window._moduleRenderApp(); return; }
         if(window.userRole === 'super_admin') return;
@@ -5767,7 +5780,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         const _fmEl = document.getElementById('filterMonth');
         const _fbEl = document.getElementById('filterBranch');
         const _srEl = document.getElementById('searchInput');
-        const selMonth = _fmEl ? _fmEl.value : ''; const selBranch = _fbEl ? _fbEl.value : 'all'; const search = _srEl ? _srEl.value.toLowerCase().trim() : '';
+        const selMonth = _fmEl ? _fmEl.value : ''; const selBranch = _fbEl ? _fbEl.value : 'all'; const search = _legacyNormalizeSearch(_srEl ? _srEl.value : '');
         const _txRows = [], _utxRows = [], _expRows = [], _eexpRows = [], _debtRows = [], _activeRows = [], _quitRows = [], _invRows = [];
         let txHtml = '', uniformTxHtml = '', expHtml = '', examExpHtml = '', debtHtml = '', activeHtml = '', quitHtml = '', invListHtml = '', reportHtml = '';
         let inc_tuition = 0, inc_exam = 0, inc_other = 0, inc_uniform = 0, exp_uniform = 0, exp = 0, exp_exam_total = 0, totalDebtEst = 0; let studentPayments = {};
@@ -5840,7 +5853,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         let unpaidInvCount = 0;
         allInventory.forEach(t => {
             let isSearchMatch = true;
-            if (search && !(t.desc||"").toLowerCase().includes(search) && !(t.size||"").toLowerCase().includes(search)) isSearchMatch = false;
+            if (search && !_legacyNormalizeSearch(t.desc).includes(search) && !_legacyNormalizeSearch(t.size).includes(search)) isSearchMatch = false;
             
             if(isSearchMatch) {
                 let isInc = t.type === 'Nhập kho';
@@ -5907,7 +5920,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             let isBranchMatch = true;
             if (!isSingleBranch && selBranch !== 'all' && t.branch !== selBranch && t.branch !== 'Chung') isBranchMatch = false;
             let isSearchMatch = true;
-            if (search && !cleanName.toLowerCase().includes(search) && !(t.examTitle||"").toLowerCase().includes(search)) isSearchMatch = false;
+            if (search && !_legacyNormalizeSearch(cleanName).includes(search) && !_legacyNormalizeSearch(t.examTitle).includes(search)) isSearchMatch = false;
 
             let safeBranch = t.branch || "CS1"; let safeNameEscaped = cleanName.replace(/'/g, "\\'");
             let branchTdHTML = isSingleBranch ? '' : `<td class="col-branch"><span class="badge bg-slate-100 text-slate-600 border border-slate-200">${window.getBranchNameDisplay(safeBranch)}</span></td>`;
@@ -6021,7 +6034,14 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             let branchTdHTML = isSingleBranch ? '' : `<td class="col-branch"><span class="badge bg-slate-100 text-slate-600 border border-slate-200">${window.getBranchNameDisplay(safeBranch)}</span></td>`;
 
             let safePhone = p.phone || ""; let safeBelt = p.belt || ""; let safeNotes = p.notes || ""; let safeNameEscaped = name.replace(/'/g, "\\'");
-            let matchesSearch = true; if (search) matchesSearch = name.toLowerCase().includes(search) || safePhone.includes(search) || safeBelt.toLowerCase().includes(search) || safeNotes.toLowerCase().includes(search);
+            let matchesSearch = true;
+            if (search) {
+                matchesSearch =
+                    _legacyNormalizeSearch(name).includes(search) ||
+                    String(safePhone || '').includes(search) ||
+                    _legacyNormalizeSearch(safeBelt).includes(search) ||
+                    _legacyNormalizeSearch(safeNotes).includes(search);
+            }
             if (!matchesSearch) return;
             // Smart Name: gắn năm sinh nếu tên trùng
             const _listYrBadge = _getYearBadge(name, p);
