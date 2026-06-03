@@ -125,7 +125,10 @@ function _syncLegacy() {
 }
 
 /**
- * Invalidate students + dashboard + attendance + exam render.
+ * Invalidate students + dashboard + attendance + exam + tuition + debt render.
+ *
+ * Phase 4K-DATA-HYDRATION: Thêm tuition + debt + finance — đảm bảo Học Phí (0) /
+ * Báo Nợ (0) tự cập nhật khi profiles hydrate về sau login.
  * @private
  */
 function _invalidateAll(reason) {
@@ -134,6 +137,15 @@ function _invalidateAll(reason) {
     if (typeof window.invalidateByDomain  === 'function') {
         window.invalidateByDomain('attendance', reason);
         window.invalidateByDomain('exam',       reason);
+        // Phase 4K-DATA-HYDRATION: tuition + debt cần re-calc khi profile count thay đổi
+        window.invalidateByDomain('tuition',    reason);
+        window.invalidateByDomain('debt',       reason);
+    }
+    // Finance tab (Học Phí) — tính lại tóm tắt doanh thu + báo nợ khi profiles thay đổi
+    if (typeof window.invalidateFinance === 'function') window.invalidateFinance(reason);
+    // students.activeList — cập nhật counter "Đang Tập (N)"
+    if (typeof window.invalidateList === 'function') {
+        window.invalidateList('students.activeList', reason);
     }
 }
 
