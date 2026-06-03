@@ -45,6 +45,18 @@ import {
 // Phase 4K-STUDENT-LIST: Classifier chung — không dùng p.status === 'quit' trực tiếp
 import { classifyProfileStatus } from '../../../data/profileStatusConfig.js';
 
+// ── Phase 4K-2B: Fallback blob builder (used when getProfileSearchBlob unavailable) ──
+function _fallbackProfileBlob(name, p) {
+    const _nvFn = window.normalizeVNForSearch || (v => String(v || '').toLowerCase().trim());
+    const pp = p || {};
+    return [
+        name,
+        pp.name, pp.nickname, pp.memberId, pp.studentCode,
+        pp.code, pp.belt, pp.notes, pp.phone,
+        pp.parentPhone, pp.contactPhone, pp.guardianPhone,
+    ].filter(Boolean).map(v => _nvFn(String(v))).join(' ');
+}
+
 // ── Module-local branch-name helper ──────────────────────────────────────────
 const _getBrN = (br) =>
     (window.getBranchNameDisplay && window.getBranchNameDisplay(br))
@@ -288,14 +300,15 @@ export function computeAndCacheStudents(allProfiles, params) {
 
             let passFilter = true;
             if (!isSingleBranch && selBranch !== 'all' && safeBranch !== selBranch) passFilter = false;
-            // [PART 6 FIX] PASS 1: Dùng normalizeVNForSearch để tìm có dấu/không dấu, hoa/thường
+            // Phase 4K-2B PASS 1: Dùng getProfileSearchBlob() — pre-normalized blob, không normalize lại mỗi vòng lặp
             if (search) {
-                const _smsFn = window.studentMatchesSearch || function(n, pr, q) {
-                    const _nvFn = window.normalizeVNForSearch || (v => String(v||'').toLowerCase());
-                    return [n, pr&&pr.nickname, pr&&pr.memberId, pr&&pr.phone]
-                        .some(v => _nvFn(v).includes(_nvFn(q)));
-                };
-                if (!_smsFn(name, p, search)) passFilter = false;
+                const q = window.normalizeVNForSearch
+                    ? window.normalizeVNForSearch(search)
+                    : String(search || '').toLowerCase().trim();
+                const blob = typeof window.getProfileSearchBlob === 'function'
+                    ? window.getProfileSearchBlob(name, p)
+                    : _fallbackProfileBlob(name, p);
+                if (q && !blob.includes(q)) passFilter = false;
             }
 
             if (passFilter) {
@@ -396,14 +409,15 @@ export function computeAndCacheStudents(allProfiles, params) {
             if (isActive) {
                 let passFilter = true;
                 if (!isSingleBranch && selBranch !== 'all' && safeBranch !== selBranch) passFilter = false;
-                // [PART 6 FIX] PASS 2: Dùng normalizeVNForSearch để tìm có dấu/không dấu, hoa/thường
+                // Phase 4K-2B PASS 2: Dùng getProfileSearchBlob() — same pattern as PASS 1
                 if (search) {
-                    const _smsFn = window.studentMatchesSearch || function(n, pr, q) {
-                        const _nvFn = window.normalizeVNForSearch || (v => String(v||'').toLowerCase());
-                        return [n, pr&&pr.nickname, pr&&pr.memberId, pr&&pr.phone]
-                            .some(v => _nvFn(v).includes(_nvFn(q)));
-                    };
-                    if (!_smsFn(name, p, search)) passFilter = false;
+                    const q = window.normalizeVNForSearch
+                        ? window.normalizeVNForSearch(search)
+                        : String(search || '').toLowerCase().trim();
+                    const blob = typeof window.getProfileSearchBlob === 'function'
+                        ? window.getProfileSearchBlob(name, p)
+                        : _fallbackProfileBlob(name, p);
+                    if (q && !blob.includes(q)) passFilter = false;
                 }
 
                 if (passFilter) {

@@ -72,8 +72,18 @@ function _normalizeSearch(raw) {
         .toLowerCase().trim().replace(/\s+/g, ' ');
 }
 
+// Phase 4K-2B: Domain-aware cache keys for correct invalidation by domain
+function _domainForTab(tab) {
+    if (tab === 'active' || tab === 'quit' || tab === 'debt') return 'students';
+    if (tab === 'tx' || tab === 'expense') return 'finance';
+    if (tab === 'inventory') return 'inventory';
+    if (tab === 'dashboard') return 'dashboard';
+    return 'misc';
+}
+
 function _cacheKey(tab, term) {
-    return `${tab}|${_getFilterMonth()}|${_getFilterBranch()}|${term}`;
+    const domain = _domainForTab(tab);
+    return `${domain}:${tab}|${_getFilterMonth()}|${_getFilterBranch()}|${term}`;
 }
 
 // ── Phase 4K-2: SearchBlob builders ───────────────────────────────────────────
@@ -192,7 +202,8 @@ function getInventorySearchBlob(item) {
  * Apply a cached search result for active/quit tabs: restore cached
  * pagination items into pgState and trigger render without Firestore.
  */
-function _applyCachedStudentResult(cached) {
+// Phase 4K-2C: Accept tab param so cache hit renders the CORRECT list (activeList vs quitList)
+function _applyCachedStudentResult(cached, tab) {
     try {
         const pgState = window.__store &&
                         window.__store.pagination &&
@@ -212,12 +223,14 @@ function _applyCachedStudentResult(cached) {
             window.__store._dataVersion = (window.__store._dataVersion || 0) + 1;
         }
 
-        const _keys = ['students.activeList', 'dashboard.summary'];
+        // Phase 4K-2C: Render the correct list based on current tab
+        const listKey = tab === 'quit' ? 'students.quitList' : 'students.activeList';
+        const _keys = [listKey, 'dashboard.summary'];
         if (typeof window.refreshListsComputation === 'function') {
             window.refreshListsComputation(_keys, 'search-cache-hit');
         }
         if (typeof window.invalidateList === 'function') {
-            window.invalidateList('students.activeList', 'search-cache-hit');
+            window.invalidateList(listKey, 'search-cache-hit');
         } else if (typeof window.invalidateStudents === 'function') {
             window.invalidateStudents('search-cache-hit');
         }
@@ -253,7 +266,7 @@ async function _dispatchSearch(rawTerm) {
 
         if ((tab === 'active' || tab === 'quit') && Array.isArray(cached.items)) {
             // Restore cached items into pagination state — no Firestore round-trip
-            _applyCachedStudentResult(cached);
+            _applyCachedStudentResult(cached, tab);
         } else {
             // Non-student tabs: just re-trigger current-tab render using computation cache
             _applyInvalidateForTabOnly(tab);
@@ -280,7 +293,7 @@ async function _dispatchSearch(rawTerm) {
         return;
     }
 
-    const result = await _applyInvalidateForTab(tab, term);
+    const result = await _applyInvalidateForTab(tab, term, token);
 
     // Guard: stale check after await
     if (token !== _state.currentSearchToken) {
@@ -326,7 +339,8 @@ function _applyInvalidateForTabOnly(tab) {
  * Execute a full tab-aware search dispatch (may call Firestore for student tabs).
  * Returns a result object to store in cache.
  */
-async function _applyInvalidateForTab(tab, term) {
+// Phase 4K-2C: token passed through so students.js stale guard is actually armed
+async function _applyInvalidateForTab(tab, term, token) {
     const invalidateList = typeof window.invalidateList === 'function'
         ? window.invalidateList : null;
     const invalidateCurrentTab = typeof window.invalidateCurrentTab === 'function'
@@ -338,7 +352,8 @@ async function _applyInvalidateForTab(tab, term) {
     if (tab === 'active' || tab === 'quit') {
         let result = { items: [], totalLoaded: 0, hasNext: false };
         if (typeof window.runStudentSearchPagination === 'function') {
-            await window.runStudentSearchPagination(term);
+            // Phase 4K-2C: pass token so students.js stale guard works
+            await window.runStudentSearchPagination(term, { searchToken: token });
             // Capture result from pgState for caching
             try {
                 const pgState = window.__store &&
@@ -441,19 +456,27 @@ export function initGlobalSearchRuntime() {
 
     // Phase 4K-2: Tab-scoped cache invalidation — called by loadFullProfilesFallback
     // Only clears entries for the current tab, not the entire cache.
+    // Phase 4K-2C: use domain-aware prefix (domain:tab|) matching 4K-2B _cacheKey format
     window.invalidateSearchCacheForCurrentTab = function(reason) {
         const curTab = _getCurrentTab();
+        const domain = _domainForTab(curTab);
+        const prefix = domain + ':' + curTab + '|';
+
         let cleared = 0;
-        for (const k of _resultCache.keys()) {
-            if (k.startsWith(curTab + '|')) {
+        for (const k of Array.from(_resultCache.keys())) {
+            if (k.startsWith(prefix)) {
                 _resultCache.delete(k);
                 cleared++;
             }
         }
-        // Also invalidate profile blobs since data changed
-        _profileBlobCache.clear();
+
+        // Invalidate the correct blob cache for this domain
+        if (domain === 'students') _profileBlobCache.clear();
+        if (domain === 'finance')  _txBlobCache.clear();
+        if (domain === 'inventory') _invBlobCache.clear();
+
         _state.lastTerm = '';
-        console.debug('[SearchRuntime] tab-cache invalidated tab=' + curTab + ' (' + cleared + ') —', reason || 'manual');
+        console.debug('[SearchRuntime] tab-cache invalidated tab=' + curTab + ' prefix=' + prefix + ' (' + cleared + ') —', reason || 'manual');
     };
 
     console.info('[SearchRuntime] ✅ Phase 4K-2 Unified search controller mounted.');
@@ -498,10 +521,26 @@ export function invalidateSearchCache(domain, reason) {
         cleared = _resultCache.size;
         _resultCache.clear();
     } else {
-        // Match cache keys that start with the domain tab prefix
-        const prefix = domain + '|';
+        // Phase 4K-2B: domain-prefix matching using format `${domain}:${tab}|...`
+        // If domain is a logical domain ('students', 'finance', 'inventory', 'dashboard'),
+        // clear all keys starting with `${domain}:`.
+        // If domain is a specific tab ('active', 'quit', 'debt', 'tx', 'inventory'),
+        // clear keys containing `:${tab}|` to match only that tab's entries.
+        const logicalDomains = ['students', 'finance', 'inventory', 'dashboard', 'misc'];
+        const isLogicalDomain = logicalDomains.includes(domain);
+
         for (const k of _resultCache.keys()) {
-            if (k.startsWith(prefix)) {
+            let match = false;
+            if (isLogicalDomain) {
+                // Match `students:active|...`, `students:debt|...`, etc.
+                match = k.startsWith(domain + ':');
+            } else {
+                // domain is a tab like 'active', 'quit', 'debt', 'tx'
+                // Map tab to its logical domain then match full prefix
+                const mappedDomain = _domainForTab(domain);
+                match = k.startsWith(mappedDomain + ':' + domain + '|');
+            }
+            if (match) {
                 _resultCache.delete(k);
                 cleared++;
             }

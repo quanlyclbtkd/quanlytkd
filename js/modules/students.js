@@ -1162,9 +1162,25 @@ export function initStudentPagination() {
             // ── Core: thực sự load một trang profiles ──────────────────
             // PHẦN 3 FIX: searchOverride cho phép searchRuntime.js truyền term trực tiếp
             // mà không tự đọc searchInput — tránh double-read.
-            async function _doLoad(cursor, direction, searchOverride = null) {
-                if (pgState.isLoading) return;
+            // Phase 4K-2B: options.searchToken cho phép stale request guard chặn trước khi apply state.
+            async function _doLoad(cursor, direction, searchOverride = null, options = {}) {
+                // Phase 4K-2C: Extract token FIRST so search requests can bypass a stale loading lock
+                const _searchToken = options.searchToken || 0;
+
+                // Phase 4K-2C: If a previous load is running but THIS is a new search request,
+                // allow it through — the stale guard will drop the older request before it applies state.
+                if (pgState.isLoading && !_searchToken) {
+                    return;
+                }
+                if (pgState.isLoading && _searchToken) {
+                    console.debug('[students-pagination] new searchToken allowed while previous load is running', _searchToken);
+                }
                 pgState.isLoading = true;
+                function _isStaleSearch() {
+                    return _searchToken > 0 &&
+                        window.__searchRuntimeState &&
+                        _searchToken !== window.__searchRuntimeState.currentSearchToken;
+                }
                 _injectControls(); // hiện spinner ngay
 
                 const search = searchOverride !== null ? searchOverride : _getCurrentSearch();
@@ -1198,6 +1214,13 @@ export function initStudentPagination() {
                         if (_srEl && _showStudentSearchStatus) _srEl.textContent = 'Đang tìm...';
 
                         const _sr = await StudentService.searchProfilesServerSide(search, { pageSize: PAGE_SIZE });
+
+                        // Phase 4K-2B: Stale guard — chặn TRƯỚC khi mutate state
+                        if (_isStaleSearch()) {
+                            pgState.isLoading = false;
+                            console.debug('[students-pagination] stale search dropped before apply (server-side)', _searchToken);
+                            return { stale: true, items: [] };
+                        }
 
                         pgState.currentItems = _sr.items || [];
                         pgState.currentPage  = 1;
@@ -1233,6 +1256,13 @@ export function initStudentPagination() {
                             direction,
                             search,
                         });
+
+                        // Phase 4K-2B: Stale guard — chặn TRƯỚC khi mutate state
+                        if (_isStaleSearch()) {
+                            pgState.isLoading = false;
+                            console.debug('[students-pagination] stale search dropped before apply (page load)', _searchToken);
+                            return { stale: true, items: [] };
+                        }
 
                         const items = processPage(snap, pgState);
                         pgState.enabled     = true;
@@ -1416,11 +1446,12 @@ export function initStudentPagination() {
             // ── PHẦN 3 FIX: Expose API cho searchRuntime.js gọi trực tiếp ──────
             // searchRuntime.js sẽ gọi window.runStudentSearchPagination(term)
             // thay vì bind input riêng.
-            window.runStudentSearchPagination = async function(term) {
+            // Phase 4K-2B: Accept options.searchToken for stale-request guard
+            window.runStudentSearchPagination = async function(term, options = {}) {
                 const searchTerm = (term !== undefined && term !== null) ? term : _getCurrentSearch();
                 resetPagination(pgState);
                 pgState.currentPage = 1;
-                return _doLoad(null, 'first', searchTerm);
+                return _doLoad(null, 'first', searchTerm, options);
             };
 
             // ── Bind: Tự động load lại khi search thay đổi ──────────────

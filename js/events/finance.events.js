@@ -118,6 +118,64 @@ export function initFinanceEvents() {
     console.info('[finance.events.js] ✅ Phase 3.1 + 3.2A event bindings mounted');
 }
 
+// ── Phase 4K-3: Tuition Receipt + Student Profile event delegation ─────────
+/**
+ * initFinanceActionEvents() — Event delegation cho nút In biên lai và click tên võ sinh.
+ *
+ * Dùng capture phase (true) và document-level delegation nên hoạt động với:
+ *   - render đầu tiên, sau search, sau đổi tháng, sau cache hit, sau hard refresh.
+ *
+ * Idempotent: guard bằng window.__financeActionEventsMounted.
+ * Phụ thuộc runtime bridges:
+ *   - window.printTuitionReceiptByTxId(txId, opts)
+ *   - window.openStudentProfileByName(name)
+ */
+export function initFinanceActionEvents() {
+    if (window.__financeActionEventsMounted) return;
+    window.__financeActionEventsMounted = true;
+
+    document.addEventListener('click', function(e) {
+        // ── In biên lai học phí ─────────────────────────────────────────
+        const printBtn = e.target.closest('[data-action="print-tuition-receipt"], .js-print-tuition-receipt');
+        if (printBtn) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const txId        = printBtn.getAttribute('data-tx-id');
+            const studentName = printBtn.getAttribute('data-student-name');
+
+            if (typeof window.printTuitionReceiptByTxId === 'function') {
+                window.printTuitionReceiptByTxId(txId, { studentName });
+            } else {
+                console.warn('[tuition-receipt] printTuitionReceiptByTxId missing');
+            }
+            return;
+        }
+
+        // ── Mở hồ sơ võ sinh ───────────────────────────────────────────
+        const profileBtn = e.target.closest('[data-action="open-student-profile"], .js-open-student-profile');
+        if (profileBtn) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const studentName = profileBtn.getAttribute('data-student-name')
+                || profileBtn.textContent.trim();
+
+            if (typeof window.openStudentProfileByName === 'function') {
+                window.openStudentProfileByName(studentName);
+            } else {
+                console.warn('[student-profile] openStudentProfileByName missing');
+            }
+            return;
+        }
+    }, true);
+
+    console.info('[finance.events.js] ✅ Phase 4K-3 tuition action event delegation mounted');
+}
+
+// Expose lên window để check tools và legacy code có thể gọi
+window.initFinanceActionEvents = initFinanceActionEvents;
+
 // ── Private helper ────────────────────────────────────────────────
 /**
  * Bind input display (formatted) → sync sang actual (raw number).

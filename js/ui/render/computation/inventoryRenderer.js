@@ -28,6 +28,16 @@
 
 import { formatDate } from '../../../utils/format.js';
 
+// ── Phase 4K-2B: Fallback inv blob builder (used when getInventorySearchBlob unavailable) ──
+function _fallbackInvBlob(t) {
+    const _nvFn = window.normalizeVNForSearch || (v => String(v || '').toLowerCase().trim());
+    const tt = t || {};
+    return [
+        tt.desc, tt.size, tt.category,
+        tt.studentName, tt.note, tt.type,
+    ].filter(Boolean).map(v => _nvFn(String(v))).join(' ');
+}
+
 // ── Module-local render cache ─────────────────────────────────────────────────
 const _cache = {
     invListRows:     null,     // <tr data-inv-key>… string | null
@@ -232,17 +242,13 @@ export function computeAndCacheInventory(allInventory, allTransactions, params) 
         allInventory.forEach(t => {
             let isSearchMatch = true;
             if (search) {
-                // PHẦN 7 FIX: Dùng normalizeVNForSearch — tìm có dấu/không dấu, hoa/thường đều đúng
-                const _nvFn = window.normalizeVNForSearch || (v => String(v || '').toLowerCase());
-                const q = _nvFn(search);
-                const invBlob = [
-                    t.desc || '',
-                    t.size || '',
-                    t.category || '',
-                    t.studentName || '',
-                    t.note || '',
-                    t.type || '',
-                ].map(v => _nvFn(v)).join(' ');
+                // Phase 4K-2B: Dùng getInventorySearchBlob() — pre-normalized cache, không build lại mỗi lần
+                const q = window.normalizeVNForSearch
+                    ? window.normalizeVNForSearch(search)
+                    : String(search || '').toLowerCase().trim();
+                const invBlob = typeof window.getInventorySearchBlob === 'function'
+                    ? window.getInventorySearchBlob(t)
+                    : _fallbackInvBlob(t);
                 if (q && !invBlob.includes(q)) isSearchMatch = false;
             }
             if (!isSearchMatch) return;

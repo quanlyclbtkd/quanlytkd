@@ -637,24 +637,37 @@ export async function loadFullProfilesFallback(reason) {
             window.__store._lastProfileHydrateReason = reason || 'full-profiles-fallback';
         }
 
-        // PHẦN 9 FIX: Consolidated pipeline thay vì 5 lệnh invalidate riêng lẻ.
-        // Thứ tự: (1) refreshListsComputation trước, (2) invalidate domain một lần duy nhất.
-        // Không còn gọi _invalidateAll + invalidateStudents + invalidateList + refreshListsComputation + invalidateDashboard cùng lúc.
-        if (typeof window.refreshListsComputation === 'function') {
-            window.refreshListsComputation([
-                'students.activeList',
-                'students.debtList',
-                'students.quitList',
-                'dashboard.summary',
-            ], 'full-profiles-fallback');
+        // Phase 4K-2B: Tab-aware invalidation — chỉ refresh đúng tab đang mở, không flush toàn hệ thống.
+        // Chỉ dùng _invalidateAll() khi reason chứa 'initial-login' hoặc không xác định được tab.
+        {
+            const _tab = typeof window.getCurrentActiveTabId === 'function'
+                ? window.getCurrentActiveTabId()
+                : '';
+
+            let _keys = [];
+            if (_tab === 'active')         _keys = ['students.activeList'];
+            else if (_tab === 'debt')      _keys = ['students.debtList'];
+            else if (_tab === 'quit')      _keys = ['students.quitList'];
+            else if (_tab === 'tx')        _keys = ['tx.txList'];
+            else if (_tab === 'inventory') _keys = ['inventory.inventoryList', 'inventory.uniformTxList'];
+            else if (_tab === 'dashboard') _keys = ['dashboard.summary'];
+            else                           _keys = ['students.activeList', 'students.debtList', 'students.quitList'];
+
+            if (typeof window.refreshListsComputation === 'function') {
+                window.refreshListsComputation(_keys, 'full-profiles-fallback-tab-aware');
+            }
+
+            if (typeof window.invalidateList === 'function') {
+                _keys.forEach(k => window.invalidateList(k, 'full-profiles-fallback-tab-aware'));
+            } else if (typeof window.invalidateCurrentTab === 'function') {
+                window.invalidateCurrentTab('full-profiles-fallback-tab-aware');
+            } else {
+                // Last-resort: only if we cannot determine tab, flush all
+                _invalidateAll('full-profiles-fallback');
+            }
         }
 
-        // Một lần invalidate duy nhất — dùng _invalidateAll thay vì 3 lệnh riêng lẻ
-        _invalidateAll('full-profiles-fallback');
-
         // Phase 4K-2: Chỉ invalidate search cache của tab hiện tại — không clear toàn bộ.
-        // loadFullProfilesFallback chỉ ảnh hưởng đến dữ liệu profiles (active/quit),
-        // không cần xóa cache finance/inventory/tx của các tab khác.
         if (typeof window.invalidateSearchCacheForCurrentTab === 'function') {
             window.invalidateSearchCacheForCurrentTab('full-profiles-fallback');
         } else if (typeof window.clearSearchRuntimeCache === 'function') {

@@ -175,7 +175,7 @@ import { initSuperAdmin }                             from './modules/superadmin
 
 // ── Phase 3.1: Event layer ──────────────────────────────────────
 import { initStudentsEvents }                         from './events/students.events.js';
-import { initFinanceEvents }                          from './events/finance.events.js';
+import { initFinanceEvents, initFinanceActionEvents } from './events/finance.events.js';
 
 // ────────────────────────────────────────────────────────────────
 // Phase 3.3G: GLOBAL ERROR HANDLERS
@@ -404,6 +404,119 @@ window.ensureModuleRuntimeReady = window.ensureModuleRuntimeReady || function _e
 };
 
 // ────────────────────────────────────────────────────────────────
+// Phase 4K-3: Tuition Receipt + Student Profile Runtime Bridges
+// ────────────────────────────────────────────────────────────────
+
+/**
+ * _findTransactionById — tìm transaction từ nhiều store source.
+ * Không dùng row index vì index thay đổi sau search/filter/pagination.
+ */
+function _findTransactionById(txId) {
+    const id = String(txId || '').trim();
+    if (!id) return null;
+    const st = window.__store || {};
+    const sources = [
+        st.transactions,
+        st.allTransactions,
+        window.allTransactions,
+        window.__allTransactions,
+        st.pagination && st.pagination.transactions && st.pagination.transactions.currentItems,
+    ];
+    for (const arr of sources) {
+        if (!Array.isArray(arr)) continue;
+        const found = arr.find(t => String(t.id || t.txId || t.docId || '') === id);
+        if (found) return found;
+    }
+    return null;
+}
+
+/**
+ * _installTuitionActionBridges — mount window.printTuitionReceiptByTxId và
+ * window.openStudentProfileByName nếu chưa có.
+ * Idempotent — gọi nhiều lần không gây vấn đề.
+ */
+function _installTuitionActionBridges() {
+    // ── Bridge: In biên lai theo txId ──────────────────────────────
+    if (!window.printTuitionReceiptByTxId) {
+        window.printTuitionReceiptByTxId = function(txId, opts) {
+            opts = opts || {};
+            const tx = _findTransactionById(txId);
+            if (!tx) {
+                console.warn('[tuition-receipt] transaction not found for txId:', txId,
+                    '— fallback to button attrs');
+                // Fallback: dùng data attrs từ button nếu tx không còn trong store
+                if (typeof window.exportReceipt === 'function' && opts.studentName) {
+                    const sName = String(opts.studentName || '').trim();
+                    console.warn('[tuition-receipt] fallback exportReceipt for student:', sName);
+                    window.exportReceipt(sName, 0, 'Học phí', '', '', '', '', 'BIÊN LAI THU TIỀN');
+                }
+                return;
+            }
+            if (typeof window.exportReceipt !== 'function') {
+                console.warn('[tuition-receipt] window.exportReceipt not available');
+                return;
+            }
+            const name      = (tx.description ? tx.description.trim() : '') || opts.studentName || '';
+            const amount    = Number(tx.amount) || 0;
+            const type      = tx.type || 'Học phí';
+            const date      = tx.date || '';
+            const txMonths  = tx.packageMonths ? tx.packageMonths.join(',') : (tx.txMonth || '');
+            const branch    = tx.branch || 'CS1';
+            const examTitle = tx.examTitle || '';
+            window.exportReceipt(name, amount, type, date, txMonths, branch, examTitle, 'BIÊN LAI THU TIỀN');
+        };
+    }
+
+    // ── Bridge: Mở hồ sơ võ sinh theo tên ─────────────────────────
+    if (!window.openStudentProfileByName) {
+        window.openStudentProfileByName = function(studentName) {
+            const name = String(studentName || '').trim();
+            if (!name) return;
+            // Ưu tiên gọi đúng function legacy đang tồn tại
+            if (typeof window.openProfile === 'function') {
+                window.openProfile(name);
+            } else if (typeof window.editProfile === 'function') {
+                window.editProfile(name);
+            } else if (typeof window.showStudentModal === 'function') {
+                window.showStudentModal(name);
+            } else {
+                console.warn('[student-profile] No profile opener available for:', name);
+            }
+        };
+    }
+}
+
+// ── Phase 4K-3: Debug helper ──────────────────────────────────────────────
+window.debugTuitionActions = function() {
+    const st   = window.__store || {};
+    const rows = Array.from(document.querySelectorAll('#txList tr'));
+    const result = {
+        href:        location.href,
+        protocol:    location.protocol,
+        runtimeMode: window.__RUNTIME_MODE || '',
+        mainLoaded:  !!window.MAIN_JS_LOADED,
+        appLoaded:   !!window.__appLoaded,
+        currentTab:  typeof window.getCurrentActiveTabId === 'function'
+            ? window.getCurrentActiveTabId() : '',
+        txRows:      rows.length,
+        printButtons:   document.querySelectorAll('[data-action="print-tuition-receipt"], .js-print-tuition-receipt').length,
+        profileButtons: document.querySelectorAll('[data-action="open-student-profile"], .js-open-student-profile').length,
+        hasPrintBridge:   typeof window.printTuitionReceiptByTxId === 'function',
+        hasProfileBridge: typeof window.openStudentProfileByName === 'function',
+        hasFinanceEvents: !!window.__financeActionEventsMounted,
+        storeTransactions: Array.isArray(st.transactions) ? st.transactions.length : -1,
+        paginationTransactions: Array.isArray(
+            st.pagination && st.pagination.transactions && st.pagination.transactions.currentItems
+        ) ? st.pagination.transactions.currentItems.length : -1,
+        firstRowText:   rows[0] ? rows[0].textContent.trim().slice(0, 160) : '',
+        firstPrintBtn:  (document.querySelector('[data-action="print-tuition-receipt"], .js-print-tuition-receipt') || {}).outerHTML || '',
+        firstProfileBtn:(document.querySelector('[data-action="open-student-profile"], .js-open-student-profile') || {}).outerHTML || '',
+    };
+    console.table(result);
+    return result;
+};
+
+// ────────────────────────────────────────────────────────────────
 // [GITHUB-FIX] Task 3: Tránh double-boot app.js khi legacy đã load
 // ────────────────────────────────────────────────────────────────
 
@@ -600,6 +713,10 @@ function _waitForExistingLegacyApp(ms) {
 
         if (guardOnce('initStudentsEvents')) initStudentsEvents();
         if (guardOnce('initFinanceEvents'))  initFinanceEvents();
+
+        // Phase 4K-3: Tuition Receipt Action Recovery + Student Profile Click Binding
+        _installTuitionActionBridges();
+        if (guardOnce('initFinanceActionEvents')) initFinanceActionEvents();
 
         // PHẦN 6 FIX: Các block setTimeout 500ms/1500ms init pagination sớm đã bị DISABLED.
         // Lý do: chạy trước isClubRuntimeReady() → gây cảnh báo "db chưa sẵn sàng sau 2s".

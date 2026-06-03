@@ -26,7 +26,28 @@
  *   can key on it without re-scanning table structure.
  */
 
-import { formatDate } from '../../../utils/format.js';
+import { formatDate, formatMonth } from '../../../utils/format.js';
+
+// ── Phase 4K-3: Local escape helpers (no external dep) ──────────────────────
+function _escAttr(v) {
+    return String(v ?? '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function _escHtml(v) {
+    return String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Phase 4K-2B: Fallback tx blob builder (used when getTransactionSearchBlob unavailable) ──
+function _fallbackTxBlob(t, cleanName) {
+    const _nvFn = window.normalizeVNForSearch || (v => String(v || '').toLowerCase().trim());
+    return [
+        cleanName || (t && t.description) || '',
+        t && t.examTitle   || '',
+        t && t.studentName || '',
+        t && t.note        || '',
+        t && t.description || '',
+        t && t.type        || '',
+    ].map(v => _nvFn(String(v))).join(' ');
+}
 
 // ── Module-local branch-name helper (mirrors render.js _getBrN) ──────────────
 const _getBrN = (br) =>
@@ -97,13 +118,49 @@ export function renderTxRow(tx, opts = {}) {
     const { isSingleBranch = true, isAdmin = false, branchTdHTML = '', btnDel = '' } = opts;
     const isTuition  = tx.type === 'Học phí' || tx.type === 'Học phí + Lệ phí thi';
     const isExamType = tx.type === 'Lệ phí thi';
-    const amtStr     = `+${(Number(tx.amount) || 0).toLocaleString()} ₫`;
+
+    // ── Phase 4K-3: Student name (safe for attributes and HTML) ──
+    const cleanName  = tx.description ? tx.description.trim() : '';
+
+    // ── Phase 4K-3: Month badge (mirrors app.js displayTxMonth logic) ──
+    const displayTxMonth = tx.packageMonths && tx.packageMonths.length > 1
+        ? `${tx.packageMonths.length} Tháng`
+        : (tx.txMonth ? formatMonth(tx.txMonth) : '-');
+    const monthBadgeTd = `<td><span class="badge bg-emerald-50 text-emerald-700 border border-emerald-200">${_escHtml(displayTxMonth)}</span></td>`;
+
+    // ── Phase 4K-3: Clickable student name with event delegation data attrs ──
+    const nameTd = `<td class="name-link text-[0.95rem]"><button type="button" class="link-like js-open-student-profile" data-action="open-student-profile" data-student-name="${_escAttr(cleanName)}">${_escHtml(cleanName)}</button></td>`;
+
     const typeBadge  = isTuition
         ? `<span class="badge bg-emerald-50 text-emerald-700 border border-emerald-200">Học phí</span>`
         : isExamType
             ? `<span class="badge bg-amber-50 text-amber-700 border border-amber-200">Thi đai</span>`
-            : `<span class="badge bg-slate-50 text-slate-600 border border-slate-200">${tx.type || 'Khác'}</span>`;
-    return `<tr data-tx-id="${tx.id || ''}"><td class="text-slate-500 text-[0.85rem]">${formatDate(tx.date)}</td>${branchTdHTML}<td class="font-bold text-slate-800 text-[0.9rem]">${tx.description || ''}</td><td>${typeBadge}</td><td class="text-emerald-600 font-bold">${amtStr}</td><td class="action-btns">${btnDel}</td></tr>`;
+            : `<span class="badge bg-slate-50 text-slate-600 border border-slate-200">${_escHtml(tx.type || 'Khác')}</span>`;
+
+    // ── Phase 4K-3: Amount cell (mirrors app.js amountHTML multi-month logic) ──
+    let amtCell;
+    if (tx.packageMonths && tx.packageMonths.length > 1) {
+        const totalAllo = isTuition && tx.type === 'Học phí + Lệ phí thi'
+            ? (Number(tx.tuitionAmount) || 0) + (Number(tx.examAmount) || 0)
+            : Number(tx.amount) || 0;
+        amtCell = `<td><div class="text-emerald-600 font-black text-base">+${totalAllo.toLocaleString()}</div><div class="text-[0.65rem] text-slate-500 font-bold whitespace-nowrap">Tổng: ${(Number(tx.amount)||0).toLocaleString()}</div></td>`;
+    } else {
+        amtCell = `<td class="text-emerald-600 font-bold">+${(Number(tx.amount) || 0).toLocaleString()} ₫</td>`;
+    }
+
+    // ── Phase 4K-3: Print button with stable data attrs (event delegation target) ──
+    const txMonthsStr  = tx.packageMonths ? tx.packageMonths.join(',') : (tx.txMonth || '');
+    const printBtn = `<button type="button" class="btn-sm bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white js-print-tuition-receipt" data-action="print-tuition-receipt" data-tx-id="${_escAttr(tx.id || tx.txId || '')}" data-student-name="${_escAttr(cleanName)}" data-tx-months="${_escAttr(txMonthsStr)}" data-tx-type="${_escAttr(tx.type || '')}" data-tx-date="${_escAttr(tx.date || '')}" data-tx-branch="${_escAttr(tx.branch || 'CS1')}" data-tx-amount="${Number(tx.amount) || 0}" data-exam-title="${_escAttr(tx.examTitle || '')}">🧾 In</button>`;
+
+    return `<tr data-tx-id="${_escAttr(tx.id || tx.txId || '')}">`
+        + `<td class="text-slate-500 text-[0.85rem]">${formatDate(tx.date)}</td>`
+        + branchTdHTML
+        + monthBadgeTd
+        + nameTd
+        + `<td>${typeBadge}</td>`
+        + amtCell
+        + `<td class="action-btns">${printBtn}${btnDel}</td>`
+        + `</tr>`;
 }
 
 /**
@@ -220,17 +277,13 @@ export function computeAndCacheFinance(transactions, params) {
         }
         let isSearchMatch = true;
         if (search) {
-            // PHẦN 7 FIX: Dùng normalizeVNForSearch — tìm có dấu/không dấu, hoa/thường đều đúng
-            const _nvFn = window.normalizeVNForSearch || (v => String(v || '').toLowerCase());
-            const q = _nvFn(search);
-            const txBlob = [
-                cleanName,
-                t.examTitle || '',
-                t.studentName || '',
-                t.note || '',
-                t.description || '',
-                t.type || '',
-            ].map(v => _nvFn(v)).join(' ');
+            // Phase 4K-2B: Dùng getTransactionSearchBlob() — pre-normalized cache, không build lại mỗi lần
+            const q = window.normalizeVNForSearch
+                ? window.normalizeVNForSearch(search)
+                : String(search || '').toLowerCase().trim();
+            const txBlob = typeof window.getTransactionSearchBlob === 'function'
+                ? window.getTransactionSearchBlob(t)
+                : _fallbackTxBlob(t, cleanName);
             if (q && !txBlob.includes(q)) isSearchMatch = false;
         }
 
