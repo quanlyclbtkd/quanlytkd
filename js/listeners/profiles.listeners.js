@@ -352,15 +352,6 @@ export function mountActiveProfilesListener(context) {
 
                     const activeCount = Object.keys(activeMap).length;
 
-                    // [Phase 4K-DATA-HYDRATION-FINAL2]
-                    // Active-only query chỉ lấy status in ['active','trial'].
-                    // Với dữ liệu legacy chưa có status, snapshot có thể = 0 dù collection có hồ sơ.
-                    // Lần snapshot đầu nếu rỗng → chạy full fallback một lần để hydrate UI.
-                    if (activeCount === 0 && _state.activeSnapshotCount <= 1 && !_state.fallbackInProgress && !_state.fallbackCompleted) {
-                        console.warn('[ProfilesListener] Active snapshot rỗng lần đầu — thử full fallback để hỗ trợ dữ liệu legacy thiếu status.');
-                        setTimeout(() => loadFullProfilesFallback('active-empty-first-snapshot'), 0);
-                    }
-
                     // [Phase 3.7C] Coverage guard — trước khi cập nhật store
                     _checkActiveProfileCoverage(activeCount);
 
