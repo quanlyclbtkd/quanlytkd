@@ -239,66 +239,94 @@ exports.rebuildStatsForClub = functions
             functions.logger.info(`[rebuildStatsForClub] Đã xóa ${deleteOps.length} stats docs cũ`);
         }
 
-        // Bước 2: Lấy tất cả transactions của năm
-        let txQuery = db.collection(`clubs/${clubId}/transactions`);
+        // Bước 2: Lấy transactions theo pagination để tránh timeout với CLB lớn
+        // [Phase 4K-FIX Lỗi 5] Dùng cursor pagination thay vì get() toàn bộ
+        // [Phase 4K-FIX Lỗi 6] txCount chỉ tăng cho transaction hợp lệ (classifyTx != null)
+        // — đồng nhất với trigger onTransactionCreate/Update/Delete
+        const REBUILD_PAGE_SIZE = 400; // batch 400 docs/lần — an toàn với RAM và timeout
+        const MAX_PAGES = 500;         // guard chống loop vô hạn (tối đa 200.000 tx)
+
+        let txBaseQuery = db.collection(`clubs/${clubId}/transactions`);
         if (year) {
-            // Lọc theo năm (dựa vào txMonth hoặc date prefix)
-            txQuery = txQuery
+            txBaseQuery = txBaseQuery
                 .where('txMonth', '>=', `${yearStr}-01`)
                 .where('txMonth', '<=', `${yearStr}-12`);
         }
-        const txSnap = await txQuery.get();
+        // Cần orderBy để startAfter hoạt động đúng
+        txBaseQuery = txBaseQuery.orderBy('txMonth');
 
-        functions.logger.info(`[rebuildStatsForClub] Đang xử lý ${txSnap.size} giao dịch`);
-
-        // Bước 3: Gom nhóm theo tháng (in-memory aggregation)
-        // Hiệu quả hơn nhiều so với gọi updateStats() từng lần (từng giao dịch)
         const statsByMonth = {};
+        let lastDoc         = null;
+        let totalTxRead     = 0;
+        let totalTxValid    = 0; // số tx hợp lệ (classifyTx != null)
+        let pageCount       = 0;
 
-        for (const txDoc of txSnap.docs) {
-            const tx    = txDoc.data();
-            const month = getTxMonth(tx);
-            if (!month) continue;
+        functions.logger.info(`[rebuildStatsForClub] Bắt đầu pagination rebuild: Club=${clubId}, Year=${yearStr}, pageSize=${REBUILD_PAGE_SIZE}`);
 
-            if (!statsByMonth[month]) {
-                statsByMonth[month] = {
-                    month,
-                    'income.tuition':    0,
-                    'income.exam':       0,
-                    'income.other':      0,
-                    'income.uniform':    0,
-                    'income.total':      0,
-                    'expense.operations':0,
-                    'expense.exam':      0,
-                    'expense.uniform':   0,
-                    'expense.total':     0,
-                    profit:              0,
-                    txCount:             0,
-                };
+        while (pageCount < MAX_PAGES) {
+            let pageQuery = txBaseQuery.limit(REBUILD_PAGE_SIZE);
+            if (lastDoc) pageQuery = pageQuery.startAfter(lastDoc);
+
+            const snap = await pageQuery.get();
+            if (snap.empty) break;
+
+            totalTxRead += snap.size;
+            pageCount++;
+
+            for (const txDoc of snap.docs) {
+                const tx    = txDoc.data();
+                const month = getTxMonth(tx);
+                if (!month) continue;
+
+                if (!statsByMonth[month]) {
+                    statsByMonth[month] = {
+                        month,
+                        'income.tuition':    0,
+                        'income.exam':       0,
+                        'income.other':      0,
+                        'income.uniform':    0,
+                        'income.total':      0,
+                        'expense.operations':0,
+                        'expense.exam':      0,
+                        'expense.uniform':   0,
+                        'expense.total':     0,
+                        profit:              0,
+                        // [Phase 4K-FIX Lỗi 6] txCount = số GD hợp lệ (classifyTx != null)
+                        // Đồng nhất với trigger: updateStats() chỉ tăng txCount khi classifyTx != null
+                        txCount: 0,
+                    };
+                }
+
+                // [Phase 4K-FIX Lỗi 6] Phân loại TRƯỚC, tăng txCount SAU — đồng nhất với trigger
+                const classified = classifyTx(tx);
+                if (!classified) continue; // bỏ qua TX loại không tính stats (Tặng Võ phục, ...)
+
+                const s       = statsByMonth[month];
+                s.txCount++;   // chỉ tăng cho TX hợp lệ — khớp với trigger behavior
+                totalTxValid++;
+
+                const entries = Array.isArray(classified) ? classified : [classified];
+                for (const entry of entries) {
+                    if (!entry || !entry.field) continue;
+                    if (s[entry.field] === undefined) s[entry.field] = 0;
+                    s[entry.field] += entry.value;
+
+                    if (entry.field.startsWith('income')) {
+                        s['income.total'] += entry.value;
+                        s.profit           += entry.value;
+                    }
+                    if (entry.field.startsWith('expense')) {
+                        s['expense.total'] += entry.value;
+                        s.profit           -= entry.value;
+                    }
+                }
             }
 
-            const s = statsByMonth[month];
-            s.txCount++;
-
-            const classified = classifyTx(tx);
-            if (!classified) continue;
-
-            const entries = Array.isArray(classified) ? classified : [classified];
-            for (const entry of entries) {
-                if (!entry || !entry.field) continue;
-                if (s[entry.field] === undefined) s[entry.field] = 0;
-                s[entry.field] += entry.value;
-
-                if (entry.field.startsWith('income')) {
-                    s['income.total'] += entry.value;
-                    s.profit           += entry.value;
-                }
-                if (entry.field.startsWith('expense')) {
-                    s['expense.total'] += entry.value;
-                    s.profit           -= entry.value;
-                }
-            }
+            lastDoc = snap.docs[snap.docs.length - 1];
+            if (snap.size < REBUILD_PAGE_SIZE) break; // trang cuối
         }
+
+        functions.logger.info(`[rebuildStatsForClub] Đọc xong: ${totalTxRead} GD tổng / ${totalTxValid} GD hợp lệ / ${pageCount} trang`);
 
         // Bước 4: Ghi tất cả stats docs
         const writes = Object.entries(statsByMonth).map(([month, statsData]) => {
@@ -311,9 +339,11 @@ exports.rebuildStatsForClub = functions
         await Promise.all(writes);
 
         const result = {
-            rebuilt:  Object.keys(statsByMonth).length,
-            months:   Object.keys(statsByMonth).sort(),
-            totalTx:  txSnap.size,
+            rebuilt:     Object.keys(statsByMonth).length,
+            months:      Object.keys(statsByMonth).sort(),
+            totalTx:     totalTxRead,   // tổng TX đọc (paginated)
+            totalValid:  totalTxValid,  // TX hợp lệ (classifyTx != null)
+            pages:       pageCount,
             yearStr,
         };
 
