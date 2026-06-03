@@ -138,6 +138,34 @@ if (studentsJs) {
     );
 }
 
+console.log('\n▸ Section 5: PHẦN 5 FIX — Event delegation trong students.events.js lắng nghe ID mới');
+const studentsEventsJs = readFile('js/events/students.events.js');
+if (studentsEventsJs) {
+    check(
+        'students.events.js lắng nghe #pgNext_students_active',
+        studentsEventsJs.includes('pgNext_students_active'),
+        "PHẦN 5 FIX: Thêm '#pgNext_students_active' vào selector của event delegation"
+    );
+
+    check(
+        'students.events.js lắng nghe #pgPrev_students_active',
+        studentsEventsJs.includes('pgPrev_students_active'),
+        "PHẦN 5 FIX: Thêm '#pgPrev_students_active' vào selector của event delegation"
+    );
+
+    check(
+        'students.events.js lắng nghe #pgNext_students_quit',
+        studentsEventsJs.includes('pgNext_students_quit'),
+        "PHẦN 5 FIX: Thêm '#pgNext_students_quit' vào selector của event delegation"
+    );
+
+    check(
+        'students.events.js lắng nghe #pgPrev_students_quit',
+        studentsEventsJs.includes('pgPrev_students_quit'),
+        "PHẦN 5 FIX: Thêm '#pgPrev_students_quit' vào selector của event delegation"
+    );
+}
+
 console.log('\n══════════════════════════════════════════════════════════');
 console.log('  Total: ' + (pass + fail) + ' | ✅ ' + pass + ' | ❌ ' + fail);
 if (fail > 0) {
