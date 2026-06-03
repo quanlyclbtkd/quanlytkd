@@ -187,39 +187,23 @@
             const clubDocs = [];
             clubsSnap.forEach(docSnap => clubDocs.push(docSnap));
 
-            // [Phase 4K-FIX Lỗi 2] countDocs — dùng getCountFromServer (O(1), không tải docs về client)
-            // Ưu tiên A: getCountFromServer nếu SDK có (Firebase JS SDK v9.8+)
-            // Ưu tiên B: cached count trong club doc (cập nhật 2h/lần)
-            // Ưu tiên C: trả về null — UI hiển thị '--', không scan toàn collection
-            // KHÔNG scan full collection chỉ để đếm — tốn nhiều reads
-            const _gcfs = _fb.getCountFromServer || null;
-            const countDocs = async (q) => {
-                if (_gcfs) {
-                    try {
-                        const snap = await _gcfs(q);
-                        return snap.data().count || 0;
-                    } catch (_e) {
-                        // getCountFromServer có thể fail nếu query thiếu index hoặc quyền
-                        console.warn('[Phase 4K-FIX] getCountFromServer failed:', _e && _e.message);
-                        return null; // caller hiển thị '--'
-                    }
+            // Helper: đếm docs bằng getDocs().size — không dùng Aggregation API
+            // để tránh lỗi 429 (rate limit) khi có nhiều CLB
+            const countDocs = async (q) => { // [3.3E] Caller must pass bounded query
+                try {
+                    const snap = await getDocs(q);
+                    return snap.size;
+                } catch (_e) {
+                    return 0;
                 }
-                // Không có getCountFromServer — không scan full collection
-                console.warn('[Phase 4K-FIX] getCountFromServer không khả dụng — count = null (hiển thị --)');
-                return null;
             };
-
-            // [Phase 4K] Current month for stats doc reads — VN timezone offset
-            const _now4K  = new Date(Date.now() + 7 * 3600 * 1000);
-            const _curMonth4K = _now4K.toISOString().substring(0, 7); // YYYY-MM
-            const _statsDocId4K = _curMonth4K.replace('-', '_');      // YYYY_MM (underscore — Firestore doc ID)
 
             const clubDataList = await Promise.all(clubDocs.map(async (docSnap) => {
                 const cid = docSnap.id;
                 const data = docSnap.data();
 
                 // Ưu tiên dùng cached counts trong clubs doc (cập nhật realtime) nếu có
-                // Fallback: dùng getCountFromServer (đáng tin cậy, không bị rate limit)
+                // Fallback: tự đếm qua getDocs (đáng tin cậy, không bị rate limit)
                 let activeCount, profileCount, txCount, invCount;
                 if (typeof data.cachedActiveCount === 'number' && data.cachedCountUpdatedAt) {
                     // [SỬA ĐỒNG BỘ] Giảm cache từ 24h xuống 2h để SuperAdmin thấy số liệu mới hơn
@@ -251,21 +235,7 @@
 
                 // Ước tính dung lượng (KB): profile ~1KB, tx ~0.5KB, inv ~0.4KB
                 const estimatedKB = Math.round(profileCount * 1 + txCount * 0.5 + invCount * 0.4);
-
-                // [Phase 4K] Đọc monthly stats doc — KHÔNG scan transactions cho revenue.
-                // Stats path: clubs/{clubId}/stats/{YYYY_MM}. Ghi bởi Cloud Functions CRUD triggers.
-                let monthStats = null;
-                try {
-                    const _sSnap = await getDoc(doc(db, 'clubs', cid, 'stats', _statsDocId4K));
-                    if (_sSnap.exists()) {
-                        monthStats = _sSnap.data();
-                        if (window.__txListenerMetrics) {
-                            window.__txListenerMetrics.superAdminStatsRead = (window.__txListenerMetrics.superAdminStatsRead || 0) + 1;
-                        }
-                    }
-                } catch (_se) { /* silent — stats doc optional; không crash SuperAdmin */ }
-
-                return { cid, data, activeCount, profileCount, txCount, invCount, estimatedKB, monthStats, curMonth: _curMonth4K };
+                return { cid, data, activeCount, profileCount, txCount, invCount, estimatedKB };
             }));
 
             // Tính tổng dung lượng hệ thống
@@ -286,14 +256,6 @@
             // Thống kê
             let totalActive = 0, totalExpiring = 0, totalExpired = 0, totalLocked = 0;
             let totalStudents = 0;
-            // [Phase 4K] Tổng doanh thu tháng từ stats docs — không scan transactions
-            let totalRevenue = 0; let revenueClubCount = 0;
-            clubDataList.forEach(({ data, activeCount, monthStats }) => {
-                if (monthStats) {
-                    totalRevenue += Number(monthStats['income.total'] || (monthStats.income && monthStats.income.total) || 0);
-                    revenueClubCount++;
-                }
-            });
             clubDataList.forEach(({ data, activeCount }) => {
                 const expiryDate = data.expiryDate || '2027-04-30';
                 const acctStatus = data.accountStatus || 'active';
@@ -326,11 +288,6 @@
                         <div style="font-size:2rem;font-weight:900;color:#4338ca;line-height:1.1;margin-top:4px;">${totalStudents}</div>
                         <div style="font-size:0.65rem;color:#a5b4fc;font-weight:700;margin-top:2px;">toàn hệ thống</div>
                     </div>
-                    <div style="background:linear-gradient(135deg,#f0fdf4,#d1fae5);border:1.5px solid #6ee7b7;padding:14px 12px;border-radius:14px;text-align:center;">
-                        <div style="font-size:0.65rem;font-weight:900;color:#065f46;text-transform:uppercase;letter-spacing:0.05em;">Doanh Thu T.${_curMonth4K.split('-')[1]}</div>
-                        <div style="font-size:1.1rem;font-weight:900;color:#065f46;line-height:1.1;margin-top:4px;">${totalRevenue > 0 ? Math.round(totalRevenue/1000000).toLocaleString('vi-VN') + 'tr' : '--'}</div>
-                        <div style="font-size:0.65rem;color:#34d399;font-weight:700;margin-top:2px;">${revenueClubCount}/${clubDataList.length} CLB có stats</div>
-                    </div>
                     <div style="background:linear-gradient(135deg,#f8fafc,#f1f5f9);border:1.5px solid #cbd5e1;padding:14px 12px;border-radius:14px;text-align:center;">
                         <div style="font-size:0.65rem;font-weight:900;color:#475569;text-transform:uppercase;letter-spacing:0.05em;">Dung Lượng</div>
                         <div style="font-size:1.5rem;font-weight:900;color:#334155;line-height:1.1;margin-top:4px;">${totalDisplay}</div>
@@ -353,42 +310,7 @@
         } catch (e) {
             console.error(e);
             _m().lastError = e.message;
-            // [HOTFIX] Hiển thị lỗi rõ — đặc biệt phân biệt permission-denied vs lỗi khác
-            const _isPermissionDenied = e.code === 'permission-denied' ||
-                (e.message && (e.message.includes('permission-denied') || e.message.includes('PERMISSION_DENIED')));
-            if (_isPermissionDenied) {
-                listEl.innerHTML =
-                    '<div class="text-center py-10 px-4 text-rose-500">' +
-                    '<div class="text-3xl mb-3">🔒</div>' +
-                    '<p class="font-bold text-sm mb-2">Tài khoản đã vào giao diện ROOT nhưng Firestore Rules chưa cấp quyền SuperAdmin.</p>' +
-                    '<p class="text-xs text-slate-600 mb-3">Cần thực hiện <b>MỘT</b> trong hai cách sau:</p>' +
-                    '<div class="text-left text-xs text-slate-700 bg-slate-50 border border-slate-200 rounded-lg p-3 inline-block">' +
-                    '<p class="mb-1">① Tạo document <code class="bg-slate-200 px-1 rounded">super_admins/{uid}</code> trong Firestore</p>' +
-                    '<p>② Hoặc set Custom Claim <code class="bg-slate-200 px-1 rounded">role=super_admin</code> cho tài khoản</p>' +
-                    '</div>' +
-                    '<p class="text-xs text-slate-400 mt-3">UID hiện tại: <span id="_sa_perm_uid" class="font-mono">đang tải...</span></p>' +
-                    '</div>';
-                // Hiển thị UID để dễ dàng tạo super_admins/{uid}
-                try {
-                    const _authCtx = window.getAppContext ? window.getAppContext('sa-perm-uid') : {};
-                    const _uid = _authCtx?.auth?.currentUser?.uid || '(chưa có auth)';
-                    const _uidEl = document.getElementById('_sa_perm_uid');
-                    if (_uidEl) _uidEl.innerText = _uid;
-                } catch (_ue) {}
-            } else {
-                // [HOTFIX] Phân biệt lỗi runtime (ReferenceError/TypeError) vs lỗi khác
-                const _isRuntime = e instanceof ReferenceError || e instanceof TypeError;
-                const _isModuleMissing = e.message && e.message.includes('module');
-                let _errMsg;
-                if (_isRuntime) {
-                    _errMsg = 'Lỗi runtime SuperAdmin: ' + e.message;
-                } else if (_isModuleMissing) {
-                    _errMsg = 'Không tải được module SuperAdmin.';
-                } else {
-                    _errMsg = 'Lỗi tải dữ liệu SuperAdmin: ' + e.message;
-                }
-                listEl.innerHTML = `<div class="text-center py-10 text-rose-500"><div class="text-2xl mb-2">❌</div><p class="font-bold text-sm">${_errMsg}</p><p class="text-xs text-slate-400 mt-1">${e.message}</p></div>`;
-            }
+            listEl.innerHTML = `<div class="text-center py-10 text-rose-500"><div class="text-2xl mb-2">❌</div><p class="font-bold text-sm">Lỗi tải dữ liệu. Bạn cần quyền Super Admin!</p><p class="text-xs text-slate-400 mt-1">${e.message}</p></div>`;
         } finally {
             _m().lastDurationMs = Date.now() - _t0;
         }
@@ -519,8 +441,7 @@
 
         const maxSizeKB = Math.max(...clubDataList.map(c => c.estimatedKB), 1);
 
-        listEl.innerHTML = clubDataList.map(({ cid, data, activeCount, profileCount, txCount, invCount, estimatedKB, monthStats, curMonth }) => {
-            // [HOTFIX] monthStats và curMonth được destructure đúng từ clubDataList item
+        listEl.innerHTML = clubDataList.map(({ cid, data, activeCount, profileCount, txCount, invCount, estimatedKB }) => {
             const cname = data.clubName || 'Chưa đặt tên';
             const email = data.adminEmail || 'Không rõ';
             const created = data.createdAt ? formatDate(data.createdAt.split('T')[0]) : '-';
@@ -570,7 +491,6 @@
                 <div>
                     <div style="font-size:0.9rem;font-weight:800;color:#0f172a;">${cname}</div>
                     <div style="font-size:0.62rem;color:#94a3b8;margin-top:2px;">${activeCount}/${profileCount} võ sinh · ${sizeDisplay}</div>
-                    ${monthStats ? '<div style="font-size:0.6rem;color:#059669;margin-top:2px;font-weight:700;">💰 T' + (curMonth||'').split('-')[1] + ': ' + Number(monthStats['income.total'] || (monthStats.income && monthStats.income.total) || 0).toLocaleString('vi-VN') + '₫</div>' : ''}
                 </div>
                 <div style="overflow:hidden;">
                     <div style="font-size:0.72rem;font-weight:600;color:#475569;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${email}">${email}</div>
@@ -622,9 +542,9 @@
                         <div style="font-size:0.58rem;color:#a5b4fc;">/ ${profileCount} hs</div>
                     </div>
                     <div style="background:#f0fdf4;border-radius:10px;padding:8px;text-align:center;">
-                        <div style="font-size:0.58rem;color:#16a34a;font-weight:900;text-transform:uppercase;">Thu T.${(curMonth||'').split('-')[1]||'?'}</div>
-                        <div style="font-size:0.82rem;font-weight:900;color:#065f46;margin-top:2px;">${monthStats ? Math.round(Number(monthStats['income.total']||(monthStats.income&&monthStats.income.total)||0)/1000000).toLocaleString('vi-VN') + 'tr' : '--'}</div>
-                        <div style="font-size:0.58rem;color:#86efac;">${sizeDisplay}</div>
+                        <div style="font-size:0.58rem;color:#16a34a;font-weight:900;text-transform:uppercase;">Dung Lượng</div>
+                        <div style="font-size:0.88rem;font-weight:900;color:${sizeColor};margin-top:2px;">${sizeDisplay}</div>
+                        <div style="font-size:0.58rem;color:#86efac;">${txCount} giao dịch</div>
                     </div>
                     <div style="background:#fff7ed;border-radius:10px;padding:8px;text-align:center;">
                         <div style="font-size:0.58rem;color:#ea580c;font-weight:900;text-transform:uppercase;">Hết Hạn</div>

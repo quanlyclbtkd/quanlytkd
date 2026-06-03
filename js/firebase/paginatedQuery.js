@@ -99,7 +99,7 @@ function _getSDK() {
     return sdk;
 }
 
-function _recordWarn(queryName, reason, options) {
+function _recordWarn(queryName, reason) {
     const qs = _qs();
     if (!qs) return;
     const count = (qs.unsafeLimitWarnings[queryName] || 0) + 1;
@@ -108,23 +108,11 @@ function _recordWarn(queryName, reason, options) {
     qs.lastUpdatedAt        = Date.now();
     // Chỉ warn lần đầu — tránh spam console
     if (count === 1) {
-        const _uiOnly = options && options.uiOnly;
-        if (_uiOnly) {
-            // UI-display-only: dùng console.info thay vì console.warn để phân biệt.
-            // Dữ liệu này CHỈ hiển thị danh sách giao dịch — KHÔNG tính toán dashboard.
-            console.info(
-                `[UnsafeLimitInfo] "${queryName}" — UI preview only, không dùng cho tính toán nghiệp vụ.\n` +
-                `  → Reason: ${reason || 'unknown'}\n` +
-                `  → Dashboard/tổng doanh thu dùng Phase 4K stats docs riêng.\n` +
-                `  → Gọi window.printQueryScaleMetrics() để xem chi tiết.`
-            );
-        } else {
-            console.warn(
-                `[UnsafeLimitWarning] "${queryName}" dùng dữ liệu bị giới hạn để tính toán.\n` +
-                `  → Reason: ${reason || 'unknown'}\n` +
-                `  → Gọi window.printQueryScaleMetrics() để xem chi tiết.`
-            );
-        }
+        console.warn(
+            `[UnsafeLimitWarning] "${queryName}" dùng dữ liệu bị giới hạn để tính toán.\n` +
+            `  → Reason: ${reason || 'unknown'}\n` +
+            `  → Gọi window.printQueryScaleMetrics() để xem chi tiết.`
+        );
     }
 }
 
@@ -150,13 +138,11 @@ export function createPaginationCursorState() {
  * Ghi nhận cảnh báo khi một query bị limit nhưng dùng cho tính toán/báo cáo.
  * Gọi từ app.js hoặc bất kỳ nơi nào phát hiện unsafe limit.
  *
- * @param {string} queryName          — tên định danh query ('transactions:byDate:2026-05')
- * @param {string} [reason]           — lý do/context ('listenToData:init')
- * @param {Object} [options]          — tùy chọn bổ sung
- * @param {boolean} [options.uiOnly]  — true nếu dữ liệu CHỈ dùng cho UI preview (không tính toán)
+ * @param {string} queryName  — tên định danh query ('transactions:byDate:2026-05')
+ * @param {string} [reason]   — lý do/context ('listenToData:init')
  */
-export function warnUnsafeLimit(queryName, reason, options) {
-    _recordWarn(queryName, reason, options);
+export function warnUnsafeLimit(queryName, reason) {
+    _recordWarn(queryName, reason);
 }
 
 // ── fetchAllMatchingDocs ─────────────────────────────────────────────────────
@@ -663,6 +649,59 @@ export async function loadInventoryForDateRange({
     }
 }
 
+
+// ── fetchAllQueryPages (Phase 4J-8A) ─────────────────────────────────────────
+
+/**
+ * Generic paginated fetch helper — Phase 4.0B-4J-8A (Phase 6).
+ *
+ * Dùng chung cho: export, recalculation, admin operations, batch rename scan.
+ * KHÔNG dùng cho UI interactive list (dùng getProfilesPage).
+ *
+ * @param {function(opts: {lastDoc: DocumentSnapshot|null, pageSize: number}): Query} queryFactory
+ *        Builder function. Nhận lastDoc (null cho trang 1) + pageSize, trả về Firestore Query.
+ * @param {Object}   [options]
+ * @param {number}   [options.pageSize]     — docs/page (default: __scaleConfig.reportPageSize || 300)
+ * @param {number}   [options.maxDocs]      — safety cap tổng (default 20000)
+ * @param {string}   [options.reason]       — mô tả để log
+ * @param {string}   [options.domain]       — domain cho recordReadMetric
+ * @returns {Promise<Array<{id: string, data: object, ref: DocumentReference}>>}
+ */
+export async function fetchAllQueryPages(queryFactory, options = {}) {
+    const pageSize = options.pageSize || (window.__scaleConfig && window.__scaleConfig.reportPageSize) || 300;
+    const maxDocs  = options.maxDocs  || 20000;
+    const reason   = options.reason   || 'fetch-all-pages';
+    const domain   = options.domain   || 'report';
+
+    let all     = [];
+    let lastDoc = null;
+    let page    = 0;
+
+    const _getDocs = (_getSDK()).getDocs;
+
+    while (true) {
+        const q    = queryFactory({ lastDoc, pageSize });
+        const snap = await _getDocs(q);
+
+        if (typeof window.recordReadMetric === 'function') {
+            window.recordReadMetric(domain, snap.size, reason);
+        }
+
+        snap.forEach(doc => all.push({ id: doc.id, data: doc.data(), ref: doc.ref }));
+
+        if (snap.size < pageSize) break;
+        lastDoc = snap.docs[snap.docs.length - 1];
+        page++;
+
+        if (all.length >= maxDocs) {
+            console.warn('[Scale] fetchAllQueryPages hit maxDocs cap:', maxDocs, reason);
+            break;
+        }
+    }
+
+    return all;
+}
+
 // ── printQueryScaleMetrics ───────────────────────────────────────────────────
 
 /**
@@ -748,4 +787,7 @@ if (typeof window !== 'undefined') {
     window.loadTransactionsForTxMonthRange = loadTransactionsForTxMonthRange;
     window.loadInventoryForDateRange      = loadInventoryForDateRange;
     window.dedupeDocsById                 = dedupeDocsById;
+
+    // Phase 4J-8A (mới)
+    window.fetchAllQueryPages             = fetchAllQueryPages;
 }

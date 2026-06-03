@@ -158,15 +158,12 @@ export function initDashboardIslands() {
     });
 
     // ── Islands mới từ Phase 3.5B ─────────────────────────────────────────
-    // Phase 4K-GITHUB-SUMMARY-BADGE-FIX:
-    // Summary numbers update tab badges/mobile header outside dashboard.
-    // Vì vậy island này là GLOBAL, không gắn tabId='dashboard'.
     registerRender('dashboard.summary', renderDashboardSummaryIsland, {
-        selector: null,
-        tabId:    null,
+        selector: '#summaryNumbers',
+        tabId:    'dashboard',
     });
     registerRender('dashboard.examBranchFees', renderExamBranchFeesIsland, {
-        selector: '#exam_branch_fees',
-        tabId:    'exam',
+        selector: '#examBranchFees',
+        tabId:    'dashboard',
     });
 }

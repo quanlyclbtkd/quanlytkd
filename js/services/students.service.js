@@ -88,18 +88,6 @@ export const StudentService = {
         const clubId = _clubId();
         const colRef = collection(db, 'clubs', clubId, 'profiles');
 
-        // [Part 8 FIX] Debug log — enable with: window.__DEBUG_STUDENT_PAGINATION = true
-        if (window.__DEBUG_STUDENT_PAGINATION) {
-            console.log('[StudentService.getProfilesPage]', {
-                pageSize,
-                direction,
-                search,
-                cursorId: cursor ? (cursor.id || String(cursor)) : '',
-                statusFilter,
-                branchFilter,
-            });
-        }
-
         const constraints = [];
 
         // ── Filters (requires Firestore composite indexes for combinations) ──
@@ -253,237 +241,33 @@ export const StudentService = {
      * @returns {Array<{id, data}>} — danh sách snapshot docs
      */
     async findTransactionsByStudent(studentName) {
-        // Phase 4J-9: Thêm limit, orderBy, startAfter vào destructuring để fix ReferenceError.
-        // Dùng window.fetchQueryPages nếu có để tránh bỏ sót tx với võ sinh nhiều năm.
-        const { getDocs, query, where, collection, orderBy, limit, startAfter } = _sdk();
+        const { getDocs, query, where, collection, orderBy, startAfter, limit: _limit } = _sdk();
         const db     = _db();
         const clubId = _clubId();
         const colRef = collection(db, 'clubs', clubId, 'transactions');
 
-        if (typeof window.fetchQueryPages === 'function') {
-            const allDocs = await window.fetchQueryPages(
-                ({ cursor, pageSize }) => {
-                    const _c = [
-                        where('description', '>=', studentName),
-                        where('description', '<=', studentName + '\uf8ff'),
-                        orderBy('description'),
-                        limit(pageSize)
-                    ];
-                    if (cursor) _c.splice(-1, 0, startAfter(cursor));
-                    return query(colRef, ..._c);
-                },
-                { pageSize: 200, reason: 'findTxByStudent', domain: 'transactions' }
-            );
-            return allDocs.map(d => ({ id: d.id, data: d.data() }));
-        }
-        // Fallback nếu fetchQueryPages chưa khả dụng (runtime chưa init)
-        if (typeof window.warnUnsafeLimit === 'function') window.warnUnsafeLimit('students.service:findTxByStudent:limit500', 'service-findTxByStudent-fallback');
-        const snap = await getDocs(
-            query(colRef,
+        // Phase 4J-8A: paginated query — không hard cap 500 nếu võ sinh có nhiều giao dịch
+        const PAGE   = 400;
+        const MAX_P  = 50;  // tối đa 20.000 giao dịch (safety cap)
+        const results = [];
+        let cursor   = null;
+        let pages    = 0;
+
+        while (pages < MAX_P) {
+            const constraints = [
                 where('description', '>=', studentName),
                 where('description', '<=', studentName + '\uf8ff'),
-                limit(500) // fallback — fetchQueryPages unavailable
-            )
-        );
-        const results = [];
-        snap.forEach(d => results.push({ id: d.id, data: d.data() }));
+                orderBy('description'),
+                _limit(PAGE),
+            ];
+            if (cursor) constraints.push(startAfter(cursor));
+            const snap = await getDocs(query(colRef, ...constraints));
+            snap.forEach(d => results.push({ id: d.id, data: d.data() }));
+            if (snap.size < PAGE) break;
+            cursor = snap.docs[snap.docs.length - 1];
+            pages++;
+        }
         return results;
-    },
-
-    // ── SERVER-SIDE SEARCH (Phase 4.0B-4J-8A) ──────────────────
-
-    /**
-     * Tìm kiếm server-side theo nhiều trường: tên (normalized), SĐT, mã HV, biệt danh.
-     *
-     * Các trường searchName / searchPhone / searchCode / searchNickname được ghi
-     * khi thêm/sửa hồ sơ bởi buildStudentSearchIndex() trong app.js.
-     * Hồ sơ cũ chưa có index → fallback về prefix match theo __name__.
-     *
-     * Trả về: { items, hasMore, nextCursor, source, searchTerm, normalizedSearchTerm }
-     *
-     * @param {string} searchTerm     — chuỗi người dùng nhập
-     * @param {Object} options
-     * @param {number} options.pageSize — số kết quả tối đa (default 50)
-     * @returns {Promise<{items: Array, hasMore: boolean, nextCursor: null, source: string, searchTerm: string, normalizedSearchTerm: string}>}
-     */
-    async searchProfilesServerSide(searchTerm, options = {}) {
-        const { getDocs, query, collection, orderBy, where, limit, startAt, endAt } = _sdk();
-        const db     = _db();
-        const clubId = _clubId();
-        const colRef = collection(db, 'clubs', clubId, 'profiles');
-        const pageSize = options.pageSize || 50;
-
-        const raw = String(searchTerm || '').trim();
-        if (!raw) {
-            return { items: [], hasMore: false, nextCursor: null,
-                source: 'empty', searchTerm: raw, normalizedSearchTerm: '' };
-        }
-
-        // Normalize helper — mirror buildStudentSearchIndex in app.js (no import)
-        const _noTone = s => s
-            ? s.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-                .replace(/đ/g, 'd').replace(/Đ/g, 'D')
-            : '';
-        const normalized = _noTone(raw).toLowerCase().trim().replace(/\s+/g, ' ');
-        const phoneNorm  = raw.replace(/\D/g, '');
-        const isPhone    = /^\d{6,}$/.test(phoneNorm);
-
-        const resultMap = new Map(); // key = doc.id → dedupe
-        let hasMore = false;
-        let source  = 'name';
-
-        const _run = async (q, tag) => {
-            try {
-                const snap = await getDocs(q);
-                snap.forEach(d => {
-                    if (!resultMap.has(d.id)) resultMap.set(d.id, { id: d.id, ...d.data() });
-                });
-                if (snap.size > pageSize) hasMore = true;
-                return snap.size;
-            } catch (e) {
-                if (e && e.code === 'failed-precondition') {
-                    console.warn('[StudentService.search] Thiếu Firestore index cho', tag,
-                        '— chạy backfill hoặc dùng tìm kiếm theo tên. Chi tiết:', e.message);
-                }
-                return 0;
-            }
-        };
-
-        if (isPhone && phoneNorm.length >= 6) {
-            // Tìm theo SĐT trước
-            await _run(
-                query(colRef, orderBy('searchPhone'), startAt(phoneNorm), endAt(phoneNorm + '\uf8ff'), limit(pageSize + 1)),
-                'searchPhone'
-            );
-            source = 'phone';
-        }
-
-        if (!isPhone || resultMap.size === 0) {
-            // Tìm theo tên đã chuẩn hoá (searchName field)
-            if (normalized) {
-                await _run(
-                    query(colRef, orderBy('searchName'), startAt(normalized), endAt(normalized + '\uf8ff'), limit(pageSize + 1)),
-                    'searchName'
-                );
-            }
-            // Phase 4J-9B: Tìm theo searchNameTokens (array-contains) — tìm được giữa tên.
-            // Ví dụ: "Văn A" → normalize "van a" → token "van" → matches "Nguyễn Văn A".
-            // Chỉ chạy khi prefix search chưa tìm thấy. Tránh false-positive quá rộng.
-            // Requires: searchNameTokens field (buildStudentSearchIndex) + Firestore array-contains.
-            if (resultMap.size === 0 && normalized.length >= 2) {
-                const _toks = normalized.split(' ').filter(t => t.length >= 2);
-                for (const _tok of _toks) {
-                    if (resultMap.size >= pageSize) break;
-                    await _run(
-                        query(colRef, where('searchNameTokens', 'array-contains', _tok), limit(pageSize + 1)),
-                        'searchNameTokens:' + _tok
-                    );
-                }
-            }
-
-            // Fallback: prefix match trên doc ID (__name__) cho hồ sơ cũ chưa có index
-            if (resultMap.size === 0) {
-                await _run(
-                    query(colRef, orderBy('__name__'), startAt(raw), endAt(raw + '\uf8ff'), limit(pageSize + 1)),
-                    '__name__-prefix'
-                );
-                if (resultMap.size === 0 && normalized !== raw) {
-                    await _run(
-                        query(colRef, orderBy('__name__'), startAt(normalized), endAt(normalized + '\uf8ff'), limit(pageSize + 1)),
-                        '__name__-normalized'
-                    );
-                }
-                if (resultMap.size === 0) {
-                    console.info('[StudentService.search] Không tìm thấy kết quả cho "' + raw + '".',
-                        'Hồ sơ cũ có thể chưa có searchName index. Chạy backfill-student-search-index để backfill.');
-                }
-            }
-            // Tìm theo mã học viên (searchCode)
-            if (normalized.length >= 2) {
-                await _run(
-                    query(colRef, orderBy('searchCode'), startAt(normalized), endAt(normalized + '\uf8ff'), limit(pageSize + 1)),
-                    'searchCode'
-                );
-            }
-            // Tìm theo biệt danh (searchNickname)
-            if (normalized.length >= 2) {
-                await _run(
-                    query(colRef, orderBy('searchNickname'), startAt(normalized), endAt(normalized + '\uf8ff'), limit(pageSize + 1)),
-                    'searchNickname'
-                );
-            }
-        }
-
-        // ── [PART 4 FIX] Client-side fallback khi server-side query không tìm thấy ──
-        // Đảm bảo hồ sơ cũ chưa có searchName/searchPhone index vẫn tìm được.
-        if (resultMap.size === 0) {
-            const _normalizeVN = (v) => String(v || '')
-                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-                .replace(/đ/g, 'd').replace(/Đ/g, 'D')
-                .toLowerCase().trim().replace(/\s+/g, ' ');
-
-            const _studentMatchesSearch = (id, p, rawTerm) => {
-                const qRaw = String(rawTerm || '').trim();
-                if (!qRaw) return true;
-                const q           = _normalizeVN(qRaw);
-                const phoneDigits = qRaw.replace(/\D/g, '');
-                if (phoneDigits.length >= 3) {
-                    const phones = [p.phone, p.parentPhone, p.contactPhone, p.guardianPhone]
-                        .map(v => String(v || '').replace(/\D/g, ''));
-                    if (phones.some(ph => ph.includes(phoneDigits))) return true;
-                }
-                const fields = [id, p.name, p.nickname, p.memberId, p.studentCode,
-                    p.code, p.belt, p.notes, p.phone, p.parentPhone];
-                return fields.some(v => _normalizeVN(v).includes(q));
-            };
-
-            const _clientSearch = () => {
-                const profiles =
-                    (window.__store && window.__store.profiles) ||
-                    (window.studentProfileStore && typeof window.studentProfileStore.getAllProfilesCompat === 'function'
-                        ? window.studentProfileStore.getAllProfilesCompat()
-                        : {}) ||
-                    {};
-                Object.entries(profiles).forEach(([id, p]) => {
-                    if (_studentMatchesSearch(id, p, raw)) {
-                        resultMap.set(id, { id, ...p });
-                    }
-                });
-            };
-
-            _clientSearch();
-            if (resultMap.size > 0) {
-                source = 'client-store-fallback';
-            }
-
-            // Nếu store rỗng, thử load full profiles rồi tìm lại
-            if (resultMap.size === 0 && typeof window.loadFullProfilesFallback === 'function') {
-                try {
-                    await window.loadFullProfilesFallback('search-empty-server-fallback');
-                    _clientSearch();
-                    if (resultMap.size > 0) source = 'full-profile-fallback';
-                } catch (e) {
-                    console.warn('[StudentService.search] full profile fallback failed:', e);
-                }
-            }
-
-            if (resultMap.size === 0) {
-                console.info('[StudentService.search] Không tìm thấy "' + raw + '" sau tất cả fallbacks.',
-                    'Chạy debugSearchIndexCoverage() để kiểm tra coverage.');
-            }
-        } else {
-            source = 'server-index';
-        }
-
-        const items = Array.from(resultMap.values()).slice(0, pageSize);
-        return {
-            items,
-            hasMore: hasMore || resultMap.size > pageSize,
-            nextCursor: null,
-            source,
-            searchTerm: raw,
-            normalizedSearchTerm: normalized,
-        };
     },
 
     // ── INVENTORY (delegated from students flow) ────────────────
@@ -559,4 +343,134 @@ export const StudentService = {
             { merge: true }
         );
     },
+
+
+// ════════════════════════════════════════════════════════════════
+// PHASE 4.0B-4J-8A — Advanced Server-side Student Search
+// ════════════════════════════════════════════════════════════════
+
+/**
+ * Server-side student search — Phase 4.0B-4J-8A (Phase 3).
+ *
+ * Tìm kiếm võ sinh toàn CLB bằng server-side query theo searchIndex fields.
+ * Không bao giờ load toàn bộ profiles để search.
+ *
+ * Logic:
+ *  - keyword rỗng     → trả về [] (dùng getProfilesPage bình thường)
+ *  - keyword SĐT       → query theo searchPhone prefix
+ *  - keyword có ≥1 chữ số, ≥6 ký tự  → thử phone trước, fallback searchCode
+ *  - keyword bất kỳ    → query song song: searchName (no-tone) + __name__ prefix
+ *
+ * @param {string} keyword
+ * @param {Object} options
+ * @param {number}  [options.pageSize=50]
+ * @param {boolean} [options.includeQuit=false]
+ * @returns {Promise<{results: Object[], hasIndex: boolean, searchField: string}>}
+ */
+async searchProfilesServerSide(keyword, options = {}) {
+    const { getDocs, query, collection, orderBy, limit, startAt, endAt, where } = _sdk();
+    const db     = _db();
+    const clubId = _clubId();
+    const colRef = collection(db, 'clubs', clubId, 'profiles');
+    const pageSize = options.pageSize || 50;
+
+    const kw = (keyword || '').trim();
+    if (!kw) return { results: [], hasIndex: true, searchField: '' };
+
+    // Helper: normalize without tones
+    const _norm = s => s ? s.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/đ/g,'d').replace(/Đ/g,'D').toLowerCase().replace(/\s+/g,' ').trim() : '';
+    const _digits = s => String(s||'').replace(/[^\d]/g,'');
+
+    const kwNorm   = _norm(kw);
+    const kwDigits = _digits(kw);
+    const looksPhone = /^\d{6,}/.test(kwDigits) && kwDigits.length >= 6;
+
+    const _run = async (field, start, end) => {
+        try {
+            const snap = await getDocs(query(colRef,
+                orderBy(field),
+                startAt(start),
+                endAt(end + '\uf8ff'),
+                limit(pageSize + 1)
+            ));
+            const docs = [];
+            snap.forEach(d => docs.push({ id: d.id, ...d.data() }));
+            return { docs, hasIndex: true };
+        } catch (e) {
+            const msg = (e && e.message) || String(e);
+            if (msg.includes('index') || msg.includes('FAILED_PRECONDITION') || msg.includes('no index')) {
+                return { docs: [], hasIndex: false };
+            }
+            throw e;
+        }
+    };
+
+    // 1. SĐT search
+    if (looksPhone) {
+        const r = await _run('searchPhone', kwDigits, kwDigits);
+        if (r.hasIndex) return { results: r.docs.slice(0, pageSize), hasIndex: true, searchField: 'searchPhone' };
+        // Fallback: no index
+        console.warn('[SearchIndex] searchPhone không có Firestore index. Cần backfill và tạo index.');
+        return { results: [], hasIndex: false, searchField: 'searchPhone' };
+    }
+
+    // 2. searchName (no-tone) search + __name__ prefix search (parallel)
+    const [nameResult, nameRawResult] = await Promise.all([
+        _run('searchName', kwNorm, kwNorm),
+        _run('__name__', kw, kw),
+    ]);
+
+    const hasIdx = nameResult.hasIndex;
+    if (!hasIdx) {
+        // Fallback to document ID prefix only
+        if (!nameRawResult.hasIndex) {
+            return { results: [], hasIndex: false, searchField: 'searchName' };
+        }
+        return {
+            results: nameRawResult.docs.slice(0, pageSize),
+            hasIndex: false,
+            searchField: '__name__',
+        };
+    }
+
+    // Merge results, deduplicate by id
+    const seen = new Set();
+    const merged = [];
+    for (const d of [...nameResult.docs, ...nameRawResult.docs]) {
+        if (!seen.has(d.id)) {
+            seen.add(d.id);
+            merged.push(d);
+        }
+    }
+    return {
+        results: merged.slice(0, pageSize),
+        hasIndex: true,
+        searchField: 'searchName',
+    };
+},
+
+/**
+ * Tìm transactions theo mã võ sinh (searchCode prefix).
+ * Dùng cho đổi tên và các luồng cần server-side by code.
+ * @param {string} code
+ * @param {number} [pageSize=50]
+ */
+async findProfilesByCode(code, pageSize = 50) {
+    const { getDocs, query, collection, orderBy, startAt, endAt, limit } = _sdk();
+    const db     = _db();
+    const clubId = _clubId();
+    const colRef = collection(db, 'clubs', clubId, 'profiles');
+    const norm   = s => s ? s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/Đ/g,'D').toLowerCase().replace(/\s+/g,' ').trim() : '';
+    const codeNorm = norm(code || '');
+    if (!codeNorm) return [];
+    const snap = await getDocs(query(colRef,
+        orderBy('searchCode'),
+        startAt(codeNorm),
+        endAt(codeNorm + '\uf8ff'),
+        limit(pageSize)
+    ));
+    const docs = [];
+    snap.forEach(d => docs.push({ id: d.id, ...d.data() }));
+    return docs;
+},
 };

@@ -33,7 +33,6 @@ import {
     renderExamBranchFees,
     updateSummaryNumbers,
     fetchAndRenderHistoricalCharts,
-    tryApplyCurrentMonthStats,
 } from '../modules/dashboard.js';
 
 import { store } from '../store.js';
@@ -322,17 +321,6 @@ function renderApp() {
         window.__store._lastSummaryNumbers = _summaryNumbers;
     }
 
-    // ── Phase 4K-GITHUB-SUMMARY-BADGE-FIX ──────────────────────────────────
-    // Các số liệu như HỌC PHÍ (badge), BÁO NỢ, ĐANG TẬP và mobile header
-    // nằm ngoài tab dashboard, nên phải cập nhật ở MỌI render cycle.
-    // Trước đây updateSummaryNumbers() bị đặt sau dashboard guard → khi dashboard
-    // đang hidden, badge vẫn giữ 0 dù computation cache đã có dữ liệu.
-    try {
-        updateSummaryNumbers(_summaryNumbers);
-    } catch (e) {
-        console.warn('[render.js] updateSummaryNumbers(global badges) failed:', e);
-    }
-
     // Phase 3.4: delegate list DOM updates to render islands via RAF scheduler.
     // Islands read from their own module-local caches (Phase 3.5A) and apply
     // via replaceChildren() — one atomic DOM mutation, no innerHTML reflow loop.
@@ -378,16 +366,6 @@ function renderApp() {
         renderExamBranchFees(_bExamStats, inc_exam);
         updateSummaryNumbers(_summaryNumbers);
 
-        // [Phase 4K-FIX Lỗi 4] Ưu tiên stats doc cho tổng thu/chi tháng hiện tại.
-        // tryApplyCurrentMonthStats đọc stats doc (Cloud Functions) và override
-        // totalIncomeDashboard / totalExpenseDashboard / totalProfitDashboard nếu có.
-        // Fallback an toàn: nếu stats doc chưa tồn tại → giữ allTransactions-based numbers.
-        if (selMonth && typeof window.tryApplyCurrentMonthStats === 'function') {
-            window.tryApplyCurrentMonthStats(selMonth).catch(() => {
-                // silent fail — không phá dashboard nếu stats doc read lỗi
-            });
-        }
-
         if (historicalMonths.length > 0) {
             fetchAndRenderHistoricalCharts(
                 historicalMonths, chartLabels, chartIncome, chartExpense, chartActive
@@ -405,10 +383,6 @@ function renderApp() {
         renderBranchStats(_bStats);
         renderExamBranchFees(_bExamStats, inc_exam);
         updateSummaryNumbers(_summaryNumbers);
-        // [Phase 4K-FIX Lỗi 4] Cũng áp dụng stats doc override ở đây
-        if (selMonth && typeof window.tryApplyCurrentMonthStats === 'function') {
-            window.tryApplyCurrentMonthStats(selMonth).catch(() => {});
-        }
     }
     // Nếu dashboard không active: data đã cache, islands đã mark dirty → skip DOM work
 }

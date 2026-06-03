@@ -19,7 +19,7 @@
  */
 
 import { registerRender } from './renderRegistry.js';
-import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js';
+import { getStudentsCachedHtml } from './computation/studentsRenderer.js';
 
 // ─── Core DOM helper ────────────────────────────────────────────────────────
 
@@ -46,31 +46,7 @@ function _applyHtml(el, html) {
 
 /** Render the active student list (#activeList). */
 export function renderActiveIsland() {
-    const _html = getStudentsCachedHtml('activeRows');
-    // Phase 4K-STUDENT-RENDER-OVERWRITE-FIX:
-    // Nếu cache rỗng nhưng pagination có currentItems → KHÔNG xóa DOM.
-    // Root cause bug: _applyHtml(el, '') gọi el.replaceChildren() → xóa toàn bộ
-    // rows mà pagination fallback đã inject trước đó.
-    if (!_html) {
-        const _pgState    = window.__store?.pagination?.students;
-        const _hasPgItems = _pgState?.enabled &&
-            Array.isArray(_pgState.currentItems) &&
-            _pgState.currentItems.length > 0;
-        if (_hasPgItems) {
-            const _fbHtml = typeof window.buildStudentsRowsFromPagination === 'function'
-                ? window.buildStudentsRowsFromPagination(_pgState.currentItems, 'active')
-                : '';
-            if (_fbHtml) {
-                _applyHtml(document.getElementById('activeList'), _fbHtml);
-                return;
-            }
-            // Builder chưa sẵn → bảo toàn DOM (không clear rows đang hiển thị)
-            console.warn('[renderActiveIsland] activeRows cache empty — pagination has',
-                _pgState.currentItems.length, 'items. Preserving existing DOM rows.');
-            return;
-        }
-    }
-    _applyHtml(document.getElementById('activeList'), _html);
+    _applyHtml(document.getElementById('activeList'), getStudentsCachedHtml('activeRows'));
 }
 
 /** Render the debt/unpaid list (#debtList). */
@@ -80,27 +56,7 @@ export function renderDebtIsland() {
 
 /** Render the quit student list (#quitList). */
 export function renderQuitIsland() {
-    const _htmlQ = getStudentsCachedHtml('quitRows');
-    // Phase 4K-STUDENT-RENDER-OVERWRITE-FIX: tương tự active, bảo toàn quit DOM khi cache rỗng
-    if (!_htmlQ) {
-        const _pgState    = window.__store?.pagination?.students;
-        const _hasQuitItems = _pgState?.enabled &&
-            Array.isArray(_pgState.currentItems) &&
-            _pgState.currentItems.length > 0 &&
-            !!(window.__store?.pagination?._quitPagActive);
-        if (_hasQuitItems) {
-            const _fbHtmlQ = typeof window.buildStudentsRowsFromPagination === 'function'
-                ? window.buildStudentsRowsFromPagination(_pgState.currentItems, 'quit')
-                : '';
-            if (_fbHtmlQ) {
-                _applyHtml(document.getElementById('quitList'), _fbHtmlQ);
-                return;
-            }
-            console.warn('[renderQuitIsland] quitRows cache empty — quit pagination has items. Preserving DOM.');
-            return;
-        }
-    }
-    _applyHtml(document.getElementById('quitList'), _htmlQ);
+    _applyHtml(document.getElementById('quitList'), getStudentsCachedHtml('quitRows'));
 }
 
 // ─── Island initialiser ──────────────────────────────────────────────────────
@@ -130,6 +86,4 @@ export function registerStudentsLegacyGlobals() {
     window.renderActiveList = renderActiveIsland;
     window.renderDebtList   = renderDebtIsland;
     window.renderQuitList   = renderQuitIsland;
-    // Phase 4K-STUDENT-RENDER-OVERWRITE-FIX: expose cache metrics cho debug helper
-    window.getStudentsCacheMetrics = getStudentsCacheMetrics;
 }

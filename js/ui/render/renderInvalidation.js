@@ -134,35 +134,6 @@ function _scheduleIslands(keys) {
     keys.forEach(key => runRender(key));
 }
 
-// ── [GITHUB-FIX] Store data version bump — buộc computation cache miss ──────
-function _bumpStoreDataVersion(reason) {
-    try {
-        if (window.__store) {
-            window.__store._dataVersion = (window.__store._dataVersion || 0) + 1;
-            window.__store._lastDataVersionReason = reason || 'domain-invalidate';
-        }
-    } catch (_) {}
-}
-
-// ── [GITHUB-FIX] Refresh computation cache TRƯỚC khi schedule islands ────────
-// Đảm bảo island không đọc cache rỗng sau khi vừa clear cache.
-function _refreshThenSchedule(keys, reason) {
-    _bumpStoreDataVersion(reason);
-    try {
-        if (typeof refreshListsComputation === 'function') {
-            refreshListsComputation(keys, reason || 'domain-invalidate');
-        }
-    } catch (e) {
-        console.warn('[renderInvalidation] refreshListsComputation failed:', e);
-    }
-
-    try {
-        _scheduleIslands(keys);
-    } catch (e) {
-        console.warn('[renderInvalidation] _scheduleIslands failed:', e);
-    }
-}
-
 // ── Phase 3.5C: Tab → Domain mapping ─────────────────────────────────────────
 //
 // Quyết định khi invalidateCurrentTab() / invalidateTab() được gọi,
@@ -523,9 +494,9 @@ export function invalidateFinance(reason) {
     // 1. Xóa finance computation cache
     invalidateFinanceRender('all');
 
-    // 2. [GITHUB-FIX] Refresh computation cache TRƯỚC rồi schedule islands
-    //    Tránh island đọc cache rỗng sau khi vừa clear cache
-    _refreshThenSchedule(_FINANCE_KEYS, reason || 'finance-domain');
+    // 2. Mark dirty + schedule các finance islands
+    //    runRender() tự skip nếu tab hidden, defer đến khi tab active
+    _scheduleIslands(_FINANCE_KEYS);
 
     // 3. [Cross-domain] Finance thay đổi → dashboard summary cần cập nhật
     //    (incTuition, exp, v.v. đều phụ thuộc finance data)
@@ -551,9 +522,8 @@ export function invalidateStudents(reason) {
     // 1. Xóa students computation cache
     invalidateStudentsRender('all');
 
-    // 2. [GITHUB-FIX] Refresh computation cache TRƯỚC rồi schedule islands
-    //    Tránh island đọc cache rỗng sau khi vừa clear cache
-    _refreshThenSchedule(_STUDENTS_KEYS, reason || 'students-domain');
+    // 2. Mark dirty + schedule các student islands
+    _scheduleIslands(_STUDENTS_KEYS);
 
     // 3. [Cross-domain] Students thay đổi → dashboard activeCount thay đổi
     _invalidateDashboardOnly('students-change');
@@ -578,14 +548,13 @@ export function invalidateInventory(reason) {
     // 1. Xóa inventory computation cache
     invalidateInventoryRender('all');
 
-    // 2. [GITHUB-FIX] Refresh computation cache TRƯỚC rồi schedule islands
-    //    Tránh island đọc cache rỗng sau khi vừa clear cache
-    _refreshThenSchedule(_INVENTORY_KEYS, reason || 'inventory-domain');
+    // 2. Mark dirty + schedule các inventory islands
+    _scheduleIslands(_INVENTORY_KEYS);
 
     // 3. [Cross-domain] Kho đồ ghi nợ → finance tx list (uniformTx cross-reference)
-    //    Refresh computation cache cho tx list trước khi render
+    //    Chỉ invalidate txTable trong financeRenderer (không cần full finance)
     invalidateFinanceRender('txTable');
-    _refreshThenSchedule(['tx.txList'], 'inventory-affect-finance');
+    runRender('tx.txList'); // registry tự skip nếu tab hidden
 
     // 4. [Cross-domain] Inventory thay đổi → dashboard summary
     _invalidateDashboardOnly('inventory-change');
@@ -618,26 +587,14 @@ export function invalidateDashboard(reason) {
  * @param {string} [reason]
  */
 function _invalidateDashboardOnly(reason) {
-    // [Part 1 FIX] Correct order: clear → recompute → render
-    // Islands MUST NOT render from an empty cache.
-
-    // 1. Clear stale dashboard cache
+    // 1. Xóa dashboard computation cache
     invalidateDashboardCache('all');
 
-    // 2. Recompute dashboard data BEFORE scheduling islands so they read fresh cache
-    if (typeof window.refreshDashboardComputation === 'function') {
-        try {
-            window.refreshDashboardComputation(reason || 'dashboard-invalidate');
-        } catch (e) {
-            console.warn('[renderInvalidation] dashboard recompute before render failed:', e);
-        }
-    }
-
-    // 3. Mark dirty + schedule — islands now read freshly rebuilt cache
-    //    runRender(): tab active → schedule immediately; hidden → mark dirty, flush on show
+    // 2. Mark dirty các dashboard islands (không force-schedule)
+    //    runRender() sẽ: nếu tab active → schedule ngay; nếu hidden → mark dirty
     _DASHBOARD_KEYS.forEach(key => {
-        invalidateRender(key);
-        runRender(key);
+        invalidateRender(key); // mark dirty
+        runRender(key);        // schedule nếu active, defer nếu hidden
     });
 }
 

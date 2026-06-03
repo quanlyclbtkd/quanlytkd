@@ -42,9 +42,6 @@ import {
     getBeltBadge,
 } from '../../../utils/format.js';
 
-// Phase 4K-STUDENT-LIST: Classifier chung — không dùng p.status === 'quit' trực tiếp
-import { classifyProfileStatus } from '../../../data/profileStatusConfig.js';
-
 // ── Module-local branch-name helper ──────────────────────────────────────────
 const _getBrN = (br) =>
     (window.getBranchNameDisplay && window.getBranchNameDisplay(br))
@@ -198,13 +195,7 @@ export function computeAndCacheStudents(allProfiles, params) {
     } = params;
 
     // ── Cache-hit detection ──
-    // Phase 4K-STUDENT-RENDER-OVERWRITE-FIX: thêm pagination version/count/page vào cache key
-    // Đảm bảo khi pgState.currentItems thay đổi nhưng _dataVersion chưa tăng, cache bị invalidate.
-    // _studentsPaginationVersion tăng mỗi khi _doLoad() thành công trong students.js.
-    const pgVersion   = (window.__store || {})._studentsPaginationVersion || 0;
-    const pgCount     = pgStudents?.currentItems?.length || 0;
-    const pgPage      = pgStudents?.currentPage || 0;
-    const paramsKey   = `${curTabId}|${selMonth}|${selBranch}|${search}|${activePage}|${debtPage}|${quitPage}|${pgStudentsActive ? '1' : '0'}|pgv:${pgVersion}|pgc:${pgCount}|pgp:${pgPage}`;
+    const paramsKey   = `${curTabId}|${selMonth}|${selBranch}|${search}|${activePage}|${debtPage}|${quitPage}|${pgStudentsActive ? '1' : '0'}`;
     const dataVersion = (window.__store || {})._dataVersion || 0;
     if (
         _cache.summary !== null &&
@@ -255,13 +246,8 @@ export function computeAndCacheStudents(allProfiles, params) {
         const p = allProfiles[name];
         if (!p) return;
 
-        // Phase 4K-STUDENT-LIST: Dùng classifier chung — xử lý data cũ thiếu status
-        // Áp dụng nhất quán cho active list, debt list, quit list, active count, quit count
-        const _pKind  = window.classifyProfileStatus
-            ? window.classifyProfileStatus(p)
-            : classifyProfileStatus(p);
-        const isQuit  = _pKind === 'quit';
-        const isActive = !isQuit;
+        const isQuit      = p.status === 'quit';
+        const isActive    = !isQuit;
         const safeBranch  = p.branch || 'CS1';
         const yrBadge     = _getYrBadge(name, p, nameNCount);
         const beltHTML    = getBeltBadge(p.belt);
@@ -288,15 +274,9 @@ export function computeAndCacheStudents(allProfiles, params) {
 
             let passFilter = true;
             if (!isSingleBranch && selBranch !== 'all' && safeBranch !== selBranch) passFilter = false;
-            // [PART 6 FIX] PASS 1: Dùng normalizeVNForSearch để tìm có dấu/không dấu, hoa/thường
-            if (search) {
-                const _smsFn = window.studentMatchesSearch || function(n, pr, q) {
-                    const _nvFn = window.normalizeVNForSearch || (v => String(v||'').toLowerCase());
-                    return [n, pr&&pr.nickname, pr&&pr.memberId, pr&&pr.phone]
-                        .some(v => _nvFn(v).includes(_nvFn(q)));
-                };
-                if (!_smsFn(name, p, search)) passFilter = false;
-            }
+            if (search && !name.toLowerCase().includes(search) &&
+                !(p.nickname || '').toLowerCase().includes(search) &&
+                !(p.memberId || '').toLowerCase().includes(search)) passFilter = false;
 
             if (passFilter) {
                 _activeTotalCount++;
@@ -376,12 +356,8 @@ export function computeAndCacheStudents(allProfiles, params) {
             const p    = allProfiles[name] || item;
             if (!p) return;
 
-            // Phase 4K-STUDENT-LIST: Dùng classifier chung trong PASS 2 (pagination override)
-            const _pKind2  = window.classifyProfileStatus
-                ? window.classifyProfileStatus(p)
-                : classifyProfileStatus(p);
-            const isQuit  = _pKind2 === 'quit';
-            const isActive = !isQuit;
+            const isQuit      = p.status === 'quit';
+            const isActive    = !isQuit;
             const safeBranch  = p.branch || 'CS1';
             const yrBadge     = _getYrBadge(name, p, nameNCount);
             const beltHTML    = getBeltBadge(p.belt);
@@ -392,15 +368,9 @@ export function computeAndCacheStudents(allProfiles, params) {
             if (isActive) {
                 let passFilter = true;
                 if (!isSingleBranch && selBranch !== 'all' && safeBranch !== selBranch) passFilter = false;
-                // [PART 6 FIX] PASS 2: Dùng normalizeVNForSearch để tìm có dấu/không dấu, hoa/thường
-                if (search) {
-                    const _smsFn = window.studentMatchesSearch || function(n, pr, q) {
-                        const _nvFn = window.normalizeVNForSearch || (v => String(v||'').toLowerCase());
-                        return [n, pr&&pr.nickname, pr&&pr.memberId, pr&&pr.phone]
-                            .some(v => _nvFn(v).includes(_nvFn(q)));
-                    };
-                    if (!_smsFn(name, p, search)) passFilter = false;
-                }
+                if (search && !name.toLowerCase().includes(search) &&
+                    !(p.nickname || '').toLowerCase().includes(search) &&
+                    !(p.memberId || '').toLowerCase().includes(search)) passFilter = false;
 
                 if (passFilter) {
                     _activeTotalCount++;
@@ -424,60 +394,6 @@ export function computeAndCacheStudents(allProfiles, params) {
                 quitRows += renderQuitRow(name, p, { beltHTML, branchTdHTML, yrBadge, isAdmin });
             }
         });
-    }
-
-    // ── [GITHUB-FIX Task 3] Pagination-based fallback summary ──────────────
-    // Khi pagination có rows nhưng allProfiles rỗng (chưa hydrate),
-    // tính activeCount/debtCount tối thiểu từ pageItems để badge không hiển thị 0 sai.
-    // Đây là fallback an toàn — nguồn chính vẫn là full profiles.
-    const allProfileCount = Object.keys(allProfiles || {}).length;
-    const pageItems = Array.isArray(pgStudents && pgStudents.currentItems ? pgStudents.currentItems : [])
-        ? (pgStudents && pgStudents.currentItems ? pgStudents.currentItems : [])
-        : [];
-
-    if (pgStudentsActive && allProfileCount === 0 && pageItems.length > 0) {
-        let pageActive = 0;
-        let pageQuit   = 0;
-        let pageDebt   = 0;
-        let pageDebtEst = 0;
-
-        pageItems.forEach(function(item) {
-            const kind = window.classifyProfileStatus
-                ? window.classifyProfileStatus(item)
-                : classifyProfileStatus(item);
-
-            if (kind === 'quit') { pageQuit++; return; }
-            pageActive++;
-
-            if (!item.feeExempt) {
-                let isDebt = false;
-                let unpaidMonthsCount = 0;
-                if (item.isOwed !== undefined) {
-                    const allOwed = Array.isArray(item.owedMonths) ? item.owedMonths : [];
-                    unpaidMonthsCount = allOwed.filter(function(m) { return m <= selMonth; }).length;
-                    isDebt = unpaidMonthsCount > 0;
-                } else {
-                    const _normPU = normalizeYYYYMM(item.paidUntil);
-                    if (!_normPU || _normPU < selMonth) {
-                        isDebt = true;
-                        unpaidMonthsCount = 1;
-                    }
-                }
-                if (isDebt) {
-                    pageDebt++;
-                    pageDebtEst += unpaidMonthsCount * (Number(item.tuitionFee) || 0);
-                }
-            }
-        });
-
-        activeCount   = Math.max(activeCount,   pageActive);
-        debtCount     = Math.max(debtCount,     pageDebt);
-        totalDebtEst  = Math.max(totalDebtEst,  pageDebtEst);
-        m_active_theo = Math.max(m_active_theo, pageActive);
-
-        if (window.__store) {
-            window.__store._summaryPartialFromPagination = true;
-        }
     }
 
     // ── Append "Load more" fallback buttons — mirrors render.js lines 494-501 ──
@@ -570,19 +486,4 @@ export function getStudentsSummary() {
  */
 export function getStudentsMetrics() {
     return { ..._metrics };
-}
-
-/**
- * Phase 4K-STUDENT-RENDER-OVERWRITE-FIX: Cache metrics cho debug helper.
- * Expose via window.getStudentsCacheMetrics = getStudentsCacheMetrics trong renderStudents.js.
- * @returns {{ activeRowsLength: number, debtRowsLength: number, quitRowsLength: number, paramsKey: string|null, dataVersion: number }}
- */
-export function getStudentsCacheMetrics() {
-    return {
-        activeRowsLength: typeof _cache.activeRows === 'string' ? _cache.activeRows.length : -1,
-        debtRowsLength:   typeof _cache.debtRows   === 'string' ? _cache.debtRows.length   : -1,
-        quitRowsLength:   typeof _cache.quitRows   === 'string' ? _cache.quitRows.length   : -1,
-        paramsKey:        _cache.paramsKey   || null,
-        dataVersion:      _cache.dataVersion || 0,
-    };
 }

@@ -369,50 +369,6 @@ async function ensureTabModule(tabId) {
     }
 }
 
-// ── Phase 4K-RUNTIME-INIT-FIX: Early fallback for ensureModuleRuntimeReady ──
-// Real impl is assigned at window.ensureModuleRuntimeReady = function(...) below (line 1047+),
-// OUTSIDE the bootstrap IIFE. When bootstrap runs with __appLoaded=true there may be no
-// await before the guard call, meaning the outer module hasn't yet reached line 1047.
-// This fallback ensures the check never fires "[Bootstrap] ensureModuleRuntimeReady chưa sẵn sàng".
-window.ensureModuleRuntimeReady = window.ensureModuleRuntimeReady || function _ensureRuntimeReadyFallback(moduleName) {
-    if (!window.__runtimeReadyFallbackWarned) {
-        window.__runtimeReadyFallbackWarned = true;
-        console.info('[RuntimeReady] fallback active before full runtime ready:', moduleName, '(expected — real impl will be assigned after bootstrap)');
-    }
-    return false;
-};
-
-// ────────────────────────────────────────────────────────────────
-// [GITHUB-FIX] Task 3: Tránh double-boot app.js khi legacy đã load
-// ────────────────────────────────────────────────────────────────
-
-function _waitForExistingLegacyApp(ms) {
-    ms = ms || 3000;
-    return new Promise(function(resolve) {
-        var started = Date.now();
-
-        function tick() {
-            if (window.__appLoaded || typeof window.scheduleRender === 'function') {
-                return resolve(true);
-            }
-
-            var hasLegacyScript = !!document.querySelector('script[src$="app.js"], script[src*="app.js"]');
-
-            if (!hasLegacyScript) {
-                return resolve(false);
-            }
-
-            if (Date.now() - started > ms) {
-                return resolve(false);
-            }
-
-            setTimeout(tick, 50);
-        }
-
-        tick();
-    });
-}
-
 // ────────────────────────────────────────────────────────────────
 // BOOTSTRAP
 // ────────────────────────────────────────────────────────────────
@@ -420,13 +376,8 @@ function _waitForExistingLegacyApp(ms) {
 (async function bootstrap() {
     try {
         if (!window.__appLoaded) {
-            // [GITHUB-FIX] Task 3: Chờ app.js đã có trong DOM sẵn sàng thay vì load lại
-            var existingLegacyReady = await _waitForExistingLegacyApp(3000);
-
-            if (!existingLegacyReady && !window.__appLoaded) {
-                initFirebase();
-                await _loadLegacyApp();
-            }
+            initFirebase();
+            await _loadLegacyApp();
         }
 
         if (window.__store && !window.__store._moduleLinked) {
@@ -466,25 +417,6 @@ function _waitForExistingLegacyApp(ms) {
         registerInvalidationLegacyGlobals();
 
         initStudents();
-
-        // ── Phase 4K-RUNTIME-INIT-FIX: editProfile legacy bridge ─────────────
-        // editProfile is listed as a required global (health check + module guard)
-        // but initStudents() does not expose it on window. Bridge to openProfile
-        // so clicking "Sửa hồ sơ" still works. Will be overridden by real impl if set.
-        window.editProfile = window.editProfile || function _editProfileBridge(...args) {
-            const candidates = [
-                window.__realEditProfile,
-                window.openProfile,
-                window.editStudent,
-                window.openEditProfile,
-                window.showStudentModal,
-            ].filter(fn => typeof fn === 'function');
-            if (candidates.length) return candidates[0](...args);
-            console.warn('[LegacyBridge] editProfile called before real handler ready:', args);
-            if (typeof window.showToast === 'function') window.showToast('Chức năng sửa võ sinh chưa sẵn sàng, vui lòng thử lại sau.', 'warning');
-            return null;
-        };
-
         initFinance();
         initInventory();
         initAttendance();
@@ -495,30 +427,6 @@ function _waitForExistingLegacyApp(ms) {
         // initSuperAdmin() idempotent: tự bỏ qua nếu đã init rồi.
         // KHÔNG phụ thuộc switchTab('superadmin') nữa.
         initSuperAdmin();
-
-        // [HOTFIX] Sau initSuperAdmin(), nếu superAdminView đang hiển thị mà danh sách CLB
-        // chưa load (vì initSaaSDatabase đã gọi trước module sẵn sàng), tự gọi lại một lần.
-        // Guard: window.__saInitialLoadRetried để tránh gọi lặp nhiều lần.
-        if (!window.__saInitialLoadRetried &&
-            window.userRole === 'super_admin' &&
-            document.getElementById('superAdminView')?.style.display !== 'none') {
-            window.__saInitialLoadRetried = true;
-            // Chờ thêm 200ms để initSuperAdmin rebind xong, rồi kiểm tra xem listEl còn đang loading
-            setTimeout(async () => {
-                const _listEl = document.getElementById('sysClubListMain');
-                // Chỉ reload nếu danh sách vẫn đang ở trạng thái loading hoặc rỗng
-                const _stillLoading = !_listEl || !_listEl.innerHTML.trim() ||
-                    _listEl.innerHTML.includes('Đang tải') ||
-                    _listEl.innerHTML.includes('⏳');
-                if (_stillLoading && window.SuperAdminModule?.loadSuperAdminDashboard) {
-                    console.info('[HOTFIX] main.js: SA view active nhưng list chưa load — trigger lại loadSuperAdminDashboard');
-                    window.SuperAdminModule.loadSuperAdminDashboard();
-                } else if (_stillLoading && typeof window.loadSuperAdminData === 'function') {
-                    console.info('[HOTFIX] main.js: SA view active nhưng list chưa load — trigger lại loadSuperAdminData');
-                    window.loadSuperAdminData();
-                }
-            }, 300);
-        }
 
         // [Phase 4.0B-2] window.ensureSuperAdminModule — hardened.
         // Xử lý được: module cache, SuperAdminModule bị mất, re-init sau logout.
@@ -581,141 +489,20 @@ function _waitForExistingLegacyApp(ms) {
         if (guardOnce('initFinanceEvents'))  initFinanceEvents();
 
         setTimeout(() => {
-            // [HOTFIX] Thêm check window.__store.db — StudentService._db() throw nếu thiếu
-            if (window.__store && window.__store.profRef && window.__store.db) {
-                if (!window.__studentPaginationInitialized) {
-                    window.__studentPaginationInitialized = true;
-                    initStudentPagination();
-                }
+            if (window.__store && window.__store.profRef) {
+                initStudentPagination();
             } else {
-                setTimeout(() => {
-                    if (window.__store && window.__store.db) {
-                        if (!window.__studentPaginationInitialized) {
-                            window.__studentPaginationInitialized = true;
-                            initStudentPagination();
-                        }
-                    } else {
-                        console.warn('[Bootstrap] StudentPagination: db chưa sẵn sàng sau 2s — skip. Sẽ init khi db ready.');
-                    }
-                }, 1500);
+                setTimeout(() => initStudentPagination(), 1500);
             }
         }, 500);
 
         setTimeout(() => {
-            // [HOTFIX] Thêm check window.__store.db — FinanceService._db() throw nếu thiếu
-            if (window.__store && window.__store.colRef && window.__store.db) {
-                if (!window.__transactionPaginationInitialized) {
-                    window.__transactionPaginationInitialized = true;
-                    initTransactionPagination();
-                }
+            if (window.__store && window.__store.colRef) {
+                initTransactionPagination();
             } else {
-                setTimeout(() => {
-                    if (window.__store && window.__store.db) {
-                        if (!window.__transactionPaginationInitialized) {
-                            window.__transactionPaginationInitialized = true;
-                            initTransactionPagination();
-                        }
-                    } else {
-                        console.warn('[Bootstrap] TransactionPagination: db chưa sẵn sàng sau 2s — skip. Sẽ init khi db ready.');
-                    }
-                }, 1500);
+                setTimeout(() => initTransactionPagination(), 1500);
             }
         }, 500);
-
-        // ── Phase 4K-DATA-HYDRATION: isClubRuntimeReady helper ─────────────────────
-        // Kiểm tra db + currentClubId + currentUser đều sẵn sàng trước khi init.
-        // Dùng bởi _tryInitPaginationsOnDbReady, retryDataHydration, check tools.
-        window.isClubRuntimeReady = function isClubRuntimeReady() {
-            return !!(
-                ((window.__store && window.__store.db) || window.db || window._db) &&
-                ((window.__store && window.__store.currentClubId) || window.currentClubId) &&
-                ((window.__store && window.__store.currentUser) || window.currentUser)
-            );
-        };
-
-        // ── Phase 4K-DATA-HYDRATION: mountActiveProfilesListenerIfNeeded ────────────
-        // Gọi khi retry hydration — mount profile listener nếu chưa mounted.
-        window.mountActiveProfilesListenerIfNeeded = function mountActiveProfilesListenerIfNeeded(reason) {
-            const _st = window.__store;
-            if (!_st || !_st.db || !_st.currentClubId || !_st.profRef) {
-                console.warn('[ProfileHydration] mountActiveProfilesListenerIfNeeded: context chưa ready —', reason);
-                return;
-            }
-            if (typeof window.mountActiveProfilesListener === 'function') {
-                window.mountActiveProfilesListener({
-                    db:            _st.db,
-                    clubId:        _st.currentClubId,
-                    profRef:       _st.profRef,
-                    currentClubId: _st.currentClubId,
-                    reason:        reason || 'retry-hydration',
-                });
-            }
-        };
-
-        // ── Phase 4K-RUNTIME-INIT-FIX: Pagination retry via app:context-ready / app:db-ready ─
-        // Phase 4K-DATA-HYDRATION: Nâng cấp dùng isClubRuntimeReady() thay vì chỉ check db.
-        // Guard __studentPaginationInitializedForClub (clubId-specific) ngăn double-init per club.
-        function _tryInitPaginationsOnDbReady(reason) {
-            setTimeout(function() {
-                if (!window.isClubRuntimeReady()) {
-                    console.info('[DataHydration] _tryInitPaginationsOnDbReady: context chưa ready —', reason || 'event');
-                    return;
-                }
-                const _cid = (window.__store && window.__store.currentClubId) || window.currentClubId;
-
-                // StudentPagination: guard theo clubId — cho phép re-init khi đổi CLB
-                if (!window.__studentPaginationInitialized ||
-                    window.__studentPaginationInitializedForClub !== _cid) {
-                    window.__studentPaginationInitialized = true;
-                    window.__studentPaginationInitializedForClub = _cid;
-                    initStudentPagination();
-                    console.info('[DataHydration] StudentPagination init —', reason || 'retry', '— clubId:', _cid);
-                }
-
-                // TransactionPagination: month-aware reset đã có trong finance.js
-                if (!window.__transactionPaginationInitialized) {
-                    window.__transactionPaginationInitialized = true;
-                    initTransactionPagination();
-                    console.info('[DataHydration] TransactionPagination init —', reason || 'retry');
-                }
-
-                // Sau init, invalidate tab hiện tại để trigger render mới nhất
-                setTimeout(function() {
-                    if (typeof window.invalidateCurrentTab === 'function') {
-                        window.invalidateCurrentTab('post-pagination-init');
-                    }
-                }, 300);
-            }, 200);
-        }
-
-        // Expose để retryDataHydration có thể gọi lại
-        window._tryInitPaginationsOnDbReady = _tryInitPaginationsOnDbReady;
-
-        // ── Phase 4K-DATA-HYDRATION: retryDataHydration public helper ───────────────
-        // Gọi từ Console hoặc programmatic để retry toàn bộ data pipeline.
-        // window.retryDataHydration('manual') — thử lại pagination + profile listener + render.
-        window.retryDataHydration = function retryDataHydration(reason) {
-            const _r = reason || 'manual';
-            console.info('[DataHydration] retryDataHydration —', _r);
-            _tryInitPaginationsOnDbReady(_r);
-            window.mountActiveProfilesListenerIfNeeded(_r);
-            if (typeof window.invalidateCurrentTab === 'function') {
-                window.invalidateCurrentTab('manual-data-hydration');
-            }
-        };
-
-        if (!window.__paginationDbReadyListenerRegistered) {
-            window.__paginationDbReadyListenerRegistered = true;
-            window.addEventListener('app:context-ready', function() { _tryInitPaginationsOnDbReady('app:context-ready'); });
-            window.addEventListener('app:db-ready',      function() { _tryInitPaginationsOnDbReady('app:db-ready'); });
-        }
-
-        // Post-bootstrap immediate check: nếu db đã ready trước event, init ngay
-        setTimeout(function() {
-            if (window.isClubRuntimeReady()) {
-                _tryInitPaginationsOnDbReady('post-bootstrap-check');
-            }
-        }, 0);
 
         _patchResetStore();
 
@@ -723,22 +510,9 @@ function _waitForExistingLegacyApp(ms) {
 
         // ── Phase 4.0B-4B: Module post-login guard ───────────────────────────
         // Kiểm tra nhẹ sau khi các module đã init — chỉ warn, không throw.
-        // [HOTFIX] Guard: ensureModuleRuntimeReady có thể chưa được assign nếu
-        // bootstrap chạy synchronously trước khi outer module đến dòng 1020+.
-        if (typeof window.ensureModuleRuntimeReady === 'function') {
-            window.ensureModuleRuntimeReady('finance',    ['quickPay', 'openQuickPayModal']);
-            window.ensureModuleRuntimeReady('inventory',  ['getInvCategories', 'loadInvCategories']);
-            window.ensureModuleRuntimeReady('students',   ['openAddModal', 'editProfile']);
-        } else {
-            console.warn('[Bootstrap] ensureModuleRuntimeReady chưa sẵn sàng — skip module guard. Sẽ retry sau event loop.');
-            setTimeout(() => {
-                if (typeof window.ensureModuleRuntimeReady === 'function') {
-                    window.ensureModuleRuntimeReady('finance',    ['quickPay', 'openQuickPayModal']);
-                    window.ensureModuleRuntimeReady('inventory',  ['getInvCategories', 'loadInvCategories']);
-                    window.ensureModuleRuntimeReady('students',   ['openAddModal', 'editProfile']);
-                }
-            }, 0);
-        }
+        window.ensureModuleRuntimeReady('finance',    ['quickPay', 'openQuickPayModal']);
+        window.ensureModuleRuntimeReady('inventory',  ['getInvCategories', 'loadInvCategories']);
+        window.ensureModuleRuntimeReady('students',   ['openAddModal', 'editProfile']);
 
         // ── Phase 4.0B-4B: Bootstrap health check (phân loại severity) ───────
         // Chạy sau event loop tick — đảm bảo tất cả window globals đã expose.
@@ -756,20 +530,6 @@ function _waitForExistingLegacyApp(ms) {
             }, { once: false }); // false: nghe lại được sau logout-login
         }
         // ── End Phase 4.0B-4F Phase 2 ────────────────────────────────────────
-
-        // ── [GITHUB-FIX] Task 4: Replay app:context-ready nếu đã bắn trước khi main.js kịp đăng ký ──
-        // Trên GitHub Pages, main.js load sau khi app.js — event có thể đã bắn rồi
-        if (
-            window.__appContextReadyState &&
-            window.__appContextReadyState.ready
-        ) {
-            setTimeout(function() {
-                if (typeof window.runRuntimeDataRecovery === 'function') {
-                    window.runRuntimeDataRecovery('main-replay-context-ready');
-                }
-            }, 500);
-        }
-        // ── End Task 4 ────────────────────────────────────────────────────────
 
         setTimeout(() => {
             if (typeof window.forceHideLoading === 'function') window.forceHideLoading();
@@ -1057,15 +817,6 @@ function _patchResetStore() {
         clearAllIntervals();
         _lazyLoaded.clear();
         resetAllGuards();
-        // Phase 4K-RUNTIME-CLEANUP: Reset pagination init guards khi logout
-        // — đảm bảo login lại sẽ init pagination mới mà không bị skip bởi guard cũ.
-        window.__studentPaginationInitialized    = false;
-        window.__transactionPaginationInitialized = false;
-        window.__dbReadyEventDispatched          = false;
-        window.__runtimeReadyFallbackWarned      = false;
-        // Phase 4K-DATA-HYDRATION: Reset clubId-specific guard + listener registration
-        window.__studentPaginationInitializedForClub = null;
-        window.__paginationDbReadyListenerRegistered = false;
         // [Phase 3.6D] Reset student profile store khi logout
         // Xóa toàn bộ cached profiles — listener sẽ populate lại sau login mới.
         if (typeof resetStudentProfileStore === 'function') {
@@ -1143,43 +894,6 @@ function _loadLegacyApp() {
         document.head.appendChild(script);
     });
 }
-
-// ────────────────────────────────────────────────────────────────
-// [GITHUB-FIX] Task 6: Debug helper cho GitHub Pages student render
-// ────────────────────────────────────────────────────────────────
-window.debugGithubStudentRender = function() {
-    var store = window.__store || {};
-    var profilesObj = store.profiles || {};
-    var profilesArr = Array.isArray(store.allProfiles) ? store.allProfiles : [];
-
-    var result = {
-        protocol:                window.location.protocol,
-        href:                    window.location.href,
-        appLoaded:               !!window.__appLoaded,
-        mainLoaded:              !!window.MAIN_JS_LOADED,
-        mainLoading:             !!window.MAIN_JS_LOADING,
-        hasInvalidateStudents:   typeof window.invalidateStudents   === 'function',
-        hasInvalidateFinance:    typeof window.invalidateFinance    === 'function',
-        hasInvalidateInventory:  typeof window.invalidateInventory  === 'function',
-        dataVersion:             store._dataVersion || 0,
-        lastDataVersionReason:   store._lastDataVersionReason || '',
-        profilesObjectCount:     Object.keys(profilesObj).length,
-        profilesArrayCount:      profilesArr.length,
-        transactionsCount:       Array.isArray(store.transactions)  ? store.transactions.length  : 0,
-        inventoryCount:          Array.isArray(store.inventory)     ? store.inventory.length      : 0,
-        activeRowsDom:           document.querySelectorAll('#activeList tr[data-student-id], #activeList .student-row, [data-student-id]').length,
-        debtRowsDom:             document.querySelectorAll('#debtList tr[data-student-id], #debtList .student-row').length,
-        activeBadgeText:         document.getElementById('activeStudentCount')?.textContent || '',
-        txBadgeText:             document.getElementById('txTabCountBadge')?.textContent || '',
-        debtBadgeText:           document.getElementById('debtTabCountBadge')?.textContent || '',
-        dashboardIncomeText:     document.getElementById('totalIncomeDashboard')?.textContent || '',
-        lastSummaryActiveCount:  store._lastSummaryNumbers ? store._lastSummaryNumbers.activeCount : null,
-        lastSummaryDebtCount:    store._lastSummaryNumbers ? store._lastSummaryNumbers.debtCount : null,
-    };
-
-    console.table(result);
-    return result;
-};
 
 // ────────────────────────────────────────────────────────────────
 // Phase 3.3G: EXPOSE track/clear intervals cho modules khác
@@ -1304,388 +1018,3 @@ window.ensureModuleRuntimeReady = function ensureModuleRuntimeReady(moduleName, 
         }, 300);
     });
 })();
-
-// ── Phase 4K-RUNTIME-CLEANUP: Club Runtime Diagnostics ───────────────────────
-// Chỉ chạy khi gọi thủ công từ Console: window.printClubRuntimeDiagnostics()
-// Không tự động query khi load — an toàn trong production.
-window.printClubRuntimeDiagnostics = async function printClubRuntimeDiagnostics() {
-    console.group('[ClubDiagnostics] 🔍 Club Runtime Diagnostics');
-    try {
-        const _cid     = window.currentClubId || (window.__store && window.__store.currentClubId) || null;
-        const _role    = window.userRole || (window.__store && window.__store.userRole) || '(unknown)';
-        const _db      = (window.__store && window.__store.db) || window.db || window._db || null;
-        const _profRef = window.__store && window.__store.profRef;
-        const _colRef  = window.__store && window.__store.colRef;
-        const _user    = (window.__store && window.__store.currentUser) || window.currentUser || null;
-        const _month   = (function() {
-            const el = document.getElementById('filterMonth');
-            return el ? el.value : '(ui not ready)';
-        })();
-
-        // ── Sync memory snapshot (không query Firestore) ─────────────────────────
-        const _profMem    = window.allProfiles
-            ? Object.keys(window.allProfiles).length
-            : -1;
-        const _actMem     = (window.__store && window.__store.activeProfiles)
-            ? Object.keys(window.__store.activeProfiles).length
-            : ((window.__profileScaleMetrics && window.__profileScaleMetrics.activeCount) || -1);
-        const _txMem      = ((window.allTransactions || (window.__store && window.__store.transactions)) || []).length;
-        const _tbodyRows  = document.querySelectorAll('tbody tr').length;
-        // Phase 4K-STUDENT-LIST: thêm activeList row count + pagination + fallback count
-        const _activeListRows  = document.querySelectorAll('#activeList tr[data-student-id]').length;
-        const _pgStudentsState = window.__store && window.__store.pagination && window.__store.pagination.students;
-        const _pgItemsLen      = _pgStudentsState && Array.isArray(_pgStudentsState.currentItems)
-            ? _pgStudentsState.currentItems.length : -1;
-        const _fbFallbackCnt   = window.__profileScaleMetrics
-            ? (window.__profileScaleMetrics.fallbackCount || 0) : -1;
-        const _profMount  = !!(window.__profileScaleMetrics && window.__profileScaleMetrics.activeListenerMounted);
-
-        console.log('currentClubId     :', _cid || '⚠️ MISSING');
-        console.log('__store.clubId    :', (window.__store && window.__store.currentClubId) || '⚠️ MISSING');
-        console.log('userRole          :', _role);
-        console.log('db ready          :', !!_db ? '✅ yes' : '❌ no');
-        console.log('profRef ready     :', !!_profRef ? '✅ yes' : '❌ no');
-        console.log('colRef ready      :', !!_colRef ? '✅ yes' : '❌ no');
-        console.log('currentUser       :', _user ? _user.email || _user.uid : '❌ null');
-        console.log('filterMonth (UI)  :', _month);
-        console.log('__studentPagInit  :', !!window.__studentPaginationInitialized,
-            window.__studentPaginationInitializedForClub ? '(club: ' + window.__studentPaginationInitializedForClub + ')' : '');
-        console.log('__txPagInit       :', !!window.__transactionPaginationInitialized);
-        console.log('__dbReadyDispatched:', !!window.__dbReadyEventDispatched);
-        // ── Memory snapshot ───────────────────────────────────────────────────
-        console.log('profiles (mem)    :', _profMem >= 0 ? _profMem : '(not in window.allProfiles)');
-        console.log('activeProfiles(mem):', _actMem >= 0 ? _actMem : '(not tracked)');
-        console.log('transactions (mem):', _txMem, '(window.allTransactions / __store.transactions)');
-        console.log('tbody rows (DOM)  :', _tbodyRows, '(document.querySelectorAll("tbody tr").length)');
-        console.log('#activeList rows  :', _activeListRows, '← tr[data-student-id]; 0 nhưng pgItems>0 = island miss');
-        console.log('pgStudents items  :', _pgItemsLen >= 0 ? _pgItemsLen : '(pagination not init)', '(store.pagination.students.currentItems)');
-        console.log('fullFallbackCount :', _fbFallbackCnt >= 0 ? _fbFallbackCnt : '(not tracked)', '(profile full fallback đã chạy)');
-        console.log('profile listener  :', _profMount ? '✅ mounted' : '⚠️ not mounted');
-        console.log('isClubRuntimeReady:', typeof window.isClubRuntimeReady === 'function'
-            ? (window.isClubRuntimeReady() ? '✅ yes' : '❌ no') : '(function missing)');
-        console.log('retryDataHydration:', typeof window.retryDataHydration === 'function' ? '✅ available' : '❌ missing');
-
-        if (!_cid) {
-            console.warn('[ClubDiagnostics] ⚠️ currentClubId missing — login chưa hoàn thành hoặc onAuthStateChanged chưa chạy.');
-            console.groupEnd();
-            return;
-        }
-        if (!_db) {
-            console.warn('[ClubDiagnostics] ⚠️ db chưa sẵn sàng — app:db-ready chưa dispatch hoặc initSaaSDatabase chưa chạy.');
-            console.groupEnd();
-            return;
-        }
-
-        // Profile count (getCountFromServer — không đọc full docs)
-        try {
-            const { getCountFromServer, collection, query, where } = window._fb_init || {};
-            if (getCountFromServer && _profRef) {
-                const _allCount   = await getCountFromServer(_profRef);
-                const _activeSnap = await getCountFromServer(query(_profRef, where('status', '==', 'active')));
-                const _quitSnap   = await getCountFromServer(query(_profRef, where('status', '==', 'quit')));
-                console.log('profiles total    :', _allCount.data().count);
-                console.log('profiles active   :', _activeSnap.data().count);
-                console.log('profiles quit     :', _quitSnap.data().count);
-                const _other = _allCount.data().count - _activeSnap.data().count - _quitSnap.data().count;
-                if (_other > 0) console.log('profiles other    :', _other, '(trial / no-status / legacy)');
-            } else {
-                console.log('profiles count    : (getCountFromServer or profRef not available)');
-            }
-        } catch (pErr) {
-            const _msg = (pErr && pErr.message) || String(pErr);
-            if (_msg.includes('permission-denied') || _msg.includes('PERMISSION_DENIED')) {
-                console.warn('[ClubDiagnostics] profiles: permission-denied — kiểm tra Firestore Rules cho profiles collection.');
-            } else {
-                console.warn('[ClubDiagnostics] profiles count error:', _msg);
-            }
-        }
-
-        // Stats doc check
-        try {
-            const { getDoc, doc, getFirestore } = window._fb_init || {};
-            if (getDoc && doc && _db) {
-                const _now = new Date();
-                const _ym  = _now.getFullYear() + '-' + String(_now.getMonth() + 1).padStart(2, '0');
-                const _statsPath = 'clubs/' + _cid + '/stats/monthly_' + _ym;
-                const _statsSnap = await getDoc(doc(_db, 'clubs', _cid, 'stats', 'monthly_' + _ym));
-                console.log('stats doc monthly :', _statsPath, _statsSnap.exists() ? '✅ exists' : '⚠️ missing');
-                if (_statsSnap.exists()) {
-                    const _sd = _statsSnap.data();
-                    console.log('  totalRevenue    :', _sd.totalRevenue);
-                    console.log('  totalExpense    :', _sd.totalExpense);
-                }
-            }
-        } catch (sErr) {
-            const _msg = (sErr && sErr.message) || String(sErr);
-            console.warn('[ClubDiagnostics] stats doc error:', _msg);
-        }
-
-        // ── Transaction count cho tháng hiện tại (Phase 4K-PROFILE-HYDRATION) ──
-        // Dùng getCountFromServer — không kéo full docs, an toàn production.
-        // Không set Học Phí = 0 nếu lỗi; báo rõ permission-denied / index lỗi.
-        try {
-            const { getCountFromServer, collection, query, where } = window._fb_init || {};
-            if (getCountFromServer && _db && _cid) {
-                const _now    = new Date();
-                const _txMonth = _month && _month !== '(ui not ready)'
-                    ? _month
-                    : _now.getFullYear() + '-' + String(_now.getMonth() + 1).padStart(2, '0');
-                const _txRef   = collection(_db, 'clubs', _cid, 'transactions');
-
-                const _txAllSnap   = await getCountFromServer(_txRef);
-                console.log('transactions total:', _txAllSnap.data().count);
-
-                const _txMonthSnap = await getCountFromServer(
-                    query(_txRef, where('txMonth', '==', _txMonth))
-                );
-                console.log('transactions month:', _txMonth, '→', _txMonthSnap.data().count);
-
-                console.log('selected txMonth  :', _txMonth, '(UI filterMonth:', _month, ')');
-            } else {
-                console.log('transactions count: (getCountFromServer / db / clubId không sẵn)');
-            }
-        } catch (txErr) {
-            const _msg = (txErr && txErr.message) || String(txErr);
-            if (_msg.includes('permission-denied') || _msg.includes('PERMISSION_DENIED')) {
-                console.warn('[ClubDiagnostics] transactions: permission-denied — kiểm tra Firestore Rules cho transactions collection.');
-                console.warn('[ClubDiagnostics] ⚠️ Đây là lý do Học Phí / Doanh thu có thể hiện 0.');
-            } else if (_msg.includes('failed-precondition') || _msg.includes('requires an index')) {
-                console.warn('[ClubDiagnostics] transactions: thiếu Firestore index — deploy firestore.indexes.json.');
-                console.warn('[ClubDiagnostics] ⚠️ Đây là lý do Học Phí / Doanh thu có thể hiện 0.');
-            } else {
-                console.warn('[ClubDiagnostics] transactions count error:', _msg);
-            }
-        }
-
-        // ── Last Firestore error (nếu có) ─────────────────────────────────────
-        // Bất kỳ module nào có thể set window.__lastFirestoreError khi gặp lỗi Firestore.
-        if (window.__lastFirestoreError) {
-            const _fe = window.__lastFirestoreError;
-            console.warn('[ClubDiagnostics] last Firestore error:', {
-                code:    _fe.code    || '(no code)',
-                message: _fe.message || '(no message)',
-                module:  _fe.module  || '(unknown)',
-                ts:      _fe.ts ? new Date(_fe.ts).toLocaleString() : '(no ts)',
-            });
-        } else {
-            console.log('last Firestore err :', '(none recorded)');
-        }
-
-        // ── Legacy scheduleRender metrics (nếu có) ────────────────────────────
-        if (window.__renderLegacyMetrics) {
-            const _m = window.__renderLegacyMetrics;
-            console.log('scheduleRender calls (legacy):', _m.scheduleRenderCalls || 0);
-        }
-
-        console.log('[ClubDiagnostics] ✅ Done. Gọi lại bất cứ lúc nào để re-check.');
-        console.log('[ClubDiagnostics] 💡 Nếu pgStudents items > 0 nhưng #activeList rows = 0, gọi: window.debugStudentListHydration()');
-    } catch (err) {
-        console.error('[ClubDiagnostics] Error:', err);
-    }
-    console.groupEnd();
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// DEBUG STUDENT LIST HYDRATION — Phase 4K-STUDENT-LIST
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Helper debug — chẩn đoán tại sao danh sách võ sinh hiển thị trống.
- *
- * Thực hiện:
- *   1. In pgState.currentItems.length
- *   2. In #activeList tr[data-student-id] count
- *   3. Nếu currentItems > 0 nhưng DOM row = 0, thử trigger render lại
- *   4. Nếu profiles collection có docs nhưng active count = 0, gọi full fallback
- *
- * Chỉ chạy thủ công từ Console — KHÔNG tự động query khi load.
- */
-window.debugStudentListHydration = async function debugStudentListHydration() {
-    console.group('[DebugStudentList] 🔍 Student List Hydration Diagnostics');
-    try {
-        const _pg      = window.__store && window.__store.pagination && window.__store.pagination.students;
-        const _items   = _pg && Array.isArray(_pg.currentItems) ? _pg.currentItems.length : -1;
-        const _pgPage  = _pg ? (_pg.currentPage || 0) : -1;
-        const _pgEnable = _pg ? !!_pg.enabled : false;
-        const _pgVer   = (window.__store && window.__store._studentsPaginationVersion) || 0;
-        const _domRows = document.querySelectorAll('#activeList tr[data-student-id]').length;
-        const _activeEl = document.getElementById('activeList');
-        const _activeInnerLen = _activeEl ? _activeEl.innerHTML.length : -1;
-        const _allProf = window.allProfiles ? Object.keys(window.allProfiles).length : -1;
-        const _actProf = (window.__store && window.__store.activeProfiles)
-            ? Object.keys(window.__store.activeProfiles).length : -1;
-
-        // Cache metrics nếu island đã expose qua registerStudentsLegacyGlobals()
-        const _cacheM = typeof window.getStudentsCacheMetrics === 'function'
-            ? window.getStudentsCacheMetrics() : null;
-
-        console.log('── Pagination state ──────────────────────────────');
-        console.log('pgState.currentItems.length :', _items >= 0 ? _items : '(not init)');
-        console.log('pgState.currentPage         :', _pgPage >= 0 ? _pgPage : '(not init)');
-        console.log('pgState.enabled             :', _pgEnable);
-        console.log('_studentsPaginationVersion  :', _pgVer, '(tăng mỗi khi _doLoad thành công)');
-        console.log('── DOM state ─────────────────────────────────────');
-        console.log('#activeList tr[data-student-id] :', _domRows);
-        console.log('#activeList innerHTML.length    :', _activeInnerLen, '(0 = DOM empty)');
-        console.log('── Profile state ─────────────────────────────────');
-        console.log('allProfiles (window)        :', _allProf >= 0 ? _allProf : '(not loaded)');
-        console.log('activeProfiles (__store)    :', _actProf >= 0 ? _actProf : '(not tracked)');
-        console.log('── Render cache ──────────────────────────────────');
-        if (_cacheM) {
-            console.log('activeRows cache length     :', _cacheM.activeRowsLength,
-                _cacheM.activeRowsLength === 0 ? '⚠️ RỖNG — island sẽ clear DOM!' : '(có data)');
-            console.log('debtRows cache length       :', _cacheM.debtRowsLength);
-            console.log('quitRows cache length       :', _cacheM.quitRowsLength);
-            console.log('cache paramsKey             :', _cacheM.paramsKey);
-            console.log('cache dataVersion           :', _cacheM.dataVersion);
-        } else {
-            console.log('cache metrics               : (window.getStudentsCacheMetrics not available)');
-            console.log('                              Đợi registerStudentsLegacyGlobals() chạy hoặc check renderStudents.js');
-        }
-        console.log('─────────────────────────────────────────────────');
-
-        if (_items > 0 && _domRows === 0) {
-            console.warn('[DebugStudentList] ⚠️ pgState có', _items, 'items nhưng DOM trống — island bị overwrite hoặc miss');
-            if (_cacheM && _cacheM.activeRowsLength === 0) {
-                console.warn('[DebugStudentList] 🔴 activeRows cache = 0 → renderActiveIsland() gọi replaceChildren() với HTML rỗng → xóa DOM.');
-                console.warn('[DebugStudentList]    Fix: renderActiveIsland() phải guard pagination state trước khi clear.');
-                console.warn('[DebugStudentList]    Nếu fix đã áp dụng → chạy window.watchActiveListMutations() để trace thêm.');
-            }
-            console.log('[DebugStudentList] 🔧 Thử invalidate + re-render...');
-            if (typeof window.refreshListComputation === 'function') {
-                window.refreshListComputation('students.activeList', 'debug-hydration');
-            }
-            if (typeof window.invalidateList === 'function') {
-                window.invalidateList('students.activeList', 'debug-hydration');
-            } else if (typeof window.invalidateStudents === 'function') {
-                window.invalidateStudents('debug-hydration');
-            }
-            setTimeout(() => {
-                const _afterRows = document.querySelectorAll('#activeList tr[data-student-id]').length;
-                console.log('[DebugStudentList] Sau re-render: #activeList rows =', _afterRows);
-                if (_afterRows === 0) {
-                    console.warn('[DebugStudentList] Vẫn trống — gọi retryDataHydration...');
-                    if (typeof window.retryDataHydration === 'function') window.retryDataHydration('debug-hydration');
-                }
-            }, 500);
-        } else if (_items === 0 && _allProf === 0 && _actProf <= 0) {
-            // Profiles chưa load — check collection có docs không
-            const _profRef = window.__store && window.__store.profRef;
-            const { query: _q, limit: _l, getDocs: _g } = window._fb_init || {};
-            if (_g && _q && _l && _profRef) {
-                console.log('[DebugStudentList] Kiểm tra collection có docs...');
-                try {
-                    const _probe = await _g(_q(_profRef, _l(1)));
-                    if (!_probe.empty) {
-                        console.warn('[DebugStudentList] Collection có docs nhưng active count = 0 → gọi full fallback');
-                        if (typeof window.retryDataHydration === 'function') {
-                            window.retryDataHydration('debug-hydration-probe');
-                        }
-                    } else {
-                        console.log('[DebugStudentList] Collection trống — CLB chưa có võ sinh.');
-                    }
-                } catch (_pe) {
-                    console.warn('[DebugStudentList] Probe lỗi:', _pe.message || _pe.code);
-                }
-            } else {
-                console.warn('[DebugStudentList] Firebase SDK hoặc profRef chưa sẵn — gọi retryDataHydration()');
-                if (typeof window.retryDataHydration === 'function') window.retryDataHydration('debug-hydration-no-sdk');
-            }
-        } else {
-            console.log('[DebugStudentList] ✅ Data OK — items:', _items, ' DOM rows:', _domRows);
-        }
-        console.log('[DebugStudentList] 💡 Nếu rows bị xóa ngay sau khi hiện → chạy: window.watchActiveListMutations()');
-    } catch (_err) {
-        console.error('[DebugStudentList] Error:', _err);
-    }
-    console.groupEnd();
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// WATCH ACTIVE LIST MUTATIONS — Phase 4K-STUDENT-RENDER-OVERWRITE-FIX
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Helper debug — theo dõi khi #activeList bị clear hoặc thay đổi.
- * Chỉ chạy thủ công từ Console — KHÔNG tự mount khi page load.
- *
- * Chạy:
- *   window.watchActiveListMutations()
- *   // ... switch tab, thao tác để reproduce ...
- *   window.__activeListMutationObserver?.disconnect()  // dừng khi xong
- */
-// ─────────────────────────────────────────────────────────────────────────────
-// TASK 7 — debugZeroBadges: kiểm tra nhanh trạng thái badge/dashboard
-// Chạy trong Console: debugZeroBadges()
-// ─────────────────────────────────────────────────────────────────────────────
-window.debugZeroBadges = function debugZeroBadges() {
-    const st = window.__store || {};
-    const pgStudents = st.pagination && st.pagination.students;
-    const pgTx = st.pagination && st.pagination.transactions;
-
-    const result = {
-        href:     location.href,
-        protocol: location.protocol,
-
-        appLoaded:  !!window.__appLoaded,
-        mainLoaded: !!window.MAIN_JS_LOADED,
-
-        storeProfilesCount: Object.keys(st.profiles || {}).length,
-        studentStoreCompatCount:
-            window.studentProfileStore && window.studentProfileStore.getAllProfilesCompat
-                ? Object.keys(window.studentProfileStore.getAllProfilesCompat() || {}).length
-                : -1,
-
-        paginationStudentItems: Array.isArray(pgStudents && pgStudents.currentItems ? pgStudents.currentItems : null) ? pgStudents.currentItems.length : -1,
-        activeRowsDom: document.querySelectorAll('#activeList tr[data-student-id]').length,
-
-        storeTransactionsCount: Array.isArray(st.transactions) ? st.transactions.length : -1,
-        paginationTxItems: Array.isArray(pgTx && pgTx.currentItems ? pgTx.currentItems : null) ? pgTx.currentItems.length : -1,
-        txRowsDom: document.querySelectorAll('#txList tr[data-tx-id]').length,
-
-        activeBadgeText:  (document.getElementById('activeStudentCount')  || {}).textContent || '',
-        debtBadgeText:    (document.getElementById('debtTabCountBadge')   || {}).textContent || '',
-        txBadgeText:      (document.getElementById('txTabCountBadge')     || {}).textContent || '',
-
-        totalIncomeDashboard:  (document.getElementById('totalIncomeDashboard')  || {}).textContent || '',
-        totalExpenseDashboard: (document.getElementById('totalExpenseDashboard') || {}).textContent || '',
-        totalProfitDashboard:  (document.getElementById('totalProfitDashboard')  || {}).textContent || '',
-
-        lastSummaryNumbers:        st._lastSummaryNumbers              || null,
-        lastProfileHydrateReason:  st._lastProfileHydrateReason        || '',
-        lastTxHydrateReason:       st._lastTxHydrateReason             || '',
-        summaryPartialFromPagination: !!st._summaryPartialFromPagination,
-
-        hasUpdateSummaryNumbers:  typeof window.updateSummaryNumbers  === 'function',
-        hasRenderDashboardCharts: typeof window.renderDashboardCharts === 'function',
-        hasRenderBranchStats:     typeof window.renderBranchStats     === 'function',
-        hasModuleDashboard:       !!window._moduleDashboard,
-    };
-
-    console.table(result);
-    return result;
-};
-
-window.watchActiveListMutations = function watchActiveListMutations() {
-    const el = document.getElementById('activeList');
-    if (!el) { console.warn('[WatchMutation] #activeList không tìm thấy.'); return; }
-    if (window.__activeListMutationObserver) {
-        window.__activeListMutationObserver.disconnect();
-        console.log('[WatchMutation] Observer cũ đã disconnect.');
-    }
-    const obs = new MutationObserver((_mutations) => {
-        const rows = el.querySelectorAll('tr[data-student-id]').length;
-        const len  = el.innerHTML.length;
-        console.warn('[ActiveListMutation] DOM changed →', {
-            rows,
-            htmlLength: len,
-            note: rows === 0 && len < 100 ? '⚠️ LIST CLEARED' : (rows > 0 ? '✅ has rows' : '(empty html)'),
-            stack: new Error('mutation-trace').stack,
-        });
-    });
-    obs.observe(el, { childList: true, subtree: false });
-    window.__activeListMutationObserver = obs;
-    console.log('[WatchMutation] ✅ MutationObserver mounted on #activeList.');
-    console.log('[WatchMutation]    Thao tác để reproduce → xem log bên trên.');
-    console.log('[WatchMutation]    Dừng: window.__activeListMutationObserver.disconnect()');
-};
