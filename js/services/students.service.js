@@ -341,12 +341,9 @@ export const StudentService = {
                 if (snap.size > pageSize) hasMore = true;
                 return snap.size;
             } catch (e) {
-                // PHẦN 6: Không fail toàn bộ search khi thiếu index hoặc gặp permission error
-                if (e && (e.code === 'failed-precondition' || e.code === 'permission-denied')) {
-                    console.warn('[StudentService.search] Bỏ qua query lỗi (', e.code, ') cho', tag,
-                        '— tiếp tục fallback. Chi tiết:', e.message);
-                } else if (e) {
-                    console.warn('[StudentService.search] Query warning cho', tag, ':', e.message || e);
+                if (e && e.code === 'failed-precondition') {
+                    console.warn('[StudentService.search] Thiếu Firestore index cho', tag,
+                        '— chạy backfill hoặc dùng tìm kiếm theo tên. Chi tiết:', e.message);
                 }
                 return 0;
             }
@@ -417,6 +414,67 @@ export const StudentService = {
             }
         }
 
+        // ── [PART 4 FIX] Client-side fallback khi server-side query không tìm thấy ──
+        // Đảm bảo hồ sơ cũ chưa có searchName/searchPhone index vẫn tìm được.
+        if (resultMap.size === 0) {
+            const _normalizeVN = (v) => String(v || '')
+                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                .replace(/đ/g, 'd').replace(/Đ/g, 'D')
+                .toLowerCase().trim().replace(/\s+/g, ' ');
+
+            const _studentMatchesSearch = (id, p, rawTerm) => {
+                const qRaw = String(rawTerm || '').trim();
+                if (!qRaw) return true;
+                const q           = _normalizeVN(qRaw);
+                const phoneDigits = qRaw.replace(/\D/g, '');
+                if (phoneDigits.length >= 3) {
+                    const phones = [p.phone, p.parentPhone, p.contactPhone, p.guardianPhone]
+                        .map(v => String(v || '').replace(/\D/g, ''));
+                    if (phones.some(ph => ph.includes(phoneDigits))) return true;
+                }
+                const fields = [id, p.name, p.nickname, p.memberId, p.studentCode,
+                    p.code, p.belt, p.notes, p.phone, p.parentPhone];
+                return fields.some(v => _normalizeVN(v).includes(q));
+            };
+
+            const _clientSearch = () => {
+                const profiles =
+                    (window.__store && window.__store.profiles) ||
+                    (window.studentProfileStore && typeof window.studentProfileStore.getAllProfilesCompat === 'function'
+                        ? window.studentProfileStore.getAllProfilesCompat()
+                        : {}) ||
+                    {};
+                Object.entries(profiles).forEach(([id, p]) => {
+                    if (_studentMatchesSearch(id, p, raw)) {
+                        resultMap.set(id, { id, ...p });
+                    }
+                });
+            };
+
+            _clientSearch();
+            if (resultMap.size > 0) {
+                source = 'client-store-fallback';
+            }
+
+            // Nếu store rỗng, thử load full profiles rồi tìm lại
+            if (resultMap.size === 0 && typeof window.loadFullProfilesFallback === 'function') {
+                try {
+                    await window.loadFullProfilesFallback('search-empty-server-fallback');
+                    _clientSearch();
+                    if (resultMap.size > 0) source = 'full-profile-fallback';
+                } catch (e) {
+                    console.warn('[StudentService.search] full profile fallback failed:', e);
+                }
+            }
+
+            if (resultMap.size === 0) {
+                console.info('[StudentService.search] Không tìm thấy "' + raw + '" sau tất cả fallbacks.',
+                    'Chạy debugSearchIndexCoverage() để kiểm tra coverage.');
+            }
+        } else {
+            source = 'server-index';
+        }
+
         const items = Array.from(resultMap.values()).slice(0, pageSize);
         return {
             items,
@@ -425,8 +483,6 @@ export const StudentService = {
             source,
             searchTerm: raw,
             normalizedSearchTerm: normalized,
-            resultCount: items.length,
-            possibleMissingSearchIndex: items.length === 0,
         };
     },
 

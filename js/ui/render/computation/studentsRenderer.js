@@ -288,9 +288,15 @@ export function computeAndCacheStudents(allProfiles, params) {
 
             let passFilter = true;
             if (!isSingleBranch && selBranch !== 'all' && safeBranch !== selBranch) passFilter = false;
-            if (search && !name.toLowerCase().includes(search) &&
-                !(p.nickname || '').toLowerCase().includes(search) &&
-                !(p.memberId || '').toLowerCase().includes(search)) passFilter = false;
+            // [PART 6 FIX] PASS 1: Dùng normalizeVNForSearch để tìm có dấu/không dấu, hoa/thường
+            if (search) {
+                const _smsFn = window.studentMatchesSearch || function(n, pr, q) {
+                    const _nvFn = window.normalizeVNForSearch || (v => String(v||'').toLowerCase());
+                    return [n, pr&&pr.nickname, pr&&pr.memberId, pr&&pr.phone]
+                        .some(v => _nvFn(v).includes(_nvFn(q)));
+                };
+                if (!_smsFn(name, p, search)) passFilter = false;
+            }
 
             if (passFilter) {
                 _activeTotalCount++;
@@ -386,9 +392,15 @@ export function computeAndCacheStudents(allProfiles, params) {
             if (isActive) {
                 let passFilter = true;
                 if (!isSingleBranch && selBranch !== 'all' && safeBranch !== selBranch) passFilter = false;
-                if (search && !name.toLowerCase().includes(search) &&
-                    !(p.nickname || '').toLowerCase().includes(search) &&
-                    !(p.memberId || '').toLowerCase().includes(search)) passFilter = false;
+                // [PART 6 FIX] PASS 2: Dùng normalizeVNForSearch để tìm có dấu/không dấu, hoa/thường
+                if (search) {
+                    const _smsFn = window.studentMatchesSearch || function(n, pr, q) {
+                        const _nvFn = window.normalizeVNForSearch || (v => String(v||'').toLowerCase());
+                        return [n, pr&&pr.nickname, pr&&pr.memberId, pr&&pr.phone]
+                            .some(v => _nvFn(v).includes(_nvFn(q)));
+                    };
+                    if (!_smsFn(name, p, search)) passFilter = false;
+                }
 
                 if (passFilter) {
                     _activeTotalCount++;
