@@ -301,6 +301,10 @@ export async function fetchAndRenderHistoricalCharts(
         if (!snap || !snap.exists()) continue; // Stats doc chưa tồn tại → giữ 0
 
         const d = snap.data();
+        // [Phase 4K] Track stats doc reads for diagnostics
+        if (window.__txListenerMetrics) {
+            window.__txListenerMetrics.dashboardStatsRead = (window.__txListenerMetrics.dashboardStatsRead || 0) + 1;
+        }
         // income.total và expense.total được Cloud Function tính sẵn
         const inc = Number(d['income.total'] || d?.income?.total || 0);
         const exp = Number(d['expense.total'] || d?.expense?.total || 0);
@@ -362,9 +366,244 @@ export async function fetchMonthStats(month) {
     }
 }
 
+
+// ════════════════════════════════════════════════════════════════
+// tryApplyCurrentMonthStats — Phase 4K-FIX Lỗi 4
+// ────────────────────────────────────────────────────────────────
+// Ưu tiên stats doc để hiển thị tổng doanh thu/chi phí tháng hiện tại.
+// Gọi async sau khi renderApp() đã cập nhật dashboard từ allTransactions.
+//
+// TẠI SAO CẦN?
+//   allTransactions có giới hạn limit(1200) — nếu tháng có >1200 GD,
+//   tổng tính từ allTransactions sẽ sai.
+//   stats doc (ghi bởi Cloud Functions trigger) luôn chính xác.
+//
+// BEHAVIOR:
+//   - Đọc stats doc cho tháng selMonth
+//   - Nếu có và income.total > 0: override totalIncomeDashboard/totalExpenseDashboard/totalProfitDashboard
+//   - Nếu không có stats doc: giữ nguyên allTransactions-based numbers (fallback an toàn)
+//   - Không thay đổi danh sách giao dịch, bStats, hoặc các số liệu chi tiết
+// ════════════════════════════════════════════════════════════════
+export async function tryApplyCurrentMonthStats(selMonth) {
+    if (!selMonth) return;
+    const stats = await fetchMonthStats(selMonth);
+    if (!stats) return; // stats doc chưa tồn tại — giữ allTransactions-based numbers
+
+    // Đọc income.total tương thích nhiều format (Cloud Functions ghi flat 'income.total')
+    const incTotal = (
+        Number(stats['income.total'] || 0) ||
+        Number(stats?.income?.total  || 0) ||
+        0
+    );
+    const expTotal = (
+        Number(stats['expense.total'] || 0) ||
+        Number(stats?.expense?.total  || 0) ||
+        0
+    );
+
+    // Nếu cả 2 đều = 0 và txCount = 0 → stats doc chưa có dữ liệu thực
+    if (incTotal === 0 && expTotal === 0 && (stats.txCount || 0) === 0) return;
+
+    // Override dashboard totals với stats doc numbers (chính xác hơn allTransactions limit)
+    const _fmt = (n) => (Number(n) || 0).toLocaleString();
+    const _set = (id, val) => { const e = document.getElementById(id); if (e) e.innerText = val; };
+
+    _set('totalIncomeDashboard',  _fmt(incTotal)             + ' ₫');
+    _set('totalExpenseDashboard', _fmt(expTotal)             + ' ₫');
+    _set('totalProfitDashboard',  _fmt(incTotal - expTotal)  + ' ₫');
+
+    // Track metric
+    if (window.__txListenerMetrics) {
+        window.__txListenerMetrics.dashboardCurrentMonthStatsRead =
+            (window.__txListenerMetrics.dashboardCurrentMonthStatsRead || 0) + 1;
+    }
+
+    // Mobile header bar income
+    const mhbInc = document.getElementById('mhbIncome');
+    if (mhbInc && incTotal > 0) {
+        const _fmtK = (n) => n >= 1e6 ? Math.round(n/1e3) + 'K' : n.toLocaleString();
+        mhbInc.innerText = _fmtK(incTotal);
+    }
+}
+
 // ════════════════════════════════════════════════════════════════
 // initDashboard — wire window accessors + cleanup hook
 // ════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════
+// fetchHistoricalDashboardFallback — Part 4 FIX
+// Build full 6-month chartData + multi-row reportHtml.
+// Priority: stats doc → transactions fallback per month.
+// Called from refreshDashboardComputation (fire-and-forget async).
+// ════════════════════════════════════════════════════════════════
+
+export async function fetchHistoricalDashboardFallback(selMonth, reason) {
+    const sdk   = window._fb_init || {};
+    const store = window.__store  || {};
+    const db    = store.db;
+
+    if (!sdk.doc || !sdk.getDoc || !sdk.getDocs || !sdk.query || !sdk.collection || !db) return;
+
+    const clubId = store.clubId || store.currentClubId;
+    if (!clubId) return;
+
+    const { doc, getDoc, getDocs, query, collection, where } = sdk;
+
+    // Build 6-month window ending at selMonth
+    const [sy, sm] = selMonth.split('-').map(Number);
+    const months = [];
+    for (let i = 0; i < 6; i++) {
+        let m = sm - i, y = sy;
+        if (m <= 0) { m += 12; y -= 1; }
+        months.push({ month: `${y}-${String(m).padStart(2, '0')}`, idx: 5 - i });
+    }
+    // months[0].idx = 0 (oldest), months[5].idx = 5 (current)
+
+    const labels  = months.map(({ month }) => {
+        const [y, m] = month.split('-');
+        return `T${Number(m)}/${y}`;
+    });
+    const income  = Array(6).fill(0);
+    const expense = Array(6).fill(0);
+    const active  = Array(6).fill(0);
+
+    let reportRows = '';
+
+    // Read all stats docs in parallel
+    const statReads = months.map(({ month, idx }) => {
+        const docId = month.replace('-', '_');
+        return getDoc(doc(db, 'clubs', clubId, 'stats', docId))
+            .then(snap => ({ snap, month, idx }))
+            .catch(() => ({ snap: null, month, idx }));
+    });
+
+    const statResults = await Promise.all(statReads);
+
+    // For months with missing stats docs, fall back to querying transactions
+    const fallbackPromises = statResults.map(async ({ snap, month, idx }) => {
+        let inc = 0, exp = 0, act = 0, mNew = 0, mQuit = 0;
+        let hasStat = false;
+
+        if (snap && snap.exists()) {
+            const d = snap.data();
+            inc    = Number(d['income.total']    || (d.income  && d.income.total)  || 0);
+            exp    = Number(d['expense.total']   || (d.expense && d.expense.total) || 0);
+            act    = Number(d['members.active']  || (d.members && d.members.active) || 0);
+            mNew   = Number(d['members.new']     || (d.members && d.members.new)   || 0);
+            mQuit  = Number(d['members.quit']    || (d.members && d.members.quit)  || 0);
+            hasStat = true;
+        }
+
+        if (!hasStat) {
+            // Fallback: scan transactions for this month
+            console.info('[dashboard-history] missing stats doc for', month, '— reading transactions fallback');
+            try {
+                const txRef = collection(db, 'clubs', clubId, 'transactions');
+                const txSnap = await getDocs(query(txRef, where('txMonth', '==', month)));
+                txSnap.forEach(d => {
+                    const tx = d.data();
+                    const amt = Number(tx.amount || tx.soTien || 0);
+                    if (tx.type === 'expense' || tx.loai === 'expense' || tx.loai === 'chi') {
+                        exp += amt;
+                    } else {
+                        inc += amt;
+                    }
+                });
+            } catch (_txErr) {
+                // Non-blocking — silent fail
+            }
+        }
+
+        income[idx]  = inc;
+        expense[idx] = exp;
+        active[idx]  = act;
+
+        const profit     = inc - exp;
+        const label      = labels[idx];
+        const profitCls  = profit < 0 ? 'text-rose-600' : 'text-emerald-600';
+        const isCurrent  = month === selMonth;
+        const rowClass   = isCurrent ? 'class="font-black text-primary"' : '';
+
+        reportRows += `<tr><td ${rowClass}>${label}</td>` +
+            `<td class="text-slate-800 font-bold text-base">${act || '-'}</td>` +
+            `<td class="text-emerald-600 font-medium">+${mNew}</td>` +
+            `<td class="text-rose-600 font-medium">-${mQuit}</td>` +
+            `<td class="text-emerald-600 font-bold">${inc.toLocaleString()} ₫</td>` +
+            `<td class="text-rose-600 font-bold">${exp.toLocaleString()} ₫</td>` +
+            `<td class="${profitCls} font-black text-base bg-slate-50">${profit.toLocaleString()} ₫</td></tr>`;
+    });
+
+    await Promise.all(fallbackPromises);
+
+    const chartData = { labels, income, expense, active };
+
+    // Update cache with full historical data
+    if (typeof cacheDashboardData === 'function') {
+        const existing = (window.__store && window.__store.tabHtmlCache) || {};
+        cacheDashboardData({
+            reportHtml:  reportRows,
+            chartData,
+            bStats:      (window.__store && window.__store._lastBStats)    || {},
+            bExamStats:  (window.__store && window.__store._lastBExamStats) || {},
+            summaryNumbers: (window.__store && window.__store._lastSummaryNumbers) || {},
+        });
+    }
+
+    // Update live Chart.js instances if they exist
+    if (typeof renderDashboardCharts === 'function') {
+        try { renderDashboardCharts(chartData); } catch (_) {}
+    }
+
+    // Also update via window for safety
+    if (typeof window.renderDashboardCharts === 'function') {
+        try { window.renderDashboardCharts(chartData); } catch (_) {}
+    }
+
+    // Update #reportList DOM directly if visible
+    const reportList = document.getElementById('reportList');
+    if (reportList && reportRows) {
+        reportList.innerHTML = reportRows;
+    }
+
+    // Update in-store chartData so future renders use historical data
+    if (window.__store && window.__store.tabHtmlCache) {
+        window.__store.tabHtmlCache._chartData = chartData;
+        window.__store._lastDashboardHistoryFetchAt = Date.now();
+        window.__store._lastDashboardHistoryReason  = reason || 'history-fallback';
+    }
+}
+
+// ════════════════════════════════════════════════════════════════
+// debugDashboardHistory — Part 5: console diagnostic
+// Usage: await window.debugDashboardHistory()
+// ════════════════════════════════════════════════════════════════
+
+export function registerDebugDashboardHistory() {
+    window.debugDashboardHistory = async function debugDashboardHistory() {
+        const st = window.__store || {};
+        const result = {
+            clubId:     st.clubId || st.currentClubId || '',
+            selectedMonth: (document.getElementById('monthPicker') || {}).value || st.selectedMonth || '',
+            hasChartJs: !!window.Chart,
+            hasFinanceChart: !!(window.getFinanceChart && window.getFinanceChart()),
+            hasMemberChart:  !!(window.getMemberChart  && window.getMemberChart()),
+            chartData: st.tabHtmlCache && st.tabHtmlCache._chartData || null,
+            reportRows: document.querySelectorAll('#reportList tr').length,
+            lastSummary: st._lastSummaryNumbers || null,
+            lastDashboardRefreshReason: st._lastDashboardRefreshReason || '',
+            lastDashboardRefreshAt: st._lastDashboardRefreshAt || null,
+            lastHistoryFetchAt: st._lastDashboardHistoryFetchAt || null,
+            hasRefreshDashboardComputation: typeof window.refreshDashboardComputation === 'function',
+            hasFetchMonthStats:             typeof window.fetchMonthStats             === 'function',
+            hasFetchHistoricalFallback:     typeof window.fetchHistoricalDashboardFallback === 'function',
+            prevGuardState: {
+                lastSummaryNumbers: st._lastSummaryNumbers || null,
+            },
+        };
+        console.table(result);
+        return result;
+    };
+}
+
 export function initDashboard() {
     // Expose chart accessors cho debug / các module khác
     window.getFinanceChart = () => _getFinChart();
@@ -372,6 +611,34 @@ export function initDashboard() {
 
     // Expose fetchMonthStats để app.js và các modules khác có thể gọi
     window.fetchMonthStats = fetchMonthStats;
+
+    // [Phase 4K-FIX Lỗi 4] Expose tryApplyCurrentMonthStats — gọi từ render.js
+    // sau khi sync render từ allTransactions để ưu tiên stats doc cho tổng thu/chi
+    window.tryApplyCurrentMonthStats = tryApplyCurrentMonthStats;
+
+    // [GITHUB-FIX Task 1] Expose dashboard render functions cho renderDashboard.js
+    // và listComputationRefresh.js — thiếu dòng này → dashboard summary no-op
+    window.renderDashboardCharts = renderDashboardCharts;
+    window.renderBranchStats     = renderBranchStats;
+    window.renderExamBranchFees  = renderExamBranchFees;
+    window.updateSummaryNumbers  = updateSummaryNumbers;
+
+    // Module-level namespace (cho diagnostics và cross-module access)
+    window._moduleDashboard = {
+        renderDashboardCharts,
+        renderBranchStats,
+        renderExamBranchFees,
+        updateSummaryNumbers,
+        fetchMonthStats,
+        tryApplyCurrentMonthStats,
+        fetchHistoricalDashboardFallback,
+    };
+
+    // [Part 4 FIX] Expose historical fallback so refreshDashboardComputation can call it
+    window.fetchHistoricalDashboardFallback = fetchHistoricalDashboardFallback;
+
+    // [Part 5 FIX] Register debug function
+    registerDebugDashboardHistory();
 
     // Cleanup khi logout — gọi từ store.resetStore()
     window._destroyDashboardCharts = () => {

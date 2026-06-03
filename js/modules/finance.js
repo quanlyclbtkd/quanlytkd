@@ -1290,6 +1290,24 @@ export function initTransactionPagination() {
                     // Cập nhật store để render.js có thể dùng
                     store.pagination.transactions = pgState;
 
+                    // [GITHUB-FIX Task 5] Hydrate store.transactions từ pagination items
+                    // Nếu transaction listener chính chưa kịp hydrate, dashboard vẫn có dữ liệu
+                    (function _mergePaginationTransactionsIntoStore(txItems, reason) {
+                        if (!Array.isArray(txItems) || txItems.length === 0) return;
+                        const st = window.__store || store;
+                        if (!st) return;
+                        if (!Array.isArray(st.transactions)) st.transactions = [];
+                        const seen = new Map();
+                        st.transactions.forEach(function(tx) { if (tx && tx.id) seen.set(tx.id, tx); });
+                        txItems.forEach(function(tx) { if (tx && tx.id) seen.set(tx.id, tx); });
+                        st.transactions = Array.from(seen.values());
+                        if (window.__store) {
+                            window.__store.transactions = st.transactions;
+                            window.__store._dataVersion = (window.__store._dataVersion || 0) + 1;
+                            window.__store._lastTxHydrateReason = reason || 'tx-pagination-hydrate';
+                        }
+                    })(pgState.currentItems, 'tx-pagination-page');
+
                     // Phase 3.5D: Pagination chỉ ảnh hưởng tx.txList island — dùng list-level
                     // invalidation thay vì invalidateFinance() (tránh cross-domain dashboard).
                     // Fallback cascade an toàn: invalidateList → invalidateFinance → legacy.
@@ -1303,9 +1321,69 @@ export function initTransactionPagination() {
                     } else if (typeof window.scheduleRender === 'function') {
                         window.scheduleRender();
                     }
+
+                    // [GITHUB-FIX Task 5] Thêm invalidation cho finance + dashboard
+                    // Doanh thu tháng không bị giữ 0 khi tx listener chưa hydrate
+                    if (typeof window.invalidateFinance === 'function') {
+                        window.invalidateFinance('tx-pagination-data-hydrated');
+                    }
+                    if (typeof window.invalidateDashboard === 'function') {
+                        window.invalidateDashboard('tx-pagination-data-hydrated');
+                    }
+                    if (typeof window.refreshListsComputation === 'function') {
+                        window.refreshListsComputation([
+                            'tx.txList',
+                            'dashboard.summary',
+                        ], 'tx-pagination-data-hydrated');
+                    }
+
+                    // Phase 4K-DATA-HYDRATION: Direct row inject vào #txList
+                    // Nếu island (tx.txList) không render được từ allTransactions listener data
+                    // (allTransactions chưa populate hoặc listener chưa ready), render trực tiếp
+                    // từ pgState.currentItems để tránh tình trạng footer "1-9" nhưng rows trống.
+                    // Chỉ chạy nếu island chưa inject rows (tr[data-tx-id] chưa có).
+                    try {
+                        const _txEl = document.getElementById('txList');
+                        if (_txEl && pgState.currentItems && pgState.currentItems.length > 0) {
+                            const _hasRows = _txEl.querySelector('tr[data-tx-id]');
+                            if (!_hasRows) {
+                                const { renderTxRow } = await import('../ui/render/computation/financeRenderer.js');
+                                const _html = pgState.currentItems.map(function(tx) {
+                                    return renderTxRow(tx, {
+                                        isSingleBranch: true,
+                                        isAdmin:        false,
+                                        branchTdHTML:   '',
+                                        btnDel:         '',
+                                    });
+                                }).join('');
+                                _txEl.innerHTML = _html ||
+                                    '<tr><td colspan="10" style="text-align:center;color:#64748b;padding:16px;">Không có giao dịch</td></tr>';
+                                console.info('[pagination/transactions] Direct row render (island fallback):', pgState.currentItems.length, 'rows → #txList');
+                            }
+                        }
+                    } catch (_rowErr) {
+                        console.warn('[pagination/transactions] Direct row render lỗi (non-blocking):', _rowErr && _rowErr.message);
+                    }
                 } catch (err) {
-                    console.error('[pagination/transactions] Lỗi load trang:', err);
                     pgState.isLoading = false;
+                    const errMsg = (err && err.message) || String(err);
+                    const isIndexErr = errMsg.includes('failed-precondition') ||
+                                       errMsg.includes('requires an index') ||
+                                       errMsg.includes('The query requires an index');
+                    if (isIndexErr) {
+                        console.error('[pagination/transactions] Thiếu Firestore index cho truy vấn giao dịch. Hãy deploy firestore.indexes.json hoặc tạo index từ link Firebase Console trong console.');
+                        const linkMatch = errMsg.match(/https:\/\/console\.firebase\.google\.com\/[^\s]+/);
+                        if (linkMatch) console.info('[pagination/transactions] 🔗 Tạo index nhanh (bấm link):', linkMatch[0]);
+                        const txList = document.getElementById('txList');
+                        if (txList) {
+                            txList.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:24px 16px;color:#b91c1c;font-weight:600;line-height:1.6;">' +
+                                '⚠️ Thiếu Firestore index — danh sách giao dịch chưa tải được.<br>' +
+                                '<span style="font-weight:400;font-size:0.9em;">Admin cần deploy <code>firestore.indexes.json</code> hoặc bấm link tạo index trong Console trình duyệt.</span>' +
+                                '</td></tr>';
+                        }
+                    } else {
+                        console.error('[pagination/transactions] Lỗi load trang:', err);
+                    }
                 }
 
                 _injectControls();

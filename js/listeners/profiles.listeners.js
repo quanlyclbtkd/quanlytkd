@@ -40,6 +40,7 @@ import {
     getActiveQueryValues,
     getQuitQueryValues,
     getProfileStatusConfig,
+    classifyProfileStatus,
 } from '../data/profileStatusConfig.js';
 
 // ── Backward compat aliases (Phase 3.7B callers dùng tên cũ) ──────────────
@@ -125,15 +126,38 @@ function _syncLegacy() {
 }
 
 /**
- * Invalidate students + dashboard + attendance + exam render.
+ * Invalidate students + dashboard + attendance + exam + tuition + debt render.
+ *
+ * Phase 4K-DATA-HYDRATION: Thêm tuition + debt + finance — đảm bảo Học Phí (0) /
+ * Báo Nợ (0) tự cập nhật khi profiles hydrate về sau login.
  * @private
  */
 function _invalidateAll(reason) {
-    if (typeof window.invalidateStudents  === 'function') window.invalidateStudents(reason);
+    // [GITHUB-FIX] Task 5: Dùng invalidateLists cho tất cả student lists nếu có
+    // Đảm bảo BÁO NỢ, HỌC PHÍ, ĐANG TẬP, ĐÃ NGHỈ đều refresh khi profiles load xong
+    if (typeof window.invalidateLists === 'function') {
+        window.invalidateLists([
+            'students.activeList',
+            'students.debtList',
+            'students.quitList',
+        ], reason);
+    } else if (typeof window.invalidateStudents === 'function') {
+        window.invalidateStudents(reason);
+    }
+
     if (typeof window.invalidateDashboard === 'function') window.invalidateDashboard(reason);
     if (typeof window.invalidateByDomain  === 'function') {
         window.invalidateByDomain('attendance', reason);
         window.invalidateByDomain('exam',       reason);
+        // Phase 4K-DATA-HYDRATION: tuition + debt cần re-calc khi profile count thay đổi
+        window.invalidateByDomain('tuition',    reason);
+        window.invalidateByDomain('debt',       reason);
+    }
+    // Finance tab (Học Phí) — tính lại tóm tắt doanh thu + báo nợ khi profiles thay đổi
+    if (typeof window.invalidateFinance === 'function') window.invalidateFinance(reason);
+    // students.activeList — cập nhật counter "Đang Tập (N)" (fallback nếu invalidateLists không có)
+    if (typeof window.invalidateList === 'function' && typeof window.invalidateLists !== 'function') {
+        window.invalidateList('students.activeList', reason);
     }
 }
 
@@ -235,6 +259,18 @@ function _checkActiveProfileCoverage(activeCount) {
     if (!suspicious && prevActive >= 10 && activeCount < prevActive * 0.3) {
         suspicious = true;
         reason     = 'active=' + activeCount + '<30%ofPrev=' + prevActive;
+    }
+
+    // Case D: GitHub/runtime pagination đã đọc được danh sách nhưng active query
+    // trả về quá ít. Thường xảy ra với data legacy thiếu/khác field status.
+    // Pagination đọc collection theo __name__, còn active listener query where(status in ...).
+    const pgCount = (window.__store && window.__store.pagination &&
+        window.__store.pagination.students &&
+        Array.isArray(window.__store.pagination.students.currentItems))
+        ? window.__store.pagination.students.currentItems.length : 0;
+    if (!suspicious && pgCount >= 10 && activeCount < Math.ceil(pgCount * 0.3)) {
+        suspicious = true;
+        reason     = 'active=' + activeCount + '<30%ofPaginationPage=' + pgCount;
     }
 
     if (suspicious) {
@@ -342,6 +378,27 @@ export function mountActiveProfilesListener(context) {
 
                     // [Phase 3.7C] Coverage guard — trước khi cập nhật store
                     _checkActiveProfileCoverage(activeCount);
+
+                    // Phase 4K-STUDENT-LIST: Active-zero probe —
+                    // Nếu snapshot đầu tiên trả 0 nhưng collection có docs,
+                    // data cũ có thể thiếu status field → trigger full fallback.
+                    // Dùng getDocs(limit(1)) — nhẹ, không đọc full collection.
+                    if (activeCount === 0 && _state.activeSnapshotCount === 1) {
+                        const _fb4k = window._fb_init || {};
+                        const { query: _pQ4k, limit: _pL4k, getDocs: _pG4k } = _fb4k;
+                        if (_pG4k && _pQ4k && _pL4k && profRef) {
+                            // [GITHUB-FIX Task 4] Await fallback + invalidate sau khi hoàn tất
+                            _pG4k(_pQ4k(profRef, _pL4k(1))).then(async function(_probe) {
+                                if (!_probe.empty) {
+                                    console.warn('[ProfilesListener] active=0 but collection has docs — full fallback');
+                                    const ok = await loadFullProfilesFallback('active-zero-but-profiles-exist');
+                                    if (ok) {
+                                        _invalidateAll('active-zero-full-fallback-completed');
+                                    }
+                                }
+                            }).catch(() => {});
+                        }
+                    }
 
                     setActiveProfiles(activeMap, 'active-profiles-snapshot');
                     _syncLegacy();
@@ -541,6 +598,19 @@ export async function loadFullProfilesFallback(reason) {
             if (id) fullMap[id] = d.data();
         });
 
+        // Phase 4K-STUDENT-LIST: Phân loại active/quit dùng classifyProfileStatus() mới
+        // để data cũ thiếu status (→ 'active') vào activeProfiles đúng cách
+        // Sau classifier: setActiveProfiles + setQuitProfiles riêng biệt trước syncLegacy
+        const _fallbackActive = {};
+        const _fallbackQuit   = {};
+        Object.entries(fullMap).forEach(([_fId, _fData]) => {
+            const _fKind = classifyProfileStatus(_fData);
+            if (_fKind === 'quit') _fallbackQuit[_fId] = _fData;
+            else _fallbackActive[_fId] = _fData;
+        });
+        setActiveProfiles(_fallbackActive, 'full-fallback-active:' + reason);
+        setQuitProfiles(_fallbackQuit, 'full-fallback-quit-classified:' + reason);
+
         if (window.syncProfilesToStudentStore) {
             window.syncProfilesToStudentStore(fullMap, 'full-fallback:' + reason);
         } else {
@@ -561,9 +631,31 @@ export async function loadFullProfilesFallback(reason) {
         markActiveLoaded(true);
         markQuitLoaded(true);
 
+        // [GITHUB-FIX Task 4] Bump _dataVersion + refreshListsComputation sau fallback
+        if (window.__store) {
+            window.__store._dataVersion = (window.__store._dataVersion || 0) + 1;
+            window.__store._lastProfileHydrateReason = reason || 'full-profiles-fallback';
+        }
+
         _invalidateAll('full-profiles-fallback');
         if (typeof window.invalidateStudents === 'function') window.invalidateStudents('full-fallback-quit');
-        if (typeof window.invalidateList     === 'function') window.invalidateList('students.quitList', 'full-fallback-quit');
+        if (typeof window.invalidateList     === 'function') {
+            window.invalidateList('students.quitList',  'full-fallback-quit');
+            window.invalidateList('students.activeList', 'full-profiles-fallback');
+        }
+
+        if (typeof window.refreshListsComputation === 'function') {
+            window.refreshListsComputation([
+                'students.activeList',
+                'students.debtList',
+                'students.quitList',
+                'dashboard.summary',
+            ], 'full-profiles-fallback');
+        }
+
+        if (typeof window.invalidateDashboard === 'function') {
+            window.invalidateDashboard('full-profiles-fallback');
+        }
 
         _updateWindowMetrics();
         return true;

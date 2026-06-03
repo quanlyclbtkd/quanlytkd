@@ -43,11 +43,17 @@ import {
 } from './computation/financeRenderer.js';
 import {
     computeAndCacheStudents,
+    getStudentsSummary,
 } from './computation/studentsRenderer.js';
 import {
     computeAndCacheInventory,
+    getCachedUnpaidInvCount,
 } from './computation/inventoryRenderer.js';
-import { invalidateDashboardCache } from './computation/dashboardRenderer.js';
+import {
+    invalidateDashboardCache,
+    cacheDashboardData,
+} from './computation/dashboardRenderer.js';
+import { formatMonth } from '../../utils/format.js';
 
 // ── List key → computation domain mapping ─────────────────────────────────────
 //
@@ -117,8 +123,9 @@ function _getSelBranch() {
     try { return document.getElementById('filterBranch')?.value || 'all'; }
     catch (_) { return 'all'; }
 }
+// [PART 5 FIX] Giữ raw search — studentMatchesSearch/normalizeVNForSearch sẽ tự normalize
 function _getSearch() {
-    try { return (document.getElementById('searchInput')?.value || '').toLowerCase().trim(); }
+    try { return (document.getElementById('searchInput')?.value || '').trim(); }
     catch (_) { return ''; }
 }
 function _getProfiles()  { return (window.__store || {}).profiles     || window.allProfiles     || {}; }
@@ -212,6 +219,143 @@ function _refreshInventory() {
     });
 }
 
+// ── Phase 4K-GITHUB-SUMMARY-BADGE-FIX ────────────────────────────────────────
+// Domain invalidation refreshes finance/students caches but used to leave
+// dashboard summary cache empty/dirty. This helper derives the lightweight
+// summary from current computation caches and applies it globally, because
+// tab badges (HỌC PHÍ/BÁO NỢ/ĐANG TẬP) are outside the dashboard tab.
+function _cacheAndApplyDashboardSummary(reason) {
+    const fin = getFinanceSummary();
+    const std = getStudentsSummary();
+    const prev = (window.__store && window.__store._lastSummaryNumbers) || {};
+
+    const _num = (v, fallback = 0) => Number(v ?? fallback) || 0;
+
+    const incTuition    = fin ? _num(fin.incTuition)   : _num(prev.incTuition);
+    const incExam       = fin ? _num(fin.incExam)      : _num(prev.incExam);
+    const incOther      = fin ? _num(fin.incOther)     : _num(prev.incOther);
+    const incUniform    = fin ? _num(fin.incUniform)   : _num(prev.incUniform);
+    const expTotal      = fin ? _num(fin.exp)          : _num(prev.expTotal);
+    const expExamTotal  = fin ? _num(fin.expExamTotal) : _num(prev.expExamTotal);
+    const expUniform    = fin ? _num(fin.expUniform)   : _num(prev.expUniform);
+    const txCount       = fin ? _num(fin.txCount)      : prev.txCount;
+
+    const activeCount   = std ? _num(std.activeCount)    : _num(prev.activeCount);
+    const debtCount     = std ? _num(std.debtCount)      : _num(prev.debtCount);
+    const totalDebtEst  = std ? _num(std.totalDebtEst)   : _num(prev.totalDebtEst);
+    const mActiveTheo   = std ? _num(std.m_active_theo)  : _num(prev.activeCount);
+    const mNew          = std ? _num(std.m_new)          : 0;
+    const mQuit         = std ? _num(std.m_quit)         : 0;
+    const mSkipped      = std ? _num(std.m_skipped)      : 0;
+    const unpaidInvCount = typeof getCachedUnpaidInvCount === 'function'
+        ? _num(getCachedUnpaidInvCount())
+        : _num(prev.unpaidInvCount);
+
+    const selMonth = _getSelMonth() || prev.selMonth || '';
+    const tInc = incTuition + incOther + incExam + incUniform;
+    const tExp = expTotal + expExamTotal + expUniform;
+    const mActual = mActiveTheo - mSkipped;
+
+    const summaryNumbers = {
+        incTuition, incExam, incOther, incUniform,
+        expTotal, expExamTotal, expUniform,
+        activeCount, debtCount, totalDebtEst, txCount,
+        selMonth, unpaidInvCount,
+    };
+
+    let reportHtml = '';
+    if (selMonth) {
+        reportHtml =
+            `<tr><td class="font-black text-primary">${formatMonth(selMonth)}</td>` +
+            `<td class="text-slate-800 font-bold text-base">${mActual}</td>` +
+            `<td class="text-emerald-600 font-medium">+${mNew}</td>` +
+            `<td class="text-rose-600 font-medium">-${mQuit}</td>` +
+            `<td class="text-emerald-600 font-bold">${tInc.toLocaleString()} ₫</td>` +
+            `<td class="text-rose-600 font-bold">${tExp.toLocaleString()} ₫</td>` +
+            `<td class="${(tInc - tExp) < 0 ? 'text-rose-600' : 'text-emerald-600'} font-black text-base bg-slate-50">${(tInc - tExp).toLocaleString()} ₫</td></tr>`;
+    }
+
+    const chartData = { labels: [], income: [], expense: [], active: [] };
+    if (selMonth) {
+        const [sy, sm] = selMonth.split('-').map(Number);
+        const months = [];
+        for (let i = 0; i < 6; i++) {
+            let m = sm - i, y = sy;
+            if (m <= 0) { m += 12; y -= 1; }
+            months.push(`${y}-${String(m).padStart(2, '0')}`);
+        }
+        months.reverse().forEach((m, idx) => {
+            chartData.labels[idx]  = formatMonth(m);
+            chartData.income[idx]  = m === selMonth ? tInc : 0;
+            chartData.expense[idx] = m === selMonth ? tExp : 0;
+            chartData.active[idx]  = m === selMonth ? mActual : 0;
+        });
+    }
+
+    const bStats = (fin && fin.bStats) || (window.__store && window.__store._lastBStats) || {};
+    const bExamStats = (fin && fin.bExamStats) || (window.__store && window.__store._lastBExamStats) || {};
+
+    // [Part 3 FIX] Guard uses `prev` (captured at TOP of this function, BEFORE any write).
+    // Previously the guard read window.__store._lastSummaryNumbers AFTER writing summaryNumbers,
+    // making prevSummary === summaryNumbers and the guard always a no-op.
+    const incomingLooksEmpty =
+        summaryNumbers.activeCount === 0 &&
+        summaryNumbers.debtCount   === 0 &&
+        summaryNumbers.txCount     === 0 &&
+        summaryNumbers.incTuition  === 0 &&
+        summaryNumbers.incExam     === 0 &&
+        summaryNumbers.incOther    === 0 &&
+        summaryNumbers.incUniform  === 0;
+
+    const prevLooksNonEmpty =
+        Number(prev.activeCount  || 0) > 0 ||
+        Number(prev.debtCount    || 0) > 0 ||
+        Number(prev.txCount      || 0) > 0 ||
+        Number(prev.incTuition   || 0) > 0 ||
+        Number(prev.incExam      || 0) > 0 ||
+        Number(prev.incOther     || 0) > 0 ||
+        Number(prev.incUniform   || 0) > 0;
+
+    if (incomingLooksEmpty && prevLooksNonEmpty && reason !== 'logout' && reason !== 'reset') {
+        console.warn('[DashboardSummary] Skip all-zero overwrite — keeping real previous data. reason:', reason);
+        return /** @type {any} */ (prev);
+    }
+
+    // Write to cache only after guard passes
+    cacheDashboardData({
+        reportHtml,
+        chartData,
+        bStats,
+        bExamStats,
+        summaryNumbers,
+    });
+
+    if (window.__store) {
+        window.__store._lastSummaryNumbers = summaryNumbers;
+        window.__store._lastBStats = bStats;
+        window.__store._lastBExamStats = bExamStats;
+        window.__store._lastIncExam = incExam;
+    }
+
+    if (typeof window.updateSummaryNumbers === 'function') {
+        try { window.updateSummaryNumbers(summaryNumbers); } catch (e) {
+            console.warn('[listComputationRefresh] updateSummaryNumbers failed:', e);
+        }
+    }
+
+    const dashActive = document.getElementById('tab_dashboard')?.classList.contains('active');
+    if (dashActive) {
+        if (typeof window.renderBranchStats === 'function') {
+            try { window.renderBranchStats(bStats); } catch (_) {}
+        }
+        if (typeof window.renderDashboardCharts === 'function') {
+            try { window.renderDashboardCharts(chartData); } catch (_) {}
+        }
+    }
+
+    return summaryNumbers;
+}
+
 // ── refreshListComputation ────────────────────────────────────────────────────
 
 /**
@@ -253,16 +397,19 @@ export function refreshListComputation(key, reason = 'list-refresh') {
         switch (domain) {
             case 'finance':
                 _refreshFinance();
+                _cacheAndApplyDashboardSummary(reason);
                 ok = true;
                 break;
 
             case 'students':
                 _refreshStudents();
+                _cacheAndApplyDashboardSummary(reason);
                 ok = true;
                 break;
 
             case 'inventory':
                 _refreshInventory();
+                _cacheAndApplyDashboardSummary(reason);
                 ok = true;
                 break;
 
@@ -274,14 +421,9 @@ export function refreshListComputation(key, reason = 'list-refresh') {
                 break;
 
             case 'dashboard':
-                // Dashboard phụ thuộc finance + students đã computed → partial recompute
-                // không an toàn (thiếu data). Invalidate cache section cụ thể để dashboard
-                // island bị mark dirty → khi user mở tab dashboard sẽ trigger full renderApp().
-                if      (key === 'dashboard.reportList')  invalidateDashboardCache('reportList');
-                else if (key === 'dashboard.summary')     invalidateDashboardCache('summary');
-                else if (key === 'dashboard.charts')      invalidateDashboardCache('charts');
-                else if (key === 'dashboard.branchStats') invalidateDashboardCache('branchStats');
-                ok = false; // fallback → invalidateList() sẽ trigger invalidateCurrentTab()
+                // [Part 2 FIX] Dashboard keys now trigger refreshDashboardComputation (not ok=false)
+                refreshDashboardComputation(reason || 'dashboard-list-refresh');
+                ok = true;
                 break;
 
             default:
@@ -373,8 +515,12 @@ export function refreshListsComputation(keys, reason = 'list-refresh') {
                     ok = true;
                     break;
                 case 'attendance':
-                case 'dashboard':
                     ok = false;
+                    break;
+                case 'dashboard':
+                    // [Part 2 FIX] Dashboard batch refresh triggers real recompute
+                    refreshDashboardComputation(reason || 'dashboard-batch-refresh');
+                    ok = true;
                     break;
                 default:
                     ok = false;
@@ -402,6 +548,14 @@ export function refreshListsComputation(keys, reason = 'list-refresh') {
         }
     }
 
+    // Sau batch refresh, cập nhật summary/badges đúng 1 lần.
+    if (refreshed.some(k => {
+        const d = LIST_TO_COMPUTATION_DOMAIN[k];
+        return d === 'finance' || d === 'students' || d === 'inventory';
+    })) {
+        _cacheAndApplyDashboardSummary(reason);
+    }
+
     const ms = performance.now() - t0;
     if (ms > _SLOW_MS * Math.max(keys.length, 1)) {
         console.warn(
@@ -411,6 +565,58 @@ export function refreshListsComputation(keys, reason = 'list-refresh') {
     }
 
     return { refreshed, fallback };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// refreshDashboardComputation — Part 2 FIX
+// Recompute ALL dashboard data (finance + students + inventory → summary/charts)
+// before rendering dashboard islands.  Always call this instead of rendering
+// from an empty/stale cache.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Full dashboard recompute: finance → students → inventory → summary → chartData.
+ *
+ * Exposed on window so renderInvalidation.js can call it without a circular import.
+ *
+ * @param {string} [reason]
+ * @returns {object|null} summaryNumbers or null on failure
+ */
+export function refreshDashboardComputation(reason = 'dashboard-refresh') {
+    try {
+        try { _refreshFinance();   } catch (_) {}
+        try { _refreshStudents();  } catch (_) {}
+        try { _refreshInventory(); } catch (_) {}
+
+        const summary = _cacheAndApplyDashboardSummary(reason);
+
+        if (window.__store) {
+            window.__store._lastDashboardRefreshReason = reason;
+            window.__store._lastDashboardRefreshAt     = Date.now();
+        }
+
+        // Fire-and-forget: load historical chart data from Firestore stats docs
+        // so the 6-month chart isn't all-zero for past months.
+        if (typeof window.fetchHistoricalDashboardFallback === 'function') {
+            const _selMonth = (window.__store && window.__store.selectedMonth) ||
+                (document.getElementById('monthPicker') ? document.getElementById('monthPicker').value : '');
+            if (_selMonth) {
+                window.fetchHistoricalDashboardFallback(_selMonth, reason).catch(function(e) {
+                    console.warn('[refreshDashboardComputation] historical fetch failed:', e);
+                });
+            }
+        }
+
+        return summary;
+    } catch (e) {
+        console.warn('[refreshDashboardComputation] failed:', e);
+        return null;
+    }
+}
+
+// Expose immediately so renderInvalidation.js can call it on first paint
+if (typeof window !== 'undefined') {
+    window.refreshDashboardComputation = refreshDashboardComputation;
 }
 
 /**
