@@ -65,7 +65,10 @@
     "check:student-render-cache-pagination": "node tools/check-student-render-cache-pagination.mjs",
     "check:active-island-preserve-pagination": "node tools/check-active-island-preserve-pagination.mjs",
     "check:pagination-version-invalidation": "node tools/check-pagination-version-invalidation.mjs",
-    "check:active-list-mutation-debug": "node tools/check-active-list-mutation-debug.mjs"
+    "check:active-list-mutation-debug": "node tools/check-active-list-mutation-debug.mjs",
+    "check:dashboard-recompute-before-island": "node tools/check-dashboard-recompute-before-island.mjs",
+    "check:dashboard-history-fallback": "node tools/check-dashboard-history-fallback.mjs",
+    "check:student-pagination-controls-dom": "node tools/check-student-pagination-controls-dom.mjs"
   },
   "engines": {
     "node": ">=18.0.0"
