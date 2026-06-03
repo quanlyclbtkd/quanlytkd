@@ -362,8 +362,9 @@ export function initStudents() {
             });
 
             // ── Ghi transaction học phí ────────────────────────────────────
+            let tuitionTx = null;
             if (fee > 0) {
-                await StudentService.addTuitionTransaction({
+                tuitionTx = await StudentService.addTuitionTransaction({
                     branch, type: 'Học phí', description: _saveKey,
                     amount: fee, date: joinDate, txMonth: lastMonth,
                     paymentMonth: startMonth,
@@ -373,6 +374,10 @@ export function initStudents() {
                     tuitionPaidUntil: lastMonth,
                     timestamp: Date.now(),
                 });
+                // Phase 4K-4E: Hydrate tx vào runtime store ngay để HỌC PHÍ tab thấy ngay
+                if (tuitionTx && typeof window.mergeTransactionIntoRuntimeStore === 'function') {
+                    window.mergeTransactionIntoRuntimeStore(tuitionTx, 'admission-tuition-created');
+                }
             }
 
             // ── Xuất kho võ phục + ghi transaction ────────────────────────

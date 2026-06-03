@@ -532,7 +532,8 @@ export const StudentService = {
         const { addDoc } = _sdk();
         const colRef = _txColRef();
         if (!colRef) throw new Error('[StudentService] colRef chưa sẵn sàng');
-        await addDoc(colRef, data);
+        const docRef = await addDoc(colRef, data);
+        return { id: docRef.id, ...data };
     },
 
     /**
@@ -543,7 +544,8 @@ export const StudentService = {
         const { addDoc } = _sdk();
         const colRef = _txColRef();
         if (!colRef) throw new Error('[StudentService] colRef chưa sẵn sàng');
-        await addDoc(colRef, data);
+        const docRef = await addDoc(colRef, data);
+        return { id: docRef.id, ...data };
     },
 
     /**

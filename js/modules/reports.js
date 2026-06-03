@@ -47,6 +47,10 @@
  */
 
 import {
+    getLocalToday,
+    formatDate,
+    formatMonth,
+} from '../utils/format.js';
 
 // ── Phase 4K-4D: Fallback classify helper (reports — Node/export context safe) ──
 function _classifyInvTxForReport(tx, cats) {
@@ -67,11 +71,6 @@ function _classifyInvTxForReport(tx, cats) {
     }
     return { isInventory: false, direction: '', amount: 0 };
 }
-
-    getLocalToday,
-    formatDate,
-    formatMonth,
-} from '../utils/format.js';
 
 // ════════════════════════════════════════════════════════════════
 // BRIDGE HELPERS — đọc state từ window.__store tại call time

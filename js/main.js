@@ -1180,12 +1180,22 @@ function _waitForExistingLegacyApp(ms) {
         initInventory();
         initAttendance();
         // [Phase 4.0A] Reports / Export module — overrides app.js window functions
-        initReports();
+        // [Phase 4K-4E] Isolated try/catch: syntax/runtime error không làm SuperAdmin chết
+        try {
+            initReports();
+        } catch (e) {
+            console.error('[BOOT] initReports failed — SuperAdmin vẫn chạy:', e);
+        }
 
         // [Phase 4.0B-1] SuperAdmin — eager init ngay sau khi app context sẵn sàng.
         // initSuperAdmin() idempotent: tự bỏ qua nếu đã init rồi.
         // KHÔNG phụ thuộc switchTab('superadmin') nữa.
-        initSuperAdmin();
+        // [Phase 4K-4E] Isolated try/catch: lỗi module khác không làm SuperAdmin chết
+        try {
+            initSuperAdmin();
+        } catch (e) {
+            console.error('[BOOT] initSuperAdmin failed:', e);
+        }
 
         // [HOTFIX] Sau initSuperAdmin(), nếu superAdminView đang hiển thị mà danh sách CLB
         // chưa load (vì initSaaSDatabase đã gọi trước module sẵn sàng), tự gọi lại một lần.
@@ -2637,6 +2647,9 @@ window.debugRuntimeSmokeTest = async function(term) {
     out.dashboardHistory   = await safeCall('debugDashboardHistory',    window.debugDashboardHistory);
     out.studentPagination  = await safeCall('debugStudentPagination',   window.debugStudentPagination);
     out.profileModalClose  = await safeCall('debugProfileModalClose',   window.debugProfileModalClose);
+    // Phase 4K-4E
+    out.monthRuntime       = await safeCall('debugMonthRuntime',        window.debugMonthRuntime);
+    out.admissionTxHydration = await safeCall('debugAdmissionTxHydration', window.debugAdmissionTxHydration, ['']);
 
     const summary = {
         runtimeMode:     out.runtimeMode,
@@ -2650,6 +2663,9 @@ window.debugRuntimeSmokeTest = async function(term) {
         dashboardOk:         !!out.dashboardHistory.ok,
         paginationOk:        !!out.studentPagination.ok,
         modalOk:             !!out.profileModalClose.ok,
+        // Phase 4K-4E
+        monthRuntimeOk:      !!out.monthRuntime.ok,
+        admissionTxHydrationOk: !!out.admissionTxHydration.ok,
 
         overallOk:
             !!out.examFee.ok &&
@@ -2658,13 +2674,265 @@ window.debugRuntimeSmokeTest = async function(term) {
             !!out.searchPerformance.ok &&
             !!out.dashboardHistory.ok &&
             !!out.studentPagination.ok &&
-            !!out.profileModalClose.ok
+            !!out.profileModalClose.ok &&
+            !!out.monthRuntime.ok &&
+            !!out.admissionTxHydration.ok
     };
 
     console.table(summary);
     console.log('[debugRuntimeSmokeTest:detail]', out);
     return { summary: summary, detail: out };
 };
+
+
+// ════════════════════════════════════════════════════════════════
+// Phase 4K-4E — MONTH CHANGE CONTROLLER + ADMISSION TX HYDRATION
+// ════════════════════════════════════════════════════════════════
+
+/**
+ * handleFilterMonthChange(month, reason) — Controller thống nhất cho đổi tháng.
+ * Gọi bất cứ khi nào #filterMonth thay đổi.
+ */
+window.handleFilterMonthChange = async function(month, reason) {
+    reason = reason || 'filter-month-change';
+    const selectedMonth = String(month || '').trim();
+    if (!selectedMonth) return;
+
+    if (!window.__store) window.__store = {};
+    window.__store.selectedMonth = selectedMonth;
+    window.__store._lastSelectedMonthReason = reason;
+    window.__store._dataVersion = (window.__store._dataVersion || 0) + 1;
+
+    // 1. Re-subscribe transaction listener (legacy/global)
+    if (typeof window.listenToData === 'function') {
+        try { window.listenToData(selectedMonth); }
+        catch (e) { console.warn('[month-change] listenToData failed:', e); }
+    }
+
+    // 2. Clear search cache vì tháng thay đổi
+    if (typeof window.invalidateSearchCache === 'function') {
+        try { window.invalidateSearchCache('all', 'filter-month-change'); }
+        catch (_) {}
+    }
+
+    // 3. Reload transaction pagination nếu có
+    if (typeof window.reloadTransactionsPage === 'function') {
+        try { await window.reloadTransactionsPage(); }
+        catch (e) { console.warn('[month-change] reloadTransactionsPage failed:', e); }
+    }
+
+    // 4. Refresh computation đúng domain
+    if (typeof window.refreshListsComputation === 'function') {
+        try {
+            window.refreshListsComputation([
+                'tx.txList', 'students.debtList',
+                'students.activeList', 'dashboard.summary',
+            ], 'filter-month-change');
+        } catch (e) { console.warn('[month-change] refreshListsComputation failed:', e); }
+    }
+
+    // 5. Invalidate finance/students/dashboard
+    if (typeof window.invalidateFinance   === 'function') window.invalidateFinance('filter-month-change');
+    if (typeof window.invalidateStudents  === 'function') window.invalidateStudents('filter-month-change');
+    if (typeof window.invalidateDashboard === 'function') {
+        window.invalidateDashboard('filter-month-change');
+    } else if (typeof window.invalidateCurrentTab === 'function') {
+        window.invalidateCurrentTab('filter-month-change');
+    }
+
+    // 6. Đồng bộ mobile header nếu có
+    if (typeof window.syncMobileHeader === 'function') {
+        try { window.syncMobileHeader(); } catch (_) {}
+    }
+
+    return selectedMonth;
+};
+
+/**
+ * onFilterMonthChange() — Alias tương thích backward với finance.events.js.
+ */
+window.onFilterMonthChange = function() {
+    const el = document.getElementById('filterMonth');
+    const month = el ? el.value : '';
+    return window.handleFilterMonthChange(month, 'onFilterMonthChange');
+};
+
+/**
+ * initFilterMonthController() — Bind #filterMonth event ONCE (idempotent).
+ * Gọi sau DOMContentLoaded / app context ready / main.js bootstrap ready.
+ */
+window.initFilterMonthController = function() {
+    const el = document.getElementById('filterMonth');
+    if (!el || el.__filterMonthControllerBound) return;
+    el.__filterMonthControllerBound = true;
+    el.addEventListener('change', function(e) {
+        if (typeof window.handleFilterMonthChange === 'function') {
+            window.handleFilterMonthChange(e.target.value, 'filterMonth-change-event');
+        }
+    });
+};
+
+/**
+ * debugMonthRuntime() — Kiểm tra trạng thái Month Change Controller.
+ * Chạy từ Console sau khi deploy GitHub/domain.
+ */
+window.debugMonthRuntime = function() {
+    const st  = window.__store || {};
+    const el  = document.getElementById('filterMonth');
+    const txs = Array.isArray(st.transactions) ? st.transactions : [];
+    const month = el ? el.value : '';
+
+    const result = {
+        href:                    location.href,
+        runtimeMode:             window.__RUNTIME_MODE || '',
+        mainLoaded:              !!window.MAIN_JS_LOADED,
+        appLoaded:               !!window.__appLoaded,
+        filterMonthValue:        month,
+        storeSelectedMonth:      st.selectedMonth || '',
+        lastSelectedMonthReason: st._lastSelectedMonthReason || '',
+        hasHandleFilterMonthChange:  typeof window.handleFilterMonthChange === 'function',
+        hasOnFilterMonthChange:      typeof window.onFilterMonthChange === 'function',
+        hasListenToData:             typeof window.listenToData === 'function',
+        hasReloadTransactionsPage:   typeof window.reloadTransactionsPage === 'function',
+        txCountInStore:   txs.length,
+        txMatchingMonth:  txs.filter(t =>
+            t.txMonth === month ||
+            t.paymentMonth === month ||
+            (Array.isArray(t.packageMonths) && t.packageMonths.includes(month)) ||
+            (t.date && String(t.date).startsWith(month))
+        ).length,
+        filterMonthControllerBound: !!(el && el.__filterMonthControllerBound),
+        paginationMonth:
+            st.pagination?.transactions?.searchQuery ||
+            st.pagination?.transactions?._lastMonth  || '',
+    };
+
+    console.table(result);
+    return result;
+};
+
+/**
+ * mergeTransactionIntoRuntimeStore(tx, reason) — Hydrate tx mới vào store ngay.
+ * Dùng sau addTuitionTransaction, addDoc, markPaid inventory để HỌC PHÍ tab thấy ngay.
+ */
+window.mergeTransactionIntoRuntimeStore = function(tx, reason) {
+    reason = reason || 'manual-merge';
+    if (!tx || !tx.id) return false;
+
+    if (!window.__store) window.__store = {};
+    const st = window.__store;
+
+    if (!Array.isArray(st.transactions)) st.transactions = [];
+
+    // Upsert vào store (tránh duplicate)
+    const map = new Map();
+    st.transactions.forEach(t => {
+        const id = String(t.id || t.txId || '').trim();
+        if (id) map.set(id, t);
+    });
+    map.set(String(tx.id), tx);
+    st.transactions = Array.from(map.values());
+
+    // Upsert vào pagination currentItems nếu thuộc tháng đang xem
+    if (st.pagination && st.pagination.transactions && Array.isArray(st.pagination.transactions.currentItems)) {
+        const selectedMonth =
+            (document.getElementById('filterMonth') && document.getElementById('filterMonth').value) ||
+            st.selectedMonth || '';
+
+        const matchSelectedMonth =
+            !selectedMonth ||
+            tx.txMonth === selectedMonth ||
+            tx.paymentMonth === selectedMonth ||
+            (Array.isArray(tx.packageMonths) && tx.packageMonths.includes(selectedMonth)) ||
+            (tx.date && String(tx.date).startsWith(selectedMonth));
+
+        if (matchSelectedMonth) {
+            const pgMap = new Map();
+            st.pagination.transactions.currentItems.forEach(t => {
+                const id = String(t.id || t.txId || '').trim();
+                if (id) pgMap.set(id, t);
+            });
+            pgMap.set(String(tx.id), tx);
+            st.pagination.transactions.currentItems = Array.from(pgMap.values())
+                .sort((a, b) => Number(b.timestamp || 0) - Number(a.timestamp || 0));
+        }
+    }
+
+    st._dataVersion = (st._dataVersion || 0) + 1;
+    st._lastTransactionMergeReason = reason;
+    st._lastTransactionMergeAt     = Date.now();
+
+    // Invalidate renders
+    if (typeof window.refreshListsComputation === 'function') {
+        window.refreshListsComputation(['tx.txList', 'dashboard.summary'], reason);
+    }
+    if (typeof window.invalidateList === 'function') {
+        window.invalidateList('tx.txList', reason);
+    } else if (typeof window.invalidateFinance === 'function') {
+        window.invalidateFinance(reason);
+    }
+    if (typeof window.invalidateDashboard === 'function') window.invalidateDashboard(reason);
+
+    return true;
+};
+
+/**
+ * debugAdmissionTxHydration(studentName) — Kiểm tra xem tx mới thêm có trong store không.
+ * Chạy từ Console sau khi thêm võ sinh mới.
+ */
+window.debugAdmissionTxHydration = function(studentName) {
+    const st   = window.__store || {};
+    const month = (document.getElementById('filterMonth') && document.getElementById('filterMonth').value) ||
+                  st.selectedMonth || '';
+    const q    = String(studentName || '').trim();
+    const txs  = Array.isArray(st.transactions) ? st.transactions : [];
+
+    const matches = txs.filter(t => {
+        const nameMatch  = !q || String(t.description || '').includes(q);
+        const monthMatch =
+            !month ||
+            t.txMonth === month ||
+            t.paymentMonth === month ||
+            (Array.isArray(t.packageMonths) && t.packageMonths.includes(month)) ||
+            (t.date && String(t.date).startsWith(month));
+        return nameMatch && monthMatch;
+    });
+
+    const result = {
+        href:           location.href,
+        runtimeMode:    window.__RUNTIME_MODE || '',
+        selectedMonth:  month,
+        queryName:      q,
+        storeTxCount:   txs.length,
+        matchingTxCount: matches.length,
+        matchingTxs:    matches.slice(0, 10).map(t => ({
+            id: t.id, type: t.type, description: t.description,
+            amount: t.amount, date: t.date,
+            txMonth: t.txMonth, paymentMonth: t.paymentMonth, packageMonths: t.packageMonths,
+        })),
+        txRows: document.querySelectorAll('#txList tr[data-tx-id]').length,
+        lastTransactionMergeReason: st._lastTransactionMergeReason || '',
+        lastTransactionMergeAt:     st._lastTransactionMergeAt     || '',
+    };
+
+    console.table({
+        selectedMonth:      result.selectedMonth,
+        storeTxCount:       result.storeTxCount,
+        matchingTxCount:    result.matchingTxCount,
+        txRows:             result.txRows,
+        lastMerge:          result.lastTransactionMergeReason,
+    });
+    return result;
+};
+
+// After bootstrap: bind filterMonth controller once
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof window.initFilterMonthController === 'function') window.initFilterMonthController();
+    });
+} else {
+    if (typeof window.initFilterMonthController === 'function') window.initFilterMonthController();
+}
 
 // ════════════════════════════════════════════════════════════════
 // Phase 4K-4D — INVENTORY FINANCE HELPERS
