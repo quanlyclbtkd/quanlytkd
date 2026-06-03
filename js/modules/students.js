@@ -28,6 +28,7 @@
  */
 
 import { getLocalToday, formatDate, formatMonth, addMonthsToYYYYMM } from '../utils/format.js';
+import { buildStudentSearchIndex } from '../utils/helpers.js';
 import { StudentService } from '../services/students.service.js';
 
 // ════════════════════════════════════════════════════════════════
@@ -341,7 +342,7 @@ export function initStudents() {
             const _addNickVal  = _addNickEl ? _addNickEl.value.trim() : '';
 
             // ── Ghi profile ────────────────────────────────────────────────
-            await StudentService.createProfile(_saveKey, {
+            const _newProfileData = {
                 status:          'active',
                 memberId,
                 branch,
@@ -358,7 +359,14 @@ export function initStudents() {
                 createdAt:       joinDate,
                 paidUntil:       newPaidUntil,
                 paidMonths:      monthsToRecord,
-            });
+            };
+            // Phase 4J-8A: Gắn search index để hỗ trợ server-side search
+            const _newSearchIdx = buildStudentSearchIndex(_newProfileData, _saveKey);
+            _newProfileData.searchName     = _newSearchIdx.searchName;
+            _newProfileData.searchPhone    = _newSearchIdx.searchPhone;
+            _newProfileData.searchCode     = _newSearchIdx.searchCode;
+            _newProfileData.searchKeywords = _newSearchIdx.searchKeywords;
+            await StudentService.createProfile(_saveKey, _newProfileData);
 
             // ── Ghi transaction học phí ────────────────────────────────────
             if (fee > 0) {
@@ -563,6 +571,13 @@ export function initStudents() {
                 updateData.paidUntil = `${ry}-${String(rm).padStart(2, '0')}`;
             }
         }
+
+        // Phase 4J-8A: Gắn search index cho profile đang sửa
+        const _editSearchIdx = buildStudentSearchIndex(updateData, newName);
+        updateData.searchName     = _editSearchIdx.searchName;
+        updateData.searchPhone    = _editSearchIdx.searchPhone;
+        updateData.searchCode     = _editSearchIdx.searchCode;
+        updateData.searchKeywords = _editSearchIdx.searchKeywords;
 
         try {
             if (oldName !== newName) {
@@ -1011,57 +1026,17 @@ export function initStudentPagination() {
 
                 const search = _getCurrentSearch();
 
-                // Phase 4.0B-4J-8A: Search status element
-                const _srStatusId = 'searchStatusMsg_students';
-                let _srEl = document.getElementById(_srStatusId);
-                if (!_srEl) {
-                    const _sinp = document.getElementById('searchInput');
-                    if (_sinp && _sinp.parentNode) {
-                        _srEl = document.createElement('div');
-                        _srEl.id = _srStatusId;
-                        _srEl.style.cssText = 'font-size:0.72rem;color:#64748b;padding:3px 0 0;min-height:1.1em;';
-                        _sinp.parentNode.insertBefore(_srEl, _sinp.nextSibling);
-                    }
-                }
-
                 try {
-                    // Phase 4.0B-4J-8A: Server-side search khi có search term
-                    const _isSearch = search && search.trim().length > 0;
-                    if (_isSearch && typeof StudentService.searchProfilesServerSide === 'function') {
-                        if (_srEl) _srEl.textContent = 'Đang tìm...';
+                    const snap = await StudentService.getProfilesPage({
+                        pageSize:  PAGE_SIZE,
+                        cursor,
+                        direction,
+                        search,
+                    });
 
-                        const _sr = await StudentService.searchProfilesServerSide(search, { pageSize: PAGE_SIZE });
-
-                        pgState.currentItems = _sr.items || [];
-                        pgState.currentPage  = 1;
-                        pgState.totalLoaded  = pgState.currentItems.length;
-                        pgState.hasNext      = _sr.hasMore || false;
-                        pgState.hasPrevious  = false;
-                        pgState.isLoading    = false;
-                        pgState.enabled      = true;
-                        pgState.searchQuery  = search;
-                        pgState.searchActive = true;
-
-                        if (_srEl) {
-                            _srEl.textContent = pgState.currentItems.length === 0
-                                ? 'Không tìm thấy võ sinh'
-                                : ('Tìm thấy ' + pgState.currentItems.length + (_sr.hasMore ? '+' : '') + ' kết quả');
-                        }
-                    } else {
-                        if (_srEl) _srEl.textContent = '';
-                        pgState.searchActive = false;
-
-                        const snap = await StudentService.getProfilesPage({
-                            pageSize:  PAGE_SIZE,
-                            cursor,
-                            direction,
-                            search,
-                        });
-
-                        const items = processPage(snap, pgState);
-                        pgState.enabled     = true;
-                        pgState.searchQuery = search;
-                    }
+                    const items = processPage(snap, pgState);
+                    pgState.enabled     = true;
+                    pgState.searchQuery = search;
 
                     // Cập nhật store để render.js dùng được
                     store.pagination.students = pgState;
@@ -1134,10 +1109,6 @@ export function initStudentPagination() {
                            document.querySelector('input[placeholder*="tên"]');
                 if (!el || el.__pgStudentsbound) return;
                 el.__pgStudentsbound = true;
-                // Phase 4J-9B: Đánh dấu PRIMARY controller đã mount.
-                // students.events.js và app.js oninput sẽ kiểm tra flag này để tránh double-bind.
-                window.__studentSearchControllerMounted = true;
-                console.info('[students.js] ✅ PRIMARY search controller mounted (_bindSearchReset).');
                 let _debounce = null;
                 el.addEventListener('input', () => {
                     clearTimeout(_debounce);

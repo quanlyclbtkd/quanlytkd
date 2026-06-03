@@ -301,10 +301,6 @@ export async function fetchAndRenderHistoricalCharts(
         if (!snap || !snap.exists()) continue; // Stats doc chưa tồn tại → giữ 0
 
         const d = snap.data();
-        // [Phase 4K] Track stats doc reads for diagnostics
-        if (window.__txListenerMetrics) {
-            window.__txListenerMetrics.dashboardStatsRead = (window.__txListenerMetrics.dashboardStatsRead || 0) + 1;
-        }
         // income.total và expense.total được Cloud Function tính sẵn
         const inc = Number(d['income.total'] || d?.income?.total || 0);
         const exp = Number(d['expense.total'] || d?.expense?.total || 0);
@@ -366,66 +362,6 @@ export async function fetchMonthStats(month) {
     }
 }
 
-
-// ════════════════════════════════════════════════════════════════
-// tryApplyCurrentMonthStats — Phase 4K-FIX Lỗi 4
-// ────────────────────────────────────────────────────────────────
-// Ưu tiên stats doc để hiển thị tổng doanh thu/chi phí tháng hiện tại.
-// Gọi async sau khi renderApp() đã cập nhật dashboard từ allTransactions.
-//
-// TẠI SAO CẦN?
-//   allTransactions có giới hạn limit(1200) — nếu tháng có >1200 GD,
-//   tổng tính từ allTransactions sẽ sai.
-//   stats doc (ghi bởi Cloud Functions trigger) luôn chính xác.
-//
-// BEHAVIOR:
-//   - Đọc stats doc cho tháng selMonth
-//   - Nếu có và income.total > 0: override totalIncomeDashboard/totalExpenseDashboard/totalProfitDashboard
-//   - Nếu không có stats doc: giữ nguyên allTransactions-based numbers (fallback an toàn)
-//   - Không thay đổi danh sách giao dịch, bStats, hoặc các số liệu chi tiết
-// ════════════════════════════════════════════════════════════════
-export async function tryApplyCurrentMonthStats(selMonth) {
-    if (!selMonth) return;
-    const stats = await fetchMonthStats(selMonth);
-    if (!stats) return; // stats doc chưa tồn tại — giữ allTransactions-based numbers
-
-    // Đọc income.total tương thích nhiều format (Cloud Functions ghi flat 'income.total')
-    const incTotal = (
-        Number(stats['income.total'] || 0) ||
-        Number(stats?.income?.total  || 0) ||
-        0
-    );
-    const expTotal = (
-        Number(stats['expense.total'] || 0) ||
-        Number(stats?.expense?.total  || 0) ||
-        0
-    );
-
-    // Nếu cả 2 đều = 0 và txCount = 0 → stats doc chưa có dữ liệu thực
-    if (incTotal === 0 && expTotal === 0 && (stats.txCount || 0) === 0) return;
-
-    // Override dashboard totals với stats doc numbers (chính xác hơn allTransactions limit)
-    const _fmt = (n) => (Number(n) || 0).toLocaleString();
-    const _set = (id, val) => { const e = document.getElementById(id); if (e) e.innerText = val; };
-
-    _set('totalIncomeDashboard',  _fmt(incTotal)             + ' ₫');
-    _set('totalExpenseDashboard', _fmt(expTotal)             + ' ₫');
-    _set('totalProfitDashboard',  _fmt(incTotal - expTotal)  + ' ₫');
-
-    // Track metric
-    if (window.__txListenerMetrics) {
-        window.__txListenerMetrics.dashboardCurrentMonthStatsRead =
-            (window.__txListenerMetrics.dashboardCurrentMonthStatsRead || 0) + 1;
-    }
-
-    // Mobile header bar income
-    const mhbInc = document.getElementById('mhbIncome');
-    if (mhbInc && incTotal > 0) {
-        const _fmtK = (n) => n >= 1e6 ? Math.round(n/1e3) + 'K' : n.toLocaleString();
-        mhbInc.innerText = _fmtK(incTotal);
-    }
-}
-
 // ════════════════════════════════════════════════════════════════
 // initDashboard — wire window accessors + cleanup hook
 // ════════════════════════════════════════════════════════════════
@@ -436,10 +372,6 @@ export function initDashboard() {
 
     // Expose fetchMonthStats để app.js và các modules khác có thể gọi
     window.fetchMonthStats = fetchMonthStats;
-
-    // [Phase 4K-FIX Lỗi 4] Expose tryApplyCurrentMonthStats — gọi từ render.js
-    // sau khi sync render từ allTransactions để ưu tiên stats doc cho tổng thu/chi
-    window.tryApplyCurrentMonthStats = tryApplyCurrentMonthStats;
 
     // Cleanup khi logout — gọi từ store.resetStore()
     window._destroyDashboardCharts = () => {

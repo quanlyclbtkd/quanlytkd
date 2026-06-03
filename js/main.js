@@ -428,30 +428,6 @@ async function ensureTabModule(tabId) {
         // KHÔNG phụ thuộc switchTab('superadmin') nữa.
         initSuperAdmin();
 
-        // [HOTFIX] Sau initSuperAdmin(), nếu superAdminView đang hiển thị mà danh sách CLB
-        // chưa load (vì initSaaSDatabase đã gọi trước module sẵn sàng), tự gọi lại một lần.
-        // Guard: window.__saInitialLoadRetried để tránh gọi lặp nhiều lần.
-        if (!window.__saInitialLoadRetried &&
-            window.userRole === 'super_admin' &&
-            document.getElementById('superAdminView')?.style.display !== 'none') {
-            window.__saInitialLoadRetried = true;
-            // Chờ thêm 200ms để initSuperAdmin rebind xong, rồi kiểm tra xem listEl còn đang loading
-            setTimeout(async () => {
-                const _listEl = document.getElementById('sysClubListMain');
-                // Chỉ reload nếu danh sách vẫn đang ở trạng thái loading hoặc rỗng
-                const _stillLoading = !_listEl || !_listEl.innerHTML.trim() ||
-                    _listEl.innerHTML.includes('Đang tải') ||
-                    _listEl.innerHTML.includes('⏳');
-                if (_stillLoading && window.SuperAdminModule?.loadSuperAdminDashboard) {
-                    console.info('[HOTFIX] main.js: SA view active nhưng list chưa load — trigger lại loadSuperAdminDashboard');
-                    window.SuperAdminModule.loadSuperAdminDashboard();
-                } else if (_stillLoading && typeof window.loadSuperAdminData === 'function') {
-                    console.info('[HOTFIX] main.js: SA view active nhưng list chưa load — trigger lại loadSuperAdminData');
-                    window.loadSuperAdminData();
-                }
-            }, 300);
-        }
-
         // [Phase 4.0B-2] window.ensureSuperAdminModule — hardened.
         // Xử lý được: module cache, SuperAdminModule bị mất, re-init sau logout.
         window.ensureSuperAdminModule = async function(reason) {

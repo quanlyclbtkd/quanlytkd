@@ -649,6 +649,59 @@ export async function loadInventoryForDateRange({
     }
 }
 
+
+// ── fetchAllQueryPages (Phase 4J-8A) ─────────────────────────────────────────
+
+/**
+ * Generic paginated fetch helper — Phase 4.0B-4J-8A (Phase 6).
+ *
+ * Dùng chung cho: export, recalculation, admin operations, batch rename scan.
+ * KHÔNG dùng cho UI interactive list (dùng getProfilesPage).
+ *
+ * @param {function(opts: {lastDoc: DocumentSnapshot|null, pageSize: number}): Query} queryFactory
+ *        Builder function. Nhận lastDoc (null cho trang 1) + pageSize, trả về Firestore Query.
+ * @param {Object}   [options]
+ * @param {number}   [options.pageSize]     — docs/page (default: __scaleConfig.reportPageSize || 300)
+ * @param {number}   [options.maxDocs]      — safety cap tổng (default 20000)
+ * @param {string}   [options.reason]       — mô tả để log
+ * @param {string}   [options.domain]       — domain cho recordReadMetric
+ * @returns {Promise<Array<{id: string, data: object, ref: DocumentReference}>>}
+ */
+export async function fetchAllQueryPages(queryFactory, options = {}) {
+    const pageSize = options.pageSize || (window.__scaleConfig && window.__scaleConfig.reportPageSize) || 300;
+    const maxDocs  = options.maxDocs  || 20000;
+    const reason   = options.reason   || 'fetch-all-pages';
+    const domain   = options.domain   || 'report';
+
+    let all     = [];
+    let lastDoc = null;
+    let page    = 0;
+
+    const _getDocs = (_getSDK()).getDocs;
+
+    while (true) {
+        const q    = queryFactory({ lastDoc, pageSize });
+        const snap = await _getDocs(q);
+
+        if (typeof window.recordReadMetric === 'function') {
+            window.recordReadMetric(domain, snap.size, reason);
+        }
+
+        snap.forEach(doc => all.push({ id: doc.id, data: doc.data(), ref: doc.ref }));
+
+        if (snap.size < pageSize) break;
+        lastDoc = snap.docs[snap.docs.length - 1];
+        page++;
+
+        if (all.length >= maxDocs) {
+            console.warn('[Scale] fetchAllQueryPages hit maxDocs cap:', maxDocs, reason);
+            break;
+        }
+    }
+
+    return all;
+}
+
 // ── printQueryScaleMetrics ───────────────────────────────────────────────────
 
 /**
@@ -734,4 +787,7 @@ if (typeof window !== 'undefined') {
     window.loadTransactionsForTxMonthRange = loadTransactionsForTxMonthRange;
     window.loadInventoryForDateRange      = loadInventoryForDateRange;
     window.dedupeDocsById                 = dedupeDocsById;
+
+    // Phase 4J-8A (mới)
+    window.fetchAllQueryPages             = fetchAllQueryPages;
 }

@@ -33,7 +33,6 @@ import {
     renderExamBranchFees,
     updateSummaryNumbers,
     fetchAndRenderHistoricalCharts,
-    tryApplyCurrentMonthStats,
 } from '../modules/dashboard.js';
 
 import { store } from '../store.js';
@@ -367,16 +366,6 @@ function renderApp() {
         renderExamBranchFees(_bExamStats, inc_exam);
         updateSummaryNumbers(_summaryNumbers);
 
-        // [Phase 4K-FIX Lỗi 4] Ưu tiên stats doc cho tổng thu/chi tháng hiện tại.
-        // tryApplyCurrentMonthStats đọc stats doc (Cloud Functions) và override
-        // totalIncomeDashboard / totalExpenseDashboard / totalProfitDashboard nếu có.
-        // Fallback an toàn: nếu stats doc chưa tồn tại → giữ allTransactions-based numbers.
-        if (selMonth && typeof window.tryApplyCurrentMonthStats === 'function') {
-            window.tryApplyCurrentMonthStats(selMonth).catch(() => {
-                // silent fail — không phá dashboard nếu stats doc read lỗi
-            });
-        }
-
         if (historicalMonths.length > 0) {
             fetchAndRenderHistoricalCharts(
                 historicalMonths, chartLabels, chartIncome, chartExpense, chartActive
@@ -394,10 +383,6 @@ function renderApp() {
         renderBranchStats(_bStats);
         renderExamBranchFees(_bExamStats, inc_exam);
         updateSummaryNumbers(_summaryNumbers);
-        // [Phase 4K-FIX Lỗi 4] Cũng áp dụng stats doc override ở đây
-        if (selMonth && typeof window.tryApplyCurrentMonthStats === 'function') {
-            window.tryApplyCurrentMonthStats(selMonth).catch(() => {});
-        }
     }
     // Nếu dashboard không active: data đã cache, islands đã mark dirty → skip DOM work
 }
