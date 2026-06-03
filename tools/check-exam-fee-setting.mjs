@@ -209,7 +209,8 @@ check(
     indexHtml.includes('github-runtime-pilot-gate-examfee-hardening-20260603')
         || indexHtml.includes('admission-tuition-package-receipt-fix')
         || indexHtml.includes('examfee-hardening')
-        || indexHtml.includes('runtime-month-admission-hydration'),
+        || indexHtml.includes('runtime-month-admission-hydration')
+        || indexHtml.includes('deploy-gate-tuition-package-coverage'),
     "Đổi version string trong index.html thành ?v=github-runtime-pilot-gate-examfee-hardening-20260603 hoặc mới hơn"
 );
 
