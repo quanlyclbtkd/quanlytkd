@@ -341,9 +341,12 @@ export const StudentService = {
                 if (snap.size > pageSize) hasMore = true;
                 return snap.size;
             } catch (e) {
-                if (e && e.code === 'failed-precondition') {
-                    console.warn('[StudentService.search] Thiếu Firestore index cho', tag,
-                        '— chạy backfill hoặc dùng tìm kiếm theo tên. Chi tiết:', e.message);
+                // PHẦN 6: Không fail toàn bộ search khi thiếu index hoặc gặp permission error
+                if (e && (e.code === 'failed-precondition' || e.code === 'permission-denied')) {
+                    console.warn('[StudentService.search] Bỏ qua query lỗi (', e.code, ') cho', tag,
+                        '— tiếp tục fallback. Chi tiết:', e.message);
+                } else if (e) {
+                    console.warn('[StudentService.search] Query warning cho', tag, ':', e.message || e);
                 }
                 return 0;
             }
@@ -422,6 +425,8 @@ export const StudentService = {
             source,
             searchTerm: raw,
             normalizedSearchTerm: normalized,
+            resultCount: items.length,
+            possibleMissingSearchIndex: items.length === 0,
         };
     },
 
