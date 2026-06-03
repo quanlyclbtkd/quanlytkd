@@ -28,6 +28,27 @@
 
 import { formatDate, formatMonth } from '../../../utils/format.js';
 
+// ── Phase 4K-4D: Fallback classify (nếu window.classifyInventoryFinanceTx chưa load) ──
+function _fallbackClassifyInvTx(tx, invCats) {
+    const type   = String(tx && tx.type || '').trim();
+    const amount = Number(tx && tx.amount || 0);
+    const cats   = Array.isArray(invCats) ? invCats : ['Võ phục', 'Áo thun', 'Bảo hộ'];
+    for (const cat of cats) {
+        if (type === 'Thu ' + cat)   return { isInventory: true, direction: 'income',  category: cat, amount };
+        if (type === 'Chi ' + cat)   return { isInventory: true, direction: 'expense', category: cat, amount };
+        if (type === 'Tặng ' + cat)  return { isInventory: true, direction: 'gift',    category: cat, amount: 0 };
+    }
+    if (type === 'Võ phục')          return { isInventory: true, direction: 'income',  category: 'Võ phục', amount };
+    const hasRelated = !!(tx && tx.relatedInvId);
+    if (hasRelated) {
+        if (type.startsWith('Thu '))  return { isInventory: true, direction: 'income',  category: '', amount };
+        if (type.startsWith('Chi '))  return { isInventory: true, direction: 'expense', category: '', amount };
+        if (type.startsWith('Tặng ')) return { isInventory: true, direction: 'gift',    category: '', amount: 0 };
+    }
+    return { isInventory: false, direction: '', category: '', amount: 0 };
+}
+
+
 // ── Phase 4K-3: Local escape helpers (no external dep) ──────────────────────
 function _escAttr(v) {
     return String(v ?? '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -267,9 +288,11 @@ export function computeAndCacheFinance(transactions, params) {
     // ── Single pass — mirrors renderApp() lines 249-324 exactly ──
     transactions.forEach(t => {
         const cleanName    = t.description ? t.description.trim() : '';
-        const isUniformTx  = invCats.some(cat =>
-            t.type === `Thu ${cat}` || t.type === `Chi ${cat}` || t.type === `Tặng ${cat}`
-        ) || t.type === 'Võ phục';
+        // Phase 4K-4D: classifyInventoryFinanceTx hỗ trợ custom categories + dữ liệu cũ
+        const _invClass    = typeof window.classifyInventoryFinanceTx === 'function'
+            ? window.classifyInventoryFinanceTx(t)
+            : _fallbackClassifyInvTx(t, invCats);
+        const isUniformTx  = _invClass.isInventory;
 
         let isBranchMatch = true;
         if (!isSingleBranch && selBranch !== 'all' && t.branch !== selBranch && t.branch !== 'Chung') {
@@ -297,10 +320,9 @@ export function computeAndCacheFinance(transactions, params) {
             : '';
 
         if (isUniformTx) {
-            const isInc  = invCats.some(cat => t.type === `Thu ${cat}`) || t.type === 'Võ phục';
-            const isGift = invCats.some(cat => t.type === `Tặng ${cat}`);
-            if (isInc)        incUniform  += Number(t.amount) || 0;
-            else if (!isGift) expUniform  += Number(t.amount) || 0;
+            if      (_invClass.direction === 'income')  incUniform += Number(t.amount) || 0;
+            else if (_invClass.direction === 'expense') expUniform += Number(t.amount) || 0;
+            // direction === 'gift' → không cộng doanh thu / chi
             return;
         }
         if (!isBranchMatch || !isSearchMatch) return;

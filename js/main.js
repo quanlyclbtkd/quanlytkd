@@ -2600,3 +2600,215 @@ window.debugProfileModalClose = function() {
     console.table(result);
     return result;
 };
+
+// ════════════════════════════════════════════════════════════════
+// Phase 4K-4B — debugRuntimeSmokeTest
+// Kiểm tra nhanh sau khi upload GitHub/domain.
+// Dùng: debugRuntimeSmokeTest() từ Console.
+// ════════════════════════════════════════════════════════════════
+window.debugRuntimeSmokeTest = async function(term) {
+    term = typeof term === 'string' ? term : 'long';
+    const out = {
+        href:        location.href,
+        protocol:    location.protocol,
+        runtimeMode: window.__RUNTIME_MODE || '',
+        mainLoaded:  !!window.MAIN_JS_LOADED,
+        appLoaded:   !!window.__appLoaded,
+        at:          new Date().toISOString()
+    };
+
+    async function safeCall(name, fn, args) {
+        args = Array.isArray(args) ? args : [];
+        try {
+            if (typeof fn !== 'function') {
+                return { ok: false, missing: true };
+            }
+            const value = await fn.apply(window, args);
+            return { ok: true, value: value };
+        } catch (e) {
+            return { ok: false, error: e && e.message ? e.message : String(e) };
+        }
+    }
+
+    out.examFee            = await safeCall('debugExamFeeSetting',     window.debugExamFeeSetting);
+    out.tuitionActions     = await safeCall('debugTuitionActions',      window.debugTuitionActions);
+    out.admissionUniformSize = await safeCall('debugAdmissionUniformSize', window.debugAdmissionUniformSize);
+    out.searchPerformance  = await safeCall('debugSearchPerformance',   window.debugSearchPerformance, [term]);
+    out.dashboardHistory   = await safeCall('debugDashboardHistory',    window.debugDashboardHistory);
+    out.studentPagination  = await safeCall('debugStudentPagination',   window.debugStudentPagination);
+    out.profileModalClose  = await safeCall('debugProfileModalClose',   window.debugProfileModalClose);
+
+    const summary = {
+        runtimeMode:     out.runtimeMode,
+        mainLoaded:      out.mainLoaded,
+        appLoaded:       out.appLoaded,
+
+        examFeeOk:           !!out.examFee.ok,
+        tuitionOk:           !!out.tuitionActions.ok,
+        admissionUniformOk:  !!out.admissionUniformSize.ok,
+        searchOk:            !!out.searchPerformance.ok,
+        dashboardOk:         !!out.dashboardHistory.ok,
+        paginationOk:        !!out.studentPagination.ok,
+        modalOk:             !!out.profileModalClose.ok,
+
+        overallOk:
+            !!out.examFee.ok &&
+            !!out.tuitionActions.ok &&
+            !!out.admissionUniformSize.ok &&
+            !!out.searchPerformance.ok &&
+            !!out.dashboardHistory.ok &&
+            !!out.studentPagination.ok &&
+            !!out.profileModalClose.ok
+    };
+
+    console.table(summary);
+    console.log('[debugRuntimeSmokeTest:detail]', out);
+    return { summary: summary, detail: out };
+};
+
+// ════════════════════════════════════════════════════════════════
+// Phase 4K-4D — INVENTORY FINANCE HELPERS
+// ════════════════════════════════════════════════════════════════
+
+/**
+ * getInventoryCategoryNames() — Trả về tất cả tên danh mục kho (mặc định + tùy chỉnh).
+ * Dùng chung cho classifyInventoryFinanceTx, financeRenderer, app.js legacy.
+ */
+window.getInventoryCategoryNames = function() {
+    const defaults = ['Võ phục', 'Áo thun', 'Bảo hộ'];
+    const st = window.__store || {};
+    const customFromStore  = Array.isArray(st.invCustomCategories)
+        ? st.invCustomCategories.map(c => c.name)
+        : [];
+    const customFromWindow = Array.isArray(window.invCustomCategories)
+        ? window.invCustomCategories.map(c => c.name)
+        : [];
+
+    const all = [...defaults, ...customFromStore, ...customFromWindow]
+        .map(v => String(v || '').trim())
+        .filter(Boolean);
+
+    return Array.from(new Set(all));
+};
+
+/**
+ * classifyInventoryFinanceTx(tx) — Phân loại giao dịch kho.
+ * Trả về { isInventory, direction: 'income'|'expense'|'gift'|'', category, amount }.
+ *
+ * Ưu tiên:
+ *   1. Khớp chính xác "Thu|Chi|Tặng <Category>" với tất cả danh mục
+ *   2. Backward compat dữ liệu cũ (type === 'Võ phục')
+ *   3. Fallback theo prefix + relatedInvId
+ */
+window.classifyInventoryFinanceTx = function(tx) {
+    const type   = String(tx && tx.type || '').trim();
+    const amount = Number(tx && tx.amount || 0);
+
+    const cats = typeof window.getInventoryCategoryNames === 'function'
+        ? window.getInventoryCategoryNames()
+        : ['Võ phục', 'Áo thun', 'Bảo hộ'];
+
+    const hasRelatedInventory =
+        !!(tx && (tx.relatedInvId || tx.inventoryId || tx.invId ||
+                  tx.inventoryCategory || tx.category));
+
+    // 1. Khớp chính xác với danh mục đã biết
+    for (const cat of cats) {
+        if (type === 'Thu ' + cat) {
+            return { isInventory: true, direction: 'income',  category: cat, amount };
+        }
+        if (type === 'Chi ' + cat) {
+            return { isInventory: true, direction: 'expense', category: cat, amount };
+        }
+        if (type === 'Tặng ' + cat) {
+            return { isInventory: true, direction: 'gift',    category: cat, amount: 0 };
+        }
+    }
+
+    // 2. Backward compat: type === 'Võ phục' (dữ liệu cũ trước khi đổi sang 'Thu Võ phục')
+    if (type === 'Võ phục') {
+        return { isInventory: true, direction: 'income', category: 'Võ phục', amount };
+    }
+
+    // 3. Fallback: có relatedInvId + prefix Thu|Chi|Tặng (danh mục bị xóa hoặc type chưa chuẩn)
+    if (hasRelatedInventory) {
+        if (type.startsWith('Thu ')) {
+            return { isInventory: true, direction: 'income',  category: tx.category || '', amount };
+        }
+        if (type.startsWith('Chi ')) {
+            return { isInventory: true, direction: 'expense', category: tx.category || '', amount };
+        }
+        if (type.startsWith('Tặng ')) {
+            return { isInventory: true, direction: 'gift',    category: tx.category || '', amount: 0 };
+        }
+    }
+
+    return { isInventory: false, direction: '', category: '', amount: 0 };
+};
+
+// ════════════════════════════════════════════════════════════════
+// Phase 4K-4D — DEBUG: debugInventoryFinanceRollup
+// Gọi từ Console sau khi deploy: debugInventoryFinanceRollup()
+// ════════════════════════════════════════════════════════════════
+window.debugInventoryFinanceRollup = function() {
+    const st  = window.__store || {};
+    const txs = Array.isArray(st.transactions) ? st.transactions : (window.allTransactions || []);
+    const inv = Array.isArray(st.inventory)    ? st.inventory    : (window.allInventory    || []);
+    const cats = typeof window.getInventoryCategoryNames === 'function'
+        ? window.getInventoryCategoryNames()
+        : [];
+
+    let income = 0, expense = 0, gift = 0;
+    const byType = {};
+    const inventoryTxs = [];
+
+    txs.forEach(t => {
+        const c = typeof window.classifyInventoryFinanceTx === 'function'
+            ? window.classifyInventoryFinanceTx(t)
+            : { isInventory: false };
+
+        if (!c.isInventory) return;
+
+        inventoryTxs.push({
+            id: t.id, type: t.type, amount: Number(t.amount || 0),
+            date: t.date, txMonth: t.txMonth, relatedInvId: t.relatedInvId,
+            direction: c.direction, category: c.category,
+        });
+
+        byType[t.type] = (byType[t.type] || 0) + Number(t.amount || 0);
+
+        if      (c.direction === 'income')  income  += Number(t.amount || 0);
+        else if (c.direction === 'expense') expense += Number(t.amount || 0);
+        else if (c.direction === 'gift')    gift    += 1;
+    });
+
+    const unpaid = inv.filter(x => x.unpaid === true || x.inventoryDebtStatus === 'pending');
+
+    const result = {
+        href:                  location.href,
+        runtimeMode:           window.__RUNTIME_MODE || '',
+        currentTab:            typeof window.getCurrentActiveTabId === 'function' ? window.getCurrentActiveTabId() : '',
+        categories:            cats,
+        customCategoriesStore: st.invCustomCategories || [],
+        customCategoriesWindow:window.invCustomCategories || [],
+        transactionsCount:     txs.length,
+        inventoryCount:        inv.length,
+        inventoryTxCount:      inventoryTxs.length,
+        income, expense, profit: income - expense,
+        byType,
+        unpaidCount:  unpaid.length,
+        unpaidSample: unpaid.slice(0, 5).map(x => ({
+            id: x.id, category: x.category, size: x.size, amount: x.amount,
+            unpaid: x.unpaid, status: x.inventoryDebtStatus, paidTxId: x.paidTxId,
+        })),
+        uiIncome:  document.getElementById('sum_uniform_in')?.textContent     || '',
+        uiExpense: document.getElementById('sum_uniform_out')?.textContent    || '',
+        uiProfit:  document.getElementById('sum_uniform_profit')?.textContent || '',
+    };
+
+    console.table({ income: result.income, expense: result.expense, profit: result.profit,
+        inventoryTxCount: result.inventoryTxCount, unpaidCount: result.unpaidCount });
+    console.log('[debugInventoryFinanceRollup:detail]', result);
+    return result;
+};
+

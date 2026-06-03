@@ -92,10 +92,83 @@ export const InventoryService = {
 
     /**
      * Đánh dấu đơn hàng nợ đã thu tiền.
+     * Phase 4K-4D: Tạo/cập nhật transaction doanh thu kho khi Đã Thu.
+     * Trả về { alreadyPaid, inv, txId }.
      * @param {string} invId
+     * @param {Object} [options] - { date: 'YYYY-MM-DD' } để override ngày thu
      */
-    async markPaid(invId) {
-        return this.updateItem(invId, { unpaid: false });
+    async markPaid(invId, options = {}) {
+        const { doc, getDoc, updateDoc, addDoc, query, where, getDocs, collection } = _sdk();
+        const db     = _db();
+        const clubId = _clubId();
+
+        // 1. Load inventory doc
+        const invSnap = await getDoc(doc(db, 'clubs', clubId, 'inventory', invId));
+        if (!invSnap.exists()) throw new Error('[InventoryService] Inventory item not found: ' + invId);
+
+        const inv = { id: invSnap.id, ...invSnap.data() };
+
+        // 2. Kiểm tra đã thu trước đó chưa
+        if (inv.unpaid === false && inv.inventoryDebtStatus === 'paid') {
+            return { alreadyPaid: true, inv };
+        }
+
+        const today   = options.date
+            || (typeof window.getLocalToday === 'function' ? window.getLocalToday() : new Date().toISOString().slice(0, 10));
+        const txMonth = today.slice(0, 7);
+
+        // 3. Tìm transaction đã có relatedInvId
+        const txRef  = collection(db, 'clubs', clubId, 'transactions');
+        const q      = query(txRef, where('relatedInvId', '==', invId));
+        const txSnap = await getDocs(q);
+
+        const invAmount = Number(inv.amount || 0);
+        if (invAmount <= 0) {
+            console.warn('[InventoryService] markPaid: amount <= 0 cho invId=' + invId + '. Sẽ vẫn mark paid nhưng không tạo transaction.');
+        }
+
+        const txData = {
+            branch:               inv.branch || 'Chung',
+            type:                 'Thu ' + (inv.category || 'Võ phục'),
+            description:          ('Thu nợ ' + (inv.category || 'Võ phục') + ' ' + (inv.size || '') + ' của ' + (inv.desc || '')).trim(),
+            amount:               invAmount,
+            date:                 today,
+            txMonth,
+            timestamp:            Date.now(),
+            relatedInvId:         invId,
+            inventoryDebtPayment: true,
+            inventoryDebtPaidAt:  Date.now(),
+            inventoryCategory:    inv.category || 'Võ phục',
+            inventorySize:        inv.size  || '',
+            inventoryDesc:        inv.desc  || '',
+        };
+
+        let txId = '';
+
+        // 4. Cập nhật transaction cũ nếu có, hoặc tạo mới
+        if (!txSnap.empty) {
+            const existing = txSnap.docs[0];
+            txId = existing.id;
+            await updateDoc(existing.ref, txData);
+        } else {
+            if (invAmount > 0) {
+                const newTx = await addDoc(txRef, txData);
+                txId = newTx.id;
+            }
+        }
+
+        // 5. Update inventory doc
+        const invUpdate = {
+            unpaid:               false,
+            inventoryDebtStatus:  'paid',
+            paidAt:               Date.now(),
+            paidDate:             today,
+        };
+        if (txId) invUpdate.paidTxId = txId;
+
+        await updateDoc(doc(db, 'clubs', clubId, 'inventory', invId), invUpdate);
+
+        return { alreadyPaid: false, inv, txId };
     },
 
     // ── PAGINATION (Phase 4J-8) ──────────────────────────────────

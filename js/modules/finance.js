@@ -51,6 +51,27 @@ import {
 } from '../utils/format.js';
 import { FinanceService } from '../services/finance.service.js';
 
+// ── Phase 4K-4D: Fallback classify helper (finance.js) ──
+function _classifyInvTxForFinance(tx, cats) {
+    const type   = String(tx && tx.type || '').trim();
+    const amount = Number(tx && tx.amount || 0);
+    const _cats  = Array.isArray(cats) ? cats : ['Võ phục', 'Áo thun', 'Bảo hộ'];
+    for (const cat of _cats) {
+        if (type === 'Thu ' + cat)  return { isInventory: true, direction: 'income',  amount };
+        if (type === 'Chi ' + cat)  return { isInventory: true, direction: 'expense', amount };
+        if (type === 'Tặng ' + cat) return { isInventory: true, direction: 'gift',    amount: 0 };
+    }
+    if (type === 'Võ phục')         return { isInventory: true, direction: 'income',  amount };
+    const hasRelated = !!(tx && tx.relatedInvId);
+    if (hasRelated) {
+        if (type.startsWith('Thu '))  return { isInventory: true, direction: 'income',  amount };
+        if (type.startsWith('Chi '))  return { isInventory: true, direction: 'expense', amount };
+        if (type.startsWith('Tặng ')) return { isInventory: true, direction: 'gift',    amount: 0 };
+    }
+    return { isInventory: false, direction: '', amount: 0 };
+}
+
+
 // ════════════════════════════════════════════════════════════════
 // BRIDGE HELPERS — đọc state từ window.__store tại call time
 // Không bao giờ cache ra biến ngoài scope → luôn lấy giá trị mới nhất
@@ -500,8 +521,11 @@ export function initFinance() {
 
         const profiles = _profiles();
 
+        const DEFAULT_EXAM_FEE = 250000;
         const feeEl = document.getElementById('exam_fee_all_actual');
-        const defaultFee = feeEl ? (feeEl.value || 250000) : 250000;
+        const defaultFee = feeEl && feeEl.value
+            ? feeEl.value
+            : (window.getClubExamFee ? window.getClubExamFee() : DEFAULT_EXAM_FEE);
         const inputAmount = prompt(`Nhập lệ phí thi của ${name}:`, defaultFee);
         if (!inputAmount) return;
         const amount = Number(inputAmount.replace(/\D/g, ''));
@@ -937,11 +961,20 @@ export function initFinance() {
                     if (bIncome[tb] !== undefined) bIncome[tb] += a;
                 }
                 else if (t.type === 'Lệ phí thi')       { incExam    += a; if (bIncome[tb] !== undefined) bIncome[tb] += a; }
-                else if (t.type === 'Thu Võ phục' || t.type === 'Võ phục') incUniform += a;
-                else if (t.type === 'Chi Võ phục')      expUniform  += a;
-                else if (t.type === 'Chi phí')          exp         += a;
-                else if (t.type === 'Chi phí kỳ thi')   expExam     += a;
-                else if (t.type === 'Thu khác')         { incOther  += a; if (bIncome[tb] !== undefined) bIncome[tb] += a; }
+                else if (t.type === 'Chi phí')          exp     += a;
+                else if (t.type === 'Chi phí kỳ thi')   expExam  += a;
+                else if (t.type === 'Thu khác')         { incOther += a; if (bIncome[tb] !== undefined) bIncome[tb] += a; }
+                else {
+                    // Phase 4K-4D: custom inventory categories
+                    const _cats = typeof window.getInventoryCategoryNames === 'function'
+                        ? window.getInventoryCategoryNames() : ['Võ phục', 'Áo thun', 'Bảo hộ'];
+                    const _c = typeof window.classifyInventoryFinanceTx === 'function'
+                        ? window.classifyInventoryFinanceTx(t) : _classifyInvTxForFinance(t, _cats);
+                    if (_c.isInventory) {
+                        if      (_c.direction === 'income')  incUniform += a;
+                        else if (_c.direction === 'expense') expUniform += a;
+                    }
+                }
             });
             const totalInc = incTuition + incExam + incOther + incUniform;
             const totalExp = exp + expExam + expUniform;
@@ -998,7 +1031,14 @@ export function initFinance() {
             ];
             let txTotal = 0;
             txAll
-                .filter(t => !['Chi Võ phục','Thu Võ phục','Võ phục','Tặng Võ phục'].includes(t.type))
+                .filter(t => {
+                    // Phase 4K-4D: Exclude ALL inventory transactions
+                    const _cats = typeof window.getInventoryCategoryNames === 'function'
+                        ? window.getInventoryCategoryNames() : ['Võ phục', 'Áo thun', 'Bảo hộ'];
+                    const _c = typeof window.classifyInventoryFinanceTx === 'function'
+                        ? window.classifyInventoryFinanceTx(t) : _classifyInvTxForFinance(t, _cats);
+                    return !_c.isInventory;
+                })
                 .forEach(t => {
                     const a = Number(t.amount) || 0;
                     const isIncome = !t.type.startsWith('Chi');

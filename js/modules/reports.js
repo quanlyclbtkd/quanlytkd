@@ -47,6 +47,27 @@
  */
 
 import {
+
+// ── Phase 4K-4D: Fallback classify helper (reports — Node/export context safe) ──
+function _classifyInvTxForReport(tx, cats) {
+    const type   = String(tx && tx.type || '').trim();
+    const amount = Number(tx && tx.amount || 0);
+    const _cats  = Array.isArray(cats) ? cats : ['Võ phục', 'Áo thun', 'Bảo hộ'];
+    for (const cat of _cats) {
+        if (type === 'Thu ' + cat)  return { isInventory: true, direction: 'income',  amount };
+        if (type === 'Chi ' + cat)  return { isInventory: true, direction: 'expense', amount };
+        if (type === 'Tặng ' + cat) return { isInventory: true, direction: 'gift',    amount: 0 };
+    }
+    if (type === 'Võ phục')         return { isInventory: true, direction: 'income',  amount };
+    const hasRelated = !!(tx && tx.relatedInvId);
+    if (hasRelated) {
+        if (type.startsWith('Thu '))  return { isInventory: true, direction: 'income',  amount };
+        if (type.startsWith('Chi '))  return { isInventory: true, direction: 'expense', amount };
+        if (type.startsWith('Tặng ')) return { isInventory: true, direction: 'gift',    amount: 0 };
+    }
+    return { isInventory: false, direction: '', amount: 0 };
+}
+
     getLocalToday,
     formatDate,
     formatMonth,
@@ -305,11 +326,20 @@ export function initReports() {
                     if (_exBIncome[_tb] !== undefined) _exBIncome[_tb] += _ta;
                 }
                 else if (t.type === 'Lệ phí thi')              { incExam    += a; if (_exBIncome[_tb] !== undefined) _exBIncome[_tb] += a; }
-                else if (t.type === 'Thu Võ phục' || t.type === 'Võ phục') incUniform += a;
-                else if (t.type === 'Chi Võ phục')  expUniform += a;
-                else if (t.type === 'Chi phí')      exp        += a;
-                else if (t.type === 'Chi phí kỳ thi') expExam  += a;
+                else if (t.type === 'Chi phí')      exp    += a;
+                else if (t.type === 'Chi phí kỳ thi') expExam += a;
                 else if (t.type === 'Thu khác')     { incOther += a; if (_exBIncome[_tb] !== undefined) _exBIncome[_tb] += a; }
+                else {
+                    // Phase 4K-4D: Classify inventory (custom categories + backward compat)
+                    const _cats = typeof window.getInventoryCategoryNames === 'function'
+                        ? window.getInventoryCategoryNames() : ['Võ phục', 'Áo thun', 'Bảo hộ'];
+                    const _c = typeof window.classifyInventoryFinanceTx === 'function'
+                        ? window.classifyInventoryFinanceTx(t) : _classifyInvTxForReport(t, _cats);
+                    if (_c.isInventory) {
+                        if      (_c.direction === 'income')  incUniform += a;
+                        else if (_c.direction === 'expense') expUniform += a;
+                    }
+                }
             });
             const totalInc = incTuition + incExam + incOther + incUniform;
             const totalExp = exp + expExam + expUniform;
@@ -365,7 +395,14 @@ export function initReports() {
                 cols2.map(hc),
             ];
             let txTotal = 0;
-            txAll.filter(t => !['Chi Võ phục','Thu Võ phục','Võ phục','Tặng Võ phục'].includes(t.type)).forEach(t => {
+            txAll.filter(t => {
+                    // Phase 4K-4D: Exclude ALL inventory transactions (not just Võ phục)
+                    const _cats = typeof window.getInventoryCategoryNames === 'function'
+                        ? window.getInventoryCategoryNames() : ['Võ phục', 'Áo thun', 'Bảo hộ'];
+                    const _c = typeof window.classifyInventoryFinanceTx === 'function'
+                        ? window.classifyInventoryFinanceTx(t) : _classifyInvTxForReport(t, _cats);
+                    return !_c.isInventory;
+                }).forEach(t => {
                 const a        = Number(t.amount) || 0;
                 const isIncome = !t.type.startsWith('Chi');
                 const amtCell  = { v:a, t:'n', s:{ font:Object.assign({},normFont,{color:{rgb:isIncome?'166534':'991B1B'},bold:true}), border:borderAll, alignment:rightAlign, numFmt:'#,##0' } };

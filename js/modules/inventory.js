@@ -119,6 +119,13 @@ export function initInventory() {
             window.invCustomCategories = [];
         }
 
+        // Phase 4K-4D: Sync vào __store để classifyInventoryFinanceTx đọc được
+        if (!window.__store) window.__store = {};
+        window.__store.invCustomCategories = window.invCustomCategories || [];
+        window.__store._inventoryCategoryVersion = (window.__store._inventoryCategoryVersion || 0) + 1;
+        window.__store._dataVersion = (window.__store._dataVersion || 0) + 1;
+        window.__store._lastDataVersionReason = 'loadInvCategories';
+
         window.populateInvCategorySelects();
 
         const manageBtnWrap = document.getElementById('admin_manage_cat_wrap');
@@ -230,10 +237,19 @@ export function initInventory() {
         try {
             await InventoryService.saveCategories(updatedList);
             window.invCustomCategories = updatedList;
+            // Phase 4K-4D: Sync vào __store
+            if (!window.__store) window.__store = {};
+            window.__store.invCustomCategories = updatedList;
+            window.__store._inventoryCategoryVersion = (window.__store._inventoryCategoryVersion || 0) + 1;
+            window.__store._dataVersion = (window.__store._dataVersion || 0) + 1;
+            window.__store._lastDataVersionReason = 'addInvCategory';
             if (nameEl)  nameEl.value  = '';
             if (sizesEl) sizesEl.value = '';
             window.populateInvCategorySelects();
             window.renderManageCatList();
+            if (typeof window.invalidateInventory === 'function') window.invalidateInventory('inventory-categories-changed');
+            if (typeof window.invalidateFinance   === 'function') window.invalidateFinance('inventory-categories-changed');
+            if (typeof window.invalidateDashboard === 'function') window.invalidateDashboard('inventory-categories-changed');
             window.showToast(`✅ Đã thêm danh mục "${name}" thành công!`);
         } catch (e) {
             console.error('[inventory.js] addInvCategory lỗi:', e);
@@ -261,8 +277,17 @@ export function initInventory() {
         try {
             await InventoryService.saveCategories(updatedList);
             window.invCustomCategories = updatedList;
+            // Phase 4K-4D: Sync vào __store
+            if (!window.__store) window.__store = {};
+            window.__store.invCustomCategories = updatedList;
+            window.__store._inventoryCategoryVersion = (window.__store._inventoryCategoryVersion || 0) + 1;
+            window.__store._dataVersion = (window.__store._dataVersion || 0) + 1;
+            window.__store._lastDataVersionReason = 'deleteInvCategory';
             window.populateInvCategorySelects();
             window.renderManageCatList();
+            if (typeof window.invalidateInventory === 'function') window.invalidateInventory('inventory-categories-changed');
+            if (typeof window.invalidateFinance   === 'function') window.invalidateFinance('inventory-categories-changed');
+            if (typeof window.invalidateDashboard === 'function') window.invalidateDashboard('inventory-categories-changed');
             window.showToast(`✅ Đã xóa danh mục "${cat.name}"!`);
         } catch (e) {
             console.error('[inventory.js] deleteInvCategory lỗi:', e);
@@ -396,22 +421,39 @@ export function initInventory() {
                 && document.getElementById('inv_unpaid').checked;
 
             const invData = { category, size, type, qty, desc, amount, date, timestamp: Date.now() };
-            if (isUnpaid) invData.unpaid = true;
+            if (isUnpaid) {
+                invData.unpaid = true;
+                invData.inventoryDebtStatus = 'pending';
+            }
 
             const invId = await InventoryService.addItem(invData);
 
-            if (amount > 0) {
+            // Phase 4K-4D: Nhập kho → Chi ngay. Xuất bán có nợ → KHÔNG tạo tx doanh thu.
+            if (type === 'Nhập kho' && amount > 0) {
+                // Chi nhập kho → cộng chi ngay
                 await InventoryService.addTransaction({
                     branch: 'Chung',
-                    type:   type === 'Nhập kho' ? `Chi ${category}` : `Thu ${category}`,
-                    description: type === 'Nhập kho'
-                        ? `Nhập ${category} ${size} từ ${desc}`
-                        : `Bán ${category} ${size} cho ${desc}`,
+                    type:   `Chi ${category}`,
+                    description: `Nhập ${category} ${size} từ ${desc}`,
                     amount, date,
                     timestamp: Date.now(),
                     relatedInvId: invId,
                 });
-            } else if (type === 'Xuất bán') {
+            } else if (type === 'Xuất bán' && !isUnpaid && amount > 0) {
+                // Xuất bán đã thu tiền ngay → cộng doanh thu
+                await InventoryService.addTransaction({
+                    branch: 'Chung',
+                    type:   `Thu ${category}`,
+                    description: `Bán ${category} ${size} cho ${desc}`,
+                    amount, date,
+                    timestamp: Date.now(),
+                    relatedInvId: invId,
+                });
+            } else if (type === 'Xuất bán' && isUnpaid) {
+                // Bán nợ → KHÔNG tạo transaction doanh thu. Chờ "Đã Thu" mới cộng.
+                // (inventoryDebtStatus: 'pending' đã set trong invData nếu cần)
+            } else if (type === 'Xuất bán' && amount === 0) {
+                // Tặng (amount = 0)
                 await InventoryService.addTransaction({
                     branch: 'Chung',
                     type:   `Tặng ${category}`,
@@ -499,8 +541,20 @@ export function initInventory() {
         if (window.userRole !== 'admin') return;
         if (!confirm('Xác nhận đã thu tiền cho đơn hàng nợ này?')) return;
         try {
-            await InventoryService.markPaid(invId);
-            window.showToast('✅ Đã đánh dấu thu tiền xong!');
+            const result = await InventoryService.markPaid(invId);
+            if (result && result.alreadyPaid) {
+                window.showToast('ℹ️ Đơn này đã được thu trước đó');
+            } else {
+                window.showToast('✅ Đã thu tiền và ghi nhận doanh thu kho!');
+            }
+            // Phase 4K-4D: Invalidate để các tab render lại với doanh thu mới
+            if (typeof window.invalidateInventory === 'function') window.invalidateInventory('inventory-debt-paid');
+            if (typeof window.invalidateFinance   === 'function') window.invalidateFinance('inventory-debt-paid');
+            if (typeof window.invalidateDashboard === 'function') window.invalidateDashboard('inventory-debt-paid');
+            if (typeof window.invalidateSearchCache === 'function') {
+                window.invalidateSearchCache('inventory', 'inventory-debt-paid');
+                window.invalidateSearchCache('finance',   'inventory-debt-paid');
+            }
         } catch (err) {
             console.error('[inventory.js] markInvPaid lỗi:', err);
             alert('Lỗi khi cập nhật!');

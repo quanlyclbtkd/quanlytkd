@@ -325,16 +325,14 @@ export function initStudents() {
                 }
             }
 
-            // ── Tính gói học phí nhiều tháng ──────────────────────────────
-            const startMonth     = joinDate.substring(0, 7);
-            const monthsToRecord = [];
-            let [y, m] = startMonth.split('-').map(Number);
-            for (let i = 0; i < packageCount; i++) {
-                let curM = m + i, curY = y;
-                while (curM > 12) { curM -= 12; curY += 1; }
-                monthsToRecord.push(`${curY}-${curM.toString().padStart(2, '0')}`);
-            }
-            const newPaidUntil = addMonthsToYYYYMM(startMonth, packageCount - 1);
+            // ── Tính gói học phí nhiều tháng (Phase 4K-4C: dùng helper chung) ──
+            const tuitionPkg = window.buildAdmissionTuitionPackage
+                ? window.buildAdmissionTuitionPackage(joinDate || getLocalToday(), packageCount)
+                : (function(jd,cnt){const sm=(jd||getLocalToday()).substring(0,7);const ms=[];let [y,m]=sm.split('-').map(Number);for(let i=0;i<cnt;i++){let cm=m+i,cy=y;while(cm>12){cm-=12;cy+=1;}ms.push(cy+'-'+String(cm).padStart(2,'0'));}return{packageCount:cnt,startMonth:sm,months:ms,lastMonth:ms[ms.length-1],monthsStr:ms.join(','),label:ms.join(', ')};})(joinDate,packageCount);
+            const startMonth     = tuitionPkg.startMonth;
+            const monthsToRecord = tuitionPkg.months;
+            const lastMonth      = tuitionPkg.lastMonth;
+            const newPaidUntil   = lastMonth;
 
             const trainingDays = Array.from(document.querySelectorAll('.add_trainingDay:checked')).map(cb => parseInt(cb.value));
             const _addNickEl   = document.getElementById('add_nickname');
@@ -358,14 +356,22 @@ export function initStudents() {
                 createdAt:       joinDate,
                 paidUntil:       newPaidUntil,
                 paidMonths:      monthsToRecord,
+                tuitionPackageCount:             tuitionPkg.packageCount,
+                lastAdmissionTuitionStartMonth:  startMonth,
+                lastAdmissionTuitionMonths:      monthsToRecord,
             });
 
             // ── Ghi transaction học phí ────────────────────────────────────
             if (fee > 0) {
                 await StudentService.addTuitionTransaction({
                     branch, type: 'Học phí', description: _saveKey,
-                    amount: fee, date: joinDate, txMonth: startMonth,
-                    packageMonths: monthsToRecord, timestamp: Date.now(),
+                    amount: fee, date: joinDate, txMonth: lastMonth,
+                    paymentMonth: startMonth,
+                    packageMonths: monthsToRecord,
+                    tuitionPackageCount: tuitionPkg.packageCount,
+                    tuitionStartMonth: startMonth,
+                    tuitionPaidUntil: lastMonth,
+                    timestamp: Date.now(),
                 });
             }
 
@@ -399,7 +405,10 @@ export function initStudents() {
             const totalPayment = fee + (isGift ? 0 : uniformFee);
             if (totalPayment > 0 && window.exportReceipt) {
                 const breakdown = [];
-                if (fee > 0) breakdown.push({ label: 'Học phí tháng ' + startMonth.replace('-', '/'), amount: fee });
+                const tuitionLabel = tuitionPkg.packageCount > 1
+                    ? `Học phí gói ${tuitionPkg.packageCount} tháng (${tuitionPkg.label})`
+                    : `Học phí tháng ${tuitionPkg.label}`;
+                if (fee > 0) breakdown.push({ label: tuitionLabel, amount: fee });
                 if (!isGift && uniformFee > 0) breakdown.push({ label: 'Võ phục ' + (uniformSize || ''), amount: uniformFee });
                 const receiptType = (fee > 0 && !isGift && uniformFee > 0)
                     ? 'Học phí + Võ phục'
@@ -419,8 +428,8 @@ export function initStudents() {
                     };
                 }
                 await window.exportReceipt(
-                    _saveKey, totalPayment, receiptType, joinDate, startMonth,
-                    branch, '', 'BIÊN LAI THU TIỀN', breakdown.length > 1 ? breakdown : null
+                    _saveKey, totalPayment, receiptType, joinDate, tuitionPkg.monthsStr,
+                    branch, '', 'BIÊN LAI THU TIỀN', breakdown.length > 0 ? breakdown : null
                 );
             }
         } finally {
