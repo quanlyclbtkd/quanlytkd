@@ -88,7 +88,7 @@ for (const asset of ASSETS) {
             if (asset.required) {
                 console.error(`[HttpAssetCheck] ❌ 404  ${asset.path}  ← ${asset.desc} NOT FOUND`);
                 if (asset.path === '/js/main.js') {
-                    console.error(`FAIL /js/main.js returned 404 — local server root or deploy public root is wrong.`);
+                    console.error('                 main.js not found — check Firebase Hosting public root or local server root.');
                 }
                 errors++;
             } else {
