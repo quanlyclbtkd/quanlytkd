@@ -814,6 +814,261 @@ function _installAdmissionUniformSizeBridges() {
 }
 
 // ────────────────────────────────────────────────────────────────
+// Phase 4K-4: Club Exam Fee Setting Bridges
+// Cho phép mỗi CLB tự chỉnh lệ phí thi đai, lưu Firestore theo
+// clubs/{clubId}/settings/general (field: examFee). Idempotent.
+// ────────────────────────────────────────────────────────────────
+
+/**
+ * _installExamFeeSettingBridges — mount toàn bộ logic lệ phí thi:
+ *   window.getClubExamFee, setClubExamFeeLocal, loadClubExamFeeSetting,
+ *   saveClubExamFeeSetting, refreshExamFeeUI, initExamFeeSettingUI,
+ *   debugExamFeeSetting.
+ * Idempotent — gọi nhiều lần không gây vấn đề.
+ */
+function _installExamFeeSettingBridges() {
+    if (window.__examFeeSettingBridgesInstalled) return;
+    window.__examFeeSettingBridgesInstalled = true;
+
+    const DEFAULT_EXAM_FEE = 250000;
+
+    function normalizeExamFee(value) {
+        const n = Number(String(value || '').replace(/[^\d]/g, ''));
+        if (!Number.isFinite(n) || n <= 0) return DEFAULT_EXAM_FEE;
+        return Math.round(n);
+    }
+
+    // ── 1. getClubExamFee — nguồn duy nhất cho toàn hệ thống ────
+    window.getClubExamFee = function getClubExamFee() {
+        const st = window.__store || {};
+        const candidates = [
+            st.clubSettings && st.clubSettings.examFee,
+            st.settings && st.settings.examFee,
+            st.examFee,
+            st.currentClub && st.currentClub.examFee,
+            window.clubExamFee
+        ];
+        for (let i = 0; i < candidates.length; i++) {
+            const v = candidates[i];
+            const n = Number(String(v || '').replace(/[^\d]/g, ''));
+            if (Number.isFinite(n) && n > 0) return Math.round(n);
+        }
+        return DEFAULT_EXAM_FEE;
+    };
+
+    // ── 2. setClubExamFeeLocal — cập nhật local state ────────────
+    window.setClubExamFeeLocal = function setClubExamFeeLocal(value, reason) {
+        reason = reason || 'manual';
+        const fee = normalizeExamFee(value);
+        window.clubExamFee = fee;
+        if (!window.__store) window.__store = {};
+        if (!window.__store.clubSettings) window.__store.clubSettings = {};
+        window.__store.clubSettings.examFee = fee;
+        window.__store.examFee = fee;
+        window.__store._lastExamFeeReason = reason;
+        window.__store._lastExamFeeUpdatedAt = Date.now();
+        return fee;
+    };
+
+    // ── 3. loadClubExamFeeSetting — đọc từ Firestore theo CLB ────
+    window.loadClubExamFeeSetting = async function loadClubExamFeeSetting(reason) {
+        reason = reason || 'boot';
+        const st = window.__store || {};
+        const db = st.db || window.db;
+        const clubId = st.clubId || st.currentClubId || window.currentClubId;
+
+        if (!db || !clubId) {
+            console.warn('[exam-fee] missing db/clubId, fallback default. reason:', reason);
+            window.setClubExamFeeLocal(DEFAULT_EXAM_FEE, 'missing-db-club');
+            return DEFAULT_EXAM_FEE;
+        }
+
+        const _sdk = window._fb_init || {};
+        const _getDoc = _sdk.getDoc;
+        const _doc = _sdk.doc;
+        if (!_getDoc || !_doc) {
+            console.warn('[exam-fee] Firebase SDK not available, reason:', reason);
+            return window.getClubExamFee();
+        }
+
+        try {
+            // Ưu tiên clubs/{clubId}/settings/general
+            try {
+                const generalSnap = await _getDoc(_doc(db, 'clubs', clubId, 'settings', 'general'));
+                if (generalSnap.exists()) {
+                    const data = generalSnap.data() || {};
+                    if (data.examFee) {
+                        const fee = normalizeExamFee(data.examFee);
+                        window.setClubExamFeeLocal(fee, 'firestore-general-' + reason);
+                        if (typeof window.refreshExamFeeUI === 'function') window.refreshExamFeeUI('loaded-general');
+                        console.info('[exam-fee] loaded from general:', fee, 'club:', clubId);
+                        return fee;
+                    }
+                }
+            } catch (e1) {
+                console.warn('[exam-fee] load general failed:', e1.message || e1);
+            }
+
+            // Fallback: clubs/{clubId}/settings/main_config
+            try {
+                const mainSnap = await _getDoc(_doc(db, 'clubs', clubId, 'settings', 'main_config'));
+                if (mainSnap.exists()) {
+                    const data = mainSnap.data() || {};
+                    if (data.examFee) {
+                        const fee = normalizeExamFee(data.examFee);
+                        window.setClubExamFeeLocal(fee, 'firestore-main_config-' + reason);
+                        if (typeof window.refreshExamFeeUI === 'function') window.refreshExamFeeUI('loaded-main_config');
+                        console.info('[exam-fee] loaded from main_config:', fee, 'club:', clubId);
+                        return fee;
+                    }
+                }
+            } catch (e2) {
+                console.warn('[exam-fee] load main_config failed:', e2.message || e2);
+            }
+        } catch (e) {
+            console.warn('[exam-fee] load failed:', e);
+        }
+
+        return window.getClubExamFee();
+    };
+
+    // ── 4. saveClubExamFeeSetting — lưu Firestore merge:true ─────
+    window.saveClubExamFeeSetting = async function saveClubExamFeeSetting(value) {
+        const fee = normalizeExamFee(value);
+        const st = window.__store || {};
+        const db = st.db || window.db;
+        const clubId = st.clubId || st.currentClubId || window.currentClubId;
+
+        if (!db || !clubId) {
+            console.warn('[exam-fee] cannot save, missing db/clubId');
+            window.setClubExamFeeLocal(fee, 'save-local-only');
+            return fee;
+        }
+
+        window.setClubExamFeeLocal(fee, 'before-save');
+
+        const _sdk = window._fb_init || {};
+        const _setDoc = _sdk.setDoc;
+        const _doc = _sdk.doc;
+        const _serverTimestamp = _sdk.serverTimestamp;
+
+        if (!_setDoc || !_doc) {
+            console.warn('[exam-fee] Firebase SDK not available for save');
+            return fee;
+        }
+
+        const currentUser = st.currentUser || null;
+
+        await _setDoc(
+            _doc(db, 'clubs', clubId, 'settings', 'general'),
+            {
+                examFee: fee,
+                updatedAt: _serverTimestamp ? _serverTimestamp() : Date.now(),
+                updatedBy: currentUser ? (currentUser.email || currentUser.uid || '') : '',
+            },
+            { merge: true }
+        );
+
+        console.info('[exam-fee] saved to Firestore:', fee, 'club:', clubId);
+        return fee;
+    };
+
+    // ── 5. refreshExamFeeUI — đồng bộ tất cả inputs hiển thị ────
+    window.refreshExamFeeUI = function refreshExamFeeUI(reason) {
+        reason = reason || 'refresh';
+        const fee = window.getClubExamFee ? window.getClubExamFee() : DEFAULT_EXAM_FEE;
+
+        // examFeeInput (setting input)
+        const examFeeInput = document.getElementById('examFeeInput');
+        if (examFeeInput) examFeeInput.value = String(fee);
+
+        // exam_fee_all_display (formatted display — dùng bởi formatCurrencyInput)
+        const displayEl = document.getElementById('exam_fee_all_display');
+        if (displayEl) displayEl.value = fee.toLocaleString('vi-VN');
+
+        // exam_fee_all_actual (raw hidden — đọc bởi quickCollectExam, processBatchUpgrade)
+        const actualEl = document.getElementById('exam_fee_all_actual');
+        if (actualEl) actualEl.value = String(fee);
+    };
+
+    // ── 6. initExamFeeSettingUI — bind events (idempotent) ───────
+    window.initExamFeeSettingUI = function initExamFeeSettingUI() {
+        // Luôn refresh values dù đã mount hay chưa
+        if (typeof window.refreshExamFeeUI === 'function') window.refreshExamFeeUI('init');
+
+        if (window.__examFeeSettingUIMounted) return;
+        window.__examFeeSettingUIMounted = true;
+
+        const btn = document.getElementById('saveExamFeeBtn');
+        if (!btn) return;
+
+        btn.addEventListener('click', async function(e) {
+            e.preventDefault();
+            const _input = document.getElementById('examFeeInput');
+            const _status = document.getElementById('examFeeStatus');
+            const fee = normalizeExamFee(_input ? _input.value : '');
+
+            if (!fee || fee <= 0) {
+                if (_status) { _status.style.color = '#dc2626'; _status.textContent = '⚠ Lệ phí không hợp lệ'; }
+                return;
+            }
+
+            if (_status) { _status.style.color = '#64748b'; _status.textContent = 'Đang lưu...'; }
+
+            try {
+                await window.saveClubExamFeeSetting(fee);
+                if (_input) _input.value = String(fee);
+                if (_status) { _status.style.color = '#16a34a'; _status.textContent = '✓ Đã lưu lệ phí thi'; }
+
+                if (typeof window.refreshExamFeeUI === 'function') window.refreshExamFeeUI('exam-fee-saved');
+                if (typeof window.invalidateCurrentTab === 'function') {
+                    window.invalidateCurrentTab('exam-fee-saved');
+                } else if (typeof window.scheduleRender === 'function') {
+                    window.scheduleRender();
+                }
+
+                // Tự xóa status sau 3s
+                setTimeout(function() {
+                    const _s = document.getElementById('examFeeStatus');
+                    if (_s && _s.textContent.includes('Đã lưu')) _s.textContent = '';
+                }, 3000);
+            } catch (err) {
+                console.error('[exam-fee] save failed:', err);
+                if (_status) { _status.style.color = '#dc2626'; _status.textContent = '❌ Lưu thất bại, vui lòng thử lại'; }
+            }
+        });
+    };
+
+    // ── 7. debugExamFeeSetting — debug console ────────────────────
+    window.debugExamFeeSetting = async function debugExamFeeSetting() {
+        const st = window.__store || {};
+        const result = {
+            href: location.href,
+            protocol: location.protocol,
+            runtimeMode: window.__RUNTIME_MODE || '',
+            mainLoaded: !!window.MAIN_JS_LOADED,
+            appLoaded: !!window.__appLoaded,
+            clubId: st.clubId || st.currentClubId || window.currentClubId || '',
+            localExamFee: window.clubExamFee,
+            storeExamFee: (st.clubSettings && st.clubSettings.examFee) || st.examFee || null,
+            getClubExamFee: typeof window.getClubExamFee === 'function' ? window.getClubExamFee() : null,
+            hasLoadClubExamFeeSetting: typeof window.loadClubExamFeeSetting === 'function',
+            hasSaveClubExamFeeSetting: typeof window.saveClubExamFeeSetting === 'function',
+            hasInitExamFeeSettingUI: typeof window.initExamFeeSettingUI === 'function',
+            inputValue: (document.getElementById('examFeeInput') || {}).value || '',
+            statusText: (document.getElementById('examFeeStatus') || {}).textContent || '',
+            displayText: (document.getElementById('examFeeDisplay') || {}).textContent
+                || (document.querySelector('[data-role="exam-fee-display"]') || {}).textContent
+                || ''
+        };
+        console.table(result);
+        return result;
+    };
+
+    console.info('[main.js] Phase 4K-4: exam fee setting bridges installed');
+}
+
+// ────────────────────────────────────────────────────────────────
 // [GITHUB-FIX] Task 3: Tránh double-boot app.js khi legacy đã load
 // ────────────────────────────────────────────────────────────────
 
@@ -883,6 +1138,11 @@ function _waitForExistingLegacyApp(ms) {
         window.switchTab = async function(tabId) {
             await ensureTabModule(tabId);
             if (typeof _origSwitchTab === 'function') _origSwitchTab(tabId);
+            // Phase 4K-4: Refresh exam fee UI when entering exam tab
+            if (tabId === 'exam') {
+                if (typeof window.initExamFeeSettingUI === 'function') window.initExamFeeSettingUI();
+                if (typeof window.refreshExamFeeUI === 'function') window.refreshExamFeeUI('switch-to-exam');
+            }
         };
 
         initDashboard();
@@ -1017,6 +1277,33 @@ function _waitForExistingLegacyApp(ms) {
 
         // Phase 4K-3B: Admission Uniform Size Recovery
         _installAdmissionUniformSizeBridges();
+
+        // Phase 4K-4: Club Exam Fee Setting
+        _installExamFeeSettingBridges();
+
+        // Phase 4K-4: Load exam fee on context-ready (covers login + club switch)
+        if (!window.__examFeeContextReadyListenerRegistered) {
+            window.__examFeeContextReadyListenerRegistered = true;
+            window.addEventListener('app:context-ready', function() {
+                if (typeof window.loadClubExamFeeSetting === 'function') {
+                    window.loadClubExamFeeSetting('context-ready').then(function() {
+                        if (typeof window.refreshExamFeeUI === 'function') window.refreshExamFeeUI('context-ready');
+                        if (typeof window.initExamFeeSettingUI === 'function') window.initExamFeeSettingUI();
+                    });
+                }
+            });
+        }
+        // Replay nếu context đã ready trước khi main.js kịp đăng ký (GitHub Pages)
+        if (window.__appContextReadyState && window.__appContextReadyState.ready) {
+            setTimeout(function() {
+                if (typeof window.loadClubExamFeeSetting === 'function') {
+                    window.loadClubExamFeeSetting('replay-context-ready').then(function() {
+                        if (typeof window.refreshExamFeeUI === 'function') window.refreshExamFeeUI('replay-context-ready');
+                        if (typeof window.initExamFeeSettingUI === 'function') window.initExamFeeSettingUI();
+                    });
+                }
+            }, 200);
+        }
 
         // PHẦN 6 FIX: Các block setTimeout 500ms/1500ms init pagination sớm đã bị DISABLED.
         // Lý do: chạy trước isClubRuntimeReady() → gây cảnh báo "db chưa sẵn sàng sau 2s".
