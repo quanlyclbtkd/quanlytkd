@@ -1,5 +1,5 @@
 /**
- * tools/check-exam-fee-setting.mjs — Phase 4K-4
+ * tools/check-exam-fee-setting.mjs — Phase 4K-4B
  *
  * Kiểm tra static: đảm bảo hệ thống có đầy đủ các thành phần
  * cần thiết cho chức năng tùy chỉnh lệ phí thi đai theo từng CLB.
@@ -35,17 +35,19 @@ function check(label, condition, hint) {
     }
 }
 
-console.log('\n🔍 Phase 4K-4 — Club Exam Fee Setting Check\n');
+console.log('\n🔍 Phase 4K-4B — Club Exam Fee Setting Check\n');
 
-const mainJs   = readFile('js/main.js');
-const appJs    = readFile('app.js');
+const mainJs    = readFile('js/main.js');
+const appJs     = readFile('app.js');
+const financeJs = readFile('js/modules/finance.js');
 const indexHtml = readFile('index.html');
 
-check('mainJs readable',   !!mainJs,   'Không tìm thấy js/main.js');
-check('appJs readable',    !!appJs,    'Không tìm thấy app.js');
-check('indexHtml readable',!!indexHtml,'Không tìm thấy index.html');
+check('mainJs readable',    !!mainJs,    'Không tìm thấy js/main.js');
+check('appJs readable',     !!appJs,     'Không tìm thấy app.js');
+check('financeJs readable', !!financeJs, 'Không tìm thấy js/modules/finance.js');
+check('indexHtml readable', !!indexHtml, 'Không tìm thấy index.html');
 
-if (!mainJs || !appJs || !indexHtml) {
+if (!mainJs || !appJs || !financeJs || !indexHtml) {
     console.error('\n❌ Cannot continue — required files missing\n');
     process.exit(1);
 }
@@ -156,32 +158,27 @@ check(
     'Thêm _installExamFeeSettingBridges() vào hàm bootstrap'
 );
 
-// ── 16. Kiểm tra quickCollectExam không còn hard-code 250000 thuần ────────
-// Chấp nhận nếu 250000 còn trong fallback expression || (...250000)
-const quickCollectExamBlock = (() => {
+// ── 16. Kiểm tra quickCollectExam không còn hard-code 250000 thuần (app.js) ──
+const quickCollectExamBlockApp = (() => {
     const idx = appJs.indexOf('window.quickCollectExam');
     if (idx === -1) return '';
     return appJs.slice(idx, idx + 400);
 })();
 
-const hasHardcoded250k = (function() {
-    // Lấy dòng có defaultFee
-    const line = quickCollectExamBlock.match(/let\s+defaultFee\s*=.*?;/s);
+const hasHardcoded250kApp = (function() {
+    const line = quickCollectExamBlockApp.match(/let\s+defaultFee\s*=.*?;/s);
     if (!line) return false;
     const lineStr = line[0];
-    // Fail nếu chỉ có || 250000 mà KHÔNG qua getClubExamFee
     const hasGetClubExamFee = lineStr.includes('getClubExamFee');
     const has250k = lineStr.includes('250000');
-    // Nếu có 250000 nhưng đã qua getClubExamFee fallback → OK
     if (has250k && hasGetClubExamFee) return false;
-    // Nếu có 250000 mà không qua getClubExamFee → FAIL
     if (has250k && !hasGetClubExamFee) return true;
     return false;
 })();
 
 check(
     'app.js quickCollectExam dùng getClubExamFee thay vì hard-code 250000',
-    !hasHardcoded250k,
+    !hasHardcoded250kApp,
     'Đổi || 250000 thành || (window.getClubExamFee ? window.getClubExamFee() : 250000)'
 );
 
@@ -206,17 +203,73 @@ check(
     'normalizeExamFee bắt buộc để validate giá trị nhập từ input'
 );
 
-// ── 20. Kiểm tra version string đã được cập nhật ────────────────────────
+// ── 20. Kiểm tra version string đã được cập nhật (Phase 4K-4B hoặc mới hơn) ──
 check(
-    'index.html version đã cập nhật lên club-exam-fee-setting-fix-20260603',
-    indexHtml.includes('club-exam-fee-setting-fix-20260603'),
-    "Đổi version string trong index.html thành ?v=club-exam-fee-setting-fix-20260603"
+    'index.html version đã cập nhật lên github-runtime-pilot-gate-examfee-hardening-20260603',
+    indexHtml.includes('github-runtime-pilot-gate-examfee-hardening-20260603')
+        || indexHtml.includes('admission-tuition-package-receipt-fix')
+        || indexHtml.includes('examfee-hardening'),
+    "Đổi version string trong index.html thành ?v=github-runtime-pilot-gate-examfee-hardening-20260603 hoặc mới hơn"
+);
+
+// ═══════════════════════════════════════════════════════════════════
+// Phase 4K-4B — New hardening checks
+// ═══════════════════════════════════════════════════════════════════
+
+// ── 21. finance.js quickCollectExam không còn pattern feeEl.value || 250000 ─
+const financeQuickCollectBlock = (() => {
+    // Search for the actual function definition, not the comment/migration-map
+    const idx = financeJs.indexOf('window.quickCollectExam =');
+    if (idx === -1) {
+        // Fallback: last occurrence of quickCollectExam
+        const last = financeJs.lastIndexOf('quickCollectExam');
+        if (last === -1) return '';
+        return financeJs.slice(last, last + 600);
+    }
+    return financeJs.slice(idx, idx + 600);
+})();
+
+check(
+    'finance.js quickCollectExam không còn pattern bare "feeEl.value || 250000"',
+    !financeQuickCollectBlock.includes('feeEl.value || 250000') &&
+    !financeQuickCollectBlock.includes("feeEl.value || '250000'") &&
+    !financeQuickCollectBlock.includes('feeEl.value || "250000"'),
+    'Đổi feeEl.value || 250000 thành feeEl && feeEl.value ? feeEl.value : (window.getClubExamFee ? window.getClubExamFee() : DEFAULT_EXAM_FEE)'
+);
+
+// ── 22. finance.js quickCollectExam phải gọi getClubExamFee ──────────────
+check(
+    'finance.js quickCollectExam dùng getClubExamFee làm fallback',
+    financeQuickCollectBlock.includes('getClubExamFee'),
+    'Thêm window.getClubExamFee fallback vào defaultFee trong quickCollectExam của finance.js'
+);
+
+// ── 23. Không có count * 250000 trong app.js hoặc finance.js ─────────────
+check(
+    'Không có "count * 250000" hoặc tương tự trong app.js',
+    !appJs.includes('* 250000') && !appJs.includes('*250000'),
+    'Xóa pattern count * 250000 trong app.js — dùng getClubExamFee() thay thế'
+);
+
+check(
+    'Không có "count * 250000" hoặc tương tự trong finance.js',
+    !financeJs.includes('* 250000') && !financeJs.includes('*250000'),
+    'Xóa pattern count * 250000 trong finance.js — dùng getClubExamFee() thay thế'
+);
+
+// ── 24. Logout/context-ready reset exam fee ───────────────────────────────
+check(
+    'main.js có xử lý reset examFee khi logout hoặc context-ready',
+    (mainJs.includes('logout') || mainJs.includes('signOut')) &&
+    mainJs.includes('loadClubExamFeeSetting'),
+    'Thêm loadClubExamFeeSetting khi logout/context-ready để tránh dùng nhầm phí CLB khác'
 );
 
 // ── Summary ───────────────────────────────────────────────────────────────
 console.log('');
+const total = 24;
 if (failures === 0) {
-    console.log('\x1b[32m✅ All checks passed (20/20)\x1b[0m\n');
+    console.log(`\x1b[32m✅ All checks passed (${total}/${total})\x1b[0m\n`);
     process.exit(0);
 } else {
     console.log(`\x1b[31m❌ ${failures} check(s) failed\x1b[0m\n`);

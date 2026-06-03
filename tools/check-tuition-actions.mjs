@@ -148,6 +148,8 @@ check(
         indexHtml.includes('tuition-admission-uniform-size-fix')
         || indexHtml.includes('tuition-actions-profile-click-fix')
         || indexHtml.includes('club-exam-fee-setting-fix')
+        || indexHtml.includes('examfee-hardening')
+        || indexHtml.includes('admission-tuition-package-receipt-fix')
     ),
     'Đổi version main.js?v=... trong index.html để bust cache GitHub Pages'
 );

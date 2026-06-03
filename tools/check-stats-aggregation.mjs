@@ -149,6 +149,23 @@ if (helpers) {
     check('Amount parsed safely (Number())',
         helpers.includes('Number(tx.amount)') || helpers.includes('Number(amount)'),
         'Parse amount with Number() to avoid NaN from missing fields');
+    // Phase 4K-4D: Custom inventory category classification
+    check('Phase 4K-4D: classifyInventoryTxType defined',
+        helpers.includes('function classifyInventoryTxType') ||
+        helpers.includes('classifyInventoryTxType'),
+        'Define classifyInventoryTxType() in helpers.js for dynamic inventory classification');
+    check('Phase 4K-4D: "Thu " + relatedInvId handled → income.uniform',
+        helpers.includes("startsWith('Thu ')") && helpers.includes('relatedInvId'),
+        'classifyInventoryTxType must handle "Thu <Category>" when relatedInvId present');
+    check('Phase 4K-4D: "Chi " + relatedInvId handled → expense.uniform',
+        helpers.includes("startsWith('Chi ')") && helpers.includes('relatedInvId'),
+        'classifyInventoryTxType must handle "Chi <Category>" when relatedInvId present');
+    check('Phase 4K-4D: "Tặng " + relatedInvId returns null (not counted)',
+        helpers.includes("startsWith('Tặng ')"),
+        'classifyInventoryTxType must return null for "Tặng <Category>" — gifts not counted in stats');
+    check('Phase 4K-4D: classifyTx calls classifyInventoryTxType',
+        helpers.includes('classifyInventoryTxType(type, tx)'),
+        'classifyTx must delegate to classifyInventoryTxType for inventory transaction detection');
 }
 console.log();
 
