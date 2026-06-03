@@ -143,15 +143,55 @@ check(
 // ── 6. index.html — cache bust version ────────────────────────────────────
 const indexHtml = readFile('index.html');
 check(
-    'index.html — main.js version updated (tuition-actions-profile-click-fix)',
-    indexHtml && indexHtml.includes('tuition-actions-profile-click-fix'),
+    'index.html — main.js version updated (tuition-admission-uniform-size-fix)',
+    indexHtml && (
+        indexHtml.includes('tuition-admission-uniform-size-fix')
+        || indexHtml.includes('tuition-actions-profile-click-fix')
+    ),
     'Đổi version main.js?v=... trong index.html để bust cache GitHub Pages'
+);
+
+// ── Phase 4K-3B Hardening Checks ───────────────────────────────────────────
+
+// ── 7. printTuitionReceiptByTxId không fallback 0 đồng ───────────────────
+check(
+    'main.js — printTuitionReceiptByTxId không fallback 0 đồng khi tx không tìm thấy',
+    mainJs && (
+        // Hardened version phải kiểm tra amount > 0 trước khi fallback
+        mainJs.includes('Number(opts.amount) > 0')
+        || mainJs.includes('opts.amount > 0')
+    ),
+    'printTuitionReceiptByTxId() phải yêu cầu amount > 0 trước khi fallback — không in 0 đồng'
+);
+
+// ── 8. openStudentProfileByName có normalize Vietnamese fallback ───────────
+check(
+    'main.js — openStudentProfileByName có normalize fallback tiếng Việt',
+    mainJs && mainJs.includes('openStudentProfileByName') && (
+        mainJs.includes('normalizeVNForSearch') ||
+        (mainJs.includes('NFD') && mainJs.includes('openStudentProfileByName'))
+    ),
+    'openStudentProfileByName() phải dùng normalize tiếng Việt để tìm đúng profile key'
+);
+
+// ── 9. debugTuitionActions có firstPrintDataset ───────────────────────────
+check(
+    'main.js — debugTuitionActions có firstPrintDataset',
+    mainJs && mainJs.includes('firstPrintDataset'),
+    'debugTuitionActions() phải bao gồm firstPrintDataset từ nút In đầu tiên trong DOM'
+);
+
+// ── 10. debugTuitionActions có sampleTxIds ───────────────────────────────
+check(
+    'main.js — debugTuitionActions có sampleTxIds',
+    mainJs && mainJs.includes('sampleTxIds'),
+    'debugTuitionActions() phải bao gồm sampleTxIds từ data-tx-id trong DOM'
 );
 
 // ── Summary ────────────────────────────────────────────────────────────────
 console.log(`\n${'─'.repeat(60)}`);
 if (failures === 0) {
-    console.log('\x1b[32m🎉 Tất cả kiểm tra PASSED — Phase 4K-3 ready\x1b[0m\n');
+    console.log('\x1b[32m🎉 Tất cả kiểm tra PASSED — Phase 4K-3 + 4K-3B ready\x1b[0m\n');
     process.exit(0);
 } else {
     console.log(`\x1b[31m💥 ${failures} kiểm tra FAILED — Cần sửa trước khi deploy\x1b[0m\n`);
