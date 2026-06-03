@@ -136,6 +136,43 @@ function calcDebt(profile, currentMonth) {
 // ════════════════════════════════════════════════════════════════
 
 /**
+ * Phase 4K-4D: Phân loại giao dịch kho động (custom categories + backward compat).
+ * Dùng relatedInvId làm signal nhận diện giao dịch kho nếu type chưa chuẩn.
+ *
+ * @param {string} type   - tx.type
+ * @param {Object} tx     - toàn bộ transaction object (để đọc relatedInvId)
+ * @returns {{ field: string, value: number } | null}
+ */
+function classifyInventoryTxType(type, tx) {
+    const amount = Number((tx && tx.amount) || 0);
+    const raw    = String(type || '').trim();
+
+    // Backward compat: type cũ dùng tên danh mục làm type
+    if (raw === 'Võ phục' || raw === 'Thu Võ phục') {
+        return { field: 'income.uniform', value: amount };
+    }
+    if (raw === 'Chi Võ phục') {
+        return { field: 'expense.uniform', value: amount };
+    }
+    if (raw === 'Tặng Võ phục') {
+        return null; // Tặng không tính vào stats
+    }
+
+    // Dynamic: Thu <Category> / Chi <Category> với relatedInvId
+    if (raw.startsWith('Thu ') && tx && tx.relatedInvId) {
+        return { field: 'income.uniform', value: amount };
+    }
+    if (raw.startsWith('Chi ') && tx && tx.relatedInvId) {
+        return { field: 'expense.uniform', value: amount };
+    }
+    if (raw.startsWith('Tặng ') && tx && tx.relatedInvId) {
+        return null; // Tặng không tính
+    }
+
+    return null; // Không phải giao dịch kho
+}
+
+/**
  * Phân loại một transaction vào đúng field của stats doc.
  *
  * Trả về:
@@ -163,10 +200,6 @@ function classifyTx(tx) {
         case 'Lệ phí thi':
             return { field: 'income.exam', value: amount };
 
-        case 'Thu Võ phục':
-        case 'Võ phục':
-            return { field: 'income.uniform', value: amount };
-
         case 'Thu khác':
             return { field: 'income.other', value: amount };
 
@@ -176,12 +209,13 @@ function classifyTx(tx) {
         case 'Chi phí kỳ thi':
             return { field: 'expense.exam', value: amount };
 
-        case 'Chi Võ phục':
-            return { field: 'expense.uniform', value: amount };
-
-        default:
-            // Tặng Võ phục, các loại không tính vào stats → bỏ qua
+        default: {
+            // Phase 4K-4D: inventory classification (custom categories + backward compat)
+            const inv = classifyInventoryTxType(type, tx);
+            if (inv !== null) return inv;
+            // Tặng Võ phục, Tặng <Category>, unknown → bỏ qua
             return null;
+        }
     }
 }
 
@@ -192,4 +226,5 @@ module.exports = {
     getTxMonth,
     calcDebt,
     classifyTx,
+    classifyInventoryTxType,
 };
