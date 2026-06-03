@@ -73,7 +73,8 @@
     "check:student-pagination-controls-dom": "node tools/check-student-pagination-controls-dom.mjs",
     "check:modal-close-compat": "node tools/check-modal-close-compat.mjs",
     "check:student-pagination-render-order": "node tools/check-student-pagination-render-order.mjs",
-    "check:bootstrap-pagination-race": "node tools/check-bootstrap-pagination-race.mjs"
+    "check:bootstrap-pagination-race": "node tools/check-bootstrap-pagination-race.mjs",
+    "check:search-runtime-performance": "node tools/check-search-runtime-performance.mjs"
   },
   "engines": {
     "node": ">=18.0.0"

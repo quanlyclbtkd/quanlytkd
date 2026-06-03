@@ -3294,13 +3294,34 @@ service cloud.firestore {
             });
             if (typeof window.recordReadMetric === 'function') window.recordReadMetric('transactions', allTransactions.length, 'tx-merge-render'); // [4J-8]
             // [Phase 3.5C] transactions thay đổi → finance + students (debt) + dashboard.
-            // Fallback về scheduleRender() nếu Phase 3.5C chưa load.
+            // PHẦN 10 FIX: Thay vì scheduleRender() (full re-render), queue invalidation
+            // để main.js flush sau khi init xong — tránh LegacyRenderWarning.
             if (window.invalidateFinance) {
                 if (window.markListenerSnapshot) window.markListenerSnapshot(_txKey);
                 window.invalidateFinance('transactions-snapshot');
                 window.invalidateStudents('transactions-affect-debt');
                 window.invalidateDashboard('transactions-snapshot');
+            } else if (window.__RUNTIME_MODE === 'http-module') {
+                // HTTP module mode: queue invalidation, không gọi scheduleRender
+                window.__pendingDomainInvalidations = window.__pendingDomainInvalidations || [];
+                window.__pendingDomainInvalidations.push({
+                    domain: 'finance',
+                    reason: 'transactions-snapshot',
+                    at: Date.now(),
+                });
+                window.__pendingDomainInvalidations.push({
+                    domain: 'students',
+                    reason: 'transactions-affect-debt',
+                    at: Date.now(),
+                });
+                window.__pendingDomainInvalidations.push({
+                    domain: 'dashboard',
+                    reason: 'transactions-snapshot',
+                    at: Date.now(),
+                });
+                console.debug('[DomainQueue] Queued 3 invalidations — invalidateFinance not ready yet');
             } else {
+                // File legacy fallback
                 scheduleRender();
             }
         };
@@ -5577,11 +5598,15 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         // Không trigger full renderApp() toàn app — chỉ invalidate domain của tab hiện tại.
         // Fallback về scheduleRender() nếu Phase 3.5C chưa load.
         document.getElementById('filterBranch').onchange = () => { window._resetListPages && window._resetListPages(); if (window.invalidateCurrentTab) { window.invalidateCurrentTab('filter-branch-change'); } else { scheduleRender(); } }; 
-        // Phase 4J-9B: LEGACY search handler — chỉ chạy nếu PRIMARY controller chưa mount.
-        // PRIMARY (students.js _bindSearchReset) có debounce 350ms + server-side search.
-        // Nếu PRIMARY đã active, oninput này không làm gì để tránh double render.
+        // PHẦN 2 FIX: LEGACY search handler — chỉ chạy khi searchRuntime chưa mount VÀ không phải http-module.
+        // Khi chạy GitHub/domain hoặc local HTTP module, app.js không tự refresh search.
+        // File legacy vẫn có fallback nếu main.js bị tắt.
         document.getElementById('searchInput').oninput = () => {
-            // [PART 4 FIX] Tab-aware guard: chỉ chặn legacy ở ĐANG TẬP/ĐÃ NGHỈ nếu PRIMARY đã mount và không fail
+            // PHẦN 2: Nếu Unified Search Runtime đã mount (http-module) → không làm gì
+            if (window.__RUNTIME_MODE === 'http-module' && window.__searchRuntimeMounted) {
+                return;
+            }
+            // Tab-aware guard: chỉ chặn legacy ở ĐANG TẬP/ĐÃ NGHỈ nếu PRIMARY đã mount và không fail
             const _curTab = typeof window.getCurrentActiveTabId === 'function'
                 ? window.getCurrentActiveTabId()
                 : (document.querySelector('.tab-content.active')?.id || '').replace(/^tab_/, '');
@@ -5593,6 +5618,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             ) {
                 return;
             }
+            // Legacy fallback — chỉ dùng cho file-legacy hoặc khi module search chưa mount
             window._resetListPages && window._resetListPages();
             if (typeof window.refreshListsComputation === 'function') {
                 window.refreshListsComputation([
@@ -5603,7 +5629,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                     'inventory.inventoryList',
                     'inventory.uniformTxList',
                     'dashboard.summary',
-                ], 'global-search-change');
+                ], 'global-search-change-legacy-fallback');
             }
             if (window.invalidateCurrentTab) { window.invalidateCurrentTab('search-change'); } else { scheduleRender(); }
         };
