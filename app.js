@@ -4990,7 +4990,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
     window.quickCollectExam = async (name, branch) => {
         // [SỬA] Thay alert() + prompt() bằng showToast() + openQuickPayModal có skipPrompt
         if(window.userRole === 'viewer') return window.showToast("⛔ Tài khoản khách không thể thu tiền!");
-        let defaultFee = document.getElementById('exam_fee_all_actual').value || 250000;
+        let defaultFee = document.getElementById('exam_fee_all_actual').value || (window.getClubExamFee ? window.getClubExamFee() : 250000);
         let inputAmount = prompt(`Nhập lệ phí thi của ${name}:`, defaultFee); if (!inputAmount) return; 
         let amount = Number(inputAmount.replace(/\D/g, '')); if (amount <= 0) return;
         const _curBelt = (allProfiles[name] && allProfiles[name].belt) || 'Đai trắng - Cấp 10';
