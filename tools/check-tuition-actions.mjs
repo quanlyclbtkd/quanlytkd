@@ -143,10 +143,11 @@ check(
 // ── 6. index.html — cache bust version ────────────────────────────────────
 const indexHtml = readFile('index.html');
 check(
-    'index.html — main.js version updated (tuition-admission-uniform-size-fix)',
+    'index.html — main.js version updated (post-tuition-fix)',
     indexHtml && (
         indexHtml.includes('tuition-admission-uniform-size-fix')
         || indexHtml.includes('tuition-actions-profile-click-fix')
+        || indexHtml.includes('club-exam-fee-setting-fix')
     ),
     'Đổi version main.js?v=... trong index.html để bust cache GitHub Pages'
 );
