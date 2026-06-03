@@ -131,11 +131,11 @@ if (indexHtml) {
         !_hasAbsImport,
         'Replace import("/js/...") with import("./js/...") in any inline scripts');
 
-    // Should load main.js with relative path
-    const _hasRelMainJs = /s\.src\s*=\s*["']\.\/js\/main\.js["']/.test(indexStripped) ||
-        /s\.src\s*=\s*["']js\/main\.js["']/.test(indexStripped) ||
-        /src\s*=\s*["']\.\/js\/main\.js["']/.test(indexStripped) ||
-        /src\s*=\s*["']js\/main\.js["']/.test(indexStripped);
+    // Should load main.js with relative path (including versioned query string like ?v=...)
+    const _hasRelMainJs = /s\.src\s*=\s*["']\.\/js\/main\.js(\?[^"']*)?["']/.test(indexStripped) ||
+        /s\.src\s*=\s*["']js\/main\.js(\?[^"']*)?["']/.test(indexStripped) ||
+        /src\s*=\s*["']\.\/js\/main\.js(\?[^"']*)?["']/.test(indexStripped) ||
+        /src\s*=\s*["']js\/main\.js(\?[^"']*)?["']/.test(indexStripped);
     check('index.html loads main.js with relative path (./js/main.js or js/main.js)',
         _hasRelMainJs,
         'Use s.src = "./js/main.js" in the dynamic script injection block');
