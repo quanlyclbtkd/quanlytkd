@@ -1052,6 +1052,33 @@ export function initStudentPagination() {
                 }
             };
 
+            // ── [GITHUB-FIX Task 2] Hydrate store.profiles từ pagination items ──
+            // Đảm bảo computeAndCacheStudents không thấy profiles rỗng khi pagination đã có rows.
+            function _mergePaginationProfilesIntoStore(items, reason) {
+                if (!Array.isArray(items) || items.length === 0) return 0;
+                const st = window.__store || store;
+                if (!st) return 0;
+                if (!st.profiles || typeof st.profiles !== 'object') st.profiles = {};
+                let added = 0;
+                items.forEach(function(item) {
+                    const id = String(item.id || item.name || '').trim();
+                    if (!id) return;
+                    if (!st.profiles[id]) added++;
+                    st.profiles[id] = Object.assign({}, item);
+                    if (window.studentProfileStore && typeof window.studentProfileStore.mergeProfile === 'function') {
+                        try { window.studentProfileStore.mergeProfile(id, item, reason || 'pagination-profile-hydrate'); } catch (_) {}
+                    }
+                });
+                if (typeof window.syncProfilesToStudentStore === 'function') {
+                    try { window.syncProfilesToStudentStore(st.profiles, reason || 'pagination-profile-hydrate'); } catch (_) {}
+                }
+                if (window.__store) {
+                    window.__store._dataVersion = (window.__store._dataVersion || 0) + 1;
+                    window.__store._lastProfileHydrateReason = reason || 'pagination-profile-hydrate';
+                }
+                return added;
+            }
+
             // ── Core: thực sự load một trang profiles ──────────────────
             async function _doLoad(cursor, direction) {
                 if (pgState.isLoading) return;
@@ -1115,16 +1142,23 @@ export function initStudentPagination() {
                     // Cập nhật store để render.js dùng được
                     store.pagination.students = pgState;
 
+                    // [GITHUB-FIX Task 2] Hydrate store.profiles ngay trước khi render summary
+                    _mergePaginationProfilesIntoStore(pgState.currentItems, 'students-pagination-page');
+
                     // ── Phase 4K-GITHUB-PROFILE-COUNT-FALLBACK ─────────────
                     // Nếu pagination lấy được rows nhưng window.__store.profiles vẫn rỗng
                     // hoặc ít bất thường, các badge/dashboard sẽ vẫn giữ 0.
-                    // Trigger full fallback 1 lần an toàn để hydrate legacy allProfiles.
+                    // Trigger full fallback với await để render summary chờ sau khi profiles có data.
                     try {
                         const _profileCount = Object.keys((store && store.profiles) || {}).length;
                         const _pageCount = Array.isArray(pgState.currentItems) ? pgState.currentItems.length : 0;
                         if (_pageCount > 0 && _profileCount < Math.min(10, Math.ceil(_pageCount * 0.3))) {
                             if (typeof window.loadFullProfilesFallback === 'function') {
-                                setTimeout(() => window.loadFullProfilesFallback('pagination-items-but-profiles-empty'), 0);
+                                try {
+                                    await window.loadFullProfilesFallback('pagination-items-but-profiles-empty');
+                                } catch (e) {
+                                    console.warn('[students-pagination] full profile fallback failed:', e);
+                                }
                             }
                         }
                     } catch (_) {}

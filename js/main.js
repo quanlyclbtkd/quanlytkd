@@ -1614,6 +1614,58 @@ window.debugStudentListHydration = async function debugStudentListHydration() {
  *   // ... switch tab, thao tác để reproduce ...
  *   window.__activeListMutationObserver?.disconnect()  // dừng khi xong
  */
+// ─────────────────────────────────────────────────────────────────────────────
+// TASK 7 — debugZeroBadges: kiểm tra nhanh trạng thái badge/dashboard
+// Chạy trong Console: debugZeroBadges()
+// ─────────────────────────────────────────────────────────────────────────────
+window.debugZeroBadges = function debugZeroBadges() {
+    const st = window.__store || {};
+    const pgStudents = st.pagination && st.pagination.students;
+    const pgTx = st.pagination && st.pagination.transactions;
+
+    const result = {
+        href:     location.href,
+        protocol: location.protocol,
+
+        appLoaded:  !!window.__appLoaded,
+        mainLoaded: !!window.MAIN_JS_LOADED,
+
+        storeProfilesCount: Object.keys(st.profiles || {}).length,
+        studentStoreCompatCount:
+            window.studentProfileStore && window.studentProfileStore.getAllProfilesCompat
+                ? Object.keys(window.studentProfileStore.getAllProfilesCompat() || {}).length
+                : -1,
+
+        paginationStudentItems: Array.isArray(pgStudents && pgStudents.currentItems ? pgStudents.currentItems : null) ? pgStudents.currentItems.length : -1,
+        activeRowsDom: document.querySelectorAll('#activeList tr[data-student-id]').length,
+
+        storeTransactionsCount: Array.isArray(st.transactions) ? st.transactions.length : -1,
+        paginationTxItems: Array.isArray(pgTx && pgTx.currentItems ? pgTx.currentItems : null) ? pgTx.currentItems.length : -1,
+        txRowsDom: document.querySelectorAll('#txList tr[data-tx-id]').length,
+
+        activeBadgeText:  (document.getElementById('activeStudentCount')  || {}).textContent || '',
+        debtBadgeText:    (document.getElementById('debtTabCountBadge')   || {}).textContent || '',
+        txBadgeText:      (document.getElementById('txTabCountBadge')     || {}).textContent || '',
+
+        totalIncomeDashboard:  (document.getElementById('totalIncomeDashboard')  || {}).textContent || '',
+        totalExpenseDashboard: (document.getElementById('totalExpenseDashboard') || {}).textContent || '',
+        totalProfitDashboard:  (document.getElementById('totalProfitDashboard')  || {}).textContent || '',
+
+        lastSummaryNumbers:        st._lastSummaryNumbers              || null,
+        lastProfileHydrateReason:  st._lastProfileHydrateReason        || '',
+        lastTxHydrateReason:       st._lastTxHydrateReason             || '',
+        summaryPartialFromPagination: !!st._summaryPartialFromPagination,
+
+        hasUpdateSummaryNumbers:  typeof window.updateSummaryNumbers  === 'function',
+        hasRenderDashboardCharts: typeof window.renderDashboardCharts === 'function',
+        hasRenderBranchStats:     typeof window.renderBranchStats     === 'function',
+        hasModuleDashboard:       !!window._moduleDashboard,
+    };
+
+    console.table(result);
+    return result;
+};
+
 window.watchActiveListMutations = function watchActiveListMutations() {
     const el = document.getElementById('activeList');
     if (!el) { console.warn('[WatchMutation] #activeList không tìm thấy.'); return; }

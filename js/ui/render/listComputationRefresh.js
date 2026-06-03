@@ -309,6 +309,33 @@ function _cacheAndApplyDashboardSummary(reason) {
         window.__store._lastIncExam = incExam;
     }
 
+    // [GITHUB-FIX Task 6] Guard: không để render cycle rỗng ghi đè dữ liệu thật
+    const prevSummary = (window.__store && window.__store._lastSummaryNumbers) || null;
+
+    const incomingLooksEmpty =
+        summaryNumbers.activeCount === 0 &&
+        summaryNumbers.debtCount   === 0 &&
+        summaryNumbers.txCount     === 0 &&
+        summaryNumbers.incTuition  === 0 &&
+        summaryNumbers.incExam     === 0 &&
+        summaryNumbers.incOther    === 0 &&
+        summaryNumbers.incUniform  === 0;
+
+    const prevLooksNonEmpty = prevSummary && (
+        Number(prevSummary.activeCount  || 0) > 0 ||
+        Number(prevSummary.debtCount    || 0) > 0 ||
+        Number(prevSummary.txCount      || 0) > 0 ||
+        Number(prevSummary.incTuition   || 0) > 0 ||
+        Number(prevSummary.incExam      || 0) > 0 ||
+        Number(prevSummary.incOther     || 0) > 0 ||
+        Number(prevSummary.incUniform   || 0) > 0
+    );
+
+    if (incomingLooksEmpty && prevLooksNonEmpty && reason !== 'logout' && reason !== 'reset') {
+        console.warn('[DashboardSummary] Skip empty summary overwrite — reason:', reason);
+        return prevSummary;
+    }
+
     if (typeof window.updateSummaryNumbers === 'function') {
         try { window.updateSummaryNumbers(summaryNumbers); } catch (e) {
             console.warn('[listComputationRefresh] updateSummaryNumbers failed:', e);

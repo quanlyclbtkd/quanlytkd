@@ -387,10 +387,14 @@ export function mountActiveProfilesListener(context) {
                         const _fb4k = window._fb_init || {};
                         const { query: _pQ4k, limit: _pL4k, getDocs: _pG4k } = _fb4k;
                         if (_pG4k && _pQ4k && _pL4k && profRef) {
-                            _pG4k(_pQ4k(profRef, _pL4k(1))).then(_probe => {
+                            // [GITHUB-FIX Task 4] Await fallback + invalidate sau khi hoàn tất
+                            _pG4k(_pQ4k(profRef, _pL4k(1))).then(async function(_probe) {
                                 if (!_probe.empty) {
-                                    console.warn('[ProfilesListener] active=0 nhưng collection có docs — data legacy thiếu status field → full fallback');
-                                    loadFullProfilesFallback('active-zero-but-profiles-exist');
+                                    console.warn('[ProfilesListener] active=0 but collection has docs — full fallback');
+                                    const ok = await loadFullProfilesFallback('active-zero-but-profiles-exist');
+                                    if (ok) {
+                                        _invalidateAll('active-zero-full-fallback-completed');
+                                    }
                                 }
                             }).catch(() => {});
                         }
@@ -627,11 +631,30 @@ export async function loadFullProfilesFallback(reason) {
         markActiveLoaded(true);
         markQuitLoaded(true);
 
+        // [GITHUB-FIX Task 4] Bump _dataVersion + refreshListsComputation sau fallback
+        if (window.__store) {
+            window.__store._dataVersion = (window.__store._dataVersion || 0) + 1;
+            window.__store._lastProfileHydrateReason = reason || 'full-profiles-fallback';
+        }
+
         _invalidateAll('full-profiles-fallback');
         if (typeof window.invalidateStudents === 'function') window.invalidateStudents('full-fallback-quit');
         if (typeof window.invalidateList     === 'function') {
             window.invalidateList('students.quitList',  'full-fallback-quit');
             window.invalidateList('students.activeList', 'full-profiles-fallback');
+        }
+
+        if (typeof window.refreshListsComputation === 'function') {
+            window.refreshListsComputation([
+                'students.activeList',
+                'students.debtList',
+                'students.quitList',
+                'dashboard.summary',
+            ], 'full-profiles-fallback');
+        }
+
+        if (typeof window.invalidateDashboard === 'function') {
+            window.invalidateDashboard('full-profiles-fallback');
         }
 
         _updateWindowMetrics();

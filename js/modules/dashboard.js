@@ -441,6 +441,23 @@ export function initDashboard() {
     // sau khi sync render từ allTransactions để ưu tiên stats doc cho tổng thu/chi
     window.tryApplyCurrentMonthStats = tryApplyCurrentMonthStats;
 
+    // [GITHUB-FIX Task 1] Expose dashboard render functions cho renderDashboard.js
+    // và listComputationRefresh.js — thiếu dòng này → dashboard summary no-op
+    window.renderDashboardCharts = renderDashboardCharts;
+    window.renderBranchStats     = renderBranchStats;
+    window.renderExamBranchFees  = renderExamBranchFees;
+    window.updateSummaryNumbers  = updateSummaryNumbers;
+
+    // Module-level namespace (cho diagnostics và cross-module access)
+    window._moduleDashboard = {
+        renderDashboardCharts,
+        renderBranchStats,
+        renderExamBranchFees,
+        updateSummaryNumbers,
+        fetchMonthStats,
+        tryApplyCurrentMonthStats,
+    };
+
     // Cleanup khi logout — gọi từ store.resetStore()
     window._destroyDashboardCharts = () => {
         const fc = _getFinChart();

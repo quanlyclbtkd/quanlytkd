@@ -1290,6 +1290,24 @@ export function initTransactionPagination() {
                     // Cập nhật store để render.js có thể dùng
                     store.pagination.transactions = pgState;
 
+                    // [GITHUB-FIX Task 5] Hydrate store.transactions từ pagination items
+                    // Nếu transaction listener chính chưa kịp hydrate, dashboard vẫn có dữ liệu
+                    (function _mergePaginationTransactionsIntoStore(txItems, reason) {
+                        if (!Array.isArray(txItems) || txItems.length === 0) return;
+                        const st = window.__store || store;
+                        if (!st) return;
+                        if (!Array.isArray(st.transactions)) st.transactions = [];
+                        const seen = new Map();
+                        st.transactions.forEach(function(tx) { if (tx && tx.id) seen.set(tx.id, tx); });
+                        txItems.forEach(function(tx) { if (tx && tx.id) seen.set(tx.id, tx); });
+                        st.transactions = Array.from(seen.values());
+                        if (window.__store) {
+                            window.__store.transactions = st.transactions;
+                            window.__store._dataVersion = (window.__store._dataVersion || 0) + 1;
+                            window.__store._lastTxHydrateReason = reason || 'tx-pagination-hydrate';
+                        }
+                    })(pgState.currentItems, 'tx-pagination-page');
+
                     // Phase 3.5D: Pagination chỉ ảnh hưởng tx.txList island — dùng list-level
                     // invalidation thay vì invalidateFinance() (tránh cross-domain dashboard).
                     // Fallback cascade an toàn: invalidateList → invalidateFinance → legacy.
@@ -1302,6 +1320,21 @@ export function initTransactionPagination() {
                         window._moduleRenderApp();
                     } else if (typeof window.scheduleRender === 'function') {
                         window.scheduleRender();
+                    }
+
+                    // [GITHUB-FIX Task 5] Thêm invalidation cho finance + dashboard
+                    // Doanh thu tháng không bị giữ 0 khi tx listener chưa hydrate
+                    if (typeof window.invalidateFinance === 'function') {
+                        window.invalidateFinance('tx-pagination-data-hydrated');
+                    }
+                    if (typeof window.invalidateDashboard === 'function') {
+                        window.invalidateDashboard('tx-pagination-data-hydrated');
+                    }
+                    if (typeof window.refreshListsComputation === 'function') {
+                        window.refreshListsComputation([
+                            'tx.txList',
+                            'dashboard.summary',
+                        ], 'tx-pagination-data-hydrated');
                     }
 
                     // Phase 4K-DATA-HYDRATION: Direct row inject vào #txList

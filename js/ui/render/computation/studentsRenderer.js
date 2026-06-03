@@ -414,6 +414,60 @@ export function computeAndCacheStudents(allProfiles, params) {
         });
     }
 
+    // ── [GITHUB-FIX Task 3] Pagination-based fallback summary ──────────────
+    // Khi pagination có rows nhưng allProfiles rỗng (chưa hydrate),
+    // tính activeCount/debtCount tối thiểu từ pageItems để badge không hiển thị 0 sai.
+    // Đây là fallback an toàn — nguồn chính vẫn là full profiles.
+    const allProfileCount = Object.keys(allProfiles || {}).length;
+    const pageItems = Array.isArray(pgStudents && pgStudents.currentItems ? pgStudents.currentItems : [])
+        ? (pgStudents && pgStudents.currentItems ? pgStudents.currentItems : [])
+        : [];
+
+    if (pgStudentsActive && allProfileCount === 0 && pageItems.length > 0) {
+        let pageActive = 0;
+        let pageQuit   = 0;
+        let pageDebt   = 0;
+        let pageDebtEst = 0;
+
+        pageItems.forEach(function(item) {
+            const kind = window.classifyProfileStatus
+                ? window.classifyProfileStatus(item)
+                : classifyProfileStatus(item);
+
+            if (kind === 'quit') { pageQuit++; return; }
+            pageActive++;
+
+            if (!item.feeExempt) {
+                let isDebt = false;
+                let unpaidMonthsCount = 0;
+                if (item.isOwed !== undefined) {
+                    const allOwed = Array.isArray(item.owedMonths) ? item.owedMonths : [];
+                    unpaidMonthsCount = allOwed.filter(function(m) { return m <= selMonth; }).length;
+                    isDebt = unpaidMonthsCount > 0;
+                } else {
+                    const _normPU = normalizeYYYYMM(item.paidUntil);
+                    if (!_normPU || _normPU < selMonth) {
+                        isDebt = true;
+                        unpaidMonthsCount = 1;
+                    }
+                }
+                if (isDebt) {
+                    pageDebt++;
+                    pageDebtEst += unpaidMonthsCount * (Number(item.tuitionFee) || 0);
+                }
+            }
+        });
+
+        activeCount   = Math.max(activeCount,   pageActive);
+        debtCount     = Math.max(debtCount,     pageDebt);
+        totalDebtEst  = Math.max(totalDebtEst,  pageDebtEst);
+        m_active_theo = Math.max(m_active_theo, pageActive);
+
+        if (window.__store) {
+            window.__store._summaryPartialFromPagination = true;
+        }
+    }
+
     // ── Append "Load more" fallback buttons — mirrors render.js lines 494-501 ──
     // Buttons are stored as part of the cached HTML so islands render the complete list.
     const _moreColspan = isSingleBranch ? 8 : 9;
