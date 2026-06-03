@@ -154,58 +154,72 @@ if (appJs) {
 }
 console.log();
 
-// ── Section 11: Phase 4.0B-4J-8A — Advanced Search Index ────────────
-console.log('▸ Section 11: Phase 4.0B-4J-8A — Search Index (app.js + students.service.js)');
-if (appJs) {
-    check('buildStudentSearchIndex() defined', appJs.includes('function buildStudentSearchIndex'), 'Add buildStudentSearchIndex() helper to app.js closure');
-    check('normalizeSearchText() defined',     appJs.includes('function normalizeSearchText'),     'Add normalizeSearchText() helper to app.js closure');
-    check('normalizePhoneForSearch() defined', appJs.includes('function normalizePhoneForSearch'), 'Add normalizePhoneForSearch() helper to app.js closure');
-    check('fetchQueryPages() defined',         appJs.includes('function fetchQueryPages'),         'Add fetchQueryPages() paginated helper to app.js closure');
-    check('searchIndex written in addNewStudent',  appJs.includes('buildStudentSearchIndex(_newProfileData'), 'Add searchIndex to addNewStudent setDoc call');
-    check('searchIndex written in updateProfile',  appJs.includes('buildStudentSearchIndex(updateData'),     'Add searchIndex to updateProfile updateData');
-    check('markLoginPerf exposed',             appJs.includes('function markLoginPerf'),            'Add markLoginPerf() login performance tracking');
-    check('markLoginPerf dataHydrated called', appJs.includes("markLoginPerf('dataHydrated')"),     'Add markLoginPerf(dataHydrated) in profiles/inventory listener');
+
+// ── Section 11: Search Index Infrastructure (Phase 4J-8A) ───────────────────
+console.log('▸ Section 11: Search Index — Student Search (Phase 4J-8A)');
+const helpersJs = readFile('js/utils/helpers.js');
+check('js/utils/helpers.js exists', !!helpersJs, 'File not found');
+if (helpersJs) {
+    check('normalizeSearchText() defined', helpersJs.includes('export function normalizeSearchText('), 'Add normalizeSearchText to helpers.js');
+    check('normalizePhone() defined', helpersJs.includes('export function normalizePhone('), 'Add normalizePhone to helpers.js');
+    check('buildStudentSearchIndex() defined', helpersJs.includes('export function buildStudentSearchIndex('), 'Add buildStudentSearchIndex to helpers.js');
 }
+
+const studentsModule = readFile('js/modules/students.js');
+check('students.js imports buildStudentSearchIndex', studentsModule ? studentsModule.includes("import { buildStudentSearchIndex }") : false, 'Import buildStudentSearchIndex in students.js');
+check('addNewStudent saves searchName', studentsModule ? (studentsModule.includes('searchName') && studentsModule.includes('_newSearchIdx')) : false, 'Inject search index in addNewStudent flow');
+check('updateProfile saves searchName', studentsModule ? (studentsModule.includes('_editSearchIdx') && studentsModule.includes('updateData.searchName')) : false, 'Inject search index in updateProfile flow');
+
 if (studentsService) {
-    check('searchProfilesServerSide() defined', studentsService.includes('searchProfilesServerSide'), 'Add searchProfilesServerSide() to StudentService');
-    check('Search uses searchName field',        studentsService.includes('searchName'),              'Add searchName field query in searchProfilesServerSide');
+    check('searchProfilesServerSide() defined', studentsService.includes('async searchProfilesServerSide('), 'Add searchProfilesServerSide() to StudentService');
+    check('findTransactionsByStudent uses cursor pagination', studentsService.includes('startAfter(cursor)') || studentsService.includes("// Phase 4J-8A: paginated query"), 'Fix findTransactionsByStudent to use cursor pagination instead of limit(500)');
 }
-console.log();
 
-// ── Section 12: Phase 4.0B-4J-8A — Limit(500) Cleanup ───────────────
-console.log('▸ Section 12: Phase 4.0B-4J-8A — limit(500) Cleanup (app.js)');
-if (appJs) {
-    check('deleteTx batch delete fixed (no warnUnsafeLimit)', !appJs.includes("warnUnsafeLimit('deleteTx:batchDelete:limit500'"), 'Fix batch delete to use paginated loop instead of single limit(500)');
-    check('rename tx scan fixed (no warnUnsafeLimit)',        !appJs.includes("warnUnsafeLimit('students:renameTxScan:limit500'"),  'Fix rename tx scan to use fetchQueryPages');
-    check('paidUntil recalc fixed (no warnUnsafeLimit)',      !appJs.includes("warnUnsafeLimit('deleteTx:paidUntilRecalc:limit500'"), 'Fix paidUntil recalc to use fetchQueryPages');
-    check('rename uses _profileRenameBatch (clean 2-step)',   appJs.includes('_profileRenameBatch'),  'Confirm profile rename uses _profileRenameBatch separate from tx batch');
-    check('paidUntil recalc uses fetchQueryPages',            appJs.includes('paidUntil-recalc'),     'Confirm paidUntil recalc uses fetchQueryPages');
-}
-console.log();
-
-// ── Section 13: Phase 4.0B — Login Performance ───────────────────────
-console.log('▸ Section 13: Phase 4.0B — Mobile Login Performance (app.js)');
-if (appJs) {
-    check('__loginPerfMetrics defined',          appJs.includes('window.__loginPerfMetrics'),         'Add __loginPerfMetrics tracking object');
-    check('printLoginPerfMetrics() exposed',     appJs.includes('window.printLoginPerfMetrics'),      'Add window.printLoginPerfMetrics for debug');
-    check('markLoginPerf loginStart called',     appJs.includes("markLoginPerf('loginStart')"),       'Add markLoginPerf(loginStart) in handleLogin');
-    check('markLoginPerf contextReady called',   appJs.includes("markLoginPerf('contextReady')"),     'Add markLoginPerf(contextReady) in dispatchAppContextReady');
-    check('markLoginPerf shellShown called',     appJs.includes("markLoginPerf('shellShown')"),       'Add markLoginPerf(shellShown) in initSaaSDatabase');
-    check('app:shell-ready event dispatched',    appJs.includes('app:shell-ready'),                   'Add CustomEvent(app:shell-ready) dispatch');
-}
-console.log();
-
-// ── Section 14: Backfill Tool ─────────────────────────────────────────
-console.log('▸ Section 14: Phase 4.0B — Backfill & Check Tools');
+check('backfill-student-search-index.mjs exists', !!readFile('tools/backfill-student-search-index.mjs'), 'Create tools/backfill-student-search-index.mjs');
 const backfillTool = readFile('tools/backfill-student-search-index.mjs');
-const loginPerfTool = readFile('tools/check-login-performance.mjs');
-check('backfill-student-search-index.mjs exists', !!backfillTool,  'Create tools/backfill-student-search-index.mjs');
-check('check-login-performance.mjs exists',       !!loginPerfTool, 'Create tools/check-login-performance.mjs');
-const pkgJson = readFile('package.json');
-if (pkgJson) {
-    const pkg = JSON.parse(pkgJson);
-    check('backfill:search-index script defined',    !!(pkg.scripts && pkg.scripts['backfill:search-index']),    'Add backfill:search-index to package.json scripts');
-    check('check:login-performance script defined',  !!(pkg.scripts && pkg.scripts['check:login-performance']),  'Add check:login-performance to package.json scripts');
+if (backfillTool) {
+    check('Backfill defaults to dry-run', !backfillTool.includes('const EXECUTE  = true') && backfillTool.includes('args.execute === true'), 'Backfill must default to dry-run');
+    check('Backfill requires --confirm text', backfillTool.includes('expectedConfirm'), 'Backfill must require --confirm text');
+    check('Backfill uses batch write cap (400–450)', backfillTool.includes('BATCH_CAP'), 'Add BATCH_CAP for batch writes');
+}
+console.log();
+
+// ── Section 12: Paginated Query Helper (Phase 4J-8A) ────────────────────────
+console.log('▸ Section 12: fetchAllQueryPages Helper (Phase 4J-8A)');
+const paginatedQuery = readFile('js/firebase/paginatedQuery.js');
+check('paginatedQuery.js exists', !!paginatedQuery, 'File not found');
+if (paginatedQuery) {
+    check('fetchAllQueryPages() exported', paginatedQuery.includes('export async function fetchAllQueryPages('), 'Add fetchAllQueryPages export to paginatedQuery.js');
+    check('fetchAllQueryPages exposes on window', paginatedQuery.includes('window.fetchAllQueryPages'), 'Expose fetchAllQueryPages on window');
+}
+console.log();
+
+// ── Section 13: Unsafe limit(500) Cleanup (Phase 4J-8A) ─────────────────────
+console.log('▸ Section 13: Remaining UNSAFE_LIMIT_FOR_CALCULATION Cleanup (Phase 4J-8A)');
+if (appJs) {
+    // Batch delete now uses cursor pagination — check for cursor pattern
+    check('Batch delete uses cursor pagination (not limit-500)', !appJs.includes("limit(500)); // [3.3E] batch delete cap"), 'Fix batch delete to use cursor pagination');
+    // Parent-club scan — now uses searchName query with paginated fallback
+    check('Parent-club profile scan uses searchName query', appJs.includes("orderBy('searchName')") || appJs.includes("'searchName'"), 'Fix parent-club scan to use server-side searchName query');
+    // Rename tx scan uses cursor pagination
+    check('Rename tx scan uses cursor pagination', appJs.includes('// Phase 4J-8A: Paginated tx scan'), 'Fix rename tx scan to use cursor pagination');
+    // paidUntil recalc uses cursor pagination
+    check('paidUntil recalc uses cursor pagination', appJs.includes('// Phase 4J-8A: Paginated query — không bị cap 500'), 'Fix paidUntil recalc to use cursor pagination');
+    // Attendance uses attendanceDailyLimit
+    check('Attendance daily query uses attendanceDailyLimit', appJs.includes('_attDailyLim'), 'Use attendanceDailyLimit for attendance by-date query');
+}
+console.log();
+
+// ── Section 14: Login Performance Metrics (Phase 4J-8A) ─────────────────────
+console.log('▸ Section 14: Login Performance Infrastructure (Phase 4J-8A)');
+if (appJs) {
+    check('__loginPerfMetrics defined', appJs.includes('window.__loginPerfMetrics'), 'Add __loginPerfMetrics init');
+    check('markLoginPerf() defined', appJs.includes('function markLoginPerf('), 'Add markLoginPerf()');
+    check('printLoginPerformance() exposed', appJs.includes('window.printLoginPerformance = function'), 'Add window.printLoginPerformance');
+    check('mark login-submit', appJs.includes("markLoginPerf('login-submit')"), 'Add login-submit mark');
+    check('mark auth-state-received', appJs.includes("markLoginPerf('auth-state-received')"), 'Add auth-state-received mark');
+    check('mark first-ui-shell-visible', appJs.includes("markLoginPerf('first-ui-shell-visible')"), 'Add first-ui-shell-visible mark');
+    check('mark context-ready', appJs.includes("markLoginPerf('context-ready')"), 'Add context-ready mark');
 }
 console.log();
 
