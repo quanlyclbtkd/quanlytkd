@@ -7357,9 +7357,10 @@ window.getBundleTypeLabel = function(tx) {
     return names.join(' + ') || (tx && tx.type ? tx.type : 'Khoản thu');
 };
 
-window.getBundleSummaryLine = function(tx) {
-    const name = String(tx && tx.studentName ? tx.studentName : (tx && tx.description ? tx.description : '')).trim();
+// Phase 4K-5F: getBundleDetailSummary — chỉ trả detail (không có tên võ sinh)
+window.getBundleDetailSummary = function(tx) {
     const comps = Array.isArray(tx && tx.components) ? tx.components : [];
+    if (!comps.length) return tx && tx.type ? tx.type : '';
     const labels = comps.map(function(c) {
         if (c.kind === 'tuition') {
             if (Array.isArray(c.packageMonths) && c.packageMonths.length) {
@@ -7381,7 +7382,16 @@ window.getBundleSummaryLine = function(tx) {
         if (c.kind === 'inventoryDebt') return c.label || 'Thu nợ kho';
         return c.label || c.type || 'Khoản khác';
     }).filter(Boolean);
-    return name + (labels.length ? ' — ' + labels.join(' + ') : '');
+    return labels.join(' + ');
+};
+
+// getBundleSummaryLine — trả "Tên — Detail" cho biên lai/debug/tooltip
+window.getBundleSummaryLine = function(tx) {
+    const name   = String(tx && tx.studentName ? tx.studentName : (tx && tx.description ? tx.description : '')).trim();
+    const detail = typeof window.getBundleDetailSummary === 'function'
+        ? window.getBundleDetailSummary(tx)
+        : '';
+    return name + (detail ? ' — ' + detail : '');
 };
 
 // Phase 4K-5C — buildPaymentBundleTransaction (Phase 8)
@@ -7554,6 +7564,109 @@ window.debugBundleDisplay = function(studentName) {
         });
     console.table(rows);
     return rows;
+};
+
+// ══════════════════════════════════════════════════════════════════
+// Phase 4K-5F — Debt Coverage + Active/Quit Debug
+// ══════════════════════════════════════════════════════════════════
+
+// ensureDebtProfilesReady — load full profiles if debt list may be partial
+window.ensureDebtProfilesReady = async function(reason) {
+    reason = reason || 'debt-tab-open';
+    const st = window.__store || {};
+    const profilesCount = Object.keys(st.profiles || {}).length;
+
+    const activeCountText = document.querySelector('[data-tab="active"], #tabBtn_active, #btn_active')
+        ? (document.querySelector('[data-tab="active"], #tabBtn_active, #btn_active').textContent || '')
+        : '';
+    const maybeActiveCount = Number((activeCountText.match(/((d+))/) || [])[1] || 0);
+
+    const shouldLoad =
+        profilesCount === 0 ||
+        (maybeActiveCount > 0 && profilesCount < maybeActiveCount) ||
+        profilesCount < 50;
+
+    if (shouldLoad && typeof window.loadFullProfilesFallback === 'function') {
+        try {
+            await window.loadFullProfilesFallback(reason);
+        } catch (e) {
+            console.warn('[ensureDebtProfilesReady] loadFullProfilesFallback failed:', e);
+        }
+    }
+
+    if (typeof window.refreshListsComputation === 'function') {
+        window.refreshListsComputation(['students.debtList', 'dashboard.summary'], reason);
+    }
+    if (typeof window.invalidateList === 'function') {
+        window.invalidateList('students.debtList', reason);
+    }
+
+    return {
+        beforeProfilesCount: profilesCount,
+        afterProfilesCount:  Object.keys((window.__store || {}).profiles || {}).length,
+        reason
+    };
+};
+
+// debugDebtCoverage — compare DOM debt rows to computed debt from profiles
+window.debugDebtCoverage = async function() {
+    const st       = window.__store || {};
+    const profiles = st.profiles || {};
+    const selMonth = (document.getElementById('filterMonth') || {}).value || st.selectedMonth || '';
+    const rows     = document.querySelectorAll('#debtList tr[data-student-id]').length;
+    const classify = typeof window.classifyProfileStatus === 'function'
+        ? window.classifyProfileStatus
+        : function(p) { return p && p.status === 'quit' ? 'quit' : 'active'; };
+
+    const activeProfiles = Object.entries(profiles).filter(function(_ref) {
+        var name = _ref[0], p = _ref[1];
+        return classify(p) === 'active';
+    });
+
+    let debtCount = 0;
+    activeProfiles.forEach(function(_ref) {
+        var name = _ref[0], p = _ref[1];
+        if (p.feeExempt) return;
+        const paidUntil = String(p.paidUntil || '');
+        if (!paidUntil || paidUntil < selMonth) debtCount++;
+    });
+
+    const result = {
+        href:                location.href,
+        selectedMonth:       selMonth,
+        profilesCount:       Object.keys(profiles).length,
+        activeProfilesCount: activeProfiles.length,
+        estimatedDebtCount:  debtCount,
+        debtRowsDom:         rows,
+        paginationItems:     st.pagination && st.pagination.students && st.pagination.students.currentItems
+            ? st.pagination.students.currentItems.length : 0,
+        debtSourceQuality:   st._lastDebtSourceQuality || null,
+        hasEnsureDebtProfilesReady: typeof window.ensureDebtProfilesReady === 'function',
+    };
+    console.table(result);
+    return result;
+};
+
+// debugActiveQuitLeak — find quit students leaking into #activeList DOM
+window.debugActiveQuitLeak = function() {
+    const st       = window.__store || {};
+    const profiles = st.profiles || {};
+    const classify = typeof window.classifyProfileStatus === 'function'
+        ? window.classifyProfileStatus
+        : function(p) { return p && p.status === 'quit' ? 'quit' : 'active'; };
+    const activeDom = Array.from(document.querySelectorAll('#activeList tr[data-student-id]'))
+        .map(function(tr) { return tr.getAttribute('data-student-id'); });
+
+    const leaks = activeDom.filter(function(name) {
+        const p    = profiles[name] || {};
+        const kind = classify(p);
+        return kind === 'quit';
+    });
+
+    console.table(leaks.map(function(name) {
+        return { name: name, status: profiles[name] ? profiles[name].status : '?', quitDate: profiles[name] ? profiles[name].quitDate : '' };
+    }));
+    return { activeDomCount: activeDom.length, leaks: leaks };
 };
 
 window.processMultiItem = async (action) => {

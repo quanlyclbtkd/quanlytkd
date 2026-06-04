@@ -1119,3 +1119,104 @@ button, a, [role="button"] {
 /* ═══════════════════════════════════════════════════════════════════════
    END PHASE 4.0B-4J-7
    ═══════════════════════════════════════════════════════════════════════ */
+
+
+/* ══════════════════════════════════════════════════════════════════
+   Phase 4K-5F — Finance Table Compact Layout (Mobile + Desktop)
+   ══════════════════════════════════════════════════════════════════ */
+#txList td,
+#txList th {
+    vertical-align: middle;
+}
+
+.tx-date-cell {
+    width: 86px;
+    white-space: nowrap;
+}
+
+.tx-branch-cell {
+    width: 115px;
+    max-width: 115px;
+}
+
+.tx-month-cell {
+    width: 88px;
+    white-space: nowrap;
+}
+
+.tx-type-cell {
+    width: 145px;
+    max-width: 145px;
+}
+
+.tx-amount-cell {
+    width: 105px;
+    white-space: nowrap;
+    text-align: right;
+}
+
+.tx-actions-cell {
+    width: 90px;
+    white-space: nowrap;
+}
+
+.tx-name-cell {
+    min-width: 220px;
+    max-width: 360px;
+}
+
+.tx-student-name {
+    display: block;
+}
+
+.tx-bundle-detail {
+    max-width: 320px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: block;
+}
+
+@media (max-width: 640px) {
+    .tx-date-cell {
+        width: 62px;
+        max-width: 62px;
+        font-size: 0.72rem;
+    }
+
+    .tx-branch-cell {
+        width: 74px;
+        max-width: 74px;
+        font-size: 0.68rem;
+    }
+
+    .tx-month-cell {
+        width: 70px;
+        max-width: 70px;
+    }
+
+    .tx-type-cell {
+        width: 92px;
+        max-width: 92px;
+    }
+
+    .tx-amount-cell {
+        width: 86px;
+        max-width: 86px;
+        font-size: 0.78rem;
+    }
+
+    .tx-actions-cell {
+        width: 72px;
+        max-width: 72px;
+    }
+
+    .tx-name-cell {
+        min-width: 160px;
+        max-width: 190px;
+    }
+
+    .tx-bundle-detail {
+        max-width: 175px;
+    }
+}
