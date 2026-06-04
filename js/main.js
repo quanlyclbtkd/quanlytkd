@@ -2841,6 +2841,9 @@ window.debugRuntimeSmokeTest = async function(term) {
     // Phase 4K-5C
     out.examCanonicalLedger = await safeCall('debugExamCanonicalLedger', window.debugExamCanonicalLedger);
     out.bundleTransactions   = await safeCall('debugBundleTransactions',  window.debugBundleTransactions, ['']);
+    // Phase 4K-5G
+    out.financeTableLayout  = await safeCall('debugFinanceTableLayout',   window.debugFinanceTableLayout);
+    out.studentListCoverage = await safeCall('debugStudentListCoverage',  window.debugStudentListCoverage);
 
     const summary = {
         runtimeMode:     out.runtimeMode,
@@ -2870,6 +2873,9 @@ window.debugRuntimeSmokeTest = async function(term) {
         // Phase 4K-5C
         examCanonicalLedgerOk:      !!out.examCanonicalLedger.ok,
         bundleTransactionsOk:       !!out.bundleTransactions.ok,
+        // Phase 4K-5G
+        financeTableLayoutOk:       !!out.financeTableLayout.ok,
+        studentListCoverageOk:      !!out.studentListCoverage.ok,
 
         overallOk:
             !!out.examFee.ok &&
@@ -2888,7 +2894,9 @@ window.debugRuntimeSmokeTest = async function(term) {
             !!out.examRegistrationCount.ok &&
             !!out.examDuplicatePayments.ok &&
             !!out.examCanonicalLedger.ok &&
-            !!out.bundleTransactions.ok
+            !!out.bundleTransactions.ok &&
+            !!out.financeTableLayout.ok &&
+            !!out.studentListCoverage.ok
     };
 
     console.table(summary);
