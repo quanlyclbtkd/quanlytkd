@@ -49,7 +49,7 @@
 const functions = require('firebase-functions');
 const admin     = require('firebase-admin');
 
-const { getTxMonth, classifyTx } = require('./helpers');
+const { getTxMonth, classifyTx, allocateTuitionAmountForMonth } = require('./helpers');
 
 const db = admin.firestore();
 
@@ -122,8 +122,15 @@ exports.onTransactionCreate = functions
     .onCreate(async (snap, context) => {
         const { clubId } = context.params;
         const tx         = snap.data();
-        const month      = getTxMonth(tx);
 
+        // Phase 4K-4G: Học phí gói nhiều tháng → cập nhật stats cho từng tháng trong packageMonths
+        if (tx.type === 'Học phí' && Array.isArray(tx.packageMonths) && tx.packageMonths.length > 0) {
+            const allocatedAmount = Number(tx.amount || 0) / tx.packageMonths.length;
+            const virtualTx = Object.assign({}, tx, { amount: allocatedAmount });
+            return Promise.all(tx.packageMonths.map(m => updateStats(clubId, m, virtualTx, +1)));
+        }
+
+        const month = getTxMonth(tx);
         if (!month) return null;
         return updateStats(clubId, month, tx, +1);
     });
@@ -140,8 +147,15 @@ exports.onTransactionDelete = functions
     .onDelete(async (snap, context) => {
         const { clubId } = context.params;
         const tx         = snap.data();
-        const month      = getTxMonth(tx);
 
+        // Phase 4K-4G: Học phí gói nhiều tháng → trừ stats cho từng tháng
+        if (tx.type === 'Học phí' && Array.isArray(tx.packageMonths) && tx.packageMonths.length > 0) {
+            const allocatedAmount = Number(tx.amount || 0) / tx.packageMonths.length;
+            const virtualTx = Object.assign({}, tx, { amount: allocatedAmount });
+            return Promise.all(tx.packageMonths.map(m => updateStats(clubId, m, virtualTx, -1)));
+        }
+
+        const month = getTxMonth(tx);
         if (!month) return null;
         return updateStats(clubId, month, tx, -1);
     });
@@ -161,13 +175,27 @@ exports.onTransactionUpdate = functions
         const before     = change.before.data();
         const after      = change.after.data();
 
-        const monthBefore = getTxMonth(before);
-        const monthAfter  = getTxMonth(after);
+        // Phase 4K-4G: Xử lý gói học phí nhiều tháng trong onTransactionUpdate
 
         // Trừ phiên bản cũ
-        if (monthBefore) await updateStats(clubId, monthBefore, before, -1);
+        if (before.type === 'Học phí' && Array.isArray(before.packageMonths) && before.packageMonths.length > 0) {
+            const allocBefore = Number(before.amount || 0) / before.packageMonths.length;
+            const virtualBefore = Object.assign({}, before, { amount: allocBefore });
+            await Promise.all(before.packageMonths.map(m => updateStats(clubId, m, virtualBefore, -1)));
+        } else {
+            const monthBefore = getTxMonth(before);
+            if (monthBefore) await updateStats(clubId, monthBefore, before, -1);
+        }
+
         // Cộng phiên bản mới
-        if (monthAfter)  await updateStats(clubId, monthAfter,  after,  +1);
+        if (after.type === 'Học phí' && Array.isArray(after.packageMonths) && after.packageMonths.length > 0) {
+            const allocAfter = Number(after.amount || 0) / after.packageMonths.length;
+            const virtualAfter = Object.assign({}, after, { amount: allocAfter });
+            await Promise.all(after.packageMonths.map(m => updateStats(clubId, m, virtualAfter, +1)));
+        } else {
+            const monthAfter = getTxMonth(after);
+            if (monthAfter) await updateStats(clubId, monthAfter, after, +1);
+        }
 
         return null;
     });

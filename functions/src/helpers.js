@@ -219,6 +219,32 @@ function classifyTx(tx) {
     }
 }
 
+/**
+ * Phân bổ học phí gói nhiều tháng cho đúng tháng M.
+ * Dùng khi cần tính toán doanh thu tháng M từ giao dịch có packageMonths.
+ *
+ * @param {Object} tx    - Transaction Firestore data
+ * @param {string} month - Tháng cần phân bổ dạng YYYY-MM
+ * @returns {number}     - Số tiền phân bổ cho tháng M (>= 0)
+ */
+function allocateTuitionAmountForMonth(tx, month) {
+    const amount = Number(tx && tx.amount || 0);
+    if (!amount || !tx || !month) return 0;
+
+    const type = (tx.type || '').trim();
+
+    // Học phí gói nhiều tháng: phân bổ đều
+    if (type === 'Học phí' && Array.isArray(tx.packageMonths) && tx.packageMonths.length > 0) {
+        return tx.packageMonths.includes(month)
+            ? amount / tx.packageMonths.length
+            : 0;
+    }
+
+    // Học phí thường hoặc các loại khác: kiểm tra txMonth
+    const txMonth = tx.txMonth || (tx.date ? String(tx.date).slice(0, 7) : '');
+    return txMonth === month ? amount : 0;
+}
+
 module.exports = {
     addMonth,
     normalizeYYYYMM,
@@ -227,4 +253,5 @@ module.exports = {
     calcDebt,
     classifyTx,
     classifyInventoryTxType,
+    allocateTuitionAmountForMonth,
 };
