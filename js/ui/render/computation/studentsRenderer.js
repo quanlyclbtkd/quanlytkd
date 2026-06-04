@@ -216,9 +216,7 @@ export function computeAndCacheStudents(allProfiles, params) {
     const pgVersion   = (window.__store || {})._studentsPaginationVersion || 0;
     const pgCount     = pgStudents?.currentItems?.length || 0;
     const pgPage      = pgStudents?.currentPage || 0;
-    const activeRenderLimitKey = window.__activeRenderLimit || 50;
-    const debtRenderLimitKey   = window.__debtRenderLimit   || 50;
-    const paramsKey   = `${curTabId}|${selMonth}|${selBranch}|${search}|${activePage}|${debtPage}|${quitPage}|${pgStudentsActive ? '1' : '0'}|pgv:${pgVersion}|pgc:${pgCount}|pgp:${pgPage}|arl:${activeRenderLimitKey}|drl:${debtRenderLimitKey}`;
+    const paramsKey   = `${curTabId}|${selMonth}|${selBranch}|${search}|${activePage}|${debtPage}|${quitPage}|${pgStudentsActive ? '1' : '0'}|pgv:${pgVersion}|pgc:${pgCount}|pgp:${pgPage}`;
     const dataVersion = (window.__store || {})._dataVersion || 0;
     if (
         _cache.summary !== null &&
@@ -234,7 +232,7 @@ export function computeAndCacheStudents(allProfiles, params) {
 
     // ── Page limits ──
     const _PAGE_LIMIT   = 50;
-    const _activeLimit  = window.__activeRenderLimit || activePage * _PAGE_LIMIT;
+    const _activeLimit  = activePage * _PAGE_LIMIT;
     const _debtLimit    = window.__debtRenderLimit || debtPage * _PAGE_LIMIT;
     const _quitLimit    = quitPage   * _PAGE_LIMIT;
 
@@ -326,7 +324,7 @@ export function computeAndCacheStudents(allProfiles, params) {
 
             if (passFilter) {
                 _activeTotalCount++;
-                if ((!pgStudentsActive || useFullProfileActiveRender) && buildActive && _activeRendered < _activeLimit) {
+                if (!pgStudentsActive && buildActive && _activeRendered < _activeLimit) {
                     _activeRendered++;
                     activeRows += renderActiveRow(name, p, {
                         beltHTML, branchTdHTML, yrBadge, newBadge, nickBadge, paidBadge, isAdmin,
@@ -399,10 +397,7 @@ export function computeAndCacheStudents(allProfiles, params) {
     });
 
     // ── PASS 2 (Phase 3.2A): Override active/quit from server-side pagination ──
-    // Phase 4K-5J-2: Skip PASS 2 override when full profiles already hydrated
-    const fullProfilesCount = Object.keys(allProfiles || {}).length;
-    const useFullProfileActiveRender = buildActive && fullProfilesCount > 0 && !search;
-    if (pgStudentsActive && pgStudents && !useFullProfileActiveRender) {
+    if (pgStudentsActive && pgStudents) {
         activeRows = buildActive ? '' : null;
         quitRows   = buildQuit   ? '' : null;
         _activeTotalCount = 0;
@@ -531,16 +526,11 @@ export function computeAndCacheStudents(allProfiles, params) {
             : `<tr class="load-more-row" data-load-more-for="debtList"><td colspan="${_moreColspan}" ${_moreStyle}><button type="button" ${_moreBtnSt} onclick="window.loadMoreDebtRows(event)">⬇ Tải thêm — còn ${_remainDebt} võ sinh nợ nữa</button></td></tr>`;
     }
 
-    // Phase 4K-5J-2: ĐANG TẬP load more tách riêng — không phụ thuộc pgStudentsActive
-    if (buildActive && _activeTotalCount > _activeRendered) {
-        const _remainActive = _activeTotalCount - _activeRendered;
-        activeRows += (typeof window.renderLoadMoreRow === 'function')
-            ? window.renderLoadMoreRow({ listId: 'activeList', label: 'võ sinh', remaining: _remainActive, colspan: _moreColspan, onclick: 'window.loadMoreActiveStudents(event)' })
-            : `<tr class="load-more-row" data-load-more-for="activeList"><td colspan="${_moreColspan}" ${_moreStyle}><button type="button" ${_moreBtnSt} onclick="window.loadMoreActiveStudents(event)">⬇ Tải thêm — còn ${_remainActive} võ sinh nữa</button></td></tr>`;
-    }
-
-    // Quit load more — chỉ khi không có server-side pagination
+    // Active/quit load more — chỉ khi không có server-side pagination
     if (!pgStudentsActive) {
+        if (buildActive && _activeTotalCount > _activeLimit) {
+            activeRows += `<tr class="load-more-row" data-load-more-for="activeList"><td colspan="${_moreColspan}" ${_moreStyle}><button type="button" ${_moreBtnSt} onclick="window.loadMoreActiveStudents(event)">⬇ Tải thêm — còn ${_activeTotalCount - _activeRendered} võ sinh nữa</button></td></tr>`;
+        }
         if (buildQuit && _quitTotalCount > _quitLimit) {
             quitRows += `<tr><td colspan="${_moreColspan}" ${_moreStyle}><button type="button" ${_moreBtnSt} onclick="_loadMore('quit')">⬇ Tải thêm — còn ${_quitTotalCount - _quitRendered} võ sinh nữa</button></td></tr>`;
         }
