@@ -4347,6 +4347,10 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                 window.showToast("✅ Đã cập nhật và đồng bộ tên mới thành công!");
             } else {
                 await setDoc(doc(db, "clubs", currentClubId, "profiles", oldName), updateData, { merge: true });
+                // Phase 4K-5A: Sync local store sau khi update profile
+                if (typeof window.syncStudentStatusLocal === 'function') {
+                    window.syncStudentStatusLocal(oldName, updateData);
+                }
                 window.showToast("✅ Đã cập nhật hồ sơ!");
             }
             closeModal();
@@ -4416,6 +4420,10 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             let updateData = { status: 'quit', quitDate: getLocalToday() };
             setDoc(doc(db, "clubs", currentClubId, "profiles", name), updateData, { merge: true }).then(() => {
                 window.showToast("✅ Đã chuyển trạng thái Nghỉ tập!");
+                // Phase 4K-5A: Sync local store sau khi quit
+                if (typeof window.syncStudentStatusLocal === 'function') {
+                    window.syncStudentStatusLocal(name, { status: 'quit', quitDate: updateData.quitDate });
+                }
             });
         } else {
             if(confirm(`Xác nhận miễn nợ học phí tháng ${formatMonth(month)} cho ${name}?`)) window.skipMonth(name, month);
@@ -4512,7 +4520,8 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         _bulkZaloDebtors = [];
         Object.keys(allProfiles).sort().forEach(name => {
             const p = allProfiles[name];
-            if (p.status !== 'active') return;
+            const _pKind = typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus(p) : (p.status === 'quit' ? 'quit' : 'active');
+            if (_pKind !== 'active') return;
             if (p.feeExempt) return;
             if (!isSingleBranch && selBranch !== 'all' && p.branch !== selBranch) return;
 
@@ -5659,7 +5668,8 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             let val = this.value.toLowerCase().trim(); list.innerHTML = '';
             if(!val || (mode === 'inv' && document.getElementById('inv_type').value !== 'Xuất bán')) { list.style.display = 'none'; return; }
             let matches = Object.keys(allProfiles).filter(n => { 
-                if(allProfiles[n].status === 'quit') return false; 
+                const _nKind = typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus(allProfiles[n]) : (allProfiles[n].status === 'quit' ? 'quit' : 'active');
+                if(_nKind === 'quit') return false; 
                 let p = allProfiles[n]; 
                 return n.toLowerCase().includes(val) || (p.phone || "").includes(val) || (p.belt || "").toLowerCase().includes(val) || (p.notes || "").toLowerCase().includes(val); 
             });
@@ -6171,7 +6181,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             if (_joinM === selMonth) m_new++;
             if (_quitM === selMonth) m_quit++;
             if (_joinM <= selMonth && (!_quitM || _quitM >= selMonth)) { m_active_theo++; if (p.skippedMonths && p.skippedMonths.includes(selMonth)) m_skipped++; }
-            if(p.status === 'active' && _bStats[safeBranch] !== undefined) {
+            if((typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus(p) : p.status) === 'active' && _bStats[safeBranch] !== undefined) {
                 _bStats[safeBranch].active++;
             }
             if(!isSingleBranch && selBranch !== 'all' && safeBranch !== selBranch) return;
@@ -6195,7 +6205,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                 : '';
 
             let beltHTML = window.getBeltBadge ? window.getBeltBadge(p.belt) : `<span class="badge bg-slate-100 text-slate-700 border border-slate-300">${p.belt}</span>`;
-            if(p.status === 'active') {
+            if((typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus(p) : p.status) === 'active') {
                 activeCount++;
                 let lastPaidStr = p.paidUntil ? formatMonth(p.paidUntil) : "Chưa cập nhật";
                 // [ĐÃ XÓA] Không còn hiện badge "Miễn phí" bên cạnh tên — chỉ hiển thị ở cột "đã đóng tới tháng"
@@ -6272,7 +6282,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         if (window.__store) window.__store.tabHtmlCache = _tabHtmlCache; // [Phase 2b] sync cache
         (_TAB_LISTS[_curTabId] || []).forEach(listId => { const el = document.getElementById(listId); if(el) el.innerHTML = _tabHtmlCache[listId] || ''; });
 
-        const skippedNames = Object.keys(allProfiles).filter(n => { const pr = allProfiles[n]; return pr.status === 'active' && pr.skippedMonths && pr.skippedMonths.includes(selMonth); });
+        const skippedNames = Object.keys(allProfiles).filter(n => { const pr = allProfiles[n]; return (typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus(pr) : pr.status) === 'active' && pr.skippedMonths && pr.skippedMonths.includes(selMonth); });
         const skippedSection = document.getElementById('skippedSection');
         if(skippedSection) {
             if(skippedNames.length > 0) {
@@ -6381,16 +6391,29 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
 
         allTransactions.forEach(t => {
             if ((t.type === 'Lệ phí thi' || t.type === 'Học phí + Lệ phí thi') && (t.txMonth === selMonth || (t.date && t.date.startsWith(selMonth)))) {
-                const stuName = window.extractExamStudentName ? window.extractExamStudentName(t) : ((t.description || '').split(' (')[0].trim());
+                // Phase 4K-5B: bỏ giao dịch đã hủy
+                if (t.examPaidCancelled === true) return;
+                if (t.type === 'Học phí + Lệ phí thi' && Number(t.examAmount || 0) <= 0) return;
+                if (t.type === 'Lệ phí thi' && Number(t.amount || 0) <= 0) return;
+
+                const rawName = window.extractExamStudentName ? window.extractExamStudentName(t) : ((t.description || '').split(' (')[0].trim());
+                const stuName = window.getCanonicalStudentName ? window.getCanonicalStudentName(rawName, allProfiles) : rawName;
                 if (!stuName) return;
+
                 const profile = allProfiles[stuName] || {};
                 const targetBelt = window.getExamTargetBeltFromTx ? window.getExamTargetBeltFromTx(t, profile) : '';
-                paidStudents[stuName] = {
-                    id: t.id,
-                    amount: t.type === 'Học phí + Lệ phí thi' ? Number(t.examAmount || 0) : Number(t.amount || 0),
-                    targetBelt,
-                    type: t.type
-                };
+                // Nếu đã có entry, chỉ ghi đè nếu tx này mới hơn
+                const existing = paidStudents[stuName];
+                const curTs = Number(t.timestamp || 0);
+                if (!existing || curTs >= Number((existing._ts) || 0)) {
+                    paidStudents[stuName] = {
+                        id: t.id,
+                        amount: t.type === 'Học phí + Lệ phí thi' ? Number(t.examAmount || 0) : Number(t.amount || 0),
+                        targetBelt,
+                        type: t.type,
+                        _ts: curTs
+                    };
+                }
             }
         });
         
@@ -6400,7 +6423,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
 
         Object.keys(allProfiles).sort().forEach(name => {
             const p = allProfiles[name];
-            if(p.status !== 'active' || (p.belt || 'Đai trắng - Cấp 10') !== filterBelt) return;
+            if((typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus(p) : p.status) !== 'active' || (p.belt || 'Đai trắng - Cấp 10') !== filterBelt) return;
 
             let isPaid = paidStudents[name]; let safeName = name.replace(/'/g, "\\'");
             let branchTdHTML = isSingleBranch ? '' : `<td class="col-branch"><span class="badge bg-slate-100 text-slate-600 border border-slate-200">${window.getBranchNameDisplay(p.branch || 'CS1')}</span></td>`;
@@ -6424,6 +6447,13 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         }
 
         uiExam.innerHTML = htmlExam || `<tr><td colspan="${isSingleBranch ? 5 : 6}" class="text-center text-slate-400 py-8 italic">Không có võ sinh nào ở cấp đai này</td></tr>`;
+
+        // Phase 4K-5A: Cập nhật thẻ "Đã đăng ký thi"
+        if (typeof window.computeExamRegistrationStats === 'function') {
+            const _examStats = window.computeExamRegistrationStats();
+            const _regEl = document.getElementById('exam_registered_count_tab');
+            if (_regEl) _regEl.textContent = _examStats.registeredCount + ' Người';
+        }
     };
     
     // ─── Phase 4K-4H: cancelExamPayment ─────────────────────────────────────
@@ -6518,21 +6548,35 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         const profiles = st.profiles || allProfiles || {};
         const month = document.getElementById('filterMonth') ? document.getElementById('filterMonth').value : (st.selectedMonth || '');
 
+        // Phase 4K-5B: track duplicate counts per canonical name
+        const canonicalCounts = {};
+        txs.forEach(t => {
+            if (!(t.type === 'Lệ phí thi' || t.type === 'Học phí + Lệ phí thi')) return;
+            if (t.examPaidCancelled === true) return;
+            const rawN = window.extractExamStudentName ? window.extractExamStudentName(t) : (t.description || '');
+            const canN = window.getCanonicalStudentName ? window.getCanonicalStudentName(rawN, profiles) : rawN;
+            if (canN) canonicalCounts[canN] = (canonicalCounts[canN] || 0) + 1;
+        });
+
         const rows = txs
             .filter(t =>
                 (t.type === 'Lệ phí thi' || t.type === 'Học phí + Lệ phí thi') &&
                 (!month || t.txMonth === month || (t.date && String(t.date).startsWith(month)))
             )
             .map(t => {
-                const name = window.extractExamStudentName ? window.extractExamStudentName(t) : (t.description || '');
-                const p = profiles[name] || {};
+                const rawExtractedName = window.extractExamStudentName ? window.extractExamStudentName(t) : (t.description || '');
+                const canonicalName = window.getCanonicalStudentName ? window.getCanonicalStudentName(rawExtractedName, profiles) : rawExtractedName;
+                const p = profiles[canonicalName] || profiles[rawExtractedName] || {};
                 return {
                     id: t.id,
                     type: t.type,
                     description: t.description,
                     studentNameField: t.studentName || '',
-                    extractedName: name,
-                    profileFound: !!profiles[name],
+                    rawExtractedName,
+                    canonicalName,
+                    profileFoundByCanonical: !!profiles[canonicalName],
+                    duplicateCount: canonicalCounts[canonicalName] || 1,
+                    examPaidCancelled: !!t.examPaidCancelled,
                     gender: p.gender || '',
                     dob: p.dob || '',
                     memberId: p.memberId || '',
@@ -6543,7 +6587,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                     examTargetBelt: t.examTargetBelt || '',
                 };
             })
-            .filter(r => !studentName || r.extractedName.includes(studentName));
+            .filter(r => !studentName || r.canonicalName.includes(studentName) || r.rawExtractedName.includes(studentName));
 
         console.table(rows);
         return rows;
@@ -6580,6 +6624,56 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         return rows;
     };
 
+    // ─── Phase 4K-5B: Debug duplicate exam payments ─────────────────────────
+    window.debugExamDuplicatePayments = function(studentName) {
+        const st = window.__store || {};
+        const txs = Array.isArray(st.transactions) ? st.transactions : (allTransactions || []);
+        const profiles = st.profiles || allProfiles || {};
+        const month = document.getElementById('filterMonth') ? document.getElementById('filterMonth').value : (st.selectedMonth || '');
+        const q = String(studentName || '').trim();
+
+        const groups = {};
+
+        txs.forEach(t => {
+            if (!(t.type === 'Lệ phí thi' || t.type === 'Học phí + Lệ phí thi')) return;
+            if (t.examPaidCancelled === true) return;
+
+            const amount = t.type === 'Học phí + Lệ phí thi'
+                ? Number(t.examAmount || 0)
+                : Number(t.amount || 0);
+            if (amount <= 0) return;
+
+            const matchMonth = !month || t.txMonth === month || (t.date && String(t.date).startsWith(month));
+            if (!matchMonth) return;
+
+            const raw = window.extractExamStudentName ? window.extractExamStudentName(t) : String(t.description || '');
+            const name = window.getCanonicalStudentName ? window.getCanonicalStudentName(raw, profiles) : raw;
+
+            if (q && !name.includes(q)) return;
+
+            if (!groups[name]) groups[name] = [];
+            groups[name].push({
+                id: t.id || t.txId || '',
+                type: t.type,
+                description: t.description,
+                amount,
+                rawExtracted: raw,
+                canonicalName: name,
+                timestamp: t.timestamp || 0,
+                date: t.date,
+                txMonth: t.txMonth
+            });
+        });
+
+        const duplicates = Object.entries(groups)
+            .filter(([, arr]) => arr.length > 1)
+            .map(([name, arr]) => ({ name, count: arr.length, txs: arr }));
+
+        console.table(duplicates.map(d => ({ name: d.name, count: d.count })));
+        console.log('[debugExamDuplicatePayments:detail]', duplicates);
+        return { groups, duplicates };
+    };
+
     window.finishExamSession = async () => {
         if(window.userRole === 'viewer') return alert("Tài khoản khách không có quyền này!");
         const selMonth = document.getElementById('filterMonth').value || getLocalToday().substring(0,7);
@@ -6597,35 +6691,69 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         } catch(err) { console.error(err); alert("Lỗi: " + err.message); }
     };
 
-    // ─── Phase 4K-4H: Helper chuẩn hóa tên võ sinh từ giao dịch thi ───────────
+    // ─── Phase 4K-5B: Helper chuẩn hóa tên võ sinh từ giao dịch thi ───────────
+    // Hotfix: regex cũ không có "(" trước "Thi" dẫn đến trả về "Dương Vũ An ("
     window.extractExamStudentName = function(tx) {
         if (!tx) return '';
 
         const structured = String(
             tx.studentName ||
             tx.profileName ||
-            tx.studentId ||
             tx.profileId ||
+            tx.studentId ||
             ''
         ).trim();
 
         if (structured) return structured;
 
-        const desc = String(tx.description || '').trim();
+        let desc = String(tx.description || '').trim();
+        if (!desc) return '';
 
-        // Dạng cũ: Nguyễn Văn A (Thi lên Đai vàng - Cấp 7)
-        let m = desc.match(/^(.*?)\s*(Thi lên\s*.*?)\s*$/i);
+        // Chuẩn hóa: chuỗi kết thúc bằng "(" chưa đóng → cắt
+        desc = desc.replace(/\s*\(\s*$/, '').trim();
+
+        // Dạng: Nguyễn Văn A (Thi lên Đai vàng - Cấp 7) — có dấu "(" trước "Thi lên"
+        let m = desc.match(/^(.*?)\s*\(\s*Thi lên\s*.*?\)\s*$/i);
         if (m && m[1]) return m[1].trim();
 
-        // Dạng thu gộp: Nguyễn Văn A (Thi Quý 2/2026)
-        m = desc.match(/^(.*?)\s*(Thi\s+.*?)\s*$/i);
+        // Dạng: Nguyễn Văn A (Thi Quý 2/2026) — có dấu "(" trước "Thi"
+        m = desc.match(/^(.*?)\s*\(\s*Thi\s+.*?\)\s*$/i);
+        if (m && m[1]) return m[1].trim();
+
+        // Dạng thiếu dấu đóng ngoặc: Nguyễn Văn A (Thi Quý 2/2026
+        m = desc.match(/^(.*?)\s*\(\s*Thi\s+.*$/i);
+        if (m && m[1]) return m[1].trim();
+
+        // Dạng thiếu dấu đóng ngoặc: Nguyễn Văn A (Thi lên Đai vàng
+        m = desc.match(/^(.*?)\s*\(\s*Thi lên\s+.*$/i);
         if (m && m[1]) return m[1].trim();
 
         // Fallback: cắt mọi phần ngoặc cuối nếu có
-        m = desc.match(/^(.*?)\s*\(([^)]*)\)\s*$/);
+        m = desc.match(/^(.*?)\s*\([^)]*\)\s*$/);
         if (m && m[1]) return m[1].trim();
 
+        // Cuối cùng: đảm bảo không còn kết thúc bằng "("
+        desc = desc.replace(/\s*\(\s*$/, '').trim();
         return desc;
+    };
+
+    // ─── Phase 4K-5B: Canonical name resolver ─────────────────────────────────
+    // Dùng để map tên bị parse lỗi ("Dương Vũ An (") về tên profile đúng.
+    window.getCanonicalStudentName = function(name, profiles) {
+        const raw = String(name || '').trim().replace(/\s*\(\s*$/, '').trim();
+        const map = profiles || (window.__store && window.__store.profiles) || (typeof allProfiles !== 'undefined' ? allProfiles : {}) || {};
+
+        if (!raw) return '';
+        if (map[raw]) return raw;
+
+        const _norm = function(s) {
+            if (typeof window.normalizeVNForSearch === 'function') return window.normalizeVNForSearch(s);
+            return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase().trim();
+        };
+
+        const normRaw = _norm(raw);
+        const found = Object.keys(map).find(k => _norm(k) === normRaw);
+        return found || raw;
     };
 
     window.getExamTargetBeltFromTx = function(tx, profile) {
@@ -6679,9 +6807,13 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         let paidNames = new Set();
         allTransactions.forEach(t => {
             if((t.type === 'Lệ phí thi' || t.type === 'Học phí + Lệ phí thi') && (t.txMonth === selMonth || (t.date && t.date.startsWith(selMonth)))) {
-                let stuName = '';
-                if(t.type === 'Học phí + Lệ phí thi') { stuName = (t.description || '').trim(); }
-                else { let m = (t.description || '').match(/^(.*?)\s*\(/); stuName = m ? m[1].trim() : (t.description || '').trim(); }
+                // Phase 4K-5B: bỏ giao dịch đã hủy hoặc số tiền bằng 0
+                if (t.examPaidCancelled === true) return;
+                if (t.type === 'Học phí + Lệ phí thi' && Number(t.examAmount || 0) <= 0) return;
+                if (t.type === 'Lệ phí thi' && Number(t.amount || 0) <= 0) return;
+
+                const rawName = window.extractExamStudentName ? window.extractExamStudentName(t) : (t.description || '').trim();
+                const stuName = window.getCanonicalStudentName ? window.getCanonicalStudentName(rawName, allProfiles) : rawName;
                 if(stuName) paidNames.add(stuName);
             }
         });
@@ -7123,7 +7255,7 @@ window._setupMiAutocomplete = () => {
     const pickName = (nm) => { inp.value = nm; listEl.style.display = 'none'; updateMultiItemAutoFee(); };
     const renderMatches = (val) => {
         listEl.innerHTML = '';
-        const allActive = Object.keys(allProfiles).filter(n => allProfiles[n].status === 'active');
+        const allActive = Object.keys(allProfiles).filter(n => (typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus(allProfiles[n]) : allProfiles[n].status) === 'active');
         const matches = val ? allActive.filter(n => n.toLowerCase().includes(val.toLowerCase())).slice(0, 12) : allActive.slice(0, 12);
         if(matches.length === 0) { listEl.style.display = 'none'; return; }
         positionList();
@@ -7395,7 +7527,7 @@ window.processMultiItem = async (action) => {
         const isShowAll  = showAllEl ? showAllEl.checked : false;
 
         return Object.entries(allProfiles)
-            .filter(([, p]) => p.status === 'active')
+            .filter(([, p]) => (typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus(p) : p.status) === 'active')
             .filter(([, p]) => selBranch === 'all' || p.branch === selBranch)
             .filter(([, p]) => {
                 if (selBelt === 'all') return true;
@@ -7883,7 +8015,7 @@ window.processMultiItem = async (action) => {
 
         const byBranch = {};
         Object.entries(allProfiles || {}).forEach(([name, p]) => {
-            if (p.status !== 'active') return;
+            if ((typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus(p) : p.status) !== 'active') return;
             // HLV chỉ thấy sinh nhật cơ sở của mình
             if (coachBr && p.branch !== coachBr) return;
             const dob = p.dob || '';
@@ -8529,7 +8661,7 @@ window.processMultiItem = async (action) => {
 
             // Also include active profiles with no attendance records this month
             Object.entries(allProfiles || {}).forEach(([pid, p]) => {
-                if (p.status !== 'active') return;
+                if ((typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus(p) : p.status) !== 'active') return;
                 if (selBranch !== 'all' && p.branch !== selBranch) return;
                 if (!grouped[pid]) rows.push({ name: pid, belt: p.belt || '', branch: p.branch || '', present: 0, excused: 0, absent: 0 });
             });
@@ -8726,7 +8858,7 @@ window.processMultiItem = async (action) => {
 
             // Bổ sung võ sinh đang tập chưa có dữ liệu điểm danh tháng này
             Object.entries(allProfiles || {}).forEach(([pid, p]) => {
-                if (p.status !== 'active') return;
+                if ((typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus(p) : p.status) !== 'active') return;
                 if (!grouped[pid]) {
                     grouped[pid] = { name: pid, belt: p.belt || '', branch: p.branch || 'CS1', present: 0, excused: 0, absent: 0 };
                 }
@@ -9956,11 +10088,12 @@ window.processMultiItem = async (action) => {
         const inv      = window.__store && window.__store.inventory    ? window.__store.inventory    : [];
         const metrics  = window.__firestoreDataSourceMetrics || {};
 
+        const _classifyFn = typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus : function(p) { return p && (p.status === 'quit' || p.status === 'retired' || p.status === 'inactive') ? 'quit' : 'active'; };
         const activeProfiles = Object.values(profiles).filter(function(p) {
-            return p && p.status !== 'quit' && p.status !== 'retired';
+            return p && _classifyFn(p) !== 'quit';
         });
         const quitProfiles   = Object.values(profiles).filter(function(p) {
-            return p && (p.status === 'quit' || p.status === 'retired');
+            return p && _classifyFn(p) === 'quit';
         });
 
         const warnings = [];
@@ -10919,6 +11052,70 @@ window.processMultiItem = async (action) => {
         var text = lines.join('\n');
         console.log('[generateSuperAdminAuditReportText] Copy markdown text bên dưới:\n\n' + text);
         return text;
+    };
+
+    // ── Phase 4K-5A: computeExamRegistrationStats ────────────────────────────
+    /**
+     * Tính số lượng võ sinh đã đăng ký thi (đã nộp lệ phí) trong kỳ thi hiện tại.
+     * Đếm unique student names từ transactions type='Lệ phí thi' hoặc 'Học phí + Lệ phí thi'
+     * đã có examAmount > 0 và chưa bị cancel.
+     *
+     * @returns {{ registeredCount: number, paidNames: string[] }}
+     */
+    // Phase 4K-5B: sử dụng extractExamStudentName + getCanonicalStudentName, bỏ t.description trực tiếp
+    window.computeExamRegistrationStats = function computeExamRegistrationStats() {
+        try {
+            const st    = window.__store || {};
+            const txs   = Array.isArray(st.transactions) ? st.transactions : (typeof allTransactions !== 'undefined' ? allTransactions : []);
+            const profiles = st.profiles || (typeof allProfiles !== 'undefined' ? allProfiles : {}) || {};
+            const paidNamesSet = new Set();
+
+            txs.forEach(function(t) {
+                if (!t) return;
+                const type = t.type || '';
+                if (!(type === 'Lệ phí thi' || type === 'Học phí + Lệ phí thi')) return;
+
+                // Bỏ giao dịch đã hủy
+                if (t.examPaidCancelled === true) return;
+
+                const amount = type === 'Học phí + Lệ phí thi'
+                    ? Number(t.examAmount || 0)
+                    : Number(t.amount || 0);
+                if (amount <= 0) return;
+
+                const rawName = typeof window.extractExamStudentName === 'function'
+                    ? window.extractExamStudentName(t)
+                    : String(t.description || '').trim();
+
+                const name = typeof window.getCanonicalStudentName === 'function'
+                    ? window.getCanonicalStudentName(rawName, profiles)
+                    : rawName;
+
+                if (name) paidNamesSet.add(name);
+            });
+
+            return {
+                registeredCount: paidNamesSet.size,
+                paidNames: Array.from(paidNamesSet),
+            };
+        } catch (e) {
+            console.warn('[computeExamRegistrationStats] error:', e);
+            return { registeredCount: 0, paidNames: [] };
+        }
+    };
+
+    // ── Phase 4K-5A: debugExamRegistrationCount ──────────────────────────────
+    window.debugExamRegistrationCount = function debugExamRegistrationCount() {
+        const stats = window.computeExamRegistrationStats();
+        const regEl = document.getElementById('exam_registered_count_tab');
+        const result = {
+            registeredCount: stats.registeredCount,
+            paidNames: stats.paidNames.slice(0, 10),
+            domElementExists: !!regEl,
+            domElementText: regEl ? regEl.textContent : '(missing)',
+        };
+        console.table(result);
+        return result;
     };
 
     // ── End Phase 4.0B-4J ─────────────────────────────────────────────────────
