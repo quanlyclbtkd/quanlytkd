@@ -532,11 +532,26 @@ window.invCustomCategories = [];
     // Được gọi bởi nút "⬇ Tải thêm" trong mỗi list. Khi lọc/tìm kiếm thay đổi,
     // switchTab và window.filterStudents sẽ reset page về 1 tự động.
     // Phase 3.5D: list-level invalidation replaces direct renderApp for loadMore
-    window._loadMore = (tab) => {
+    
+// ── Phase 4K-5G: Per-list page state (active/debt/quit isolated) ─────────────
+window.__studentListPageState = window.__studentListPageState || {
+    activePage: 1,
+    debtPage:   1,
+    quitPage:   1
+};
+
+window._loadMore = (tab) => {
         // Giữ nguyên logic tăng page — không đổi behavior
-        if(tab === 'active') window._activePage = (window._activePage || 1) + 1;
-        else if(tab === 'debt') window._debtPage = (window._debtPage || 1) + 1;
-        else if(tab === 'quit') window._quitPage = (window._quitPage || 1) + 1;
+        if(tab === 'active') {
+            window._activePage = (window._activePage || 1) + 1;
+            if (window.__studentListPageState) window.__studentListPageState.activePage = window._activePage;
+        } else if(tab === 'debt') {
+            window._debtPage = (window._debtPage || 1) + 1;
+            if (window.__studentListPageState) window.__studentListPageState.debtPage = window._debtPage;
+        } else if(tab === 'quit') {
+            window._quitPage = (window._quitPage || 1) + 1;
+            if (window.__studentListPageState) window.__studentListPageState.quitPage = window._quitPage;
+        }
         _dataVersion++; if (window.__store) window.__store._dataVersion = _dataVersion;
 
         // [3.5D] Metrics
@@ -559,6 +574,11 @@ window.invCustomCategories = [];
         window._activePage = 1;
         window._debtPage   = 1;
         window._quitPage   = 1;
+        if (window.__studentListPageState) {
+            window.__studentListPageState.activePage = 1;
+            window.__studentListPageState.debtPage   = 1;
+            window.__studentListPageState.quitPage   = 1;
+        }
     };
 
     function getLocalToday() { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().split('T')[0]; }
@@ -7571,6 +7591,16 @@ window.debugBundleDisplay = function(studentName) {
 // ══════════════════════════════════════════════════════════════════
 
 // ensureDebtProfilesReady — load full profiles if debt list may be partial
+
+// ── Phase 4K-5G: Parse count from tab button text ────────────────────────────
+window.extractCountFromTabText = function(text) {
+    const s = String(text || '');
+    const m = s.match(/(\(\d+\))/);
+    if (m && m[1]) return Number(m[1].replace(/[()]/g, ''));
+    const m2 = s.match(/(\d+)/);
+    return m2 && m2[1] ? Number(m2[1]) : 0;
+};
+
 window.ensureDebtProfilesReady = async function(reason) {
     reason = reason || 'debt-tab-open';
     const st = window.__store || {};
@@ -7579,7 +7609,9 @@ window.ensureDebtProfilesReady = async function(reason) {
     const activeCountText = document.querySelector('[data-tab="active"], #tabBtn_active, #btn_active')
         ? (document.querySelector('[data-tab="active"], #tabBtn_active, #btn_active').textContent || '')
         : '';
-    const maybeActiveCount = Number((activeCountText.match(/((d+))/) || [])[1] || 0);
+    const maybeActiveCount = window.extractCountFromTabText
+        ? window.extractCountFromTabText(activeCountText)
+        : Number((activeCountText.match(/(\(\d+\))/) || [])[1] || 0);
 
     const shouldLoad =
         profilesCount === 0 ||
@@ -7609,6 +7641,62 @@ window.ensureDebtProfilesReady = async function(reason) {
 };
 
 // debugDebtCoverage — compare DOM debt rows to computed debt from profiles
+
+// ── Phase 4K-5G: debugFinanceTableLayout ─────────────────────────────────────
+window.debugFinanceTableLayout = function() {
+    const table = document.querySelector('.finance-tx-table') || (document.getElementById('txList') ? document.getElementById('txList').closest('table') : null);
+    const rows  = Array.from(document.querySelectorAll('#txList tr')).slice(0, 5);
+    const result = {
+        hasFinanceTable: !!table,
+        tableClass:      table ? table.className : '',
+        tableLayout:     table ? getComputedStyle(table).tableLayout : '',
+        tableWidth:      table ? table.getBoundingClientRect().width : 0,
+        wrapperWidth:    table && table.parentElement ? table.parentElement.getBoundingClientRect().width : 0,
+        sampleRows: rows.map(tr => {
+            const cells = Array.from(tr.children);
+            return cells.map(td => ({
+                cls:   td.className,
+                width: Math.round(td.getBoundingClientRect().width),
+                text:  td.textContent.trim().slice(0, 30)
+            }));
+        })
+    };
+    console.log('[debugFinanceTableLayout]', result);
+    if (result.sampleRows && result.sampleRows[0]) console.table(result.sampleRows[0]);
+    return result;
+};
+
+// ── Phase 4K-5G: debugStudentListCoverage ────────────────────────────────────
+window.debugStudentListCoverage = function() {
+    const st        = window.__store || {};
+    const pg        = (st.pagination && st.pagination.students) || {};
+    const activeRows = document.querySelectorAll('#activeList tr[data-student-id]').length;
+    const debtRows   = document.querySelectorAll('#debtList  tr[data-student-id]').length;
+
+    const activeTabEl = document.querySelector('[data-tab="active"], #tabBtn_active, #btn_active');
+    const debtTabEl   = document.querySelector('[data-tab="debt"],   #tabBtn_debt,   #btn_debt');
+    const activeTabText = activeTabEl ? activeTabEl.textContent : '';
+    const debtTabText   = debtTabEl   ? debtTabEl.textContent   : '';
+
+    const result = {
+        profilesCount:           Object.keys(st.profiles || {}).length,
+        activeTabText,
+        activeTabCountParsed:    window.extractCountFromTabText ? window.extractCountFromTabText(activeTabText) : 0,
+        debtTabText,
+        debtTabCountParsed:      window.extractCountFromTabText ? window.extractCountFromTabText(debtTabText)   : 0,
+        activeRowsDom:           activeRows,
+        debtRowsDom:             debtRows,
+        paginationCurrentItems:  Array.isArray(pg.currentItems) ? pg.currentItems.length : -1,
+        pgCurrentPage:           pg.currentPage,
+        pgHasNext:               pg.hasNext,
+        studentListPageState:    window.__studentListPageState || null,
+        debtSourceQuality:       st._lastDebtSourceQuality || null,
+        hasEnsureDebtProfilesReady: typeof window.ensureDebtProfilesReady === 'function'
+    };
+    console.table(result);
+    return result;
+};
+
 window.debugDebtCoverage = async function() {
     const st       = window.__store || {};
     const profiles = st.profiles || {};
