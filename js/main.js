@@ -52,6 +52,8 @@ import {
     formatMonthCompact, getBeltBadge,
 } from './utils/format.js';
 import { escapeForAttr, escapeHtml, formatVND, parseVND } from './utils/helpers.js';
+// ── Phase 4K-4G: Monthly revenue allocation + active student sort ─────────────
+import { initMonthlyHelpers } from './utils/monthlyHelpers.js';
 import { TAB_LISTS, DEFAULT_CLUB_CONFIG }      from './utils/constants.js';
 import {
     getActiveKeys,
@@ -1145,6 +1147,7 @@ function _waitForExistingLegacyApp(ms) {
             }
         };
 
+        initMonthlyHelpers(); // Phase 4K-4G: register monthly revenue allocation + student sort helpers
         initDashboard();
         initRender();
 
@@ -2656,6 +2659,17 @@ window.debugRuntimeSmokeTest = async function(term) {
         window.debugTuitionPackageCoverage,
         ['', (document.getElementById('filterMonth') && document.getElementById('filterMonth').value) || '']
     );
+    // Phase 4K-4G
+    out.monthlyRevenueAllocation = await safeCall(
+        'debugMonthlyRevenueAllocation',
+        window.debugMonthlyRevenueAllocation,
+        [(document.getElementById('filterMonth') && document.getElementById('filterMonth').value) || '']
+    );
+    out.activeStudentSort = await safeCall(
+        'debugActiveStudentSort',
+        window.debugActiveStudentSort,
+        [10]
+    );
 
     const summary = {
         runtimeMode:     out.runtimeMode,
@@ -2674,6 +2688,9 @@ window.debugRuntimeSmokeTest = async function(term) {
         admissionTxHydrationOk: !!out.admissionTxHydration.ok,
         // Phase 4K-4F
         tuitionPackageCoverageOk: !!out.tuitionPackageCoverage.ok,
+        // Phase 4K-4G
+        monthlyRevenueAllocationOk: !!out.monthlyRevenueAllocation.ok,
+        activeStudentSortOk:        !!out.activeStudentSort.ok,
 
         overallOk:
             !!out.examFee.ok &&
@@ -2685,7 +2702,9 @@ window.debugRuntimeSmokeTest = async function(term) {
             !!out.profileModalClose.ok &&
             !!out.monthRuntime.ok &&
             !!out.admissionTxHydration.ok &&
-            !!out.tuitionPackageCoverage.ok
+            !!out.tuitionPackageCoverage.ok &&
+            !!out.monthlyRevenueAllocation.ok &&
+            !!out.activeStudentSort.ok
     };
 
     console.table(summary);

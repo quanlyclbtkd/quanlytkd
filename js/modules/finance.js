@@ -548,9 +548,15 @@ export function initFinance() {
             branch: branch || (profiles[name] && profiles[name].branch) || 'CS1',
             type: 'Lệ phí thi',
             description: `${name} (Thi lên ${nextBelt})`,
+            studentName: name,
+            profileName: name,
+            profileId: name,
             amount,
             date: examDate,
             txMonth: examMonth,
+            examTitle: `Thi lên ${nextBelt}`,
+            currentBeltAtPayment: curBelt,
+            examTargetBelt: nextBelt,
             timestamp: Date.now(),
         });
 

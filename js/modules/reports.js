@@ -337,7 +337,18 @@ export function initReports() {
             txAll.forEach(t => {
                 const a   = Number(t.amount) || 0;
                 const _tb = t.branch || 'CS1';
-                if (t.type === 'Học phí')                     { incTuition += a; if (_exBIncome[_tb] !== undefined) _exBIncome[_tb] += a; }
+                if (t.type === 'Học phí') {
+                    // Phase 4K-4G: Phân bổ gói nhiều tháng đúng theo kỳ báo cáo
+                    let _allocTuition = a;
+                    if (Array.isArray(t.packageMonths) && t.packageMonths.length > 0) {
+                        const _mInPeriod = t.packageMonths.filter(pm => pm >= _startM && pm <= _endM);
+                        _allocTuition = _mInPeriod.length > 0
+                            ? Math.round(a * _mInPeriod.length / t.packageMonths.length)
+                            : 0;
+                    }
+                    incTuition += _allocTuition;
+                    if (_exBIncome[_tb] !== undefined) _exBIncome[_tb] += _allocTuition;
+                }
                 else if (t.type === 'Học phí + Lệ phí thi')  {
                     const _ta = (Number(t.tuitionAmount) || 0) + (Number(t.examAmount) || 0);
                     incTuition += Number(t.tuitionAmount) || 0; incExam += Number(t.examAmount) || 0;
@@ -531,10 +542,22 @@ export function initReports() {
             let paidExamStudents = {};
             txAll.forEach(t => {
                 if (t.type === 'Lệ phí thi' || t.type === 'Học phí + Lệ phí thi') {
-                    let stuName = '';
-                    if (t.type === 'Học phí + Lệ phí thi') stuName = (t.description || '').trim();
-                    else { let m = (t.description || '').match(/^(.*?)\s*\(Thi lên/); stuName = m ? m[1].trim() : (t.description || '').trim(); }
-                    if (stuName) paidExamStudents[stuName] = { amount: t.type === 'Học phí + Lệ phí thi' ? t.examAmount : t.amount, belt: (t.examTitle || '') };
+                    const stuName = typeof window.extractExamStudentName === 'function'
+                        ? window.extractExamStudentName(t)
+                        : (function(tx) {
+                            const desc = String(tx.description || '').trim();
+                            const m = desc.match(/^(.*?)\s*\(Thi lên/i);
+                            return m ? m[1].trim() : desc.split(' (')[0].trim();
+                        })(t);
+                    if (!stuName) return;
+                    const _ep = allProfiles[stuName] || {};
+                    const belt = typeof window.getExamTargetBeltFromTx === 'function'
+                        ? window.getExamTargetBeltFromTx(t, _ep)
+                        : (t.examTitle || '');
+                    paidExamStudents[stuName] = {
+                        amount: t.type === 'Học phí + Lệ phí thi' ? t.examAmount : t.amount,
+                        belt
+                    };
                 }
             });
             const exam_rows = [
@@ -880,24 +903,49 @@ export function initReports() {
         const clubData    = _clubData();
         const XLSX        = _XLSX();
 
+        // Phase 4K-4H: helper fallbacks (nếu chưa có trên window)
+        function _fallbackExtractName(t) {
+            const desc = String(t.description || '').trim();
+            const m = desc.match(/^(.*?)\s*\(Thi lên\s*.*?\)/i);
+            if (m && m[1]) return m[1].trim();
+            const m2 = desc.match(/^(.*?)\s*\(Thi\s+.*?\)/i);
+            if (m2 && m2[1]) return m2[1].trim();
+            const m3 = desc.match(/^(.*?)\s*\([^)]*\)\s*$/);
+            if (m3 && m3[1]) return m3[1].trim();
+            return desc;
+        }
+        function _fallbackGetTargetBelt(t, p) {
+            const desc = String(t.description || '');
+            const m = desc.match(/(Thi lên\s*(.*?))\s*\)?$/i);
+            if (m && m[1]) return m[1].trim();
+            return t.examTitle || 'Kỳ thi';
+        }
+
         let paidData = {};
         allTransactions.forEach(t => {
             if ((t.type === 'Lệ phí thi' || t.type === 'Học phí + Lệ phí thi') && (t.txMonth === selMonth || (t.date && t.date.startsWith(selMonth)))) {
-                let stuName = "", targetBelt = "", feeAmt = 0;
-                if (t.type === 'Học phí + Lệ phí thi') {
-                    stuName    = t.description ? t.description.trim() : "";
-                    targetBelt = t.examTitle || "Kỳ thi Quý";
-                    feeAmt     = 0;
-                } else {
-                    let match = (t.description || "").match(/^(.*?)\s*\(Thi lên\s*(.*?)\)/);
-                    if (match) { stuName = match[1].trim(); targetBelt = match[2].trim(); }
-                    else        { stuName = (t.description || "").trim(); targetBelt = "Không rõ"; }
-                    feeAmt = Number(t.amount || 0);
-                }
-                if (stuName) {
-                    const _bp = allProfiles[stuName] || {};
-                    paidData[stuName] = { targetBelt, amount: feeAmt, branch: t.branch || _bp.branch || 'CS1' };
-                }
+                const stuName = typeof window.extractExamStudentName === 'function'
+                    ? window.extractExamStudentName(t)
+                    : _fallbackExtractName(t);
+
+                if (!stuName) return;
+
+                const profile = allProfiles[stuName] || {};
+
+                const targetBelt = typeof window.getExamTargetBeltFromTx === 'function'
+                    ? window.getExamTargetBeltFromTx(t, profile)
+                    : _fallbackGetTargetBelt(t, profile);
+
+                const feeAmt = t.type === 'Học phí + Lệ phí thi'
+                    ? Number(t.examAmount || 0)
+                    : Number(t.amount || 0);
+
+                paidData[stuName] = {
+                    targetBelt,
+                    amount: feeAmt,
+                    branch: t.branch || profile.branch || 'CS1',
+                    txId: t.id || t.txId || ''
+                };
             }
         });
 

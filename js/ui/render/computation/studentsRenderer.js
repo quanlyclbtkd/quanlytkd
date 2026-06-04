@@ -263,8 +263,19 @@ export function computeAndCacheStudents(allProfiles, params) {
     });
 
     // ── PASS 1: Full iteration for stats + debt calc + non-paginated display ──
-    Object.keys(allProfiles).sort().forEach(name => {
-        const p = allProfiles[name];
+    // Phase 4K-4G: Sort newest-first by join timestamp for ĐANG TẬP tab
+    const _profileEntries = Object.entries(allProfiles || {});
+    _profileEntries.sort(([nameA, profA], [nameB, profB]) => {
+        const ta = typeof window.getStudentJoinTimestamp === 'function'
+            ? window.getStudentJoinTimestamp(nameA, profA)
+            : 0;
+        const tb = typeof window.getStudentJoinTimestamp === 'function'
+            ? window.getStudentJoinTimestamp(nameB, profB)
+            : 0;
+        if (tb !== ta) return tb - ta;
+        return String(nameA).localeCompare(String(nameB), 'vi');
+    });
+    _profileEntries.forEach(([name, p]) => {
         if (!p) return;
 
         // Phase 4K-STUDENT-LIST: Dùng classifier chung — xử lý data cũ thiếu status

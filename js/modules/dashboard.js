@@ -448,19 +448,25 @@ export async function fetchHistoricalDashboardFallback(selMonth, reason) {
 
     const { doc, getDoc, getDocs, query, collection, where } = sdk;
 
-    // Build 6-month window ending at selMonth
-    const [sy, sm] = selMonth.split('-').map(Number);
-    const months = [];
-    for (let i = 0; i < 6; i++) {
-        let m = sm - i, y = sy;
-        if (m <= 0) { m += 12; y -= 1; }
-        months.push({ month: `${y}-${String(m).padStart(2, '0')}`, idx: 5 - i });
-    }
-    // months[0].idx = 0 (oldest), months[5].idx = 5 (current)
+    // Phase 4K-4G: Dùng getRecentMonths helper để không hard-code logic tháng
+    const _monthStrs = typeof window.getRecentMonths === 'function'
+        ? window.getRecentMonths(selMonth, 6)
+        : (() => {
+            const [sy, sm] = selMonth.split('-').map(Number);
+            const result = [];
+            for (let i = 5; i >= 0; i--) {
+                let m = sm - i, y = sy;
+                while (m <= 0) { m += 12; y -= 1; }
+                result.push(`${y}-${String(m).padStart(2, '0')}`);
+            }
+            return result;
+        })();
+    const months = _monthStrs.map((month, i) => ({ month, idx: i }));
 
-    const labels  = months.map(({ month }) => {
-        const [y, m] = month.split('-');
-        return `T${Number(m)}/${y}`;
+    const labels  = _monthStrs.map(m => {
+        if (typeof window.formatMonthLabel === 'function') return window.formatMonthLabel(m);
+        const [y, mo] = m.split('-');
+        return `T${Number(mo)}/${y}`;
     });
     const income  = Array(6).fill(0);
     const expense = Array(6).fill(0);
@@ -494,20 +500,48 @@ export async function fetchHistoricalDashboardFallback(selMonth, reason) {
         }
 
         if (!hasStat) {
-            // Fallback: scan transactions for this month
+            // Phase 4K-4G: Fallback đọc transactions — inclusive query + phân bổ đúng gói nhiều tháng
             console.info('[dashboard-history] missing stats doc for', month, '— reading transactions fallback');
             try {
-                const txRef = collection(db, 'clubs', clubId, 'transactions');
-                const txSnap = await getDocs(query(txRef, where('txMonth', '==', month)));
-                txSnap.forEach(d => {
-                    const tx = d.data();
-                    const amt = Number(tx.amount || tx.soTien || 0);
-                    if (tx.type === 'expense' || tx.loai === 'expense' || tx.loai === 'chi') {
-                        exp += amt;
+                if (typeof window.loadTransactionsForMonthsInclusive === 'function') {
+                    const _fallbackTxs = await window.loadTransactionsForMonthsInclusive(
+                        [month], 'dashboard-history-fallback'
+                    );
+                    if (typeof window.computeMonthlyFinanceHistory === 'function') {
+                        const _hist = window.computeMonthlyFinanceHistory(_fallbackTxs, [month]);
+                        if (_hist[month]) {
+                            inc = _hist[month].income;
+                            exp = _hist[month].expense;
+                        }
                     } else {
-                        inc += amt;
+                        _fallbackTxs.forEach(tx => {
+                            const amt = Number(tx.amount || tx.soTien || 0);
+                            if (tx.type === 'Chi phí' || tx.type === 'Chi phí kỳ thi' || tx.type?.startsWith('Chi')) {
+                                exp += amt;
+                            } else if (tx.type === 'Học phí' && Array.isArray(tx.packageMonths) && tx.packageMonths.length > 0) {
+                                // Phase 4K-4G: Phân bổ gói học phí
+                                if (tx.packageMonths.includes(month)) {
+                                    inc += amt / tx.packageMonths.length;
+                                }
+                            } else {
+                                inc += amt;
+                            }
+                        });
                     }
-                });
+                } else {
+                    // Legacy fallback: plain txMonth query
+                    const txRef = collection(db, 'clubs', clubId, 'transactions');
+                    const txSnap = await getDocs(query(txRef, where('txMonth', '==', month)));
+                    txSnap.forEach(d => {
+                        const tx = d.data();
+                        const amt = Number(tx.amount || tx.soTien || 0);
+                        if (tx.type === 'expense' || tx.loai === 'expense' || tx.loai === 'chi') {
+                            exp += amt;
+                        } else {
+                            inc += amt;
+                        }
+                    });
+                }
             } catch (_txErr) {
                 // Non-blocking — silent fail
             }
