@@ -5115,11 +5115,16 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
     };
 
     window.quickCollectExam = async (name, branch) => {
-        // [SỬA] Thay alert() + prompt() bằng showToast() + openQuickPayModal có skipPrompt
+        // Phase 4K-5D: getClubExamFee là nguồn ưu tiên
         if(window.userRole === 'viewer') return window.showToast("⛔ Tài khoản khách không thể thu tiền!");
-        let defaultFee = document.getElementById('exam_fee_all_actual').value || (window.getClubExamFee ? window.getClubExamFee() : 250000);
-        let inputAmount = prompt(`Nhập lệ phí thi của ${name}:`, defaultFee); if (!inputAmount) return; 
-        let amount = Number(inputAmount.replace(/\D/g, '')); if (amount <= 0) return;
+        const currentFee = window.getClubExamFee
+            ? window.getClubExamFee()
+            : (window.parseVNDNumber
+                ? window.parseVNDNumber((document.getElementById('exam_fee_all_actual') || {}).value)
+                : (Number((document.getElementById('exam_fee_all_actual') || {}).value) || 250000));
+        const _defaultFmtFee = window.formatVNDNumber ? window.formatVNDNumber(currentFee) : String(currentFee);
+        let inputAmount = prompt(`Nhập lệ phí thi của ${name}:`, _defaultFmtFee); if (!inputAmount) return;
+        let amount = window.parseVNDNumber ? window.parseVNDNumber(inputAmount) : Number(String(inputAmount || '').replace(/\D/g, '')); if (amount <= 0) return;
         const _curBelt = (allProfiles[name] && allProfiles[name].belt) || 'Đai trắng - Cấp 10';
         const _nextBelt = window.BELT_NEXT[_curBelt] || _curBelt;
         const _examMonth = document.getElementById('filterMonth').value || getLocalToday().substring(0, 7);
@@ -5206,7 +5211,13 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         const currentBelt = document.getElementById('exam_filter_belt').value;
         const newBelt = window.BELT_NEXT[currentBelt];
         if(!newBelt) return alert("Đai này đã là cấp cao nhất, không thể thăng thêm!");
-        const fee = Number(document.getElementById('exam_fee_all_actual').value) || 0; const currentMonth = document.getElementById('filterMonth').value || getLocalToday().substring(0, 7);
+        // Phase 4K-5D: getClubExamFee là nguồn ưu tiên
+        const fee = window.getClubExamFee
+            ? window.getClubExamFee()
+            : (window.parseVNDNumber
+                ? window.parseVNDNumber((document.getElementById('exam_fee_all_actual') || {}).value)
+                : (Number((document.getElementById('exam_fee_all_actual') || {}).value) || 250000));
+        const currentMonth = document.getElementById('filterMonth').value || getLocalToday().substring(0, 7);
         let paidStudents = {};
         allTransactions.forEach(t => { if ((t.type === 'Lệ phí thi' || t.type === 'Học phí + Lệ phí thi') && (t.txMonth === currentMonth || (t.date && t.date.startsWith(currentMonth)))) { let stuName = t.type === 'Học phí + Lệ phí thi' ? (t.description ? t.description.trim() : "") : ((t.description || "").match(/^(.*?)\s*\(Thi lên/) ? (t.description || "").match(/^(.*?)\s*\(Thi lên/)[1].trim() : (t.description || "").trim()); if(stuName) paidStudents[stuName] = true; } });
         let studentsToCharge = selected.filter(n => !paidStudents[n]); let chargeAmount = studentsToCharge.length * fee;
