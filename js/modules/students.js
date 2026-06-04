@@ -721,7 +721,7 @@ export function initStudents() {
                     window.showToast('✅ Đã chuyển trạng thái Nghỉ tập!');
                     // Phase 4K-5A: Sync local store
                     if (typeof window.syncStudentStatusLocal === 'function') {
-                        window.syncStudentStatusLocal(name, _quitData);
+                        window.syncStudentStatusLocal(name, _quitData, 'student-marked-quit');
                     }
                 });
         } else {
@@ -1658,31 +1658,67 @@ export function initStudentPagination() {
 }
 
 // ════════════════════════════════════════════════════════════════
-// Phase 4K-5A — syncStudentStatusLocal
-// Sync trạng thái võ sinh vào window.__store.profiles sau khi Firestore update.
-// Đảm bảo render tiếp theo dùng đúng status mới, không cần chờ listener.
-// ════════════════════════════════════════════════════════════════
-window.syncStudentStatusLocal = function syncStudentStatusLocal(name, updateData) {
+// Phase 4K-5C — syncStudentStatusLocal — Hard separation: remove quit from pagination
+window.syncStudentStatusLocal = function syncStudentStatusLocal(name, updateData, reason) {
+    reason = typeof reason === 'string' ? reason : 'student-status-sync';
     try {
-        const store = window.__store;
-        if (!store || !store.profiles) return;
-        if (!name || !updateData) return;
-        const existing = store.profiles[name];
-        if (!existing) return;
-        Object.assign(existing, updateData);
-        // Invalidate render caches so next render picks up new status
+        const key = String(name || '').trim();
+        if (!key || !updateData) return false;
+
+        if (!window.__store) window.__store = {};
+        if (!window.__store.profiles) window.__store.profiles = {};
+
+        const oldProfile = window.__store.profiles[key] || {};
+        const nextProfile = Object.assign({}, oldProfile, updateData);
+        window.__store.profiles[key] = nextProfile;
+
+        const classify = typeof window.classifyProfileStatus === 'function'
+            ? window.classifyProfileStatus
+            : function(p) { return p && (p.status === 'quit' || p.status === 'inactive' || p.status === 'retired') ? 'quit' : 'active'; };
+
+        const kind = classify(nextProfile);
+
+        // HARD SEPARATION: nếu status=quit, loại ra khỏi pagination.currentItems ngay
+        const pg = window.__store.pagination && window.__store.pagination.students;
+        if (pg && Array.isArray(pg.currentItems) && kind === 'quit') {
+            pg.currentItems = pg.currentItems.filter(function(item) {
+                const id = String(item.id || item.name || item.studentName || '').trim();
+                return id !== key;
+            });
+        }
+
+        window.__store._dataVersion = (window.__store._dataVersion || 0) + 1;
+        window.__store._studentStatusVersion = (window.__store._studentStatusVersion || 0) + 1;
+
+        if (typeof window.invalidateSearchCache === 'function') {
+            window.invalidateSearchCache('students', reason);
+        }
+
+        if (typeof window.refreshListsComputation === 'function') {
+            window.refreshListsComputation(['students.activeList', 'students.quitList', 'students.debtList', 'dashboard.summary'], reason);
+        }
+
         if (typeof window.invalidateList === 'function') {
-            window.invalidateList('students.activeList', 'syncStudentStatusLocal');
-            window.invalidateList('students.quitList', 'syncStudentStatusLocal');
+            window.invalidateList('students.activeList', reason);
+            window.invalidateList('students.quitList', reason);
+            window.invalidateList('students.debtList', reason);
         } else if (typeof window.invalidateStudents === 'function') {
-            window.invalidateStudents('syncStudentStatusLocal');
+            window.invalidateStudents(reason);
         }
+
+        if (typeof window.invalidateDashboard === 'function') {
+            window.invalidateDashboard(reason);
+        }
+
         if (typeof window.scheduleRender === 'function') {
-            window.scheduleRender('syncStudentStatusLocal');
+            window.scheduleRender(reason);
         }
-        console.debug('[syncStudentStatusLocal] synced:', name, '->', updateData.status || '(no status)');
+
+        console.debug('[syncStudentStatusLocal] synced:', key, '->', kind, updateData.status || '');
+        return true;
     } catch (e) {
         console.warn('[syncStudentStatusLocal] error:', e);
+        return false;
     }
 };
 
@@ -1719,19 +1755,34 @@ window.debugStudentStatusSeparation = function debugStudentStatusSeparation() {
         if (p && classify(p) === 'quit') activeInQuitTab.push(name);
     });
 
+    // Phase 4K-5C: Add pagination diagnostics
+    const _pg = window.__store && window.__store.pagination && window.__store.pagination.students;
+    const _pgItems = _pg && Array.isArray(_pg.currentItems) ? _pg.currentItems : [];
+    const _pgQuitItems = _pgItems.filter(function(item) {
+        const id = String(item.id || item.name || item.studentName || '').trim();
+        const p = profiles[id];
+        return p && classify(p) === 'quit';
+    });
+
     const result = {
         totalProfiles: Object.keys(profiles).length,
         classifyActiveCount: activeCount,
         classifyQuitCount: quitCount,
-        unknownCount,
+        unknownCount: unknownCount,
         activeListDOMRows: activeListRows.length,
         quitListDOMRows: quitListRows.length,
         quitStudentsInActiveDOMTab: quitInActiveTab.length,
-        separationOk: quitInActiveTab.length === 0 && activeInQuitTab.length === 0,
+        separationOk: quitInActiveTab.length === 0 && activeInQuitTab.length === 0 && _pgQuitItems.length === 0,
         quitInActiveNames: quitInActiveTab.slice(0, 5),
         activeInQuitNames: activeInQuitTab.slice(0, 5),
         hasSyncStudentStatusLocal: typeof window.syncStudentStatusLocal === 'function',
         hasClassifyProfileStatus: typeof window.classifyProfileStatus === 'function',
+        // Phase 4K-5C: pagination diagnostics
+        storeKind: window.__store ? 'present' : 'missing',
+        pgCurrentItemsCount: _pgItems.length,
+        pgCurrentItemsQuitCount: _pgQuitItems.length,
+        pgQuitSample: _pgQuitItems.slice(0, 3).map(function(i) { return String(i.id || i.name || i.studentName || ''); }),
+        dataVersion: (window.__store && window.__store._dataVersion) || 0
     };
 
     console.table(result);

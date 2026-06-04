@@ -921,50 +921,48 @@ export function initReports() {
             return t.examTitle || 'Kỳ thi';
         }
 
-        // Phase 4K-5B: canonical name + dedupe + bỏ giao dịch hủy
+        // Phase 4K-5C: Dùng canonical ledger nếu có — đảm bảo dedupe nhất quán với UI
         let paidData = {};
-        allTransactions.forEach(t => {
-            if ((t.type === 'Lệ phí thi' || t.type === 'Học phí + Lệ phí thi') && (t.txMonth === selMonth || (t.date && t.date.startsWith(selMonth)))) {
-                // Bỏ giao dịch đã hủy
-                if (t.examPaidCancelled === true) return;
+        if (typeof window.buildCanonicalExamPaymentLedger === 'function') {
+            // Inject loaded transactions tạm thời vào __store để ledger đọc được
+            const _prevTxs = (window.__store || {}).transactions;
+            if (!window.__store) window.__store = {};
+            window.__store.transactions = allTransactions;
 
-                const feeAmt = t.type === 'Học phí + Lệ phí thi'
-                    ? Number(t.examAmount || 0)
-                    : Number(t.amount || 0);
-                if (feeAmt <= 0) return;
+            const _ledger = window.buildCanonicalExamPaymentLedger({ month: selMonth });
 
-                const rawName = typeof window.extractExamStudentName === 'function'
-                    ? window.extractExamStudentName(t)
-                    : _fallbackExtractName(t);
+            // Restore transactions
+            if (_prevTxs !== undefined) window.__store.transactions = _prevTxs;
+            else delete window.__store.transactions;
 
-                const stuName = typeof window.getCanonicalStudentName === 'function'
-                    ? window.getCanonicalStudentName(rawName, allProfiles)
-                    : rawName.replace(/\s*\(\s*$/, '').trim();
-
-                if (!stuName) return;
-
-                const profile = allProfiles[stuName] || {};
-
-                const targetBelt = typeof window.getExamTargetBeltFromTx === 'function'
-                    ? window.getExamTargetBeltFromTx(t, profile)
-                    : _fallbackGetTargetBelt(t, profile);
-
-                // Dedupe: nếu đã có entry cho cùng võ sinh, giữ giao dịch mới nhất
-                const old = paidData[stuName];
-                const curTs = Number(t.timestamp || 0);
-                const oldTs = Number(old && old.timestamp || 0);
-
-                if (!old || curTs >= oldTs) {
-                    paidData[stuName] = {
-                        targetBelt,
-                        amount: feeAmt,
+            _ledger.records.forEach(r => {
+                const profile = allProfiles[r.studentName] || {};
+                const targetBelt = r.targetBelt
+                    || (typeof window.getExamTargetBeltFromTx === 'function' ? window.getExamTargetBeltFromTx(r.sourceTx, profile) : _fallbackGetTargetBelt(r.sourceTx || {}, profile));
+                paidData[r.studentName] = {
+                    targetBelt,
+                    amount: r.amount,
                         branch: t.branch || profile.branch || 'CS1',
                         txId: t.id || t.txId || '',
                         timestamp: curTs
-                    };
-                }
-            }
-        });
+                };
+            });
+        } else {
+            // Fallback: dùng raw transactions nếu canonical ledger chưa có
+            allTransactions.forEach(t => {
+                if ((t.type === 'Lệ phí thi' || t.type === 'Học phí + Lệ phí thi') && (t.txMonth === selMonth || (t.date && t.date.startsWith(selMonth)))) {
+                    if (t.examPaidCancelled === true) return;
+                    const feeAmt = t.type === 'Học phí + Lệ phí thi' ? Number(t.examAmount || 0) : Number(t.amount || 0);
+                    if (feeAmt <= 0) return;
+                    const rawName = typeof window.extractExamStudentName === 'function' ? window.extractExamStudentName(t) : _fallbackExtractName(t);
+                    const stuName = typeof window.getCanonicalStudentName === 'function' ? window.getCanonicalStudentName(rawName, allProfiles) : rawName.replace(/s*(s*$/, '').trim();
+                    if (!stuName) return;
+                    const profile = allProfiles[stuName] || {};
+                    const targetBelt = typeof window.getExamTargetBeltFromTx === 'function' ? window.getExamTargetBeltFromTx(t, profile) : _fallbackGetTargetBelt(t, profile);
+                    const old = paidData[stuName];
+                    const curTs = Number(t.timestamp || 0);
+                    if (!old || curTs >= Number(old.timestamp || 0)) {
+                        paidData[stuName] = { targetBelt, amount: feeAmt,
 
         if (Object.keys(paidData).length === 0) return alert(`Không có võ sinh nào ĐÃ NỘP Lệ phí thi trong kỳ ${formatMonth(selMonth)}! Vui lòng thu lệ phí trước khi xuất danh sách.`);
 

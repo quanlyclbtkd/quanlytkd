@@ -137,6 +137,36 @@ export function invalidateFinanceRender(section) {
  */
 export function renderTxRow(tx, opts = {}) {
     const { isSingleBranch = true, isAdmin = false, branchTdHTML = '', btnDel = '' } = opts;
+
+    // Phase 4K-5C: Bundle transactions — hiển thị 1 hàng với componentSummary
+    const isBundle = tx.paymentKind === 'bundle' || (Array.isArray(tx.components) && tx.components.length > 1);
+    if (isBundle) {
+        const _cleanName = tx.description ? tx.description.trim() : (tx.studentName || '');
+        const _summary   = tx.componentSummary || (Array.isArray(tx.components)
+            ? tx.components.map(c => c.label || c.type || '').join(' + ')
+            : tx.type || '');
+        const _amount = Number(tx.amount || 0);
+        const _txId   = tx.id || tx.txId || '';
+        const _monthBadge = tx.txMonth
+            ? `<span class="badge bg-violet-50 text-violet-700 border border-violet-200">${formatMonth(tx.txMonth)}</span>`
+            : `<span class="badge bg-slate-100 text-slate-400">-</span>`;
+        const _nameTd = `<td class="name-link text-[0.95rem]"><button type="button" class="link-like js-open-student-profile" data-action="open-student-profile" data-student-name="${_escAttr(_cleanName)}">${_escHtml(_cleanName)}</button></td>`;
+        const _typeBadge = `<span class="badge bg-violet-50 text-violet-700 border border-violet-200" title="${_escAttr(_summary)}">📦 Gộp</span>`;
+        const _amtCell   = `<td class="text-emerald-600 font-bold">+${_amount.toLocaleString()} ₫</td>`;
+        const _txMonthsStr = tx.packageMonths ? tx.packageMonths.join(',') : (tx.txMonth || '');
+        const _printBtn  = `<button type="button" class="btn-sm bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white js-print-tuition-receipt" data-action="print-tuition-receipt" data-tx-id="${_escAttr(_txId)}" data-student-name="${_escAttr(_cleanName)}" data-tx-months="${_escAttr(_txMonthsStr)}" data-tx-type="${_escAttr(tx.type || '')}" data-tx-date="${_escAttr(tx.date || '')}" data-tx-branch="${_escAttr(tx.branch || 'CS1')}" data-tx-amount="${_amount}" data-exam-title="${_escAttr(tx.examTitle || '')}">🧾 In</button>`;
+        const _summaryNote = `<tr class="bg-violet-50/40"><td colspan="99" class="pl-10 py-1 text-[0.72rem] text-violet-500 font-medium">${_escHtml(_summary)}</td></tr>`;
+        return `<tr data-tx-id="${_escAttr(_txId)}">`
+            + `<td class="text-slate-500 text-[0.85rem]">${formatDate(tx.date)}</td>`
+            + branchTdHTML
+            + `<td>${_monthBadge}</td>`
+            + _nameTd
+            + `<td>${_typeBadge}</td>`
+            + _amtCell
+            + `<td class="action-btns">${_printBtn}${btnDel}</td>`
+            + `</tr>${_summaryNote}`;
+    }
+
     const isTuition  = tx.type === 'Học phí' || tx.type === 'Học phí + Lệ phí thi';
     const isExamType = tx.type === 'Lệ phí thi';
 
