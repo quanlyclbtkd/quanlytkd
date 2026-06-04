@@ -144,6 +144,13 @@ function getTransactionSearchBlob(tx) {
         return _txBlobCache.get(cacheKey);
     }
     _state.blobBuilds++;
+    // Phase 4K-5E: Include bundle fields + component fields for bundle search
+    const _compParts = Array.isArray(t.components) ? t.components.flatMap(function(c) {
+        return [
+            c.label, c.type, c.kind, c.category, c.size, c.examTitle,
+            Array.isArray(c.packageMonths) ? c.packageMonths.join(' ') : '',
+        ];
+    }) : [];
     const parts = [
         t.desc,
         t.description,
@@ -154,6 +161,12 @@ function getTransactionSearchBlob(tx) {
         t.notes,
         t.studentName,
         t.memberId,
+        t.bundleTypeLabel,
+        t.bundleSummaryLine,
+        t.componentSummary,
+        t.examTitle,
+        Array.isArray(t.packageMonths) ? t.packageMonths.join(' ') : '',
+        ..._compParts,
     ];
     const blob = parts
         .filter(Boolean)

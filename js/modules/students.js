@@ -361,28 +361,12 @@ export function initStudents() {
                 lastAdmissionTuitionMonths:      monthsToRecord,
             });
 
-            // ── Ghi transaction học phí ────────────────────────────────────
+            // ── Phase 4K-5E: Xuất kho + tạo bundle transaction nhập học ────
             let tuitionTx = null;
-            if (fee > 0) {
-                tuitionTx = await StudentService.addTuitionTransaction({
-                    branch, type: 'Học phí', description: _saveKey,
-                    amount: fee, date: joinDate, txMonth: lastMonth,
-                    paymentMonth: startMonth,
-                    packageMonths: monthsToRecord,
-                    tuitionPackageCount: tuitionPkg.packageCount,
-                    tuitionStartMonth: startMonth,
-                    tuitionPaidUntil: lastMonth,
-                    timestamp: Date.now(),
-                });
-                // Phase 4K-4E: Hydrate tx vào runtime store ngay để HỌC PHÍ tab thấy ngay
-                if (tuitionTx && typeof window.mergeTransactionIntoRuntimeStore === 'function') {
-                    window.mergeTransactionIntoRuntimeStore(tuitionTx, 'admission-tuition-created');
-                }
-            }
+            let _invId = '';
 
-            // ── Xuất kho võ phục + ghi transaction ────────────────────────
             if (uniformSize) {
-                const invId = await StudentService.addInventoryEntry({
+                _invId = await StudentService.addInventoryEntry({
                     size: uniformSize, type: 'Xuất bán', qty: 1,
                     desc: _saveKey, amount: uniformFee, date: joinDate, timestamp: Date.now() + 2,
                 });
@@ -390,17 +374,57 @@ export function initStudents() {
                     await StudentService.addUniformTransaction({
                         branch: 'Chung', type: 'Tặng Võ phục',
                         description: `Tặng ${uniformSize} cho ${_saveKey}`,
-                        amount: 0, date: joinDate, timestamp: Date.now() + 1, relatedInvId: invId,
-                    });
-                } else if (uniformFee > 0) {
-                    await StudentService.addUniformTransaction({
-                        branch: 'Chung', type: 'Thu Võ phục',
-                        description: _saveKey, uniformSize,
-                        amount: uniformFee, date: joinDate, timestamp: Date.now() + 1, relatedInvId: invId,
+                        amount: 0, date: joinDate, timestamp: Date.now() + 1, relatedInvId: _invId,
                     });
                 }
-                // Cập nhật inventory_stats (số dư + số xuất)
                 await StudentService.decrementInventoryStock(uniformSize);
+            }
+
+            const _hasFinancialPayment = fee > 0 || (!isGift && uniformFee > 0 && uniformSize);
+            if (_hasFinancialPayment) {
+                if (typeof window.buildPaymentBundleTransaction !== 'function') {
+                    throw new Error('buildPaymentBundleTransaction missing; cannot safely create admission bundled payment');
+                }
+                const _admComponents = [];
+                if (fee > 0) {
+                    const _tuitionLabel = tuitionPkg.packageCount > 1
+                        ? 'Học phí gói ' + tuitionPkg.packageCount + ' tháng (' + tuitionPkg.label + ')'
+                        : 'Học phí tháng ' + tuitionPkg.label;
+                    _admComponents.push({
+                        kind: 'tuition', type: 'Học phí', label: _tuitionLabel,
+                        amount: fee, month: lastMonth, packageMonths: monthsToRecord,
+                    });
+                }
+                if (!isGift && uniformFee > 0 && uniformSize) {
+                    _admComponents.push({
+                        kind: 'inventory', type: 'Thu Võ phục',
+                        label: 'Võ phục ' + (uniformSize || ''),
+                        amount: uniformFee, category: 'Võ phục',
+                        size: uniformSize, qty: 1, relatedInvId: _invId,
+                    });
+                }
+                if (_admComponents.length > 0) {
+                    const _bundleTx = window.buildPaymentBundleTransaction({
+                        studentName: _saveKey, branch, date: joinDate,
+                        refMonth: lastMonth, receiptType: 'Thu nhập học',
+                        components: _admComponents,
+                    });
+                    const _addFn = StudentService.addGenericTransaction
+                        ? StudentService.addGenericTransaction.bind(StudentService)
+                        : StudentService.addTuitionTransaction.bind(StudentService);
+                    tuitionTx = await _addFn(_bundleTx);
+                    if (_invId && !isGift) {
+                        try {
+                            await StudentService.updateInventoryDoc(_invId, {
+                                paymentBundleId: tuitionTx.id || '',
+                                paidTxId: tuitionTx.id || '',
+                            });
+                        } catch (_e) {}
+                    }
+                    if (typeof window.mergeTransactionIntoRuntimeStore === 'function') {
+                        window.mergeTransactionIntoRuntimeStore(tuitionTx, 'admission-bundle-created');
+                    }
+                }
             }
 
             window.closeAddModal();

@@ -470,12 +470,26 @@ function _installTuitionActionBridges() {
         }
         const name      = (tx.description ? tx.description.trim() : '') || opts.studentName || '';
         const amount    = Number(tx.amount) || 0;
-        const type      = tx.type || 'Học phí';
         const date      = tx.date || '';
-        const txMonths  = tx.packageMonths ? tx.packageMonths.join(',') : (tx.txMonth || '');
         const branch    = tx.branch || 'CS1';
-        const examTitle = tx.examTitle || '';
-        window.exportReceipt(name, amount, type, date, txMonths, branch, examTitle, 'BIÊN LAI THU TIỀN');
+        // Phase 4K-5E: Bundle — đọc components để tạo breakdown đầy đủ khi in lại
+        let type, txMonths, examTitle, breakdown;
+        if (Array.isArray(tx.components) && tx.components.length > 0) {
+            type      = tx.bundleTypeLabel || tx.type || 'Thu gộp';
+            breakdown = tx.components.map(function(c) { return { label: c.label || c.type || c.kind, amount: Number(c.amount || 0) }; });
+            const _tuitionComp = tx.components.find(function(c){ return c.kind === 'tuition'; });
+            const _examComp    = tx.components.find(function(c){ return c.kind === 'exam'; });
+            txMonths  = _tuitionComp && Array.isArray(_tuitionComp.packageMonths)
+                ? _tuitionComp.packageMonths.join(',')
+                : (tx.packageMonths ? tx.packageMonths.join(',') : (tx.txMonth || ''));
+            examTitle = _examComp ? (_examComp.examTitle || '') : (tx.examTitle || '');
+        } else {
+            type      = tx.type || 'Học phí';
+            txMonths  = tx.packageMonths ? tx.packageMonths.join(',') : (tx.txMonth || '');
+            examTitle = tx.examTitle || '';
+            breakdown = null;
+        }
+        window.exportReceipt(name, amount, type, date, txMonths, branch, examTitle, 'BIÊN LAI THU TIỀN', breakdown);
     };
 
     // ── Bridge: Mở hồ sơ võ sinh theo tên (+ normalize Vietnamese) ──

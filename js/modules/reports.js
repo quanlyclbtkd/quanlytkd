@@ -337,6 +337,35 @@ export function initReports() {
             txAll.forEach(t => {
                 const a   = Number(t.amount) || 0;
                 const _tb = t.branch || 'CS1';
+                // Phase 4K-5E: Bundle — dùng components làm nguồn chính
+                if (Array.isArray(t.components) && t.components.length > 0 &&
+                    (t.paymentKind === 'bundle' || t.components.length > 1)) {
+                    const _acComps = typeof window.expandTransactionComponentsForAccounting === 'function'
+                        ? window.expandTransactionComponentsForAccounting(t) : t.components;
+                    _acComps.forEach(function(c) {
+                        const ca = Number(c.amount || 0);
+                        const ck = c.kind || '';
+                        if (ck === 'tuition') {
+                            let _alloc = ca;
+                            if (Array.isArray(c.packageMonths) && c.packageMonths.length > 0) {
+                                const _mInPeriod = c.packageMonths.filter(function(pm){ return pm >= _startM && pm <= _endM; });
+                                _alloc = _mInPeriod.length > 0 ? Math.round(ca * _mInPeriod.length / c.packageMonths.length) : 0;
+                            }
+                            incTuition += _alloc;
+                            if (_exBIncome[_tb] !== undefined) _exBIncome[_tb] += _alloc;
+                        } else if (ck === 'exam') {
+                            incExam += ca;
+                            if (_exBIncome[_tb] !== undefined) _exBIncome[_tb] += ca;
+                        } else if (ck === 'inventory' || ck === 'inventoryDebt') {
+                            incUniform += ca;
+                            if (_exBIncome[_tb] !== undefined) _exBIncome[_tb] += ca;
+                        } else {
+                            incOther += ca;
+                            if (_exBIncome[_tb] !== undefined) _exBIncome[_tb] += ca;
+                        }
+                    });
+                    return;
+                }
                 if (t.type === 'Học phí') {
                     // Phase 4K-4G: Phân bổ gói nhiều tháng đúng theo kỳ báo cáo
                     let _allocTuition = a;

@@ -151,20 +151,26 @@ export function renderTxRow(tx, opts = {}) {
             ? `<span class="badge bg-violet-50 text-violet-700 border border-violet-200">${formatMonth(tx.txMonth)}</span>`
             : `<span class="badge bg-slate-100 text-slate-400">-</span>`;
         const _nameTd = `<td class="name-link text-[0.95rem]"><button type="button" class="link-like js-open-student-profile" data-action="open-student-profile" data-student-name="${_escAttr(_cleanName)}">${_escHtml(_cleanName)}</button></td>`;
-        const _typeBadge = `<span class="badge bg-violet-50 text-violet-700 border border-violet-200" title="${_escAttr(_summary)}">📦 Gộp</span>`;
+        const _bundleType = typeof window.getBundleTypeLabel === 'function'
+            ? window.getBundleTypeLabel(tx)
+            : (tx.bundleTypeLabel || tx.type || 'Khoản thu');
+        const _bundleSummary = typeof window.getBundleSummaryLine === 'function'
+            ? window.getBundleSummaryLine(tx)
+            : (tx.bundleSummaryLine || tx.componentSummary || tx.type || '');
+        const _typeBadge = `<span class="badge bg-violet-50 text-violet-700 border border-violet-200" title="${_escAttr(_bundleSummary)}">${_escHtml(_bundleType)}</span>`;
         const _amtCell   = `<td class="text-emerald-600 font-bold">+${_amount.toLocaleString()} ₫</td>`;
         const _txMonthsStr = tx.packageMonths ? tx.packageMonths.join(',') : (tx.txMonth || '');
         const _printBtn  = `<button type="button" class="btn-sm bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white js-print-tuition-receipt" data-action="print-tuition-receipt" data-tx-id="${_escAttr(_txId)}" data-student-name="${_escAttr(_cleanName)}" data-tx-months="${_escAttr(_txMonthsStr)}" data-tx-type="${_escAttr(tx.type || '')}" data-tx-date="${_escAttr(tx.date || '')}" data-tx-branch="${_escAttr(tx.branch || 'CS1')}" data-tx-amount="${_amount}" data-exam-title="${_escAttr(tx.examTitle || '')}">🧾 In</button>`;
-        const _summaryNote = `<tr class="bg-violet-50/40"><td colspan="99" class="pl-10 py-1 text-[0.72rem] text-violet-500 font-medium">${_escHtml(_summary)}</td></tr>`;
+        const _nameTdBundle = `<td class="name-link text-[0.95rem]"><button type="button" class="link-like js-open-student-profile" data-action="open-student-profile" data-student-name="${_escAttr(_cleanName)}">${_escHtml(_cleanName)}</button><div class="text-[0.7rem] text-slate-400 truncate max-w-xs" title="${_escAttr(_bundleSummary)}">${_escHtml(_bundleSummary)}</div></td>`;
         return `<tr data-tx-id="${_escAttr(_txId)}">`
             + `<td class="text-slate-500 text-[0.85rem]">${formatDate(tx.date)}</td>`
             + branchTdHTML
             + `<td>${_monthBadge}</td>`
-            + _nameTd
+            + _nameTdBundle
             + `<td>${_typeBadge}</td>`
             + _amtCell
             + `<td class="action-btns">${_printBtn}${btnDel}</td>`
-            + `</tr>${_summaryNote}`;
+            + `</tr>`;
     }
 
     const isTuition  = tx.type === 'Học phí' || tx.type === 'Học phí + Lệ phí thi';
@@ -404,7 +410,28 @@ export function computeAndCacheFinance(transactions, params) {
             txCount++;
             let allocatedAmount = Number(t.amount) || 0;
 
-            if (t.type === 'Học phí') {
+            // Phase 4K-5E: Bundle — dùng components làm nguồn chính
+            if (Array.isArray(t.components) && t.components.length > 0 &&
+                (t.paymentKind === 'bundle' || t.components.length > 1)) {
+                const _acComps = typeof window.expandTransactionComponentsForAccounting === 'function'
+                    ? window.expandTransactionComponentsForAccounting(t)
+                    : t.components;
+                _acComps.forEach(function(c) {
+                    const ca = Number(c.amount || 0);
+                    const ck = c.kind || '';
+                    if (ck === 'tuition') {
+                        const alloc = Array.isArray(c.packageMonths) && c.packageMonths.length > 1
+                            ? ca / c.packageMonths.length : ca;
+                        incTuition += alloc;
+                    } else if (ck === 'exam') {
+                        incExam += ca;
+                    } else if (ck === 'inventory' || ck === 'inventoryDebt') {
+                        incUniform += ca;
+                    } else {
+                        incOther += ca;
+                    }
+                });
+            } else if (t.type === 'Học phí') {
                 allocatedAmount = t.packageMonths
                     ? allocatedAmount / t.packageMonths.length
                     : allocatedAmount;

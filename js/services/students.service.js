@@ -554,6 +554,24 @@ export const StudentService = {
         return { id: docRef.id, ...data };
     },
 
+    // Phase 4K-5E: Generic transaction writer (bundle, single, any type)
+    async addGenericTransaction(data) {
+        const { addDoc } = _sdk();
+        const colRef = _txColRef();
+        if (!colRef) throw new Error('[StudentService] colRef chưa sẵn sàng');
+        const docRef = await addDoc(colRef, data);
+        return { id: docRef.id, ...data };
+    },
+
+    // Phase 4K-5E: Update inventory doc fields (paidTxId, paymentBundleId etc.)
+    async updateInventoryDoc(invId, updateData) {
+        const { doc, updateDoc } = _sdk();
+        const db     = _db();
+        const clubId = _clubId();
+        if (!invId) return;
+        await updateDoc(doc(db, 'clubs', clubId, 'inventory', invId), updateData);
+    },
+
     /**
      * Giảm stock khi xuất kho võ phục (dùng Firebase increment FieldValue).
      * Ghi vào settings/inventory_stats với merge: true.
