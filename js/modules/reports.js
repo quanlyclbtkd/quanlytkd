@@ -955,14 +955,24 @@ export function initReports() {
                     const feeAmt = t.type === 'Học phí + Lệ phí thi' ? Number(t.examAmount || 0) : Number(t.amount || 0);
                     if (feeAmt <= 0) return;
                     const rawName = typeof window.extractExamStudentName === 'function' ? window.extractExamStudentName(t) : _fallbackExtractName(t);
-                    const stuName = typeof window.getCanonicalStudentName === 'function' ? window.getCanonicalStudentName(rawName, allProfiles) : rawName.replace(/s*(s*$/, '').trim();
+                    const stuName = typeof window.getCanonicalStudentName === 'function' ? window.getCanonicalStudentName(rawName, allProfiles) : rawName.replace(/\s*\(\s*$/, '').trim();
                     if (!stuName) return;
                     const profile = allProfiles[stuName] || {};
                     const targetBelt = typeof window.getExamTargetBeltFromTx === 'function' ? window.getExamTargetBeltFromTx(t, profile) : _fallbackGetTargetBelt(t, profile);
                     const old = paidData[stuName];
                     const curTs = Number(t.timestamp || 0);
                     if (!old || curTs >= Number(old.timestamp || 0)) {
-                        paidData[stuName] = { targetBelt, amount: feeAmt,
+                        paidData[stuName] = {
+                            targetBelt,
+                            amount: feeAmt,
+                            branch: t.branch || (profile && profile.branch) || 'CS1',
+                            txId: t.id || t.txId || '',
+                            timestamp: curTs
+                        };
+                    }
+                }
+            });
+        }
 
         if (Object.keys(paidData).length === 0) return alert(`Không có võ sinh nào ĐÃ NỘP Lệ phí thi trong kỳ ${formatMonth(selMonth)}! Vui lòng thu lệ phí trước khi xuất danh sách.`);
 

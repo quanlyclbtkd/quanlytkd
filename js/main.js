@@ -840,7 +840,26 @@ function _installExamFeeSettingBridges() {
         return Math.round(n);
     }
 
-    // ── 1. getClubExamFee — nguồn duy nhất cho toàn hệ thống ────
+    
+// ══════════════════════════════════════════════════════════════════
+// Phase 4K-5D — VND Money Format Helpers
+// ══════════════════════════════════════════════════════════════════
+window.parseVNDNumber = function(value) {
+    var n = Number(String(value || '').replace(/[^\d]/g, ''));
+    return Number.isFinite(n) ? n : 0;
+};
+
+window.formatVNDNumber = function(value) {
+    var n = window.parseVNDNumber ? window.parseVNDNumber(value) : Number(value || 0);
+    return n > 0 ? n.toLocaleString('vi-VN') : '';
+};
+
+window.formatVNDText = function(value) {
+    var n = window.parseVNDNumber ? window.parseVNDNumber(value) : Number(value || 0);
+    return (Number.isFinite(n) ? n : 0).toLocaleString('vi-VN') + ' ₫';
+};
+
+// ── 1. getClubExamFee — nguồn duy nhất cho toàn hệ thống ────
     window.getClubExamFee = function getClubExamFee() {
         const st = window.__store || {};
         const candidates = [
@@ -979,24 +998,44 @@ function _installExamFeeSettingBridges() {
     window.refreshExamFeeUI = function refreshExamFeeUI(reason) {
         reason = reason || 'refresh';
         const fee = window.getClubExamFee ? window.getClubExamFee() : DEFAULT_EXAM_FEE;
+        const fmtFee = window.formatVNDNumber ? window.formatVNDNumber(fee) : fee.toLocaleString('vi-VN');
 
-        // examFeeInput (setting input)
+        // examFeeInput: hiển thị dạng 250.000 (formatted)
         const examFeeInput = document.getElementById('examFeeInput');
-        if (examFeeInput) examFeeInput.value = String(fee);
+        if (examFeeInput) examFeeInput.value = fmtFee;
 
-        // exam_fee_all_display (formatted display — dùng bởi formatCurrencyInput)
+        // exam_fee_all_display (formatted — dùng bởi formatCurrencyInput)
         const displayEl = document.getElementById('exam_fee_all_display');
-        if (displayEl) displayEl.value = fee.toLocaleString('vi-VN');
+        if (displayEl) displayEl.value = fmtFee;
 
-        // exam_fee_all_actual (raw hidden — đọc bởi quickCollectExam, processBatchUpgrade)
+        // exam_fee_all_actual (raw — đọc bởi quickCollectExam, processBatchUpgrade)
         const actualEl = document.getElementById('exam_fee_all_actual');
         if (actualEl) actualEl.value = String(fee);
+
+        // examFeeDisplay (text node, nếu có)
+        const feeDisplayEl = document.getElementById('examFeeDisplay')
+            || document.querySelector('[data-role="exam-fee-display"]');
+        if (feeDisplayEl) {
+            feeDisplayEl.textContent = window.formatVNDText ? window.formatVNDText(fee) : fee.toLocaleString('vi-VN') + ' ₫';
+        }
+
+        window.__lastExamFeeReason = reason;
     };
 
     // ── 6. initExamFeeSettingUI — bind events (idempotent) ───────
     window.initExamFeeSettingUI = function initExamFeeSettingUI() {
         // Luôn refresh values dù đã mount hay chưa
         if (typeof window.refreshExamFeeUI === 'function') window.refreshExamFeeUI('init');
+
+        // Phase 4K-5D: VND input formatter (250000 → 250.000)
+        var _feeInput = document.getElementById('examFeeInput');
+        if (_feeInput && !_feeInput.__vndFormatterBound) {
+            _feeInput.__vndFormatterBound = true;
+            _feeInput.addEventListener('input', function() {
+                var _raw = window.parseVNDNumber ? window.parseVNDNumber(_feeInput.value) : Number(String(_feeInput.value || '').replace(/\D/g, ''));
+                _feeInput.value = _raw ? _raw.toLocaleString('vi-VN') : '';
+            });
+        }
 
         if (window.__examFeeSettingUIMounted) return;
         window.__examFeeSettingUIMounted = true;
@@ -1008,7 +1047,10 @@ function _installExamFeeSettingBridges() {
             e.preventDefault();
             const _input = document.getElementById('examFeeInput');
             const _status = document.getElementById('examFeeStatus');
-            const fee = normalizeExamFee(_input ? _input.value : '');
+            // Phase 4K-5D: parse VND format (250.000 → 250000)
+            const fee = window.parseVNDNumber
+                ? window.parseVNDNumber(_input ? _input.value : '')
+                : normalizeExamFee(_input ? _input.value : '');
 
             if (!fee || fee <= 0) {
                 if (_status) { _status.style.color = '#dc2626'; _status.textContent = '⚠ Lệ phí không hợp lệ'; }
@@ -1019,24 +1061,26 @@ function _installExamFeeSettingBridges() {
 
             try {
                 await window.saveClubExamFeeSetting(fee);
-                if (_input) _input.value = String(fee);
-                if (_status) { _status.style.color = '#16a34a'; _status.textContent = '✓ Đã lưu lệ phí thi'; }
-
+                if (typeof window.setClubExamFeeLocal === 'function') window.setClubExamFeeLocal(fee, 'exam-fee-saved');
                 if (typeof window.refreshExamFeeUI === 'function') window.refreshExamFeeUI('exam-fee-saved');
+
+                const _fmtFee = window.formatVNDText ? window.formatVNDText(fee) : fee.toLocaleString('vi-VN') + ' ₫';
+                if (_status) { _status.style.color = '#16a34a'; _status.textContent = '✓ Đã lưu: ' + _fmtFee; }
+
                 if (typeof window.invalidateCurrentTab === 'function') {
                     window.invalidateCurrentTab('exam-fee-saved');
                 } else if (typeof window.scheduleRender === 'function') {
                     window.scheduleRender();
                 }
 
-                // Tự xóa status sau 3s
+                // Clear status sau 6s (đủ thời gian đọc)
                 setTimeout(function() {
                     const _s = document.getElementById('examFeeStatus');
                     if (_s && _s.textContent.includes('Đã lưu')) _s.textContent = '';
-                }, 3000);
+                }, 6000);
             } catch (err) {
                 console.error('[exam-fee] save failed:', err);
-                if (_status) { _status.style.color = '#dc2626'; _status.textContent = '❌ Lưu thất bại, vui lòng thử lại'; }
+                if (_status) { _status.style.color = '#dc2626'; _status.textContent = 'Lưu thất bại, vui lòng kiểm tra quyền hoặc mạng.'; }
             }
         });
     };
@@ -1044,6 +1088,11 @@ function _installExamFeeSettingBridges() {
     // ── 7. debugExamFeeSetting — debug console ────────────────────
     window.debugExamFeeSetting = async function debugExamFeeSetting() {
         const st = window.__store || {};
+        const _getClubExamFee = typeof window.getClubExamFee === 'function' ? window.getClubExamFee() : null;
+        const _inputEl = document.getElementById('examFeeInput');
+        const _actualEl = document.getElementById('exam_fee_all_actual');
+        const _inputVal = (_inputEl || {}).value || '';
+        const _actualVal = (_actualEl || {}).value || '';
         const result = {
             href: location.href,
             protocol: location.protocol,
@@ -1053,22 +1102,112 @@ function _installExamFeeSettingBridges() {
             clubId: st.clubId || st.currentClubId || window.currentClubId || '',
             localExamFee: window.clubExamFee,
             storeExamFee: (st.clubSettings && st.clubSettings.examFee) || st.examFee || null,
-            getClubExamFee: typeof window.getClubExamFee === 'function' ? window.getClubExamFee() : null,
+            getClubExamFee: _getClubExamFee,
+            formattedFee: window.formatVNDText ? window.formatVNDText(_getClubExamFee) : String(_getClubExamFee),
             hasLoadClubExamFeeSetting: typeof window.loadClubExamFeeSetting === 'function',
             hasSaveClubExamFeeSetting: typeof window.saveClubExamFeeSetting === 'function',
             hasInitExamFeeSettingUI: typeof window.initExamFeeSettingUI === 'function',
-            inputValue: (document.getElementById('examFeeInput') || {}).value || '',
+            saveButtonBound: !!(document.getElementById('saveExamFeeBtn')),
+            examFeeInputValue: _inputVal,
+            examFeeInputParsed: window.parseVNDNumber ? window.parseVNDNumber(_inputVal) : NaN,
+            examFeeActualValue: _actualVal,
+            examFeeDisplayValue: (document.getElementById('examFeeDisplay') || document.querySelector('[data-role="exam-fee-display"]') || {}).textContent || '',
+            lastExamFeeReason: window.__lastExamFeeReason || '',
             statusText: (document.getElementById('examFeeStatus') || {}).textContent || '',
-            displayText: (document.getElementById('examFeeDisplay') || {}).textContent
-                || (document.querySelector('[data-role="exam-fee-display"]') || {}).textContent
-                || ''
+            firestorePath: 'clubs/' + (st.clubId || st.currentClubId || '?') + '/settings/general'
         };
         console.table(result);
         return result;
     };
 
-    console.info('[main.js] Phase 4K-4: exam fee setting bridges installed');
+    // Phase 4K-5D: debugExamFeeCollectionSource
+    window.debugExamFeeCollectionSource = function() {
+        var currentFee = window.getClubExamFee ? window.getClubExamFee() : null;
+        var actual = window.parseVNDNumber
+            ? window.parseVNDNumber((document.getElementById('exam_fee_all_actual') || {}).value)
+            : 0;
+        var input = window.parseVNDNumber
+            ? window.parseVNDNumber((document.getElementById('examFeeInput') || {}).value)
+            : 0;
+        var result = {
+            getClubExamFee: currentFee,
+            hiddenActual: actual,
+            inputParsed: input,
+            formatted: window.formatVNDText ? window.formatVNDText(currentFee) : String(currentFee),
+            sourcePriority: 'getClubExamFee > hidden actual > default'
+        };
+        console.table(result);
+        return result;
+    };
+
+    console.info('[main.js] Phase 4K-5D: exam fee setting + VND format bridges installed');
 }
+
+
+// ══════════════════════════════════════════════════════════════════
+// Phase 4K-5D — Dashboard Historical Authority Bridges
+// ══════════════════════════════════════════════════════════════════
+window.getDashboardHistoricalSnapshot = function() {
+    var st = window.__store || {};
+    var cache = st.tabHtmlCache || {};
+    var cd = cache._chartData || null;
+    var reportHtml = cache.reportList || cache.reportHtml || '';
+
+    var hasHistory =
+        cd &&
+        Array.isArray(cd.labels) &&
+        cd.labels.length >= 6 &&
+        (
+            (Array.isArray(cd.income) && cd.income.some(function(v) { return Number(v || 0) > 0; })) ||
+            (Array.isArray(cd.expense) && cd.expense.some(function(v) { return Number(v || 0) > 0; })) ||
+            (Array.isArray(cd.active) && cd.active.some(function(v) { return Number(v || 0) > 0; }))
+        );
+
+    var reportRows = reportHtml
+        ? (String(reportHtml).match(/<tr/g) || []).length
+        : 0;
+
+    return {
+        hasHistory: !!hasHistory,
+        chartData: cd,
+        reportHtml: reportHtml,
+        reportRows: reportRows,
+        fetchedAt: st._lastDashboardHistoryFetchAt || 0,
+        reason: st._lastDashboardHistoryReason || ''
+    };
+};
+
+window.refreshDashboardHistory = async function(month, reason) {
+    reason = reason || 'manual';
+    var selectedMonth =
+        month ||
+        (document.getElementById('filterMonth') && document.getElementById('filterMonth').value) ||
+        (window.__store && window.__store.selectedMonth) ||
+        new Date().toISOString().slice(0, 7);
+
+    if (typeof window.fetchHistoricalDashboardFallback === 'function') {
+        return window.fetchHistoricalDashboardFallback(selectedMonth, reason);
+    }
+    console.warn('[refreshDashboardHistory] fetchHistoricalDashboardFallback not yet loaded');
+};
+
+window.forceReloadDashboardHistory = async function(month) {
+    var selectedMonth =
+        month ||
+        (document.getElementById('filterMonth') && document.getElementById('filterMonth').value) ||
+        (window.__store && window.__store.selectedMonth) ||
+        new Date().toISOString().slice(0, 7);
+
+    if (typeof window.refreshDashboardHistory === 'function') {
+        await window.refreshDashboardHistory(selectedMonth, 'force-reload');
+    }
+    if (typeof window.invalidateDashboard === 'function') {
+        window.invalidateDashboard('force-reload-dashboard-history');
+    }
+    return window.debugMonthlyRevenueAllocation
+        ? window.debugMonthlyRevenueAllocation(selectedMonth)
+        : null;
+};
 
 // ────────────────────────────────────────────────────────────────
 // [GITHUB-FIX] Task 3: Tránh double-boot app.js khi legacy đã load

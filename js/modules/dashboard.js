@@ -499,7 +499,12 @@ export async function fetchHistoricalDashboardFallback(selMonth, reason) {
             hasStat = true;
         }
 
-        if (!hasStat) {
+        // Phase 4K-5D: Không tin stats doc rỗng — nếu tất cả số đều 0 và không phải tháng tương lai thì fallback transactions
+        const today = new Date().toISOString().slice(0, 7);
+        const statLooksEmpty = inc === 0 && exp === 0 && act === 0;
+        const isFutureMonth = month > today;
+
+        if (!hasStat || (statLooksEmpty && !isFutureMonth)) {
             // Phase 4K-4G: Fallback đọc transactions — inclusive query + phân bổ đúng gói nhiều tháng
             console.info('[dashboard-history] missing stats doc for', month, '— reading transactions fallback');
             try {
@@ -614,24 +619,33 @@ export async function fetchHistoricalDashboardFallback(selMonth, reason) {
 export function registerDebugDashboardHistory() {
     window.debugDashboardHistory = async function debugDashboardHistory() {
         const st = window.__store || {};
+        const selectedMonth = (document.getElementById('filterMonth') || document.getElementById('monthPicker') || {}).value || st.selectedMonth || '';
+        const _snap = typeof window.getDashboardHistoricalSnapshot === 'function'
+            ? window.getDashboardHistoricalSnapshot()
+            : null;
+        const _cd = st.tabHtmlCache && st.tabHtmlCache._chartData || null;
         const result = {
             clubId:     st.clubId || st.currentClubId || '',
-            selectedMonth: (document.getElementById('monthPicker') || {}).value || st.selectedMonth || '',
+            selectedMonth,
+            recentMonths: typeof window.getRecentMonths === 'function' ? window.getRecentMonths(selectedMonth, 6) : [],
             hasChartJs: !!window.Chart,
             hasFinanceChart: !!(window.getFinanceChart && window.getFinanceChart()),
             hasMemberChart:  !!(window.getMemberChart  && window.getMemberChart()),
-            chartData: st.tabHtmlCache && st.tabHtmlCache._chartData || null,
-            reportRows: document.querySelectorAll('#reportList tr').length,
+            chartLabels:  _cd ? _cd.labels  : [],
+            chartIncome:  _cd ? _cd.income  : [],
+            chartExpense: _cd ? _cd.expense : [],
+            chartActive:  _cd ? _cd.active  : [],
+            reportRows: (_snap && _snap.reportRows) || document.querySelectorAll('#reportList tr').length,
+            historicalSnapshot: _snap,
             lastSummary: st._lastSummaryNumbers || null,
             lastDashboardRefreshReason: st._lastDashboardRefreshReason || '',
             lastDashboardRefreshAt: st._lastDashboardRefreshAt || null,
-            lastHistoryFetchAt: st._lastDashboardHistoryFetchAt || null,
+            lastDashboardHistoryFetchAt: st._lastDashboardHistoryFetchAt || null,
+            lastDashboardHistoryReason:  st._lastDashboardHistoryReason  || '',
             hasRefreshDashboardComputation: typeof window.refreshDashboardComputation === 'function',
             hasFetchMonthStats:             typeof window.fetchMonthStats             === 'function',
             hasFetchHistoricalFallback:     typeof window.fetchHistoricalDashboardFallback === 'function',
-            prevGuardState: {
-                lastSummaryNumbers: st._lastSummaryNumbers || null,
-            },
+            hasRefreshDashboardHistory:     typeof window.refreshDashboardHistory     === 'function',
         };
         console.table(result);
         return result;

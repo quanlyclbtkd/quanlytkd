@@ -258,13 +258,32 @@ function renderApp() {
             if (m <= 0) { m += 12; y -= 1; }
             months.push(`${y}-${String(m).padStart(2, '0')}`);
         }
-        months.reverse().forEach((m, idx) => {
-            chartLabels[idx]  = formatMonth(m);
-            chartIncome[idx]  = m === selMonth ? tInc : 0;
-            chartExpense[idx] = m === selMonth ? tExp : 0;
-            chartActive[idx]  = m === selMonth ? m_actual : 0;
-            if (m !== selMonth) historicalMonths.push({ month: m, idx });
-        });
+
+        // Phase 4K-5D: Bảo vệ historical data — không overwrite bằng current-only chart
+        const _hist = typeof window.getDashboardHistoricalSnapshot === 'function'
+            ? window.getDashboardHistoricalSnapshot()
+            : null;
+        const _useHist = _hist && _hist.hasHistory && _hist.chartData && _hist.reportRows >= 2;
+
+        if (_useHist && _hist.chartData) {
+            // Dùng dữ liệu lịch sử đã có — chỉ cập nhật tháng hiện tại
+            const _hc = _hist.chartData;
+            months.reverse().forEach((m, idx) => {
+                chartLabels[idx]  = _hc.labels  && _hc.labels[idx]  !== undefined ? _hc.labels[idx]  : formatMonth(m);
+                chartIncome[idx]  = m === selMonth ? tInc : (_hc.income  && _hc.income[idx]  !== undefined ? _hc.income[idx]  : 0);
+                chartExpense[idx] = m === selMonth ? tExp : (_hc.expense && _hc.expense[idx] !== undefined ? _hc.expense[idx] : 0);
+                chartActive[idx]  = m === selMonth ? m_actual : (_hc.active && _hc.active[idx] !== undefined ? _hc.active[idx] : 0);
+                if (m !== selMonth) historicalMonths.push({ month: m, idx });
+            });
+        } else {
+            months.reverse().forEach((m, idx) => {
+                chartLabels[idx]  = formatMonth(m);
+                chartIncome[idx]  = m === selMonth ? tInc : 0;
+                chartExpense[idx] = m === selMonth ? tExp : 0;
+                chartActive[idx]  = m === selMonth ? m_actual : 0;
+                if (m !== selMonth) historicalMonths.push({ month: m, idx });
+            });
+        }
     }
 
     // ── Summary numbers object (Phase 3.5B: dùng cho dashboard island) ──────
