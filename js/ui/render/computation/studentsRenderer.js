@@ -516,10 +516,10 @@ export function computeAndCacheStudents(allProfiles, params) {
     const _moreBtnSt   = 'class="btn-sm" style="background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;font-size:0.78rem;cursor:pointer;"';
     if (!pgStudentsActive) {
         if (buildActive && _activeTotalCount > _activeLimit) {
-            activeRows += `<tr><td colspan="${_moreColspan}" ${_moreStyle}><button type="button" ${_moreBtnSt} onclick="_loadMore('active')">⬇ Tải thêm — còn ${_activeTotalCount - _activeRendered} võ sinh nữa</button></td></tr>`;
+            activeRows += `<tr class="load-more-row" data-load-more-for="activeList"><td colspan="${_moreColspan}" ${_moreStyle}><button type="button" ${_moreBtnSt} onclick="window.loadMoreActiveStudents(event)">⬇ Tải thêm — còn ${_activeTotalCount - _activeRendered} võ sinh nữa</button></td></tr>`;
         }
         if (buildDebt && _debtTotalCount > _debtLimit) {
-            debtRows += `<tr><td colspan="${_moreColspan}" ${_moreStyle}><button type="button" ${_moreBtnSt} onclick="_loadMore('debt')">⬇ Tải thêm — còn ${_debtTotalCount - _debtRendered} võ sinh nữa</button></td></tr>`;
+            debtRows += `<tr class="load-more-row" data-load-more-for="debtList"><td colspan="${_moreColspan}" ${_moreStyle}><button type="button" ${_moreBtnSt} onclick="window.loadMoreDebtRows(event)">⬇ Tải thêm — còn ${_debtTotalCount - _debtRendered} võ sinh nữa</button></td></tr>`;
         }
         if (buildQuit && _quitTotalCount > _quitLimit) {
             quitRows += `<tr><td colspan="${_moreColspan}" ${_moreStyle}><button type="button" ${_moreBtnSt} onclick="_loadMore('quit')">⬇ Tải thêm — còn ${_quitTotalCount - _quitRendered} võ sinh nữa</button></td></tr>`;

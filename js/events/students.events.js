@@ -191,7 +191,17 @@ export function initStudentsEvents() {
                 btn.id === 'pgNext_students_active' ||
                 btn.id === 'pgNext_students_quit'
             ) {
-                if (typeof window._pgNext_students === 'function') window._pgNext_students();
+                e.preventDefault();
+                e.stopPropagation();
+                if (btn.id === 'pgNext_students_active') {
+                    if (typeof window.loadMoreActiveStudents === 'function') {
+                        window.loadMoreActiveStudents(e);
+                    } else if (typeof window._pgNext_students === 'function') {
+                        window._pgNext_students();
+                    }
+                } else {
+                    if (typeof window._pgNext_students === 'function') window._pgNext_students();
+                }
             }
         });
         document.body.dataset.pgStudentsBound = '1';

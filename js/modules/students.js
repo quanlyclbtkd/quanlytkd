@@ -1521,7 +1521,7 @@ export function initStudentPagination() {
             // [Part 6 FIX] Alias handlers for unique-prefix button IDs
             // renderPaginationControls generates onclick="window._pgNext_students_active()"
             // and onclick="window._pgNext_students_quit()" — both must resolve to real functions.
-            window._pgNext_students_active = window._pgNext_students;
+            window._pgNext_students_active = function(event) { return window.loadMoreActiveStudents(event); };
             window._pgPrev_students_active = window._pgPrev_students;
             window._pgNext_students_quit   = window._pgNext_students;
             window._pgPrev_students_quit   = window._pgPrev_students;
@@ -1763,15 +1763,53 @@ export function initStudentPagination() {
 
 // renderLoadMoreRow — tạo HTML row "Tải thêm" dùng chung cho mọi bảng
 window.renderLoadMoreRow = function renderLoadMoreRow(opts) {
-    const remaining = opts && opts.remaining != null ? opts.remaining : 0;
-    const colspan   = (opts && opts.colspan)   || 6;
-    const label     = (opts && opts.label)     || 'võ sinh';
-    const onclick   = (opts && opts.onclick)   || '';
+    opts = opts || {};
+    const remaining = opts.remaining != null ? Number(opts.remaining) : 0;
+    const colspan   = opts.colspan  || 6;
+    const label     = opts.label    || 'võ sinh';
+    const onclick   = opts.onclick  || opts.action || '';
+    const listId    = opts.listId   || '';
     if (remaining <= 0) return '';
-    return `<tr><td colspan="${colspan}" style="padding:10px;text-align:center;">` +
-        `<button type="button" class="btn-sm" style="background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;font-size:0.78rem;cursor:pointer;" onclick="${onclick}">` +
-        `⬇ Tải thêm — còn ${remaining} ${label} nữa` +
-        `</button></td></tr>`;
+    return `<tr class="load-more-row" data-load-more-for="${listId}">`
+        + `<td colspan="${colspan}" style="padding:10px;text-align:center;background:#f8fafc;">`
+        + `<button type="button" class="btn-sm"
+          style="background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;font-size:0.78rem;cursor:pointer;"
+          onclick="${onclick}">`
+        + `⬇ Tải thêm — còn ${remaining} ${label} nữa`
+        + `</button></td></tr>`;
+};
+
+
+// ════════════════════════════════════════════════════════════════
+// Phase 4K-5I — Scroll Preservation + Load More Guards
+// ════════════════════════════════════════════════════════════════
+
+// preserveScrollDuringListUpdate — run fn() then restore scroll position
+window.preserveScrollDuringListUpdate = async function preserveScrollDuringListUpdate(fn, options) {
+    options = options || {};
+    const beforeY = window.scrollY || window.pageYOffset || 0;
+    const anchorSelector = options.anchorSelector || '';
+    const anchor = anchorSelector ? document.querySelector(anchorSelector) : null;
+    const anchorTopBefore = anchor ? anchor.getBoundingClientRect().top : null;
+
+    try {
+        const result = await Promise.resolve(fn && fn());
+        await new Promise(function(resolve) {
+            requestAnimationFrame(function() { requestAnimationFrame(resolve); });
+        });
+
+        if (anchor && anchorTopBefore !== null && document.body.contains(anchor)) {
+            const anchorTopAfter = anchor.getBoundingClientRect().top;
+            const delta = anchorTopAfter - anchorTopBefore;
+            window.scrollTo({ top: Math.max(0, (window.scrollY || window.pageYOffset || 0) + delta), behavior: 'auto' });
+        } else {
+            window.scrollTo({ top: beforeY, behavior: 'auto' });
+        }
+        return result;
+    } catch (err) {
+        window.scrollTo({ top: beforeY, behavior: 'auto' });
+        throw err;
+    }
 };
 
 // __debtRenderLimit — default 50; tăng qua loadMoreDebtRows()
@@ -1779,25 +1817,64 @@ if (typeof window.__debtRenderLimit === 'undefined') {
     window.__debtRenderLimit = 50;
 }
 
-// loadMoreDebtRows — BÁO NỢ tab: tăng limit rồi re-render
-window.loadMoreDebtRows = function loadMoreDebtRows(step) {
-    step = (typeof step === 'number' && step > 0) ? step : 50;
-    window.__debtRenderLimit = (window.__debtRenderLimit || 50) + step;
-    if (typeof window.refreshListsComputation === 'function') {
-        window.refreshListsComputation(['students.debtList'], 'loadMoreDebtRows');
-    } else if (typeof window.invalidateList === 'function') {
-        window.invalidateList('students.debtList', 'loadMoreDebtRows');
-    } else if (typeof window.reloadStudentsPage === 'function') {
-        window.reloadStudentsPage();
+// loadMoreDebtRows — BÁO NỢ tab: tăng limit rồi re-render (Phase 4K-5I async+scroll)
+window.loadMoreDebtRows = async function loadMoreDebtRows(event, step) {
+    if (event && typeof event.preventDefault  === 'function') event.preventDefault();
+    if (event && typeof event.stopPropagation === 'function') event.stopPropagation();
+
+    window.__loadMoreLock = window.__loadMoreLock || {};
+    if (window.__loadMoreLock.debt) return;
+    window.__loadMoreLock.debt = true;
+
+    const anchorSelector = '[data-load-more-for="debtList"]';
+
+    try {
+        return await window.preserveScrollDuringListUpdate(async function() {
+            const inc = (typeof step === 'number' && step > 0) ? step : 50;
+            window.__debtRenderLimit = (window.__debtRenderLimit || 50) + inc;
+
+            if (window.__store) {
+                window.__store._dataVersion        = (window.__store._dataVersion || 0) + 1;
+                window.__store._lastDebtLoadMoreAt    = Date.now();
+                window.__store._lastDebtLoadMoreLimit = window.__debtRenderLimit;
+            }
+
+            if (typeof window.refreshListsComputation === 'function') {
+                window.refreshListsComputation(['students.debtList'], 'load-more-debt-rows');
+            }
+            if (typeof window.invalidateList === 'function') {
+                window.invalidateList('students.debtList', 'load-more-debt-rows');
+            } else if (typeof window.invalidateStudents === 'function') {
+                window.invalidateStudents('load-more-debt-rows');
+            }
+            return { debtRenderLimit: window.__debtRenderLimit };
+        }, { anchorSelector: anchorSelector });
+    } finally {
+        window.__loadMoreLock.debt = false;
     }
 };
 
-// loadMoreActiveStudents — ĐANG TẬP tab: chuyển trang tiếp theo
-window.loadMoreActiveStudents = function loadMoreActiveStudents() {
-    if (typeof window._pgNext_students === 'function') {
-        window._pgNext_students();
-    } else {
-        console.warn('[loadMoreActiveStudents] _pgNext_students chưa sẵn sàng');
+// loadMoreActiveStudents — ĐANG TẬP tab: append trang tiếp (Phase 4K-5I async+scroll)
+window.loadMoreActiveStudents = async function loadMoreActiveStudents(event) {
+    if (event && typeof event.preventDefault  === 'function') event.preventDefault();
+    if (event && typeof event.stopPropagation === 'function') event.stopPropagation();
+
+    window.__loadMoreLock = window.__loadMoreLock || {};
+    if (window.__loadMoreLock.active) return;
+    window.__loadMoreLock.active = true;
+
+    const anchorSelector = '#pgWrap_activeList';
+
+    try {
+        return await window.preserveScrollDuringListUpdate(async function() {
+            if (typeof window._pgNext_students === 'function') {
+                await window._pgNext_students();
+            } else {
+                console.warn('[loadMoreActiveStudents] _pgNext_students chưa sẵn sàng');
+            }
+        }, { anchorSelector: anchorSelector });
+    } finally {
+        window.__loadMoreLock.active = false;
     }
 };
 
@@ -1939,7 +2016,10 @@ window.debugListPaginationCoverage = function debugListPaginationCoverage() {
             profilesCount:        Object.keys(st.profiles || {}).length,
             debtRenderLimit:      window.__debtRenderLimit || 50,
             hasLoadMoreDebtButton: !!document.querySelector('[data-load-more-for="debtList"], button[onclick*="loadMoreDebtRows"]'),
+            lastDebtLoadMoreLimit: st._lastDebtLoadMoreLimit || 0,
         },
+        scrollY:                 window.scrollY || window.pageYOffset || 0,
+        hasPreserveScrollHelper: typeof window.preserveScrollDuringListUpdate === 'function',
     };
 
     console.table(result);
@@ -1947,6 +2027,28 @@ window.debugListPaginationCoverage = function debugListPaginationCoverage() {
 };
 
 // ════════════════════════════════════════════════════════════════
+
+
+// ════════════════════════════════════════════════════════════════
+// Phase 4K-5I — debugLoadMoreScrollState
+// ════════════════════════════════════════════════════════════════
+window.debugLoadMoreScrollState = function debugLoadMoreScrollState() {
+    const st = window.__store || {};
+    const result = {
+        scrollY:               window.scrollY || window.pageYOffset || 0,
+        debtRenderLimit:       window.__debtRenderLimit || 50,
+        activeRows:            document.querySelectorAll('#activeList tr[data-student-id]').length,
+        debtRows:              document.querySelectorAll('#debtList tr[data-student-id], #debtList tr[data-debt-id]').length,
+        activeHasNext:         !!((st.pagination || {}).students && (st.pagination.students || {}).hasNext),
+        activeControlText:     (document.getElementById('pgWrap_activeList') || {}).textContent || '',
+        debtLoadMoreButton:    !!document.querySelector('[data-load-more-for="debtList"], button[onclick*="loadMoreDebtRows"]'),
+        lastDebtLoadMoreLimit: st._lastDebtLoadMoreLimit || 0,
+        hasPreserveScrollHelper: typeof window.preserveScrollDuringListUpdate === 'function',
+        loadMoreLock:          JSON.stringify(window.__loadMoreLock || {})
+    };
+    console.table(result);
+    return result;
+};
 
 // Phase 4K-5H: debugTuitionTableLayout — kiểm tra geometry bảng Học Phí
 window.debugTuitionTableLayout = function debugTuitionTableLayout() {
