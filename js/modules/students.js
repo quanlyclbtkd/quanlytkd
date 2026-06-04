@@ -353,6 +353,9 @@ export function initStudents() {
                 nickname:        _addNickVal,
                 trainingDays,
                 trainingShiftId: document.getElementById('add_shift') ? document.getElementById('add_shift').value : '',
+                admissionDate:   joinDate,
+                joinDate:        joinDate,
+                joinedAt:        joinDate,
                 createdAt:       joinDate,
                 paidUntil:       newPaidUntil,
                 paidMonths:      monthsToRecord,
@@ -1781,6 +1784,48 @@ window.renderLoadMoreRow = function renderLoadMoreRow(opts) {
 
 
 // ════════════════════════════════════════════════════════════════
+// Phase 4K-5J-2 — Active Student Client Render Limit + Debug
+// ════════════════════════════════════════════════════════════════
+
+if (typeof window.__activeRenderLimit === 'undefined') {
+    window.__activeRenderLimit = 50;
+}
+
+window.resetActiveRenderLimit = function resetActiveRenderLimit(reason) {
+    reason = typeof reason === 'string' ? reason : 'reset-active-render-limit';
+    window.__activeRenderLimit = 50;
+    if (window.__store) {
+        window.__store._lastActiveRenderLimitResetReason = reason;
+        window.__store._dataVersion = (window.__store._dataVersion || 0) + 1;
+    }
+};
+
+window.debugActiveLoadMoreAndSort = function debugActiveLoadMoreAndSort() {
+    const st = window.__store || {};
+    const profiles = st.profiles || {};
+    const rows = Array.from(document.querySelectorAll('#activeList tr[data-student-id]'))
+        .map(function(tr) { return tr.getAttribute('data-student-id'); });
+    const firstRows = rows.slice(0, 20).map(function(name) {
+        const p = profiles[name] || {};
+        const joinTs = typeof window.getStudentJoinTimestamp === 'function'
+            ? window.getStudentJoinTimestamp(name, p) : 0;
+        return { name, status: p.status || '', admissionDate: p.admissionDate || '', joinDate: p.joinDate || '', createdAt: p.createdAt || '', joinedAt: p.joinedAt || '', joinTs };
+    });
+    const result = {
+        activeRenderLimit:    window.__activeRenderLimit || 50,
+        activeRowsDom:        rows.length,
+        profilesCount:        Object.keys(profiles).length,
+        pgStudentsActive:     !!((st.pagination || {}).students && (st.pagination.students || {}).searchActive),
+        activeLoadMoreButton: !!document.querySelector('[data-load-more-for="activeList"], button[onclick*="loadMoreActiveStudents"]'),
+        lastActiveLoadMoreLimit: st._lastActiveLoadMoreLimit || 0,
+        lastActiveLoadMoreMode:  st._lastActiveLoadMoreMode  || '',
+    };
+    console.table(firstRows);
+    console.log('[debugActiveLoadMoreAndSort]', result);
+    return Object.assign(result, { firstRows });
+};
+
+// ════════════════════════════════════════════════════════════════
 // Phase 4K-5J-1 — Debt Overdue Filter helpers
 // ════════════════════════════════════════════════════════════════
 
@@ -1921,8 +1966,8 @@ window.loadMoreDebtRows = async function loadMoreDebtRows(event, step) {
     }
 };
 
-// loadMoreActiveStudents — ĐANG TẬP tab: append trang tiếp (Phase 4K-5I async+scroll)
-window.loadMoreActiveStudents = async function loadMoreActiveStudents(event) {
+// loadMoreActiveStudents — ĐANG TẬP tab: tăng client limit (Phase 4K-5J-2)
+window.loadMoreActiveStudents = async function loadMoreActiveStudents(event, step) {
     if (event && typeof event.preventDefault  === 'function') event.preventDefault();
     if (event && typeof event.stopPropagation === 'function') event.stopPropagation();
 
@@ -1930,15 +1975,39 @@ window.loadMoreActiveStudents = async function loadMoreActiveStudents(event) {
     if (window.__loadMoreLock.active) return;
     window.__loadMoreLock.active = true;
 
-    const anchorSelector = '#pgWrap_activeList';
+    const anchorSelector = '[data-load-more-for="activeList"], #pgWrap_activeList, #activeList';
 
     try {
         return await window.preserveScrollDuringListUpdate(async function() {
+            const st = window.__store || {};
+            const profilesCount = Object.keys(st.profiles || {}).length;
+            const inc = (typeof step === 'number' && step > 0) ? step : 50;
+
+            if (profilesCount > 0) {
+                window.__activeRenderLimit = (window.__activeRenderLimit || 50) + inc;
+                if (window.__store) {
+                    window.__store._lastActiveLoadMoreLimit = window.__activeRenderLimit;
+                    window.__store._lastActiveLoadMoreMode  = 'client-limit';
+                    window.__store._dataVersion = (window.__store._dataVersion || 0) + 1;
+                }
+                if (typeof window.refreshListsComputation === 'function') {
+                    window.refreshListsComputation(['students.activeList'], 'load-more-active-client-limit');
+                }
+                if (typeof window.invalidateList === 'function') {
+                    window.invalidateList('students.activeList', 'load-more-active-client-limit');
+                } else if (typeof window.invalidateStudents === 'function') {
+                    window.invalidateStudents('load-more-active-client-limit');
+                }
+                return { activeRenderLimit: window.__activeRenderLimit, mode: 'client-limit' };
+            }
+
+            // Fallback: server pagination nếu profiles chưa sẵn sàng
             if (typeof window._pgNext_students === 'function') {
                 await window._pgNext_students();
-            } else {
-                console.warn('[loadMoreActiveStudents] _pgNext_students chưa sẵn sàng');
+                return { mode: 'server-pagination' };
             }
+            console.warn('[loadMoreActiveStudents] _pgNext_students chưa sẵn sàng');
+            return { mode: 'none' };
         }, { anchorSelector: anchorSelector });
     } finally {
         window.__loadMoreLock.active = false;

@@ -6437,7 +6437,38 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         const examLedger = typeof window.buildCanonicalExamPaymentLedger === 'function'
             ? window.buildCanonicalExamPaymentLedger()
             : null;
-        const paidStudents = examLedger ? examLedger.byName : {};
+        let paidStudents = examLedger ? examLedger.byName : {};
+
+        // Phase 4K-5J-2: fallback dùng extractExamStudentName khi không có ledger
+        if (!examLedger) {
+            paidStudents = {};
+            const _txList = (window.__store && Array.isArray(window.__store.transactions))
+                ? window.__store.transactions : (allTransactions || []);
+            _txList.forEach(function(t) {
+                if (!t) return;
+                if (!(t.type === 'Lệ phí thi' || t.type === 'Học phí + Lệ phí thi')) return;
+                if (t.examPaidCancelled === true) return;
+                const _examAmt = t.type === 'Học phí + Lệ phí thi'
+                    ? Number(t.examAmount || 0) : Number(t.amount || 0);
+                if (_examAmt <= 0) return;
+                const rawName = typeof window.extractExamStudentName === 'function'
+                    ? window.extractExamStudentName(t)
+                    : String(t.studentName || t.profileName || t.description || '').trim();
+                const stuName = typeof window.getCanonicalStudentName === 'function'
+                    ? window.getCanonicalStudentName(rawName, allProfiles)
+                    : rawName.replace(/\s*\($/, '').trim();
+                if (!stuName) return;
+                const _prof = allProfiles[stuName] || {};
+                paidStudents[stuName] = {
+                    id: t.id || t.txId || '',
+                    amount: _examAmt,
+                    type: t.type,
+                    targetBelt: typeof window.getExamTargetBeltFromTx === 'function'
+                        ? window.getExamTargetBeltFromTx(t, _prof)
+                        : (t.examTargetBelt || ''),
+                };
+            });
+        }
         
         let htmlOriginal = '';
         let htmlNewlyUpgraded = '';
@@ -11627,15 +11658,37 @@ window.debugExamCanonicalLedger = function() {
     // Phase 4K-5C: Dùng canonical ledger — count + amount luôn nhất quán
     window.computeExamRegistrationStats = function computeExamRegistrationStats() {
         try {
+            // Phase 4K-5C: prefer canonical ledger
             var ledger = typeof window.buildCanonicalExamPaymentLedger === 'function'
                 ? window.buildCanonicalExamPaymentLedger()
-                : { count: 0, records: [], totalAmount: 0, duplicates: [] };
-            return {
-                registeredCount: ledger.count,
-                paidNames: ledger.records.map(function(r) { return r.studentName; }),
-                totalAmount: ledger.totalAmount,
-                duplicates: ledger.duplicates
-            };
+                : null;
+            if (ledger) {
+                return {
+                    registeredCount: ledger.count,
+                    paidNames: ledger.records.map(function(r) { return r.studentName; }),
+                    totalAmount: ledger.totalAmount,
+                    duplicates: ledger.duplicates
+                };
+            }
+            // Phase 4K-5J-2: fallback dùng extractExamStudentName + getCanonicalStudentName
+            var _paidNamesSet = {};
+            var _txList = (window.__store && Array.isArray(window.__store.transactions))
+                ? window.__store.transactions : (allTransactions || []);
+            var _profiles = (window.__store && window.__store.profiles) || allProfiles || {};
+            _txList.forEach(function(t) {
+                if (!t) return;
+                if (!(t.type === 'Lệ phí thi' || t.type === 'Học phí + Lệ phí thi')) return;
+                if (t.examPaidCancelled === true) return;
+                var rawN = typeof window.extractExamStudentName === 'function'
+                    ? window.extractExamStudentName(t)
+                    : String(t.studentName || t.profileName || t.description || '').trim();
+                var canN = typeof window.getCanonicalStudentName === 'function'
+                    ? window.getCanonicalStudentName(rawN, _profiles)
+                    : rawN;
+                if (canN) _paidNamesSet[canN] = true;
+            });
+            var _paidNames = Object.keys(_paidNamesSet);
+            return { registeredCount: _paidNames.length, paidNames: _paidNames, totalAmount: 0, duplicates: [] };
         } catch (e) {
             console.warn('[computeExamRegistrationStats] error:', e);
             return { registeredCount: 0, paidNames: [], totalAmount: 0 };

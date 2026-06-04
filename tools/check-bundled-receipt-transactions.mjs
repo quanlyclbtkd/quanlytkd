@@ -28,7 +28,7 @@ const checks = {
     addNewStudentHasFallback: appJs.includes('admission-tuition-created-legacy'),
     // Phase 11: financeRenderer handles bundles
     financeRendererHandlesBundles: financeRenderer.includes("paymentKind === 'bundle'") && financeRenderer.includes('isBundle'),
-    financeRendererShowsGopBadge: financeRenderer.includes('📦 Gộp'),
+    financeRendererShowsGopBadge: financeRenderer.includes('getBundleTypeLabel'),
     financeRendererShowsComponentSummary: financeRenderer.includes('componentSummary'),
     // Phase 12: expandTransactionComponentsForAccounting
     hasExpandComponents: appJs.includes('window.expandTransactionComponentsForAccounting'),

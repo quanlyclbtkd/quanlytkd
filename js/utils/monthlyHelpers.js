@@ -241,12 +241,24 @@ export function getStudentJoinTimestamp(name, profile) {
     for (const v of candidates) {
         if (!v) continue;
 
+        // Excel serial number (e.g. 44927 = 2023-01-01)
+        if (typeof v === 'number' && v > 30000 && v < 60000) {
+            return Math.round((v - 25569) * 86400 * 1000);
+        }
+
         if (typeof v === 'number') return v;
 
         // Firestore Timestamp object
         if (typeof v === 'object' && typeof v.toMillis === 'function') return v.toMillis();
 
         const s = String(v);
+
+        // DD/MM/YYYY format
+        if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) {
+            const [dd, mm, yy] = s.split('/');
+            const _parsed = Date.parse(`${yy}-${mm}-${dd}`);
+            if (!Number.isNaN(_parsed)) return _parsed;
+        }
 
         // Date string (ISO or any format parseable by Date.parse)
         const d = Date.parse(s);

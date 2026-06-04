@@ -1298,6 +1298,14 @@ function _waitForExistingLegacyApp(ms) {
                 if (typeof window.initExamFeeSettingUI === 'function') window.initExamFeeSettingUI();
                 if (typeof window.refreshExamFeeUI === 'function') window.refreshExamFeeUI('switch-to-exam');
             }
+            // Phase 4K-5J-2: reset active render limit when switching tabs
+            if (tabId === 'active' || tabId === 'quit') {
+                if (typeof window.resetActiveRenderLimit === 'function') {
+                    window.resetActiveRenderLimit('tab-switch-' + tabId);
+                } else if (typeof window.__activeRenderLimit !== 'undefined') {
+                    window.__activeRenderLimit = 50;
+                }
+            }
             // Phase 4K-5J-1: bind overdue filter UI when entering BÁO NỢ tab
             if (tabId === 'debt') {
                 if (typeof window.ensureDebtOverdueFilterUI === 'function') window.ensureDebtOverdueFilterUI();
@@ -2969,6 +2977,12 @@ window.handleFilterMonthChange = async function(month, reason) {
     if (typeof window.invalidateSearchCache === 'function') {
         try { window.invalidateSearchCache('all', 'filter-month-change'); }
         catch (_) {}
+    }
+    // Phase 4K-5J-2: reset active render limit khi đổi tháng
+    if (typeof window.resetActiveRenderLimit === 'function') {
+        window.resetActiveRenderLimit('filter-month-change');
+    } else if (typeof window.__activeRenderLimit !== 'undefined') {
+        window.__activeRenderLimit = 50;
     }
 
     // 3. Reload transaction pagination nếu có
