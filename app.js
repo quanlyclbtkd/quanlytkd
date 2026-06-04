@@ -7330,6 +7330,60 @@ document.getElementById('multiItemModal').addEventListener('click', e => {
 
 
 // ══════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════
+// Phase 4K-5E — Bundle Label Helpers
+// ══════════════════════════════════════════════════════════════════
+window.getPaymentComponentDisplayName = function(component) {
+    const c = component || {};
+    const kind = c.kind || '';
+    if (kind === 'tuition')       return 'Học phí';
+    if (kind === 'exam')          return 'Thi đai';
+    if (kind === 'inventory')     return c.category || 'Kho đồ';
+    if (kind === 'inventoryDebt') return 'Thu nợ kho';
+    if (kind === 'other')         return c.label || c.type || 'Khoản khác';
+    return c.label || c.type || kind || 'Khoản thu';
+};
+
+window.getBundleTypeLabel = function(tx) {
+    const comps = Array.isArray(tx && tx.components) ? tx.components : [];
+    if (!comps.length) return tx && tx.type ? tx.type : '';
+    const names = [];
+    comps.forEach(function(c) {
+        const name = typeof window.getPaymentComponentDisplayName === 'function'
+            ? window.getPaymentComponentDisplayName(c)
+            : (c.label || c.type || c.kind || '');
+        if (name && !names.includes(name)) names.push(name);
+    });
+    return names.join(' + ') || (tx && tx.type ? tx.type : 'Khoản thu');
+};
+
+window.getBundleSummaryLine = function(tx) {
+    const name = String(tx && tx.studentName ? tx.studentName : (tx && tx.description ? tx.description : '')).trim();
+    const comps = Array.isArray(tx && tx.components) ? tx.components : [];
+    const labels = comps.map(function(c) {
+        if (c.kind === 'tuition') {
+            if (Array.isArray(c.packageMonths) && c.packageMonths.length) {
+                const monthLabel = typeof window.formatMonthCompact === 'function'
+                    ? window.formatMonthCompact(c.packageMonths.join(','))
+                    : c.packageMonths.map(function(m) { const p=String(m).split('-'); return p.length>=2?'T'+parseInt(p[1],10)+'/'+p[0]:m; }).join(', ');
+                return 'Học phí ' + monthLabel;
+            }
+            return c.label || 'Học phí';
+        }
+        if (c.kind === 'exam') return c.examTitle || c.label || 'Thi đai';
+        if (c.kind === 'inventory') {
+            const parts = [];
+            parts.push(c.category || 'Kho đồ');
+            if (c.size) parts.push(c.size);
+            if (c.qty)  parts.push('x' + c.qty);
+            return parts.join(' ');
+        }
+        if (c.kind === 'inventoryDebt') return c.label || 'Thu nợ kho';
+        return c.label || c.type || 'Khoản khác';
+    }).filter(Boolean);
+    return name + (labels.length ? ' — ' + labels.join(' + ') : '');
+};
+
 // Phase 4K-5C — buildPaymentBundleTransaction (Phase 8)
 // ══════════════════════════════════════════════════════════════════
 window.buildPaymentBundleTransaction = function(payload) {
@@ -7397,6 +7451,12 @@ window.buildPaymentBundleTransaction = function(payload) {
         examTargetBelt: examComp ? (examComp.examTargetBelt || '') : '',
         components: safeComponents,
         componentSummary: safeComponents.map(function(c) { return c.label; }).join(' + '),
+        bundleTypeLabel: typeof window.getBundleTypeLabel === 'function'
+            ? window.getBundleTypeLabel({ components: safeComponents, type: type })
+            : safeComponents.map(function(c){ return c.label || c.type || c.kind; }).join(' + '),
+        bundleSummaryLine: typeof window.getBundleSummaryLine === 'function'
+            ? window.getBundleSummaryLine({ studentName: studentName, description: studentName, components: safeComponents, type: type })
+            : studentName + ' — ' + safeComponents.map(function(c){ return c.label || c.type || c.kind; }).join(' + '),
         timestamp: Date.now()
     };
 };
@@ -7436,6 +7496,13 @@ window.expandTransactionComponentsForAccounting = function(tx) {
     return [{ kind:'other', type:type, amount:Number(tx.amount||0), month:tx.txMonth||'', date:tx.date, branch:tx.branch, studentName:tx.description }];
 };
 
+// Phase 4K-5E: getAccountingComponents — dùng components làm nguồn chính
+window.getAccountingComponents = function(tx) {
+    return typeof window.expandTransactionComponentsForAccounting === 'function'
+        ? window.expandTransactionComponentsForAccounting(tx)
+        : [];
+};
+
 // Phase 13: debugBundleTransactions
 window.debugBundleTransactions = function(studentName) {
     studentName = typeof studentName === 'string' ? studentName : '';
@@ -7461,6 +7528,32 @@ window.debugBundleTransactions = function(studentName) {
         };
     }));
     return bundles;
+};
+
+// Phase 4K-5E: debugBundleDisplay
+window.debugBundleDisplay = function(studentName) {
+    const st = window.__store || {};
+    const txs = Array.isArray(st.transactions) ? st.transactions : (window.allTransactions || []);
+    const q = String(typeof studentName === 'string' ? studentName : '').trim();
+    const rows = txs
+        .filter(function(t) {
+            return (t.paymentKind === 'bundle' || Array.isArray(t.components)) &&
+                   (!q || String(t.studentName || t.description || '').includes(q));
+        })
+        .map(function(t) {
+            return {
+                id: t.id || t.txId || '',
+                studentName: t.studentName || t.description || '',
+                type: t.type,
+                bundleTypeLabel: t.bundleTypeLabel || (typeof window.getBundleTypeLabel === 'function' ? window.getBundleTypeLabel(t) : ''),
+                bundleSummaryLine: t.bundleSummaryLine || (typeof window.getBundleSummaryLine === 'function' ? window.getBundleSummaryLine(t) : ''),
+                amount: t.amount,
+                components: Array.isArray(t.components) ? t.components.map(function(c){ return c.kind + ':' + c.amount; }).join(' | ') : '',
+                componentSummary: t.componentSummary || ''
+            };
+        });
+    console.table(rows);
+    return rows;
 };
 
 window.processMultiItem = async (action) => {
