@@ -1781,6 +1781,73 @@ window.renderLoadMoreRow = function renderLoadMoreRow(opts) {
 
 
 // ════════════════════════════════════════════════════════════════
+// Phase 4K-5J-1 — Debt Overdue Filter helpers
+// ════════════════════════════════════════════════════════════════
+
+window.getDebtOverdueFilterValue = function getDebtOverdueFilterValue() {
+    const el = document.getElementById('debtOverdueFilter');
+    const val = el ? String(el.value || 'all') : 'all';
+    if (val === '2') return 2;
+    if (val === '3') return 3;
+    return 0;
+};
+
+window.ensureDebtOverdueFilterUI = function ensureDebtOverdueFilterUI() {
+    if (document.getElementById('debtOverdueFilter')) return; // already in HTML
+    // Fallback: inject dynamically if not in HTML
+    const debtTabContent = document.getElementById('tab_debt');
+    if (!debtTabContent) return;
+    const tblWrapper = debtTabContent.querySelector('.bg-white.rounded-xl');
+    if (!tblWrapper) return;
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;align-items:center;gap:10px;margin-bottom:10px;';
+    wrap.innerHTML = '<label style="font-size:0.65rem;font-weight:700;color:#64748b;text-transform:uppercase;white-space:nowrap;">🔍 Bộ lọc nợ</label>'
+        + '<select id="debtOverdueFilter" class="filter-input" style="font-size:0.82rem;">'
+        + '<option value="all">Tất cả võ sinh nợ</option>'
+        + '<option value="2">Nợ từ 2 tháng trở lên</option>'
+        + '<option value="3">Nợ từ 3 tháng trở lên</option>'
+        + '</select>';
+    tblWrapper.parentNode.insertBefore(wrap, tblWrapper);
+    window.bindDebtOverdueFilter();
+};
+
+window.bindDebtOverdueFilter = function bindDebtOverdueFilter() {
+    const el = document.getElementById('debtOverdueFilter');
+    if (!el || el.__debtOverdueBound) return;
+    el.__debtOverdueBound = true;
+    el.addEventListener('change', function() {
+        window.__debtRenderLimit = 50;
+        if (window.__store) {
+            window.__store._debtOverdueFilter = el.value || 'all';
+            window.__store._dataVersion = (window.__store._dataVersion || 0) + 1;
+        }
+        if (typeof window.refreshListsComputation === 'function') {
+            window.refreshListsComputation(['students.debtList', 'dashboard.summary'], 'debt-overdue-filter-change');
+        }
+        if (typeof window.invalidateList === 'function') {
+            window.invalidateList('students.debtList', 'debt-overdue-filter-change');
+        } else if (typeof window.invalidateStudents === 'function') {
+            window.invalidateStudents('debt-overdue-filter-change');
+        }
+    });
+};
+
+window.debugDebtLoadMoreAndFilter = function debugDebtLoadMoreAndFilter() {
+    const st = window.__store || {};
+    const result = {
+        debtRenderLimit:      window.__debtRenderLimit || 50,
+        debtOverdueFilter:    (document.getElementById('debtOverdueFilter') || {}).value || 'missing',
+        debtRowsDom:          document.querySelectorAll('#debtList tr[data-debt-id], #debtList tr[data-student-id]').length,
+        hasDebtLoadMoreButton: !!document.querySelector('[data-load-more-for="debtList"], button[onclick*="loadMoreDebtRows"]'),
+        lastDebtLoadMoreLimit: st._lastDebtLoadMoreLimit || 0,
+        profilesCount:        Object.keys(st.profiles || {}).length,
+        fullLoadedForDebt:    !!st._profilesFullLoadedForDebt
+    };
+    console.table(result);
+    return result;
+};
+
+// ════════════════════════════════════════════════════════════════
 // Phase 4K-5I — Scroll Preservation + Load More Guards
 // ════════════════════════════════════════════════════════════════
 

@@ -1298,6 +1298,11 @@ function _waitForExistingLegacyApp(ms) {
                 if (typeof window.initExamFeeSettingUI === 'function') window.initExamFeeSettingUI();
                 if (typeof window.refreshExamFeeUI === 'function') window.refreshExamFeeUI('switch-to-exam');
             }
+            // Phase 4K-5J-1: bind overdue filter UI when entering BÁO NỢ tab
+            if (tabId === 'debt') {
+                if (typeof window.ensureDebtOverdueFilterUI === 'function') window.ensureDebtOverdueFilterUI();
+                if (typeof window.bindDebtOverdueFilter === 'function') window.bindDebtOverdueFilter();
+            }
             // Phase 4K-5F: Ensure debt profiles fully loaded when entering BÁO NỢ tab
             if (tabId === 'debt' && typeof window.ensureDebtProfilesReady === 'function') {
                 // Phase 4K-5H: await full debt profile load, then re-invalidate list

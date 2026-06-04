@@ -70,7 +70,7 @@ check('Không còn regex /^\\\\d{4}-\\\\d{2}-\\\\d{2}$/ (double-escaped)',
 console.log('\n▸ Section 3: index.html — cache version mới');
 const html = readFile('index.html') || '';
 check('main.js version là tuition-layout-loadmore-exam-export-fix',
-    html.includes('tuition-layout-loadmore-exam-export-fix') || html.includes('real-layout-real-loadmore-fix') || html.includes('debt-active-loadmore-scroll-fix'),
+    html.includes('tuition-layout-loadmore-exam-export-fix') || html.includes('real-layout-real-loadmore-fix') || html.includes('debt-active-loadmore-scroll-fix') || html.includes('debt-loadmore-overdue-filter-fix'),
     'Đổi version main.js trong index.html thành tuition-layout-loadmore-exam-export-fix-20260604');
 
 console.log(`\n══════════════════════════════════════════════`);

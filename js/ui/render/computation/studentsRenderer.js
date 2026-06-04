@@ -365,7 +365,11 @@ export function computeAndCacheStudents(allProfiles, params) {
             if (isDebt) {
                 // [PART 1 FIX] BÁO NỢ phải áp dụng passFilter như activeList
                 const debtPassFilter = passFilter;
-                if (debtPassFilter) {
+                // Phase 4K-5J-1: overdue months filter
+                const _debtOverdueMin = typeof window.getDebtOverdueFilterValue === 'function'
+                    ? window.getDebtOverdueFilterValue() : 0;
+                const passDebtOverdueFilter = !_debtOverdueMin || unpaidMonthsCount >= _debtOverdueMin;
+                if (debtPassFilter && passDebtOverdueFilter) {
                     debtCount++;
                     if (bStats[safeBranch] !== undefined) bStats[safeBranch].debt++;
                     const totalDebtAmount = unpaidMonthsCount * (Number(p.tuitionFee) || 0);
@@ -514,12 +518,18 @@ export function computeAndCacheStudents(allProfiles, params) {
     const _moreColspan = isSingleBranch ? 8 : 9;
     const _moreStyle   = 'style="padding:10px;text-align:center;"';
     const _moreBtnSt   = 'class="btn-sm" style="background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;font-size:0.78rem;cursor:pointer;"';
+    // Phase 4K-5J-1: BÁO NỢ load more tách riêng — không phụ thuộc pgStudentsActive
+    if (buildDebt && _debtTotalCount > _debtRendered) {
+        const _remainDebt = _debtTotalCount - _debtRendered;
+        debtRows += (typeof window.renderLoadMoreRow === 'function')
+            ? window.renderLoadMoreRow({ listId: 'debtList', label: 'võ sinh nợ', remaining: _remainDebt, colspan: _moreColspan, onclick: 'window.loadMoreDebtRows(event)' })
+            : `<tr class="load-more-row" data-load-more-for="debtList"><td colspan="${_moreColspan}" ${_moreStyle}><button type="button" ${_moreBtnSt} onclick="window.loadMoreDebtRows(event)">⬇ Tải thêm — còn ${_remainDebt} võ sinh nợ nữa</button></td></tr>`;
+    }
+
+    // Active/quit load more — chỉ khi không có server-side pagination
     if (!pgStudentsActive) {
         if (buildActive && _activeTotalCount > _activeLimit) {
             activeRows += `<tr class="load-more-row" data-load-more-for="activeList"><td colspan="${_moreColspan}" ${_moreStyle}><button type="button" ${_moreBtnSt} onclick="window.loadMoreActiveStudents(event)">⬇ Tải thêm — còn ${_activeTotalCount - _activeRendered} võ sinh nữa</button></td></tr>`;
-        }
-        if (buildDebt && _debtTotalCount > _debtLimit) {
-            debtRows += `<tr class="load-more-row" data-load-more-for="debtList"><td colspan="${_moreColspan}" ${_moreStyle}><button type="button" ${_moreBtnSt} onclick="window.loadMoreDebtRows(event)">⬇ Tải thêm — còn ${_debtTotalCount - _debtRendered} võ sinh nữa</button></td></tr>`;
         }
         if (buildQuit && _quitTotalCount > _quitLimit) {
             quitRows += `<tr><td colspan="${_moreColspan}" ${_moreStyle}><button type="button" ${_moreBtnSt} onclick="_loadMore('quit')">⬇ Tải thêm — còn ${_quitTotalCount - _quitRendered} võ sinh nữa</button></td></tr>`;
