@@ -5082,7 +5082,22 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         const _nextBelt = window.BELT_NEXT[_curBelt] || _curBelt;
         const _examMonth = document.getElementById('filterMonth').value || getLocalToday().substring(0, 7);
         const _examDate = _examMonth === getLocalToday().substring(0, 7) ? getLocalToday() : (_examMonth < getLocalToday().substring(0, 7) ? _examMonth + '-28' : _examMonth + '-01');
-        await addDoc(colRef, { branch: branch || (allProfiles[name] && allProfiles[name].branch) || 'CS1', type: 'Lệ phí thi', description: `${name} (Thi lên ${_nextBelt})`, amount, date: _examDate, txMonth: _examMonth, timestamp: Date.now() });
+        const _profileForExam = allProfiles[name] || {};
+        await addDoc(colRef, {
+            branch: branch || _profileForExam.branch || 'CS1',
+            type: 'Lệ phí thi',
+            description: `${name} (Thi lên ${_nextBelt})`,
+            studentName: name,
+            profileName: name,
+            profileId: name,
+            amount,
+            date: _examDate,
+            txMonth: _examMonth,
+            examTitle: `Thi lên ${_nextBelt}`,
+            currentBeltAtPayment: _curBelt,
+            examTargetBelt: _nextBelt,
+            timestamp: Date.now()
+        });
         window.showToast(`✅ Đã thu lệ phí thi cho ${name}!`);
         window.renderExamList();
     };
@@ -5165,7 +5180,26 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                 upgradedAt: currentMonth, 
                 upgradedFrom: currentBelt 
             }, { merge: true });
-            if(fee > 0 && !paidStudents[name]) { const newTxRef = doc(collection(db, "clubs", currentClubId, "transactions")); batch.set(newTxRef, { branch: allProfiles[name].branch || 'CS1', type: 'Lệ phí thi', description: `${name} (Thi lên ${newBelt})`, amount: fee, date: _batchExamDate, txMonth: currentMonth, timestamp: Date.now() + Math.random() }); }
+            if(fee > 0 && !paidStudents[name]) {
+                const _batchProfile = allProfiles[name] || {};
+                const _batchCurBelt = _batchProfile.belt || '';
+                const newTxRef = doc(collection(db, "clubs", currentClubId, "transactions"));
+                batch.set(newTxRef, {
+                    branch: _batchProfile.branch || 'CS1',
+                    type: 'Lệ phí thi',
+                    description: `${name} (Thi lên ${newBelt})`,
+                    studentName: name,
+                    profileName: name,
+                    profileId: name,
+                    amount: fee,
+                    date: _batchExamDate,
+                    txMonth: currentMonth,
+                    examTitle: `Thi lên ${newBelt}`,
+                    currentBeltAtPayment: _batchCurBelt,
+                    examTargetBelt: newBelt,
+                    timestamp: Date.now() + Math.random()
+                });
+            }
         }
         await batch.commit(); window.showToast(`✅ Đã thăng đai thành công cho ${selected.length} võ sinh!`); document.getElementById('checkAllExam').checked = false; renderExamList(); 
     };
@@ -6345,7 +6379,20 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         const selMonth = document.getElementById('filterMonth').value; let paidStudents = {};
         const isSingleBranch = clubConfig.branchCount === 1;
 
-        allTransactions.forEach(t => { if ((t.type === 'Lệ phí thi' || t.type === 'Học phí + Lệ phí thi') && (t.txMonth === selMonth || (t.date && t.date.startsWith(selMonth)))) { let stuName = ""; if (t.type === 'Học phí + Lệ phí thi') { stuName = t.description ? t.description.trim() : ""; paidStudents[stuName] = { id: t.id, amount: t.examAmount }; } else { let match = (t.description || "").match(/^(.*?)\s*\(/); stuName = match ? match[1].trim() : (t.description || "").trim(); if(stuName) paidStudents[stuName] = { id: t.id, amount: t.amount }; } } });
+        allTransactions.forEach(t => {
+            if ((t.type === 'Lệ phí thi' || t.type === 'Học phí + Lệ phí thi') && (t.txMonth === selMonth || (t.date && t.date.startsWith(selMonth)))) {
+                const stuName = window.extractExamStudentName ? window.extractExamStudentName(t) : ((t.description || '').split(' (')[0].trim());
+                if (!stuName) return;
+                const profile = allProfiles[stuName] || {};
+                const targetBelt = window.getExamTargetBeltFromTx ? window.getExamTargetBeltFromTx(t, profile) : '';
+                paidStudents[stuName] = {
+                    id: t.id,
+                    amount: t.type === 'Học phí + Lệ phí thi' ? Number(t.examAmount || 0) : Number(t.amount || 0),
+                    targetBelt,
+                    type: t.type
+                };
+            }
+        });
         
         let htmlOriginal = '';
         let htmlNewlyUpgraded = '';
@@ -6358,7 +6405,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             let isPaid = paidStudents[name]; let safeName = name.replace(/'/g, "\\'");
             let branchTdHTML = isSingleBranch ? '' : `<td class="col-branch"><span class="badge bg-slate-100 text-slate-600 border border-slate-200">${window.getBranchNameDisplay(p.branch || 'CS1')}</span></td>`;
             let statusBadge = isPaid ? `<span class="badge badge-active">Đã nộp (${Number(isPaid.amount).toLocaleString()} đ)</span>` : `<span class="badge badge-quit">Chưa nộp</span>`;
-            let actionBtn = isPaid ? (window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-slate-200 hover:bg-slate-300 text-slate-700" onclick="deleteTx('${isPaid.id}')">Hủy</button>` : '') : (window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-orange-500 hover:bg-orange-600 text-white shadow-sm cursor-pointer" onclick="quickCollectExam('${safeName}')">💰 Thu phí</button>` : '');
+            let actionBtn = isPaid ? (window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-slate-200 hover:bg-slate-300 text-slate-700" onclick="cancelExamPayment('${isPaid.id}', '${safeName}')">Hủy</button>` : '') : (window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-orange-500 hover:bg-orange-600 text-white shadow-sm cursor-pointer" onclick="quickCollectExam('${safeName}')">💰 Thu phí</button>` : '');
 
             const isNewlyUpgraded = p.upgradedAt && p.upgradedAt >= selMonth.substring(0,7) && p.upgradedFrom;
             const newBadge = isNewlyUpgraded ? `<span class="ml-1 text-[0.65rem] font-black bg-amber-400 text-amber-900 px-1.5 py-0.5 rounded uppercase" title="Vừa thăng từ ${p.upgradedFrom} tháng ${p.upgradedAt}">↑ Mới lên</span>` : '';
@@ -6379,6 +6426,160 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         uiExam.innerHTML = htmlExam || `<tr><td colspan="${isSingleBranch ? 5 : 6}" class="text-center text-slate-400 py-8 italic">Không có võ sinh nào ở cấp đai này</td></tr>`;
     };
     
+    // ─── Phase 4K-4H: cancelExamPayment ─────────────────────────────────────
+    window.cancelExamPayment = async function(txId, studentName) {
+        if (window.userRole === 'viewer') return;
+        if (!confirm('Hủy trạng thái đã nộp lệ phí thi cho võ sinh này?')) return;
+
+        const st = window.__store || {};
+        const txs = Array.isArray(st.transactions) ? st.transactions : (allTransactions || []);
+        const tx = txs.find(t => String(t.id || t.txId || '') === String(txId));
+
+        if (!tx) {
+            console.warn('[exam-cancel] transaction not found in runtime store:', txId);
+            if (typeof window.deleteTx === 'function') await window.deleteTx(txId);
+            return;
+        }
+
+        const db2 = st.db || db;
+        const clubId = st.clubId || st.currentClubId || currentClubId;
+
+        if (!db2 || !clubId) {
+            console.warn('[exam-cancel] missing db/clubId');
+            return;
+        }
+
+        try {
+            if (tx.type === 'Lệ phí thi') {
+                await deleteDoc(doc(db2, 'clubs', clubId, 'transactions', txId));
+            } else if (tx.type === 'Học phí + Lệ phí thi') {
+                const tuitionAmount = Number(tx.tuitionAmount || 0);
+                const updatePayload = {
+                    examAmount: 0,
+                    examPaidCancelled: true,
+                    examPaidCancelledAt: Date.now(),
+                    examPaidCancelledBy: window.currentUserEmail || '',
+                };
+                if (tuitionAmount > 0) {
+                    updatePayload.type = 'Học phí';
+                    updatePayload.amount = tuitionAmount;
+                }
+                await updateDoc(doc(db2, 'clubs', clubId, 'transactions', txId), updatePayload);
+            } else {
+                console.warn('[exam-cancel] unsupported tx type:', tx.type);
+                return;
+            }
+        } catch(err) {
+            console.error('[exam-cancel] Firestore error:', err);
+            alert('Lỗi khi hủy: ' + err.message);
+            return;
+        }
+
+        // Cập nhật local store ngay để UI phản ánh ngay
+        if (window.__store && Array.isArray(window.__store.transactions)) {
+            if (tx.type === 'Lệ phí thi') {
+                window.__store.transactions = window.__store.transactions.filter(t =>
+                    String(t.id || t.txId || '') !== String(txId)
+                );
+            } else if (tx.type === 'Học phí + Lệ phí thi') {
+                window.__store.transactions = window.__store.transactions.map(t => {
+                    if (String(t.id || t.txId || '') !== String(txId)) return t;
+                    return {
+                        ...t,
+                        type: Number(t.tuitionAmount || 0) > 0 ? 'Học phí' : t.type,
+                        amount: Number(t.tuitionAmount || 0) > 0 ? Number(t.tuitionAmount || 0) : t.amount,
+                        examAmount: 0,
+                        examPaidCancelled: true
+                    };
+                });
+            }
+            window.__store._dataVersion = (window.__store._dataVersion || 0) + 1;
+            window.__store._lastExamCancelAt = Date.now();
+        }
+
+        // Cập nhật allTransactions legacy nếu có
+        if (tx.type === 'Lệ phí thi') {
+            const idx = allTransactions.findIndex(t => String(t.id || t.txId || '') === String(txId));
+            if (idx !== -1) allTransactions.splice(idx, 1);
+        }
+
+        if (typeof window.invalidateFinance === 'function') window.invalidateFinance('exam-payment-cancelled');
+        if (typeof window.invalidateDashboard === 'function') window.invalidateDashboard('exam-payment-cancelled');
+
+        if (typeof window.renderExamList === 'function') window.renderExamList();
+        window.showToast('✅ Đã hủy lệ phí thi!');
+    };
+
+    // ─── Phase 4K-4H: Debug helpers ─────────────────────────────────────────
+    window.debugExamPaymentIdentity = function(studentName) {
+        studentName = studentName || '';
+        const st = window.__store || {};
+        const txs = Array.isArray(st.transactions) ? st.transactions : (allTransactions || []);
+        const profiles = st.profiles || allProfiles || {};
+        const month = document.getElementById('filterMonth') ? document.getElementById('filterMonth').value : (st.selectedMonth || '');
+
+        const rows = txs
+            .filter(t =>
+                (t.type === 'Lệ phí thi' || t.type === 'Học phí + Lệ phí thi') &&
+                (!month || t.txMonth === month || (t.date && String(t.date).startsWith(month)))
+            )
+            .map(t => {
+                const name = window.extractExamStudentName ? window.extractExamStudentName(t) : (t.description || '');
+                const p = profiles[name] || {};
+                return {
+                    id: t.id,
+                    type: t.type,
+                    description: t.description,
+                    studentNameField: t.studentName || '',
+                    extractedName: name,
+                    profileFound: !!profiles[name],
+                    gender: p.gender || '',
+                    dob: p.dob || '',
+                    memberId: p.memberId || '',
+                    currentBelt: p.belt || '',
+                    targetBelt: window.getExamTargetBeltFromTx ? window.getExamTargetBeltFromTx(t, p) : '',
+                    amount: t.type === 'Học phí + Lệ phí thi' ? t.examAmount : t.amount,
+                    examTitle: t.examTitle || '',
+                    examTargetBelt: t.examTargetBelt || '',
+                };
+            })
+            .filter(r => !studentName || r.extractedName.includes(studentName));
+
+        console.table(rows);
+        return rows;
+    };
+
+    window.debugExamCancelState = function(studentName) {
+        studentName = studentName || '';
+        const st = window.__store || {};
+        const txs = Array.isArray(st.transactions) ? st.transactions : (allTransactions || []);
+        const month = document.getElementById('filterMonth') ? document.getElementById('filterMonth').value : (st.selectedMonth || '');
+
+        const rows = txs
+            .filter(t => t.type === 'Lệ phí thi' || t.type === 'Học phí + Lệ phí thi')
+            .map(t => {
+                const name = window.extractExamStudentName ? window.extractExamStudentName(t) : (t.description || '');
+                return {
+                    id: t.id,
+                    type: t.type,
+                    extractedName: name,
+                    description: t.description,
+                    amount: t.amount,
+                    examAmount: t.examAmount,
+                    examPaidCancelled: !!t.examPaidCancelled,
+                    txMonth: t.txMonth,
+                    date: t.date
+                };
+            })
+            .filter(r =>
+                (!month || r.txMonth === month || (r.date && String(r.date).startsWith(month))) &&
+                (!studentName || r.extractedName.includes(studentName))
+            );
+
+        console.table(rows);
+        return rows;
+    };
+
     window.finishExamSession = async () => {
         if(window.userRole === 'viewer') return alert("Tài khoản khách không có quyền này!");
         const selMonth = document.getElementById('filterMonth').value || getLocalToday().substring(0,7);
@@ -6394,6 +6595,62 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             window.showToast(`🏁 Đã hoàn tất kỳ thi! Đã reset ${upgradedNames.length} võ sinh về trạng thái bình thường.`);
             renderExamList();
         } catch(err) { console.error(err); alert("Lỗi: " + err.message); }
+    };
+
+    // ─── Phase 4K-4H: Helper chuẩn hóa tên võ sinh từ giao dịch thi ───────────
+    window.extractExamStudentName = function(tx) {
+        if (!tx) return '';
+
+        const structured = String(
+            tx.studentName ||
+            tx.profileName ||
+            tx.studentId ||
+            tx.profileId ||
+            ''
+        ).trim();
+
+        if (structured) return structured;
+
+        const desc = String(tx.description || '').trim();
+
+        // Dạng cũ: Nguyễn Văn A (Thi lên Đai vàng - Cấp 7)
+        let m = desc.match(/^(.*?)\s*(Thi lên\s*.*?)\s*$/i);
+        if (m && m[1]) return m[1].trim();
+
+        // Dạng thu gộp: Nguyễn Văn A (Thi Quý 2/2026)
+        m = desc.match(/^(.*?)\s*(Thi\s+.*?)\s*$/i);
+        if (m && m[1]) return m[1].trim();
+
+        // Fallback: cắt mọi phần ngoặc cuối nếu có
+        m = desc.match(/^(.*?)\s*\(([^)]*)\)\s*$/);
+        if (m && m[1]) return m[1].trim();
+
+        return desc;
+    };
+
+    window.getExamTargetBeltFromTx = function(tx, profile) {
+        if (!tx) return '';
+
+        const structured = String(
+            tx.examTargetBelt ||
+            tx.targetBelt ||
+            tx.nextBelt ||
+            ''
+        ).trim();
+
+        if (structured) return structured;
+
+        const desc = String(tx.description || '');
+        const m = desc.match(/(Thi lên\s*(.*?))\s*\)?$/i);
+        if (m && m[1]) return m[1].trim();
+
+        const p = profile || {};
+        const curBelt = p.belt || tx.currentBeltAtPayment || '';
+        if (curBelt && window.BELT_NEXT && window.BELT_NEXT[curBelt]) {
+            return window.BELT_NEXT[curBelt];
+        }
+
+        return tx.examTitle || 'Kỳ thi';
     };
 
     window.BELT_NEXT = {
@@ -7018,7 +7275,28 @@ window.processMultiItem = async (action) => {
             }
 
             // Các khoản còn lại luôn dùng refMonth làm txMonth (fallback khi học phí bị tắt)
-            if(hasExam && examFee > 0) await addDoc(colRef, { branch, type: 'Lệ phí thi', description: name + ' (' + examTitle + ')', amount: examFee, date: today, txMonth: refMonth, examTitle, timestamp: Date.now() + 1 });
+            if(hasExam && examFee > 0) {
+                const profileForExam = allProfiles[name] || {};
+                const currentBeltAtPayment = profileForExam.belt || '';
+                const examTargetBelt = (window.BELT_NEXT && currentBeltAtPayment && window.BELT_NEXT[currentBeltAtPayment])
+                    ? window.BELT_NEXT[currentBeltAtPayment]
+                    : '';
+                await addDoc(colRef, {
+                    branch,
+                    type: 'Lệ phí thi',
+                    description: `${name} (${examTitle})`,
+                    studentName: name,
+                    profileName: name,
+                    profileId: name,
+                    amount: examFee,
+                    date: today,
+                    txMonth: refMonth,
+                    examTitle,
+                    currentBeltAtPayment,
+                    examTargetBelt,
+                    timestamp: Date.now() + 1
+                });
+            }
             if(hasInv && invTotal > 0) {
                 await addDoc(invRef, { category: invCat, size: invSize, type: 'Xuất bán', qty: invQty, desc: name, amount: invTotal, date: today, timestamp: Date.now() + 2 });
                 await addDoc(colRef, { branch, type: 'Thu ' + invCat, description: 'Bán ' + invCat + ' ' + invSize + ' cho ' + name, amount: invTotal, date: today, txMonth: refMonth, timestamp: Date.now() + 3 });

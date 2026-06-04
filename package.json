@@ -84,7 +84,13 @@
     "check:inventory-finance-rollup": "node tools/check-inventory-finance-rollup.mjs",
     "check:reports-module-syntax": "node tools/check-reports-module-syntax.mjs",
     "check:runtime-month-admission-hydration": "node tools/check-runtime-month-admission-hydration.mjs",
-    "check:tuition-package-month-coverage": "node tools/check-tuition-package-month-coverage.mjs"
+    "check:tuition-package-month-coverage": "node tools/check-tuition-package-month-coverage.mjs",
+    "check:monthly-revenue-allocation": "node tools/check-monthly-revenue-allocation.mjs",
+    "check:active-student-sort": "node tools/check-active-student-sort.mjs",
+    "check:exam-payment-identity": "node tools/check-exam-payment-identity.mjs",
+    "check:exam-cancel-fee": "node tools/check-exam-cancel-fee.mjs",
+    "check:exam-fee-ui-cleanup": "node tools/check-exam-fee-ui-cleanup.mjs",
+    "check:all:critical": "npm run check:monthly-revenue-allocation && npm run check:active-student-sort && npm run check:runtime-smoke-test && npm run check:dashboard-history-fallback && npm run check:stats-aggregation && npm run check:exam-payment-identity && npm run check:exam-cancel-fee && npm run check:exam-fee-ui-cleanup"
   },
   "engines": {
     "node": ">=18.0.0"
