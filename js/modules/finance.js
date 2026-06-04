@@ -1291,22 +1291,43 @@ export function initTransactionPagination() {
             }
 
             // ── Render pagination controls vào DOM ──────────────────────
+            // Phase 4K-5H: helper lấy host container bên NGOÀI table cho controls
+            function _getTxControlsHost() {
+                const txList = document.getElementById('txList');
+                if (!txList) return null;
+                const table   = txList.closest ? txList.closest('table') : txList.parentElement;
+                const wrapper = table && table.closest ? table.closest('.table-wrapper') : null;
+                const card    = wrapper ? wrapper.parentElement : (table ? table.parentElement : null);
+                return {
+                    txList,
+                    table,
+                    wrapper,
+                    hostParent:  card || wrapper || (table && table.parentElement),
+                    insertAfter: wrapper || table
+                };
+            }
+
             function _injectControls() {
                 const from = pgState.currentPage > 0
                     ? (pgState.currentPage - 1) * PAGE_SIZE + 1
                     : 0;
                 const to   = pgState.totalLoaded;
-                const html = renderPaginationControls(pgState, 'transactions', from, to);
+                let html = renderPaginationControls(pgState, 'transactions', from, to);
 
-                const txList = document.getElementById('txList');
-                if (!txList) return;
+                // Phase 4K-5H: replace "Tiếp →" label thành rõ ràng hơn
+                html = html.replace(/Tiếp\s*→/g, '⬇ Tải thêm giao dịch');
+
+                // Phase 4K-5H: host nằm NGOÀI table (không chèn div vào trong <table>)
+                const host = _getTxControlsHost();
+                if (!host || !host.hostParent || !host.insertAfter) return;
 
                 const ctrlId = 'pgWrap_txList';
                 let ctrlEl   = document.getElementById(ctrlId);
                 if (!ctrlEl) {
-                    ctrlEl      = document.createElement('div');
-                    ctrlEl.id   = ctrlId;
-                    txList.parentNode.insertBefore(ctrlEl, txList.nextSibling);
+                    ctrlEl           = document.createElement('div');
+                    ctrlEl.id        = ctrlId;
+                    ctrlEl.className = 'tx-loadmore-controls';
+                    host.hostParent.insertBefore(ctrlEl, host.insertAfter.nextSibling);
                 }
                 ctrlEl.innerHTML = html;
             }
@@ -1333,17 +1354,24 @@ export function initTransactionPagination() {
                     // use them directly to include packageMonths middle-month transactions
                     let items;
                     if (Array.isArray(snap._mergedItems)) {
-                        // Build processPage-compatible pgState update from merged items
-                        const rawItems = snap._mergedItems;
-                        pgState.totalLoaded  = rawItems.length;
-                        pgState.hasNext      = rawItems.length > PAGE_SIZE;
-                        pgState.hasPrevious  = false;
-                        pgState.currentPage  = 1;
-                        pgState.currentItems = rawItems.slice(0, PAGE_SIZE).map(t => {
-                            // Strip internal _docSnap before storing
+                        // Phase 4K-5H: Lưu toàn bộ rawItems để load more append đúng
+                        const rawItems = snap._mergedItems.map(t => {
                             const { _docSnap, ...rest } = t; // eslint-disable-line no-unused-vars
                             return rest;
                         });
+
+                        pgState._mergedAllItems  = rawItems;
+                        pgState._mergedPageSize  = PAGE_SIZE;
+
+                        const firstSlice = rawItems.slice(0, PAGE_SIZE);
+                        pgState.currentPage  = 1;
+                        pgState.currentItems = firstSlice;
+                        pgState.totalLoaded  = firstSlice.length;
+                        pgState.hasNext      = rawItems.length > firstSlice.length;
+                        pgState.hasPrevious  = false;
+                        pgState.enabled      = true;
+                        pgState.isLoading    = false;
+
                         items = pgState.currentItems;
                     } else {
                         items = processPage(snap, pgState);
@@ -1462,6 +1490,47 @@ export function initTransactionPagination() {
 
             // ── API: Trang tiếp theo ────────────────────────────────────
             window._pgNext_transactions = async function () {
+                // Phase 4K-5H: nếu tháng dùng _mergedAllItems thì append client-side
+                if (Array.isArray(pgState._mergedAllItems) && pgState._mergedAllItems.length) {
+                    const currentLen = Array.isArray(pgState.currentItems) ? pgState.currentItems.length : 0;
+                    const nextSlice  = pgState._mergedAllItems.slice(currentLen, currentLen + PAGE_SIZE);
+
+                    if (!nextSlice.length) {
+                        pgState.hasNext = false;
+                        _injectControls();
+                        return;
+                    }
+
+                    // Dedup by id
+                    const byId = new Map();
+                    (pgState.currentItems || []).forEach(t => { if (t && t.id) byId.set(t.id, t); });
+                    nextSlice.forEach(t => { if (t && t.id) byId.set(t.id, t); });
+
+                    pgState.currentItems = Array.from(byId.values());
+                    pgState.totalLoaded  = pgState.currentItems.length;
+                    pgState.currentPage  = (pgState.currentPage || 1) + 1;
+                    pgState.hasNext      = pgState.currentItems.length < pgState._mergedAllItems.length;
+                    pgState.enabled      = true;
+
+                    if (window.__store) {
+                        window.__store.pagination.transactions = pgState;
+                        window.__store.transactions = pgState.currentItems;
+                        window.__store._dataVersion = (window.__store._dataVersion || 0) + 1;
+                    }
+
+                    if (typeof window.refreshListsComputation === 'function') {
+                        window.refreshListsComputation(['tx.txList', 'dashboard.summary'], 'load-more-tuition-merged');
+                    }
+                    if (typeof window.invalidateList === 'function') {
+                        window.invalidateList('tx.txList', 'load-more-tuition-merged');
+                    } else if (typeof window.invalidateFinance === 'function') {
+                        window.invalidateFinance('load-more-tuition-merged');
+                    }
+
+                    _injectControls();
+                    return;
+                }
+
                 const cursor = prepareNextPage(pgState);
                 if (!cursor) return;
                 await _doLoad(cursor, 'next');

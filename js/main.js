@@ -1300,9 +1300,18 @@ function _waitForExistingLegacyApp(ms) {
             }
             // Phase 4K-5F: Ensure debt profiles fully loaded when entering BÁO NỢ tab
             if (tabId === 'debt' && typeof window.ensureDebtProfilesReady === 'function') {
-                window.ensureDebtProfilesReady('debt-tab-open').catch(function(e) {
-                    console.warn('[switchTab] ensureDebtProfilesReady failed:', e);
-                });
+                // Phase 4K-5H: await full debt profile load, then re-invalidate list
+                Promise.resolve(window.ensureDebtProfilesReady('debt-tab-open'))
+                    .then(function() {
+                        if (typeof window.invalidateList === 'function') {
+                            window.invalidateList('students.debtList', 'debt-profiles-ready');
+                        } else if (typeof window.invalidateStudents === 'function') {
+                            window.invalidateStudents('debt-profiles-ready');
+                        }
+                    })
+                    .catch(function(e) {
+                        console.warn('[switchTab] ensureDebtProfilesReady failed:', e);
+                    });
             }
         };
 

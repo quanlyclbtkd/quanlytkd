@@ -1103,7 +1103,14 @@ export function initStudentPagination() {
                     // [Part 6 FIX] Unique prefix per list — avoids duplicate pgNext_students IDs
                     // renderPaginationControls builds onclick="window._pgNext_<prefix>()"
                     const prefix = listId === 'activeList' ? 'students_active' : 'students_quit';
-                    const html   = renderPaginationControls(pgState, prefix, from, to);
+                    let html   = renderPaginationControls(pgState, prefix, from, to);
+                    // Phase 4K-5H: đổi text Tiếp → rõ ràng hơn
+                    if (prefix === 'students_active') {
+                        html = html.replace(/Tiếp\s*→/g, '⬇ Tải thêm võ sinh');
+                    }
+                    if (prefix === 'students_quit') {
+                        html = html.replace(/Tiếp\s*→/g, '⬇ Tải thêm đã nghỉ');
+                    }
 
                     const ctrlId = 'pgWrap_' + listId;
                     let ctrlEl   = document.getElementById(ctrlId);
@@ -1348,6 +1355,31 @@ export function initStudentPagination() {
                         }
 
                         const items = processPage(snap, pgState);
+
+                        // Phase 4K-5H: append oldItems nếu đây là next-page load
+                        if (direction === 'next' && Array.isArray(pgState._pendingAppendOldItems) && pgState._pendingAppendOldItems.length) {
+                            const byId = new Map();
+                            pgState._pendingAppendOldItems.forEach(function(item) {
+                                const id = String(item.id || item.name || '').trim();
+                                if (id) byId.set(id, item);
+                            });
+                            if (Array.isArray(pgState.currentItems)) {
+                                pgState.currentItems.forEach(function(item) {
+                                    const id = String(item.id || item.name || '').trim();
+                                    if (id) byId.set(id, item);
+                                });
+                            }
+                            pgState.currentItems = Array.from(byId.values());
+                            pgState.totalLoaded  = pgState.currentItems.length;
+                            // filter theo mode hiện tại
+                            const _appendMode = (typeof _getCurrentTabIdSafe === 'function' ? _getCurrentTabIdSafe() : '') === 'quit' ? 'quit' : 'active';
+                            if (typeof window.filterStudentItemsForMode === 'function') {
+                                pgState.currentItems = window.filterStudentItemsForMode(pgState.currentItems, _appendMode);
+                                pgState.totalLoaded  = pgState.currentItems.length;
+                            }
+                            pgState._pendingAppendOldItems = null;
+                        }
+
                         pgState.enabled     = true;
                         pgState.searchQuery = search;
 
@@ -1456,8 +1488,19 @@ export function initStudentPagination() {
 
             // ── API: Trang tiếp theo ────────────────────────────────────
             window._pgNext_students = async function () {
+                // Phase 4K-5H: lưu oldItems trước khi load để append sau
+                const _oldItems = Array.isArray(pgState.currentItems)
+                    ? pgState.currentItems.slice()
+                    : [];
+
                 const cursor = prepareNextPage(pgState);
-                if (!cursor) return;
+                if (!cursor) {
+                    _injectControls();
+                    return;
+                }
+
+                // Lưu oldItems vào state để _doLoad merge sau
+                pgState._pendingAppendOldItems = _oldItems;
                 await _doLoad(cursor, 'next');
             };
 
@@ -1759,15 +1802,91 @@ window.loadMoreActiveStudents = function loadMoreActiveStudents() {
 };
 
 // ensureDebtProfilesReady — tải đủ profiles để BÁO NỢ hiển thị chính xác
-window.ensureDebtProfilesReady = function ensureDebtProfilesReady(reason) {
-    reason = typeof reason === 'string' ? reason : 'ensureDebtProfilesReady';
-    if (typeof window.reloadStudentsPage === 'function') {
-        window.reloadStudentsPage({ reason });
-    } else if (typeof window.refreshListsComputation === 'function') {
-        window.refreshListsComputation(['students.debtList', 'students.activeList'], reason);
-    } else {
-        console.warn('[ensureDebtProfilesReady] Không tìm thấy hàm reload thích hợp');
+// Phase 4K-5H: loadAllProfilesForDebt — load toàn bộ profiles cho Báo Nợ (cursor-based)
+window.loadAllProfilesForDebt = async function loadAllProfilesForDebt(reason) {
+    reason = typeof reason === 'string' ? reason : 'debt-full-load';
+    const st      = window.__store || {};
+    const db      = st.db || window.db;
+    const clubId  = st.clubId || window.currentClubId || st.currentClubId;
+
+    if (!db || !clubId) {
+        console.warn('[loadAllProfilesForDebt] missing db/clubId');
+        return { ok: false, reason: 'missing-db-clubId' };
     }
+
+    const fb = window._fb_init || {};
+    const { collection, query, orderBy, limit, startAfter, getDocs } = fb;
+
+    if (!collection || !query || !orderBy || !limit || !getDocs) {
+        console.warn('[loadAllProfilesForDebt] missing Firebase helpers — falling back to reloadStudentsPage');
+        if (typeof window.reloadStudentsPage === 'function') {
+            window.reloadStudentsPage({ reason });
+        }
+        return { ok: false, reason: 'missing-firebase-helpers' };
+    }
+
+    const profilesRef = collection(db, 'clubs', clubId, 'profiles');
+    const pageSize = 500;
+    let cursor = null;
+    let total  = 0;
+    const map  = Object.assign({}, (st.profiles || {}));
+
+    try {
+        while (true) {
+            const constraints = [orderBy('__name__'), limit(pageSize)];
+            if (cursor) constraints.splice(1, 0, startAfter(cursor));
+            const snap = await getDocs(query(profilesRef, ...constraints));
+            if (snap.empty) break;
+            snap.docs.forEach(d => {
+                map[d.id] = { id: d.id, ...d.data() };
+                total++;
+            });
+            cursor = snap.docs[snap.docs.length - 1];
+            if (snap.docs.length < pageSize) break;
+        }
+    } catch (e) {
+        console.warn('[loadAllProfilesForDebt] Lỗi Firestore:', e && e.message);
+        return { ok: false, reason: 'firestore-error', error: e };
+    }
+
+    if (!window.__store) window.__store = {};
+    window.__store.profiles                        = map;
+    window.__store._profilesFullLoadedForDebt      = true;
+    window.__store._profilesFullLoadedForDebtAt    = Date.now();
+    window.__store._profilesFullLoadedForDebtReason = reason;
+    window.__store._dataVersion = (window.__store._dataVersion || 0) + 1;
+
+    if (typeof window.syncProfilesToStudentStore === 'function') {
+        try { window.syncProfilesToStudentStore(map, reason); } catch (_) {}
+    }
+
+    console.info('[loadAllProfilesForDebt] Loaded', total, 'docs — total profiles:', Object.keys(map).length);
+    return { ok: true, loadedDocs: total, profilesCount: Object.keys(map).length };
+};
+
+// Phase 4K-5H: ensureDebtProfilesReady — dùng loadAllProfilesForDebt thay vì reloadStudentsPage
+window.ensureDebtProfilesReady = async function ensureDebtProfilesReady(reason) {
+    reason = typeof reason === 'string' ? reason : 'ensureDebtProfilesReady';
+    const st = window.__store || {};
+    const profilesCount = Object.keys(st.profiles || {}).length;
+
+    if (!st._profilesFullLoadedForDebt || profilesCount < 100) {
+        await window.loadAllProfilesForDebt(reason);
+    }
+
+    if (typeof window.refreshListsComputation === 'function') {
+        window.refreshListsComputation(['students.debtList', 'dashboard.summary'], reason);
+    }
+    if (typeof window.invalidateList === 'function') {
+        window.invalidateList('students.debtList', reason);
+    } else if (typeof window.invalidateStudents === 'function') {
+        window.invalidateStudents(reason);
+    }
+
+    return {
+        profilesCount: Object.keys((window.__store || {}).profiles || {}).length,
+        fullLoaded:    !!((window.__store || {})._profilesFullLoadedForDebt)
+    };
 };
 
 // debugListPaginationCoverage — kiểm tra coverage của các list
@@ -1782,6 +1901,9 @@ window.debugListPaginationCoverage = function debugListPaginationCoverage() {
     const _activeRows = document.querySelectorAll('#activeList tr[data-student-id]').length;
     const _debtRows   = document.querySelectorAll('#debtList tr[data-debt-id], #debtList tr').length;
     const _txRows     = document.querySelectorAll('#txList tr[data-tx-id], #txList tr').length;
+
+    const txPg  = (st.pagination && st.pagination.transactions) || {};
+    const stuPg = pg || {};
 
     const result = {
         profilesTotal:        _profiles,
@@ -1798,6 +1920,26 @@ window.debugListPaginationCoverage = function debugListPaginationCoverage() {
         loadMoreDebtReady:     typeof window.loadMoreDebtRows === 'function',
         ensureDebtProfilesReady: typeof window.ensureDebtProfilesReady === 'function',
         renderLoadMoreRowReady: typeof window.renderLoadMoreRow === 'function',
+        // Phase 4K-5H: tuition/active/debt control diagnostics
+        tuition: {
+            hasControlDom:  !!document.getElementById('pgWrap_txList'),
+            controlText:    (document.getElementById('pgWrap_txList') || {}).textContent || '',
+            mergedAllItems: Array.isArray(txPg._mergedAllItems) ? txPg._mergedAllItems.length : -1,
+            currentItems:   Array.isArray(txPg.currentItems) ? txPg.currentItems.length : -1,
+            hasNext:        !!txPg.hasNext,
+        },
+        active: {
+            hasControlDom:  !!document.getElementById('pgWrap_activeList'),
+            controlText:    (document.getElementById('pgWrap_activeList') || {}).textContent || '',
+            currentItems:   Array.isArray(stuPg.currentItems) ? stuPg.currentItems.length : -1,
+            hasNext:        !!stuPg.hasNext,
+        },
+        debt: {
+            fullLoadedForDebt:    !!st._profilesFullLoadedForDebt,
+            profilesCount:        Object.keys(st.profiles || {}).length,
+            debtRenderLimit:      window.__debtRenderLimit || 50,
+            hasLoadMoreDebtButton: !!document.querySelector('[data-load-more-for="debtList"], button[onclick*="loadMoreDebtRows"]'),
+        },
     };
 
     console.table(result);
@@ -1805,6 +1947,29 @@ window.debugListPaginationCoverage = function debugListPaginationCoverage() {
 };
 
 // ════════════════════════════════════════════════════════════════
+
+// Phase 4K-5H: debugTuitionTableLayout — kiểm tra geometry bảng Học Phí
+window.debugTuitionTableLayout = function debugTuitionTableLayout() {
+    const tbl = document.getElementById('tbl_tx');
+    if (!tbl) return null;
+    const ths       = Array.from(tbl.querySelectorAll('thead th'));
+    const firstTds  = Array.from(tbl.querySelectorAll('tbody tr:not(.load-more-row) td')).slice(0, 7);
+    const result = {
+        tableLayout:  getComputedStyle(tbl).tableLayout,
+        tableWidth:   Math.round(tbl.getBoundingClientRect().width),
+        hasColgroup:  !!tbl.querySelector('colgroup'),
+        headers: ths.map(function(th, i) {
+            return { index: i + 1, text: th.textContent.trim(), width: Math.round(th.getBoundingClientRect().width) };
+        }),
+        firstRow: firstTds.map(function(td, i) {
+            return { index: i + 1, className: td.className, width: Math.round(td.getBoundingClientRect().width) };
+        }),
+    };
+    console.table(result.headers);
+    console.log('[debugTuitionTableLayout]', result);
+    return result;
+};
+
 // Phase 4K-5C — syncStudentStatusLocal — Hard separation: remove quit from pagination
 window.syncStudentStatusLocal = function syncStudentStatusLocal(name, updateData, reason) {
     reason = typeof reason === 'string' ? reason : 'student-status-sync';

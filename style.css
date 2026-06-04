@@ -1241,3 +1241,116 @@ button, a, [role="button"] {
   #tbl_tx td:last-child,
   #tbl_tx th:last-child { overflow: visible; white-space: nowrap; }
 }
+
+
+/* ══ Phase 4K-5H — Real desktop geometry for tuition table ══════════════════ */
+@media (min-width: 768px) {
+  #tbl_tx {
+    table-layout: fixed !important;
+    width: 100% !important;
+    min-width: 1080px !important;
+  }
+
+  #tbl_tx col.tx-col-date   { width: 105px !important; }
+  #tbl_tx col.tx-col-branch { width: 145px !important; }
+  #tbl_tx col.tx-col-month  { width: 95px !important; }
+  #tbl_tx col.tx-col-name   { width: auto !important; }
+  #tbl_tx col.tx-col-type   { width: 150px !important; }
+  #tbl_tx col.tx-col-amount { width: 120px !important; }
+  #tbl_tx col.tx-col-action { width: 110px !important; }
+
+  #tbl_tx th:nth-child(1),
+  #tbl_tx td:nth-child(1),
+  #tbl_tx td.tx-date-cell {
+    width: 105px !important;
+    min-width: 105px !important;
+    max-width: 105px !important;
+    white-space: nowrap !important;
+  }
+
+  #tbl_tx th:nth-child(2),
+  #tbl_tx td:nth-child(2),
+  #tbl_tx td.tx-branch-cell,
+  #tbl_tx td.col-branch {
+    width: 145px !important;
+    min-width: 145px !important;
+    max-width: 145px !important;
+    white-space: nowrap !important;
+  }
+
+  #tbl_tx th:nth-child(3),
+  #tbl_tx td:nth-child(3),
+  #tbl_tx td.tx-month-cell {
+    width: 95px !important;
+    min-width: 95px !important;
+    max-width: 95px !important;
+    white-space: nowrap !important;
+  }
+
+  #tbl_tx th:nth-child(4),
+  #tbl_tx td:nth-child(4),
+  #tbl_tx td.tx-name-cell {
+    min-width: 260px !important;
+    max-width: none !important;
+    overflow: hidden !important;
+  }
+
+  #tbl_tx th:nth-child(5),
+  #tbl_tx td:nth-child(5),
+  #tbl_tx td.tx-type-cell {
+    width: 150px !important;
+    min-width: 150px !important;
+    max-width: 150px !important;
+  }
+
+  #tbl_tx th:nth-child(6),
+  #tbl_tx td:nth-child(6),
+  #tbl_tx td.tx-amount-cell {
+    width: 120px !important;
+    min-width: 120px !important;
+    max-width: 120px !important;
+    white-space: nowrap !important;
+    text-align: right !important;
+  }
+
+  #tbl_tx th:nth-child(7),
+  #tbl_tx td:nth-child(7),
+  #tbl_tx td.tx-actions-cell {
+    width: 110px !important;
+    min-width: 110px !important;
+    max-width: 110px !important;
+    white-space: nowrap !important;
+    overflow: visible !important;
+  }
+
+  #tbl_tx .tx-bundle-detail {
+    max-width: 100% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+}
+
+/* Nút Tải thêm giao dịch — hiển thị rõ bên dưới bảng Học Phí */
+.tx-loadmore-controls {
+  padding: 10px 0 4px;
+  text-align: center;
+}
+.tx-loadmore-controls .btn-loadmore-tx {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 20px;
+  background: #f1f5f9;
+  color: #0033A0;
+  font-weight: 800;
+  font-size: 0.85rem;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.tx-loadmore-controls .btn-loadmore-tx:hover {
+  background: #e0e7ff;
+  border-color: #0033A0;
+}
