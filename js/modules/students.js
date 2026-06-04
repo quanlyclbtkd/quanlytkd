@@ -1715,6 +1715,96 @@ export function initStudentPagination() {
 }
 
 // ════════════════════════════════════════════════════════════════
+// Phase 4K-5G — Global render / load-more helpers
+// ════════════════════════════════════════════════════════════════
+
+// renderLoadMoreRow — tạo HTML row "Tải thêm" dùng chung cho mọi bảng
+window.renderLoadMoreRow = function renderLoadMoreRow(opts) {
+    const remaining = opts && opts.remaining != null ? opts.remaining : 0;
+    const colspan   = (opts && opts.colspan)   || 6;
+    const label     = (opts && opts.label)     || 'võ sinh';
+    const onclick   = (opts && opts.onclick)   || '';
+    if (remaining <= 0) return '';
+    return `<tr><td colspan="${colspan}" style="padding:10px;text-align:center;">` +
+        `<button type="button" class="btn-sm" style="background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;font-size:0.78rem;cursor:pointer;" onclick="${onclick}">` +
+        `⬇ Tải thêm — còn ${remaining} ${label} nữa` +
+        `</button></td></tr>`;
+};
+
+// __debtRenderLimit — default 50; tăng qua loadMoreDebtRows()
+if (typeof window.__debtRenderLimit === 'undefined') {
+    window.__debtRenderLimit = 50;
+}
+
+// loadMoreDebtRows — BÁO NỢ tab: tăng limit rồi re-render
+window.loadMoreDebtRows = function loadMoreDebtRows(step) {
+    step = (typeof step === 'number' && step > 0) ? step : 50;
+    window.__debtRenderLimit = (window.__debtRenderLimit || 50) + step;
+    if (typeof window.refreshListsComputation === 'function') {
+        window.refreshListsComputation(['students.debtList'], 'loadMoreDebtRows');
+    } else if (typeof window.invalidateList === 'function') {
+        window.invalidateList('students.debtList', 'loadMoreDebtRows');
+    } else if (typeof window.reloadStudentsPage === 'function') {
+        window.reloadStudentsPage();
+    }
+};
+
+// loadMoreActiveStudents — ĐANG TẬP tab: chuyển trang tiếp theo
+window.loadMoreActiveStudents = function loadMoreActiveStudents() {
+    if (typeof window._pgNext_students === 'function') {
+        window._pgNext_students();
+    } else {
+        console.warn('[loadMoreActiveStudents] _pgNext_students chưa sẵn sàng');
+    }
+};
+
+// ensureDebtProfilesReady — tải đủ profiles để BÁO NỢ hiển thị chính xác
+window.ensureDebtProfilesReady = function ensureDebtProfilesReady(reason) {
+    reason = typeof reason === 'string' ? reason : 'ensureDebtProfilesReady';
+    if (typeof window.reloadStudentsPage === 'function') {
+        window.reloadStudentsPage({ reason });
+    } else if (typeof window.refreshListsComputation === 'function') {
+        window.refreshListsComputation(['students.debtList', 'students.activeList'], reason);
+    } else {
+        console.warn('[ensureDebtProfilesReady] Không tìm thấy hàm reload thích hợp');
+    }
+};
+
+// debugListPaginationCoverage — kiểm tra coverage của các list
+window.debugListPaginationCoverage = function debugListPaginationCoverage() {
+    const st  = window.__store || {};
+    const pg  = st.pagination && st.pagination.students;
+    const profiles = st.profiles || {};
+
+    const _pgItems  = Array.isArray(pg && pg.currentItems) ? pg.currentItems.length : -1;
+    const _profiles = Object.keys(profiles).length;
+
+    const _activeRows = document.querySelectorAll('#activeList tr[data-student-id]').length;
+    const _debtRows   = document.querySelectorAll('#debtList tr[data-debt-id], #debtList tr').length;
+    const _txRows     = document.querySelectorAll('#txList tr[data-tx-id], #txList tr').length;
+
+    const result = {
+        profilesTotal:        _profiles,
+        paginationCurrentItems: _pgItems,
+        paginationHasNext:    !!(pg && pg.hasNext),
+        paginationPage:       (pg && pg.currentPage) || -1,
+        activeRowsRendered:   _activeRows,
+        debtRowsRendered:     _debtRows,
+        txRowsRendered:       _txRows,
+        debtRenderLimit:      window.__debtRenderLimit || 50,
+        pgStudentsActive:     !!(st.pagination && st.pagination.students && st.pagination.students.searchActive),
+        loadMoreTuitionReady:  typeof window.loadMoreTuitionTransactions === 'function',
+        loadMoreActiveReady:   typeof window.loadMoreActiveStudents === 'function',
+        loadMoreDebtReady:     typeof window.loadMoreDebtRows === 'function',
+        ensureDebtProfilesReady: typeof window.ensureDebtProfilesReady === 'function',
+        renderLoadMoreRowReady: typeof window.renderLoadMoreRow === 'function',
+    };
+
+    console.table(result);
+    return result;
+};
+
+// ════════════════════════════════════════════════════════════════
 // Phase 4K-5C — syncStudentStatusLocal — Hard separation: remove quit from pagination
 window.syncStudentStatusLocal = function syncStudentStatusLocal(name, updateData, reason) {
     reason = typeof reason === 'string' ? reason : 'student-status-sync';

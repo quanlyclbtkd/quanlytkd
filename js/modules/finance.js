@@ -1533,3 +1533,16 @@ export function initTransactionPagination() {
     }).catch(err => console.error('[initTransactionPagination] import pagination.js:', err));
 }
 
+// ════════════════════════════════════════════════════════════════
+// Phase 4K-5G — Load More: HỌC PHÍ tab (global API)
+// ════════════════════════════════════════════════════════════════
+window.loadMoreTuitionTransactions = function loadMoreTuitionTransactions() {
+    if (typeof window._pgNext_transactions === 'function') {
+        window._pgNext_transactions();
+    } else {
+        console.warn('[loadMoreTuitionTransactions] _pgNext_transactions chưa sẵn sàng');
+    }
+};
+
+window.loadNextTransactionsPage = window.loadMoreTuitionTransactions;
+

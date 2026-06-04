@@ -233,8 +233,7 @@ export function computeAndCacheStudents(allProfiles, params) {
     // ── Page limits ──
     const _PAGE_LIMIT   = 50;
     const _activeLimit  = activePage * _PAGE_LIMIT;
-    // Phase 4K-5G: __debtRenderLimit controls render cap for debt (not data coverage)
-    const _debtLimit    = window.__debtRenderLimit || (debtPage * _PAGE_LIMIT);
+    const _debtLimit    = window.__debtRenderLimit || debtPage * _PAGE_LIMIT;
     const _quitLimit    = quitPage   * _PAGE_LIMIT;
 
     let _activeTotalCount = 0, _debtTotalCount = 0, _quitTotalCount = 0;
@@ -510,65 +509,20 @@ export function computeAndCacheStudents(allProfiles, params) {
         }
     }
 
-    // ── Phase 4K-5G: Append Load More buttons using renderLoadMoreRow helper ──
+    // ── Append "Load more" fallback buttons — mirrors render.js lines 494-501 ──
     // Buttons are stored as part of the cached HTML so islands render the complete list.
     const _moreColspan = isSingleBranch ? 8 : 9;
     const _moreStyle   = 'style="padding:10px;text-align:center;"';
     const _moreBtnSt   = 'class="btn-sm" style="background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;font-size:0.78rem;cursor:pointer;"';
-
-    function _appendLoadMore(rows, id, text, countText, onclickExpr) {
-        if (typeof window.renderLoadMoreRow === 'function') {
-            return (rows || '') + window.renderLoadMoreRow({
-                id: id,
-                colspan: _moreColspan,
-                text: text,
-                countText: countText,
-                onclick: onclickExpr
-            });
-        }
-        return (rows || '') + '<tr id="' + id + '"><td colspan="' + _moreColspan + '" ' + _moreStyle + '>'
-            + '<button type="button" ' + _moreBtnSt + ' onclick="' + onclickExpr + '">'
-            + text + (countText ? ' ' + countText : '') + '</button></td></tr>';
-    }
-
     if (!pgStudentsActive) {
         if (buildActive && _activeTotalCount > _activeLimit) {
-            const _remA = _activeTotalCount - _activeRendered;
-            activeRows = _appendLoadMore(activeRows, 'loadMoreActiveRow',
-                '⬇ Tải thêm võ sinh đang tập',
-                '— còn ' + _remA,
-                "window.loadMoreStudentsPage ? window.loadMoreStudentsPage('active') : _loadMore('active')"
-            );
+            activeRows += `<tr><td colspan="${_moreColspan}" ${_moreStyle}><button type="button" ${_moreBtnSt} onclick="_loadMore('active')">⬇ Tải thêm — còn ${_activeTotalCount - _activeRendered} võ sinh nữa</button></td></tr>`;
         }
         if (buildDebt && _debtTotalCount > _debtLimit) {
-            const _remD = _debtTotalCount - _debtRendered;
-            debtRows = _appendLoadMore(debtRows, 'loadMoreDebtRow',
-                '⬇ Tải thêm võ sinh đang nợ',
-                '— còn ' + _remD,
-                'window.loadMoreDebtRows ? window.loadMoreDebtRows(50) : _loadMore(\'debt\')'
-            );
+            debtRows += `<tr><td colspan="${_moreColspan}" ${_moreStyle}><button type="button" ${_moreBtnSt} onclick="_loadMore('debt')">⬇ Tải thêm — còn ${_debtTotalCount - _debtRendered} võ sinh nữa</button></td></tr>`;
         }
         if (buildQuit && _quitTotalCount > _quitLimit) {
-            const _remQ = _quitTotalCount - _quitRendered;
-            quitRows = _appendLoadMore(quitRows, 'loadMoreQuitRow',
-                '⬇ Tải thêm võ sinh đã nghỉ',
-                '— còn ' + _remQ,
-                "window.loadMoreStudentsPage ? window.loadMoreStudentsPage('quit') : _loadMore('quit')"
-            );
-        }
-    } else if (pgStudentsActive && pgStudents && pgStudents.hasNext) {
-        // Server-side pagination still has more pages
-        if (buildActive) {
-            activeRows = _appendLoadMore(activeRows || '', 'loadMoreActiveRow',
-                '⬇ Tải thêm võ sinh đang tập', '',
-                "window.loadMoreStudentsPage && window.loadMoreStudentsPage('active')"
-            );
-        }
-        if (buildQuit) {
-            quitRows = _appendLoadMore(quitRows || '', 'loadMoreQuitRow',
-                '⬇ Tải thêm võ sinh đã nghỉ', '',
-                "window.loadMoreStudentsPage && window.loadMoreStudentsPage('quit')"
-            );
+            quitRows += `<tr><td colspan="${_moreColspan}" ${_moreStyle}><button type="button" ${_moreBtnSt} onclick="_loadMore('quit')">⬇ Tải thêm — còn ${_quitTotalCount - _quitRendered} võ sinh nữa</button></td></tr>`;
         }
     }
 

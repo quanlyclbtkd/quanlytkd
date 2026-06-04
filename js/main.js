@@ -1298,10 +1298,6 @@ function _waitForExistingLegacyApp(ms) {
                 if (typeof window.initExamFeeSettingUI === 'function') window.initExamFeeSettingUI();
                 if (typeof window.refreshExamFeeUI === 'function') window.refreshExamFeeUI('switch-to-exam');
             }
-            // Phase 4K-5G: Reset debt render limit when entering BÁO NỢ tab
-            if (tabId === 'debt') {
-                window.__debtRenderLimit = 50;
-            }
             // Phase 4K-5F: Ensure debt profiles fully loaded when entering BÁO NỢ tab
             if (tabId === 'debt' && typeof window.ensureDebtProfilesReady === 'function') {
                 window.ensureDebtProfilesReady('debt-tab-open').catch(function(e) {
@@ -2846,8 +2842,8 @@ window.debugRuntimeSmokeTest = async function(term) {
     out.examCanonicalLedger = await safeCall('debugExamCanonicalLedger', window.debugExamCanonicalLedger);
     out.bundleTransactions   = await safeCall('debugBundleTransactions',  window.debugBundleTransactions, ['']);
     // Phase 4K-5G
-    out.financeTableLayout  = await safeCall('debugFinanceTableLayout',   window.debugFinanceTableLayout);
-    out.studentListCoverage = await safeCall('debugStudentListCoverage',  window.debugStudentListCoverage);
+    out.listPaginationCoverage = await safeCall('debugListPaginationCoverage', window.debugListPaginationCoverage);
+    out.examExportReadiness    = await safeCall('debugExamExportReadiness',    window.debugExamExportReadiness);
 
     const summary = {
         runtimeMode:     out.runtimeMode,
@@ -2878,8 +2874,8 @@ window.debugRuntimeSmokeTest = async function(term) {
         examCanonicalLedgerOk:      !!out.examCanonicalLedger.ok,
         bundleTransactionsOk:       !!out.bundleTransactions.ok,
         // Phase 4K-5G
-        financeTableLayoutOk:       !!out.financeTableLayout.ok,
-        studentListCoverageOk:      !!out.studentListCoverage.ok,
+        listPaginationCoverageOk:   !!out.listPaginationCoverage.ok,
+        examExportReadinessOk:      !!out.examExportReadiness.ok,
 
         overallOk:
             !!out.examFee.ok &&
@@ -2899,8 +2895,8 @@ window.debugRuntimeSmokeTest = async function(term) {
             !!out.examDuplicatePayments.ok &&
             !!out.examCanonicalLedger.ok &&
             !!out.bundleTransactions.ok &&
-            !!out.financeTableLayout.ok &&
-            !!out.studentListCoverage.ok
+            !!out.listPaginationCoverage.ok &&
+            !!out.examExportReadiness.ok
     };
 
     console.table(summary);
@@ -2908,119 +2904,6 @@ window.debugRuntimeSmokeTest = async function(term) {
     return { summary: summary, detail: out };
 };
 
-
-// ════════════════════════════════════════════════════════════════
-// Phase 4K-5G — Load More globals + Debt/Student coverage helpers
-// ════════════════════════════════════════════════════════════════
-
-/**
- * window.loadMoreTransactionsPage — tải thêm giao dịch từ Firestore pagination.
- */
-window.loadMoreTransactionsPage = async function() {
-    try {
-        const st = window.__store;
-        const pg = st && st.pagination && st.pagination.transactions;
-        if (!pg || !pg.hasNext) {
-            if (typeof window.showToast === 'function') window.showToast('Đã tải hết giao dịch.', 'info');
-            return;
-        }
-        if (typeof pg.loadNext === 'function') {
-            await pg.loadNext();
-        } else if (typeof window.loadNextTransactionsPage === 'function') {
-            await window.loadNextTransactionsPage();
-        } else {
-            console.warn('[loadMoreTransactionsPage] no loadNext on transactions pagination');
-            return;
-        }
-        if (typeof window.invalidateFinance === 'function') window.invalidateFinance('load-more-tx');
-        else if (typeof window.refreshListsComputation === 'function') window.refreshListsComputation(['tx.txList'], 'load-more-tx');
-    } catch (e) {
-        console.error('[loadMoreTransactionsPage]', e);
-    }
-};
-
-/**
- * window.loadMoreStudentsPage(kind) — tải thêm võ sinh từ Firestore pagination.
- * kind: 'active' | 'quit'
- */
-window.loadMoreStudentsPage = async function(kind) {
-    try {
-        const st = window.__store;
-        const pg = st && st.pagination && st.pagination.students;
-        if (!pg || !pg.hasNext) {
-            if (typeof window.showToast === 'function') window.showToast('Đã tải hết danh sách võ sinh.', 'info');
-            return;
-        }
-        if (typeof pg.loadNext === 'function') {
-            await pg.loadNext();
-        } else if (typeof window.reloadStudentsPage === 'function') {
-            await window.reloadStudentsPage();
-        } else {
-            console.warn('[loadMoreStudentsPage] no loadNext on students pagination');
-            return;
-        }
-        if (typeof window.invalidateStudents === 'function') window.invalidateStudents('load-more-students-' + (kind || 'active'));
-    } catch (e) {
-        console.error('[loadMoreStudentsPage]', e);
-    }
-};
-
-/**
- * window.loadMoreDebtRows(increment) — tăng giới hạn render nợ rồi re-render.
- * increment: số võ sinh muốn thêm (mặc định 50).
- */
-window.loadMoreDebtRows = async function(increment) {
-    try {
-        increment = (typeof increment === 'number' && increment > 0) ? increment : 50;
-        window.__debtRenderLimit = (window.__debtRenderLimit || 50) + increment;
-        // Ensure full profiles are loaded first
-        if (typeof window.ensureDebtProfilesReady === 'function') {
-            await window.ensureDebtProfilesReady('load-more-debt-rows');
-        }
-        if (typeof window.invalidateStudents === 'function') window.invalidateStudents('load-more-debt-rows');
-        else if (typeof window.refreshListsComputation === 'function') window.refreshListsComputation(['students.debtList'], 'load-more-debt-rows');
-    } catch (e) {
-        console.error('[loadMoreDebtRows]', e);
-    }
-};
-
-/**
- * window.debugListCoverage / window.debugStudentListCoverage — kiểm tra độ phủ danh sách.
- * Called by debugRuntimeSmokeTest (out.studentListCoverage).
- */
-window.debugListCoverage = async function() {
-    const st = window.__store;
-    const allProfiles = (st && st.profiles) || {};
-    const pg = st && st.pagination && st.pagination.students;
-    const pgActive = pg && Array.isArray(pg.currentItems) ? pg.currentItems.length : -1;
-    const allCount = Object.keys(allProfiles).length;
-    const debtSrcQuality = st && st._lastDebtSourceQuality;
-    return {
-        allProfilesCount:   allCount,
-        pgStudentsItems:    pgActive,
-        pgHasNext:          !!(pg && pg.hasNext),
-        debtMayBePartial:   !!(debtSrcQuality && debtSrcQuality.debtMayBePartial),
-        debtRenderLimit:    window.__debtRenderLimit || 50,
-        hasEnsureDebtProfilesReady: typeof window.ensureDebtProfilesReady === 'function',
-        hasLoadFullProfilesFallback: typeof window.loadFullProfilesFallback === 'function',
-    };
-};
-window.debugStudentListCoverage = window.debugListCoverage;
-
-/**
- * window.debugFinanceTableLayout — kiểm tra layout finance table.
- */
-window.debugFinanceTableLayout = window.debugFinanceTableLayout || async function() {
-    const el = document.querySelector('.finance-tx-table');
-    const dateCell = el && el.querySelector('td.tx-date-cell, th.tx-date-cell, td.tx-col-date, th.tx-col-date');
-    return {
-        tableExists:       !!el,
-        tableLayout:       el ? window.getComputedStyle(el).tableLayout : null,
-        dateCellWidth:     dateCell ? window.getComputedStyle(dateCell).width : null,
-        hasRenderLoadMoreRow: typeof window.renderLoadMoreRow === 'function',
-        hasLoadMoreTxRow:  !!document.getElementById('loadMoreTxRow'),
-    };
-};
 
 // ════════════════════════════════════════════════════════════════
 // Phase 4K-4F — txMatchesSelectedMonth SHARED HELPER

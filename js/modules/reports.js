@@ -952,6 +952,7 @@ export function initReports() {
 
         // Phase 4K-5C: Dùng canonical ledger nếu có — đảm bảo dedupe nhất quán với UI
         let paidData = {};
+        try {
         if (typeof window.buildCanonicalExamPaymentLedger === 'function') {
             // Inject loaded transactions tạm thời vào __store để ledger đọc được
             const _prevTxs = (window.__store || {}).transactions;
@@ -970,10 +971,12 @@ export function initReports() {
                     || (typeof window.getExamTargetBeltFromTx === 'function' ? window.getExamTargetBeltFromTx(r.sourceTx, profile) : _fallbackGetTargetBelt(r.sourceTx || {}, profile));
                 paidData[r.studentName] = {
                     targetBelt,
-                    amount: r.amount,
-                        branch: t.branch || profile.branch || 'CS1',
-                        txId: t.id || t.txId || '',
-                        timestamp: curTs
+                    amount: Number(r.amount || 0),
+                    branch: r.branch || (r.sourceTx && r.sourceTx.branch) || profile.branch || 'CS1',
+                    txId: r.txId || (r.sourceTx && r.sourceTx.id) || '',
+                    timestamp: Number(r.timestamp || (r.sourceTx && r.sourceTx.timestamp) || 0),
+                    sourceType: r.txType || '',
+                    profileFound: !!profile
                 };
             });
         } else {
@@ -1001,6 +1004,10 @@ export function initReports() {
                     }
                 }
             });
+        }
+        } catch (_paidDataErr) {
+            console.error('[ReportsModule] exportExamPaidList paidData build error:', _paidDataErr && _paidDataErr.message);
+            if (window.__reportsModuleMetrics) window.__reportsModuleMetrics.lastError = String(_paidDataErr && _paidDataErr.message);
         }
 
         if (Object.keys(paidData).length === 0) return alert(`Không có võ sinh nào ĐÃ NỘP Lệ phí thi trong kỳ ${formatMonth(selMonth)}! Vui lòng thu lệ phí trước khi xuất danh sách.`);
@@ -1394,6 +1401,29 @@ export function initReports() {
         console.debug('[ReportsModule] state reset:', reason || '');
     };
 
+    // Phase 4K-5G: debugExamExportReadiness — kiểm tra sẵn sàng xuất DS thi
+    window.debugExamExportReadiness = function debugExamExportReadiness() {
+        const metrics = window.__reportsModuleMetrics || {};
+        const result = {
+            reportsModuleInitialized:       !!window.__reportsModuleInitialized,
+            exportExamPaidListDefined:      typeof window.exportExamPaidList === 'function',
+            buildCanonicalLedgerDefined:    typeof window.buildCanonicalExamPaymentLedger === 'function',
+            getExamTargetBeltDefined:       typeof window.getExamTargetBeltFromTx === 'function',
+            extractExamStudentNameDefined:  typeof window.extractExamStudentName === 'function',
+            getCanonicalStudentNameDefined: typeof window.getCanonicalStudentName === 'function',
+            loadTransactionsForTxMonthRangeDefined: typeof window.loadTransactionsForTxMonthRange === 'function',
+            loadTransactionsForDateRangeDefined:    typeof window.loadTransactionsForDateRange === 'function',
+            dedupeDocsByIdDefined:          typeof window.dedupeDocsById === 'function',
+            examPaidExportCalls:     metrics.examPaidExportCalls || 0,
+            lastExportType:          metrics.lastExportType || '',
+            lastError:               metrics.lastError || null,
+            examPaidPaginatedLoadUsed: metrics.examPaidPaginatedLoadUsed || 0,
+            examPaidDedupeDocs:      metrics.examPaidDedupeDocs || 0,
+        };
+        console.table(result);
+        return result;
+    };
+
     window.ReportsModule = {
         openExcelExportModal:    window.openExcelExportModal,
         updateExcelPeriodOptions:window.updateExcelPeriodOptions,
@@ -1404,6 +1434,7 @@ export function initReports() {
         updateTaxPeriodOptions:  window.updateTaxPeriodOptions,
         executeTaxExport:        window.executeTaxExport,
         resetReportsModuleState: window.resetReportsModuleState,
+        debugExamExportReadiness: window.debugExamExportReadiness,
         _phase: '4.0A-4',
     };
 
