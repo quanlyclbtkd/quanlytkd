@@ -526,6 +526,22 @@ export function computeAndCacheStudents(allProfiles, params) {
         }
     }
 
+    // ── Phase 4K-5F: _lastDebtSourceQuality — debt coverage diagnostics ──
+    const _debtSourceQuality = {
+        profilesCount:       Object.keys(allProfiles || {}).length,
+        paginationItems:     pgStudents ? (pgStudents.currentItems ? pgStudents.currentItems.length : 0) : 0,
+        debtMayBePartial:    buildDebt && Object.keys(allProfiles || {}).length <= ((pgStudents && pgStudents.currentItems ? pgStudents.currentItems.length : 0)),
+    };
+    if (window.__store) window.__store._lastDebtSourceQuality = _debtSourceQuality;
+    if (buildDebt && _debtSourceQuality.debtMayBePartial && _debtSourceQuality.profilesCount > 0) {
+        console.warn('[debt-list] Debt list may be partial — full profiles not ready',
+            '(profiles:', _debtSourceQuality.profilesCount,
+            ', paginationItems:', _debtSourceQuality.paginationItems, ')');
+        if (typeof window.ensureDebtProfilesReady === 'function') {
+            setTimeout(function() { window.ensureDebtProfilesReady('debt-partial-auto-trigger'); }, 800);
+        }
+    }
+
     // ── Store in module-local cache ──
     if (buildActive) _cache.activeRows = activeRows;
     if (buildDebt)   _cache.debtRows   = debtRows;

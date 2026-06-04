@@ -1125,12 +1125,19 @@ export function initStudentPagination() {
             // Không phá render island hiện tại — guard tr[data-student-id] trước khi inject
             function _renderStudentsPageRowsFallback(pgState) {
                 try {
-                    const target = document.getElementById('activeList');
+                    // Phase 4K-5F: determine mode + target from current tab
+                    const _mode   = _getCurrentTabIdSafe() === 'quit' ? 'quit' : 'active';
+                    const _listId = _mode === 'quit' ? 'quitList' : 'activeList';
+                    const target  = document.getElementById(_listId);
                     if (!target) return false;
                     if (!pgState || !Array.isArray(pgState.currentItems)) return false;
-                    if (pgState.currentItems.length === 0) return false;
+                    // Filter items by mode before fallback render
+                    const _filteredItems = typeof window.filterStudentItemsForMode === 'function'
+                        ? window.filterStudentItemsForMode(pgState.currentItems, _mode)
+                        : pgState.currentItems;
+                    if (_filteredItems.length === 0) return false;
                     if (target.querySelector('tr[data-student-id]')) return false; // island đã render
-                    const rows = pgState.currentItems.map(item => {
+                    const rows = _filteredItems.map(item => {
                         const _rawName = item.id || item.name || '';
                         const _esc     = _rawName.replace(/'/g, "\\'");
                         const p        = item;
@@ -1138,7 +1145,7 @@ export function initStudentPagination() {
                     }).join('');
                     if (!rows) return false;
                     target.innerHTML = rows;
-                    console.warn('[students-pagination] 🔧 Fallback render —', pgState.currentItems.length, 'rows → #activeList (island miss)');
+                    console.warn('[students-pagination] 🔧 Fallback render —', _filteredItems.length, 'rows →', '#' + _listId, '(island miss, mode:', _mode + ')');
                     return true;
                 } catch (_fe) {
                     return false;
@@ -1149,7 +1156,31 @@ export function initStudentPagination() {
             // cho renderActiveIsland() và _renderStudentsPageRowsFallback().
             // renderActiveIsland dùng khi activeRows cache rỗng nhưng pagination có items.
             // Dùng HTML attribute escaping an toàn thay vì replace('/g) đơn giản.
-            window.buildStudentsRowsFromPagination = function buildStudentsRowsFromPagination(items, mode) {
+
+            // Phase 4K-5F: filterStudentItemsForMode — hard filter pagination items by tab mode
+            window.filterStudentItemsForMode = function filterStudentItemsForMode(items, mode) {
+                const arr = Array.isArray(items) ? items : [];
+                const m   = mode || 'active';
+                return arr.filter(function(item) {
+                    const p    = item || {};
+                    const kind = typeof window.classifyProfileStatus === 'function'
+                        ? window.classifyProfileStatus(p)
+                        : (
+                            p.status === 'quit' || p.status === 'inactive' || p.status === 'retired' ||
+                            p.active === false   || p.isActive === false
+                            ? 'quit' : 'active'
+                        );
+                    if (m === 'quit')   return kind === 'quit';
+                    if (m === 'active') return kind === 'active';
+                    return true;
+                });
+            };
+
+                        window.buildStudentsRowsFromPagination = function buildStudentsRowsFromPagination(items, mode) {
+                // Phase 4K-5F: filter by mode before building rows
+                if (typeof window.filterStudentItemsForMode === 'function') {
+                    items = window.filterStudentItemsForMode(items, mode);
+                }
                 if (!Array.isArray(items) || items.length === 0) return '';
                 const _esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
                 const _escJs = (s) => String(s || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
@@ -1263,7 +1294,9 @@ export function initStudentPagination() {
                     if (_isSearch && typeof StudentService.searchProfilesServerSide === 'function') {
                         if (_srEl && _showStudentSearchStatus) _srEl.textContent = 'Đang tìm...';
 
-                        const _sr = await StudentService.searchProfilesServerSide(search, { pageSize: PAGE_SIZE });
+                        // Phase 4K-5F: pass statusFilter so search result matches current tab
+                        const _curTabStatus = _getCurrentTabIdSafe() === 'quit' ? 'quit' : 'active';
+                        const _sr = await StudentService.searchProfilesServerSide(search, { pageSize: PAGE_SIZE, statusFilter: _curTabStatus });
 
                         // Phase 4K-2B: Stale guard — chặn TRƯỚC khi mutate state
                         if (_isStaleSearch()) {
@@ -1736,6 +1769,21 @@ window.syncStudentStatusLocal = function syncStudentStatusLocal(name, updateData
 
         if (typeof window.scheduleRender === 'function') {
             window.scheduleRender(reason);
+        }
+
+        // Phase 4K-5F: Remove quit student from #activeList DOM immediately
+        if (kind === 'quit') {
+            try {
+                const _tryCSS = typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(key) : null;
+                if (_tryCSS) {
+                    const _row = document.querySelector('#activeList tr[data-student-id="' + _tryCSS + '"]');
+                    if (_row) _row.remove();
+                } else {
+                    Array.from(document.querySelectorAll('#activeList tr[data-student-id]'))
+                        .filter(function(tr) { return tr.getAttribute('data-student-id') === key; })
+                        .forEach(function(tr) { tr.remove(); });
+                }
+            } catch (_de) {}
         }
 
         console.debug('[syncStudentStatusLocal] synced:', key, '->', kind, updateData.status || '');

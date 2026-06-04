@@ -1298,6 +1298,12 @@ function _waitForExistingLegacyApp(ms) {
                 if (typeof window.initExamFeeSettingUI === 'function') window.initExamFeeSettingUI();
                 if (typeof window.refreshExamFeeUI === 'function') window.refreshExamFeeUI('switch-to-exam');
             }
+            // Phase 4K-5F: Ensure debt profiles fully loaded when entering BÁO NỢ tab
+            if (tabId === 'debt' && typeof window.ensureDebtProfilesReady === 'function') {
+                window.ensureDebtProfilesReady('debt-tab-open').catch(function(e) {
+                    console.warn('[switchTab] ensureDebtProfilesReady failed:', e);
+                });
+            }
         };
 
         initMonthlyHelpers(); // Phase 4K-4G: register monthly revenue allocation + student sort helpers

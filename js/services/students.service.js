@@ -501,7 +501,16 @@ export const StudentService = {
             source = 'server-index';
         }
 
-        const items = Array.from(resultMap.values()).slice(0, pageSize);
+        // Phase 4K-5F: filter by statusFilter (active/quit) for correct tab search
+        let items = Array.from(resultMap.values());
+        const _statusMode = options.statusFilter ||
+            (typeof window.getCurrentActiveTabId === 'function' ? window.getCurrentActiveTabId() : '');
+        if (_statusMode === 'active' || _statusMode === 'quit') {
+            items = typeof window.filterStudentItemsForMode === 'function'
+                ? window.filterStudentItemsForMode(items, _statusMode)
+                : items;
+        }
+        items = items.slice(0, pageSize);
         return {
             items,
             hasMore: hasMore || resultMap.size > pageSize,

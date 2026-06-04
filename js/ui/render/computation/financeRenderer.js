@@ -138,38 +138,55 @@ export function invalidateFinanceRender(section) {
 export function renderTxRow(tx, opts = {}) {
     const { isSingleBranch = true, isAdmin = false, branchTdHTML = '', btnDel = '' } = opts;
 
-    // Phase 4K-5C: Bundle transactions — hiển thị 1 hàng với componentSummary
+    // Phase 4K-5F: Bundle transactions — 1 hàng, không lặp tên võ sinh
     const isBundle = tx.paymentKind === 'bundle' || (Array.isArray(tx.components) && tx.components.length > 1);
     if (isBundle) {
         const _cleanName = tx.description ? tx.description.trim() : (tx.studentName || '');
-        const _summary   = tx.componentSummary || (Array.isArray(tx.components)
-            ? tx.components.map(c => c.label || c.type || '').join(' + ')
-            : tx.type || '');
-        const _amount = Number(tx.amount || 0);
-        const _txId   = tx.id || tx.txId || '';
+        const _amount    = Number(tx.amount || 0);
+        const _txId      = tx.id || tx.txId || '';
         const _monthBadge = tx.txMonth
             ? `<span class="badge bg-violet-50 text-violet-700 border border-violet-200">${formatMonth(tx.txMonth)}</span>`
             : `<span class="badge bg-slate-100 text-slate-400">-</span>`;
-        const _nameTd = `<td class="name-link text-[0.95rem]"><button type="button" class="link-like js-open-student-profile" data-action="open-student-profile" data-student-name="${_escAttr(_cleanName)}">${_escHtml(_cleanName)}</button></td>`;
+
+        // Detail line — dùng getBundleDetailSummary (không có tên võ sinh)
+        const _bundleDetail = typeof window.getBundleDetailSummary === 'function'
+            ? window.getBundleDetailSummary(tx)
+            : (tx.bundleDetailSummary || tx.componentSummary || tx.bundleSummaryLine || tx.type || '');
+
+        // Full line cho tooltip/print
+        const _bundleFullLine = typeof window.getBundleSummaryLine === 'function'
+            ? window.getBundleSummaryLine(tx)
+            : ((_cleanName ? _cleanName + ' — ' : '') + _bundleDetail);
+
         const _bundleType = typeof window.getBundleTypeLabel === 'function'
             ? window.getBundleTypeLabel(tx)
             : (tx.bundleTypeLabel || tx.type || 'Khoản thu');
-        const _bundleSummary = typeof window.getBundleSummaryLine === 'function'
-            ? window.getBundleSummaryLine(tx)
-            : (tx.bundleSummaryLine || tx.componentSummary || tx.type || '');
-        const _typeBadge = `<span class="badge bg-violet-50 text-violet-700 border border-violet-200" title="${_escAttr(_bundleSummary)}">${_escHtml(_bundleType)}</span>`;
-        const _amtCell   = `<td class="text-emerald-600 font-bold">+${_amount.toLocaleString()} ₫</td>`;
+
+        const _typeBadge = `<span class="badge bg-violet-50 text-violet-700 border border-violet-200" title="${_escAttr(_bundleFullLine)}">${_escHtml(_bundleType)}</span>`;
+        const _amtCell   = `<td class="tx-amount-cell text-emerald-600 font-bold">+${_amount.toLocaleString()} ₫</td>`;
         const _txMonthsStr = tx.packageMonths ? tx.packageMonths.join(',') : (tx.txMonth || '');
         const _printBtn  = `<button type="button" class="btn-sm bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white js-print-tuition-receipt" data-action="print-tuition-receipt" data-tx-id="${_escAttr(_txId)}" data-student-name="${_escAttr(_cleanName)}" data-tx-months="${_escAttr(_txMonthsStr)}" data-tx-type="${_escAttr(tx.type || '')}" data-tx-date="${_escAttr(tx.date || '')}" data-tx-branch="${_escAttr(tx.branch || 'CS1')}" data-tx-amount="${_amount}" data-exam-title="${_escAttr(tx.examTitle || '')}">🧾 In</button>`;
-        const _nameTdBundle = `<td class="name-link text-[0.95rem]"><button type="button" class="link-like js-open-student-profile" data-action="open-student-profile" data-student-name="${_escAttr(_cleanName)}">${_escHtml(_cleanName)}</button><div class="text-[0.7rem] text-slate-400 truncate max-w-xs" title="${_escAttr(_bundleSummary)}">${_escHtml(_bundleSummary)}</div></td>`;
+
+        // Phase 4K-5F: Tên võ sinh + dòng phụ DETAIL (không phải full summary) → không lặp tên
+        const _nameTdBundle = `<td class="tx-name-cell name-link text-[0.95rem]">
+          <button type="button" class="link-like js-open-student-profile tx-student-name" data-action="open-student-profile" data-student-name="${_escAttr(_cleanName)}" title="${_escAttr(_cleanName)}">${_escHtml(_cleanName)}</button>
+          <div class="tx-bundle-detail text-[0.7rem] text-slate-400" title="${_escAttr(_bundleFullLine)}">${_escHtml(_bundleDetail)}</div>
+        </td>`;
+
+        function _formatDateCompactB(date) {
+            const s = String(date || '');
+            if (/^d{4}-d{2}-d{2}$/.test(s)) return s.substring(8,10) + '/' + s.substring(5,7);
+            return formatDate(date);
+        }
+
         return `<tr data-tx-id="${_escAttr(_txId)}">`
-            + `<td class="text-slate-500 text-[0.85rem]">${formatDate(tx.date)}</td>`
-            + branchTdHTML
-            + `<td>${_monthBadge}</td>`
+            + `<td class="tx-date-cell text-slate-500 text-[0.8rem]" title="${_escAttr(formatDate(tx.date))}">${_formatDateCompactB(tx.date)}</td>`
+            + branchTdHTML.replace('class="', 'class="tx-branch-cell ')
+            + `<td class="tx-month-cell">${_monthBadge}</td>`
             + _nameTdBundle
-            + `<td>${_typeBadge}</td>`
+            + `<td class="tx-type-cell">${_typeBadge}</td>`
             + _amtCell
-            + `<td class="action-btns">${_printBtn}${btnDel}</td>`
+            + `<td class="tx-actions-cell action-btns">${_printBtn}${btnDel}</td>`
             + `</tr>`;
     }
 
@@ -225,14 +242,19 @@ export function renderTxRow(tx, opts = {}) {
     const txMonthsStr  = tx.packageMonths ? tx.packageMonths.join(',') : (tx.txMonth || '');
     const printBtn = `<button type="button" class="btn-sm bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white js-print-tuition-receipt" data-action="print-tuition-receipt" data-tx-id="${_escAttr(tx.id || tx.txId || '')}" data-student-name="${_escAttr(cleanName)}" data-tx-months="${_escAttr(txMonthsStr)}" data-tx-type="${_escAttr(tx.type || '')}" data-tx-date="${_escAttr(tx.date || '')}" data-tx-branch="${_escAttr(tx.branch || 'CS1')}" data-tx-amount="${Number(tx.amount) || 0}" data-exam-title="${_escAttr(tx.examTitle || '')}">🧾 In</button>`;
 
+        function _formatDateCompact(date) {
+        const s = String(date || '');
+        if (/^\\d{4}-\\d{2}-\\d{2}$/.test(s)) return s.substring(8,10) + '/' + s.substring(5,7);
+        return formatDate(date);
+    }
     return `<tr data-tx-id="${_escAttr(tx.id || tx.txId || '')}">`
-        + `<td class="text-slate-500 text-[0.85rem]">${formatDate(tx.date)}</td>`
-        + branchTdHTML
-        + monthBadgeTd
-        + nameTd
-        + `<td>${typeBadge}</td>`
+        + `<td class="tx-date-cell text-slate-500 text-[0.8rem]" title="${_escAttr(formatDate(tx.date))}">${_formatDateCompact(tx.date)}</td>`
+        + branchTdHTML.replace('class="', 'class="tx-branch-cell ')
+        + monthBadgeTd.replace('<td>', '<td class="tx-month-cell">')
+        + nameTd.replace('class="name-link', 'class="tx-name-cell name-link')
+        + `<td class="tx-type-cell">${typeBadge}</td>`
         + amtCell
-        + `<td class="action-btns">${printBtn}${btnDel}</td>`
+        + `<td class="tx-actions-cell action-btns">${printBtn}${btnDel}</td>`
         + `</tr>`;
 }
 

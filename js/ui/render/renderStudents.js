@@ -57,8 +57,12 @@ export function renderActiveIsland() {
             Array.isArray(_pgState.currentItems) &&
             _pgState.currentItems.length > 0;
         if (_hasPgItems) {
+            // Phase 4K-5F: hard-filter active items before fallback render
+            const _activeItems = typeof window.filterStudentItemsForMode === 'function'
+                ? window.filterStudentItemsForMode(_pgState.currentItems, 'active')
+                : _pgState.currentItems;
             const _fbHtml = typeof window.buildStudentsRowsFromPagination === 'function'
-                ? window.buildStudentsRowsFromPagination(_pgState.currentItems, 'active')
+                ? window.buildStudentsRowsFromPagination(_activeItems, 'active')
                 : '';
             if (_fbHtml) {
                 _applyHtml(document.getElementById('activeList'), _fbHtml);
@@ -89,8 +93,12 @@ export function renderQuitIsland() {
             _pgState.currentItems.length > 0 &&
             !!(window.__store?.pagination?._quitPagActive);
         if (_hasQuitItems) {
+            // Phase 4K-5F: hard-filter quit items before fallback render
+            const _quitItems = typeof window.filterStudentItemsForMode === 'function'
+                ? window.filterStudentItemsForMode(_pgState.currentItems, 'quit')
+                : _pgState.currentItems;
             const _fbHtmlQ = typeof window.buildStudentsRowsFromPagination === 'function'
-                ? window.buildStudentsRowsFromPagination(_pgState.currentItems, 'quit')
+                ? window.buildStudentsRowsFromPagination(_quitItems, 'quit')
                 : '';
             if (_fbHtmlQ) {
                 _applyHtml(document.getElementById('quitList'), _fbHtmlQ);
