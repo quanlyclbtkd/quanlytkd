@@ -518,12 +518,13 @@ export function computeAndCacheStudents(allProfiles, params) {
         if (buildActive && _activeTotalCount > _activeLimit) {
             activeRows += `<tr><td colspan="${_moreColspan}" ${_moreStyle}><button type="button" ${_moreBtnSt} onclick="_loadMore('active')">⬇ Tải thêm — còn ${_activeTotalCount - _activeRendered} võ sinh nữa</button></td></tr>`;
         }
-        if (buildDebt && _debtTotalCount > _debtLimit) {
-            debtRows += `<tr><td colspan="${_moreColspan}" ${_moreStyle}><button type="button" ${_moreBtnSt} onclick="_loadMore('debt')">⬇ Tải thêm — còn ${_debtTotalCount - _debtRendered} võ sinh nữa</button></td></tr>`;
-        }
         if (buildQuit && _quitTotalCount > _quitLimit) {
             quitRows += `<tr><td colspan="${_moreColspan}" ${_moreStyle}><button type="button" ${_moreBtnSt} onclick="_loadMore('quit')">⬇ Tải thêm — còn ${_quitTotalCount - _quitRendered} võ sinh nữa</button></td></tr>`;
         }
+    }
+    // Debt load more is independent of pgStudentsActive — always append if needed
+    if (buildDebt && _debtTotalCount > _debtLimit) {
+        debtRows += `<tr><td colspan="${_moreColspan}" ${_moreStyle}><button type="button" ${_moreBtnSt} onclick="_loadMore('debt')">⬇ Tải thêm — còn ${_debtTotalCount - _debtRendered} võ sinh nữa</button> <div class="text-[0.7rem] text-slate-400 mt-1">Hiển thị ${_debtRendered}/${_debtTotalCount}</div></td></tr>`;
     }
 
     // ── Phase 4K-5F: _lastDebtSourceQuality — debt coverage diagnostics ──
@@ -615,6 +616,51 @@ export function getStudentsSummary() {
  */
 export function getStudentsMetrics() {
     return { ..._metrics };
+}
+
+/**
+ * Phase 4K-5G: renderStudentPaginationStatus — hiển thị trạng thái phân trang cho từng list
+ * @param {'active'|'quit'|'debt'} mode
+ * @param {{ shown: number, total: number }} info
+ */
+export function renderStudentPaginationStatus(mode, info = {}) {
+    if (typeof window !== 'undefined') {
+        window.renderStudentPaginationStatus = window.renderStudentPaginationStatus || renderStudentPaginationStatus;
+    }
+    const targetId =
+        mode === 'quit' ? 'quitPaginationStatus' :
+        mode === 'debt' ? 'debtPaginationStatus' :
+        'activePaginationStatus';
+
+    let el = document.getElementById(targetId);
+
+    if (!el) {
+        const listId =
+            mode === 'quit' ? 'quitList' :
+            mode === 'debt' ? 'debtList' :
+            'activeList';
+
+        const list = document.getElementById(listId);
+        if (!list) return;
+
+        el = document.createElement('tr');
+        el.id = targetId;
+        el.innerHTML = `<td colspan="9" style="text-align:center;padding:10px;"></td>`;
+        list.appendChild(el);
+    }
+
+    const shown = Number(info.shown || 0);
+    const total = Number(info.total || 0);
+    const hasMore = total > shown;
+
+    el.querySelector('td').innerHTML = hasMore
+        ? `<button type="button" class="btn-sm" onclick="_loadMore('${mode}')">⬇ Tải thêm — còn ${total - shown} võ sinh nữa</button><div class="text-[0.7rem] text-slate-400 mt-1">Hiển thị ${shown}/${total}</div>`
+        : `<div class="text-[0.7rem] text-slate-400">Đã hiển thị ${shown}/${total}</div>`;
+}
+
+// Expose to window so fallback renders can call it
+if (typeof window !== 'undefined') {
+    window.renderStudentPaginationStatus = renderStudentPaginationStatus;
 }
 
 /**

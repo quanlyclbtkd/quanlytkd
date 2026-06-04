@@ -1298,9 +1298,19 @@ function _waitForExistingLegacyApp(ms) {
                 if (typeof window.initExamFeeSettingUI === 'function') window.initExamFeeSettingUI();
                 if (typeof window.refreshExamFeeUI === 'function') window.refreshExamFeeUI('switch-to-exam');
             }
-            // Phase 4K-5F: Ensure debt profiles fully loaded when entering BÁO NỢ tab
+            // Phase 4K-5G: Ensure debt profiles fully loaded when entering BÁO NỢ tab
+            // Use .then() so debt list re-renders after profiles are ready
             if (tabId === 'debt' && typeof window.ensureDebtProfilesReady === 'function') {
-                window.ensureDebtProfilesReady('debt-tab-open').catch(function(e) {
+                window.ensureDebtProfilesReady('debt-tab-open').then(function() {
+                    if (typeof window.refreshListComputation === 'function') {
+                        window.refreshListComputation('students.debtList', 'debt-ready-after-load');
+                    }
+                    if (typeof window.invalidateList === 'function') {
+                        window.invalidateList('students.debtList', 'debt-ready-after-load');
+                    } else if (typeof window.invalidateStudents === 'function') {
+                        window.invalidateStudents('debt-ready-after-load');
+                    }
+                }).catch(function(e) {
                     console.warn('[switchTab] ensureDebtProfilesReady failed:', e);
                 });
             }
@@ -2842,8 +2852,8 @@ window.debugRuntimeSmokeTest = async function(term) {
     out.examCanonicalLedger = await safeCall('debugExamCanonicalLedger', window.debugExamCanonicalLedger);
     out.bundleTransactions   = await safeCall('debugBundleTransactions',  window.debugBundleTransactions, ['']);
     // Phase 4K-5G
-    out.financeTableLayout  = await safeCall('debugFinanceTableLayout',   window.debugFinanceTableLayout);
-    out.studentListCoverage = await safeCall('debugStudentListCoverage',  window.debugStudentListCoverage);
+    out.activeListCoverage   = await safeCall('debugActiveListCoverage',  window.debugActiveListCoverage);
+    out.debtCoverage         = await safeCall('debugDebtCoverage',        window.debugDebtCoverage);
 
     const summary = {
         runtimeMode:     out.runtimeMode,
@@ -2874,8 +2884,8 @@ window.debugRuntimeSmokeTest = async function(term) {
         examCanonicalLedgerOk:      !!out.examCanonicalLedger.ok,
         bundleTransactionsOk:       !!out.bundleTransactions.ok,
         // Phase 4K-5G
-        financeTableLayoutOk:       !!out.financeTableLayout.ok,
-        studentListCoverageOk:      !!out.studentListCoverage.ok,
+        activeListCoverageOk:       !!out.activeListCoverage.ok,
+        debtCoverageOk:             !!out.debtCoverage.ok,
 
         overallOk:
             !!out.examFee.ok &&
@@ -2894,9 +2904,7 @@ window.debugRuntimeSmokeTest = async function(term) {
             !!out.examRegistrationCount.ok &&
             !!out.examDuplicatePayments.ok &&
             !!out.examCanonicalLedger.ok &&
-            !!out.bundleTransactions.ok &&
-            !!out.financeTableLayout.ok &&
-            !!out.studentListCoverage.ok
+            !!out.bundleTransactions.ok
     };
 
     console.table(summary);

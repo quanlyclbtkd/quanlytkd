@@ -135,43 +135,16 @@ export function invalidateFinanceRender(section) {
  * @param {string}  opts.btnDel         — pre-built delete button or ''
  * @returns {string}
  */
-
-// ── Phase 4K-5G: Compact branch display ──────────────────────────────────────
-function _formatBranchCompact(branch) {
-    const b = String(branch || '').trim();
-    if (!b) return '';
-    if (b.includes('Huỳnh Tấn Phát')) return 'HTP';
-    if (b.includes('Sân vận động'))   return 'SVĐ';
-    if (typeof window.getBranchNameDisplay === 'function') {
-        const full = window.getBranchNameDisplay(b) || b;
-        if (full.includes('Huỳnh Tấn Phát')) return 'HTP';
-        if (full.includes('Sân vận động'))   return 'SVĐ';
-        return full.length > 12 ? full.slice(0, 12) + '…' : full;
-    }
-    return b.length > 12 ? b.slice(0, 12) + '…' : b;
+/**
+ * Phase 4K-5G: Ensure a <td> element always has the given CSS class.
+ * Handles cases where branchTdHTML may be empty or lack a class attribute.
+ */
+function _ensureTxCellClass(tdHtml, className) {
+    const html = String(tdHtml || '');
+    if (!html) return `<td class="${className}"></td>`;
+    if (html.includes('class="')) return html.replace('class="', `class="${className} `);
+    return html.replace('<td', `<td class="${className}"`);
 }
-
-// ── Phase 4K-5G: Finance table colgroup helper ────────────────────────────────
-window.getFinanceTxColgroup = function(isSingleBranch) {
-    return isSingleBranch
-        ? `<colgroup>
-  <col class="tx-col-date">
-  <col class="tx-col-month">
-  <col class="tx-col-name">
-  <col class="tx-col-type">
-  <col class="tx-col-amount">
-  <col class="tx-col-actions">
-</colgroup>`
-        : `<colgroup>
-  <col class="tx-col-date">
-  <col class="tx-col-branch">
-  <col class="tx-col-month">
-  <col class="tx-col-name">
-  <col class="tx-col-type">
-  <col class="tx-col-amount">
-  <col class="tx-col-actions">
-</colgroup>`;
-};
 
 export function renderTxRow(tx, opts = {}) {
     const { isSingleBranch = true, isAdmin = false, branchTdHTML = '', btnDel = '' } = opts;
@@ -219,7 +192,7 @@ export function renderTxRow(tx, opts = {}) {
 
         return `<tr data-tx-id="${_escAttr(_txId)}">`
             + `<td class="tx-date-cell text-slate-500 text-[0.8rem]" title="${_escAttr(formatDate(tx.date))}">${_formatDateCompactB(tx.date)}</td>`
-            + (isSingleBranch ? '' : `<td class="tx-branch-cell" title="${_escAttr(tx.branch || '')}"><span class="badge bg-slate-100 text-slate-600 border border-slate-200">${_escHtml(_formatBranchCompact(tx.branch || ''))}</span></td>`)
+            + _ensureTxCellClass(branchTdHTML, 'tx-branch-cell')
             + `<td class="tx-month-cell">${_monthBadge}</td>`
             + _nameTdBundle
             + `<td class="tx-type-cell">${_typeBadge}</td>`
@@ -282,12 +255,12 @@ export function renderTxRow(tx, opts = {}) {
 
         function _formatDateCompact(date) {
         const s = String(date || '');
-        if (/^\\d{4}-\\d{2}-\\d{2}$/.test(s)) return s.substring(8,10) + '/' + s.substring(5,7);
+        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s.substring(8,10) + '/' + s.substring(5,7);
         return formatDate(date);
     }
     return `<tr data-tx-id="${_escAttr(tx.id || tx.txId || '')}">`
         + `<td class="tx-date-cell text-slate-500 text-[0.8rem]" title="${_escAttr(formatDate(tx.date))}">${_formatDateCompact(tx.date)}</td>`
-        + (isSingleBranch ? '' : `<td class="tx-branch-cell" title="${_escAttr(tx.branch || '')}"><span class="badge bg-slate-100 text-slate-600 border border-slate-200">${_escHtml(_formatBranchCompact(tx.branch || ''))}</span></td>`)
+        + _ensureTxCellClass(branchTdHTML, 'tx-branch-cell')
         + monthBadgeTd.replace('<td>', '<td class="tx-month-cell">')
         + nameTd.replace('class="name-link', 'class="tx-name-cell name-link')
         + `<td class="tx-type-cell">${typeBadge}</td>`
