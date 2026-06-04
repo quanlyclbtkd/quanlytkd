@@ -135,16 +135,62 @@ export function invalidateFinanceRender(section) {
  * @param {string}  opts.btnDel         — pre-built delete button or ''
  * @returns {string}
  */
-/**
- * Phase 4K-5G: Ensure a <td> element always has the given CSS class.
- * Handles cases where branchTdHTML may be empty or lack a class attribute.
- */
-function _ensureTxCellClass(tdHtml, className) {
-    const html = String(tdHtml || '');
-    if (!html) return `<td class="${className}"></td>`;
-    if (html.includes('class="')) return html.replace('class="', `class="${className} `);
-    return html.replace('<td', `<td class="${className}"`);
+
+// ── Phase 4K-5G: Compact branch display ──────────────────────────────────────
+function _formatBranchCompact(branch) {
+    const b = String(branch || '').trim();
+    if (!b) return '';
+    if (b.includes('Huỳnh Tấn Phát')) return 'HTP';
+    if (b.includes('Sân vận động'))   return 'SVĐ';
+    if (typeof window.getBranchNameDisplay === 'function') {
+        const full = window.getBranchNameDisplay(b) || b;
+        if (full.includes('Huỳnh Tấn Phát')) return 'HTP';
+        if (full.includes('Sân vận động'))   return 'SVĐ';
+        return full.length > 12 ? full.slice(0, 12) + '…' : full;
+    }
+    return b.length > 12 ? b.slice(0, 12) + '…' : b;
 }
+
+// ── Phase 4K-5G: Universal Load More row helper ────────────────────────────────
+window.renderLoadMoreRow = window.renderLoadMoreRow || function(options) {
+    options = options || {};
+    const id        = options.id        || '';
+    const colspan   = options.colspan   != null ? options.colspan : 10;
+    const text      = options.text      || '⬇ Tải thêm';
+    const countText = options.countText || '';
+    const onclick   = options.onclick   || '';
+    const disabled  = !!options.disabled;
+    return '<tr class="load-more-row"' + (id ? ' id="' + id + '"' : '') + '>'
+        + '<td colspan="' + colspan + '" style="text-align:center;padding:14px 10px;background:#f8fafc;">'
+        + '<button type="button" class="load-more-btn"'
+        + (onclick ? ' onclick="' + onclick + '"' : '')
+        + (disabled ? ' disabled' : '')
+        + ' style="padding:10px 16px;border-radius:12px;border:1px solid #cbd5e1;background:white;font-weight:800;color:#1d4ed8;cursor:pointer;box-shadow:0 1px 4px rgba(15,23,42,0.08);">'
+        + text + (countText ? ' ' + countText : '')
+        + '</button></td></tr>';
+};
+
+// ── Phase 4K-5G: Finance table colgroup helper ────────────────────────────────
+window.getFinanceTxColgroup = function(isSingleBranch) {
+    return isSingleBranch
+        ? `<colgroup>
+  <col class="tx-col-date">
+  <col class="tx-col-month">
+  <col class="tx-col-name">
+  <col class="tx-col-type">
+  <col class="tx-col-amount">
+  <col class="tx-col-actions">
+</colgroup>`
+        : `<colgroup>
+  <col class="tx-col-date">
+  <col class="tx-col-branch">
+  <col class="tx-col-month">
+  <col class="tx-col-name">
+  <col class="tx-col-type">
+  <col class="tx-col-amount">
+  <col class="tx-col-actions">
+</colgroup>`;
+};
 
 export function renderTxRow(tx, opts = {}) {
     const { isSingleBranch = true, isAdmin = false, branchTdHTML = '', btnDel = '' } = opts;
@@ -185,14 +231,12 @@ export function renderTxRow(tx, opts = {}) {
         </td>`;
 
         function _formatDateCompactB(date) {
-            const s = String(date || '');
-            if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s.substring(8,10) + '/' + s.substring(5,7);
             return formatDate(date);
         }
 
         return `<tr data-tx-id="${_escAttr(_txId)}">`
             + `<td class="tx-date-cell text-slate-500 text-[0.8rem]" title="${_escAttr(formatDate(tx.date))}">${_formatDateCompactB(tx.date)}</td>`
-            + _ensureTxCellClass(branchTdHTML, 'tx-branch-cell')
+            + (isSingleBranch ? '' : `<td class="tx-branch-cell" title="${_escAttr(tx.branch || '')}"><span class="badge bg-slate-100 text-slate-600 border border-slate-200">${_escHtml(_formatBranchCompact(tx.branch || ''))}</span></td>`)
             + `<td class="tx-month-cell">${_monthBadge}</td>`
             + _nameTdBundle
             + `<td class="tx-type-cell">${_typeBadge}</td>`
@@ -254,13 +298,11 @@ export function renderTxRow(tx, opts = {}) {
     const printBtn = `<button type="button" class="btn-sm bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white js-print-tuition-receipt" data-action="print-tuition-receipt" data-tx-id="${_escAttr(tx.id || tx.txId || '')}" data-student-name="${_escAttr(cleanName)}" data-tx-months="${_escAttr(txMonthsStr)}" data-tx-type="${_escAttr(tx.type || '')}" data-tx-date="${_escAttr(tx.date || '')}" data-tx-branch="${_escAttr(tx.branch || 'CS1')}" data-tx-amount="${Number(tx.amount) || 0}" data-exam-title="${_escAttr(tx.examTitle || '')}">🧾 In</button>`;
 
         function _formatDateCompact(date) {
-        const s = String(date || '');
-        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s.substring(8,10) + '/' + s.substring(5,7);
         return formatDate(date);
     }
     return `<tr data-tx-id="${_escAttr(tx.id || tx.txId || '')}">`
         + `<td class="tx-date-cell text-slate-500 text-[0.8rem]" title="${_escAttr(formatDate(tx.date))}">${_formatDateCompact(tx.date)}</td>`
-        + _ensureTxCellClass(branchTdHTML, 'tx-branch-cell')
+        + (isSingleBranch ? '' : `<td class="tx-branch-cell" title="${_escAttr(tx.branch || '')}"><span class="badge bg-slate-100 text-slate-600 border border-slate-200">${_escHtml(_formatBranchCompact(tx.branch || ''))}</span></td>`)
         + monthBadgeTd.replace('<td>', '<td class="tx-month-cell">')
         + nameTd.replace('class="name-link', 'class="tx-name-cell name-link')
         + `<td class="tx-type-cell">${typeBadge}</td>`
@@ -510,6 +552,23 @@ export function computeAndCacheFinance(transactions, params) {
             }
         }
     });
+
+    // ── Phase 4K-5G: Append tx load-more row if pagination has more pages ──
+    if (buildTxRows && txRows !== null) {
+        const _txPg = window.__store && window.__store.pagination && window.__store.pagination.transactions;
+        if (_txPg && _txPg.hasNext) {
+            const _colspan = isSingleBranch ? 6 : 7;
+            txRows += typeof window.renderLoadMoreRow === 'function'
+                ? window.renderLoadMoreRow({
+                    id: 'loadMoreTxRow',
+                    colspan: _colspan,
+                    text: '⬇ Tải thêm giao dịch',
+                    onclick: 'window.loadMoreTransactionsPage && window.loadMoreTransactionsPage()'
+                  })
+                : '<tr id="loadMoreTxRow"><td colspan="' + _colspan + '" style="text-align:center;padding:14px 10px;background:#f8fafc;">'
+                  + '<button type="button" onclick="window.loadMoreTransactionsPage && window.loadMoreTransactionsPage()" style="padding:10px 16px;border-radius:12px;border:1px solid #cbd5e1;background:white;font-weight:800;color:#1d4ed8;cursor:pointer;">⬇ Tải thêm giao dịch</button></td></tr>';
+        }
+    }
 
     // ── Store results in module-local cache ──
     if (buildTxRows)      _cache.txRows      = txRows;

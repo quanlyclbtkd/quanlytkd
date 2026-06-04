@@ -1221,101 +1221,131 @@ button, a, [role="button"] {
     }
 }
 
-/* ═══════════════════════════════════════════════════════════════════════
-   Phase 4K-5G — Finance Table (tbl_tx) Column Compact Layout
-   Scoped to #tbl_tx only — không ảnh hưởng các bảng khác
-   ═══════════════════════════════════════════════════════════════════════ */
-
-#tbl_tx.finance-tx-table {
-    table-layout: fixed;
-    width: 100%;
-    min-width: 880px;
+/* ── Phase 4K-5G: Finance TX table hard column layout ──────────────────────── */
+.finance-tx-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
 }
 
-#tbl_tx .tx-col-date {
-    width: 82px;
+.finance-tx-table th,
+.finance-tx-table td {
+  vertical-align: middle;
+  overflow: hidden;
 }
 
-#tbl_tx .tx-col-branch {
-    width: 105px;
+.finance-tx-table .tx-col-date,
+.finance-tx-table .tx-date-cell {
+  width: 110px;
+  max-width: 110px;
+  min-width: 110px;
+  white-space: nowrap;
 }
 
-#tbl_tx .tx-col-month {
-    width: 92px;
+.finance-tx-table .tx-col-branch,
+.finance-tx-table .tx-branch-cell {
+  width: 96px;
+  max-width: 96px;
+  white-space: nowrap;
 }
 
-#tbl_tx .tx-col-name {
-    width: auto;
+.finance-tx-table .tx-col-month,
+.finance-tx-table .tx-month-cell {
+  width: 82px;
+  max-width: 82px;
+  white-space: nowrap;
 }
 
-#tbl_tx .tx-col-type {
-    width: 145px;
+.finance-tx-table .tx-col-type,
+.finance-tx-table .tx-type-cell {
+  width: 135px;
+  max-width: 135px;
+  white-space: nowrap;
 }
 
-#tbl_tx .tx-col-amount {
-    width: 112px;
+.finance-tx-table .tx-col-amount,
+.finance-tx-table .tx-amount-cell {
+  width: 105px;
+  max-width: 105px;
+  white-space: nowrap;
+  text-align: right;
 }
 
-#tbl_tx .tx-col-actions {
-    width: 96px;
+.finance-tx-table .tx-col-actions,
+.finance-tx-table .tx-actions-cell {
+  width: 92px;
+  max-width: 92px;
+  white-space: nowrap;
+  text-align: right;
 }
 
-#tbl_tx th,
-#tbl_tx td {
-    overflow: hidden;
-    text-overflow: ellipsis;
+.finance-tx-table .tx-col-name,
+.finance-tx-table .tx-name-cell {
+  width: auto;
+  min-width: 0;
 }
 
-#tbl_tx .tx-date-cell,
-#tbl_tx .tx-branch-cell,
-#tbl_tx .tx-month-cell,
-#tbl_tx .tx-type-cell,
-#tbl_tx .tx-amount-cell,
-#tbl_tx .tx-actions-cell {
-    white-space: nowrap;
+.tx-name-cell,
+.tx-bundle-detail,
+.tx-student-name {
+  min-width: 0;
 }
 
-#tbl_tx .tx-name-cell {
-    min-width: 0;
-    max-width: none;
+.tx-bundle-detail {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-#tbl_tx .tx-bundle-detail {
-    display: block;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+.tx-actions-cell .btn-sm {
+  padding-left: 0.45rem;
+  padding-right: 0.45rem;
 }
 
-#tbl_tx .tx-actions-cell {
-    text-align: right;
+@media (max-width: 768px) {
+  .finance-tx-table {
+    min-width: 760px;
+  }
+
+  .finance-tx-table .tx-col-date,
+  .finance-tx-table .tx-date-cell {
+    width: 58px;
+    max-width: 58px;
+    font-size: 0.72rem;
+  }
+
+  .finance-tx-table .tx-col-branch,
+  .finance-tx-table .tx-branch-cell {
+    width: 68px;
+    max-width: 68px;
+    font-size: 0.68rem;
+  }
+
+  .finance-tx-table .tx-col-month,
+  .finance-tx-table .tx-month-cell {
+    width: 70px;
+    max-width: 70px;
+  }
+
+  .finance-tx-table .tx-col-type,
+  .finance-tx-table .tx-type-cell {
+    width: 104px;
+    max-width: 104px;
+  }
+
+  .finance-tx-table .tx-col-amount,
+  .finance-tx-table .tx-amount-cell {
+    width: 88px;
+    max-width: 88px;
+    font-size: 0.78rem;
+  }
+
+  .finance-tx-table .tx-col-actions,
+  .finance-tx-table .tx-actions-cell {
+    width: 76px;
+    max-width: 76px;
+  }
 }
-
-@media (min-width: 768px) {
-    #tab_tx .table-wrapper {
-        overflow-x: auto;
-    }
-
-    #tbl_tx .tx-actions-cell {
-        position: sticky;
-        right: 0;
-        background: #fff;
-        z-index: 2;
-        box-shadow: -8px 0 12px rgba(15, 23, 42, 0.04);
-    }
-
-    #tbl_tx th:last-child {
-        position: sticky;
-        right: 0;
-        background: #f8fafc;
-        z-index: 12;
-    }
-}
-
-@media (max-width: 767px) {
-    #tbl_tx.finance-tx-table {
-        min-width: unset;
-        table-layout: auto;
-    }
-}
+/* ── End Phase 4K-5G Finance TX table layout ────────────────────────────────── */
