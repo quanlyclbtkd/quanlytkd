@@ -48,7 +48,7 @@ const PROFILE_STATUS_CONFIG_DEFAULT = Object.freeze({
     /**
      * Giá trị Firestore query cho quit profiles.
      */
-    quitQueryValues: ['quit', 'inactive'],
+    quitQueryValues: ['quit', 'inactive', 'retired'],
 
     /**
      * Aliases khi classify profile từ full getDocs / store.
@@ -65,7 +65,9 @@ const PROFILE_STATUS_CONFIG_DEFAULT = Object.freeze({
      */
     quitAliases: [
         'đã nghỉ', 'da nghi', 'nghỉ', 'nghi',
+        'nghỉ tập', 'nghi tap', 'nghỉ hẳn', 'nghi han',
         'stopped', 'left', 'quit', 'inactive',
+        'retired', 'stop', 'leave',
     ],
 
     /**

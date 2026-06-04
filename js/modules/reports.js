@@ -921,12 +921,25 @@ export function initReports() {
             return t.examTitle || 'Kỳ thi';
         }
 
+        // Phase 4K-5B: canonical name + dedupe + bỏ giao dịch hủy
         let paidData = {};
         allTransactions.forEach(t => {
             if ((t.type === 'Lệ phí thi' || t.type === 'Học phí + Lệ phí thi') && (t.txMonth === selMonth || (t.date && t.date.startsWith(selMonth)))) {
-                const stuName = typeof window.extractExamStudentName === 'function'
+                // Bỏ giao dịch đã hủy
+                if (t.examPaidCancelled === true) return;
+
+                const feeAmt = t.type === 'Học phí + Lệ phí thi'
+                    ? Number(t.examAmount || 0)
+                    : Number(t.amount || 0);
+                if (feeAmt <= 0) return;
+
+                const rawName = typeof window.extractExamStudentName === 'function'
                     ? window.extractExamStudentName(t)
                     : _fallbackExtractName(t);
+
+                const stuName = typeof window.getCanonicalStudentName === 'function'
+                    ? window.getCanonicalStudentName(rawName, allProfiles)
+                    : rawName.replace(/\s*\(\s*$/, '').trim();
 
                 if (!stuName) return;
 
@@ -936,16 +949,20 @@ export function initReports() {
                     ? window.getExamTargetBeltFromTx(t, profile)
                     : _fallbackGetTargetBelt(t, profile);
 
-                const feeAmt = t.type === 'Học phí + Lệ phí thi'
-                    ? Number(t.examAmount || 0)
-                    : Number(t.amount || 0);
+                // Dedupe: nếu đã có entry cho cùng võ sinh, giữ giao dịch mới nhất
+                const old = paidData[stuName];
+                const curTs = Number(t.timestamp || 0);
+                const oldTs = Number(old && old.timestamp || 0);
 
-                paidData[stuName] = {
-                    targetBelt,
-                    amount: feeAmt,
-                    branch: t.branch || profile.branch || 'CS1',
-                    txId: t.id || t.txId || ''
-                };
+                if (!old || curTs >= oldTs) {
+                    paidData[stuName] = {
+                        targetBelt,
+                        amount: feeAmt,
+                        branch: t.branch || profile.branch || 'CS1',
+                        txId: t.id || t.txId || '',
+                        timestamp: curTs
+                    };
+                }
             }
         });
 

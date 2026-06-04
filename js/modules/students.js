@@ -608,6 +608,10 @@ export function initStudents() {
             } else {
                 // Chỉ sửa — không đổi tên
                 await StudentService.updateProfile(oldName, updateData);
+                // Phase 4K-5A: Sync local store sau khi update
+                if (typeof window.syncStudentStatusLocal === 'function') {
+                    window.syncStudentStatusLocal(oldName, updateData);
+                }
                 window.showToast('✅ Đã cập nhật hồ sơ!');
             }
             window.closeModal();
@@ -711,8 +715,15 @@ export function initStudents() {
      */
     window.handleQuitOption = (name, month) => {
         if (confirm(`Võ sinh ${name} có tiếp tục tập không?\n- Bấm OK để báo NGHỈ TẬP luôn.\n- Bấm Cancel để chỉ BÁO NGHỈ THÁNG NÀY (miễn học phí tháng ${formatMonth(month)}).`)) {
-            StudentService.updateProfile(name, { status: 'quit', quitDate: getLocalToday() })
-                .then(() => window.showToast('✅ Đã chuyển trạng thái Nghỉ tập!'));
+            const _quitData = { status: 'quit', quitDate: getLocalToday() };
+            StudentService.updateProfile(name, _quitData)
+                .then(() => {
+                    window.showToast('✅ Đã chuyển trạng thái Nghỉ tập!');
+                    // Phase 4K-5A: Sync local store
+                    if (typeof window.syncStudentStatusLocal === 'function') {
+                        window.syncStudentStatusLocal(name, _quitData);
+                    }
+                });
         } else {
             if (confirm(`Xác nhận miễn nợ học phí tháng ${formatMonth(month)} cho ${name}?`)) {
                 window.skipMonth(name, month);
@@ -798,7 +809,8 @@ export function initStudents() {
         _bulkZaloDebtors = [];
         Object.keys(profiles).sort().forEach(name => {
             const p = profiles[name];
-            if (p.status !== 'active') return;
+            const _pKind = typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus(p) : (p.status === 'quit' ? 'quit' : 'active');
+            if (_pKind !== 'active') return;
             if (p.feeExempt) return;
             if (!isSingleBranch && selBranch !== 'all' && p.branch !== selBranch) return;
 
@@ -1644,3 +1656,84 @@ export function initStudentPagination() {
         }).catch(err => console.error('[initStudentPagination] import students.service:', err));
     }).catch(err => console.error('[initStudentPagination] import pagination.js:', err));
 }
+
+// ════════════════════════════════════════════════════════════════
+// Phase 4K-5A — syncStudentStatusLocal
+// Sync trạng thái võ sinh vào window.__store.profiles sau khi Firestore update.
+// Đảm bảo render tiếp theo dùng đúng status mới, không cần chờ listener.
+// ════════════════════════════════════════════════════════════════
+window.syncStudentStatusLocal = function syncStudentStatusLocal(name, updateData) {
+    try {
+        const store = window.__store;
+        if (!store || !store.profiles) return;
+        if (!name || !updateData) return;
+        const existing = store.profiles[name];
+        if (!existing) return;
+        Object.assign(existing, updateData);
+        // Invalidate render caches so next render picks up new status
+        if (typeof window.invalidateList === 'function') {
+            window.invalidateList('students.activeList', 'syncStudentStatusLocal');
+            window.invalidateList('students.quitList', 'syncStudentStatusLocal');
+        } else if (typeof window.invalidateStudents === 'function') {
+            window.invalidateStudents('syncStudentStatusLocal');
+        }
+        if (typeof window.scheduleRender === 'function') {
+            window.scheduleRender('syncStudentStatusLocal');
+        }
+        console.debug('[syncStudentStatusLocal] synced:', name, '->', updateData.status || '(no status)');
+    } catch (e) {
+        console.warn('[syncStudentStatusLocal] error:', e);
+    }
+};
+
+// ════════════════════════════════════════════════════════════════
+// Phase 4K-5A — debugStudentStatusSeparation
+// Kiểm tra phân tách võ sinh ĐANG TẬP / ĐÃ NGHỈ trong runtime.
+// ════════════════════════════════════════════════════════════════
+window.debugStudentStatusSeparation = function debugStudentStatusSeparation() {
+    const profiles = (window.__store && window.__store.profiles) ? window.__store.profiles : {};
+    const classify = typeof window.classifyProfileStatus === 'function'
+        ? window.classifyProfileStatus
+        : function(p) { return p && (p.status === 'quit' || p.status === 'inactive' || p.status === 'retired') ? 'quit' : 'active'; };
+
+    let activeCount = 0, quitCount = 0, unknownCount = 0;
+    const quitInActiveTab = [], activeInQuitTab = [];
+
+    const activeListRows  = Array.from(document.querySelectorAll('#activeList tr[data-student-id]')).map(r => r.dataset.studentId);
+    const quitListRows    = Array.from(document.querySelectorAll('#quitList  tr[data-student-id]')).map(r => r.dataset.studentId);
+
+    Object.keys(profiles).forEach(name => {
+        const p = profiles[name];
+        const kind = classify(p);
+        if (kind === 'active') activeCount++;
+        else if (kind === 'quit') quitCount++;
+        else unknownCount++;
+    });
+
+    // Check if any quit student appears in active tab DOM
+    quitListRows.forEach(name => {
+        if (activeListRows.includes(name)) quitInActiveTab.push(name);
+    });
+    activeListRows.forEach(name => {
+        const p = profiles[name];
+        if (p && classify(p) === 'quit') activeInQuitTab.push(name);
+    });
+
+    const result = {
+        totalProfiles: Object.keys(profiles).length,
+        classifyActiveCount: activeCount,
+        classifyQuitCount: quitCount,
+        unknownCount,
+        activeListDOMRows: activeListRows.length,
+        quitListDOMRows: quitListRows.length,
+        quitStudentsInActiveDOMTab: quitInActiveTab.length,
+        separationOk: quitInActiveTab.length === 0 && activeInQuitTab.length === 0,
+        quitInActiveNames: quitInActiveTab.slice(0, 5),
+        activeInQuitNames: activeInQuitTab.slice(0, 5),
+        hasSyncStudentStatusLocal: typeof window.syncStudentStatusLocal === 'function',
+        hasClassifyProfileStatus: typeof window.classifyProfileStatus === 'function',
+    };
+
+    console.table(result);
+    return result;
+};

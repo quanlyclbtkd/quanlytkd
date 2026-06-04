@@ -2670,6 +2670,15 @@ window.debugRuntimeSmokeTest = async function(term) {
         window.debugActiveStudentSort,
         [10]
     );
+    // Phase 4K-5A
+    out.studentStatusSeparation = await safeCall('debugStudentStatusSeparation', window.debugStudentStatusSeparation);
+    out.examRegistrationCount   = await safeCall('debugExamRegistrationCount',   window.debugExamRegistrationCount);
+    // Phase 4K-5B
+    out.examDuplicatePayments = await safeCall(
+        'debugExamDuplicatePayments',
+        window.debugExamDuplicatePayments,
+        ['']
+    );
 
     const summary = {
         runtimeMode:     out.runtimeMode,
@@ -2691,6 +2700,11 @@ window.debugRuntimeSmokeTest = async function(term) {
         // Phase 4K-4G
         monthlyRevenueAllocationOk: !!out.monthlyRevenueAllocation.ok,
         activeStudentSortOk:        !!out.activeStudentSort.ok,
+        // Phase 4K-5A
+        studentStatusSeparationOk:  !!out.studentStatusSeparation.ok,
+        examRegistrationCountOk:    !!out.examRegistrationCount.ok,
+        // Phase 4K-5B
+        examDuplicatePaymentsOk:    !!out.examDuplicatePayments.ok,
 
         overallOk:
             !!out.examFee.ok &&
@@ -2704,7 +2718,10 @@ window.debugRuntimeSmokeTest = async function(term) {
             !!out.admissionTxHydration.ok &&
             !!out.tuitionPackageCoverage.ok &&
             !!out.monthlyRevenueAllocation.ok &&
-            !!out.activeStudentSort.ok
+            !!out.activeStudentSort.ok &&
+            !!out.studentStatusSeparation.ok &&
+            !!out.examRegistrationCount.ok &&
+            !!out.examDuplicatePayments.ok
     };
 
     console.table(summary);

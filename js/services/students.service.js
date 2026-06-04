@@ -102,16 +102,22 @@ export const StudentService = {
 
         const constraints = [];
 
-        // ── Filters (requires Firestore composite indexes for combinations) ──
-        // NOTE: We use simple orderBy(__name__) to avoid needing extra indexes.
-        // Status & branch filters are applied AFTER fetch (client-side trim)
-        // when the filter count per page is low enough.
-        // For heavy status/branch filtering, future versions can add where() clauses
-        // with the appropriate composite index.
+        // ── Filters ──────────────────────────────────────────────────────────
+        // Phase 4K-5A: Không dùng inequality filter cho status vì không an toàn.
+        // Nó bỏ sót inactive/retired/stopped. Dùng 'in' query hoặc client-side classify.
+        // Status & branch filters are applied AFTER fetch (client-side trim) via classifyProfileStatus.
+        const _getActiveQ  = window.getActiveQueryValues  || (typeof getActiveQueryValues  === 'function' ? getActiveQueryValues  : null);
+        const _getQuitQ    = window.getQuitQueryValues    || (typeof getQuitQueryValues    === 'function' ? getQuitQueryValues    : null);
         if (statusFilter === 'active') {
-            constraints.push(where('status', '!=', 'quit'));
+            const _activeVals = _getActiveQ ? _getActiveQ() : ['active', 'trial'];
+            if (_activeVals && _activeVals.length) {
+                try { constraints.push(where('status', 'in', _activeVals)); } catch (_) { /* fallback: client filter via classifyProfileStatus */ }
+            }
         } else if (statusFilter === 'quit') {
-            constraints.push(where('status', '==', 'quit'));
+            const _quitVals = _getQuitQ ? _getQuitQ() : ['quit', 'inactive', 'retired'];
+            if (_quitVals && _quitVals.length) {
+                try { constraints.push(where('status', 'in', _quitVals)); } catch (_) { /* fallback: client filter */ }
+            }
         }
 
         // Order by document ID (name) alphabetically
