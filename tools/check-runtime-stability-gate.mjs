@@ -66,11 +66,15 @@ check('debugRuntimeSmokeTest gọi debugDataSourceAuthority', mainJs.includes('d
 check('debugRuntimeSmokeTest gọi debugFinanceReconcile', mainJs.includes('debugFinanceReconcile'));
 check('debugRuntimeSmokeTest gọi debugRenderHealth', mainJs.includes('debugRenderHealth'));
 
-// 13. Cache bust (accepts runtime-stability-gate-20260605 or any later phase version)
-check(
-  'index.html có cache bust runtime-stability-gate-20260605',
+// 13. Cache bust (accepts any valid versioned main.js, including future phases)
+const hasVersionedMainJs = /main\.js\?v=[a-z0-9-]+/i.test(indexHtml);
+const hasKnownModernVersion =
   indexHtml.includes('runtime-stability-gate-20260605') ||
-  indexHtml.includes('dashboard-exam-registration-branch-fix-20260605')
+  indexHtml.includes('dashboard-exam-registration-branch-fix-20260605') ||
+  indexHtml.includes('mobile-superadmin-search-router-fix-20260605');
+check(
+  'index.html có cache bust main.js version hợp lệ',
+  hasVersionedMainJs && hasKnownModernVersion
 );
 
 // Summary

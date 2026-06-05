@@ -3177,6 +3177,17 @@ window.debugRuntimeSmokeTest = async function(term) {
         'debugExamBranchRegistrationMismatch',
         window.debugExamBranchRegistrationMismatch
     );
+    // Phase 4K-5Q: Mobile SuperAdmin Guard
+    out.mobileSuperAdminGuard = await safeCall(
+        'debugMobileSuperAdminGuard',
+        window.debugMobileSuperAdminGuard
+    );
+    // Phase 4K-5Q: Search Router V2
+    out.searchRouterV2 = await safeCall(
+        'debugSearchRouterV2',
+        window.debugSearchRouterV2,
+        ['nguyen']
+    );
 
     const summary = {
         runtimeMode:     out.runtimeMode,
@@ -3226,6 +3237,9 @@ window.debugRuntimeSmokeTest = async function(term) {
         renderHealthOk:             !!out.renderHealth.ok,
         // Phase 4K-5P
         examBranchRegistrationOk:   !!out.examBranchRegistrationMismatch.ok,
+        // Phase 4K-5Q
+        mobileSuperAdminGuardOk:    !!out.mobileSuperAdminGuard.ok,
+        searchRouterV2Ok:           !!out.searchRouterV2.ok,
 
         overallOk:
             !!out.examFee.ok &&

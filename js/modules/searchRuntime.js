@@ -253,6 +253,62 @@ function _applyCachedStudentResult(cached, tab) {
     }
 }
 
+// ── Phase 4K-5Q: Search Route Map ─────────────────────────────────────────────
+
+function _getSearchRoute(tab) {
+    if (tab === 'active') {
+        return { domain: 'students', mode: 'active', listKey: 'students.activeList', strategy: 'profiles-client-first' };
+    }
+    if (tab === 'quit') {
+        return { domain: 'students', mode: 'quit', listKey: 'students.quitList', strategy: 'profiles-client-first' };
+    }
+    if (tab === 'debt') {
+        return { domain: 'students', mode: 'debt', listKey: 'students.debtList', strategy: 'debt-full-profiles' };
+    }
+    if (tab === 'tx' || tab === 'expense') {
+        return { domain: 'finance', mode: 'transactions', listKey: 'tx.txList', strategy: 'transactions-local-first' };
+    }
+    if (tab === 'inventory') {
+        return { domain: 'inventory', mode: 'inventory', listKey: 'inventory.inventoryList', strategy: 'inventory-local-first' };
+    }
+    if (tab === 'dashboard') {
+        return { domain: 'dashboard', mode: 'dashboard', listKey: 'dashboard.summary', strategy: 'invalidate-only' };
+    }
+    return { domain: 'misc', mode: tab || 'unknown', listKey: '', strategy: 'invalidate-current-tab' };
+}
+
+window.getSearchRouteForCurrentTab = function() {
+    return _getSearchRoute(_getCurrentTab());
+};
+
+// ── Phase 4K-5Q: Client-side profile search ────────────────────────────────────
+
+function _clientSearchProfiles(term, mode) {
+    const st       = window.__store || {};
+    const profiles = st.profiles || {};
+    const q        = _normalizeSearch(term);
+    const items    = [];
+
+    Object.entries(profiles).forEach(([name, p]) => {
+        const statusKind = typeof window.classifyProfileStatus === 'function'
+            ? window.classifyProfileStatus(p)
+            : (p.status === 'quit' ? 'quit' : 'active');
+
+        if (mode === 'active' && statusKind !== 'active') return;
+        if (mode === 'quit'   && statusKind !== 'quit')   return;
+
+        const blob = typeof window.getProfileSearchBlob === 'function'
+            ? window.getProfileSearchBlob(name, p)
+            : getProfileSearchBlob(name, p);
+
+        if (!q || blob.includes(q)) {
+            items.push({ id: name, ...p });
+        }
+    });
+
+    return items;
+}
+
 // ── Tab-aware dispatch ─────────────────────────────────────────────────────────
 
 async function _dispatchSearch(rawTerm) {
@@ -361,17 +417,51 @@ async function _applyInvalidateForTab(tab, term, token) {
     const refreshKeys = typeof window.refreshListsComputation === 'function'
         ? window.refreshListsComputation : null;
 
-    // Phase 4K-2: Student tabs — server-side pagination search
+    // Phase 4K-5Q: Student tabs — client-first search when full profiles available
     if (tab === 'active' || tab === 'quit') {
-        let result = { items: [], totalLoaded: 0, hasNext: false };
-        if (typeof window.runStudentSearchPagination === 'function') {
-            // Phase 4K-2C: pass token so students.js stale guard works
-            await window.runStudentSearchPagination(term, { searchToken: token });
-            // Capture result from pgState for caching
+        const st             = window.__store || {};
+        const profilesCount  = Object.keys(st.profiles || {}).length;
+        const hasFullProfiles = profilesCount >= 50 || st._profilesFullLoadedForDebt || st._profilesHydrated;
+
+        if (hasFullProfiles) {
+            const items = _clientSearchProfiles(term, tab);
+            const PAGE_SIZE = 100;
+
             try {
-                const pgState = window.__store &&
-                                window.__store.pagination &&
-                                window.__store.pagination.students;
+                const pgState = st.pagination && st.pagination.students;
+                if (pgState) {
+                    pgState.currentItems = items.slice(0, PAGE_SIZE);
+                    pgState.searchActive = term !== '';
+                    pgState.enabled      = true;
+                }
+                if (st) {
+                    st._studentsPaginationVersion = (st._studentsPaginationVersion || 0) + 1;
+                    st._dataVersion               = (st._dataVersion || 0) + 1;
+                }
+            } catch (_) {}
+
+            const listKey = tab === 'quit' ? 'students.quitList' : 'students.activeList';
+            if (refreshKeys) refreshKeys([listKey], 'search-client-first');
+            if (invalidateList) invalidateList(listKey, 'search-client-first');
+
+            if (typeof window.setSearchStatus === 'function') {
+                window.setSearchStatus(
+                    items.length > 0
+                        ? 'Tìm thấy ' + items.length + ' kết quả'
+                        : 'Không tìm thấy kết quả',
+                    items.length > 0 ? 'found' : 'empty'
+                );
+            }
+
+            return { items: items.slice(0, PAGE_SIZE), totalLoaded: items.length, hasNext: false };
+        }
+
+        // Fallback: server search khi chưa có full profiles
+        let result = { items: [], totalLoaded: 0, hasNext: false };
+        if (term.length >= 2 && typeof window.runStudentSearchPagination === 'function') {
+            await window.runStudentSearchPagination(term, { searchToken: token });
+            try {
+                const pgState = st.pagination && st.pagination.students;
                 if (pgState && Array.isArray(pgState.currentItems)) {
                     result = {
                         items:       pgState.currentItems.slice(),
@@ -381,22 +471,38 @@ async function _applyInvalidateForTab(tab, term, token) {
                 }
             } catch (_) {}
         }
+
+        if (typeof window.setSearchStatus === 'function') {
+            window.setSearchStatus(
+                result.items.length > 0
+                    ? 'Tìm thấy ' + result.totalLoaded + ' kết quả'
+                    : 'Không tìm thấy kết quả',
+                result.items.length > 0 ? 'found' : 'empty'
+            );
+        }
         return result;
     }
 
     if (tab === 'debt') {
+        // Phase 4K-5Q: Debt search — reset render limit + refresh full debt source
+        window.__debtRenderLimit = 50;
         if (refreshKeys) refreshKeys(['students.debtList'], 'search-debt');
         if (invalidateList) invalidateList('students.debtList', 'search-debt');
+        if (typeof window.setSearchStatus === 'function') {
+            window.setSearchStatus('Đang lọc nợ...', 'info');
+        }
         return {};
     }
 
     if (tab === 'tx' || tab === 'expense') {
+        // Phase 4K-5Q: TX search — chỉ refresh tx, KHÔNG refresh students/debt/dashboard
         if (refreshKeys) refreshKeys(['tx.txList'], 'search-tx');
         if (invalidateCurrentTab) invalidateCurrentTab('search-tx');
         return {};
     }
 
     if (tab === 'inventory') {
+        // Phase 4K-5Q: Inventory search — chỉ refresh inventory, KHÔNG refresh students
         if (refreshKeys) refreshKeys(['inventory.inventoryList', 'inventory.uniformTxList'], 'search-inventory');
         if (invalidateCurrentTab) invalidateCurrentTab('search-inventory');
         return {};
@@ -415,6 +521,17 @@ async function _applyInvalidateForTab(tab, term, token) {
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
+
+// Phase 4K-5Q: Search status UI helper
+window.setSearchStatus = function(text, kind) {
+    kind = kind || 'info';
+    const el2 = document.getElementById('searchStatusMsg_students') ||
+                document.getElementById('searchStatusMsg') ||
+                null;
+    if (!el2) return;
+    el2.textContent = text || '';
+    el2.dataset.kind = kind;
+};
 
 export function initGlobalSearchRuntime() {
     if (_state.mounted) {
@@ -437,17 +554,40 @@ export function initGlobalSearchRuntime() {
     }
     el.__searchRuntimeBound = true;
 
+    // Phase 4K-5Q: Disable legacy inline oninput once unified runtime is mounted.
+    try {
+        if (el.oninput) {
+            el.__legacyOnInputBackup = el.oninput;
+            el.oninput = null;
+        }
+    } catch (_) {}
+
+    const SEARCH_DEBOUNCE_MS  = 380;
+
     el.addEventListener('input', () => {
         clearTimeout(_state.pendingTimer);
-        const raw = el.value.trim();
+
+        const raw        = el.value || '';
+        const normalized = _normalizeSearch(raw);
+
+        _state.lastRawInput        = raw;
+        _state.lastNormalizedInput = normalized;
+        _state.inputCount          = (_state.inputCount || 0) + 1;
+
+        if (typeof window.setSearchStatus === 'function') {
+            window.setSearchStatus('Đang tìm...', 'info');
+        }
+
         _state.pendingTimer = setTimeout(() => {
             _dispatchSearch(raw);
-        }, 250);
-    });
+        }, SEARCH_DEBOUNCE_MS);
+    }, { passive: true });
 
     _state.mounted = true;
-    window.__searchRuntimeMounted = true;
-    window.__searchRuntimeState   = _state;
+    window.__searchRuntimeMounted          = true;
+    window.__SEARCH_ROUTER_V2_ACTIVE       = true;
+    window.__studentSearchControllerMounted = true;
+    window.__searchRuntimeState            = _state;
 
     // Phase 4K-2: Expose SearchBlob builders globally
     // Guard getProfileSearchBlob: main.js may already expose a version-aware implementation
@@ -571,6 +711,38 @@ export function invalidateSearchCache(domain, reason) {
  * debugSearchPerformance() — print search runtime metrics to console.
  * Callable from DevTools: window.debugSearchPerformance()
  */
+// ── Phase 4K-5Q: debugSearchRouterV2 ─────────────────────────────────────────
+
+window.debugSearchRouterV2 = function(term) {
+    term = typeof term === 'string' ? term : '';
+    const input = document.getElementById('searchInput');
+    const route = typeof window.getSearchRouteForCurrentTab === 'function'
+        ? window.getSearchRouteForCurrentTab()
+        : null;
+    const state = typeof window.getSearchRuntimeState === 'function'
+        ? window.getSearchRuntimeState()
+        : {};
+
+    const result = {
+        inputExists:             !!input,
+        inputValue:              input ? input.value : '',
+        testTerm:                term,
+        currentTab:              typeof window.getCurrentActiveTabId === 'function'
+                                     ? window.getCurrentActiveTabId()
+                                     : '',
+        route,
+        searchRouterV2Active:    !!window.__SEARCH_ROUTER_V2_ACTIVE,
+        searchRuntimeMounted:    !!window.__searchRuntimeMounted,
+        studentControllerMounted: !!window.__studentSearchControllerMounted,
+        hasInlineOnInput:        !!(input && input.oninput),
+        legacyBackupExists:      !!(input && input.__legacyOnInputBackup),
+        state
+    };
+
+    console.table(result);
+    return result;
+};
+
 export function debugSearchPerformance() {
     const s = _state;
     const result = {
