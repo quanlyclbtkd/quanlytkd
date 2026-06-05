@@ -3300,6 +3300,10 @@ window.debugRuntimeSmokeTest = async function(term) {
     summary.unifiedSearchV2Ok      = !!out.unifiedSearchV2.ok;
     summary.activeLoadMoreSingleOk = !!out.activeLoadMoreSingle.ok;
 
+    // Phase 4K-5R: Exam Auto Select Paid Canonical
+    out.examAutoSelectPaid = await safeCall('debugExamAutoSelectPaid', window.debugExamAutoSelectPaid, ['']);
+    summary.examAutoSelectPaidOk = !!out.examAutoSelectPaid.ok;
+
     console.table(summary);
     console.log('[debugRuntimeSmokeTest:detail]', out);
     return { summary: summary, detail: out };

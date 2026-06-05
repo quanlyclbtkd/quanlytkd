@@ -6572,7 +6572,9 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             let statusBadge = isPaid ? `<span class="badge badge-active">Đã nộp (${Number(isPaid.amount).toLocaleString()} đ)</span>` : `<span class="badge badge-quit">Chưa nộp</span>`;
             let actionBtn = isPaid ? (window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-slate-200 hover:bg-slate-300 text-slate-700" onclick="cancelExamPayment('${isPaid.id}', '${safeName}')">Hủy</button>` : '') : (window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-orange-500 hover:bg-orange-600 text-white shadow-sm cursor-pointer" onclick="quickCollectExam('${safeName}')">💰 Thu phí</button>` : '');
 
-            const isNewlyUpgraded = p.upgradedAt && p.upgradedAt >= selMonth.substring(0,7) && p.upgradedFrom;
+            const isNewlyUpgraded = typeof window.isNewlyUpgradedExamStudent === 'function'
+                ? window.isNewlyUpgradedExamStudent(name, p, selMonth)
+                : (p.upgradedAt && String(p.upgradedAt).slice(0, 7) >= selMonth.substring(0, 7) && p.upgradedFrom);
             const newBadge = isNewlyUpgraded ? `<span class="ml-1 text-[0.65rem] font-black bg-amber-400 text-amber-900 px-1.5 py-0.5 rounded uppercase" title="Vừa thăng từ ${p.upgradedFrom} tháng ${p.upgradedAt}">↑ Mới lên</span>` : '';
 
             const row = `<tr class="${isNewlyUpgraded ? 'bg-amber-50/60' : ''}"><td><input type="checkbox" class="exam-check w-4 h-4 cursor-pointer accent-orange-500 rounded" value="${name.replace(/"/g, '&quot;')}"></td><td class="name-link text-[0.95rem]" onclick="openProfile('${safeName}')">${name}${newBadge}</td>${branchTdHTML}<td>${getBeltBadge(p.belt)}</td><td>${statusBadge}</td><td>${actionBtn}</td></tr>`;
@@ -6953,30 +6955,139 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         if(el) el.textContent = next ? `→ Thăng lên: ${next}` : '→ Đã là cấp cao nhất';
     };
 
+    // Phase 4K-5R: selectPaidStudents dùng canonical ledger
     window.selectPaidStudents = () => {
-        const selMonth = document.getElementById('filterMonth').value || getLocalToday().substring(0,7);
-        let paidNames = new Set();
-        allTransactions.forEach(t => {
-            if((t.type === 'Lệ phí thi' || t.type === 'Học phí + Lệ phí thi') && (t.txMonth === selMonth || (t.date && t.date.startsWith(selMonth)))) {
-                // Phase 4K-5B: bỏ giao dịch đã hủy hoặc số tiền bằng 0
-                if (t.examPaidCancelled === true) return;
-                if (t.type === 'Học phí + Lệ phí thi' && Number(t.examAmount || 0) <= 0) return;
-                if (t.type === 'Lệ phí thi' && Number(t.amount || 0) <= 0) return;
+        const selMonth =
+            (document.getElementById('filterMonth') && document.getElementById('filterMonth').value) ||
+            (window.__store && window.__store.selectedMonth) ||
+            getLocalToday().substring(0, 7);
 
-                const rawName = window.extractExamStudentName ? window.extractExamStudentName(t) : (t.description || '').trim();
-                const stuName = window.getCanonicalStudentName ? window.getCanonicalStudentName(rawName, allProfiles) : rawName;
-                if(stuName) paidNames.add(stuName);
-            }
-        });
-        let checked = 0;
+        const profiles =
+            (window.__store && window.__store.profiles) ||
+            allProfiles ||
+            {};
+
+        // Phase 4K-5R: helpers (extractExamStudentName, getCanonicalStudentName) dùng cho canonical path + fallback
+        const _extractName = typeof window.extractExamStudentName === 'function' ? window.extractExamStudentName : null;
+        const _getCanonical = typeof window.getCanonicalStudentName === 'function' ? window.getCanonicalStudentName : null;
+
+        const ledger = typeof window.buildCanonicalExamPaymentLedger === 'function'
+            ? window.buildCanonicalExamPaymentLedger({ month: selMonth })
+            : null;
+
+        const paidNames = new Set();
+        const paidNameNorms = new Set();
+
+        const normalize = typeof window.normalizeVNForSearch === 'function'
+            ? window.normalizeVNForSearch
+            : function(s) {
+                return String(s || '').normalize('NFD')
+                    .replace(/[̀-ͯ]/g, '')
+                    .replace(/đ/g, 'd').replace(/Đ/g, 'D')
+                    .toLowerCase().trim();
+              };
+
+        if (ledger && Array.isArray(ledger.records)) {
+            ledger.records.forEach(r => {
+                // Phase 4K-5R: dùng extractExamStudentName để lấy tên từ sourceTx nếu có
+                const rawName = (r.sourceTx && typeof window.extractExamStudentName === 'function')
+                    ? window.extractExamStudentName(r.sourceTx)
+                    : String(r.studentName || r.rawName || '').trim();
+                const canonicalName = typeof window.getCanonicalStudentName === 'function'
+                    ? window.getCanonicalStudentName(rawName, profiles)
+                    : rawName;
+                if (canonicalName) { paidNames.add(canonicalName); paidNameNorms.add(normalize(canonicalName)); }
+                if (rawName) paidNameNorms.add(normalize(rawName));
+            });
+        } else {
+            // Fallback legacy — chỉ dùng khi canonical ledger chưa tồn tại
+            const txs =
+                Array.isArray((window.__store || {}).allTransactions) ? window.__store.allTransactions :
+                Array.isArray(window.allTransactions) ? window.allTransactions :
+                Array.isArray((window.__store || {}).transactions) ? window.__store.transactions :
+                Array.isArray(allTransactions) ? allTransactions : [];
+
+            txs.forEach(t => {
+                if (!t) return;
+                if (t.examPaidCancelled === true) return;
+                const txMonth = String(t.txMonth || t.month || t.date || '').slice(0, 7);
+                const monthOk = !selMonth || txMonth === selMonth ||
+                    (t.date && String(t.date).startsWith(selMonth)) ||
+                    (Array.isArray(t.packageMonths) && t.packageMonths.includes(selMonth));
+                if (!monthOk) return;
+
+                let examAmount = 0;
+                if (t.type === 'Lệ phí thi') {
+                    examAmount = Number(t.amount || 0);
+                } else if (t.type === 'Học phí + Lệ phí thi') {
+                    examAmount = Number(t.examAmount || 0);
+                } else if (t.type === 'Thu gộp' || t.type === 'Thu nhập học' ||
+                           t.paymentKind === 'bundle' || Array.isArray(t.components)) {
+                    if (Array.isArray(t.components)) {
+                        t.components.forEach(c => {
+                            if (c && (c.kind === 'exam' || c.type === 'Lệ phí thi'))
+                                examAmount += Number(c.amount || 0);
+                        });
+                    } else { examAmount = Number(t.examAmount || 0); }
+                }
+                if (examAmount <= 0) return;
+
+                const rawName = typeof window.extractExamStudentName === 'function'
+                    ? window.extractExamStudentName(t)
+                    : String(t.studentName || t.profileName || t.description || '').trim();
+                const canonicalName = typeof window.getCanonicalStudentName === 'function'
+                    ? window.getCanonicalStudentName(rawName, profiles) : rawName;
+                if (canonicalName) { paidNames.add(canonicalName); paidNameNorms.add(normalize(canonicalName)); }
+                if (rawName) paidNameNorms.add(normalize(rawName));
+            });
+        }
+
+        let checked = 0, visible = 0, paidButNewlyUpgradedSkipped = 0;
+        const paidButNotChecked = [], newlySkippedNames = [];
+
         document.querySelectorAll('.exam-check').forEach(cb => {
-            const _p = allProfiles[cb.value];
-            const _isNewlyUp = _p && _p.upgradedAt && _p.upgradedAt >= selMonth.substring(0,7) && _p.upgradedFrom;
-            cb.checked = !_isNewlyUp && paidNames.has(cb.value);
-            if(cb.checked) checked++;
+            const cbName = String(cb.value || '').trim();
+            visible++;
+            const profile = profiles[cbName] || {};
+            const canonicalCbName = typeof window.getCanonicalStudentName === 'function'
+                ? window.getCanonicalStudentName(cbName, profiles) : cbName;
+
+            const isPaid =
+                paidNames.has(cbName) ||
+                paidNames.has(canonicalCbName) ||
+                paidNameNorms.has(normalize(cbName)) ||
+                paidNameNorms.has(normalize(canonicalCbName));
+
+            const isNewlyUpgraded = typeof window.isNewlyUpgradedExamStudent === 'function'
+                ? window.isNewlyUpgradedExamStudent(cbName, profile, selMonth)
+                : (profile.upgradedAt && String(profile.upgradedAt).slice(0, 7) >= selMonth && profile.upgradedFrom);
+
+            cb.checked = !!(isPaid && !isNewlyUpgraded);
+            if (cb.checked) { checked++; }
+            else if (isPaid && isNewlyUpgraded) { paidButNewlyUpgradedSkipped++; newlySkippedNames.push(cbName); }
+            else if (isPaid) { paidButNotChecked.push(cbName); }
         });
-        if(checked === 0) window.showToast('⚠️ Chưa có võ sinh nào đóng phí thi trong tháng này');
-        else window.showToast(`✅ Đã chọn ${checked} võ sinh đã đóng lệ phí thi`);
+
+        if (window.__store) {
+            window.__store._lastSelectPaidStudents = {
+                month: selMonth, checked, visible,
+                ledgerCount: ledger ? ledger.count : null,
+                paidNames: Array.from(paidNames),
+                paidButNotChecked, paidButNewlyUpgradedSkipped, newlySkippedNames,
+                at: Date.now()
+            };
+        }
+
+        if (checked === 0) {
+            if (paidButNewlyUpgradedSkipped > 0)
+                window.showToast('\u26a0\ufe0f Có ' + paidButNewlyUpgradedSkipped + ' võ sinh đã đóng phí nhưng thuộc nhóm mới lên nên không tự chọn');
+            else
+                window.showToast('\u26a0\ufe0f Chưa có võ sinh nào đóng phí thi trong tháng này');
+        } else {
+            let msg = '\u2705 Đã chọn ' + checked + ' võ sinh đã đóng lệ phí thi';
+            if (paidButNewlyUpgradedSkipped > 0) msg += ', bỏ qua ' + paidButNewlyUpgradedSkipped + ' võ sinh mới lên';
+            window.showToast(msg);
+        }
     };
 
     window.toggleAllExam = (source) => document.querySelectorAll('.exam-check').forEach(cb => cb.checked = source.checked);
@@ -11830,6 +11941,101 @@ window.buildCanonicalExamPaymentLedger = function(options) {
         byName: Object.fromEntries(records.map(function(r) { return [r.studentName, r]; })),
         duplicates: duplicates
     };
+};
+
+// Phase 4K-5R — Helpers: isNewlyUpgradedExamStudent, isExamStudentPaidCanonical, debugExamAutoSelectPaid
+
+window.isNewlyUpgradedExamStudent = function(name, profile, selectedMonth) {
+    var p = profile || {};
+    var month = String(selectedMonth || '').slice(0, 7);
+    return !!(p.upgradedAt && String(p.upgradedAt).slice(0, 7) >= month && p.upgradedFrom);
+};
+
+window.isExamStudentPaidCanonical = function(studentName, options) {
+    options = options || {};
+    var selMonth = options.month ||
+        (document.getElementById('filterMonth') && document.getElementById('filterMonth').value) ||
+        ((window.__store || {}).selectedMonth) || '';
+    var profiles = (window.__store && window.__store.profiles) || allProfiles || {};
+    var ledger = typeof window.buildCanonicalExamPaymentLedger === 'function'
+        ? window.buildCanonicalExamPaymentLedger({ month: selMonth })
+        : null;
+    if (!ledger || !Array.isArray(ledger.records)) return false;
+    var normalize = typeof window.normalizeVNForSearch === 'function'
+        ? window.normalizeVNForSearch
+        : function(s) {
+            return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '')
+                .replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase().trim();
+          };
+    var raw = String(studentName || '').trim();
+    var canonical = typeof window.getCanonicalStudentName === 'function'
+        ? window.getCanonicalStudentName(raw, profiles) : raw;
+    var norm = normalize(canonical || raw);
+    return ledger.records.some(function(r) {
+        var rn = String(r.studentName || r.rawName || '').trim();
+        var rcan = typeof window.getCanonicalStudentName === 'function'
+            ? window.getCanonicalStudentName(rn, profiles) : rn;
+        return r.studentName === raw || r.studentName === canonical ||
+               normalize(rn) === norm || normalize(rcan) === norm;
+    });
+};
+
+window.debugExamAutoSelectPaid = function(studentName) {
+    studentName = studentName || '';
+    var st = window.__store || {};
+    var selMonth = (document.getElementById('filterMonth') && document.getElementById('filterMonth').value) ||
+        st.selectedMonth || '';
+    var ledger = typeof window.buildCanonicalExamPaymentLedger === 'function'
+        ? window.buildCanonicalExamPaymentLedger({ month: selMonth }) : null;
+    var profiles = st.profiles || allProfiles || {};
+    var q = String(studentName || '').trim();
+    var normalize = typeof window.normalizeVNForSearch === 'function'
+        ? window.normalizeVNForSearch
+        : function(s) {
+            return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '')
+                .replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase().trim();
+          };
+    var rows = Array.from(document.querySelectorAll('.exam-check')).map(function(cb) {
+        var name = String(cb.value || '').trim();
+        var p = profiles[name] || {};
+        var canonicalName = typeof window.getCanonicalStudentName === 'function'
+            ? window.getCanonicalStudentName(name, profiles) : name;
+        var ledgerRecord = ledger && Array.isArray(ledger.records)
+            ? ledger.records.find(function(r) {
+                var rn = String(r.studentName || r.rawName || '').trim();
+                var rcan = typeof window.getCanonicalStudentName === 'function'
+                    ? window.getCanonicalStudentName(rn, profiles) : rn;
+                return rn === name || rcan === canonicalName ||
+                       normalize(rn) === normalize(canonicalName) ||
+                       normalize(rcan) === normalize(canonicalName);
+              }) : null;
+        var isNewlyUpgraded = typeof window.isNewlyUpgradedExamStudent === 'function'
+            ? window.isNewlyUpgradedExamStudent(name, p, selMonth) : false;
+        return {
+            checkboxName: name, canonicalName: canonicalName, checked: cb.checked,
+            inLedger: !!ledgerRecord, isNewlyUpgraded: isNewlyUpgraded,
+            shouldAutoCheck: !!ledgerRecord && !isNewlyUpgraded,
+            ledgerTxId: ledgerRecord ? ledgerRecord.txId : '',
+            ledgerAmount: ledgerRecord ? ledgerRecord.amount : 0,
+            ledgerType: ledgerRecord ? ledgerRecord.txType : '',
+            branch: ledgerRecord ? ledgerRecord.branch : '',
+            upgradedAt: p.upgradedAt || '', upgradedFrom: p.upgradedFrom || ''
+        };
+    }).filter(function(r) {
+        return !q || normalize(r.checkboxName).includes(normalize(q)) || normalize(r.canonicalName).includes(normalize(q));
+    });
+    var result = {
+        month: selMonth,
+        ledgerCount: ledger ? ledger.count : 0,
+        visibleCheckboxes: document.querySelectorAll('.exam-check').length,
+        checkedCount: rows.filter(function(r) { return r.checked; }).length,
+        shouldAutoCheckButNotChecked: rows.filter(function(r) { return r.shouldAutoCheck && !r.checked; }),
+        paidButSkippedBecauseNewlyUpgraded: rows.filter(function(r) { return r.inLedger && r.isNewlyUpgraded; }),
+        rows: rows
+    };
+    console.table(rows);
+    console.log('[debugExamAutoSelectPaid]', result);
+    return result;
 };
 
 // Phase 4K-5P — buildCanonicalExamBranchLedger
