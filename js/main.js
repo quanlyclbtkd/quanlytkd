@@ -2873,6 +2873,10 @@ window.debugRuntimeSmokeTest = async function(term) {
     out.activeQuitLeak         = await safeCall('debugActiveQuitLeak',         window.debugActiveQuitLeak);
     out.tuitionTableLayout     = await safeCall('debugTuitionTableLayout',     window.debugTuitionTableLayout);
 
+    // Phase 4K-5N: Dashboard Branch Revenue + Chart Lifecycle
+    out.dashboardBranchRevenue = await safeCall('debugDashboardBranchRevenue', window.debugDashboardBranchRevenue);
+    out.dashboardCharts        = await safeCall('debugDashboardCharts',        window.debugDashboardCharts);
+
     const summary = {
         runtimeMode:     out.runtimeMode,
         mainLoaded:      out.mainLoaded,
@@ -2910,6 +2914,9 @@ window.debugRuntimeSmokeTest = async function(term) {
         debtCoverageOk:             !!out.debtCoverage.ok,
         activeQuitLeakOk:           !!out.activeQuitLeak.ok,
         tuitionTableLayoutOk:       !!out.tuitionTableLayout.ok,
+        // Phase 4K-5N
+        dashboardBranchRevenueOk:   !!out.dashboardBranchRevenue.ok,
+        dashboardChartsOk:          !!out.dashboardCharts.ok,
 
         overallOk:
             !!out.examFee.ok &&
@@ -2935,7 +2942,9 @@ window.debugRuntimeSmokeTest = async function(term) {
             !!out.debtLoadMoreAndFilter.ok &&
             !!out.debtCoverage.ok &&
             !!out.activeQuitLeak.ok &&
-            !!out.tuitionTableLayout.ok
+            !!out.tuitionTableLayout.ok &&
+            !!out.dashboardBranchRevenue.ok &&
+            !!out.dashboardCharts.ok
     };
 
     // Phase 4K-5L: Debt Action Bridge state

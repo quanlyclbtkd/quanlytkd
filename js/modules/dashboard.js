@@ -40,6 +40,19 @@ function _getMemChart()  { return (window.__store || {}).memberChartInstance  ||
 function _setFinChart(c) { if (window.__store) window.__store.financeChartInstance = c; }
 function _setMemChart(c) { if (window.__store) window.__store.memberChartInstance  = c; }
 
+// ── Phase 4K-5N: Canvas chart lifecycle helpers ───────────────────────────
+function _getCanvasChart(Chart, canvas) {
+    if (!Chart || !canvas) return null;
+    if (typeof Chart.getChart === 'function') {
+        try { return Chart.getChart(canvas) || null; } catch (_) {}
+    }
+    return null;
+}
+function _safeDestroyChart(chart) {
+    if (!chart) return;
+    try { chart.destroy(); } catch (_) {}
+}
+
 // ════════════════════════════════════════════════════════════════
 // renderDashboardCharts — tạo hoặc update 2 Chart.js instances
 // chartData: { labels, income, expense, active }
@@ -49,16 +62,30 @@ export function renderDashboardCharts(chartData) {
     const Chart = window.Chart;
     if (!Chart) return;
 
-    // ── Finance chart (bar: Thu / Chi) ───────────────────────────
+    // ── Finance chart (bar: Thu / Chi) — Phase 4K-5N lifecycle fix ──────────
     const finEl = document.getElementById('financeChart');
     if (finEl) {
         let fc = _getFinChart();
-        if (fc) {
-            fc.data.labels             = labels;
-            fc.data.datasets[0].data  = income;
-            fc.data.datasets[1].data  = expense;
-            fc.update('none');
-        } else {
+        const canvasChart = _getCanvasChart(Chart, finEl);
+
+        // Case: store lost reference but canvas still has live chart → reuse
+        if (!fc && canvasChart) {
+            fc = canvasChart;
+            _setFinChart(fc);
+        }
+
+        // Case: store has chart but it belongs to a different canvas → destroy and reset
+        if (fc && fc.canvas !== finEl) {
+            _safeDestroyChart(fc);
+            fc = null;
+            _setFinChart(null);
+        }
+
+        if (!fc) {
+            // Destroy any orphan chart on this canvas before creating new one
+            const orphan = _getCanvasChart(Chart, finEl);
+            if (orphan) _safeDestroyChart(orphan);
+
             fc = new Chart(finEl, {
                 type: 'bar',
                 data: {
@@ -78,18 +105,38 @@ export function renderDashboardCharts(chartData) {
                 }
             });
             _setFinChart(fc);
+        } else {
+            fc.data.labels             = labels;
+            fc.data.datasets[0].data  = income;
+            fc.data.datasets[1].data  = expense;
+            fc.update('none');
         }
     }
 
-    // ── Member chart (line: Võ sinh đang tập) ────────────────────
+    // ── Member chart (line: Võ sinh đang tập) — Phase 4K-5N lifecycle fix ──
     const memEl = document.getElementById('memberChart');
     if (memEl) {
         let mc = _getMemChart();
-        if (mc) {
-            mc.data.labels            = labels;
-            mc.data.datasets[0].data = active;
-            mc.update('none');
-        } else {
+        const canvasChartM = _getCanvasChart(Chart, memEl);
+
+        // Case: store lost reference but canvas still has live chart → reuse
+        if (!mc && canvasChartM) {
+            mc = canvasChartM;
+            _setMemChart(mc);
+        }
+
+        // Case: store has chart but it belongs to a different canvas → destroy and reset
+        if (mc && mc.canvas !== memEl) {
+            _safeDestroyChart(mc);
+            mc = null;
+            _setMemChart(null);
+        }
+
+        if (!mc) {
+            // Destroy any orphan chart on this canvas before creating new one
+            const orphanM = _getCanvasChart(Chart, memEl);
+            if (orphanM) _safeDestroyChart(orphanM);
+
             mc = new Chart(memEl, {
                 type: 'line',
                 data: {
@@ -111,6 +158,10 @@ export function renderDashboardCharts(chartData) {
                 }
             });
             _setMemChart(mc);
+        } else {
+            mc.data.labels            = labels;
+            mc.data.datasets[0].data = active;
+            mc.update('none');
         }
     }
 }
@@ -587,14 +638,15 @@ export async function fetchHistoricalDashboardFallback(selMonth, reason) {
         });
     }
 
-    // Update live Chart.js instances if they exist
-    if (typeof renderDashboardCharts === 'function') {
-        try { renderDashboardCharts(chartData); } catch (_) {}
-    }
-
-    // Also update via window for safety
-    if (typeof window.renderDashboardCharts === 'function') {
-        try { window.renderDashboardCharts(chartData); } catch (_) {}
+    // Phase 4K-5N: Deduplicate — call renderDashboardCharts exactly once
+    const _renderChartsFn =
+        typeof window.renderDashboardCharts === 'function'
+            ? window.renderDashboardCharts
+            : (typeof renderDashboardCharts === 'function' ? renderDashboardCharts : null);
+    if (_renderChartsFn) {
+        try { _renderChartsFn(chartData); } catch (err) {
+            console.warn('[dashboard-history] renderDashboardCharts failed:', err);
+        }
     }
 
     // Update #reportList DOM directly if visible
@@ -657,6 +709,221 @@ export function initDashboard() {
     window.getFinanceChart = () => _getFinChart();
     window.getMemberChart  = () => _getMemChart();
 
+    // ── Phase 4K-5N: normalizeBranchCodeForStats ─────────────────────────────
+    window.normalizeBranchCodeForStats = function(branchInput, branchCount) {
+        const cfg = (window.__store && window.__store.clubConfig) || window.clubConfig || {};
+        const raw = String(branchInput || '').trim();
+        if (!raw) return 'CS1';
+
+        const m = raw.match(/^CS(\d+)$/i);
+        if (m) {
+            const n = Number(m[1]);
+            if (n >= 1 && n <= (branchCount || cfg.branchCount || 10)) return 'CS' + n;
+        }
+
+        const norm = typeof window.normalizeVNForSearch === 'function'
+            ? window.normalizeVNForSearch(raw)
+            : raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+        const count = Number(branchCount || cfg.branchCount || 10);
+        for (let i = 1; i <= count; i++) {
+            const code = 'CS' + i;
+            const name = cfg['branchName' + i] || ('Cơ sở ' + i);
+            const normName = typeof window.normalizeVNForSearch === 'function'
+                ? window.normalizeVNForSearch(name)
+                : String(name).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+            if (norm === normName) return code;
+            if (norm === ('co so ' + i)) return code;
+            if (norm === ('coso ' + i)) return code;
+        }
+        return raw.startsWith('CS') ? raw : 'CS1';
+    };
+
+    // ── Phase 4K-5N: getComponentAmountForSelectedMonth ──────────────────────
+    window.getComponentAmountForSelectedMonth = function(component, selectedMonth) {
+        const c = component || {};
+        const kind = c.kind || '';
+        const amount = Number(c.amount || 0);
+        const month = String(selectedMonth || '').slice(0, 7);
+        if (!amount || !month) return 0;
+
+        if (kind === 'tuition') {
+            const months = Array.isArray(c.packageMonths)
+                ? c.packageMonths.map(m => String(m).slice(0, 7))
+                : [];
+            if (months.length > 0) {
+                return months.includes(month) ? amount / months.length : 0;
+            }
+            const cm = String(c.month || c.txMonth || '').slice(0, 7);
+            return cm === month ? amount : 0;
+        }
+
+        // exam / inventory / other: tính theo month/txMonth/date
+        const cm = String(c.month || c.txMonth || c.date || '').slice(0, 7);
+        if (!cm || cm === month) return amount;
+        return 0;
+    };
+
+    // ── Phase 4K-5N: refreshDashboardBranchStatsFullMonth ────────────────────
+    window.refreshDashboardBranchStatsFullMonth = async function(selectedMonth) {
+        const month = selectedMonth || (document.getElementById('filterMonth') || {}).value || '';
+        if (!month) return;
+        if (typeof window.loadTransactionsForMonthsInclusive !== 'function') return;
+
+        // Ưu tiên dùng allTransactions nếu đã đủ
+        const st = window.__store || {};
+        const existingTxs = Array.isArray(st.allTransactions) ? st.allTransactions : null;
+        const txs = existingTxs && existingTxs.length > 0
+            ? existingTxs
+            : await window.loadTransactionsForMonthsInclusive([month], 'dashboard-branch-full-month');
+
+        const cfg    = st.clubConfig || window.clubConfig || {};
+        const bCount = cfg.branchCount || 1;
+        const bStats = {}, bExamStats = {};
+        for (let bi = 1; bi <= bCount; bi++) {
+            bStats['CS' + bi]     = { income: 0, active: 0, debt: 0, tuitionMap: {}, examFeeMap: {} };
+            bExamStats['CS' + bi] = 0;
+        }
+
+        txs.forEach(function(t) {
+            if (typeof window.txMatchesSelectedMonth === 'function') {
+                if (!window.txMatchesSelectedMonth(t, month)) return;
+            }
+            if (t.type === 'Chi phí' || t.type === 'Chi phí kỳ thi') return;
+
+            const comps = typeof window.getAccountingComponents === 'function'
+                ? window.getAccountingComponents(t)
+                : (typeof window.expandTransactionComponentsForAccounting === 'function'
+                    ? window.expandTransactionComponentsForAccounting(t)
+                    : (Array.isArray(t.components) ? t.components : []));
+
+            let usedComps = false;
+            if (Array.isArray(comps) && comps.length > 0) {
+                usedComps = true;
+                comps.forEach(function(c) {
+                    const ck = c.kind || '';
+                    const ca = Number(c.amount || 0);
+                    if (ca <= 0) return;
+                    const cBr = window.normalizeBranchCodeForStats(c.branch || t.branch || 'CS1', bCount);
+                    if (!bStats[cBr]) { bStats[cBr] = { income: 0, active: 0, debt: 0, tuitionMap: {}, examFeeMap: {} }; }
+                    if (bExamStats[cBr] === undefined) bExamStats[cBr] = 0;
+                    const amtM = window.getComponentAmountForSelectedMonth(c, month);
+                    if (ck === 'tuition') {
+                        if (amtM <= 0) return;
+                        bStats[cBr].income += amtM;
+                        const fk = Math.round(Array.isArray(c.packageMonths) && c.packageMonths.length > 1 ? ca / c.packageMonths.length : ca);
+                        if (fk > 0) bStats[cBr].tuitionMap[fk] = (bStats[cBr].tuitionMap[fk] || 0) + 1;
+                    } else if (ck === 'exam') {
+                        const cm2 = String(c.month || c.txMonth || t.txMonth || t.date || '').slice(0, 7);
+                        if (month && cm2 && cm2 !== month) return;
+                        bStats[cBr].income += ca;
+                        const ek = Math.round(ca);
+                        if (ek > 0) bStats[cBr].examFeeMap[ek] = (bStats[cBr].examFeeMap[ek] || 0) + 1;
+                        bExamStats[cBr] = (bExamStats[cBr] || 0) + ca;
+                    } else if (ck === 'inventory' || ck === 'inventoryDebt') {
+                        bStats[cBr].income += amtM || ca;
+                    } else {
+                        if (amtM <= 0) return;
+                        bStats[cBr].income += amtM;
+                    }
+                });
+            }
+
+            if (!usedComps) {
+                const br = window.normalizeBranchCodeForStats(t.branch || 'CS1', bCount);
+                if (!bStats[br]) { bStats[br] = { income: 0, active: 0, debt: 0, tuitionMap: {}, examFeeMap: {} }; }
+                if (bExamStats[br] === undefined) bExamStats[br] = 0;
+                let alloc = Number(t.amount) || 0;
+                if (t.type === 'Học phí') {
+                    alloc = t.packageMonths && t.packageMonths.length > 1 ? alloc / t.packageMonths.length : alloc;
+                    bStats[br].income += alloc;
+                    const tf = Math.round(Number(t.amount) || 0);
+                    if (tf > 0) bStats[br].tuitionMap[tf] = (bStats[br].tuitionMap[tf] || 0) + 1;
+                } else if (t.type === 'Học phí + Lệ phí thi') {
+                    const ta = Number(t.tuitionAmount) || 0;
+                    const ea = Number(t.examAmount) || 0;
+                    bStats[br].income += ta + ea;
+                    if (ta > 0) bStats[br].tuitionMap[Math.round(ta)] = (bStats[br].tuitionMap[Math.round(ta)] || 0) + 1;
+                    if (ea > 0) { bStats[br].examFeeMap[Math.round(ea)] = (bStats[br].examFeeMap[Math.round(ea)] || 0) + 1; bExamStats[br] += ea; }
+                } else if (t.type === 'Lệ phí thi') {
+                    bStats[br].income += alloc;
+                    const ek = Math.round(alloc);
+                    if (ek > 0) { bStats[br].examFeeMap[ek] = (bStats[br].examFeeMap[ek] || 0) + 1; bExamStats[br] += alloc; }
+                } else {
+                    bStats[br].income += alloc;
+                }
+            }
+        });
+
+        if (typeof window.renderBranchStats    === 'function') window.renderBranchStats(bStats);
+        if (typeof window.renderExamBranchFees === 'function') window.renderExamBranchFees(bExamStats, Object.values(bExamStats).reduce((a, b) => a + b, 0));
+        if (st) {
+            st._lastBStats     = bStats;
+            st._lastBExamStats = bExamStats;
+        }
+    };
+
+    // ── Phase 4K-5N: debugDashboardBranchRevenue ─────────────────────────────
+    window.debugDashboardBranchRevenue = function() {
+        const st = window.__store || {};
+        const bStats    = st._lastBStats    || {};
+        const bExamStats = st._lastBExamStats || {};
+        const txs =
+            Array.isArray(st.allTransactions)    ? st.allTransactions    :
+            Array.isArray(window.allTransactions) ? window.allTransactions :
+            Array.isArray(st.transactions)        ? st.transactions        :
+            [];
+
+        const rows = Object.entries(bStats).map(([branch, data]) => ({
+            branch,
+            income:      data.income     || 0,
+            active:      data.active     || 0,
+            debt:        data.debt       || 0,
+            tuitionMap:  JSON.stringify(data.tuitionMap  || {}),
+            examFeeMap:  JSON.stringify(data.examFeeMap  || {}),
+            examTotal:   bExamStats[branch] || 0,
+        }));
+
+        const componentRows = txs
+            .filter(t => Array.isArray(t.components) && t.components.length)
+            .map(t => ({
+                id:         t.id || t.txId || '',
+                student:    t.studentName || t.description || '',
+                type:       t.type,
+                branchRaw:  t.branch,
+                branchNorm: window.normalizeBranchCodeForStats
+                    ? window.normalizeBranchCodeForStats(t.branch)
+                    : t.branch,
+                components: t.components.map(c => c.kind + ':' + c.amount + ':' + (c.branch || t.branch)).join(' | '),
+            }));
+
+        console.table(rows);
+        console.table(componentRows);
+        return { rows, componentRows, bStats, bExamStats };
+    };
+
+    // ── Phase 4K-5N: debugDashboardCharts ────────────────────────────────────
+    window.debugDashboardCharts = function() {
+        const Chart  = window.Chart;
+        const finEl  = document.getElementById('financeChart');
+        const memEl  = document.getElementById('memberChart');
+        const fc = _getFinChart();
+        const mc = _getMemChart();
+        const finOnCanvas  = Chart && finEl ? !!(Chart.getChart && Chart.getChart(finEl)) : false;
+        const memOnCanvas  = Chart && memEl ? !!(Chart.getChart && Chart.getChart(memEl)) : false;
+        const result = {
+            hasChartJs:         !!Chart,
+            hasChartGetChart:   !!(Chart && typeof Chart.getChart === 'function'),
+            financeChartStore:  !!fc,
+            financeChartOnCanvas: finOnCanvas,
+            memberChartStore:   !!mc,
+            memberChartOnCanvas: memOnCanvas,
+            storeMatchCanvas: (!!fc === finOnCanvas) && (!!mc === memOnCanvas),
+        };
+        console.table(result);
+        return result;
+    };
+
     // Expose fetchMonthStats để app.js và các modules khác có thể gọi
     window.fetchMonthStats = fetchMonthStats;
 
@@ -680,6 +947,11 @@ export function initDashboard() {
         fetchMonthStats,
         tryApplyCurrentMonthStats,
         fetchHistoricalDashboardFallback,
+        normalizeBranchCodeForStats:         window.normalizeBranchCodeForStats,
+        getComponentAmountForSelectedMonth:  window.getComponentAmountForSelectedMonth,
+        refreshDashboardBranchStatsFullMonth: window.refreshDashboardBranchStatsFullMonth,
+        debugDashboardBranchRevenue:         window.debugDashboardBranchRevenue,
+        debugDashboardCharts:                window.debugDashboardCharts,
     };
 
     // [Part 4 FIX] Expose historical fallback so refreshDashboardComputation can call it
@@ -698,5 +970,5 @@ export function initDashboard() {
         _setMemChart(null);
     };
 
-    console.info('[dashboard.js] ✅ Phase 2c + Phase 3 (fetchAndRenderHistoricalCharts + fetchMonthStats)');
+    console.info('[dashboard.js] ✅ Phase 4K-5N (chart lifecycle fix + branch revenue component authority)');
 }

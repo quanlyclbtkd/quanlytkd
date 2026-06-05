@@ -466,26 +466,91 @@ export function computeAndCacheFinance(transactions, params) {
                 incOther += allocatedAmount;
             }
 
-            // Branch stats (income + fee maps)
-            const _txBr = t.branch || 'CS1';
-            if (bStats[_txBr] !== undefined) {
+            // ── Phase 4K-5N: Branch stats — components as primary source ──────────
+            // Normalize branch code (handles "Cơ sở 1", "Huỳnh Tấn Phát", etc.)
+            const _normBr = typeof window.normalizeBranchCodeForStats === 'function'
+                ? window.normalizeBranchCodeForStats(t.branch || 'CS1', bCount)
+                : (t.branch || 'CS1');
+
+            // Ensure slot exists for normalized branch
+            if (!bStats[_normBr]) {
+                bStats[_normBr] = { income: 0, active: 0, debt: 0, tuitionMap: {}, examFeeMap: {} };
+            }
+            if (bExamStats[_normBr] === undefined) bExamStats[_normBr] = 0;
+
+            let _usedCompBranch = false;
+
+            // Try components first (covers bundles AND single-type transactions with components)
+            const _brComps = typeof window.getAccountingComponents === 'function'
+                ? window.getAccountingComponents(t)
+                : (typeof window.expandTransactionComponentsForAccounting === 'function'
+                    ? window.expandTransactionComponentsForAccounting(t)
+                    : (Array.isArray(t.components) ? t.components : []));
+
+            if (Array.isArray(_brComps) && _brComps.length > 0) {
+                _usedCompBranch = true;
+                _brComps.forEach(function(c) {
+                    const ck = c.kind || '';
+                    const ca = Number(c.amount || 0);
+                    if (ca <= 0) return;
+                    const cBr = typeof window.normalizeBranchCodeForStats === 'function'
+                        ? window.normalizeBranchCodeForStats(c.branch || t.branch || 'CS1', bCount)
+                        : (c.branch || t.branch || 'CS1');
+                    if (!bStats[cBr]) {
+                        bStats[cBr] = { income: 0, active: 0, debt: 0, tuitionMap: {}, examFeeMap: {} };
+                    }
+                    if (bExamStats[cBr] === undefined) bExamStats[cBr] = 0;
+
+                    const amtM = typeof window.getComponentAmountForSelectedMonth === 'function'
+                        ? window.getComponentAmountForSelectedMonth(c, _selectedMonth)
+                        : ca;
+
+                    if (ck === 'tuition') {
+                        if (amtM <= 0) return;
+                        bStats[cBr].income += amtM;
+                        const fk = Math.round(
+                            Array.isArray(c.packageMonths) && c.packageMonths.length > 1
+                                ? ca / c.packageMonths.length : ca
+                        );
+                        if (fk > 0) bStats[cBr].tuitionMap[fk] = (bStats[cBr].tuitionMap[fk] || 0) + 1;
+                    } else if (ck === 'exam') {
+                        // Exam không chia theo packageMonths — tính theo txMonth/date
+                        const cm = String(c.month || c.txMonth || t.txMonth || t.date || '').slice(0, 7);
+                        if (_selectedMonth && cm && cm !== _selectedMonth) return;
+                        bStats[cBr].income += ca;
+                        const ek = Math.round(ca);
+                        if (ek > 0) bStats[cBr].examFeeMap[ek] = (bStats[cBr].examFeeMap[ek] || 0) + 1;
+                        bExamStats[cBr] = (bExamStats[cBr] || 0) + ca;
+                    } else if (ck === 'inventory' || ck === 'inventoryDebt') {
+                        bStats[cBr].income += amtM || ca;
+                    } else {
+                        if (amtM <= 0) return;
+                        bStats[cBr].income += amtM;
+                    }
+                });
+            }
+
+            // Legacy fallback — only when no components available (prevents double-count)
+            if (!_usedCompBranch) {
                 const _examPart = (t.type === 'Học phí + Lệ phí thi')
                     ? (Number(t.examAmount) || 0)
                     : 0;
-                bStats[_txBr].income += allocatedAmount + _examPart;
+                bStats[_normBr].income += allocatedAmount + _examPart;
 
                 if (t.type === 'Lệ phí thi') {
                     const _ek = Math.round(allocatedAmount);
-                    if (_ek > 0) bStats[_txBr].examFeeMap[_ek] = (bStats[_txBr].examFeeMap[_ek] || 0) + 1;
+                    if (_ek > 0) bStats[_normBr].examFeeMap[_ek] = (bStats[_normBr].examFeeMap[_ek] || 0) + 1;
+                    bExamStats[_normBr] = (bExamStats[_normBr] || 0) + allocatedAmount;
                 } else if (t.type === 'Học phí + Lệ phí thi') {
                     const _ek2 = Math.round(Number(t.examAmount) || 0);
-                    if (_ek2 > 0) bStats[_txBr].examFeeMap[_ek2] = (bStats[_txBr].examFeeMap[_ek2] || 0) + 1;
+                    if (_ek2 > 0) bStats[_normBr].examFeeMap[_ek2] = (bStats[_normBr].examFeeMap[_ek2] || 0) + 1;
+                    bExamStats[_normBr] = (bExamStats[_normBr] || 0) + (Number(t.examAmount) || 0);
                 }
                 if (t.type === 'Học phí' || t.type === 'Học phí + Lệ phí thi') {
                     const _tf = Math.round(Number(
                         t.type === 'Học phí + Lệ phí thi' ? t.tuitionAmount : t.amount
                     ) || 0);
-                    if (_tf > 0) bStats[_txBr].tuitionMap[_tf] = (bStats[_txBr].tuitionMap[_tf] || 0) + 1;
+                    if (_tf > 0) bStats[_normBr].tuitionMap[_tf] = (bStats[_normBr].tuitionMap[_tf] || 0) + 1;
                 }
             }
 
