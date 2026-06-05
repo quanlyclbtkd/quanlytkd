@@ -158,7 +158,7 @@ export function renderDebtRow(name, p, opts = {}) {
     const safeOwedMonths = owedMonthsStr.replace(/'/g, '');
     const totalDebtAmount = unpaidMonthsCount * (Number(p.tuitionFee) || 0);
     const lastPaidLabel  = `<span class="font-bold text-primary text-[0.8rem]">${formatMonthCompact(owedMonthsStr)}</span>`;
-    return `<tr data-debt-id="${safeNameEsc}" ${rowBg}><td><span class="badge ${countBadgeCls}">${unpaidMonthsCount} Tháng</span></td><td>${lastPaidLabel}</td>${branchTdHTML}<td class="name-link text-[0.95rem]" onclick="openProfile('${safeNameEsc}')">${_disp(name)}${yrBadge}${isOverdue ? ' <span title="Nợ từ 2 tháng trở lên" class="text-rose-500">⚠️</span>' : ''}</td><td class="action-btns"><button type="button" class="btn-sm bg-indigo-50 text-indigo-700 border border-indigo-200" onclick="generateMultiMonthPaymentRequest('${safeNameEsc}', '${safeOwedMonths}', '${safeBranch}', '${totalDebtAmount}')">📱 QR</button>${isAdmin ? `<button type="button" class="btn-sm bg-emerald-600 text-white shadow-sm" onclick="openQuickPayModal('${safeNameEsc}', '${safeOwedMonths}', '${safeBranch}')">💰 Thu</button>` : ''}<button type="button" class="btn-sm bg-[#0068FF] text-white shadow-sm" onclick="copyAndOpenZalo('${safeNameEsc}', '${safeOwedMonths}', '${p.phone || ''}')">💬 Zalo</button>${isAdmin ? `<button type="button" class="btn-sm bg-slate-100 text-slate-700 border border-slate-200" onclick="handleQuitOption('${safeNameEsc}', '${selMonth}')">🚫</button>` : ''}</td></tr>`;
+    return `<tr data-debt-id="${safeNameEsc}" ${rowBg}><td><span class="badge ${countBadgeCls}">${unpaidMonthsCount} Tháng</span></td><td>${lastPaidLabel}</td>${branchTdHTML}<td class="name-link text-[0.95rem]" onclick="openProfile('${safeNameEsc}')">${_disp(name)}${yrBadge}${isOverdue ? ' <span title="Nợ từ 2 tháng trở lên" class="text-rose-500">⚠️</span>' : ''}</td><td class="action-btns"><button type="button" class="btn-sm bg-indigo-50 text-indigo-700 border border-indigo-200" onclick="generateMultiMonthPaymentRequest('${safeNameEsc}', '${safeOwedMonths}', '${safeBranch}', '${totalDebtAmount}')">📱 QR</button>${isAdmin ? `<button type="button" class="btn-sm bg-emerald-600 text-white shadow-sm" onclick="openQuickPayModal('${safeNameEsc}', '${safeOwedMonths}', '${safeBranch}')">💰 Thu</button>` : ''}<button type="button" class="btn-sm bg-[#0068FF] text-white shadow-sm" onclick="copyAndOpenZalo('${safeNameEsc}', '${safeOwedMonths}', '${p.phone || ''}')">💬 Zalo</button>${isAdmin ? `<button type="button" class="btn-sm bg-rose-50 text-rose-700 border border-rose-200" title="Chuyển võ sinh sang Đã nghỉ" onclick="window.markStudentQuitFromDebt(event, '${safeNameEsc}', '${selMonth}')">🚫 Nghỉ</button><button type="button" class="btn-sm bg-amber-50 text-amber-700 border border-amber-200" title="Báo nghỉ / miễn học phí tháng này" onclick="window.skipDebtMonthFromDebt(event, '${safeNameEsc}', '${selMonth}')">⏸ Báo nghỉ</button>` : ''}</td></tr>`;
 }
 
 /**
@@ -216,7 +216,9 @@ export function computeAndCacheStudents(allProfiles, params) {
     const pgVersion   = (window.__store || {})._studentsPaginationVersion || 0;
     const pgCount     = pgStudents?.currentItems?.length || 0;
     const pgPage      = pgStudents?.currentPage || 0;
-    const paramsKey   = `${curTabId}|${selMonth}|${selBranch}|${search}|${activePage}|${debtPage}|${quitPage}|${pgStudentsActive ? '1' : '0'}|pgv:${pgVersion}|pgc:${pgCount}|pgp:${pgPage}`;
+    const activeRenderLimitKey = window.__activeRenderLimit || 50;
+    const debtRenderLimitKey   = window.__debtRenderLimit   || 50;
+    const paramsKey   = `${curTabId}|${selMonth}|${selBranch}|${search}|${activePage}|${debtPage}|${quitPage}|${pgStudentsActive ? '1' : '0'}|pgv:${pgVersion}|pgc:${pgCount}|pgp:${pgPage}|arl:${activeRenderLimitKey}|drl:${debtRenderLimitKey}`;
     const dataVersion = (window.__store || {})._dataVersion || 0;
     if (
         _cache.summary !== null &&
@@ -232,7 +234,7 @@ export function computeAndCacheStudents(allProfiles, params) {
 
     // ── Page limits ──
     const _PAGE_LIMIT   = 50;
-    const _activeLimit  = activePage * _PAGE_LIMIT;
+    const _activeLimit  = window.__activeRenderLimit || activePage * _PAGE_LIMIT;
     const _debtLimit    = window.__debtRenderLimit || debtPage * _PAGE_LIMIT;
     const _quitLimit    = quitPage   * _PAGE_LIMIT;
 
@@ -246,6 +248,11 @@ export function computeAndCacheStudents(allProfiles, params) {
     const buildActive = curTabId === 'active';
     const buildDebt   = curTabId === 'debt';
     const buildQuit   = curTabId === 'quit';
+
+    // Phase 4K-5J-3: Khai báo trước PASS 1 để tránh TDZ ReferenceError
+    // Biến này dùng trong vòng lặp PASS 1 — phải khai báo tại đây, không được ở sau PASS 2
+    const fullProfilesCount = Object.keys(allProfiles || {}).length;
+    const useFullProfileActiveRender = buildActive && fullProfilesCount > 0 && !search;
 
     if (!buildActive && !buildDebt && !buildQuit) {
         _metrics.skippedHiddenTab++;
@@ -324,7 +331,7 @@ export function computeAndCacheStudents(allProfiles, params) {
 
             if (passFilter) {
                 _activeTotalCount++;
-                if (!pgStudentsActive && buildActive && _activeRendered < _activeLimit) {
+                if ((!pgStudentsActive || useFullProfileActiveRender) && buildActive && _activeRendered < _activeLimit) {
                     _activeRendered++;
                     activeRows += renderActiveRow(name, p, {
                         beltHTML, branchTdHTML, yrBadge, newBadge, nickBadge, paidBadge, isAdmin,
@@ -397,7 +404,9 @@ export function computeAndCacheStudents(allProfiles, params) {
     });
 
     // ── PASS 2 (Phase 3.2A): Override active/quit from server-side pagination ──
-    if (pgStudentsActive && pgStudents) {
+    // Phase 4K-5J-2: Skip PASS 2 override when full profiles already hydrated
+    // useFullProfileActiveRender declared before PASS 1 to avoid TDZ ReferenceError
+    if (pgStudentsActive && pgStudents && !useFullProfileActiveRender) {
         activeRows = buildActive ? '' : null;
         quitRows   = buildQuit   ? '' : null;
         _activeTotalCount = 0;
@@ -526,11 +535,16 @@ export function computeAndCacheStudents(allProfiles, params) {
             : `<tr class="load-more-row" data-load-more-for="debtList"><td colspan="${_moreColspan}" ${_moreStyle}><button type="button" ${_moreBtnSt} onclick="window.loadMoreDebtRows(event)">⬇ Tải thêm — còn ${_remainDebt} võ sinh nợ nữa</button></td></tr>`;
     }
 
-    // Active/quit load more — chỉ khi không có server-side pagination
+    // Phase 4K-5J-2: ĐANG TẬP load more tách riêng — không phụ thuộc pgStudentsActive
+    if (buildActive && _activeTotalCount > _activeRendered) {
+        const _remainActive = _activeTotalCount - _activeRendered;
+        activeRows += (typeof window.renderLoadMoreRow === 'function')
+            ? window.renderLoadMoreRow({ listId: 'activeList', label: 'võ sinh', remaining: _remainActive, colspan: _moreColspan, onclick: 'window.loadMoreActiveStudents(event)' })
+            : `<tr class="load-more-row" data-load-more-for="activeList"><td colspan="${_moreColspan}" ${_moreStyle}><button type="button" ${_moreBtnSt} onclick="window.loadMoreActiveStudents(event)">⬇ Tải thêm — còn ${_remainActive} võ sinh nữa</button></td></tr>`;
+    }
+
+    // Quit load more — chỉ khi không có server-side pagination
     if (!pgStudentsActive) {
-        if (buildActive && _activeTotalCount > _activeLimit) {
-            activeRows += `<tr class="load-more-row" data-load-more-for="activeList"><td colspan="${_moreColspan}" ${_moreStyle}><button type="button" ${_moreBtnSt} onclick="window.loadMoreActiveStudents(event)">⬇ Tải thêm — còn ${_activeTotalCount - _activeRendered} võ sinh nữa</button></td></tr>`;
-        }
         if (buildQuit && _quitTotalCount > _quitLimit) {
             quitRows += `<tr><td colspan="${_moreColspan}" ${_moreStyle}><button type="button" ${_moreBtnSt} onclick="_loadMore('quit')">⬇ Tải thêm — còn ${_quitTotalCount - _quitRendered} võ sinh nữa</button></td></tr>`;
         }

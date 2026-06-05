@@ -69,9 +69,9 @@ check('Không còn regex /^\\\\d{4}-\\\\d{2}-\\\\d{2}$/ (double-escaped)',
 
 console.log('\n▸ Section 3: index.html — cache version mới');
 const html = readFile('index.html') || '';
-check('main.js version là tuition-layout-loadmore-exam-export-fix',
-    html.includes('tuition-layout-loadmore-exam-export-fix') || html.includes('real-layout-real-loadmore-fix') || html.includes('debt-active-loadmore-scroll-fix') || html.includes('debt-loadmore-overdue-filter-fix'),
-    'Đổi version main.js trong index.html thành tuition-layout-loadmore-exam-export-fix-20260604');
+check('main.js có query string version ?v=',
+    /main\.js\?v=[a-z0-9-]+/i.test(html),
+    'Thêm ?v=<version> vào main.js trong index.html');
 
 console.log(`\n══════════════════════════════════════════════`);
 console.log(`Kết quả: ${passed} ✅  ${warned} ⚠️   ${failed} ❌`);

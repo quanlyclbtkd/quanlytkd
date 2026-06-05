@@ -353,6 +353,9 @@ export function initStudents() {
                 nickname:        _addNickVal,
                 trainingDays,
                 trainingShiftId: document.getElementById('add_shift') ? document.getElementById('add_shift').value : '',
+                admissionDate:   joinDate,
+                joinDate:        joinDate,
+                joinedAt:        joinDate,
                 createdAt:       joinDate,
                 paidUntil:       newPaidUntil,
                 paidMonths:      monthsToRecord,
@@ -674,6 +677,15 @@ export function initStudents() {
      */
     window.skipMonth = async (name, month) => {
         await StudentService.addSkippedMonth(name, month);
+
+        if (typeof window.syncStudentSkippedMonthLocal === 'function') {
+            window.syncStudentSkippedMonthLocal(name, month, 'add', 'skipMonth-module');
+        }
+
+        if (typeof window.removeStudentFromDebtDom === 'function') {
+            window.removeStudentFromDebtDom(name);
+        }
+
         window.showToast('✅ Đã miễn phí tháng!');
     };
 
@@ -687,6 +699,19 @@ export function initStudents() {
     window.removeSkip = async (name, month) => {
         if (window.userRole !== 'viewer' && confirm(`Hủy báo nghỉ tháng ${formatMonth(month)} cho ${name}?`)) {
             await StudentService.removeSkippedMonth(name, month);
+
+            if (typeof window.syncStudentSkippedMonthLocal === 'function') {
+                window.syncStudentSkippedMonthLocal(name, month, 'remove', 'removeSkip-module');
+            }
+
+            if (typeof window.refreshListsComputation === 'function') {
+                window.refreshListsComputation(['students.debtList', 'dashboard.summary'], 'removeSkip-module');
+            }
+
+            if (typeof window.invalidateList === 'function') {
+                window.invalidateList('students.debtList', 'removeSkip-module');
+            }
+
             window.closeModal();
             window.showToast('✅ Đã khôi phục nợ!');
         }
@@ -1781,6 +1806,48 @@ window.renderLoadMoreRow = function renderLoadMoreRow(opts) {
 
 
 // ════════════════════════════════════════════════════════════════
+// Phase 4K-5J-2 — Active Student Client Render Limit + Debug
+// ════════════════════════════════════════════════════════════════
+
+if (typeof window.__activeRenderLimit === 'undefined') {
+    window.__activeRenderLimit = 50;
+}
+
+window.resetActiveRenderLimit = function resetActiveRenderLimit(reason) {
+    reason = typeof reason === 'string' ? reason : 'reset-active-render-limit';
+    window.__activeRenderLimit = 50;
+    if (window.__store) {
+        window.__store._lastActiveRenderLimitResetReason = reason;
+        window.__store._dataVersion = (window.__store._dataVersion || 0) + 1;
+    }
+};
+
+window.debugActiveLoadMoreAndSort = function debugActiveLoadMoreAndSort() {
+    const st = window.__store || {};
+    const profiles = st.profiles || {};
+    const rows = Array.from(document.querySelectorAll('#activeList tr[data-student-id]'))
+        .map(function(tr) { return tr.getAttribute('data-student-id'); });
+    const firstRows = rows.slice(0, 20).map(function(name) {
+        const p = profiles[name] || {};
+        const joinTs = typeof window.getStudentJoinTimestamp === 'function'
+            ? window.getStudentJoinTimestamp(name, p) : 0;
+        return { name, status: p.status || '', admissionDate: p.admissionDate || '', joinDate: p.joinDate || '', createdAt: p.createdAt || '', joinedAt: p.joinedAt || '', joinTs };
+    });
+    const result = {
+        activeRenderLimit:    window.__activeRenderLimit || 50,
+        activeRowsDom:        rows.length,
+        profilesCount:        Object.keys(profiles).length,
+        pgStudentsActive:     !!((st.pagination || {}).students && (st.pagination.students || {}).searchActive),
+        activeLoadMoreButton: !!document.querySelector('[data-load-more-for="activeList"], button[onclick*="loadMoreActiveStudents"]'),
+        lastActiveLoadMoreLimit: st._lastActiveLoadMoreLimit || 0,
+        lastActiveLoadMoreMode:  st._lastActiveLoadMoreMode  || '',
+    };
+    console.table(firstRows);
+    console.log('[debugActiveLoadMoreAndSort]', result);
+    return Object.assign(result, { firstRows });
+};
+
+// ════════════════════════════════════════════════════════════════
 // Phase 4K-5J-1 — Debt Overdue Filter helpers
 // ════════════════════════════════════════════════════════════════
 
@@ -1921,8 +1988,8 @@ window.loadMoreDebtRows = async function loadMoreDebtRows(event, step) {
     }
 };
 
-// loadMoreActiveStudents — ĐANG TẬP tab: append trang tiếp (Phase 4K-5I async+scroll)
-window.loadMoreActiveStudents = async function loadMoreActiveStudents(event) {
+// loadMoreActiveStudents — ĐANG TẬP tab: tăng client limit (Phase 4K-5J-2)
+window.loadMoreActiveStudents = async function loadMoreActiveStudents(event, step) {
     if (event && typeof event.preventDefault  === 'function') event.preventDefault();
     if (event && typeof event.stopPropagation === 'function') event.stopPropagation();
 
@@ -1930,15 +1997,39 @@ window.loadMoreActiveStudents = async function loadMoreActiveStudents(event) {
     if (window.__loadMoreLock.active) return;
     window.__loadMoreLock.active = true;
 
-    const anchorSelector = '#pgWrap_activeList';
+    const anchorSelector = '[data-load-more-for="activeList"], #pgWrap_activeList, #activeList';
 
     try {
         return await window.preserveScrollDuringListUpdate(async function() {
+            const st = window.__store || {};
+            const profilesCount = Object.keys(st.profiles || {}).length;
+            const inc = (typeof step === 'number' && step > 0) ? step : 50;
+
+            if (profilesCount > 0) {
+                window.__activeRenderLimit = (window.__activeRenderLimit || 50) + inc;
+                if (window.__store) {
+                    window.__store._lastActiveLoadMoreLimit = window.__activeRenderLimit;
+                    window.__store._lastActiveLoadMoreMode  = 'client-limit';
+                    window.__store._dataVersion = (window.__store._dataVersion || 0) + 1;
+                }
+                if (typeof window.refreshListsComputation === 'function') {
+                    window.refreshListsComputation(['students.activeList'], 'load-more-active-client-limit');
+                }
+                if (typeof window.invalidateList === 'function') {
+                    window.invalidateList('students.activeList', 'load-more-active-client-limit');
+                } else if (typeof window.invalidateStudents === 'function') {
+                    window.invalidateStudents('load-more-active-client-limit');
+                }
+                return { activeRenderLimit: window.__activeRenderLimit, mode: 'client-limit' };
+            }
+
+            // Fallback: server pagination nếu profiles chưa sẵn sàng
             if (typeof window._pgNext_students === 'function') {
                 await window._pgNext_students();
-            } else {
-                console.warn('[loadMoreActiveStudents] _pgNext_students chưa sẵn sàng');
+                return { mode: 'server-pagination' };
             }
+            console.warn('[loadMoreActiveStudents] _pgNext_students chưa sẵn sàng');
+            return { mode: 'none' };
         }, { anchorSelector: anchorSelector });
     } finally {
         window.__loadMoreLock.active = false;
@@ -2208,6 +2299,15 @@ window.syncStudentStatusLocal = function syncStudentStatusLocal(name, updateData
                         .forEach(function(tr) { tr.remove(); });
                 }
             } catch (_de) {}
+
+            // Phase 4K-5L: Also remove from #debtList DOM immediately
+            if (typeof window.removeStudentFromDebtDom === 'function') {
+                window.removeStudentFromDebtDom(key);
+            }
+            if (window.__store) {
+                window.__store._lastDebtRemoveReason = reason;
+                window.__store._lastDebtRemoveName = key;
+            }
         }
 
         console.debug('[syncStudentStatusLocal] synced:', key, '->', kind, updateData.status || '');
@@ -2279,6 +2379,218 @@ window.debugStudentStatusSeparation = function debugStudentStatusSeparation() {
         pgCurrentItemsQuitCount: _pgQuitItems.length,
         pgQuitSample: _pgQuitItems.slice(0, 3).map(function(i) { return String(i.id || i.name || i.studentName || ''); }),
         dataVersion: (window.__store && window.__store._dataVersion) || 0
+    };
+
+    console.table(result);
+    return result;
+};
+
+
+// ════════════════════════════════════════════════════════════════
+// Phase 4K-5L — Debt Action Bridge Hardening
+// ════════════════════════════════════════════════════════════════
+
+// PHẦN 1: Helper sync skippedMonths local
+window.syncStudentSkippedMonthLocal = function(name, month, action, reason) {
+    action = action || 'add';
+    reason = typeof reason === 'string' ? reason : 'student-skipped-month-sync';
+    var key = String(name || '').trim();
+    var m   = String(month || '').trim();
+    if (!key || !m) return false;
+
+    if (!window.__store)           window.__store = {};
+    if (!window.__store.profiles)  window.__store.profiles = {};
+
+    var oldProfile = window.__store.profiles[key] || {};
+    var oldSkipped = Array.isArray(oldProfile.skippedMonths)
+        ? oldProfile.skippedMonths.slice()
+        : [];
+
+    var nextSkipped;
+    if (action === 'remove') {
+        nextSkipped = oldSkipped.filter(function(x) { return String(x) !== m; });
+    } else {
+        var set = {};
+        oldSkipped.forEach(function(x) { set[x] = true; });
+        set[m] = true;
+        nextSkipped = Object.keys(set);
+    }
+
+    var nextProfile = Object.assign({}, oldProfile, { skippedMonths: nextSkipped });
+    window.__store.profiles[key] = nextProfile;
+    window.__store._dataVersion = (window.__store._dataVersion || 0) + 1;
+    window.__store._studentSkippedMonthVersion = (window.__store._studentSkippedMonthVersion || 0) + 1;
+    window.__store._lastSkippedMonthSyncReason = reason;
+    window.__store._lastSkippedMonthSyncAt = Date.now();
+
+    if (window.studentProfileStore && typeof window.studentProfileStore.mergeProfile === 'function') {
+        try { window.studentProfileStore.mergeProfile(key, nextProfile, reason); } catch (_) {}
+    }
+
+    if (typeof window.invalidateSearchCache === 'function') {
+        window.invalidateSearchCache('students', reason);
+    }
+    if (typeof window.refreshListsComputation === 'function') {
+        window.refreshListsComputation(['students.debtList', 'dashboard.summary'], reason);
+    }
+    if (typeof window.invalidateList === 'function') {
+        window.invalidateList('students.debtList', reason);
+    } else if (typeof window.invalidateStudents === 'function') {
+        window.invalidateStudents(reason);
+    }
+    if (typeof window.invalidateDashboard === 'function') {
+        window.invalidateDashboard(reason);
+    }
+
+    return true;
+};
+
+// PHẦN 2: Helper remove row khỏi debt DOM ngay
+window.removeStudentFromDebtDom = function(name) {
+    var key = String(name || '').trim();
+    if (!key) return false;
+
+    var removed = false;
+    Array.from(document.querySelectorAll('#debtList tr[data-debt-id], #debtList tr[data-student-id]'))
+        .forEach(function(tr) {
+            var id = tr.getAttribute('data-debt-id') || tr.getAttribute('data-student-id') || '';
+            if (id === key) {
+                tr.remove();
+                removed = true;
+            }
+        });
+    return removed;
+};
+
+// PHẦN 4: Action Nghỉ tập từ tab BÁO NỢ
+window.markStudentQuitFromDebt = async function(event, name, month) {
+    if (event && typeof event.preventDefault === 'function') event.preventDefault();
+    if (event && typeof event.stopPropagation === 'function') event.stopPropagation();
+
+    var studentName   = String(name  || '').trim();
+    var selectedMonth = String(month || '').trim();
+
+    if (!studentName) return;
+
+    if (window.userRole === 'viewer') {
+        alert('Bạn không có quyền thực hiện thao tác này.');
+        return;
+    }
+
+    if (!confirm('Chuyển võ sinh "' + studentName + '" sang trạng thái NGHỈ TẬP?')) return;
+
+    var quitDate = typeof window.getLocalToday === 'function'
+        ? window.getLocalToday()
+        : new Date().toISOString().slice(0, 10);
+
+    var patch = { status: 'quit', quitDate: quitDate };
+
+    try {
+        if (window.StudentService && typeof window.StudentService.updateProfile === 'function') {
+            await window.StudentService.updateProfile(studentName, patch);
+        } else if (window._fb_init && window.db && window.currentClubId) {
+            var _fb = window._fb_init;
+            await _fb.setDoc(
+                _fb.doc(window.db, 'clubs', window.currentClubId, 'profiles', studentName),
+                patch,
+                { merge: true }
+            );
+        } else if (window.db && window.currentClubId) {
+            // Fallback: use top-level Firebase SDK globals (app.js context)
+            throw new Error('Không tìm thấy StudentService hoặc Firebase context để cập nhật hồ sơ.');
+        } else {
+            throw new Error('Không tìm thấy StudentService hoặc Firebase context để cập nhật hồ sơ.');
+        }
+
+        if (typeof window.syncStudentStatusLocal === 'function') {
+            window.syncStudentStatusLocal(studentName, patch, 'debt-mark-student-quit');
+        }
+        if (typeof window.removeStudentFromDebtDom === 'function') {
+            window.removeStudentFromDebtDom(studentName);
+        }
+        if (window.showToast) window.showToast('✅ Đã chuyển võ sinh sang Đã nghỉ!');
+    } catch (err) {
+        console.error('[markStudentQuitFromDebt] failed:', err);
+        alert('Không chuyển được võ sinh sang nghỉ tập. Vui lòng kiểm tra quyền, mạng hoặc Console.');
+    }
+};
+
+// PHẦN 5: Action Báo nghỉ tháng từ tab BÁO NỢ
+window.skipDebtMonthFromDebt = async function(event, name, month) {
+    if (event && typeof event.preventDefault === 'function') event.preventDefault();
+    if (event && typeof event.stopPropagation === 'function') event.stopPropagation();
+
+    var studentName   = String(name  || '').trim();
+    var selectedMonth = String(month || '').trim();
+
+    if (!studentName || !selectedMonth) return;
+
+    if (window.userRole === 'viewer') {
+        alert('Bạn không có quyền thực hiện thao tác này.');
+        return;
+    }
+
+    var monthLabel = typeof window.formatMonth === 'function'
+        ? window.formatMonth(selectedMonth)
+        : selectedMonth;
+
+    if (!confirm('Báo nghỉ / miễn học phí tháng ' + monthLabel + ' cho "' + studentName + '"?')) return;
+
+    try {
+        if (window.StudentService && typeof window.StudentService.addSkippedMonth === 'function') {
+            await window.StudentService.addSkippedMonth(studentName, selectedMonth);
+        } else if (typeof window.skipMonth === 'function') {
+            await window.skipMonth(studentName, selectedMonth);
+        } else if (window._fb_init && window.db && window.currentClubId) {
+            var _fb = window._fb_init;
+            await _fb.setDoc(
+                _fb.doc(window.db, 'clubs', window.currentClubId, 'profiles', studentName),
+                { skippedMonths: _fb.arrayUnion(selectedMonth) },
+                { merge: true }
+            );
+        } else {
+            throw new Error('Không tìm thấy StudentService/skipMonth/Firebase context để báo nghỉ.');
+        }
+
+        if (typeof window.syncStudentSkippedMonthLocal === 'function') {
+            window.syncStudentSkippedMonthLocal(studentName, selectedMonth, 'add', 'debt-skip-month');
+        }
+        if (typeof window.removeStudentFromDebtDom === 'function') {
+            window.removeStudentFromDebtDom(studentName);
+        }
+        if (window.showToast) window.showToast('✅ Đã báo nghỉ tháng này và miễn học phí!');
+    } catch (err) {
+        console.error('[skipDebtMonthFromDebt] failed:', err);
+        alert('Không báo nghỉ được. Vui lòng kiểm tra quyền, mạng hoặc Console.');
+    }
+};
+
+// PHẦN 9: Debug helper
+window.debugDebtActionState = function(name) {
+    var st       = window.__store || {};
+    var profiles = st.profiles || {};
+    var q        = String(name || '').trim();
+    var profile  = q ? profiles[q] : null;
+
+    var debtRowSelector = q
+        ? ('#debtList tr[data-debt-id="' + (typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(q) : q) + '"]')
+        : null;
+
+    var result = {
+        queryName:                       q,
+        hasProfile:                      !!profile,
+        status:                          profile ? (profile.status || '') : '',
+        quitDate:                        profile ? (profile.quitDate || '') : '',
+        skippedMonths:                   profile ? (profile.skippedMonths || []) : [],
+        selectedMonth:                   (document.getElementById('filterMonth') && document.getElementById('filterMonth').value) || st.selectedMonth || '',
+        debtRowExists:                   q && debtRowSelector ? !!document.querySelector(debtRowSelector) : null,
+        hasMarkStudentQuitFromDebt:      typeof window.markStudentQuitFromDebt === 'function',
+        hasSkipDebtMonthFromDebt:        typeof window.skipDebtMonthFromDebt === 'function',
+        hasSyncStudentSkippedMonthLocal: typeof window.syncStudentSkippedMonthLocal === 'function',
+        hasRemoveStudentFromDebtDom:     typeof window.removeStudentFromDebtDom === 'function',
+        lastSkippedMonthSyncReason:      st._lastSkippedMonthSyncReason || '',
+        lastDebtRemoveName:              st._lastDebtRemoveName || '',
+        lastDebtRemoveReason:            st._lastDebtRemoveReason || ''
     };
 
     console.table(result);

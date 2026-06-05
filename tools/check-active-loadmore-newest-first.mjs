@@ -96,6 +96,38 @@ if (!rELBlock.includes('extractExamStudentName'))
   fail('app.js renderExamList không dùng extractExamStudentName');
 else ok('app.js renderExamList dùng extractExamStudentName');
 
+// 15. getStudentJoinTimestamp: admissionDate phải ưu tiên trước createdAt
+const admIdx = helpers.indexOf('p.admissionDate');
+const creatIdx = helpers.indexOf('p.createdAt');
+if (admIdx === -1 || creatIdx === -1) {
+  fail('monthlyHelpers.js thiếu p.admissionDate hoặc p.createdAt trong candidates');
+} else if (admIdx > creatIdx) {
+  fail('getStudentJoinTimestamp: admissionDate phải nằm TRƯỚC createdAt trong candidates');
+} else {
+  ok('admissionDate ưu tiên trước createdAt trong getStudentJoinTimestamp candidates');
+}
+
+// 16. getStudentJoinTimestamp: joinDate phải ưu tiên trước createdAt
+const joinDateIdx = helpers.indexOf('p.joinDate');
+if (joinDateIdx === -1) {
+  fail('monthlyHelpers.js thiếu p.joinDate trong candidates');
+} else if (joinDateIdx > creatIdx) {
+  fail('getStudentJoinTimestamp: joinDate phải nằm TRƯỚC createdAt trong candidates');
+} else {
+  ok('joinDate ưu tiên trước createdAt trong getStudentJoinTimestamp candidates');
+}
+
+// 17. studentsRenderer: useFullProfileActiveRender khai báo trước _profileEntries.sort (PASS 1)
+const declIdx = renderer.indexOf('const useFullProfileActiveRender');
+const pass1Idx = renderer.indexOf('_profileEntries.sort(');
+if (declIdx === -1) {
+  fail('studentsRenderer.js không có khai báo const useFullProfileActiveRender');
+} else if (pass1Idx !== -1 && declIdx > pass1Idx) {
+  fail('studentsRenderer.js: useFullProfileActiveRender khai báo SAU PASS 1 — TDZ còn tồn tại');
+} else {
+  ok('useFullProfileActiveRender khai báo trước PASS 1 — không còn TDZ');
+}
+
 // Tổng kết
 console.log(`\n${'─'.repeat(60)}`);
 if (failures === 0) {

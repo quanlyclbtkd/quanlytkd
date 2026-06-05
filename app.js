@@ -4364,8 +4364,28 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         } 
     };
 
-    window.skipMonth = async (name, month) => { await setDoc(doc(db, "clubs", currentClubId, "profiles", name.trim()), { skippedMonths: arrayUnion(month) }, { merge: true }); window.showToast("✅ Đã miễn phí tháng!"); };
-    window.removeSkip = async (name, month) => { if(window.userRole !== 'viewer' && confirm(`Hủy báo nghỉ tháng ${formatMonth(month)} cho ${name}?`)) { await setDoc(doc(db, "clubs", currentClubId, "profiles", name.trim()), { skippedMonths: arrayRemove(month) }, { merge: true }); closeModal(); window.showToast("✅ Đã khôi phục nợ!"); } };
+    window.skipMonth = async (name, month) => {
+    await setDoc(doc(db, "clubs", currentClubId, "profiles", name.trim()), { skippedMonths: arrayUnion(month) }, { merge: true });
+    window.showToast("✅ Đã miễn phí tháng!");
+    // Phase 4K-5L: sync local store after Firestore success
+    if (typeof window.syncStudentSkippedMonthLocal === 'function') {
+        window.syncStudentSkippedMonthLocal(name, month, 'add', 'skipMonth');
+    }
+    if (typeof window.removeStudentFromDebtDom === 'function') {
+        window.removeStudentFromDebtDom(name);
+    }
+};
+    window.removeSkip = async (name, month) => {
+    if (window.userRole !== 'viewer' && confirm(`Hủy báo nghỉ tháng ${formatMonth(month)} cho ${name}?`)) {
+        await setDoc(doc(db, "clubs", currentClubId, "profiles", name.trim()), { skippedMonths: arrayRemove(month) }, { merge: true });
+        // Phase 4K-5L: sync local store after Firestore success
+        if (typeof window.syncStudentSkippedMonthLocal === 'function') {
+            window.syncStudentSkippedMonthLocal(name, month, 'remove', 'removeSkip');
+        }
+        closeModal();
+        window.showToast("✅ Đã khôi phục nợ!");
+    }
+};
 
     window._currentAchievements = [];
 
@@ -4423,6 +4443,10 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                 // Phase 4K-5A: Sync local store sau khi quit
                 if (typeof window.syncStudentStatusLocal === 'function') {
                     window.syncStudentStatusLocal(name, { status: 'quit', quitDate: updateData.quitDate });
+                }
+                // Phase 4K-5L: also remove from debt DOM
+                if (typeof window.removeStudentFromDebtDom === 'function') {
+                    window.removeStudentFromDebtDom(name);
                 }
             });
         } else {
@@ -6289,7 +6313,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
 
                     // [PERF] Debt list pagination — đếm tổng nợ vẫn chính xác
                     _debtTotalCount++;
-                    if(_curTabId === 'debt' && _debtRendered < _debtLimit) { _debtRendered++; debtHtml += `<tr ${rowBg}><td><span class="badge ${countBadgeClass}">${unpaidMonthsCount} Tháng</span></td><td>${lastPaidLabel}</td>${branchTdHTML}<td class="name-link text-[0.95rem]" onclick="openProfile('${safeNameEscaped}')">${_displayName(name)}${_listYrBadge}${isOverdue ? ' <span title="Nợ từ 2 tháng trở lên" class="text-rose-500">⚠️</span>' : ''}</td><td class="action-btns"><button type="button" class="btn-sm bg-indigo-50 text-indigo-700 border border-indigo-200" onclick="generateMultiMonthPaymentRequest('${safeNameEscaped}', '${safeOwedMonths}', '${safeBranch}', '${totalDebtAmount}')">📱 QR</button>${window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-emerald-600 text-white shadow-sm" onclick="openQuickPayModal('${safeNameEscaped}', '${safeOwedMonths}', '${safeBranch}')">💰 Thu</button>` : ''}<button type="button" class="btn-sm bg-[#0068FF] text-white shadow-sm" onclick="copyAndOpenZalo('${safeNameEscaped}', '${safeOwedMonths}', '${safePhone}')">💬 Zalo</button>${window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-slate-100 text-slate-700 border border-slate-200" onclick="handleQuitOption('${safeNameEscaped}', '${selMonth}')">🚫</button>` : ''}</td></tr>`; }
+                    if(_curTabId === 'debt' && _debtRendered < _debtLimit) { _debtRendered++; debtHtml += `<tr ${rowBg}><td><span class="badge ${countBadgeClass}">${unpaidMonthsCount} Tháng</span></td><td>${lastPaidLabel}</td>${branchTdHTML}<td class="name-link text-[0.95rem]" onclick="openProfile('${safeNameEscaped}')">${_displayName(name)}${_listYrBadge}${isOverdue ? ' <span title="Nợ từ 2 tháng trở lên" class="text-rose-500">⚠️</span>' : ''}</td><td class="action-btns"><button type="button" class="btn-sm bg-indigo-50 text-indigo-700 border border-indigo-200" onclick="generateMultiMonthPaymentRequest('${safeNameEscaped}', '${safeOwedMonths}', '${safeBranch}', '${totalDebtAmount}')">📱 QR</button>${window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-emerald-600 text-white shadow-sm" onclick="openQuickPayModal('${safeNameEscaped}', '${safeOwedMonths}', '${safeBranch}')">💰 Thu</button>` : ''}<button type="button" class="btn-sm bg-[#0068FF] text-white shadow-sm" onclick="copyAndOpenZalo('${safeNameEscaped}', '${safeOwedMonths}', '${safePhone}')">💬 Zalo</button>${window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-rose-50 text-rose-700 border border-rose-200" title="Chuyển võ sinh sang Đã nghỉ" onclick="window.markStudentQuitFromDebt(event, '${safeNameEscaped}', '${selMonth}')">🚫 Nghỉ</button><button type="button" class="btn-sm bg-amber-50 text-amber-700 border border-amber-200" title="Báo nghỉ / miễn học phí tháng này" onclick="window.skipDebtMonthFromDebt(event, '${safeNameEscaped}', '${selMonth}')">⏸ Báo nghỉ</button>` : ''}</td></tr>`; }
                 }
             } else {
                 // [PERF] Quit list pagination
@@ -6437,7 +6461,38 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         const examLedger = typeof window.buildCanonicalExamPaymentLedger === 'function'
             ? window.buildCanonicalExamPaymentLedger()
             : null;
-        const paidStudents = examLedger ? examLedger.byName : {};
+        let paidStudents = examLedger ? examLedger.byName : {};
+
+        // Phase 4K-5J-2: fallback dùng extractExamStudentName khi không có ledger
+        if (!examLedger) {
+            paidStudents = {};
+            const _txList = (window.__store && Array.isArray(window.__store.transactions))
+                ? window.__store.transactions : (allTransactions || []);
+            _txList.forEach(function(t) {
+                if (!t) return;
+                if (!(t.type === 'Lệ phí thi' || t.type === 'Học phí + Lệ phí thi')) return;
+                if (t.examPaidCancelled === true) return;
+                const _examAmt = t.type === 'Học phí + Lệ phí thi'
+                    ? Number(t.examAmount || 0) : Number(t.amount || 0);
+                if (_examAmt <= 0) return;
+                const rawName = typeof window.extractExamStudentName === 'function'
+                    ? window.extractExamStudentName(t)
+                    : String(t.studentName || t.profileName || t.description || '').trim();
+                const stuName = typeof window.getCanonicalStudentName === 'function'
+                    ? window.getCanonicalStudentName(rawName, allProfiles)
+                    : rawName.replace(/\s*\($/, '').trim();
+                if (!stuName) return;
+                const _prof = allProfiles[stuName] || {};
+                paidStudents[stuName] = {
+                    id: t.id || t.txId || '',
+                    amount: _examAmt,
+                    type: t.type,
+                    targetBelt: typeof window.getExamTargetBeltFromTx === 'function'
+                        ? window.getExamTargetBeltFromTx(t, _prof)
+                        : (t.examTargetBelt || ''),
+                };
+            });
+        }
         
         let htmlOriginal = '';
         let htmlNewlyUpgraded = '';
@@ -11627,15 +11682,37 @@ window.debugExamCanonicalLedger = function() {
     // Phase 4K-5C: Dùng canonical ledger — count + amount luôn nhất quán
     window.computeExamRegistrationStats = function computeExamRegistrationStats() {
         try {
+            // Phase 4K-5C: prefer canonical ledger
             var ledger = typeof window.buildCanonicalExamPaymentLedger === 'function'
                 ? window.buildCanonicalExamPaymentLedger()
-                : { count: 0, records: [], totalAmount: 0, duplicates: [] };
-            return {
-                registeredCount: ledger.count,
-                paidNames: ledger.records.map(function(r) { return r.studentName; }),
-                totalAmount: ledger.totalAmount,
-                duplicates: ledger.duplicates
-            };
+                : null;
+            if (ledger) {
+                return {
+                    registeredCount: ledger.count,
+                    paidNames: ledger.records.map(function(r) { return r.studentName; }),
+                    totalAmount: ledger.totalAmount,
+                    duplicates: ledger.duplicates
+                };
+            }
+            // Phase 4K-5J-2: fallback dùng extractExamStudentName + getCanonicalStudentName
+            var _paidNamesSet = {};
+            var _txList = (window.__store && Array.isArray(window.__store.transactions))
+                ? window.__store.transactions : (allTransactions || []);
+            var _profiles = (window.__store && window.__store.profiles) || allProfiles || {};
+            _txList.forEach(function(t) {
+                if (!t) return;
+                if (!(t.type === 'Lệ phí thi' || t.type === 'Học phí + Lệ phí thi')) return;
+                if (t.examPaidCancelled === true) return;
+                var rawN = typeof window.extractExamStudentName === 'function'
+                    ? window.extractExamStudentName(t)
+                    : String(t.studentName || t.profileName || t.description || '').trim();
+                var canN = typeof window.getCanonicalStudentName === 'function'
+                    ? window.getCanonicalStudentName(rawN, _profiles)
+                    : rawN;
+                if (canN) _paidNamesSet[canN] = true;
+            });
+            var _paidNames = Object.keys(_paidNamesSet);
+            return { registeredCount: _paidNames.length, paidNames: _paidNames, totalAmount: 0, duplicates: [] };
         } catch (e) {
             console.warn('[computeExamRegistrationStats] error:', e);
             return { registeredCount: 0, paidNames: [], totalAmount: 0 };

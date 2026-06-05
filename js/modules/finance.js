@@ -166,8 +166,18 @@ export function initFinance() {
             `- Bấm OK để báo NGHỈ TẬP luôn.\n` +
             `- Bấm Cancel để chỉ BÁO NGHỈ THÁNG NÀY (miễn học phí tháng ${formatMonth(month)}).`
         )) {
-            StudentService.updateProfile(name, { status: 'quit', quitDate: getLocalToday() })
-                .then(() => window.showToast('✅ Đã chuyển trạng thái Nghỉ tập!'));
+            const _quitData = { status: 'quit', quitDate: getLocalToday() };
+            StudentService.updateProfile(name, _quitData)
+                .then(() => {
+                    window.showToast('✅ Đã chuyển trạng thái Nghỉ tập!');
+                    if (typeof window.syncStudentStatusLocal === 'function') {
+                        window.syncStudentStatusLocal(name, { status: 'quit', quitDate: _quitData.quitDate }, 'handleQuitOption-finance');
+                    }
+                    if (typeof window.removeStudentFromDebtDom === 'function') {
+                        window.removeStudentFromDebtDom(name);
+                    }
+                })
+                .catch(console.error);
         } else {
             if (confirm(`Xác nhận miễn nợ học phí tháng ${formatMonth(month)} cho ${name}?`)) {
                 window.skipMonth(name, month);

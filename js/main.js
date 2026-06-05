@@ -1298,6 +1298,14 @@ function _waitForExistingLegacyApp(ms) {
                 if (typeof window.initExamFeeSettingUI === 'function') window.initExamFeeSettingUI();
                 if (typeof window.refreshExamFeeUI === 'function') window.refreshExamFeeUI('switch-to-exam');
             }
+            // Phase 4K-5J-2: reset active render limit when switching tabs
+            if (tabId === 'active' || tabId === 'quit') {
+                if (typeof window.resetActiveRenderLimit === 'function') {
+                    window.resetActiveRenderLimit('tab-switch-' + tabId);
+                } else if (typeof window.__activeRenderLimit !== 'undefined') {
+                    window.__activeRenderLimit = 50;
+                }
+            }
             // Phase 4K-5J-1: bind overdue filter UI when entering BÁO NỢ tab
             if (tabId === 'debt') {
                 if (typeof window.ensureDebtOverdueFilterUI === 'function') window.ensureDebtOverdueFilterUI();
@@ -2858,6 +2866,12 @@ window.debugRuntimeSmokeTest = async function(term) {
     // Phase 4K-5G
     out.listPaginationCoverage = await safeCall('debugListPaginationCoverage', window.debugListPaginationCoverage);
     out.examExportReadiness    = await safeCall('debugExamExportReadiness',    window.debugExamExportReadiness);
+    // Phase 4K-5K
+    out.activeLoadMoreAndSort  = await safeCall('debugActiveLoadMoreAndSort',  window.debugActiveLoadMoreAndSort);
+    out.debtLoadMoreAndFilter  = await safeCall('debugDebtLoadMoreAndFilter',  window.debugDebtLoadMoreAndFilter);
+    out.debtCoverage           = await safeCall('debugDebtCoverage',           window.debugDebtCoverage);
+    out.activeQuitLeak         = await safeCall('debugActiveQuitLeak',         window.debugActiveQuitLeak);
+    out.tuitionTableLayout     = await safeCall('debugTuitionTableLayout',     window.debugTuitionTableLayout);
 
     const summary = {
         runtimeMode:     out.runtimeMode,
@@ -2890,6 +2904,12 @@ window.debugRuntimeSmokeTest = async function(term) {
         // Phase 4K-5G
         listPaginationCoverageOk:   !!out.listPaginationCoverage.ok,
         examExportReadinessOk:      !!out.examExportReadiness.ok,
+        // Phase 4K-5K
+        activeLoadMoreAndSortOk:    !!out.activeLoadMoreAndSort.ok,
+        debtLoadMoreAndFilterOk:    !!out.debtLoadMoreAndFilter.ok,
+        debtCoverageOk:             !!out.debtCoverage.ok,
+        activeQuitLeakOk:           !!out.activeQuitLeak.ok,
+        tuitionTableLayoutOk:       !!out.tuitionTableLayout.ok,
 
         overallOk:
             !!out.examFee.ok &&
@@ -2910,8 +2930,20 @@ window.debugRuntimeSmokeTest = async function(term) {
             !!out.examCanonicalLedger.ok &&
             !!out.bundleTransactions.ok &&
             !!out.listPaginationCoverage.ok &&
-            !!out.examExportReadiness.ok
+            !!out.examExportReadiness.ok &&
+            !!out.activeLoadMoreAndSort.ok &&
+            !!out.debtLoadMoreAndFilter.ok &&
+            !!out.debtCoverage.ok &&
+            !!out.activeQuitLeak.ok &&
+            !!out.tuitionTableLayout.ok
     };
+
+    // Phase 4K-5L: Debt Action Bridge state
+    out.debtActionState = await safeCall(
+        'debugDebtActionState',
+        window.debugDebtActionState,
+        ['']
+    );
 
     console.table(summary);
     console.log('[debugRuntimeSmokeTest:detail]', out);
@@ -2969,6 +3001,12 @@ window.handleFilterMonthChange = async function(month, reason) {
     if (typeof window.invalidateSearchCache === 'function') {
         try { window.invalidateSearchCache('all', 'filter-month-change'); }
         catch (_) {}
+    }
+    // Phase 4K-5J-2: reset active render limit khi đổi tháng
+    if (typeof window.resetActiveRenderLimit === 'function') {
+        window.resetActiveRenderLimit('filter-month-change');
+    } else if (typeof window.__activeRenderLimit !== 'undefined') {
+        window.__activeRenderLimit = 50;
     }
 
     // 3. Reload transaction pagination nếu có
