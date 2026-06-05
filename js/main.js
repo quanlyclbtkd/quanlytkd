@@ -2801,7 +2801,7 @@ window.debugProfileModalClose = function() {
 // ════════════════════════════════════════════════════════════════
 
 // PHẦN 1 — APP BUILD VERSION
-window.APP_BUILD_VERSION = '4K-5O-A-runtime-diagnostics-20260605';
+window.APP_BUILD_VERSION = '4K-5Q-mobile-superadmin-searchv2-active-loadmore-20260605';
 
 window.debugAppVersion = function() {
   const scripts = Array.from(document.scripts || []).map(s => s.src || '').filter(Boolean);
@@ -3086,6 +3086,22 @@ window.runGuardedAction = async function(actionName, fn, options) {
 };
 
 // ════════════════════════════════════════════════════════════════
+// Phase 4K-5Q — debugActiveLoadMoreSingleSource
+// ════════════════════════════════════════════════════════════════
+window.debugActiveLoadMoreSingleSource = function() {
+    const result = {
+        activeRowsLoadMoreInTable:
+            document.querySelectorAll('#activeList tr.load-more-row, #activeList [data-load-more-for="activeList"]').length,
+        activeControlExists: !!document.getElementById('pgWrap_activeList'),
+        activeControlText:   (document.getElementById('pgWrap_activeList') || {}).textContent || '',
+        activeRenderLimit:   window.__activeRenderLimit || 50,
+        hasLoadMoreActiveStudents: typeof window.loadMoreActiveStudents === 'function'
+    };
+    console.table(result);
+    return result;
+};
+
+// ════════════════════════════════════════════════════════════════
 // Phase 4K-4B — debugRuntimeSmokeTest
 // Kiểm tra nhanh sau khi upload GitHub/domain.
 // Dùng: debugRuntimeSmokeTest() từ Console.
@@ -3177,17 +3193,6 @@ window.debugRuntimeSmokeTest = async function(term) {
         'debugExamBranchRegistrationMismatch',
         window.debugExamBranchRegistrationMismatch
     );
-    // Phase 4K-5Q: Mobile SuperAdmin Guard
-    out.mobileSuperAdminGuard = await safeCall(
-        'debugMobileSuperAdminGuard',
-        window.debugMobileSuperAdminGuard
-    );
-    // Phase 4K-5Q: Search Router V2
-    out.searchRouterV2 = await safeCall(
-        'debugSearchRouterV2',
-        window.debugSearchRouterV2,
-        ['nguyen']
-    );
 
     const summary = {
         runtimeMode:     out.runtimeMode,
@@ -3237,9 +3242,6 @@ window.debugRuntimeSmokeTest = async function(term) {
         renderHealthOk:             !!out.renderHealth.ok,
         // Phase 4K-5P
         examBranchRegistrationOk:   !!out.examBranchRegistrationMismatch.ok,
-        // Phase 4K-5Q
-        mobileSuperAdminGuardOk:    !!out.mobileSuperAdminGuard.ok,
-        searchRouterV2Ok:           !!out.searchRouterV2.ok,
 
         overallOk:
             !!out.examFee.ok &&
@@ -3288,6 +3290,15 @@ window.debugRuntimeSmokeTest = async function(term) {
     );
 
     summary.debtServiceBridgeOk = !!out.debtServiceBridge.ok;
+
+    // Phase 4K-5Q: Mobile SuperAdmin Gate + Search V2 + Active LoadMore Single Source
+    out.mobileSuperAdminGate = await safeCall('debugMobileSuperAdminGate', window.debugMobileSuperAdminGate);
+    out.unifiedSearchV2      = await safeCall('debugUnifiedSearchV2',      window.debugUnifiedSearchV2);
+    out.activeLoadMoreSingle = await safeCall('debugActiveLoadMoreSingleSource', window.debugActiveLoadMoreSingleSource);
+
+    summary.mobileSuperAdminGateOk = !!out.mobileSuperAdminGate.ok;
+    summary.unifiedSearchV2Ok      = !!out.unifiedSearchV2.ok;
+    summary.activeLoadMoreSingleOk = !!out.activeLoadMoreSingle.ok;
 
     console.table(summary);
     console.log('[debugRuntimeSmokeTest:detail]', out);

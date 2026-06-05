@@ -207,15 +207,10 @@ if (searchRuntime) {
         "PHẦN 1: export function getSearchRuntimeState() { ... }"
     );
 
-    const hasSearchRouterV2Debounce =
-        searchRuntime.includes('SEARCH_DEBOUNCE_MS') &&
-        (searchRuntime.includes('380') || searchRuntime.includes('SEARCH_DEBOUNCE_MS = 380'));
-    const hasLegacyDebounce =
-        searchRuntime.includes('}, 250)') || searchRuntime.includes('}, 300)');
     check(
-        'searchRuntime.js có debounce hợp lệ (250/300ms legacy hoặc 380ms Search Router V2)',
-        hasSearchRouterV2Debounce || hasLegacyDebounce,
-        'Search Router V2 dùng SEARCH_DEBOUNCE_MS = 380; legacy có thể dùng 250/300.'
+        'searchRuntime.js có debounce 250ms hoặc 300ms',
+        searchRuntime.includes('}, 250)') || searchRuntime.includes('}, 300)'),
+        "PHẦN 1: _state.pendingTimer = setTimeout(() => { _dispatchSearch(raw); }, 250);"
     );
 
     check(
@@ -230,15 +225,10 @@ if (searchRuntime) {
         "PHẦN 4: if (tab === 'active' || tab === 'quit') window.runStudentSearchPagination(term)"
     );
 
-    const hasSearchMountedFlag =
-        searchRuntime.includes('__searchRuntimeMounted') &&
-        (searchRuntime.includes('= true') || searchRuntime.includes('true;'));
-    const hasSearchRouterV2Flag =
-        searchRuntime.includes('__SEARCH_ROUTER_V2_ACTIVE');
     check(
-        'searchRuntime.js sets search runtime mounted/router flags',
-        hasSearchMountedFlag || hasSearchRouterV2Flag,
-        'Search Router V2 phải có __SEARCH_ROUTER_V2_ACTIVE hoặc __searchRuntimeMounted.'
+        'searchRuntime.js sets window.__searchRuntimeMounted = true',
+        searchRuntime.includes('window.__searchRuntimeMounted = true'),
+        "PHẦN 1: window.__searchRuntimeMounted = true; sau khi bind"
     );
 }
 

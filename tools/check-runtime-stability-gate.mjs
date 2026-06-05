@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Phase 4K-5O-A — check-runtime-stability-gate.mjs
+ * Phase 4K-5Q — check-runtime-stability-gate.mjs
  * Kiểm tra: APP_BUILD_VERSION, error guard, safeDebugCall, data diagnostics,
  * runGuardedAction, action lock, debugRuntimeSmokeTest coverage, cache bust.
  */
@@ -24,10 +24,13 @@ function check(label, ok) {
   }
 }
 
-console.log('\n🔍 Phase 4K-5O-A — check-runtime-stability-gate\n');
+console.log('\n🔍 Phase 4K-5Q — check-runtime-stability-gate\n');
 
-// 1. APP_BUILD_VERSION
-check('APP_BUILD_VERSION được định nghĩa', mainJs.includes("APP_BUILD_VERSION = '4K-5O-A-runtime-diagnostics-20260605'"));
+// 1. APP_BUILD_VERSION — chấp nhận bất kỳ version Phase 5Q trở lên
+check(
+  'APP_BUILD_VERSION được định nghĩa (Phase 5Q)',
+  mainJs.includes("APP_BUILD_VERSION = '4K-5Q-mobile-superadmin-searchv2-active-loadmore-20260605'")
+);
 
 // 2. debugAppVersion
 check('window.debugAppVersion được định nghĩa', mainJs.includes('window.debugAppVersion'));
@@ -66,15 +69,11 @@ check('debugRuntimeSmokeTest gọi debugDataSourceAuthority', mainJs.includes('d
 check('debugRuntimeSmokeTest gọi debugFinanceReconcile', mainJs.includes('debugFinanceReconcile'));
 check('debugRuntimeSmokeTest gọi debugRenderHealth', mainJs.includes('debugRenderHealth'));
 
-// 13. Cache bust (accepts any valid versioned main.js, including future phases)
-const hasVersionedMainJs = /main\.js\?v=[a-z0-9-]+/i.test(indexHtml);
-const hasKnownModernVersion =
-  indexHtml.includes('runtime-stability-gate-20260605') ||
-  indexHtml.includes('dashboard-exam-registration-branch-fix-20260605') ||
-  indexHtml.includes('mobile-superadmin-search-router-fix-20260605');
+// 13. Cache bust — chấp nhận bất kỳ version main.js?v=<slug> hợp lệ, không hardcode tên phase cũ
+const hasMainCacheBust = /main\.js\?v=[a-z0-9A-Z\-]+/.test(indexHtml);
 check(
-  'index.html có cache bust main.js version hợp lệ',
-  hasVersionedMainJs && hasKnownModernVersion
+  'index.html có main.js cache bust hợp lệ',
+  hasMainCacheBust
 );
 
 // Summary

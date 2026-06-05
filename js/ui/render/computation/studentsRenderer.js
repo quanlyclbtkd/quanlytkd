@@ -542,13 +542,9 @@ export function computeAndCacheStudents(allProfiles, params) {
             : `<tr class="load-more-row" data-load-more-for="debtList"><td colspan="${_moreColspan}" ${_moreStyle}><button type="button" ${_moreBtnSt} onclick="window.loadMoreDebtRows(event)">⬇ Tải thêm — còn ${_remainDebt} võ sinh nợ nữa</button></td></tr>`;
     }
 
-    // Phase 4K-5J-2: ĐANG TẬP load more tách riêng — không phụ thuộc pgStudentsActive
-    if (buildActive && _activeTotalCount > _activeRendered) {
-        const _remainActive = _activeTotalCount - _activeRendered;
-        activeRows += (typeof window.renderLoadMoreRow === 'function')
-            ? window.renderLoadMoreRow({ listId: 'activeList', label: 'võ sinh', remaining: _remainActive, colspan: _moreColspan, onclick: 'window.loadMoreActiveStudents(event)' })
-            : `<tr class="load-more-row" data-load-more-for="activeList"><td colspan="${_moreColspan}" ${_moreStyle}><button type="button" ${_moreBtnSt} onclick="window.loadMoreActiveStudents(event)">⬇ Tải thêm — còn ${_remainActive} võ sinh nữa</button></td></tr>`;
-    }
+    // Phase 4K-5Q: DISABLED — active load-more row inside table removed.
+    // Single source of truth is #pgWrap_activeList (outside table), rendered by _injectControls.
+    // if (buildActive && _activeTotalCount > _activeRendered) { ... }
 
     // Quit load more — chỉ khi không có server-side pagination
     if (!pgStudentsActive) {

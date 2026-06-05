@@ -1125,23 +1125,9 @@ export function initStudentPagination() {
                     const tbody = document.getElementById(listId);
                     if (!tbody) return;
 
-                    // [Part 6 FIX] Navigate to <table> first, then insert AFTER it — not inside it.
-                    // A <div> inside <table> is invalid HTML and browsers will eject it unpredictably.
                     const tbl    = tbody.closest ? tbody.closest('table') : tbody.parentElement;
                     const anchor = tbl || tbody;
                     const parent = anchor.parentElement;
-
-                    // [Part 6 FIX] Unique prefix per list — avoids duplicate pgNext_students IDs
-                    // renderPaginationControls builds onclick="window._pgNext_<prefix>()"
-                    const prefix = listId === 'activeList' ? 'students_active' : 'students_quit';
-                    let html   = renderPaginationControls(pgState, prefix, from, to);
-                    // Phase 4K-5H: đổi text Tiếp → rõ ràng hơn
-                    if (prefix === 'students_active') {
-                        html = html.replace(/Tiếp\s*→/g, '⬇ Tải thêm võ sinh');
-                    }
-                    if (prefix === 'students_quit') {
-                        html = html.replace(/Tiếp\s*→/g, '⬇ Tải thêm đã nghỉ');
-                    }
 
                     const ctrlId = 'pgWrap_' + listId;
                     let ctrlEl   = document.getElementById(ctrlId);
@@ -1154,6 +1140,42 @@ export function initStudentPagination() {
                             anchor.parentNode.insertBefore(ctrlEl, anchor.nextSibling);
                         }
                     }
+
+                    // Phase 4K-5Q: Active list — single source load more outside table
+                    // Derives remaining from full profiles + __activeRenderLimit (not pgState.hasNext)
+                    if (listId === 'activeList') {
+                        const _st       = window.__store || {};
+                        const _profiles = _st.profiles || {};
+                        const _activeItems = Object.entries(_profiles).filter(function([name, p]) {
+                            if (typeof window.classifyProfileStatus === 'function') {
+                                return window.classifyProfileStatus(p) === 'active';
+                            }
+                            return p.status !== 'quit' && p.active !== false && p.isActive !== false;
+                        });
+                        const _activeLimit   = window.__activeRenderLimit || 50;
+                        const _remaining     = Math.max(0, _activeItems.length - _activeLimit);
+                        const _btnStyle      = 'style="padding:0.45rem 1.2rem;font-size:0.85rem;background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;border-radius:6px;cursor:pointer;font-weight:600;"';
+                        if (_remaining > 0) {
+                            ctrlEl.innerHTML = '<div style="text-align:center;padding:0.75rem 0;">'
+                                + '<button type="button" ' + _btnStyle + ' onclick="window.loadMoreActiveStudents(event)">'
+                                + '⬇ Tải thêm — còn ' + _remaining + ' võ sinh nữa'
+                                + '</button></div>';
+                        } else if (_activeItems.length > 0) {
+                            ctrlEl.innerHTML = '<div style="text-align:center;padding:0.5rem 0;color:#94a3b8;font-size:0.8rem;">Đã tải hết ' + _activeItems.length + ' võ sinh</div>';
+                        } else {
+                            // Fall back to pagination controls when full profiles not loaded
+                            const prefix = 'students_active';
+                            let html = renderPaginationControls(pgState, prefix, from, to);
+                            html = html.replace(/Tiếp\s*→/g, '⬇ Tải thêm võ sinh');
+                            ctrlEl.innerHTML = html;
+                        }
+                        return;
+                    }
+
+                    // Quit list — use standard pagination controls
+                    const prefix = 'students_quit';
+                    let html   = renderPaginationControls(pgState, prefix, from, to);
+                    html = html.replace(/Tiếp\s*→/g, '⬇ Tải thêm đã nghỉ');
                     ctrlEl.innerHTML = html;
                 });
             }

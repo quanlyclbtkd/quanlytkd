@@ -69,8 +69,9 @@ if (activeInsidePgGuard)
 else ok('active load more nằm ngoài if (!pgStudentsActive)');
 
 // 10. Active load more button gọi window.loadMoreActiveStudents(event)
-if (!renderer.includes("window.loadMoreActiveStudents(event)"))
-  fail('studentsRenderer active load more không gọi window.loadMoreActiveStudents(event)');
+// Phase 4K-5Q: button đã chuyển sang students.js _injectControls (single source of truth)
+if (!students.includes("window.loadMoreActiveStudents(event)"))
+  fail('students.js _injectControls active load more không gọi window.loadMoreActiveStudents(event)');
 else ok('active load more button calls window.loadMoreActiveStudents(event)');
 
 // 11. getStudentJoinTimestamp có admissionDate + joinDate

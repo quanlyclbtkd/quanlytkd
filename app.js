@@ -131,26 +131,6 @@
 
     window.userRole = 'viewer';
     window.coachBranch = '';   // Chi nhánh được phân công của HLV (rỗng = tất cả)
-
-    // ─── Phase 4K-5Q: Role helpers chuẩn ─────────────────────────────────────
-    window.getCurrentUserRoleSafe = function() {
-        return (
-            (window.__store && window.__store.userRole) ||
-            window.userRole ||
-            'viewer'
-        );
-    };
-
-    window.isSuperAdminRole = function(role) {
-        const r = String(role || window.getCurrentUserRoleSafe()).trim().toLowerCase();
-        return r === 'super_admin' || r === 'superadmin' || r === 'super-admin';
-    };
-
-    window.isClubAdminRole = function(role) {
-        const r = String(role || window.getCurrentUserRoleSafe()).trim().toLowerCase();
-        return r === 'admin';
-    };
-    // ─────────────────────────────────────────────────────────────────────────
     let currentClubId = "";
     let clubData = {};
     let allProfiles = {};
@@ -973,27 +953,22 @@ window.invCustomCategories = [];
 
     window.handleLogout = () => signOut(auth).then(() => location.reload());
 
-    // Phase 4K-5Q: Harden — chỉ SuperAdmin mới mở được
     window.openNewClubModal = () => {
+        // Phase 4K-5Q: SuperAdmin-only guard
         if (typeof window.isSuperAdminRole === 'function' && !window.isSuperAdminRole()) {
-            console.warn('[SuperAdminGuard] openNewClubModal blocked for role:', window.getCurrentUserRoleSafe && window.getCurrentUserRoleSafe());
-            window.showToast && window.showToast('⛔ Chỉ SuperAdmin mới được mở CLB mới!');
-            return false;
+            console.warn('[openNewClubModal] blocked: not super admin', {
+                userRole:  window.userRole,
+                storeRole: window.__store && window.__store.userRole
+            });
+            alert('Chỉ tài khoản SuperAdmin mới được phép mở CLB mới.');
+            return;
         }
         tempLogoBase64 = "";
-        document.getElementById('nc_logoPreview')?.classList.add('hidden');
-        const modal = document.getElementById('newClubModal');
-        if (modal) modal.style.display = 'flex';
-        return true;
+        document.getElementById('nc_logoPreview').classList.add('hidden');
+        document.getElementById('newClubModal').style.display = 'flex';
     };
 
     window.createNewClubSystem = async () => {
-        // Phase 4K-5Q: Server-side guard — ngăn cả khi gọi từ Console
-        if (typeof window.isSuperAdminRole === 'function' && !window.isSuperAdminRole()) {
-            console.warn('[SuperAdminGuard] createNewClubSystem blocked for role:', window.getCurrentUserRoleSafe && window.getCurrentUserRoleSafe());
-            alert('Chỉ SuperAdmin mới được tạo CLB mới.');
-            return;
-        }
         const clubName = document.getElementById('nc_clubName').value.trim();
         let clubId = document.getElementById('nc_clubId').value.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
         const email = document.getElementById('nc_adminEmail').value.trim();
@@ -5889,8 +5864,12 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         // Khi chạy GitHub/domain hoặc local HTTP module, app.js không tự refresh search.
         // File legacy vẫn có fallback nếu main.js bị tắt.
         document.getElementById('searchInput').oninput = () => {
-            // Phase 4K-5Q: Nếu Search Router V2 đang active → legacy handler không chạy
-            if (window.__SEARCH_ROUTER_V2_ACTIVE || window.__searchRuntimeMounted) {
+            // PHẦN 2: Nếu Unified Search Runtime đã mount (http-module) → không làm gì
+            if (window.__RUNTIME_MODE === 'http-module' && window.__searchRuntimeMounted) {
+                return;
+            }
+            // Phase 4K-5Q: also block when SearchRuntime V2 is mounted
+            if (window.__searchRuntimeV2Mounted) {
                 return;
             }
             // Tab-aware guard: chỉ chặn legacy ở ĐANG TẬP/ĐÃ NGHỈ nếu PRIMARY đã mount và không fail
@@ -6427,7 +6406,8 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         const _moreColspan = isSingleBranch ? 8 : 9;
         const _moreStyle = 'style="padding:10px;text-align:center;"';
         const _moreBtnStyle = 'class="btn-sm" style="background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;font-size:0.78rem;cursor:pointer;"';
-        if(_activeTotalCount > _activeLimit)  activeHtml += `<tr><td colspan="${_moreColspan}" ${_moreStyle}><button type="button" ${_moreBtnStyle} onclick="window._loadMore('active')">⬇ Tải thêm — còn ${_activeTotalCount - _activeRendered} võ sinh nữa</button></td></tr>`;
+        // Phase 4K-5Q: DISABLED — active load-more row moved outside table (single source via #pgWrap_activeList)
+        // if(_activeTotalCount > _activeLimit)  activeHtml += `<tr>...</tr>`;
         if(_debtTotalCount   > _debtLimit)    debtHtml   += `<tr><td colspan="${_moreColspan}" ${_moreStyle}><button type="button" ${_moreBtnStyle} onclick="window._loadMore('debt')">⬇ Tải thêm — còn ${_debtTotalCount - _debtRendered} võ sinh nữa</button></td></tr>`;
         if(_quitTotalCount   > _quitLimit)    quitHtml   += `<tr><td colspan="${_moreColspan}" ${_moreStyle}><button type="button" ${_moreBtnStyle} onclick="window._loadMore('quit')">⬇ Tải thêm — còn ${_quitTotalCount - _quitRendered} võ sinh nữa</button></td></tr>`;
 
@@ -10331,60 +10311,57 @@ window.processMultiItem = async (action) => {
 
 
     // ═══════════════════════════════════════════════════════════════
+    // ════════════════════════════════════════════════════════════════
+    // Phase 4K-5Q: isSuperAdminRole — single source of truth for SuperAdmin check
+    // ════════════════════════════════════════════════════════════════
+    window.isSuperAdminRole = function() {
+        const role =
+            window.userRole ||
+            (window.__store && window.__store.userRole) ||
+            '';
+        return role === 'super_admin' || role === 'superadmin';
+    };
+
+    // ════════════════════════════════════════════════════════════════
+    // Phase 4K-5Q: debugMobileSuperAdminGate — debug helper
+    // ════════════════════════════════════════════════════════════════
+    window.debugMobileSuperAdminGate = function() {
+        const btn = document.getElementById('mmsAdminBtn');
+        const result = {
+            userRole:        window.userRole || '',
+            storeRole:       (window.__store && window.__store.userRole) || '',
+            isSuperAdmin:    typeof window.isSuperAdminRole === 'function'
+                                 ? window.isSuperAdminRole()
+                                 : false,
+            buttonExists:    !!btn,
+            buttonDisplay:   btn ? getComputedStyle(btn).display : '',
+            canOpenNewClubModal: typeof window.openNewClubModal === 'function'
+        };
+        console.table(result);
+        return result;
+    };
+
     // MOBILE MENU SHEET — openMobileMenu / closeMobileMenu
     // Được gọi từ .mhb-menu-btn (header mobile) và nút X bên trong sheet
     // CSS: #mobileMenuSheet.open { display: flex }
     // ═══════════════════════════════════════════════════════════════
-    // Phase 4K-5Q: Mobile menu — "Mở CLB Mới" chỉ hiện với SuperAdmin
     window.openMobileMenu = () => {
         const sheet = document.getElementById('mobileMenuSheet');
         if (!sheet) return;
-
-        // superBtn: chỉ SuperAdmin mới thấy nút "Mở CLB Mới"
-        const superBtn = document.getElementById('mmsAdminBtn');
-        if (superBtn) {
-            superBtn.style.display =
+        // Hiển thị nút Admin khi người dùng là admin / super_admin
+        const adminBtn = document.getElementById('mmsAdminBtn');
+        if (adminBtn) {
+            adminBtn.style.display =
                 (typeof window.isSuperAdminRole === 'function' && window.isSuperAdminRole())
                     ? 'block'
-                    : 'none';
-            superBtn.setAttribute('data-role-required', 'super_admin');
+                    : 'none'; // Phase 4K-5Q: Only super_admin sees Mở CLB Mới
         }
-
-        // cpBtn (đổi mật khẩu): ẩn với SuperAdmin, hiện với các role khác
-        const cpBtn = document.getElementById('mmsChangePasswordBtn');
-        if (cpBtn) {
-            cpBtn.style.display =
-                (typeof window.isSuperAdminRole === 'function' && window.isSuperAdminRole())
-                    ? 'none'
-                    : 'block';
-        }
-
         sheet.classList.add('open');
     };
 
     window.closeMobileMenu = () => {
         const sheet = document.getElementById('mobileMenuSheet');
         if (sheet) sheet.classList.remove('open');
-    };
-
-    // Phase 4K-5Q: Debug helper — kiểm tra guard mobile SuperAdmin
-    window.debugMobileSuperAdminGuard = function() {
-        const role = window.getCurrentUserRoleSafe ? window.getCurrentUserRoleSafe() : window.userRole;
-        const btn   = document.getElementById('mmsAdminBtn');
-        const modal = document.getElementById('newClubModal');
-
-        const result = {
-            role,
-            isSuperAdmin: typeof window.isSuperAdminRole === 'function' ? window.isSuperAdminRole(role) : false,
-            mobileSuperButtonDisplay: btn ? getComputedStyle(btn).display : 'missing',
-            mobileSuperButtonInlineDisplay: btn ? btn.style.display : 'missing',
-            hasOpenNewClubModal: typeof window.openNewClubModal === 'function',
-            hasCreateNewClubSystem: typeof window.createNewClubSystem === 'function',
-            newClubModalDisplay: modal ? getComputedStyle(modal).display : 'missing'
-        };
-
-        console.table(result);
-        return result;
     };
 
     // ════════════════════════════════════════════════════════════════
