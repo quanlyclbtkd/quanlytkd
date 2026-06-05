@@ -183,6 +183,12 @@ function _renderBulkZaloList() {
  */
 export function initStudents() {
 
+    // Phase 4K-5L-C: Expose StudentService lên window ngay đầu initStudents()
+    // để finance.js và các module khác dùng được qua window.StudentService
+    if (typeof window !== 'undefined') {
+        window.StudentService = window.StudentService || StudentService;
+    }
+
     // Inject Zalo modal (idempotent — app.js cũng inject nhưng an toàn khi gọi lại)
     _injectZaloModal();
 
@@ -2486,20 +2492,26 @@ window.markStudentQuitFromDebt = async function(event, name, month) {
     var patch = { status: 'quit', quitDate: quitDate };
 
     try {
-        if (window.StudentService && typeof window.StudentService.updateProfile === 'function') {
-            await window.StudentService.updateProfile(studentName, patch);
-        } else if (window._fb_init && window.db && window.currentClubId) {
-            var _fb = window._fb_init;
-            await _fb.setDoc(
-                _fb.doc(window.db, 'clubs', window.currentClubId, 'profiles', studentName),
-                patch,
-                { merge: true }
-            );
-        } else if (window.db && window.currentClubId) {
-            // Fallback: use top-level Firebase SDK globals (app.js context)
-            throw new Error('Không tìm thấy StudentService hoặc Firebase context để cập nhật hồ sơ.');
+        const svc = window.StudentService || StudentService;
+
+        if (svc && typeof svc.updateProfile === 'function') {
+            await svc.updateProfile(studentName, patch);
         } else {
-            throw new Error('Không tìm thấy StudentService hoặc Firebase context để cập nhật hồ sơ.');
+            // Fallback Firestore dùng __store để lấy db / clubId
+            var st = window.__store || {};
+            var db = st.db || window.db;
+            var clubId = st.clubId || window.currentClubId;
+
+            if (window._fb_init && db && clubId) {
+                var _fb = window._fb_init;
+                await _fb.setDoc(
+                    _fb.doc(db, 'clubs', clubId, 'profiles', studentName),
+                    patch,
+                    { merge: true }
+                );
+            } else {
+                throw new Error('Không tìm thấy StudentService hoặc Firebase context để cập nhật hồ sơ.');
+            }
         }
 
         if (typeof window.syncStudentStatusLocal === 'function') {
@@ -2537,19 +2549,28 @@ window.skipDebtMonthFromDebt = async function(event, name, month) {
     if (!confirm('Báo nghỉ / miễn học phí tháng ' + monthLabel + ' cho "' + studentName + '"?')) return;
 
     try {
-        if (window.StudentService && typeof window.StudentService.addSkippedMonth === 'function') {
-            await window.StudentService.addSkippedMonth(studentName, selectedMonth);
+        const svc = window.StudentService || StudentService;
+
+        if (svc && typeof svc.addSkippedMonth === 'function') {
+            await svc.addSkippedMonth(studentName, selectedMonth);
         } else if (typeof window.skipMonth === 'function') {
             await window.skipMonth(studentName, selectedMonth);
-        } else if (window._fb_init && window.db && window.currentClubId) {
-            var _fb = window._fb_init;
-            await _fb.setDoc(
-                _fb.doc(window.db, 'clubs', window.currentClubId, 'profiles', studentName),
-                { skippedMonths: _fb.arrayUnion(selectedMonth) },
-                { merge: true }
-            );
         } else {
-            throw new Error('Không tìm thấy StudentService/skipMonth/Firebase context để báo nghỉ.');
+            // Fallback Firestore dùng __store để lấy db / clubId
+            var st = window.__store || {};
+            var db = st.db || window.db;
+            var clubId = st.clubId || window.currentClubId;
+
+            if (window._fb_init && db && clubId) {
+                var _fb = window._fb_init;
+                await _fb.setDoc(
+                    _fb.doc(db, 'clubs', clubId, 'profiles', studentName),
+                    { skippedMonths: _fb.arrayUnion(selectedMonth) },
+                    { merge: true }
+                );
+            } else {
+                throw new Error('Không tìm thấy StudentService/skipMonth/Firebase context để báo nghỉ.');
+            }
         }
 
         if (typeof window.syncStudentSkippedMonthLocal === 'function') {
@@ -2563,6 +2584,26 @@ window.skipDebtMonthFromDebt = async function(event, name, month) {
         console.error('[skipDebtMonthFromDebt] failed:', err);
         alert('Không báo nghỉ được. Vui lòng kiểm tra quyền, mạng hoặc Console.');
     }
+};
+
+// PHẦN 8: Phase 4K-5L-C — Debug Service Bridge
+window.debugDebtServiceBridge = function() {
+    var st = window.__store || {};
+    var result = {
+        hasWindowStudentService:                  !!window.StudentService,
+        hasWindowStudentServiceUpdateProfile:     !!(window.StudentService && window.StudentService.updateProfile),
+        hasWindowStudentServiceAddSkippedMonth:   !!(window.StudentService && window.StudentService.addSkippedMonth),
+        hasSkipMonth:                             typeof window.skipMonth === 'function',
+        hasMarkStudentQuitFromDebt:               typeof window.markStudentQuitFromDebt === 'function',
+        hasSkipDebtMonthFromDebt:                 typeof window.skipDebtMonthFromDebt === 'function',
+        hasDb:                                    !!(st.db || window.db),
+        hasClubId:                                !!(st.clubId || window.currentClubId),
+        clubId:                                   st.clubId || window.currentClubId || '',
+        mainScript:                               [...document.scripts].map(function(s) { return s.src; }).filter(function(x) { return x.includes('main.js'); }).join(' | ')
+    };
+
+    console.table(result);
+    return result;
 };
 
 // PHẦN 9: Debug helper
@@ -2590,7 +2631,11 @@ window.debugDebtActionState = function(name) {
         hasRemoveStudentFromDebtDom:     typeof window.removeStudentFromDebtDom === 'function',
         lastSkippedMonthSyncReason:      st._lastSkippedMonthSyncReason || '',
         lastDebtRemoveName:              st._lastDebtRemoveName || '',
-        lastDebtRemoveReason:            st._lastDebtRemoveReason || ''
+        lastDebtRemoveReason:            st._lastDebtRemoveReason || '',
+        hasDebtServiceBridge:            typeof window.debugDebtServiceBridge === 'function',
+        debtServiceBridge:               typeof window.debugDebtServiceBridge === 'function'
+            ? window.debugDebtServiceBridge()
+            : null
     };
 
     console.table(result);

@@ -351,19 +351,26 @@ export function computeAndCacheStudents(allProfiles, params) {
                     isDebt = owedMonths.length > 0;
                     unpaidMonthsCount = owedMonths.length;
                 } else {
-                    if (!p.skippedMonths || !p.skippedMonths.includes(selMonth)) {
-                        const _normPU = normalizeYYYYMM(p.paidUntil);
-                        if (!_normPU || _normPU < selMonth) {
-                            let firstUnpaid = _normPU
-                                ? addMonthsToYYYYMM(_normPU, 1)
-                                : (p.createdAt ? p.createdAt.substring(0, 7) : selMonth);
-                            let cur = firstUnpaid;
-                            while (cur <= selMonth && owedMonths.length < 24) {
-                                if (!p.skippedMonths || !p.skippedMonths.includes(cur)) owedMonths.push(cur);
-                                cur = addMonthsToYYYYMM(cur, 1);
+                    // Phase 4K-5M: ưu tiên helper chung để đồng bộ với Thu Gộp khoản
+                    if (typeof window.getChargeableTuitionMonths === 'function') {
+                        owedMonths = window.getChargeableTuitionMonths(p, selMonth, { reason: 'debt-list' });
+                        unpaidMonthsCount = owedMonths.length;
+                        if (unpaidMonthsCount > 0) isDebt = true;
+                    } else {
+                        if (!p.skippedMonths || !p.skippedMonths.includes(selMonth)) {
+                            const _normPU = normalizeYYYYMM(p.paidUntil);
+                            if (!_normPU || _normPU < selMonth) {
+                                let firstUnpaid = _normPU
+                                    ? addMonthsToYYYYMM(_normPU, 1)
+                                    : (p.createdAt ? p.createdAt.substring(0, 7) : selMonth);
+                                let cur = firstUnpaid;
+                                while (cur <= selMonth && owedMonths.length < 24) {
+                                    if (!p.skippedMonths || !p.skippedMonths.includes(cur)) owedMonths.push(cur);
+                                    cur = addMonthsToYYYYMM(cur, 1);
+                                }
+                                unpaidMonthsCount = owedMonths.length;
+                                if (unpaidMonthsCount > 0) isDebt = true;
                             }
-                            unpaidMonthsCount = owedMonths.length;
-                            if (unpaidMonthsCount > 0) isDebt = true;
                         }
                     }
                 }

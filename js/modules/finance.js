@@ -50,6 +50,7 @@ import {
     formatMonthCompact,
 } from '../utils/format.js';
 import { FinanceService } from '../services/finance.service.js';
+import { StudentService } from '../services/students.service.js';
 
 // ── Phase 4K-4D: Fallback classify helper (finance.js) ──
 function _classifyInvTxForFinance(tx, cats) {
@@ -109,6 +110,14 @@ function _clubData()     { return (window.__store || {}).clubData || {}; }
 export function initFinance() {
 
     // ════════════════════════════════════════════════════════════
+    // Phase 4K-5L-C: Expose StudentService lên window để finance.js
+    // và các module khác không bị ReferenceError: StudentService is not defined
+    // ════════════════════════════════════════════════════════════
+    if (typeof window !== 'undefined') {
+        window.StudentService = window.StudentService || StudentService;
+    }
+
+    // ════════════════════════════════════════════════════════════
     // 1. formatMonthCompact — Expose module version ra window
     //    Override bản app.js (bản app.js có bug nhỏ khi ghép năm)
     // ════════════════════════════════════════════════════════════
@@ -131,8 +140,31 @@ export function initFinance() {
      * @param {string} month  — Tháng cần miễn, định dạng YYYY-MM
      */
     window.skipMonth = async (name, month) => {
-        await StudentService.addSkippedMonth(name, month);
-        window.showToast('✅ Đã miễn phí tháng!');
+        const svc = window.StudentService || StudentService;
+
+        if (!svc || typeof svc.addSkippedMonth !== 'function') {
+            throw new Error('[skipMonth] StudentService.addSkippedMonth chưa sẵn sàng');
+        }
+
+        await svc.addSkippedMonth(name, month);
+
+        if (typeof window.syncStudentSkippedMonthLocal === 'function') {
+            window.syncStudentSkippedMonthLocal(name, month, 'add', 'skipMonth-finance');
+        }
+
+        if (typeof window.removeStudentFromDebtDom === 'function') {
+            window.removeStudentFromDebtDom(name);
+        }
+
+        if (typeof window.refreshListsComputation === 'function') {
+            window.refreshListsComputation(['students.debtList', 'dashboard.summary'], 'skipMonth-finance');
+        }
+
+        if (typeof window.invalidateList === 'function') {
+            window.invalidateList('students.debtList', 'skipMonth-finance');
+        }
+
+        window.showToast?.('✅ Đã miễn phí tháng!');
     };
 
     /**
@@ -145,10 +177,25 @@ export function initFinance() {
     window.removeSkip = async (name, month) => {
         if (window.userRole === 'viewer') return;
         if (!confirm(`Hủy báo nghỉ tháng ${formatMonth(month)} cho ${name}?`)) return;
-        await StudentService.removeSkippedMonth(name, month);
+
+        const svc = window.StudentService || StudentService;
+        await svc.removeSkippedMonth(name, month);
+
+        if (typeof window.syncStudentSkippedMonthLocal === 'function') {
+            window.syncStudentSkippedMonthLocal(name, month, 'remove', 'removeSkip-finance');
+        }
+
+        if (typeof window.refreshListsComputation === 'function') {
+            window.refreshListsComputation(['students.debtList', 'dashboard.summary'], 'removeSkip-finance');
+        }
+
+        if (typeof window.invalidateList === 'function') {
+            window.invalidateList('students.debtList', 'removeSkip-finance');
+        }
+
         // Đóng modal hồ sơ nếu đang mở
         if (typeof window.closeModal === 'function') window.closeModal('profileModal');
-        window.showToast('✅ Đã khôi phục nợ!');
+        window.showToast?.('✅ Đã khôi phục nợ!');
     };
 
     // ════════════════════════════════════════════════════════════
@@ -166,15 +213,25 @@ export function initFinance() {
             `- Bấm OK để báo NGHỈ TẬP luôn.\n` +
             `- Bấm Cancel để chỉ BÁO NGHỈ THÁNG NÀY (miễn học phí tháng ${formatMonth(month)}).`
         )) {
+            const svc = window.StudentService || StudentService;
             const _quitData = { status: 'quit', quitDate: getLocalToday() };
-            StudentService.updateProfile(name, _quitData)
+            svc.updateProfile(name, _quitData)
                 .then(() => {
-                    window.showToast('✅ Đã chuyển trạng thái Nghỉ tập!');
+                    window.showToast?.('✅ Đã chuyển trạng thái Nghỉ tập!');
                     if (typeof window.syncStudentStatusLocal === 'function') {
                         window.syncStudentStatusLocal(name, { status: 'quit', quitDate: _quitData.quitDate }, 'handleQuitOption-finance');
                     }
                     if (typeof window.removeStudentFromDebtDom === 'function') {
                         window.removeStudentFromDebtDom(name);
+                    }
+                    if (typeof window.refreshListsComputation === 'function') {
+                        window.refreshListsComputation(
+                            ['students.activeList', 'students.quitList', 'students.debtList', 'dashboard.summary'],
+                            'handleQuitOption-finance'
+                        );
+                    }
+                    if (typeof window.invalidateList === 'function') {
+                        window.invalidateList('students.debtList', 'handleQuitOption-finance');
                     }
                 })
                 .catch(console.error);

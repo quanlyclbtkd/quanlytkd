@@ -2944,6 +2944,13 @@ window.debugRuntimeSmokeTest = async function(term) {
         window.debugDebtActionState,
         ['']
     );
+    // Phase 4K-5L-C: Debt Service Bridge
+    out.debtServiceBridge = await safeCall(
+        'debugDebtServiceBridge',
+        window.debugDebtServiceBridge
+    );
+
+    summary.debtServiceBridgeOk = !!out.debtServiceBridge.ok;
 
     console.table(summary);
     console.log('[debugRuntimeSmokeTest:detail]', out);

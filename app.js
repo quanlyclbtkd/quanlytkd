@@ -584,6 +584,57 @@ window.invCustomCategories = [];
         return `${parts[0]}-${parts[1].padStart(2, '0')}`;
     }
 
+    // Phase 4K-5M — getChargeableTuitionMonths: nguồn chuẩn tính tháng học phí cần thu
+    // Dùng chung cho BÁO NỢ và Thu Gộp khoản, tự động loại trừ skippedMonths
+    window.getChargeableTuitionMonths = function(profile, selectedMonth, options) {
+        const p = profile || {};
+        const selMonth = String(selectedMonth || '').slice(0, 7);
+        if (!selMonth) return [];
+        if (p.feeExempt === true) return [];
+        const statusKind = typeof window.classifyProfileStatus === 'function'
+            ? window.classifyProfileStatus(p)
+            : (
+                p.status === 'quit' || p.status === 'inactive' ||
+                p.active === false || p.isActive === false
+                ? 'quit' : 'active'
+            );
+        if (statusKind === 'quit') return [];
+        const skipped = Array.isArray(p.skippedMonths)
+            ? p.skippedMonths.map(function(m) { return String(m).slice(0, 7); })
+            : [];
+        const paidUntil = normalizeYYYYMM(p.paidUntil || '');
+        let startMonth = '';
+        if (paidUntil) {
+            startMonth = addMonthsToYYYYMM(paidUntil, 1);
+        }
+        if (!startMonth) {
+            const joinLike = p.admissionDate || p.joinDate || p.joinedAt || p.createdAt || p.enrollDate || selMonth;
+            startMonth = String(joinLike).slice(0, 7);
+        }
+        const result = [];
+        let cur = startMonth;
+        let guard = 0;
+        while (cur && cur <= selMonth && guard < 36) {
+            if (!skipped.includes(cur)) result.push(cur);
+            cur = addMonthsToYYYYMM(cur, 1);
+            guard++;
+        }
+        return result;
+    };
+
+    // Phase 4K-5M — formatTuitionMonthList: format danh sách tháng học phí
+    window.formatTuitionMonthList = function(months) {
+        const arr = Array.isArray(months) ? months : [];
+        if (!arr.length) return '';
+        if (typeof window.formatMonthCompact === 'function') {
+            return window.formatMonthCompact(arr.join(','));
+        }
+        return arr.map(function(m) {
+            const parts = String(m).split('-');
+            return parts.length === 2 ? parts[1] + '/' + parts[0] : m;
+        }).join(', ');
+    };
+
     // [Phase 2a] Guard: nếu main.js đã đăng ký showToast từ ui/toast.js, không ghi đè
     if (!window.showToast) {
         window.showToast = (msg, duration = 3000, isLoading = false) => {
@@ -7087,7 +7138,18 @@ window.updateMultiItemAutoFee = () => {
         if (matchKey) profile = allProfiles[matchKey];
     }
     const baseFee = profile ? (Number(profile.tuitionFee) || 0) : 0;
-    const pkg = Number(document.getElementById('mi_tuition_pkg').value) || 1;
+    // Phase 4K-5M: ưu tiên data-months từ danh sách tháng thực thu (loại skippedMonths)
+    const pkgSelect = document.getElementById('mi_tuition_pkg');
+    let chargeMonths = [];
+    try {
+        const rawMonths = pkgSelect ? pkgSelect.getAttribute('data-months') : '';
+        chargeMonths = rawMonths ? JSON.parse(rawMonths) : [];
+    } catch (_) {
+        chargeMonths = [];
+    }
+    const pkg = chargeMonths.length > 0
+        ? chargeMonths.length
+        : (Number(pkgSelect ? pkgSelect.value : 1) || 1);
     const discountOn = document.getElementById('mi_tuition_discount').checked;
     const savedEl = document.getElementById('mi_discount_saved');
     const pct = discountOn ? (Number(document.getElementById('mi_discount_pct').value) || 10) : 0;
@@ -7149,42 +7211,60 @@ window._refreshMiHistoryBadges = (name, profile) => {
 
     if (paidUntil) {
         paidUntilBadge.textContent = '✅ Đến ' + formatMonth(paidUntil);
+        // Phase 4K-5M: dùng helper chung để loại trừ skippedMonths
         const today = getLocalToday().substring(0, 7);
-        let unpaid = 0;
-        const firstUnpaidMonth = addMonthsToYYYYMM(paidUntil, 1);
-        let cur = firstUnpaidMonth;
-        const debtList = [];
-        while (cur <= today) { unpaid++; debtList.push(formatMonth(cur)); cur = addMonthsToYYYYMM(cur, 1); }
+        const chargeableMonths = typeof window.getChargeableTuitionMonths === 'function'
+            ? window.getChargeableTuitionMonths(profile, today, { reason: 'multi-item-badges' })
+            : [];
+        const unpaid = chargeableMonths.length;
         if (unpaid > 0) {
             debtBadge.style.display = 'inline-block';
             debtBadge.textContent = '⚠️ Nợ ' + unpaid + ' tháng';
             debtMonths.style.display = 'inline-block';
-            debtMonths.textContent = debtList.join(', ');
-            // Auto-fill: set start month to first unpaid month, pkg to exact debt count
-            document.getElementById('mi_tuition_month').value = firstUnpaidMonth;
-            if(!pkgSelect.querySelector(`option[value="${unpaid}"]`)) {
+            debtMonths.textContent = chargeableMonths.map(formatMonth).join(', ');
+            const firstChargeableMonth = chargeableMonths[0];
+            document.getElementById('mi_tuition_month').value = firstChargeableMonth;
+            const optValue = String(unpaid);
+            if (!pkgSelect.querySelector('option[data-debt="true"]')) {
                 const opt = document.createElement('option');
-                opt.value = unpaid;
-                opt.textContent = unpaid + ' tháng (thu nợ ' + unpaid + ' tháng)';
+                opt.value = optValue;
+                opt.textContent = unpaid + ' tháng (thu nợ ' + (window.formatTuitionMonthList ? window.formatTuitionMonthList(chargeableMonths) : chargeableMonths.map(formatMonth).join(', ')) + ')';
                 opt.setAttribute('data-debt', 'true');
                 pkgSelect.insertBefore(opt, pkgSelect.firstChild);
+            } else {
+                const opt = pkgSelect.querySelector('option[data-debt="true"]');
+                opt.value = optValue;
+                opt.textContent = unpaid + ' tháng (thu nợ ' + (window.formatTuitionMonthList ? window.formatTuitionMonthList(chargeableMonths) : chargeableMonths.map(formatMonth).join(', ')) + ')';
             }
-            pkgSelect.value = unpaid;
+            pkgSelect.value = optValue;
+            pkgSelect.setAttribute('data-months', JSON.stringify(chargeableMonths));
         } else {
             debtBadge.style.display = 'none';
             debtMonths.style.display = 'none';
-            // Paid up — set to current filter month, 1 pkg
+            pkgSelect.removeAttribute('data-months');
             const fm = document.getElementById('filterMonth');
-            if(fm && fm.value) document.getElementById('mi_tuition_month').value = fm.value;
+            if (fm && fm.value) document.getElementById('mi_tuition_month').value = fm.value;
             pkgSelect.value = '1';
         }
     } else {
         paidUntilBadge.textContent = '❓ Chưa có dữ liệu';
         debtBadge.style.display = 'none';
         debtMonths.style.display = 'none';
+        pkgSelect.removeAttribute('data-months');
         const fm = document.getElementById('filterMonth');
         if(fm && fm.value) document.getElementById('mi_tuition_month').value = fm.value;
         pkgSelect.value = '1';
+    }
+    // Phase 4K-5M: bind pkg change — clear data-months khi HLV chọn gói thủ công
+    if (pkgSelect && !pkgSelect.__clearDebtMonthsBound) {
+        pkgSelect.__clearDebtMonthsBound = true;
+        pkgSelect.addEventListener('change', function() {
+            const opt = pkgSelect.options[pkgSelect.selectedIndex];
+            if (!opt || opt.getAttribute('data-debt') !== 'true') {
+                pkgSelect.removeAttribute('data-months');
+            }
+            window.updateMultiItemAutoFee && window.updateMultiItemAutoFee();
+        });
     }
     updateMultiItemAutoFee();
 
@@ -7724,6 +7804,41 @@ window.debugActiveQuitLeak = function() {
     return { activeDomCount: activeDom.length, leaks: leaks };
 };
 
+// Phase 4K-5M — debugMultiItemSkippedMonth: kiểm tra trạng thái Thu Gộp + skipped months
+window.debugMultiItemSkippedMonth = function(name) {
+    var studentName = String(name || (document.getElementById('mi_name') && document.getElementById('mi_name').value) || '').trim();
+    var st = window.__store || {};
+    var p = (window.allProfiles && window.allProfiles[studentName]) ||
+        (st.profiles || {})[studentName] || {};
+
+    var selectedMonth =
+        (document.getElementById('filterMonth') && document.getElementById('filterMonth').value) ||
+        st.selectedMonth ||
+        new Date().toISOString().slice(0, 7);
+
+    var chargeableMonths = typeof window.getChargeableTuitionMonths === 'function'
+        ? window.getChargeableTuitionMonths(p, selectedMonth, { reason: 'debug' })
+        : [];
+
+    var pkgSelect = document.getElementById('mi_tuition_pkg');
+
+    var result = {
+        studentName:        studentName,
+        selectedMonth:      selectedMonth,
+        paidUntil:          p.paidUntil || '',
+        skippedMonths:      p.skippedMonths || [],
+        chargeableMonths:   chargeableMonths,
+        miTuitionMonth:     (document.getElementById('mi_tuition_month') && document.getElementById('mi_tuition_month').value) || '',
+        miPkgValue:         pkgSelect ? pkgSelect.value : '',
+        miPkgDataMonths:    pkgSelect ? (pkgSelect.getAttribute('data-months') || '') : '',
+        tuitionActual:      (document.getElementById('mi_tuition_actual') && document.getElementById('mi_tuition_actual').value) || '',
+        tuitionDisplay:     (document.getElementById('mi_tuition_display') && document.getElementById('mi_tuition_display').value) || ''
+    };
+
+    console.table(result);
+    return result;
+};
+
 window.processMultiItem = async (action) => {
     const name = document.getElementById('mi_name').value.trim();
     if(!name) return alert('Vui lòng nhập tên võ sinh!');
@@ -7771,23 +7886,49 @@ window.processMultiItem = async (action) => {
     const refMonth = tuitionMonth || getLocalToday().substring(0, 7);
 
     // Tính danh sách các tháng học phí — chỉ thực hiện khi "Thu học phí" được bật
+    // Phase 4K-5M: ưu tiên data-months đã lọc skippedMonths
     let packageMonths = [];
     let lastMonth = refMonth;
-    if(isTuitionEnabled && tuitionMonth && tuition > 0) {
-        for(let i = 0; i < pkg; i++) {
-            let m = tuitionMonth.split('-').map(Number);
-            let newM = m[1] + i; let newY = m[0];
-            while(newM > 12) { newM -= 12; newY++; }
-            packageMonths.push(newY + '-' + String(newM).padStart(2, '0'));
+    if (isTuitionEnabled && tuitionMonth && tuition > 0) {
+        let exactMonths = [];
+        const _miPkgSel = document.getElementById('mi_tuition_pkg');
+        try {
+            const _rawM = _miPkgSel ? _miPkgSel.getAttribute('data-months') : '';
+            exactMonths = _rawM ? JSON.parse(_rawM) : [];
+        } catch (_) {
+            exactMonths = [];
         }
-        lastMonth = packageMonths[packageMonths.length - 1];
+
+        if (Array.isArray(exactMonths) && exactMonths.length > 0) {
+            packageMonths = exactMonths
+                .map(function(m) { return String(m).slice(0, 7); })
+                .filter(Boolean);
+        } else {
+            for (let i = 0; i < pkg; i++) {
+                let m = tuitionMonth.split('-').map(Number);
+                let newM = m[1] + i; let newY = m[0];
+                while (newM > 12) { newM -= 12; newY++; }
+                packageMonths.push(newY + '-' + String(newM).padStart(2, '0'));
+            }
+            // Defensive: loại skippedMonths nếu có (fallback khi không có data-months)
+            const _skipped = Array.isArray(profile.skippedMonths)
+                ? profile.skippedMonths.map(function(m) { return String(m).slice(0, 7); })
+                : [];
+            if (_skipped.length > 0) {
+                packageMonths = packageMonths.filter(function(m) { return !_skipped.includes(m); });
+            }
+        }
+
+        if (packageMonths.length > 0) {
+            lastMonth = packageMonths[packageMonths.length - 1];
+        }
     }
 
     // ── Xây dựng danh sách chi tiết khoản thu cho phiếu (breakdown) ─────────
     // Chỉ thêm dòng "Học phí" vào breakdown khi học phí được bật và có giá trị
     const breakdown = [];
     if(isTuitionEnabled && tuition > 0) {
-        breakdown.push({ label: 'Học phí ' + window.formatMonthCompact(packageMonths.join(',')), amount: tuition });
+        breakdown.push({ label: 'Học phí ' + (typeof window.formatTuitionMonthList === 'function' ? window.formatTuitionMonthList(packageMonths) : window.formatMonthCompact(packageMonths.join(','))), amount: tuition });
     }
     if(hasExam && examFee > 0) breakdown.push({ label: examTitle, amount: examFee });
     if(hasInv && invTotal > 0) breakdown.push({ label: invCat + ' ' + invSize + ' x' + invQty, amount: invTotal });
@@ -7852,7 +7993,11 @@ window.processMultiItem = async (action) => {
 
             const _components = [];
             if(hasTuition && tuition > 0) {
-                const _tuitionLabel = typeof window.formatMonthCompact === 'function' ? 'Học phí ' + window.formatMonthCompact(packageMonths.join(',')) : 'Học phí';
+                const _tuitionLabel = packageMonths.length
+                    ? 'Học phí ' + (typeof window.formatTuitionMonthList === 'function'
+                        ? window.formatTuitionMonthList(packageMonths)
+                        : (typeof window.formatMonthCompact === 'function' ? window.formatMonthCompact(packageMonths.join(',')) : packageMonths.join(', ')))
+                    : 'Học phí';
                 _components.push({ kind: 'tuition', type: 'Học phí', label: _tuitionLabel, amount: tuition, month: lastMonth, packageMonths: packageMonths });
             }
             if(hasExam && examFee > 0) {
