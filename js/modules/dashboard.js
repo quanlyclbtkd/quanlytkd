@@ -190,6 +190,10 @@ export function renderBranchStats(bStats) {
         const tuitionBadges  = tuitionEntries.map(([fee, cnt]) =>
             `<span style="font-size:0.72rem;font-weight:700;background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe;border-radius:8px;padding:2px 8px;white-space:nowrap;">${Number(fee).toLocaleString()}₫ × ${cnt} VS</span>`
         ).join('');
+        const examRegisteredCount = Number(bd.examRegisteredCount || 0);
+        const examRegisteredBadge = examRegisteredCount > 0
+            ? `<div class="text-xs mt-1" style="color:#c2410c;font-weight:800;">🎖️ ${examRegisteredCount} võ sinh đã đăng ký thi</div>`
+            : '';
         const examBadges = examEntries.map(([fee, cnt]) =>
             `<span title="Lệ phí thi" style="font-size:0.72rem;font-weight:700;background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;border-radius:8px;padding:2px 8px;white-space:nowrap;">🎖️ ${Number(fee).toLocaleString()}₫ × ${cnt} VS</span>`
         ).join('');
@@ -207,6 +211,7 @@ export function renderBranchStats(bStats) {
                     <div class="text-emerald-600 font-bold text-base">${bd.income.toLocaleString()} ₫</div>
                     <div class="text-slate-500 text-xs mt-0.5">👥 ${bd.active} võ sinh đang tập</div>
                     ${debtHtml}
+                    ${examRegisteredBadge}
                 </div>
             </div>${feeBreakdown}
         </div>`;
@@ -854,6 +859,39 @@ export function initDashboard() {
                 }
             }
         });
+
+        // ── Phase 4K-5P: Override exam branch stats with canonical ledger ────
+        const examBranchLedger = typeof window.buildCanonicalExamBranchLedger === 'function'
+            ? window.buildCanonicalExamBranchLedger({
+                month,
+                transactions: txs
+            })
+            : null;
+
+        if (examBranchLedger && examBranchLedger.branchMap) {
+            Object.keys(bStats).forEach(function(branch) {
+                bStats[branch].examFeeMap = {};
+                bStats[branch].examRegisteredCount = 0;
+                bStats[branch].examRegisteredNames = [];
+                bExamStats[branch] = 0;
+            });
+
+            Object.entries(examBranchLedger.branchMap).forEach(function([branch, info]) {
+                if (!bStats[branch]) {
+                    bStats[branch] = {
+                        income: 0,
+                        active: 0,
+                        debt: 0,
+                        tuitionMap: {},
+                        examFeeMap: {}
+                    };
+                }
+                bStats[branch].examFeeMap = Object.assign({}, info.feeMap || {});
+                bStats[branch].examRegisteredCount = info.registeredCount || 0;
+                bStats[branch].examRegisteredNames = info.names || [];
+                bExamStats[branch] = info.totalAmount || 0;
+            });
+        }
 
         if (typeof window.renderBranchStats    === 'function') window.renderBranchStats(bStats);
         if (typeof window.renderExamBranchFees === 'function') window.renderExamBranchFees(bExamStats, Object.values(bExamStats).reduce((a, b) => a + b, 0));

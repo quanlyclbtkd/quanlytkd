@@ -2795,6 +2795,296 @@ window.debugProfileModalClose = function() {
     return result;
 };
 
+
+// ════════════════════════════════════════════════════════════════
+// Phase 4K-5O-A — Runtime Diagnostics & Stability Gate
+// ════════════════════════════════════════════════════════════════
+
+// PHẦN 1 — APP BUILD VERSION
+window.APP_BUILD_VERSION = '4K-5O-A-runtime-diagnostics-20260605';
+
+window.debugAppVersion = function() {
+  const scripts = Array.from(document.scripts || []).map(s => s.src || '').filter(Boolean);
+  const result = {
+    buildVersion: window.APP_BUILD_VERSION || '',
+    href: location.href,
+    host: location.host,
+    protocol: location.protocol,
+    mainScripts: scripts.filter(x => x.includes('main.js')),
+    appScripts: scripts.filter(x => x.includes('app.js')),
+    hasNoJekyllExpected: true,
+    clubId: (window.__store || {}).clubId || window.currentClubId || '',
+    currentTab: (window.__store || {}).currentTab || window.currentTab || '',
+    timestamp: new Date().toISOString()
+  };
+  console.table(result);
+  return result;
+};
+
+// PHẦN 2 — RUNTIME ERROR GUARD
+window.__runtimeErrors = window.__runtimeErrors || [];
+
+window.recordRuntimeError = function(source, err, extra) {
+  extra = extra || {};
+  try {
+    var item = {
+      source: String(source || 'unknown'),
+      message: String(err && (err.message || err.reason || err) || ''),
+      stack: String(err && err.stack || ''),
+      extra: extra,
+      tab: (window.__store || {}).currentTab || window.currentTab || '',
+      clubId: (window.__store || {}).clubId || window.currentClubId || '',
+      buildVersion: window.APP_BUILD_VERSION || '',
+      time: new Date().toISOString()
+    };
+    window.__runtimeErrors.push(item);
+    if (window.__runtimeErrors.length > 100) {
+      window.__runtimeErrors = window.__runtimeErrors.slice(-100);
+    }
+    console.warn('[RuntimeErrorRecorded]', item);
+    return item;
+  } catch (_) {
+    return null;
+  }
+};
+
+if (!window.__runtimeErrorGuardBound) {
+  window.__runtimeErrorGuardBound = true;
+  window.addEventListener('error', function(event) {
+    window.recordRuntimeError &&
+      window.recordRuntimeError('window.error', event.error || event.message, {
+        filename: event.filename,
+        lineno: event.lineno,
+        colno: event.colno
+      });
+  });
+  window.addEventListener('unhandledrejection', function(event) {
+    window.recordRuntimeError &&
+      window.recordRuntimeError('window.unhandledrejection', event.reason || event, {});
+  });
+}
+
+window.debugRuntimeErrors = function() {
+  var errors = window.__runtimeErrors || [];
+  console.table(errors.slice(-20));
+  return {
+    count: errors.length,
+    last: errors[errors.length - 1] || null,
+    recent: errors.slice(-20)
+  };
+};
+
+// PHẦN 3 — SAFE DEBUG CALL HELPER
+window.safeDebugCall = async function(name, fn, args) {
+  args = Array.isArray(args) ? args : [];
+  try {
+    if (typeof fn !== 'function') {
+      return { ok: false, missing: true, name: name };
+    }
+    var value = await Promise.resolve(fn.apply(window, args));
+    return { ok: true, name: name, value: value };
+  } catch (err) {
+    window.recordRuntimeError &&
+      window.recordRuntimeError('safeDebugCall:' + name, err);
+    return {
+      ok: false,
+      name: name,
+      message: err && err.message || String(err),
+      stack: err && err.stack || ''
+    };
+  }
+};
+
+// PHẦN 4 — DATA SOURCE AUTHORITY DEBUG
+window.debugDataSourceAuthority = function() {
+  var st = window.__store || {};
+  var pgStudents = (st.pagination && st.pagination.students) || {};
+  var pgTx = (st.pagination && st.pagination.transactions) || {};
+  var profilesCount = Object.keys(st.profiles || {}).length;
+  var result = {
+    activeList: {
+      profilesCount: profilesCount,
+      activeRenderLimit: window.__activeRenderLimit || null,
+      usesFullProfilesLikely: profilesCount > 0,
+      paginationItems: Array.isArray(pgStudents.currentItems) ? pgStudents.currentItems.length : 0,
+      paginationHasNext: !!pgStudents.hasNext
+    },
+    debtList: {
+      profilesCount: profilesCount,
+      fullLoadedForDebt: !!st._profilesFullLoadedForDebt,
+      debtRenderLimit: window.__debtRenderLimit || null,
+      hasDebtOverdueFilter: !!document.getElementById('debtOverdueFilter')
+    },
+    transactions: {
+      storeTransactions: Array.isArray(st.transactions) ? st.transactions.length : 0,
+      allTransactions: Array.isArray(st.allTransactions) ? st.allTransactions.length : 0,
+      windowAllTransactions: Array.isArray(window.allTransactions) ? window.allTransactions.length : 0,
+      paginationItems: Array.isArray(pgTx.currentItems) ? pgTx.currentItems.length : 0,
+      paginationHasNext: !!pgTx.hasNext
+    },
+    dashboard: {
+      hasLastBStats: !!st._lastBStats,
+      hasLastBExamStats: !!st._lastBExamStats,
+      hasDebugDashboardBranchRevenue: typeof window.debugDashboardBranchRevenue === 'function'
+    },
+    exam: {
+      hasCanonicalLedger: typeof window.buildCanonicalExamPaymentLedger === 'function',
+      hasDebugExamCanonicalLedger: typeof window.debugExamCanonicalLedger === 'function'
+    }
+  };
+  console.log('[debugDataSourceAuthority]', result);
+  return result;
+};
+
+// PHẦN 5 — FINANCE RECONCILE DEBUG
+window.debugFinanceReconcile = function() {
+  var st = window.__store || {};
+  var selectedMonth =
+    (document.getElementById('filterMonth') && document.getElementById('filterMonth').value) ||
+    st.selectedMonth || '';
+  var txs =
+    Array.isArray(st.allTransactions) ? st.allTransactions :
+    Array.isArray(window.allTransactions) ? window.allTransactions :
+    Array.isArray(st.transactions) ? st.transactions :
+    [];
+  var totalAmount = 0, componentTotal = 0, tuitionTotal = 0, examTotal = 0;
+  var inventoryTotal = 0, otherTotal = 0;
+  var warnings = [];
+  txs.forEach(function(t) {
+    if (!t) return;
+    var amount = Number(t.amount || 0);
+    if (amount > 0) totalAmount += amount;
+    var comps =
+      typeof window.getAccountingComponents === 'function'
+        ? window.getAccountingComponents(t)
+        : (typeof window.expandTransactionComponentsForAccounting === 'function'
+            ? window.expandTransactionComponentsForAccounting(t)
+            : []);
+    if (Array.isArray(comps) && comps.length) {
+      comps.forEach(function(c) {
+        var kind = c.kind || '';
+        var cAmount = Number(c.amount || 0);
+        if (cAmount <= 0) return;
+        componentTotal += cAmount;
+        if (kind === 'tuition') tuitionTotal += cAmount;
+        else if (kind === 'exam') examTotal += cAmount;
+        else if (kind === 'inventory' || kind === 'inventoryDebt') inventoryTotal += cAmount;
+        else otherTotal += cAmount;
+      });
+    } else {
+      if (amount > 0 && String(t.type || '').includes('Gộp')) {
+        warnings.push({
+          id: t.id || t.txId || '',
+          type: t.type || '',
+          student: t.studentName || t.description || '',
+          warning: 'Bundle-like transaction without components'
+        });
+      }
+    }
+    if (!t.branch) {
+      warnings.push({
+        id: t.id || t.txId || '',
+        type: t.type || '',
+        student: t.studentName || t.description || '',
+        warning: 'Missing branch'
+      });
+    }
+  });
+  var result = {
+    selectedMonth: selectedMonth,
+    transactionCount: txs.length,
+    totalAmount: totalAmount,
+    componentTotal: componentTotal,
+    tuitionTotal: tuitionTotal,
+    examTotal: examTotal,
+    inventoryTotal: inventoryTotal,
+    otherTotal: otherTotal,
+    warningsCount: warnings.length,
+    warnings: warnings.slice(0, 50)
+  };
+  console.table(result);
+  if (warnings.length) console.table(warnings.slice(0, 50));
+  return result;
+};
+
+// PHẦN 6 — RENDER HEALTH DEBUG
+window.__renderHealth = window.__renderHealth || {};
+
+window.recordRenderHealth = function(name, durationMs, extra) {
+  extra = extra || {};
+  try {
+    var key = String(name || 'unknown');
+    var old = window.__renderHealth[key] || { count: 0, maxMs: 0, lastMs: 0, warnings: [] };
+    old.count += 1;
+    old.lastMs = Number(durationMs || 0);
+    old.maxMs = Math.max(old.maxMs || 0, old.lastMs);
+    old.lastAt = new Date().toISOString();
+    if (old.lastMs > 100) {
+      old.warnings.push({ type: 'slow-render', durationMs: old.lastMs, extra: extra, time: old.lastAt });
+    }
+    if (old.warnings.length > 20) old.warnings = old.warnings.slice(-20);
+    window.__renderHealth[key] = old;
+    return old;
+  } catch (_) {
+    return null;
+  }
+};
+
+window.debugRenderHealth = function() {
+  var health = window.__renderHealth || {};
+  var domCounts = {
+    activeRows: document.querySelectorAll('#activeList tr').length,
+    debtRows: document.querySelectorAll('#debtList tr').length,
+    txRows: document.querySelectorAll('#txList tr').length,
+    quitRows: document.querySelectorAll('#quitList tr').length
+  };
+  var largeWarnings = Object.entries(domCounts)
+    .filter(function(e) { return e[1] > 500; })
+    .map(function(e) { return { list: e[0], rows: e[1], warning: 'Large DOM list > 500 rows' }; });
+  var result = { health: health, domCounts: domCounts, largeWarnings: largeWarnings };
+  console.log('[debugRenderHealth]', result);
+  if (largeWarnings.length) console.table(largeWarnings);
+  return result;
+};
+
+// PHẦN 7 — RUN GUARDED ACTION HELPER
+window.__actionLocks = window.__actionLocks || {};
+
+window.runGuardedAction = async function(actionName, fn, options) {
+  options = options || {};
+  var name = String(actionName || 'unknown-action');
+  if (window.__actionLocks[name]) {
+    console.warn('[runGuardedAction] locked:', name);
+    return { ok: false, locked: true, actionName: name };
+  }
+  window.__actionLocks[name] = true;
+  try {
+    if (options.startToast && window.showToast) {
+      window.showToast(options.startToast);
+    }
+    var value = await Promise.resolve(fn());
+    if (options.successToast && window.showToast) {
+      window.showToast(options.successToast);
+    }
+    return { ok: true, actionName: name, value: value };
+  } catch (err) {
+    console.error('[runGuardedAction] failed:', name, err);
+    window.recordRuntimeError &&
+      window.recordRuntimeError('action:' + name, err, options);
+    if (options.errorAlert !== false) {
+      alert(options.errorMessage || 'Thao tác không thành công. Vui lòng kiểm tra mạng/quyền hoặc Console.');
+    }
+    return {
+      ok: false,
+      actionName: name,
+      message: err && err.message || String(err),
+      stack: err && err.stack || ''
+    };
+  } finally {
+    window.__actionLocks[name] = false;
+  }
+};
+
 // ════════════════════════════════════════════════════════════════
 // Phase 4K-4B — debugRuntimeSmokeTest
 // Kiểm tra nhanh sau khi upload GitHub/domain.
@@ -2876,6 +3166,17 @@ window.debugRuntimeSmokeTest = async function(term) {
     // Phase 4K-5N: Dashboard Branch Revenue + Chart Lifecycle
     out.dashboardBranchRevenue = await safeCall('debugDashboardBranchRevenue', window.debugDashboardBranchRevenue);
     out.dashboardCharts        = await safeCall('debugDashboardCharts',        window.debugDashboardCharts);
+    // Phase 4K-5O-A: Runtime Diagnostics
+    out.appVersion             = await safeCall('debugAppVersion',             window.debugAppVersion);
+    out.runtimeErrors          = await safeCall('debugRuntimeErrors',          window.debugRuntimeErrors);
+    out.dataSourceAuthority    = await safeCall('debugDataSourceAuthority',    window.debugDataSourceAuthority);
+    out.financeReconcile       = await safeCall('debugFinanceReconcile',       window.debugFinanceReconcile);
+    out.renderHealth           = await safeCall('debugRenderHealth',           window.debugRenderHealth);
+    // Phase 4K-5P: Exam Branch Registration Mismatch
+    out.examBranchRegistrationMismatch = await safeCall(
+        'debugExamBranchRegistrationMismatch',
+        window.debugExamBranchRegistrationMismatch
+    );
 
     const summary = {
         runtimeMode:     out.runtimeMode,
@@ -2917,6 +3218,14 @@ window.debugRuntimeSmokeTest = async function(term) {
         // Phase 4K-5N
         dashboardBranchRevenueOk:   !!out.dashboardBranchRevenue.ok,
         dashboardChartsOk:          !!out.dashboardCharts.ok,
+        // Phase 4K-5O-A
+        appVersionOk:               !!out.appVersion.ok,
+        runtimeErrorsOk:            !!out.runtimeErrors.ok,
+        dataSourceAuthorityOk:      !!out.dataSourceAuthority.ok,
+        financeReconcileOk:         !!out.financeReconcile.ok,
+        renderHealthOk:             !!out.renderHealth.ok,
+        // Phase 4K-5P
+        examBranchRegistrationOk:   !!out.examBranchRegistrationMismatch.ok,
 
         overallOk:
             !!out.examFee.ok &&
@@ -2944,7 +3253,12 @@ window.debugRuntimeSmokeTest = async function(term) {
             !!out.activeQuitLeak.ok &&
             !!out.tuitionTableLayout.ok &&
             !!out.dashboardBranchRevenue.ok &&
-            !!out.dashboardCharts.ok
+            !!out.dashboardCharts.ok &&
+            !!out.appVersion.ok &&
+            !!out.runtimeErrors.ok &&
+            !!out.dataSourceAuthority.ok &&
+            !!out.financeReconcile.ok &&
+            !!out.renderHealth.ok
     };
 
     // Phase 4K-5L: Debt Action Bridge state

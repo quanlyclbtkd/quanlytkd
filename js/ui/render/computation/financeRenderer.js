@@ -561,6 +561,39 @@ export function computeAndCacheFinance(transactions, params) {
         }
     });
 
+    // ── Phase 4K-5P: Override exam branch stats with canonical ledger ────────
+    const examBranchLedger = typeof window.buildCanonicalExamBranchLedger === 'function'
+        ? window.buildCanonicalExamBranchLedger({
+            month: _selectedMonth,
+            transactions
+        })
+        : null;
+
+    if (examBranchLedger && examBranchLedger.branchMap) {
+        Object.keys(bStats).forEach(branch => {
+            bStats[branch].examFeeMap = {};
+            bStats[branch].examRegisteredCount = 0;
+            bStats[branch].examRegisteredNames = [];
+            bExamStats[branch] = 0;
+        });
+
+        Object.entries(examBranchLedger.branchMap).forEach(([branch, info]) => {
+            if (!bStats[branch]) {
+                bStats[branch] = {
+                    income: 0,
+                    active: 0,
+                    debt: 0,
+                    tuitionMap: {},
+                    examFeeMap: {}
+                };
+            }
+            bStats[branch].examFeeMap = { ...(info.feeMap || {}) };
+            bStats[branch].examRegisteredCount = info.registeredCount || 0;
+            bStats[branch].examRegisteredNames = info.names || [];
+            bExamStats[branch] = info.totalAmount || 0;
+        });
+    }
+
     // ── Store results in module-local cache ──
     if (buildTxRows)      _cache.txRows      = txRows;
     if (buildExpRows)     _cache.expenseRows = expenseRows;

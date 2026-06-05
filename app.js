@@ -11673,7 +11673,12 @@ window.processMultiItem = async (action) => {
 window.buildCanonicalExamPaymentLedger = function(options) {
     options = options || {};
     const st = window.__store || {};
-    const txs = Array.isArray(st.transactions) ? st.transactions : (window.allTransactions || []);
+    const txs =
+        Array.isArray(options.transactions) ? options.transactions :
+        Array.isArray(st.allTransactions) ? st.allTransactions :
+        Array.isArray(window.allTransactions) ? window.allTransactions :
+        Array.isArray(st.transactions) ? st.transactions :
+        [];
     const profiles = st.profiles || window.allProfiles || {};
     const month =
         options.month ||
@@ -11781,6 +11786,85 @@ window.buildCanonicalExamPaymentLedger = function(options) {
     };
 };
 
+// Phase 4K-5P — buildCanonicalExamBranchLedger
+window.buildCanonicalExamBranchLedger = function(options) {
+    options = options || {};
+    const st = window.__store || {};
+    const cfg = st.clubConfig || window.clubConfig || {};
+    const bCount = Number(cfg.branchCount || 1);
+
+    const ledger = typeof window.buildCanonicalExamPaymentLedger === 'function'
+        ? window.buildCanonicalExamPaymentLedger(options)
+        : null;
+
+    const branchMap = {};
+    for (var i = 1; i <= bCount; i++) {
+        branchMap['CS' + i] = {
+            branch: 'CS' + i,
+            registeredCount: 0,
+            totalAmount: 0,
+            feeMap: {},
+            names: [],
+            records: []
+        };
+    }
+
+    if (!ledger || !Array.isArray(ledger.records)) {
+        return {
+            month: options.month || '',
+            totalRegistered: 0,
+            totalAmount: 0,
+            branchMap: branchMap,
+            records: [],
+            duplicates: []
+        };
+    }
+
+    ledger.records.forEach(function(r) {
+        var rawBranch =
+            r.branch ||
+            (r.profile && r.profile.branch) ||
+            (r.sourceTx && r.sourceTx.branch) ||
+            'CS1';
+
+        var branch = typeof window.normalizeBranchCodeForStats === 'function'
+            ? window.normalizeBranchCodeForStats(rawBranch, bCount)
+            : rawBranch;
+
+        if (!branchMap[branch]) {
+            branchMap[branch] = {
+                branch: branch,
+                registeredCount: 0,
+                totalAmount: 0,
+                feeMap: {},
+                names: [],
+                records: []
+            };
+        }
+
+        var amount = Number(r.amount || 0);
+        var feeKey = Math.round(amount);
+
+        branchMap[branch].registeredCount += 1;
+        branchMap[branch].totalAmount += amount;
+        branchMap[branch].names.push(r.studentName);
+        branchMap[branch].records.push(r);
+
+        if (feeKey > 0) {
+            branchMap[branch].feeMap[feeKey] = (branchMap[branch].feeMap[feeKey] || 0) + 1;
+        }
+    });
+
+    return {
+        month: ledger.month,
+        totalRegistered: ledger.count,
+        totalAmount: ledger.totalAmount,
+        branchMap: branchMap,
+        records: ledger.records,
+        duplicates: ledger.duplicates || []
+    };
+};
+
 // Phase 5: debugExamCanonicalLedger
 window.debugExamCanonicalLedger = function() {
     var ledger = typeof window.buildCanonicalExamPaymentLedger === 'function'
@@ -11875,6 +11959,66 @@ window.debugExamCanonicalLedger = function() {
             domElementText: regEl ? regEl.textContent : '(missing)',
         };
         console.table(result);
+        return result;
+    };
+
+    // ── Phase 4K-5P: debugExamBranchRegistrationMismatch ─────────────────────
+    window.debugExamBranchRegistrationMismatch = function() {
+        const st = window.__store || {};
+        const stats = typeof window.computeExamRegistrationStats === 'function'
+            ? window.computeExamRegistrationStats()
+            : null;
+
+        const branchLedger = typeof window.buildCanonicalExamBranchLedger === 'function'
+            ? window.buildCanonicalExamBranchLedger({
+                month:
+                    (document.getElementById('filterMonth') && document.getElementById('filterMonth').value) ||
+                    st.selectedMonth ||
+                    ''
+            })
+            : null;
+
+        const bStats = st._lastBStats || {};
+        const rows = Object.entries(bStats).map(function(_entry) {
+            const branch = _entry[0];
+            const bd = _entry[1];
+            const mapCount = Object.values(bd.examFeeMap || {})
+                .reduce(function(s, n) { return s + Number(n || 0); }, 0);
+
+            return {
+                branch: branch,
+                dashboardExamRegisteredCount: Number(bd.examRegisteredCount || 0),
+                dashboardExamFeeMapCount: mapCount,
+                canonicalBranchCount: (branchLedger && branchLedger.branchMap && branchLedger.branchMap[branch])
+                    ? branchLedger.branchMap[branch].registeredCount : 0,
+                canonicalBranchAmount: (branchLedger && branchLedger.branchMap && branchLedger.branchMap[branch])
+                    ? branchLedger.branchMap[branch].totalAmount : 0,
+                names: (branchLedger && branchLedger.branchMap && branchLedger.branchMap[branch])
+                    ? (branchLedger.branchMap[branch].names || []).join(', ') : ''
+            };
+        });
+
+        const totalDashboard = rows.reduce(function(s, r) {
+            return s + Number(r.dashboardExamRegisteredCount || 0);
+        }, 0);
+
+        const result = {
+            selectedMonth:
+                (document.getElementById('filterMonth') && document.getElementById('filterMonth').value) ||
+                st.selectedMonth ||
+                '',
+            examTabRegisteredCount: stats ? (stats.registeredCount || 0) : 0,
+            canonicalTotalRegistered: branchLedger ? (branchLedger.totalRegistered || 0) : 0,
+            dashboardBranchTotalRegistered: totalDashboard,
+            match:
+                Number(stats ? stats.registeredCount : 0) === Number(branchLedger ? branchLedger.totalRegistered : 0) &&
+                Number(branchLedger ? branchLedger.totalRegistered : 0) === Number(totalDashboard),
+            rows: rows,
+            duplicates: branchLedger ? (branchLedger.duplicates || []) : []
+        };
+
+        console.table(rows);
+        console.log('[debugExamBranchRegistrationMismatch]', result);
         return result;
     };
 
