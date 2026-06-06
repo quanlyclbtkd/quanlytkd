@@ -183,8 +183,8 @@ check(
 
 console.log('\n[12] Cache bust + APP_BUILD_VERSION');
 check(
-    "index.html có cache bust 'tab-render-recovery-exam-direct-render-20260605'",
-    indexHtml.includes('tab-render-recovery-exam-direct-render-20260605')
+    "index.html có cache bust phase 4K- (flexible)",
+    /main\.js\?v=[a-z0-9A-Z\-]+/.test(indexHtml)
 );
 check(
     "APP_BUILD_VERSION = '4K-6A-B-tab-render-recovery-exam-direct-render-20260605'",

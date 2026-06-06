@@ -75,6 +75,8 @@ import {
 import { guardOnce, resetAllGuards, getBindingCount } from './utils/event-guard.js';
 // Phase 4K-6A: Performance Monitor + Action Guard
 import { PerformanceMonitor } from './core/performanceMonitor.js';
+import { FinancialFlowMap }   from './core/financialFlowMap.js';
+import { SecurityPosture }   from './core/securityPosture.js';
 import { ActionGuard }        from './core/actionGuard.js';
 
 // ── Phase 3.3E: Firestore safety (expose globally for services) ──
@@ -2804,7 +2806,11 @@ window.debugProfileModalClose = function() {
 // ════════════════════════════════════════════════════════════════
 
 // PHẦN 1 — APP BUILD VERSION
-window.APP_BUILD_VERSION = '4K-6A-B-tab-render-recovery-exam-direct-render-20260605';
+window.APP_BUILD_VERSION = '4K-6D-security-license-ip-protection-readiness-20260605';
+window.APP_COPYRIGHT_OWNER   = 'Tình Trương';
+window.APP_PRODUCT_NAME      = 'Taekwondo Club Management Web App';
+window.APP_SECURITY_PHASE    = '4K-6D-security-license-ip-protection-readiness';
+window.APP_BUILD_FINGERPRINT = 'TKD-TST-4K-6D-20260605';
 
 window.debugAppVersion = function() {
   const scripts = Array.from(document.scripts || []).map(s => s.src || '').filter(Boolean);
@@ -3057,6 +3063,8 @@ window.__actionLocks   = window.__actionLocks   || {};
 window.__actionHistory = window.__actionHistory || [];
 
 window.PerformanceMonitor = window.PerformanceMonitor || PerformanceMonitor;
+window.FinancialFlowMap    = window.FinancialFlowMap    || FinancialFlowMap;
+window.SecurityPosture     = window.SecurityPosture     || SecurityPosture;
 window.ActionGuard        = window.ActionGuard        || ActionGuard;
 window.runGuardedAction   = ActionGuard.run.bind(ActionGuard);
 
@@ -3213,6 +3221,463 @@ window.debugLargeListHealth = function() {
 
 // ════════════════════════════════════════════════════════════════
 // ════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════
+// Phase 4K-6C-A — validatePaymentComponentsContract (Part 2)
+// ════════════════════════════════════════════════════════════════
+window.validatePaymentComponentsContract = function(tx) {
+    var VALID_KINDS = ['tuition', 'exam', 'inventory', 'inventoryDebt', 'other'];
+    var result = { ok: true, warnings: [], errors: [], componentKinds: [], totalFromComponents: 0, txAmount: 0, amountMatches: false };
+    try {
+        if (!tx || typeof tx !== 'object') {
+            result.errors.push('tx is null or not an object');
+            result.ok = false;
+            return result;
+        }
+        result.txAmount = Number(tx.amount) || 0;
+        var isBundle = tx.paymentKind === 'bundle' || (Array.isArray(tx.components) && tx.components.length > 0);
+        if (!isBundle) { result.ok = true; return result; }
+
+        var components = Array.isArray(tx.components) ? tx.components : [];
+        if (components.length === 0) {
+            result.errors.push('Bundle tx phải có components array không rỗng');
+            result.ok = false;
+            return result;
+        }
+        components.forEach(function(c, i) {
+            var kind = c && c.kind;
+            if (!kind) {
+                result.errors.push('Component[' + i + '] thiếu kind');
+                result.ok = false;
+                return;
+            }
+            if (!VALID_KINDS.includes(kind)) {
+                result.errors.push('Component[' + i + '] kind không hợp lệ: ' + kind);
+                result.ok = false;
+            }
+            result.componentKinds.push(kind);
+            var amt = Number(c.amount) || 0;
+            if (amt <= 0) result.warnings.push('Component[' + i + '] (' + kind + ') amount <= 0');
+            result.totalFromComponents += amt;
+            if (kind === 'tuition' && c.packageMonths && !Array.isArray(c.packageMonths)) {
+                result.warnings.push('Component[' + i + '] tuition.packageMonths phải là array');
+            }
+            if (kind === 'exam' && !c.examTitle && !c.examTargetBelt) {
+                result.warnings.push('Component[' + i + '] exam thiếu examTitle/examTargetBelt');
+            }
+            if (kind === 'inventory' && !c.category && !c.relatedInvId) {
+                result.warnings.push('Component[' + i + '] inventory thiếu category/relatedInvId');
+            }
+            if (kind === 'inventoryDebt' && (!c.label || !c.amount)) {
+                result.warnings.push('Component[' + i + '] inventoryDebt thiếu label/amount');
+            }
+        });
+        result.amountMatches = Math.abs(result.totalFromComponents - result.txAmount) < 1;
+        if (!result.amountMatches) {
+            result.warnings.push('Components total (' + result.totalFromComponents + ') không khớp txAmount (' + result.txAmount + ')');
+        }
+    } catch (e) {
+        result.errors.push('[validatePaymentComponentsContract] exception: ' + String(e));
+        result.ok = false;
+    }
+    return result;
+};
+
+// ════════════════════════════════════════════════════════════════
+// Phase 4K-6C-A — debugPaymentFlowIntegrity (Part 3)
+// ════════════════════════════════════════════════════════════════
+window.debugPaymentFlowIntegrity = function(studentName) {
+    studentName = String(studentName || '').trim().toLowerCase();
+    var st = window.__store || {};
+    var txs =
+        Array.isArray(st.allTransactions) ? st.allTransactions :
+        Array.isArray(window.allTransactions) ? window.allTransactions :
+        Array.isArray(st.transactions) ? st.transactions : [];
+
+    if (studentName) {
+        txs = txs.filter(function(t) {
+            var n = String(t.studentName || t.profileName || t.description || '').toLowerCase();
+            return n.includes(studentName);
+        });
+    }
+
+    var result = { txCount: txs.length, bundleCount: 0, tuitionCount: 0, examCount: 0, inventoryCount: 0, inventoryDebtCount: 0, warnings: [], errors: [], rows: [] };
+    txs.forEach(function(tx) {
+        var type = tx.type || '';
+        var kind = tx.paymentKind || '';
+        var isBundle = kind === 'bundle' || (Array.isArray(tx.components) && tx.components.length > 0);
+        var isTuition = type.includes('Học phí') || kind === 'tuition';
+        var isExam = type.includes('Lệ phí thi') || type.includes('Thi đai') || kind === 'exam';
+        var isInv = type.includes('Kho') || type.includes('Võ phục') || type.includes('Áo') || kind === 'inventory';
+
+        if (isBundle) result.bundleCount++;
+        if (isTuition && !isBundle) result.tuitionCount++;
+        if (isExam && !isBundle) result.examCount++;
+        if (isInv && !isBundle) result.inventoryCount++;
+
+        var w = [];
+        if (!tx.branch) w.push('thiếu branch');
+        if (!tx.studentName && !tx.profileName && !tx.description) w.push('thiếu studentName');
+        if (!tx.amount && tx.amount !== 0) w.push('thiếu amount');
+        if (!tx.txMonth && !tx.date) w.push('thiếu txMonth/date');
+
+        var contract = { ok: true, warnings: [], componentKinds: [] };
+        if (isBundle) {
+            contract = (typeof window.validatePaymentComponentsContract === 'function')
+                ? window.validatePaymentComponentsContract(tx)
+                : { ok: true, warnings: ['validatePaymentComponentsContract not loaded'], componentKinds: [] };
+            contract.warnings.forEach(function(cw) { w.push(cw); });
+        }
+
+        if (w.length) result.warnings.push('[' + (tx.id || '?') + '] ' + w.join('; '));
+
+        result.rows.push({
+            id: tx.id || '',
+            type: type,
+            paymentKind: kind,
+            studentName: tx.studentName || tx.profileName || '',
+            branch: tx.branch || '',
+            amount: tx.amount || 0,
+            componentKinds: contract.componentKinds,
+            contractOk: contract.ok,
+            warnings: w
+        });
+    });
+
+    console.log('[debugPaymentFlowIntegrity] txCount=' + result.txCount + ' bundles=' + result.bundleCount + ' warnings=' + result.warnings.length);
+    console.table(result.rows.slice(0, 30));
+    return result;
+};
+
+// ════════════════════════════════════════════════════════════════
+// Phase 4K-6C-A — getFinancialPostWriteRefreshPlan (Part 4)
+// ════════════════════════════════════════════════════════════════
+window.getFinancialPostWriteRefreshPlan = function(actionName) {
+    if (window.FinancialFlowMap && typeof window.FinancialFlowMap.getPostWriteExpectations === 'function') {
+        return window.FinancialFlowMap.getPostWriteExpectations(actionName);
+    }
+    return null;
+};
+
+// ════════════════════════════════════════════════════════════════
+// Phase 4K-6C-A — debugExamCancelRisk (Part 5)
+// ════════════════════════════════════════════════════════════════
+window.debugExamCancelRisk = function(studentName) {
+    studentName = String(studentName || '').trim().toLowerCase();
+    var st = window.__store || {};
+    var txs =
+        Array.isArray(st.allTransactions) ? st.allTransactions :
+        Array.isArray(window.allTransactions) ? window.allTransactions :
+        Array.isArray(st.transactions) ? st.transactions : [];
+
+    if (studentName) {
+        txs = txs.filter(function(t) {
+            return String(t.studentName || t.profileName || '').toLowerCase().includes(studentName);
+        });
+    }
+
+    var result = { directExamCount: 0, legacyComboCount: 0, bundleExamCount: 0, cancelledCount: 0, bundleCancelNeedsMigration: false, rows: [] };
+
+    txs.forEach(function(tx) {
+        var type = tx.type || '';
+        var isExam = type === 'Lệ phí thi' || type.includes('Lệ phí thi');
+        var isCombo = type === 'Học phí + Lệ phí thi' || type.includes('Học phí + Lệ phí thi');
+        var isCancelled = tx.cancelled === true || tx.status === 'cancelled';
+        var hasExamComponent = Array.isArray(tx.components) && tx.components.some(function(c) { return c && c.kind === 'exam'; });
+        var isBundle = tx.paymentKind === 'bundle' || (Array.isArray(tx.components) && tx.components.length > 0);
+
+        if (isCancelled) { result.cancelledCount++; return; }
+        if (hasExamComponent && isBundle) {
+            result.bundleExamCount++;
+            result.rows.push({ id: tx.id || '', type: type, kind: 'bundleExam', studentName: tx.studentName || '', amount: tx.amount || 0, note: 'Cần component-level cancel' });
+        } else if (isExam) {
+            result.directExamCount++;
+            result.rows.push({ id: tx.id || '', type: type, kind: 'directExam', studentName: tx.studentName || '', amount: tx.amount || 0, note: 'OK — có thể cancel trực tiếp' });
+        } else if (isCombo) {
+            result.legacyComboCount++;
+            result.rows.push({ id: tx.id || '', type: type, kind: 'legacyCombo', studentName: tx.studentName || '', amount: tx.amount || 0, note: 'Legacy combo — cancel theo kiểu cũ' });
+        }
+    });
+
+    result.bundleCancelNeedsMigration = result.bundleExamCount > 0;
+    if (result.bundleCancelNeedsMigration) {
+        console.warn('[debugExamCancelRisk] cancelExamPayment cần hỗ trợ bundle trước khi guard. bundleExamCount=' + result.bundleExamCount);
+    }
+    console.table(result.rows.slice(0, 20));
+    return result;
+};
+
+// ════════════════════════════════════════════════════════════════
+// Phase 4K-6C-A — debugInventoryPaidRisk (Part 6)
+// ════════════════════════════════════════════════════════════════
+window.debugInventoryPaidRisk = function(studentName) {
+    studentName = String(studentName || '').trim().toLowerCase();
+    var st = window.__store || {};
+    var inventory =
+        Array.isArray(st.inventory) ? st.inventory :
+        Array.isArray(window.inventory) ? window.inventory :
+        Array.isArray(st.allInventory) ? st.allInventory : [];
+    var txs =
+        Array.isArray(st.allTransactions) ? st.allTransactions :
+        Array.isArray(window.allTransactions) ? window.allTransactions :
+        Array.isArray(st.transactions) ? st.transactions : [];
+
+    if (studentName) {
+        inventory = inventory.filter(function(i) {
+            return String(i.studentName || i.profileName || i.name || '').toLowerCase().includes(studentName);
+        });
+    }
+
+    var result = { unpaidCount: 0, paidWithoutTxIdCount: 0, paidWithTxIdCount: 0, inventoryDebtComponentCount: 0, warnings: [], rows: [] };
+
+    inventory.forEach(function(item) {
+        var row = { id: item.id || '', studentName: item.studentName || item.name || '', unpaid: item.unpaid, paidTxId: item.paidTxId || '', paymentBundleId: item.paymentBundleId || '', note: '' };
+        if (item.unpaid === true) {
+            result.unpaidCount++;
+            row.note = 'Chưa thu';
+        } else if (item.unpaid === false && !item.paidTxId && !item.paymentBundleId) {
+            result.paidWithoutTxIdCount++;
+            row.note = '⚠️ Đã thu nhưng không có paidTxId';
+            result.warnings.push('[' + (item.id || '?') + '] markInvPaid chỉ set unpaid:false, không có paidTxId');
+        } else if (item.unpaid === false && (item.paidTxId || item.paymentBundleId)) {
+            result.paidWithTxIdCount++;
+            row.note = 'OK — có paidTxId/paymentBundleId';
+        }
+        result.rows.push(row);
+    });
+
+    // Count inventoryDebt components in transactions
+    txs.forEach(function(tx) {
+        if (Array.isArray(tx.components)) {
+            tx.components.forEach(function(c) {
+                if (c && c.kind === 'inventoryDebt') result.inventoryDebtComponentCount++;
+            });
+        }
+    });
+
+    if (result.paidWithoutTxIdCount > 0) {
+        console.warn('[debugInventoryPaidRisk] ' + result.paidWithoutTxIdCount + ' items đã thu nhưng thiếu paidTxId. markInvPaid cần audit.');
+    }
+    console.table(result.rows.slice(0, 20));
+    return result;
+};
+
+// ════════════════════════════════════════════════════════════════
+// Phase 4K-6C-A — debugFinancialActionMap (Part 7)
+// ════════════════════════════════════════════════════════════════
+window.debugFinancialActionMap = function() {
+    var actionMap = window.FinancialFlowMap ? window.FinancialFlowMap.getActionMap() : {};
+    var highRiskActions = Object.keys(actionMap).filter(function(k) {
+        return actionMap[k].risk === 'high' || actionMap[k].risk === 'very-high';
+    });
+    var migrateNowFalseCount = Object.values(actionMap).filter(function(v) { return v.migrateNow === false; }).length;
+    var result = {
+        actionMap: actionMap,
+        highRiskActions: highRiskActions,
+        migrateNowFalseCount: migrateNowFalseCount,
+        nextRecommendedStage: '4K-6C-B: Guard quickCollectExam only after bundle cancel risk is handled.'
+    };
+    console.log('[debugFinancialActionMap] actionCount=' + Object.keys(actionMap).length + ' highRisk=' + highRiskActions.length);
+    console.table(Object.entries(actionMap).map(function(e) { return { action: e[0], label: e[1].label, risk: e[1].risk, migrateNow: e[1].migrateNow }; }));
+    return result;
+};
+
+// ════════════════════════════════════════════════════════════════
+// Phase 4K-6D — debugBuildFingerprint (Part 2)
+// ════════════════════════════════════════════════════════════════
+window.debugBuildFingerprint = function() {
+    var result = {
+        product:      window.APP_PRODUCT_NAME      || '',
+        owner:        window.APP_COPYRIGHT_OWNER   || '',
+        phase:        window.APP_SECURITY_PHASE    || '',
+        buildVersion: window.APP_BUILD_VERSION     || '',
+        fingerprint:  window.APP_BUILD_FINGERPRINT || '',
+        mainScript:   Array.from(document.scripts || [])
+            .map(function(s) { return s.src || ''; })
+            .filter(function(x) { return x.includes('main.js'); })
+    };
+    console.table(result);
+    return result;
+};
+
+// ════════════════════════════════════════════════════════════════
+// Phase 4K-6D — debugSecurityPosture (Part 3)
+// ════════════════════════════════════════════════════════════════
+window.debugSecurityPosture = function() {
+    var sp = window.SecurityPosture;
+    var result = {
+        build:           (sp && typeof sp.getBuildSecurityInfo  === 'function') ? sp.getBuildSecurityInfo()  : null,
+        runtime:         (sp && typeof sp.getRuntimeSecurityInfo=== 'function') ? sp.getRuntimeSecurityInfo(): null,
+        license:         (sp && typeof sp.getLicenseInfo        === 'function') ? sp.getLicenseInfo()        : null,
+        ipProtection:    (sp && typeof sp.getIpProtectionInfo   === 'function') ? sp.getIpProtectionInfo()   : null,
+        recommendations: (sp && typeof sp.getRecommendations    === 'function') ? sp.getRecommendations()    : []
+    };
+    console.log('[debugSecurityPosture]', result);
+    if (result.build)    console.table(result.build);
+    if (result.runtime)  console.table(result.runtime);
+    if (result.license)  console.table(result.license);
+    return result;
+};
+
+// ════════════════════════════════════════════════════════════════
+// Phase 4K-6D — debugLicenseGuardReadiness (Part 4)
+// ════════════════════════════════════════════════════════════════
+window.debugLicenseGuardReadiness = function() {
+    var st  = window.__store || {};
+    var cfg = st.clubConfig || window.clubConfig || {};
+    var today = new Date().toISOString().slice(0, 10);
+    var expiryDate    = String(cfg.expiryDate || cfg.expiresAt || '');
+    var accountStatus = String(cfg.accountStatus || cfg.status || '').toLowerCase();
+    var allowedDomains = Array.isArray(cfg.allowedDomains) ? cfg.allowedDomains : [];
+    var currentHost   = location.host;
+    var isExpired     = !!(expiryDate && expiryDate.slice(0, 10) < today);
+    var isLocked      = accountStatus === 'locked' || accountStatus === 'disabled';
+    var domainAllowedClientSide = !allowedDomains.length ||
+        allowedDomains.some(function(d) { return String(d || '').toLowerCase() === currentHost.toLowerCase(); });
+    var warnings = [];
+    if (isExpired)               warnings.push('CLB có vẻ đã hết hạn theo client-side expiryDate.');
+    if (isLocked)                warnings.push('CLB có vẻ đang bị khóa theo client-side accountStatus.');
+    if (!domainAllowedClientSide) warnings.push('Domain hiện tại không nằm trong allowedDomains.');
+    var result = {
+        clubId: st.clubId || window.currentClubId || '',
+        clubName: cfg.clubName || cfg.name || '',
+        accountStatus: accountStatus,
+        expiryDate: expiryDate,
+        currentHost: currentHost,
+        allowedDomains: allowedDomains,
+        isExpired: isExpired,
+        isLocked: isLocked,
+        domainAllowedClientSide: domainAllowedClientSide,
+        canClientDetectExpired: true,
+        canClientDetectLocked: true,
+        canClientDetectDomainMismatch: true,
+        shouldHardBlockNow: false,
+        warnings: warnings,
+        note: 'Phase này chỉ cảnh báo. Không hard block.'
+    };
+    console.table(result);
+    return result;
+};
+
+// ════════════════════════════════════════════════════════════════
+// Phase 4K-6D — debugAppCheckReadiness (Part 5)
+// ════════════════════════════════════════════════════════════════
+window.debugAppCheckReadiness = function() {
+    var result = {
+        hasAppCheckRuntime:       !!window.__appCheckInitialized,
+        hasAppCheckImportHint:    typeof window.initializeAppCheck === 'function',
+        hasRecaptchaSiteKey:      !!window.APP_CHECK_SITE_KEY,
+        enforcementExpectedNow:   false,
+        shouldEnableInThisPhase:  false,
+        recommended: [
+            'Register Firebase App Check for Web app',
+            'Use reCAPTCHA Enterprise or reCAPTCHA v3',
+            'Test in staging first',
+            'Enable Firestore App Check enforcement only after verified',
+            'Restrict Firebase API key by HTTP referrers'
+        ],
+        note: 'Phase này không bật App Check enforcement.'
+    };
+    console.table(result);
+    return result;
+};
+
+// ════════════════════════════════════════════════════════════════
+// Phase 4K-6D — debugApiKeyDomainRestrictionChecklist (Part 6)
+// ════════════════════════════════════════════════════════════════
+window.debugApiKeyDomainRestrictionChecklist = function() {
+    var result = {
+        apiKeyVisibleInFrontend:           true,
+        apiKeyIsSecret:                    false,
+        mustRestrictInGoogleCloudConsole:  true,
+        currentOrigin: location.origin,
+        currentHost:   location.host,
+        recommendedReferrers: [
+            location.origin + '/*',
+            'https://<your-production-domain>/*'
+        ],
+        cannotVerifyRestrictionFromClient: true,
+        manualSteps: [
+            'Google Cloud Console → APIs & Services → Credentials',
+            'Select Firebase Browser API Key',
+            'Application restrictions → HTTP referrers',
+            'Add production domain and GitHub Pages domain',
+            'Save',
+            'Test login/read/write after restriction'
+        ]
+    };
+    console.table(result);
+    return result;
+};
+
+// ════════════════════════════════════════════════════════════════
+// Phase 4K-6D — debugSourceProtectionStatus (Part 7)
+// ════════════════════════════════════════════════════════════════
+window.debugSourceProtectionStatus = function() {
+    var scripts = Array.from(document.scripts || []).map(function(s) { return s.src || ''; }).filter(Boolean);
+    var result = {
+        frontendCodeVisible:    true,
+        antiDevtoolsDetected:   true,
+        antiDevtoolsEffective:  'low-deterrent-only',
+        sourceMapsExpected:     false,
+        mainScripts:            scripts.filter(function(x) { return x.includes('main.js'); }),
+        warning: 'Không thể chống copy JavaScript 100% trên static hosting. Cần bảo vệ backend/data/license.',
+        recommended: [
+            'No source maps in deploy package',
+            'No .env/service account files',
+            'Production minify after stable',
+            'Light obfuscation after stable',
+            'Move privileged logic to Cloud Functions'
+        ]
+    };
+    console.table(result);
+    return result;
+};
+
+// ════════════════════════════════════════════════════════════════
+// Phase 4K-6D — debugPrivilegedClientActions (Part 8)
+// ════════════════════════════════════════════════════════════════
+window.debugPrivilegedClientActions = function() {
+    var names = [
+        'createNewClubSystem', 'lockClubAccount', 'unlockClubAccount',
+        'openExpiryModal', 'forceReplaceAdmin', 'saResetAdminPassword',
+        'saConfirmDeleteTx', 'toggleExamFeature', 'openNewClubModal'
+    ];
+    var found = names.filter(function(n) { return typeof window[n] === 'function'; });
+    var result = {
+        privilegedActionsFound:    found,
+        shouldMoveToCloudFunctions: found,
+        riskLevel: found.length ? 'medium-high' : 'low',
+        note: 'Các action đặc quyền chạy ở client nên được chuyển dần sang Cloud Functions ở phase sau.'
+    };
+    console.table(result);
+    return result;
+};
+
+// ════════════════════════════════════════════════════════════════
+// Phase 4K-6D — debugFirestoreRulesReadiness (Part 9)
+// ════════════════════════════════════════════════════════════════
+window.debugFirestoreRulesReadiness = function() {
+    var result = {
+        hasRulesFileInPackageExpected: true,
+        denyByDefaultExpected:         true,
+        tenantIsolationExpected:       true,
+        emulatorTestRequired:          true,
+        productionDeployUnknownFromClient: true,
+        manualChecklist: [
+            'Run Firebase Emulator rules tests',
+            'Confirm users/{uid}.clubId and role match app data',
+            'Deploy firestore.rules',
+            'Test admin read/write own club',
+            'Test admin cannot read other club',
+            'Test coach permissions',
+            'Test super_admin permissions',
+            'Test locked/expired behavior in future phase'
+        ]
+    };
+    console.table(result);
+    return result;
+};
+
 // Phase 4K-6A-B — debugStudentTabRenderRecovery
 // ════════════════════════════════════════════════════════════════
 window.debugStudentTabRenderRecovery = function() {
@@ -3473,6 +3938,36 @@ window.debugRuntimeSmokeTest = async function(term) {
 
     summary.studentTabRenderRecoveryOk = !!out.studentTabRenderRecovery.ok;
     summary.examRenderRecoveryOk       = !!out.examRenderRecovery.ok;
+
+    // Phase 4K-6C-A: Financial Flow Authority Audit
+    out.financialActionMap     = await safeCall('debugFinancialActionMap',    window.debugFinancialActionMap);
+    out.paymentFlowIntegrity   = await safeCall('debugPaymentFlowIntegrity',  window.debugPaymentFlowIntegrity, ['']);
+    out.examCancelRisk         = await safeCall('debugExamCancelRisk',        window.debugExamCancelRisk, ['']);
+    out.inventoryPaidRisk      = await safeCall('debugInventoryPaidRisk',     window.debugInventoryPaidRisk, ['']);
+
+    summary.financialActionMapOk   = !!out.financialActionMap.ok;
+    summary.paymentFlowIntegrityOk = !!out.paymentFlowIntegrity.ok;
+    summary.examCancelRiskOk       = !!out.examCancelRisk.ok;
+    summary.inventoryPaidRiskOk    = !!out.inventoryPaidRisk.ok;
+
+    // Phase 4K-6D: Security, License & IP Protection Readiness
+    out.buildFingerprint               = await safeCall('debugBuildFingerprint',               window.debugBuildFingerprint);
+    out.securityPosture                = await safeCall('debugSecurityPosture',                window.debugSecurityPosture);
+    out.licenseGuardReadiness          = await safeCall('debugLicenseGuardReadiness',          window.debugLicenseGuardReadiness);
+    out.appCheckReadiness              = await safeCall('debugAppCheckReadiness',              window.debugAppCheckReadiness);
+    out.apiKeyDomainRestriction        = await safeCall('debugApiKeyDomainRestrictionChecklist', window.debugApiKeyDomainRestrictionChecklist);
+    out.sourceProtectionStatus         = await safeCall('debugSourceProtectionStatus',         window.debugSourceProtectionStatus);
+    out.privilegedClientActions        = await safeCall('debugPrivilegedClientActions',        window.debugPrivilegedClientActions);
+    out.firestoreRulesReadiness        = await safeCall('debugFirestoreRulesReadiness',        window.debugFirestoreRulesReadiness);
+
+    summary.buildFingerprintOk          = !!out.buildFingerprint.ok;
+    summary.securityPostureOk           = !!out.securityPosture.ok;
+    summary.licenseGuardReadinessOk     = !!out.licenseGuardReadiness.ok;
+    summary.appCheckReadinessOk         = !!out.appCheckReadiness.ok;
+    summary.apiKeyDomainRestrictionOk   = !!out.apiKeyDomainRestriction.ok;
+    summary.sourceProtectionStatusOk    = !!out.sourceProtectionStatus.ok;
+    summary.privilegedClientActionsOk   = !!out.privilegedClientActions.ok;
+    summary.firestoreRulesReadinessOk   = !!out.firestoreRulesReadiness.ok;
 
     console.table(summary);
     console.log('[debugRuntimeSmokeTest:detail]', out);
