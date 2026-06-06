@@ -602,6 +602,10 @@ window.invCustomCategories = [];
         const skipped = Array.isArray(p.skippedMonths)
             ? p.skippedMonths.map(function(m) { return String(m).slice(0, 7); })
             : [];
+        // Phase 4K-6E: xét thêm paidMonths để không báo nợ sai tháng đã đóng
+        const paidMonths = Array.isArray(p.paidMonths)
+            ? p.paidMonths.map(function(m) { return String(m).slice(0, 7); })
+            : [];
         const paidUntil = normalizeYYYYMM(p.paidUntil || '');
         let startMonth = '';
         if (paidUntil) {
@@ -615,7 +619,7 @@ window.invCustomCategories = [];
         let cur = startMonth;
         let guard = 0;
         while (cur && cur <= selMonth && guard < 36) {
-            if (!skipped.includes(cur)) result.push(cur);
+            if (!skipped.includes(cur) && !paidMonths.includes(cur)) result.push(cur);
             cur = addMonthsToYYYYMM(cur, 1);
             guard++;
         }

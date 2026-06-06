@@ -78,6 +78,8 @@ import { PerformanceMonitor } from './core/performanceMonitor.js';
 import { FinancialFlowMap }   from './core/financialFlowMap.js';
 import { SecurityPosture }   from './core/securityPosture.js';
 import { ActionGuard }        from './core/actionGuard.js';
+// Phase 4K-6E: Transaction Delete Integrity
+import { TransactionDeleteIntegrity } from './core/transactionDeleteIntegrity.js';
 
 // ── Phase 3.3E: Firestore safety (expose globally for services) ──
 import { safeGetDocs, printQueryAuditReport }  from './utils/firestore-guard.js';
@@ -2806,11 +2808,11 @@ window.debugProfileModalClose = function() {
 // ════════════════════════════════════════════════════════════════
 
 // PHẦN 1 — APP BUILD VERSION
-window.APP_BUILD_VERSION = '4K-6D-security-license-ip-protection-readiness-20260605';
+window.APP_BUILD_VERSION = '4K-6E-B-exam-export-belt-sort-20260605';
 window.APP_COPYRIGHT_OWNER   = 'Tình Trương';
 window.APP_PRODUCT_NAME      = 'Taekwondo Club Management Web App';
-window.APP_SECURITY_PHASE    = '4K-6D-security-license-ip-protection-readiness';
-window.APP_BUILD_FINGERPRINT = 'TKD-TST-4K-6D-20260605';
+window.APP_SECURITY_PHASE    = '4K-6E-scale-readiness-write-safety';
+window.APP_BUILD_FINGERPRINT = 'TKD-TST-4K-6E-20260605';
 
 window.debugAppVersion = function() {
   const scripts = Array.from(document.scripts || []).map(s => s.src || '').filter(Boolean);
@@ -3066,6 +3068,8 @@ window.PerformanceMonitor = window.PerformanceMonitor || PerformanceMonitor;
 window.FinancialFlowMap    = window.FinancialFlowMap    || FinancialFlowMap;
 window.SecurityPosture     = window.SecurityPosture     || SecurityPosture;
 window.ActionGuard        = window.ActionGuard        || ActionGuard;
+// Phase 4K-6E
+window.TransactionDeleteIntegrity = window.TransactionDeleteIntegrity || TransactionDeleteIntegrity;
 window.runGuardedAction   = ActionGuard.run.bind(ActionGuard);
 
 // ════════════════════════════════════════════════════════════════
@@ -3950,6 +3954,19 @@ window.debugRuntimeSmokeTest = async function(term) {
     summary.examCancelRiskOk       = !!out.examCancelRisk.ok;
     summary.inventoryPaidRiskOk    = !!out.inventoryPaidRisk.ok;
 
+    // Phase 4K-6E: Transaction Delete Integrity + Scale Readiness
+    out.transactionDeleteIntegrity = await safeCall('debugTransactionDeleteIntegrity', window.debugTransactionDeleteIntegrity, ['']);
+    out.scaleReadiness1500         = await safeCall('debugScaleReadiness1500',         window.debugScaleReadiness1500);
+    out.firebaseWriteSafety        = await safeCall('debugFirebaseWriteSafety',        window.debugFirebaseWriteSafety);
+
+    summary.transactionDeleteIntegrityOk = !!out.transactionDeleteIntegrity.ok;
+    summary.scaleReadiness1500Ok         = !!out.scaleReadiness1500.ok;
+    summary.firebaseWriteSafetyOk        = !!out.firebaseWriteSafety.ok;
+
+    // Phase 4K-6E-B: Exam Export Belt Sort Preview
+    out.examExportSortPreview = await safeCall('debugExamExportSortPreview', window.debugExamExportSortPreview);
+    summary.examExportSortPreviewOk = !!out.examExportSortPreview.ok;
+
     // Phase 4K-6D: Security, License & IP Protection Readiness
     out.buildFingerprint               = await safeCall('debugBuildFingerprint',               window.debugBuildFingerprint);
     out.securityPosture                = await safeCall('debugSecurityPosture',                window.debugSecurityPosture);
@@ -4456,6 +4473,589 @@ window.debugInventoryFinanceRollup = function() {
     console.table({ income: result.income, expense: result.expense, profit: result.profit,
         inventoryTxCount: result.inventoryTxCount, unpaidCount: result.unpaidCount });
     console.log('[debugInventoryFinanceRollup:detail]', result);
+    return result;
+};
+
+// ════════════════════════════════════════════════════════════════
+// Phase 4K-6E — Transaction Delete Integrity Global Helpers
+// ════════════════════════════════════════════════════════════════
+
+/**
+ * Kiểm tra một tháng có còn được trả bởi transaction khác (không phải deletedTxId) không.
+ */
+window.isTuitionMonthStillPaidByAnotherTransaction = function(studentName, month, deletedTxId, txs) {
+    if (!Array.isArray(txs)) return false;
+    var name = String(studentName || '').trim();
+    var m    = String(month || '').slice(0, 7);
+
+    return txs.some(function(tx) {
+        if (!tx) return false;
+        if (tx.id === deletedTxId) return false;
+
+        // Kiểm tra cùng võ sinh
+        var txName = String(tx.description || tx.studentName || tx.name || '').trim();
+        if (txName !== name) return false;
+
+        var type = String(tx.type || '').trim();
+        if (type !== 'Học phí' && type !== 'Học phí + Lệ phí thi') return false;
+
+        // Kiểm tra tháng
+        if (Array.isArray(tx.packageMonths) && tx.packageMonths.some(function(pm) {
+            return String(pm || '').slice(0, 7) === m;
+        })) return true;
+
+        if (Array.isArray(tx.components)) {
+            var hasTuitionMonth = tx.components.some(function(c) {
+                if (!c || c.kind !== 'tuition') return false;
+                if (Array.isArray(c.packageMonths)) {
+                    return c.packageMonths.some(function(pm) { return String(pm || '').slice(0, 7) === m; });
+                }
+                return String(c.month || c.txMonth || '').slice(0, 7) === m;
+            });
+            if (hasTuitionMonth) return true;
+        }
+
+        var txMonth = String(tx.txMonth || tx.month || '').slice(0, 7);
+        if (txMonth === m) return true;
+
+        return false;
+    });
+};
+
+/**
+ * Tính lại paidUntil từ danh sách paidMonths, tôn trọng skippedMonths.
+ * Trả về tháng liên tục cuối cùng trước gap, hoặc tháng cao nhất nếu không có gap.
+ */
+window.recalculatePaidUntilFromPaidMonths = function(profile, paidMonths, options) {
+    options = options || {};
+    var p = profile || {};
+    var skipped = Array.isArray(p.skippedMonths)
+        ? p.skippedMonths.map(function(m) { return String(m || '').slice(0, 7); })
+        : [];
+
+    var months = (Array.isArray(paidMonths) ? paidMonths : [])
+        .map(function(m) { return String(m || '').slice(0, 7); })
+        .filter(function(m) { return /^\d{4}-\d{2}$/.test(m); })
+        .sort();
+
+    if (!months.length) return '';
+
+    // Tìm tháng liên tục cuối cùng từ đầu danh sách (tôn trọng skipped)
+    var continuousEnd = months[0];
+    for (var i = 1; i < months.length; i++) {
+        var prev = months[i - 1];
+        var cur  = months[i];
+
+        // Tính tháng tiếp theo sau prev (bỏ qua skipped)
+        var expected = typeof addMonthsToYYYYMM === 'function'
+            ? addMonthsToYYYYMM(prev, 1)
+            : (function(ym, n) {
+                var parts = ym.split('-');
+                var y = Number(parts[0]);
+                var mo = Number(parts[1]) + n;
+                while (mo > 12) { mo -= 12; y++; }
+                while (mo <= 0) { mo += 12; y--; }
+                return y + '-' + String(mo).padStart(2, '0');
+            })(prev, 1);
+
+        // Bỏ qua các tháng skipped ở giữa
+        var skippedBetween = [];
+        var check = expected;
+        while (check < cur) {
+            if (skipped.includes(check)) {
+                skippedBetween.push(check);
+                check = (function(ym) {
+                    var parts = ym.split('-');
+                    var y = Number(parts[0]);
+                    var mo = Number(parts[1]) + 1;
+                    if (mo > 12) { mo = 1; y++; }
+                    return y + '-' + String(mo).padStart(2, '0');
+                })(check);
+            } else {
+                break;
+            }
+        }
+
+        if (check === cur || skippedBetween.length > 0 && check === cur) {
+            continuousEnd = cur;
+        } else {
+            // Gap found — stop tracing continuous
+            break;
+        }
+    }
+
+    return continuousEnd;
+};
+
+/**
+ * Reconcile tuition profile của võ sinh sau khi xóa giao dịch.
+ */
+window.reconcileStudentTuitionAfterDeletedTransaction = async function(studentName, deletedTx, options) {
+    options = options || {};
+    try {
+        var tdi = window.TransactionDeleteIntegrity;
+        var tuitionMonths = tdi
+            ? tdi.extractTuitionMonthsFromTransaction(deletedTx)
+            : [];
+
+        if (!tuitionMonths.length) {
+            console.info('[reconcile] Không có tháng học phí trong tx', deletedTx && deletedTx.id);
+            return { ok: true, reason: 'no-tuition-months' };
+        }
+
+        var st = window.__store || {};
+
+        // Lấy profile
+        var profiles = st.profiles || window.allProfiles || {};
+        var profile  = profiles[studentName];
+
+        if (!profile) {
+            console.warn('[reconcile] Không tìm thấy profile:', studentName);
+            return { ok: false, reason: 'no-profile' };
+        }
+
+        // Lấy danh sách transactions còn lại
+        var txs =
+            Array.isArray(st.allTransactions)  ? st.allTransactions :
+            Array.isArray(window.allTransactions) ? window.allTransactions :
+            Array.isArray(st.transactions)     ? st.transactions :
+            [];
+
+        var deletedTxId = deletedTx && deletedTx.id ? deletedTx.id : '';
+
+        // paidMonths hiện tại
+        var currentPaidMonths = Array.isArray(profile.paidMonths)
+            ? profile.paidMonths.map(function(m) { return String(m || '').slice(0, 7); })
+            : [];
+
+        // Lọc ra các tháng cần xóa (tháng trong deletedTx mà không còn tx khác trả)
+        var monthsToRemove = tuitionMonths.filter(function(month) {
+            return !window.isTuitionMonthStillPaidByAnotherTransaction(
+                studentName, month, deletedTxId, txs
+            );
+        });
+
+        if (!monthsToRemove.length) {
+            console.info('[reconcile] Tất cả tháng vẫn còn tx khác trả — profile không cần cập nhật');
+            return { ok: true, reason: 'still-covered', monthsToRemove: [] };
+        }
+
+        var newPaidMonths = currentPaidMonths.filter(function(m) {
+            return !monthsToRemove.includes(m);
+        });
+
+        var newPaidUntil = window.recalculatePaidUntilFromPaidMonths(profile, newPaidMonths, options);
+
+        console.info('[reconcile] studentName:', studentName,
+            'removing months:', monthsToRemove,
+            'newPaidUntil:', newPaidUntil,
+            'newPaidMonths:', newPaidMonths);
+
+        // Ghi Firestore
+        var writeOk = false;
+        try {
+            var ss = window.StudentService;
+            if (ss && typeof ss.updateProfile === 'function') {
+                await ss.updateProfile(studentName, {
+                    paidMonths: newPaidMonths,
+                    paidUntil:  newPaidUntil,
+                });
+                writeOk = true;
+            } else {
+                // Fallback: updateDoc trực tiếp
+                var sdk = window._fb_init || {};
+                var db  = st.db || window.db;
+                var clubId = st.clubId || st.currentClubId || window.currentClubId;
+                if (sdk.doc && sdk.updateDoc && db && clubId) {
+                    await sdk.updateDoc(
+                        sdk.doc(db, 'clubs', clubId, 'profiles', studentName),
+                        { paidMonths: newPaidMonths, paidUntil: newPaidUntil }
+                    );
+                    writeOk = true;
+                }
+            }
+        } catch (writeErr) {
+            console.error('[reconcile] Lỗi ghi Firestore:', writeErr);
+        }
+
+        // Sync local store
+        if (st.profiles && st.profiles[studentName]) {
+            st.profiles[studentName].paidMonths = newPaidMonths;
+            st.profiles[studentName].paidUntil  = newPaidUntil;
+        }
+        if (window.allProfiles && window.allProfiles[studentName]) {
+            window.allProfiles[studentName].paidMonths = newPaidMonths;
+            window.allProfiles[studentName].paidUntil  = newPaidUntil;
+        }
+
+        // Refresh lists
+        if (typeof window.invalidateList === 'function') {
+            window.invalidateList('students.debtList', 'reconcile-after-delete');
+            window.invalidateList('tx.txList',         'reconcile-after-delete');
+        }
+
+        return {
+            ok: writeOk,
+            studentName: studentName,
+            monthsToRemove: monthsToRemove,
+            newPaidMonths: newPaidMonths,
+            newPaidUntil: newPaidUntil,
+        };
+    } catch (e) {
+        console.error('[reconcileStudentTuitionAfterDeletedTransaction] error:', e);
+        return { ok: false, error: e && e.message ? e.message : String(e) };
+    }
+};
+
+// ════════════════════════════════════════════════════════════════
+// Phase 4K-6E — debugTransactionDeleteIntegrity
+// ════════════════════════════════════════════════════════════════
+
+window.debugTransactionDeleteIntegrity = function(studentNameFilter) {
+    var st       = window.__store || {};
+    var profiles = st.profiles || window.allProfiles || {};
+    var txs      =
+        Array.isArray(st.allTransactions)    ? st.allTransactions :
+        Array.isArray(window.allTransactions)? window.allTransactions :
+        Array.isArray(st.transactions)       ? st.transactions :
+        [];
+
+    var tdi = window.TransactionDeleteIntegrity;
+
+    var checkedStudents     = 0;
+    var orphanPaidMonths    = [];
+    var paidUntilWarnings   = [];
+    var unsafeBundleDeletes = [];
+    var rows                = [];
+    var warnings            = [];
+
+    var targetProfiles = studentNameFilter
+        ? Object.entries(profiles).filter(function(e) { return e[0].toLowerCase().includes(String(studentNameFilter).toLowerCase()); })
+        : Object.entries(profiles);
+
+    targetProfiles.slice(0, 200).forEach(function(entry) {
+        var name    = entry[0];
+        var profile = entry[1];
+        if (!profile) return;
+        checkedStudents++;
+
+        var paidMonths = Array.isArray(profile.paidMonths)
+            ? profile.paidMonths.map(function(m) { return String(m || '').slice(0, 7); })
+            : [];
+
+        paidMonths.forEach(function(month) {
+            var stillPaid = window.isTuitionMonthStillPaidByAnotherTransaction
+                ? txs.some(function(tx) {
+                    return window.isTuitionMonthStillPaidByAnotherTransaction(name, month, null, [tx]);
+                  })
+                : false;
+
+            // Check if there's ANY tx covering this month for this student
+            var covered = txs.some(function(tx) {
+                if (!tx) return false;
+                var txName = String(tx.description || tx.studentName || tx.name || '').trim();
+                if (txName !== name) return false;
+                var type = String(tx.type || '').trim();
+                if (type !== 'Học phí' && type !== 'Học phí + Lệ phí thi') return false;
+                if (tdi) {
+                    var months = tdi.extractTuitionMonthsFromTransaction(tx);
+                    return months.includes(month);
+                }
+                return false;
+            });
+
+            if (!covered) {
+                orphanPaidMonths.push({ name: name, month: month });
+            }
+        });
+
+        var paidUntil = String(profile.paidUntil || '').slice(0, 7);
+        if (paidUntil && paidMonths.length > 0) {
+            var maxPaidMonth = paidMonths.slice().sort().pop();
+            if (maxPaidMonth && maxPaidMonth < paidUntil) {
+                paidUntilWarnings.push({
+                    name: name,
+                    paidUntil: paidUntil,
+                    maxPaidMonth: maxPaidMonth,
+                    gap: true,
+                });
+            }
+        }
+
+        rows.push({
+            name:         name,
+            paidUntil:    paidUntil,
+            paidMonths:   paidMonths.length,
+            orphans:      orphanPaidMonths.filter(function(o) { return o.name === name; }).length,
+        });
+    });
+
+    // Check for bundle txs without safe rollback
+    txs.forEach(function(tx) {
+        if (!tx || String(tx.paymentKind || '') !== 'bundle') return;
+        var inv = Array.isArray(tx.components)
+            ? tx.components.some(function(c) { return c && (c.kind === 'inventory' || c.kind === 'inventoryDebt'); })
+            : false;
+        if (!inv) return;
+        var hasRef = !!(tx.relatedInvId || tx.paymentBundleId);
+        if (!hasRef) {
+            unsafeBundleDeletes.push({ txId: tx.id, type: tx.type, studentName: tx.description || '' });
+        }
+    });
+
+    if (orphanPaidMonths.length > 0) {
+        warnings.push(orphanPaidMonths.length + ' orphan paidMonths tìm thấy — profile.paidMonths có tháng không có transaction nguồn');
+    }
+    if (paidUntilWarnings.length > 0) {
+        warnings.push(paidUntilWarnings.length + ' profile có paidUntil vượt quá maxPaidMonth');
+    }
+    if (unsafeBundleDeletes.length > 0) {
+        warnings.push(unsafeBundleDeletes.length + ' bundle tx có inventory nhưng thiếu ref — không nên xóa trực tiếp');
+    }
+
+    var result = {
+        checkedStudents:     checkedStudents,
+        orphanPaidMonths:    orphanPaidMonths,
+        paidUntilWarnings:   paidUntilWarnings,
+        unsafeBundleDeletes: unsafeBundleDeletes,
+        rows:                rows.slice(0, 50),
+        warnings:            warnings,
+    };
+    console.table(rows.slice(0, 50));
+    console.log('[debugTransactionDeleteIntegrity]', result);
+    return result;
+};
+
+// ════════════════════════════════════════════════════════════════
+// Phase 4K-6E — debugStudentTuitionPaymentSources
+// ════════════════════════════════════════════════════════════════
+
+window.debugStudentTuitionPaymentSources = function(studentName) {
+    var name = String(studentName || '').trim();
+    var st   = window.__store || {};
+    var profiles = st.profiles || window.allProfiles || {};
+    var txs  =
+        Array.isArray(st.allTransactions)    ? st.allTransactions :
+        Array.isArray(window.allTransactions)? window.allTransactions :
+        Array.isArray(st.transactions)       ? st.transactions :
+        [];
+
+    var profile = profiles[name] || {};
+    var profilePaidUntil  = String(profile.paidUntil || '').slice(0, 7);
+    var profilePaidMonths = Array.isArray(profile.paidMonths)
+        ? profile.paidMonths.map(function(m) { return String(m || '').slice(0, 7); }).sort()
+        : [];
+
+    var tdi = window.TransactionDeleteIntegrity;
+
+    var transactionPaidMonths = [];
+    var txRows = [];
+
+    txs.forEach(function(tx) {
+        if (!tx) return;
+        var txName = String(tx.description || tx.studentName || tx.name || '').trim();
+        if (txName !== name) return;
+        var type = String(tx.type || '').trim();
+        if (type !== 'Học phí' && type !== 'Học phí + Lệ phí thi') return;
+
+        var months = tdi
+            ? tdi.extractTuitionMonthsFromTransaction(tx)
+            : [];
+
+        months.forEach(function(m) { transactionPaidMonths.push(m); });
+
+        txRows.push({
+            txId:     tx.id,
+            type:     type,
+            txMonth:  tx.txMonth || '',
+            months:   months.join(','),
+            amount:   Number(tx.amount || 0),
+            date:     tx.date || '',
+        });
+    });
+
+    transactionPaidMonths = Array.from(new Set(transactionPaidMonths)).sort();
+
+    var orphanProfilePaidMonths  = profilePaidMonths.filter(function(m) { return !transactionPaidMonths.includes(m); });
+    var missingProfilePaidMonths = transactionPaidMonths.filter(function(m) { return !profilePaidMonths.includes(m); });
+
+    var result = {
+        studentName:               name,
+        profilePaidUntil:          profilePaidUntil,
+        profilePaidMonths:         profilePaidMonths,
+        transactionPaidMonths:     transactionPaidMonths,
+        orphanProfilePaidMonths:   orphanProfilePaidMonths,
+        missingProfilePaidMonths:  missingProfilePaidMonths,
+        txRows:                    txRows,
+    };
+    console.table(txRows);
+    console.log('[debugStudentTuitionPaymentSources]', result);
+    return result;
+};
+
+// ════════════════════════════════════════════════════════════════
+// Phase 4K-6E — debugScaleReadiness1500
+// ════════════════════════════════════════════════════════════════
+
+window.debugScaleReadiness1500 = function() {
+    var st  = window.__store || {};
+    var profiles   = st.profiles || window.allProfiles || {};
+    var profileCount = Object.keys(profiles).length;
+
+    var txs  =
+        Array.isArray(st.allTransactions)    ? st.allTransactions :
+        Array.isArray(window.allTransactions)? window.allTransactions :
+        Array.isArray(st.transactions)       ? st.transactions :
+        [];
+    var transactionCount = txs.length;
+
+    var inv = Array.isArray(st.inventory) ? st.inventory : (window.allInventory || []);
+    var inventoryCount = inv.length;
+
+    var activeRows  = document.querySelectorAll('#activeList tr[data-student-id]').length;
+    var debtRows    = document.querySelectorAll('#debtList tr[data-debt-id], #debtList tr[data-student-id]').length;
+    var txRows      = document.querySelectorAll('#txList tr, #transactionList tr').length;
+
+    var listenerLimitRisk      = profileCount > 1200 || transactionCount > 1200;
+    var transactionMonthlyLimit = transactionCount > 1200;
+
+    var warnings = [];
+    var recommendations = [
+        'Realtime listener chỉ nên dùng giao dịch mới nhất — paginate full history',
+        'Full transaction month nên dùng pagination, không load all',
+        'Dashboard nên dùng stats docs / Cloud Functions để tránh scan toàn bộ',
+        'Export nên dùng paginated full fetch, không snapshot toàn collection',
+    ];
+
+    if (profileCount > 1200)     warnings.push('profileCount (' + profileCount + ') gần ngưỡng 1500 — cần kiểm tra scale');
+    if (transactionCount > 1200) warnings.push('transactionCount (' + transactionCount + ') tháng hiện tại cao — cân nhắc pagination');
+    if (activeRows > 500)        warnings.push('activeRows (' + activeRows + ') > 500 — DOM render chậm');
+    if (debtRows > 500)          warnings.push('debtRows (' + debtRows + ') > 500 — DOM render chậm');
+    if (txRows > 500)            warnings.push('txRows (' + txRows + ') > 500 — DOM render chậm');
+
+    var usesDashboardFallback = typeof window.debugDashboardHistory === 'function'
+        ? (function() {
+            try { var r = window.debugDashboardHistory(); return !!(r && r.usingFallback); }
+            catch(e) { return false; }
+          })()
+        : false;
+    if (usesDashboardFallback) warnings.push('Dashboard đang dùng fallback client scan — nên dùng stats docs');
+
+    var cloudFunctionsDefined = typeof window.__cloudFunctionsStats !== 'undefined';
+    if (!cloudFunctionsDefined) warnings.push('Cloud Functions stats chưa xác nhận — kiểm tra aggregation');
+
+    var result = {
+        profileCount:               profileCount,
+        transactionCount:           transactionCount,
+        inventoryCount:             inventoryCount,
+        activeRows:                 activeRows,
+        debtRows:                   debtRows,
+        txRows:                     txRows,
+        listenerLimitRisk:          listenerLimitRisk,
+        transactionMonthlyLimit:    transactionMonthlyLimit,
+        estimatedMaxStudentsPerClub: 1500,
+        estimatedClubs:             10,
+        warnings:                   warnings,
+        recommendations:            recommendations,
+    };
+    console.table({
+        profileCount:      profileCount,
+        transactionCount:  transactionCount,
+        inventoryCount:    inventoryCount,
+        activeRows:        activeRows,
+        debtRows:          debtRows,
+        txRows:            txRows,
+        listenerLimitRisk: listenerLimitRisk,
+    });
+    console.log('[debugScaleReadiness1500]', result);
+    return result;
+};
+
+// ════════════════════════════════════════════════════════════════
+// Phase 4K-6E — debugFirebaseWriteSafety
+// ════════════════════════════════════════════════════════════════
+
+window.debugFirebaseWriteSafety = function() {
+    var st = window.__store || {};
+
+    var hasDb       = !!(st.db || window.db);
+    var hasClubId   = !!(st.clubId || st.currentClubId || window.currentClubId);
+    var hasStudentService = typeof window.StudentService === 'object' &&
+                             typeof (window.StudentService || {}).updateProfile === 'function';
+    var hasTransactionDeleteIntegrity = !!(window.TransactionDeleteIntegrity &&
+        typeof window.TransactionDeleteIntegrity.analyzeTransactionDeleteImpact === 'function');
+
+    var guardedActions = [
+        'processMultiItem',
+        'quickCollectExam',
+        'cancelExamPayment',
+        'markInvPaid',
+    ].filter(function(name) {
+        // Check if function body references ActionGuard or guardOnce
+        if (typeof window[name] !== 'function') return false;
+        var src = window[name].toString();
+        return src.includes('ActionGuard') || src.includes('guardOnce') || src.includes('runGuardedAction');
+    });
+
+    var financialActionNames = ['processMultiItem', 'quickPay', 'quickCollectExam', 'cancelExamPayment', 'markInvPaid'];
+    var unguardedFinancialActions = financialActionNames.filter(function(name) {
+        if (typeof window[name] !== 'function') return false;
+        var src = window[name].toString();
+        return !src.includes('ActionGuard') && !src.includes('guardOnce') && !src.includes('runGuardedAction');
+    });
+
+    var deleteTxUsesIntegrity = (function() {
+        if (typeof window.deleteTx !== 'function') return false;
+        var src = window.deleteTx.toString();
+        return src.includes('analyzeTransactionDeleteImpact') || src.includes('TransactionDeleteIntegrity');
+    })();
+
+    var writeSafetyLevel =
+        (!hasDb || !hasClubId)            ? 'critical' :
+        !hasStudentService                 ? 'low' :
+        !hasTransactionDeleteIntegrity     ? 'medium' :
+        !deleteTxUsesIntegrity             ? 'medium' :
+        unguardedFinancialActions.length > 2 ? 'medium' :
+        'good';
+
+    var warnings = [];
+    var recommendations = [
+        'Bọc processMultiItem và quickPay vào ActionGuard ở phase sau',
+        'Đảm bảo mọi Firestore write có clubId validation trước khi ghi',
+        'Sử dụng Firestore transactions cho multi-doc writes (tuition + profile)',
+        'Thêm offline-queue cho các write khi mất kết nối',
+    ];
+
+    if (!hasDb)                          warnings.push('db chưa được init');
+    if (!hasClubId)                      warnings.push('clubId chưa sẵn sàng');
+    if (!hasStudentService)              warnings.push('StudentService.updateProfile không có');
+    if (!hasTransactionDeleteIntegrity)  warnings.push('TransactionDeleteIntegrity chưa load');
+    if (!deleteTxUsesIntegrity)          warnings.push('deleteTx chưa dùng TransactionDeleteIntegrity.analyzeTransactionDeleteImpact');
+    if (unguardedFinancialActions.length > 0) {
+        warnings.push('Unguarded financial actions: ' + unguardedFinancialActions.join(', '));
+    }
+
+    var result = {
+        hasDb:                        hasDb,
+        hasClubId:                    hasClubId,
+        hasStudentService:            hasStudentService,
+        hasTransactionDeleteIntegrity: hasTransactionDeleteIntegrity,
+        deleteTxUsesIntegrity:        deleteTxUsesIntegrity,
+        guardedActions:               guardedActions,
+        unguardedFinancialActions:    unguardedFinancialActions,
+        writeSafetyLevel:             writeSafetyLevel,
+        warnings:                     warnings,
+        recommendations:              recommendations,
+    };
+    console.table({
+        hasDb:              hasDb,
+        hasClubId:          hasClubId,
+        hasStudentService:  hasStudentService,
+        hasTransactionDeleteIntegrity: hasTransactionDeleteIntegrity,
+        deleteTxUsesIntegrity:        deleteTxUsesIntegrity,
+        writeSafetyLevel:   writeSafetyLevel,
+    });
+    console.log('[debugFirebaseWriteSafety]', result);
     return result;
 };
 

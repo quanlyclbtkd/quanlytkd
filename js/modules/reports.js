@@ -52,6 +52,127 @@ import {
     formatMonth,
 } from '../utils/format.js';
 
+// ════════════════════════════════════════════════════════════════
+// Phase 4K-6E-B: Belt ordering helpers for exam export sort
+// ════════════════════════════════════════════════════════════════
+
+const EXAM_EXPORT_BELT_ORDER = [
+    'Đai trắng - Cấp 10',
+    'Đai trắng 1 vạch - Cấp 9',
+    'Đai trắng 2 vạch - Cấp 8',
+    'Đai vàng - Cấp 7',
+    'Đai xanh lá - Cấp 6',
+    'Đai xanh dương - Cấp 5',
+    'Đai đỏ - Cấp 4',
+    'Đai đỏ 1 vạch - Cấp 3',
+    'Đai đỏ 2 vạch - Cấp 2',
+    'Đai đỏ 3 vạch - Cấp 1',
+    'Đai Đen - Đỏ',
+    'Đai Đen',
+];
+
+const normalizeExamExportText = function(v) {
+    return String(v || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd')
+        .replace(/Đ/g, 'D')
+        .toLowerCase()
+        .replace(/[–—-]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+};
+
+const getExamExportBeltRank = function(belt) {
+    const raw = String(belt || '').trim();
+    if (!raw) return 999;
+
+    const exactIndex = EXAM_EXPORT_BELT_ORDER.indexOf(raw);
+    if (exactIndex >= 0) return exactIndex;
+
+    const norm = normalizeExamExportText(raw);
+    const normOrder = EXAM_EXPORT_BELT_ORDER.map(normalizeExamExportText);
+    const normIndex = normOrder.indexOf(norm);
+    if (normIndex >= 0) return normIndex;
+
+    const aliases = [
+        { rank: 0,  keys: ['dai trang cap 10', 'trang cap 10', 'cap 10', 'dai trang'] },
+        { rank: 1,  keys: ['dai trang 1 vach cap 9', 'trang 1 vach', 'cap 9'] },
+        { rank: 2,  keys: ['dai trang 2 vach cap 8', 'trang 2 vach', 'cap 8'] },
+        { rank: 3,  keys: ['dai vang cap 7', 'vang', 'cap 7'] },
+        { rank: 4,  keys: ['dai xanh la cap 6', 'xanh la', 'cap 6'] },
+        { rank: 5,  keys: ['dai xanh duong cap 5', 'xanh duong', 'xanh bien', 'cap 5'] },
+        { rank: 6,  keys: ['dai do cap 4', 'do cap 4', 'cap 4'] },
+        { rank: 7,  keys: ['dai do 1 vach cap 3', 'do 1 vach', 'cap 3'] },
+        { rank: 8,  keys: ['dai do 2 vach cap 2', 'do 2 vach', 'cap 2'] },
+        { rank: 9,  keys: ['dai do 3 vach cap 1', 'do 3 vach', 'cap 1'] },
+        { rank: 10, keys: ['dai den do', 'den do'] },
+        { rank: 11, keys: ['dai den', 'den'] },
+    ];
+
+    for (const item of aliases) {
+        if (item.keys.some(k => norm.includes(k))) return item.rank;
+    }
+
+    const m = norm.match(/cap\s*(\d+)/i);
+    if (m) {
+        const cap = Number(m[1]);
+        if (cap >= 1 && cap <= 10) return 10 - cap;
+    }
+
+    return 999;
+};
+
+const getExamExportNameKey = function(name) {
+    if (typeof window !== 'undefined' && typeof window.normalizeVNForSearch === 'function') {
+        return window.normalizeVNForSearch(name);
+    }
+    return normalizeExamExportText(name);
+};
+
+const getProfileForExportName = function(name) {
+    const profiles =
+        (typeof window !== 'undefined' && window.__store && window.__store.profiles) ||
+        (typeof window !== 'undefined' && window.allProfiles) ||
+        {};
+    return profiles[name] || {};
+};
+
+const sortExamExportEntries = function(entries) {
+    return entries.slice().sort((a, b) => {
+        const nameA = a.name || a.studentName || '';
+        const nameB = b.name || b.studentName || '';
+
+        const pA = a.profile || getProfileForExportName(nameA);
+        const pB = b.profile || getProfileForExportName(nameB);
+
+        const currentBeltA = a.currentBelt || a.belt || pA.belt || '';
+        const currentBeltB = b.currentBelt || b.belt || pB.belt || '';
+
+        const rankA = getExamExportBeltRank(currentBeltA);
+        const rankB = getExamExportBeltRank(currentBeltB);
+        if (rankA !== rankB) return rankA - rankB;
+
+        const targetBeltA = a.targetBelt || a.nextBelt || '';
+        const targetBeltB = b.targetBelt || b.nextBelt || '';
+
+        const targetRankA = getExamExportBeltRank(targetBeltA);
+        const targetRankB = getExamExportBeltRank(targetBeltB);
+        if (targetRankA !== targetRankB) return targetRankA - targetRankB;
+
+        const branchA = String(a.branch || pA.branch || 'CS1');
+        const branchB = String(b.branch || pB.branch || 'CS1');
+
+        const branchCmp = branchA.localeCompare(branchB, 'vi');
+        if (branchCmp !== 0) return branchCmp;
+
+        return getExamExportNameKey(nameA).localeCompare(
+            getExamExportNameKey(nameB),
+            'vi'
+        );
+    });
+};
+
 // ── Phase 4K-4D: Fallback classify helper (reports — Node/export context safe) ──
 function _classifyInvTxForReport(tx, cats) {
     const type   = String(tx && tx.type || '').trim();
@@ -1053,10 +1174,21 @@ export function initReports() {
         const cc = (v, alt) => mc(v, fNorm, alt ? fillAlt : null, bAll, cCenter);
         const bMixBorder = {top:{style:'thin',color:{rgb:'AAAAAA'}},bottom:{style:'medium',color:{rgb:'0033A0'}},left:{style:'medium',color:{rgb:'0033A0'}},right:{style:'medium',color:{rgb:'0033A0'}}};
 
-        const buildSheet = (subset, titleLine1, titleLine2) => {
-            const names        = Object.keys(subset).sort();
-            const totalStudents = names.length;
-            const totalFee     = names.reduce((s, n) => s + (subset[n].amount || 0), 0);
+        const buildSheet = (subset, titleLine1, titleLine2, _capturePreview) => {
+            // Phase 4K-6E-B: sort by belt order instead of plain name sort
+            const _entries = Object.keys(subset).map(name => ({
+                name,
+                ...(subset[name] || {}),
+                profile: allProfiles[name] || {},
+            }));
+            const sortedEntries = sortExamExportEntries(_entries);
+
+            if (_capturePreview && typeof window !== 'undefined' && window.__store) {
+                window.__store._lastExamExportSortedPreview = sortedEntries.slice();
+            }
+
+            const totalStudents = sortedEntries.length;
+            const totalFee     = sortedEntries.reduce((s, e) => s + (e.amount || 0), 0);
 
             const ws_data = [
                 [mc(titleLine1, fTitle, fillTitle, bBold, cCenter),
@@ -1069,8 +1201,9 @@ export function initReports() {
             ];
 
             let stt = 1;
-            names.forEach(name => {
-                const p   = allProfiles[name] || {};
+            sortedEntries.forEach(entry => {
+                const name = entry.name;
+                const p   = entry.profile || allProfiles[name] || {};
                 const alt = stt % 2 === 0;
                 const paidCell = mc('✔ Đã nộp phí', fPaid, fillPaid, bAll, cCenter);
                 ws_data.push([
@@ -1081,7 +1214,7 @@ export function initReports() {
                     cc(p.memberId || '', alt),
                     cc(_branchName(p.branch || 'CS1'), alt),
                     nc(p.belt || 'Chưa cập nhật', alt),
-                    nc(subset[name].targetBelt, alt),
+                    nc(entry.targetBelt || subset[name].targetBelt, alt),
                     cc(p.cccd || '', alt),
                     paidCell,
                     mc('', fNorm, alt ? fillAlt : null, bAll, cCenter),
@@ -1128,7 +1261,8 @@ export function initReports() {
         const ws1 = buildSheet(
             paidData,
             'DANH SÁCH ĐĂNG KÝ THI LÊN ĐAI',
-            `Tổng số võ sinh đăng ký: ${totalStudents}${overallFeeStr}  |  Ngày xuất: ${formatDate(getLocalToday())}`
+            `Tổng số võ sinh đăng ký: ${totalStudents}${overallFeeStr}  |  Ngày xuất: ${formatDate(getLocalToday())}`,
+            true  // Phase 4K-6E-B: capture preview for debugExamExportSortPreview
         );
 
         const wb = XLSX.utils.book_new();
@@ -1424,19 +1558,46 @@ export function initReports() {
         return result;
     };
 
-    window.ReportsModule = {
-        openExcelExportModal:    window.openExcelExportModal,
-        updateExcelPeriodOptions:window.updateExcelPeriodOptions,
-        executeExcelExport:      window.executeExcelExport,
-        exportToExcel:           window.exportToExcel,
-        exportAchievementsExcel: window.exportAchievementsExcel,
-        exportExamPaidList:      window.exportExamPaidList,
-        updateTaxPeriodOptions:  window.updateTaxPeriodOptions,
-        executeTaxExport:        window.executeTaxExport,
-        resetReportsModuleState: window.resetReportsModuleState,
-        debugExamExportReadiness: window.debugExamExportReadiness,
-        _phase: '4.0A-4',
+    // Phase 4K-6E-B: debugExamExportSortPreview — kiểm tra thứ tự sort sau khi export
+    window.debugExamExportSortPreview = function() {
+        const st = (typeof window !== 'undefined' && window.__store) || {};
+        const profiles = st.profiles || (typeof window !== 'undefined' && window.allProfiles) || {};
+        const data = st._lastExamExportSortedPreview || [];
+
+        const rows = data.map((r, idx) => ({
+            stt:             idx + 1,
+            name:            r.name || r.studentName || '',
+            currentBelt:     r.currentBelt || r.belt || (profiles[r.name] && profiles[r.name].belt) || '',
+            currentBeltRank: getExamExportBeltRank(
+                r.currentBelt || r.belt || (profiles[r.name] && profiles[r.name].belt) || ''
+            ),
+            targetBelt:      r.targetBelt || r.nextBelt || '',
+            targetBeltRank:  getExamExportBeltRank(r.targetBelt || r.nextBelt || ''),
+            branch:          r.branch || (profiles[r.name] && profiles[r.name].branch) || '',
+            amount:          r.amount || r.examFee || 0,
+        }));
+
+        console.table(rows);
+        return {
+            count: rows.length,
+            rows,
+        };
     };
 
-    console.debug('[reports.js] ✅ initReports() Phase 4.0A-4 — dual-source exam export');
+    window.ReportsModule = {
+        openExcelExportModal:      window.openExcelExportModal,
+        updateExcelPeriodOptions:  window.updateExcelPeriodOptions,
+        executeExcelExport:        window.executeExcelExport,
+        exportToExcel:             window.exportToExcel,
+        exportAchievementsExcel:   window.exportAchievementsExcel,
+        exportExamPaidList:        window.exportExamPaidList,
+        updateTaxPeriodOptions:    window.updateTaxPeriodOptions,
+        executeTaxExport:          window.executeTaxExport,
+        resetReportsModuleState:   window.resetReportsModuleState,
+        debugExamExportReadiness:  window.debugExamExportReadiness,
+        debugExamExportSortPreview: window.debugExamExportSortPreview,
+        _phase: '4K-6E-B',
+    };
+
+    console.debug('[reports.js] ✅ initReports() Phase 4K-6E-B — exam export belt-order sort');
 }

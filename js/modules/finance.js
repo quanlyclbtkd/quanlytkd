@@ -259,16 +259,44 @@ export function initFinance() {
      */
     window.deleteTx = async (id, relatedInvId) => {
         if (window.userRole === 'viewer') return;
-        if (!confirm(
-            '⚠️ Bạn có chắc muốn xóa giao dịch này?\n' +
-            '(Nếu là giao dịch kho sẽ không tự hoàn trả số dư, ' +
-            'hãy chủ động cập nhật lại kho sau khi xóa)'
-        )) return;
 
         const allTransactions = _transactions();
 
-        // Lưu snapshot tx trước khi xóa để tính lại paidUntil
+        // Lưu snapshot tx trước khi xóa
         const txToDelete = allTransactions.find(t => t.id === id);
+
+        // Phase 4K-6E: Phân tích impact trước khi xóa
+        const impact = window.TransactionDeleteIntegrity
+            ? window.TransactionDeleteIntegrity.analyzeTransactionDeleteImpact(txToDelete || { id })
+            : null;
+
+        // Chặn xóa nếu không an toàn (bundle inventory thiếu rollback info)
+        if (impact && !impact.safeToHardDelete) {
+            alert(
+                'Giao dịch này là giao dịch gộp có liên quan kho đồ/nợ kho và chưa đủ dữ liệu rollback an toàn.\n' +
+                'Vui lòng không xóa trực tiếp. Hãy xử lý bằng chức năng hủy giao dịch chuyên dụng ở phase sau.\n\n' +
+                'Lý do: ' + (impact.blockers || []).join(', ')
+            );
+            return;
+        }
+
+        // Tạo message confirm có thông tin học phí
+        let confirmMsg = '⚠️ Bạn có chắc muốn xóa giao dịch này?\n' +
+            '(Nếu là giao dịch kho sẽ không tự hoàn trả số dư, ' +
+            'hãy chủ động cập nhật lại kho sau khi xóa)';
+
+        if (impact && impact.hasTuition && impact.tuitionMonths.length > 0) {
+            const monthLabels = impact.tuitionMonths.map(m => {
+                const parts = m.split('-');
+                return parts.length === 2 ? parts[1] + '/' + parts[0] : m;
+            }).join(', ');
+            confirmMsg =
+                'Giao dịch này có học phí tháng: ' + monthLabels + '.\n' +
+                'Sau khi xóa, hệ thống sẽ cập nhật lại trạng thái học phí của võ sinh.\n' +
+                'Bạn chắc chắn muốn xóa?';
+        }
+
+        if (!confirm(confirmMsg)) return;
 
         // Xóa giao dịch chính
         await FinanceService.deleteTransaction(id);
@@ -278,32 +306,54 @@ export function initFinance() {
             await FinanceService.deleteRelatedInventory(relatedInvId);
         }
 
-        // Nếu là giao dịch học phí → tính lại paidUntil từ Firestore
-        if (txToDelete && (
+        // Phase 4K-6E: Reconcile profile sau khi xóa — thay thế logic paidUntil cũ
+        if (impact && impact.requiresProfileReconcile && impact.studentName) {
+            try {
+                await window.reconcileStudentTuitionAfterDeletedTransaction(
+                    impact.studentName,
+                    txToDelete,
+                    { reason: 'delete-transaction' }
+                );
+            } catch (reconcileErr) {
+                console.warn('[deleteTx] reconcile error (non-fatal):', reconcileErr);
+            }
+        } else if (!impact && txToDelete && (
             txToDelete.type === 'Học phí' ||
             txToDelete.type === 'Học phí + Lệ phí thi'
         )) {
+            // Fallback: logic cũ nếu TransactionDeleteIntegrity chưa load
             const studentName = (txToDelete.description || '').trim();
             if (studentName) {
-                // Truy vấn TOÀN BỘ lịch sử học phí từ Firestore — không giới hạn tháng
                 const stuTxDocs = await FinanceService.getStudentTuitionTxs(studentName);
                 const remainingMonths = [];
                 stuTxDocs.forEach(({ id: txId, data: td }) => {
-                    if (txId === id) return; // bỏ qua tx vừa xóa
+                    if (txId === id) return;
                     if (td.type !== 'Học phí' && td.type !== 'Học phí + Lệ phí thi') return;
                     if (td.packageMonths) remainingMonths.push(...td.packageMonths);
                     else if (td.txMonth) remainingMonths.push(td.txMonth);
                 });
-
                 const sortedRemaining = [...new Set(remainingMonths)].sort();
                 const newPaidUntil = sortedRemaining.length > 0
                     ? sortedRemaining[sortedRemaining.length - 1]
                     : '';
                 const deletedMonths = txToDelete.packageMonths ||
                     (txToDelete.txMonth ? [txToDelete.txMonth] : []);
-
                 await FinanceService.updateProfileAfterTxDelete(studentName, newPaidUntil, deletedMonths);
             }
+        }
+
+        // Refresh exam nếu có exam component
+        if (impact && impact.requiresExamRefresh) {
+            if (typeof window.renderExamList === 'function') window.renderExamList();
+        }
+
+        // Refresh dashboard và lists
+        if (typeof window.invalidateDashboard === 'function') {
+            window.invalidateDashboard('delete-transaction-reconcile');
+        }
+        if (typeof window.invalidateList === 'function') {
+            window.invalidateList('tx.txList',         'delete-transaction-reconcile');
+            window.invalidateList('students.debtList', 'delete-transaction-reconcile');
         }
 
         window.showToast('✅ Đã xóa!');

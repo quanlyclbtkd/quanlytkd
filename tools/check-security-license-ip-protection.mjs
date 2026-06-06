@@ -115,16 +115,20 @@ check('Không có file chứa client_secret trong package',
   clientSecretFiles.filter(f => !f.includes('node_modules') && !f.includes('.git') && !f.includes('check-security')).length === 0
 );
 
-// [20] Cache bust Phase 4K-6D
+// [20] Cache bust Phase 4K-6D or later
 check(
-  "index.html có cache bust 'security-license-ip-protection-readiness-20260605'",
-  indexHtml.includes('security-license-ip-protection-readiness-20260605')
+  "index.html có cache bust 'security-license-ip-protection-readiness-20260605' hoặc phase mới hơn",
+  indexHtml.includes('security-license-ip-protection-readiness-20260605') ||
+  indexHtml.includes('scale-readiness-write-safety-20260605') ||
+  indexHtml.includes('4K-6E-B-exam-export-belt-sort-20260605')
 );
 
-// [21] APP_BUILD_VERSION Phase 4K-6D
+// [21] APP_BUILD_VERSION Phase 4K-6D or later
 check(
-  "APP_BUILD_VERSION = '4K-6D-security-license-ip-protection-readiness-20260605'",
-  mainJs.includes("APP_BUILD_VERSION = '4K-6D-security-license-ip-protection-readiness-20260605'")
+  "APP_BUILD_VERSION = '4K-6D-...' hoặc phase mới hơn",
+  mainJs.includes("APP_BUILD_VERSION = '4K-6D-security-license-ip-protection-readiness-20260605'") ||
+  mainJs.includes("APP_BUILD_VERSION = '4K-6E-scale-readiness-write-safety-20260605'") ||
+  mainJs.includes("APP_BUILD_VERSION = '4K-6E-B-exam-export-belt-sort-20260605'")
 );
 
 // [22] Không có hard block license — kiểm tra không có shouldHardBlockNow: true trong code (chỉ false)
