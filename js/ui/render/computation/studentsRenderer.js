@@ -226,6 +226,7 @@ export function computeAndCacheStudents(allProfiles, params) {
         _cache.dataVersion === dataVersion
     ) {
         _metrics.cacheHits++;
+        window.PerformanceMonitor?.record('render:students.cacheHit', 0, { tab: curTabId });
         return;
     }
 
@@ -596,6 +597,14 @@ export function computeAndCacheStudents(allProfiles, params) {
     if (ms > 16) {
         console.warn(`[studentsRenderer] 🐢 Slow computation: ${ms.toFixed(1)}ms (${Object.keys(allProfiles).length} profiles)`);
     }
+    // Phase 4K-6A: record render performance
+    window.PerformanceMonitor?.record('render:students.compute', ms, {
+        tab:        curTabId,
+        activeTotal: _activeTotalCount,
+        debtTotal:   _debtTotalCount,
+        quitTotal:   _quitTotalCount,
+        cacheHit:    false
+    });
 
     // ── [Phase 3.7C+D] Large list safety — track row counts per list ─────────
     // Virtualization boundary: mỗi list section (activeList, debtList, quitList)

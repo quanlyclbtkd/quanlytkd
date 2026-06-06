@@ -58,6 +58,8 @@ function _safeDestroyChart(chart) {
 // chartData: { labels, income, expense, active }
 // ════════════════════════════════════════════════════════════════
 export function renderDashboardCharts(chartData) {
+    const _perfTokenCharts = window.PerformanceMonitor?.markStart('dashboard:charts');
+    try {
     const { labels, income, expense, active } = chartData;
     const Chart = window.Chart;
     if (!Chart) return;
@@ -164,6 +166,9 @@ export function renderDashboardCharts(chartData) {
             mc.update('none');
         }
     }
+    } finally {
+        window.PerformanceMonitor?.markEnd('dashboard:charts', _perfTokenCharts);
+    }
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -171,6 +176,8 @@ export function renderDashboardCharts(chartData) {
 // bStats: { CS1: { income, active, debt, tuitionMap, examFeeMap }, ... }
 // ════════════════════════════════════════════════════════════════
 export function renderBranchStats(bStats) {
+    const _perfTokenBranch = window.PerformanceMonitor?.markStart('dashboard:branchStats');
+    try {
     const cfg    = _config();
     const bCount = cfg.branchCount || 1;
     const bsSec  = document.getElementById('branchStatsSection');
@@ -217,12 +224,17 @@ export function renderBranchStats(bStats) {
         </div>`;
     }
     bsGrid.innerHTML = html;
+    } finally {
+        window.PerformanceMonitor?.markEnd('dashboard:branchStats', _perfTokenBranch);
+    }
 }
 
 // ════════════════════════════════════════════════════════════════
 // renderExamBranchFees — lệ phí thi theo cơ sở (tab Exam)
 // ════════════════════════════════════════════════════════════════
 export function renderExamBranchFees(bExamStats, incExam) {
+    const _perfTokenExam = window.PerformanceMonitor?.markStart('dashboard:examBranchFees');
+    try {
     const cfg    = _config();
     const bCount = cfg.branchCount || 1;
     const el     = document.getElementById('exam_branch_fees');
@@ -242,6 +254,9 @@ export function renderExamBranchFees(bExamStats, incExam) {
     html += '</div></div>';
     el.innerHTML = html;
     el.classList.remove('hidden');
+    } finally {
+        window.PerformanceMonitor?.markEnd('dashboard:examBranchFees', _perfTokenExam);
+    }
 }
 
 // ════════════════════════════════════════════════════════════════

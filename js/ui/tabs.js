@@ -126,6 +126,13 @@ export function switchTab(tabId) {
     else if (tabId === 'debt') window._debtPage   = 1;
     else if (tabId === 'quit') window._quitPage   = 1;
 
+    // ── 2B. Phase 4K-6A-B: ensure student tab cache is built before render ──
+    if (['active', 'debt', 'quit'].includes(tabId)) {
+        if (typeof window.ensureStudentTabRendered === 'function') {
+            window.ensureStudentTabRendered(tabId, 'tab-switch-' + tabId);
+        }
+    }
+
     // ── 3. Khôi phục HTML từ store cache qua render islands (Phase 3.4) ──
     // Replaces el.innerHTML = cache[listId] — islands use replaceChildren()
     // via DocumentFragment for atomic, low-reflow DOM updates.

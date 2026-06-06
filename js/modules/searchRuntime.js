@@ -466,9 +466,21 @@ async function _runSearchLatestOnly(raw, reason) {
     _state.lastRunAt = Date.now();
     _state.runCount++;
 
+    // Phase 4K-6A: đo hiệu năng search
+    const _perfToken = window.PerformanceMonitor?.markStart('search:' + tab, {
+        termLength: term.length,
+        reason: reason
+    });
+
     try {
-        await _dispatchSearchV2(term, tab, token);
+        const _searchResult = await _dispatchSearchV2(term, tab, token);
+        window.PerformanceMonitor?.markEnd('search:' + tab, _perfToken, {
+            source:      _searchResult && _searchResult.source,
+            resultCount: _searchResult && Array.isArray(_searchResult.items)
+                ? _searchResult.items.length : undefined
+        });
     } catch (err) {
+        window.PerformanceMonitor?.markEnd('search:' + tab, _perfToken, { error: true });
         if (_state.errors.length > 20) _state.errors.shift();
         _state.errors.push({
             message: err && err.message || String(err),
@@ -658,7 +670,8 @@ window.debugUnifiedSearchV2 = function() {
         pgSearchQuery:       pg.searchQuery || '',
         pgSearchSource:      pg.searchSource || '',
         pgItems:             Array.isArray(pg.currentItems) ? pg.currentItems.length : 0,
-        profileCount:        Object.keys(st.profiles || {}).length
+        profileCount:        Object.keys(st.profiles || {}).length,
+        performance:         (window.__perfStats && window.__perfStats.searches) || {}
     };
     console.table(result);
     return result;

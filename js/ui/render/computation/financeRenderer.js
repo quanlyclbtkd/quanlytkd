@@ -325,6 +325,7 @@ export function computeAndCacheFinance(transactions, params) {
         _cache.dataVersion === dataVersion
     ) {
         _metrics.cacheHits++;
+        window.PerformanceMonitor?.record('render:finance.cacheHit', 0, { tab: curTabId });
         return;
     }
 
@@ -613,6 +614,13 @@ export function computeAndCacheFinance(transactions, params) {
     if (ms > 16) {
         console.warn(`[financeRenderer] 🐢 Slow computation: ${ms.toFixed(1)}ms (${transactions.length} transactions)`);
     }
+    // Phase 4K-6A: record render performance
+    window.PerformanceMonitor?.record('render:finance.compute', ms, {
+        tab:           curTabId,
+        txCount:       txCount,
+        selectedMonth: _selectedMonth,
+        cacheHit:      false
+    });
 
     // ── [Phase 3.8A] Large list safety — track tx.txList row count ────────────
     // Virtualization-ready boundary: tx.txList là isolated render boundary.

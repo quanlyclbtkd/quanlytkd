@@ -119,20 +119,23 @@ export function cleanupExamListeners(reason = 'tab-leave') {
  * @param {string} reason
  */
 function _triggerExamRender(reason) {
+    // Phase 4K-6A-B: call renderExamList directly — invalidateByDomain('exam') not supported
     try {
-        if (typeof window.invalidateByDomain === 'function') {
-            window.invalidateByDomain('exam', reason);
-        } else {
+        requestAnimationFrame(function() {
             if (typeof window.renderExamList === 'function') {
                 window.renderExamList();
             }
-        }
-        if (typeof window.updateNextBeltPreview === 'function') {
-            window.updateNextBeltPreview();
-        }
+
+            if (typeof window.updateNextBeltPreview === 'function') {
+                window.updateNextBeltPreview();
+            }
+
+            if (window.__store) {
+                window.__store._lastExamRenderReason = reason || '';
+                window.__store._lastExamRenderAt = Date.now();
+            }
+        });
     } catch (e) {
-        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            console.warn('[exam.listeners] render fallback error:', e);
-        }
+        console.warn('[exam.listeners] direct render failed:', e);
     }
 }

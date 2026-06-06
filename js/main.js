@@ -73,6 +73,9 @@ import {
     legacyAddListener,
 } from './utils/listeners.js';
 import { guardOnce, resetAllGuards, getBindingCount } from './utils/event-guard.js';
+// Phase 4K-6A: Performance Monitor + Action Guard
+import { PerformanceMonitor } from './core/performanceMonitor.js';
+import { ActionGuard }        from './core/actionGuard.js';
 
 // ── Phase 3.3E: Firestore safety (expose globally for services) ──
 import { safeGetDocs, printQueryAuditReport }  from './utils/firestore-guard.js';
@@ -2801,7 +2804,7 @@ window.debugProfileModalClose = function() {
 // ════════════════════════════════════════════════════════════════
 
 // PHẦN 1 — APP BUILD VERSION
-window.APP_BUILD_VERSION = '4K-5Q-mobile-superadmin-searchv2-active-loadmore-20260605';
+window.APP_BUILD_VERSION = '4K-6A-B-tab-render-recovery-exam-direct-render-20260605';
 
 window.debugAppVersion = function() {
   const scripts = Array.from(document.scripts || []).map(s => s.src || '').filter(Boolean);
@@ -3047,43 +3050,15 @@ window.debugRenderHealth = function() {
   return result;
 };
 
-// PHẦN 7 — RUN GUARDED ACTION HELPER
-window.__actionLocks = window.__actionLocks || {};
+// PHẦN 7 — ACTION GUARD + PERFORMANCE MONITOR (Phase 4K-6A)
+// Nâng cấp từ runGuardedAction — chống double click, ghi history, đo performance
+window.__perfStats     = window.__perfStats     || { renders: {}, actions: {}, searches: {}, firestore: {}, dashboard: {}, warnings: [] };
+window.__actionLocks   = window.__actionLocks   || {};
+window.__actionHistory = window.__actionHistory || [];
 
-window.runGuardedAction = async function(actionName, fn, options) {
-  options = options || {};
-  var name = String(actionName || 'unknown-action');
-  if (window.__actionLocks[name]) {
-    console.warn('[runGuardedAction] locked:', name);
-    return { ok: false, locked: true, actionName: name };
-  }
-  window.__actionLocks[name] = true;
-  try {
-    if (options.startToast && window.showToast) {
-      window.showToast(options.startToast);
-    }
-    var value = await Promise.resolve(fn());
-    if (options.successToast && window.showToast) {
-      window.showToast(options.successToast);
-    }
-    return { ok: true, actionName: name, value: value };
-  } catch (err) {
-    console.error('[runGuardedAction] failed:', name, err);
-    window.recordRuntimeError &&
-      window.recordRuntimeError('action:' + name, err, options);
-    if (options.errorAlert !== false) {
-      alert(options.errorMessage || 'Thao tác không thành công. Vui lòng kiểm tra mạng/quyền hoặc Console.');
-    }
-    return {
-      ok: false,
-      actionName: name,
-      message: err && err.message || String(err),
-      stack: err && err.stack || ''
-    };
-  } finally {
-    window.__actionLocks[name] = false;
-  }
-};
+window.PerformanceMonitor = window.PerformanceMonitor || PerformanceMonitor;
+window.ActionGuard        = window.ActionGuard        || ActionGuard;
+window.runGuardedAction   = ActionGuard.run.bind(ActionGuard);
 
 // ════════════════════════════════════════════════════════════════
 // Phase 4K-5Q — debugActiveLoadMoreSingleSource
@@ -3101,7 +3076,184 @@ window.debugActiveLoadMoreSingleSource = function() {
     return result;
 };
 
+
 // ════════════════════════════════════════════════════════════════
+// Phase 4K-6A — Debug Performance Health
+// ════════════════════════════════════════════════════════════════
+window.debugPerformanceHealth = function() {
+    try {
+        const perfStats   = window.__perfStats || {};
+        const domCounts   = {
+            activeRows:    document.querySelectorAll('#activeList tr[data-name]').length,
+            debtRows:      document.querySelectorAll('#debtList tr[data-name]').length,
+            txRows:        document.querySelectorAll('#txList tr[data-id], #txBody tr').length,
+            inventoryRows: document.querySelectorAll('#inventoryList tr[data-id], #inventoryBody tr').length,
+            examRows:      document.querySelectorAll('#examList tr[data-name]').length,
+            quitRows:      document.querySelectorAll('#quitList tr[data-name]').length
+        };
+        const domWarnings = [];
+        if (domCounts.activeRows    > 500) domWarnings.push('activeRows > 500: ' + domCounts.activeRows);
+        if (domCounts.debtRows      > 500) domWarnings.push('debtRows > 500: '   + domCounts.debtRows);
+        if (domCounts.txRows        > 500) domWarnings.push('txRows > 500: '     + domCounts.txRows);
+        if (domCounts.inventoryRows > 500) domWarnings.push('inventoryRows > 500: ' + domCounts.inventoryRows);
+        if (domCounts.examRows      > 500) domWarnings.push('examRows > 500: '   + domCounts.examRows);
+
+        const result = {
+            perfStats:         perfStats,
+            renderStats:       perfStats.renders   || {},
+            actionStats:       perfStats.actions   || {},
+            searchStats:       perfStats.searches  || {},
+            firestoreStats:    perfStats.firestore  || {},
+            dashboardStats:    perfStats.dashboard  || {},
+            warnings:          (perfStats.warnings  || []).slice(-20),
+            domCounts:         domCounts,
+            domWarnings:       domWarnings,
+            largeListMetrics:  window.__largeListMetrics || null,
+            renderSchedulerStats: typeof window.getRenderStats === 'function' ? window.getRenderStats() : null
+        };
+        console.table(domCounts);
+        return result;
+    } catch (e) {
+        return { error: String(e) };
+    }
+};
+
+// ════════════════════════════════════════════════════════════════
+// Phase 4K-6A — Debug Action Guard State
+// ════════════════════════════════════════════════════════════════
+window.debugActionGuardState = function() {
+    try {
+        const history  = window.__actionHistory || [];
+        const locks    = Object.assign({}, window.__actionLocks || {});
+        const failed   = history.filter(function(h) { return !h.ok && !h.locked; });
+        const slow     = history.filter(function(h) { return h.ok && h.durationMs > 1000; });
+        const recent   = history.slice(-10);
+        const result   = {
+            locks:          locks,
+            actionHistory:  history,
+            failedActions:  failed,
+            slowActions:    slow,
+            recentActions:  recent,
+            guardState:     window.ActionGuard ? window.ActionGuard.getState() : null
+        };
+        console.table(recent);
+        return result;
+    } catch (e) {
+        return { error: String(e) };
+    }
+};
+
+// ════════════════════════════════════════════════════════════════
+// Phase 4K-6A — Debug Dashboard Cache Health
+// ════════════════════════════════════════════════════════════════
+window.debugDashboardCacheHealth = function() {
+    try {
+        const st   = window.__store || {};
+        const warn = [];
+        const hasLastBStats  = !!(st._lastBStats && Object.keys(st._lastBStats || {}).length > 0);
+        const hasLastBExamStats = !!(st._lastBExamStats);
+        const hasDashboardBranchRevenueDebug = typeof window.debugDashboardBranchRevenue === 'function';
+        const hasDashboardChartsDebug        = typeof window.debugDashboardCharts        === 'function';
+        const branchStatsCount = hasLastBStats ? Object.keys(st._lastBStats).length : 0;
+
+        let chartHealth = {};
+        if (hasDashboardChartsDebug) {
+            try { chartHealth = window.debugDashboardCharts() || {}; } catch (e) {}
+        }
+
+        if (!hasLastBStats)  warn.push('_lastBStats missing');
+        if (!hasDashboardBranchRevenueDebug) warn.push('debugDashboardBranchRevenue not found');
+        if (!hasDashboardChartsDebug)        warn.push('debugDashboardCharts not found');
+
+        const result = {
+            hasLastBStats, hasLastBExamStats, hasDashboardBranchRevenueDebug,
+            hasDashboardChartsDebug, chartHealth, branchStatsCount, warnings: warn
+        };
+        console.table({
+            hasLastBStats, hasLastBExamStats,
+            hasDashboardBranchRevenueDebug, hasDashboardChartsDebug, branchStatsCount
+        });
+        return result;
+    } catch (e) {
+        return { error: String(e) };
+    }
+};
+
+// ════════════════════════════════════════════════════════════════
+// Phase 4K-6A — Debug Large List Health
+// ════════════════════════════════════════════════════════════════
+window.debugLargeListHealth = function() {
+    try {
+        const activeRows    = document.querySelectorAll('#activeList tr[data-name]').length;
+        const debtRows      = document.querySelectorAll('#debtList tr[data-name]').length;
+        const txRows        = document.querySelectorAll('#txList tr[data-id], #txBody tr').length;
+        const inventoryRows = document.querySelectorAll('#inventoryList tr[data-id], #inventoryBody tr').length;
+        const examRows      = document.querySelectorAll('#examList tr[data-name]').length;
+        const quitRows      = document.querySelectorAll('#quitList tr[data-name]').length;
+        const warn = [];
+        if (activeRows    > 500) warn.push('activeRows > 500');
+        if (debtRows      > 500) warn.push('debtRows > 500');
+        if (txRows        > 500) warn.push('txRows > 500');
+        if (inventoryRows > 500) warn.push('inventoryRows > 500');
+        if (examRows      > 500) warn.push('examRows > 500');
+        const result = {
+            activeRows, debtRows, txRows, inventoryRows, examRows, quitRows,
+            activeRenderLimit: window.__activeRenderLimit || 50,
+            debtRenderLimit:   window.__debtRenderLimit   || null,
+            largeListMetrics:  window.__largeListMetrics  || null,
+            warnings: warn
+        };
+        console.table({ activeRows, debtRows, txRows, inventoryRows, examRows, quitRows,
+            activeRenderLimit: window.__activeRenderLimit || 50 });
+        return result;
+    } catch (e) {
+        return { error: String(e) };
+    }
+};
+
+// ════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════
+// Phase 4K-6A-B — debugStudentTabRenderRecovery
+// ════════════════════════════════════════════════════════════════
+window.debugStudentTabRenderRecovery = function() {
+    var st = window.__store || {};
+    var result = {
+        currentTab:
+            typeof window.getCurrentActiveTabId === 'function'
+                ? window.getCurrentActiveTabId()
+                : '',
+        debtRows: document.querySelectorAll('#debtList tr[data-debt-id], #debtList tr[data-student-id]').length,
+        activeRows: document.querySelectorAll('#activeList tr[data-student-id]').length,
+        quitRows: document.querySelectorAll('#quitList tr[data-quit-id], #quitList tr[data-student-id]').length,
+        hasEnsureStudentTabRendered: typeof window.ensureStudentTabRendered === 'function',
+        lastDebtRemoveName: st._lastDebtRemoveName || '',
+        lastDebtRemoveReason: st._lastDebtRemoveReason || '',
+        lastDataVersionReason: st._lastDataVersionReason || '',
+        scheduleRenderCalls:
+            window.__renderLegacyMetrics
+                ? window.__renderLegacyMetrics.scheduleRenderCalls
+                : null
+    };
+    console.table(result);
+    return result;
+};
+
+window.debugExamRenderRecovery = function() {
+    var result = {
+        currentTab:
+            typeof window.getCurrentActiveTabId === 'function'
+                ? window.getCurrentActiveTabId()
+                : '',
+        examFilterBelt: document.getElementById('exam_filter_belt') ? document.getElementById('exam_filter_belt').value || '' : '',
+        examRows: document.querySelectorAll('#examList tr').length,
+        hasRenderExamList: typeof window.renderExamList === 'function',
+        lastExamRenderReason: (window.__store || {})._lastExamRenderReason || '',
+        lastExamRenderAt: (window.__store || {})._lastExamRenderAt || null
+    };
+    console.table(result);
+    return result;
+};
+
 // Phase 4K-4B — debugRuntimeSmokeTest
 // Kiểm tra nhanh sau khi upload GitHub/domain.
 // Dùng: debugRuntimeSmokeTest() từ Console.
@@ -3303,6 +3455,24 @@ window.debugRuntimeSmokeTest = async function(term) {
     // Phase 4K-5R: Exam Auto Select Paid Canonical
     out.examAutoSelectPaid = await safeCall('debugExamAutoSelectPaid', window.debugExamAutoSelectPaid, ['']);
     summary.examAutoSelectPaidOk = !!out.examAutoSelectPaid.ok;
+
+    // Phase 4K-6A: Performance Stability & Data Write Safety
+    out.performanceHealth    = await safeCall('debugPerformanceHealth',    window.debugPerformanceHealth);
+    out.actionGuardState     = await safeCall('debugActionGuardState',     window.debugActionGuardState);
+    out.dashboardCacheHealth = await safeCall('debugDashboardCacheHealth', window.debugDashboardCacheHealth);
+    out.largeListHealth      = await safeCall('debugLargeListHealth',      window.debugLargeListHealth);
+
+    summary.performanceHealthOk    = !!out.performanceHealth.ok;
+    summary.actionGuardOk          = !!out.actionGuardState.ok;
+    summary.dashboardCacheHealthOk = !!out.dashboardCacheHealth.ok;
+    summary.largeListHealthOk      = !!out.largeListHealth.ok;
+
+    // Phase 4K-6A-B: Tab Render Recovery + Exam Direct Render
+    out.studentTabRenderRecovery = await safeCall('debugStudentTabRenderRecovery', window.debugStudentTabRenderRecovery);
+    out.examRenderRecovery       = await safeCall('debugExamRenderRecovery',       window.debugExamRenderRecovery);
+
+    summary.studentTabRenderRecoveryOk = !!out.studentTabRenderRecovery.ok;
+    summary.examRenderRecoveryOk       = !!out.examRenderRecovery.ok;
 
     console.table(summary);
     console.log('[debugRuntimeSmokeTest:detail]', out);

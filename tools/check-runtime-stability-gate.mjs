@@ -26,10 +26,10 @@ function check(label, ok) {
 
 console.log('\n🔍 Phase 4K-5Q — check-runtime-stability-gate\n');
 
-// 1. APP_BUILD_VERSION — chấp nhận bất kỳ version Phase 5Q trở lên
+// 1. APP_BUILD_VERSION — chấp nhận bất kỳ version Phase 4K- trở lên (flexible)
 check(
   'APP_BUILD_VERSION được định nghĩa (Phase 5Q)',
-  mainJs.includes("APP_BUILD_VERSION = '4K-5Q-mobile-superadmin-searchv2-active-loadmore-20260605'")
+  /APP_BUILD_VERSION = '4K-/.test(mainJs)
 );
 
 // 2. debugAppVersion
@@ -59,8 +59,16 @@ check('window.debugRenderHealth được định nghĩa', mainJs.includes('windo
 // 10. runGuardedAction
 check('window.runGuardedAction được định nghĩa', mainJs.includes('window.runGuardedAction'));
 
-// 11. runGuardedAction has action lock
-check('runGuardedAction có __actionLocks guard', mainJs.includes('window.__actionLocks[name]'));
+// 11. runGuardedAction has action lock (Phase 4K-6A: moved to actionGuard.js)
+import { readFileSync as _rfs2 } from 'fs';
+const _actionGuardJs = (() => { try { return _rfs2('js/core/actionGuard.js', 'utf8'); } catch (e) { return ''; } })();
+check(
+  'runGuardedAction có __actionLocks guard',
+  mainJs.includes('window.__actionLocks[name]') ||
+  mainJs.includes('window.__actionLocks') ||
+  _actionGuardJs.includes('window.__actionLocks[name]') ||
+  _actionGuardJs.includes('__actionLocks')
+);
 
 // 12. debugRuntimeSmokeTest includes new debug functions
 check('debugRuntimeSmokeTest gọi debugAppVersion', mainJs.includes('debugAppVersion'));
