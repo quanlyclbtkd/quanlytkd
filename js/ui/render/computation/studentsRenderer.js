@@ -218,7 +218,14 @@ export function computeAndCacheStudents(allProfiles, params) {
     const pgPage      = pgStudents?.currentPage || 0;
     const activeRenderLimitKey = window.__activeRenderLimit || 50;
     const debtRenderLimitKey   = window.__debtRenderLimit   || 50;
-    const paramsKey   = `${curTabId}|${selMonth}|${selBranch}|${search}|${activePage}|${debtPage}|${quitPage}|${pgStudentsActive ? '1' : '0'}|pgv:${pgVersion}|pgc:${pgCount}|pgp:${pgPage}|arl:${activeRenderLimitKey}|drl:${debtRenderLimitKey}`;
+    // Phase 4K-6E-C: Include active-new-filter and admission month in cache key
+    const activeNewFilterKey = typeof window.getActiveStudentNewFilter === 'function'
+        ? window.getActiveStudentNewFilter()
+        : (window.__activeStudentNewFilter || 'all');
+    const admissionMonthKey = typeof window.getCurrentAdmissionMonth === 'function'
+        ? window.getCurrentAdmissionMonth()
+        : new Date().toISOString().slice(0, 7);
+    const paramsKey   = `${curTabId}|${selMonth}|${selBranch}|${search}|${activePage}|${debtPage}|${quitPage}|${pgStudentsActive ? '1' : '0'}|pgv:${pgVersion}|pgc:${pgCount}|pgp:${pgPage}|arl:${activeRenderLimitKey}|drl:${debtRenderLimitKey}|anf:${activeNewFilterKey}|adm:${admissionMonthKey}`;
     const dataVersion = (window.__store || {})._dataVersion || 0;
     if (
         _cache.summary !== null &&
@@ -271,18 +278,24 @@ export function computeAndCacheStudents(allProfiles, params) {
     });
 
     // ── PASS 1: Full iteration for stats + debt calc + non-paginated display ──
-    // Phase 4K-4G: Sort newest-first by join timestamp for ĐANG TẬP tab
-    const _profileEntries = Object.entries(allProfiles || {});
-    _profileEntries.sort(([nameA, profA], [nameB, profB]) => {
-        const ta = typeof window.getStudentJoinTimestamp === 'function'
-            ? window.getStudentJoinTimestamp(nameA, profA)
-            : 0;
-        const tb = typeof window.getStudentJoinTimestamp === 'function'
-            ? window.getStudentJoinTimestamp(nameB, profB)
-            : 0;
-        if (tb !== ta) return tb - ta;
-        return String(nameA).localeCompare(String(nameB), 'vi');
-    });
+    // Phase 4K-6E-C: Sort current-month-new first, then newest-first by join timestamp
+    const _profileEntriesRaw = Object.entries(allProfiles || {});
+    const _profileEntries = typeof window.sortActiveStudentEntries === 'function'
+        ? window.sortActiveStudentEntries(_profileEntriesRaw, {
+            currentMonth: typeof window.getCurrentAdmissionMonth === 'function'
+                ? window.getCurrentAdmissionMonth()
+                : ''
+        })
+        : _profileEntriesRaw.sort(([nameA, profA], [nameB, profB]) => {
+            const ta = typeof window.getStudentJoinTimestamp === 'function'
+                ? window.getStudentJoinTimestamp(nameA, profA)
+                : 0;
+            const tb = typeof window.getStudentJoinTimestamp === 'function'
+                ? window.getStudentJoinTimestamp(nameB, profB)
+                : 0;
+            if (tb !== ta) return tb - ta;
+            return String(nameA).localeCompare(String(nameB), 'vi');
+        });
     _profileEntries.forEach(([name, p]) => {
         if (!p) return;
 
@@ -308,7 +321,11 @@ export function computeAndCacheStudents(allProfiles, params) {
             const paidBadge = p.paidUntil
                 ? `<span class="badge bg-emerald-50 text-emerald-700 border border-emerald-200 text-[0.7rem]">${formatMonth(p.paidUntil)}</span>`
                 : `<span class="badge bg-rose-50 text-rose-600 border border-rose-200 text-[0.7rem]">Chưa thu</span>`;
-            const newBadge  = (p.createdAt && p.createdAt >= selMonth + '-01')
+            // Phase 4K-6E-C: Badge MỚI dùng tháng thực tế hiện tại, không theo filterMonth
+            const isCurrentNew = typeof window.isCurrentMonthNewStudent === 'function'
+                ? window.isCurrentMonthNewStudent(name, p)
+                : (p.createdAt && String(p.createdAt).slice(0, 7) === new Date().toISOString().slice(0, 7));
+            const newBadge = isCurrentNew
                 ? `<span class="badge bg-blue-100 text-blue-600 text-[0.6rem] ml-1">MỚI</span>`
                 : '';
             const nickBadge = p.nickname
@@ -330,6 +347,15 @@ export function computeAndCacheStudents(allProfiles, params) {
                 if (q && !blob.includes(q)) passFilter = false;
             }
 
+            // Phase 4K-6E-C: Apply active new student filter
+            if (
+                passFilter &&
+                typeof window.shouldShowActiveStudentByNewFilter === 'function' &&
+                !window.shouldShowActiveStudentByNewFilter(name, p)
+            ) {
+                passFilter = false;
+            }
+
             if (passFilter) {
                 _activeTotalCount++;
                 if ((!pgStudentsActive || useFullProfileActiveRender) && buildActive && _activeRendered < _activeLimit) {
@@ -340,7 +366,8 @@ export function computeAndCacheStudents(allProfiles, params) {
                 }
             }
 
-            if (p.createdAt && p.createdAt.substring(0, 7) === selMonth) m_new++;
+            // Phase 4K-6E-C: m_new dựa trên tháng thực tế, không theo filterMonth
+            if (isCurrentNew) m_new++;
 
             // ── Debt check (Phase 3: Cloud Function flags → client fallback) ──
             let isDebt = false, unpaidMonthsCount = 0, owedMonths = [];
@@ -457,7 +484,11 @@ export function computeAndCacheStudents(allProfiles, params) {
                     const paidBadge = p.paidUntil
                         ? `<span class="badge bg-emerald-50 text-emerald-700 border border-emerald-200 text-[0.7rem]">${formatMonth(p.paidUntil)}</span>`
                         : `<span class="badge bg-rose-50 text-rose-600 border border-rose-200 text-[0.7rem]">Chưa thu</span>`;
-                    const newBadge  = (p.createdAt && p.createdAt >= selMonth + '-01')
+                    // Phase 4K-6E-C: Badge MỚI dùng tháng thực tế, không theo filterMonth (PASS 2)
+                    const _p2IsCurrentNew = typeof window.isCurrentMonthNewStudent === 'function'
+                        ? window.isCurrentMonthNewStudent(name, p)
+                        : (p.createdAt && String(p.createdAt).slice(0, 7) === new Date().toISOString().slice(0, 7));
+                    const newBadge = _p2IsCurrentNew
                         ? `<span class="badge bg-blue-100 text-blue-600 text-[0.6rem] ml-1">MỚI</span>`
                         : '';
                     const nickBadge = p.nickname

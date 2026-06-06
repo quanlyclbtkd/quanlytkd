@@ -227,7 +227,8 @@ check(
     'index.html có cache bust Phase 4K-6E',
     !!idxHtml && (
         idxHtml.includes('scale-readiness-write-safety-20260605') ||
-        idxHtml.includes('4K-6E-B-exam-export-belt-sort-20260605')
+        idxHtml.includes('4K-6E-B-exam-export-belt-sort-20260605') ||
+        idxHtml.includes('4K-6E-C-active-new-students-filter-20260605')
     ),
     'Cập nhật cache bust trong index.html: ?v=scale-readiness-write-safety-20260605'
 );

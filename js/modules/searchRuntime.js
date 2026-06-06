@@ -598,6 +598,11 @@ async function _searchStudentsV2(term, tab, token) {
                 if (typeof window.filterStudentItemsForMode === 'function') {
                     const modeItems = window.filterStudentItemsForMode([Object.assign({ id: name }, p)], tab);
                     if (!modeItems.length) return false;
+                } else if (tab === 'active') {
+                    // Phase 4K-6E-C: Fallback active-new filter when filterStudentItemsForMode unavailable
+                    if (typeof window.shouldShowActiveStudentByNewFilter === 'function') {
+                        if (!window.shouldShowActiveStudentByNewFilter(name, p)) return false;
+                    }
                 }
                 const blob = typeof window.getProfileSearchBlob === 'function'
                     ? window.getProfileSearchBlob(name, p)

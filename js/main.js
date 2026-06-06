@@ -1318,6 +1318,12 @@ function _waitForExistingLegacyApp(ms) {
                 if (typeof window.ensureDebtOverdueFilterUI === 'function') window.ensureDebtOverdueFilterUI();
                 if (typeof window.bindDebtOverdueFilter === 'function') window.bindDebtOverdueFilter();
             }
+            // Phase 4K-6E-C: bind active new student filter UI when entering ĐANG TẬP tab
+            if (tabId === 'active') {
+                if (typeof window.bindActiveNewStudentFilterUI === 'function') {
+                    window.bindActiveNewStudentFilterUI('tab-switch-active');
+                }
+            }
             // Phase 4K-5F: Ensure debt profiles fully loaded when entering BÁO NỢ tab
             if (tabId === 'debt' && typeof window.ensureDebtProfilesReady === 'function') {
                 // Phase 4K-5H: await full debt profile load, then re-invalidate list
@@ -2808,7 +2814,7 @@ window.debugProfileModalClose = function() {
 // ════════════════════════════════════════════════════════════════
 
 // PHẦN 1 — APP BUILD VERSION
-window.APP_BUILD_VERSION = '4K-6E-B-exam-export-belt-sort-20260605';
+window.APP_BUILD_VERSION = '4K-6E-C-active-new-students-filter-20260605';
 window.APP_COPYRIGHT_OWNER   = 'Tình Trương';
 window.APP_PRODUCT_NAME      = 'Taekwondo Club Management Web App';
 window.APP_SECURITY_PHASE    = '4K-6E-scale-readiness-write-safety';
@@ -3795,6 +3801,7 @@ window.debugRuntimeSmokeTest = async function(term) {
     out.examExportReadiness    = await safeCall('debugExamExportReadiness',    window.debugExamExportReadiness);
     // Phase 4K-5K
     out.activeLoadMoreAndSort  = await safeCall('debugActiveLoadMoreAndSort',  window.debugActiveLoadMoreAndSort);
+    out.activeNewStudents      = await safeCall('debugActiveNewStudents',      window.debugActiveNewStudents, [20]);
     out.debtLoadMoreAndFilter  = await safeCall('debugDebtLoadMoreAndFilter',  window.debugDebtLoadMoreAndFilter);
     out.debtCoverage           = await safeCall('debugDebtCoverage',           window.debugDebtCoverage);
     out.activeQuitLeak         = await safeCall('debugActiveQuitLeak',         window.debugActiveQuitLeak);

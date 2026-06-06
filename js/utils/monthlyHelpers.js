@@ -367,6 +367,86 @@ export function debugActiveStudentSort(limit = 20) {
     return rows;
 }
 
+// ── 10. getCurrentAdmissionMonth ─────────────────────────────────────────────
+
+/**
+ * Lấy tháng hiện tại dạng YYYY-MM dùng để xác định võ sinh mới tháng này.
+ * Không phụ thuộc filterMonth — luôn dùng ngày thực tế.
+ * @returns {string} YYYY-MM
+ */
+export function getCurrentAdmissionMonth() {
+    if (typeof window !== 'undefined' && typeof window.getLocalToday === 'function') {
+        return window.getLocalToday().slice(0, 7);
+    }
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    return `${y}-${m}`;
+}
+
+// ── 11. getStudentJoinMonth ───────────────────────────────────────────────────
+
+/**
+ * Lấy tháng nhập học của võ sinh dạng YYYY-MM từ join timestamp.
+ * @param {string} name    - Tên võ sinh
+ * @param {Object} profile - Profile data
+ * @returns {string}       - YYYY-MM hoặc '' nếu không có
+ */
+export function getStudentJoinMonth(name, profile) {
+    const ts = getStudentJoinTimestamp(name, profile);
+    if (!ts) return '';
+    const d = new Date(ts);
+    if (Number.isNaN(d.getTime())) return '';
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    return `${y}-${m}`;
+}
+
+// ── 12. isCurrentMonthNewStudent ──────────────────────────────────────────────
+
+/**
+ * Kiểm tra võ sinh có phải mới nhập học trong tháng hiện tại (không phải filterMonth).
+ * @param {string} name    - Tên võ sinh
+ * @param {Object} profile - Profile data
+ * @param {string} [month] - Tháng so sánh YYYY-MM (mặc định getCurrentAdmissionMonth())
+ * @returns {boolean}
+ */
+export function isCurrentMonthNewStudent(name, profile, month) {
+    const currentMonth = String(month || getCurrentAdmissionMonth()).slice(0, 7);
+    if (!currentMonth) return false;
+    const joinMonth = getStudentJoinMonth(name, profile);
+    return !!joinMonth && joinMonth === currentMonth;
+}
+
+// ── 13. sortActiveStudentEntries ──────────────────────────────────────────────
+
+/**
+ * Sort danh sách võ sinh đang tập:
+ *   1. Võ sinh mới tháng hiện tại lên đầu
+ *   2. Sort theo timestamp gia nhập (mới nhất trước)
+ *   3. Tie-break: tên theo locale vi
+ * @param {Array<[string, Object]>} entries - Object.entries(profiles) style
+ * @param {Object} [options]
+ * @param {string} [options.currentMonth]  - Tháng hiện tại YYYY-MM
+ * @returns {Array<[string, Object]>}
+ */
+export function sortActiveStudentEntries(entries, options = {}) {
+    const currentMonth = String(options.currentMonth || getCurrentAdmissionMonth()).slice(0, 7);
+    return (entries || []).slice().sort(([nameA, profileA], [nameB, profileB]) => {
+        const aNew = isCurrentMonthNewStudent(nameA, profileA, currentMonth);
+        const bNew = isCurrentMonthNewStudent(nameB, profileB, currentMonth);
+        if (aNew !== bNew) return aNew ? -1 : 1;
+        const ta = getStudentJoinTimestamp(nameA, profileA);
+        const tb = getStudentJoinTimestamp(nameB, profileB);
+        if (tb !== ta) return tb - ta;
+        const branchA = String((profileA || {}).branch || '');
+        const branchB = String((profileB || {}).branch || '');
+        const branchCmp = branchA.localeCompare(branchB, 'vi');
+        if (branchCmp !== 0) return branchCmp;
+        return String(nameA).localeCompare(String(nameB), 'vi');
+    });
+}
+
 // ── Init: Đăng ký tất cả helpers lên window ─────────────────────────────────
 
 /**
@@ -385,6 +465,11 @@ export function initMonthlyHelpers() {
     window.isNewStudent                       = isNewStudent;
     window.debugMonthlyRevenueAllocation      = debugMonthlyRevenueAllocation;
     window.debugActiveStudentSort             = debugActiveStudentSort;
+    // Phase 4K-6E-C: Active current-month new student helpers
+    window.getCurrentAdmissionMonth          = getCurrentAdmissionMonth;
+    window.getStudentJoinMonth               = getStudentJoinMonth;
+    window.isCurrentMonthNewStudent          = isCurrentMonthNewStudent;
+    window.sortActiveStudentEntries          = sortActiveStudentEntries;
 
     console.info('[monthlyHelpers] ✅ Phase 4K-4G monthly helpers registered');
 }

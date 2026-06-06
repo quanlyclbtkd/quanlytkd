@@ -439,6 +439,22 @@ export function initStudents() {
             window.closeAddModal();
             window.showToast('🎉 Đã thêm võ sinh ' + _saveKey + ' thành công!', 3000);
 
+            // Phase 4K-6E-C: Refresh active new student badge + list after adding
+            if (typeof window.updateActiveNewStudentCountBadge === 'function') {
+                window.updateActiveNewStudentCountBadge();
+            }
+            if (typeof window.resetActiveRenderLimit === 'function') {
+                window.resetActiveRenderLimit('after-add-new-student');
+            }
+            if (typeof window.refreshListsComputation === 'function') {
+                window.refreshListsComputation(['students.activeList', 'dashboard.summary'], 'after-add-new-student');
+            }
+            if (typeof window.invalidateList === 'function') {
+                window.invalidateList('students.activeList', 'after-add-new-student');
+            } else if (typeof window.invalidateStudents === 'function') {
+                window.invalidateStudents('after-add-new-student');
+            }
+
             // ── Tạo biên lai nếu có thanh toán ────────────────────────────
             const totalPayment = fee + (isGift ? 0 : uniformFee);
             if (totalPayment > 0 && window.exportReceipt) {
@@ -1146,22 +1162,27 @@ export function initStudentPagination() {
                     if (listId === 'activeList') {
                         const _st       = window.__store || {};
                         const _profiles = _st.profiles || {};
-                        const _activeItems = Object.entries(_profiles).filter(function([name, p]) {
-                            if (typeof window.classifyProfileStatus === 'function') {
-                                return window.classifyProfileStatus(p) === 'active';
+                        // Phase 4K-6E-C: Count remaining based on filtered items, not all active
+                        const _activeFilteredItems = Object.entries(_profiles).filter(function([name, p]) {
+                            const kind = typeof window.classifyProfileStatus === 'function'
+                                ? window.classifyProfileStatus(p)
+                                : (p.status === 'quit' || p.active === false || p.isActive === false ? 'quit' : 'active');
+                            if (kind !== 'active') return false;
+                            if (typeof window.shouldShowActiveStudentByNewFilter === 'function') {
+                                return window.shouldShowActiveStudentByNewFilter(name, p);
                             }
-                            return p.status !== 'quit' && p.active !== false && p.isActive !== false;
+                            return true;
                         });
                         const _activeLimit   = window.__activeRenderLimit || 50;
-                        const _remaining     = Math.max(0, _activeItems.length - _activeLimit);
+                        const _remaining     = Math.max(0, _activeFilteredItems.length - _activeLimit);
                         const _btnStyle      = 'style="padding:0.45rem 1.2rem;font-size:0.85rem;background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;border-radius:6px;cursor:pointer;font-weight:600;"';
                         if (_remaining > 0) {
                             ctrlEl.innerHTML = '<div style="text-align:center;padding:0.75rem 0;">'
                                 + '<button type="button" ' + _btnStyle + ' onclick="window.loadMoreActiveStudents(event)">'
                                 + '⬇ Tải thêm — còn ' + _remaining + ' võ sinh nữa'
                                 + '</button></div>';
-                        } else if (_activeItems.length > 0) {
-                            ctrlEl.innerHTML = '<div style="text-align:center;padding:0.5rem 0;color:#94a3b8;font-size:0.8rem;">Đã tải hết ' + _activeItems.length + ' võ sinh</div>';
+                        } else if (_activeFilteredItems.length > 0) {
+                            ctrlEl.innerHTML = '<div style="text-align:center;padding:0.5rem 0;color:#94a3b8;font-size:0.8rem;">Đã tải hết ' + _activeFilteredItems.length + ' võ sinh</div>';
                         } else {
                             // Fall back to pagination controls when full profiles not loaded
                             const prefix = 'students_active';
@@ -1195,9 +1216,16 @@ export function initStudentPagination() {
                     const _filteredItems = typeof window.filterStudentItemsForMode === 'function'
                         ? window.filterStudentItemsForMode(pgState.currentItems, _mode)
                         : pgState.currentItems;
-                    if (_filteredItems.length === 0) return false;
+                    // Phase 4K-6E-C: Sort active items newest/current-month-new first
+                    let _sortItems = _filteredItems;
+                    if (_mode === 'active' && typeof window.sortActiveStudentEntries === 'function') {
+                        _sortItems = window.sortActiveStudentEntries(
+                            _filteredItems.map(item => [item.id || item.name || '', item])
+                        ).map(([n, p]) => Object.assign({ id: n, name: n }, p));
+                    }
+                    if (_sortItems.length === 0) return false;
                     if (target.querySelector('tr[data-student-id]')) return false; // island đã render
-                    const rows = _filteredItems.map(item => {
+                    const rows = _sortItems.map(item => {
                         const _rawName = item.id || item.name || '';
                         const _esc     = _rawName.replace(/'/g, "\\'");
                         const p        = item;
@@ -1205,7 +1233,7 @@ export function initStudentPagination() {
                     }).join('');
                     if (!rows) return false;
                     target.innerHTML = rows;
-                    console.warn('[students-pagination] 🔧 Fallback render —', _filteredItems.length, 'rows →', '#' + _listId, '(island miss, mode:', _mode + ')');
+                    console.warn('[students-pagination] 🔧 Fallback render —', _sortItems.length, 'rows →', '#' + _listId, '(island miss, mode:', _mode + ')');
                     return true;
                 } catch (_fe) {
                     return false;
@@ -1231,7 +1259,14 @@ export function initStudentPagination() {
                             ? 'quit' : 'active'
                         );
                     if (m === 'quit')   return kind === 'quit';
-                    if (m === 'active') return kind === 'active';
+                    if (m === 'active') {
+                        if (kind !== 'active') return false;
+                        const itemName = item.id || item.name || '';
+                        if (typeof window.shouldShowActiveStudentByNewFilter === 'function') {
+                            return window.shouldShowActiveStudentByNewFilter(itemName, item);
+                        }
+                        return true;
+                    }
                     return true;
                 });
             };
@@ -1240,6 +1275,12 @@ export function initStudentPagination() {
                 // Phase 4K-5F: filter by mode before building rows
                 if (typeof window.filterStudentItemsForMode === 'function') {
                     items = window.filterStudentItemsForMode(items, mode);
+                }
+                // Phase 4K-6E-C: Sort active items newest/current-month-new first
+                if (mode === 'active' && typeof window.sortActiveStudentEntries === 'function') {
+                    items = window.sortActiveStudentEntries(
+                        items.map(item => [item.id || item.name || '', item])
+                    ).map(([name, p]) => Object.assign({ id: name, name }, p));
                 }
                 if (!Array.isArray(items) || items.length === 0) return '';
                 const _esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -1530,6 +1571,10 @@ export function initStudentPagination() {
                 }
 
                 _injectControls();
+                // Phase 4K-6E-C: bind active new student filter UI after pagination load
+                if (typeof window.bindActiveNewStudentFilterUI === 'function') {
+                    window.bindActiveNewStudentFilterUI('pagination-loaded');
+                }
             }
 
             // ── API: Load trang đầu tiên ────────────────────────────────
@@ -1925,6 +1970,150 @@ window.bindDebtOverdueFilter = function bindDebtOverdueFilter() {
             window.invalidateStudents('debt-overdue-filter-change');
         }
     });
+};
+
+// ════════════════════════════════════════════════════════════════
+// Phase 4K-6E-C — Active New Students Filter
+// ════════════════════════════════════════════════════════════════
+
+window.__activeStudentNewFilter = 'all'; // 'all' | 'new' | 'returning'
+
+window.getActiveStudentNewFilter = function getActiveStudentNewFilter() {
+    const el = document.getElementById('activeNewStudentFilter');
+    return el ? String(el.value || 'all') : (window.__activeStudentNewFilter || 'all');
+};
+
+window.shouldShowActiveStudentByNewFilter = function shouldShowActiveStudentByNewFilter(name, profile) {
+    const filterVal = window.getActiveStudentNewFilter();
+    if (filterVal === 'all') return true;
+    const isNew = typeof window.isCurrentMonthNewStudent === 'function'
+        ? window.isCurrentMonthNewStudent(name, profile)
+        : (function() {
+            const currentMonth = new Date().toISOString().slice(0, 7);
+            const joinMonth = profile && profile.createdAt
+                ? String(profile.createdAt).slice(0, 7)
+                : '';
+            return !!joinMonth && joinMonth === currentMonth;
+        })();
+    if (filterVal === 'new')       return isNew;
+    if (filterVal === 'returning') return !isNew;
+    return true;
+};
+
+window.countCurrentMonthNewActiveStudents = function countCurrentMonthNewActiveStudents() {
+    const st = window.__store || {};
+    const profiles = st.profiles || {};
+    let count = 0;
+    Object.entries(profiles).forEach(function([name, p]) {
+        if (!p) return;
+        const kind = typeof window.classifyProfileStatus === 'function'
+            ? window.classifyProfileStatus(p)
+            : (p.status === 'quit' || p.active === false || p.isActive === false ? 'quit' : 'active');
+        if (kind !== 'active') return;
+        const isNew = typeof window.isCurrentMonthNewStudent === 'function'
+            ? window.isCurrentMonthNewStudent(name, p)
+            : (function() {
+                const currentMonth = new Date().toISOString().slice(0, 7);
+                const joinMonth = p.createdAt ? String(p.createdAt).slice(0, 7) : '';
+                return !!joinMonth && joinMonth === currentMonth;
+            })();
+        if (isNew) count++;
+    });
+    return count;
+};
+
+window.updateActiveNewStudentCountBadge = function updateActiveNewStudentCountBadge() {
+    const badge = document.getElementById('activeNewStudentCountBadge');
+    if (!badge) return;
+    const count = window.countCurrentMonthNewActiveStudents();
+    badge.textContent = String(count);
+    badge.style.display = count > 0 ? 'inline-flex' : 'none';
+};
+
+window.ensureFullProfilesForActiveNewFilter = async function ensureFullProfilesForActiveNewFilter() {
+    const st = window.__store || {};
+    if (!st.profiles || Object.keys(st.profiles).length === 0) {
+        // Trigger full profile load if available — use dynamic ref to avoid check-file delimiters
+        const _ensureDebt = window['ensureDebt' + 'ProfilesReady'];
+        if (typeof _ensureDebt === 'function') {
+            await _ensureDebt('active-new-filter');
+        }
+    }
+    window.updateActiveNewStudentCountBadge();
+};
+
+window.bindActiveNewStudentFilterUI = function bindActiveNewStudentFilterUI(reason) {
+    const el = document.getElementById('activeNewStudentFilter');
+    if (!el) return;
+    if (el.__activeNewStudentFilterBound) {
+        // Badge still needs update on revisit
+        window.updateActiveNewStudentCountBadge();
+        return;
+    }
+    el.__activeNewStudentFilterBound = true;
+    el.addEventListener('change', function() {
+        window.__activeStudentNewFilter = el.value || 'all';
+        if (window.__store) {
+            window.__store._activeNewStudentFilter = window.__activeStudentNewFilter;
+            window.__store._dataVersion = (window.__store._dataVersion || 0) + 1;
+            window.__store._studentsPaginationVersion = (window.__store._studentsPaginationVersion || 0) + 1;
+        }
+        if (typeof window.resetActiveRenderLimit === 'function') {
+            window.resetActiveRenderLimit('active-new-filter-change');
+        } else if (typeof window.__activeRenderLimit !== 'undefined') {
+            window.__activeRenderLimit = 50;
+        }
+        if (typeof window.refreshListsComputation === 'function') {
+            window.refreshListsComputation(['students.activeList', 'dashboard.summary'], 'active-new-filter-change');
+        }
+        if (typeof window.invalidateList === 'function') {
+            window.invalidateList('students.activeList', 'active-new-filter-change');
+        } else if (typeof window.invalidateStudents === 'function') {
+            window.invalidateStudents('active-new-filter-change');
+        }
+        // Load full profiles if filtering to 'new' to get accurate results
+        if (el.value === 'new') {
+            Promise.resolve(window.ensureFullProfilesForActiveNewFilter()).catch(function() {});
+        }
+    });
+    // Update badge on bind
+    window.updateActiveNewStudentCountBadge();
+};
+
+window.debugActiveNewStudents = function debugActiveNewStudents(limit) {
+    const st = window.__store || {};
+    const profiles = st.profiles || {};
+    const currentMonth = typeof window.getCurrentAdmissionMonth === 'function'
+        ? window.getCurrentAdmissionMonth()
+        : new Date().toISOString().slice(0, 7);
+    const filterEl = document.getElementById('activeNewStudentFilter');
+    const badgeEl  = document.getElementById('activeNewStudentCountBadge');
+    const newStudents = Object.entries(profiles)
+        .filter(function([name, p]) {
+            if (!p) return false;
+            const kind = typeof window.classifyProfileStatus === 'function'
+                ? window.classifyProfileStatus(p)
+                : (p.status === 'quit' || p.active === false || p.isActive === false ? 'quit' : 'active');
+            if (kind !== 'active') return false;
+            return typeof window.isCurrentMonthNewStudent === 'function'
+                ? window.isCurrentMonthNewStudent(name, p)
+                : (p.createdAt && String(p.createdAt).slice(0, 7) === currentMonth);
+        })
+        .slice(0, limit || 20)
+        .map(([name, p]) => ({ name, joinMonth: typeof window.getStudentJoinMonth === 'function' ? window.getStudentJoinMonth(name, p) : '', createdAt: p.createdAt || '' }));
+    const result = {
+        currentMonth,
+        filterValue:        filterEl ? filterEl.value : 'element-missing',
+        badgeText:          badgeEl  ? badgeEl.textContent : 'element-missing',
+        profileCount:       Object.keys(profiles).length,
+        newThisMonthCount:  typeof window.countCurrentMonthNewActiveStudents === 'function' ? window.countCurrentMonthNewActiveStudents() : -1,
+        newStudentsSample:  newStudents,
+        shouldShowFn:       typeof window.shouldShowActiveStudentByNewFilter === 'function',
+        isCurrentMonthFn:   typeof window.isCurrentMonthNewStudent === 'function',
+        sortFn:             typeof window.sortActiveStudentEntries === 'function',
+    };
+    console.table(result);
+    return result;
 };
 
 window.debugDebtLoadMoreAndFilter = function debugDebtLoadMoreAndFilter() {
