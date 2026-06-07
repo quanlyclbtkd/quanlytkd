@@ -1,0 +1,23 @@
+#!/usr/bin/env node
+import fs from 'fs';
+const read = p => fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : '';
+let ok = true;
+const fail = msg => { console.error('❌ ' + msg); ok = false; };
+const pass = msg => console.log('✅ ' + msg);
+const main = read('js/main.js');
+const mod = read('js/core/clubStatsAutoCache.js');
+const sa = read('js/modules/superadmin.js');
+const idx = read('index.html');
+if (!mod) fail('Missing js/core/clubStatsAutoCache.js'); else pass('clubStatsAutoCache module exists');
+if (!main.includes("import { initClubStatsAutoCache }")) fail('main.js does not import initClubStatsAutoCache'); else pass('main imports initClubStatsAutoCache');
+if (!main.includes('initClubStatsAutoCache()')) fail('main.js does not call initClubStatsAutoCache'); else pass('main calls initClubStatsAutoCache');
+if (!mod.includes('window.debugClubStatsAutoCache')) fail('debugClubStatsAutoCache missing'); else pass('debugClubStatsAutoCache exposed');
+if (!mod.includes('window.syncClubStatsCache')) fail('syncClubStatsCache global missing'); else pass('syncClubStatsCache exposed');
+if (!mod.includes('skip-superadmin-runtime') || !mod.includes('_isSuperAdminRuntime')) fail('module does not guard against SuperAdmin runtime writes'); else pass('SuperAdmin runtime guard exists');
+if (!mod.includes('cachedActiveCount') || !mod.includes('cachedCurrentMonthRevenue') || !mod.includes('superAdminStats')) fail('root club cached fields missing'); else pass('root club cached fields written');
+if (!sa.includes('superAdminStats') || !sa.includes('clubSummary')) fail('superadmin.js does not read superAdminStats/clubSummary cache'); else pass('SuperAdmin reads automatic cache fields');
+if (!main.includes('debugClubStatsAutoCache')) fail('runtime smoke does not include debugClubStatsAutoCache'); else pass('runtime smoke includes debugClubStatsAutoCache');
+if (!main.includes("4K-6I-F-auto-club-stats-cache-sync-20260607")) fail('APP_BUILD_VERSION not updated to 4K-6I-F'); else pass('APP_BUILD_VERSION updated');
+if (!idx.includes('auto-club-stats-cache-sync-20260607')) fail('index.html cache bust missing 4K-6I-F'); else pass('index cache bust updated');
+if (!ok) process.exit(1);
+console.log('✅ check:club-stats-auto-cache PASS');

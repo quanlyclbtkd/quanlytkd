@@ -25,7 +25,7 @@ check(!(sa && /const\s+revenueShortDisplay\s*=\s*_fmtRevenueShort\(/.test(sa)), 
 check(!(sa && /const\s+revenueFullDisplay\s*=\s*_fmtRevenueFull\(/.test(sa)), '_renderSAClubRows no longer calls scoped _fmtRevenueFull', '_renderSAClubRows still calls scoped _fmtRevenueFull');
 check(main && main.includes('debugSuperAdminRenderScopeFix'), 'debugRuntimeSmokeTest includes debugSuperAdminRenderScopeFix', 'runtime smoke missing debugSuperAdminRenderScopeFix');
 check(main && main.includes('4K-6I-E-superadmin-render-scope-fix'), 'APP_BUILD_VERSION updated to 4K-6I-E', 'APP_BUILD_VERSION not updated to 4K-6I-E');
-check(index && index.includes('superadmin-render-scope-fix-20260607'), 'index.html cache bust updated to 4K-6I-E', 'index.html cache bust not updated to 4K-6I-E');
+check(index && (index.includes('superadmin-render-scope-fix-20260607') || index.includes('auto-club-stats-cache-sync-20260607')), 'index.html cache bust updated to 4K-6I-E/F', 'index.html cache bust not updated to 4K-6I-E/F');
 check(pkg && pkg.includes('check:superadmin-render-scope-fix'), 'package.json includes check:superadmin-render-scope-fix', 'package.json missing check:superadmin-render-scope-fix');
 console.log();
 console.log('══════════════════════════════════════════════════════');

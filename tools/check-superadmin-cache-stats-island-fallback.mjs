@@ -27,15 +27,15 @@ check(sa && sa.includes('_readClubCachedRevenue'), 'SuperAdmin reads cached reve
 check(sa && sa.includes('_readStudentCountFromClub') && sa.includes('_readStudentCountFromStats'), 'SuperAdmin has cached student count readers', 'missing cached student count readers');
 check(sa && sa.includes('studentKnownClubCount') && sa.includes('totalStudentsDisplay'), 'SuperAdmin top total students is cache-aware', 'top total students still may show false 0');
 check(sa && sa.includes('revenueDisplay') && sa.includes('revenueNote'), 'SuperAdmin top revenue is cache/stats-aware', 'top revenue still may show false 0');
-check(sa && sa.includes('CLB nào chưa có cache sẽ hiển thị') && sa.includes('<b>--</b>'), 'SuperAdmin UI explains cache-only -- fallback', 'missing cache-only explanation');
+check(sa && sa.includes('CLB nào chưa có cache') && sa.includes('<b>--</b>'), 'SuperAdmin UI explains cache-only -- fallback', 'missing cache-only explanation');
 check(sa && !sa.includes('totalStudents += (activeCount || 0)'), 'SuperAdmin no longer sums missing active counts as 0', 'totalStudents still sums null activeCount as 0');
 check(sa && !sa.includes('totalRevenue > 0 ? Math.round(totalRevenue/1000000)'), 'SuperAdmin no longer hides valid zero/missing revenue with old >0 check', 'old revenue >0 display logic remains');
 check(students && students.includes('debugStudentsPaginationIslandFallback'), 'debugStudentsPaginationIslandFallback defined', 'missing debugStudentsPaginationIslandFallback');
 check(students && students.includes('island-retry') && students.includes('renderActiveList'), 'student pagination fallback tries island render before legacy fallback', 'fallback does not force island render first');
 check(students && students.includes('Fallback render after island timeout'), 'fallback warning only after island timeout', 'fallback warning text not updated');
 check(main && main.includes('debugStudentsPaginationIslandFallback'), 'runtime smoke includes student pagination island fallback debug', 'runtime smoke missing student pagination island fallback debug');
-check(main && (main.includes('4K-6I-D-superadmin-cache-stats-island-fallback') || main.includes('4K-6I-E-superadmin-render-scope-fix')), 'APP_BUILD_VERSION updated to 4K-6I-D/E', 'APP_BUILD_VERSION not updated to 4K-6I-D/E');
-check(index && (index.includes('superadmin-cache-stats-island-fallback-20260607') || index.includes('superadmin-render-scope-fix-20260607')), 'index.html cache bust updated to 4K-6I-D/E', 'index.html cache bust not updated to 4K-6I-D/E');
+check(main && (main.includes('4K-6I-D-superadmin-cache-stats-island-fallback') || main.includes('4K-6I-E-superadmin-render-scope-fix') || main.includes('4K-6I-F-auto-club-stats-cache-sync')), 'APP_BUILD_VERSION updated to 4K-6I-D/E/F', 'APP_BUILD_VERSION not updated to 4K-6I-D/E/F');
+check(index && (index.includes('superadmin-cache-stats-island-fallback-20260607') || index.includes('superadmin-render-scope-fix-20260607') || index.includes('auto-club-stats-cache-sync-20260607')), 'index.html cache bust updated to 4K-6I-D/E/F', 'index.html cache bust not updated to 4K-6I-D/E/F');
 check(pkg && pkg.includes('check:superadmin-cache-stats-island-fallback'), 'package.json includes check:superadmin-cache-stats-island-fallback', 'package.json missing check:superadmin-cache-stats-island-fallback');
 
 console.log();

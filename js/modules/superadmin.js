@@ -1,5 +1,5 @@
 // js/modules/superadmin.js
-// Phase 4K-6I-E — SuperAdmin render-scope formatter fix
+// Phase 4K-6I-F — SuperAdmin auto club stats cache sync reader
   // Phase 4.0B: SuperAdmin Module — Production-Safe Extraction
   // Extracted from app.js. All window.* APIs remain backward compatible.
   // Do NOT import app.js — use window.getAppContext() for shared state.
@@ -37,6 +37,13 @@
           if (Number.isFinite(n)) return n;
       }
       return null;
+  }
+
+
+  function _saNested(obj, path) {
+      try {
+          return String(path || '').split('.').reduce((cur, key) => cur && cur[key], obj);
+      } catch (_) { return undefined; }
   }
 
   function _saFmtOptionalCount(value) {
@@ -302,7 +309,13 @@
 
             function _readClubCachedRevenue(clubData, monthKey, statsDocId) {
                 if (!clubData || typeof clubData !== 'object') return null;
+                const saStats = clubData.superAdminStats || clubData.clubSummary || clubData.summary || {};
                 return _firstFiniteNumber(
+                    saStats.revenueTotal,
+                    saStats.monthlyIncome,
+                    saStats.currentMonthRevenue,
+                    saStats.incomeTotal,
+                    saStats.income && saStats.income.total,
                     _readMonthlyCachedValue(clubData.cachedMonthlyRevenue, monthKey, statsDocId),
                     _readMonthlyCachedValue(clubData.monthlyRevenue, monthKey, statsDocId),
                     _readMonthlyCachedValue(clubData.revenueByMonth, monthKey, statsDocId),
@@ -334,7 +347,13 @@
 
             function _readStudentCountFromClub(clubData) {
                 if (!clubData || typeof clubData !== 'object') return null;
+                const saStats = clubData.superAdminStats || clubData.clubSummary || clubData.summary || {};
                 return _firstFiniteNumber(
+                    saStats.activeCount,
+                    saStats.activeStudents,
+                    saStats.activeStudentCount,
+                    saStats.profileCount,
+                    saStats.totalStudents,
                     clubData.cachedActiveCount,
                     clubData.cachedStudentCount,
                     clubData.activeStudentCount,
@@ -631,7 +650,7 @@
                     </div>
                 `;
                 if (studentKnownClubCount < clubDataList.length || revenueClubCount < clubDataList.length) {
-                    statsEl.innerHTML += '<div style="grid-column:1/-1;margin-top:6px;font-size:0.72rem;color:#64748b;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:8px 10px;">ℹ️ SuperAdmin đang dùng dữ liệu cache/stats để tránh vượt quota Firestore. CLB nào chưa có cache sẽ hiển thị <b>--</b> thay vì tự chạy count toàn hệ thống.</div>';
+                    statsEl.innerHTML += '<div style="grid-column:1/-1;margin-top:6px;font-size:0.72rem;color:#64748b;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:8px 10px;">ℹ️ SuperAdmin đang dùng dữ liệu cache/stats tự động từ tài khoản Admin CLB để tránh vượt quota Firestore. CLB nào chưa có cache sẽ hiển thị <b>--</b> cho tới khi Admin CLB đó đăng nhập hoặc Cloud Functions cập nhật stats.</div>';
                 }
             }
 
