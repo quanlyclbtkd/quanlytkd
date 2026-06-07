@@ -1,4 +1,5 @@
 // js/modules/superadmin.js
+// Phase 4K-6I-E — SuperAdmin render-scope formatter fix
   // Phase 4.0B: SuperAdmin Module — Production-Safe Extraction
   // Extracted from app.js. All window.* APIs remain backward compatible.
   // Do NOT import app.js — use window.getAppContext() for shared state.
@@ -24,6 +25,38 @@
   // SuperAdmin dashboard phải cached-first; count thiếu sẽ hiển thị "--" để tránh vượt quota Firestore.
   window.__saDisableBackgroundCountRefresh = true;
   window.__saAggregationHardStop = true;
+
+
+  // Phase 4K-6I-E: SuperAdmin render-scope safe formatters.
+  // These helpers are module-level because _renderSAClubRows can be called later by
+  // filter/re-render flows, outside the lexical scope of loadSuperAdminData().
+  function _saFirstFiniteNumber(...values) {
+      for (const value of values) {
+          if (value === null || value === undefined || value === '') continue;
+          const n = Number(value);
+          if (Number.isFinite(n)) return n;
+      }
+      return null;
+  }
+
+  function _saFmtOptionalCount(value) {
+      const n = Number(value);
+      return Number.isFinite(n) ? n.toLocaleString('vi-VN') : '--';
+  }
+
+  function _saFmtRevenueShort(value) {
+      const n = Number(value);
+      if (!Number.isFinite(n)) return '--';
+      if (Math.abs(n) >= 1000000) return Math.round(n / 1000000).toLocaleString('vi-VN') + 'tr';
+      return n.toLocaleString('vi-VN') + 'đ';
+  }
+
+  function _saFmtRevenueFull(value) {
+      const n = Number(value);
+      return Number.isFinite(n) ? n.toLocaleString('vi-VN') + '₫' : '--';
+  }
+
+  window.__saRenderScopeFix = true;
 
   // ════════════════════════════════════════════════════════════════
   // resetSuperAdminModuleState — Phase 4.0B-2
@@ -564,7 +597,7 @@
             const totalStudentsNote = studentKnownClubCount > 0
                 ? (studentKnownClubCount + '/' + clubDataList.length + ' CLB có cache')
                 : 'chưa có cache thống kê';
-            const revenueDisplay = revenueClubCount > 0 ? _fmtRevenueShort(totalRevenue) : '--';
+            const revenueDisplay = revenueClubCount > 0 ? _saFmtRevenueShort(totalRevenue) : '--';
             const revenueNote = revenueClubCount + '/' + clubDataList.length + ' CLB có stats/cache';
 
             const statsEl = document.getElementById('superAdminStats');
@@ -703,7 +736,20 @@
       };
 
       // Phase 4K-6I-C: hard-stop diagnostics + manual single-club refresh only.
-      window.debugSuperAdminAggregationHardStop = function() {
+      
+          window.debugSuperAdminRenderScopeFix = function() {
+              const result = {
+                  renderScopeFix: window.__saRenderScopeFix === true,
+                  hasShortFormatter: typeof _saFmtRevenueShort === 'function',
+                  hasFullFormatter: typeof _saFmtRevenueFull === 'function',
+                  canRenderRows: typeof window._renderSAClubRows === 'function',
+                  lastError: window.__superAdminModuleMetrics?.lastError || null
+              };
+              console.log('[debugSuperAdminRenderScopeFix]', result);
+              return result;
+          };
+
+window.debugSuperAdminAggregationHardStop = function() {
           const result = {
               autoBackgroundRefreshDisabled: window.__saDisableBackgroundCountRefresh === true,
               hardStop: window.__saAggregationHardStop === true,
@@ -894,11 +940,10 @@
             const _safePass = (data.adminPassword || '').replace(/"/g, '&quot;');
             const _pwDeskId = 'pw_d_' + cid;
             const _pwMobId = 'pw_m_' + cid;
-            const _fmtCount = (v) => Number.isFinite(Number(v)) ? Number(v).toLocaleString('vi-VN') : '--';
-            const activeDisplay = _fmtCount(activeCount);
-            const profileDisplay = _fmtCount(profileCount);
-            const revenueShortDisplay = _fmtRevenueShort(revenueTotal);
-            const revenueFullDisplay = _fmtRevenueFull(revenueTotal);
+            const activeDisplay = _saFmtOptionalCount(activeCount);
+            const profileDisplay = _saFmtOptionalCount(profileCount);
+            const revenueShortDisplay = _saFmtRevenueShort(revenueTotal);
+            const revenueFullDisplay = _saFmtRevenueFull(revenueTotal);
 
             // ── Desktop row ──
             const desktopRow = `<div class="hidden md:grid items-center gap-2 px-4 py-3 border-b border-slate-100 hover:bg-slate-50/80 transition-colors" style="grid-template-columns:148px 1fr 185px 80px 115px 115px 1fr;${rowBg}">

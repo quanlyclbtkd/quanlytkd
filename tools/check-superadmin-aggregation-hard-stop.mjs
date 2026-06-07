@@ -35,8 +35,8 @@ check(sa && sa.includes('refreshSuperAdminCountsForClub') && sa.includes('{ manu
 check(sa && !/Promise\.all\(\s*\[[\s\S]{0,250}countDocs[\s\S]{0,250}countDocs[\s\S]{0,250}countDocs[\s\S]{0,250}countDocs/.test(sa), 'no Promise.all aggregation storm', 'Promise.all countDocs aggregation storm still exists');
 check((sa && sa.includes("'--'")) || (sa && sa.includes('>--<')) || (sa && sa.includes('cached-only')), 'UI has -- / cached-only fallback for missing counts', 'UI fallback for missing counts not found');
 check(main && main.includes('debugSuperAdminAggregationHardStop'), 'debugRuntimeSmokeTest includes debugSuperAdminAggregationHardStop', 'runtime smoke test missing debugSuperAdminAggregationHardStop');
-check(main && (main.includes('4K-6I-C-superadmin-aggregation-hard-stop') || main.includes('4K-6I-D-superadmin-cache-stats-island-fallback')), 'APP_BUILD_VERSION updated to 4K-6I-C/D', 'APP_BUILD_VERSION not updated to 4K-6I-C/D');
-check(index && (index.includes('superadmin-aggregation-hard-stop-20260607') || index.includes('superadmin-cache-stats-island-fallback-20260607')), 'index.html cache bust updated to 4K-6I-C/D', 'index.html cache bust not updated to 4K-6I-C/D');
+check(main && (main.includes('4K-6I-C-superadmin-aggregation-hard-stop') || main.includes('4K-6I-D-superadmin-cache-stats-island-fallback') || main.includes('4K-6I-E-superadmin-render-scope-fix')), 'APP_BUILD_VERSION updated to 4K-6I-C/D/E', 'APP_BUILD_VERSION not updated to 4K-6I-C/D/E');
+check(index && (index.includes('superadmin-aggregation-hard-stop-20260607') || index.includes('superadmin-cache-stats-island-fallback-20260607') || index.includes('superadmin-render-scope-fix-20260607')), 'index.html cache bust updated to 4K-6I-C/D/E', 'index.html cache bust not updated to 4K-6I-C/D/E');
 check(pkg && pkg.includes('check:superadmin-aggregation-hard-stop'), 'package.json includes check:superadmin-aggregation-hard-stop', 'package.json missing check:superadmin-aggregation-hard-stop');
 
 console.log();

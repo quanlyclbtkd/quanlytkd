@@ -34,8 +34,8 @@ check(students && students.includes('debugStudentsPaginationIslandFallback'), 'd
 check(students && students.includes('island-retry') && students.includes('renderActiveList'), 'student pagination fallback tries island render before legacy fallback', 'fallback does not force island render first');
 check(students && students.includes('Fallback render after island timeout'), 'fallback warning only after island timeout', 'fallback warning text not updated');
 check(main && main.includes('debugStudentsPaginationIslandFallback'), 'runtime smoke includes student pagination island fallback debug', 'runtime smoke missing student pagination island fallback debug');
-check(main && main.includes('4K-6I-D-superadmin-cache-stats-island-fallback'), 'APP_BUILD_VERSION updated to 4K-6I-D', 'APP_BUILD_VERSION not updated to 4K-6I-D');
-check(index && index.includes('superadmin-cache-stats-island-fallback-20260607'), 'index.html cache bust updated to 4K-6I-D', 'index.html cache bust not updated to 4K-6I-D');
+check(main && (main.includes('4K-6I-D-superadmin-cache-stats-island-fallback') || main.includes('4K-6I-E-superadmin-render-scope-fix')), 'APP_BUILD_VERSION updated to 4K-6I-D/E', 'APP_BUILD_VERSION not updated to 4K-6I-D/E');
+check(index && (index.includes('superadmin-cache-stats-island-fallback-20260607') || index.includes('superadmin-render-scope-fix-20260607')), 'index.html cache bust updated to 4K-6I-D/E', 'index.html cache bust not updated to 4K-6I-D/E');
 check(pkg && pkg.includes('check:superadmin-cache-stats-island-fallback'), 'package.json includes check:superadmin-cache-stats-island-fallback', 'package.json missing check:superadmin-cache-stats-island-fallback');
 
 console.log();

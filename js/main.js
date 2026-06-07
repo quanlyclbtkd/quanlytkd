@@ -10,6 +10,7 @@
 // APP_BUILD_VERSION = '4K-6I-B-superadmin-quota-runtime-fallback-fix-20260607'
 // APP_BUILD_VERSION = '4K-6I-C-superadmin-aggregation-hard-stop-20260607'
 // APP_BUILD_VERSION = '4K-6I-D-superadmin-cache-stats-island-fallback-20260607'
+// APP_BUILD_VERSION = '4K-6I-E-superadmin-render-scope-fix-20260607'
 /**
  * main.js — Application Bootstrap (Phase 3.6B — Listener Registration Safety)
  * ────────────────────────────────────────────────────────────────────
@@ -2871,7 +2872,7 @@ window.debugProfileModalClose = function() {
 // ════════════════════════════════════════════════════════════════
 
 // PHẦN 1 — APP BUILD VERSION
-window.APP_BUILD_VERSION = '4K-6I-D-superadmin-cache-stats-island-fallback-20260607';
+window.APP_BUILD_VERSION = '4K-6I-E-superadmin-render-scope-fix-20260607';
 window.APP_COPYRIGHT_OWNER   = 'Tình Trương';
 window.APP_PRODUCT_NAME      = 'Taekwondo Club Management Web App';
 window.APP_SECURITY_PHASE    = '4K-6E-scale-readiness-write-safety';
@@ -4252,10 +4253,12 @@ window.debugRuntimeSmokeTest = async function(term) {
     out.superAdminQuotaGuard  = await safeCall('debugSuperAdminQuotaGuard',       window.debugSuperAdminQuotaGuard);
     out.superAdminLoadState   = await safeCall('debugSuperAdminLoadState',         window.debugSuperAdminLoadState);
     out.superAdminAggregationHardStop = await safeCall('debugSuperAdminAggregationHardStop', window.debugSuperAdminAggregationHardStop);
+    out.superAdminRenderScopeFix = await safeCall('debugSuperAdminRenderScopeFix', window.debugSuperAdminRenderScopeFix);
     out.pendingDomainInval    = await safeCall('debugPendingDomainInvalidations',  window.debugPendingDomainInvalidations);
     summary.superAdminQuotaGuardOk  = !!out.superAdminQuotaGuard.ok;
     summary.superAdminLoadStateOk   = !!out.superAdminLoadState.ok;
     summary.superAdminAggregationHardStopOk = !!out.superAdminAggregationHardStop.ok;
+    summary.superAdminRenderScopeFixOk = !!out.superAdminRenderScopeFix.ok;
     summary.pendingDomainInvalOk    = !!out.pendingDomainInval.ok;
 
     // Phase 4K-6I-D: Student pagination island fallback metrics
