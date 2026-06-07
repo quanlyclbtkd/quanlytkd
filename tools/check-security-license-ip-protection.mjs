@@ -125,7 +125,11 @@ check(
   indexHtml.includes('4K-6F') ||
   indexHtml.includes('legacy-app-kernel-boundary') ||
   indexHtml.includes('4K-6G') ||
-  indexHtml.includes('multiitem-inventory-hydration')
+  indexHtml.includes('multiitem-inventory-hydration') ||
+  indexHtml.includes('4K-6H') ||
+        indexHtml.includes('legacy-render-entrypoint-reduction') ||
+        indexHtml.includes('4K-6I') ||
+        indexHtml.includes('inline-handler-bridge')
 );
 
 // [21] APP_BUILD_VERSION Phase 4K-6D or later
@@ -136,7 +140,9 @@ check(
   mainJs.includes("APP_BUILD_VERSION = '4K-6E-B-exam-export-belt-sort-20260605'") ||
   mainJs.includes("APP_BUILD_VERSION = '4K-6E-C-active-new-students-filter-20260605'") ||
   mainJs.includes("APP_BUILD_VERSION = '4K-6F-legacy-app-kernel-boundary-20260605'") ||
-  mainJs.includes("APP_BUILD_VERSION = '4K-6G-multiitem-inventory-hydration-legacy-diagnostics-20260605'")
+  mainJs.includes("APP_BUILD_VERSION = '4K-6G-multiitem-inventory-hydration-legacy-diagnostics-20260605'") ||
+  mainJs.includes("APP_BUILD_VERSION = '4K-6H-legacy-render-entrypoint-reduction-20260605'") ||
+  mainJs.includes("APP_BUILD_VERSION = '4K-6I-inline-handler-bridge-20260605'")
 );
 
 // [22] Không có hard block license — kiểm tra không có shouldHardBlockNow: true trong code (chỉ false)

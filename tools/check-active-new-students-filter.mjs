@@ -247,7 +247,11 @@ check(
     indexHtml.includes('4K-6F') ||
     indexHtml.includes('legacy-app-kernel-boundary') ||
     indexHtml.includes('4K-6G') ||
-    indexHtml.includes('multiitem-inventory-hydration'),
+    indexHtml.includes('multiitem-inventory-hydration') ||
+    indexHtml.includes('4K-6H') ||
+        indexHtml.includes('legacy-render-entrypoint-reduction') ||
+        indexHtml.includes('4K-6I') ||
+        indexHtml.includes('inline-handler-bridge'),
     "Cập nhật cache bust trong index.html: ?v=4K-6E-C-active-new-students-filter-20260605 hoặc mới hơn"
 );
 

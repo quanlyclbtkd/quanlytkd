@@ -1079,7 +1079,13 @@ export function registerInvalidationLegacyGlobals() {
             if (window.__renderLegacyMetrics) {
                 window.__renderLegacyMetrics.moduleRenderAppCalls++;
             }
-            // [3.5C] Throttled warning
+            // [Phase 4K-6H] LegacyRenderEntrypoints metrics
+            window.LegacyRenderEntrypoints?.recordLegacyRenderCall?.(
+                'moduleRenderApp',
+                reason || 'unknown',
+                { source: 'renderInvalidation.js' }
+            );
+            // [3.5C] Throttled warning — giữ nguyên
             _throttledWarn(
                 '_moduleRenderApp:' + (reason || '__default__'),
                 '[LegacyRenderWarning] _moduleRenderApp() called — ưu tiên dùng invalidateByDomain/invalidateCurrentTab.',

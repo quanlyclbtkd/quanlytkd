@@ -536,7 +536,26 @@ window.invCustomCategories = [];
         dashboard: ['reportList']
     };
     let _dataVersion = 0, _lastRenderedVersion = -1;
-    window.scheduleRender = () => {
+    window.scheduleRender = (reason, opts) => {
+        // [Phase 4K-6H] Metrics
+        window.LegacyRenderEntrypoints?.recordLegacyRenderCall?.(
+            'scheduleRender',
+            reason || 'unknown',
+            { source: 'app.js' }
+        );
+
+        // [Phase 4K-6H] Route sang domain invalidation nếu không ép full render
+        const reasonText = String(reason || '').trim();
+        if (!opts?.forceLegacyRender && window.LegacyRenderEntrypoints?.routeLegacyRenderReason) {
+            const routed = window.LegacyRenderEntrypoints.routeLegacyRenderReason(reasonText, {
+                source: 'scheduleRender'
+            });
+            if (routed && routed.routed) {
+                return;
+            }
+        }
+
+        // Fallback legacy: tăng dataVersion + schedule renderApp
         _dataVersion++;
         if (window.__store) window.__store._dataVersion = _dataVersion;
         if(renderTimeout) clearTimeout(renderTimeout);
@@ -6065,7 +6084,13 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             .replace(/\s+/g, ' ');
     }
 
-    function renderApp() {
+    function renderApp(reason) {
+        // [Phase 4K-6H] Metrics
+        window.LegacyRenderEntrypoints?.recordLegacyRenderCall?.(
+            'renderApp',
+            reason || 'unknown',
+            { source: 'app.js' }
+        );
         if (typeof window._moduleRenderApp === 'function') { window._moduleRenderApp(); return; }
         if(window.userRole === 'super_admin') return;
         // [PERF FIX] Skip render nếu data chưa thay đổi kể từ lần render cuối.

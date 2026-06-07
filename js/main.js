@@ -31,6 +31,9 @@
  */
 
 // ── Phase 1–3.2: Core imports (eager — cần ngay khi app start) ──
+import { LegacyRenderEntrypoints }            from './core/legacyRenderEntrypoints.js';
+import { InlineHandlerAudit }                from './core/inlineHandlerAudit.js';
+import { EventActionBridge, initEventActionBridge } from './ui/eventActionBridge.js';
 import { store, resetStore }                  from './store.js';
 import { initFirebase }                        from './firebase/config.js';
 import { showToast, registerToastGlobal }      from './ui/toast.js';
@@ -2820,7 +2823,7 @@ window.debugProfileModalClose = function() {
 // ════════════════════════════════════════════════════════════════
 
 // PHẦN 1 — APP BUILD VERSION
-window.APP_BUILD_VERSION = '4K-6G-multiitem-inventory-hydration-legacy-diagnostics-20260605';
+window.APP_BUILD_VERSION = '4K-6I-inline-handler-bridge-20260605';
 window.APP_COPYRIGHT_OWNER   = 'Tình Trương';
 window.APP_PRODUCT_NAME      = 'Taekwondo Club Management Web App';
 window.APP_SECURITY_PHASE    = '4K-6E-scale-readiness-write-safety';
@@ -3106,7 +3109,9 @@ window.debugLegacyAppAudit = function() {
             : null,
         reductionPlan: window.LegacyAppAudit && window.LegacyAppAudit.getAppJsReductionPlan
             ? window.LegacyAppAudit.getAppJsReductionPlan()
-            : null
+            : null,
+        // Phase 4K-6H: Legacy Render Entrypoints metrics
+        legacyRenderEntrypoints: window.debugLegacyRenderEntrypoints?.()
     };
     console.log('[debugLegacyAppAudit]', result);
     if (result.runtime) console.table(result.runtime);
@@ -3118,6 +3123,50 @@ window.debugAppJsReductionPlan = function() {
         ? window.LegacyAppAudit.getAppJsReductionPlan()
         : {};
     console.table(result);
+    return result;
+};
+
+// Phase 4K-6I: InlineHandlerAudit + EventActionBridge globals
+window.InlineHandlerAudit = window.InlineHandlerAudit || InlineHandlerAudit;
+
+window.EventActionBridge = window.EventActionBridge || EventActionBridge;
+
+try {
+    initEventActionBridge();
+} catch (e) {
+    console.warn('[eventActionBridge] init failed:', e);
+}
+
+window.debugInlineHandlerAudit = function() {
+    const result = {
+        inline: window.InlineHandlerAudit?.getInlineHandlerStats?.() || {},
+        dataAction: window.InlineHandlerAudit?.getDataActionStats?.() || {},
+        risk: window.InlineHandlerAudit?.getMigrationRiskSummary?.() || {},
+        recommendations: window.InlineHandlerAudit?.getRecommendations?.() || []
+    };
+    console.log('[debugInlineHandlerAudit]', result);
+    console.table(result.inline?.byType || {});
+    return result;
+};
+
+window.debugEventActionBridge = function() {
+    const result = {
+        stats: window.EventActionBridge?.getEventActionStats?.() || {},
+        actions: window.EventActionBridge?.getRegisteredActions?.() || {},
+        inlineAudit: window.debugInlineHandlerAudit?.() || null
+    };
+    console.log('[debugEventActionBridge]', result);
+    return result;
+};
+
+// Phase 4K-6H: LegacyRenderEntrypoints globals
+window.LegacyRenderEntrypoints =
+    window.LegacyRenderEntrypoints || LegacyRenderEntrypoints;
+
+window.debugLegacyRenderEntrypoints = function() {
+    const result = window.LegacyRenderEntrypoints?.getLegacyRenderEntrypointStats?.() || {};
+    console.log('[debugLegacyRenderEntrypoints]', result);
+    console.table(result.summary || {});
     return result;
 };
 
@@ -4140,6 +4189,20 @@ window.debugRuntimeSmokeTest = async function(term) {
         window.LegacyDiagnostics &&
         typeof window.LegacyDiagnostics.printPilotLaunchStatus === 'function'
     );
+
+    // Phase 4K-6I: Inline Handler Audit + Event Action Bridge
+    // Không fail nếu còn inline handlers — chỉ fail nếu function thiếu hoặc throw.
+    out.inlineHandlerAudit  = await safeCall('debugInlineHandlerAudit',  window.debugInlineHandlerAudit);
+    out.eventActionBridge   = await safeCall('debugEventActionBridge',   window.debugEventActionBridge);
+    summary.inlineHandlerAuditOk  = !!out.inlineHandlerAudit.ok;
+    summary.eventActionBridgeOk   = !!out.eventActionBridge.ok;
+
+    // Phase 4K-6H: Legacy Render Entrypoints metrics
+    // Không fail nếu còn legacy render calls — chỉ fail nếu function thiếu hoặc throw.
+    out.legacyRenderEntrypoints = await safeCall('debugLegacyRenderEntrypoints', window.debugLegacyRenderEntrypoints);
+    out.legacyRenderReduction   = await safeCall('debugLegacyAppAudit',           window.debugLegacyAppAudit);
+    summary.legacyRenderEntrypointsOk = !!out.legacyRenderEntrypoints.ok;
+    summary.legacyRenderReductionOk   = !!out.legacyRenderReduction.ok;
 
     // Phase 4K-6D: Security, License & IP Protection Readiness
     out.buildFingerprint               = await safeCall('debugBuildFingerprint',               window.debugBuildFingerprint);
