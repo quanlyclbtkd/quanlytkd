@@ -1245,6 +1245,26 @@ export function initStudentPagination() {
             // renderActiveIsland dùng khi activeRows cache rỗng nhưng pagination có items.
             // Dùng HTML attribute escaping an toàn thay vì replace('/g) đơn giản.
 
+            // Phase 4K-6I-B: scheduleStudentsPaginationFallback — retry 2-3 times before fallback
+            window.scheduleStudentsPaginationFallback = function scheduleStudentsPaginationFallback(pgState, opts = {}) {
+                const { reason = 'students-pagination-fallback', maxAttempts = 3, delay = 350 } = opts;
+                let attempt = 0;
+                function tryFallback() {
+                    attempt++;
+                    const done = _renderStudentsPageRowsFallback(pgState);
+                    if (done) {
+                        console.debug('[scheduleStudentsPaginationFallback] success at attempt', attempt, '— reason:', reason);
+                        return;
+                    }
+                    if (attempt < maxAttempts) {
+                        setTimeout(tryFallback, delay);
+                    } else {
+                        console.warn('[scheduleStudentsPaginationFallback] gave up after', attempt, 'attempts — reason:', reason);
+                    }
+                }
+                setTimeout(tryFallback, delay);
+            };
+
             // Phase 4K-5F: filterStudentItemsForMode — hard filter pagination items by tab mode
             window.filterStudentItemsForMode = function filterStudentItemsForMode(items, mode) {
                 const arr = Array.isArray(items) ? items : [];
@@ -1554,8 +1574,17 @@ export function initStudentPagination() {
                     } else if (typeof window.scheduleRender === 'function') {
                         window.scheduleRender();
                     }
-                    // Fallback: nếu island không render sau 300ms, inject rows trực tiếp
-                    setTimeout(() => _renderStudentsPageRowsFallback(pgState), 300);
+                    // Fallback: nếu island không render, inject rows trực tiếp
+                    // Phase 4K-6I-B: dùng scheduleStudentsPaginationFallback để retry trước khi fallback
+                    if (typeof window.scheduleStudentsPaginationFallback === 'function') {
+                        window.scheduleStudentsPaginationFallback(pgState, {
+                            reason: 'students-pagination-loaded',
+                            maxAttempts: 3,
+                            delay: 350,
+                        });
+                    } else {
+                        setTimeout(() => _renderStudentsPageRowsFallback(pgState), 300);
+                    }
                 } catch (err) {
                     console.error('[pagination/students] Lỗi load trang:', err);
                     pgState.isLoading = false;

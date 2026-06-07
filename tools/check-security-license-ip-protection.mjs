@@ -129,7 +129,10 @@ check(
   indexHtml.includes('4K-6H') ||
         indexHtml.includes('legacy-render-entrypoint-reduction') ||
         indexHtml.includes('4K-6I') ||
-        indexHtml.includes('inline-handler-bridge')
+        indexHtml.includes('inline-handler-bridge') ||
+        indexHtml.includes('4K-6I-B') ||
+        indexHtml.includes('superadmin-quota') ||
+        indexHtml.includes('runtime-fallback-fix')
 );
 
 // [21] APP_BUILD_VERSION Phase 4K-6D or later
@@ -142,7 +145,8 @@ check(
   mainJs.includes("APP_BUILD_VERSION = '4K-6F-legacy-app-kernel-boundary-20260605'") ||
   mainJs.includes("APP_BUILD_VERSION = '4K-6G-multiitem-inventory-hydration-legacy-diagnostics-20260605'") ||
   mainJs.includes("APP_BUILD_VERSION = '4K-6H-legacy-render-entrypoint-reduction-20260605'") ||
-  mainJs.includes("APP_BUILD_VERSION = '4K-6I-inline-handler-bridge-20260605'")
+  mainJs.includes("APP_BUILD_VERSION = '4K-6I-inline-handler-bridge-20260605'") ||
+  mainJs.includes("APP_BUILD_VERSION = '4K-6I-B-superadmin-quota-runtime-fallback-fix-20260607'")
 );
 
 // [22] Không có hard block license — kiểm tra không có shouldHardBlockNow: true trong code (chỉ false)

@@ -536,6 +536,32 @@ window.invCustomCategories = [];
         dashboard: ['reportList']
     };
     let _dataVersion = 0, _lastRenderedVersion = -1;
+
+    // Phase 4K-6I-B: flushOrQueueDomainInvalidation — safe wrapper
+    // Gọi invalidate function ngay nếu có, hoặc push vào pendingDomainInvalidations queue.
+    window.__pendingDomainInvalidations = window.__pendingDomainInvalidations || [];
+    window.queueDomainInvalidation = function(domain, reason, meta) {
+        window.__pendingDomainInvalidations.push({ domain, reason, at: Date.now(), meta: meta || {} });
+        console.debug('[DomainQueue] Queued:', domain, reason);
+    };
+    window.flushOrQueueDomainInvalidation = function(domain, reason, meta) {
+        const fnMap = {
+            finance:    window.invalidateFinance,
+            students:   window.invalidateStudents,
+            dashboard:  window.invalidateDashboard,
+            inventory:  window.invalidateInventory,
+            debt:       window.invalidateFinance,
+            exam:       window.invalidateCurrentTab,
+            attendance: window.invalidateCurrentTab,
+        };
+        const fn = fnMap[domain];
+        if (typeof fn === 'function') {
+            fn(reason);
+        } else {
+            window.queueDomainInvalidation(domain, reason, meta);
+        }
+    };
+
     window.scheduleRender = (reason, opts) => {
         // [Phase 4K-6H] Metrics
         window.LegacyRenderEntrypoints?.recordLegacyRenderCall?.(
@@ -2128,8 +2154,12 @@ service cloud.firestore {
                 window.invalidateInventory('inventory-snapshot');
                 window.invalidateFinance('inventory-affect-finance');
                 window.invalidateDashboard('inventory-snapshot');
+            } else if (typeof window.flushOrQueueDomainInvalidation === 'function') {
+                window.flushOrQueueDomainInvalidation('inventory', 'inventory-snapshot',        { source: '_invCb' });
+                window.flushOrQueueDomainInvalidation('finance',   'inventory-affect-finance',  { source: '_invCb' });
+                window.flushOrQueueDomainInvalidation('dashboard', 'inventory-snapshot',        { source: '_invCb' });
             } else {
-                scheduleRender();
+                scheduleRender('inventory-snapshot-fallback', { forceLegacyRender: true });
             }
             // [Phase 3.8C] Sau snapshot đầu: query riêng lấy TẤT CẢ unpaid inventory debts.
             // Không phụ thuộc limit(500) — nợ kho cũ ngoài 500 records vẫn được load.

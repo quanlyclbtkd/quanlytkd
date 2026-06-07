@@ -11,6 +11,15 @@
   // ── Module-level idempotency ─────────────────────────────────────
   let __saInitialized = false;
 
+  // Phase 4K-6I-B: Single-flight + cooldown state (module-level, survives rebind)
+  let _saLoadPromise   = null;
+  let _saLastLoadAt    = 0;
+  const SA_LOAD_COOLDOWN_MS = 30 * 1000;
+
+  // Phase 4K-6I-B: Background count refresh queue (concurrency = 1)
+  const _saCountRefreshQueue = [];
+  let _saCountRefreshRunning = false;
+
   // ════════════════════════════════════════════════════════════════
   // resetSuperAdminModuleState — Phase 4.0B-2
   // Phải reset local __saInitialized mới cho phép initSuperAdmin chạy lại
@@ -209,6 +218,78 @@
                 return null;
             };
 
+            // Phase 4K-6I-B: getCachedClubCounts — đọc cached counts từ club doc
+            function getCachedClubCounts(clubData) {
+                return {
+                    activeCount:  typeof clubData.cachedActiveCount  === 'number' ? clubData.cachedActiveCount  : null,
+                    profileCount: typeof clubData.cachedProfileCount === 'number' ? clubData.cachedProfileCount : null,
+                    txCount:      typeof clubData.cachedTxCount      === 'number' ? clubData.cachedTxCount      : null,
+                    invCount:     typeof clubData.cachedInvCount     === 'number' ? clubData.cachedInvCount     : null,
+                    updatedAt:    clubData.cachedCountUpdatedAt || 0,
+                };
+            }
+
+            // Phase 4K-6I-B: runSuperAdminCountRefreshQueue — concurrency=1, throttled
+            async function runSuperAdminCountRefreshQueue() {
+                if (_saCountRefreshRunning) return;
+                _saCountRefreshRunning = true;
+                try {
+                    while (_saCountRefreshQueue.length > 0) {
+                        if (window.SuperAdminQuotaGuard?.isCircuitOpen?.()) {
+                            console.info('[SuperAdmin] countRefreshQueue paused — circuit open');
+                            break;
+                        }
+                        const { cid } = _saCountRefreshQueue.shift();
+                        let activeCount = null, profileCount = null, txCount = null, invCount = null;
+                        try {
+                            activeCount = await window.SuperAdminQuotaGuard?.runThrottledCount?.(
+                                () => countDocs(query(collection(db, 'clubs', cid, 'profiles'), where('status', '==', 'active'))),
+                                { cid, collection: 'profiles-active' }
+                            ) ?? null;
+                            profileCount = await window.SuperAdminQuotaGuard?.runThrottledCount?.(
+                                () => countDocs(collection(db, 'clubs', cid, 'profiles')),
+                                { cid, collection: 'profiles' }
+                            ) ?? null;
+                            txCount = await window.SuperAdminQuotaGuard?.runThrottledCount?.(
+                                () => countDocs(collection(db, 'clubs', cid, 'transactions')),
+                                { cid, collection: 'transactions' }
+                            ) ?? null;
+                            invCount = await window.SuperAdminQuotaGuard?.runThrottledCount?.(
+                                () => countDocs(collection(db, 'clubs', cid, 'inventory')),
+                                { cid, collection: 'inventory' }
+                            ) ?? null;
+                        } catch (qErr) {
+                            console.warn('[SuperAdmin] countRefreshQueue error for', cid, qErr?.message);
+                        }
+                        // Chỉ ghi nếu count hợp lệ — không ghi null/undefined/NaN
+                        const payload = {};
+                        if (Number.isFinite(activeCount))  payload.cachedActiveCount  = activeCount;
+                        if (Number.isFinite(profileCount)) payload.cachedProfileCount = profileCount;
+                        if (Number.isFinite(txCount))      payload.cachedTxCount      = txCount;
+                        if (Number.isFinite(invCount))      payload.cachedInvCount     = invCount;
+                        if (Object.keys(payload).length > 0) {
+                            payload.cachedCountUpdatedAt = Date.now();
+                            updateDoc(doc(db, 'clubs', cid), payload).catch(() => {});
+                        }
+                        // Throttle giữa các CLB
+                        await new Promise(r => setTimeout(r, 350));
+                    }
+                } finally {
+                    _saCountRefreshRunning = false;
+                }
+            }
+
+            // Phase 4K-6I-B: queueSuperAdminCountRefresh — add to queue, start runner
+            function queueSuperAdminCountRefresh(cid, clubData) {
+                const alreadyQueued = _saCountRefreshQueue.some(item => item.cid === cid);
+                if (!alreadyQueued) {
+                    _saCountRefreshQueue.push({ cid, clubData });
+                }
+                if (!_saCountRefreshRunning) {
+                    setTimeout(() => runSuperAdminCountRefreshQueue(), 500);
+                }
+            }
+
             // [Phase 4K] Current month for stats doc reads — VN timezone offset
             const _now4K  = new Date(Date.now() + 7 * 3600 * 1000);
             const _curMonth4K = _now4K.toISOString().substring(0, 7); // YYYY-MM
@@ -218,39 +299,26 @@
                 const cid = docSnap.id;
                 const data = docSnap.data();
 
-                // Ưu tiên dùng cached counts trong clubs doc (cập nhật realtime) nếu có
-                // Fallback: dùng getCountFromServer (đáng tin cậy, không bị rate limit)
-                let activeCount, profileCount, txCount, invCount;
-                if (typeof data.cachedActiveCount === 'number' && data.cachedCountUpdatedAt) {
-                    // [SỬA ĐỒNG BỘ] Giảm cache từ 24h xuống 2h để SuperAdmin thấy số liệu mới hơn
-                    const cacheAge = Date.now() - (data.cachedCountUpdatedAt || 0);
-                    if (cacheAge < 2 * 60 * 60 * 1000) {
-                        activeCount  = data.cachedActiveCount  || 0;
-                        profileCount = data.cachedProfileCount || 0;
-                        txCount      = data.cachedTxCount      || 0;
-                        invCount     = data.cachedInvCount     || 0;
-                    }
-                }
-                if (activeCount === undefined) {
-                    // Đếm thực từ Firestore — song song 4 collection
-                    [activeCount, profileCount, txCount, invCount] = await Promise.all([
-                        countDocs(query(collection(db, "clubs", cid, "profiles"), where("status", "==", "active"))),
-                        countDocs(collection(db, "clubs", cid, "profiles")),
-                        countDocs(collection(db, "clubs", cid, "transactions")),
-                        countDocs(collection(db, "clubs", cid, "inventory")),
-                    ]);
-                    // Ghi cache lại vào clubs doc để lần sau dùng được
-                    updateDoc(doc(db, "clubs", cid), {
-                        cachedActiveCount:  activeCount,
-                        cachedProfileCount: profileCount,
-                        cachedTxCount:      txCount,
-                        cachedInvCount:     invCount,
-                        cachedCountUpdatedAt: Date.now(),
-                    }).catch(() => {});
+                // Phase 4K-6I-B: Cached-first — không block dashboard render để count
+                const _cached = getCachedClubCounts(data);
+                let activeCount  = _cached.activeCount;
+                let profileCount = _cached.profileCount;
+                let txCount      = _cached.txCount;
+                let invCount     = _cached.invCount;
+
+                const _cacheAge   = _cached.updatedAt ? Date.now() - _cached.updatedAt : Infinity;
+                const _cacheStale = _cacheAge > 2 * 60 * 60 * 1000;
+
+                if (
+                    (_cacheStale || activeCount === null) &&
+                    !window.SuperAdminQuotaGuard?.isCircuitOpen?.() &&
+                    !window.__saDisableBackgroundCountRefresh
+                ) {
+                    queueSuperAdminCountRefresh(cid, data);
                 }
 
-                // Ước tính dung lượng (KB): profile ~1KB, tx ~0.5KB, inv ~0.4KB
-                const estimatedKB = Math.round(profileCount * 1 + txCount * 0.5 + invCount * 0.4);
+                // Ước tính dung lượng (KB): profile ~1KB, tx ~0.5KB, inv ~0.4KB (null → 0)
+                const estimatedKB = Math.round((profileCount || 0) * 1 + (txCount || 0) * 0.5 + (invCount || 0) * 0.4);
 
                 // [Phase 4K] Đọc monthly stats doc — KHÔNG scan transactions cho revenue.
                 // Stats path: clubs/{clubId}/stats/{YYYY_MM}. Ghi bởi Cloud Functions CRUD triggers.
@@ -304,7 +372,7 @@
                 else if (isExpired) totalExpired++;
                 else if (isExpiring) totalExpiring++;
                 else totalActive++;
-                totalStudents += activeCount;
+                totalStudents += (activeCount || 0);
             });
 
             const statsEl = document.getElementById('superAdminStats');
@@ -393,6 +461,51 @@
             _m().lastDurationMs = Date.now() - _t0;
         }
     };
+
+      // Phase 4K-6I-B: Single-flight + cooldown wrapper for loadSuperAdminData
+      {
+          const _coreLoad = window.loadSuperAdminData;
+          window.loadSuperAdminData = async function _saLoadWrapped() {
+              const now = Date.now();
+              if (_saLoadPromise) {
+                  console.info('[SuperAdmin] loadSuperAdminData single-flight reuse');
+                  return _saLoadPromise;
+              }
+              if (now - _saLastLoadAt < SA_LOAD_COOLDOWN_MS && window.__lastSuperAdminDataRendered) {
+                  console.info('[SuperAdmin] loadSuperAdminData cooldown skip');
+                  return window.__lastSuperAdminDataRendered;
+              }
+              _saLoadPromise = (async () => {
+                  try {
+                      _saLastLoadAt = Date.now();
+                      const result = await _coreLoad();
+                      window.__lastSuperAdminDataRendered = result;
+                      window.__saDashboardLoadedAt = Date.now();
+                      return result;
+                  } finally {
+                      _saLoadPromise = null;
+                  }
+              })();
+              return _saLoadPromise;
+          };
+      }
+
+      // Phase 4K-6I-B: debugSuperAdminLoadState
+      window.debugSuperAdminLoadState = function() {
+          const result = {
+              loadInFlight:           !!_saLoadPromise,
+              lastLoadAt:             _saLastLoadAt,
+              cooldownMs:             SA_LOAD_COOLDOWN_MS,
+              renderedClubCount:      window._saClubData?.clubDataList?.length || 0,
+              countRefreshQueueLength: _saCountRefreshQueue.length,
+              countRefreshRunning:    _saCountRefreshRunning,
+              quotaCircuit:           window.SuperAdminQuotaGuard?.getCircuitState?.() || null,
+              metrics:                window.SuperAdminQuotaGuard?.getMetrics?.() || null,
+          };
+          console.log('[debugSuperAdminLoadState]', result);
+          console.table(result);
+          return result;
+      };
 
       // ════════════════════════════════════════════════════════════
       // 2. openExpiryModal — Open expiry date modal

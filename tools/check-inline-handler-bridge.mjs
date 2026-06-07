@@ -244,7 +244,7 @@ check(
 // ── 12. Cache bust & version ──────────────────────────────────────
 check(
   'index.html cache bust has 4K-6I or inline-handler-bridge',
-  !!(indexHtml && (indexHtml.includes('4K-6I') || indexHtml.includes('inline-handler-bridge'))),
+  !!(indexHtml && (indexHtml.includes('4K-6I') || indexHtml.includes('inline-handler-bridge') || indexHtml.includes('4K-6I-B') || indexHtml.includes('superadmin-quota') || indexHtml.includes('runtime-fallback-fix'))),
   'Cập nhật ?v= trong index.html sang inline-handler-bridge-20260605'
 );
 check(

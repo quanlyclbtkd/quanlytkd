@@ -236,7 +236,10 @@ check(
         idxHtml.includes('4K-6H') ||
         idxHtml.includes('legacy-render-entrypoint-reduction') ||
         idxHtml.includes('4K-6I') ||
-        idxHtml.includes('inline-handler-bridge')
+        idxHtml.includes('inline-handler-bridge') ||
+        idxHtml.includes('4K-6I-B') ||
+        idxHtml.includes('superadmin-quota') ||
+        idxHtml.includes('runtime-fallback-fix')
     ),
     'Cập nhật cache bust trong index.html: ?v=scale-readiness-write-safety-20260605 hoặc mới hơn'
 );

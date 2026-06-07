@@ -200,7 +200,10 @@ check(
         indexHtml.includes('legacy-render-entrypoint-reduction') ||
         indexHtml.includes('4K-6H') ||
         indexHtml.includes('4K-6I') ||
-        indexHtml.includes('inline-handler-bridge')
+        indexHtml.includes('inline-handler-bridge') ||
+        indexHtml.includes('4K-6I-B') ||
+        indexHtml.includes('superadmin-quota') ||
+        indexHtml.includes('runtime-fallback-fix')
     ),
     'index.html có cache bust Phase 4K-6H hoặc mới hơn',
     'index.html CHƯA có cache bust Phase 4K-6H hoặc mới hơn'

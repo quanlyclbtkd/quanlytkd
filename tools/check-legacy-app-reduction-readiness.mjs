@@ -282,7 +282,10 @@ check(
         indexHtml.includes('4K-6H') ||
         indexHtml.includes('legacy-render-entrypoint-reduction') ||
         indexHtml.includes('4K-6I') ||
-        indexHtml.includes('inline-handler-bridge')
+        indexHtml.includes('inline-handler-bridge') ||
+        indexHtml.includes('4K-6I-B') ||
+        indexHtml.includes('superadmin-quota') ||
+        indexHtml.includes('runtime-fallback-fix')
     )),
     'Cập nhật ?v= trong index.html sang legacy-app-kernel-boundary-20260605 hoặc mới hơn'
 );

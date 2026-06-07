@@ -31,6 +31,7 @@
  */
 
 // ── Phase 1–3.2: Core imports (eager — cần ngay khi app start) ──
+import { SuperAdminQuotaGuard }               from './core/superAdminQuotaGuard.js';
 import { LegacyRenderEntrypoints }            from './core/legacyRenderEntrypoints.js';
 import { InlineHandlerAudit }                from './core/inlineHandlerAudit.js';
 import { EventActionBridge, initEventActionBridge } from './ui/eventActionBridge.js';
@@ -1412,17 +1413,28 @@ function _waitForExistingLegacyApp(ms) {
             window.__saInitialLoadRetried = true;
             // Chờ thêm 200ms để initSuperAdmin rebind xong, rồi kiểm tra xem listEl còn đang loading
             setTimeout(async () => {
+                // Phase 4K-6I-B: Guard — không gọi trùng nếu đang in-flight hoặc mới load
+                if (window.__saDashboardLoadInFlight) return;
+                if (window.__saDashboardLoadedAt && Date.now() - window.__saDashboardLoadedAt < 30000) return;
+
                 const _listEl = document.getElementById('sysClubListMain');
                 // Chỉ reload nếu danh sách vẫn đang ở trạng thái loading hoặc rỗng
                 const _stillLoading = !_listEl || !_listEl.innerHTML.trim() ||
                     _listEl.innerHTML.includes('Đang tải') ||
                     _listEl.innerHTML.includes('⏳');
-                if (_stillLoading && window.SuperAdminModule?.loadSuperAdminDashboard) {
+                if (_stillLoading && (window.SuperAdminModule?.loadSuperAdminDashboard || typeof window.loadSuperAdminData === 'function')) {
                     console.info('[HOTFIX] main.js: SA view active nhưng list chưa load — trigger lại loadSuperAdminDashboard');
-                    window.SuperAdminModule.loadSuperAdminDashboard();
-                } else if (_stillLoading && typeof window.loadSuperAdminData === 'function') {
-                    console.info('[HOTFIX] main.js: SA view active nhưng list chưa load — trigger lại loadSuperAdminData');
-                    window.loadSuperAdminData();
+                    window.__saDashboardLoadInFlight = true;
+                    try {
+                        if (window.SuperAdminModule?.loadSuperAdminDashboard) {
+                            await window.SuperAdminModule.loadSuperAdminDashboard();
+                        } else {
+                            await window.loadSuperAdminData();
+                        }
+                        window.__saDashboardLoadedAt = Date.now();
+                    } finally {
+                        window.__saDashboardLoadInFlight = false;
+                    }
                 }
             }, 300);
         }
@@ -1634,13 +1646,18 @@ function _waitForExistingLegacyApp(ms) {
 
         // PHẦN 10 FIX: Flush pending domain invalidations queued bởi app.js _mergeAndRender
         // trước khi invalidateFinance/invalidateStudents/invalidateDashboard sẵn sàng.
+        // Phase 4K-6I-B: Mở rộng domainMap để bao gồm inventory, debt, exam, attendance.
         (function _flushPendingDomainInvalidations() {
             const queue = window.__pendingDomainInvalidations;
             if (!queue || queue.length === 0) return;
             const domainMap = {
-                finance:   typeof window.invalidateFinance   === 'function' ? window.invalidateFinance   : null,
-                students:  typeof window.invalidateStudents  === 'function' ? window.invalidateStudents  : null,
-                dashboard: typeof window.invalidateDashboard === 'function' ? window.invalidateDashboard : null,
+                finance:    typeof window.invalidateFinance    === 'function' ? window.invalidateFinance    : null,
+                students:   typeof window.invalidateStudents   === 'function' ? window.invalidateStudents   : null,
+                dashboard:  typeof window.invalidateDashboard  === 'function' ? window.invalidateDashboard  : null,
+                inventory:  typeof window.invalidateInventory  === 'function' ? window.invalidateInventory  : null,
+                debt:       typeof window.invalidateFinance    === 'function' ? window.invalidateFinance    : null,
+                exam:       typeof window.invalidateCurrentTab === 'function' ? window.invalidateCurrentTab : null,
+                attendance: typeof window.invalidateCurrentTab === 'function' ? window.invalidateCurrentTab : null,
             };
             let flushed = 0;
             queue.forEach(({ domain, reason }) => {
@@ -1650,6 +1667,25 @@ function _waitForExistingLegacyApp(ms) {
             window.__pendingDomainInvalidations = [];
             if (flushed > 0) console.info('[DomainQueue] Flushed', flushed, 'pending invalidations.');
         })();
+
+        // Phase 4K-6I-B: debugPendingDomainInvalidations
+        window.debugPendingDomainInvalidations = function() {
+            const result = {
+                queue:     (window.__pendingDomainInvalidations || []).slice(),
+                queueLen:  (window.__pendingDomainInvalidations || []).length,
+                domains:   ['finance','students','dashboard','inventory','debt','exam','attendance'],
+                available: {
+                    invalidateFinance:    typeof window.invalidateFinance    === 'function',
+                    invalidateStudents:   typeof window.invalidateStudents   === 'function',
+                    invalidateDashboard:  typeof window.invalidateDashboard  === 'function',
+                    invalidateInventory:  typeof window.invalidateInventory  === 'function',
+                    invalidateCurrentTab: typeof window.invalidateCurrentTab === 'function',
+                },
+            };
+            console.log('[debugPendingDomainInvalidations]', result);
+            console.table(result.available);
+            return result;
+        };
 
         // Expose invalidateSearchCache để listeners gọi khi data version thay đổi
         window.invalidateSearchCache = invalidateSearchCache;
@@ -2823,7 +2859,7 @@ window.debugProfileModalClose = function() {
 // ════════════════════════════════════════════════════════════════
 
 // PHẦN 1 — APP BUILD VERSION
-window.APP_BUILD_VERSION = '4K-6I-inline-handler-bridge-20260605';
+window.APP_BUILD_VERSION = '4K-6I-B-superadmin-quota-runtime-fallback-fix-20260607';
 window.APP_COPYRIGHT_OWNER   = 'Tình Trương';
 window.APP_PRODUCT_NAME      = 'Taekwondo Club Management Web App';
 window.APP_SECURITY_PHASE    = '4K-6E-scale-readiness-write-safety';
@@ -3123,6 +3159,16 @@ window.debugAppJsReductionPlan = function() {
         ? window.LegacyAppAudit.getAppJsReductionPlan()
         : {};
     console.table(result);
+    return result;
+};
+
+// Phase 4K-6I-B: SuperAdminQuotaGuard global
+window.SuperAdminQuotaGuard = window.SuperAdminQuotaGuard || SuperAdminQuotaGuard;
+
+window.debugSuperAdminQuotaGuard = function() {
+    const result = window.SuperAdminQuotaGuard?.getMetrics?.() || {};
+    console.log('[debugSuperAdminQuotaGuard]', result);
+    console.table(result.summary || {});
     return result;
 };
 
@@ -4189,6 +4235,14 @@ window.debugRuntimeSmokeTest = async function(term) {
         window.LegacyDiagnostics &&
         typeof window.LegacyDiagnostics.printPilotLaunchStatus === 'function'
     );
+
+    // Phase 4K-6I-B: SuperAdmin Quota Guard + Load State + Pending Domain Invalidations
+    out.superAdminQuotaGuard  = await safeCall('debugSuperAdminQuotaGuard',       window.debugSuperAdminQuotaGuard);
+    out.superAdminLoadState   = await safeCall('debugSuperAdminLoadState',         window.debugSuperAdminLoadState);
+    out.pendingDomainInval    = await safeCall('debugPendingDomainInvalidations',  window.debugPendingDomainInvalidations);
+    summary.superAdminQuotaGuardOk  = !!out.superAdminQuotaGuard.ok;
+    summary.superAdminLoadStateOk   = !!out.superAdminLoadState.ok;
+    summary.pendingDomainInvalOk    = !!out.pendingDomainInval.ok;
 
     // Phase 4K-6I: Inline Handler Audit + Event Action Bridge
     // Không fail nếu còn inline handlers — chỉ fail nếu function thiếu hoặc throw.
