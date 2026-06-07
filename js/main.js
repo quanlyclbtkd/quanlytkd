@@ -80,6 +80,12 @@ import { SecurityPosture }   from './core/securityPosture.js';
 import { ActionGuard }        from './core/actionGuard.js';
 // Phase 4K-6E: Transaction Delete Integrity
 import { TransactionDeleteIntegrity } from './core/transactionDeleteIntegrity.js';
+// Phase 4K-6F: Legacy App Kernel Audit + Diagnostics Extraction
+import { LegacyAppAudit }      from './core/legacyAppAudit.js';
+import { initLegacyDiagnostics } from './diagnostics/legacyDiagnostics.js';
+
+// Phase 4K-6G: MultiItem Inventory Safety Module
+import { MultiItemInventorySafety } from './core/multiItemInventorySafety.js';
 
 // ── Phase 3.3E: Firestore safety (expose globally for services) ──
 import { safeGetDocs, printQueryAuditReport }  from './utils/firestore-guard.js';
@@ -2814,7 +2820,7 @@ window.debugProfileModalClose = function() {
 // ════════════════════════════════════════════════════════════════
 
 // PHẦN 1 — APP BUILD VERSION
-window.APP_BUILD_VERSION = '4K-6E-C-active-new-students-filter-20260605';
+window.APP_BUILD_VERSION = '4K-6G-multiitem-inventory-hydration-legacy-diagnostics-20260605';
 window.APP_COPYRIGHT_OWNER   = 'Tình Trương';
 window.APP_PRODUCT_NAME      = 'Taekwondo Club Management Web App';
 window.APP_SECURITY_PHASE    = '4K-6E-scale-readiness-write-safety';
@@ -3077,6 +3083,143 @@ window.ActionGuard        = window.ActionGuard        || ActionGuard;
 // Phase 4K-6E
 window.TransactionDeleteIntegrity = window.TransactionDeleteIntegrity || TransactionDeleteIntegrity;
 window.runGuardedAction   = ActionGuard.run.bind(ActionGuard);
+
+// Phase 4K-6F: Legacy App Kernel Audit
+window.LegacyAppAudit = window.LegacyAppAudit || LegacyAppAudit;
+
+try {
+    initLegacyDiagnostics();
+} catch (e) {
+    console.warn('[legacyDiagnostics] init failed:', e);
+}
+
+window.debugLegacyAppAudit = function() {
+    const result = {
+        runtime:      window.LegacyAppAudit && window.LegacyAppAudit.getRuntimeLegacySummary
+            ? window.LegacyAppAudit.getRuntimeLegacySummary()
+            : null,
+        ownership:    window.LegacyAppAudit && window.LegacyAppAudit.getGlobalOwnershipMap
+            ? window.LegacyAppAudit.getGlobalOwnershipMap()
+            : null,
+        legacyRender: window.LegacyAppAudit && window.LegacyAppAudit.getLegacyRenderSummary
+            ? window.LegacyAppAudit.getLegacyRenderSummary()
+            : null,
+        reductionPlan: window.LegacyAppAudit && window.LegacyAppAudit.getAppJsReductionPlan
+            ? window.LegacyAppAudit.getAppJsReductionPlan()
+            : null
+    };
+    console.log('[debugLegacyAppAudit]', result);
+    if (result.runtime) console.table(result.runtime);
+    return result;
+};
+
+window.debugAppJsReductionPlan = function() {
+    const result = window.LegacyAppAudit && window.LegacyAppAudit.getAppJsReductionPlan
+        ? window.LegacyAppAudit.getAppJsReductionPlan()
+        : {};
+    console.table(result);
+    return result;
+};
+
+// Phase 4K-6G: MultiItemInventorySafety globals
+window.MultiItemInventorySafety =
+    window.MultiItemInventorySafety || MultiItemInventorySafety;
+
+window.ensureMultiItemInventoryReady =
+    window.ensureMultiItemInventoryReady ||
+    MultiItemInventorySafety.ensureMultiItemInventoryReady.bind(MultiItemInventorySafety);
+
+window.resolveMultiItemInventoryDebts =
+    window.resolveMultiItemInventoryDebts ||
+    MultiItemInventorySafety.resolveMultiItemInventoryDebts.bind(MultiItemInventorySafety);
+
+window.refreshMultiItemInventorySection =
+    window.refreshMultiItemInventorySection ||
+    MultiItemInventorySafety.refreshMultiItemInventorySection.bind(MultiItemInventorySafety);
+
+// Phase 4K-6G: Debug — MultiItem Inventory Hydration
+window.debugMultiItemInventoryHydration = async function(studentName) {
+    studentName = studentName ||
+        ((document.getElementById('mi_name') || {}).value || '').trim() || '';
+    const warnings = [];
+
+    const ensureResult = await MultiItemInventorySafety.ensureMultiItemInventoryReady('debug');
+    if (ensureResult.timedOut) warnings.push('ensureMultiItemInventoryReady timed out');
+
+    const resolved = MultiItemInventorySafety.resolveMultiItemInventoryDebts(studentName, {
+        reason: 'debug'
+    });
+    const stockMap = MultiItemInventorySafety.buildInventoryStockMapForMultiItem({ reason: 'debug' });
+    const state    = MultiItemInventorySafety.getMultiItemInventoryHydrationState();
+
+    const result = {
+        studentName,
+        ensureResult,
+        storeInventoryCount:    state.storeInventoryCount,
+        allInventoryCount:      state.allInventoryCount,
+        financeDebtCount:       state.financeDebtCount,
+        unpaidDebtQueryLoaded:  state.unpaidDebtQueryLoaded,
+        inventoryDebtIndexReady: state.inventoryDebtIndexReady,
+        liveInvMapKeys:         state.liveInvMapKeys,
+        resolvedDebtCount:      resolved.length,
+        resolvedDebtTotal:      resolved.reduce((s, i) => s + Number(i.amount || 0), 0),
+        resolvedDebtRows:       resolved.slice(0, 10),
+        stockMapKeyCount:       stockMap.keyCount,
+        stockMapSource:         stockMap.source,
+        warnings
+    };
+    console.group('[debugMultiItemInventoryHydration] studentName: ' + (studentName || '(none)'));
+    console.log(result);
+    console.groupEnd();
+    return result;
+};
+
+// Phase 4K-6G: Debug — MultiItem Inventory Debt Resolution by source
+window.debugMultiItemInventoryDebtResolution = function(studentName) {
+    studentName = studentName ||
+        ((document.getElementById('mi_name') || {}).value || '').trim() || '';
+    const invStore = window.__inventoryStore || {};
+    const st       = window.__store || {};
+
+    function countMatches(items) {
+        if (!items || !items.length) return 0;
+        if (!studentName) return items.length;
+        const norm = v => String(v || '').normalize('NFD')
+            .replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/Đ/g,'D')
+            .toLowerCase().replace(/\s+/g,' ').trim();
+        const nn = norm(studentName);
+        const fields = ['desc','description','studentName','name','profileName',
+            'customerName','memberName','student','buyerName','studentLabel'];
+        return items.filter(item => fields.some(f => {
+            const nf = norm(item[f]);
+            return nf && (nf === nn || (nf.length >= 3 && nn.includes(nf)) || (nn.length >= 3 && nf.includes(nn)));
+        })).length;
+    }
+
+    let getInventoryDebtsResult = [];
+    try {
+        if (typeof window.getInventoryDebtsForStudent === 'function') {
+            getInventoryDebtsResult = window.getInventoryDebtsForStudent(studentName, {
+                allowFallback: true, reason: 'debug-resolution'
+            }) || [];
+        }
+    } catch (e) { getInventoryDebtsResult = []; }
+
+    const result = {
+        studentName,
+        getInventoryDebtsForStudent: getInventoryDebtsResult.length,
+        financeInventoryDebts:       countMatches(invStore.financeInventoryDebts || []),
+        storeInventory:              countMatches(st.inventory || []),
+        allInventory:                countMatches(window.allInventory || []),
+        inventoryHistory:            countMatches(invStore.inventoryHistory || []),
+        fieldsChecked: ['desc','description','studentName','name','profileName',
+            'customerName','memberName','student','buyerName','studentLabel']
+    };
+    console.group('[debugMultiItemInventoryDebtResolution] studentName: ' + (studentName || '(none)'));
+    console.table(result);
+    console.groupEnd();
+    return result;
+};
 
 // ════════════════════════════════════════════════════════════════
 // Phase 4K-5Q — debugActiveLoadMoreSingleSource
@@ -3973,6 +4116,30 @@ window.debugRuntimeSmokeTest = async function(term) {
     // Phase 4K-6E-B: Exam Export Belt Sort Preview
     out.examExportSortPreview = await safeCall('debugExamExportSortPreview', window.debugExamExportSortPreview);
     summary.examExportSortPreviewOk = !!out.examExportSortPreview.ok;
+
+    // Phase 4K-6F: Legacy App Kernel Audit (warning/readiness only — not in overallOk)
+    out.legacyAppAudit     = await safeCall('debugLegacyAppAudit',      window.debugLegacyAppAudit);
+    out.appJsReductionPlan = await safeCall('debugAppJsReductionPlan',  window.debugAppJsReductionPlan);
+    summary.legacyAppAuditOk     = !!out.legacyAppAudit.ok;
+    summary.appJsReductionPlanOk = !!out.appJsReductionPlan.ok;
+
+    // Phase 4K-6G: MultiItem Inventory Hydration + Legacy Diagnostics Extraction
+    out.multiItemInventoryHydration = await safeCall(
+        'debugMultiItemInventoryHydration',
+        window.debugMultiItemInventoryHydration,
+        ['']
+    );
+    out.multiItemInventoryDebtResolution = await safeCall(
+        'debugMultiItemInventoryDebtResolution',
+        window.debugMultiItemInventoryDebtResolution,
+        ['']
+    );
+    summary.multiItemInventoryHydrationOk     = !!out.multiItemInventoryHydration.ok;
+    summary.multiItemInventoryDebtResolutionOk = !!out.multiItemInventoryDebtResolution.ok;
+    summary.legacyDiagnosticsExtractionOk     = !!(
+        window.LegacyDiagnostics &&
+        typeof window.LegacyDiagnostics.printPilotLaunchStatus === 'function'
+    );
 
     // Phase 4K-6D: Security, License & IP Protection Readiness
     out.buildFingerprint               = await safeCall('debugBuildFingerprint',               window.debugBuildFingerprint);

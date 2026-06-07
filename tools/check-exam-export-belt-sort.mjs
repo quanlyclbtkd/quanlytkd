@@ -138,7 +138,9 @@ check(
 // ── 12. index.html có cache bust Phase 4K-6E-B ────────────────────────────
 check(
     'index.html cache bust có 4K-6E-B hoặc mới hơn',
-    !indexHtml || indexHtml.includes('4K-6E-B') || indexHtml.includes('4K-6E-C'),
+    !indexHtml || indexHtml.includes('4K-6E-B') || indexHtml.includes('4K-6E-C') ||
+    indexHtml.includes('4K-6F') || indexHtml.includes('legacy-app-kernel-boundary') ||
+    indexHtml.includes('4K-6G') || indexHtml.includes('multiitem-inventory-hydration'),
     'Cập nhật ?v= trong index.html sang 4K-6E-B-exam-export-belt-sort-20260605 hoặc mới hơn'
 );
 

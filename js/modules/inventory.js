@@ -603,7 +603,18 @@ export function initInventory() {
         const sec = document.getElementById('mi_inv_section');
         if (sec) sec.style.display = on ? 'block' : 'none';
         if (on) {
-            window.toggleMiInvCategory();
+            if (typeof window.ensureMultiItemInventoryReady === 'function') {
+                window.ensureMultiItemInventoryReady('multi-item-toggle-inventory')
+                    .then(() => {
+                        window.MultiItemInventorySafety?.buildInventoryStockMapForMultiItem?.({ reason: 'toggle-inventory' });
+                        if (typeof window.toggleMiInvCategory === 'function') {
+                            window.toggleMiInvCategory();
+                        }
+                    })
+                    .catch(e => console.warn('[multiItem] inventory toggle hydration failed:', e));
+            } else {
+                window.toggleMiInvCategory();
+            }
         } else {
             const totalEl = document.getElementById('mi_inv_total_actual');
             if (totalEl) totalEl.value = '0';
@@ -620,6 +631,14 @@ export function initInventory() {
         const sel    = document.getElementById('mi_inv_size_select');
         const txt    = document.getElementById('mi_inv_size_text');
         const hint   = document.getElementById('mi_inv_stock_hint');
+        // Phase 4K-6G: fallback stock map build if _liveInvMap is empty
+        if (
+            (!window._liveInvMap || Object.keys(window._liveInvMap).length === 0) &&
+            window.MultiItemInventorySafety &&
+            window.MultiItemInventorySafety.buildInventoryStockMapForMultiItem
+        ) {
+            window.MultiItemInventorySafety.buildInventoryStockMapForMultiItem({ reason: 'toggle-mi-category' });
+        }
         const inv    = window._liveInvMap || {};
         if (!sel || !txt) return;
 

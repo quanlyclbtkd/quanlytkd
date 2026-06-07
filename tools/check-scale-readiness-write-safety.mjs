@@ -222,22 +222,27 @@ check(
     'Thêm firebaseWriteSafetyOk vào summary trong debugRuntimeSmokeTest'
 );
 
-// ── 20. Cache bust Phase 4K-6E ────────────────────────────────────────────
+// ── 20. Cache bust Phase 4K-6E hoặc mới hơn ──────────────────────────────
 check(
-    'index.html có cache bust Phase 4K-6E',
+    'index.html có cache bust Phase 4K-6E hoặc mới hơn',
     !!idxHtml && (
         idxHtml.includes('scale-readiness-write-safety-20260605') ||
         idxHtml.includes('4K-6E-B-exam-export-belt-sort-20260605') ||
-        idxHtml.includes('4K-6E-C-active-new-students-filter-20260605')
+        idxHtml.includes('4K-6E-C-active-new-students-filter-20260605') ||
+        idxHtml.includes('4K-6F') ||
+        idxHtml.includes('legacy-app-kernel-boundary') ||
+        idxHtml.includes('4K-6G') ||
+        idxHtml.includes('multiitem-inventory-hydration')
     ),
-    'Cập nhật cache bust trong index.html: ?v=scale-readiness-write-safety-20260605'
+    'Cập nhật cache bust trong index.html: ?v=scale-readiness-write-safety-20260605 hoặc mới hơn'
 );
 
-// ── 21. APP_BUILD_VERSION Phase 4K-6E ────────────────────────────────────
+// ── 21. APP_BUILD_VERSION Phase 4K-6E hoặc mới hơn ──────────────────────
 check(
-    'main.js APP_BUILD_VERSION có Phase 4K-6E',
-    mainJs.includes('4K-6E') || mainJs.includes('scale-readiness-write-safety'),
-    'Cập nhật APP_BUILD_VERSION trong main.js sang Phase 4K-6E'
+    'main.js APP_BUILD_VERSION có Phase 4K-6E hoặc mới hơn',
+    mainJs.includes('4K-6E') || mainJs.includes('scale-readiness-write-safety') ||
+    mainJs.includes('4K-6F') || mainJs.includes('legacy-app-kernel-boundary'),
+    'Cập nhật APP_BUILD_VERSION trong main.js sang Phase 4K-6E hoặc mới hơn'
 );
 
 // ── Summary ───────────────────────────────────────────────────────────────

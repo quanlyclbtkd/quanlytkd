@@ -108,6 +108,21 @@
 
        ══════════════════════════════════════════════════════════════════════════ */
 
+// ============================================================
+// LEGACY APP KERNEL — DO NOT DELETE DIRECTLY
+// Responsibilities kept in app.js for now:
+// - Firebase/Auth bootstrap
+// - onAuthStateChanged
+// - initSaaSDatabase
+// - root Firestore listeners
+// - __store bridge sync
+// - legacy renderApp/scheduleRender fallback
+// - compatibility window globals
+//
+// Business logic should continue migrating to js/modules,
+// js/core, js/services, js/ui in small safe phases.
+// ============================================================
+
     const { initializeApp } = window._fb_init;
     const { getFirestore, collection, doc, getDoc, onSnapshot, addDoc, updateDoc, deleteDoc, query, orderBy, where, writeBatch, setDoc, arrayUnion, arrayRemove, getDocs, limit, increment, getCountFromServer, startAfter, startAt, endAt } = window._fb_init;
     const { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword, sendPasswordResetEmail, updatePassword, reauthenticateWithCredential, EmailAuthProvider, signInAnonymously } = window._fb_init;
@@ -1992,6 +2007,18 @@ service cloud.firestore {
                         window.__inventoryStore.markUnpaidDebtQueryLoaded(_debts.length, reason);
                 }
 
+                // Phase 4K-6G: Auto-refresh multiItemModal if open when unpaid debt query completes
+                if (
+                    document.getElementById('multiItemModal') &&
+                    document.getElementById('multiItemModal').style.display !== 'none' &&
+                    typeof window.refreshMultiItemInventorySection === 'function'
+                ) {
+                    const _miNameVal2 = ((document.getElementById('mi_name') || {}).value || '').trim();
+                    if (_miNameVal2) {
+                        window.refreshMultiItemInventorySection(_miNameVal2, 'unpaid-debt-query-loaded-while-multi-item-open');
+                    }
+                }
+
                 if (window.invalidateFinance)   window.invalidateFinance('inventory-unpaid-debts-loaded');
                 if (window.invalidateStudents)  window.invalidateStudents('inventory-affect-debt');
                 if (window.invalidateDashboard) window.invalidateDashboard('inventory-unpaid-debts-loaded');
@@ -2065,6 +2092,17 @@ service cloud.firestore {
                 }
                 if (typeof window.__inventoryStore.rebuildInventoryDebtIndex === 'function') {
                     window.__inventoryStore.rebuildInventoryDebtIndex('inventory-snapshot');
+                }
+            }
+            // Phase 4K-6G: Auto-refresh multiItemModal if open when inventory snapshot arrives
+            if (
+                document.getElementById('multiItemModal') &&
+                document.getElementById('multiItemModal').style.display !== 'none' &&
+                typeof window.refreshMultiItemInventorySection === 'function'
+            ) {
+                const _miNameVal = ((document.getElementById('mi_name') || {}).value || '').trim();
+                if (_miNameVal) {
+                    window.refreshMultiItemInventorySection(_miNameVal, 'inventory-loaded-while-multi-item-open');
                 }
             }
             if (window.invalidateInventory) {
@@ -7166,8 +7204,19 @@ window.toggleMultiItemOther = () => {
 window.toggleMultiItemInv = () => {
     const on = document.getElementById('mi_inv_toggle').checked;
     document.getElementById('mi_inv_section').style.display = on ? 'block' : 'none';
-    if(on) {
-        window.toggleMiInvCategory();
+    if (on) {
+        if (typeof window.ensureMultiItemInventoryReady === 'function') {
+            window.ensureMultiItemInventoryReady('multi-item-toggle-inventory')
+                .then(() => {
+                    window.MultiItemInventorySafety?.buildInventoryStockMapForMultiItem?.({ reason: 'toggle-inventory' });
+                    if (typeof window.toggleMiInvCategory === 'function') {
+                        window.toggleMiInvCategory();
+                    }
+                })
+                .catch(e => console.warn('[multiItem] inventory toggle hydration failed:', e));
+        } else {
+            window.toggleMiInvCategory();
+        }
     } else {
         document.getElementById('mi_inv_total_actual').value = '0';
     }
@@ -7179,6 +7228,14 @@ window.toggleMiInvCategory = () => {
     const sel = document.getElementById('mi_inv_size_select');
     const txt = document.getElementById('mi_inv_size_text');
     const hint = document.getElementById('mi_inv_stock_hint');
+    // Phase 4K-6G: ensure stock map is built if _liveInvMap is empty
+    if (
+        (!window._liveInvMap || Object.keys(window._liveInvMap).length === 0) &&
+        window.MultiItemInventorySafety &&
+        window.MultiItemInventorySafety.buildInventoryStockMapForMultiItem
+    ) {
+        window.MultiItemInventorySafety.buildInventoryStockMapForMultiItem({ reason: 'toggle-mi-category' });
+    }
     if (cat === 'Võ phục') {
         // Võ phục: dropdown size cố định kèm thông tin tồn kho
         sel.style.display = ''; txt.style.display = 'none';
@@ -7315,7 +7372,12 @@ window.updateMultiItemAutoFee = () => {
         document.getElementById('mi_profile_branch').textContent = window.getBranchNameDisplay ? window.getBranchNameDisplay(profile.branch) : (profile.branch || '');
         document.getElementById('mi_profile_fee').textContent = baseFee > 0 ? baseFee.toLocaleString('vi-VN') + ' ₫/tháng' : 'Chưa cài';
         infoCard.style.display = 'flex';
-        window._refreshMiHistoryBadges(name, profile);
+        try {
+            Promise.resolve(window._refreshMiHistoryBadges(name, profile))
+                .catch(e => console.warn('[multiItem] refresh badges failed:', e));
+        } catch (e) {
+            console.warn('[multiItem] refresh badges dispatch failed:', e);
+        }
     } else if (infoCard && !name) {
         infoCard.style.display = 'none';
         document.getElementById('mi_history_panel').style.display = 'none';
@@ -7323,10 +7385,11 @@ window.updateMultiItemAutoFee = () => {
     updateMultiItemTotal();
 };
 
-window._refreshMiHistoryBadges = (name, profile) => {
+window._refreshMiHistoryBadges = async (name, profile) => {
     // Guard: prevent infinite recursion with updateMultiItemAutoFee
     if (window._miRefreshingBadges) return;
     window._miRefreshingBadges = true;
+    try {
     const panel = document.getElementById('mi_history_panel');
     panel.style.display = 'block';
     const paidUntil = profile ? profile.paidUntil : null;
@@ -7398,41 +7461,57 @@ window._refreshMiHistoryBadges = (name, profile) => {
     updateMultiItemAutoFee();
 
     // Load unpaid inventory (kho đồ) items for this student
+    // Phase 4K-6G: Use MultiItemInventorySafety for async-safe hydration
     const invDebtPanel = document.getElementById('mi_inv_debt_panel');
     const invDebtList = document.getElementById('mi_inv_debt_list');
     const invDebtBadge = document.getElementById('mi_inv_debt_badge');
     invDebtList.innerHTML = '';
-    // [Phase 3.8A] Guard: đảm bảo dữ liệu kho đã sẵn sàng trước khi tìm nợ kho đồ.
-    window.ensureInventoryForFeature?.('feeReceipt', 'build-fee-receipt');
-    // [Phase 3.8B] Dùng getInventoryDebtsForStudent() nếu index đã sẵn sàng (O(1) lookup).
-    // allowFallback: true → nếu index chưa ready, tự động filter allInventory theo logic cũ.
-    // Kết quả PHẢI giống y chang filter gốc — đây là điều kiện bắt buộc.
-    const unpaidInvItems = (typeof window.getInventoryDebtsForStudent === 'function')
-        ? window.getInventoryDebtsForStudent(name, { allowFallback: true, reason: 'fee-receipt' })
-        : (allInventory || []).filter(t =>
-            t.unpaid === true && t.type === 'Xuất bán' &&
-            (t.desc === name || t.description === name)
+    if (invDebtBadge) invDebtBadge.textContent = 'Đang kiểm tra...';
+
+    let ensureResult = null;
+    if (typeof window.ensureMultiItemInventoryReady === 'function') {
+        ensureResult = await window.ensureMultiItemInventoryReady('multi-item-refresh-badges');
+    }
+
+    const unpaidInvItems = typeof window.resolveMultiItemInventoryDebts === 'function'
+        ? window.resolveMultiItemInventoryDebts(name, {
+            reason: 'multi-item-refresh-badges',
+            ensureResult
+          })
+        : (typeof window.getInventoryDebtsForStudent === 'function'
+            ? window.getInventoryDebtsForStudent(name, { allowFallback: true, reason: 'multi-item-refresh-badges' })
+            : []
           );
-    if(unpaidInvItems.length > 0) {
-        invDebtPanel.style.display = 'block';
-        invDebtBadge.textContent = unpaidInvItems.length + ' khoản';
-        unpaidInvItems.forEach(item => {
-            const div = document.createElement('div');
-            div.style.cssText = 'display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #fff7ed;';
-            const label = (item.category || '') + (item.size ? ' ' + item.size : '') + (item.qty > 1 ? ' ×' + item.qty : '');
-            const amt = Number(item.amount || 0);
-            div.innerHTML = `<input type="checkbox" class="mi-inv-debt-check w-4 h-4 accent-orange-500 cursor-pointer rounded" data-inv-id="${item.id}" data-amount="${amt}" data-label="${label.replace(/"/g,'&quot;')}" checked>
-                <div style="flex:1;min-width:0;"><div style="font-size:0.8rem;font-weight:700;color:#1e293b;">${label}</div><div style="font-size:0.65rem;color:#94a3b8;">${item.date || ''}</div></div>
-                <span style="font-size:0.85rem;font-weight:900;color:#f97316;">${amt.toLocaleString('vi-VN')}₫</span>`;
-            div.querySelector('input').addEventListener('change', window.recalcMiInvDebt);
-            invDebtList.appendChild(div);
+
+    if (window.MultiItemInventorySafety && window.MultiItemInventorySafety.renderMultiItemInventoryDebtPanel) {
+        window.MultiItemInventorySafety.renderMultiItemInventoryDebtPanel(name, unpaidInvItems, {
+            ensureResult,
+            reason: 'multi-item-refresh-badges'
         });
-        window.recalcMiInvDebt();
     } else {
-        invDebtPanel.style.display = 'none';
-        document.getElementById('mi_inv_debt_total_actual').value = '0';
-        document.getElementById('mi_inv_debt_total_display').textContent = '0 ₫';
-        updateMultiItemTotal();
+        // fallback legacy render
+        invDebtList.innerHTML = '';
+        if (unpaidInvItems.length > 0) {
+            invDebtPanel.style.display = 'block';
+            if (invDebtBadge) invDebtBadge.textContent = unpaidInvItems.length + ' khoản';
+            unpaidInvItems.forEach(item => {
+                const div = document.createElement('div');
+                div.style.cssText = 'display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #fff7ed;';
+                const label = (item.category || '') + (item.size ? ' ' + item.size : '') + (item.qty > 1 ? ' ×' + item.qty : '');
+                const amt = Number(item.amount || 0);
+                div.innerHTML = `<input type="checkbox" class="mi-inv-debt-check w-4 h-4 accent-orange-500 cursor-pointer rounded" data-inv-id="${item.id}" data-amount="${amt}" data-label="${label.replace(/"/g,'&quot;')}" checked>
+                    <div style="flex:1;min-width:0;"><div style="font-size:0.8rem;font-weight:700;color:#1e293b;">${label}</div><div style="font-size:0.65rem;color:#94a3b8;">${item.date || ''}</div></div>
+                    <span style="font-size:0.85rem;font-weight:900;color:#f97316;">${amt.toLocaleString('vi-VN')}₫</span>`;
+                div.querySelector('input').addEventListener('change', window.recalcMiInvDebt);
+                invDebtList.appendChild(div);
+            });
+            window.recalcMiInvDebt();
+        } else {
+            invDebtPanel.style.display = 'none';
+            document.getElementById('mi_inv_debt_total_actual').value = '0';
+            document.getElementById('mi_inv_debt_total_display').textContent = '0 ₫';
+            updateMultiItemTotal();
+        }
     }
     // Auto-toggle "Thu học phí" dựa vào trạng thái đóng tiền của võ sinh
     const _tuitionCb = document.getElementById('mi_tuition_enabled');
@@ -7446,7 +7525,11 @@ window._refreshMiHistoryBadges = (name, profile) => {
         }
         window.toggleMiTuitionSection && window.toggleMiTuitionSection();
     }
-    window._miRefreshingBadges = false;
+    } catch (e) {
+        console.warn('[multiItem] refresh badges failed:', e);
+    } finally {
+        window._miRefreshingBadges = false;
+    }
 };
 
 window.recalcMiInvDebt = () => {

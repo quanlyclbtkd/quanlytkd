@@ -224,9 +224,11 @@ check(
 
 // ── 13. main.js: version + switchTab + smokeTest ──────────────────────────
 check(
-    'main.js: APP_BUILD_VERSION Phase 4K-6E-C',
-    mainJs.includes("APP_BUILD_VERSION = '4K-6E-C-active-new-students-filter-20260605'"),
-    "Cập nhật APP_BUILD_VERSION = '4K-6E-C-active-new-students-filter-20260605' trong main.js"
+    'main.js: APP_BUILD_VERSION Phase 4K-6E-C hoặc mới hơn',
+    mainJs.includes("APP_BUILD_VERSION = '4K-6E-C-active-new-students-filter-20260605'") ||
+    mainJs.includes("APP_BUILD_VERSION = '4K-6F-legacy-app-kernel-boundary-20260605'") ||
+    mainJs.includes('4K-6F'),
+    "Cập nhật APP_BUILD_VERSION = '4K-6E-C-active-new-students-filter-20260605' hoặc mới hơn trong main.js"
 );
 check(
     'main.js: switchTab gọi bindActiveNewStudentFilterUI cho tab active',
@@ -240,9 +242,13 @@ check(
     'Thêm safeCall debugActiveNewStudents vào debugRuntimeSmokeTest trong main.js'
 );
 check(
-    'index.html: cache bust Phase 4K-6E-C',
-    indexHtml.includes('4K-6E-C-active-new-students-filter-20260605'),
-    "Cập nhật cache bust trong index.html: ?v=4K-6E-C-active-new-students-filter-20260605"
+    'index.html: cache bust Phase 4K-6E-C hoặc mới hơn',
+    indexHtml.includes('4K-6E-C-active-new-students-filter-20260605') ||
+    indexHtml.includes('4K-6F') ||
+    indexHtml.includes('legacy-app-kernel-boundary') ||
+    indexHtml.includes('4K-6G') ||
+    indexHtml.includes('multiitem-inventory-hydration'),
+    "Cập nhật cache bust trong index.html: ?v=4K-6E-C-active-new-students-filter-20260605 hoặc mới hơn"
 );
 
 // ── Summary ───────────────────────────────────────────────────────────────
