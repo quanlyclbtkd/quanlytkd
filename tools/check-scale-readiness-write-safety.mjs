@@ -239,7 +239,9 @@ check(
         idxHtml.includes('inline-handler-bridge') ||
         idxHtml.includes('4K-6I-B') ||
         idxHtml.includes('superadmin-quota') ||
-        idxHtml.includes('runtime-fallback-fix')
+        idxHtml.includes('runtime-fallback-fix') ||
+        idxHtml.includes('4K-6I-C') ||
+        idxHtml.includes('superadmin-aggregation-hard-stop')
     ),
     'Cập nhật cache bust trong index.html: ?v=scale-readiness-write-safety-20260605 hoặc mới hơn'
 );
@@ -248,7 +250,9 @@ check(
 check(
     'main.js APP_BUILD_VERSION có Phase 4K-6E hoặc mới hơn',
     mainJs.includes('4K-6E') || mainJs.includes('scale-readiness-write-safety') ||
-    mainJs.includes('4K-6F') || mainJs.includes('legacy-app-kernel-boundary'),
+    mainJs.includes('4K-6F') || mainJs.includes('legacy-app-kernel-boundary') ||
+    mainJs.includes('4K-6G') || mainJs.includes('4K-6H') || mainJs.includes('4K-6I') ||
+    mainJs.includes('superadmin-aggregation-hard-stop'),
     'Cập nhật APP_BUILD_VERSION trong main.js sang Phase 4K-6E hoặc mới hơn'
 );
 

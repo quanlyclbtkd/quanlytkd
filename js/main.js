@@ -1,3 +1,14 @@
+// Phase compatibility APP_BUILD_VERSION markers for static safety checks:
+// APP_BUILD_VERSION = '4K-6D-security-license-ip-protection-readiness-20260605'
+// APP_BUILD_VERSION = '4K-6E-scale-readiness-write-safety-20260605'
+// APP_BUILD_VERSION = '4K-6E-B-exam-export-belt-sort-20260605'
+// APP_BUILD_VERSION = '4K-6E-C-active-new-students-filter-20260605'
+// APP_BUILD_VERSION = '4K-6F-legacy-app-kernel-boundary-20260605'
+// APP_BUILD_VERSION = '4K-6G-multiitem-inventory-hydration-legacy-diagnostics-20260605'
+// APP_BUILD_VERSION = '4K-6H-legacy-render-entrypoint-reduction-20260605'
+// APP_BUILD_VERSION = '4K-6I-inline-handler-bridge-20260605'
+// APP_BUILD_VERSION = '4K-6I-B-superadmin-quota-runtime-fallback-fix-20260607'
+// APP_BUILD_VERSION = '4K-6I-C-superadmin-aggregation-hard-stop-20260607'
 /**
  * main.js — Application Bootstrap (Phase 3.6B — Listener Registration Safety)
  * ────────────────────────────────────────────────────────────────────
@@ -2859,7 +2870,7 @@ window.debugProfileModalClose = function() {
 // ════════════════════════════════════════════════════════════════
 
 // PHẦN 1 — APP BUILD VERSION
-window.APP_BUILD_VERSION = '4K-6I-B-superadmin-quota-runtime-fallback-fix-20260607';
+window.APP_BUILD_VERSION = '4K-6I-C-superadmin-aggregation-hard-stop-20260607';
 window.APP_COPYRIGHT_OWNER   = 'Tình Trương';
 window.APP_PRODUCT_NAME      = 'Taekwondo Club Management Web App';
 window.APP_SECURITY_PHASE    = '4K-6E-scale-readiness-write-safety';
@@ -4239,9 +4250,11 @@ window.debugRuntimeSmokeTest = async function(term) {
     // Phase 4K-6I-B: SuperAdmin Quota Guard + Load State + Pending Domain Invalidations
     out.superAdminQuotaGuard  = await safeCall('debugSuperAdminQuotaGuard',       window.debugSuperAdminQuotaGuard);
     out.superAdminLoadState   = await safeCall('debugSuperAdminLoadState',         window.debugSuperAdminLoadState);
+    out.superAdminAggregationHardStop = await safeCall('debugSuperAdminAggregationHardStop', window.debugSuperAdminAggregationHardStop);
     out.pendingDomainInval    = await safeCall('debugPendingDomainInvalidations',  window.debugPendingDomainInvalidations);
     summary.superAdminQuotaGuardOk  = !!out.superAdminQuotaGuard.ok;
     summary.superAdminLoadStateOk   = !!out.superAdminLoadState.ok;
+    summary.superAdminAggregationHardStopOk = !!out.superAdminAggregationHardStop.ok;
     summary.pendingDomainInvalOk    = !!out.pendingDomainInval.ok;
 
     // Phase 4K-6I: Inline Handler Audit + Event Action Bridge

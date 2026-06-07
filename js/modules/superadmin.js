@@ -20,6 +20,11 @@
   const _saCountRefreshQueue = [];
   let _saCountRefreshRunning = false;
 
+  // Phase 4K-6I-C: HARD STOP — không tự động chạy aggregation khi mở SuperAdmin.
+  // SuperAdmin dashboard phải cached-first; count thiếu sẽ hiển thị "--" để tránh vượt quota Firestore.
+  window.__saDisableBackgroundCountRefresh = true;
+  window.__saAggregationHardStop = true;
+
   // ════════════════════════════════════════════════════════════════
   // resetSuperAdminModuleState — Phase 4.0B-2
   // Phải reset local __saInitialized mới cho phép initSuperAdmin chạy lại
@@ -195,27 +200,29 @@
             // Lấy dữ liệu tất cả CLB song song
             const clubDocs = [];
             clubsSnap.forEach(docSnap => clubDocs.push(docSnap));
-
-            // [Phase 4K-FIX Lỗi 2] countDocs — dùng getCountFromServer (O(1), không tải docs về client)
-            // Ưu tiên A: getCountFromServer nếu SDK có (Firebase JS SDK v9.8+)
-            // Ưu tiên B: cached count trong club doc (cập nhật 2h/lần)
-            // Ưu tiên C: trả về null — UI hiển thị '--', không scan toàn collection
-            // KHÔNG scan full collection chỉ để đếm — tốn nhiều reads
+            // Phase 4K-6I-C: countDocs — structured result + hard-stop quota errors.
+            // KHÔNG nuốt lỗi quota. Quota/resource-exhausted/429 phải throw để SuperAdminQuotaGuard mở circuit.
             const _gcfs = _fb.getCountFromServer || null;
-            const countDocs = async (q) => {
-                if (_gcfs) {
-                    try {
-                        const snap = await _gcfs(q);
-                        return snap.data().count || 0;
-                    } catch (_e) {
-                        // getCountFromServer có thể fail nếu query thiếu index hoặc quyền
-                        console.warn('[Phase 4K-FIX] getCountFromServer failed:', _e && _e.message);
-                        return null; // caller hiển thị '--'
-                    }
+            function isQuotaCountError(error) {
+                const msg = String(error?.message || error?.code || error || '').toLowerCase();
+                return msg.includes('resource-exhausted') || msg.includes('quota') || msg.includes('429') || msg.includes('too many');
+            }
+            const countDocs = async (q, meta = {}) => {
+                if (!_gcfs) {
+                    return { ok: false, count: null, reason: 'getCountFromServer-unavailable', meta };
                 }
-                // Không có getCountFromServer — không scan full collection
-                console.warn('[Phase 4K-FIX] getCountFromServer không khả dụng — count = null (hiển thị --)');
-                return null;
+                try {
+                    const snap = await _gcfs(q);
+                    const count = Number(snap.data().count || 0);
+                    return { ok: true, count, meta };
+                } catch (_e) {
+                    console.warn('[SuperAdmin] getCountFromServer failed:', _e && _e.message, meta);
+                    if (isQuotaCountError(_e)) {
+                        _e.__superAdminQuotaError = true;
+                        throw _e;
+                    }
+                    return { ok: false, count: null, reason: _e?.message || 'count-failed', meta };
+                }
             };
 
             // Phase 4K-6I-B: getCachedClubCounts — đọc cached counts từ club doc
@@ -228,51 +235,70 @@
                     updatedAt:    clubData.cachedCountUpdatedAt || 0,
                 };
             }
-
-            // Phase 4K-6I-B: runSuperAdminCountRefreshQueue — concurrency=1, throttled
+            // Phase 4K-6I-C: runSuperAdminCountRefreshQueue — manual-only, concurrency=1, hard-stop on quota.
             async function runSuperAdminCountRefreshQueue() {
                 if (_saCountRefreshRunning) return;
+                if (window.SuperAdminQuotaGuard?.isCircuitOpen?.()) {
+                    _saCountRefreshQueue.length = 0;
+                    console.warn('[SuperAdmin] countRefreshQueue skipped — quota circuit open.');
+                    return;
+                }
                 _saCountRefreshRunning = true;
                 try {
                     while (_saCountRefreshQueue.length > 0) {
                         if (window.SuperAdminQuotaGuard?.isCircuitOpen?.()) {
-                            console.info('[SuperAdmin] countRefreshQueue paused — circuit open');
+                            console.warn('[SuperAdmin] countRefreshQueue stopped — quota circuit open.');
+                            _saCountRefreshQueue.length = 0;
                             break;
                         }
                         const { cid } = _saCountRefreshQueue.shift();
                         let activeCount = null, profileCount = null, txCount = null, invCount = null;
                         try {
-                            activeCount = await window.SuperAdminQuotaGuard?.runThrottledCount?.(
-                                () => countDocs(query(collection(db, 'clubs', cid, 'profiles'), where('status', '==', 'active'))),
+                            const activeRes = await window.SuperAdminQuotaGuard?.runThrottledCount?.(
+                                () => countDocs(query(collection(db, 'clubs', cid, 'profiles'), where('status', '==', 'active')), { cid, collection: 'profiles-active' }),
                                 { cid, collection: 'profiles-active' }
-                            ) ?? null;
-                            profileCount = await window.SuperAdminQuotaGuard?.runThrottledCount?.(
-                                () => countDocs(collection(db, 'clubs', cid, 'profiles')),
+                            );
+                            if (window.SuperAdminQuotaGuard?.isCircuitOpen?.()) { _saCountRefreshQueue.length = 0; break; }
+                            activeCount = activeRes?.ok ? Number(activeRes.count) : null;
+
+                            const profileRes = await window.SuperAdminQuotaGuard?.runThrottledCount?.(
+                                () => countDocs(collection(db, 'clubs', cid, 'profiles'), { cid, collection: 'profiles' }),
                                 { cid, collection: 'profiles' }
-                            ) ?? null;
-                            txCount = await window.SuperAdminQuotaGuard?.runThrottledCount?.(
-                                () => countDocs(collection(db, 'clubs', cid, 'transactions')),
+                            );
+                            if (window.SuperAdminQuotaGuard?.isCircuitOpen?.()) { _saCountRefreshQueue.length = 0; break; }
+                            profileCount = profileRes?.ok ? Number(profileRes.count) : null;
+
+                            const txRes = await window.SuperAdminQuotaGuard?.runThrottledCount?.(
+                                () => countDocs(collection(db, 'clubs', cid, 'transactions'), { cid, collection: 'transactions' }),
                                 { cid, collection: 'transactions' }
-                            ) ?? null;
-                            invCount = await window.SuperAdminQuotaGuard?.runThrottledCount?.(
-                                () => countDocs(collection(db, 'clubs', cid, 'inventory')),
+                            );
+                            if (window.SuperAdminQuotaGuard?.isCircuitOpen?.()) { _saCountRefreshQueue.length = 0; break; }
+                            txCount = txRes?.ok ? Number(txRes.count) : null;
+
+                            const invRes = await window.SuperAdminQuotaGuard?.runThrottledCount?.(
+                                () => countDocs(collection(db, 'clubs', cid, 'inventory'), { cid, collection: 'inventory' }),
                                 { cid, collection: 'inventory' }
-                            ) ?? null;
+                            );
+                            if (window.SuperAdminQuotaGuard?.isCircuitOpen?.()) { _saCountRefreshQueue.length = 0; break; }
+                            invCount = invRes?.ok ? Number(invRes.count) : null;
                         } catch (qErr) {
                             console.warn('[SuperAdmin] countRefreshQueue error for', cid, qErr?.message);
+                            if (window.SuperAdminQuotaGuard?.isCircuitOpen?.()) {
+                                _saCountRefreshQueue.length = 0;
+                                break;
+                            }
                         }
-                        // Chỉ ghi nếu count hợp lệ — không ghi null/undefined/NaN
+                        // Chỉ ghi nếu count hợp lệ — không ghi null/undefined/NaN/object
                         const payload = {};
                         if (Number.isFinite(activeCount))  payload.cachedActiveCount  = activeCount;
                         if (Number.isFinite(profileCount)) payload.cachedProfileCount = profileCount;
                         if (Number.isFinite(txCount))      payload.cachedTxCount      = txCount;
-                        if (Number.isFinite(invCount))      payload.cachedInvCount     = invCount;
+                        if (Number.isFinite(invCount))     payload.cachedInvCount     = invCount;
                         if (Object.keys(payload).length > 0) {
                             payload.cachedCountUpdatedAt = Date.now();
                             updateDoc(doc(db, 'clubs', cid), payload).catch(() => {});
                         }
-                        // Throttle giữa các CLB
-                        await new Promise(r => setTimeout(r, 350));
+                        await new Promise(r => setTimeout(r, 500));
                     }
                 } finally {
                     _saCountRefreshRunning = false;
@@ -280,14 +306,23 @@
             }
 
             // Phase 4K-6I-B: queueSuperAdminCountRefresh — add to queue, start runner
-            function queueSuperAdminCountRefresh(cid, clubData) {
+            function queueSuperAdminCountRefresh(cid, clubData, options = {}) {
+                if (window.__saDisableBackgroundCountRefresh === true && options.manual !== true) {
+                    console.info('[SuperAdmin] auto count refresh disabled — cached-only mode', { cid });
+                    return false;
+                }
+                if (window.SuperAdminQuotaGuard?.isCircuitOpen?.()) {
+                    console.warn('[SuperAdmin] count refresh blocked — quota circuit open', { cid });
+                    return false;
+                }
                 const alreadyQueued = _saCountRefreshQueue.some(item => item.cid === cid);
                 if (!alreadyQueued) {
-                    _saCountRefreshQueue.push({ cid, clubData });
+                    _saCountRefreshQueue.push({ cid, clubData, manual: options.manual === true });
                 }
                 if (!_saCountRefreshRunning) {
                     setTimeout(() => runSuperAdminCountRefreshQueue(), 500);
                 }
+                return true;
             }
 
             // [Phase 4K] Current month for stats doc reads — VN timezone offset
@@ -309,12 +344,14 @@
                 const _cacheAge   = _cached.updatedAt ? Date.now() - _cached.updatedAt : Infinity;
                 const _cacheStale = _cacheAge > 2 * 60 * 60 * 1000;
 
+                // Phase 4K-6I-C: mặc định KHÔNG tự động aggregation khi mở SuperAdmin.
+                // Nếu cache stale/missing vẫn hiển thị "--"; refresh count chỉ chạy thủ công từng CLB.
                 if (
                     (_cacheStale || activeCount === null) &&
                     !window.SuperAdminQuotaGuard?.isCircuitOpen?.() &&
                     !window.__saDisableBackgroundCountRefresh
                 ) {
-                    queueSuperAdminCountRefresh(cid, data);
+                    queueSuperAdminCountRefresh(cid, data, { manual: false });
                 }
 
                 // Ước tính dung lượng (KB): profile ~1KB, tx ~0.5KB, inv ~0.4KB (null → 0)
@@ -507,6 +544,32 @@
           return result;
       };
 
+      // Phase 4K-6I-C: hard-stop diagnostics + manual single-club refresh only.
+      window.debugSuperAdminAggregationHardStop = function() {
+          const result = {
+              autoBackgroundRefreshDisabled: window.__saDisableBackgroundCountRefresh === true,
+              hardStop: window.__saAggregationHardStop === true,
+              circuit: window.SuperAdminQuotaGuard?.getCircuitState?.() || null,
+              metrics: window.SuperAdminQuotaGuard?.getMetrics?.() || null,
+              queueLength: _saCountRefreshQueue.length,
+              queueRunning: _saCountRefreshRunning,
+              note: 'SuperAdmin dashboard is cached-only by default; missing counts render as --.'
+          };
+          console.log('[debugSuperAdminAggregationHardStop]', result);
+          console.table(result);
+          return result;
+      };
+
+      window.refreshSuperAdminCountsForClub = async function(cid) {
+          if (!cid) return { ok: false, reason: 'missing-cid' };
+          if (window.SuperAdminQuotaGuard?.isCircuitOpen?.()) {
+              return { ok: false, reason: 'quota-circuit-open', circuit: window.SuperAdminQuotaGuard.getCircuitState() };
+          }
+          const clubData = (window._saClubData?.clubDataList || []).find(x => x.cid === cid)?.data || {};
+          const queued = queueSuperAdminCountRefresh(cid, clubData, { manual: true });
+          return { ok: !!queued, cid, manual: true, queueLength: _saCountRefreshQueue.length };
+      };
+
       // ════════════════════════════════════════════════════════════
       // 2. openExpiryModal — Open expiry date modal
       // ════════════════════════════════════════════════════════════
@@ -673,6 +736,9 @@
             const _safePass = (data.adminPassword || '').replace(/"/g, '&quot;');
             const _pwDeskId = 'pw_d_' + cid;
             const _pwMobId = 'pw_m_' + cid;
+            const _fmtCount = (v) => Number.isFinite(Number(v)) ? Number(v).toLocaleString('vi-VN') : '--';
+            const activeDisplay = _fmtCount(activeCount);
+            const profileDisplay = _fmtCount(profileCount);
 
             // ── Desktop row ──
             const desktopRow = `<div class="hidden md:grid items-center gap-2 px-4 py-3 border-b border-slate-100 hover:bg-slate-50/80 transition-colors" style="grid-template-columns:148px 1fr 185px 80px 115px 115px 1fr;${rowBg}">
@@ -682,15 +748,15 @@
                 </div>
                 <div>
                     <div style="font-size:0.9rem;font-weight:800;color:#0f172a;">${cname}</div>
-                    <div style="font-size:0.62rem;color:#94a3b8;margin-top:2px;">${activeCount}/${profileCount} võ sinh · ${sizeDisplay}</div>
+                    <div style="font-size:0.62rem;color:#94a3b8;margin-top:2px;">${activeDisplay}/${profileDisplay} võ sinh · ${sizeDisplay}</div>
                     ${monthStats ? '<div style="font-size:0.6rem;color:#059669;margin-top:2px;font-weight:700;">💰 T' + (curMonth||'').split('-')[1] + ': ' + Number(monthStats['income.total'] || (monthStats.income && monthStats.income.total) || 0).toLocaleString('vi-VN') + '₫</div>' : ''}
                 </div>
                 <div style="overflow:hidden;">
                     <div style="font-size:0.72rem;font-weight:600;color:#475569;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${email}">${email}</div>
                     ${_safePass ? `<div style="margin-top:3px;display:flex;align-items:center;gap:3px;"><span style="font-size:0.6rem;color:#94a3b8;">MK:</span><span id="${_pwDeskId}" data-pw="${_safePass}" style="font-size:0.65rem;font-family:monospace;color:#475569;letter-spacing:0.06em;">••••••</span><button type="button" onclick="const e=document.getElementById('${_pwDeskId}');e.textContent=e.textContent.includes('•')?e.dataset.pw:'••••••'" style="background:none;border:none;cursor:pointer;font-size:0.7rem;color:#94a3b8;padding:0 2px;line-height:1;">👁</button></div>` : ''}</div>
                 <div style="text-align:center;">
-                    <div style="font-size:1.2rem;font-weight:900;color:#4338ca;">${activeCount}</div>
-                    <div style="font-size:0.6rem;color:#94a3b8;">/ ${profileCount}</div>
+                    <div style="font-size:1.2rem;font-weight:900;color:#4338ca;">${activeDisplay}</div>
+                    <div style="font-size:0.6rem;color:#94a3b8;">/ ${profileDisplay}</div>
                 </div>
                 <div>
                     <div style="font-size:0.82rem;font-weight:800;color:${expColor};">${formatDate(expiryDate)}</div>
@@ -731,8 +797,8 @@
                 <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px;">
                     <div style="background:#eef2ff;border-radius:10px;padding:8px;text-align:center;">
                         <div style="font-size:0.58rem;color:#6366f1;font-weight:900;text-transform:uppercase;">Võ Sinh</div>
-                        <div style="font-size:1.1rem;font-weight:900;color:#4338ca;margin-top:2px;">${activeCount}</div>
-                        <div style="font-size:0.58rem;color:#a5b4fc;">/ ${profileCount} hs</div>
+                        <div style="font-size:1.1rem;font-weight:900;color:#4338ca;margin-top:2px;">${activeDisplay}</div>
+                        <div style="font-size:0.58rem;color:#a5b4fc;">/ ${profileDisplay} hs</div>
                     </div>
                     <div style="background:#f0fdf4;border-radius:10px;padding:8px;text-align:center;">
                         <div style="font-size:0.58rem;color:#16a34a;font-weight:900;text-transform:uppercase;">Thu T.${(curMonth||'').split('-')[1]||'?'}</div>

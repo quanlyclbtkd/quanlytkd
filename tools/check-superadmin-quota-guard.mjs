@@ -136,8 +136,10 @@ check(
 check(
     indexHtml !== null && (
         indexHtml.includes('4K-6I-B') ||
+        indexHtml.includes('4K-6I-C') ||
         indexHtml.includes('superadmin-quota') ||
-        indexHtml.includes('runtime-fallback-fix')
+        indexHtml.includes('runtime-fallback-fix') ||
+        indexHtml.includes('superadmin-aggregation-hard-stop')
     ),
     'index.html cache bust has Phase 4K-6I-B',
     'index.html cache bust NOT updated to Phase 4K-6I-B'
@@ -147,9 +149,11 @@ check(
 check(
     mainJs !== null && (
         mainJs.includes('4K-6I-B') ||
-        mainJs.includes('superadmin-quota-runtime-fallback-fix')
+        mainJs.includes('4K-6I-C') ||
+        mainJs.includes('superadmin-quota-runtime-fallback-fix') ||
+        mainJs.includes('superadmin-aggregation-hard-stop')
     ),
-    'main.js APP_BUILD_VERSION has 4K-6I-B',
+    'main.js APP_BUILD_VERSION has 4K-6I-B/6I-C',
     'main.js APP_BUILD_VERSION NOT updated to 4K-6I-B'
 );
 
