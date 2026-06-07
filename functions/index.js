@@ -74,3 +74,12 @@ exports.onTransactionUpdate = statsAgg.onTransactionUpdate;
  * Usage: firebase.functions().httpsCallable('rebuildStatsForClub')({ clubId, year: 2026 })
  */
 exports.rebuildStatsForClub = statsAgg.rebuildStatsForClub;
+
+
+// ── Group 3: SuperAdmin Summary Cache ────────────────────────────────
+// Phase 4K-6I-G: server-side cached totals for SuperAdmin dashboard.
+const superAdminSummary = require('./src/superAdminSummary');
+exports.onProfileWriteSuperAdminSummary = superAdminSummary.onProfileWriteSuperAdminSummary;
+exports.onTransactionWriteSuperAdminSummary = superAdminSummary.onTransactionWriteSuperAdminSummary;
+exports.refreshSuperAdminSummaryForClub = superAdminSummary.refreshSuperAdminSummaryForClub;
+exports.scheduledRefreshSuperAdminSummaries = superAdminSummary.scheduledRefreshSuperAdminSummaries;
