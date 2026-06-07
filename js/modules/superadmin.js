@@ -225,14 +225,137 @@
                 }
             };
 
-            // Phase 4K-6I-B: getCachedClubCounts — đọc cached counts từ club doc
+            // Phase 4K-6I-D: SuperAdmin cache/readiness helpers — cached-only, no aggregation.
+            function _firstFiniteNumber(...values) {
+                for (const value of values) {
+                    if (value === null || value === undefined || value === '') continue;
+                    const n = Number(value);
+                    if (Number.isFinite(n)) return n;
+                }
+                return null;
+            }
+
+            function _readStatsIncomeTotal(stats) {
+                if (!stats || typeof stats !== 'object') return null;
+                return _firstFiniteNumber(
+                    stats['income.total'],
+                    stats.income && stats.income.total,
+                    stats.totalIncome,
+                    stats.totalRevenue,
+                    stats.revenue,
+                    stats.incomeTotal,
+                    stats.monthlyRevenue,
+                    stats.grossRevenue
+                );
+            }
+
+            function _readMonthlyCachedValue(source, monthKey, statsDocId) {
+                if (!source || typeof source !== 'object') return null;
+                const direct = source[monthKey] !== undefined ? source[monthKey] : source[statsDocId];
+                if (typeof direct === 'number' || typeof direct === 'string') return _firstFiniteNumber(direct);
+                if (direct && typeof direct === 'object') {
+                    return _firstFiniteNumber(
+                        direct['income.total'],
+                        direct.income && direct.income.total,
+                        direct.totalIncome,
+                        direct.totalRevenue,
+                        direct.revenue,
+                        direct.incomeTotal,
+                        direct.total
+                    );
+                }
+                return null;
+            }
+
+            function _readClubCachedRevenue(clubData, monthKey, statsDocId) {
+                if (!clubData || typeof clubData !== 'object') return null;
+                return _firstFiniteNumber(
+                    _readMonthlyCachedValue(clubData.cachedMonthlyRevenue, monthKey, statsDocId),
+                    _readMonthlyCachedValue(clubData.monthlyRevenue, monthKey, statsDocId),
+                    _readMonthlyCachedValue(clubData.revenueByMonth, monthKey, statsDocId),
+                    _readMonthlyCachedValue(clubData.statsByMonth, monthKey, statsDocId),
+                    clubData.cachedCurrentMonthRevenue,
+                    clubData.currentMonthRevenue,
+                    clubData.monthRevenue,
+                    clubData.monthlyIncome,
+                    clubData.cachedRevenue,
+                    clubData.totalRevenue
+                );
+            }
+
+            function _readStudentCountFromStats(stats) {
+                if (!stats || typeof stats !== 'object') return null;
+                return _firstFiniteNumber(
+                    stats.activeCount,
+                    stats.activeStudents,
+                    stats.studentCount,
+                    stats.totalStudents,
+                    stats.profileCount,
+                    stats.profilesCount,
+                    stats.students && stats.students.active,
+                    stats.students && stats.students.total,
+                    stats.profiles && stats.profiles.active,
+                    stats.profiles && stats.profiles.total
+                );
+            }
+
+            function _readStudentCountFromClub(clubData) {
+                if (!clubData || typeof clubData !== 'object') return null;
+                return _firstFiniteNumber(
+                    clubData.cachedActiveCount,
+                    clubData.cachedStudentCount,
+                    clubData.activeStudentCount,
+                    clubData.activeStudents,
+                    clubData.activeCount,
+                    clubData.totalActiveStudents,
+                    clubData.studentCount,
+                    clubData.totalStudents,
+                    clubData.cachedProfileCount,
+                    clubData.profileCount,
+                    clubData.profilesCount,
+                    clubData.membersCount,
+                    clubData.memberCount,
+                    clubData.stats && clubData.stats.activeCount,
+                    clubData.stats && clubData.stats.activeStudents,
+                    clubData.stats && clubData.stats.studentCount,
+                    clubData.stats && clubData.stats.totalStudents
+                );
+            }
+
+            function _fmtOptionalCount(value) {
+                const n = Number(value);
+                return Number.isFinite(n) ? n.toLocaleString('vi-VN') : '--';
+            }
+
+            function _fmtRevenueShort(value) {
+                const n = Number(value);
+                if (!Number.isFinite(n)) return '--';
+                if (Math.abs(n) >= 1000000) return Math.round(n / 1000000).toLocaleString('vi-VN') + 'tr';
+                return n.toLocaleString('vi-VN') + 'đ';
+            }
+
+            function _fmtRevenueFull(value) {
+                const n = Number(value);
+                return Number.isFinite(n) ? n.toLocaleString('vi-VN') + '₫' : '--';
+            }
+
+            // Phase 4K-6I-D: getCachedClubCounts — đọc cache từ nhiều schema cũ/mới, không aggregation.
             function getCachedClubCounts(clubData) {
+                const active = _readStudentCountFromClub(clubData);
                 return {
-                    activeCount:  typeof clubData.cachedActiveCount  === 'number' ? clubData.cachedActiveCount  : null,
-                    profileCount: typeof clubData.cachedProfileCount === 'number' ? clubData.cachedProfileCount : null,
-                    txCount:      typeof clubData.cachedTxCount      === 'number' ? clubData.cachedTxCount      : null,
-                    invCount:     typeof clubData.cachedInvCount     === 'number' ? clubData.cachedInvCount     : null,
-                    updatedAt:    clubData.cachedCountUpdatedAt || 0,
+                    activeCount:  active,
+                    profileCount: _firstFiniteNumber(
+                        clubData.cachedProfileCount,
+                        clubData.profileCount,
+                        clubData.profilesCount,
+                        clubData.totalStudents,
+                        clubData.studentCount,
+                        clubData.cachedStudentCount,
+                        active
+                    ),
+                    txCount:      _firstFiniteNumber(clubData.cachedTxCount, clubData.txCount, clubData.transactionCount, clubData.transactionsCount),
+                    invCount:     _firstFiniteNumber(clubData.cachedInvCount, clubData.invCount, clubData.inventoryCount, clubData.uniformCount),
+                    updatedAt:    clubData.cachedCountUpdatedAt || clubData.statsUpdatedAt || clubData.updatedAt || 0,
                 };
             }
             // Phase 4K-6I-C: runSuperAdminCountRefreshQueue — manual-only, concurrency=1, hard-stop on quota.
@@ -355,7 +478,7 @@
                 }
 
                 // Ước tính dung lượng (KB): profile ~1KB, tx ~0.5KB, inv ~0.4KB (null → 0)
-                const estimatedKB = Math.round((profileCount || 0) * 1 + (txCount || 0) * 0.5 + (invCount || 0) * 0.4);
+                let estimatedKB = Math.round((profileCount || 0) * 1 + (txCount || 0) * 0.5 + (invCount || 0) * 0.4);
 
                 // [Phase 4K] Đọc monthly stats doc — KHÔNG scan transactions cho revenue.
                 // Stats path: clubs/{clubId}/stats/{YYYY_MM}. Ghi bởi Cloud Functions CRUD triggers.
@@ -370,7 +493,29 @@
                     }
                 } catch (_se) { /* silent — stats doc optional; không crash SuperAdmin */ }
 
-                return { cid, data, activeCount, profileCount, txCount, invCount, estimatedKB, monthStats, curMonth: _curMonth4K };
+                // Phase 4K-6I-D: derive display-safe stats from cached club doc + stats doc.
+                // Không dùng aggregation. Nếu không có cache/stats thì giữ null để UI hiện "--" thay vì 0 sai.
+                const statsStudentCount = _readStudentCountFromStats(monthStats);
+                activeCount = _firstFiniteNumber(activeCount, statsStudentCount, _readStudentCountFromClub(data));
+                profileCount = _firstFiniteNumber(profileCount, data.cachedProfileCount, data.profileCount, data.totalStudents, activeCount);
+                const studentCountForSummary = _firstFiniteNumber(activeCount, profileCount);
+                const revenueTotal = _firstFiniteNumber(
+                    _readStatsIncomeTotal(monthStats),
+                    _readClubCachedRevenue(data, _curMonth4K, _statsDocId4K)
+                );
+                const hasRevenueSource = Number.isFinite(Number(revenueTotal));
+                estimatedKB = Math.round((profileCount || studentCountForSummary || 0) * 1 + (txCount || 0) * 0.5 + (invCount || 0) * 0.4);
+
+                return {
+                    cid, data,
+                    activeCount, profileCount, txCount, invCount,
+                    studentCountForSummary,
+                    estimatedKB,
+                    monthStats,
+                    revenueTotal,
+                    hasRevenueSource,
+                    curMonth: _curMonth4K
+                };
             }));
 
             // Tính tổng dung lượng hệ thống
@@ -391,15 +536,16 @@
             // Thống kê
             let totalActive = 0, totalExpiring = 0, totalExpired = 0, totalLocked = 0;
             let totalStudents = 0;
-            // [Phase 4K] Tổng doanh thu tháng từ stats docs — không scan transactions
+            let studentKnownClubCount = 0;
+            // [Phase 4K-6I-D] Tổng doanh thu tháng từ stats/cache docs — không scan transactions, không aggregation.
             let totalRevenue = 0; let revenueClubCount = 0;
-            clubDataList.forEach(({ data, activeCount, monthStats }) => {
-                if (monthStats) {
-                    totalRevenue += Number(monthStats['income.total'] || (monthStats.income && monthStats.income.total) || 0);
+            clubDataList.forEach(({ revenueTotal, hasRevenueSource }) => {
+                if (hasRevenueSource && Number.isFinite(Number(revenueTotal))) {
+                    totalRevenue += Number(revenueTotal || 0);
                     revenueClubCount++;
                 }
             });
-            clubDataList.forEach(({ data, activeCount }) => {
+            clubDataList.forEach(({ data, studentCountForSummary }) => {
                 const expiryDate = data.expiryDate || '2027-04-30';
                 const acctStatus = data.accountStatus || 'active';
                 const isExpired = expiryDate < today;
@@ -409,8 +555,17 @@
                 else if (isExpired) totalExpired++;
                 else if (isExpiring) totalExpiring++;
                 else totalActive++;
-                totalStudents += (activeCount || 0);
+                if (Number.isFinite(Number(studentCountForSummary))) {
+                    totalStudents += Number(studentCountForSummary);
+                    studentKnownClubCount++;
+                }
             });
+            const totalStudentsDisplay = studentKnownClubCount > 0 ? totalStudents.toLocaleString('vi-VN') : '--';
+            const totalStudentsNote = studentKnownClubCount > 0
+                ? (studentKnownClubCount + '/' + clubDataList.length + ' CLB có cache')
+                : 'chưa có cache thống kê';
+            const revenueDisplay = revenueClubCount > 0 ? _fmtRevenueShort(totalRevenue) : '--';
+            const revenueNote = revenueClubCount + '/' + clubDataList.length + ' CLB có stats/cache';
 
             const statsEl = document.getElementById('superAdminStats');
             if (statsEl) {
@@ -428,13 +583,13 @@
                     </div>
                     <div style="background:linear-gradient(135deg,#eef2ff,#e0e7ff);border:1.5px solid #a5b4fc;padding:14px 12px;border-radius:14px;text-align:center;">
                         <div style="font-size:0.65rem;font-weight:900;color:#4338ca;text-transform:uppercase;letter-spacing:0.05em;">Tổng Võ Sinh</div>
-                        <div style="font-size:2rem;font-weight:900;color:#4338ca;line-height:1.1;margin-top:4px;">${totalStudents}</div>
-                        <div style="font-size:0.65rem;color:#a5b4fc;font-weight:700;margin-top:2px;">toàn hệ thống</div>
+                        <div style="font-size:2rem;font-weight:900;color:#4338ca;line-height:1.1;margin-top:4px;">${totalStudentsDisplay}</div>
+                        <div style="font-size:0.65rem;color:#a5b4fc;font-weight:700;margin-top:2px;">${totalStudentsNote}</div>
                     </div>
                     <div style="background:linear-gradient(135deg,#f0fdf4,#d1fae5);border:1.5px solid #6ee7b7;padding:14px 12px;border-radius:14px;text-align:center;">
                         <div style="font-size:0.65rem;font-weight:900;color:#065f46;text-transform:uppercase;letter-spacing:0.05em;">Doanh Thu T.${_curMonth4K.split('-')[1]}</div>
-                        <div style="font-size:1.1rem;font-weight:900;color:#065f46;line-height:1.1;margin-top:4px;">${totalRevenue > 0 ? Math.round(totalRevenue/1000000).toLocaleString('vi-VN') + 'tr' : '--'}</div>
-                        <div style="font-size:0.65rem;color:#34d399;font-weight:700;margin-top:2px;">${revenueClubCount}/${clubDataList.length} CLB có stats</div>
+                        <div style="font-size:1.1rem;font-weight:900;color:#065f46;line-height:1.1;margin-top:4px;">${revenueDisplay}</div>
+                        <div style="font-size:0.65rem;color:#34d399;font-weight:700;margin-top:2px;">${revenueNote}</div>
                     </div>
                     <div style="background:linear-gradient(135deg,#f8fafc,#f1f5f9);border:1.5px solid #cbd5e1;padding:14px 12px;border-radius:14px;text-align:center;">
                         <div style="font-size:0.65rem;font-weight:900;color:#475569;text-transform:uppercase;letter-spacing:0.05em;">Dung Lượng</div>
@@ -442,6 +597,9 @@
                         <div style="font-size:0.65rem;color:#94a3b8;font-weight:700;margin-top:2px;">${totalLocked} bị khóa</div>
                     </div>
                 `;
+                if (studentKnownClubCount < clubDataList.length || revenueClubCount < clubDataList.length) {
+                    statsEl.innerHTML += '<div style="grid-column:1/-1;margin-top:6px;font-size:0.72rem;color:#64748b;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:8px 10px;">ℹ️ SuperAdmin đang dùng dữ liệu cache/stats để tránh vượt quota Firestore. CLB nào chưa có cache sẽ hiển thị <b>--</b> thay vì tự chạy count toàn hệ thống.</div>';
+                }
             }
 
             // Render từng CLB
@@ -695,7 +853,7 @@
 
         const maxSizeKB = Math.max(...clubDataList.map(c => c.estimatedKB), 1);
 
-        listEl.innerHTML = clubDataList.map(({ cid, data, activeCount, profileCount, txCount, invCount, estimatedKB, monthStats, curMonth }) => {
+        listEl.innerHTML = clubDataList.map(({ cid, data, activeCount, profileCount, txCount, invCount, estimatedKB, monthStats, revenueTotal, hasRevenueSource, curMonth }) => {
             // [HOTFIX] monthStats và curMonth được destructure đúng từ clubDataList item
             const cname = data.clubName || 'Chưa đặt tên';
             const email = data.adminEmail || 'Không rõ';
@@ -739,6 +897,8 @@
             const _fmtCount = (v) => Number.isFinite(Number(v)) ? Number(v).toLocaleString('vi-VN') : '--';
             const activeDisplay = _fmtCount(activeCount);
             const profileDisplay = _fmtCount(profileCount);
+            const revenueShortDisplay = _fmtRevenueShort(revenueTotal);
+            const revenueFullDisplay = _fmtRevenueFull(revenueTotal);
 
             // ── Desktop row ──
             const desktopRow = `<div class="hidden md:grid items-center gap-2 px-4 py-3 border-b border-slate-100 hover:bg-slate-50/80 transition-colors" style="grid-template-columns:148px 1fr 185px 80px 115px 115px 1fr;${rowBg}">
@@ -749,7 +909,7 @@
                 <div>
                     <div style="font-size:0.9rem;font-weight:800;color:#0f172a;">${cname}</div>
                     <div style="font-size:0.62rem;color:#94a3b8;margin-top:2px;">${activeDisplay}/${profileDisplay} võ sinh · ${sizeDisplay}</div>
-                    ${monthStats ? '<div style="font-size:0.6rem;color:#059669;margin-top:2px;font-weight:700;">💰 T' + (curMonth||'').split('-')[1] + ': ' + Number(monthStats['income.total'] || (monthStats.income && monthStats.income.total) || 0).toLocaleString('vi-VN') + '₫</div>' : ''}
+                    ${hasRevenueSource ? '<div style="font-size:0.6rem;color:#059669;margin-top:2px;font-weight:700;">💰 T' + (curMonth||'').split('-')[1] + ': ' + revenueFullDisplay + '</div>' : '<div style="font-size:0.6rem;color:#94a3b8;margin-top:2px;font-weight:700;">💰 T' + ((curMonth||'').split('-')[1]||'?') + ': --</div>'}
                 </div>
                 <div style="overflow:hidden;">
                     <div style="font-size:0.72rem;font-weight:600;color:#475569;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${email}">${email}</div>
@@ -802,7 +962,7 @@
                     </div>
                     <div style="background:#f0fdf4;border-radius:10px;padding:8px;text-align:center;">
                         <div style="font-size:0.58rem;color:#16a34a;font-weight:900;text-transform:uppercase;">Thu T.${(curMonth||'').split('-')[1]||'?'}</div>
-                        <div style="font-size:0.82rem;font-weight:900;color:#065f46;margin-top:2px;">${monthStats ? Math.round(Number(monthStats['income.total']||(monthStats.income&&monthStats.income.total)||0)/1000000).toLocaleString('vi-VN') + 'tr' : '--'}</div>
+                        <div style="font-size:0.82rem;font-weight:900;color:#065f46;margin-top:2px;">${revenueShortDisplay}</div>
                         <div style="font-size:0.58rem;color:#86efac;">${sizeDisplay}</div>
                     </div>
                     <div style="background:#fff7ed;border-radius:10px;padding:8px;text-align:center;">

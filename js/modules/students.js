@@ -1204,7 +1204,7 @@ export function initStudentPagination() {
             // Phase 4K-STUDENT-LIST: Fallback render nếu island không inject rows
             // Chỉ chạy khi: #activeList tồn tại, pgState.currentItems > 0, DOM trống
             // Không phá render island hiện tại — guard tr[data-student-id] trước khi inject
-            function _renderStudentsPageRowsFallback(pgState) {
+            function _renderStudentsPageRowsFallback(pgState, meta = {}) {
                 try {
                     // Phase 4K-5F: determine mode + target from current tab
                     const _mode   = _getCurrentTabIdSafe() === 'quit' ? 'quit' : 'active';
@@ -1233,7 +1233,23 @@ export function initStudentPagination() {
                     }).join('');
                     if (!rows) return false;
                     target.innerHTML = rows;
-                    console.warn('[students-pagination] 🔧 Fallback render —', _sortItems.length, 'rows →', '#' + _listId, '(island miss, mode:', _mode + ')');
+                    try {
+                        window.LegacyRenderEntrypoints?.recordLegacyRenderCall?.('fallbackRender', 'students-pagination-fallback', {
+                            mode: _mode,
+                            listId: _listId,
+                            rowCount: _sortItems.length,
+                            reason: meta.reason || 'island-timeout',
+                            attempts: meta.attempts || 0
+                        });
+                    } catch (_) {}
+                    const _now = Date.now();
+                    window.__studentsFallbackLastWarnAt = window.__studentsFallbackLastWarnAt || 0;
+                    if (_now - window.__studentsFallbackLastWarnAt > 5000) {
+                        window.__studentsFallbackLastWarnAt = _now;
+                        console.warn('[students-pagination] 🔧 Fallback render after island timeout —', _sortItems.length, 'rows →', '#' + _listId, '(mode:', _mode + ', attempts:', (meta.attempts || '?') + ')');
+                    } else {
+                        console.debug('[students-pagination] fallback render throttled —', _sortItems.length, 'rows →', '#' + _listId);
+                    }
                     return true;
                 } catch (_fe) {
                     return false;
@@ -1245,24 +1261,113 @@ export function initStudentPagination() {
             // renderActiveIsland dùng khi activeRows cache rỗng nhưng pagination có items.
             // Dùng HTML attribute escaping an toàn thay vì replace('/g) đơn giản.
 
-            // Phase 4K-6I-B: scheduleStudentsPaginationFallback — retry 2-3 times before fallback
+            // Phase 4K-6I-D: scheduleStudentsPaginationFallback — force island render before legacy fallback
+            // Mục tiêu: không để fallback row injector chạy chỉ vì island chưa kịp render.
+            // Fallback thật sự chỉ chạy sau khi đã thử refresh computation + render island nhiều lần.
             window.scheduleStudentsPaginationFallback = function scheduleStudentsPaginationFallback(pgState, opts = {}) {
-                const { reason = 'students-pagination-fallback', maxAttempts = 3, delay = 350 } = opts;
+                const { reason = 'students-pagination-fallback', maxAttempts = 4, delay = 450 } = opts;
                 let attempt = 0;
+                const metrics = window.__studentsPaginationIslandFallbackMetrics = window.__studentsPaginationIslandFallbackMetrics || {
+                    scheduled: 0,
+                    islandRendered: 0,
+                    fallbackRendered: 0,
+                    skippedExistingRows: 0,
+                    gaveUp: 0,
+                    recent: []
+                };
+                metrics.scheduled++;
+
+                function _pushRecent(row) {
+                    try {
+                        metrics.recent.unshift(Object.assign({ ts: Date.now() }, row || {}));
+                        if (metrics.recent.length > 30) metrics.recent.pop();
+                    } catch (_) {}
+                }
+
+                function _modeAndListId() {
+                    const tabMode = _getCurrentTabIdSafe() === 'quit' ? 'quit' : 'active';
+                    const mode = (pgState && pgState.mode) || tabMode;
+                    const safeMode = mode === 'quit' ? 'quit' : 'active';
+                    return { mode: safeMode, listId: safeMode === 'quit' ? 'quitList' : 'activeList' };
+                }
+
+                function _rowCount(listId) {
+                    const target = document.getElementById(listId);
+                    return target ? target.querySelectorAll('tr[data-student-id]').length : 0;
+                }
+
+                function _tryIslandRender(mode, listId) {
+                    try {
+                        const key = mode === 'quit' ? 'students.quitList' : 'students.activeList';
+                        if (typeof window.refreshListComputation === 'function') {
+                            window.refreshListComputation(key, reason + ':island-retry');
+                        } else if (typeof window.refreshListsComputation === 'function') {
+                            window.refreshListsComputation([key], reason + ':island-retry');
+                        }
+
+                        if (mode === 'quit' && typeof window.renderQuitList === 'function') {
+                            window.renderQuitList();
+                        } else if (mode === 'active' && typeof window.renderActiveList === 'function') {
+                            window.renderActiveList();
+                        } else if (typeof window.invalidateList === 'function') {
+                            window.invalidateList(key, reason + ':island-retry');
+                        }
+                    } catch (err) {
+                        console.debug('[scheduleStudentsPaginationFallback] island retry failed:', err && err.message ? err.message : err);
+                    }
+                    return _rowCount(listId) > 0;
+                }
+
                 function tryFallback() {
                     attempt++;
-                    const done = _renderStudentsPageRowsFallback(pgState);
-                    if (done) {
-                        console.debug('[scheduleStudentsPaginationFallback] success at attempt', attempt, '— reason:', reason);
+                    const { mode, listId } = _modeAndListId();
+                    const rowsBefore = _rowCount(listId);
+                    if (rowsBefore > 0) {
+                        metrics.skippedExistingRows++;
+                        _pushRecent({ event: 'skip-existing-rows', mode, listId, attempt, rowsBefore, reason });
                         return;
                     }
+
+                    if (_tryIslandRender(mode, listId)) {
+                        metrics.islandRendered++;
+                        _pushRecent({ event: 'island-rendered', mode, listId, attempt, reason });
+                        return;
+                    }
+
                     if (attempt < maxAttempts) {
                         setTimeout(tryFallback, delay);
+                        return;
+                    }
+
+                    const done = _renderStudentsPageRowsFallback(pgState, {
+                        reason: reason + ':island-timeout',
+                        attempts: attempt,
+                        mode,
+                        listId
+                    });
+                    if (done) {
+                        metrics.fallbackRendered++;
+                        _pushRecent({ event: 'fallback-rendered', mode, listId, attempt, reason });
                     } else {
+                        metrics.gaveUp++;
+                        _pushRecent({ event: 'gave-up', mode, listId, attempt, reason });
                         console.warn('[scheduleStudentsPaginationFallback] gave up after', attempt, 'attempts — reason:', reason);
                     }
                 }
                 setTimeout(tryFallback, delay);
+            };
+
+            window.debugStudentsPaginationIslandFallback = function debugStudentsPaginationIslandFallback() {
+                const result = window.__studentsPaginationIslandFallbackMetrics || {
+                    scheduled: 0,
+                    islandRendered: 0,
+                    fallbackRendered: 0,
+                    skippedExistingRows: 0,
+                    gaveUp: 0,
+                    recent: []
+                };
+                console.log('[debugStudentsPaginationIslandFallback]', result);
+                return result;
             };
 
             // Phase 4K-5F: filterStudentItemsForMode — hard filter pagination items by tab mode
