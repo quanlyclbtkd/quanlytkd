@@ -138,6 +138,7 @@
     };
 
     const app = initializeApp(firebaseConfig);
+    window._firebaseApp = app; // Phase 4K-6I-H: expose default app for Firebase Functions callable helpers
     const db = getFirestore(app);
     const auth = getAuth(app);
     const secondaryApp = initializeApp(firebaseConfig, "SecondaryApp");
@@ -5515,7 +5516,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
 
     // ═══════════════════════════════════════════════════════════════
     //  HELPER: Chuẩn hóa tên cơ sở từ Excel → mã CS1, CS2, ...
-    //  Hỗ trợ: "CS1", "cs2", "Cơ sở 1", "cơ sở 2", số "1"/"2",
+    //  Hỗ trợ: "CS1", "cs2", "Cơ sở 1", số "1"/"2",
     //          tên tùy chỉnh đã cấu hình admin (vd: "Nguyễn Huệ")
     // ═══════════════════════════════════════════════════════════════
     function _normalizeBranchForImport(rawBranch) {
@@ -5529,7 +5530,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         // 1. Khớp chính xác mã CS1…CS10 (không phân biệt hoa thường)
         const upperRaw = raw.toUpperCase();
         for (let i = 1; i <= 10; i++) {
-            if (upperRaw === 'CS' + i) return 'CS' + i <= 'CS' + bCount ? 'CS' + i : 'CS1';
+            if (upperRaw === 'CS' + i) return i <= bCount ? 'CS' + i : 'CS1';
         }
 
         // 2. Khớp theo tên cơ sở đã cấu hình trong admin (không phân biệt hoa thường, bỏ dấu)
@@ -5559,8 +5560,217 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // NHẬP TỪ EXCEL — Báo cáo chi tiết võ sinh thiếu/trùng
-    // [SỬA] Ghi lại lý do bỏ qua từng dòng, hiển thị modal cảnh báo đầy đủ
+    // Phase 4K-6I-I — Excel import existing student profile updater
+    // Mục tiêu: file 📥 NHẬP TỪ EXCEL có thể bổ sung thông tin cho võ sinh
+    // đã có trên hệ thống, đặc biệt là Mã hội viên VTF, mà không tạo trùng
+    // hồ sơ và không ghi đè dữ liệu đang ổn bằng ô Excel bỏ trống.
+    // ═══════════════════════════════════════════════════════════════
+    function _importStripDiacritics(v) {
+        return String(v || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/đ/g, 'd')
+            .replace(/Đ/g, 'D');
+    }
+
+    function _normalizeImportNameKey(v) {
+        return _importStripDiacritics(v)
+            .toLowerCase()
+            .replace(/[^a-z0-9\s]/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    function _normalizeImportHeader(v) {
+        return _importStripDiacritics(v)
+            .toLowerCase()
+            .replace(/[^a-z0-9]/g, '')
+            .trim();
+    }
+
+    function _normalizeImportMemberId(v) {
+        return String(v || '')
+            .trim()
+            .toUpperCase()
+            .replace(/\s+/g, '');
+    }
+
+    function _memberIdIndexKey(v) {
+        return _normalizeImportMemberId(v).replace(/[^A-Z0-9]/g, '');
+    }
+
+    function _getImportCell(row, aliases) {
+        if (!row) return '';
+        for (const key of aliases) {
+            if (Object.prototype.hasOwnProperty.call(row, key)) return row[key];
+        }
+        const aliasSet = new Set(aliases.map(_normalizeImportHeader));
+        for (const key of Object.keys(row)) {
+            if (aliasSet.has(_normalizeImportHeader(key))) return row[key];
+        }
+        return '';
+    }
+
+    function _hasImportCell(row, aliases) {
+        if (!row) return false;
+        for (const key of aliases) {
+            if (Object.prototype.hasOwnProperty.call(row, key)) return true;
+        }
+        const aliasSet = new Set(aliases.map(_normalizeImportHeader));
+        return Object.keys(row).some(key => aliasSet.has(_normalizeImportHeader(key)));
+    }
+
+    function _excelCellToString(v) {
+        if (v === null || v === undefined) return '';
+        if (v instanceof Date && !Number.isNaN(v.getTime())) return v.toISOString().slice(0, 10);
+        return String(v).trim();
+    }
+
+    function _formatImportDateCell(v, mode = 'date') {
+        if (v === null || v === undefined || v === '') return '';
+        if (v instanceof Date && !Number.isNaN(v.getTime())) {
+            if (mode === 'dob') {
+                const dd = String(v.getDate()).padStart(2, '0');
+                const mm = String(v.getMonth() + 1).padStart(2, '0');
+                return dd + '/' + mm + '/' + v.getFullYear();
+            }
+            return v.toISOString().slice(0, 10);
+        }
+        if (typeof v === 'number' && window.XLSX?.SSF?.format) {
+            try {
+                return window.XLSX.SSF.format(mode === 'dob' ? 'dd/mm/yyyy' : 'yyyy-mm-dd', v);
+            } catch (_) {}
+        }
+        return String(v).trim();
+    }
+
+    function _parseImportMoney(v) {
+        if (v === null || v === undefined || v === '') return null;
+        if (typeof v === 'number' && Number.isFinite(v)) return v;
+        const digits = String(v).replace(/[^0-9.-]/g, '');
+        if (!digits) return null;
+        const n = Number(digits);
+        return Number.isFinite(n) ? n : null;
+    }
+
+    function _buildImportProfileIndexes() {
+        const byExact = {};
+        const byNorm = {};
+        const ambiguous = {};
+        const memberIdIndex = {};
+        Object.entries(allProfiles || {}).forEach(([profileName, profile]) => {
+            byExact[String(profileName).trim()] = { name: profileName, profile };
+            const nKey = _normalizeImportNameKey(profileName);
+            if (nKey) {
+                if (byNorm[nKey] && byNorm[nKey].name !== profileName) ambiguous[nKey] = true;
+                else byNorm[nKey] = { name: profileName, profile };
+            }
+            const mKey = _memberIdIndexKey(profile?.memberId || profile?.studentCode || profile?.vtfCode || '');
+            if (mKey) memberIdIndex[mKey] = profileName;
+        });
+        return { byExact, byNorm, ambiguous, memberIdIndex };
+    }
+
+    function _resolveExistingProfileForImport(excelName, indexes) {
+        const raw = String(excelName || '').trim();
+        if (indexes.byExact[raw]) return { found: true, matchedName: indexes.byExact[raw].name, profile: indexes.byExact[raw].profile, matchType: 'exact' };
+        const nKey = _normalizeImportNameKey(raw);
+        if (!nKey) return { found: false };
+        if (indexes.ambiguous[nKey]) return { found: false, ambiguous: true, normKey: nKey };
+        if (indexes.byNorm[nKey]) return { found: true, matchedName: indexes.byNorm[nKey].name, profile: indexes.byNorm[nKey].profile, matchType: 'normalized' };
+        return { found: false };
+    }
+
+    function _buildExistingStudentImportPayload(row, existingProfile) {
+        const payload = {};
+        const changed = [];
+        const memberId = _normalizeImportMemberId(_getImportCell(row, [
+            'Mã hội viên VTF', 'Mã HV VTF', 'Mã VTF', 'VTF', 'VTF ID', 'VTF Code',
+            'Mã hội viên', 'Mã học viên', 'Mã thành viên', 'Member ID', 'memberId'
+        ]));
+        if (memberId && memberId !== _normalizeImportMemberId(existingProfile?.memberId || '')) {
+            payload.memberId = memberId;
+            changed.push('Mã VTF');
+        }
+
+        const gender = _excelCellToString(_getImportCell(row, ['Giới tính (Nam/Nữ)', 'Giới tính', 'Gender']));
+        if (gender && gender !== String(existingProfile?.gender || '').trim()) {
+            payload.gender = gender;
+            changed.push('Giới tính');
+        }
+
+        const rawBranch = _getImportCell(row, ['Cơ sở', 'Branch', 'branch']);
+        if (_hasImportCell(row, ['Cơ sở', 'Branch', 'branch']) && _excelCellToString(rawBranch)) {
+            const branch = _normalizeBranchForImport(rawBranch);
+            if (branch && branch !== existingProfile?.branch) {
+                payload.branch = branch;
+                changed.push('Cơ sở');
+            }
+        }
+
+        const belt = _excelCellToString(_getImportCell(row, ['Cấp đai', 'Đai', 'Belt', 'belt']));
+        if (belt && belt !== String(existingProfile?.belt || '').trim()) {
+            payload.belt = belt;
+            changed.push('Cấp đai');
+        }
+
+        const phone = _excelCellToString(_getImportCell(row, ['SĐT', 'Số điện thoại', 'Điện thoại', 'Phone', 'phone']));
+        if (phone && phone !== String(existingProfile?.phone || '').trim()) {
+            payload.phone = phone;
+            changed.push('SĐT');
+        }
+
+        const dobRaw = _getImportCell(row, ['Ngày sinh', 'Ngày sinh (DD/MM/YYYY)', 'DOB', 'dob']);
+        const dob = _formatImportDateCell(dobRaw, 'dob');
+        if (dob && dob !== String(existingProfile?.dob || '').trim()) {
+            payload.dob = dob;
+            changed.push('Ngày sinh');
+        }
+
+        const feeRaw = _getImportCell(row, ['Học phí (VNĐ)', 'Học phí', 'Tuition', 'tuitionFee']);
+        const fee = _parseImportMoney(feeRaw);
+        if (fee !== null && fee !== Number(existingProfile?.tuitionFee || 0)) {
+            payload.tuitionFee = fee;
+            changed.push('Học phí');
+        }
+
+        const joinRaw = _getImportCell(row, ['Ngày nhập học (YYYY-MM-DD)', 'Ngày nhập học', 'Ngày vào học', 'Join Date', 'createdAt']);
+        const joinDate = _formatImportDateCell(joinRaw, 'date');
+        if (joinDate && !existingProfile?.createdAt) {
+            payload.createdAt = joinDate;
+            changed.push('Ngày nhập học');
+        }
+
+        // Không cập nhật paidUntil cho võ sinh đã tồn tại để tránh làm sai nợ/học phí.
+        if (Object.keys(payload).length > 0) {
+            payload.lastExcelSyncAt = new Date().toISOString();
+            payload.lastExcelSyncSource = 'active-import-update';
+        }
+        return { payload, changed };
+    }
+
+    window.debugExcelImportVtfUpsert = function() {
+        const indexes = _buildImportProfileIndexes();
+        return {
+            enabled: true,
+            phase: '4K-6I-I-excel-import-vtf-upsert-20260608',
+            profileCount: Object.keys(allProfiles || {}).length,
+            indexedNames: Object.keys(indexes.byNorm || {}).length,
+            indexedMemberIds: Object.keys(indexes.memberIdIndex || {}).length,
+            supportsExistingStudentUpdate: true,
+            supportsVtfAliases: [
+                'Mã hội viên VTF', 'Mã HV VTF', 'Mã VTF', 'VTF', 'VTF ID', 'VTF Code',
+                'Mã hội viên', 'Mã học viên', 'Mã thành viên', 'Member ID', 'memberId'
+            ],
+            protectsFinancialFields: ['paidUntil', 'status'],
+            note: 'Existing students are updated by exact/normalized name match; blank Excel cells do not overwrite existing values.'
+        };
+    };
+
+    // ═══════════════════════════════════════════════════════════════
+    // NHẬP TỪ EXCEL — Nhập mới + cập nhật võ sinh đã có, đặc biệt Mã VTF
+    // Phase 4K-6I-I: Nếu tên đã có trên hệ thống thì cập nhật các ô Excel
+    // không trống bằng merge, không tạo trùng và không đổi trạng thái học phí.
     // ═══════════════════════════════════════════════════════════════
     window.handleImportExcel = (event) => {
         const file = event.target.files[0];
@@ -5575,51 +5785,99 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                 const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
                 if (jsonData.length === 0) return alert('File Excel không có dữ liệu!');
-                if (!confirm('Tìm thấy ' + jsonData.length + ' dòng trong file. Bạn có muốn bắt đầu nhập vào hệ thống?')) return;
+                if (!confirm('Tìm thấy ' + jsonData.length + ' dòng trong file.\n\nHệ thống sẽ:\n- Thêm võ sinh mới nếu tên chưa có.\n- Cập nhật thông tin cho võ sinh đã có, đặc biệt Mã hội viên VTF.\n- Không ghi đè bằng ô trống và không thay đổi trạng thái học phí của võ sinh cũ.\n\nBạn có muốn bắt đầu nhập/cập nhật không?')) return;
 
-                window.showToast('⏳ Đang xử lý nhập dữ liệu...', 10000, true);
-                const batch = writeBatch(db);
-                let count = 0;
+                window.showToast('⏳ Đang xử lý nhập/cập nhật dữ liệu...', 10000, true);
+                let batch = writeBatch(db);
+                let batchOps = 0;
+                const _commitImportBatchIfNeeded = async (force = false) => {
+                    if (batchOps > 0 && (force || batchOps >= 450)) {
+                        await batch.commit();
+                        batch = writeBatch(db);
+                        batchOps = 0;
+                    }
+                };
+
+                let importedCount = 0;
+                let updatedCount = 0;
+                const updatedList = [];
                 const branchSyncLog = {}; // Ghi lại các cơ sở đã được đồng bộ tự động
-
-                // [THÊM] Danh sách dòng bị bỏ qua kèm lý do chi tiết
                 const skippedList = []; // { row, name, reason, detail }
-                // [THÊM] Theo dõi tên trùng ngay trong chính file Excel đang nhập
                 const seenInFile  = {};
+                const memberIdSeenInFile = {};
+                const profileIndexes = _buildImportProfileIndexes();
 
-                jsonData.forEach((row, _rowIdx) => {
+                for (let _rowIdx = 0; _rowIdx < jsonData.length; _rowIdx++) {
+                    const row = jsonData[_rowIdx];
                     const _rowNum = _rowIdx + 2; // +2 vì dòng 1 là header
-                    let name = row['Họ và tên'] || row['Tên'] || row['Name'];
+                    let name = _getImportCell(row, ['Họ và tên', 'Tên', 'Name', 'Họ tên', 'Tên võ sinh']);
 
-                    // ── Lý do 1: Dòng trống / thiếu họ tên ──────────────────
                     if (!name || !String(name).trim()) {
                         skippedList.push({ row: _rowNum, name: '(trống)', reason: 'Thiếu họ tên', detail: 'Ô "Họ và tên" bỏ trống' });
-                        return;
+                        continue;
                     }
                     name = String(name).trim();
+                    const nameKey = _normalizeImportNameKey(name);
 
-                    // ── Lý do 2: Trùng tên trong chính file Excel đang nhập ──
-                    if (seenInFile[name]) {
+                    if (seenInFile[nameKey]) {
                         skippedList.push({ row: _rowNum, name, reason: 'Trùng trong file', detail: 'Tên này xuất hiện nhiều lần trong file Excel' });
-                        return;
+                        continue;
                     }
-                    seenInFile[name] = true;
+                    seenInFile[nameKey] = true;
 
-                    // ── Lý do 3: Đã tồn tại trong hệ thống ──────────────────
-                    if (allProfiles[name]) {
-                        const _ex = allProfiles[name];
-                        const _stStr = _ex.status === 'active' ? 'đang tập' : _ex.status === 'quit' ? 'đã nghỉ' : (_ex.status || '');
-                        const _brStr = _ex.branch ? (', ' + (window.getBranchNameDisplay ? window.getBranchNameDisplay(_ex.branch) : _ex.branch)) : '';
-                        skippedList.push({ row: _rowNum, name, reason: 'Trùng tên hệ thống', detail: 'Đã có trong hệ thống (' + _stStr + _brStr + ')' });
-                        return;
+                    const memberIdVisible = _normalizeImportMemberId(_getImportCell(row, [
+                        'Mã hội viên VTF', 'Mã HV VTF', 'Mã VTF', 'VTF', 'VTF ID', 'VTF Code',
+                        'Mã hội viên', 'Mã học viên', 'Mã thành viên', 'Member ID', 'memberId'
+                    ]));
+                    const memberIdKey = _memberIdIndexKey(memberIdVisible);
+                    if (memberIdKey && memberIdSeenInFile[memberIdKey] && memberIdSeenInFile[memberIdKey] !== name) {
+                        skippedList.push({ row: _rowNum, name, reason: 'Trùng mã VTF trong file', detail: 'Mã ' + memberIdVisible + ' đã dùng cho ' + memberIdSeenInFile[memberIdKey] });
+                        continue;
+                    }
+                    if (memberIdKey) memberIdSeenInFile[memberIdKey] = name;
+
+                    const existing = _resolveExistingProfileForImport(name, profileIndexes);
+                    if (existing.ambiguous) {
+                        skippedList.push({ row: _rowNum, name, reason: 'Tên không rõ', detail: 'Có nhiều hồ sơ trùng tên sau khi chuẩn hóa, cần cập nhật thủ công' });
+                        continue;
                     }
 
-                    let gender   = row['Giới tính (Nam/Nữ)'] || row['Giới tính'] || '';
-                    let memberId = row['Mã hội viên VTF'] || row['Mã hội viên'] || '';
+                    if (existing.found) {
+                        const owner = memberIdKey ? profileIndexes.memberIdIndex[memberIdKey] : '';
+                        if (memberIdKey && owner && owner !== existing.matchedName) {
+                            skippedList.push({ row: _rowNum, name, reason: 'Trùng mã VTF hệ thống', detail: 'Mã ' + memberIdVisible + ' đang thuộc về ' + owner });
+                            continue;
+                        }
 
-                    // ── Đồng bộ cơ sở: nhận diện tự động, map về mã CS1/CS2/... ──
-                    // [SỬA] Nhận diện cột Cơ sở với tên động bất kỳ (CS1/CS2 hoặc CS1/CS2/CS3...)
-                    let rawBranch = row['Cơ sở'] || row['Cơ sở (CS1/CS2)'] || '';
+                        const { payload, changed } = _buildExistingStudentImportPayload(row, existing.profile || {});
+                        if (Object.keys(payload).length === 0) {
+                            skippedList.push({ row: _rowNum, name: existing.matchedName, reason: 'Không có thông tin mới', detail: 'Dòng này không có ô mới/khác để cập nhật' });
+                            continue;
+                        }
+
+                        const docRef = doc(db, 'clubs', currentClubId, 'profiles', existing.matchedName);
+                        batch.set(docRef, payload, { merge: true });
+                        batchOps++;
+                        updatedCount++;
+                        updatedList.push({ row: _rowNum, name: existing.matchedName, detail: changed.join(', ') || 'Cập nhật thông tin' });
+
+                        // Cập nhật index tạm để các dòng sau không dùng lại mã VTF.
+                        if (payload.memberId) profileIndexes.memberIdIndex[_memberIdIndexKey(payload.memberId)] = existing.matchedName;
+                        await _commitImportBatchIfNeeded(false);
+                        continue;
+                    }
+
+                    // Võ sinh mới: nếu mã VTF đã tồn tại ở hệ thống thì không tạo hồ sơ mới để tránh trùng mã.
+                    const owner = memberIdKey ? profileIndexes.memberIdIndex[memberIdKey] : '';
+                    if (memberIdKey && owner) {
+                        skippedList.push({ row: _rowNum, name, reason: 'Mã VTF đã tồn tại', detail: 'Mã ' + memberIdVisible + ' đang thuộc về ' + owner + ', không tạo hồ sơ mới' });
+                        continue;
+                    }
+
+                    let gender   = _getImportCell(row, ['Giới tính (Nam/Nữ)', 'Giới tính', 'Gender']);
+                    let memberId = memberIdVisible;
+
+                    let rawBranch = _getImportCell(row, ['Cơ sở', 'Branch', 'branch']);
                     if (!rawBranch) {
                         const _brKey = Object.keys(row).find(k => k.startsWith('Cơ sở ('));
                         if (_brKey) rawBranch = row[_brKey] || '';
@@ -5629,21 +5887,18 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                         const key = String(rawBranch).trim() + ' → ' + branch + ' (' + window.getBranchNameDisplay(branch) + ')';
                         branchSyncLog[key] = (branchSyncLog[key] || 0) + 1;
                     }
-                    // ─────────────────────────────────────────────────────────
 
-                    let belt     = row['Cấp đai'] || 'Đai trắng - Cấp 10';
-                    let phone    = row['SĐT'] || row['Số điện thoại'] || '';
-                    let dob      = row['Ngày sinh'] || row['Ngày sinh (DD/MM/YYYY)'] || '';
-                    let fee      = Number(row['Học phí (VNĐ)'] || row['Học phí'] || 0);
-                    let joinDate = row['Ngày nhập học (YYYY-MM-DD)'] || row['Ngày nhập học'] || getLocalToday();
+                    let belt     = _getImportCell(row, ['Cấp đai', 'Đai', 'Belt']) || 'Đai trắng - Cấp 10';
+                    let phone    = _getImportCell(row, ['SĐT', 'Số điện thoại', 'Điện thoại', 'Phone']);
+                    let dob      = _formatImportDateCell(_getImportCell(row, ['Ngày sinh', 'Ngày sinh (DD/MM/YYYY)', 'DOB']), 'dob');
+                    let fee      = _parseImportMoney(_getImportCell(row, ['Học phí (VNĐ)', 'Học phí', 'Tuition', 'tuitionFee'])) || 0;
+                    let joinDate = _formatImportDateCell(_getImportCell(row, ['Ngày nhập học (YYYY-MM-DD)', 'Ngày nhập học', 'Ngày vào học', 'Join Date']), 'date') || getLocalToday();
 
-                    // [SỬA] Hỗ trợ cả 2 định dạng: MM-YYYY (mới) và YYYY-MM (cũ)
-                    let paidUntilInput = row['Đã đóng tới tháng (MM-YYYY)'] || row['Đã đóng tới tháng (YYYY-MM)'] || row['Đã đóng tới tháng'] || '';
+                    let paidUntilInput = _getImportCell(row, ['Đã đóng tới tháng (MM-YYYY)', 'Đã đóng tới tháng (YYYY-MM)', 'Đã đóng tới tháng']);
                     let paidUntil = '';
                     if (paidUntilInput) {
                         const _pStr   = String(paidUntilInput).trim();
                         const _mmYYYY = _pStr.match(/^(\d{1,2})-(\d{4})$/);
-                        // Nếu định dạng MM-YYYY (vd: "05-2024") → chuyển về YYYY-MM nội bộ
                         paidUntil = _mmYYYY ? (_mmYYYY[2] + '-' + _mmYYYY[1].padStart(2, '0')) : _pStr;
                     } else {
                         paidUntil = String(joinDate).substring(0, 7);
@@ -5652,28 +5907,42 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                     const docRef = doc(db, 'clubs', currentClubId, 'profiles', name);
                     batch.set(docRef, {
                         status: 'active',
-                        gender: String(gender).trim(),
-                        memberId: String(memberId).trim().toUpperCase(),
+                        gender: _excelCellToString(gender),
+                        memberId: String(memberId || '').trim().toUpperCase(),
                         branch,
                         belt: String(belt).trim(),
-                        phone: String(phone).trim(),
-                        dob: String(dob).trim(),
+                        phone: _excelCellToString(phone),
+                        dob: String(dob || '').trim(),
                         tuitionFee: fee,
                         createdAt: String(joinDate).trim(),
                         paidUntil,
                         notes: 'Nhập từ Excel'
                     });
-                    count++;
-                });
+                    batchOps++;
+                    importedCount++;
+                    profileIndexes.byExact[name] = { name, profile: { memberId, branch, status: 'active' } };
+                    profileIndexes.byNorm[nameKey] = { name, profile: { memberId, branch, status: 'active' } };
+                    if (memberIdKey) profileIndexes.memberIdIndex[memberIdKey] = name;
+                    await _commitImportBatchIfNeeded(false);
+                }
 
-                if (count > 0) await batch.commit();
+                await _commitImportBatchIfNeeded(true);
 
-                // [THÊM] Hiển thị modal báo cáo kết quả nhập chi tiết
-                _showImportReport({ total: jsonData.length, imported: count, skipped: skippedList, branchSync: branchSyncLog });
+                if (importedCount > 0 || updatedCount > 0) {
+                    try {
+                        if (typeof window.resetActiveRenderLimit === 'function') window.resetActiveRenderLimit('excel-import-upsert');
+                        if (typeof window.refreshListsComputation === 'function') window.refreshListsComputation(['students.activeList', 'students.debtList'], 'excel-import-upsert');
+                        if (typeof window.invalidateStudents === 'function') window.invalidateStudents('excel-import-upsert');
+                    } catch (_refreshErr) {
+                        console.warn('[ExcelImport] refresh after import failed:', _refreshErr);
+                    }
+                }
+
+                _showImportReport({ total: jsonData.length, imported: importedCount, updated: updatedCount, updatedList, skipped: skippedList, branchSync: branchSyncLog });
 
             } catch (err) {
                 console.error(err);
-                alert('Lỗi đọc file Excel. Vui lòng dùng mẫu chuẩn.');
+                alert('Lỗi đọc file Excel. Vui lòng dùng mẫu chuẩn. ' + (err && err.message ? err.message : ''));
             } finally {
                 event.target.value = '';
             }
@@ -5681,8 +5950,15 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         reader.readAsArrayBuffer(file);
     };
 
-    // ── [THÊM] Modal báo cáo kết quả nhập Excel — hiển thị chi tiết từng võ sinh bị bỏ qua ──
-    function _showImportReport({ total, imported, skipped, branchSync }) {
+    // ── [THÊM] Modal báo cáo kết quả nhập Excel — hiển thị chi tiết từng võ sinh nhập/cập nhật/bỏ qua ──
+    function _showImportReport({ total, imported, updated = 0, updatedList = [], skipped = [], branchSync = {} }) {
+        const _esc = (v) => String(v ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+
         // Nhóm theo lý do để hiển thị gọn
         const groups = {};
         skipped.forEach(s => {
@@ -5692,9 +5968,14 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
 
         // Màu sắc & icon theo từng loại lý do bỏ qua
         const _styleMap = {
-            'Thiếu họ tên':       { icon: '📭', color: '#d97706', bg: '#fefce8', border: '#fde68a' },
-            'Trùng trong file':   { icon: '🔁', color: '#7c3aed', bg: '#f5f3ff', border: '#ddd6fe' },
-            'Trùng tên hệ thống': { icon: '⚠️', color: '#dc2626', bg: '#fff1f2', border: '#fecaca' },
+            'Thiếu họ tên':           { icon: '📭', color: '#d97706', bg: '#fefce8', border: '#fde68a' },
+            'Trùng trong file':       { icon: '🔁', color: '#7c3aed', bg: '#f5f3ff', border: '#ddd6fe' },
+            'Trùng tên hệ thống':     { icon: '⚠️', color: '#dc2626', bg: '#fff1f2', border: '#fecaca' },
+            'Trùng mã VTF trong file':{ icon: '🆔', color: '#b45309', bg: '#fffbeb', border: '#fde68a' },
+            'Trùng mã VTF hệ thống':  { icon: '🆔', color: '#dc2626', bg: '#fff1f2', border: '#fecaca' },
+            'Mã VTF đã tồn tại':      { icon: '🆔', color: '#dc2626', bg: '#fff1f2', border: '#fecaca' },
+            'Tên không rõ':           { icon: '❓', color: '#475569', bg: '#f8fafc', border: '#cbd5e1' },
+            'Không có thông tin mới': { icon: 'ℹ️', color: '#64748b', bg: '#f8fafc', border: '#e2e8f0' }
         };
 
         // HTML từng nhóm lý do
@@ -5703,82 +5984,100 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             const st = _styleMap[reason] || { icon: '❓', color: '#64748b', bg: '#f8fafc', border: '#e2e8f0' };
             const rows = list.map(s =>
                 '<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid ' + st.border + ';align-items:flex-start;">' +
-                    '<span style="font-size:0.68rem;color:#94a3b8;white-space:nowrap;min-width:42px;margin-top:2px;">Dòng ' + s.row + '</span>' +
-                    '<span style="font-weight:700;font-size:0.83rem;color:' + st.color + ';flex:1;word-break:break-all;">' + s.name + '</span>' +
-                    '<span style="font-size:0.68rem;color:#64748b;text-align:right;flex-shrink:0;max-width:170px;line-height:1.4;">' + s.detail + '</span>' +
+                    '<span style="font-size:0.68rem;color:#94a3b8;white-space:nowrap;min-width:42px;margin-top:2px;">Dòng ' + _esc(s.row) + '</span>' +
+                    '<span style="font-weight:700;font-size:0.83rem;color:' + st.color + ';flex:1;word-break:break-all;">' + _esc(s.name) + '</span>' +
+                    '<span style="font-size:0.68rem;color:#64748b;text-align:right;flex-shrink:0;max-width:190px;line-height:1.4;">' + _esc(s.detail) + '</span>' +
                 '</div>'
             ).join('');
             skipHtml +=
                 '<div style="margin-bottom:12px;border:1.5px solid ' + st.border + ';border-radius:12px;overflow:hidden;">' +
                     '<div style="background:' + st.bg + ';padding:8px 14px;display:flex;align-items:center;gap:7px;border-bottom:1px solid ' + st.border + ';">' +
                         '<span style="font-size:0.9rem;">' + st.icon + '</span>' +
-                        '<span style="font-weight:900;font-size:0.82rem;color:' + st.color + ';">' + reason + '</span>' +
-                        '<span style="margin-left:auto;background:' + st.color + ';color:#fff;font-size:0.68rem;font-weight:800;padding:2px 8px;border-radius:99px;">' + list.length + ' VS</span>' +
+                        '<span style="font-weight:900;font-size:0.82rem;color:' + st.color + ';">' + _esc(reason) + '</span>' +
+                        '<span style="margin-left:auto;background:' + st.color + ';color:#fff;font-size:0.68rem;font-weight:800;padding:2px 8px;border-radius:99px;">' + list.length + ' dòng</span>' +
                     '</div>' +
                     '<div style="padding:4px 14px 4px;background:#fff;">' + rows + '</div>' +
                 '</div>';
         });
 
-        // HTML đồng bộ cơ sở (nếu có)
-        const syncKeys = Object.keys(branchSync);
-        const syncHtml = syncKeys.length > 0
-            ? '<div style="margin-top:10px;padding:10px 14px;background:#f0f9ff;border:1.5px solid #bae6fd;border-radius:12px;">' +
-                '<div style="font-weight:900;font-size:0.78rem;color:#0369a1;margin-bottom:6px;">🔄 Đã tự động đồng bộ cơ sở</div>' +
-                syncKeys.map(k => '<div style="font-size:0.75rem;color:#0369a1;padding:3px 0;border-bottom:1px solid #bae6fd;">🔄 ' + k + ' — <b>' + branchSync[k] + '</b> võ sinh</div>').join('') +
+        const updateHtml = updatedList.length > 0
+            ? '<div style="margin-bottom:12px;border:1.5px solid #bfdbfe;border-radius:12px;overflow:hidden;">' +
+                '<div style="background:#eff6ff;padding:8px 14px;display:flex;align-items:center;gap:7px;border-bottom:1px solid #bfdbfe;">' +
+                    '<span>🆔</span><span style="font-weight:900;font-size:0.82rem;color:#1d4ed8;">Đã cập nhật võ sinh có sẵn</span>' +
+                    '<span style="margin-left:auto;background:#2563eb;color:#fff;font-size:0.68rem;font-weight:800;padding:2px 8px;border-radius:99px;">' + updatedList.length + ' VS</span>' +
+                '</div>' +
+                '<div style="padding:4px 14px;background:#fff;">' +
+                  updatedList.slice(0, 80).map(u =>
+                    '<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid #dbeafe;align-items:flex-start;">' +
+                      '<span style="font-size:0.68rem;color:#94a3b8;white-space:nowrap;min-width:42px;margin-top:2px;">Dòng ' + _esc(u.row) + '</span>' +
+                      '<span style="font-weight:700;font-size:0.83rem;color:#1d4ed8;flex:1;word-break:break-all;">' + _esc(u.name) + '</span>' +
+                      '<span style="font-size:0.68rem;color:#64748b;text-align:right;flex-shrink:0;max-width:190px;line-height:1.4;">' + _esc(u.detail) + '</span>' +
+                    '</div>'
+                  ).join('') +
+                  (updatedList.length > 80 ? '<div style="font-size:0.72rem;color:#64748b;padding:8px 0;">... và ' + (updatedList.length - 80) + ' võ sinh khác</div>' : '') +
+                '</div>' +
               '</div>'
             : '';
 
-        // Màu header modal theo tổng kết quả
-        const _hGrad  = skipped.length === 0 ? 'linear-gradient(135deg,#059669,#047857)' : imported === 0 ? 'linear-gradient(135deg,#dc2626,#b91c1c)' : 'linear-gradient(135deg,#0033A0,#0052cc)';
-        const _hTitle = skipped.length === 0 ? 'Nhập thành công toàn bộ!' : imported === 0 ? 'Không nhập được võ sinh nào' : 'Kết quả nhập từ Excel';
-        const _hIcon  = skipped.length === 0 ? '✅' : imported === 0 ? '❌' : '📥';
+        // HTML đồng bộ cơ sở (nếu có)
+        const syncKeys = Object.keys(branchSync || {});
+        const syncHtml = syncKeys.length > 0
+            ? '<div style="margin-top:10px;padding:10px 14px;background:#f0f9ff;border:1.5px solid #bae6fd;border-radius:12px;">' +
+                '<div style="font-weight:900;font-size:0.78rem;color:#0369a1;margin-bottom:6px;">🔄 Đã tự động đồng bộ cơ sở</div>' +
+                syncKeys.map(k => '<div style="font-size:0.75rem;color:#0369a1;padding:3px 0;border-bottom:1px solid #bae6fd;">🔄 ' + _esc(k) + ' — <b>' + branchSync[k] + '</b> võ sinh</div>').join('') +
+              '</div>'
+            : '';
+
+        const changedTotal = imported + updated;
+        const _hGrad  = skipped.length === 0 ? 'linear-gradient(135deg,#059669,#047857)' : changedTotal === 0 ? 'linear-gradient(135deg,#dc2626,#b91c1c)' : 'linear-gradient(135deg,#0033A0,#0052cc)';
+        const _hTitle = skipped.length === 0 ? 'Nhập/cập nhật thành công!' : changedTotal === 0 ? 'Không có dữ liệu nào được ghi' : 'Kết quả nhập/cập nhật từ Excel';
+        const _hIcon  = skipped.length === 0 ? '✅' : changedTotal === 0 ? '❌' : '📥';
 
         const html =
             '<div id="_importReportOverlay" onclick="if(event.target===this)this.remove()" style="position:fixed;inset:0;background:rgba(15,23,42,0.78);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px);">' +
-              '<div style="background:#fff;width:100%;max-width:520px;border-radius:20px;box-shadow:0 24px 64px rgba(0,0,0,0.32);overflow:hidden;max-height:90vh;display:flex;flex-direction:column;">' +
-
-                // Header
+              '<div style="background:#fff;width:100%;max-width:620px;border-radius:20px;box-shadow:0 24px 64px rgba(0,0,0,0.32);overflow:hidden;max-height:90vh;display:flex;flex-direction:column;">' +
                 '<div style="background:' + _hGrad + ';padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">' +
                   '<div>' +
                     '<div style="font-size:1rem;font-weight:900;color:#fff;">' + _hIcon + ' ' + _hTitle + '</div>' +
-                    '<div style="font-size:0.72rem;color:rgba(255,255,255,0.85);margin-top:3px;">' + total + ' dòng trong file &nbsp;·&nbsp; ' + imported + ' nhập thành công &nbsp;·&nbsp; ' + skipped.length + ' bỏ qua</div>' +
+                    '<div style="font-size:0.72rem;color:rgba(255,255,255,0.85);margin-top:3px;">' + total + ' dòng · ' + imported + ' nhập mới · ' + updated + ' cập nhật · ' + skipped.length + ' bỏ qua</div>' +
                   '</div>' +
                   '<button onclick="document.getElementById(\'_importReportOverlay\').remove()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;width:32px;height:32px;border-radius:50%;font-size:1.1rem;cursor:pointer;font-weight:700;">✕</button>' +
                 '</div>' +
 
-                // 3 ô tổng kết
-                '<div style="padding:14px 18px;background:#f8fafc;border-bottom:1px solid #e2e8f0;display:flex;gap:10px;flex-shrink:0;">' +
-                  '<div style="flex:1;text-align:center;padding:10px;background:#f0fdf4;border-radius:10px;border:1.5px solid #bbf7d0;">' +
-                    '<div style="font-size:1.6rem;font-weight:900;color:#16a34a;">' + imported + '</div>' +
-                    '<div style="font-size:0.63rem;font-weight:800;color:#15803d;margin-top:2px;">✅ NHẬP ĐƯỢC</div>' +
+                '<div style="padding:14px 18px;background:#f8fafc;border-bottom:1px solid #e2e8f0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;flex-shrink:0;">' +
+                  '<div style="text-align:center;padding:10px;background:#f0fdf4;border-radius:10px;border:1.5px solid #bbf7d0;">' +
+                    '<div style="font-size:1.45rem;font-weight:900;color:#16a34a;">' + imported + '</div>' +
+                    '<div style="font-size:0.6rem;font-weight:800;color:#15803d;margin-top:2px;">✅ NHẬP MỚI</div>' +
                   '</div>' +
-                  '<div style="flex:1;text-align:center;padding:10px;background:#fff1f2;border-radius:10px;border:1.5px solid #fecaca;">' +
-                    '<div style="font-size:1.6rem;font-weight:900;color:#dc2626;">' + skipped.length + '</div>' +
-                    '<div style="font-size:0.63rem;font-weight:800;color:#b91c1c;margin-top:2px;">⚠️ BỎ QUA</div>' +
+                  '<div style="text-align:center;padding:10px;background:#eff6ff;border-radius:10px;border:1.5px solid #bfdbfe;">' +
+                    '<div style="font-size:1.45rem;font-weight:900;color:#2563eb;">' + updated + '</div>' +
+                    '<div style="font-size:0.6rem;font-weight:800;color:#1d4ed8;margin-top:2px;">🆔 CẬP NHẬT</div>' +
                   '</div>' +
-                  '<div style="flex:1;text-align:center;padding:10px;background:#f0f9ff;border-radius:10px;border:1.5px solid #bae6fd;">' +
-                    '<div style="font-size:1.6rem;font-weight:900;color:#0369a1;">' + total + '</div>' +
-                    '<div style="font-size:0.63rem;font-weight:800;color:#0369a1;margin-top:2px;">📋 TỔNG DÒNG</div>' +
+                  '<div style="text-align:center;padding:10px;background:#fff1f2;border-radius:10px;border:1.5px solid #fecaca;">' +
+                    '<div style="font-size:1.45rem;font-weight:900;color:#dc2626;">' + skipped.length + '</div>' +
+                    '<div style="font-size:0.6rem;font-weight:800;color:#b91c1c;margin-top:2px;">⚠️ BỎ QUA</div>' +
+                  '</div>' +
+                  '<div style="text-align:center;padding:10px;background:#f0f9ff;border-radius:10px;border:1.5px solid #bae6fd;">' +
+                    '<div style="font-size:1.45rem;font-weight:900;color:#0369a1;">' + total + '</div>' +
+                    '<div style="font-size:0.6rem;font-weight:800;color:#0369a1;margin-top:2px;">📋 TỔNG DÒNG</div>' +
                   '</div>' +
                 '</div>' +
 
-                // Nội dung cuộn
                 '<div style="overflow-y:auto;padding:14px 18px;flex:1;">' +
+                  '<div style="font-size:0.72rem;color:#475569;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:9px 11px;margin-bottom:12px;line-height:1.5;">ℹ️ Với võ sinh đã có trên hệ thống, Excel chỉ cập nhật các ô có dữ liệu, ưu tiên <b>Mã hội viên VTF</b>; không thay đổi paidUntil/trạng thái học phí để tránh sai công nợ.</div>' +
+                  updateHtml +
                   (skipped.length > 0
-                    ? '<div style="font-size:0.75rem;font-weight:900;color:#475569;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px;">⚠️ Chi tiết võ sinh bị bỏ qua</div>' + skipHtml
-                    : '<div style="text-align:center;padding:28px 16px;color:#16a34a;font-size:0.92rem;font-weight:700;">🎉 Tất cả võ sinh đã được nhập thành công!</div>') +
+                    ? '<div style="font-size:0.75rem;font-weight:900;color:#475569;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px;">⚠️ Chi tiết dòng bị bỏ qua</div>' + skipHtml
+                    : (updatedList.length === 0 ? '<div style="text-align:center;padding:28px 16px;color:#16a34a;font-size:0.92rem;font-weight:700;">🎉 Tất cả dữ liệu đã được xử lý thành công!</div>' : '')) +
                   syncHtml +
                 '</div>' +
 
-                // Footer nút
                 '<div style="padding:12px 18px;border-top:1px solid #f1f5f9;display:flex;justify-content:flex-end;flex-shrink:0;">' +
                   '<button onclick="document.getElementById(\'_importReportOverlay\').remove()" style="padding:10px 28px;background:linear-gradient(135deg,#0033A0,#0052cc);color:#fff;border:none;border-radius:10px;font-size:0.85rem;font-weight:800;cursor:pointer;box-shadow:0 3px 10px rgba(0,51,160,0.25);">Đã hiểu</button>' +
                 '</div>' +
-
               '</div>' +
             '</div>';
 
-        // Xóa modal cũ nếu đang mở, rồi chèn vào body
         const _old = document.getElementById('_importReportOverlay');
         if (_old) _old.remove();
         document.body.insertAdjacentHTML('beforeend', html);

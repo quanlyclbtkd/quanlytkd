@@ -665,6 +665,21 @@
             // Render using shared function (also used by filterSAClubs)
             window._renderSAClubRows(clubDataList, today, in30Days);
 
+            // Phase 4K-6I-H: If cache/stats are missing, use server callable refresh safely.
+            // This does NOT run client getCountFromServer/runAggregationQuery. It calls one Cloud Function per CLB sequentially.
+            try {
+                if (typeof window.maybeAutoRefreshSuperAdminSummaries === 'function') {
+                    window.maybeAutoRefreshSuperAdminSummaries(clubDataList, {
+                        reason: 'superadmin-dashboard-missing-cache',
+                        maxPerSession: 12,
+                        delayMs: 1600,
+                        month: _curMonth4K
+                    }).catch(e => console.warn('[SuperAdmin] server summary auto refresh failed:', e?.message || e));
+                }
+            } catch (_serverRefreshErr) {
+                console.warn('[SuperAdmin] server summary auto refresh dispatch failed:', _serverRefreshErr?.message || _serverRefreshErr);
+            }
+
         } catch (e) {
             console.error(e);
             _m().lastError = e.message;
@@ -748,6 +763,7 @@
               countRefreshRunning:    _saCountRefreshRunning,
               quotaCircuit:           window.SuperAdminQuotaGuard?.getCircuitState?.() || null,
               metrics:                window.SuperAdminQuotaGuard?.getMetrics?.() || null,
+              serverRefresh:          window.SuperAdminServerRefresh?.getSuperAdminServerRefreshState?.() || null,
           };
           console.log('[debugSuperAdminLoadState]', result);
           console.table(result);
@@ -785,12 +801,15 @@ window.debugSuperAdminAggregationHardStop = function() {
 
       window.refreshSuperAdminCountsForClub = async function(cid) {
           if (!cid) return { ok: false, reason: 'missing-cid' };
-          if (window.SuperAdminQuotaGuard?.isCircuitOpen?.()) {
-              return { ok: false, reason: 'quota-circuit-open', circuit: window.SuperAdminQuotaGuard.getCircuitState() };
+          // Phase 4K-6I-H: manual refresh also uses Cloud Function, NOT client aggregation.
+          if (typeof window.refreshSuperAdminSummaryForClubViaServer === 'function') {
+              const result = await window.refreshSuperAdminSummaryForClubViaServer(cid, { reason: 'manual-superadmin-refresh' });
+              if (result && result.ok) {
+                  try { await window.loadSuperAdminData?.(); } catch (_) {}
+              }
+              return result;
           }
-          const clubData = (window._saClubData?.clubDataList || []).find(x => x.cid === cid)?.data || {};
-          const queued = queueSuperAdminCountRefresh(cid, clubData, { manual: true });
-          return { ok: !!queued, cid, manual: true, queueLength: _saCountRefreshQueue.length };
+          return { ok: false, reason: 'server-refresh-helper-not-loaded', cid };
       };
 
       // ════════════════════════════════════════════════════════════

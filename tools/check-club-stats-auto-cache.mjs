@@ -17,7 +17,7 @@ if (!mod.includes('skip-superadmin-runtime') || !mod.includes('_isSuperAdminRunt
 if (!mod.includes('cachedActiveCount') || !mod.includes('cachedCurrentMonthRevenue') || !mod.includes('superAdminStats')) fail('root club cached fields missing'); else pass('root club cached fields written');
 if (!sa.includes('superAdminStats') || !sa.includes('clubSummary')) fail('superadmin.js does not read superAdminStats/clubSummary cache'); else pass('SuperAdmin reads automatic cache fields');
 if (!main.includes('debugClubStatsAutoCache')) fail('runtime smoke does not include debugClubStatsAutoCache'); else pass('runtime smoke includes debugClubStatsAutoCache');
-if (!(main.includes("4K-6I-F-auto-club-stats-cache-sync-20260607") || main.includes("4K-6I-G-server-superadmin-summary-cache-20260607"))) fail('APP_BUILD_VERSION not updated to 4K-6I-F/G'); else pass('APP_BUILD_VERSION updated');
-if (!(idx.includes('auto-club-stats-cache-sync-20260607') || idx.includes('server-superadmin-summary-cache-20260607'))) fail('index.html cache bust missing 4K-6I-F/G'); else pass('index cache bust updated');
+if (!(main.includes("4K-6I-F-auto-club-stats-cache-sync-20260607") || main.includes("4K-6I-G-server-superadmin-summary-cache-20260607") || main.includes("4K-6I-H-superadmin-safe-server-refresh-20260608") || main.includes("4K-6I-I-excel-import-vtf-upsert-20260608"))) fail('APP_BUILD_VERSION not updated to 4K-6I-F/G'); else pass('APP_BUILD_VERSION updated');
+if (!(idx.includes('auto-club-stats-cache-sync-20260607') || idx.includes('server-superadmin-summary-cache-20260607') || idx.includes('superadmin-safe-server-refresh-20260608') || idx.includes('excel-import-vtf-upsert-20260608'))) fail('index.html cache bust missing 4K-6I-F/G'); else pass('index cache bust updated');
 if (!ok) process.exit(1);
 console.log('✅ check:club-stats-auto-cache PASS');

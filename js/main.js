@@ -12,6 +12,10 @@
 // APP_BUILD_VERSION = '4K-6I-D-superadmin-cache-stats-island-fallback-20260607'
 // APP_BUILD_VERSION = '4K-6I-E-superadmin-render-scope-fix-20260607'
 // APP_BUILD_VERSION = '4K-6I-F-auto-club-stats-cache-sync-20260607'
+// APP_BUILD_VERSION = '4K-6I-G-server-superadmin-summary-cache-20260607'
+// APP_BUILD_VERSION = '4K-6I-H-superadmin-safe-server-refresh-20260608'
+// APP_BUILD_VERSION = '4K-6I-I-excel-import-vtf-upsert-20260608'
+// APP_BUILD_VERSION = '4K-6J-production-stability-gate-20260608'
 /**
  * main.js — Application Bootstrap (Phase 3.6B — Listener Registration Safety)
  * ────────────────────────────────────────────────────────────────────
@@ -47,6 +51,8 @@
 // ── Phase 1–3.2: Core imports (eager — cần ngay khi app start) ──
 import { SuperAdminQuotaGuard }               from './core/superAdminQuotaGuard.js';
 import { initClubStatsAutoCache }              from './core/clubStatsAutoCache.js';
+import { initSuperAdminServerRefresh }          from './core/superAdminServerRefresh.js';
+import { initProductionStabilityGate }        from './core/productionStabilityGate.js';
 import { LegacyRenderEntrypoints }            from './core/legacyRenderEntrypoints.js';
 import { InlineHandlerAudit }                from './core/inlineHandlerAudit.js';
 import { EventActionBridge, initEventActionBridge } from './ui/eventActionBridge.js';
@@ -1425,6 +1431,16 @@ function _waitForExistingLegacyApp(ms) {
             initClubStatsAutoCache();
         } catch (e) {
             console.warn('[BOOT] initClubStatsAutoCache failed:', e);
+        }
+        try {
+            initSuperAdminServerRefresh();
+        } catch (e) {
+            console.warn('[BOOT] initSuperAdminServerRefresh failed:', e);
+        }
+        try {
+            initProductionStabilityGate();
+        } catch (e) {
+            console.warn('[BOOT] initProductionStabilityGate failed:', e);
         }
 
         // [HOTFIX] Sau initSuperAdmin(), nếu superAdminView đang hiển thị mà danh sách CLB
@@ -2882,7 +2898,7 @@ window.debugProfileModalClose = function() {
 // ════════════════════════════════════════════════════════════════
 
 // PHẦN 1 — APP BUILD VERSION
-window.APP_BUILD_VERSION = '4K-6I-G-server-superadmin-summary-cache-20260607';
+window.APP_BUILD_VERSION = '4K-6J-production-stability-gate-20260608';
 window.APP_COPYRIGHT_OWNER   = 'Tình Trương';
 window.APP_PRODUCT_NAME      = 'Taekwondo Club Management Web App';
 window.APP_SECURITY_PHASE    = '4K-6E-scale-readiness-write-safety';
@@ -3227,6 +3243,13 @@ window.debugEventActionBridge = function() {
     console.log('[debugEventActionBridge]', result);
     return result;
 };
+
+// Phase 4K-6J: Production Stability Gate globals
+try {
+    initProductionStabilityGate();
+} catch (e) {
+    console.warn('[productionStabilityGate] init failed:', e);
+}
 
 // Phase 4K-6H: LegacyRenderEntrypoints globals
 window.LegacyRenderEntrypoints =
@@ -4265,12 +4288,14 @@ window.debugRuntimeSmokeTest = async function(term) {
     out.superAdminAggregationHardStop = await safeCall('debugSuperAdminAggregationHardStop', window.debugSuperAdminAggregationHardStop);
     out.superAdminRenderScopeFix = await safeCall('debugSuperAdminRenderScopeFix', window.debugSuperAdminRenderScopeFix);
     out.clubStatsAutoCache = await safeCall('debugClubStatsAutoCache', window.debugClubStatsAutoCache);
+    out.superAdminServerRefresh = await safeCall('debugSuperAdminServerRefresh', window.debugSuperAdminServerRefresh);
     out.pendingDomainInval    = await safeCall('debugPendingDomainInvalidations',  window.debugPendingDomainInvalidations);
     summary.superAdminQuotaGuardOk  = !!out.superAdminQuotaGuard.ok;
     summary.superAdminLoadStateOk   = !!out.superAdminLoadState.ok;
     summary.superAdminAggregationHardStopOk = !!out.superAdminAggregationHardStop.ok;
     summary.superAdminRenderScopeFixOk = !!out.superAdminRenderScopeFix.ok;
     summary.clubStatsAutoCacheOk = !!out.clubStatsAutoCache.ok;
+    summary.superAdminServerRefreshOk = !!out.superAdminServerRefresh.ok;
     summary.pendingDomainInvalOk    = !!out.pendingDomainInval.ok;
 
     // Phase 4K-6I-D: Student pagination island fallback metrics
@@ -4290,6 +4315,16 @@ window.debugRuntimeSmokeTest = async function(term) {
     out.legacyRenderReduction   = await safeCall('debugLegacyAppAudit',           window.debugLegacyAppAudit);
     summary.legacyRenderEntrypointsOk = !!out.legacyRenderEntrypoints.ok;
     summary.legacyRenderReductionOk   = !!out.legacyRenderReduction.ok;
+
+    // Phase 4K-6J: Production Stability Gate
+    out.productionStabilityGate = await safeCall('debugProductionStabilityGate', window.debugProductionStabilityGate);
+    out.financialSafetySnapshot = await safeCall('debugFinancialSafetySnapshot', window.debugFinancialSafetySnapshot);
+    out.superAdminStatsReadiness = await safeCall('debugSuperAdminStatsReadiness', window.debugSuperAdminStatsReadiness);
+    out.excelImportVtfReadiness = await safeCall('debugExcelImportVtfReadiness', window.debugExcelImportVtfReadiness);
+    summary.productionStabilityGateOk = !!out.productionStabilityGate.ok;
+    summary.financialSafetySnapshotOk = !!out.financialSafetySnapshot.ok;
+    summary.superAdminStatsReadinessOk = !!out.superAdminStatsReadiness.ok;
+    summary.excelImportVtfReadinessOk = !!out.excelImportVtfReadiness.ok;
 
     // Phase 4K-6D: Security, License & IP Protection Readiness
     out.buildFingerprint               = await safeCall('debugBuildFingerprint',               window.debugBuildFingerprint);

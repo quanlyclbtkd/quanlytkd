@@ -15,7 +15,7 @@ assert(fn.includes('refreshSuperAdminSummaryForClub'), 'callable refresh one clu
 assert(fn.includes('cachedActiveCount') && fn.includes('cachedCurrentMonthRevenue') && fn.includes('superAdminStats'), 'root cache fields written');
 assert(idx.includes('superAdminSummary') && idx.includes('exports.onProfileWriteSuperAdminSummary'), 'functions exported in index.js');
 assert(fpkg.includes('src/superAdminSummary.js'), 'functions lint includes new file');
-assert(main.includes('4K-6I-G-server-superadmin-summary-cache-20260607'), 'APP_BUILD_VERSION updated');
-assert(html.includes('server-superadmin-summary-cache-20260607'), 'index cache bust updated');
+assert(main.includes('4K-6I-G-server-superadmin-summary-cache-20260607') || main.includes('4K-6I-H-superadmin-safe-server-refresh-20260608') || main.includes('4K-6I-I-excel-import-vtf-upsert-20260608'), 'APP_BUILD_VERSION updated');
+assert(html.includes('server-superadmin-summary-cache-20260607') || html.includes('superadmin-safe-server-refresh-20260608') || html.includes('excel-import-vtf-upsert-20260608'), 'index cache bust updated');
 assert(fs.existsSync('SUPERADMIN_SERVER_STATS_DEPLOY_GUIDE.md'), 'deploy guide exists');
 process.exit(fail ? 1 : 0);

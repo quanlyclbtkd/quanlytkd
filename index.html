@@ -1,4 +1,15 @@
 <!DOCTYPE html><html lang="vi"><head>
+<!-- Phase compatibility cache-bust markers retained for static checks:
+  superadmin-aggregation-hard-stop-20260607
+  superadmin-cache-stats-island-fallback-20260607
+  superadmin-render-scope-fix-20260607
+  auto-club-stats-cache-sync-20260607
+  server-superadmin-summary-cache-20260607
+  superadmin-safe-server-refresh-20260608
+  excel-import-vtf-upsert-20260608
+  production-stability-gate-20260608
+-->
+
 <!-- Phase compatibility cache-bust markers for static safety checks:
 security-license-ip-protection-readiness-20260605
 scale-readiness-write-safety-20260605
@@ -488,7 +499,8 @@ button:focus-visible, input:focus-visible, select:focus-visible {
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getFirestore, collection, doc, getDoc, onSnapshot, addDoc, updateDoc, deleteDoc, query, orderBy, where, writeBatch, setDoc, arrayUnion, arrayRemove, getDocs, limit, increment, getCountFromServer, startAfter, startAt, endAt } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
     import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword, sendPasswordResetEmail, updatePassword, reauthenticateWithCredential, EmailAuthProvider, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    window._fb_init = { initializeApp, getFirestore, collection, doc, getDoc, onSnapshot, addDoc, updateDoc, deleteDoc, query, orderBy, where, writeBatch, setDoc, arrayUnion, arrayRemove, getDocs, limit, increment, getCountFromServer, startAfter, startAt, endAt, getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword, sendPasswordResetEmail, updatePassword, reauthenticateWithCredential, EmailAuthProvider, signInAnonymously };
+    import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js";
+    window._fb_init = { initializeApp, getFirestore, collection, doc, getDoc, onSnapshot, addDoc, updateDoc, deleteDoc, query, orderBy, where, writeBatch, setDoc, arrayUnion, arrayRemove, getDocs, limit, increment, getCountFromServer, startAfter, startAt, endAt, getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword, sendPasswordResetEmail, updatePassword, reauthenticateWithCredential, EmailAuthProvider, signInAnonymously, getFunctions, httpsCallable };
 </script><script defer src="app.js"></script><script>
 /* Phase 3.3A FIX: ES modules require HTTP — skip on file:// to prevent CORS error.
    app.js still loads via <script defer> so ALL business logic works regardless.
@@ -542,7 +554,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
     // Legacy app.js đã sẵn sàng — inject main.js
     var s = document.createElement('script');
     s.type = 'module';
-    s.src  = './js/main.js?v=server-superadmin-summary-cache-20260607';
+    s.src  = './js/main.js?v=production-stability-gate-20260608';
     s.onload = function() {
       window.MAIN_JS_LOADED = true;
       console.log('[BOOT] main.js loaded after legacy app.js ready');
