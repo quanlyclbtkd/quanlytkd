@@ -16,6 +16,9 @@
 // APP_BUILD_VERSION = '4K-6I-H-superadmin-safe-server-refresh-20260608'
 // APP_BUILD_VERSION = '4K-6I-I-excel-import-vtf-upsert-20260608'
 // APP_BUILD_VERSION = '4K-6J-production-stability-gate-20260608'
+// APP_BUILD_VERSION = '4K-6K-A-formatters-extraction-20260608'
+// APP_BUILD_VERSION = '4K-6K-B-cross-tab-search-replay-20260608'
+// APP_BUILD_VERSION = '4K-6K-C-search-latency-optimization-20260608'
 /**
  * main.js — Application Bootstrap (Phase 3.6B — Listener Registration Safety)
  * ────────────────────────────────────────────────────────────────────
@@ -77,6 +80,16 @@ import {
     formatMonthCompact, getBeltBadge,
 } from './utils/format.js';
 import { escapeForAttr, escapeHtml, formatVND, parseVND } from './utils/helpers.js';
+import { Formatters, initFormatters } from './utils/formatters.js';
+
+// Phase 4K-6K-A: Low-risk formatters extraction gate.
+// Pure formatter helpers only — no Firestore writes, no business-flow changes.
+try {
+    initFormatters();
+} catch (e) {
+    console.warn('[BOOT] initFormatters failed:', e);
+}
+
 // ── Phase 4K-4G: Monthly revenue allocation + active student sort ─────────────
 import { initMonthlyHelpers } from './utils/monthlyHelpers.js';
 import { TAB_LISTS, DEFAULT_CLUB_CONFIG }      from './utils/constants.js';
@@ -1369,6 +1382,27 @@ function _waitForExistingLegacyApp(ms) {
                     .catch(function(e) {
                         console.warn('[switchTab] ensureDebtProfilesReady failed:', e);
                     });
+            }
+
+            // Phase 4K-6K-B: Cross-tab search replay.
+            // A global search input keeps its value when switching tabs. Without replay,
+            // the new tab can render from stale pagination/default rows until the user edits the input.
+            if ((tabId === 'active' || tabId === 'quit' || tabId === 'debt') && typeof window.replaySearchForTab === 'function') {
+                setTimeout(function() {
+                    try {
+                        var _searchEl = document.getElementById('searchInput') || document.getElementById('search');
+                        var _searchValue = _searchEl ? String(_searchEl.value || '').trim() : '';
+                        if (_searchValue) {
+                            window.replaySearchForTab(tabId, {
+                                reason: 'switch-tab-search-replay',
+                                force: true,
+                                raw: _searchValue
+                            });
+                        }
+                    } catch (e) {
+                        console.warn('[switchTab] search replay failed:', e);
+                    }
+                }, 120);
             }
         };
 
@@ -2851,6 +2885,12 @@ window.debugSearchPerformance = function(term) {
                 ? (window.getSearchRuntimeState ? window.getSearchRuntimeState().cacheSize : '?') : 0,
             lastTerm:        sr.lastTerm || '',
             lastTab:         sr.lastTab || '',
+            lastScheduledDelay: sr.lastScheduledDelay,
+            fastDebounceMs:  sr.fastDebounceMs,
+            scheduledCount:  sr.scheduledCount || 0,
+            fastScheduledCount: sr.fastScheduledCount || 0,
+            localStudentRuns: sr.localStudentRuns || 0,
+            localDebtRuns:   sr.localDebtRuns || 0,
         },
         searchFallbackCount:        window.__searchFallbackCount || 0,
         searchTextCacheProfiles:    window.__searchTextCache ? window.__searchTextCache.profiles.size : 0,
@@ -2898,7 +2938,7 @@ window.debugProfileModalClose = function() {
 // ════════════════════════════════════════════════════════════════
 
 // PHẦN 1 — APP BUILD VERSION
-window.APP_BUILD_VERSION = '4K-6J-production-stability-gate-20260608';
+window.APP_BUILD_VERSION = '4K-6K-C-search-latency-optimization-20260608';
 window.APP_COPYRIGHT_OWNER   = 'Tình Trương';
 window.APP_PRODUCT_NAME      = 'Taekwondo Club Management Web App';
 window.APP_SECURITY_PHASE    = '4K-6E-scale-readiness-write-safety';
@@ -4045,6 +4085,8 @@ window.debugRuntimeSmokeTest = async function(term) {
     out.tuitionActions     = await safeCall('debugTuitionActions',      window.debugTuitionActions);
     out.admissionUniformSize = await safeCall('debugAdmissionUniformSize', window.debugAdmissionUniformSize);
     out.searchPerformance  = await safeCall('debugSearchPerformance',   window.debugSearchPerformance, [term]);
+    out.searchTabReplay    = await safeCall('debugSearchTabReplay',     window.debugSearchTabReplay);
+    out.searchLatency      = await safeCall('debugSearchLatency',        window.debugSearchLatency);
     out.dashboardHistory   = await safeCall('debugDashboardHistory',    window.debugDashboardHistory);
     out.studentPagination  = await safeCall('debugStudentPagination',   window.debugStudentPagination);
     out.profileModalClose  = await safeCall('debugProfileModalClose',   window.debugProfileModalClose);
@@ -4115,6 +4157,8 @@ window.debugRuntimeSmokeTest = async function(term) {
         tuitionOk:           !!out.tuitionActions.ok,
         admissionUniformOk:  !!out.admissionUniformSize.ok,
         searchOk:            !!out.searchPerformance.ok,
+        searchTabReplayOk:    !!out.searchTabReplay.ok,
+        searchLatencyOk:      !!out.searchLatency.ok,
         dashboardOk:         !!out.dashboardHistory.ok,
         paginationOk:        !!out.studentPagination.ok,
         modalOk:             !!out.profileModalClose.ok,
@@ -4160,6 +4204,8 @@ window.debugRuntimeSmokeTest = async function(term) {
             !!out.tuitionActions.ok &&
             !!out.admissionUniformSize.ok &&
             !!out.searchPerformance.ok &&
+            !!out.searchTabReplay.ok &&
+            !!out.searchLatency.ok &&
             !!out.dashboardHistory.ok &&
             !!out.studentPagination.ok &&
             !!out.profileModalClose.ok &&
@@ -4325,6 +4371,12 @@ window.debugRuntimeSmokeTest = async function(term) {
     summary.financialSafetySnapshotOk = !!out.financialSafetySnapshot.ok;
     summary.superAdminStatsReadinessOk = !!out.superAdminStatsReadiness.ok;
     summary.excelImportVtfReadinessOk = !!out.excelImportVtfReadiness.ok;
+
+    // Phase 4K-6K-A: Low-Risk Formatters Extraction Gate
+    out.lowRiskHelperExtraction = await safeCall('debugLowRiskHelperExtraction', window.debugLowRiskHelperExtraction);
+    out.formatterHealth = await safeCall('debugFormatterHealth', window.debugFormatterHealth);
+    summary.lowRiskHelperExtractionOk = !!out.lowRiskHelperExtraction.ok;
+    summary.formatterHealthOk = !!out.formatterHealth.ok;
 
     // Phase 4K-6D: Security, License & IP Protection Readiness
     out.buildFingerprint               = await safeCall('debugBuildFingerprint',               window.debugBuildFingerprint);

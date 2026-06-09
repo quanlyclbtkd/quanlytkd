@@ -2,6 +2,7 @@
  * js/modules/searchRuntime.js
  * ────────────────────────────────────────────────────────────────
  * Phase 4K-2: Unified Search Runtime + Real Search Cache + SearchBlob
+ * Phase 4K-6K-C: Adaptive fast search response + latency diagnostics
  *
  * Single #searchInput handler — tab-aware dispatch — real result cache
  * (key: tab|month|branch|normalizedTerm) — SearchBlob pre-compute for
@@ -22,7 +23,17 @@ const _state = {
     compositionHandler: null,   // compositionstart ref
     compositionEndHandler: null,// compositionend ref
     compositionActive:  false,  // blocks input events during IME composition
-    debounceMs:         450,    // V2: 450ms debounce (was 250ms)
+    debounceMs:         450,    // V2 server-safe debounce (kept for compatibility checks)
+    fastDebounceMs:     90,     // Phase 4K-6K-C: fast local/debt search response
+    mediumDebounceMs:   150,    // Phase 4K-6K-C: finance/inventory local invalidation
+    clearDebounceMs:    0,      // Phase 4K-6K-C: clear search immediately
+    lastScheduledDelay: null,
+    scheduledCount:     0,
+    fastScheduledCount: 0,
+    immediateRuns:      0,
+    localStudentRuns:   0,
+    localDebtRuns:      0,
+    localNonStudentRuns: 0,
     inFlight:           false,  // only one search in flight at a time
     queuedTerm:         null,   // latest term queued while inFlight
     errors:             [],     // recent error log (last 20)
@@ -32,6 +43,9 @@ const _state = {
     lastRunAt:          0,
     runCount:           0,
     skippedSameTerm:    0,
+    tabSwitchReplays:   0,
+    forcedReplays:      0,
+    lastReplay:         null,
     pendingTimer:       null,
     currentSearchToken: 0,
     cacheHits:          0,
@@ -79,6 +93,64 @@ function _normalizeSearch(raw) {
         .replace(/[\u0300-\u036f]/g, '')
         .replace(/đ/g, 'd').replace(/Đ/g, 'D')
         .toLowerCase().trim().replace(/\s+/g, ' ');
+}
+
+
+// ── Phase 4K-6K-C: Adaptive search latency helpers ──────────────────────────
+function _getProfileCount() {
+    try {
+        const st = window.__store || {};
+        if (st.profiles && typeof st.profiles === 'object') {
+            return Object.keys(st.profiles).length;
+        }
+        if (window.studentProfileStore && typeof window.studentProfileStore.getAllProfilesCompat === 'function') {
+            const compat = window.studentProfileStore.getAllProfilesCompat() || {};
+            return Object.keys(compat).length;
+        }
+    } catch (_) {}
+    return 0;
+}
+
+function _isStudentTab(tab) {
+    return tab === 'active' || tab === 'quit';
+}
+
+function _getAdaptiveSearchDelay(raw, reason) {
+    const tab = _getCurrentTab();
+    const term = _normalizeSearch(raw);
+    const rs = String(reason || '').toLowerCase();
+
+    if (!term) return _state.clearDebounceMs;
+    if (rs.includes('tab-switch-search-replay') || rs.includes('switch-tab-search-replay') || rs.includes('force')) return 0;
+    if (term.length < 2) return Math.min(_state.fastDebounceMs, 80);
+
+    // Fast path: student profiles are already hydrated locally, so no need to wait
+    // 450ms before filtering the in-memory search blob cache.
+    if (_isStudentTab(tab) && _getProfileCount() > 0) return _state.fastDebounceMs;
+
+    // Debt / finance / inventory are local invalidation filters; keep them responsive
+    // while still preventing excessive rerenders during fast typing.
+    if (tab === 'debt') return 110;
+    if (tab === 'tx' || tab === 'expense' || tab === 'inventory') return _state.mediumDebounceMs;
+
+    // Server/potential fallback paths keep the conservative debounce.
+    return _state.debounceMs;
+}
+
+function _recordScheduledDelay(delay, raw, reason) {
+    _state.scheduledCount++;
+    _state.lastScheduledDelay = delay;
+    if (delay <= _state.fastDebounceMs) _state.fastScheduledCount++;
+    if (delay === 0) _state.immediateRuns++;
+    window.__searchRuntimeLatency = window.__searchRuntimeLatency || {
+        recent: [], byDelay: {}, scheduledCount: 0, fastScheduledCount: 0
+    };
+    const lat = window.__searchRuntimeLatency;
+    lat.scheduledCount++;
+    if (delay <= _state.fastDebounceMs) lat.fastScheduledCount++;
+    lat.byDelay[delay] = (lat.byDelay[delay] || 0) + 1;
+    lat.recent.push({ at: Date.now(), delay, reason: reason || '', termLength: String(raw || '').length, tab: _getCurrentTab() });
+    if (lat.recent.length > 30) lat.recent.shift();
 }
 
 // Phase 4K-2B: Domain-aware cache keys for correct invalidation by domain
@@ -429,16 +501,24 @@ async function _applyInvalidateForTab(tab, term, token) {
 
 function _scheduleSearch(raw, reason) {
     clearTimeout(_state.pendingTimer);
+    const delay = _getAdaptiveSearchDelay(raw, reason);
+    _recordScheduledDelay(delay, raw, reason);
+    if (delay <= 0) {
+        _state.pendingTimer = null;
+        Promise.resolve().then(function() { return _runSearchLatestOnly(raw, reason); });
+        return;
+    }
     _state.pendingTimer = setTimeout(function() {
         _runSearchLatestOnly(raw, reason);
-    }, _state.debounceMs);
+    }, delay);
 }
 
-async function _runSearchLatestOnly(raw, reason) {
+async function _runSearchLatestOnly(raw, reason, options = {}) {
+    options = options || {};
     const term = _normalizeSearch(raw);
-    const tab  = _getCurrentTab();
+    const tab  = options.tab || _getCurrentTab();
 
-    if (term === _state.lastTerm && tab === _state.lastTab && term !== '') {
+    if (!options.force && term === _state.lastTerm && tab === _state.lastTab && term !== '') {
         _state.skippedSameTerm++;
         return;
     }
@@ -502,16 +582,19 @@ async function _runSearchLatestOnly(raw, reason) {
 function _runLocalOnlySearch(tab, term) {
     // For 1-char search — do local filter but no Firestore
     if (tab === 'debt') {
+        _state.localDebtRuns++;
         const st = window.__store || {};
         st._globalSearchTerm = term;
         if (typeof window.refreshListsComputation === 'function')
             window.refreshListsComputation(['students.debtList'], 'search-v2-local-debt');
     } else if (tab === 'tx' || tab === 'expense') {
+        _state.localNonStudentRuns++;
         const st = window.__store || {};
         st._globalSearchTerm = term;
         if (typeof window.refreshListsComputation === 'function')
             window.refreshListsComputation(['tx.txList'], 'search-v2-local-tx');
     } else if (tab === 'inventory') {
+        _state.localNonStudentRuns++;
         const st = window.__store || {};
         st._globalSearchTerm = term;
         if (typeof window.refreshListsComputation === 'function')
@@ -557,6 +640,7 @@ async function _dispatchSearchV2(term, tab, token) {
         return _searchStudentsV2(term, tab, token);
     }
     if (tab === 'debt') {
+        _state.localDebtRuns++;
         const st = window.__store || {};
         st._globalSearchTerm = term;
         if (typeof window.refreshListsComputation === 'function')
@@ -593,6 +677,7 @@ async function _searchStudentsV2(term, tab, token) {
     const profileCount = Object.keys(profiles).length;
 
     if (profileCount > 0) {
+        _state.localStudentRuns++;
         const items = Object.entries(profiles)
             .filter(function([name, p]) {
                 if (typeof window.filterStudentItemsForMode === 'function') {
@@ -652,6 +737,79 @@ async function _searchStudentsV2(term, tab, token) {
     return { source: 'none', items: [] };
 }
 
+
+// ── Phase 4K-6K-B: Cross-tab search replay ────────────────────────────────
+function _getSearchInputValue() {
+    const el = document.getElementById('searchInput') || document.getElementById('search');
+    return el ? String(el.value || '') : '';
+}
+
+function _studentTabListKey(tab) {
+    if (tab === 'quit') return 'students.quitList';
+    if (tab === 'debt') return 'students.debtList';
+    return 'students.activeList';
+}
+
+async function _replaySearchForTab(tabId, options = {}) {
+    const tab = tabId || _getCurrentTab();
+    const raw = options.raw != null ? String(options.raw || '') : _getSearchInputValue();
+    const term = _normalizeSearch(raw);
+    const reason = options.reason || 'tab-switch-search-replay';
+    const force = options.force !== false;
+    const delay = Number(options.delay || 0);
+
+    if (!term) {
+        return { ok: true, skipped: true, reason: 'empty-term', tab, term: '' };
+    }
+
+    const run = async () => {
+        _state.tabSwitchReplays++;
+        if (force) _state.forcedReplays++;
+        _state.lastReplay = { tab, term, reason, at: Date.now(), force };
+
+        // Ensure active DOM tab has settled before replaying the search.
+        if (typeof window.getCurrentActiveTabId === 'function') {
+            const cur = window.getCurrentActiveTabId();
+            if (cur && cur !== tab) {
+                return { ok: false, skipped: true, reason: 'tab-not-active', tab, currentTab: cur, term };
+            }
+        }
+
+        // For active/quit tabs, the previous tab may have left pgState with a debt/default page.
+        // Force a fresh SearchRuntime dispatch so pagination.currentItems belongs to the new tab.
+        if (tab === 'active' || tab === 'quit' || tab === 'debt') {
+            if (window.__store) {
+                window.__store._globalSearchTerm = term;
+            }
+            await _runSearchLatestOnly(raw, reason, { force, tab });
+            const listKey = _studentTabListKey(tab);
+            if (typeof window.refreshListsComputation === 'function') {
+                window.refreshListsComputation([listKey], reason + '-refresh');
+            }
+            if (typeof window.invalidateList === 'function') {
+                window.invalidateList(listKey, reason + '-invalidate');
+            } else if (typeof window.invalidateCurrentTab === 'function') {
+                window.invalidateCurrentTab(reason + '-invalidate-current');
+            }
+            return { ok: true, tab, term, reason, force };
+        }
+
+        await _runSearchLatestOnly(raw, reason, { force, tab });
+        return { ok: true, tab, term, reason, force };
+    };
+
+    if (delay > 0) {
+        return new Promise(resolve => setTimeout(() => {
+            Promise.resolve(run()).then(resolve).catch(err => {
+                if (_state.errors.length > 20) _state.errors.shift();
+                _state.errors.push({ message: err && err.message || String(err), tab, term, time: new Date().toISOString(), source: 'tab-replay' });
+                resolve({ ok: false, error: err && err.message || String(err), tab, term, reason });
+            });
+        }, delay));
+    }
+    return run();
+}
+
 // ── Phase 4K-5Q: debugUnifiedSearchV2 ────────────────────────────────────────
 
 window.debugUnifiedSearchV2 = function() {
@@ -663,12 +821,25 @@ window.debugUnifiedSearchV2 = function() {
         mounted:             _state.mounted,
         inputBound:          !!(el && el.__searchRuntimeV2Bound),
         debounceMs:          _state.debounceMs,
+        fastDebounceMs:      _state.fastDebounceMs,
+        mediumDebounceMs:    _state.mediumDebounceMs,
+        lastScheduledDelay:  _state.lastScheduledDelay,
+        scheduledCount:      _state.scheduledCount,
+        fastScheduledCount:  _state.fastScheduledCount,
+        immediateRuns:       _state.immediateRuns,
+        localStudentRuns:    _state.localStudentRuns,
+        localDebtRuns:       _state.localDebtRuns,
+        localNonStudentRuns: _state.localNonStudentRuns,
+        profileCountForFastPath: _getProfileCount(),
         inFlight:            _state.inFlight,
         queuedTerm:          _state.queuedTerm,
         currentSearchToken:  _state.currentSearchToken,
         lastTerm:            _state.lastTerm,
         lastTab:             _state.lastTab,
         runCount:            _state.runCount,
+        tabSwitchReplays:    _state.tabSwitchReplays,
+        forcedReplays:       _state.forcedReplays,
+        lastReplay:          _state.lastReplay,
         staleDropped:        _state.staleDropped,
         errors:              _state.errors.slice(-10),
         pgSearchActive:      !!pg.searchActive,
@@ -677,6 +848,38 @@ window.debugUnifiedSearchV2 = function() {
         pgItems:             Array.isArray(pg.currentItems) ? pg.currentItems.length : 0,
         profileCount:        Object.keys(st.profiles || {}).length,
         performance:         (window.__perfStats && window.__perfStats.searches) || {}
+    };
+    console.table(result);
+    return result;
+};
+
+
+// ── Phase 4K-6K-C: Search latency debug ─────────────────────────────────────
+window.debugSearchLatency = function() {
+    const input = document.getElementById('searchInput') || document.getElementById('search');
+    const result = {
+        currentTab: _getCurrentTab(),
+        inputValue: input ? input.value : '',
+        normalizedTerm: _normalizeSearch(input ? input.value : ''),
+        baseDebounceMs: _state.debounceMs,
+        fastDebounceMs: _state.fastDebounceMs,
+        mediumDebounceMs: _state.mediumDebounceMs,
+        adaptiveDelayNow: _getAdaptiveSearchDelay(input ? input.value : '', 'debug'),
+        lastScheduledDelay: _state.lastScheduledDelay,
+        scheduledCount: _state.scheduledCount,
+        fastScheduledCount: _state.fastScheduledCount,
+        immediateRuns: _state.immediateRuns,
+        localStudentRuns: _state.localStudentRuns,
+        localDebtRuns: _state.localDebtRuns,
+        localNonStudentRuns: _state.localNonStudentRuns,
+        profileCount: _getProfileCount(),
+        inFlight: _state.inFlight,
+        queuedTerm: _state.queuedTerm,
+        cacheHits: _state.cacheHits,
+        cacheMisses: _state.cacheMisses,
+        blobHits: _state.blobHits,
+        blobBuilds: _state.blobBuilds,
+        recentLatency: (window.__searchRuntimeLatency && window.__searchRuntimeLatency.recent) || []
     };
     console.table(result);
     return result;
@@ -728,6 +931,36 @@ export function initGlobalSearchRuntime() {
     window.__searchRuntimeMounted   = true;
     window.__searchRuntimeV2Mounted = true; // Phase 4K-5Q
     window.__searchRuntimeState     = _state;
+
+
+    // Phase 4K-6K-B: expose cross-tab search replay helpers.
+    window.replaySearchForTab = function(tabId, options) {
+        return _replaySearchForTab(tabId, options || {});
+    };
+    window.replaySearchForCurrentTab = function(options) {
+        return _replaySearchForTab(_getCurrentTab(), options || {});
+    };
+    window.debugSearchTabReplay = function() {
+        const input = document.getElementById('searchInput') || document.getElementById('search');
+        const pg = (window.__store && window.__store.pagination && window.__store.pagination.students) || {};
+        const result = {
+            mounted: _state.mounted,
+            currentTab: _getCurrentTab(),
+            inputValue: input ? input.value : '',
+            normalizedTerm: _normalizeSearch(input ? input.value : ''),
+            lastTerm: _state.lastTerm,
+            lastTab: _state.lastTab,
+            tabSwitchReplays: _state.tabSwitchReplays,
+            forcedReplays: _state.forcedReplays,
+            lastReplay: _state.lastReplay,
+            pgSearchActive: !!pg.searchActive,
+            pgSearchQuery: pg.searchQuery || '',
+            pgItems: Array.isArray(pg.currentItems) ? pg.currentItems.length : 0,
+            errors: _state.errors.slice(-10)
+        };
+        console.table(result);
+        return result;
+    };
 
     // Phase 4K-2: Expose SearchBlob builders globally
     // Guard getProfileSearchBlob: main.js may already expose a version-aware implementation
@@ -875,6 +1108,9 @@ export function debugSearchPerformance() {
         lastRunAt:          s.lastRunAt ? new Date(s.lastRunAt).toISOString() : '',
         runCount:           s.runCount,
         skippedSameTerm:    s.skippedSameTerm,
+        tabSwitchReplays:   s.tabSwitchReplays,
+        forcedReplays:      s.forcedReplays,
+        lastReplay:         s.lastReplay,
         cacheHits:          s.cacheHits,
         cacheMisses:        s.cacheMisses,
         cacheSize:          _resultCache.size,
