@@ -27,6 +27,7 @@
 // APP_BUILD_VERSION = '4K-6M-listener-ownership-boundary-render-event-cleanup-20260608'
 // APP_BUILD_VERSION = '4K-6N-financial-action-audit-trail-write-intent-20260608'
 // APP_BUILD_VERSION = '4K-6O-mobile-startup-performance-lazy-assets-20260608'
+// APP_BUILD_VERSION = '4K-6P-tailwind-static-css-build-20260608'
 /**
  * main.js — Application Bootstrap (Phase 3.6B — Listener Registration Safety)
  * ────────────────────────────────────────────────────────────────────
@@ -68,6 +69,7 @@ import { initStudentSearchIndex }             from './core/studentSearchIndex.js
 import { initListenerOwnershipBoundary }      from './core/listenerOwnershipBoundary.js';
 import { initFinancialActionAuditGuard }      from './core/financialActionAuditGuard.js';
 import { initMobileStartupPerformance }       from './core/mobileStartupPerformance.js';
+import { initStaticCssBuildHealth }           from './core/staticCssBuildHealth.js';
 import { LegacyRenderEntrypoints }            from './core/legacyRenderEntrypoints.js';
 import { InlineHandlerAudit }                from './core/inlineHandlerAudit.js';
 import { EventActionBridge, initEventActionBridge } from './ui/eventActionBridge.js';
@@ -144,6 +146,15 @@ try {
     initMobileStartupPerformance();
 } catch (e) {
     console.warn('[BOOT] initMobileStartupPerformance failed:', e);
+}
+
+
+// Phase 4K-6P: Tailwind CDN Removal / Static CSS Build.
+// Runtime diagnostics only — does not change business logic.
+try {
+    initStaticCssBuildHealth();
+} catch (e) {
+    console.warn('[BOOT] initStaticCssBuildHealth failed:', e);
 }
 
 // ── Phase 4K-4G: Monthly revenue allocation + active student sort ─────────────
@@ -3002,7 +3013,7 @@ window.debugProfileModalClose = function() {
 // ════════════════════════════════════════════════════════════════
 
 // PHẦN 1 — APP BUILD VERSION
-window.APP_BUILD_VERSION = '4K-6O-mobile-startup-performance-lazy-assets-20260608';
+window.APP_BUILD_VERSION = '4K-6P-tailwind-static-css-build-20260608';
 window.APP_COPYRIGHT_OWNER   = 'Tình Trương';
 window.APP_PRODUCT_NAME      = 'Taekwondo Club Management Web App';
 window.APP_SECURITY_PHASE    = '4K-6E-scale-readiness-write-safety';
@@ -4488,6 +4499,12 @@ window.debugRuntimeSmokeTest = async function(term) {
     summary.startupTimelineOk = !!out.startupTimeline.ok;
     summary.startupBottlenecksOk = !!out.startupBottlenecks.ok;
     summary.lazyAssetsLoadingOk = !!out.lazyAssetsLoading.ok;
+
+    // Phase 4K-6P: Tailwind CDN Removal / Static CSS Build
+    out.staticCssBuild = await safeCall('debugStaticCssBuild', window.debugStaticCssBuild);
+    out.tailwindCdnRemoval = await safeCall('debugTailwindCdnRemoval', window.debugTailwindCdnRemoval);
+    summary.staticCssBuildOk = !!out.staticCssBuild.ok;
+    summary.tailwindCdnRemovalOk = !!out.tailwindCdnRemoval.ok;
 
     // Phase 4K-6D: Security, License & IP Protection Readiness
     out.buildFingerprint               = await safeCall('debugBuildFingerprint',               window.debugBuildFingerprint);
