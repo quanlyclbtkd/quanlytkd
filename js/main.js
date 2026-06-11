@@ -23,6 +23,7 @@
 // APP_BUILD_VERSION = '4K-6K-E-unified-student-search-index-20260608'
 // APP_BUILD_VERSION = '4K-6K-F-receipt-qr-helper-extraction-20260608'
 // APP_BUILD_VERSION = '4K-6K-G-admission-tuition-type-normalization-20260608'
+// APP_BUILD_VERSION = '4K-6L-inventory-multiitem-readonly-ui-ownership-20260608'
 /**
  * main.js — Application Bootstrap (Phase 3.6B — Listener Registration Safety)
  * ────────────────────────────────────────────────────────────────────
@@ -106,6 +107,14 @@ try {
     console.warn('[BOOT] initReceiptQrHelpers failed:', e);
 }
 
+// Phase 4K-6L: Inventory / MultiItem read-only UI ownership gate.
+// UI-only helper module — no Firestore writes and no processMultiItem ownership changes.
+try {
+    initInventoryMultiItemReadOnlyUI();
+} catch (e) {
+    console.warn('[BOOT] initInventoryMultiItemReadOnlyUI failed:', e);
+}
+
 // ── Phase 4K-4G: Monthly revenue allocation + active student sort ─────────────
 import { initMonthlyHelpers } from './utils/monthlyHelpers.js';
 import { TAB_LISTS, DEFAULT_CLUB_CONFIG }      from './utils/constants.js';
@@ -140,6 +149,7 @@ import { initLegacyDiagnostics } from './diagnostics/legacyDiagnostics.js';
 
 // Phase 4K-6G: MultiItem Inventory Safety Module
 import { MultiItemInventorySafety } from './core/multiItemInventorySafety.js';
+import { InventoryMultiItemReadOnlyUI, initInventoryMultiItemReadOnlyUI } from './core/inventoryMultiItemReadOnlyUI.js';
 
 // ── Phase 3.3E: Firestore safety (expose globally for services) ──
 import { safeGetDocs, printQueryAuditReport }  from './utils/firestore-guard.js';
@@ -2961,7 +2971,7 @@ window.debugProfileModalClose = function() {
 // ════════════════════════════════════════════════════════════════
 
 // PHẦN 1 — APP BUILD VERSION
-window.APP_BUILD_VERSION = '4K-6K-G-admission-tuition-type-normalization-20260608';
+window.APP_BUILD_VERSION = '4K-6L-inventory-multiitem-readonly-ui-ownership-20260608';
 window.APP_COPYRIGHT_OWNER   = 'Tình Trương';
 window.APP_PRODUCT_NAME      = 'Taekwondo Club Management Web App';
 window.APP_SECURITY_PHASE    = '4K-6E-scale-readiness-write-safety';
@@ -3328,6 +3338,8 @@ window.debugLegacyRenderEntrypoints = function() {
 // Phase 4K-6G: MultiItemInventorySafety globals
 window.MultiItemInventorySafety =
     window.MultiItemInventorySafety || MultiItemInventorySafety;
+window.InventoryMultiItemReadOnlyUI =
+    window.InventoryMultiItemReadOnlyUI || InventoryMultiItemReadOnlyUI;
 
 window.ensureMultiItemInventoryReady =
     window.ensureMultiItemInventoryReady ||
@@ -4416,6 +4428,10 @@ window.debugRuntimeSmokeTest = async function(term) {
     // Phase 4K-6K-G: Admission Tuition Type Normalization Gate
     out.admissionTuitionTypeNormalization = await safeCall('debugAdmissionTuitionTypeNormalization', window.debugAdmissionTuitionTypeNormalization);
     summary.admissionTuitionTypeNormalizationOk = !!out.admissionTuitionTypeNormalization.ok;
+
+    // Phase 4K-6L: Inventory / MultiItem Read-only UI Ownership Gate
+    out.inventoryMultiItemReadOnlyUI = await safeCall('debugInventoryMultiItemReadOnlyUI', window.debugInventoryMultiItemReadOnlyUI);
+    summary.inventoryMultiItemReadOnlyUIOk = !!out.inventoryMultiItemReadOnlyUI.ok;
 
     // Phase 4K-6D: Security, License & IP Protection Readiness
     out.buildFingerprint               = await safeCall('debugBuildFingerprint',               window.debugBuildFingerprint);

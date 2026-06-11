@@ -274,6 +274,16 @@ export const MultiItemInventorySafety = {
 
     // ── A.7 renderMultiItemInventoryDebtPanel ─────────────────────────────────
     renderMultiItemInventoryDebtPanel(studentName, items, options = {}) {
+        // Phase 4K-6L: delegate read-only DOM rendering to InventoryMultiItemReadOnlyUI when available.
+        // This keeps MultiItemInventorySafety focused on hydration/debt resolution while preserving legacy fallback.
+        if (!options.__fromReadOnlyUI && window.InventoryMultiItemReadOnlyUI && typeof window.InventoryMultiItemReadOnlyUI.renderMultiItemInventoryDebtPanel === 'function') {
+            try {
+                const result = window.InventoryMultiItemReadOnlyUI.renderMultiItemInventoryDebtPanel(studentName, items, { ...options, __fromReadOnlyUI: true });
+                if (result && result.ok) return result;
+            } catch (e) {
+                console.warn('[MultiItemInventorySafety] read-only UI debt panel fallback:', e);
+            }
+        }
         const currentName = ((document.getElementById('mi_name') || {}).value || '').trim();
         if (currentName && norm(currentName) !== norm(studentName)) return;
 

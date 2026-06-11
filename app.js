@@ -7580,6 +7580,18 @@ window.toggleMultiItemInv = () => {
 };
 
 window.toggleMiInvCategory = () => {
+    // Phase 4K-6L: read-only UI ownership for MultiItem inventory stock selector; legacy MultiItemInventorySafety fallback preserved below.
+    if (window.InventoryMultiItemReadOnlyUI && typeof window.InventoryMultiItemReadOnlyUI.renderMultiItemInventoryCategoryOptions === 'function') {
+        try {
+            const _uiResult = window.InventoryMultiItemReadOnlyUI.renderMultiItemInventoryCategoryOptions({ reason: 'legacy-toggleMiInvCategory' });
+            if (_uiResult && _uiResult.ok) {
+                if (typeof window.updateMultiItemTotal === 'function') window.updateMultiItemTotal();
+                return;
+            }
+        } catch (_e) {
+            console.warn('[4K-6L] MultiItem inventory category UI fallback:', _e);
+        }
+    }
     const cat = document.getElementById('mi_inv_category').value;
     const sel = document.getElementById('mi_inv_size_select');
     const txt = document.getElementById('mi_inv_size_text');
@@ -7640,6 +7652,15 @@ window.toggleMiInvCategory = () => {
 };
 
 window.calcMiInvTotal = () => {
+    // Phase 4K-6L: read-only UI ownership for MultiItem inventory line total.
+    if (window.InventoryMultiItemReadOnlyUI && typeof window.InventoryMultiItemReadOnlyUI.calculateMultiItemInventoryLineTotal === 'function') {
+        try {
+            const _uiResult = window.InventoryMultiItemReadOnlyUI.calculateMultiItemInventoryLineTotal({ reason: 'legacy-calcMiInvTotal' });
+            if (_uiResult && _uiResult.ok) return;
+        } catch (_e) {
+            console.warn('[4K-6L] MultiItem inventory line-total UI fallback:', _e);
+        }
+    }
     const qty = Number(document.getElementById('mi_inv_qty').value) || 0;
     const price = Number(document.getElementById('mi_inv_price_actual').value) || 0;
     const total = qty * price;
@@ -7911,6 +7932,15 @@ window._refreshMiHistoryBadges = async (name, profile) => {
 };
 
 window.recalcMiInvDebt = () => {
+    // Phase 4K-6L: read-only UI ownership for MultiItem inventory debt total.
+    if (window.InventoryMultiItemReadOnlyUI && typeof window.InventoryMultiItemReadOnlyUI.recalculateMultiItemInventoryDebt === 'function') {
+        try {
+            const _uiResult = window.InventoryMultiItemReadOnlyUI.recalculateMultiItemInventoryDebt({ reason: 'legacy-recalcMiInvDebt' });
+            if (_uiResult && _uiResult.ok) return;
+        } catch (_e) {
+            console.warn('[4K-6L] MultiItem inventory debt-total UI fallback:', _e);
+        }
+    }
     const checks = document.querySelectorAll('.mi-inv-debt-check:checked');
     let total = 0;
     checks.forEach(c => { total += Number(c.getAttribute('data-amount')) || 0; });
@@ -7977,6 +8007,18 @@ window.loadMiPaymentHistory = async (name) => {
 };
 
 window.updateMultiItemTotal = () => {
+    // Phase 4K-6L: read-only UI ownership for MultiItem total display.
+    if (window.InventoryMultiItemReadOnlyUI && typeof window.InventoryMultiItemReadOnlyUI.updateMultiItemTotalDisplay === 'function' && !window.__miReadOnlyTotalDelegating) {
+        window.__miReadOnlyTotalDelegating = true;
+        try {
+            const _uiResult = window.InventoryMultiItemReadOnlyUI.updateMultiItemTotalDisplay({ reason: 'legacy-updateMultiItemTotal' });
+            if (_uiResult && _uiResult.ok) return;
+        } catch (_e) {
+            console.warn('[4K-6L] MultiItem total UI fallback:', _e);
+        } finally {
+            window.__miReadOnlyTotalDelegating = false;
+        }
+    }
     const tuition = Number(document.getElementById('mi_tuition_actual').value) || 0;
     const exam = document.getElementById('mi_exam_toggle').checked ? (Number(document.getElementById('mi_exam_actual').value) || 0) : 0;
     const other = document.getElementById('mi_other_toggle').checked ? (Number(document.getElementById('mi_other_actual').value) || 0) : 0;
