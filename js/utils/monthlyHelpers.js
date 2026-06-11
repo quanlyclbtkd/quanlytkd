@@ -52,6 +52,36 @@ export function formatMonthLabel(month) {
     return `${parts[1]}/${parts[0]}`;
 }
 
+
+// ── Phase 4K-6K-G: normalize admission tuition type for monthly history ─────
+function _normFinanceType(txOrType) {
+    if (typeof window !== 'undefined' && typeof window.normalizeFinanceTransactionType === 'function') {
+        return window.normalizeFinanceTransactionType(txOrType);
+    }
+    const raw = String(txOrType && typeof txOrType === 'object' ? txOrType.type || '' : txOrType || '').trim();
+    return raw === 'Thu nhập học' ? 'Học phí' : raw;
+}
+
+function _monthMatchesTx(tx, month) {
+    if (!tx || !month) return false;
+    if (tx.txMonth === month || tx.paymentMonth === month || tx.month === month) return true;
+    if (tx.date && String(tx.date).startsWith(month)) return true;
+    return false;
+}
+
+function _componentAllocatedAmountForMonth(component, tx, month) {
+    const c = component || {};
+    const amount = Number(c.amount || 0);
+    if (amount <= 0) return 0;
+    if (c.kind === 'tuition' && Array.isArray(c.packageMonths) && c.packageMonths.length) {
+        return c.packageMonths.includes(month) ? amount / c.packageMonths.length : 0;
+    }
+    const cMonth = c.month || c.txMonth || (tx && (tx.txMonth || tx.paymentMonth)) || '';
+    if (cMonth && cMonth === month) return amount;
+    if (!cMonth && _monthMatchesTx(tx, month)) return amount;
+    return 0;
+}
+
 // ── 3. getTxAllocatedAmountForMonth ─────────────────────────────────────────
 
 /**
@@ -68,7 +98,7 @@ export function getTxAllocatedAmountForMonth(tx, month) {
 
     if (!tx || !m || amount <= 0) return 0;
 
-    const type = String(tx.type || '').trim();
+    const type = _normFinanceType(tx);
 
     // Học phí gói nhiều tháng: phân bổ đều theo packageMonths
     if (
@@ -173,6 +203,27 @@ export function computeMonthlyFinanceHistory(transactions, months) {
 
     (transactions || []).forEach(tx => {
         months.forEach(month => {
+            const row  = result[month];
+
+            // Phase 4K-6K-G: components là nguồn kế toán chính cho Thu nhập học / Thu gộp.
+            const comps = typeof window !== 'undefined' && typeof window.getAccountingComponents === 'function'
+                ? window.getAccountingComponents(tx)
+                : (Array.isArray(tx.components) ? tx.components : []);
+            if (Array.isArray(comps) && comps.length && Array.isArray(tx.components) && tx.components.length) {
+                let used = false;
+                comps.forEach(c => {
+                    const ca = _componentAllocatedAmountForMonth(c, tx, month);
+                    if (!ca || ca <= 0) return;
+                    used = true;
+                    const kind = c.kind || '';
+                    if (kind === 'tuition') { row.tuition += ca; row.income += ca; }
+                    else if (kind === 'exam') { row.exam += ca; row.income += ca; }
+                    else if (kind === 'inventory' || kind === 'inventoryDebt') { row.inventoryIncome += ca; row.income += ca; }
+                    else { row.otherIncome += ca; row.income += ca; }
+                });
+                if (used) { row.txCount++; return; }
+            }
+
             // Dùng window version nếu có (để tương thích txMatchesSelectedMonth)
             const allocated = typeof window !== 'undefined' && typeof window.getTxAllocatedAmountForMonth === 'function'
                 ? window.getTxAllocatedAmountForMonth(tx, month)
@@ -180,8 +231,7 @@ export function computeMonthlyFinanceHistory(transactions, months) {
 
             if (!allocated || allocated <= 0) return;
 
-            const type = String(tx.type || '').trim();
-            const row  = result[month];
+            const type = _normFinanceType(tx);
             row.txCount++;
 
             const invClass = typeof window !== 'undefined' && typeof window.classifyInventoryFinanceTx === 'function'

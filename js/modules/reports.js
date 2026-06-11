@@ -583,11 +583,14 @@ export function initReports() {
                     return !_c.isInventory;
                 }).forEach(t => {
                 const a        = Number(t.amount) || 0;
-                const isIncome = !t.type.startsWith('Chi');
+                const _displayType = typeof window.getFinanceTransactionDisplayType === 'function'
+                    ? window.getFinanceTransactionDisplayType(t)
+                    : (typeof window.normalizeFinanceTransactionType === 'function' ? window.normalizeFinanceTransactionType(t) : (String(t.type || '').trim() === 'Thu nhập học' ? 'Học phí' : (t.type || '')));
+                const isIncome = !String(_displayType || t.type || '').startsWith('Chi');
                 const amtCell  = { v:a, t:'n', s:{ font:Object.assign({},normFont,{color:{rgb:isIncome?'166534':'991B1B'},bold:true}), border:borderAll, alignment:rightAlign, numFmt:'#,##0' } };
                 const txMonthStr = t.txMonth ? formatMonth(t.txMonth) : (t.date||'').substring(0,7).split('-').reverse().join('/');
-                if (isSingle) tx_rows.push([nc(formatDate(t.date)), nc(t.type||''), nc(t.description||''), nc(txMonthStr), amtCell]);
-                else          tx_rows.push([nc(formatDate(t.date)), nc(_branchName(t.branch)), nc(t.type||''), nc(t.description||''), nc(txMonthStr), amtCell]);
+                if (isSingle) tx_rows.push([nc(formatDate(t.date)), nc(_displayType||''), nc(t.description||''), nc(txMonthStr), amtCell]);
+                else          tx_rows.push([nc(formatDate(t.date)), nc(_branchName(t.branch)), nc(_displayType||''), nc(t.description||''), nc(txMonthStr), amtCell]);
                 if (isIncome) txTotal += a; else txTotal -= a;
             });
             const totRow2 = isSingle

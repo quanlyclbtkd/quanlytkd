@@ -1077,16 +1077,37 @@ export function initFinance() {
             txAll.forEach(t => {
                 const a  = Number(t.amount) || 0;
                 const tb = t.branch || 'CS1';
-                if (t.type === 'Học phí')               { incTuition += a; if (bIncome[tb] !== undefined) bIncome[tb] += a; }
-                else if (t.type === 'Học phí + Lệ phí thi') {
+                const _type = typeof window.normalizeFinanceTransactionType === 'function'
+                    ? window.normalizeFinanceTransactionType(t)
+                    : (String(t.type || '').trim() === 'Thu nhập học' ? 'Học phí' : t.type);
+
+                // Phase 4K-6K-G: components là nguồn kế toán chính cho giao dịch nhập học/thu gộp.
+                const _comps = (Array.isArray(t.components) && typeof window.getAccountingComponents === 'function')
+                    ? window.getAccountingComponents(t)
+                    : (Array.isArray(t.components) ? t.components : []);
+                if (Array.isArray(_comps) && _comps.length && Array.isArray(t.components) && t.components.length) {
+                    _comps.forEach(c => {
+                        const ca = Number(c.amount || 0);
+                        if (ca <= 0) return;
+                        if (c.kind === 'tuition') incTuition += ca;
+                        else if (c.kind === 'exam') incExam += ca;
+                        else if (c.kind === 'inventory' || c.kind === 'inventoryDebt') incUniform += ca;
+                        else incOther += ca;
+                    });
+                    if (bIncome[tb] !== undefined) bIncome[tb] += a;
+                    return;
+                }
+
+                if (_type === 'Học phí')               { incTuition += a; if (bIncome[tb] !== undefined) bIncome[tb] += a; }
+                else if (_type === 'Học phí + Lệ phí thi') {
                     incTuition += Number(t.tuitionAmount) || 0;
                     incExam    += Number(t.examAmount)    || 0;
                     if (bIncome[tb] !== undefined) bIncome[tb] += a;
                 }
-                else if (t.type === 'Lệ phí thi')       { incExam    += a; if (bIncome[tb] !== undefined) bIncome[tb] += a; }
-                else if (t.type === 'Chi phí')          exp     += a;
-                else if (t.type === 'Chi phí kỳ thi')   expExam  += a;
-                else if (t.type === 'Thu khác')         { incOther += a; if (bIncome[tb] !== undefined) bIncome[tb] += a; }
+                else if (_type === 'Lệ phí thi')       { incExam    += a; if (bIncome[tb] !== undefined) bIncome[tb] += a; }
+                else if (_type === 'Chi phí')          exp     += a;
+                else if (_type === 'Chi phí kỳ thi')   expExam  += a;
+                else if (_type === 'Thu khác')         { incOther += a; if (bIncome[tb] !== undefined) bIncome[tb] += a; }
                 else {
                     // Phase 4K-4D: custom inventory categories
                     const _cats = typeof window.getInventoryCategoryNames === 'function'

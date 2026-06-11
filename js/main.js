@@ -22,6 +22,7 @@
 // APP_BUILD_VERSION = '4K-6K-D-multiitem-tuition-package-fix-20260608'
 // APP_BUILD_VERSION = '4K-6K-E-unified-student-search-index-20260608'
 // APP_BUILD_VERSION = '4K-6K-F-receipt-qr-helper-extraction-20260608'
+// APP_BUILD_VERSION = '4K-6K-G-admission-tuition-type-normalization-20260608'
 /**
  * main.js — Application Bootstrap (Phase 3.6B — Listener Registration Safety)
  * ────────────────────────────────────────────────────────────────────
@@ -2960,7 +2961,7 @@ window.debugProfileModalClose = function() {
 // ════════════════════════════════════════════════════════════════
 
 // PHẦN 1 — APP BUILD VERSION
-window.APP_BUILD_VERSION = '4K-6K-F-receipt-qr-helper-extraction-20260608';
+window.APP_BUILD_VERSION = '4K-6K-G-admission-tuition-type-normalization-20260608';
 window.APP_COPYRIGHT_OWNER   = 'Tình Trương';
 window.APP_PRODUCT_NAME      = 'Taekwondo Club Management Web App';
 window.APP_SECURITY_PHASE    = '4K-6E-scale-readiness-write-safety';
@@ -4411,6 +4412,10 @@ window.debugRuntimeSmokeTest = async function(term) {
     out.qrBankingHelperHealth = await safeCall('debugQRBankingHelperHealth', window.debugQRBankingHelperHealth);
     summary.receiptHelperHealthOk = !!out.receiptHelperHealth.ok;
     summary.qrBankingHelperHealthOk = !!out.qrBankingHelperHealth.ok;
+
+    // Phase 4K-6K-G: Admission Tuition Type Normalization Gate
+    out.admissionTuitionTypeNormalization = await safeCall('debugAdmissionTuitionTypeNormalization', window.debugAdmissionTuitionTypeNormalization);
+    summary.admissionTuitionTypeNormalizationOk = !!out.admissionTuitionTypeNormalization.ok;
 
     // Phase 4K-6D: Security, License & IP Protection Readiness
     out.buildFingerprint               = await safeCall('debugBuildFingerprint',               window.debugBuildFingerprint);

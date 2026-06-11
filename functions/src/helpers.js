@@ -172,6 +172,26 @@ function classifyInventoryTxType(type, tx) {
     return null; // Không phải giao dịch kho
 }
 
+
+/**
+ * Phase 4K-6K-G: "Thu nhập học" là nhãn nghiệp vụ, thống kê phải xem như Học phí.
+ */
+function normalizeFinanceType(type) {
+    const raw = String(type || '').trim();
+    return raw === 'Thu nhập học' ? 'Học phí' : raw;
+}
+
+function classifyComponentForStats(component) {
+    const c = component || {};
+    const value = Number(c.amount || 0);
+    if (value <= 0) return null;
+    if (c.kind === 'tuition') return { field: 'income.tuition', value };
+    if (c.kind === 'exam') return { field: 'income.exam', value };
+    if (c.kind === 'inventory' || c.kind === 'inventoryDebt') return { field: 'income.uniform', value };
+    if (c.kind === 'other') return { field: 'income.other', value };
+    return null;
+}
+
 /**
  * Phân loại một transaction vào đúng field của stats doc.
  *
@@ -183,8 +203,16 @@ function classifyInventoryTxType(type, tx) {
  * @returns {null | { field: string, value: number } | Array<{ field: string, value: number }>}
  */
 function classifyTx(tx) {
-    const type   = (tx.type || '').trim();
-    const amount = Number(tx.amount) || 0;
+    const type   = normalizeFinanceType((tx && tx.type) || '');
+    const amount = tx ? Number(tx.amount) || 0 : 0;
+
+    // Phase 4K-6K-G: bundle/components là nguồn kế toán chính.
+    if (tx && Array.isArray(tx.components) && tx.components.length > 0) {
+        const entries = tx.components
+            .map(classifyComponentForStats)
+            .filter(Boolean);
+        return entries.length ? entries : null;
+    }
 
     switch (type) {
         case 'Học phí':
@@ -231,7 +259,7 @@ function allocateTuitionAmountForMonth(tx, month) {
     const amount = Number(tx && tx.amount || 0);
     if (!amount || !tx || !month) return 0;
 
-    const type = (tx.type || '').trim();
+    const type = normalizeFinanceType((tx && tx.type) || '');
 
     // Học phí gói nhiều tháng: phân bổ đều
     if (type === 'Học phí' && Array.isArray(tx.packageMonths) && tx.packageMonths.length > 0) {
@@ -253,5 +281,6 @@ module.exports = {
     calcDebt,
     classifyTx,
     classifyInventoryTxType,
+    normalizeFinanceType,
     allocateTuitionAmountForMonth,
 };

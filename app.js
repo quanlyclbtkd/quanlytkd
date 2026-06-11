@@ -6628,19 +6628,20 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                 // [THÊM BUG 7] Đếm giao dịch thu học phí qua filter hiện tại để cập nhật badge
                 txCountRender++;
                 let allocatedAmount = Number(t.amount) || 0;
-                if(t.type === 'Học phí') { allocatedAmount = t.packageMonths ? allocatedAmount / t.packageMonths.length : allocatedAmount; inc_tuition += allocatedAmount; } 
-                else if(t.type === 'Học phí + Lệ phí thi') { allocatedAmount = t.packageMonths ? (Number(t.tuitionAmount) || 0) / t.packageMonths.length : (Number(t.tuitionAmount) || 0); inc_tuition += allocatedAmount; inc_exam += (Number(t.examAmount) || 0); } 
-                else if(t.type === 'Lệ phí thi') { inc_exam += allocatedAmount; } 
+                const _normTxType = typeof window.normalizeFinanceTransactionType === 'function' ? window.normalizeFinanceTransactionType(t) : (String(t.type || '').trim() === 'Thu nhập học' ? 'Học phí' : t.type);
+                if(_normTxType === 'Học phí') { allocatedAmount = t.packageMonths ? allocatedAmount / t.packageMonths.length : allocatedAmount; inc_tuition += allocatedAmount; } 
+                else if(_normTxType === 'Học phí + Lệ phí thi') { allocatedAmount = t.packageMonths ? (Number(t.tuitionAmount) || 0) / t.packageMonths.length : (Number(t.tuitionAmount) || 0); inc_tuition += allocatedAmount; inc_exam += (Number(t.examAmount) || 0); } 
+                else if(_normTxType === 'Lệ phí thi') { inc_exam += allocatedAmount; } 
                 else { inc_other += allocatedAmount; }
                 const _txBr = t.branch || 'CS1';
                 if(_bStats[_txBr] !== undefined) {
-                    const _examPart = (t.type === 'Học phí + Lệ phí thi') ? (Number(t.examAmount)||0) : 0;
+                    const _examPart = (_normTxType === 'Học phí + Lệ phí thi') ? (Number(t.examAmount)||0) : 0;
                     const _txInc = allocatedAmount + _examPart;
                     _bStats[_txBr].income += _txInc;
-                    if(t.type === 'Lệ phí thi') {
+                    if(_normTxType === 'Lệ phí thi') {
                         const _ek = Math.round(allocatedAmount);
                         if(_ek > 0) _bStats[_txBr].examFeeMap[_ek] = (_bStats[_txBr].examFeeMap[_ek] || 0) + 1;
-                    } else if(t.type === 'Học phí + Lệ phí thi') {
+                    } else if(_normTxType === 'Học phí + Lệ phí thi') {
                         const _tk = Math.round(allocatedAmount);
                         if(_tk > 0) _bStats[_txBr].tuitionMap[_tk] = (_bStats[_txBr].tuitionMap[_tk] || 0) + 1;
                         const _ek = Math.round(_examPart);
@@ -6651,8 +6652,8 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                     }
                 }
                 if(_bExamStats[_txBr] !== undefined) {
-                    if(t.type === 'Lệ phí thi') _bExamStats[_txBr] += allocatedAmount;
-                    else if(t.type === 'Học phí + Lệ phí thi') _bExamStats[_txBr] += (Number(t.examAmount) || 0);
+                    if(_normTxType === 'Lệ phí thi') _bExamStats[_txBr] += allocatedAmount;
+                    else if(_normTxType === 'Học phí + Lệ phí thi') _bExamStats[_txBr] += (Number(t.examAmount) || 0);
                 }
 
                 let studentNameBase = cleanName.split(' (')[0]; let safeStudentNameBase = studentNameBase.replace(/'/g, "\\'");
@@ -8118,6 +8119,78 @@ window.getBundleSummaryLine = function(tx) {
     return name + (detail ? ' — ' + detail : '');
 };
 
+
+// ══════════════════════════════════════════════════════════════════
+// Phase 4K-6K-G — Admission Tuition Type Normalization
+// "Thu nhập học" là nhãn nghiệp vụ/biên lai, KHÔNG phải phân loại kế toán.
+// Với giao dịch nhập học có component học phí, hệ thống phải tính/hiển thị vào Học phí.
+// ══════════════════════════════════════════════════════════════════
+window.isAdmissionTuitionType = function(type) {
+    return String(type || '').trim().toLowerCase() === 'thu nhập học';
+};
+
+window.getBundleAccountingTypeFromComponents = function(components, fallbackType) {
+    const comps = Array.isArray(components) ? components : [];
+    const hasTuition = comps.some(function(c) { return c && c.kind === 'tuition' && Number(c.amount || 0) > 0; });
+    const hasExam    = comps.some(function(c) { return c && c.kind === 'exam' && Number(c.amount || 0) > 0; });
+    const hasInv     = comps.some(function(c) { return c && (c.kind === 'inventory' || c.kind === 'inventoryDebt') && Number(c.amount || 0) > 0; });
+    const hasOther   = comps.some(function(c) { return c && c.kind === 'other' && Number(c.amount || 0) > 0; });
+
+    // Ưu tiên Học phí nếu có component tuition. Các khoản phụ vẫn được tách bằng components.
+    if (hasTuition && hasExam && !hasInv && !hasOther) return 'Học phí + Lệ phí thi';
+    if (hasTuition) return 'Học phí';
+    if (hasExam && !hasInv && !hasOther) return 'Lệ phí thi';
+    if (hasInv && !hasOther) return 'Thu kho đồ';
+    return fallbackType || 'Thu gộp';
+};
+
+window.normalizeFinanceTransactionType = function(txOrType) {
+    const isObj = txOrType && typeof txOrType === 'object';
+    const tx = isObj ? txOrType : null;
+    const rawType = String(isObj ? (txOrType.type || '') : (txOrType || '')).trim();
+    if (window.isAdmissionTuitionType(rawType)) {
+        if (tx && Array.isArray(tx.components) && tx.components.length) {
+            return window.getBundleAccountingTypeFromComponents(tx.components, 'Học phí');
+        }
+        return 'Học phí';
+    }
+    return rawType;
+};
+
+window.getFinanceTransactionDisplayType = function(tx) {
+    const t = tx || {};
+    if (Array.isArray(t.components) && t.components.length && typeof window.getBundleTypeLabel === 'function') {
+        const label = window.getBundleTypeLabel(t);
+        if (label) return label;
+    }
+    return window.normalizeFinanceTransactionType(t) || t.type || 'Khoản thu';
+};
+
+window.isTuitionFinanceTransaction = function(tx) {
+    if (!tx) return false;
+    if (Array.isArray(tx.components) && tx.components.some(function(c) { return c && c.kind === 'tuition' && Number(c.amount || 0) > 0; })) return true;
+    const type = window.normalizeFinanceTransactionType(tx);
+    return type === 'Học phí' || type === 'Học phí + Lệ phí thi';
+};
+
+window.debugAdmissionTuitionTypeNormalization = function() {
+    const st = window.__store || {};
+    const txs = Array.isArray(st.allTransactions) ? st.allTransactions
+        : Array.isArray(window.allTransactions) ? window.allTransactions
+        : Array.isArray(st.transactions) ? st.transactions : [];
+    const admissionRaw = txs.filter(function(t) { return t && window.isAdmissionTuitionType(t.type); });
+    const result = {
+        ok: true,
+        buildVersion: window.APP_BUILD_VERSION || '',
+        admissionRawCount: admissionRaw.length,
+        rawTypes: admissionRaw.slice(0, 10).map(function(t) { return { id: t.id || t.txId || '', rawType: t.type, normalizedType: window.normalizeFinanceTransactionType(t), displayType: window.getFinanceTransactionDisplayType(t), hasComponents: Array.isArray(t.components), componentSummary: t.componentSummary || '' }; }),
+        buildPaymentBundleTransactionReady: typeof window.buildPaymentBundleTransaction === 'function',
+        normalizerReady: typeof window.normalizeFinanceTransactionType === 'function'
+    };
+    console.table(result.rawTypes);
+    return result;
+};
+
 // Phase 4K-5C — buildPaymentBundleTransaction (Phase 8)
 // ══════════════════════════════════════════════════════════════════
 window.buildPaymentBundleTransaction = function(payload) {
@@ -8155,12 +8228,15 @@ window.buildPaymentBundleTransaction = function(payload) {
     const hasInv      = safeComponents.some(function(c) { return c.kind === 'inventory' || c.kind === 'inventoryDebt'; });
     const hasOther    = safeComponents.some(function(c) { return c.kind === 'other'; });
 
+    // Phase 4K-6K-G: receiptType chỉ là nhãn biên lai, không được ghi đè phân loại kế toán.
+    // Đặc biệt: "Thu nhập học" phải về Học phí để không bị đưa vào Khoản thu khác.
     let type = 'Thu gộp';
-    if (receiptType) type = receiptType;
-    else if (hasTuition && hasExam && !hasInv && !hasOther) type = 'Học phí + Lệ phí thi';
-    else if (hasTuition && hasInv  && !hasExam && !hasOther) type = 'Học phí + Võ phục';
-    else if (hasTuition && !hasExam && !hasInv && !hasOther) type = 'Học phí';
+    if (hasTuition && hasExam && !hasInv && !hasOther) type = 'Học phí + Lệ phí thi';
+    else if (hasTuition) type = 'Học phí';
     else if (hasExam && !hasTuition && !hasInv && !hasOther) type = 'Lệ phí thi';
+    else if (receiptType && receiptType !== 'Thu nhập học') type = receiptType;
+
+    const safeReceiptType = receiptType || type;
 
     const tuitionComp = safeComponents.find(function(c) { return c.kind === 'tuition'; });
     const examComp    = safeComponents.find(function(c) { return c.kind === 'exam'; });
@@ -8168,6 +8244,7 @@ window.buildPaymentBundleTransaction = function(payload) {
     return {
         branch: branch,
         type: type,
+        receiptType: safeReceiptType,
         paymentKind: safeComponents.length > 1 ? 'bundle' : 'single',
         description: studentName,
         studentName: studentName,

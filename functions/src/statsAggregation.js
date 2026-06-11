@@ -49,7 +49,12 @@
 const functions = require('firebase-functions');
 const admin     = require('firebase-admin');
 
-const { getTxMonth, classifyTx, allocateTuitionAmountForMonth } = require('./helpers');
+const {
+    getTxMonth,
+    classifyTx,
+    normalizeFinanceType,
+    allocateTuitionAmountForMonth,
+} = require('./helpers');
 
 const db = admin.firestore();
 
@@ -110,6 +115,106 @@ async function updateStats(clubId, month, tx, multiplier) {
     return statsRef.set(update, { merge: true });
 }
 
+
+// ════════════════════════════════════════════════════════════════
+// Phase 4K-6K-G: Bundle/component-aware stats update items
+// "Thu nhập học" chỉ là nhãn nghiệp vụ; component mới là nguồn kế toán.
+// Tránh lỗi bundle nhập học có cả học phí + võ phục nhưng toàn bộ amount
+// bị phân bổ vào income.tuition khi type được chuẩn hóa về "Học phí".
+// ════════════════════════════════════════════════════════════════
+
+function _addStatsItem(grouped, month, baseTx, components) {
+    if (!month || !Array.isArray(components) || components.length === 0) return;
+    if (!grouped[month]) grouped[month] = [];
+    grouped[month].push(...components);
+}
+
+function _cloneComponentWithAmount(component, amount) {
+    return Object.assign({}, component, {
+        amount,
+        packageMonths: [],
+    });
+}
+
+function getStatsUpdateItems(tx) {
+    if (!tx) return [];
+
+    // Component accounting là nguồn chính cho bundle/thu gộp/nhập học.
+    if (Array.isArray(tx.components) && tx.components.length > 0) {
+        const fallbackMonth = getTxMonth(tx);
+        const grouped = {};
+
+        for (const component of tx.components) {
+            const amount = Number(component && component.amount || 0);
+            if (!component || amount <= 0) continue;
+
+            if (component.kind === 'tuition') {
+                const months = Array.isArray(component.packageMonths) && component.packageMonths.length > 0
+                    ? component.packageMonths
+                    : (Array.isArray(tx.packageMonths) ? tx.packageMonths : []);
+
+                if (months.length > 0) {
+                    const allocated = amount / months.length;
+                    for (const month of months) {
+                        _addStatsItem(grouped, month, tx, [
+                            _cloneComponentWithAmount(component, allocated),
+                        ]);
+                    }
+                    continue;
+                }
+            }
+
+            const month = component.month || component.txMonth || fallbackMonth;
+            _addStatsItem(grouped, month, tx, [_cloneComponentWithAmount(component, amount)]);
+        }
+
+        return Object.entries(grouped).map(([month, components]) => {
+            const amount = components.reduce((sum, c) => sum + Number(c.amount || 0), 0);
+            return {
+                month,
+                tx: Object.assign({}, tx, {
+                    amount,
+                    components,
+                    packageMonths: [],
+                }),
+            };
+        });
+    }
+
+    // Legacy tuition package không có components: giữ logic phân bổ cũ.
+    const type = normalizeFinanceType((tx && tx.type) || '');
+    if (type === 'Học phí' && Array.isArray(tx.packageMonths) && tx.packageMonths.length > 0) {
+        return tx.packageMonths
+            .map((month) => {
+                const amount = allocateTuitionAmountForMonth(tx, month);
+                if (!amount) return null;
+                return {
+                    month,
+                    tx: Object.assign({}, tx, {
+                        amount,
+                        type: 'Học phí',
+                        packageMonths: [],
+                    }),
+                };
+            })
+            .filter(Boolean);
+    }
+
+    const month = getTxMonth(tx);
+    return month ? [{ month, tx }] : [];
+}
+
+async function updateStatsExpanded(clubId, tx, multiplier) {
+    const items = getStatsUpdateItems(tx);
+    if (!items.length) return null;
+    return Promise.all(items.map((item) => updateStats(
+        clubId,
+        item.month,
+        item.tx,
+        multiplier
+    )));
+}
+
 // ════════════════════════════════════════════════════════════════
 // TRIGGER 1: onTransactionCreate
 // Khi thêm giao dịch mới → cộng vào stats
@@ -123,16 +228,8 @@ exports.onTransactionCreate = functions
         const { clubId } = context.params;
         const tx         = snap.data();
 
-        // Phase 4K-4G: Học phí gói nhiều tháng → cập nhật stats cho từng tháng trong packageMonths
-        if (tx.type === 'Học phí' && Array.isArray(tx.packageMonths) && tx.packageMonths.length > 0) {
-            const allocatedAmount = Number(tx.amount || 0) / tx.packageMonths.length;
-            const virtualTx = Object.assign({}, tx, { amount: allocatedAmount });
-            return Promise.all(tx.packageMonths.map(m => updateStats(clubId, m, virtualTx, +1)));
-        }
-
-        const month = getTxMonth(tx);
-        if (!month) return null;
-        return updateStats(clubId, month, tx, +1);
+        // Phase 4K-6K-G: dùng component/package-aware updater.
+        return updateStatsExpanded(clubId, tx, +1);
     });
 
 // ════════════════════════════════════════════════════════════════
@@ -148,16 +245,8 @@ exports.onTransactionDelete = functions
         const { clubId } = context.params;
         const tx         = snap.data();
 
-        // Phase 4K-4G: Học phí gói nhiều tháng → trừ stats cho từng tháng
-        if (tx.type === 'Học phí' && Array.isArray(tx.packageMonths) && tx.packageMonths.length > 0) {
-            const allocatedAmount = Number(tx.amount || 0) / tx.packageMonths.length;
-            const virtualTx = Object.assign({}, tx, { amount: allocatedAmount });
-            return Promise.all(tx.packageMonths.map(m => updateStats(clubId, m, virtualTx, -1)));
-        }
-
-        const month = getTxMonth(tx);
-        if (!month) return null;
-        return updateStats(clubId, month, tx, -1);
+        // Phase 4K-6K-G: dùng component/package-aware updater.
+        return updateStatsExpanded(clubId, tx, -1);
     });
 
 // ════════════════════════════════════════════════════════════════
@@ -175,27 +264,9 @@ exports.onTransactionUpdate = functions
         const before     = change.before.data();
         const after      = change.after.data();
 
-        // Phase 4K-4G: Xử lý gói học phí nhiều tháng trong onTransactionUpdate
-
-        // Trừ phiên bản cũ
-        if (before.type === 'Học phí' && Array.isArray(before.packageMonths) && before.packageMonths.length > 0) {
-            const allocBefore = Number(before.amount || 0) / before.packageMonths.length;
-            const virtualBefore = Object.assign({}, before, { amount: allocBefore });
-            await Promise.all(before.packageMonths.map(m => updateStats(clubId, m, virtualBefore, -1)));
-        } else {
-            const monthBefore = getTxMonth(before);
-            if (monthBefore) await updateStats(clubId, monthBefore, before, -1);
-        }
-
-        // Cộng phiên bản mới
-        if (after.type === 'Học phí' && Array.isArray(after.packageMonths) && after.packageMonths.length > 0) {
-            const allocAfter = Number(after.amount || 0) / after.packageMonths.length;
-            const virtualAfter = Object.assign({}, after, { amount: allocAfter });
-            await Promise.all(after.packageMonths.map(m => updateStats(clubId, m, virtualAfter, +1)));
-        } else {
-            const monthAfter = getTxMonth(after);
-            if (monthAfter) await updateStats(clubId, monthAfter, after, +1);
-        }
+        // Phase 4K-6K-G: trừ/cộng bằng component/package-aware updater.
+        await updateStatsExpanded(clubId, before, -1);
+        await updateStatsExpanded(clubId, after, +1);
 
         return null;
     });
@@ -302,50 +373,55 @@ exports.rebuildStatsForClub = functions
             pageCount++;
 
             for (const txDoc of snap.docs) {
-                const tx    = txDoc.data();
-                const month = getTxMonth(tx);
-                if (!month) continue;
+                const tx = txDoc.data();
+                const updateItems = getStatsUpdateItems(tx)
+                    .filter((item) => !year || String(item.month || '').startsWith(`${yearStr}-`));
 
-                if (!statsByMonth[month]) {
-                    statsByMonth[month] = {
-                        month,
-                        'income.tuition':    0,
-                        'income.exam':       0,
-                        'income.other':      0,
-                        'income.uniform':    0,
-                        'income.total':      0,
-                        'expense.operations':0,
-                        'expense.exam':      0,
-                        'expense.uniform':   0,
-                        'expense.total':     0,
-                        profit:              0,
-                        // [Phase 4K-FIX Lỗi 6] txCount = số GD hợp lệ (classifyTx != null)
-                        // Đồng nhất với trigger: updateStats() chỉ tăng txCount khi classifyTx != null
-                        txCount: 0,
-                    };
-                }
+                for (const item of updateItems) {
+                    const { month, tx: virtualTx } = item;
+                    if (!month || !virtualTx) continue;
 
-                // [Phase 4K-FIX Lỗi 6] Phân loại TRƯỚC, tăng txCount SAU — đồng nhất với trigger
-                const classified = classifyTx(tx);
-                if (!classified) continue; // bỏ qua TX loại không tính stats (Tặng Võ phục, ...)
-
-                const s       = statsByMonth[month];
-                s.txCount++;   // chỉ tăng cho TX hợp lệ — khớp với trigger behavior
-                totalTxValid++;
-
-                const entries = Array.isArray(classified) ? classified : [classified];
-                for (const entry of entries) {
-                    if (!entry || !entry.field) continue;
-                    if (s[entry.field] === undefined) s[entry.field] = 0;
-                    s[entry.field] += entry.value;
-
-                    if (entry.field.startsWith('income')) {
-                        s['income.total'] += entry.value;
-                        s.profit           += entry.value;
+                    if (!statsByMonth[month]) {
+                        statsByMonth[month] = {
+                            month,
+                            'income.tuition':    0,
+                            'income.exam':       0,
+                            'income.other':      0,
+                            'income.uniform':    0,
+                            'income.total':      0,
+                            'expense.operations':0,
+                            'expense.exam':      0,
+                            'expense.uniform':   0,
+                            'expense.total':     0,
+                            profit:              0,
+                            // [Phase 4K-FIX Lỗi 6] txCount = số GD hợp lệ (classifyTx != null)
+                            // Đồng nhất với trigger: updateStats() chỉ tăng txCount khi classifyTx != null
+                            txCount: 0,
+                        };
                     }
-                    if (entry.field.startsWith('expense')) {
-                        s['expense.total'] += entry.value;
-                        s.profit           -= entry.value;
+
+                    // Phase 4K-6K-G: phân loại trên virtual tx đã tách component/tháng.
+                    const classified = classifyTx(virtualTx);
+                    if (!classified) continue; // bỏ qua TX loại không tính stats (Tặng Võ phục, ...)
+
+                    const s = statsByMonth[month];
+                    s.txCount++; // chỉ tăng cho item hợp lệ — khớp với updateStatsExpanded()
+                    totalTxValid++;
+
+                    const entries = Array.isArray(classified) ? classified : [classified];
+                    for (const entry of entries) {
+                        if (!entry || !entry.field) continue;
+                        if (s[entry.field] === undefined) s[entry.field] = 0;
+                        s[entry.field] += entry.value;
+
+                        if (entry.field.startsWith('income')) {
+                            s['income.total'] += entry.value;
+                            s.profit           += entry.value;
+                        }
+                        if (entry.field.startsWith('expense')) {
+                            s['expense.total'] += entry.value;
+                            s.profit           -= entry.value;
+                        }
                     }
                 }
             }

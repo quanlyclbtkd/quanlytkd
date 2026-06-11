@@ -31,8 +31,8 @@ if(!main.includes('initReceiptHelpers()')) fail('main.js must init receipt helpe
 if(!main.includes('initQRBankingHelpers()')) fail('main.js must init QR helpers');
 if(!main.includes('debugReceiptHelperHealth')) fail('debugRuntimeSmokeTest must include debugReceiptHelperHealth');
 if(!main.includes('debugQRBankingHelperHealth')) fail('debugRuntimeSmokeTest must include debugQRBankingHelperHealth');
-if(!main.includes("APP_BUILD_VERSION = '4K-6K-F-receipt-qr-helper-extraction-20260608'")) fail('APP_BUILD_VERSION must be 4K-6K-F');
-if(!index.includes('main.js?v=receipt-qr-helper-extraction-20260608')) fail('index.html cache bust must be 4K-6K-F');
+if(!(main.includes("APP_BUILD_VERSION = '4K-6K-F-receipt-qr-helper-extraction-20260608'") || main.includes("APP_BUILD_VERSION = '4K-6K-G-admission-tuition-type-normalization-20260608'"))) fail('APP_BUILD_VERSION must be 4K-6K-F or later compatible');
+if(!(index.includes('main.js?v=receipt-qr-helper-extraction-20260608') || index.includes('main.js?v=admission-tuition-type-normalization-20260608'))) fail('index.html cache bust must be 4K-6K-F or later compatible');
 // Guard protected flows remain in app.js. This phase must not own write flows.
 for (const fn of ['processMultiItem','quickPay','deleteTx','markInvPaid','cancelExamPayment','handleImportExcel','initSaaSDatabase','listenToData','renderApp','scheduleRender']) {
   if(!app.includes(fn)) fail(`Protected flow missing from app.js: ${fn}`);

@@ -27,8 +27,8 @@ check(rt.includes('tab-switch-search-replay') && rt.includes('replaySearchForTab
 check(rt.includes('fastDebounceMs') && rt.includes('_getAdaptiveSearchDelay'), 'adaptive debounce preserved');
 check(main.includes('debugStudentSearchIndex') && main.includes('debugSearchAccuracy') && main.includes('studentSearchIndexOk'), 'runtime smoke test includes student search index');
 check(!rt.includes('getDocs(') && !core.includes('getDocs(') && !core.includes('getCountFromServer'), 'student search index does not add Firestore reads');
-check(main.includes('4K-6K-E-unified-student-search-index-20260608') || main.includes('4K-6K-F-receipt-qr-helper-extraction-20260608'), 'APP_BUILD_VERSION updated to 4K-6K-E/6K-F');
-check(idx.includes('unified-student-search-index-20260608') || idx.includes('receipt-qr-helper-extraction-20260608'), 'index cache bust updated to 4K-6K-E/6K-F');
+check(main.includes('4K-6K-E-unified-student-search-index-20260608') || main.includes('4K-6K-F-receipt-qr-helper-extraction-20260608') || main.includes('4K-6K-G-admission-tuition-type-normalization-20260608'), 'APP_BUILD_VERSION updated to 4K-6K-E/6K-F');
+check(idx.includes('unified-student-search-index-20260608') || idx.includes('receipt-qr-helper-extraction-20260608') || idx.includes('admission-tuition-type-normalization-20260608'), 'index cache bust updated to 4K-6K-E/6K-F');
 check(pkg.scripts && pkg.scripts['check:student-search-index'], 'package script check:student-search-index registered');
 check(pkg.scripts?.['check:all']?.includes('check:student-search-index'), 'check:all includes student search index check');
 check(pkg.scripts?.['check:all:critical']?.includes('check:student-search-index'), 'check:all:critical includes student search index check');

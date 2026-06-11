@@ -158,9 +158,11 @@ export function renderTxRow(tx, opts = {}) {
             ? window.getBundleSummaryLine(tx)
             : ((_cleanName ? _cleanName + ' — ' : '') + _bundleDetail);
 
-        const _bundleType = typeof window.getBundleTypeLabel === 'function'
-            ? window.getBundleTypeLabel(tx)
-            : (tx.bundleTypeLabel || tx.type || 'Khoản thu');
+        const _bundleType = typeof window.getFinanceTransactionDisplayType === 'function'
+            ? window.getFinanceTransactionDisplayType(tx)
+            : (typeof window.getBundleTypeLabel === 'function'
+                ? window.getBundleTypeLabel(tx)
+                : (tx.bundleTypeLabel || tx.type || 'Khoản thu'));
 
         const _typeBadge = `<span class="badge bg-violet-50 text-violet-700 border border-violet-200" title="${_escAttr(_bundleFullLine)}">${_escHtml(_bundleType)}</span>`;
         const _amtCell   = `<td class="tx-amount-cell text-emerald-600 font-bold">+${_amount.toLocaleString()} ₫</td>`;
@@ -188,8 +190,14 @@ export function renderTxRow(tx, opts = {}) {
             + `</tr>`;
     }
 
-    const isTuition  = tx.type === 'Học phí' || tx.type === 'Học phí + Lệ phí thi';
-    const isExamType = tx.type === 'Lệ phí thi';
+    const normalizedTxType = typeof window.normalizeFinanceTransactionType === 'function'
+        ? window.normalizeFinanceTransactionType(tx)
+        : (tx.type || '');
+    const displayTxType = typeof window.getFinanceTransactionDisplayType === 'function'
+        ? window.getFinanceTransactionDisplayType(tx)
+        : normalizedTxType;
+    const isTuition  = normalizedTxType === 'Học phí' || normalizedTxType === 'Học phí + Lệ phí thi';
+    const isExamType = normalizedTxType === 'Lệ phí thi';
 
     // ── Phase 4K-3: Student name (safe for attributes and HTML) ──
     const cleanName  = tx.description ? tx.description.trim() : '';
@@ -223,7 +231,7 @@ export function renderTxRow(tx, opts = {}) {
         ? `<span class="badge bg-emerald-50 text-emerald-700 border border-emerald-200">Học phí</span>`
         : isExamType
             ? `<span class="badge bg-amber-50 text-amber-700 border border-amber-200">Thi đai</span>`
-            : `<span class="badge bg-slate-50 text-slate-600 border border-slate-200">${_escHtml(tx.type || 'Khác')}</span>`;
+            : `<span class="badge bg-slate-50 text-slate-600 border border-slate-200">${_escHtml(displayTxType || 'Khác')}</span>`;
 
     // ── Phase 4K-3: Amount cell (mirrors app.js amountHTML multi-month logic) ──
     let amtCell;
@@ -450,18 +458,18 @@ export function computeAndCacheFinance(transactions, params) {
                         incOther += ca;
                     }
                 });
-            } else if (t.type === 'Học phí') {
+            } else if ((typeof window.normalizeFinanceTransactionType === 'function' ? window.normalizeFinanceTransactionType(t) : t.type) === 'Học phí') {
                 allocatedAmount = t.packageMonths
                     ? allocatedAmount / t.packageMonths.length
                     : allocatedAmount;
                 incTuition += allocatedAmount;
-            } else if (t.type === 'Học phí + Lệ phí thi') {
+            } else if ((typeof window.normalizeFinanceTransactionType === 'function' ? window.normalizeFinanceTransactionType(t) : t.type) === 'Học phí + Lệ phí thi') {
                 allocatedAmount = t.packageMonths
                     ? (Number(t.tuitionAmount) || 0) / t.packageMonths.length
                     : (Number(t.tuitionAmount) || 0);
                 incTuition += allocatedAmount;
                 incExam    += Number(t.examAmount) || 0;
-            } else if (t.type === 'Lệ phí thi') {
+            } else if ((typeof window.normalizeFinanceTransactionType === 'function' ? window.normalizeFinanceTransactionType(t) : t.type) === 'Lệ phí thi') {
                 incExam += allocatedAmount;
             } else {
                 incOther += allocatedAmount;
@@ -533,23 +541,24 @@ export function computeAndCacheFinance(transactions, params) {
 
             // Legacy fallback — only when no components available (prevents double-count)
             if (!_usedCompBranch) {
-                const _examPart = (t.type === 'Học phí + Lệ phí thi')
+                const _normTxTypeForStats = typeof window.normalizeFinanceTransactionType === 'function' ? window.normalizeFinanceTransactionType(t) : t.type;
+                const _examPart = (_normTxTypeForStats === 'Học phí + Lệ phí thi')
                     ? (Number(t.examAmount) || 0)
                     : 0;
                 bStats[_normBr].income += allocatedAmount + _examPart;
 
-                if (t.type === 'Lệ phí thi') {
+                if (_normTxTypeForStats === 'Lệ phí thi') {
                     const _ek = Math.round(allocatedAmount);
                     if (_ek > 0) bStats[_normBr].examFeeMap[_ek] = (bStats[_normBr].examFeeMap[_ek] || 0) + 1;
                     bExamStats[_normBr] = (bExamStats[_normBr] || 0) + allocatedAmount;
-                } else if (t.type === 'Học phí + Lệ phí thi') {
+                } else if (_normTxTypeForStats === 'Học phí + Lệ phí thi') {
                     const _ek2 = Math.round(Number(t.examAmount) || 0);
                     if (_ek2 > 0) bStats[_normBr].examFeeMap[_ek2] = (bStats[_normBr].examFeeMap[_ek2] || 0) + 1;
                     bExamStats[_normBr] = (bExamStats[_normBr] || 0) + (Number(t.examAmount) || 0);
                 }
-                if (t.type === 'Học phí' || t.type === 'Học phí + Lệ phí thi') {
+                if (_normTxTypeForStats === 'Học phí' || _normTxTypeForStats === 'Học phí + Lệ phí thi') {
                     const _tf = Math.round(Number(
-                        t.type === 'Học phí + Lệ phí thi' ? t.tuitionAmount : t.amount
+                        _normTxTypeForStats === 'Học phí + Lệ phí thi' ? t.tuitionAmount : t.amount
                     ) || 0);
                     if (_tf > 0) bStats[_normBr].tuitionMap[_tf] = (bStats[_normBr].tuitionMap[_tf] || 0) + 1;
                 }
