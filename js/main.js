@@ -20,6 +20,8 @@
 // APP_BUILD_VERSION = '4K-6K-B-cross-tab-search-replay-20260608'
 // APP_BUILD_VERSION = '4K-6K-C-search-latency-optimization-20260608'
 // APP_BUILD_VERSION = '4K-6K-D-multiitem-tuition-package-fix-20260608'
+// APP_BUILD_VERSION = '4K-6K-E-unified-student-search-index-20260608'
+// APP_BUILD_VERSION = '4K-6K-F-receipt-qr-helper-extraction-20260608'
 /**
  * main.js — Application Bootstrap (Phase 3.6B — Listener Registration Safety)
  * ────────────────────────────────────────────────────────────────────
@@ -57,6 +59,7 @@ import { SuperAdminQuotaGuard }               from './core/superAdminQuotaGuard.
 import { initClubStatsAutoCache }              from './core/clubStatsAutoCache.js';
 import { initSuperAdminServerRefresh }          from './core/superAdminServerRefresh.js';
 import { initProductionStabilityGate }        from './core/productionStabilityGate.js';
+import { initStudentSearchIndex }             from './core/studentSearchIndex.js';
 import { LegacyRenderEntrypoints }            from './core/legacyRenderEntrypoints.js';
 import { InlineHandlerAudit }                from './core/inlineHandlerAudit.js';
 import { EventActionBridge, initEventActionBridge } from './ui/eventActionBridge.js';
@@ -82,6 +85,8 @@ import {
 } from './utils/format.js';
 import { escapeForAttr, escapeHtml, formatVND, parseVND } from './utils/helpers.js';
 import { Formatters, initFormatters } from './utils/formatters.js';
+import { ReceiptHelpers, initReceiptHelpers } from './modules/receiptHelpers.js';
+import { QRBankingHelpers, initQRBankingHelpers } from './modules/qrBankingHelpers.js';
 
 // Phase 4K-6K-A: Low-risk formatters extraction gate.
 // Pure formatter helpers only — no Firestore writes, no business-flow changes.
@@ -89,6 +94,15 @@ try {
     initFormatters();
 } catch (e) {
     console.warn('[BOOT] initFormatters failed:', e);
+}
+
+// Phase 4K-6K-F: Receipt / QR helper extraction gate.
+// Read-only helper modules only — no Firestore writes or financial action ownership changes.
+try {
+    initReceiptHelpers();
+    initQRBankingHelpers();
+} catch (e) {
+    console.warn('[BOOT] initReceiptQrHelpers failed:', e);
 }
 
 // ── Phase 4K-4G: Monthly revenue allocation + active student sort ─────────────
@@ -1711,6 +1725,13 @@ function _waitForExistingLegacyApp(ms) {
             }
         }, 0);
 
+        // Phase 4K-6K-E: Unified Student Search Index must be ready before SearchRuntime.
+        try {
+            initStudentSearchIndex();
+        } catch (e) {
+            console.warn('[StudentSearchIndex] init failed:', e);
+        }
+
         // PHẦN 1 FIX: Khởi động Unified Search Runtime sau khi DOM sẵn sàng
         try {
             initGlobalSearchRuntime();
@@ -2939,7 +2960,7 @@ window.debugProfileModalClose = function() {
 // ════════════════════════════════════════════════════════════════
 
 // PHẦN 1 — APP BUILD VERSION
-window.APP_BUILD_VERSION = '4K-6K-D-multiitem-tuition-package-fix-20260608';
+window.APP_BUILD_VERSION = '4K-6K-F-receipt-qr-helper-extraction-20260608';
 window.APP_COPYRIGHT_OWNER   = 'Tình Trương';
 window.APP_PRODUCT_NAME      = 'Taekwondo Club Management Web App';
 window.APP_SECURITY_PHASE    = '4K-6E-scale-readiness-write-safety';
@@ -4088,6 +4109,8 @@ window.debugRuntimeSmokeTest = async function(term) {
     out.searchPerformance  = await safeCall('debugSearchPerformance',   window.debugSearchPerformance, [term]);
     out.searchTabReplay    = await safeCall('debugSearchTabReplay',     window.debugSearchTabReplay);
     out.searchLatency      = await safeCall('debugSearchLatency',        window.debugSearchLatency);
+    out.studentSearchIndex = await safeCall('debugStudentSearchIndex', window.debugStudentSearchIndex);
+    out.searchAccuracy     = await safeCall('debugSearchAccuracy',     window.debugSearchAccuracy, [term]);
     out.dashboardHistory   = await safeCall('debugDashboardHistory',    window.debugDashboardHistory);
     out.studentPagination  = await safeCall('debugStudentPagination',   window.debugStudentPagination);
     out.profileModalClose  = await safeCall('debugProfileModalClose',   window.debugProfileModalClose);
@@ -4160,6 +4183,8 @@ window.debugRuntimeSmokeTest = async function(term) {
         searchOk:            !!out.searchPerformance.ok,
         searchTabReplayOk:    !!out.searchTabReplay.ok,
         searchLatencyOk:      !!out.searchLatency.ok,
+        studentSearchIndexOk: !!out.studentSearchIndex.ok,
+        searchAccuracyOk:     !!out.searchAccuracy.ok,
         dashboardOk:         !!out.dashboardHistory.ok,
         paginationOk:        !!out.studentPagination.ok,
         modalOk:             !!out.profileModalClose.ok,
@@ -4207,6 +4232,8 @@ window.debugRuntimeSmokeTest = async function(term) {
             !!out.searchPerformance.ok &&
             !!out.searchTabReplay.ok &&
             !!out.searchLatency.ok &&
+            !!out.studentSearchIndex.ok &&
+            !!out.searchAccuracy.ok &&
             !!out.dashboardHistory.ok &&
             !!out.studentPagination.ok &&
             !!out.profileModalClose.ok &&
@@ -4378,6 +4405,12 @@ window.debugRuntimeSmokeTest = async function(term) {
     out.formatterHealth = await safeCall('debugFormatterHealth', window.debugFormatterHealth);
     summary.lowRiskHelperExtractionOk = !!out.lowRiskHelperExtraction.ok;
     summary.formatterHealthOk = !!out.formatterHealth.ok;
+
+    // Phase 4K-6K-F: Receipt / QR Helper Extraction Gate
+    out.receiptHelperHealth = await safeCall('debugReceiptHelperHealth', window.debugReceiptHelperHealth);
+    out.qrBankingHelperHealth = await safeCall('debugQRBankingHelperHealth', window.debugQRBankingHelperHealth);
+    summary.receiptHelperHealthOk = !!out.receiptHelperHealth.ok;
+    summary.qrBankingHelperHealthOk = !!out.qrBankingHelperHealth.ok;
 
     // Phase 4K-6D: Security, License & IP Protection Readiness
     out.buildFingerprint               = await safeCall('debugBuildFingerprint',               window.debugBuildFingerprint);

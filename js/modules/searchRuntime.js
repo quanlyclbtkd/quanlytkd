@@ -13,6 +13,8 @@
  * ────────────────────────────────────────────────────────────────
  */
 
+import { StudentSearchIndex } from '../core/studentSearchIndex.js';
+
 // ── Internal state ────────────────────────────────────────────────────────────
 
 const _state = {
@@ -32,6 +34,9 @@ const _state = {
     fastScheduledCount: 0,
     immediateRuns:      0,
     localStudentRuns:   0,
+    studentIndexRuns:   0,
+    studentIndexFallbacks: 0,
+    lastStudentIndexResult: null,
     localDebtRuns:      0,
     localNonStudentRuns: 0,
     inFlight:           false,  // only one search in flight at a time
@@ -193,6 +198,15 @@ function getProfileSearchBlob(name, profile) {
         p.memberId,
         p.studentCode,
         p.code,
+        p.idCode,
+        p.vtfCode,
+        p.vtfId,
+        p.vtf,
+        p.vtfMemberId,
+        p.maVTF,
+        p.maVtf,
+        p.maHoiVienVTF,
+        p.maHoiVienVtf,
         p.belt,
         p.notes,
         p.phone,
@@ -678,24 +692,68 @@ async function _searchStudentsV2(term, tab, token) {
 
     if (profileCount > 0) {
         _state.localStudentRuns++;
-        const items = Object.entries(profiles)
-            .filter(function([name, p]) {
-                if (typeof window.filterStudentItemsForMode === 'function') {
-                    const modeItems = window.filterStudentItemsForMode([Object.assign({ id: name }, p)], tab);
-                    if (!modeItems.length) return false;
-                } else if (tab === 'active') {
-                    // Phase 4K-6E-C: Fallback active-new filter when filterStudentItemsForMode unavailable
-                    if (typeof window.shouldShowActiveStudentByNewFilter === 'function') {
-                        if (!window.shouldShowActiveStudentByNewFilter(name, p)) return false;
+
+        // Phase 4K-6K-E: Unified Student Search Index Accuracy Gate.
+        // Search local hydrated profiles through one shared index for consistent
+        // name/phone/memberId/VTF matching across tabs without Firestore reads.
+        let indexResult = null;
+        try {
+            if (window.StudentSearchIndex && typeof window.StudentSearchIndex.searchStudents === 'function') {
+                indexResult = window.StudentSearchIndex.searchStudents(term, {
+                    mode: tab,
+                    branch: _getFilterBranch(),
+                    limit: 100
+                });
+            } else if (StudentSearchIndex && typeof StudentSearchIndex.searchStudents === 'function') {
+                indexResult = StudentSearchIndex.searchStudents(term, {
+                    mode: tab,
+                    branch: _getFilterBranch(),
+                    limit: 100
+                });
+            }
+        } catch (e) {
+            _state.studentIndexFallbacks++;
+            console.warn('[SearchRuntime] StudentSearchIndex failed, falling back to legacy blob search:', e && e.message || e);
+        }
+
+        let items = [];
+        let source = 'local-full-profiles';
+        if (indexResult && Array.isArray(indexResult.items)) {
+            _state.studentIndexRuns++;
+            source = 'student-search-index';
+            items = indexResult.items;
+            _state.lastStudentIndexResult = {
+                term,
+                tab,
+                total: indexResult.total,
+                returned: items.length,
+                source,
+                at: Date.now()
+            };
+        } else {
+            _state.studentIndexFallbacks++;
+            items = Object.entries(profiles)
+                .filter(function([name, p]) {
+                    if (typeof window.filterStudentItemsForMode === 'function') {
+                        const modeItems = window.filterStudentItemsForMode([Object.assign({ id: name }, p)], tab);
+                        if (!modeItems.length) return false;
+                    } else if (tab === 'active') {
+                        if (typeof window.shouldShowActiveStudentByNewFilter === 'function') {
+                            if (!window.shouldShowActiveStudentByNewFilter(name, p)) return false;
+                        }
                     }
-                }
-                const blob = typeof window.getProfileSearchBlob === 'function'
-                    ? window.getProfileSearchBlob(name, p)
-                    : _normalizeSearch([name, p.name, p.phone, p.memberId, p.belt, p.notes].filter(Boolean).join(' '));
-                return blob.includes(term);
-            })
-            .slice(0, 100)
-            .map(function([name, p]) { return Object.assign({ id: name }, p); });
+                    const blob = typeof window.getProfileSearchBlob === 'function'
+                        ? window.getProfileSearchBlob(name, p)
+                        : _normalizeSearch([
+                            name, p.name, p.phone, p.parentPhone, p.memberId, p.studentCode,
+                            p.code, p.idCode, p.vtfCode, p.vtfId, p.vtf, p.vtfMemberId,
+                            p.maVTF, p.maVtf, p.maHoiVienVTF, p.maHoiVienVtf, p.belt, p.branch, p.notes
+                          ].filter(Boolean).join(' '));
+                    return blob.includes(term);
+                })
+                .slice(0, 100)
+                .map(function([name, p]) { return Object.assign({ id: name }, p); });
+        }
 
         if (token !== _state.currentSearchToken) {
             _state.staleDropped++;
@@ -711,25 +769,27 @@ async function _searchStudentsV2(term, tab, token) {
             pgState.searchActive  = true;
             pgState.searchQuery   = term;
             pgState.enabled       = true;
-            pgState.searchSource  = 'local-full-profiles';
+            pgState.searchSource  = source;
         }
         if (st) {
             st._studentsPaginationVersion = (st._studentsPaginationVersion || 0) + 1;
             st._dataVersion               = (st._dataVersion || 0) + 1;
+            st._globalSearchTerm          = term;
         }
 
         const listKey = tab === 'quit' ? 'students.quitList' : 'students.activeList';
         if (typeof window.refreshListsComputation === 'function')
-            window.refreshListsComputation([listKey, 'dashboard.summary'], 'search-v2-students-local');
+            window.refreshListsComputation([listKey, 'dashboard.summary'], 'search-v2-students-index');
         if (typeof window.invalidateList === 'function')
-            window.invalidateList(listKey, 'search-v2-students-local');
+            window.invalidateList(listKey, 'search-v2-students-index');
         else if (typeof window.invalidateStudents === 'function')
-            window.invalidateStudents('search-v2-students-local');
+            window.invalidateStudents('search-v2-students-index');
 
-        return { items, source: 'local-full-profiles' };
+        return { items, source };
     }
 
-    // Server fallback
+    // Server fallback only when profiles are not hydrated. Do not query Firebase
+    // for normal local searches when the profile store is ready.
     if (typeof window.runStudentSearchPagination === 'function') {
         await window.runStudentSearchPagination(term, { searchToken: token });
         return { source: 'server-pagination' };
@@ -828,6 +888,10 @@ window.debugUnifiedSearchV2 = function() {
         fastScheduledCount:  _state.fastScheduledCount,
         immediateRuns:       _state.immediateRuns,
         localStudentRuns:    _state.localStudentRuns,
+        studentIndexRuns:    _state.studentIndexRuns,
+        studentIndexFallbacks: _state.studentIndexFallbacks,
+        lastStudentIndexResult: _state.lastStudentIndexResult,
+        studentSearchIndex:  window.StudentSearchIndex?.getStats?.('debugUnifiedSearchV2') || null,
         localDebtRuns:       _state.localDebtRuns,
         localNonStudentRuns: _state.localNonStudentRuns,
         profileCountForFastPath: _getProfileCount(),
@@ -870,6 +934,10 @@ window.debugSearchLatency = function() {
         fastScheduledCount: _state.fastScheduledCount,
         immediateRuns: _state.immediateRuns,
         localStudentRuns: _state.localStudentRuns,
+        studentIndexRuns: _state.studentIndexRuns,
+        studentIndexFallbacks: _state.studentIndexFallbacks,
+        lastStudentIndexResult: _state.lastStudentIndexResult,
+        studentSearchIndexReady: !!window.__studentSearchIndexReady,
         localDebtRuns: _state.localDebtRuns,
         localNonStudentRuns: _state.localNonStudentRuns,
         profileCount: _getProfileCount(),
@@ -976,6 +1044,7 @@ export function initGlobalSearchRuntime() {
         _profileBlobCache.clear();
         _txBlobCache.clear();
         _invBlobCache.clear();
+        if (window.invalidateStudentSearchIndex) window.invalidateStudentSearchIndex(reason || 'search-cache-clear');
         _state.lastTerm = '';   // force re-run even same term
         console.info('[SearchRuntime] cache cleared (' + before + ' entries) —', reason || 'manual');
     };
@@ -1037,6 +1106,7 @@ export function disposeGlobalSearchRuntime() {
     _profileBlobCache.clear();
     _txBlobCache.clear();
     _invBlobCache.clear();
+    if (window.invalidateStudentSearchIndex) window.invalidateStudentSearchIndex('search-runtime-dispose');
     console.info('[SearchRuntime V2] disposed.');
 }
 
