@@ -970,6 +970,7 @@ export function initFinance() {
      * giao dịch bù tháng cũ (đóng T1 vào ngày T2).
      */
     window.executeExcelExport = async () => {
+        await window.ensureXlsxReady?.('finance-excel-export');
         if (window.userRole === 'viewer') return;
 
         const config    = _config();

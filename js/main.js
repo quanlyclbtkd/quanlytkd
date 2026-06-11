@@ -25,6 +25,8 @@
 // APP_BUILD_VERSION = '4K-6K-G-admission-tuition-type-normalization-20260608'
 // APP_BUILD_VERSION = '4K-6L-inventory-multiitem-readonly-ui-ownership-20260608'
 // APP_BUILD_VERSION = '4K-6M-listener-ownership-boundary-render-event-cleanup-20260608'
+// APP_BUILD_VERSION = '4K-6N-financial-action-audit-trail-write-intent-20260608'
+// APP_BUILD_VERSION = '4K-6O-mobile-startup-performance-lazy-assets-20260608'
 /**
  * main.js — Application Bootstrap (Phase 3.6B — Listener Registration Safety)
  * ────────────────────────────────────────────────────────────────────
@@ -64,6 +66,8 @@ import { initSuperAdminServerRefresh }          from './core/superAdminServerRef
 import { initProductionStabilityGate }        from './core/productionStabilityGate.js';
 import { initStudentSearchIndex }             from './core/studentSearchIndex.js';
 import { initListenerOwnershipBoundary }      from './core/listenerOwnershipBoundary.js';
+import { initFinancialActionAuditGuard }      from './core/financialActionAuditGuard.js';
+import { initMobileStartupPerformance }       from './core/mobileStartupPerformance.js';
 import { LegacyRenderEntrypoints }            from './core/legacyRenderEntrypoints.js';
 import { InlineHandlerAudit }                from './core/inlineHandlerAudit.js';
 import { EventActionBridge, initEventActionBridge } from './ui/eventActionBridge.js';
@@ -123,6 +127,23 @@ try {
     initListenerOwnershipBoundary();
 } catch (e) {
     console.warn('[BOOT] initListenerOwnershipBoundary failed:', e);
+}
+
+// Phase 4K-6N: Financial Action Audit Trail + Write Intent Guard.
+// Guard/audit boundary only — does not change financial business logic.
+try {
+    initFinancialActionAuditGuard();
+} catch (e) {
+    console.warn('[BOOT] initFinancialActionAuditGuard failed:', e);
+}
+
+
+// Phase 4K-6O: Mobile Startup Performance Gate + Lazy Asset Loading.
+// Metrics/lazy asset boundary only — does not change financial business logic.
+try {
+    initMobileStartupPerformance();
+} catch (e) {
+    console.warn('[BOOT] initMobileStartupPerformance failed:', e);
 }
 
 // ── Phase 4K-4G: Monthly revenue allocation + active student sort ─────────────
@@ -2981,7 +3002,7 @@ window.debugProfileModalClose = function() {
 // ════════════════════════════════════════════════════════════════
 
 // PHẦN 1 — APP BUILD VERSION
-window.APP_BUILD_VERSION = '4K-6M-listener-ownership-boundary-render-event-cleanup-20260608';
+window.APP_BUILD_VERSION = '4K-6O-mobile-startup-performance-lazy-assets-20260608';
 window.APP_COPYRIGHT_OWNER   = 'Tình Trương';
 window.APP_PRODUCT_NAME      = 'Taekwondo Club Management Web App';
 window.APP_SECURITY_PHASE    = '4K-6E-scale-readiness-write-safety';
@@ -4450,6 +4471,23 @@ window.debugRuntimeSmokeTest = async function(term) {
     summary.listenerOwnershipBoundaryOk = !!out.listenerOwnershipBoundary.ok;
     summary.eventBindingOwnershipOk = !!out.eventBindingOwnership.ok;
     summary.renderEventCleanupOk = !!out.renderEventCleanup.ok;
+
+    // Phase 4K-6N: Financial Action Audit Trail + Write Intent Guard
+    out.financialActionAuditGuard = await safeCall('debugFinancialActionAuditGuard', window.debugFinancialActionAuditGuard);
+    out.financialActionAuditTrail = await safeCall('debugFinancialActionAuditTrail', window.debugFinancialActionAuditTrail);
+    summary.financialActionAuditGuardOk = !!out.financialActionAuditGuard.ok;
+    summary.financialActionAuditTrailOk = !!out.financialActionAuditTrail.ok;
+
+
+    // Phase 4K-6O: Mobile Startup Performance + Lazy Asset Loading
+    out.mobileStartupPerformance = await safeCall('debugMobileStartupPerformance', window.debugMobileStartupPerformance);
+    out.startupTimeline = await safeCall('debugStartupTimeline', window.debugStartupTimeline);
+    out.startupBottlenecks = await safeCall('debugStartupBottlenecks', window.debugStartupBottlenecks);
+    out.lazyAssetsLoading = await safeCall('debugLazyAssetsLoading', window.debugLazyAssetsLoading);
+    summary.mobileStartupPerformanceOk = !!out.mobileStartupPerformance.ok;
+    summary.startupTimelineOk = !!out.startupTimeline.ok;
+    summary.startupBottlenecksOk = !!out.startupBottlenecks.ok;
+    summary.lazyAssetsLoadingOk = !!out.lazyAssetsLoading.ok;
 
     // Phase 4K-6D: Security, License & IP Protection Readiness
     out.buildFingerprint               = await safeCall('debugBuildFingerprint',               window.debugBuildFingerprint);

@@ -294,6 +294,7 @@ export function initReports() {
     // ════════════════════════════════════════════════════════════
 
     window.executeExcelExport = async () => {
+        await window.ensureXlsxReady?.('reports-excel-export');
         if (window.userRole === 'viewer') return;
 
         const year   = parseInt(document.getElementById('excel_year').value);
@@ -759,6 +760,7 @@ export function initReports() {
     // ════════════════════════════════════════════════════════════
 
     window.exportAchievementsExcel = async () => {
+        await window.ensureXlsxReady?.('reports-achievements-export');
         if (typeof window.ensureAllProfilesForExport === 'function') {
             await window.ensureAllProfilesForExport('export-achievements');
         } else if (typeof window.loadQuitProfilesIfNeeded === 'function') {
@@ -974,6 +976,7 @@ export function initReports() {
     // ════════════════════════════════════════════════════════════
 
     window.exportExamPaidList = async () => {
+        await window.ensureXlsxReady?.('reports-export-exam-paid-list');
         // Phase 4.0A-2: Metrics
         const _examStartMs = Date.now();
         window.__reportsModuleMetrics.examPaidExportCalls++;
@@ -1314,6 +1317,7 @@ export function initReports() {
     };
 
     window.executeTaxExport = async () => {
+        await window.ensureXlsxReady?.('reports-tax-export');
         if (window.userRole === 'viewer') return alert("Tài khoản khách không thể thao tác!");
 
         const year    = document.getElementById('taxYear').value;

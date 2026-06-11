@@ -62,7 +62,15 @@ export function renderDashboardCharts(chartData) {
     try {
     const { labels, income, expense, active } = chartData;
     const Chart = window.Chart;
-    if (!Chart) return;
+    if (!Chart) {
+        if (!window.__dashboardChartLazyLoadPending && typeof window.ensureChartJsReady === 'function') {
+            window.__dashboardChartLazyLoadPending = true;
+            window.ensureChartJsReady('dashboard-render-charts')
+                .then(() => { window.__dashboardChartLazyLoadPending = false; renderDashboardCharts(chartData); })
+                .catch((err) => { window.__dashboardChartLazyLoadPending = false; console.warn('[dashboard] Chart.js lazy load failed:', err); });
+        }
+        return;
+    }
 
     // ── Finance chart (bar: Thu / Chi) — Phase 4K-5N lifecycle fix ──────────
     const finEl = document.getElementById('financeChart');
