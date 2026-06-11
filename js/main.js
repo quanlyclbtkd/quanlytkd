@@ -24,6 +24,7 @@
 // APP_BUILD_VERSION = '4K-6K-F-receipt-qr-helper-extraction-20260608'
 // APP_BUILD_VERSION = '4K-6K-G-admission-tuition-type-normalization-20260608'
 // APP_BUILD_VERSION = '4K-6L-inventory-multiitem-readonly-ui-ownership-20260608'
+// APP_BUILD_VERSION = '4K-6M-listener-ownership-boundary-render-event-cleanup-20260608'
 /**
  * main.js — Application Bootstrap (Phase 3.6B — Listener Registration Safety)
  * ────────────────────────────────────────────────────────────────────
@@ -62,6 +63,7 @@ import { initClubStatsAutoCache }              from './core/clubStatsAutoCache.j
 import { initSuperAdminServerRefresh }          from './core/superAdminServerRefresh.js';
 import { initProductionStabilityGate }        from './core/productionStabilityGate.js';
 import { initStudentSearchIndex }             from './core/studentSearchIndex.js';
+import { initListenerOwnershipBoundary }      from './core/listenerOwnershipBoundary.js';
 import { LegacyRenderEntrypoints }            from './core/legacyRenderEntrypoints.js';
 import { InlineHandlerAudit }                from './core/inlineHandlerAudit.js';
 import { EventActionBridge, initEventActionBridge } from './ui/eventActionBridge.js';
@@ -113,6 +115,14 @@ try {
     initInventoryMultiItemReadOnlyUI();
 } catch (e) {
     console.warn('[BOOT] initInventoryMultiItemReadOnlyUI failed:', e);
+}
+
+// Phase 4K-6M: Listener Ownership Boundary + Render Event Cleanup.
+// Metrics/ownership only — does not change financial business flows.
+try {
+    initListenerOwnershipBoundary();
+} catch (e) {
+    console.warn('[BOOT] initListenerOwnershipBoundary failed:', e);
 }
 
 // ── Phase 4K-4G: Monthly revenue allocation + active student sort ─────────────
@@ -2971,7 +2981,7 @@ window.debugProfileModalClose = function() {
 // ════════════════════════════════════════════════════════════════
 
 // PHẦN 1 — APP BUILD VERSION
-window.APP_BUILD_VERSION = '4K-6L-inventory-multiitem-readonly-ui-ownership-20260608';
+window.APP_BUILD_VERSION = '4K-6M-listener-ownership-boundary-render-event-cleanup-20260608';
 window.APP_COPYRIGHT_OWNER   = 'Tình Trương';
 window.APP_PRODUCT_NAME      = 'Taekwondo Club Management Web App';
 window.APP_SECURITY_PHASE    = '4K-6E-scale-readiness-write-safety';
@@ -4432,6 +4442,14 @@ window.debugRuntimeSmokeTest = async function(term) {
     // Phase 4K-6L: Inventory / MultiItem Read-only UI Ownership Gate
     out.inventoryMultiItemReadOnlyUI = await safeCall('debugInventoryMultiItemReadOnlyUI', window.debugInventoryMultiItemReadOnlyUI);
     summary.inventoryMultiItemReadOnlyUIOk = !!out.inventoryMultiItemReadOnlyUI.ok;
+
+    // Phase 4K-6M: Listener Ownership Boundary + Render Event Cleanup
+    out.listenerOwnershipBoundary = await safeCall('debugListenerOwnershipBoundary', window.debugListenerOwnershipBoundary);
+    out.eventBindingOwnership = await safeCall('debugEventBindingOwnership', window.debugEventBindingOwnership);
+    out.renderEventCleanup = await safeCall('debugRenderEventCleanup', window.debugRenderEventCleanup);
+    summary.listenerOwnershipBoundaryOk = !!out.listenerOwnershipBoundary.ok;
+    summary.eventBindingOwnershipOk = !!out.eventBindingOwnership.ok;
+    summary.renderEventCleanupOk = !!out.renderEventCleanup.ok;
 
     // Phase 4K-6D: Security, License & IP Protection Readiness
     out.buildFingerprint               = await safeCall('debugBuildFingerprint',               window.debugBuildFingerprint);

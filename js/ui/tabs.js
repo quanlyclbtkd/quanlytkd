@@ -116,10 +116,16 @@ export function switchTab(tabId) {
     // Fallback an toàn: cleanupListenersByTabId không throw nếu không có gì.
     if (_prevTabId && _prevTabId !== tabId) {
         _cleanupTabListeners(_prevTabId, 'tab-leave-' + _prevTabId);
+        try {
+            window.ListenerOwnershipBoundary?.onTabLeave?.(_prevTabId, 'tab-leave-' + _prevTabId);
+        } catch (_) {}
     }
 
     // ── 1. Toggle active class ───────────────────────────────────────────
     _activateTab(tabId);
+    try {
+        window.ListenerOwnershipBoundary?.onTabEnter?.(tabId, 'tab-enter-' + tabId);
+    } catch (_) {}
 
     // ── 2. Reset pagination về trang 1 khi đổi tab ──────────────────────
     if (tabId === 'active')    window._activePage = 1;

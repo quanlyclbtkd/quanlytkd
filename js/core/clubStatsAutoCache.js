@@ -295,8 +295,29 @@ function initClubStatsAutoCache() {
   };
   setTimeout(tick, 1200);
 
-  window.addEventListener('app-context-ready', () => scheduleClubStatsAutoCacheSync('app-context-ready'));
-  window.addEventListener('focus', () => scheduleClubStatsAutoCacheSync('window-focus'));
+  const _bindOwned = typeof window.addOwnedEventListener === 'function'
+    ? window.addOwnedEventListener
+    : function(target, type, handler, key, options) {
+        target.addEventListener(type, handler, options);
+        return () => target.removeEventListener(type, handler, options);
+      };
+
+  _bindOwned(
+    window,
+    'app-context-ready',
+    () => scheduleClubStatsAutoCacheSync('app-context-ready'),
+    'clubStatsAutoCache:app-context-ready',
+    undefined,
+    { owner: 'club-stats-auto-cache', scope: 'global', reason: 'auto-cache-context-ready' }
+  );
+  _bindOwned(
+    window,
+    'focus',
+    () => scheduleClubStatsAutoCacheSync('window-focus'),
+    'clubStatsAutoCache:window-focus',
+    undefined,
+    { owner: 'club-stats-auto-cache', scope: 'global', reason: 'auto-cache-window-focus' }
+  );
 
   window.computeClubStatsCache = computeClubStatsCache;
   window.syncClubStatsCache = syncClubStatsCache;
