@@ -7491,6 +7491,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
 // ═══ THU GỘP NHIỀU KHOẢN (Multi-Item Receipt) ═══════════════
 
 window.openMultiItemModal = () => {
+    window.resetMultiItemTuitionPackageManualState && window.resetMultiItemTuitionPackageManualState('open-modal');
     document.getElementById('multiItemModal').style.display = 'flex';
     const fm = document.getElementById('filterMonth');
     if(fm && fm.value) document.getElementById('mi_tuition_month').value = fm.value;
@@ -7678,11 +7679,17 @@ window.updateMultiItemAutoFee = () => {
         if (matchKey) profile = allProfiles[matchKey];
     }
     const baseFee = profile ? (Number(profile.tuitionFee) || 0) : 0;
-    // Phase 4K-5M: ưu tiên data-months từ danh sách tháng thực thu (loại skippedMonths)
+    // Phase 4K-5M/6K-D: ưu tiên data-months chỉ khi đang chọn option thu nợ tự sinh.
+    // Nếu HLV chọn gói chuẩn 3/6/9/12, phải tôn trọng lựa chọn thủ công và không để _refreshMiHistoryBadges ghi đè về 1 tháng/thu nợ.
     const pkgSelect = document.getElementById('mi_tuition_pkg');
+    const _pkgState = window.getSelectedMultiItemTuitionPackageState ? window.getSelectedMultiItemTuitionPackageState() : { pkgSelect: pkgSelect };
+    if (pkgSelect && _pkgState && !_pkgState.isDebtOption && window.__miManualTuitionPackage) {
+        pkgSelect.removeAttribute('data-months');
+        pkgSelect.setAttribute('data-manual-package', 'true');
+    }
     let chargeMonths = [];
     try {
-        const rawMonths = pkgSelect ? pkgSelect.getAttribute('data-months') : '';
+        const rawMonths = (pkgSelect && _pkgState && _pkgState.isDebtOption) ? pkgSelect.getAttribute('data-months') : '';
         chargeMonths = rawMonths ? JSON.parse(rawMonths) : [];
     } catch (_) {
         chargeMonths = [];
@@ -7726,11 +7733,14 @@ window.updateMultiItemAutoFee = () => {
         document.getElementById('mi_profile_branch').textContent = window.getBranchNameDisplay ? window.getBranchNameDisplay(profile.branch) : (profile.branch || '');
         document.getElementById('mi_profile_fee').textContent = baseFee > 0 ? baseFee.toLocaleString('vi-VN') + ' ₫/tháng' : 'Chưa cài';
         infoCard.style.display = 'flex';
-        try {
-            Promise.resolve(window._refreshMiHistoryBadges(name, profile))
-                .catch(e => console.warn('[multiItem] refresh badges failed:', e));
-        } catch (e) {
-            console.warn('[multiItem] refresh badges dispatch failed:', e);
+        // Không refresh badges khi HLV vừa đổi gói học phí thủ công, vì _refreshMiHistoryBadges có thể tự chọn lại option thu nợ/default.
+        if (!(window.__miManualTuitionPackage && pkgSelect && pkgSelect.getAttribute('data-manual-package') === 'true')) {
+            try {
+                Promise.resolve(window._refreshMiHistoryBadges(name, profile))
+                    .catch(e => console.warn('[multiItem] refresh badges failed:', e));
+            } catch (e) {
+                console.warn('[multiItem] refresh badges dispatch failed:', e);
+            }
         }
     } else if (infoCard && !name) {
         infoCard.style.display = 'none';
@@ -7782,15 +7792,22 @@ window._refreshMiHistoryBadges = async (name, profile) => {
                 opt.value = optValue;
                 opt.textContent = unpaid + ' tháng (thu nợ ' + (window.formatTuitionMonthList ? window.formatTuitionMonthList(chargeableMonths) : chargeableMonths.map(formatMonth).join(', ')) + ')';
             }
-            pkgSelect.value = optValue;
-            pkgSelect.setAttribute('data-months', JSON.stringify(chargeableMonths));
+            if (!(window.__miManualTuitionPackage && pkgSelect.getAttribute('data-manual-package') === 'true')) {
+                pkgSelect.value = optValue;
+                pkgSelect.setAttribute('data-months', JSON.stringify(chargeableMonths));
+            } else {
+                // HLV đã chọn gói chuẩn 3/6/9/12: vẫn hiển thị nợ, nhưng không ghi đè gói đang chọn.
+                pkgSelect.removeAttribute('data-months');
+            }
         } else {
             debtBadge.style.display = 'none';
             debtMonths.style.display = 'none';
             pkgSelect.removeAttribute('data-months');
             const fm = document.getElementById('filterMonth');
             if (fm && fm.value) document.getElementById('mi_tuition_month').value = fm.value;
-            pkgSelect.value = '1';
+            if (!(window.__miManualTuitionPackage && pkgSelect.getAttribute('data-manual-package') === 'true')) {
+                pkgSelect.value = '1';
+            }
         }
     } else {
         paidUntilBadge.textContent = '❓ Chưa có dữ liệu';
@@ -7799,7 +7816,9 @@ window._refreshMiHistoryBadges = async (name, profile) => {
         pkgSelect.removeAttribute('data-months');
         const fm = document.getElementById('filterMonth');
         if(fm && fm.value) document.getElementById('mi_tuition_month').value = fm.value;
-        pkgSelect.value = '1';
+        if (!(window.__miManualTuitionPackage && pkgSelect.getAttribute('data-manual-package') === 'true')) {
+            pkgSelect.value = '1';
+        }
     }
     // Phase 4K-5M: bind pkg change — clear data-months khi HLV chọn gói thủ công
     if (pkgSelect && !pkgSelect.__clearDebtMonthsBound) {
@@ -7807,7 +7826,11 @@ window._refreshMiHistoryBadges = async (name, profile) => {
         pkgSelect.addEventListener('change', function() {
             const opt = pkgSelect.options[pkgSelect.selectedIndex];
             if (!opt || opt.getAttribute('data-debt') !== 'true') {
+                window.markManualMultiItemTuitionPackage && window.markManualMultiItemTuitionPackage('select-change-listener');
                 pkgSelect.removeAttribute('data-months');
+            } else {
+                window.__miManualTuitionPackage = false;
+                pkgSelect.removeAttribute('data-manual-package');
             }
             window.updateMultiItemAutoFee && window.updateMultiItemAutoFee();
         });
@@ -8370,6 +8393,166 @@ window.debugActiveQuitLeak = function() {
     return { activeDomCount: activeDom.length, leaks: leaks };
 };
 
+
+// Phase 4K-6K-D — MultiItem Tuition Package Guard
+// Giữ lựa chọn gói học phí thủ công (3/6/9/12 tháng) không bị _refreshMiHistoryBadges ghi đè.
+// Mục tiêu: Thu gộp gói 3 tháng từ 2026-06 phải ghi đủ 2026-06,2026-07,2026-08 và paidUntil=2026-08.
+window.__miManualTuitionPackage = false;
+window.__miLastManualTuitionPackage = '';
+window.__miLastPackageMonths = [];
+window.__miLastPackageCoverage = null;
+
+window.normalizeTuitionMonthForMultiItem = window.normalizeTuitionMonthForMultiItem || function(month) {
+    const raw = String(month || '').slice(0, 7);
+    if (!raw) return '';
+    const parts = raw.split('-');
+    if (parts.length !== 2) return raw;
+    const y = Number(parts[0]);
+    const m = Number(parts[1]);
+    if (!Number.isFinite(y) || !Number.isFinite(m) || m < 1 || m > 12) return raw;
+    return String(y).padStart(4, '0') + '-' + String(m).padStart(2, '0');
+};
+
+window.addMonthsForMultiItem = window.addMonthsForMultiItem || function(month, offset) {
+    const norm = window.normalizeTuitionMonthForMultiItem(month);
+    if (!norm) return '';
+    let parts = norm.split('-').map(Number);
+    let y = parts[0], m = parts[1] + Number(offset || 0);
+    while (m > 12) { m -= 12; y += 1; }
+    while (m < 1) { m += 12; y -= 1; }
+    return String(y).padStart(4, '0') + '-' + String(m).padStart(2, '0');
+};
+
+window.getSelectedMultiItemTuitionPackageState = window.getSelectedMultiItemTuitionPackageState || function() {
+    const pkgSelect = document.getElementById('mi_tuition_pkg');
+    const opt = pkgSelect && pkgSelect.options ? pkgSelect.options[pkgSelect.selectedIndex] : null;
+    const value = String((pkgSelect && pkgSelect.value) || '1');
+    const isDebtOption = !!(opt && opt.getAttribute && opt.getAttribute('data-debt') === 'true');
+    const manual = !!(window.__miManualTuitionPackage || (pkgSelect && pkgSelect.getAttribute('data-manual-package') === 'true'));
+    return { pkgSelect, opt, value, isDebtOption, manual };
+};
+
+window.markManualMultiItemTuitionPackage = window.markManualMultiItemTuitionPackage || function(reason) {
+    const st = window.getSelectedMultiItemTuitionPackageState ? window.getSelectedMultiItemTuitionPackageState() : {};
+    const pkgSelect = st.pkgSelect || document.getElementById('mi_tuition_pkg');
+    const opt = st.opt || (pkgSelect && pkgSelect.options ? pkgSelect.options[pkgSelect.selectedIndex] : null);
+    if (!pkgSelect || !opt) return false;
+    // Chỉ đánh dấu thủ công khi HLV chọn gói chuẩn, không phải option thu nợ tự sinh.
+    if (opt.getAttribute && opt.getAttribute('data-debt') === 'true') {
+        window.__miManualTuitionPackage = false;
+        pkgSelect.removeAttribute('data-manual-package');
+        return false;
+    }
+    const allowed = ['1', '3', '6', '9', '12'];
+    if (!allowed.includes(String(pkgSelect.value))) return false;
+    window.__miManualTuitionPackage = true;
+    window.__miLastManualTuitionPackage = String(pkgSelect.value || '1');
+    pkgSelect.setAttribute('data-manual-package', 'true');
+    pkgSelect.setAttribute('data-manual-package-reason', String(reason || 'manual-change'));
+    pkgSelect.removeAttribute('data-months');
+    return true;
+};
+
+window.bindMultiItemTuitionPackageGuard = window.bindMultiItemTuitionPackageGuard || function() {
+    if (window.__miTuitionPackageGuardBound) return true;
+    window.__miTuitionPackageGuardBound = true;
+    // Capture-phase để chạy trước inline onchange="updateMultiItemAutoFee()" trong index.html.
+    document.addEventListener('change', function(e) {
+        const target = e && e.target;
+        if (!target || target.id !== 'mi_tuition_pkg') return;
+        window.markManualMultiItemTuitionPackage && window.markManualMultiItemTuitionPackage('select-change-capture');
+    }, true);
+    return true;
+};
+window.bindMultiItemTuitionPackageGuard && window.bindMultiItemTuitionPackageGuard();
+
+window.resetMultiItemTuitionPackageManualState = window.resetMultiItemTuitionPackageManualState || function(reason) {
+    const pkgSelect = document.getElementById('mi_tuition_pkg');
+    window.__miManualTuitionPackage = false;
+    window.__miLastManualTuitionPackage = '';
+    window.__miLastPackageMonths = [];
+    window.__miLastPackageCoverage = null;
+    if (pkgSelect) {
+        pkgSelect.removeAttribute('data-manual-package');
+        pkgSelect.removeAttribute('data-manual-package-reason');
+        pkgSelect.removeAttribute('data-months');
+        pkgSelect.setAttribute('data-reset-reason', String(reason || 'reset'));
+    }
+};
+
+window.buildMultiItemTuitionPackageMonths = window.buildMultiItemTuitionPackageMonths || function(tuitionMonth, pkg, profile, options) {
+    const opts = options || {};
+    const pkgSelect = opts.pkgSelect || document.getElementById('mi_tuition_pkg');
+    const selectedOpt = pkgSelect && pkgSelect.options ? pkgSelect.options[pkgSelect.selectedIndex] : null;
+    const isDebtOption = !!(selectedOpt && selectedOpt.getAttribute && selectedOpt.getAttribute('data-debt') === 'true');
+    const startMonth = window.normalizeTuitionMonthForMultiItem(tuitionMonth || opts.startMonth || '');
+    let rawMonths = [];
+    if (isDebtOption) {
+        try {
+            const raw = pkgSelect ? pkgSelect.getAttribute('data-months') : '';
+            rawMonths = raw ? JSON.parse(raw) : [];
+        } catch (_) { rawMonths = []; }
+    }
+
+    let months = [];
+    let source = 'manual-package';
+    if (Array.isArray(rawMonths) && rawMonths.length > 0) {
+        months = rawMonths.map(function(m) { return window.normalizeTuitionMonthForMultiItem(m); }).filter(Boolean);
+        source = 'debt-data-months';
+    } else if (startMonth) {
+        const count = Math.max(1, Number(pkg) || Number(pkgSelect && pkgSelect.value) || 1);
+        for (let i = 0; i < count; i++) months.push(window.addMonthsForMultiItem(startMonth, i));
+        const skipped = Array.isArray(profile && profile.skippedMonths)
+            ? profile.skippedMonths.map(function(m) { return window.normalizeTuitionMonthForMultiItem(m); }).filter(Boolean)
+            : [];
+        if (skipped.length > 0) {
+            months = months.filter(function(m) { return !skipped.includes(m); });
+            source = 'manual-package-minus-skipped';
+        }
+    }
+
+    const seen = new Set();
+    months = months.filter(function(m) {
+        if (!m || seen.has(m)) return false;
+        seen.add(m);
+        return true;
+    });
+    const result = {
+        months: months,
+        lastMonth: months.length ? months[months.length - 1] : (startMonth || ''),
+        startMonth: startMonth,
+        requestedPackage: Number(pkg) || Number(pkgSelect && pkgSelect.value) || 1,
+        source: source,
+        isDebtOption: isDebtOption,
+        manual: !!(window.__miManualTuitionPackage || (pkgSelect && pkgSelect.getAttribute('data-manual-package') === 'true'))
+    };
+    window.__miLastPackageMonths = months.slice();
+    window.__miLastPackageCoverage = result;
+    return result;
+};
+
+window.debugMultiItemTuitionPackageCoverage = function(name) {
+    const studentName = String(name || (document.getElementById('mi_name') && document.getElementById('mi_name').value) || '').trim();
+    const p = (window.allProfiles && window.allProfiles[studentName]) || ((window.__store && window.__store.profiles) || {})[studentName] || {};
+    const pkgSelect = document.getElementById('mi_tuition_pkg');
+    const tuitionMonth = (document.getElementById('mi_tuition_month') && document.getElementById('mi_tuition_month').value) || '';
+    const pkg = Number(pkgSelect && pkgSelect.value) || 1;
+    const coverage = window.buildMultiItemTuitionPackageMonths(tuitionMonth, pkg, p, { pkgSelect: pkgSelect, reason: 'debug' });
+    const result = {
+        studentName: studentName,
+        tuitionMonth: tuitionMonth,
+        pkgValue: pkgSelect ? pkgSelect.value : '',
+        selectedText: pkgSelect && pkgSelect.options[pkgSelect.selectedIndex] ? pkgSelect.options[pkgSelect.selectedIndex].textContent : '',
+        dataMonths: pkgSelect ? (pkgSelect.getAttribute('data-months') || '') : '',
+        manualPackage: !!window.__miManualTuitionPackage,
+        packageMonths: coverage.months,
+        paidUntilAfterPay: coverage.lastMonth,
+        expectedExample_3_from_2026_06: window.buildMultiItemTuitionPackageMonths('2026-06', 3, {}, { reason: 'example' }).months
+    };
+    console.table(result);
+    return result;
+};
+
 // Phase 4K-5M — debugMultiItemSkippedMonth: kiểm tra trạng thái Thu Gộp + skipped months
 window.debugMultiItemSkippedMonth = function(name) {
     var studentName = String(name || (document.getElementById('mi_name') && document.getElementById('mi_name').value) || '').trim();
@@ -8456,32 +8639,21 @@ window.processMultiItem = async (action) => {
     let packageMonths = [];
     let lastMonth = refMonth;
     if (isTuitionEnabled && tuitionMonth && tuition > 0) {
-        let exactMonths = [];
         const _miPkgSel = document.getElementById('mi_tuition_pkg');
-        try {
-            const _rawM = _miPkgSel ? _miPkgSel.getAttribute('data-months') : '';
-            exactMonths = _rawM ? JSON.parse(_rawM) : [];
-        } catch (_) {
-            exactMonths = [];
-        }
+        // Static/runtime audit: debt option months are stored on data-months; helper only uses them when selected option is data-debt.
+        const _rawDataMonthsForAudit = _miPkgSel ? _miPkgSel.getAttribute('data-months') : '';
+        const _coverage = typeof window.buildMultiItemTuitionPackageMonths === 'function'
+            ? window.buildMultiItemTuitionPackageMonths(tuitionMonth, pkg, profile, { pkgSelect: _miPkgSel, reason: 'processMultiItem' })
+            : null;
 
-        if (Array.isArray(exactMonths) && exactMonths.length > 0) {
-            packageMonths = exactMonths
-                .map(function(m) { return String(m).slice(0, 7); })
-                .filter(Boolean);
+        if (_coverage && Array.isArray(_coverage.months)) {
+            packageMonths = _coverage.months.slice();
         } else {
             for (let i = 0; i < pkg; i++) {
                 let m = tuitionMonth.split('-').map(Number);
                 let newM = m[1] + i; let newY = m[0];
                 while (newM > 12) { newM -= 12; newY++; }
                 packageMonths.push(newY + '-' + String(newM).padStart(2, '0'));
-            }
-            // Defensive: loại skippedMonths nếu có (fallback khi không có data-months)
-            const _skipped = Array.isArray(profile.skippedMonths)
-                ? profile.skippedMonths.map(function(m) { return String(m).slice(0, 7); })
-                : [];
-            if (_skipped.length > 0) {
-                packageMonths = packageMonths.filter(function(m) { return !_skipped.includes(m); });
             }
         }
 

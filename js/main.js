@@ -19,6 +19,7 @@
 // APP_BUILD_VERSION = '4K-6K-A-formatters-extraction-20260608'
 // APP_BUILD_VERSION = '4K-6K-B-cross-tab-search-replay-20260608'
 // APP_BUILD_VERSION = '4K-6K-C-search-latency-optimization-20260608'
+// APP_BUILD_VERSION = '4K-6K-D-multiitem-tuition-package-fix-20260608'
 /**
  * main.js — Application Bootstrap (Phase 3.6B — Listener Registration Safety)
  * ────────────────────────────────────────────────────────────────────
@@ -2938,7 +2939,7 @@ window.debugProfileModalClose = function() {
 // ════════════════════════════════════════════════════════════════
 
 // PHẦN 1 — APP BUILD VERSION
-window.APP_BUILD_VERSION = '4K-6K-C-search-latency-optimization-20260608';
+window.APP_BUILD_VERSION = '4K-6K-D-multiitem-tuition-package-fix-20260608';
 window.APP_COPYRIGHT_OWNER   = 'Tình Trương';
 window.APP_PRODUCT_NAME      = 'Taekwondo Club Management Web App';
 window.APP_SECURITY_PHASE    = '4K-6E-scale-readiness-write-safety';

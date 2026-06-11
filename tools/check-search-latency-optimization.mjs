@@ -23,8 +23,8 @@ if (!search.includes('localStudentRuns++')) fail('Missing local student search r
 if (!search.includes('localDebtRuns++')) fail('Missing debt local search counter');
 if (!search.includes('debounceMs:         450')) fail('Base debounceMs must remain 450 for server-safe compatibility');
 if (!main.includes('debugSearchLatency')) fail('debugRuntimeSmokeTest must include debugSearchLatency');
-if (!main.includes("APP_BUILD_VERSION = '4K-6K-C-search-latency-optimization-20260608'")) fail('APP_BUILD_VERSION not updated to 4K-6K-C');
-if (!index.includes('main.js?v=search-latency-optimization-20260608')) fail('index.html cache bust not updated to 4K-6K-C');
+if (!(main.includes("APP_BUILD_VERSION = '4K-6K-C-search-latency-optimization-20260608'") || main.includes("APP_BUILD_VERSION = '4K-6K-D-multiitem-tuition-package-fix-20260608'"))) fail('APP_BUILD_VERSION not updated to 4K-6K-C/6K-D');
+if (!(index.includes('main.js?v=search-latency-optimization-20260608') || index.includes('main.js?v=multiitem-tuition-package-fix-20260608'))) fail('index.html cache bust not updated to 4K-6K-C/6K-D');
 if (!pkg.scripts?.['check:search-latency-optimization']) fail('package.json missing check:search-latency-optimization');
 if (!pkg.scripts?.['check:all']?.includes('check:search-latency-optimization')) fail('check:all must include check:search-latency-optimization');
 if (!pkg.scripts?.['check:all:critical']?.includes('check:search-latency-optimization')) fail('check:all:critical must include check:search-latency-optimization');

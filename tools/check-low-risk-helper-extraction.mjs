@@ -30,8 +30,8 @@ if (!main.includes("./utils/formatters.js")) fail('main.js must import formatter
 if (!main.includes('initFormatters()')) fail('main.js must call initFormatters()');
 if (!main.includes('debugLowRiskHelperExtraction')) fail('debugRuntimeSmokeTest must include debugLowRiskHelperExtraction');
 if (!main.includes('debugFormatterHealth')) fail('debugRuntimeSmokeTest must include debugFormatterHealth');
-if (!(main.includes("APP_BUILD_VERSION = '4K-6K-A-formatters-extraction-20260608'") || main.includes("APP_BUILD_VERSION = '4K-6K-B-cross-tab-search-replay-20260608'") || main.includes("APP_BUILD_VERSION = '4K-6K-C-search-latency-optimization-20260608'"))) fail('APP_BUILD_VERSION missing 4K-6K-A/6K-B/6K-C marker');
-if (!(index.includes('main.js?v=formatters-extraction-20260608') || index.includes('main.js?v=cross-tab-search-replay-20260608') || index.includes('main.js?v=search-latency-optimization-20260608'))) fail('index.html cache bust missing 4K-6K-A/6K-B/6K-C marker');
+if (!(main.includes("APP_BUILD_VERSION = '4K-6K-A-formatters-extraction-20260608'") || main.includes("APP_BUILD_VERSION = '4K-6K-B-cross-tab-search-replay-20260608'") || main.includes("APP_BUILD_VERSION = '4K-6K-C-search-latency-optimization-20260608'") || main.includes("APP_BUILD_VERSION = '4K-6K-D-multiitem-tuition-package-fix-20260608'"))) fail('APP_BUILD_VERSION missing 4K-6K-A/6K-B/6K-C/6K-D marker');
+if (!(index.includes('main.js?v=formatters-extraction-20260608') || index.includes('main.js?v=cross-tab-search-replay-20260608') || index.includes('main.js?v=search-latency-optimization-20260608') || index.includes('main.js?v=multiitem-tuition-package-fix-20260608'))) fail('index.html cache bust missing 4K-6K-A/6K-B/6K-C/6K-D marker');
 if (fmt.includes('firebase') || fmt.includes('updateDoc') || fmt.includes('setDoc') || fmt.includes('addDoc') || fmt.includes('deleteDoc')) {
   fail('formatters.js must stay pure and must not include Firebase write APIs');
 }

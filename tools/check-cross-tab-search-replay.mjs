@@ -25,8 +25,8 @@ if (!search.includes("window.__store._globalSearchTerm = term")) fail('Replay mu
 if (!main.includes('switch-tab-search-replay')) fail('main.js switchTab wrapper must trigger search replay');
 if (!main.includes('window.replaySearchForTab(tabId')) fail('main.js must call replaySearchForTab(tabId)');
 if (!main.includes('debugSearchTabReplay')) fail('debugRuntimeSmokeTest must include debugSearchTabReplay');
-if (!(main.includes("APP_BUILD_VERSION = '4K-6K-B-cross-tab-search-replay-20260608'") || main.includes("APP_BUILD_VERSION = '4K-6K-C-search-latency-optimization-20260608'"))) fail('APP_BUILD_VERSION missing 4K-6K-B/6K-C compatible marker');
-if (!(index.includes('main.js?v=cross-tab-search-replay-20260608') || index.includes('main.js?v=search-latency-optimization-20260608'))) fail('index.html cache bust missing 4K-6K-B/6K-C compatible marker');
+if (!(main.includes("APP_BUILD_VERSION = '4K-6K-B-cross-tab-search-replay-20260608'") || main.includes("APP_BUILD_VERSION = '4K-6K-C-search-latency-optimization-20260608'") || main.includes("APP_BUILD_VERSION = '4K-6K-D-multiitem-tuition-package-fix-20260608'"))) fail('APP_BUILD_VERSION missing 4K-6K-B/6K-C/6K-D compatible marker');
+if (!(index.includes('main.js?v=cross-tab-search-replay-20260608') || index.includes('main.js?v=search-latency-optimization-20260608') || index.includes('main.js?v=multiitem-tuition-package-fix-20260608'))) fail('index.html cache bust missing 4K-6K-B/6K-C/6K-D compatible marker');
 if (!pkg.scripts?.['check:cross-tab-search-replay']) fail('package.json missing check:cross-tab-search-replay');
 if (!pkg.scripts?.['check:all']?.includes('check:cross-tab-search-replay')) fail('check:all must include cross-tab search replay check');
 if (!pkg.scripts?.['check:all:critical']?.includes('check:cross-tab-search-replay')) fail('check:all:critical must include cross-tab search replay check');
