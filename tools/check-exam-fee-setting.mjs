@@ -186,7 +186,7 @@ check(
 check(
     'refreshExamFeeUI cập nhật exam_fee_all_actual',
     mainJs.includes('exam_fee_all_actual') && mainJs.includes('refreshExamFeeUI'),
-    'refreshExamFeeUI phải cập nhật exam_fee_all_actual để legacy processBatchUpgrade đọc đúng'
+    'refreshExamFeeUI phải cập nhật exam_fee_all_actual cho luồng thu lệ phí thi riêng biệt'
 );
 
 // ── 18. Kiểm tra replay context-ready (GitHub Pages) ────────────────────
@@ -212,7 +212,8 @@ check(
         || indexHtml.includes('runtime-month-admission-hydration')
         || indexHtml.includes('deploy-gate-tuition-package-coverage')
         || indexHtml.includes('exam-fee-save-vnd-dashboard-history-fix')
-        || indexHtml.includes('vnd-dashboard-history-fix'),
+        || indexHtml.includes('vnd-dashboard-history-fix')
+        || indexHtml.includes('exam-upgrade-finance-separation'),
     "Đổi version string trong index.html thành ?v=github-runtime-pilot-gate-examfee-hardening-20260603 hoặc mới hơn"
 );
 

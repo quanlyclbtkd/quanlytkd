@@ -5452,55 +5452,91 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
     };
 
     window.processBatchUpgrade = async () => {
+        // Phase 4K-6S1: tách tuyệt đối nghiệp vụ THĂNG ĐAI khỏi THU LỆ PHÍ THI.
+        // Hàm này chỉ được phép cập nhật hồ sơ võ sinh; không đọc phí, không dò giao dịch,
+        // không tạo transaction và không làm thay đổi doanh thu.
         if(window.userRole === 'viewer') return alert("Tài khoản khách không thể thăng đai!");
-        const selected = Array.from(document.querySelectorAll('.exam-check:checked')).map(cb => cb.value); if(selected.length === 0) return alert("Chọn ít nhất 1 võ sinh!");
-        const currentBelt = document.getElementById('exam_filter_belt').value;
+        if(window.__examUpgradeInFlight) {
+            return window.showToast("⏳ Hệ thống đang xác nhận thăng đai, vui lòng chờ!");
+        }
+
+        const selected = Array.from(document.querySelectorAll('.exam-check:checked')).map(cb => cb.value);
+        if(selected.length === 0) return alert("Chọn ít nhất 1 võ sinh!");
+
+        const currentBeltEl = document.getElementById('exam_filter_belt');
+        const currentBelt = currentBeltEl ? currentBeltEl.value : '';
         const newBelt = window.BELT_NEXT[currentBelt];
         if(!newBelt) return alert("Đai này đã là cấp cao nhất, không thể thăng thêm!");
-        // Phase 4K-5D: getClubExamFee là nguồn ưu tiên
-        const fee = window.getClubExamFee
-            ? window.getClubExamFee()
-            : (window.parseVNDNumber
-                ? window.parseVNDNumber((document.getElementById('exam_fee_all_actual') || {}).value)
-                : (Number((document.getElementById('exam_fee_all_actual') || {}).value) || 250000));
-        const currentMonth = document.getElementById('filterMonth').value || getLocalToday().substring(0, 7);
-        let paidStudents = {};
-        allTransactions.forEach(t => { if ((t.type === 'Lệ phí thi' || t.type === 'Học phí + Lệ phí thi') && (t.txMonth === currentMonth || (t.date && t.date.startsWith(currentMonth)))) { let stuName = t.type === 'Học phí + Lệ phí thi' ? (t.description ? t.description.trim() : "") : ((t.description || "").match(/^(.*?)\s*\(Thi lên/) ? (t.description || "").match(/^(.*?)\s*\(Thi lên/)[1].trim() : (t.description || "").trim()); if(stuName) paidStudents[stuName] = true; } });
-        let studentsToCharge = selected.filter(n => !paidStudents[n]); let chargeAmount = studentsToCharge.length * fee;
-        let confirmMsg = `Xác nhận thăng đai lên [${newBelt}] cho ${selected.length} võ sinh?\n(Các bạn vừa thăng sẽ được đánh dấu riêng để HLV phân biệt với võ sinh cũ)` + (fee > 0 && studentsToCharge.length > 0 ? `\n\nHệ thống sẽ thu phí ${studentsToCharge.length} bạn (Tổng: ${chargeAmount.toLocaleString()} ₫).` : "");
+
+        // Chỉ xử lý các hồ sơ còn tồn tại và vẫn thuộc đúng cấp đai đang lọc.
+        // Guard này ngăn thao tác trên checkbox cũ khi dữ liệu vừa được cập nhật ở tab khác.
+        const profilesToUpgrade = selected.filter(name => {
+            const profile = allProfiles[name];
+            if(!profile) return false;
+            return (profile.belt || 'Đai trắng - Cấp 10') === currentBelt;
+        });
+        if(profilesToUpgrade.length === 0) {
+            return window.showToast("⚠️ Danh sách đã thay đổi. Vui lòng tải lại tab Thi đai và chọn lại võ sinh.");
+        }
+
+        const confirmMsg = `Xác nhận thăng đai lên [${newBelt}] cho ${profilesToUpgrade.length} võ sinh?
+(Các bạn vừa thăng sẽ được đánh dấu riêng để HLV phân biệt với võ sinh cũ)`;
         if(!confirm(confirmMsg)) return;
-        
-        const batch = writeBatch(db);
-        const _batchExamDate = currentMonth === getLocalToday().substring(0,7) ? getLocalToday() : (currentMonth < getLocalToday().substring(0,7) ? currentMonth + '-28' : currentMonth + '-01');
-        for (let name of selected) {
-            if(!allProfiles[name]) continue;
-            batch.set(doc(db, "clubs", currentClubId, "profiles", name), { 
-                belt: newBelt, 
-                upgradedAt: currentMonth, 
-                upgradedFrom: currentBelt 
-            }, { merge: true });
-            if(fee > 0 && !paidStudents[name]) {
-                const _batchProfile = allProfiles[name] || {};
-                const _batchCurBelt = _batchProfile.belt || '';
-                const newTxRef = doc(collection(db, "clubs", currentClubId, "transactions"));
-                batch.set(newTxRef, {
-                    branch: _batchProfile.branch || 'CS1',
-                    type: 'Lệ phí thi',
-                    description: `${name} (Thi lên ${newBelt})`,
-                    studentName: name,
-                    profileName: name,
-                    profileId: name,
-                    amount: fee,
-                    date: _batchExamDate,
-                    txMonth: currentMonth,
-                    examTitle: `Thi lên ${newBelt}`,
-                    currentBeltAtPayment: _batchCurBelt,
-                    examTargetBelt: newBelt,
-                    timestamp: Date.now() + Math.random()
-                });
+
+        const btn = document.getElementById('btnBatchUpgrade');
+        window.__examUpgradeInFlight = true;
+        if(btn) {
+            btn.disabled = true;
+            btn.setAttribute('aria-busy', 'true');
+            btn.dataset.originalText = btn.dataset.originalText || btn.textContent;
+            btn.textContent = '⏳ ĐANG XÁC NHẬN...';
+        }
+
+        try {
+            const currentMonth = (document.getElementById('filterMonth') || {}).value || getLocalToday().substring(0, 7);
+            const batch = writeBatch(db);
+
+            for (const name of profilesToUpgrade) {
+                batch.set(doc(db, "clubs", currentClubId, "profiles", name), {
+                    belt: newBelt,
+                    upgradedAt: currentMonth,
+                    upgradedFrom: currentBelt
+                }, { merge: true });
+            }
+
+            await batch.commit();
+
+            // Đồng bộ cache tại chỗ sau khi Firestore commit thành công để UI không hiển thị
+            // danh sách cũ trong khoảng chờ listener realtime phản hồi.
+            for (const name of profilesToUpgrade) {
+                if(allProfiles[name]) {
+                    allProfiles[name].belt = newBelt;
+                    allProfiles[name].upgradedAt = currentMonth;
+                    allProfiles[name].upgradedFrom = currentBelt;
+                }
+                const storeProfiles = window.__store && window.__store.profiles;
+                if(storeProfiles && storeProfiles[name] && storeProfiles[name] !== allProfiles[name]) {
+                    storeProfiles[name].belt = newBelt;
+                    storeProfiles[name].upgradedAt = currentMonth;
+                    storeProfiles[name].upgradedFrom = currentBelt;
+                }
+            }
+
+            window.showToast(`✅ Đã thăng đai thành công cho ${profilesToUpgrade.length} võ sinh!`);
+            const checkAll = document.getElementById('checkAllExam');
+            if(checkAll) checkAll.checked = false;
+            renderExamList();
+        } catch (error) {
+            console.error('[exam-upgrade] Không thể xác nhận thăng đai:', error);
+            window.showToast("❌ Không thể xác nhận thăng đai. Vui lòng thử lại.");
+        } finally {
+            window.__examUpgradeInFlight = false;
+            if(btn) {
+                btn.disabled = false;
+                btn.removeAttribute('aria-busy');
+                btn.textContent = btn.dataset.originalText || '⚡ Xác nhận thăng đai';
             }
         }
-        await batch.commit(); window.showToast(`✅ Đã thăng đai thành công cho ${selected.length} võ sinh!`); document.getElementById('checkAllExam').checked = false; renderExamList(); 
     };
 
     window.downloadExcelTemplate = async () => {

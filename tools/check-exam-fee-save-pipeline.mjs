@@ -40,16 +40,26 @@ if (qcIdx === -1) {
     }
 }
 
-// 2. processBatchUpgrade must use getClubExamFee
+// 2. processBatchUpgrade must be financially isolated.
+// Exam fee is collected only through quickCollectExam / bundled payment flows.
 const pbIdx = findFunctionDef(appJs, 'window.processBatchUpgrade');
 if (pbIdx === -1) {
     fail('processBatchUpgrade not found in app.js');
 } else {
-    const pbBlock = appJs.slice(pbIdx, pbIdx + 800);
-    if (!pbBlock.includes('getClubExamFee')) {
-        fail('processBatchUpgrade does not use getClubExamFee');
+    const pbEnd = appJs.indexOf('window.downloadExcelTemplate', pbIdx);
+    const pbBlock = appJs.slice(pbIdx, pbEnd === -1 ? pbIdx + 6000 : pbEnd);
+    const forbidden = [
+        'getClubExamFee', 'exam_fee_all_actual', 'allTransactions',
+        'studentsToCharge', 'chargeAmount', 'newTxRef',
+        "type: 'Lệ phí thi'", 'collection(db, "clubs", currentClubId, "transactions")'
+    ];
+    const found = forbidden.filter(token => pbBlock.includes(token));
+    if (found.length) {
+        fail('processBatchUpgrade still contains exam-payment logic: ' + found.join(', '));
+    } else if (!pbBlock.includes('"profiles", name') || !pbBlock.includes('{ merge: true }')) {
+        fail('processBatchUpgrade does not preserve profile-only merge writes');
     } else {
-        pass('processBatchUpgrade uses getClubExamFee');
+        pass('processBatchUpgrade is isolated from exam fee and revenue writes');
     }
 }
 

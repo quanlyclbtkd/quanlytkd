@@ -32,7 +32,7 @@ const fallback = exists(fallbackPath) ? read(fallbackPath) : '';
 console.log('\n🔎 Phase 4K-6S — Global Ownership Adoption + Duplicate UI Cleanup\n');
 
 check(exists(fallbackPath), 'classic rollback layer exists');
-check(index.indexOf('js/legacy/legacyUiFallbacks.js') < index.indexOf('src="app.js"'), 'classic rollback layer loads before app.js');
+check(index.indexOf('js/legacy/legacyUiFallbacks.js') < index.indexOf('src="app.js'), 'classic rollback layer loads before app.js');
 check(fallback.includes('4K-6S-global-ownership-adoption-duplicate-ui-cleanup'), 'fallback layer declares Phase 4K-6S');
 check(fallback.includes('debugLegacyUiFallbacks'), 'fallback layer exposes health diagnostics');
 
