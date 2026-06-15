@@ -1355,55 +1355,39 @@ button, a, [role="button"] {
   border-color: #0033A0;
 }
 
-/* ═══════════════════════════════════════════════════════════════════════
-   PHASE 4K-6Q — MOBILE FILTER LAYOUT STABILITY
-   - Chặn intrinsic/min-content width của input[type="month"] làm lệch cột.
-   - Dùng minmax(0,1fr) và min-width:0 để Safari/iOS/Android tự co đúng ô.
-   - Màn hình hẹp tự chuyển 1 cột; màn hình đủ rộng dùng 2 cột cân bằng.
-   ═══════════════════════════════════════════════════════════════════════ */
+/* ── Phase 4K-6Q: Mobile Filter Responsive Stability ────────────────
+   Native month/select controls can keep an intrinsic minimum width on
+   some iOS/Android browsers. minmax(0,1fr) + min-width:0 prevents the
+   month field from intruding into the branch field at any phone width. */
 #filterArea {
-  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+  max-width: 100%;
 }
 #filterArea > div {
-  min-width: 0 !important;
-  max-width: 100% !important;
+  min-width: 0;
+  max-width: 100%;
 }
-#filterArea #filterMonth,
-#filterArea #filterBranch,
-#filterArea #searchInput {
-  display: block;
+#filterArea input,
+#filterArea select {
+  box-sizing: border-box !important;
   width: 100% !important;
   min-width: 0 !important;
   max-width: 100% !important;
-  box-sizing: border-box !important;
 }
-#filterArea #filterMonth::-webkit-datetime-edit,
-#filterArea #filterMonth::-webkit-datetime-edit-fields-wrapper {
-  min-width: 0;
-  padding: 0;
+#filterArea #filterMonth {
+  display: block;
+  overflow: hidden;
 }
-@media (max-width: 409px) {
+#filterArea #filterBranch {
+  display: block;
+  text-overflow: ellipsis;
+}
+@media (max-width: 359px) {
   #filterArea {
     grid-template-columns: minmax(0, 1fr) !important;
   }
   #filterArea > div,
-  #filterArea > .input-branch,
-  #filterArea > .col-span-2 {
+  #filterArea > div:last-child {
     grid-column: 1 / -1 !important;
   }
 }
-@media (min-width: 410px) and (max-width: 767px) {
-  #filterArea {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  }
-  #filterArea > div:nth-child(3) {
-    grid-column: 1 / -1 !important;
-  }
-  #filterArea #filterMonth,
-  #filterArea #filterBranch {
-    padding-left: 10px !important;
-    padding-right: 10px !important;
-    font-size: 15px !important;
-  }
-}
-

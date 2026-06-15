@@ -1,307 +1,118 @@
-# PHASE 4K-6Q — MOBILE FILTER & CURRENCY INPUT STABILITY
+# Phase 4K-6Q — Mobile Filter Responsive + Currency Input Stability
 
-**Ngày kiểm tra:** 15/06/2026  
-**Phạm vi:** Bản `Phase 4K-6P — Tailwind CDN Removal / Static CSS Build Complete`  
-**Mục tiêu:** Kiểm tra tổng thể, sửa lệch bộ lọc trên mobile, xác minh hiện tượng nhập “Học phí mặc định / tháng”, bổ sung kiểm thử hồi quy và tạo bản triển khai hoàn chỉnh.
+Ngày kiểm tra: 15/06/2026
 
----
+## 1. Phạm vi kiểm tra
 
-## 1. Kết luận điều hành
+- Kiểm tra cấu trúc dự án Firebase + Vanilla JavaScript hiện tại.
+- Phân tích lỗi chồng/lệch giữa bộ lọc **Kỳ / Tháng** và **Cơ sở** trên mobile.
+- Kiểm tra trường **Học phí mặc định / tháng** khi nhập tiền trên máy tính.
+- Sửa lỗi theo hướng production-safe, không đổi Firestore schema, không đổi business logic học phí.
+- Chạy lại kiểm tra syntax, deploy package, GitHub Pages paths, runtime stability và scale/write safety.
 
-Bản hiện tại có nền tảng triển khai tốt: cú pháp hợp lệ, đường dẫn GitHub Pages đúng, cấu trúc deploy đầy đủ, Tailwind static CSS hoạt động và các cổng kiểm tra trọng yếu đều vượt qua.
+## 2. Kết quả audit tổng thể
 
-Hai nội dung người dùng phản ánh đã được kiểm tra và xử lý:
+- Dự án có khoảng 310 file; 97 file JavaScript runtime trong thư mục `js/`; 155 công cụ kiểm tra trong `tools/`.
+- `app.js`: khoảng 791 KiB, 13.188 dòng, 583 phép gán `window.*`.
+- Có 174 global trùng giữa `app.js` và các module `js/**/*.js`.
+- `app.js` vẫn là legacy kernel, trong khi hệ thống đã có module theo domain, service, listener, render isolation và diagnostics.
+- Mức rủi ro tách file hiện tại: **MEDIUM**. Không nên rewrite toàn bộ; nên tiếp tục incremental extraction có ownership gate.
 
-1. **Bộ lọc Kỳ/Tháng – Cơ sở trên mobile thực sự có lỗi bố cục.** Nguyên nhân không nằm ở dữ liệu mà ở cách CSS Grid tính kích thước tối thiểu của `input[type="month"]`, đặc biệt khi trình duyệt WebKit/iOS hiển thị chuỗi tháng dài theo ngôn ngữ Việt Nam. Bản sửa đã chuyển sang lưới có khả năng co đúng, ép các phần tử con được phép thu nhỏ, đồng thời tự đổi sang một cột trên màn hình rất hẹp.
-2. **“Học phí mặc định / tháng” không có lỗi tính sai số tiền khi nhập liên tục từ cuối chuỗi.** Tuy nhiên, logic cũ có lỗi trải nghiệm thật khi sửa hoặc xóa ở giữa số: mỗi lần nhập đều gán lại toàn bộ `.value`, làm con trỏ bị đẩy về cuối và tạo cảm giác số “nhảy loạn”. Bản sửa giữ đúng vị trí con trỏ, chống gắn listener trùng và vẫn lưu giá trị số thuần vào input ẩn.
+## 3. Nguyên nhân lỗi giao diện mobile
 
-**Trạng thái sau sửa:** phù hợp để triển khai pilot, với điều kiện upload đầy đủ toàn bộ gói và xóa cache bản cũ sau khi cập nhật.
+### Hiện tượng
 
----
+Trên một số iPhone/Android/WebView, `input[type="month"]` rộng hơn cột grid và lấn sang ô chọn cơ sở.
 
-## 2. Phân tích lỗi giao diện mobile
+### Nguyên nhân kỹ thuật
 
-### 2.1. Hiện tượng từ ảnh thực tế
+1. Mobile đang dùng hai cột `1fr 1fr`.
+2. CSS Grid mặc định dùng minimum size theo nội dung (`min-width:auto`).
+3. Native month/select control có intrinsic minimum width khác nhau theo trình duyệt, locale và font scaling.
+4. `width:100%` không đủ để ép grid item/native control co nhỏ khi min-content width lớn hơn track.
+5. Ở màn hình rất hẹp, hai trường tiếp tục bị ép nằm cùng hàng.
 
-Tại vùng bộ lọc:
+### Cách sửa
 
-- Ô **KỲ / THÁNG** rộng bất thường.
-- Ô **CƠ SỞ** bị dồn hoặc chồng sang vùng bên cạnh.
-- Hai control không còn cân đối dù container vẫn nằm trong màn hình.
-- Lỗi có xu hướng xuất hiện khác nhau giữa các kích thước mobile và trình duyệt.
+- Đổi track thành `minmax(0, 1fr)` để cho phép co thực sự.
+- Đặt `min-width:0` cho từng grid child.
+- Khóa input/select bằng `box-sizing:border-box`, `width/min-width/max-width` an toàn.
+- Với viewport dưới 360px, tự động chuyển thành một cột.
+- Không dùng user-agent detection hoặc danh sách model điện thoại; responsive theo kích thước thực tế.
 
-### 2.2. Nguyên nhân gốc
+## 4. Kiểm tra Học phí mặc định / tháng
 
-CSS cũ dùng hai cột:
+### Kết luận trước sửa
 
-```css
-grid-template-columns: 1fr 1fr !important;
-```
+- Không phát hiện luồng làm thay đổi ngẫu nhiên giá trị số trong hidden field.
+- Giá trị lưu vẫn được lọc về chữ số và `updateAddPackageAmount()` chỉ tính `baseFee × package`, sau đó áp dụng giảm giá nếu có.
+- Tuy nhiên có lỗi UX thật: handler cũ format lại toàn bộ chuỗi ở mỗi `input`, khiến caret thường bị đưa về cuối. Khi người dùng sửa ở giữa chuỗi trên máy tính, cảm giác như số bị “nhảy loạn”.
+- Handler cũ cũng chưa có guard chống bind lặp và chưa xử lý IME composition.
 
-Cấu hình này nhìn như hai cột bằng nhau, nhưng mỗi track vẫn chịu giới hạn `min-width:auto`/min-content của phần tử con. Native month input có kích thước nội tại riêng. Trên iOS Safari, tháng được hiển thị dạng chuỗi như “tháng 6 năm 2026”, nên kích thước tối thiểu của ô có thể lớn hơn phần chiều rộng được chia.
+### Cách sửa
 
-Chuỗi nguyên nhân:
+- Tách sanitize và format thành các hàm ổn định, không dùng `Number/parseInt` để định dạng chuỗi dài.
+- Giữ hidden raw value chỉ gồm chữ số.
+- Khôi phục caret theo số lượng chữ số đứng trước caret, thay vì đưa caret về cuối.
+- Thêm `compositionstart/compositionend` để tránh format giữa quá trình nhập.
+- Dùng `WeakSet` chống gắn listener hai lần.
+- Thêm `inputmode="numeric"`, tắt autocomplete và hướng dẫn định dạng.
 
-1. `input[type="month"]` có intrinsic/min-content width.
-2. Grid track dùng `1fr` nhưng không dùng `minmax(0, 1fr)`.
-3. Grid item và input không có `min-width:0`.
-4. Cột đầu bị phép nở theo nội dung; cột cơ sở bị ép hoặc tràn.
-5. Selector cũ dựa vào `#filterArea > div:last-child` không bền vững vì phần tử cuối thực tế là ghi chú ẩn, không phải ô tìm kiếm.
+## 5. File đã thay đổi
 
-Đây là lỗi responsive/CSS sizing, không phải lỗi Firebase, dữ liệu cơ sở hay Tailwind static build.
+- `index.html`
+  - Thêm responsive patch cho `#filterArea`.
+  - Thêm thuộc tính bàn phím số và trợ giúp cho học phí mặc định.
+- `style.css`
+  - Đồng bộ responsive patch với CSS nguồn.
+- `app.js`
+  - Thay currency input handler bằng bản giữ caret, composition-safe, duplicate-binding-safe.
+  - Thêm `APP_PATCH_VERSION` cho Phase 4K-6Q.
+- `tools/check-mobile-filter-currency-stability.mjs`
+  - Thêm static check và runtime simulation cho nhập `300000`, sửa giữa chuỗi, giá trị khởi tạo và chuỗi số lớn.
+- `package.json`
+  - Đăng ký check mới và đưa vào `npm run check`.
 
-### 2.3. Phương án đã triển khai
+## 6. Kết quả kiểm tra
 
-Đã thêm lớp ổn định `PHASE 4K-6Q — MOBILE FILTER LAYOUT STABILITY` vào CSS runtime trong `index.html` và bản nguồn `style.css`:
+Đã pass:
 
-- Dùng `repeat(2, minmax(0, 1fr))` thay vì `1fr 1fr`.
-- Thêm `min-width:0` và `max-width:100%` cho mọi grid item trực tiếp.
-- Ép `filterMonth`, `filterBranch`, `searchInput` dùng `width:100%`, `min-width:0`, `max-width:100%`, `box-sizing:border-box`.
-- Bổ sung safeguard cho phần inner field của WebKit date/month input.
-- Dùng selector cấu trúc rõ ràng cho ô tìm kiếm thay vì phụ thuộc `:last-child`.
-- **320–409 px:** tự chuyển thành một cột; Tháng, Cơ sở và Tìm kiếm đều chiếm toàn hàng.
-- **410–767 px:** giữ hai cột bằng nhau; Tìm kiếm chiếm cả hai cột.
-- **Từ 768 px:** tiếp tục dùng bố cục desktop hiện có.
+- `npm run check`
+- `npm run check:mobile-filter-currency-stability`
+- `npm run check:legacy-app-reduction-readiness`
+- `npm run check:deploy-package`
+- `npm run check:github-pages-paths`
+- `npm run check:runtime-stability-gate`
+- `npm run check:scale-readiness-write-safety`
+- Toàn bộ chuỗi `check:all:critical` được chạy thành hai lượt do giới hạn thời gian lệnh; tất cả script quan sát được đều pass.
 
-Cách này không dùng chiều rộng cố định theo từng model điện thoại, nên phù hợp với iPhone SE, iPhone tiêu chuẩn/Plus/Pro Max và nhiều thiết bị Android có viewport khác nhau.
+Currency runtime simulation xác nhận:
 
-### 2.4. Ma trận kiểm tra responsive
+- `300000` → hiển thị `300.000`.
+- hidden raw value vẫn là `300000`.
+- caret không bị đẩy về cuối khi sửa giữa chuỗi.
+- bind lặp không làm callback chạy hai lần.
+- `250000` khởi tạo thành `250.000`.
+- Chuỗi số lớn không bị sai do floating-point khi chỉ định dạng hiển thị.
 
-Đã kiểm tra các viewport mô phỏng bằng Chromium:
+## 7. Bước nâng cấp tiếp theo
 
-`320, 360, 375, 390, 409, 410, 414, 430, 480, 767, 768, 820 px`
+Nên bắt đầu giảm `app.js` ngay, nhưng không rewrite và không tách các luồng tài chính ghi Firestore trước.
 
-Kết quả:
+### Phase đề xuất: 4K-6R — Legacy Global Ownership Consolidation + Low-Risk UI Extraction
 
-- Không control nào vượt khỏi `#filterArea`.
-- Ở `<=409 px`, bố cục tự chuyển một cột.
-- Ở `410–767 px`, hai cột bằng nhau và giữ khoảng cách 8 px.
-- Ô tìm kiếm luôn chiếm trọn hàng bên dưới.
-- Không còn hiện tượng tháng đè lên ô cơ sở.
+Thứ tự an toàn:
 
-**Giới hạn kiểm tra:** môi trường kiểm thử không chạy trực tiếp Safari thật trên iPhone. Tuy nhiên, bản sửa xử lý đúng nguyên nhân CSS min-content và có thêm rule dành cho WebKit. Cần thực hiện một vòng smoke test ngắn trên iPhone thật sau deploy để xác nhận phần hiển thị native cuối cùng.
+1. Lập ownership map cho 174 global trùng; mỗi global chỉ có một owner chính.
+2. Tách các helper thuần: currency/date/month/text normalization, modal helpers, input binding.
+3. Chuyển các legacy body tương ứng thành bridge mỏng có fallback, không để hai implementation chạy song song.
+4. Thêm static gate kiểm tra duplicate global và runtime gate kiểm tra double-binding.
+5. Sau khi ổn định mới chuyển student UI actions; chưa đụng `processMultiItem`, `quickPay`, auth bootstrap, listener bootstrap và các write path tài chính.
 
----
+Mục tiêu gate đầu tiên:
 
-## 3. Kiểm tra “Học phí mặc định / tháng”
-
-### 3.1. Đánh giá logic cũ
-
-Logic cũ thực hiện trên mỗi sự kiện `input`:
-
-1. Xóa ký tự không phải số.
-2. Gán số thuần vào input ẩn.
-3. Format lại input hiển thị bằng dấu phân cách hàng nghìn.
-
-Với thao tác gõ liên tục ở cuối, ví dụ `300000` thành `300.000`, dữ liệu vẫn đúng. Vì vậy nhận định “có thể phần này không lỗi” là đúng đối với luồng nhập cơ bản.
-
-Tuy nhiên, khi đặt con trỏ vào giữa số rồi thêm/xóa, việc gán lại `target.value` khiến browser đưa caret về cuối. Người dùng thấy chữ số thay đổi vị trí và dễ nghĩ rằng số tiền bị nhảy. Ngoài ra, nếu hàm khởi tạo bị gọi lại trong lifecycle, listener cũ có thể bị gắn nhiều lần.
-
-### 3.2. Bản sửa đã triển khai
-
-Đã thay helper định dạng tiền bằng phiên bản `Phase 4K-6Q — Currency Input Stability`:
-
-- Ghi nhớ số lượng chữ số đứng trước caret.
-- Format chuỗi bằng dấu chấm phân cách nhưng không chuyển qua `Number` để tránh rủi ro precision với chuỗi lớn.
-- Khôi phục caret về đúng vị trí logic sau khi format.
-- Dùng `requestAnimationFrame` để tránh xung đột cập nhật selection của trình duyệt.
-- Thêm cờ `data-currency-input-bound` để chặn bind listener trùng.
-- Hỗ trợ `compositionstart/compositionend` cho bàn phím/IME.
-- Đặt `inputMode="numeric"`, `autocomplete="off"`, `enterkeyhint="done"`.
-- Đồng bộ input ẩn bằng chuỗi chỉ gồm chữ số.
-- Vẫn gọi callback hiện có, bao gồm cập nhật tổng gói học phí.
-
-Các trường quan trọng được áp dụng gồm:
-
-- `add_fee_default_display` ↔ `add_fee_default_actual`
-- `m_fee_display` ↔ `m_fee_actual`
-- Các ô thu học phí, lệ phí thi, chi phí, kho đồ và thu gộp đang dùng cùng helper.
-
-### 3.3. Tình huống đã xác minh
-
-- Gõ `300000` → hiển thị `300.000`, giá trị thực `300000`.
-- Chèn số ở giữa → caret giữ đúng theo vị trí chữ số, không nhảy về cuối.
-- Backspace ở giữa → xóa đúng chữ số mong muốn.
-- Dán `1.250.000 đ` → chuẩn hóa thành `1.250.000`, giá trị thực `1250000`.
-- Gọi hàm bind lần thứ hai → không tạo listener thứ hai.
-- Giá trị có nhiều số 0 đầu → được chuẩn hóa ổn định.
-
-Kết luận: **không phát hiện lỗi tính toán tiền**, nhưng đã sửa một lỗi caret/format có thể tạo cảm giác số tiền nhảy loạn khi thao tác trên máy tính.
-
----
-
-## 4. Tệp đã thay đổi
-
-### `app.js`
-
-- Thay helper format tiền bằng bản caret-safe.
-- Chống listener trùng.
-- Giữ tương thích với toàn bộ ID/input và callback cũ.
-
-### `index.html`
-
-- Thêm CSS runtime ổn định bộ lọc mobile.
-- Thêm cache-bust cho `app.js`:
-
-```html
-app.js?v=mobile-filter-money-stability-20260615
-```
-
-### `style.css`
-
-- Đồng bộ cùng block CSS responsive 4K-6Q để tránh mất sửa khi dùng file nguồn này về sau.
-
-### `tools/check-mobile-filter-layout.mjs`
-
-- 12 cổng kiểm tra cấu trúc CSS và responsive của vùng bộ lọc.
-
-### `tools/check-currency-input-stability.mjs`
-
-- 12 cổng kiểm tra helper tiền, caret, IME, normalize và listener guard.
-
-### `package.json`
-
-- Thêm:
-  - `check:mobile-filter-layout`
-  - `check:currency-input-stability`
-- Ghép hai gate mới vào `check`, `check:all`, `check:all:critical`.
-
----
-
-## 5. Kết quả kiểm thử sau sửa
-
-### Kiểm tra chính
-
-- `npm run check`: **PASS**
-- Syntax: **106/106 mục hợp lệ**
-- Mobile filter gate: **12/12 PASS**
-- Currency input gate: **12/12 PASS**
-- Mobile startup performance: **PASS**
-- Lazy assets loading: **PASS**
-- Tailwind static CSS build: **PASS**
-- Listener ownership boundary: **PASS**
-- Inventory multi-item read-only UI: **PASS**
-- Financial action audit guard: **PASS**
-
-### Kiểm tra triển khai
-
-- `npm run check:deploy`: **PASS**
-- GitHub Pages paths: **18/18 PASS**
-- Deploy package structure: **12/12 PASS**
-- Runtime smoke test: **12/12 PASS**
-- Bộ `check:all` toàn hệ thống đã chạy thành công sau thay đổi.
-
-Không phát hiện lỗi cú pháp, thiếu file triển khai, đường dẫn module tuyệt đối sai hoặc phá vỡ các gate nghiệp vụ hiện có.
-
----
-
-## 6. Đánh giá tổng thể hệ thống hiện tại
-
-### Điểm tốt
-
-- Không có ID HTML bị trùng: **517 ID duy nhất**.
-- Hệ thống có bộ kiểm thử regression rất rộng cho học phí, báo nợ, thi đai, dashboard, search, pagination, runtime và deploy.
-- Đường dẫn module tương thích GitHub Pages.
-- Firebase Hosting contract hợp lệ.
-- Tailwind CDN đã được thay bằng static CSS, giảm phụ thuộc runtime.
-- Các luồng tài chính trọng yếu đã có write intent guard và audit trail.
-- Các module mới đang dần cô lập listener, render và inventory UI khỏi legacy kernel.
-
-### Rủi ro còn tồn tại
-
-#### 1. Hai nguồn CSS runtime chưa thống nhất — mức ưu tiên cao
-
-`index.html` đang chứa khoảng **40.431 ký tự inline CSS**, trong khi `style.css` chứa khoảng **70.577 ký tự CSS** và hai nội dung không giống nhau. Runtime hiện dựa nhiều vào inline CSS, nên người sửa có thể chỉnh `style.css` nhưng giao diện thật không thay đổi, hoặc chỉnh inline mà bỏ quên file nguồn.
-
-Đây là nguyên nhân tiềm ẩn khiến lỗi giao diện “đã sửa nhưng deploy vẫn còn” tái diễn.
-
-#### 2. `app.js` vẫn là legacy monolith — mức ưu tiên cao
-
-- Kích thước khoảng **810 KB**.
-- Khoảng **13.186 dòng**.
-- Có khoảng **582 phép gán `window.*`**.
-- Có khoảng **174 tên global trùng** giữa `app.js` và hệ module.
-
-Hệ thống vẫn chạy, nhưng nguy cơ shadow function, thứ tự tải, bridge bị ghi đè và khó xác định source-of-truth còn cao.
-
-#### 3. Inline event handler còn nhiều — mức ưu tiên trung bình
-
-Trong `index.html` còn ít nhất:
-
-- 103 `onclick`
-- 35 `onchange`
-- 10 `oninput`
-- 2 `onsubmit`
-- 2 `onkeydown`
-
-Điều này tiếp tục ràng buộc HTML với global `window`, làm chậm quá trình tách legacy kernel và khó quản lý listener lifecycle.
-
-#### 4. Viewport đang khóa zoom — mức ưu tiên trung bình
-
-Meta viewport hiện có `maximum-scale=1.0, user-scalable=0`. Cấu hình này có thể ảnh hưởng khả năng phóng to của người dùng và tiêu chí accessibility. Không liên quan trực tiếp đến lỗi lệch hiện tại, nhưng nên xem xét loại bỏ sau khi kiểm thử giao diện.
-
-#### 5. Kiểm thử thiết bị thật chưa được tự động hóa — mức ưu tiên trung bình
-
-Các gate hiện tại mạnh về code/static contract. Hệ thống vẫn cần visual regression bằng browser thật hoặc browser engine tương ứng, đặc biệt Safari/WebKit, để phát hiện lỗi native control, font rendering và safe-area.
-
----
-
-## 7. Bước nâng cấp tiếp theo được đề xuất
-
-# Phase 4K-6R — CSS Runtime Source-of-Truth Consolidation + Responsive Visual Regression Gate
-
-Đây là bước nên thực hiện ngay sau 4K-6Q, trước khi tiếp tục tách nghiệp vụ lớn khỏi `app.js`.
-
-### Mục tiêu
-
-1. Chỉ còn **một nguồn CSS chính thức** cho giao diện runtime.
-2. Không còn tình trạng inline CSS và `style.css` phát triển lệch nhau.
-3. Mọi thay đổi responsive đều được test trên ma trận viewport cố định.
-4. Không đổi business logic, Firestore structure, HTML ID hoặc giao diện đã ổn định.
-
-### Phương án tốt nhất
-
-- Tách inline runtime CSS từ `index.html` sang một file source rõ ràng, ví dụ `css/app.css`.
-- `index.html` chỉ `<link>` tới CSS static đã build/versioned.
-- Nếu cần tối ưu first paint, dùng build script để tạo critical CSS từ cùng source, không chỉnh hai nơi thủ công.
-- Bảo toàn thứ tự cascade hiện tại bằng snapshot computed style trước/sau.
-- Thêm visual/layout gate cho các viewport:
-  - 320, 360, 375, 390, 414, 430, 768, 1024, 1366 px.
-- Kiểm tra riêng các vùng dễ lỗi:
-  - Header mobile và stat pills.
-  - Tabs ngang.
-  - Bộ lọc Tháng/Cơ sở/Tìm kiếm.
-  - Dòng thu học phí và nút thao tác.
-  - Modal cấu hình và input tiền.
-  - Safe-area trên iPhone.
-- Chỉ sau khi 4K-6R ổn định mới tiếp tục **Phase 4K-6S — Legacy app.js Kernel Reduction + Inline Handler Migration**.
-
-### Tiêu chí hoàn thành 4K-6R
-
-- Một CSS source-of-truth.
-- Không khác biệt giao diện ngoài các sửa lỗi được phê duyệt.
-- Không control tràn ngang tại toàn bộ viewport test.
-- Visual snapshots có baseline và diff threshold.
-- `npm run check`, `check:all:critical`, deploy checks đều PASS.
-
----
-
-## 8. Hướng dẫn triển khai bản 4K-6Q
-
-1. Upload **toàn bộ nội dung trong gói ZIP**, không chỉ riêng `index.html`, `app.js` hoặc `style.css`.
-2. Giữ nguyên cấu trúc thư mục `js/`, `css/`, `tools/`.
-3. Sau deploy, mở trang bằng tab ẩn danh hoặc hard refresh.
-4. Trên iPhone/PWA đã cài, đóng hoàn toàn ứng dụng rồi mở lại để loại cache cũ.
-5. Smoke test nhanh:
-   - Mở tab Học phí ở màn hình 320–430 px.
-   - Kiểm tra Tháng và Cơ sở không đè nhau.
-   - Nhập `300000`, sửa/xóa một chữ số ở giữa.
-   - Xác nhận giá trị vẫn đúng và con trỏ không nhảy về cuối.
-   - Lưu cấu hình rồi tải lại trang để xác nhận dữ liệu giữ nguyên.
-
----
-
-## 9. Trạng thái cuối
-
-**Phase 4K-6Q hoàn thành.**  
-Bản sửa không thay đổi schema Firestore, không thay đổi logic tính học phí, không đổi HTML ID và không can thiệp các luồng thu/chi. Phạm vi thay đổi được giới hạn ở responsive layout, helper nhập tiền, cache-bust và regression checks.
+- `app.js` dưới 700 KiB.
+- Dưới 11.500 dòng.
+- Duplicate global dưới 120.
+- Không tăng Firestore reads/writes.
+- Tất cả critical checks và smoke test vẫn pass.

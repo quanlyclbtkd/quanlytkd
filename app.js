@@ -169,6 +169,7 @@
     let renderTimeout = null;
 // Danh mục kho tùy chỉnh — được load từ Firestore khi đăng nhập thành công
 window.invCustomCategories = [];
+    window.APP_PATCH_VERSION = '4K-6Q-mobile-filter-currency-stability-20260615';
     window.__appLoaded = true; // [Phase 2a] main.js kiểm tra để bỏ qua loadLegacyApp()
     window.__store = window.__store || {}; // [Phase 2b] Bridge object cho module system
 
@@ -3546,73 +3547,73 @@ service cloud.firestore {
         kq = kq.trim().replace(/\s+/g, ' '); return `(${kq.charAt(0).toUpperCase() + kq.slice(1)} đồng chẵn)`;
     };
 
-    // Phase 4K-6Q — Currency Input Stability
-    // Giữ đúng vị trí con trỏ khi định dạng tiền, tránh hiện tượng con trỏ nhảy về cuối
-    // lúc người dùng sửa/xóa số ở giữa; đồng thời chặn bind listener trùng.
-    const _normalizeCurrencyDigits = (value) => {
-        const digits = String(value ?? '').replace(/\D/g, '');
+    /* Phase 4K-6Q — Currency Input Stability
+       - Keeps the hidden raw value numeric-only.
+       - Preserves the caret when separators are inserted/removed.
+       - Ignores intermediate IME composition events.
+       - Prevents duplicate event bindings during bootstrap recovery. */
+    const _currencyInputBindings = new WeakSet();
+    const _sanitizeCurrencyDigits = (value) => {
+        const digits = String(value == null ? '' : value).replace(/\D/g, '');
         return digits.replace(/^0+(?=\d)/, '');
     };
-    const _formatCurrencyDigits = (digits) => digits
-        ? digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
-        : '';
-    const _currencyCaretFromDigitCount = (formatted, digitCount) => {
+    const _formatCurrencyDigits = (digits) => {
+        const normalized = _sanitizeCurrencyDigits(digits);
+        return normalized ? normalized.replace(/\B(?=(\d{3})+(?!\d))/g, '.') : '';
+    };
+    const _countDigitsBeforeCaret = (value, caret) => {
+        return String(value || '').slice(0, Math.max(0, Number(caret) || 0)).replace(/\D/g, '').length;
+    };
+    const _caretAfterDigitCount = (formatted, digitCount) => {
         if (digitCount <= 0) return 0;
         let seen = 0;
         for (let i = 0; i < formatted.length; i++) {
-            if (/\d/.test(formatted[i])) {
-                seen++;
-                if (seen >= digitCount) return i + 1;
-            }
+            if (/\d/.test(formatted[i])) seen++;
+            if (seen >= digitCount) return i + 1;
         }
         return formatted.length;
     };
     const formatCurrencyInput = (dispId, actId, callback) => {
         const d = document.getElementById(dispId);
         const a = document.getElementById(actId);
-        if (!d || !a) return;
-        if (d.dataset.currencyInputBound === '1') return;
-        d.dataset.currencyInputBound = '1';
-        d.inputMode = 'numeric';
-        d.autocomplete = 'off';
-        d.setAttribute('enterkeyhint', 'done');
+        if (!d || !a || _currencyInputBindings.has(d)) return;
+        _currencyInputBindings.add(d);
 
-        let composing = false;
-        const syncCurrencyValue = () => {
-            if (composing) return;
-            const rawValue = d.value || '';
-            const caret = Number.isInteger(d.selectionStart) ? d.selectionStart : rawValue.length;
-            const digitsBeforeCaret = (rawValue.slice(0, caret).match(/\d/g) || []).length;
-            const digits = _normalizeCurrencyDigits(rawValue);
-            const formatted = _formatCurrencyDigits(digits);
+        d.setAttribute('inputmode', d.getAttribute('inputmode') || 'numeric');
+        d.setAttribute('autocomplete', d.getAttribute('autocomplete') || 'off');
+        let isComposing = false;
 
-            a.value = digits;
+        const syncCurrencyValue = (preserveCaret = true) => {
+            const rawDisplay = d.value || '';
+            const selectionStart = typeof d.selectionStart === 'number' ? d.selectionStart : rawDisplay.length;
+            const digitsBeforeCaret = _countDigitsBeforeCaret(rawDisplay, selectionStart);
+            const rawDigits = _sanitizeCurrencyDigits(rawDisplay);
+            const formatted = _formatCurrencyDigits(rawDigits);
+
+            a.value = rawDigits;
             if (d.value !== formatted) d.value = formatted;
 
-            if (document.activeElement === d && typeof d.setSelectionRange === 'function') {
-                const nextCaret = _currencyCaretFromDigitCount(formatted, digitsBeforeCaret);
-                const restoreCaret = () => {
-                    if (document.activeElement !== d) return;
-                    try { d.setSelectionRange(nextCaret, nextCaret); } catch (_) {}
-                };
-                if (typeof requestAnimationFrame === 'function') requestAnimationFrame(restoreCaret);
-                else setTimeout(restoreCaret, 0);
+            if (preserveCaret && document.activeElement === d && typeof d.setSelectionRange === 'function') {
+                const nextCaret = _caretAfterDigitCount(formatted, digitsBeforeCaret);
+                try { d.setSelectionRange(nextCaret, nextCaret); } catch (_) {}
             }
-            if (callback) callback();
+            if (typeof callback === 'function') callback();
         };
 
-        d.addEventListener('compositionstart', () => { composing = true; });
-        d.addEventListener('compositionend', () => { composing = false; syncCurrencyValue(); });
-        d.addEventListener('input', syncCurrencyValue);
-        d.addEventListener('blur', syncCurrencyValue);
-
         if (a.value && !d.value) {
-            const initialDigits = _normalizeCurrencyDigits(a.value);
+            const initialDigits = _sanitizeCurrencyDigits(a.value);
             a.value = initialDigits;
             d.value = _formatCurrencyDigits(initialDigits);
         } else if (d.value) {
-            syncCurrencyValue();
+            syncCurrencyValue(false);
         }
+
+        d.addEventListener('compositionstart', () => { isComposing = true; });
+        d.addEventListener('compositionend', () => { isComposing = false; syncCurrencyValue(true); });
+        d.addEventListener('input', () => {
+            if (!isComposing) syncCurrencyValue(true);
+        });
+        d.addEventListener('blur', () => syncCurrencyValue(false));
     };
 
     window.calcInv = () => { let qty = Number(document.getElementById('inv_qty').value) || 0; let price = Number(document.getElementById('inv_priceActual').value) || 0; let total = qty * price; document.getElementById('inv_totalActual').value = total; document.getElementById('inv_totalDisplay').value = total > 0 ? total.toLocaleString('vi-VN') + " ₫" : ""; };
