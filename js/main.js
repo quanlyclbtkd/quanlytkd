@@ -33,6 +33,7 @@
 // APP_BUILD_VERSION = '4K-6T-legacy-diagnostics-pilot-audit-tooling-isolation-20260616'
 // APP_BUILD_VERSION = '4K-6U-report-excel-lazy-isolation-20260616'
 // APP_BUILD_VERSION = '4K-6V-attendance-canonical-ownership-pagination-20260616'
+// APP_BUILD_VERSION = '4K-6W-secure-account-provisioning-rules-lockdown-20260616'
 /**
  * main.js — Application Bootstrap (Phase 3.6B — Listener Registration Safety)
  * ────────────────────────────────────────────────────────────────────
@@ -83,6 +84,7 @@ import { initLegacyUiShell }                  from './ui/legacyUiShell.js';
 import { registerReportExportFacade }         from './modules/reports/reportExportFacade.js';
 import { store, resetStore }                  from './store.js';
 import { initFirebase }                        from './firebase/config.js';
+import { initAccountProvisioningService }      from './services/accountProvisioningService.js';
 import { showToast, registerToastGlobal }      from './ui/toast.js';
 import { registerModalGlobals }                from './ui/modal.js';
 import { switchTab, registerTabGlobals }       from './ui/tabs.js';
@@ -119,6 +121,14 @@ try {
     registerReportExportFacade();
 } catch (e) {
     console.warn('[BOOT] 4K-6S global ownership adoption failed:', e);
+}
+
+// Phase 4K-6W: privileged account operations are Cloud-Functions-only.
+// No plaintext credential may be stored or returned by this facade.
+try {
+    initAccountProvisioningService();
+} catch (e) {
+    console.warn('[BOOT] initAccountProvisioningService failed:', e);
 }
 
 // Phase 4K-6K-A: Low-risk formatters extraction gate.
@@ -3027,7 +3037,7 @@ window.debugProfileModalClose = function() {
 // ════════════════════════════════════════════════════════════════
 
 // PHẦN 1 — APP BUILD VERSION
-window.APP_BUILD_VERSION = '4K-6V-attendance-canonical-ownership-pagination-20260616';
+window.APP_BUILD_VERSION = '4K-6W-secure-account-provisioning-rules-lockdown-20260616';
 window.APP_COPYRIGHT_OWNER   = 'Tình Trương';
 window.APP_PRODUCT_NAME      = 'Taekwondo Club Management Web App';
 window.APP_SECURITY_PHASE    = '4K-6E-scale-readiness-write-safety';

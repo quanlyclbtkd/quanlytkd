@@ -827,25 +827,27 @@ window.debugSuperAdminAggregationHardStop = function() {
       // ════════════════════════════════════════════════════════════
           window.lockClubAccount = async (clubId, clubName) => {
         _m().lockClubCalls++; _m().lastAction = 'lockClubAccount';
-        if (!confirm(`⚠️ KHÓA TÀI KHOẢN\n\nBạn có chắc muốn KHÓA tài khoản CLB:\n"${clubName}" (${clubId})?\n\nSau khi khóa, HLV của CLB này sẽ không thể đăng nhập và sử dụng phần mềm cho đến khi được mở khóa lại.`)) return;
+        if (!confirm(`⚠️ KHÓA TÀI KHOẢN\n\nBạn có chắc muốn KHÓA tài khoản CLB:\n"${clubName}" (${clubId})?\n\nSau khi khóa, Admin CLB sẽ bị vô hiệu hóa đăng nhập cho đến khi được mở khóa.`)) return;
         const _t0 = Date.now();
         try {
-            await updateDoc(doc(db, "clubs", clubId), { accountStatus: 'locked' });
+            if (!window.AccountProvisioningService) throw new Error('Dịch vụ bảo mật tài khoản chưa sẵn sàng.');
+            await window.AccountProvisioningService.setClubAccountStatus({ clubId, status: 'locked' });
             _m().lastDurationMs = Date.now() - _t0;
-            window.showToast("🔒 Đã khóa tài khoản CLB thành công!");
+            window.showToast('🔒 Đã khóa tài khoản CLB thành công!');
             window.loadSuperAdminData();
-        } catch (e) { _m().lastError = e.message; console.error(e); alert("Lỗi: " + e.message); }
+        } catch (e) { _m().lastError = e.message; console.error(e); alert('Lỗi: ' + (e.message || e.code)); }
     };
 
           window.unlockClubAccount = async (clubId) => {
         _m().unlockClubCalls++; _m().lastAction = 'unlockClubAccount';
         const _t0 = Date.now();
         try {
-            await updateDoc(doc(db, "clubs", clubId), { accountStatus: 'active' });
+            if (!window.AccountProvisioningService) throw new Error('Dịch vụ bảo mật tài khoản chưa sẵn sàng.');
+            await window.AccountProvisioningService.setClubAccountStatus({ clubId, status: 'active' });
             _m().lastDurationMs = Date.now() - _t0;
-            window.showToast("🔓 Đã mở khóa tài khoản CLB thành công!");
+            window.showToast('🔓 Đã mở khóa tài khoản CLB thành công!');
             window.loadSuperAdminData();
-        } catch (e) { _m().lastError = e.message; console.error(e); alert("Lỗi: " + e.message); }
+        } catch (e) { _m().lastError = e.message; console.error(e); alert('Lỗi: ' + (e.message || e.code)); }
     };
 
       // ════════════════════════════════════════════════════════════
@@ -975,9 +977,6 @@ window.debugSuperAdminAggregationHardStop = function() {
             const _safeEmail = email.replace(/'/g, "&#x27;");
             const _safeCname = cname.replace(/'/g, "&#x27;");
 
-            const _safePass = (data.adminPassword || '').replace(/"/g, '&quot;');
-            const _pwDeskId = 'pw_d_' + cid;
-            const _pwMobId = 'pw_m_' + cid;
             const activeDisplay = _saFmtOptionalCount(activeCount);
             const profileDisplay = _saFmtOptionalCount(profileCount);
             const revenueShortDisplay = _saFmtRevenueShort(revenueTotal);
@@ -995,8 +994,7 @@ window.debugSuperAdminAggregationHardStop = function() {
                     ${hasRevenueSource ? '<div style="font-size:0.6rem;color:#059669;margin-top:2px;font-weight:700;">💰 T' + (curMonth||'').split('-')[1] + ': ' + revenueFullDisplay + '</div>' : '<div style="font-size:0.6rem;color:#94a3b8;margin-top:2px;font-weight:700;">💰 T' + ((curMonth||'').split('-')[1]||'?') + ': --</div>'}
                 </div>
                 <div style="overflow:hidden;">
-                    <div style="font-size:0.72rem;font-weight:600;color:#475569;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${email}">${email}</div>
-                    ${_safePass ? `<div style="margin-top:3px;display:flex;align-items:center;gap:3px;"><span style="font-size:0.6rem;color:#94a3b8;">MK:</span><span id="${_pwDeskId}" data-pw="${_safePass}" style="font-size:0.65rem;font-family:monospace;color:#475569;letter-spacing:0.06em;">••••••</span><button type="button" onclick="const e=document.getElementById('${_pwDeskId}');e.textContent=e.textContent.includes('•')?e.dataset.pw:'••••••'" style="background:none;border:none;cursor:pointer;font-size:0.7rem;color:#94a3b8;padding:0 2px;line-height:1;">👁</button></div>` : ''}</div>
+                    <div style="font-size:0.72rem;font-weight:600;color:#475569;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${email}">${email}</div></div>
                 <div style="text-align:center;">
                     <div style="font-size:1.2rem;font-weight:900;color:#4338ca;">${activeDisplay}</div>
                     <div style="font-size:0.6rem;color:#94a3b8;">/ ${profileDisplay}</div>
@@ -1033,7 +1031,6 @@ window.debugSuperAdminAggregationHardStop = function() {
                         <span style="font-size:0.7rem;font-weight:900;color:#4338ca;font-family:monospace;background:#eef2ff;padding:2px 7px;border-radius:5px;">${cid}</span>
                         <div style="font-size:1rem;font-weight:800;color:#0f172a;margin-top:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${cname}</div>
                         <div style="font-size:0.68rem;color:#64748b;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${email}">📧 ${email}</div>
-                        ${_safePass ? `<div style="font-size:0.65rem;color:#94a3b8;margin-top:3px;display:flex;align-items:center;gap:3px;"><span>🔑</span><span id="${_pwMobId}" data-pw="${_safePass}" style="font-family:monospace;letter-spacing:0.06em;">••••••</span><button type="button" onclick="const e=document.getElementById('${_pwMobId}');e.textContent=e.textContent.includes('•')?e.dataset.pw:'••••••'" style="background:none;border:none;cursor:pointer;font-size:0.72rem;color:#94a3b8;padding:0 2px;line-height:1;">👁</button></div>` : ''}
                     </div>
                     <div style="flex-shrink:0;">${statusBadge}</div>
                 </div>
@@ -1104,32 +1101,21 @@ window.debugSuperAdminAggregationHardStop = function() {
       // ════════════════════════════════════════════════════════════
           window.forceReplaceAdmin = async (clubId) => {
         _m().forceReplaceAdminCalls++; _m().lastAction = 'forceReplaceAdmin';
+        const newEmail = prompt(`CẤP LẠI TÀI KHOẢN CHO MÃ HỆ THỐNG: ${clubId}\n\nNhập EMAIL ADMIN MỚI:`);
+        if (!newEmail || !newEmail.includes('@')) return alert('Email không hợp lệ hoặc thao tác đã hủy!');
+        if (!confirm(`⚠️ XÁC NHẬN CẤP LẠI\n\nEmail Admin mới: ${newEmail}\nCLB: ${clubId}\n\nAdmin cũ sẽ bị vô hiệu hóa. Dữ liệu CLB được giữ nguyên. Hệ thống sẽ gửi email để Admin mới tự thiết lập mật khẩu.`)) return;
         const _t0 = Date.now();
-        const newEmail = prompt(`CẤP LẠI TÀI KHOẢN CHO MÃ HỆ THỐNG: ${clubId}\n\nNhập EMAIL MỚI (Lưu ý: Phải là email chưa từng đăng ký trên hệ thống này):`);
-        if(!newEmail || !newEmail.includes('@')) return alert("Email không hợp lệ hoặc đã bị hủy!");
-        
-        const newPass = prompt(`Nhập MẬT KHẨU MỚI cho tài khoản ${newEmail} (Yêu cầu ít nhất 6 ký tự):`);
-        if(!newPass || newPass.length < 6) return alert("Mật khẩu quá ngắn, phải từ 6 ký tự trở lên!");
-        
-        if(!confirm(`⚠️ XÁC NHẬN CẤP LẠI:\n- Tài khoản mới: ${newEmail}\n- Mật khẩu: ${newPass}\n- Sẽ được cấp quyền quản lý toàn bộ dữ liệu của CLB: ${clubId}\n\n(Yên tâm: Dữ liệu cũ của CLB vẫn được giữ nguyên 100%)`)) return;
-
         try {
-            const userCredential = await createUserWithEmailAndPassword(secondaryAuth, newEmail, newPass);
-            const newUid = userCredential.user.uid;
-
-            await setDoc(doc(db, "users", newUid), { email: newEmail, role: "admin", clubId: clubId });
-            await updateDoc(doc(db, "clubs", clubId), { adminEmail: newEmail, adminPassword: newPass });
-
+            if (!window.AccountProvisioningService) throw new Error('Dịch vụ bảo mật tài khoản chưa sẵn sàng.');
+            const result = await window.AccountProvisioningService.replaceClubAdmin({ clubId, email: newEmail });
             _m().lastDurationMs = Date.now() - _t0;
-            alert(`✅ ĐÃ TẠO TÀI KHOẢN THÀNH CÔNG!\n\nBạn có thể gửi ngay Email và Mật khẩu này cho quản lý cơ sở để họ đăng nhập. Toàn bộ dữ liệu cũ vẫn ở đó.`);
-            window.loadSuperAdminData(); 
+            const emailNote = result.setupEmailSent ? 'Email thiết lập mật khẩu đã được gửi.' : 'Chưa gửi được email thiết lập mật khẩu; hãy dùng nút Đổi Mật Khẩu để gửi lại.';
+            alert(`✅ ĐÃ CẤP LẠI TÀI KHOẢN THÀNH CÔNG!\n\nEmail mới: ${newEmail}\n${emailNote}\n\nHệ thống không lưu hoặc hiển thị mật khẩu.`);
+            window.loadSuperAdminData();
         } catch (error) {
             _m().lastError = error.message;
             console.error(error);
-            if(error.code === 'auth/email-already-in-use') alert("❌ Lỗi: Email mới này đã được sử dụng ở một CLB khác rồi. Vui lòng chọn một email khác!");
-            else alert("❌ Lỗi hệ thống: " + error.message);
-        } finally {
-            await signOut(secondaryAuth);
+            alert('❌ Lỗi: ' + (error.message || error.code || 'Không xác định'));
         }
     };
 

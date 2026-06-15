@@ -1,203 +1,220 @@
 rules_version = '2';
 // ══════════════════════════════════════════════════════════════════════════════
 // Firestore Security Rules — Taekwondo Club Management SaaS
-// Phase 4.0B-3 Baseline — tháng 5/2026
+// Phase 4K-6W — Secure Account Provisioning + Credential Eradication
 //
-// ⚠️  ĐÂY LÀ BASELINE — CHƯA DEPLOY.
-//      Test trên Firebase Emulator trước khi deploy production.
-//      Xem SECURITY_RULES_NOTES.md để hiểu các assumptions.
-//
-// CẤU TRÚC COLLECTION (dựa trên app hiện tại):
-//   clubs/{clubId}                 — thông tin CLB
-//   clubs/{clubId}/students/...    — võ sinh
-//   clubs/{clubId}/transactions/.. — giao dịch học phí
-//   clubs/{clubId}/attendance/...  — điểm danh
-//   clubs/{clubId}/inventory/...   — kho dụng cụ
-//   clubs/{clubId}/exams/...       — thi cấp đai
-//   clubs/{clubId}/config/...      — cấu hình CLB
-//   users/{uid}                    — thông tin tài khoản người dùng
-//   super_admins/{uid}             — danh sách SuperAdmin
+// Privileged account provisioning is Cloud-Functions/Admin-SDK only.
+// Client code cannot create/delete users, assign roles, change tenant ownership,
+// store credentials, or modify SaaS subscription/account-control fields.
+// Deploy only after emulator/static security checks pass.
 // ══════════════════════════════════════════════════════════════════════════════
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ── Helper functions ──────────────────────────────────────────────────────
-
     function signedIn() {
       return request.auth != null;
     }
 
-    // SuperAdmin: kiểm tra qua custom claim HOẶC document trong super_admins collection
-    function isSuperAdmin() {
-      return signedIn() && (
-        request.auth.token.role == 'super_admin'
-        || exists(/databases/$(database)/documents/super_admins/$(request.auth.uid))
-      );
+    function userExists() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid));
     }
 
-    // Lấy document user hiện tại (cache-friendly — chỉ gọi khi cần)
     function userDoc() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
-    // clubId của user hiện tại (từ users/{uid}.clubId)
     function myClubId() {
-      return signedIn()
-          && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-        ? userDoc().clubId
-        : null;
+      return userExists() ? userDoc().clubId : null;
     }
 
-    // Role của user hiện tại (từ users/{uid}.role)
     function myRole() {
-      return signedIn()
-          && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-        ? userDoc().role
-        : null;
+      return userExists() ? userDoc().role : null;
     }
 
-    // User có thuộc về CLB này không
+    function isSuperAdmin() {
+      return signedIn() && (
+        request.auth.token.role == 'super_admin'
+        || (userExists() && myRole() == 'super_admin')
+        || exists(/databases/$(database)/documents/super_admins/$(request.auth.uid))
+      );
+    }
+
     function isClubMember(clubId) {
       return signedIn() && myClubId() == clubId;
     }
 
-    // Admin của CLB: role = 'admin' hoặc 'owner'
     function isClubAdmin(clubId) {
       return isClubMember(clubId) && myRole() in ['admin', 'owner'];
     }
 
-    // Coach của CLB
-    // TODO Phase 4.0C: Xác định chính xác role string cho HLV trong app
     function isCoach(clubId) {
       return isClubMember(clubId) && myRole() == 'coach';
     }
 
-    // Parent: chỉ xem dữ liệu con mình
-    // TODO Phase 4.0C: Thêm parent rules khi có thêm parent role trong app
     function isParent(clubId) {
       return isClubMember(clubId) && myRole() == 'parent';
     }
 
-    // ── CLB chính ─────────────────────────────────────────────────────────────
+    function clubAdminRootUpdateIsSafe() {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+        'adminUid',
+        'adminEmail',
+        'adminPassword',
+        'coachPassword',
+        'temporaryPassword',
+        'passwordChangedAt',
+        'accountStatus',
+        'expiryDate',
+        'plan',
+        'branchLimit',
+        'license',
+        'allowedDomains',
+        'credentialStorageVersion',
+        'credentialPurgedAt',
+        'createdAt'
+      ]);
+    }
+
+    function selfUserUpdateIsSafe() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        'displayName',
+        'photoURL',
+        'phone',
+        'lastSeenAt',
+        'updatedAt'
+      ]);
+    }
 
     match /clubs/{clubId} {
-      // SuperAdmin: full access
-      // ClubMember: chỉ đọc doc CLB mình (xem tên, logo, config cơ bản)
-      // Không ai có thể list toàn bộ clubs ngoài SuperAdmin
-      allow get:    if isSuperAdmin() || isClubMember(clubId);
-      allow list:   if isSuperAdmin();
-      allow create: if isSuperAdmin();
-      allow update: if isSuperAdmin() || isClubAdmin(clubId);
-      allow delete: if isSuperAdmin();
+      allow get: if isSuperAdmin() || isClubMember(clubId);
+      allow list: if isSuperAdmin();
 
-      // ── Sub-collections của CLB ─────────────────────────────────────────────
+      // Club creation/deletion and privileged ownership fields are server-only.
+      allow create, delete: if false;
+      allow update: if isSuperAdmin()
+        || (isClubAdmin(clubId) && clubAdminRootUpdateIsSafe());
 
-      // Võ sinh
-      match /students/{studentId} {
-        allow read:   if isSuperAdmin() || isClubMember(clubId);
-        allow write:  if isSuperAdmin() || isClubAdmin(clubId);
+      match /profiles/{profileId} {
+        allow read: if isSuperAdmin() || isClubMember(clubId);
+        allow create, update, delete: if isSuperAdmin() || isClubAdmin(clubId);
       }
 
-      // Giao dịch học phí
+      // Legacy alias retained for compatibility.
+      match /students/{studentId} {
+        allow read: if isSuperAdmin() || isClubMember(clubId);
+        allow create, update, delete: if isSuperAdmin() || isClubAdmin(clubId);
+      }
+
       match /transactions/{txId} {
-        allow read:   if isSuperAdmin() || isClubMember(clubId);
-        allow create: if isSuperAdmin() || isClubAdmin(clubId);
-        // TODO: SuperAdmin xóa giao dịch nên chuyển sang Cloud Function (audit log)
-        allow update: if isSuperAdmin() || isClubAdmin(clubId);
+        allow read: if isSuperAdmin() || isClubMember(clubId);
+        allow create, update: if isSuperAdmin() || isClubAdmin(clubId);
         allow delete: if isSuperAdmin();
       }
 
-      // Điểm danh
       match /attendance/{attId} {
-        allow read:   if isSuperAdmin() || isClubMember(clubId);
-        // HLV có thể ghi điểm danh nếu app phân quyền — TODO: xác nhận coach write scope
-        allow write:  if isSuperAdmin() || isClubAdmin(clubId) || isCoach(clubId);
+        allow read: if isSuperAdmin() || isClubMember(clubId);
+        allow create, update, delete: if isSuperAdmin() || isClubAdmin(clubId) || isCoach(clubId);
       }
 
-      // Kho dụng cụ
-      match /inventory/{itemId} {
-        allow read:   if isSuperAdmin() || isClubMember(clubId);
-        allow write:  if isSuperAdmin() || isClubAdmin(clubId);
-      }
-
-      // Thi cấp đai
-      match /exams/{examId} {
-        allow read:   if isSuperAdmin() || isClubMember(clubId);
-        allow write:  if isSuperAdmin() || isClubAdmin(clubId);
-      }
-
-      // Config CLB (cơ sở, ca tập, danh mục kho, v.v.)
-      match /config/{configId} {
-        allow read:   if isSuperAdmin() || isClubMember(clubId);
-        allow write:  if isSuperAdmin() || isClubAdmin(clubId);
-      }
-
-      // ── Ghi chú buổi tập (Phase 4.0B-4J-5) ────────────────────────────────
       match /attendanceNotes/{noteId} {
         allow read: if isSuperAdmin() || isClubMember(clubId);
         allow create, update, delete: if isSuperAdmin() || isClubAdmin(clubId) || isCoach(clubId);
       }
 
-      // ── Thông báo nội bộ admin (Phase 4.0B-4J-5) ─────────────────────────
       match /adminNotifications/{notifId} {
-        allow read:          if isSuperAdmin() || isClubAdmin(clubId);
+        allow read: if isSuperAdmin() || isClubAdmin(clubId);
         allow create, update: if isSuperAdmin() || isClubAdmin(clubId) || isCoach(clubId);
-        allow delete:        if isSuperAdmin() || isClubAdmin(clubId);
-      }
-
-      // ── Hồ sơ võ sinh — sub-collection thực tế của app ────────────────────
-      // Phase 4J-9: Tách rule rõ ràng cho /profiles thay vì chỉ dựa vào catch-all.
-      // App dùng clubs/{clubId}/profiles/{profileId} (không phải /students).
-      match /profiles/{profileId} {
-        allow read:   if isSuperAdmin() || isClubMember(clubId);
-        allow create: if isSuperAdmin() || isClubAdmin(clubId);
-        allow update: if isSuperAdmin() || isClubAdmin(clubId);
         allow delete: if isSuperAdmin() || isClubAdmin(clubId);
       }
 
-      // ── Settings CLB (pagination cursors, stats, shifts, v.v.) ─────────────
+      match /inventory/{itemId} {
+        allow read: if isSuperAdmin() || isClubMember(clubId);
+        allow create, update, delete: if isSuperAdmin() || isClubAdmin(clubId);
+      }
+
+      match /exams/{examId} {
+        allow read: if isSuperAdmin() || isClubMember(clubId);
+        allow create, update, delete: if isSuperAdmin() || isClubAdmin(clubId);
+      }
+
+      match /config/{configId} {
+        allow read: if isSuperAdmin() || isClubMember(clubId);
+        allow create, update, delete: if isSuperAdmin() || isClubAdmin(clubId);
+      }
+
       match /settings/{settingId} {
-        allow read:  if isSuperAdmin() || isClubMember(clubId);
-        allow write: if isSuperAdmin() || isClubAdmin(clubId);
+        allow read: if isSuperAdmin() || isClubMember(clubId);
+        allow create, update, delete: if isSuperAdmin() || isClubAdmin(clubId);
       }
 
-      // ── Stats/monthly aggregate docs ────────────────────────────────────────
       match /stats/{statId} {
-        allow read:  if isSuperAdmin() || isClubMember(clubId);
-        allow write: if isSuperAdmin() || isClubAdmin(clubId);
+        allow read: if isSuperAdmin() || isClubMember(clubId);
+        // Existing client aggregation remains compatible; server aggregation is preferred.
+        allow create, update: if isSuperAdmin() || isClubAdmin(clubId);
+        allow delete: if isSuperAdmin();
       }
 
-      // Catch-all cho sub-collection chưa định nghĩa rõ
-      // Mặc định: SuperAdmin hoặc ClubAdmin write, Member read
-      match /{subcollection}/{docId} {
-        allow read:  if isSuperAdmin() || isClubMember(clubId);
-        allow write: if isSuperAdmin() || isClubAdmin(clubId);
+      // Account membership documents are readable by the owning club but writable
+      // only through Cloud Functions/Admin SDK, which bypasses client rules.
+      match /coaches/{coachId} {
+        allow get: if isSuperAdmin() || isClubAdmin(clubId)
+          || (isCoach(clubId) && request.auth.uid == coachId);
+        allow list: if isSuperAdmin() || isClubAdmin(clubId);
+        allow create, update, delete: if false;
+      }
+
+      match /fee_audit/{auditId} {
+        allow read: if isSuperAdmin() || isClubAdmin(clubId);
+        allow create: if isSuperAdmin() || isClubAdmin(clubId);
+        allow update, delete: if false;
+      }
+
+      match /financial_audit/{auditId} {
+        allow read: if isSuperAdmin() || isClubAdmin(clubId);
+        allow create: if isSuperAdmin() || isClubAdmin(clubId);
+        allow update, delete: if false;
       }
     }
-
-    // ── Users ─────────────────────────────────────────────────────────────────
 
     match /users/{uid} {
-      // User chỉ đọc được profile của chính mình; SuperAdmin đọc tất cả
-      allow read:   if signedIn() && (request.auth.uid == uid || isSuperAdmin());
-      // User tự cập nhật một số field của mình (ví dụ: avatar, displayName)
-      // SuperAdmin cập nhật role/clubId
-      // TODO: hạn chế field nào user được tự write (dùng request.resource.data diff)
-      allow update: if signedIn() && (request.auth.uid == uid || isSuperAdmin());
-      allow create: if isSuperAdmin();
-      allow delete: if isSuperAdmin();
-    }
+      allow get: if signedIn() && (request.auth.uid == uid || isSuperAdmin());
+      allow list: if isSuperAdmin();
 
-    // ── SuperAdmins ───────────────────────────────────────────────────────────
+      // Identity, role, clubId, branch, status and email are server-owned.
+      allow create, delete: if false;
+      allow update: if signedIn()
+        && request.auth.uid == uid
+        && selfUserUpdateIsSafe();
+    }
 
     match /super_admins/{uid} {
-      // Chỉ SuperAdmin mới đọc/ghi được collection này
-      allow read, write: if isSuperAdmin();
+      allow get: if signedIn() && (request.auth.uid == uid || isSuperAdmin());
+      allow list: if isSuperAdmin();
+      allow create, update, delete: if false;
     }
 
-    // ── Deny-by-default ───────────────────────────────────────────────────────
-    // Bắt tất cả path chưa được định nghĩa — từ chối hoàn toàn
+    match /login_history/{docId} {
+      allow read: if isSuperAdmin();
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.keys().hasOnly([
+          'uid', 'email', 'role', 'clubId', 'loginAt', 'timestamp', 'browser', 'os', 'deviceType', 'deviceName'
+        ]);
+      allow update, delete: if false;
+    }
+
+    // Server-owned privileged operation state and immutable audit trail.
+    match /account_provisioning_requests/{requestId} {
+      allow read, write: if false;
+    }
+
+    match /audit_logs/{auditId} {
+      allow read: if isSuperAdmin();
+      allow create, update, delete: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

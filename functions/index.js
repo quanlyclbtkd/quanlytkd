@@ -83,3 +83,17 @@ exports.onProfileWriteSuperAdminSummary = superAdminSummary.onProfileWriteSuperA
 exports.onTransactionWriteSuperAdminSummary = superAdminSummary.onTransactionWriteSuperAdminSummary;
 exports.refreshSuperAdminSummaryForClub = superAdminSummary.refreshSuperAdminSummaryForClub;
 exports.scheduledRefreshSuperAdminSummaries = superAdminSummary.scheduledRefreshSuperAdminSummaries;
+
+
+// ── Group 4: Secure Account Provisioning + Credential Eradication ──────────
+// Phase 4K-6W: privileged account operations run only through Admin SDK.
+const accountProvisioning = require('./src/accountProvisioning');
+exports.provisionClubAdmin = accountProvisioning.provisionClubAdmin;
+exports.provisionCoachAccount = accountProvisioning.provisionCoachAccount;
+exports.replaceClubAdmin = accountProvisioning.replaceClubAdmin;
+exports.removeCoachAccount = accountProvisioning.removeCoachAccount;
+exports.migrateCoachAccounts = accountProvisioning.migrateCoachAccounts;
+exports.repairCurrentAccountMembership = accountProvisioning.repairCurrentAccountMembership;
+exports.purgeLegacyCredentialFields = accountProvisioning.purgeLegacyCredentialFields;
+exports.setClubAccountStatus = accountProvisioning.setClubAccountStatus;
+exports.updateClubSubscription = accountProvisioning.updateClubSubscription;

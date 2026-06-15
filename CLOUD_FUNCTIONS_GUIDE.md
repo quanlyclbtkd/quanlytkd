@@ -354,3 +354,20 @@ console.log(window.__store?.clubId);
 
 *Phase 3 — Cloud Functions for Taekwondo Club Management System*
 *Firebase Project: quanly-tst | Region: asia-southeast1*
+
+---
+
+## Phase 4K-6W — Secure Account Provisioning
+
+Từ Phase 4K-6W, trình duyệt không còn dùng `createUserWithEmailAndPassword` để tạo Admin/HLV và không còn ghi mật khẩu vào Firestore. Mọi thao tác đặc quyền chạy qua `functions/src/accountProvisioning.js` bằng Firebase Admin SDK.
+
+Thứ tự triển khai bắt buộc:
+
+1. `cd functions && npm install && npm run lint`
+2. `firebase deploy --only functions`
+3. Canary tạo Admin/HLV và kiểm tra email thiết lập mật khẩu
+4. Chạy `purgeLegacyCredentialFields`
+5. `firebase deploy --only firestore:rules`
+6. Deploy Hosting/GitHub Pages
+
+Xem `PHASE_4K_6W_DEPLOYMENT_RUNBOOK.md`.
