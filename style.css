@@ -1355,39 +1355,65 @@ button, a, [role="button"] {
   border-color: #0033A0;
 }
 
-/* ── Phase 4K-6Q: Mobile Filter Responsive Stability ────────────────
-   Native month/select controls can keep an intrinsic minimum width on
-   some iOS/Android browsers. minmax(0,1fr) + min-width:0 prevents the
-   month field from intruding into the branch field at any phone width. */
+/* ── Phase 4K-6Q baseline + Phase 4K-6R Mobile Filter Cross-Browser Hardening ──
+   Root cause confirmed after the 6Q retry: width/min-width alone is not enough
+   for localized native input[type="month"] controls on every mobile WebKit build.
+   Common 375–430px phones can still expose a native intrinsic width wider than a
+   half-row grid track. The safe layout is therefore:
+   - <= 519px: one full-width control per row (no native-control collision possible)
+   - 520–767px: two minmax(0,1fr) columns
+   - >= 768px: restore the intended three-column desktop layout
+   This is viewport/content-width responsive; it does not use device detection. */
 #filterArea {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
   max-width: 100%;
+  min-width: 0;
 }
 #filterArea > div {
+  box-sizing: border-box;
   min-width: 0;
+  min-inline-size: 0;
   max-width: 100%;
+  max-inline-size: 100%;
+  overflow: hidden;
 }
 #filterArea input,
 #filterArea select {
   box-sizing: border-box !important;
+  display: block;
   width: 100% !important;
+  inline-size: 100% !important;
   min-width: 0 !important;
+  min-inline-size: 0 !important;
   max-width: 100% !important;
+  max-inline-size: 100% !important;
 }
 #filterArea #filterMonth {
-  display: block;
   overflow: hidden;
 }
 #filterArea #filterBranch {
-  display: block;
   text-overflow: ellipsis;
 }
-@media (max-width: 359px) {
+@media (max-width: 519px) {
   #filterArea {
     grid-template-columns: minmax(0, 1fr) !important;
   }
-  #filterArea > div,
-  #filterArea > div:last-child {
+  #filterArea > div {
     grid-column: 1 / -1 !important;
+    width: 100%;
+    min-width: 0;
+  }
+}
+@media (min-width: 520px) and (max-width: 767px) {
+  #filterArea {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+  }
+  #filterArea > div:nth-child(3),
+  #filterArea > div:nth-child(4) {
+    grid-column: 1 / -1 !important;
+  }
+}
+@media (min-width: 768px) {
+  #filterArea {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
   }
 }

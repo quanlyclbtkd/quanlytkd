@@ -51,6 +51,7 @@ import {
 } from '../utils/format.js';
 import { FinanceService } from '../services/finance.service.js';
 import { StudentService } from '../services/students.service.js';
+import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
 
 // ── Phase 4K-4D: Fallback classify helper (finance.js) ──
 function _classifyInvTxForFinance(tx, cats) {
@@ -107,6 +108,26 @@ function _clubData()     { return (window.__store || {}).clubData || {}; }
  * Tất cả window.X bên dưới OVERRIDE những gì app.js đã set trước.
  * Đây là delegation pattern đã kiểm chứng từ Phase 2a–2d.
  */
+export function openComboModal() {
+    const modal = typeof document !== 'undefined' ? document.getElementById('comboModal') : null;
+    if (!modal) return false;
+    modal.style.display = 'flex';
+    return true;
+}
+
+export function registerFinanceUiGlobals() {
+    if (typeof window === 'undefined') return { ok: false, reason: 'no-window' };
+    const result = GlobalOwnershipRegistry.register('openComboModal', openComboModal, {
+        owner: 'js/modules/finance.js',
+        risk: 'ui-only',
+        policy: 'module-primary',
+    });
+    if (!result.ok) {
+        console.warn('[4K-6S] openComboModal ownership registration failed:', result);
+    }
+    return result;
+}
+
 export function initFinance() {
 
     // ════════════════════════════════════════════════════════════
@@ -117,16 +138,8 @@ export function initFinance() {
         window.StudentService = window.StudentService || StudentService;
     }
 
-    // ════════════════════════════════════════════════════════════
-    // 1. formatMonthCompact — Expose module version ra window
-    //    Override bản app.js (bản app.js có bug nhỏ khi ghép năm)
-    // ════════════════════════════════════════════════════════════
-
-    /**
-     * Rút gọn danh sách tháng thành chuỗi hiển thị.
-     * Ví dụ: '2025-01,2025-02,2025-03' → 'T1, T2, T3/2025'
-     */
-    window.formatMonthCompact = formatMonthCompact;
+    // Phase 4K-6S: formatMonthCompact is owned by js/utils/format.js.
+    // finance.js imports the pure helper directly and must not overwrite the global.
 
     // ════════════════════════════════════════════════════════════
     // 2. skipMonth & removeSkip — Quản lý báo nghỉ tháng
@@ -784,18 +797,7 @@ export function initFinance() {
         }
     };
 
-    // ════════════════════════════════════════════════════════════════
-    // 9. openComboModal — Mở modal thu gộp gia đình
-    // ════════════════════════════════════════════════════════════════
-
-    /**
-     * Hiển thị modal nhập thông tin thu gộp 2 võ sinh cùng gia đình.
-     * Nội dung modal được điền sẵn bởi code trong index.html.
-     */
-    window.openComboModal = () => {
-        const modal = document.getElementById('comboModal');
-        if (modal) modal.style.display = 'flex';
-    };
+    // Phase 4K-6S: openComboModal is registered once by registerFinanceUiGlobals().
 
     // ════════════════════════════════════════════════════════════════
     // 10. saveTx — Form thu tiền chính (transactionForm.onsubmit)

@@ -9,6 +9,8 @@
  * ────────────────────────────────────────────────────────────────
  */
 
+import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
+
 /**
  * Trả về ngày hôm nay dạng YYYY-MM-DD theo múi giờ địa phương.
  * QUAN TRỌNG: KHÔNG dùng new Date().toISOString() vì trả về UTC
@@ -85,6 +87,23 @@ export function formatMonthCompact(monthsStr) {
     return Object.keys(byYear).sort().map(y =>
         byYear[y].sort((a, b) => a - b).map(mo => `T${mo}`).join(', ') + `/${y}`
     ).join('; ');
+}
+
+/**
+ * Đăng ký canonical owner cho pure helper window.formatMonthCompact.
+ * Classic fallback is preserved for file:// and module-load rollback.
+ */
+export function registerFormatGlobals() {
+    if (typeof window === 'undefined') return { ok: false, reason: 'no-window' };
+    const result = GlobalOwnershipRegistry.register('formatMonthCompact', formatMonthCompact, {
+        owner: 'js/utils/format.js',
+        risk: 'pure-helper',
+        policy: 'module-primary',
+    });
+    if (!result.ok) {
+        console.warn('[4K-6S] formatMonthCompact ownership registration failed:', result);
+    }
+    return result;
 }
 
 /**

@@ -28,6 +28,7 @@
 // APP_BUILD_VERSION = '4K-6N-financial-action-audit-trail-write-intent-20260608'
 // APP_BUILD_VERSION = '4K-6O-mobile-startup-performance-lazy-assets-20260608'
 // APP_BUILD_VERSION = '4K-6P-tailwind-static-css-build-20260608'
+// APP_BUILD_VERSION = '4K-6S-global-ownership-adoption-duplicate-ui-cleanup-20260615'
 /**
  * main.js — Application Bootstrap (Phase 3.6B — Listener Registration Safety)
  * ────────────────────────────────────────────────────────────────────
@@ -70,9 +71,11 @@ import { initListenerOwnershipBoundary }      from './core/listenerOwnershipBoun
 import { initFinancialActionAuditGuard }      from './core/financialActionAuditGuard.js';
 import { initMobileStartupPerformance }       from './core/mobileStartupPerformance.js';
 import { initStaticCssBuildHealth }           from './core/staticCssBuildHealth.js';
+import { initGlobalOwnershipRegistry }       from './core/globalOwnershipRegistry.js';
 import { LegacyRenderEntrypoints }            from './core/legacyRenderEntrypoints.js';
 import { InlineHandlerAudit }                from './core/inlineHandlerAudit.js';
 import { EventActionBridge, initEventActionBridge } from './ui/eventActionBridge.js';
+import { initLegacyUiShell }                  from './ui/legacyUiShell.js';
 import { store, resetStore }                  from './store.js';
 import { initFirebase }                        from './firebase/config.js';
 import { showToast, registerToastGlobal }      from './ui/toast.js';
@@ -91,12 +94,26 @@ import { registerLoadingGlobals, showLoading, hideLoading, forceHideLoading } fr
 import {
     getLocalToday, formatDate, formatMonth,
     addMonthsToYYYYMM, normalizeYYYYMM,
-    formatMonthCompact, getBeltBadge,
+    formatMonthCompact, getBeltBadge, registerFormatGlobals,
 } from './utils/format.js';
 import { escapeForAttr, escapeHtml, formatVND, parseVND } from './utils/helpers.js';
 import { Formatters, initFormatters } from './utils/formatters.js';
 import { ReceiptHelpers, initReceiptHelpers } from './modules/receiptHelpers.js';
 import { QRBankingHelpers, initQRBankingHelpers } from './modules/qrBankingHelpers.js';
+
+// Phase 4K-6S: adopt canonical ownership for all reviewed low-risk UI globals.
+// This runs before authenticated interaction and before business-module init.
+// Classic rollback implementations were loaded before app.js.
+try {
+    initGlobalOwnershipRegistry();
+    initLegacyUiShell();
+    registerToastGlobal();
+    registerModalGlobals();
+    registerFormatGlobals();
+    registerFinanceUiGlobals();
+} catch (e) {
+    console.warn('[BOOT] 4K-6S global ownership adoption failed:', e);
+}
 
 // Phase 4K-6K-A: Low-risk formatters extraction gate.
 // Pure formatter helpers only — no Firestore writes, no business-flow changes.
@@ -284,7 +301,7 @@ import {
     invalidateSearchCache,
     debugSearchPerformance,
 } from './modules/searchRuntime.js';
-import { initFinance, initTransactionPagination }     from './modules/finance.js';
+import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from './modules/finance.js';
 import { initInventory }                              from './modules/inventory.js';
 import { initAttendance }                             from './modules/attendance.js';
 import { initDashboard }                              from './modules/dashboard.js';
@@ -1404,8 +1421,6 @@ function _waitForExistingLegacyApp(ms) {
         window.safeGetDocs = safeGetDocs;
 
         registerLoadingGlobals();
-        registerToastGlobal();
-        registerModalGlobals();
         registerTabGlobals();
 
         const _origSwitchTab = window.switchTab;
@@ -3013,7 +3028,7 @@ window.debugProfileModalClose = function() {
 // ════════════════════════════════════════════════════════════════
 
 // PHẦN 1 — APP BUILD VERSION
-window.APP_BUILD_VERSION = '4K-6P-tailwind-static-css-build-20260608';
+window.APP_BUILD_VERSION = '4K-6R-legacy-global-ownership-low-risk-ui-extraction-20260615';
 window.APP_COPYRIGHT_OWNER   = 'Tình Trương';
 window.APP_PRODUCT_NAME      = 'Taekwondo Club Management Web App';
 window.APP_SECURITY_PHASE    = '4K-6E-scale-readiness-write-safety';
@@ -4505,6 +4520,14 @@ window.debugRuntimeSmokeTest = async function(term) {
     out.tailwindCdnRemoval = await safeCall('debugTailwindCdnRemoval', window.debugTailwindCdnRemoval);
     summary.staticCssBuildOk = !!out.staticCssBuild.ok;
     summary.tailwindCdnRemovalOk = !!out.tailwindCdnRemoval.ok;
+
+    // Phase 4K-6S: Global Ownership Adoption + Duplicate UI Cleanup
+    out.globalOwnership = await safeCall('debugGlobalOwnership', window.debugGlobalOwnership);
+    out.legacyUiShell = await safeCall('debugLegacyUiShell', window.debugLegacyUiShell);
+    out.legacyUiFallbacks = await safeCall('debugLegacyUiFallbacks', window.debugLegacyUiFallbacks);
+    summary.globalOwnershipOk = !!out.globalOwnership.ok;
+    summary.legacyUiShellOk = !!out.legacyUiShell.ok;
+    summary.legacyUiFallbacksOk = !!out.legacyUiFallbacks.ok;
 
     // Phase 4K-6D: Security, License & IP Protection Readiness
     out.buildFingerprint               = await safeCall('debugBuildFingerprint',               window.debugBuildFingerprint);

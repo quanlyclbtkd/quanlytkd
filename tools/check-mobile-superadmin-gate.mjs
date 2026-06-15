@@ -21,6 +21,7 @@ console.log('\n=== check-mobile-superadmin-gate ===\n');
 
 const appJs   = readFile('app.js');
 const mainJs  = readFile('js/main.js');
+const uiShell = readFile('js/ui/legacyUiShell.js');
 
 // 1. isSuperAdminRole must exist
 if (appJs.includes('window.isSuperAdminRole = function')) {
@@ -29,20 +30,20 @@ if (appJs.includes('window.isSuperAdminRole = function')) {
   fail('window.isSuperAdminRole NOT found in app.js');
 }
 
-// 2. openMobileMenu must NOT use old (admin || super_admin) pattern for mmsAdminBtn
+// 2. openMobileMenu must NOT use old (admin || super_admin) pattern for mmsAdminBtn.
+// Phase 4K-6R moved this low-risk UI block to js/ui/legacyUiShell.js.
 const oldPattern = "(window.userRole === 'admin' || window.userRole === 'super_admin') ? 'block' : 'none'";
-// Allow the old pattern in OTHER places (e.g. manageBtnWrap), but NOT inside openMobileMenu
-const openMenuIdx = appJs.indexOf('window.openMobileMenu = () => {');
-const closeMobileMenuIdx = appJs.indexOf('window.closeMobileMenu = () => {');
-if (openMenuIdx !== -1 && closeMobileMenuIdx !== -1) {
-  const menuBlock = appJs.slice(openMenuIdx, closeMobileMenuIdx);
-  if (menuBlock.includes(oldPattern)) {
+const source = uiShell.includes('export function openMobileMenu') ? uiShell : appJs;
+if (source.includes('openMobileMenu') && source.includes('closeMobileMenu')) {
+  if (source.includes(oldPattern)) {
     fail('openMobileMenu still uses old (admin || super_admin) condition for mmsAdminBtn');
+  } else if (!source.includes('window.isSuperAdminRole')) {
+    fail('openMobileMenu does not use window.isSuperAdminRole as the single role predicate');
   } else {
-    pass('openMobileMenu does NOT use old admin||super_admin condition');
+    pass('openMobileMenu uses isSuperAdminRole and excludes normal admin accounts');
   }
 } else {
-  fail('Could not locate openMobileMenu / closeMobileMenu block');
+  fail('Could not locate openMobileMenu / closeMobileMenu implementation');
 }
 
 // 3. openNewClubModal must guard isSuperAdminRole

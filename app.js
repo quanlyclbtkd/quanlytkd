@@ -701,63 +701,12 @@ window.invCustomCategories = [];
         }).join(', ');
     };
 
-    // [Phase 2a] Guard: nếu main.js đã đăng ký showToast từ ui/toast.js, không ghi đè
-    if (!window.showToast) {
-        window.showToast = (msg, duration = 3000, isLoading = false) => {
-            const toast = document.getElementById("toastMessage"); toast.innerText = msg;
-            if(isLoading) toast.classList.add("loading"); else toast.classList.remove("loading");
-            toast.classList.add("show"); setTimeout(() => toast.classList.remove("show"), duration);
-        };
+    // Phase 4K-6S: low-risk UI rollback implementations moved to
+    // js/legacy/legacyUiFallbacks.js (classic script loaded before app.js).
+    // app.js remains the legacy business kernel but no longer duplicates these UI bodies.
+    if (!window.__legacyUiFallbacksInstalled) {
+        console.warn('[4K-6S] legacyUiFallbacks.js was not loaded; module layer must provide low-risk UI globals.');
     }
-
-    // ── Hệ thống nhắc nhở tải file tổng kết cuối tháng ──────────────────────
-    // Chỉ hiện ngày 1, 2, 3 hàng tháng; tự tắt khi bỏ qua (lưu localStorage theo tháng)
-    window._checkMonthlyReminder = () => {
-        const today = new Date();
-        const day = today.getDate();
-        if (day < 1 || day > 3) return; // chỉ hiện ngày 1–3
-
-        const thisMonthKey = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0');
-        if (localStorage.getItem('mrDismissed_' + thisMonthKey)) return; // đã bỏ qua tháng này
-
-        // Tính tháng trước
-        const prevDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-        const prevMonth = prevDate.getMonth() + 1;
-        const prevYear = prevDate.getFullYear();
-
-        const el = document.getElementById('monthlyReminder');
-        const lbl = document.getElementById('mrPrevMonth');
-        if (!el || !lbl) return;
-        lbl.textContent = 'Tháng ' + prevMonth + '/' + prevYear;
-        el.style.display = 'flex';
-    };
-
-    window._dismissMonthlyReminder = () => {
-        const today = new Date();
-        const key = 'mrDismissed_' + today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0');
-        localStorage.setItem(key, '1');
-        const el = document.getElementById('monthlyReminder');
-        if (el) el.style.display = 'none';
-    };
-
-    window._openMonthlyExport = () => {
-        window._dismissMonthlyReminder();
-        // Mở modal xuất Excel và tự chọn tháng trước
-        const today = new Date();
-        const prevDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-        const prevMonth = prevDate.getMonth() + 1;
-        const prevYear = prevDate.getFullYear();
-        window.openExcelExportModal();
-        setTimeout(() => {
-            const yearEl = document.getElementById('excel_year');
-            if (yearEl) yearEl.value = prevYear;
-            const typeEl = document.getElementById('excel_periodType');
-            if (typeEl) { typeEl.value = 'month'; window.updateExcelPeriodOptions(); }
-            const valEl = document.getElementById('excel_periodValue');
-            if (valEl) valEl.value = String(prevMonth);
-        }, 120);
-    };
-    // ─────────────────────────────────────────────────────────────────────────
 
     window.openAddModal = () => {
         document.getElementById('addModal').style.display = 'flex';
@@ -800,14 +749,8 @@ window.invCustomCategories = [];
         }
     };
     window.closeAddModal = () => document.getElementById('addModal').style.display = 'none';
-    window.openComboModal = () => document.getElementById('comboModal').style.display = 'flex';
-    window.closeModal = () => document.getElementById('profileModal').style.display = 'none';
-    
-    window.openTaxModal = () => {
-        document.getElementById('taxExportModal').style.display = 'flex';
-        window.updateTaxPeriodOptions();
-    };
-    window.closeTaxModal = () => document.getElementById('taxExportModal').style.display = 'none';
+    // Phase 4K-6S: openComboModal/closeModal/tax modal fallbacks are installed
+    // by js/legacy/legacyUiFallbacks.js before this legacy kernel executes.
 
     // [Phase 2a] Bridge: expose _legacySwitchTab để ui/tabs.js có thể delegate về đây
     window._legacySwitchTab = window.switchTab = (tabId) => {
@@ -4675,13 +4618,8 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         }
     };
 
-    window.formatMonthCompact = (monthsStr) => {
-        if(!monthsStr || !monthsStr.includes(',')) return formatMonth(monthsStr);
-        const months = monthsStr.split(',').map(s => s.trim());
-        const byYear = {};
-        months.forEach(m => { const [y, mo] = m.split('-'); if(!byYear[y]) byYear[y] = []; byYear[y].push(mo); });
-        return Object.keys(byYear).sort().map(y => byYear[y].join('-') + '/' + y).join(', ');
-    };
+    // Phase 4K-6S: formatMonthCompact fallback lives in the classic rollback layer;
+    // js/utils/format.js becomes the canonical module owner after bootstrap.
 
     window.generateMultiMonthPaymentRequest = (name, monthsStr, branch, amount) => {
         window.exportReceipt(name, Number(amount), 'Học phí', getLocalToday(), monthsStr, branch, '', 'PHIẾU BÁO HỌC PHÍ');
@@ -11360,28 +11298,7 @@ window.processMultiItem = async (action) => {
         return result;
     };
 
-    // MOBILE MENU SHEET — openMobileMenu / closeMobileMenu
-    // Được gọi từ .mhb-menu-btn (header mobile) và nút X bên trong sheet
-    // CSS: #mobileMenuSheet.open { display: flex }
-    // ═══════════════════════════════════════════════════════════════
-    window.openMobileMenu = () => {
-        const sheet = document.getElementById('mobileMenuSheet');
-        if (!sheet) return;
-        // Hiển thị nút Admin khi người dùng là admin / super_admin
-        const adminBtn = document.getElementById('mmsAdminBtn');
-        if (adminBtn) {
-            adminBtn.style.display =
-                (typeof window.isSuperAdminRole === 'function' && window.isSuperAdminRole())
-                    ? 'block'
-                    : 'none'; // Phase 4K-5Q: Only super_admin sees Mở CLB Mới
-        }
-        sheet.classList.add('open');
-    };
-
-    window.closeMobileMenu = () => {
-        const sheet = document.getElementById('mobileMenuSheet');
-        if (sheet) sheet.classList.remove('open');
-    };
+    // Phase 4K-6S: mobile menu fallbacks moved to js/legacy/legacyUiFallbacks.js.
 
     // ════════════════════════════════════════════════════════════════
     // Phase 4.0B-4D: DATA HYDRATION DIAGNOSTICS GLOBALS

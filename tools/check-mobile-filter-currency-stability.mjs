@@ -4,6 +4,8 @@ import vm from 'node:vm';
 const index = readFileSync('index.html', 'utf8');
 const app = readFileSync('app.js', 'utf8');
 const style = readFileSync('style.css', 'utf8');
+const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
+const scripts = pkg.scripts || {};
 
 let failures = 0;
 function check(label, ok, detail = '') {
@@ -14,14 +16,19 @@ function check(label, ok, detail = '') {
   }
 }
 
-console.log('\n🔎 Phase 4K-6Q — Mobile Filter + Currency Stability Check\n');
+console.log('\n🔎 Phase 4K-6R — Mobile Filter Cross-Browser Hardening + Currency Stability Check\n');
 
-check('index has 4K-6Q responsive filter patch', index.includes('Phase 4K-6Q: Mobile Filter Responsive Stability'));
-check('style.css mirrors responsive filter patch', style.includes('Phase 4K-6Q: Mobile Filter Responsive Stability'));
-check('filter grid uses minmax(0, 1fr)', /#filterArea\s*\{[^}]*minmax\(0,\s*1fr\)[^}]*minmax\(0,\s*1fr\)/s.test(index));
-check('filter children can shrink', /#filterArea\s*>\s*div\s*\{[^}]*min-width:\s*0/s.test(index));
-check('filter controls are explicitly border-box and width constrained', /#filterArea input,[\s\S]*#filterArea select\s*\{[^}]*box-sizing:\s*border-box[^}]*min-width:\s*0[^}]*max-width:\s*100%/s.test(index));
-check('very narrow phones collapse filter to one column', /@media\s*\(max-width:\s*359px\)[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\)/s.test(index));
+check('index has 6R mobile filter hardening patch', index.includes('Phase 4K-6R Mobile Filter Cross-Browser Hardening'));
+check('style.css mirrors 6R mobile filter hardening patch', style.includes('Phase 4K-6R Mobile Filter Cross-Browser Hardening'));
+check('filter children can shrink and clip native overflow', /#filterArea\s*>\s*div\s*\{[^}]*min-width:\s*0[^}]*min-inline-size:\s*0[^}]*overflow:\s*hidden/s.test(index));
+check('filter controls are explicitly border-box and width constrained', /#filterArea input,[\s\S]*#filterArea select\s*\{[^}]*box-sizing:\s*border-box[^}]*width:\s*100%[^}]*inline-size:\s*100%[^}]*min-width:\s*0[^}]*max-width:\s*100%/s.test(index));
+check('all common portrait phones collapse filter to one column', /@media\s*\(max-width:\s*519px\)[\s\S]*?#filterArea\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)[^}]*\}[\s\S]*?#filterArea\s*>\s*div\s*\{[^}]*grid-column:\s*1\s*\/\s*-1/s.test(index));
+check('medium mobile widths use two safe columns', /@media\s*\(min-width:\s*520px\)\s*and\s*\(max-width:\s*767px\)[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1fr\)\s+minmax\(0,\s*1fr\)/s.test(index));
+check('desktop three-column layout is restored', /@media\s*\(min-width:\s*768px\)[\s\S]*?grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/s.test(index));
+check('obsolete 359px-only fallback is removed', !/@media\s*\(max-width:\s*359px\)[\s\S]*?#filterArea/s.test(index));
+check('default check includes mobile filter regression gate', String(scripts.check || '').includes('check:mobile-filter-currency-stability'));
+check('check:all includes mobile filter regression gate', String(scripts['check:all'] || '').includes('check:mobile-filter-currency-stability'));
+check('critical suite includes mobile filter regression gate', String(scripts['check:all:critical'] || '').includes('check:mobile-filter-currency-stability'));
 check('default tuition input requests numeric keyboard', /id="add_fee_default_display"[^>]*inputmode="numeric"/.test(index));
 check('default tuition input disables autocomplete', /id="add_fee_default_display"[^>]*autocomplete="off"/.test(index));
 
@@ -108,4 +115,4 @@ if (failures) {
   console.error(`\n❌ ${failures} check(s) failed.\n`);
   process.exit(1);
 }
-console.log('\n✅ Mobile filter and currency stability checks passed.\n');
+console.log('\n✅ Mobile filter hardening and currency stability checks passed.\n');

@@ -1,59 +1,48 @@
 /**
  * ui/modal.js
- * ────────────────────────────────────────────────────────────────
- * Helper mở / đóng modal — wrapper ngắn gọn thay vì gọi
- * document.getElementById('...').style.display trực tiếp.
- *
- * /// NEW ARCHITECTURE — utility thuần, không cần store
- * // PHẦN 2 FIX: Legacy-compatible defaults để closeModal() không arg đóng profileModal
- * ────────────────────────────────────────────────────────────────
+ * Modal helpers — utility thuần, không cần store.
+ * Phase 4K-6S: closeModal is a centrally registered canonical global.
  */
 
-/**
- * Mở modal theo ID.
- * @param {string} [modalId='profileModal']
- * @param {'flex'|'block'|'grid'} [display='flex']
- */
+import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
+
 export function openModal(modalId = 'profileModal', display = 'flex') {
     const id = modalId || 'profileModal';
-    const el = document.getElementById(id);
-    if (el) el.style.display = display;
+    const el = typeof document !== 'undefined' ? document.getElementById(id) : null;
+    if (!el) return false;
+    el.style.display = display;
+    return true;
 }
 
-/**
- * Đóng modal theo ID.
- * Default là 'profileModal' để tương thích với onclick="closeModal()" không có arg.
- * @param {string} [modalId='profileModal']
- */
 export function closeModal(modalId = 'profileModal') {
     const id = modalId || 'profileModal';
-    const el = document.getElementById(id);
-    if (el) el.style.display = 'none';
+    const el = typeof document !== 'undefined' ? document.getElementById(id) : null;
+    if (!el) return false;
+    el.style.display = 'none';
+    return true;
 }
 
-/**
- * Đóng modal khi click vào overlay (backdrop).
- * Dùng trong attribute: onclick="if(event.target===this) closeModalOnOverlay(event, 'myModal')"
- * @param {Event} event
- * @param {string} modalId
- */
 export function closeModalOnOverlay(event, modalId) {
-    if (event.target === event.currentTarget) closeModal(modalId);
+    if (event && event.target === event.currentTarget) return closeModal(modalId);
+    return false;
 }
 
-/**
- * Đăng ký các helper lên window (cần cho onclick="" trong HTML).
- * PHẦN 2 FIX: Giữ compatibility với app.js legacy closeModal.
- */
 export function registerModalGlobals() {
-    const legacyClose = window.closeModal;
+    if (typeof window === 'undefined') return { ok: false, reason: 'no-window' };
 
-    window.openModal = openModal;
-    window.closeModal = function(modalId) {
-        if (modalId) return closeModal(modalId);
-        return closeModal('profileModal');
-    };
+    const closeResult = GlobalOwnershipRegistry.register('closeModal', closeModal, {
+        owner: 'js/ui/modal.js',
+        risk: 'ui-only',
+        policy: 'module-primary',
+    });
 
-    window.closeModalLegacy = legacyClose;
-    window.closeModalOnOverlay = closeModalOnOverlay;
+    // These helpers are compatibility aliases, not separately migrated globals.
+    window.openModal = window.openModal || openModal;
+    window.closeModalOnOverlay = window.closeModalOnOverlay || closeModalOnOverlay;
+    window.closeModalLegacy = GlobalOwnershipRegistry.getLegacyFallback('closeModal');
+
+    if (!closeResult.ok) {
+        console.warn('[4K-6S] closeModal ownership registration failed:', closeResult);
+    }
+    return closeResult;
 }

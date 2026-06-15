@@ -27,7 +27,7 @@
  * ────────────────────────────────────────────────────────────────
  */
 
-import { getLocalToday, formatDate, formatMonth, addMonthsToYYYYMM } from '../utils/format.js';
+import { getLocalToday, formatDate, formatMonth, formatMonthCompact, addMonthsToYYYYMM } from '../utils/format.js';
 import { StudentService } from '../services/students.service.js';
 
 // ════════════════════════════════════════════════════════════════
@@ -823,7 +823,7 @@ export function initStudents() {
     window.copyAndOpenZalo = (name, monthsStr, phone) => {
         const p         = _profiles()[name];
         const fee       = p ? (p.tuitionFee || 0) : 0;
-        const monthsLabel = window.formatMonthCompact(monthsStr);
+        const monthsLabel = formatMonthCompact(monthsStr);
         const monthCount  = monthsStr.includes(',') ? monthsStr.split(',').length : 1;
         const totalFee    = monthCount * parseInt(fee);
         const _clubName   = _config().clubName || 'CLB Taekwondo';
@@ -903,7 +903,7 @@ export function initStudents() {
                 name,
                 phone:       p.phone || '',
                 owedMonthsStr,
-                monthsLabel: window.formatMonthCompact(owedMonthsStr),
+                monthsLabel: formatMonthCompact(owedMonthsStr),
                 totalFee:    owedMonths.length * (Number(p.tuitionFee) || 0),
             });
         });
@@ -990,34 +990,8 @@ export function initStudents() {
         );
     };
 
-    // ════════════════════════════════════════════════════════════════
-    // FORMAT HELPERS (backward-compat alias)
-    // ════════════════════════════════════════════════════════════════
-
-    /**
-     * Rút gọn danh sách tháng thành chuỗi ngắn gọn cho UI.
-     *
-     * Ví dụ:
-     *   "2025-01,2025-02,2025-03" → "T1, T2, T3/2025"
-     *   "2024-12,2025-01"         → "T12/2024; T1/2025"
-     *   "2025-03"                  → "03/2025"  (single month — dùng formatMonth)
-     *
-     * Override window.formatMonthCompact từ app.js với ES module version
-     * (logic tương đương nhưng sort đúng số thứ tự tháng).
-     */
-    window.formatMonthCompact = (monthsStr) => {
-        if (!monthsStr || !monthsStr.includes(',')) return formatMonth(monthsStr);
-        const months = monthsStr.split(',').map(s => s.trim());
-        const byYear = {};
-        months.forEach(mo => {
-            const [yr, mn] = mo.split('-');
-            if (!byYear[yr]) byYear[yr] = [];
-            byYear[yr].push(parseInt(mn));
-        });
-        return Object.keys(byYear).sort().map(yr =>
-            byYear[yr].sort((a, b) => a - b).map(mn => `T${mn}`).join(', ') + `/${yr}`
-        ).join('; ');
-    };
+    // Phase 4K-6S: use imported formatMonthCompact directly; do not replace
+    // the canonical global owned by js/utils/format.js.
 
     // ── Debug log (chỉ hiện ở localhost) ─────────────────────────────
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
@@ -1030,7 +1004,7 @@ export function initStudents() {
             'handleQuitOption |',
             'copyAndOpenZalo, openBulkZaloModal, closeBulkZaloModal,',
             'sendBulkZaloOne, startSequentialBulkZalo |',
-            'generateMultiMonthPaymentRequest, formatMonthCompact'
+            'generateMultiMonthPaymentRequest | formatMonthCompact imported from utils/format.js'
         );
     }
 }
