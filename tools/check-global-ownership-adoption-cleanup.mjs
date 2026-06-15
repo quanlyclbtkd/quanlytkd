@@ -33,7 +33,7 @@ console.log('\n🔎 Phase 4K-6S — Global Ownership Adoption + Duplicate UI Cle
 
 check(exists(fallbackPath), 'classic rollback layer exists');
 check(index.indexOf('js/legacy/legacyUiFallbacks.js') < index.indexOf('src="app.js'), 'classic rollback layer loads before app.js');
-check(fallback.includes('4K-6S-global-ownership-adoption-duplicate-ui-cleanup'), 'fallback layer declares Phase 4K-6S');
+check(fallback.includes('4K-6U-report-excel-lazy-isolation'), 'fallback layer declares current Phase 4K-6U');
 check(fallback.includes('debugLegacyUiFallbacks'), 'fallback layer exposes health diagnostics');
 
 const migratedNames = [
@@ -57,7 +57,7 @@ check(app.includes('js/legacy/legacyUiFallbacks.js'), 'app.js documents extracte
 check(registry.includes('assertManifestCoverage'), 'registry validates required canonical owner coverage');
 check(registry.includes('restoreCanonical'), 'registry provides explicit canonical recovery');
 check(registry.includes('audit-only-policy'), 'registry blocks accidental switchTab ownership');
-check(registry.includes("phase: '4K-6T-legacy-diagnostics-pilot-audit-tooling-isolation'"), 'registry reports current Phase 4K-6T while preserving Phase 4K-6S ownership rules');
+check(registry.includes("phase: '4K-6U-report-excel-lazy-isolation'"), 'registry reports current Phase 4K-6U while preserving prior ownership rules');
 for (const name of migratedNames) {
   check(registry.includes(`${name}:`), `ownership manifest includes ${name}`);
 }
@@ -73,8 +73,8 @@ check(students.includes('formatMonthCompact(monthsStr)'), 'students module uses 
 check(main.includes('registerFormatGlobals()'), 'main registers format ownership before business init');
 check(main.includes('registerFinanceUiGlobals()'), 'main registers finance UI ownership before business init');
 check(main.includes('debugLegacyUiFallbacks'), 'runtime smoke test includes rollback-layer diagnostics');
-check(main.includes("APP_BUILD_VERSION = '4K-6T-legacy-diagnostics-pilot-audit-tooling-isolation-20260616'"), 'APP_BUILD_VERSION advances to Phase 4K-6T');
-check(index.includes('main.js?v=legacy-diagnostics-pilot-audit-isolation-20260616'), 'index cache bust advances to Phase 4K-6T');
+check(main.includes("APP_BUILD_VERSION = '4K-6U-report-excel-lazy-isolation-20260616'"), 'APP_BUILD_VERSION advances to Phase 4K-6U');
+check(index.includes('main.js?v=report-excel-lazy-isolation-20260616'), 'index cache bust advances to Phase 4K-6U');
 
 for (const protectedFn of [
   'processMultiItem', 'quickPay', 'deleteTx', 'markInvPaid', 'cancelExamPayment',
@@ -135,6 +135,7 @@ try {
   const formatModule = await import(pathToFileURL(path.join(root, 'js/utils/format.js')).href);
   const financeModule = await import(pathToFileURL(path.join(root, 'js/modules/finance.js')).href);
   const diagnosticsModule = await import(pathToFileURL(path.join(root, 'js/diagnostics/legacyDiagnostics.js')).href);
+  const reportFacadeModule = await import(pathToFileURL(path.join(root, 'js/modules/reports/reportExportFacade.js')).href);
 
   registryModule.initGlobalOwnershipRegistry();
   shellModule.initLegacyUiShell();
@@ -142,6 +143,7 @@ try {
   modalModule.registerModalGlobals();
   formatModule.registerFormatGlobals();
   financeModule.registerFinanceUiGlobals();
+  reportFacadeModule.registerReportExportFacade();
   diagnosticsModule.initLegacyDiagnostics();
 
   const snapshot = globalThis.GlobalOwnershipRegistry.getSnapshot();
@@ -149,8 +151,8 @@ try {
   const coverage = globalThis.GlobalOwnershipRegistry.assertManifestCoverage();
   const registeredUiNames = snapshot.registered.filter((item) => migratedNames.includes(item.name)).map((item) => item.name);
   check(registeredUiNames.length === 11, 'all 11 reviewed Phase 4K-6S UI globals retain canonical owners');
-  check(snapshot.registered.length === 26, 'Phase 4K-6T registry contains 11 UI plus 15 diagnostics canonical owners');
-  check(snapshot.legacyFallbackNames.length === 11, 'all 11 classic fallback references are preserved');
+  check(snapshot.registered.length === 36, 'Phase 4K-6U registry contains 11 UI, 10 report, and 15 diagnostics canonical owners');
+  check(snapshot.legacyFallbackNames.length === 21, 'all 21 classic fallback references are preserved');
   check(snapshot.collisions.length === 0, 'no ownership collision detected');
   check(assertion.ok, 'all registered globals still point to canonical implementations');
   check(coverage.ok, 'all required manifest owners are registered');

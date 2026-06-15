@@ -189,6 +189,71 @@
     }).join('; ');
   }
 
+  function updateSelectOptions(typeId, valueId, halfLabels) {
+    var typeEl = getElement(typeId);
+    var sel = getElement(valueId);
+    if (!typeEl || !sel) return false;
+    var type = typeEl.value;
+    var html = '';
+    var i;
+    if (type === 'month') {
+      for (i = 1; i <= 12; i++) html += '<option value="' + i + '">Tháng ' + i + '</option>';
+    } else if (type === 'quarter') {
+      for (i = 1; i <= 4; i++) html += '<option value="' + i + '">Quý ' + i + '</option>';
+    } else if (type === 'half') {
+      html = '<option value="1">' + halfLabels[0] + '</option><option value="2">' + halfLabels[1] + '</option>';
+    } else {
+      html = '<option value="1">Cả năm</option>';
+    }
+    sel.innerHTML = html;
+    return true;
+  }
+
+  function updateExcelPeriodOptions() {
+    return updateSelectOptions('excel_periodType', 'excel_periodValue', ['6 tháng đầu năm', '6 tháng cuối năm']);
+  }
+
+  function openExcelExportModal() {
+    if (global.userRole === 'viewer') return showToast('⛔ Tài khoản khách không thể tải File!');
+    var modal = getElement('excelExportModal');
+    if (!modal) return false;
+    modal.style.display = 'flex';
+    updateExcelPeriodOptions();
+    return true;
+  }
+
+  function updateTaxPeriodOptions() {
+    return updateSelectOptions('taxPeriodType', 'taxPeriodValue', ['6 tháng đầu', '6 tháng cuối']);
+  }
+
+  function reportModuleUnavailable() {
+    showToast('⚠️ Mô-đun xuất báo cáo chưa sẵn sàng. Vui lòng tải lại trang.', 5000);
+    return false;
+  }
+
+  function copyAttReport(name, present, excused, absent, monthDisplay) {
+    var text = 'Kính gửi Phụ huynh võ sinh ' + name + ', báo cáo tình hình tập luyện tháng ' + monthDisplay + ': Bé đã đi tập ' + present + ' buổi, nghỉ có phép ' + excused + ' buổi, nghỉ không phép ' + absent + ' buổi. Cảm ơn gia đình đã đồng hành cùng CLB!';
+    function ok() { showToast('✅ Đã copy báo cáo của ' + name); }
+    function fallback() {
+      try {
+        var ta = global.document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        global.document.body.appendChild(ta);
+        ta.focus(); ta.select();
+        global.document.execCommand('copy');
+        global.document.body.removeChild(ta);
+        ok();
+      } catch (_) { showToast('⚠️ Không thể copy. Vui lòng copy thủ công.', 3000); }
+    }
+    if (global.navigator && global.navigator.clipboard && typeof global.navigator.clipboard.writeText === 'function') {
+      return global.navigator.clipboard.writeText(text).then(ok).catch(fallback);
+    }
+    fallback();
+    return true;
+  }
+
   var fallbacks = {
     showToast: showToast,
     openMobileMenu: openMobileMenu,
@@ -201,6 +266,16 @@
     openComboModal: openComboModal,
     closeModal: closeModal,
     formatMonthCompact: formatMonthCompact,
+    openExcelExportModal: openExcelExportModal,
+    updateExcelPeriodOptions: updateExcelPeriodOptions,
+    exportToExcel: openExcelExportModal,
+    executeExcelExport: reportModuleUnavailable,
+    exportAchievementsExcel: reportModuleUnavailable,
+    exportExamPaidList: reportModuleUnavailable,
+    updateTaxPeriodOptions: updateTaxPeriodOptions,
+    executeTaxExport: reportModuleUnavailable,
+    exportAttendanceExcel: reportModuleUnavailable,
+    copyAttReport: copyAttReport,
   };
 
   Object.keys(fallbacks).forEach(function(name) {
@@ -209,7 +284,7 @@
 
   global.LegacyUiFallbacks = Object.freeze(fallbacks);
   global.__legacyUiFallbacksInstalled = {
-    phase: '4K-6S-global-ownership-adoption-duplicate-ui-cleanup',
+    phase: '4K-6U-report-excel-lazy-isolation',
     installedAt: Date.now(),
     names: Object.keys(fallbacks),
     writeSafe: true,

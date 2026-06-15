@@ -1,6 +1,6 @@
 /**
  * js/core/globalOwnershipRegistry.js
- * Phase 4K-6T — Diagnostics / Pilot / Audit Tooling Isolation
+ * Phase 4K-6U — Report/Excel Canonical Ownership + Lazy Isolation
  *
  * Central registry for reviewed window globals. It preserves the classic-script
  * fallback reference for rollback, installs one canonical module owner, detects
@@ -30,6 +30,19 @@ export const GLOBAL_OWNERSHIP_MANIFEST = Object.freeze({
   _openMonthlyExport:      { owner: 'js/ui/legacyUiShell.js', risk: 'ui-readonly-orchestration', policy: 'module-primary', registrationRequired: true },
   openTaxModal:            { owner: 'js/ui/legacyUiShell.js', risk: 'ui-only', policy: 'module-primary', registrationRequired: true },
   closeTaxModal:           { owner: 'js/ui/legacyUiShell.js', risk: 'ui-only', policy: 'module-primary', registrationRequired: true },
+
+
+  // Phase 4K-6U: eager facade owns public report handlers; heavy code is lazy.
+  openExcelExportModal:    { owner: 'js/modules/reports/reportExportFacade.js', risk: 'report-ui', policy: 'module-primary', registrationRequired: true },
+  updateExcelPeriodOptions:{ owner: 'js/modules/reports/reportExportFacade.js', risk: 'report-ui', policy: 'module-primary', registrationRequired: true },
+  exportToExcel:           { owner: 'js/modules/reports/reportExportFacade.js', risk: 'report-ui', policy: 'module-primary', registrationRequired: true },
+  executeExcelExport:      { owner: 'js/modules/reports/reportExportFacade.js', risk: 'report-readonly-lazy', policy: 'module-primary', registrationRequired: true },
+  exportAchievementsExcel: { owner: 'js/modules/reports/reportExportFacade.js', risk: 'report-readonly-lazy', policy: 'module-primary', registrationRequired: true },
+  exportExamPaidList:      { owner: 'js/modules/reports/reportExportFacade.js', risk: 'report-readonly-lazy', policy: 'module-primary', registrationRequired: true },
+  updateTaxPeriodOptions:  { owner: 'js/modules/reports/reportExportFacade.js', risk: 'report-ui', policy: 'module-primary', registrationRequired: true },
+  executeTaxExport:        { owner: 'js/modules/reports/reportExportFacade.js', risk: 'report-readonly-lazy', policy: 'module-primary', registrationRequired: true },
+  exportAttendanceExcel:   { owner: 'js/modules/reports/reportExportFacade.js', risk: 'report-readonly-lazy', policy: 'module-primary', registrationRequired: true },
+  copyAttReport:           { owner: 'js/modules/reports/reportExportFacade.js', risk: 'ui-only', policy: 'module-primary', registrationRequired: true },
 
 
   // Phase 4K-6T: read-only diagnostics extracted from app.js.
@@ -202,7 +215,7 @@ export const GlobalOwnershipRegistry = Object.freeze({
     }));
 
     return {
-      phase: '4K-6T-legacy-diagnostics-pilot-audit-tooling-isolation',
+      phase: '4K-6U-report-excel-lazy-isolation',
       registered,
       manifest,
       collisions: _collisions.slice(),

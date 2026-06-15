@@ -26,7 +26,7 @@ check('buildPaymentBundleTransaction forces tuition components to Học phí', f
 check('financeRenderer uses normalized type', files.financeRenderer.includes('normalizeFinanceTransactionType') && files.financeRenderer.includes('getFinanceTransactionDisplayType'));
 check('monthly history uses normalized type', files.monthlyHelpers.includes('_normFinanceType') && files.monthlyHelpers.includes('Thu nhập học'));
 check('monthly history uses component accounting', files.monthlyHelpers.includes('components là nguồn kế toán chính') && files.monthlyHelpers.includes('_componentAllocatedAmountForMonth'));
-check('finance export summary uses normalized type', files.finance.includes('normalizeFinanceTransactionType') && files.finance.includes('components là nguồn kế toán chính'));
+check('canonical report export uses normalized/component accounting', files.reports.includes('normalizeFinanceTransactionType') && files.reports.includes('components làm nguồn chính') && !files.finance.includes("ensureXlsxReady?.('finance-excel-export')"));
 check('reports export displays normalized type', files.reports.includes('getFinanceTransactionDisplayType') && files.reports.includes("Thu nhập học' ? 'Học phí"));
 check('debugAdmissionTuitionTypeNormalization exists', files.app.includes('debugAdmissionTuitionTypeNormalization'));
 check('runtime smoke includes admission normalization', files.main.includes('admissionTuitionTypeNormalization'));

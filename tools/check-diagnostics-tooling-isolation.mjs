@@ -110,10 +110,10 @@ check(appLines <= 12200, `app.js reduced to ${appLines.toLocaleString()} lines (
 check(!app.startsWith('/**\n * Firestore Security Rules'), 'obsolete embedded Firestore rules comment was removed from app.js');
 check(exists('firestore.rules'), 'firestore.rules remains the rules source of truth');
 
-check(registrySource.includes(`phase: '${phase}'`), 'registry reports Phase 4K-6T');
+check(registrySource.includes("phase: '4K-6U-report-excel-lazy-isolation'"), 'registry reports current phase while retaining 4K-6T diagnostics ownership');
 check(main.includes(`APP_BUILD_VERSION = '${build}'`), 'main.js build marker is Phase 4K-6T');
-check(index.includes('app.js?v=legacy-diagnostics-pilot-audit-isolation-20260616'), 'app.js cache-bust is Phase 4K-6T');
-check(index.includes('main.js?v=legacy-diagnostics-pilot-audit-isolation-20260616'), 'main.js cache-bust is Phase 4K-6T');
+check(index.includes('app.js?v=report-excel-lazy-isolation-20260616'), 'app.js cache-bust advances beyond Phase 4K-6T');
+check(index.includes('main.js?v=report-excel-lazy-isolation-20260616'), 'main.js cache-bust advances beyond Phase 4K-6T');
 check(main.includes('initLegacyDiagnostics();'), 'main initializes extracted diagnostics facade');
 
 check(!!pkg.scripts?.['check:diagnostics-tooling-isolation'], 'package exposes Phase 4K-6T checker');

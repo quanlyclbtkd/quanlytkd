@@ -31,6 +31,7 @@
 // APP_BUILD_VERSION = '4K-6S-global-ownership-adoption-duplicate-ui-cleanup-20260615'
 // APP_BUILD_VERSION = '4K-6S1-exam-upgrade-finance-separation-20260616'
 // APP_BUILD_VERSION = '4K-6T-legacy-diagnostics-pilot-audit-tooling-isolation-20260616'
+// APP_BUILD_VERSION = '4K-6U-report-excel-lazy-isolation-20260616'
 /**
  * main.js — Application Bootstrap (Phase 3.6B — Listener Registration Safety)
  * ────────────────────────────────────────────────────────────────────
@@ -78,6 +79,7 @@ import { LegacyRenderEntrypoints }            from './core/legacyRenderEntrypoin
 import { InlineHandlerAudit }                from './core/inlineHandlerAudit.js';
 import { EventActionBridge, initEventActionBridge } from './ui/eventActionBridge.js';
 import { initLegacyUiShell }                  from './ui/legacyUiShell.js';
+import { registerReportExportFacade }         from './modules/reports/reportExportFacade.js';
 import { store, resetStore }                  from './store.js';
 import { initFirebase }                        from './firebase/config.js';
 import { showToast, registerToastGlobal }      from './ui/toast.js';
@@ -113,6 +115,7 @@ try {
     registerModalGlobals();
     registerFormatGlobals();
     registerFinanceUiGlobals();
+    registerReportExportFacade();
 } catch (e) {
     console.warn('[BOOT] 4K-6S global ownership adoption failed:', e);
 }
@@ -307,8 +310,7 @@ import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from
 import { initInventory }                              from './modules/inventory.js';
 import { initAttendance }                             from './modules/attendance.js';
 import { initDashboard }                              from './modules/dashboard.js';
-// ── Phase 4.0A: Reports / Export module ─────────────────────────
-import { initReports }                                from './modules/reports.js';
+// ── Phase 4K-6U: Heavy Reports module is lazy-loaded by reportExportFacade.js ──
 // ── Phase 4.0B-1: SuperAdmin — eager import trên HTTP/HTTPS ─────
 // Không lazy nữa: phải init trước khi loadSuperAdminData() được gọi.
 import { initSuperAdmin }                             from './modules/superadmin.js';
@@ -1526,13 +1528,7 @@ function _waitForExistingLegacyApp(ms) {
         initFinance();
         initInventory();
         initAttendance();
-        // [Phase 4.0A] Reports / Export module — overrides app.js window functions
-        // [Phase 4K-4E] Isolated try/catch: syntax/runtime error không làm SuperAdmin chết
-        try {
-            initReports();
-        } catch (e) {
-            console.error('[BOOT] initReports failed — SuperAdmin vẫn chạy:', e);
-        }
+        // Phase 4K-6U: reports.js and attendanceExcelReport.js load only on export.
 
         // [Phase 4.0B-1] SuperAdmin — eager init ngay sau khi app context sẵn sàng.
         // initSuperAdmin() idempotent: tự bỏ qua nếu đã init rồi.
