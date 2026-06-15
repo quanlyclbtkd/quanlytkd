@@ -74,8 +74,9 @@ console.log('[SuperAdminAudit] Kiểm tra SuperAdmin multi-club audit (Phase 4.0
 console.log('');
 
 const appSrc = readSrc('app.js');
-if (!appSrc) {
-    console.error('[SuperAdminAudit] ❌ Không đọc được app.js — dừng.');
+const auditSrc = readSrc('js/diagnostics/superAdminAuditDiagnostics.js');
+if (!appSrc || !auditSrc) {
+    console.error('[SuperAdminAudit] ❌ Không đọc được app.js hoặc superAdminAuditDiagnostics.js — dừng.');
     process.exit(1);
 }
 info(`app.js: ${appSrc.length} ký tự`);
@@ -83,34 +84,34 @@ console.log('');
 
 // ── 1–4. Functions chính ──────────────────────────────────────────
 console.log('[SuperAdminAudit] [1–4] Kiểm tra functions chính...');
-checkPattern(appSrc, 'runSuperAdminAudit',
+checkPattern(auditSrc, 'runSuperAdminAudit',
     'window.runSuperAdminAudit được định nghĩa');
-checkPattern(appSrc, /window\.runSuperAdminAudit\s*=\s*async\s+function/,
+checkPattern(auditSrc, /export async function runSuperAdminAudit/,
     'runSuperAdminAudit là async function');
-checkPattern(appSrc, 'probeClubDataReadOnly',
+checkPattern(auditSrc, 'probeClubDataReadOnly',
     'probeClubDataReadOnly helper được định nghĩa');
-checkPattern(appSrc, /async\s+function\s+probeClubDataReadOnly/,
+checkPattern(auditSrc, /export async function probeClubDataReadOnly/,
     'probeClubDataReadOnly là async function');
-checkPattern(appSrc, 'printSuperAdminAudit',
+checkPattern(auditSrc, 'printSuperAdminAudit',
     'window.printSuperAdminAudit được định nghĩa');
-checkPattern(appSrc, /window\.printSuperAdminAudit\s*=\s*async\s+function/,
+checkPattern(auditSrc, /export async function printSuperAdminAudit/,
     'printSuperAdminAudit là async function');
-checkPattern(appSrc, 'generateSuperAdminAuditReportText',
+checkPattern(auditSrc, 'generateSuperAdminAuditReportText',
     'window.generateSuperAdminAuditReportText được định nghĩa');
-checkPattern(appSrc, /window\.generateSuperAdminAuditReportText\s*=\s*async\s+function/,
+checkPattern(auditSrc, /export async function generateSuperAdminAuditReportText/,
     'generateSuperAdminAuditReportText là async function');
 
 // ── Xác định vùng audit để check scoped ──────────────────────────
-const auditStart = appSrc.indexOf('window.runSuperAdminAudit = async function');
-const auditEnd   = appSrc.indexOf('// ── End Phase 4.0B-4J');
+const auditStart = auditSrc.indexOf('export async function runSuperAdminAudit');
+const auditEnd   = auditSrc.length;
 const auditBody  = auditStart !== -1 && auditEnd > auditStart
-    ? appSrc.slice(auditStart, auditEnd)
+    ? auditSrc.slice(auditStart, auditEnd)
     : appSrc;
 
-const probeStart = appSrc.indexOf('async function probeClubDataReadOnly');
-const probeEnd   = appSrc.indexOf('window.runSuperAdminAudit = async function');
+const probeStart = auditSrc.indexOf('export async function probeClubDataReadOnly');
+const probeEnd   = auditSrc.indexOf('export async function runSuperAdminAudit');
 const probeBody  = probeStart !== -1 && probeEnd > probeStart
-    ? appSrc.slice(probeStart, probeEnd)
+    ? auditSrc.slice(probeStart, probeEnd)
     : appSrc;
 
 // ── 5–7. Options ──────────────────────────────────────────────────
@@ -153,7 +154,7 @@ checkPattern(auditBody, /isSuperAdmin|superAdmin/,
 console.log('');
 console.log('[SuperAdminAudit] [11] Kiểm tra không có Firestore write...');
 const phase4jSection = auditStart !== -1 && auditEnd > auditStart
-    ? appSrc.slice(auditStart, auditEnd)
+    ? auditSrc.slice(auditStart, auditEnd)
     : '';
 
 if (phase4jSection) {
@@ -229,10 +230,10 @@ checkPattern(auditBody, 'checkedAt',
 // ── 19. printSuperAdminAudit dùng console.table ───────────────────
 console.log('');
 console.log('[SuperAdminAudit] [19] Kiểm tra printSuperAdminAudit...');
-const printFnStart = appSrc.indexOf('window.printSuperAdminAudit = async function');
-const printFnEnd   = appSrc.indexOf('window.generateSuperAdminAuditReportText');
+const printFnStart = auditSrc.indexOf('export async function printSuperAdminAudit');
+const printFnEnd   = auditSrc.indexOf('export async function generateSuperAdminAuditReportText');
 const printBody    = printFnStart !== -1
-    ? appSrc.slice(printFnStart, printFnEnd > printFnStart ? printFnEnd : printFnStart + 1000)
+    ? auditSrc.slice(printFnStart, printFnEnd > printFnStart ? printFnEnd : printFnStart + 1500)
     : '';
 checkPattern(printBody, 'console.table',
     'printSuperAdminAudit dùng console.table');

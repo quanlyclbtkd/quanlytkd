@@ -67,8 +67,9 @@ console.log('[DataHydrationCheck] Kiểm tra data hydration diagnostics trong ap
 console.log('');
 
 const appSrc = readSrc('app.js');
-if (!appSrc) {
-    console.error('[DataHydrationCheck] ❌ Không đọc được app.js — dừng.');
+const diagSrc = readSrc('js/diagnostics/runtimeReadinessDiagnostics.js');
+if (!appSrc || !diagSrc) {
+    console.error('[DataHydrationCheck] ❌ Không đọc được app.js hoặc runtimeReadinessDiagnostics.js — dừng.');
     process.exit(1);
 }
 info(`app.js: ${appSrc.length} ký tự`);
@@ -90,26 +91,26 @@ checkPattern(appSrc, '_updateHydrationMetrics',           '_updateHydrationMetri
 // ── 2. printDataHydrationStatus ──────────────────────────────────
 console.log('');
 console.log('[DataHydrationCheck] Kiểm tra printDataHydrationStatus...');
-checkPattern(appSrc, 'printDataHydrationStatus',          'window.printDataHydrationStatus định nghĩa');
-checkPattern(appSrc, 'storeProfilesCount',                'storeProfilesCount trong result');
-checkPattern(appSrc, 'storeTransactionsCount',            'storeTransactionsCount trong result');
-checkPattern(appSrc, 'storeInventoryCount',               'storeInventoryCount trong result');
+checkPattern(diagSrc, 'printDataHydrationStatus',          'window.printDataHydrationStatus định nghĩa');
+checkPattern(diagSrc, 'storeProfilesCount',                'storeProfilesCount trong result');
+checkPattern(diagSrc, 'storeTransactionsCount',            'storeTransactionsCount trong result');
+checkPattern(diagSrc, 'storeInventoryCount',               'storeInventoryCount trong result');
 
 // ── 3. printTabDataStatus ────────────────────────────────────────
 console.log('');
 console.log('[DataHydrationCheck] Kiểm tra printTabDataStatus...');
-checkPattern(appSrc, 'printTabDataStatus',                'window.printTabDataStatus định nghĩa');
-checkPattern(appSrc, 'tuitionTabCanRender',               'tuitionTabCanRender field');
-checkPattern(appSrc, 'debtTabCanRender',                  'debtTabCanRender field');
-checkPattern(appSrc, 'inventoryTabCanRender',             'inventoryTabCanRender field');
-checkPattern(appSrc, 'dashboardCanRender',                'dashboardCanRender field');
-checkPattern(appSrc, 'transactionsInSelectedMonth',       'transactionsInSelectedMonth field');
+checkPattern(diagSrc, 'printTabDataStatus',                'window.printTabDataStatus định nghĩa');
+checkPattern(diagSrc, 'tuitionTabCanRender',               'tuitionTabCanRender field');
+checkPattern(diagSrc, 'debtTabCanRender',                  'debtTabCanRender field');
+checkPattern(diagSrc, 'inventoryTabCanRender',             'inventoryTabCanRender field');
+checkPattern(diagSrc, 'dashboardCanRender',                'dashboardCanRender field');
+checkPattern(diagSrc, 'transactionsInSelectedMonth',       'transactionsInSelectedMonth field');
 
 // ── 4. printFirestorePathStatus ──────────────────────────────────
 console.log('');
 console.log('[DataHydrationCheck] Kiểm tra printFirestorePathStatus...');
-checkPattern(appSrc, 'printFirestorePathStatus',              'window.printFirestorePathStatus định nghĩa');
-checkPattern(appSrc, 'limit(1)',                              'giới hạn limit(1) — không đọc toàn bộ collection');
+checkPattern(diagSrc, 'printFirestorePathStatus',              'window.printFirestorePathStatus định nghĩa');
+checkPattern(diagSrc, 'limit(1)',                              'giới hạn limit(1) — không đọc toàn bộ collection');
 checkPattern(appSrc, "clubs/' + _clubId + '/profiles",        'kiểm tra path clubs/{clubId}/profiles');
 checkPattern(appSrc, "clubs/' + _clubId + '/transactions",    'kiểm tra path clubs/{clubId}/transactions');
 checkPattern(appSrc, "clubs/' + _clubId + '/inventory",       'kiểm tra path clubs/{clubId}/inventory');
@@ -144,9 +145,9 @@ checkPattern(appSrc, "lastReason: 'settings-snapshot'",  'update settingsLoaded 
 console.log('');
 console.log('[DataHydrationCheck] Kiểm tra không có Firestore write trong diagnostic...');
 // Tìm vùng diagnostic (từ printDataHydrationStatus đến hết file)
-const diagStart = appSrc.indexOf('window.printDataHydrationStatus');
+const diagStart = diagSrc.indexOf('export function printDataHydrationStatus');
 if (diagStart !== -1) {
-    const diagSection = appSrc.slice(diagStart);
+    const diagSection = diagSrc.slice(diagStart);
     const hasWrite = /\bsetDoc\b|\bupdateDoc\b|\baddDoc\b|\bdeleteDoc\b|\bbatch\.set\b|\bbatch\.update\b/.test(diagSection);
     checked++;
     if (!hasWrite) {
@@ -162,7 +163,7 @@ if (diagStart !== -1) {
 console.log('');
 console.log('[DataHydrationCheck] Kiểm tra không log PII trong diagnostic...');
 if (diagStart !== -1) {
-    const diagSection = appSrc.slice(diagStart);
+    const diagSection = diagSrc.slice(diagStart);
     // Kiểm tra console.log không có .name, .phone, .email field access
     const piiPattern = /console\.(log|table|info|warn|error)\([^)]*\.(name|phone|email|sdt|ho_ten|hoTen)\b/i;
     checked++;
@@ -177,7 +178,7 @@ if (diagStart !== -1) {
 
 // ── Kết quả ──────────────────────────────────────────────────────
 console.log('');
-console.log(`[DataHydrationCheck] Đã kiểm tra: ${checked} patterns trong app.js`);
+console.log(`[DataHydrationCheck] Đã kiểm tra: ${checked} patterns trong app.js + runtimeReadinessDiagnostics.js`);
 
 if (errors > 0) {
     console.error(`[DataHydrationCheck] ❌ FAILED — ${errors} lỗi.`);

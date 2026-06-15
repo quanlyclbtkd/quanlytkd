@@ -57,7 +57,7 @@ check(app.includes('js/legacy/legacyUiFallbacks.js'), 'app.js documents extracte
 check(registry.includes('assertManifestCoverage'), 'registry validates required canonical owner coverage');
 check(registry.includes('restoreCanonical'), 'registry provides explicit canonical recovery');
 check(registry.includes('audit-only-policy'), 'registry blocks accidental switchTab ownership');
-check(registry.includes("phase: '4K-6S-global-ownership-adoption-duplicate-ui-cleanup'"), 'registry reports Phase 4K-6S');
+check(registry.includes("phase: '4K-6T-legacy-diagnostics-pilot-audit-tooling-isolation'"), 'registry reports current Phase 4K-6T while preserving Phase 4K-6S ownership rules');
 for (const name of migratedNames) {
   check(registry.includes(`${name}:`), `ownership manifest includes ${name}`);
 }
@@ -73,8 +73,8 @@ check(students.includes('formatMonthCompact(monthsStr)'), 'students module uses 
 check(main.includes('registerFormatGlobals()'), 'main registers format ownership before business init');
 check(main.includes('registerFinanceUiGlobals()'), 'main registers finance UI ownership before business init');
 check(main.includes('debugLegacyUiFallbacks'), 'runtime smoke test includes rollback-layer diagnostics');
-check(main.includes("APP_BUILD_VERSION = '4K-6S-global-ownership-adoption-duplicate-ui-cleanup-20260615'"), 'APP_BUILD_VERSION is Phase 4K-6S');
-check(index.includes('main.js?v=global-ownership-adoption-duplicate-ui-cleanup-20260615'), 'index cache bust is Phase 4K-6S');
+check(main.includes("APP_BUILD_VERSION = '4K-6T-legacy-diagnostics-pilot-audit-tooling-isolation-20260616'"), 'APP_BUILD_VERSION advances to Phase 4K-6T');
+check(index.includes('main.js?v=legacy-diagnostics-pilot-audit-isolation-20260616'), 'index cache bust advances to Phase 4K-6T');
 
 for (const protectedFn of [
   'processMultiItem', 'quickPay', 'deleteTx', 'markInvPaid', 'cancelExamPayment',
@@ -134,6 +134,7 @@ try {
   const modalModule = await import(pathToFileURL(path.join(root, 'js/ui/modal.js')).href);
   const formatModule = await import(pathToFileURL(path.join(root, 'js/utils/format.js')).href);
   const financeModule = await import(pathToFileURL(path.join(root, 'js/modules/finance.js')).href);
+  const diagnosticsModule = await import(pathToFileURL(path.join(root, 'js/diagnostics/legacyDiagnostics.js')).href);
 
   registryModule.initGlobalOwnershipRegistry();
   shellModule.initLegacyUiShell();
@@ -141,11 +142,14 @@ try {
   modalModule.registerModalGlobals();
   formatModule.registerFormatGlobals();
   financeModule.registerFinanceUiGlobals();
+  diagnosticsModule.initLegacyDiagnostics();
 
   const snapshot = globalThis.GlobalOwnershipRegistry.getSnapshot();
   const assertion = globalThis.GlobalOwnershipRegistry.assertRegisteredOwnership();
   const coverage = globalThis.GlobalOwnershipRegistry.assertManifestCoverage();
-  check(snapshot.registered.length === 11, 'exactly 11 reviewed low-risk globals have canonical owners');
+  const registeredUiNames = snapshot.registered.filter((item) => migratedNames.includes(item.name)).map((item) => item.name);
+  check(registeredUiNames.length === 11, 'all 11 reviewed Phase 4K-6S UI globals retain canonical owners');
+  check(snapshot.registered.length === 26, 'Phase 4K-6T registry contains 11 UI plus 15 diagnostics canonical owners');
   check(snapshot.legacyFallbackNames.length === 11, 'all 11 classic fallback references are preserved');
   check(snapshot.collisions.length === 0, 'no ownership collision detected');
   check(assertion.ok, 'all registered globals still point to canonical implementations');

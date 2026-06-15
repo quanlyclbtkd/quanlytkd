@@ -100,10 +100,11 @@ console.log('');
 // ── Đọc files ───────────────────────────────────────────────────
 const appSrc  = readSrc('app.js');
 const mainSrc = readSrc('js/main.js');
+const diagSrc = readSrc('js/diagnostics/runtimeReadinessDiagnostics.js');
 const funcPkg = readSrc('functions/package.json');
 
-if (!appSrc) {
-    console.error('[PilotReadinessCheck] ❌ Không đọc được app.js — dừng.');
+if (!appSrc || !diagSrc) {
+    console.error('[PilotReadinessCheck] ❌ Không đọc được app.js hoặc runtime diagnostics — dừng.');
     process.exit(1);
 }
 info(`app.js: ${appSrc.length} ký tự`);
@@ -157,13 +158,13 @@ checkPattern(appSrc, 'Skip primary empty overwrite (transactions)',      'guard 
 // ── 5. printPilotTabReadiness ─────────────────────────────────────
 console.log('');
 console.log('[PilotReadinessCheck] [4E] Kiểm tra printPilotTabReadiness...');
-checkPattern(appSrc, 'printPilotTabReadiness',              'window.printPilotTabReadiness định nghĩa');
-checkPattern(appSrc, 'tuitionReady',                        'tuitionReady field');
-checkPattern(appSrc, 'debtReady',                           'debtReady field');
-checkPattern(appSrc, 'activeStudentsReady',                 'activeStudentsReady field');
-checkPattern(appSrc, 'quitStudentsReady',                   'quitStudentsReady field');
-checkPattern(appSrc, 'inventoryReady',                      'inventoryReady field');
-checkPattern(appSrc, 'dashboardReady',                      'dashboardReady field');
+checkPattern(diagSrc, 'printPilotTabReadiness',              'window.printPilotTabReadiness định nghĩa');
+checkPattern(diagSrc, 'tuitionReady',                        'tuitionReady field');
+checkPattern(diagSrc, 'debtReady',                           'debtReady field');
+checkPattern(diagSrc, 'activeStudentsReady',                 'activeStudentsReady field');
+checkPattern(diagSrc, 'quitStudentsReady',                   'quitStudentsReady field');
+checkPattern(diagSrc, 'inventoryReady',                      'inventoryReady field');
+checkPattern(diagSrc, 'dashboardReady',                      'dashboardReady field');
 
 // ── 6. _dataVersion bump sau recovery ────────────────────────────
 console.log('');
@@ -181,16 +182,16 @@ checkPattern(appSrc, "window.invalidateDashboard('legacy-root-fallback')", 'inva
 // ── 8. printFirestorePathStatus cập nhật ─────────────────────────
 console.log('');
 console.log('[PilotReadinessCheck] [4E] Kiểm tra printFirestorePathStatus extended...');
-checkPattern(appSrc, 'tst_profiles',    'printFirestorePathStatus kiểm tra tst_profiles');
-checkPattern(appSrc, 'recommendation',  'printFirestorePathStatus có recommendation field');
-checkPattern(appSrc, 'result.primary',  'printFirestorePathStatus có result.primary');
-checkPattern(appSrc, 'result.legacy',   'printFirestorePathStatus có result.legacy');
+checkPattern(diagSrc, 'tst_profiles',    'printFirestorePathStatus kiểm tra tst_profiles');
+checkPattern(diagSrc, 'recommendation',  'printFirestorePathStatus có recommendation field');
+checkPattern(diagSrc, 'result.primary',  'printFirestorePathStatus có result.primary');
+checkPattern(diagSrc, 'result.legacy',   'printFirestorePathStatus có result.legacy');
 
 // ── 9. Không có Firestore write trong fallback code ──────────────
 console.log('');
 console.log('[PilotReadinessCheck] [4E] Kiểm tra không có Firestore write trong fallback...');
 const fallbackStart = appSrc.indexOf('window.activateLegacyRootFallback');
-const fallbackEnd   = appSrc.indexOf('window.printPilotTabReadiness');
+const fallbackEnd   = appSrc.indexOf('window.runRuntimeDataRecovery');
 if (fallbackStart !== -1 && fallbackEnd !== -1) {
     const fallbackSection = appSrc.slice(fallbackStart, fallbackEnd);
     const hasWrite = /\bsetDoc\b|\bupdateDoc\b|\baddDoc\b|\bdeleteDoc\b|\bbatch\.set\b|\bbatch\.update\b/.test(fallbackSection);
@@ -355,11 +356,11 @@ if (fallbackBody) {
 // ── 22. window.printPilotLaunchStatus ─────────────────────────────
 console.log('');
 console.log('[PilotReadinessCheck] [4F] Kiểm tra window.printPilotLaunchStatus...');
-checkPattern(appSrc, 'printPilotLaunchStatus',
+checkPattern(diagSrc, 'printPilotLaunchStatus',
     'window.printPilotLaunchStatus được định nghĩa');
-checkPattern(appSrc, 'readyForInternalTest',
+checkPattern(diagSrc, 'readyForInternalTest',
     'readyForInternalTest field trong printPilotLaunchStatus');
-checkPattern(appSrc, 'readyForOneClubPilot',
+checkPattern(diagSrc, 'readyForOneClubPilot',
     'readyForOneClubPilot field trong printPilotLaunchStatus');
 
 // ── 23. Logout reset __runtimeRecoveryState ───────────────────────

@@ -1,112 +1,6 @@
-    /* ══════════════════════════════════════════════════════════════════════════
-       FIRESTORE SECURITY RULES — Sao chép toàn bộ đoạn dưới vào
-       Firebase Console → Firestore Database → Rules → Publish
-       ══════════════════════════════════════════════════════════════════════════
+    /* Firestore security rules source of truth: ./firestore.rules */
 
-    rules_version = '2';
-    service cloud.firestore {
-      match /databases/{database}/documents {
 
-        // ── Hàm tiện ích ──────────────────────────────────────────────────
-        function isAuth() {
-          return request.auth != null;
-        }
-        // Super Admin: nhận diện qua email (không cần Firestore doc)
-        function isSuperAdmin() {
-          return isAuth() && request.auth.token.email == 'admin@tstquynhon.com';
-        }
-        // Lấy dữ liệu users/{uid} của người đang request (dùng get() cache)
-        function myUserData() {
-          return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-        }
-        function isAdminOfClub(clubId) {
-          return isAuth() && myUserData().role == 'admin' && myUserData().clubId == clubId;
-        }
-        function isCoachOfClub(clubId) {
-          return isAuth() && myUserData().role == 'coach' && myUserData().clubId == clubId;
-        }
-        function isMemberOfClub(clubId) {
-          return isAdminOfClub(clubId) || isCoachOfClub(clubId);
-        }
-
-        // ── users/{uid} ───────────────────────────────────────────────────
-        // Người dùng chỉ đọc được doc của chính họ
-        // Super Admin được đọc/ghi bất kỳ doc (tạo tài khoản CLB, HLV)
-        // Tài khoản đã xác thực được tự ghi doc của mình (auto-create khi fallback login)
-        match /users/{uid} {
-          allow read: if isAuth() && (request.auth.uid == uid || isSuperAdmin());
-          allow write: if isAuth() && (request.auth.uid == uid || isSuperAdmin());
-        }
-
-        // ── login_history ─────────────────────────────────────────────────
-        match /login_history/{docId} {
-          allow write: if isAuth();
-          allow read:  if isSuperAdmin();
-        }
-
-        // ── clubs ─────────────────────────────────────────────────────────
-        // Cho phép mọi user đã xác thực LIST clubs (cần cho fallback login scan HLV cũ)
-        // Chỉ Super Admin mới được tạo/sửa clubs
-        match /clubs/{clubId} {
-          allow read:  if isAuth();
-          allow write: if isSuperAdmin();
-
-          // Settings: admin CLB đọc/ghi; HLV chỉ đọc
-          match /settings/{doc} {
-            allow read:  if isMemberOfClub(clubId) || isSuperAdmin();
-            allow write: if isAdminOfClub(clubId) || isSuperAdmin();
-          }
-
-          // Hồ sơ võ sinh
-          match /profiles/{profileId} {
-            allow read, write: if isMemberOfClub(clubId) || isSuperAdmin();
-          }
-
-          // Giao dịch tài chính
-          match /transactions/{txId} {
-            allow read, write: if isMemberOfClub(clubId) || isSuperAdmin();
-          }
-
-          // Kho đồng phục
-          match /inventory/{invId} {
-            allow read, write: if isMemberOfClub(clubId) || isSuperAdmin();
-          }
-
-          // Tài khoản HLV
-          // HLV đọc được doc của chính mình; Admin đọc/ghi tất cả
-          match /coaches/{coachId} {
-            allow read: if isAuth() && (
-              request.auth.uid == coachId ||
-              isAdminOfClub(clubId) ||
-              isSuperAdmin()
-            );
-            allow write: if isAdminOfClub(clubId) || isSuperAdmin();
-          }
-
-          // Điểm danh
-          match /attendance/{docId} {
-            allow read, write: if isMemberOfClub(clubId) || isSuperAdmin();
-          }
-
-          // Ghi chú buổi tập của HLV
-          match /attendanceNotes/{docId} {
-            allow read, write: if isMemberOfClub(clubId) || isSuperAdmin();
-          }
-
-          // Thi đai
-          match /exam/{docId} {
-            allow read, write: if isMemberOfClub(clubId) || isSuperAdmin();
-          }
-
-          // Catch-all: các subcollection khác trong club
-          match /{subcollection}/{docId} {
-            allow read, write: if isMemberOfClub(clubId) || isSuperAdmin();
-          }
-        }
-      }
-    }
-
-       ══════════════════════════════════════════════════════════════════════════ */
 
 // ============================================================
 // LEGACY APP KERNEL — DO NOT DELETE DIRECTLY
@@ -11318,23 +11212,13 @@ window.processMultiItem = async (action) => {
     // ════════════════════════════════════════════════════════════════
     // Phase 4K-5Q: debugMobileSuperAdminGate — debug helper
     // ════════════════════════════════════════════════════════════════
-    window.debugMobileSuperAdminGate = function() {
-        const btn = document.getElementById('mmsAdminBtn');
-        const result = {
-            userRole:        window.userRole || '',
-            storeRole:       (window.__store && window.__store.userRole) || '',
-            isSuperAdmin:    typeof window.isSuperAdminRole === 'function'
-                                 ? window.isSuperAdminRole()
-                                 : false,
-            buttonExists:    !!btn,
-            buttonDisplay:   btn ? getComputedStyle(btn).display : '',
-            canOpenNewClubModal: typeof window.openNewClubModal === 'function'
-        };
-        console.table(result);
-        return result;
-    };
-
+    
     // Phase 4K-6S: mobile menu fallbacks moved to js/legacy/legacyUiFallbacks.js.
+
+
+    // Phase 4K-6T: read-only diagnostics, pilot/onboarding gates, and
+    // SuperAdmin audit tooling moved to js/diagnostics/*.js. The runtime
+    // recovery kernel below intentionally remains in app.js.
 
     // ════════════════════════════════════════════════════════════════
     // Phase 4.0B-4D: DATA HYDRATION DIAGNOSTICS GLOBALS
@@ -11345,130 +11229,17 @@ window.processMultiItem = async (action) => {
      * printDataHydrationStatus() — Tóm tắt số lượng doc đã load vào store.
      * Không log tên/SĐT. Chỉ log count/status.
      */
-    window.printDataHydrationStatus = function printDataHydrationStatus() {
-        const profiles = window.__store && window.__store.profiles ? window.__store.profiles : {};
-        const tx       = window.__store && window.__store.transactions ? window.__store.transactions : [];
-        const inv      = window.__store && window.__store.inventory    ? window.__store.inventory    : [];
-        const m        = window.__dataHydrationMetrics || {};
-
-        const result = {
-            clubId:                  window.__store && (window.__store.clubId || window.__store.currentClubId) || window.currentClubId || '',
-            appContextReady:         !!(window.__appContextReadyState && window.__appContextReadyState.ready),
-            profilesDocCount:        m.profilesDocCount         != null ? m.profilesDocCount         : null,
-            transactionsDocCount:    m.transactionsDocCount     != null ? m.transactionsDocCount     : null,
-            inventoryDocCount:       m.inventoryDocCount        != null ? m.inventoryDocCount        : null,
-            storeProfilesCount:      Object.keys(profiles).length,
-            storeTransactionsCount:  Array.isArray(tx)  ? tx.length  : 0,
-            storeInventoryCount:     Array.isArray(inv) ? inv.length : 0,
-            settingsLoaded:          !!m.settingsLoaded,
-            clubLoaded:              !!m.clubLoaded,
-            lastReason:              m.lastReason || ''
-        };
-
-        console.table(result);
-        return result;
-    };
-
+    
     /**
      * printTabDataStatus() — Cho biết từng tab có đủ dữ liệu để render không.
      * Không log tên/SĐT. Chỉ log count/flag.
      */
-    window.printTabDataStatus = function printTabDataStatus() {
-        const profiles = window.__store && window.__store.profiles ? window.__store.profiles : {};
-        const tx       = window.__store && window.__store.transactions ? window.__store.transactions : [];
-        const inv      = window.__store && window.__store.inventory    ? window.__store.inventory    : [];
-
-        const selectedMonth =
-            (document.getElementById('filterMonth')  && document.getElementById('filterMonth').value)  ||
-            (document.getElementById('monthFilter')   && document.getElementById('monthFilter').value)  ||
-            '';
-
-        const txInMonth = Array.isArray(tx)
-            ? tx.filter(function(t) {
-                return !selectedMonth ||
-                    t.txMonth === selectedMonth ||
-                    (t.date && String(t.date).startsWith(selectedMonth));
-              }).length
-            : 0;
-
-        const result = {
-            currentTab:                  window.currentTab || (window.__store && window.__store.currentTab) || '',
-            selectedMonth,
-            profilesCount:               Object.keys(profiles).length,
-            transactionsCount:           Array.isArray(tx)  ? tx.length  : 0,
-            transactionsInSelectedMonth: txInMonth,
-            inventoryCount:              Array.isArray(inv) ? inv.length : 0,
-            tuitionTabCanRender:         Object.keys(profiles).length > 0 || txInMonth > 0,
-            debtTabCanRender:            Object.keys(profiles).length > 0,
-            inventoryTabCanRender:       Array.isArray(inv) && inv.length > 0,
-            dashboardCanRender:          Object.keys(profiles).length > 0 || (Array.isArray(tx) && tx.length > 0) || (Array.isArray(inv) && inv.length > 0)
-        };
-
-        console.table(result);
-        return result;
-    };
-
+    
     /**
      * printFirestorePathStatus() — Phase 4.0B-4E: kiểm tra cả primary + legacy path.
      * Chỉ limit(1) — không log data, không ghi Firestore.
      */
-    window.printFirestorePathStatus = async function printFirestorePathStatus() {
-        const _db     = db;
-        const _clubId = window.__store && (window.__store.clubId || window.__store.currentClubId) || window.currentClubId || '';
-
-        if (!_db || !_clubId) {
-            console.warn('[printFirestorePathStatus] db hoặc clubId chưa sẵn sàng.', { hasDb: !!_db, clubId: _clubId });
-            return null;
-        }
-
-        async function _hasDoc(path) {
-            try {
-                const parts  = path.split('/');
-                const ref    = collection(_db, ...parts);
-                const snap   = await getDocs(query(ref, limit(1)));
-                return snap && snap.size > 0;
-            } catch(e) {
-                if (e && e.code === 'permission-denied') return 'permission-denied';
-                return 'error: ' + (e && e.message ? e.message.slice(0, 60) : 'unknown');
-            }
-        }
-
-        console.log('[printFirestorePathStatus] Đang kiểm tra Firestore paths (limit 1)...');
-
-        const [pProf, pTx, pInv, lProf, lTx, lInv] = await Promise.all([
-            _hasDoc('clubs/' + _clubId + '/profiles'),
-            _hasDoc('clubs/' + _clubId + '/transactions'),
-            _hasDoc('clubs/' + _clubId + '/inventory'),
-            _hasDoc('tst_profiles'),
-            _hasDoc('tst_transactions'),
-            _hasDoc('tst_inventory')
-        ]);
-
-        const primaryHasAny = pProf === true || pTx === true || pInv === true;
-        const legacyHasAny  = lProf === true || lTx === true || lInv === true;
-        let recommendation;
-        if (primaryHasAny)      recommendation = 'primary — dùng clubs/' + _clubId;
-        else if (legacyHasAny)  recommendation = 'legacy-root — gọi window.activateLegacyRootFallback()';
-        else                    recommendation = 'empty — kiểm tra clubId hoặc nhập dữ liệu';
-
-        const result = {
-            clubId:      _clubId,
-            primary:     { profilesHasDocs: pProf, transactionsHasDocs: pTx, inventoryHasDocs: pInv },
-            legacy:      { profilesHasDocs: lProf, transactionsHasDocs: lTx, inventoryHasDocs: lInv },
-            recommendation
-        };
-
-        console.table({ clubId: _clubId, recommendation });
-        console.group('[printFirestorePathStatus] Primary path: clubs/' + _clubId);
-        console.table(result.primary);
-        console.groupEnd();
-        console.group('[printFirestorePathStatus] Legacy root collections');
-        console.table(result.legacy);
-        console.groupEnd();
-        console.log('[printFirestorePathStatus] ✅ Hoàn thành (chỉ kiểm tra, không ghi data).');
-        return result;
-    };
-
+    
     // ════════════════════════════════════════════════════════════════
     // Phase 4.0B-4E: DATA SOURCE DECISION + RUNTIME RECOVERY
     // Chỉ đọc — KHÔNG ghi Firestore, KHÔNG migration, KHÔNG log PII.
@@ -11712,49 +11483,7 @@ window.processMultiItem = async (action) => {
      * printPilotTabReadiness() — Phase 4.0B-4E Phase 6.
      * Cho biết trạng thái sẵn sàng từng tab cho pilot launch. Không log PII.
      */
-    window.printPilotTabReadiness = function printPilotTabReadiness() {
-        const profiles = window.__store && window.__store.profiles ? window.__store.profiles : {};
-        const tx       = window.__store && window.__store.transactions ? window.__store.transactions : [];
-        const inv      = window.__store && window.__store.inventory    ? window.__store.inventory    : [];
-        const metrics  = window.__firestoreDataSourceMetrics || {};
-
-        const _classifyFn = typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus : function(p) { return p && (p.status === 'quit' || p.status === 'retired' || p.status === 'inactive') ? 'quit' : 'active'; };
-        const activeProfiles = Object.values(profiles).filter(function(p) {
-            return p && _classifyFn(p) !== 'quit';
-        });
-        const quitProfiles   = Object.values(profiles).filter(function(p) {
-            return p && _classifyFn(p) === 'quit';
-        });
-
-        const warnings = [];
-        if (!metrics.activeDataSource) warnings.push('activeDataSource chưa xác định — gọi resolveActiveDataSource() trước');
-        if (Object.keys(profiles).length === 0) warnings.push('Profiles rỗng — kiểm tra Firestore path hoặc bật legacy fallback');
-        if (Array.isArray(tx) && tx.length === 0) warnings.push('Transactions rỗng');
-        if (Array.isArray(inv) && inv.length === 0) warnings.push('Inventory rỗng');
-
-        const result = {
-            activeDataSource:   metrics.activeDataSource  || 'unknown',
-            profilesCount:      Object.keys(profiles).length,
-            transactionsCount:  Array.isArray(tx)  ? tx.length  : 0,
-            inventoryCount:     Array.isArray(inv) ? inv.length : 0,
-            tuitionReady:       Object.keys(profiles).length > 0 && Array.isArray(tx),
-            debtReady:          Object.keys(profiles).length > 0,
-            activeStudentsReady: activeProfiles.length > 0,
-            quitStudentsReady:  quitProfiles.length > 0 || Object.keys(profiles).length > 0,
-            inventoryReady:     Array.isArray(inv) && inv.length > 0,
-            dashboardReady:     Object.keys(profiles).length > 0 || (Array.isArray(tx) && tx.length > 0),
-            warnings:           warnings.length > 0 ? warnings.join(' | ') : 'none'
-        };
-
-        console.table(result);
-        if (warnings.length) {
-            warnings.forEach(function(w) { console.warn('[PilotReadiness] ⚠️', w); });
-        } else {
-            console.info('[PilotReadiness] ✅ Tất cả tabs sẵn sàng cho pilot!');
-        }
-        return result;
-    };
-
+    
     // ════════════════════════════════════════════════════════════════
     // End Phase 4.0B-4D/4E Diagnostics + Recovery Globals
     // ════════════════════════════════════════════════════════════════
@@ -11817,123 +11546,13 @@ window.processMultiItem = async (action) => {
      * printPilotLaunchStatus() — Phase 4.0B-4F Phase 6.
      * Tổng hợp trạng thái sẵn sàng toàn hệ thống. Không log PII.
      */
-    window.printPilotLaunchStatus = function printPilotLaunchStatus() {
-        let tab = null;
-        try {
-            if (typeof window.printPilotTabReadiness === 'function') tab = window.printPilotTabReadiness();
-        } catch(_e) {}
-
-        let health = null;
-        try {
-            if (typeof window.getRuntimeHealthStatus === 'function') health = window.getRuntimeHealthStatus({ phase: 'all' });
-        } catch(_e) {}
-
-        const rr = window.__runtimeRecoveryState || {};
-        const activeDataSource =
-            (window.__store && window.__store.activeDataSource)
-            || (window.__firestoreDataSourceMetrics && window.__firestoreDataSourceMetrics.activeDataSource)
-            || 'unknown';
-
-        const readyForOneClubPilot = !!(tab && tab.tuitionReady && tab.debtReady);
-
-        const pilotBlockers = [];
-        if (!readyForOneClubPilot)
-            pilotBlockers.push('readyForOneClubPilot = false');
-        if (activeDataSource !== 'primary' && activeDataSource !== 'legacy-root')
-            pilotBlockers.push('activeDataSource = ' + activeDataSource);
-        if (!tab || !(tab.profilesCount > 0))
-            pilotBlockers.push('profilesCount = 0');
-        if (!tab || !tab.tuitionReady)
-            pilotBlockers.push('tuitionReady = false');
-        if (!tab || !tab.debtReady)
-            pilotBlockers.push('debtReady = false');
-        if (!tab || !tab.dashboardReady)
-            pilotBlockers.push('dashboardReady = false');
-        if (!rr.completed && activeDataSource !== 'primary')
-            pilotBlockers.push('runtimeRecovery not completed and activeDataSource != primary');
-        if (rr.error)
-            pilotBlockers.push('runtimeRecovery.error exists');
-        if (health && health.criticalMissing && health.criticalMissing.length > 0)
-            pilotBlockers.push('critical runtime health missing');
-
-        const result = {
-            runtimeRecovery:   rr,
-            activeDataSource,
-            profilesCount:     (tab && tab.profilesCount)     || 0,
-            transactionsCount: (tab && tab.transactionsCount) || 0,
-            inventoryCount:    (tab && tab.inventoryCount)    || 0,
-            tuitionReady:      !!(tab && tab.tuitionReady),
-            debtReady:         !!(tab && tab.debtReady),
-            inventoryReady:    !!(tab && tab.inventoryReady),
-            dashboardReady:    !!(tab && tab.dashboardReady),
-            readyForInternalTest:
-                !!((tab && tab.profilesCount > 0) || (tab && tab.transactionsCount > 0)),
-            readyForOneClubPilot,
-            readyForTenClubPilot: pilotBlockers.length === 0,
-            pilotBlockers
-        };
-
-        console.table(result);
-        return result;
-    };
-
+    
     /**
      * printTenClubPilotReadiness() — Phase 4.0B-4G.
      * Tổng hợp toàn bộ điều kiện sẵn sàng cho 10-CLB pilot.
      * Không log PII.
      */
-    window.printTenClubPilotReadiness = function printTenClubPilotReadiness() {
-        let launch = null;
-        try {
-            if (typeof window.printPilotLaunchStatus === 'function') launch = window.printPilotLaunchStatus();
-        } catch(_e) {}
-
-        let health = null;
-        try {
-            if (typeof window.getRuntimeHealthStatus === 'function') health = window.getRuntimeHealthStatus({ phase: 'all' });
-        } catch(_e) {}
-
-        let hydration = null;
-        try {
-            if (typeof window.printDataHydrationStatus === 'function') hydration = window.printDataHydrationStatus();
-        } catch(_e) {}
-
-        let tab = null;
-        try {
-            if (typeof window.printPilotTabReadiness === 'function') tab = window.printPilotTabReadiness();
-        } catch(_e) {}
-
-        const blockers = [];
-
-        if (!launch || !launch.readyForOneClubPilot)
-            blockers.push('Not ready for 1-CLB pilot yet');
-        if (!tab || !(tab.profilesCount > 0))
-            blockers.push('No profiles loaded');
-        if (!tab || !tab.tuitionReady)
-            blockers.push('Tuition tab not ready');
-        if (!tab || !tab.debtReady)
-            blockers.push('Debt tab not ready');
-        if (!tab || !tab.dashboardReady)
-            blockers.push('Dashboard not ready');
-        if (health && health.criticalMissing && health.criticalMissing.length > 0)
-            blockers.push('Runtime critical checks missing: ' + health.criticalMissing.join(', '));
-        if (window.__runtimeRecoveryState && window.__runtimeRecoveryState.error)
-            blockers.push('Runtime recovery error: ' + String(window.__runtimeRecoveryState.error).slice(0, 100));
-
-        const result = {
-            activeDataSource:      launch ? launch.activeDataSource      : 'unknown',
-            profilesCount:         tab    ? (tab.profilesCount    || 0)  : 0,
-            transactionsCount:     tab    ? (tab.transactionsCount || 0) : 0,
-            inventoryCount:        tab    ? (tab.inventoryCount   || 0)  : 0,
-            readyForOneClubPilot:  !!(launch && launch.readyForOneClubPilot),
-            readyForTenClubPilot:  blockers.length === 0,
-            blockers
-        };
-
-        console.table(result);
-        return result;
-    };
-
+    
     // ── End Phase 4.0B-4G ─────────────────────────────────────────────────────
 
     // ════════════════════════════════════════════════════════════════════════════
@@ -11949,59 +11568,7 @@ window.processMultiItem = async (action) => {
      *   const snap = await window.generatePilotLaunchSnapshot();
      *   console.log(JSON.stringify(snap, null, 2));
      */
-    window.generatePilotLaunchSnapshot = async function generatePilotLaunchSnapshot() {
-        const timestamp = new Date().toISOString();
-
-        let dataSource = null;
-        try {
-            if (typeof window.resolveActiveDataSource === 'function') {
-                dataSource = await window.resolveActiveDataSource();
-            }
-        } catch(e) {
-            dataSource = { error: String(e).slice(0, 200) };
-        }
-
-        let hydration = null;
-        try {
-            if (typeof window.printDataHydrationStatus === 'function') hydration = window.printDataHydrationStatus();
-        } catch(_e) {}
-
-        let tab = null;
-        try {
-            if (typeof window.printPilotTabReadiness === 'function') tab = window.printPilotTabReadiness();
-        } catch(_e) {}
-
-        let launch = null;
-        try {
-            if (typeof window.printPilotLaunchStatus === 'function') launch = window.printPilotLaunchStatus();
-        } catch(_e) {}
-
-        let tenClub = null;
-        try {
-            if (typeof window.printTenClubPilotReadiness === 'function') tenClub = window.printTenClubPilotReadiness();
-        } catch(_e) {}
-
-        const snapshot = {
-            snapshotAt:               timestamp,
-            activeDataSource:         dataSource,
-            dataHydration:            hydration,
-            tabReadiness:             tab,
-            pilotLaunchStatus:        launch,
-            tenClubPilotReadiness:    tenClub,
-            runtimeRecoveryState:     window.__runtimeRecoveryState   || null,
-            firestoreDataSourceMetrics: window.__firestoreDataSourceMetrics || null
-        };
-
-        console.group('[generatePilotLaunchSnapshot] Pilot Launch Snapshot — ' + timestamp);
-        console.log('activeDataSource:', snapshot.activeDataSource);
-        console.log('readyForOneClubPilot:', launch && launch.readyForOneClubPilot);
-        console.log('readyForTenClubPilot:', launch && launch.readyForTenClubPilot);
-        console.log('pilotBlockers:', (launch && launch.pilotBlockers) || []);
-        console.groupEnd();
-
-        return snapshot;
-    };
-
+    
     /**
      * printOneClubPilotGate() — Phase 4.0B-4H.
      * Tổng hợp go/no-go gate cho 1-CLB pilot. Không log PII.
@@ -12011,82 +11578,7 @@ window.processMultiItem = async (action) => {
      *   // gate.readyForOneClubPilot === true  →  GO
      *   // gate.blockers.length > 0            →  NO-GO, xem gate.blockers
      */
-    window.printOneClubPilotGate = function printOneClubPilotGate() {
-        let tab = null;
-        try {
-            if (typeof window.printPilotTabReadiness === 'function') tab = window.printPilotTabReadiness();
-        } catch(_e) {}
-
-        let launch = null;
-        try {
-            if (typeof window.printPilotLaunchStatus === 'function') launch = window.printPilotLaunchStatus();
-        } catch(_e) {}
-
-        let tenClub = null;
-        try {
-            if (typeof window.printTenClubPilotReadiness === 'function') tenClub = window.printTenClubPilotReadiness();
-        } catch(_e) {}
-
-        let health = null;
-        try {
-            if (typeof window.getRuntimeHealthStatus === 'function') health = window.getRuntimeHealthStatus({ phase: 'all' });
-        } catch(_e) {}
-
-        const activeDataSource = (launch && launch.activeDataSource) || 'unknown';
-        const profilesCount    = (tab    && tab.profilesCount)       || 0;
-        const tuitionReady     = !!(tab  && tab.tuitionReady);
-        const debtReady        = !!(tab  && tab.debtReady);
-        const dashboardReady   = !!(tab  && tab.dashboardReady);
-        const inventoryReady   = !!(tab  && tab.inventoryReady);
-
-        const blockers = [];
-
-        if (activeDataSource === 'unknown')
-            blockers.push('activeDataSource unknown — login chưa hoàn tất hoặc chưa resolve data source');
-        if (!(profilesCount > 0))
-            blockers.push('profilesCount = 0 — chưa load dữ liệu võ sinh');
-        if (!tuitionReady)
-            blockers.push('tuitionReady = false — tab học phí chưa sẵn sàng');
-        if (!debtReady)
-            blockers.push('debtReady = false — tab báo nợ chưa sẵn sàng');
-        if (!dashboardReady)
-            blockers.push('dashboardReady = false — tab tổng quan chưa sẵn sàng');
-        if (health && health.criticalMissing && health.criticalMissing.length > 0)
-            blockers.push('Critical runtime health missing: ' + health.criticalMissing.join(', '));
-        if (window.__runtimeRecoveryState && window.__runtimeRecoveryState.error)
-            blockers.push('Runtime recovery error: ' + String(window.__runtimeRecoveryState.error).slice(0, 100));
-
-        const readyForInternalTest = !!(profilesCount > 0 || ((tab && tab.transactionsCount) > 0));
-        const readyForOneClubPilot = tuitionReady && debtReady && profilesCount > 0
-            && (activeDataSource === 'primary' || activeDataSource === 'legacy-root');
-        const readyForTenClubPilot = !!(tenClub && tenClub.readyForTenClubPilot);
-
-        const gate = {
-            readyForInternalTest,
-            readyForOneClubPilot,
-            readyForTenClubPilot,
-            activeDataSource,
-            profilesCount,
-            transactionsCount: (tab && tab.transactionsCount) || 0,
-            inventoryCount:    (tab && tab.inventoryCount)    || 0,
-            tuitionReady,
-            debtReady,
-            dashboardReady,
-            inventoryReady,
-            blockers
-        };
-
-        console.table(gate);
-        if (blockers.length > 0) {
-            console.warn('[printOneClubPilotGate] ⚠️  NO-GO — ' + blockers.length + ' blocker(s):');
-            blockers.forEach((b, i) => console.warn('  [' + (i + 1) + '] ' + b));
-        } else {
-            console.info('[printOneClubPilotGate] ✅ GO — sẵn sàng pilot 1 CLB.');
-        }
-
-        return gate;
-    };
-
+    
     // ── End Phase 4.0B-4H ─────────────────────────────────────────────────────
 
     // ════════════════════════════════════════════════════════════════════════════
@@ -12103,172 +11595,7 @@ window.processMultiItem = async (action) => {
      *   await window.runOnboardingGate('clubId123')
      *   await window.runOnboardingGate({ clubId: 'clubId123', mode: 'pilot' })
      */
-    window.runOnboardingGate = async function runOnboardingGate(clubIdOrOptions) {
-        const checkedAt = new Date().toISOString();
-
-        // Chuẩn hóa options
-        let opts = {};
-        if (typeof clubIdOrOptions === 'string') {
-            opts = { clubId: clubIdOrOptions };
-        } else if (clubIdOrOptions && typeof clubIdOrOptions === 'object') {
-            opts = clubIdOrOptions;
-        }
-
-        // Bước 1 — Xác định clubId
-        const clubId = opts.clubId
-            || (window.__store && (window.__store.clubId || window.__store.currentClubId))
-            || window.currentClubId
-            || null;
-
-        const blockers  = [];
-        const warnings  = [];
-
-        if (!clubId) {
-            blockers.push('clubId missing — truyền clubId hoặc login trước');
-        }
-
-        // Bước 2 — resolveActiveDataSource
-        let dataSource = null;
-        try {
-            if (typeof window.resolveActiveDataSource === 'function') {
-                dataSource = await window.resolveActiveDataSource();
-            }
-        } catch(e) {
-            dataSource = { source: 'error', error: String(e).slice(0, 200) };
-        }
-        const activeDataSource = (dataSource && dataSource.source) || 'unknown';
-        if (activeDataSource === 'unknown') {
-            blockers.push('activeDataSource unknown — login chưa hoàn tất hoặc chưa resolve data source');
-        }
-        if (activeDataSource === 'permission-error' || (dataSource && dataSource.permissionDenied)) {
-            blockers.push('Permission denied while checking Firestore path — kiểm tra Firestore rules cho clubId này');
-        }
-
-        // Bước 3 — printDataHydrationStatus
-        let hydration = null;
-        try {
-            if (typeof window.printDataHydrationStatus === 'function') hydration = window.printDataHydrationStatus();
-        } catch(_e) {}
-
-        // Bước 4 — printTabDataStatus
-        let tabData = null;
-        try {
-            if (typeof window.printTabDataStatus === 'function') tabData = window.printTabDataStatus();
-        } catch(_e) {}
-
-        // Bước 5 — printPilotTabReadiness
-        let tabReady = null;
-        try {
-            if (typeof window.printPilotTabReadiness === 'function') tabReady = window.printPilotTabReadiness();
-        } catch(_e) {}
-
-        // Bước 6 — printOneClubPilotGate
-        let gate = null;
-        try {
-            if (typeof window.printOneClubPilotGate === 'function') gate = window.printOneClubPilotGate();
-        } catch(_e) {}
-
-        // Bước 7 — printTenClubPilotReadiness
-        let tenClub = null;
-        try {
-            if (typeof window.printTenClubPilotReadiness === 'function') tenClub = window.printTenClubPilotReadiness();
-        } catch(_e) {}
-
-        // Tổng hợp metrics
-        const profilesCount     = (tabReady && tabReady.profilesCount)     || (gate && gate.profilesCount)     || 0;
-        const transactionsCount = (tabReady && tabReady.transactionsCount)  || (gate && gate.transactionsCount) || 0;
-        const inventoryCount    = (tabReady && tabReady.inventoryCount)     || (gate && gate.inventoryCount)    || 0;
-        const tuitionReady      = !!(tabReady && tabReady.tuitionReady)     || !!(gate && gate.tuitionReady);
-        const debtReady         = !!(tabReady && tabReady.debtReady)        || !!(gate && gate.debtReady);
-        const inventoryReady    = !!(tabReady && tabReady.inventoryReady)   || !!(gate && gate.inventoryReady);
-        const dashboardReady    = !!(tabReady && tabReady.dashboardReady)   || !!(gate && gate.dashboardReady);
-        const readyForInternalTest = !!(gate && gate.readyForInternalTest);
-        const readyForOneClubPilot = !!(gate && gate.readyForOneClubPilot);
-        const readyForTenClubPilot = !!(tenClub && tenClub.readyForTenClubPilot);
-
-        // Bước 8 — Tổng hợp blockers
-        if (!(profilesCount > 0))
-            blockers.push('No profiles loaded — profilesCount = 0');
-        if (!tuitionReady)
-            blockers.push('Tuition tab not ready');
-        if (!debtReady)
-            blockers.push('Debt tab not ready');
-        if (!dashboardReady)
-            blockers.push('Dashboard not ready');
-        if (window.__runtimeRecoveryState && window.__runtimeRecoveryState.error)
-            blockers.push('Runtime recovery error: ' + String(window.__runtimeRecoveryState.error).slice(0, 100));
-
-        // Critical health check
-        let health = null;
-        try {
-            if (typeof window.getRuntimeHealthStatus === 'function') health = window.getRuntimeHealthStatus({ phase: 'all' });
-        } catch(_e) {}
-        if (health && health.criticalMissing && health.criticalMissing.length > 0)
-            blockers.push('Critical runtime health missing: ' + health.criticalMissing.join(', '));
-
-        // Optional: kiểm tra expectedClubName / expectedAdminEmail (không log giá trị)
-        if (opts.expectedClubName) {
-            const actualName = window.__store && (window.__store.clubName || window.__store.club && window.__store.club.name);
-            if (actualName && actualName !== opts.expectedClubName) {
-                blockers.push('Club name mismatch — tên CLB không khớp với expectedClubName');
-            }
-        }
-        if (opts.expectedAdminEmail) {
-            const actualEmail = window.__store && window.__store.currentUser && window.__store.currentUser.email;
-            if (actualEmail && actualEmail !== opts.expectedAdminEmail) {
-                warnings.push('Admin email mismatch — email đang login không khớp expectedAdminEmail');
-            }
-        }
-
-        // Warnings cho các tab không critical
-        if (opts.requireInventory && !inventoryReady)
-            blockers.push('Inventory tab not ready (requireInventory = true)');
-        if (opts.requireTransactions && !(transactionsCount > 0))
-            warnings.push('No transactions loaded yet (requireTransactions = true)');
-
-        const result = {
-            clubId,
-            activeDataSource,
-            readyForInternalTest,
-            readyForOneClubPilot,
-            readyForTenClubPilot,
-            profilesCount,
-            transactionsCount,
-            inventoryCount,
-            tuitionReady,
-            debtReady,
-            inventoryReady,
-            dashboardReady,
-            blockers,
-            warnings,
-            checkedAt
-        };
-
-        const status = blockers.length === 0 ? '✅ PASS' : '❌ FAIL';
-        console.group('[runOnboardingGate] ' + status + ' — clubId: ' + (clubId || '(not set)') + ' — ' + checkedAt);
-        console.table({
-            clubId:                clubId || '(not set)',
-            activeDataSource,
-            readyForOneClubPilot,
-            readyForTenClubPilot,
-            profilesCount,
-            transactionsCount,
-            inventoryCount,
-            tuitionReady,
-            debtReady,
-            dashboardReady,
-            blockers:              blockers.length > 0 ? blockers.join(' | ') : 'none',
-            warnings:              warnings.length > 0 ? warnings.join(' | ') : 'none'
-        });
-        if (blockers.length > 0) {
-            console.warn('[runOnboardingGate] BLOCKERS (' + blockers.length + '):');
-            blockers.forEach(function(b, i) { console.warn('  [' + (i+1) + '] ' + b); });
-        }
-        console.groupEnd();
-
-        return result;
-    };
-
+    
     /**
      * printOnboardingGate(clubIdOrOptions) — Phase 4.0B-4I.
      * Wrapper hiển thị kết quả bằng console.table. Read-only. Không log PII.
@@ -12277,11 +11604,7 @@ window.processMultiItem = async (action) => {
      *   await window.printOnboardingGate()
      *   await window.printOnboardingGate({ clubId: window.__store?.clubId })
      */
-    window.printOnboardingGate = async function printOnboardingGate(clubIdOrOptions) {
-        const result = await window.runOnboardingGate(clubIdOrOptions);
-        return result;
-    };
-
+    
     /**
      * generateOnboardingReportText(options) — Phase 4.0B-4I.
      * Tạo markdown text để người dùng copy vào ONBOARDING_REPORT_TEMPLATE.
@@ -12291,33 +11614,7 @@ window.processMultiItem = async (action) => {
      *   const text = await window.generateOnboardingReportText({ clubId: '...' });
      *   console.log(text);
      */
-    window.generateOnboardingReportText = async function generateOnboardingReportText(options) {
-        const result = await window.runOnboardingGate(options);
-
-        const lines = [
-            '# Onboarding Gate Report',
-            '',
-            '- Club ID: ' + (result.clubId || '(not set)'),
-            '- Active Data Source: ' + result.activeDataSource,
-            '- Profiles Count: ' + result.profilesCount,
-            '- Transactions Count: ' + result.transactionsCount,
-            '- Inventory Count: ' + result.inventoryCount,
-            '- Tuition Ready: ' + result.tuitionReady,
-            '- Debt Ready: ' + result.debtReady,
-            '- Inventory Ready: ' + result.inventoryReady,
-            '- Dashboard Ready: ' + result.dashboardReady,
-            '- Ready For One Club Pilot: ' + result.readyForOneClubPilot,
-            '- Ready For Ten Club Pilot: ' + result.readyForTenClubPilot,
-            '- Blockers: ' + (result.blockers.length > 0 ? result.blockers.join('; ') : 'none'),
-            '- Warnings: ' + (result.warnings.length > 0 ? result.warnings.join('; ') : 'none'),
-            '- Checked At: ' + result.checkedAt
-        ];
-
-        const text = lines.join('\n');
-        console.log('[generateOnboardingReportText] Copy text bên dưới:\n\n' + text);
-        return text;
-    };
-
+    
     // ── End Phase 4.0B-4I ─────────────────────────────────────────────────────
 
     // ════════════════════════════════════════════════════════════════════════════
@@ -12329,92 +11626,7 @@ window.processMultiItem = async (action) => {
      * Kiểm tra sơ bộ trạng thái dữ liệu của một CLB qua Firestore.
      * Read-only. Dùng limit(1). Không log doc data. Không log PII.
      */
-    async function probeClubDataReadOnly(clubId, options) {
-        options = options || {};
-        const result = {
-            clubId:                  clubId,
-            primaryHasProfiles:      false,
-            primaryHasTransactions:  false,
-            primaryHasInventory:     false,
-            legacyHasProfiles:       false,
-            legacyHasTransactions:   false,
-            legacyHasInventory:      false,
-            permissionDenied:        false,
-            probeError:              null
-        };
-        if (!clubId) {
-            result.probeError = 'clubId missing';
-            return result;
-        }
-
-        // Firebase SDK helpers — chỉ đọc nếu có sẵn
-        var db = null;
-        try {
-            if (window.firebase && window.firebase.firestore) {
-                db = window.firebase.firestore();
-            } else if (window._db) {
-                db = window._db;
-            } else if (typeof getFirestore !== 'undefined') {
-                db = getFirestore();
-            }
-        } catch(_e) {}
-
-        if (!db) {
-            result.probeError = 'Firestore db not available in probe';
-            return result;
-        }
-
-        // Helper đọc 1 doc để kiểm tra có tồn tại không
-        async function hasAny(path) {
-            try {
-                var ref, snap;
-                // Modular API (v9+)
-                if (typeof collection !== 'undefined' && typeof query !== 'undefined' && typeof limit !== 'undefined' && typeof getDocs !== 'undefined') {
-                    var col = collection(db, path);
-                    var q   = query(col, limit(1));
-                    snap = await getDocs(q);
-                    return !snap.empty;
-                }
-                // Compat API (v8)
-                if (db.collection) {
-                    snap = await db.collection(path).limit(1).get();
-                    return !snap.empty;
-                }
-                return false;
-            } catch(e) {
-                var msg = String(e);
-                if (/permission.denied|PERMISSION_DENIED/i.test(msg)) {
-                    throw new Error('permission-denied');
-                }
-                return false;
-            }
-        }
-
-        // Primary paths
-        try {
-            result.primaryHasProfiles     = await hasAny('clubs/' + clubId + '/profiles');
-            result.primaryHasTransactions = await hasAny('clubs/' + clubId + '/transactions');
-            result.primaryHasInventory    = await hasAny('clubs/' + clubId + '/inventory');
-        } catch(e) {
-            if (String(e).includes('permission-denied')) {
-                result.permissionDenied = true;
-                result.probeError = 'permission-denied while probing club data';
-            } else {
-                result.probeError = String(e).slice(0, 200);
-            }
-        }
-
-        // Legacy root paths — chỉ nếu includeLegacyCheck và permission chưa bị block
-        if (options.includeLegacyCheck && !result.permissionDenied) {
-            try {
-                result.legacyHasProfiles     = await hasAny('tst_profiles');
-                result.legacyHasTransactions = await hasAny('tst_transactions');
-                result.legacyHasInventory    = await hasAny('tst_inventory');
-            } catch(_e) {}
-        }
-
-        return result;
-    }
+    
 
     /**
      * runSuperAdminAudit(options) — Phase 4.0B-4J.
@@ -12425,184 +11637,7 @@ window.processMultiItem = async (action) => {
      *   await window.runSuperAdminAudit({ limit: 5 })
      *   await window.runSuperAdminAudit({ clubIds: ['clb1','clb2'] })
      */
-    window.runSuperAdminAudit = async function runSuperAdminAudit(options) {
-        options = options || {};
-        var checkedAt          = new Date().toISOString();
-        var mode               = options.mode               || 'pilot';
-        var limit$             = options.limit              || 20;
-        var includeLegacyCheck = options.includeLegacyCheck !== false;
-        var includeTabReadiness= options.includeTabReadiness !== false;
-        var onlyBlockers       = !!options.onlyBlockers;
-
-        // SuperAdmin role check — không throw, chỉ warn
-        var superAdminWarning = null;
-        try {
-            var isSA = false;
-            if (typeof window.isSuperAdmin === 'function') isSA = window.isSuperAdmin();
-            else if (window.__store && window.__store.superAdmin) isSA = true;
-            else if (window.__store && window.__store.currentUser && window.__store.currentUser.isSuperAdmin) isSA = true;
-            if (!isSA) superAdminWarning = 'SuperAdmin role not confirmed in runtime';
-        } catch(_e) {
-            superAdminWarning = 'SuperAdmin role not confirmed in runtime';
-        }
-
-        // Xác định danh sách clubIds
-        var clubIds = [];
-        if (options.clubIds && options.clubIds.length > 0) {
-            clubIds = options.clubIds.slice(0, limit$);
-        } else {
-            // Thử lấy từ store
-            var storeClubs = (window.__store && (window.__store.clubs || window.__store.superAdminClubs)) || null;
-            if (storeClubs && typeof storeClubs === 'object') {
-                if (Array.isArray(storeClubs)) {
-                    clubIds = storeClubs.map(function(c) { return c.id || c.clubId || c; }).slice(0, limit$);
-                } else {
-                    clubIds = Object.keys(storeClubs).slice(0, limit$);
-                }
-            }
-            // Nếu vẫn trống và đang login CLB nào đó, dùng CLB hiện tại
-            if (clubIds.length === 0) {
-                var currentId = (window.__store && (window.__store.clubId || window.__store.currentClubId)) || window.currentClubId;
-                if (currentId) clubIds = [currentId];
-            }
-        }
-
-        var clubs          = [];
-        var readyForPilotCount = 0;
-        var blockedCount   = 0;
-        var warningCount   = 0;
-        var blockersSummary = [];
-        var currentLoginClubId = (window.__store && (window.__store.clubId || window.__store.currentClubId)) || window.currentClubId;
-
-        for (var i = 0; i < clubIds.length; i++) {
-            var cid = clubIds[i];
-            var clubBlockers = [];
-            var clubWarnings = [];
-
-            // Probe Firestore read-only
-            var probe = await probeClubDataReadOnly(cid, { includeLegacyCheck: includeLegacyCheck });
-
-            if (probe.permissionDenied) {
-                clubBlockers.push('permission-denied while probing club data');
-            }
-            if (probe.probeError && !probe.permissionDenied) {
-                clubWarnings.push('probe error: ' + probe.probeError);
-            }
-
-            // Xác định activeDataSource
-            var activeDataSource = 'unknown';
-            if (probe.primaryHasProfiles) {
-                activeDataSource = 'primary';
-            } else if (probe.legacyHasProfiles) {
-                activeDataSource = 'legacy-root';
-            } else if (!probe.permissionDenied) {
-                activeDataSource = 'empty';
-            } else {
-                activeDataSource = 'permission-error';
-            }
-
-            // Nếu là CLB đang login — dùng runtime gate đầy đủ hơn
-            var gateResult      = null;
-            var tuitionReady    = false;
-            var debtReady       = false;
-            var inventoryReady  = false;
-            var dashboardReady  = false;
-            var readyForOneClubPilot    = false;
-            var readyForTenClubExpansion= false;
-            var profilesReady   = probe.primaryHasProfiles || probe.legacyHasProfiles;
-
-            if (cid === currentLoginClubId && includeTabReadiness) {
-                try {
-                    if (typeof window.runOnboardingGate === 'function') {
-                        gateResult = await window.runOnboardingGate(cid);
-                        tuitionReady         = !!(gateResult && gateResult.tuitionReady);
-                        debtReady            = !!(gateResult && gateResult.debtReady);
-                        inventoryReady       = !!(gateResult && gateResult.inventoryReady);
-                        dashboardReady       = !!(gateResult && gateResult.dashboardReady);
-                        readyForOneClubPilot = !!(gateResult && gateResult.readyForOneClubPilot);
-                        readyForTenClubExpansion = !!(gateResult && gateResult.readyForTenClubPilot);
-                        if (gateResult && gateResult.blockers) {
-                            gateResult.blockers.forEach(function(b) { clubBlockers.push(b); });
-                        }
-                        if (gateResult && gateResult.warnings) {
-                            gateResult.warnings.forEach(function(w) { clubWarnings.push(w); });
-                        }
-                    }
-                } catch(_e) {
-                    clubWarnings.push('runtime gate failed for current club');
-                }
-            } else {
-                // CLB khác — chỉ dùng dữ liệu probe
-                if (!profilesReady) clubBlockers.push('No profiles in primary or legacy path');
-                readyForOneClubPilot     = profilesReady && !probe.permissionDenied;
-                readyForTenClubExpansion = profilesReady && !probe.permissionDenied;
-            }
-
-            if (!profilesReady && !clubBlockers.some(function(b) { return b.includes('profile'); })) {
-                clubBlockers.push('No profiles loaded');
-            }
-
-            if (superAdminWarning && i === 0) {
-                clubWarnings.push(superAdminWarning);
-            }
-
-            if (clubBlockers.length === 0) {
-                readyForPilotCount++;
-            } else {
-                blockedCount++;
-                clubBlockers.forEach(function(b) {
-                    if (!blockersSummary.includes(b)) blockersSummary.push(b);
-                });
-            }
-            if (clubWarnings.length > 0) warningCount++;
-
-            var clubEntry = {
-                clubId:                   cid,
-                clubName:                 (window.__store && window.__store.clubs && window.__store.clubs[cid] && window.__store.clubs[cid].name) || '',
-                activeDataSource:         activeDataSource,
-                primaryHasProfiles:       probe.primaryHasProfiles,
-                primaryHasTransactions:   probe.primaryHasTransactions,
-                primaryHasInventory:      probe.primaryHasInventory,
-                legacyHasProfiles:        probe.legacyHasProfiles,
-                legacyHasTransactions:    probe.legacyHasTransactions,
-                legacyHasInventory:       probe.legacyHasInventory,
-                profilesReady:            profilesReady,
-                tuitionReady:             tuitionReady,
-                debtReady:                debtReady,
-                inventoryReady:           inventoryReady,
-                dashboardReady:           dashboardReady,
-                readyForOneClubPilot:     readyForOneClubPilot,
-                readyForTenClubExpansion: readyForTenClubExpansion,
-                blockers:                 clubBlockers,
-                warnings:                 clubWarnings
-            };
-
-            if (!onlyBlockers || clubBlockers.length > 0) {
-                clubs.push(clubEntry);
-            }
-        }
-
-        var auditResult = {
-            checkedAt:          checkedAt,
-            mode:               mode,
-            totalClubs:         clubIds.length,
-            readyForPilotCount: readyForPilotCount,
-            blockedCount:       blockedCount,
-            warningCount:       warningCount,
-            clubs:              clubs,
-            blockersSummary:    blockersSummary
-        };
-
-        console.group('[runSuperAdminAudit] Audit — ' + mode + ' — ' + checkedAt);
-        console.log('totalClubs:', auditResult.totalClubs);
-        console.log('readyForPilotCount:', auditResult.readyForPilotCount);
-        console.log('blockedCount:', auditResult.blockedCount);
-        console.log('blockersSummary:', auditResult.blockersSummary);
-        console.groupEnd();
-
-        return auditResult;
-    };
-
+    
     /**
      * printSuperAdminAudit(options) — Phase 4.0B-4J.
      * Hiển thị bảng audit các CLB bằng console.table. Không log PII.
@@ -12610,26 +11645,7 @@ window.processMultiItem = async (action) => {
      * Cách dùng:
      *   await window.printSuperAdminAudit({ limit: 10 })
      */
-    window.printSuperAdminAudit = async function printSuperAdminAudit(options) {
-        var result = await window.runSuperAdminAudit(options || {});
-        console.table(result.clubs.map(function(c) {
-            return {
-                clubId:                   c.clubId,
-                clubName:                 c.clubName || '',
-                activeDataSource:         c.activeDataSource,
-                profilesReady:            c.profilesReady,
-                tuitionReady:             c.tuitionReady,
-                debtReady:                c.debtReady,
-                inventoryReady:           c.inventoryReady,
-                dashboardReady:           c.dashboardReady,
-                readyForOneClubPilot:     c.readyForOneClubPilot,
-                readyForTenClubExpansion: c.readyForTenClubExpansion,
-                blockers:                 (c.blockers && c.blockers.length) || 0
-            };
-        }));
-        return result;
-    };
-
+    
     /**
      * generateSuperAdminAuditReportText(options) — Phase 4.0B-4J.
      * Tạo markdown text báo cáo audit để SuperAdmin copy. Không ghi Firestore.
@@ -12638,53 +11654,7 @@ window.processMultiItem = async (action) => {
      *   const text = await window.generateSuperAdminAuditReportText({ limit: 10 });
      *   console.log(text);
      */
-    window.generateSuperAdminAuditReportText = async function generateSuperAdminAuditReportText(options) {
-        var result = await window.runSuperAdminAudit(options || {});
-
-        var lines = [
-            '# SuperAdmin Multi-Club Audit Report',
-            '',
-            '## Summary',
-            '- Checked at: ' + result.checkedAt,
-            '- Total clubs: ' + result.totalClubs,
-            '- Ready for pilot: ' + result.readyForPilotCount,
-            '- Blocked: ' + result.blockedCount,
-            '- Warnings: ' + result.warningCount,
-            '',
-            '## Club Results',
-            '| Club ID | Club Name | Data Source | Profiles | Tuition | Debt | Inventory | Dashboard | Pilot Ready | Blockers |',
-            '|---|---|---|---|---|---|---|---|---|---|'
-        ];
-
-        result.clubs.forEach(function(c) {
-            lines.push(
-                '| ' + (c.clubId || '') +
-                ' | ' + (c.clubName || '') +
-                ' | ' + (c.activeDataSource || '') +
-                ' | ' + (c.profilesReady ? 'YES' : 'NO') +
-                ' | ' + (c.tuitionReady ? 'YES' : 'NO') +
-                ' | ' + (c.debtReady ? 'YES' : 'NO') +
-                ' | ' + (c.inventoryReady ? 'YES' : 'NO') +
-                ' | ' + (c.dashboardReady ? 'YES' : 'NO') +
-                ' | ' + (c.readyForOneClubPilot ? 'YES' : 'NO') +
-                ' | ' + ((c.blockers && c.blockers.length) || 0) + ' |'
-            );
-        });
-
-        lines.push('');
-        lines.push('## Blockers Summary');
-        if (result.blockersSummary.length > 0) {
-            result.blockersSummary.forEach(function(b) { lines.push('- ' + b); });
-        } else {
-            lines.push('- none');
-        }
-
-        var text = lines.join('\n');
-        console.log('[generateSuperAdminAuditReportText] Copy markdown text bên dưới:\n\n' + text);
-        return text;
-    };
-
-
+    
 // ══════════════════════════════════════════════════════════════════
 // Phase 4K-5C — CANONICAL EXAM PAYMENT LEDGER (Phase 1)
 // ══════════════════════════════════════════════════════════════════

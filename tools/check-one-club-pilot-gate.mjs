@@ -77,8 +77,9 @@ console.log('[OneClubGate] Kiểm tra 1-CLB pilot gate (Phase 4.0B-4H)...');
 console.log('');
 
 const appSrc = readSrc('app.js');
-if (!appSrc) {
-    console.error('[OneClubGate] ❌ Không đọc được app.js — dừng.');
+const diagSrc = readSrc('js/diagnostics/runtimeReadinessDiagnostics.js');
+if (!appSrc || !diagSrc) {
+    console.error('[OneClubGate] ❌ Không đọc được app.js hoặc runtime diagnostics — dừng.');
     process.exit(1);
 }
 info(`app.js: ${appSrc.length} ký tự`);
@@ -86,29 +87,29 @@ console.log('');
 
 // ── 1–6. generatePilotLaunchSnapshot ──────────────────────────────
 console.log('[OneClubGate] [1–6] Kiểm tra window.generatePilotLaunchSnapshot...');
-checkPattern(appSrc, 'generatePilotLaunchSnapshot',
+checkPattern(diagSrc, 'generatePilotLaunchSnapshot',
     'window.generatePilotLaunchSnapshot được định nghĩa');
-checkPattern(appSrc, /window\.generatePilotLaunchSnapshot\s*=\s*async\s+function/,
+checkPattern(diagSrc, /export async function generatePilotLaunchSnapshot/,
     'generatePilotLaunchSnapshot là async function');
-checkPattern(appSrc, /await\s+window\.resolveActiveDataSource\s*\(\s*\)/,
+checkPattern(diagSrc, /await\s+window\.resolveActiveDataSource\s*\(\s*\)/,
     'Snapshot gọi await resolveActiveDataSource()');
-checkPattern(appSrc, /printDataHydrationStatus\s*\(\s*\)/,
+checkPattern(diagSrc, /printDataHydrationStatus\s*\(\s*\)/,
     'Snapshot gọi printDataHydrationStatus()');
-checkPattern(appSrc, /printPilotTabReadiness\s*\(\s*\)/,
+checkPattern(diagSrc, /printPilotTabReadiness\s*\(\s*\)/,
     'Snapshot gọi printPilotTabReadiness()');
-checkPattern(appSrc, /printPilotLaunchStatus\s*\(\s*\)/,
+checkPattern(diagSrc, /printPilotLaunchStatus\s*\(\s*\)/,
     'Snapshot gọi printPilotLaunchStatus()');
-checkPattern(appSrc, /printTenClubPilotReadiness\s*\(\s*\)/,
+checkPattern(diagSrc, /printTenClubPilotReadiness\s*\(\s*\)/,
     'Snapshot gọi printTenClubPilotReadiness()');
-checkPattern(appSrc, 'snapshotAt',
+checkPattern(diagSrc, 'snapshotAt',
     'Snapshot có snapshotAt timestamp');
 
 // ── 7. printOneClubPilotGate ───────────────────────────────────────
 console.log('');
 console.log('[OneClubGate] [7] Kiểm tra window.printOneClubPilotGate...');
-checkPattern(appSrc, 'printOneClubPilotGate',
+checkPattern(diagSrc, 'printOneClubPilotGate',
     'window.printOneClubPilotGate được định nghĩa');
-checkPattern(appSrc, /window\.printOneClubPilotGate\s*=\s*function/,
+checkPattern(diagSrc, /export function printOneClubPilotGate/,
     'printOneClubPilotGate là function assignment');
 
 // ── 8–13. Gate fields ──────────────────────────────────────────────
@@ -116,9 +117,9 @@ console.log('');
 console.log('[OneClubGate] [8–13] Kiểm tra gate output fields...');
 
 // Tìm vùng printOneClubPilotGate để kiểm tra scoped
-const gateStart = appSrc.indexOf('window.printOneClubPilotGate = function');
-const gateEnd   = appSrc.indexOf('// ── End Phase 4.0B-4H');
-const gateBody  = gateStart !== -1 ? appSrc.slice(gateStart, gateEnd > gateStart ? gateEnd : gateStart + 3000) : appSrc;
+const gateStart = diagSrc.indexOf('export function printOneClubPilotGate');
+const gateEnd   = diagSrc.length;
+const gateBody  = gateStart !== -1 ? diagSrc.slice(gateStart, gateEnd > gateStart ? gateEnd : gateStart + 5000) : diagSrc;
 
 checkPattern(gateBody, 'readyForInternalTest',
     'Gate trả về readyForInternalTest field');
@@ -168,10 +169,10 @@ fileExists('PILOT_ISSUE_REPORT_TEMPLATE.md', 'PILOT_ISSUE_REPORT_TEMPLATE.md t�
 // ── 16. Không có Firestore write trong snapshot/gate ──────────────
 console.log('');
 console.log('[OneClubGate] [16] Kiểm tra không có Firestore write trong snapshot/gate...');
-const snapshotStart = appSrc.indexOf('window.generatePilotLaunchSnapshot');
-const gateEndIdx    = appSrc.indexOf('// ── End Phase 4.0B-4H');
+const snapshotStart = diagSrc.indexOf('export async function generatePilotLaunchSnapshot');
+const gateEndIdx    = diagSrc.length;
 const phase4hSection = snapshotStart !== -1 && gateEndIdx !== -1
-    ? appSrc.slice(snapshotStart, gateEndIdx)
+    ? diagSrc.slice(snapshotStart, gateEndIdx)
     : '';
 
 if (phase4hSection) {

@@ -1,6 +1,6 @@
 /**
  * js/core/globalOwnershipRegistry.js
- * Phase 4K-6S — Existing Module Ownership Adoption + Duplicate UI Cleanup
+ * Phase 4K-6T — Diagnostics / Pilot / Audit Tooling Isolation
  *
  * Central registry for reviewed window globals. It preserves the classic-script
  * fallback reference for rollback, installs one canonical module owner, detects
@@ -30,6 +30,26 @@ export const GLOBAL_OWNERSHIP_MANIFEST = Object.freeze({
   _openMonthlyExport:      { owner: 'js/ui/legacyUiShell.js', risk: 'ui-readonly-orchestration', policy: 'module-primary', registrationRequired: true },
   openTaxModal:            { owner: 'js/ui/legacyUiShell.js', risk: 'ui-only', policy: 'module-primary', registrationRequired: true },
   closeTaxModal:           { owner: 'js/ui/legacyUiShell.js', risk: 'ui-only', policy: 'module-primary', registrationRequired: true },
+
+
+  // Phase 4K-6T: read-only diagnostics extracted from app.js.
+  debugMobileSuperAdminGate: { owner: 'js/diagnostics/runtimeReadinessDiagnostics.js', risk: 'diagnostics-readonly', policy: 'module-primary', registrationRequired: true },
+  printDataHydrationStatus:  { owner: 'js/diagnostics/runtimeReadinessDiagnostics.js', risk: 'diagnostics-readonly', policy: 'module-primary', registrationRequired: true },
+  printTabDataStatus:        { owner: 'js/diagnostics/runtimeReadinessDiagnostics.js', risk: 'diagnostics-readonly', policy: 'module-primary', registrationRequired: true },
+  printFirestorePathStatus:  { owner: 'js/diagnostics/runtimeReadinessDiagnostics.js', risk: 'diagnostics-bounded-read', policy: 'module-primary', registrationRequired: true },
+  printPilotTabReadiness:    { owner: 'js/diagnostics/runtimeReadinessDiagnostics.js', risk: 'diagnostics-readonly', policy: 'module-primary', registrationRequired: true },
+  printPilotLaunchStatus:    { owner: 'js/diagnostics/runtimeReadinessDiagnostics.js', risk: 'diagnostics-readonly', policy: 'module-primary', registrationRequired: true },
+  printTenClubPilotReadiness:{ owner: 'js/diagnostics/runtimeReadinessDiagnostics.js', risk: 'diagnostics-readonly', policy: 'module-primary', registrationRequired: true },
+  generatePilotLaunchSnapshot:{ owner: 'js/diagnostics/runtimeReadinessDiagnostics.js', risk: 'diagnostics-readonly', policy: 'module-primary', registrationRequired: true },
+  printOneClubPilotGate:     { owner: 'js/diagnostics/runtimeReadinessDiagnostics.js', risk: 'diagnostics-readonly', policy: 'module-primary', registrationRequired: true },
+
+  // Lazy wrappers remain canonical globals; implementations load only when used.
+  runOnboardingGate:                { owner: 'js/diagnostics/legacyDiagnostics.js', risk: 'diagnostics-lazy-readonly', policy: 'module-primary', registrationRequired: true },
+  printOnboardingGate:              { owner: 'js/diagnostics/legacyDiagnostics.js', risk: 'diagnostics-lazy-readonly', policy: 'module-primary', registrationRequired: true },
+  generateOnboardingReportText:     { owner: 'js/diagnostics/legacyDiagnostics.js', risk: 'diagnostics-lazy-readonly', policy: 'module-primary', registrationRequired: true },
+  runSuperAdminAudit:               { owner: 'js/diagnostics/legacyDiagnostics.js', risk: 'diagnostics-lazy-readonly', policy: 'module-primary', registrationRequired: true },
+  printSuperAdminAudit:             { owner: 'js/diagnostics/legacyDiagnostics.js', risk: 'diagnostics-lazy-readonly', policy: 'module-primary', registrationRequired: true },
+  generateSuperAdminAuditReportText:{ owner: 'js/diagnostics/legacyDiagnostics.js', risk: 'diagnostics-lazy-readonly', policy: 'module-primary', registrationRequired: true },
 
   // switchTab has an intentional main.js async wrapper around tabs.js. It is
   // inventoried but not registered until that wrapper is extracted as one unit.
@@ -182,7 +202,7 @@ export const GlobalOwnershipRegistry = Object.freeze({
     }));
 
     return {
-      phase: '4K-6S-global-ownership-adoption-duplicate-ui-cleanup',
+      phase: '4K-6T-legacy-diagnostics-pilot-audit-tooling-isolation',
       registered,
       manifest,
       collisions: _collisions.slice(),

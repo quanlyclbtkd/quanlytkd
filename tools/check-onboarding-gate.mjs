@@ -77,8 +77,9 @@ console.log('[OnboardingGate] Kiểm tra automated onboarding gate (Phase 4.0B-4
 console.log('');
 
 const appSrc = readSrc('app.js');
-if (!appSrc) {
-    console.error('[OnboardingGate] ❌ Không đọc được app.js — dừng.');
+const onboardingSrc = readSrc('js/diagnostics/onboardingDiagnostics.js');
+if (!appSrc || !onboardingSrc) {
+    console.error('[OnboardingGate] ❌ Không đọc được app.js hoặc onboardingDiagnostics.js — dừng.');
     process.exit(1);
 }
 info(`app.js: ${appSrc.length} ký tự`);
@@ -86,26 +87,26 @@ console.log('');
 
 // ── 1–3. Các functions chính ──────────────────────────────────────
 console.log('[OnboardingGate] [1–3] Kiểm tra functions chính...');
-checkPattern(appSrc, 'runOnboardingGate',
+checkPattern(onboardingSrc, 'runOnboardingGate',
     'window.runOnboardingGate được định nghĩa');
-checkPattern(appSrc, /window\.runOnboardingGate\s*=\s*async\s+function/,
+checkPattern(onboardingSrc, /export async function runOnboardingGate/,
     'runOnboardingGate là async function');
-checkPattern(appSrc, 'printOnboardingGate',
+checkPattern(onboardingSrc, 'printOnboardingGate',
     'window.printOnboardingGate được định nghĩa');
-checkPattern(appSrc, /window\.printOnboardingGate\s*=\s*async\s+function/,
+checkPattern(onboardingSrc, /export async function printOnboardingGate/,
     'printOnboardingGate là async function');
-checkPattern(appSrc, 'generateOnboardingReportText',
+checkPattern(onboardingSrc, 'generateOnboardingReportText',
     'window.generateOnboardingReportText được định nghĩa');
-checkPattern(appSrc, /window\.generateOnboardingReportText\s*=\s*async\s+function/,
+checkPattern(onboardingSrc, /export async function generateOnboardingReportText/,
     'generateOnboardingReportText là async function');
 
 // ── 4–8. runOnboardingGate gọi các diagnostics ───────────────────
 // Tìm vùng runOnboardingGate để check scoped
-const gateStart = appSrc.indexOf('window.runOnboardingGate = async function');
-const gateEnd   = appSrc.indexOf('window.printOnboardingGate = async function');
+const gateStart = onboardingSrc.indexOf('export async function runOnboardingGate');
+const gateEnd   = onboardingSrc.indexOf('export async function printOnboardingGate');
 const gateBody  = gateStart !== -1 && gateEnd > gateStart
-    ? appSrc.slice(gateStart, gateEnd)
-    : appSrc;
+    ? onboardingSrc.slice(gateStart, gateEnd)
+    : onboardingSrc;
 
 console.log('');
 console.log('[OnboardingGate] [4–8] Kiểm tra runOnboardingGate gọi diagnostics...');
@@ -161,11 +162,11 @@ checkPattern(gateBody, 'readyForTenClubPilot',
 // ── 19. generateOnboardingReportText trả markdown ────────────────
 console.log('');
 console.log('[OnboardingGate] [19] Kiểm tra generateOnboardingReportText...');
-const reportFnStart = appSrc.indexOf('window.generateOnboardingReportText = async function');
-const reportFnEnd   = appSrc.indexOf('// ── End Phase 4.0B-4I');
+const reportFnStart = onboardingSrc.indexOf('export async function generateOnboardingReportText');
+const reportFnEnd   = onboardingSrc.length;
 const reportBody    = reportFnStart !== -1
-    ? appSrc.slice(reportFnStart, reportFnEnd > reportFnStart ? reportFnEnd : reportFnStart + 2000)
-    : appSrc;
+    ? onboardingSrc.slice(reportFnStart, reportFnEnd > reportFnStart ? reportFnEnd : reportFnStart + 2500)
+    : onboardingSrc;
 
 checkPattern(reportBody, '# Onboarding Gate Report',
     'generateOnboardingReportText trả markdown có heading');
@@ -179,10 +180,10 @@ checkPattern(reportBody, 'Checked At',
 // ── 20. Không có Firestore write trong onboarding gate ────────────
 console.log('');
 console.log('[OnboardingGate] [20] Kiểm tra không có Firestore write...');
-const phase4iStart = appSrc.indexOf('window.runOnboardingGate = async function');
-const phase4iEnd   = appSrc.indexOf('// ── End Phase 4.0B-4I');
+const phase4iStart = onboardingSrc.indexOf('export async function runOnboardingGate');
+const phase4iEnd   = onboardingSrc.length;
 const phase4iSection = phase4iStart !== -1 && phase4iEnd > phase4iStart
-    ? appSrc.slice(phase4iStart, phase4iEnd)
+    ? onboardingSrc.slice(phase4iStart, phase4iEnd)
     : '';
 
 if (phase4iSection) {

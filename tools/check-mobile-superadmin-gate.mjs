@@ -22,6 +22,7 @@ console.log('\n=== check-mobile-superadmin-gate ===\n');
 const appJs   = readFile('app.js');
 const mainJs  = readFile('js/main.js');
 const uiShell = readFile('js/ui/legacyUiShell.js');
+const runtimeDiagnostics = readFile('js/diagnostics/runtimeReadinessDiagnostics.js');
 
 // 1. isSuperAdminRole must exist
 if (appJs.includes('window.isSuperAdminRole = function')) {
@@ -54,11 +55,11 @@ if (appJs.includes('window.openNewClubModal') && appJs.includes('isSuperAdminRol
   fail('openNewClubModal does NOT contain isSuperAdminRole guard');
 }
 
-// 4. debugMobileSuperAdminGate must exist
-if (appJs.includes('window.debugMobileSuperAdminGate = function')) {
-  pass('window.debugMobileSuperAdminGate defined');
+// 4. debugMobileSuperAdminGate must exist in the Phase 4K-6T diagnostics owner.
+if (runtimeDiagnostics.includes('export function debugMobileSuperAdminGate')) {
+  pass('debugMobileSuperAdminGate defined in runtime diagnostics module');
 } else {
-  fail('window.debugMobileSuperAdminGate NOT found in app.js');
+  fail('debugMobileSuperAdminGate NOT found in runtime diagnostics module');
 }
 
 // 5. debugRuntimeSmokeTest includes debugMobileSuperAdminGate

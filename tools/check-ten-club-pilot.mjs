@@ -69,10 +69,12 @@ console.log('[TenClubPilot] Kiểm tra 10-CLB pilot readiness (Phase 4.0B-4G)...
 console.log('');
 
 const appSrc   = readSrc('app.js');
+const diagSrc  = readSrc('js/diagnostics/runtimeReadinessDiagnostics.js');
+const combinedDiagnosticSrc = (diagSrc || '') + '\n' + appSrc;
 const rulesSrc = readSrc('firestore.rules');
 
-if (!appSrc) {
-    console.error('[TenClubPilot] ❌ Không đọc được app.js — dừng.');
+if (!appSrc || !diagSrc) {
+    console.error('[TenClubPilot] ❌ Không đọc được app.js hoặc runtime diagnostics — dừng.');
     process.exit(1);
 }
 info(`app.js: ${appSrc.length} ký tự`);
@@ -80,29 +82,29 @@ console.log('');
 
 // ── 1. window.printTenClubPilotReadiness tồn tại ─────────────────
 console.log('[TenClubPilot] [1] Kiểm tra printTenClubPilotReadiness...');
-checkPattern(appSrc, 'printTenClubPilotReadiness',
+checkPattern(diagSrc, 'printTenClubPilotReadiness',
     'window.printTenClubPilotReadiness được định nghĩa trong app.js');
-checkPattern(appSrc, /window\.printTenClubPilotReadiness\s*=\s*function/,
+checkPattern(diagSrc, /export function printTenClubPilotReadiness/,
     'printTenClubPilotReadiness là function assignment');
 
 // ── 2. readyForTenClubPilot không còn hard-code false ────────────
 console.log('');
 console.log('[TenClubPilot] [2] Kiểm tra readyForTenClubPilot không hard-code false...');
-checkAbsent(appSrc, 'readyForTenClubPilot: false',
+checkAbsent(diagSrc, 'readyForTenClubPilot: false',
     'readyForTenClubPilot không còn set cứng false');
-checkPattern(appSrc, 'readyForTenClubPilot:',
+checkPattern(diagSrc, 'readyForTenClubPilot:',
     'readyForTenClubPilot field vẫn tồn tại (dynamic)');
-checkPattern(appSrc, /readyForTenClubPilot:\s*(?!false)\S/,
+checkPattern(diagSrc, /readyForTenClubPilot:\s*(?!false)\S/,
     'readyForTenClubPilot được gán giá trị động (không phải literal false)');
 
 // ── 3. Có pilotBlockers / blockers ───────────────────────────────
 console.log('');
 console.log('[TenClubPilot] [3] Kiểm tra pilotBlockers và blockers...');
-checkPattern(appSrc, 'pilotBlockers',
+checkPattern(combinedDiagnosticSrc, 'pilotBlockers',
     'pilotBlockers array tồn tại trong printPilotLaunchStatus');
-checkPattern(appSrc, /blockers\.push/,
+checkPattern(diagSrc, /blockers\.push/,
     'blockers.push() được dùng để ghi nhận blocker');
-checkPattern(appSrc, /blockers\.length === 0/,
+checkPattern(diagSrc, /blockers\.length === 0/,
     'readyForTenClubPilot = blockers.length === 0 (logic đúng)');
 
 // ── 4. check-tenant-isolation.mjs tồn tại ────────────────────────
@@ -124,7 +126,7 @@ fileExists('PILOT_LAUNCH_REPORT_TEMPLATE.md', 'PILOT_LAUNCH_REPORT_TEMPLATE.md t
 console.log('');
 console.log('[TenClubPilot] [7] Kiểm tra không có Firestore write trong fallback...');
 const fallbackStart = appSrc.indexOf('window.activateLegacyRootFallback');
-const fallbackEnd   = appSrc.indexOf('window.printPilotTabReadiness');
+const fallbackEnd   = appSrc.indexOf('window.runRuntimeDataRecovery');
 if (fallbackStart !== -1 && fallbackEnd !== -1) {
     const fallbackSection = appSrc.slice(fallbackStart, fallbackEnd);
     const hasWrite = /\bsetDoc\b|\bupdateDoc\b|\baddDoc\b|\bdeleteDoc\b|\bbatch\.set\b|\bbatch\.update\b/.test(fallbackSection);

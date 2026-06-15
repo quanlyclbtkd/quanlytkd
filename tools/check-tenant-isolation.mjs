@@ -117,7 +117,7 @@ console.log('');
 console.log('[TenantIsolation] [3] Kiểm tra legacy fallback tst_* read-only...');
 // Tìm vùng activateLegacyRootFallback
 const legacyStart = appSrc.indexOf('window.activateLegacyRootFallback');
-const legacyEnd   = appSrc.indexOf('window.printPilotTabReadiness');
+const legacyEnd   = appSrc.indexOf('window.runRuntimeDataRecovery');
 if (legacyStart !== -1 && legacyEnd !== -1) {
     const legacySection = appSrc.slice(legacyStart, legacyEnd);
     const hasWrite = /\bsetDoc\b|\bupdateDoc\b|\baddDoc\b|\bdeleteDoc\b|\bbatch\.set\b|\bbatch\.update\b/.test(legacySection);
