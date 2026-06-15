@@ -1,6 +1,6 @@
 /**
  * js/core/globalOwnershipRegistry.js
- * Phase 4K-6U — Report/Excel Canonical Ownership + Lazy Isolation
+ * Phase 4K-6V — Attendance Canonical Ownership + Monthly Pagination
  *
  * Central registry for reviewed window globals. It preserves the classic-script
  * fallback reference for rollback, installs one canonical module owner, detects
@@ -43,6 +43,28 @@ export const GLOBAL_OWNERSHIP_MANIFEST = Object.freeze({
   executeTaxExport:        { owner: 'js/modules/reports/reportExportFacade.js', risk: 'report-readonly-lazy', policy: 'module-primary', registrationRequired: true },
   exportAttendanceExcel:   { owner: 'js/modules/reports/reportExportFacade.js', risk: 'report-readonly-lazy', policy: 'module-primary', registrationRequired: true },
   copyAttReport:           { owner: 'js/modules/reports/reportExportFacade.js', risk: 'ui-only', policy: 'module-primary', registrationRequired: true },
+
+
+  // Phase 4K-6V: attendance core is module-owned; app.js keeps no duplicate implementation.
+  _getClubShifts:              { owner: 'js/modules/attendance.js', risk: 'attendance-readonly', policy: 'module-primary', registrationRequired: true },
+  _ensureClubShiftsLoaded:     { owner: 'js/modules/attendance.js', risk: 'attendance-readonly', policy: 'module-primary', registrationRequired: true },
+  _renderHomeBirthdayBanner:   { owner: 'js/modules/attendance.js', risk: 'attendance-ui', policy: 'module-primary', registrationRequired: true },
+  showAttMemberHistory:        { owner: 'js/modules/attendance.js', risk: 'attendance-readonly', policy: 'module-primary', registrationRequired: true },
+  renderAttendanceList:        { owner: 'js/modules/attendance.js', risk: 'attendance-readwrite', policy: 'module-primary', registrationRequired: true },
+  onShiftChange:               { owner: 'js/modules/attendance.js', risk: 'attendance-ui', policy: 'module-primary', registrationRequired: true },
+  openShiftModal:              { owner: 'js/modules/attendance.js', risk: 'attendance-ui', policy: 'module-primary', registrationRequired: true },
+  closeShiftModal:             { owner: 'js/modules/attendance.js', risk: 'attendance-ui', policy: 'module-primary', registrationRequired: true },
+  addShift:                    { owner: 'js/modules/attendance.js', risk: 'attendance-write', policy: 'module-primary', registrationRequired: true },
+  deleteShift:                 { owner: 'js/modules/attendance.js', risk: 'attendance-write', policy: 'module-primary', registrationRequired: true },
+  toggleAttendance:            { owner: 'js/modules/attendance.js', risk: 'attendance-write', policy: 'module-primary', registrationRequired: true },
+  toggleAttendanceStatus:      { owner: 'js/modules/attendance.js', risk: 'attendance-write', policy: 'module-primary', registrationRequired: true },
+  bulkCheckIn:                 { owner: 'js/modules/attendance.js', risk: 'attendance-write', policy: 'module-primary', registrationRequired: true },
+  syncOfflineAttendance:       { owner: 'js/modules/attendance.js', risk: 'attendance-write', policy: 'module-primary', registrationRequired: true },
+  switchAttSubTab:             { owner: 'js/modules/attendance.js', risk: 'attendance-ui', policy: 'module-primary', registrationRequired: true },
+  renderAttMonthly:            { owner: 'js/modules/attendance.js', risk: 'attendance-readonly-paginated', policy: 'module-primary', registrationRequired: true },
+  printAttendanceStatus:       { owner: 'js/modules/attendance.js', risk: 'attendance-diagnostics-readonly', policy: 'module-primary', registrationRequired: true },
+  printAttendanceSessionCompletion:{ owner: 'js/modules/attendance.js', risk: 'attendance-diagnostics-readonly', policy: 'module-primary', registrationRequired: true },
+  printAttendanceBranchReport: { owner: 'js/modules/attendance.js', risk: 'attendance-diagnostics-readonly', policy: 'module-primary', registrationRequired: true },
 
 
   // Phase 4K-6T: read-only diagnostics extracted from app.js.
@@ -215,7 +237,7 @@ export const GlobalOwnershipRegistry = Object.freeze({
     }));
 
     return {
-      phase: '4K-6U-report-excel-lazy-isolation',
+      phase: '4K-6V-attendance-canonical-ownership',
       registered,
       manifest,
       collisions: _collisions.slice(),

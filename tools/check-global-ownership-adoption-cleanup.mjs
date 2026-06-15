@@ -28,12 +28,26 @@ const finance = read('js/modules/finance.js');
 const students = read('js/modules/students.js');
 const fallbackPath = 'js/legacy/legacyUiFallbacks.js';
 const fallback = exists(fallbackPath) ? read(fallbackPath) : '';
+const attendanceFallbackPath = 'js/legacy/legacyAttendanceFallbacks.js';
+const attendanceFallback = exists(attendanceFallbackPath) ? read(attendanceFallbackPath) : '';
+const attendanceOwnedNames = [
+  '_getClubShifts', '_ensureClubShiftsLoaded', '_renderHomeBirthdayBanner',
+  'showAttMemberHistory', 'renderAttendanceList', 'onShiftChange',
+  'openShiftModal', 'closeShiftModal', 'addShift', 'deleteShift',
+  'toggleAttendance', 'toggleAttendanceStatus', 'bulkCheckIn',
+  'syncOfflineAttendance', 'switchAttSubTab', 'renderAttMonthly',
+  'printAttendanceStatus', 'printAttendanceSessionCompletion',
+  'printAttendanceBranchReport',
+];
 
 console.log('\n🔎 Phase 4K-6S — Global Ownership Adoption + Duplicate UI Cleanup\n');
 
 check(exists(fallbackPath), 'classic rollback layer exists');
 check(index.indexOf('js/legacy/legacyUiFallbacks.js') < index.indexOf('src="app.js'), 'classic rollback layer loads before app.js');
-check(fallback.includes('4K-6U-report-excel-lazy-isolation'), 'fallback layer declares current Phase 4K-6U');
+check(fallback.includes('4K-6U-report-excel-lazy-isolation'), 'UI/report fallback layer retains its Phase 4K-6U contract');
+check(exists(attendanceFallbackPath), 'attendance classic rollback bridge exists');
+check(index.indexOf('js/legacy/legacyAttendanceFallbacks.js') < index.indexOf('src="app.js'), 'attendance rollback bridge loads before app.js');
+check(attendanceFallback.includes('4K-6V-attendance-canonical-ownership'), 'attendance rollback bridge declares Phase 4K-6V');
 check(fallback.includes('debugLegacyUiFallbacks'), 'fallback layer exposes health diagnostics');
 
 const migratedNames = [
@@ -57,7 +71,7 @@ check(app.includes('js/legacy/legacyUiFallbacks.js'), 'app.js documents extracte
 check(registry.includes('assertManifestCoverage'), 'registry validates required canonical owner coverage');
 check(registry.includes('restoreCanonical'), 'registry provides explicit canonical recovery');
 check(registry.includes('audit-only-policy'), 'registry blocks accidental switchTab ownership');
-check(registry.includes("phase: '4K-6U-report-excel-lazy-isolation'"), 'registry reports current Phase 4K-6U while preserving prior ownership rules');
+check(registry.includes("phase: '4K-6V-attendance-canonical-ownership'"), 'registry reports current Phase 4K-6V while preserving prior ownership rules');
 for (const name of migratedNames) {
   check(registry.includes(`${name}:`), `ownership manifest includes ${name}`);
 }
@@ -73,8 +87,9 @@ check(students.includes('formatMonthCompact(monthsStr)'), 'students module uses 
 check(main.includes('registerFormatGlobals()'), 'main registers format ownership before business init');
 check(main.includes('registerFinanceUiGlobals()'), 'main registers finance UI ownership before business init');
 check(main.includes('debugLegacyUiFallbacks'), 'runtime smoke test includes rollback-layer diagnostics');
-check(main.includes("APP_BUILD_VERSION = '4K-6U-report-excel-lazy-isolation-20260616'"), 'APP_BUILD_VERSION advances to Phase 4K-6U');
-check(index.includes('main.js?v=report-excel-lazy-isolation-20260616'), 'index cache bust advances to Phase 4K-6U');
+check(main.includes("APP_BUILD_VERSION = '4K-6U-report-excel-lazy-isolation-20260616'"), 'main retains Phase 4K-6U compatibility marker');
+check(main.includes("window.APP_BUILD_VERSION = '4K-6V-attendance-canonical-ownership-pagination-20260616'"), 'active APP_BUILD_VERSION advances to Phase 4K-6V');
+check(index.includes('main.js?v=attendance-canonical-ownership-20260616'), 'index cache bust advances to Phase 4K-6V');
 
 for (const protectedFn of [
   'processMultiItem', 'quickPay', 'deleteTx', 'markInvPaid', 'cancelExamPayment',
@@ -114,11 +129,24 @@ for (const id of [
 
 const storage = new Map();
 globalThis.window = globalThis;
-globalThis.document = { getElementById: (id) => elements.get(id) || null };
+globalThis.document = {
+  getElementById: (id) => elements.get(id) || null,
+  querySelectorAll: () => [],
+  createElement: (id) => makeElement(id || 'created'),
+  body: { appendChild() {}, removeChild() {} },
+};
 globalThis.localStorage = {
+  get length() { return storage.size; },
+  key: (index) => Array.from(storage.keys())[index] || null,
   getItem: (key) => storage.has(key) ? storage.get(key) : null,
   setItem: (key, value) => storage.set(key, String(value)),
+  removeItem: (key) => storage.delete(key),
 };
+Object.defineProperty(globalThis, 'navigator', { value: { onLine: false }, configurable: true });
+globalThis.addEventListener = () => {};
+globalThis.__store = { clubId: 'club-test', currentClubId: 'club-test', db: {}, profiles: {}, clubConfig: {}, clubData: {} };
+globalThis.currentClubId = 'club-test';
+globalThis.userRole = 'admin';
 globalThis.isSuperAdminRole = () => true;
 globalThis.openExcelExportModal = () => { globalThis.__excelOpened = true; };
 globalThis.updateExcelPeriodOptions = () => { globalThis.__excelOptionsUpdated = true; };
@@ -126,6 +154,7 @@ globalThis.updateTaxPeriodOptions = () => { globalThis.__taxOptionsUpdated = tru
 
 try {
   vm.runInThisContext(fallback, { filename: fallbackPath });
+  vm.runInThisContext(attendanceFallback, { filename: attendanceFallbackPath });
   const fallbackRefs = Object.fromEntries(migratedNames.map((name) => [name, globalThis[name]]));
 
   const registryModule = await import(pathToFileURL(path.join(root, 'js/core/globalOwnershipRegistry.js')).href);
@@ -136,6 +165,7 @@ try {
   const financeModule = await import(pathToFileURL(path.join(root, 'js/modules/finance.js')).href);
   const diagnosticsModule = await import(pathToFileURL(path.join(root, 'js/diagnostics/legacyDiagnostics.js')).href);
   const reportFacadeModule = await import(pathToFileURL(path.join(root, 'js/modules/reports/reportExportFacade.js')).href);
+  const attendanceModule = await import(pathToFileURL(path.join(root, 'js/modules/attendance.js')).href);
 
   registryModule.initGlobalOwnershipRegistry();
   shellModule.initLegacyUiShell();
@@ -145,14 +175,18 @@ try {
   financeModule.registerFinanceUiGlobals();
   reportFacadeModule.registerReportExportFacade();
   diagnosticsModule.initLegacyDiagnostics();
+  attendanceModule.initAttendance();
 
   const snapshot = globalThis.GlobalOwnershipRegistry.getSnapshot();
   const assertion = globalThis.GlobalOwnershipRegistry.assertRegisteredOwnership();
   const coverage = globalThis.GlobalOwnershipRegistry.assertManifestCoverage();
   const registeredUiNames = snapshot.registered.filter((item) => migratedNames.includes(item.name)).map((item) => item.name);
   check(registeredUiNames.length === 11, 'all 11 reviewed Phase 4K-6S UI globals retain canonical owners');
-  check(snapshot.registered.length === 36, 'Phase 4K-6U registry contains 11 UI, 10 report, and 15 diagnostics canonical owners');
-  check(snapshot.legacyFallbackNames.length === 21, 'all 21 classic fallback references are preserved');
+  check(snapshot.registered.length === 55, 'Phase 4K-6V registry contains 11 UI, 10 report, 19 attendance, and 15 diagnostics canonical owners');
+  check(snapshot.legacyFallbackNames.length === 40, 'all 40 classic UI/report/attendance fallback references are preserved');
+  const registeredAttendanceNames = snapshot.registered.filter((item) => attendanceOwnedNames.includes(item.name));
+  check(registeredAttendanceNames.length === 19, 'all 19 attendance globals have canonical owners');
+  check(registeredAttendanceNames.every((item) => item.owner === 'js/modules/attendance.js' && item.installed), 'attendance canonical references are installed');
   check(snapshot.collisions.length === 0, 'no ownership collision detected');
   check(assertion.ok, 'all registered globals still point to canonical implementations');
   check(coverage.ok, 'all required manifest owners are registered');

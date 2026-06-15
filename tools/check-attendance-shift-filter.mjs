@@ -1,125 +1,51 @@
 /**
- * tools/check-attendance-shift-filter.mjs — Phase 4J-9B FIXED2
- * ─────────────────────────────────────────────────────────────────────
- * Kiểm tra logic attendance shift filter trong app.js không còn lỗi.
- *
- * Lỗi cũ:
- *   if (_currentShiftId ? (_docShift !== _currentShiftId) : (_docShift !== '')) return;
- *   → Khi không chọn ca, bỏ qua record có shiftId (sai).
- *
- * Logic đúng:
- *   if (_currentShiftId && _docShift !== _currentShiftId) return;
- *   → Không chọn ca: lấy tất cả record.
- *   → Có chọn ca: chỉ lấy đúng ca đó.
- *
- * Chạy: node tools/check-attendance-shift-filter.mjs
- * Hoặc: npm run check:attendance-shift-filter
- * ─────────────────────────────────────────────────────────────────────
+ * Phase 4K-6V — Attendance canonical shift-filter check.
+ * Verifies the canonical module/service after the legacy duplicate was removed.
  */
-
 import { readFileSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const root      = resolve(__dirname, '..');
-
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const read = (file) => readFileSync(resolve(root, file), 'utf8');
 let pass = 0;
 let fail = 0;
-const errors = [];
-
-function check(label, condition, hint, fileRef) {
-    if (condition) {
-        console.log('  ✅ ' + label);
-        pass++;
-    } else {
-        const loc = fileRef ? ' [' + fileRef + ']' : '';
-        console.error('  ❌ ' + label + loc);
-        if (hint) console.error('     → ' + hint);
-        fail++;
-        errors.push(label);
-    }
+function check(label, ok, hint='') {
+  if (ok) { console.log('  ✅ ' + label); pass++; }
+  else { console.error('  ❌ ' + label); if (hint) console.error('     → ' + hint); fail++; }
 }
 
-function readFile(relPath) {
-    try { return readFileSync(resolve(root, relPath), 'utf8'); }
-    catch (_) { return null; }
-}
+const app = read('app.js');
+const mod = read('js/modules/attendance.js');
+const service = read('js/services/attendance.service.js');
 
 console.log('\n══════════════════════════════════════════════════════════');
-console.log('  Phase 4J-9B FIXED2 — Attendance Shift Filter Check');
+console.log('  Phase 4K-6V — Attendance Shift Filter Check');
 console.log('══════════════════════════════════════════════════════════\n');
 
-const appJs = readFile('app.js');
+check('app.js không còn implementation renderAttendanceList',
+  !/window\.renderAttendanceList\s*=\s*async/.test(app),
+  'Attendance core phải chỉ nằm trong js/modules/attendance.js');
+check('app.js không còn implementation toggleAttendance',
+  !/window\.toggleAttendance\s*=/.test(app),
+  'Xóa duplicate attendance write flow khỏi app.js');
+check('Module có canonical renderAttendanceList',
+  /window\.renderAttendanceList\s*=\s*async/.test(mod));
+check('Không còn ternary shift filter sai',
+  !/_currentShiftId\s*\?\s*\(_docShift\s*!==\s*_currentShiftId\)/.test(mod));
+check('Module dùng logic đúng khi có ca',
+  /if\s*\(\s*_currentShiftId\s*&&\s*_docShift\s*!==\s*_currentShiftId\s*\)\s*return/.test(mod));
+check('Module vẫn nạp cache sau filter',
+  /_attendanceCache\[_id\]\s*=\s*_mapLegacyStatus/.test(mod));
+check('Service lọc shiftId phía server khi có ca',
+  /if\s*\(shiftId\)\s*constraints\.push\(where\(['"]shiftId['"],\s*['"]==['"],\s*shiftId\)\)/.test(service));
+check('Service dùng attendanceDailyLimit tập trung',
+  service.includes('attendanceDailyLimit'));
+check('Service cảnh báo khi chạm daily limit',
+  service.includes('hitLimit') && service.includes('warnUnsafeLimit'));
+check('Module truyền _currentShiftId vào loadByDate',
+  /loadByDate\(_attCurrentDate,\s*\{\s*shiftId:\s*_currentShiftId\s*\}\)/.test(mod));
 
-console.log('▸ Section 1: app.js — Attendance shift filter logic');
-
-check('app.js exists', !!appJs, 'app.js không tồn tại', 'app.js');
-
-if (appJs) {
-    // Kiểm tra pattern lỗi KHÔNG còn tồn tại
-    const badPattern1 = /\(\s*_currentShiftId\s*\?\s*\(\s*_docShift\s*!==\s*_currentShiftId\s*\)\s*:\s*\(\s*_docShift\s*!==\s*''\s*\)\s*\)/;
-    const badPattern2 = /_currentShiftId\s*\?\s*\(_docShift\s*!==\s*_currentShiftId\s*\)\s*:\s*\(_docShift\s*!==\s*''\s*\)/;
-
-    check(
-        'Không còn logic sai: ternary filter bỏ qua record có shiftId khi không chọn ca',
-        !badPattern1.test(appJs) && !badPattern2.test(appJs),
-        'Xóa: if (_currentShiftId ? (_docShift !== _currentShiftId) : (_docShift !== \'\')) return;\n     Thay bằng: if (_currentShiftId && _docShift !== _currentShiftId) return;',
-        'app.js → renderAttendanceList'
-    );
-
-    // Kiểm tra pattern đúng TỒN TẠI
-    const goodPattern = /if\s*\(\s*_currentShiftId\s*&&\s*_docShift\s*!==\s*_currentShiftId\s*\)\s*return\s*;/;
-    check(
-        'Có logic đúng: if (_currentShiftId && _docShift !== _currentShiftId) return;',
-        goodPattern.test(appJs),
-        'Thêm: if (_currentShiftId && _docShift !== _currentShiftId) return;',
-        'app.js → renderAttendanceList → snap.forEach'
-    );
-
-    // Kiểm tra _attendanceCache vẫn còn
-    check(
-        '_attendanceCache vẫn được gán trong renderAttendanceList',
-        appJs.includes('_attendanceCache[d.id]') && appJs.includes('_mapLegacyStatus'),
-        '_attendanceCache[d.id] = _mapLegacyStatus(...) phải còn sau lệnh if',
-        'app.js → renderAttendanceList'
-    );
-
-    // Kiểm tra backward-compat comment hoặc shiftId
-    check(
-        'Có ghi chú tương thích ngược cho record không có shiftId',
-        appJs.includes('shiftId') && appJs.includes('_docShift'),
-        'Giữ _docShift = _sd.shiftId || "" để tương thích record cũ không có shiftId',
-        'app.js → renderAttendanceList'
-    );
-
-    // Kiểm tra attendanceDailyLimit vẫn còn
-    check(
-        'attendanceDailyLimit vẫn được dùng (không hard-code limit)',
-        appJs.includes('attendanceDailyLimit'),
-        'Giữ window.__scaleConfig.attendanceDailyLimit thay vì hard-code limit(500)',
-        'app.js → renderAttendanceList'
-    );
-
-    // Kiểm tra warning khi chạm limit vẫn còn
-    check(
-        'Warning khi snap.size >= limit vẫn còn',
-        appJs.includes('snap.size >= _attLimit') || appJs.includes('snap.size>=_attLimit'),
-        'Giữ warning khi attendance hit limit để dễ debug production',
-        'app.js → renderAttendanceList'
-    );
-}
-
-console.log();
-console.log('══════════════════════════════════════════════════════════');
-console.log('  Total: ' + (pass + fail) + ' checks | ✅ Pass: ' + pass + ' | ❌ Fail: ' + fail);
-
-if (fail > 0) {
-    console.error('\nFailed checks:');
-    errors.forEach(e => console.error('  - ' + e));
-    console.log('══════════════════════════════════════════════════════════\n');
-    process.exit(1);
-} else {
-    console.log('\n  🎉 Attendance shift filter — all clear!');
-    console.log('══════════════════════════════════════════════════════════\n');
-}
+console.log(`\nTotal: ${pass + fail} | Pass: ${pass} | Fail: ${fail}`);
+if (fail) process.exit(1);
+console.log('✅ Attendance shift filtering is canonical and safe.\n');

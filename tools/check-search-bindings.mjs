@@ -123,16 +123,18 @@ console.log();
 
 // ── Section 5: Attendance limit guard ────────────────────────────
 console.log('▸ Section 5: Attendance limit guard');
-if (appJs) {
+const attendanceService = readFile('js/services/attendance.service.js');
+const attendanceModule = readFile('js/modules/attendance.js');
+if (appJs && attendanceService && attendanceModule) {
     check('Attendance dùng attendanceDailyLimit từ scaleConfig',
-        appJs.includes('attendanceDailyLimit'),
-        'Không hard-code limit(500) cho attendance — dùng window.__scaleConfig.attendanceDailyLimit');
-    check('Attendance có shift filter khi _currentShiftId có giá trị',
-        appJs.includes('_currentShiftId') && appJs.includes("where('shiftId'") || appJs.includes('where("shiftId"'),
-        'Thêm where("shiftId", "==", _currentShiftId) khi shift được chọn để giảm docs đọc');
+        appJs.includes('attendanceDailyLimit') && attendanceService.includes('attendanceDailyLimit'),
+        'Scale config ở app.js và canonical service phải cùng dùng attendanceDailyLimit');
+    check('Attendance có server-side shift filter khi chọn ca',
+        attendanceService.includes("where('shiftId', '==', shiftId)") && attendanceModule.includes('shiftId: _currentShiftId'),
+        'Canonical module phải truyền shiftId và service phải lọc ở Firestore query');
     check('Attendance warning khi chạm limit có date + shift info',
-        appJs.includes('_shiftInfo') || appJs.includes('shiftId') && appJs.includes('att') && appJs.includes('limit'),
-        'Warning khi snap.size >= limit phải ghi date + shift + gợi ý xử lý');
+        attendanceService.includes('hitLimit') && attendanceService.includes('shiftInfo') && attendanceService.includes('warnUnsafeLimit'),
+        'Service phải cảnh báo limit hit với ngày/ca và metrics');
 }
 console.log();
 

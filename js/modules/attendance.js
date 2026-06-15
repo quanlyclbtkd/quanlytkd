@@ -16,6 +16,18 @@
  */
 
 import { AttendanceService } from '../services/attendance.service.js';
+import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
+
+const ATTENDANCE_OWNER = 'js/modules/attendance.js';
+const ATTENDANCE_OWNED_GLOBALS = Object.freeze([
+    '_getClubShifts', '_ensureClubShiftsLoaded', '_renderHomeBirthdayBanner',
+    'showAttMemberHistory', 'renderAttendanceList', 'onShiftChange',
+    'openShiftModal', 'closeShiftModal', 'addShift', 'deleteShift',
+    'toggleAttendance', 'toggleAttendanceStatus', 'bulkCheckIn',
+    'syncOfflineAttendance', 'switchAttSubTab', 'renderAttMonthly',
+    'printAttendanceStatus', 'printAttendanceSessionCompletion',
+    'printAttendanceBranchReport'
+]);
 
 // ── Bridge helpers (đọc tại call-time — không cache lúc init) ──
 function _db()       { return (window.__store || {}).db; }
@@ -33,6 +45,78 @@ let _attendanceCache    = {};
 let _clubShifts         = [];
 let _clubShiftsLoaded   = false;
 let _currentShiftId     = '';
+let _attendanceInitialized = false;
+let _attendanceInitializedClubId = '';
+let _onlineListenerBound = false;
+let _monthlyRenderRequestId = 0;
+let _monthlyAbortController = null;
+let _ownedAttendanceImplementations = null;
+
+function _resetAttendanceModuleState(nextClubId) {
+    _attCurrentProfiles = [];
+    _attCurrentDate = '';
+    _attendanceCache = {};
+    _clubShifts = [];
+    _clubShiftsLoaded = false;
+    _currentShiftId = '';
+    _attendanceInitializedClubId = nextClubId || '';
+    window.currentAttendanceData = {};
+    if (_monthlyAbortController) {
+        try { _monthlyAbortController.abort(); } catch (_) {}
+        _monthlyAbortController = null;
+    }
+    _monthlyRenderRequestId++;
+}
+
+async function _loadSessionNoteAfterAttendanceRender(date) {
+    if (!date || (window.userRole !== 'coach' && window.userRole !== 'admin')) return;
+    if (typeof window.loadSessionNote !== 'function') return;
+    try {
+        await Promise.resolve(window.loadSessionNote(date));
+    } catch (error) {
+        console.warn('[Attendance] Không thể tải ghi chú buổi tập:', error && error.message || error);
+    }
+}
+
+function _registerAttendanceOwnership(legacyFallbacks = {}) {
+    if (!_ownedAttendanceImplementations) {
+        _ownedAttendanceImplementations = Object.fromEntries(
+            ATTENDANCE_OWNED_GLOBALS.map((name) => [name, window[name]])
+        );
+    }
+    const results = [];
+    for (const [name, implementation] of Object.entries(_ownedAttendanceImplementations)) {
+        if (typeof implementation !== 'function') {
+            results.push({ ok: false, name, reason: 'missing-implementation' });
+            continue;
+        }
+        // Preserve the classic-script bridge before installing the canonical
+        // implementation. The module builds its functions on window for inline
+        // handler compatibility, so without this temporary restore the registry
+        // would see only the canonical function and lose the rollback reference.
+        const legacyFallback = legacyFallbacks[name];
+        if (typeof legacyFallback === 'function' && legacyFallback !== implementation) {
+            window[name] = legacyFallback;
+        }
+        const result = GlobalOwnershipRegistry.register(name, implementation, {
+            owner: ATTENDANCE_OWNER,
+            risk: name.startsWith('print') ? 'attendance-diagnostics-readonly' : 'attendance-core',
+            policy: 'module-primary'
+        });
+        if (!result.ok) window[name] = implementation;
+        results.push(result);
+    }
+    return results;
+}
+
+function _restoreAttendanceOwnership() {
+    ATTENDANCE_OWNED_GLOBALS.forEach((name) => {
+        const result = GlobalOwnershipRegistry.restoreCanonical(name);
+        if (!result.ok && result.reason !== 'not-registered') {
+            console.warn('[Attendance] Không thể phục hồi canonical global:', result);
+        }
+    });
+}
 
 // ── Phase 4.0B-4J-5 Helpers ──────────────────────────────────────
 
@@ -348,7 +432,7 @@ async function _loadCoachForBranchSummary(date) {
     if (!date || !_clubId()) return;
     if (window.userRole !== 'admin' && window.userRole !== 'super_admin') return;
     try {
-        const _notesList = await AttendanceService.loadNotesByDate(date);
+        const _notesList = await AttendanceService.loadCoachNotes(date);
         const _nSnap = { forEach: (fn) => _notesList.forEach(item => fn({ data: () => item.data, id: item.id })) };
         const _brData = {};
         _nSnap.forEach(d => {
@@ -479,6 +563,22 @@ function _saveAttOffline(clubId, date) {
 // PUBLIC: initAttendance() — mount tất cả window.X
 // ════════════════════════════════════════════════════════════════
 export function initAttendance() {
+    const activeClubId = _clubId();
+    const legacyFallbacksAtInit = Object.fromEntries(
+        ATTENDANCE_OWNED_GLOBALS.map((name) => [name, window[name]])
+    );
+    if (_attendanceInitialized) {
+        if (activeClubId !== _attendanceInitializedClubId) {
+            _resetAttendanceModuleState(activeClubId);
+        }
+        _restoreAttendanceOwnership();
+        if (typeof window.syncOfflineAttendance === 'function') {
+            Promise.resolve(window.syncOfflineAttendance()).catch(() => {});
+        }
+        return window.AttendanceModule || null;
+    }
+    _attendanceInitialized = true;
+    _attendanceInitializedClubId = activeClubId;
 
     // Expose getters cho các module khác (students.js dùng khi openAddModal)
     window._getClubShifts = function() { return _clubShifts; };
@@ -660,18 +760,31 @@ export function initAttendance() {
         window.__attendanceDebug = window.__attendanceDebug || {};
         _attCurrentProfiles = _getFilteredAttProfiles();
         if (!_clubShiftsLoaded) await _loadClubShifts();
-        if (_attCurrentProfiles.length === 0) { _renderAttCards(); return; }
+        if (_attCurrentProfiles.length === 0) {
+            _renderAttCards();
+            await _loadSessionNoteAfterAttendanceRender(_attCurrentDate);
+            return;
+        }
+        if (typeof window.trackLargeListRender === 'function') {
+            window.trackLargeListRender('attendance.list', _attCurrentProfiles.length, { reason: 'render-attendance-list' });
+        }
         gridEl.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px 16px;color:#94a3b8;font-size:0.85rem;">⏳ Đang tải dữ liệu điểm danh...</div>';
         try {
-            const attList = await AttendanceService.loadByDate(_attCurrentDate);
+            const attList = await AttendanceService.loadByDate(_attCurrentDate, { shiftId: _currentShiftId });
             _attendanceCache = {};
             attList.forEach(({ id: _id, data: _sd }) => {
                 const _docShift = _sd.shiftId || '';
-                if (_currentShiftId ? (_docShift !== _currentShiftId) : (_docShift !== '')) return;
+                // Không chọn ca: hiển thị mọi record trong ngày. Có chọn ca:
+                // chỉ hiển thị đúng ca đó. Records cũ không có shiftId vẫn tương thích.
+                if (_currentShiftId && _docShift !== _currentShiftId) return;
                 _attendanceCache[_id] = _mapLegacyStatus(_sd.status || 0);
             });
-        } catch(e) { _attendanceCache = {}; }
+        } catch(e) {
+            console.warn('[Attendance] loadByDate failed:', e && e.message || e);
+            _attendanceCache = {};
+        }
         _renderAttCards();
+        await _loadSessionNoteAfterAttendanceRender(_attCurrentDate);
     };
 
     // ── Ca tập ─────────────────────────────────────────────────
@@ -883,7 +996,10 @@ export function initAttendance() {
             if (_attCurrentDate && typeof window.renderAttendanceList === 'function') window.renderAttendanceList();
         }
     };
-    window.addEventListener('online', window.syncOfflineAttendance);
+    if (!_onlineListenerBound) {
+        window.addEventListener('online', window.syncOfflineAttendance);
+        _onlineListenerBound = true;
+    }
     window.syncOfflineAttendance();
 
     // ── Sub-tab chuyển Ngày / Tháng ─────────────────────────────
@@ -896,6 +1012,11 @@ export function initAttendance() {
         monDiv.style.display = isDay ? 'none' : '';
         if (btnDay) { btnDay.style.background=isDay?'#0033A0':'#fff'; btnDay.style.color=isDay?'#fff':'#64748b'; btnDay.style.borderColor=isDay?'#0033A0':'#e2e8f0'; btnDay.style.boxShadow=isDay?'0 4px 12px rgba(0,51,160,0.2)':'none'; }
         if (btnMon) { btnMon.style.background=isDay?'#fff':'#0033A0'; btnMon.style.color=isDay?'#64748b':'#fff'; btnMon.style.borderColor=isDay?'#e2e8f0':'#0033A0'; btnMon.style.boxShadow=isDay?'none':'0 4px 12px rgba(0,51,160,0.2)'; }
+        if (isDay && _monthlyAbortController) {
+            try { _monthlyAbortController.abort(); } catch (_) {}
+            _monthlyAbortController = null;
+            _monthlyRenderRequestId++;
+        }
         if (!isDay) {
             const attMon = document.getElementById('att_month');
             if (attMon && !attMon.value) { const now=new Date(); attMon.value=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0'); }
@@ -909,6 +1030,13 @@ export function initAttendance() {
         const branchEl = document.getElementById('att_month_branch');
         const tbody    = document.getElementById('att_monthly_body');
         if (!tbody) return;
+        const requestId = ++_monthlyRenderRequestId;
+        if (_monthlyAbortController) {
+            try { _monthlyAbortController.abort(); } catch (_) {}
+        }
+        _monthlyAbortController = typeof AbortController === 'function' ? new AbortController() : null;
+        const requestSignal = _monthlyAbortController ? _monthlyAbortController.signal : null;
+        const _isCurrentRequest = () => requestId === _monthlyRenderRequestId && !(requestSignal && requestSignal.aborted);
         const _isMobile = window.innerWidth <= 639;
         const _cardsEl  = document.getElementById('att_monthly_cards');
         const _tableWrap= document.getElementById('att_monthly_table_wrap');
@@ -923,7 +1051,15 @@ export function initAttendance() {
         if (!selMonth) { _showMsg('Vui lòng chọn tháng để xem thống kê'); return; }
         _showMsg('⏳ Đang tải dữ liệu...');
         try {
-            const monthRecords = await AttendanceService.loadByMonth(selMonth);
+            const monthRecords = await AttendanceService.loadByMonth(selMonth, {
+                signal: requestSignal,
+                onPage: ({ totalDocs, page }) => {
+                    if (_isCurrentRequest() && page > 1) {
+                        _showMsg('⏳ Đang tải dữ liệu... ' + Number(totalDocs || 0).toLocaleString('vi-VN') + ' bản ghi');
+                    }
+                }
+            });
+            if (!_isCurrentRequest()) return;
             const snap = { forEach: (fn) => monthRecords.forEach(item => fn({ data: () => item.data, id: item.id })) };
             const grouped = {};
             snap.forEach(d => {
@@ -1024,9 +1160,16 @@ export function initAttendance() {
                 if (typeof window.loadAllSessionNotes === 'function') window.loadAllSessionNotes(selMonth);
             }
         } catch(e) {
+            const isAborted = e && (e.name === 'AbortError' || e.code === 'attendance/monthly-load-aborted');
+            if (isAborted || !_isCurrentRequest()) return;
+            const message = e && e.code === 'attendance/monthly-max-pages'
+                ? '⚠️ Dữ liệu điểm danh vượt ngưỡng an toàn. Hệ thống đã dừng để tránh hiển thị thiếu dữ liệu.'
+                : '⚠️ Lỗi tải dữ liệu. Vui lòng thử lại.';
             const cardsEl=document.getElementById('att_monthly_cards');
-            if (cardsEl && cardsEl.style.display!=='none') cardsEl.innerHTML='<div style="text-align:center;padding:32px;color:#dc2626;font-size:0.88rem;">⚠️ Lỗi tải dữ liệu. Vui lòng thử lại.</div>';
-            else tbody.innerHTML='<tr><td colspan="10" style="text-align:center;padding:40px;color:#dc2626;font-size:0.88rem;">⚠️ Lỗi tải dữ liệu. Vui lòng thử lại.</td></tr>';
+            if (cardsEl && cardsEl.style.display!=='none') cardsEl.innerHTML='<div style="text-align:center;padding:32px;color:#dc2626;font-size:0.88rem;">'+message+'</div>';
+            else tbody.innerHTML='<tr><td colspan="10" style="text-align:center;padding:40px;color:#dc2626;font-size:0.88rem;">'+message+'</td></tr>';
+        } finally {
+            if (requestId === _monthlyRenderRequestId) _monthlyAbortController = null;
         }
     };
 
@@ -1197,5 +1340,31 @@ export function initAttendance() {
         return report;
     };
 
-    console.info('[attendance.js] ✅ initAttendance() đã khởi tạo đầy đủ — Phase 4.0B-4J-6A');
+    const ownershipResults = _registerAttendanceOwnership(legacyFallbacksAtInit);
+    const failedOwnership = ownershipResults.filter((item) => !item.ok);
+    if (failedOwnership.length) {
+        console.error('[Attendance] Canonical ownership registration failed:', failedOwnership);
+    }
+
+    window.AttendanceModule = Object.freeze({
+        ..._ownedAttendanceImplementations,
+        resetForClub(clubId) {
+            _resetAttendanceModuleState(clubId || _clubId());
+            return true;
+        },
+        getMetrics() {
+            return {
+                phase: '4K-6V-attendance-canonical-ownership',
+                initialized: _attendanceInitialized,
+                clubId: _attendanceInitializedClubId,
+                ownedGlobals: ATTENDANCE_OWNED_GLOBALS.slice(),
+                ownershipFailures: failedOwnership.slice(),
+                monthlyPagination: window.__attendanceMonthlyPaginationMetrics || null,
+                onlineListenerBound: _onlineListenerBound
+            };
+        }
+    });
+
+    console.info('[attendance.js] ✅ Phase 4K-6V canonical attendance module ready');
+    return window.AttendanceModule;
 }

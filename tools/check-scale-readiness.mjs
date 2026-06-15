@@ -116,7 +116,9 @@ check('attendance.service.js exists', !!attService, 'File not found');
 if (attService) {
     check('loadByDate limit uses attendanceDailyLimit', attService.includes('attendanceDailyLimit'), 'Bump loadByDate limit to use __scaleConfig.attendanceDailyLimit');
     check('loadByDate limit bumped from 500', !attService.includes('[_lim(500)]'), 'Remove old limit(500) in loadByDate');
-    check('loadByMonth has limit guard', attService.includes('attendanceMonthlyLimit'), 'Add limit guard to loadByMonth');
+    check('loadByMonth uses cursor pagination', attService.includes('startAfter: _startAfter') && attService.includes('while (pages < maxPages)'), 'Monthly load must use startAfter cursor pagination');
+    check('loadByMonth has page-size config', attService.includes('attendanceMonthlyPageSize'), 'Add attendanceMonthlyPageSize config');
+    check('loadByMonth fails instead of returning truncated data', attService.includes("attendance/monthly-max-pages") && attService.includes('throw error'), 'Throw a clear error at safety ceiling');
 }
 console.log();
 

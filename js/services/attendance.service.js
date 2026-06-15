@@ -24,24 +24,47 @@ export const AttendanceService = {
      * @param {string} date — YYYY-MM-DD
      * @returns {Array<{id, data}>}
      */
-    async loadByDate(date) {
+    async loadByDate(date, options = {}) {
         const { getDocs, query, where, collection, limit: _limit } = _sdk();
         const db     = _db();
         const clubId = _clubId();
         const _lim   = typeof _limit === 'function' ? _limit : null;
         if (!_lim) console.warn('[AttendanceService] limit not available in SDK — loadByDate running without limit()');
-        // [4J-8] Tăng limit từ 500 → 1200: CLB 1000 võ sinh × 2 ca/ngày = ~2000 records max.
-        // 1200 bao phủ an toàn CLB đến 1000 võ sinh với buffer cho records cũ/trùng.
-        const _attDailyLimit = ((window.__scaleConfig || {}).attendanceDailyLimit) || 1200;
-        const snap   = await getDocs(
-            query(
-                collection(db, 'clubs', clubId, 'attendance'),
-                where('date', '==', date),
-                ...(_lim ? [_lim(_attDailyLimit)] : []) // [4J-8] 1200 (up from 500) — bao phủ 1000 võ sinh × 2 ca
-            )
-        );
+
+        const shiftId = String(options.shiftId || '');
+        const dailyLimit = Number((window.__scaleConfig || {}).attendanceDailyLimit) || 1200;
+        const constraints = [where('date', '==', date)];
+        // Composite index attendance(date + shiftId) is already declared.
+        // Filtering server-side reduces reads and avoids unrelated shift records.
+        if (shiftId) constraints.push(where('shiftId', '==', shiftId));
+        if (_lim) constraints.push(_lim(dailyLimit));
+
+        const snap = await getDocs(query(
+            collection(db, 'clubs', clubId, 'attendance'),
+            ...constraints
+        ));
         const results = [];
         snap.forEach(d => results.push({ id: d.id, data: d.data() }));
+
+        const hitLimit = results.length >= dailyLimit;
+        window.__attendanceDailyLoadMetrics = {
+            date,
+            shiftFiltered: !!shiftId,
+            docs: results.length,
+            limit: dailyLimit,
+            hitLimit,
+            updatedAt: Date.now()
+        };
+        if (hitLimit) {
+            const shiftInfo = shiftId ? ' / ca: ' + shiftId : ' (tất cả ca)';
+            console.warn(
+                '[Attendance] ⚠️ Đạt limit ' + dailyLimit + ' record — ngày ' + date + shiftInfo +
+                '. Dữ liệu có thể bị cắt bớt. Hãy chọn ca cụ thể hoặc dùng aggregation.'
+            );
+            if (typeof window.warnUnsafeLimit === 'function') {
+                window.warnUnsafeLimit('attendance:renderList:limitHit', 'att-daily-list-truncated');
+            }
+        }
         return results;
     },
 
@@ -150,25 +173,115 @@ export const AttendanceService = {
      * @param {string} month — YYYY-MM
      * @returns {Array<{id, data}>}
      */
-    async loadByMonth(month) {
-        const { getDocs, query, where, collection, limit: _limit } = _sdk();
+    async loadByMonth(month, options = {}) {
+        const { getDocs, query, where, collection, limit: _limit, startAfter: _startAfter } = _sdk();
         const db     = _db();
         const clubId = _clubId();
-        const _lim   = typeof _limit === 'function' ? _limit : null;
-        // [4J-8] Safety cap cho monthly load: 1000 võ sinh × 30 ngày × 2 ca = ~60k max.
-        // 10000 là ngưỡng hợp lý — vượt qua thì có vấn đề data model.
-        const _attMonthlyLimit = ((window.__scaleConfig || {}).attendanceMonthlyLimit) || 10000;
-        const _constraints = [where('month', '==', month)];
-        if (_lim) _constraints.push(_lim(_attMonthlyLimit)); // [4J-8] guard cap 10000
-        const snap   = await getDocs(
-            query(
-                collection(db, 'clubs', clubId, 'attendance'),
-                ..._constraints
-            )
-        );
+
+        if (!month || !/^\d{4}-\d{2}$/.test(String(month))) {
+            throw new Error('[AttendanceService] Tháng không hợp lệ. Cần định dạng YYYY-MM.');
+        }
+        if (typeof _limit !== 'function' || typeof _startAfter !== 'function') {
+            const error = new Error('[AttendanceService] Firebase SDK thiếu limit/startAfter cho monthly pagination.');
+            error.code = 'attendance/monthly-pagination-unavailable';
+            throw error;
+        }
+
+        const pageSize = Math.max(100, Math.min(
+            Number(options.pageSize || (window.__scaleConfig || {}).attendanceMonthlyPageSize || 1000),
+            2000
+        ));
+        const maxPages = Math.max(1, Math.min(
+            Number(options.maxPages || (window.__scaleConfig || {}).attendanceMonthlyMaxPages || 200),
+            500
+        ));
+        const signal = options.signal || null;
+        const onPage = typeof options.onPage === 'function' ? options.onPage : null;
+        const startedAt = Date.now();
         const results = [];
-        snap.forEach(d => results.push({ id: d.id, data: d.data() }));
-        return results;
+        let cursor = null;
+        let pages = 0;
+        let completed = false;
+
+        function throwIfAborted() {
+            if (!signal || !signal.aborted) return;
+            const error = new Error('Attendance monthly load aborted');
+            error.name = 'AbortError';
+            error.code = 'attendance/monthly-load-aborted';
+            throw error;
+        }
+
+        try {
+            while (pages < maxPages) {
+                throwIfAborted();
+                const constraints = [where('month', '==', month)];
+                // Firestore's default ordering is document ID. A DocumentSnapshot
+                // cursor preserves that deterministic order without requiring a new
+                // composite index for month + date.
+                if (cursor) constraints.push(_startAfter(cursor));
+                constraints.push(_limit(pageSize));
+
+                const snap = await getDocs(query(
+                    collection(db, 'clubs', clubId, 'attendance'),
+                    ...constraints
+                ));
+                throwIfAborted();
+
+                pages++;
+                const docs = Array.isArray(snap.docs) ? snap.docs : [];
+                docs.forEach(d => results.push({ id: d.id, data: d.data() }));
+
+                if (onPage) {
+                    try {
+                        onPage({ month, page: pages, pageDocs: docs.length, totalDocs: results.length, pageSize });
+                    } catch (_) { /* progress callback must not break data loading */ }
+                }
+
+                if (docs.length < pageSize) {
+                    completed = true;
+                    break;
+                }
+                cursor = docs[docs.length - 1];
+            }
+
+            if (!completed) {
+                const error = new Error(
+                    '[AttendanceService] Monthly pagination reached safety ceiling (' +
+                    maxPages + ' pages / ' + results.length + ' documents). Export/render stopped to avoid incomplete data.'
+                );
+                error.code = 'attendance/monthly-max-pages';
+                error.partialCount = results.length;
+                error.pages = pages;
+                throw error;
+            }
+
+            window.__attendanceMonthlyPaginationMetrics = {
+                month,
+                pages,
+                docs: results.length,
+                pageSize,
+                maxPages,
+                durationMs: Date.now() - startedAt,
+                completed: true,
+                aborted: false,
+                updatedAt: Date.now()
+            };
+            return results;
+        } catch (error) {
+            window.__attendanceMonthlyPaginationMetrics = {
+                month,
+                pages,
+                docs: results.length,
+                pageSize,
+                maxPages,
+                durationMs: Date.now() - startedAt,
+                completed: false,
+                aborted: error && (error.name === 'AbortError' || error.code === 'attendance/monthly-load-aborted'),
+                errorCode: error && error.code || 'attendance/monthly-load-failed',
+                updatedAt: Date.now()
+            };
+            throw error;
+        }
     },
 
     // ── BULK OPERATIONS ──────────────────────────────────────────────
