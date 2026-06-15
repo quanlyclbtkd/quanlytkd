@@ -1354,3 +1354,56 @@ button, a, [role="button"] {
   background: #e0e7ff;
   border-color: #0033A0;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   PHASE 4K-6Q — MOBILE FILTER LAYOUT STABILITY
+   - Chặn intrinsic/min-content width của input[type="month"] làm lệch cột.
+   - Dùng minmax(0,1fr) và min-width:0 để Safari/iOS/Android tự co đúng ô.
+   - Màn hình hẹp tự chuyển 1 cột; màn hình đủ rộng dùng 2 cột cân bằng.
+   ═══════════════════════════════════════════════════════════════════════ */
+#filterArea {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+}
+#filterArea > div {
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+#filterArea #filterMonth,
+#filterArea #filterBranch,
+#filterArea #searchInput {
+  display: block;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+#filterArea #filterMonth::-webkit-datetime-edit,
+#filterArea #filterMonth::-webkit-datetime-edit-fields-wrapper {
+  min-width: 0;
+  padding: 0;
+}
+@media (max-width: 409px) {
+  #filterArea {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  #filterArea > div,
+  #filterArea > .input-branch,
+  #filterArea > .col-span-2 {
+    grid-column: 1 / -1 !important;
+  }
+}
+@media (min-width: 410px) and (max-width: 767px) {
+  #filterArea {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  #filterArea > div:nth-child(3) {
+    grid-column: 1 / -1 !important;
+  }
+  #filterArea #filterMonth,
+  #filterArea #filterBranch {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+    font-size: 15px !important;
+  }
+}
+

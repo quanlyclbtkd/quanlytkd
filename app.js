@@ -3546,10 +3546,73 @@ service cloud.firestore {
         kq = kq.trim().replace(/\s+/g, ' '); return `(${kq.charAt(0).toUpperCase() + kq.slice(1)} đồng chẵn)`;
     };
 
+    // Phase 4K-6Q — Currency Input Stability
+    // Giữ đúng vị trí con trỏ khi định dạng tiền, tránh hiện tượng con trỏ nhảy về cuối
+    // lúc người dùng sửa/xóa số ở giữa; đồng thời chặn bind listener trùng.
+    const _normalizeCurrencyDigits = (value) => {
+        const digits = String(value ?? '').replace(/\D/g, '');
+        return digits.replace(/^0+(?=\d)/, '');
+    };
+    const _formatCurrencyDigits = (digits) => digits
+        ? digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+        : '';
+    const _currencyCaretFromDigitCount = (formatted, digitCount) => {
+        if (digitCount <= 0) return 0;
+        let seen = 0;
+        for (let i = 0; i < formatted.length; i++) {
+            if (/\d/.test(formatted[i])) {
+                seen++;
+                if (seen >= digitCount) return i + 1;
+            }
+        }
+        return formatted.length;
+    };
     const formatCurrencyInput = (dispId, actId, callback) => {
-        const d = document.getElementById(dispId); const a = document.getElementById(actId); if(!d || !a) return;
-        if(a.value && !d.value) d.value = parseInt(a.value, 10).toLocaleString('vi-VN');
-        d.addEventListener('input', (e) => { let v = e.target.value.replace(/\D/g, ''); a.value = v; e.target.value = v ? parseInt(v, 10).toLocaleString('vi-VN') : ''; if(callback) callback(); });
+        const d = document.getElementById(dispId);
+        const a = document.getElementById(actId);
+        if (!d || !a) return;
+        if (d.dataset.currencyInputBound === '1') return;
+        d.dataset.currencyInputBound = '1';
+        d.inputMode = 'numeric';
+        d.autocomplete = 'off';
+        d.setAttribute('enterkeyhint', 'done');
+
+        let composing = false;
+        const syncCurrencyValue = () => {
+            if (composing) return;
+            const rawValue = d.value || '';
+            const caret = Number.isInteger(d.selectionStart) ? d.selectionStart : rawValue.length;
+            const digitsBeforeCaret = (rawValue.slice(0, caret).match(/\d/g) || []).length;
+            const digits = _normalizeCurrencyDigits(rawValue);
+            const formatted = _formatCurrencyDigits(digits);
+
+            a.value = digits;
+            if (d.value !== formatted) d.value = formatted;
+
+            if (document.activeElement === d && typeof d.setSelectionRange === 'function') {
+                const nextCaret = _currencyCaretFromDigitCount(formatted, digitsBeforeCaret);
+                const restoreCaret = () => {
+                    if (document.activeElement !== d) return;
+                    try { d.setSelectionRange(nextCaret, nextCaret); } catch (_) {}
+                };
+                if (typeof requestAnimationFrame === 'function') requestAnimationFrame(restoreCaret);
+                else setTimeout(restoreCaret, 0);
+            }
+            if (callback) callback();
+        };
+
+        d.addEventListener('compositionstart', () => { composing = true; });
+        d.addEventListener('compositionend', () => { composing = false; syncCurrencyValue(); });
+        d.addEventListener('input', syncCurrencyValue);
+        d.addEventListener('blur', syncCurrencyValue);
+
+        if (a.value && !d.value) {
+            const initialDigits = _normalizeCurrencyDigits(a.value);
+            a.value = initialDigits;
+            d.value = _formatCurrencyDigits(initialDigits);
+        } else if (d.value) {
+            syncCurrencyValue();
+        }
     };
 
     window.calcInv = () => { let qty = Number(document.getElementById('inv_qty').value) || 0; let price = Number(document.getElementById('inv_priceActual').value) || 0; let total = qty * price; document.getElementById('inv_totalActual').value = total; document.getElementById('inv_totalDisplay').value = total > 0 ? total.toLocaleString('vi-VN') + " ₫" : ""; };
