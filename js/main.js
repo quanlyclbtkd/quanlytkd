@@ -216,8 +216,8 @@ import { LegacyAppAudit }      from './core/legacyAppAudit.js';
 import { initLegacyDiagnostics } from './diagnostics/legacyDiagnostics.js';
 
 // Phase 4K-6G: MultiItem Inventory Safety Module
-import { MultiItemInventorySafety } from './core/multiItemInventorySafety.js?v=inventory-dynamic-size-catalog-20260616-v2b';
-import { InventoryMultiItemReadOnlyUI, initInventoryMultiItemReadOnlyUI } from './core/inventoryMultiItemReadOnlyUI.js?v=inventory-dynamic-size-catalog-20260616-v2b';
+import { MultiItemInventorySafety } from './core/multiItemInventorySafety.js?v=inventory-ledger-reconciliation-20260616-v2c';
+import { InventoryMultiItemReadOnlyUI, initInventoryMultiItemReadOnlyUI } from './core/inventoryMultiItemReadOnlyUI.js?v=inventory-ledger-reconciliation-20260616-v2c';
 
 // ── Phase 3.3E: Firestore safety (expose globally for services) ──
 import { safeGetDocs, printQueryAuditReport }  from './utils/firestore-guard.js';
@@ -301,7 +301,7 @@ import {
 } from './firebase/paginatedQuery.js';
 
 // ── Phase 2d–3.2A: Business modules (eager — cần khi login) ────
-import { initStudents, initStudentPagination }        from './modules/students.js';
+import { initStudents, initStudentPagination }        from './modules/students.js?v=inventory-ledger-reconciliation-20260616-v2c';
 // PHẦN 1 FIX + Phase 4K-2: Unified Search Controller — real cache + SearchBlob + stale guard
 import {
     initGlobalSearchRuntime,
@@ -310,8 +310,8 @@ import {
     invalidateSearchCache,
     debugSearchPerformance,
 } from './modules/searchRuntime.js';
-import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from './modules/finance.js';
-import { initInventory }                              from './modules/inventory.js?v=inventory-dynamic-size-catalog-20260616-v2b';
+import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from './modules/finance.js?v=inventory-ledger-reconciliation-20260616-v2c';
+import { initInventory }                              from './modules/inventory.js?v=inventory-ledger-reconciliation-20260616-v2c';
 import { initAttendance }                             from './modules/attendance.js';
 import { initDashboard }                              from './modules/dashboard.js';
 // ── Phase 4K-6U: Heavy Reports module is lazy-loaded by reportExportFacade.js ──
@@ -3095,7 +3095,7 @@ window.debugProfileModalClose = function() {
 
 // PHẦN 1 — APP BUILD VERSION
 window.APP_BUILD_VERSION = '4K-6V2-inventory-history-pagination-complete-active-debt-20260616';
-window.APP_PATCH_VERSION = '4K-6V2B-dynamic-inventory-size-catalog-20260616';
+window.APP_PATCH_VERSION = '4K-6V2C-inventory-ledger-reconciliation-20260616';
 window.APP_COPYRIGHT_OWNER   = 'Tình Trương';
 window.APP_PRODUCT_NAME      = 'Taekwondo Club Management Web App';
 window.APP_SECURITY_PHASE    = '4K-6E-scale-readiness-write-safety';

@@ -113,8 +113,8 @@ check(exists('firestore.rules'), 'firestore.rules remains the rules source of tr
 check(registrySource.includes("phase: '4K-6V-attendance-canonical-ownership'"), 'registry reports current phase while retaining 4K-6T diagnostics ownership');
 check(main.includes(`APP_BUILD_VERSION = '${build}'`), 'main.js retains Phase 4K-6T compatibility marker');
 check(main.includes("window.APP_BUILD_VERSION = '4K-6V-attendance-canonical-ownership-pagination-20260616'") || main.includes("window.APP_BUILD_VERSION = '4K-6V2-inventory-history-pagination-complete-active-debt-20260616'"), 'active build version is Phase 4K-6V or a later compatible phase');
-check(index.includes('app.js?v=attendance-canonical-ownership-20260616') || index.includes('app.js?v=inventory-pagination-complete-debt-20260616') || index.includes('app.js?v=inventory-dynamic-size-catalog-20260616-v2b'), 'app.js cache-bust advances beyond Phase 4K-6T');
-check(index.includes('main.js?v=attendance-canonical-ownership-20260616') || index.includes('main.js?v=inventory-pagination-complete-debt-20260616') || index.includes('main.js?v=inventory-dynamic-size-catalog-20260616-v2b'), 'main.js cache-bust advances beyond Phase 4K-6T');
+check(index.includes('app.js?v=attendance-canonical-ownership-20260616') || index.includes('app.js?v=inventory-pagination-complete-debt-20260616') || index.includes('app.js?v=inventory-dynamic-size-catalog-20260616-v2b') || index.includes('app.js?v=inventory-ledger-reconciliation-20260616-v2c'), 'app.js cache-bust advances beyond Phase 4K-6T');
+check(index.includes('main.js?v=attendance-canonical-ownership-20260616') || index.includes('main.js?v=inventory-pagination-complete-debt-20260616') || index.includes('main.js?v=inventory-dynamic-size-catalog-20260616-v2b') || index.includes('main.js?v=inventory-ledger-reconciliation-20260616-v2c'), 'main.js cache-bust advances beyond Phase 4K-6T');
 check(main.includes('initLegacyDiagnostics();'), 'main initializes extracted diagnostics facade');
 
 check(!!pkg.scripts?.['check:diagnostics-tooling-isolation'], 'package exposes Phase 4K-6T checker');

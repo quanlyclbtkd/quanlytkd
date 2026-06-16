@@ -128,7 +128,7 @@ check(
 // ── 12. toggleMiInvCategory in inventory.js has fallback stock map ─────────────
 const invToggleMiIdx = inventoryJs.indexOf('window.toggleMiInvCategory = ()');
 const invToggleMiSection = invToggleMiIdx >= 0
-    ? inventoryJs.substring(invToggleMiIdx, invToggleMiIdx + 600)
+    ? inventoryJs.substring(invToggleMiIdx, invToggleMiIdx + 1800)
     : '';
 check(
     '12. toggleMiInvCategory in js/modules/inventory.js has fallback buildInventoryStockMapForMultiItem',

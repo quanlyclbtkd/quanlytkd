@@ -49,7 +49,7 @@ import {
     normalizeYYYYMM,
     formatMonthCompact,
 } from '../utils/format.js';
-import { FinanceService } from '../services/finance.service.js';
+import { FinanceService } from '../services/finance.service.js?v=inventory-ledger-reconciliation-20260616-v2c';
 import { StudentService } from '../services/students.service.js';
 import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
 
@@ -965,7 +965,7 @@ export function initTransactionPagination() {
         prepareNextPage, preparePreviousPage,
         renderPaginationControls, PAGE_SIZE,
     }) => {
-        import('../services/finance.service.js').then(({ FinanceService }) => {
+        import('../services/finance.service.js?v=inventory-ledger-reconciliation-20260616-v2c').then(({ FinanceService }) => {
 
             const store = window.__store;
             if (!store) { console.warn('[pagination/transactions] __store chưa sẵn sàng'); return; }

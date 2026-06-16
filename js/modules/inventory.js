@@ -37,7 +37,7 @@
  */
 
 import { getLocalToday } from '../utils/format.js';
-import { InventoryService } from '../services/inventory.service.js?v=inventory-dynamic-size-catalog-20260616-v2b';
+import { InventoryService } from '../services/inventory.service.js?v=inventory-ledger-reconciliation-20260616-v2c';
 
 // ════════════════════════════════════════════════════════════════
 // BRIDGE HELPERS — đọc state từ window.__store tại call-time
@@ -58,6 +58,9 @@ function _clubId()    { return (window.__store || {}).clubId; }
 // ════════════════════════════════════════════════════════════════
 
 export function initInventory() {
+
+    // Phase 4K-6V2C: canonical write API for legacy bridges and cross-module flows.
+    window.InventoryService = InventoryService;
 
     // ════════════════════════════════════════════════════════════
     // 1. getInvCategories — Trả về tất cả danh mục kho
@@ -511,6 +514,7 @@ export function initInventory() {
         try {
             const invData = await InventoryService.getItem(invId);
             if (invData) {
+                window.__editingInventoryOriginal = { ...invData };
                 const eiCat = invData.category || 'Võ phục';
                 const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
                 setVal('ei_txId',    txId);
@@ -602,9 +606,15 @@ export function initInventory() {
                 if (identity.studentName) invPayload.studentName = identity.studentName;
             }
         }
-        await InventoryService.updateItem(invId, invPayload);
         const txType = type === 'Nhập kho' ? `Chi ${eiCat}` : `Thu ${eiCat}`;
-        await InventoryService.updateTransaction(txId, { type: txType, description: desc, amount, date });
+        await InventoryService.updateItem(invId, invPayload, {
+            previous: window.__editingInventoryOriginal || null,
+            relatedTransaction: {
+                id: txId,
+                data: { type: txType, description: desc, amount, date }
+            }
+        });
+        window.__editingInventoryOriginal = null;
 
         const modal = document.getElementById('editInvModal');
         if (modal) modal.style.display = 'none';
@@ -722,6 +732,45 @@ export function initInventory() {
         if (totalEl)   totalEl.value   = total;
         if (displayEl) displayEl.value = total > 0 ? total.toLocaleString('vi-VN') + ' ₫' : '';
         if (typeof window.updateMultiItemTotal === 'function') window.updateMultiItemTotal();
+    };
+
+    // ════════════════════════════════════════════════════════════
+    // Phase 4K-6V2C — One-time exact stock reconciliation
+    // ════════════════════════════════════════════════════════════
+    window.rebuildInventoryStatsFromHistory = async () => {
+        if (window.userRole !== 'admin' && window.userRole !== 'super_admin') {
+            return alert('Chỉ Admin mới có quyền đối soát tồn kho!');
+        }
+        const ok = confirm(
+            'ĐỐI SOÁT TỒN KHO sẽ đọc toàn bộ giao dịch Kho đúng 1 lần, sau đó xây lại Bảng Tồn Kho.\n\n' +
+            'Chỉ chạy khi số tồn đang sai. Thao tác không dùng Cloud Functions và không tạo listener mới.\n\nTiếp tục?'
+        );
+        if (!ok) return;
+        const btn = document.getElementById('btnRebuildInventoryStats');
+        if (btn) { btn.disabled = true; btn.textContent = '⏳ Đang đối soát...'; }
+        try {
+            const result = await InventoryService.rebuildInventoryStats();
+            if (window.__store) window.__store.inventoryStats = result.summary;
+            if (window.__inventoryStore && typeof window.__inventoryStore.setInventoryStats === 'function') {
+                window.__inventoryStore.setInventoryStats(result.summary, 'inventory-ledger-rebuilt');
+            } else if (typeof window.setInventoryStats === 'function') {
+                window.setInventoryStats(result.summary, 'inventory-ledger-rebuilt');
+            }
+            window.MultiItemInventorySafety?.buildInventoryStockMapForMultiItem?.({ reason: 'inventory-ledger-rebuilt', force: true });
+            window.populateInvCategorySelects?.();
+            window.renderAdmissionUniformSizeOptions?.({ preserveSelection: true, reason: 'inventory-ledger-rebuilt' });
+            if (typeof window.replaceInventoryRuntimeStore === 'function') {
+                window.replaceInventoryRuntimeStore(result.items, 'inventory-ledger-rebuilt');
+            } else {
+                window.markInventoryHistoryStale?.('inventory-ledger-rebuilt');
+            }
+            window.showToast(`✅ Đã đối soát ${result.itemCount} giao dịch, sửa ${result.repairedTemporalCount || 0} bản ghi thiếu ngày và xây lại số tồn!`, 6000);
+        } catch (error) {
+            console.error('[Phase 4K-6V2C] rebuild inventory stats failed:', error);
+            alert('Không thể đối soát tồn kho: ' + (error && error.message ? error.message : error));
+        } finally {
+            if (btn) { btn.disabled = false; btn.textContent = '🔄 Đối soát tồn kho'; }
+        }
     };
 
     // ════════════════════════════════════════════════════════════

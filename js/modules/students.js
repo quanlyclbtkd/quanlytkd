@@ -28,7 +28,7 @@
  */
 
 import { getLocalToday, formatDate, formatMonth, formatMonthCompact, addMonthsToYYYYMM } from '../utils/format.js';
-import { StudentService } from '../services/students.service.js';
+import { StudentService } from '../services/students.service.js?v=inventory-ledger-reconciliation-20260616-v2c';
 
 // ════════════════════════════════════════════════════════════════
 // BRIDGE HELPERS — đọc state từ app.js qua window.__store
@@ -376,7 +376,7 @@ export function initStudents() {
 
             if (uniformSize) {
                 _invId = await StudentService.addInventoryEntry({
-                    size: uniformSize, type: 'Xuất bán', qty: 1,
+                    category: 'Võ phục', size: uniformSize, type: 'Xuất bán', qty: 1,
                     desc: _saveKey, amount: uniformFee, date: joinDate, timestamp: Date.now() + 2,
                 });
                 if (isGift) {
@@ -386,7 +386,6 @@ export function initStudents() {
                         amount: 0, date: joinDate, timestamp: Date.now() + 1, relatedInvId: _invId,
                     });
                 }
-                await StudentService.decrementInventoryStock(uniformSize);
             }
 
             const _hasFinancialPayment = fee > 0 || (!isGift && uniformFee > 0 && uniformSize);
@@ -1034,7 +1033,7 @@ export function initStudentPagination() {
         renderPaginationControls, PAGE_SIZE,
     }) => {
         import('./students.js').then(() => {}); // no-op — chỉ để IDE không warn
-        import('../services/students.service.js').then(({ StudentService }) => {
+        import('../services/students.service.js?v=inventory-ledger-reconciliation-20260616-v2c').then(({ StudentService }) => {
 
             const store = window.__store;
             if (!store) { console.warn('[pagination/students] __store chưa sẵn sàng'); return; }

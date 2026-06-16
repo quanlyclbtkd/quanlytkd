@@ -16,6 +16,154 @@ function _clubId()  { const id = (window.__store || {}).clubId; if (!id) throw n
 function _invRef()  { return (window.__store || {}).invRef; }
 function _colRef()  { return (window.__store || {}).colRef; }
 
+
+
+// ════════════════════════════════════════════════════════════════
+// Phase 4K-6V2C — Canonical inventory stock ledger
+// Every inventory mutation must update settings/inventory_stats in the
+// same batch. This prevents a saved history row from diverging from stock.
+// ════════════════════════════════════════════════════════════════
+function _normText(value) {
+    return String(value || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd')
+        .replace(/Đ/g, 'D')
+        .toLowerCase()
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function _isInventoryIn(item) {
+    const type = _normText(item && (item.type || item.transactionType));
+    return type.includes('nhap') || type === 'import';
+}
+
+function _inventoryQty(item) {
+    const raw = item && (item.qty !== undefined ? item.qty : item.quantity);
+    const qty = Number(raw === undefined ? 1 : raw);
+    return Number.isFinite(qty) && qty > 0 ? qty : 0;
+}
+
+function _inventoryBase(item) {
+    const category = String(item && (item.category || item.itemCategory) || 'Võ phục').trim() || 'Võ phục';
+    const size = String(item && (item.size || item.itemSize || item.uniformSize || item.variant) || '').trim();
+    return size ? { category, size, base: category + '|||' + size } : null;
+}
+
+function _accumulateLedgerDelta(deltaMap, item, direction) {
+    const info = _inventoryBase(item);
+    const qty = _inventoryQty(item);
+    if (!info || qty <= 0) return;
+    const slot = deltaMap.get(info.base) || { balance: 0, in: 0, out: 0 };
+    if (_isInventoryIn(item)) {
+        slot.balance += direction * qty;
+        slot.in += direction * qty;
+    } else {
+        slot.balance -= direction * qty;
+        slot.out += direction * qty;
+    }
+    deltaMap.set(info.base, slot);
+}
+
+function _buildLedgerIncrementPatch(mutations, incrementFn) {
+    const deltaMap = new Map();
+    for (const mutation of (Array.isArray(mutations) ? mutations : [])) {
+        if (!mutation || !mutation.item) continue;
+        _accumulateLedgerDelta(deltaMap, mutation.item, mutation.direction === -1 ? -1 : 1);
+    }
+    const patch = {};
+    deltaMap.forEach((delta, base) => {
+        if (delta.balance) patch[base + '_balance'] = incrementFn(delta.balance);
+        if (delta.in) patch[base + '_in'] = incrementFn(delta.in);
+        if (delta.out) patch[base + '_out'] = incrementFn(delta.out);
+    });
+    return patch;
+}
+
+function _mergeRuntimeInventory(item, reason) {
+    if (!item || !item.id) return;
+    if (typeof window.mergeInventoryIntoRuntimeStore === 'function') {
+        window.mergeInventoryIntoRuntimeStore(item, reason || 'inventory-service-write-through');
+    }
+}
+
+function _removeRuntimeInventory(invId, reason) {
+    if (!invId) return;
+    if (typeof window.removeInventoryFromRuntimeStore === 'function') {
+        window.removeInventoryFromRuntimeStore(invId, reason || 'inventory-service-delete-through');
+    }
+}
+
+function _buildLiteralSummary(items) {
+    const normalized = new Map();
+    for (const item of (Array.isArray(items) ? items : [])) {
+        const info = _inventoryBase(item);
+        const qty = _inventoryQty(item);
+        if (!info || qty <= 0) continue;
+        const identity = _normText(info.category).replace(/[^a-z0-9]+/g, '') + '|||' + _normText(info.size).replace(/[^a-z0-9]+/g, '');
+        const slot = normalized.get(identity) || {
+            category: info.category,
+            size: info.size,
+            in: 0,
+            out: 0
+        };
+        if (_isInventoryIn(item)) slot.in += qty;
+        else slot.out += qty;
+        if (info.size.length > slot.size.length) slot.size = info.size;
+        normalized.set(identity, slot);
+    }
+    const summary = {};
+    normalized.forEach(slot => {
+        const base = slot.category + '|||' + slot.size;
+        summary[base + '_in'] = slot.in;
+        summary[base + '_out'] = slot.out;
+        summary[base + '_balance'] = slot.in - slot.out;
+    });
+    summary._schemaVersion = '4K-6V2C';
+    summary._rebuiltAt = Date.now();
+    summary._rebuiltDocCount = Array.isArray(items) ? items.length : 0;
+    return summary;
+}
+
+function _toMillis(value) {
+    if (value === null || value === undefined || value === '') return 0;
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    if (value instanceof Date) return value.getTime();
+    if (value && typeof value.toMillis === 'function') {
+        const n = Number(value.toMillis());
+        return Number.isFinite(n) ? n : 0;
+    }
+    if (value && Number.isFinite(Number(value.seconds))) {
+        return Number(value.seconds) * 1000 + Math.floor(Number(value.nanoseconds || 0) / 1e6);
+    }
+    const parsed = Date.parse(String(value));
+    return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function _dateFromMillis(ms) {
+    if (!Number.isFinite(ms) || ms <= 0) return '1970-01-01';
+    const d = new Date(ms);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
+
+function _canonicalTemporalPatch(item) {
+    const existingDate = /^\d{4}-\d{2}-\d{2}$/.test(String(item && item.date || '').trim())
+        ? String(item.date).trim()
+        : '';
+    const millis = _toMillis(item && (item.timestamp || item.createdAt || item.updatedAt || item.paidAt));
+    const timestamp = millis > 0 ? millis : 0;
+    const date = existingDate || _dateFromMillis(timestamp);
+    const patch = {};
+    if (!existingDate) patch.date = date;
+    if (!_toMillis(item && item.timestamp)) patch.timestamp = timestamp;
+    if (!existingDate && timestamp === 0) patch.legacyDateUnknown = true;
+    return patch;
+}
+
 export const InventoryService = {
 
     // ── CATEGORIES ───────────────────────────────────────────────
@@ -70,45 +218,35 @@ export const InventoryService = {
      * @returns {string} ID của doc vừa tạo
      */
     async addItem(data) {
-        const { addDoc } = _sdk();
+        const { doc, writeBatch, increment } = _sdk();
         const invRef = _invRef();
         if (!invRef) throw new Error('[InventoryService] invRef chưa sẵn sàng');
+        if (typeof writeBatch !== 'function' || typeof increment !== 'function') {
+            throw new Error('[InventoryService] Firestore batch/increment chưa sẵn sàng');
+        }
+
         const payload = { ...(data || {}) };
+        if (!payload.timestamp) payload.timestamp = Date.now();
+        if (!payload.date) payload.date = typeof window.getLocalToday === 'function' ? window.getLocalToday() : new Date().toISOString().slice(0, 10);
         if (payload.type === 'Xuất bán' && payload.desc && typeof window.resolveInventoryDebtIdentity === 'function') {
             const identity = window.resolveInventoryDebtIdentity(payload.desc);
             if (identity.profileId) payload.profileId = identity.profileId;
             if (identity.memberId) payload.memberId = identity.memberId;
             if (!payload.studentName && identity.studentName) payload.studentName = identity.studentName;
         }
-        const docRef = await addDoc(invRef, payload);
 
-        // Phase 4K-6V2B: maintain the one-document inventory summary for every
-        // new category/size. This is a WRITE-only increment (zero extra reads)
-        // and lets Thu gộp / Thêm võ sinh discover new sizes before Kho is opened.
-        try {
-            const { doc, setDoc, increment } = _sdk();
-            const category = String(payload.category || 'Võ phục').trim() || 'Võ phục';
-            const size = String(payload.size || '').trim();
-            const qty = Math.max(0, Number(payload.qty !== undefined ? payload.qty : payload.quantity) || 0);
-            if (size && qty > 0 && typeof increment === 'function') {
-                const base = category + '|||' + size;
-                const isIn = String(payload.type || '').toLowerCase().includes('nhập');
-                const patch = {
-                    [base + '_balance']: increment(isIn ? qty : -qty),
-                    [base + (isIn ? '_in' : '_out')]: increment(qty)
-                };
-                await setDoc(
-                    doc(_db(), 'clubs', _clubId(), 'settings', 'inventory_stats'),
-                    patch,
-                    { merge: true }
-                );
-            }
-        } catch (summaryError) {
-            console.warn('[InventoryService] inventory_stats increment failed; history write kept:', summaryError);
-        }
+        const itemRef = doc(invRef);
+        const statsRef = doc(_db(), 'clubs', _clubId(), 'settings', 'inventory_stats');
+        const summaryPatch = _buildLedgerIncrementPatch([{ item: payload, direction: 1 }], increment);
+        const batch = writeBatch(_db());
+        batch.set(itemRef, payload);
+        if (Object.keys(summaryPatch).length) batch.set(statsRef, summaryPatch, { merge: true });
+        await batch.commit();
 
-        window.notifyInventoryMutation?.('inventory-service-add-item');
-        return docRef.id;
+        const runtimeItem = { id: itemRef.id, ...payload };
+        _mergeRuntimeInventory(runtimeItem, 'inventory-service-add-item');
+        window.notifyInventoryMutation?.('inventory-service-add-item', { writeThrough: true });
+        return itemRef.id;
     },
 
     /**
@@ -116,13 +254,108 @@ export const InventoryService = {
      * @param {string} invId — doc ID
      * @param {Object} data  — fields cần update
      */
-    async updateItem(invId, data) {
-        const { doc, updateDoc } = _sdk();
-        await updateDoc(
-            doc(_db(), 'clubs', _clubId(), 'inventory', invId),
-            data
-        );
-        window.notifyInventoryMutation?.('inventory-service-update-item');
+    async updateItem(invId, data, options = {}) {
+        const { doc, getDoc, writeBatch, increment } = _sdk();
+        const db = _db();
+        const itemRef = doc(db, 'clubs', _clubId(), 'inventory', invId);
+        let previous = options.previous && typeof options.previous === 'object' ? options.previous : null;
+        if (!previous) {
+            const snap = await getDoc(itemRef); // one read only when the caller has no local original
+            if (!snap.exists()) throw new Error('[InventoryService] Inventory item not found: ' + invId);
+            previous = { id: snap.id, ...snap.data() };
+        }
+        const next = { ...previous, ...(data || {}), id: invId };
+        if (!next.timestamp) next.timestamp = Date.now();
+
+        const summaryPatch = _buildLedgerIncrementPatch([
+            { item: previous, direction: -1 },
+            { item: next, direction: 1 }
+        ], increment);
+        const batch = writeBatch(db);
+        batch.update(itemRef, data || {});
+        if (Object.keys(summaryPatch).length) {
+            batch.set(doc(db, 'clubs', _clubId(), 'settings', 'inventory_stats'), summaryPatch, { merge: true });
+        }
+        if (options.relatedTransaction && options.relatedTransaction.id) {
+            batch.update(
+                doc(db, 'clubs', _clubId(), 'transactions', options.relatedTransaction.id),
+                options.relatedTransaction.data || {}
+            );
+        }
+        await batch.commit();
+
+        _mergeRuntimeInventory(next, 'inventory-service-update-item');
+        window.notifyInventoryMutation?.('inventory-service-update-item', { writeThrough: true });
+        return next;
+    },
+
+    /** Delete inventory and reverse its stock contribution atomically. */
+    async deleteItem(invId, options = {}) {
+        const { doc, getDoc, writeBatch, increment } = _sdk();
+        const db = _db();
+        const itemRef = doc(db, 'clubs', _clubId(), 'inventory', invId);
+        let previous = options.previous && typeof options.previous === 'object' ? options.previous : null;
+        if (!previous) {
+            const snap = await getDoc(itemRef); // fallback read only on explicit delete
+            if (!snap.exists()) return { deleted: false, missing: true };
+            previous = { id: snap.id, ...snap.data() };
+        }
+        const summaryPatch = _buildLedgerIncrementPatch([{ item: previous, direction: -1 }], increment);
+        const batch = writeBatch(db);
+        batch.delete(itemRef);
+        if (Object.keys(summaryPatch).length) {
+            batch.set(doc(db, 'clubs', _clubId(), 'settings', 'inventory_stats'), summaryPatch, { merge: true });
+        }
+        const relatedTxId = String(options.relatedTxId || '').trim();
+        if (relatedTxId && relatedTxId !== 'undefined') {
+            batch.delete(doc(db, 'clubs', _clubId(), 'transactions', relatedTxId));
+        }
+        await batch.commit();
+        _removeRuntimeInventory(invId, 'inventory-service-delete-item');
+        window.notifyInventoryMutation?.('inventory-service-delete-item', { writeThrough: true });
+        return { deleted: true, previous };
+    },
+
+    /**
+     * One-time exact reconciliation. Reads each inventory document once, then
+     * replaces the summary document with a canonical ledger snapshot.
+     */
+    async rebuildInventoryStats() {
+        const { collection, getDocs, doc, setDoc, writeBatch } = _sdk();
+        const db = _db();
+        const clubId = _clubId();
+        const snap = await getDocs(collection(db, 'clubs', clubId, 'inventory'));
+        const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+        // orderBy(field) excludes documents missing that field. Repair legacy
+        // date/timestamp values during the same one-time full scan so all rows
+        // remain pageable after reload without recurring compatibility queries.
+        const repairs = [];
+        for (const item of items) {
+            const patch = _canonicalTemporalPatch(item);
+            if (!Object.keys(patch).length) continue;
+            repairs.push({ id: item.id, patch });
+            Object.assign(item, patch);
+        }
+        const BATCH_SIZE = 400;
+        for (let i = 0; i < repairs.length; i += BATCH_SIZE) {
+            const batch = writeBatch(db);
+            repairs.slice(i, i + BATCH_SIZE).forEach(({ id, patch }) => {
+                batch.update(doc(db, 'clubs', clubId, 'inventory', id), patch);
+            });
+            await batch.commit();
+        }
+
+        const summary = _buildLiteralSummary(items);
+        summary._legacyTemporalRepairs = repairs.length;
+        await setDoc(doc(db, 'clubs', clubId, 'settings', 'inventory_stats'), summary);
+        return {
+            itemCount: items.length,
+            repairedTemporalCount: repairs.length,
+            keyCount: Object.keys(summary).filter(k => /_(balance|in|out)$/.test(k)).length,
+            items,
+            summary
+        };
     },
 
     /**
@@ -252,7 +485,7 @@ export const InventoryService = {
             constraints.push(where('date', '<=', endDate));
             constraints.push(orderBy('date', 'desc'));
         } else {
-            constraints.push(orderBy('timestamp', 'desc'));
+            constraints.push(orderBy('date', 'desc'));
         }
 
         // ── Cursor navigation ──

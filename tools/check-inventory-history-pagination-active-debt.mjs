@@ -42,7 +42,7 @@ console.log('\n=== Phase 4K-6V2 — Inventory Pagination + Complete Active Debt 
 check('Build marker 4K-6V2 exists', main.includes('4K-6V2-inventory-history-pagination-complete-active-debt'));
 check('Phase implementation block exists', phaseBlock.length > 1000);
 check('Inventory history page size is 100', phaseBlock.includes('const _INVENTORY_HISTORY_PAGE_SIZE = 100'));
-check('History uses timestamp-desc cursor pagination', phaseBlock.includes("orderBy('timestamp', 'desc')") && phaseBlock.includes('startAfter(cursor)') && phaseBlock.includes('limit(_INVENTORY_HISTORY_PAGE_SIZE)'));
+check('History uses date-desc cursor pagination', phaseBlock.includes("orderBy('date', 'desc')") && phaseBlock.includes('startAfter(cursor)') && phaseBlock.includes('limit(_INVENTORY_HISTORY_PAGE_SIZE)'));
 check('History is gated by active Inventory tab', phaseBlock.includes('_isInventoryTabActive') && phaseBlock.includes('historySkippedClosedTab'));
 check('Inventory tab explicitly starts lazy history load', tabs.includes("tabId === 'inventory'") && tabs.includes('ensureInventoryHistoryLoaded'));
 check('Load-more control is rendered', renderer.includes('loadMoreInventoryHistory') && renderer.includes('getInventoryHistoryPaginationState'));

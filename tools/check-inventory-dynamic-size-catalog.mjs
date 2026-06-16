@@ -21,8 +21,8 @@ function check(name, condition) {
 
 console.log('\n=== Phase 4K-6V2B — Dynamic Inventory Size Catalog ===\n');
 
-check('Runtime exposes V2B patch version', mainSrc.includes("window.APP_PATCH_VERSION = '4K-6V2B-dynamic-inventory-size-catalog-20260616'"));
-check('Index cache-bust deploys V2B', indexSrc.includes('inventory-dynamic-size-catalog-20260616-v2b'));
+check('Runtime exposes V2B patch version', mainSrc.includes("window.APP_PATCH_VERSION = '4K-6V2B-dynamic-inventory-size-catalog-20260616'") || mainSrc.includes("window.APP_PATCH_VERSION = '4K-6V2C-inventory-ledger-reconciliation-20260616'"));
+check('Index cache-bust deploys V2B', indexSrc.includes('inventory-dynamic-size-catalog-20260616-v2b') || indexSrc.includes('inventory-ledger-reconciliation-20260616-v2c'));
 check('Safety module defines normalized category identity', safetySrc.includes('function categoryIdentity'));
 check('Safety module defines normalized size identity', safetySrc.includes('function sizeIdentity'));
 check('Safety module canonicalizes history + stats maps', safetySrc.includes('canonicalizeStockMaps(historyMap, statsMap)'));
@@ -35,10 +35,10 @@ check('Modular render cannot overwrite admission list with only hardcoded sizes'
 check('Inventory module delegates MultiItem selector to read-only dynamic renderer', inventoryModuleSrc.includes("renderer({ reason: 'inventory-module-toggle-category' })"));
 check('Category dropdown includes categories discovered from stock map', inventoryModuleSrc.includes('const stockNames = Object.values(window._liveInvMap || {})'));
 check('Legacy category dropdown includes stock-map categories', appSrc.includes('const stockNames = Object.values(window._liveInvMap || {})'));
-check('New inventory items maintain inventory_stats using increments', serviceSrc.includes("const base = category + '|||' + size") && serviceSrc.includes("[base + '_balance']: increment"));
+check('New inventory items maintain inventory_stats using increments', serviceSrc.includes('function _buildLedgerIncrementPatch') && serviceSrc.includes("patch[base + '_balance'] = incrementFn") && serviceSrc.includes('batch.set(statsRef, summaryPatch, { merge: true })'));
 check('Summary maintenance adds no getDocs/read query', !serviceSrc.slice(serviceSrc.indexOf('async addItem'), serviceSrc.indexOf('async updateItem')).includes('getDocs('));
-check('Legacy inventory writer also maintains summary with no reads', appSrc.includes("const _base = category + '|||' + size") && appSrc.includes('legacy inventory_stats increment failed'));
-check('Changed nested modules are cache-busted', mainSrc.includes("multiItemInventorySafety.js?v=inventory-dynamic-size-catalog-20260616-v2b") && inventoryModuleSrc.includes("inventory.service.js?v=inventory-dynamic-size-catalog-20260616-v2b"));
+check('Legacy inventory writer also maintains summary with no reads', appSrc.includes("window.InventoryService && typeof window.InventoryService.addItem === 'function'"));
+check('Changed nested modules are cache-busted', (mainSrc.includes("multiItemInventorySafety.js?v=inventory-dynamic-size-catalog-20260616-v2b") || mainSrc.includes("multiItemInventorySafety.js?v=inventory-ledger-reconciliation-20260616-v2c")) && (inventoryModuleSrc.includes("inventory.service.js?v=inventory-dynamic-size-catalog-20260616-v2b") || inventoryModuleSrc.includes("inventory.service.js?v=inventory-ledger-reconciliation-20260616-v2c")));
 
 // Dynamic verification. No Firestore loader/query is available in this environment.
 globalThis.document = {

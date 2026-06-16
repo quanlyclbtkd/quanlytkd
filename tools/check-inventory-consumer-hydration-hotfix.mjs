@@ -24,8 +24,8 @@ function check(name, condition) {
 
 console.log('\n=== Phase 4K-6V2A — Inventory Consumer Hydration Hotfix ===\n');
 
-check('Runtime exposes Phase 4K-6V2A patch version', main.includes("window.APP_PATCH_VERSION = '4K-6V2B-dynamic-inventory-size-catalog-20260616'"));
-check('Cache bust deploys the V2A hotfix', read('index.html').includes('inventory-dynamic-size-catalog-20260616-v2b'));
+check('Runtime exposes Phase 4K-6V2A patch version', main.includes("window.APP_PATCH_VERSION = '4K-6V2B-dynamic-inventory-size-catalog-20260616'") || main.includes("window.APP_PATCH_VERSION = '4K-6V2C-inventory-ledger-reconciliation-20260616'"));
+check('Cache bust deploys the V2A hotfix', read('index.html').includes('inventory-dynamic-size-catalog-20260616-v2b') || read('index.html').includes('inventory-ledger-reconciliation-20260616-v2c'));
 check('Canonical stock builder reads inventory_stats', safetySrc.includes('buildStockMapFromInventoryStats'));
 check('Stock builder preserves category and size metadata', safetySrc.includes("category + '|||' + size") && safetySrc.includes("source: 'inventory-stats'"));
 check('Stock builder overlays inventory_stats over lazy history fallback', safetySrc.includes('canonicalizeStockMaps(historyMap, statsMap)'));

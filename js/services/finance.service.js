@@ -16,6 +16,8 @@
  * ────────────────────────────────────────────────────────────────
  */
 
+import { InventoryService } from './inventory.service.js?v=inventory-ledger-reconciliation-20260616-v2c';
+
 function _sdk()    { return window._fb_init || {}; }
 function _db()     { const db = (window.__store || {}).db; if (!db) throw new Error('[FinanceService] db chưa sẵn sàng'); return db; }
 function _clubId() { const id = (window.__store || {}).clubId; if (!id) throw new Error('[FinanceService] clubId chưa sẵn sàng'); return id; }
@@ -401,8 +403,7 @@ export const FinanceService = {
      * @param {string} invId — inventory doc ID
      */
     async deleteRelatedInventory(invId) {
-        const { doc, deleteDoc } = _sdk();
-        await deleteDoc(doc(_db(), 'clubs', _clubId(), 'inventory', invId));
+        return InventoryService.deleteItem(invId, { reason: 'finance-delete-related-inventory' });
     },
 
     /**
