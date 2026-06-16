@@ -567,7 +567,8 @@ button:focus-visible, input:focus-visible, select:focus-visible {
     window._fb_init = { initializeApp, getFirestore, collection, doc, getDoc, onSnapshot, addDoc, updateDoc, deleteDoc, query, orderBy, where, writeBatch, setDoc, arrayUnion, arrayRemove, getDocs, limit, increment, getCountFromServer, startAfter, startAt, endAt, getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword, sendPasswordResetEmail, updatePassword, reauthenticateWithCredential, EmailAuthProvider, signInAnonymously, getFunctions, httpsCallable };
 </script><script defer src="./js/legacy/legacyUiFallbacks.js?v=global-ownership-adoption-cleanup-20260615"></script><script defer src="./js/legacy/legacyAttendanceFallbacks.js?v=attendance-canonical-ownership-20260616"></script><script defer src="./js/core/lazyAssetsBootstrap.js?v=tailwind-static-build-20260608"></script><!-- Phase 4K-6V3A compatibility markers: inventory-ledger-reconciliation-20260616-v2c; app.js?v=inventory-ledger-reconciliation-20260616-v2c; main.js?v=inventory-ledger-reconciliation-20260616-v2c -->
 <!-- Phase 4K-6V3A regression markers: transactionCanonicalBoundary.js?v=firestore-read-attribution-canonical-tx-boundary-20260616-v3a; app.js?v=firestore-read-attribution-canonical-tx-boundary-20260616-v3a; main.js?v=firestore-read-attribution-canonical-tx-boundary-20260616-v3a -->
-<script defer src="./js/core/transactionCanonicalBoundary.js?v=payment-bundle-runtime-hotfix-20260616-v3a1"></script><script defer src="app.js?v=payment-bundle-runtime-hotfix-20260616-v3a1"></script><script>
+<!-- Phase 4K-6V3BC1 automatic per-club optimization: automatic-canonical-transaction-optimization-20260616-v3bc1 -->
+<script defer src="./js/core/transactionCanonicalBoundary.js?v=automatic-canonical-transaction-optimization-20260616-v3bc1"></script><script defer src="app.js?v=automatic-canonical-transaction-optimization-20260616-v3bc1"></script><script>
 /* Phase 3.3A FIX: ES modules require HTTP — skip on file:// to prevent CORS error.
    app.js still loads via <script defer> so ALL business logic works regardless.
    Module enhancements (loading.js, event-guard, lazy tabs) activate on HTTP only.
@@ -634,7 +635,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
     // main.js?v=legacy-diagnostics-pilot-audit-isolation-20260616
     var s = document.createElement('script');
     s.type = 'module';
-    s.src  = './js/main.js?v=payment-bundle-runtime-hotfix-20260616-v3a1';
+    s.src  = './js/main.js?v=automatic-canonical-transaction-optimization-20260616-v3bc1';
     s.onload = function() {
       window.MAIN_JS_LOADED = true;
       console.log('[BOOT] main.js loaded after legacy app.js ready');

@@ -51,7 +51,7 @@
     let renderTimeout = null;
 // Danh mục kho tùy chỉnh — được load từ Firestore khi đăng nhập thành công
 window.invCustomCategories = [];
-    window.APP_PATCH_VERSION = '4K-6V3A1-payment-bundle-runtime-hotfix-20260616'; // Compatibility marker: 4K-6V3A-firestore-read-attribution-canonical-transaction-boundary
+    window.APP_PATCH_VERSION = '4K-6V3A1-payment-bundle-runtime-hotfix-20260616'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
     // Compatibility regression marker retained for Phase 4K-6Q gate: APP_PATCH_VERSION = '4K-6Q-mobile-filter-currency-stability-20260615'
     window.__appLoaded = true; // [Phase 2a] main.js kiểm tra để bỏ qua loadLegacyApp()
     window.__store = window.__store || {}; // [Phase 2b] Bridge object cho module system
@@ -1581,6 +1581,12 @@ service cloud.firestore {
         const settingsRef = doc(db, "clubs", clubId, "settings", "main_config");
         const invStatsRef = doc(db, "clubs", clubId, "settings", "inventory_stats");
 
+        // Phase 4K-6V3BC1: reset per-club auto optimization before the new club chooses tx read mode.
+        if (typeof window.resetAutomaticCanonicalTransactionOptimization === 'function') window.resetAutomaticCanonicalTransactionOptimization('club-switch');
+        // Phase 4K-6V3B/C: a new club must wait for its own settings snapshot before choosing tx read mode.
+        window.__settingsSnapshotReady = false;
+        if (window.__canonicalTxSettingsWait?.timer) clearTimeout(window.__canonicalTxSettingsWait.timer);
+        window.__canonicalTxSettingsWait = null;
         // Phase 4K-6V3A: isolate read attribution per club.
         if (window.__firestoreReadAttribution?.clubId && window.__firestoreReadAttribution.clubId !== clubId && typeof window.resetFirestoreReadAudit === 'function') window.resetFirestoreReadAudit('club-switch');
         if (window.__firestoreReadAttribution) window.__firestoreReadAttribution.clubId = clubId;
@@ -1662,6 +1668,12 @@ service cloud.firestore {
                 clubConfig = { ...clubConfig, ...docSnap.data() };
                 // [Phase 2d] Sync clubConfig → bridge để modules/students.js đọc được
                 if (window.__store) window.__store.clubConfig = clubConfig;
+                if (typeof window.syncCanonicalTransactionReadModeFromConfig === 'function') {
+                    setTimeout(() => window.syncCanonicalTransactionReadModeFromConfig('settings-snapshot'), 0);
+                }
+                if (typeof window.refreshCanonicalTransactionOptimizerButton === 'function') {
+                    window.refreshCanonicalTransactionOptimizerButton();
+                }
                 // Phase 4.0B-4D: mark settings loaded
                 _updateHydrationMetrics({ settingsLoaded: true, lastReason: 'settings-snapshot' });
                 applyClubConfigUI();
@@ -1676,6 +1688,8 @@ service cloud.firestore {
                 // Tải danh mục kho tùy chỉnh (chạy song song, không blocking)
                 window.loadInvCategories().catch(e => console.warn('loadInvCategories error:', e));
             }
+            window.__settingsSnapshotReady = true;
+            try { window.dispatchEvent(new CustomEvent('app:settings-ready', { detail: { clubId: clubId } })); } catch (_) {}
         };
         if (window.safeRegisterSnapshot) {
             window.safeRegisterSnapshot(_settingsKey, () => onSnapshot(settingsRef, _settingsCb),
@@ -2237,7 +2251,8 @@ service cloud.firestore {
         };
 
         const lMonth = document.getElementById('filterMonth').value;
-        window.listenToData(lMonth); loadLogoForReceipt();
+        if (typeof window.startTransactionListenerAfterSettings === 'function') window.startTransactionListenerAfterSettings(lMonth); else window.listenToData(lMonth);
+        loadLogoForReceipt();
 
         // ── Khởi động hệ thống thông báo báo cáo HLV (Admin only) ──────────
         // setupNotifListener dùng onSnapshot nên cập nhật real-time khi HLV gửi báo cáo
@@ -3415,6 +3430,7 @@ service cloud.firestore {
                 checkedAt:        0,
                 completedAt:      0
             };
+            if (typeof window.resetAutomaticCanonicalTransactionOptimization === 'function') window.resetAutomaticCanonicalTransactionOptimization('logout');
             window.currentClubId = null;
             if (window.__store) {
                 window.__store.currentClubId = null;
@@ -3437,16 +3453,18 @@ service cloud.firestore {
         }
     });
 
+    // Phase 4K-6V3A compatibility: 4K-6V3A-firestore-read-attribution-canonical-transaction-boundary
+    // Phase 4K-6V3B/C: per-month safe cutover from 3 legacy listeners to 1 accountingMonths listener.
     window.listenToData = (monthStr) => {
         if (!monthStr || !colRef) return;
         const _cid = (window.__store && window.__store.clubId) || '';
         const _txKey = 'finance:tx:' + _cid + ':' + monthStr;
+        const _desiredTxReadMode = typeof window.getCanonicalTransactionReadMode === 'function' ? window.getCanonicalTransactionReadMode(_cid, monthStr) : 'legacy';
 
         // Phase 4K-6V1 Spark Read Cost Hardening:
         // Do not tear down and recreate the same 3 Firestore listeners for the same month.
         // Recreating a listener bills a fresh initial query result.
-        if (window.__store && window.__store._activeTxListenerMonth === monthStr &&
-            window.hasListener && window.hasListener(_txKey)) {
+        if (window.__store && window.__store._activeTxListenerMonth === monthStr && String(window.__store._activeTxReadMode || 'legacy') === _desiredTxReadMode && window.hasListener && window.hasListener(_txKey)) {
             window.__sparkReadMetrics = window.__sparkReadMetrics || {};
             window.__sparkReadMetrics.txSameMonthResubscribeSkipped =
                 (window.__sparkReadMetrics.txSameMonthResubscribeSkipped || 0) + 1;
@@ -3481,7 +3499,7 @@ service cloud.firestore {
         // 2. Theo txMonth (giao dịch thu bù tháng cũ — date có thể khác tháng)
         // Sau đó merge + dedup theo id để không hiện trùng.
         let _byDate = [], _byTxMonth = [], _byPackageMonth = []; // Phase 4K-4F: packageMonths array-contains query
-        const _txSourceSnapshotSeen = { byDate: false, byTxMonth: false, byPackageMonth: false };
+        const _txSourceSnapshotSeen = { byDate: false, byTxMonth: false, byPackageMonth: false, canonical: false };
         const _recordTxSourceSnapshot = (sourceKey, snap) => {
             const initial = !_txSourceSnapshotSeen[sourceKey];
             _txSourceSnapshotSeen[sourceKey] = true;
@@ -3522,12 +3540,8 @@ service cloud.firestore {
                 return;
             }
             if (window.__store) window.__store.transactions = allTransactions; // [Phase 2e] sync cho finance.js
-            if (typeof window.recordTransactionQueryOverlap === 'function') {
-                window.recordTransactionQueryOverlap(monthStr, {
-                    byDate: _byDate,
-                    byTxMonth: _byTxMonth,
-                    byPackageMonth: _byPackageMonth
-                });
+            if (_desiredTxReadMode === 'legacy' && typeof window.recordTransactionQueryOverlap === 'function') {
+                window.recordTransactionQueryOverlap(monthStr, { byDate: _byDate, byTxMonth: _byTxMonth, byPackageMonth: _byPackageMonth, sourceSeen: _txSourceSnapshotSeen, queryLimit: _txListLim });
             }
             // Phase 4.0B-4D: update transactions hydration metrics
             _updateHydrationMetrics({
@@ -3591,55 +3605,29 @@ service cloud.firestore {
         // Phase 4K-4F: 3rd query — giao dịch gói nhiều tháng có tháng giữa (2026-07 trong gói 06-08)
         // Không orderBy để tránh cần composite index — client sort sau khi merge
         const qByPackageMonth = query(colRef, where("packageMonths", "array-contains", monthStr), limit(_txListLim));
+        // Phase 4K-6V3B/C: activated only after in-memory backfill + ID/count/amount parity.
+        const qCanonical = query(colRef, where("accountingMonths", "array-contains", monthStr), limit(_txListLim));
 
-        // [Phase 3.6C] safeRegisterSnapshot: wrap cả 2 query trong 1 factory
-        // Old key đã removed qua cleanupListenersByOwner → safeRegisterSnapshot sẽ proceed
-        if (window.safeRegisterSnapshot) {
-            window.safeRegisterSnapshot(_txKey, () => {
-                const u1 = onSnapshot(qByDate, (snap) => {
-                    _recordTxSourceSnapshot('byDate', snap);
-                    _byDate = snap.docs.map(d => ({id: d.id, ...d.data()}));
-                    _mergeAndRender();
-                });
-                const u2 = onSnapshot(qByTxMonth, (snap) => {
-                    _recordTxSourceSnapshot('byTxMonth', snap);
-                    _byTxMonth = snap.docs.map(d => ({id: d.id, ...d.data()}));
-                    _mergeAndRender();
-                });
-                // Phase 4K-4F: 3rd snapshot — giao dịch gói nhiều tháng
-                const u3 = onSnapshot(qByPackageMonth, (snap) => {
-                    _recordTxSourceSnapshot('byPackageMonth', snap);
-                    _byPackageMonth = snap.docs.map(d => ({id: d.id, ...d.data()}));
-                    _mergeAndRender();
-                });
-                const _combinedUnsub = () => { try { u1(); } catch(_) {} try { u2(); } catch(_) {} try { u3(); } catch(_) {} };
-                currentTxUnsub = _combinedUnsub; // bridge: legacy logout cleanup
-                return _combinedUnsub;
-            }, { owner: 'finance', scope: 'global', clubId: _cid, reason: 'listenToData' });
-        } else {
-            // Fallback Phase 3.6
-            const u1 = onSnapshot(qByDate, (snap) => {
-                _recordTxSourceSnapshot('byDate', snap);
-                _byDate = snap.docs.map(d => ({id: d.id, ...d.data()}));
-                _mergeAndRender();
-            });
-            const u2 = onSnapshot(qByTxMonth, (snap) => {
-                _recordTxSourceSnapshot('byTxMonth', snap);
-                _byTxMonth = snap.docs.map(d => ({id: d.id, ...d.data()}));
-                _mergeAndRender();
-            });
-            // Phase 4K-4F: 3rd snapshot
-            const u3 = onSnapshot(qByPackageMonth, (snap) => {
-                _recordTxSourceSnapshot('byPackageMonth', snap);
-                _byPackageMonth = snap.docs.map(d => ({id: d.id, ...d.data()}));
-                _mergeAndRender();
-            });
-            currentTxUnsub = () => { try { u1(); } catch(_) {} try { u2(); } catch(_) {} try { u3(); } catch(_) {} };
-            if (window.registerListener) {
-                window.registerListener(_txKey, currentTxUnsub, { owner: 'finance', scope: 'global', reason: 'listenToData' });
+        const _attachTxSnapshots = () => {
+            if (_desiredTxReadMode === 'canonical') {
+                const canonicalUnsub = onSnapshot(qCanonical, (snap) => { _recordTxSourceSnapshot('canonical', snap); _byDate = snap.docs.map(d => ({id: d.id, ...d.data()})); _byTxMonth = []; _byPackageMonth = []; _mergeAndRender(); });
+                currentTxUnsub = canonicalUnsub; return canonicalUnsub;
             }
-        }
-        if (window.__store) window.__store._activeTxListenerMonth = monthStr;
+            const u1 = onSnapshot(qByDate, (snap) => { _recordTxSourceSnapshot('byDate', snap); _byDate = snap.docs.map(d => ({id: d.id, ...d.data()})); _mergeAndRender(); });
+            const u2 = onSnapshot(qByTxMonth, (snap) => { _recordTxSourceSnapshot('byTxMonth', snap); _byTxMonth = snap.docs.map(d => ({id: d.id, ...d.data()})); _mergeAndRender(); });
+            const u3 = onSnapshot(qByPackageMonth, (snap) => { _recordTxSourceSnapshot('byPackageMonth', snap); _byPackageMonth = snap.docs.map(d => ({id: d.id, ...d.data()})); _mergeAndRender(); });
+            const combinedUnsub = () => { try { u1(); } catch(_) {} try { u2(); } catch(_) {} try { u3(); } catch(_) {} };
+            currentTxUnsub = combinedUnsub;
+            return combinedUnsub;
+        };
+
+        // [Phase 3.6C] safeRegisterSnapshot: one canonical or three legacy queries per configured month
+        // Old key đã removed qua cleanupListenersByOwner → safeRegisterSnapshot sẽ proceed
+        if (window.safeRegisterSnapshot) window.safeRegisterSnapshot(_txKey, _attachTxSnapshots, { owner: 'finance', scope: 'global', clubId: _cid, reason: 'listenToData', readMode: _desiredTxReadMode });
+        // qByDate, qByTxMonth and qByPackageMonth are mounted only inside _attachTxSnapshots; canonical mode mounts qCanonical only.
+        else { const txUnsub = _attachTxSnapshots(); if (window.registerListener) window.registerListener(_txKey, txUnsub, { owner: 'finance', scope: 'global', reason: 'listenToData', readMode: _desiredTxReadMode }); }
+        if (window.__store) { window.__store._activeTxListenerMonth = monthStr; window.__store._activeTxReadMode = _desiredTxReadMode; }
+        if (typeof window.refreshCanonicalTransactionOptimizerButton === 'function') window.refreshCanonicalTransactionOptimizerButton();
     };
 
     const docTienVND = (so) => {

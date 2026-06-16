@@ -1,0 +1,21 @@
+Phase 4K-6V3B/C — Test Summary
+================================
+Canonical safe cutover: 28/28 PASS
+V3A canonical boundary: 34/34 PASS
+Payment bundle runtime hotfix: 20/20 PASS
+Inventory ledger reconciliation: 33/33 PASS
+Transaction realtime safety: 46/46 PASS
+Full check:all groups: 67/67 PASS (independent parallel execution)
+Syntax: PASS
+Deploy package: PASS
+app.js: 10,684 lines / 661,888 bytes (within 10,700 / 670,000 gate)
+
+Safety properties:
+- No automatic full transaction scan
+- No canonical listener before parity
+- No cutover when a legacy source reaches query limit
+- Legacy listeners detached before backfill
+- Automatic legacy rollback on parity/error
+- Initial listener waits for settings snapshot
+- Club switch resets settings gate
+- No Blaze / Cloud Functions required
