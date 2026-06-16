@@ -1,5 +1,5 @@
 /**
- * Phase 4K-6W — Secure Account Provisioning Client Facade
+ * Phase 4K-6W1 — Secure Account Provisioning + Tenant Enforcement Facade
  * Privileged account writes are delegated to Cloud Functions/Admin SDK.
  * This module never receives, stores, logs, or returns a password.
  */
@@ -42,6 +42,8 @@ function _normalizeCallableError(error) {
     'not-found': error?.message || 'Không tìm thấy dữ liệu cần xử lý.',
     aborted: 'Yêu cầu đang được xử lý. Vui lòng không bấm lại.',
     unavailable: 'Máy chủ tạm thời không sẵn sàng. Vui lòng thử lại.',
+    'failed-precondition': error?.message || 'Điều kiện an toàn chưa được đáp ứng.',
+    'resource-exhausted': error?.message || 'Khối lượng dữ liệu vượt giới hạn an toàn.',
     internal: 'Máy chủ không thể hoàn tất thao tác. Vui lòng thử lại.',
   };
   const normalized = new Error(known[code] || error?.message || 'Không thể hoàn tất thao tác tài khoản.');
@@ -139,6 +141,7 @@ function setClubAccountStatus(input) {
   return _callOnce('setClubAccountStatus', {
     clubId: input.clubId,
     status: input.status,
+    lockReason: input.lockReason || '',
   }, `setClubAccountStatus:${input.clubId}`);
 }
 
@@ -147,6 +150,13 @@ function updateClubSubscription(input) {
     clubId: input.clubId,
     expiryDate: input.expiryDate,
   }, `updateClubSubscription:${input.clubId}`);
+}
+
+function backfillClubExpiryTimestamp(input = {}) {
+  return _callOnce('backfillClubExpiryTimestamp', {
+    dryRun: input.dryRun !== false,
+    pageSize: input.pageSize || 250,
+  }, `backfillClubExpiryTimestamp:${input.dryRun !== false ? 'dry' : 'apply'}`);
 }
 
 export const AccountProvisioningService = Object.freeze({
@@ -159,6 +169,7 @@ export const AccountProvisioningService = Object.freeze({
   purgeLegacyCredentialFields,
   setClubAccountStatus,
   updateClubSubscription,
+  backfillClubExpiryTimestamp,
   isBusy(key) { return _inFlight.has(key); },
 });
 
@@ -168,6 +179,7 @@ export function initAccountProvisioningService() {
     region: REGION,
     credentialStorage: 'forbidden',
     privilegedWrites: 'cloud-functions-only',
+    tenantOperationalEnforcement: 'rules-request-time',
     initializedAt: new Date().toISOString(),
   });
   return AccountProvisioningService;

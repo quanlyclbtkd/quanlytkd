@@ -112,7 +112,7 @@ check(exists('firestore.rules'), 'firestore.rules remains the rules source of tr
 
 check(registrySource.includes("phase: '4K-6V-attendance-canonical-ownership'"), 'registry reports current phase while retaining 4K-6T diagnostics ownership');
 check(main.includes(`APP_BUILD_VERSION = '${build}'`), 'main.js retains Phase 4K-6T compatibility marker');
-check(main.includes("window.APP_BUILD_VERSION = '4K-6W-secure-account-provisioning-rules-lockdown-20260616'"), 'active build version advances to Phase 4K-6V');
+check(main.includes("window.APP_BUILD_VERSION = '4K-6W1-tenant-lock-expiry-server-enforcement-20260616'"), 'active build version advances to Phase 4K-6W1');
 check(index.includes('app.js?v=secure-account-provisioning-20260616'), 'app.js cache-bust advances beyond Phase 4K-6T');
 check(index.includes('main.js?v=secure-account-provisioning-20260616'), 'main.js cache-bust advances beyond Phase 4K-6T');
 check(main.includes('initLegacyDiagnostics();'), 'main initializes extracted diagnostics facade');

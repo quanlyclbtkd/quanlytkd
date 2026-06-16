@@ -92,7 +92,7 @@ check(financeBytes <= 72000, `finance.js reduced to ${financeBytes.toLocaleStrin
 check(index.includes('app.js?v=secure-account-provisioning-20260616'), 'app.js cache bust is current and preserves 4K-6U report isolation');
 check(index.includes('main.js?v=secure-account-provisioning-20260616'), 'main.js cache bust is current and preserves 4K-6U report isolation');
 check(main.includes("APP_BUILD_VERSION = '4K-6U-report-excel-lazy-isolation-20260616'"), 'main retains the 4K-6U compatibility marker');
-check(main.includes("window.APP_BUILD_VERSION = '4K-6W-secure-account-provisioning-rules-lockdown-20260616'"), 'active build version advances beyond 4K-6U');
+check(main.includes("window.APP_BUILD_VERSION = '4K-6W1-tenant-lock-expiry-server-enforcement-20260616'"), 'active build version advances beyond 4K-6U to 4K-6W1');
 check(registry.includes("phase: '4K-6V-attendance-canonical-ownership'"), 'ownership diagnostics report the current phase while preserving report owners');
 check(pkg.scripts?.['check:report-export-lazy-isolation'], 'package exposes 4K-6U checker');
 check(pkg.scripts?.check?.includes('check:report-export-lazy-isolation'), 'default check includes 4K-6U checker');

@@ -1,12 +1,17 @@
 rules_version = '2';
 // ══════════════════════════════════════════════════════════════════════════════
 // Firestore Security Rules — Taekwondo Club Management SaaS
-// Phase 4K-6W — Secure Account Provisioning + Credential Eradication
+// Phase 4K-6W1 — Tenant Lock/Expiry Server Enforcement
 //
-// Privileged account provisioning is Cloud-Functions/Admin-SDK only.
-// Client code cannot create/delete users, assign roles, change tenant ownership,
-// store credentials, or modify SaaS subscription/account-control fields.
-// Deploy only after emulator/static security checks pass.
+// IMPORTANT DEPLOYMENT ORDER:
+//   1) Deploy Cloud Functions.
+//   2) Backfill every clubs/{clubId}.expiryAt from expiryDate.
+//   3) Run Rules Emulator tests and production canary.
+//   4) Only then deploy these rules.
+//
+// Missing/invalid expiryAt fails closed for tenant business data. SuperAdmin keeps
+// support access. A locked/expired member may only read the root club document and
+// their own users/{uid} membership document so the UI can explain the lock.
 // ══════════════════════════════════════════════════════════════════════════════
 
 service cloud.firestore {
@@ -41,16 +46,48 @@ service cloud.firestore {
       );
     }
 
+    function clubExists(clubId) {
+      return exists(/databases/$(database)/documents/clubs/$(clubId));
+    }
+
+    function clubData(clubId) {
+      return get(/databases/$(database)/documents/clubs/$(clubId)).data;
+    }
+
+    function clubHasOperationalFields(clubId) {
+      return clubExists(clubId)
+        && clubData(clubId).keys().hasAll(['accountStatus', 'expiryAt'])
+        && clubData(clubId).expiryAt is timestamp;
+    }
+
+    function clubIsOperational(clubId) {
+      return clubHasOperationalFields(clubId)
+        && clubData(clubId).accountStatus == 'active'
+        && clubData(clubId).expiryAt > request.time;
+    }
+
     function isClubMember(clubId) {
-      return signedIn() && myClubId() == clubId;
+      return signedIn() && userExists() && myClubId() == clubId;
+    }
+
+    function isOperationalClubMember(clubId) {
+      return isClubMember(clubId) && clubIsOperational(clubId);
     }
 
     function isClubAdmin(clubId) {
       return isClubMember(clubId) && myRole() in ['admin', 'owner'];
     }
 
+    function isOperationalClubAdmin(clubId) {
+      return isClubAdmin(clubId) && clubIsOperational(clubId);
+    }
+
     function isCoach(clubId) {
       return isClubMember(clubId) && myRole() == 'coach';
+    }
+
+    function isOperationalCoach(clubId) {
+      return isCoach(clubId) && clubIsOperational(clubId);
     }
 
     function isParent(clubId) {
@@ -67,6 +104,14 @@ service cloud.firestore {
         'passwordChangedAt',
         'accountStatus',
         'expiryDate',
+        'expiryAt',
+        'expiryTimestampVersion',
+        'expiryTimestampUpdatedAt',
+        'lockReason',
+        'lockedAt',
+        'lockedBy',
+        'unlockedAt',
+        'unlockedBy',
         'plan',
         'branchLimit',
         'license',
@@ -87,98 +132,112 @@ service cloud.firestore {
       ]);
     }
 
+    function ownTenantIsOperational() {
+      return isSuperAdmin()
+        || (userExists() && myClubId() != null && clubIsOperational(myClubId()));
+    }
+
     match /clubs/{clubId} {
+      // Locked/expired members can read only this root document to display status.
       allow get: if isSuperAdmin() || isClubMember(clubId);
       allow list: if isSuperAdmin();
 
       // Club creation/deletion and privileged ownership fields are server-only.
       allow create, delete: if false;
       allow update: if isSuperAdmin()
-        || (isClubAdmin(clubId) && clubAdminRootUpdateIsSafe());
+        || (isOperationalClubAdmin(clubId) && clubAdminRootUpdateIsSafe());
 
       match /profiles/{profileId} {
-        allow read: if isSuperAdmin() || isClubMember(clubId);
-        allow create, update, delete: if isSuperAdmin() || isClubAdmin(clubId);
+        allow read: if isSuperAdmin() || isOperationalClubMember(clubId);
+        allow create, update, delete: if isSuperAdmin() || isOperationalClubAdmin(clubId);
       }
 
       // Legacy alias retained for compatibility.
       match /students/{studentId} {
-        allow read: if isSuperAdmin() || isClubMember(clubId);
-        allow create, update, delete: if isSuperAdmin() || isClubAdmin(clubId);
+        allow read: if isSuperAdmin() || isOperationalClubMember(clubId);
+        allow create, update, delete: if isSuperAdmin() || isOperationalClubAdmin(clubId);
       }
 
       match /transactions/{txId} {
-        allow read: if isSuperAdmin() || isClubMember(clubId);
-        allow create, update: if isSuperAdmin() || isClubAdmin(clubId);
+        allow read: if isSuperAdmin() || isOperationalClubMember(clubId);
+        allow create, update: if isSuperAdmin() || isOperationalClubAdmin(clubId);
         allow delete: if isSuperAdmin();
       }
 
       match /attendance/{attId} {
-        allow read: if isSuperAdmin() || isClubMember(clubId);
-        allow create, update, delete: if isSuperAdmin() || isClubAdmin(clubId) || isCoach(clubId);
+        allow read: if isSuperAdmin() || isOperationalClubMember(clubId);
+        allow create, update, delete: if isSuperAdmin()
+          || isOperationalClubAdmin(clubId)
+          || isOperationalCoach(clubId);
       }
 
       match /attendanceNotes/{noteId} {
-        allow read: if isSuperAdmin() || isClubMember(clubId);
-        allow create, update, delete: if isSuperAdmin() || isClubAdmin(clubId) || isCoach(clubId);
+        allow read: if isSuperAdmin() || isOperationalClubMember(clubId);
+        allow create, update, delete: if isSuperAdmin()
+          || isOperationalClubAdmin(clubId)
+          || isOperationalCoach(clubId);
       }
 
       match /adminNotifications/{notifId} {
-        allow read: if isSuperAdmin() || isClubAdmin(clubId);
-        allow create, update: if isSuperAdmin() || isClubAdmin(clubId) || isCoach(clubId);
-        allow delete: if isSuperAdmin() || isClubAdmin(clubId);
+        allow read: if isSuperAdmin() || isOperationalClubAdmin(clubId);
+        allow create, update: if isSuperAdmin()
+          || isOperationalClubAdmin(clubId)
+          || isOperationalCoach(clubId);
+        allow delete: if isSuperAdmin() || isOperationalClubAdmin(clubId);
       }
 
       match /inventory/{itemId} {
-        allow read: if isSuperAdmin() || isClubMember(clubId);
-        allow create, update, delete: if isSuperAdmin() || isClubAdmin(clubId);
+        allow read: if isSuperAdmin() || isOperationalClubMember(clubId);
+        allow create, update, delete: if isSuperAdmin() || isOperationalClubAdmin(clubId);
       }
 
       match /exams/{examId} {
-        allow read: if isSuperAdmin() || isClubMember(clubId);
-        allow create, update, delete: if isSuperAdmin() || isClubAdmin(clubId);
+        allow read: if isSuperAdmin() || isOperationalClubMember(clubId);
+        allow create, update, delete: if isSuperAdmin() || isOperationalClubAdmin(clubId);
       }
 
       match /config/{configId} {
-        allow read: if isSuperAdmin() || isClubMember(clubId);
-        allow create, update, delete: if isSuperAdmin() || isClubAdmin(clubId);
+        allow read: if isSuperAdmin() || isOperationalClubMember(clubId);
+        allow create, update, delete: if isSuperAdmin() || isOperationalClubAdmin(clubId);
       }
 
       match /settings/{settingId} {
-        allow read: if isSuperAdmin() || isClubMember(clubId);
-        allow create, update, delete: if isSuperAdmin() || isClubAdmin(clubId);
+        allow read: if isSuperAdmin() || isOperationalClubMember(clubId);
+        allow create, update, delete: if isSuperAdmin() || isOperationalClubAdmin(clubId);
       }
 
       match /stats/{statId} {
-        allow read: if isSuperAdmin() || isClubMember(clubId);
+        allow read: if isSuperAdmin() || isOperationalClubMember(clubId);
         // Existing client aggregation remains compatible; server aggregation is preferred.
-        allow create, update: if isSuperAdmin() || isClubAdmin(clubId);
+        allow create, update: if isSuperAdmin() || isOperationalClubAdmin(clubId);
         allow delete: if isSuperAdmin();
       }
 
-      // Account membership documents are readable by the owning club but writable
-      // only through Cloud Functions/Admin SDK, which bypasses client rules.
+      // Account membership documents are readable by an operational owning club but
+      // writable only through Cloud Functions/Admin SDK, which bypasses client rules.
       match /coaches/{coachId} {
-        allow get: if isSuperAdmin() || isClubAdmin(clubId)
-          || (isCoach(clubId) && request.auth.uid == coachId);
-        allow list: if isSuperAdmin() || isClubAdmin(clubId);
+        allow get: if isSuperAdmin()
+          || isOperationalClubAdmin(clubId)
+          || (isOperationalCoach(clubId) && request.auth.uid == coachId);
+        allow list: if isSuperAdmin() || isOperationalClubAdmin(clubId);
         allow create, update, delete: if false;
       }
 
       match /fee_audit/{auditId} {
-        allow read: if isSuperAdmin() || isClubAdmin(clubId);
-        allow create: if isSuperAdmin() || isClubAdmin(clubId);
+        allow read: if isSuperAdmin() || isOperationalClubAdmin(clubId);
+        allow create: if isSuperAdmin() || isOperationalClubAdmin(clubId);
         allow update, delete: if false;
       }
 
       match /financial_audit/{auditId} {
-        allow read: if isSuperAdmin() || isClubAdmin(clubId);
-        allow create: if isSuperAdmin() || isClubAdmin(clubId);
+        allow read: if isSuperAdmin() || isOperationalClubAdmin(clubId);
+        allow create: if isSuperAdmin() || isOperationalClubAdmin(clubId);
         allow update, delete: if false;
       }
     }
 
     match /users/{uid} {
+      // A locked/expired user can still read their own membership to render the lock UI.
       allow get: if signedIn() && (request.auth.uid == uid || isSuperAdmin());
       allow list: if isSuperAdmin();
 
@@ -186,6 +245,7 @@ service cloud.firestore {
       allow create, delete: if false;
       allow update: if signedIn()
         && request.auth.uid == uid
+        && ownTenantIsOperational()
         && selfUserUpdateIsSafe();
     }
 
@@ -198,6 +258,7 @@ service cloud.firestore {
     match /login_history/{docId} {
       allow read: if isSuperAdmin();
       allow create: if signedIn()
+        && ownTenantIsOperational()
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.keys().hasOnly([
           'uid', 'email', 'role', 'clubId', 'loginAt', 'timestamp', 'browser', 'os', 'deviceType', 'deviceName'

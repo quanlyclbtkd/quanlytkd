@@ -1285,7 +1285,7 @@ service cloud.firestore {
         if (!service) return alert('Dịch vụ bảo mật tài khoản chưa sẵn sàng. Vui lòng tải lại trang.');
         try {
             await service.updateClubSubscription({ clubId, expiryDate: newExpiry });
-            window.showToast('✅ Đã cập nhật hạn sử dụng thành công!');
+            window.showToast('✅ Đã cập nhật hạn sử dụng. Trạng thái khóa/mở khóa không bị thay đổi.');
             const modal = document.getElementById('expiryModal'); if (modal) modal.style.display = 'none';
             window.loadSuperAdminData?.();
         } catch (e) { console.error(e); alert('Lỗi cập nhật: ' + (e.message || e.code)); }

@@ -71,7 +71,7 @@ check('Create coach delegates to secure service', app.includes('service.provisio
 check('Delete coach delegates to secure service', app.includes('service.removeCoachAccount'));
 check('Coach migration delegates to secure service', app.includes('service.migrateCoachAccounts'));
 check('Replace admin delegates to secure service', superadmin.includes('AccountProvisioningService.replaceClubAdmin'));
-check('Lock account delegates to secure service', superadmin.includes("setClubAccountStatus({ clubId, status: 'locked' })"));
+check('Lock account delegates to secure service', /setClubAccountStatus\(\{\s*clubId,\s*status:\s*'locked'/.test(superadmin));
 check('Unlock account delegates to secure service', superadmin.includes("setClubAccountStatus({ clubId, status: 'active' })"));
 check('Expiry update delegates to secure service', app.includes('service.updateClubSubscription'));
 check('Change password stays Auth-only', app.includes('Firebase Auth is the only credential authority'));

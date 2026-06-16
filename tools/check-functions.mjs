@@ -36,6 +36,8 @@ const REQUIRED_FILES = [
     'functions/index.js',
     'functions/src/debtCalculation.js',
     'functions/src/statsAggregation.js',
+    'functions/src/superAdminSummary.js',
+    'functions/src/accountProvisioning.js',
 ];
 
 const OPTIONAL_FILES = [
@@ -68,6 +70,8 @@ const SYNTAX_FILES = [
     'functions/index.js',
     'functions/src/debtCalculation.js',
     'functions/src/statsAggregation.js',
+    'functions/src/superAdminSummary.js',
+    'functions/src/accountProvisioning.js',
 ];
 
 for (const rel of SYNTAX_FILES) {

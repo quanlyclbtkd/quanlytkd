@@ -97,3 +97,4 @@ exports.repairCurrentAccountMembership = accountProvisioning.repairCurrentAccoun
 exports.purgeLegacyCredentialFields = accountProvisioning.purgeLegacyCredentialFields;
 exports.setClubAccountStatus = accountProvisioning.setClubAccountStatus;
 exports.updateClubSubscription = accountProvisioning.updateClubSubscription;
+exports.backfillClubExpiryTimestamp = accountProvisioning.backfillClubExpiryTimestamp;

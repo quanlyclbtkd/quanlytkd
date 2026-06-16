@@ -827,13 +827,13 @@ window.debugSuperAdminAggregationHardStop = function() {
       // ════════════════════════════════════════════════════════════
           window.lockClubAccount = async (clubId, clubName) => {
         _m().lockClubCalls++; _m().lastAction = 'lockClubAccount';
-        if (!confirm(`⚠️ KHÓA TÀI KHOẢN\n\nBạn có chắc muốn KHÓA tài khoản CLB:\n"${clubName}" (${clubId})?\n\nSau khi khóa, Admin CLB sẽ bị vô hiệu hóa đăng nhập cho đến khi được mở khóa.`)) return;
+        if (!confirm(`⚠️ KHÓA TÀI KHOẢN\n\nBạn có chắc muốn KHÓA tài khoản CLB:\n"${clubName}" (${clubId})?\n\nSau khi khóa, toàn bộ tài khoản CLB sẽ bị chặn truy cập dữ liệu. Phiên đăng nhập hiện tại cũng được thu hồi.`)) return;
         const _t0 = Date.now();
         try {
             if (!window.AccountProvisioningService) throw new Error('Dịch vụ bảo mật tài khoản chưa sẵn sàng.');
-            await window.AccountProvisioningService.setClubAccountStatus({ clubId, status: 'locked' });
+            await window.AccountProvisioningService.setClubAccountStatus({ clubId, status: 'locked', lockReason: 'manual_superadmin_lock' });
             _m().lastDurationMs = Date.now() - _t0;
-            window.showToast('🔒 Đã khóa tài khoản CLB thành công!');
+            window.showToast('🔒 Đã khóa toàn bộ quyền truy cập dữ liệu của CLB!');
             window.loadSuperAdminData();
         } catch (e) { _m().lastError = e.message; console.error(e); alert('Lỗi: ' + (e.message || e.code)); }
     };
@@ -845,7 +845,7 @@ window.debugSuperAdminAggregationHardStop = function() {
             if (!window.AccountProvisioningService) throw new Error('Dịch vụ bảo mật tài khoản chưa sẵn sàng.');
             await window.AccountProvisioningService.setClubAccountStatus({ clubId, status: 'active' });
             _m().lastDurationMs = Date.now() - _t0;
-            window.showToast('🔓 Đã mở khóa tài khoản CLB thành công!');
+            window.showToast('🔓 Đã mở khóa CLB. Các thành viên cần đăng nhập lại.');
             window.loadSuperAdminData();
         } catch (e) { _m().lastError = e.message; console.error(e); alert('Lỗi: ' + (e.message || e.code)); }
     };

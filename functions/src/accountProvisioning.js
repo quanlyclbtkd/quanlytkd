@@ -7,6 +7,14 @@ const REGION = 'asia-southeast1';
 const db = admin.firestore();
 const auth = admin.auth();
 const FieldValue = admin.firestore.FieldValue;
+const FieldPath = admin.firestore.FieldPath;
+const Timestamp = admin.firestore.Timestamp;
+
+const DEFAULT_EXPIRY_DATE = '2027-04-30';
+const VIETNAM_UTC_OFFSET_HOURS = 7;
+const MAX_CURSOR_PAGES = 10000;
+const DEFAULT_PAGE_SIZE = 250;
+const MAX_PAGE_SIZE = 500;
 
 const SAFE_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const SAFE_CLUB_ID_RE = /^[a-z0-9_]{3,64}$/;
@@ -99,6 +107,88 @@ function normalizeBranchCount(value) {
     throw httpsError('invalid-argument', `Số cơ sở phải từ 1 đến ${MAX_BRANCH_COUNT}.`);
   }
   return n;
+}
+
+function normalizePageSize(value) {
+  if (value === undefined || value === null || value === '') return DEFAULT_PAGE_SIZE;
+  const n = Number.parseInt(value, 10);
+  if (!Number.isInteger(n) || n < 50 || n > MAX_PAGE_SIZE) {
+    throw httpsError('invalid-argument', `pageSize phải từ 50 đến ${MAX_PAGE_SIZE}.`);
+  }
+  return n;
+}
+
+function parseExpiryDate(value) {
+  const expiryDate = String(value || '').trim();
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(expiryDate);
+  if (!match) throw httpsError('invalid-argument', 'Ngày hết hạn không hợp lệ.');
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const utcDate = new Date(Date.UTC(year, month - 1, day));
+  if (
+    utcDate.getUTCFullYear() !== year
+    || utcDate.getUTCMonth() !== month - 1
+    || utcDate.getUTCDate() !== day
+  ) {
+    throw httpsError('invalid-argument', 'Ngày hết hạn không tồn tại.');
+  }
+
+  // expiryDate is inclusive in Viet Nam. expiryAt is the exclusive boundary:
+  // 00:00 of the following local day (UTC+07), represented as a Firestore Timestamp.
+  const expiryAtMillis = Date.UTC(year, month - 1, day, 24 - VIETNAM_UTC_OFFSET_HOURS, 0, 0, 0);
+  return { expiryDate, expiryAt: Timestamp.fromMillis(expiryAtMillis) };
+}
+
+function timestampMillis(value) {
+  return value && typeof value.toMillis === 'function' ? value.toMillis() : null;
+}
+
+function isFutureTimestamp(value, nowMillis = Date.now()) {
+  const millis = timestampMillis(value);
+  return Number.isFinite(millis) && millis > nowMillis;
+}
+
+async function listClubMemberUids(clubId, explicitAdminUid) {
+  const unique = new Set();
+  if (explicitAdminUid) unique.add(String(explicitAdminUid));
+  let lastDoc = null;
+  let pages = 0;
+  while (pages < MAX_CURSOR_PAGES) {
+    let query = db.collection('users')
+      .where('clubId', '==', clubId)
+      .orderBy(FieldPath.documentId())
+      .limit(DEFAULT_PAGE_SIZE);
+    if (lastDoc) query = query.startAfter(lastDoc);
+    const snap = await query.get();
+    pages++;
+    for (const docSnap of snap.docs) unique.add(docSnap.id);
+    if (snap.size < DEFAULT_PAGE_SIZE) return { uids: [...unique], pages };
+    lastDoc = snap.docs[snap.docs.length - 1];
+  }
+  throw httpsError('resource-exhausted', 'Danh sách thành viên quá lớn; đã dừng để tránh xử lý thiếu dữ liệu.');
+}
+
+async function revokeClubMemberSessions(clubId, explicitAdminUid) {
+  const { uids, pages } = await listClubMemberUids(clubId, explicitAdminUid);
+  let revoked = 0;
+  const failures = [];
+  const concurrency = 10;
+  for (let i = 0; i < uids.length; i += concurrency) {
+    const chunk = uids.slice(i, i + concurrency);
+    const results = await Promise.allSettled(chunk.map(uid => auth.revokeRefreshTokens(uid)));
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled') revoked++;
+      else failures.push({ uid: chunk[index], code: String(result.reason && result.reason.code || 'unknown') });
+    });
+  }
+  return {
+    scannedUsers: uids.length,
+    revokedUsers: revoked,
+    failedUsers: failures.length,
+    failedUserIds: failures.slice(0, 20).map(item => item.uid),
+    pages,
+  };
 }
 
 function requestRef(requestId) {
@@ -257,7 +347,8 @@ exports.provisionClubAdmin = callable(async (data, context) => {
       adminUid: authRecord.uid,
       adminEmail: email,
       createdAt: now,
-      expiryDate: '2027-04-30',
+      expiryDate: DEFAULT_EXPIRY_DATE,
+      expiryAt: parseExpiryDate(DEFAULT_EXPIRY_DATE).expiryAt,
       accountStatus: 'active',
       credentialStorageVersion: 2,
     });
@@ -639,24 +730,115 @@ exports.setClubAccountStatus = callable(async (data, context) => {
   if (completed) return completed;
   const clubId = normalizeClubId(data && data.clubId);
   const status = String(data && data.status || '').trim();
+  const lockReason = normalizeOptionalText(data && data.lockReason || '', 300);
   if (!['active', 'locked'].includes(status)) throw httpsError('invalid-argument', 'Trạng thái không hợp lệ.');
   await markRequestPending(requestId, action, actor, { clubId });
   try {
     const clubRef = db.doc(`clubs/${clubId}`);
-    const snap = await clubRef.get();
-    if (!snap.exists) throw httpsError('not-found', 'Không tìm thấy CLB.');
-    const before = snap.data() || {};
-    await clubRef.set({ accountStatus: status, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
-    if (before.adminUid) {
-      try { await auth.updateUser(before.adminUid, { disabled: status === 'locked' }); } catch (_) {}
+    const before = await db.runTransaction(async tx => {
+      const snap = await tx.get(clubRef);
+      if (!snap.exists) throw httpsError('not-found', 'Không tìm thấy CLB.');
+      const current = snap.data() || {};
+      if (status === 'active' && !isFutureTimestamp(current.expiryAt)) {
+        throw httpsError(
+          'failed-precondition',
+          'Không thể mở khóa: CLB chưa có expiryAt hợp lệ hoặc đã hết hạn. Hãy gia hạn/backfill trước.'
+        );
+      }
+      const now = FieldValue.serverTimestamp();
+      const patch = status === 'locked'
+        ? {
+            accountStatus: 'locked',
+            lockReason: lockReason || 'manual_superadmin_lock',
+            lockedAt: now,
+            lockedBy: actor.uid,
+            updatedAt: now,
+          }
+        : {
+            accountStatus: 'active',
+            lockReason: FieldValue.delete(),
+            lockedAt: FieldValue.delete(),
+            lockedBy: FieldValue.delete(),
+            unlockedAt: now,
+            unlockedBy: actor.uid,
+            updatedAt: now,
+          };
+      tx.set(clubRef, patch, { merge: true });
+      return current;
+    });
+
+    // Rules enforce the lock immediately. Token revocation accelerates session shutdown
+    // without permanently disabling every Auth account.
+    let revocation;
+    try {
+      revocation = await revokeClubMemberSessions(clubId, before.adminUid || null);
+    } catch (error) {
+      // The Rules gate is already authoritative at this point. Session revocation is a
+      // defense-in-depth acceleration and must not make the UI report that the lock failed.
+      functions.logger.error('[setClubAccountStatus] session revocation incomplete', {
+        clubId,
+        status,
+        code: String(error && error.code || 'unknown'),
+      });
+      revocation = {
+        scannedUsers: 0,
+        revokedUsers: 0,
+        failedUsers: 0,
+        failedUserIds: [],
+        pages: 0,
+        incomplete: true,
+        errorCode: String(error && error.code || 'unknown'),
+      };
     }
-    const result = { clubId, status };
-    await finishRequest({ requestId, action, actor, targetClubId: clubId, targetUid: before.adminUid || null, result,
-      beforeSummary: { accountStatus: before.accountStatus || null }, afterSummary: { accountStatus: status } });
+
+    // Compatibility repair: the previous 4K-6W lock flow disabled the primary admin.
+    // Only repair legacy locks that have no lockedAt marker, so an unrelated manually
+    // disabled account is not silently re-enabled by a normal 6W1 unlock.
+    let legacyAdminReenabled = false;
+    if (
+      status === 'active'
+      && before.adminUid
+      && before.accountStatus === 'locked'
+      && !before.lockedAt
+    ) {
+      try {
+        const adminUser = await auth.getUser(before.adminUid);
+        if (adminUser.disabled) {
+          await auth.updateUser(before.adminUid, { disabled: false });
+          legacyAdminReenabled = true;
+        }
+      } catch (error) {
+        functions.logger.warn('[setClubAccountStatus] legacy admin re-enable skipped', {
+          clubId,
+          code: String(error && error.code || 'unknown'),
+        });
+      }
+    }
+
+    const result = { clubId, status, revocation, legacyAdminReenabled };
+    await finishRequest({
+      requestId,
+      action,
+      actor,
+      targetClubId: clubId,
+      targetUid: before.adminUid || null,
+      result,
+      beforeSummary: {
+        accountStatus: before.accountStatus || null,
+        hadExpiryAt: timestampMillis(before.expiryAt) !== null,
+      },
+      afterSummary: {
+        accountStatus: status,
+        sessionsRevoked: revocation.revokedUsers,
+        sessionRevocationFailures: revocation.failedUsers,
+        legacyAdminReenabled,
+      },
+    });
     return result;
   } catch (error) {
     await failRequest({ requestId, action, actor, targetClubId: clubId, error });
     if (error instanceof functions.https.HttpsError) throw error;
+    functions.logger.error('[setClubAccountStatus]', error);
     throw httpsError('internal', 'Không thể cập nhật trạng thái CLB.');
   }
 });
@@ -669,23 +851,182 @@ exports.updateClubSubscription = callable(async (data, context) => {
   const completed = await getCompletedRequest(requestId, action, actor.uid);
   if (completed) return completed;
   const clubId = normalizeClubId(data && data.clubId);
-  const expiryDate = String(data && data.expiryDate || '').trim();
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(expiryDate)) throw httpsError('invalid-argument', 'Ngày hết hạn không hợp lệ.');
+  const parsedExpiry = parseExpiryDate(data && data.expiryDate);
   await markRequestPending(requestId, action, actor, { clubId });
   try {
     const ref = db.doc(`clubs/${clubId}`);
     const snap = await ref.get();
     if (!snap.exists) throw httpsError('not-found', 'Không tìm thấy CLB.');
     const before = snap.data() || {};
-    await ref.set({ expiryDate, accountStatus: 'active', updatedAt: FieldValue.serverTimestamp() }, { merge: true });
-    const result = { clubId, expiryDate, accountStatus: 'active' };
-    await finishRequest({ requestId, action, actor, targetClubId: clubId, result,
-      beforeSummary: { expiryDate: before.expiryDate || null, accountStatus: before.accountStatus || null },
-      afterSummary: { expiryDate, accountStatus: 'active' } });
+    await ref.set({
+      expiryDate: parsedExpiry.expiryDate,
+      expiryAt: parsedExpiry.expiryAt,
+      updatedAt: FieldValue.serverTimestamp(),
+    }, { merge: true });
+    const result = {
+      clubId,
+      expiryDate: parsedExpiry.expiryDate,
+      expiryAtMillis: parsedExpiry.expiryAt.toMillis(),
+      accountStatus: before.accountStatus || null,
+    };
+    await finishRequest({
+      requestId,
+      action,
+      actor,
+      targetClubId: clubId,
+      result,
+      beforeSummary: {
+        expiryDate: before.expiryDate || null,
+        expiryAtMillis: timestampMillis(before.expiryAt),
+        accountStatus: before.accountStatus || null,
+      },
+      afterSummary: {
+        expiryDate: parsedExpiry.expiryDate,
+        expiryAtMillis: parsedExpiry.expiryAt.toMillis(),
+        accountStatusUnchanged: true,
+      },
+    });
     return result;
   } catch (error) {
     await failRequest({ requestId, action, actor, targetClubId: clubId, error });
     if (error instanceof functions.https.HttpsError) throw error;
+    functions.logger.error('[updateClubSubscription]', error);
     throw httpsError('internal', 'Không thể cập nhật thời hạn CLB.');
   }
+});
+
+exports.backfillClubExpiryTimestamp = callable(async (data, context) => {
+  const actor = await loadActor(context);
+  requireSuperAdmin(actor);
+  const dryRun = data && data.dryRun !== false;
+  const action = dryRun ? 'backfillClubExpiryTimestampDryRun' : 'backfillClubExpiryTimestampApply';
+  const requestId = normalizeRequestId(data && data.requestId);
+  const completed = await getCompletedRequest(requestId, action, actor.uid);
+  if (completed) return completed;
+  const pageSize = normalizePageSize(data && data.pageSize);
+  await markRequestPending(requestId, action, actor, {});
+
+  try {
+    let scanned = 0;
+    let updated = 0;
+    let wouldUpdate = 0;
+    let skipped = 0;
+    let invalid = 0;
+    let invalidExpiry = 0;
+    let invalidStatus = 0;
+    let pages = 0;
+    let lastDoc = null;
+    let batch = db.batch();
+    let batchOps = 0;
+    const invalidClubIds = [];
+
+    const commitBatch = async force => {
+      if (dryRun || batchOps === 0 || (!force && batchOps < 400)) return;
+      await batch.commit();
+      batch = db.batch();
+      batchOps = 0;
+    };
+
+    while (pages < MAX_CURSOR_PAGES) {
+      let query = db.collection('clubs')
+        .orderBy(FieldPath.documentId())
+        .limit(pageSize);
+      if (lastDoc) query = query.startAfter(lastDoc);
+      const snap = await query.get();
+      pages++;
+
+      for (const clubDoc of snap.docs) {
+        scanned++;
+        const club = clubDoc.data() || {};
+        if (!['active', 'locked'].includes(String(club.accountStatus || ''))) {
+          invalid++;
+          invalidStatus++;
+          if (invalidClubIds.length < 20) invalidClubIds.push(clubDoc.id);
+          continue;
+        }
+        let parsed;
+        try {
+          parsed = parseExpiryDate(club.expiryDate);
+        } catch (_) {
+          invalid++;
+          invalidExpiry++;
+          if (invalidClubIds.length < 20) invalidClubIds.push(clubDoc.id);
+          continue;
+        }
+        const currentMillis = timestampMillis(club.expiryAt);
+        const expectedMillis = parsed.expiryAt.toMillis();
+        if (currentMillis === expectedMillis) {
+          skipped++;
+          continue;
+        }
+        wouldUpdate++;
+        if (!dryRun) {
+          batch.set(clubDoc.ref, {
+            expiryAt: parsed.expiryAt,
+            expiryTimestampVersion: 1,
+            expiryTimestampUpdatedAt: FieldValue.serverTimestamp(),
+          }, { merge: true });
+          batchOps++;
+          updated++;
+          await commitBatch(false);
+        }
+      }
+
+      if (snap.empty || snap.size < pageSize) {
+        await commitBatch(true);
+        const readyForRules = invalid === 0
+          && (dryRun ? wouldUpdate === 0 : updated + skipped === scanned);
+        const result = {
+          dryRun,
+          scanned,
+          wouldUpdate,
+          updated,
+          skipped,
+          invalid,
+          invalidExpiry,
+          invalidStatus,
+          invalidClubIds,
+          pages,
+          complete: true,
+          readyForRules,
+        };
+        await finishRequest({
+          requestId,
+          action,
+          actor,
+          result,
+          afterSummary: {
+            dryRun,
+            scanned,
+            wouldUpdate,
+            updated,
+            skipped,
+            invalid,
+            invalidExpiry,
+            invalidStatus,
+            complete: true,
+            readyForRules,
+          },
+        });
+        return result;
+      }
+      lastDoc = snap.docs[snap.docs.length - 1];
+    }
+
+    throw httpsError(
+      'resource-exhausted',
+      'Backfill vượt giới hạn trang an toàn; không đánh dấu hoàn tất để tránh bỏ sót CLB.'
+    );
+  } catch (error) {
+    await failRequest({ requestId, action, actor, error });
+    if (error instanceof functions.https.HttpsError) throw error;
+    functions.logger.error('[backfillClubExpiryTimestamp]', error);
+    throw httpsError('internal', 'Không thể backfill expiryAt cho CLB.');
+  }
+});
+
+exports.__test = Object.freeze({
+  parseExpiryDate,
+  timestampMillis,
+  isFutureTimestamp,
 });
