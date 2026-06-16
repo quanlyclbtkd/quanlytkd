@@ -81,21 +81,26 @@ function touch(reason) {
 }
 
 function getStockMap(reason) {
-    const existing = window._liveInvMap || {};
-    if (Object.keys(existing).length > 0) {
-        _metrics.lastStockSource = 'window._liveInvMap';
-        return existing;
-    }
-
+    // Phase 4K-6V2A: rebuild from inventory_stats first. _liveInvMap may be empty
+    // because inventory history is now lazy, or stale after a stock mutation.
     const builder = window.MultiItemInventorySafety && window.MultiItemInventorySafety.buildInventoryStockMapForMultiItem;
     if (typeof builder === 'function') {
         try {
-            const result = builder.call(window.MultiItemInventorySafety, { reason: reason || 'read-only-ui-stock-map' }) || {};
+            const result = builder.call(window.MultiItemInventorySafety, {
+                reason: reason || 'read-only-ui-stock-map',
+                force: true
+            }) || {};
             _metrics.lastStockSource = result.source || 'MultiItemInventorySafety';
             return result.map || window._liveInvMap || {};
         } catch (e) {
             console.warn('[InventoryMultiItemReadOnlyUI] stock map build failed:', e);
         }
+    }
+
+    const existing = window._liveInvMap || {};
+    if (Object.keys(existing).length > 0) {
+        _metrics.lastStockSource = 'window._liveInvMap-fallback';
+        return existing;
     }
 
     _metrics.lastStockSource = 'empty';

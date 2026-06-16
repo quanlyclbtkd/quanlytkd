@@ -20,6 +20,87 @@ function norm(v) {
         .trim();
 }
 
+
+
+// ── Phase 4K-6V2A: canonical stock-map hydration from inventory_stats ─────────
+function buildStockMapFromInventoryStats(stats) {
+    const source = stats && typeof stats === 'object' ? stats : null;
+    if (!source) return {};
+
+    const bases = new Set();
+    Object.keys(source).forEach(key => {
+        if (key.endsWith('_balance')) bases.add(key.slice(0, -8));
+        else if (key.endsWith('_in')) bases.add(key.slice(0, -3));
+        else if (key.endsWith('_out')) bases.add(key.slice(0, -4));
+    });
+
+    const map = {};
+    bases.forEach(base => {
+        if (!base) return;
+        const parts = base.includes('|||') ? base.split('|||') : ['Võ phục', base];
+        const category = String(parts[0] || 'Võ phục').trim() || 'Võ phục';
+        const size = String(parts.slice(1).join('|||') || base).trim();
+        if (!size) return;
+
+        const rawIn = Number(source[base + '_in']);
+        const rawOut = Number(source[base + '_out']);
+        const rawBalance = Number(source[base + '_balance']);
+        const hasIn = Number.isFinite(rawIn);
+        const hasOut = Number.isFinite(rawOut);
+        const hasBalance = Number.isFinite(rawBalance);
+        const out = hasOut ? rawOut : 0;
+        const input = hasIn ? rawIn : (hasBalance ? rawBalance + out : 0);
+        const key = category + '|||' + size;
+        map[key] = {
+            category,
+            size,
+            in: input,
+            out,
+            balance: input - out,
+            source: 'inventory-stats'
+        };
+    });
+    return map;
+}
+
+function buildStockMapFromTransactions(items) {
+    const map = {};
+    for (const item of (Array.isArray(items) ? items : [])) {
+        const category = String(item.category || item.itemCategory || item.typeName || 'Võ phục').trim() || 'Võ phục';
+        const size = String(item.size || item.itemSize || item.uniformSize || item.variant || '').trim();
+        if (!size) continue;
+        const key = category + '|||' + size;
+        if (!map[key]) map[key] = { category, size, in: 0, out: 0, source: 'inventory-history-fallback' };
+
+        const qtyRaw = item.qty !== undefined ? item.qty : item.quantity;
+        const qty = Number(qtyRaw === undefined ? 1 : qtyRaw) || 0;
+        const type = norm(item.type || item.transactionType || '');
+        if (type.includes('nhap') || type === 'import') map[key].in += qty;
+        else if (type.includes('xuat') || type.includes('ban no') || type === 'inventorydebt') map[key].out += qty;
+        map[key].balance = map[key].in - map[key].out;
+    }
+    return map;
+}
+
+function resolveInventoryStatsSource() {
+    const hasCanonicalStore = !!window.__inventoryStore;
+    const invStore = window.__inventoryStore || {};
+    const st = window.__store || {};
+    // Canonical inventoryStore starts at null and becomes {} or a populated object
+    // only after the inventory_stats snapshot has completed.
+    if (hasCanonicalStore) {
+        return invStore.inventoryStats !== null && invStore.inventoryStats !== undefined
+            ? invStore.inventoryStats
+            : null;
+    }
+    // Legacy fallback: only accept a non-empty stats object; store.js may initialize
+    // inventoryStats as {} before Firestore hydration.
+    if (st.inventoryStats && typeof st.inventoryStats === 'object' && Object.keys(st.inventoryStats).length > 0) {
+        return st.inventoryStats;
+    }
+    return null;
+}
+
 // ── Debounce helper ───────────────────────────────────────────────────────────
 function debounce(fn, ms) {
     let t = null;
@@ -35,7 +116,6 @@ export const MultiItemInventorySafety = {
     async ensureMultiItemInventoryReady(reason = 'multi-item') {
         const _t0 = Date.now();
 
-        // Step 1: call synchronous readiness helpers if available
         try {
             if (typeof window.ensureInventoryForFeature === 'function') {
                 window.ensureInventoryForFeature('feeReceipt', reason);
@@ -43,7 +123,13 @@ export const MultiItemInventorySafety = {
             }
         } catch (_e) {}
 
-        // Step 2: call async loaders if available
+        // Phase 4K-6V2A: stock selectors read inventory_stats directly. They must
+        // never require opening Kho or downloading the 100-row history page first.
+        let stockResult = this.buildInventoryStockMapForMultiItem({
+            reason: reason + ':initial-stock-map',
+            force: true
+        });
+
         const asyncLoaders = ['ensureInventoryReady', 'loadInventoryForFeature', 'loadFullInventoryForFeature'];
         for (const fn of asyncLoaders) {
             if (typeof window[fn] === 'function') {
@@ -51,46 +137,60 @@ export const MultiItemInventorySafety = {
             }
         }
 
-        // Step 3: poll for readiness up to 3000ms
         const POLL_MAX = 3000;
         const POLL_INTERVAL = 100;
         let elapsed = Date.now() - _t0;
         let timedOut = false;
 
         while (elapsed < POLL_MAX) {
-            const st = window.__store || {};
             const invStore = window.__inventoryStore || {};
-            const storeReady = st.inventory && st.inventory.length > 0;
-            const allInvReady = window.allInventory && window.allInventory.length > 0;
-            const debtReady = invStore.inventoryDebtIndexReady || invStore.unpaidDebtQueryLoaded ||
-                window.__inventoryDebtCompleteness === 'complete';
-            if (storeReady || allInvReady || debtReady) break;
+            const statsLoaded = resolveInventoryStatsSource() !== null;
+            const debtReady = !!(
+                invStore.inventoryDebtIndexReady ||
+                invStore.unpaidDebtQueryLoaded ||
+                window.__inventoryDebtCompleteness === 'complete' ||
+                window.__inventoryDebtCompleteness === 'partial' ||
+                window.__inventoryDebtCompleteness === 'failed'
+            );
+            stockResult = this.buildInventoryStockMapForMultiItem({
+                reason: reason + ':poll-stock-map',
+                force: true
+            });
+            const stockReady = statsLoaded || stockResult.keyCount > 0;
+            if (stockReady && debtReady) break;
             await new Promise(r => setTimeout(r, POLL_INTERVAL));
             elapsed = Date.now() - _t0;
         }
 
-        if (elapsed >= POLL_MAX) {
+        const invStore = window.__inventoryStore || {};
+        const statsLoaded = resolveInventoryStatsSource() !== null;
+        const debtReady = !!(
+            invStore.inventoryDebtIndexReady ||
+            invStore.unpaidDebtQueryLoaded ||
+            window.__inventoryDebtCompleteness === 'complete'
+        );
+        const stockReady = statsLoaded || stockResult.keyCount > 0;
+        if (elapsed >= POLL_MAX && !(stockReady && debtReady)) {
             timedOut = true;
-            console.warn('[ensureMultiItemInventoryReady] timeout after', elapsed, 'ms, reason:', reason);
+            console.warn('[ensureMultiItemInventoryReady] timeout after', elapsed, 'ms, reason:', reason, {
+                stockReady, debtReady, stockSource: stockResult.source
+            });
         }
 
         const st = window.__store || {};
-        const invStore = window.__inventoryStore || {};
-        const getAllCompat = invStore.getAllInventoryCompat && typeof invStore.getAllInventoryCompat === 'function'
-            ? invStore.getAllInventoryCompat()
-            : [];
-        const liveMapKeys = Object.keys(window._liveInvMap || {});
-
         return {
-            ok:                     !timedOut,
-            timedOut:               timedOut,
-            reason:                 reason,
+            ok:                     stockReady && (debtReady || window.__inventoryDebtCompleteness === 'partial'),
+            timedOut,
+            reason,
             inventoryCount:         (st.inventory || []).length,
             allInventoryCount:      (window.allInventory || []).length,
             financeDebtCount:       (invStore.financeInventoryDebts || []).length,
             unpaidDebtQueryLoaded:  !!invStore.unpaidDebtQueryLoaded,
             inventoryDebtIndexReady: !!invStore.inventoryDebtIndexReady,
-            liveInvMapKeys:         liveMapKeys.length,
+            inventoryStatsLoaded:   statsLoaded,
+            stockReady,
+            stockSource:            stockResult.source,
+            liveInvMapKeys:         stockResult.keyCount,
             source:                 'MultiItemInventorySafety'
         };
     },
@@ -98,184 +198,184 @@ export const MultiItemInventorySafety = {
     // ── A.5 buildInventoryStockMapForMultiItem ────────────────────────────────
     buildInventoryStockMapForMultiItem(options = {}) {
         const invStore = window.__inventoryStore || {};
-        const st       = window.__store || {};
+        const st = window.__store || {};
+        const force = options.force === true;
+        const stats = resolveInventoryStatsSource();
+        const statsMap = buildStockMapFromInventoryStats(stats);
 
-        // Priority sources
         let items = [];
-        let source = 'none';
+        let historySource = 'none';
+        if (invStore.getAllInventoryCompat && typeof invStore.getAllInventoryCompat === 'function') {
+            const compat = invStore.getAllInventoryCompat();
+            if (compat && compat.length > 0) { items = compat; historySource = '__inventoryStore.getAllInventoryCompat'; }
+        }
+        if (!items.length && invStore.inventoryHistory && invStore.inventoryHistory.length > 0) {
+            items = invStore.inventoryHistory; historySource = '__inventoryStore.inventoryHistory';
+        }
+        if (!items.length && st.inventory && st.inventory.length > 0) {
+            items = st.inventory; historySource = '__store.inventory';
+        }
+        if (!items.length && window.allInventory && window.allInventory.length > 0) {
+            items = window.allInventory; historySource = 'allInventory';
+        }
+        const historyMap = buildStockMapFromTransactions(items);
 
-        // 1. _liveInvMap already has data → skip build but still return map info
+        // inventory_stats is authoritative for totals. History is only a legacy
+        // fallback for keys that have not yet been summarized.
+        const map = { ...historyMap, ...statsMap };
         const existingMap = window._liveInvMap || {};
-        if (Object.keys(existingMap).length > 0) {
+        if (!Object.keys(map).length && !force && Object.keys(existingMap).length) {
             return {
-                map:       existingMap,
-                source:    'existing-_liveInvMap',
+                map: existingMap,
+                source: 'existing-_liveInvMap',
                 itemCount: 0,
-                keyCount:  Object.keys(existingMap).length
+                keyCount: Object.keys(existingMap).length,
+                statsLoaded: stats !== null
             };
         }
 
-        // 2. Try various inventory sources
-        if (invStore.getAllInventoryCompat && typeof invStore.getAllInventoryCompat === 'function') {
-            const compat = invStore.getAllInventoryCompat();
-            if (compat && compat.length > 0) { items = compat; source = '__inventoryStore.getAllInventoryCompat'; }
-        }
-        if (!items.length && invStore.inventoryHistory && invStore.inventoryHistory.length > 0) {
-            items = invStore.inventoryHistory; source = '__inventoryStore.inventoryHistory';
-        }
-        if (!items.length && st.inventory && st.inventory.length > 0) {
-            items = st.inventory; source = '__store.inventory';
-        }
-        if (!items.length && window.allInventory && window.allInventory.length > 0) {
-            items = window.allInventory; source = 'allInventory';
-        }
-
-        if (!items.length) {
-            return { map: {}, source: 'none', itemCount: 0, keyCount: 0 };
-        }
-
-        const map = {};
-
-        for (const item of items) {
-            const category = item.category || item.itemCategory || item.typeName || '';
-            const size     = item.size || item.itemSize || item.uniformSize || item.variant || '';
-            if (!category) continue;
-
-            const key = category + '|||' + size;
-            if (!map[key]) map[key] = { in: 0, out: 0 };
-
-            const qty = Number(item.qty || item.quantity || 1);
-            const type = String(item.type || '').toLowerCase();
-
-            if (type.includes('nhập') || type === 'nhap kho' || type === 'import') {
-                map[key].in += qty;
-            } else if (
-                type.includes('xuất bán') || type.includes('xuat ban') ||
-                type.includes('bán nợ') || type.includes('ban no') ||
-                type.includes('xuất tặng') || type.includes('xuat tang') ||
-                type === 'inventorydebt'
-            ) {
-                map[key].out += qty;
-            }
-        }
-
-        // Populate _liveInvMap if empty
-        if (Object.keys(map).length > 0 && Object.keys(window._liveInvMap || {}).length === 0) {
-            window._liveInvMap = map;
-        }
+        window._liveInvMap = map;
+        window.__liveInvMapSource = Object.keys(statsMap).length
+            ? 'inventory-stats'
+            : (Object.keys(historyMap).length ? historySource : 'empty');
+        window.__liveInvMapUpdatedAt = Date.now();
 
         return {
-            map:       map,
-            source:    source,
+            map,
+            source: window.__liveInvMapSource,
             itemCount: items.length,
-            keyCount:  Object.keys(map).length
+            keyCount: Object.keys(map).length,
+            statsLoaded: stats !== null,
+            statsKeyCount: Object.keys(statsMap).length,
+            historyKeyCount: Object.keys(historyMap).length
         };
     },
 
     // ── A.6 resolveMultiItemInventoryDebts ────────────────────────────────────
-    resolveMultiItemInventoryDebts(studentName, options = {}) {
-        if (!studentName) return [];
-        const reason     = options.reason || 'resolve-debts';
-        const normName   = norm(studentName);
-        const invStore   = window.__inventoryStore || {};
-        const st         = window.__store || {};
-        const seen       = new Set();
-        let results      = [];
+    resolveMultiItemInventoryDebts(studentOrProfile, options = {}) {
+        if (!studentOrProfile) return [];
+        const reason = options.reason || 'resolve-debts';
+        const requested = typeof studentOrProfile === 'object'
+            ? studentOrProfile
+            : { name: String(studentOrProfile || '').trim() };
+        const identity = typeof window.resolveInventoryDebtIdentity === 'function'
+            ? window.resolveInventoryDebtIdentity(requested)
+            : {
+                profileId: String(requested.profileId || requested.docId || requested.id || '').trim(),
+                memberId: String(requested.memberId || requested.memberCode || '').trim(),
+                studentName: String(requested.name || requested.studentName || requested.profileName || '').trim()
+            };
+        const displayName = String(identity.studentName || requested.name || requested.studentName || '').trim();
+        const normName = norm(displayName);
+        const invStore = window.__inventoryStore || {};
+        const st = window.__store || {};
+        const seen = new Set();
+        const results = [];
+        const lookupTarget = {
+            profileId: identity.profileId || '',
+            memberId: identity.memberId || '',
+            name: displayName,
+            studentName: displayName
+        };
 
         function dedupeItem(item) {
             const key = item.id ||
-                [item.category, item.size, item.amount, item.date, item.description].join('|');
+                [item.profileId, item.memberId, item.category, item.size, item.amount, item.date, item.description].join('|');
             if (seen.has(key)) return false;
             seen.add(key);
             return true;
         }
 
-        function nameMatches(item) {
+        function identityMatches(item) {
+            if (identity.profileId && String(item.profileId || item.studentProfileId || item._profileId || '').trim() === identity.profileId) return true;
+            if (identity.memberId && String(item.memberId || item.memberCode || item._memberId || '').trim() === identity.memberId) return true;
+            if (!normName) return false;
             const fields = [
                 item.desc, item.description, item.studentName, item.name,
                 item.profileName, item.customerName, item.memberName,
-                item.student, item.buyerName, item.studentLabel
+                item.student, item.buyerName, item.studentLabel, item._studentName
             ];
-            for (const f of fields) {
-                if (!f) continue;
-                const nf = norm(f);
-                if (nf === normName) return true;
-                if (nf.length >= 3 && normName.includes(nf)) return true;
-                if (normName.length >= 3 && nf.includes(normName)) return true;
-            }
-            return false;
+            return fields.some(value => {
+                if (!value) return false;
+                const normalized = norm(value);
+                return normalized === normName;
+            });
         }
 
         function isDebtItem(item) {
-            const type = String(item.type || '').toLowerCase();
-            return (
-                item.unpaid === true ||
+            const type = norm(item.type || item.transactionType || '');
+            const pending = item.unpaid === true ||
                 item.inventoryDebtStatus === 'pending' ||
-                item.paymentStatus === 'unpaid'
-            ) && (
-                type.includes('xuất bán') || type.includes('bán nợ') ||
-                type === 'inventorydebt' || item.unpaid === true
+                item.paymentStatus === 'unpaid';
+            return pending && (
+                !type || type.includes('xuat ban') || type.includes('ban no') ||
+                type.includes('ban hang') || type === 'xuat' || item.unpaid === true
             );
         }
 
         function normalizeItem(item) {
             return {
-                id:          item.id || '',
-                category:    item.category || '',
-                size:        item.size || '',
-                qty:         Number(item.qty || item.quantity || 1),
-                amount:      Number(item.amount || 0),
-                date:        item.date || '',
-                desc:        item.desc || item.description || '',
+                ...item,
+                id: item.id || '',
+                profileId: item.profileId || item.studentProfileId || item._profileId || '',
+                memberId: item.memberId || item.memberCode || item._memberId || '',
+                studentName: item.studentName || item._studentName || item.desc || item.description || displayName,
+                category: item.category || '',
+                size: item.size || '',
+                qty: Number(item.qty || item.quantity || 1),
+                amount: Number(item.amount || 0),
+                date: item.date || '',
+                desc: item.desc || item.description || '',
                 description: item.description || item.desc || '',
-                unpaid:      true,
-                source:      item._source || 'resolved'
+                unpaid: true,
+                source: item._source || 'resolved'
             };
         }
 
-        // Source 1: getInventoryDebtsForStudent
+        // Source 1: canonical indexed lookup (profileId → memberId → exact normalized name).
         if (typeof window.getInventoryDebtsForStudent === 'function') {
             try {
-                const s1 = window.getInventoryDebtsForStudent(studentName, {
-                    allowFallback: true, reason: reason
+                const s1 = window.getInventoryDebtsForStudent(lookupTarget, {
+                    allowFallback: true,
+                    reason
                 }) || [];
                 for (const item of s1) {
-                    const ni = normalizeItem({ ...item, _source: 'getInventoryDebtsForStudent' });
-                    if (dedupeItem(ni)) results.push(ni);
+                    const normalized = normalizeItem({ ...item, _source: 'getInventoryDebtsForStudent' });
+                    if (dedupeItem(normalized)) results.push(normalized);
                 }
             } catch (_e) {}
         }
 
-        // Source 2: financeInventoryDebts
-        if (invStore.financeInventoryDebts && invStore.financeInventoryDebts.length > 0) {
+        // Source 2: authoritative complete active-debt store.
+        if (Array.isArray(invStore.financeInventoryDebts)) {
             for (const item of invStore.financeInventoryDebts) {
-                if (!nameMatches(item) || !isDebtItem(item)) continue;
-                const ni = normalizeItem({ ...item, _source: 'financeInventoryDebts' });
-                if (dedupeItem(ni)) results.push(ni);
+                if (!identityMatches(item) || !isDebtItem(item)) continue;
+                const normalized = normalizeItem({ ...item, _source: 'financeInventoryDebts' });
+                if (dedupeItem(normalized)) results.push(normalized);
             }
         }
 
-        // Source 3: standalone/legacy complete-debt mirror (khi ES module store chưa sẵn sàng)
+        // Source 3: standalone/legacy complete-debt mirror.
         if (Array.isArray(window.__completeInventoryDebts)) {
             for (const item of window.__completeInventoryDebts) {
-                if (!nameMatches(item) || !isDebtItem(item)) continue;
-                const ni = normalizeItem({ ...item, _source: '__completeInventoryDebts' });
-                if (dedupeItem(ni)) results.push(ni);
+                if (!identityMatches(item) || !isDebtItem(item)) continue;
+                const normalized = normalizeItem({ ...item, _source: '__completeInventoryDebts' });
+                if (dedupeItem(normalized)) results.push(normalized);
             }
         }
 
-        // Source 4–6: các nguồn lịch sử chỉ là fallback tương thích; không đại diện độ đầy đủ.
+        // History is compatibility fallback only; it never owns completeness.
         const fallbackSources = [
-            [st.inventory,              '__store.inventory'],
-            [window.allInventory,       'allInventory'],
+            [st.inventory, '__store.inventory'],
+            [window.allInventory, 'allInventory'],
             [invStore.inventoryHistory, 'inventoryHistory']
         ];
-        for (const [src, label] of fallbackSources) {
-            if (!src || !src.length) continue;
-            for (const item of src) {
-                if (!nameMatches(item) || !isDebtItem(item)) continue;
-                const ni = normalizeItem({ ...item, _source: label });
-                if (dedupeItem(ni)) results.push(ni);
+        for (const [sourceItems, label] of fallbackSources) {
+            if (!Array.isArray(sourceItems)) continue;
+            for (const item of sourceItems) {
+                if (!identityMatches(item) || !isDebtItem(item)) continue;
+                const normalized = normalizeItem({ ...item, _source: label });
+                if (dedupeItem(normalized)) results.push(normalized);
             }
         }
 
@@ -376,8 +476,15 @@ MultiItemInventorySafety.refreshMultiItemInventorySection = debounce(
         const currentName = ((document.getElementById('mi_name') || {}).value || '').trim();
         if (norm(currentName) !== norm(studentName)) return;
 
+        const nameEl = document.getElementById('mi_name');
+        const identityTarget = {
+            profileId: String((nameEl && nameEl.dataset && nameEl.dataset.profileId) || '').trim(),
+            memberId: String((nameEl && nameEl.dataset && nameEl.dataset.memberId) || '').trim(),
+            name: studentName,
+            studentName
+        };
         const ensureResult = await MultiItemInventorySafety.ensureMultiItemInventoryReady(reason);
-        const items = MultiItemInventorySafety.resolveMultiItemInventoryDebts(studentName, {
+        const items = MultiItemInventorySafety.resolveMultiItemInventoryDebts(identityTarget, {
             reason, ensureResult
         });
         MultiItemInventorySafety.renderMultiItemInventoryDebtPanel(studentName, items, {

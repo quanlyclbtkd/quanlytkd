@@ -617,7 +617,7 @@ export function initInventory() {
             if (typeof window.ensureMultiItemInventoryReady === 'function') {
                 window.ensureMultiItemInventoryReady('multi-item-toggle-inventory')
                     .then(() => {
-                        window.MultiItemInventorySafety?.buildInventoryStockMapForMultiItem?.({ reason: 'toggle-inventory' });
+                        window.MultiItemInventorySafety?.buildInventoryStockMapForMultiItem?.({ reason: 'toggle-inventory', force: true });
                         if (typeof window.toggleMiInvCategory === 'function') {
                             window.toggleMiInvCategory();
                         }
@@ -644,11 +644,13 @@ export function initInventory() {
         const hint   = document.getElementById('mi_inv_stock_hint');
         // Phase 4K-6G: fallback stock map build if _liveInvMap is empty
         if (
-            (!window._liveInvMap || Object.keys(window._liveInvMap).length === 0) &&
             window.MultiItemInventorySafety &&
             window.MultiItemInventorySafety.buildInventoryStockMapForMultiItem
         ) {
-            window.MultiItemInventorySafety.buildInventoryStockMapForMultiItem({ reason: 'toggle-mi-category' });
+            window.MultiItemInventorySafety.buildInventoryStockMapForMultiItem({
+                reason: 'toggle-mi-category',
+                force: true
+            });
         }
         const inv    = window._liveInvMap || {};
         if (!sel || !txt) return;

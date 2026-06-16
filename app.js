@@ -1780,6 +1780,31 @@ service cloud.firestore {
             if (window.__inventoryStore && typeof window.__inventoryStore.setInventoryStats === 'function') {
                 window.__inventoryStore.setInventoryStats(inventoryStats, 'invstats-snapshot');
             }
+            // Phase 4K-6V2A: hydrate inventory consumers directly from inventory_stats.
+            // Thu gộp / Thêm võ sinh must not wait for the lazy history page.
+            try {
+                const _stockResult = window.MultiItemInventorySafety?.buildInventoryStockMapForMultiItem?.({
+                    reason: 'invstats-snapshot',
+                    force: true
+                });
+                window.__inventoryStockHydration = {
+                    ready: true,
+                    source: (_stockResult && _stockResult.source) || 'inventory-stats',
+                    keyCount: (_stockResult && _stockResult.keyCount) || Object.keys(window._liveInvMap || {}).length,
+                    updatedAt: Date.now()
+                };
+                const _addModalOpen = document.getElementById('addModal') && document.getElementById('addModal').style.display !== 'none';
+                if (_addModalOpen && typeof window.renderAdmissionUniformSizeOptions === 'function') {
+                    window.renderAdmissionUniformSizeOptions({ preserveSelection: true, reason: 'invstats-snapshot' });
+                }
+                const _miOpen = document.getElementById('multiItemModal') && document.getElementById('multiItemModal').style.display !== 'none';
+                const _miInvOn = document.getElementById('mi_inv_toggle') && document.getElementById('mi_inv_toggle').checked;
+                if (_miOpen && _miInvOn && typeof window.toggleMiInvCategory === 'function') {
+                    window.toggleMiInvCategory();
+                }
+            } catch (_stockHydrationErr) {
+                console.warn('[Phase 4K-6V2A] inventory_stats consumer hydration failed:', _stockHydrationErr);
+            }
             // [Phase 3.5C] invStats ảnh hưởng inventory + dashboard summary.
             // Fallback về scheduleRender() nếu Phase 3.5C chưa load.
             if (window.invalidateInventory) {
@@ -1868,6 +1893,12 @@ service cloud.firestore {
         // 2) Công nợ kho: một listener riêng where(unpaid == true), không limit.
         //    Dữ liệu công nợ là authoritative và KHÔNG bị lịch sử gần đây ghi đè.
         // 3) Identity: profileId → memberId → tên chuẩn hóa, tương thích dữ liệu cũ.
+
+        // Prevent stock options from leaking across club switches before the new
+        // club's inventory_stats snapshot arrives.
+        window._liveInvMap = {};
+        window.__liveInvMapSource = 'club-context-reset';
+        window.__inventoryStockHydration = { ready: false, source: 'club-context-reset', keyCount: 0, updatedAt: Date.now() };
 
         const _INVENTORY_HISTORY_PAGE_SIZE = 100;
         const _inventoryHistoryState = {
@@ -7707,6 +7738,8 @@ window.openMultiItemModal = () => {
     const fm = document.getElementById('filterMonth');
     if(fm && fm.value) document.getElementById('mi_tuition_month').value = fm.value;
     document.getElementById('mi_name').value = '';
+    delete document.getElementById('mi_name').dataset.profileId;
+    delete document.getElementById('mi_name').dataset.memberId;
     document.getElementById('mi_profile_info').style.display = 'none';
     document.getElementById('mi_history_panel').style.display = 'none';
     document.getElementById('mi_history_body').style.display = 'none';
@@ -7774,7 +7807,7 @@ window.toggleMultiItemInv = () => {
         if (typeof window.ensureMultiItemInventoryReady === 'function') {
             window.ensureMultiItemInventoryReady('multi-item-toggle-inventory')
                 .then(() => {
-                    window.MultiItemInventorySafety?.buildInventoryStockMapForMultiItem?.({ reason: 'toggle-inventory' });
+                    window.MultiItemInventorySafety?.buildInventoryStockMapForMultiItem?.({ reason: 'toggle-inventory', force: true });
                     if (typeof window.toggleMiInvCategory === 'function') {
                         window.toggleMiInvCategory();
                     }
@@ -7806,13 +7839,12 @@ window.toggleMiInvCategory = () => {
     const sel = document.getElementById('mi_inv_size_select');
     const txt = document.getElementById('mi_inv_size_text');
     const hint = document.getElementById('mi_inv_stock_hint');
-    // Phase 4K-6G: ensure stock map is built if _liveInvMap is empty
+    // Phase 4K-6V2A: rebuild from inventory_stats; history is lazy and must not be required.
     if (
-        (!window._liveInvMap || Object.keys(window._liveInvMap).length === 0) &&
         window.MultiItemInventorySafety &&
         window.MultiItemInventorySafety.buildInventoryStockMapForMultiItem
     ) {
-        window.MultiItemInventorySafety.buildInventoryStockMapForMultiItem({ reason: 'toggle-mi-category' });
+        window.MultiItemInventorySafety.buildInventoryStockMapForMultiItem({ reason: 'toggle-mi-category', force: true });
     }
     if (cat === 'Võ phục') {
         // Võ phục: dropdown size cố định kèm thông tin tồn kho
@@ -8082,13 +8114,20 @@ window._refreshMiHistoryBadges = async (name, profile) => {
         ensureResult = await window.ensureMultiItemInventoryReady('multi-item-refresh-badges');
     }
 
+    const _miNameEl = document.getElementById('mi_name');
+    const _miDebtIdentity = {
+        profileId: String((_miNameEl && _miNameEl.dataset && _miNameEl.dataset.profileId) || name || '').trim(),
+        memberId: String((_miNameEl && _miNameEl.dataset && _miNameEl.dataset.memberId) || (profile && profile.memberId) || '').trim(),
+        name: name,
+        studentName: name
+    };
     const unpaidInvItems = typeof window.resolveMultiItemInventoryDebts === 'function'
-        ? window.resolveMultiItemInventoryDebts(name, {
+        ? window.resolveMultiItemInventoryDebts(_miDebtIdentity, {
             reason: 'multi-item-refresh-badges',
             ensureResult
           })
         : (typeof window.getInventoryDebtsForStudent === 'function'
-            ? window.getInventoryDebtsForStudent(name, { allowFallback: true, reason: 'multi-item-refresh-badges' })
+            ? window.getInventoryDebtsForStudent(_miDebtIdentity, { allowFallback: true, reason: 'multi-item-refresh-badges' })
             : []
           );
 
@@ -8260,7 +8299,14 @@ window._setupMiAutocomplete = () => {
         listEl.style.top = rect.bottom + 'px';
         listEl.style.width = rect.width + 'px';
     };
-    const pickName = (nm) => { inp.value = nm; listEl.style.display = 'none'; updateMultiItemAutoFee(); };
+    const pickName = (nm) => {
+        inp.value = nm;
+        const selectedProfile = allProfiles[nm] || {};
+        inp.dataset.profileId = nm;
+        inp.dataset.memberId = String(selectedProfile.memberId || selectedProfile.memberCode || '');
+        listEl.style.display = 'none';
+        updateMultiItemAutoFee();
+    };
     const renderMatches = (val) => {
         listEl.innerHTML = '';
         const allActive = Object.keys(allProfiles).filter(n => (typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus(allProfiles[n]) : allProfiles[n].status) === 'active');
@@ -8284,7 +8330,14 @@ window._setupMiAutocomplete = () => {
     };
     if(!inp._miListenersAdded) {
         inp._miListenersAdded = true;
-        inp.addEventListener('input', function() { renderMatches(this.value.trim()); updateMultiItemAutoFee(); });
+        inp.addEventListener('input', function() {
+            if (this.dataset.profileId && this.value.trim() !== this.dataset.profileId) {
+                delete this.dataset.profileId;
+                delete this.dataset.memberId;
+            }
+            renderMatches(this.value.trim());
+            updateMultiItemAutoFee();
+        });
         inp.addEventListener('focus', function() { renderMatches(this.value.trim()); });
         inp.addEventListener('blur', function() { setTimeout(() => { listEl.style.display = 'none'; }, 200); });
     }

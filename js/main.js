@@ -35,6 +35,7 @@
 // APP_BUILD_VERSION = '4K-6V-attendance-canonical-ownership-pagination-20260616'
 // APP_BUILD_VERSION = '4K-6V1-spark-read-cost-hardening-20260616'
 // APP_BUILD_VERSION = '4K-6V2-inventory-history-pagination-complete-active-debt-20260616'
+// APP_BUILD_VERSION = '4K-6V2A-inventory-consumer-hydration-hotfix-20260616'
 /**
  * main.js — Application Bootstrap (Phase 3.6B — Listener Registration Safety)
  * ────────────────────────────────────────────────────────────────────
@@ -728,34 +729,62 @@ function _installAdmissionUniformSizeBridges() {
     if (!window.ensureInventoryReady) {
         window.ensureInventoryReady = async function(reason) {
             reason = reason || 'inventory-needed';
-            // Guard: đang chờ promise cũ → trả về cùng promise
             if (window.__inventoryReadyPromise) return window.__inventoryReadyPromise;
 
+            const buildStockMap = function(tag) {
+                try {
+                    const safety = window.MultiItemInventorySafety;
+                    if (safety && typeof safety.buildInventoryStockMapForMultiItem === 'function') {
+                        return safety.buildInventoryStockMapForMultiItem({
+                            reason: reason + ':' + tag,
+                            force: true
+                        }) || {};
+                    }
+                } catch (e) {
+                    console.warn('[inventory-ready] stock-map build failed:', e);
+                }
+                return { keyCount: Object.keys(window._liveInvMap || {}).length, source: 'legacy-live-map' };
+            };
+
+            const isStatsHydrated = function() {
+                const invStore = window.__inventoryStore;
+                if (invStore) return invStore.inventoryStats !== null && invStore.inventoryStats !== undefined;
+                const st = window.__store || {};
+                return !!(st.inventoryStats && Object.keys(st.inventoryStats).length > 0);
+            };
+
+            const immediate = buildStockMap('immediate');
+            if (isStatsHydrated() || Number(immediate.keyCount || 0) > 0) {
+                window.__inventoryReadyLoadedAt = Date.now();
+                window.__inventoryReadySource = immediate.source || 'inventory-stats';
+                return true;
+            }
+
+            // Compatibility fallback: a loaded history page can still hydrate old
+            // clubs whose inventory_stats summary has not been maintained.
             const st = window.__store || {};
-            if (Array.isArray(st.inventory) && st.inventory.length > 0) return true;
-            // Legacy allInventory đã populate
+            if (Array.isArray(st.inventory) && st.inventory.length > 0) {
+                buildStockMap('history-compat');
+                return true;
+            }
             if (Array.isArray(window.allInventory) && window.allInventory.length > 0) {
                 if (window.__store) window.__store.inventory = window.allInventory;
+                buildStockMap('legacy-history-compat');
                 return true;
             }
 
             window.__inventoryReadyPromise = (async function() {
-                for (let i = 0; i < 50; i++) {
-                    const _st = window.__store || {};
-                    if (Array.isArray(_st.inventory) && _st.inventory.length > 0) {
+                for (let i = 0; i < 30; i++) {
+                    const result = buildStockMap('poll-' + i);
+                    if (isStatsHydrated() || Number(result.keyCount || 0) > 0) {
                         window.__inventoryReadyLoadedAt = Date.now();
-                        window.__inventoryReadyPromise  = null;
-                        return true;
-                    }
-                    if (Array.isArray(window.allInventory) && window.allInventory.length > 0) {
-                        if (window.__store) window.__store.inventory = window.allInventory;
-                        window.__inventoryReadyLoadedAt = Date.now();
-                        window.__inventoryReadyPromise  = null;
+                        window.__inventoryReadySource = result.source || 'inventory-stats';
+                        window.__inventoryReadyPromise = null;
                         return true;
                     }
                     await new Promise(function(r) { setTimeout(r, 100); });
                 }
-                console.warn('[inventory-ready] timed out. reason:', reason);
+                console.warn('[inventory-ready] inventory_stats timed out. reason:', reason);
                 window.__inventoryReadyPromise = null;
                 return false;
             })();
@@ -769,6 +798,17 @@ function _installAdmissionUniformSizeBridges() {
         window.getUniformSizesFromInventory = function(options) {
             options = options || {};
             const uniformOnly = options.uniformOnly !== false; // default true
+
+            // Phase 4K-6V2A: inventory history is lazy. Build the stock map from
+            // settings/inventory_stats before reading size options.
+            try {
+                window.MultiItemInventorySafety?.buildInventoryStockMapForMultiItem?.({
+                    reason: options.reason || 'admission-uniform-sizes',
+                    force: true
+                });
+            } catch (e) {
+                console.warn('[admission-size] inventory_stats stock build failed:', e);
+            }
 
             const _nvFn = window.normalizeVNForSearch || function(v) {
                 return String(v || '')
@@ -871,15 +911,20 @@ function _installAdmissionUniformSizeBridges() {
 
     // ── 3. renderAdmissionUniformSizeOptions ────────────────────────
     if (!window.renderAdmissionUniformSizeOptions) {
-        window.renderAdmissionUniformSizeOptions = function() {
+        window.renderAdmissionUniformSizeOptions = function(options) {
+            options = options || {};
+            const select = document.getElementById('add_uniform_size');
+            const previousValue = options.preserveSelection && select ? select.value : '';
             const sizes = typeof window.getUniformSizesFromInventory === 'function'
-                ? window.getUniformSizesFromInventory({ uniformOnly: true })
+                ? window.getUniformSizesFromInventory({
+                    uniformOnly: true,
+                    reason: options.reason || 'render-admission-uniform-sizes'
+                  })
                 : [];
 
             const escAttr = function(v) { return String(v || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); };
             const escHtml = function(v) { return String(v || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
 
-            const select = document.getElementById('add_uniform_size');
             if (!sizes.length) {
                 console.warn('[admission-size] no uniform sizes from inventory', {
                     inventoryCount: Array.isArray((window.__store || {}).inventory)
@@ -902,6 +947,9 @@ function _installAdmissionUniformSizeBridges() {
                         return '<option value="' + escAttr(s.size) + '"' + disabled + '>'
                             + escHtml(label) + '</option>';
                     }).join('');
+                if (previousValue && Array.from(select.options).some(function(o) { return o.value === previousValue && !o.disabled; })) {
+                    select.value = previousValue;
+                }
             }
             return sizes;
         };
@@ -3030,6 +3078,7 @@ window.debugProfileModalClose = function() {
 
 // PHẦN 1 — APP BUILD VERSION
 window.APP_BUILD_VERSION = '4K-6V2-inventory-history-pagination-complete-active-debt-20260616';
+window.APP_PATCH_VERSION = '4K-6V2A-inventory-consumer-hydration-hotfix-20260616';
 window.APP_COPYRIGHT_OWNER   = 'Tình Trương';
 window.APP_PRODUCT_NAME      = 'Taekwondo Club Management Web App';
 window.APP_SECURITY_PHASE    = '4K-6E-scale-readiness-write-safety';
