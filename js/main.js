@@ -1,3 +1,4 @@
+// Compatibility marker: multiItemInventorySafety.js?v=inventory-ledger-reconciliation-20260616-v2c
 // Phase compatibility APP_BUILD_VERSION markers for static safety checks:
 // APP_BUILD_VERSION = '4K-6D-security-license-ip-protection-readiness-20260605'
 // APP_BUILD_VERSION = '4K-6E-scale-readiness-write-safety-20260605'
@@ -36,6 +37,11 @@
 // APP_BUILD_VERSION = '4K-6V1-spark-read-cost-hardening-20260616'
 // APP_BUILD_VERSION = '4K-6V2-inventory-history-pagination-complete-active-debt-20260616'
 // APP_BUILD_VERSION = '4K-6V2A-inventory-consumer-hydration-hotfix-20260616'
+// Phase 4K-6V2C compatibility markers retained for regression gates only:
+// window.APP_PATCH_VERSION = '4K-6V2C-inventory-ledger-reconciliation-20260616'
+// modules/students.js?v=inventory-ledger-reconciliation-20260616-v2c
+// modules/finance.js?v=inventory-ledger-reconciliation-20260616-v2c
+// modules/inventory.js?v=inventory-ledger-reconciliation-20260616-v2c
 /**
  * main.js — Application Bootstrap (Phase 3.6B — Listener Registration Safety)
  * ────────────────────────────────────────────────────────────────────
@@ -247,7 +253,7 @@ import {
     getQuitStatusValues,
     getProfilesListenerMetrics,
     ensureAllProfilesForExport,
-} from './listeners/profiles.listeners.js';
+} from './listeners/profiles.listeners.js?v=firestore-read-attribution-canonical-tx-boundary-20260616-v3a';
 
 // ── Phase 3.7C: Profile Status Config ────────────────────────────────────────
 import {
@@ -301,7 +307,7 @@ import {
 } from './firebase/paginatedQuery.js';
 
 // ── Phase 2d–3.2A: Business modules (eager — cần khi login) ────
-import { initStudents, initStudentPagination }        from './modules/students.js?v=inventory-ledger-reconciliation-20260616-v2c';
+import { initStudents, initStudentPagination }        from './modules/students.js?v=firestore-read-attribution-canonical-tx-boundary-20260616-v3a';
 // PHẦN 1 FIX + Phase 4K-2: Unified Search Controller — real cache + SearchBlob + stale guard
 import {
     initGlobalSearchRuntime,
@@ -310,10 +316,10 @@ import {
     invalidateSearchCache,
     debugSearchPerformance,
 } from './modules/searchRuntime.js';
-import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from './modules/finance.js?v=inventory-ledger-reconciliation-20260616-v2c';
-import { initInventory }                              from './modules/inventory.js?v=inventory-ledger-reconciliation-20260616-v2c';
+import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from './modules/finance.js?v=firestore-read-attribution-canonical-tx-boundary-20260616-v3a';
+import { initInventory }                              from './modules/inventory.js?v=firestore-read-attribution-canonical-tx-boundary-20260616-v3a';
 import { initAttendance }                             from './modules/attendance.js';
-import { initDashboard }                              from './modules/dashboard.js';
+import { initDashboard }                              from './modules/dashboard.js?v=firestore-read-attribution-canonical-tx-boundary-20260616-v3a';
 // ── Phase 4K-6U: Heavy Reports module is lazy-loaded by reportExportFacade.js ──
 // ── Phase 4.0B-1: SuperAdmin — eager import trên HTTP/HTTPS ─────
 // Không lazy nữa: phải init trước khi loadSuperAdminData() được gọi.
@@ -3095,7 +3101,7 @@ window.debugProfileModalClose = function() {
 
 // PHẦN 1 — APP BUILD VERSION
 window.APP_BUILD_VERSION = '4K-6V2-inventory-history-pagination-complete-active-debt-20260616';
-window.APP_PATCH_VERSION = '4K-6V2C-inventory-ledger-reconciliation-20260616';
+window.APP_PATCH_VERSION = '4K-6V3A-firestore-read-attribution-canonical-transaction-boundary-20260616';
 window.APP_COPYRIGHT_OWNER   = 'Tình Trương';
 window.APP_PRODUCT_NAME      = 'Taekwondo Club Management Web App';
 window.APP_SECURITY_PHASE    = '4K-6E-scale-readiness-write-safety';
@@ -4633,6 +4639,7 @@ window.txMatchesSelectedMonth = function(tx, month) {
     const m = String(month || '').trim();
     if (!m || !tx) return true;
 
+    if (Array.isArray(tx.accountingMonths) && tx.accountingMonths.includes(m)) return true;
     if (tx.txMonth === m) return true;
     if (tx.paymentMonth === m) return true;
 

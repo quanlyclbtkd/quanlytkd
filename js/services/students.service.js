@@ -573,8 +573,11 @@ export const StudentService = {
         const { addDoc } = _sdk();
         const colRef = _txColRef();
         if (!colRef) throw new Error('[StudentService] colRef chưa sẵn sàng');
-        const docRef = await addDoc(colRef, data);
-        return { id: docRef.id, ...data };
+        const payload = typeof window.canonicalizeTransactionForWrite === 'function'
+            ? window.canonicalizeTransactionForWrite(data, 'student-service-tuition')
+            : data;
+        const docRef = await addDoc(colRef, payload);
+        return { id: docRef.id, ...payload };
     },
 
     /**
@@ -585,8 +588,11 @@ export const StudentService = {
         const { addDoc } = _sdk();
         const colRef = _txColRef();
         if (!colRef) throw new Error('[StudentService] colRef chưa sẵn sàng');
-        const docRef = await addDoc(colRef, data);
-        return { id: docRef.id, ...data };
+        const payload = typeof window.canonicalizeTransactionForWrite === 'function'
+            ? window.canonicalizeTransactionForWrite(data, 'student-service-uniform')
+            : data;
+        const docRef = await addDoc(colRef, payload);
+        return { id: docRef.id, ...payload };
     },
 
     // Phase 4K-5E: Generic transaction writer (bundle, single, any type)
@@ -594,8 +600,11 @@ export const StudentService = {
         const { addDoc } = _sdk();
         const colRef = _txColRef();
         if (!colRef) throw new Error('[StudentService] colRef chưa sẵn sàng');
-        const docRef = await addDoc(colRef, data);
-        return { id: docRef.id, ...data };
+        const payload = typeof window.canonicalizeTransactionForWrite === 'function'
+            ? window.canonicalizeTransactionForWrite(data, 'student-service-generic')
+            : data;
+        const docRef = await addDoc(colRef, payload);
+        return { id: docRef.id, ...payload };
     },
 
     // Phase 4K-5E: Update inventory doc fields (paidTxId, paymentBundleId etc.)

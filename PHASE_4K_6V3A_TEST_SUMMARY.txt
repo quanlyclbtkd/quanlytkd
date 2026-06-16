@@ -1,0 +1,19 @@
+PHASE 4K-6V3A TEST SUMMARY
+Date: 2026-06-16
+
+Default regression groups: 19/19 PASS when executed individually.
+Extended check:all groups: 65/65 PASS when executed individually.
+V3A dedicated gate: 34/34 PASS.
+Syntax gate: 116 items valid.
+Inventory V2C gate: 33/33 PASS.
+Inventory V2B gate: 28/28 PASS.
+Inventory V2A gate: 25/25 PASS.
+Inventory V2 gate: 25/25 PASS.
+Spark read-cost gate: 17/17 PASS.
+Attendance canonical ownership gate: 141 assertions PASS.
+
+Notes:
+- The monolithic check:all command exceeds the execution time limit of this audit environment.
+- All component scripts were therefore run separately with per-check timeouts.
+- No component check failed after compatibility fixes.
+- The canonical parity query remains manual and is not attached as a production listener.

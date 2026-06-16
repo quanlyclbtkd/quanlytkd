@@ -236,7 +236,11 @@ async function _executeOperation(op) {
     switch (op.type) {
         case 'addDoc': {
             const colRef = collection(db, op.collection);
-            const docRef = await addDoc(colRef, op.data);
+            const isTransaction = /(^|\/)transactions$/.test(String(op.collection || ''));
+            const payload = isTransaction && typeof window.canonicalizeTransactionForWrite === 'function'
+                ? window.canonicalizeTransactionForWrite(op.data, 'offline-queue-add')
+                : op.data;
+            const docRef = await addDoc(colRef, payload);
             return docRef.id;
         }
         case 'setDoc': {
@@ -246,7 +250,11 @@ async function _executeOperation(op) {
         }
         case 'updateDoc': {
             const docRef = doc(db, ...op.path.split('/'));
-            await updateDoc(docRef, op.data);
+            const isTransaction = /(^|\/)transactions\//.test(String(op.path || ''));
+            const payload = isTransaction && typeof window.canonicalizeTransactionPatch === 'function'
+                ? window.canonicalizeTransactionPatch(op.data, null, 'offline-queue-update')
+                : op.data;
+            await updateDoc(docRef, payload);
             return op.path;
         }
         case 'deleteDoc': {

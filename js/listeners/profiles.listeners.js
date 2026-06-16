@@ -366,6 +366,12 @@ export function mountActiveProfilesListener(context) {
                 activeQuery,
                 (snap) => {
                     _state.activeSnapshotCount++;
+                    if (typeof window.recordFirestoreSnapshotAttribution === 'function') {
+                        window.recordFirestoreSnapshotAttribution('profiles.activeListener', snap, {
+                            initial: _state.activeSnapshotCount === 1,
+                            reason: 'active-status-query'
+                        });
+                    }
                     if (window.markListenerSnapshot) window.markListenerSnapshot(key);
 
                     const activeMap = {};
@@ -389,6 +395,12 @@ export function mountActiveProfilesListener(context) {
                         if (_pG4k && _pQ4k && _pL4k && profRef) {
                             // [GITHUB-FIX Task 4] Await fallback + invalidate sau khi hoàn tất
                             _pG4k(_pQ4k(profRef, _pL4k(1))).then(async function(_probe) {
+                                if (typeof window.recordFirestoreReadAttribution === 'function') {
+                                    window.recordFirestoreReadAttribution('profiles.activeZeroProbe', _probe.size || 0, {
+                                        initial: true,
+                                        reason: 'active-zero-probe'
+                                    });
+                                }
                                 if (!_probe.empty) {
                                     console.warn('[ProfilesListener] active=0 but collection has docs — full fallback');
                                     const ok = await loadFullProfilesFallback('active-zero-but-profiles-exist');
@@ -497,6 +509,12 @@ export async function loadQuitProfilesIfNeeded(reason, contextOverride) {
         }
 
         const snap    = await fbGetDocs(quitQuery);
+        if (typeof window.recordFirestoreReadAttribution === 'function') {
+            window.recordFirestoreReadAttribution('profiles.quitLazyQuery', snap.size || 0, {
+                initial: true,
+                reason: reason || 'quit-lazy'
+            });
+        }
         const quitMap = {};
         snap.forEach(d => {
             const id = d.id.trim();
@@ -592,6 +610,12 @@ export async function loadFullProfilesFallback(reason) {
 
     try {
         const snap    = await fbGetDocs(ctx.profRef);
+        if (typeof window.recordFirestoreReadAttribution === 'function') {
+            window.recordFirestoreReadAttribution('profiles.fullFallbackQuery', snap.size || 0, {
+                initial: true,
+                reason: reason || 'full-fallback'
+            });
+        }
         const fullMap = {};
         snap.forEach(d => {
             const id = d.id.trim();

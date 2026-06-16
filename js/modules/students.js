@@ -28,7 +28,7 @@
  */
 
 import { getLocalToday, formatDate, formatMonth, formatMonthCompact, addMonthsToYYYYMM } from '../utils/format.js';
-import { StudentService } from '../services/students.service.js?v=inventory-ledger-reconciliation-20260616-v2c';
+import { StudentService } from '../services/students.service.js?v=firestore-read-attribution-canonical-tx-boundary-20260616-v3a';
 
 // ════════════════════════════════════════════════════════════════
 // BRIDGE HELPERS — đọc state từ app.js qua window.__store
@@ -1033,7 +1033,7 @@ export function initStudentPagination() {
         renderPaginationControls, PAGE_SIZE,
     }) => {
         import('./students.js').then(() => {}); // no-op — chỉ để IDE không warn
-        import('../services/students.service.js?v=inventory-ledger-reconciliation-20260616-v2c').then(({ StudentService }) => {
+        import('../services/students.service.js?v=firestore-read-attribution-canonical-tx-boundary-20260616-v3a').then(({ StudentService }) => {
 
             const store = window.__store;
             if (!store) { console.warn('[pagination/students] __store chưa sẵn sàng'); return; }
@@ -2401,6 +2401,12 @@ window.loadAllProfilesForDebt = async function loadAllProfilesForDebt(reason) {
             const constraints = [orderBy('__name__'), limit(pageSize)];
             if (cursor) constraints.splice(1, 0, startAfter(cursor));
             const snap = await getDocs(query(profilesRef, ...constraints));
+            if (typeof window.recordFirestoreReadAttribution === 'function') {
+                window.recordFirestoreReadAttribution('profiles.debtFullScan', snap.size || 0, {
+                    initial: cursor === null,
+                    reason: reason + ':page'
+                });
+            }
             if (snap.empty) break;
             snap.docs.forEach(d => {
                 map[d.id] = { id: d.id, ...d.data() };

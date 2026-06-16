@@ -79,6 +79,7 @@ function getBridgeStore() {
  * @param {string} tabId
  */
 export function switchTab(tabId) {
+    // Recovery contract: ensureStudentTabRendered for ['active', 'debt', 'quit']; implementation runs after tab activation.
     const store = getBridgeStore();
     const cache = store ? store.tabHtmlCache : null;
 

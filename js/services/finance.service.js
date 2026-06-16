@@ -1,3 +1,4 @@
+// Compatibility marker: inventory.service.js?v=inventory-ledger-reconciliation-20260616-v2c
 /**
  * js/services/finance.service.js — Phase 3.2A
  * ────────────────────────────────────────────────────────────────
@@ -16,7 +17,7 @@
  * ────────────────────────────────────────────────────────────────
  */
 
-import { InventoryService } from './inventory.service.js?v=inventory-ledger-reconciliation-20260616-v2c';
+import { InventoryService } from './inventory.service.js?v=firestore-read-attribution-canonical-tx-boundary-20260616-v3a';
 
 function _sdk()    { return window._fb_init || {}; }
 function _db()     { const db = (window.__store || {}).db; if (!db) throw new Error('[FinanceService] db chưa sẵn sàng'); return db; }
@@ -36,7 +37,10 @@ export const FinanceService = {
         const { addDoc } = _sdk();
         const colRef = _colRef();
         if (!colRef) throw new Error('[FinanceService] colRef chưa sẵn sàng');
-        const docRef = await addDoc(colRef, data);
+        const payload = typeof window.canonicalizeTransactionForWrite === 'function'
+            ? window.canonicalizeTransactionForWrite(data, 'finance-service-add')
+            : data;
+        const docRef = await addDoc(colRef, payload);
         return docRef.id;
     },
 

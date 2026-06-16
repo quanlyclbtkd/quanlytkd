@@ -277,9 +277,16 @@ export const InventoryService = {
             batch.set(doc(db, 'clubs', _clubId(), 'settings', 'inventory_stats'), summaryPatch, { merge: true });
         }
         if (options.relatedTransaction && options.relatedTransaction.id) {
+            const relatedPatch = typeof window.canonicalizeTransactionPatch === 'function'
+                ? window.canonicalizeTransactionPatch(
+                    options.relatedTransaction.data || {},
+                    options.relatedTransaction.previous || null,
+                    'inventory-service-update-related-transaction'
+                )
+                : (options.relatedTransaction.data || {});
             batch.update(
                 doc(db, 'clubs', _clubId(), 'transactions', options.relatedTransaction.id),
-                options.relatedTransaction.data || {}
+                relatedPatch
             );
         }
         await batch.commit();
@@ -417,10 +424,16 @@ export const InventoryService = {
         if (!txSnap.empty) {
             const existing = txSnap.docs[0];
             txId = existing.id;
-            await updateDoc(existing.ref, txData);
+            const canonicalPatch = typeof window.canonicalizeTransactionPatch === 'function'
+                ? window.canonicalizeTransactionPatch(txData, existing.data(), 'inventory-service-mark-paid-existing')
+                : txData;
+            await updateDoc(existing.ref, canonicalPatch);
         } else {
             if (invAmount > 0) {
-                const newTx = await addDoc(txRef, txData);
+                const canonicalTxData = typeof window.canonicalizeTransactionForWrite === 'function'
+                    ? window.canonicalizeTransactionForWrite(txData, 'inventory-service-mark-paid')
+                    : txData;
+                const newTx = await addDoc(txRef, canonicalTxData);
                 txId = newTx.id;
             }
         }
@@ -524,7 +537,10 @@ export const InventoryService = {
         const { addDoc } = _sdk();
         const colRef = _colRef();
         if (!colRef) throw new Error('[InventoryService] colRef chưa sẵn sàng');
-        const docRef = await addDoc(colRef, data);
+        const payload = typeof window.canonicalizeTransactionForWrite === 'function'
+            ? window.canonicalizeTransactionForWrite(data, 'inventory-service-add-transaction')
+            : data;
+        const docRef = await addDoc(colRef, payload);
         return docRef.id;
     },
 
@@ -537,7 +553,9 @@ export const InventoryService = {
         const { doc, updateDoc } = _sdk();
         await updateDoc(
             doc(_db(), 'clubs', _clubId(), 'transactions', txId),
-            data
+            typeof window.canonicalizeTransactionPatch === 'function'
+                ? window.canonicalizeTransactionPatch(data, null, 'inventory-service-update-transaction')
+                : data
         );
     },
 };

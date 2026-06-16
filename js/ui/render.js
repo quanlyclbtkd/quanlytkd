@@ -34,7 +34,7 @@ import {
     updateSummaryNumbers,
     fetchAndRenderHistoricalCharts,
     tryApplyCurrentMonthStats,
-} from '../modules/dashboard.js';
+} from '../modules/dashboard.js?v=firestore-read-attribution-canonical-tx-boundary-20260616-v3a';
 
 import { store } from '../store.js';
 import {

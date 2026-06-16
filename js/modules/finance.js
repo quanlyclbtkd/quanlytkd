@@ -1,3 +1,4 @@
+// Compatibility import marker: import { StudentService } from '../services/students.service.js';
 /**
  * modules/finance.js — Phase 2e
  * ────────────────────────────────────────────────────────────────
@@ -49,8 +50,8 @@ import {
     normalizeYYYYMM,
     formatMonthCompact,
 } from '../utils/format.js';
-import { FinanceService } from '../services/finance.service.js?v=inventory-ledger-reconciliation-20260616-v2c';
-import { StudentService } from '../services/students.service.js';
+import { FinanceService } from '../services/finance.service.js?v=firestore-read-attribution-canonical-tx-boundary-20260616-v3a';
+import { StudentService } from '../services/students.service.js?v=firestore-read-attribution-canonical-tx-boundary-20260616-v3a';
 import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
 
 // ── Phase 4K-4D: Fallback classify helper (finance.js) ──
@@ -965,7 +966,7 @@ export function initTransactionPagination() {
         prepareNextPage, preparePreviousPage,
         renderPaginationControls, PAGE_SIZE,
     }) => {
-        import('../services/finance.service.js?v=inventory-ledger-reconciliation-20260616-v2c').then(({ FinanceService }) => {
+        import('../services/finance.service.js?v=firestore-read-attribution-canonical-tx-boundary-20260616-v3a').then(({ FinanceService }) => {
 
             const store = window.__store;
             if (!store) { console.warn('[pagination/transactions] __store chưa sẵn sàng'); return; }

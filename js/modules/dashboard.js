@@ -372,6 +372,12 @@ export async function fetchAndRenderHistoricalCharts(
     });
 
     const results = await Promise.all(reads);
+    if (typeof window.recordFirestoreReadAttribution === 'function') {
+        window.recordFirestoreReadAttribution('dashboard.historicalStatsPointReads', results.length, {
+            initial: true,
+            reason: 'historical-chart-stats'
+        });
+    }
 
     // Kiểm tra có dữ liệu mới không để tránh update chart vô ích
     let hasNewData = false;
@@ -439,6 +445,12 @@ export async function fetchMonthStats(month) {
 
     try {
         const snap = await getDoc(doc(db, 'clubs', clubId, 'stats', docId));
+        if (typeof window.recordFirestoreReadAttribution === 'function') {
+            window.recordFirestoreReadAttribution('dashboard.monthStatsPointRead', 1, {
+                initial: true,
+                reason: month
+            });
+        }
         return snap.exists() ? snap.data() : null;
     } catch (err) {
         return null;
@@ -680,6 +692,12 @@ async function _loadSparkHistoricalTransactions({ db, clubId, months, reason }) 
     const metrics = _sparkReadMetrics();
     metrics.dashboardHistoryQueryGroups += jobs.length;
     metrics.dashboardHistoryEstimatedDocsRead += rawDocsRead;
+    if (typeof window.recordFirestoreReadAttribution === 'function') {
+        window.recordFirestoreReadAttribution('dashboard.transactionFallbackQueries', rawDocsRead, {
+            initial: true,
+            reason: reason || 'spark-history-transaction-fallback'
+        });
+    }
 
     return { transactions: Array.from(map.values()), rawDocsRead, queryGroups: jobs.length };
 }
@@ -754,6 +772,12 @@ export async function fetchHistoricalDashboardFallback(selMonth, reason, options
             }
         }));
         metrics.dashboardHistoryQueryGroups += 6;
+        if (typeof window.recordFirestoreReadAttribution === 'function') {
+            window.recordFirestoreReadAttribution('dashboard.sparkHistoryStatsReads', statResults.length, {
+                initial: true,
+                reason: reason || 'spark-history'
+            });
+        }
         // Each point lookup can be billed even when the stats document does not exist.
         metrics.dashboardHistoryEstimatedDocsRead += statResults.length;
 
