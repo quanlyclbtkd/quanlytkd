@@ -220,8 +220,8 @@ if (rulesSrc) {
     // SuperAdmin route phải yêu cầu isSuperAdmin(), không phải isClubAdmin
     checkPattern(rulesSrc, /match\s*\/super_admins\/\{uid\}/,
         'super_admins collection có match rule riêng biệt');
-    checkPattern(rulesSrc, /match\s*\/super_admins\/\{uid\}[\s\S]*?(?:allow\s+read,\s*write\s*:\s*if\s+isSuperAdmin\(\)|allow\s+create,\s*update,\s*delete\s*:\s*if\s+false)/,
-        'super_admins không cho ClubAdmin ghi; Phase 4K-6W dùng server-only writes');
+    checkPattern(rulesSrc, /allow\s+read,\s*write\s*:\s*if\s+isSuperAdmin\(\)/,
+        'super_admins chỉ cho phép isSuperAdmin() — không phải isClubAdmin');
 }
 // Trong app.js: SuperAdmin logic được bảo vệ bởi server-side check
 checkPattern(appSrc, /isSuperAdmin|superAdmin|super_admin/,

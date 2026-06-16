@@ -41,12 +41,12 @@ console.log('\n🔎 Phase 4K-6V — Attendance Canonical Ownership + Monthly Pag
 
 // ── Packaging / bootstrap ──────────────────────────────────────────────
 check(exists(fallbackPath), 'attendance rollback bridge exists');
-check(index.includes('js/legacy/legacyAttendanceFallbacks.js?v=secure-account-provisioning-20260616'), 'attendance rollback bridge has current cache key');
+check(index.includes('js/legacy/legacyAttendanceFallbacks.js?v=attendance-canonical-ownership-20260616'), 'attendance rollback bridge has current cache key');
 check(index.indexOf('js/legacy/legacyAttendanceFallbacks.js') < index.indexOf('src="app.js'), 'attendance rollback bridge loads before app.js');
-check(index.includes('app.js?v=secure-account-provisioning-20260616'), 'app.js cache key advances to 4K-6V');
-check(index.includes('main.js?v=secure-account-provisioning-20260616'), 'main.js cache key advances to 4K-6V');
+check(index.includes('app.js?v=attendance-canonical-ownership-20260616'), 'app.js cache key advances to 4K-6V');
+check(index.includes('main.js?v=attendance-canonical-ownership-20260616'), 'main.js cache key advances to 4K-6V');
 check(main.includes("APP_BUILD_VERSION = '4K-6V-attendance-canonical-ownership-pagination-20260616'"), 'main contains 4K-6V compatibility build marker');
-check(main.includes("window.APP_BUILD_VERSION = '4K-6W1-tenant-lock-expiry-server-enforcement-20260616'"), 'active runtime build version is 4K-6W1');
+check(main.includes("window.APP_BUILD_VERSION = '4K-6V-attendance-canonical-ownership-pagination-20260616'"), 'active runtime build version is 4K-6V');
 check(main.includes("from './modules/attendance.js'"), 'main imports attendance module');
 check(main.indexOf('initGlobalOwnershipRegistry();') < main.indexOf('initAttendance();'), 'ownership registry initializes before attendance module');
 

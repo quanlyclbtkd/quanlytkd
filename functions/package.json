@@ -1,7 +1,7 @@
 {
   "name": "taekwondo-cloud-functions",
   "description": "Firebase Cloud Functions — Taekwondo Club Management System",
-  "version": "3.1.0",
+  "version": "3.0.0",
   "private": true,
   "engines": {
     "node": "20"
@@ -13,8 +13,7 @@
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions",
     "logs": "firebase functions:log",
-    "lint": "node -c index.js && node -c src/debtCalculation.js && node -c src/statsAggregation.js && node -c src/superAdminSummary.js && node -c src/accountProvisioning.js",
-    "test:tenant": "node --test test/tenantOperational.test.js"
+    "lint": "node -c index.js && node -c src/debtCalculation.js && node -c src/statsAggregation.js && node -c src/superAdminSummary.js"
   },
   "dependencies": {
     "firebase-admin": "^12.0.0",

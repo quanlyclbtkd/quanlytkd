@@ -880,31 +880,57 @@ window.invCustomCategories = [];
     };
 
     window.createNewClubSystem = async () => {
-        const service = window.AccountProvisioningService;
-        if (!service) return alert('Dịch vụ tạo tài khoản an toàn chưa sẵn sàng. Vui lòng tải lại trang.');
-        const clubName = (document.getElementById('nc_clubName')?.value || '').trim();
-        const clubId = (document.getElementById('nc_clubId')?.value || '').trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
-        const email = (document.getElementById('nc_adminEmail')?.value || '').trim().toLowerCase();
-        const branchCount = parseInt(document.getElementById('nc_branchCount')?.value || '1', 10) || 1;
-        if (!clubName || !clubId || !email) return alert('Vui lòng nhập đầy đủ Tên CLB, Mã hệ thống và Email Admin!');
-        if (!email.includes('@')) return alert('Email Admin không hợp lệ!');
+        const clubName = document.getElementById('nc_clubName').value.trim();
+        let clubId = document.getElementById('nc_clubId').value.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
+        const email = document.getElementById('nc_adminEmail').value.trim();
+        const pass = document.getElementById('nc_adminPass').value.trim();
+        const branchCount = parseInt(document.getElementById('nc_branchCount').value) || 1;
+
+        if(!clubName || !clubId || !email || !pass) return alert("Vui lòng điền đầy đủ thông tin!");
+        if(pass.length < 6) return alert("Mật khẩu phải từ 6 ký tự trở lên!");
+
         const btn = document.getElementById('btnCreateClubAction');
-        if (btn?.disabled) return;
-        if (btn) { btn.innerHTML = '<div class="loading-spinner"></div> Đang tạo an toàn...'; btn.disabled = true; }
+        btn.innerHTML = `<div class="loading-spinner"></div> Đang xử lý...`; btn.disabled = true;
+
         try {
-            const result = await service.provisionClubAdmin({ clubName, clubId, email, branchCount, logoBase64: tempLogoBase64 || '' });
-            const emailNote = result.setupEmailSent
-                ? 'Email thiết lập mật khẩu đã được gửi đến Admin.'
-                : 'Tài khoản đã tạo, nhưng email thiết lập mật khẩu chưa gửi được. Hãy dùng chức năng Đổi mật khẩu để gửi lại.';
-            alert(`✅ TẠO CLB THÀNH CÔNG!\n\nTên CLB: ${clubName}\nMã hệ thống: ${clubId}\nEmail Admin: ${email}\n\n${emailNote}\n\nHệ thống không lưu hoặc hiển thị mật khẩu.`);
-            const modal = document.getElementById('newClubModal'); if (modal) modal.style.display = 'none';
-            ['nc_clubName','nc_clubId','nc_adminEmail','nc_logoFile'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
-            tempLogoBase64 = '';
-            if (typeof window.loadSuperAdminData === 'function') window.loadSuperAdminData();
+            const clubDoc = await getDoc(doc(db, "clubs", clubId));
+            if(clubDoc.exists()) throw new Error("Club ID exists");
+
+            const userCredential = await createUserWithEmailAndPassword(secondaryAuth, email, pass);
+            const newUid = userCredential.user.uid;
+
+            await setDoc(doc(db, "users", newUid), { email: email, role: "admin", clubId: clubId });
+
+            const batch = writeBatch(db);
+            batch.set(doc(db, "clubs", clubId), { 
+                clubName: clubName, 
+                adminEmail: email,
+                adminPassword: pass,
+                createdAt: new Date().toISOString(),
+                expiryDate: "2027-04-30",
+                accountStatus: "active"
+            });
+            
+            let configData = { bankId: "", accountNo: "", accountName: "", branchCount: branchCount, location: "Quy Nhơn" };
+            if(tempLogoBase64) configData.logoBase64 = tempLogoBase64; 
+
+            batch.set(doc(db, "clubs", clubId, "settings", "main_config"), configData);
+            batch.set(doc(db, "clubs", clubId, "settings", "inventory_stats"), {});
+            await batch.commit();
+
+            alert(`TẠO CLB THÀNH CÔNG!\n\nClub Name: ${clubName}\nID: ${clubId}\nEmail: ${email}\nMật khẩu: ${pass}`);
+            
+            document.getElementById('newClubModal').style.display = 'none';
+            ['nc_clubName', 'nc_clubId', 'nc_adminEmail', 'nc_adminPass', 'nc_logoFile'].forEach(id => document.getElementById(id).value = '');
+            tempLogoBase64 = "";
+            window.loadSuperAdminData(); 
+
         } catch (error) {
-            alert('Không thể tạo CLB: ' + (error.message || error.code || 'Lỗi không xác định'));
+            if(error.code === 'auth/email-already-in-use') alert("Email này đã được đăng ký cho CLB khác. Vui lòng đổi email!");
+            else if(error.message === "Club ID exists") alert("Mã Hệ Thống này đã tồn tại, vui lòng chọn mã khác!");
+            else alert("Đã xảy ra lỗi: " + error.message);
         } finally {
-            if (btn) { btn.innerHTML = '<span>⚡ KHỞI TẠO DỮ LIỆU</span>'; btn.disabled = false; }
+            btn.innerHTML = `<span>⚡ KHỞI TẠO DỮ LIỆU</span>`; btn.disabled = false; await signOut(secondaryAuth);
         }
     };
 
@@ -1278,17 +1304,15 @@ service cloud.firestore {
     };
 
     window.saveClubExpiry = async () => {
-        const service = window.AccountProvisioningService;
-        const clubId = document.getElementById('em_clubId')?.value || '';
-        const newExpiry = document.getElementById('em_expiryDate')?.value || '';
-        if (!newExpiry) return alert('Vui lòng chọn ngày hết hạn!');
-        if (!service) return alert('Dịch vụ bảo mật tài khoản chưa sẵn sàng. Vui lòng tải lại trang.');
+        const clubId = document.getElementById('em_clubId').value;
+        const newExpiry = document.getElementById('em_expiryDate').value;
+        if (!newExpiry) return alert("Vui lòng chọn ngày hết hạn!");
         try {
-            await service.updateClubSubscription({ clubId, expiryDate: newExpiry });
-            window.showToast('✅ Đã cập nhật hạn sử dụng. Trạng thái khóa/mở khóa không bị thay đổi.');
-            const modal = document.getElementById('expiryModal'); if (modal) modal.style.display = 'none';
-            window.loadSuperAdminData?.();
-        } catch (e) { console.error(e); alert('Lỗi cập nhật: ' + (e.message || e.code)); }
+            await updateDoc(doc(db, "clubs", clubId), { expiryDate: newExpiry, accountStatus: 'active' });
+            window.showToast("✅ Đã cập nhật hạn sử dụng thành công!");
+            document.getElementById('expiryModal').style.display = 'none';
+            window.loadSuperAdminData();
+        } catch (e) { console.error(e); alert("Lỗi cập nhật: " + e.message); }
     };
 
     window.lockClubAccount = async function(clubId, clubName) {
@@ -2085,8 +2109,21 @@ service cloud.firestore {
             await reauthenticateWithCredential(user, credential);
             // Bước 1: Đổi mật khẩu trên Firebase Auth
             await updatePassword(user, newPw);
-            // Phase 4K-6W: Firebase Auth is the only credential authority.
-            // Never mirror plaintext passwords into Firestore.
+            // Bước 2: Đồng bộ mật khẩu mới vào Firestore clubs/{clubId}
+            // để SuperAdmin luôn thấy mật khẩu mới nhất
+            // [SỬA ĐỒNG BỘ] Đồng bộ mật khẩu mới lên Firestore để SuperAdmin thấy mật khẩu mới nhất
+            if (currentClubId) {
+                try {
+                    await updateDoc(doc(db, 'clubs', currentClubId), {
+                        adminPassword: newPw,
+                        passwordChangedAt: new Date().toISOString(),
+                    });
+                } catch (_syncErr) {
+                    // Không chặn flow đổi mật khẩu, nhưng thông báo nếu đồng bộ thất bại
+                    console.warn('[Sync] Không thể đồng bộ mật khẩu lên hệ thống:', _syncErr.message);
+                    window.showToast('⚠️ Mật khẩu đã đổi thành công, nhưng chưa đồng bộ được lên SuperAdmin. Vui lòng liên hệ quản trị viên nếu cần.', 5000);
+                }
+            }
             document.getElementById('changePasswordModal').style.display = 'none';
             window.showToast('✅ Đổi mật khẩu thành công! Vui lòng dùng mật khẩu mới cho lần đăng nhập tiếp theo.');
         } catch(e) {
@@ -2934,7 +2971,6 @@ service cloud.firestore {
 
             const now = new Date();
             await addDoc(collection(db, "login_history"), {
-                uid: user.uid,
                 email: user.email || '',
                 clubId: clubId || '',
                 role: role || 'viewer',
@@ -3054,32 +3090,8 @@ service cloud.firestore {
                     // [SỬA] Giảm delay monthly reminder — UI đã hiện, nhắc nhở sau khi render xong
         setTimeout(() => { if(typeof window._checkMonthlyReminder === 'function') window._checkMonthlyReminder(); }, 300);
                 } else {
-                    // Phase 4K-6W: user membership is repaired only by a verified server callable.
-                    // The client never self-assigns role/clubId.
-                    try {
-                        const _fb = window._fb_init || {};
-                        if (_fb.getFunctions && _fb.httpsCallable) {
-                            const _fn = _fb.httpsCallable(_fb.getFunctions(undefined, 'asia-southeast1'), 'repairCurrentAccountMembership');
-                            const _repairRes = await _fn({});
-                            const _membership = _repairRes && _repairRes.data ? _repairRes.data : {};
-                            if (_membership.clubId && _membership.role) {
-                                currentClubId = _membership.clubId;
-                                window.userRole = _membership.role;
-                                if (window.userRole === 'coach') window.coachBranch = _membership.branch || '';
-                                _saveAuthCache(user.uid, window.userRole, currentClubId, _membership.branch || '');
-                                _recordLoginEvent(user, window.userRole, currentClubId);
-                                try { initSaaSDatabase(currentClubId); } catch(_ie) { console.error('initSaaSDatabase(server-repair):', _ie); }
-                                if (window.__store) window.__store.currentUser = user;
-                                setTimeout(() => { if(typeof window._checkMonthlyReminder === 'function') window._checkMonthlyReminder(); }, 300);
-                                return;
-                            }
-                        }
-                    } catch (_repairErr) {
-                        console.warn('[Auth] Server membership repair failed:', _repairErr.code || _repairErr.message);
-                    }
-
-                    // Legacy read-only fallback. Under Phase 4K-6W rules, non-SuperAdmin club listing is denied;
-                    // it remains only as a rollback bridge for deployments where old rules are still active.
+                    // ── FALLBACK: users/{uid} không tồn tại hoặc bị chặn ──────────────────
+                    // Quét qua tất cả clubs để tìm tài khoản (không cần collectionGroup index)
                     let _found = false;
                     try {
                         const _allClubs = await getDocs(query(collection(db, 'clubs'), limit(200))); // [3.3E] auth fallback clubs scan
@@ -3090,6 +3102,7 @@ service cloud.firestore {
                             if (_cd.adminEmail && user.email && _cd.adminEmail.toLowerCase() === user.email.toLowerCase()) {
                                 currentClubId = _cDoc.id;
                                 window.userRole = 'admin';
+                                try { await setDoc(doc(db, 'users', user.uid), { role: 'admin', clubId: _cDoc.id, email: user.email }); } catch(_) {}
                                 _saveAuthCache(user.uid, 'admin', currentClubId, '');
                                 _recordLoginEvent(user, 'admin', currentClubId);
                                 try { initSaaSDatabase(currentClubId); } catch(_ie) { console.error("initSaaSDatabase(fallback-admin):", _ie); }
@@ -3112,6 +3125,7 @@ service cloud.firestore {
                                         currentClubId = _cDoc.id;
                                         window.userRole = 'coach';
                                         window.coachBranch = _coachData.branch || '';
+                                        try { await setDoc(doc(db, 'users', user.uid), { role: 'coach', clubId: _cDoc.id, branch: _coachData.branch || '', email: user.email || _coachData.email || '' }); } catch(_) {}
                                         _saveAuthCache(user.uid, 'coach', currentClubId, window.coachBranch);
                                         _recordLoginEvent(user, 'coach', currentClubId);
                                         try { initSaaSDatabase(currentClubId); } catch(_ie) { console.error("initSaaSDatabase(fallback-coach):", _ie); }
@@ -8929,29 +8943,58 @@ window.processMultiItem = async (action) => {
     };
 
     window.createCoachAccount = async () => {
-        const service = window.AccountProvisioningService;
-        const email = (document.getElementById('coach_email')?.value || '').trim().toLowerCase();
-        const name = (document.getElementById('coach_name')?.value || '').trim();
+        const email  = (document.getElementById('coach_email').value  || '').trim();
+        const pass   = (document.getElementById('coach_pass').value   || '').trim();
+        const name   = (document.getElementById('coach_name').value   || '').trim();
         const branchEl = document.getElementById('coach_branch');
         const branch = branchEl ? (branchEl.value || '') : '';
-        if (!name) return alert('Vui lòng nhập tên HLV!');
-        if (!email || !email.includes('@')) return alert('Vui lòng nhập email hợp lệ!');
-        if (!service) return alert('Dịch vụ tạo tài khoản an toàn chưa sẵn sàng. Vui lòng tải lại trang.');
+
+        if (!name)  return alert('Vui lòng nhập tên HLV!');
+        if (!email) return alert('Vui lòng nhập email!');
+        if (!pass || pass.length < 6) return alert('Mật khẩu phải ít nhất 6 ký tự!');
+
         const btn = document.getElementById('btnCreateCoach');
-        if (btn?.disabled) return;
-        if (btn) { btn.disabled = true; btn.textContent = 'Đang tạo an toàn...'; }
+        if (btn) { btn.disabled = true; btn.textContent = 'Đang tạo...'; }
         try {
-            const result = await service.provisionCoachAccount({ clubId: currentClubId, email, displayName: name, branch });
+            // Bước 1: Tạo tài khoản Firebase Auth qua secondaryAuth (không ảnh hưởng phiên admin)
+            const userCred = await createUserWithEmailAndPassword(secondaryAuth, email, pass);
+            const uid = userCred.user.uid;
+            try { await signOut(secondaryAuth); } catch(_) {}
+
+            // Bước 2: Ghi hồ sơ HLV vào clubs/{clubId}/coaches/{uid} — LUÔN dùng quyền admin (critical path)
+            await setDoc(doc(db, 'clubs', currentClubId, 'coaches', uid), {
+                email,
+                displayName: name,
+                role:   'coach',
+                clubId: currentClubId,
+                branch: branch,
+                uid,
+                createdAt: new Date().toISOString()
+            });
+
+            // Bước 3: Ghi users/{uid} để tăng tốc đăng nhập (optional — tùy Firestore Rules)
+            try {
+                await setDoc(doc(db, 'users', uid), {
+                    role:   'coach',
+                    clubId: currentClubId,
+                    branch: branch,
+                    email:  email
+                });
+            } catch(_permErr) {
+                // Không ảnh hưởng — hệ thống sẽ tìm HLV qua clubs/coaches khi đăng nhập
+                console.warn('Ghi users/{uid} thất bại (không ảnh hưởng chức năng):', _permErr.code);
+            }
+
             const branchDisplay = branch ? (' | Cơ sở: ' + (window.getBranchNameDisplay ? window.getBranchNameDisplay(branch) : branch)) : '';
-            const emailNote = result.setupEmailSent
-                ? 'Email thiết lập mật khẩu đã được gửi cho HLV.'
-                : 'Tài khoản đã tạo nhưng email thiết lập mật khẩu chưa gửi được; có thể gửi lại bằng nút Đặt lại MK.';
-            alert(`✅ Tạo tài khoản HLV thành công!\n\nTên: ${name}\nEmail: ${email}${branchDisplay}\n\n${emailNote}\nHệ thống không lưu hoặc hiển thị mật khẩu.`);
-            ['coach_email','coach_name'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+            alert('✅ Tạo tài khoản HLV thành công!\n\nTên: ' + name + '\nEmail: ' + email + '\nMật khẩu: ' + pass + branchDisplay + '\n\nHLV có thể đăng nhập ngay bây giờ.');
+            document.getElementById('coach_email').value  = '';
+            document.getElementById('coach_pass').value   = '';
+            document.getElementById('coach_name').value   = '';
             if (branchEl) branchEl.value = '';
             window.loadCoachAccounts();
-        } catch (e) {
-            alert('Lỗi tạo tài khoản: ' + (e.message || e.code || 'Không xác định'));
+        } catch(e) {
+            if (e.code === 'auth/email-already-in-use') alert('Email này đã được sử dụng bởi tài khoản khác!');
+            else alert('Lỗi tạo tài khoản: ' + (e.message || e.code));
         } finally {
             if (btn) { btn.disabled = false; btn.textContent = '➕ Tạo tài khoản'; }
         }
@@ -8970,16 +9013,20 @@ window.processMultiItem = async (action) => {
     };
 
     window.deleteCoachAccount = async (uid, email) => {
-        if (!confirm('Xóa tài khoản HLV: ' + email + '?\nHành động này sẽ xóa quyền đăng nhập và không thể hoàn tác.')) return;
-        const service = window.AccountProvisioningService;
-        if (!service) return alert('Dịch vụ bảo mật tài khoản chưa sẵn sàng. Vui lòng tải lại trang.');
+        if (!confirm('Xóa tài khoản HLV: ' + email + '?\nHành động này không thể hoàn tác.')) return;
         try {
-            const result = await service.removeCoachAccount({ clubId: currentClubId, uid });
-            const suffix = result.authDeleted === false ? ' (Hồ sơ đã xóa; cần kiểm tra lại Firebase Auth)' : '';
-            window.showToast('✅ Đã xóa tài khoản HLV: ' + email + suffix, 3500);
+            // Bước 1: Xóa khỏi clubs/coaches (critical — luôn thực hiện bằng quyền admin)
+            await deleteDoc(doc(db, 'clubs', currentClubId, 'coaches', uid));
+            // Bước 2: Thử xóa users/{uid} (optional — có thể bị chặn bởi Firestore Rules)
+            try {
+                await deleteDoc(doc(db, 'users', uid));
+            } catch(_permErr) {
+                console.warn('Không thể xóa users/{uid}:', _permErr.code, '— không ảnh hưởng chức năng');
+            }
+            window.showToast('✅ Đã xóa tài khoản HLV: ' + email, 2500);
             window.loadCoachAccounts();
-        } catch (e) {
-            alert('Lỗi xóa tài khoản: ' + (e.message || e.code));
+        } catch(e) {
+            alert('Lỗi xóa tài khoản: ' + e.message);
         }
     };
 
@@ -9311,20 +9358,71 @@ window.processMultiItem = async (action) => {
 
     // ── MIGRATE: Tạo users/{uid} cho tài khoản HLV cũ không có users doc ──────
     window.migrateCoachAccounts = async () => {
-        if (window.userRole !== 'admin' && window.userRole !== 'super_admin') return alert('Chỉ Admin mới có quyền thực hiện chức năng này!');
-        const service = window.AccountProvisioningService;
-        if (!service) return alert('Dịch vụ bảo mật tài khoản chưa sẵn sàng. Vui lòng tải lại trang.');
+        if (window.userRole !== 'admin' && window.userRole !== 'super_admin') {
+            return alert('Chỉ Admin mới có quyền thực hiện chức năng này!');
+        }
         const btn = document.getElementById('btnMigrateCoaches');
-        if (btn?.disabled) return;
-        if (btn) { btn.disabled = true; btn.textContent = '⏳ Đang đồng bộ an toàn...'; }
+        if (btn) { btn.disabled = true; btn.textContent = '⏳ Đang xử lý...'; }
         try {
-            const result = await service.migrateCoachAccounts({ clubId: currentClubId });
-            alert(`✅ Đồng bộ hoàn tất!\n\n• Đã quét: ${result.scanned || 0} tài khoản\n• Cần chuẩn hóa: ${result.fixed || 0}\n• Đã đầy đủ: ${result.skipped || 0}${result.truncated ? '\n\n⚠️ Danh sách vượt 500 tài khoản; cần chạy lại theo kế hoạch migration server.' : ''}`);
-            window.loadCoachAccounts();
-        } catch (e) {
-            alert('Lỗi đồng bộ: ' + (e.message || e.code));
-        } finally {
+            const coachesRef = collection(db, 'clubs', currentClubId, 'coaches');
+            const coachesSnap = await getDocs(query(coachesRef, limit(200))); // [3.3E] limit: coaches list
+            if (coachesSnap.empty) {
+                if (btn) { btn.disabled = false; btn.textContent = '🔄 Đồng bộ tài khoản HLV cũ'; }
+                return alert('Không có tài khoản HLV nào trong hệ thống.');
+            }
+            let fixed = 0;
+            let skipped = 0;
+            for (const coachDoc of coachesSnap.docs) {
+                const uid  = coachDoc.id;
+                const data = coachDoc.data();
+                // Bước 1: Đảm bảo clubs/coaches/{uid} có đầy đủ các trường cần thiết
+                const needsFix = !data.uid || !data.email || !data.clubId || !data.role;
+                if (needsFix) {
+                    try {
+                        await setDoc(doc(db, 'clubs', currentClubId, 'coaches', uid), {
+                            uid,
+                            role:   'coach',
+                            clubId: currentClubId,
+                            branch: data.branch || '',
+                            email:  data.email  || '',
+                            displayName: data.displayName || data.email || '',
+                            createdAt: data.createdAt || new Date().toISOString()
+                        }, { merge: true });
+                        fixed++;
+                    } catch(_fixErr) {
+                        console.warn('Không thể cập nhật coaches doc cho', uid, ':', _fixErr.message);
+                    }
+                } else {
+                    skipped++;
+                }
+                // Bước 2: Thử ghi users/{uid} (optional — có thể bị chặn bởi Firestore Rules)
+                try {
+                    const uSnap = await getDoc(doc(db, 'users', uid));
+                    if (!uSnap.exists()) {
+                        await setDoc(doc(db, 'users', uid), {
+                            role:   'coach',
+                            clubId: currentClubId,
+                            branch: data.branch || '',
+                            email:  data.email  || ''
+                        });
+                    }
+                } catch(_permErr) {
+                    // permission-denied là bình thường — hệ thống vẫn tìm được HLV qua clubs/coaches
+                    if (_permErr.code !== 'permission-denied') {
+                        console.warn('users/{uid} write failed for', uid, ':', _permErr.code);
+                    }
+                }
+            }
             if (btn) { btn.disabled = false; btn.textContent = '🔄 Đồng bộ tài khoản HLV cũ'; }
+            alert(
+                `✅ Đồng bộ hoàn tất!\n\n`
+                + `• Đã cập nhật hồ sơ HLV: ${fixed} tài khoản\n`
+                + `• Đã đầy đủ (bỏ qua): ${skipped} tài khoản\n\n`
+                + 'Tất cả HLV có thể đăng nhập ngay bây giờ.'
+            );
+        } catch(e) {
+            if (btn) { btn.disabled = false; btn.textContent = '🔄 Đồng bộ tài khoản HLV cũ'; }
+            alert('Lỗi đồng bộ: ' + (e.message || e));
         }
     };
 
