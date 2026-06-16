@@ -585,17 +585,29 @@ export function computeAndCacheStudents(allProfiles, params) {
         }
     }
 
-    // ── Phase 4K-5F: _lastDebtSourceQuality — debt coverage diagnostics ──
+    // ── Phase 4K-6V3D: debt coverage quality from the canonical read boundary ──
+    const _boundaryStatus = typeof window.getDebtProfileCoverageStatus === 'function'
+        ? window.getDebtProfileCoverageStatus()
+        : null;
+    const _boundaryReady = !!(_boundaryStatus && (
+        _boundaryStatus.configVerified ||
+        _boundaryStatus.sessionVerified ||
+        String(_boundaryStatus.source || '').includes('full-fallback')
+    ));
+    const _legacyPartialSignal = Object.keys(allProfiles || {}).length <=
+        ((pgStudents && pgStudents.currentItems ? pgStudents.currentItems.length : 0));
     const _debtSourceQuality = {
         profilesCount:       Object.keys(allProfiles || {}).length,
         paginationItems:     pgStudents ? (pgStudents.currentItems ? pgStudents.currentItems.length : 0) : 0,
-        debtMayBePartial:    buildDebt && Object.keys(allProfiles || {}).length <= ((pgStudents && pgStudents.currentItems ? pgStudents.currentItems.length : 0)),
+        debtMayBePartial:    buildDebt && (_boundaryStatus ? !_boundaryReady : _legacyPartialSignal),
+        coverageReady:       _boundaryReady,
+        source:              _boundaryStatus ? (_boundaryStatus.source || 'unknown') : 'legacy-diagnostic',
     };
     if (window.__store) window.__store._lastDebtSourceQuality = _debtSourceQuality;
     if (buildDebt && _debtSourceQuality.debtMayBePartial && _debtSourceQuality.profilesCount > 0) {
-        console.warn('[debt-list] Debt list may be partial — full profiles not ready',
+        console.warn('[debt-list] Debt profile coverage is not verified yet',
             '(profiles:', _debtSourceQuality.profilesCount,
-            ', paginationItems:', _debtSourceQuality.paginationItems, ')');
+            ', source:', _debtSourceQuality.source, ')');
         if (typeof window.ensureDebtProfilesReady === 'function') {
             setTimeout(function() { window.ensureDebtProfilesReady('debt-partial-auto-trigger'); }, 800);
         }

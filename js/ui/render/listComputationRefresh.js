@@ -44,7 +44,7 @@ import {
 import {
     computeAndCacheStudents,
     getStudentsSummary,
-} from './computation/studentsRenderer.js';
+} from './computation/studentsRenderer.js?v=debt-profile-read-boundary-20260616-v3d';
 import {
     computeAndCacheInventory,
     getCachedUnpaidInvCount,

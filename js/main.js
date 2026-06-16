@@ -96,7 +96,7 @@ import { initFirebase }                        from './firebase/config.js';
 import { showToast, registerToastGlobal }      from './ui/toast.js';
 import { registerModalGlobals }                from './ui/modal.js';
 import { switchTab, registerTabGlobals }       from './ui/tabs.js';
-import { initRender }                          from './ui/render.js';
+import { initRender }                          from './ui/render.js?v=debt-profile-read-boundary-20260616-v3d';
 // Phase 3.4: Render Isolation Architecture — island initialisers + legacy shims
 import { initFinanceIslands, registerFinanceLegacyGlobals }     from './ui/render/renderFinance.js';
 import { initStudentIslands, registerStudentsLegacyGlobals }     from './ui/render/renderStudents.js';
@@ -254,7 +254,7 @@ import {
     getQuitStatusValues,
     getProfilesListenerMetrics,
     ensureAllProfilesForExport,
-} from './listeners/profiles.listeners.js?v=payment-bundle-runtime-hotfix-20260616-v3a1';
+} from './listeners/profiles.listeners.js?v=debt-profile-read-boundary-20260616-v3d';
 
 // ── Phase 3.7C: Profile Status Config ────────────────────────────────────────
 import {
@@ -308,7 +308,7 @@ import {
 } from './firebase/paginatedQuery.js';
 
 // ── Phase 2d–3.2A: Business modules (eager — cần khi login) ────
-import { initStudents, initStudentPagination }        from './modules/students.js?v=payment-bundle-runtime-hotfix-20260616-v3a1';
+import { initStudents, initStudentPagination }        from './modules/students.js?v=debt-profile-read-boundary-20260616-v3d';
 // PHẦN 1 FIX + Phase 4K-2: Unified Search Controller — real cache + SearchBlob + stale guard
 import {
     initGlobalSearchRuntime,
@@ -3103,7 +3103,7 @@ window.debugProfileModalClose = function() {
 // PHẦN 1 — APP BUILD VERSION
 window.APP_BUILD_VERSION = '4K-6V2-inventory-history-pagination-complete-active-debt-20260616';
 // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
-window.APP_PATCH_VERSION = '4K-6V3A1-payment-bundle-runtime-hotfix-20260616';
+window.APP_PATCH_VERSION = '4K-6V3D-debt-profile-read-boundary-20260616';
 window.APP_COPYRIGHT_OWNER   = 'Tình Trương';
 window.APP_PRODUCT_NAME      = 'Taekwondo Club Management Web App';
 window.APP_SECURITY_PHASE    = '4K-6E-scale-readiness-write-safety';

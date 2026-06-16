@@ -420,6 +420,11 @@ export function mountActiveProfilesListener(context) {
 
                     _invalidateAll('active-profiles-snapshot');
                     _updateWindowMetrics();
+                    // Phase 4K-6V3D: verify debt coverage in idle time. The scheduler
+                    // reuses this snapshot and only runs count aggregation when needed.
+                    if (typeof window.scheduleAutomaticDebtProfileCoverage === 'function') {
+                        window.scheduleAutomaticDebtProfileCoverage('active-profiles-snapshot');
+                    }
                 },
                 (err) => {
                     _state.activeQueryErrorCount++;

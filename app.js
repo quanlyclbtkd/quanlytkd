@@ -1583,6 +1583,7 @@ service cloud.firestore {
 
         // Phase 4K-6V3BC1: reset per-club auto optimization before the new club chooses tx read mode.
         if (typeof window.resetAutomaticCanonicalTransactionOptimization === 'function') window.resetAutomaticCanonicalTransactionOptimization('club-switch');
+        if (typeof window.resetDebtProfileReadBoundary === 'function') window.resetDebtProfileReadBoundary('club-switch');
         // Phase 4K-6V3B/C: a new club must wait for its own settings snapshot before choosing tx read mode.
         window.__settingsSnapshotReady = false;
         if (window.__canonicalTxSettingsWait?.timer) clearTimeout(window.__canonicalTxSettingsWait.timer);
@@ -1689,6 +1690,9 @@ service cloud.firestore {
                 window.loadInvCategories().catch(e => console.warn('loadInvCategories error:', e));
             }
             window.__settingsSnapshotReady = true;
+            if (typeof window.scheduleAutomaticDebtProfileCoverage === 'function') {
+                window.scheduleAutomaticDebtProfileCoverage('settings-ready');
+            }
             try { window.dispatchEvent(new CustomEvent('app:settings-ready', { detail: { clubId: clubId } })); } catch (_) {}
         };
         if (window.safeRegisterSnapshot) {
@@ -3431,6 +3435,7 @@ service cloud.firestore {
                 completedAt:      0
             };
             if (typeof window.resetAutomaticCanonicalTransactionOptimization === 'function') window.resetAutomaticCanonicalTransactionOptimization('logout');
+            if (typeof window.resetDebtProfileReadBoundary === 'function') window.resetDebtProfileReadBoundary('logout');
             window.currentClubId = null;
             if (window.__store) {
                 window.__store.currentClubId = null;
@@ -8692,28 +8697,19 @@ window.debugBundleDisplay = function(studentName) {
 
 // Phase 4K-5F — Debt Coverage + Active/Quit Debug
 
-// ensureDebtProfilesReady — load full profiles if debt list may be partial
+// ensureDebtProfilesReady — Phase 4K-6V3D debt profile read boundary.
+// Primary source: active profiles listener already loaded at login.
+// Emergency compatibility: DebtProfileReadBoundary may call loadFullProfilesFallback only
+// when lightweight count coverage detects legacy/missing status documents.
 window.ensureDebtProfilesReady = async function(reason) {
     reason = reason || 'debt-tab-open';
-    const st = window.__store || {};
-    const profilesCount = Object.keys(st.profiles || {}).length;
-
-    const activeCountText = document.querySelector('[data-tab="active"], #tabBtn_active, #btn_active')
-        ? (document.querySelector('[data-tab="active"], #tabBtn_active, #btn_active').textContent || '')
-        : '';
-    const maybeActiveCount = Number((activeCountText.match(/((d+))/) || [])[1] || 0);
-
-    const shouldLoad =
-        profilesCount === 0 ||
-        (maybeActiveCount > 0 && profilesCount < maybeActiveCount) ||
-        profilesCount < 50;
-
-    if (shouldLoad && typeof window.loadFullProfilesFallback === 'function') {
-        try {
-            await window.loadFullProfilesFallback(reason);
-        } catch (e) {
-            console.warn('[ensureDebtProfilesReady] loadFullProfilesFallback failed:', e);
-        }
+    let result = null;
+    if (typeof window.ensureDebtProfileCoverage === 'function') {
+        result = await window.ensureDebtProfileCoverage(reason);
+    } else {
+        const st = window.__store || {};
+        const profilesCount = Object.keys(st.profiles || {}).length;
+        result = { ok: profilesCount > 0, ready: profilesCount > 0, source: 'legacy-active-store', profilesCount };
     }
 
     if (typeof window.refreshListsComputation === 'function') {
@@ -8723,10 +8719,17 @@ window.ensureDebtProfilesReady = async function(reason) {
         window.invalidateList('students.debtList', reason);
     }
 
+    const st = window.__store || {};
+    st._profilesFullLoadedForDebt = !!(result && result.fallback);
+    st._debtProfileCoverageReady = !!(result && result.ready);
+    st._debtProfileCoverageSource = (result && result.source) || 'unknown';
+    st._debtProfileCoverageCheckedAt = Date.now();
+
     return {
-        beforeProfilesCount: profilesCount,
-        afterProfilesCount:  Object.keys((window.__store || {}).profiles || {}).length,
-        reason
+        beforeProfilesCount: Object.keys(st.profiles || {}).length,
+        afterProfilesCount: Object.keys(st.profiles || {}).length,
+        reason,
+        ...result
     };
 };
 

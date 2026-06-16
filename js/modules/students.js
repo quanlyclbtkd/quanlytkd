@@ -2370,84 +2370,30 @@ window.loadMoreActiveStudents = async function loadMoreActiveStudents(event, ste
     );
 };
 
-// ensureDebtProfilesReady — tải đủ profiles để BÁO NỢ hiển thị chính xác
-// Phase 4K-5H: loadAllProfilesForDebt — load toàn bộ profiles cho Báo Nợ (cursor-based)
+// Phase 4K-6V3D — Debt Profile Coverage Read Boundary
+// Compatibility attribution marker: profiles.debtFullScan is retired; V3D uses count audit + guarded profiles.fullFallbackQuery only on a detected coverage gap.
+// BÁO NỢ uses the global active-profile listener already loaded at login.
+// loadAllProfilesForDebt remains as a compatibility name but no longer performs
+// cursor pagination/full collection reads on every tab open.
 window.loadAllProfilesForDebt = async function loadAllProfilesForDebt(reason) {
-    reason = typeof reason === 'string' ? reason : 'debt-full-load';
-    const st      = window.__store || {};
-    const db      = st.db || window.db;
-    const clubId  = st.clubId || window.currentClubId || st.currentClubId;
-
-    if (!db || !clubId) {
-        console.warn('[loadAllProfilesForDebt] missing db/clubId');
-        return { ok: false, reason: 'missing-db-clubId' };
+    reason = typeof reason === 'string' ? reason : 'debt-profile-coverage';
+    if (typeof window.ensureDebtProfileCoverage === 'function') {
+        return window.ensureDebtProfileCoverage(reason);
     }
-
-    const fb = window._fb_init || {};
-    const { collection, query, orderBy, limit, startAfter, getDocs } = fb;
-
-    if (!collection || !query || !orderBy || !limit || !getDocs) {
-        console.warn('[loadAllProfilesForDebt] missing Firebase helpers — falling back to reloadStudentsPage');
-        if (typeof window.reloadStudentsPage === 'function') {
-            window.reloadStudentsPage({ reason });
-        }
-        return { ok: false, reason: 'missing-firebase-helpers' };
-    }
-
-    const profilesRef = collection(db, 'clubs', clubId, 'profiles');
-    const pageSize = 500;
-    let cursor = null;
-    let total  = 0;
-    const map  = Object.assign({}, (st.profiles || {}));
-
-    try {
-        while (true) {
-            const constraints = [orderBy('__name__'), limit(pageSize)];
-            if (cursor) constraints.splice(1, 0, startAfter(cursor));
-            const snap = await getDocs(query(profilesRef, ...constraints));
-            if (typeof window.recordFirestoreReadAttribution === 'function') {
-                window.recordFirestoreReadAttribution('profiles.debtFullScan', snap.size || 0, {
-                    initial: cursor === null,
-                    reason: reason + ':page'
-                });
-            }
-            if (snap.empty) break;
-            snap.docs.forEach(d => {
-                map[d.id] = { id: d.id, ...d.data() };
-                total++;
-            });
-            cursor = snap.docs[snap.docs.length - 1];
-            if (snap.docs.length < pageSize) break;
-        }
-    } catch (e) {
-        console.warn('[loadAllProfilesForDebt] Lỗi Firestore:', e && e.message);
-        return { ok: false, reason: 'firestore-error', error: e };
-    }
-
-    if (!window.__store) window.__store = {};
-    window.__store.profiles                        = map;
-    window.__store._profilesFullLoadedForDebt      = true;
-    window.__store._profilesFullLoadedForDebtAt    = Date.now();
-    window.__store._profilesFullLoadedForDebtReason = reason;
-    window.__store._dataVersion = (window.__store._dataVersion || 0) + 1;
-
-    if (typeof window.syncProfilesToStudentStore === 'function') {
-        try { window.syncProfilesToStudentStore(map, reason); } catch (_) {}
-    }
-
-    console.info('[loadAllProfilesForDebt] Loaded', total, 'docs — total profiles:', Object.keys(map).length);
-    return { ok: true, loadedDocs: total, profilesCount: Object.keys(map).length };
-};
-
-// Phase 4K-5H: ensureDebtProfilesReady — dùng loadAllProfilesForDebt thay vì reloadStudentsPage
-window.ensureDebtProfilesReady = async function ensureDebtProfilesReady(reason) {
-    reason = typeof reason === 'string' ? reason : 'ensureDebtProfilesReady';
     const st = window.__store || {};
     const profilesCount = Object.keys(st.profiles || {}).length;
+    return { ok: profilesCount > 0, ready: profilesCount > 0, source: 'active-store-compat', profilesCount };
+};
 
-    if (!st._profilesFullLoadedForDebt || profilesCount < 100) {
-        await window.loadAllProfilesForDebt(reason);
-    }
+window.ensureDebtProfilesReady = async function ensureDebtProfilesReady(reason) {
+    reason = typeof reason === 'string' ? reason : 'ensureDebtProfilesReady';
+    const result = await window.loadAllProfilesForDebt(reason);
+    const st = window.__store || {};
+
+    st._profilesFullLoadedForDebt = !!(result && result.fallback);
+    st._debtProfileCoverageReady = !!(result && result.ready);
+    st._debtProfileCoverageSource = (result && result.source) || 'unknown';
+    st._debtProfileCoverageCheckedAt = Date.now();
 
     if (typeof window.refreshListsComputation === 'function') {
         window.refreshListsComputation(['students.debtList', 'dashboard.summary'], reason);
@@ -2459,8 +2405,11 @@ window.ensureDebtProfilesReady = async function ensureDebtProfilesReady(reason) 
     }
 
     return {
-        profilesCount: Object.keys((window.__store || {}).profiles || {}).length,
-        fullLoaded:    !!((window.__store || {})._profilesFullLoadedForDebt)
+        profilesCount: Object.keys(st.profiles || {}).length,
+        fullLoaded: !!st._profilesFullLoadedForDebt,
+        coverageReady: !!st._debtProfileCoverageReady,
+        source: st._debtProfileCoverageSource,
+        ...(result || {})
     };
 };
 
