@@ -253,7 +253,7 @@ import {
     getQuitStatusValues,
     getProfilesListenerMetrics,
     ensureAllProfilesForExport,
-} from './listeners/profiles.listeners.js?v=firestore-read-attribution-canonical-tx-boundary-20260616-v3a';
+} from './listeners/profiles.listeners.js?v=payment-bundle-runtime-hotfix-20260616-v3a1';
 
 // ── Phase 3.7C: Profile Status Config ────────────────────────────────────────
 import {
@@ -307,7 +307,7 @@ import {
 } from './firebase/paginatedQuery.js';
 
 // ── Phase 2d–3.2A: Business modules (eager — cần khi login) ────
-import { initStudents, initStudentPagination }        from './modules/students.js?v=firestore-read-attribution-canonical-tx-boundary-20260616-v3a';
+import { initStudents, initStudentPagination }        from './modules/students.js?v=payment-bundle-runtime-hotfix-20260616-v3a1';
 // PHẦN 1 FIX + Phase 4K-2: Unified Search Controller — real cache + SearchBlob + stale guard
 import {
     initGlobalSearchRuntime,
@@ -316,10 +316,10 @@ import {
     invalidateSearchCache,
     debugSearchPerformance,
 } from './modules/searchRuntime.js';
-import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from './modules/finance.js?v=firestore-read-attribution-canonical-tx-boundary-20260616-v3a';
-import { initInventory }                              from './modules/inventory.js?v=firestore-read-attribution-canonical-tx-boundary-20260616-v3a';
+import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from './modules/finance.js?v=payment-bundle-runtime-hotfix-20260616-v3a1';
+import { initInventory }                              from './modules/inventory.js?v=payment-bundle-runtime-hotfix-20260616-v3a1';
 import { initAttendance }                             from './modules/attendance.js';
-import { initDashboard }                              from './modules/dashboard.js?v=firestore-read-attribution-canonical-tx-boundary-20260616-v3a';
+import { initDashboard }                              from './modules/dashboard.js?v=payment-bundle-runtime-hotfix-20260616-v3a1';
 // ── Phase 4K-6U: Heavy Reports module is lazy-loaded by reportExportFacade.js ──
 // ── Phase 4.0B-1: SuperAdmin — eager import trên HTTP/HTTPS ─────
 // Không lazy nữa: phải init trước khi loadSuperAdminData() được gọi.
@@ -3101,7 +3101,8 @@ window.debugProfileModalClose = function() {
 
 // PHẦN 1 — APP BUILD VERSION
 window.APP_BUILD_VERSION = '4K-6V2-inventory-history-pagination-complete-active-debt-20260616';
-window.APP_PATCH_VERSION = '4K-6V3A-firestore-read-attribution-canonical-transaction-boundary-20260616';
+// Compatibility marker: 4K-6V3A-firestore-read-attribution-canonical-transaction-boundary
+window.APP_PATCH_VERSION = '4K-6V3A1-payment-bundle-runtime-hotfix-20260616';
 window.APP_COPYRIGHT_OWNER   = 'Tình Trương';
 window.APP_PRODUCT_NAME      = 'Taekwondo Club Management Web App';
 window.APP_SECURITY_PHASE    = '4K-6E-scale-readiness-write-safety';

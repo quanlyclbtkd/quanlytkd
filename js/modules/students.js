@@ -344,6 +344,24 @@ export function initStudents() {
             const _addNickEl   = document.getElementById('add_nickname');
             const _addNickVal  = _addNickEl ? _addNickEl.value.trim() : '';
 
+            // V3A1: preflight bundle trước mọi Firestore write để tránh tạo hồ sơ/kho dở dang.
+            const _hasFinancialPayment = fee > 0 || (!isGift && uniformFee > 0 && uniformSize);
+            const _admComponents = [];
+            if (fee > 0) {
+                const _tuitionLabel = tuitionPkg.packageCount > 1
+                    ? 'Học phí gói ' + tuitionPkg.packageCount + ' tháng (' + tuitionPkg.label + ')'
+                    : 'Học phí tháng ' + tuitionPkg.label;
+                _admComponents.push({ kind: 'tuition', type: 'Học phí', label: _tuitionLabel, amount: fee, month: lastMonth, packageMonths: monthsToRecord });
+            }
+            if (!isGift && uniformFee > 0 && uniformSize) {
+                _admComponents.push({ kind: 'inventory', type: 'Thu Võ phục', label: 'Võ phục ' + uniformSize, amount: uniformFee, category: 'Võ phục', size: uniformSize, qty: 1, relatedInvId: '' });
+            }
+            if (_hasFinancialPayment) {
+                if (typeof window.buildPaymentBundleTransaction !== 'function') throw new Error('buildPaymentBundleTransaction missing; cannot safely create admission bundled payment');
+                const _preflightBundle = window.buildPaymentBundleTransaction({ studentName: _saveKey, branch, date: joinDate, refMonth: lastMonth, receiptType: 'Thu nhập học', components: _admComponents });
+                if (!_preflightBundle || !Array.isArray(_preflightBundle.components) || _preflightBundle.components.some(c => !c || !Number.isFinite(Number(c.amount)))) throw new Error('Dữ liệu khoản thu nhập học không hợp lệ.');
+            }
+
             // ── Ghi profile ────────────────────────────────────────────────
             await StudentService.createProfile(_saveKey, {
                 status:          'active',
@@ -388,29 +406,9 @@ export function initStudents() {
                 }
             }
 
-            const _hasFinancialPayment = fee > 0 || (!isGift && uniformFee > 0 && uniformSize);
             if (_hasFinancialPayment) {
-                if (typeof window.buildPaymentBundleTransaction !== 'function') {
-                    throw new Error('buildPaymentBundleTransaction missing; cannot safely create admission bundled payment');
-                }
-                const _admComponents = [];
-                if (fee > 0) {
-                    const _tuitionLabel = tuitionPkg.packageCount > 1
-                        ? 'Học phí gói ' + tuitionPkg.packageCount + ' tháng (' + tuitionPkg.label + ')'
-                        : 'Học phí tháng ' + tuitionPkg.label;
-                    _admComponents.push({
-                        kind: 'tuition', type: 'Học phí', label: _tuitionLabel,
-                        amount: fee, month: lastMonth, packageMonths: monthsToRecord,
-                    });
-                }
-                if (!isGift && uniformFee > 0 && uniformSize) {
-                    _admComponents.push({
-                        kind: 'inventory', type: 'Thu Võ phục',
-                        label: 'Võ phục ' + (uniformSize || ''),
-                        amount: uniformFee, category: 'Võ phục',
-                        size: uniformSize, qty: 1, relatedInvId: _invId,
-                    });
-                }
+                const _inventoryComponent = _admComponents.find(c => c && c.kind === 'inventory');
+                if (_inventoryComponent) _inventoryComponent.relatedInvId = _invId;
                 if (_admComponents.length > 0) {
                     const _bundleTx = window.buildPaymentBundleTransaction({
                         studentName: _saveKey, branch, date: joinDate,
@@ -485,6 +483,12 @@ export function initStudents() {
                     branch, '', 'BIÊN LAI THU TIỀN', breakdown.length > 0 ? breakdown : null
                 );
             }
+        } catch (err) {
+            console.error('[students.addNewStudent]', err);
+            if (typeof window.recordRuntimeError === 'function') window.recordRuntimeError('students.addNewStudent', err, { action: 'add-student' });
+            const message = err && err.message ? err.message : String(err || 'Lỗi không xác định');
+            if (typeof window.showToast === 'function') window.showToast('❌ Không thể hoàn tất thêm võ sinh: ' + message, 5000);
+            alert('Không thể hoàn tất thêm võ sinh.\n\n' + message + '\n\nVui lòng kiểm tra hồ sơ trước khi thử lại để tránh tạo trùng.');
         } finally {
             _addStudentInProgress = false;
         }

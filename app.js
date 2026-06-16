@@ -51,7 +51,7 @@
     let renderTimeout = null;
 // Danh mục kho tùy chỉnh — được load từ Firestore khi đăng nhập thành công
 window.invCustomCategories = [];
-    window.APP_PATCH_VERSION = '4K-6V3A-firestore-read-attribution-canonical-transaction-boundary-20260616';
+    window.APP_PATCH_VERSION = '4K-6V3A1-payment-bundle-runtime-hotfix-20260616'; // Compatibility marker: 4K-6V3A-firestore-read-attribution-canonical-transaction-boundary
     // Compatibility regression marker retained for Phase 4K-6Q gate: APP_PATCH_VERSION = '4K-6Q-mobile-filter-currency-stability-20260615'
     window.__appLoaded = true; // [Phase 2a] main.js kiểm tra để bỏ qua loadLegacyApp()
     window.__store = window.__store || {}; // [Phase 2b] Bridge object cho module system
@@ -8534,12 +8534,12 @@ window.buildPaymentBundleTransaction = function(payload) {
     const date        = payload.date || '';
     const refMonth    = payload.refMonth || '';
     const receiptType = payload.receiptType || '';
-    const components  = payload.components || [];
+    const components  = Array.isArray(payload.components) ? payload.components : [];
 
     const safeComponents = components
         .filter(function(c) { return c && Number(c.amount || 0) > 0; })
         .map(function(c) {
-            const transaction = {
+            return {
                 kind: c.kind || 'other',
                 type: c.type || '',
                 label: c.label || c.type || c.kind || '',
@@ -8555,7 +8555,7 @@ window.buildPaymentBundleTransaction = function(payload) {
                 currentBeltAtPayment: c.currentBeltAtPayment || ''
             };
         });
-
+    if (!safeComponents.length) throw new Error('Không có khoản thu hợp lệ để tạo giao dịch.');
     const total       = safeComponents.reduce(function(s, c) { return s + Number(c.amount || 0); }, 0);
     const hasTuition  = safeComponents.some(function(c) { return c.kind === 'tuition'; });
     const hasExam     = safeComponents.some(function(c) { return c.kind === 'exam'; });

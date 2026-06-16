@@ -1,0 +1,30 @@
+Phase 4K-6V3A1 — Test Summary
+================================
+
+Root cause:
+- buildPaymentBundleTransaction().map() created a component object but did not return it.
+- safeComponents became [undefined, ...].
+- reduce/some/find then failed while reading amount/kind.
+
+Fixes:
+- Return normalized component from map callback.
+- Accept only array payload.components.
+- Controlled error for an empty valid component set.
+- Admission bundle preflight before any Firestore write.
+- Catch/report Add Student runtime errors and always release submit lock.
+- New cache bust: payment-bundle-runtime-hotfix-20260616-v3a1.
+
+Validation:
+- Syntax: 116 valid items.
+- npm run check: PASS.
+- V3A canonical boundary: 34/34 PASS.
+- Payment bundle runtime hotfix: 20/20 PASS.
+- Inventory ledger reconciliation: 33/33 PASS.
+- Runtime smoke test: 12/12 PASS.
+- Production stability gate: 22/22 PASS.
+- check:all component groups: 66/66 PASS when completed individually.
+
+Firestore impact:
+- No new query.
+- No new snapshot listener.
+- No additional document Reads.
