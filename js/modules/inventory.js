@@ -579,7 +579,18 @@ export function initInventory() {
         const desc  = getVal('ei_desc').trim();
         const amount = Number(getVal('ei_amountActual'));
 
-        await InventoryService.updateItem(invId, { category: eiCat, size, type, qty, date });
+        const invPayload = { category: eiCat, size, type, qty, date, desc, description: desc, amount };
+        if (type === 'Xuất bán') {
+            const identity = typeof window.resolveInventoryDebtIdentity === 'function'
+                ? window.resolveInventoryDebtIdentity(desc)
+                : null;
+            if (identity) {
+                if (identity.profileId) invPayload.profileId = identity.profileId;
+                if (identity.memberId) invPayload.memberId = identity.memberId;
+                if (identity.studentName) invPayload.studentName = identity.studentName;
+            }
+        }
+        await InventoryService.updateItem(invId, invPayload);
         const txType = type === 'Nhập kho' ? `Chi ${eiCat}` : `Thu ${eiCat}`;
         await InventoryService.updateTransaction(txId, { type: txType, description: desc, amount, date });
 

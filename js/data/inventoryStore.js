@@ -1,11 +1,12 @@
 /**
- * inventoryStore.js — Phase 3.8C: Unpaid Debt Query State + Feature Guard Update
+ * inventoryStore.js — Phase 4K-6V2: Complete Active Debt Ownership + Identity Index
  * ──────────────────────────────────────────────────────────────────────────────────────
  *
  * Phase 3.7C: tạo nền tảng store.
  * Phase 3.8A: gắn vào snapshot callbacks + feature guards + metrics.
  * Phase 3.8B: derive công nợ kho đồ + debt index + helper lookup nhanh.
- * Phase 3.8C: track trạng thái unpaid debt query riêng (không phụ thuộc limit 500).
+ * Phase 3.8C: track trạng thái unpaid debt query riêng.
+ * Phase 4K-6V2: complete active-debt listener + profileId/memberId/name index.
  *
  * SCHEMA inventory doc (Firestore — không đổi):
  *   id:          string   — document ID
@@ -21,8 +22,8 @@
  *   timestamp:   number
  *
  * Lưu ý quan trọng:
- *   - Inventory records KHÔNG có profileId/memberId — student link là tên (desc/description).
- *   - Debt detection: t.unpaid === true && t.type === 'Xuất bán'
+ *   - Dữ liệu mới có thể có profileId/memberId; dữ liệu cũ tiếp tục liên kết bằng tên.
+ *   - Debt detection: unpaid/pending; tương thích type Xuất bán/Bán nợ/Xuất cũ
  *   - Student match: t.desc === name || t.description === name (exact → normalize cả hai vế)
  *   - Index: keyed by normalizedName (lowercase + trim + collapse spaces)
  *   - Không làm sai kết quả nghiệp vụ, không đổi Firestore schema, không gọi Firestore.
@@ -42,16 +43,19 @@ const _store = {
     inventoryHistory:         null,
     inventoryHistoryLoaded:   false,
     financeDebtLoaded:        false,
-    // [Phase 3.8C] Unpaid debt query state — track riêng, không phụ thuộc limit(500) allInventory
-    unpaidDebtQueryLoaded:    false,  // true sau khi query getDocs(where unpaid==true) thành công
-    unpaidDebtQueryDocCount:  0,      // số debt docs từ query (không phải từ derive)
-    unpaidDebtQueryFailed:    false,  // true nếu query lỗi, đang dùng fallback
+    // [Phase 4K-6V2] Complete active-debt listener state — độc lập lịch sử phân trang
+    unpaidDebtQueryLoaded:    false,  // true sau snapshot where(unpaid==true) thành công
+    unpaidDebtQueryDocCount:  0,      // số debt docs từ authoritative listener
+    unpaidDebtQueryFailed:    false,  // true nếu active-debt listener lỗi
+    inventoryDebtCompleteness:'loading', // loading | complete | partial | failed
     version:                  0,
     lastUpdatedAt:            null,
 };
 
 // ── Debt index nội bộ ─────────────────────────────────────────────────────────
 const _debtIndex = {
+    byProfileId:      new Map(),    // profileId → Array<debtItem>
+    byMemberId:       new Map(),    // memberId → Array<debtItem>
     byNormalizedName: new Map(),    // normalizedName → Array<debtItem>
     isReady:          false,
     buildCount:       0,
@@ -128,20 +132,70 @@ function _getLegacyCount() {
 
 /**
  * Resolve student name string from a flexible input.
- * Inventory records only link by name — no profileId/memberId in inventory schema.
+ * Dữ liệu mới ưu tiên profileId/memberId; dữ liệu cũ tiếp tục fallback theo tên.
  *
  * @param {string|Object|null} studentOrProfile
  * @returns {string} — student name or ''
  */
-function _resolveStudentName(studentOrProfile) {
-    if (!studentOrProfile) return '';
-    if (typeof studentOrProfile === 'string') return studentOrProfile.trim();
-    // Profile object: name is the profile key stored as .name or .profileId
-    if (typeof studentOrProfile === 'object') {
-        return (studentOrProfile.name || studentOrProfile.profileId ||
-                studentOrProfile.studentName || '').trim();
+function _resolveStudentIdentity(studentOrProfile) {
+    if (!studentOrProfile) return { profileId: '', memberId: '', name: '' };
+    if (typeof studentOrProfile === 'string') {
+        return { profileId: '', memberId: '', name: studentOrProfile.trim() };
     }
-    return '';
+    if (typeof studentOrProfile === 'object') {
+        const explicitName = studentOrProfile.name || studentOrProfile.studentName ||
+            studentOrProfile.profileName || studentOrProfile.displayName || '';
+        const explicitProfileId = studentOrProfile.profileId || studentOrProfile.docId ||
+            studentOrProfile.id || '';
+        return {
+            profileId: String(explicitProfileId || '').trim(),
+            memberId:  String(studentOrProfile.memberId || studentOrProfile.memberCode || '').trim(),
+            name:      String(explicitName || explicitProfileId || '').trim(),
+        };
+    }
+    return { profileId: '', memberId: '', name: '' };
+}
+
+function _resolveStudentName(studentOrProfile) {
+    return _resolveStudentIdentity(studentOrProfile).name;
+}
+
+/**
+ * Nhận diện khoản công nợ kho đang hoạt động.
+ * Query Firestore đã lọc unpaid === true; hàm này vẫn tương thích dữ liệu cũ
+ * có type không đồng nhất và các cờ pending/unpaid trước đây.
+ */
+export function isActiveInventoryDebt(item) {
+    if (!item || typeof item !== 'object') return false;
+    const pending = item.unpaid === true ||
+        item.inventoryDebtStatus === 'pending' ||
+        item.paymentStatus === 'unpaid';
+    if (!pending) return false;
+
+    const type = normalizeStudentKey(item.type || item.transactionType || '')
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd');
+    // Với dữ liệu mới: Xuất bán. Với dữ liệu cũ: Bán nợ/Xuất/Bán hàng.
+    // Nếu cờ unpaid đã được ghi rõ nhưng type trống/khác, vẫn giữ để không bỏ sót nợ.
+    return !type || type.includes('xuat ban') || type.includes('ban no') ||
+        type.includes('ban hang') || type === 'xuat' || item.unpaid === true;
+}
+
+function _decorateDebtItem(item) {
+    const rawName  = item.desc || item.description || item.studentName || item.name || '';
+    const profileId = String(item.profileId || item.studentProfileId || '').trim();
+    const memberId  = String(item.memberId || item.memberCode || '').trim();
+    const normName  = normalizeStudentKey(rawName);
+    return {
+        ...item,
+        _debtKey:        item.id || (profileId || memberId || normName) + '|' + (item.date || ''),
+        _studentKey:     rawName,
+        _studentName:    rawName,
+        _normalizedName: normName,
+        _profileId:      profileId || null,
+        _memberId:       memberId || null,
+        _amount:         Number(item.amount || 0),
+    };
 }
 
 function _updateMetrics() {
@@ -199,6 +253,7 @@ function _updateMetrics() {
         unpaidDebtQueryFailed:          _store.unpaidDebtQueryFailed,
         unpaidDebtQueryCount:           _metrics.unpaidDebtQueryCount,
         unpaidDebtQueryFailedCount:     _metrics.unpaidDebtQueryFailedCount,
+        inventoryDebtCompleteness:      _store.inventoryDebtCompleteness,
     });
 }
 
@@ -220,26 +275,9 @@ export function deriveFinanceInventoryDebts(allInventory) {
 
     const debts = [];
     for (let i = 0; i < allInventory.length; i++) {
-        const t = allInventory[i];
-        // ── Debt detection — giữ nguyên logic gốc, KHÔNG đổi ──────────────
-        if (t.unpaid !== true || t.type !== 'Xuất bán') continue;
-
-        const rawName    = t.desc || t.description || '';
-        const normName   = normalizeStudentKey(rawName);
-
-        debts.push({
-            ...t,
-            // Derived metadata (in-memory only)
-            _debtKey:       t.id || (normName + '|' + (t.date || '')),
-            _studentKey:    rawName,
-            _studentName:   rawName,    // alias for clarity
-            _normalizedName: normName,
-            // NOTE: Inventory docs have no profileId/memberId.
-            // Student is identified by name only (t.desc || t.description).
-            _profileId:     null,       // TODO Phase 3.8C: if profiles can be correlated
-            _memberId:      null,       // TODO Phase 3.8C: if memberId lookup is added
-            _amount:        Number(t.amount || 0),
-        });
+        const item = allInventory[i];
+        if (!isActiveInventoryDebt(item)) continue;
+        debts.push(_decorateDebtItem(item));
     }
     return debts;
 }
@@ -269,6 +307,8 @@ export function deriveAndSetFinanceInventoryDebts(allInventory, reason) {
 export function rebuildInventoryDebtIndex(reason) {
     const t0 = performance.now();
 
+    _debtIndex.byProfileId.clear();
+    _debtIndex.byMemberId.clear();
     _debtIndex.byNormalizedName.clear();
     _debtIndex.isReady = false;
 
@@ -276,16 +316,19 @@ export function rebuildInventoryDebtIndex(reason) {
         ? _store.financeInventoryDebts
         : [];
 
+    const push = (map, key, item) => {
+        if (!key) return;
+        if (!map.has(key)) map.set(key, []);
+        map.get(key).push(item);
+    };
+
     for (let i = 0; i < debts.length; i++) {
-        const item    = debts[i];
-        const normKey = item._normalizedName || normalizeStudentKey(item.desc || item.description || '');
-
-        if (!normKey) continue;
-
-        if (!_debtIndex.byNormalizedName.has(normKey)) {
-            _debtIndex.byNormalizedName.set(normKey, []);
-        }
-        _debtIndex.byNormalizedName.get(normKey).push(item);
+        const item = debts[i]._normalizedName !== undefined
+            ? debts[i]
+            : _decorateDebtItem(debts[i]);
+        push(_debtIndex.byProfileId, String(item._profileId || item.profileId || '').trim(), item);
+        push(_debtIndex.byMemberId, String(item._memberId || item.memberId || '').trim(), item);
+        push(_debtIndex.byNormalizedName, item._normalizedName || normalizeStudentKey(item.desc || item.description || ''), item);
     }
 
     const ms = performance.now() - t0;
@@ -294,8 +337,8 @@ export function rebuildInventoryDebtIndex(reason) {
     _debtIndex.lastBuildAt   = Date.now();
     _debtIndex.lastBuildDuration = ms;
 
-    _metrics.indexBuildCount     = _debtIndex.buildCount;
-    _metrics.indexBuildDuration  = ms;
+    _metrics.indexBuildCount      = _debtIndex.buildCount;
+    _metrics.indexBuildDuration   = ms;
     _metrics.lastDebtIndexBuildAt = _debtIndex.lastBuildAt;
 
     if (ms > 16) {
@@ -320,37 +363,33 @@ export function rebuildInventoryDebtIndex(reason) {
  * @returns {Array}
  */
 export function getInventoryDebtsForStudent(studentOrProfile, options = {}) {
-    const { allowFallback = true, reason = '' } = options;
+    const { allowFallback = true } = options;
 
     _metrics.lookupCount++;
-    _metrics.lookupByName++;
-
-    const rawName  = _resolveStudentName(studentOrProfile);
-    if (!rawName) {
+    const identity = _resolveStudentIdentity(studentOrProfile);
+    if (!identity.profileId && !identity.memberId && !identity.name) {
         _metrics.lookupMissCount++;
         _updateMetrics();
         return [];
     }
 
-    const normKey = normalizeStudentKey(rawName);
-
-    // ── Path 1: index lookup (fast — O(1)) ───────────────────────────────────
-    if (_debtIndex.isReady && _debtIndex.byNormalizedName.size > 0) {
-        const found = _debtIndex.byNormalizedName.get(normKey) || null;
+    if (_debtIndex.isReady) {
+        let found = null;
+        if (identity.profileId) found = _debtIndex.byProfileId.get(identity.profileId) || null;
+        if (!found && identity.memberId) found = _debtIndex.byMemberId.get(identity.memberId) || null;
+        if (!found && identity.name) {
+            _metrics.lookupByName++;
+            found = _debtIndex.byNormalizedName.get(normalizeStudentKey(identity.name)) || null;
+        }
         if (found) {
-            if (found.length === 0) _metrics.lookupMissCount++;
             _updateMetrics();
             return found;
         }
-        // Key exists in index but empty → student has no debt
-        // Key not in index at all → also no debt
-        // Either way: return [] without fallback (index is authoritative when ready)
         _metrics.lookupMissCount++;
         _updateMetrics();
         return [];
     }
 
-    // ── Path 2: fallback filter (index not ready) ────────────────────────────
     if (!allowFallback) {
         _metrics.lookupMissCount++;
         _updateMetrics();
@@ -359,16 +398,18 @@ export function getInventoryDebtsForStudent(studentOrProfile, options = {}) {
 
     _metrics.lookupFallbackCount++;
     const src = _getCompatArray();
-
-    // GIỮ NGUYÊN logic gốc app.js line 6640-6641
-    const result = src.filter(t =>
-        t.unpaid === true && t.type === 'Xuất bán' &&
-        (t.desc === rawName || t.description === rawName)
-    );
+    const normName = normalizeStudentKey(identity.name);
+    const result = src.filter(item => {
+        if (!isActiveInventoryDebt(item)) return false;
+        if (identity.profileId && String(item.profileId || item.studentProfileId || '') === identity.profileId) return true;
+        if (identity.memberId && String(item.memberId || item.memberCode || '') === identity.memberId) return true;
+        const itemName = normalizeStudentKey(item.desc || item.description || item.studentName || '');
+        return !!normName && itemName === normName;
+    });
 
     if (result.length === 0) _metrics.lookupMissCount++;
     _updateMetrics();
-    return result;
+    return result.map(_decorateDebtItem);
 }
 
 /**
@@ -522,8 +563,8 @@ export function isInventoryDebtIndexReady() {
 // ── Phase 3.8C: Unpaid Debt Query State API ───────────────────────────────────
 
 /**
- * Gọi từ app.js sau khi _loadAllUnpaidInvDebts() query thành công.
- * Đánh dấu financeInventoryDebts đến từ query thực thụ (không phải derive từ allInventory limited).
+ * Gọi từ complete active-debt listener sau snapshot thành công.
+ * Đánh dấu financeInventoryDebts đến từ query where(unpaid == true) đầy đủ, độc lập với lịch sử phân trang.
  *
  * @param {number} count   — số debt items từ query
  * @param {string} [reason]
@@ -532,6 +573,7 @@ export function markUnpaidDebtQueryLoaded(count, reason) {
     _store.unpaidDebtQueryLoaded   = true;
     _store.unpaidDebtQueryFailed   = false;
     _store.unpaidDebtQueryDocCount = typeof count === 'number' ? count : 0;
+    _store.inventoryDebtCompleteness = 'complete';
     _store.version++;
     _store.lastUpdatedAt = Date.now();
     _metrics.unpaidDebtQueryCount++;
@@ -539,19 +581,21 @@ export function markUnpaidDebtQueryLoaded(count, reason) {
 }
 
 /**
- * Gọi từ app.js khi _loadAllUnpaidInvDebts() lỗi/fallback.
+ * Gọi khi complete active-debt listener lỗi hoặc chưa thể xác nhận độ đầy đủ.
  * @param {string} [reason]
  */
 export function markUnpaidDebtQueryFailed(reason) {
+    _store.unpaidDebtQueryLoaded = false;
     _store.unpaidDebtQueryFailed = true;
+    _store.inventoryDebtCompleteness = Array.isArray(_store.financeInventoryDebts) && _store.financeInventoryDebts.length > 0 ? 'partial' : 'failed';
     _metrics.unpaidDebtQueryFailedCount++;
     _updateMetrics();
 }
 
 /**
  * Kiểm tra xem unpaid debt đã đến từ query riêng chưa.
- * true  → financeInventoryDebts đến từ getDocs(where unpaid==true) — đầy đủ, không bị limit(500).
- * false → financeInventoryDebts vẫn đến từ derive(allInventory limited) — có thể thiếu nợ cũ.
+ * true  → financeInventoryDebts đến từ listener where(unpaid==true) — đầy đủ, độc lập lịch sử phân trang.
+ * false → listener chưa sẵn sàng hoặc bị lỗi; không được xem recent history là nguồn công nợ đầy đủ.
  *
  * @returns {boolean}
  */
@@ -574,6 +618,8 @@ export function resetInventoryStore(reason) {
     _store.version++;
     _store.lastUpdatedAt          = null;
 
+    _debtIndex.byProfileId.clear();
+    _debtIndex.byMemberId.clear();
     _debtIndex.byNormalizedName.clear();
     _debtIndex.isReady     = false;
     _debtIndex.lastBuildAt = null;
@@ -582,6 +628,7 @@ export function resetInventoryStore(reason) {
     _store.unpaidDebtQueryLoaded   = false;
     _store.unpaidDebtQueryDocCount = 0;
     _store.unpaidDebtQueryFailed   = false;
+    _store.inventoryDebtCompleteness = 'loading';
 
     _metrics.lastReason  = reason || 'reset';
     _metrics.lastFeature = null;
@@ -694,6 +741,7 @@ export function getInventoryDependencyMetrics() {
         unpaidDebtQueryFailed:          _store.unpaidDebtQueryFailed,
         unpaidDebtQueryCount:           _metrics.unpaidDebtQueryCount,
         unpaidDebtQueryFailedCount:     _metrics.unpaidDebtQueryFailedCount,
+        inventoryDebtCompleteness:      _store.inventoryDebtCompleteness,
     };
 }
 
@@ -760,10 +808,16 @@ export const inventoryStore = {
     get inventoryHistory()       { return _store.inventoryHistory; },
     get inventoryHistoryLoaded() { return _store.inventoryHistoryLoaded; },
     get financeDebtLoaded()      { return _store.financeDebtLoaded; },
+    get unpaidDebtQueryLoaded()  { return _store.unpaidDebtQueryLoaded; },
+    get unpaidDebtQueryFailed()  { return _store.unpaidDebtQueryFailed; },
+    get unpaidDebtQueryDocCount(){ return _store.unpaidDebtQueryDocCount; },
+    get inventoryDebtIndexReady(){ return _debtIndex.isReady; },
+    get inventoryDebtCompleteness(){ return _store.inventoryDebtCompleteness; },
     get version()                { return _store.version; },
     get lastUpdatedAt()          { return _store.lastUpdatedAt; },
     // Debt derivation
     normalizeStudentKey,
+    isActiveInventoryDebt,
     deriveFinanceInventoryDebts,
     deriveAndSetFinanceInventoryDebts,
     // Index

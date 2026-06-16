@@ -595,12 +595,19 @@ export function refreshDashboardComputation(reason = 'dashboard-refresh') {
             window.__store._lastDashboardRefreshAt     = Date.now();
         }
 
-        // Fire-and-forget: load historical chart data from Firestore stats docs
-        // so the 6-month chart isn't all-zero for past months.
-        if (typeof window.fetchHistoricalDashboardFallback === 'function') {
-            const _selMonth = (window.__store && window.__store.selectedMonth) ||
-                (document.getElementById('monthPicker') ? document.getElementById('monthPicker').value : '');
-            if (_selMonth) {
+        // Phase 4K-6V1 Spark Read Cost Hardening:
+        // Never issue historical Firestore reads on every cross-domain invalidation.
+        // Only the visible Dashboard may schedule a cached/single-flight history fetch.
+        const _selMonth = (window.__store && window.__store.selectedMonth) ||
+            (document.getElementById('monthPicker') ? document.getElementById('monthPicker').value : '');
+        if (_selMonth && typeof window.scheduleDashboardHistoryFetch === 'function') {
+            window.scheduleDashboardHistoryFetch(_selMonth, reason).catch(function(e) {
+                console.warn('[refreshDashboardComputation] scheduled historical fetch failed:', e);
+            });
+        } else if (_selMonth && typeof window.fetchHistoricalDashboardFallback === 'function') {
+            // Legacy safety fallback: still gated by visible Dashboard.
+            const _active = document.querySelector('.tab-content.active');
+            if (_active && _active.id === 'tab_dashboard') {
                 window.fetchHistoricalDashboardFallback(_selMonth, reason).catch(function(e) {
                     console.warn('[refreshDashboardComputation] historical fetch failed:', e);
                 });

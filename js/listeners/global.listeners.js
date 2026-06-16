@@ -19,8 +19,9 @@
  *     onSnapshot(profRef)               — allProfiles (tất cả võ sinh)
  *     ❗ Không giới hạn — loads ALL profiles (xem NOTE bên dưới)
  *
- *   key: 'global:inventory:{clubId}'   → Listener owner: inventory/global
- *     onSnapshot(query(invRef, limit(500))) — allInventory (500 bản ghi gần nhất)
+ *   key: 'global:inventoryActiveDebts:{clubId}' → Listener owner: inventory/global
+ *     onSnapshot(query(invRef, where(unpaid == true))) — toàn bộ công nợ Kho đang hoạt động
+ *     Lịch sử Kho không phải listener global; tải 100 bản ghi/trang khi mở tab Kho.
  *
  *   key: 'finance:tx:{clubId}:{month}' → Listener owner: finance/global
  *     onSnapshot (2 queries: byDate + byTxMonth) — allTransactions tháng hiện tại
@@ -78,7 +79,8 @@ export const GLOBAL_LISTENER_KEYS = {
      * @param {string} clubId
      * @returns {string}
      */
-    INVENTORY: (clubId)              => `global:inventory:${clubId}`,
+    INVENTORY: (clubId)              => `global:inventoryActiveDebts:${clubId}`,
+    INVENTORY_ACTIVE_DEBTS: (clubId) => `global:inventoryActiveDebts:${clubId}`,
     /**
      * @param {string} monthStr — 'YYYY-MM'
      * @param {string} clubId

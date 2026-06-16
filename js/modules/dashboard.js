@@ -515,180 +515,355 @@ export async function tryApplyCurrentMonthStats(selMonth) {
 // Called from refreshDashboardComputation (fire-and-forget async).
 // ════════════════════════════════════════════════════════════════
 
-export async function fetchHistoricalDashboardFallback(selMonth, reason) {
-    const sdk   = window._fb_init || {};
-    const store = window.__store  || {};
-    const db    = store.db;
+const _SPARK_HISTORY_TTL_MS = 6 * 60 * 60 * 1000;
+const _sparkHistoryInFlight = new Map();
+let _sparkHistoryDebounceTimer = null;
 
-    if (!sdk.doc || !sdk.getDoc || !sdk.getDocs || !sdk.query || !sdk.collection || !db) return;
+function _sparkReadMetrics() {
+    if (!window.__sparkReadMetrics) {
+        window.__sparkReadMetrics = {
+            dashboardHistoryRequests: 0,
+            dashboardHistoryNetworkFetches: 0,
+            dashboardHistoryCacheHits: 0,
+            dashboardHistoryCoalesced: 0,
+            dashboardHistorySkippedHidden: 0,
+            dashboardHistoryQueryGroups: 0,
+            dashboardHistoryEstimatedDocsRead: 0,
+            txSameMonthResubscribeSkipped: 0,
+            lastDashboardHistoryReason: '',
+            lastDashboardHistoryAt: 0,
+            lastDashboardHistorySource: '',
+        };
+    }
+    return window.__sparkReadMetrics;
+}
 
-    const clubId = store.clubId || store.currentClubId;
-    if (!clubId) return;
+function _sparkHistoryCacheKey(clubId, selMonth) {
+    return `tst:spark-dashboard-history:v1:${clubId}:${selMonth}`;
+}
 
-    const { doc, getDoc, getDocs, query, collection, where } = sdk;
-
-    // Phase 4K-4G: Dùng getRecentMonths helper để không hard-code logic tháng
-    const _monthStrs = typeof window.getRecentMonths === 'function'
-        ? window.getRecentMonths(selMonth, 6)
-        : (() => {
-            const [sy, sm] = selMonth.split('-').map(Number);
-            const result = [];
-            for (let i = 5; i >= 0; i--) {
-                let m = sm - i, y = sy;
-                while (m <= 0) { m += 12; y -= 1; }
-                result.push(`${y}-${String(m).padStart(2, '0')}`);
-            }
-            return result;
-        })();
-    const months = _monthStrs.map((month, i) => ({ month, idx: i }));
-
-    const labels  = _monthStrs.map(m => {
-        if (typeof window.formatMonthLabel === 'function') return window.formatMonthLabel(m);
-        const [y, mo] = m.split('-');
-        return `T${Number(mo)}/${y}`;
-    });
-    const income  = Array(6).fill(0);
-    const expense = Array(6).fill(0);
-    const active  = Array(6).fill(0);
-
-    let reportRows = '';
-
-    // Read all stats docs in parallel
-    const statReads = months.map(({ month, idx }) => {
-        const docId = month.replace('-', '_');
-        return getDoc(doc(db, 'clubs', clubId, 'stats', docId))
-            .then(snap => ({ snap, month, idx }))
-            .catch(() => ({ snap: null, month, idx }));
-    });
-
-    const statResults = await Promise.all(statReads);
-
-    // For months with missing stats docs, fall back to querying transactions
-    const fallbackPromises = statResults.map(async ({ snap, month, idx }) => {
-        let inc = 0, exp = 0, act = 0, mNew = 0, mQuit = 0;
-        let hasStat = false;
-
-        if (snap && snap.exists()) {
-            const d = snap.data();
-            inc    = Number(d['income.total']    || (d.income  && d.income.total)  || 0);
-            exp    = Number(d['expense.total']   || (d.expense && d.expense.total) || 0);
-            act    = Number(d['members.active']  || (d.members && d.members.active) || 0);
-            mNew   = Number(d['members.new']     || (d.members && d.members.new)   || 0);
-            mQuit  = Number(d['members.quit']    || (d.members && d.members.quit)  || 0);
-            hasStat = true;
+function _readSparkHistoryCache(clubId, selMonth) {
+    try {
+        const raw = localStorage.getItem(_sparkHistoryCacheKey(clubId, selMonth));
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!parsed || !parsed.savedAt || !parsed.payload) return null;
+        if ((Date.now() - Number(parsed.savedAt)) > _SPARK_HISTORY_TTL_MS) {
+            localStorage.removeItem(_sparkHistoryCacheKey(clubId, selMonth));
+            return null;
         }
+        return parsed.payload;
+    } catch (_) {
+        return null;
+    }
+}
 
-        // Phase 4K-5D: Không tin stats doc rỗng — nếu tất cả số đều 0 và không phải tháng tương lai thì fallback transactions
-        const today = new Date().toISOString().slice(0, 7);
-        const statLooksEmpty = inc === 0 && exp === 0 && act === 0;
-        const isFutureMonth = month > today;
+function _writeSparkHistoryCache(clubId, selMonth, payload) {
+    try {
+        localStorage.setItem(
+            _sparkHistoryCacheKey(clubId, selMonth),
+            JSON.stringify({ savedAt: Date.now(), payload })
+        );
+    } catch (_) {
+        // Storage quota/private mode must never break dashboard rendering.
+    }
+}
 
-        if (!hasStat || (statLooksEmpty && !isFutureMonth)) {
-            // Phase 4K-4G: Fallback đọc transactions — inclusive query + phân bổ đúng gói nhiều tháng
-            console.info('[dashboard-history] missing stats doc for', month, '— reading transactions fallback');
-            try {
-                if (typeof window.loadTransactionsForMonthsInclusive === 'function') {
-                    const _fallbackTxs = await window.loadTransactionsForMonthsInclusive(
-                        [month], 'dashboard-history-fallback'
-                    );
-                    if (typeof window.computeMonthlyFinanceHistory === 'function') {
-                        const _hist = window.computeMonthlyFinanceHistory(_fallbackTxs, [month]);
-                        if (_hist[month]) {
-                            inc = _hist[month].income;
-                            exp = _hist[month].expense;
-                        }
-                    } else {
-                        _fallbackTxs.forEach(tx => {
-                            const amt = Number(tx.amount || tx.soTien || 0);
-                            if (tx.type === 'Chi phí' || tx.type === 'Chi phí kỳ thi' || tx.type?.startsWith('Chi')) {
-                                exp += amt;
-                            } else if (tx.type === 'Học phí' && Array.isArray(tx.packageMonths) && tx.packageMonths.length > 0) {
-                                // Phase 4K-4G: Phân bổ gói học phí
-                                if (tx.packageMonths.includes(month)) {
-                                    inc += amt / tx.packageMonths.length;
-                                }
-                            } else {
-                                inc += amt;
-                            }
-                        });
-                    }
-                } else {
-                    // Legacy fallback: plain txMonth query
-                    const txRef = collection(db, 'clubs', clubId, 'transactions');
-                    const txSnap = await getDocs(query(txRef, where('txMonth', '==', month)));
-                    txSnap.forEach(d => {
-                        const tx = d.data();
-                        const amt = Number(tx.amount || tx.soTien || 0);
-                        if (tx.type === 'expense' || tx.loai === 'expense' || tx.loai === 'chi') {
-                            exp += amt;
-                        } else {
-                            inc += amt;
-                        }
-                    });
-                }
-            } catch (_txErr) {
-                // Non-blocking — silent fail
-            }
-        }
+function _isDashboardActive() {
+    const active = document.querySelector('.tab-content.active');
+    return !!(active && active.id === 'tab_dashboard');
+}
 
-        income[idx]  = inc;
-        expense[idx] = exp;
-        active[idx]  = act;
+function _applyHistoricalDashboardPayload(payload, reason) {
+    if (!payload || !payload.chartData) return null;
+    const chartData = payload.chartData;
+    const reportRows = payload.reportHtml || '';
 
-        const profit     = inc - exp;
-        const label      = labels[idx];
-        const profitCls  = profit < 0 ? 'text-rose-600' : 'text-emerald-600';
-        const isCurrent  = month === selMonth;
-        const rowClass   = isCurrent ? 'class="font-black text-primary"' : '';
-
-        reportRows += `<tr><td ${rowClass}>${label}</td>` +
-            `<td class="text-slate-800 font-bold text-base">${act || '-'}</td>` +
-            `<td class="text-emerald-600 font-medium">+${mNew}</td>` +
-            `<td class="text-rose-600 font-medium">-${mQuit}</td>` +
-            `<td class="text-emerald-600 font-bold">${inc.toLocaleString()} ₫</td>` +
-            `<td class="text-rose-600 font-bold">${exp.toLocaleString()} ₫</td>` +
-            `<td class="${profitCls} font-black text-base bg-slate-50">${profit.toLocaleString()} ₫</td></tr>`;
-    });
-
-    await Promise.all(fallbackPromises);
-
-    const chartData = { labels, income, expense, active };
-
-    // Update cache with full historical data
     if (typeof cacheDashboardData === 'function') {
-        const existing = (window.__store && window.__store.tabHtmlCache) || {};
         cacheDashboardData({
-            reportHtml:  reportRows,
+            reportHtml: reportRows,
             chartData,
-            bStats:      (window.__store && window.__store._lastBStats)    || {},
-            bExamStats:  (window.__store && window.__store._lastBExamStats) || {},
+            bStats: (window.__store && window.__store._lastBStats) || {},
+            bExamStats: (window.__store && window.__store._lastBExamStats) || {},
             summaryNumbers: (window.__store && window.__store._lastSummaryNumbers) || {},
         });
     }
 
-    // Phase 4K-5N: Deduplicate — call renderDashboardCharts exactly once
-    const _renderChartsFn =
-        typeof window.renderDashboardCharts === 'function'
-            ? window.renderDashboardCharts
-            : (typeof renderDashboardCharts === 'function' ? renderDashboardCharts : null);
-    if (_renderChartsFn) {
-        try { _renderChartsFn(chartData); } catch (err) {
+    const renderCharts = typeof window.renderDashboardCharts === 'function'
+        ? window.renderDashboardCharts
+        : (typeof renderDashboardCharts === 'function' ? renderDashboardCharts : null);
+    if (renderCharts) {
+        try { renderCharts(chartData); } catch (err) {
             console.warn('[dashboard-history] renderDashboardCharts failed:', err);
         }
     }
 
-    // Update #reportList DOM directly if visible
     const reportList = document.getElementById('reportList');
-    if (reportList && reportRows) {
-        reportList.innerHTML = reportRows;
-    }
+    if (reportList && reportRows) reportList.innerHTML = reportRows;
 
-    // Update in-store chartData so future renders use historical data
-    if (window.__store && window.__store.tabHtmlCache) {
+    if (window.__store) {
+        window.__store.tabHtmlCache = window.__store.tabHtmlCache || {};
         window.__store.tabHtmlCache._chartData = chartData;
         window.__store._lastDashboardHistoryFetchAt = Date.now();
-        window.__store._lastDashboardHistoryReason  = reason || 'history-fallback';
+        window.__store._lastDashboardHistoryReason = reason || 'spark-history';
+        window.__store._lastDashboardHistorySource = payload.source || 'unknown';
     }
+    return payload;
+}
+
+async function _loadSparkHistoricalTransactions({ db, clubId, months, reason }) {
+    const sdk = window._fb_init || {};
+    const { collection, query, where, getDocs, limit } = sdk;
+    const txRef = collection(db, 'clubs', clubId, 'transactions');
+    const firstMonth = months[0];
+    const lastMonth = months[months.length - 1];
+    const startDate = firstMonth + '-01';
+    const endDate = lastMonth + '-31';
+
+    const jobs = [];
+    if (typeof window.loadTransactionsForTxMonthRange === 'function') {
+        jobs.push(window.loadTransactionsForTxMonthRange({
+            colRef: txRef,
+            startMonth: firstMonth,
+            endMonth: lastMonth,
+            pageSize: 500,
+            maxPages: 10,
+            reason: `${reason}:txMonth-range`,
+        }));
+    } else {
+        jobs.push(getDocs(query(
+            txRef,
+            where('txMonth', '>=', firstMonth),
+            where('txMonth', '<=', lastMonth),
+            limit(2000)
+        )).then(snap => snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+    }
+
+    if (typeof window.loadTransactionsForDateRange === 'function') {
+        jobs.push(window.loadTransactionsForDateRange({
+            colRef: txRef,
+            startDate,
+            endDate,
+            pageSize: 500,
+            maxPages: 10,
+            reason: `${reason}:date-range`,
+        }));
+    } else {
+        jobs.push(getDocs(query(
+            txRef,
+            where('date', '>=', startDate),
+            where('date', '<=', endDate),
+            limit(2000)
+        )).then(snap => snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+    }
+
+    // One query covers all 6 months instead of one array-contains query per month.
+    jobs.push(getDocs(query(
+        txRef,
+        where('packageMonths', 'array-contains-any', months.slice(0, 10)),
+        limit(2000)
+    )).then(snap => snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+
+    const settled = await Promise.allSettled(jobs);
+    const map = new Map();
+    let rawDocsRead = 0;
+    settled.forEach(result => {
+        if (result.status !== 'fulfilled') {
+            console.warn('[spark-history] query group failed:', result.reason);
+            return;
+        }
+        const items = Array.isArray(result.value) ? result.value : [];
+        rawDocsRead += items.length;
+        items.forEach(item => { if (item && item.id) map.set(item.id, item); });
+    });
+
+    const metrics = _sparkReadMetrics();
+    metrics.dashboardHistoryQueryGroups += jobs.length;
+    metrics.dashboardHistoryEstimatedDocsRead += rawDocsRead;
+
+    return { transactions: Array.from(map.values()), rawDocsRead, queryGroups: jobs.length };
+}
+
+/**
+ * Spark-compatible 6-month dashboard loader.
+ * - localStorage TTL cache (6 hours)
+ * - single-flight per club/month
+ * - 6 stats reads + at most 3 transaction query groups for the entire 6-month range
+ * - never runs automatically while Dashboard tab is hidden
+ */
+export async function fetchHistoricalDashboardFallback(selMonth, reason, options = {}) {
+    const sdk = window._fb_init || {};
+    const store = window.__store || {};
+    const db = store.db;
+    const metrics = _sparkReadMetrics();
+    metrics.dashboardHistoryRequests++;
+    metrics.lastDashboardHistoryReason = reason || '';
+
+    if (!sdk.doc || !sdk.getDoc || !sdk.getDocs || !sdk.query || !sdk.collection || !db) return null;
+
+    const clubId = store.clubId || store.currentClubId;
+    if (!clubId || !selMonth) return null;
+
+    const force = options.force === true || reason === 'force-reload';
+    const key = `${clubId}:${selMonth}`;
+
+    if (!force) {
+        const cached = _readSparkHistoryCache(clubId, selMonth);
+        if (cached) {
+            metrics.dashboardHistoryCacheHits++;
+            metrics.lastDashboardHistoryAt = Date.now();
+            metrics.lastDashboardHistorySource = 'local-cache';
+            return _applyHistoricalDashboardPayload(cached, reason || 'spark-cache-hit');
+        }
+    }
+
+    if (_sparkHistoryInFlight.has(key)) {
+        metrics.dashboardHistoryCoalesced++;
+        return _sparkHistoryInFlight.get(key);
+    }
+
+    const task = (async () => {
+        metrics.dashboardHistoryNetworkFetches++;
+        const { doc, getDoc } = sdk;
+        const monthStrings = typeof window.getRecentMonths === 'function'
+            ? window.getRecentMonths(selMonth, 6)
+            : (() => {
+                const [sy, sm] = String(selMonth).split('-').map(Number);
+                const result = [];
+                for (let i = 5; i >= 0; i--) {
+                    let m = sm - i, y = sy;
+                    while (m <= 0) { m += 12; y -= 1; }
+                    result.push(`${y}-${String(m).padStart(2, '0')}`);
+                }
+                return result;
+            })();
+
+        const labels = monthStrings.map(m => {
+            if (typeof window.formatMonthLabel === 'function') return window.formatMonthLabel(m);
+            const [y, mo] = m.split('-');
+            return `T${Number(mo)}/${y}`;
+        });
+
+        // Keep compatibility with stats docs if they already exist, but read them only once per TTL window.
+        const statResults = await Promise.all(monthStrings.map(async (month, idx) => {
+            try {
+                const snap = await getDoc(doc(db, 'clubs', clubId, 'stats', month.replace('-', '_')));
+                return { month, idx, snap };
+            } catch (_) {
+                return { month, idx, snap: null };
+            }
+        }));
+        metrics.dashboardHistoryQueryGroups += 6;
+        // Each point lookup can be billed even when the stats document does not exist.
+        metrics.dashboardHistoryEstimatedDocsRead += statResults.length;
+
+        const needsTxFallback = statResults.some(({ snap, month }) => {
+            if (!snap || !snap.exists()) return true;
+            const d = snap.data() || {};
+            const inc = Number(d['income.total'] || (d.income && d.income.total) || 0);
+            const exp = Number(d['expense.total'] || (d.expense && d.expense.total) || 0);
+            const act = Number(d['members.active'] || (d.members && d.members.active) || 0);
+            const statLooksEmpty = inc === 0 && exp === 0 && act === 0;
+            return statLooksEmpty && month <= new Date().toISOString().slice(0, 7);
+        });
+
+        let history = {};
+        let txMeta = { transactions: [], rawDocsRead: 0, queryGroups: 0 };
+        if (needsTxFallback) {
+            console.info('[dashboard-history] stats incomplete — one compact 6-month transaction fallback');
+            txMeta = await _loadSparkHistoricalTransactions({
+                db,
+                clubId,
+                months: monthStrings,
+                reason: 'spark-dashboard-history',
+            });
+            if (typeof window.computeMonthlyFinanceHistory === 'function') {
+                history = window.computeMonthlyFinanceHistory(txMeta.transactions, monthStrings) || {};
+            }
+        }
+
+        const income = Array(6).fill(0);
+        const expense = Array(6).fill(0);
+        const active = Array(6).fill(0);
+        const rows = [];
+
+        statResults.forEach(({ snap, month, idx }) => {
+            let inc = 0, exp = 0, act = 0, mNew = 0, mQuit = 0;
+            let hasUsefulStat = false;
+            if (snap && snap.exists()) {
+                const d = snap.data() || {};
+                inc = Number(d['income.total'] || (d.income && d.income.total) || 0);
+                exp = Number(d['expense.total'] || (d.expense && d.expense.total) || 0);
+                act = Number(d['members.active'] || (d.members && d.members.active) || 0);
+                mNew = Number(d['members.new'] || (d.members && d.members.new) || 0);
+                mQuit = Number(d['members.quit'] || (d.members && d.members.quit) || 0);
+                hasUsefulStat = !(inc === 0 && exp === 0 && act === 0);
+            }
+            if (!hasUsefulStat && history[month]) {
+                inc = Number(history[month].income || 0);
+                exp = Number(history[month].expense || 0);
+            }
+
+            income[idx] = inc;
+            expense[idx] = exp;
+            active[idx] = act;
+
+            const profit = inc - exp;
+            const profitCls = profit < 0 ? 'text-rose-600' : 'text-emerald-600';
+            const rowClass = month === selMonth ? 'class="font-black text-primary"' : '';
+            rows.push(`<tr><td ${rowClass}>${labels[idx]}</td>` +
+                `<td class="text-slate-800 font-bold text-base">${act || '-'}</td>` +
+                `<td class="text-emerald-600 font-medium">+${mNew}</td>` +
+                `<td class="text-rose-600 font-medium">-${mQuit}</td>` +
+                `<td class="text-emerald-600 font-bold">${inc.toLocaleString()} ₫</td>` +
+                `<td class="text-rose-600 font-bold">${exp.toLocaleString()} ₫</td>` +
+                `<td class="${profitCls} font-black text-base bg-slate-50">${profit.toLocaleString()} ₫</td></tr>`);
+        });
+
+        const payload = {
+            chartData: { labels, income, expense, active },
+            reportHtml: rows.join(''),
+            source: needsTxFallback ? 'spark-compact-range' : 'stats-docs',
+            fetchedAt: Date.now(),
+            rawTransactionDocsRead: txMeta.rawDocsRead,
+            transactionQueryGroups: txMeta.queryGroups,
+        };
+
+        _writeSparkHistoryCache(clubId, selMonth, payload);
+        metrics.lastDashboardHistoryAt = Date.now();
+        metrics.lastDashboardHistorySource = payload.source;
+        return _applyHistoricalDashboardPayload(payload, reason || 'spark-network');
+    })().finally(() => {
+        _sparkHistoryInFlight.delete(key);
+    });
+
+    _sparkHistoryInFlight.set(key, task);
+    return task;
+}
+
+export function scheduleDashboardHistoryFetch(selMonth, reason, options = {}) {
+    const metrics = _sparkReadMetrics();
+    const force = options.force === true || reason === 'force-reload';
+    if (!force && !_isDashboardActive()) {
+        metrics.dashboardHistorySkippedHidden++;
+        if (window.__store) window.__store._dashboardHistoryPending = { selMonth, reason };
+        return Promise.resolve({ skipped: 'dashboard-hidden' });
+    }
+
+    if (_sparkHistoryDebounceTimer) clearTimeout(_sparkHistoryDebounceTimer);
+    _sparkHistoryDebounceTimer = setTimeout(() => {
+        _sparkHistoryDebounceTimer = null;
+        fetchHistoricalDashboardFallback(selMonth, reason, options).catch(error => {
+            console.warn('[spark-history] scheduled fetch failed:', error);
+        });
+    }, 250);
+    return Promise.resolve({ scheduled: true });
+}
+
+export function printSparkReadMetrics() {
+    const metrics = { ..._sparkReadMetrics() };
+    console.table(metrics);
+    return metrics;
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -1008,6 +1183,8 @@ export function initDashboard() {
         fetchMonthStats,
         tryApplyCurrentMonthStats,
         fetchHistoricalDashboardFallback,
+        scheduleDashboardHistoryFetch,
+        printSparkReadMetrics,
         normalizeBranchCodeForStats:         window.normalizeBranchCodeForStats,
         getComponentAmountForSelectedMonth:  window.getComponentAmountForSelectedMonth,
         refreshDashboardBranchStatsFullMonth: window.refreshDashboardBranchStatsFullMonth,
@@ -1017,6 +1194,8 @@ export function initDashboard() {
 
     // [Part 4 FIX] Expose historical fallback so refreshDashboardComputation can call it
     window.fetchHistoricalDashboardFallback = fetchHistoricalDashboardFallback;
+    window.scheduleDashboardHistoryFetch = scheduleDashboardHistoryFetch;
+    window.printSparkReadMetrics = printSparkReadMetrics;
 
     // [Part 5 FIX] Register debug function
     registerDebugDashboardHistory();

@@ -33,6 +33,8 @@
 // APP_BUILD_VERSION = '4K-6T-legacy-diagnostics-pilot-audit-tooling-isolation-20260616'
 // APP_BUILD_VERSION = '4K-6U-report-excel-lazy-isolation-20260616'
 // APP_BUILD_VERSION = '4K-6V-attendance-canonical-ownership-pagination-20260616'
+// APP_BUILD_VERSION = '4K-6V1-spark-read-cost-hardening-20260616'
+// APP_BUILD_VERSION = '4K-6V2-inventory-history-pagination-complete-active-debt-20260616'
 /**
  * main.js — Application Bootstrap (Phase 3.6B — Listener Registration Safety)
  * ────────────────────────────────────────────────────────────────────
@@ -3027,7 +3029,7 @@ window.debugProfileModalClose = function() {
 // ════════════════════════════════════════════════════════════════
 
 // PHẦN 1 — APP BUILD VERSION
-window.APP_BUILD_VERSION = '4K-6V-attendance-canonical-ownership-pagination-20260616';
+window.APP_BUILD_VERSION = '4K-6V2-inventory-history-pagination-complete-active-debt-20260616';
 window.APP_COPYRIGHT_OWNER   = 'Tình Trương';
 window.APP_PRODUCT_NAME      = 'Taekwondo Club Management Web App';
 window.APP_SECURITY_PHASE    = '4K-6E-scale-readiness-write-safety';

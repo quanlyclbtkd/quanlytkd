@@ -101,6 +101,13 @@ export function switchTab(tabId) {
         window.ensureProfilesForTab(tabId, 'switch-tab');
     }
 
+    // Phase 4K-6V2: lịch sử Kho chỉ đọc khi người dùng thực sự mở tab Kho.
+    // Không block tab switch; dữ liệu trang đầu sẽ invalidate/render sau khi tải xong.
+    if (tabId === 'inventory' && typeof window.ensureInventoryHistoryLoaded === 'function') {
+        Promise.resolve(window.ensureInventoryHistoryLoaded('module-switch-inventory-tab'))
+            .catch((err) => console.warn('[Phase 4K-6V2] inventory tab load failed:', err));
+    }
+
     // ── Dashboard: xử lý riêng với chart update từ store ────────────────
     if (tabId === 'dashboard') {
         return _switchToDashboard(store);
@@ -271,6 +278,14 @@ function _switchToDashboard(store) {
         window.invalidateDashboard('dashboard-tab-switch');
     } else if (typeof window.scheduleRender === 'function') {
         window.scheduleRender();
+    }
+
+    // Phase 4K-6V1: fetch 6-month history only when user actually opens Dashboard.
+    // Cache + single-flight prevent repeated Firestore reads during render storms.
+    const selectedMonth = (store && store.selectedMonth) ||
+        (document.getElementById('filterMonth') || {}).value || '';
+    if (selectedMonth && typeof window.scheduleDashboardHistoryFetch === 'function') {
+        window.scheduleDashboardHistoryFetch(selectedMonth, 'dashboard-tab-open').catch(() => {});
     }
 }
 

@@ -73,7 +73,15 @@ export const InventoryService = {
         const { addDoc } = _sdk();
         const invRef = _invRef();
         if (!invRef) throw new Error('[InventoryService] invRef chưa sẵn sàng');
-        const docRef = await addDoc(invRef, data);
+        const payload = { ...(data || {}) };
+        if (payload.type === 'Xuất bán' && payload.desc && typeof window.resolveInventoryDebtIdentity === 'function') {
+            const identity = window.resolveInventoryDebtIdentity(payload.desc);
+            if (identity.profileId) payload.profileId = identity.profileId;
+            if (identity.memberId) payload.memberId = identity.memberId;
+            if (!payload.studentName && identity.studentName) payload.studentName = identity.studentName;
+        }
+        const docRef = await addDoc(invRef, payload);
+        window.notifyInventoryMutation?.('inventory-service-add-item');
         return docRef.id;
     },
 
@@ -88,6 +96,7 @@ export const InventoryService = {
             doc(_db(), 'clubs', _clubId(), 'inventory', invId),
             data
         );
+        window.notifyInventoryMutation?.('inventory-service-update-item');
     },
 
     /**
@@ -167,6 +176,7 @@ export const InventoryService = {
         if (txId) invUpdate.paidTxId = txId;
 
         await updateDoc(doc(db, 'clubs', clubId, 'inventory', invId), invUpdate);
+        window.notifyInventoryMutation?.('inventory-service-mark-paid');
 
         return { alreadyPaid: false, inv, txId };
     },

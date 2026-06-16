@@ -83,15 +83,44 @@ export function invalidateInventoryRender(section) {
  * @param {Object[]} allInventory   — inventory docs from store
  * @returns {{ [key: string]: { category:string, size:string, in:number, out:number } }}
  */
-export function buildLiveInvMap(allInventory) {
+export function buildLiveInvMap(allInventory, inventoryStats = null) {
     const liveInvMap = {};
-    allInventory.forEach(t => {
+    (Array.isArray(allInventory) ? allInventory : []).forEach(t => {
         if (!t.size) return;
         const cat = t.category || 'Võ phục';
         const key = cat + '|||' + t.size;
-        if (!liveInvMap[key]) liveInvMap[key] = { category: cat, size: t.size, in: 0, out: 0 };
+        if (!liveInvMap[key]) liveInvMap[key] = { category: cat, size: t.size, in: 0, out: 0, source: 'history-page' };
         if (t.type === 'Nhập kho') liveInvMap[key].in  += (Number(t.qty) || 0);
         else                       liveInvMap[key].out += (Number(t.qty) || 0);
+    });
+
+    // Phase 4K-6V2: lịch sử chỉ tải 100 docs/trang nên không được mặc định coi
+    // page hiện tại là toàn bộ tồn kho. Overlay summary settings/inventory_stats
+    // cho các key đã được hệ thống duy trì; key chưa có stats vẫn dùng fallback
+    // từ các trang lịch sử đang tải để giữ tương thích dữ liệu cũ.
+    const stats = inventoryStats && typeof inventoryStats === 'object' ? inventoryStats : {};
+    const bases = new Set();
+    Object.keys(stats).forEach(k => {
+        if (k.endsWith('_balance')) bases.add(k.slice(0, -8));
+        else if (k.endsWith('_in')) bases.add(k.slice(0, -3));
+        else if (k.endsWith('_out')) bases.add(k.slice(0, -4));
+    });
+    bases.forEach(base => {
+        const parts = base.includes('|||') ? base.split('|||') : ['Võ phục', base];
+        const category = parts[0] || 'Võ phục';
+        const size = parts.slice(1).join('|||') || base;
+        if (!size) return;
+        const key = category + '|||' + size;
+        const current = liveInvMap[key] || { category, size, in: 0, out: 0 };
+        const rawIn = Number(stats[base + '_in']);
+        const rawOut = Number(stats[base + '_out']);
+        const rawBalance = Number(stats[base + '_balance']);
+        const hasIn = Number.isFinite(rawIn);
+        const hasOut = Number.isFinite(rawOut);
+        const hasBalance = Number.isFinite(rawBalance);
+        const out = hasOut ? rawOut : Number(current.out || 0);
+        const input = hasIn ? rawIn : (hasBalance ? rawBalance + out : Number(current.in || 0));
+        liveInvMap[key] = { category, size, in: input, out, source: 'inventory-stats' };
     });
     return liveInvMap;
 }
@@ -201,7 +230,8 @@ export function computeAndCacheInventory(allInventory, allTransactions, params) 
     _metrics.computations++;
 
     // ── Always compute live map (needed for size-select regardless of tab) ──
-    const liveInvMap = buildLiveInvMap(allInventory);
+    const inventoryStats = (window.__store || {}).inventoryStats || null;
+    const liveInvMap = buildLiveInvMap(allInventory, inventoryStats);
 
     const sortedInvKeys = Object.keys(liveInvMap).sort((a, b) => {
         const ca = liveInvMap[a].category, cb = liveInvMap[b].category;
@@ -259,6 +289,29 @@ export function computeAndCacheInventory(allInventory, allTransactions, params) 
             const relTx = relatedTxByInvId.get(t.id) || null;
             uniformTxRows += renderUniformTxRow(t, { isAdmin, relTx, invCats });
         });
+
+        const pg = typeof window.getInventoryHistoryPaginationState === 'function'
+            ? window.getInventoryHistoryPaginationState()
+            : null;
+        if (pg) {
+            const common = 'text-align:center;padding:14px 10px;background:#f8fafc;';
+            if (pg.loading && !pg.loaded) {
+                uniformTxRows += `<tr id="inventoryLoadMoreRow"><td colspan="6" style="${common}color:#64748b;font-weight:700;">⏳ Đang tải 100 giao dịch Kho gần nhất...</td></tr>`;
+            } else if (pg.error) {
+                uniformTxRows += `<tr id="inventoryLoadMoreRow"><td colspan="6" style="${common}color:#b45309;"><div style="font-weight:800;margin-bottom:8px;">⚠️ Không tải được lịch sử Kho</div><button type="button" class="btn-sm bg-amber-500 text-white" onclick="window.refreshInventoryHistory?.('inventory-history-retry')">Thử lại</button></td></tr>`;
+            } else if (pg.hasMore) {
+                uniformTxRows += `<tr id="inventoryLoadMoreRow"><td colspan="6" style="${common}"><button type="button" class="btn-sm bg-blue-600 text-white" style="min-width:210px;padding:10px 16px;" onclick="window.loadMoreInventoryHistory(event)" ${pg.loading ? 'disabled' : ''}>${pg.loading ? '⏳ Đang tải...' : `⬇ Tải thêm ${pg.pageSize} giao dịch`}</button><div style="font-size:0.68rem;color:#64748b;margin-top:6px;">Đã tải ${pg.loadedCount} giao dịch</div></td></tr>`;
+            } else if (pg.loaded) {
+                uniformTxRows += `<tr id="inventoryLoadMoreRow"><td colspan="6" style="${common}color:#64748b;font-size:0.72rem;font-weight:700;">✓ Đã tải hết ${pg.loadedCount} giao dịch Kho</td></tr>`;
+            }
+        }
+
+        const completeDebts = window.__inventoryStore && Array.isArray(window.__inventoryStore.financeInventoryDebts)
+            ? window.__inventoryStore.financeInventoryDebts
+            : null;
+        if (completeDebts && window.__inventoryStore.inventoryDebtCompleteness === 'complete') {
+            unpaidInvCount = completeDebts.length;
+        }
     }
 
     // ── Store in cache ──

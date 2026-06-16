@@ -62,7 +62,8 @@ export const MultiItemInventorySafety = {
             const invStore = window.__inventoryStore || {};
             const storeReady = st.inventory && st.inventory.length > 0;
             const allInvReady = window.allInventory && window.allInventory.length > 0;
-            const debtReady = invStore.inventoryDebtIndexReady || invStore.unpaidDebtQueryLoaded;
+            const debtReady = invStore.inventoryDebtIndexReady || invStore.unpaidDebtQueryLoaded ||
+                window.__inventoryDebtCompleteness === 'complete';
             if (storeReady || allInvReady || debtReady) break;
             await new Promise(r => setTimeout(r, POLL_INTERVAL));
             elapsed = Date.now() - _t0;
@@ -254,7 +255,16 @@ export const MultiItemInventorySafety = {
             }
         }
 
-        // Source 3–5: store.inventory, allInventory, inventoryHistory
+        // Source 3: standalone/legacy complete-debt mirror (khi ES module store chưa sẵn sàng)
+        if (Array.isArray(window.__completeInventoryDebts)) {
+            for (const item of window.__completeInventoryDebts) {
+                if (!nameMatches(item) || !isDebtItem(item)) continue;
+                const ni = normalizeItem({ ...item, _source: '__completeInventoryDebts' });
+                if (dedupeItem(ni)) results.push(ni);
+            }
+        }
+
+        // Source 4–6: các nguồn lịch sử chỉ là fallback tương thích; không đại diện độ đầy đủ.
         const fallbackSources = [
             [st.inventory,              '__store.inventory'],
             [window.allInventory,       'allInventory'],

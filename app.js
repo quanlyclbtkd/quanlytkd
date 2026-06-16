@@ -660,6 +660,8 @@ window.invCustomCategories = [];
         // [Phase 3.8A] Inventory feature gate when entering inventory tab
         if (tabId === 'inventory') {
             window.ensureInventoryForFeature?.('inventoryTab', 'enter-inventory-tab');
+            window.ensureInventoryHistoryLoaded?.('legacy-switch-inventory-tab')
+                .catch?.((err) => console.warn('[Phase 4K-6V2] inventory tab load failed:', err));
         }
         // [Phase 3.8A] Dashboard feature gate
         if (tabId === 'dashboard') {
@@ -1858,170 +1860,384 @@ service cloud.firestore {
             if (window.registerListener) window.registerListener('global:profiles:' + clubId, _u_profiles, { owner: 'students', scope: 'global', reason: 'init-profiles-fallback' });
         }
         
-        // [PERF] Giảm limit kho từ 1000 → 500 để giảm RAM mobile.
-        // CLB hiếm khi có trên 500 bản ghi nhập/xuất kho trong 1 lần load.
-        // Nếu cần xem lịch sử cũ hơn, dùng tính năng lọc ngày trong tab Kho.
-        // [Phase 3.5C] inventory snapshot: invalidate inventory + finance (debt cross-ref) + dashboard.
-        // Fallback về scheduleRender() nếu Phase 3.5C chưa load.
-        // [Phase 3.6C] inventory listener — migrated to safeRegisterSnapshot()
-        // No activeListeners.push needed — registry is source of cleanup.
-        // NOTE: Vẫn global vì finance/debt tab cũng cần allInventory. Lazy mount: Phase 3.7.
-        const _invKey = 'global:inventory:' + clubId;
-        // OK_UI_DISPLAY_LIMIT — inventory listener hiển thị lịch sử gần đây (500 bản ghi đủ cho UI).
-        // Công nợ kho dùng _loadAllUnpaidInvDebts() riêng — lấy TẤT CẢ unpaid, không bị limit.
-        // Phase 4J-9B: Đã reclassify marker cũ → OK_UI_DISPLAY_LIMIT (không phải business calc).
-        const _invQuery = query(invRef, orderBy("timestamp", "desc"), limit(500)); // OK_UI_DISPLAY_LIMIT [3.8D-Phase6] — chỉ hiển thị lịch sử kho gần đây. Công nợ kho dùng _loadAllUnpaidInvDebts() riêng.
+        // ═══════════════════════════════════════════════════════════════
+        // Phase 4K-6V2 — Inventory History Pagination + Complete Debt Listener
+        // ═══════════════════════════════════════════════════════════════
+        // 1) Lịch sử kho: KHÔNG còn listener 500 docs khi đăng nhập.
+        //    Chỉ tải 100 docs/trang khi mở tab Kho; tải thêm bằng startAfter().
+        // 2) Công nợ kho: một listener riêng where(unpaid == true), không limit.
+        //    Dữ liệu công nợ là authoritative và KHÔNG bị lịch sử gần đây ghi đè.
+        // 3) Identity: profileId → memberId → tên chuẩn hóa, tương thích dữ liệu cũ.
 
-        // [Phase 3.8C] State + function: load tất cả unpaid inventory debts một lần sau snapshot.
-        let _unpaidDebtQueryDone    = false;
-        let _unpaidDebtQueryLoading = false;
+        const _INVENTORY_HISTORY_PAGE_SIZE = 100;
+        const _inventoryHistoryState = {
+            clubId,
+            pageSize: _INVENTORY_HISTORY_PAGE_SIZE,
+            cursor: null,
+            loaded: false,
+            loading: false,
+            hasMore: true,
+            stale: false,
+            pagesLoaded: 0,
+            lastLoadedAt: 0,
+            error: null,
+        };
+        let _inventoryHistoryRefreshTimer = null;
 
-        const _loadAllUnpaidInvDebts = async function(reason) {
-            if (_unpaidDebtQueryLoading) return;
-            _unpaidDebtQueryLoading = true;
-            const _qsm = window.__queryScaleMetrics;
-            const _t0  = Date.now();
-            try {
-                // where('unpaid', '==', true): single equality filter, không cần composite index.
-                // Không dùng limit() — lấy TOÀN BỘ unpaid docs, dù invRef có bao nhiêu records.
-                // Filter type === 'Xuất bán' trong JS — đúng logic nợ kho gốc.
-                const _snap  = await getDocs(query(invRef, where('unpaid', '==', true)));
-                const _allMs = Date.now() - _t0;
-                const _all   = _snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                const _debts = _all.filter(t => t.type === 'Xuất bán');
-
-                if (window.__inventoryStore) {
-                    if (typeof window.__inventoryStore.setFinanceInventoryDebts === 'function')
-                        window.__inventoryStore.setFinanceInventoryDebts(_debts, 'unpaid-inventory-query');
-                    if (typeof window.__inventoryStore.rebuildInventoryDebtIndex === 'function')
-                        window.__inventoryStore.rebuildInventoryDebtIndex('unpaid-inventory-query');
-                    if (typeof window.__inventoryStore.markUnpaidDebtQueryLoaded === 'function')
-                        window.__inventoryStore.markUnpaidDebtQueryLoaded(_debts.length, reason);
-                }
-
-                // Phase 4K-6G: Auto-refresh multiItemModal if open when unpaid debt query completes
-                if (
-                    document.getElementById('multiItemModal') &&
-                    document.getElementById('multiItemModal').style.display !== 'none' &&
-                    typeof window.refreshMultiItemInventorySection === 'function'
-                ) {
-                    const _miNameVal2 = ((document.getElementById('mi_name') || {}).value || '').trim();
-                    if (_miNameVal2) {
-                        window.refreshMultiItemInventorySection(_miNameVal2, 'unpaid-debt-query-loaded-while-multi-item-open');
-                    }
-                }
-
-                if (window.invalidateFinance)   window.invalidateFinance('inventory-unpaid-debts-loaded');
-                if (window.invalidateStudents)  window.invalidateStudents('inventory-affect-debt');
-                if (window.invalidateDashboard) window.invalidateDashboard('inventory-unpaid-debts-loaded');
-
-                if (_qsm) {
-                    _qsm.unpaidInventoryDebtDocs  = _debts.length;
-                    _qsm.unpaidInventoryDebtPages = 1;
-                    _qsm.lastQueryScaleReason     = reason || 'unpaid-inventory-query';
-                    _qsm.lastUpdatedAt            = Date.now();
-                }
-                _unpaidDebtQueryDone    = true;
-                _unpaidDebtQueryLoading = false;
-                console.info(`[Phase 3.8C] Unpaid inv query: ${_debts.length} debts (${_all.length} unpaid total) in ${_allMs}ms`);
-            } catch (err) {
-                _unpaidDebtQueryLoading = false;
-                if (window.__queryScaleMetrics) window.__queryScaleMetrics.fallbackToRecentInventoryCount++;
-                const _msg = (err && err.message) || String(err);
-                if (_msg.includes('index') || _msg.includes('FAILED_PRECONDITION')) {
-                    console.warn(
-                        '[Phase 3.8C][FirestoreIndexRequired] Unpaid inventory query cần index.\n' +
-                        '  Index gợi ý: collection=inventory, field=unpaid (ASC)\n' +
-                        '  Fallback → derive từ allInventory recent (có thể thiếu nợ cũ > 500 records).'
-                    );
-                } else {
-                    console.warn('[Phase 3.8C] _loadAllUnpaidInvDebts error:', _msg);
-                }
-                if (window.__inventoryStore) {
-                    if (typeof window.__inventoryStore.markUnpaidDebtQueryFailed === 'function')
-                        window.__inventoryStore.markUnpaidDebtQueryFailed(reason);
-                    const _fb = (window.__store && window.__store.inventory) || window.allInventory || [];
-                    if (typeof window.__inventoryStore.deriveAndSetFinanceInventoryDebts === 'function')
-                        window.__inventoryStore.deriveAndSetFinanceInventoryDebts(_fb, 'unpaid-query-fallback');
-                    if (typeof window.__inventoryStore.rebuildInventoryDebtIndex === 'function')
-                        window.__inventoryStore.rebuildInventoryDebtIndex('unpaid-query-fallback');
-                }
-            }
+        window.__inventoryReadMetrics = window.__inventoryReadMetrics || {
+            historyNetworkFetches: 0,
+            historyDocsRead: 0,
+            historyPagesLoaded: 0,
+            historyLoadMoreCalls: 0,
+            historySkippedClosedTab: 0,
+            debtListenerSnapshots: 0,
+            debtListenerInitialDocs: 0,
+            debtListenerChangedDocs: 0,
+            debtListenerErrors: 0,
+            debtListenerDuplicateMountSkipped: 0,
+            lastReason: '',
+            lastUpdatedAt: 0,
         };
 
-        const _invCb = (snap) => {
-            if (window.markListenerSnapshot) window.markListenerSnapshot(_invKey);
-            const _invSnap = snap.docs.map(d => ({id: d.id, ...d.data()}));
-            // Phase 4.0B-4E: Guard — không overwrite legacy-root data bằng primary rỗng
-            const _invEmpty    = _invSnap.length === 0;
-            const _storeHasInv = window.__store && Array.isArray(window.__store.inventory) && window.__store.inventory.length > 0;
-            if (window.__store && window.__store.activeDataSource === 'legacy-root' && _invEmpty && _storeHasInv) {
-                console.warn('[DataSourceLock] Skip primary empty overwrite (inventory) — legacy-root active');
-                return;
-            }
-            allInventory = _invSnap;
-            // Phase 4.0B-4D: update inventory hydration metrics
-            _updateHydrationMetrics({
-                inventorySnapshotCount: (window.__dataHydrationMetrics.inventorySnapshotCount || 0) + 1,
-                inventoryDocCount:      allInventory.length,
-                lastReason:             'inventory-snapshot'
-            });
-            if (typeof window.recordReadMetric === 'function') window.recordReadMetric('inventory', allInventory.length, 'inventory-listener'); // [4J-8]
-            // Phase 4.0B-4J-8A: Mark dataHydrated nếu chưa mark từ profiles listener
-            if (!(window.__loginPerfMetrics || {}).dataHydratedAt && typeof markLoginPerf === 'function') markLoginPerf('dataHydrated');
-            // [Phase 3.8A] Sync allInventory vào window.__store.inventory + inventoryStore
-            // render.js _inventory() sẽ đọc window.__store.inventory trước window.allInventory.
+        const _isInventoryTabActive = () => {
+            const el = document.getElementById('tab_inventory');
+            return !!(el && el.classList.contains('active'));
+        };
+
+        const _publishInventoryHistory = (items, reason) => {
+            const sorted = Array.isArray(items) ? items.slice().sort((a, b) => {
+                const ta = Number(a && a.timestamp || 0);
+                const tb = Number(b && b.timestamp || 0);
+                if (tb !== ta) return tb - ta;
+                return String(b && b.date || '').localeCompare(String(a && a.date || ''));
+            }) : [];
+
+            allInventory = sorted;
+            window.allInventory = allInventory;
             if (window.__store) window.__store.inventory = allInventory;
             if (window.__inventoryStore && typeof window.__inventoryStore.setAllInventory === 'function') {
-                window.__inventoryStore.setAllInventory(allInventory, 'inventory-snapshot');
+                window.__inventoryStore.setAllInventory(allInventory, reason || 'inventory-history-page');
             }
-            // [Phase 3.8B] Derive công nợ kho đồ + rebuild index một lần sau snapshot.
-            // KHÔNG gọi trong vòng render — chỉ gọi ở đây (sau snapshot).
-            // Pattern đúng: snapshot → derive → index → render dùng getInventoryDebtsForStudent()
-            if (window.__inventoryStore) {
-                if (typeof window.__inventoryStore.deriveAndSetFinanceInventoryDebts === 'function') {
-                    window.__inventoryStore.deriveAndSetFinanceInventoryDebts(allInventory, 'inventory-snapshot');
-                }
-                if (typeof window.__inventoryStore.rebuildInventoryDebtIndex === 'function') {
-                    window.__inventoryStore.rebuildInventoryDebtIndex('inventory-snapshot');
-                }
-            }
-            // Phase 4K-6G: Auto-refresh multiItemModal if open when inventory snapshot arrives
+
+            _updateHydrationMetrics({
+                inventorySnapshotCount: (window.__dataHydrationMetrics.inventorySnapshotCount || 0) + 1,
+                inventoryDocCount: allInventory.length,
+                lastReason: reason || 'inventory-history-page'
+            });
+
+            // Lịch sử chỉ sở hữu tab Kho. Tuyệt đối không derive/ghi đè financeInventoryDebts tại đây.
+            // Nếu Thu gộp đang mở, refresh riêng phần tồn kho; công nợ vẫn lấy từ listener authoritative.
             if (
                 document.getElementById('multiItemModal') &&
                 document.getElementById('multiItemModal').style.display !== 'none' &&
                 typeof window.refreshMultiItemInventorySection === 'function'
             ) {
-                const _miNameVal = ((document.getElementById('mi_name') || {}).value || '').trim();
-                if (_miNameVal) {
-                    window.refreshMultiItemInventorySection(_miNameVal, 'inventory-loaded-while-multi-item-open');
-                }
+                const name = ((document.getElementById('mi_name') || {}).value || '').trim();
+                if (name) window.refreshMultiItemInventorySection(name, 'inventory-loaded-while-multi-item-open');
             }
             if (window.invalidateInventory) {
-                window.invalidateInventory('inventory-snapshot');
-                window.invalidateFinance('inventory-affect-finance');
-                window.invalidateDashboard('inventory-snapshot');
+                window.invalidateInventory(reason || 'inventory-history-page');
             } else if (typeof window.flushOrQueueDomainInvalidation === 'function') {
-                window.flushOrQueueDomainInvalidation('inventory', 'inventory-snapshot',        { source: '_invCb' });
-                window.flushOrQueueDomainInvalidation('finance',   'inventory-affect-finance',  { source: '_invCb' });
-                window.flushOrQueueDomainInvalidation('dashboard', 'inventory-snapshot',        { source: '_invCb' });
+                window.flushOrQueueDomainInvalidation('inventory', reason || 'inventory-history-page', { source: 'phase4k-6v2' });
             } else {
-                scheduleRender('inventory-snapshot-fallback', { forceLegacyRender: true });
-            }
-            // [Phase 3.8C] Sau snapshot đầu: query riêng lấy TẤT CẢ unpaid inventory debts.
-            // Không phụ thuộc limit(500) — nợ kho cũ ngoài 500 records vẫn được load.
-            if (!_unpaidDebtQueryDone && !_unpaidDebtQueryLoading) {
-                setTimeout(() => _loadAllUnpaidInvDebts('first-inventory-snapshot'), 50);
+                scheduleRender(reason || 'inventory-history-page', { forceLegacyRender: true });
             }
         };
-        if (window.safeRegisterSnapshot) {
-            window.safeRegisterSnapshot(_invKey, () => onSnapshot(_invQuery, _invCb),
-                { owner: 'inventory', scope: 'global', clubId: clubId, reason: 'init-inventory' });
-        } else {
-            const _u_inv = onSnapshot(_invQuery, _invCb);
-            activeListeners.push(_u_inv);
-            if (window.registerListener) window.registerListener(_invKey, _u_inv, { owner: 'inventory', scope: 'global', reason: 'init-inventory' });
+
+        window.getInventoryHistoryPaginationState = () => ({
+            clubId: _inventoryHistoryState.clubId,
+            pageSize: _inventoryHistoryState.pageSize,
+            loaded: _inventoryHistoryState.loaded,
+            loading: _inventoryHistoryState.loading,
+            hasMore: _inventoryHistoryState.hasMore,
+            stale: _inventoryHistoryState.stale,
+            pagesLoaded: _inventoryHistoryState.pagesLoaded,
+            loadedCount: allInventory.length,
+            lastLoadedAt: _inventoryHistoryState.lastLoadedAt,
+            error: _inventoryHistoryState.error,
+        });
+
+        window.resolveInventoryDebtIdentity = function(studentNameOrProfile) {
+            const profiles = (window.__store && window.__store.profiles) || allProfiles || {};
+            let requestedName = '';
+            let requestedProfileId = '';
+            let requestedMemberId = '';
+
+            if (typeof studentNameOrProfile === 'string') {
+                requestedName = studentNameOrProfile.trim();
+            } else if (studentNameOrProfile && typeof studentNameOrProfile === 'object') {
+                requestedProfileId = String(studentNameOrProfile.profileId || studentNameOrProfile.docId || studentNameOrProfile.id || '').trim();
+                requestedMemberId = String(studentNameOrProfile.memberId || studentNameOrProfile.memberCode || '').trim();
+                requestedName = String(studentNameOrProfile.name || studentNameOrProfile.studentName || studentNameOrProfile.profileName || requestedProfileId || '').trim();
+            }
+
+            let profileId = requestedProfileId;
+            let profile = profileId && profiles[profileId] ? profiles[profileId] : null;
+            if (!profile && requestedName && profiles[requestedName]) {
+                profileId = requestedName;
+                profile = profiles[requestedName];
+            }
+            if (!profile && requestedMemberId) {
+                for (const [key, value] of Object.entries(profiles)) {
+                    if (String(value && value.memberId || '').trim() === requestedMemberId) {
+                        profileId = key; profile = value; break;
+                    }
+                }
+            }
+            if (!profile && requestedName) {
+                const norm = typeof window.normalizeStudentKey === 'function'
+                    ? window.normalizeStudentKey(requestedName)
+                    : requestedName.toLowerCase().replace(/\s+/g, ' ').trim();
+                for (const [key, value] of Object.entries(profiles)) {
+                    const keyNorm = typeof window.normalizeStudentKey === 'function'
+                        ? window.normalizeStudentKey(key)
+                        : String(key).toLowerCase().replace(/\s+/g, ' ').trim();
+                    if (keyNorm === norm) { profileId = key; profile = value; break; }
+                }
+            }
+
+            const memberId = requestedMemberId || String(profile && profile.memberId || '').trim();
+            return {
+                profileId: profileId || '',
+                memberId: memberId || '',
+                studentName: requestedName || profileId || '',
+            };
+        };
+
+        const _loadInventoryHistoryPage = async function({ reset = false, reason = 'inventory-history' } = {}) {
+            if (_inventoryHistoryState.loading) return allInventory;
+            if (!reset && _inventoryHistoryState.loaded && !_inventoryHistoryState.hasMore) return allInventory;
+
+            _inventoryHistoryState.loading = true;
+            _inventoryHistoryState.error = null;
+            window.__inventoryReadMetrics.lastReason = reason;
+            window.__inventoryReadMetrics.lastUpdatedAt = Date.now();
+            if (window.invalidateInventory) window.invalidateInventory('inventory-history-loading');
+
+            try {
+                const constraints = [orderBy('timestamp', 'desc')];
+                const cursor = reset ? null : _inventoryHistoryState.cursor;
+                if (cursor) constraints.push(startAfter(cursor));
+                constraints.push(limit(_INVENTORY_HISTORY_PAGE_SIZE));
+
+                const snap = await getDocs(query(invRef, ...constraints));
+                const pageItems = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                const base = reset ? [] : allInventory.slice();
+                const byId = new Map(base.map(item => [item.id, item]));
+                pageItems.forEach(item => byId.set(item.id, item));
+
+                _inventoryHistoryState.cursor = snap.docs.length ? snap.docs[snap.docs.length - 1] : cursor;
+                _inventoryHistoryState.loaded = true;
+                _inventoryHistoryState.loading = false;
+                _inventoryHistoryState.hasMore = snap.size === _INVENTORY_HISTORY_PAGE_SIZE;
+                _inventoryHistoryState.stale = false;
+                _inventoryHistoryState.pagesLoaded = reset ? 1 : _inventoryHistoryState.pagesLoaded + 1;
+                _inventoryHistoryState.lastLoadedAt = Date.now();
+
+                window.__inventoryReadMetrics.historyNetworkFetches++;
+                window.__inventoryReadMetrics.historyDocsRead += snap.size;
+                window.__inventoryReadMetrics.historyPagesLoaded = _inventoryHistoryState.pagesLoaded;
+                window.__inventoryReadMetrics.lastUpdatedAt = Date.now();
+                if (typeof window.recordReadMetric === 'function') {
+                    window.recordReadMetric('inventoryHistory', snap.size, reset ? 'inventory-history-first-page' : 'inventory-history-next-page');
+                }
+
+                _publishInventoryHistory(Array.from(byId.values()), reset ? 'inventory-history-first-page' : 'inventory-history-next-page');
+                return allInventory;
+            } catch (err) {
+                _inventoryHistoryState.loading = false;
+                _inventoryHistoryState.error = (err && err.message) || String(err);
+                console.error('[Phase 4K-6V2] Inventory history page load failed:', err);
+                if (window.invalidateInventory) window.invalidateInventory('inventory-history-error');
+                throw err;
+            }
+        };
+
+        window.ensureInventoryHistoryLoaded = async function(reason = 'ensure-inventory-history') {
+            if (!_isInventoryTabActive()) {
+                window.__inventoryReadMetrics.historySkippedClosedTab++;
+                return allInventory;
+            }
+            if (_inventoryHistoryState.loaded && !_inventoryHistoryState.stale) return allInventory;
+            return _loadInventoryHistoryPage({ reset: true, reason });
+        };
+
+        window.loadMoreInventoryHistory = async function(event) {
+            if (event && typeof event.preventDefault === 'function') event.preventDefault();
+            if (!_isInventoryTabActive() || _inventoryHistoryState.loading || !_inventoryHistoryState.hasMore) return;
+            window.__inventoryReadMetrics.historyLoadMoreCalls++;
+            const wrapper = document.querySelector('#tab_inventory .table-wrapper');
+            const previousScrollTop = wrapper ? wrapper.scrollTop : 0;
+            try {
+                await _loadInventoryHistoryPage({ reset: false, reason: 'inventory-history-load-more' });
+            } catch (_) {
+                window.showToast && window.showToast('⚠️ Không tải thêm được lịch sử Kho. Vui lòng thử lại.');
+            } finally {
+                if (wrapper) requestAnimationFrame(() => { wrapper.scrollTop = previousScrollTop; });
+            }
+        };
+
+        window.refreshInventoryHistory = async function(reason = 'inventory-history-refresh') {
+            if (!_isInventoryTabActive()) {
+                _inventoryHistoryState.stale = true;
+                return allInventory;
+            }
+            return _loadInventoryHistoryPage({ reset: true, reason });
+        };
+
+        window.markInventoryHistoryStale = function(reason = 'inventory-mutated') {
+            _inventoryHistoryState.stale = true;
+            window.__inventoryReadMetrics.lastReason = reason;
+            window.__inventoryReadMetrics.lastUpdatedAt = Date.now();
+        };
+
+        window.notifyInventoryMutation = function(reason = 'inventory-mutated') {
+            window.markInventoryHistoryStale(reason);
+            if (!_isInventoryTabActive()) return;
+            clearTimeout(_inventoryHistoryRefreshTimer);
+            _inventoryHistoryRefreshTimer = setTimeout(() => {
+                window.refreshInventoryHistory(reason).catch(err => console.warn('[Phase 4K-6V2] refresh after mutation failed:', err));
+            }, 160);
+        };
+
+        // ── Complete active debt listener — authoritative ownership ──────────
+        // Reset mirror khi đổi CLB để không hiển thị tạm công nợ của tenant trước.
+        window.__completeInventoryDebts = [];
+        window.__inventoryDebtCompleteness = 'loading';
+        const _inventoryDebtKey = 'global:inventoryActiveDebts:' + clubId;
+        const _inventoryDebtQuery = query(invRef, where('unpaid', '==', true));
+        let _inventoryDebtInitialSnapshotSeen = false;
+
+        const _normalizeInventoryDebtName = (value) => String(value || '')
+            .trim().toLowerCase().replace(/\s+/g, ' ');
+        window.getCompleteInventoryDebtsForStudent = function(studentOrProfile) {
+            const identity = studentOrProfile && typeof studentOrProfile === 'object'
+                ? {
+                    profileId: String(studentOrProfile.profileId || studentOrProfile.docId || studentOrProfile.id || '').trim(),
+                    memberId: String(studentOrProfile.memberId || studentOrProfile.memberCode || '').trim(),
+                    name: String(studentOrProfile.name || studentOrProfile.studentName || studentOrProfile.profileName || '').trim(),
+                }
+                : { profileId: '', memberId: '', name: String(studentOrProfile || '').trim() };
+            const normName = _normalizeInventoryDebtName(identity.name);
+            return (window.__completeInventoryDebts || []).filter(item => {
+                if (identity.profileId && String(item.profileId || item.studentProfileId || '').trim() === identity.profileId) return true;
+                if (identity.memberId && String(item.memberId || item.memberCode || '').trim() === identity.memberId) return true;
+                const itemName = _normalizeInventoryDebtName(item.studentName || item.desc || item.description || item.name || '');
+                return !!normName && itemName === normName;
+            });
+        };
+        // file:// legacy mode không load main.js; cung cấp fallback read-only cho công nợ đầy đủ.
+        if (typeof window.getInventoryDebtsForStudent !== 'function') {
+            window.getInventoryDebtsForStudent = window.getCompleteInventoryDebtsForStudent;
         }
+
+        const _setInventoryDebtCoverageWarning = (message) => {
+            const tab = document.getElementById('tab_debt');
+            if (!tab) return;
+            let box = document.getElementById('inventoryDebtCoverageWarning');
+            if (!message) {
+                if (box) box.remove();
+                return;
+            }
+            if (!box) {
+                box = document.createElement('div');
+                box.id = 'inventoryDebtCoverageWarning';
+                box.style.cssText = 'margin-bottom:12px;padding:10px 12px;border:1.5px solid #f59e0b;background:#fffbeb;color:#92400e;border-radius:10px;font-size:0.78rem;font-weight:700;line-height:1.45;';
+                tab.prepend(box);
+            }
+            box.textContent = message;
+        };
+
+        const _inventoryDebtCb = (snap) => {
+            if (window.markListenerSnapshot) window.markListenerSnapshot(_inventoryDebtKey);
+            const rawItems = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            const debts = window.__inventoryStore && typeof window.__inventoryStore.deriveFinanceInventoryDebts === 'function'
+                ? window.__inventoryStore.deriveFinanceInventoryDebts(rawItems)
+                : rawItems.filter(item => item && item.unpaid === true);
+
+            // Mirror chỉ-đọc cho legacy/standalone paths. Nguồn canonical vẫn là inventoryStore.
+            window.__completeInventoryDebts = debts;
+            window.__inventoryDebtCompleteness = 'complete';
+
+            if (window.__inventoryStore) {
+                window.__inventoryStore.setFinanceInventoryDebts?.(debts, 'inventory-active-debt-listener');
+                window.__inventoryStore.rebuildInventoryDebtIndex?.('inventory-active-debt-listener');
+                window.__inventoryStore.markUnpaidDebtQueryLoaded?.(debts.length, 'inventory-active-debt-listener');
+            }
+
+            const changedDocs = _inventoryDebtInitialSnapshotSeen && typeof snap.docChanges === 'function'
+                ? snap.docChanges().length
+                : snap.size;
+            window.__inventoryReadMetrics.debtListenerSnapshots++;
+            if (!_inventoryDebtInitialSnapshotSeen) window.__inventoryReadMetrics.debtListenerInitialDocs += snap.size;
+            else window.__inventoryReadMetrics.debtListenerChangedDocs += changedDocs;
+            window.__inventoryReadMetrics.lastReason = 'inventory-active-debt-listener';
+            window.__inventoryReadMetrics.lastUpdatedAt = Date.now();
+            if (typeof window.recordReadMetric === 'function') {
+                window.recordReadMetric('inventoryDebts', changedDocs, _inventoryDebtInitialSnapshotSeen ? 'inventory-debt-changes' : 'inventory-debt-initial');
+            }
+            _inventoryDebtInitialSnapshotSeen = true;
+            _setInventoryDebtCoverageWarning('');
+
+            if (
+                document.getElementById('multiItemModal') &&
+                document.getElementById('multiItemModal').style.display !== 'none' &&
+                typeof window.refreshMultiItemInventorySection === 'function'
+            ) {
+                const name = ((document.getElementById('mi_name') || {}).value || '').trim();
+                if (name) window.refreshMultiItemInventorySection(name, 'active-debt-listener-update');
+            }
+
+            if (window.invalidateFinance) window.invalidateFinance('inventory-active-debts-updated');
+            if (window.invalidateStudents) window.invalidateStudents('inventory-active-debts-updated');
+            if (window.invalidateDashboard) window.invalidateDashboard('inventory-active-debts-updated');
+        };
+
+        const _inventoryDebtError = (err) => {
+            window.__inventoryReadMetrics.debtListenerErrors++;
+            window.__inventoryReadMetrics.lastReason = 'inventory-active-debt-listener-error';
+            window.__inventoryReadMetrics.lastUpdatedAt = Date.now();
+            window.__inventoryDebtCompleteness = Array.isArray(window.__completeInventoryDebts) && window.__completeInventoryDebts.length ? 'partial' : 'failed';
+            window.__inventoryStore?.markUnpaidDebtQueryFailed?.('inventory-active-debt-listener-error');
+            _setInventoryDebtCoverageWarning('⚠️ Không kết nối được dữ liệu công nợ Kho đầy đủ. Không nên Thu gộp cho tới khi kết nối được khôi phục.');
+            console.error('[Phase 4K-6V2] Complete active debt listener failed:', err);
+        };
+
+        if (window.safeRegisterSnapshot) {
+            const result = window.safeRegisterSnapshot(
+                _inventoryDebtKey,
+                () => onSnapshot(_inventoryDebtQuery, _inventoryDebtCb, _inventoryDebtError),
+                { owner: 'inventory-debt', scope: 'global', clubId, reason: 'phase4k-6v2-active-debts' }
+            );
+            if (result === false) window.__inventoryReadMetrics.debtListenerDuplicateMountSkipped++;
+        } else {
+            const unsubscribe = onSnapshot(_inventoryDebtQuery, _inventoryDebtCb, _inventoryDebtError);
+            activeListeners.push(unsubscribe);
+            if (window.registerListener) {
+                window.registerListener(_inventoryDebtKey, unsubscribe, { owner: 'inventory-debt', scope: 'global', reason: 'phase4k-6v2-active-debts' });
+            }
+        }
+
+        window.printInventoryReadMetrics = function() {
+            const pg = window.getInventoryHistoryPaginationState();
+            const debt = window.__inventoryStore || {};
+            console.group('[Phase 4K-6V2] Inventory Read Metrics');
+            console.table({
+                historyLoaded: { value: pg.loaded },
+                historyLoadedCount: { value: pg.loadedCount },
+                historyPagesLoaded: { value: pg.pagesLoaded },
+                historyHasMore: { value: pg.hasMore },
+                historyNetworkFetches: { value: window.__inventoryReadMetrics.historyNetworkFetches },
+                historyDocsRead: { value: window.__inventoryReadMetrics.historyDocsRead },
+                debtListenerSnapshots: { value: window.__inventoryReadMetrics.debtListenerSnapshots },
+                debtListenerInitialDocs: { value: window.__inventoryReadMetrics.debtListenerInitialDocs },
+                debtListenerChangedDocs: { value: window.__inventoryReadMetrics.debtListenerChangedDocs },
+                completeDebtCount: { value: (debt.financeInventoryDebts || []).length },
+                debtCompleteness: { value: debt.inventoryDebtCompleteness || 'unknown' },
+            });
+            console.groupEnd();
+            return { pagination: pg, metrics: { ...window.__inventoryReadMetrics } };
+        };
 
         const lMonth = document.getElementById('filterMonth').value;
         window.listenToData(lMonth); loadLogoForReceipt();
@@ -3240,6 +3456,17 @@ service cloud.firestore {
         const _cid = (window.__store && window.__store.clubId) || '';
         const _txKey = 'finance:tx:' + _cid + ':' + monthStr;
 
+        // Phase 4K-6V1 Spark Read Cost Hardening:
+        // Do not tear down and recreate the same 3 Firestore listeners for the same month.
+        // Recreating a listener bills a fresh initial query result.
+        if (window.__store && window.__store._activeTxListenerMonth === monthStr &&
+            window.hasListener && window.hasListener(_txKey)) {
+            window.__sparkReadMetrics = window.__sparkReadMetrics || {};
+            window.__sparkReadMetrics.txSameMonthResubscribeSkipped =
+                (window.__sparkReadMetrics.txSameMonthResubscribeSkipped || 0) + 1;
+            return;
+        }
+
         // [Phase 3.6C] Cleanup old finance tx listener trước khi re-subscribe.
         // cleanupListenersByOwner xử lý trường hợp đổi tháng (old key ≠ new key):
         // nếu đang ở tháng 5 rồi đổi sang tháng 6, key cũ 'finance:tx:...:2024-05' sẽ bị remove đúng.
@@ -3268,6 +3495,14 @@ service cloud.firestore {
         // 2. Theo txMonth (giao dịch thu bù tháng cũ — date có thể khác tháng)
         // Sau đó merge + dedup theo id để không hiện trùng.
         let _byDate = [], _byTxMonth = [], _byPackageMonth = []; // Phase 4K-4F: packageMonths array-contains query
+        let _dashboardInvalidateTimer = null;
+        const _invalidateDashboardCoalesced = (reason) => {
+            if (_dashboardInvalidateTimer) clearTimeout(_dashboardInvalidateTimer);
+            _dashboardInvalidateTimer = setTimeout(() => {
+                _dashboardInvalidateTimer = null;
+                if (window.invalidateDashboard) window.invalidateDashboard(reason || 'transactions-snapshot-coalesced');
+            }, 120);
+        };
         const _mergeAndRender = () => {
             const seen = new Set();
             // Phase 4K-4F: merge 3 queries (date + txMonth + packageMonths)
@@ -3304,7 +3539,7 @@ service cloud.firestore {
                 if (window.markListenerSnapshot) window.markListenerSnapshot(_txKey);
                 window.invalidateFinance('transactions-snapshot');
                 window.invalidateStudents('transactions-affect-debt');
-                window.invalidateDashboard('transactions-snapshot');
+                _invalidateDashboardCoalesced('transactions-snapshot');
             } else if (window.__RUNTIME_MODE === 'http-module') {
                 // HTTP module mode: queue invalidation, không gọi scheduleRender
                 window.__pendingDomainInvalidations = window.__pendingDomainInvalidations || [];
@@ -3376,6 +3611,7 @@ service cloud.firestore {
                 window.registerListener(_txKey, currentTxUnsub, { owner: 'finance', scope: 'global', reason: 'listenToData' });
             }
         }
+        if (window.__store) window.__store._activeTxListenerMonth = monthStr;
     };
 
     const docTienVND = (so) => {
@@ -4816,7 +5052,8 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         // Phase 4K-5C: Tạo 1 bundle transaction cho học phí + võ phục nhập học
         let _invDocId = '';
         if(uniformSize) {
-            const invDoc = await addDoc(invRef, { size: uniformSize, type: 'Xuất bán', qty: 1, desc: _saveKey, amount: uniformFee, date: joinDate, timestamp: Date.now() + 2 });
+            const invDoc = await addDoc(invRef, { size: uniformSize, category: 'Võ phục', type: 'Xuất bán', qty: 1, desc: _saveKey, studentName: _saveKey, profileId: _saveKey, memberId: memberId || '', amount: uniformFee, date: joinDate, timestamp: Date.now() + 2 });
+            window.notifyInventoryMutation?.('admission-uniform-created');
             _invDocId = invDoc.id;
             if(isGift) {
                 await addDoc(colRef, { branch: 'Chung', type: 'Tặng Võ phục', description: 'Tặng ' + uniformSize + ' cho ' + _saveKey, amount: 0, date: joinDate, timestamp: Date.now() + 1, relatedInvId: _invDocId });
@@ -4899,8 +5136,15 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         
         const isUnpaid = type === 'Xuất bán' && document.getElementById('inv_unpaid') && document.getElementById('inv_unpaid').checked;
         const invData = { category, size, type, qty, desc, amount, date, timestamp: Date.now() };
-        if(isUnpaid) invData.unpaid = true;
+        if(type === 'Xuất bán' && typeof window.resolveInventoryDebtIdentity === 'function') {
+            const _identity = window.resolveInventoryDebtIdentity(desc);
+            if(_identity.profileId) invData.profileId = _identity.profileId;
+            if(_identity.memberId) invData.memberId = _identity.memberId;
+            if(_identity.studentName) invData.studentName = _identity.studentName;
+        }
+        if(isUnpaid) { invData.unpaid = true; invData.inventoryDebtStatus = 'pending'; }
         const invDoc = await addDoc(invRef, invData);
+        window.notifyInventoryMutation?.('legacy-inventory-form-submit');
         
         if (amount > 0) {
              await addDoc(colRef, { branch, type: type === 'Nhập kho' ? `Chi ${category}` : `Thu ${category}`, description: type === 'Nhập kho' ? `Nhập ${category} ${size} từ ${desc}` : `Bán ${category} ${size} cho ${desc}`, amount, date, timestamp: Date.now(), relatedInvId: invDoc.id });
@@ -4957,7 +5201,8 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         if(!confirm("Xác nhận đã thu tiền cho đơn hàng nợ này?")) return;
         try {
             if (typeof window.recordFinancialActionAudit === 'function') window.recordFinancialActionAudit('inventory.markPaid', 'before', { invId: invId });
-            await updateDoc(doc(db, "clubs", currentClubId, "inventory", invId), { unpaid: false });
+            await updateDoc(doc(db, "clubs", currentClubId, "inventory", invId), { unpaid: false, inventoryDebtStatus: 'paid', paidAt: Date.now() });
+            window.notifyInventoryMutation?.('legacy-mark-inventory-paid');
             if (typeof window.recordFinancialActionAudit === 'function') window.recordFinancialActionAudit('inventory.markPaid', 'after', { invId: invId, unpaid: false });
             window.showToast("✅ Đã đánh dấu thu tiền xong!");
         } catch(err) {
@@ -4970,8 +5215,16 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         if(window.userRole === 'viewer') return;
         let txId = document.getElementById('ei_txId').value; let invId = document.getElementById('ei_invId').value; let eiCat = document.getElementById('ei_category').value || 'Võ phục'; let size = (eiCat === 'Võ phục' ? document.getElementById('ei_size').value : document.getElementById('ei_size_text').value).trim(); let type = document.getElementById('ei_type').value; let qty = Number(document.getElementById('ei_qty').value); let date = document.getElementById('ei_date').value; let desc = document.getElementById('ei_desc').value.trim(); let amount = Number(document.getElementById('ei_amountActual').value);
         if(!txId || !invId) return alert("Lỗi ID giao dịch. Vui lòng tải lại trang!");
-        await updateDoc(doc(db, "clubs", currentClubId, "inventory", invId), { category: eiCat, size, type, qty, date });
+        const _editInvPayload = { category: eiCat, size, type, qty, date, desc, amount };
+        if(type === 'Xuất bán' && typeof window.resolveInventoryDebtIdentity === 'function') {
+            const _editIdentity = window.resolveInventoryDebtIdentity(desc);
+            if(_editIdentity.profileId) _editInvPayload.profileId = _editIdentity.profileId;
+            if(_editIdentity.memberId) _editInvPayload.memberId = _editIdentity.memberId;
+            if(_editIdentity.studentName) _editInvPayload.studentName = _editIdentity.studentName;
+        }
+        await updateDoc(doc(db, "clubs", currentClubId, "inventory", invId), _editInvPayload);
         let txType = type === 'Nhập kho' ? `Chi ${eiCat}` : `Thu ${eiCat}`; await updateDoc(doc(db, "clubs", currentClubId, "transactions", txId), { type: txType, description: desc, amount, date });
+        window.notifyInventoryMutation?.('legacy-save-inventory-edit');
         document.getElementById('editInvModal').style.display = 'none'; window.showToast("✅ Đã sửa thành công dữ liệu kho!");
     };
 
@@ -5016,7 +5269,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                     studentName: txToDelete && (txToDelete.studentName || txToDelete.description) || ''
                 });
                 await deleteDoc(doc(db, "clubs", currentClubId, "transactions", id)); 
-                if (relatedInvId && relatedInvId !== 'undefined') await deleteDoc(doc(db, "clubs", currentClubId, "inventory", relatedInvId)); 
+                if (relatedInvId && relatedInvId !== 'undefined') { await deleteDoc(doc(db, "clubs", currentClubId, "inventory", relatedInvId)); window.notifyInventoryMutation?.('inventory-related-transaction-deleted'); } 
                 if (txToDelete && (txToDelete.type === 'Học phí' || txToDelete.type === 'Học phí + Lệ phí thi')) {
                     const studentName = (txToDelete.description || '').trim();
                     if (studentName) {
@@ -6378,9 +6631,21 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             if(!t.size) return;
             const cat = t.category || 'Võ phục';
             const key = cat + '|||' + t.size;
-            if(!liveInvMap[key]) liveInvMap[key] = { category: cat, size: t.size, in: 0, out: 0 };
+            if(!liveInvMap[key]) liveInvMap[key] = { category: cat, size: t.size, in: 0, out: 0, source: 'history-page' };
             if(t.type === 'Nhập kho') liveInvMap[key].in += (Number(t.qty) || 0);
             else liveInvMap[key].out += (Number(t.qty) || 0);
+        });
+        // Phase 4K-6V2 legacy fallback: overlay inventory_stats vì history chỉ tải 100/trang.
+        Object.keys(inventoryStats || {}).forEach(_sk => {
+            if(!/_balance$|_in$|_out$/.test(_sk)) return;
+            const _base = _sk.replace(/_(balance|in|out)$/, '');
+            const _parts = _base.includes('|||') ? _base.split('|||') : ['Võ phục', _base];
+            const _cat = _parts[0] || 'Võ phục'; const _size = _parts.slice(1).join('|||') || _base;
+            const _key = _cat + '|||' + _size; const _cur = liveInvMap[_key] || { category:_cat, size:_size, in:0, out:0 };
+            const _inV = Number(inventoryStats[_base + '_in']); const _outV = Number(inventoryStats[_base + '_out']); const _balV = Number(inventoryStats[_base + '_balance']);
+            const _out = Number.isFinite(_outV) ? _outV : Number(_cur.out || 0);
+            const _in = Number.isFinite(_inV) ? _inV : (Number.isFinite(_balV) ? _balV + _out : Number(_cur.in || 0));
+            liveInvMap[_key] = { category:_cat, size:_size, in:_in, out:_out, source:'inventory-stats' };
         });
 
         window._liveInvMap = liveInvMap;
@@ -6461,6 +6726,19 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                 </tr>`;
             }
         });
+        if (_curTabId === 'inventory' && typeof window.getInventoryHistoryPaginationState === 'function') {
+            const _pgInv = window.getInventoryHistoryPaginationState();
+            const _pgStyle = 'text-align:center;padding:14px 10px;background:#f8fafc;';
+            if (_pgInv.loading && !_pgInv.loaded) uniformTxHtml += `<tr><td colspan="6" style="${_pgStyle}color:#64748b;font-weight:700;">⏳ Đang tải 100 giao dịch Kho gần nhất...</td></tr>`;
+            else if (_pgInv.error) uniformTxHtml += `<tr><td colspan="6" style="${_pgStyle}color:#b45309;"><button type="button" class="btn-sm bg-amber-500 text-white" onclick="window.refreshInventoryHistory?.('legacy-inventory-retry')">Thử tải lại lịch sử Kho</button></td></tr>`;
+            else if (_pgInv.hasMore) uniformTxHtml += `<tr><td colspan="6" style="${_pgStyle}"><button type="button" class="btn-sm bg-blue-600 text-white" onclick="window.loadMoreInventoryHistory(event)">⬇ Tải thêm ${_pgInv.pageSize} giao dịch</button><div style="font-size:0.68rem;color:#64748b;margin-top:6px;">Đã tải ${_pgInv.loadedCount} giao dịch</div></td></tr>`;
+            else if (_pgInv.loaded) uniformTxHtml += `<tr><td colspan="6" style="${_pgStyle}color:#64748b;font-size:0.72rem;font-weight:700;">✓ Đã tải hết ${_pgInv.loadedCount} giao dịch Kho</td></tr>`;
+        }
+        if (window.__inventoryStore && window.__inventoryStore.inventoryDebtCompleteness === 'complete' && Array.isArray(window.__inventoryStore.financeInventoryDebts)) {
+            unpaidInvCount = window.__inventoryStore.financeInventoryDebts.length;
+        } else if (window.__inventoryDebtCompleteness === 'complete' && Array.isArray(window.__completeInventoryDebts)) {
+            unpaidInvCount = window.__completeInventoryDebts.length;
+        }
         const _unpaidWrapEl = document.getElementById('sum_uniform_unpaid_wrap');
         const _unpaidCountEl = document.getElementById('sum_uniform_unpaid');
         if(_unpaidWrapEl) _unpaidWrapEl.style.display = unpaidInvCount > 0 ? '' : 'none';
@@ -8783,7 +9061,9 @@ window.processMultiItem = async (action) => {
             // 2. Tạo inventory doc (quản lý kho) — riêng biệt, không là giao dịch tài chính
             let _invDocId = '';
             if(hasInv && invTotal > 0) {
-                const _invDoc = await addDoc(invRef, { category: invCat, size: invSize, type: 'Xuất bán', qty: invQty, desc: name, amount: invTotal, date: today, timestamp: Date.now() + 2 });
+                const _miIdentity = typeof window.resolveInventoryDebtIdentity === 'function' ? window.resolveInventoryDebtIdentity(name) : {};
+                const _invDoc = await addDoc(invRef, { category: invCat, size: invSize, type: 'Xuất bán', qty: invQty, desc: name, studentName: name, profileId: _miIdentity.profileId || '', memberId: _miIdentity.memberId || '', amount: invTotal, date: today, timestamp: Date.now() + 2 });
+                window.notifyInventoryMutation?.('multi-item-inventory-created');
                 _invDocId = _invDoc.id;
             }
 
