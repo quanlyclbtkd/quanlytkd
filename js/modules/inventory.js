@@ -37,7 +37,7 @@
  */
 
 import { getLocalToday } from '../utils/format.js';
-import { InventoryService } from '../services/inventory.service.js';
+import { InventoryService } from '../services/inventory.service.js?v=inventory-dynamic-size-catalog-20260616-v2b';
 
 // ════════════════════════════════════════════════════════════════
 // BRIDGE HELPERS — đọc state từ window.__store tại call-time
@@ -69,8 +69,20 @@ export function initInventory() {
      */
     window.getInvCategories = () => {
         const defaults = ['Võ phục', 'Áo thun', 'Bảo hộ'];
-        const customNames = (window.invCustomCategories || []).map(c => c.name);
-        return [...defaults, ...customNames.filter(n => !defaults.includes(n))];
+        const customNames = (window.invCustomCategories || []).map(c => c && c.name).filter(Boolean);
+        const stockNames = Object.values(window._liveInvMap || {}).map(s => s && s.category).filter(Boolean);
+        const normalize = window.MultiItemInventorySafety?.normalizeInventoryCategoryIdentity
+            || (v => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ''));
+        const seen = new Set();
+        const result = [];
+        [...defaults, ...customNames, ...stockNames].forEach(name => {
+            const label = String(name || '').trim();
+            const key = normalize(label);
+            if (!label || !key || seen.has(key)) return;
+            seen.add(key);
+            result.push(label);
+        });
+        return result;
     };
 
     /**
@@ -638,65 +650,64 @@ export function initInventory() {
      * Hiển thị số lượng tồn kho thực tế theo _liveInvMap từ app.js.
      */
     window.toggleMiInvCategory = () => {
-        const cat    = (document.getElementById('mi_inv_category') || {}).value || 'Võ phục';
-        const sel    = document.getElementById('mi_inv_size_select');
-        const txt    = document.getElementById('mi_inv_size_text');
-        const hint   = document.getElementById('mi_inv_stock_hint');
-        // Phase 4K-6G: fallback stock map build if _liveInvMap is empty
-        if (
-            window.MultiItemInventorySafety &&
-            window.MultiItemInventorySafety.buildInventoryStockMapForMultiItem
-        ) {
-            window.MultiItemInventorySafety.buildInventoryStockMapForMultiItem({
-                reason: 'toggle-mi-category',
-                force: true
-            });
+        try {
+            const renderer = window.InventoryMultiItemReadOnlyUI && window.InventoryMultiItemReadOnlyUI.renderMultiItemInventoryCategoryOptions;
+            if (typeof renderer === 'function') {
+                const result = renderer({ reason: 'inventory-module-toggle-category' });
+                if (result && result.ok) {
+                    if (typeof window.updateMultiItemTotal === 'function') window.updateMultiItemTotal();
+                    return result;
+                }
+            }
+        } catch (e) {
+            console.warn('[inventory.js] dynamic stock option renderer failed:', e);
         }
-        const inv    = window._liveInvMap || {};
+
+        const cat = (document.getElementById('mi_inv_category') || {}).value || 'Võ phục';
+        const sel = document.getElementById('mi_inv_size_select');
+        const txt = document.getElementById('mi_inv_size_text');
+        const hint = document.getElementById('mi_inv_stock_hint');
         if (!sel || !txt) return;
 
-        const _buildOption = (sz, balGetter) => {
-            const bal = balGetter(sz);
-            const opt = document.createElement('option');
-            opt.value = sz;
-            opt.textContent = bal > 0 ? `${sz} (Tồn: ${bal})` : `${sz} (Hết hàng)`;
-            if (bal <= 0) opt.disabled = true;
-            return { opt, has: bal > 0 };
-        };
+        const safety = window.MultiItemInventorySafety || {};
+        safety.buildInventoryStockMapForMultiItem?.({ reason: 'toggle-mi-category', force: true });
+        const stockMap = window._liveInvMap || {};
+        const categoryId = safety.normalizeInventoryCategoryIdentity?.(cat) || cat;
+        const isUniform = categoryId === 'vophuc' || cat === 'Võ phục';
+        const customCat = (window.invCustomCategories || []).find(c => {
+            const candidate = safety.normalizeInventoryCategoryIdentity?.(c && c.name) || (c && c.name);
+            return candidate === categoryId;
+        });
+        const rows = safety.buildInventoryCategorySizeOptions?.(cat, {
+            stockMap,
+            defaultSizes: isUniform ? ['Size 1m','Size 1m1','Size 1m2','Size 1m3','Size 1m4','Size 1m5','Size 1m6','Size 1m7','Size 1m8'] : [],
+            configuredSizes: customCat && Array.isArray(customCat.sizes) ? customCat.sizes : []
+        }) || [];
 
-        if (cat === 'Võ phục') {
-            sel.style.display = ''; txt.style.display = 'none';
-            sel.innerHTML = '';
-            const vpSizes = ['Size 1m','Size 1m1','Size 1m2','Size 1m3','Size 1m4','Size 1m5','Size 1m6','Size 1m7','Size 1m8'];
-            let hasStock = false;
-            vpSizes.forEach(sz => {
-                const s   = inv['Võ phục|||' + sz] || { in: 0, out: 0 };
-                const bal = s.in - s.out;
-                const { opt, has } = _buildOption(sz, () => bal);
-                sel.appendChild(opt);
-                if (has) hasStock = true;
-            });
-            if (hint) hint.textContent = hasStock ? '' : '— Kho trống';
-        } else {
-            const customCat = (window.invCustomCategories || []).find(c => c.name === cat);
-            if (customCat && customCat.sizes && customCat.sizes.length > 0) {
-                sel.style.display = ''; txt.style.display = 'none';
-                sel.innerHTML = '';
-                let hasStock = false;
-                customCat.sizes.forEach(sz => {
-                    const s   = inv[cat + '|||' + sz] || { in: 0, out: 0 };
-                    const bal = s.in - s.out;
-                    const { opt, has } = _buildOption(sz, () => bal);
-                    sel.appendChild(opt);
-                    if (has) hasStock = true;
-                });
-                if (hint) hint.textContent = hasStock ? '' : '— Kho trống';
-            } else {
-                sel.style.display = 'none'; txt.style.display = '';
-                if (hint) hint.textContent = '';
-            }
+        if (!rows.length && !isUniform && !(customCat && customCat.sizes && customCat.sizes.length)) {
+            sel.style.display = 'none';
+            txt.style.display = '';
+            if (hint) hint.textContent = '';
+            return;
         }
+
+        sel.style.display = '';
+        txt.style.display = 'none';
+        sel.innerHTML = '';
+        let hasStock = false;
+        rows.forEach(row => {
+            const size = row.size || row.value;
+            const bal = Number(row.balance) || 0;
+            const opt = document.createElement('option');
+            opt.value = size;
+            opt.textContent = bal > 0 ? `${size} (Tồn: ${bal})` : `${size} (Hết hàng)`;
+            opt.disabled = bal <= 0;
+            sel.appendChild(opt);
+            if (bal > 0) hasStock = true;
+        });
+        if (hint) hint.textContent = hasStock ? '' : '— Kho trống';
         if (typeof window.updateMultiItemTotal === 'function') window.updateMultiItemTotal();
+        return { ok: true, options: rows, hasStock };
     };
 
     /**

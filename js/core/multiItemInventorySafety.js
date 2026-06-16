@@ -20,6 +20,148 @@ function norm(v) {
         .trim();
 }
 
+// ── Phase 4K-6V2B: normalized category/size identity ─────────────────────────
+// Firestore summary keys and old inventory rows are not perfectly consistent:
+// "Võ phục" / "Vo Phuc", "Size 1m5" / "Size 1m 5", custom category casing, etc.
+// These helpers merge display variants WITHOUT issuing any Firestore reads.
+function categoryIdentity(v) {
+    const n = norm(v).replace(/[^a-z0-9]+/g, '');
+    if (!n) return 'vophuc';
+    if (n.includes('vophuc') || n.includes('dobok') || n.includes('uniform') || n.includes('dongphuc')) return 'vophuc';
+    if (n.includes('aothun') || n.includes('tshirt') || n.includes('shirt')) return 'aothun';
+    if (n.includes('baoho') || n.includes('protective') || n.includes('protection')) return 'baoho';
+    return n;
+}
+
+function sizeIdentity(v) {
+    return norm(v).replace(/[^a-z0-9]+/g, '');
+}
+
+function stockBalance(entry) {
+    if (!entry || typeof entry !== 'object') return 0;
+    const direct = Number(entry.balance);
+    if (Number.isFinite(direct)) return direct;
+    return (Number(entry.in) || 0) - (Number(entry.out) || 0);
+}
+
+function naturalSizeCompare(a, b) {
+    return String(a || '').localeCompare(String(b || ''), 'vi', {
+        numeric: true,
+        sensitivity: 'base'
+    });
+}
+
+function canonicalizeStockMaps(historyMap, statsMap) {
+    const buckets = new Map();
+
+    const absorb = (sourceMap, priority) => {
+        Object.values(sourceMap || {}).forEach(entry => {
+            if (!entry) return;
+            const category = String(entry.category || 'Võ phục').trim() || 'Võ phục';
+            const size = String(entry.size || '').trim();
+            if (!size) return;
+            const identity = categoryIdentity(category) + '|||' + sizeIdentity(size);
+            if (!identity.endsWith('|||')) {
+                const current = buckets.get(identity);
+                const normalized = {
+                    category,
+                    size,
+                    in: Number(entry.in) || 0,
+                    out: Number(entry.out) || 0,
+                    balance: stockBalance(entry),
+                    source: entry.source || (priority > 1 ? 'inventory-stats' : 'inventory-history-fallback'),
+                    priority
+                };
+                if (!current) {
+                    buckets.set(identity, normalized);
+                } else if (priority > current.priority) {
+                    // inventory_stats is authoritative for this normalized key.
+                    buckets.set(identity, normalized);
+                } else if (priority === current.priority) {
+                    // Same source layer, different spelling → aggregate once.
+                    current.in += normalized.in;
+                    current.out += normalized.out;
+                    current.balance = current.in - current.out;
+                    // Prefer the more descriptive label while keeping stable output.
+                    if (normalized.size.length > current.size.length) current.size = normalized.size;
+                }
+            }
+        });
+    };
+
+    absorb(historyMap, 1);
+    absorb(statsMap, 2);
+
+    const result = {};
+    buckets.forEach(entry => {
+        const key = entry.category + '|||' + entry.size;
+        result[key] = {
+            category: entry.category,
+            size: entry.size,
+            in: entry.in,
+            out: entry.out,
+            balance: entry.balance,
+            source: entry.source
+        };
+    });
+    return result;
+}
+
+function findStockEntry(stockMap, category, size) {
+    const exact = (stockMap || {})[String(category || '') + '|||' + String(size || '')];
+    if (exact) return exact;
+    const wantedCategory = categoryIdentity(category);
+    const wantedSize = sizeIdentity(size);
+    return Object.values(stockMap || {}).find(entry =>
+        categoryIdentity(entry && entry.category) === wantedCategory &&
+        sizeIdentity(entry && entry.size) === wantedSize
+    ) || null;
+}
+
+function categoryStockOptions(category, options = {}) {
+    const stockMap = options.stockMap || window._liveInvMap || {};
+    const configuredSizes = Array.isArray(options.configuredSizes) ? options.configuredSizes : [];
+    const defaultSizes = Array.isArray(options.defaultSizes) ? options.defaultSizes : [];
+    const wantedCategory = categoryIdentity(category || 'Võ phục');
+    const rows = new Map();
+
+    const addSize = (label, source) => {
+        const size = String(label || '').trim();
+        const id = sizeIdentity(size);
+        if (!id) return;
+        const current = rows.get(id) || { size, configured: false, default: false, dataBacked: false };
+        if (source === 'configured') current.configured = true;
+        if (source === 'default') current.default = true;
+        if (source === 'stock') current.dataBacked = true;
+        if (!current.size || (source === 'stock' && size.length > current.size.length)) current.size = size;
+        rows.set(id, current);
+    };
+
+    defaultSizes.forEach(size => addSize(size, 'default'));
+    configuredSizes.forEach(size => addSize(size, 'configured'));
+    Object.values(stockMap || {}).forEach(entry => {
+        if (!entry || categoryIdentity(entry.category) !== wantedCategory) return;
+        addSize(entry.size, 'stock');
+    });
+
+    return Array.from(rows.values())
+        .map(row => {
+            const entry = findStockEntry(stockMap, category, row.size);
+            const balance = stockBalance(entry);
+            return {
+                value: row.size,
+                size: row.size,
+                balance,
+                qty: balance,
+                disabled: balance <= 0,
+                dataBacked: row.dataBacked,
+                configured: row.configured,
+                default: row.default,
+                entry: entry || null
+            };
+        })
+        .sort((a, b) => naturalSizeCompare(a.size, b.size));
+}
 
 
 // ── Phase 4K-6V2A: canonical stock-map hydration from inventory_stats ─────────
@@ -222,7 +364,7 @@ export const MultiItemInventorySafety = {
 
         // inventory_stats is authoritative for totals. History is only a legacy
         // fallback for keys that have not yet been summarized.
-        const map = { ...historyMap, ...statsMap };
+        const map = canonicalizeStockMaps(historyMap, statsMap);
         const existingMap = window._liveInvMap || {};
         if (!Object.keys(map).length && !force && Object.keys(existingMap).length) {
             return {
@@ -249,6 +391,28 @@ export const MultiItemInventorySafety = {
             statsKeyCount: Object.keys(statsMap).length,
             historyKeyCount: Object.keys(historyMap).length
         };
+    },
+
+    // ── Phase 4K-6V2B: dynamic category/size discovery ─────────────────────────
+    resolveInventoryStockEntry(stockMap, category, size) {
+        return findStockEntry(stockMap || window._liveInvMap || {}, category, size);
+    },
+
+    buildInventoryCategorySizeOptions(category, options = {}) {
+        const stockMap = options.stockMap || window._liveInvMap || {};
+        return categoryStockOptions(category, {
+            stockMap,
+            configuredSizes: options.configuredSizes || [],
+            defaultSizes: options.defaultSizes || []
+        });
+    },
+
+    normalizeInventoryCategoryIdentity(value) {
+        return categoryIdentity(value);
+    },
+
+    normalizeInventorySizeIdentity(value) {
+        return sizeIdentity(value);
     },
 
     // ── A.6 resolveMultiItemInventoryDebts ────────────────────────────────────

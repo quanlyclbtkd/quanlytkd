@@ -89,7 +89,7 @@ check(main.includes('registerFinanceUiGlobals()'), 'main registers finance UI ow
 check(main.includes('debugLegacyUiFallbacks'), 'runtime smoke test includes rollback-layer diagnostics');
 check(main.includes("APP_BUILD_VERSION = '4K-6U-report-excel-lazy-isolation-20260616'"), 'main retains Phase 4K-6U compatibility marker');
 check(main.includes("window.APP_BUILD_VERSION = '4K-6V-attendance-canonical-ownership-pagination-20260616'") || main.includes("window.APP_BUILD_VERSION = '4K-6V2-inventory-history-pagination-complete-active-debt-20260616'"), 'active APP_BUILD_VERSION is Phase 4K-6V or a later compatible phase');
-check(index.includes('main.js?v=attendance-canonical-ownership-20260616') || index.includes('main.js?v=inventory-pagination-complete-debt-20260616'), 'index cache bust is Phase 4K-6V or a later compatible phase');
+check(index.includes('main.js?v=attendance-canonical-ownership-20260616') || index.includes('main.js?v=inventory-pagination-complete-debt-20260616') || index.includes('main.js?v=inventory-dynamic-size-catalog-20260616-v2b'), 'index cache bust is Phase 4K-6V or a later compatible phase');
 
 for (const protectedFn of [
   'processMultiItem', 'quickPay', 'deleteTx', 'markInvPaid', 'cancelExamPayment',

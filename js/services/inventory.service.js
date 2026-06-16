@@ -81,6 +81,32 @@ export const InventoryService = {
             if (!payload.studentName && identity.studentName) payload.studentName = identity.studentName;
         }
         const docRef = await addDoc(invRef, payload);
+
+        // Phase 4K-6V2B: maintain the one-document inventory summary for every
+        // new category/size. This is a WRITE-only increment (zero extra reads)
+        // and lets Thu gộp / Thêm võ sinh discover new sizes before Kho is opened.
+        try {
+            const { doc, setDoc, increment } = _sdk();
+            const category = String(payload.category || 'Võ phục').trim() || 'Võ phục';
+            const size = String(payload.size || '').trim();
+            const qty = Math.max(0, Number(payload.qty !== undefined ? payload.qty : payload.quantity) || 0);
+            if (size && qty > 0 && typeof increment === 'function') {
+                const base = category + '|||' + size;
+                const isIn = String(payload.type || '').toLowerCase().includes('nhập');
+                const patch = {
+                    [base + '_balance']: increment(isIn ? qty : -qty),
+                    [base + (isIn ? '_in' : '_out')]: increment(qty)
+                };
+                await setDoc(
+                    doc(_db(), 'clubs', _clubId(), 'settings', 'inventory_stats'),
+                    patch,
+                    { merge: true }
+                );
+            }
+        } catch (summaryError) {
+            console.warn('[InventoryService] inventory_stats increment failed; history write kept:', summaryError);
+        }
+
         window.notifyInventoryMutation?.('inventory-service-add-item');
         return docRef.id;
     },

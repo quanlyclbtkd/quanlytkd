@@ -113,18 +113,34 @@ function getCustomCategories() {
 
 function getCategorySizePlan(category, stockMap, customCategories) {
     const cat = String(category || 'Võ phục');
-    if (cat === 'Võ phục') {
-        return {
-            freeText: false,
-            sizes: ['Size 1m', 'Size 1m1', 'Size 1m2', 'Size 1m3', 'Size 1m4', 'Size 1m5', 'Size 1m6', 'Size 1m7', 'Size 1m8']
-        };
+    const safety = window.MultiItemInventorySafety || {};
+    const categoryId = typeof safety.normalizeInventoryCategoryIdentity === 'function'
+        ? safety.normalizeInventoryCategoryIdentity(cat)
+        : norm(cat).replace(/[^a-z0-9]+/g, '');
+    const isUniform = categoryId === 'vophuc';
+    const defaults = isUniform
+        ? ['Size 1m', 'Size 1m1', 'Size 1m2', 'Size 1m3', 'Size 1m4', 'Size 1m5', 'Size 1m6', 'Size 1m7', 'Size 1m8']
+        : [];
+    const customCat = (customCategories || []).find(c => {
+        if (!c) return false;
+        const candidate = typeof safety.normalizeInventoryCategoryIdentity === 'function'
+            ? safety.normalizeInventoryCategoryIdentity(c.name)
+            : norm(c.name).replace(/[^a-z0-9]+/g, '');
+        return candidate === categoryId;
+    });
+    const configured = customCat && Array.isArray(customCat.sizes) ? customCat.sizes.slice() : [];
+
+    if (typeof safety.buildInventoryCategorySizeOptions === 'function') {
+        const rows = safety.buildInventoryCategorySizeOptions(cat, {
+            stockMap,
+            defaultSizes: defaults,
+            configuredSizes: configured
+        });
+        if (rows.length > 0) return { freeText: false, rows };
     }
 
-    const customCat = (customCategories || []).find(c => c && c.name === cat);
-    if (customCat && Array.isArray(customCat.sizes) && customCat.sizes.length > 0) {
-        return { freeText: false, sizes: customCat.sizes.slice() };
-    }
-
+    const sizes = [...defaults, ...configured];
+    if (sizes.length > 0) return { freeText: false, sizes };
     return { freeText: true, sizes: [] };
 }
 
@@ -146,18 +162,31 @@ function buildMultiItemInventoryStockOptions(category, options = {}) {
         };
     }
 
+    const safety = window.MultiItemInventorySafety || {};
+    const rows = Array.isArray(plan.rows)
+        ? plan.rows
+        : (plan.sizes || []).map(size => {
+            const entry = typeof safety.resolveInventoryStockEntry === 'function'
+                ? safety.resolveInventoryStockEntry(stockMap, cat, size)
+                : (stockMap[cat + '|||' + size] || null);
+            const balance = entry && Number.isFinite(Number(entry.balance))
+                ? Number(entry.balance)
+                : ((Number(entry && entry.in) || 0) - (Number(entry && entry.out) || 0));
+            return { value: size, size, balance, disabled: balance <= 0 };
+        });
+
     let hasStock = false;
-    const optionRows = plan.sizes.map(size => {
-        const key = cat + '|||' + size;
-        const s = stockMap[key] || { in: 0, out: 0 };
-        const balance = Number(s.in || 0) - Number(s.out || 0);
+    const optionRows = rows.map(row => {
+        const size = row.size || row.value;
+        const balance = Number(row.balance) || 0;
         if (balance > 0) hasStock = true;
         return {
             value: size,
             label: balance > 0 ? `${size} (Tồn: ${balance})` : `${size} (Hết hàng)`,
             balance,
             disabled: balance <= 0,
-            key
+            key: cat + '|||' + size,
+            dataBacked: !!row.dataBacked
         };
     });
 

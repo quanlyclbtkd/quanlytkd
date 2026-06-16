@@ -216,8 +216,8 @@ import { LegacyAppAudit }      from './core/legacyAppAudit.js';
 import { initLegacyDiagnostics } from './diagnostics/legacyDiagnostics.js';
 
 // Phase 4K-6G: MultiItem Inventory Safety Module
-import { MultiItemInventorySafety } from './core/multiItemInventorySafety.js';
-import { InventoryMultiItemReadOnlyUI, initInventoryMultiItemReadOnlyUI } from './core/inventoryMultiItemReadOnlyUI.js';
+import { MultiItemInventorySafety } from './core/multiItemInventorySafety.js?v=inventory-dynamic-size-catalog-20260616-v2b';
+import { InventoryMultiItemReadOnlyUI, initInventoryMultiItemReadOnlyUI } from './core/inventoryMultiItemReadOnlyUI.js?v=inventory-dynamic-size-catalog-20260616-v2b';
 
 // ── Phase 3.3E: Firestore safety (expose globally for services) ──
 import { safeGetDocs, printQueryAuditReport }  from './utils/firestore-guard.js';
@@ -311,7 +311,7 @@ import {
     debugSearchPerformance,
 } from './modules/searchRuntime.js';
 import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from './modules/finance.js';
-import { initInventory }                              from './modules/inventory.js';
+import { initInventory }                              from './modules/inventory.js?v=inventory-dynamic-size-catalog-20260616-v2b';
 import { initAttendance }                             from './modules/attendance.js';
 import { initDashboard }                              from './modules/dashboard.js';
 // ── Phase 4K-6U: Heavy Reports module is lazy-loaded by reportExportFacade.js ──
@@ -816,6 +816,23 @@ function _installAdmissionUniformSizeBridges() {
                     .replace(/đ/g, 'd').replace(/Đ/g, 'D')
                     .toLowerCase().trim();
             };
+
+            // Phase 4K-6V2B: derive every real Võ phục size from the same stock
+            // map used by BẢNG TỒN KHO. Defaults are only a compatibility seed;
+            // data-backed sizes are never discarded because they are not hardcoded.
+            const _safety = window.MultiItemInventorySafety || {};
+            if (typeof _safety.buildInventoryCategorySizeOptions === 'function') {
+                const _dynamicSizes = _safety.buildInventoryCategorySizeOptions('Võ phục', {
+                    stockMap: window._liveInvMap || {},
+                    defaultSizes: ['Size 1m','Size 1m1','Size 1m2','Size 1m3','Size 1m4','Size 1m5','Size 1m6','Size 1m7','Size 1m8'],
+                    configuredSizes: []
+                });
+                if (_dynamicSizes.length > 0) {
+                    return _dynamicSizes.map(function(row) {
+                        return { size: row.size || row.value, qty: Number(row.balance) || 0, items: row.entry ? [row.entry] : [] };
+                    });
+                }
+            }
 
             // Thử dùng _liveInvMap đã build sẵn bởi legacy renderApp()
             if (window._liveInvMap && Object.keys(window._liveInvMap).length > 0) {
@@ -3078,7 +3095,7 @@ window.debugProfileModalClose = function() {
 
 // PHẦN 1 — APP BUILD VERSION
 window.APP_BUILD_VERSION = '4K-6V2-inventory-history-pagination-complete-active-debt-20260616';
-window.APP_PATCH_VERSION = '4K-6V2A-inventory-consumer-hydration-hotfix-20260616';
+window.APP_PATCH_VERSION = '4K-6V2B-dynamic-inventory-size-catalog-20260616';
 window.APP_COPYRIGHT_OWNER   = 'Tình Trương';
 window.APP_PRODUCT_NAME      = 'Taekwondo Club Management Web App';
 window.APP_SECURITY_PHASE    = '4K-6E-scale-readiness-write-safety';

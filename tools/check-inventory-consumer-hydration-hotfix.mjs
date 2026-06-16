@@ -24,11 +24,11 @@ function check(name, condition) {
 
 console.log('\n=== Phase 4K-6V2A — Inventory Consumer Hydration Hotfix ===\n');
 
-check('Runtime exposes Phase 4K-6V2A patch version', main.includes("window.APP_PATCH_VERSION = '4K-6V2A-inventory-consumer-hydration-hotfix-20260616'"));
-check('Cache bust deploys the V2A hotfix', read('index.html').includes('inventory-pagination-complete-debt-20260616-v2a-consumer-hotfix'));
+check('Runtime exposes Phase 4K-6V2A patch version', main.includes("window.APP_PATCH_VERSION = '4K-6V2B-dynamic-inventory-size-catalog-20260616'"));
+check('Cache bust deploys the V2A hotfix', read('index.html').includes('inventory-dynamic-size-catalog-20260616-v2b'));
 check('Canonical stock builder reads inventory_stats', safetySrc.includes('buildStockMapFromInventoryStats'));
 check('Stock builder preserves category and size metadata', safetySrc.includes("category + '|||' + size") && safetySrc.includes("source: 'inventory-stats'"));
-check('Stock builder overlays inventory_stats over lazy history fallback', safetySrc.includes('const map = { ...historyMap, ...statsMap }'));
+check('Stock builder overlays inventory_stats over lazy history fallback', safetySrc.includes('canonicalizeStockMaps(historyMap, statsMap)'));
 check('Admission readiness accepts hydrated inventory_stats', main.includes('isStatsHydrated') && main.includes('inventoryStats !== null'));
 check('Admission size lookup force-builds stock map from inventory_stats', main.includes("reason: options.reason || 'admission-uniform-sizes'") && main.includes('force: true'));
 check('Admission modal preserves selected size during realtime stats refresh', main.includes('preserveSelection') && main.includes('previousValue'));
@@ -36,7 +36,7 @@ check('Inventory stats listener refreshes open Add Student modal', app.includes(
 check('Inventory stats listener refreshes open MultiItem stock selector', app.includes('_miInvOn') && app.includes('window.toggleMiInvCategory()'));
 check('Club switch clears old stock map', app.includes("window.__liveInvMapSource = 'club-context-reset'"));
 check('MultiItem read-only UI rebuilds stock map before using _liveInvMap', readOnlySrc.includes('force: true') && readOnlySrc.indexOf('buildInventoryStockMapForMultiItem') < readOnlySrc.indexOf('window._liveInvMap-fallback'));
-check('Modern Inventory module force-refreshes MultiItem stock', inventoryModule.includes("reason: 'toggle-mi-category',\n                force: true"));
+check('Modern Inventory module force-refreshes MultiItem stock', inventoryModule.includes("buildInventoryStockMapForMultiItem?.({ reason: 'toggle-mi-category', force: true })") || inventoryModule.includes("renderer({ reason: 'inventory-module-toggle-category' })"));
 check('MultiItem debt lookup accepts identity object', safetySrc.includes('resolveMultiItemInventoryDebts(studentOrProfile') && safetySrc.includes('lookupTarget'));
 check('MultiItem autocomplete stores profileId/memberId', app.includes('inp.dataset.profileId = nm') && app.includes('inp.dataset.memberId'));
 check('MultiItem debt lookup passes selected identity', app.includes('const _miDebtIdentity = {') && app.includes('resolveMultiItemInventoryDebts(_miDebtIdentity'));

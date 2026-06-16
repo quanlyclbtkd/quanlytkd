@@ -184,9 +184,17 @@ function renderApp() {
     // Size select for uniform order form — small DOM update, kept inline (not list HTML)
     const vpSizes = ['Size 1m','Size 1m1','Size 1m2','Size 1m3','Size 1m4','Size 1m5','Size 1m6','Size 1m7','Size 1m8'];
     let sizeSelectHtml = '<option value="">-- Không mua / Trống --</option>';
-    vpSizes.forEach(size => {
-        const s = _liveInvMap['Võ phục|||' + size] || { in: 0, out: 0 };
-        const bal = s.in - s.out;
+    const _admissionStockRows = window.MultiItemInventorySafety?.buildInventoryCategorySizeOptions?.('Võ phục', {
+        stockMap: _liveInvMap,
+        defaultSizes: vpSizes,
+        configuredSizes: []
+    }) || vpSizes.map(size => {
+        const entry = _liveInvMap['Võ phục|||' + size] || { in: 0, out: 0 };
+        return { size, balance: (Number(entry.in) || 0) - (Number(entry.out) || 0) };
+    });
+    _admissionStockRows.forEach(row => {
+        const size = row.size || row.value;
+        const bal = Number(row.balance) || 0;
         sizeSelectHtml += bal > 0
             ? `<option value="${size}">${size} (Còn: ${bal} bộ)</option>`
             : `<option value="${size}" disabled>${size} (Hết hàng)</option>`;

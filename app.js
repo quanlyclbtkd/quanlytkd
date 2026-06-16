@@ -1793,6 +1793,9 @@ service cloud.firestore {
                     keyCount: (_stockResult && _stockResult.keyCount) || Object.keys(window._liveInvMap || {}).length,
                     updatedAt: Date.now()
                 };
+                if (typeof window.populateInvCategorySelects === 'function') {
+                    window.populateInvCategorySelects();
+                }
                 const _addModalOpen = document.getElementById('addModal') && document.getElementById('addModal').style.display !== 'none';
                 if (_addModalOpen && typeof window.renderAdmissionUniformSizeOptions === 'function') {
                     window.renderAdmissionUniformSizeOptions({ preserveSelection: true, reason: 'invstats-snapshot' });
@@ -1949,6 +1952,10 @@ service cloud.firestore {
             if (window.__inventoryStore && typeof window.__inventoryStore.setAllInventory === 'function') {
                 window.__inventoryStore.setAllInventory(allInventory, reason || 'inventory-history-page');
             }
+            try {
+                window.MultiItemInventorySafety?.buildInventoryStockMapForMultiItem?.({ reason: (reason || 'inventory-history-page') + ':refresh-stock-catalog', force: true });
+                window.populateInvCategorySelects?.();
+            } catch (_catalogError) { console.warn('[Phase 4K-6V2B] inventory history catalog refresh failed:', _catalogError); }
 
             _updateHydrationMetrics({
                 inventorySnapshotCount: (window.__dataHydrationMetrics.inventorySnapshotCount || 0) + 1,
@@ -3804,9 +3811,15 @@ service cloud.firestore {
      */
     window.getInvCategories = () => {
         const defaults = ['Võ phục', 'Áo thun', 'Bảo hộ'];
-        const customNames = (window.invCustomCategories || []).map(c => c.name);
-        // Lọc để tránh trùng với mặc định
-        return [...defaults, ...customNames.filter(n => !defaults.includes(n))];
+        const stockNames = Object.values(window._liveInvMap || {}).map(s => s?.category);
+        const names = [...defaults, ...(window.invCustomCategories || []).map(c => c?.name), ...stockNames];
+        const normalize = window.MultiItemInventorySafety?.normalizeInventoryCategoryIdentity || (v => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ''));
+        const seen = new Set();
+        return names.reduce((out, name) => {
+            const label = String(name || '').trim(), key = normalize(label);
+            if (label && key && !seen.has(key)) { seen.add(key); out.push(label); }
+            return out;
+        }, []);
     };
 
     /**
@@ -5175,6 +5188,13 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         }
         if(isUnpaid) { invData.unpaid = true; invData.inventoryDebtStatus = 'pending'; }
         const invDoc = await addDoc(invRef, invData);
+        // Keep selectors complete without reading inventory history.
+        try {
+            const _base = category + '|||' + size, _isIn = type === 'Nhập kho';
+            await setDoc(doc(db, 'clubs', currentClubId, 'settings', 'inventory_stats'), {
+                [_base + '_balance']: increment(_isIn ? qty : -qty), [_base + (_isIn ? '_in' : '_out')]: increment(qty)
+            }, { merge: true });
+        } catch (_summaryError) { console.warn('[Phase 4K-6V2B] legacy inventory_stats increment failed:', _summaryError); }
         window.notifyInventoryMutation?.('legacy-inventory-form-submit');
         
         if (amount > 0) {
@@ -6707,12 +6727,15 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         });
         }
 
-        vpSizes.forEach(size => {
-            const key = 'Võ phục|||' + size;
-            const s = liveInvMap[key] || { in: 0, out: 0 };
-            const bal = s.in - s.out;
-            if (bal > 0) sizeSelectHtml += `<option value="${size}">${size} (Còn: ${bal} bộ)</option>`; 
-            else sizeSelectHtml += `<option value="${size}" disabled>${size} (Hết hàng)</option>`;
+        const _admissionStockRows = window.MultiItemInventorySafety?.buildInventoryCategorySizeOptions?.('Võ phục', {
+            stockMap: liveInvMap, defaultSizes: vpSizes, configuredSizes: []
+        }) || vpSizes.map(size => {
+            const _entry = liveInvMap['Võ phục|||' + size] || { in: 0, out: 0 };
+            return { size, balance: (Number(_entry.in) || 0) - (Number(_entry.out) || 0) };
+        });
+        _admissionStockRows.forEach(row => {
+            const size = row.size || row.value, bal = Number(row.balance) || 0;
+            sizeSelectHtml += `<option value="${size}"${bal > 0 ? '' : ' disabled'}>${size} (${bal > 0 ? `Còn: ${bal} bộ` : 'Hết hàng'})</option>`;
         });
         
         if(sizeSelectHtml !== _lastSizeSelectHtml) { _lastSizeSelectHtml = sizeSelectHtml; const addSizeSelect = document.getElementById('add_uniform_size'); if(addSizeSelect) addSizeSelect.innerHTML = sizeSelectHtml; }
