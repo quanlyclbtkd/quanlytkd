@@ -45,6 +45,35 @@ export const FinanceService = {
     },
 
     /**
+     * Ghi giao dịch học phí + cập nhật profile trong cùng Firestore transaction.
+     * Trả về { id, paidUntil, months }.
+     */
+    async addTuitionPaymentAtomic({ studentName, months, profile, txData, reason = 'finance-service-tuition' }) {
+        if (typeof window.commitTuitionPaymentAtomic !== 'function') {
+            throw new Error('[FinanceService] CanonicalTuitionMonthLedger chưa sẵn sàng');
+        }
+        return window.commitTuitionPaymentAtomic({
+            studentName,
+            months,
+            profile,
+            txData,
+            transactionsRef: _colRef(),
+            reason,
+        });
+    },
+
+    /** Atomic multi-student tuition write (family payment). */
+    async addTuitionPaymentsAtomic(entries, reason = 'finance-service-family-tuition') {
+        if (typeof window.commitTuitionPaymentsAtomic !== 'function') {
+            throw new Error('[FinanceService] CanonicalTuitionMonthLedger chưa sẵn sàng');
+        }
+        return window.commitTuitionPaymentsAtomic(entries, {
+            transactionsRef: _colRef(),
+            reason,
+        });
+    },
+
+    /**
      * Xóa một giao dịch.
      * @param {string} txId — Firestore transaction doc ID
      */
@@ -419,7 +448,7 @@ export const FinanceService = {
      */
     async updateProfileAfterTxDelete(studentName, newPaidUntil, deletedMonths) {
         const { doc, updateDoc, arrayRemove } = _sdk();
-        const profileUpdate = { paidUntil: newPaidUntil };
+        const profileUpdate = { paidUntil: newPaidUntil, paidThroughMonth: newPaidUntil };
         if (deletedMonths.length > 0) {
             profileUpdate.paidMonths = arrayRemove(...deletedMonths);
         }

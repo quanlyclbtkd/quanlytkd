@@ -1,0 +1,31 @@
+PHASE 4K-6V3D1 TEST SUMMARY
+Date: 2026-06-18
+
+1) npm run check
+   Result: PASS
+   Exit code: 0
+
+2) node tools/check-canonical-tuition-ledger-reconciliation.mjs
+   Result: PASS 27/27
+
+3) Additional regression scripts
+   PASS tools/check-admission-bundle-unification.mjs
+   PASS tools/check-admission-tuition-type-normalization.mjs
+   PASS tools/check-payment-bundle-runtime-hotfix.mjs
+   PASS tools/check-multiitem-tuition-package-fix.mjs
+   PASS tools/check-multiitem-skipped-months.mjs
+   PASS tools/check-debt-actions-sync.mjs
+   PASS tools/check-debt-service-bridge.mjs
+   PASS tools/check-debt-full-coverage.mjs
+   PASS tools/check-bundled-receipt-transactions.mjs
+   PASS tools/check-production-stability-gate.mjs
+   PASS tools/check-runtime-stability-gate.mjs
+
+Dedicated scenarios verified:
+- Nguyen Thu Phuong: paidUntil 2026-04 + paidMonths 2026-05 => effective 2026-05.
+- Debt through 2026-06 => only 2026-06 owed.
+- June paid with May gap does not advance paid-through over May.
+- Remove skipped May reopens May debt when no payment evidence exists.
+- Remove skipped May preserves June paid-through when May and June payment evidence exists.
+- Family payments read all profiles before any write and commit transaction/profile atomically.
+- Loaded-profile targeted reconciliation uses 0 extra Firestore reads.

@@ -617,8 +617,8 @@ export function initReports() {
                 const p = allProfiles[name];
                 if (p.status !== 'active') return;
                 const row = isSingle
-                    ? [nc(String(stt++)), bc(name), nc(p.memberId||'-'), nc(p.belt||''), nc(p.dob||''), nc(p.phone||''), nc(p.paidUntil ? formatMonth(p.paidUntil) : ''), nNum(p.tuitionFee||0)]
-                    : [nc(String(stt++)), bc(name), nc(p.memberId||'-'), nc(_branchName(p.branch)), nc(p.belt||''), nc(p.dob||''), nc(p.phone||''), nc(p.paidUntil ? formatMonth(p.paidUntil) : ''), nNum(p.tuitionFee||0)];
+                    ? [nc(String(stt++)), bc(name), nc(p.memberId||'-'), nc(p.belt||''), nc(p.dob||''), nc(p.phone||''), nc((typeof window.getEffectivePaidUntil === 'function' ? window.getEffectivePaidUntil(p) : p.paidUntil) ? formatMonth(typeof window.getEffectivePaidUntil === 'function' ? window.getEffectivePaidUntil(p) : p.paidUntil) : ''), nNum(p.tuitionFee||0)]
+                    : [nc(String(stt++)), bc(name), nc(p.memberId||'-'), nc(_branchName(p.branch)), nc(p.belt||''), nc(p.dob||''), nc(p.phone||''), nc((typeof window.getEffectivePaidUntil === 'function' ? window.getEffectivePaidUntil(p) : p.paidUntil) ? formatMonth(typeof window.getEffectivePaidUntil === 'function' ? window.getEffectivePaidUntil(p) : p.paidUntil) : ''), nNum(p.tuitionFee||0)];
                 stu_rows.push(row);
             });
             const ws_stu = XLSX.utils.aoa_to_sheet(stu_rows);
@@ -667,12 +667,12 @@ export function initReports() {
             let totalDebt = 0;
             Object.keys(allProfiles).sort().forEach(name => {
                 const p = allProfiles[name];
-                if (p.status !== 'active' || !p.paidUntil) return;
+                if (p.status !== 'active') return;
                 if (p.feeExempt) return;
-                if (p.paidUntil >= selMonth) return;
-                let [yP, mP] = p.paidUntil.split('-').map(Number);
-                let [yS, mS] = selMonth.split('-').map(Number);
-                let months   = (yS - yP) * 12 + (mS - mP);
+                const owedMonths = typeof window.getChargeableTuitionMonths === 'function'
+                    ? window.getChargeableTuitionMonths(p, selMonth, { reason: 'excel-debt-report' })
+                    : [];
+                const months = owedMonths.length;
                 if (months <= 0) return;
                 const debt = months * (Number(p.tuitionFee) || 0);
                 totalDebt += debt;

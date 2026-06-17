@@ -362,8 +362,9 @@ export function initStudents() {
                 if (!_preflightBundle || !Array.isArray(_preflightBundle.components) || _preflightBundle.components.some(c => !c || !Number.isFinite(Number(c.amount)))) throw new Error('Dữ liệu khoản thu nhập học không hợp lệ.');
             }
 
-            // ── Ghi profile ────────────────────────────────────────────────
-            await StudentService.createProfile(_saveKey, {
+            // ── Ghi profile chưa thanh toán ──────────────────────────────
+            // Payment evidence is committed atomically with the transaction below.
+            const newProfileData = {
                 status:          'active',
                 memberId,
                 branch,
@@ -381,12 +382,15 @@ export function initStudents() {
                 joinDate:        joinDate,
                 joinedAt:        joinDate,
                 createdAt:       joinDate,
-                paidUntil:       newPaidUntil,
-                paidMonths:      monthsToRecord,
+                ledgerStartMonth: startMonth,
+                paidUntil:       '',
+                paidThroughMonth: '',
+                paidMonths:      [],
                 tuitionPackageCount:             tuitionPkg.packageCount,
                 lastAdmissionTuitionStartMonth:  startMonth,
                 lastAdmissionTuitionMonths:      monthsToRecord,
-            });
+            };
+            await StudentService.createProfile(_saveKey, newProfileData);
 
             // ── Phase 4K-5E: Xuất kho + tạo bundle transaction nhập học ────
             let tuitionTx = null;
@@ -415,10 +419,21 @@ export function initStudents() {
                         refMonth: lastMonth, receiptType: 'Thu nhập học',
                         components: _admComponents,
                     });
-                    const _addFn = StudentService.addGenericTransaction
-                        ? StudentService.addGenericTransaction.bind(StudentService)
-                        : StudentService.addTuitionTransaction.bind(StudentService);
-                    tuitionTx = await _addFn(_bundleTx);
+                    if (fee > 0 && typeof window.commitTuitionPaymentAtomic === 'function') {
+                        const atomicAdmission = await window.commitTuitionPaymentAtomic({
+                            studentName: _saveKey,
+                            months: monthsToRecord,
+                            profile: newProfileData,
+                            txData: _bundleTx,
+                            reason: 'module-admission-payment-bundle'
+                        });
+                        tuitionTx = { id: atomicAdmission.id, ..._bundleTx };
+                    } else {
+                        const _addFn = StudentService.addGenericTransaction
+                            ? StudentService.addGenericTransaction.bind(StudentService)
+                            : StudentService.addTuitionTransaction.bind(StudentService);
+                        tuitionTx = await _addFn(_bundleTx);
+                    }
                     if (_invId && !isGift) {
                         try {
                             await StudentService.updateInventoryDoc(_invId, {
@@ -524,7 +539,7 @@ export function initStudents() {
         document.getElementById('m_fee_actual').value  = p.tuitionFee || '';
         document.getElementById('m_fee_display').value = p.tuitionFee
             ? parseInt(p.tuitionFee, 10).toLocaleString('vi-VN') : '';
-        document.getElementById('m_paidUntil').value   = p.paidUntil || '';
+        document.getElementById('m_paidUntil').value   = (typeof window.getEffectivePaidUntil === 'function' ? window.getEffectivePaidUntil(p) : p.paidUntil) || '';
         document.getElementById('m_notes').value       = p.notes || '';
         const _mNickEl = document.getElementById('m_nickname');
         if (_mNickEl) _mNickEl.value = p.nickname || '';
@@ -613,7 +628,10 @@ export function initStudents() {
         };
 
         const updatedPaidUntil = document.getElementById('m_paidUntil').value;
-        if (updatedPaidUntil) updateData.paidUntil = updatedPaidUntil;
+        if (updatedPaidUntil) {
+            updateData.paidUntil = updatedPaidUntil;
+            updateData.paidThroughMonth = updatedPaidUntil;
+        }
 
         // Xử lý chuyển trạng thái
         if (newStatus === 'quit' && (profiles[oldName] || {}).status !== 'quit') {
@@ -627,6 +645,7 @@ export function initStudents() {
                 rm -= 1;
                 if (rm === 0) { rm = 12; ry -= 1; }
                 updateData.paidUntil = `${ry}-${String(rm).padStart(2, '0')}`;
+                updateData.paidThroughMonth = updateData.paidUntil;
             }
         }
 
@@ -636,9 +655,18 @@ export function initStudents() {
                 if (profiles[newName]) return alert('Tên võ sinh đã tồn tại!');
                 if (!confirm(`Bạn có chắc muốn đổi tên từ "${oldName}" thành "${newName}"?\nHệ thống sẽ tự động cập nhật tên mới trên tất cả hóa đơn.`)) return;
 
-                updateData.createdAt = (profiles[oldName] || {}).createdAt || getLocalToday();
-                if ((profiles[oldName] || {}).skippedMonths) updateData.skippedMonths = profiles[oldName].skippedMonths;
-                if ((profiles[oldName] || {}).paidUntil)     updateData.paidUntil     = profiles[oldName].paidUntil;
+                const oldProfileForRename = profiles[oldName] || {};
+                updateData.createdAt = oldProfileForRename.createdAt || getLocalToday();
+                if (oldProfileForRename.skippedMonths) updateData.skippedMonths = oldProfileForRename.skippedMonths;
+                if (oldProfileForRename.paidMonths) updateData.paidMonths = oldProfileForRename.paidMonths;
+                const renamePaidUntil = typeof window.getEffectivePaidUntil === 'function'
+                    ? window.getEffectivePaidUntil(oldProfileForRename)
+                    : oldProfileForRename.paidUntil;
+                if (renamePaidUntil) {
+                    updateData.paidUntil = renamePaidUntil;
+                    updateData.paidThroughMonth = renamePaidUntil;
+                }
+                if (oldProfileForRename.tuitionLedgerSchemaVersion) updateData.tuitionLedgerSchemaVersion = oldProfileForRename.tuitionLedgerSchemaVersion;
 
                 // Tìm tất cả transactions liên quan để đồng bộ tên
                 const oldTxDocs = await StudentService.findTransactionsByStudent(oldName);
@@ -888,17 +916,9 @@ export function initStudents() {
             if (p.feeExempt) return;
             if (!isSingleBranch && selBranch !== 'all' && p.branch !== selBranch) return;
 
-            let owedMonths = [];
-            if (!p.skippedMonths || !p.skippedMonths.includes(selMonth)) {
-                let firstUnpaid = p.paidUntil
-                    ? addMonthsToYYYYMM(p.paidUntil, 1)
-                    : (p.createdAt ? p.createdAt.substring(0, 7) : selMonth);
-                let cur = firstUnpaid;
-                while (cur <= selMonth && owedMonths.length < 24) {
-                    if (!p.skippedMonths || !p.skippedMonths.includes(cur)) owedMonths.push(cur);
-                    cur = addMonthsToYYYYMM(cur, 1);
-                }
-            }
+            const owedMonths = typeof window.getChargeableTuitionMonths === 'function'
+                ? window.getChargeableTuitionMonths(p, selMonth, { reason: 'module-bulk-zalo' })
+                : [];
             if (owedMonths.length === 0) return;
 
             const owedMonthsStr = owedMonths.join(',');

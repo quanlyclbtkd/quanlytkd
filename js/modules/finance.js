@@ -347,11 +347,12 @@ export function initFinance() {
                     else if (td.txMonth) remainingMonths.push(td.txMonth);
                 });
                 const sortedRemaining = [...new Set(remainingMonths)].sort();
-                const newPaidUntil = sortedRemaining.length > 0
-                    ? sortedRemaining[sortedRemaining.length - 1]
-                    : '';
                 const deletedMonths = txToDelete.packageMonths ||
                     (txToDelete.txMonth ? [txToDelete.txMonth] : []);
+                const deleteProfile = profiles[studentName] || {};
+                const newPaidUntil = typeof window.derivePaidThroughAfterTuitionRemoval === 'function'
+                    ? window.derivePaidThroughAfterTuitionRemoval(deleteProfile, sortedRemaining, deletedMonths)
+                    : (sortedRemaining.length > 0 ? sortedRemaining[sortedRemaining.length - 1] : '');
                 await FinanceService.updateProfileAfterTxDelete(studentName, newPaidUntil, deletedMonths);
             }
         }
@@ -451,28 +452,23 @@ export function initFinance() {
                 ? actualLastMonth + '-01'
                 : today;
 
-            await FinanceService.addTransaction({
-                branch: branch || 'CS1',
-                type: 'Học phí',
-                description: cleanName,
-                amount,
-                date: txDate,
-                txMonth: actualLastMonth,
-                packageMonths: paidMonthsList,
-                timestamp: Date.now(),
+            const atomicResult = await FinanceService.addTuitionPaymentAtomic({
+                studentName: cleanName,
+                months: paidMonthsList,
+                profile,
+                reason: 'module-quick-pay-tuition',
+                txData: {
+                    branch: branch || 'CS1',
+                    type: 'Học phí',
+                    description: cleanName,
+                    amount,
+                    date: txDate,
+                    txMonth: actualLastMonth,
+                    packageMonths: paidMonthsList,
+                    timestamp: Date.now(),
+                },
             });
-
-            // Không cho paidUntil thụt lùi về trước hiện tại
-            const normPaid = normalizeYYYYMM(profile.paidUntil);
-            const safePaidUntil = actualLastMonth > (normPaid || '')
-                ? actualLastMonth
-                : (normPaid || actualLastMonth);
-
-            // Chỉ ghi field thanh toán — KHÔNG ghi đè belt/branch/status/createdAt
-            await FinanceService.updateStudentPayment(cleanName, {
-                paidUntil: safePaidUntil,
-                paidMonths: FinanceService._arrayUnion(...paidMonthsList),
-            });
+            const safePaidUntil = atomicResult.paidUntil;
 
             // Ghi audit log (không chặn luồng chính nếu lỗi)
             await FinanceService.addFeeAuditSilent({
@@ -737,40 +733,41 @@ export function initFinance() {
                 const today = getLocalToday();
                 const todayM = today.substring(0, 7);
 
-                // Võ sinh 1
+                const familyEntries = [];
                 if (n1 && f1 > 0) {
                     const d1 = m1 < todayM ? m1 + '-01' : today;
-                    await FinanceService.addTransaction({
-                        branch: b1, type: 'Học phí', description: n1,
-                        amount: f1, date: d1, txMonth: m1, packageMonths: [m1],
-                        timestamp: Date.now(),
-                    });
-                    // Chỉ ghi paidUntil, không ghi đè các field khác
-                    const cu1 = normalizeYYYYMM((profiles[n1] && profiles[n1].paidUntil) || '');
-                    const np1 = m1 > cu1 ? m1 : cu1;
-                    await FinanceService.patchProfile(n1, { paidUntil: np1 });
-                    await FinanceService.addFeeAuditSilent({
-                        studentId: n1, amount: f1, date: today,
-                        type: 'tuition', month: np1, months: [m1],
-                        by: window.currentUserEmail || 'admin', timestamp: Date.now(),
+                    familyEntries.push({
+                        studentName: n1,
+                        months: [m1],
+                        profile: profiles[n1] || {},
+                        reason: 'module-family-pay-student-1',
+                        txData: { branch: b1, type: 'Học phí', description: n1, amount: f1, date: d1, txMonth: m1, packageMonths: [m1], timestamp: Date.now() },
                     });
                 }
-
-                // Võ sinh 2
                 if (n2 && f2 > 0) {
                     const d2 = m2 < todayM ? m2 + '-01' : today;
-                    await FinanceService.addTransaction({
-                        branch: b2, type: 'Học phí', description: n2,
-                        amount: f2, date: d2, txMonth: m2, packageMonths: [m2],
-                        timestamp: Date.now() + 1,
+                    familyEntries.push({
+                        studentName: n2,
+                        months: [m2],
+                        profile: profiles[n2] || {},
+                        reason: 'module-family-pay-student-2',
+                        txData: { branch: b2, type: 'Học phí', description: n2, amount: f2, date: d2, txMonth: m2, packageMonths: [m2], timestamp: Date.now() + 1 },
                     });
-                    const cu2 = normalizeYYYYMM((profiles[n2] && profiles[n2].paidUntil) || '');
-                    const np2 = m2 > cu2 ? m2 : cu2;
-                    await FinanceService.patchProfile(n2, { paidUntil: np2 });
+                }
+                const familyResults = familyEntries.length
+                    ? await FinanceService.addTuitionPaymentsAtomic(familyEntries, 'module-family-tuition-payment')
+                    : [];
+                for (const entry of familyEntries) {
+                    const result = familyResults.find(item => item.studentName === entry.studentName) || {};
                     await FinanceService.addFeeAuditSilent({
-                        studentId: n2, amount: f2, date: today,
-                        type: 'tuition', month: np2, months: [m2],
-                        by: window.currentUserEmail || 'admin', timestamp: Date.now() + 1,
+                        studentId: entry.studentName,
+                        amount: entry.txData.amount,
+                        date: today,
+                        type: 'tuition',
+                        month: result.paidUntil || entry.months[0],
+                        months: entry.months,
+                        by: window.currentUserEmail || 'admin',
+                        timestamp: entry.txData.timestamp,
                     });
                 }
 
@@ -876,13 +873,15 @@ export function initFinance() {
                 }
             }
 
-            await FinanceService.addTransaction(txData);
-
             if (monthsToRecord.length > 0) {
-                await FinanceService.updateStudentPayment(name, {
-                    paidUntil: newPaidUntil,
-                    paidMonths: FinanceService._arrayUnion(...monthsToRecord),
+                const atomicResult = await FinanceService.addTuitionPaymentAtomic({
+                    studentName: name,
+                    months: monthsToRecord,
+                    profile,
+                    txData,
+                    reason: 'module-transaction-form',
                 });
+                newPaidUntil = atomicResult.paidUntil;
                 // Audit log (không chặn luồng chính)
                 await FinanceService.addFeeAuditSilent({
                     studentId: name,
@@ -894,6 +893,8 @@ export function initFinance() {
                     by: window.currentUserEmail || 'admin',
                     timestamp: Date.now(),
                 });
+            } else {
+                await FinanceService.addTransaction(txData);
             }
 
             e.target.reset();

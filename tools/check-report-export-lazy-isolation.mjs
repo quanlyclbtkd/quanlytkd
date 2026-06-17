@@ -37,7 +37,7 @@ check(main.includes('registerReportExportFacade();'), 'main registers report fac
 check(main.indexOf('initGlobalOwnershipRegistry();') < main.indexOf('registerReportExportFacade();'), 'ownership registry initializes before report facade');
 check(!main.includes("from './modules/reports.js'"), 'main no longer static-imports heavy reports.js');
 check(!main.includes('initReports();'), 'main no longer initializes heavy reports at startup');
-check(facade.includes("import('../reports.js')"), 'facade lazy-imports heavy reports.js');
+check(/import\(['"]\.\.\/reports\.js(?:\?[^'"]+)?['"]\)/.test(facade), 'facade lazy-imports heavy reports.js');
 check(facade.includes("import('./attendanceExcelReport.js')"), 'facade lazy-imports attendance export');
 check(facade.includes('reportsModulePromise'), 'facade shares one reports import promise');
 check(facade.includes('attendanceModulePromise'), 'facade shares one attendance import promise');

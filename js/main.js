@@ -1,4 +1,5 @@
 // Phase 4K-6V3A compatibility: 4K-6V3A-firestore-read-attribution-canonical-transaction-boundary
+// APP_BUILD_VERSION = '4K-6V3D1-canonical-tuition-ledger-reconciliation-20260618'
 // Compatibility marker: multiItemInventorySafety.js?v=inventory-ledger-reconciliation-20260616-v2c
 // Phase compatibility APP_BUILD_VERSION markers for static safety checks:
 // APP_BUILD_VERSION = '4K-6D-security-license-ip-protection-readiness-20260605'
@@ -254,7 +255,7 @@ import {
     getQuitStatusValues,
     getProfilesListenerMetrics,
     ensureAllProfilesForExport,
-} from './listeners/profiles.listeners.js?v=debt-profile-read-boundary-20260616-v3d';
+} from './listeners/profiles.listeners.js?v=canonical-tuition-ledger-20260618-v3d1';
 
 // ── Phase 3.7C: Profile Status Config ────────────────────────────────────────
 import {
@@ -308,7 +309,7 @@ import {
 } from './firebase/paginatedQuery.js';
 
 // ── Phase 2d–3.2A: Business modules (eager — cần khi login) ────
-import { initStudents, initStudentPagination }        from './modules/students.js?v=debt-profile-read-boundary-20260616-v3d';
+import { initStudents, initStudentPagination }        from './modules/students.js?v=canonical-tuition-ledger-20260618-v3d1';
 // PHẦN 1 FIX + Phase 4K-2: Unified Search Controller — real cache + SearchBlob + stale guard
 import {
     initGlobalSearchRuntime,
@@ -317,7 +318,7 @@ import {
     invalidateSearchCache,
     debugSearchPerformance,
 } from './modules/searchRuntime.js';
-import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from './modules/finance.js?v=payment-bundle-runtime-hotfix-20260616-v3a1';
+import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from './modules/finance.js?v=canonical-tuition-ledger-20260618-v3d1';
 import { initInventory }                              from './modules/inventory.js?v=payment-bundle-runtime-hotfix-20260616-v3a1';
 import { initAttendance }                             from './modules/attendance.js';
 import { initDashboard }                              from './modules/dashboard.js?v=payment-bundle-runtime-hotfix-20260616-v3a1';
@@ -3103,7 +3104,7 @@ window.debugProfileModalClose = function() {
 // PHẦN 1 — APP BUILD VERSION
 window.APP_BUILD_VERSION = '4K-6V2-inventory-history-pagination-complete-active-debt-20260616';
 // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
-window.APP_PATCH_VERSION = '4K-6V3D-debt-profile-read-boundary-20260616';
+window.APP_PATCH_VERSION = '4K-6V3D1-canonical-tuition-ledger-reconciliation-20260618';
 window.APP_COPYRIGHT_OWNER   = 'Tình Trương';
 window.APP_PRODUCT_NAME      = 'Taekwondo Club Management Web App';
 window.APP_SECURITY_PHASE    = '4K-6E-scale-readiness-write-safety';
@@ -5282,7 +5283,9 @@ window.reconcileStudentTuitionAfterDeletedTransaction = async function(studentNa
             return !monthsToRemove.includes(m);
         });
 
-        var newPaidUntil = window.recalculatePaidUntilFromPaidMonths(profile, newPaidMonths, options);
+        var newPaidUntil = typeof window.derivePaidThroughAfterTuitionRemoval === 'function'
+            ? window.derivePaidThroughAfterTuitionRemoval(profile, newPaidMonths, monthsToRemove)
+            : window.recalculatePaidUntilFromPaidMonths(profile, newPaidMonths, Object.assign({}, options, { removedMonths: monthsToRemove }));
 
         console.info('[reconcile] studentName:', studentName,
             'removing months:', monthsToRemove,
@@ -5297,6 +5300,7 @@ window.reconcileStudentTuitionAfterDeletedTransaction = async function(studentNa
                 await ss.updateProfile(studentName, {
                     paidMonths: newPaidMonths,
                     paidUntil:  newPaidUntil,
+                    paidThroughMonth: newPaidUntil,
                 });
                 writeOk = true;
             } else {
@@ -5307,7 +5311,7 @@ window.reconcileStudentTuitionAfterDeletedTransaction = async function(studentNa
                 if (sdk.doc && sdk.updateDoc && db && clubId) {
                     await sdk.updateDoc(
                         sdk.doc(db, 'clubs', clubId, 'profiles', studentName),
-                        { paidMonths: newPaidMonths, paidUntil: newPaidUntil }
+                        { paidMonths: newPaidMonths, paidUntil: newPaidUntil, paidThroughMonth: newPaidUntil }
                     );
                     writeOk = true;
                 }
@@ -5320,10 +5324,12 @@ window.reconcileStudentTuitionAfterDeletedTransaction = async function(studentNa
         if (st.profiles && st.profiles[studentName]) {
             st.profiles[studentName].paidMonths = newPaidMonths;
             st.profiles[studentName].paidUntil  = newPaidUntil;
+            st.profiles[studentName].paidThroughMonth = newPaidUntil;
         }
         if (window.allProfiles && window.allProfiles[studentName]) {
             window.allProfiles[studentName].paidMonths = newPaidMonths;
             window.allProfiles[studentName].paidUntil  = newPaidUntil;
+            window.allProfiles[studentName].paidThroughMonth = newPaidUntil;
         }
 
         // Refresh lists

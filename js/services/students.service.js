@@ -196,12 +196,16 @@ export const StudentService = {
      * @param {string} month — YYYY-MM
      */
     async removeSkippedMonth(name, month) {
+        if (typeof window.removeSkippedTuitionMonthAtomic === 'function') {
+            return window.removeSkippedTuitionMonthAtomic({ studentName: name, month });
+        }
         const { setDoc, arrayRemove } = _sdk();
         await setDoc(
             _profRef(name.trim()),
             { skippedMonths: arrayRemove(month) },
             { merge: true }
         );
+        return { studentName: name, month, paidUntil: '' };
     },
 
     // ── DELETE ──────────────────────────────────────────────────
