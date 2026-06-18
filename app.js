@@ -38,7 +38,7 @@
     let allTransactions = [];
     let allInventory = [];
     let inventoryStats = {};
-    let clubConfig = { bankId: "AGRIBANK", accountNo: "4300205305756", accountName: "TRUONG SANH TINH - CLB TAEKWONDO TST", branchCount: 2, location: "Quy Nhơn" };
+    let clubConfig = { bankId: "AGRIBANK", accountNo: "4300205305756", accountName: "TRUONG SANH TINH - CLB TAEKWONDO TST", branchCount: 2, location: "Quy Nhơn", inventorySalePolicy: "strict" };
     let colRef = null;
     let profRef = null;
     let invRef = null;
@@ -578,12 +578,16 @@ window.invCustomCategories = [];
         document.getElementById('add_fee_display').value = '';
         document.getElementById('add_fee_actual').value = '';
         document.getElementById('add_uniform_size').value = '';
+        const _addUniformManual = document.getElementById('add_uniform_size_manual'); if (_addUniformManual) _addUniformManual.value = '';
+        const _addUniformPending = document.getElementById('add_uniform_pending'); if (_addUniformPending) _addUniformPending.checked = false;
+        const _addUniformPendingReason = document.getElementById('add_uniform_pending_reason'); if (_addUniformPendingReason) _addUniformPendingReason.value = '';
         document.getElementById('add_uniform_display').value = '';
         document.getElementById('add_uniform_actual').value = '';
         document.getElementById('add_uniform_gift').checked = false;
         document.getElementById('add_uniform_display').disabled = false;
         // Reset lịch học khi mở form thêm mới
         document.querySelectorAll('.add_trainingDay').forEach(cb => cb.checked = false);
+        window.applyAdmissionInventoryPolicyUI?.();
         // [SỬA ĐỒNG BỘ] Đảm bảo shifts đã load kể cả khi chưa mở tab Điểm Danh
         const _addShiftSel = document.getElementById('add_shift');
         if (_addShiftSel) {
@@ -614,6 +618,7 @@ window.invCustomCategories = [];
             window.ensureInventoryForFeature?.('inventoryTab', 'enter-inventory-tab');
             window.ensureInventoryHistoryLoaded?.('legacy-switch-inventory-tab')
                 .catch?.((err) => console.warn('[Phase 4K-6V2] inventory tab load failed:', err));
+            window.refreshInventoryPendingIssues?.().catch?.((err) => console.warn('[Phase 4K-6V3F] pending inventory load failed:', err));
         }
         // [Phase 3.8A] Dashboard feature gate
         if (tabId === 'dashboard') {
@@ -835,7 +840,7 @@ window.invCustomCategories = [];
                 expiryDate: "2027-04-30",
                 accountStatus: "active"
             });
-            let configData = { bankId: "", accountNo: "", accountName: "", branchCount: branchCount, location: "Quy Nhơn" };
+            let configData = { bankId: "", accountNo: "", accountName: "", branchCount: branchCount, location: "Quy Nhơn", inventorySalePolicy: "strict" };
             if(tempLogoBase64) configData.logoBase64 = tempLogoBase64;
             batch.set(doc(db, "clubs", clubId, "settings", "main_config"), configData);
             batch.set(doc(db, "clubs", clubId, "settings", "inventory_stats"), {});
@@ -1681,6 +1686,8 @@ service cloud.firestore {
                 // Phase 4.0B-4D: mark settings loaded
                 _updateHydrationMetrics({ settingsLoaded: true, lastReason: 'settings-snapshot' });
                 applyClubConfigUI();
+                window.applyAdmissionInventoryPolicyUI?.();
+                window.applyMultiItemInventoryPolicyUI?.();
                 // [Phase 3.5C] settings thay đổi ảnh hưởng toàn bộ UI → invalidateByDomain('all')
                 // Dùng domain invalidation thay vì scheduleRender() toàn app.
                 // Fallback về scheduleRender() nếu Phase 3.5C chưa load.
@@ -4079,6 +4086,8 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         document.getElementById('cfg_accountNo').value = clubConfig.accountNo || "";
         document.getElementById('cfg_accountName').value = clubConfig.accountName || "";
         document.getElementById('cfg_location').value = clubConfig.location || "Quy Nhơn";
+        const _invPolicyEl = document.getElementById('cfg_inventorySalePolicy');
+        if (_invPolicyEl) _invPolicyEl.value = window.InventorySalePolicy?.normalize?.(clubConfig.inventorySalePolicy) || clubConfig.inventorySalePolicy || 'strict';
 
         // Phase 4.0B-4J-3: populate bank2 fields
         const _pa = clubConfig.paymentAccounts || {};
@@ -4187,7 +4196,8 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             }
         }
 
-        let updateData = { bankId, accountNo, accountName, location, trainerName };
+        const inventorySalePolicy = window.InventorySalePolicy?.normalize?.((document.getElementById('cfg_inventorySalePolicy') || {}).value) || 'strict';
+        let updateData = { bankId, accountNo, accountName, location, trainerName, inventorySalePolicy };
         if(parentCode) updateData.parentCode = parentCode;
         if(tempLogoBase64) updateData.logoBase64 = tempLogoBase64;
         if(tempSignatureBase64) updateData.signatureBase64 = tempSignatureBase64;
@@ -5033,14 +5043,18 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         if(_addStudentInProgress) return;
         const name = document.getElementById('add_name').value.trim(); const joinDate = document.getElementById('add_date').value;
         const fee = Number(document.getElementById('add_fee_actual').value) || Number((document.getElementById('add_fee_display').value || '').replace(/[^0-9]/g, '')) || 0;
-        const uniformSize = document.getElementById('add_uniform_size').value.trim();
+        const _inventorySelection = typeof window.getAdmissionInventorySelection === 'function'
+            ? window.getAdmissionInventorySelection()
+            : { postingMode: 'posted', size: document.getElementById('add_uniform_size').value.trim(), reason: '' };
+        const uniformSize = String(_inventorySelection.size || '').trim();
+        const inventoryPostingMode = _inventorySelection.postingMode || 'posted';
         const uniformFee = Number(document.getElementById('add_uniform_actual').value) || Number((document.getElementById('add_uniform_display').value || '').replace(/[^0-9]/g, '')) || 0;
         const packageCount = parseInt(document.getElementById('add_package').value) || 1; const isGift = document.getElementById('add_uniform_gift').checked;
         const isSingleBranch = (clubConfig.branchCount === 1); const branch = isSingleBranch ? 'Mặc định' : document.getElementById('add_branch').value;
         const memberId = document.getElementById('add_memberId').value.trim().toUpperCase();
 
         if(!name) { window.showToast('⚠️ Vui lòng nhập họ tên võ sinh!', 3000); const el = document.getElementById('add_name'); if(el){ el.focus(); el.style.borderColor='#ef4444'; setTimeout(()=>{ el.style.borderColor=''; },3000); } return; }
-        if(!isGift && uniformFee > 0 && !uniformSize) { window.showToast('⚠️ Vui lòng chọn Size Võ phục!', 3000); const el = document.getElementById('add_uniform_size'); if(el){ el.focus(); el.style.borderColor='#ef4444'; setTimeout(()=>{ el.style.borderColor=''; },3000); } return; }
+        if(!isGift && uniformFee > 0 && !uniformSize) { window.showToast('⚠️ Vui lòng chọn hoặc nhập Size Võ phục!', 3000); const el = inventoryPostingMode === 'posted' ? document.getElementById('add_uniform_size') : document.getElementById('add_uniform_size_manual'); if(el){ el.focus(); el.style.borderColor='#ef4444'; setTimeout(()=>{ el.style.borderColor=''; },3000); } return; }
         _addStudentInProgress = true;
         // [SỬA] Xử lý trùng tên — luôn tạo key riêng để KHÔNG overwrite dữ liệu võ sinh cũ.
         // _saveKey = key lưu Firestore; name = tên hiển thị trong biên lai/giao dịch.
@@ -5094,30 +5108,23 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         }
         await setDoc(doc(db, "clubs", currentClubId, "profiles", _saveKey), _newProfileData);
 
-        // Phase 4K-5C: Tạo 1 bundle transaction cho học phí + võ phục nhập học
-        let _invDocId = '';
-        if(uniformSize) {
-            const _admissionInvPayload = { size: uniformSize, category: 'Võ phục', type: 'Xuất bán', qty: 1, desc: _saveKey, studentName: _saveKey, profileId: _saveKey, memberId: memberId || '', amount: uniformFee, date: joinDate, timestamp: Date.now() + 2 };
-            if (window.InventoryService && typeof window.InventoryService.addItem === 'function') {
-                _invDocId = await window.InventoryService.addItem(_admissionInvPayload);
-            } else {
-                const invDoc = await addDoc(invRef, _admissionInvPayload);
-                _invDocId = invDoc.id;
-                const _base = 'Võ phục|||' + uniformSize;
-                await setDoc(doc(db, "clubs", currentClubId, "settings", "inventory_stats"), {
-                    [_base + '_balance']: increment(-1),
-                    [_base + '_out']: increment(1)
-                }, { merge: true });
-                window.mergeInventoryIntoRuntimeStore?.({ id: _invDocId, ..._admissionInvPayload }, 'admission-uniform-created-legacy');
-            }
-            if(isGift) {
-                await addDoc(colRef, _canonicalTxPayload({ branch: 'Chung', type: 'Tặng Võ phục', description: 'Tặng ' + uniformSize + ' cho ' + _saveKey, amount: 0, date: joinDate, timestamp: Date.now() + 1, relatedInvId: _invDocId }, 'admission-uniform-gift'));
-            }
-        }
-
+        // Phase 4K-6V3F: transaction tài chính + stock/pending boundary
         const _hasFinancialPayment = fee > 0 || (!isGift && uniformFee > 0 && uniformSize);
         let tuitionTx = null;
-        if(_hasFinancialPayment && typeof window.buildPaymentBundleTransaction === 'function') {
+        let _invDocId = '';
+        let _pendingIssueId = '';
+        if (typeof window.InventoryPendingService?.commitFinancialTransaction !== 'function') {
+            throw new Error('InventoryPendingService chưa sẵn sàng; dừng để tránh ghi dữ liệu Kho không đầy đủ.');
+        }
+        const _inventoryData = uniformSize ? {
+            category: 'Võ phục', size: uniformSize, qty: 1,
+            desc: _saveKey, studentName: _saveKey, profileId: _saveKey,
+            memberId: memberId || '', amount: isGift ? 0 : uniformFee,
+            date: joinDate, pendingReason: _inventorySelection.reason || 'Bán tại bước thêm võ sinh, chờ bổ sung Kho',
+            source: 'student-admission'
+        } : null;
+
+        if (_hasFinancialPayment && typeof window.buildPaymentBundleTransaction === 'function') {
             const _admComponents = [];
             if(fee > 0) {
                 const _tuitionLabel = tuitionPkg.packageCount > 1
@@ -5126,53 +5133,40 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                 _admComponents.push({ kind: 'tuition', type: 'Học phí', label: _tuitionLabel, amount: fee, month: lastMonth, packageMonths: monthsToRecord });
             }
             if(!isGift && uniformFee > 0 && uniformSize) {
-                _admComponents.push({ kind: 'inventory', type: 'Thu Võ phục', label: 'Võ phục ' + (uniformSize || ''), amount: uniformFee, category: 'Võ phục', size: uniformSize, qty: 1, relatedInvId: _invDocId });
+                _admComponents.push({ kind: 'inventory', type: 'Thu Võ phục', label: 'Võ phục ' + uniformSize, amount: uniformFee, category: 'Võ phục', size: uniformSize, qty: 1 });
             }
-            if(_admComponents.length > 0) {
-                const _bundleTx = window.buildPaymentBundleTransaction({
-                    studentName: _saveKey, branch: branch, date: joinDate, refMonth: lastMonth,
-                    receiptType: 'Thu nhập học', components: _admComponents
-                });
-                let _bundleDoc = null;
-                if (fee > 0 && typeof window.commitTuitionPaymentAtomic === 'function') {
-                    const _atomicAdmission = await window.commitTuitionPaymentAtomic({
-                        studentName: _saveKey,
-                        months: monthsToRecord,
-                        profile: _newProfileData,
-                        txData: _bundleTx,
-                        transactionsRef: colRef,
-                        reason: 'admission-payment-bundle'
-                    });
-                    _bundleDoc = { id: _atomicAdmission.id };
-                    tuitionTx = Object.assign({ id: _atomicAdmission.id }, _bundleTx);
-                } else {
-                    _bundleDoc = await addDoc(colRef, _canonicalTxPayload(_bundleTx, 'payment-bundle'));
-                    tuitionTx = Object.assign({ id: _bundleDoc.id }, _bundleTx);
-                }
-                if(_invDocId && !isGift) {
-                    try { await updateDoc(doc(db, 'clubs', currentClubId, 'inventory', _invDocId), { paymentBundleId: _bundleDoc.id, paidTxId: _bundleDoc.id }); } catch(_e) {}
-                }
-                if(typeof window.mergeTransactionIntoRuntimeStore === 'function') {
-                    window.mergeTransactionIntoRuntimeStore(tuitionTx, 'admission-bundle-created');
-                }
-            }
-        } else if(fee > 0) {
-            // Fallback: ghi học phí riêng
-            const _txPayload = { branch: branch, type: 'Học phí', description: _saveKey, amount: fee, date: joinDate, txMonth: lastMonth, paymentMonth: startMonth, packageMonths: monthsToRecord, tuitionPackageCount: tuitionPkg.packageCount, tuitionStartMonth: startMonth, tuitionPaidUntil: lastMonth, timestamp: Date.now() };
-            let _txDoc = null;
-            if (typeof window.commitTuitionPaymentAtomic === 'function') {
-                const _atomicAdmissionTuition = await window.commitTuitionPaymentAtomic({ studentName: _saveKey, months: monthsToRecord, profile: _newProfileData, txData: _txPayload, transactionsRef: colRef, reason: 'admission-tuition' });
-                _txDoc = { id: _atomicAdmissionTuition.id };
-            } else {
-                _txDoc = await addDoc(colRef, _canonicalTxPayload(_txPayload, 'admission-tuition'));
-            }
-            tuitionTx = Object.assign({ id: _txDoc.id }, _txPayload);
-            if(typeof window.mergeTransactionIntoRuntimeStore === 'function') {
-                window.mergeTransactionIntoRuntimeStore(tuitionTx, 'admission-tuition-created-legacy');
-            }
-            if(!isGift && uniformFee > 0 && uniformSize && _invDocId) {
-                await addDoc(colRef, _canonicalTxPayload({ branch: 'Chung', type: 'Thu Võ phục', description: _saveKey, uniformSize: uniformSize, amount: uniformFee, date: joinDate, timestamp: Date.now() + 1, relatedInvId: _invDocId }, 'admission-uniform-sale'));
-            }
+            const _bundleTx = window.buildPaymentBundleTransaction({
+                studentName: _saveKey, branch: branch, date: joinDate, refMonth: lastMonth,
+                receiptType: 'Thu nhập học', components: _admComponents
+            });
+            // admission-bundle-created: compatibility/audit marker for the admission bundle boundary.
+            const _commitResult = await window.InventoryPendingService.commitFinancialTransaction({
+                txData: _bundleTx,
+                studentName: _saveKey,
+                tuitionMonths: fee > 0 ? monthsToRecord : [],
+                profile: _newProfileData,
+                inventory: (!isGift && uniformSize && uniformFee > 0) ? _inventoryData : null,
+                postingMode: inventoryPostingMode,
+                reason: 'admission-payment-bundle'
+            });
+            tuitionTx = Object.assign({ id: _commitResult.id }, _commitResult.txData);
+            _invDocId = _commitResult.relatedInvId || '';
+            _pendingIssueId = _commitResult.pendingIssueId || '';
+        } else if (isGift && uniformSize) {
+            const _giftTx = {
+                branch: 'Chung', type: 'Tặng Võ phục', receiptType: 'Tặng Võ phục',
+                description: 'Tặng ' + uniformSize + ' cho ' + _saveKey,
+                studentName: _saveKey, profileName: _saveKey, profileId: _saveKey,
+                amount: 0, date: joinDate, txMonth: lastMonth,
+                components: [{ kind: 'inventory', type: 'Tặng Võ phục', label: 'Tặng Võ phục ' + uniformSize, amount: 0, category: 'Võ phục', size: uniformSize, qty: 1 }],
+                timestamp: Date.now()
+            };
+            const _giftResult = await window.InventoryPendingService.commitFinancialTransaction({
+                txData: _giftTx, studentName: _saveKey, inventory: _inventoryData,
+                postingMode: inventoryPostingMode, reason: 'legacy-admission-uniform-gift-v3f'
+            });
+            _invDocId = _giftResult.relatedInvId || '';
+            _pendingIssueId = _giftResult.pendingIssueId || '';
         }
         closeAddModal();
         window.showToast("🎉 Đã thêm võ sinh " + _saveKey + " thành công!", 3000);
@@ -7843,7 +7837,10 @@ window.openMultiItemModal = () => {
     document.getElementById('mi_inv_price_display').value = '';
     document.getElementById('mi_inv_qty').value = '1';
     document.getElementById('mi_inv_size_text').value = '';
+    const _miPending = document.getElementById('mi_inv_pending'); if (_miPending) _miPending.checked = false;
+    const _miPendingReason = document.getElementById('mi_inv_pending_reason'); if (_miPendingReason) _miPendingReason.value = '';
     document.getElementById('mi_inv_total_display').value = '';
+    window.applyMultiItemInventoryPolicyUI?.();
     document.getElementById('mi_inv_debt_panel').style.display = 'none';
     document.getElementById('mi_inv_debt_list').innerHTML = '';
     document.getElementById('mi_inv_debt_total_actual').value = '0';
@@ -7886,13 +7883,14 @@ window.toggleMultiItemInv = () => {
     const on = document.getElementById('mi_inv_toggle').checked;
     document.getElementById('mi_inv_section').style.display = on ? 'block' : 'none';
     if (on) {
-        if (typeof window.ensureMultiItemInventoryReady === 'function') {
+        const _policyState = window.applyMultiItemInventoryPolicyUI?.() || { postingMode: 'posted' };
+        if (_policyState.postingMode !== 'posted') {
+            window.toggleMiInvCategory?.();
+        } else if (typeof window.ensureMultiItemInventoryReady === 'function') {
             window.ensureMultiItemInventoryReady('multi-item-toggle-inventory')
                 .then(() => {
                     window.MultiItemInventorySafety?.buildInventoryStockMapForMultiItem?.({ reason: 'toggle-inventory', force: true });
-                    if (typeof window.toggleMiInvCategory === 'function') {
-                        window.toggleMiInvCategory();
-                    }
+                    if (typeof window.toggleMiInvCategory === 'function') window.toggleMiInvCategory();
                 })
                 .catch(e => console.warn('[multiItem] inventory toggle hydration failed:', e));
         } else {
@@ -7905,6 +7903,15 @@ window.toggleMultiItemInv = () => {
 };
 
 window.toggleMiInvCategory = () => {
+    const _policyState = window.applyMultiItemInventoryPolicyUI?.();
+    if (_policyState && _policyState.useManual) {
+        const _manual = document.getElementById('mi_inv_size_text');
+        const _select = document.getElementById('mi_inv_size_select');
+        if (_select) _select.style.display = 'none';
+        if (_manual) _manual.style.display = '';
+        if (typeof window.updateMultiItemTotal === 'function') window.updateMultiItemTotal();
+        return { ok: true, manual: true, postingMode: _policyState.postingMode };
+    }
     // Phase 4K-6L: read-only UI ownership for MultiItem inventory stock selector; legacy MultiItemInventorySafety fallback preserved below.
     if (window.InventoryMultiItemReadOnlyUI && typeof window.InventoryMultiItemReadOnlyUI.renderMultiItemInventoryCategoryOptions === 'function') {
         try {
@@ -8599,7 +8606,11 @@ window.buildPaymentBundleTransaction = function(payload) {
                 qty: Number(c.qty || 0),
                 examTitle: c.examTitle || '',
                 examTargetBelt: c.examTargetBelt || '',
-                currentBeltAtPayment: c.currentBeltAtPayment || ''
+                currentBeltAtPayment: c.currentBeltAtPayment || '',
+                inventoryPostingStatus: c.inventoryPostingStatus || '',
+                affectsInventory: c.affectsInventory === true,
+                affectsRevenue: c.affectsRevenue !== false,
+                pendingIssueId: c.pendingIssueId || ''
             };
         });
     if (!safeComponents.length) throw new Error('Không có khoản thu hợp lệ để tạo giao dịch.');
@@ -8673,7 +8684,11 @@ window.expandTransactionComponentsForAccounting = function(tx) {
                 category: c.category || '',
                 size: c.size || '',
                 examTitle: c.examTitle || tx.examTitle || '',
-                examTargetBelt: c.examTargetBelt || tx.examTargetBelt || ''
+                examTargetBelt: c.examTargetBelt || tx.examTargetBelt || '',
+                inventoryPostingStatus: c.inventoryPostingStatus || tx.inventoryPostingStatus || '',
+                affectsInventory: c.affectsInventory === true,
+                affectsRevenue: c.affectsRevenue !== false,
+                pendingIssueId: c.pendingIssueId || ''
             };
         });
     }
@@ -9061,8 +9076,11 @@ window.processMultiItem = async (action) => {
     const otherFee = hasOther ? (Number(document.getElementById('mi_other_actual').value) || 0) : 0;
     const hasInv = document.getElementById('mi_inv_toggle').checked;
     const invCat = hasInv ? (document.getElementById('mi_inv_category').value || 'Võ phục') : '';
-    const invSizeEl = invCat === 'Võ phục' ? document.getElementById('mi_inv_size_select') : document.getElementById('mi_inv_size_text');
-    const invSize = hasInv ? (invSizeEl ? invSizeEl.value.trim() : '') : '';
+    const _inventorySelection = hasInv && typeof window.getMultiItemInventorySelection === 'function'
+        ? window.getMultiItemInventorySelection(invCat)
+        : { postingMode: 'posted', size: hasInv ? ((document.getElementById('mi_inv_size_select') || {}).value || '').trim() : '', reason: '' };
+    const inventoryPostingMode = _inventorySelection.postingMode || 'posted';
+    const invSize = hasInv ? String(_inventorySelection.size || '').trim() : '';
     const invQty = hasInv ? (Number(document.getElementById('mi_inv_qty').value) || 1) : 0;
     const invPrice = hasInv ? (Number(document.getElementById('mi_inv_price_actual').value) || 0) : 0;
     const invTotal = hasInv ? (Number(document.getElementById('mi_inv_total_actual').value) || 0) : 0;
@@ -9180,38 +9198,14 @@ window.processMultiItem = async (action) => {
             if (typeof window.recordFinancialActionAudit === 'function') window.recordFinancialActionAudit('multiitem.pay', 'before', _miAuditPayload);
             const today = getLocalToday();
 
-            // Phase 4K-6V3D1: profile ledger is written atomically with the tuition transaction.
-            // Inventory documents remain separate because they have their own stock ledger boundary.
-
-            // 2. Tạo inventory doc (quản lý kho) — riêng biệt, không là giao dịch tài chính
-            let _invDocId = '';
-            if(hasInv && invTotal > 0) {
-                const _miIdentity = typeof window.resolveInventoryDebtIdentity === 'function' ? window.resolveInventoryDebtIdentity(name) : {};
-                const _miInvPayload = { category: invCat, size: invSize, type: 'Xuất bán', qty: invQty, desc: name, studentName: name, profileId: _miIdentity.profileId || '', memberId: _miIdentity.memberId || '', amount: invTotal, date: today, timestamp: Date.now() + 2 };
-                if (window.InventoryService && typeof window.InventoryService.addItem === 'function') {
-                    _invDocId = await window.InventoryService.addItem(_miInvPayload);
-                } else {
-                    const _invDoc = await addDoc(invRef, _miInvPayload);
-                    _invDocId = _invDoc.id;
-                    const _miBase = invCat + '|||' + invSize;
-                    await setDoc(doc(db, 'clubs', currentClubId, 'settings', 'inventory_stats'), {
-                        [_miBase + '_balance']: increment(-invQty),
-                        [_miBase + '_out']: increment(invQty)
-                    }, { merge: true });
-                    window.mergeInventoryIntoRuntimeStore?.({ id: _invDocId, ..._miInvPayload }, 'multi-item-inventory-created-legacy');
-                }
+            // Phase 4K-6V3F: một boundary duy nhất cho tài chính + tồn/pending + thu nợ Kho.
+            if (typeof window.InventoryPendingService?.commitFinancialTransaction !== 'function') {
+                throw new Error('InventoryPendingService chưa sẵn sàng; dừng để tránh ghi dữ liệu một phần.');
             }
 
-            // 3. Đánh dấu nợ kho đã thanh toán
-            if(invDebtIds.length > 0) {
-                await Promise.all(invDebtIds.map(id => updateDoc(doc(db, 'clubs', currentClubId, 'inventory', id), { unpaid: false })));
-            }
-
-            // 4. Build components cho bundle
             const _profileForExam = allProfiles[name] || {};
             const _currentBelt = _profileForExam.belt || '';
             const _examTargetBelt = (window.BELT_NEXT && _currentBelt && window.BELT_NEXT[_currentBelt]) ? window.BELT_NEXT[_currentBelt] : '';
-
             const _components = [];
             if(hasTuition && tuition > 0) {
                 const _tuitionLabel = packageMonths.length
@@ -9225,66 +9219,44 @@ window.processMultiItem = async (action) => {
                 _components.push({ kind: 'exam', type: 'Lệ phí thi', label: examTitle || 'Lệ phí thi', amount: examFee, examTitle: examTitle, currentBeltAtPayment: _currentBelt, examTargetBelt: _examTargetBelt });
             }
             if(hasInv && invTotal > 0) {
-                _components.push({ kind: 'inventory', type: 'Thu ' + invCat, label: invCat + ' ' + invSize + ' x' + invQty, amount: invTotal, category: invCat, size: invSize, qty: invQty, relatedInvId: _invDocId });
+                _components.push({ kind: 'inventory', type: 'Thu ' + invCat, label: invCat + ' ' + invSize + ' x' + invQty, amount: invTotal, category: invCat, size: invSize, qty: invQty });
             }
             if(invDebtTotal > 0) {
-                if(typeof invDebtChecks !== 'undefined') {
-                    Array.from(invDebtChecks).forEach(function(c) {
-                        const _itemAmt = Number(c.getAttribute && c.getAttribute('data-amount')) || 0;
-                        if(_itemAmt > 0) _components.push({ kind: 'inventoryDebt', type: 'Thu nợ kho', label: 'Nợ kho: ' + (c.getAttribute && c.getAttribute('data-label') || 'Đồ'), amount: _itemAmt });
-                    });
-                }
+                Array.from(invDebtChecks).forEach(function(c) {
+                    const _itemAmt = Number(c.getAttribute && c.getAttribute('data-amount')) || 0;
+                    if(_itemAmt > 0) _components.push({ kind: 'inventoryDebt', type: 'Thu nợ kho', label: 'Nợ kho: ' + (c.getAttribute && c.getAttribute('data-label') || 'Đồ'), amount: _itemAmt });
+                });
             }
             if(hasOther && otherFee > 0) {
                 _components.push({ kind: 'other', type: 'Thu khác', label: otherDesc || 'Khoản khác', amount: otherFee });
             }
-
-            // 5. Tạo 1 bundle transaction duy nhất
-            if (typeof window.buildPaymentBundleTransaction === 'function' && _components.length > 0) {
-                const _bundleTx = window.buildPaymentBundleTransaction({
-                    studentName: name, branch: branch, date: today, refMonth: refMonth,
-                    receiptType: typeof receiptTypeLabel !== 'undefined' ? receiptTypeLabel : '',
-                    components: _components
-                });
-                let _bundleDoc = null;
-                if (hasTuition && packageMonths.length > 0 && typeof window.commitTuitionPaymentAtomic === 'function') {
-                    const _atomicBundle = await window.commitTuitionPaymentAtomic({ studentName: name, months: packageMonths, profile: profile, txData: _bundleTx, transactionsRef: colRef, reason: 'processMultiItem-bundle' });
-                    _bundleDoc = { id: _atomicBundle.id };
-                    lastMonth = _atomicBundle.paidUntil || lastMonth;
-                } else {
-                    _bundleDoc = await addDoc(colRef, _canonicalTxPayload(_bundleTx, 'payment-bundle'));
-                }
-                if(_invDocId) {
-                    try { await updateDoc(doc(db, 'clubs', currentClubId, 'inventory', _invDocId), { paymentBundleId: _bundleDoc.id, paidTxId: _bundleDoc.id }); } catch(_e) {}
-                }
-                if(invDebtIds.length > 0) {
-                    await Promise.all(invDebtIds.map(function(id) { return updateDoc(doc(db, 'clubs', currentClubId, 'inventory', id), { paidTxId: _bundleDoc.id }); }));
-                }
-                if(typeof window.mergeTransactionIntoRuntimeStore === 'function' && !(hasTuition && packageMonths.length > 0 && typeof window.commitTuitionPaymentAtomic === 'function')) {
-                    window.mergeTransactionIntoRuntimeStore(Object.assign({ id: _bundleDoc.id }, _bundleTx), 'processMultiItem-bundle');
-                }
-            } else {
-                // Fallback: ghi riêng từng khoản như cũ
-                if(hasTuition && packageMonths.length > 0) {
-                    const _fallbackTuitionTx = { branch: branch, type: 'Học phí', description: name, amount: tuition, date: today, txMonth: lastMonth, packageMonths: packageMonths, timestamp: Date.now() };
-                    if (typeof window.commitTuitionPaymentAtomic === 'function') {
-                        const _atomicFallback = await window.commitTuitionPaymentAtomic({ studentName: name, months: packageMonths, profile: profile, txData: _fallbackTuitionTx, transactionsRef: colRef, reason: 'multi-item-tuition-fallback' });
-                        lastMonth = _atomicFallback.paidUntil || lastMonth;
-                    } else {
-                        await addDoc(colRef, _canonicalTxPayload(_fallbackTuitionTx, 'multi-item-tuition-fallback'));
-                        await updateDoc(doc(db, 'clubs', currentClubId, 'profiles', name), { paidUntil: lastMonth, paidMonths: arrayUnion(...packageMonths) });
-                    }
-                }
-                if(hasExam && examFee > 0) {
-                    await addDoc(colRef, _canonicalTxPayload({ branch: branch, type: 'Lệ phí thi', description: name + ' (' + examTitle + ')', studentName: name, profileName: name, profileId: name, amount: examFee, date: today, txMonth: refMonth, examTitle: examTitle, currentBeltAtPayment: _currentBelt, examTargetBelt: _examTargetBelt, timestamp: Date.now() + 1 }, 'multi-item-exam-fallback'));
-                }
-                if(hasInv && invTotal > 0) {
-                    await addDoc(colRef, _canonicalTxPayload({ branch: branch, type: 'Thu ' + invCat, description: 'Bán ' + invCat + ' ' + invSize + ' cho ' + name, amount: invTotal, date: today, txMonth: refMonth, timestamp: Date.now() + 3 }, 'multi-item-inventory-fallback'));
-                }
-                if(hasOther && otherFee > 0) {
-                    await addDoc(colRef, _canonicalTxPayload({ branch: branch, type: 'Thu khác', description: name + (otherDesc ? ' — ' + otherDesc : ''), amount: otherFee, date: today, txMonth: refMonth, timestamp: Date.now() + 4 }, 'multi-item-other-fallback'));
-                }
+            if (typeof window.buildPaymentBundleTransaction !== 'function' || !_components.length) {
+                throw new Error('Không thể tạo giao dịch Thu gộp canonical.');
             }
+            const _bundleTx = window.buildPaymentBundleTransaction({
+                studentName: name, branch: branch, date: today, refMonth: refMonth,
+                receiptType: receiptTypeLabel, components: _components
+            });
+            const _inventoryData = hasInv && invTotal > 0 ? {
+                category: invCat, size: invSize, qty: invQty, amount: invTotal,
+                desc: name, studentName: name,
+                profileId: (document.getElementById('mi_name').dataset.profileId || name),
+                memberId: (document.getElementById('mi_name').dataset.memberId || profile.memberId || ''),
+                date: today,
+                pendingReason: _inventorySelection.reason || 'Bán trong Thu gộp, chờ bổ sung Kho',
+                source: 'multi-item-payment'
+            } : null;
+            const _commitResult = await window.InventoryPendingService.commitFinancialTransaction({
+                txData: _bundleTx,
+                studentName: name,
+                tuitionMonths: hasTuition ? packageMonths : [],
+                profile: profile,
+                inventory: _inventoryData,
+                postingMode: inventoryPostingMode,
+                debtIds: invDebtIds,
+                reason: 'processMultiItem-bundle'
+            });
+            lastMonth = _commitResult.paidUntil || lastMonth;
             if (typeof window.recordFinancialActionAudit === 'function') window.recordFinancialActionAudit('multiitem.pay', 'after', _miAuditPayload);
             window.showToast('✅ Đã ghi sổ thành công!');
         }

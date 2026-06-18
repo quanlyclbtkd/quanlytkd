@@ -536,37 +536,17 @@ export const StudentService = {
      * @returns {string} ID của doc vừa tạo
      */
     async addInventoryEntry(data) {
-        const { doc, writeBatch, increment } = _sdk();
-        const invRef = (window.__store || {}).invRef;
-        if (!invRef) throw new Error('[StudentService] invRef chưa sẵn sàng');
+        if (!window.InventoryService || typeof window.InventoryService.addItem !== 'function') {
+            throw new Error('[StudentService] InventoryService chưa sẵn sàng');
+        }
         const payload = { category: 'Võ phục', ...(data || {}) };
-        if (!payload.timestamp) payload.timestamp = Date.now();
-        if (!payload.date) payload.date = typeof window.getLocalToday === 'function' ? window.getLocalToday() : new Date().toISOString().slice(0, 10);
         if (payload.type === 'Xuất bán' && payload.desc && typeof window.resolveInventoryDebtIdentity === 'function') {
             const identity = window.resolveInventoryDebtIdentity(payload.desc);
             if (identity.profileId) payload.profileId = identity.profileId;
             if (identity.memberId) payload.memberId = identity.memberId;
             if (!payload.studentName && identity.studentName) payload.studentName = identity.studentName;
         }
-        const db = _db();
-        const clubId = _clubId();
-        const itemRef = doc(invRef);
-        const category = String(payload.category || 'Võ phục').trim() || 'Võ phục';
-        const size = String(payload.size || '').trim();
-        const qty = Math.max(0, Number(payload.qty !== undefined ? payload.qty : 1) || 0);
-        const base = category + '|||' + size;
-        const batch = writeBatch(db);
-        batch.set(itemRef, payload);
-        if (size && qty > 0) {
-            batch.set(doc(db, 'clubs', clubId, 'settings', 'inventory_stats'), {
-                [base + '_balance']: increment(-qty),
-                [base + '_out']: increment(qty)
-            }, { merge: true });
-        }
-        await batch.commit();
-        window.mergeInventoryIntoRuntimeStore?.({ id: itemRef.id, ...payload }, 'student-service-add-inventory');
-        window.notifyInventoryMutation?.('student-service-add-inventory', { writeThrough: true });
-        return itemRef.id;
+        return window.InventoryService.addItem(payload);
     },
 
     /**

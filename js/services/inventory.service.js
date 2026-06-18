@@ -218,12 +218,10 @@ export const InventoryService = {
      * @returns {string} ID của doc vừa tạo
      */
     async addItem(data) {
-        const { doc, writeBatch, increment } = _sdk();
+        const { doc, writeBatch, runTransaction, increment } = _sdk();
         const invRef = _invRef();
         if (!invRef) throw new Error('[InventoryService] invRef chưa sẵn sàng');
-        if (typeof writeBatch !== 'function' || typeof increment !== 'function') {
-            throw new Error('[InventoryService] Firestore batch/increment chưa sẵn sàng');
-        }
+        if (typeof increment !== 'function') throw new Error('[InventoryService] Firestore increment chưa sẵn sàng');
 
         const payload = { ...(data || {}) };
         if (!payload.timestamp) payload.timestamp = Date.now();
@@ -235,13 +233,36 @@ export const InventoryService = {
             if (!payload.studentName && identity.studentName) payload.studentName = identity.studentName;
         }
 
+        const db = _db();
         const itemRef = doc(invRef);
-        const statsRef = doc(_db(), 'clubs', _clubId(), 'settings', 'inventory_stats');
+        const statsRef = doc(db, 'clubs', _clubId(), 'settings', 'inventory_stats');
         const summaryPatch = _buildLedgerIncrementPatch([{ item: payload, direction: 1 }], increment);
-        const batch = writeBatch(_db());
-        batch.set(itemRef, payload);
-        if (Object.keys(summaryPatch).length) batch.set(statsRef, summaryPatch, { merge: true });
-        await batch.commit();
+        const info = _inventoryBase(payload);
+        const count = _inventoryQty(payload);
+        const isOutgoing = !_isInventoryIn(payload);
+
+        // Strict posted inventory writes must validate stock inside the same
+        // Firestore transaction. This prevents two devices from both selling
+        // the final unit and pushing inventory below zero.
+        if (isOutgoing && info && count > 0) {
+            if (typeof runTransaction !== 'function') throw new Error('[InventoryService] Firestore transaction chưa sẵn sàng');
+            await runTransaction(db, async transaction => {
+                const statsSnap = await transaction.get(statsRef);
+                const stats = statsSnap.exists() ? (statsSnap.data() || {}) : {};
+                const available = Number(stats[info.base + '_balance'] || 0);
+                if (available < count) {
+                    throw new Error(`Kho không đủ ${info.category} ${info.size}: còn ${available}, cần ${count}.`);
+                }
+                transaction.set(itemRef, payload);
+                if (Object.keys(summaryPatch).length) transaction.set(statsRef, summaryPatch, { merge: true });
+            });
+        } else {
+            if (typeof writeBatch !== 'function') throw new Error('[InventoryService] Firestore batch chưa sẵn sàng');
+            const batch = writeBatch(db);
+            batch.set(itemRef, payload);
+            if (Object.keys(summaryPatch).length) batch.set(statsRef, summaryPatch, { merge: true });
+            await batch.commit();
+        }
 
         const runtimeItem = { id: itemRef.id, ...payload };
         _mergeRuntimeInventory(runtimeItem, 'inventory-service-add-item');

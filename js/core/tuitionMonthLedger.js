@@ -263,6 +263,8 @@
                 txRef: txRef,
                 profileRef: profileRef,
                 txData: _canonicalTxPayload(entry.txData, entry.reason || opts.reason, studentName, profile),
+                sideChecks: Array.isArray(entry.sideChecks) ? entry.sideChecks : (Array.isArray(opts.sideChecks) ? opts.sideChecks : []),
+                sideWrites: Array.isArray(entry.sideWrites) ? entry.sideWrites : (Array.isArray(opts.sideWrites) ? opts.sideWrites : []),
                 paidThroughMonth: '',
             };
         });
@@ -276,10 +278,29 @@
                 for (let i = 0; i < prepared.length; i++) {
                     snapshots.push(await transaction.get(prepared[i].profileRef));
                 }
+                const sideSnapshots = [];
+                for (let i = 0; i < prepared.length; i++) {
+                    const itemSideSnapshots = [];
+                    for (let j = 0; j < prepared[i].sideChecks.length; j++) {
+                        itemSideSnapshots.push(await transaction.get(prepared[i].sideChecks[j].ref));
+                    }
+                    sideSnapshots.push(itemSideSnapshots);
+                }
                 for (let i = 0; i < prepared.length; i++) {
                     const item = prepared[i];
                     const snap = snapshots[i];
                     if (!snap || !snap.exists()) throw new Error('Không tìm thấy profile: ' + item.studentName);
+                    item.sideChecks.forEach(function(check, index) {
+                        const checkSnap = sideSnapshots[i][index];
+                        if (typeof check.validate === 'function') return check.validate(checkSnap);
+                        if (check.type === 'inventory-stock') {
+                            const data = checkSnap && checkSnap.exists() ? (checkSnap.data() || {}) : {};
+                            const available = Number(data[check.field] || 0);
+                            if (available < Number(check.required || 0)) {
+                                throw new Error('Kho không đủ ' + (check.label || 'sản phẩm') + ': còn ' + available + ', cần ' + check.required + '.');
+                            }
+                        }
+                    });
                     const latestProfile = snap.data() || item.profile;
                     const ledger = buildLedger(latestProfile, { additionalPaidMonths: item.months });
                     item.paidThroughMonth = ledger.paidThroughMonth || normalizeMonth(latestProfile.paidUntil) || item.months[0];
@@ -292,12 +313,20 @@
                         tuitionLedgerUpdatedAt: _now(),
                         tuitionLedgerSource: writeReason,
                     });
+                    item.sideWrites.forEach(function(write) {
+                        if (!write || !write.ref) return;
+                        if (write.op === 'update') transaction.update(write.ref, write.data || {});
+                        else if (write.op === 'delete') transaction.delete(write.ref);
+                        else if (write.options) transaction.set(write.ref, write.data || {}, write.options);
+                        else transaction.set(write.ref, write.data || {});
+                    });
                 }
             });
         } else {
             if (typeof sdk.writeBatch !== 'function') throw new Error('[TuitionLedger] writeBatch chưa sẵn sàng');
             const batch = sdk.writeBatch(ctx.db);
             prepared.forEach(function(item) {
+                if (item.sideChecks.length) throw new Error('[TuitionLedger] Không thể kiểm tra tồn kho an toàn nếu runTransaction không sẵn sàng');
                 const ledger = buildLedger(item.profile, { additionalPaidMonths: item.months });
                 item.paidThroughMonth = ledger.paidThroughMonth || normalizeMonth(item.profile.paidUntil) || item.months[0];
                 batch.set(item.txRef, item.txData);
@@ -308,6 +337,13 @@
                     tuitionLedgerSchemaVersion: LEDGER_SCHEMA_VERSION,
                     tuitionLedgerUpdatedAt: _now(),
                     tuitionLedgerSource: writeReason,
+                });
+                item.sideWrites.forEach(function(write) {
+                    if (!write || !write.ref) return;
+                    if (write.op === 'update') batch.update(write.ref, write.data || {});
+                    else if (write.op === 'delete') batch.delete(write.ref);
+                    else if (write.options) batch.set(write.ref, write.data || {}, write.options);
+                    else batch.set(write.ref, write.data || {});
                 });
             });
             await batch.commit();
@@ -339,6 +375,8 @@
             profile: opts.profile,
             txData: opts.txData,
             txRef: opts.txRef,
+            sideChecks: opts.sideChecks,
+            sideWrites: opts.sideWrites,
             reason: opts.reason,
         }], opts);
         return results[0];

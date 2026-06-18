@@ -637,13 +637,14 @@ export function initInventory() {
         const sec = document.getElementById('mi_inv_section');
         if (sec) sec.style.display = on ? 'block' : 'none';
         if (on) {
-            if (typeof window.ensureMultiItemInventoryReady === 'function') {
+            const policyState = window.applyMultiItemInventoryPolicyUI?.() || { postingMode: 'posted' };
+            if (policyState.postingMode !== 'posted') {
+                window.toggleMiInvCategory?.();
+            } else if (typeof window.ensureMultiItemInventoryReady === 'function') {
                 window.ensureMultiItemInventoryReady('multi-item-toggle-inventory')
                     .then(() => {
                         window.MultiItemInventorySafety?.buildInventoryStockMapForMultiItem?.({ reason: 'toggle-inventory', force: true });
-                        if (typeof window.toggleMiInvCategory === 'function') {
-                            window.toggleMiInvCategory();
-                        }
+                        if (typeof window.toggleMiInvCategory === 'function') window.toggleMiInvCategory();
                     })
                     .catch(e => console.warn('[multiItem] inventory toggle hydration failed:', e));
             } else {
@@ -661,6 +662,15 @@ export function initInventory() {
      * Hiển thị số lượng tồn kho thực tế theo _liveInvMap từ app.js.
      */
     window.toggleMiInvCategory = () => {
+        const policyState = window.applyMultiItemInventoryPolicyUI?.();
+        if (policyState && policyState.useManual) {
+            const manual = document.getElementById('mi_inv_size_text');
+            const select = document.getElementById('mi_inv_size_select');
+            if (select) select.style.display = 'none';
+            if (manual) manual.style.display = '';
+            if (typeof window.updateMultiItemTotal === 'function') window.updateMultiItemTotal();
+            return { ok: true, manual: true, postingMode: policyState.postingMode };
+        }
         try {
             const renderer = window.InventoryMultiItemReadOnlyUI && window.InventoryMultiItemReadOnlyUI.renderMultiItemInventoryCategoryOptions;
             if (typeof renderer === 'function') {
@@ -773,6 +783,76 @@ export function initInventory() {
             if (btn) { btn.disabled = false; btn.textContent = '🔄 Đối soát tồn kho'; }
         }
     };
+
+    // ════════════════════════════════════════════════════════════
+    // Phase 4K-6V3F — Lazy pending inventory reconciliation UI
+    // ════════════════════════════════════════════════════════════
+    const _escapePending = (value) => String(value || '').replace(/[&<>"']/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[ch]));
+
+    window.refreshInventoryPendingIssues = async () => {
+        const section = document.getElementById('inventoryPendingSection');
+        const list = document.getElementById('inventoryPendingList');
+        const status = document.getElementById('inventoryPendingStatus');
+        if (!section || !list || !status) return [];
+        if (typeof window.InventoryPendingService?.loadPendingIssues !== 'function') {
+            section.style.display = '';
+            status.textContent = 'Không thể tải dịch vụ đối soát Kho.';
+            return [];
+        }
+        section.style.display = '';
+        status.textContent = '⏳ Đang tải tối đa 50 giao dịch chờ...';
+        list.innerHTML = '<tr><td colspan="6">Đang tải...</td></tr>';
+        try {
+            const rows = await window.InventoryPendingService.loadPendingIssues(50);
+            if (!rows.length) {
+                section.style.display = 'none';
+                list.innerHTML = '';
+                status.textContent = '';
+                return [];
+            }
+            status.textContent = `Có ${rows.length} giao dịch đang chờ đối soát${rows.length >= 50 ? ' (đang hiển thị 50 mục đầu)' : ''}.`;
+            list.innerHTML = rows.map(row => {
+                const amount = Number(row.saleAmount || 0).toLocaleString('vi-VN') + ' ₫';
+                const item = `${_escapePending(row.category || 'Võ phục')} ${_escapePending(row.size || '')}`;
+                const reason = row.pendingReason ? `<div class="text-[0.62rem] text-slate-500">${_escapePending(row.pendingReason)}</div>` : '';
+                return `<tr><td>${_escapePending(row.date || '')}</td><td>${_escapePending(row.studentName || row.desc || '')}</td><td>${item}${reason}</td><td>${Number(row.qty || 0)}</td><td>${amount}</td><td><div class="flex flex-wrap gap-1"><button type="button" class="btn-sm bg-emerald-600 text-white" onclick="window.reconcileInventoryPendingIssue('${_escapePending(row.id)}')">📦 Đối soát</button><button type="button" class="btn-sm bg-slate-500 text-white" onclick="window.markPendingInventoryNotApplicable('${_escapePending(row.id)}')">Không quản lý tồn</button></div></td></tr>`;
+            }).join('');
+            return rows;
+        } catch (error) {
+            status.textContent = '❌ Không tải được danh sách chờ: ' + (error?.message || error);
+            list.innerHTML = '<tr><td colspan="6">Vui lòng thử lại.</td></tr>';
+            throw error;
+        }
+    };
+
+    window.reconcileInventoryPendingIssue = async (issueId) => {
+        if (window.userRole !== 'admin' && window.userRole !== 'super_admin') return alert('Chỉ Admin mới được đối soát Kho.');
+        if (!confirm('Đối soát giao dịch này với tồn kho hiện tại?\n\nThao tác chỉ trừ tồn kho, KHÔNG cộng doanh thu lần hai.')) return;
+        try {
+            await window.InventoryPendingService.reconcile(issueId);
+            window.showToast('✅ Đã đối soát Kho; doanh thu không bị cộng lại.', 4000);
+            await window.refreshInventoryPendingIssues();
+        } catch (error) {
+            alert('Không thể đối soát: ' + (error?.message || error));
+        }
+    };
+
+    window.markPendingInventoryNotApplicable = async (issueId) => {
+        if (window.userRole !== 'admin' && window.userRole !== 'super_admin') return alert('Chỉ Admin mới được xử lý mục chờ.');
+        if (!confirm('Đánh dấu giao dịch này là KHÔNG QUẢN LÝ TỒN KHO?\n\nDoanh thu/công nợ vẫn được giữ nguyên.')) return;
+        try {
+            await window.InventoryPendingService.markNotApplicable(issueId);
+            window.showToast('✅ Đã chuyển sang không quản lý tồn kho.', 3500);
+            await window.refreshInventoryPendingIssues();
+        } catch (error) {
+            alert('Không thể cập nhật: ' + (error?.message || error));
+        }
+    };
+
+    window.addEventListener('inventory:pending-changed', () => {
+        const tab = document.getElementById('tab_inventory');
+        if (tab && tab.classList.contains('active')) window.refreshInventoryPendingIssues?.().catch(() => {});
+    });
 
     // ════════════════════════════════════════════════════════════
     // DEBUG LOG — chỉ hiển thị khi chạy trên localhost / Replit

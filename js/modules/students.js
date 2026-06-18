@@ -224,11 +224,15 @@ export function initStudents() {
         document.getElementById('add_fee_display').value     = '';
         document.getElementById('add_fee_actual').value      = '';
         document.getElementById('add_uniform_size').value    = '';
+        const _addUniformManual = document.getElementById('add_uniform_size_manual'); if (_addUniformManual) _addUniformManual.value = '';
+        const _addUniformPending = document.getElementById('add_uniform_pending'); if (_addUniformPending) _addUniformPending.checked = false;
+        const _addUniformPendingReason = document.getElementById('add_uniform_pending_reason'); if (_addUniformPendingReason) _addUniformPendingReason.value = '';
         document.getElementById('add_uniform_display').value = '';
         document.getElementById('add_uniform_actual').value  = '';
         document.getElementById('add_uniform_gift').checked  = false;
         document.getElementById('add_uniform_display').disabled = false;
         document.querySelectorAll('.add_trainingDay').forEach(cb => cb.checked = false);
+        window.applyAdmissionInventoryPolicyUI?.();
 
         // Load ca tập bất đồng bộ (tránh chặn render modal)
         const _addShiftSel = document.getElementById('add_shift');
@@ -275,7 +279,11 @@ export function initStudents() {
         const fee = Number(document.getElementById('add_fee_actual').value)
             || Number((document.getElementById('add_fee_display').value || '').replace(/[^0-9]/g, ''))
             || 0;
-        const uniformSize = document.getElementById('add_uniform_size').value.trim();
+        const _inventorySelection = typeof window.getAdmissionInventorySelection === 'function'
+            ? window.getAdmissionInventorySelection()
+            : { postingMode: 'posted', size: document.getElementById('add_uniform_size').value.trim(), reason: '' };
+        const uniformSize = String(_inventorySelection.size || '').trim();
+        const inventoryPostingMode = _inventorySelection.postingMode || 'posted';
         const uniformFee  = Number(document.getElementById('add_uniform_actual').value)
             || Number((document.getElementById('add_uniform_display').value || '').replace(/[^0-9]/g, ''))
             || 0;
@@ -294,7 +302,9 @@ export function initStudents() {
         }
         if (!isGift && uniformFee > 0 && !uniformSize) {
             window.showToast('⚠️ Vui lòng chọn Size Võ phục!', 3000);
-            const el = document.getElementById('add_uniform_size');
+            const el = inventoryPostingMode === 'posted'
+                ? document.getElementById('add_uniform_size')
+                : document.getElementById('add_uniform_size_manual');
             if (el) { el.focus(); el.style.borderColor = '#ef4444'; setTimeout(() => { el.style.borderColor = ''; }, 3000); }
             return;
         }
@@ -392,60 +402,61 @@ export function initStudents() {
             };
             await StudentService.createProfile(_saveKey, newProfileData);
 
-            // ── Phase 4K-5E: Xuất kho + tạo bundle transaction nhập học ────
+            // ── Phase 4K-6V3F: transaction tài chính + stock/pending boundary ──
             let tuitionTx = null;
             let _invId = '';
-
-            if (uniformSize) {
-                _invId = await StudentService.addInventoryEntry({
-                    category: 'Võ phục', size: uniformSize, type: 'Xuất bán', qty: 1,
-                    desc: _saveKey, amount: uniformFee, date: joinDate, timestamp: Date.now() + 2,
-                });
-                if (isGift) {
-                    await StudentService.addUniformTransaction({
-                        branch: 'Chung', type: 'Tặng Võ phục',
-                        description: `Tặng ${uniformSize} cho ${_saveKey}`,
-                        amount: 0, date: joinDate, timestamp: Date.now() + 1, relatedInvId: _invId,
-                    });
-                }
+            let _pendingIssueId = '';
+            if (typeof window.InventoryPendingService?.commitFinancialTransaction !== 'function') {
+                throw new Error('InventoryPendingService chưa sẵn sàng; dừng để tránh ghi dữ liệu Kho không đầy đủ.');
             }
 
-            if (_hasFinancialPayment) {
-                const _inventoryComponent = _admComponents.find(c => c && c.kind === 'inventory');
-                if (_inventoryComponent) _inventoryComponent.relatedInvId = _invId;
-                if (_admComponents.length > 0) {
-                    const _bundleTx = window.buildPaymentBundleTransaction({
-                        studentName: _saveKey, branch, date: joinDate,
-                        refMonth: lastMonth, receiptType: 'Thu nhập học',
-                        components: _admComponents,
-                    });
-                    if (fee > 0 && typeof window.commitTuitionPaymentAtomic === 'function') {
-                        const atomicAdmission = await window.commitTuitionPaymentAtomic({
-                            studentName: _saveKey,
-                            months: monthsToRecord,
-                            profile: newProfileData,
-                            txData: _bundleTx,
-                            reason: 'module-admission-payment-bundle'
-                        });
-                        tuitionTx = { id: atomicAdmission.id, ..._bundleTx };
-                    } else {
-                        const _addFn = StudentService.addGenericTransaction
-                            ? StudentService.addGenericTransaction.bind(StudentService)
-                            : StudentService.addTuitionTransaction.bind(StudentService);
-                        tuitionTx = await _addFn(_bundleTx);
-                    }
-                    if (_invId && !isGift) {
-                        try {
-                            await StudentService.updateInventoryDoc(_invId, {
-                                paymentBundleId: tuitionTx.id || '',
-                                paidTxId: tuitionTx.id || '',
-                            });
-                        } catch (_e) {}
-                    }
-                    if (typeof window.mergeTransactionIntoRuntimeStore === 'function') {
-                        window.mergeTransactionIntoRuntimeStore(tuitionTx, 'admission-bundle-created');
-                    }
-                }
+            const _inventoryData = uniformSize ? {
+                category: 'Võ phục', size: uniformSize, qty: 1,
+                desc: _saveKey, studentName: _saveKey, profileId: _saveKey,
+                memberId, amount: isGift ? 0 : uniformFee, date: joinDate,
+                pendingReason: _inventorySelection.reason || 'Bán tại bước thêm võ sinh, chờ bổ sung Kho',
+                source: 'student-admission'
+            } : null;
+
+            if (_hasFinancialPayment && _admComponents.length > 0) {
+                const _bundleTx = window.buildPaymentBundleTransaction({
+                    studentName: _saveKey, branch, date: joinDate,
+                    refMonth: lastMonth, receiptType: 'Thu nhập học',
+                    components: _admComponents,
+                });
+                const _commitResult = await window.InventoryPendingService.commitFinancialTransaction({
+                    txData: _bundleTx,
+                    studentName: _saveKey,
+                    tuitionMonths: fee > 0 ? monthsToRecord : [],
+                    profile: newProfileData,
+                    inventory: (!isGift && uniformSize && uniformFee > 0) ? _inventoryData : null,
+                    postingMode: inventoryPostingMode,
+                    reason: 'module-admission-payment-bundle'
+                });
+                tuitionTx = { id: _commitResult.id, ..._commitResult.txData };
+                _invId = _commitResult.relatedInvId || '';
+                _pendingIssueId = _commitResult.pendingIssueId || '';
+            } else if (isGift && uniformSize) {
+                const _giftTx = {
+                    branch: 'Chung', type: 'Tặng Võ phục', receiptType: 'Tặng Võ phục',
+                    description: `Tặng ${uniformSize} cho ${_saveKey}`,
+                    studentName: _saveKey, profileName: _saveKey, profileId: _saveKey,
+                    amount: 0, date: joinDate, txMonth: lastMonth,
+                    components: [{
+                        kind: 'inventory', type: 'Tặng Võ phục', label: 'Tặng Võ phục ' + uniformSize,
+                        amount: 0, category: 'Võ phục', size: uniformSize, qty: 1
+                    }],
+                    timestamp: Date.now()
+                };
+                const _giftResult = await window.InventoryPendingService.commitFinancialTransaction({
+                    txData: _giftTx,
+                    studentName: _saveKey,
+                    inventory: _inventoryData,
+                    postingMode: inventoryPostingMode,
+                    reason: 'module-admission-uniform-gift-v3f'
+                });
+                _invId = _giftResult.relatedInvId || '';
+                _pendingIssueId = _giftResult.pendingIssueId || '';
             }
 
             window.closeAddModal();

@@ -121,6 +121,12 @@ service cloud.firestore {
         allow write:  if isSuperAdmin() || isClubAdmin(clubId);
       }
 
+      // Giao dịch bán tạm chờ bổ sung/đối soát Kho (Phase 4K-6V3F)
+      match /inventoryPendingIssues/{issueId} {
+        allow read:   if isSuperAdmin() || isClubMember(clubId);
+        allow create, update, delete: if isSuperAdmin() || isClubAdmin(clubId);
+      }
+
       // Thi cấp đai
       match /exams/{examId} {
         allow read:   if isSuperAdmin() || isClubMember(clubId);

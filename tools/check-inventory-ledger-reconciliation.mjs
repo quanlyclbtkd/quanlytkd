@@ -30,12 +30,12 @@ check('Changed inventory/student/finance modules are cache-busted', main.include
 check('Changed service imports are cache-busted', invModule.includes("inventory.service.js?v=inventory-ledger-reconciliation-20260616-v2c") && financeService.includes("inventory.service.js?v=inventory-ledger-reconciliation-20260616-v2c"));
 check('History page uses date-desc cursor so repaired legacy rows remain queryable', app.includes("const constraints = [orderBy('date', 'desc')]") && app.includes('startAfter(cursor)'));
 check('New inventory writes always provide date and timestamp', service.includes('if (!payload.timestamp) payload.timestamp = Date.now()') && service.includes('if (!payload.date'));
-check('Add inventory uses an atomic Firestore batch', service.includes('async addItem(data)') && service.includes('batch.set(itemRef, payload)') && service.includes('batch.set(statsRef, summaryPatch, { merge: true })'));
+check('Add inventory uses an atomic Firestore batch/transaction', service.includes('async addItem(data)') && service.includes('transaction.set(itemRef, payload)') && service.includes('batch.set(itemRef, payload)'));
 check('Add inventory does not silently continue after stock-summary failure', !service.slice(service.indexOf('async addItem(data)'), service.indexOf('async updateItem')).includes('catch'));
 check('Update reverses previous contribution and applies next contribution', service.includes('{ item: previous, direction: -1 }') && service.includes('{ item: next, direction: 1 }'));
 check('Delete reverses inventory contribution atomically', service.includes('async deleteItem') && service.includes("[{ item: previous, direction: -1 }]") && service.includes('batch.delete(itemRef)'));
 check('Finance-related inventory deletion delegates to canonical ledger service', financeService.includes('InventoryService.deleteItem(invId'));
-check('Add-student inventory write batches history and inventory_stats', studentService.includes('async addInventoryEntry') && studentService.includes('const batch = writeBatch(db)') && studentService.includes("settings', 'inventory_stats'"));
+check('Add-student inventory write delegates to canonical inventory service', studentService.includes('async addInventoryEntry') && studentService.includes('InventoryService.addItem(payload)'));
 check('Add-student module no longer performs a second stock decrement', !studentModule.includes('decrementInventoryStock(uniformSize)'));
 check('Runtime write-through avoids an immediate history read', app.includes('options && options.writeThrough === true') && app.includes('mergeInventoryIntoRuntimeStore'));
 check('Manual reconciliation is explicit, not a recurring listener', invModule.includes('window.rebuildInventoryStatsFromHistory') && index.includes('btnRebuildInventoryStats'));
@@ -108,6 +108,27 @@ globalThis.window = {
       return ref(p, parts.at(-1) || p.split('/').pop());
     },
     writeBatch() { return makeBatch(); },
+    async runTransaction(_db, callback) {
+      const ops = [];
+      const tx = {
+        async get(r) {
+          if (isStats(r)) return { id: r.id, exists: () => Object.keys(stats).length > 0, data: () => ({ ...stats }) };
+          const data = inventory.get(r.id);
+          return { id: r.id, exists: () => !!data, data: () => ({ ...(data || {}) }) };
+        },
+        set(r, data, options) { ops.push(['set', r, data, options]); },
+        update(r, data) { ops.push(['update', r, data]); },
+        delete(r) { ops.push(['delete', r]); },
+      };
+      const result = await callback(tx);
+      for (const [kind, r, data, options] of ops) {
+        applied.push('tx-' + kind + ':' + r.path);
+        if (kind === 'set') applySet(r, data, options);
+        else if (kind === 'update') applyUpdate(r, data);
+        else inventory.delete(r.id);
+      }
+      return result;
+    },
     increment(n) { return { __inc: Number(n) }; },
     async getDoc(r) {
       getDocCalls++;
@@ -148,7 +169,7 @@ try {
   check('Dynamic: rebuild repairs missing temporal fields', inventory.get('legacy-no-date')?.date === '1970-01-01' && inventory.get('legacy-no-date')?.timestamp === 0);
   check('Dynamic: rebuilt summary includes legacy input', rebuilt.summary['Áo thun|||XL_balance'] === 4 && rebuilt.repairedTemporalCount >= 1);
   check('Dynamic: normal mutations required no full collection reads', getDocsCalls === 1);
-  check('Dynamic: inventory and summary were committed through batches', applied.some(x => x.includes('/inventory/')) && applied.some(x => x.includes('/settings/inventory_stats')));
+  check('Dynamic: inventory and summary were committed atomically', applied.some(x => x.includes('/inventory/')) && applied.some(x => x.includes('/settings/inventory_stats')));
 } catch (error) {
   check('Dynamic inventory ledger regression', false, error?.stack || String(error));
 }

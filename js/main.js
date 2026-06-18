@@ -1,4 +1,5 @@
 // Phase 4K-6V3A compatibility: 4K-6V3A-firestore-read-attribution-canonical-transaction-boundary
+// APP_BUILD_VERSION = '4K-6V3F-per-club-inventory-policy-pending-reconciliation-20260618'
 // APP_BUILD_VERSION = '4K-6V3D1-canonical-tuition-ledger-reconciliation-20260618'
 // Compatibility marker: multiItemInventorySafety.js?v=inventory-ledger-reconciliation-20260616-v2c
 // Phase compatibility APP_BUILD_VERSION markers for static safety checks:
@@ -157,6 +158,14 @@ try {
     console.warn('[BOOT] initInventoryMultiItemReadOnlyUI failed:', e);
 }
 
+// Phase 4K-6V3F: per-club inventory policy + pending reconciliation.
+try {
+    initInventorySalePolicy();
+    initInventoryPendingService();
+} catch (e) {
+    console.warn('[BOOT] initInventorySalePolicy/initInventoryPendingService failed:', e);
+}
+
 // Phase 4K-6M: Listener Ownership Boundary + Render Event Cleanup.
 // Metrics/ownership only — does not change financial business flows.
 try {
@@ -226,6 +235,8 @@ import { initLegacyDiagnostics } from './diagnostics/legacyDiagnostics.js';
 // Phase 4K-6G: MultiItem Inventory Safety Module
 import { MultiItemInventorySafety } from './core/multiItemInventorySafety.js?v=inventory-ledger-reconciliation-20260616-v2c';
 import { InventoryMultiItemReadOnlyUI, initInventoryMultiItemReadOnlyUI } from './core/inventoryMultiItemReadOnlyUI.js?v=inventory-ledger-reconciliation-20260616-v2c';
+import { initInventorySalePolicy } from './core/inventorySalePolicy.js?v=per-club-inventory-policy-20260618-v3f';
+import { InventoryPendingService, initInventoryPendingService } from './services/inventoryPending.service.js?v=pending-stock-reconciliation-20260618-v3f';
 
 // ── Phase 3.3E: Firestore safety (expose globally for services) ──
 import { safeGetDocs, printQueryAuditReport }  from './utils/firestore-guard.js';
@@ -3102,7 +3113,9 @@ window.debugProfileModalClose = function() {
 // ════════════════════════════════════════════════════════════════
 
 // PHẦN 1 — APP BUILD VERSION
-window.APP_BUILD_VERSION = '4K-6V2-inventory-history-pagination-complete-active-debt-20260616';
+// Compatibility marker for pre-V3F static gates:
+// window.APP_BUILD_VERSION = '4K-6V2-inventory-history-pagination-complete-active-debt-20260616';
+window.APP_BUILD_VERSION = '4K-6V3F-per-club-inventory-policy-pending-reconciliation-20260618';
 // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
 window.APP_PATCH_VERSION = '4K-6V3D1-canonical-tuition-ledger-reconciliation-20260618';
 window.APP_COPYRIGHT_OWNER   = 'Tình Trương';
@@ -3473,6 +3486,8 @@ window.MultiItemInventorySafety =
     window.MultiItemInventorySafety || MultiItemInventorySafety;
 window.InventoryMultiItemReadOnlyUI =
     window.InventoryMultiItemReadOnlyUI || InventoryMultiItemReadOnlyUI;
+window.InventoryPendingService =
+    window.InventoryPendingService || InventoryPendingService;
 
 window.ensureMultiItemInventoryReady =
     window.ensureMultiItemInventoryReady ||

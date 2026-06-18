@@ -108,6 +108,10 @@ export function switchTab(tabId) {
         Promise.resolve(window.ensureInventoryHistoryLoaded('module-switch-inventory-tab'))
             .catch((err) => console.warn('[Phase 4K-6V2] inventory tab load failed:', err));
     }
+    if (tabId === 'inventory' && typeof window.refreshInventoryPendingIssues === 'function') {
+        Promise.resolve(window.refreshInventoryPendingIssues())
+            .catch((err) => console.warn('[Phase 4K-6V3F] pending inventory load failed:', err));
+    }
 
     // ── Dashboard: xử lý riêng với chart update từ store ────────────────
     if (tabId === 'dashboard') {
