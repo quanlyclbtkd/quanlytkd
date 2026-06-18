@@ -165,10 +165,7 @@ export function renderTxRow(tx, opts = {}) {
                 : (tx.bundleTypeLabel || tx.type || 'Khoản thu'));
 
         const _typeBadge = `<span class="badge bg-violet-50 text-violet-700 border border-violet-200" title="${_escAttr(_bundleFullLine)}">${_escHtml(_bundleType)}</span>`;
-        const _amountContent = isAdmin && _txId
-            ? `<button type="button" class="link-like text-emerald-600 font-bold" onclick="openEditRevenueTransaction('${_escAttr(_txId)}')" title="Bấm để sửa từng khoản trong giao dịch">+${_amount.toLocaleString('vi-VN')} ₫ ✏️</button>`
-            : `+${_amount.toLocaleString('vi-VN')} ₫`;
-        const _amtCell   = `<td class="tx-amount-cell text-emerald-600 font-bold">${_amountContent}</td>`;
+        const _amtCell   = `<td class="tx-amount-cell text-emerald-600 font-bold">+${_amount.toLocaleString()} ₫</td>`;
         const _txMonthsStr = tx.packageMonths ? tx.packageMonths.join(',') : (tx.txMonth || '');
         const _printBtn  = `<button type="button" class="btn-sm bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white js-print-tuition-receipt" data-action="print-tuition-receipt" data-tx-id="${_escAttr(_txId)}" data-student-name="${_escAttr(_cleanName)}" data-tx-months="${_escAttr(_txMonthsStr)}" data-tx-type="${_escAttr(tx.type || '')}" data-tx-date="${_escAttr(tx.date || '')}" data-tx-branch="${_escAttr(tx.branch || 'CS1')}" data-tx-amount="${_amount}" data-exam-title="${_escAttr(tx.examTitle || '')}">🧾 In</button>`;
 
@@ -238,17 +235,13 @@ export function renderTxRow(tx, opts = {}) {
 
     // ── Phase 4K-3: Amount cell (mirrors app.js amountHTML multi-month logic) ──
     let amtCell;
-    const _normalTxId = tx.id || tx.txId || '';
-    const _editAmountButton = (displayText) => isAdmin && _normalTxId
-        ? `<button type="button" class="link-like text-emerald-600 font-bold" onclick="openEditRevenueTransaction('${_escAttr(_normalTxId)}')" title="Bấm để sửa số tiền giao dịch">${displayText} ✏️</button>`
-        : displayText;
     if (tx.packageMonths && tx.packageMonths.length > 1) {
         const totalAllo = isTuition && tx.type === 'Học phí + Lệ phí thi'
             ? (Number(tx.tuitionAmount) || 0) + (Number(tx.examAmount) || 0)
             : Number(tx.amount) || 0;
-        amtCell = `<td><div class="text-emerald-600 font-black text-base">${_editAmountButton('+' + totalAllo.toLocaleString('vi-VN') + ' ₫')}</div><div class="text-[0.65rem] text-slate-500 font-bold whitespace-nowrap">Tổng: ${(Number(tx.amount)||0).toLocaleString('vi-VN')}</div></td>`;
+        amtCell = `<td><div class="text-emerald-600 font-black text-base">+${totalAllo.toLocaleString()}</div><div class="text-[0.65rem] text-slate-500 font-bold whitespace-nowrap">Tổng: ${(Number(tx.amount)||0).toLocaleString()}</div></td>`;
     } else {
-        amtCell = `<td class="text-emerald-600 font-bold">${_editAmountButton('+' + (Number(tx.amount) || 0).toLocaleString('vi-VN') + ' ₫')}</td>`;
+        amtCell = `<td class="text-emerald-600 font-bold">+${(Number(tx.amount) || 0).toLocaleString()} ₫</td>`;
     }
 
     // ── Phase 4K-3: Print button with stable data attrs (event delegation target) ──
@@ -419,12 +412,9 @@ export function computeAndCacheFinance(transactions, params) {
             : '';
 
         if (isUniformTx) {
-            // Bút toán đối soát Kho chỉ ảnh hưởng tồn, không được cộng lại doanh thu.
-            if (t.affectsRevenue !== false) {
-                if      (_invClass.direction === 'income')  incUniform += Number(t.amount) || 0;
-                else if (_invClass.direction === 'expense') expUniform += Number(t.amount) || 0;
-            }
-            // direction === 'gift' hoặc affectsRevenue=false → không cộng doanh thu / chi
+            if      (_invClass.direction === 'income')  incUniform += Number(t.amount) || 0;
+            else if (_invClass.direction === 'expense') expUniform += Number(t.amount) || 0;
+            // direction === 'gift' → không cộng doanh thu / chi
             return;
         }
         if (!isBranchMatch || !isSearchMatch) return;
@@ -447,31 +437,41 @@ export function computeAndCacheFinance(transactions, params) {
             txCount++;
             let allocatedAmount = Number(t.amount) || 0;
 
-            // Phase 4K-6V3F1: một bộ định tuyến doanh thu canonical cho mọi giao dịch.
-            // Bundle được tách Học phí/Kho/Thi đai; bút toán affectsRevenue=false bị loại.
-            const routedRevenue = typeof window.routeRevenueTransaction === 'function'
-                ? window.routeRevenueTransaction(t, _selectedMonth)
-                : null;
-            if (routedRevenue && routedRevenue.buckets) {
-                incTuition += Number(routedRevenue.buckets.tuition || 0);
-                incUniform += Number(routedRevenue.buckets.inventory || 0);
-                incExam    += Number(routedRevenue.buckets.exam || 0);
-                incOther   += Number(routedRevenue.buckets.other || 0);
-                allocatedAmount = Number(routedRevenue.buckets.total || 0);
+            // Phase 4K-5E: Bundle — dùng components làm nguồn chính
+            if (Array.isArray(t.components) && t.components.length > 0 &&
+                (t.paymentKind === 'bundle' || t.components.length > 1)) {
+                const _acComps = typeof window.expandTransactionComponentsForAccounting === 'function'
+                    ? window.expandTransactionComponentsForAccounting(t)
+                    : t.components;
+                _acComps.forEach(function(c) {
+                    const ca = Number(c.amount || 0);
+                    const ck = c.kind || '';
+                    if (ck === 'tuition') {
+                        const alloc = Array.isArray(c.packageMonths) && c.packageMonths.length > 1
+                            ? ca / c.packageMonths.length : ca;
+                        incTuition += alloc;
+                    } else if (ck === 'exam') {
+                        incExam += ca;
+                    } else if (ck === 'inventory' || ck === 'inventoryDebt') {
+                        incUniform += ca;
+                    } else {
+                        incOther += ca;
+                    }
+                });
             } else if ((typeof window.normalizeFinanceTransactionType === 'function' ? window.normalizeFinanceTransactionType(t) : t.type) === 'Học phí') {
-                allocatedAmount = t.packageMonths && t.packageMonths.length
+                allocatedAmount = t.packageMonths
                     ? allocatedAmount / t.packageMonths.length
                     : allocatedAmount;
                 incTuition += allocatedAmount;
             } else if ((typeof window.normalizeFinanceTransactionType === 'function' ? window.normalizeFinanceTransactionType(t) : t.type) === 'Học phí + Lệ phí thi') {
-                allocatedAmount = t.packageMonths && t.packageMonths.length
+                allocatedAmount = t.packageMonths
                     ? (Number(t.tuitionAmount) || 0) / t.packageMonths.length
                     : (Number(t.tuitionAmount) || 0);
                 incTuition += allocatedAmount;
                 incExam    += Number(t.examAmount) || 0;
             } else if ((typeof window.normalizeFinanceTransactionType === 'function' ? window.normalizeFinanceTransactionType(t) : t.type) === 'Lệ phí thi') {
                 incExam += allocatedAmount;
-            } else if (t.affectsRevenue !== false) {
+            } else {
                 incOther += allocatedAmount;
             }
 

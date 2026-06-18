@@ -116,7 +116,7 @@ check(
 // After our edit, app.js toggleMiInvCategory should have the MultiItemInventorySafety fallback
 const appJsToggleMiInvCategoryIdx = appJs.indexOf('window.toggleMiInvCategory = ()');
 const appJsToggleMiSection = appJsToggleMiInvCategoryIdx >= 0
-    ? appJs.substring(appJsToggleMiInvCategoryIdx, appJsToggleMiInvCategoryIdx + 1800)
+    ? appJs.substring(appJsToggleMiInvCategoryIdx, appJsToggleMiInvCategoryIdx + 600)
     : '';
 check(
     '11. toggleMiInvCategory in app.js has fallback buildInventoryStockMapForMultiItem',

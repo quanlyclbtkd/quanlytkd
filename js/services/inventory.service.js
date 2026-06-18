@@ -218,10 +218,12 @@ export const InventoryService = {
      * @returns {string} ID của doc vừa tạo
      */
     async addItem(data) {
-        const { doc, writeBatch, runTransaction, increment } = _sdk();
+        const { doc, writeBatch, increment } = _sdk();
         const invRef = _invRef();
         if (!invRef) throw new Error('[InventoryService] invRef chưa sẵn sàng');
-        if (typeof increment !== 'function') throw new Error('[InventoryService] Firestore increment chưa sẵn sàng');
+        if (typeof writeBatch !== 'function' || typeof increment !== 'function') {
+            throw new Error('[InventoryService] Firestore batch/increment chưa sẵn sàng');
+        }
 
         const payload = { ...(data || {}) };
         if (!payload.timestamp) payload.timestamp = Date.now();
@@ -233,36 +235,13 @@ export const InventoryService = {
             if (!payload.studentName && identity.studentName) payload.studentName = identity.studentName;
         }
 
-        const db = _db();
         const itemRef = doc(invRef);
-        const statsRef = doc(db, 'clubs', _clubId(), 'settings', 'inventory_stats');
+        const statsRef = doc(_db(), 'clubs', _clubId(), 'settings', 'inventory_stats');
         const summaryPatch = _buildLedgerIncrementPatch([{ item: payload, direction: 1 }], increment);
-        const info = _inventoryBase(payload);
-        const count = _inventoryQty(payload);
-        const isOutgoing = !_isInventoryIn(payload);
-
-        // Strict posted inventory writes must validate stock inside the same
-        // Firestore transaction. This prevents two devices from both selling
-        // the final unit and pushing inventory below zero.
-        if (isOutgoing && info && count > 0) {
-            if (typeof runTransaction !== 'function') throw new Error('[InventoryService] Firestore transaction chưa sẵn sàng');
-            await runTransaction(db, async transaction => {
-                const statsSnap = await transaction.get(statsRef);
-                const stats = statsSnap.exists() ? (statsSnap.data() || {}) : {};
-                const available = Number(stats[info.base + '_balance'] || 0);
-                if (available < count) {
-                    throw new Error(`Kho không đủ ${info.category} ${info.size}: còn ${available}, cần ${count}.`);
-                }
-                transaction.set(itemRef, payload);
-                if (Object.keys(summaryPatch).length) transaction.set(statsRef, summaryPatch, { merge: true });
-            });
-        } else {
-            if (typeof writeBatch !== 'function') throw new Error('[InventoryService] Firestore batch chưa sẵn sàng');
-            const batch = writeBatch(db);
-            batch.set(itemRef, payload);
-            if (Object.keys(summaryPatch).length) batch.set(statsRef, summaryPatch, { merge: true });
-            await batch.commit();
-        }
+        const batch = writeBatch(_db());
+        batch.set(itemRef, payload);
+        if (Object.keys(summaryPatch).length) batch.set(statsRef, summaryPatch, { merge: true });
+        await batch.commit();
 
         const runtimeItem = { id: itemRef.id, ...payload };
         _mergeRuntimeInventory(runtimeItem, 'inventory-service-add-item');
@@ -394,114 +373,84 @@ export const InventoryService = {
      * @param {Object} [options] - { date: 'YYYY-MM-DD' } để override ngày thu
      */
     async markPaid(invId, options = {}) {
-        const {
-            doc, getDocs, query, where, collection, limit, runTransaction
-        } = _sdk();
+        const { doc, getDoc, updateDoc, addDoc, query, where, getDocs, collection } = _sdk();
         const db     = _db();
         const clubId = _clubId();
-        if (typeof runTransaction !== 'function') {
-            throw new Error('[InventoryService] Firestore transaction chưa sẵn sàng');
+
+        // 1. Load inventory doc
+        const invSnap = await getDoc(doc(db, 'clubs', clubId, 'inventory', invId));
+        if (!invSnap.exists()) throw new Error('[InventoryService] Inventory item not found: ' + invId);
+
+        const inv = { id: invSnap.id, ...invSnap.data() };
+
+        // 2. Kiểm tra đã thu trước đó chưa
+        if (inv.unpaid === false && inv.inventoryDebtStatus === 'paid') {
+            return { alreadyPaid: true, inv };
         }
 
-        const invRef = doc(db, 'clubs', clubId, 'inventory', invId);
-        const txCol  = collection(db, 'clubs', clubId, 'transactions');
-
-        // Tìm giao dịch legacy đã liên kết. Nếu chưa có, dùng ID xác định để
-        // hai thiết bị cùng bấm 💰 Thu không thể tạo hai doanh thu.
-        let existingTxRef = null;
-        try {
-            const txSnap = await getDocs(query(txCol, where('relatedInvId', '==', invId), limit(1)));
-            if (!txSnap.empty) existingTxRef = txSnap.docs[0].ref;
-        } catch (lookupError) {
-            console.warn('[InventoryService] Không tìm được giao dịch legacy trước khi thu nợ:', lookupError);
-        }
-        const paymentTxRef = existingTxRef || doc(txCol, `inventory-debt-${invId}`);
-
-        const today = options.date
+        const today   = options.date
             || (typeof window.getLocalToday === 'function' ? window.getLocalToday() : new Date().toISOString().slice(0, 10));
         const txMonth = today.slice(0, 7);
-        let result = null;
 
-        await runTransaction(db, async transaction => {
-            const invSnap = await transaction.get(invRef);
-            if (!invSnap.exists()) throw new Error('Không tìm thấy khoản nợ Kho cần thu');
-            const inv = { id: invSnap.id, ...invSnap.data() };
+        // 3. Tìm transaction đã có relatedInvId
+        const txRef  = collection(db, 'clubs', clubId, 'transactions');
+        const q      = query(txRef, where('relatedInvId', '==', invId));
+        const txSnap = await getDocs(q);
 
-            if (inv.unpaid === false && inv.inventoryDebtStatus === 'paid') {
-                result = { alreadyPaid: true, inv, txId: inv.paidTxId || paymentTxRef.id };
-                return;
-            }
+        const invAmount = Number(inv.amount || 0);
+        if (invAmount <= 0) {
+            console.warn('[InventoryService] markPaid: amount <= 0 cho invId=' + invId + '. Sẽ vẫn mark paid nhưng không tạo transaction.');
+        }
 
-            const existingTxSnap = await transaction.get(paymentTxRef);
-            const invAmount = Number(inv.amount || 0);
-            const txData = {
-                branch:               inv.branch || 'Chung',
-                type:                 'Thu ' + (inv.category || 'Võ phục'),
-                description:          ('Thu nợ ' + (inv.category || 'Võ phục') + ' ' + (inv.size || '') + ' của ' + (inv.desc || inv.studentName || '')).trim(),
-                studentName:          inv.studentName || inv.desc || '',
-                profileName:          inv.profileId || inv.studentName || inv.desc || '',
-                profileId:            inv.profileId || '',
-                memberId:             inv.memberId || '',
-                amount:               invAmount,
-                date:                 today,
-                txMonth,
-                timestamp:            Date.now(),
-                relatedInvId:         invId,
-                inventoryDebtPayment: true,
-                inventoryDebtPaidAt:  Date.now(),
-                inventoryCategory:    inv.category || 'Võ phục',
-                inventorySize:        inv.size  || '',
-                inventoryDesc:        inv.desc  || '',
-                affectsRevenue:       invAmount > 0,
-                revenueCategory:      'inventory',
-                components: invAmount > 0 ? [{
-                    kind: 'inventoryDebt',
-                    type: 'Thu ' + (inv.category || 'Võ phục'),
-                    label: ('Thu nợ ' + (inv.category || 'Võ phục') + ' ' + (inv.size || '')).trim(),
-                    amount: invAmount,
-                    category: inv.category || 'Võ phục',
-                    size: inv.size || '',
-                    relatedInvId: invId,
-                    affectsRevenue: true,
-                    affectsInventory: false,
-                }] : [],
-            };
+        const txData = {
+            branch:               inv.branch || 'Chung',
+            type:                 'Thu ' + (inv.category || 'Võ phục'),
+            description:          ('Thu nợ ' + (inv.category || 'Võ phục') + ' ' + (inv.size || '') + ' của ' + (inv.desc || '')).trim(),
+            amount:               invAmount,
+            date:                 today,
+            txMonth,
+            timestamp:            Date.now(),
+            relatedInvId:         invId,
+            inventoryDebtPayment: true,
+            inventoryDebtPaidAt:  Date.now(),
+            inventoryCategory:    inv.category || 'Võ phục',
+            inventorySize:        inv.size  || '',
+            inventoryDesc:        inv.desc  || '',
+        };
 
-            const canonicalTxData = existingTxSnap.exists() && typeof window.canonicalizeTransactionPatch === 'function'
-                ? window.canonicalizeTransactionPatch(txData, existingTxSnap.data(), 'inventory-service-mark-paid-atomic')
-                : (typeof window.canonicalizeTransactionForWrite === 'function'
-                    ? window.canonicalizeTransactionForWrite(txData, 'inventory-service-mark-paid-atomic')
-                    : txData);
+        let txId = '';
 
+        // 4. Cập nhật transaction cũ nếu có, hoặc tạo mới
+        if (!txSnap.empty) {
+            const existing = txSnap.docs[0];
+            txId = existing.id;
+            const canonicalPatch = typeof window.canonicalizeTransactionPatch === 'function'
+                ? window.canonicalizeTransactionPatch(txData, existing.data(), 'inventory-service-mark-paid-existing')
+                : txData;
+            await updateDoc(existing.ref, canonicalPatch);
+        } else {
             if (invAmount > 0) {
-                if (existingTxSnap.exists()) transaction.set(paymentTxRef, canonicalTxData, { merge: true });
-                else transaction.set(paymentTxRef, canonicalTxData);
+                const canonicalTxData = typeof window.canonicalizeTransactionForWrite === 'function'
+                    ? window.canonicalizeTransactionForWrite(txData, 'inventory-service-mark-paid')
+                    : txData;
+                const newTx = await addDoc(txRef, canonicalTxData);
+                txId = newTx.id;
             }
+        }
 
-            const invUpdate = {
-                unpaid:               false,
-                inventoryDebtStatus:  'paid',
-                paidAt:               Date.now(),
-                paidDate:             today,
-                paidTxId:             invAmount > 0 ? paymentTxRef.id : '',
-            };
-            transaction.update(invRef, invUpdate);
-            result = {
-                alreadyPaid: false,
-                inv: { ...inv, ...invUpdate },
-                txId: invAmount > 0 ? paymentTxRef.id : '',
-                tx: invAmount > 0 ? { id: paymentTxRef.id, ...canonicalTxData } : null,
-            };
-        });
+        // 5. Update inventory doc
+        const invUpdate = {
+            unpaid:               false,
+            inventoryDebtStatus:  'paid',
+            paidAt:               Date.now(),
+            paidDate:             today,
+        };
+        if (txId) invUpdate.paidTxId = txId;
 
-        if (!result) throw new Error('Không nhận được kết quả thu nợ Kho');
-        if (result.tx) window.mergeTransactionIntoRuntimeStore?.(result.tx, 'inventory-debt-paid-atomic');
-        if (result.inv) window.mergeInventoryIntoRuntimeStore?.(result.inv, 'inventory-debt-paid-atomic');
-        window.notifyInventoryMutation?.('inventory-service-mark-paid-atomic', { writeThrough: true });
-        window.refreshListsComputation?.(['students.debtList', 'dashboard.summary'], 'inventory-debt-paid-atomic');
-        window.invalidateList?.('students.debtList', 'inventory-debt-paid-atomic');
-        window.invalidateDashboard?.('inventory-debt-paid-atomic');
-        return result;
+        await updateDoc(doc(db, 'clubs', clubId, 'inventory', invId), invUpdate);
+        window.notifyInventoryMutation?.('inventory-service-mark-paid');
+
+        return { alreadyPaid: false, inv, txId };
     },
 
     // ── PAGINATION (Phase 4J-8) ──────────────────────────────────

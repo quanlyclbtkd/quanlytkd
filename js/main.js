@@ -1,7 +1,4 @@
 // Phase 4K-6V3A compatibility: 4K-6V3A-firestore-read-attribution-canonical-transaction-boundary
-// APP_BUILD_VERSION = '4K-6V3F1-financial-collection-revenue-routing-inline-edit-20260618'
-// APP_BUILD_VERSION = '4K-6V3F-per-club-inventory-policy-pending-reconciliation-20260618'
-// APP_BUILD_VERSION = '4K-6V3D1-canonical-tuition-ledger-reconciliation-20260618'
 // Compatibility marker: multiItemInventorySafety.js?v=inventory-ledger-reconciliation-20260616-v2c
 // Phase compatibility APP_BUILD_VERSION markers for static safety checks:
 // APP_BUILD_VERSION = '4K-6D-security-license-ip-protection-readiness-20260605'
@@ -118,7 +115,6 @@ import { escapeForAttr, escapeHtml, formatVND, parseVND } from './utils/helpers.
 import { Formatters, initFormatters } from './utils/formatters.js';
 import { ReceiptHelpers, initReceiptHelpers } from './modules/receiptHelpers.js';
 import { QRBankingHelpers, initQRBankingHelpers } from './modules/qrBankingHelpers.js';
-import { initRevenueRouting } from './core/revenueRouting.js?v=canonical-revenue-routing-20260618-v3f1';
 
 // Phase 4K-6S: adopt canonical ownership for all reviewed low-risk UI globals.
 // This runs before authenticated interaction and before business-module init.
@@ -152,27 +148,12 @@ try {
     console.warn('[BOOT] initReceiptQrHelpers failed:', e);
 }
 
-// Phase 4K-6V3F1: canonical revenue routing for tuition / inventory / exam / other.
-try {
-    initRevenueRouting();
-} catch (e) {
-    console.warn('[BOOT] initRevenueRouting failed:', e);
-}
-
 // Phase 4K-6L: Inventory / MultiItem read-only UI ownership gate.
 // UI-only helper module — no Firestore writes and no processMultiItem ownership changes.
 try {
     initInventoryMultiItemReadOnlyUI();
 } catch (e) {
     console.warn('[BOOT] initInventoryMultiItemReadOnlyUI failed:', e);
-}
-
-// Phase 4K-6V3F: per-club inventory policy + pending reconciliation.
-try {
-    initInventorySalePolicy();
-    initInventoryPendingService();
-} catch (e) {
-    console.warn('[BOOT] initInventorySalePolicy/initInventoryPendingService failed:', e);
 }
 
 // Phase 4K-6M: Listener Ownership Boundary + Render Event Cleanup.
@@ -244,8 +225,6 @@ import { initLegacyDiagnostics } from './diagnostics/legacyDiagnostics.js';
 // Phase 4K-6G: MultiItem Inventory Safety Module
 import { MultiItemInventorySafety } from './core/multiItemInventorySafety.js?v=inventory-ledger-reconciliation-20260616-v2c';
 import { InventoryMultiItemReadOnlyUI, initInventoryMultiItemReadOnlyUI } from './core/inventoryMultiItemReadOnlyUI.js?v=inventory-ledger-reconciliation-20260616-v2c';
-import { initInventorySalePolicy } from './core/inventorySalePolicy.js?v=per-club-inventory-policy-20260618-v3f';
-import { InventoryPendingService, initInventoryPendingService } from './services/inventoryPending.service.js?v=quick-pay-commit-acknowledgement-20260618-v3f2';
 
 // ── Phase 3.3E: Firestore safety (expose globally for services) ──
 import { safeGetDocs, printQueryAuditReport }  from './utils/firestore-guard.js';
@@ -275,7 +254,7 @@ import {
     getQuitStatusValues,
     getProfilesListenerMetrics,
     ensureAllProfilesForExport,
-} from './listeners/profiles.listeners.js?v=canonical-tuition-ledger-20260618-v3d1';
+} from './listeners/profiles.listeners.js?v=debt-profile-read-boundary-20260616-v3d';
 
 // ── Phase 3.7C: Profile Status Config ────────────────────────────────────────
 import {
@@ -329,7 +308,7 @@ import {
 } from './firebase/paginatedQuery.js';
 
 // ── Phase 2d–3.2A: Business modules (eager — cần khi login) ────
-import { initStudents, initStudentPagination }        from './modules/students.js?v=quick-pay-commit-acknowledgement-20260618-v3f2';
+import { initStudents, initStudentPagination }        from './modules/students.js?v=debt-profile-read-boundary-20260616-v3d';
 // PHẦN 1 FIX + Phase 4K-2: Unified Search Controller — real cache + SearchBlob + stale guard
 import {
     initGlobalSearchRuntime,
@@ -338,10 +317,8 @@ import {
     invalidateSearchCache,
     debugSearchPerformance,
 } from './modules/searchRuntime.js';
-import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from './modules/finance.js?v=quick-pay-commit-acknowledgement-20260618-v3f2';
-import { initFinanceTransactionEditor } from './modules/financeTransactionEditor.js?v=quick-pay-commit-acknowledgement-20260618-v3f2';
-import { initQuickPaymentModal } from './modules/quickPaymentModal.js?v=quick-pay-commit-acknowledgement-20260618-v3f2';
-import { initInventory }                              from './modules/inventory.js?v=quick-pay-commit-acknowledgement-20260618-v3f2';
+import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from './modules/finance.js?v=payment-bundle-runtime-hotfix-20260616-v3a1';
+import { initInventory }                              from './modules/inventory.js?v=payment-bundle-runtime-hotfix-20260616-v3a1';
 import { initAttendance }                             from './modules/attendance.js';
 import { initDashboard }                              from './modules/dashboard.js?v=payment-bundle-runtime-hotfix-20260616-v3a1';
 // ── Phase 4K-6U: Heavy Reports module is lazy-loaded by reportExportFacade.js ──
@@ -1624,8 +1601,6 @@ function _waitForExistingLegacyApp(ms) {
         };
 
         initFinance();
-        initQuickPaymentModal();
-        initFinanceTransactionEditor();
         initInventory();
         initAttendance();
         // Phase 4K-6U: reports.js and attendanceExcelReport.js load only on export.
@@ -3126,11 +3101,9 @@ window.debugProfileModalClose = function() {
 // ════════════════════════════════════════════════════════════════
 
 // PHẦN 1 — APP BUILD VERSION
-// Compatibility marker for pre-V3F static gates:
-// window.APP_BUILD_VERSION = '4K-6V2-inventory-history-pagination-complete-active-debt-20260616';
-window.APP_BUILD_VERSION = '4K-6V3F1-financial-collection-revenue-routing-inline-edit-20260618';
+window.APP_BUILD_VERSION = '4K-6V2-inventory-history-pagination-complete-active-debt-20260616';
 // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
-window.APP_PATCH_VERSION = '4K-6V3D1-canonical-tuition-ledger-reconciliation-20260618';
+window.APP_PATCH_VERSION = '4K-6V3D-debt-profile-read-boundary-20260616';
 window.APP_COPYRIGHT_OWNER   = 'Tình Trương';
 window.APP_PRODUCT_NAME      = 'Taekwondo Club Management Web App';
 window.APP_SECURITY_PHASE    = '4K-6E-scale-readiness-write-safety';
@@ -3499,8 +3472,6 @@ window.MultiItemInventorySafety =
     window.MultiItemInventorySafety || MultiItemInventorySafety;
 window.InventoryMultiItemReadOnlyUI =
     window.InventoryMultiItemReadOnlyUI || InventoryMultiItemReadOnlyUI;
-window.InventoryPendingService =
-    window.InventoryPendingService || InventoryPendingService;
 
 window.ensureMultiItemInventoryReady =
     window.ensureMultiItemInventoryReady ||
@@ -5311,9 +5282,7 @@ window.reconcileStudentTuitionAfterDeletedTransaction = async function(studentNa
             return !monthsToRemove.includes(m);
         });
 
-        var newPaidUntil = typeof window.derivePaidThroughAfterTuitionRemoval === 'function'
-            ? window.derivePaidThroughAfterTuitionRemoval(profile, newPaidMonths, monthsToRemove)
-            : window.recalculatePaidUntilFromPaidMonths(profile, newPaidMonths, Object.assign({}, options, { removedMonths: monthsToRemove }));
+        var newPaidUntil = window.recalculatePaidUntilFromPaidMonths(profile, newPaidMonths, options);
 
         console.info('[reconcile] studentName:', studentName,
             'removing months:', monthsToRemove,
@@ -5328,7 +5297,6 @@ window.reconcileStudentTuitionAfterDeletedTransaction = async function(studentNa
                 await ss.updateProfile(studentName, {
                     paidMonths: newPaidMonths,
                     paidUntil:  newPaidUntil,
-                    paidThroughMonth: newPaidUntil,
                 });
                 writeOk = true;
             } else {
@@ -5339,7 +5307,7 @@ window.reconcileStudentTuitionAfterDeletedTransaction = async function(studentNa
                 if (sdk.doc && sdk.updateDoc && db && clubId) {
                     await sdk.updateDoc(
                         sdk.doc(db, 'clubs', clubId, 'profiles', studentName),
-                        { paidMonths: newPaidMonths, paidUntil: newPaidUntil, paidThroughMonth: newPaidUntil }
+                        { paidMonths: newPaidMonths, paidUntil: newPaidUntil }
                     );
                     writeOk = true;
                 }
@@ -5352,12 +5320,10 @@ window.reconcileStudentTuitionAfterDeletedTransaction = async function(studentNa
         if (st.profiles && st.profiles[studentName]) {
             st.profiles[studentName].paidMonths = newPaidMonths;
             st.profiles[studentName].paidUntil  = newPaidUntil;
-            st.profiles[studentName].paidThroughMonth = newPaidUntil;
         }
         if (window.allProfiles && window.allProfiles[studentName]) {
             window.allProfiles[studentName].paidMonths = newPaidMonths;
             window.allProfiles[studentName].paidUntil  = newPaidUntil;
-            window.allProfiles[studentName].paidThroughMonth = newPaidUntil;
         }
 
         // Refresh lists

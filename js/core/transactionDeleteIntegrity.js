@@ -171,27 +171,14 @@ function analyzeTransactionDeleteImpact(tx, options) {
                tx.unpaid === true ||
                tx.inventoryDebtStatus === 'pending';
     });
-    var pendingIssueIds = Array.isArray(tx.pendingInventoryIssueIds)
-        ? tx.pendingInventoryIssueIds.filter(Boolean)
-        : [];
-    var hasPendingInventoryPosting = tx.inventoryPostingStatus === 'pending' ||
-        pendingIssueIds.length > 0 ||
-        invItems.some(function(c) { return c && (c.inventoryPostingStatus === 'pending' || c.pendingIssueId); });
 
     var warnings = [];
     var blockers = [];
-    if (hasPendingInventoryPosting) {
-        warnings.push('pending-inventory-posting');
-        blockers.push('resolve-pending-inventory-before-delete');
-    }
 
     // Kiểm tra inventory rollback safety
     var invUnsafe = false;
     if (hasInventory) {
         invItems.forEach(function(c) {
-            // Financial-only inventory components intentionally have no stock row.
-            // They require no inventory rollback after the pending issue was resolved.
-            if (c && (c.inventoryPostingStatus === 'not_applicable' || c.affectsInventory === false) && !c.pendingIssueId) return;
             var hasRef = !!(c.relatedInvId || c.paymentBundleId || tx.relatedInvId || tx.paymentBundleId);
             if (!hasRef) {
                 invUnsafe = true;
@@ -224,8 +211,6 @@ function analyzeTransactionDeleteImpact(tx, options) {
         hasExam:          hasExam,
         hasInventory:     hasInventory,
         hasInventoryDebt: hasInventoryDebt,
-        hasPendingInventoryPosting: hasPendingInventoryPosting,
-        pendingIssueIds: pendingIssueIds,
         safeToHardDelete:           safeToHardDelete,
         requiresProfileReconcile:   requiresProfileReconcile,
         requiresExamRefresh:        requiresExamRefresh,

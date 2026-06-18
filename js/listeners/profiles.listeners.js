@@ -425,11 +425,6 @@ export function mountActiveProfilesListener(context) {
                     if (typeof window.scheduleAutomaticDebtProfileCoverage === 'function') {
                         window.scheduleAutomaticDebtProfileCoverage('active-profiles-snapshot');
                     }
-                    // Zero-read targeted reconciliation: reuse the active snapshot and
-                    // repair only profiles whose paidMonths prove paidUntil is stale.
-                    if (typeof window.scheduleTuitionProfileReconciliation === 'function') {
-                        window.scheduleTuitionProfileReconciliation('active-profiles-snapshot');
-                    }
                 },
                 (err) => {
                     _state.activeQueryErrorCount++;

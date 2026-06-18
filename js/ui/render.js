@@ -59,7 +59,7 @@ import {
     computeAndCacheStudents,
     getStudentsSummary,
     getStudentsCachedHtml,
-} from './render/computation/studentsRenderer.js?v=canonical-tuition-ledger-20260618-v3d1';
+} from './render/computation/studentsRenderer.js?v=debt-profile-read-boundary-20260616-v3d';
 import {
     computeAndCacheInventory,
     getCachedLiveInvMap,

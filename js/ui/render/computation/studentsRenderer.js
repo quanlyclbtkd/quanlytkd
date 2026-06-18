@@ -318,11 +318,8 @@ export function computeAndCacheStudents(allProfiles, params) {
             if (bStats[safeBranch]) bStats[safeBranch].active++;
             activeCount++;
 
-            const effectivePaidUntil = typeof window.getEffectivePaidUntil === 'function'
-                ? window.getEffectivePaidUntil(p)
-                : p.paidUntil;
-            const paidBadge = effectivePaidUntil
-                ? `<span class="badge bg-emerald-50 text-emerald-700 border border-emerald-200 text-[0.7rem]">${formatMonth(effectivePaidUntil)}</span>`
+            const paidBadge = p.paidUntil
+                ? `<span class="badge bg-emerald-50 text-emerald-700 border border-emerald-200 text-[0.7rem]">${formatMonth(p.paidUntil)}</span>`
                 : `<span class="badge bg-rose-50 text-rose-600 border border-rose-200 text-[0.7rem]">Chưa thu</span>`;
             // Phase 4K-6E-C: Badge MỚI dùng tháng thực tế hiện tại, không theo filterMonth
             const isCurrentNew = typeof window.isCurrentMonthNewStudent === 'function'
@@ -376,25 +373,33 @@ export function computeAndCacheStudents(allProfiles, params) {
             let isDebt = false, unpaidMonthsCount = 0, owedMonths = [];
 
             if (!p.feeExempt) {
-                // Canonical profile ledger is authoritative. Legacy isOwed/owedMonths
-                // may be stale and is kept only as diagnostic data.
-                if (typeof window.getChargeableTuitionMonths === 'function') {
-                    owedMonths = window.getChargeableTuitionMonths(p, selMonth, { reason: 'debt-list' });
+                if (p.isOwed !== undefined) {
+                    const allOwed = Array.isArray(p.owedMonths) ? p.owedMonths : [];
+                    owedMonths = allOwed.filter(m => m <= selMonth);
+                    isDebt = owedMonths.length > 0;
                     unpaidMonthsCount = owedMonths.length;
-                    isDebt = unpaidMonthsCount > 0;
                 } else {
-                    const _normPU = normalizeYYYYMM(p.paidUntil);
-                    if (!_normPU || _normPU < selMonth) {
-                        let firstUnpaid = _normPU
-                            ? addMonthsToYYYYMM(_normPU, 1)
-                            : (p.createdAt ? p.createdAt.substring(0, 7) : selMonth);
-                        let cur = firstUnpaid;
-                        while (cur <= selMonth && owedMonths.length < 24) {
-                            if (!p.skippedMonths || !p.skippedMonths.includes(cur)) owedMonths.push(cur);
-                            cur = addMonthsToYYYYMM(cur, 1);
-                        }
+                    // Phase 4K-5M: ưu tiên helper chung để đồng bộ với Thu Gộp khoản
+                    if (typeof window.getChargeableTuitionMonths === 'function') {
+                        owedMonths = window.getChargeableTuitionMonths(p, selMonth, { reason: 'debt-list' });
                         unpaidMonthsCount = owedMonths.length;
-                        isDebt = unpaidMonthsCount > 0;
+                        if (unpaidMonthsCount > 0) isDebt = true;
+                    } else {
+                        if (!p.skippedMonths || !p.skippedMonths.includes(selMonth)) {
+                            const _normPU = normalizeYYYYMM(p.paidUntil);
+                            if (!_normPU || _normPU < selMonth) {
+                                let firstUnpaid = _normPU
+                                    ? addMonthsToYYYYMM(_normPU, 1)
+                                    : (p.createdAt ? p.createdAt.substring(0, 7) : selMonth);
+                                let cur = firstUnpaid;
+                                while (cur <= selMonth && owedMonths.length < 24) {
+                                    if (!p.skippedMonths || !p.skippedMonths.includes(cur)) owedMonths.push(cur);
+                                    cur = addMonthsToYYYYMM(cur, 1);
+                                }
+                                unpaidMonthsCount = owedMonths.length;
+                                if (unpaidMonthsCount > 0) isDebt = true;
+                            }
+                        }
                     }
                 }
             }
@@ -476,11 +481,8 @@ export function computeAndCacheStudents(allProfiles, params) {
 
                 if (passFilter) {
                     _activeTotalCount++;
-                    const effectivePaidUntil = typeof window.getEffectivePaidUntil === 'function'
-                        ? window.getEffectivePaidUntil(p)
-                        : p.paidUntil;
-                    const paidBadge = effectivePaidUntil
-                        ? `<span class="badge bg-emerald-50 text-emerald-700 border border-emerald-200 text-[0.7rem]">${formatMonth(effectivePaidUntil)}</span>`
+                    const paidBadge = p.paidUntil
+                        ? `<span class="badge bg-emerald-50 text-emerald-700 border border-emerald-200 text-[0.7rem]">${formatMonth(p.paidUntil)}</span>`
                         : `<span class="badge bg-rose-50 text-rose-600 border border-rose-200 text-[0.7rem]">Chưa thu</span>`;
                     // Phase 4K-6E-C: Badge MỚI dùng tháng thực tế, không theo filterMonth (PASS 2)
                     const _p2IsCurrentNew = typeof window.isCurrentMonthNewStudent === 'function'
@@ -531,9 +533,9 @@ export function computeAndCacheStudents(allProfiles, params) {
             if (!item.feeExempt) {
                 let isDebt = false;
                 let unpaidMonthsCount = 0;
-                if (typeof window.getChargeableTuitionMonths === 'function') {
-                    const canonicalOwed = window.getChargeableTuitionMonths(item, selMonth, { reason: 'debt-pagination-summary' });
-                    unpaidMonthsCount = canonicalOwed.length;
+                if (item.isOwed !== undefined) {
+                    const allOwed = Array.isArray(item.owedMonths) ? item.owedMonths : [];
+                    unpaidMonthsCount = allOwed.filter(function(m) { return m <= selMonth; }).length;
                     isDebt = unpaidMonthsCount > 0;
                 } else {
                     const _normPU = normalizeYYYYMM(item.paidUntil);

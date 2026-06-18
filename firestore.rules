@@ -67,41 +67,10 @@ service cloud.firestore {
       return isClubMember(clubId) && myRole() in ['admin', 'owner'];
     }
 
-    // Coach/HLV của CLB.
+    // Coach của CLB
+    // TODO Phase 4.0C: Xác định chính xác role string cho HLV trong app
     function isCoach(clubId) {
       return isClubMember(clubId) && myRole() == 'coach';
-    }
-
-    // Cơ sở được phân công cho HLV. Chuỗi rỗng = được thao tác tất cả cơ sở
-    // trong CLB (đúng với quy ước hiện tại của ứng dụng).
-    function myCoachBranch() {
-      return isCoach(myClubId()) ? userDoc().get('branch', '') : '';
-    }
-
-    // Chỉ cho HLV tạo dữ liệu đúng cơ sở được phân công. Đây là boundary cần
-    // cho luồng “Thêm võ sinh” + thu nhập học; không mở quyền sửa/xóa tài chính.
-    function isCoachForBranch(clubId, branchValue) {
-      return isCoach(clubId)
-        && (myCoachBranch() == '' || branchValue == myCoachBranch());
-    }
-
-    function coachCanCreateBranchDocument(clubId) {
-      return isCoachForBranch(clubId, request.resource.data.get('branch', ''));
-    }
-
-    // HLV chỉ được cập nhật các trường canonical học phí sau khi transaction
-    // nhập học/thu học phí đã tạo; không được sửa hồ sơ cá nhân hay trạng thái.
-    function coachCanUpdateTuitionLedger(clubId) {
-      return isCoachForBranch(clubId, resource.data.get('branch', ''))
-        && request.resource.data.get('branch', '') == resource.data.get('branch', '')
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'paidUntil',
-          'paidThroughMonth',
-          'paidMonths',
-          'tuitionLedgerSchemaVersion',
-          'tuitionLedgerUpdatedAt',
-          'tuitionLedgerSource'
-        ]);
     }
 
     // Parent: chỉ xem dữ liệu con mình
@@ -127,16 +96,13 @@ service cloud.firestore {
       // Võ sinh
       match /students/{studentId} {
         allow read:   if isSuperAdmin() || isClubMember(clubId);
-        allow create: if isSuperAdmin() || isClubAdmin(clubId) || coachCanCreateBranchDocument(clubId);
-        allow update, delete: if isSuperAdmin() || isClubAdmin(clubId);
+        allow write:  if isSuperAdmin() || isClubAdmin(clubId);
       }
 
       // Giao dịch học phí
       match /transactions/{txId} {
         allow read:   if isSuperAdmin() || isClubMember(clubId);
-        // HLV chỉ được tạo giao dịch nhập học/thu tiền ở đúng cơ sở được giao.
-        // Sửa/xóa giao dịch vẫn dành cho Admin CLB để giữ audit tài chính.
-        allow create: if isSuperAdmin() || isClubAdmin(clubId) || coachCanCreateBranchDocument(clubId);
+        allow create: if isSuperAdmin() || isClubAdmin(clubId);
         // TODO: SuperAdmin xóa giao dịch nên chuyển sang Cloud Function (audit log)
         allow update: if isSuperAdmin() || isClubAdmin(clubId);
         allow delete: if isSuperAdmin();
@@ -152,17 +118,7 @@ service cloud.firestore {
       // Kho dụng cụ
       match /inventory/{itemId} {
         allow read:   if isSuperAdmin() || isClubMember(clubId);
-        // Cho phép HLV tạo đúng bút toán xuất bán trong luồng thêm võ sinh.
-        // Đối soát/sửa/xóa Kho vẫn chỉ Admin.
-        allow create: if isSuperAdmin() || isClubAdmin(clubId) || coachCanCreateBranchDocument(clubId);
-        allow update, delete: if isSuperAdmin() || isClubAdmin(clubId);
-      }
-
-      // Giao dịch bán tạm chờ bổ sung/đối soát Kho (Phase 4K-6V3F)
-      match /inventoryPendingIssues/{issueId} {
-        allow read:   if isSuperAdmin() || isClubMember(clubId);
-        allow create: if isSuperAdmin() || isClubAdmin(clubId) || coachCanCreateBranchDocument(clubId);
-        allow update, delete: if isSuperAdmin() || isClubAdmin(clubId);
+        allow write:  if isSuperAdmin() || isClubAdmin(clubId);
       }
 
       // Thi cấp đai
@@ -195,19 +151,15 @@ service cloud.firestore {
       // App dùng clubs/{clubId}/profiles/{profileId} (không phải /students).
       match /profiles/{profileId} {
         allow read:   if isSuperAdmin() || isClubMember(clubId);
-        allow create: if isSuperAdmin() || isClubAdmin(clubId) || coachCanCreateBranchDocument(clubId);
-        allow update: if isSuperAdmin() || isClubAdmin(clubId) || coachCanUpdateTuitionLedger(clubId);
+        allow create: if isSuperAdmin() || isClubAdmin(clubId);
+        allow update: if isSuperAdmin() || isClubAdmin(clubId);
         allow delete: if isSuperAdmin() || isClubAdmin(clubId);
       }
 
       // ── Settings CLB (pagination cursors, stats, shifts, v.v.) ─────────────
       match /settings/{settingId} {
         allow read:  if isSuperAdmin() || isClubMember(clubId);
-        // inventory_stats là summary write-through bắt buộc khi HLV thêm võ sinh
-        // kèm sản phẩm. Các settings khác vẫn chỉ Admin.
-        allow create, update: if isSuperAdmin() || isClubAdmin(clubId)
-          || (isCoach(clubId) && settingId == 'inventory_stats');
-        allow delete: if isSuperAdmin() || isClubAdmin(clubId);
+        allow write: if isSuperAdmin() || isClubAdmin(clubId);
       }
 
       // ── Stats/monthly aggregate docs ────────────────────────────────────────
@@ -233,13 +185,7 @@ service cloud.firestore {
       // SuperAdmin cập nhật role/clubId
       // TODO: hạn chế field nào user được tự write (dùng request.resource.data diff)
       allow update: if signedIn() && (request.auth.uid == uid || isSuperAdmin());
-      // Admin CLB được tạo users/{uid} cho tài khoản HLV thuộc chính CLB.
-      // Điều này đồng bộ với createCoachAccount/migrateCoachAccounts và là điều
-      // kiện để Rules nhận diện đúng quyền HLV sau đăng nhập.
-      allow create: if isSuperAdmin()
-        || (signedIn()
-          && request.resource.data.get('role', '') == 'coach'
-          && isClubAdmin(request.resource.data.get('clubId', '')));
+      allow create: if isSuperAdmin();
       allow delete: if isSuperAdmin();
     }
 

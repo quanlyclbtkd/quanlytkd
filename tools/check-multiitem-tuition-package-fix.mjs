@@ -13,7 +13,7 @@ has(app, 'expectedExample_3_from_2026_06', 'missing example coverage debug');
 has(app, "window.__miManualTuitionPackage", 'missing manual package state');
 has(app, 'select-change-capture', 'missing capture-phase manual package mark');
 has(app, "_coverage = typeof window.buildMultiItemTuitionPackageMonths", 'processMultiItem does not use coverage helper');
-if (!(app.includes("paidMonths: arrayUnion(...packageMonths)") || (app.includes("tuitionMonths: hasTuition ? packageMonths : []") && app.includes("InventoryPendingService.commitFinancialTransaction")))) fails.push('paidMonths/packageMonths canonical tuition commit missing');
+has(app, "paidMonths: arrayUnion(...packageMonths)", 'paidMonths arrayUnion packageMonths missing');
 has(app, "paidUntil: lastMonth", 'paidUntil lastMonth missing');
 has(app, "packageMonths: packageMonths", 'bundle packageMonths missing');
 has(app, "window.resetMultiItemTuitionPackageManualState && window.resetMultiItemTuitionPackageManualState('open-modal')", 'modal reset missing');

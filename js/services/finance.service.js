@@ -17,7 +17,7 @@
  * ────────────────────────────────────────────────────────────────
  */
 
-import { InventoryService } from './inventory.service.js?v=quick-pay-commit-acknowledgement-20260618-v3f2';
+import { InventoryService } from './inventory.service.js?v=firestore-read-attribution-canonical-tx-boundary-20260616-v3a';
 
 function _sdk()    { return window._fb_init || {}; }
 function _db()     { const db = (window.__store || {}).db; if (!db) throw new Error('[FinanceService] db chưa sẵn sàng'); return db; }
@@ -45,172 +45,12 @@ export const FinanceService = {
     },
 
     /**
-     * Ghi giao dịch học phí + cập nhật profile trong cùng Firestore transaction.
-     * Trả về { id, paidUntil, months }.
-     */
-    async addTuitionPaymentAtomic({ studentName, months, profile, txData, reason = 'finance-service-tuition' }) {
-        if (typeof window.commitTuitionPaymentAtomic !== 'function') {
-            throw new Error('[FinanceService] CanonicalTuitionMonthLedger chưa sẵn sàng');
-        }
-        return window.commitTuitionPaymentAtomic({
-            studentName,
-            months,
-            profile,
-            txData,
-            transactionsRef: _colRef(),
-            reason,
-        });
-    },
-
-    /** Atomic multi-student tuition write (family payment). */
-    async addTuitionPaymentsAtomic(entries, reason = 'finance-service-family-tuition') {
-        if (typeof window.commitTuitionPaymentsAtomic !== 'function') {
-            throw new Error('[FinanceService] CanonicalTuitionMonthLedger chưa sẵn sàng');
-        }
-        return window.commitTuitionPaymentsAtomic(entries, {
-            transactionsRef: _colRef(),
-            reason,
-        });
-    },
-
-    /**
      * Xóa một giao dịch.
      * @param {string} txId — Firestore transaction doc ID
      */
     async deleteTransaction(txId) {
         const { doc, deleteDoc } = _sdk();
         await deleteDoc(doc(_db(), 'clubs', _clubId(), 'transactions', txId));
-    },
-
-    /** Lấy một giao dịch theo ID, ưu tiên cache hiện tại rồi mới đọc Firestore. */
-    async getTransaction(txId) {
-        const cached = ((window.__store || {}).transactions || []).find(t => t && (t.id === txId || t.txId === txId));
-        if (cached) return { ...cached };
-        const { doc, getDoc } = _sdk();
-        const snap = await getDoc(doc(_db(), 'clubs', _clubId(), 'transactions', txId));
-        return snap.exists() ? { id: snap.id, ...snap.data() } : null;
-    },
-
-    /**
-     * Sửa số tiền giao dịch doanh thu trong một Firestore transaction.
-     * - Bundle: sửa theo từng component và tự tính lại tổng.
-     * - Kho liên kết/pending: cập nhật amount tương ứng, không đụng số lượng tồn.
-     * - Không cho sửa bút toán reconciliationOnly/affectsRevenue=false.
-     */
-    async updateRevenueTransactionAtomic(txId, { amount: nextAmount, componentAmounts = null, note = '' } = {}) {
-        const { doc, runTransaction, increment } = _sdk();
-        const db = _db();
-        const clubId = _clubId();
-        const txRef = doc(db, 'clubs', clubId, 'transactions', txId);
-        let updated = null;
-
-        await runTransaction(db, async transaction => {
-            const snap = await transaction.get(txRef);
-            if (!snap.exists()) throw new Error('Không tìm thấy giao dịch cần sửa');
-            const current = { id: snap.id, ...snap.data() };
-            if (current.reconciliationOnly || current.affectsRevenue === false) {
-                throw new Error('Đây là bút toán đối soát tồn kho, không được sửa như doanh thu');
-            }
-            if (String(current.type || '').startsWith('Chi ')
-                || current.type === 'Chi phí' || current.type === 'Chi phí kỳ thi') {
-                throw new Error('Giao dịch chi phí phải sửa bằng chức năng Sửa chi phí');
-            }
-
-            const oldComponents = Array.isArray(current.components)
-                ? current.components.map(c => ({ ...(c || {}) }))
-                : [];
-            let components = oldComponents;
-            let amount = Number(nextAmount);
-
-            if (oldComponents.length && componentAmounts && typeof componentAmounts === 'object') {
-                components = oldComponents.map((component, index) => {
-                    if (!Object.prototype.hasOwnProperty.call(componentAmounts, index)) return component;
-                    const value = Number(componentAmounts[index]);
-                    if (!Number.isFinite(value) || value < 0) throw new Error('Số tiền thành phần không hợp lệ');
-                    return { ...component, amount: value };
-                });
-                amount = components.reduce((sum, component) => sum + Number(component.amount || 0), 0);
-            } else {
-                if (!Number.isFinite(amount) || amount < 0) throw new Error('Số tiền giao dịch không hợp lệ');
-                if (oldComponents.length === 1) components = [{ ...oldComponents[0], amount }];
-            }
-            if (!Number.isFinite(amount) || amount < 0) throw new Error('Tổng số tiền giao dịch không hợp lệ');
-
-            const patch = {
-                amount,
-                components,
-                editedAt: Date.now(),
-                editedBy: window.currentUserEmail || 'admin',
-                editReason: String(note || 'Sửa số tiền từ bảng giao dịch').trim(),
-            };
-            if (components.length) {
-                patch.tuitionAmount = components
-                    .filter(c => c && c.kind === 'tuition')
-                    .reduce((sum, c) => sum + Number(c.amount || 0), 0);
-                patch.examAmount = components
-                    .filter(c => c && c.kind === 'exam')
-                    .reduce((sum, c) => sum + Number(c.amount || 0), 0);
-            }
-
-            const mergedForMetadata = { ...current, ...patch };
-            if (typeof window.buildCanonicalRevenueMetadata === 'function') {
-                Object.assign(patch, window.buildCanonicalRevenueMetadata(mergedForMetadata));
-            }
-            const canonicalPatch = typeof window.canonicalizeTransactionPatch === 'function'
-                ? window.canonicalizeTransactionPatch(patch, current, 'finance-service-inline-revenue-edit')
-                : patch;
-
-            // Đồng bộ amount với inventory/pending liên kết; không thay qty hoặc tồn.
-            const invUpdates = new Map();
-            let pendingAmountDelta = 0;
-            if (components.length) {
-                components.forEach((component, index) => {
-                    const old = oldComponents[index] || {};
-                    const value = Number(component.amount || 0);
-                    const oldValue = Number(old.amount || 0);
-                    const relatedInvId = component.relatedInvId || old.relatedInvId || '';
-                    const pendingIssueId = component.pendingIssueId || old.pendingIssueId || '';
-                    if (relatedInvId && value !== oldValue) invUpdates.set(relatedInvId, value);
-                    if (pendingIssueId && value !== oldValue) {
-                        transaction.update(doc(db, 'clubs', clubId, 'inventoryPendingIssues', pendingIssueId), {
-                            saleAmount: value,
-                            updatedAt: Date.now(),
-                            editedFromTransactionAt: Date.now(),
-                        });
-                        pendingAmountDelta += value - oldValue;
-                    }
-                });
-            } else if (current.relatedInvId && amount !== Number(current.amount || 0)) {
-                invUpdates.set(current.relatedInvId, amount);
-            }
-
-            transaction.set(txRef, canonicalPatch, { merge: true });
-            invUpdates.forEach((value, invId) => {
-                transaction.update(doc(db, 'clubs', clubId, 'inventory', invId), {
-                    amount: value,
-                    updatedAt: Date.now(),
-                    editedFromTransactionAt: Date.now(),
-                });
-            });
-            if (pendingAmountDelta !== 0) {
-                transaction.set(doc(db, 'clubs', clubId, 'settings', 'inventory_stats'), {
-                    pendingIssueAmount: increment(pendingAmountDelta),
-                    pendingIssueUpdatedAt: Date.now(),
-                }, { merge: true });
-            }
-
-            updated = { ...current, ...canonicalPatch, id: txId };
-        });
-
-        if (!updated) throw new Error('Không thể cập nhật giao dịch');
-        window.mergeTransactionIntoRuntimeStore?.(updated, 'inline-revenue-transaction-edit');
-        if (window.__store) window.__store._dataVersion = (window.__store._dataVersion || 0) + 1;
-        window.invalidateFinance?.('inline-revenue-transaction-edit');
-        window.invalidateInventory?.('inline-revenue-transaction-edit');
-        window.invalidateDashboard?.('inline-revenue-transaction-edit');
-        window.refreshListsComputation?.(['tx.txList', 'dashboard.summary'], 'inline-revenue-transaction-edit');
-        window.invalidateList?.('tx.txList', 'inline-revenue-transaction-edit');
-        return updated;
     },
 
     /**
@@ -579,7 +419,7 @@ export const FinanceService = {
      */
     async updateProfileAfterTxDelete(studentName, newPaidUntil, deletedMonths) {
         const { doc, updateDoc, arrayRemove } = _sdk();
-        const profileUpdate = { paidUntil: newPaidUntil, paidThroughMonth: newPaidUntil };
+        const profileUpdate = { paidUntil: newPaidUntil };
         if (deletedMonths.length > 0) {
             profileUpdate.paidMonths = arrayRemove(...deletedMonths);
         }

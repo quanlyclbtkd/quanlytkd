@@ -90,9 +90,6 @@
         output.primaryAccountingMonth = choosePrimaryMonth(input, months);
         output.accountingSchemaVersion = SCHEMA_VERSION;
         if (!output.accountingBoundarySource) output.accountingBoundarySource = String(reason || 'transaction-create');
-        if (typeof global.buildCanonicalRevenueMetadata === 'function') {
-            try { Object.assign(output, global.buildCanonicalRevenueMetadata(output)); } catch (_) {}
-        }
         return output;
     }
 
@@ -106,16 +103,12 @@
         ].some(function(key) { return Object.prototype.hasOwnProperty.call(delta, key); });
         if (!hasMonthMutation && !Object.keys(base).length) return Object.assign({}, delta);
         const canonical = canonicalizeCreate(merged, reason || 'transaction-patch');
-        const result = Object.assign({}, delta, {
+        return Object.assign({}, delta, {
             accountingMonths: canonical.accountingMonths,
             primaryAccountingMonth: canonical.primaryAccountingMonth,
             accountingSchemaVersion: SCHEMA_VERSION,
             accountingBoundarySource: canonical.accountingBoundarySource,
         });
-        if (typeof global.buildCanonicalRevenueMetadata === 'function') {
-            try { Object.assign(result, global.buildCanonicalRevenueMetadata(canonical)); } catch (_) {}
-        }
-        return result;
     }
 
     function ensureMetrics() {
