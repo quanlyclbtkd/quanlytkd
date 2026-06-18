@@ -28,6 +28,10 @@
 
 import { formatDate } from '../../../utils/format.js';
 
+function _escAttr(value) {
+    return String(value ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 // ── Phase 4K-2B: Fallback inv blob builder (used when getInventorySearchBlob unavailable) ──
 function _fallbackInvBlob(t) {
     const _nvFn = window.normalizeVNForSearch || (v => String(v || '').toLowerCase().trim());
@@ -172,11 +176,15 @@ export function renderUniformTxRow(t, opts = {}) {
         displayDesc = relTx.description;
         displayAmt  = relTx.amount;
     }
-    const amountHtml = displayAmt > 0
-        ? `<span class="font-bold ${isInc ? 'text-rose-600' : (isUnpaid ? 'text-orange-500' : 'text-emerald-600')}">${isInc ? '-' : '+'}${displayAmt.toLocaleString()}</span>`
-        : `<span class="font-bold text-slate-400">0</span>`;
     const descHtml   = (displayDesc || (isInc ? `Nhập ${t.size}` : `Xuất ${t.size}`)) + unpaidBadge;
     const txIdForDel = relTx ? relTx.id : 'undefined';
+    const _amountText = displayAmt > 0
+        ? `${isInc ? '-' : '+'}${Number(displayAmt).toLocaleString('vi-VN')} ₫`
+        : '0 ₫';
+    const _amountClass = isInc ? 'text-rose-600' : (isUnpaid ? 'text-orange-500' : 'text-emerald-600');
+    const amountHtml = displayAmt > 0 && isAdmin && relTx && relTx.id
+        ? `<button type="button" class="link-like font-bold ${_amountClass}" onclick="openEditInv('${_escAttr(relTx.id)}','${_escAttr(t.id || '')}')" title="Bấm để sửa giao dịch Kho">${_amountText} ✏️</button>`
+        : `<span class="font-bold ${displayAmt > 0 ? _amountClass : 'text-slate-400'}">${_amountText}</span>`;
     const txCat      = t.category || 'Võ phục';
     const txCatColors = {
         'Võ phục': 'bg-blue-50 text-blue-700 border-blue-200',

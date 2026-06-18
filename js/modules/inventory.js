@@ -38,7 +38,7 @@
  */
 
 import { getLocalToday } from '../utils/format.js';
-import { InventoryService } from '../services/inventory.service.js?v=firestore-read-attribution-canonical-tx-boundary-20260616-v3a';
+import { InventoryService } from '../services/inventory.service.js?v=financial-collection-revenue-routing-inline-edit-20260618-v3f1';
 
 // ════════════════════════════════════════════════════════════════
 // BRIDGE HELPERS — đọc state từ window.__store tại call-time
@@ -555,14 +555,20 @@ export function initInventory() {
      * Chỉ admin mới thực hiện được.
      */
     window.markInvPaid = async (invId) => {
-        if (window.userRole !== 'admin') return;
-        if (!confirm('Xác nhận đã thu tiền cho đơn hàng nợ này?')) return;
+        if (window.userRole !== 'admin') return false;
+        if (!confirm('Xác nhận đã thu tiền cho đơn hàng nợ này?')) return false;
+        window.__inventoryPaymentLocks = window.__inventoryPaymentLocks || new Set();
+        if (window.__inventoryPaymentLocks.has(invId)) {
+            window.showToast('⏳ Khoản thu này đang được xử lý, vui lòng không bấm lại.', 3000);
+            return false;
+        }
+        window.__inventoryPaymentLocks.add(invId);
         try {
             const result = await InventoryService.markPaid(invId);
             if (result && result.alreadyPaid) {
-                window.showToast('ℹ️ Đơn này đã được thu trước đó');
+                window.showToast('ℹ️ Đơn này đã được thu trước đó và không bị cộng doanh thu lần hai.', 4500);
             } else {
-                window.showToast('✅ Đã thu tiền và ghi nhận doanh thu kho!');
+                window.showToast('✅ Đã thu tiền và ghi nhận đúng doanh thu Kho đồ!', 4500);
             }
             // Phase 4K-4D: Invalidate để các tab render lại với doanh thu mới
             if (typeof window.invalidateInventory === 'function') window.invalidateInventory('inventory-debt-paid');
@@ -572,9 +578,16 @@ export function initInventory() {
                 window.invalidateSearchCache('inventory', 'inventory-debt-paid');
                 window.invalidateSearchCache('finance',   'inventory-debt-paid');
             }
+            window.refreshListsComputation?.(['students.debtList', 'dashboard.summary'], 'inventory-debt-paid');
+            window.invalidateList?.('students.debtList', 'inventory-debt-paid');
+            return true;
         } catch (err) {
             console.error('[inventory.js] markInvPaid lỗi:', err);
-            alert('Lỗi khi cập nhật!');
+            const message = err && err.message ? err.message : 'Lỗi không xác định';
+            window.showToast('❌ Không thể thu khoản nợ Kho: ' + message, 6000);
+            return false;
+        } finally {
+            window.__inventoryPaymentLocks.delete(invId);
         }
     };
 

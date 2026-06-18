@@ -1,0 +1,32 @@
+PHASE 4K-6V3F1 — TEST SUMMARY
+========================================
+
+Result: PASS
+
+Core checks:
+- Syntax: 123 checked, 0 failed
+- Canonical Tuition Ledger V3D1: 27 PASS / 0 FAIL
+- Inventory Sale Policy V3F: 21 PASS / 0 FAIL
+- Financial Collection + Revenue Routing + Inline Edit: 44 PASS / 0 FAIL
+- Firestore runtime simulation: 9 PASS / 0 FAIL
+- Multi-item inventory hydration: 16 PASS / 0 FAIL
+- Admission tuition normalization: 21 PASS / 0 FAIL
+- Production Stability Gate: 22 PASS / 0 FAIL
+
+Runtime scenarios verified:
+1. 💰 Thu inventory debt marks debt paid.
+2. Duplicate click does not create a second revenue transaction.
+3. Collected revenue is classified as Kho đồ.
+4. Bundle edit recomputes total from components.
+5. Học phí/Kho components stay separate.
+6. Linked inventory amount follows the edit.
+7. Inventory quantity/stock is unchanged by a money edit.
+8. Tuition duplicate months are rejected in the Firestore transaction.
+9. Successful Add Student updates runtime list and emits a success notice.
+
+Full check:all note:
+The runner has a fixed execution timeout. The suite was executed in consecutive groups; all constituent scripts completed successfully with zero failures.
+
+Firestore Rules:
+- Static permission contract checks: PASS
+- Emulator execution: not run in this environment

@@ -5050,7 +5050,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         const inventoryPostingMode = _inventorySelection.postingMode || 'posted';
         const uniformFee = Number(document.getElementById('add_uniform_actual').value) || Number((document.getElementById('add_uniform_display').value || '').replace(/[^0-9]/g, '')) || 0;
         const packageCount = parseInt(document.getElementById('add_package').value) || 1; const isGift = document.getElementById('add_uniform_gift').checked;
-        const isSingleBranch = (clubConfig.branchCount === 1); const branch = isSingleBranch ? 'Mặc định' : document.getElementById('add_branch').value;
+        const isSingleBranch = (clubConfig.branchCount === 1); const branch = (window.userRole === 'coach' && window.coachBranch) ? window.coachBranch : (isSingleBranch ? 'Mặc định' : document.getElementById('add_branch').value);
         const memberId = document.getElementById('add_memberId').value.trim().toUpperCase();
 
         if(!name) { window.showToast('⚠️ Vui lòng nhập họ tên võ sinh!', 3000); const el = document.getElementById('add_name'); if(el){ el.focus(); el.style.borderColor='#ef4444'; setTimeout(()=>{ el.style.borderColor=''; },3000); } return; }
@@ -5119,7 +5119,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         const _inventoryData = uniformSize ? {
             category: 'Võ phục', size: uniformSize, qty: 1,
             desc: _saveKey, studentName: _saveKey, profileId: _saveKey,
-            memberId: memberId || '', amount: isGift ? 0 : uniformFee,
+            memberId: memberId || '', branch: branch, amount: isGift ? 0 : uniformFee,
             date: joinDate, pendingReason: _inventorySelection.reason || 'Bán tại bước thêm võ sinh, chờ bổ sung Kho',
             source: 'student-admission'
         } : null;
@@ -5154,7 +5154,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             _pendingIssueId = _commitResult.pendingIssueId || '';
         } else if (isGift && uniformSize) {
             const _giftTx = {
-                branch: 'Chung', type: 'Tặng Võ phục', receiptType: 'Tặng Võ phục',
+                branch: branch, type: 'Tặng Võ phục', receiptType: 'Tặng Võ phục',
                 description: 'Tặng ' + uniformSize + ' cho ' + _saveKey,
                 studentName: _saveKey, profileName: _saveKey, profileId: _saveKey,
                 amount: 0, date: joinDate, txMonth: lastMonth,
@@ -9242,7 +9242,7 @@ window.processMultiItem = async (action) => {
                 desc: name, studentName: name,
                 profileId: (document.getElementById('mi_name').dataset.profileId || name),
                 memberId: (document.getElementById('mi_name').dataset.memberId || profile.memberId || ''),
-                date: today,
+                branch: branch, date: today,
                 pendingReason: _inventorySelection.reason || 'Bán trong Thu gộp, chờ bổ sung Kho',
                 source: 'multi-item-payment'
             } : null;

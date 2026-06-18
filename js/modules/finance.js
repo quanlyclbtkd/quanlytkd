@@ -50,8 +50,8 @@ import {
     normalizeYYYYMM,
     formatMonthCompact,
 } from '../utils/format.js';
-import { FinanceService } from '../services/finance.service.js?v=firestore-read-attribution-canonical-tx-boundary-20260616-v3a';
-import { StudentService } from '../services/students.service.js?v=firestore-read-attribution-canonical-tx-boundary-20260616-v3a';
+import { FinanceService } from '../services/finance.service.js?v=financial-collection-revenue-routing-inline-edit-20260618-v3f1';
+import { StudentService } from '../services/students.service.js?v=financial-collection-revenue-routing-inline-edit-20260618-v3f1';
 import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
 
 // ── Phase 4K-4D: Fallback classify helper (finance.js) ──
@@ -94,6 +94,9 @@ function _transactions() { return (window.__store || {}).transactions || []; }
 function _invRef()       { return (window.__store || {}).invRef; }
 /** Club config (từ settings/main_config) */
 function _config()       { return (window.__store || {}).clubConfig || {}; }
+
+// Phase 4K-6V3F1: chặn cùng một khoản học phí bị gửi lặp trong khi request trước chưa xong.
+const _quickPayInFlight = new Set();
 /** Club data (từ clubs/{id} doc — chứa clubName, parentCode, ...) */
 function _clubData()     { return (window.__store || {}).clubData || {}; }
 /** @deprecated Phase 3.1 — Firebase calls đã chuyển sang FinanceService / StudentService */
@@ -399,7 +402,7 @@ export function initFinance() {
     window.quickPay = async (name, monthsStr, branch, defaultFee, skipPrompt) => {
         if (window.userRole === 'viewer') {
             window.showToast('⚠️ Tài khoản khách không thể thu tiền!', 3000);
-            return;
+            return false;
         }
 
         const profiles = _profiles();
@@ -407,10 +410,14 @@ export function initFinance() {
         // Làm sạch tên (tránh lỗi với tên có dấu nháy)
         const cleanName = name.replace(/\\'/g, "'");
         const monthsList = monthsStr
-            ? monthsStr.split(',').map(s => s.trim()).filter(Boolean)
+            ? monthsStr.split(',').map(s => normalizeYYYYMM(s.trim())).filter(Boolean)
             : [];
-        const lastMonth = monthsList.length > 0 ? monthsList[monthsList.length - 1] : monthsStr;
-        const monthLabel = formatMonthCompact(monthsStr);
+        if (!monthsList.length) {
+            window.showToast('⚠️ Không xác định được tháng học phí cần thu.', 3500);
+            return false;
+        }
+        const lastMonth = monthsList[monthsList.length - 1];
+        const monthLabel = formatMonthCompact(monthsList.join(','));
 
         let amount;
         if (skipPrompt && defaultFee && Number(String(defaultFee).replace(/\D/g, '')) > 0) {
@@ -423,11 +430,11 @@ export function initFinance() {
                 `XÁC NHẬN THU HỌC PHÍ\nVõ sinh: ${cleanName}\nKỳ học phí: ${monthLabel}\n\nNhập số tiền thu (VNĐ):`,
                 defaultAmountStr
             );
-            if (inputAmount === null) return;
+            if (inputAmount === null) return false;
             amount = Number(inputAmount.replace(/\D/g, ''));
             if (amount <= 0) {
                 window.showToast('⚠️ Số tiền không hợp lệ!', 2500);
-                return;
+                return false;
             }
         }
 
@@ -444,6 +451,16 @@ export function initFinance() {
         }
         const actualLastMonth = paidMonthsList[paidMonthsList.length - 1] || lastMonth;
         const actualMonthLabel = formatMonthCompact(paidMonthsList.join(','));
+        const actionKey = `${_clubId()}::${cleanName}::${paidMonthsList.join('|')}`;
+
+        if (_quickPayInFlight.has(actionKey)) {
+            window.showToast('⏳ Khoản thu này đang được xử lý, vui lòng không bấm lại.', 3000);
+            return false;
+        }
+        _quickPayInFlight.add(actionKey);
+        window.__lastQuickPayState = {
+            status: 'saving', studentName: cleanName, months: paidMonthsList.slice(), amount, startedAt: Date.now()
+        };
 
         try {
             const today = getLocalToday();
@@ -461,6 +478,9 @@ export function initFinance() {
                     branch: branch || 'CS1',
                     type: 'Học phí',
                     description: cleanName,
+                    studentName: cleanName,
+                    profileName: cleanName,
+                    profileId: cleanName,
                     amount,
                     date: txDate,
                     txMonth: actualLastMonth,
@@ -482,151 +502,77 @@ export function initFinance() {
                 timestamp: Date.now(),
             });
 
-            // Toast phân biệt 1 tháng / nhiều tháng
-            const toastMsg = paidMonthsList.length > 1
-                ? `✅ ${cleanName} đóng học phí ${paidMonthsList.map(m => {
-                    const [y, mo] = m.split('-');
-                    return `tháng ${parseInt(mo)}/${y}`;
-                }).join(', ')} (${paidMonthsList.length} tháng)!`
-                : `✅ ${cleanName} đóng học phí ${paidMonthsList.map(m => {
-                    const [y, mo] = m.split('-');
-                    return `tháng ${parseInt(mo)}/${y}`;
-                }).join(', ')}!`;
-            window.showToast(toastMsg);
-
-            // Xuất biên lai (nếu có)
-            if (window.exportReceipt) {
-                const breakdown = [{ label: 'Học phí ' + actualMonthLabel, amount }];
-                await window.exportReceipt(
-                    cleanName, amount, 'Học phí', today,
-                    paidMonthsList.join(','), branch || 'CS1', '', 'BIÊN LAI THU TIỀN', breakdown
+            if (typeof window.refreshListsComputation === 'function') {
+                window.refreshListsComputation(
+                    ['students.debtList', 'tx.txList', 'dashboard.summary'],
+                    'quick-pay-committed'
                 );
             }
+            if (typeof window.invalidateList === 'function') {
+                window.invalidateList('students.debtList', 'quick-pay-committed');
+                window.invalidateList('tx.txList', 'quick-pay-committed');
+            }
+            window.invalidateDashboard?.('quick-pay-committed');
+
+            // Toast phân biệt 1 tháng / nhiều tháng
+            const toastMsg = paidMonthsList.length > 1
+                ? `✅ Đã thu ${amount.toLocaleString('vi-VN')} ₫ của ${cleanName} — ${paidMonthsList.map(m => {
+                    const [y, mo] = m.split('-');
+                    return `T${parseInt(mo)}/${y}`;
+                }).join(', ')}.`
+                : `✅ Đã thu ${amount.toLocaleString('vi-VN')} ₫ của ${cleanName} — ${paidMonthsList.map(m => {
+                    const [y, mo] = m.split('-');
+                    return `T${parseInt(mo)}/${y}`;
+                }).join(', ')}.`;
+            window.showToast(toastMsg, 4500);
+
+            window.__lastQuickPayState = {
+                status: 'success', studentName: cleanName, months: paidMonthsList.slice(), amount,
+                transactionId: atomicResult.id || '', completedAt: Date.now()
+            };
+            try {
+                window.dispatchEvent(new CustomEvent('finance:quick-pay-committed', {
+                    detail: { studentName: cleanName, months: paidMonthsList.slice(), amount, transactionId: atomicResult.id || '' }
+                }));
+            } catch (_) {}
+
+            // Xuất biên lai (nếu có). Lỗi biên lai không được làm người dùng hiểu nhầm khoản thu thất bại.
+            if (window.exportReceipt) {
+                const breakdown = [{ label: 'Học phí ' + actualMonthLabel, amount }];
+                try {
+                    await window.exportReceipt(
+                        cleanName, amount, 'Học phí', today,
+                        paidMonthsList.join(','), branch || 'CS1', '', 'BIÊN LAI THU TIỀN', breakdown
+                    );
+                } catch (receiptError) {
+                    console.warn('[finance.js] Thu tiền thành công nhưng xuất biên lai lỗi:', receiptError);
+                    window.showToast('✅ Đã thu tiền. ⚠️ Không thể mở biên lai, có thể in lại trong tab Học phí.', 5000);
+                }
+            }
+            return true;
         } catch (error) {
             console.error('[finance.js] quickPay lỗi:', error);
-            window.showToast('⚠️ Lỗi hệ thống, vui lòng thử lại!', 4000);
-        }
-    };
-
-    // ════════════════════════════════════════════════════════════
-    // 6. openQuickPayModal — Mở modal chọn số tháng thu
-    // ════════════════════════════════════════════════════════════
-
-    /**
-     * Hiển thị modal chọn số tháng học phí cần thu.
-     * Fallback về quickPay trực tiếp nếu modal không có trong DOM.
-     *
-     * @param {string} name          — Tên võ sinh
-     * @param {string} owedMonthsStr — Chuỗi tháng nợ (YYYY-MM, phẩy-separated)
-     * @param {string} branch        — Mã cơ sở
-     */
-    window.openQuickPayModal = (name, owedMonthsStr, branch) => {
-        if (window.userRole === 'viewer') {
-            window.showToast('⚠️ Tài khoản khách không thể thu tiền!', 3000);
-            return;
-        }
-
-        const cleanName = name.replace(/\\'/g, "'");
-        const monthsList = owedMonthsStr
-            ? owedMonthsStr.split(',').map(s => s.trim()).filter(Boolean)
-            : [];
-        const profiles = _profiles();
-        const profile = profiles[cleanName] || {};
-        const feePerMonth = Number(profile.tuitionFee) || 0;
-        const totalMonths = monthsList.length;
-        const modal = document.getElementById('quickPayModal');
-
-        // Không có modal trong DOM → fallback quickPay trực tiếp
-        if (!modal) {
-            window.quickPay(name, owedMonthsStr, branch, (feePerMonth * totalMonths).toString(), true);
-            return;
-        }
-
-        // Tiêu đề modal
-        document.getElementById('qpm_name').textContent =
-            `${cleanName} — ${totalMonths} tháng chưa nộp`;
-
-        // Xây dựng các nút chọn tháng
-        const optionsEl = document.getElementById('qpm_options');
-        optionsEl.innerHTML = '';
-
-        for (let i = 1; i <= totalMonths; i++) {
-            const months = monthsList.slice(0, i);
-            const amount = feePerMonth > 0 ? feePerMonth * i : 0;
-            const monthsStr = months.join(',');
-            const label = months
-                .map(m => { const p = m.split('-'); return `T${parseInt(p[1])}/${p[0]}`; })
-                .join(', ');
-            const isAll = (i === totalMonths);
-
-            const btn = document.createElement('button');
-            btn.setAttribute('type', 'button');
-            btn.style.cssText = [
-                'width:100%;padding:11px 14px;border-radius:11px;',
-                `border:2px solid ${isAll ? '#059669' : '#e2e8f0'};`,
-                `background:${isAll ? '#ecfdf5' : '#f8fafc'};`,
-                'cursor:pointer;display:flex;justify-content:space-between;',
-                'align-items:center;margin-bottom:6px;transition:opacity 0.15s;',
-            ].join('');
-            const amtText = amount > 0
-                ? amount.toLocaleString('vi-VN') + ' ₫'
-                : '(Tự nhập)';
-            btn.innerHTML =
-                `<span style="font-weight:700;color:#1e293b;font-size:0.88rem;">${i} tháng ` +
-                `<span style="font-weight:500;color:#64748b;font-size:0.78rem;">(${label})</span></span>` +
-                `<span style="font-weight:900;color:${isAll ? '#059669' : '#0033A0'};font-size:0.95rem;">${amtText}</span>`;
-            btn.onclick = () => {
-                modal.style.display = 'none';
-                window.quickPay(
-                    name, monthsStr, branch,
-                    amount > 0 ? String(amount) : String(feePerMonth * i),
-                    true
+            const duplicate = error && (error.code === 'TUITION_ALREADY_PAID' || Array.isArray(error.duplicateMonths));
+            if (duplicate) {
+                const duplicateMonths = Array.isArray(error.duplicateMonths) ? error.duplicateMonths : paidMonthsList;
+                window.showToast(
+                    `ℹ️ Không thu lại: ${cleanName} đã đóng ${duplicateMonths.map(m => formatMonth(m)).join(', ')}.`,
+                    5000
                 );
+                window.refreshListsComputation?.(['students.debtList', 'tx.txList'], 'quick-pay-duplicate-detected');
+                window.invalidateList?.('students.debtList', 'quick-pay-duplicate-detected');
+            } else {
+                const message = error && error.message ? error.message : 'Lỗi không xác định';
+                window.showToast(`❌ Không thể thu tiền: ${message}`, 6000);
+            }
+            window.__lastQuickPayState = {
+                status: 'error', studentName: cleanName, months: paidMonthsList.slice(), amount,
+                error: error && error.message ? error.message : String(error || ''), completedAt: Date.now()
             };
-            optionsEl.appendChild(btn);
+            return false;
+        } finally {
+            _quickPayInFlight.delete(actionKey);
         }
-
-        // Nút nhập số tiền tùy chỉnh
-        const customBtn = document.createElement('button');
-        customBtn.setAttribute('type', 'button');
-        customBtn.style.cssText = [
-            'width:100%;padding:9px 14px;border-radius:11px;',
-            'border:1px dashed #cbd5e1;background:#fff;cursor:pointer;',
-            'color:#64748b;font-weight:600;font-size:0.82rem;margin-top:4px;',
-        ].join('');
-        customBtn.textContent = '✏️ Nhập số tiền tùy chỉnh';
-        customBtn.onclick = () => {
-            customBtn.style.display = 'none';
-            const row = document.createElement('div');
-            row.style.cssText = 'margin-top:8px;display:flex;gap:8px;align-items:center;';
-            const defaultVal = feePerMonth > 0
-                ? (feePerMonth * totalMonths).toLocaleString('vi-VN')
-                : '';
-            row.innerHTML =
-                `<input type="tel" id="qpm_custom_input" placeholder="Nhập số tiền (₫)..."` +
-                ` style="flex:1;padding:9px 12px;border:1.5px solid #0033A0;border-radius:9px;` +
-                `font-size:0.88rem;font-weight:700;outline:none;box-sizing:border-box;" value="${defaultVal}" />` +
-                `<button type="button" id="qpm_custom_ok" style="padding:9px 14px;background:#059669;` +
-                `color:#fff;border:none;border-radius:9px;font-weight:800;font-size:0.85rem;` +
-                `cursor:pointer;white-space:nowrap;">✓ Thu</button>`;
-            optionsEl.appendChild(row);
-
-            const inp = document.getElementById('qpm_custom_input');
-            if (inp) { inp.focus(); inp.select(); }
-
-            const doConfirm = () => {
-                const raw = (inp ? inp.value : '').replace(/\D/g, '');
-                const v = Number(raw);
-                if (!v || v <= 0) { window.showToast('⚠️ Số tiền không hợp lệ!', 2500); return; }
-                modal.style.display = 'none';
-                window.quickPay(name, owedMonthsStr, branch, String(v), true);
-            };
-            const okBtn = document.getElementById('qpm_custom_ok');
-            if (okBtn) okBtn.onclick = doConfirm;
-            if (inp) inp.addEventListener('keypress', ev => { if (ev.key === 'Enter') doConfirm(); });
-        };
-        optionsEl.appendChild(customBtn);
-        modal.style.display = 'flex';
     };
 
     // ════════════════════════════════════════════════════════════
@@ -967,7 +913,7 @@ export function initTransactionPagination() {
         prepareNextPage, preparePreviousPage,
         renderPaginationControls, PAGE_SIZE,
     }) => {
-        import('../services/finance.service.js?v=firestore-read-attribution-canonical-tx-boundary-20260616-v3a').then(({ FinanceService }) => {
+        import('../services/finance.service.js?v=financial-collection-revenue-routing-inline-edit-20260618-v3f1').then(({ FinanceService }) => {
 
             const store = window.__store;
             if (!store) { console.warn('[pagination/transactions] __store chưa sẵn sàng'); return; }

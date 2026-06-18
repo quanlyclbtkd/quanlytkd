@@ -28,7 +28,7 @@
  */
 
 import { getLocalToday, formatDate, formatMonth, formatMonthCompact, addMonthsToYYYYMM } from '../utils/format.js';
-import { StudentService } from '../services/students.service.js?v=firestore-read-attribution-canonical-tx-boundary-20260616-v3a';
+import { StudentService } from '../services/students.service.js?v=financial-collection-revenue-routing-inline-edit-20260618-v3f1';
 
 // ════════════════════════════════════════════════════════════════
 // BRIDGE HELPERS — đọc state từ app.js qua window.__store
@@ -59,6 +59,78 @@ let _addStudentInProgress = false;
 let _bulkZaloDebtors = [];
 /** Index tiến trình gửi trong sequential bulk Zalo */
 let _bulkZaloIdx = 0;
+
+// Phase 4K-6V3F1: cập nhật ngay store/list sau khi thêm võ sinh, không chờ onSnapshot.
+function _mergeNewStudentIntoRuntime(studentId, profile, reason = 'student-created-local') {
+    const id = String(studentId || '').trim();
+    if (!id || !profile || typeof profile !== 'object') return false;
+    if (!window.__store) window.__store = {};
+    const current = window.__store.profiles && typeof window.__store.profiles === 'object'
+        ? window.__store.profiles
+        : {};
+    window.__store.profiles = { ...current, [id]: { ...profile } };
+    if (window.studentProfileStore && typeof window.studentProfileStore.mergeProfile === 'function') {
+        try { window.studentProfileStore.mergeProfile(id, { ...profile }, reason); } catch (_) {}
+    }
+    const pg = window.__store.pagination && window.__store.pagination.students;
+    if (pg && Array.isArray(pg.currentItems)) {
+        const without = pg.currentItems.filter(item => String(item.id || item.name || '').trim() !== id);
+        pg.currentItems = [{ id, name: id, ...profile }, ...without];
+        pg.totalLoaded = pg.currentItems.length;
+    }
+    window.__store._dataVersion = (window.__store._dataVersion || 0) + 1;
+    window.__store._studentsPaginationVersion = (window.__store._studentsPaginationVersion || 0) + 1;
+    return true;
+}
+
+function _highlightStudentRow(studentId) {
+    const id = String(studentId || '').trim();
+    if (!id) return false;
+    const rows = Array.from(document.querySelectorAll('#activeList tr[data-student-id]'));
+    const row = rows.find(el => el.getAttribute('data-student-id') === id);
+    if (!row) return false;
+    row.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+    const oldOutline = row.style.outline;
+    const oldBg = row.style.background;
+    row.style.outline = '3px solid #10b981';
+    row.style.background = '#ecfdf5';
+    setTimeout(() => { row.style.outline = oldOutline; row.style.background = oldBg; }, 4500);
+    return true;
+}
+
+function _showStudentAddedSuccessNotice(studentId, profile) {
+    let notice = document.getElementById('studentAddSuccessNotice');
+    if (!notice) {
+        notice = document.createElement('div');
+        notice.id = 'studentAddSuccessNotice';
+        notice.setAttribute('role', 'status');
+        notice.style.cssText = 'position:fixed;right:16px;top:16px;z-index:21000;max-width:420px;background:#ecfdf5;border:1.5px solid #10b981;border-radius:14px;padding:13px 14px;box-shadow:0 12px 30px rgba(15,23,42,.2);color:#065f46;display:none;';
+        document.body.appendChild(notice);
+    }
+    const branch = String(profile && profile.branch || '').trim();
+    const memberId = String(profile && profile.memberId || '').trim();
+    notice.innerHTML = `
+      <div style="font-weight:900;font-size:.92rem;">✅ Đã thêm võ sinh thành công</div>
+      <div style="font-size:.8rem;line-height:1.45;margin-top:3px;">
+        <strong>${String(studentId).replace(/&/g,'&amp;').replace(/</g,'&lt;')}</strong> đã có trong Danh sách Đang tập${branch ? ' — ' + branch : ''}${memberId ? ' · Mã ' + memberId : ''}.
+      </div>
+      <div style="display:flex;gap:8px;margin-top:9px;justify-content:flex-end;">
+        <button type="button" id="studentAddNoticeDismiss" style="border:1px solid #a7f3d0;background:white;color:#047857;border-radius:8px;padding:6px 10px;font-weight:700;cursor:pointer;">Đóng</button>
+        <button type="button" id="studentAddNoticeView" style="border:none;background:#059669;color:white;border-radius:8px;padding:6px 11px;font-weight:800;cursor:pointer;">Xem danh sách</button>
+      </div>`;
+    notice.style.display = 'block';
+    notice.querySelector('#studentAddNoticeDismiss').onclick = () => { notice.style.display = 'none'; };
+    notice.querySelector('#studentAddNoticeView').onclick = async () => {
+        notice.style.display = 'none';
+        try { await window.switchTab?.('active'); } catch (_) {}
+        window.refreshListsComputation?.(['students.activeList'], 'student-created-notice-view');
+        window.invalidateList?.('students.activeList', 'student-created-notice-view');
+        setTimeout(() => _highlightStudentRow(studentId), 250);
+        setTimeout(() => _highlightStudentRow(studentId), 900);
+    };
+    clearTimeout(window.__studentAddNoticeTimer);
+    window.__studentAddNoticeTimer = setTimeout(() => { if (notice) notice.style.display = 'none'; }, 10000);
+}
 
 // ════════════════════════════════════════════════════════════════
 // HÀM NỘI BỘ (private — không export)
@@ -290,7 +362,9 @@ export function initStudents() {
         const packageCount   = parseInt(document.getElementById('add_package').value) || 1;
         const isGift         = document.getElementById('add_uniform_gift').checked;
         const isSingleBranch = (config.branchCount === 1);
-        const branch         = isSingleBranch ? 'Mặc định' : document.getElementById('add_branch').value;
+        const branch         = (window.userRole === 'coach' && window.coachBranch)
+            ? window.coachBranch
+            : (isSingleBranch ? 'Mặc định' : document.getElementById('add_branch').value);
         const memberId       = document.getElementById('add_memberId').value.trim().toUpperCase();
 
         // Validate
@@ -406,6 +480,7 @@ export function initStudents() {
             let tuitionTx = null;
             let _invId = '';
             let _pendingIssueId = '';
+            let _committedPaidUntil = '';
             if (typeof window.InventoryPendingService?.commitFinancialTransaction !== 'function') {
                 throw new Error('InventoryPendingService chưa sẵn sàng; dừng để tránh ghi dữ liệu Kho không đầy đủ.');
             }
@@ -413,7 +488,7 @@ export function initStudents() {
             const _inventoryData = uniformSize ? {
                 category: 'Võ phục', size: uniformSize, qty: 1,
                 desc: _saveKey, studentName: _saveKey, profileId: _saveKey,
-                memberId, amount: isGift ? 0 : uniformFee, date: joinDate,
+                memberId, branch, amount: isGift ? 0 : uniformFee, date: joinDate,
                 pendingReason: _inventorySelection.reason || 'Bán tại bước thêm võ sinh, chờ bổ sung Kho',
                 source: 'student-admission'
             } : null;
@@ -436,9 +511,10 @@ export function initStudents() {
                 tuitionTx = { id: _commitResult.id, ..._commitResult.txData };
                 _invId = _commitResult.relatedInvId || '';
                 _pendingIssueId = _commitResult.pendingIssueId || '';
+                _committedPaidUntil = _commitResult.paidUntil || '';
             } else if (isGift && uniformSize) {
                 const _giftTx = {
-                    branch: 'Chung', type: 'Tặng Võ phục', receiptType: 'Tặng Võ phục',
+                    branch, type: 'Tặng Võ phục', receiptType: 'Tặng Võ phục',
                     description: `Tặng ${uniformSize} cho ${_saveKey}`,
                     studentName: _saveKey, profileName: _saveKey, profileId: _saveKey,
                     amount: 0, date: joinDate, txMonth: lastMonth,
@@ -459,8 +535,23 @@ export function initStudents() {
                 _pendingIssueId = _giftResult.pendingIssueId || '';
             }
 
+            const _finalProfile = {
+                ...newProfileData,
+                paidUntil: fee > 0 ? (_committedPaidUntil || newPaidUntil) : '',
+                paidThroughMonth: fee > 0 ? (_committedPaidUntil || newPaidUntil) : '',
+                paidMonths: fee > 0 ? monthsToRecord.slice() : [],
+                inventoryPostingStatus: _pendingIssueId ? 'pending' : (_invId ? 'posted' : (inventoryPostingMode === 'not_applicable' ? 'not_applicable' : '')),
+            };
+            _mergeNewStudentIntoRuntime(_saveKey, _finalProfile, 'after-add-new-student');
+
             window.closeAddModal();
-            window.showToast('🎉 Đã thêm võ sinh ' + _saveKey + ' thành công!', 3000);
+            window.showToast('🎉 Đã thêm ' + _saveKey + ' vào Danh sách Đang tập!', 5000);
+            _showStudentAddedSuccessNotice(_saveKey, _finalProfile);
+            try {
+                window.dispatchEvent(new CustomEvent('student:created', {
+                    detail: { studentId: _saveKey, profile: _finalProfile, transactionId: tuitionTx && tuitionTx.id || '' }
+                }));
+            } catch (_) {}
 
             // Phase 4K-6E-C: Refresh active new student badge + list after adding
             if (typeof window.updateActiveNewStudentCountBadge === 'function') {
@@ -495,14 +586,7 @@ export function initStudents() {
                 // (onSnapshot chưa kịp đến sau setDoc)
                 const liveProfiles = _profiles();
                 if (!liveProfiles[_saveKey] && window.__store) {
-                    window.__store.profiles = {
-                        ...liveProfiles,
-                        [_saveKey]: {
-                            belt:       document.getElementById('add_belt').value,
-                            branch,
-                            tuitionFee: document.getElementById('add_fee_default_actual').value,
-                        },
-                    };
+                    _mergeNewStudentIntoRuntime(_saveKey, _finalProfile, 'admission-receipt-profile-bridge');
                 }
                 await window.exportReceipt(
                     _saveKey, totalPayment, receiptType, joinDate, tuitionPkg.monthsStr,
@@ -1068,7 +1152,7 @@ export function initStudentPagination() {
         renderPaginationControls, PAGE_SIZE,
     }) => {
         import('./students.js').then(() => {}); // no-op — chỉ để IDE không warn
-        import('../services/students.service.js?v=firestore-read-attribution-canonical-tx-boundary-20260616-v3a').then(({ StudentService }) => {
+        import('../services/students.service.js?v=financial-collection-revenue-routing-inline-edit-20260618-v3f1').then(({ StudentService }) => {
 
             const store = window.__store;
             if (!store) { console.warn('[pagination/students] __store chưa sẵn sàng'); return; }

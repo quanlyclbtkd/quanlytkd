@@ -57,6 +57,7 @@ function buildPlan(inventory, postingMode, txRef, source) {
     studentName: clean(data.studentName || identity.studentName || data.desc),
     profileId: clean(data.profileId || identity.profileId),
     memberId: clean(data.memberId || identity.memberId),
+    branch: clean(data.branch || ((window.__store || {}).coachBranch) || 'Mặc định'),
     desc: clean(data.desc || data.studentName),
     date: clean(data.date || today()),
     timestamp: Number(data.timestamp || now()),

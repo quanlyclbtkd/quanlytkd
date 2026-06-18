@@ -302,6 +302,17 @@
                         }
                     });
                     const latestProfile = snap.data() || item.profile;
+                    const existingPaid = new Set(normalizeMonths(latestProfile.paidMonths));
+                    const existingPaidThrough = normalizeMonth(latestProfile.paidThroughMonth || latestProfile.paidUntil);
+                    const duplicateMonths = item.months.filter(function(month) {
+                        return existingPaid.has(month) || (!!existingPaidThrough && month <= existingPaidThrough);
+                    });
+                    if (duplicateMonths.length > 0 && opts.allowAlreadyPaid !== true) {
+                        const duplicateError = new Error('Học phí đã được ghi nhận cho tháng: ' + duplicateMonths.join(', '));
+                        duplicateError.code = 'TUITION_ALREADY_PAID';
+                        duplicateError.duplicateMonths = duplicateMonths;
+                        throw duplicateError;
+                    }
                     const ledger = buildLedger(latestProfile, { additionalPaidMonths: item.months });
                     item.paidThroughMonth = ledger.paidThroughMonth || normalizeMonth(latestProfile.paidUntil) || item.months[0];
                     transaction.set(item.txRef, item.txData);
@@ -355,6 +366,32 @@
                 global.mergeTransactionIntoRuntimeStore(Object.assign({ id: item.txRef.id }, item.txData), writeReason);
             }
         });
+        if (ctx.st) {
+            ctx.st._dataVersion = (ctx.st._dataVersion || 0) + 1;
+            ctx.st._lastTuitionWriteAt = _now();
+            ctx.st._lastTuitionWriteReason = writeReason;
+        }
+        if (typeof global.dispatchEvent === 'function' && typeof global.CustomEvent === 'function') {
+            try {
+                global.dispatchEvent(new CustomEvent('tuition:payment-committed', {
+                    detail: {
+                        reason: writeReason,
+                        students: prepared.map(function(item) { return item.studentName; }),
+                        months: prepared.reduce(function(all, item) { return all.concat(item.months); }, []),
+                    }
+                }));
+            } catch (_) {}
+        }
+        if (typeof global.refreshListsComputation === 'function') {
+            global.refreshListsComputation(['students.debtList', 'tx.txList', 'dashboard.summary', 'dashboard.branchRevenue'], writeReason);
+        }
+        if (typeof global.invalidateList === 'function') {
+            global.invalidateList('students.debtList', writeReason);
+            global.invalidateList('tx.txList', writeReason);
+        }
+        if (typeof global.invalidateStudents === 'function') global.invalidateStudents(writeReason);
+        if (typeof global.invalidateFinance === 'function') global.invalidateFinance(writeReason);
+        if (typeof global.invalidateDashboard === 'function') global.invalidateDashboard(writeReason);
 
         return prepared.map(function(item) {
             return {
