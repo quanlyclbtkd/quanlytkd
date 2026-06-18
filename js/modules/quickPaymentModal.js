@@ -45,15 +45,57 @@ export function initQuickPaymentModal() {
     };
     const runPayment = async (months, paymentAmount) => {
       if (modal.dataset.saving === 'true') return false;
-      setBusy(true, '⏳ Đang ghi nhận khoản thu, vui lòng không đóng cửa sổ…');
-      const ok = await window.quickPay?.(name, months.join(','), branch, String(paymentAmount || ''), true);
-      if (ok) {
-        modal.style.display = 'none';
-        setBusy(false);
-        return true;
+      if (typeof window.quickPay !== 'function') {
+        setBusy(false, '❌ Chức năng thu học phí chưa sẵn sàng. Hãy tải lại trang bằng Ctrl + F5.');
+        window.showToast?.('❌ Chức năng thu học phí chưa sẵn sàng. Hãy tải lại trang bằng Ctrl + F5.', 6000);
+        return false;
       }
-      setBusy(false, '⚠️ Khoản thu chưa được ghi nhận. Kiểm tra thông báo lỗi và thử lại.');
-      return false;
+      const startedAt = Date.now();
+      let committedByEvent = false;
+      const onCommitted = event => {
+        const detail = event && event.detail || {};
+        const sameStudent = String(detail.studentName || '') === cleanName;
+        const detailMonths = Array.isArray(detail.months) ? detail.months.map(normalizeYYYYMM).filter(Boolean) : [];
+        const sameMonths = months.every(month => detailMonths.includes(month));
+        if (sameStudent && sameMonths) committedByEvent = true;
+      };
+      window.addEventListener?.('finance:quick-pay-committed', onCommitted);
+      setBusy(true, '⏳ Đang ghi nhận khoản thu, vui lòng không đóng cửa sổ…');
+      try {
+        const result = await window.quickPay(name, months.join(','), branch, String(paymentAmount || ''), true);
+        // Legacy quickPay của các bản cũ từng ghi thành công nhưng trả undefined.
+        // Đối chiếu thêm event và trạng thái commit để không báo lỗi giả.
+        await new Promise(resolve => setTimeout(resolve, 0));
+        const state = window.__lastQuickPayState || {};
+        const stateMonths = Array.isArray(state.months) ? state.months.map(normalizeYYYYMM).filter(Boolean) : [];
+        const sameState = String(state.studentName || '') === cleanName
+          && months.every(month => stateMonths.includes(month))
+          && Number(state.completedAt || state.startedAt || 0) >= startedAt - 1000;
+        const resolved = result === true || committedByEvent
+          || (sameState && (state.status === 'success' || state.status === 'already-paid'));
+        if (resolved) {
+          modal.style.display = 'none';
+          setBusy(false);
+          return true;
+        }
+        const rawMessage = sameState && state.error ? String(state.error) : '';
+        const code = sameState && state.errorCode ? String(state.errorCode) : '';
+        let message = rawMessage || 'Không nhận được xác nhận ghi dữ liệu từ Firestore.';
+        if (code.includes('permission-denied') || /permission|quyền truy cập/i.test(message)) {
+          message = 'Tài khoản không có quyền ghi khoản thu. Hãy kiểm tra Firestore Rules và quyền Admin/HLV của CLB.';
+        } else if (/offline|network|unavailable|mạng/i.test(message)) {
+          message = 'Mất kết nối tới Firestore. Kiểm tra mạng rồi thử lại; hệ thống chưa xác nhận khoản thu.';
+        }
+        setBusy(false, '❌ ' + message);
+        return false;
+      } catch (error) {
+        const message = error && error.message ? error.message : String(error || 'Lỗi không xác định');
+        setBusy(false, '❌ Không thể thu tiền: ' + message);
+        window.showToast?.('❌ Không thể thu tiền: ' + message, 6000);
+        return false;
+      } finally {
+        window.removeEventListener?.('finance:quick-pay-committed', onCommitted);
+      }
     };
 
     monthsList.forEach((_, index) => {

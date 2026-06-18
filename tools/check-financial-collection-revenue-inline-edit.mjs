@@ -34,7 +34,7 @@ check(finance.includes("students.debtList") && finance.includes("quick-pay-commi
 check(finance.includes('TUITION_ALREADY_PAID'), 'Quick payment explains already-paid months instead of creating another charge');
 check(finance.includes('Thu tiền thành công nhưng xuất biên lai lỗi'), 'Receipt failure cannot disguise a successful payment write');
 check(quickModal.includes("modal.dataset.saving = busy ? 'true' : 'false'"), 'Quick-pay modal disables actions while Firestore is saving');
-check(quickModal.includes('Khoản thu chưa được ghi nhận'), 'Quick-pay modal remains fail-closed after a failed save');
+check(quickModal.includes('Không nhận được xác nhận ghi dữ liệu từ Firestore') && quickModal.includes("state.status === 'success' || state.status === 'already-paid'"), 'Quick-pay modal verifies commit acknowledgement and remains fail-closed on real failures');
 check(tuition.includes("duplicateError.code = 'TUITION_ALREADY_PAID'"), 'Canonical tuition writer rejects duplicate paid months inside the transaction');
 check(tuition.includes("tuition:payment-committed"), 'Canonical tuition writer dispatches a committed event after success');
 
@@ -59,7 +59,7 @@ check(editor.includes('ert_component_amount'), 'Bundle editor exposes separate c
 check(financeRenderer.includes("openEditRevenueTransaction('"), 'Tuition/finance amount is clickable for editing');
 check(inventoryRenderer.includes("openEditInv('"), 'Inventory amount is clickable for editing');
 check(main.includes('initFinanceTransactionEditor()'), 'Inline transaction editor is initialized by main');
-check(main.includes("./modules/finance.js?v=financial-collection-revenue-routing-inline-edit-20260618-v3f1") && main.includes("./modules/students.js?v=financial-collection-revenue-routing-inline-edit-20260618-v3f1") && main.includes("./modules/inventory.js?v=financial-collection-revenue-routing-inline-edit-20260618-v3f1"), 'Modified business modules use the V3F1 cache-bust');
+check(main.includes("./modules/finance.js?v=quick-pay-commit-acknowledgement-20260618-v3f2") && main.includes("./modules/quickPaymentModal.js?v=quick-pay-commit-acknowledgement-20260618-v3f2"), 'Quick-pay runtime modules use the V3F2 cache-bust');
 
 check(rules.includes('function isCoachForBranch(clubId, branchValue)'), 'Firestore Rules scope HLV writes to the assigned branch');
 check(rules.includes('coachCanCreateBranchDocument(clubId)') && rules.includes('coachCanUpdateTuitionLedger(clubId)'), 'Firestore Rules allow HLV admission writes without broad edit/delete rights');

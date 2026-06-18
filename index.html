@@ -570,10 +570,10 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 <!-- Phase 4K-6V3BC1 regression markers: transactionCanonicalBoundary.js?v=automatic-canonical-transaction-optimization-20260616-v3bc1; app.js?v=automatic-canonical-transaction-optimization-20260616-v3bc1; main.js?v=automatic-canonical-transaction-optimization-20260616-v3bc1 -->
 <!-- Phase 4K-6V3BC1 automatic per-club optimization: automatic-canonical-transaction-optimization-20260616-v3bc1 -->
 <!-- Phase 4K-6V3D debt profile coverage boundary: debt-profile-read-boundary-20260616-v3d -->
-<!-- Phase 4K-6V3D1 canonical tuition ledger + targeted reconciliation: financial-collection-revenue-routing-inline-edit-20260618-v3f1 -->
+<!-- Phase 4K-6V3D1 canonical tuition ledger + targeted reconciliation: quick-pay-commit-acknowledgement-20260618-v3f2 -->
 <!-- Phase 4K-6V3F compatibility: tuitionMonthLedger.js?v=canonical-tuition-ledger-20260618-v3d1; debtProfileReadBoundary.js?v=canonical-tuition-ledger-20260618-v3d1; app.js?v=canonical-tuition-ledger-20260618-v3d1 -->
 <!-- Phase 4K-6V3F cache compatibility marker: per-club-inventory-policy-20260618-v3f -->
-<script defer src="./js/core/transactionCanonicalBoundary.js?v=financial-collection-revenue-routing-inline-edit-20260618-v3f1"></script><script defer src="./js/core/tuitionMonthLedger.js?v=financial-collection-revenue-routing-inline-edit-20260618-v3f1"></script><script defer src="./js/core/debtProfileReadBoundary.js?v=financial-collection-revenue-routing-inline-edit-20260618-v3f1"></script><script defer src="app.js?v=financial-collection-revenue-routing-inline-edit-20260618-v3f1"></script><script>
+<script defer src="./js/core/transactionCanonicalBoundary.js?v=quick-pay-commit-acknowledgement-20260618-v3f2"></script><script defer src="./js/core/tuitionMonthLedger.js?v=quick-pay-commit-acknowledgement-20260618-v3f2"></script><script defer src="./js/core/debtProfileReadBoundary.js?v=quick-pay-commit-acknowledgement-20260618-v3f2"></script><script defer src="app.js?v=quick-pay-commit-acknowledgement-20260618-v3f2"></script><script>
 /* Phase 3.3A FIX: ES modules require HTTP — skip on file:// to prevent CORS error.
    app.js still loads via <script defer> so ALL business logic works regardless.
    Module enhancements (loading.js, event-guard, lazy tabs) activate on HTTP only.
@@ -640,7 +640,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
     // main.js?v=legacy-diagnostics-pilot-audit-isolation-20260616
     var s = document.createElement('script');
     s.type = 'module';
-    s.src  = './js/main.js?v=financial-collection-revenue-routing-inline-edit-20260618-v3f1';
+    s.src  = './js/main.js?v=quick-pay-commit-acknowledgement-20260618-v3f2';
     s.onload = function() {
       window.MAIN_JS_LOADED = true;
       console.log('[BOOT] main.js loaded after legacy app.js ready');

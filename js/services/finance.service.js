@@ -17,7 +17,7 @@
  * ────────────────────────────────────────────────────────────────
  */
 
-import { InventoryService } from './inventory.service.js?v=financial-collection-revenue-routing-inline-edit-20260618-v3f1';
+import { InventoryService } from './inventory.service.js?v=quick-pay-commit-acknowledgement-20260618-v3f2';
 
 function _sdk()    { return window._fb_init || {}; }
 function _db()     { const db = (window.__store || {}).db; if (!db) throw new Error('[FinanceService] db chưa sẵn sàng'); return db; }

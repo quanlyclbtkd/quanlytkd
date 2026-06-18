@@ -5446,7 +5446,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
 
     window.quickPay = async (name, monthsStr, branch, defaultFee, skipPrompt) => {
         // [SỬA THU HỌC PHÍ] Thay alert() bằng showToast() — alert() bị block trong webview/PWA
-        if(window.userRole === 'viewer') { window.showToast('⚠️ Tài khoản khách không thể thu tiền!', 3000); return; }
+        if(window.userRole === 'viewer') { window.showToast('⚠️ Tài khoản khách không thể thu tiền!', 3000); return false; }
         let cleanName = name.replace(/\\'/g, "'");
         let monthsList = monthsStr ? monthsStr.split(',').map(s => s.trim()).filter(Boolean) : [];
         let lastMonth = monthsList.length > 0 ? monthsList[monthsList.length - 1] : monthsStr;
@@ -5459,10 +5459,10 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             // Trường hợp này không nên xảy ra sau khi openQuickPayModal đã được cập nhật
             let defaultAmountStr = defaultFee ? parseInt(defaultFee, 10).toLocaleString('vi-VN') : '0';
             let inputAmount = prompt(`XÁC NHẬN THU HỌC PHÍ\nVõ sinh: ${cleanName}\nKỳ học phí: ${monthLabel}\n\nNhập số tiền thu (VNĐ):`, defaultAmountStr);
-            if (inputAmount === null) return;
+            if (inputAmount === null) return false;
             amount = Number(inputAmount.replace(/\D/g, ''));
             // [SỬA THU HỌC PHÍ] Thay alert() bằng showToast() cho validate số tiền
-            if (amount <= 0) { window.showToast('⚠️ Số tiền không hợp lệ!', 2500); return; }
+            if (amount <= 0) { window.showToast('⚠️ Số tiền không hợp lệ!', 2500); return false; }
         }
 
         // Tính số tháng thực tế được đóng dựa vào số tiền nhập — tránh đánh dấu dư tháng chưa đóng
@@ -5482,8 +5482,11 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             amount: amount,
             branch: branch || 'CS1',
             txMonth: actualLastMonth
-        })) return;
+        })) return false;
 
+        window.__lastQuickPayState = {
+            status: 'saving', studentName: cleanName, months: paidMonthsList.slice(), amount: amount, startedAt: Date.now(), source: 'legacy-app'
+        };
         try {
             if (typeof window.recordFinancialActionAudit === 'function') window.recordFinancialActionAudit('tuition.quickPay', 'before', {
                 studentName: cleanName,
@@ -5539,7 +5542,12 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             window.showToast(_toastMsg);
             if(window.exportReceipt) {
                 const breakdown = [{ label: 'Học phí ' + actualMonthLabel, amount: amount }];
-                await window.exportReceipt(cleanName, amount, 'Học phí', getLocalToday(), paidMonthsList.join(','), branch || 'CS1', '', 'BIÊN LAI THU TIỀN', breakdown);
+                try {
+                    await window.exportReceipt(cleanName, amount, 'Học phí', getLocalToday(), paidMonthsList.join(','), branch || 'CS1', '', 'BIÊN LAI THU TIỀN', breakdown);
+                } catch (receiptError) {
+                    console.warn('[app.js] Thu tiền thành công nhưng xuất biên lai lỗi:', receiptError);
+                    window.showToast('✅ Đã thu tiền. ⚠️ Không thể mở biên lai, có thể in lại trong tab Học phí.', 5000);
+                }
             }
             if (typeof window.recordFinancialActionAudit === 'function') window.recordFinancialActionAudit('tuition.quickPay', 'after', {
                 studentName: cleanName,
@@ -5549,6 +5557,16 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                 txMonth: actualLastMonth,
                 paidUntil: _safeQPaidUntil
             });
+            window.__lastQuickPayState = {
+                status: 'success', studentName: cleanName, months: paidMonthsList.slice(), amount: amount,
+                paidUntil: _safeQPaidUntil, completedAt: Date.now(), source: 'legacy-app'
+            };
+            try {
+                window.dispatchEvent(new CustomEvent('finance:quick-pay-committed', {
+                    detail: { studentName: cleanName, months: paidMonthsList.slice(), amount: amount, paidUntil: _safeQPaidUntil, source: 'legacy-app' }
+                }));
+            } catch (_) {}
+            return true;
         } catch (error) {
             if (typeof window.recordFinancialActionAudit === 'function') window.recordFinancialActionAudit('tuition.quickPay', 'error', {
                 studentName: cleanName,
@@ -5558,7 +5576,25 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                 txMonth: actualLastMonth,
                 error: error && error.message || String(error)
             });
-            console.error("Lỗi:", error); window.showToast('⚠️ Lỗi hệ thống, vui lòng thử lại!', 4000);
+            const duplicate = error && (error.code === 'TUITION_ALREADY_PAID' || Array.isArray(error.duplicateMonths));
+            if (duplicate) {
+                const duplicateMonths = Array.isArray(error.duplicateMonths) ? error.duplicateMonths : paidMonthsList;
+                window.__lastQuickPayState = {
+                    status: 'already-paid', studentName: cleanName, months: duplicateMonths.slice(), amount: amount,
+                    errorCode: 'TUITION_ALREADY_PAID', completedAt: Date.now(), source: 'legacy-app'
+                };
+                window.showToast(`ℹ️ Khoản học phí đã được ghi nhận cho ${duplicateMonths.map(m => window.formatMonthCompact ? window.formatMonthCompact(m) : m).join(', ')}. Danh sách sẽ được làm mới.`, 5000);
+                window.refreshListsComputation?.(['students.debtList', 'tx.txList'], 'quick-pay-already-paid');
+                window.invalidateList?.('students.debtList', 'quick-pay-already-paid');
+                return true;
+            }
+            const errorMessage = error && error.message ? error.message : String(error || 'Lỗi không xác định');
+            window.__lastQuickPayState = {
+                status: 'error', studentName: cleanName, months: paidMonthsList.slice(), amount: amount,
+                error: errorMessage, errorCode: error && error.code || '', completedAt: Date.now(), source: 'legacy-app'
+            };
+            console.error("Lỗi:", error); window.showToast('❌ Không thể thu tiền: ' + errorMessage, 6000);
+            return false;
         }
     };
 

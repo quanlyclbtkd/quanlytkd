@@ -245,7 +245,7 @@ import { initLegacyDiagnostics } from './diagnostics/legacyDiagnostics.js';
 import { MultiItemInventorySafety } from './core/multiItemInventorySafety.js?v=inventory-ledger-reconciliation-20260616-v2c';
 import { InventoryMultiItemReadOnlyUI, initInventoryMultiItemReadOnlyUI } from './core/inventoryMultiItemReadOnlyUI.js?v=inventory-ledger-reconciliation-20260616-v2c';
 import { initInventorySalePolicy } from './core/inventorySalePolicy.js?v=per-club-inventory-policy-20260618-v3f';
-import { InventoryPendingService, initInventoryPendingService } from './services/inventoryPending.service.js?v=financial-collection-revenue-routing-inline-edit-20260618-v3f1';
+import { InventoryPendingService, initInventoryPendingService } from './services/inventoryPending.service.js?v=quick-pay-commit-acknowledgement-20260618-v3f2';
 
 // ── Phase 3.3E: Firestore safety (expose globally for services) ──
 import { safeGetDocs, printQueryAuditReport }  from './utils/firestore-guard.js';
@@ -329,7 +329,7 @@ import {
 } from './firebase/paginatedQuery.js';
 
 // ── Phase 2d–3.2A: Business modules (eager — cần khi login) ────
-import { initStudents, initStudentPagination }        from './modules/students.js?v=financial-collection-revenue-routing-inline-edit-20260618-v3f1';
+import { initStudents, initStudentPagination }        from './modules/students.js?v=quick-pay-commit-acknowledgement-20260618-v3f2';
 // PHẦN 1 FIX + Phase 4K-2: Unified Search Controller — real cache + SearchBlob + stale guard
 import {
     initGlobalSearchRuntime,
@@ -338,10 +338,10 @@ import {
     invalidateSearchCache,
     debugSearchPerformance,
 } from './modules/searchRuntime.js';
-import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from './modules/finance.js?v=financial-collection-revenue-routing-inline-edit-20260618-v3f1';
-import { initFinanceTransactionEditor } from './modules/financeTransactionEditor.js?v=financial-collection-revenue-routing-20260618-v3f1';
-import { initQuickPaymentModal } from './modules/quickPaymentModal.js?v=financial-collection-revenue-routing-20260618-v3f1';
-import { initInventory }                              from './modules/inventory.js?v=financial-collection-revenue-routing-inline-edit-20260618-v3f1';
+import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from './modules/finance.js?v=quick-pay-commit-acknowledgement-20260618-v3f2';
+import { initFinanceTransactionEditor } from './modules/financeTransactionEditor.js?v=quick-pay-commit-acknowledgement-20260618-v3f2';
+import { initQuickPaymentModal } from './modules/quickPaymentModal.js?v=quick-pay-commit-acknowledgement-20260618-v3f2';
+import { initInventory }                              from './modules/inventory.js?v=quick-pay-commit-acknowledgement-20260618-v3f2';
 import { initAttendance }                             from './modules/attendance.js';
 import { initDashboard }                              from './modules/dashboard.js?v=payment-bundle-runtime-hotfix-20260616-v3a1';
 // ── Phase 4K-6U: Heavy Reports module is lazy-loaded by reportExportFacade.js ──

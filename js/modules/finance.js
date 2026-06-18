@@ -50,8 +50,8 @@ import {
     normalizeYYYYMM,
     formatMonthCompact,
 } from '../utils/format.js';
-import { FinanceService } from '../services/finance.service.js?v=financial-collection-revenue-routing-inline-edit-20260618-v3f1';
-import { StudentService } from '../services/students.service.js?v=financial-collection-revenue-routing-inline-edit-20260618-v3f1';
+import { FinanceService } from '../services/finance.service.js?v=quick-pay-commit-acknowledgement-20260618-v3f2';
+import { StudentService } from '../services/students.service.js?v=quick-pay-commit-acknowledgement-20260618-v3f2';
 import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
 
 // ── Phase 4K-4D: Fallback classify helper (finance.js) ──
@@ -459,7 +459,7 @@ export function initFinance() {
         }
         _quickPayInFlight.add(actionKey);
         window.__lastQuickPayState = {
-            status: 'saving', studentName: cleanName, months: paidMonthsList.slice(), amount, startedAt: Date.now()
+            status: 'saving', studentName: cleanName, months: paidMonthsList.slice(), amount, startedAt: Date.now(), source: 'finance-module'
         };
 
         try {
@@ -528,7 +528,7 @@ export function initFinance() {
 
             window.__lastQuickPayState = {
                 status: 'success', studentName: cleanName, months: paidMonthsList.slice(), amount,
-                transactionId: atomicResult.id || '', completedAt: Date.now()
+                transactionId: atomicResult.id || '', completedAt: Date.now(), source: 'finance-module'
             };
             try {
                 window.dispatchEvent(new CustomEvent('finance:quick-pay-committed', {
@@ -556,18 +556,22 @@ export function initFinance() {
             if (duplicate) {
                 const duplicateMonths = Array.isArray(error.duplicateMonths) ? error.duplicateMonths : paidMonthsList;
                 window.showToast(
-                    `ℹ️ Không thu lại: ${cleanName} đã đóng ${duplicateMonths.map(m => formatMonth(m)).join(', ')}.`,
+                    `ℹ️ Không thu lại: ${cleanName} đã đóng ${duplicateMonths.map(m => formatMonth(m)).join(', ')}. Danh sách sẽ được làm mới.`,
                     5000
                 );
                 window.refreshListsComputation?.(['students.debtList', 'tx.txList'], 'quick-pay-duplicate-detected');
                 window.invalidateList?.('students.debtList', 'quick-pay-duplicate-detected');
-            } else {
-                const message = error && error.message ? error.message : 'Lỗi không xác định';
-                window.showToast(`❌ Không thể thu tiền: ${message}`, 6000);
+                window.__lastQuickPayState = {
+                    status: 'already-paid', studentName: cleanName, months: duplicateMonths.slice(), amount,
+                    errorCode: 'TUITION_ALREADY_PAID', completedAt: Date.now(), source: 'finance-module'
+                };
+                return true;
             }
+            const message = error && error.message ? error.message : 'Lỗi không xác định';
+            window.showToast(`❌ Không thể thu tiền: ${message}`, 6000);
             window.__lastQuickPayState = {
                 status: 'error', studentName: cleanName, months: paidMonthsList.slice(), amount,
-                error: error && error.message ? error.message : String(error || ''), completedAt: Date.now()
+                error: message, errorCode: error && error.code || '', completedAt: Date.now(), source: 'finance-module'
             };
             return false;
         } finally {
@@ -913,7 +917,7 @@ export function initTransactionPagination() {
         prepareNextPage, preparePreviousPage,
         renderPaginationControls, PAGE_SIZE,
     }) => {
-        import('../services/finance.service.js?v=financial-collection-revenue-routing-inline-edit-20260618-v3f1').then(({ FinanceService }) => {
+        import('../services/finance.service.js?v=quick-pay-commit-acknowledgement-20260618-v3f2').then(({ FinanceService }) => {
 
             const store = window.__store;
             if (!store) { console.warn('[pagination/transactions] __store chưa sẵn sàng'); return; }
