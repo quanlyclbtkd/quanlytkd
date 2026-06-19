@@ -1031,6 +1031,7 @@ export function initStudents() {
  *   window.reloadStudentsPage() — reload trang hiện tại (sau add/edit/delete)
  */
 export function initStudentPagination() {
+    if (window.RoleReadBoundary?.canMount?.('students.pagination', { reason: 'initStudentPagination' }) === false) return false;
     import('../utils/pagination.js').then(({
         createPaginationState, resetPagination, processPage,
         prepareNextPage, preparePreviousPage,

@@ -44,7 +44,7 @@ check('Service dùng attendanceDailyLimit tập trung',
 check('Service cảnh báo khi chạm daily limit',
   service.includes('hitLimit') && service.includes('warnUnsafeLimit'));
 check('Module truyền _currentShiftId vào loadByDate',
-  /loadByDate\(_attCurrentDate,\s*\{\s*shiftId:\s*_currentShiftId\s*\}\)/.test(mod));
+  /loadByDate\(_attCurrentDate,\s*\{[\s\S]*?shiftId:\s*_currentShiftId[\s\S]*?branch:\s*_dailyBranch[\s\S]*?\}\)/.test(mod));
 
 console.log(`\nTotal: ${pass + fail} | Pass: ${pass} | Fail: ${fail}`);
 if (fail) process.exit(1);

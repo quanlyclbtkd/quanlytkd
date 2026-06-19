@@ -961,6 +961,7 @@ export function initFinance() {
  *       pagination tự reset về trang 1.
  */
 export function initTransactionPagination() {
+    if (window.RoleReadBoundary?.canMount?.('transactions.pagination', { reason: 'initTransactionPagination' }) === false) return false;
     import('../utils/pagination.js').then(({
         createPaginationState, resetPagination, processPage,
         prepareNextPage, preparePreviousPage,

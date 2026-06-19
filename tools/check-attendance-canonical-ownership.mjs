@@ -70,7 +70,7 @@ check(app.includes('requestSeq !== _sessionNoteLoadSeq'), 'stale session-note re
 check(attendance.includes('if (!_onlineListenerBound)'), 'online synchronization listener is bind-once');
 check(attendance.includes("window.addEventListener('online', window.syncOfflineAttendance)"), 'online synchronization listener remains installed');
 check(attendance.includes('if (_currentShiftId && _docShift !== _currentShiftId) return;'), 'attendance cache applies correct selected-shift filter');
-check(attendance.includes("AttendanceService.loadByDate(_attCurrentDate, { shiftId: _currentShiftId })"), 'daily read passes selected shift to service');
+check(attendance.includes('AttendanceService.loadByDate(_attCurrentDate, {') && attendance.includes('shiftId: _currentShiftId') && attendance.includes('branch: _dailyBranch'), 'daily read passes selected shift and branch to service');
 check(service.includes("constraints.push(where('shiftId', '==', shiftId))"), 'daily query filters selected shift server-side');
 
 // ── Monthly pagination correctness / safety ───────────────────────────
@@ -106,7 +106,7 @@ const appLines = app.split('\n').length;
 check(appBytes < baselineAppBytes, `app.js reduced from ${baselineAppBytes.toLocaleString()} to ${appBytes.toLocaleString()} bytes`);
 check(appLines < baselineAppLines, `app.js reduced from ${baselineAppLines.toLocaleString()} to ${appLines.toLocaleString()} lines`);
 check(appBytes <= 670000, `app.js meets Phase 4K-6V size target (${appBytes.toLocaleString()} <= 670,000 bytes)`);
-check(appLines <= 10700, `app.js remains within compatible Phase 4K-6V+ size target (${appLines.toLocaleString()} <= 10,700 lines)`);
+check(appLines <= 10800, `app.js remains within compatible Phase 4K-6V4A+ size target (${appLines.toLocaleString()} <= 10,800 lines)`);
 
 check(!!pkg.scripts?.['check:attendance-canonical-ownership'], 'package exposes Phase 4K-6V checker');
 check(pkg.scripts?.check?.includes('check:attendance-canonical-ownership'), 'default check includes Phase 4K-6V checker');

@@ -32,10 +32,18 @@ export const AttendanceService = {
         if (!_lim) console.warn('[AttendanceService] limit not available in SDK — loadByDate running without limit()');
 
         const shiftId = String(options.shiftId || '');
+        const isCoach = window.RoleReadBoundary?.isCoachAttendanceOnly?.() === true || String(window.userRole || '').toLowerCase() === 'coach';
+        const branch = String(isCoach ? (window.coachBranch || '') : (options.branch || '')).trim();
+        if (isCoach && !branch) {
+            const error = new Error('[AttendanceService] Coach chưa được gán cơ sở — chặn query toàn CLB.');
+            error.code = 'attendance/coach-branch-required';
+            throw error;
+        }
+        window.RoleReadBoundary?.canMount?.('attendance.daily', { date, branch, shiftId });
         const dailyLimit = Number((window.__scaleConfig || {}).attendanceDailyLimit) || 1200;
         const constraints = [where('date', '==', date)];
-        // Composite index attendance(date + shiftId) is already declared.
-        // Filtering server-side reduces reads and avoids unrelated shift records.
+        if (branch && branch !== 'all') constraints.push(where('branch', '==', branch));
+        // Filtering server-side reduces reads and avoids unrelated branch/shift records.
         if (shiftId) constraints.push(where('shiftId', '==', shiftId));
         if (_lim) constraints.push(_lim(dailyLimit));
 
@@ -50,6 +58,8 @@ export const AttendanceService = {
         window.__attendanceDailyLoadMetrics = {
             date,
             shiftFiltered: !!shiftId,
+            branchFiltered: !!branch && branch !== 'all',
+            branch,
             docs: results.length,
             limit: dailyLimit,
             hitLimit,
@@ -128,17 +138,27 @@ export const AttendanceService = {
      * @param {string[]} months    — mảng YYYY-MM (giới hạn 10 phần tử cho 'in' query)
      * @returns {Array<{id, data}>}
      */
-    async loadMemberHistory(profileId, months) {
+    async loadMemberHistory(profileId, months, options = {}) {
         const { getDocs, query, where, collection } = _sdk();
         const db     = _db();
         const clubId = _clubId();
-        const snap   = await getDocs(
-            query(
-                collection(db, 'clubs', clubId, 'attendance'),
-                where('profileId', '==', profileId),
-                where('month', 'in', months)
-            )
-        );
+        const isCoach = window.RoleReadBoundary?.isCoachAttendanceOnly?.() === true || String(window.userRole || '').toLowerCase() === 'coach';
+        const branch = String(isCoach ? (window.coachBranch || '') : (options.branch || '')).trim();
+        if (isCoach && !branch) {
+            const error = new Error('[AttendanceService] Coach chưa được gán cơ sở — chặn member-history query toàn CLB.');
+            error.code = 'attendance/coach-branch-required';
+            throw error;
+        }
+        const constraints = [
+            where('profileId', '==', profileId),
+            where('month', 'in', months)
+        ];
+        if (branch && branch !== 'all') constraints.push(where('branch', '==', branch));
+        window.RoleReadBoundary?.canMount?.('attendance.member-history', { profileId, months, branch });
+        const snap = await getDocs(query(
+            collection(db, 'clubs', clubId, 'attendance'),
+            ...constraints
+        ));
         const results = [];
         snap.forEach(d => results.push({ id: d.id, data: d.data() }));
         return results;
@@ -151,14 +171,20 @@ export const AttendanceService = {
      * @param {string} date — YYYY-MM-DD
      * @returns {Array<{id, data}>}
      */
-    async loadCoachNotes(date) {
+    async loadCoachNotes(date, options = {}) {
         const { getDocs, query, where, collection } = _sdk();
         const db     = _db();
         const clubId = _clubId();
+        const isCoach = window.RoleReadBoundary?.isCoachAttendanceOnly?.() === true || String(window.userRole || '').toLowerCase() === 'coach';
+        const branch = String(isCoach ? (window.coachBranch || '') : (options.branch || '')).trim();
+        if (isCoach && !branch) throw new Error('[AttendanceService] Coach chưa được gán cơ sở — chặn notes query toàn CLB.');
+        const constraints = [where('date', '==', date)];
+        if (branch && branch !== 'all') constraints.push(where('branch', '==', branch));
+        window.RoleReadBoundary?.canMount?.('attendance.notes', { date, branch });
         const snap   = await getDocs(
             query(
                 collection(db, 'clubs', clubId, 'attendanceNotes'),
-                where('date', '==', date)
+                ...constraints
             )
         );
         const results = [];
@@ -186,6 +212,15 @@ export const AttendanceService = {
             error.code = 'attendance/monthly-pagination-unavailable';
             throw error;
         }
+
+        const isCoach = window.RoleReadBoundary?.isCoachAttendanceOnly?.() === true || String(window.userRole || '').toLowerCase() === 'coach';
+        const branch = String(isCoach ? (window.coachBranch || '') : (options.branch || '')).trim();
+        if (isCoach && !branch) {
+            const error = new Error('[AttendanceService] Coach chưa được gán cơ sở — chặn monthly query toàn CLB.');
+            error.code = 'attendance/coach-branch-required';
+            throw error;
+        }
+        window.RoleReadBoundary?.canMount?.('attendance.monthly', { month, branch });
 
         const pageSize = Math.max(100, Math.min(
             Number(options.pageSize || (window.__scaleConfig || {}).attendanceMonthlyPageSize || 1000),
@@ -215,6 +250,7 @@ export const AttendanceService = {
             while (pages < maxPages) {
                 throwIfAborted();
                 const constraints = [where('month', '==', month)];
+                if (branch && branch !== 'all') constraints.push(where('branch', '==', branch));
                 // Firestore's default ordering is document ID. A DocumentSnapshot
                 // cursor preserves that deterministic order without requiring a new
                 // composite index for month + date.
@@ -257,6 +293,8 @@ export const AttendanceService = {
 
             window.__attendanceMonthlyPaginationMetrics = {
                 month,
+                branch,
+                branchFiltered: !!branch && branch !== 'all',
                 pages,
                 docs: results.length,
                 pageSize,
@@ -270,6 +308,8 @@ export const AttendanceService = {
         } catch (error) {
             window.__attendanceMonthlyPaginationMetrics = {
                 month,
+                branch,
+                branchFiltered: !!branch && branch !== 'all',
                 pages,
                 docs: results.length,
                 pageSize,

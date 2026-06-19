@@ -1,6 +1,7 @@
 // Phase 4K-6V3A compatibility: 4K-6V3A-firestore-read-attribution-canonical-transaction-boundary
 // Compatibility marker: multiItemInventorySafety.js?v=inventory-ledger-reconciliation-20260616-v2c
 // Phase compatibility APP_BUILD_VERSION markers for static safety checks:
+// APP_BUILD_VERSION = '4K-6V4A-coach-attendance-only-read-boundary-20260619'
 // APP_BUILD_VERSION = '4K-6D-security-license-ip-protection-readiness-20260605'
 // APP_BUILD_VERSION = '4K-6E-scale-readiness-write-safety-20260605'
 // APP_BUILD_VERSION = '4K-6E-B-exam-export-belt-sort-20260605'
@@ -96,7 +97,7 @@ import { initFirebase }                        from './firebase/config.js';
 import { showToast, registerToastGlobal }      from './ui/toast.js';
 import { registerModalGlobals }                from './ui/modal.js';
 import { switchTab, registerTabGlobals }       from './ui/tabs.js';
-import { initRender }                          from './ui/render.js?v=debt-profile-read-boundary-20260616-v3d';
+import { initRender }                          from './ui/render.js?v=coach-attendance-only-20260619-v4a';
 // Phase 3.4: Render Isolation Architecture — island initialisers + legacy shims
 import { initFinanceIslands, registerFinanceLegacyGlobals }     from './ui/render/renderFinance.js';
 import { initStudentIslands, registerStudentsLegacyGlobals }     from './ui/render/renderStudents.js';
@@ -254,7 +255,7 @@ import {
     getQuitStatusValues,
     getProfilesListenerMetrics,
     ensureAllProfilesForExport,
-} from './listeners/profiles.listeners.js?v=debt-profile-read-boundary-20260616-v3d';
+} from './listeners/profiles.listeners.js?v=coach-attendance-only-20260619-v4a';
 
 // ── Phase 3.7C: Profile Status Config ────────────────────────────────────────
 import {
@@ -308,7 +309,7 @@ import {
 } from './firebase/paginatedQuery.js';
 
 // ── Phase 2d–3.2A: Business modules (eager — cần khi login) ────
-import { initStudents, initStudentPagination }        from './modules/students.js?v=debt-profile-read-boundary-20260616-v3d';
+import { initStudents, initStudentPagination }        from './modules/students.js?v=coach-attendance-only-20260619-v4a';
 // PHẦN 1 FIX + Phase 4K-2: Unified Search Controller — real cache + SearchBlob + stale guard
 import {
     initGlobalSearchRuntime,
@@ -1504,6 +1505,7 @@ function _waitForExistingLegacyApp(ms) {
 
         const _origSwitchTab = window.switchTab;
         window.switchTab = async function(tabId) {
+            tabId = window.enforceRoleTab ? window.enforceRoleTab(tabId) : tabId;
             await ensureTabModule(tabId);
             if (typeof _origSwitchTab === 'function') _origSwitchTab(tabId);
             // Phase 4K-4: Refresh exam fee UI when entering exam tab
@@ -1618,7 +1620,9 @@ function _waitForExistingLegacyApp(ms) {
         // Phase 4K-6I-F: Admin-side automatic SuperAdmin stats cache sync.
         // Runs only for Admin/HLV club context, never for SuperAdmin runtime.
         try {
-            initClubStatsAutoCache();
+            if (window.RoleReadBoundary?.canMount?.('club.stats-cache', { reason: 'main-bootstrap' }) !== false) {
+                initClubStatsAutoCache();
+            }
         } catch (e) {
             console.warn('[BOOT] initClubStatsAutoCache failed:', e);
         }
@@ -1742,6 +1746,7 @@ function _waitForExistingLegacyApp(ms) {
         if (!window.__examFeeContextReadyListenerRegistered) {
             window.__examFeeContextReadyListenerRegistered = true;
             window.addEventListener('app:context-ready', function() {
+                if (window.RoleReadBoundary?.canMount?.('exam.settings', { reason: 'context-ready' }) === false) return;
                 if (typeof window.loadClubExamFeeSetting === 'function') {
                     window.loadClubExamFeeSetting('context-ready').then(function() {
                         if (typeof window.refreshExamFeeUI === 'function') window.refreshExamFeeUI('context-ready');
@@ -1753,6 +1758,7 @@ function _waitForExistingLegacyApp(ms) {
         // Replay nếu context đã ready trước khi main.js kịp đăng ký (GitHub Pages)
         if (window.__appContextReadyState && window.__appContextReadyState.ready) {
             setTimeout(function() {
+                if (window.RoleReadBoundary?.canMount?.('exam.settings', { reason: 'replay-context-ready' }) === false) return;
                 if (typeof window.loadClubExamFeeSetting === 'function') {
                     window.loadClubExamFeeSetting('replay-context-ready').then(function() {
                         if (typeof window.refreshExamFeeUI === 'function') window.refreshExamFeeUI('replay-context-ready');
@@ -1796,6 +1802,8 @@ function _waitForExistingLegacyApp(ms) {
                     clubId:        _st.currentClubId,
                     profRef:       _st.profRef,
                     currentClubId: _st.currentClubId,
+                    role:          _st.userRole || window.userRole || '',
+                    coachBranch:   _st.coachBranch || window.coachBranch || '',
                     reason:        reason || 'retry-hydration',
                 });
             }
@@ -1811,6 +1819,11 @@ function _waitForExistingLegacyApp(ms) {
                     return;
                 }
                 const _cid = (window.__store && window.__store.currentClubId) || window.currentClubId;
+                if (window.RoleReadBoundary?.isCoachAttendanceOnly?.() === true) {
+                    window.RoleReadBoundary?.canMount?.('students.pagination', { reason: reason || 'db-ready' });
+                    window.RoleReadBoundary?.canMount?.('transactions.pagination', { reason: reason || 'db-ready' });
+                    return;
+                }
 
                 // StudentPagination: guard theo clubId — cho phép re-init khi đổi CLB
                 if (!window.__studentPaginationInitialized ||
@@ -3103,7 +3116,7 @@ window.debugProfileModalClose = function() {
 // PHẦN 1 — APP BUILD VERSION
 window.APP_BUILD_VERSION = '4K-6V2-inventory-history-pagination-complete-active-debt-20260616';
 // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
-window.APP_PATCH_VERSION = '4K-6V3D-debt-profile-read-boundary-20260616';
+window.APP_PATCH_VERSION = '4K-6V4A-coach-attendance-only-read-boundary-20260619';
 window.APP_COPYRIGHT_OWNER   = 'Tình Trương';
 window.APP_PRODUCT_NAME      = 'Taekwondo Club Management Web App';
 window.APP_SECURITY_PHASE    = '4K-6E-scale-readiness-write-safety';

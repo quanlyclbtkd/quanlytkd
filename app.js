@@ -1,3 +1,4 @@
+// Phase 4K-6V4A: coach-attendance-only-read-boundary-20260619
     /* Firestore security rules source of truth: ./firestore.rules */
 // LEGACY APP KERNEL — DO NOT DELETE DIRECTLY
 // Responsibilities kept in app.js for now:
@@ -600,6 +601,7 @@ window.invCustomCategories = [];
     // by js/legacy/legacyUiFallbacks.js before this legacy kernel executes.
     // [Phase 2a] Bridge: expose _legacySwitchTab để ui/tabs.js có thể delegate về đây
     window._legacySwitchTab = window.switchTab = (tabId) => {
+        tabId = window.enforceRoleTab ? window.enforceRoleTab(tabId) : tabId;
         document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active')); document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
         document.getElementById('tab_' + tabId).classList.add('active'); document.getElementById('btn_' + tabId).classList.add('active');
         // [PERF] Reset pagination về trang 1 khi đổi tab — tránh hiện "Tải thêm"
@@ -1522,8 +1524,9 @@ service cloud.firestore {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             const _attEl = document.getElementById('tab_attendance');
             if (_attEl) _attEl.classList.add('active');
-            // Ẩn các nút admin, nhưng GIỮ LẠI btnAddStudent để HLV có thể thêm võ sinh
-            ['filterArea','btnSettings','exportTaxBtn','exportBtn'].forEach(id => {
+            // Phase 4K-6V4A: Coach runtime chỉ dùng Điểm danh.
+            // Không giữ form Thêm võ sinh vì form này kéo theo Học phí/Kho/transactions.
+            ['filterArea','btnSettings','exportTaxBtn','exportBtn','btnAddStudent'].forEach(id => {
                 const el = document.getElementById(id); if (el) el.style.display = 'none';
             });
             // Ẩn tab Thi Đai cho tài khoản HLV (cũng được xử lý trong onSnapshot)
@@ -1537,9 +1540,9 @@ service cloud.firestore {
                     if (_pill) _pill.style.display = 'none';
                 }
             });
-            // Hiện nút Thêm Võ Sinh trong tab điểm danh cho HLV
+            // HLV không mount form Thêm võ sinh đầy đủ trong attendance-only runtime.
             const _coachAddWrap = document.getElementById('coach_add_btn_wrap');
-            if (_coachAddWrap) _coachAddWrap.style.display = 'block';
+            if (_coachAddWrap) _coachAddWrap.style.display = 'none';
             const _attD = document.getElementById('att_date');
             if (_attD && !_attD.value) _attD.value = getLocalToday();
             // Khoá bộ lọc chi nhánh theo chi nhánh được phân công
@@ -1603,9 +1606,18 @@ service cloud.firestore {
             // Phase 4.0B-4C: alias thống nhất để main.js/modules đọc context
             window.__store.currentClubId = clubId;
             window.__store.currentUser   = auth.currentUser || null;
+            window.__store.userRole      = window.userRole || '';
+            window.__store.coachBranch   = window.coachBranch || '';
         }
         // Phase 4.0B-4C: alias global — đọc bởi dispatchAppContextReady + modules
         window.currentClubId = clubId;
+        if (window.RoleReadBoundary && typeof window.RoleReadBoundary.setContext === 'function') {
+            window.RoleReadBoundary.setContext({
+                role: window.userRole || '',
+                coachBranch: window.coachBranch || '',
+                clubId: clubId || ''
+            });
+        }
 
         // Phase 4.0B-4C: Dispatch app:context-ready — db + clubId + refs đã sẵn sàng.
         // Chỉ có nghĩa là context cơ bản ready, KHÔNG có nghĩa data snapshot đã load xong.
@@ -1669,10 +1681,11 @@ service cloud.firestore {
                 clubConfig = { ...clubConfig, ...docSnap.data() };
                 // [Phase 2d] Sync clubConfig → bridge để modules/students.js đọc được
                 if (window.__store) window.__store.clubConfig = clubConfig;
-                if (typeof window.syncCanonicalTransactionReadModeFromConfig === 'function') {
+                const _coachAttendanceOnly = window.RoleReadBoundary?.isCoachAttendanceOnly?.() === true;
+                if (!_coachAttendanceOnly && typeof window.syncCanonicalTransactionReadModeFromConfig === 'function') {
                     setTimeout(() => window.syncCanonicalTransactionReadModeFromConfig('settings-snapshot'), 0);
                 }
-                if (typeof window.refreshCanonicalTransactionOptimizerButton === 'function') {
+                if (!_coachAttendanceOnly && typeof window.refreshCanonicalTransactionOptimizerButton === 'function') {
                     window.refreshCanonicalTransactionOptimizerButton();
                 }
                 // Phase 4.0B-4D: mark settings loaded
@@ -1686,11 +1699,13 @@ service cloud.firestore {
                 } else {
                     scheduleRender();
                 }
-                // Tải danh mục kho tùy chỉnh (chạy song song, không blocking)
-                window.loadInvCategories().catch(e => console.warn('loadInvCategories error:', e));
+                // Coach attendance-only không đọc danh mục Kho.
+                if (!_coachAttendanceOnly && window.RoleReadBoundary?.canMount?.('inventory.categories', { reason: 'settings-snapshot' }) !== false) {
+                    window.loadInvCategories().catch(e => console.warn('loadInvCategories error:', e));
+                }
             }
             window.__settingsSnapshotReady = true;
-            if (typeof window.scheduleAutomaticDebtProfileCoverage === 'function') {
+            if (window.RoleReadBoundary?.isCoachAttendanceOnly?.() !== true && typeof window.scheduleAutomaticDebtProfileCoverage === 'function') {
                 window.scheduleAutomaticDebtProfileCoverage('settings-ready');
             }
             try { window.dispatchEvent(new CustomEvent('app:settings-ready', { detail: { clubId: clubId } })); } catch (_) {}
@@ -1753,13 +1768,18 @@ service cloud.firestore {
                 scheduleRender();
             }
         };
-        if (window.safeRegisterSnapshot) {
-            window.safeRegisterSnapshot(_invStatsKey, () => onSnapshot(invStatsRef, _invStatsCb),
-                { owner: 'inventory', scope: 'global', clubId: clubId, reason: 'init-invstats' });
+        if (window.RoleReadBoundary?.canMount?.('inventory.stats', { clubId, reason: 'init-invstats' }) !== false) {
+            if (window.safeRegisterSnapshot) {
+                window.safeRegisterSnapshot(_invStatsKey, () => onSnapshot(invStatsRef, _invStatsCb),
+                    { owner: 'inventory', scope: 'global', clubId: clubId, reason: 'init-invstats' });
+            } else {
+                const _u_invStats = onSnapshot(invStatsRef, _invStatsCb);
+                activeListeners.push(_u_invStats);
+                if (window.registerListener) window.registerListener(_invStatsKey, _u_invStats, { owner: 'inventory', scope: 'global', reason: 'init-invstats' });
+            }
         } else {
-            const _u_invStats = onSnapshot(invStatsRef, _invStatsCb);
-            activeListeners.push(_u_invStats);
-            if (window.registerListener) window.registerListener(_invStatsKey, _u_invStats, { owner: 'inventory', scope: 'global', reason: 'init-invstats' });
+            inventoryStats = {};
+            if (window.__store) window.__store.inventoryStats = {};
         }
 
         // [Phase 3.7B] Active profiles listener replaces full profiles listener by default.
@@ -1794,9 +1814,19 @@ service cloud.firestore {
         // nên window.mountActiveProfilesListener đã có sẵn khi init club chạy.
         // Fallback an toàn: giữ full profiles listener nếu module chưa sẵn.
         if (typeof window.mountActiveProfilesListener === 'function') {
-            window.mountActiveProfilesListener({ db, clubId, profRef, currentClubId, reason: 'init-active-profiles' });
+            window.mountActiveProfilesListener({
+                db, clubId, profRef, currentClubId,
+                role: window.userRole || '',
+                coachBranch: window.coachBranch || '',
+                reason: 'init-active-profiles'
+            });
+        } else if (window.RoleReadBoundary?.isCoachAttendanceOnly?.() === true) {
+            // Fail closed: tuyệt đối không full-read toàn CLB khi module branch-aware chưa sẵn.
+            allProfiles = {};
+            if (window.__store) window.__store.profiles = {};
+            console.error('[RoleReadBoundary] Coach profiles module unavailable — blocked full-club fallback');
         } else {
-            // Fallback: full profiles listener (Phase 3.6D pattern — khi module chưa load)
+            // Fallback Admin only: full profiles listener (Phase 3.6D pattern — khi module chưa load)
             let _fallbackProfilesInitialSeen = false;
             const _u_profiles = onSnapshot(profRef, (snap) => {
                 if (typeof window.recordFirestoreSnapshotAttribution === 'function') window.recordFirestoreSnapshotAttribution('profiles.fullFallbackListener', snap, { initial: !_fallbackProfilesInitialSeen, reason: 'app-module-not-ready' });
@@ -2218,19 +2248,25 @@ service cloud.firestore {
             console.error('[Phase 4K-6V2] Complete active debt listener failed:', err);
         };
 
-        if (window.safeRegisterSnapshot) {
-            const result = window.safeRegisterSnapshot(
-                _inventoryDebtKey,
-                () => onSnapshot(_inventoryDebtQuery, _inventoryDebtCb, _inventoryDebtError),
-                { owner: 'inventory-debt', scope: 'global', clubId, reason: 'phase4k-6v2-active-debts' }
-            );
-            if (result === false) window.__inventoryReadMetrics.debtListenerDuplicateMountSkipped++;
-        } else {
-            const unsubscribe = onSnapshot(_inventoryDebtQuery, _inventoryDebtCb, _inventoryDebtError);
-            activeListeners.push(unsubscribe);
-            if (window.registerListener) {
-                window.registerListener(_inventoryDebtKey, unsubscribe, { owner: 'inventory-debt', scope: 'global', reason: 'phase4k-6v2-active-debts' });
+        if (window.RoleReadBoundary?.canMount?.('inventory.active-debts', { clubId, reason: 'phase4k-6v2-active-debts' }) !== false) {
+            if (window.safeRegisterSnapshot) {
+                const result = window.safeRegisterSnapshot(
+                    _inventoryDebtKey,
+                    () => onSnapshot(_inventoryDebtQuery, _inventoryDebtCb, _inventoryDebtError),
+                    { owner: 'inventory-debt', scope: 'global', clubId, reason: 'phase4k-6v2-active-debts' }
+                );
+                if (result === false) window.__inventoryReadMetrics.debtListenerDuplicateMountSkipped++;
+            } else {
+                const unsubscribe = onSnapshot(_inventoryDebtQuery, _inventoryDebtCb, _inventoryDebtError);
+                activeListeners.push(unsubscribe);
+                if (window.registerListener) {
+                    window.registerListener(_inventoryDebtKey, unsubscribe, { owner: 'inventory-debt', scope: 'global', reason: 'phase4k-6v2-active-debts' });
+                }
             }
+        } else {
+            window.__completeInventoryDebts = [];
+            window.__inventoryDebtCompleteness = 'blocked-coach-attendance-only';
+            window.__inventoryStore?.setFinanceInventoryDebts?.([], 'coach-attendance-only');
         }
 
         window.printInventoryReadMetrics = function() {
@@ -2255,8 +2291,10 @@ service cloud.firestore {
         };
 
         const lMonth = document.getElementById('filterMonth').value;
-        if (typeof window.startTransactionListenerAfterSettings === 'function') window.startTransactionListenerAfterSettings(lMonth); else window.listenToData(lMonth);
-        loadLogoForReceipt();
+        if (window.RoleReadBoundary?.canMount?.('transactions.month', { month: lMonth, reason: 'initial-bootstrap' }) !== false) {
+            if (typeof window.startTransactionListenerAfterSettings === 'function') window.startTransactionListenerAfterSettings(lMonth); else window.listenToData(lMonth);
+            loadLogoForReceipt();
+        }
 
         // ── Khởi động hệ thống thông báo báo cáo HLV (Admin only) ──────────
         // setupNotifListener dùng onSnapshot nên cập nhật real-time khi HLV gửi báo cáo
@@ -3461,7 +3499,8 @@ service cloud.firestore {
     // Phase 4K-6V3A compatibility: 4K-6V3A-firestore-read-attribution-canonical-transaction-boundary
     // Phase 4K-6V3B/C: per-month safe cutover from 3 legacy listeners to 1 accountingMonths listener.
     window.listenToData = (monthStr) => {
-        if (!monthStr || !colRef) return;
+        if (window.RoleReadBoundary?.canMount?.('transactions.month', { month: monthStr, reason: 'listenToData' }) === false) return false;
+        if (!monthStr || !colRef) return false;
         const _cid = (window.__store && window.__store.clubId) || '';
         const _txKey = 'finance:tx:' + _cid + ':' + monthStr;
         const _desiredTxReadMode = typeof window.getCanonicalTransactionReadMode === 'function' ? window.getCanonicalTransactionReadMode(_cid, monthStr) : 'legacy';

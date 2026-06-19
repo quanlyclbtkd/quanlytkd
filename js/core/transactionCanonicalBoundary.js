@@ -695,6 +695,7 @@
 
     function startListenerAfterSettings(monthInput) {
         const month = normalizeMonth(monthInput);
+        if (global.RoleReadBoundary?.canMount?.('transactions.month', { month, reason: 'settings-gate' }) === false) return false;
         if (!month || typeof global.listenToData !== 'function') return false;
         if (global.__settingsSnapshotReady) { global.listenToData(month); return true; }
         if (global.__canonicalTxSettingsWait && global.__canonicalTxSettingsWait.month === month) return false;
@@ -704,6 +705,7 @@
             finished = true;
             if (global.__canonicalTxSettingsWait && global.__canonicalTxSettingsWait.timer) clearTimeout(global.__canonicalTxSettingsWait.timer);
             global.__canonicalTxSettingsWait = null;
+            if (global.RoleReadBoundary?.canMount?.('transactions.month', { month, reason: 'settings-gate-finish' }) === false) return;
             global.listenToData(month);
             console.info('[V3B/C] Transaction listener started after settings gate:', reason, month);
         };
@@ -715,6 +717,7 @@
     }
 
     function syncReadModeFromConfig(reason) {
+        if (global.RoleReadBoundary?.canMount?.('transactions.month', { reason: reason || 'settings-sync' }) === false) return false;
         if (global.__canonicalTxCutoverInFlight) return false;
         const store = getContext().store;
         const month = normalizeMonth(store._activeTxListenerMonth || ((document.getElementById('filterMonth') || {}).value));

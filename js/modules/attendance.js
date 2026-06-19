@@ -770,7 +770,14 @@ export function initAttendance() {
         }
         gridEl.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px 16px;color:#94a3b8;font-size:0.85rem;">⏳ Đang tải dữ liệu điểm danh...</div>';
         try {
-            const attList = await AttendanceService.loadByDate(_attCurrentDate, { shiftId: _currentShiftId });
+            const _dailyBranchEl = document.getElementById('att_branch');
+            const _dailyBranch = (window.userRole === 'coach' && window.coachBranch)
+                ? window.coachBranch
+                : ((_dailyBranchEl && _dailyBranchEl.value !== 'all') ? _dailyBranchEl.value : '');
+            const attList = await AttendanceService.loadByDate(_attCurrentDate, {
+                shiftId: _currentShiftId,
+                branch: _dailyBranch
+            });
             _attendanceCache = {};
             attList.forEach(({ id: _id, data: _sd }) => {
                 const _docShift = _sd.shiftId || '';
@@ -1052,6 +1059,7 @@ export function initAttendance() {
         _showMsg('⏳ Đang tải dữ liệu...');
         try {
             const monthRecords = await AttendanceService.loadByMonth(selMonth, {
+                branch: selBranch === 'all' ? '' : selBranch,
                 signal: requestSignal,
                 onPage: ({ totalDocs, page }) => {
                     if (_isCurrentRequest() && page > 1) {

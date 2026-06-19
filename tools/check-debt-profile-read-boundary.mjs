@@ -20,9 +20,9 @@ function check(name, ok, detail = '') {
 }
 
 console.log('\n=== Phase 4K-6V3D — Debt Profile Coverage Read Boundary ===\n');
-const build = 'debt-profile-read-boundary-20260616-v3d';
+const build = 'coach-attendance-only-20260619-v4a';
 
-check('V3D boundary is loaded before app.js with cache-bust',
+check('V3D boundary remains loaded before app.js with current cache-bust',
   index.includes(`debtProfileReadBoundary.js?v=${build}`) &&
   index.indexOf('debtProfileReadBoundary.js') < index.indexOf(`app.js?v=${build}`));
 check('Firebase bridge exposes runTransaction for distributed lock',

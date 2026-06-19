@@ -410,6 +410,10 @@
     }
 
     async function ensureDebtProfileCoverage(reason) {
+        if (global.RoleReadBoundary?.isCoachAttendanceOnly?.() === true) {
+            global.RoleReadBoundary?.canMount?.('debt.coverage', { reason: reason || 'ensure-debt' });
+            return { ok: false, ready: false, blocked: true, source: 'coach-attendance-only' };
+        }
         _metrics.ensureCalls++;
         const ctx = context();
         const source = await waitForActiveSource();

@@ -1,0 +1,28 @@
+PRODUCTION FILES
+app.js
+index.html
+firestore.indexes.json
+js/core/roleReadBoundary.js
+js/core/transactionCanonicalBoundary.js
+js/core/debtProfileReadBoundary.js
+js/core/clubStatsAutoCache.js
+js/listeners/profiles.listeners.js
+js/main.js
+js/modules/attendance.js
+js/modules/students.js
+js/modules/finance.js
+js/services/attendance.service.js
+js/ui/tabs.js
+
+TEST / PACKAGE FILES
+package.json
+tools/check-coach-attendance-only-read-boundary.mjs
+tools/check-admission-bundle-unification.mjs
+tools/check-attendance-canonical-ownership.mjs
+tools/check-attendance-shift-filter.mjs
+tools/check-debt-profile-read-boundary.mjs
+
+REPORTS
+PHASE_4K_6V4A_COACH_ATTENDANCE_ONLY_READ_BOUNDARY_REPORT.md
+PHASE_4K_6V4A_TEST_SUMMARY.txt
+PHASE_4K_6V4A_CHANGED_FILES.txt

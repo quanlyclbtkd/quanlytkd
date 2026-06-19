@@ -1,0 +1,47 @@
+PHASE 4K-6V4A TEST SUMMARY
+Date: 2026-06-19
+Base source: Phase 4K-6V3D
+Base SHA-256: 5d32598d72cf39f00733ae363426aa2d4f590aff39b45fd2ad2e3f877f5b1b8e
+
+1) npm run check
+   Result: PASS
+   Exit code: 0
+
+2) npm run check:all:critical
+   Result: PASS
+   Exit code: 0
+
+3) V4A specialized
+   node tools/check-coach-attendance-only-read-boundary.mjs
+   Result: PASS 30/30
+
+Verified Coach boundaries:
+- only Attendance tab remains accessible;
+- transaction listener blocked;
+- inventory_stats listener blocked;
+- complete inventory debt listener blocked;
+- student and transaction pagination blocked;
+- debt coverage blocked;
+- exam settings and club stats cache blocked;
+- active profiles query contains status + assigned branch;
+- active-zero probe is branch-scoped;
+- error fallback is branch-only, never full club;
+- daily attendance contains date + branch + optional shift;
+- monthly attendance contains month + branch;
+- member history contains profileId + months + branch;
+- notes contain date + branch;
+- missing Coach branch performs zero-query fail-closed behavior.
+
+Verified Admin compatibility:
+- financial and inventory listener implementations remain present;
+- Admin RoleReadBoundary allows all existing sources;
+- debt profile boundary PASS 21/21;
+- inventory history/complete active debt PASS 25/25;
+- runtime stability PASS 17/17;
+- production stability PASS 22/22.
+
+Deployment checks:
+- Firestore indexes readiness PASS 16/16;
+- deploy package PASS 12/12;
+- GitHub Pages paths PASS 18/18;
+- project syntax PASS.

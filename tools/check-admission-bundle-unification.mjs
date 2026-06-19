@@ -52,8 +52,9 @@ check('students.js addNewStudent has bundle guard (not raw double-transaction)',
 check('StudentService has addGenericTransaction method',
     studentsService.includes('addGenericTransaction'));
 
-// 4. StudentService.addTuitionTransaction returns id
-check('StudentService.addTuitionTransaction returns { id, ...data }',
+// 4. StudentService.addTuitionTransaction returns canonical payload with id
+check('StudentService.addTuitionTransaction returns canonical payload with id',
+    studentsService.includes('return { id: docRef.id, ...payload }') ||
     studentsService.includes('return { id: docRef.id, ...data }'));
 
 // 5. app.js addNewStudent has throw guard when buildPaymentBundleTransaction is missing

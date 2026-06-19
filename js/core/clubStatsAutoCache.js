@@ -167,6 +167,9 @@ function _fingerprint(stats) {
 }
 
 async function syncClubStatsCache(reason = 'manual') {
+  if (window.RoleReadBoundary?.canMount?.('club.stats-cache', { reason }) === false) {
+    return { ok: false, skipped: true, reason: 'coach-attendance-only' };
+  }
   if (_syncInFlight) return _syncInFlight;
   _syncInFlight = (async () => {
     const cid = _clubId();
@@ -284,6 +287,7 @@ function scheduleClubStatsAutoCacheSync(reason = 'schedule') {
 }
 
 function initClubStatsAutoCache() {
+  if (window.RoleReadBoundary?.canMount?.('club.stats-cache', { reason: 'initClubStatsAutoCache' }) === false) return false;
   if (_started) return;
   _started = true;
 
