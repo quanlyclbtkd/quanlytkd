@@ -105,8 +105,8 @@ const appBytes = Buffer.byteLength(app);
 const appLines = app.split('\n').length;
 check(appBytes < baselineAppBytes, `app.js reduced from ${baselineAppBytes.toLocaleString()} to ${appBytes.toLocaleString()} bytes`);
 check(appLines < baselineAppLines, `app.js reduced from ${baselineAppLines.toLocaleString()} to ${appLines.toLocaleString()} lines`);
-check(appBytes <= 700000, `app.js meets Phase 4K-6V4C2A compatible size target (${appBytes.toLocaleString()} <= 700,000 bytes)`);
-check(appLines <= 11200, `app.js remains within compatible Phase 4K-6V4C2A+ size target (${appLines.toLocaleString()} <= 11,200 lines)`);
+check(appBytes <= 670000, `app.js meets Phase 4K-6V size target (${appBytes.toLocaleString()} <= 670,000 bytes)`);
+check(appLines <= 10800, `app.js remains within compatible Phase 4K-6V4A+ size target (${appLines.toLocaleString()} <= 10,800 lines)`);
 
 check(!!pkg.scripts?.['check:attendance-canonical-ownership'], 'package exposes Phase 4K-6V checker');
 check(pkg.scripts?.check?.includes('check:attendance-canonical-ownership'), 'default check includes Phase 4K-6V checker');

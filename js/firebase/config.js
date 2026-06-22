@@ -52,9 +52,7 @@ export function initFirebase() {
     const app          = initializeApp(firebaseConfig);
     const secondaryApp = initializeApp(firebaseConfig, 'SecondaryApp');
 
-    store.db           = (window.FirestoreCachePolicy && typeof window.FirestoreCachePolicy.initialize === 'function')
-        ? window.FirestoreCachePolicy.initialize(app)
-        : getFirestore(app);
+    store.db           = getFirestore(app);
     store.auth         = getAuth(app);
     store.secondaryAuth = getAuth(secondaryApp);
 

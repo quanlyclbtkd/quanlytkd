@@ -103,12 +103,6 @@ export function switchTab(tabId) {
         window.ensureProfilesForTab(tabId, 'switch-tab');
     }
 
-    // Phase 4K-6V4C1: công nợ Kho lazy-once-per-session. Chỉ mount khi
-    // Admin thực sự mở Kho/Báo nợ; HLV bị RoleReadBoundary chặn từ nguồn.
-    if ((tabId === 'inventory' || tabId === 'debt') && typeof window.ensureInventoryDebtListener === 'function') {
-        window.ensureInventoryDebtListener('module-switch-' + tabId + '-tab');
-    }
-
     // Phase 4K-6V2: lịch sử Kho chỉ đọc khi người dùng thực sự mở tab Kho.
     // Không block tab switch; dữ liệu trang đầu sẽ invalidate/render sau khi tải xong.
     if (tabId === 'inventory' && typeof window.ensureInventoryHistoryLoaded === 'function') {

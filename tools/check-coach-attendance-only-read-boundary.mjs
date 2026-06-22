@@ -33,13 +33,11 @@ function hasIndex(group, fields) {
 
 console.log('\n=== Phase 4K-6V4A — Coach Attendance-Only Read Boundary ===\n');
 
-const resolverSrc = './js/core/coachBranchResolver.js?v=coach-branch-resolution-20260622-v4c2a';
-const roleSrc = './js/core/roleReadBoundary.js?v=coach-branch-resolution-20260622-v4c2a';
-const txSrc = './js/core/transactionCanonicalBoundary.js?v=coach-branch-resolution-20260622-v4c2a';
-const appSrc = 'app.js?v=coach-branch-resolution-20260622-v4c2a';
-check('Coach branch resolver and role boundary load before transaction boundary and app.js',
-  index.includes(resolverSrc) && index.includes(roleSrc) && index.includes(txSrc) &&
-  index.indexOf(resolverSrc) < index.indexOf(roleSrc) &&
+const roleSrc = './js/core/roleReadBoundary.js?v=coach-attendance-only-20260619-v4a';
+const txSrc = './js/core/transactionCanonicalBoundary.js?v=coach-attendance-only-20260619-v4a';
+const appSrc = 'app.js?v=coach-attendance-only-20260619-v4a';
+check('Role read boundary loads before transaction boundary and app.js',
+  index.includes(roleSrc) && index.includes(txSrc) &&
   index.indexOf(roleSrc) < index.indexOf(txSrc) &&
   index.indexOf(roleSrc) < index.indexOf(appSrc));
 check('Coach UI exposes only Attendance and hides full Add Student controls',
@@ -82,14 +80,11 @@ check('Programmatic tab switching is forced back to Attendance in all controller
   tabs.includes('tabId = window.enforceRoleTab ? window.enforceRoleTab(tabId) : tabId'));
 check('Coach profile listener key contains role and branch',
   profiles.includes("':coach:' + coachBranch") && profiles.includes("':admin'"));
-check('Coach profile listeners are server-scoped by status + assigned branch aliases',
-  profiles.includes('isCoach && !coachAllBranches') &&
-  profiles.includes('CoachBranchResolver?.queryValues?.(coachBranch, config)') &&
-  profiles.includes("fbQuery(profRef, makeStatusConstraint(), fbWhere('branch', '==', alias))"));
-check('Coach active-zero recovery and fallback remain assigned-branch scoped',
-  profiles.includes("loadCoachBranchProfilesFallback('active-zero-check-branch-aliases')") &&
-  profiles.includes('CoachBranchResolver?.queryValues?.(branch, config)') &&
-  profiles.includes("fbQuery(ctx.profRef, fbWhere('branch', '==', alias))"));
+check('Coach profile query is server-scoped by status + branch',
+  profiles.includes("fbQuery(profRef, statusConstraint, fbWhere('branch', '==', coachBranch))"));
+check('Coach zero probe and fallback are branch-scoped',
+  profiles.includes("fbWhere('branch', '==', coachBranch), _pL4k(1)") &&
+  profiles.includes("fbQuery(ctx.profRef, fbWhere('branch', '==', branch))"));
 check('Coach never executes full-club profiles fallback, quit load or export load',
   profiles.includes("return loadCoachBranchProfilesFallback('redirected-from-full:'") &&
   profiles.includes("canMount?.('profiles.quit'") && profiles.includes("canMount?.('profiles.export-all'"));
@@ -137,8 +132,6 @@ check('Required Firestore indexes are declared',
   check('Dynamic: Coach profile listener requires an assigned branch',
     api.canMount('profiles.active') === true &&
     (api.setContext({coachBranch:''}), api.canMount('profiles.active') === false));
-  api.setContext({role:'coach',coachBranch:'all',clubId:'club-a'});
-  check('Dynamic: Explicit all-branch Coach scope is allowed', api.canMount('profiles.active') === true);
   api.setContext({role:'admin',coachBranch:'',clubId:'club-a'});
   check('Dynamic: Admin financial/Kho sources remain allowed',
     api.canMount('transactions.month') === true && api.canMount('inventory.active-debts') === true);

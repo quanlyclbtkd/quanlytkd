@@ -131,14 +131,6 @@ function _coachBranch(context = _ctx) {
     return String((context && context.coachBranch) || _state.coachBranch || window.coachBranch || window.__store?.coachBranch || '').trim();
 }
 
-function _coachAllBranches(context = _ctx) {
-    const value = _coachBranch(context);
-    if (window.CoachBranchResolver && typeof window.CoachBranchResolver.isAll === 'function') {
-        return window.CoachBranchResolver.isAll(value, window.__store?.clubConfig || window.clubConfig || {});
-    }
-    return String(value || '').toLowerCase() === 'all';
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // PRIVATE HELPERS
 // ─────────────────────────────────────────────────────────────────────────────
@@ -365,7 +357,6 @@ export function mountActiveProfilesListener(context) {
     _state.coachBranch = _coachBranch(context);
     const isCoach = _isCoachContext(context);
     const coachBranch = _coachBranch(context);
-    const coachAllBranches = isCoach && _coachAllBranches(context);
     if (isCoach && !coachBranch) {
         console.error('[ProfilesListener] Coach missing branch — fail closed, no profiles query');
         setActiveProfiles({}, 'coach-missing-branch');
@@ -373,9 +364,6 @@ export function mountActiveProfilesListener(context) {
         _syncLegacy();
         _state.lastProfilesMode = 'coach-missing-branch';
         _updateWindowMetrics();
-        if (typeof window.showCoachBranchAssignmentError === 'function') {
-            window.showCoachBranchAssignmentError();
-        }
         return false;
     }
     const key = isCoach
@@ -415,26 +403,14 @@ export function mountActiveProfilesListener(context) {
     window.safeRegisterSnapshot(
         key,
         () => {
-            let queryEntries = [];
+            let activeQuery;
             try {
-                const makeStatusConstraint = () => statusValues.length === 1
+                const statusConstraint = statusValues.length === 1
                     ? fbWhere('status', '==', statusValues[0])
                     : fbWhere('status', 'in', statusValues);
-                if (isCoach && !coachAllBranches) {
-                    const config = window.__store?.clubConfig || window.clubConfig || {};
-                    const aliases = window.CoachBranchResolver?.queryValues?.(coachBranch, config) || [coachBranch];
-                    queryEntries = aliases.slice(0, 10).map(alias => ({
-                        id: 'branch:' + alias,
-                        alias,
-                        query: fbQuery(profRef, makeStatusConstraint(), fbWhere('branch', '==', alias)),
-                    }));
-                } else {
-                    queryEntries = [{
-                        id: coachAllBranches ? 'all-branches' : 'admin',
-                        alias: coachAllBranches ? 'all' : '',
-                        query: fbQuery(profRef, makeStatusConstraint()),
-                    }];
-                }
+                activeQuery = isCoach
+                    ? fbQuery(profRef, statusConstraint, fbWhere('branch', '==', coachBranch))
+                    : fbQuery(profRef, statusConstraint);
             } catch (qErr) {
                 console.warn('[ProfilesListener] Build query lỗi:', qErr.message, '— fallback');
                 setTimeout(() => {
@@ -444,111 +420,87 @@ export function mountActiveProfilesListener(context) {
                 return () => {};
             }
 
-            const mapsByQuery = new Map();
-            const initialReady = new Set();
-            let initialCombinedApplied = false;
-            const unsubscribers = [];
+            const unsub = fbOnSnapshot(
+                activeQuery,
+                (snap) => {
+                    _state.activeSnapshotCount++;
+                    if (typeof window.recordFirestoreSnapshotAttribution === 'function') {
+                        window.recordFirestoreSnapshotAttribution('profiles.activeListener', snap, {
+                            initial: _state.activeSnapshotCount === 1,
+                            reason: isCoach ? 'active-status-branch-query' : 'active-status-query'
+                        });
+                    }
+                    if (window.markListenerSnapshot) window.markListenerSnapshot(key);
 
-            const applyCombinedSnapshot = (entry, snap) => {
-                _state.activeSnapshotCount++;
-                if (typeof window.recordFirestoreSnapshotAttribution === 'function') {
-                    window.recordFirestoreSnapshotAttribution('profiles.activeListener', snap, {
-                        initial: !initialReady.has(entry.id),
-                        reason: isCoach
-                            ? (coachAllBranches ? 'active-status-all-branches-query' : 'active-status-branch-alias-query')
-                            : 'active-status-query',
-                        branchAlias: entry.alias || undefined,
+                    const activeMap = {};
+                    snap.forEach(d => {
+                        const id = d.id.trim();
+                        if (id) activeMap[id] = d.data();
                     });
-                }
-                if (window.markListenerSnapshot) window.markListenerSnapshot(key);
 
-                const mapForQuery = {};
-                snap.forEach(d => {
-                    const id = d.id.trim();
-                    if (id) mapForQuery[id] = d.data();
-                });
-                mapsByQuery.set(entry.id, mapForQuery);
-                initialReady.add(entry.id);
+                    const activeCount = Object.keys(activeMap).length;
 
-                // Wait for every branch alias initial snapshot to avoid briefly showing
-                // a partial student list on legacy mixed-value clubs.
-                if (initialReady.size < queryEntries.length) return;
-
-                const activeMap = {};
-                mapsByQuery.forEach(map => Object.assign(activeMap, map));
-                const activeCount = Object.keys(activeMap).length;
-
-                if (!initialCombinedApplied) {
+                    // [Phase 3.7C] Coverage guard — trước khi cập nhật store
                     _checkActiveProfileCoverage(activeCount);
-                    if (activeCount === 0) {
-                        if (isCoach && !coachAllBranches) {
-                            Promise.resolve(loadCoachBranchProfilesFallback('active-zero-check-branch-aliases')).then(function(ok) {
-                                if (ok) _invalidateAll('active-zero-coach-alias-fallback-completed');
+
+                    // Phase 4K-STUDENT-LIST: Active-zero probe —
+                    // Nếu snapshot đầu tiên trả 0 nhưng collection có docs,
+                    // data cũ có thể thiếu status field → trigger full fallback.
+                    // Dùng getDocs(limit(1)) — nhẹ, không đọc full collection.
+                    if (activeCount === 0 && _state.activeSnapshotCount === 1) {
+                        const _fb4k = window._fb_init || {};
+                        const { query: _pQ4k, limit: _pL4k, getDocs: _pG4k } = _fb4k;
+                        if (_pG4k && _pQ4k && _pL4k && profRef) {
+                            // [GITHUB-FIX Task 4] Await fallback + invalidate sau khi hoàn tất
+                            const _probeQuery = isCoach
+                                ? _pQ4k(profRef, fbWhere('branch', '==', coachBranch), _pL4k(1))
+                                : _pQ4k(profRef, _pL4k(1));
+                            _pG4k(_probeQuery).then(async function(_probe) {
+                                if (typeof window.recordFirestoreReadAttribution === 'function') {
+                                    window.recordFirestoreReadAttribution('profiles.activeZeroProbe', _probe.size || 0, {
+                                        initial: true,
+                                        reason: 'active-zero-probe'
+                                    });
+                                }
+                                if (!_probe.empty) {
+                                    console.warn('[ProfilesListener] active=0 but scoped collection has docs — safe fallback');
+                                    const ok = isCoach
+                                        ? await loadCoachBranchProfilesFallback('active-zero-but-branch-has-profiles')
+                                        : await loadFullProfilesFallback('active-zero-but-profiles-exist');
+                                    if (ok) {
+                                        _invalidateAll('active-zero-full-fallback-completed');
+                                    }
+                                }
                             }).catch(() => {});
-                        } else {
-                            const _fb4k = window._fb_init || {};
-                            const { query: _pQ4k, limit: _pL4k, getDocs: _pG4k } = _fb4k;
-                            if (_pG4k && _pQ4k && _pL4k && profRef) {
-                                const _probeQuery = _pQ4k(profRef, _pL4k(1));
-                                _pG4k(_probeQuery).then(async function(_probe) {
-                                    if (typeof window.recordFirestoreReadAttribution === 'function') {
-                                        window.recordFirestoreReadAttribution('profiles.activeZeroProbe', _probe.size || 0, {
-                                            initial: true,
-                                            reason: 'active-zero-probe'
-                                        });
-                                    }
-                                    if (!_probe.empty) {
-                                        const ok = isCoach
-                                            ? await loadCoachBranchProfilesFallback('active-zero-all-branches')
-                                            : await loadFullProfilesFallback('active-zero-but-profiles-exist');
-                                        if (ok) _invalidateAll('active-zero-full-fallback-completed');
-                                    }
-                                }).catch(() => {});
-                            }
                         }
                     }
-                    initialCombinedApplied = true;
-                }
 
-                setActiveProfiles(activeMap, 'active-profiles-snapshot');
-                _syncLegacy();
-                if (typeof window.recordProfileDeltaShadowSnapshot === 'function') {
-                    window.recordProfileDeltaShadowSnapshot(activeMap, {
-                        source: 'active-profiles-snapshot',
-                        clubId,
-                        role: _state.role,
-                        branch: coachBranch || 'all'
-                    });
-                }
+                    setActiveProfiles(activeMap, 'active-profiles-snapshot');
+                    _syncLegacy();
 
-                _state.activeListenerMounted = true;
-                _state.lastProfilesMode = isCoach && !coachAllBranches
-                    ? 'active-branch-aliases'
-                    : 'active-split';
-                _invalidateAll('active-profiles-snapshot');
-                _updateWindowMetrics();
-                if (!isCoach && typeof window.scheduleAutomaticDebtProfileCoverage === 'function') {
-                    window.scheduleAutomaticDebtProfileCoverage('active-profiles-snapshot');
-                }
-            };
+                    _state.activeListenerMounted = true;
+                    _state.lastProfilesMode      = 'active-split';
 
-            queryEntries.forEach(entry => {
-                const unsub = fbOnSnapshot(
-                    entry.query,
-                    snap => applyCombinedSnapshot(entry, snap),
-                    err => {
-                        _state.activeQueryErrorCount++;
-                        console.warn('[ProfilesListener] Active query lỗi:', err.code || err.message, '— fallback');
-                        if (isCoach) loadCoachBranchProfilesFallback('active-query-error:' + (err.code || 'unknown'));
-                        else loadFullProfilesFallback('active-query-error:' + (err.code || 'unknown'));
+                    _invalidateAll('active-profiles-snapshot');
+                    _updateWindowMetrics();
+                    // Phase 4K-6V3D: verify debt coverage in idle time. The scheduler
+                    // reuses this snapshot and only runs count aggregation when needed.
+                    if (!isCoach && typeof window.scheduleAutomaticDebtProfileCoverage === 'function') {
+                        window.scheduleAutomaticDebtProfileCoverage('active-profiles-snapshot');
                     }
-                );
-                if (typeof unsub === 'function') unsubscribers.push(unsub);
-            });
+                },
+                (err) => {
+                    _state.activeQueryErrorCount++;
+                    console.warn(
+                        '[ProfilesListener] Active query lỗi:', err.code || err.message,
+                        '— fallback'
+                    );
+                    if (isCoach) loadCoachBranchProfilesFallback('active-query-error:' + (err.code || 'unknown'));
+                    else loadFullProfilesFallback('active-query-error:' + (err.code || 'unknown'));
+                }
+            );
 
-            return () => unsubscribers.forEach(unsub => {
-                try { unsub(); } catch (_) {}
-            });
+            return unsub;
         },
         {
             owner:  'students',
@@ -692,10 +644,8 @@ export function cleanupQuitProfilesListener(reason) {
 export async function loadCoachBranchProfilesFallback(reason) {
     const ctx = _ctx;
     const branch = _coachBranch(ctx);
-    const allBranches = _coachAllBranches(ctx);
     if (!_isCoachContext(ctx) || !ctx || !ctx.profRef || !branch) {
         console.warn('[ProfilesFallback] Coach branch fallback blocked — missing safe context:', reason);
-        if (typeof window.showCoachBranchAssignmentError === 'function') window.showCoachBranchAssignmentError();
         return false;
     }
     if (_state.fallbackInProgress || _state.fallbackCount >= _state.maxFallbackPerSession) return false;
@@ -706,59 +656,30 @@ export async function loadCoachBranchProfilesFallback(reason) {
 
     _state.fallbackInProgress = true;
     try {
-        const activeMap = {};
-        let totalDocs = 0;
-        let aliases = [branch];
-        if (allBranches) {
-            const statusValues = getActiveQueryValues();
-            const statusConstraint = statusValues.length === 1
-                ? fbWhere('status', '==', statusValues[0])
-                : fbWhere('status', 'in', statusValues);
-            const snap = await fbGetDocs(fbQuery(ctx.profRef, statusConstraint));
-            totalDocs += snap.size || 0;
-            snap.forEach(d => {
-                const id = d.id.trim();
-                if (!id) return;
-                const data = d.data();
-                if (classifyProfileStatus(data) !== 'quit') activeMap[id] = data;
-            });
-        } else {
-            const config = window.__store?.clubConfig || window.clubConfig || {};
-            aliases = window.CoachBranchResolver?.queryValues?.(branch, config) || [branch];
-            // Query aliases separately because Firestore cannot combine status IN
-            // with another branch IN in the same query. Every query remains scoped
-            // to an alias of the assigned branch only.
-            for (const alias of aliases) {
-                const snap = await fbGetDocs(fbQuery(ctx.profRef, fbWhere('branch', '==', alias)));
-                totalDocs += snap.size || 0;
-                snap.forEach(d => {
-                    const id = d.id.trim();
-                    if (!id) return;
-                    const data = d.data();
-                    if (classifyProfileStatus(data) !== 'quit') activeMap[id] = data;
-                });
-            }
-        }
+        const branchQuery = fbQuery(ctx.profRef, fbWhere('branch', '==', branch));
+        const snap = await fbGetDocs(branchQuery);
         if (typeof window.recordFirestoreReadAttribution === 'function') {
-            window.recordFirestoreReadAttribution('profiles.coachBranchFallbackQuery', totalDocs, {
+            window.recordFirestoreReadAttribution('profiles.coachBranchFallbackQuery', snap.size || 0, {
                 initial: true,
                 reason: reason || 'coach-branch-fallback',
-                branch,
-                aliases,
-                scope: allBranches ? 'all-explicit' : 'specific-aliases'
+                branch
             });
         }
+        const activeMap = {};
+        snap.forEach(d => {
+            const id = d.id.trim();
+            if (!id) return;
+            const data = d.data();
+            if (classifyProfileStatus(data) !== 'quit') activeMap[id] = data;
+        });
         setActiveProfiles(activeMap, 'coach-branch-fallback:' + reason);
-        if (typeof window.recordProfileDeltaShadowSnapshot === 'function') {
-            window.recordProfileDeltaShadowSnapshot(activeMap, { source: 'coach-branch-fallback:' + reason, clubId: ctx.clubId, role: 'coach', branch });
-        }
         setQuitProfiles({}, 'coach-branch-fallback:no-quit-data');
         _syncLegacy();
         _state.fallbackCompleted = true;
         _state.fallbackCount++;
         _state.coachBranchFallbackCount++;
-        _state.fullFallbackReason = (allBranches ? 'coach-all-active-only:' : 'coach-branch-only:') + reason;
-        _state.lastProfilesMode = allBranches ? 'coach-all-active-fallback' : 'coach-branch-fallback';
+        _state.fullFallbackReason = 'coach-branch-only:' + reason;
+        _state.lastProfilesMode = 'coach-branch-fallback';
         _state.activeListenerMounted = true;
         markActiveLoaded(true);
         _invalidateAll('coach-branch-fallback');
@@ -849,9 +770,6 @@ export async function loadFullProfilesFallback(reason) {
             else _fallbackActive[_fId] = _fData;
         });
         setActiveProfiles(_fallbackActive, 'full-fallback-active:' + reason);
-        if (typeof window.recordProfileDeltaShadowSnapshot === 'function') {
-            window.recordProfileDeltaShadowSnapshot(_fallbackActive, { source: 'full-fallback-active:' + reason, clubId: ctx.clubId, role: _state.role, branch: 'all' });
-        }
         setQuitProfiles(_fallbackQuit, 'full-fallback-quit-classified:' + reason);
 
         if (window.syncProfilesToStudentStore) {
