@@ -33,9 +33,9 @@ function hasIndex(group, fields) {
 
 console.log('\n=== Phase 4K-6V4A — Coach Attendance-Only Read Boundary ===\n');
 
-const roleSrc = './js/core/roleReadBoundary.js?v=coach-attendance-only-20260619-v4a';
-const txSrc = './js/core/transactionCanonicalBoundary.js?v=coach-attendance-only-20260619-v4a';
-const appSrc = 'app.js?v=coach-attendance-only-20260619-v4a';
+const roleSrc = './js/core/roleReadBoundary.js?v=coach-branch-recovery-20260622-v4c1a';
+const txSrc = './js/core/transactionCanonicalBoundary.js?v=coach-branch-recovery-20260622-v4c1a';
+const appSrc = 'app.js?v=coach-branch-recovery-20260622-v4c1a';
 check('Role read boundary loads before transaction boundary and app.js',
   index.includes(roleSrc) && index.includes(txSrc) &&
   index.indexOf(roleSrc) < index.indexOf(txSrc) &&

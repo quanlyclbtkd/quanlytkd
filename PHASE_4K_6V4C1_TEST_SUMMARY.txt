@@ -1,0 +1,46 @@
+PHASE 4K-6V4C1 TEST SUMMARY
+Date: 2026-06-20
+Base SHA-256: 7605db79b88c34d31a3b8a265ea514132388e876c77b5749527c44e91d3b6eb7
+
+Dedicated checker:
+- node tools/check-trusted-cache-lazy-admin-reads.mjs
+- PASS 28/28
+
+Default suite:
+- npm run check
+- PASS, exit code 0
+
+Critical suite:
+- npm run check:all:critical
+- PASS, exit code 0
+
+Key regression gates passed:
+- Syntax: 119 items
+- Coach Attendance-only boundary: 30/30
+- Debt profile read boundary: 21/21
+- Inventory history/complete debt: 25/25
+- Inventory consumer hydration: 25/25
+- Inventory ledger reconciliation: 33/33
+- Firestore read attribution/canonical transaction boundary: 34/34
+- Canonical transaction cutover: 27/27
+- Payment bundle runtime: 20/20
+- Production stability: 22/22
+- Runtime stability: 17/17
+- Deploy package: 12/12
+- GitHub Pages paths: 18/18
+- Firestore index readiness: 16/16
+
+Dedicated scenarios verified:
+- Trusted device initializes persistent multi-tab cache.
+- Shared/public device initializes memory-only cache.
+- Legacy and module runtime reuse one Firestore DB instance.
+- Firestore init failure falls back safely to getFirestore.
+- Same Auth UID may reuse persistent cache.
+- Different Auth UID terminates and clears persistent cache before reload.
+- Inventory debt starts unmounted.
+- Opening Inventory/Debt/Multi-item/export mounts the debt source on demand.
+- Multi-item writes and Excel export are blocked until inventory debt completeness is complete.
+- Notification bootstrap uses one listener with limit(50) and no duplicate getDocs.
+- Profile delta shadow creates zero Firestore operations and stores metadata only.
+- Existing Admin Học phí/Báo nợ/Kho implementations remain present.
+- V4A Coach Attendance-only boundary remains active.

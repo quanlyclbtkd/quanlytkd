@@ -47,7 +47,7 @@ const _store = {
     unpaidDebtQueryLoaded:    false,  // true sau snapshot where(unpaid==true) thành công
     unpaidDebtQueryDocCount:  0,      // số debt docs từ authoritative listener
     unpaidDebtQueryFailed:    false,  // true nếu active-debt listener lỗi
-    inventoryDebtCompleteness:'loading', // loading | complete | partial | failed
+    inventoryDebtCompleteness:'unmounted', // unmounted | loading | complete | partial | failed
     version:                  0,
     lastUpdatedAt:            null,
 };
@@ -628,7 +628,7 @@ export function resetInventoryStore(reason) {
     _store.unpaidDebtQueryLoaded   = false;
     _store.unpaidDebtQueryDocCount = 0;
     _store.unpaidDebtQueryFailed   = false;
-    _store.inventoryDebtCompleteness = 'loading';
+    _store.inventoryDebtCompleteness = 'unmounted';
 
     _metrics.lastReason  = reason || 'reset';
     _metrics.lastFeature = null;
@@ -665,6 +665,11 @@ export function ensureInventoryForFeature(feature, reason) {
     const compat   = _getCompatArray();
     const hasStats = getInventoryStats() !== null;
     const hasIndex = _debtIndex.isReady;
+
+    const debtDependentFeatures = new Set(['feeReceipt', 'financeDebt', 'debtList', 'debtReport', 'inventoryTab', 'export']);
+    if (debtDependentFeatures.has(k) && typeof window !== 'undefined' && typeof window.ensureInventoryDebtListener === 'function') {
+        window.ensureInventoryDebtListener('feature:' + k + ':' + (_metrics.lastReason || 'ensure'));
+    }
 
     _updateMetrics();
 

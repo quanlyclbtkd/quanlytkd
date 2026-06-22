@@ -20,7 +20,7 @@ function check(name, ok, detail = '') {
 }
 
 console.log('\n=== Phase 4K-6V3D — Debt Profile Coverage Read Boundary ===\n');
-const build = 'coach-attendance-only-20260619-v4a';
+const build = 'coach-branch-recovery-20260622-v4c1a';
 
 check('V3D boundary remains loaded before app.js with current cache-bust',
   index.includes(`debtProfileReadBoundary.js?v=${build}`) &&

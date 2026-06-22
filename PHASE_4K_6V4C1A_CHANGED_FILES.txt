@@ -1,0 +1,22 @@
+Phase 4K-6V4C1A changed files
+
+Production:
+- app.js
+- index.html
+- js/core/coachBranchResolver.js (new)
+- js/listeners/profiles.listeners.js
+- js/main.js
+- js/modules/reports/reportExportFacade.js (cache-bust only)
+- package.json
+
+Tests/checkers:
+- tools/check-coach-branch-assignment-recovery.mjs (new)
+- tools/check-coach-attendance-only-read-boundary.mjs (cache-bust expectation)
+- tools/check-trusted-cache-lazy-admin-reads.mjs (cache-bust expectation)
+- tools/check-debt-profile-read-boundary.mjs (cache-bust expectation)
+- tools/check-attendance-canonical-ownership.mjs (compatible phase size ceiling)
+
+Documentation:
+- PHASE_4K_6V4C1A_COACH_BRANCH_ASSIGNMENT_RECOVERY_REPORT.md
+- PHASE_4K_6V4C1A_TEST_SUMMARY.txt
+- PHASE_4K_6V4C1A_CHANGED_FILES.txt

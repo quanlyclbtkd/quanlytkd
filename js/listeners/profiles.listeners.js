@@ -63,6 +63,8 @@ const _state = {
     role:                   '',
     coachBranch:            '',
     coachBranchFallbackCount: 0,
+    coachBranchRecoveryAttempted: false,
+    coachBranchRecoveryCount: 0,
 
     // ── Quit load ─────────────────────────────────────────────────────────────
     quitLoaded:             false,
@@ -207,6 +209,8 @@ function _updateWindowMetrics() {
         role:                               _state.role,
         coachBranch:                        _state.coachBranch,
         coachBranchFallbackCount:           _state.coachBranchFallbackCount,
+        coachBranchRecoveryAttempted:        _state.coachBranchRecoveryAttempted,
+        coachBranchRecoveryCount:            _state.coachBranchRecoveryCount,
         // Quit
         quitLoaded:                         _state.quitLoaded,
         quitLoadCount:                      _state.quitLoadCount,
@@ -364,6 +368,28 @@ export function mountActiveProfilesListener(context) {
         _syncLegacy();
         _state.lastProfilesMode = 'coach-missing-branch';
         _updateWindowMetrics();
+
+        // Phase 4K-6V4C1A: one safe recovery attempt. This reads only the
+        // signed-in Coach assignment docs; it never falls back to full profiles.
+        if (!_state.coachBranchRecoveryAttempted && window.CoachBranchResolver?.recoverCurrentSession) {
+            _state.coachBranchRecoveryAttempted = true;
+            _state.coachBranchRecoveryCount++;
+            window.CoachBranchResolver.recoverCurrentSession({
+                db: context.db,
+                clubId,
+                reason: 'profiles-listener-missing-branch',
+                remount: true,
+            }).catch(error => {
+                console.warn('[ProfilesListener] Coach branch recovery failed:', error?.message || error);
+            });
+        } else if (window.CoachBranchResolver?.showMissingBranchNotice) {
+            window.CoachBranchResolver.showMissingBranchNotice({
+                ok: false,
+                clubId,
+                reason: 'branch-assignment-missing',
+                needsAdminAssignment: true,
+            });
+        }
         return false;
     }
     const key = isCoach
@@ -477,6 +503,14 @@ export function mountActiveProfilesListener(context) {
 
                     setActiveProfiles(activeMap, 'active-profiles-snapshot');
                     _syncLegacy();
+                    if (typeof window.recordProfileDeltaShadowSnapshot === 'function') {
+                        window.recordProfileDeltaShadowSnapshot(activeMap, {
+                            source: 'active-profiles-snapshot',
+                            clubId,
+                            role: _state.role,
+                            branch: coachBranch || 'all'
+                        });
+                    }
 
                     _state.activeListenerMounted = true;
                     _state.lastProfilesMode      = 'active-split';
@@ -673,6 +707,9 @@ export async function loadCoachBranchProfilesFallback(reason) {
             if (classifyProfileStatus(data) !== 'quit') activeMap[id] = data;
         });
         setActiveProfiles(activeMap, 'coach-branch-fallback:' + reason);
+        if (typeof window.recordProfileDeltaShadowSnapshot === 'function') {
+            window.recordProfileDeltaShadowSnapshot(activeMap, { source: 'coach-branch-fallback:' + reason, clubId: ctx.clubId, role: 'coach', branch });
+        }
         setQuitProfiles({}, 'coach-branch-fallback:no-quit-data');
         _syncLegacy();
         _state.fallbackCompleted = true;
@@ -770,6 +807,9 @@ export async function loadFullProfilesFallback(reason) {
             else _fallbackActive[_fId] = _fData;
         });
         setActiveProfiles(_fallbackActive, 'full-fallback-active:' + reason);
+        if (typeof window.recordProfileDeltaShadowSnapshot === 'function') {
+            window.recordProfileDeltaShadowSnapshot(_fallbackActive, { source: 'full-fallback-active:' + reason, clubId: ctx.clubId, role: _state.role, branch: 'all' });
+        }
         setQuitProfiles(_fallbackQuit, 'full-fallback-quit-classified:' + reason);
 
         if (window.syncProfilesToStudentStore) {
@@ -919,6 +959,8 @@ export function resetProfilesListeners(reason) {
     _state.role                    = '';
     _state.coachBranch             = '';
     _state.coachBranchFallbackCount = 0;
+    _state.coachBranchRecoveryAttempted = false;
+    _state.coachBranchRecoveryCount = 0;
 
     // Quit
     _state.quitLoaded              = false;

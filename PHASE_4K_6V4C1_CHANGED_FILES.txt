@@ -1,0 +1,24 @@
+Modified:
+- app.js
+- index.html
+- js/data/inventoryStore.js
+- js/firebase/config.js
+- js/listeners/profiles.listeners.js
+- js/main.js
+- js/modules/reports.js
+- js/modules/reports/reportExportFacade.js
+- js/ui/tabs.js
+- package.json
+- tools/check-attendance-canonical-ownership.mjs
+- tools/check-coach-attendance-only-read-boundary.mjs
+- tools/check-debt-profile-read-boundary.mjs
+- tools/check-lazy-assets-loading.mjs
+- tools/check-report-export-lazy-isolation.mjs
+
+Added:
+- js/core/firestoreCachePolicy.js
+- js/core/profileDeltaSyncShadow.js
+- tools/check-trusted-cache-lazy-admin-reads.mjs
+- PHASE_4K_6V4C1_TRUSTED_CACHE_LAZY_ADMIN_READS_REPORT.md
+- PHASE_4K_6V4C1_TEST_SUMMARY.txt
+- PHASE_4K_6V4C1_CHANGED_FILES.txt

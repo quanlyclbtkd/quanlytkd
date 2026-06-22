@@ -321,8 +321,19 @@ export function initReports() {
         if (typeof window.ensureAllProfilesForExport === 'function') {
             await window.ensureAllProfilesForExport('excel-export');
         }
-        // Phase 4.0A-2: Inventory export guard
+        // Phase 4K-6V4C1: export phải dùng công nợ Kho đầy đủ, không xuất từ
+        // snapshot unmounted/loading. Lazy listener được mount chỉ khi export thật sự chạy.
         await window.ensureInventoryForFeature?.('export', 'excel-export');
+        if (typeof window.waitForInventoryDebtCompleteness === 'function') {
+            const inventoryDebtReady = await window.waitForInventoryDebtCompleteness({
+                reason: 'excel-export',
+                timeoutMs: 15000
+            });
+            if (!inventoryDebtReady) {
+                window.showToast?.('⚠️ Chưa đồng bộ đủ công nợ Kho nên chưa thể xuất báo cáo chính xác.');
+                return;
+            }
+        }
         // Phase 4.0A-2: Metrics tracking
         const _excelStartMs = Date.now();
         window.__reportsModuleMetrics.excelExportCalls++;

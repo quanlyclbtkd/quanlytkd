@@ -1,0 +1,36 @@
+PHASE 4K-6V4C1A TEST SUMMARY
+Date: 2026-06-22
+
+Dedicated Coach branch recovery:
+- node tools/check-coach-branch-assignment-recovery.mjs
+- Result: PASS 16/16
+
+Regression:
+- npm run check
+- Result: PASS, exit code 0
+
+- npm run check:all:critical
+- Result: PASS, exit code 0
+
+Additional gates:
+- Coach Attendance-only: PASS 30/30
+- Trusted Cache + Lazy Admin Reads: PASS 28/28
+- Debt Profile Read Boundary: PASS 21/21
+- Deploy package: PASS 12/12
+- GitHub Pages paths: PASS 18/18
+- Firestore indexes: PASS 16/16
+- Production stability: PASS 22/22
+- Runtime stability: PASS 17/17
+- Attendance reliability: PASS 20/20
+
+Verified scenarios:
+1. Coach subdocument branch repairs an empty users/{uid}.branch.
+2. Legacy users branch remains a safe fallback.
+3. Legacy branch display names map to canonical CS codes.
+4. One-branch clubs auto-recover CS1.
+5. Multi-branch clubs with no assignment remain fail-closed.
+6. Fast/slow/fallback auth paths validate assignment before bootstrap.
+7. Profiles listener performs one safe recovery attempt and never full-reads all profiles.
+8. Admin can assign and persist a Coach branch from the Coach management screen.
+9. New Coach accounts cannot be created without a concrete branch.
+10. Admin Học phí/Báo nợ/Kho sources remain unchanged.

@@ -1,6 +1,8 @@
 // Phase 4K-6V3A compatibility: 4K-6V3A-firestore-read-attribution-canonical-transaction-boundary
 // Compatibility marker: multiItemInventorySafety.js?v=inventory-ledger-reconciliation-20260616-v2c
 // Phase compatibility APP_BUILD_VERSION markers for static safety checks:
+// APP_BUILD_VERSION = '4K-6V4C1A-coach-branch-assignment-recovery-20260622'
+// APP_BUILD_VERSION = '4K-6V4C1-trusted-cache-lazy-admin-reads-20260620'
 // APP_BUILD_VERSION = '4K-6V4A-coach-attendance-only-read-boundary-20260619'
 // APP_BUILD_VERSION = '4K-6D-security-license-ip-protection-readiness-20260605'
 // APP_BUILD_VERSION = '4K-6E-scale-readiness-write-safety-20260605'
@@ -3116,7 +3118,7 @@ window.debugProfileModalClose = function() {
 // PHẦN 1 — APP BUILD VERSION
 window.APP_BUILD_VERSION = '4K-6V2-inventory-history-pagination-complete-active-debt-20260616';
 // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
-window.APP_PATCH_VERSION = '4K-6V4A-coach-attendance-only-read-boundary-20260619';
+window.APP_PATCH_VERSION = '4K-6V4C1A-coach-branch-assignment-recovery-20260622';
 window.APP_COPYRIGHT_OWNER   = 'Tình Trương';
 window.APP_PRODUCT_NAME      = 'Taekwondo Club Management Web App';
 window.APP_SECURITY_PHASE    = '4K-6E-scale-readiness-write-safety';
