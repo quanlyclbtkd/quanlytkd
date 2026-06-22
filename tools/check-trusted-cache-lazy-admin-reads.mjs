@@ -26,8 +26,8 @@ function check(name, ok, detail = '') {
 
 console.log('\n=== Phase 4K-6V4C1 — Trusted Cache + Lazy Admin Reads ===\n');
 
-const build = 'coach-branch-recovery-20260622-v4c1a';
-const reportsBuild = 'trusted-cache-lazy-admin-20260620-v4c1';
+const build = 'coach-branch-resolution-20260622-v4c2a';
+const reportBuild = 'trusted-cache-lazy-admin-20260620-v4c1';
 const policySrc = `./js/core/firestoreCachePolicy.js?v=${build}`;
 const appSrc = `app.js?v=${build}`;
 check('Cache policy loads before app.js',
@@ -87,7 +87,7 @@ check('Excel export waits for complete inventory debt data',
   reports.includes("reason: 'excel-export'") && reports.includes('waitForInventoryDebtCompleteness') &&
   reports.includes('chưa thể xuất báo cáo chính xác'));
 check('Reports lazy import uses current cache-bust without creating duplicate module identities',
-  reportFacade.includes(`reports.js?v=${reportsBuild}`));
+  reportFacade.includes(`reports.js?v=${reportBuild}`));
 
 const notifBootstrapPos = app.indexOf('// ── Khởi động thông báo báo cáo HLV');
 const notifBootstrap = app.slice(notifBootstrapPos, notifBootstrapPos + 750);

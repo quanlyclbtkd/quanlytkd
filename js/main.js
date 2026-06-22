@@ -1,7 +1,7 @@
 // Phase 4K-6V3A compatibility: 4K-6V3A-firestore-read-attribution-canonical-transaction-boundary
 // Compatibility marker: multiItemInventorySafety.js?v=inventory-ledger-reconciliation-20260616-v2c
 // Phase compatibility APP_BUILD_VERSION markers for static safety checks:
-// APP_BUILD_VERSION = '4K-6V4C1A-coach-branch-resolution-recovery-20260622'
+// APP_BUILD_VERSION = '4K-6V4C2A-coach-branch-resolution-repair-20260622'
 // APP_BUILD_VERSION = '4K-6V4C1-trusted-cache-lazy-admin-reads-20260620'
 // APP_BUILD_VERSION = '4K-6V4A-coach-attendance-only-read-boundary-20260619'
 // APP_BUILD_VERSION = '4K-6D-security-license-ip-protection-readiness-20260605'
@@ -257,7 +257,7 @@ import {
     getQuitStatusValues,
     getProfilesListenerMetrics,
     ensureAllProfilesForExport,
-} from './listeners/profiles.listeners.js?v=coach-branch-recovery-20260622-v4c1a';
+} from './listeners/profiles.listeners.js?v=coach-branch-resolution-20260622-v4c2a';
 
 // ── Phase 3.7C: Profile Status Config ────────────────────────────────────────
 import {
@@ -311,7 +311,7 @@ import {
 } from './firebase/paginatedQuery.js';
 
 // ── Phase 2d–3.2A: Business modules (eager — cần khi login) ────
-import { initStudents, initStudentPagination }        from './modules/students.js?v=coach-branch-recovery-20260622-v4c1a';
+import { initStudents, initStudentPagination }        from './modules/students.js?v=coach-attendance-only-20260619-v4a';
 // PHẦN 1 FIX + Phase 4K-2: Unified Search Controller — real cache + SearchBlob + stale guard
 import {
     initGlobalSearchRuntime,
@@ -320,9 +320,9 @@ import {
     invalidateSearchCache,
     debugSearchPerformance,
 } from './modules/searchRuntime.js';
-import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from './modules/finance.js?v=coach-branch-recovery-20260622-v4c1a';
+import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from './modules/finance.js?v=payment-bundle-runtime-hotfix-20260616-v3a1';
 import { initInventory }                              from './modules/inventory.js?v=payment-bundle-runtime-hotfix-20260616-v3a1';
-import { initAttendance }                             from './modules/attendance.js?v=coach-branch-recovery-20260622-v4c1a';
+import { initAttendance }                             from './modules/attendance.js';
 import { initDashboard }                              from './modules/dashboard.js?v=payment-bundle-runtime-hotfix-20260616-v3a1';
 // ── Phase 4K-6U: Heavy Reports module is lazy-loaded by reportExportFacade.js ──
 // ── Phase 4.0B-1: SuperAdmin — eager import trên HTTP/HTTPS ─────
@@ -1806,8 +1806,6 @@ function _waitForExistingLegacyApp(ms) {
                     currentClubId: _st.currentClubId,
                     role:          _st.userRole || window.userRole || '',
                     coachBranch:   _st.coachBranch || window.coachBranch || '',
-                    coachSingleBranch: window.CoachBranchResolver?.isSingleBranchScope?.() === true,
-                    coachBranchAliases: window.CoachBranchResolver?.diagnostics?.().aliases || [],
                     reason:        reason || 'retry-hydration',
                 });
             }
@@ -3120,7 +3118,7 @@ window.debugProfileModalClose = function() {
 // PHẦN 1 — APP BUILD VERSION
 window.APP_BUILD_VERSION = '4K-6V2-inventory-history-pagination-complete-active-debt-20260616';
 // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
-window.APP_PATCH_VERSION = '4K-6V4C1A-coach-branch-resolution-recovery-20260622';
+window.APP_PATCH_VERSION = '4K-6V4C2A-coach-branch-resolution-repair-20260622';
 window.APP_COPYRIGHT_OWNER   = 'Tình Trương';
 window.APP_PRODUCT_NAME      = 'Taekwondo Club Management Web App';
 window.APP_SECURITY_PHASE    = '4K-6E-scale-readiness-write-safety';

@@ -15,18 +15,6 @@ function _sdk()    { return window._fb_init || {}; }
 function _db()     { const db = (window.__store || {}).db; if (!db) throw new Error('[AttendanceService] db chưa sẵn sàng'); return db; }
 function _clubId() { const id = (window.__store || {}).clubId; if (!id) throw new Error('[AttendanceService] clubId chưa sẵn sàng'); return id; }
 
-function _coachScope(options = {}) {
-    const isCoach = window.RoleReadBoundary?.isCoachAttendanceOnly?.() === true || String(window.userRole || '').toLowerCase() === 'coach';
-    const resolution = window.CoachBranchResolver?.diagnostics?.() || window.__coachBranchResolution || {};
-    const branch = String(isCoach ? (resolution.branch || window.coachBranch || '') : (options.branch || '')).trim();
-    return {
-        isCoach,
-        branch,
-        singleBranch: !!(isCoach && resolution.resolved && resolution.singleBranch),
-        shouldFilterBranch: !!branch && branch !== 'all' && !(isCoach && resolution.resolved && resolution.singleBranch),
-    };
-}
-
 export const AttendanceService = {
 
     // ── LOAD ATTENDANCE ─────────────────────────────────────────
@@ -44,8 +32,8 @@ export const AttendanceService = {
         if (!_lim) console.warn('[AttendanceService] limit not available in SDK — loadByDate running without limit()');
 
         const shiftId = String(options.shiftId || '');
-        const scope = _coachScope(options);
-        const { isCoach, branch } = scope;
+        const isCoach = window.RoleReadBoundary?.isCoachAttendanceOnly?.() === true || String(window.userRole || '').toLowerCase() === 'coach';
+        const branch = String(isCoach ? (window.coachBranch || '') : (options.branch || '')).trim();
         if (isCoach && !branch) {
             const error = new Error('[AttendanceService] Coach chưa được gán cơ sở — chặn query toàn CLB.');
             error.code = 'attendance/coach-branch-required';
@@ -54,7 +42,7 @@ export const AttendanceService = {
         window.RoleReadBoundary?.canMount?.('attendance.daily', { date, branch, shiftId });
         const dailyLimit = Number((window.__scaleConfig || {}).attendanceDailyLimit) || 1200;
         const constraints = [where('date', '==', date)];
-        if (scope.shouldFilterBranch) constraints.push(where('branch', '==', branch));
+        if (branch && branch !== 'all') constraints.push(where('branch', '==', branch));
         // Filtering server-side reduces reads and avoids unrelated branch/shift records.
         if (shiftId) constraints.push(where('shiftId', '==', shiftId));
         if (_lim) constraints.push(_lim(dailyLimit));
@@ -70,8 +58,7 @@ export const AttendanceService = {
         window.__attendanceDailyLoadMetrics = {
             date,
             shiftFiltered: !!shiftId,
-            branchFiltered: scope.shouldFilterBranch,
-            singleBranchScope: scope.singleBranch,
+            branchFiltered: !!branch && branch !== 'all',
             branch,
             docs: results.length,
             limit: dailyLimit,
@@ -155,8 +142,8 @@ export const AttendanceService = {
         const { getDocs, query, where, collection } = _sdk();
         const db     = _db();
         const clubId = _clubId();
-        const scope = _coachScope(options);
-        const { isCoach, branch } = scope;
+        const isCoach = window.RoleReadBoundary?.isCoachAttendanceOnly?.() === true || String(window.userRole || '').toLowerCase() === 'coach';
+        const branch = String(isCoach ? (window.coachBranch || '') : (options.branch || '')).trim();
         if (isCoach && !branch) {
             const error = new Error('[AttendanceService] Coach chưa được gán cơ sở — chặn member-history query toàn CLB.');
             error.code = 'attendance/coach-branch-required';
@@ -166,7 +153,7 @@ export const AttendanceService = {
             where('profileId', '==', profileId),
             where('month', 'in', months)
         ];
-        if (scope.shouldFilterBranch) constraints.push(where('branch', '==', branch));
+        if (branch && branch !== 'all') constraints.push(where('branch', '==', branch));
         window.RoleReadBoundary?.canMount?.('attendance.member-history', { profileId, months, branch });
         const snap = await getDocs(query(
             collection(db, 'clubs', clubId, 'attendance'),
@@ -188,15 +175,11 @@ export const AttendanceService = {
         const { getDocs, query, where, collection } = _sdk();
         const db     = _db();
         const clubId = _clubId();
-        const scope = _coachScope(options);
-        const { isCoach, branch } = scope;
-        if (isCoach && !branch) {
-            const error = new Error('[AttendanceService] Coach chưa được gán cơ sở — chặn notes query toàn CLB.');
-            error.code = 'attendance/coach-branch-required';
-            throw error;
-        }
+        const isCoach = window.RoleReadBoundary?.isCoachAttendanceOnly?.() === true || String(window.userRole || '').toLowerCase() === 'coach';
+        const branch = String(isCoach ? (window.coachBranch || '') : (options.branch || '')).trim();
+        if (isCoach && !branch) throw new Error('[AttendanceService] Coach chưa được gán cơ sở — chặn notes query toàn CLB.');
         const constraints = [where('date', '==', date)];
-        if (scope.shouldFilterBranch) constraints.push(where('branch', '==', branch));
+        if (branch && branch !== 'all') constraints.push(where('branch', '==', branch));
         window.RoleReadBoundary?.canMount?.('attendance.notes', { date, branch });
         const snap   = await getDocs(
             query(
@@ -230,8 +213,8 @@ export const AttendanceService = {
             throw error;
         }
 
-        const scope = _coachScope(options);
-        const { isCoach, branch } = scope;
+        const isCoach = window.RoleReadBoundary?.isCoachAttendanceOnly?.() === true || String(window.userRole || '').toLowerCase() === 'coach';
+        const branch = String(isCoach ? (window.coachBranch || '') : (options.branch || '')).trim();
         if (isCoach && !branch) {
             const error = new Error('[AttendanceService] Coach chưa được gán cơ sở — chặn monthly query toàn CLB.');
             error.code = 'attendance/coach-branch-required';
@@ -267,7 +250,7 @@ export const AttendanceService = {
             while (pages < maxPages) {
                 throwIfAborted();
                 const constraints = [where('month', '==', month)];
-                if (scope.shouldFilterBranch) constraints.push(where('branch', '==', branch));
+                if (branch && branch !== 'all') constraints.push(where('branch', '==', branch));
                 // Firestore's default ordering is document ID. A DocumentSnapshot
                 // cursor preserves that deterministic order without requiring a new
                 // composite index for month + date.
@@ -311,8 +294,7 @@ export const AttendanceService = {
             window.__attendanceMonthlyPaginationMetrics = {
                 month,
                 branch,
-                branchFiltered: scope.shouldFilterBranch,
-                singleBranchScope: scope.singleBranch,
+                branchFiltered: !!branch && branch !== 'all',
                 pages,
                 docs: results.length,
                 pageSize,
@@ -327,8 +309,7 @@ export const AttendanceService = {
             window.__attendanceMonthlyPaginationMetrics = {
                 month,
                 branch,
-                branchFiltered: scope.shouldFilterBranch,
-                singleBranchScope: scope.singleBranch,
+                branchFiltered: !!branch && branch !== 'all',
                 pages,
                 docs: results.length,
                 pageSize,

@@ -831,7 +831,7 @@ export function initFinance() {
             const date    = document.getElementById('date').value;
             const isSingleBranch = (config.branchCount === 1);
             const branch  = isSingleBranch
-                ? 'CS1'
+                ? 'Mặc định'
                 : document.getElementById('branch').value;
             const txMonth = date.substring(0, 7);
             const packageCount = parseInt(document.getElementById('tx_package').value) || 1;

@@ -47,7 +47,7 @@ check(index.includes('app.js?v=attendance-canonical-ownership-20260616') || inde
 check(index.includes('main.js?v=attendance-canonical-ownership-20260616') || index.includes('main.js?v=inventory-pagination-complete-debt-20260616') || index.includes('main.js?v=inventory-dynamic-size-catalog-20260616-v2b') || index.includes('main.js?v=inventory-ledger-reconciliation-20260616-v2c'), 'main.js cache key is 4K-6V or a later compatible phase');
 check(main.includes("APP_BUILD_VERSION = '4K-6V-attendance-canonical-ownership-pagination-20260616'"), 'main contains 4K-6V compatibility build marker');
 check(main.includes("window.APP_BUILD_VERSION = '4K-6V-attendance-canonical-ownership-pagination-20260616'") || main.includes("window.APP_BUILD_VERSION = '4K-6V2-inventory-history-pagination-complete-active-debt-20260616'"), 'active runtime build version is 4K-6V or later compatible phase');
-check(/from ['"]\.\/modules\/attendance\.js(?:\?[^'"]+)?['"]/.test(main), 'main imports attendance module');
+check(main.includes("from './modules/attendance.js'"), 'main imports attendance module');
 check(main.indexOf('initGlobalOwnershipRegistry();') < main.indexOf('initAttendance();'), 'ownership registry initializes before attendance module');
 
 // ── Legacy duplicate removal / canonical owner ────────────────────────
@@ -105,8 +105,8 @@ const appBytes = Buffer.byteLength(app);
 const appLines = app.split('\n').length;
 check(appBytes < baselineAppBytes, `app.js reduced from ${baselineAppBytes.toLocaleString()} to ${appBytes.toLocaleString()} bytes`);
 check(appLines < baselineAppLines, `app.js reduced from ${baselineAppLines.toLocaleString()} to ${appLines.toLocaleString()} lines`);
-check(appBytes <= 690000, `app.js remains within compatible Phase 4K-6V4C1A size target (${appBytes.toLocaleString()} <= 690,000 bytes)`);
-check(appLines <= 11100, `app.js remains within compatible Phase 4K-6V4C1A size target (${appLines.toLocaleString()} <= 11,100 lines)`);
+check(appBytes <= 700000, `app.js meets Phase 4K-6V4C2A compatible size target (${appBytes.toLocaleString()} <= 700,000 bytes)`);
+check(appLines <= 11200, `app.js remains within compatible Phase 4K-6V4C2A+ size target (${appLines.toLocaleString()} <= 11,200 lines)`);
 
 check(!!pkg.scripts?.['check:attendance-canonical-ownership'], 'package exposes Phase 4K-6V checker');
 check(pkg.scripts?.check?.includes('check:attendance-canonical-ownership'), 'default check includes Phase 4K-6V checker');

@@ -55,7 +55,7 @@ export const store = {
     // ── Auth state ───────────────────────────────────────────────
     userRole:         'viewer', // 'admin' | 'coach' | 'viewer' | 'superadmin'
     currentUserEmail: '',
-    coachBranch:      '',       // Cơ sở HLV; rỗng = chưa resolve, không được đọc toàn CLB
+    coachBranch:      '',       // Chi nhánh HLV (rỗng = tất cả)
 
     // ── Club data ────────────────────────────────────────────────
     clubId:   '',

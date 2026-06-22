@@ -15,7 +15,7 @@
  * ────────────────────────────────────────────────────────────────
  */
 
-import { AttendanceService } from '../services/attendance.service.js?v=coach-branch-recovery-20260622-v4c1a';
+import { AttendanceService } from '../services/attendance.service.js';
 import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
 
 const ATTENDANCE_OWNER = 'js/modules/attendance.js';
@@ -36,16 +36,6 @@ function _profiles() { return (window.__store || {}).profiles || window.allProfi
 function _config()   { return (window.__store || {}).clubConfig || {}; }
 function _clubData() { return (window.__store || {}).clubData || {}; }
 function _getLocalToday()  { return window.getLocalToday ? window.getLocalToday() : new Date().toISOString().slice(0, 10); }
-function _coachResolution() { return window.CoachBranchResolver?.diagnostics?.() || window.__coachBranchResolution || {}; }
-function _coachSingleBranch() { const r = _coachResolution(); return window.userRole === 'coach' && !!r.resolved && !!r.singleBranch; }
-function _branchMatches(value, selectedBranch) {
-    if (!selectedBranch || selectedBranch === 'all') return true;
-    if (window.userRole === 'coach') {
-        if (_coachSingleBranch()) return true;
-        if (window.CoachBranchResolver?.matchesBranch) return window.CoachBranchResolver.matchesBranch(value);
-    }
-    return String(value || '') === String(selectedBranch || '');
-}
 /** @deprecated Phase 3.1 — Firebase calls đã chuyển sang AttendanceService */
 
 // ── Module-local state (closure — giống biến cũ trong app.js) ──
@@ -264,7 +254,7 @@ function _getFilteredAttProfiles() {
 
     return Object.entries(allProfs)
         .filter(([, p]) => isActiveProfileForAttendance(p))
-        .filter(([, p]) => _branchMatches(p.branch, selBranch))
+        .filter(([, p]) => selBranch === 'all' || p.branch === selBranch)
         .filter(([, p]) => {
             if (selBelt === 'all') return true;
             return (p.belt || '').toLowerCase().includes(selBelt.toLowerCase());
@@ -508,9 +498,7 @@ function _renderShiftSelector() {
     const sel = document.getElementById('att_shift');
     if (!sel) return;
     const coachBr = (window.userRole === 'coach' && window.coachBranch) ? window.coachBranch : null;
-    const shifts = coachBr && !_coachSingleBranch()
-        ? _clubShifts.filter(s => !s.branch || _branchMatches(s.branch, coachBr))
-        : _clubShifts;
+    const shifts = coachBr ? _clubShifts.filter(s => !s.branch || s.branch === coachBr) : _clubShifts;
     let html = '<option value="">⏰ -- Chọn ca tập --</option>';
     shifts.forEach(s => {
         const time = s.timeStart && s.timeEnd ? ' (' + s.timeStart + '–' + s.timeEnd + ')' : '';
@@ -612,7 +600,7 @@ export function initAttendance() {
         const byBranch = {};
         Object.entries(_profiles() || {}).forEach(([name, p]) => {
             if (!isActiveProfileForAttendance(p)) return;
-            if (coachBr && !_branchMatches(p.branch, coachBr)) return;
+            if (coachBr && p.branch !== coachBr) return;
             const dob = p.dob || '';
             if (!dob) return;
             let dobDay, dobMon, dobYear;
@@ -1090,10 +1078,10 @@ export function initAttendance() {
                 if (data.status===3) grouped[pid].excused++;
                 if (data.date) grouped[pid].dateMap[data.date] = data.status; // [4J-6] per-date map để tính chuyên cần lịch
             });
-            let rows = Object.values(grouped).filter(r => _branchMatches(r.branch, selBranch));
+            let rows = Object.values(grouped).filter(r => selBranch==='all'||r.branch===selBranch);
             Object.entries(_profiles()||{}).forEach(([pid,p]) => {
                 if (!isActiveProfileForAttendance(p)) return;
-                if (!_branchMatches(p.branch, selBranch)) return;
+                if (selBranch!=='all' && p.branch!==selBranch) return;
                 if (!grouped[pid]) rows.push({name:pid,belt:p.belt||'',branch:p.branch||'',present:0,excused:0,absent:0});
             });
             rows.sort((a,b)=>a.name.localeCompare(b.name,'vi'));

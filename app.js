@@ -1,4 +1,4 @@
-// Phase 4K-6V4C1: trusted-cache-lazy-admin-reads-20260620
+// Phase 4K-6V4C2A: coach-branch-resolution-legacy-repair-20260622
     /* Firestore security rules source of truth: ./firestore.rules */
 // LEGACY APP KERNEL — DO NOT DELETE DIRECTLY
 // Responsibilities kept in app.js for now:
@@ -36,7 +36,7 @@
     const secondaryAuth = getAuth(secondaryApp);
     window._secondaryAuth = secondaryAuth; // Phase 4.0B: expose for superadmin.js module
     window.userRole = 'viewer';
-    window.coachBranch = '';   // Cơ sở HLV đã resolve; rỗng = chưa gán, phải fail-closed
+    window.coachBranch = '';   // Coach scope: ''=missing (blocked), 'all'=explicit all branches, otherwise branch storage value
     let currentClubId = "";
     let clubData = {};
     let allProfiles = {};
@@ -56,8 +56,7 @@
     let renderTimeout = null;
 // Danh mục kho tùy chỉnh — được load từ Firestore khi đăng nhập thành công
 window.invCustomCategories = [];
-    window.APP_PATCH_VERSION = '4K-6V4C1A-coach-branch-resolution-recovery-20260622'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
-    // Compatibility marker retained: APP_PATCH_VERSION = '4K-6V4C1-trusted-cache-lazy-admin-reads-20260620'
+    window.APP_PATCH_VERSION = '4K-6V4C2A-coach-branch-resolution-20260622'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
     // Compatibility regression marker retained for Phase 4K-6Q gate: APP_PATCH_VERSION = '4K-6Q-mobile-filter-currency-stability-20260615'
     window.__appLoaded = true; // [Phase 2a] main.js kiểm tra để bỏ qua loadLegacyApp()
     window.__store = window.__store || {}; // [Phase 2b] Bridge object cho module system
@@ -659,11 +658,32 @@ window.invCustomCategories = [];
         }
     };
     window.getBranchNameDisplay = (code) => {
+        if (window.CoachBranchResolver && typeof window.CoachBranchResolver.display === 'function') {
+            return window.CoachBranchResolver.display(code, clubConfig);
+        }
+        if (code === 'Mặc định') return clubConfig.branchName1 || 'Cơ sở 1';
+        if (code === 'all') return 'Tất cả cơ sở';
         for(let _bi = 1; _bi <= 10; _bi++) {
             if(code === 'CS' + _bi) return clubConfig['branchName' + _bi] || ('Cơ sở ' + _bi);
         }
-        return code;
+        return code || 'Chưa gán cơ sở';
     };
+
+    function _coachBranchOptions(selectedValue, includeAll) {
+        const resolver = window.CoachBranchResolver;
+        const selected = resolver && typeof resolver.normalize === 'function'
+            ? resolver.normalize(selectedValue, clubConfig)
+            : String(selectedValue || '');
+        const options = resolver && typeof resolver.listOptions === 'function'
+            ? resolver.listOptions(clubConfig, { includePlaceholder: true, includeAll: includeAll === true })
+            : [{ value: '', label: '— Chọn cơ sở phụ trách —' }];
+        return options.map(function(option) {
+            const value = String(option.value || '');
+            const label = String(option.label || '');
+            const esc = window.escapeHtml || function(v) { return String(v).replace(/[&<>"']/g, function(ch) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]); }); };
+            return '<option value="' + esc(value) + '"' + (value === selected ? ' selected' : '') + '>' + esc(label) + '</option>';
+        }).join('');
+    }
     window.applyClubConfigUI = () => {
         let style = document.getElementById('dynamicStyles');
         if (!style) { style = document.createElement('style'); style.id = 'dynamicStyles'; document.head.appendChild(style); }
@@ -705,24 +725,21 @@ window.invCustomCategories = [];
             // CHỈ tạo duy nhất 1 option cho cơ sở đó — không hiển thị cơ sở khác.
             // Điều này ngăn HLV thấy danh sách điểm danh của cơ sở khác,
             // dù Firestore snapshot có chạy lại để reset select hay không.
-            if (window.userRole === 'coach') {
-                if (window.coachBranch) {
-                    const _brIdx  = parseInt(window.coachBranch.replace('CS', ''), 10) - 1;
-                    const _brName = _branchNames[_brIdx] || window.coachBranch;
-                    selEl.innerHTML = '<option value="' + window.coachBranch + '">📍 ' + _brName + '</option>';
-                    selEl.value    = window.coachBranch;
-                } else {
-                    selEl.innerHTML = '<option value="">⚠️ Tài khoản chưa được gán cơ sở</option>';
-                    selEl.value = '';
-                }
+            if (window.userRole === 'coach' && window.coachBranch) {
+                const _coachBranchDisplay = window.getBranchNameDisplay
+                    ? window.getBranchNameDisplay(window.coachBranch)
+                    : window.coachBranch;
+                const _coachIcon = window.coachBranch === 'all' ? '🌐 ' : '📍 ';
+                selEl.innerHTML = '<option value="' + window.coachBranch + '">' + _coachIcon + _coachBranchDisplay + '</option>';
+                selEl.value    = window.coachBranch;
                 selEl.disabled = true;
             } else {
+                // Admin / HLV không giới hạn cơ sở → hiển thị toàn bộ danh sách
                 let html = '<option value="all">🏢 Tất cả cơ sở</option>';
                 for (let _i = 1; _i <= branchCountVal; _i++) {
                     html += '<option value="CS' + _i + '">📍 ' + _branchNames[_i-1] + '</option>';
                 }
                 selEl.innerHTML = html;
-                selEl.disabled = false;
             }
         });
         // Rebuild each branch select dynamically for up to 10 branches
@@ -739,15 +756,14 @@ window.invCustomCategories = [];
             el.innerHTML = html;
         });
         // Populate select cơ sở cho modal "Tài khoản HLV Phụ trách Cơ sở"
-        // Luôn cập nhật đầy đủ cơ sở CLB; HLV bắt buộc chọn một cơ sở cụ thể
+        // Luôn cập nhật đầy đủ tất cả cơ sở CLB đang có, kèm option "Tất cả"
         const coachBranchEl = document.getElementById('coach_branch');
         if (coachBranchEl) {
-            let cbHtml = '<option value="">⚠️ -- Chọn cơ sở bắt buộc --</option>';
-            for (let _i = 1; _i <= branchCountVal; _i++) {
-                cbHtml += `<option value="CS${_i}">📍 ${_branchNames[_i-1]}</option>`;
+            const _previousCoachBranch = coachBranchEl.value || '';
+            coachBranchEl.innerHTML = _coachBranchOptions(_previousCoachBranch, true);
+            if (!_previousCoachBranch && branchCountVal === 1 && window.CoachBranchResolver) {
+                coachBranchEl.value = window.CoachBranchResolver.storageValueForIndex(1, clubConfig);
             }
-            coachBranchEl.innerHTML = cbHtml;
-            if (branchCountVal === 1) coachBranchEl.value = 'CS1';
         }
     };
     // [THÊM] Hiển thị lỗi đăng nhập inline — không dùng alert(), tự ẩn sau 6 giây
@@ -1560,33 +1576,28 @@ service cloud.firestore {
             if (_coachAddWrap) _coachAddWrap.style.display = 'none';
             const _attD = document.getElementById('att_date');
             if (_attD && !_attD.value) _attD.value = getLocalToday();
-            // Khoá bộ lọc theo cơ sở được resolve trước khi listener mount.
-            const _coachBranchResolved = !!window.coachBranch;
-            const _branchEl = document.getElementById('att_branch');
-            const _mBranchEl = document.getElementById('att_month_branch');
-            if (_coachBranchResolved) {
-                if (_branchEl) { _branchEl.innerHTML = '<option value="' + window.coachBranch + '">📍 ' + (window.getBranchNameDisplay ? window.getBranchNameDisplay(window.coachBranch) : window.coachBranch) + '</option>'; _branchEl.value = window.coachBranch; _branchEl.disabled = true; }
-                if (_mBranchEl) { _mBranchEl.innerHTML = '<option value="' + window.coachBranch + '">📍 ' + (window.getBranchNameDisplay ? window.getBranchNameDisplay(window.coachBranch) : window.coachBranch) + '</option>'; _mBranchEl.value = window.coachBranch; _mBranchEl.disabled = true; }
-            } else {
-                if (_branchEl) { _branchEl.innerHTML = '<option value="">⚠️ Chưa được gán cơ sở</option>'; _branchEl.value = ''; _branchEl.disabled = true; }
-                if (_mBranchEl) { _mBranchEl.innerHTML = '<option value="">⚠️ Chưa được gán cơ sở</option>'; _mBranchEl.value = ''; _mBranchEl.disabled = true; }
+            // Khoá bộ lọc chi nhánh theo chi nhánh được phân công
+            if (window.coachBranch) {
+                const _branchEl = document.getElementById('att_branch');
+                if (_branchEl) { _branchEl.value = window.coachBranch; _branchEl.disabled = true; }
+                const _mBranchEl = document.getElementById('att_month_branch');
+                if (_mBranchEl) { _mBranchEl.value = window.coachBranch; _mBranchEl.disabled = true; }
             }
+            // Hiển thị thông tin HLV trên header điểm danh
             const _attHeader = document.getElementById('coach_att_info');
             if (_attHeader) {
                 _attHeader.style.display = 'flex';
+                const _branchName = window.coachBranch
+                    ? (window.getBranchNameDisplay ? window.getBranchNameDisplay(window.coachBranch) : window.coachBranch)
+                    : 'Tất cả';
+                // SECURITY TODO: _branchName đến từ Firestore — cần escapeHtml. Phase 4.1.
                 const _escBranch = window.escapeHtml || (s => s);
-                if (_coachBranchResolved) {
-                    const _branchName = window.getBranchNameDisplay ? window.getBranchNameDisplay(window.coachBranch) : window.coachBranch;
-                    _attHeader.innerHTML = `<span style="font-size:0.78rem;background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd;padding:6px 14px;border-radius:99px;font-weight:700;">👨‍🏫 HLV đang điểm danh — Cơ sở: ${_escBranch(_branchName)}</span>`;
-                } else {
-                    _attHeader.innerHTML = '<span style="font-size:0.78rem;background:#fff1f2;color:#be123c;border:1px solid #fecdd3;padding:8px 14px;border-radius:12px;font-weight:800;line-height:1.45;">⚠️ Tài khoản HLV chưa được Admin gán cơ sở. Vui lòng liên hệ Admin CLB để chọn đúng cơ sở rồi đăng nhập lại.</span>';
-                }
+                _attHeader.innerHTML = `<span style="font-size:0.78rem;background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd;padding:6px 14px;border-radius:99px;font-weight:700;">👨‍🏫 HLV đang điểm danh — Cơ sở: ${_escBranch(_branchName)}</span>`;
             }
-            if (_coachBranchResolved && typeof window.renderAttendanceList === 'function') {
+            // [SỬA] Tự động load danh sách điểm danh khi HLV đăng nhập —
+            // không cần click thêm, hệ thống hiển thị ngay danh sách cơ sở được giao.
+            if (typeof window.renderAttendanceList === 'function') {
                 window.renderAttendanceList();
-            } else {
-                const _grid = document.getElementById('attendanceGrid');
-                if (_grid) _grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:48px 18px;color:#be123c;background:#fff1f2;border:1px solid #fecdd3;border-radius:14px;font-size:0.88rem;font-weight:700;line-height:1.6;">⚠️ Không thể tải danh sách võ sinh vì tài khoản HLV chưa được gán cơ sở.<br>Admin CLB cần mở “Quản lý tài khoản HLV” và chọn cơ sở phụ trách.</div>';
             }
         }
 
@@ -1838,8 +1849,6 @@ service cloud.firestore {
                 db, clubId, profRef, currentClubId,
                 role: window.userRole || '',
                 coachBranch: window.coachBranch || '',
-                coachSingleBranch: window.CoachBranchResolver?.isSingleBranchScope?.() === true,
-                coachBranchAliases: window.CoachBranchResolver?.diagnostics?.().aliases || [],
                 reason: 'init-active-profiles'
             });
         } else if (window.RoleReadBoundary?.isCoachAttendanceOnly?.() === true) {
@@ -3320,7 +3329,7 @@ service cloud.firestore {
     }
 
     // ── LocalStorage cache để tăng tốc khởi động ──────────────────────────
-    const _AUTH_CACHE_KEY = '_qlclb_auth_v3';
+    const _AUTH_CACHE_KEY = '_qlclb_auth_v2';
     const _saveAuthCache = (uid, role, clubId, coachBranch = '') => {
         try { localStorage.setItem(_AUTH_CACHE_KEY, JSON.stringify({ uid, role, clubId, coachBranch, ts: Date.now() })); } catch(e) {}
     };
@@ -3333,76 +3342,133 @@ service cloud.firestore {
     };
     const _clearAuthCache = () => { try { localStorage.removeItem(_AUTH_CACHE_KEY); } catch(e) {} };
 
-    // Phase 4K-6V4C1A — resolve coach branch before any scoped listener mounts.
-    // coaches/{uid} is authoritative when populated; users/{uid} and auth cache are fallbacks.
-    async function _resolveCoachBranchForAuth({ user, clubId, userData = {}, coachData = null, cachedBranch = '' } = {}) {
-        const resolver = window.CoachBranchResolver;
-        if (!resolver || !user || !clubId) {
-            const fallback = String((coachData && coachData.branch) || userData.branch || cachedBranch || '').trim();
-            window.coachBranch = fallback;
-            return { resolved: !!fallback, branch: fallback, singleBranch: false, aliases: fallback ? [fallback] : [], reason: 'resolver-unavailable' };
-        }
+    const _coachBranchConfigCache = new Map();
 
-        let authoritativeCoach = coachData;
-        if (!authoritativeCoach) {
-            try {
-                const coachSnap = await getDoc(doc(db, 'clubs', clubId, 'coaches', user.uid));
-                if (coachSnap.exists()) authoritativeCoach = coachSnap.data() || {};
-            } catch (error) {
-                console.warn('[CoachBranch] Không đọc được coaches/{uid}:', error.code || error.message);
-            }
-        }
-
-        let configData = null;
+    async function _loadCoachBranchConfigForAuth(clubId) {
+        const key = String(clubId || '').trim();
+        if (!key) return { config: null, loaded: false };
+        if (_coachBranchConfigCache.has(key)) return _coachBranchConfigCache.get(key);
+        let result = { config: null, loaded: false };
         try {
-            const configSnap = await getDoc(doc(db, 'clubs', clubId, 'settings', 'main_config'));
-            if (configSnap.exists()) configData = configSnap.data() || {};
+            const snap = await getDoc(doc(db, 'clubs', key, 'settings', 'main_config'));
+            if (snap.exists()) result = { config: snap.data() || {}, loaded: true };
         } catch (error) {
-            console.warn('[CoachBranch] Không đọc được main_config:', error.code || error.message);
+            console.warn('[CoachBranchResolver] Không đọc được main_config khi xác minh HLV:', error.code || error.message);
         }
-        if (configData) {
-            clubConfig = { ...clubConfig, ...configData };
-            if (window.__store) window.__store.clubConfig = clubConfig;
-        }
-        // Unknown config must never be treated as a one-branch club automatically.
-        const safeConfig = configData || { branchCount: 10 };
-        const resolution = resolver.resolve({
-            uid: user.uid,
-            clubId,
-            config: safeConfig,
-            candidates: [
-                { source: 'coaches.branch', value: authoritativeCoach && authoritativeCoach.branch },
-                { source: 'coaches.coachBranch', value: authoritativeCoach && authoritativeCoach.coachBranch },
-                { source: 'coaches.assignedBranch', value: authoritativeCoach && authoritativeCoach.assignedBranch },
-                { source: 'users.branch', value: userData.branch },
-                { source: 'users.coachBranch', value: userData.coachBranch },
-                { source: 'auth-cache', value: cachedBranch },
-            ],
-        });
-        resolution.configLoaded = !!configData;
-        resolver.apply(resolution);
-        window.__coachResolvedConfig = configData || null;
-
-        if (resolution.resolved) {
-            // Repair the coach's own users document when Rules permit.  Failure is non-blocking;
-            // the runtime still uses the authoritative coaches document for this login.
+        // Legacy clubs may keep branchCount/branchName fields on the club document.
+        // Only use this fallback when main_config is absent or does not declare a branch count.
+        if (!result.loaded || !Number(result.config && result.config.branchCount)) {
             try {
-                if (String(userData.branch || '') !== resolution.branch || userData.role !== 'coach' || userData.clubId !== clubId) {
-                    await setDoc(doc(db, 'users', user.uid), {
-                        role: 'coach', clubId, branch: resolution.branch,
-                        email: user.email || userData.email || (authoritativeCoach && authoritativeCoach.email) || ''
-                    }, { merge: true });
+                const clubSnap = await getDoc(doc(db, 'clubs', key));
+                if (clubSnap.exists()) {
+                    result = { config: { ...(clubSnap.data() || {}), ...(result.config || {}) }, loaded: true };
                 }
             } catch (error) {
-                console.warn('[CoachBranch] Không thể tự sửa users/{uid}:', error.code || error.message);
+                console.warn('[CoachBranchResolver] Không đọc được club config fallback:', error.code || error.message);
             }
-        } else {
-            console.error('[CoachBranch] Tài khoản HLV chưa được gán cơ sở hợp lệ:', {
-                uid: user.uid, clubId, reason: resolution.reason
-            });
         }
-        return resolution;
+        _coachBranchConfigCache.set(key, result);
+        return result;
     }
+
+    async function _resolveCoachBranchForLogin(options) {
+        const input = options || {};
+        const uid = String(input.uid || '').trim();
+        const clubId = String(input.clubId || '').trim();
+        const resolver = window.CoachBranchResolver;
+        const configResult = await _loadCoachBranchConfigForAuth(clubId);
+        const config = configResult.loaded ? configResult.config : { branchCount: 10 };
+        let coachData = input.coachData || null;
+
+        // coaches/{uid} is the admin-owned source of truth for branch assignment.
+        if (!coachData && uid && clubId) {
+            try {
+                const coachSnap = await getDoc(doc(db, 'clubs', clubId, 'coaches', uid));
+                if (coachSnap.exists()) coachData = coachSnap.data() || {};
+            } catch (error) {
+                console.warn('[CoachBranchResolver] Không đọc được coaches/{uid}:', error.code || error.message);
+            }
+        }
+
+        const coachBranchCandidate = resolver?.normalize?.(coachData, config) || '';
+        const userBranchCandidate = resolver?.normalize?.(input.userData, config) || '';
+        const cacheBranchCandidate = resolver?.normalize?.(input.cachedBranch, config) || '';
+        let branch = coachBranchCandidate || userBranchCandidate || cacheBranchCandidate;
+        if (!resolver) branch = String((coachData && coachData.branch) || (input.userData && input.userData.branch) || input.cachedBranch || '').trim();
+        let source = coachBranchCandidate ? 'coach-document'
+            : (userBranchCandidate ? 'user-document' : (cacheBranchCandidate ? 'auth-cache' : 'missing'));
+        let inferred = false;
+
+        // A one-branch club is safe to infer. Use the exact legacy storage value
+        // "Mặc định" so the query matches existing profile/attendance documents.
+        if (!branch && configResult.loaded && resolver && resolver.branchCount(config) === 1) {
+            branch = resolver.storageValueForIndex(1, config);
+            source = 'single-branch-inference';
+            inferred = true;
+        }
+
+        if (branch && resolver && typeof resolver.normalize === 'function') {
+            branch = resolver.normalize(branch, config) || branch;
+        }
+
+        const result = {
+            branch: branch || '',
+            source,
+            inferred,
+            missing: !branch,
+            configLoaded: configResult.loaded,
+            coachDocumentFound: !!coachData,
+            display: branch && resolver ? resolver.display(branch, config) : 'Chưa gán cơ sở',
+        };
+        window.__coachBranchResolution = result;
+
+        // Self-heal the signed-in user's own users/{uid} document. This write is
+        // best-effort and never blocks login; admin-owned coaches/{uid} remains authoritative.
+        if (branch && uid && auth.currentUser && auth.currentUser.uid === uid) {
+            const existingUserBranch = resolver && input.userData
+                ? resolver.normalize(input.userData, config)
+                : String((input.userData && input.userData.branch) || '');
+            if (existingUserBranch !== branch) {
+                try {
+                    await setDoc(doc(db, 'users', uid), {
+                        role: 'coach',
+                        clubId,
+                        branch,
+                        branchResolvedAt: new Date().toISOString(),
+                        email: input.email || (input.userData && input.userData.email) || ''
+                    }, { merge: true });
+                } catch (error) {
+                    console.warn('[CoachBranchResolver] Không thể tự đồng bộ users/{uid}:', error.code || error.message);
+                }
+            }
+        }
+        return result;
+    }
+
+    function _coachBranchMissingMessage() {
+        return 'Tài khoản HLV chưa được gán cơ sở phụ trách.\n\n'
+            + 'Vì lý do bảo mật và giảm Firebase Reads, hệ thống không tải toàn bộ võ sinh khi thiếu cơ sở.\n\n'
+            + 'Vui lòng yêu cầu Admin vào “Quản lý tài khoản HLV”, chọn đúng cơ sở rồi bấm “Lưu cơ sở”.';
+    }
+
+
+    window.printCoachBranchResolution = function() {
+        const result = {
+            role: window.userRole || '',
+            clubId: currentClubId || '',
+            coachBranch: window.coachBranch || '',
+            display: window.coachBranch ? window.getBranchNameDisplay(window.coachBranch) : 'Chưa gán cơ sở',
+            source: window.__coachBranchResolution?.source || '',
+            inferred: window.__coachBranchResolution?.inferred === true,
+            configLoaded: window.__coachBranchResolution?.configLoaded === true,
+            coachDocumentFound: window.__coachBranchResolution?.coachDocumentFound === true,
+            missing: !window.coachBranch,
+        };
+        console.group('[Phase 4K-6V4C2A] Coach Branch Resolution');
+        console.table(result);
+        console.groupEnd();
+        return result;
+    };
 
     // Helper: reset UI đăng nhập + sign out + thông báo lỗi rõ ràng
     // [SỬA] _showLoginError — hiển thị lỗi inline, không dùng alert() chặn UI
@@ -3443,39 +3509,37 @@ service cloud.firestore {
                     return;
                 }
 
-                // ── FAST PATH ─────────────────────────────────────────────────────
-                // Admin may start directly from cache. Coach must resolve branch from the
-                // authoritative coach document before profiles/attendance queries mount.
+                // ── FAST PATH: Admin/SuperAdmin may use cache immediately.
+                // Coach must re-validate the admin-owned coaches/{uid} branch before
+                // any branch-scoped query is mounted. This prevents stale/empty cache
+                // from producing an empty Attendance list or exposing a wrong branch.
                 const _cached = _getAuthCache(user.uid);
-                if (_cached) {
+                if (_cached && _cached.role !== 'coach') {
                     currentClubId = _cached.clubId;
                     window.userRole = _cached.role;
-                    if (_cached.role === 'coach') {
-                        const _coachResolution = await _resolveCoachBranchForAuth({
-                            user, clubId: currentClubId, userData: {}, cachedBranch: _cached.coachBranch || ''
-                        });
-                        _saveAuthCache(user.uid, 'coach', currentClubId, _coachResolution.branch || '');
-                    } else {
-                        window.coachBranch = '';
-                    }
                     try { initSaaSDatabase(currentClubId); } catch(_ie) { console.error("initSaaSDatabase(cache):", _ie); }
+                    // Phase 4.0A-3: Sync currentUser to __store (cache path)
                     if (window.__store) window.__store.currentUser = user;
-                    setTimeout(() => { if(typeof window._checkMonthlyReminder === 'function') window._checkMonthlyReminder(); }, 300);
-                    // Non-coach cache verification remains background-only. Coach was verified above.
-                    if (_cached.role !== 'coach') {
-                        getDoc(doc(db, "users", user.uid)).then(userDoc => {
-                            if (userDoc.exists()) {
-                                const _ud = userDoc.data();
-                                const _fr = _ud.role || 'admin';
-                                const _freshRole = (user.email && user.email.toLowerCase() === "admin@tstquynhon.com") ? 'super_admin' : _fr;
-                                _saveAuthCache(user.uid, _freshRole, _ud.clubId, _ud.branch || '');
-                                _recordLoginEvent(user, _freshRole, _ud.clubId);
-                            }
-                        }).catch(() => {});
-                    }
+                    // [SỬA] Giảm delay monthly reminder — UI đã hiện, nhắc nhở sau khi render xong
+        setTimeout(() => { if(typeof window._checkMonthlyReminder === 'function') window._checkMonthlyReminder(); }, 300);
+                    // Xác minh cache Admin/SuperAdmin và cập nhật trong nền
+                    getDoc(doc(db, "users", user.uid)).then(userDoc => {
+                        if (userDoc.exists()) {
+                            const _ud = userDoc.data();
+                            const _fr = _ud.role || 'admin';
+                            const _freshRole = (user.email && user.email.toLowerCase() === "admin@tstquynhon.com") ? 'super_admin' : _fr;
+                            const _freshClubId = _ud.clubId;
+                            const _freshBranch = _ud.branch || '';
+                            _saveAuthCache(user.uid, _freshRole, _freshClubId, _freshBranch);
+                            _recordLoginEvent(user, _freshRole, _freshClubId);
+                        }
+                    }).catch(() => {});
                     return;
                 }
-                // ── SLOW PATH: lần đầu đăng nhập hoặc cache hết hạn — đọc Firestore ──
+                if (_cached && _cached.role === 'coach') {
+                    console.info('[Auth] Coach cache detected — validating branch before bootstrap');
+                }
+                // ── SLOW PATH: first login, expired cache, or every Coach login ──
                 let userDocSnap = null;
                 try {
                     userDocSnap = await getDoc(doc(db, "users", user.uid));
@@ -3494,14 +3558,23 @@ service cloud.firestore {
                     const _firestoreRole = _ud.role || 'admin';
                     window.userRole = (user.email && user.email.toLowerCase() === "admin@tstquynhon.com") ? 'super_admin' : _firestoreRole;
                     if (window.userRole === 'coach') {
-                        const _coachResolution = await _resolveCoachBranchForAuth({
-                            user, clubId: currentClubId, userData: _ud, cachedBranch: _ud.branch || ''
+                        const _branchResolution = await _resolveCoachBranchForLogin({
+                            uid: user.uid,
+                            clubId: currentClubId,
+                            userData: _ud,
+                            cachedBranch: _cached && _cached.coachBranch,
+                            email: user.email || _ud.email || ''
                         });
-                        window.coachBranch = _coachResolution.branch || '';
+                        if (!_branchResolution.branch) {
+                            _clearAuthCache();
+                            await _showLoginError(_coachBranchMissingMessage());
+                            return;
+                        }
+                        window.coachBranch = _branchResolution.branch;
                     } else {
                         window.coachBranch = '';
                     }
-                    _saveAuthCache(user.uid, window.userRole, currentClubId, window.userRole === 'coach' ? (window.coachBranch || '') : (_ud.branch || ''));
+                    _saveAuthCache(user.uid, window.userRole, currentClubId, window.coachBranch || '');
                     _recordLoginEvent(user, window.userRole, currentClubId);
                     try { initSaaSDatabase(currentClubId); } catch(_ie) { console.error("initSaaSDatabase(slowPath):", _ie); }
                     // Phase 4.0A-3: Sync currentUser to __store (slow path)
@@ -3543,12 +3616,20 @@ service cloud.firestore {
                                         const _coachData = _coachDoc.data();
                                         currentClubId = _cDoc.id;
                                         window.userRole = 'coach';
-                                        const _coachResolution = await _resolveCoachBranchForAuth({
-                                            user, clubId: _cDoc.id, userData: {}, coachData: _coachData,
-                                            cachedBranch: _coachData.branch || ''
+                                        const _branchResolution = await _resolveCoachBranchForLogin({
+                                            uid: user.uid,
+                                            clubId: currentClubId,
+                                            coachData: _coachData,
+                                            cachedBranch: _cached && _cached.coachBranch,
+                                            email: user.email || _coachData.email || ''
                                         });
-                                        window.coachBranch = _coachResolution.branch || '';
-                                        try { await setDoc(doc(db, 'users', user.uid), { role: 'coach', clubId: _cDoc.id, branch: window.coachBranch, email: user.email || _coachData.email || '' }, { merge: true }); } catch(_) {}
+                                        if (!_branchResolution.branch) {
+                                            _clearAuthCache();
+                                            await _showLoginError(_coachBranchMissingMessage());
+                                            _found = true;
+                                            break;
+                                        }
+                                        window.coachBranch = _branchResolution.branch;
                                         _saveAuthCache(user.uid, 'coach', currentClubId, window.coachBranch);
                                         _recordLoginEvent(user, 'coach', currentClubId);
                                         try { initSaaSDatabase(currentClubId); } catch(_ie) { console.error("initSaaSDatabase(fallback-coach):", _ie); }
@@ -4666,7 +4747,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         const type = document.getElementById('type').value; const name = document.getElementById('description').value.trim(); const amount = Number(document.getElementById('amountActual').value); const date = document.getElementById('date').value;
 
         const isSingleBranch = (clubConfig.branchCount === 1);
-        const branch = isSingleBranch ? 'CS1' : document.getElementById('branch').value;
+        const branch = isSingleBranch ? 'Mặc định' : document.getElementById('branch').value;
         const txMonth = date.substring(0, 7); const packageCount = parseInt(document.getElementById('tx_package').value) || 1;
 
         if(!name) return; let txData = { branch, type, description: name, date, timestamp: Date.now() };
@@ -4787,7 +4868,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         let updateData = {
             status: newStatus,
             memberId: document.getElementById('m_memberId').value.trim().toUpperCase(),
-            branch: isSingleBranch ? 'CS1' : document.getElementById('m_branch').value,
+            branch: isSingleBranch ? 'Mặc định' : document.getElementById('m_branch').value,
             belt: document.getElementById('m_belt').value,
             phone: document.getElementById('m_phone').value,
             tuitionFee: document.getElementById('m_fee_actual').value,
@@ -5215,7 +5296,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         const uniformSize = document.getElementById('add_uniform_size').value.trim();
         const uniformFee = Number(document.getElementById('add_uniform_actual').value) || Number((document.getElementById('add_uniform_display').value || '').replace(/[^0-9]/g, '')) || 0;
         const packageCount = parseInt(document.getElementById('add_package').value) || 1; const isGift = document.getElementById('add_uniform_gift').checked;
-        const isSingleBranch = (clubConfig.branchCount === 1); const branch = isSingleBranch ? 'CS1' : document.getElementById('add_branch').value;
+        const isSingleBranch = (clubConfig.branchCount === 1); const branch = isSingleBranch ? 'Mặc định' : document.getElementById('add_branch').value;
         const memberId = document.getElementById('add_memberId').value.trim().toUpperCase();
 
         if(!name) { window.showToast('⚠️ Vui lòng nhập họ tên võ sinh!', 3000); const el = document.getElementById('add_name'); if(el){ el.focus(); el.style.borderColor='#ef4444'; setTimeout(()=>{ el.style.borderColor=''; },3000); } return; }
@@ -5589,7 +5670,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         e.preventDefault();
         if(window.userRole !== 'viewer') {
             const isSingleBranch = (clubConfig.branchCount === 1);
-            const branch = isSingleBranch ? 'CS1' : document.getElementById('exp_branch').value;
+            const branch = isSingleBranch ? 'Mặc định' : document.getElementById('exp_branch').value;
             await addDoc(colRef, _canonicalTxPayload({ branch: branch, type: 'Chi phí', description: document.getElementById('exp_desc').value.trim(), amount: Number(document.getElementById('exp_amountActual').value), date: document.getElementById('exp_date').value, timestamp: Date.now() }, 'expense-form'));
             e.target.reset(); document.getElementById('exp_date').value = getLocalToday(); window.showToast("✅ Đã lưu khoản chi!");
         }
@@ -9478,52 +9559,61 @@ window.processMultiItem = async (action) => {
         window.loadCoachAccounts();
     };
 
+    window.showCoachBranchAssignmentError = function(message) {
+        const text = message || 'Tài khoản HLV chưa được gán cơ sở. Vui lòng liên hệ Admin CLB để cập nhật cơ sở phụ trách rồi đăng nhập lại.';
+        const infoEl = document.getElementById('coach_att_info');
+        if (infoEl) {
+            infoEl.innerHTML = '<span style="color:#b91c1c;font-weight:800;">⚠️ ' + (window.escapeHtml ? window.escapeHtml(text) : text) + '</span>';
+            infoEl.style.display = 'block';
+        }
+        const listEl = document.getElementById('attendanceList');
+        if (listEl) {
+            listEl.innerHTML = '<div style="margin:18px 0;padding:14px;border:1px solid #fecaca;background:#fef2f2;color:#991b1b;border-radius:12px;font-size:0.85rem;line-height:1.55;text-align:center;">⚠️ ' + (window.escapeHtml ? window.escapeHtml(text) : text) + '</div>';
+        }
+        if (typeof window.showToast === 'function') window.showToast('⚠️ HLV chưa được gán cơ sở', 'warning');
+        return false;
+    };
+
     window.loadCoachAccounts = async () => {
         const listEl = document.getElementById('coachAccountsList');
         if (!listEl) return;
         listEl.innerHTML = '<div style="text-align:center;padding:20px;color:#94a3b8;font-size:0.85rem;">Đang tải...</div>';
         try {
-            // FIX: query sub-collection clubs/{clubId}/coaches/ instead of top-level users
-            // Admin has permission to read their own club's sub-collections
             const coachesRef = collection(db, 'clubs', currentClubId, 'coaches');
-            const snap = await getDocs(query(coachesRef, limit(200))); // [3.3E] coaches list
+            const snap = await getDocs(query(coachesRef, limit(200)));
             if (snap.empty) {
                 listEl.innerHTML = '<div style="text-align:center;padding:24px 16px;color:#94a3b8;font-size:0.85rem;">Chưa có tài khoản HLV nào</div>';
                 return;
             }
+            const resolver = window.CoachBranchResolver;
+            const esc = window.escapeHtml || function(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function(ch) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]); }); };
             let html = '';
             snap.forEach(d => {
-                const data = d.data();
-                const safeId    = d.id.replace(/'/g, "\'");
-                const safeEmail = (data.email || '').replace(/'/g, "\'");
-                const normalizedBranch = window.CoachBranchResolver
-                    ? window.CoachBranchResolver.normalize(data.branch || data.coachBranch || data.assignedBranch || '', clubConfig)
-                    : String(data.branch || '');
-                const branchLabel = normalizedBranch
-                    ? (window.getBranchNameDisplay ? window.getBranchNameDisplay(normalizedBranch) : normalizedBranch)
-                    : 'CHƯA GÁN CƠ SỞ';
-                let branchOptions = '<option value="">⚠️ -- Chọn cơ sở --</option>';
-                for (let bi = 1; bi <= Number(clubConfig.branchCount || 1); bi++) {
-                    const code = 'CS' + bi;
-                    const label = clubConfig['branchName' + bi] || ('Cơ sở ' + bi);
-                    branchOptions += '<option value="' + code + '"' + (normalizedBranch === code ? ' selected' : '') + '>📍 ' + label + '</option>';
-                }
-                const branchColor = normalizedBranch ? '#0369a1' : '#be123c';
-                html += '<div style="padding:10px 12px;background:#f8fafc;border-radius:10px;border:1px solid ' + (normalizedBranch ? '#e2e8f0' : '#fecdd3') + ';margin-bottom:8px;">'
-                    + '<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;">'
+                const data = d.data() || {};
+                const safeId = String(d.id || '').replace(/'/g, "\\'");
+                const safeEmailJs = String(data.email || '').replace(/'/g, "\\'");
+                const canonicalBranch = resolver?.normalize?.(data, clubConfig) || '';
+                const branchLabel = resolver?.display?.(canonicalBranch, clubConfig) || window.getBranchNameDisplay(canonicalBranch);
+                const missingBranch = !canonicalBranch;
+                const selectId = 'coach_branch_edit_' + String(d.id || '').replace(/[^a-zA-Z0-9_-]/g, '_');
+                const branchStatus = missingBranch
+                    ? '<div style="font-size:0.7rem;color:#b91c1c;font-weight:800;margin-top:4px;">⚠️ Chưa gán cơ sở — HLV sẽ không tải được võ sinh</div>'
+                    : '<div style="font-size:0.68rem;color:#0369a1;margin-top:3px;">📍 ' + esc(branchLabel) + '</div>';
+                html += '<div style="padding:11px 12px;background:' + (missingBranch ? '#fff7ed' : '#f8fafc') + ';border-radius:10px;border:1px solid ' + (missingBranch ? '#fdba74' : '#e2e8f0') + ';margin-bottom:8px;">'
+                    + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'
                     + '<div style="min-width:0;">'
-                    + '<div style="font-weight:700;font-size:0.88rem;color:#1e293b;">' + (data.displayName || data.email) + '</div>'
-                    + '<div style="font-size:0.72rem;color:#64748b;word-break:break-all;">' + (data.email || '') + '</div>'
-                    + '<div style="font-size:0.68rem;color:' + branchColor + ';margin-top:2px;font-weight:700;">📍 ' + branchLabel + '</div>'
+                    + '<div style="font-weight:700;font-size:0.88rem;color:#1e293b;">' + esc(data.displayName || data.email || 'HLV') + '</div>'
+                    + '<div style="font-size:0.72rem;color:#64748b;word-break:break-all;">' + esc(data.email || '') + '</div>'
+                    + branchStatus
                     + '</div>'
-                    + '<div style="display:flex;gap:6px;flex-shrink:0;">'
-                    + '<button onclick="window.resetCoachPassword(\'' + safeEmail + '\')" style="background:#f0f9ff;color:#0369a1;border:1px solid #bae6fd;padding:5px 8px;border-radius:8px;font-size:0.7rem;font-weight:700;cursor:pointer;">🔑 MK</button>'
-                    + '<button onclick="window.deleteCoachAccount(\'' + safeId + '\',\'' + safeEmail + '\')" style="background:#fee2e2;color:#dc2626;border:none;padding:5px 8px;border-radius:8px;font-size:0.7rem;font-weight:700;cursor:pointer;">🗑️</button>'
-                    + '</div></div>'
-                    + '<div style="display:flex;gap:6px;margin-top:8px;">'
-                    + '<select id="coach_branch_edit_' + d.id + '" style="flex:1;min-width:0;padding:7px 8px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;font-size:0.75rem;font-weight:700;">' + branchOptions + '</select>'
-                    + '<button onclick="window.updateCoachBranch(\'' + safeId + '\',\'' + safeEmail + '\')" style="background:#0033a0;color:#fff;border:none;padding:7px 10px;border-radius:8px;font-size:0.72rem;font-weight:800;cursor:pointer;">💾 Lưu cơ sở</button>'
-                    + '</div></div>';
+                    + '<button onclick="window.deleteCoachAccount(\'' + safeId + '\',\'' + safeEmailJs + '\')" style="background:#fee2e2;color:#dc2626;border:none;padding:5px 9px;border-radius:8px;font-size:0.7rem;font-weight:700;cursor:pointer;flex-shrink:0;">🗑️ Xóa</button>'
+                    + '</div>'
+                    + '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:9px;">'
+                    + '<select id="' + selectId + '" style="flex:1;min-width:180px;border:1px solid #cbd5e1;border-radius:8px;padding:7px 8px;font-size:0.76rem;background:white;">' + _coachBranchOptions(canonicalBranch, true) + '</select>'
+                    + '<button onclick="window.saveCoachBranchAssignment(\'' + safeId + '\',\'' + safeEmailJs + '\',\'' + selectId + '\')" style="background:#dcfce7;color:#166534;border:1px solid #86efac;padding:7px 10px;border-radius:8px;font-size:0.72rem;font-weight:800;cursor:pointer;">💾 Lưu cơ sở</button>'
+                    + '<button onclick="window.resetCoachPassword(\'' + safeEmailJs + '\')" style="background:#f0f9ff;color:#0369a1;border:1px solid #bae6fd;padding:7px 10px;border-radius:8px;font-size:0.72rem;font-weight:700;cursor:pointer;">🔑 Đặt lại MK</button>'
+                    + '</div>'
+                    + '</div>';
             });
             listEl.innerHTML = html;
         } catch(e) {
@@ -9531,29 +9621,39 @@ window.processMultiItem = async (action) => {
         }
     };
 
-    window.updateCoachBranch = async (uid, email) => {
+    window.saveCoachBranchAssignment = async (uid, email, selectId) => {
         if (window.userRole !== 'admin' && window.userRole !== 'super_admin') return alert('Chỉ Admin mới có quyền cập nhật cơ sở HLV!');
-        const select = document.getElementById('coach_branch_edit_' + uid);
-        const rawBranch = select ? select.value : '';
-        const branch = window.CoachBranchResolver
-            ? window.CoachBranchResolver.normalize(rawBranch, clubConfig)
-            : rawBranch;
-        if (!branch) return alert('Vui lòng chọn một cơ sở cụ thể cho tài khoản HLV!');
+        const selectEl = document.getElementById(selectId);
+        const resolver = window.CoachBranchResolver;
+        const branch = resolver?.normalize?.(selectEl ? selectEl.value : '', clubConfig) || '';
+        if (!branch) return alert('Vui lòng chọn cơ sở phụ trách cho HLV.');
         try {
-            await setDoc(doc(db, 'clubs', currentClubId, 'coaches', uid), {
-                branch, coachBranch: branch, assignedBranch: branch, updatedAt: new Date().toISOString()
-            }, { merge: true });
+            const payload = {
+                branch,
+                branchScope: branch === 'all' ? 'all' : 'specific',
+                branchUpdatedAt: new Date().toISOString(),
+                role: 'coach',
+                clubId: currentClubId,
+                uid
+            };
+            await setDoc(doc(db, 'clubs', currentClubId, 'coaches', uid), payload, { merge: true });
             try {
                 await setDoc(doc(db, 'users', uid), {
-                    role: 'coach', clubId: currentClubId, branch, email: email || ''
+                    branch,
+                    branchScope: payload.branchScope,
+                    role: 'coach',
+                    clubId: currentClubId,
+                    email: email || ''
                 }, { merge: true });
-            } catch (error) {
-                console.warn('[CoachBranch] Đã cập nhật coaches nhưng chưa cập nhật được users/{uid}:', error.code || error.message);
+            } catch(_permErr) {
+                if (_permErr?.code !== 'permission-denied') console.warn('[CoachBranch] users sync failed:', _permErr?.code || _permErr?.message);
             }
-            window.showToast('✅ Đã gán ' + (window.getBranchNameDisplay ? window.getBranchNameDisplay(branch) : branch) + ' cho HLV', 2600);
+            window.showToast?.('✅ Đã cập nhật cơ sở HLV. HLV cần đăng nhập lại.');
             await window.loadCoachAccounts();
-        } catch (error) {
-            alert('Lỗi cập nhật cơ sở HLV: ' + (error.message || error.code));
+            return true;
+        } catch(e) {
+            alert('Lỗi cập nhật cơ sở HLV: ' + (e.message || e));
+            return false;
         }
     };
 
@@ -9562,56 +9662,52 @@ window.processMultiItem = async (action) => {
         const pass   = (document.getElementById('coach_pass').value   || '').trim();
         const name   = (document.getElementById('coach_name').value   || '').trim();
         const branchEl = document.getElementById('coach_branch');
-        const rawBranch = branchEl ? (branchEl.value || '') : '';
-        const branch = window.CoachBranchResolver
-            ? window.CoachBranchResolver.normalize(rawBranch, clubConfig)
-            : rawBranch;
+        const resolver = window.CoachBranchResolver;
+        let branch = resolver?.normalize?.(branchEl ? branchEl.value : '', clubConfig) || '';
+        if (!branch && resolver?.branchCount?.(clubConfig) === 1) branch = resolver.SINGLE_DEFAULT;
 
         if (!name)  return alert('Vui lòng nhập tên HLV!');
         if (!email) return alert('Vui lòng nhập email!');
         if (!pass || pass.length < 6) return alert('Mật khẩu phải ít nhất 6 ký tự!');
-        if (!branch) return alert('Vui lòng chọn cơ sở phụ trách cho HLV. Không thể tạo HLV ở chế độ “Tất cả cơ sở”.');
+        if (!branch) return alert('Vui lòng chọn cơ sở phụ trách cho HLV!');
 
         const btn = document.getElementById('btnCreateCoach');
         if (btn) { btn.disabled = true; btn.textContent = 'Đang tạo...'; }
         try {
-            // Bước 1: Tạo tài khoản Firebase Auth qua secondaryAuth (không ảnh hưởng phiên admin)
             const userCred = await createUserWithEmailAndPassword(secondaryAuth, email, pass);
             const uid = userCred.user.uid;
             try { await signOut(secondaryAuth); } catch(_) {}
 
-            // Bước 2: Ghi hồ sơ HLV vào clubs/{clubId}/coaches/{uid} — LUÔN dùng quyền admin (critical path)
+            const branchScope = branch === 'all' ? 'all' : 'specific';
             await setDoc(doc(db, 'clubs', currentClubId, 'coaches', uid), {
                 email,
                 displayName: name,
-                role:   'coach',
+                role: 'coach',
                 clubId: currentClubId,
-                branch: branch,
-                coachBranch: branch,
-                assignedBranch: branch,
+                branch,
+                branchScope,
                 uid,
                 createdAt: new Date().toISOString()
             });
 
-            // Bước 3: Ghi users/{uid} để tăng tốc đăng nhập (optional — tùy Firestore Rules)
             try {
                 await setDoc(doc(db, 'users', uid), {
-                    role:   'coach',
+                    role: 'coach',
                     clubId: currentClubId,
-                    branch: branch,
-                    email:  email
+                    branch,
+                    branchScope,
+                    email
                 });
             } catch(_permErr) {
-                // Không ảnh hưởng — hệ thống sẽ tìm HLV qua clubs/coaches khi đăng nhập
                 console.warn('Ghi users/{uid} thất bại (không ảnh hưởng chức năng):', _permErr.code);
             }
 
-            const branchDisplay = branch ? (' | Cơ sở: ' + (window.getBranchNameDisplay ? window.getBranchNameDisplay(branch) : branch)) : '';
+            const branchDisplay = ' | Cơ sở: ' + (window.getBranchNameDisplay ? window.getBranchNameDisplay(branch) : branch);
             alert('✅ Tạo tài khoản HLV thành công!\n\nTên: ' + name + '\nEmail: ' + email + '\nMật khẩu: ' + pass + branchDisplay + '\n\nHLV có thể đăng nhập ngay bây giờ.');
-            document.getElementById('coach_email').value  = '';
-            document.getElementById('coach_pass').value   = '';
-            document.getElementById('coach_name').value   = '';
-            if (branchEl) branchEl.value = Number(clubConfig.branchCount || 1) === 1 ? 'CS1' : '';
+            document.getElementById('coach_email').value = '';
+            document.getElementById('coach_pass').value = '';
+            document.getElementById('coach_name').value = '';
+            if (branchEl) branchEl.value = resolver?.branchCount?.(clubConfig) === 1 ? resolver.SINGLE_DEFAULT : '';
             window.loadCoachAccounts();
         } catch(e) {
             if (e.code === 'auth/email-already-in-use') alert('Email này đã được sử dụng bởi tài khoản khác!');
@@ -10003,58 +10099,87 @@ window.processMultiItem = async (action) => {
         try {
             const coachesRef = collection(db, 'clubs', currentClubId, 'coaches');
             const coachesSnap = await getDocs(query(coachesRef, limit(200)));
-            if (coachesSnap.empty) return alert('Không có tài khoản HLV nào trong hệ thống.');
-            let fixed = 0, alreadyValid = 0, unresolved = 0, usersSynced = 0;
-            const unresolvedNames = [];
+            if (coachesSnap.empty) {
+                if (btn) { btn.disabled = false; btn.textContent = '🔄 Đồng bộ tài khoản HLV cũ'; }
+                return alert('Không có tài khoản HLV nào trong hệ thống.');
+            }
+            const resolver = window.CoachBranchResolver;
+            const singleBranch = resolver?.branchCount?.(clubConfig) === 1;
+            let fixed = 0;
+            let skipped = 0;
+            let unresolved = 0;
             for (const coachDoc of coachesSnap.docs) {
-                const uid  = coachDoc.id;
+                const uid = coachDoc.id;
                 const data = coachDoc.data() || {};
-                const rawBranch = data.branch || data.coachBranch || data.assignedBranch || '';
-                const branch = window.CoachBranchResolver
-                    ? window.CoachBranchResolver.normalize(rawBranch, clubConfig)
-                    : String(rawBranch || '').trim();
+                let legacyUserData = null;
+                let branch = resolver?.normalize?.(data, clubConfig) || '';
+                // Recover a valid assignment from users/{uid} only when the
+                // admin-owned coaches/{uid} document does not contain one.
                 if (!branch) {
-                    unresolved++;
-                    unresolvedNames.push(data.displayName || data.email || uid);
-                    continue;
+                    try {
+                        const legacyUserSnap = await getDoc(doc(db, 'users', uid));
+                        if (legacyUserSnap.exists()) legacyUserData = legacyUserSnap.data() || {};
+                    } catch(_readUserErr) {
+                        if (_readUserErr?.code !== 'permission-denied') console.warn('users/{uid} read failed for', uid, ':', _readUserErr?.code || _readUserErr?.message);
+                    }
+                    branch = resolver?.normalize?.(legacyUserData, clubConfig) || '';
                 }
-                const needsFix = !data.uid || !data.email || data.clubId !== currentClubId || data.role !== 'coach' || data.branch !== branch || data.coachBranch !== branch || data.assignedBranch !== branch;
-                if (needsFix) {
-                    await setDoc(doc(db, 'clubs', currentClubId, 'coaches', uid), {
-                        uid, role: 'coach', clubId: currentClubId,
-                        branch, coachBranch: branch, assignedBranch: branch,
-                        email: data.email || '', displayName: data.displayName || data.email || '',
-                        createdAt: data.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString()
-                    }, { merge: true });
-                    fixed++;
-                } else {
-                    alreadyValid++;
+                if (!branch && singleBranch) branch = resolver.SINGLE_DEFAULT;
+                if (!branch) unresolved++;
+
+                const needsFix = !data.uid || !data.email || !data.clubId || data.role !== 'coach' ||
+                    !branch || data.branch !== branch || data.branchScope !== (branch === 'all' ? 'all' : 'specific');
+                if (needsFix && branch) {
+                    try {
+                        await setDoc(doc(db, 'clubs', currentClubId, 'coaches', uid), {
+                            uid,
+                            role: 'coach',
+                            clubId: currentClubId,
+                            branch,
+                            branchScope: branch === 'all' ? 'all' : 'specific',
+                            email: data.email || '',
+                            displayName: data.displayName || data.email || '',
+                            createdAt: data.createdAt || new Date().toISOString(),
+                            branchUpdatedAt: new Date().toISOString()
+                        }, { merge: true });
+                        fixed++;
+                    } catch(_fixErr) {
+                        console.warn('Không thể cập nhật coaches doc cho', uid, ':', _fixErr.message);
+                    }
+                } else if (!needsFix) {
+                    skipped++;
                 }
-                try {
-                    await setDoc(doc(db, 'users', uid), {
-                        role: 'coach', clubId: currentClubId, branch, email: data.email || ''
-                    }, { merge: true });
-                    usersSynced++;
-                } catch (error) {
-                    if (error.code !== 'permission-denied') console.warn('users/{uid} sync failed for', uid, error.code || error.message);
+
+                if (branch) {
+                    try {
+                        await setDoc(doc(db, 'users', uid), {
+                            role: 'coach',
+                            clubId: currentClubId,
+                            branch,
+                            branchScope: branch === 'all' ? 'all' : 'specific',
+                            email: data.email || ''
+                        }, { merge: true });
+                    } catch(_permErr) {
+                        if (_permErr.code !== 'permission-denied') {
+                            console.warn('users/{uid} write failed for', uid, ':', _permErr.code);
+                        }
+                    }
                 }
             }
-            let message = `✅ Đồng bộ hoàn tất!
-
-• Hồ sơ HLV đã sửa: ${fixed}
-• Đã đúng: ${alreadyValid}
-• users/{uid} đã đồng bộ: ${usersSynced}
-• Chưa gán được cơ sở: ${unresolved}`;
-            if (unresolvedNames.length) message += `
-
-Admin cần chọn cơ sở thủ công cho:
-- ${unresolvedNames.slice(0, 12).join('\n- ')}`;
-            alert(message);
+            if (btn) { btn.disabled = false; btn.textContent = '🔄 Đồng bộ tài khoản HLV cũ'; }
+            const unresolvedText = unresolved > 0
+                ? `\n• Chưa gán cơ sở: ${unresolved} tài khoản — hãy chọn cơ sở và bấm “Lưu cơ sở”` : '';
+            alert(
+                `✅ Đồng bộ hoàn tất!\n\n`
+                + `• Đã cập nhật: ${fixed} tài khoản\n`
+                + `• Đã đầy đủ (bỏ qua): ${skipped} tài khoản`
+                + unresolvedText
+                + `\n\n${unresolved > 0 ? 'Các HLV chưa gán cơ sở vẫn bị khóa để tránh đọc toàn CLB.' : 'Tất cả HLV đã có cơ sở hợp lệ và có thể đăng nhập lại.'}`
+            );
             await window.loadCoachAccounts();
         } catch(e) {
-            alert('Lỗi đồng bộ: ' + (e.message || e));
-        } finally {
             if (btn) { btn.disabled = false; btn.textContent = '🔄 Đồng bộ tài khoản HLV cũ'; }
+            alert('Lỗi đồng bộ: ' + (e.message || e));
         }
     };
 

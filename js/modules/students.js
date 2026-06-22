@@ -282,7 +282,7 @@ export function initStudents() {
         const packageCount   = parseInt(document.getElementById('add_package').value) || 1;
         const isGift         = document.getElementById('add_uniform_gift').checked;
         const isSingleBranch = (config.branchCount === 1);
-        const branch         = isSingleBranch ? 'CS1' : document.getElementById('add_branch').value;
+        const branch         = isSingleBranch ? 'Mặc định' : document.getElementById('add_branch').value;
         const memberId       = document.getElementById('add_memberId').value.trim().toUpperCase();
 
         // Validate
@@ -597,7 +597,7 @@ export function initStudents() {
         let updateData = {
             status:          newStatus,
             memberId:        document.getElementById('m_memberId').value.trim().toUpperCase(),
-            branch:          isSingleBranch ? 'CS1' : document.getElementById('m_branch').value,
+            branch:          isSingleBranch ? 'Mặc định' : document.getElementById('m_branch').value,
             belt:            document.getElementById('m_belt').value,
             phone:           document.getElementById('m_phone').value,
             tuitionFee:      document.getElementById('m_fee_actual').value,

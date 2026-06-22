@@ -1,0 +1,36 @@
+PHASE 4K-6V4C2A TEST SUMMARY
+Date: 2026-06-22
+
+npm run check
+PASS — exit code 0
+
+npm run check:all:critical
+PASS — exit code 0
+
+Dedicated checks:
+- Coach Branch Resolution + Legacy Repair: 23/23 PASS
+- Coach Attendance-Only Read Boundary: 31/31 PASS
+- Trusted Cache + Lazy Admin Reads: 28/28 PASS
+- Syntax: 121 items PASS
+- Deploy Package: 12/12 PASS
+- GitHub Pages Paths: 18/18 PASS
+- Firestore Indexes: 16/16 PASS
+- Runtime Stability: 17/17 PASS
+- Production Stability: 22/22 PASS
+- Debt Profile Read Boundary: 21/21 PASS
+- Inventory History + Complete Debt: 25/25 PASS
+- Inventory Ledger Reconciliation: 33/33 PASS
+
+Verified scenarios:
+1. Blank Coach branch remains fail-closed with visible guidance.
+2. Single-branch CS1/display name normalizes to Mặc định.
+3. Multi-branch display name normalizes to correct CSx.
+4. Legacy alternate fields such as assignedBranch are accepted.
+5. Explicit all-branch scope uses value all.
+6. users/{uid} branch can recover a missing coaches/{uid} branch during repair.
+7. Admin can assign/update branch for an existing Coach.
+8. Coach auth cache is always revalidated before bootstrap.
+9. Primary realtime listeners merge all aliases of only the assigned branch.
+10. No full-club fallback is used for a specific-branch Coach.
+11. Coach still cannot load transactions, inventory debts, dashboard, exam or quit profiles.
+12. Admin Học phí, Báo nợ and Kho boundaries remain present and pass regression gates.
