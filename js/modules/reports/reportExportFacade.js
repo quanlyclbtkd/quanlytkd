@@ -65,7 +65,7 @@ function restoreFacadeOwnership() {
 async function ensureReportsApi() {
   if (reportsApi) return reportsApi;
   if (!reportsModulePromise) {
-    reportsModulePromise = import('../reports.js?v=coach-branch-recovery-20260622-v4c1a')
+    reportsModulePromise = import('../reports.js?v=trusted-cache-lazy-admin-20260620-v4c1')
       .then((mod) => {
         if (typeof mod.initReports !== 'function') {
           throw new Error('reports.js không export initReports()');

@@ -570,7 +570,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 <!-- Phase 4K-6V3BC1 regression markers: transactionCanonicalBoundary.js?v=automatic-canonical-transaction-optimization-20260616-v3bc1; app.js?v=automatic-canonical-transaction-optimization-20260616-v3bc1; main.js?v=automatic-canonical-transaction-optimization-20260616-v3bc1 -->
 <!-- Phase 4K-6V3BC1 automatic per-club optimization: automatic-canonical-transaction-optimization-20260616-v3bc1 -->
 <!-- Phase 4K-6V3D debt profile coverage boundary: debt-profile-read-boundary-20260616-v3d -->
-<!-- Phase 4K-6V4A Coach Attendance-Only Read Boundary: coach-attendance-only-20260619-v4a --><!-- Phase 4K-6V4C1 Trusted Cache + Lazy Admin Reads: trusted-cache-lazy-admin-20260620-v4c1 --><script defer src="./js/core/firestoreCachePolicy.js?v=coach-branch-recovery-20260622-v4c1a"></script><script defer src="./js/core/profileDeltaSyncShadow.js?v=coach-branch-recovery-20260622-v4c1a"></script><script defer src="./js/core/coachBranchResolver.js?v=coach-branch-recovery-20260622-v4c1a"></script><script defer src="./js/core/roleReadBoundary.js?v=coach-branch-recovery-20260622-v4c1a"></script><script defer src="./js/core/transactionCanonicalBoundary.js?v=coach-branch-recovery-20260622-v4c1a"></script><script defer src="./js/core/debtProfileReadBoundary.js?v=coach-branch-recovery-20260622-v4c1a"></script><script defer src="app.js?v=coach-branch-recovery-20260622-v4c1a"></script><script>
+<!-- Phase 4K-6V4A Coach Attendance-Only Read Boundary: coach-attendance-only-20260619-v4a --><!-- Phase 4K-6V4C1 Trusted Cache + Lazy Admin Reads: trusted-cache-lazy-admin-20260620-v4c1 --><!-- Phase 4K-6V4C1A Coach Branch Resolution + Attendance Recovery: coach-branch-recovery-20260622-v4c1a --><script defer src="./js/core/firestoreCachePolicy.js?v=coach-branch-recovery-20260622-v4c1a"></script><script defer src="./js/core/profileDeltaSyncShadow.js?v=coach-branch-recovery-20260622-v4c1a"></script><script defer src="./js/core/roleReadBoundary.js?v=coach-branch-recovery-20260622-v4c1a"></script><script defer src="./js/core/coachBranchResolver.js?v=coach-branch-recovery-20260622-v4c1a"></script><script defer src="./js/core/transactionCanonicalBoundary.js?v=coach-branch-recovery-20260622-v4c1a"></script><script defer src="./js/core/debtProfileReadBoundary.js?v=coach-branch-recovery-20260622-v4c1a"></script><script defer src="app.js?v=coach-branch-recovery-20260622-v4c1a"></script><script>
 /* Phase 3.3A FIX: ES modules require HTTP — skip on file:// to prevent CORS error.
    app.js still loads via <script defer> so ALL business logic works regardless.
    Module enhancements (loading.js, event-guard, lazy tabs) activate on HTTP only.
@@ -685,9 +685,9 @@ button:focus-visible, input:focus-visible, select:focus-visible {
         <input type="text" id="coach_pass" placeholder="Mật khẩu (tối thiểu 6 ký tự)" style="width:100%;box-sizing:border-box;margin-bottom:8px;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:0.83rem;font-weight:600;background:#fff;outline:none;">
         <!-- Options cơ sở sẽ được populate động từ clubConfig.branchCount trong app.js -->
         <select id="coach_branch" style="width:100%;box-sizing:border-box;margin-bottom:12px;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:0.83rem;font-weight:600;background:#fff;outline:none;color:#334155;">
-          <option value="">-- Chọn cơ sở điểm danh (bắt buộc) --</option>
+          <option value="">📍 Tất cả cơ sở (không giới hạn)</option>
         </select>
-        <div style="font-size:0.7rem;color:#64748b;margin-bottom:10px;line-height:1.5;background:#f0f9ff;border-radius:8px;padding:7px 10px;border:1px solid #bae6fd;">💡 Bắt buộc chọn một cơ sở. HLV chỉ tải võ sinh của cơ sở được phân công để bảo vệ dữ liệu và giảm Firebase Reads.</div>
+        <div style="font-size:0.7rem;color:#64748b;margin-bottom:10px;line-height:1.5;background:#f0f9ff;border-radius:8px;padding:7px 10px;border:1px solid #bae6fd;">💡 Nếu chọn cơ sở cụ thể, HLV chỉ thấy võ sinh của cơ sở đó khi điểm danh.</div>
         <button id="btnCreateCoach" onclick="window.createCoachAccount()" style="width:100%;padding:12px;background:linear-gradient(135deg,#0033A0,#0052cc);color:#fff;border:none;border-radius:12px;font-size:0.88rem;font-weight:800;cursor:pointer;box-shadow:0 4px 12px rgba(0,51,160,0.3);transition:opacity 0.2s;" onmouseenter="this.style.opacity='0.88'" onmouseleave="this.style.opacity='1'">➕ Tạo tài khoản</button>
       </div>
       <!-- Danh sách HLV -->
@@ -697,8 +697,8 @@ button:focus-visible, input:focus-visible, select:focus-visible {
       </div>
       <!-- Đồng bộ tài khoản HLV cũ (tạo trước khi có fix) -->
       <div style="margin-top:14px;padding:12px 14px;background:#fefce8;border:1.5px solid #fde68a;border-radius:12px;">
-        <div style="font-size:0.72rem;font-weight:800;color:#92400e;margin-bottom:6px;">⚠️ HLV cũ chưa được gán cơ sở hoặc không thấy danh sách võ sinh?</div>
-        <div style="font-size:0.68rem;color:#78350f;line-height:1.5;margin-bottom:10px;">Bấm đồng bộ để sửa dữ liệu cũ. Với CLB nhiều cơ sở, Admin vẫn cần chọn cơ sở cho từng HLV trong danh sách phía trên.</div>
+        <div style="font-size:0.72rem;font-weight:800;color:#92400e;margin-bottom:6px;">⚠️ HLV tạo trước khi cập nhật hệ thống không thể đăng nhập?</div>
+        <div style="font-size:0.68rem;color:#78350f;line-height:1.5;margin-bottom:10px;">Bấm nút bên dưới để đồng bộ dữ liệu — hệ thống sẽ tự động tạo quyền truy cập cho tất cả HLV cũ.</div>
         <button id="btnMigrateCoaches" onclick="window.migrateCoachAccounts()" type="button" style="width:100%;padding:10px;background:linear-gradient(135deg,#d97706,#b45309);color:#fff;border:none;border-radius:10px;font-size:0.83rem;font-weight:800;cursor:pointer;box-shadow:0 3px 8px rgba(180,83,9,0.3);transition:opacity 0.2s;" onmouseenter="this.style.opacity='0.88'" onmouseleave="this.style.opacity='1'">🔄 Đồng bộ tài khoản HLV cũ</button>
       </div>
     </div>

@@ -62,9 +62,9 @@ const _state = {
     activeQueryErrorCount:  0,
     role:                   '',
     coachBranch:            '',
+    coachSingleBranch:      false,
+    coachBranchAliases:     [],
     coachBranchFallbackCount: 0,
-    coachBranchRecoveryAttempted: false,
-    coachBranchRecoveryCount: 0,
 
     // ── Quit load ─────────────────────────────────────────────────────────────
     quitLoaded:             false,
@@ -131,6 +131,20 @@ function _isCoachContext(context = _ctx) {
 
 function _coachBranch(context = _ctx) {
     return String((context && context.coachBranch) || _state.coachBranch || window.coachBranch || window.__store?.coachBranch || '').trim();
+}
+
+function _coachSingleBranch(context = _ctx) {
+    if (context && Object.prototype.hasOwnProperty.call(context, 'coachSingleBranch')) return !!context.coachSingleBranch;
+    if (_state.coachSingleBranch) return true;
+    return window.CoachBranchResolver?.isSingleBranchScope?.() === true;
+}
+
+function _coachBranchAliases(context = _ctx) {
+    const values = (context && context.coachBranchAliases) || _state.coachBranchAliases || window.CoachBranchResolver?.diagnostics?.().aliases || [];
+    const branch = _coachBranch(context);
+    const list = Array.isArray(values) ? values.slice() : [];
+    if (branch && !list.includes(branch)) list.unshift(branch);
+    return Array.from(new Set(list.map(v => String(v || '').trim()).filter(Boolean))).slice(0, 10);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -208,9 +222,9 @@ function _updateWindowMetrics() {
         activeQueryErrorCount:              _state.activeQueryErrorCount,
         role:                               _state.role,
         coachBranch:                        _state.coachBranch,
+        coachSingleBranch:                  _state.coachSingleBranch,
+        coachBranchAliases:                 _state.coachBranchAliases.slice(),
         coachBranchFallbackCount:           _state.coachBranchFallbackCount,
-        coachBranchRecoveryAttempted:        _state.coachBranchRecoveryAttempted,
-        coachBranchRecoveryCount:            _state.coachBranchRecoveryCount,
         // Quit
         quitLoaded:                         _state.quitLoaded,
         quitLoadCount:                      _state.quitLoadCount,
@@ -359,8 +373,12 @@ export function mountActiveProfilesListener(context) {
     const { profRef, clubId } = context;
     _state.role = _contextRole(context);
     _state.coachBranch = _coachBranch(context);
+    _state.coachSingleBranch = _coachSingleBranch(context);
+    _state.coachBranchAliases = _coachBranchAliases(context);
     const isCoach = _isCoachContext(context);
     const coachBranch = _coachBranch(context);
+    const coachSingleBranch = _coachSingleBranch(context);
+    const coachBranchAliases = _coachBranchAliases(context);
     if (isCoach && !coachBranch) {
         console.error('[ProfilesListener] Coach missing branch — fail closed, no profiles query');
         setActiveProfiles({}, 'coach-missing-branch');
@@ -368,32 +386,10 @@ export function mountActiveProfilesListener(context) {
         _syncLegacy();
         _state.lastProfilesMode = 'coach-missing-branch';
         _updateWindowMetrics();
-
-        // Phase 4K-6V4C1A: one safe recovery attempt. This reads only the
-        // signed-in Coach assignment docs; it never falls back to full profiles.
-        if (!_state.coachBranchRecoveryAttempted && window.CoachBranchResolver?.recoverCurrentSession) {
-            _state.coachBranchRecoveryAttempted = true;
-            _state.coachBranchRecoveryCount++;
-            window.CoachBranchResolver.recoverCurrentSession({
-                db: context.db,
-                clubId,
-                reason: 'profiles-listener-missing-branch',
-                remount: true,
-            }).catch(error => {
-                console.warn('[ProfilesListener] Coach branch recovery failed:', error?.message || error);
-            });
-        } else if (window.CoachBranchResolver?.showMissingBranchNotice) {
-            window.CoachBranchResolver.showMissingBranchNotice({
-                ok: false,
-                clubId,
-                reason: 'branch-assignment-missing',
-                needsAdminAssignment: true,
-            });
-        }
         return false;
     }
     const key = isCoach
-        ? 'students:profiles:active:' + clubId + ':coach:' + coachBranch
+        ? 'students:profiles:active:' + clubId + ':coach:' + coachBranch + (coachSingleBranch ? ':single' : ':scoped')
         : 'students:profiles:active:' + clubId + ':admin';
     _state.activeListenerKey = key;
 
@@ -434,9 +430,21 @@ export function mountActiveProfilesListener(context) {
                 const statusConstraint = statusValues.length === 1
                     ? fbWhere('status', '==', statusValues[0])
                     : fbWhere('status', 'in', statusValues);
-                activeQuery = isCoach
-                    ? fbQuery(profRef, statusConstraint, fbWhere('branch', '==', coachBranch))
-                    : fbQuery(profRef, statusConstraint);
+                if (!isCoach) {
+                    activeQuery = fbQuery(profRef, statusConstraint);
+                } else if (coachSingleBranch) {
+                    // A one-branch club may contain legacy branch values such as “Mặc định”.
+                    // Status-only is still safely scoped to the coach's only club branch.
+                    activeQuery = fbQuery(profRef, statusConstraint);
+                } else {
+                    const aliases = coachBranchAliases.length ? coachBranchAliases : [coachBranch];
+                    const branchConstraint = aliases.length === 1
+                        ? fbWhere('branch', '==', aliases[0])
+                        : fbWhere('branch', 'in', aliases);
+                    // Use one branch-alias query and classify status client-side. This avoids
+                    // combining two `in` operators while recovering legacy branch labels.
+                    activeQuery = fbQuery(profRef, branchConstraint);
+                }
             } catch (qErr) {
                 console.warn('[ProfilesListener] Build query lỗi:', qErr.message, '— fallback');
                 setTimeout(() => {
@@ -453,7 +461,9 @@ export function mountActiveProfilesListener(context) {
                     if (typeof window.recordFirestoreSnapshotAttribution === 'function') {
                         window.recordFirestoreSnapshotAttribution('profiles.activeListener', snap, {
                             initial: _state.activeSnapshotCount === 1,
-                            reason: isCoach ? 'active-status-branch-query' : 'active-status-query'
+                            reason: isCoach
+                                ? (coachSingleBranch ? 'active-status-single-branch-query' : 'active-branch-alias-query')
+                                : 'active-status-query'
                         });
                     }
                     if (window.markListenerSnapshot) window.markListenerSnapshot(key);
@@ -461,7 +471,11 @@ export function mountActiveProfilesListener(context) {
                     const activeMap = {};
                     snap.forEach(d => {
                         const id = d.id.trim();
-                        if (id) activeMap[id] = d.data();
+                        if (!id) return;
+                        const data = d.data();
+                        // Admin and single-branch coach queries already use active status.
+                        // Multi-branch alias query returns all statuses and is filtered here.
+                        if (!isCoach || coachSingleBranch || classifyProfileStatus(data) !== 'quit') activeMap[id] = data;
                     });
 
                     const activeCount = Object.keys(activeMap).length;
@@ -473,14 +487,21 @@ export function mountActiveProfilesListener(context) {
                     // Nếu snapshot đầu tiên trả 0 nhưng collection có docs,
                     // data cũ có thể thiếu status field → trigger full fallback.
                     // Dùng getDocs(limit(1)) — nhẹ, không đọc full collection.
-                    if (activeCount === 0 && _state.activeSnapshotCount === 1) {
+                    if (activeCount === 0 && snap.size === 0 && _state.activeSnapshotCount === 1) {
                         const _fb4k = window._fb_init || {};
                         const { query: _pQ4k, limit: _pL4k, getDocs: _pG4k } = _fb4k;
                         if (_pG4k && _pQ4k && _pL4k && profRef) {
                             // [GITHUB-FIX Task 4] Await fallback + invalidate sau khi hoàn tất
-                            const _probeQuery = isCoach
-                                ? _pQ4k(profRef, fbWhere('branch', '==', coachBranch), _pL4k(1))
-                                : _pQ4k(profRef, _pL4k(1));
+                            let _probeQuery;
+                            if (!isCoach || coachSingleBranch) {
+                                _probeQuery = _pQ4k(profRef, _pL4k(1));
+                            } else {
+                                const aliases = coachBranchAliases.length ? coachBranchAliases : [coachBranch];
+                                const constraint = aliases.length === 1
+                                    ? fbWhere('branch', '==', aliases[0])
+                                    : fbWhere('branch', 'in', aliases);
+                                _probeQuery = _pQ4k(profRef, constraint, _pL4k(1));
+                            }
                             _pG4k(_probeQuery).then(async function(_probe) {
                                 if (typeof window.recordFirestoreReadAttribution === 'function') {
                                     window.recordFirestoreReadAttribution('profiles.activeZeroProbe', _probe.size || 0, {
@@ -678,6 +699,8 @@ export function cleanupQuitProfilesListener(reason) {
 export async function loadCoachBranchProfilesFallback(reason) {
     const ctx = _ctx;
     const branch = _coachBranch(ctx);
+    const singleBranch = _coachSingleBranch(ctx);
+    const branchAliases = _coachBranchAliases(ctx);
     if (!_isCoachContext(ctx) || !ctx || !ctx.profRef || !branch) {
         console.warn('[ProfilesFallback] Coach branch fallback blocked — missing safe context:', reason);
         return false;
@@ -690,13 +713,24 @@ export async function loadCoachBranchProfilesFallback(reason) {
 
     _state.fallbackInProgress = true;
     try {
-        const branchQuery = fbQuery(ctx.profRef, fbWhere('branch', '==', branch));
+        let branchQuery;
+        if (singleBranch) {
+            branchQuery = fbQuery(ctx.profRef);
+        } else {
+            const aliases = branchAliases.length ? branchAliases : [branch];
+            const constraint = aliases.length === 1
+                ? fbWhere('branch', '==', aliases[0])
+                : fbWhere('branch', 'in', aliases);
+            branchQuery = fbQuery(ctx.profRef, constraint);
+        }
         const snap = await fbGetDocs(branchQuery);
         if (typeof window.recordFirestoreReadAttribution === 'function') {
             window.recordFirestoreReadAttribution('profiles.coachBranchFallbackQuery', snap.size || 0, {
                 initial: true,
                 reason: reason || 'coach-branch-fallback',
-                branch
+                branch,
+                singleBranch,
+                aliases: branchAliases
             });
         }
         const activeMap = {};
@@ -958,9 +992,9 @@ export function resetProfilesListeners(reason) {
     _state.activeQueryErrorCount   = 0;
     _state.role                    = '';
     _state.coachBranch             = '';
+    _state.coachSingleBranch       = false;
+    _state.coachBranchAliases      = [];
     _state.coachBranchFallbackCount = 0;
-    _state.coachBranchRecoveryAttempted = false;
-    _state.coachBranchRecoveryCount = 0;
 
     // Quit
     _state.quitLoaded              = false;

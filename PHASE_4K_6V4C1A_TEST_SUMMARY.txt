@@ -1,36 +1,41 @@
 PHASE 4K-6V4C1A TEST SUMMARY
 Date: 2026-06-22
 
-Dedicated Coach branch recovery:
-- node tools/check-coach-branch-assignment-recovery.mjs
-- Result: PASS 16/16
+PRIMARY GATES
+- npm run check: PASS (exit 0)
+- npm run check:all:critical: PASS (exit 0)
+- check-syntax: 121 items PASS
 
-Regression:
-- npm run check
-- Result: PASS, exit code 0
+ROLE / BRANCH
+- Coach Branch Resolution Recovery: 29/29 PASS
+- Coach Attendance-only Read Boundary: 30/30 PASS
+- Trusted Cache + Lazy Admin Reads: 28/28 PASS
 
-- npm run check:all:critical
-- Result: PASS, exit code 0
+ATTENDANCE
+- Attendance Canonical Ownership: 141 assertions PASS
+- Attendance Reliability: 20/20 PASS
+- Attendance Scheduled Accuracy: 22/22 PASS
+- Attendance Shift Filtering: 10/10 PASS
 
-Additional gates:
-- Coach Attendance-only: PASS 30/30
-- Trusted Cache + Lazy Admin Reads: PASS 28/28
-- Debt Profile Read Boundary: PASS 21/21
-- Deploy package: PASS 12/12
-- GitHub Pages paths: PASS 18/18
-- Firestore indexes: PASS 16/16
-- Production stability: PASS 22/22
-- Runtime stability: PASS 17/17
-- Attendance reliability: PASS 20/20
+REGRESSION / DEPLOY
+- Debt Profile Read Boundary: 21/21 PASS
+- Runtime Stability Gate: 17/17 PASS
+- Production Stability Gate: 22/22 PASS
+- Profile Listener Mount: PASS
+- Active-zero Fallback: PASS
+- Login Performance: PASS
+- Firestore Indexes: PASS
+- Deploy Package: PASS
+- GitHub Pages Paths: PASS
 
-Verified scenarios:
-1. Coach subdocument branch repairs an empty users/{uid}.branch.
-2. Legacy users branch remains a safe fallback.
-3. Legacy branch display names map to canonical CS codes.
-4. One-branch clubs auto-recover CS1.
-5. Multi-branch clubs with no assignment remain fail-closed.
-6. Fast/slow/fallback auth paths validate assignment before bootstrap.
-7. Profiles listener performs one safe recovery attempt and never full-reads all profiles.
-8. Admin can assign and persist a Coach branch from the Coach management screen.
-9. New Coach accounts cannot be created without a concrete branch.
-10. Admin Học phí/Báo nợ/Kho sources remain unchanged.
+CRITICAL SCENARIOS
+- Blank branch in multi-branch club remains unresolved and performs zero profile/attendance queries.
+- Blank branch in one-branch club safely resolves to CS1.
+- Legacy “Mặc định” maps to CS1 for one-branch club.
+- Configured branch names map to canonical CSn values.
+- coaches/{uid} branch wins over stale users/cache branch and conflicts are diagnosed.
+- Multi-branch profile query is server-scoped by exact branch aliases.
+- Single-branch profile/attendance reads include legacy branch values without exposing another branch.
+- New coach accounts cannot be created with “Tất cả cơ sở”.
+- Admin can repair each unresolved coach account from the Coach Accounts UI.
+- Học phí, Báo nợ, Kho and V4C1 cache/lazy-read gates remain green.
