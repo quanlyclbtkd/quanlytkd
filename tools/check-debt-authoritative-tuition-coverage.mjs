@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** Phase 4K-6V4B8 — Debt Authoritative Tuition Coverage */
+/** Phase 4K-6V4B9 — Debt Authoritative Tuition Coverage */
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -18,12 +18,12 @@ const listRefresh = read('js/ui/render/listComputationRefresh.js');
 
 let pass=0, fail=0;
 function check(name, ok, detail='') { if (ok) { pass++; console.log('✅', name); } else { fail++; console.error('❌', name + (detail ? ' — '+detail : '')); } }
-console.log('\n=== Phase 4K-6V4B8 — Debt Authoritative Tuition Coverage ===\n');
+console.log('\n=== Phase 4K-6V4B9 — Debt Authoritative Tuition Coverage ===\n');
 
-const build='debt-two-month-vietnamese-month-20260627-v4b8';
-check('index/main/app cache-busted for V4B8', index.includes(`app.js?v=${build}`) && index.includes(`main.js?v=${build}`) && main.includes(`modules/students.js?v=${build}`) && renderStudents.includes(`studentsRenderer.js?v=${build}`) && listRefresh.includes(`studentsRenderer.js?v=${build}`));
-check('app normalizeYYYYMM supports MM/YYYY, T numeric and Vietnamese month-word formats', app.includes("_monthWordToNumber") && app.includes("Tháng tư 2026") && app.includes("raw.match(/^(\\d{1,2})[-\\/](20\\d{2})$/)") && app.includes("raw.match(/^(?:T)?(\\d{1,2})[-\\/]?(20\\d{2})$/i)"));
-check('utils normalizeYYYYMM mirrors month-word parser', fmt.includes("_monthWordToNumber") && fmt.includes("muoi mot") && fmt.includes("raw.match(/^(\\d{1,2})[-\\/](20\\d{2})$/)"));
+const build='debt-month-five-vietnamese-word-20260627-v4b9';
+check('index/main/app cache-busted for V4B9', index.includes(`app.js?v=${build}`) && index.includes(`main.js?v=${build}`) && main.includes(`modules/students.js?v=${build}`) && renderStudents.includes(`studentsRenderer.js?v=${build}`) && listRefresh.includes(`studentsRenderer.js?v=${build}`));
+check('app normalizeYYYYMM supports MM/YYYY, T numeric and Vietnamese month-word formats', app.includes("_monthWordToNumber") && app.includes("Tháng năm 2026") && app.includes("Tháng tư 2026") && app.includes("raw.match(/^(\\d{1,2})[-\\/](20\\d{2})$/)") && app.includes("raw.match(/^(?:T)?(\\d{1,2})[-\\/]?(20\\d{2})$/i)"));
+check('utils normalizeYYYYMM mirrors month-word parser', fmt.includes("_monthWordToNumber") && fmt.includes("Tháng năm 2026") && fmt.includes("muoi mot") && fmt.includes("raw.match(/^(\\d{1,2})[-\\/](20\\d{2})$/)"));
 check('global normalizeTuitionMonth exposed', app.includes('window.normalizeTuitionMonth = normalizeYYYYMM'));
 check('getChargeableTuitionMonths normalizes selectedMonth, paidUntil, paidMonths and skippedMonths', app.includes('const selMonth = normalizeYYYYMM(selectedMonth') && app.includes('skippedMonths.map(function(m) { return normalizeYYYYMM(m); })') && app.includes('paidMonths.map(function(m) { return normalizeYYYYMM(m); })') && app.includes('const paidUntil = normalizeYYYYMM'));
 check('legacy isOwed is only additive and cannot suppress canonical debt', app.includes('p.isOwed === true && Array.isArray(p.owedMonths)') && app.includes('Only merge legacy owed months when they ADD evidence'));
@@ -43,6 +43,10 @@ function chargeable(p, selected){ const sel=normalizeYYYYMM(selected); if(!sel||
 check('Dynamic: paidUntil 05/2026 owes 2026-06', JSON.stringify(chargeable({paidUntil:'05/2026'}, '2026-06')) === JSON.stringify(['2026-06']));
 check('Dynamic: paidUntil T5/2026 owes 2026-06', JSON.stringify(chargeable({paidUntil:'T5/2026'}, '2026-06')) === JSON.stringify(['2026-06']));
 check('Dynamic: paidUntil Tháng 5/2026 owes 2026-06', JSON.stringify(chargeable({paidUntil:'Tháng 5/2026'}, '2026-06')) === JSON.stringify(['2026-06']));
+check('Dynamic: paidUntil Tháng năm 2026 owes June only', JSON.stringify(chargeable({paidUntil:'Tháng năm 2026'}, '2026-06')) === JSON.stringify(['2026-06']));
+check('Dynamic: paidUntil Tháng Năm năm 2026 owes June only', JSON.stringify(chargeable({paidUntil:'Tháng Năm năm 2026'}, 'Tháng 6 năm 2026')) === JSON.stringify(['2026-06']));
+check('Dynamic: paidUntil thang nam 2026 normalizes to 2026-05', normalizeYYYYMM('thang nam 2026') === '2026-05');
+check('Dynamic: numeric month variants normalize to the same month 2026-05', ['05/2026','5/2026','Tháng 5/2026','Tháng 5 2026','Tháng 5 - 2026','T5/2026'].every(v => normalizeYYYYMM(v) === '2026-05'));
 check('Dynamic: paidUntil Tháng tư 2026 owes May and June', JSON.stringify(chargeable({paidUntil:'Tháng tư 2026'}, '2026-06')) === JSON.stringify(['2026-05','2026-06']));
 check('Dynamic: paidUntil Tháng Tư năm 2026 owes 2 months for June', JSON.stringify(chargeable({paidUntil:'Tháng Tư năm 2026'}, 'Tháng 6 năm 2026')) === JSON.stringify(['2026-05','2026-06']));
 check('Dynamic: paidUntil thang muoi mot 2026 normalizes to 2026-11', normalizeYYYYMM('thang muoi mot 2026') === '2026-11');
@@ -55,4 +59,4 @@ check('Report debt export uses canonical chargeable months, not raw paidUntil co
 
 console.log(`\nTotal: ${pass+fail} | PASS: ${pass} | FAIL: ${fail}`);
 if (fail) process.exit(1);
-console.log('Phase 4K-6V4B8 checks passed.\n');
+console.log('Phase 4K-6V4B9 checks passed.\n');

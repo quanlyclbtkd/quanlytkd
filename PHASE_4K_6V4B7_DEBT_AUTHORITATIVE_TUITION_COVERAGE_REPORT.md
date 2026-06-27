@@ -145,7 +145,7 @@ Các nơi đã chuyển sang dùng canonical months:
 Cập nhật cache-bust:
 
 ```text
-debt-two-month-vietnamese-month-20260627-v4b8
+debt-month-five-vietnamese-word-20260627-v4b9
 ```
 
 cho:

@@ -1,4 +1,4 @@
-// Phase 4K-6V4B8: debt-two-month-vietnamese-month-normalization-20260627
+// Phase 4K-6V4B9: debt-month-five-vietnamese-word-normalization-20260627
     /* Firestore security rules source of truth: ./firestore.rules */
 // LEGACY APP KERNEL — DO NOT DELETE DIRECTLY
 // Responsibilities kept in app.js for now:
@@ -523,7 +523,7 @@ window.invCustomCategories = [];
             } catch (_) {}
         }
 
-        // Phase 4K-6V4B8: chuẩn hóa cả tháng tiếng Việt dạng chữ.
+        // Phase 4K-6V4B8/B9: chuẩn hóa cả tháng tiếng Việt dạng chữ.
         // Ví dụ: "Tháng tư 2026", "Tháng Tư năm 2026", "thang muoi mot 2026".
         // Lỗi cũ: các chuỗi này parse rỗng → Báo nợ chỉ tính 1 tháng hoặc bị ẩn
         // khi bật bộ lọc nợ từ 2 tháng trở lên.
@@ -540,27 +540,46 @@ window.invCustomCategories = [];
         function _monthWordToNumber(phrase) {
             let key = _foldMonthText(phrase)
                 .replace(/\b(thang|month|t)\b/g, ' ')
-                .replace(/\b(nam|year)\b\s*$/g, ' ')
                 .replace(/\s+/g, ' ')
                 .trim();
             if (!key) return 0;
-            const numeric = key.match(/\b(1[0-2]|0?[1-9])\b/);
-            if (numeric) return Number(numeric[1]);
+
+            // Phase 4K-6V4B9: “Tháng năm 2026” means month 5.
+            // V4B8 stripped a trailing “nam” as the word “year” before checking the
+            // month map, so “thang nam 2026” became empty and the debt engine missed
+            // June debt. Parse numeric/exact month words first; strip a trailing
+            // year marker only when another month token remains.
             const map = {
                 'mot': 1, 'm ot': 1, 'hai': 2, 'ba': 3, 'bon': 4, 'tu': 4,
                 'nam': 5, 'lam': 5, 'sau': 6, 'bay': 7, 'tam': 8, 'chin': 9,
-                'muoi': 10, 'muoi mot': 11, 'muoi lam': 15, 'muoi hai': 12,
+                'muoi': 10, 'muoi mot': 11, 'muoi hai': 12,
+                'thu mot': 1, 'thu hai': 2, 'thu ba': 3, 'thu bon': 4, 'thu tu': 4,
+                'thu nam': 5, 'thu sau': 6, 'thu bay': 7, 'thu tam': 8, 'thu chin': 9,
                 'jan': 1, 'january': 1, 'feb': 2, 'february': 2, 'mar': 3, 'march': 3,
                 'apr': 4, 'april': 4, 'may': 5, 'jun': 6, 'june': 6,
                 'jul': 7, 'july': 7, 'aug': 8, 'august': 8, 'sep': 9, 'sept': 9, 'september': 9,
                 'oct': 10, 'october': 10, 'nov': 11, 'november': 11, 'dec': 12, 'december': 12,
             };
-            if (map[key] >= 1 && map[key] <= 12) return map[key];
-            if (key.includes('muoi hai')) return 12;
-            if (key.includes('muoi mot')) return 11;
-            if (key.includes('muoi')) return 10;
-            return 0;
+            function read(k) {
+                const text = String(k || '').replace(/\s+/g, ' ').trim();
+                if (!text) return 0;
+                const numeric = text.match(/\b(1[0-2]|0?[1-9])\b/);
+                if (numeric) return Number(numeric[1]);
+                if (map[text] >= 1 && map[text] <= 12) return map[text];
+                if (/\bmuoi\s+hai\b/.test(text)) return 12;
+                if (/\bmuoi\s+mot\b/.test(text)) return 11;
+                if (/^muoi$/.test(text)) return 10;
+                return 0;
+            }
+            const direct = read(key);
+            if (direct) return direct;
+            const strippedYearMarker = key.replace(/\b(year)\b\s*$/g, '').replace(/\s+/g, ' ').trim();
+            const strippedVietnameseYear = key.replace(/\bnam\b\s*$/g, '').replace(/\s+/g, ' ').trim();
+            // Only treat a trailing “nam” as the word “year” if something remains.
+            // Otherwise keep it as tháng năm = month 5.
+            return read(strippedYearMarker) || (strippedVietnameseYear ? read(strippedVietnameseYear) : 0);
         }
+
 
         const foldedRaw = _foldMonthText(raw);
         const yearMatch = foldedRaw.match(/\b(20\d{2})\b/);
@@ -5038,11 +5057,14 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             if (!isSingleBranch && selBranch !== 'all' && p.branch !== selBranch) return;
 
             let owedMonths = [];
-            if (!p.skippedMonths || !p.skippedMonths.includes(selMonth)) {
-                let firstUnpaid = p.paidUntil ? addMonthsToYYYYMM(p.paidUntil, 1) : (p.createdAt ? p.createdAt.substring(0, 7) : selMonth);
+            if (typeof window.getChargeableTuitionMonths === 'function') {
+                owedMonths = window.getChargeableTuitionMonths(p, selMonth, { reason: 'legacy-bulk-zalo-debt' });
+            } else if (!p.skippedMonths || !p.skippedMonths.map(function(m) { return normalizeYYYYMM(m); }).includes(normalizeYYYYMM(selMonth))) {
+                const _firstUnpaidBase = normalizeYYYYMM(p.paidUntil || '');
+                let firstUnpaid = _firstUnpaidBase ? addMonthsToYYYYMM(_firstUnpaidBase, 1) : (normalizeYYYYMM(p.createdAt) || normalizeYYYYMM(selMonth));
                 let cur = firstUnpaid;
                 // [SỬA BÁO NỢ] Thêm giới hạn 24 tháng giống renderApp — tránh vòng lặp vô hạn
-                while(cur <= selMonth && owedMonths.length < 24) { if(!p.skippedMonths || !p.skippedMonths.includes(cur)) owedMonths.push(cur); cur = addMonthsToYYYYMM(cur, 1); }
+                while(cur <= normalizeYYYYMM(selMonth) && owedMonths.length < 24) { if(!p.skippedMonths || !p.skippedMonths.map(function(m) { return normalizeYYYYMM(m); }).includes(cur)) owedMonths.push(cur); cur = addMonthsToYYYYMM(cur, 1); }
             }
             if (owedMonths.length === 0) return;
 

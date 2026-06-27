@@ -170,7 +170,7 @@ Nhờ vậy tab Báo nợ và file xuất nợ không còn lệch nhau.
 Đã cập nhật cache-bust để mobile/desktop không dùng module V4B7 cũ:
 
 ```text
-debt-two-month-vietnamese-month-20260627-v4b8
+debt-month-five-vietnamese-word-20260627-v4b9
 ```
 
 ## 6. Kiểm thử chính

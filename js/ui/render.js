@@ -59,7 +59,7 @@ import {
     computeAndCacheStudents,
     getStudentsSummary,
     getStudentsCachedHtml,
-} from './render/computation/studentsRenderer.js?v=debt-two-month-vietnamese-month-20260627-v4b8';
+} from './render/computation/studentsRenderer.js?v=debt-month-five-vietnamese-word-20260627-v4b9';
 import {
     computeAndCacheInventory,
     getCachedLiveInvMap,

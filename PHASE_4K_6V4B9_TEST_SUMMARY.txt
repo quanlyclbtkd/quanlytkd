@@ -1,0 +1,41 @@
+PHASE 4K-6V4B9 TEST SUMMARY
+Date: 2026-06-27
+
+Commands run:
+- npm run check: PASS, exit code 0
+- npm run check:all:critical: PASS, exit code 0
+
+Focused debt gates:
+- Debt Authoritative Tuition Coverage: 29/29 PASS
+- Debt Full Coverage: 10/10 PASS
+- Debt Load More / Filter: PASS
+- Debt Actions Sync: 17/17 PASS
+- Debt Service Bridge: 11/11 PASS
+
+Deploy/runtime gates:
+- Deploy Package: 12/12 PASS
+- GitHub Pages Paths: 18/18 PASS
+- Firestore Indexes: 16/16 PASS
+- Production Stability: 22/22 PASS
+- Runtime Stability: 17/17 PASS
+
+Dynamic month parser cases:
+- 05/2026 => 2026-05
+- 5/2026 => 2026-05
+- T5/2026 => 2026-05
+- 2026/5 => 2026-05
+- Tháng 5/2026 => 2026-05
+- Tháng 5 2026 => 2026-05
+- Tháng 5 - 2026 => 2026-05
+- Tháng năm 2026 => 2026-05
+- Tháng Năm năm 2026 => 2026-05
+- thang nam 2026 => 2026-05
+- Tháng tư 2026 => 2026-04
+- Tháng mười một 2026 => 2026-11
+
+Critical debt cases:
+- paidUntil Tháng năm 2026, selectedMonth 2026-06 => [2026-06]
+- paidUntil Tháng tư 2026, selectedMonth 2026-06 => [2026-05, 2026-06]
+- stale isOwed false cannot suppress real debt
+- paidMonths 2026-06 suppresses June debt correctly
+- skippedMonths 06/2026 suppresses June debt correctly
