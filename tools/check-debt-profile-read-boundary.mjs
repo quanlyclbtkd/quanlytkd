@@ -20,11 +20,11 @@ function check(name, ok, detail = '') {
 }
 
 console.log('\n=== Phase 4K-6V3D — Debt Profile Coverage Read Boundary ===\n');
-const build = 'coach-attendance-only-20260619-v4a';
+const debtPos = index.lastIndexOf('debtProfileReadBoundary.js?v=');
+const appPos = index.lastIndexOf('app.js?v=');
 
 check('V3D boundary remains loaded before app.js with current cache-bust',
-  index.includes(`debtProfileReadBoundary.js?v=${build}`) &&
-  index.indexOf('debtProfileReadBoundary.js') < index.indexOf(`app.js?v=${build}`));
+  debtPos >= 0 && appPos > debtPos);
 check('Firebase bridge exposes runTransaction for distributed lock',
   index.includes('getCountFromServer, runTransaction') && index.includes('window._fb_init'));
 check('Debt tab compatibility loader no longer contains cursor full scan',

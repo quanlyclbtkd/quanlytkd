@@ -31,15 +31,13 @@ function hasIndex(group, fields) {
     fields.every((field, idx) => i.fields[idx] && i.fields[idx].fieldPath === field));
 }
 
-console.log('\n=== Phase 4K-6V4A — Coach Attendance-Only Read Boundary ===\n');
+console.log('\n=== Phase 4K-6V4A compatibility — Coach Attendance-Only Read Boundary ===\n');
 
-const roleSrc = './js/core/roleReadBoundary.js?v=coach-attendance-only-20260619-v4a';
-const txSrc = './js/core/transactionCanonicalBoundary.js?v=coach-attendance-only-20260619-v4a';
-const appSrc = 'app.js?v=coach-attendance-only-20260619-v4a';
+const rolePos = index.lastIndexOf('./js/core/roleReadBoundary.js?v=');
+const txPos = index.lastIndexOf('./js/core/transactionCanonicalBoundary.js?v=');
+const appPos = index.lastIndexOf('app.js?v=');
 check('Role read boundary loads before transaction boundary and app.js',
-  index.includes(roleSrc) && index.includes(txSrc) &&
-  index.indexOf(roleSrc) < index.indexOf(txSrc) &&
-  index.indexOf(roleSrc) < index.indexOf(appSrc));
+  rolePos >= 0 && txPos >= 0 && appPos >= 0 && rolePos < txPos && rolePos < appPos);
 check('Coach UI exposes only Attendance and hides full Add Student controls',
   app.includes("(btn.id === 'btn_attendance')") &&
   app.includes("'btnAddStudent'") &&
@@ -84,7 +82,8 @@ check('Coach profile query is server-scoped by status + branch',
   profiles.includes("fbQuery(profRef, statusConstraint, fbWhere('branch', '==', coachBranch))"));
 check('Coach zero probe and fallback are branch-scoped',
   profiles.includes("fbWhere('branch', '==', coachBranch), _pL4k(1)") &&
-  profiles.includes("fbQuery(ctx.profRef, fbWhere('branch', '==', branch))"));
+  profiles.includes("fbQuery(ctx.profRef, fbWhere('branch', '==', alias))") &&
+  profiles.includes('_coachBranchAliases(ctx)'));
 check('Coach never executes full-club profiles fallback, quit load or export load',
   profiles.includes("return loadCoachBranchProfilesFallback('redirected-from-full:'") &&
   profiles.includes("canMount?.('profiles.quit'") && profiles.includes("canMount?.('profiles.export-all'"));
@@ -95,12 +94,13 @@ check('Debt boundary refuses Coach coverage audit/full fallback',
 check('Club stats cache sync has a runtime Coach guard',
   statsCache.includes("canMount?.('club.stats-cache'") && statsCache.includes("reason: 'coach-attendance-only'"));
 check('Attendance daily query supports branch and fails closed when Coach branch is missing',
-  attendanceService.includes("where('branch', '==', branch)") &&
+  attendanceService.includes('_branchConstraint(where, branch, isCoach)') &&
+  attendanceService.includes("where('branch', 'in', aliases)") &&
   attendanceService.includes('attendance/coach-branch-required'));
 check('Attendance monthly and member-history queries support branch scope',
   attendanceService.includes("canMount?.('attendance.monthly'") &&
   attendanceService.includes("canMount?.('attendance.member-history'") &&
-  attendanceService.includes("constraints.push(where('branch', '==', branch))"));
+  attendanceService.includes("constraints.push(where('branch', '==', alias))"));
 check('Attendance UI passes selected/assigned branch into daily and monthly services',
   attendanceModule.includes('branch: _dailyBranch') &&
   attendanceModule.includes("branch: selBranch === 'all' ? '' : selBranch"));
@@ -185,4 +185,4 @@ check('Required Firestore indexes are declared',
 
 console.log(`\nTotal: ${pass+fail} | PASS: ${pass} | FAIL: ${fail}`);
 if (fail) process.exit(1);
-console.log('Phase 4K-6V4A checks passed.\n');
+console.log('Phase 4K-6V4A compatibility checks passed.\n');

@@ -66,6 +66,22 @@ const _getBrN = (br) =>
 // ── Smart-name helpers (moved from render.js) ─────────────────────────────────
 const _strip = (k) => k.replace(/\s*\([^)]*\)\s*$/, '').replace(/\s*\[[^\]]*\]\s*$/, '').trim().toLowerCase();
 const _disp  = (k) => k.replace(/\s*\([^)]*\)\s*$/, '').replace(/\s*\[[^\]]*\]\s*$/, '').trim();
+function _profileDisplayName(id, p) {
+    const data = p || {};
+    const candidates = [
+        data.name,
+        data.fullName,
+        data.displayName,
+        data.studentName,
+        data.hoTen,
+        id,
+    ];
+    for (const value of candidates) {
+        const text = String(value || '').trim();
+        if (text) return text;
+    }
+    return String(id || '').trim();
+}
 
 /**
  * Build year-disambiguation badge for duplicate display names.
@@ -167,8 +183,10 @@ export function renderDebtRow(name, p, opts = {}) {
  */
 export function renderQuitRow(name, p, opts = {}) {
     const { beltHTML = '', branchTdHTML = '', yrBadge = '', isAdmin = false } = opts;
-    const safeNameEsc = name.replace(/'/g, "\\'");
-    return `<tr data-quit-id="${safeNameEsc}"><td class="name-link text-[0.95rem]" onclick="openProfile('${safeNameEsc}')">${_disp(name)}${yrBadge}</td><td class="text-[0.7rem] font-bold text-slate-500">${p.memberId || '-'}</td><td>${beltHTML}</td>${branchTdHTML}<td>${formatDate(p.dob)}</td><td>${formatDate(p.quitDate)}</td><td>${isAdmin ? `<button type="button" class="btn-sm bg-emerald-50 text-emerald-700 border border-emerald-200" onclick="openProfile('${safeNameEsc}')">🔄 Khôi phục</button>` : ''}</td></tr>`;
+    const safeNameEsc = name.replace(/'/g, "\'");
+    const displayName = _profileDisplayName(name, p);
+    const safeDisplayAttr = String(displayName || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return `<tr data-quit-id="${safeNameEsc}" data-profile-name="${safeDisplayAttr}"><td class="name-link text-[0.95rem]" onclick="openProfile('${safeNameEsc}')">${_disp(displayName)}${yrBadge}</td><td class="text-[0.7rem] font-bold text-slate-500">${p.memberId || '-'}</td><td>${beltHTML}</td>${branchTdHTML}<td>${formatDate(p.dob)}</td><td>${formatDate(p.quitDate)}</td><td>${isAdmin ? `<button type="button" class="btn-sm bg-emerald-50 text-emerald-700 border border-emerald-200" onclick="openProfile('${safeNameEsc}')">🔄 Khôi phục</button>` : ''}</td></tr>`;
 }
 
 // ── Core computation ──────────────────────────────────────────────────────────
@@ -261,6 +279,10 @@ export function computeAndCacheStudents(allProfiles, params) {
     // Biến này dùng trong vòng lặp PASS 1 — phải khai báo tại đây, không được ở sau PASS 2
     const fullProfilesCount = Object.keys(allProfiles || {}).length;
     const useFullProfileActiveRender = buildActive && fullProfilesCount > 0 && !search;
+    // Phase 4K-6V4B2: Quit tab must prefer the full/lazy quit profile store.
+    // Pagination currentItems can belong to the Active tab or only one server page;
+    // using it here causes missing quit students even when allProfiles already has them.
+    const useFullProfileQuitRender = buildQuit && fullProfilesCount > 0;
 
     if (!buildActive && !buildDebt && !buildQuit) {
         _metrics.skippedHiddenTab++;
@@ -428,7 +450,7 @@ export function computeAndCacheStudents(allProfiles, params) {
             }
         } else {
             if (p.quitDate && p.quitDate.substring(0, 7) === selMonth) m_quit++;
-            if (!pgStudentsActive && buildQuit) {
+            if ((!pgStudentsActive || useFullProfileQuitRender) && buildQuit) {
                 _quitTotalCount++;
                 if (_quitRendered < _quitLimit) {
                     _quitRendered++;
@@ -438,10 +460,12 @@ export function computeAndCacheStudents(allProfiles, params) {
         }
     });
 
-    // ── PASS 2 (Phase 3.2A): Override active/quit from server-side pagination ──
-    // Phase 4K-5J-2: Skip PASS 2 override when full profiles already hydrated
+    // ── PASS 2 (Phase 3.2A): Override active from server-side pagination only
+    // Phase 4K-6V4B2: Do NOT override quit rows when full/lazy quit profiles exist.
+    // Otherwise #quitList can lose names because pgStudents.currentItems may be an
+    // active page or a partial status-query page.
     // useFullProfileActiveRender declared before PASS 1 to avoid TDZ ReferenceError
-    if (pgStudentsActive && pgStudents && !useFullProfileActiveRender) {
+    if (pgStudentsActive && pgStudents && !useFullProfileActiveRender && !useFullProfileQuitRender) {
         activeRows = buildActive ? '' : null;
         quitRows   = buildQuit   ? '' : null;
         _activeTotalCount = 0;
@@ -579,7 +603,7 @@ export function computeAndCacheStudents(allProfiles, params) {
     // if (buildActive && _activeTotalCount > _activeRendered) { ... }
 
     // Quit load more — chỉ khi không có server-side pagination
-    if (!pgStudentsActive) {
+    if (!pgStudentsActive || useFullProfileQuitRender) {
         if (buildQuit && _quitTotalCount > _quitLimit) {
             quitRows += `<tr><td colspan="${_moreColspan}" ${_moreStyle}><button type="button" ${_moreBtnSt} onclick="_loadMore('quit')">⬇ Tải thêm — còn ${_quitTotalCount - _quitRendered} võ sinh nữa</button></td></tr>`;
         }

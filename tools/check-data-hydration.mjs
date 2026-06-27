@@ -132,8 +132,17 @@ checkPattern(appSrc, "lastReason:               'transactions-merge-render'",
 // ── 7. Metrics cập nhật trong inventory listener ─────────────────
 console.log('');
 console.log('[DataHydrationCheck] Kiểm tra metrics update trong inventory listener...');
-checkPattern(appSrc, "lastReason:             'inventory-snapshot'",
-    'update metrics trong _invCb (inventory)');
+const inventoryPublishStart = appSrc.indexOf('const _publishInventoryHistory');
+const inventoryPublishEnd = appSrc.indexOf('// Phase 4K-6V2C: local write-through', inventoryPublishStart);
+const inventoryPublishSection = inventoryPublishStart >= 0 && inventoryPublishEnd > inventoryPublishStart
+    ? appSrc.slice(inventoryPublishStart, inventoryPublishEnd)
+    : '';
+checked++;
+if (inventoryPublishSection.includes('inventorySnapshotCount') && inventoryPublishSection.includes('inventoryDocCount')) {
+    pass('update metrics trong canonical inventory history publisher');
+} else {
+    fail('canonical inventory publisher chưa cập nhật hydration metrics');
+}
 
 // ── 8. Metrics cập nhật khi club/settings loaded ─────────────────
 console.log('');

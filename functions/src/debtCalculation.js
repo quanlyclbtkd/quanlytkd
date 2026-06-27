@@ -34,6 +34,7 @@
  */
 
 const functions = require('firebase-functions');
+const { requireClubAdmin } = require('./authz');
 const admin     = require('firebase-admin');
 
 const { calcDebt, getCurrentMonthVN } = require('./helpers');
@@ -207,7 +208,7 @@ exports.scheduledDebtRecalculation = functions
 
 // ════════════════════════════════════════════════════════════════
 // CALLABLE: recalcDebtForClub
-// Admin / HLV gọi thủ công để refresh debt flags ngay lập tức
+// Chỉ Admin/SuperAdmin gọi thủ công để refresh debt flags ngay lập tức
 //
 // Client side gọi:
 //   const fn = firebase.functions().httpsCallable('recalcDebtForClub');
@@ -239,17 +240,9 @@ exports.recalcDebtForClub = functions
             );
         }
 
-        // Kiểm tra quyền: user phải thuộc club này hoặc là superadmin
-        const userDoc  = await db.doc(`users/${context.auth.uid}`).get();
-        const userData = userDoc.exists ? userDoc.data() : {};
-
-        const isSuperAdmin = context.auth.token.email === 'admin@tstquynhon.com';
-        if (!isSuperAdmin && userData.clubId !== clubId) {
-            throw new functions.https.HttpsError(
-                'permission-denied',
-                'Bạn không có quyền truy cập câu lạc bộ này!'
-            );
-        }
+        // Phase 4K-6V4B: callable này đọc/ghi toàn bộ hồ sơ nợ của CLB,
+        // vì vậy Coach/Viewer không được phép gọi dù cùng clubId.
+        await requireClubAdmin({ db, functions, context, clubId });
 
         // Query chỉ active profiles
         const profilesSnap = await db

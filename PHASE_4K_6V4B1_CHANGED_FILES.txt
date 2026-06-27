@@ -1,0 +1,15 @@
+Phase 4K-6V4B1 — Changed files
+
+app.js
+firestore.rules
+index.html
+js/core/branchIdentity.js
+js/core/coachBranchRuntimeRepair.js
+js/main.js
+js/modules/attendance.js
+package-lock.json
+package.json
+tools/check-coach-branch-runtime-repair.mjs
+tools/check-security-coach-branch-boundary.mjs
+tools/firestore-rules-6v4b.test.mjs
+public/ (rebuilt from source)

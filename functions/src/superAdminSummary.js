@@ -11,6 +11,7 @@
 
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
+const { requireClubAdmin } = require('./authz');
 const { getCurrentMonthVN, getTxMonth, classifyTx } = require('./helpers');
 
 const db = admin.firestore();
@@ -257,11 +258,7 @@ exports.refreshSuperAdminSummaryForClub = functions
     const clubId = data && data.clubId;
     if (!clubId) throw new functions.https.HttpsError('invalid-argument', 'Thiếu clubId.');
 
-    const userDoc = await db.doc(`users/${context.auth.uid}`).get();
-    const userData = userDoc.exists ? userDoc.data() : {};
-    const isSuperAdmin = context.auth.token.role === 'super_admin' || context.auth.token.email === 'admin@tstquynhon.com' || userData.role === 'super_admin';
-    if (!isSuperAdmin && userData.clubId !== clubId) throw new functions.https.HttpsError('permission-denied', 'Không có quyền cập nhật thống kê CLB này.');
-
+    await requireClubAdmin({ db, functions, context, clubId });
     return refreshSuperAdminSummaryForClubInternal(clubId, { month: data.month });
   });
 

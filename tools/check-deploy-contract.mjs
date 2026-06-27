@@ -134,8 +134,10 @@ for (const critical of CRITICAL_FILES) {
         }
     }
 }
-if (!ignores.some(p => p.includes('functions'))) {
-    warn('hosting.ignore không exclude "functions/**" — functions source sẽ bị deploy lên Hosting (lãng phí bandwidth nhưng không hại).');
+if (publicDir === '.' && !ignores.some(p => p.includes('functions'))) {
+    warn('hosting.ignore không exclude "functions/**" trong flat-root mode.');
+} else if (publicDir !== '.') {
+    pass('Public sub-directory cô lập functions/tools/reports khỏi Hosting');
 }
 pass('ignore config không xóa nhầm file app chính');
 

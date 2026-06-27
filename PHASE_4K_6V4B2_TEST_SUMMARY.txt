@@ -1,0 +1,37 @@
+PHASE 4K-6V4B2 TEST SUMMARY
+Date: 2026-06-27
+
+Base: taekwondo-phase4K-6V4B1-coach-branch-runtime-repair-complete.zip
+
+Result:
+- npm run check: PASS, exit code 0
+- npm run check:all:critical: PASS, exit code 0
+
+Dedicated:
+- node tools/check-quit-tab-completeness.mjs
+- PASS 12/12
+
+Key gates:
+- Syntax: 232 items PASS
+- Deploy package: 12/12 PASS
+- GitHub Pages paths: 18/18 PASS
+- Firestore indexes: 16/16 PASS
+- Runtime stability: 17/17 PASS
+- Production stability: 22/22 PASS
+- Coach Attendance-only: 30/30 PASS
+- Security Coach Branch Boundary: 35/35 PASS
+- Coach Branch Runtime Repair: 25/25 PASS
+- Debt Profile Boundary: 21/21 PASS
+- Inventory Ledger Reconciliation: 33/33 PASS
+
+Verified:
+1. Quit lazy loader remains Admin-only and blocks Coach quit reads.
+2. Quit loader keeps status query as primary source.
+3. Quit loader includes legacy active/isActive/quit/isQuit/stopped/quitDate signals.
+4. Broad legacy signals are filtered through classifyProfileStatus(data) === 'quit'.
+5. Per-query failure does not abort the whole quit load.
+6. Read attribution records total docs read and per-query diagnostics.
+7. Quit list renders from full/lazy profile store instead of active pagination currentItems.
+8. PASS1 renders quit rows even when pagination is enabled if full quit profiles exist.
+9. Quit load-more uses full quit profile count.
+10. Quit row display prefers profile name fields while keeping docId for openProfile.

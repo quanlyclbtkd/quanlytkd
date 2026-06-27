@@ -570,7 +570,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 <!-- Phase 4K-6V3BC1 regression markers: transactionCanonicalBoundary.js?v=automatic-canonical-transaction-optimization-20260616-v3bc1; app.js?v=automatic-canonical-transaction-optimization-20260616-v3bc1; main.js?v=automatic-canonical-transaction-optimization-20260616-v3bc1 -->
 <!-- Phase 4K-6V3BC1 automatic per-club optimization: automatic-canonical-transaction-optimization-20260616-v3bc1 -->
 <!-- Phase 4K-6V3D debt profile coverage boundary: debt-profile-read-boundary-20260616-v3d -->
-<!-- Phase 4K-6V4A Coach Attendance-Only Read Boundary: coach-attendance-only-20260619-v4a --><script defer src="./js/core/roleReadBoundary.js?v=coach-attendance-only-20260619-v4a"></script><script defer src="./js/core/transactionCanonicalBoundary.js?v=coach-attendance-only-20260619-v4a"></script><script defer src="./js/core/debtProfileReadBoundary.js?v=coach-attendance-only-20260619-v4a"></script><script defer src="app.js?v=coach-attendance-only-20260619-v4a"></script><script>
+<!-- Phase 4K-6V4B1 Coach Branch Assignment + Runtime Repair: coach-branch-runtime-repair-20260627-v4b1 --><!-- Phase 4K-6V4B2 Quit Tab Completeness: quit-tab-completeness-20260627-v4b2 --><script defer src="./js/core/branchIdentity.js?v=coach-branch-runtime-repair-20260627-v4b1"></script><script defer src="./js/core/coachBranchRuntimeRepair.js?v=coach-branch-runtime-repair-20260627-v4b1"></script><script defer src="./js/core/roleReadBoundary.js?v=coach-branch-runtime-repair-20260627-v4b1"></script><script defer src="./js/core/transactionCanonicalBoundary.js?v=coach-branch-runtime-repair-20260627-v4b1"></script><script defer src="./js/core/debtProfileReadBoundary.js?v=coach-branch-runtime-repair-20260627-v4b1"></script><script defer src="app.js?v=quit-tab-completeness-20260627-v4b2"></script><script>
 /* Phase 3.3A FIX: ES modules require HTTP — skip on file:// to prevent CORS error.
    app.js still loads via <script defer> so ALL business logic works regardless.
    Module enhancements (loading.js, event-guard, lazy tabs) activate on HTTP only.
@@ -637,7 +637,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
     // main.js?v=legacy-diagnostics-pilot-audit-isolation-20260616
     var s = document.createElement('script');
     s.type = 'module';
-    s.src  = './js/main.js?v=coach-attendance-only-20260619-v4a';
+    s.src  = './js/main.js?v=quit-tab-completeness-20260627-v4b2';
     s.onload = function() {
       window.MAIN_JS_LOADED = true;
       console.log('[BOOT] main.js loaded after legacy app.js ready');
@@ -685,7 +685,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
         <input type="text" id="coach_pass" placeholder="Mật khẩu (tối thiểu 6 ký tự)" style="width:100%;box-sizing:border-box;margin-bottom:8px;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:0.83rem;font-weight:600;background:#fff;outline:none;">
         <!-- Options cơ sở sẽ được populate động từ clubConfig.branchCount trong app.js -->
         <select id="coach_branch" style="width:100%;box-sizing:border-box;margin-bottom:12px;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:0.83rem;font-weight:600;background:#fff;outline:none;color:#334155;">
-          <option value="">📍 Tất cả cơ sở (không giới hạn)</option>
+          <option value="CS1">📍 Cơ sở 1</option>
         </select>
         <div style="font-size:0.7rem;color:#64748b;margin-bottom:10px;line-height:1.5;background:#f0f9ff;border-radius:8px;padding:7px 10px;border:1px solid #bae6fd;">💡 Nếu chọn cơ sở cụ thể, HLV chỉ thấy võ sinh của cơ sở đó khi điểm danh.</div>
         <button id="btnCreateCoach" onclick="window.createCoachAccount()" style="width:100%;padding:12px;background:linear-gradient(135deg,#0033A0,#0052cc);color:#fff;border:none;border-radius:12px;font-size:0.88rem;font-weight:800;cursor:pointer;box-shadow:0 4px 12px rgba(0,51,160,0.3);transition:opacity 0.2s;" onmouseenter="this.style.opacity='0.88'" onmouseleave="this.style.opacity='1'">➕ Tạo tài khoản</button>

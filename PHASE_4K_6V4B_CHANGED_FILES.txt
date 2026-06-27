@@ -1,0 +1,62 @@
+PHASE 4K-6V4B — CHANGED FILES
+Ngày: 25/06/2026
+
+A. SECURITY / AUTHORIZATION
+- firestore.rules
+  Rebuild deny-by-default; branch-scoped Coach access; safe self-user fields;
+  same-tenant Coach provisioning/repair; financial/inventory/stat denial.
+- functions/src/authz.js (NEW)
+  Shared Admin/Owner/SuperAdmin authorization for callable functions.
+- functions/src/debtCalculation.js
+- functions/src/statsAggregation.js
+- functions/src/superAdminSummary.js
+  Apply server-side role and tenant authorization.
+- functions/package.json
+  Include new authorization file in lint gate.
+
+B. CANONICAL BRANCH + COACH RUNTIME
+- js/core/branchIdentity.js (NEW)
+  Canonical CS1…CS10 identity and temporary CS1/Mặc định alias.
+- js/core/roleReadBoundary.js
+  Canonical branch context and Coach attendance-only boundary.
+- js/listeners/profiles.listeners.js
+  Exact branch listener; separate legacy Mặc định listener; no full-club fallback.
+- js/services/attendance.service.js
+  Branch-scoped reads/writes and fail-closed behavior.
+- js/modules/students.js
+  Canonical branch for new student writes.
+- app.js
+  Auth cache rebind; fail-closed user authorization; canonical Coach provisioning;
+  safe account synchronization; no duplicate-account retry guidance.
+- index.html
+  Load order, cache-bust and required Coach branch selector.
+
+C. HOSTING / DEPLOYMENT
+- firebase.json
+  Hosting now serves only public/; Firestore Emulator port configuration.
+- tools/build-public.mjs (NEW)
+  Build a minimal deploy directory.
+- public/ (GENERATED)
+  Runtime-only Hosting package: index.html, app.js, style.css, js/, css/, .nojekyll.
+- package.json
+  Security gate, build, emulator and safe Hosting deploy scripts/dependencies.
+
+D. TESTS / CHECKERS
+- tools/check-security-coach-branch-boundary.mjs (NEW)
+  35 static/dynamic security checks.
+- tools/firestore-rules-6v4b.test.mjs (NEW)
+  Rules Emulator permission matrix.
+- tools/check-assets.mjs
+  Strip query/hash before checking imported asset paths.
+- tools/check-coach-attendance-only-read-boundary.mjs
+- tools/check-data-hydration.mjs
+- tools/check-debt-profile-read-boundary.mjs
+- tools/check-deploy-contract.mjs
+  Updated to current semantic contracts and isolated public build.
+
+E. DOCUMENTATION
+- SECURITY_RULES_NOTES.md
+  Replaced stale baseline notes with 6V4B security model and rollout sequence.
+- PHASE_4K_6V4B_SECURITY_BRANCH_BOUNDARY_REPORT.md (NEW)
+- PHASE_4K_6V4B_CHANGED_FILES.txt (NEW)
+- PHASE_4K_6V4B_TEST_SUMMARY.txt (NEW)

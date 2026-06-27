@@ -1,0 +1,20 @@
+Modified production files:
+- index.html
+- js/main.js
+- js/listeners/profiles.listeners.js
+- js/ui/render.js
+- js/ui/render/renderStudents.js
+- js/ui/render/renderInvalidation.js
+- js/ui/render/listComputationRefresh.js
+- js/ui/render/computation/studentsRenderer.js
+
+Modified test/package files:
+- package.json
+- tools/check-active-render-tdz-order.mjs
+- tools/check-coach-branch-runtime-repair.mjs
+
+Added:
+- tools/check-quit-tab-completeness.mjs
+- PHASE_4K_6V4B2_QUIT_TAB_COMPLETENESS_REPORT.md
+- PHASE_4K_6V4B2_TEST_SUMMARY.txt
+- PHASE_4K_6V4B2_CHANGED_FILES.txt

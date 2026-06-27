@@ -88,9 +88,11 @@ if (existsSync(mainJsPath)) {
         // Bỏ qua bare specifier (không có ./ hoặc ../)
         if (!ref.startsWith('./') && !ref.startsWith('../')) continue;
 
+        // Cache-bust query/hash thuộc URL, không phải tên file trên filesystem.
+        const cleanRef = ref.split('#', 1)[0].split('?', 1)[0];
         // Resolve từ thư mục js/
         const jsDir   = join(ROOT, 'js');
-        const absPath = resolve(jsDir, ref);
+        const absPath = resolve(jsDir, cleanRef);
         const relPath = absPath.slice(ROOT.length + 1);
 
         checked++;

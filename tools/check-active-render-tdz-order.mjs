@@ -54,10 +54,10 @@ if (allDeclarations.length > 1) {
 }
 
 // 6. Kiểm tra có guard trong PASS 2
-if (!renderer.includes('if (pgStudentsActive && pgStudents && !useFullProfileActiveRender)')) {
-  fail('studentsRenderer.js thiếu: if (pgStudentsActive && pgStudents && !useFullProfileActiveRender)');
+if (!(renderer.includes('if (pgStudentsActive && pgStudents && !useFullProfileActiveRender') && renderer.includes('!useFullProfileQuitRender'))) {
+  fail('studentsRenderer.js thiếu PASS 2 guard: !useFullProfileActiveRender + !useFullProfileQuitRender');
 } else {
-  ok('PASS 2 guard: if (pgStudentsActive && pgStudents && !useFullProfileActiveRender) có mặt');
+  ok('PASS 2 guard: !useFullProfileActiveRender + !useFullProfileQuitRender có mặt');
 }
 
 // 7. Kiểm tra có fullProfilesCount

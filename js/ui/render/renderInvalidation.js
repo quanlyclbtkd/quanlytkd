@@ -69,7 +69,7 @@ import {
 } from './renderRegistry.js';
 
 import { invalidateFinanceRender }   from './computation/financeRenderer.js';
-import { invalidateStudentsRender }  from './computation/studentsRenderer.js?v=debt-profile-read-boundary-20260616-v3d';
+import { invalidateStudentsRender }  from './computation/studentsRenderer.js?v=quit-tab-completeness-20260627-v4b2';
 import { invalidateInventoryRender } from './computation/inventoryRenderer.js';
 import { invalidateDashboardCache }  from './computation/dashboardRenderer.js';
 
@@ -78,7 +78,7 @@ import {
     refreshListComputation,
     refreshListsComputation,
     getComputationDomainForList,
-} from './listComputationRefresh.js';
+} from './listComputationRefresh.js?v=quit-tab-completeness-20260627-v4b2';
 
 // ── Dev helper ────────────────────────────────────────────────────────────────
 function _isDev() {

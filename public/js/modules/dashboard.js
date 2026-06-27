@@ -1,0 +1,1238 @@
+/**
+ * modules/dashboard.js — Phase 2c + Phase 3 (Cloud Functions Stats Docs)
+ * ────────────────────────────────────────────────────────────────────────
+ * Module này SỞ HỮU hoàn toàn tab Dashboard:
+ *   - Chart.js finance chart (bar) + member chart (line)
+ *   - Bảng branch stats (per-cơ-sở income/active/debt)
+ *   - Tất cả DOM updates tổng kết (sum_tuition, totalIncomeDashboard...)
+ *   - Report row (bảng tổng hợp tháng)
+ *   - Exam branch fees section
+ *
+ * PHASE 3 UPGRADE:
+ *   fetchAndRenderHistoricalCharts() — đọc stats docs từ Firestore để vẽ
+ *   biểu đồ 6 tháng mà KHÔNG cần load toàn bộ transactions.
+ *   Path: clubs/{clubId}/stats/{YYYY_MM} (doc ID dùng '_' thay '-')
+ *
+ * KHÔNG CÒN là stub — render.js gọi các export của module này.
+ * app.js không còn tạo Chart.js instance nữa (patch renderApp).
+ *
+ * BRIDGE:
+ *   Chart instances lưu trong window.__store để cleanup khi logout.
+ *   Đọc clubConfig từ window.__store || window.clubConfig.
+ *
+ * /// NEW ARCHITECTURE — Phase 2c (Dashboard Module owns rendering)
+ * /// UPGRADE — Phase 3 (Historical stats from Firestore stats docs)
+ * ────────────────────────────────────────────────────────────────────────
+ */
+
+// ── Bridge helpers ────────────────────────────────────────────────
+function _config() { return (window.__store || {}).clubConfig || window.clubConfig || {}; }
+function _fmt(n)   { return (n || 0).toLocaleString('vi-VN'); }
+function _fmtK(v)  {
+    return v >= 1e6 ? (v / 1e6).toFixed(1).replace(/\.0$/, '') + 'tr'
+         : v >= 1e3 ? Math.round(v / 1e3) + 'k'
+         : (v || 0).toLocaleString();
+}
+
+// ── Chart instance store/retrieve ────────────────────────────────
+function _getFinChart()  { return (window.__store || {}).financeChartInstance || null; }
+function _getMemChart()  { return (window.__store || {}).memberChartInstance  || null; }
+function _setFinChart(c) { if (window.__store) window.__store.financeChartInstance = c; }
+function _setMemChart(c) { if (window.__store) window.__store.memberChartInstance  = c; }
+
+// ── Phase 4K-5N: Canvas chart lifecycle helpers ───────────────────────────
+function _getCanvasChart(Chart, canvas) {
+    if (!Chart || !canvas) return null;
+    if (typeof Chart.getChart === 'function') {
+        try { return Chart.getChart(canvas) || null; } catch (_) {}
+    }
+    return null;
+}
+function _safeDestroyChart(chart) {
+    if (!chart) return;
+    try { chart.destroy(); } catch (_) {}
+}
+
+// ════════════════════════════════════════════════════════════════
+// renderDashboardCharts — tạo hoặc update 2 Chart.js instances
+// chartData: { labels, income, expense, active }
+// ════════════════════════════════════════════════════════════════
+export function renderDashboardCharts(chartData) {
+    const _perfTokenCharts = window.PerformanceMonitor?.markStart('dashboard:charts');
+    try {
+    const { labels, income, expense, active } = chartData;
+    const Chart = window.Chart;
+    if (!Chart) {
+        if (!window.__dashboardChartLazyLoadPending && typeof window.ensureChartJsReady === 'function') {
+            window.__dashboardChartLazyLoadPending = true;
+            window.ensureChartJsReady('dashboard-render-charts')
+                .then(() => { window.__dashboardChartLazyLoadPending = false; renderDashboardCharts(chartData); })
+                .catch((err) => { window.__dashboardChartLazyLoadPending = false; console.warn('[dashboard] Chart.js lazy load failed:', err); });
+        }
+        return;
+    }
+
+    // ── Finance chart (bar: Thu / Chi) — Phase 4K-5N lifecycle fix ──────────
+    const finEl = document.getElementById('financeChart');
+    if (finEl) {
+        let fc = _getFinChart();
+        const canvasChart = _getCanvasChart(Chart, finEl);
+
+        // Case: store lost reference but canvas still has live chart → reuse
+        if (!fc && canvasChart) {
+            fc = canvasChart;
+            _setFinChart(fc);
+        }
+
+        // Case: store has chart but it belongs to a different canvas → destroy and reset
+        if (fc && fc.canvas !== finEl) {
+            _safeDestroyChart(fc);
+            fc = null;
+            _setFinChart(null);
+        }
+
+        if (!fc) {
+            // Destroy any orphan chart on this canvas before creating new one
+            const orphan = _getCanvasChart(Chart, finEl);
+            if (orphan) _safeDestroyChart(orphan);
+
+            fc = new Chart(finEl, {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [
+                        { label: 'Tổng Thu', data: income,  backgroundColor: 'rgba(16,185,129,0.9)', borderRadius: 6 },
+                        { label: 'Tổng Chi', data: expense, backgroundColor: 'rgba(244,63,94,0.9)',  borderRadius: 6 },
+                    ]
+                },
+                options: {
+                    animation: false, maintainAspectRatio: false, responsive: true,
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: '#f8fafc' } },
+                        x: { grid: { display: false } }
+                    },
+                    plugins: { legend: { labels: { font: { family: "'Inter', sans-serif", weight: 'bold' } } } }
+                }
+            });
+            _setFinChart(fc);
+        } else {
+            fc.data.labels             = labels;
+            fc.data.datasets[0].data  = income;
+            fc.data.datasets[1].data  = expense;
+            fc.update('none');
+        }
+    }
+
+    // ── Member chart (line: Võ sinh đang tập) — Phase 4K-5N lifecycle fix ──
+    const memEl = document.getElementById('memberChart');
+    if (memEl) {
+        let mc = _getMemChart();
+        const canvasChartM = _getCanvasChart(Chart, memEl);
+
+        // Case: store lost reference but canvas still has live chart → reuse
+        if (!mc && canvasChartM) {
+            mc = canvasChartM;
+            _setMemChart(mc);
+        }
+
+        // Case: store has chart but it belongs to a different canvas → destroy and reset
+        if (mc && mc.canvas !== memEl) {
+            _safeDestroyChart(mc);
+            mc = null;
+            _setMemChart(null);
+        }
+
+        if (!mc) {
+            // Destroy any orphan chart on this canvas before creating new one
+            const orphanM = _getCanvasChart(Chart, memEl);
+            if (orphanM) _safeDestroyChart(orphanM);
+
+            mc = new Chart(memEl, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: 'Võ sinh Đang tập', data: active,
+                        borderColor: '#0033A0', backgroundColor: 'rgba(0,51,160,0.08)',
+                        fill: true, tension: 0.4, pointRadius: 4,
+                        pointBackgroundColor: '#fff', pointBorderWidth: 2
+                    }]
+                },
+                options: {
+                    animation: false, maintainAspectRatio: false, responsive: true,
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: '#f8fafc' } },
+                        x: { grid: { display: false } }
+                    },
+                    plugins: { legend: { labels: { font: { family: "'Inter', sans-serif", weight: 'bold' } } } }
+                }
+            });
+            _setMemChart(mc);
+        } else {
+            mc.data.labels            = labels;
+            mc.data.datasets[0].data = active;
+            mc.update('none');
+        }
+    }
+    } finally {
+        window.PerformanceMonitor?.markEnd('dashboard:charts', _perfTokenCharts);
+    }
+}
+
+// ════════════════════════════════════════════════════════════════
+// renderBranchStats — bảng thống kê per-cơ-sở
+// bStats: { CS1: { income, active, debt, tuitionMap, examFeeMap }, ... }
+// ════════════════════════════════════════════════════════════════
+export function renderBranchStats(bStats) {
+    const _perfTokenBranch = window.PerformanceMonitor?.markStart('dashboard:branchStats');
+    try {
+    const cfg    = _config();
+    const bCount = cfg.branchCount || 1;
+    const bsSec  = document.getElementById('branchStatsSection');
+    const bsGrid = document.getElementById('branchStatsGrid');
+    if (!bsSec || !bsGrid || bCount <= 1) {
+        if (bsSec) bsSec.style.display = 'none';
+        return;
+    }
+    bsSec.style.display = '';
+    let html = '';
+    for (let bi = 1; bi <= bCount; bi++) {
+        const bCode = 'CS' + bi;
+        const bName = cfg['branchName' + bi] || ('Cơ sở ' + bi);
+        const bd    = bStats[bCode] || { income: 0, active: 0, debt: 0, tuitionMap: {}, examFeeMap: {} };
+        const tuitionEntries = Object.entries(bd.tuitionMap || {}).sort((a, b) => Number(b[0]) - Number(a[0]));
+        const examEntries    = Object.entries(bd.examFeeMap || {}).sort((a, b) => Number(b[0]) - Number(a[0]));
+        const tuitionBadges  = tuitionEntries.map(([fee, cnt]) =>
+            `<span style="font-size:0.72rem;font-weight:700;background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe;border-radius:8px;padding:2px 8px;white-space:nowrap;">${Number(fee).toLocaleString()}₫ × ${cnt} VS</span>`
+        ).join('');
+        const examRegisteredCount = Number(bd.examRegisteredCount || 0);
+        const examRegisteredBadge = examRegisteredCount > 0
+            ? `<div class="text-xs mt-1" style="color:#c2410c;font-weight:800;">🎖️ ${examRegisteredCount} võ sinh đã đăng ký thi</div>`
+            : '';
+        const examBadges = examEntries.map(([fee, cnt]) =>
+            `<span title="Lệ phí thi" style="font-size:0.72rem;font-weight:700;background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;border-radius:8px;padding:2px 8px;white-space:nowrap;">🎖️ ${Number(fee).toLocaleString()}₫ × ${cnt} VS</span>`
+        ).join('');
+        const hasFees       = tuitionEntries.length > 0 || examEntries.length > 0;
+        const feeBreakdown  = hasFees
+            ? `<div class="flex flex-wrap gap-1.5 mt-2.5 pt-2.5 border-t border-slate-100">${tuitionBadges}${examBadges}</div>`
+            : '';
+        const debtHtml = bd.debt > 0
+            ? `<div class="text-xs mt-1" style="color:#dc2626;font-weight:700;">⚠️ ${bd.debt} võ sinh nợ học phí</div>` : '';
+        html += `<div class="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
+            <div class="flex items-center gap-4">
+                <div class="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center text-xl flex-shrink-0">🏢</div>
+                <div class="flex-1 min-w-0">
+                    <div class="font-black text-slate-800 text-sm truncate">${bName}</div>
+                    <div class="text-emerald-600 font-bold text-base">${bd.income.toLocaleString()} ₫</div>
+                    <div class="text-slate-500 text-xs mt-0.5">👥 ${bd.active} võ sinh đang tập</div>
+                    ${debtHtml}
+                    ${examRegisteredBadge}
+                </div>
+            </div>${feeBreakdown}
+        </div>`;
+    }
+    bsGrid.innerHTML = html;
+    } finally {
+        window.PerformanceMonitor?.markEnd('dashboard:branchStats', _perfTokenBranch);
+    }
+}
+
+// ════════════════════════════════════════════════════════════════
+// renderExamBranchFees — lệ phí thi theo cơ sở (tab Exam)
+// ════════════════════════════════════════════════════════════════
+export function renderExamBranchFees(bExamStats, incExam) {
+    const _perfTokenExam = window.PerformanceMonitor?.markStart('dashboard:examBranchFees');
+    try {
+    const cfg    = _config();
+    const bCount = cfg.branchCount || 1;
+    const el     = document.getElementById('exam_branch_fees');
+    if (!el) return;
+    if (bCount <= 1 || incExam <= 0) { el.classList.add('hidden'); return; }
+    let html = '<div class="mt-3 pt-3 border-t border-orange-100">'
+        + '<div class="text-[0.65rem] font-bold text-slate-500 uppercase tracking-wide mb-2">💰 Lệ phí thu theo cơ sở</div>'
+        + '<div class="flex flex-wrap gap-2">';
+    for (let bi = 1; bi <= bCount; bi++) {
+        const bc = 'CS' + bi;
+        const bn = cfg['branchName' + bi] || ('Cơ sở ' + bi);
+        const bf = bExamStats[bc] || 0;
+        if (bf > 0) html += `<div class="flex items-center gap-2 bg-orange-50 border border-orange-200 rounded-xl px-3 py-1.5">`
+            + `<span class="text-[0.7rem] font-bold text-orange-800 truncate max-w-[100px]">${bn}</span>`
+            + `<span class="font-black text-orange-600 text-sm whitespace-nowrap">${bf.toLocaleString()} ₫</span></div>`;
+    }
+    html += '</div></div>';
+    el.innerHTML = html;
+    el.classList.remove('hidden');
+    } finally {
+        window.PerformanceMonitor?.markEnd('dashboard:examBranchFees', _perfTokenExam);
+    }
+}
+
+// ════════════════════════════════════════════════════════════════
+// updateSummaryNumbers — cập nhật TẤT CẢ DOM elements tổng kết
+// Được gọi bởi render.js sau khi tính xong tất cả số liệu
+// ════════════════════════════════════════════════════════════════
+export function updateSummaryNumbers(data) {
+    const {
+        incTuition = 0, incExam = 0, incOther = 0, incUniform = 0,
+        expTotal = 0, expExamTotal = 0, expUniform = 0,
+        activeCount = 0, debtCount = 0, totalDebtEst = 0,
+        txCount, selMonth, unpaidInvCount = 0
+    } = data;
+
+    const tInc        = incTuition + incOther + incExam + incUniform;
+    const tExp        = expTotal + expExamTotal + expUniform;
+    const uniformProfit = incUniform - expUniform;
+
+    const _set = (id, val) => { const e = document.getElementById(id); if (e) e.innerText = val; };
+
+    _set('sum_tuition',              _fmt(incTuition)  + ' ₫');
+    _set('sum_other',                _fmt(incOther)    + ' ₫');
+    _set('sum_exam_tab',             _fmt(incExam)     + ' ₫');
+    _set('sum_exam_expense_tab',     _fmt(expExamTotal) + ' ₫');
+    _set('sum_exam_profit_tab',      _fmt(incExam - expExamTotal) + ' ₫');
+    _set('sum_expense_tab',          _fmt(expTotal)    + ' ₫');
+    _set('sum_debt_count_tab',       debtCount         + ' Bạn');
+    _set('sum_debt_amount_tab',      _fmt(totalDebtEst) + ' ₫');
+    _set('sum_uniform_in',           _fmt(incUniform)  + ' ₫');
+    _set('sum_uniform_out',          _fmt(expUniform)  + ' ₫');
+    _set('sum_uniform_profit',       _fmt(uniformProfit) + ' ₫');
+    _set('totalIncomeDashboard',     _fmt(tInc)        + ' ₫');
+    _set('totalExpenseDashboard',    _fmt(tExp)        + ' ₫');
+    _set('totalProfitDashboard',     _fmt(tInc - tExp) + ' ₫');
+    _set('totalUniformProfitDashboard', _fmt(uniformProfit) + ' ₫');
+    _set('activeStudentCount',       String(activeCount));
+    _set('debtCount',                debtCount         + ' Bạn');
+    _set('debtEst',                  'Dự thu: ' + _fmt(totalDebtEst) + ' ₫');
+    _set('debtTabCountBadge',        String(debtCount));
+    if (txCount !== undefined) _set('txTabCountBadge', String(txCount));
+
+    // Mobile header bar (mhb*)
+    const mhbAC  = document.getElementById('mhbActiveCount'); if (mhbAC)  mhbAC.innerText  = activeCount;
+    const mhbDC  = document.getElementById('mhbDebtCount');   if (mhbDC)  mhbDC.innerText  = debtCount;
+    const mhbInc = document.getElementById('mhbIncome');      if (mhbInc) mhbInc.innerText = _fmtK(tInc);
+    const mhbMon = document.getElementById('mhbMonth');
+    if (mhbMon && selMonth) {
+        mhbMon.innerText = 'T' + parseInt(selMonth.split('-')[1]) + '/' + selMonth.split('-')[0].substring(2);
+    }
+
+    // Unpaid uniform badge
+    const uwrap = document.getElementById('sum_uniform_unpaid_wrap');
+    if (uwrap) uwrap.style.display = unpaidInvCount > 0 ? '' : 'none';
+    const uc = document.getElementById('sum_uniform_unpaid');
+    if (uc) uc.innerText = unpaidInvCount + ' đơn';
+}
+
+// ════════════════════════════════════════════════════════════════
+// PHASE 3: fetchAndRenderHistoricalCharts
+// ────────────────────────────────────────────────────────────────
+// Đọc stats docs từ Firestore cho 5 tháng lịch sử và cập nhật chart.
+//
+// TẠI SAO TÁCH RIÊNG?
+//   - Tháng hiện tại đã có số liệu real-time từ allTransactions (render.js)
+//   - 5 tháng lịch sử cần đọc từ stats docs để tránh load hàng nghìn TX cũ
+//   - Async, không block render — chart hiển thị ngay, sau đó update mượt mà
+//
+// PARAMS:
+//   historicalMonths: [{ month: 'YYYY-MM', idx: number }, ...]  — 5 tháng lịch sử
+//   chartLabels:  string[]  — mảng label (đã được render.js điền tháng hiện tại)
+//   chartIncome:  number[]  — mảng thu (index tháng lịch sử = 0, sẽ được fill)
+//   chartExpense: number[]  — mảng chi
+//   chartActive:  number[]  — mảng võ sinh (stats doc không có → giữ 0)
+//
+// FIRESTORE PATH: clubs/{clubId}/stats/{YYYY_MM}
+//   Doc ID dùng underscore: '2026-05' → '2026_05'
+// ════════════════════════════════════════════════════════════════
+export async function fetchAndRenderHistoricalCharts(
+    historicalMonths,
+    chartLabels,
+    chartIncome,
+    chartExpense,
+    chartActive
+) {
+    // Lấy Firebase SDK và db instance từ bridge (CDN-based SDK)
+    const sdk   = window._fb_init || {};
+    const store = window.__store  || {};
+    const db    = store.db;
+
+    // Không có SDK hoặc db → bỏ qua (không throw để silent fail)
+    if (!sdk.doc || !sdk.getDoc || !db) return;
+    if (!historicalMonths || historicalMonths.length === 0) return;
+
+    const clubId = store.clubId || store.currentClubId;
+    if (!clubId) return;
+
+    const { doc, getDoc } = sdk;
+
+    // Đọc song song tất cả stats docs (Promise.all để tối thiểu latency)
+    const reads = historicalMonths.map(({ month, idx }) => {
+        const docId = month.replace('-', '_');
+        return getDoc(doc(db, 'clubs', clubId, 'stats', docId))
+            .then(snap => ({ snap, idx, month }))
+            .catch(() => ({ snap: null, idx, month })); // bỏ qua lỗi từng doc
+    });
+
+    const results = await Promise.all(reads);
+    if (typeof window.recordFirestoreReadAttribution === 'function') {
+        window.recordFirestoreReadAttribution('dashboard.historicalStatsPointReads', results.length, {
+            initial: true,
+            reason: 'historical-chart-stats'
+        });
+    }
+
+    // Kiểm tra có dữ liệu mới không để tránh update chart vô ích
+    let hasNewData = false;
+
+    for (const { snap, idx } of results) {
+        if (!snap || !snap.exists()) continue; // Stats doc chưa tồn tại → giữ 0
+
+        const d = snap.data();
+        // [Phase 4K] Track stats doc reads for diagnostics
+        if (window.__txListenerMetrics) {
+            window.__txListenerMetrics.dashboardStatsRead = (window.__txListenerMetrics.dashboardStatsRead || 0) + 1;
+        }
+        // income.total và expense.total được Cloud Function tính sẵn
+        const inc = Number(d['income.total'] || d?.income?.total || 0);
+        const exp = Number(d['expense.total'] || d?.expense?.total || 0);
+
+        if (chartIncome[idx]  !== inc || chartExpense[idx] !== exp) {
+            chartIncome[idx]  = inc;
+            chartExpense[idx] = exp;
+            hasNewData = true;
+        }
+    }
+
+    // Chỉ update chart nếu thực sự có dữ liệu mới
+    if (!hasNewData) return;
+
+    // Cập nhật Chart.js instances (đã tồn tại từ renderDashboardCharts)
+    const fc = _getFinChart();
+    if (fc) {
+        fc.data.datasets[0].data = [...chartIncome];
+        fc.data.datasets[1].data = [...chartExpense];
+        fc.update('active'); // dùng animation 'active' cho UX mượt mà hơn 'none'
+    }
+
+    // Lưu updated chart data vào store để các module khác dùng được
+    if (window.__store && window.__store.tabHtmlCache) {
+        const cd = window.__store.tabHtmlCache._chartData;
+        if (cd) {
+            cd.income  = [...chartIncome];
+            cd.expense = [...chartExpense];
+        }
+    }
+}
+
+// ════════════════════════════════════════════════════════════════
+// fetchMonthStats — đọc stats doc cho một tháng cụ thể
+// Dùng khi cần số liệu tháng lịch sử cho report hoặc export
+//
+// Usage:
+//   const stats = await fetchMonthStats('2026-05');
+//   console.log(stats?.income?.total, stats?.profit);
+// ════════════════════════════════════════════════════════════════
+export async function fetchMonthStats(month) {
+    const sdk   = window._fb_init || {};
+    const store = window.__store  || {};
+    const db    = store.db;
+
+    if (!sdk.doc || !sdk.getDoc || !db || !month) return null;
+
+    const clubId = store.clubId || store.currentClubId;
+    if (!clubId) return null;
+
+    const { doc, getDoc } = sdk;
+    const docId  = month.replace('-', '_');
+
+    try {
+        const snap = await getDoc(doc(db, 'clubs', clubId, 'stats', docId));
+        if (typeof window.recordFirestoreReadAttribution === 'function') {
+            window.recordFirestoreReadAttribution('dashboard.monthStatsPointRead', 1, {
+                initial: true,
+                reason: month
+            });
+        }
+        return snap.exists() ? snap.data() : null;
+    } catch (err) {
+        return null;
+    }
+}
+
+
+// ════════════════════════════════════════════════════════════════
+// tryApplyCurrentMonthStats — Phase 4K-FIX Lỗi 4
+// ────────────────────────────────────────────────────────────────
+// Ưu tiên stats doc để hiển thị tổng doanh thu/chi phí tháng hiện tại.
+// Gọi async sau khi renderApp() đã cập nhật dashboard từ allTransactions.
+//
+// TẠI SAO CẦN?
+//   allTransactions có giới hạn limit(1200) — nếu tháng có >1200 GD,
+//   tổng tính từ allTransactions sẽ sai.
+//   stats doc (ghi bởi Cloud Functions trigger) luôn chính xác.
+//
+// BEHAVIOR:
+//   - Đọc stats doc cho tháng selMonth
+//   - Nếu có và income.total > 0: override totalIncomeDashboard/totalExpenseDashboard/totalProfitDashboard
+//   - Nếu không có stats doc: giữ nguyên allTransactions-based numbers (fallback an toàn)
+//   - Không thay đổi danh sách giao dịch, bStats, hoặc các số liệu chi tiết
+// ════════════════════════════════════════════════════════════════
+export async function tryApplyCurrentMonthStats(selMonth) {
+    if (!selMonth) return;
+    const stats = await fetchMonthStats(selMonth);
+    if (!stats) return; // stats doc chưa tồn tại — giữ allTransactions-based numbers
+
+    // Đọc income.total tương thích nhiều format (Cloud Functions ghi flat 'income.total')
+    const incTotal = (
+        Number(stats['income.total'] || 0) ||
+        Number(stats?.income?.total  || 0) ||
+        0
+    );
+    const expTotal = (
+        Number(stats['expense.total'] || 0) ||
+        Number(stats?.expense?.total  || 0) ||
+        0
+    );
+
+    // Nếu cả 2 đều = 0 và txCount = 0 → stats doc chưa có dữ liệu thực
+    if (incTotal === 0 && expTotal === 0 && (stats.txCount || 0) === 0) return;
+
+    // Override dashboard totals với stats doc numbers (chính xác hơn allTransactions limit)
+    const _fmt = (n) => (Number(n) || 0).toLocaleString();
+    const _set = (id, val) => { const e = document.getElementById(id); if (e) e.innerText = val; };
+
+    _set('totalIncomeDashboard',  _fmt(incTotal)             + ' ₫');
+    _set('totalExpenseDashboard', _fmt(expTotal)             + ' ₫');
+    _set('totalProfitDashboard',  _fmt(incTotal - expTotal)  + ' ₫');
+
+    // Track metric
+    if (window.__txListenerMetrics) {
+        window.__txListenerMetrics.dashboardCurrentMonthStatsRead =
+            (window.__txListenerMetrics.dashboardCurrentMonthStatsRead || 0) + 1;
+    }
+
+    // Mobile header bar income
+    const mhbInc = document.getElementById('mhbIncome');
+    if (mhbInc && incTotal > 0) {
+        const _fmtK = (n) => n >= 1e6 ? Math.round(n/1e3) + 'K' : n.toLocaleString();
+        mhbInc.innerText = _fmtK(incTotal);
+    }
+}
+
+// ════════════════════════════════════════════════════════════════
+// initDashboard — wire window accessors + cleanup hook
+// ════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════
+// fetchHistoricalDashboardFallback — Part 4 FIX
+// Build full 6-month chartData + multi-row reportHtml.
+// Priority: stats doc → transactions fallback per month.
+// Called from refreshDashboardComputation (fire-and-forget async).
+// ════════════════════════════════════════════════════════════════
+
+const _SPARK_HISTORY_TTL_MS = 6 * 60 * 60 * 1000;
+const _sparkHistoryInFlight = new Map();
+let _sparkHistoryDebounceTimer = null;
+
+function _sparkReadMetrics() {
+    if (!window.__sparkReadMetrics) {
+        window.__sparkReadMetrics = {
+            dashboardHistoryRequests: 0,
+            dashboardHistoryNetworkFetches: 0,
+            dashboardHistoryCacheHits: 0,
+            dashboardHistoryCoalesced: 0,
+            dashboardHistorySkippedHidden: 0,
+            dashboardHistoryQueryGroups: 0,
+            dashboardHistoryEstimatedDocsRead: 0,
+            txSameMonthResubscribeSkipped: 0,
+            lastDashboardHistoryReason: '',
+            lastDashboardHistoryAt: 0,
+            lastDashboardHistorySource: '',
+        };
+    }
+    return window.__sparkReadMetrics;
+}
+
+function _sparkHistoryCacheKey(clubId, selMonth) {
+    return `tst:spark-dashboard-history:v1:${clubId}:${selMonth}`;
+}
+
+function _readSparkHistoryCache(clubId, selMonth) {
+    try {
+        const raw = localStorage.getItem(_sparkHistoryCacheKey(clubId, selMonth));
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!parsed || !parsed.savedAt || !parsed.payload) return null;
+        if ((Date.now() - Number(parsed.savedAt)) > _SPARK_HISTORY_TTL_MS) {
+            localStorage.removeItem(_sparkHistoryCacheKey(clubId, selMonth));
+            return null;
+        }
+        return parsed.payload;
+    } catch (_) {
+        return null;
+    }
+}
+
+function _writeSparkHistoryCache(clubId, selMonth, payload) {
+    try {
+        localStorage.setItem(
+            _sparkHistoryCacheKey(clubId, selMonth),
+            JSON.stringify({ savedAt: Date.now(), payload })
+        );
+    } catch (_) {
+        // Storage quota/private mode must never break dashboard rendering.
+    }
+}
+
+function _isDashboardActive() {
+    const active = document.querySelector('.tab-content.active');
+    return !!(active && active.id === 'tab_dashboard');
+}
+
+function _applyHistoricalDashboardPayload(payload, reason) {
+    if (!payload || !payload.chartData) return null;
+    const chartData = payload.chartData;
+    const reportRows = payload.reportHtml || '';
+
+    if (typeof cacheDashboardData === 'function') {
+        cacheDashboardData({
+            reportHtml: reportRows,
+            chartData,
+            bStats: (window.__store && window.__store._lastBStats) || {},
+            bExamStats: (window.__store && window.__store._lastBExamStats) || {},
+            summaryNumbers: (window.__store && window.__store._lastSummaryNumbers) || {},
+        });
+    }
+
+    const renderCharts = typeof window.renderDashboardCharts === 'function'
+        ? window.renderDashboardCharts
+        : (typeof renderDashboardCharts === 'function' ? renderDashboardCharts : null);
+    if (renderCharts) {
+        try { renderCharts(chartData); } catch (err) {
+            console.warn('[dashboard-history] renderDashboardCharts failed:', err);
+        }
+    }
+
+    const reportList = document.getElementById('reportList');
+    if (reportList && reportRows) reportList.innerHTML = reportRows;
+
+    if (window.__store) {
+        window.__store.tabHtmlCache = window.__store.tabHtmlCache || {};
+        window.__store.tabHtmlCache._chartData = chartData;
+        window.__store._lastDashboardHistoryFetchAt = Date.now();
+        window.__store._lastDashboardHistoryReason = reason || 'spark-history';
+        window.__store._lastDashboardHistorySource = payload.source || 'unknown';
+    }
+    return payload;
+}
+
+async function _loadSparkHistoricalTransactions({ db, clubId, months, reason }) {
+    const sdk = window._fb_init || {};
+    const { collection, query, where, getDocs, limit } = sdk;
+    const txRef = collection(db, 'clubs', clubId, 'transactions');
+    const firstMonth = months[0];
+    const lastMonth = months[months.length - 1];
+    const startDate = firstMonth + '-01';
+    const endDate = lastMonth + '-31';
+
+    const jobs = [];
+    if (typeof window.loadTransactionsForTxMonthRange === 'function') {
+        jobs.push(window.loadTransactionsForTxMonthRange({
+            colRef: txRef,
+            startMonth: firstMonth,
+            endMonth: lastMonth,
+            pageSize: 500,
+            maxPages: 10,
+            reason: `${reason}:txMonth-range`,
+        }));
+    } else {
+        jobs.push(getDocs(query(
+            txRef,
+            where('txMonth', '>=', firstMonth),
+            where('txMonth', '<=', lastMonth),
+            limit(2000)
+        )).then(snap => snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+    }
+
+    if (typeof window.loadTransactionsForDateRange === 'function') {
+        jobs.push(window.loadTransactionsForDateRange({
+            colRef: txRef,
+            startDate,
+            endDate,
+            pageSize: 500,
+            maxPages: 10,
+            reason: `${reason}:date-range`,
+        }));
+    } else {
+        jobs.push(getDocs(query(
+            txRef,
+            where('date', '>=', startDate),
+            where('date', '<=', endDate),
+            limit(2000)
+        )).then(snap => snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+    }
+
+    // One query covers all 6 months instead of one array-contains query per month.
+    jobs.push(getDocs(query(
+        txRef,
+        where('packageMonths', 'array-contains-any', months.slice(0, 10)),
+        limit(2000)
+    )).then(snap => snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+
+    const settled = await Promise.allSettled(jobs);
+    const map = new Map();
+    let rawDocsRead = 0;
+    settled.forEach(result => {
+        if (result.status !== 'fulfilled') {
+            console.warn('[spark-history] query group failed:', result.reason);
+            return;
+        }
+        const items = Array.isArray(result.value) ? result.value : [];
+        rawDocsRead += items.length;
+        items.forEach(item => { if (item && item.id) map.set(item.id, item); });
+    });
+
+    const metrics = _sparkReadMetrics();
+    metrics.dashboardHistoryQueryGroups += jobs.length;
+    metrics.dashboardHistoryEstimatedDocsRead += rawDocsRead;
+    if (typeof window.recordFirestoreReadAttribution === 'function') {
+        window.recordFirestoreReadAttribution('dashboard.transactionFallbackQueries', rawDocsRead, {
+            initial: true,
+            reason: reason || 'spark-history-transaction-fallback'
+        });
+    }
+
+    return { transactions: Array.from(map.values()), rawDocsRead, queryGroups: jobs.length };
+}
+
+/**
+ * Spark-compatible 6-month dashboard loader.
+ * - localStorage TTL cache (6 hours)
+ * - single-flight per club/month
+ * - 6 stats reads + at most 3 transaction query groups for the entire 6-month range
+ * - never runs automatically while Dashboard tab is hidden
+ */
+export async function fetchHistoricalDashboardFallback(selMonth, reason, options = {}) {
+    const sdk = window._fb_init || {};
+    const store = window.__store || {};
+    const db = store.db;
+    const metrics = _sparkReadMetrics();
+    metrics.dashboardHistoryRequests++;
+    metrics.lastDashboardHistoryReason = reason || '';
+
+    if (!sdk.doc || !sdk.getDoc || !sdk.getDocs || !sdk.query || !sdk.collection || !db) return null;
+
+    const clubId = store.clubId || store.currentClubId;
+    if (!clubId || !selMonth) return null;
+
+    const force = options.force === true || reason === 'force-reload';
+    const key = `${clubId}:${selMonth}`;
+
+    if (!force) {
+        const cached = _readSparkHistoryCache(clubId, selMonth);
+        if (cached) {
+            metrics.dashboardHistoryCacheHits++;
+            metrics.lastDashboardHistoryAt = Date.now();
+            metrics.lastDashboardHistorySource = 'local-cache';
+            return _applyHistoricalDashboardPayload(cached, reason || 'spark-cache-hit');
+        }
+    }
+
+    if (_sparkHistoryInFlight.has(key)) {
+        metrics.dashboardHistoryCoalesced++;
+        return _sparkHistoryInFlight.get(key);
+    }
+
+    const task = (async () => {
+        metrics.dashboardHistoryNetworkFetches++;
+        const { doc, getDoc } = sdk;
+        const monthStrings = typeof window.getRecentMonths === 'function'
+            ? window.getRecentMonths(selMonth, 6)
+            : (() => {
+                const [sy, sm] = String(selMonth).split('-').map(Number);
+                const result = [];
+                for (let i = 5; i >= 0; i--) {
+                    let m = sm - i, y = sy;
+                    while (m <= 0) { m += 12; y -= 1; }
+                    result.push(`${y}-${String(m).padStart(2, '0')}`);
+                }
+                return result;
+            })();
+
+        const labels = monthStrings.map(m => {
+            if (typeof window.formatMonthLabel === 'function') return window.formatMonthLabel(m);
+            const [y, mo] = m.split('-');
+            return `T${Number(mo)}/${y}`;
+        });
+
+        // Keep compatibility with stats docs if they already exist, but read them only once per TTL window.
+        const statResults = await Promise.all(monthStrings.map(async (month, idx) => {
+            try {
+                const snap = await getDoc(doc(db, 'clubs', clubId, 'stats', month.replace('-', '_')));
+                return { month, idx, snap };
+            } catch (_) {
+                return { month, idx, snap: null };
+            }
+        }));
+        metrics.dashboardHistoryQueryGroups += 6;
+        if (typeof window.recordFirestoreReadAttribution === 'function') {
+            window.recordFirestoreReadAttribution('dashboard.sparkHistoryStatsReads', statResults.length, {
+                initial: true,
+                reason: reason || 'spark-history'
+            });
+        }
+        // Each point lookup can be billed even when the stats document does not exist.
+        metrics.dashboardHistoryEstimatedDocsRead += statResults.length;
+
+        const needsTxFallback = statResults.some(({ snap, month }) => {
+            if (!snap || !snap.exists()) return true;
+            const d = snap.data() || {};
+            const inc = Number(d['income.total'] || (d.income && d.income.total) || 0);
+            const exp = Number(d['expense.total'] || (d.expense && d.expense.total) || 0);
+            const act = Number(d['members.active'] || (d.members && d.members.active) || 0);
+            const statLooksEmpty = inc === 0 && exp === 0 && act === 0;
+            return statLooksEmpty && month <= new Date().toISOString().slice(0, 7);
+        });
+
+        let history = {};
+        let txMeta = { transactions: [], rawDocsRead: 0, queryGroups: 0 };
+        if (needsTxFallback) {
+            console.info('[dashboard-history] stats incomplete — one compact 6-month transaction fallback');
+            txMeta = await _loadSparkHistoricalTransactions({
+                db,
+                clubId,
+                months: monthStrings,
+                reason: 'spark-dashboard-history',
+            });
+            if (typeof window.computeMonthlyFinanceHistory === 'function') {
+                history = window.computeMonthlyFinanceHistory(txMeta.transactions, monthStrings) || {};
+            }
+        }
+
+        const income = Array(6).fill(0);
+        const expense = Array(6).fill(0);
+        const active = Array(6).fill(0);
+        const rows = [];
+
+        statResults.forEach(({ snap, month, idx }) => {
+            let inc = 0, exp = 0, act = 0, mNew = 0, mQuit = 0;
+            let hasUsefulStat = false;
+            if (snap && snap.exists()) {
+                const d = snap.data() || {};
+                inc = Number(d['income.total'] || (d.income && d.income.total) || 0);
+                exp = Number(d['expense.total'] || (d.expense && d.expense.total) || 0);
+                act = Number(d['members.active'] || (d.members && d.members.active) || 0);
+                mNew = Number(d['members.new'] || (d.members && d.members.new) || 0);
+                mQuit = Number(d['members.quit'] || (d.members && d.members.quit) || 0);
+                hasUsefulStat = !(inc === 0 && exp === 0 && act === 0);
+            }
+            if (!hasUsefulStat && history[month]) {
+                inc = Number(history[month].income || 0);
+                exp = Number(history[month].expense || 0);
+            }
+
+            income[idx] = inc;
+            expense[idx] = exp;
+            active[idx] = act;
+
+            const profit = inc - exp;
+            const profitCls = profit < 0 ? 'text-rose-600' : 'text-emerald-600';
+            const rowClass = month === selMonth ? 'class="font-black text-primary"' : '';
+            rows.push(`<tr><td ${rowClass}>${labels[idx]}</td>` +
+                `<td class="text-slate-800 font-bold text-base">${act || '-'}</td>` +
+                `<td class="text-emerald-600 font-medium">+${mNew}</td>` +
+                `<td class="text-rose-600 font-medium">-${mQuit}</td>` +
+                `<td class="text-emerald-600 font-bold">${inc.toLocaleString()} ₫</td>` +
+                `<td class="text-rose-600 font-bold">${exp.toLocaleString()} ₫</td>` +
+                `<td class="${profitCls} font-black text-base bg-slate-50">${profit.toLocaleString()} ₫</td></tr>`);
+        });
+
+        const payload = {
+            chartData: { labels, income, expense, active },
+            reportHtml: rows.join(''),
+            source: needsTxFallback ? 'spark-compact-range' : 'stats-docs',
+            fetchedAt: Date.now(),
+            rawTransactionDocsRead: txMeta.rawDocsRead,
+            transactionQueryGroups: txMeta.queryGroups,
+        };
+
+        _writeSparkHistoryCache(clubId, selMonth, payload);
+        metrics.lastDashboardHistoryAt = Date.now();
+        metrics.lastDashboardHistorySource = payload.source;
+        return _applyHistoricalDashboardPayload(payload, reason || 'spark-network');
+    })().finally(() => {
+        _sparkHistoryInFlight.delete(key);
+    });
+
+    _sparkHistoryInFlight.set(key, task);
+    return task;
+}
+
+export function scheduleDashboardHistoryFetch(selMonth, reason, options = {}) {
+    const metrics = _sparkReadMetrics();
+    const force = options.force === true || reason === 'force-reload';
+    if (!force && !_isDashboardActive()) {
+        metrics.dashboardHistorySkippedHidden++;
+        if (window.__store) window.__store._dashboardHistoryPending = { selMonth, reason };
+        return Promise.resolve({ skipped: 'dashboard-hidden' });
+    }
+
+    if (_sparkHistoryDebounceTimer) clearTimeout(_sparkHistoryDebounceTimer);
+    _sparkHistoryDebounceTimer = setTimeout(() => {
+        _sparkHistoryDebounceTimer = null;
+        fetchHistoricalDashboardFallback(selMonth, reason, options).catch(error => {
+            console.warn('[spark-history] scheduled fetch failed:', error);
+        });
+    }, 250);
+    return Promise.resolve({ scheduled: true });
+}
+
+export function printSparkReadMetrics() {
+    const metrics = { ..._sparkReadMetrics() };
+    console.table(metrics);
+    return metrics;
+}
+
+// ════════════════════════════════════════════════════════════════
+// debugDashboardHistory — Part 5: console diagnostic
+// Usage: await window.debugDashboardHistory()
+// ════════════════════════════════════════════════════════════════
+
+export function registerDebugDashboardHistory() {
+    window.debugDashboardHistory = async function debugDashboardHistory() {
+        const st = window.__store || {};
+        const selectedMonth = (document.getElementById('filterMonth') || document.getElementById('monthPicker') || {}).value || st.selectedMonth || '';
+        const _snap = typeof window.getDashboardHistoricalSnapshot === 'function'
+            ? window.getDashboardHistoricalSnapshot()
+            : null;
+        const _cd = st.tabHtmlCache && st.tabHtmlCache._chartData || null;
+        const result = {
+            clubId:     st.clubId || st.currentClubId || '',
+            selectedMonth,
+            recentMonths: typeof window.getRecentMonths === 'function' ? window.getRecentMonths(selectedMonth, 6) : [],
+            hasChartJs: !!window.Chart,
+            hasFinanceChart: !!(window.getFinanceChart && window.getFinanceChart()),
+            hasMemberChart:  !!(window.getMemberChart  && window.getMemberChart()),
+            chartLabels:  _cd ? _cd.labels  : [],
+            chartIncome:  _cd ? _cd.income  : [],
+            chartExpense: _cd ? _cd.expense : [],
+            chartActive:  _cd ? _cd.active  : [],
+            reportRows: (_snap && _snap.reportRows) || document.querySelectorAll('#reportList tr').length,
+            historicalSnapshot: _snap,
+            lastSummary: st._lastSummaryNumbers || null,
+            lastDashboardRefreshReason: st._lastDashboardRefreshReason || '',
+            lastDashboardRefreshAt: st._lastDashboardRefreshAt || null,
+            lastDashboardHistoryFetchAt: st._lastDashboardHistoryFetchAt || null,
+            lastDashboardHistoryReason:  st._lastDashboardHistoryReason  || '',
+            hasRefreshDashboardComputation: typeof window.refreshDashboardComputation === 'function',
+            hasFetchMonthStats:             typeof window.fetchMonthStats             === 'function',
+            hasFetchHistoricalFallback:     typeof window.fetchHistoricalDashboardFallback === 'function',
+            hasRefreshDashboardHistory:     typeof window.refreshDashboardHistory     === 'function',
+        };
+        console.table(result);
+        return result;
+    };
+}
+
+export function initDashboard() {
+    // Expose chart accessors cho debug / các module khác
+    window.getFinanceChart = () => _getFinChart();
+    window.getMemberChart  = () => _getMemChart();
+
+    // ── Phase 4K-5N: normalizeBranchCodeForStats ─────────────────────────────
+    window.normalizeBranchCodeForStats = function(branchInput, branchCount) {
+        const cfg = (window.__store && window.__store.clubConfig) || window.clubConfig || {};
+        const raw = String(branchInput || '').trim();
+        if (!raw) return 'CS1';
+
+        const m = raw.match(/^CS(\d+)$/i);
+        if (m) {
+            const n = Number(m[1]);
+            if (n >= 1 && n <= (branchCount || cfg.branchCount || 10)) return 'CS' + n;
+        }
+
+        const norm = typeof window.normalizeVNForSearch === 'function'
+            ? window.normalizeVNForSearch(raw)
+            : raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+        const count = Number(branchCount || cfg.branchCount || 10);
+        for (let i = 1; i <= count; i++) {
+            const code = 'CS' + i;
+            const name = cfg['branchName' + i] || ('Cơ sở ' + i);
+            const normName = typeof window.normalizeVNForSearch === 'function'
+                ? window.normalizeVNForSearch(name)
+                : String(name).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+            if (norm === normName) return code;
+            if (norm === ('co so ' + i)) return code;
+            if (norm === ('coso ' + i)) return code;
+        }
+        return raw.startsWith('CS') ? raw : 'CS1';
+    };
+
+    // ── Phase 4K-5N: getComponentAmountForSelectedMonth ──────────────────────
+    window.getComponentAmountForSelectedMonth = function(component, selectedMonth) {
+        const c = component || {};
+        const kind = c.kind || '';
+        const amount = Number(c.amount || 0);
+        const month = String(selectedMonth || '').slice(0, 7);
+        if (!amount || !month) return 0;
+
+        if (kind === 'tuition') {
+            const months = Array.isArray(c.packageMonths)
+                ? c.packageMonths.map(m => String(m).slice(0, 7))
+                : [];
+            if (months.length > 0) {
+                return months.includes(month) ? amount / months.length : 0;
+            }
+            const cm = String(c.month || c.txMonth || '').slice(0, 7);
+            return cm === month ? amount : 0;
+        }
+
+        // exam / inventory / other: tính theo month/txMonth/date
+        const cm = String(c.month || c.txMonth || c.date || '').slice(0, 7);
+        if (!cm || cm === month) return amount;
+        return 0;
+    };
+
+    // ── Phase 4K-5N: refreshDashboardBranchStatsFullMonth ────────────────────
+    window.refreshDashboardBranchStatsFullMonth = async function(selectedMonth) {
+        const month = selectedMonth || (document.getElementById('filterMonth') || {}).value || '';
+        if (!month) return;
+        if (typeof window.loadTransactionsForMonthsInclusive !== 'function') return;
+
+        // Ưu tiên dùng allTransactions nếu đã đủ
+        const st = window.__store || {};
+        const existingTxs = Array.isArray(st.allTransactions) ? st.allTransactions : null;
+        const txs = existingTxs && existingTxs.length > 0
+            ? existingTxs
+            : await window.loadTransactionsForMonthsInclusive([month], 'dashboard-branch-full-month');
+
+        const cfg    = st.clubConfig || window.clubConfig || {};
+        const bCount = cfg.branchCount || 1;
+        const bStats = {}, bExamStats = {};
+        for (let bi = 1; bi <= bCount; bi++) {
+            bStats['CS' + bi]     = { income: 0, active: 0, debt: 0, tuitionMap: {}, examFeeMap: {} };
+            bExamStats['CS' + bi] = 0;
+        }
+
+        txs.forEach(function(t) {
+            if (typeof window.txMatchesSelectedMonth === 'function') {
+                if (!window.txMatchesSelectedMonth(t, month)) return;
+            }
+            if (t.type === 'Chi phí' || t.type === 'Chi phí kỳ thi') return;
+
+            const comps = typeof window.getAccountingComponents === 'function'
+                ? window.getAccountingComponents(t)
+                : (typeof window.expandTransactionComponentsForAccounting === 'function'
+                    ? window.expandTransactionComponentsForAccounting(t)
+                    : (Array.isArray(t.components) ? t.components : []));
+
+            let usedComps = false;
+            if (Array.isArray(comps) && comps.length > 0) {
+                usedComps = true;
+                comps.forEach(function(c) {
+                    const ck = c.kind || '';
+                    const ca = Number(c.amount || 0);
+                    if (ca <= 0) return;
+                    const cBr = window.normalizeBranchCodeForStats(c.branch || t.branch || 'CS1', bCount);
+                    if (!bStats[cBr]) { bStats[cBr] = { income: 0, active: 0, debt: 0, tuitionMap: {}, examFeeMap: {} }; }
+                    if (bExamStats[cBr] === undefined) bExamStats[cBr] = 0;
+                    const amtM = window.getComponentAmountForSelectedMonth(c, month);
+                    if (ck === 'tuition') {
+                        if (amtM <= 0) return;
+                        bStats[cBr].income += amtM;
+                        const fk = Math.round(Array.isArray(c.packageMonths) && c.packageMonths.length > 1 ? ca / c.packageMonths.length : ca);
+                        if (fk > 0) bStats[cBr].tuitionMap[fk] = (bStats[cBr].tuitionMap[fk] || 0) + 1;
+                    } else if (ck === 'exam') {
+                        const cm2 = String(c.month || c.txMonth || t.txMonth || t.date || '').slice(0, 7);
+                        if (month && cm2 && cm2 !== month) return;
+                        bStats[cBr].income += ca;
+                        const ek = Math.round(ca);
+                        if (ek > 0) bStats[cBr].examFeeMap[ek] = (bStats[cBr].examFeeMap[ek] || 0) + 1;
+                        bExamStats[cBr] = (bExamStats[cBr] || 0) + ca;
+                    } else if (ck === 'inventory' || ck === 'inventoryDebt') {
+                        bStats[cBr].income += amtM || ca;
+                    } else {
+                        if (amtM <= 0) return;
+                        bStats[cBr].income += amtM;
+                    }
+                });
+            }
+
+            if (!usedComps) {
+                const br = window.normalizeBranchCodeForStats(t.branch || 'CS1', bCount);
+                if (!bStats[br]) { bStats[br] = { income: 0, active: 0, debt: 0, tuitionMap: {}, examFeeMap: {} }; }
+                if (bExamStats[br] === undefined) bExamStats[br] = 0;
+                let alloc = Number(t.amount) || 0;
+                if (t.type === 'Học phí') {
+                    alloc = t.packageMonths && t.packageMonths.length > 1 ? alloc / t.packageMonths.length : alloc;
+                    bStats[br].income += alloc;
+                    const tf = Math.round(Number(t.amount) || 0);
+                    if (tf > 0) bStats[br].tuitionMap[tf] = (bStats[br].tuitionMap[tf] || 0) + 1;
+                } else if (t.type === 'Học phí + Lệ phí thi') {
+                    const ta = Number(t.tuitionAmount) || 0;
+                    const ea = Number(t.examAmount) || 0;
+                    bStats[br].income += ta + ea;
+                    if (ta > 0) bStats[br].tuitionMap[Math.round(ta)] = (bStats[br].tuitionMap[Math.round(ta)] || 0) + 1;
+                    if (ea > 0) { bStats[br].examFeeMap[Math.round(ea)] = (bStats[br].examFeeMap[Math.round(ea)] || 0) + 1; bExamStats[br] += ea; }
+                } else if (t.type === 'Lệ phí thi') {
+                    bStats[br].income += alloc;
+                    const ek = Math.round(alloc);
+                    if (ek > 0) { bStats[br].examFeeMap[ek] = (bStats[br].examFeeMap[ek] || 0) + 1; bExamStats[br] += alloc; }
+                } else {
+                    bStats[br].income += alloc;
+                }
+            }
+        });
+
+        // ── Phase 4K-5P: Override exam branch stats with canonical ledger ────
+        const examBranchLedger = typeof window.buildCanonicalExamBranchLedger === 'function'
+            ? window.buildCanonicalExamBranchLedger({
+                month,
+                transactions: txs
+            })
+            : null;
+
+        if (examBranchLedger && examBranchLedger.branchMap) {
+            Object.keys(bStats).forEach(function(branch) {
+                bStats[branch].examFeeMap = {};
+                bStats[branch].examRegisteredCount = 0;
+                bStats[branch].examRegisteredNames = [];
+                bExamStats[branch] = 0;
+            });
+
+            Object.entries(examBranchLedger.branchMap).forEach(function([branch, info]) {
+                if (!bStats[branch]) {
+                    bStats[branch] = {
+                        income: 0,
+                        active: 0,
+                        debt: 0,
+                        tuitionMap: {},
+                        examFeeMap: {}
+                    };
+                }
+                bStats[branch].examFeeMap = Object.assign({}, info.feeMap || {});
+                bStats[branch].examRegisteredCount = info.registeredCount || 0;
+                bStats[branch].examRegisteredNames = info.names || [];
+                bExamStats[branch] = info.totalAmount || 0;
+            });
+        }
+
+        if (typeof window.renderBranchStats    === 'function') window.renderBranchStats(bStats);
+        if (typeof window.renderExamBranchFees === 'function') window.renderExamBranchFees(bExamStats, Object.values(bExamStats).reduce((a, b) => a + b, 0));
+        if (st) {
+            st._lastBStats     = bStats;
+            st._lastBExamStats = bExamStats;
+        }
+    };
+
+    // ── Phase 4K-5N: debugDashboardBranchRevenue ─────────────────────────────
+    window.debugDashboardBranchRevenue = function() {
+        const st = window.__store || {};
+        const bStats    = st._lastBStats    || {};
+        const bExamStats = st._lastBExamStats || {};
+        const txs =
+            Array.isArray(st.allTransactions)    ? st.allTransactions    :
+            Array.isArray(window.allTransactions) ? window.allTransactions :
+            Array.isArray(st.transactions)        ? st.transactions        :
+            [];
+
+        const rows = Object.entries(bStats).map(([branch, data]) => ({
+            branch,
+            income:      data.income     || 0,
+            active:      data.active     || 0,
+            debt:        data.debt       || 0,
+            tuitionMap:  JSON.stringify(data.tuitionMap  || {}),
+            examFeeMap:  JSON.stringify(data.examFeeMap  || {}),
+            examTotal:   bExamStats[branch] || 0,
+        }));
+
+        const componentRows = txs
+            .filter(t => Array.isArray(t.components) && t.components.length)
+            .map(t => ({
+                id:         t.id || t.txId || '',
+                student:    t.studentName || t.description || '',
+                type:       t.type,
+                branchRaw:  t.branch,
+                branchNorm: window.normalizeBranchCodeForStats
+                    ? window.normalizeBranchCodeForStats(t.branch)
+                    : t.branch,
+                components: t.components.map(c => c.kind + ':' + c.amount + ':' + (c.branch || t.branch)).join(' | '),
+            }));
+
+        console.table(rows);
+        console.table(componentRows);
+        return { rows, componentRows, bStats, bExamStats };
+    };
+
+    // ── Phase 4K-5N: debugDashboardCharts ────────────────────────────────────
+    window.debugDashboardCharts = function() {
+        const Chart  = window.Chart;
+        const finEl  = document.getElementById('financeChart');
+        const memEl  = document.getElementById('memberChart');
+        const fc = _getFinChart();
+        const mc = _getMemChart();
+        const finOnCanvas  = Chart && finEl ? !!(Chart.getChart && Chart.getChart(finEl)) : false;
+        const memOnCanvas  = Chart && memEl ? !!(Chart.getChart && Chart.getChart(memEl)) : false;
+        const result = {
+            hasChartJs:         !!Chart,
+            hasChartGetChart:   !!(Chart && typeof Chart.getChart === 'function'),
+            financeChartStore:  !!fc,
+            financeChartOnCanvas: finOnCanvas,
+            memberChartStore:   !!mc,
+            memberChartOnCanvas: memOnCanvas,
+            storeMatchCanvas: (!!fc === finOnCanvas) && (!!mc === memOnCanvas),
+        };
+        console.table(result);
+        return result;
+    };
+
+    // Expose fetchMonthStats để app.js và các modules khác có thể gọi
+    window.fetchMonthStats = fetchMonthStats;
+
+    // [Phase 4K-FIX Lỗi 4] Expose tryApplyCurrentMonthStats — gọi từ render.js
+    // sau khi sync render từ allTransactions để ưu tiên stats doc cho tổng thu/chi
+    window.tryApplyCurrentMonthStats = tryApplyCurrentMonthStats;
+
+    // [GITHUB-FIX Task 1] Expose dashboard render functions cho renderDashboard.js
+    // và listComputationRefresh.js — thiếu dòng này → dashboard summary no-op
+    window.renderDashboardCharts = renderDashboardCharts;
+    window.renderBranchStats     = renderBranchStats;
+    window.renderExamBranchFees  = renderExamBranchFees;
+    window.updateSummaryNumbers  = updateSummaryNumbers;
+
+    // Module-level namespace (cho diagnostics và cross-module access)
+    window._moduleDashboard = {
+        renderDashboardCharts,
+        renderBranchStats,
+        renderExamBranchFees,
+        updateSummaryNumbers,
+        fetchMonthStats,
+        tryApplyCurrentMonthStats,
+        fetchHistoricalDashboardFallback,
+        scheduleDashboardHistoryFetch,
+        printSparkReadMetrics,
+        normalizeBranchCodeForStats:         window.normalizeBranchCodeForStats,
+        getComponentAmountForSelectedMonth:  window.getComponentAmountForSelectedMonth,
+        refreshDashboardBranchStatsFullMonth: window.refreshDashboardBranchStatsFullMonth,
+        debugDashboardBranchRevenue:         window.debugDashboardBranchRevenue,
+        debugDashboardCharts:                window.debugDashboardCharts,
+    };
+
+    // [Part 4 FIX] Expose historical fallback so refreshDashboardComputation can call it
+    window.fetchHistoricalDashboardFallback = fetchHistoricalDashboardFallback;
+    window.scheduleDashboardHistoryFetch = scheduleDashboardHistoryFetch;
+    window.printSparkReadMetrics = printSparkReadMetrics;
+
+    // [Part 5 FIX] Register debug function
+    registerDebugDashboardHistory();
+
+    // Cleanup khi logout — gọi từ store.resetStore()
+    window._destroyDashboardCharts = () => {
+        const fc = _getFinChart();
+        const mc = _getMemChart();
+        if (fc) { try { fc.destroy(); } catch (_e) {} }
+        if (mc) { try { mc.destroy(); } catch (_e) {} }
+        _setFinChart(null);
+        _setMemChart(null);
+    };
+
+    console.info('[dashboard.js] ✅ Phase 4K-5N (chart lifecycle fix + branch revenue component authority)');
+}

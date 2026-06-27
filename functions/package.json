@@ -13,7 +13,7 @@
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions",
     "logs": "firebase functions:log",
-    "lint": "node -c index.js && node -c src/debtCalculation.js && node -c src/statsAggregation.js && node -c src/superAdminSummary.js"
+    "lint": "node -c index.js && node -c src/helpers.js && node -c src/authz.js && node -c src/debtCalculation.js && node -c src/statsAggregation.js && node -c src/superAdminSummary.js"
   },
   "dependencies": {
     "firebase-admin": "^12.0.0",

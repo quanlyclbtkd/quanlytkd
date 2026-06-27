@@ -47,6 +47,7 @@
  */
 
 const functions = require('firebase-functions');
+const { requireClubAdmin } = require('./authz');
 const admin     = require('firebase-admin');
 
 const {
@@ -310,17 +311,9 @@ exports.rebuildStatsForClub = functions
             );
         }
 
-        // Kiểm tra quyền
-        const userDoc  = await db.doc(`users/${context.auth.uid}`).get();
-        const userData = userDoc.exists ? userDoc.data() : {};
-        const isSuperAdmin = context.auth.token.email === 'admin@tstquynhon.com';
-
-        if (!isSuperAdmin && userData.clubId !== clubId) {
-            throw new functions.https.HttpsError(
-                'permission-denied',
-                'Bạn không có quyền truy cập câu lạc bộ này!'
-            );
-        }
+        // Phase 4K-6V4B: rebuild đọc toàn bộ transactions và ghi stats,
+        // chỉ Admin/SuperAdmin được phép thực hiện.
+        await requireClubAdmin({ db, functions, context, clubId });
 
         const yearStr = String(year || new Date().getFullYear());
 

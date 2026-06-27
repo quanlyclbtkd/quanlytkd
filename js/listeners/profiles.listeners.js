@@ -63,6 +63,9 @@ const _state = {
     role:                   '',
     coachBranch:            '',
     coachBranchFallbackCount: 0,
+    coachLegacyListenerKey: null,
+    coachCanonicalActiveMap: {},
+    coachLegacyActiveMap: {},
 
     // ── Quit load ─────────────────────────────────────────────────────────────
     quitLoaded:             false,
@@ -128,7 +131,20 @@ function _isCoachContext(context = _ctx) {
 }
 
 function _coachBranch(context = _ctx) {
-    return String((context && context.coachBranch) || _state.coachBranch || window.coachBranch || window.__store?.coachBranch || '').trim();
+    const raw = (context && context.coachBranch) || _state.coachBranch || window.coachBranch || window.__store?.coachBranch || '';
+    if (window.BranchIdentity?.normalize) return window.BranchIdentity.normalize(raw, { fallback: '' });
+    const value = String(raw || '').trim();
+    return /^(Mặc định|mac dinh|default)$/i.test(value) ? 'CS1' : value;
+}
+
+function _coachBranchAliases(context = _ctx) {
+    const branch = _coachBranch(context);
+    if (window.BranchIdentity?.aliases) return window.BranchIdentity.aliases(branch);
+    return branch === 'CS1' ? ['CS1', 'Mặc định'] : (branch ? [branch] : []);
+}
+
+function _mergedCoachActiveMap() {
+    return Object.assign({}, _state.coachLegacyActiveMap || {}, _state.coachCanonicalActiveMap || {});
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -355,6 +371,8 @@ export function mountActiveProfilesListener(context) {
     const { profRef, clubId } = context;
     _state.role = _contextRole(context);
     _state.coachBranch = _coachBranch(context);
+    _state.coachCanonicalActiveMap = {};
+    _state.coachLegacyActiveMap = {};
     const isCoach = _isCoachContext(context);
     const coachBranch = _coachBranch(context);
     if (isCoach && !coachBranch) {
@@ -432,11 +450,15 @@ export function mountActiveProfilesListener(context) {
                     }
                     if (window.markListenerSnapshot) window.markListenerSnapshot(key);
 
-                    const activeMap = {};
+                    let activeMap = {};
                     snap.forEach(d => {
                         const id = d.id.trim();
                         if (id) activeMap[id] = d.data();
                     });
+                    if (isCoach) {
+                        _state.coachCanonicalActiveMap = activeMap;
+                        activeMap = _mergedCoachActiveMap();
+                    }
 
                     const activeCount = Object.keys(activeMap).length;
 
@@ -509,6 +531,58 @@ export function mountActiveProfilesListener(context) {
             reason: context.reason || 'active-profiles-mount-3.7C',
         }
     );
+
+    // Phase 4K-6V4B: CS1 also reads the legacy primary-branch value `Mặc định`.
+    // A separate listener avoids combining two Firestore `in` filters
+    // (`status in [...]` + `branch in [...]`), which is not portable across SDK/index versions.
+    if (isCoach && coachBranch === 'CS1') {
+        const legacyKey = key + ':legacy-primary';
+        _state.coachLegacyListenerKey = legacyKey;
+        window.safeRegisterSnapshot(
+            legacyKey,
+            () => {
+                const statusConstraint = statusValues.length === 1
+                    ? fbWhere('status', '==', statusValues[0])
+                    : fbWhere('status', 'in', statusValues);
+                const legacyQuery = fbQuery(profRef, statusConstraint, fbWhere('branch', '==', 'Mặc định'));
+                return fbOnSnapshot(
+                    legacyQuery,
+                    (snap) => {
+                        if (typeof window.recordFirestoreSnapshotAttribution === 'function') {
+                            window.recordFirestoreSnapshotAttribution('profiles.activeLegacyPrimaryListener', snap, {
+                                initial: true,
+                                reason: 'legacy-primary-branch-compat'
+                            });
+                        }
+                        if (window.markListenerSnapshot) window.markListenerSnapshot(legacyKey);
+                        const legacyMap = {};
+                        snap.forEach(d => {
+                            const id = d.id.trim();
+                            if (id) legacyMap[id] = d.data();
+                        });
+                        _state.coachLegacyActiveMap = legacyMap;
+                        const merged = _mergedCoachActiveMap();
+                        setActiveProfiles(merged, 'coach-active-legacy-primary-snapshot');
+                        _syncLegacy();
+                        _state.activeListenerMounted = true;
+                        _state.lastProfilesMode = 'coach-active-canonical-plus-legacy';
+                        _invalidateAll('coach-active-legacy-primary-snapshot');
+                        _updateWindowMetrics();
+                    },
+                    (err) => {
+                        _state.activeQueryErrorCount++;
+                        console.warn('[ProfilesListener] Legacy primary branch query failed:', err.code || err.message);
+                    }
+                );
+            },
+            {
+                owner: 'students',
+                scope: 'global',
+                tabId: null,
+                reason: 'coach-legacy-primary-branch-compat-4K-6V4B',
+            }
+        );
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -523,8 +597,14 @@ export function cleanupActiveProfilesListener(reason) {
     if (_state.activeListenerKey && window.removeListener) {
         window.removeListener(_state.activeListenerKey, reason || 'cleanup-active-profiles');
     }
+    if (_state.coachLegacyListenerKey && window.removeListener) {
+        window.removeListener(_state.coachLegacyListenerKey, reason || 'cleanup-coach-legacy-primary-profiles');
+    }
     _state.activeListenerMounted = false;
     _state.activeListenerKey     = null;
+    _state.coachLegacyListenerKey = null;
+    _state.coachCanonicalActiveMap = {};
+    _state.coachLegacyActiveMap = {};
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -575,27 +655,68 @@ export async function loadQuitProfilesIfNeeded(reason, contextOverride) {
     const quitValues  = getQuitQueryValues();
 
     try {
-        let quitQuery;
+        const quitQueries = [];
         if (quitValues.length === 1) {
-            quitQuery = fbQuery(profRef, fbWhere('status', '==', quitValues[0]));
+            quitQueries.push({ label: 'status==quit', query: fbQuery(profRef, fbWhere('status', '==', quitValues[0])) });
         } else {
-            quitQuery = fbQuery(profRef, fbWhere('status', 'in', quitValues));
+            quitQueries.push({ label: 'status-in-quit', query: fbQuery(profRef, fbWhere('status', 'in', quitValues)) });
         }
-
-        const snap    = await fbGetDocs(quitQuery);
-        if (typeof window.recordFirestoreReadAttribution === 'function') {
-            window.recordFirestoreReadAttribution('profiles.quitLazyQuery', snap.size || 0, {
-                initial: true,
-                reason: reason || 'quit-lazy'
-            });
-        }
-        const quitMap = {};
-        snap.forEach(d => {
-            const id = d.id.trim();
-            if (id) quitMap[id] = d.data();
+        // Phase 4K-6V4B2: Legacy quit completeness. Older records can be marked
+        // quit via boolean flags or quitDate while status is missing/legacy text.
+        // These are targeted single-field queries, not a full profiles read.
+        const legacyQuitSignals = [
+            { label: 'active==false',   field: 'active',   op: '==', value: false },
+            { label: 'isActive==false', field: 'isActive', op: '==', value: false },
+            { label: 'quit==true',      field: 'quit',     op: '==', value: true  },
+            { label: 'isQuit==true',    field: 'isQuit',   op: '==', value: true  },
+            { label: 'stopped==true',   field: 'stopped',  op: '==', value: true  },
+            { label: 'quitDate!=null',  field: 'quitDate', op: '!=', value: null  },
+        ];
+        legacyQuitSignals.forEach(signal => {
+            try {
+                quitQueries.push({
+                    label: signal.label,
+                    query: fbQuery(profRef, fbWhere(signal.field, signal.op, signal.value)),
+                });
+            } catch (buildErr) {
+                console.debug('[ProfilesListener] Skip quit legacy signal query build:', signal.label, buildErr.message || buildErr);
+            }
         });
 
-        setQuitProfiles(quitMap, 'quit-profiles-lazy:' + (reason || ''));
+        const quitMap = {};
+        let docsRead = 0;
+        const queryResults = [];
+        for (const item of quitQueries) {
+            try {
+                const snap = await fbGetDocs(item.query);
+                docsRead += snap.size || 0;
+                let accepted = 0;
+                snap.forEach(d => {
+                    const id = d.id.trim();
+                    if (!id) return;
+                    const data = d.data();
+                    if (classifyProfileStatus(data) === 'quit') {
+                        quitMap[id] = data;
+                        accepted++;
+                    }
+                });
+                queryResults.push({ label: item.label, size: snap.size || 0, accepted });
+            } catch (queryErr) {
+                _state.quitQueryErrorCount++;
+                queryResults.push({ label: item.label, error: queryErr.code || queryErr.message || String(queryErr) });
+                console.warn('[ProfilesListener] Quit legacy query lỗi:', item.label, queryErr.code || queryErr.message);
+            }
+        }
+        if (typeof window.recordFirestoreReadAttribution === 'function') {
+            window.recordFirestoreReadAttribution('profiles.quitLazyQuery', docsRead, {
+                initial: true,
+                reason: reason || 'quit-lazy',
+                queryCount: quitQueries.length,
+                results: queryResults
+            });
+        }
+
+        setQuitProfiles(quitMap, 'quit-profiles-lazy-complete:' + (reason || ''));
         markQuitLoaded(true); // [Phase 3.7C+A] explicit safety sync
 
         _state.quitLoaded            = true;
@@ -656,22 +777,26 @@ export async function loadCoachBranchProfilesFallback(reason) {
 
     _state.fallbackInProgress = true;
     try {
-        const branchQuery = fbQuery(ctx.profRef, fbWhere('branch', '==', branch));
-        const snap = await fbGetDocs(branchQuery);
+        const aliases = _coachBranchAliases(ctx);
+        const snapshots = await Promise.all(aliases.map(alias =>
+            fbGetDocs(fbQuery(ctx.profRef, fbWhere('branch', '==', alias)))
+        ));
+        const docsRead = snapshots.reduce((sum, snap) => sum + (snap.size || 0), 0);
         if (typeof window.recordFirestoreReadAttribution === 'function') {
-            window.recordFirestoreReadAttribution('profiles.coachBranchFallbackQuery', snap.size || 0, {
+            window.recordFirestoreReadAttribution('profiles.coachBranchFallbackQuery', docsRead, {
                 initial: true,
                 reason: reason || 'coach-branch-fallback',
-                branch
+                branch,
+                aliases
             });
         }
         const activeMap = {};
-        snap.forEach(d => {
+        snapshots.forEach(snap => snap.forEach(d => {
             const id = d.id.trim();
             if (!id) return;
             const data = d.data();
             if (classifyProfileStatus(data) !== 'quit') activeMap[id] = data;
-        });
+        }));
         setActiveProfiles(activeMap, 'coach-branch-fallback:' + reason);
         setQuitProfiles({}, 'coach-branch-fallback:no-quit-data');
         _syncLegacy();
@@ -919,6 +1044,9 @@ export function resetProfilesListeners(reason) {
     _state.role                    = '';
     _state.coachBranch             = '';
     _state.coachBranchFallbackCount = 0;
+    _state.coachLegacyListenerKey = null;
+    _state.coachCanonicalActiveMap = {};
+    _state.coachLegacyActiveMap = {};
 
     // Quit
     _state.quitLoaded              = false;
