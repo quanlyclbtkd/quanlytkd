@@ -1,0 +1,21 @@
+Phase 4K-6V4B11 — Debt PaidUntil Authoritative Boundary
+
+Commands executed:
+- npm run check: PASS
+- npm run check:all:critical: PASS
+- npm run check:syntax: PASS
+- npm run check:debt-authoritative-tuition-coverage: PASS
+- Patch apply check: PASS
+- Patch debt gate: PASS
+- Patch syntax gate: PASS
+- Complete ZIP debt gate: PASS
+- Complete ZIP syntax gate: PASS
+
+Key dedicated result:
+- Debt Authoritative Tuition Coverage: 32/32 PASS
+
+Critical dynamic cases:
+- paidUntil 'Tháng Năm 2026' + stale paidMonths ['2026-06'] + selectedMonth 2026-06 => chargeableMonths ['2026-06']
+- paidUntil 'Tháng tư 2026' + stale paidMonths ['2026-06'] + selectedMonth 2026-06 => chargeableMonths ['2026-05','2026-06']
+- numeric variants 05/2026, 5/2026, T5/2026, Tháng 5/2026, Tháng 5 2026, Tháng 5 - 2026 normalize to 2026-05
+- skippedMonths ['06/2026'] still suppresses June debt intentionally

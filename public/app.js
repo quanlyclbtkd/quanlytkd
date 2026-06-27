@@ -1,4 +1,4 @@
-// Phase 4K-6V4B10: debt-canonical-filter-boundary-20260627
+// Phase 4K-6V4B11: debt-paiduntil-authoritative-boundary-20260627
     /* Firestore security rules source of truth: ./firestore.rules */
 // LEGACY APP KERNEL — DO NOT DELETE DIRECTLY
 // Responsibilities kept in app.js for now:
@@ -69,7 +69,7 @@
         const code = _canonicalBranch(value, '');
         return code === 'CS1' ? ['CS1', 'Mặc định'] : (code ? [code] : []);
     };
-    // Phase 4K-6V4B10: dùng chung cho Báo nợ/Đang tập legacy render.
+    // Phase 4K-6V4B11: dùng chung cho Báo nợ/Đang tập legacy render.
     // Direct compare safeBranch !== selBranch làm sót võ sinh nếu dữ liệu cũ lưu
     // branch bằng Mặc định / tên cơ sở trong khi filter dùng CS1..CS10.
     const _branchMatchesFilter = (profileBranch, selectedBranch) => {
@@ -657,10 +657,19 @@ window.invCustomCategories = [];
         // Phase 4K-6V4B7: paidMonths/skippedMonths must be normalized with the
         // same canonical month parser as paidUntil. Legacy values like 05/2026
         // or T5/2026 previously caused missing debt rows.
-        const paidMonths = Array.isArray(p.paidMonths)
+        const rawPaidMonths = Array.isArray(p.paidMonths)
             ? p.paidMonths.map(function(m) { return normalizeYYYYMM(m); }).filter(Boolean)
             : [];
         const paidUntil = normalizeYYYYMM(p.paidUntil || '');
+        // Phase 4K-6V4B11: Báo nợ lấy `paidUntil` làm ranh giới canonical.
+        // Lỗi thực tế: hồ sơ hiển thị “Đã đóng tới tháng = Tháng Năm 2026”
+        // nhưng `paidMonths` legacy/stale vẫn chứa 2026-06, làm tháng 6 bị che mất.
+        // Khi paidUntil tồn tại, các paidMonths SAU paidUntil không được tự động
+        // xóa nợ, trừ khi caller chủ động bật trustFuturePaidMonths.
+        const trustFuturePaidMonths = !!(options && options.trustFuturePaidMonths === true);
+        const paidMonths = paidUntil && !trustFuturePaidMonths
+            ? rawPaidMonths.filter(function(m) { return m <= paidUntil; })
+            : rawPaidMonths;
         let startMonth = '';
         if (paidUntil) {
             startMonth = addMonthsToYYYYMM(paidUntil, 1);

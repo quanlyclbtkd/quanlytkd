@@ -19,7 +19,7 @@
  */
 
 import { registerRender } from './renderRegistry.js';
-import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=debt-canonical-filter-boundary-20260627-v4b10';
+import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=debt-paiduntil-authoritative-boundary-20260627-v4b11';
 
 // ─── Core DOM helper ────────────────────────────────────────────────────────
 

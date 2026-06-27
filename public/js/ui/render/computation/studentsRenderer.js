@@ -69,8 +69,11 @@ function _fallbackChargeableTuitionMonths(profile, selectedMonth) {
     const selMonth = normalizeYYYYMM(selectedMonth || '');
     if (!selMonth || p.feeExempt === true) return [];
     const skipped = _monthList(p.skippedMonths);
-    const paidMonths = _monthList(p.paidMonths);
+    const rawPaidMonths = _monthList(p.paidMonths);
     const paidUntil = normalizeYYYYMM(p.paidUntil || '');
+    // Phase 4K-6V4B11: `paidUntil` is the authoritative continuous paid boundary.
+    // Do not let future stale paidMonths hide real debt after paidUntil.
+    const paidMonths = paidUntil ? rawPaidMonths.filter(m => m <= paidUntil) : rawPaidMonths;
     let startMonth = paidUntil ? addMonthsToYYYYMM(paidUntil, 1) : '';
     if (!startMonth) {
         startMonth = normalizeYYYYMM(p.admissionDate || p.joinDate || p.joinedAt || p.createdAt || p.enrollDate || selMonth) || selMonth;
@@ -98,7 +101,7 @@ const _getBrN = (br) =>
         ? window.getBranchNameDisplay(br)
         : br;
 
-// Phase 4K-6V4B10: Branch filter must use the same canonical/alias rules as
+// Phase 4K-6V4B11: Branch filter must use the same canonical/alias rules as
 // Coach attendance. Legacy profile.branch may be CS1, Mặc định, a configured
 // branch display name, or an old free-text value. Direct string compare made
 // Báo nợ silently miss some debtors when Admin selected a branch filter.
@@ -420,7 +423,7 @@ export function computeAndCacheStudents(allProfiles, params) {
             const isSkipped = p.skippedMonths && p.skippedMonths.includes(selMonth);
             if (isSkipped) m_skipped++;
 
-            // Phase 4K-6V4B10: split shared filters from Active-only filters.
+            // Phase 4K-6V4B11: split shared filters from Active-only filters.
             // Debt list must obey branch + search + overdue filter, but must NOT be
             // hidden by Active tab's "new/returning student" filter.
             let branchPassFilter = true;
@@ -476,7 +479,7 @@ export function computeAndCacheStudents(allProfiles, params) {
             }
 
             if (isDebt) {
-                // Phase 4K-6V4B10: Báo nợ chỉ dùng filter chung branch/search.
+                // Phase 4K-6V4B11: Báo nợ chỉ dùng filter chung branch/search.
                 // Không dùng activePassFilter vì filter "võ sinh mới/quay lại" của tab
                 // Đang tập có thể làm ẩn võ sinh nợ thật.
                 const debtPassFilter = sharedPassFilter;

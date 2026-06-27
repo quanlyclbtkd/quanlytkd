@@ -1,0 +1,36 @@
+Changed files for Phase 4K-6V4B11:
+
+Core debt logic:
+- app.js
+- js/ui/render/computation/studentsRenderer.js
+- js/modules/reports.js
+- js/modules/students.js
+
+Cache-bust / module entrypoints:
+- index.html
+- js/main.js
+- js/ui/render.js
+- js/ui/render/renderStudents.js
+- js/ui/render/listComputationRefresh.js
+- js/ui/render/renderInvalidation.js
+
+Public deployment mirrors:
+- public/app.js
+- public/index.html
+- public/js/main.js
+- public/js/ui/render.js
+- public/js/ui/render/computation/studentsRenderer.js
+- public/js/ui/render/renderStudents.js
+- public/js/ui/render/listComputationRefresh.js
+- public/js/ui/render/renderInvalidation.js
+- public/js/modules/students.js
+- public/js/modules/reports.js
+- public/js/utils/format.js
+
+Checks/docs:
+- tools/check-debt-authoritative-tuition-coverage.mjs
+- tools/check-coach-branch-runtime-repair.mjs
+- tools/check-inventory-ledger-reconciliation.mjs
+- tools/check-quit-tab-mobile-parity.mjs
+- PHASE_4K_6V4B11_DEBT_PAIDUNTIL_AUTHORITATIVE_BOUNDARY_REPORT.md
+- PHASE_4K_6V4B11_TEST_SUMMARY.txt

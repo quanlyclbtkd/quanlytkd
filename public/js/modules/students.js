@@ -3024,6 +3024,14 @@ window.debugDebtActionState = function(name) {
         : (m => String(m || '').slice(0, 7));
     var chargeable = (profile && typeof window.getChargeableTuitionMonths === 'function')
         ? window.getChargeableTuitionMonths(profile, selectedRaw, { reason: 'debugDebtActionState' }) : [];
+    var normalizedPaidUntilForTrust = profile ? normMonth(profile.paidUntil || '') : '';
+    var normalizedPaidMonthsRaw = profile && Array.isArray(profile.paidMonths) ? profile.paidMonths.map(normMonth).filter(Boolean) : [];
+    var trustedPaidMonthsForDebt = normalizedPaidUntilForTrust
+        ? normalizedPaidMonthsRaw.filter(function(m) { return m <= normalizedPaidUntilForTrust; })
+        : normalizedPaidMonthsRaw.slice();
+    var ignoredFuturePaidMonthsAfterPaidUntil = normalizedPaidUntilForTrust
+        ? normalizedPaidMonthsRaw.filter(function(m) { return m > normalizedPaidUntilForTrust; })
+        : [];
     var branchFilter = (document.getElementById('filterBranch') && document.getElementById('filterBranch').value) || 'all';
     var branchRaw = profile ? (profile.branch || 'CS1') : '';
     var branchPass = !profile ? false : (typeof window.debtBranchMatchesFilter === 'function'
@@ -3064,7 +3072,9 @@ window.debugDebtActionState = function(name) {
         paidUntil:                       profile ? (profile.paidUntil || '') : '',
         normalizedPaidUntil:             profile ? normMonth(profile.paidUntil || '') : '',
         paidMonths:                      profile ? (profile.paidMonths || []) : [],
-        normalizedPaidMonths:            profile && Array.isArray(profile.paidMonths) ? profile.paidMonths.map(normMonth).filter(Boolean) : [],
+        normalizedPaidMonths:            normalizedPaidMonthsRaw,
+        trustedPaidMonthsForDebt:        trustedPaidMonthsForDebt,
+        ignoredFuturePaidMonthsAfterPaidUntil: ignoredFuturePaidMonthsAfterPaidUntil,
         selectedMonth:                   selectedRaw,
         normalizedSelectedMonth:         normMonth(selectedRaw),
         chargeableMonths:                chargeable,

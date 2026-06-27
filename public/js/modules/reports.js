@@ -676,8 +676,10 @@ export function initReports() {
                 const pp = profile || {};
                 if (!_debtSelectedMonth || pp.feeExempt === true) return [];
                 const skipped = Array.isArray(pp.skippedMonths) ? pp.skippedMonths.map(normalizeYYYYMM).filter(Boolean) : [];
-                const paidMonths = Array.isArray(pp.paidMonths) ? pp.paidMonths.map(normalizeYYYYMM).filter(Boolean) : [];
+                const rawPaidMonths = Array.isArray(pp.paidMonths) ? pp.paidMonths.map(normalizeYYYYMM).filter(Boolean) : [];
                 const paidUntil = normalizeYYYYMM(pp.paidUntil || '');
+                // Phase 4K-6V4B11: report debt sheet must match UI debt rules.
+                const paidMonths = paidUntil ? rawPaidMonths.filter(m => m <= paidUntil) : rawPaidMonths;
                 let cur = paidUntil ? addMonthsToYYYYMM(paidUntil, 1) : (normalizeYYYYMM(pp.admissionDate || pp.joinDate || pp.joinedAt || pp.createdAt || pp.enrollDate || _debtSelectedMonth) || _debtSelectedMonth);
                 const out = [];
                 let guard = 0;

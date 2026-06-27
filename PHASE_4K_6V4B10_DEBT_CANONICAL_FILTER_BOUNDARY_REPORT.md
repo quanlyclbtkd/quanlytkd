@@ -1,4 +1,4 @@
-# Phase 4K-6V4B10 — Debt Canonical Filter Boundary + Diagnostics
+# Phase 4K-6V4B11 — Debt PaidUntil Authoritative Boundary + Diagnostics
 
 Ngày hoàn thành: 27/06/2026
 
@@ -155,9 +155,9 @@ Quit Tab Mobile Parity: PASS
 
 ## 6. Kết luận
 
-V4B10 sửa lỗi không phải bằng cách vá thêm parser tháng, mà bằng cách sửa nguyên nhân còn lại sau khi parser đã đúng: Báo nợ bị ẩn bởi filter sai phạm vi và branch legacy không canonical.
+V4B11 sửa lỗi không phải bằng cách vá thêm parser tháng, mà bằng cách sửa nguyên nhân còn lại sau khi parser đã đúng: Báo nợ bị ẩn bởi filter sai phạm vi và branch legacy không canonical.
 
-Sau V4B10, nếu võ sinh đang tập, không miễn học phí, không báo nghỉ tháng 6 và mới đóng tới `Tháng năm 2026`, khi xem Báo nợ tháng 6/2026, hệ thống phải tính:
+Sau V4B11, nếu võ sinh đang tập, không miễn học phí, không báo nghỉ tháng 6 và mới đóng tới `Tháng năm 2026`, khi xem Báo nợ tháng 6/2026, hệ thống phải tính:
 
 ```text
 normalizedPaidUntil: 2026-05
