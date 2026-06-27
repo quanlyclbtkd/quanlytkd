@@ -1,6 +1,7 @@
 // Phase 4K-6V3A compatibility: 4K-6V3A-firestore-read-attribution-canonical-transaction-boundary
 // Compatibility marker: multiItemInventorySafety.js?v=inventory-ledger-reconciliation-20260616-v2c
 // Phase compatibility APP_BUILD_VERSION markers for static safety checks:
+// APP_BUILD_VERSION = '4K-6V4B3-quit-tab-authoritative-completeness-20260627'
 // APP_BUILD_VERSION = '4K-6V4B2-quit-tab-completeness-20260627'
 // APP_BUILD_VERSION = '4K-6V4A-coach-attendance-only-read-boundary-20260619'
 // APP_BUILD_VERSION = '4K-6D-security-license-ip-protection-readiness-20260605'
@@ -98,15 +99,15 @@ import { initFirebase }                        from './firebase/config.js';
 import { showToast, registerToastGlobal }      from './ui/toast.js';
 import { registerModalGlobals }                from './ui/modal.js';
 import { switchTab, registerTabGlobals }       from './ui/tabs.js';
-import { initRender }                          from './ui/render.js?v=quit-tab-completeness-20260627-v4b2';
+import { initRender }                          from './ui/render.js?v=quit-tab-authoritative-completeness-20260627-v4b3';
 // Phase 3.4: Render Isolation Architecture — island initialisers + legacy shims
 import { initFinanceIslands, registerFinanceLegacyGlobals }     from './ui/render/renderFinance.js';
-import { initStudentIslands, registerStudentsLegacyGlobals }     from './ui/render/renderStudents.js?v=quit-tab-completeness-20260627-v4b2';
+import { initStudentIslands, registerStudentsLegacyGlobals }     from './ui/render/renderStudents.js?v=quit-tab-authoritative-completeness-20260627-v4b3';
 import { initInventoryIslands, registerInventoryLegacyGlobals }  from './ui/render/renderInventory.js';
 import { initAttendanceIslands }                                  from './ui/render/renderAttendance.js';
 import { initDashboardIslands }                                   from './ui/render/renderDashboard.js';
 // Phase 3.5B: Render Invalidation & Lifecycle Stabilization
-import { registerInvalidationLegacyGlobals }                     from './ui/render/renderInvalidation.js?v=quit-tab-completeness-20260627-v4b2';
+import { registerInvalidationLegacyGlobals }                     from './ui/render/renderInvalidation.js?v=quit-tab-authoritative-completeness-20260627-v4b3';
 import { registerLoadingGlobals, showLoading, hideLoading, forceHideLoading } from './ui/loading.js';
 import {
     getLocalToday, formatDate, formatMonth,
@@ -256,7 +257,7 @@ import {
     getQuitStatusValues,
     getProfilesListenerMetrics,
     ensureAllProfilesForExport,
-} from './listeners/profiles.listeners.js?v=quit-tab-completeness-20260627-v4b2';
+} from './listeners/profiles.listeners.js?v=quit-tab-authoritative-completeness-20260627-v4b3';
 
 // ── Phase 3.7C: Profile Status Config ────────────────────────────────────────
 import {
@@ -3118,7 +3119,7 @@ window.debugProfileModalClose = function() {
 // PHẦN 1 — APP BUILD VERSION
 window.APP_BUILD_VERSION = '4K-6V2-inventory-history-pagination-complete-active-debt-20260616';
 // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
-window.APP_PATCH_VERSION = '4K-6V4B2-quit-tab-completeness-20260627';
+window.APP_PATCH_VERSION = '4K-6V4B3-quit-tab-authoritative-completeness-20260627';
 window.APP_COPYRIGHT_OWNER   = 'Tình Trương';
 window.APP_PRODUCT_NAME      = 'Taekwondo Club Management Web App';
 window.APP_SECURITY_PHASE    = '4K-6E-scale-readiness-write-safety';

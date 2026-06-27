@@ -1,0 +1,34 @@
+PHASE 4K-6V4B3 TEST SUMMARY
+Date: 2026-06-27
+
+npm run check
+PASS — exit code 0
+
+npm run check:all:critical
+PASS — exit code 0
+
+Additional release checks:
+- check-deploy-package: 12/12 PASS
+- check-github-pages-paths: 18/18 PASS
+- check-firestore-indexes: 16/16 PASS
+- check-runtime-stability-gate: 17/17 PASS
+- check-production-stability-gate: 22/22 PASS
+- check-inventory-ledger-reconciliation: 33/33 PASS
+- check-debt-profile-read-boundary: 21/21 PASS
+
+Focused checks:
+- Quit Tab Completeness V4B2: 12/12 PASS
+- Quit Tab Authoritative Completeness V4B3: 9/9 PASS
+- Coach Branch Runtime Repair: 25/25 PASS
+- Security Coach Branch Boundary: 35/35 PASS
+
+Verified bug fixes:
+1. quitDate-only profiles classify as quit.
+2. ngayNghi/inactiveDate/stoppedDate/leftDate can identify legacy quit profiles.
+3. Legacy status aliases such as Đã nghỉ and Nghỉ tập are queried.
+4. Targeted query results still pass through classifier.
+5. Existing full quit profiles are not overwritten by partial targeted results.
+6. Admin tab Đã nghỉ runs one authoritative full reconciliation per session.
+7. Full fallback classifies the full collection into activeProfiles and quitProfiles.
+8. Coach remains blocked from profiles.quit and profiles.full-fallback.
+9. Renderer continues to use full quitProfiles instead of active pagination when available.
