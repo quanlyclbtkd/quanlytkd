@@ -19,7 +19,7 @@
  */
 
 import { registerRender } from './renderRegistry.js';
-import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=quit-tab-mobile-authoritative-render-20260627-v4b5';
+import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=quit-tab-mobile-full-list-20260627-v4b6';
 
 // ─── Core DOM helper ────────────────────────────────────────────────────────
 
@@ -78,6 +78,13 @@ function _formatDateSafe(value) {
     if (m) return `${m[3]}/${m[2]}/${m[1]}`;
     return text;
 }
+function _isQuitMobileViewport() {
+    try {
+        return (window.matchMedia && window.matchMedia('(max-width: 767px)').matches) || Number(window.innerWidth || 0) <= 767;
+    } catch (_) {
+        return false;
+    }
+}
 function _profileDisplayName(id, profile) {
     const p = profile || {};
     return String(p.name || p.fullName || p.displayName || p.studentName || p.memberName || id || '').trim();
@@ -101,7 +108,7 @@ function _getAuthoritativeQuitProfiles() {
     } catch (_) {}
     return merged;
 }
-function _buildAuthoritativeQuitRows() {
+function _buildAuthoritativeQuitRows(options = {}) {
     const profiles = _getAuthoritativeQuitProfiles();
     const entries = Object.entries(profiles).filter(([id, profile]) => {
         if (!id || !profile) return false;
@@ -111,7 +118,11 @@ function _buildAuthoritativeQuitRows() {
         return kind === 'quit';
     }).sort((a, b) => _profileDisplayName(a[0], a[1]).localeCompare(_profileDisplayName(b[0], b[1]), 'vi'));
     const pageSize = (window.__store && window.__store.pagination && window.__store.pagination.students && window.__store.pagination.students.pageSize) || 50;
-    const limit = Math.max(1, window._quitPage || 1) * pageSize;
+    // Phase 4K-6V4B6: mobile must show the full authoritative quit list.
+    // Prior versions accepted the computation cache / page limit, so phones showed
+    // only the first mobile page even though desktop and Firestore data were complete.
+    const forceAll = options.forceAll === true || (options.mobileFull === true && _isQuitMobileViewport());
+    const limit = forceAll ? entries.length : (Math.max(1, window._quitPage || 1) * pageSize);
     const cfg = (window.__store && window.__store.clubConfig) || window.clubConfig || {};
     const isSingleBranch = Number(cfg.branchCount || 1) <= 1;
     const isAdmin = String(window.userRole || '').toLowerCase().includes('admin');
@@ -137,6 +148,7 @@ function _syncQuitMobileControl() {
     const ctrlEl = _ensureQuitMobileControl();
     if (!ctrlEl) return;
     const quitLoaded = !!(window.studentProfileStore && typeof window.studentProfileStore.isQuitLoaded === 'function' && window.studentProfileStore.isQuitLoaded());
+    const mobileFull = _isQuitMobileViewport();
     if (!quitLoaded) {
         ctrlEl.innerHTML = '<div style="text-align:center;padding:0.5rem 0;color:#94a3b8;font-size:0.8rem;">Đang tải danh sách đã nghỉ...</div>';
         return;
@@ -146,7 +158,7 @@ function _syncQuitMobileControl() {
         count = Object.keys(_getAuthoritativeQuitProfiles()).length;
     } catch (_) { count = 0; }
     const pageSize = (window.__store && window.__store.pagination && window.__store.pagination.students && window.__store.pagination.students.pageSize) || 50;
-    const limit = (window._quitPage || 1) * pageSize;
+    const limit = mobileFull ? count : ((window._quitPage || 1) * pageSize);
     const remaining = Math.max(0, count - limit);
     const btnStyle = 'style="padding:0.45rem 1.2rem;font-size:0.85rem;background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;border-radius:6px;cursor:pointer;font-weight:600;"';
     if (remaining > 0) {
@@ -155,7 +167,8 @@ function _syncQuitMobileControl() {
             + '⬇ Tải thêm — còn ' + remaining + ' võ sinh đã nghỉ nữa'
             + '</button></div>';
     } else if (count > 0) {
-        ctrlEl.innerHTML = '<div style="text-align:center;padding:0.5rem 0;color:#94a3b8;font-size:0.8rem;">Đã tải hết ' + count + ' võ sinh đã nghỉ</div>';
+        ctrlEl.innerHTML = '<div style="text-align:center;padding:0.5rem 0;color:#94a3b8;font-size:0.8rem;">'
+            + (mobileFull ? 'Đã hiển thị đủ ' : 'Đã tải hết ') + count + ' võ sinh đã nghỉ</div>';
     } else {
         ctrlEl.innerHTML = '<div style="text-align:center;padding:0.5rem 0;color:#94a3b8;font-size:0.8rem;">Chưa có võ sinh đã nghỉ</div>';
     }
@@ -212,6 +225,12 @@ export function renderQuitIsland() {
     // is still empty/stale. Never clear #quitList in that state; rebuild from
     // authoritative quitProfiles directly, then create an outside mobile control.
     if (_quitLoaded) {
+        if (_isQuitMobileViewport()) {
+            const direct = _buildAuthoritativeQuitRows({ mobileFull: true, forceAll: true });
+            _applyHtml(_target, direct.html || '<tr data-quit-empty="1"><td colspan="7" style="text-align:center;color:#94a3b8;padding:16px;font-size:0.82rem;">Chưa có võ sinh đã nghỉ</td></tr>');
+            _syncQuitMobileControl();
+            return;
+        }
         if (!_htmlQ && typeof window.refreshListComputation === 'function') {
             try {
                 window.refreshListComputation('students.quitList', 'quit-mobile-authoritative-cache-miss');

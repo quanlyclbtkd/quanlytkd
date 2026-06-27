@@ -1,4 +1,4 @@
-// Phase 4K-6V4B5: quit-tab-mobile-authoritative-render-20260627
+// Phase 4K-6V4B6: quit-tab-mobile-full-list-20260627
     /* Firestore security rules source of truth: ./firestore.rules */
 // LEGACY APP KERNEL — DO NOT DELETE DIRECTLY
 // Responsibilities kept in app.js for now:

@@ -1,0 +1,35 @@
+PHASE 4K-6V4B6 TEST SUMMARY
+Date: 2026-06-27
+
+npm run check
+PASS — exit code 0
+
+npm run check:all:critical
+PASS — exit code 0
+
+Focused gates:
+- Quit Tab Mobile Parity V4B6: 17/17 PASS
+- Quit Tab Authoritative Completeness V4B3: 9/9 PASS
+- Quit Tab Completeness V4B2: 12/12 PASS
+
+Deploy/readiness gates:
+- Syntax: 232 items PASS
+- Deploy package: 12/12 PASS
+- GitHub Pages paths: 18/18 PASS
+- Firestore indexes: 16/16 PASS
+
+Regression gates still passing:
+- Coach Attendance-only Read Boundary: 30/30 PASS
+- Security Coach Branch Boundary: 35/35 PASS
+- Coach Branch Runtime Repair: 25/25 PASS
+- Inventory Ledger Reconciliation: 33/33 PASS
+- Debt Profile Read Boundary: 21/21 PASS
+- Runtime Stability / Production Stability: PASS in critical suite
+
+Verified V4B6 scenarios:
+1. Mobile renderQuitIsland ignores cached/paginated quitRows after authoritative quit load.
+2. Mobile builds rows from full quitProfiles using forceAll.
+3. Mobile pgWrap_quitList reports all rows displayed instead of showing load-more.
+4. Desktop cache and load-more behavior remain available.
+5. No Firestore query/listener was added.
+6. V4B2/V4B3 quit data completeness remains intact.

@@ -1171,26 +1171,29 @@ export function initStudentPagination() {
                         return;
                     }
 
-                    // Quit list — Phase 4K-6V4B5 mobile authoritative render.
-                    // Khi quitProfiles authoritative đã load, mobile dùng cùng nguồn với desktop:
-                    // quitProfiles + _loadMore('quit'), không dùng server pagination chung.
+                    // Quit list — Phase 4K-6V4B6 mobile full authoritative render.
+                    // Mobile must show the complete Đã nghỉ list from quitProfiles,
+                    // not the shared server-pagination page. Desktop keeps load-more.
                     if (listId === 'quitList' && _isQuitAuthoritativeLoaded()) {
                         const _quitEntries = _getAuthoritativeQuitEntries();
-                        const _quitLimit   = (window._quitPage || 1) * PAGE_SIZE;
+                        const _mobileFull  = _isMobileViewport();
+                        const _quitLimit   = _mobileFull ? _quitEntries.length : ((window._quitPage || 1) * PAGE_SIZE);
                         const _remaining   = Math.max(0, _quitEntries.length - _quitLimit);
                         const _btnStyle    = 'style="padding:0.45rem 1.2rem;font-size:0.85rem;background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;border-radius:6px;cursor:pointer;font-weight:600;"';
                         if (_remaining > 0) {
                             ctrlEl.innerHTML = '<div style="text-align:center;padding:0.75rem 0;">'
-                                + '<button type="button" ' + _btnStyle + ' onclick="window._loadMore(\'quit\')">'
+                                + "<button type=\"button\" " + _btnStyle + " onclick=\"window._loadMore('quit')\">"
                                 + '⬇ Tải thêm — còn ' + _remaining + ' võ sinh đã nghỉ nữa'
                                 + '</button></div>';
                         } else if (_quitEntries.length > 0) {
-                            ctrlEl.innerHTML = '<div style="text-align:center;padding:0.5rem 0;color:#94a3b8;font-size:0.8rem;">Đã tải hết ' + _quitEntries.length + ' võ sinh đã nghỉ</div>';
+                            ctrlEl.innerHTML = '<div style="text-align:center;padding:0.5rem 0;color:#94a3b8;font-size:0.8rem;">'
+                                + (_mobileFull ? 'Đã hiển thị đủ ' : 'Đã tải hết ') + _quitEntries.length + ' võ sinh đã nghỉ</div>';
                         } else {
                             ctrlEl.innerHTML = '<div style="text-align:center;padding:0.5rem 0;color:#94a3b8;font-size:0.8rem;">Chưa có võ sinh đã nghỉ</div>';
                         }
                         return;
                     }
+
 
                     if (listId === 'quitList') {
                         ctrlEl.innerHTML = '<div style="text-align:center;padding:0.5rem 0;color:#94a3b8;font-size:0.8rem;">Đang tải danh sách đã nghỉ...</div>';
@@ -1445,6 +1448,14 @@ export function initStudentPagination() {
                     return el ? el.id.replace(/^tab_/, '') : '';
                 } catch (_) {
                     return '';
+                }
+            }
+
+            function _isMobileViewport() {
+                try {
+                    return (window.matchMedia && window.matchMedia('(max-width: 767px)').matches) || Number(window.innerWidth || 0) <= 767;
+                } catch (_) {
+                    return false;
                 }
             }
 
