@@ -50,6 +50,9 @@ import {
     getLocalToday,
     formatDate,
     formatMonth,
+    formatMonthCompact,
+    normalizeYYYYMM,
+    addMonthsToYYYYMM,
 } from '../utils/format.js';
 
 // ════════════════════════════════════════════════════════════════
@@ -665,20 +668,48 @@ export function initReports() {
                 ).map(hc),
             ];
             let totalDebt = 0;
+            const _debtSelectedMonth = normalizeYYYYMM(selMonth);
+            const _reportChargeableMonths = function(profile) {
+                if (typeof window !== 'undefined' && typeof window.getChargeableTuitionMonths === 'function') {
+                    return window.getChargeableTuitionMonths(profile, _debtSelectedMonth, { reason: 'excel-report-debt-sheet' });
+                }
+                const pp = profile || {};
+                if (!_debtSelectedMonth || pp.feeExempt === true) return [];
+                const skipped = Array.isArray(pp.skippedMonths) ? pp.skippedMonths.map(normalizeYYYYMM).filter(Boolean) : [];
+                const paidMonths = Array.isArray(pp.paidMonths) ? pp.paidMonths.map(normalizeYYYYMM).filter(Boolean) : [];
+                const paidUntil = normalizeYYYYMM(pp.paidUntil || '');
+                let cur = paidUntil ? addMonthsToYYYYMM(paidUntil, 1) : (normalizeYYYYMM(pp.admissionDate || pp.joinDate || pp.joinedAt || pp.createdAt || pp.enrollDate || _debtSelectedMonth) || _debtSelectedMonth);
+                const out = [];
+                let guard = 0;
+                while (cur && cur <= _debtSelectedMonth && guard < 36) {
+                    if (!skipped.includes(cur) && !paidMonths.includes(cur)) out.push(cur);
+                    cur = addMonthsToYYYYMM(cur, 1);
+                    guard++;
+                }
+                if (pp.isOwed === true && Array.isArray(pp.owedMonths)) {
+                    pp.owedMonths.map(normalizeYYYYMM).filter(Boolean).forEach(m => {
+                        if (m <= _debtSelectedMonth && !skipped.includes(m) && !paidMonths.includes(m) && !out.includes(m)) out.push(m);
+                    });
+                    out.sort();
+                }
+                return out;
+            };
             Object.keys(allProfiles).sort().forEach(name => {
-                const p = allProfiles[name];
-                if (p.status !== 'active' || !p.paidUntil) return;
+                const p = allProfiles[name] || {};
+                const kind = typeof window !== 'undefined' && typeof window.classifyProfileStatus === 'function'
+                    ? window.classifyProfileStatus(p)
+                    : (p.status === 'quit' || p.active === false || p.isActive === false ? 'quit' : 'active');
+                if (kind !== 'active') return;
                 if (p.feeExempt) return;
-                if (p.paidUntil >= selMonth) return;
-                let [yP, mP] = p.paidUntil.split('-').map(Number);
-                let [yS, mS] = selMonth.split('-').map(Number);
-                let months   = (yS - yP) * 12 + (mS - mP);
+                const owedMonths = _reportChargeableMonths(p);
+                const months = owedMonths.length;
                 if (months <= 0) return;
                 const debt = months * (Number(p.tuitionFee) || 0);
                 totalDebt += debt;
+                const monthsLabel = `${months} tháng` + (owedMonths.length ? ` (${formatMonthCompact(owedMonths.join(','))})` : '');
                 const row = isSingle
-                    ? [bc(name), nc(`${months} tháng`), nNum(p.tuitionFee||0), warnNum(debt)]
-                    : [bc(name), nc(_branchName(p.branch)), nc(`${months} tháng`), nNum(p.tuitionFee||0), warnNum(debt)];
+                    ? [bc(name), nc(monthsLabel), nNum(p.tuitionFee||0), warnNum(debt)]
+                    : [bc(name), nc(_branchName(p.branch)), nc(monthsLabel), nNum(p.tuitionFee||0), warnNum(debt)];
                 debt_rows.push(row);
             });
             const debtCols  = isSingle ? 4 : 5;

@@ -216,10 +216,19 @@ export function getQuitStatusValues() {
 export function classifyProfileStatus(profile) {
     if (!profile) return 'active';
 
-    // ── 1. Boolean quit signals — kiểm tra trước status string ───────────────
+    // ── 1. Boolean/date quit signals — kiểm tra trước status string ──────────
     // Legacy profiles without status are treated as active unless explicitly quit.
     if (profile.quit === true || profile.stopped === true || profile.isQuit === true) return 'quit';
     if (profile.active === false || profile.isActive === false) return 'quit';
+
+    // Phase 4K-6V4B3: quitDate là tín hiệu canonical do app ghi khi chuyển Nghỉ.
+    // Một số hồ sơ cũ chỉ có quitDate/ngayNghi mà thiếu status=quit, nên nếu
+    // không nhận diện ở classifier thì lazy query quitDate!=null vẫn bị reject.
+    const _dateQuitFields = ['quitDate', 'stoppedDate', 'leftDate', 'inactiveDate', 'nghiDate', 'ngayNghi'];
+    for (const _field of _dateQuitFields) {
+        const _value = profile[_field];
+        if (_value !== undefined && _value !== null && _value !== false && String(_value).trim() !== '') return 'quit';
+    }
 
     // ── 2. Boolean active signals ─────────────────────────────────────────────
     // Nhưng vẫn kiểm tra status string để phát hiện explicit quit (quit > active)

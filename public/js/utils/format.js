@@ -63,11 +63,91 @@ export function addMonthsToYYYYMM(yymm, count) {
  * @returns {string}
  */
 export function normalizeYYYYMM(s) {
-    if (!s) return '';
-    const parts = s.split('-');
-    if (parts.length !== 2) return s;
-    return `${parts[0]}-${parts[1].padStart(2, '0')}`;
-}
+        if (!s) return '';
+        let raw = String(s || '').trim();
+        if (!raw) return '';
+        if (raw && typeof raw.toDate === 'function') {
+            try {
+                const d = raw.toDate();
+                if (d && !Number.isNaN(d.getTime())) {
+                    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+                }
+            } catch (_) {}
+        }
+
+        // Phase 4K-6V4B8: chuẩn hóa cả tháng tiếng Việt dạng chữ.
+        // Ví dụ: "Tháng tư 2026", "Tháng Tư năm 2026", "thang muoi mot 2026".
+        // Lỗi cũ: các chuỗi này parse rỗng → Báo nợ chỉ tính 1 tháng hoặc bị ẩn
+        // khi bật bộ lọc nợ từ 2 tháng trở lên.
+        function _foldMonthText(v) {
+            return String(v || '')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/đ/g, 'd')
+                .replace(/Đ/g, 'D')
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, ' ')
+                .trim();
+        }
+        function _monthWordToNumber(phrase) {
+            let key = _foldMonthText(phrase)
+                .replace(/\b(thang|month|t)\b/g, ' ')
+                .replace(/\b(nam|year)\b\s*$/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+            if (!key) return 0;
+            const numeric = key.match(/\b(1[0-2]|0?[1-9])\b/);
+            if (numeric) return Number(numeric[1]);
+            const map = {
+                'mot': 1, 'm ot': 1, 'hai': 2, 'ba': 3, 'bon': 4, 'tu': 4,
+                'nam': 5, 'lam': 5, 'sau': 6, 'bay': 7, 'tam': 8, 'chin': 9,
+                'muoi': 10, 'muoi mot': 11, 'muoi lam': 15, 'muoi hai': 12,
+                'jan': 1, 'january': 1, 'feb': 2, 'february': 2, 'mar': 3, 'march': 3,
+                'apr': 4, 'april': 4, 'may': 5, 'jun': 6, 'june': 6,
+                'jul': 7, 'july': 7, 'aug': 8, 'august': 8, 'sep': 9, 'sept': 9, 'september': 9,
+                'oct': 10, 'october': 10, 'nov': 11, 'november': 11, 'dec': 12, 'december': 12,
+            };
+            if (map[key] >= 1 && map[key] <= 12) return map[key];
+            if (key.includes('muoi hai')) return 12;
+            if (key.includes('muoi mot')) return 11;
+            if (key.includes('muoi')) return 10;
+            return 0;
+        }
+
+        const foldedRaw = _foldMonthText(raw);
+        const yearMatch = foldedRaw.match(/\b(20\d{2})\b/);
+        if (yearMatch) {
+            const year = yearMatch[1];
+            const beforeYear = foldedRaw.slice(0, yearMatch.index).trim();
+            const afterYear = foldedRaw.slice(yearMatch.index + year.length).trim();
+            let wordMonth = _monthWordToNumber(beforeYear) || _monthWordToNumber(afterYear);
+            if (wordMonth >= 1 && wordMonth <= 12) return year + '-' + String(wordMonth).padStart(2, '0');
+        }
+
+        raw = raw
+            .replace(/tháng/gi, '')
+            .replace(/thang/gi, '')
+            .replace(/^t\s*/i, '')
+            .replace(/\s+/g, '')
+            .replace(/[.]/g, '-')
+            .trim();
+        let m = raw.match(/^(20\d{2})[-\/](\d{1,2})(?:[-\/]\d{1,2})?$/);
+        if (m) {
+            const mo = Number(m[2]);
+            if (mo >= 1 && mo <= 12) return m[1] + '-' + String(mo).padStart(2, '0');
+        }
+        m = raw.match(/^(\d{1,2})[-\/](20\d{2})$/);
+        if (m) {
+            const mo = Number(m[1]);
+            if (mo >= 1 && mo <= 12) return m[2] + '-' + String(mo).padStart(2, '0');
+        }
+        m = raw.match(/^(?:T)?(\d{1,2})[-\/]?(20\d{2})$/i);
+        if (m) {
+            const mo = Number(m[1]);
+            if (mo >= 1 && mo <= 12) return m[2] + '-' + String(mo).padStart(2, '0');
+        }
+        return '';
+    }
 
 /**
  * Rút gọn danh sách tháng thành chuỗi hiển thị.

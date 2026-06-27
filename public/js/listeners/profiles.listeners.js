@@ -34,6 +34,7 @@ import {
     getProfileScaleMetrics,
     markActiveLoaded,
     markQuitLoaded,
+    getQuitProfiles,
 } from '../data/studentProfileStore.js';
 
 import {
@@ -74,6 +75,8 @@ const _state = {
     quitLoadLastReason:     '',
     /** Guard: prevent parallel quit load calls */
     quitLoadingInProgress:  false,
+    /** Phase 4K-6V4B3: full authoritative reconciliation for Admin quit tab */
+    quitCompletenessReconciled: false,
 
     // ── Full fallback loop guard (Phase 3.7C) ─────────────────────────────────
     /** Đang chạy fallback → chặn concurrent call */
@@ -655,27 +658,98 @@ export async function loadQuitProfilesIfNeeded(reason, contextOverride) {
     const quitValues  = getQuitQueryValues();
 
     try {
-        let quitQuery;
+        const quitQueries = [];
         if (quitValues.length === 1) {
-            quitQuery = fbQuery(profRef, fbWhere('status', '==', quitValues[0]));
+            quitQueries.push({ label: 'status==quit', query: fbQuery(profRef, fbWhere('status', '==', quitValues[0])) });
         } else {
-            quitQuery = fbQuery(profRef, fbWhere('status', 'in', quitValues));
+            quitQueries.push({ label: 'status-in-quit', query: fbQuery(profRef, fbWhere('status', 'in', quitValues)) });
         }
-
-        const snap    = await fbGetDocs(quitQuery);
-        if (typeof window.recordFirestoreReadAttribution === 'function') {
-            window.recordFirestoreReadAttribution('profiles.quitLazyQuery', snap.size || 0, {
-                initial: true,
-                reason: reason || 'quit-lazy'
-            });
+        // Phase 4K-6V4B3: status legacy aliases. Các hồ sơ cũ có thể lưu
+        // status='Đã nghỉ'/'Nghỉ tập' thay vì quit/inactive/retired.
+        const legacyStatusAliases = [
+            'Đã nghỉ', 'đã nghỉ', 'Nghỉ', 'nghỉ', 'Nghỉ tập', 'nghỉ tập',
+            'Nghi', 'nghi', 'Nghi tap', 'nghi tap', 'Stopped', 'stopped',
+            'Left', 'left', 'Stop', 'stop', 'Leave', 'leave'
+        ];
+        const existingStatusValues = new Set(quitValues.map(v => String(v).toLowerCase()));
+        const aliasValues = legacyStatusAliases.filter(v => !existingStatusValues.has(String(v).toLowerCase()));
+        for (let i = 0; i < aliasValues.length; i += 8) {
+            const chunk = aliasValues.slice(i, i + 8);
+            if (chunk.length === 1) {
+                quitQueries.push({ label: 'status-alias==' + chunk[0], query: fbQuery(profRef, fbWhere('status', '==', chunk[0])) });
+            } else if (chunk.length > 1) {
+                quitQueries.push({ label: 'status-alias-in-' + (Math.floor(i / 8) + 1), query: fbQuery(profRef, fbWhere('status', 'in', chunk)) });
+            }
         }
-        const quitMap = {};
-        snap.forEach(d => {
-            const id = d.id.trim();
-            if (id) quitMap[id] = d.data();
+        // Phase 4K-6V4B2: Legacy quit completeness. Older records can be marked
+        // quit via boolean flags or quitDate while status is missing/legacy text.
+        // These are targeted single-field queries, not a full profiles read.
+        const legacyQuitSignals = [
+            { label: 'active==false',   field: 'active',   op: '==', value: false },
+            { label: 'isActive==false', field: 'isActive', op: '==', value: false },
+            { label: 'quit==true',      field: 'quit',     op: '==', value: true  },
+            { label: 'isQuit==true',    field: 'isQuit',   op: '==', value: true  },
+            { label: 'stopped==true',   field: 'stopped',  op: '==', value: true  },
+            { label: 'quitDate!=null',  field: 'quitDate',     op: '!=', value: null  },
+            { label: 'ngayNghi!=null',  field: 'ngayNghi',     op: '!=', value: null  },
+            { label: 'inactiveDate!=null', field: 'inactiveDate', op: '!=', value: null },
+            { label: 'stoppedDate!=null', field: 'stoppedDate', op: '!=', value: null },
+            { label: 'leftDate!=null', field: 'leftDate', op: '!=', value: null },
+        ];
+        legacyQuitSignals.forEach(signal => {
+            try {
+                quitQueries.push({
+                    label: signal.label,
+                    query: fbQuery(profRef, fbWhere(signal.field, signal.op, signal.value)),
+                });
+            } catch (buildErr) {
+                console.debug('[ProfilesListener] Skip quit legacy signal query build:', signal.label, buildErr.message || buildErr);
+            }
         });
 
-        setQuitProfiles(quitMap, 'quit-profiles-lazy:' + (reason || ''));
+        const quitMap = {};
+        let docsRead = 0;
+        const queryResults = [];
+        for (const item of quitQueries) {
+            try {
+                const snap = await fbGetDocs(item.query);
+                docsRead += snap.size || 0;
+                let accepted = 0;
+                snap.forEach(d => {
+                    const id = d.id.trim();
+                    if (!id) return;
+                    const data = d.data();
+                    if (classifyProfileStatus(data) === 'quit') {
+                        quitMap[id] = data;
+                        accepted++;
+                    }
+                });
+                queryResults.push({ label: item.label, size: snap.size || 0, accepted });
+            } catch (queryErr) {
+                _state.quitQueryErrorCount++;
+                queryResults.push({ label: item.label, error: queryErr.code || queryErr.message || String(queryErr) });
+                console.warn('[ProfilesListener] Quit legacy query lỗi:', item.label, queryErr.code || queryErr.message);
+            }
+        }
+        if (typeof window.recordFirestoreReadAttribution === 'function') {
+            window.recordFirestoreReadAttribution('profiles.quitLazyQuery', docsRead, {
+                initial: true,
+                reason: reason || 'quit-lazy',
+                queryCount: quitQueries.length,
+                results: queryResults
+            });
+        }
+
+        // Preserve any already-loaded quit profiles that still classify as quit.
+        // This avoids replacing a fuller fallback result with a partial targeted result.
+        const existingQuit = typeof getQuitProfiles === 'function'
+            ? getQuitProfiles()
+            : (window.studentProfileStore?.getQuitProfiles?.() || {});
+        Object.entries(existingQuit || {}).forEach(([id, data]) => {
+            if (id && !quitMap[id] && classifyProfileStatus(data) === 'quit') quitMap[id] = data;
+        });
+
+        setQuitProfiles(quitMap, 'quit-profiles-lazy-targeted:' + (reason || ''));
         markQuitLoaded(true); // [Phase 3.7C+A] explicit safety sync
 
         _state.quitLoaded            = true;
@@ -684,12 +758,21 @@ export async function loadQuitProfilesIfNeeded(reason, contextOverride) {
 
         _syncLegacy();
 
-        if (typeof window.invalidateStudents     === 'function') window.invalidateStudents('quit-profiles-loaded');
-        if (typeof window.invalidateList         === 'function') window.invalidateList('students.quitList', 'quit-profiles-loaded');
-        if (typeof window.refreshListComputation === 'function') window.refreshListComputation('students.quitList', 'quit-profiles-loaded');
+        if (typeof window.invalidateStudents     === 'function') window.invalidateStudents('quit-profiles-loaded-targeted');
+        if (typeof window.invalidateList         === 'function') window.invalidateList('students.quitList', 'quit-profiles-loaded-targeted');
+        if (typeof window.refreshListComputation === 'function') window.refreshListComputation('students.quitList', 'quit-profiles-loaded-targeted');
 
         _updateWindowMetrics();
-        console.debug('[ProfilesListener] Quit loaded —', Object.keys(quitMap).length, 'profiles —', reason);
+        console.debug('[ProfilesListener] Quit targeted loaded —', Object.keys(quitMap).length, 'profiles —', reason);
+
+        // Phase 4K-6V4B3: Admin tab Đã nghỉ cần tính đầy đủ hơn tiết kiệm query.
+        // Targeted queries chỉ bắt được các schema đã biết; full fallback một lần/session
+        // là nguồn authority duy nhất để không bỏ sót hồ sơ legacy lạ.
+        if (!_state.quitCompletenessReconciled && !_state.fallbackInProgress && !_isCoachContext(ctx)) {
+            _state.quitCompletenessReconciled = true;
+            const ok = await loadFullProfilesFallback('quit-tab-authoritative-reconcile:' + (reason || ''));
+            if (ok) return true;
+        }
 
     } catch (err) {
         _state.quitLoadingInProgress = false;

@@ -889,7 +889,9 @@ export function initStudents() {
             if (!isSingleBranch && selBranch !== 'all' && p.branch !== selBranch) return;
 
             let owedMonths = [];
-            if (!p.skippedMonths || !p.skippedMonths.includes(selMonth)) {
+            if (typeof window.getChargeableTuitionMonths === 'function') {
+                owedMonths = window.getChargeableTuitionMonths(p, selMonth, { reason: 'bulk-zalo-debt' });
+            } else if (!p.skippedMonths || !p.skippedMonths.includes(selMonth)) {
                 let firstUnpaid = p.paidUntil
                     ? addMonthsToYYYYMM(p.paidUntil, 1)
                     : (p.createdAt ? p.createdAt.substring(0, 7) : selMonth);
@@ -1171,11 +1173,34 @@ export function initStudentPagination() {
                         return;
                     }
 
-                    // Quit list — use standard pagination controls
-                    const prefix = 'students_quit';
-                    let html   = renderPaginationControls(pgState, prefix, from, to);
-                    html = html.replace(/Tiếp\s*→/g, '⬇ Tải thêm đã nghỉ');
-                    ctrlEl.innerHTML = html;
+                    // Quit list — Phase 4K-6V4B8 mobile full authoritative render.
+                    // Mobile must show the complete Đã nghỉ list from quitProfiles,
+                    // not the shared server-pagination page. Desktop keeps load-more.
+                    if (listId === 'quitList' && _isQuitAuthoritativeLoaded()) {
+                        const _quitEntries = _getAuthoritativeQuitEntries();
+                        const _mobileFull  = _isMobileViewport();
+                        const _quitLimit   = _mobileFull ? _quitEntries.length : ((window._quitPage || 1) * PAGE_SIZE);
+                        const _remaining   = Math.max(0, _quitEntries.length - _quitLimit);
+                        const _btnStyle    = 'style="padding:0.45rem 1.2rem;font-size:0.85rem;background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;border-radius:6px;cursor:pointer;font-weight:600;"';
+                        if (_remaining > 0) {
+                            ctrlEl.innerHTML = '<div style="text-align:center;padding:0.75rem 0;">'
+                                + "<button type=\"button\" " + _btnStyle + " onclick=\"window._loadMore('quit')\">"
+                                + '⬇ Tải thêm — còn ' + _remaining + ' võ sinh đã nghỉ nữa'
+                                + '</button></div>';
+                        } else if (_quitEntries.length > 0) {
+                            ctrlEl.innerHTML = '<div style="text-align:center;padding:0.5rem 0;color:#94a3b8;font-size:0.8rem;">'
+                                + (_mobileFull ? 'Đã hiển thị đủ ' : 'Đã tải hết ') + _quitEntries.length + ' võ sinh đã nghỉ</div>';
+                        } else {
+                            ctrlEl.innerHTML = '<div style="text-align:center;padding:0.5rem 0;color:#94a3b8;font-size:0.8rem;">Chưa có võ sinh đã nghỉ</div>';
+                        }
+                        return;
+                    }
+
+
+                    if (listId === 'quitList') {
+                        ctrlEl.innerHTML = '<div style="text-align:center;padding:0.5rem 0;color:#94a3b8;font-size:0.8rem;">Đang tải danh sách đã nghỉ...</div>';
+                        return;
+                    }
                 });
             }
 
@@ -1202,11 +1227,17 @@ export function initStudentPagination() {
                         ).map(([n, p]) => Object.assign({ id: n, name: n }, p));
                     }
                     if (_sortItems.length === 0) return false;
-                    if (target.querySelector('tr[data-student-id]')) return false; // island đã render
+                    if (_mode === 'quit') {
+                        if (_isQuitAuthoritativeLoaded()) return false;
+                        if (target.querySelector('tr[data-quit-id], tr[data-student-id]')) return false;
+                    } else if (target.querySelector('tr[data-student-id]')) return false; // island đã render
                     const rows = _sortItems.map(item => {
                         const _rawName = item.id || item.name || '';
-                        const _esc     = _rawName.replace(/'/g, "\\'");
+                        const _esc     = _rawName.replace(/'/g, "\'");
                         const p        = item;
+                        if (_mode === 'quit') {
+                            return `<tr data-quit-id="${_esc}"><td class="name-link text-[0.95rem]" onclick="openProfile('${_esc}')">${_rawName}</td><td class="text-[0.7rem] font-bold text-slate-500">${p.memberId || '-'}</td><td>-</td><td>-</td><td>${p.quitDate || p.ngayNghi || p.inactiveDate || p.stoppedDate || p.leftDate || '-'}</td><td><button type="button" class="btn-sm bg-slate-100 text-slate-700 border border-slate-200" onclick="openProfile('${_esc}')">👁️ Xem</button></td></tr>`;
+                        }
                         return `<tr data-student-id="${_esc}"><td class="name-link text-[0.95rem]" onclick="openProfile('${_esc}')">${_rawName}</td><td class="text-[0.7rem] font-bold text-slate-500">${p.memberId || '-'}</td><td>-</td><td>-</td><td>-</td><td class="badge bg-rose-50 text-rose-600 text-[0.7rem]">-</td><td class="font-medium text-slate-600">${p.phone || ''}</td><td class="text-slate-500">-</td><td><button type="button" class="btn-sm bg-slate-100 text-slate-700 border border-slate-200" onclick="openProfile('${_esc}')">👁️ Xem</button></td></tr>`;
                     }).join('');
                     if (!rows) return false;
@@ -1271,7 +1302,11 @@ export function initStudentPagination() {
 
                 function _rowCount(listId) {
                     const target = document.getElementById(listId);
-                    return target ? target.querySelectorAll('tr[data-student-id]').length : 0;
+                    if (!target) return 0;
+                    if (listId === 'quitList') {
+                        return target.querySelectorAll('tr[data-quit-id], tr[data-student-id]').length;
+                    }
+                    return target.querySelectorAll('tr[data-student-id]').length;
                 }
 
                 function _tryIslandRender(mode, listId) {
@@ -1395,7 +1430,8 @@ export function initStudentPagination() {
                         const _j = _escJs(_rawName);
                         const p  = item;
                         if (mode === 'quit') {
-                            return `<tr data-student-id="${_a}"><td class="name-link text-[0.95rem]" onclick="openProfile('${_j}')">${_a}</td><td class="text-[0.7rem] font-bold text-slate-500">${_esc(p.memberId) || '-'}</td><td>-</td><td>-</td><td>${_esc(p.quitDate) || '-'}</td><td class="text-slate-500">-</td><td><button type="button" class="btn-sm bg-slate-100 text-slate-700 border border-slate-200" onclick="openProfile('${_j}')">👁️ Xem</button></td></tr>`;
+                            const _display = _esc(p.name || p.fullName || p.displayName || p.studentName || _rawName);
+                            return `<tr data-quit-id="${_a}"><td class="name-link text-[0.95rem]" onclick="openProfile('${_j}')">${_display}</td><td class="text-[0.7rem] font-bold text-slate-500">${_esc(p.memberId) || '-'}</td><td>-</td><td>-</td><td>${_esc(p.quitDate || p.ngayNghi || p.inactiveDate || p.stoppedDate || p.leftDate) || '-'}</td><td class="text-slate-500">-</td><td><button type="button" class="btn-sm bg-slate-100 text-slate-700 border border-slate-200" onclick="openProfile('${_j}')">👁️ Xem</button></td></tr>`;
                         }
                         return `<tr data-student-id="${_a}"><td class="name-link text-[0.95rem]" onclick="openProfile('${_j}')">${_a}</td><td class="text-[0.7rem] font-bold text-slate-500">${_esc(p.memberId) || '-'}</td><td>-</td><td>-</td><td>-</td><td class="badge bg-rose-50 text-rose-600 text-[0.7rem]">-</td><td class="font-medium text-slate-600">${_esc(p.phone) || ''}</td><td class="text-slate-500">-</td><td><button type="button" class="btn-sm bg-slate-100 text-slate-700 border border-slate-200" onclick="openProfile('${_j}')">👁️ Xem</button></td></tr>`;
                     }).join('');
@@ -1414,6 +1450,47 @@ export function initStudentPagination() {
                     return el ? el.id.replace(/^tab_/, '') : '';
                 } catch (_) {
                     return '';
+                }
+            }
+
+            function _isMobileViewport() {
+                try {
+                    return (window.matchMedia && window.matchMedia('(max-width: 767px)').matches) || Number(window.innerWidth || 0) <= 767;
+                } catch (_) {
+                    return false;
+                }
+            }
+
+            function _isQuitAuthoritativeLoaded() {
+                try {
+                    return !!(window.studentProfileStore && typeof window.studentProfileStore.isQuitLoaded === 'function' && window.studentProfileStore.isQuitLoaded());
+                } catch (_) {
+                    return false;
+                }
+            }
+
+            function _getAuthoritativeQuitEntries() {
+                try {
+                    const storeQuit = window.studentProfileStore && typeof window.studentProfileStore.getQuitProfiles === 'function'
+                        ? (window.studentProfileStore.getQuitProfiles() || {})
+                        : {};
+                    const profiles = (window.__store && window.__store.profiles) || {};
+                    const merged = Object.assign({}, storeQuit);
+                    Object.entries(profiles).forEach(function([id, profile]) {
+                        const kind = typeof window.classifyProfileStatus === 'function'
+                            ? window.classifyProfileStatus(profile)
+                            : (profile && (profile.status === 'quit' || profile.active === false || profile.isActive === false) ? 'quit' : 'active');
+                        if (kind === 'quit' && id && !merged[id]) merged[id] = profile;
+                    });
+                    return Object.entries(merged).filter(function([id, profile]) {
+                        if (!id || !profile) return false;
+                        const kind = typeof window.classifyProfileStatus === 'function'
+                            ? window.classifyProfileStatus(profile)
+                            : (profile.status === 'quit' || profile.active === false || profile.isActive === false ? 'quit' : 'active');
+                        return kind === 'quit';
+                    });
+                } catch (_) {
+                    return [];
                 }
             }
 
@@ -2651,7 +2728,7 @@ window.debugStudentStatusSeparation = function debugStudentStatusSeparation() {
     const quitInActiveTab = [], activeInQuitTab = [];
 
     const activeListRows  = Array.from(document.querySelectorAll('#activeList tr[data-student-id]')).map(r => r.dataset.studentId);
-    const quitListRows    = Array.from(document.querySelectorAll('#quitList  tr[data-student-id]')).map(r => r.dataset.studentId);
+    const quitListRows    = Array.from(document.querySelectorAll('#quitList tr[data-quit-id], #quitList tr[data-student-id]')).map(r => r.dataset.quitId || r.dataset.studentId);
 
     Object.keys(profiles).forEach(name => {
         const p = profiles[name];
@@ -2948,7 +3025,10 @@ window.debugDebtActionState = function(name) {
         status:                          profile ? (profile.status || '') : '',
         quitDate:                        profile ? (profile.quitDate || '') : '',
         skippedMonths:                   profile ? (profile.skippedMonths || []) : [],
+        paidUntil:                       profile ? (profile.paidUntil || '') : '',
+        paidMonths:                      profile ? (profile.paidMonths || []) : [],
         selectedMonth:                   (document.getElementById('filterMonth') && document.getElementById('filterMonth').value) || st.selectedMonth || '',
+        chargeableMonths:                (profile && typeof window.getChargeableTuitionMonths === 'function') ? window.getChargeableTuitionMonths(profile, ((document.getElementById('filterMonth') && document.getElementById('filterMonth').value) || st.selectedMonth || ''), { reason: 'debugDebtActionState' }) : [],
         debtRowExists:                   q && debtRowSelector ? !!document.querySelector(debtRowSelector) : null,
         hasMarkStudentQuitFromDebt:      typeof window.markStudentQuitFromDebt === 'function',
         hasSkipDebtMonthFromDebt:        typeof window.skipDebtMonthFromDebt === 'function',

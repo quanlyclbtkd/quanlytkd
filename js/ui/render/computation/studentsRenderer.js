@@ -57,6 +57,41 @@ function _fallbackProfileBlob(name, p) {
     ].filter(Boolean).map(v => _nvFn(String(v))).join(' ');
 }
 
+
+function _monthList(values) {
+    return Array.isArray(values)
+        ? values.map(m => normalizeYYYYMM(m)).filter(Boolean)
+        : [];
+}
+
+function _fallbackChargeableTuitionMonths(profile, selectedMonth) {
+    const p = profile || {};
+    const selMonth = normalizeYYYYMM(selectedMonth || '');
+    if (!selMonth || p.feeExempt === true) return [];
+    const skipped = _monthList(p.skippedMonths);
+    const paidMonths = _monthList(p.paidMonths);
+    const paidUntil = normalizeYYYYMM(p.paidUntil || '');
+    let startMonth = paidUntil ? addMonthsToYYYYMM(paidUntil, 1) : '';
+    if (!startMonth) {
+        startMonth = normalizeYYYYMM(p.admissionDate || p.joinDate || p.joinedAt || p.createdAt || p.enrollDate || selMonth) || selMonth;
+    }
+    const result = [];
+    let cur = startMonth;
+    let guard = 0;
+    while (cur && cur <= selMonth && guard < 36) {
+        if (!skipped.includes(cur) && !paidMonths.includes(cur)) result.push(cur);
+        cur = addMonthsToYYYYMM(cur, 1);
+        guard++;
+    }
+    if (p.isOwed === true && Array.isArray(p.owedMonths)) {
+        _monthList(p.owedMonths).forEach(m => {
+            if (m <= selMonth && !skipped.includes(m) && !paidMonths.includes(m) && !result.includes(m)) result.push(m);
+        });
+        result.sort();
+    }
+    return result;
+}
+
 // ── Module-local branch-name helper ──────────────────────────────────────────
 const _getBrN = (br) =>
     (window.getBranchNameDisplay && window.getBranchNameDisplay(br))
@@ -391,39 +426,18 @@ export function computeAndCacheStudents(allProfiles, params) {
             // Phase 4K-6E-C: m_new dựa trên tháng thực tế, không theo filterMonth
             if (isCurrentNew) m_new++;
 
-            // ── Debt check (Phase 3: Cloud Function flags → client fallback) ──
+            // ── Debt check — canonical tuition months only ──
+            // Phase 4K-6V4B7: legacy isOwed/owedMonths may be stale and must not
+            // suppress a real debt. A student paid through 05/2026 must appear in
+            // 06/2026 even when isOwed=false or owedMonths=[] was left by old code.
             let isDebt = false, unpaidMonthsCount = 0, owedMonths = [];
 
             if (!p.feeExempt) {
-                if (p.isOwed !== undefined) {
-                    const allOwed = Array.isArray(p.owedMonths) ? p.owedMonths : [];
-                    owedMonths = allOwed.filter(m => m <= selMonth);
-                    isDebt = owedMonths.length > 0;
-                    unpaidMonthsCount = owedMonths.length;
-                } else {
-                    // Phase 4K-5M: ưu tiên helper chung để đồng bộ với Thu Gộp khoản
-                    if (typeof window.getChargeableTuitionMonths === 'function') {
-                        owedMonths = window.getChargeableTuitionMonths(p, selMonth, { reason: 'debt-list' });
-                        unpaidMonthsCount = owedMonths.length;
-                        if (unpaidMonthsCount > 0) isDebt = true;
-                    } else {
-                        if (!p.skippedMonths || !p.skippedMonths.includes(selMonth)) {
-                            const _normPU = normalizeYYYYMM(p.paidUntil);
-                            if (!_normPU || _normPU < selMonth) {
-                                let firstUnpaid = _normPU
-                                    ? addMonthsToYYYYMM(_normPU, 1)
-                                    : (p.createdAt ? p.createdAt.substring(0, 7) : selMonth);
-                                let cur = firstUnpaid;
-                                while (cur <= selMonth && owedMonths.length < 24) {
-                                    if (!p.skippedMonths || !p.skippedMonths.includes(cur)) owedMonths.push(cur);
-                                    cur = addMonthsToYYYYMM(cur, 1);
-                                }
-                                unpaidMonthsCount = owedMonths.length;
-                                if (unpaidMonthsCount > 0) isDebt = true;
-                            }
-                        }
-                    }
-                }
+                owedMonths = typeof window.getChargeableTuitionMonths === 'function'
+                    ? window.getChargeableTuitionMonths(p, selMonth, { reason: 'studentsRenderer.debt-list' })
+                    : _fallbackChargeableTuitionMonths(p, selMonth);
+                unpaidMonthsCount = owedMonths.length;
+                isDebt = unpaidMonthsCount > 0;
             }
 
             if (isDebt) {
@@ -555,20 +569,11 @@ export function computeAndCacheStudents(allProfiles, params) {
             pageActive++;
 
             if (!item.feeExempt) {
-                let isDebt = false;
-                let unpaidMonthsCount = 0;
-                if (item.isOwed !== undefined) {
-                    const allOwed = Array.isArray(item.owedMonths) ? item.owedMonths : [];
-                    unpaidMonthsCount = allOwed.filter(function(m) { return m <= selMonth; }).length;
-                    isDebt = unpaidMonthsCount > 0;
-                } else {
-                    const _normPU = normalizeYYYYMM(item.paidUntil);
-                    if (!_normPU || _normPU < selMonth) {
-                        isDebt = true;
-                        unpaidMonthsCount = 1;
-                    }
-                }
-                if (isDebt) {
+                const owed = typeof window.getChargeableTuitionMonths === 'function'
+                    ? window.getChargeableTuitionMonths(item, selMonth, { reason: 'studentsRenderer.page-summary' })
+                    : _fallbackChargeableTuitionMonths(item, selMonth);
+                const unpaidMonthsCount = owed.length;
+                if (unpaidMonthsCount > 0) {
                     pageDebt++;
                     pageDebtEst += unpaidMonthsCount * (Number(item.tuitionFee) || 0);
                 }

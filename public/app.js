@@ -1,4 +1,4 @@
-// Phase 4K-6V4B1: coach-branch-assignment-runtime-repair-20260627
+// Phase 4K-6V4B8: debt-two-month-vietnamese-month-normalization-20260627
     /* Firestore security rules source of truth: ./firestore.rules */
 // LEGACY APP KERNEL — DO NOT DELETE DIRECTLY
 // Responsibilities kept in app.js for now:
@@ -512,15 +512,96 @@ window.invCustomCategories = [];
     // → đảm bảo so sánh string YYYY-MM luôn chính xác 100%
     function normalizeYYYYMM(s) {
         if (!s) return '';
-        const parts = s.split('-');
-        if (parts.length !== 2) return s;
-        return `${parts[0]}-${parts[1].padStart(2, '0')}`;
+        let raw = String(s || '').trim();
+        if (!raw) return '';
+        if (raw && typeof raw.toDate === 'function') {
+            try {
+                const d = raw.toDate();
+                if (d && !Number.isNaN(d.getTime())) {
+                    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+                }
+            } catch (_) {}
+        }
+
+        // Phase 4K-6V4B8: chuẩn hóa cả tháng tiếng Việt dạng chữ.
+        // Ví dụ: "Tháng tư 2026", "Tháng Tư năm 2026", "thang muoi mot 2026".
+        // Lỗi cũ: các chuỗi này parse rỗng → Báo nợ chỉ tính 1 tháng hoặc bị ẩn
+        // khi bật bộ lọc nợ từ 2 tháng trở lên.
+        function _foldMonthText(v) {
+            return String(v || '')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/đ/g, 'd')
+                .replace(/Đ/g, 'D')
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, ' ')
+                .trim();
+        }
+        function _monthWordToNumber(phrase) {
+            let key = _foldMonthText(phrase)
+                .replace(/\b(thang|month|t)\b/g, ' ')
+                .replace(/\b(nam|year)\b\s*$/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+            if (!key) return 0;
+            const numeric = key.match(/\b(1[0-2]|0?[1-9])\b/);
+            if (numeric) return Number(numeric[1]);
+            const map = {
+                'mot': 1, 'm ot': 1, 'hai': 2, 'ba': 3, 'bon': 4, 'tu': 4,
+                'nam': 5, 'lam': 5, 'sau': 6, 'bay': 7, 'tam': 8, 'chin': 9,
+                'muoi': 10, 'muoi mot': 11, 'muoi lam': 15, 'muoi hai': 12,
+                'jan': 1, 'january': 1, 'feb': 2, 'february': 2, 'mar': 3, 'march': 3,
+                'apr': 4, 'april': 4, 'may': 5, 'jun': 6, 'june': 6,
+                'jul': 7, 'july': 7, 'aug': 8, 'august': 8, 'sep': 9, 'sept': 9, 'september': 9,
+                'oct': 10, 'october': 10, 'nov': 11, 'november': 11, 'dec': 12, 'december': 12,
+            };
+            if (map[key] >= 1 && map[key] <= 12) return map[key];
+            if (key.includes('muoi hai')) return 12;
+            if (key.includes('muoi mot')) return 11;
+            if (key.includes('muoi')) return 10;
+            return 0;
+        }
+
+        const foldedRaw = _foldMonthText(raw);
+        const yearMatch = foldedRaw.match(/\b(20\d{2})\b/);
+        if (yearMatch) {
+            const year = yearMatch[1];
+            const beforeYear = foldedRaw.slice(0, yearMatch.index).trim();
+            const afterYear = foldedRaw.slice(yearMatch.index + year.length).trim();
+            let wordMonth = _monthWordToNumber(beforeYear) || _monthWordToNumber(afterYear);
+            if (wordMonth >= 1 && wordMonth <= 12) return year + '-' + String(wordMonth).padStart(2, '0');
+        }
+
+        raw = raw
+            .replace(/tháng/gi, '')
+            .replace(/thang/gi, '')
+            .replace(/^t\s*/i, '')
+            .replace(/\s+/g, '')
+            .replace(/[.]/g, '-')
+            .trim();
+        let m = raw.match(/^(20\d{2})[-\/](\d{1,2})(?:[-\/]\d{1,2})?$/);
+        if (m) {
+            const mo = Number(m[2]);
+            if (mo >= 1 && mo <= 12) return m[1] + '-' + String(mo).padStart(2, '0');
+        }
+        m = raw.match(/^(\d{1,2})[-\/](20\d{2})$/);
+        if (m) {
+            const mo = Number(m[1]);
+            if (mo >= 1 && mo <= 12) return m[2] + '-' + String(mo).padStart(2, '0');
+        }
+        m = raw.match(/^(?:T)?(\d{1,2})[-\/]?(20\d{2})$/i);
+        if (m) {
+            const mo = Number(m[1]);
+            if (mo >= 1 && mo <= 12) return m[2] + '-' + String(mo).padStart(2, '0');
+        }
+        return '';
     }
+    window.normalizeTuitionMonth = normalizeYYYYMM;
     // Phase 4K-5M — getChargeableTuitionMonths: nguồn chuẩn tính tháng học phí cần thu
     // Dùng chung cho BÁO NỢ và Thu Gộp khoản, tự động loại trừ skippedMonths
     window.getChargeableTuitionMonths = function(profile, selectedMonth, options) {
         const p = profile || {};
-        const selMonth = String(selectedMonth || '').slice(0, 7);
+        const selMonth = normalizeYYYYMM(selectedMonth || '');
         if (!selMonth) return [];
         if (p.feeExempt === true) return [];
         const statusKind = typeof window.classifyProfileStatus === 'function'
@@ -532,11 +613,13 @@ window.invCustomCategories = [];
             );
         if (statusKind === 'quit') return [];
         const skipped = Array.isArray(p.skippedMonths)
-            ? p.skippedMonths.map(function(m) { return String(m).slice(0, 7); })
+            ? p.skippedMonths.map(function(m) { return normalizeYYYYMM(m); }).filter(Boolean)
             : [];
-        // Phase 4K-6E: xét thêm paidMonths để không báo nợ sai tháng đã đóng
+        // Phase 4K-6V4B7: paidMonths/skippedMonths must be normalized with the
+        // same canonical month parser as paidUntil. Legacy values like 05/2026
+        // or T5/2026 previously caused missing debt rows.
         const paidMonths = Array.isArray(p.paidMonths)
-            ? p.paidMonths.map(function(m) { return String(m).slice(0, 7); })
+            ? p.paidMonths.map(function(m) { return normalizeYYYYMM(m); }).filter(Boolean)
             : [];
         const paidUntil = normalizeYYYYMM(p.paidUntil || '');
         let startMonth = '';
@@ -545,7 +628,7 @@ window.invCustomCategories = [];
         }
         if (!startMonth) {
             const joinLike = p.admissionDate || p.joinDate || p.joinedAt || p.createdAt || p.enrollDate || selMonth;
-            startMonth = String(joinLike).slice(0, 7);
+            startMonth = normalizeYYYYMM(joinLike) || selMonth;
         }
         const result = [];
         let cur = startMonth;
@@ -554,6 +637,14 @@ window.invCustomCategories = [];
             if (!skipped.includes(cur) && !paidMonths.includes(cur)) result.push(cur);
             cur = addMonthsToYYYYMM(cur, 1);
             guard++;
+        }
+        // Stale legacy flags (isOwed=false / owedMonths=[]) must never suppress
+        // canonical debt. Only merge legacy owed months when they ADD evidence.
+        if (p.isOwed === true && Array.isArray(p.owedMonths)) {
+            p.owedMonths.map(function(m) { return normalizeYYYYMM(m); }).filter(Boolean).forEach(function(m) {
+                if (m <= selMonth && !skipped.includes(m) && !paidMonths.includes(m) && !result.includes(m)) result.push(m);
+            });
+            result.sort();
         }
         return result;
     };
@@ -7079,16 +7170,12 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                 let unpaidMonthsCount = 0;
                 let owedMonths = [];
 
-                if (!p.feeExempt && (!p.skippedMonths || !p.skippedMonths.includes(selMonth))) {
-                    // [BƯỚC 2] Normalize paidUntil để tránh sai so sánh "2025-1" vs "2025-01"
-                    const _normPU = normalizeYYYYMM(p.paidUntil);
-                    if (!_normPU || _normPU < selMonth) {
-                        let firstUnpaid = _normPU ? addMonthsToYYYYMM(_normPU, 1) : (p.createdAt ? p.createdAt.substring(0, 7) : selMonth);
-                        let cur = firstUnpaid;
-                        while(cur <= selMonth && owedMonths.length < 24) { if(!p.skippedMonths || !p.skippedMonths.includes(cur)) owedMonths.push(cur); cur = addMonthsToYYYYMM(cur, 1); }
-                        unpaidMonthsCount = owedMonths.length;
-                        if (unpaidMonthsCount > 0) isDebt = true;
-                    }
+                if (!p.feeExempt) {
+                    owedMonths = typeof window.getChargeableTuitionMonths === 'function'
+                        ? window.getChargeableTuitionMonths(p, selMonth, { reason: 'legacy-render-debt-list' })
+                        : [];
+                    unpaidMonthsCount = owedMonths.length;
+                    if (unpaidMonthsCount > 0) isDebt = true;
                 }
 
                 if(isDebt) {
@@ -7109,7 +7196,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                 }
             } else {
                 // [PERF] Quit list pagination
-                if(_curTabId === 'quit') { _quitTotalCount++; if(_quitRendered < _quitLimit) { _quitRendered++; quitHtml += `<tr><td class="name-link text-[0.95rem]" onclick="openProfile('${safeNameEscaped}')">${_displayName(name)}${_listYrBadge}</td><td class="text-[0.7rem] font-bold text-slate-500">${p.memberId || '-'}</td><td>${beltHTML}</td>${branchTdHTML}<td>${formatDate(p.dob)}</td><td>${formatDate(p.quitDate)}</td><td>${window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-emerald-50 text-emerald-700 border border-emerald-200" onclick="openProfile('${safeNameEscaped}')">🔄 Khôi phục</button>` : ''}</td></tr>`; } }
+                if(_curTabId === 'quit') { _quitTotalCount++; if(_quitRendered < _quitLimit) { _quitRendered++; const _quitDateDisplay = p.quitDate || p.ngayNghi || p.inactiveDate || p.stoppedDate || p.leftDate || p.nghiDate; quitHtml += `<tr data-quit-id="${safeNameEscaped}" data-profile-name="${_displayName(name).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}"><td class="name-link text-[0.95rem]" onclick="openProfile('${safeNameEscaped}')">${_displayName(name)}${_listYrBadge}</td><td class="text-[0.7rem] font-bold text-slate-500">${p.memberId || '-'}</td><td>${beltHTML}</td>${branchTdHTML}<td>${formatDate(p.dob)}</td><td>${formatDate(_quitDateDisplay)}</td><td>${window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-emerald-50 text-emerald-700 border border-emerald-200" onclick="openProfile('${safeNameEscaped}')">🔄 Khôi phục</button>` : ''}</td></tr>`; } }
             }
         });
 
@@ -8834,8 +8921,10 @@ window.debugDebtCoverage = async function() {
     activeProfiles.forEach(function(_ref) {
         var name = _ref[0], p = _ref[1];
         if (p.feeExempt) return;
-        const paidUntil = String(p.paidUntil || '');
-        if (!paidUntil || paidUntil < selMonth) debtCount++;
+        const months = typeof window.getChargeableTuitionMonths === 'function'
+            ? window.getChargeableTuitionMonths(p, selMonth, { reason: 'debugDebtCoverage' })
+            : [];
+        if (months.length > 0) debtCount++;
     });
 
     const result = {

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** Phase 4K-6V4B6 — Quit Tab Mobile Full Authoritative List */
+/** Phase 4K-6V4B8 — Quit Tab Mobile Full Authoritative List */
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -18,18 +18,18 @@ function check(name, ok) {
   else { fail++; console.error('❌', name); }
 }
 
-console.log('\n=== Phase 4K-6V4B6 — Quit Tab Mobile Parity ===\n');
-const build = 'quit-tab-mobile-full-list-20260627-v4b6';
+console.log('\n=== Phase 4K-6V4B8 — Quit Tab Mobile Parity ===\n');
+const build = 'debt-two-month-vietnamese-month-20260627-v4b8';
 
-check('Index cache-busts app.js and main.js with V4B6',
+check('Index cache-busts app.js and main.js with V4B8',
   index.includes(`app.js?v=${build}`) && index.includes(`./js/main.js?v=${build}`));
-check('Main cache-busts all quit render/profile modules with V4B6',
+check('Main cache-busts all quit render/profile modules with V4B8',
   main.includes(`./ui/render.js?v=${build}`) &&
   main.includes(`./ui/render/renderStudents.js?v=${build}`) &&
   main.includes(`./ui/render/renderInvalidation.js?v=${build}`) &&
   main.includes(`./listeners/profiles.listeners.js?v=${build}`) &&
   main.includes(`./modules/students.js?v=${build}`));
-check('Nested render imports use V4B6 so mobile cannot reuse stale V4B2 computation cache',
+check('Nested render imports use V4B8 so mobile cannot reuse stale V4B2 computation cache',
   renderJs.includes(`studentsRenderer.js?v=${build}`) &&
   renderStudents.includes(`studentsRenderer.js?v=${build}`) &&
   renderInvalidation.includes(`studentsRenderer.js?v=${build}`) &&
@@ -47,7 +47,7 @@ check('renderQuitIsland synchronizes the mobile control outside the table',
   renderStudents.includes("ctrlEl.id = 'pgWrap_quitList'") &&
   renderStudents.includes("window._loadMore(\\'quit\\')"));
 check('Student pagination controls for quit use authoritative quitProfiles, not pgState',
-  students.includes('Phase 4K-6V4B6 mobile full authoritative render') &&
+  students.includes('Phase 4K-6V4B8 mobile full authoritative render') &&
   students.includes("if (listId === 'quitList' && _isQuitAuthoritativeLoaded())") &&
   (students.includes("window._loadMore(\\'quit\\')") || students.includes("window._loadMore('quit')")) &&
   students.includes('Đang tải danh sách đã nghỉ'));
@@ -96,4 +96,4 @@ check('Mobile quit external control reports all rows instead of showing load-mor
 
 console.log(`\nTotal: ${pass + fail} | PASS: ${pass} | FAIL: ${fail}`);
 if (fail) process.exit(1);
-console.log('Phase 4K-6V4B6 mobile parity checks passed.\n');
+console.log('Phase 4K-6V4B8 mobile parity checks passed.\n');

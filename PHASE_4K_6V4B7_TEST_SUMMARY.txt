@@ -1,0 +1,41 @@
+PHASE 4K-6V4B7 TEST SUMMARY
+Date: 2026-06-27
+
+Main suites:
+- npm run check: PASS, exit code 0
+- npm run check:all:critical: PASS, exit code 0
+
+Dedicated debt gate:
+- node tools/check-debt-authoritative-tuition-coverage.mjs
+- PASS 20/20
+
+Important regressions:
+- Debt Full Coverage: PASS 10/10
+- Debt Load More/Filter: PASS
+- Debt Actions Sync: PASS 17/17
+- Debt Service Bridge: PASS 11/11
+- Debt Profile Read Boundary: PASS 21/21
+- Multi-item Skipped Months: PASS 10/10
+- Scale Readiness / Write Safety: PASS 22/22
+- Syntax: PASS 232 items
+- Deploy Package: PASS 12/12
+- GitHub Pages Paths: PASS 18/18
+- Firestore Indexes: PASS 16/16
+- Runtime Stability: PASS 17/17
+- Production Stability: PASS 22/22
+- Canonical Transaction Safe Cutover: PASS 27/27
+- Firestore Read Attribution Boundary: PASS 34/34
+- Payment Bundle Runtime Hotfix: PASS 20/20
+- Inventory Ledger Reconciliation: PASS 33/33
+- Coach Attendance-only: PASS 30/30
+- Security Coach Branch Boundary: PASS 35/35
+- Quit Tab Mobile Parity: PASS 17/17
+
+Verified debt cases:
+1. paidUntil = 05/2026 => owes 2026-06
+2. paidUntil = T5/2026 => owes 2026-06
+3. paidUntil = Tháng 5/2026 => owes 2026-06
+4. isOwed=false + owedMonths=[] cannot suppress paidUntil=2026-05 debt
+5. paidMonths includes 2026-06 suppresses June debt correctly
+6. skippedMonths includes 06/2026 suppresses June debt correctly
+7. legacy isOwed=true can only add evidence, not remove canonical debt

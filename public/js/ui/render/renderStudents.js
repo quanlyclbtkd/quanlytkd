@@ -19,7 +19,7 @@
  */
 
 import { registerRender } from './renderRegistry.js';
-import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=debt-profile-read-boundary-20260616-v3d';
+import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=debt-two-month-vietnamese-month-20260627-v4b8';
 
 // ─── Core DOM helper ────────────────────────────────────────────────────────
 
@@ -40,6 +40,138 @@ function _applyHtml(el, html) {
     const tpl = document.createElement('template');
     tpl.innerHTML = html;
     el.replaceChildren(tpl.content);
+}
+
+function _ensureQuitMobileControl() {
+    let ctrlEl = document.getElementById('pgWrap_quitList');
+    if (ctrlEl) return ctrlEl;
+    const target = document.getElementById('quitList');
+    if (!target || !document.createElement) return null;
+    const table = target.closest ? target.closest('table') : null;
+    const wrapper = target.closest ? target.closest('.table-wrapper') : null;
+    const anchor = wrapper || table || target;
+    const parent = anchor && anchor.parentElement;
+    if (!parent) return null;
+    ctrlEl = document.createElement('div');
+    ctrlEl.id = 'pgWrap_quitList';
+    ctrlEl.setAttribute('data-mobile-quit-control', '1');
+    ctrlEl.style.cssText = 'width:100%;margin-top:8px;';
+    parent.insertBefore(ctrlEl, anchor.nextSibling);
+    return ctrlEl;
+}
+
+function _escapeHtml(value) {
+    return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+function _escapeJs(value) {
+    return String(value == null ? '' : value).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+function _formatDateSafe(value) {
+    const text = String(value || '').trim();
+    if (!text) return '';
+    if (text.includes('/')) return text;
+    const m = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (m) return `${m[3]}/${m[2]}/${m[1]}`;
+    return text;
+}
+function _isQuitMobileViewport() {
+    try {
+        return (window.matchMedia && window.matchMedia('(max-width: 767px)').matches) || Number(window.innerWidth || 0) <= 767;
+    } catch (_) {
+        return false;
+    }
+}
+function _profileDisplayName(id, profile) {
+    const p = profile || {};
+    return String(p.name || p.fullName || p.displayName || p.studentName || p.memberName || id || '').trim();
+}
+function _getAuthoritativeQuitProfiles() {
+    const merged = {};
+    try {
+        const storeQuit = window.studentProfileStore && typeof window.studentProfileStore.getQuitProfiles === 'function'
+            ? (window.studentProfileStore.getQuitProfiles() || {})
+            : {};
+        Object.assign(merged, storeQuit);
+    } catch (_) {}
+    try {
+        const profiles = (window.__store && window.__store.profiles) || {};
+        Object.entries(profiles).forEach(([id, profile]) => {
+            const kind = typeof window.classifyProfileStatus === 'function'
+                ? window.classifyProfileStatus(profile)
+                : (profile && (profile.status === 'quit' || profile.status === 'inactive' || profile.active === false || profile.isActive === false) ? 'quit' : 'active');
+            if (kind === 'quit' && id && !merged[id]) merged[id] = profile;
+        });
+    } catch (_) {}
+    return merged;
+}
+function _buildAuthoritativeQuitRows(options = {}) {
+    const profiles = _getAuthoritativeQuitProfiles();
+    const entries = Object.entries(profiles).filter(([id, profile]) => {
+        if (!id || !profile) return false;
+        const kind = typeof window.classifyProfileStatus === 'function'
+            ? window.classifyProfileStatus(profile)
+            : (profile.status === 'quit' || profile.status === 'inactive' || profile.active === false || profile.isActive === false ? 'quit' : 'active');
+        return kind === 'quit';
+    }).sort((a, b) => _profileDisplayName(a[0], a[1]).localeCompare(_profileDisplayName(b[0], b[1]), 'vi'));
+    const pageSize = (window.__store && window.__store.pagination && window.__store.pagination.students && window.__store.pagination.students.pageSize) || 50;
+    // Phase 4K-6V4B6: mobile must show the full authoritative quit list.
+    // Prior versions accepted the computation cache / page limit, so phones showed
+    // only the first mobile page even though desktop and Firestore data were complete.
+    const forceAll = options.forceAll === true || (options.mobileFull === true && _isQuitMobileViewport());
+    const limit = forceAll ? entries.length : (Math.max(1, window._quitPage || 1) * pageSize);
+    const cfg = (window.__store && window.__store.clubConfig) || window.clubConfig || {};
+    const isSingleBranch = Number(cfg.branchCount || 1) <= 1;
+    const isAdmin = String(window.userRole || '').toLowerCase().includes('admin');
+    const rows = entries.slice(0, limit).map(([id, p]) => {
+        const display = _escapeHtml(_profileDisplayName(id, p));
+        const safeIdAttr = _escapeHtml(id);
+        const safeIdJs = _escapeJs(id);
+        const belt = _escapeHtml(p.belt || '');
+        const memberId = _escapeHtml(p.memberId || p.studentCode || p.code || '');
+        const branchTd = isSingleBranch ? '' : '<td><span class="badge bg-slate-100 text-slate-600 border border-slate-200">' + _escapeHtml(typeof window.getBranchNameDisplay === 'function' ? window.getBranchNameDisplay(p.branch || '') : (p.branch || '')) + '</span></td>';
+        const quitDate = _formatDateSafe(p.quitDate || p.ngayNghi || p.inactiveDate || p.stoppedDate || p.leftDate || p.nghiDate);
+        return `<tr data-quit-id="${safeIdAttr}" data-profile-name="${display}"><td class="name-link text-[0.95rem]" onclick="openProfile('${safeIdJs}')">${display}</td><td class="text-[0.7rem] font-bold text-slate-500">${memberId || '-'}</td><td>${belt}</td>${branchTd}<td>${_formatDateSafe(p.dob)}</td><td>${_escapeHtml(quitDate) || '-'}</td><td>${isAdmin ? `<button type="button" class="btn-sm bg-emerald-50 text-emerald-700 border border-emerald-200" onclick="openProfile('${safeIdJs}')">🔄 Khôi phục</button>` : ''}</td></tr>`;
+    }).join('');
+    const remaining = Math.max(0, entries.length - limit);
+    const colspan = isSingleBranch ? 6 : 7;
+    const more = remaining > 0
+        ? `<tr class="load-more-row" data-load-more-for="quitList"><td colspan="${colspan}" style="padding:10px;text-align:center;"><button type="button" class="btn-sm" style="background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;font-size:0.78rem;cursor:pointer;" onclick="window._loadMore('quit')">⬇ Tải thêm — còn ${remaining} võ sinh đã nghỉ nữa</button></td></tr>`
+        : '';
+    return { html: rows + more, count: entries.length, limit, remaining };
+}
+
+function _syncQuitMobileControl() {
+    const ctrlEl = _ensureQuitMobileControl();
+    if (!ctrlEl) return;
+    const quitLoaded = !!(window.studentProfileStore && typeof window.studentProfileStore.isQuitLoaded === 'function' && window.studentProfileStore.isQuitLoaded());
+    const mobileFull = _isQuitMobileViewport();
+    if (!quitLoaded) {
+        ctrlEl.innerHTML = '<div style="text-align:center;padding:0.5rem 0;color:#94a3b8;font-size:0.8rem;">Đang tải danh sách đã nghỉ...</div>';
+        return;
+    }
+    let count = 0;
+    try {
+        count = Object.keys(_getAuthoritativeQuitProfiles()).length;
+    } catch (_) { count = 0; }
+    const pageSize = (window.__store && window.__store.pagination && window.__store.pagination.students && window.__store.pagination.students.pageSize) || 50;
+    const limit = mobileFull ? count : ((window._quitPage || 1) * pageSize);
+    const remaining = Math.max(0, count - limit);
+    const btnStyle = 'style="padding:0.45rem 1.2rem;font-size:0.85rem;background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;border-radius:6px;cursor:pointer;font-weight:600;"';
+    if (remaining > 0) {
+        ctrlEl.innerHTML = '<div style="text-align:center;padding:0.75rem 0;">'
+            + '<button type="button" ' + btnStyle + ' onclick="window._loadMore(\'quit\')">'
+            + '⬇ Tải thêm — còn ' + remaining + ' võ sinh đã nghỉ nữa'
+            + '</button></div>';
+    } else if (count > 0) {
+        ctrlEl.innerHTML = '<div style="text-align:center;padding:0.5rem 0;color:#94a3b8;font-size:0.8rem;">'
+            + (mobileFull ? 'Đã hiển thị đủ ' : 'Đã tải hết ') + count + ' võ sinh đã nghỉ</div>';
+    } else {
+        ctrlEl.innerHTML = '<div style="text-align:center;padding:0.5rem 0;color:#94a3b8;font-size:0.8rem;">Chưa có võ sinh đã nghỉ</div>';
+    }
 }
 
 // ─── Island render functions ─────────────────────────────────────────────────
@@ -84,31 +216,51 @@ export function renderDebtIsland() {
 
 /** Render the quit student list (#quitList). */
 export function renderQuitIsland() {
-    const _htmlQ = getStudentsCachedHtml('quitRows');
-    // Phase 4K-STUDENT-RENDER-OVERWRITE-FIX: tương tự active, bảo toàn quit DOM khi cache rỗng
-    if (!_htmlQ) {
-        const _pgState    = window.__store?.pagination?.students;
-        const _hasQuitItems = _pgState?.enabled &&
-            Array.isArray(_pgState.currentItems) &&
-            _pgState.currentItems.length > 0 &&
-            !!(window.__store?.pagination?._quitPagActive);
-        if (_hasQuitItems) {
-            // Phase 4K-5F: hard-filter quit items before fallback render
-            const _quitItems = typeof window.filterStudentItemsForMode === 'function'
-                ? window.filterStudentItemsForMode(_pgState.currentItems, 'quit')
-                : _pgState.currentItems;
-            const _fbHtmlQ = typeof window.buildStudentsRowsFromPagination === 'function'
-                ? window.buildStudentsRowsFromPagination(_quitItems, 'quit')
-                : '';
-            if (_fbHtmlQ) {
-                _applyHtml(document.getElementById('quitList'), _fbHtmlQ);
-                return;
-            }
-            console.warn('[renderQuitIsland] quitRows cache empty — quit pagination has items. Preserving DOM.');
+    let _htmlQ = getStudentsCachedHtml('quitRows');
+    const _target = document.getElementById('quitList');
+    const _quitLoaded = !!(window.studentProfileStore && typeof window.studentProfileStore.isQuitLoaded === 'function' && window.studentProfileStore.isQuitLoaded());
+
+    // Phase 4K-6V4B5: mobile authoritative render safety. Mobile can open the
+    // tab while lazy quit reconciliation has completed but the computation cache
+    // is still empty/stale. Never clear #quitList in that state; rebuild from
+    // authoritative quitProfiles directly, then create an outside mobile control.
+    if (_quitLoaded) {
+        if (_isQuitMobileViewport()) {
+            const direct = _buildAuthoritativeQuitRows({ mobileFull: true, forceAll: true });
+            _applyHtml(_target, direct.html || '<tr data-quit-empty="1"><td colspan="7" style="text-align:center;color:#94a3b8;padding:16px;font-size:0.82rem;">Chưa có võ sinh đã nghỉ</td></tr>');
+            _syncQuitMobileControl();
             return;
         }
+        if (!_htmlQ && typeof window.refreshListComputation === 'function') {
+            try {
+                window.refreshListComputation('students.quitList', 'quit-mobile-authoritative-cache-miss');
+                _htmlQ = getStudentsCachedHtml('quitRows');
+            } catch (_) {}
+        }
+        if (!_htmlQ) {
+            const direct = _buildAuthoritativeQuitRows();
+            _applyHtml(_target, direct.html || '<tr data-quit-empty="1"><td colspan="7" style="text-align:center;color:#94a3b8;padding:16px;font-size:0.82rem;">Chưa có võ sinh đã nghỉ</td></tr>');
+            _syncQuitMobileControl();
+            return;
+        }
+        _applyHtml(_target, _htmlQ);
+        _syncQuitMobileControl();
+        return;
     }
-    _applyHtml(document.getElementById('quitList'), _htmlQ);
+
+    // Before quit data is ready, preserve any existing DOM rows instead of
+    // clearing the mobile table. This avoids a blank flash while lazy load runs.
+    if (!_htmlQ) {
+        const _hasRows = _target && _target.querySelector('tr[data-quit-id], tr[data-student-id]');
+        if (_hasRows) return;
+        if (_target) {
+            _applyHtml(_target, '<tr data-quit-loading="1"><td colspan="7" style="text-align:center;color:#94a3b8;padding:16px;font-size:0.82rem;">Đang tải danh sách đã nghỉ...</td></tr>');
+        }
+        _syncQuitMobileControl();
+        return;
+    }
+    _applyHtml(_target, _htmlQ);
+    _syncQuitMobileControl();
 }
 
 // ─── Island initialiser ──────────────────────────────────────────────────────

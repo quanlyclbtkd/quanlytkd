@@ -889,7 +889,9 @@ export function initStudents() {
             if (!isSingleBranch && selBranch !== 'all' && p.branch !== selBranch) return;
 
             let owedMonths = [];
-            if (!p.skippedMonths || !p.skippedMonths.includes(selMonth)) {
+            if (typeof window.getChargeableTuitionMonths === 'function') {
+                owedMonths = window.getChargeableTuitionMonths(p, selMonth, { reason: 'bulk-zalo-debt' });
+            } else if (!p.skippedMonths || !p.skippedMonths.includes(selMonth)) {
                 let firstUnpaid = p.paidUntil
                     ? addMonthsToYYYYMM(p.paidUntil, 1)
                     : (p.createdAt ? p.createdAt.substring(0, 7) : selMonth);
@@ -1171,7 +1173,7 @@ export function initStudentPagination() {
                         return;
                     }
 
-                    // Quit list — Phase 4K-6V4B6 mobile full authoritative render.
+                    // Quit list — Phase 4K-6V4B8 mobile full authoritative render.
                     // Mobile must show the complete Đã nghỉ list from quitProfiles,
                     // not the shared server-pagination page. Desktop keeps load-more.
                     if (listId === 'quitList' && _isQuitAuthoritativeLoaded()) {
@@ -3023,7 +3025,10 @@ window.debugDebtActionState = function(name) {
         status:                          profile ? (profile.status || '') : '',
         quitDate:                        profile ? (profile.quitDate || '') : '',
         skippedMonths:                   profile ? (profile.skippedMonths || []) : [],
+        paidUntil:                       profile ? (profile.paidUntil || '') : '',
+        paidMonths:                      profile ? (profile.paidMonths || []) : [],
         selectedMonth:                   (document.getElementById('filterMonth') && document.getElementById('filterMonth').value) || st.selectedMonth || '',
+        chargeableMonths:                (profile && typeof window.getChargeableTuitionMonths === 'function') ? window.getChargeableTuitionMonths(profile, ((document.getElementById('filterMonth') && document.getElementById('filterMonth').value) || st.selectedMonth || ''), { reason: 'debugDebtActionState' }) : [],
         debtRowExists:                   q && debtRowSelector ? !!document.querySelector(debtRowSelector) : null,
         hasMarkStudentQuitFromDebt:      typeof window.markStudentQuitFromDebt === 'function',
         hasSkipDebtMonthFromDebt:        typeof window.skipDebtMonthFromDebt === 'function',

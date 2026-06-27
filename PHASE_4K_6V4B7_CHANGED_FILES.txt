@@ -1,0 +1,19 @@
+app.js
+index.html
+js/main.js
+js/utils/format.js
+js/ui/render.js
+js/ui/render/renderStudents.js
+js/ui/render/renderInvalidation.js
+js/ui/render/listComputationRefresh.js
+js/ui/render/computation/studentsRenderer.js
+js/modules/students.js
+package.json
+tools/check-debt-authoritative-tuition-coverage.mjs (new)
+tools/check-quit-tab-mobile-parity.mjs
+tools/check-coach-branch-runtime-repair.mjs
+tools/check-inventory-ledger-reconciliation.mjs
+tools/check-attendance-canonical-ownership.mjs
+PHASE_4K_6V4B7_DEBT_AUTHORITATIVE_TUITION_COVERAGE_REPORT.md (new)
+PHASE_4K_6V4B7_TEST_SUMMARY.txt (new)
+PHASE_4K_6V4B7_CHANGED_FILES.txt (new)

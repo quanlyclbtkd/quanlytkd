@@ -19,7 +19,7 @@
  */
 
 import { registerRender } from './renderRegistry.js';
-import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=quit-tab-mobile-full-list-20260627-v4b6';
+import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=debt-two-month-vietnamese-month-20260627-v4b8';
 
 // ─── Core DOM helper ────────────────────────────────────────────────────────
 

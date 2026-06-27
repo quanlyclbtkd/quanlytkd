@@ -1,0 +1,44 @@
+PHASE 4K-6V4B8 TEST SUMMARY
+Date: 2026-06-27
+
+Dedicated debt checker:
+- npm run check:debt-authoritative-tuition-coverage
+- PASS 25/25
+
+Targeted gates passed:
+- check:syntax — PASS, 232 items
+- check:debt-authoritative-tuition-coverage — PASS 25/25
+- check:debt-full-coverage — PASS 10/10
+- check:debt-loadmore-filter — PASS
+- check:debt-actions-sync — PASS 17/17
+- check:debt-service-bridge — PASS 11/11
+- check:multiitem-skipped-months — PASS 10/10
+- check:runtime-stability-gate — PASS 17/17
+- check:production-stability-gate — PASS 22/22
+- check:deploy-package — PASS 12/12
+- check:github-pages-paths — PASS 18/18
+- check:firestore-indexes — PASS 16/16
+- check:coach-attendance-only-read-boundary — PASS 30/30
+- check:security-coach-branch-boundary — PASS 35/35
+- check:quit-tab-mobile-parity — PASS 17/17
+
+Important dynamic debt cases:
+- paidUntil 05/2026 owes 2026-06 — PASS
+- paidUntil T5/2026 owes 2026-06 — PASS
+- paidUntil Tháng 5/2026 owes 2026-06 — PASS
+- paidUntil Tháng tư 2026 owes 2026-05 and 2026-06 — PASS
+- paidUntil Tháng Tư năm 2026 owes 2 months for selected Tháng 6 năm 2026 — PASS
+- paidUntil thang muoi mot 2026 normalizes to 2026-11 — PASS
+- stale isOwed=false cannot hide June debt — PASS
+- paidUntil April + paidMonths June still owes May — PASS
+- skipped June suppresses June debt — PASS
+- Excel debt sheet uses canonical chargeable months — PASS
+
+Full suites:
+- npm run check — PASS, exit code 0
+- npm run check:all:critical — PASS, exit code 0
+
+
+Additional deployment safety:
+- public/ hosting mirror synced with root source for app.js, index.html, main.js, reports, students and format helpers.
+- production-stability-gate — PASS 22/22 after final sync.

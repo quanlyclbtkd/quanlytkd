@@ -57,6 +57,41 @@ function _fallbackProfileBlob(name, p) {
     ].filter(Boolean).map(v => _nvFn(String(v))).join(' ');
 }
 
+
+function _monthList(values) {
+    return Array.isArray(values)
+        ? values.map(m => normalizeYYYYMM(m)).filter(Boolean)
+        : [];
+}
+
+function _fallbackChargeableTuitionMonths(profile, selectedMonth) {
+    const p = profile || {};
+    const selMonth = normalizeYYYYMM(selectedMonth || '');
+    if (!selMonth || p.feeExempt === true) return [];
+    const skipped = _monthList(p.skippedMonths);
+    const paidMonths = _monthList(p.paidMonths);
+    const paidUntil = normalizeYYYYMM(p.paidUntil || '');
+    let startMonth = paidUntil ? addMonthsToYYYYMM(paidUntil, 1) : '';
+    if (!startMonth) {
+        startMonth = normalizeYYYYMM(p.admissionDate || p.joinDate || p.joinedAt || p.createdAt || p.enrollDate || selMonth) || selMonth;
+    }
+    const result = [];
+    let cur = startMonth;
+    let guard = 0;
+    while (cur && cur <= selMonth && guard < 36) {
+        if (!skipped.includes(cur) && !paidMonths.includes(cur)) result.push(cur);
+        cur = addMonthsToYYYYMM(cur, 1);
+        guard++;
+    }
+    if (p.isOwed === true && Array.isArray(p.owedMonths)) {
+        _monthList(p.owedMonths).forEach(m => {
+            if (m <= selMonth && !skipped.includes(m) && !paidMonths.includes(m) && !result.includes(m)) result.push(m);
+        });
+        result.sort();
+    }
+    return result;
+}
+
 // ── Module-local branch-name helper ──────────────────────────────────────────
 const _getBrN = (br) =>
     (window.getBranchNameDisplay && window.getBranchNameDisplay(br))
@@ -66,6 +101,22 @@ const _getBrN = (br) =>
 // ── Smart-name helpers (moved from render.js) ─────────────────────────────────
 const _strip = (k) => k.replace(/\s*\([^)]*\)\s*$/, '').replace(/\s*\[[^\]]*\]\s*$/, '').trim().toLowerCase();
 const _disp  = (k) => k.replace(/\s*\([^)]*\)\s*$/, '').replace(/\s*\[[^\]]*\]\s*$/, '').trim();
+function _profileDisplayName(id, p) {
+    const data = p || {};
+    const candidates = [
+        data.name,
+        data.fullName,
+        data.displayName,
+        data.studentName,
+        data.hoTen,
+        id,
+    ];
+    for (const value of candidates) {
+        const text = String(value || '').trim();
+        if (text) return text;
+    }
+    return String(id || '').trim();
+}
 
 /**
  * Build year-disambiguation badge for duplicate display names.
@@ -167,8 +218,10 @@ export function renderDebtRow(name, p, opts = {}) {
  */
 export function renderQuitRow(name, p, opts = {}) {
     const { beltHTML = '', branchTdHTML = '', yrBadge = '', isAdmin = false } = opts;
-    const safeNameEsc = name.replace(/'/g, "\\'");
-    return `<tr data-quit-id="${safeNameEsc}"><td class="name-link text-[0.95rem]" onclick="openProfile('${safeNameEsc}')">${_disp(name)}${yrBadge}</td><td class="text-[0.7rem] font-bold text-slate-500">${p.memberId || '-'}</td><td>${beltHTML}</td>${branchTdHTML}<td>${formatDate(p.dob)}</td><td>${formatDate(p.quitDate)}</td><td>${isAdmin ? `<button type="button" class="btn-sm bg-emerald-50 text-emerald-700 border border-emerald-200" onclick="openProfile('${safeNameEsc}')">🔄 Khôi phục</button>` : ''}</td></tr>`;
+    const safeNameEsc = name.replace(/'/g, "\'");
+    const displayName = _profileDisplayName(name, p);
+    const safeDisplayAttr = String(displayName || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return `<tr data-quit-id="${safeNameEsc}" data-profile-name="${safeDisplayAttr}"><td class="name-link text-[0.95rem]" onclick="openProfile('${safeNameEsc}')">${_disp(displayName)}${yrBadge}</td><td class="text-[0.7rem] font-bold text-slate-500">${p.memberId || '-'}</td><td>${beltHTML}</td>${branchTdHTML}<td>${formatDate(p.dob)}</td><td>${formatDate(p.quitDate || p.ngayNghi || p.inactiveDate || p.stoppedDate || p.leftDate || p.nghiDate)}</td><td>${isAdmin ? `<button type="button" class="btn-sm bg-emerald-50 text-emerald-700 border border-emerald-200" onclick="openProfile('${safeNameEsc}')">🔄 Khôi phục</button>` : ''}</td></tr>`;
 }
 
 // ── Core computation ──────────────────────────────────────────────────────────
@@ -261,6 +314,10 @@ export function computeAndCacheStudents(allProfiles, params) {
     // Biến này dùng trong vòng lặp PASS 1 — phải khai báo tại đây, không được ở sau PASS 2
     const fullProfilesCount = Object.keys(allProfiles || {}).length;
     const useFullProfileActiveRender = buildActive && fullProfilesCount > 0 && !search;
+    // Phase 4K-6V4B2: Quit tab must prefer the full/lazy quit profile store.
+    // Pagination currentItems can belong to the Active tab or only one server page;
+    // using it here causes missing quit students even when allProfiles already has them.
+    const useFullProfileQuitRender = buildQuit && fullProfilesCount > 0;
 
     if (!buildActive && !buildDebt && !buildQuit) {
         _metrics.skippedHiddenTab++;
@@ -369,39 +426,18 @@ export function computeAndCacheStudents(allProfiles, params) {
             // Phase 4K-6E-C: m_new dựa trên tháng thực tế, không theo filterMonth
             if (isCurrentNew) m_new++;
 
-            // ── Debt check (Phase 3: Cloud Function flags → client fallback) ──
+            // ── Debt check — canonical tuition months only ──
+            // Phase 4K-6V4B7: legacy isOwed/owedMonths may be stale and must not
+            // suppress a real debt. A student paid through 05/2026 must appear in
+            // 06/2026 even when isOwed=false or owedMonths=[] was left by old code.
             let isDebt = false, unpaidMonthsCount = 0, owedMonths = [];
 
             if (!p.feeExempt) {
-                if (p.isOwed !== undefined) {
-                    const allOwed = Array.isArray(p.owedMonths) ? p.owedMonths : [];
-                    owedMonths = allOwed.filter(m => m <= selMonth);
-                    isDebt = owedMonths.length > 0;
-                    unpaidMonthsCount = owedMonths.length;
-                } else {
-                    // Phase 4K-5M: ưu tiên helper chung để đồng bộ với Thu Gộp khoản
-                    if (typeof window.getChargeableTuitionMonths === 'function') {
-                        owedMonths = window.getChargeableTuitionMonths(p, selMonth, { reason: 'debt-list' });
-                        unpaidMonthsCount = owedMonths.length;
-                        if (unpaidMonthsCount > 0) isDebt = true;
-                    } else {
-                        if (!p.skippedMonths || !p.skippedMonths.includes(selMonth)) {
-                            const _normPU = normalizeYYYYMM(p.paidUntil);
-                            if (!_normPU || _normPU < selMonth) {
-                                let firstUnpaid = _normPU
-                                    ? addMonthsToYYYYMM(_normPU, 1)
-                                    : (p.createdAt ? p.createdAt.substring(0, 7) : selMonth);
-                                let cur = firstUnpaid;
-                                while (cur <= selMonth && owedMonths.length < 24) {
-                                    if (!p.skippedMonths || !p.skippedMonths.includes(cur)) owedMonths.push(cur);
-                                    cur = addMonthsToYYYYMM(cur, 1);
-                                }
-                                unpaidMonthsCount = owedMonths.length;
-                                if (unpaidMonthsCount > 0) isDebt = true;
-                            }
-                        }
-                    }
-                }
+                owedMonths = typeof window.getChargeableTuitionMonths === 'function'
+                    ? window.getChargeableTuitionMonths(p, selMonth, { reason: 'studentsRenderer.debt-list' })
+                    : _fallbackChargeableTuitionMonths(p, selMonth);
+                unpaidMonthsCount = owedMonths.length;
+                isDebt = unpaidMonthsCount > 0;
             }
 
             if (isDebt) {
@@ -428,7 +464,7 @@ export function computeAndCacheStudents(allProfiles, params) {
             }
         } else {
             if (p.quitDate && p.quitDate.substring(0, 7) === selMonth) m_quit++;
-            if (!pgStudentsActive && buildQuit) {
+            if ((!pgStudentsActive || useFullProfileQuitRender) && buildQuit) {
                 _quitTotalCount++;
                 if (_quitRendered < _quitLimit) {
                     _quitRendered++;
@@ -438,10 +474,12 @@ export function computeAndCacheStudents(allProfiles, params) {
         }
     });
 
-    // ── PASS 2 (Phase 3.2A): Override active/quit from server-side pagination ──
-    // Phase 4K-5J-2: Skip PASS 2 override when full profiles already hydrated
+    // ── PASS 2 (Phase 3.2A): Override active from server-side pagination only
+    // Phase 4K-6V4B2: Do NOT override quit rows when full/lazy quit profiles exist.
+    // Otherwise #quitList can lose names because pgStudents.currentItems may be an
+    // active page or a partial status-query page.
     // useFullProfileActiveRender declared before PASS 1 to avoid TDZ ReferenceError
-    if (pgStudentsActive && pgStudents && !useFullProfileActiveRender) {
+    if (pgStudentsActive && pgStudents && !useFullProfileActiveRender && !useFullProfileQuitRender) {
         activeRows = buildActive ? '' : null;
         quitRows   = buildQuit   ? '' : null;
         _activeTotalCount = 0;
@@ -531,20 +569,11 @@ export function computeAndCacheStudents(allProfiles, params) {
             pageActive++;
 
             if (!item.feeExempt) {
-                let isDebt = false;
-                let unpaidMonthsCount = 0;
-                if (item.isOwed !== undefined) {
-                    const allOwed = Array.isArray(item.owedMonths) ? item.owedMonths : [];
-                    unpaidMonthsCount = allOwed.filter(function(m) { return m <= selMonth; }).length;
-                    isDebt = unpaidMonthsCount > 0;
-                } else {
-                    const _normPU = normalizeYYYYMM(item.paidUntil);
-                    if (!_normPU || _normPU < selMonth) {
-                        isDebt = true;
-                        unpaidMonthsCount = 1;
-                    }
-                }
-                if (isDebt) {
+                const owed = typeof window.getChargeableTuitionMonths === 'function'
+                    ? window.getChargeableTuitionMonths(item, selMonth, { reason: 'studentsRenderer.page-summary' })
+                    : _fallbackChargeableTuitionMonths(item, selMonth);
+                const unpaidMonthsCount = owed.length;
+                if (unpaidMonthsCount > 0) {
                     pageDebt++;
                     pageDebtEst += unpaidMonthsCount * (Number(item.tuitionFee) || 0);
                 }
@@ -579,7 +608,7 @@ export function computeAndCacheStudents(allProfiles, params) {
     // if (buildActive && _activeTotalCount > _activeRendered) { ... }
 
     // Quit load more — chỉ khi không có server-side pagination
-    if (!pgStudentsActive) {
+    if (!pgStudentsActive || useFullProfileQuitRender) {
         if (buildQuit && _quitTotalCount > _quitLimit) {
             quitRows += `<tr><td colspan="${_moreColspan}" ${_moreStyle}><button type="button" ${_moreBtnSt} onclick="_loadMore('quit')">⬇ Tải thêm — còn ${_quitTotalCount - _quitRendered} võ sinh nữa</button></td></tr>`;
         }
