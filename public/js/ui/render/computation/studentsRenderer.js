@@ -98,6 +98,35 @@ const _getBrN = (br) =>
         ? window.getBranchNameDisplay(br)
         : br;
 
+// Phase 4K-6V4B10: Branch filter must use the same canonical/alias rules as
+// Coach attendance. Legacy profile.branch may be CS1, Mặc định, a configured
+// branch display name, or an old free-text value. Direct string compare made
+// Báo nợ silently miss some debtors when Admin selected a branch filter.
+function _branchMatchesFilter(profileBranch, selectedBranch) {
+    const sel = String(selectedBranch || 'all').trim();
+    if (!sel || sel === 'all') return true;
+    const raw = String(profileBranch || '').trim();
+    if (!raw) return false;
+    if (raw === sel) return true;
+    const resolver = typeof window !== 'undefined' ? window.CoachBranchResolver : null;
+    const cfg = (typeof window !== 'undefined' && (window.__store?.clubConfig || window.clubConfig)) || {};
+    try {
+        if (resolver && typeof resolver.normalize === 'function') {
+            const a = resolver.normalize(raw, cfg);
+            const b = resolver.normalize(sel, cfg);
+            if (a && b && a === b) return true;
+            if (typeof resolver.queryValues === 'function') {
+                const aliases = new Set([...(resolver.queryValues(sel, cfg) || []), ...(resolver.queryValues(b, cfg) || [])].map(v => String(v || '').trim()).filter(Boolean));
+                if (aliases.has(raw) || aliases.has(a)) return true;
+            }
+        }
+    } catch (_) {}
+    const fold = (typeof window !== 'undefined' && window.normalizeVNForSearch)
+        ? window.normalizeVNForSearch
+        : (v => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g,'d').replace(/Đ/g,'D').toLowerCase().trim());
+    return fold(raw) === fold(sel) || fold(_getBrN(raw)) === fold(sel) || fold(raw) === fold(_getBrN(sel));
+}
+
 // ── Smart-name helpers (moved from render.js) ─────────────────────────────────
 const _strip = (k) => k.replace(/\s*\([^)]*\)\s*$/, '').replace(/\s*\[[^\]]*\]\s*$/, '').trim().toLowerCase();
 const _disp  = (k) => k.replace(/\s*\([^)]*\)\s*$/, '').replace(/\s*\[[^\]]*\]\s*$/, '').trim();
@@ -391,8 +420,12 @@ export function computeAndCacheStudents(allProfiles, params) {
             const isSkipped = p.skippedMonths && p.skippedMonths.includes(selMonth);
             if (isSkipped) m_skipped++;
 
-            let passFilter = true;
-            if (!isSingleBranch && selBranch !== 'all' && safeBranch !== selBranch) passFilter = false;
+            // Phase 4K-6V4B10: split shared filters from Active-only filters.
+            // Debt list must obey branch + search + overdue filter, but must NOT be
+            // hidden by Active tab's "new/returning student" filter.
+            let branchPassFilter = true;
+            if (!isSingleBranch && !_branchMatchesFilter(safeBranch, selBranch)) branchPassFilter = false;
+            let searchPassFilter = true;
             // Phase 4K-2B PASS 1: Dùng getProfileSearchBlob() — pre-normalized blob, không normalize lại mỗi vòng lặp
             if (search) {
                 const q = window.normalizeVNForSearch
@@ -401,19 +434,21 @@ export function computeAndCacheStudents(allProfiles, params) {
                 const blob = typeof window.getProfileSearchBlob === 'function'
                     ? window.getProfileSearchBlob(name, p)
                     : _fallbackProfileBlob(name, p);
-                if (q && !blob.includes(q)) passFilter = false;
+                if (q && !blob.includes(q)) searchPassFilter = false;
             }
+            const sharedPassFilter = branchPassFilter && searchPassFilter;
+            let activePassFilter = sharedPassFilter;
 
-            // Phase 4K-6E-C: Apply active new student filter
+            // Phase 4K-6E-C: Apply active new student filter ONLY to active list.
             if (
-                passFilter &&
+                activePassFilter &&
                 typeof window.shouldShowActiveStudentByNewFilter === 'function' &&
                 !window.shouldShowActiveStudentByNewFilter(name, p)
             ) {
-                passFilter = false;
+                activePassFilter = false;
             }
 
-            if (passFilter) {
+            if (activePassFilter) {
                 _activeTotalCount++;
                 if ((!pgStudentsActive || useFullProfileActiveRender) && buildActive && _activeRendered < _activeLimit) {
                     _activeRendered++;
@@ -441,8 +476,10 @@ export function computeAndCacheStudents(allProfiles, params) {
             }
 
             if (isDebt) {
-                // [PART 1 FIX] BÁO NỢ phải áp dụng passFilter như activeList
-                const debtPassFilter = passFilter;
+                // Phase 4K-6V4B10: Báo nợ chỉ dùng filter chung branch/search.
+                // Không dùng activePassFilter vì filter "võ sinh mới/quay lại" của tab
+                // Đang tập có thể làm ẩn võ sinh nợ thật.
+                const debtPassFilter = sharedPassFilter;
                 // Phase 4K-5J-1: overdue months filter
                 const _debtOverdueMin = typeof window.getDebtOverdueFilterValue === 'function'
                     ? window.getDebtOverdueFilterValue() : 0;

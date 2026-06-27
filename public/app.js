@@ -1,4 +1,4 @@
-// Phase 4K-6V4B9: debt-month-five-vietnamese-word-normalization-20260627
+// Phase 4K-6V4B10: debt-canonical-filter-boundary-20260627
     /* Firestore security rules source of truth: ./firestore.rules */
 // LEGACY APP KERNEL — DO NOT DELETE DIRECTLY
 // Responsibilities kept in app.js for now:
@@ -69,6 +69,26 @@
         const code = _canonicalBranch(value, '');
         return code === 'CS1' ? ['CS1', 'Mặc định'] : (code ? [code] : []);
     };
+    // Phase 4K-6V4B10: dùng chung cho Báo nợ/Đang tập legacy render.
+    // Direct compare safeBranch !== selBranch làm sót võ sinh nếu dữ liệu cũ lưu
+    // branch bằng Mặc định / tên cơ sở trong khi filter dùng CS1..CS10.
+    const _branchMatchesFilter = (profileBranch, selectedBranch) => {
+        const sel = String(selectedBranch || 'all').trim();
+        if (!sel || sel === 'all') return true;
+        const raw = String(profileBranch || '').trim();
+        if (!raw) return false;
+        if (raw === sel) return true;
+        try {
+            const rawCanonical = _canonicalBranch(raw, '');
+            const selCanonical = _canonicalBranch(sel, '');
+            if (rawCanonical && selCanonical && rawCanonical === selCanonical) return true;
+            const aliases = new Set([].concat(_branchAliases(sel), _branchAliases(selCanonical)).map(v => String(v || '').trim()).filter(Boolean));
+            if (aliases.has(raw) || aliases.has(rawCanonical)) return true;
+        } catch (_) {}
+        const fold = (v) => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase().trim();
+        return fold(raw) === fold(sel) || fold(window.getBranchNameDisplay ? window.getBranchNameDisplay(raw) : raw) === fold(sel);
+    };
+    window.debtBranchMatchesFilter = window.debtBranchMatchesFilter || _branchMatchesFilter;
 // Danh mục kho tùy chỉnh — được load từ Firestore khi đăng nhập thành công
 window.invCustomCategories = [];
     window.COACH_BRANCH_RUNTIME_VERSION='4K-6V4B1'; window.APP_PATCH_VERSION = '4K-6V3A1-payment-bundle-runtime-hotfix-20260616'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
@@ -7157,7 +7177,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             if((typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus(p) : p.status) === 'active' && _bStats[safeBranch] !== undefined) {
                 _bStats[safeBranch].active++;
             }
-            if(!isSingleBranch && selBranch !== 'all' && safeBranch !== selBranch) return;
+            if(!isSingleBranch && !_branchMatchesFilter(safeBranch, selBranch)) return;
             let branchTdHTML = isSingleBranch ? '' : `<td class="col-branch"><span class="badge bg-slate-100 text-slate-600 border border-slate-200">${window.getBranchNameDisplay(safeBranch)}</span></td>`;
 
             let safePhone = p.phone || ""; let safeBelt = p.belt || ""; let safeNotes = p.notes || ""; let safeNameEscaped = name.replace(/'/g, "\\'");

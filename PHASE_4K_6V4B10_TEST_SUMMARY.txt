@@ -1,0 +1,27 @@
+PHASE 4K-6V4B10 TEST SUMMARY
+Date: 2026-06-27
+
+npm run check
+PASS — exit code 0
+
+npm run check:all:critical
+PASS — exit code 0
+
+Key gates:
+- Debt Authoritative Tuition Coverage: 32/32 PASS
+- Syntax: 232 items PASS
+- Debt Profile Read Boundary: PASS
+- Coach Attendance-only Read Boundary: 30/30 PASS
+- Security Coach Branch Boundary: 35/35 PASS
+- Coach Branch Runtime Repair: 25/25 PASS
+- Quit Tab Completeness: 12/12 PASS
+- Quit Tab Authoritative Completeness: 9/9 PASS
+- Quit Tab Mobile Parity: 17/17 PASS
+
+Verified debt cases:
+1. paidUntil "Tháng năm 2026" + selectedMonth "2026-06" => ["2026-06"]
+2. paidUntil "Tháng tư 2026" + selectedMonth "2026-06" => ["2026-05", "2026-06"]
+3. paidUntil "05/2026", "5/2026", "T5/2026", "Tháng 5/2026", "Tháng 5 2026", "Tháng 5 - 2026" all normalize to 2026-05.
+4. Active new/returning filter no longer hides Báo nợ rows.
+5. Branch aliases CS1 / CS01 / Mặc định / configured branch display name are treated as one branch for debt filtering.
+6. debugDebtActionState reports normalized paid fields, normalized selected month, filter status and hidden reasons.

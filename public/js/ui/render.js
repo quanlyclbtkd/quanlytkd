@@ -59,7 +59,7 @@ import {
     computeAndCacheStudents,
     getStudentsSummary,
     getStudentsCachedHtml,
-} from './render/computation/studentsRenderer.js?v=debt-month-five-vietnamese-word-20260627-v4b9';
+} from './render/computation/studentsRenderer.js?v=debt-canonical-filter-boundary-20260627-v4b10';
 import {
     computeAndCacheInventory,
     getCachedLiveInvMap,

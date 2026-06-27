@@ -44,7 +44,7 @@ import {
 import {
     computeAndCacheStudents,
     getStudentsSummary,
-} from './computation/studentsRenderer.js?v=debt-month-five-vietnamese-word-20260627-v4b9';
+} from './computation/studentsRenderer.js?v=debt-canonical-filter-boundary-20260627-v4b10';
 import {
     computeAndCacheInventory,
     getCachedUnpaidInvCount,

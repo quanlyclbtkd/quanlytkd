@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** Phase 4K-6V4B9 — Debt Authoritative Tuition Coverage */
+/** Phase 4K-6V4B10 — Debt Authoritative Tuition Coverage */
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -18,10 +18,10 @@ const listRefresh = read('js/ui/render/listComputationRefresh.js');
 
 let pass=0, fail=0;
 function check(name, ok, detail='') { if (ok) { pass++; console.log('✅', name); } else { fail++; console.error('❌', name + (detail ? ' — '+detail : '')); } }
-console.log('\n=== Phase 4K-6V4B9 — Debt Authoritative Tuition Coverage ===\n');
+console.log('\n=== Phase 4K-6V4B10 — Debt Authoritative Tuition Coverage ===\n');
 
-const build='debt-month-five-vietnamese-word-20260627-v4b9';
-check('index/main/app cache-busted for V4B9', index.includes(`app.js?v=${build}`) && index.includes(`main.js?v=${build}`) && main.includes(`modules/students.js?v=${build}`) && renderStudents.includes(`studentsRenderer.js?v=${build}`) && listRefresh.includes(`studentsRenderer.js?v=${build}`));
+const build='debt-canonical-filter-boundary-20260627-v4b10';
+check('index/main/app cache-busted for V4B10', index.includes(`app.js?v=${build}`) && index.includes(`main.js?v=${build}`) && main.includes(`modules/students.js?v=${build}`) && renderStudents.includes(`studentsRenderer.js?v=${build}`) && listRefresh.includes(`studentsRenderer.js?v=${build}`));
 check('app normalizeYYYYMM supports MM/YYYY, T numeric and Vietnamese month-word formats', app.includes("_monthWordToNumber") && app.includes("Tháng năm 2026") && app.includes("Tháng tư 2026") && app.includes("raw.match(/^(\\d{1,2})[-\\/](20\\d{2})$/)") && app.includes("raw.match(/^(?:T)?(\\d{1,2})[-\\/]?(20\\d{2})$/i)"));
 check('utils normalizeYYYYMM mirrors month-word parser', fmt.includes("_monthWordToNumber") && fmt.includes("Tháng năm 2026") && fmt.includes("muoi mot") && fmt.includes("raw.match(/^(\\d{1,2})[-\\/](20\\d{2})$/)"));
 check('global normalizeTuitionMonth exposed', app.includes('window.normalizeTuitionMonth = normalizeYYYYMM'));
@@ -29,10 +29,13 @@ check('getChargeableTuitionMonths normalizes selectedMonth, paidUntil, paidMonth
 check('legacy isOwed is only additive and cannot suppress canonical debt', app.includes('p.isOwed === true && Array.isArray(p.owedMonths)') && app.includes('Only merge legacy owed months when they ADD evidence'));
 check('legacy app debt render uses getChargeableTuitionMonths', app.includes("reason: 'legacy-render-debt-list'") && !app.includes("// [BƯỚC 2] Normalize paidUntil để tránh sai so sánh \"2025-1\""));
 check('studentsRenderer ignores stale isOwed false and uses canonical months', renderer.includes('legacy isOwed/owedMonths may be stale') && renderer.includes("reason: 'studentsRenderer.debt-list'") && renderer.includes('_fallbackChargeableTuitionMonths'));
+check('studentsRenderer debt rows are not hidden by Active new/returning filter', renderer.includes('let activePassFilter = sharedPassFilter') && renderer.includes('const debtPassFilter = sharedPassFilter') && !renderer.includes('const debtPassFilter = activePassFilter'));
+check('studentsRenderer debt branch filter uses canonical branch aliases', renderer.includes('function _branchMatchesFilter') && renderer.includes('resolver.queryValues') && renderer.includes('!_branchMatchesFilter(safeBranch, selBranch)'));
+check('legacy render debt branch filter uses canonical branch aliases', app.includes('const _branchMatchesFilter = (profileBranch, selectedBranch)') && app.includes("if(!isSingleBranch && !_branchMatchesFilter(safeBranch, selBranch)) return;"));
 check('studentsRenderer fallback normalizes paidUntil/paidMonths/skippedMonths', renderer.includes('function _fallbackChargeableTuitionMonths') && renderer.includes('const skipped = _monthList(p.skippedMonths)') && renderer.includes('const paidMonths = _monthList(p.paidMonths)'));
 check('pagination fallback summary uses canonical months', renderer.includes("reason: 'studentsRenderer.page-summary'") && !renderer.includes('if (item.isOwed !== undefined)'));
 check('bulk Zalo debt list uses canonical months', students.includes("reason: 'bulk-zalo-debt'"));
-check('debt debug exposes paid fields and chargeable months', students.includes('chargeableMonths:') && students.includes('paidUntil:') && students.includes('paidMonths:'));
+check('debt debug exposes normalized paid fields, filters and hidden reasons', students.includes('normalizedPaidUntil:') && students.includes('normalizedSelectedMonth:') && students.includes('hiddenReasons:') && students.includes('shouldAppearInDebtBeforeRender:'));
 check('debugDebtCoverage uses chargeable months instead of raw paidUntil string compare', app.includes("reason: 'debugDebtCoverage'") && !app.includes('if (!paidUntil || paidUntil < selMonth) debtCount++'));
 
 // Dynamic contract uses the actual utils/format.js parser.
@@ -59,4 +62,4 @@ check('Report debt export uses canonical chargeable months, not raw paidUntil co
 
 console.log(`\nTotal: ${pass+fail} | PASS: ${pass} | FAIL: ${fail}`);
 if (fail) process.exit(1);
-console.log('Phase 4K-6V4B9 checks passed.\n');
+console.log('Phase 4K-6V4B10 checks passed.\n');

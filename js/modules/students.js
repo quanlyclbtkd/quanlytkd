@@ -3012,24 +3012,65 @@ window.debugDebtServiceBridge = function() {
 window.debugDebtActionState = function(name) {
     var st       = window.__store || {};
     var profiles = st.profiles || {};
-    var q        = String(name || '').trim();
+    var rawQ     = String(name || '').trim();
+    var q        = rawQ;
+    if (q && typeof window.getCanonicalStudentName === 'function') {
+        q = window.getCanonicalStudentName(q, profiles);
+    }
     var profile  = q ? profiles[q] : null;
-
+    var selectedRaw = (document.getElementById('filterMonth') && document.getElementById('filterMonth').value) || st.selectedMonth || '';
+    var normMonth = typeof window.normalizeTuitionMonth === 'function'
+        ? window.normalizeTuitionMonth
+        : (m => String(m || '').slice(0, 7));
+    var chargeable = (profile && typeof window.getChargeableTuitionMonths === 'function')
+        ? window.getChargeableTuitionMonths(profile, selectedRaw, { reason: 'debugDebtActionState' }) : [];
+    var branchFilter = (document.getElementById('filterBranch') && document.getElementById('filterBranch').value) || 'all';
+    var branchRaw = profile ? (profile.branch || 'CS1') : '';
+    var branchPass = !profile ? false : (typeof window.debtBranchMatchesFilter === 'function'
+        ? window.debtBranchMatchesFilter(branchRaw, branchFilter)
+        : (branchFilter === 'all' || branchRaw === branchFilter));
+    var searchRaw = (document.getElementById('searchInput') && document.getElementById('searchInput').value) || '';
+    var debtOverdueMin = typeof window.getDebtOverdueFilterValue === 'function' ? window.getDebtOverdueFilterValue() : 0;
     var debtRowSelector = q
         ? ('#debtList tr[data-debt-id="' + (typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(q) : q) + '"]')
         : null;
+    var rowExists = q && debtRowSelector ? !!document.querySelector(debtRowSelector) : null;
+    var statusKind = profile && typeof window.classifyProfileStatus === 'function'
+        ? window.classifyProfileStatus(profile) : (profile ? (profile.status || '') : '');
+    var hiddenReasons = [];
+    if (!profile) hiddenReasons.push('profile-not-found');
+    if (profile && statusKind === 'quit') hiddenReasons.push('profile-is-quit');
+    if (profile && profile.feeExempt === true) hiddenReasons.push('fee-exempt');
+    if (profile && chargeable.length === 0) hiddenReasons.push('no-chargeable-months');
+    if (profile && !branchPass) hiddenReasons.push('branch-filter-mismatch');
+    if (profile && debtOverdueMin && chargeable.length < debtOverdueMin) hiddenReasons.push('overdue-filter-min-' + debtOverdueMin);
+    if (profile && searchRaw) hiddenReasons.push('search-filter-active-check-search-match');
+    if (profile && chargeable.length > 0 && branchPass && (!debtOverdueMin || chargeable.length >= debtOverdueMin) && !rowExists) hiddenReasons.push('render-or-pagination-not-visible');
 
     var result = {
-        queryName:                       q,
+        queryName:                       rawQ,
+        canonicalName:                   q,
         hasProfile:                      !!profile,
         status:                          profile ? (profile.status || '') : '',
+        statusKind:                      statusKind,
         quitDate:                        profile ? (profile.quitDate || '') : '',
+        branchRaw:                       branchRaw,
+        branchFilter:                    branchFilter,
+        branchPass:                      branchPass,
+        searchInput:                     searchRaw,
+        debtOverdueFilterMin:            debtOverdueMin,
         skippedMonths:                   profile ? (profile.skippedMonths || []) : [],
+        normalizedSkippedMonths:         profile && Array.isArray(profile.skippedMonths) ? profile.skippedMonths.map(normMonth).filter(Boolean) : [],
         paidUntil:                       profile ? (profile.paidUntil || '') : '',
+        normalizedPaidUntil:             profile ? normMonth(profile.paidUntil || '') : '',
         paidMonths:                      profile ? (profile.paidMonths || []) : [],
-        selectedMonth:                   (document.getElementById('filterMonth') && document.getElementById('filterMonth').value) || st.selectedMonth || '',
-        chargeableMonths:                (profile && typeof window.getChargeableTuitionMonths === 'function') ? window.getChargeableTuitionMonths(profile, ((document.getElementById('filterMonth') && document.getElementById('filterMonth').value) || st.selectedMonth || ''), { reason: 'debugDebtActionState' }) : [],
-        debtRowExists:                   q && debtRowSelector ? !!document.querySelector(debtRowSelector) : null,
+        normalizedPaidMonths:            profile && Array.isArray(profile.paidMonths) ? profile.paidMonths.map(normMonth).filter(Boolean) : [],
+        selectedMonth:                   selectedRaw,
+        normalizedSelectedMonth:         normMonth(selectedRaw),
+        chargeableMonths:                chargeable,
+        shouldAppearInDebtBeforeRender:  !!(profile && statusKind !== 'quit' && profile.feeExempt !== true && chargeable.length > 0 && branchPass && (!debtOverdueMin || chargeable.length >= debtOverdueMin)),
+        debtRowExists:                   rowExists,
+        hiddenReasons:                   hiddenReasons,
         hasMarkStudentQuitFromDebt:      typeof window.markStudentQuitFromDebt === 'function',
         hasSkipDebtMonthFromDebt:        typeof window.skipDebtMonthFromDebt === 'function',
         hasSyncStudentSkippedMonthLocal: typeof window.syncStudentSkippedMonthLocal === 'function',
