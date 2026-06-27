@@ -19,7 +19,7 @@
  */
 
 import { registerRender } from './renderRegistry.js';
-import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=quit-tab-completeness-20260627-v4b2';
+import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=quit-tab-mobile-parity-20260627-v4b4';
 
 // ─── Core DOM helper ────────────────────────────────────────────────────────
 
@@ -40,6 +40,37 @@ function _applyHtml(el, html) {
     const tpl = document.createElement('template');
     tpl.innerHTML = html;
     el.replaceChildren(tpl.content);
+}
+
+function _syncQuitMobileControl() {
+    const ctrlEl = document.getElementById('pgWrap_quitList');
+    if (!ctrlEl) return;
+    const quitLoaded = !!(window.studentProfileStore && typeof window.studentProfileStore.isQuitLoaded === 'function' && window.studentProfileStore.isQuitLoaded());
+    if (!quitLoaded) {
+        ctrlEl.innerHTML = '<div style="text-align:center;padding:0.5rem 0;color:#94a3b8;font-size:0.8rem;">Đang tải danh sách đã nghỉ...</div>';
+        return;
+    }
+    let count = 0;
+    try {
+        const profiles = window.studentProfileStore && typeof window.studentProfileStore.getQuitProfiles === 'function'
+            ? (window.studentProfileStore.getQuitProfiles() || {})
+            : {};
+        count = Object.keys(profiles).length;
+    } catch (_) { count = 0; }
+    const pageSize = (window.__store && window.__store.pagination && window.__store.pagination.students && window.__store.pagination.students.pageSize) || 50;
+    const limit = (window._quitPage || 1) * pageSize;
+    const remaining = Math.max(0, count - limit);
+    const btnStyle = 'style="padding:0.45rem 1.2rem;font-size:0.85rem;background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;border-radius:6px;cursor:pointer;font-weight:600;"';
+    if (remaining > 0) {
+        ctrlEl.innerHTML = '<div style="text-align:center;padding:0.75rem 0;">'
+            + '<button type="button" ' + btnStyle + ' onclick="window._loadMore(\'quit\')">'
+            + '⬇ Tải thêm — còn ' + remaining + ' võ sinh đã nghỉ nữa'
+            + '</button></div>';
+    } else if (count > 0) {
+        ctrlEl.innerHTML = '<div style="text-align:center;padding:0.5rem 0;color:#94a3b8;font-size:0.8rem;">Đã tải hết ' + count + ' võ sinh đã nghỉ</div>';
+    } else {
+        ctrlEl.innerHTML = '<div style="text-align:center;padding:0.5rem 0;color:#94a3b8;font-size:0.8rem;">Chưa có võ sinh đã nghỉ</div>';
+    }
 }
 
 // ─── Island render functions ─────────────────────────────────────────────────
@@ -85,30 +116,32 @@ export function renderDebtIsland() {
 /** Render the quit student list (#quitList). */
 export function renderQuitIsland() {
     const _htmlQ = getStudentsCachedHtml('quitRows');
-    // Phase 4K-STUDENT-RENDER-OVERWRITE-FIX: tương tự active, bảo toàn quit DOM khi cache rỗng
-    if (!_htmlQ) {
-        const _pgState    = window.__store?.pagination?.students;
-        const _hasQuitItems = _pgState?.enabled &&
-            Array.isArray(_pgState.currentItems) &&
-            _pgState.currentItems.length > 0 &&
-            !!(window.__store?.pagination?._quitPagActive);
-        if (_hasQuitItems) {
-            // Phase 4K-5F: hard-filter quit items before fallback render
-            const _quitItems = typeof window.filterStudentItemsForMode === 'function'
-                ? window.filterStudentItemsForMode(_pgState.currentItems, 'quit')
-                : _pgState.currentItems;
-            const _fbHtmlQ = typeof window.buildStudentsRowsFromPagination === 'function'
-                ? window.buildStudentsRowsFromPagination(_quitItems, 'quit')
-                : '';
-            if (_fbHtmlQ) {
-                _applyHtml(document.getElementById('quitList'), _fbHtmlQ);
-                return;
-            }
-            console.warn('[renderQuitIsland] quitRows cache empty — quit pagination has items. Preserving DOM.');
-            return;
-        }
+    const _target = document.getElementById('quitList');
+    const _quitLoaded = !!(window.studentProfileStore && typeof window.studentProfileStore.isQuitLoaded === 'function' && window.studentProfileStore.isQuitLoaded());
+
+    // Phase 4K-6V4B4: desktop/mobile parity. Once authoritative quitProfiles
+    // are loaded, #quitList must be owned only by quitRows cache. Do not fall
+    // back to the shared server-side pagination state because it is normally an
+    // Active-tab page and can wipe the mobile quit list.
+    if (_quitLoaded) {
+        _applyHtml(_target, _htmlQ || '');
+        _syncQuitMobileControl();
+        return;
     }
-    _applyHtml(document.getElementById('quitList'), _htmlQ);
+
+    // Before quit data is ready, preserve any existing DOM rows instead of
+    // clearing the mobile table. This avoids a blank flash while lazy load runs.
+    if (!_htmlQ) {
+        const _hasRows = _target && _target.querySelector('tr[data-quit-id], tr[data-student-id]');
+        if (_hasRows) return;
+        if (_target) {
+            _applyHtml(_target, '<tr data-quit-loading="1"><td colspan="7" style="text-align:center;color:#94a3b8;padding:16px;font-size:0.82rem;">Đang tải danh sách đã nghỉ...</td></tr>');
+        }
+        _syncQuitMobileControl();
+        return;
+    }
+    _applyHtml(_target, _htmlQ);
+    _syncQuitMobileControl();
 }
 
 // ─── Island initialiser ──────────────────────────────────────────────────────

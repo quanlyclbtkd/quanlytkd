@@ -25,9 +25,9 @@ console.log('\n=== Phase 4K-6V4B1 — Coach Branch Runtime Repair ===\n');
 
 check('Production entrypoints keep V4B1 branch repair and load V4B3 quit-tab cache marker',
   (index.match(/coach-branch-runtime-repair-20260627-v4b1/g) || []).length >= 5 &&
-  index.includes('app.js?v=quit-tab-authoritative-completeness-20260627-v4b3') &&
-  index.includes('./js/main.js?v=quit-tab-authoritative-completeness-20260627-v4b3') &&
-  main.includes("profiles.listeners.js?v=quit-tab-authoritative-completeness-20260627-v4b3") &&
+  index.includes('app.js?v=quit-tab-mobile-parity-20260627-v4b4') &&
+  index.includes('./js/main.js?v=quit-tab-mobile-parity-20260627-v4b4') &&
+  main.includes("profiles.listeners.js?v=quit-tab-mobile-parity-20260627-v4b4") &&
   main.includes("attendance.js?v=coach-branch-runtime-repair-20260627-v4b1"));
 check('Coach creation requires one concrete branch',
   repair.includes("if (!name || !email || !branch || pass.length < 6)") &&

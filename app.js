@@ -1,4 +1,4 @@
-// Phase 4K-6V4B1: coach-branch-assignment-runtime-repair-20260627
+// Phase 4K-6V4B4: quit-tab-mobile-parity-20260627
     /* Firestore security rules source of truth: ./firestore.rules */
 // LEGACY APP KERNEL — DO NOT DELETE DIRECTLY
 // Responsibilities kept in app.js for now:

@@ -1,0 +1,19 @@
+Modified:
+- index.html
+- app.js
+- js/main.js
+- js/modules/students.js
+- js/ui/render.js
+- js/ui/render/renderStudents.js
+- js/ui/render/renderInvalidation.js
+- js/ui/render/listComputationRefresh.js
+- package.json
+- tools/check-coach-branch-runtime-repair.mjs
+- tools/check-security-coach-branch-boundary.mjs
+- tools/check-inventory-ledger-reconciliation.mjs
+
+Added:
+- tools/check-quit-tab-mobile-parity.mjs
+- PHASE_4K_6V4B4_QUIT_TAB_MOBILE_PARITY_REPORT.md
+- PHASE_4K_6V4B4_TEST_SUMMARY.txt
+- PHASE_4K_6V4B4_CHANGED_FILES.txt
