@@ -1,0 +1,24 @@
+PHASE 4K-6V4B5 TEST SUMMARY
+Date: 2026-06-27
+
+npm run check
+PASS — exit code 0
+
+npm run check:all:critical
+PASS — exit code 0
+
+Focused quit-tab gates:
+- check:quit-tab-mobile-parity: 14/14 PASS
+- check:quit-tab-authoritative-completeness: 9/9 PASS
+- check:quit-tab-completeness: 12/12 PASS
+
+Verified fixes:
+1. V4B5 cache-bust reaches index.html, app.js, main.js and nested render modules.
+2. renderQuitIsland refreshes computation cache before rendering from authoritative quitProfiles.
+3. renderQuitIsland does not clear #quitList when quitRows cache is missing.
+4. Direct authoritative fallback can build rows from studentProfileStore.getQuitProfiles().
+5. pgWrap_quitList is created outside the scrollable table if missing.
+6. Mobile load-more control uses _loadMore('quit'), not shared students pagination pgState.
+7. Legacy renderApp quit rows use data-quit-id for mobile DOM counting.
+8. Module and legacy rows display legacy quit date fields.
+9. Coach/branch/read-boundary/security gates remain passing.

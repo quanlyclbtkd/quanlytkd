@@ -59,7 +59,7 @@ import {
     computeAndCacheStudents,
     getStudentsSummary,
     getStudentsCachedHtml,
-} from './render/computation/studentsRenderer.js?v=quit-tab-mobile-parity-20260627-v4b4';
+} from './render/computation/studentsRenderer.js?v=quit-tab-mobile-authoritative-render-20260627-v4b5';
 import {
     computeAndCacheInventory,
     getCachedLiveInvMap,

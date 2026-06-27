@@ -69,7 +69,7 @@ import {
 } from './renderRegistry.js';
 
 import { invalidateFinanceRender }   from './computation/financeRenderer.js';
-import { invalidateStudentsRender }  from './computation/studentsRenderer.js?v=quit-tab-mobile-parity-20260627-v4b4';
+import { invalidateStudentsRender }  from './computation/studentsRenderer.js?v=quit-tab-mobile-authoritative-render-20260627-v4b5';
 import { invalidateInventoryRender } from './computation/inventoryRenderer.js';
 import { invalidateDashboardCache }  from './computation/dashboardRenderer.js';
 
@@ -78,7 +78,7 @@ import {
     refreshListComputation,
     refreshListsComputation,
     getComputationDomainForList,
-} from './listComputationRefresh.js?v=quit-tab-mobile-parity-20260627-v4b4';
+} from './listComputationRefresh.js?v=quit-tab-mobile-authoritative-render-20260627-v4b5';
 
 // ── Dev helper ────────────────────────────────────────────────────────────────
 function _isDev() {

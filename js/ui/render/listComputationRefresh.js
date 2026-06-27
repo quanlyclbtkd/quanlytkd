@@ -44,7 +44,7 @@ import {
 import {
     computeAndCacheStudents,
     getStudentsSummary,
-} from './computation/studentsRenderer.js?v=quit-tab-mobile-parity-20260627-v4b4';
+} from './computation/studentsRenderer.js?v=quit-tab-mobile-authoritative-render-20260627-v4b5';
 import {
     computeAndCacheInventory,
     getCachedUnpaidInvCount,

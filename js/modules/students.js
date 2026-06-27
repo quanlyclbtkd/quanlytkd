@@ -1171,7 +1171,7 @@ export function initStudentPagination() {
                         return;
                     }
 
-                    // Quit list — Phase 4K-6V4B4 mobile parity.
+                    // Quit list — Phase 4K-6V4B5 mobile authoritative render.
                     // Khi quitProfiles authoritative đã load, mobile dùng cùng nguồn với desktop:
                     // quitProfiles + _loadMore('quit'), không dùng server pagination chung.
                     if (listId === 'quitList' && _isQuitAuthoritativeLoaded()) {

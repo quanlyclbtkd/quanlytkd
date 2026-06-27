@@ -1,0 +1,14 @@
+app.js
+index.html
+js/main.js
+js/ui/render.js
+js/ui/render/renderStudents.js
+js/ui/render/renderInvalidation.js
+js/ui/render/listComputationRefresh.js
+js/ui/render/computation/studentsRenderer.js
+tools/check-quit-tab-mobile-parity.mjs
+tools/check-inventory-ledger-reconciliation.mjs
+tools/check-coach-branch-runtime-repair.mjs
+PHASE_4K_6V4B5_QUIT_TAB_MOBILE_AUTHORITATIVE_RENDER_REPORT.md
+PHASE_4K_6V4B5_TEST_SUMMARY.txt
+PHASE_4K_6V4B5_CHANGED_FILES.txt
