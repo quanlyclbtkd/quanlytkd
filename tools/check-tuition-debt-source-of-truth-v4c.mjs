@@ -16,10 +16,10 @@ function includes(file, text) {
 check('canonical helper file exists', existsSync(resolve(root, 'js/core/tuitionDebtCanonical.js')));
 check('index loads tuitionDebtCanonical before app.js', (() => {
   const html = readFileSync(resolve(root, 'index.html'), 'utf8');
-  return html.indexOf('js/core/tuitionDebtCanonical.js?v=tuition-debt-source-of-truth-20260628-v4c') > -1 &&
-    html.indexOf('js/core/tuitionDebtCanonical.js?v=tuition-debt-source-of-truth-20260628-v4c') < html.indexOf('app.js?v=tuition-debt-source-of-truth-20260628-v4c');
+  return html.indexOf('js/core/tuitionDebtCanonical.js?v=tuition-debt-source-of-truth-aggregation-guard-20260628-v4c1') > -1 &&
+    html.indexOf('js/core/tuitionDebtCanonical.js?v=tuition-debt-source-of-truth-aggregation-guard-20260628-v4c1') < html.indexOf('app.js?v=tuition-debt-source-of-truth-aggregation-guard-20260628-v4c1');
 })());
-check('app.js cache-bust updated to V4C', includes('index.html', 'app.js?v=tuition-debt-source-of-truth-20260628-v4c'));
+check('app.js cache-bust updated to V4C', includes('index.html', 'app.js?v=tuition-debt-source-of-truth-aggregation-guard-20260628-v4c1'));
 check('getChargeableTuitionMonths delegates to computeTuitionDebtCanonical', includes('app.js', 'window.computeTuitionDebtCanonical') && includes('app.js', 'canonical.chargeableMonths'));
 check('debugDebtTrace exported', includes('js/core/tuitionDebtCanonical.js', 'window.debugDebtTrace = debugDebtTrace'));
 check('auditTuitionDebtCanonicalProfiles exported', includes('js/core/tuitionDebtCanonical.js', 'window.auditTuitionDebtCanonicalProfiles'));

@@ -1,11 +1,12 @@
 /**
- * Phase 4K-6V3D — Debt Profile Coverage Read Boundary
+ * Phase 4K-6V4C1 — Debt Profile Coverage Spark Aggregation Guard
  *
  * Goal:
  *   - BÁO NỢ reuses the already-mounted active profiles listener.
  *   - Remove repeated full collection scans on every debt-tab open.
- *   - Verify status-query coverage with lightweight count aggregation.
- *   - Run one guarded legacy-status normalization only when coverage has a gap.
+ *   - Use already-loaded profile cache for debt readiness.
+ *   - Do NOT auto-run client getCountFromServer/runAggregationQuery on login/tab-open.
+ *   - Manual count audit remains available behind an explicit debug flag/cooldown.
  *
  * This file is a classic script (not an ES module) so legacy app.js and main.js
  * can share the same boundary in HTTP and file-compatible runtime modes.
@@ -15,10 +16,11 @@
 
     if (global.DebtProfileReadBoundary) return;
 
-    const SCHEMA_VERSION = 1;
+    const SCHEMA_VERSION = 2;
     const VERIFY_TTL_MS = 24 * 60 * 60 * 1000;
     const LOCK_TTL_MS = 5 * 60 * 1000;
     const RETRY_DELAY_MS = 30 * 1000;
+    const COUNT_AUDIT_COOLDOWN_MS = 60 * 60 * 1000;
     const WAIT_STEP_MS = 120;
     const WAIT_TIMEOUT_MS = 8000;
     const BATCH_SIZE = 400;
@@ -34,6 +36,7 @@
         lastAudit: null,
         sessionVerified: false,
         fullFallbackReady: false,
+        countAuditDisabledUntil: 0,
     };
 
     const _metrics = {
@@ -41,6 +44,9 @@
         scheduledRuns: 0,
         countAuditRuns: 0,
         countAggregationQueries: 0,
+        countAggregationSuppressed: 0,
+        countAuditQuotaErrors: 0,
+        localCoverageRuns: 0,
         fullScansAvoided: 0,
         fullFallbackRuns: 0,
         normalizationCandidates: 0,
@@ -131,9 +137,63 @@
         return sdk.query(ref, sdk.where('status', 'in', values.slice(0, 10)));
     }
 
-    async function runCountAudit(reason) {
+    function isQuotaError(error) {
+        const code = String(error && (error.code || error.name || '') || '').toLowerCase();
+        const msg = String(error && (error.message || '') || '').toLowerCase();
+        return code.includes('resource-exhausted') || code.includes('resource_exhausted') || msg.includes('resource-exhausted') || msg.includes('429') || msg.includes('quota');
+    }
+
+    function isCountAuditAllowed(options) {
+        if (options && options.force === true) return true;
+        if (global.__ENABLE_DEBT_COUNT_AUDIT === true) return true;
+        return false;
+    }
+
+    function runLocalCoverageAudit(reason) {
+        const source = activeSourceReady();
+        const profiles = (global.__store && global.__store.profiles) || {};
+        let active = 0, quit = 0, unknown = 0;
+        Object.values(profiles || {}).forEach(profile => {
+            try {
+                const status = canonicalStatus(profile || {});
+                if (status === 'quit') quit++;
+                else if (status === 'active') active++;
+                else unknown++;
+            } catch (_) { unknown++; }
+        });
+        _metrics.localCoverageRuns++;
+        const audit = {
+            ok: true,
+            local: true,
+            noRead: true,
+            reason: reason || 'local-profile-cache-audit',
+            clubId: context().clubId,
+            totalLoaded: Object.keys(profiles || {}).length,
+            activeLoaded: active,
+            quitLoaded: quit,
+            unknownLoaded: unknown,
+            activeSourceReady: !!source.ready,
+            profilesCount: source.profilesCount,
+            covered: !!source.ready,
+            coveredBy: 'active-listener-cache',
+            auditedAt: now(),
+        };
+        _state.lastAudit = audit;
+        return audit;
+    }
+
+    async function runCountAudit(reason, options) {
         const ctx = context();
         const sdk = global._fb_init || {};
+        const opts = options || {};
+        if (!isCountAuditAllowed(opts)) {
+            _metrics.countAggregationSuppressed += 3;
+            return { ok: false, skipped: true, noRead: true, reason: 'count-audit-disabled-spark-guard' };
+        }
+        if (_state.countAuditDisabledUntil && now() < _state.countAuditDisabledUntil) {
+            _metrics.countAggregationSuppressed += 3;
+            return { ok: false, skipped: true, noRead: true, reason: 'count-audit-cooldown', retryAfterMs: _state.countAuditDisabledUntil - now() };
+        }
         const required = ['collection', 'query', 'where', 'getCountFromServer'];
         if (!ctx.db || !ctx.clubId || required.some(k => typeof sdk[k] !== 'function')) {
             return { ok: false, reason: 'count-sdk-or-context-missing' };
@@ -171,6 +231,11 @@
             return audit;
         } catch (error) {
             _metrics.lastError = String(error && (error.code || error.message) || error);
+            if (isQuotaError(error)) {
+                _metrics.countAuditQuotaErrors++;
+                _state.countAuditDisabledUntil = now() + COUNT_AUDIT_COOLDOWN_MS;
+                return { ok: false, skipped: true, quotaGuarded: true, noRead: false, reason: 'count-audit-quota-guarded', error, retryAfterMs: COUNT_AUDIT_COOLDOWN_MS };
+            }
             return { ok: false, reason: 'count-audit-error', error };
         }
     }
@@ -346,59 +411,24 @@
             const source = await waitForActiveSource();
             if (!source.ready) return { ok: false, deferred: true, reason: 'active-source-not-ready' };
 
+            const localAudit = runLocalCoverageAudit(reason || 'automatic-local');
+
             if (isConfigVerified(context().config) || _state.sessionVerified) {
                 _state.lastSource = 'active-listener-verified';
                 _metrics.lastSource = _state.lastSource;
                 _metrics.fullScansAvoided++;
-                return { ok: true, ready: true, source: _state.lastSource, noRead: true };
+                return { ok: true, ready: true, source: _state.lastSource, noRead: true, audit: localAudit };
             }
 
-            let audit = await runCountAudit(reason || 'automatic');
-            if (!audit.ok) return audit;
-            if (audit.covered) {
-                await persistVerified(audit, 'count-audit');
-                _metrics.verifiedWithoutFullScan++;
-                _metrics.fullScansAvoided++;
-                _state.lastSource = 'active-listener-count-verified';
-                _metrics.lastSource = _state.lastSource;
-                return { ok: true, ready: true, source: _state.lastSource, audit };
-            }
-
-            lock = await acquireLock(reason);
-            if (!lock.acquired) {
-                scheduleAutomaticVerification('lock-retry', RETRY_DELAY_MS);
-                return { ok: false, deferred: true, reason: lock.reason || 'lock-busy', audit };
-            }
-
-            // Another device may have completed while this device waited for the lock.
-            audit = await runCountAudit('post-lock-recheck');
-            if (audit.ok && audit.covered) {
-                await persistVerified(audit, 'post-lock-count-audit');
-                _metrics.verifiedWithoutFullScan++;
-                _metrics.fullScansAvoided++;
-                _state.lastSource = 'active-listener-post-lock-verified';
-                _metrics.lastSource = _state.lastSource;
-                await releaseLock(lock, 'complete', { result: 'already-covered' });
-                lock = null;
-                return { ok: true, ready: true, source: _state.lastSource, audit };
-            }
-
-            const normalized = await normalizeLegacyStatuses(reason);
-            if (!normalized.ok) throw new Error('Debt profile normalization failed: ' + normalized.reason);
-
-            const parity = await runCountAudit('post-normalization-parity');
-            if (!parity.ok || !parity.covered) {
-                _metrics.parityFailures++;
-                throw new Error('Debt profile coverage parity failed: gap=' + Number(parity.gap || -1));
-            }
-
-            await persistVerified(parity, 'legacy-status-normalization');
-            _metrics.verifiedAfterNormalization++;
-            _state.lastSource = 'full-fallback-normalized';
+            // Spark guard: Báo nợ only needs the already-mounted active profile cache.
+            // Do not auto-run three client aggregation counts (total/active/quit) on login/tab open.
+            _state.sessionVerified = true;
+            _metrics.verifiedWithoutFullScan++;
+            _metrics.fullScansAvoided++;
+            _state.lastSource = 'active-listener-local-trusted-no-aggregation';
             _metrics.lastSource = _state.lastSource;
-            await releaseLock(lock, 'complete', { result: 'normalized', normalized: normalized.normalized || 0 });
-            lock = null;
-            return { ok: true, ready: true, source: _state.lastSource, audit: parity, normalized };
+            return { ok: true, ready: true, source: _state.lastSource, audit: localAudit, noRead: true };
+
         } catch (error) {
             _state.lastError = String(error && (error.code || error.message) || error);
             _metrics.lastError = _state.lastError;
@@ -422,8 +452,22 @@
             _metrics.fullScansAvoided++;
             _state.lastSource = 'active-listener-verified';
             _metrics.lastSource = _state.lastSource;
-            return { ok: true, ready: true, source: _state.lastSource, profilesCount: source.profilesCount };
+            return { ok: true, ready: true, source: _state.lastSource, profilesCount: source.profilesCount, noRead: true, audit: runLocalCoverageAudit(reason || 'ensure-verified-local') };
         }
+
+        if (source.ready) {
+            const audit = runLocalCoverageAudit(reason || 'ensure-local');
+            _state.sessionVerified = true;
+            _metrics.fullScansAvoided++;
+            _metrics.verifiedWithoutFullScan++;
+            _state.lastSource = 'active-listener-local-trusted-no-aggregation';
+            _metrics.lastSource = _state.lastSource;
+            return { ok: true, ready: true, source: _state.lastSource, profilesCount: source.profilesCount, noRead: true, audit };
+        }
+
+        // Admin may explicitly run count audit via runCountAudit(reason, { force: true }) for diagnostics.
+        // Normal tab-open/login path must not call getCountFromServer because Spark quota can 429.
+        // Non-admin never triggers client aggregation here.
 
         // Admin performs automatic verification/normalization. Non-admin may only audit;
         // if coverage is incomplete, use the existing guarded full fallback for correctness.
@@ -431,14 +475,7 @@
             const result = await runAutomaticVerification(reason || 'debt-tab-open');
             if (result.ready) return result;
         } else {
-            const audit = await runCountAudit(reason || 'debt-tab-non-admin-audit');
-            if (audit.ok && audit.covered) {
-                _metrics.fullScansAvoided++;
-                _state.sessionVerified = true;
-                _state.lastSource = 'active-listener-session-verified';
-                _metrics.lastSource = _state.lastSource;
-                return { ok: true, ready: true, source: _state.lastSource, audit };
-            }
+            _metrics.countAggregationSuppressed += 3;
         }
 
         if (typeof global.loadFullProfilesFallback === 'function') {
@@ -496,6 +533,7 @@
         _state.lastAudit = null;
         _state.sessionVerified = false;
         _state.fullFallbackReady = false;
+        _state.countAuditDisabledUntil = 0;
         global.__debtProfileCoverageLocalLock = false;
     }
 
@@ -511,6 +549,7 @@
             source: _state.lastSource,
             lastAudit: _state.lastAudit,
             lastError: _state.lastError,
+            countAuditDisabledUntil: _state.countAuditDisabledUntil,
             activeSource: activeSourceReady(),
             metrics: { ..._metrics },
         };
@@ -528,6 +567,9 @@
             ensureCalls: { value: _metrics.ensureCalls },
             countAuditRuns: { value: _metrics.countAuditRuns },
             aggregationQueries: { value: _metrics.countAggregationQueries },
+            aggregationSuppressed: { value: _metrics.countAggregationSuppressed },
+            aggregationQuotaErrors: { value: _metrics.countAuditQuotaErrors },
+            localCoverageRuns: { value: _metrics.localCoverageRuns },
             fullScansAvoided: { value: _metrics.fullScansAvoided },
             fullFallbackRuns: { value: _metrics.fullFallbackRuns },
             normalizationWrites: { value: _metrics.normalizationWrites },
@@ -545,6 +587,7 @@
         scheduleAutomaticVerification,
         runAutomaticVerification,
         runCountAudit,
+        runLocalCoverageAudit,
         buildNormalizationPlan,
         getStatus,
         printMetrics,

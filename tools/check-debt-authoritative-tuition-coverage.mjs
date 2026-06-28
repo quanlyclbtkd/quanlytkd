@@ -20,7 +20,7 @@ let pass=0, fail=0;
 function check(name, ok, detail='') { if (ok) { pass++; console.log('✅', name); } else { fail++; console.error('❌', name + (detail ? ' — '+detail : '')); } }
 console.log('\n=== Phase 4K-6V4B11 — Debt Authoritative Tuition Coverage ===\n');
 
-const activeBuilds = ['render-warning-coalescing-20260627-v4b12', 'tuition-debt-source-of-truth-20260628-v4c'];
+const activeBuilds = ['tuition-debt-source-of-truth-aggregation-guard-20260628-v4c1', 'tuition-debt-source-of-truth-20260628-v4c', 'tuition-debt-source-of-truth-aggregation-guard-20260628-v4c1'];
 const appBuildOk = activeBuilds.some(build => index.includes(`app.js?v=${build}`));
 const moduleBuildOk = activeBuilds.some(build => index.includes(`main.js?v=${build}`) && main.includes(`modules/students.js?v=${build}`) && renderStudents.includes(`studentsRenderer.js?v=${build}`) && listRefresh.includes(`studentsRenderer.js?v=${build}`));
 check('index/main/app cache-busted for current debt phase', appBuildOk && moduleBuildOk);

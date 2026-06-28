@@ -19,7 +19,7 @@ function check(name, ok, detail = '') {
   else { fail++; console.error('❌', name + (detail ? ' — ' + detail : '')); }
 }
 
-console.log('\n=== Phase 4K-6V3D — Debt Profile Coverage Read Boundary ===\n');
+console.log('\n=== Phase 4K-6V4C1 — Debt Profile Coverage Spark Aggregation Guard ===\n');
 const debtPos = index.lastIndexOf('debtProfileReadBoundary.js?v=');
 const appPos = index.lastIndexOf('app.js?v=');
 
@@ -36,16 +36,28 @@ check('app.js delegates debt readiness to shared coverage boundary',
 check('Automatic verification is scheduled from settings and active snapshot',
   app.includes("scheduleAutomaticDebtProfileCoverage('settings-ready')") &&
   profilesListener.includes("scheduleAutomaticDebtProfileCoverage('active-profiles-snapshot')"));
-check('Coverage audit uses three count aggregations instead of document scan',
+check('Automatic debt readiness suppresses client aggregation by default',
+  boundary.includes('count-audit-disabled-spark-guard') &&
+  boundary.includes('active-listener-local-trusted-no-aggregation') &&
+  boundary.includes('countAggregationSuppressed'));
+check('Manual count audit remains force-gated for diagnostics only',
+  boundary.includes('runCountAudit(reason, options)') &&
+  boundary.includes('options && options.force === true') &&
+  boundary.includes('__ENABLE_DEBT_COUNT_AUDIT'));
+check('Resource-exhausted aggregation errors enter cooldown instead of retry storm',
+  boundary.includes('count-audit-quota-guarded') &&
+  boundary.includes('COUNT_AUDIT_COOLDOWN_MS') &&
+  boundary.includes('countAuditDisabledUntil'));
+check('Manual count audit still uses at most three count aggregations when explicitly forced',
   boundary.includes('getCountFromServer') && boundary.includes('countAggregationQueries += 3'));
-check('Legacy normalization runs only after coverage gap and guarded full fallback',
-  boundary.indexOf('if (audit.covered)') < boundary.indexOf('const normalized = await normalizeLegacyStatuses') &&
-  boundary.includes("loadFullProfilesFallback('debt-profile-coverage:"));
-check('Normalization writes canonical status in chunks below batch limit',
+check('Legacy normalization helper remains explicit/manual and is not called automatically on tab open',
+  boundary.includes('async function normalizeLegacyStatuses') &&
+  boundary.includes("loadFullProfilesFallback('debt-profile-coverage:") &&
+  !boundary.slice(boundary.indexOf('async function runAutomaticVerification'), boundary.indexOf('async function ensureDebtProfileCoverage')).includes('normalizeLegacyStatuses('));
+check('Normalization helper writes canonical status in chunks below batch limit when explicitly used',
   boundary.includes('BATCH_SIZE = 400') && boundary.includes('profileStatusSchemaVersion'));
-check('Exact count parity is required before config verification',
-  boundary.includes("const parity = await runCountAudit('post-normalization-parity')") &&
-  boundary.indexOf('if (!parity.ok || !parity.covered)') < boundary.indexOf("persistVerified(parity, 'legacy-status-normalization')"));
+check('Automatic verification path contains no runCountAudit call',
+  !boundary.slice(boundary.indexOf('async function runAutomaticVerification'), boundary.indexOf('async function ensureDebtProfileCoverage')).includes('runCountAudit('));
 check('Per-club verification is stored in existing main_config',
   boundary.includes("'settings', 'main_config'") && boundary.includes('debtProfileCoverageVerifiedAt'));
 check('Distributed lock prevents two devices normalizing together',
@@ -55,7 +67,7 @@ check('Renderer uses boundary readiness instead of pagination-size heuristic alo
 check('Club switch and logout reset debt boundary state',
   app.includes("resetDebtProfileReadBoundary('club-switch')") && app.includes("resetDebtProfileReadBoundary('logout')"));
 
-function makeRuntime({ docs, role = 'admin', verified = false, lockBusy = false }) {
+function makeRuntime({ docs, role = 'admin', verified = false, lockBusy = false, countThrowsQuota = false }) {
   let countQueries = 0, fallbackRuns = 0, batchCommits = 0, configWrites = 0, lockWrites = 0;
   const dbDocs = new Map(Object.entries(docs).map(([id, data]) => [id, { ...data }]));
   const config = verified ? {
@@ -110,6 +122,7 @@ function makeRuntime({ docs, role = 'admin', verified = false, lockBusy = false 
       doc: (...args) => ({ path: args.slice(1).join('/') }),
       async getCountFromServer(q) {
         countQueries++;
+        if (countThrowsQuota) { const e = new Error('429 quota'); e.code = 'resource-exhausted'; throw e; }
         return { data: () => ({ count: countForQuery(q) }) };
       },
       writeBatch() {
@@ -151,27 +164,27 @@ function makeRuntime({ docs, role = 'admin', verified = false, lockBusy = false 
   };
 }
 
-// Already verified: zero aggregation and zero full scan.
+// Already verified/source ready: zero aggregation and zero full scan.
 {
   const rt = makeRuntime({ docs: { a: { status: 'active' }, b: { status: 'quit' } }, verified: true });
   const result = await rt.api.ensureDebtProfileCoverage('verified-test');
   const c = rt.counters();
-  check('Dynamic: verified club reuses active listener with zero Firestore query',
-    result.ready && result.source === 'active-listener-verified' && c.countQueries === 0 && c.fallbackRuns === 0);
+  check('Dynamic: debt readiness uses active listener cache with zero aggregation',
+    result.ready && result.noRead === true && c.countQueries === 0 && c.fallbackRuns === 0);
 }
 
-// Clean but not marked: 3 count aggregations, no full scan, persist marker.
+// Clean but not marked: no automatic count aggregation, no full scan, no marker write.
 {
   const rt = makeRuntime({ docs: { a: { status: 'active' }, b: { status: 'trial' }, c: { status: 'quit' } } });
-  const result = await rt.api.runAutomaticVerification('clean-audit');
+  const result = await rt.api.ensureDebtProfileCoverage('clean-audit');
   const c = rt.counters();
-  check('Dynamic: clean legacy coverage is verified without full document scan',
-    result.ready && c.countQueries === 3 && c.fallbackRuns === 0 && c.batchCommits === 0);
-  check('Dynamic: clean coverage marker persists per club',
-    rt.config.debtProfileCoverageVerified === true && c.configWrites === 1);
+  check('Dynamic: unverified club still avoids automatic runAggregationQuery',
+    result.ready && result.source === 'active-listener-local-trusted-no-aggregation' && c.countQueries === 0 && c.fallbackRuns === 0);
+  check('Dynamic: local readiness does not write verification marker',
+    c.configWrites === 0 && rt.config.debtProfileCoverageVerified !== true);
 }
 
-// Missing/legacy status: count gap -> one full fallback -> normalize -> parity -> marker.
+// Missing/legacy status: no automatic normalization/write storm; debt tab stays readable from existing cache.
 {
   const rt = makeRuntime({ docs: {
     a: { status: 'active' },
@@ -181,24 +194,41 @@ function makeRuntime({ docs, role = 'admin', verified = false, lockBusy = false 
     e: {},
     f: { status: 'Active' },
   } });
-  const result = await rt.api.runAutomaticVerification('legacy-gap');
+  const result = await rt.api.ensureDebtProfileCoverage('legacy-gap');
   const c = rt.counters();
-  check('Dynamic: legacy gap triggers exactly one guarded full fallback', result.ready && c.fallbackRuns === 1);
-  check('Dynamic: legacy statuses are normalized in one batch', c.batchCommits === 1 && c.countQueries === 9);
-  check('Dynamic: all documents become query-compatible after parity',
-    [...rt.dbDocs.values()].every(d => ['active', 'trial', 'quit', 'inactive', 'retired'].includes(String(d.status || '').toLowerCase())));
-  check('Dynamic: config is persisted only after successful parity', rt.config.debtProfileCoverageVerified === true && c.configWrites === 1);
+  check('Dynamic: legacy coverage path does not auto-count or auto-normalize on tab open',
+    result.ready && c.countQueries === 0 && c.fallbackRuns === 0 && c.batchCommits === 0 && c.configWrites === 0);
 }
 
-// Non-admin clean session can audit and render but does not write config.
+// Non-admin clean session never triggers client aggregation or writes.
 {
   const rt = makeRuntime({ docs: { a: { status: 'active' }, b: { status: 'quit' } }, role: 'viewer' });
   const result = await rt.api.ensureDebtProfileCoverage('viewer-audit');
   const c = rt.counters();
-  check('Dynamic: viewer can verify session coverage without migration writes',
-    result.ready && result.source === 'active-listener-session-verified' && c.countQueries === 3 && c.configWrites === 0 && c.batchCommits === 0);
+  check('Dynamic: viewer readiness is no-read/no-write',
+    result.ready && result.noRead === true && c.countQueries === 0 && c.configWrites === 0 && c.batchCommits === 0);
+}
+
+// Manual force-gated count audit remains available for diagnostics.
+{
+  const rt = makeRuntime({ docs: { a: { status: 'active' }, b: { status: 'trial' }, c: { status: 'quit' } } });
+  const result = await rt.api.runCountAudit('manual-force', { force: true });
+  const c = rt.counters();
+  check('Dynamic: forced manual count audit performs exactly three aggregation queries',
+    result.ok && result.covered && c.countQueries === 3);
+}
+
+// Quota errors are cooled down; next manual attempt is skipped without another RPC.
+{
+  const rt = makeRuntime({ docs: { a: { status: 'active' } }, countThrowsQuota: true });
+  const first = await rt.api.runCountAudit('manual-quota', { force: true });
+  const afterFirst = rt.counters().countQueries;
+  const second = await rt.api.runCountAudit('manual-quota-again', { force: true });
+  const afterSecond = rt.counters().countQueries;
+  check('Dynamic: resource-exhausted count audit enters cooldown and suppresses retry storm',
+    first.quotaGuarded === true && second.reason === 'count-audit-cooldown' && afterFirst === 3 && afterSecond === 3);
 }
 
 console.log(`\nTotal: ${pass + fail} | PASS: ${pass} | FAIL: ${fail}`);
 if (fail) process.exit(1);
-console.log('Phase 4K-6V3D checks passed.\n');
+console.log('Phase 4K-6V4C1 checks passed.\n');

@@ -23,12 +23,12 @@ function check(name, ok, detail = '') {
 
 console.log('\n=== Phase 4K-6V4B1 — Coach Branch Runtime Repair ===\n');
 
-const appEntrypointBuilds = ['render-warning-coalescing-20260627-v4b12', 'tuition-debt-source-of-truth-20260628-v4c'];
+const appEntrypointBuilds = ['tuition-debt-source-of-truth-aggregation-guard-20260628-v4c1', 'tuition-debt-source-of-truth-20260628-v4c', 'tuition-debt-source-of-truth-aggregation-guard-20260628-v4c1'];
 check('Production entrypoints keep V4B1 branch repair and load current runtime cache marker',
   (index.match(/coach-branch-runtime-repair-20260627-v4b1/g) || []).length >= 5 &&
   appEntrypointBuilds.some(build => index.includes(`app.js?v=${build}`)) &&
-  index.includes('./js/main.js?v=render-warning-coalescing-20260627-v4b12') &&
-  main.includes("profiles.listeners.js?v=render-warning-coalescing-20260627-v4b12") &&
+  index.includes('./js/main.js?v=tuition-debt-source-of-truth-aggregation-guard-20260628-v4c1') &&
+  main.includes("profiles.listeners.js?v=tuition-debt-source-of-truth-aggregation-guard-20260628-v4c1") &&
   main.includes("attendance.js?v=coach-branch-runtime-repair-20260627-v4b1"));
 check('Coach creation requires one concrete branch',
   repair.includes("if (!name || !email || !branch || pass.length < 6)") &&

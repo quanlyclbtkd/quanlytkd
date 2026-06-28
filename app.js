@@ -1,4 +1,4 @@
-// Phase 4K-6V4C: tuition-debt-source-of-truth-20260628
+// Phase 4K-6V4C1: tuition-debt-source-of-truth-aggregation-guard-20260628
     /* Firestore security rules source of truth: ./firestore.rules */
 // LEGACY APP KERNEL — DO NOT DELETE DIRECTLY
 // Responsibilities kept in app.js for now:
