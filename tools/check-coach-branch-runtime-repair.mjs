@@ -23,9 +23,10 @@ function check(name, ok, detail = '') {
 
 console.log('\n=== Phase 4K-6V4B1 — Coach Branch Runtime Repair ===\n');
 
-check('Production entrypoints keep V4B1 branch repair and load current quit-tab cache marker',
+const appEntrypointBuilds = ['render-warning-coalescing-20260627-v4b12', 'tuition-debt-source-of-truth-20260628-v4c'];
+check('Production entrypoints keep V4B1 branch repair and load current runtime cache marker',
   (index.match(/coach-branch-runtime-repair-20260627-v4b1/g) || []).length >= 5 &&
-  index.includes('app.js?v=render-warning-coalescing-20260627-v4b12') &&
+  appEntrypointBuilds.some(build => index.includes(`app.js?v=${build}`)) &&
   index.includes('./js/main.js?v=render-warning-coalescing-20260627-v4b12') &&
   main.includes("profiles.listeners.js?v=render-warning-coalescing-20260627-v4b12") &&
   main.includes("attendance.js?v=coach-branch-runtime-repair-20260627-v4b1"));

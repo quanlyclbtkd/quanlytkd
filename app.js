@@ -1,4 +1,4 @@
-// Phase 4K-6V4B12: render-warning-coalescing-20260627
+// Phase 4K-6V4C: tuition-debt-source-of-truth-20260628
     /* Firestore security rules source of truth: ./firestore.rules */
 // LEGACY APP KERNEL — DO NOT DELETE DIRECTLY
 // Responsibilities kept in app.js for now:
@@ -641,6 +641,14 @@ window.invCustomCategories = [];
     window.getChargeableTuitionMonths = function(profile, selectedMonth, options) {
         const p = profile || {};
         const selMonth = normalizeYYYYMM(selectedMonth || '');
+        // Phase 4K-6V4C: route Báo nợ/Học phí through one canonical debt boundary.
+        // The canonical helper is read-only and preserves the V4B11 revenue-safe rule:
+        // paidUntil is the authoritative displayed paid boundary; stale future paidMonths
+        // must not hide debt unless a caller explicitly opts in.
+        if (typeof window.computeTuitionDebtCanonical === 'function') {
+            const canonical = window.computeTuitionDebtCanonical(p, selMonth, Object.assign({ reason: 'getChargeableTuitionMonths' }, options || {}));
+            return Array.isArray(canonical && canonical.chargeableMonths) ? canonical.chargeableMonths : [];
+        }
         if (!selMonth) return [];
         if (p.feeExempt === true) return [];
         const statusKind = typeof window.classifyProfileStatus === 'function'

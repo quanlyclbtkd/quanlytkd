@@ -3094,6 +3094,13 @@ window.debugDebtActionState = function(name) {
             : null
     };
 
+    if (profile && typeof window.computeTuitionDebtCanonical === 'function') {
+        result.canonicalDebtTrace = window.computeTuitionDebtCanonical(profile, selectedRaw, {
+            name: q,
+            reason: 'debugDebtActionState.canonicalTrace'
+        });
+    }
+
     console.table(result);
     return result;
 };

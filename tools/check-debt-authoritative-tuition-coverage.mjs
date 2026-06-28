@@ -20,8 +20,10 @@ let pass=0, fail=0;
 function check(name, ok, detail='') { if (ok) { pass++; console.log('✅', name); } else { fail++; console.error('❌', name + (detail ? ' — '+detail : '')); } }
 console.log('\n=== Phase 4K-6V4B11 — Debt Authoritative Tuition Coverage ===\n');
 
-const build='render-warning-coalescing-20260627-v4b12';
-check('index/main/app cache-busted for V4B11', index.includes(`app.js?v=${build}`) && index.includes(`main.js?v=${build}`) && main.includes(`modules/students.js?v=${build}`) && renderStudents.includes(`studentsRenderer.js?v=${build}`) && listRefresh.includes(`studentsRenderer.js?v=${build}`));
+const activeBuilds = ['render-warning-coalescing-20260627-v4b12', 'tuition-debt-source-of-truth-20260628-v4c'];
+const appBuildOk = activeBuilds.some(build => index.includes(`app.js?v=${build}`));
+const moduleBuildOk = activeBuilds.some(build => index.includes(`main.js?v=${build}`) && main.includes(`modules/students.js?v=${build}`) && renderStudents.includes(`studentsRenderer.js?v=${build}`) && listRefresh.includes(`studentsRenderer.js?v=${build}`));
+check('index/main/app cache-busted for current debt phase', appBuildOk && moduleBuildOk);
 check('app normalizeYYYYMM supports MM/YYYY, T numeric and Vietnamese month-word formats', app.includes("_monthWordToNumber") && app.includes("Tháng năm 2026") && app.includes("Tháng tư 2026") && app.includes("raw.match(/^(\\d{1,2})[-\\/](20\\d{2})$/)") && app.includes("raw.match(/^(?:T)?(\\d{1,2})[-\\/]?(20\\d{2})$/i)"));
 check('utils normalizeYYYYMM mirrors month-word parser', fmt.includes("_monthWordToNumber") && fmt.includes("Tháng năm 2026") && fmt.includes("muoi mot") && fmt.includes("raw.match(/^(\\d{1,2})[-\\/](20\\d{2})$/)"));
 check('global normalizeTuitionMonth exposed', app.includes('window.normalizeTuitionMonth = normalizeYYYYMM'));

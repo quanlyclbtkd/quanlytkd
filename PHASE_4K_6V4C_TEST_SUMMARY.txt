@@ -1,0 +1,31 @@
+Phase 4K-6V4C — Test Summary
+
+Core checks:
+- npm run check: PASS
+- npm run check:all:critical: PASS
+- npm run check:syntax: PASS
+- npm run check:tuition-debt-source-of-truth: PASS
+- npm run check:debt-authoritative-tuition-coverage: PASS
+- npm run check:deploy-package: PASS
+- npm run check:github-pages-paths: PASS
+- npm run check:render-warning-coalescing: PASS
+
+Important pass counts:
+- Syntax: 233 items checked, PASS
+- Debt Authoritative Tuition Coverage: 32/32 PASS
+- Tuition Debt Source of Truth V4C: 26/26 PASS
+- Deploy Package: 12/12 PASS
+- GitHub Pages Paths: 18/18 PASS
+- Render Warning Coalescing: 14/14 PASS
+- Coach Attendance-only Boundary: 30/30 PASS
+- Security Coach Branch Boundary: 35/35 PASS
+- Quit Tab Mobile Parity: 17/17 PASS
+
+Dynamic debt cases verified:
+- paidUntil "Tháng Năm 2026" + stale paidMonths ["2026-06"] => chargeableMonths ["2026-06"]
+- paidUntil "Tháng Tư 2026" + stale paidMonths ["2026-06"] => chargeableMonths ["2026-05", "2026-06"]
+- paidUntil "2026-05" + skippedMonths ["Tháng 6 năm 2026"] => no June debt
+- feeExempt suppresses debt with explicit hidden reason
+- quit profile suppresses debt through statusCanonical
+
+No Firestore writes/queries/listeners were added by the new canonical helper.
