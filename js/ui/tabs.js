@@ -153,6 +153,20 @@ export function switchTab(tabId) {
     // via DocumentFragment for atomic, low-reflow DOM updates.
     runTabRenders(tabId);
 
+    // Phase 4K-6V4D1B: refresh small student UI regions on tab switch. These
+    // regions live outside the heavy list cache, so mobile could show stale/hidden
+    // birthday banner, skipped-month section, or quit direct fallback after a pure
+    // tab switch where dataVersion did not change.
+    try {
+        if (typeof window.refreshSmallStudentUi === 'function') {
+            window.refreshSmallStudentUi(tabId, 'tab-switch-small-ui');
+        } else {
+            if (typeof window._renderHomeBirthdayBanner === 'function') window._renderHomeBirthdayBanner();
+            if (tabId === 'active' && typeof window.updateSkippedMonthSection === 'function') window.updateSkippedMonthSection(null);
+            if (tabId === 'quit' && typeof window.renderQuitList === 'function') window.renderQuitList({ reason: 'tab-switch-small-ui' });
+        }
+    } catch (_) {}
+
     // ── 4. Exam tab: render danh sách thi đai ───────────────────────────
     // [Phase 3.6] mountExamListeners() guard duplicate + trigger render
     if (tabId === 'exam') {

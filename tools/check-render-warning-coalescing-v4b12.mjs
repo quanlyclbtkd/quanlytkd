@@ -20,7 +20,7 @@ function check(name, ok, detail = '') {
 }
 
 console.log('\n=== Phase 4K-6V4B12 — Render Warning Coalescing ===\n');
-const build = 'profile-canonical-store-runtime-recovery-20260628-v4d1a';
+const build = 'profile-canonical-store-mobile-small-ui-20260628-v4d1b';
 const appBuilds = [build, 'profile-canonical-store-20260628-v4d1', 'tuition-debt-source-of-truth-20260628-v4c'];
 
 check('index cache-busts app.js/main.js to current render-safe build',
@@ -85,7 +85,8 @@ check('LegacyRenderWarning remains for diagnostics but is production-gated',
   renderInvalidation.includes('if (!_shouldEmitLegacyRenderWarning()) return'));
 check('APP patch version updated to V4B12 or later',
   main.includes("APP_PATCH_VERSION = '4K-6V4B12-render-warning-coalescing-20260627'") ||
-  main.includes("APP_PATCH_VERSION = '4K-6V4D1-profile-canonical-store-readonly-audit-20260628'"));
+  main.includes("APP_PATCH_VERSION = '4K-6V4D1-profile-canonical-store-readonly-audit-20260628'") ||
+  main.includes("APP_PATCH_VERSION = '4K-6V4D1B-mobile-small-ui-recovery-20260628'"));
 
 console.log(`\nTotal: ${pass + fail} | PASS: ${pass} | FAIL: ${fail}`);
 if (fail) process.exit(1);

@@ -18,10 +18,10 @@ function includes(file, text) { return read(file).includes(text); }
 
 console.log('\n🔍 Phase 4K-6V4D1 — Profile Canonical Store Read-only Audit checks\n');
 
-const build = 'profile-canonical-store-runtime-recovery-20260628-v4d1a';
+const build = 'profile-canonical-store-mobile-small-ui-20260628-v4d1b';
 const baseBuild = 'profile-canonical-store-20260628-v4d1';
 const version = '4K-6V4D1-profile-canonical-store-readonly-audit-20260628';
-const runtimeVersion = '4K-6V4D1A-profile-canonical-store-runtime-recovery-20260628';
+const runtimeVersion = '4K-6V4D1B-mobile-small-ui-recovery-20260628';
 
 check('profileCanonicalStore.js exists', existsSync(resolve(root, 'js/core/profileCanonicalStore.js')));
 check('public mirror profileCanonicalStore.js exists', existsSync(resolve(root, 'public/js/core/profileCanonicalStore.js')));

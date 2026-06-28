@@ -19,7 +19,7 @@
  */
 
 import { registerRender } from './renderRegistry.js';
-import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a';
+import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=profile-canonical-store-mobile-small-ui-20260628-v4d1b';
 
 // ─── Core DOM helper ────────────────────────────────────────────────────────
 
@@ -77,6 +77,10 @@ function _formatDateSafe(value) {
     const m = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
     if (m) return `${m[3]}/${m[2]}/${m[1]}`;
     return text;
+}
+function _profileDob(profile) {
+    const p = profile || {};
+    return p.dob || p.birthDate || p.birthday || p.dateOfBirth || p.ngaySinh || p.ngay_sinh || p.ngay_sinh_nhat || '';
 }
 function _isQuitMobileViewport() {
     try {
@@ -141,9 +145,9 @@ function _buildAuthoritativeQuitRows(options = {}) {
         const safeIdJs = _escapeJs(id);
         const belt = _escapeHtml(p.belt || '');
         const memberId = _escapeHtml(p.memberId || p.studentCode || p.code || '');
-        const branchTd = isSingleBranch ? '' : '<td><span class="badge bg-slate-100 text-slate-600 border border-slate-200">' + _escapeHtml(typeof window.getBranchNameDisplay === 'function' ? window.getBranchNameDisplay(p.branch || '') : (p.branch || '')) + '</span></td>';
+        const branchTd = isSingleBranch ? '' : '<td data-mobile-field="branch"><span class="badge bg-slate-100 text-slate-600 border border-slate-200">' + _escapeHtml(typeof window.getBranchNameDisplay === 'function' ? window.getBranchNameDisplay(p.branch || '') : (p.branch || '')) + '</span></td>';
         const quitDate = _formatDateSafe(p.quitDate || p.ngayNghi || p.inactiveDate || p.stoppedDate || p.leftDate || p.nghiDate);
-        return `<tr data-quit-id="${safeIdAttr}" data-profile-name="${display}"><td class="name-link text-[0.95rem]" onclick="openProfile('${safeIdJs}')">${display}</td><td class="text-[0.7rem] font-bold text-slate-500">${memberId || '-'}</td><td>${belt}</td>${branchTd}<td>${_formatDateSafe(p.dob)}</td><td>${_escapeHtml(quitDate) || '-'}</td><td>${isAdmin ? `<button type="button" class="btn-sm bg-emerald-50 text-emerald-700 border border-emerald-200" onclick="openProfile('${safeIdJs}')">🔄 Khôi phục</button>` : ''}</td></tr>`;
+        return `<tr data-quit-id="${safeIdAttr}" data-profile-name="${display}"><td class="name-link text-[0.95rem]" onclick="openProfile('${safeIdJs}')">${display}</td><td data-mobile-field="member" class="text-[0.7rem] font-bold text-slate-500">${memberId || '-'}</td><td data-mobile-field="belt">${belt}</td>${branchTd}<td data-mobile-field="dob">${_formatDateSafe(_profileDob(p))}</td><td data-mobile-field="quit-date">${_escapeHtml(quitDate) || '-'}</td><td data-mobile-field="actions">${isAdmin ? `<button type="button" class="btn-sm bg-emerald-50 text-emerald-700 border border-emerald-200" onclick="openProfile('${safeIdJs}')">🔄 Khôi phục</button>` : ''}</td></tr>`;
     }).join('');
     const remaining = Math.max(0, entries.length - limit);
     const colspan = isSingleBranch ? 6 : 7;

@@ -1236,7 +1236,7 @@ export function initStudentPagination() {
                         const _esc     = _rawName.replace(/'/g, "\'");
                         const p        = item;
                         if (_mode === 'quit') {
-                            return `<tr data-quit-id="${_esc}"><td class="name-link text-[0.95rem]" onclick="openProfile('${_esc}')">${_rawName}</td><td class="text-[0.7rem] font-bold text-slate-500">${p.memberId || '-'}</td><td>-</td><td>-</td><td>${p.quitDate || p.ngayNghi || p.inactiveDate || p.stoppedDate || p.leftDate || '-'}</td><td><button type="button" class="btn-sm bg-slate-100 text-slate-700 border border-slate-200" onclick="openProfile('${_esc}')">👁️ Xem</button></td></tr>`;
+                            return `<tr data-quit-id="${_esc}"><td class="name-link text-[0.95rem]" onclick="openProfile('${_esc}')">${_rawName}</td><td data-mobile-field="member" class="text-[0.7rem] font-bold text-slate-500">${p.memberId || '-'}</td><td data-mobile-field="belt">-</td><td data-mobile-field="dob">-</td><td data-mobile-field="quit-date">${p.quitDate || p.ngayNghi || p.inactiveDate || p.stoppedDate || p.leftDate || '-'}</td><td data-mobile-field="actions"><button type="button" class="btn-sm bg-slate-100 text-slate-700 border border-slate-200" onclick="openProfile('${_esc}')">👁️ Xem</button></td></tr>`;
                         }
                         return `<tr data-student-id="${_esc}"><td class="name-link text-[0.95rem]" onclick="openProfile('${_esc}')">${_rawName}</td><td class="text-[0.7rem] font-bold text-slate-500">${p.memberId || '-'}</td><td>-</td><td>-</td><td>-</td><td class="badge bg-rose-50 text-rose-600 text-[0.7rem]">-</td><td class="font-medium text-slate-600">${p.phone || ''}</td><td class="text-slate-500">-</td><td><button type="button" class="btn-sm bg-slate-100 text-slate-700 border border-slate-200" onclick="openProfile('${_esc}')">👁️ Xem</button></td></tr>`;
                     }).join('');
@@ -1431,7 +1431,7 @@ export function initStudentPagination() {
                         const p  = item;
                         if (mode === 'quit') {
                             const _display = _esc(p.name || p.fullName || p.displayName || p.studentName || _rawName);
-                            return `<tr data-quit-id="${_a}"><td class="name-link text-[0.95rem]" onclick="openProfile('${_j}')">${_display}</td><td class="text-[0.7rem] font-bold text-slate-500">${_esc(p.memberId) || '-'}</td><td>-</td><td>-</td><td>${_esc(p.quitDate || p.ngayNghi || p.inactiveDate || p.stoppedDate || p.leftDate) || '-'}</td><td class="text-slate-500">-</td><td><button type="button" class="btn-sm bg-slate-100 text-slate-700 border border-slate-200" onclick="openProfile('${_j}')">👁️ Xem</button></td></tr>`;
+                            return `<tr data-quit-id="${_a}"><td class="name-link text-[0.95rem]" onclick="openProfile('${_j}')">${_display}</td><td data-mobile-field="member" class="text-[0.7rem] font-bold text-slate-500">${_esc(p.memberId) || '-'}</td><td data-mobile-field="belt">-</td><td data-mobile-field="dob">-</td><td data-mobile-field="quit-date">${_esc(p.quitDate || p.ngayNghi || p.inactiveDate || p.stoppedDate || p.leftDate) || '-'}</td><td class="text-slate-500">-</td><td data-mobile-field="actions"><button type="button" class="btn-sm bg-slate-100 text-slate-700 border border-slate-200" onclick="openProfile('${_j}')">👁️ Xem</button></td></tr>`;
                         }
                         return `<tr data-student-id="${_a}"><td class="name-link text-[0.95rem]" onclick="openProfile('${_j}')">${_a}</td><td class="text-[0.7rem] font-bold text-slate-500">${_esc(p.memberId) || '-'}</td><td>-</td><td>-</td><td>-</td><td class="badge bg-rose-50 text-rose-600 text-[0.7rem]">-</td><td class="font-medium text-slate-600">${_esc(p.phone) || ''}</td><td class="text-slate-500">-</td><td><button type="button" class="btn-sm bg-slate-100 text-slate-700 border border-slate-200" onclick="openProfile('${_j}')">👁️ Xem</button></td></tr>`;
                     }).join('');
@@ -2478,7 +2478,8 @@ window.ensureDebtProfilesReady = async function ensureDebtProfilesReady(reason) 
     }
     if (typeof window.updateSkippedMonthSection === 'function') {
         try {
-            window.updateSkippedMonthSection(window.__store.profiles, month);
+            const _selMonth = (document.getElementById('filterMonth') && document.getElementById('filterMonth').value) || st.selectedMonth || '';
+            window.updateSkippedMonthSection(null, _selMonth);
         } catch (_) {}
     }
     if (typeof window.invalidateList === 'function') {
@@ -2837,7 +2838,7 @@ window.syncStudentSkippedMonthLocal = function(name, month, action, reason) {
     }
     if (typeof window.updateSkippedMonthSection === 'function') {
         try {
-            window.updateSkippedMonthSection(window.__store.profiles, month);
+            window.updateSkippedMonthSection(null, month);
         } catch (_) {}
     }
     if (typeof window.invalidateList === 'function') {
@@ -2988,9 +2989,13 @@ window.skipDebtMonthFromDebt = async function(event, name, month) {
             if (typeof window.removeStudentFromDebtDom === 'function') {
                 window.removeStudentFromDebtDom(studentName);
             }
-            // Phase 4K-6A-B: ensure debt list re-renders after skip action
+            // Phase 4K-6A-B: ensure debt and active lists re-render after skip action.
             if (typeof window.ensureStudentTabRendered === 'function') {
                 window.ensureStudentTabRendered('debt', 'after-skip-debt-month');
+                window.ensureStudentTabRendered('active', 'after-skip-debt-month');
+            }
+            if (typeof window.updateSkippedMonthSection === 'function') {
+                try { window.updateSkippedMonthSection(null, selectedMonth); } catch (_) {}
             }
             if (window.showToast) window.showToast('✅ Đã báo nghỉ tháng này và miễn học phí!');
         },

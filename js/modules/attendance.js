@@ -32,7 +32,21 @@ const ATTENDANCE_OWNED_GLOBALS = Object.freeze([
 // ── Bridge helpers (đọc tại call-time — không cache lúc init) ──
 function _db()       { return (window.__store || {}).db; }
 function _clubId()   { return (window.__store || {}).clubId || (window.currentClubId || ''); }
-function _profiles() { return (window.__store || {}).profiles || window.allProfiles || {}; }
+function _profiles() {
+    // Phase 4K-6V4D1B: mobile/coach optimized sessions may hydrate profiles through
+    // studentProfileStore before window.__store.profiles is fully synchronized. The
+    // birthday banner is read-only UI, so merge local caches without adding reads.
+    const merged = {};
+    try { Object.assign(merged, window.allProfiles || {}); } catch (_) {}
+    try { Object.assign(merged, (window.__store || {}).profiles || {}); } catch (_) {}
+    try {
+        const compat = window.studentProfileStore && typeof window.studentProfileStore.getAllProfilesCompat === 'function'
+            ? (window.studentProfileStore.getAllProfilesCompat() || {})
+            : {};
+        Object.assign(merged, compat);
+    } catch (_) {}
+    return Object.keys(merged).length ? merged : {};
+}
 function _config()   { return (window.__store || {}).clubConfig || {}; }
 function _clubData() { return (window.__store || {}).clubData || {}; }
 function _getLocalToday()  { return window.getLocalToday ? window.getLocalToday() : new Date().toISOString().slice(0, 10); }
