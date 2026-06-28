@@ -1,0 +1,28 @@
+Phase 4K-6V4D1A — Active Skipped Month + Quit Tab Regression Hotfix
+
+Passed checks actually run:
+
+- npm run check:syntax — PASS
+- npm run check:active-skip-quit-regression — PASS 16/16
+- npm run check:active-skipped-month-section — PASS 11/11
+- npm run check:quit-tab-completeness — PASS 12/12
+- npm run check:quit-tab-authoritative-completeness — PASS 9/9
+- npm run check:quit-tab-mobile-parity — PASS 17/17
+- npm run check:profile-canonical-store — PASS 27/27
+- npm run check:tuition-debt-source-of-truth — PASS
+- npm run check:debt-authoritative-tuition-coverage — PASS 32/32
+- npm run check:debt-profile-read-boundary — PASS 23/23
+- npm run check:coach-attendance-only-read-boundary — PASS 30/30
+- npm run check:security-coach-branch-boundary — PASS 35/35
+- npm run check:coach-branch-runtime-repair — PASS 25/25
+- npm run check:render-warning-coalescing — PASS 14/14
+- npm run check:deploy-package — PASS 12/12
+- npm run check:github-pages-paths — PASS 18/18
+- npm run check:firestore-indexes — PASS 16/16
+
+Additional verification:
+- git diff --check — PASS
+- Source/public mirrors compared for changed runtime files — PASS
+
+Note:
+- `npm run check` and `npm run check:all:critical` are very long aggregate suites in this environment. They were started but exceeded the execution time before completion, so they are not claimed as fully passed here. The targeted regression/security/deploy gates above all passed.

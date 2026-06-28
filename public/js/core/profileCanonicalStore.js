@@ -16,8 +16,8 @@
 
   if (!global || global.ProfileCanonicalStore) return;
 
-  var VERSION = '4K-6V4D1-profile-canonical-store-readonly-audit-20260628';
-  var BUILD_SLUG = 'profile-canonical-store-20260628-v4d1';
+  var VERSION = '4K-6V4D1A-active-skip-quit-regression-hotfix-20260628';
+  var BUILD_SLUG = 'profile-canonical-store-regression-hotfix-20260628-v4d1a';
 
   var _state = {
     version: VERSION,
@@ -44,6 +44,16 @@
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, ' ')
       .trim();
+  }
+
+  function _isMonthlySkipStatusValue(value) {
+    var folded = _fold(value);
+    if (!folded) return false;
+    return /\b(bao nghi|bao nghi thang|nghi thang|tam nghi thang|mien hoc phi|mien phi|xin nghi thang)\b/.test(folded)
+      || folded === 'bao nghi'
+      || folded === 'bao nghi thang'
+      || folded === 'nghi thang'
+      || folded === 'tam nghi thang';
   }
 
   function _displayName(raw, key) {
@@ -180,7 +190,8 @@
 
     if (cls === 'quit' || cls === 'inactive') return 'quit';
     if (p.quit === true || p.isQuit === true || p.active === false || p.isActive === false || p.stopped === true) return 'quit';
-    if (/\b(quit|inactive|retired|stopped|left|nghi|da nghi|nghi tap|bao nghi|tam dung|dung tap)\b/.test(folded)) return 'quit';
+    if (_isMonthlySkipStatusValue(rawStatus)) return 'active';
+    if (/\b(quit|inactive|retired|stopped|left|da nghi|nghi tap|nghi han|tam dung|dung tap|ngung tap|bo tap|thoi tap)\b/.test(folded)) return 'quit';
     if (/\b(trial|try|thu|hoc thu|tap thu)\b/.test(folded) || cls === 'trial') return 'trial';
     if (/\b(active|dang tap|tap luyen|hoc vien)\b/.test(folded) || cls === 'active') return 'active';
     if (!rawStatus && (p.joinDate || p.admissionDate || p.createdAt || p.name || p.fullName)) return 'active';

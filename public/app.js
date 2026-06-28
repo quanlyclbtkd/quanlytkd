@@ -1,4 +1,4 @@
-// Phase 4K-6V4D1: profile-canonical-store-readonly-audit-20260628
+// Phase 4K-6V4D1A: active-skip-quit-regression-hotfix-20260628
     /* Firestore security rules source of truth: ./firestore.rules */
 // LEGACY APP KERNEL — DO NOT DELETE DIRECTLY
 // Responsibilities kept in app.js for now:
@@ -6874,8 +6874,37 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         const fn = typeof window.normalizeTuitionMonth === 'function' ? window.normalizeTuitionMonth : normalizeYYYYMM;
         try { return fn(value) || ''; } catch (_) { return normalizeYYYYMM(value) || ''; }
     }
-    function _legacyIsActiveForSkipped(profile) {
+    function _legacyFoldStatusForSkipped(value) {
+        try {
+            return String(value == null ? '' : value)
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/đ/g, 'd')
+                .replace(/Đ/g, 'D')
+                .toLowerCase()
+                .trim();
+        } catch (_) { return String(value || '').toLowerCase().trim(); }
+    }
+    function _legacyIsMonthlySkipStatus(value) {
+        const folded = _legacyFoldStatusForSkipped(value);
+        return !!folded && (/\b(bao nghi|bao nghi thang|nghi thang|tam nghi thang|mien hoc phi|mien phi|xin nghi thang)\b/.test(folded)
+            || folded === 'bao nghi'
+            || folded === 'bao nghi thang'
+            || folded === 'nghi thang'
+            || folded === 'tam nghi thang');
+    }
+    function _legacyHasPermanentQuitSignal(profile) {
         const p = profile || {};
+        if (p.quit === true || p.isQuit === true || p.stopped === true || p.active === false || p.isActive === false) return true;
+        const dateFields = ['quitDate', 'ngayNghi', 'inactiveDate', 'stoppedDate', 'leftDate', 'nghiDate'];
+        if (dateFields.some(k => p[k] !== undefined && p[k] !== null && String(p[k]).trim() !== '')) return true;
+        const st = _legacyFoldStatusForSkipped(p.status || p.state || p.trainingStatus || '');
+        if (_legacyIsMonthlySkipStatus(st)) return false;
+        return /\b(quit|inactive|retired|stopped|left|da nghi|nghi tap|nghi han|dung tap|ngung tap|bo tap|thoi tap)\b/.test(st);
+    }
+    function _legacyIsActiveForSkipped(profile, selectedMonth) {
+        const p = profile || {};
+        if (_legacyHasSkippedMonth(p, selectedMonth) && !_legacyHasPermanentQuitSignal(p)) return true;
         try {
             if (typeof window.deriveProfileCanonicalState === 'function') {
                 const c = window.deriveProfileCanonicalState(p) || {};
@@ -6886,7 +6915,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             const kind = typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus(p) : String(p.status || 'active');
             return String(kind || '').toLowerCase() !== 'quit';
         } catch (_) {
-            return String(p.status || 'active').toLowerCase() !== 'quit';
+            return !_legacyHasPermanentQuitSignal(p);
         }
     }
     function _legacyHasSkippedMonth(profile, selectedMonth) {
@@ -6898,7 +6927,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
     function _legacySkippedNamesForMonth(profiles, selectedMonth) {
         return Object.keys(profiles || {}).filter(function(n) {
             const pr = profiles[n] || {};
-            return _legacyIsActiveForSkipped(pr) && _legacyHasSkippedMonth(pr, selectedMonth);
+            return _legacyHasSkippedMonth(pr, selectedMonth) && _legacyIsActiveForSkipped(pr, selectedMonth);
         });
     }
 

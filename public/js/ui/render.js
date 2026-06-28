@@ -59,7 +59,7 @@ import {
     computeAndCacheStudents,
     getStudentsSummary,
     getStudentsCachedHtml,
-} from './render/computation/studentsRenderer.js?v=profile-canonical-store-20260628-v4d1';
+} from './render/computation/studentsRenderer.js?v=profile-canonical-store-regression-hotfix-20260628-v4d1a';
 import {
     computeAndCacheInventory,
     getCachedLiveInvMap,
@@ -145,8 +145,40 @@ function _normalizeSkippedMonthValue(value) {
     try { return fn(value) || ''; } catch (_) { return normalizeYYYYMM(value) || ''; }
 }
 
-function _isActiveProfileForSkippedSection(profile) {
+function _foldSkippedStatus(value) {
+    try {
+        return String(value == null ? '' : value)
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/đ/g, 'd')
+            .replace(/Đ/g, 'D')
+            .toLowerCase()
+            .trim();
+    } catch (_) { return String(value || '').toLowerCase().trim(); }
+}
+
+function _isMonthlySkipStatusValue(value) {
+    const folded = _foldSkippedStatus(value);
+    return !!folded && (/\b(bao nghi|bao nghi thang|nghi thang|tam nghi thang|mien hoc phi|mien phi|xin nghi thang)\b/.test(folded)
+        || folded === 'bao nghi'
+        || folded === 'bao nghi thang'
+        || folded === 'nghi thang'
+        || folded === 'tam nghi thang');
+}
+
+function _hasPermanentQuitSignal(profile) {
     const p = profile || {};
+    if (p.quit === true || p.isQuit === true || p.stopped === true || p.active === false || p.isActive === false) return true;
+    const dateFields = ['quitDate', 'ngayNghi', 'inactiveDate', 'stoppedDate', 'leftDate', 'nghiDate'];
+    if (dateFields.some(k => p[k] !== undefined && p[k] !== null && String(p[k]).trim() !== '')) return true;
+    const status = _foldSkippedStatus(p.status || p.state || p.trainingStatus || '');
+    if (_isMonthlySkipStatusValue(status)) return false;
+    return /\b(quit|inactive|retired|stopped|left|da nghi|nghi tap|nghi han|dung tap|ngung tap|bo tap|thoi tap)\b/.test(status);
+}
+
+function _isActiveProfileForSkippedSection(profile, selectedMonth) {
+    const p = profile || {};
+    if (_hasSkippedMonthForSelectedMonth(p, selectedMonth) && !_hasPermanentQuitSignal(p)) return true;
     try {
         if (typeof window !== 'undefined' && typeof window.deriveProfileCanonicalState === 'function') {
             const canonical = window.deriveProfileCanonicalState(p) || {};
@@ -159,7 +191,7 @@ function _isActiveProfileForSkippedSection(profile) {
             : String(p.status || 'active');
         return String(kind || '').toLowerCase() !== 'quit';
     } catch (_) {
-        return String(p.status || 'active').toLowerCase() !== 'quit';
+        return !_hasPermanentQuitSignal(p);
     }
 }
 
@@ -173,7 +205,7 @@ function _hasSkippedMonthForSelectedMonth(profile, selectedMonth) {
 function _getSkippedMonthNames(allProfiles, selectedMonth) {
     return Object.keys(allProfiles || {}).filter(name => {
         const profile = allProfiles[name] || {};
-        return _isActiveProfileForSkippedSection(profile) && _hasSkippedMonthForSelectedMonth(profile, selectedMonth);
+        return _hasSkippedMonthForSelectedMonth(profile, selectedMonth) && _isActiveProfileForSkippedSection(profile, selectedMonth);
     });
 }
 

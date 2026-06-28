@@ -19,7 +19,7 @@
  */
 
 import { registerRender } from './renderRegistry.js';
-import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=profile-canonical-store-20260628-v4d1';
+import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=profile-canonical-store-regression-hotfix-20260628-v4d1a';
 
 // ─── Core DOM helper ────────────────────────────────────────────────────────
 

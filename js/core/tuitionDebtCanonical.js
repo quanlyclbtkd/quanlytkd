@@ -21,6 +21,16 @@
       .trim();
   }
 
+  function _isMonthlySkipStatusValue(value) {
+    var folded = _fold(value);
+    if (!folded) return false;
+    return /\b(bao nghi|bao nghi thang|nghi thang|tam nghi thang|mien hoc phi|mien phi|xin nghi thang)\b/.test(folded)
+      || folded === 'bao nghi'
+      || folded === 'bao nghi thang'
+      || folded === 'nghi thang'
+      || folded === 'tam nghi thang';
+  }
+
   function _monthWordToNumber(text) {
     var key = _fold(text)
       .replace(/\b(thang|month|t)\b/g, ' ')
@@ -154,8 +164,10 @@
     } catch (_) {}
     var rawStatus = String(p.status || p.state || '').trim();
     var foldedStatus = _fold(rawStatus);
+    var isMonthlySkipStatus = _isMonthlySkipStatusValue(rawStatus);
+    var isExplicitQuitText = /\b(quit|inactive|retired|stopped|left|da nghi|nghi tap|nghi han|dung tap|ngung tap|bo tap|thoi tap)\b/.test(foldedStatus);
     var isQuit = statusByClassifier === 'quit' || p.active === false || p.isActive === false || p.quit === true || p.isQuit === true ||
-      /\b(quit|inactive|retired|stopped|left|nghi|da nghi|nghi tap|bao nghi)\b/.test(foldedStatus);
+      (!isMonthlySkipStatus && isExplicitQuitText);
     var statusCanonical = isQuit ? 'quit' : 'active';
     var branchRaw = p.branch || p.branchCode || p.coachBranch || p.facility || p.base || '';
     var branchCanonical = _canonicalBranch(branchRaw, 'CS1');
