@@ -59,7 +59,7 @@ import {
     computeAndCacheStudents,
     getStudentsSummary,
     getStudentsCachedHtml,
-} from './render/computation/studentsRenderer.js?v=profile-canonical-store-mobile-small-ui-20260628-v4d1b';
+} from './render/computation/studentsRenderer.js?v=mobile-small-ui-recovery-20260628-v4d2';
 import {
     computeAndCacheInventory,
     getCachedLiveInvMap,
@@ -102,7 +102,21 @@ function _requestCurrentTabIslands(tabId) {
 }
 
 // Bridge helpers — đọc tại call-time từ window.__store hoặc fallback legacy
-function _profiles()     { return (window.__store || {}).profiles     || window.allProfiles     || {}; }
+function _profiles() {
+    // Phase 4K-6V4D2: mobile/list-island renders can run while __store.profiles
+    // is still a small active-only snapshot. Merge every in-memory profile source
+    // before computing Active/Báo nghỉ/Đã nghỉ so small mobile UI does not miss data.
+    const merged = {};
+    try {
+        const compat = window.studentProfileStore && typeof window.studentProfileStore.getAllProfilesCompat === 'function'
+            ? (window.studentProfileStore.getAllProfilesCompat() || {})
+            : {};
+        Object.assign(merged, compat);
+    } catch (_) {}
+    try { Object.assign(merged, window.allProfiles || {}); } catch (_) {}
+    try { Object.assign(merged, (window.__store || {}).profiles || {}); } catch (_) {}
+    return Object.keys(merged).length ? merged : {};
+}
 
 // Phase 4K-6V4D1A: read-only canonical audit must not starve legacy UI sections.
 // Some small global widgets (birthday banner / active skipped-month header / quit
@@ -110,32 +124,18 @@ function _profiles()     { return (window.__store || {}).profiles     || window.
 // when renderApp correctly skips heavy recomputation because dataVersion is unchanged.
 function _profilesForSmallUi() {
     const merged = {};
-    // Phase 4K-6V4D1B: use legacy/global caches as a base, then let the canonical
-    // in-memory studentProfileStore win. On mobile, tab-only renders can happen while
-    // __store.profiles is still a partial/stale bridge, which used to hide skipped
-    // months and birthdays without any Firestore read being needed.
-    try { Object.assign(merged, window.allProfiles || {}); } catch (_) {}
-    try { Object.assign(merged, (window.__store || {}).profiles || {}); } catch (_) {}
     try {
         const compat = window.studentProfileStore && typeof window.studentProfileStore.getAllProfilesCompat === 'function'
             ? (window.studentProfileStore.getAllProfilesCompat() || {})
             : {};
         Object.assign(merged, compat);
     } catch (_) {}
-    try {
-        const canonicalStore = window.__profileCanonicalStore || (window.ProfileCanonicalStore && window.ProfileCanonicalStore.ensure && window.ProfileCanonicalStore.ensure({ reason: 'small-ui-local-merge' }));
-        const items = [];
-        if (canonicalStore && Array.isArray(canonicalStore.activeProfiles)) items.push(...canonicalStore.activeProfiles);
-        if (canonicalStore && Array.isArray(canonicalStore.quitProfiles)) items.push(...canonicalStore.quitProfiles);
-        items.forEach(item => {
-            const id = item && (item.rawId || item.profileId || item.displayName);
-            if (id && item.raw) merged[id] = Object.assign({}, merged[id] || {}, item.raw);
-        });
-    } catch (_) {}
+    try { Object.assign(merged, window.allProfiles || {}); } catch (_) {}
+    try { Object.assign(merged, (window.__store || {}).profiles || {}); } catch (_) {}
     return Object.keys(merged).length ? merged : _profiles();
 }
 
-function _refreshSmallStudentUi(tabId, reason) {
+function _refreshSmallStudentUi(tabId, reason, options = {}) {
     try {
         if (typeof window._renderHomeBirthdayBanner === 'function') window._renderHomeBirthdayBanner();
     } catch (_) {}
@@ -146,7 +146,10 @@ function _refreshSmallStudentUi(tabId, reason) {
         }
     } catch (_) {}
     try {
-        if (tabId === 'quit' && typeof window.renderQuitList === 'function') {
+        // renderQuitIsland() may call this helper after applying #quitList.
+        // Avoid recursive renderQuitList() in that path while still keeping the
+        // birthday/skipped widgets fresh on mobile tab switches and list refreshes.
+        if (tabId === 'quit' && !options.skipQuitList && typeof window.renderQuitList === 'function') {
             window.renderQuitList({ reason: reason || 'small-ui-refresh' });
         }
     } catch (_) {}
@@ -550,17 +553,19 @@ function renderApp() {
 
 export function initRender() {
     window._moduleRenderApp = renderApp;
+    window.refreshSmallStudentUi = function(reason, options = {}) {
+        try {
+            const activeEl = document.querySelector('.tab-content.active');
+            const tabId = activeEl ? activeEl.id.replace('tab_', '') : '';
+            return _refreshSmallStudentUi(tabId, reason || 'external-small-ui-refresh', options || {});
+        } catch (_) {
+            return undefined;
+        }
+    };
     window.updateSkippedMonthSection = function(profiles, month) {
-        // Merge caller input with small-UI sources; let local canonical caches win so
-        // mobile tab switches do not re-hide skipped-month students from stale bridge data.
-        const srcProfiles = Object.assign({}, profiles || {}, _profilesForSmallUi());
+        const srcProfiles = profiles || _profiles();
         const sel = month || (document.getElementById('filterMonth') && document.getElementById('filterMonth').value) || '';
         return _renderSkippedMonthSection(srcProfiles, sel);
-    };
-    window.refreshSmallStudentUi = function(tabId, reason) {
-        const curTabEl = document.querySelector('.tab-content.active');
-        const curTabId = tabId || (curTabEl ? curTabEl.id.replace('tab_', '') : '');
-        return _refreshSmallStudentUi(curTabId, reason || 'manual-small-ui-refresh');
     };
     // Phase 3.5B: expose scheduleRender sơ bộ để các module gọi được trước khi
     // registerInvalidationLegacyGlobals() override với full invalidation layer

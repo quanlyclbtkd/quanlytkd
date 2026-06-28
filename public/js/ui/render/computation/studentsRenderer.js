@@ -133,11 +133,6 @@ function _branchMatchesFilter(profileBranch, selectedBranch) {
 // ── Smart-name helpers (moved from render.js) ─────────────────────────────────
 const _strip = (k) => k.replace(/\s*\([^)]*\)\s*$/, '').replace(/\s*\[[^\]]*\]\s*$/, '').trim().toLowerCase();
 const _disp  = (k) => k.replace(/\s*\([^)]*\)\s*$/, '').replace(/\s*\[[^\]]*\]\s*$/, '').trim();
-function _profileDob(profile) {
-    const p = profile || {};
-    return p.dob || p.birthDate || p.birthday || p.dateOfBirth || p.ngaySinh || p.ngay_sinh || p.ngay_sinh_nhat || '';
-}
-
 function _profileDisplayName(id, p) {
     const data = p || {};
     const candidates = [
@@ -161,7 +156,7 @@ function _profileDisplayName(id, p) {
  */
 function _getYrBadge(name, p, nameNCount) {
     if ((nameNCount[_strip(name)] || 0) <= 1) return '';
-    const dob = _profileDob(p);
+    const dob = (p && p.dob) || '';
     let yr = dob.includes('/') ? dob.split('/')[2] : (dob.includes('-') ? dob.split('-')[0] : '');
     if (!yr) { const _m = (name || '').match(/\((\d{4})/); if (_m) yr = _m[1]; }
     return yr
@@ -237,7 +232,7 @@ export function renderActiveRow(name, p, opts = {}) {
         newBadge = '', nickBadge = '', paidBadge = '', isAdmin = false,
     } = opts;
     const safeNameEsc = name.replace(/'/g, "\\'");
-    return `<tr data-student-id="${safeNameEsc}"><td class="name-link text-[0.95rem]" onclick="openProfile('${safeNameEsc}')">${_disp(name)}${yrBadge}${newBadge}${p.notes ? ` <span title="${p.notes}">📝</span>` : ''}${nickBadge}</td><td data-mobile-field="member" class="text-[0.7rem] font-bold text-slate-500">${p.memberId || '-'}</td><td data-mobile-field="belt">${beltHTML}</td>${branchTdHTML}<td data-mobile-field="dob">${formatDate(_profileDob(p))}</td><td>${paidBadge}</td><td class="font-medium text-slate-600">${p.phone || ''}</td><td class="text-slate-500">${formatDate(p.createdAt)}</td><td><button type="button" class="btn-sm bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200" onclick="openProfile('${safeNameEsc}')">${isAdmin ? '✏️ Sửa' : '👁️ Xem'}</button></td></tr>`;
+    return `<tr data-student-id="${safeNameEsc}"><td class="name-link text-[0.95rem]" onclick="openProfile('${safeNameEsc}')">${_disp(name)}${yrBadge}${newBadge}${p.notes ? ` <span title="${p.notes}">📝</span>` : ''}${nickBadge}</td><td class="text-[0.7rem] font-bold text-slate-500">${p.memberId || '-'}</td><td>${beltHTML}</td>${branchTdHTML}<td>${formatDate(p.dob)}</td><td>${paidBadge}</td><td class="font-medium text-slate-600">${p.phone || ''}</td><td class="text-slate-500">${formatDate(p.createdAt)}</td><td><button type="button" class="btn-sm bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200" onclick="openProfile('${safeNameEsc}')">${isAdmin ? '✏️ Sửa' : '👁️ Xem'}</button></td></tr>`;
 }
 
 /**
@@ -271,8 +266,7 @@ export function renderQuitRow(name, p, opts = {}) {
     const safeNameEsc = name.replace(/'/g, "\'");
     const displayName = _profileDisplayName(name, p);
     const safeDisplayAttr = String(displayName || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    const quitBranchTdHTML = branchTdHTML ? String(branchTdHTML).replace('<td', '<td data-mobile-field="branch"') : '';
-    return `<tr data-quit-id="${safeNameEsc}" data-profile-name="${safeDisplayAttr}"><td class="name-link text-[0.95rem]" onclick="openProfile('${safeNameEsc}')">${_disp(displayName)}${yrBadge}</td><td data-mobile-field="member" class="text-[0.7rem] font-bold text-slate-500">${p.memberId || '-'}</td><td data-mobile-field="belt">${beltHTML}</td>${quitBranchTdHTML}<td data-mobile-field="dob">${formatDate(_profileDob(p))}</td><td data-mobile-field="quit-date">${formatDate(p.quitDate || p.ngayNghi || p.inactiveDate || p.stoppedDate || p.leftDate || p.nghiDate)}</td><td data-mobile-field="actions">${isAdmin ? `<button type="button" class="btn-sm bg-emerald-50 text-emerald-700 border border-emerald-200" onclick="openProfile('${safeNameEsc}')">🔄 Khôi phục</button>` : ''}</td></tr>`;
+    return `<tr data-quit-id="${safeNameEsc}" data-profile-name="${safeDisplayAttr}"><td class="name-link text-[0.95rem]" onclick="openProfile('${safeNameEsc}')">${_disp(displayName)}${yrBadge}</td><td class="text-[0.7rem] font-bold text-slate-500">${p.memberId || '-'}</td><td>${beltHTML}</td>${branchTdHTML}<td>${formatDate(p.dob)}</td><td>${formatDate(p.quitDate || p.ngayNghi || p.inactiveDate || p.stoppedDate || p.leftDate || p.nghiDate)}</td><td>${isAdmin ? `<button type="button" class="btn-sm bg-emerald-50 text-emerald-700 border border-emerald-200" onclick="openProfile('${safeNameEsc}')">🔄 Khôi phục</button>` : ''}</td></tr>`;
 }
 
 // ── Core computation ──────────────────────────────────────────────────────────

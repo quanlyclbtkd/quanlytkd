@@ -19,7 +19,7 @@
  */
 
 import { registerRender } from './renderRegistry.js';
-import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=profile-canonical-store-mobile-small-ui-20260628-v4d1b';
+import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=mobile-small-ui-recovery-20260628-v4d2';
 
 // ─── Core DOM helper ────────────────────────────────────────────────────────
 
@@ -40,6 +40,18 @@ function _applyHtml(el, html) {
     const tpl = document.createElement('template');
     tpl.innerHTML = html;
     el.replaceChildren(tpl.content);
+}
+
+function _afterStudentIslandRender(reason) {
+    try {
+        if (typeof window.refreshSmallStudentUi === 'function') {
+            window.refreshSmallStudentUi(reason || 'student-island-render', { skipQuitList: true });
+            return;
+        }
+    } catch (_) {}
+    try {
+        if (typeof window._renderHomeBirthdayBanner === 'function') window._renderHomeBirthdayBanner();
+    } catch (_) {}
 }
 
 function _ensureQuitMobileControl() {
@@ -78,10 +90,6 @@ function _formatDateSafe(value) {
     if (m) return `${m[3]}/${m[2]}/${m[1]}`;
     return text;
 }
-function _profileDob(profile) {
-    const p = profile || {};
-    return p.dob || p.birthDate || p.birthday || p.dateOfBirth || p.ngaySinh || p.ngay_sinh || p.ngay_sinh_nhat || '';
-}
 function _isQuitMobileViewport() {
     try {
         return (window.matchMedia && window.matchMedia('(max-width: 767px)').matches) || Number(window.innerWidth || 0) <= 767;
@@ -111,7 +119,10 @@ function _getAuthoritativeQuitProfiles() {
         });
     } catch (_) {}
     try {
-        const profiles = Object.assign({}, window.allProfiles || {}, (window.__store && window.__store.profiles) || {});
+        const compat = window.studentProfileStore && typeof window.studentProfileStore.getAllProfilesCompat === 'function'
+            ? (window.studentProfileStore.getAllProfilesCompat() || {})
+            : {};
+        const profiles = Object.assign({}, compat, window.allProfiles || {}, (window.__store && window.__store.profiles) || {});
         Object.entries(profiles).forEach(([id, profile]) => {
             const kind = typeof window.classifyProfileStatus === 'function'
                 ? window.classifyProfileStatus(profile)
@@ -145,9 +156,9 @@ function _buildAuthoritativeQuitRows(options = {}) {
         const safeIdJs = _escapeJs(id);
         const belt = _escapeHtml(p.belt || '');
         const memberId = _escapeHtml(p.memberId || p.studentCode || p.code || '');
-        const branchTd = isSingleBranch ? '' : '<td data-mobile-field="branch"><span class="badge bg-slate-100 text-slate-600 border border-slate-200">' + _escapeHtml(typeof window.getBranchNameDisplay === 'function' ? window.getBranchNameDisplay(p.branch || '') : (p.branch || '')) + '</span></td>';
+        const branchTd = isSingleBranch ? '' : '<td><span class="badge bg-slate-100 text-slate-600 border border-slate-200">' + _escapeHtml(typeof window.getBranchNameDisplay === 'function' ? window.getBranchNameDisplay(p.branch || '') : (p.branch || '')) + '</span></td>';
         const quitDate = _formatDateSafe(p.quitDate || p.ngayNghi || p.inactiveDate || p.stoppedDate || p.leftDate || p.nghiDate);
-        return `<tr data-quit-id="${safeIdAttr}" data-profile-name="${display}"><td class="name-link text-[0.95rem]" onclick="openProfile('${safeIdJs}')">${display}</td><td data-mobile-field="member" class="text-[0.7rem] font-bold text-slate-500">${memberId || '-'}</td><td data-mobile-field="belt">${belt}</td>${branchTd}<td data-mobile-field="dob">${_formatDateSafe(_profileDob(p))}</td><td data-mobile-field="quit-date">${_escapeHtml(quitDate) || '-'}</td><td data-mobile-field="actions">${isAdmin ? `<button type="button" class="btn-sm bg-emerald-50 text-emerald-700 border border-emerald-200" onclick="openProfile('${safeIdJs}')">🔄 Khôi phục</button>` : ''}</td></tr>`;
+        return `<tr data-quit-id="${safeIdAttr}" data-profile-name="${display}"><td class="name-link text-[0.95rem]" onclick="openProfile('${safeIdJs}')">${display}</td><td class="text-[0.7rem] font-bold text-slate-500">${memberId || '-'}</td><td>${belt}</td>${branchTd}<td>${_formatDateSafe(p.dob)}</td><td>${_escapeHtml(quitDate) || '-'}</td><td>${isAdmin ? `<button type="button" class="btn-sm bg-emerald-50 text-emerald-700 border border-emerald-200" onclick="openProfile('${safeIdJs}')">🔄 Khôi phục</button>` : ''}</td></tr>`;
     }).join('');
     const remaining = Math.max(0, entries.length - limit);
     const colspan = isSingleBranch ? 6 : 7;
@@ -211,6 +222,7 @@ export function renderActiveIsland() {
                 : '';
             if (_fbHtml) {
                 _applyHtml(document.getElementById('activeList'), _fbHtml);
+                _afterStudentIslandRender('active-island-pagination-fallback');
                 return;
             }
             // Builder chưa sẵn → bảo toàn DOM (không clear rows đang hiển thị)
@@ -220,11 +232,13 @@ export function renderActiveIsland() {
         }
     }
     _applyHtml(document.getElementById('activeList'), _html);
+    _afterStudentIslandRender('active-island-render');
 }
 
 /** Render the debt/unpaid list (#debtList). */
 export function renderDebtIsland() {
     _applyHtml(document.getElementById('debtList'), getStudentsCachedHtml('debtRows'));
+    _afterStudentIslandRender('debt-island-render');
 }
 
 /** Render the quit student list (#quitList). */
@@ -241,6 +255,7 @@ export function renderQuitIsland() {
     if (!_quitLoaded && _hasDirectQuit) {
         _applyHtml(_target, _directPreview.html);
         _syncQuitMobileControl();
+        _afterStudentIslandRender('quit-island-direct-before-loaded');
         return;
     }
 
@@ -253,11 +268,13 @@ export function renderQuitIsland() {
             const direct = _buildAuthoritativeQuitRows({ mobileFull: true, forceAll: true });
             _applyHtml(_target, direct.html || '<tr data-quit-empty="1"><td colspan="7" style="text-align:center;color:#94a3b8;padding:16px;font-size:0.82rem;">Chưa có võ sinh đã nghỉ</td></tr>');
             _syncQuitMobileControl();
+            _afterStudentIslandRender('quit-island-mobile-full');
             return;
         }
         if (_hasDirectQuit && (!_htmlQ || (_directPreview.count > ((_htmlQ.match(/data-quit-id=/g) || []).length)))) {
             _applyHtml(_target, _directPreview.html);
             _syncQuitMobileControl();
+            _afterStudentIslandRender('quit-island-direct-cache-newer');
             return;
         }
         if (!_htmlQ && typeof window.refreshListComputation === 'function') {
@@ -270,10 +287,12 @@ export function renderQuitIsland() {
             const direct = _buildAuthoritativeQuitRows();
             _applyHtml(_target, direct.html || '<tr data-quit-empty="1"><td colspan="7" style="text-align:center;color:#94a3b8;padding:16px;font-size:0.82rem;">Chưa có võ sinh đã nghỉ</td></tr>');
             _syncQuitMobileControl();
+            _afterStudentIslandRender('quit-island-direct-cache-empty');
             return;
         }
         _applyHtml(_target, _htmlQ);
         _syncQuitMobileControl();
+        _afterStudentIslandRender('quit-island-cache');
         return;
     }
 
@@ -286,10 +305,12 @@ export function renderQuitIsland() {
             _applyHtml(_target, '<tr data-quit-loading="1"><td colspan="7" style="text-align:center;color:#94a3b8;padding:16px;font-size:0.82rem;">Đang tải danh sách đã nghỉ...</td></tr>');
         }
         _syncQuitMobileControl();
+        _afterStudentIslandRender('quit-island-loading');
         return;
     }
     _applyHtml(_target, _htmlQ);
     _syncQuitMobileControl();
+    _afterStudentIslandRender('quit-island-final-cache');
 }
 
 // ─── Island initialiser ──────────────────────────────────────────────────────

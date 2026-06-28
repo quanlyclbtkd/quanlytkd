@@ -6765,7 +6765,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             let locText = clubConfig.location || "Quy Nhơn";
             document.getElementById('r_date_top').innerText = dParts.length === 3 ? `${locText}, ngày ${dParts[2]} tháng ${dParts[1]} năm ${dParts[0]}` : `${locText}, ${formatDate(date)}`;
             const p = allProfiles[cleanName] || {}; document.getElementById('r_belt').innerText = p.belt || (cleanName.includes('&') ? 'Theo danh sách' : 'Chưa cập nhật');
-            if (p.dob && !cleanName.includes('&')) { document.getElementById('r_dob').innerText = formatDate(_legacyProfileDob(p)); document.getElementById('r_dob_wrap').style.display = 'block'; } else document.getElementById('r_dob_wrap').style.display = 'none';
+            if (p.dob && !cleanName.includes('&')) { document.getElementById('r_dob').innerText = formatDate(p.dob); document.getElementById('r_dob_wrap').style.display = 'block'; } else document.getElementById('r_dob_wrap').style.display = 'none';
             document.getElementById('r_amount').innerText = amount.toLocaleString('vi-VN') + " ₫"; document.getElementById('r_amount_words').innerText = docTienVND(amount);
 
             let displayBranch = window.getBranchNameDisplay(branch);
@@ -6901,21 +6901,17 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             return _legacyIsActiveForSkipped(pr) && _legacyHasSkippedMonth(pr, selectedMonth);
         });
     }
-    function _legacyProfileDob(p) {
-        p = p || {};
-        return p.dob || p.birthDate || p.birthday || p.dateOfBirth || p.ngaySinh || p.ngay_sinh || p.ngay_sinh_nhat || '';
-    }
     function _legacyProfilesForSmallUi() {
         const merged = {};
-        try { Object.assign(merged, allProfiles || {}); } catch (_) {}
-        try { Object.assign(merged, window.allProfiles || {}); } catch (_) {}
-        try { Object.assign(merged, (window.__store || {}).profiles || {}); } catch (_) {}
         try {
             const compat = window.studentProfileStore && typeof window.studentProfileStore.getAllProfilesCompat === 'function'
                 ? (window.studentProfileStore.getAllProfilesCompat() || {})
                 : {};
             Object.assign(merged, compat);
         } catch (_) {}
+        try { Object.assign(merged, allProfiles || {}); } catch (_) {}
+        try { Object.assign(merged, window.allProfiles || {}); } catch (_) {}
+        try { Object.assign(merged, (window.__store || {}).profiles || {}); } catch (_) {}
         return Object.keys(merged).length ? merged : (allProfiles || {});
     }
     function _legacyRefreshSmallStudentUi() {
@@ -6945,6 +6941,16 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             if (_curTabId === 'quit' && typeof window.renderQuitList === 'function') window.renderQuitList({ reason: 'legacy-small-ui-refresh' });
         } catch (_) {}
     }
+
+    window.refreshSmallStudentUi = window.refreshSmallStudentUi || function(reason, options) {
+        try {
+            if (options && options.skipQuitList) {
+                if (typeof window._renderHomeBirthdayBanner === 'function') window._renderHomeBirthdayBanner();
+                return;
+            }
+            _legacyRefreshSmallStudentUi(reason || 'legacy-external-small-ui-refresh');
+        } catch (_) {}
+    };
 
     function renderApp(reason) {
         // [Phase 4K-6H] Metrics
@@ -7303,7 +7309,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                 // [THÊM] Badge biệt danh hiển thị ngay trong danh sách (không phải chỉ trong hồ sơ)
                 const _activeNickBadge = p.nickname ? ' <span style="font-size:0.65rem;background:#ede9fe;color:#7c3aed;border:1px solid #ddd6fe;border-radius:4px;padding:1px 5px;font-weight:800;vertical-align:middle;">🏷 ' + p.nickname + '</span>' : '';
                 // [PERF] Đếm tổng trước — badge count vẫn chính xác dù giới hạn render
-                if(_curTabId === 'active') { _activeTotalCount++; if(_activeRendered < _activeLimit) { _activeRendered++; activeHtml += `<tr><td class="name-link text-[0.95rem]" onclick="openProfile('${safeNameEscaped}')">${_displayName(name)}${_listYrBadge}${_newBadge}${p.notes ? ' <span title="'+p.notes+'">📝</span>' : ''}${_activeNickBadge}</td><td data-mobile-field="member" class="text-[0.7rem] font-bold text-slate-500">${p.memberId || '-'}</td><td data-mobile-field="belt">${beltHTML}</td>${branchTdHTML}<td data-mobile-field="dob">${formatDate(_legacyProfileDob(p))}</td><td>${paidBadge}</td><td class="font-medium text-slate-600">${safePhone}</td><td class="text-slate-500">${formatDate(p.createdAt)}</td><td><button type="button" class="btn-sm bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200" onclick="openProfile('${safeNameEscaped}')">${window.userRole === 'admin' ? '✏️ Sửa' : '👁️ Xem'}</button></td></tr>`; } }
+                if(_curTabId === 'active') { _activeTotalCount++; if(_activeRendered < _activeLimit) { _activeRendered++; activeHtml += `<tr><td class="name-link text-[0.95rem]" onclick="openProfile('${safeNameEscaped}')">${_displayName(name)}${_listYrBadge}${_newBadge}${p.notes ? ' <span title="'+p.notes+'">📝</span>' : ''}${_activeNickBadge}</td><td class="text-[0.7rem] font-bold text-slate-500">${p.memberId || '-'}</td><td>${beltHTML}</td>${branchTdHTML}<td>${formatDate(p.dob)}</td><td>${paidBadge}</td><td class="font-medium text-slate-600">${safePhone}</td><td class="text-slate-500">${formatDate(p.createdAt)}</td><td><button type="button" class="btn-sm bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200" onclick="openProfile('${safeNameEscaped}')">${window.userRole === 'admin' ? '✏️ Sửa' : '👁️ Xem'}</button></td></tr>`; } }
 
                 let isDebt = false;
                 let unpaidMonthsCount = 0;
@@ -7335,7 +7341,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                 }
             } else {
                 // [PERF] Quit list pagination
-                if(_curTabId === 'quit') { _quitTotalCount++; if(_quitRendered < _quitLimit) { _quitRendered++; const _quitDateDisplay = p.quitDate || p.ngayNghi || p.inactiveDate || p.stoppedDate || p.leftDate || p.nghiDate; quitHtml += `<tr data-quit-id="${safeNameEscaped}" data-profile-name="${_displayName(name).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}"><td class="name-link text-[0.95rem]" onclick="openProfile('${safeNameEscaped}')">${_displayName(name)}${_listYrBadge}</td><td data-mobile-field="member" class="text-[0.7rem] font-bold text-slate-500">${p.memberId || '-'}</td><td data-mobile-field="belt">${beltHTML}</td>${branchTdHTML ? String(branchTdHTML).replace('<td', '<td data-mobile-field="branch"') : ''}<td data-mobile-field="dob">${formatDate(_legacyProfileDob(p))}</td><td data-mobile-field="quit-date">${formatDate(_quitDateDisplay)}</td><td data-mobile-field="actions">${window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-emerald-50 text-emerald-700 border border-emerald-200" onclick="openProfile('${safeNameEscaped}')">🔄 Khôi phục</button>` : ''}</td></tr>`; } }
+                if(_curTabId === 'quit') { _quitTotalCount++; if(_quitRendered < _quitLimit) { _quitRendered++; const _quitDateDisplay = p.quitDate || p.ngayNghi || p.inactiveDate || p.stoppedDate || p.leftDate || p.nghiDate; quitHtml += `<tr data-quit-id="${safeNameEscaped}" data-profile-name="${_displayName(name).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}"><td class="name-link text-[0.95rem]" onclick="openProfile('${safeNameEscaped}')">${_displayName(name)}${_listYrBadge}</td><td class="text-[0.7rem] font-bold text-slate-500">${p.memberId || '-'}</td><td>${beltHTML}</td>${branchTdHTML}<td>${formatDate(p.dob)}</td><td>${formatDate(_quitDateDisplay)}</td><td>${window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-emerald-50 text-emerald-700 border border-emerald-200" onclick="openProfile('${safeNameEscaped}')">🔄 Khôi phục</button>` : ''}</td></tr>`; } }
             }
         });
 

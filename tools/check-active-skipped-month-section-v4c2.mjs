@@ -30,15 +30,15 @@ const main = read('js/main.js');
 const index = read('index.html');
 const pkg = read('package.json');
 
-const build = 'profile-canonical-store-mobile-small-ui-20260628-v4d1b';
+const build = 'mobile-small-ui-recovery-20260628-v4d2';
 
 check('index.html cache-busts app.js/main.js to V4D1A',
   index.includes(`app.js?v=${build}`) && index.includes(`./js/main.js?v=${build}`));
 check('main.js APP_PATCH_VERSION markers include V4D1 lineage',
-  main.includes("APP_BUILD_VERSION = '4K-6V4D1B-mobile-small-ui-recovery-20260628'") ||
-  main.includes("APP_PATCH_VERSION = '4K-6V4D1B-mobile-small-ui-recovery-20260628'") ||
+  main.includes("APP_BUILD_VERSION = '4K-6V4D1A-profile-canonical-store-runtime-recovery-20260628'") ||
+  main.includes("APP_PATCH_VERSION = '4K-6V4D1A-profile-canonical-store-runtime-recovery-20260628'") ||
   main.includes("APP_BUILD_VERSION = '4K-6V4D1-profile-canonical-store-readonly-audit-20260628'") ||
-  main.includes("APP_PATCH_VERSION = '4K-6V4D1-profile-canonical-store-readonly-audit-20260628'"));
+  main.includes("APP_PATCH_VERSION = '4K-6V4D1-profile-canonical-store-readonly-audit-20260628'") || main.includes("APP_PATCH_VERSION = '4K-6V4D2-mobile-small-ui-recovery-20260628'"));
 check('render.js exposes updateSkippedMonthSection global',
   render.includes('window.updateSkippedMonthSection') && render.includes('_renderSkippedMonthSection'));
 check('render.js skipped section uses canonical helper, not raw status/includes',
@@ -56,7 +56,7 @@ check('legacy app.js m_skipped uses canonical month compare',
 check('syncStudentSkippedMonthLocal refreshes activeList and debtList',
   students.includes("['students.activeList', 'students.debtList', 'dashboard.summary']"));
 check('syncStudentSkippedMonthLocal updates skipped section immediately',
-  students.includes('window.updateSkippedMonthSection(null, month)') || students.includes('window.updateSkippedMonthSection(window.__store.profiles, month)'));
+  students.includes('window.updateSkippedMonthSection(window.__store.profiles, month)'));
 check('package.json includes active skipped section gate in npm check',
   pkg.includes('check:active-skipped-month-section') && pkg.includes('check-active-skipped-month-section-v4c2.mjs'));
 

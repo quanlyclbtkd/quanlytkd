@@ -1,0 +1,27 @@
+PHASE_4K_6V4D2 — Changed files
+
+index.html
+app.js
+package.json
+js/main.js
+public/js/main.js
+js/ui/render.js
+public/js/ui/render.js
+js/ui/render/renderStudents.js
+public/js/ui/render/renderStudents.js
+js/ui/render/listComputationRefresh.js
+public/js/ui/render/listComputationRefresh.js
+js/ui/render/renderInvalidation.js
+public/js/ui/render/renderInvalidation.js
+js/modules/attendance.js
+public/js/modules/attendance.js
+tools/check-mobile-small-ui-recovery-v4d2.mjs
+tools/check-active-skipped-month-section-v4c2.mjs
+tools/check-quit-tab-mobile-parity.mjs
+tools/check-render-warning-coalescing-v4b12.mjs
+tools/check-v4d1a-runtime-recovery.mjs
+tools/check-tuition-debt-source-of-truth-v4c.mjs
+tools/check-coach-branch-runtime-repair.mjs
+tools/check-debt-authoritative-tuition-coverage.mjs
+tools/check-profile-canonical-store-v4d1.mjs
+tools/check-inventory-ledger-reconciliation.mjs

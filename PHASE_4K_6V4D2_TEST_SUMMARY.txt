@@ -1,0 +1,17 @@
+PHASE_4K_6V4D2 — Test summary
+
+1) npm run check:syntax
+Result: PASS
+Checked: 236 items, 228 JS files, 8 inline scripts.
+
+2) npm run check:mobile-small-ui-recovery
+Result: PASS 14/14
+Scope: cache-bust V4D2, small UI refresh global, merged profile sources, active skipped-month section, birthday profile source, quit mobile full authoritative render, public mirror sync, no new Firestore read/write APIs in touched render/attendance files.
+
+3) npm run check:quit-tab-authoritative-completeness
+Result: PASS 9/9
+Scope: quit loader, legacy aliases/date fields, target filtering, full fallback, quitProfiles renderer authority.
+
+4) npm run check
+Result: PASS
+Scope: full project regression pipeline, now including check:mobile-small-ui-recovery.
