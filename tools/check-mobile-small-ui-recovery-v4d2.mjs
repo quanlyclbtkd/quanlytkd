@@ -5,7 +5,7 @@ import path from 'node:path';
 
 const root = process.cwd();
 const read = rel => fs.readFileSync(path.join(root, rel), 'utf8');
-const VERSION = 'mobile-small-ui-recovery-20260628-v4d2';
+const VERSION = 'quit-mobile-authoritative-local-sync-20260628-v4d3';
 const files = {
   index: read('index.html'),
   main: read('js/main.js'),

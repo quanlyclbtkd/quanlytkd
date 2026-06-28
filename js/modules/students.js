@@ -1455,7 +1455,10 @@ export function initStudentPagination() {
 
             function _isMobileViewport() {
                 try {
-                    return (window.matchMedia && window.matchMedia('(max-width: 767px)').matches) || Number(window.innerWidth || 0) <= 767;
+                    const mm = window.matchMedia ? window.matchMedia.bind(window) : null;
+                    return (mm && (mm('(max-width: 1024px)').matches || mm('(pointer: coarse)').matches))
+                        || /Android|iPhone|iPad|iPod|Mobile/i.test(String(navigator && navigator.userAgent || ''))
+                        || Number(window.innerWidth || 0) <= 1024;
                 } catch (_) {
                     return false;
                 }
@@ -1475,7 +1478,8 @@ export function initStudentPagination() {
                         ? (window.studentProfileStore.getQuitProfiles() || {})
                         : {};
                     const profiles = (window.__store && window.__store.profiles) || {};
-                    const merged = Object.assign({}, storeQuit);
+                    const localQuit = (window.__store && window.__store._localQuitProfiles) || {};
+                    const merged = Object.assign({}, storeQuit, localQuit);
                     Object.entries(profiles).forEach(function([id, profile]) {
                         const kind = typeof window.classifyProfileStatus === 'function'
                             ? window.classifyProfileStatus(profile)
@@ -2623,6 +2627,23 @@ window.syncStudentStatusLocal = function syncStudentStatusLocal(name, updateData
 
         const kind = classify(nextProfile);
 
+        // Phase 4K-6V4D3: keep the split profile store in sync immediately.
+        // Root cause: on mobile, #quitList renders from studentProfileStore.quitProfiles
+        // after the active-only listener refreshes. If a newly quit student only lives in
+        // window.__store.profiles, the next active snapshot can overwrite the compat map
+        // and the student disappears from the mobile Đã nghỉ list until lazy quit reloads.
+        if (window.studentProfileStore && typeof window.studentProfileStore.mergeProfile === 'function') {
+            try { window.studentProfileStore.mergeProfile(key, nextProfile, reason + ':status-local-sync'); } catch (_) {}
+        }
+        if (!window.__store._localQuitProfiles || typeof window.__store._localQuitProfiles !== 'object') {
+            window.__store._localQuitProfiles = {};
+        }
+        if (kind === 'quit') {
+            window.__store._localQuitProfiles[key] = nextProfile;
+        } else {
+            delete window.__store._localQuitProfiles[key];
+        }
+
         // HARD SEPARATION: nếu status=quit, loại ra khỏi pagination.currentItems ngay
         const pg = window.__store.pagination && window.__store.pagination.students;
         if (pg && Array.isArray(pg.currentItems) && kind === 'quit') {
@@ -2678,6 +2699,17 @@ window.syncStudentStatusLocal = function syncStudentStatusLocal(name, updateData
                 window.__store._lastDebtRemoveReason = reason;
                 window.__store._lastDebtRemoveName = key;
             }
+            // If the user is already on mobile Đã nghỉ, repaint from the
+            // authoritative local quit union immediately instead of waiting for
+            // the async lazy/fallback query.
+            try {
+                const _tab = typeof window.getCurrentActiveTabId === 'function'
+                    ? window.getCurrentActiveTabId()
+                    : ((document.querySelector('.tab-content.active') || {}).id || '').replace(/^tab_/, '');
+                if (_tab === 'quit' && typeof window.renderQuitList === 'function') {
+                    Promise.resolve().then(function() { window.renderQuitList({ reason: reason + ':immediate-quit-repaint' }); });
+                }
+            } catch (_) {}
         }
 
         console.debug('[syncStudentStatusLocal] synced:', key, '->', kind, updateData.status || '');

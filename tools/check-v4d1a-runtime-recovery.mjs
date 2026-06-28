@@ -15,8 +15,8 @@ const app = read('app.js');
 const index = read('index.html');
 const main = read('js/main.js');
 
-check('cache bust updated to V4D2 mobile recovery in index', index.includes('mobile-small-ui-recovery-20260628-v4d2'));
-check('main imports render.js with V4D2 cache bust', main.includes('./ui/render.js?v=mobile-small-ui-recovery-20260628-v4d2'));
+check('cache bust updated to V4D2 mobile recovery in index', index.includes('quit-mobile-authoritative-local-sync-20260628-v4d3'));
+check('main imports render.js with V4D2 cache bust', main.includes('./ui/render.js?v=quit-mobile-authoritative-local-sync-20260628-v4d3'));
 check('render.js has small UI refresh helper', render.includes('function _refreshSmallStudentUi(tabId, reason'));
 check('render.js early return calls small UI refresh', render.includes("_refreshSmallStudentUi(earlyTabId, 'renderApp-dataVersion-unchanged')"));
 check('render.js small UI refresh always renders birthday banner', render.includes("typeof window._renderHomeBirthdayBanner === 'function'") && render.includes('window._renderHomeBirthdayBanner()'));

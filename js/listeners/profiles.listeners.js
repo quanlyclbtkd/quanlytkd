@@ -232,6 +232,7 @@ function _updateWindowMetrics() {
         quitQueryErrorCount:                _state.quitQueryErrorCount,
         quitLoadInProgress:                 _state.quitLoadingInProgress,
         quitLoadLastReason:                 _state.quitLoadLastReason,
+        quitCompletenessReconciled:         _state.quitCompletenessReconciled,
         // Fallback guard
         fallbackInProgress:                 _state.fallbackInProgress,
         fallbackCompleted:                  _state.fallbackCompleted,
@@ -769,8 +770,9 @@ export async function loadQuitProfilesIfNeeded(reason, contextOverride) {
         // Targeted queries chỉ bắt được các schema đã biết; full fallback một lần/session
         // là nguồn authority duy nhất để không bỏ sót hồ sơ legacy lạ.
         if (!_state.quitCompletenessReconciled && !_state.fallbackInProgress && !_isCoachContext(ctx)) {
-            _state.quitCompletenessReconciled = true;
             const ok = await loadFullProfilesFallback('quit-tab-authoritative-reconcile:' + (reason || ''));
+            _state.quitCompletenessReconciled = !!ok;
+            _updateWindowMetrics();
             if (ok) return true;
         }
 
@@ -1067,6 +1069,31 @@ export function isQuitProfilesLoaded() {
     return _state.quitLoaded;
 }
 
+/**
+ * Ensure Admin Đã nghỉ has passed the full authoritative reconciliation.
+ * This is intentionally fire-and-forget friendly for mobile tab render paths:
+ * it does not add a new repeated read because loadFullProfilesFallback has
+ * single-flight and max-per-session guards.
+ * @param {string} [reason]
+ * @returns {Promise<boolean>}
+ */
+export async function ensureQuitProfilesAuthoritative(reason) {
+    if (_isCoachContext()) {
+        window.RoleReadBoundary?.canMount?.('profiles.quit-authoritative', { reason: reason || 'quit-authoritative' });
+        return false;
+    }
+    if (_state.quitCompletenessReconciled && _state.quitLoaded) return true;
+    if (_state.fallbackInProgress) return false;
+    const ok = await loadFullProfilesFallback('quit-authoritative-mobile:' + (reason || 'unknown'));
+    _state.quitCompletenessReconciled = !!ok;
+    if (ok) {
+        _state.quitLoaded = true;
+        markQuitLoaded(true);
+    }
+    _updateWindowMetrics();
+    return !!ok;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // RESET ALL (Phase 3.7C — reset _state fields mới)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1148,6 +1175,7 @@ export function getProfilesListenerMetrics() {
         quitQueryErrorCount:                _state.quitQueryErrorCount,
         quitLoadInProgress:                 _state.quitLoadingInProgress,
         quitLoadLastReason:                 _state.quitLoadLastReason,
+        quitCompletenessReconciled:         _state.quitCompletenessReconciled,
         // Fallback guard
         fallbackInProgress:                 _state.fallbackInProgress,
         fallbackCompleted:                  _state.fallbackCompleted,

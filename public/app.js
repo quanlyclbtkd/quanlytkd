@@ -6942,6 +6942,16 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         } catch (_) {}
     }
 
+    window.refreshSmallStudentUi = window.refreshSmallStudentUi || function(reason, options) {
+        try {
+            if (options && options.skipQuitList) {
+                if (typeof window._renderHomeBirthdayBanner === 'function') window._renderHomeBirthdayBanner();
+                return;
+            }
+            _legacyRefreshSmallStudentUi(reason || 'legacy-external-small-ui-refresh');
+        } catch (_) {}
+    };
+
     function renderApp(reason) {
         // [Phase 4K-6H] Metrics
         window.LegacyRenderEntrypoints?.recordLegacyRenderCall?.(

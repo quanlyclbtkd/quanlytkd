@@ -19,7 +19,7 @@
  */
 
 import { registerRender } from './renderRegistry.js';
-import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=mobile-small-ui-recovery-20260628-v4d2';
+import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=quit-mobile-authoritative-local-sync-20260628-v4d3';
 
 // ─── Core DOM helper ────────────────────────────────────────────────────────
 
@@ -92,7 +92,10 @@ function _formatDateSafe(value) {
 }
 function _isQuitMobileViewport() {
     try {
-        return (window.matchMedia && window.matchMedia('(max-width: 767px)').matches) || Number(window.innerWidth || 0) <= 767;
+        const mm = window.matchMedia ? window.matchMedia.bind(window) : null;
+        return (mm && (mm('(max-width: 1024px)').matches || mm('(pointer: coarse)').matches))
+            || /Android|iPhone|iPad|iPod|Mobile/i.test(String(navigator && navigator.userAgent || ''))
+            || Number(window.innerWidth || 0) <= 1024;
     } catch (_) {
         return false;
     }
@@ -107,7 +110,11 @@ function _getAuthoritativeQuitProfiles() {
         const storeQuit = window.studentProfileStore && typeof window.studentProfileStore.getQuitProfiles === 'function'
             ? (window.studentProfileStore.getQuitProfiles() || {})
             : {};
-        Object.assign(merged, storeQuit);
+        const localQuit = (window.__store && window.__store._localQuitProfiles) || {};
+        // Phase 4K-6V4D3: include local quit journal first. This survives an
+        // active-only listener refresh and prevents newly quit students from
+        // disappearing on mobile before lazy/full quit reconciliation completes.
+        Object.assign(merged, storeQuit, localQuit);
     } catch (_) {}
     try {
         const canonicalStore = (window.__profileCanonicalStore || (window.ProfileCanonicalStore && window.ProfileCanonicalStore.ensure && window.ProfileCanonicalStore.ensure({ reason: 'quit-list-direct-fallback' }))) || null;

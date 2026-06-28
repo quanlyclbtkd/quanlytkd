@@ -44,7 +44,7 @@ import {
 import {
     computeAndCacheStudents,
     getStudentsSummary,
-} from './computation/studentsRenderer.js?v=mobile-small-ui-recovery-20260628-v4d2';
+} from './computation/studentsRenderer.js?v=quit-mobile-authoritative-local-sync-20260628-v4d3';
 import {
     computeAndCacheInventory,
     getCachedUnpaidInvCount,
