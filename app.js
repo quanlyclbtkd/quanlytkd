@@ -1,4 +1,4 @@
-// Phase 4K-6V4B11: debt-paiduntil-authoritative-boundary-20260627
+// Phase 4K-6V4B12: render-warning-coalescing-20260627
     /* Firestore security rules source of truth: ./firestore.rules */
 // LEGACY APP KERNEL — DO NOT DELETE DIRECTLY
 // Responsibilities kept in app.js for now:

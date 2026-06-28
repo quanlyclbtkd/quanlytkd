@@ -19,7 +19,7 @@ function check(name, ok) {
 }
 
 console.log('\n=== Phase 4K-6V4B8 — Quit Tab Mobile Parity ===\n');
-const build = 'debt-paiduntil-authoritative-boundary-20260627-v4b11';
+const build = 'render-warning-coalescing-20260627-v4b12';
 
 check('Index cache-busts app.js and main.js with V4B8',
   index.includes(`app.js?v=${build}`) && index.includes(`./js/main.js?v=${build}`));

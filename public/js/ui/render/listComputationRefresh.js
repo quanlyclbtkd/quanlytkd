@@ -44,7 +44,7 @@ import {
 import {
     computeAndCacheStudents,
     getStudentsSummary,
-} from './computation/studentsRenderer.js?v=debt-paiduntil-authoritative-boundary-20260627-v4b11';
+} from './computation/studentsRenderer.js?v=render-warning-coalescing-20260627-v4b12';
 import {
     computeAndCacheInventory,
     getCachedUnpaidInvCount,
@@ -84,16 +84,94 @@ export const LIST_TO_COMPUTATION_DOMAIN = {
 };
 
 // ── Slow render threshold ─────────────────────────────────────────────────────
-// 1 animation frame @ 60fps = 16ms.
-// Nếu computation mất hơn 16ms, warn (throttled) để dễ phát hiện bottleneck.
-const _SLOW_MS = 16;
+// Phase 4K-6V4B12: 638+ profiles can legitimately take ~20–45ms on mobile/low-end CPUs.
+// 16ms was useful during development but too noisy in production. Keep a severe
+// threshold and combine it with refresh coalescing below.
+const _SLOW_MS = 64;
 
 // ── Throttled slow-render warning ─────────────────────────────────────────────
 const _slowThrottle = {}; // { [domain]: lastWarnTimestamp }
 const _SLOW_THROTTLE_MS = 3000;
 
+
+// Phase 4K-6V4B12 — Same-tick refresh coalescing.
+// Many UI handlers call refreshListsComputation([...]) and then invalidateList() /
+// invalidateCurrentTab(), which used to recompute the same domain twice in the same
+// interaction. This helper reuses a just-refreshed domain when params + dataVersion
+// are unchanged, removing noisy repeated Slow computation warnings without hiding
+// real data changes.
+const _RECENT_REFRESH_REUSE_MS = 250;
+const _recentRefreshByDomain = Object.create(null); // { [domain]: { signature, at, reason } }
+
+function _isDebugPerfEnabled() {
+    try {
+        const h = window.location && window.location.hostname || '';
+        return !!window.__ENABLE_PERF_WARNINGS || h === 'localhost' || h === '127.0.0.1' || h.endsWith('.replit.dev');
+    } catch (_) { return false; }
+}
+
+function _arrayLen(v) { return Array.isArray(v) ? v.length : 0; }
+function _objLen(v) { try { return v && typeof v === 'object' ? Object.keys(v).length : 0; } catch (_) { return 0; } }
+
+function _domainSignature(domain) {
+    const st  = window.__store || {};
+    const cfg = _getConfig() || {};
+    const base = [
+        domain,
+        st._dataVersion || 0,
+        _getCurTabId(),
+        _getSelMonth(),
+        _getSelBranch(),
+        _getSearch(),
+        _getRole(),
+        cfg.branchCount || 1,
+    ];
+    if (domain === 'students') {
+        const pg = (st.pagination && st.pagination.students) || {};
+        base.push(
+            'profiles:' + _objLen(_getProfiles()),
+            'pgv:' + (st._studentsPaginationVersion || 0),
+            'pgc:' + _arrayLen(pg.currentItems),
+            'pgp:' + (pg.currentPage || 0),
+            'searchActive:' + (pg.searchActive ? 1 : 0),
+            'searchQuery:' + (pg.searchQuery || ''),
+            'arl:' + (window.__activeRenderLimit || 50),
+            'drl:' + (window.__debtRenderLimit || 50),
+            'qrl:' + (window.__quitRenderLimit || 50),
+            'ap:' + (window._activePage || 1),
+            'dp:' + (window._debtPage || 1),
+            'qp:' + (window._quitPage || 1),
+            'debtFilter:' + (st._debtOverdueFilter || ''),
+            'activeNew:' + (typeof window.getActiveStudentNewFilter === 'function' ? window.getActiveStudentNewFilter() : (window.__activeStudentNewFilter || 'all'))
+        );
+    } else if (domain === 'finance') {
+        base.push('tx:' + _arrayLen(_getTxs()), 'txpv:' + (st._transactionsPaginationVersion || 0));
+    } else if (domain === 'inventory') {
+        base.push('inv:' + _arrayLen(_getInv()), 'tx:' + _arrayLen(_getTxs()), 'invv:' + (st._inventoryPaginationVersion || 0));
+    } else if (domain === 'dashboard') {
+        base.push('profiles:' + _objLen(_getProfiles()), 'tx:' + _arrayLen(_getTxs()), 'inv:' + _arrayLen(_getInv()));
+    }
+    return base.join('|');
+}
+
+function _canReuseRecentRefresh(domain, signature) {
+    try {
+        if (!domain || !signature) return false;
+        const prev = _recentRefreshByDomain[domain];
+        if (!prev || prev.signature !== signature) return false;
+        return (Date.now() - prev.at) <= _RECENT_REFRESH_REUSE_MS;
+    } catch (_) { return false; }
+}
+
+function _markRecentRefresh(domain, signature, reason) {
+    try {
+        if (domain && signature) _recentRefreshByDomain[domain] = { signature, at: Date.now(), reason: reason || '' };
+    } catch (_) {}
+}
+
 function _warnSlow(domain, ms) {
     try {
+        if (!_isDebugPerfEnabled()) return;
         const now = Date.now();
         if (!_slowThrottle[domain] || now - _slowThrottle[domain] > _SLOW_THROTTLE_MS) {
             _slowThrottle[domain] = now;
@@ -390,6 +468,16 @@ export function refreshListComputation(key, reason = 'list-refresh') {
         return false;
     }
 
+    const signature = _domainSignature(domain);
+    if (domain !== 'attendance' && _canReuseRecentRefresh(domain, signature)) {
+        if (m) {
+            m.listComputationRefreshByDomain[domain] =
+                (m.listComputationRefreshByDomain[domain] || 0) + 1;
+            m.listRenderVersions[key] = { domain, version: Date.now(), reason, reused: true };
+        }
+        return true;
+    }
+
     const t0  = performance.now();
     let   ok  = false;
 
@@ -438,6 +526,7 @@ export function refreshListComputation(key, reason = 'list-refresh') {
     }
 
     const ms = performance.now() - t0;
+    if (ok) _markRecentRefresh(domain, signature, reason);
 
     // ── Metrics update ────────────────────────────────────────────────────────
     if (m) {
@@ -500,7 +589,10 @@ export function refreshListsComputation(keys, reason = 'list-refresh') {
 
     for (const [domain, domainKeys] of Object.entries(domainGroups)) {
         let ok = false;
-        try {
+        const signature = _domainSignature(domain);
+        if (domain !== 'attendance' && _canReuseRecentRefresh(domain, signature)) {
+            ok = true;
+        } else try {
             switch (domain) {
                 case 'finance':
                     _refreshFinance();  // compute ONCE cho tất cả finance keys
@@ -533,6 +625,7 @@ export function refreshListsComputation(keys, reason = 'list-refresh') {
         }
 
         if (ok) {
+            _markRecentRefresh(domain, signature, reason);
             domainKeys.forEach(k => refreshed.push(k));
             // Metrics per key
             const m = _metrics();
@@ -557,7 +650,7 @@ export function refreshListsComputation(keys, reason = 'list-refresh') {
     }
 
     const ms = performance.now() - t0;
-    if (ms > _SLOW_MS * Math.max(keys.length, 1)) {
+    if (ms > _SLOW_MS * Math.max(keys.length, 1) && _isDebugPerfEnabled()) {
         console.warn(
             `[ListComputationSlow] refreshListsComputation ${keys.length} keys ` +
             `took ${ms.toFixed(1)}ms (budget: ${(_SLOW_MS * keys.length).toFixed(0)}ms)`

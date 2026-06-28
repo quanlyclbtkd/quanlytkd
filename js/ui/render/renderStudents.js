@@ -19,7 +19,7 @@
  */
 
 import { registerRender } from './renderRegistry.js';
-import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=debt-paiduntil-authoritative-boundary-20260627-v4b11';
+import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=render-warning-coalescing-20260627-v4b12';
 
 // ─── Core DOM helper ────────────────────────────────────────────────────────
 

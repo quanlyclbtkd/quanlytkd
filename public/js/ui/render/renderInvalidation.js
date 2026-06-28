@@ -69,7 +69,7 @@ import {
 } from './renderRegistry.js';
 
 import { invalidateFinanceRender }   from './computation/financeRenderer.js';
-import { invalidateStudentsRender }  from './computation/studentsRenderer.js?v=debt-paiduntil-authoritative-boundary-20260627-v4b11';
+import { invalidateStudentsRender }  from './computation/studentsRenderer.js?v=render-warning-coalescing-20260627-v4b12';
 import { invalidateInventoryRender } from './computation/inventoryRenderer.js';
 import { invalidateDashboardCache }  from './computation/dashboardRenderer.js';
 
@@ -78,7 +78,7 @@ import {
     refreshListComputation,
     refreshListsComputation,
     getComputationDomainForList,
-} from './listComputationRefresh.js?v=debt-paiduntil-authoritative-boundary-20260627-v4b11';
+} from './listComputationRefresh.js?v=render-warning-coalescing-20260627-v4b12';
 
 // ── Dev helper ────────────────────────────────────────────────────────────────
 function _isDev() {
@@ -135,9 +135,40 @@ function _scheduleIslands(keys) {
 }
 
 // ── [GITHUB-FIX] Store data version bump — buộc computation cache miss ──────
+// Phase 4K-6V4B12: UI-only invalidations (search/filter/load-more) already change
+// computation params or set dataVersion at the source. Bumping again here forced
+// duplicate recomputes and produced Slow computation warning storms.
+function _shouldBumpStoreDataVersion(reason) {
+    const r = String(reason || '').toLowerCase();
+    if (!r) return true;
+    return !(
+        r.includes('search') ||
+        r.includes('filter') ||
+        r.includes('load-more') ||
+        r.includes('pagination') ||
+        r.includes('tab-switch') ||
+        r.includes('debt-overdue') ||
+        r.includes('active-new-filter') ||
+        r.includes('cache-hit') ||
+        r.includes('replay') ||
+        r.includes('local-')
+    );
+}
+function _isListOnlyUiInvalidation(reason) {
+    const r = String(reason || '').toLowerCase();
+    if (!r) return false;
+    return (
+        r.includes('search') ||
+        r.includes('filter-branch') ||
+        r.includes('debt-overdue') ||
+        r.includes('active-new-filter') ||
+        r.includes('load-more') ||
+        r.includes('pagination')
+    ) && !r.includes('filter-month');
+}
 function _bumpStoreDataVersion(reason) {
     try {
-        if (window.__store) {
+        if (window.__store && _shouldBumpStoreDataVersion(reason)) {
             window.__store._dataVersion = (window.__store._dataVersion || 0) + 1;
             window.__store._lastDataVersionReason = reason || 'domain-invalidate';
         }
@@ -301,6 +332,15 @@ export function invalidateTab(tabId, reason) {
         return;
     }
 
+    // Phase 4K-6V4B12: search/filter/load-more are list-only UI changes.
+    // Routing them through full students-domain invalidation cleared the cache and
+    // recomputed all student lists again, producing console warning storms.
+    const listKeys = TAB_TO_LIST_KEYS[tabId];
+    if (_isListOnlyUiInvalidation(reason) && Array.isArray(listKeys) && listKeys.length > 0) {
+        invalidateLists(listKeys, reason || (tabId + '-list-ui-invalidate'));
+        return;
+    }
+
     if (_isDev()) {
         console.debug(
             `[renderInvalidation] 🏷 invalidateTab tabId="${tabId}" ` +
@@ -325,8 +365,16 @@ export function invalidateTab(tabId, reason) {
 const _legacyWarnThrottle = {}; // { [key]: lastWarnTimestamp (ms) }
 const _LEGACY_WARN_THROTTLE_MS = 2000;
 
+function _shouldEmitLegacyRenderWarning() {
+    try {
+        const h = window.location && window.location.hostname || '';
+        return !!window.__ENABLE_LEGACY_RENDER_WARNINGS || h === 'localhost' || h === '127.0.0.1' || h.endsWith('.replit.dev');
+    } catch (_) { return false; }
+}
+
 function _throttledWarn(key, message, reason) {
     try {
+        if (!_shouldEmitLegacyRenderWarning()) return;
         const now = Date.now();
         if (!_legacyWarnThrottle[key] || now - _legacyWarnThrottle[key] > _LEGACY_WARN_THROTTLE_MS) {
             _legacyWarnThrottle[key] = now;
@@ -546,6 +594,17 @@ export function invalidateFinance(reason) {
  * @param {string} [reason]
  */
 export function invalidateStudents(reason) {
+    // Phase 4K-6V4B12: Direct legacy callers may still call invalidateStudents()
+    // for search/filter/load-more. Treat those as list-only and do NOT clear the
+    // whole students cache; otherwise a prior fresh computation gets erased and
+    // recomputed immediately.
+    if (_isListOnlyUiInvalidation(reason)) {
+        const tabId = _getCurrentTabId();
+        const keys = (TAB_TO_LIST_KEYS[tabId] || _STUDENTS_KEYS).filter(k => String(k).startsWith('students.'));
+        invalidateLists(keys.length ? keys : _STUDENTS_KEYS, reason || 'students-list-ui-invalidate');
+        return;
+    }
+
     _checkStorm('students');
 
     // 1. Xóa students computation cache

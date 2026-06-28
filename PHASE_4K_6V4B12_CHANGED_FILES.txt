@@ -1,0 +1,34 @@
+Phase 4K-6V4B12 — Changed Files
+
+Runtime/source:
+- app.js
+- index.html
+- js/main.js
+- js/ui/render.js
+- js/ui/render/renderStudents.js
+- js/ui/render/renderInvalidation.js
+- js/ui/render/listComputationRefresh.js
+- js/ui/render/computation/studentsRenderer.js
+- package.json
+
+Public build copies:
+- public/app.js
+- public/index.html
+- public/js/main.js
+- public/js/ui/render.js
+- public/js/ui/render/renderStudents.js
+- public/js/ui/render/renderInvalidation.js
+- public/js/ui/render/listComputationRefresh.js
+- public/js/ui/render/computation/studentsRenderer.js
+
+Checks/tools:
+- tools/check-render-warning-coalescing-v4b12.mjs
+- tools/check-coach-branch-runtime-repair.mjs
+- tools/check-debt-authoritative-tuition-coverage.mjs
+- tools/check-inventory-ledger-reconciliation.mjs
+- tools/check-quit-tab-mobile-parity.mjs
+
+Docs:
+- PHASE_4K_6V4B12_RENDER_WARNING_COALESCING_REPORT.md
+- PHASE_4K_6V4B12_TEST_SUMMARY.txt
+- PHASE_4K_6V4B12_CHANGED_FILES.txt

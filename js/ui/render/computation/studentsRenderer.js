@@ -190,6 +190,19 @@ const _metrics = {
     lastComputeMs:      0,
 };
 
+
+// Phase 4K-6V4B12: normal production clubs can have 600+ profiles. A 20–45ms
+// computation is expected on mobile/low-end CPUs and should not spam console.
+// Keep warnings for severe cases or explicit local performance debugging only.
+const _STUDENTS_SLOW_WARN_MS = 64;
+function _shouldWarnStudentCompute(ms) {
+    try {
+        if (ms <= _STUDENTS_SLOW_WARN_MS) return false;
+        const h = window.location && window.location.hostname || '';
+        return !!window.__ENABLE_PERF_WARNINGS || h === 'localhost' || h === '127.0.0.1' || h.endsWith('.replit.dev');
+    } catch (_) { return false; }
+}
+
 // ── Explicit invalidation ─────────────────────────────────────────────────────
 
 /**
@@ -706,7 +719,7 @@ export function computeAndCacheStudents(allProfiles, params) {
 
     const ms = performance.now() - t0;
     _metrics.lastComputeMs = ms;
-    if (ms > 16) {
+    if (_shouldWarnStudentCompute(ms)) {
         console.warn(`[studentsRenderer] 🐢 Slow computation: ${ms.toFixed(1)}ms (${Object.keys(allProfiles).length} profiles)`);
     }
     // Phase 4K-6A: record render performance

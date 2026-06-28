@@ -59,7 +59,7 @@ import {
     computeAndCacheStudents,
     getStudentsSummary,
     getStudentsCachedHtml,
-} from './render/computation/studentsRenderer.js?v=debt-paiduntil-authoritative-boundary-20260627-v4b11';
+} from './render/computation/studentsRenderer.js?v=render-warning-coalescing-20260627-v4b12';
 import {
     computeAndCacheInventory,
     getCachedLiveInvMap,
