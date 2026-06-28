@@ -19,7 +19,7 @@
  */
 
 import { registerRender } from './renderRegistry.js';
-import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=profile-canonical-store-regression-hotfix-20260628-v4d1a';
+import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a';
 
 // ─── Core DOM helper ────────────────────────────────────────────────────────
 
@@ -98,11 +98,20 @@ function _getAuthoritativeQuitProfiles() {
         Object.assign(merged, storeQuit);
     } catch (_) {}
     try {
-        const profiles = (window.__store && window.__store.profiles) || {};
+        const canonicalStore = (window.__profileCanonicalStore || (window.ProfileCanonicalStore && window.ProfileCanonicalStore.ensure && window.ProfileCanonicalStore.ensure({ reason: 'quit-list-direct-fallback' }))) || null;
+        const canonicalQuit = canonicalStore && Array.isArray(canonicalStore.quitProfiles) ? canonicalStore.quitProfiles : [];
+        canonicalQuit.forEach(item => {
+            const id = item && (item.rawId || item.profileId || item.displayName);
+            const raw = item && item.raw;
+            if (id && raw && !merged[id]) merged[id] = raw;
+        });
+    } catch (_) {}
+    try {
+        const profiles = Object.assign({}, window.allProfiles || {}, (window.__store && window.__store.profiles) || {});
         Object.entries(profiles).forEach(([id, profile]) => {
             const kind = typeof window.classifyProfileStatus === 'function'
                 ? window.classifyProfileStatus(profile)
-                : (profile && (profile.status === 'quit' || profile.status === 'inactive' || profile.active === false || profile.isActive === false) ? 'quit' : 'active');
+                : (profile && (profile.status === 'quit' || profile.status === 'inactive' || profile.active === false || profile.isActive === false || profile.quitDate || profile.ngayNghi) ? 'quit' : 'active');
             if (kind === 'quit' && id && !merged[id]) merged[id] = profile;
         });
     } catch (_) {}
@@ -219,6 +228,17 @@ export function renderQuitIsland() {
     let _htmlQ = getStudentsCachedHtml('quitRows');
     const _target = document.getElementById('quitList');
     const _quitLoaded = !!(window.studentProfileStore && typeof window.studentProfileStore.isQuitLoaded === 'function' && window.studentProfileStore.isQuitLoaded());
+    const _directPreview = _buildAuthoritativeQuitRows({ mobileFull: true, forceAll: _isQuitMobileViewport() });
+    const _hasDirectQuit = _directPreview && _directPreview.count > 0;
+
+    // Phase 4K-6V4D1A: V4D1 is read-only, but its audit store can be available
+    // before the async quit lazy loader finishes. Do not show a partial/blank
+    // Đã nghỉ tab when local authoritative quit profiles already exist in memory.
+    if (!_quitLoaded && _hasDirectQuit) {
+        _applyHtml(_target, _directPreview.html);
+        _syncQuitMobileControl();
+        return;
+    }
 
     // Phase 4K-6V4B5: mobile authoritative render safety. Mobile can open the
     // tab while lazy quit reconciliation has completed but the computation cache
@@ -228,6 +248,11 @@ export function renderQuitIsland() {
         if (_isQuitMobileViewport()) {
             const direct = _buildAuthoritativeQuitRows({ mobileFull: true, forceAll: true });
             _applyHtml(_target, direct.html || '<tr data-quit-empty="1"><td colspan="7" style="text-align:center;color:#94a3b8;padding:16px;font-size:0.82rem;">Chưa có võ sinh đã nghỉ</td></tr>');
+            _syncQuitMobileControl();
+            return;
+        }
+        if (_hasDirectQuit && (!_htmlQ || (_directPreview.count > ((_htmlQ.match(/data-quit-id=/g) || []).length)))) {
+            _applyHtml(_target, _directPreview.html);
             _syncQuitMobileControl();
             return;
         }

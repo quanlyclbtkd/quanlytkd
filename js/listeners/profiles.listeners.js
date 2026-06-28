@@ -667,15 +667,9 @@ export async function loadQuitProfilesIfNeeded(reason, contextOverride) {
         // Phase 4K-6V4B3: status legacy aliases. Các hồ sơ cũ có thể lưu
         // status='Đã nghỉ'/'Nghỉ tập' thay vì quit/inactive/retired.
         const legacyStatusAliases = [
-            'Đã nghỉ', 'đã nghỉ', 'Da nghi', 'da nghi',
-            'Nghỉ', 'nghỉ', 'Nghi', 'nghi',
-            'Nghỉ tập', 'nghỉ tập', 'Nghi tap', 'nghi tap',
-            'Nghỉ hẳn', 'nghỉ hẳn', 'Nghi han', 'nghi han',
-            'Dừng tập', 'dừng tập', 'Dung tap', 'dung tap',
-            'Ngừng tập', 'ngừng tập', 'Ngung tap', 'ngung tap',
-            'Bỏ tập', 'bỏ tập', 'Bo tap', 'bo tap',
-            'Thôi tập', 'thôi tập', 'Thoi tap', 'thoi tap',
-            'Stopped', 'stopped', 'Left', 'left', 'Stop', 'stop', 'Leave', 'leave'
+            'Đã nghỉ', 'đã nghỉ', 'Nghỉ', 'nghỉ', 'Nghỉ tập', 'nghỉ tập',
+            'Nghi', 'nghi', 'Nghi tap', 'nghi tap', 'Stopped', 'stopped',
+            'Left', 'left', 'Stop', 'stop', 'Leave', 'leave'
         ];
         const existingStatusValues = new Set(quitValues.map(v => String(v).toLowerCase()));
         const aliasValues = legacyStatusAliases.filter(v => !existingStatusValues.has(String(v).toLowerCase()));

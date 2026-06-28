@@ -1,4 +1,4 @@
-// Phase 4K-6V4D1A: active-skip-quit-regression-hotfix-20260628
+// Phase 4K-6V4D1A: profile-canonical-store-runtime-recovery-20260628
     /* Firestore security rules source of truth: ./firestore.rules */
 // LEGACY APP KERNEL — DO NOT DELETE DIRECTLY
 // Responsibilities kept in app.js for now:
@@ -6874,37 +6874,8 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         const fn = typeof window.normalizeTuitionMonth === 'function' ? window.normalizeTuitionMonth : normalizeYYYYMM;
         try { return fn(value) || ''; } catch (_) { return normalizeYYYYMM(value) || ''; }
     }
-    function _legacyFoldStatusForSkipped(value) {
-        try {
-            return String(value == null ? '' : value)
-                .normalize('NFD')
-                .replace(/[\u0300-\u036f]/g, '')
-                .replace(/đ/g, 'd')
-                .replace(/Đ/g, 'D')
-                .toLowerCase()
-                .trim();
-        } catch (_) { return String(value || '').toLowerCase().trim(); }
-    }
-    function _legacyIsMonthlySkipStatus(value) {
-        const folded = _legacyFoldStatusForSkipped(value);
-        return !!folded && (/\b(bao nghi|bao nghi thang|nghi thang|tam nghi thang|mien hoc phi|mien phi|xin nghi thang)\b/.test(folded)
-            || folded === 'bao nghi'
-            || folded === 'bao nghi thang'
-            || folded === 'nghi thang'
-            || folded === 'tam nghi thang');
-    }
-    function _legacyHasPermanentQuitSignal(profile) {
+    function _legacyIsActiveForSkipped(profile) {
         const p = profile || {};
-        if (p.quit === true || p.isQuit === true || p.stopped === true || p.active === false || p.isActive === false) return true;
-        const dateFields = ['quitDate', 'ngayNghi', 'inactiveDate', 'stoppedDate', 'leftDate', 'nghiDate'];
-        if (dateFields.some(k => p[k] !== undefined && p[k] !== null && String(p[k]).trim() !== '')) return true;
-        const st = _legacyFoldStatusForSkipped(p.status || p.state || p.trainingStatus || '');
-        if (_legacyIsMonthlySkipStatus(st)) return false;
-        return /\b(quit|inactive|retired|stopped|left|da nghi|nghi tap|nghi han|dung tap|ngung tap|bo tap|thoi tap)\b/.test(st);
-    }
-    function _legacyIsActiveForSkipped(profile, selectedMonth) {
-        const p = profile || {};
-        if (_legacyHasSkippedMonth(p, selectedMonth) && !_legacyHasPermanentQuitSignal(p)) return true;
         try {
             if (typeof window.deriveProfileCanonicalState === 'function') {
                 const c = window.deriveProfileCanonicalState(p) || {};
@@ -6915,7 +6886,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             const kind = typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus(p) : String(p.status || 'active');
             return String(kind || '').toLowerCase() !== 'quit';
         } catch (_) {
-            return !_legacyHasPermanentQuitSignal(p);
+            return String(p.status || 'active').toLowerCase() !== 'quit';
         }
     }
     function _legacyHasSkippedMonth(profile, selectedMonth) {
@@ -6927,8 +6898,48 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
     function _legacySkippedNamesForMonth(profiles, selectedMonth) {
         return Object.keys(profiles || {}).filter(function(n) {
             const pr = profiles[n] || {};
-            return _legacyHasSkippedMonth(pr, selectedMonth) && _legacyIsActiveForSkipped(pr, selectedMonth);
+            return _legacyIsActiveForSkipped(pr) && _legacyHasSkippedMonth(pr, selectedMonth);
         });
+    }
+    function _legacyProfilesForSmallUi() {
+        const merged = {};
+        try {
+            const compat = window.studentProfileStore && typeof window.studentProfileStore.getAllProfilesCompat === 'function'
+                ? (window.studentProfileStore.getAllProfilesCompat() || {})
+                : {};
+            Object.assign(merged, compat);
+        } catch (_) {}
+        try { Object.assign(merged, allProfiles || {}); } catch (_) {}
+        try { Object.assign(merged, window.allProfiles || {}); } catch (_) {}
+        try { Object.assign(merged, (window.__store || {}).profiles || {}); } catch (_) {}
+        return Object.keys(merged).length ? merged : (allProfiles || {});
+    }
+    function _legacyRefreshSmallStudentUi() {
+        try { if (typeof window._renderHomeBirthdayBanner === 'function') window._renderHomeBirthdayBanner(); } catch (_) {}
+        try {
+            const _curTabEl = document.querySelector('.tab-content.active');
+            const _curTabId = _curTabEl ? _curTabEl.id.replace('tab_', '') : 'tx';
+            if (_curTabId === 'active') {
+                const _fm = document.getElementById('filterMonth');
+                const _m = _legacyNormalizeSkippedMonth(_fm ? _fm.value : '') || (_fm ? _fm.value : '');
+                const _names = _legacySkippedNamesForMonth(_legacyProfilesForSmallUi(), _m);
+                const _section = document.getElementById('skippedSection');
+                if (_section) {
+                    if (_names.length > 0) {
+                        _section.classList.remove('hidden');
+                        const _title = document.getElementById('skippedSectionTitle');
+                        const _list = document.getElementById('skippedThisMonthList');
+                        if (_title) _title.innerText = `⏸ Báo nghỉ tháng ${formatMonth(_m)} — ${_names.length} võ sinh miễn học phí`;
+                        if (_list) _list.innerHTML = _names.sort().map(n => `<span class="badge bg-amber-200 text-amber-900 border border-amber-400 shadow-sm cursor-pointer hover:bg-amber-300" onclick="openProfile('${String(n).replace(/'/g,"\'")}')" title="Bấm để xem hồ sơ">${n}</span>`).join('');
+                    } else {
+                        _section.classList.add('hidden');
+                        const _list = document.getElementById('skippedThisMonthList');
+                        if (_list) _list.innerHTML = '';
+                    }
+                }
+            }
+            if (_curTabId === 'quit' && typeof window.renderQuitList === 'function') window.renderQuitList({ reason: 'legacy-small-ui-refresh' });
+        } catch (_) {}
     }
 
     function renderApp(reason) {
@@ -6942,7 +6953,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         if(window.userRole === 'super_admin') return;
         // [PERF FIX] Skip render nếu data chưa thay đổi kể từ lần render cuối.
         // Ngăn re-render vô ích khi onSnapshot fire liên tiếp mà không có dữ liệu mới.
-        if(_dataVersion === _lastRenderedVersion) return;
+        if(_dataVersion === _lastRenderedVersion) { _legacyRefreshSmallStudentUi(); return; }
         _lastRenderedVersion = _dataVersion;
         // [THÊM MỚI] Cập nhật banner sinh nhật tại phần Thông tin chung
         // mỗi khi dữ liệu thay đổi để luôn hiện ngày sinh nhật hôm nay.

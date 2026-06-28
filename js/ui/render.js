@@ -59,7 +59,7 @@ import {
     computeAndCacheStudents,
     getStudentsSummary,
     getStudentsCachedHtml,
-} from './render/computation/studentsRenderer.js?v=profile-canonical-store-regression-hotfix-20260628-v4d1a';
+} from './render/computation/studentsRenderer.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a';
 import {
     computeAndCacheInventory,
     getCachedLiveInvMap,
@@ -103,6 +103,40 @@ function _requestCurrentTabIslands(tabId) {
 
 // Bridge helpers — đọc tại call-time từ window.__store hoặc fallback legacy
 function _profiles()     { return (window.__store || {}).profiles     || window.allProfiles     || {}; }
+
+// Phase 4K-6V4D1A: read-only canonical audit must not starve legacy UI sections.
+// Some small global widgets (birthday banner / active skipped-month header / quit
+// direct fallback) live outside the heavy list cache. They must be refreshed even
+// when renderApp correctly skips heavy recomputation because dataVersion is unchanged.
+function _profilesForSmallUi() {
+    const merged = {};
+    try {
+        const compat = window.studentProfileStore && typeof window.studentProfileStore.getAllProfilesCompat === 'function'
+            ? (window.studentProfileStore.getAllProfilesCompat() || {})
+            : {};
+        Object.assign(merged, compat);
+    } catch (_) {}
+    try { Object.assign(merged, window.allProfiles || {}); } catch (_) {}
+    try { Object.assign(merged, (window.__store || {}).profiles || {}); } catch (_) {}
+    return Object.keys(merged).length ? merged : _profiles();
+}
+
+function _refreshSmallStudentUi(tabId, reason) {
+    try {
+        if (typeof window._renderHomeBirthdayBanner === 'function') window._renderHomeBirthdayBanner();
+    } catch (_) {}
+    try {
+        if (tabId === 'active') {
+            const fmEl = document.getElementById('filterMonth');
+            _renderSkippedMonthSection(_profilesForSmallUi(), fmEl ? fmEl.value : '');
+        }
+    } catch (_) {}
+    try {
+        if (tabId === 'quit' && typeof window.renderQuitList === 'function') {
+            window.renderQuitList({ reason: reason || 'small-ui-refresh' });
+        }
+    } catch (_) {}
+}
 function _transactions() { return (window.__store || {}).transactions || window.allTransactions || []; }
 function _inventory()    { return (window.__store || {}).inventory    || window.allInventory    || []; }
 function _config()       { return (window.__store || {}).clubConfig   || window.clubConfig      || {}; }
@@ -145,40 +179,8 @@ function _normalizeSkippedMonthValue(value) {
     try { return fn(value) || ''; } catch (_) { return normalizeYYYYMM(value) || ''; }
 }
 
-function _foldSkippedStatus(value) {
-    try {
-        return String(value == null ? '' : value)
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '')
-            .replace(/đ/g, 'd')
-            .replace(/Đ/g, 'D')
-            .toLowerCase()
-            .trim();
-    } catch (_) { return String(value || '').toLowerCase().trim(); }
-}
-
-function _isMonthlySkipStatusValue(value) {
-    const folded = _foldSkippedStatus(value);
-    return !!folded && (/\b(bao nghi|bao nghi thang|nghi thang|tam nghi thang|mien hoc phi|mien phi|xin nghi thang)\b/.test(folded)
-        || folded === 'bao nghi'
-        || folded === 'bao nghi thang'
-        || folded === 'nghi thang'
-        || folded === 'tam nghi thang');
-}
-
-function _hasPermanentQuitSignal(profile) {
+function _isActiveProfileForSkippedSection(profile) {
     const p = profile || {};
-    if (p.quit === true || p.isQuit === true || p.stopped === true || p.active === false || p.isActive === false) return true;
-    const dateFields = ['quitDate', 'ngayNghi', 'inactiveDate', 'stoppedDate', 'leftDate', 'nghiDate'];
-    if (dateFields.some(k => p[k] !== undefined && p[k] !== null && String(p[k]).trim() !== '')) return true;
-    const status = _foldSkippedStatus(p.status || p.state || p.trainingStatus || '');
-    if (_isMonthlySkipStatusValue(status)) return false;
-    return /\b(quit|inactive|retired|stopped|left|da nghi|nghi tap|nghi han|dung tap|ngung tap|bo tap|thoi tap)\b/.test(status);
-}
-
-function _isActiveProfileForSkippedSection(profile, selectedMonth) {
-    const p = profile || {};
-    if (_hasSkippedMonthForSelectedMonth(p, selectedMonth) && !_hasPermanentQuitSignal(p)) return true;
     try {
         if (typeof window !== 'undefined' && typeof window.deriveProfileCanonicalState === 'function') {
             const canonical = window.deriveProfileCanonicalState(p) || {};
@@ -191,7 +193,7 @@ function _isActiveProfileForSkippedSection(profile, selectedMonth) {
             : String(p.status || 'active');
         return String(kind || '').toLowerCase() !== 'quit';
     } catch (_) {
-        return !_hasPermanentQuitSignal(p);
+        return String(p.status || 'active').toLowerCase() !== 'quit';
     }
 }
 
@@ -205,7 +207,7 @@ function _hasSkippedMonthForSelectedMonth(profile, selectedMonth) {
 function _getSkippedMonthNames(allProfiles, selectedMonth) {
     return Object.keys(allProfiles || {}).filter(name => {
         const profile = allProfiles[name] || {};
-        return _hasSkippedMonthForSelectedMonth(profile, selectedMonth) && _isActiveProfileForSkippedSection(profile, selectedMonth);
+        return _isActiveProfileForSkippedSection(profile) && _hasSkippedMonthForSelectedMonth(profile, selectedMonth);
     });
 }
 
@@ -243,15 +245,12 @@ function renderApp() {
 
     const _dv = (window.__store || {})._dataVersion || 0;
     if (_dv !== 0 && _dv === _lastRendered) {
-        // Phase 4K-6V4C2: tab/month-only render calls may happen without a data
-        // version change. Keep the Active-tab skipped-month header in sync even
-        // when the heavy list computation is correctly skipped.
+        // Phase 4K-6V4D1A: tab/month-only render calls may happen without a data
+        // version change. Keep small global UI regions in sync even when the heavy
+        // list computation is correctly skipped.
         const earlyTabEl = document.querySelector('.tab-content.active');
         const earlyTabId = earlyTabEl ? earlyTabEl.id.replace('tab_', '') : '';
-        if (earlyTabId === 'active') {
-            const fmEl = document.getElementById('filterMonth');
-            _renderSkippedMonthSection(_profiles(), fmEl ? fmEl.value : '');
-        }
+        _refreshSmallStudentUi(earlyTabId, 'renderApp-dataVersion-unchanged');
         return;
     }
     _lastRendered = _dv;

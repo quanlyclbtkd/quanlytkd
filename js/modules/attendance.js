@@ -610,7 +610,10 @@ export function initAttendance() {
         Object.entries(_profiles() || {}).forEach(([name, p]) => {
             if (!isActiveProfileForAttendance(p)) return;
             if (coachBr && !_sameBranch(p.branch, coachBr)) return;
-            const dob = p.dob || '';
+            // Phase 4K-6V4D1A: birthday banner must accept all legacy DOB fields.
+            // Some profiles imported from Excel use birthDate/birthday/ngaySinh instead
+            // of dob, so the banner was hidden even though birthday data existed.
+            const dob = p.dob || p.birthDate || p.birthday || p.dateOfBirth || p.ngaySinh || p.ngay_sinh || '';
             if (!dob) return;
             let dobDay, dobMon, dobYear;
             if (dob.includes('/')) { const dp = dob.split('/'); dobDay = (dp[0]||'').padStart(2,'0'); dobMon = (dp[1]||'').padStart(2,'0'); dobYear = dp[2]||''; }

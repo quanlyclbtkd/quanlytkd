@@ -66,8 +66,6 @@ const PROFILE_STATUS_CONFIG_DEFAULT = Object.freeze({
     quitAliases: [
         'đã nghỉ', 'da nghi', 'nghỉ', 'nghi',
         'nghỉ tập', 'nghi tap', 'nghỉ hẳn', 'nghi han',
-        'dừng tập', 'dung tap', 'ngừng tập', 'ngung tap',
-        'bỏ tập', 'bo tap', 'thôi tập', 'thoi tap',
         'stopped', 'left', 'quit', 'inactive',
         'retired', 'stop', 'leave',
     ],
@@ -88,29 +86,6 @@ const PROFILE_STATUS_CONFIG_DEFAULT = Object.freeze({
  * Khởi tạo từ default, merge khi debug override.
  */
 let _config = { ...PROFILE_STATUS_CONFIG_DEFAULT };
-
-function _foldStatusText(value) {
-    return String(value ?? '')
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .toLowerCase()
-        .trim();
-}
-
-/**
- * Nhận diện trạng thái báo nghỉ/miễn học phí theo tháng.
- * Đây KHÔNG phải là nghỉ tập hẳn, vì vậy không được đưa vào tab Đã nghỉ
- * và không được làm ẩn võ sinh khỏi tab Đang tập/Báo nghỉ tháng.
- */
-export function isMonthlySkipStatusValue(value) {
-    const folded = _foldStatusText(value);
-    if (!folded) return false;
-    return /\b(bao nghi|nghi thang|tam nghi thang|mien hoc phi|mien phi|bao nghi thang|xin nghi thang)\b/.test(folded)
-        || folded === 'bao nghi'
-        || folded === 'bao nghi thang'
-        || folded === 'nghi thang'
-        || folded === 'tam nghi thang';
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PUBLIC API
@@ -261,14 +236,12 @@ export function classifyProfileStatus(profile) {
         const _rawQ = String(profile.status ?? '').toLowerCase().trim();
         const _quitQ = _config.quitQueryValues || ['quit', 'inactive'];
         if (_quitQ.some(v => v.toLowerCase() === _rawQ)) return 'quit';
-        if (isMonthlySkipStatusValue(_rawQ)) return 'active';
-        if (_rawQ.includes('đã nghỉ') || _rawQ.includes('da nghi') || _rawQ.includes('nghỉ tập') || _rawQ.includes('nghi tap') || _rawQ.includes('nghỉ hẳn') || _rawQ.includes('nghi han') || _rawQ.includes('dừng tập') || _rawQ.includes('dung tap') || _rawQ.includes('bỏ tập') || _rawQ.includes('bo tap')) return 'quit';
+        if (_rawQ.includes('nghỉ') || _rawQ.includes('nghi')) return 'quit';
         return 'active';
     }
 
     const raw    = profile?.status;
     const status = String(raw ?? '').toLowerCase().trim();
-    if (isMonthlySkipStatusValue(status)) return 'active';
 
     // ── 3. Status rỗng/thiếu → active (legacy compat) ───────────────────────
     // Legacy profiles without status are treated as active unless explicitly quit.
@@ -292,8 +265,7 @@ export function classifyProfileStatus(profile) {
 
     // ── 8. Substring fallback: tiếng Việt dự phòng ──────────────────────────
     if (status.includes('đang') || status.includes('dang')) return 'active';
-    if (isMonthlySkipStatusValue(status)) return 'active';
-    if (status.includes('đã nghỉ') || status.includes('da nghi') || status.includes('nghỉ tập') || status.includes('nghi tap') || status.includes('nghỉ hẳn') || status.includes('nghi han') || status.includes('dừng tập') || status.includes('dung tap') || status.includes('ngừng tập') || status.includes('ngung tap') || status.includes('bỏ tập') || status.includes('bo tap') || status.includes('thôi tập') || status.includes('thoi tap') || status.includes('stop') || status.includes('left')) return 'quit';
+    if (status.includes('nghỉ') || status.includes('nghi') || status.includes('stop') || status.includes('left')) return 'quit';
 
     // ── 9. Unknown status → active (legacy compat, không phải 'other') ───────
     // Legacy profiles without recognizable status are treated as active.

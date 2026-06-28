@@ -97,7 +97,7 @@ profilesWithWarnings
 ## Cache-bust
 
 ```text
-profile-canonical-store-regression-hotfix-20260628-v4d1a
+profile-canonical-store-20260628-v4d1
 ```
 
 ## Kết quả đánh giá sau cập nhật

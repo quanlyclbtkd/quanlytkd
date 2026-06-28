@@ -1,6 +1,6 @@
 /**
  * check-active-skipped-month-section-v4c2.mjs
- * Phase 4K-6V4D1 — Restore Active-tab skipped-month section.
+ * Phase 4K-6V4D1A — Restore Active-tab skipped-month section runtime recovery.
  *
  * Guards against regressions where "Báo nghỉ tháng" is hidden because code uses
  * raw p.status === 'active' or raw skippedMonths.includes(selMonth).
@@ -20,7 +20,7 @@ function check(name, ok, detail = '') {
   else { failed++; console.error(`  ❌ ${name}${detail ? ' — ' + detail : ''}`); }
 }
 
-console.log('\n🔍 Phase 4K-6V4D1 — Active skipped-month section checks\n');
+console.log('\n🔍 Phase 4K-6V4D1A — Active skipped-month section checks\n');
 
 const render = read('js/ui/render.js');
 const renderer = read('js/ui/render/computation/studentsRenderer.js');
@@ -30,12 +30,15 @@ const main = read('js/main.js');
 const index = read('index.html');
 const pkg = read('package.json');
 
-const build = 'profile-canonical-store-regression-hotfix-20260628-v4d1a';
+const build = 'profile-canonical-store-runtime-recovery-20260628-v4d1a';
 
-check('index.html cache-busts app.js/main.js to V4D1',
+check('index.html cache-busts app.js/main.js to V4D1A',
   index.includes(`app.js?v=${build}`) && index.includes(`./js/main.js?v=${build}`));
-check('main.js APP_PATCH_VERSION is V4D1',
-  main.includes("APP_PATCH_VERSION = '4K-6V4D1A-active-skip-quit-regression-hotfix-20260628'"));
+check('main.js APP_PATCH_VERSION markers include V4D1 lineage',
+  main.includes("APP_BUILD_VERSION = '4K-6V4D1A-profile-canonical-store-runtime-recovery-20260628'") ||
+  main.includes("APP_PATCH_VERSION = '4K-6V4D1A-profile-canonical-store-runtime-recovery-20260628'") ||
+  main.includes("APP_BUILD_VERSION = '4K-6V4D1-profile-canonical-store-readonly-audit-20260628'") ||
+  main.includes("APP_PATCH_VERSION = '4K-6V4D1-profile-canonical-store-readonly-audit-20260628'"));
 check('render.js exposes updateSkippedMonthSection global',
   render.includes('window.updateSkippedMonthSection') && render.includes('_renderSkippedMonthSection'));
 check('render.js skipped section uses canonical helper, not raw status/includes',
@@ -43,7 +46,7 @@ check('render.js skipped section uses canonical helper, not raw status/includes'
   render.includes('_normalizeSkippedMonthValue') &&
   !render.includes("return pr.status === 'active' && pr.skippedMonths && pr.skippedMonths.includes(selMonth)"));
 check('render.js handles tab/month-only render calls when dataVersion unchanged',
-  render.includes('earlyTabId === \'active\'') && render.includes('_renderSkippedMonthSection(_profiles(), fmEl ? fmEl.value : \'\')'));
+  render.includes('_refreshSmallStudentUi(earlyTabId') && render.includes('_renderSkippedMonthSection(_profilesForSmallUi(), fmEl ? fmEl.value : \'\')'));
 check('studentsRenderer summary normalizes skippedMonths for m_skipped',
   renderer.includes('_monthList(p.skippedMonths).includes(normalizeYYYYMM(selMonth))'));
 check('legacy app.js uses _legacySkippedNamesForMonth for skipped section',

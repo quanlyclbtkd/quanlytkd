@@ -1,33 +1,30 @@
-  M PHASE_4K_6V4D1_PROFILE_CANONICAL_STORE_READONLY_AUDIT_REPORT.md
-  M app.js
-  M index.html
-  M js/core/profileCanonicalStore.js
-  M js/core/tuitionDebtCanonical.js
-  M js/data/profileStatusConfig.js
-  M js/listeners/profiles.listeners.js
-  M js/main.js
-  M js/ui/render.js
-  M js/ui/render/listComputationRefresh.js
-  M js/ui/render/renderInvalidation.js
-  M js/ui/render/renderStudents.js
-  M package.json
-  M public/app.js
-  M public/index.html
-  M public/js/core/profileCanonicalStore.js
-  M public/js/core/tuitionDebtCanonical.js
-  M public/js/data/profileStatusConfig.js
-  M public/js/listeners/profiles.listeners.js
-  M public/js/main.js
-  M public/js/ui/render.js
-  M public/js/ui/render/listComputationRefresh.js
-  M public/js/ui/render/renderInvalidation.js
-  M public/js/ui/render/renderStudents.js
-  M tools/check-active-skipped-month-section-v4c2.mjs
-  M tools/check-coach-branch-runtime-repair.mjs
-  M tools/check-debt-authoritative-tuition-coverage.mjs
-  M tools/check-inventory-ledger-reconciliation.mjs
-  M tools/check-profile-canonical-store-v4d1.mjs
-  M tools/check-quit-tab-mobile-parity.mjs
-  M tools/check-render-warning-coalescing-v4b12.mjs
-  M tools/check-tuition-debt-source-of-truth-v4c.mjs
- ?? tools/check-active-skip-quit-regression-v4d1a.mjs
+app.js
+index.html
+js/main.js
+js/modules/attendance.js
+js/ui/render/listComputationRefresh.js
+js/ui/render/renderInvalidation.js
+js/ui/render/renderStudents.js
+js/ui/render.js
+package.json
+public/app.js
+public/index.html
+public/js/main.js
+public/js/modules/attendance.js
+public/js/ui/render/listComputationRefresh.js
+public/js/ui/render/renderInvalidation.js
+public/js/ui/render/renderStudents.js
+public/js/ui/render.js
+public/package.json
+tools/check-active-skipped-month-section-v4c2.mjs
+tools/check-coach-branch-runtime-repair.mjs
+tools/check-debt-authoritative-tuition-coverage.mjs
+tools/check-inventory-ledger-reconciliation.mjs
+tools/check-profile-canonical-store-v4d1.mjs
+tools/check-quit-tab-mobile-parity.mjs
+tools/check-render-warning-coalescing-v4b12.mjs
+tools/check-tuition-debt-source-of-truth-v4c.mjs
+tools/check-v4d1a-runtime-recovery.mjs
+PHASE_4K_6V4D1A_RUNTIME_SMALL_UI_RECOVERY_REPORT.md
+PHASE_4K_6V4D1A_TEST_SUMMARY.txt
+PHASE_4K_6V4D1A_CHANGED_FILES.txt

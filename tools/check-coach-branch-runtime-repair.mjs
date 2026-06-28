@@ -23,12 +23,12 @@ function check(name, ok, detail = '') {
 
 console.log('\n=== Phase 4K-6V4B1 — Coach Branch Runtime Repair ===\n');
 
-const appEntrypointBuilds = ['profile-canonical-store-regression-hotfix-20260628-v4d1a', 'tuition-debt-source-of-truth-20260628-v4c', 'profile-canonical-store-regression-hotfix-20260628-v4d1a'];
+const appEntrypointBuilds = ['profile-canonical-store-runtime-recovery-20260628-v4d1a', 'profile-canonical-store-20260628-v4d1', 'tuition-debt-source-of-truth-20260628-v4c'];
 check('Production entrypoints keep V4B1 branch repair and load current runtime cache marker',
   (index.match(/coach-branch-runtime-repair-20260627-v4b1/g) || []).length >= 5 &&
   appEntrypointBuilds.some(build => index.includes(`app.js?v=${build}`)) &&
-  index.includes('./js/main.js?v=profile-canonical-store-regression-hotfix-20260628-v4d1a') &&
-  main.includes("profiles.listeners.js?v=profile-canonical-store-regression-hotfix-20260628-v4d1a") &&
+  (index.includes('./js/main.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a') || index.includes('./js/main.js?v=profile-canonical-store-20260628-v4d1')) &&
+  (main.includes("profiles.listeners.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a") || main.includes("profiles.listeners.js?v=profile-canonical-store-20260628-v4d1")) &&
   main.includes("attendance.js?v=coach-branch-runtime-repair-20260627-v4b1"));
 check('Coach creation requires one concrete branch',
   repair.includes("if (!name || !email || !branch || pass.length < 6)") &&
