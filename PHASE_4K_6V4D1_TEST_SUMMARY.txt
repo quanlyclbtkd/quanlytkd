@@ -1,0 +1,56 @@
+Phase 4K-6V4D1 — Profile Canonical Store Read-only Audit
+
+Completed targeted and critical validation:
+
+PASS: npm run check:profile-canonical-store
+  - 27/27 checks passed
+  - profileCanonicalStore.js exists in root and public mirror
+  - index loads profileCanonicalStore after tuitionDebtCanonical and before app.js
+  - no Firestore read/write APIs in profile canonical store
+  - getProfileCanonicalStoreStatus / auditProfileCanonicalStore / debugProfileCanonical exported
+  - canonical status/branch/month/search index behavior verified in VM
+
+PASS: npm run check:syntax
+  - 236 items checked
+  - 228 JS files
+  - 8 inline scripts
+
+PASS: npm run check:active-skipped-month-section
+  - 11/11 checks passed
+
+PASS: npm run check:tuition-debt-source-of-truth
+  - all checks passed
+
+PASS: npm run check:debt-authoritative-tuition-coverage
+  - 32/32 checks passed
+
+PASS: npm run check:debt-profile-read-boundary
+  - 23/23 checks passed
+
+PASS: npm run check:render-warning-coalescing
+  - 14/14 checks passed
+
+PASS: npm run check:coach-attendance-only-read-boundary
+  - 30/30 checks passed
+
+PASS: npm run check:security-coach-branch-boundary
+  - 35/35 checks passed
+
+PASS: npm run check:quit-tab-mobile-parity
+  - 17/17 checks passed
+
+PASS: npm run check:all:critical
+  - Completed successfully in this environment
+  - Includes new check:profile-canonical-store gate
+
+PASS: npm run check:deploy-package
+  - 12/12 checks passed
+
+PASS: npm run check:github-pages-paths
+  - 18/18 checks passed
+
+PASS: npm run check:firestore-indexes
+  - 16/16 checks passed
+
+Note:
+- The full npm run check suite is very long in this container. It was validated by running its child gates and critical suite; all listed gates passed.

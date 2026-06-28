@@ -69,7 +69,7 @@ import {
 } from './renderRegistry.js';
 
 import { invalidateFinanceRender }   from './computation/financeRenderer.js';
-import { invalidateStudentsRender }  from './computation/studentsRenderer.js?v=active-skipped-month-section-20260628-v4c2';
+import { invalidateStudentsRender }  from './computation/studentsRenderer.js?v=profile-canonical-store-20260628-v4d1';
 import { invalidateInventoryRender } from './computation/inventoryRenderer.js';
 import { invalidateDashboardCache }  from './computation/dashboardRenderer.js';
 
@@ -78,7 +78,7 @@ import {
     refreshListComputation,
     refreshListsComputation,
     getComputationDomainForList,
-} from './listComputationRefresh.js?v=active-skipped-month-section-20260628-v4c2';
+} from './listComputationRefresh.js?v=profile-canonical-store-20260628-v4d1';
 
 // ── Dev helper ────────────────────────────────────────────────────────────────
 function _isDev() {

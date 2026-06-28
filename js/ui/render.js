@@ -59,7 +59,7 @@ import {
     computeAndCacheStudents,
     getStudentsSummary,
     getStudentsCachedHtml,
-} from './render/computation/studentsRenderer.js?v=active-skipped-month-section-20260628-v4c2';
+} from './render/computation/studentsRenderer.js?v=profile-canonical-store-20260628-v4d1';
 import {
     computeAndCacheInventory,
     getCachedLiveInvMap,

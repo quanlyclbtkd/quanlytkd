@@ -1,6 +1,6 @@
 /**
  * check-active-skipped-month-section-v4c2.mjs
- * Phase 4K-6V4C2 — Restore Active-tab skipped-month section.
+ * Phase 4K-6V4D1 — Restore Active-tab skipped-month section.
  *
  * Guards against regressions where "Báo nghỉ tháng" is hidden because code uses
  * raw p.status === 'active' or raw skippedMonths.includes(selMonth).
@@ -20,7 +20,7 @@ function check(name, ok, detail = '') {
   else { failed++; console.error(`  ❌ ${name}${detail ? ' — ' + detail : ''}`); }
 }
 
-console.log('\n🔍 Phase 4K-6V4C2 — Active skipped-month section checks\n');
+console.log('\n🔍 Phase 4K-6V4D1 — Active skipped-month section checks\n');
 
 const render = read('js/ui/render.js');
 const renderer = read('js/ui/render/computation/studentsRenderer.js');
@@ -30,12 +30,12 @@ const main = read('js/main.js');
 const index = read('index.html');
 const pkg = read('package.json');
 
-const build = 'active-skipped-month-section-20260628-v4c2';
+const build = 'profile-canonical-store-20260628-v4d1';
 
-check('index.html cache-busts app.js/main.js to V4C2',
+check('index.html cache-busts app.js/main.js to V4D1',
   index.includes(`app.js?v=${build}`) && index.includes(`./js/main.js?v=${build}`));
-check('main.js APP_PATCH_VERSION is V4C2',
-  main.includes("APP_PATCH_VERSION = '4K-6V4C2-active-skipped-month-section-20260628'"));
+check('main.js APP_PATCH_VERSION is V4D1',
+  main.includes("APP_PATCH_VERSION = '4K-6V4D1-profile-canonical-store-readonly-audit-20260628'"));
 check('render.js exposes updateSkippedMonthSection global',
   render.includes('window.updateSkippedMonthSection') && render.includes('_renderSkippedMonthSection'));
 check('render.js skipped section uses canonical helper, not raw status/includes',

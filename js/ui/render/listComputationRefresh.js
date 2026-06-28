@@ -44,7 +44,7 @@ import {
 import {
     computeAndCacheStudents,
     getStudentsSummary,
-} from './computation/studentsRenderer.js?v=active-skipped-month-section-20260628-v4c2';
+} from './computation/studentsRenderer.js?v=profile-canonical-store-20260628-v4d1';
 import {
     computeAndCacheInventory,
     getCachedUnpaidInvCount,

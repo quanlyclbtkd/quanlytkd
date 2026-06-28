@@ -1,4 +1,4 @@
-// Phase 4K-6V4C2: active-skipped-month-section-20260628
+// Phase 4K-6V4D1: profile-canonical-store-readonly-audit-20260628
     /* Firestore security rules source of truth: ./firestore.rules */
 // LEGACY APP KERNEL — DO NOT DELETE DIRECTLY
 // Responsibilities kept in app.js for now:
