@@ -26,7 +26,7 @@ console.log('\n=== Phase 4K-6V2C — Inventory Ledger Reconciliation ===\n');
 
 check('Runtime exposes V2C patch marker', main.includes("window.APP_PATCH_VERSION = '4K-6V2C-inventory-ledger-reconciliation-20260616'"));
 check('Index deploys V2C cache bust', index.includes('inventory-ledger-reconciliation-20260616-v2c'));
-check('Changed inventory/student/finance modules are cache-busted', main.includes("modules/students.js?v=tuition-debt-source-of-truth-aggregation-guard-20260628-v4c1") && main.includes("modules/finance.js?v=inventory-ledger-reconciliation-20260616-v2c") && main.includes("modules/inventory.js?v=inventory-ledger-reconciliation-20260616-v2c"));
+check('Changed inventory/student/finance modules are cache-busted', main.includes("modules/students.js?v=active-skipped-month-section-20260628-v4c2") && main.includes("modules/finance.js?v=inventory-ledger-reconciliation-20260616-v2c") && main.includes("modules/inventory.js?v=inventory-ledger-reconciliation-20260616-v2c"));
 check('Changed service imports are cache-busted', invModule.includes("inventory.service.js?v=inventory-ledger-reconciliation-20260616-v2c") && financeService.includes("inventory.service.js?v=inventory-ledger-reconciliation-20260616-v2c"));
 check('History page uses date-desc cursor so repaired legacy rows remain queryable', app.includes("const constraints = [orderBy('date', 'desc')]") && app.includes('startAfter(cursor)'));
 check('New inventory writes always provide date and timestamp', service.includes('if (!payload.timestamp) payload.timestamp = Date.now()') && service.includes('if (!payload.date'));

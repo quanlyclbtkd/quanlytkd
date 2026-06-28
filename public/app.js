@@ -1,4 +1,4 @@
-// Phase 4K-6V4C1: tuition-debt-source-of-truth-aggregation-guard-20260628
+// Phase 4K-6V4C2: active-skipped-month-section-20260628
     /* Firestore security rules source of truth: ./firestore.rules */
 // LEGACY APP KERNEL — DO NOT DELETE DIRECTLY
 // Responsibilities kept in app.js for now:
@@ -6866,6 +6866,42 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             .replace(/\s+/g, ' ');
     }
 
+
+    // Phase 4K-6V4C2: canonical skipped-month helpers for the Active tab header.
+    // Legacy fallback render must not hide skipped-month students because of
+    // status aliases or month strings like "Tháng Sáu 2026".
+    function _legacyNormalizeSkippedMonth(value) {
+        const fn = typeof window.normalizeTuitionMonth === 'function' ? window.normalizeTuitionMonth : normalizeYYYYMM;
+        try { return fn(value) || ''; } catch (_) { return normalizeYYYYMM(value) || ''; }
+    }
+    function _legacyIsActiveForSkipped(profile) {
+        const p = profile || {};
+        try {
+            if (typeof window.deriveProfileCanonicalState === 'function') {
+                const c = window.deriveProfileCanonicalState(p) || {};
+                if (c.statusCanonical) return c.statusCanonical === 'active';
+            }
+        } catch (_) {}
+        try {
+            const kind = typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus(p) : String(p.status || 'active');
+            return String(kind || '').toLowerCase() !== 'quit';
+        } catch (_) {
+            return String(p.status || 'active').toLowerCase() !== 'quit';
+        }
+    }
+    function _legacyHasSkippedMonth(profile, selectedMonth) {
+        const target = _legacyNormalizeSkippedMonth(selectedMonth);
+        if (!target) return false;
+        const arr = Array.isArray(profile && profile.skippedMonths) ? profile.skippedMonths : [];
+        return arr.some(function(m) { return _legacyNormalizeSkippedMonth(m) === target; });
+    }
+    function _legacySkippedNamesForMonth(profiles, selectedMonth) {
+        return Object.keys(profiles || {}).filter(function(n) {
+            const pr = profiles[n] || {};
+            return _legacyIsActiveForSkipped(pr) && _legacyHasSkippedMonth(pr, selectedMonth);
+        });
+    }
+
     function renderApp(reason) {
         // [Phase 4K-6H] Metrics
         window.LegacyRenderEntrypoints?.recordLegacyRenderCall?.(
@@ -7190,7 +7226,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             const _quitM = p.quitDate ? p.quitDate.substring(0, 7) : null;
             if (_joinM === selMonth) m_new++;
             if (_quitM === selMonth) m_quit++;
-            if (_joinM <= selMonth && (!_quitM || _quitM >= selMonth)) { m_active_theo++; if (p.skippedMonths && p.skippedMonths.includes(selMonth)) m_skipped++; }
+            if (_joinM <= selMonth && (!_quitM || _quitM >= selMonth)) { m_active_theo++; if (_legacyHasSkippedMonth(p, selMonth)) m_skipped++; }
             if((typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus(p) : p.status) === 'active' && _bStats[safeBranch] !== undefined) {
                 _bStats[safeBranch].active++;
             }
@@ -7289,7 +7325,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         if (window.__store) window.__store.tabHtmlCache = _tabHtmlCache; // [Phase 2b] sync cache
         (_TAB_LISTS[_curTabId] || []).forEach(listId => { const el = document.getElementById(listId); if(el) el.innerHTML = _tabHtmlCache[listId] || ''; });
 
-        const skippedNames = Object.keys(allProfiles).filter(n => { const pr = allProfiles[n]; return (typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus(pr) : pr.status) === 'active' && pr.skippedMonths && pr.skippedMonths.includes(selMonth); });
+        const skippedNames = _legacySkippedNamesForMonth(allProfiles, selMonth);
         const skippedSection = document.getElementById('skippedSection');
         if(skippedSection) {
             if(skippedNames.length > 0) {

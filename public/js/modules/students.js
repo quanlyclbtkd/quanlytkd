@@ -2474,10 +2474,16 @@ window.ensureDebtProfilesReady = async function ensureDebtProfilesReady(reason) 
     st._debtProfileCoverageCheckedAt = Date.now();
 
     if (typeof window.refreshListsComputation === 'function') {
-        window.refreshListsComputation(['students.debtList', 'dashboard.summary'], reason);
+        window.refreshListsComputation(['students.activeList', 'students.debtList', 'dashboard.summary'], reason);
+    }
+    if (typeof window.updateSkippedMonthSection === 'function') {
+        try {
+            window.updateSkippedMonthSection(window.__store.profiles, month);
+        } catch (_) {}
     }
     if (typeof window.invalidateList === 'function') {
         window.invalidateList('students.debtList', reason);
+        window.invalidateList('students.activeList', reason);
     } else if (typeof window.invalidateStudents === 'function') {
         window.invalidateStudents(reason);
     }
@@ -2827,10 +2833,16 @@ window.syncStudentSkippedMonthLocal = function(name, month, action, reason) {
         window.invalidateSearchCache('students', reason);
     }
     if (typeof window.refreshListsComputation === 'function') {
-        window.refreshListsComputation(['students.debtList', 'dashboard.summary'], reason);
+        window.refreshListsComputation(['students.activeList', 'students.debtList', 'dashboard.summary'], reason);
+    }
+    if (typeof window.updateSkippedMonthSection === 'function') {
+        try {
+            window.updateSkippedMonthSection(window.__store.profiles, month);
+        } catch (_) {}
     }
     if (typeof window.invalidateList === 'function') {
         window.invalidateList('students.debtList', reason);
+        window.invalidateList('students.activeList', reason);
     } else if (typeof window.invalidateStudents === 'function') {
         window.invalidateStudents(reason);
     }

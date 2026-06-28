@@ -19,8 +19,8 @@ function check(name, ok) {
 }
 
 console.log('\n=== Phase 4K-6V4B8 — Quit Tab Mobile Parity ===\n');
-const build = 'tuition-debt-source-of-truth-aggregation-guard-20260628-v4c1';
-const appBuilds = [build, 'tuition-debt-source-of-truth-20260628-v4c', 'tuition-debt-source-of-truth-aggregation-guard-20260628-v4c1'];
+const build = 'active-skipped-month-section-20260628-v4c2';
+const appBuilds = [build, 'tuition-debt-source-of-truth-20260628-v4c', 'active-skipped-month-section-20260628-v4c2'];
 
 check('Index cache-busts app.js and main.js with current quit-safe build',
   appBuilds.some(b => index.includes(`app.js?v=${b}`)) && index.includes(`./js/main.js?v=${build}`));

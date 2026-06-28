@@ -433,7 +433,9 @@ export function computeAndCacheStudents(allProfiles, params) {
             const nickBadge = p.nickname
                 ? `<span class="text-[0.7rem] text-slate-400 ml-1">(${p.nickname})</span>`
                 : '';
-            const isSkipped = p.skippedMonths && p.skippedMonths.includes(selMonth);
+            // Phase 4K-6V4C2: skipped-month summary must use canonical month
+            // normalization. Raw includes(selMonth) hides values like "Tháng Sáu 2026".
+            const isSkipped = _monthList(p.skippedMonths).includes(normalizeYYYYMM(selMonth));
             if (isSkipped) m_skipped++;
 
             // Phase 4K-6V4B11: split shared filters from Active-only filters.

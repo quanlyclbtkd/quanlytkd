@@ -59,7 +59,7 @@ import {
     computeAndCacheStudents,
     getStudentsSummary,
     getStudentsCachedHtml,
-} from './render/computation/studentsRenderer.js?v=tuition-debt-source-of-truth-aggregation-guard-20260628-v4c1';
+} from './render/computation/studentsRenderer.js?v=active-skipped-month-section-20260628-v4c2';
 import {
     computeAndCacheInventory,
     getCachedLiveInvMap,
@@ -131,6 +131,73 @@ function _isDashboardActive() {
     return el ? el.classList.contains('active') : false;
 }
 
+
+// Phase 4K-6V4C2: Active-tab skipped-month section must use the same
+// canonical month/status rules as Báo nợ. Raw checks like
+// pr.status === 'active' and skippedMonths.includes(selMonth) hide legacy
+// records such as status='trial' or skippedMonths=['Tháng Sáu 2026'].
+function _normalizeSkippedMonthValue(value) {
+    const fn = (typeof window !== 'undefined' && typeof window.normalizeTuitionMonth === 'function')
+        ? window.normalizeTuitionMonth
+        : ((typeof window !== 'undefined' && window._fmt && typeof window._fmt.normalizeYYYYMM === 'function')
+            ? window._fmt.normalizeYYYYMM
+            : normalizeYYYYMM);
+    try { return fn(value) || ''; } catch (_) { return normalizeYYYYMM(value) || ''; }
+}
+
+function _isActiveProfileForSkippedSection(profile) {
+    const p = profile || {};
+    try {
+        if (typeof window !== 'undefined' && typeof window.deriveProfileCanonicalState === 'function') {
+            const canonical = window.deriveProfileCanonicalState(p) || {};
+            if (canonical.statusCanonical) return canonical.statusCanonical === 'active';
+        }
+    } catch (_) {}
+    try {
+        const kind = (typeof window !== 'undefined' && typeof window.classifyProfileStatus === 'function')
+            ? window.classifyProfileStatus(p)
+            : String(p.status || 'active');
+        return String(kind || '').toLowerCase() !== 'quit';
+    } catch (_) {
+        return String(p.status || 'active').toLowerCase() !== 'quit';
+    }
+}
+
+function _hasSkippedMonthForSelectedMonth(profile, selectedMonth) {
+    const target = _normalizeSkippedMonthValue(selectedMonth);
+    if (!target) return false;
+    const arr = Array.isArray(profile && profile.skippedMonths) ? profile.skippedMonths : [];
+    return arr.some(m => _normalizeSkippedMonthValue(m) === target);
+}
+
+function _getSkippedMonthNames(allProfiles, selectedMonth) {
+    return Object.keys(allProfiles || {}).filter(name => {
+        const profile = allProfiles[name] || {};
+        return _isActiveProfileForSkippedSection(profile) && _hasSkippedMonthForSelectedMonth(profile, selectedMonth);
+    });
+}
+
+function _renderSkippedMonthSection(allProfiles, selectedMonth) {
+    const skippedSection = document.getElementById('skippedSection');
+    if (!skippedSection) return { ok: false, reason: 'missing-skipped-section' };
+    const selMonth = _normalizeSkippedMonthValue(selectedMonth) || normalizeYYYYMM(selectedMonth || '');
+    const skippedNames = _getSkippedMonthNames(allProfiles || {}, selMonth);
+    if (skippedNames.length > 0) {
+        skippedSection.classList.remove('hidden');
+        const titleEl = document.getElementById('skippedSectionTitle');
+        if (titleEl) titleEl.innerText = `⏸ Báo nghỉ tháng ${formatMonth(selMonth)} — ${skippedNames.length} võ sinh miễn học phí`;
+        const listEl = document.getElementById('skippedThisMonthList');
+        if (listEl) {
+            listEl.innerHTML = skippedNames.sort().map(n => `<span class="badge bg-amber-200 text-amber-900 border border-amber-400 shadow-sm cursor-pointer hover:bg-amber-300" onclick="openProfile('${String(n).replace(/'/g, "\\'")}')" title="Bấm để xem hồ sơ">${n}</span>`).join('');
+        }
+    } else {
+        skippedSection.classList.add('hidden');
+        const listEl = document.getElementById('skippedThisMonthList');
+        if (listEl) listEl.innerHTML = '';
+    }
+    return { ok: true, month: selMonth, count: skippedNames.length, names: skippedNames };
+}
+
 // Module-level state
 let _liveInvMap         = {};
 let _lastSizeSelectHtml = '';
@@ -143,7 +210,18 @@ function renderApp() {
     if (_role() === 'super_admin') return;
 
     const _dv = (window.__store || {})._dataVersion || 0;
-    if (_dv !== 0 && _dv === _lastRendered) return;
+    if (_dv !== 0 && _dv === _lastRendered) {
+        // Phase 4K-6V4C2: tab/month-only render calls may happen without a data
+        // version change. Keep the Active-tab skipped-month header in sync even
+        // when the heavy list computation is correctly skipped.
+        const earlyTabEl = document.querySelector('.tab-content.active');
+        const earlyTabId = earlyTabEl ? earlyTabEl.id.replace('tab_', '') : '';
+        if (earlyTabId === 'active') {
+            const fmEl = document.getElementById('filterMonth');
+            _renderSkippedMonthSection(_profiles(), fmEl ? fmEl.value : '');
+        }
+        return;
+    }
     _lastRendered = _dv;
 
     if (typeof window._renderHomeBirthdayBanner === 'function') window._renderHomeBirthdayBanner();
@@ -367,22 +445,7 @@ function renderApp() {
     _requestCurrentTabIslands(_curTabId);
 
     // ── Skipped section ──────────────────────────────────────────────────────
-    const skippedNames = Object.keys(allProfiles).filter(n => {
-        const pr = allProfiles[n];
-        return pr.status === 'active' && pr.skippedMonths && pr.skippedMonths.includes(selMonth);
-    });
-    const skippedSection = document.getElementById('skippedSection');
-    if (skippedSection) {
-        if (skippedNames.length > 0) {
-            skippedSection.classList.remove('hidden');
-            const titleEl = document.getElementById('skippedSectionTitle');
-            if (titleEl) titleEl.innerText = `⏸ Báo nghỉ tháng ${formatMonth(selMonth)} — ${skippedNames.length} võ sinh miễn học phí`;
-            const listEl = document.getElementById('skippedThisMonthList');
-            if (listEl) listEl.innerHTML = skippedNames.sort().map(n => `<span class="badge bg-amber-200 text-amber-900 border border-amber-400 shadow-sm cursor-pointer hover:bg-amber-300" onclick="openProfile('${n.replace(/'/g, "\\'")}'')" title="Bấm để xem hồ sơ">${n}</span>`).join('');
-        } else {
-            skippedSection.classList.add('hidden');
-        }
-    }
+    _renderSkippedMonthSection(allProfiles, selMonth);
 
     // ── Phase 3.5B: Dashboard render guard ──────────────────────────────────
     //
@@ -442,6 +505,11 @@ function renderApp() {
 
 export function initRender() {
     window._moduleRenderApp = renderApp;
+    window.updateSkippedMonthSection = function(profiles, month) {
+        const srcProfiles = profiles || _profiles();
+        const sel = month || (document.getElementById('filterMonth') && document.getElementById('filterMonth').value) || '';
+        return _renderSkippedMonthSection(srcProfiles, sel);
+    };
     // Phase 3.5B: expose scheduleRender sơ bộ để các module gọi được trước khi
     // registerInvalidationLegacyGlobals() override với full invalidation layer
     if (!window.scheduleRender) {

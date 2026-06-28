@@ -19,7 +19,7 @@
  */
 
 import { registerRender } from './renderRegistry.js';
-import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=tuition-debt-source-of-truth-aggregation-guard-20260628-v4c1';
+import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=active-skipped-month-section-20260628-v4c2';
 
 // ─── Core DOM helper ────────────────────────────────────────────────────────
 
