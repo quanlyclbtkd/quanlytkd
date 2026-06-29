@@ -15,8 +15,8 @@ const app = read('app.js');
 const index = read('index.html');
 const main = read('js/main.js');
 
-check('cache bust updated to V4D2 mobile recovery in index', index.includes('quit-mobile-authoritative-local-sync-20260628-v4d3'));
-check('main imports render.js with V4D2 cache bust', main.includes('./ui/render.js?v=quit-mobile-authoritative-local-sync-20260628-v4d3'));
+check('cache bust updated to V4D2 mobile recovery in index', index.includes('quit-authoritative-full-sync-20260629-v4d4'));
+check('main imports render.js with V4D2 cache bust', main.includes('./ui/render.js?v=quit-authoritative-full-sync-20260629-v4d4'));
 check('render.js has small UI refresh helper', render.includes('function _refreshSmallStudentUi(tabId, reason'));
 check('render.js early return calls small UI refresh', render.includes("_refreshSmallStudentUi(earlyTabId, 'renderApp-dataVersion-unchanged')"));
 check('render.js small UI refresh always renders birthday banner', render.includes("typeof window._renderHomeBirthdayBanner === 'function'") && render.includes('window._renderHomeBirthdayBanner()'));
@@ -28,7 +28,9 @@ check('attendance birthday accepts ngaySinh', attendance.includes('p.ngaySinh'))
 check('renderStudents merges canonical quit store', renderStudents.includes('canonicalStore') && renderStudents.includes('canonicalStore.quitProfiles'));
 check('renderStudents merges allProfiles quit fallback', renderStudents.includes('window.allProfiles || {}') && renderStudents.includes('(window.__store && window.__store.profiles) || {}'));
 check('renderStudents renders direct quit fallback before quitLoaded', renderStudents.includes('if (!_quitLoaded && _hasDirectQuit)'));
-check('renderStudents chooses direct if cached quit rows partial', renderStudents.includes('_directPreview.count > ((_htmlQ.match(/data-quit-id=/g) || []).length)'));
+check('renderStudents chooses direct authoritative full rows after quit loaded',
+  renderStudents.includes("_afterStudentIslandRender('quit-island-authoritative-full')") &&
+  renderStudents.includes('_buildAuthoritativeQuitRows({ mobileFull: true, forceAll: true })'));
 check('legacy app render early return refreshes small UI', app.includes('if(_dataVersion === _lastRenderedVersion) { _legacyRefreshSmallStudentUi(); return; }'));
 check('legacy app has small UI refresh helper', app.includes('function _legacyRefreshSmallStudentUi()'));
 check('legacy app small UI uses merged profiles', app.includes('function _legacyProfilesForSmallUi()') && app.includes('getAllProfilesCompat'));

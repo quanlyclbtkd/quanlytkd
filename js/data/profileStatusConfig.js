@@ -64,8 +64,10 @@ const PROFILE_STATUS_CONFIG_DEFAULT = Object.freeze({
      * Aliases quit.
      */
     quitAliases: [
-        'đã nghỉ', 'da nghi', 'nghỉ', 'nghi',
-        'nghỉ tập', 'nghi tap', 'nghỉ hẳn', 'nghi han',
+        'đã nghỉ', 'da nghi', 'da_nghi', 'nghỉ', 'nghi',
+        'nghỉ tập', 'nghi tap', 'nghi_tap', 'nghỉ hẳn', 'nghi han',
+        'báo nghỉ', 'bao nghi', 'bao_nghi', 'tạm nghỉ', 'tam nghi', 'tam_nghi',
+        'tạm dừng', 'tam dung', 'tam_dung', 'dừng tập', 'dung tap', 'dung_tap',
         'stopped', 'left', 'quit', 'inactive',
         'retired', 'stop', 'leave',
     ],
@@ -265,7 +267,7 @@ export function classifyProfileStatus(profile) {
 
     // ── 8. Substring fallback: tiếng Việt dự phòng ──────────────────────────
     if (status.includes('đang') || status.includes('dang')) return 'active';
-    if (status.includes('nghỉ') || status.includes('nghi') || status.includes('stop') || status.includes('left')) return 'quit';
+    if (status.includes('nghỉ') || status.includes('nghi') || status.includes('stop') || status.includes('left') || status.includes('dung') || status.includes('dừng')) return 'quit';
 
     // ── 9. Unknown status → active (legacy compat, không phải 'other') ───────
     // Legacy profiles without recognizable status are treated as active.

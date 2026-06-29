@@ -19,14 +19,15 @@ function check(name, ok) {
 }
 
 console.log('\n=== Phase 4K-6V4D3 — Quit Mobile Authoritative Local Sync ===\n');
-const build = 'quit-mobile-authoritative-local-sync-20260628-v4d3';
+const buildV4D3 = 'quit-mobile-authoritative-local-sync-20260628-v4d3';
+const buildV4D4 = 'quit-authoritative-full-sync-20260629-v4d4';
 
 check('Cache bust updated for index main module',
-  index.includes(`./js/main.js?v=${build}`));
+  index.includes(`./js/main.js?v=${buildV4D3}`) || index.includes(`./js/main.js?v=${buildV4D4}`));
 check('Main imports quit/profile/render modules with V4D3 build',
-  main.includes(`./listeners/profiles.listeners.js?v=${build}`) &&
-  main.includes(`./ui/render/renderStudents.js?v=${build}`) &&
-  main.includes(`./modules/students.js?v=${build}`));
+  (main.includes(`./listeners/profiles.listeners.js?v=${buildV4D3}`) || main.includes(`./listeners/profiles.listeners.js?v=${buildV4D4}`)) &&
+  (main.includes(`./ui/render/renderStudents.js?v=${buildV4D3}`) || main.includes(`./ui/render/renderStudents.js?v=${buildV4D4}`)) &&
+  (main.includes(`./modules/students.js?v=${buildV4D3}`) || main.includes(`./modules/students.js?v=${buildV4D4}`)));
 check('syncStudentStatusLocal writes newly quit profile into studentProfileStore',
   students.includes("studentProfileStore.mergeProfile(key, nextProfile") &&
   students.includes("reason + ':status-local-sync'"));
@@ -52,7 +53,7 @@ check('Quit full reconciliation flag is only set true after successful fallback'
   profilesListener.includes('_state.quitCompletenessReconciled = !!ok'));
 check('Authoritative quit ensure API exists and uses guarded full fallback',
   profilesListener.includes('export async function ensureQuitProfilesAuthoritative') &&
-  profilesListener.includes("loadFullProfilesFallback('quit-authoritative-mobile:") &&
+  (profilesListener.includes("loadFullProfilesFallback('quit-authoritative-mobile:") || profilesListener.includes("loadFullProfilesFallback('quit-authoritative-full-sync:")) &&
   profilesListener.includes('fallbackInProgress'));
 check('ensureProfilesForTab retries authoritative quit reconciliation after targeted cache',
   profileStore.includes('ensureQuitProfilesAuthoritative') &&

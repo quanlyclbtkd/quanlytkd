@@ -5,7 +5,7 @@ import path from 'node:path';
 
 const root = process.cwd();
 const read = rel => fs.readFileSync(path.join(root, rel), 'utf8');
-const VERSION = 'quit-mobile-authoritative-local-sync-20260628-v4d3';
+const VERSION = 'quit-authoritative-full-sync-20260629-v4d4';
 const files = {
   index: read('index.html'),
   main: read('js/main.js'),
@@ -65,10 +65,10 @@ check('attendance birthday profile source merges full compat store',
 check('student islands refresh small UI after active/debt/quit renders',
   files.renderStudents.includes('function _afterStudentIslandRender') &&
   files.renderStudents.includes("_afterStudentIslandRender('active-island-render')") &&
-  files.renderStudents.includes("_afterStudentIslandRender('quit-island-mobile-full')"));
+  (files.renderStudents.includes("_afterStudentIslandRender('quit-island-mobile-full')") || files.renderStudents.includes("_afterStudentIslandRender('quit-island-authoritative-full')")));
 check('quit direct renderer includes studentProfileStore compat source and forceAll mobile rows',
   files.renderStudents.includes('getAllProfilesCompat') &&
-  files.renderStudents.includes('const limit = forceAll ? entries.length') &&
+  (files.renderStudents.includes('const limit = forceAll ? entries.length') || files.renderStudents.includes('const limit = entries.length')) &&
   files.renderStudents.includes('_buildAuthoritativeQuitRows({ mobileFull: true, forceAll: true })'));
 check('legacy app exposes refreshSmallStudentUi fallback',
   files.app.includes('window.refreshSmallStudentUi = window.refreshSmallStudentUi || function(reason, options)'));

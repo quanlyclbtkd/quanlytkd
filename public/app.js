@@ -7266,7 +7266,8 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         const _PAGE_LIMIT    = 100;
         const _activeLimit   = (window._activePage || 1) * _PAGE_LIMIT;
         const _debtLimit     = (window._debtPage   || 1) * _PAGE_LIMIT;
-        const _quitLimit     = (window._quitPage   || 1) * _PAGE_LIMIT;
+        // Phase 4K-6V4D4: Đã nghỉ renders the complete authoritative list on web + mobile.
+        const _quitLimit     = Number.MAX_SAFE_INTEGER;
         let _activeRendered = 0, _debtRendered = 0, _quitRendered = 0;
         let _activeTotalCount = 0, _debtTotalCount = 0, _quitTotalCount = 0;
 
@@ -7369,7 +7370,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         // Phase 4K-5Q: DISABLED — active load-more row moved outside table (single source via #pgWrap_activeList)
         // if(_activeTotalCount > _activeLimit)  activeHtml += `<tr>...</tr>`;
         if(_debtTotalCount   > _debtLimit)    debtHtml   += `<tr><td colspan="${_moreColspan}" ${_moreStyle}><button type="button" ${_moreBtnStyle} onclick="window._loadMore('debt')">⬇ Tải thêm — còn ${_debtTotalCount - _debtRendered} võ sinh nữa</button></td></tr>`;
-        if(_quitTotalCount   > _quitLimit)    quitHtml   += `<tr><td colspan="${_moreColspan}" ${_moreStyle}><button type="button" ${_moreBtnStyle} onclick="window._loadMore('quit')">⬇ Tải thêm — còn ${_quitTotalCount - _quitRendered} võ sinh nữa</button></td></tr>`;
+        // Phase 4K-6V4D4: no load-more row for Đã nghỉ; this tab must be complete.
 
         _tabHtmlCache = { txList: txHtml, uniformTxList: uniformTxHtml, expenseList: expHtml, examExpenseList: examExpHtml, debtList: debtHtml, activeList: activeHtml, quitList: quitHtml, inventoryList: invListHtml, reportList: reportHtml };
         if (window.__store) window.__store.tabHtmlCache = _tabHtmlCache; // [Phase 2b] sync cache

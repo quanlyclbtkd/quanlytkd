@@ -342,7 +342,9 @@ export function computeAndCacheStudents(allProfiles, params) {
     const _PAGE_LIMIT   = 50;
     const _activeLimit  = window.__activeRenderLimit || activePage * _PAGE_LIMIT;
     const _debtLimit    = window.__debtRenderLimit || debtPage * _PAGE_LIMIT;
-    const _quitLimit    = quitPage   * _PAGE_LIMIT;
+    // Phase 4K-6V4D4: Đã nghỉ is an authoritative audit list.
+    // Render the full quit list on both web and mobile; do not page this tab.
+    const _quitLimit    = Number.MAX_SAFE_INTEGER;
 
     let _activeTotalCount = 0, _debtTotalCount = 0, _quitTotalCount = 0;
     let _activeRendered   = 0, _debtRendered   = 0, _quitRendered   = 0;
@@ -662,12 +664,8 @@ export function computeAndCacheStudents(allProfiles, params) {
     // Single source of truth is #pgWrap_activeList (outside table), rendered by _injectControls.
     // if (buildActive && _activeTotalCount > _activeRendered) { ... }
 
-    // Quit load more — chỉ khi không có server-side pagination
-    if (!pgStudentsActive || useFullProfileQuitRender) {
-        if (buildQuit && _quitTotalCount > _quitLimit) {
-            quitRows += `<tr><td colspan="${_moreColspan}" ${_moreStyle}><button type="button" ${_moreBtnSt} onclick="_loadMore('quit')">⬇ Tải thêm — còn ${_quitTotalCount - _quitRendered} võ sinh nữa</button></td></tr>`;
-        }
-    }
+    // Phase 4K-6V4D4: no load-more row for Đã nghỉ.
+    // The tab must be complete on web and mobile once authoritative quit profiles are loaded.
 
     // ── Phase 4K-6V3D: debt coverage quality from the canonical read boundary ──
     const _boundaryStatus = typeof window.getDebtProfileCoverageStatus === 'function'

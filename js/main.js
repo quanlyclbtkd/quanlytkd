@@ -105,15 +105,15 @@ import { initFirebase }                        from './firebase/config.js';
 import { showToast, registerToastGlobal }      from './ui/toast.js';
 import { registerModalGlobals }                from './ui/modal.js';
 import { switchTab, registerTabGlobals }       from './ui/tabs.js';
-import { initRender }                          from './ui/render.js?v=quit-mobile-authoritative-local-sync-20260628-v4d3';
+import { initRender }                          from './ui/render.js?v=quit-authoritative-full-sync-20260629-v4d4';
 // Phase 3.4: Render Isolation Architecture — island initialisers + legacy shims
 import { initFinanceIslands, registerFinanceLegacyGlobals }     from './ui/render/renderFinance.js';
-import { initStudentIslands, registerStudentsLegacyGlobals }     from './ui/render/renderStudents.js?v=quit-mobile-authoritative-local-sync-20260628-v4d3';
+import { initStudentIslands, registerStudentsLegacyGlobals }     from './ui/render/renderStudents.js?v=quit-authoritative-full-sync-20260629-v4d4';
 import { initInventoryIslands, registerInventoryLegacyGlobals }  from './ui/render/renderInventory.js';
 import { initAttendanceIslands }                                  from './ui/render/renderAttendance.js';
 import { initDashboardIslands }                                   from './ui/render/renderDashboard.js';
 // Phase 3.5B: Render Invalidation & Lifecycle Stabilization
-import { registerInvalidationLegacyGlobals }                     from './ui/render/renderInvalidation.js?v=quit-mobile-authoritative-local-sync-20260628-v4d3';
+import { registerInvalidationLegacyGlobals }                     from './ui/render/renderInvalidation.js?v=quit-authoritative-full-sync-20260629-v4d4';
 import { registerLoadingGlobals, showLoading, hideLoading, forceHideLoading } from './ui/loading.js';
 import {
     getLocalToday, formatDate, formatMonth,
@@ -264,7 +264,7 @@ import {
     getProfilesListenerMetrics,
     ensureAllProfilesForExport,
     ensureQuitProfilesAuthoritative,
-} from './listeners/profiles.listeners.js?v=quit-mobile-authoritative-local-sync-20260628-v4d3';
+} from './listeners/profiles.listeners.js?v=quit-authoritative-full-sync-20260629-v4d4';
 
 // ── Phase 3.7C: Profile Status Config ────────────────────────────────────────
 import {
@@ -318,7 +318,7 @@ import {
 } from './firebase/paginatedQuery.js';
 
 // ── Phase 2d–3.2A: Business modules (eager — cần khi login) ────
-import { initStudents, initStudentPagination }        from './modules/students.js?v=quit-mobile-authoritative-local-sync-20260628-v4d3';
+import { initStudents, initStudentPagination }        from './modules/students.js?v=quit-authoritative-full-sync-20260629-v4d4';
 // PHẦN 1 FIX + Phase 4K-2: Unified Search Controller — real cache + SearchBlob + stale guard
 import {
     initGlobalSearchRuntime,
@@ -330,7 +330,7 @@ import {
 import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from './modules/finance.js?v=payment-bundle-runtime-hotfix-20260616-v3a1';
 import { initInventory }                              from './modules/inventory.js?v=payment-bundle-runtime-hotfix-20260616-v3a1';
 // Compatibility marker: from './modules/attendance.js'
-import { initAttendance }                             from './modules/attendance.js?v=quit-mobile-authoritative-local-sync-20260628-v4d3';
+import { initAttendance }                             from './modules/attendance.js?v=quit-authoritative-full-sync-20260629-v4d4';
 import { initDashboard }                              from './modules/dashboard.js?v=payment-bundle-runtime-hotfix-20260616-v3a1';
 // ── Phase 4K-6U: Heavy Reports module is lazy-loaded by reportExportFacade.js ──
 // ── Phase 4.0B-1: SuperAdmin — eager import trên HTTP/HTTPS ─────

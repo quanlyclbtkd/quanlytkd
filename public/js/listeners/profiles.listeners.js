@@ -77,6 +77,10 @@ const _state = {
     quitLoadingInProgress:  false,
     /** Phase 4K-6V4B3: full authoritative reconciliation for Admin quit tab */
     quitCompletenessReconciled: false,
+    /** Phase 4K-6V4D4: targeted quit query may be partial; authoritative load has own guarded retry. */
+    quitTargetedLoaded:     false,
+    quitAuthoritativeFallbackCount: 0,
+    maxQuitAuthoritativeFallbackPerSession: 2,
 
     // ── Full fallback loop guard (Phase 3.7C) ─────────────────────────────────
     /** Đang chạy fallback → chặn concurrent call */
@@ -233,6 +237,8 @@ function _updateWindowMetrics() {
         quitLoadInProgress:                 _state.quitLoadingInProgress,
         quitLoadLastReason:                 _state.quitLoadLastReason,
         quitCompletenessReconciled:         _state.quitCompletenessReconciled,
+        quitTargetedLoaded:                 _state.quitTargetedLoaded,
+        quitAuthoritativeFallbackCount:     _state.quitAuthoritativeFallbackCount,
         // Fallback guard
         fallbackInProgress:                 _state.fallbackInProgress,
         fallbackCompleted:                  _state.fallbackCompleted,
@@ -633,8 +639,10 @@ export async function loadQuitProfilesIfNeeded(reason, contextOverride) {
         window.RoleReadBoundary?.canMount?.('profiles.quit', { reason: reason || 'quit-lazy' });
         return false;
     }
-    if (_state.quitLoaded)            return; // Đã có data
-    if (_state.quitLoadingInProgress) return; // Đang load — tránh parallel
+    // Phase 4K-6V4D4: quitLoaded can mean only targeted/partial cache.
+    // Only skip when the full authoritative reconciliation has succeeded.
+    if (_state.quitLoaded && _state.quitCompletenessReconciled) return true;
+    if (_state.quitLoadingInProgress) return false; // Đang load — tránh parallel
 
     const ctx = contextOverride || _ctx;
     if (!ctx || !ctx.profRef) {
@@ -668,9 +676,14 @@ export async function loadQuitProfilesIfNeeded(reason, contextOverride) {
         // Phase 4K-6V4B3: status legacy aliases. Các hồ sơ cũ có thể lưu
         // status='Đã nghỉ'/'Nghỉ tập' thay vì quit/inactive/retired.
         const legacyStatusAliases = [
-            'Đã nghỉ', 'đã nghỉ', 'Nghỉ', 'nghỉ', 'Nghỉ tập', 'nghỉ tập',
-            'Nghi', 'nghi', 'Nghi tap', 'nghi tap', 'Stopped', 'stopped',
-            'Left', 'left', 'Stop', 'stop', 'Leave', 'leave'
+            'Đã nghỉ', 'đã nghỉ', 'Da nghi', 'da nghi', 'da_nghi',
+            'Nghỉ', 'nghỉ', 'Nghỉ tập', 'nghỉ tập',
+            'Nghi', 'nghi', 'Nghi tap', 'nghi tap', 'nghi_tap',
+            'Báo nghỉ', 'báo nghỉ', 'Bao nghi', 'bao nghi', 'bao_nghi',
+            'Tạm nghỉ', 'tạm nghỉ', 'Tam nghi', 'tam nghi', 'tam_nghi',
+            'Tạm dừng', 'tạm dừng', 'Tam dung', 'tam dung', 'tam_dung',
+            'Dừng tập', 'dừng tập', 'Dung tap', 'dung tap', 'dung_tap',
+            'Stopped', 'stopped', 'Left', 'left', 'Stop', 'stop', 'Leave', 'leave'
         ];
         const existingStatusValues = new Set(quitValues.map(v => String(v).toLowerCase()));
         const aliasValues = legacyStatusAliases.filter(v => !existingStatusValues.has(String(v).toLowerCase()));
@@ -751,9 +764,11 @@ export async function loadQuitProfilesIfNeeded(reason, contextOverride) {
         });
 
         setQuitProfiles(quitMap, 'quit-profiles-lazy-targeted:' + (reason || ''));
-        markQuitLoaded(true); // [Phase 3.7C+A] explicit safety sync
+        markQuitLoaded(true); // partial cache is available for immediate preview
 
+        _state.quitTargetedLoaded    = true;
         _state.quitLoaded            = true;
+        // Do NOT set quitCompletenessReconciled here: targeted queries can be partial.
         _state.quitLoadingInProgress = false;
         _state.quitLoadCount++;
 
@@ -770,7 +785,7 @@ export async function loadQuitProfilesIfNeeded(reason, contextOverride) {
         // Targeted queries chỉ bắt được các schema đã biết; full fallback một lần/session
         // là nguồn authority duy nhất để không bỏ sót hồ sơ legacy lạ.
         if (!_state.quitCompletenessReconciled && !_state.fallbackInProgress && !_isCoachContext(ctx)) {
-            const ok = await loadFullProfilesFallback('quit-tab-authoritative-reconcile:' + (reason || ''));
+            const ok = await loadFullProfilesFallback('quit-tab-authoritative-reconcile:' + (reason || ''), { forceQuitAuthoritative: true });
             _state.quitCompletenessReconciled = !!ok;
             _updateWindowMetrics();
             if (ok) return true;
@@ -880,7 +895,8 @@ export async function loadCoachBranchProfilesFallback(reason) {
  * @param {string} reason
  * @returns {Promise<boolean>}
  */
-export async function loadFullProfilesFallback(reason) {
+export async function loadFullProfilesFallback(reason, options = {}) {
+    const forceQuitAuthoritative = !!(options && options.forceQuitAuthoritative);
     if (_isCoachContext()) {
         window.RoleReadBoundary?.canMount?.('profiles.full-fallback', { reason: reason || 'full-fallback' });
         return loadCoachBranchProfilesFallback('redirected-from-full:' + (reason || 'unknown'));
@@ -891,9 +907,16 @@ export async function loadFullProfilesFallback(reason) {
         return false;
     }
 
-    if (_state.fallbackCount >= _state.maxFallbackPerSession) {
+    if (!forceQuitAuthoritative && _state.fallbackCount >= _state.maxFallbackPerSession) {
         console.warn(
             '[ProfilesFallback] Đạt maxFallbackPerSession (' + _state.maxFallbackPerSession + ') — stop. Reason:', reason
+        );
+        return false;
+    }
+
+    if (forceQuitAuthoritative && _state.quitAuthoritativeFallbackCount >= _state.maxQuitAuthoritativeFallbackPerSession) {
+        console.warn(
+            '[ProfilesFallback] Đạt maxQuitAuthoritativeFallbackPerSession (' + _state.maxQuitAuthoritativeFallbackPerSession + ') — stop. Reason:', reason
         );
         return false;
     }
@@ -952,9 +975,11 @@ export async function loadFullProfilesFallback(reason) {
         _state.fallbackInProgress    = false;
         _state.fallbackCompleted     = true;
         _state.fallbackCount++;
+        if (forceQuitAuthoritative) _state.quitAuthoritativeFallbackCount++;
         _state.fullFallbackReason    = reason;
         _state.lastProfilesMode      = 'full-fallback';
         _state.quitLoaded            = true;
+        if (forceQuitAuthoritative) _state.quitCompletenessReconciled = true;
         _state.quitLoadingInProgress = false;
         _state.activeListenerMounted = true;
         // [Phase 3.7C+A] Explicit store state sync — safety layer on top of syncLegacyAllProfiles
@@ -1010,6 +1035,7 @@ export async function loadFullProfilesFallback(reason) {
     } catch (err) {
         _state.fallbackInProgress = false;
         _state.fallbackCount++;
+        if (forceQuitAuthoritative) _state.quitAuthoritativeFallbackCount++;
         _state.fullFallbackReason = reason + ':error';
         console.error('[ProfilesFallback] Full load thất bại:', err.message || err.code);
         _updateWindowMetrics();
@@ -1084,7 +1110,7 @@ export async function ensureQuitProfilesAuthoritative(reason) {
     }
     if (_state.quitCompletenessReconciled && _state.quitLoaded) return true;
     if (_state.fallbackInProgress) return false;
-    const ok = await loadFullProfilesFallback('quit-authoritative-mobile:' + (reason || 'unknown'));
+    const ok = await loadFullProfilesFallback('quit-authoritative-full-sync:' + (reason || 'unknown'), { forceQuitAuthoritative: true });
     _state.quitCompletenessReconciled = !!ok;
     if (ok) {
         _state.quitLoaded = true;
@@ -1123,6 +1149,9 @@ export function resetProfilesListeners(reason) {
     _state.quitQueryErrorCount     = 0;
     _state.quitLoadLastReason      = '';
     _state.quitLoadingInProgress   = false;
+    _state.quitCompletenessReconciled = false;
+    _state.quitTargetedLoaded      = false;
+    _state.quitAuthoritativeFallbackCount = 0;
 
     // Fallback guard
     _state.fallbackInProgress      = false;
@@ -1176,6 +1205,8 @@ export function getProfilesListenerMetrics() {
         quitLoadInProgress:                 _state.quitLoadingInProgress,
         quitLoadLastReason:                 _state.quitLoadLastReason,
         quitCompletenessReconciled:         _state.quitCompletenessReconciled,
+        quitTargetedLoaded:                 _state.quitTargetedLoaded,
+        quitAuthoritativeFallbackCount:     _state.quitAuthoritativeFallbackCount,
         // Fallback guard
         fallbackInProgress:                 _state.fallbackInProgress,
         fallbackCompleted:                  _state.fallbackCompleted,

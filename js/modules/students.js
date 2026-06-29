@@ -1178,8 +1178,8 @@ export function initStudentPagination() {
                     // not the shared server-pagination page. Desktop keeps load-more.
                     if (listId === 'quitList' && _isQuitAuthoritativeLoaded()) {
                         const _quitEntries = _getAuthoritativeQuitEntries();
-                        const _mobileFull  = _isMobileViewport();
-                        const _quitLimit   = _mobileFull ? _quitEntries.length : ((window._quitPage || 1) * PAGE_SIZE);
+                        const _mobileFull  = true; // Phase 4K-6V4D4: web + mobile both show all quit profiles.
+                        const _quitLimit   = _quitEntries.length;
                         const _remaining   = Math.max(0, _quitEntries.length - _quitLimit);
                         const _btnStyle    = 'style="padding:0.45rem 1.2rem;font-size:0.85rem;background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;border-radius:6px;cursor:pointer;font-weight:600;"';
                         if (_remaining > 0) {
