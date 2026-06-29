@@ -19,7 +19,7 @@
  */
 
 import { registerRender } from './renderRegistry.js';
-import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=quit-authoritative-full-sync-20260629-v4d4';
+import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=quit-mobile-coach-login-repair-20260629-v4d5';
 
 // ─── Core DOM helper ────────────────────────────────────────────────────────
 
@@ -253,16 +253,27 @@ export function renderQuitIsland() {
     let _htmlQ = getStudentsCachedHtml('quitRows');
     const _target = document.getElementById('quitList');
     const _quitLoaded = !!(window.studentProfileStore && typeof window.studentProfileStore.isQuitLoaded === 'function' && window.studentProfileStore.isQuitLoaded());
+    const _metrics = window.__profileScaleMetrics || {};
+    const _isCoach = String(window.userRole || '').toLowerCase().replace(/-/g, '_') === 'coach';
+    const _quitAuthoritativeReady = !!(_metrics.quitLoaded && _metrics.quitCompletenessReconciled);
     const _directPreview = _buildAuthoritativeQuitRows({ mobileFull: true, forceAll: true });
     const _hasDirectQuit = _directPreview && _directPreview.count > 0;
 
-    // Phase 4K-6V4D1A: V4D1 is read-only, but its audit store can be available
-    // before the async quit lazy loader finishes. Do not show a partial/blank
-    // Đã nghỉ tab when local authoritative quit profiles already exist in memory.
-    if (!_quitLoaded && _hasDirectQuit) {
-        _applyHtml(_target, _directPreview.html);
+    // Phase 4K-6V4D5: partial targeted quit rows must not be presented as the
+    // final Đã nghỉ list. Trigger the full authoritative sync and show a clear
+    // reconciliation state until it completes, so web/mobile cannot get stuck on
+    // an incomplete cached page.
+    if (!_isCoach && !_quitAuthoritativeReady) {
+        try {
+            if (typeof window.ensureQuitProfilesAuthoritative === 'function') {
+                window.ensureQuitProfilesAuthoritative('render-quit-island-v4d5');
+            }
+        } catch (_) {}
+        const seen = _hasDirectQuit ? (' Đã nhận diện tạm ' + _directPreview.count + ' hồ sơ, đang đối soát đủ danh sách...') : '';
+        const err = _metrics.quitAuthoritativeLastError ? (' Mã lỗi: ' + _escapeHtml(_metrics.quitAuthoritativeLastError)) : '';
+        _applyHtml(_target, '<tr data-quit-authoritative-loading="1"><td colspan="7" style="text-align:center;color:#64748b;padding:16px;font-size:0.82rem;line-height:1.5;">Đang tải đầy đủ danh sách võ sinh đã nghỉ.' + seen + err + '</td></tr>');
         _syncQuitMobileControl();
-        _afterStudentIslandRender('quit-island-direct-before-loaded');
+        _afterStudentIslandRender('quit-island-authoritative-loading');
         return;
     }
 

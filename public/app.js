@@ -3469,7 +3469,33 @@ service cloud.firestore {
         } catch(e) {}
     };
 
-    const _resolveCoachBranchContext=(user,context)=>window.CoachBranchRuntimeRepair.resolveAuthContext({user,context:_normalizeAuthContext({...context,uid:user&&user.uid}),db});
+    const _resolveCoachBranchContext = async (user, context) => {
+        const normalized = _normalizeAuthContext({ ...context, uid: user && user.uid });
+        if (window.CoachBranchRuntimeRepair && typeof window.CoachBranchRuntimeRepair.resolveAuthContext === 'function') {
+            return window.CoachBranchRuntimeRepair.resolveAuthContext({ user, context: normalized, db });
+        }
+        return normalized;
+    };
+    const _readCoachLoginIndexContext = async (user) => {
+        if (!user || !user.uid) return null;
+        try {
+            const snap = await getDoc(doc(db, 'coach_login_index', user.uid));
+            if (!snap.exists()) return null;
+            const data = snap.data() || {};
+            if (String(data.role || '').trim().toLowerCase().replace(/-/g, '_') !== 'coach') return null;
+            const ctx = {
+                role: 'coach',
+                clubId: data.clubId || '',
+                branch: data.branch || data.coachBranch || '',
+                coachBranch: data.coachBranch || data.branch || '',
+            };
+            if (!ctx.clubId || !(ctx.branch || ctx.coachBranch)) return null;
+            return _resolveCoachBranchContext(user, ctx);
+        } catch (error) {
+            console.warn('[AuthContext] coach_login_index read failed:', error.code || error.message);
+            return null;
+        }
+    };
 
     const _rebindVerifiedAuthContext = async (user, freshContext, cachedContext) => {
         const fresh = _normalizeAuthContext({ ...freshContext, uid: user && user.uid });
@@ -3601,8 +3627,12 @@ service cloud.firestore {
                 }
 
                 let _freshContext=null;
-                if (userDocSnap && userDocSnap.exists()) { const _ud=userDocSnap.data(); _freshContext=await _resolveCoachBranchContext(user,{role:_ud.role||'',clubId:_ud.clubId,branch:_ud.branch||_ud.coachBranch||''}); }
-                else if (_cached && _cached.role==='coach' && _cached.clubId) _freshContext=await _resolveCoachBranchContext(user,_cached);
+                if (userDocSnap && userDocSnap.exists()) {
+                    const _ud=userDocSnap.data();
+                    _freshContext=await _resolveCoachBranchContext(user,{role:_ud.role||'',clubId:_ud.clubId,branch:_ud.branch||_ud.coachBranch||''});
+                }
+                if (!_freshContext) _freshContext = await _readCoachLoginIndexContext(user);
+                if (!_freshContext && _cached && _cached.role==='coach' && _cached.clubId) _freshContext=await _resolveCoachBranchContext(user,_cached);
                 if (_freshContext) {
                     if (_freshContext.role === 'coach' && !_freshContext.coachBranch) { await _showLoginError('Tài khoản HLV chưa được gán cơ sở. Admin cần chọn một cơ sở cụ thể rồi đăng nhập lại.'); return; }
                     if (!_freshContext.role || (_freshContext.role !== 'super_admin' && !_freshContext.clubId)) { await _showLoginError('Hồ sơ phân quyền không hợp lệ hoặc thiếu clubId. Vui lòng liên hệ quản trị viên hệ thống.'); return; }
@@ -9638,26 +9668,33 @@ window.processMultiItem = async (action) => {
             try { await signOut(secondaryAuth); } catch(_) {}
 
             // Bước 2: Ghi hồ sơ HLV vào clubs/{clubId}/coaches/{uid} — LUÔN dùng quyền admin (critical path)
-            await setDoc(doc(db, 'clubs', currentClubId, 'coaches', uid), {
+            const now = new Date().toISOString();
+            const coachPayload = {
                 email,
                 displayName: name,
                 role:   'coach',
                 clubId: currentClubId,
                 branch: branch,
+                coachBranch: branch,
                 uid,
-                createdAt: new Date().toISOString()
-            });
+                createdAt: now,
+                updatedAt: now
+            };
+            await setDoc(doc(db, 'clubs', currentClubId, 'coaches', uid), coachPayload);
 
-            // users/{uid} là hồ sơ phân quyền bắt buộc; lỗi thì giữ coach doc để đồng bộ, không tạo lại Auth.
+            // users/{uid} + coach_login_index/{uid} là hồ sơ phân quyền bắt buộc; lỗi thì giữ coach doc để đồng bộ, không tạo lại Auth.
             let provisioningError = null;
             try {
-                await setDoc(doc(db, 'users', uid), { role: 'coach', clubId: currentClubId, branch, email });
+                const mirrorPayload = { role: 'coach', clubId: currentClubId, branch, coachBranch: branch, email, uid, updatedAt: now };
+                await setDoc(doc(db, 'users', uid), mirrorPayload, { merge: true });
+                await setDoc(doc(db, 'coach_login_index', uid), mirrorPayload, { merge: true });
             } catch(_permErr) {
                 provisioningError = _permErr;
-                console.error('Ghi users/{uid} thất bại — tài khoản chưa thể đăng nhập:', _permErr.code || _permErr.message);
+                console.error('Ghi users/{uid}/coach_login_index thất bại — tài khoản chưa thể đăng nhập:', _permErr.code || _permErr.message);
             }
+
             const branchDisplay = branch ? (' | Cơ sở: ' + (window.getBranchNameDisplay ? window.getBranchNameDisplay(branch) : branch)) : '';
-            if (provisioningError) alert('⚠️ Auth và hồ sơ HLV đã tạo nhưng users/{uid} chưa ghi được.\n\nKHÔNG tạo lại để tránh trùng email. Deploy Rules 6V4B rồi bấm “Đồng bộ tài khoản HLV cũ”.\n\nTên: ' + name + '\nEmail: ' + email + branchDisplay);
+            if (provisioningError) alert('⚠️ Auth và hồ sơ HLV đã tạo nhưng users/{uid} chưa ghi được.\n\nKHÔNG tạo lại để tránh trùng email. Deploy Rules V4D5 rồi bấm “Đồng bộ tài khoản HLV cũ”.\n\nTên: ' + name + '\nEmail: ' + email + branchDisplay);
             else alert('✅ Tạo tài khoản HLV thành công!\n\nTên: ' + name + '\nEmail: ' + email + '\nMật khẩu: ' + pass + branchDisplay + '\n\nHLV có thể đăng nhập ngay bây giờ.');
             document.getElementById('coach_email').value  = '';
             document.getElementById('coach_pass').value   = '';
@@ -10087,9 +10124,15 @@ window.processMultiItem = async (action) => {
                     const oldUser = uSnap.exists() ? uSnap.data() : {};
                     const oldBranch = _canonicalBranch(oldUser.branch || oldUser.coachBranch || '', '');
                     const userNeedsSync = !uSnap.exists() || oldUser.role !== 'coach' || oldUser.clubId !== currentClubId || oldBranch !== canonicalBranch || oldUser.branch !== canonicalBranch || (data.email && oldUser.email !== data.email);
+                    const now = new Date().toISOString();
+                    const mirrorPayload = { role: 'coach', clubId: currentClubId, branch: canonicalBranch, coachBranch: canonicalBranch, email: data.email || oldUser.email || '', uid, updatedAt: now };
                     if (userNeedsSync) {
-                        await setDoc(userRef, { role: 'coach', clubId: currentClubId, branch: canonicalBranch, email: data.email || oldUser.email || '' }, { merge: true });
+                        await setDoc(userRef, mirrorPayload, { merge: true });
+                        await setDoc(doc(db, 'coach_login_index', uid), mirrorPayload, { merge: true });
                         userSynced++;
+                    } else {
+                        // Phase 4K-6V4D5: refresh deterministic login index even when users/{uid} is already correct.
+                        await setDoc(doc(db, 'coach_login_index', uid), mirrorPayload, { merge: true });
                     }
                 } catch(_permErr) {
                     failed++;

@@ -59,7 +59,7 @@ import {
     computeAndCacheStudents,
     getStudentsSummary,
     getStudentsCachedHtml,
-} from './render/computation/studentsRenderer.js?v=quit-authoritative-full-sync-20260629-v4d4';
+} from './render/computation/studentsRenderer.js?v=quit-mobile-coach-login-repair-20260629-v4d5';
 import {
     computeAndCacheInventory,
     getCachedLiveInvMap,

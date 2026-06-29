@@ -79,8 +79,11 @@ const _state = {
     quitCompletenessReconciled: false,
     /** Phase 4K-6V4D4: targeted quit query may be partial; authoritative load has own guarded retry. */
     quitTargetedLoaded:     false,
+    /** Phase 4K-6V4D5: single-flight promise for the authoritative Đã nghỉ full sync. */
+    quitAuthoritativePromise: null,
+    quitAuthoritativeLastError: '',
     quitAuthoritativeFallbackCount: 0,
-    maxQuitAuthoritativeFallbackPerSession: 2,
+    maxQuitAuthoritativeFallbackPerSession: 10,
 
     // ── Full fallback loop guard (Phase 3.7C) ─────────────────────────────────
     /** Đang chạy fallback → chặn concurrent call */
@@ -239,6 +242,10 @@ function _updateWindowMetrics() {
         quitCompletenessReconciled:         _state.quitCompletenessReconciled,
         quitTargetedLoaded:                 _state.quitTargetedLoaded,
         quitAuthoritativeFallbackCount:     _state.quitAuthoritativeFallbackCount,
+        quitAuthoritativeInProgress:        !!_state.quitAuthoritativePromise,
+        quitAuthoritativeLastError:         _state.quitAuthoritativeLastError,
+        quitAuthoritativeInProgress:        !!_state.quitAuthoritativePromise,
+        quitAuthoritativeLastError:         _state.quitAuthoritativeLastError,
         // Fallback guard
         fallbackInProgress:                 _state.fallbackInProgress,
         fallbackCompleted:                  _state.fallbackCompleted,
@@ -639,10 +646,16 @@ export async function loadQuitProfilesIfNeeded(reason, contextOverride) {
         window.RoleReadBoundary?.canMount?.('profiles.quit', { reason: reason || 'quit-lazy' });
         return false;
     }
-    // Phase 4K-6V4D4: quitLoaded can mean only targeted/partial cache.
-    // Only skip when the full authoritative reconciliation has succeeded.
+    // Phase 4K-6V4D5: Đã nghỉ must use the full authoritative source first.
+    // Targeted queries are only a last-resort preview when the full sync cannot run.
     if (_state.quitLoaded && _state.quitCompletenessReconciled) return true;
-    if (_state.quitLoadingInProgress) return false; // Đang load — tránh parallel
+    if (!_isCoachContext(_effectiveContext)) {
+        const ok = await ensureQuitProfilesAuthoritative('load-quit-profiles:' + (reason || 'unknown'));
+        if (ok) return true;
+    }
+    if (_state.quitLoadingInProgress) {
+        return _state.quitAuthoritativePromise ? _state.quitAuthoritativePromise : false;
+    }
 
     const ctx = contextOverride || _ctx;
     if (!ctx || !ctx.profRef) {
@@ -763,6 +776,21 @@ export async function loadQuitProfilesIfNeeded(reason, contextOverride) {
             if (id && !quitMap[id] && classifyProfileStatus(data) === 'quit') quitMap[id] = data;
         });
 
+        // Phase 4K-6V4D5: never let a delayed targeted query overwrite the
+        // completed authoritative full sync. This was the race that left web/mobile
+        // with a partial Đã nghỉ list after several quick tab switches.
+        if (_state.quitCompletenessReconciled && _state.quitLoaded) {
+            _state.quitLoadingInProgress = false;
+            _updateWindowMetrics();
+            return true;
+        }
+        if (_state.quitAuthoritativePromise) {
+            const ok = await _state.quitAuthoritativePromise;
+            _state.quitLoadingInProgress = false;
+            _updateWindowMetrics();
+            if (ok) return true;
+        }
+
         setQuitProfiles(quitMap, 'quit-profiles-lazy-targeted:' + (reason || ''));
         markQuitLoaded(true); // partial cache is available for immediate preview
 
@@ -815,6 +843,9 @@ export function cleanupQuitProfilesListener(reason) {
     _state.quitListenerKey       = null;
     _state.quitLoaded            = false;
     _state.quitLoadingInProgress = false;
+    _state.quitCompletenessReconciled = false;
+    _state.quitAuthoritativePromise = null;
+    _state.quitAuthoritativeLastError = '';
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1109,15 +1140,43 @@ export async function ensureQuitProfilesAuthoritative(reason) {
         return false;
     }
     if (_state.quitCompletenessReconciled && _state.quitLoaded) return true;
-    if (_state.fallbackInProgress) return false;
-    const ok = await loadFullProfilesFallback('quit-authoritative-full-sync:' + (reason || 'unknown'), { forceQuitAuthoritative: true });
-    _state.quitCompletenessReconciled = !!ok;
-    if (ok) {
-        _state.quitLoaded = true;
-        markQuitLoaded(true);
-    }
+    if (_state.quitAuthoritativePromise) return _state.quitAuthoritativePromise;
+
+    const run = (async () => {
+        _state.quitAuthoritativeLastError = '';
+        _updateWindowMetrics();
+
+        // If a generic full fallback is already running, wait briefly for it rather
+        // than starting targeted queries that can later overwrite the complete list.
+        for (let i = 0; _state.fallbackInProgress && i < 40; i++) {
+            await new Promise(resolve => setTimeout(resolve, 50));
+            if (_state.quitCompletenessReconciled && _state.quitLoaded) return true;
+        }
+        if (_state.fallbackInProgress) {
+            _state.quitAuthoritativeLastError = 'fallback-in-progress-timeout';
+            _updateWindowMetrics();
+            return false;
+        }
+
+        const ok = await loadFullProfilesFallback('quit-authoritative-full-sync:' + (reason || 'unknown'), { forceQuitAuthoritative: true });
+        _state.quitCompletenessReconciled = !!ok;
+        if (ok) {
+            _state.quitLoaded = true;
+            _state.quitAuthoritativeLastError = '';
+            markQuitLoaded(true);
+        } else {
+            _state.quitAuthoritativeLastError = _state.fullFallbackReason || 'full-sync-failed';
+        }
+        _updateWindowMetrics();
+        return !!ok;
+    })();
+
+    _state.quitAuthoritativePromise = run.finally(() => {
+        _state.quitAuthoritativePromise = null;
+        _updateWindowMetrics();
+    });
     _updateWindowMetrics();
-    return !!ok;
+    return _state.quitAuthoritativePromise;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1151,6 +1210,8 @@ export function resetProfilesListeners(reason) {
     _state.quitLoadingInProgress   = false;
     _state.quitCompletenessReconciled = false;
     _state.quitTargetedLoaded      = false;
+    _state.quitAuthoritativePromise = null;
+    _state.quitAuthoritativeLastError = '';
     _state.quitAuthoritativeFallbackCount = 0;
 
     // Fallback guard

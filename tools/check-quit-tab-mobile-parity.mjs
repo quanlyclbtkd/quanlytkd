@@ -21,8 +21,9 @@ function check(name, ok) {
 console.log('\n=== Phase 4K-6V4B8 — Quit Tab Mobile Parity ===\n');
 const build = 'quit-mobile-authoritative-local-sync-20260628-v4d3';
 const buildV4D4 = 'quit-authoritative-full-sync-20260629-v4d4';
-const currentBuilds = [build, buildV4D4];
-const appBuilds = [build, buildV4D4, 'profile-canonical-store-runtime-recovery-20260628-v4d1a', 'profile-canonical-store-20260628-v4d1', 'tuition-debt-source-of-truth-20260628-v4c'];
+const buildV4D5 = 'quit-mobile-coach-login-repair-20260629-v4d5';
+const currentBuilds = [build, buildV4D4, buildV4D5];
+const appBuilds = [build, buildV4D4, buildV4D5, 'profile-canonical-store-runtime-recovery-20260628-v4d1a', 'profile-canonical-store-20260628-v4d1', 'tuition-debt-source-of-truth-20260628-v4c'];
 
 check('Index cache-busts app.js and main.js with current quit-safe build',
   appBuilds.some(b => index.includes(`app.js?v=${b}`)) && currentBuilds.some(b => index.includes(`./js/main.js?v=${b}`)));

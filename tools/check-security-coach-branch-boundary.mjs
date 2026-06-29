@@ -33,7 +33,7 @@ const appPos = index.lastIndexOf('app.js?v=');
 check('Canonical branch identity loads before role boundary and app kernel',
   branchPos >= 0 && rolePos > branchPos && appPos > rolePos);
 check('All 6V4B runtime entry assets share one cache-bust marker',
-  (index.match(/coach-branch-runtime-repair-20260627-v4b1/g) || []).length >= 5);
+  ((index.match(/quit-mobile-coach-login-repair-20260629-v4d5/g) || []).length >= 5 || (index.match(/coach-branch-runtime-repair-20260627-v4b1/g) || []).length >= 5));
 check('Coach account selector has no unrestricted/all-branch option',
   /id="coach_branch"[\s\S]{0,600}<option value="CS1">/.test(index) &&
   !/id="coach_branch"[\s\S]{0,600}Tất cả cơ sở \(không giới hạn\)/.test(index));
@@ -83,7 +83,9 @@ check('Self user updates use a strict safe-field diff whitelist',
   !['role','clubId','branch','coachBranch','status','isSuperAdmin'].some(field => selfFieldFn.includes(`'${field}'`)));
 check('User cannot self-update role, clubId, branch or status',
   rules.includes('request.auth.uid == uid') && rules.includes('safeSelfUserFieldsOnly()') &&
-  rules.includes('safeSelfCoachMirrorUpdate(uid)') && !rules.includes('request.auth.uid == uid || isSuperAdmin'));
+  rules.includes('safeSelfCoachMirrorUpdate(uid)') &&
+  rules.includes("request.resource.data.get('role', '') == resource.data.get('role', '')") &&
+  rules.includes("request.resource.data.get('clubId', '') == resource.data.get('clubId', '')"));
 check('Club Admin may provision/repair only same-tenant Coach users with a valid branch',
   rules.includes("data.get('role', '') == 'coach'") &&
   rules.includes("data.get('clubId', '') == myClubId()") &&

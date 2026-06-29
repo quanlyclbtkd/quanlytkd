@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** Phase 4K-6V4D4 — Quit Authoritative Full Sync (Web + Mobile) */
+/** Phase 4K-6V4D5 — Quit/Coach Authoritative Full Sync (Web + Mobile) */
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -20,12 +20,12 @@ function check(name, ok, detail = '') {
   else { fail++; console.error('❌', name + (detail ? ' — ' + detail : '')); }
 }
 
-const build = 'quit-authoritative-full-sync-20260629-v4d4';
-console.log('\n=== Phase 4K-6V4D4 — Quit Authoritative Full Sync ===\n');
+const build = 'quit-mobile-coach-login-repair-20260629-v4d5';
+console.log('\n=== Phase 4K-6V4D5 — Quit/Coach Authoritative Full Sync ===\n');
 
-check('Cache-bust updated for index/app/main V4D4',
+check('Cache-bust updated for index/app/main V4D5',
   index.includes(`app.js?v=${build}`) && index.includes(`./js/main.js?v=${build}`));
-check('Main imports quit-critical modules with V4D4 cache-bust',
+check('Main imports quit-critical modules with V4D5 cache-bust',
   main.includes(`./listeners/profiles.listeners.js?v=${build}`) &&
   main.includes(`./ui/render/renderStudents.js?v=${build}`) &&
   main.includes(`./modules/students.js?v=${build}`));
@@ -65,4 +65,4 @@ check('Legacy app.js render also removes quit page limit/load-more',
 
 console.log(`\nTotal: ${pass + fail} | PASS: ${pass} | FAIL: ${fail}`);
 if (fail) process.exit(1);
-console.log('Phase 4K-6V4D4 checks passed.\n');
+console.log('Phase 4K-6V4D5 checks passed.\n');

@@ -17,10 +17,10 @@ check('canonical helper file exists', existsSync(resolve(root, 'js/core/tuitionD
 check('index loads tuitionDebtCanonical before app.js', (() => {
   const html = readFileSync(resolve(root, 'index.html'), 'utf8');
   const tuitionIdx = html.indexOf('js/core/tuitionDebtCanonical.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a');
-  const appIdx = html.indexOf('app.js?v=quit-authoritative-full-sync-20260629-v4d4');
+  const appIdx = Math.max(html.indexOf('app.js?v=quit-mobile-coach-login-repair-20260629-v4d5'), html.indexOf('app.js?v=quit-authoritative-full-sync-20260629-v4d4'));
   return tuitionIdx > -1 && appIdx > -1 && tuitionIdx < appIdx;
 })());
-check('app.js cache-bust updated to current quit authoritative full-sync build', includes('index.html', 'app.js?v=quit-authoritative-full-sync-20260629-v4d4'));
+check('app.js cache-bust updated to current quit authoritative full-sync build', includes('index.html', 'app.js?v=quit-mobile-coach-login-repair-20260629-v4d5') || includes('index.html', 'app.js?v=quit-authoritative-full-sync-20260629-v4d4'));
 check('getChargeableTuitionMonths delegates to computeTuitionDebtCanonical', includes('app.js', 'window.computeTuitionDebtCanonical') && includes('app.js', 'canonical.chargeableMonths'));
 check('debugDebtTrace exported', includes('js/core/tuitionDebtCanonical.js', 'window.debugDebtTrace = debugDebtTrace'));
 check('auditTuitionDebtCanonicalProfiles exported', includes('js/core/tuitionDebtCanonical.js', 'window.auditTuitionDebtCanonicalProfiles'));

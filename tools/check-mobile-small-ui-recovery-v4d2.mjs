@@ -5,7 +5,7 @@ import path from 'node:path';
 
 const root = process.cwd();
 const read = rel => fs.readFileSync(path.join(root, rel), 'utf8');
-const VERSION = 'quit-authoritative-full-sync-20260629-v4d4';
+const VERSION = 'quit-mobile-coach-login-repair-20260629-v4d5';
 const files = {
   index: read('index.html'),
   main: read('js/main.js'),

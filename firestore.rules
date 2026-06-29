@@ -334,7 +334,7 @@ service cloud.firestore {
       return selfCoachMirrorMatches(uid, request.resource.data)
         && request.resource.data.keys().hasOnly([
           'role', 'clubId', 'branch', 'coachBranch', 'email', 'displayName',
-          'photoURL', 'phone', 'preferences', 'createdAt', 'updatedAt'
+          'uid', 'photoURL', 'phone', 'preferences', 'createdAt', 'updatedAt'
         ]);
     }
 
@@ -343,9 +343,38 @@ service cloud.firestore {
         && request.resource.data.get('role', '') == resource.data.get('role', '')
         && request.resource.data.get('clubId', '') == resource.data.get('clubId', '')
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'branch', 'coachBranch', 'email', 'updatedAt'
+          'branch', 'coachBranch', 'email', 'uid', 'updatedAt'
         ])
         && selfCoachMirrorMatches(uid, request.resource.data);
+    }
+
+
+
+    // Deterministic login recovery index for Coach accounts.
+    // HLV tự đọc coach_login_index/{uid} để khôi phục role/club/branch khi users/{uid}
+    // bị thiếu hoặc chưa đồng bộ; Admin ghi chỉ số này khi tạo/đồng bộ HLV.
+    function targetCoachLoginIndexValid(data) {
+      return data.get('role', '') == 'coach'
+        && data.get('clubId', '') != ''
+        && isClubAdmin(data.get('clubId', ''))
+        && isAllowedCoachBranch(assignedBranch(data));
+    }
+
+    function safeSelfCoachLoginIndexWrite(uid) {
+      return selfCoachMirrorMatches(uid, request.resource.data)
+        && request.resource.data.keys().hasOnly([
+          'role', 'clubId', 'branch', 'coachBranch', 'email', 'uid', 'updatedAt'
+        ]);
+    }
+
+    match /coach_login_index/{uid} {
+      allow get: if signedIn() && request.auth.uid == uid || isSuperAdmin();
+      allow list: if isSuperAdmin();
+      allow create, update: if isSuperAdmin()
+        || targetCoachLoginIndexValid(request.resource.data)
+        || safeSelfCoachLoginIndexWrite(uid);
+      allow delete: if isSuperAdmin()
+        || (resource.data.get('clubId', '') != '' && isClubAdmin(resource.data.get('clubId', '')));
     }
 
     match /users/{uid} {
