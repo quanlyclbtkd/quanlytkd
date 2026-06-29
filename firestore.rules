@@ -88,7 +88,7 @@ service cloud.firestore {
     function isCoach(clubId) {
       return isClubMember(clubId)
         && myRole() == 'coach'
-        && isAllowedCoachBranch(myBranch());
+        && branchValueIsKnownInClub(clubId, myBranch());
     }
 
     function isAdminOrViewer(clubId) {
@@ -100,7 +100,7 @@ service cloud.firestore {
       return branchValue in ['CS1', 'CS01', 'CS 1', 'Cơ sở 1', 'Co so 1', '1', 'Mặc định', 'mac dinh', 'default', 'primary', 'Cơ sở mặc định', 'Co so mac dinh'];
     }
 
-    // Phase 4K-6V4D7: HLV được phân quyền bằng CSx, nhưng dữ liệu cũ có thể lưu
+    // Phase 4K-6V4D8: HLV được phân quyền bằng CSx hoặc tên cơ sở legacy, nhưng dữ liệu cũ có thể lưu
     // branch bằng CS02 / "Cơ sở 2" / tên cơ sở thật trong settings/main_config.
     function isNumberedBranchAlias(branchValue, code) {
       return (code == 'CS1' && isPrimaryBranchAlias(branchValue))
@@ -140,12 +140,48 @@ service cloud.firestore {
       );
     }
 
+    function branchValueMatchesCode(clubId, branchValue, code) {
+      return isNumberedBranchAlias(branchValue, code)
+        || configuredBranchNameMatches(clubId, branchValue, code);
+    }
+
+    function branchValueIsKnownInClub(clubId, branchValue) {
+      return branchValueMatchesCode(clubId, branchValue, 'CS1')
+        || branchValueMatchesCode(clubId, branchValue, 'CS2')
+        || branchValueMatchesCode(clubId, branchValue, 'CS3')
+        || branchValueMatchesCode(clubId, branchValue, 'CS4')
+        || branchValueMatchesCode(clubId, branchValue, 'CS5')
+        || branchValueMatchesCode(clubId, branchValue, 'CS6')
+        || branchValueMatchesCode(clubId, branchValue, 'CS7')
+        || branchValueMatchesCode(clubId, branchValue, 'CS8')
+        || branchValueMatchesCode(clubId, branchValue, 'CS9')
+        || branchValueMatchesCode(clubId, branchValue, 'CS10');
+    }
+
+    function branchPairMatchesCode(clubId, left, right, code) {
+      return branchValueMatchesCode(clubId, left, code)
+        && branchValueMatchesCode(clubId, right, code);
+    }
+
+    function branchEquivalentInClub(clubId, left, right) {
+      return left != ''
+        && right != ''
+        && (left == right
+          || branchPairMatchesCode(clubId, left, right, 'CS1')
+          || branchPairMatchesCode(clubId, left, right, 'CS2')
+          || branchPairMatchesCode(clubId, left, right, 'CS3')
+          || branchPairMatchesCode(clubId, left, right, 'CS4')
+          || branchPairMatchesCode(clubId, left, right, 'CS5')
+          || branchPairMatchesCode(clubId, left, right, 'CS6')
+          || branchPairMatchesCode(clubId, left, right, 'CS7')
+          || branchPairMatchesCode(clubId, left, right, 'CS8')
+          || branchPairMatchesCode(clubId, left, right, 'CS9')
+          || branchPairMatchesCode(clubId, left, right, 'CS10'));
+    }
+
     function branchMatchesAssigned(branchValue) {
-      return isCoach(myClubId()) && (
-        branchValue == myBranch()
-        || isNumberedBranchAlias(branchValue, myBranch())
-        || configuredBranchNameMatches(myClubId(), branchValue, myBranch())
-      );
+      return isCoach(myClubId())
+        && branchEquivalentInClub(myClubId(), branchValue, myBranch());
     }
 
     function resourceBranchMatchesCoach() {

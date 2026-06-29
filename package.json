@@ -199,7 +199,7 @@
     "check:mobile-small-ui-recovery": "node tools/check-mobile-small-ui-recovery-v4d2.mjs",
     "check:quit-mobile-authoritative-local-sync": "node tools/check-quit-mobile-authoritative-local-sync-v4d3.mjs",
     "check:quit-authoritative-full-sync": "node tools/check-quit-authoritative-full-sync-v4d4.mjs",
-    "check:coach-attendance-branch-scope": "node tools/check-coach-attendance-branch-scope-v4d7.mjs"
+    "check:coach-attendance-branch-scope": "node tools/check-coach-attendance-branch-scope-v4d8.mjs"
   },
   "engines": {
     "node": ">=18.0.0"

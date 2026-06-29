@@ -44,7 +44,7 @@ import {
 import {
     computeAndCacheStudents,
     getStudentsSummary,
-} from './computation/studentsRenderer.js?v=coach-attendance-branch-hydration-20260630-v4d6';
+} from './computation/studentsRenderer.js?v=coach-attendance-branch-rule-tolerant-20260630-v4d8';
 import {
     computeAndCacheInventory,
     getCachedUnpaidInvCount,

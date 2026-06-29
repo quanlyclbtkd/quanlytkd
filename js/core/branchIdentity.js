@@ -9,9 +9,9 @@
 (function initBranchIdentity(global) {
     'use strict';
 
-    if (global.BranchIdentity && global.BranchIdentity.version === '4K-6V4D7') return;
+    if (global.BranchIdentity && global.BranchIdentity.version === '4K-6V4D8') return;
 
-    const VERSION = '4K-6V4D7';
+    const VERSION = '4K-6V4D8';
     const PRIMARY_ALIASES = new Set([
         'mặc định', 'mac dinh', 'default', 'primary', 'cơ sở mặc định', 'co so mac dinh',
         'cs01', 'cs 1', 'cơ sở 1', 'co so 1', '1'
@@ -74,7 +74,7 @@
         const numbered = folded.match(/^(?:co so|cơ sở)\s*0*([1-9]|10)$/i);
         if (numbered) return 'CS' + Number(numbered[1]);
 
-        // Phase 4K-6V4D7: dữ liệu cũ có thể lưu branch bằng tên cơ sở
+        // Phase 4K-6V4D8: dữ liệu cũ có thể lưu branch bằng tên cơ sở
         // (ví dụ "Nguyễn Trãi" hoặc "Cơ sở Nguyễn Trãi") thay vì CS2.
         for (let i = 1; i <= 10; i++) {
             if (_configuredNameMatches(folded, i)) return 'CS' + i;
@@ -126,7 +126,7 @@
     }
 
     const api = Object.freeze({
-        version: '4K-6V4D7',
+        version: '4K-6V4D8',
         normalize,
         aliases,
         isCanonical,

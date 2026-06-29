@@ -50,7 +50,7 @@ function _getLocalToday()  { return window.getLocalToday ? window.getLocalToday(
 function _sameBranch(left, right) {
     if (!left || !right) return false;
     if (window.BranchIdentity?.isSameBranch && window.BranchIdentity.isSameBranch(left, right)) return true;
-    // Phase 4K-6V4D7: HLV có thể được gán CSx, nhưng hồ sơ cũ lại lưu tên cơ sở
+    // Phase 4K-6V4D8: HLV có thể được gán CSx, nhưng hồ sơ cũ lại lưu tên cơ sở
     // thật trong branch/branchCode/coachBranch. So khớp thêm bằng aliases động từ
     // cấu hình CLB để không bỏ sót võ sinh trong tab Điểm danh.
     try {

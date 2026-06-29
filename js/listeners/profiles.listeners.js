@@ -162,7 +162,7 @@ function _coachBranchAliases(context = _ctx) {
         add(branch);
         if (branch === 'CS1') add('Mặc định');
     }
-    // Phase 4K-6V4D7: settings may arrive after the first listener mount.
+    // Phase 4K-6V4D8: settings may arrive after the first listener mount.
     // Build dynamic name aliases directly here as well so the reconciliation query
     // can recover legacy profiles saved with the human branch name.
     const m = String(branch || '').match(/^CS([1-9]|10)$/);
@@ -202,6 +202,20 @@ function _coachProfileQuerySpecs(context = _ctx, options = {}) {
 
 function _profileIsActiveForCoachAttendance(data) {
     return classifyProfileStatus(data) !== 'quit';
+}
+
+function _isPermissionDenied(err) {
+    return String((err && (err.code || err.message)) || '').toLowerCase().includes('permission-denied')
+        || String((err && (err.code || err.message)) || '').toLowerCase().includes('permission denied');
+}
+
+function _warnCoachSpecDenied(prefix, spec, err) {
+    const code = (err && (err.code || err.message)) || 'unknown';
+    if (_isPermissionDenied(err)) {
+        console.warn(prefix + ' skipped permission-denied spec:', spec.field + '=' + spec.value);
+    } else {
+        console.warn(prefix + ' spec failed:', code, spec);
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -547,7 +561,19 @@ export function mountActiveProfilesListener(context) {
                         },
                         (err) => {
                             _state.activeQueryErrorCount++;
-                            console.warn('[ProfilesListener] Coach branch query lỗi:', err.code || err.message, spec);
+                            _warnCoachSpecDenied('[ProfilesListener] Coach branch listener', spec, err);
+                            _state.coachBranchFieldActiveMaps[spec.key] = {};
+                            const merged = _mergedCoachActiveMap();
+                            if (Object.keys(merged).length > 0) {
+                                setActiveProfiles(merged, 'coach-branch-authoritative-partial-after-denied-spec');
+                                markActiveLoaded(true);
+                                _syncLegacy();
+                                _invalidateAll('coach-branch-authoritative-partial-after-denied-spec');
+                                _updateWindowMetrics();
+                                return;
+                            }
+                            // Do not let one denied alias query fail all Coach data.
+                            // Fallback is per-spec tolerant and only merges successful branch-safe reads.
                             loadCoachBranchProfilesFallback('coach-branch-query-error:' + spec.field + ':' + (err.code || 'unknown'));
                         }
                     );
@@ -556,7 +582,7 @@ export function mountActiveProfilesListener(context) {
                     owner:  'students',
                     scope:  'global',
                     tabId:  'attendance',
-                    reason: 'coach-branch-authoritative-listener-4K-6V4D6',
+                    reason: 'coach-branch-authoritative-listener-4K-6V4D8',
                 }
             );
         });
@@ -931,9 +957,15 @@ export async function ensureCoachBranchProfilesHydrated(reason) {
                 .catch(err => ({ spec, error: err }))
         ));
         let docsRead = 0;
+        let okSpecs = 0;
         const activeMap = _mergedCoachActiveMap();
-        snapshots.forEach(({ snap }) => {
+        snapshots.forEach(({ spec, snap, error }) => {
+            if (error) {
+                _warnCoachSpecDenied('[ProfilesListener] Coach branch hydration reconcile', spec, error);
+                return;
+            }
             if (!snap) return;
+            okSpecs++;
             docsRead += snap.size || 0;
             snap.forEach(d => {
                 const id = d.id.trim();
@@ -942,6 +974,10 @@ export async function ensureCoachBranchProfilesHydrated(reason) {
                 if (_profileIsActiveForCoachAttendance(data)) activeMap[id] = data;
             });
         });
+        if (okSpecs === 0 && Object.keys(activeMap).length === 0) {
+            console.warn('[ProfilesListener] Coach branch hydration reconcile had no permitted specs:', reason);
+            return false;
+        }
         if (typeof window.recordFirestoreReadAttribution === 'function') {
             window.recordFirestoreReadAttribution('profiles.coachBranchHydrationReconcile', docsRead, {
                 initial: false,
@@ -982,24 +1018,45 @@ export async function loadCoachBranchProfilesFallback(reason) {
         const specs = _coachProfileQuerySpecs(ctx, { includeMirrorFields: true });
         const snapshots = await Promise.all(specs.map(spec =>
             fbGetDocs(fbQuery(ctx.profRef, fbWhere(spec.field, '==', spec.value)))
+                .then(snap => ({ spec, snap }))
+                .catch(error => ({ spec, error }))
         ));
         const aliases = _coachBranchAliases(ctx);
-        const docsRead = snapshots.reduce((sum, snap) => sum + (snap.size || 0), 0);
+        let docsRead = 0;
+        let okSpecs = 0;
+        const activeMap = _mergedCoachActiveMap();
+        snapshots.forEach(({ spec, snap, error }) => {
+            if (error) {
+                _warnCoachSpecDenied('[ProfilesFallback] Coach branch fallback', spec, error);
+                return;
+            }
+            if (!snap) return;
+            okSpecs++;
+            docsRead += snap.size || 0;
+            snap.forEach(d => {
+                const id = d.id.trim();
+                if (!id) return;
+                const data = d.data();
+                if (_profileIsActiveForCoachAttendance(data)) activeMap[id] = data;
+            });
+        });
         if (typeof window.recordFirestoreReadAttribution === 'function') {
             window.recordFirestoreReadAttribution('profiles.coachBranchFallbackQuery', docsRead, {
                 initial: true,
                 reason: reason || 'coach-branch-fallback',
                 branch,
-                aliases
+                aliases,
+                okSpecs,
+                totalSpecs: specs.length
             });
         }
-        const activeMap = {};
-        snapshots.forEach(snap => snap.forEach(d => {
-            const id = d.id.trim();
-            if (!id) return;
-            const data = d.data();
-            if (_profileIsActiveForCoachAttendance(data)) activeMap[id] = data;
-        }));
+        if (okSpecs === 0 && Object.keys(activeMap).length === 0) {
+            console.warn('[ProfilesFallback] Coach branch load skipped — no permitted branch specs:', reason);
+            _state.fallbackCount++;
+            _state.fullFallbackReason = 'coach-branch-no-permitted-specs:' + reason;
+            _updateWindowMetrics();
+            return false;
+        }
         setActiveProfiles(activeMap, 'coach-branch-fallback:' + reason);
         setQuitProfiles({}, 'coach-branch-fallback:no-quit-data');
         _syncLegacy();
