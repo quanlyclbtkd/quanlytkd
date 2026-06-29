@@ -264,7 +264,8 @@ import {
     getProfilesListenerMetrics,
     ensureAllProfilesForExport,
     ensureQuitProfilesAuthoritative,
-} from './listeners/profiles.listeners.js?v=coach-attendance-branch-hydration-20260630-v4d6';
+    ensureCoachBranchProfilesHydrated,
+} from './listeners/profiles.listeners.js?v=coach-attendance-branch-scope-20260630-v4d7';
 
 // ── Phase 3.7C: Profile Status Config ────────────────────────────────────────
 import {
@@ -2129,6 +2130,7 @@ function _waitForExistingLegacyApp(ms) {
         // ── Phase 3.7C: Status Config + Export helper + Debug ─────────────────
         window.ensureAllProfilesForExport   = ensureAllProfilesForExport;
         window.ensureQuitProfilesAuthoritative = ensureQuitProfilesAuthoritative;
+        window.ensureCoachBranchProfilesHydrated = ensureCoachBranchProfilesHydrated;
         window.getProfileStatusConfig       = getProfileStatusConfig;
         window.setProfileStatusConfigForDebug = setProfileStatusConfigForDebug;
         window.resetProfileStatusConfig     = resetProfileStatusConfig;

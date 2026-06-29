@@ -1864,6 +1864,12 @@ service cloud.firestore {
                 // Phase 4.0B-4D: mark settings loaded
                 _updateHydrationMetrics({ settingsLoaded: true, lastReason: 'settings-snapshot' });
                 applyClubConfigUI();
+                // Phase 4K-6V4D7: Sau khi tên cơ sở được hydrate từ settings,
+                // chạy reconcile branch-scoped cho HLV để lấy cả hồ sơ legacy lưu
+                // branch bằng tên cơ sở/branchCode/coachBranch, không full-read CLB.
+                if (_coachAttendanceOnly && typeof window.ensureCoachBranchProfilesHydrated === 'function') {
+                    setTimeout(() => window.ensureCoachBranchProfilesHydrated('settings-ready-branch-aliases'), 0);
+                }
                 // [Phase 3.5C] settings thay đổi ảnh hưởng toàn bộ UI → invalidateByDomain('all')
                 // Dùng domain invalidation thay vì scheduleRender() toàn app.
                 // Fallback về scheduleRender() nếu Phase 3.5C chưa load.

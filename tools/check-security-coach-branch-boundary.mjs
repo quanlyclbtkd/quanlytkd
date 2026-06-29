@@ -33,7 +33,7 @@ const appPos = index.lastIndexOf('app.js?v=');
 check('Canonical branch identity loads before role boundary and app kernel',
   branchPos >= 0 && rolePos > branchPos && appPos > rolePos);
 check('All 6V4B runtime entry assets share one cache-bust marker',
-  ((index.match(/coach-attendance-branch-hydration-20260630-v4d6/g) || []).length >= 5 || (index.match(/coach-branch-runtime-repair-20260627-v4b1/g) || []).length >= 5));
+  ((index.match(/coach-attendance-branch-scope-20260630-v4d7/g) || []).length >= 5 || (index.match(/coach-attendance-branch-hydration-20260630-v4d6/g) || []).length >= 5 || (index.match(/coach-branch-runtime-repair-20260627-v4b1/g) || []).length >= 5));
 check('Coach account selector has no unrestricted/all-branch option',
   /id="coach_branch"[\s\S]{0,600}<option value="CS1">/.test(index) &&
   !/id="coach_branch"[\s\S]{0,600}Tất cả cơ sở \(không giới hạn\)/.test(index));
@@ -59,7 +59,7 @@ check('New single-branch student writes use CS1 rather than legacy Mặc định
   app.includes("isSingleBranch ? 'CS1'") && students.includes("isSingleBranch ? 'CS1'") &&
   !/branch\s*:\s*['"]Mặc định['"]/.test(app + '\n' + students));
 check('Coach CS1 profile listener keeps legacy Mặc định as an assigned-branch alias',
-  profiles.includes("return branch === 'CS1' ? ['CS1', 'Mặc định']") &&
+  profiles.includes("if (branch === 'CS1') add('Mặc định')") &&
   profiles.includes("_coachBranchAliases(context).filter(Boolean)") &&
   profiles.includes("coach-branch-authoritative-listener-4K-6V4D6"));
 check('Coach fallback queries only assigned branch aliases/mirrors and de-duplicates results',
@@ -107,9 +107,11 @@ check('Unknown tenant subcollections are deny-by-default',
   /match \/\{subcollection\}\/\{documentId\}[\s\S]{0,120}allow read, write: if false/.test(rules));
 check('Coach settings access is limited to main_config and shifts compatibility docs',
   rules.includes("settingId in ['main_config', 'shifts']"));
-check('CS1 and Mặc định compatibility exists only as an explicit primary alias',
-  rules.includes("branchValue in ['CS1', 'Mặc định']") &&
-  branchIdentity.includes("code === 'CS1' ? ['CS1', 'Mặc định']"));
+check('CS1 and numbered/configured branch aliases are explicit and branch-scoped',
+  rules.includes('function isNumberedBranchAlias') &&
+  rules.includes('function configuredBranchNameMatches') &&
+  branchIdentity.includes("'Mặc định'") &&
+  branchIdentity.includes("_configuredBranchName(index)"));
 
 check('Callable authorization uses Firestore role/tenant data, not email allowlists',
   authz.includes("['admin', 'owner'].includes(userRole)") &&
@@ -135,8 +137,8 @@ check('No callable keeps the legacy hard-coded superadmin email check',
     api.normalize('Cơ sở 2', { fallback: '' }) === 'CS2');
   check('Dynamic: empty branch remains invalid when fallback is empty',
     api.normalize('', { fallback: '' }) === '');
-  check('Dynamic: primary branch aliases are exactly CS1 and Mặc định',
-    JSON.stringify(Array.from(api.aliases('CS1'))) === JSON.stringify(['CS1', 'Mặc định']));
+  check('Dynamic: primary branch aliases include canonical and legacy display variants',
+    api.aliases('CS1').includes('CS1') && api.aliases('CS1').includes('Mặc định') && api.aliases('CS1').includes('Cơ sở 1'));
 }
 
 // Dynamic role boundary contract with canonical branch identity loaded.

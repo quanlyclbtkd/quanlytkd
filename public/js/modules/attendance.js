@@ -48,13 +48,30 @@ function _config()   { return (window.__store || {}).clubConfig || {}; }
 function _clubData() { return (window.__store || {}).clubData || {}; }
 function _getLocalToday()  { return window.getLocalToday ? window.getLocalToday() : new Date().toISOString().slice(0, 10); }
 function _sameBranch(left, right) {
-    if (window.BranchIdentity?.isSameBranch) return window.BranchIdentity.isSameBranch(left, right);
-    const normalize = (value) => {
-        const raw = String(value || '').trim();
-        return /^(Mặc định|mac dinh|default)$/i.test(raw) ? 'CS1' : raw.toUpperCase();
-    };
-    const a = normalize(left), b = normalize(right);
-    return !!a && a === b;
+    if (!left || !right) return false;
+    if (window.BranchIdentity?.isSameBranch && window.BranchIdentity.isSameBranch(left, right)) return true;
+    // Phase 4K-6V4D7: HLV có thể được gán CSx, nhưng hồ sơ cũ lại lưu tên cơ sở
+    // thật trong branch/branchCode/coachBranch. So khớp thêm bằng aliases động từ
+    // cấu hình CLB để không bỏ sót võ sinh trong tab Điểm danh.
+    try {
+        const aliases = new Set([].concat(
+            window.BranchIdentity?.aliases?.(left) || [],
+            window.BranchIdentity?.aliases?.(right) || []
+        ).map(v => String(v || '').trim()).filter(Boolean));
+        if (aliases.has(String(left || '').trim()) && aliases.has(String(right || '').trim())) return true;
+        const lc = window.BranchIdentity?.normalize?.(left, { fallback: '' });
+        const rc = window.BranchIdentity?.normalize?.(right, { fallback: '' });
+        if (lc && rc && lc === rc) return true;
+    } catch (_) {}
+    const fold = (v) => String(v || '')
+        .normalize('NFD').replace(/[̀-ͯ]/g, '')
+        .replace(/đ/g, 'd').replace(/Đ/g, 'D')
+        .toLowerCase().replace(/\s+/g, ' ').trim();
+    const l = String(left || '').trim(), r = String(right || '').trim();
+    if (fold(l) === fold(r)) return true;
+    const rName = window.getBranchNameDisplay ? window.getBranchNameDisplay(r) : r;
+    const lName = window.getBranchNameDisplay ? window.getBranchNameDisplay(l) : l;
+    return fold(l) === fold(rName) || fold(lName) === fold(r);
 }
 /** @deprecated Phase 3.1 — Firebase calls đã chuyển sang AttendanceService */
 

@@ -198,7 +198,8 @@
     "check:v4d1a-runtime-recovery": "node tools/check-v4d1a-runtime-recovery.mjs",
     "check:mobile-small-ui-recovery": "node tools/check-mobile-small-ui-recovery-v4d2.mjs",
     "check:quit-mobile-authoritative-local-sync": "node tools/check-quit-mobile-authoritative-local-sync-v4d3.mjs",
-    "check:quit-authoritative-full-sync": "node tools/check-quit-authoritative-full-sync-v4d4.mjs"
+    "check:quit-authoritative-full-sync": "node tools/check-quit-authoritative-full-sync-v4d4.mjs",
+    "check:coach-attendance-branch-scope": "node tools/check-coach-attendance-branch-scope-v4d7.mjs"
   },
   "engines": {
     "node": ">=18.0.0"

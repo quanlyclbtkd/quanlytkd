@@ -151,8 +151,29 @@ function _coachBranch(context = _ctx) {
 
 function _coachBranchAliases(context = _ctx) {
     const branch = _coachBranch(context);
-    if (window.BranchIdentity?.aliases) return window.BranchIdentity.aliases(branch);
-    return branch === 'CS1' ? ['CS1', 'Mặc định'] : (branch ? [branch] : []);
+    const out = [];
+    const add = (v) => {
+        const raw = String(v == null ? '' : v).trim();
+        if (raw && !out.includes(raw)) out.push(raw);
+    };
+    if (window.BranchIdentity?.aliases) {
+        (window.BranchIdentity.aliases(branch) || []).forEach(add);
+    } else {
+        add(branch);
+        if (branch === 'CS1') add('Mặc định');
+    }
+    // Phase 4K-6V4D7: settings may arrive after the first listener mount.
+    // Build dynamic name aliases directly here as well so the reconciliation query
+    // can recover legacy profiles saved with the human branch name.
+    const m = String(branch || '').match(/^CS([1-9]|10)$/);
+    if (m) {
+        const idx = Number(m[1]);
+        const cfg = (window.__store && window.__store.clubConfig) || window.clubConfig || {};
+        const name = String((cfg && cfg['branchName' + idx]) || '').trim();
+        ['CS' + idx, 'CS' + String(idx).padStart(2, '0'), 'CS ' + idx, 'Cơ sở ' + idx, 'Co so ' + idx, String(idx)].forEach(add);
+        if (name) [name, 'Cơ sở ' + name, 'Co so ' + name, 'Cơ Sở ' + name, branch + ' ' + name, branch + ' - ' + name].forEach(add);
+    }
+    return out;
 }
 
 function _mergedCoachActiveMap() {
@@ -468,7 +489,7 @@ export function mountActiveProfilesListener(context) {
     // Therefore coach queries are branch-scoped only, then status is classified locally.
     // This keeps Firestore Rules strict: no full-club read, no public rule opening.
     if (isCoach) {
-        const specs = _coachProfileQuerySpecs(context);
+        const specs = _coachProfileQuerySpecs(context, { includeMirrorFields: true });
         if (!specs.length) {
             console.error('[ProfilesListener] Coach branch specs empty — fail closed');
             setActiveProfiles({}, 'coach-empty-branch-specs');
@@ -893,6 +914,55 @@ export function cleanupQuitProfilesListener(reason) {
 // ─────────────────────────────────────────────────────────────────────────────
 // COACH BRANCH-SAFE FALLBACK — never reads the full club collection
 // ─────────────────────────────────────────────────────────────────────────────
+
+
+export async function ensureCoachBranchProfilesHydrated(reason) {
+    const ctx = _ctx;
+    const branch = _coachBranch(ctx);
+    if (!_isCoachContext(ctx) || !ctx || !ctx.profRef || !branch) return false;
+    const fb = window._fb_init || {};
+    const { query: fbQuery, where: fbWhere, getDocs: fbGetDocs } = fb;
+    if (!fbQuery || !fbWhere || !fbGetDocs) return false;
+    try {
+        const specs = _coachProfileQuerySpecs(ctx, { includeMirrorFields: true });
+        const snapshots = await Promise.all(specs.map(spec =>
+            fbGetDocs(fbQuery(ctx.profRef, fbWhere(spec.field, '==', spec.value)))
+                .then(snap => ({ spec, snap }))
+                .catch(err => ({ spec, error: err }))
+        ));
+        let docsRead = 0;
+        const activeMap = _mergedCoachActiveMap();
+        snapshots.forEach(({ snap }) => {
+            if (!snap) return;
+            docsRead += snap.size || 0;
+            snap.forEach(d => {
+                const id = d.id.trim();
+                if (!id) return;
+                const data = d.data();
+                if (_profileIsActiveForCoachAttendance(data)) activeMap[id] = data;
+            });
+        });
+        if (typeof window.recordFirestoreReadAttribution === 'function') {
+            window.recordFirestoreReadAttribution('profiles.coachBranchHydrationReconcile', docsRead, {
+                initial: false,
+                reason: reason || 'coach-branch-hydration-reconcile',
+                branch,
+                aliases: _coachBranchAliases(ctx)
+            });
+        }
+        setActiveProfiles(activeMap, 'coach-branch-hydration-reconcile:' + (reason || 'manual'));
+        setQuitProfiles({}, 'coach-branch-hydration-reconcile:no-quit-data');
+        markActiveLoaded(true);
+        _syncLegacy();
+        _state.lastProfilesMode = 'coach-branch-hydration-reconcile';
+        _invalidateAll('coach-branch-hydration-reconcile');
+        _updateWindowMetrics();
+        return true;
+    } catch (err) {
+        console.warn('[ProfilesListener] Coach branch hydration reconcile failed:', err.code || err.message || err);
+        return false;
+    }
+}
 
 export async function loadCoachBranchProfilesFallback(reason) {
     const ctx = _ctx;
