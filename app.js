@@ -600,7 +600,6 @@ window.invCustomCategories = [];
             return read(strippedYearMarker) || (strippedVietnameseYear ? read(strippedVietnameseYear) : 0);
         }
 
-
         const foldedRaw = _foldMonthText(raw);
         const yearMatch = foldedRaw.match(/\b(20\d{2})\b/);
         if (yearMatch) {
@@ -2480,8 +2479,6 @@ service cloud.firestore {
             }, 1200);
         }
     }
-
-
 
     //  SUPER ADMIN: NÂNG CẤP SỐ CƠ SỞ HOẠT ĐỘNG CỦA CLB
     let _buSelectedCount = 1;
@@ -4698,8 +4695,6 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         if (el) el.style.display = enabled ? 'block' : 'none';
     };
 
-
-
     // ── Phase 4.0B-4J-4: generateVietQR accepts optional branchOrAccount ─────
     function generateVietQR(amount, studentName, detailDesc, branchOrAccount) {
         const cName = removeVietnameseTonesForQR(studentName);
@@ -5206,7 +5201,6 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         }
         window.showToast(`✅ Hoàn thành! Đã gửi thông báo cho ${_bulkZaloIdx} võ sinh.`);
     };
-
 
     // PHASE 4K-4C — Gói học phí nhập học (helper dùng chung)
     window.buildAdmissionTuitionPackage = function(startDateOrMonth, packageCount) {
@@ -6895,7 +6889,6 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             .trim()
             .replace(/\s+/g, ' ');
     }
-
 
     // Phase 4K-6V4C2: canonical skipped-month helpers for the Active tab header.
     // Legacy fallback render must not hide skipped-month students because of
@@ -8731,7 +8724,6 @@ document.getElementById('multiItemModal').addEventListener('click', e => {
     if(e.target === e.currentTarget) e.currentTarget.style.display = 'none';
 });
 
-
 // Phase 4K-5E — Bundle Label Helpers
 window.getPaymentComponentDisplayName = function(component) {
     const c = component || {};
@@ -8793,7 +8785,6 @@ window.getBundleSummaryLine = function(tx) {
         : '';
     return name + (detail ? ' — ' + detail : '');
 };
-
 
 // Phase 4K-6K-G — Admission Tuition Type Normalization
 // "Thu nhập học" là nhãn nghiệp vụ/biên lai, KHÔNG phải phân loại kế toán.
@@ -9140,7 +9131,6 @@ window.debugActiveQuitLeak = function() {
     }));
     return { activeDomCount: activeDom.length, leaks: leaks };
 };
-
 
 // Phase 4K-6K-D — MultiItem Tuition Package Guard
 // Giữ lựa chọn gói học phí thủ công (3/6/9/12 tháng) không bị _refreshMiHistoryBadges ghi đè.
@@ -9595,7 +9585,6 @@ window.processMultiItem = async (action) => {
     setupMiCurrency('mi_exam_display', 'mi_exam_actual', updateMultiItemTotal, false);
     setupMiCurrency('mi_other_display', 'mi_other_actual', updateMultiItemTotal, false);
     setupMiCurrency('mi_inv_price_display', 'mi_inv_price_actual', window.calcMiInvTotal, false);
-
 
     // ĐIỂM DANH — Phase 4K-6V canonical module ownership
     // Full implementation moved to js/modules/attendance.js.
@@ -10150,8 +10139,6 @@ window.processMultiItem = async (action) => {
 
     // Phase 4K-6V: session-note loading is called explicitly by attendance.js after daily render.
 
-
-
     // Phase 4K-5Q: isSuperAdminRole — single source of truth for SuperAdmin check
     window.isSuperAdminRole = function() {
         const role =
@@ -10164,7 +10151,6 @@ window.processMultiItem = async (action) => {
     // Phase 4K-5Q: debugMobileSuperAdminGate — debug helper
 
     // Phase 4K-6S: mobile menu fallbacks moved to js/legacy/legacyUiFallbacks.js.
-
 
     // Phase 4K-6T: read-only diagnostics, pilot/onboarding gates, and
     // SuperAdmin audit tooling moved to js/diagnostics/*.js. The runtime
@@ -10234,19 +10220,33 @@ window.processMultiItem = async (action) => {
             }
         }
 
-        const [pProf, pTx, pInv, lProf, lTx, lInv] = await Promise.all([
-            _hasDoc('clubs/' + _clubId + '/profiles'),
-            _hasDoc('clubs/' + _clubId + '/transactions'),
-            _hasDoc('clubs/' + _clubId + '/inventory'),
-            _hasDoc('tst_profiles'),
-            _hasDoc('tst_transactions'),
-            _hasDoc('tst_inventory')
-        ]);
+        async function _hasCoachScopedProfileDoc() {
+            const role = String(window.userRole || window.__store?.userRole || '').toLowerCase(), branch = _canonicalBranch(window.coachBranch || window.__store?.coachBranch || '', '');
+            if (role !== 'coach' || !branch) return null;
+            for (const field of ['branch', 'branchCode', 'coachBranch']) for (const value of _branchAliases(branch).filter(Boolean)) {
+                try { if ((await getDocs(query(collection(_db, 'clubs', _clubId, 'profiles'), where(field, '==', value), limit(1)))).size > 0) return true; }
+                catch (e) { if (e && e.code === 'permission-denied') return 'permission-denied'; }
+            }
+            return false;
+        }
+        const isCoachRuntime = String(window.userRole || window.__store?.userRole || '').toLowerCase() === 'coach';
+        let pProf, pTx, pInv, lProf, lTx, lInv;
+        if (isCoachRuntime) { pProf = await _hasCoachScopedProfileDoc(); pTx = pInv = lProf = lTx = lInv = false; }
+        else {
+            [pProf, pTx, pInv, lProf, lTx, lInv] = await Promise.all([
+                _hasDoc('clubs/' + _clubId + '/profiles'),
+                _hasDoc('clubs/' + _clubId + '/transactions'),
+                _hasDoc('clubs/' + _clubId + '/inventory'),
+                _hasDoc('tst_profiles'),
+                _hasDoc('tst_transactions'),
+                _hasDoc('tst_inventory')
+            ]);
+        }
 
         const primary = { profilesHasDocs: pProf, transactionsHasDocs: pTx, inventoryHasDocs: pInv };
         const legacy  = { profilesHasDocs: lProf, transactionsHasDocs: lTx, inventoryHasDocs: lInv };
 
-        const permDenied   = [pProf, pTx, pInv].some(v => v === 'permission-denied');
+        const permDenied   = isCoachRuntime ? (pProf === 'permission-denied') : [pProf, pTx, pInv].some(v => v === 'permission-denied');
         const primaryHas   = pProf === true || pTx === true || pInv === true;
         const legacyHas    = lProf === true || lTx === true || lInv === true;
 
@@ -10262,6 +10262,10 @@ window.processMultiItem = async (action) => {
         } else if (legacyHas) {
             source = 'legacy-root';
             reason = 'Primary path rỗng — legacy root collections có dữ liệu. Gọi window.activateLegacyRootFallback() để bật.';
+            safeToRender = true;
+        } else if (isCoachRuntime) {
+            source = 'primary';
+            reason = 'HLV attendance-only: không có hồ sơ phù hợp branch hoặc branch chưa đồng bộ; vẫn an toàn để render Điểm danh.';
             safeToRender = true;
         } else {
             source = 'empty';
@@ -10562,7 +10566,6 @@ window.processMultiItem = async (action) => {
      * Kiểm tra sơ bộ trạng thái dữ liệu của một CLB qua Firestore.
      * Read-only. Dùng limit(1). Không log doc data. Không log PII.
      */
-
 
     /**
      * runSuperAdminAudit(options) — Phase 4.0B-4J.

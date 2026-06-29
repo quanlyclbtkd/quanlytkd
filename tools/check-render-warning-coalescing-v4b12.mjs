@@ -20,7 +20,7 @@ function check(name, ok, detail = '') {
 }
 
 console.log('\n=== Phase 4K-6V4B12 — Render Warning Coalescing ===\n');
-const build = 'quit-mobile-coach-login-repair-20260629-v4d5';
+const build = 'coach-attendance-branch-hydration-20260630-v4d6';
 const appBuilds = [build, 'quit-authoritative-full-sync-20260629-v4d4', 'quit-mobile-authoritative-local-sync-20260628-v4d3', 'profile-canonical-store-runtime-recovery-20260628-v4d1a', 'profile-canonical-store-20260628-v4d1', 'tuition-debt-source-of-truth-20260628-v4c'];
 
 check('index cache-busts app.js/main.js to current render-safe build',

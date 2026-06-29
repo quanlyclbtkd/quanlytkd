@@ -20,7 +20,7 @@ let pass=0, fail=0;
 function check(name, ok, detail='') { if (ok) { pass++; console.log('✅', name); } else { fail++; console.error('❌', name + (detail ? ' — '+detail : '')); } }
 console.log('\n=== Phase 4K-6V4B11 — Debt Authoritative Tuition Coverage ===\n');
 
-const activeBuilds = ['quit-mobile-coach-login-repair-20260629-v4d5', 'quit-authoritative-full-sync-20260629-v4d4', 'quit-mobile-authoritative-local-sync-20260628-v4d3', 'profile-canonical-store-runtime-recovery-20260628-v4d1a', 'profile-canonical-store-20260628-v4d1', 'tuition-debt-source-of-truth-20260628-v4c'];
+const activeBuilds = ['coach-attendance-branch-hydration-20260630-v4d6', 'quit-authoritative-full-sync-20260629-v4d4', 'quit-mobile-authoritative-local-sync-20260628-v4d3', 'profile-canonical-store-runtime-recovery-20260628-v4d1a', 'profile-canonical-store-20260628-v4d1', 'tuition-debt-source-of-truth-20260628-v4c'];
 const appBuildOk = activeBuilds.some(build => index.includes(`app.js?v=${build}`));
 const moduleBuildOk = activeBuilds.some(build => index.includes(`main.js?v=${build}`) && main.includes(`modules/students.js?v=${build}`) && renderStudents.includes(`studentsRenderer.js?v=${build}`) && listRefresh.includes(`studentsRenderer.js?v=${build}`));
 check('index/main/app cache-busted for current debt phase', appBuildOk && moduleBuildOk);

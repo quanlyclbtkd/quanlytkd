@@ -23,13 +23,13 @@ function check(name, ok, detail = '') {
 
 console.log('\n=== Phase 4K-6V4B1 — Coach Branch Runtime Repair ===\n');
 
-const appEntrypointBuilds = ['quit-mobile-coach-login-repair-20260629-v4d5', 'quit-authoritative-full-sync-20260629-v4d4', 'quit-mobile-authoritative-local-sync-20260628-v4d3', 'profile-canonical-store-runtime-recovery-20260628-v4d1a', 'profile-canonical-store-20260628-v4d1', 'tuition-debt-source-of-truth-20260628-v4c'];
+const appEntrypointBuilds = ['coach-attendance-branch-hydration-20260630-v4d6', 'quit-authoritative-full-sync-20260629-v4d4', 'quit-mobile-authoritative-local-sync-20260628-v4d3', 'profile-canonical-store-runtime-recovery-20260628-v4d1a', 'profile-canonical-store-20260628-v4d1', 'tuition-debt-source-of-truth-20260628-v4c'];
 check('Production entrypoints keep V4B1 branch repair and load current runtime cache marker',
-  ((index.match(/quit-mobile-coach-login-repair-20260629-v4d5/g) || []).length >= 5 || (index.match(/coach-branch-runtime-repair-20260627-v4b1/g) || []).length >= 5) &&
+  ((index.match(/coach-attendance-branch-hydration-20260630-v4d6/g) || []).length >= 5 || (index.match(/coach-branch-runtime-repair-20260627-v4b1/g) || []).length >= 5) &&
   appEntrypointBuilds.some(build => index.includes(`app.js?v=${build}`)) &&
-  (index.includes('./js/main.js?v=quit-mobile-coach-login-repair-20260629-v4d5') || index.includes('./js/main.js?v=quit-authoritative-full-sync-20260629-v4d4') || index.includes('./js/main.js?v=quit-mobile-authoritative-local-sync-20260628-v4d3') || index.includes('./js/main.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a') || index.includes('./js/main.js?v=profile-canonical-store-20260628-v4d1')) &&
-  (main.includes("profiles.listeners.js?v=quit-mobile-coach-login-repair-20260629-v4d5") || main.includes("profiles.listeners.js?v=quit-authoritative-full-sync-20260629-v4d4") || main.includes("profiles.listeners.js?v=quit-mobile-authoritative-local-sync-20260628-v4d3") || main.includes("profiles.listeners.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a") || main.includes("profiles.listeners.js?v=profile-canonical-store-20260628-v4d1")) &&
-  (main.includes("attendance.js?v=quit-mobile-coach-login-repair-20260629-v4d5") || main.includes("attendance.js?v=quit-authoritative-full-sync-20260629-v4d4") || main.includes("attendance.js?v=quit-mobile-authoritative-local-sync-20260628-v4d3") || main.includes("attendance.js?v=coach-branch-runtime-repair-20260627-v4b1")));
+  (index.includes('./js/main.js?v=coach-attendance-branch-hydration-20260630-v4d6') || index.includes('./js/main.js?v=quit-authoritative-full-sync-20260629-v4d4') || index.includes('./js/main.js?v=quit-mobile-authoritative-local-sync-20260628-v4d3') || index.includes('./js/main.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a') || index.includes('./js/main.js?v=profile-canonical-store-20260628-v4d1')) &&
+  (main.includes("profiles.listeners.js?v=coach-attendance-branch-hydration-20260630-v4d6") || main.includes("profiles.listeners.js?v=quit-authoritative-full-sync-20260629-v4d4") || main.includes("profiles.listeners.js?v=quit-mobile-authoritative-local-sync-20260628-v4d3") || main.includes("profiles.listeners.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a") || main.includes("profiles.listeners.js?v=profile-canonical-store-20260628-v4d1")) &&
+  (main.includes("attendance.js?v=coach-attendance-branch-hydration-20260630-v4d6") || main.includes("attendance.js?v=quit-authoritative-full-sync-20260629-v4d4") || main.includes("attendance.js?v=quit-mobile-authoritative-local-sync-20260628-v4d3") || main.includes("attendance.js?v=coach-branch-runtime-repair-20260627-v4b1")));
 check('Coach creation requires one concrete branch',
   repair.includes("if (!name || !email || !branch || pass.length < 6)") &&
   /id="coach_branch"[\s\S]{0,500}<option value="CS1">/.test(index) &&
@@ -69,15 +69,17 @@ check('Missing/invalid Coach branch remains fail-closed',
   profiles.includes('Coach missing branch — fail closed, no profiles query'));
 check('No full-club profile fallback is introduced for Coach repair',
   profiles.includes("loadCoachBranchProfilesFallback('redirected-from-full:") &&
-  profiles.includes("fbWhere('branch', '==', alias)") &&
+  profiles.includes("fbWhere(spec.field, '==', spec.value)") &&
+  profiles.includes("_coachProfileQuerySpecs(ctx, { includeMirrorFields: true })") &&
   /không quét clubs/i.test(app));
 
-check('Profile listener query is server-scoped to assigned branch',
-  profiles.includes("fbQuery(profRef, statusConstraint, fbWhere('branch', '==', coachBranch))") &&
+check('Profile listener query is server-scoped to assigned branch without status dependency',
+  profiles.includes("coach-branch-authoritative-listener-4K-6V4D6") &&
+  profiles.includes("fbQuery(profRef, fbWhere(spec.field, '==', spec.value))") &&
   profiles.includes("':coach:' + coachBranch"));
 check('Primary branch keeps scoped legacy Mặc định compatibility',
-  profiles.includes("coachBranch === 'CS1'") &&
-  profiles.includes("fbWhere('branch', '==', 'Mặc định')"));
+  profiles.includes("_coachBranchAliases(context).filter(Boolean)") &&
+  profiles.includes("return branch === 'CS1' ? ['CS1', 'Mặc định']"));
 check('Attendance client filtering uses canonical branch equality',
   attendance.includes('function _sameBranch(left, right)') &&
   attendance.includes("_sameBranch(p.branch, selBranch)") &&

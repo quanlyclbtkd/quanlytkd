@@ -57,7 +57,7 @@ Khi mirror thiếu hoặc branch không hợp lệ, runtime fail-closed nên HLV
 
 Build marker mới:
 
-`quit-mobile-coach-login-repair-20260629-v4d5`
+`coach-attendance-branch-hydration-20260630-v4d6`
 
 Đã đồng bộ cả root và thư mục `public/`.
 

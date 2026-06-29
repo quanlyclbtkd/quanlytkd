@@ -21,7 +21,7 @@ function check(name, ok) {
 console.log('\n=== Phase 4K-6V4D3 — Quit Mobile Authoritative Local Sync ===\n');
 const buildV4D3 = 'quit-mobile-authoritative-local-sync-20260628-v4d3';
 const buildV4D4 = 'quit-authoritative-full-sync-20260629-v4d4';
-const buildV4D5 = 'quit-mobile-coach-login-repair-20260629-v4d5';
+const buildV4D5 = 'coach-attendance-branch-hydration-20260630-v4d6';
 
 check('Cache bust updated for index main module',
   index.includes(`./js/main.js?v=${buildV4D3}`) || index.includes(`./js/main.js?v=${buildV4D4}`) || index.includes(`./js/main.js?v=${buildV4D5}`));

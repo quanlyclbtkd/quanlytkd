@@ -15,8 +15,8 @@ const app = read('app.js');
 const index = read('index.html');
 const main = read('js/main.js');
 
-check('cache bust updated to V4D2 mobile recovery in index', index.includes('quit-mobile-coach-login-repair-20260629-v4d5'));
-check('main imports render.js with V4D2 cache bust', main.includes('./ui/render.js?v=quit-mobile-coach-login-repair-20260629-v4d5'));
+check('cache bust updated to V4D2 mobile recovery in index', index.includes('coach-attendance-branch-hydration-20260630-v4d6'));
+check('main imports render.js with V4D2 cache bust', main.includes('./ui/render.js?v=coach-attendance-branch-hydration-20260630-v4d6'));
 check('render.js has small UI refresh helper', render.includes('function _refreshSmallStudentUi(tabId, reason'));
 check('render.js early return calls small UI refresh', render.includes("_refreshSmallStudentUi(earlyTabId, 'renderApp-dataVersion-unchanged')"));
 check('render.js small UI refresh always renders birthday banner', render.includes("typeof window._renderHomeBirthdayBanner === 'function'") && render.includes('window._renderHomeBirthdayBanner()'));

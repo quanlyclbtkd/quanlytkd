@@ -33,7 +33,7 @@ const appPos = index.lastIndexOf('app.js?v=');
 check('Canonical branch identity loads before role boundary and app kernel',
   branchPos >= 0 && rolePos > branchPos && appPos > rolePos);
 check('All 6V4B runtime entry assets share one cache-bust marker',
-  ((index.match(/quit-mobile-coach-login-repair-20260629-v4d5/g) || []).length >= 5 || (index.match(/coach-branch-runtime-repair-20260627-v4b1/g) || []).length >= 5));
+  ((index.match(/coach-attendance-branch-hydration-20260630-v4d6/g) || []).length >= 5 || (index.match(/coach-branch-runtime-repair-20260627-v4b1/g) || []).length >= 5));
 check('Coach account selector has no unrestricted/all-branch option',
   /id="coach_branch"[\s\S]{0,600}<option value="CS1">/.test(index) &&
   !/id="coach_branch"[\s\S]{0,600}Tất cả cơ sở \(không giới hạn\)/.test(index));
@@ -58,13 +58,13 @@ check('Parent portal never recommends public Firestore reads',
 check('New single-branch student writes use CS1 rather than legacy Mặc định',
   app.includes("isSingleBranch ? 'CS1'") && students.includes("isSingleBranch ? 'CS1'") &&
   !/branch\s*:\s*['"]Mặc định['"]/.test(app + '\n' + students));
-check('Coach CS1 profile listener reads legacy Mặc định in a separate scoped listener',
-  profiles.includes("coachBranch === 'CS1'") &&
-  profiles.includes("fbWhere('branch', '==', 'Mặc định')") &&
-  profiles.includes('coachLegacyActiveMap'));
-check('Coach fallback queries only assigned branch aliases and de-duplicates results',
-  profiles.includes('_coachBranchAliases(ctx)') &&
-  profiles.includes("fbWhere('branch', '==', alias)") &&
+check('Coach CS1 profile listener keeps legacy Mặc định as an assigned-branch alias',
+  profiles.includes("return branch === 'CS1' ? ['CS1', 'Mặc định']") &&
+  profiles.includes("_coachBranchAliases(context).filter(Boolean)") &&
+  profiles.includes("coach-branch-authoritative-listener-4K-6V4D6"));
+check('Coach fallback queries only assigned branch aliases/mirrors and de-duplicates results',
+  profiles.includes('_coachProfileQuerySpecs(ctx, { includeMirrorFields: true })') &&
+  profiles.includes("fbWhere(spec.field, '==', spec.value)") &&
   profiles.includes('snapshots.forEach'));
 check('Attendance reads are branch-scoped and missing Coach branch fails closed',
   attendance.includes('_branchConstraint(where, branch, isCoach)') &&

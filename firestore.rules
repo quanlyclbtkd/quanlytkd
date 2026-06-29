@@ -108,13 +108,15 @@ service cloud.firestore {
     }
 
     function resourceBranchMatchesCoach() {
-      return resource.data.keys().hasAll(['branch'])
-        && branchMatchesAssigned(resource.data.branch);
+      return branchMatchesAssigned(resource.data.get('branch', ''))
+        || branchMatchesAssigned(resource.data.get('branchCode', ''))
+        || branchMatchesAssigned(resource.data.get('coachBranch', ''));
     }
 
     function requestBranchMatchesCoach() {
-      return request.resource.data.keys().hasAll(['branch'])
-        && branchMatchesAssigned(request.resource.data.branch);
+      return branchMatchesAssigned(request.resource.data.get('branch', ''))
+        || branchMatchesAssigned(request.resource.data.get('branchCode', ''))
+        || branchMatchesAssigned(request.resource.data.get('coachBranch', ''));
     }
 
     function coachOwnsResource() {
@@ -404,6 +406,16 @@ service cloud.firestore {
 
     match /super_admins/{uid} {
       allow read, write: if isSuperAdmin();
+    }
+
+
+    // Login history: mọi tài khoản đăng nhập được ghi log tối thiểu;
+    // chỉ SuperAdmin hoặc admin email cố định được đọc danh sách.
+    match /login_history/{docId} {
+      allow create: if signedIn();
+      allow get, list: if isSuperAdmin()
+        || (signedIn() && request.auth.token.email == "admin@tstquynhon.com");
+      allow update, delete: if false;
     }
 
     // Deny by default for every top-level path not explicitly declared.

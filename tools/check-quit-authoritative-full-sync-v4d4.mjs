@@ -20,7 +20,7 @@ function check(name, ok, detail = '') {
   else { fail++; console.error('❌', name + (detail ? ' — ' + detail : '')); }
 }
 
-const build = 'quit-mobile-coach-login-repair-20260629-v4d5';
+const build = 'coach-attendance-branch-hydration-20260630-v4d6';
 console.log('\n=== Phase 4K-6V4D5 — Quit/Coach Authoritative Full Sync ===\n');
 
 check('Cache-bust updated for index/app/main V4D5',
