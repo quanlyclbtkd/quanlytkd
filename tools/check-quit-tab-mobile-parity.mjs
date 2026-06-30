@@ -19,7 +19,7 @@ function check(name, ok) {
 }
 
 console.log('\n=== Phase 4K-6V4B8 — Quit Tab Mobile Parity ===\n');
-const build = 'coach-quit-authoritative-fix-20260630-v4d4';
+const build = 'coach-quit-attendance-full-recovery-20260630-v4d5';
 const appBuilds = [build, 'profile-canonical-store-runtime-recovery-20260628-v4d1a', 'profile-canonical-store-20260628-v4d1', 'tuition-debt-source-of-truth-20260628-v4c'];
 
 check('Index cache-busts app.js and main.js with current quit-safe build',
@@ -66,9 +66,9 @@ check('Debug separation counts data-quit-id rows as well as legacy data-student-
   students.includes('r.dataset.quitId || r.dataset.studentId'));
 
 
-check('Authoritative mobile render never clears quitList on cache miss',
+check('Authoritative render never clears quitList on cache miss',
   renderStudents.includes('if (!_htmlQ && typeof window.refreshListComputation') &&
-  renderStudents.includes('const direct = _buildAuthoritativeQuitRows({ mobileFull: true, forceAll: true') &&
+  renderStudents.includes('_directPreview.count >= _cachedQuitRows') &&
   !renderStudents.includes("_applyHtml(_target, _htmlQ || '')"));
 check('Mobile quit control is created outside the scrollable table when missing',
   renderStudents.includes("target.closest('.table-wrapper')") &&
@@ -81,10 +81,10 @@ check('Quit renderer uses legacy quit date fields in module row render as well',
   read('js/ui/render/computation/studentsRenderer.js').includes('p.quitDate || p.ngayNghi || p.inactiveDate || p.stoppedDate || p.leftDate || p.nghiDate'));
 
 
-check('Mobile quit renderer ignores cached/paginated quitRows after authoritative load',
-  renderStudents.includes('if (_isQuitMobileViewport())') &&
+check('Mobile/web quit renderer prefers authoritative rows after authoritative load',
+  renderStudents.includes('_isQuitMobileViewport() || !_htmlQ || _directPreview.count >= _cachedQuitRows') &&
   renderStudents.includes('_buildAuthoritativeQuitRows({ mobileFull: true, forceAll: true') &&
-  renderStudents.indexOf('if (_isQuitMobileViewport())') < renderStudents.indexOf('if (!_htmlQ && typeof window.refreshListComputation'));
+  renderStudents.indexOf('_directPreview.count >= _cachedQuitRows') < renderStudents.indexOf('if (!_htmlQ && typeof window.refreshListComputation'));
 check('Mobile quit row builder can force all rows instead of page-limited rows',
   renderStudents.includes('function _isQuitMobileViewport') &&
   renderStudents.includes('const forceAll = options.forceAll === true') &&

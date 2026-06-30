@@ -19,7 +19,7 @@
  */
 
 import { registerRender } from './renderRegistry.js';
-import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=coach-quit-authoritative-fix-20260630-v4d4';
+import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=coach-quit-attendance-full-recovery-20260630-v4d5';
 
 // ─── Core DOM helper ────────────────────────────────────────────────────────
 
@@ -258,13 +258,11 @@ export function renderQuitIsland() {
     // is still empty/stale. Never clear #quitList in that state; rebuild from
     // authoritative quitProfiles directly, then create an outside mobile control.
     if (_quitLoaded) {
-        if (_isQuitMobileViewport()) {
-            const direct = _buildAuthoritativeQuitRows({ mobileFull: true, forceAll: true, fullList: true });
-            _applyHtml(_target, direct.html || '<tr data-quit-empty="1"><td colspan="7" style="text-align:center;color:#94a3b8;padding:16px;font-size:0.82rem;">Chưa có võ sinh đã nghỉ</td></tr>');
-            _syncQuitMobileControl();
-            return;
-        }
-        if (_hasDirectQuit && (!_htmlQ || (_directPreview.count > ((_htmlQ.match(/data-quit-id=/g) || []).length)))) {
+        const _cachedQuitRows = ((_htmlQ || '').match(/data-quit-id=/g) || []).length;
+        // Phase 4K-6V4D5: both web and mobile must prefer the authoritative full
+        // quit union. Previous web path could keep a stale/page-limited cached
+        // computation when counts were equal or cache had a load-more row.
+        if (_hasDirectQuit && (_isQuitMobileViewport() || !_htmlQ || _directPreview.count >= _cachedQuitRows)) {
             _applyHtml(_target, _directPreview.html);
             _syncQuitMobileControl();
             return;

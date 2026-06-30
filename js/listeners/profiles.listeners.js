@@ -436,8 +436,12 @@ export function mountActiveProfilesListener(context) {
                 const statusConstraint = statusValues.length === 1
                     ? fbWhere('status', '==', statusValues[0])
                     : fbWhere('status', 'in', statusValues);
+                // Phase 4K-6V4D5: Coach attendance needs the complete assigned-branch
+                // roster. Many legacy active profiles have missing/old status values,
+                // so status+branch queries silently under-load. Branch-only remains
+                // rules-safe for Coach and we filter quit profiles locally.
                 activeQuery = isCoach
-                    ? fbQuery(profRef, statusConstraint, fbWhere('branch', '==', coachBranch))
+                    ? fbQuery(profRef, fbWhere('branch', '==', coachBranch))
                     : fbQuery(profRef, statusConstraint);
             } catch (qErr) {
                 console.warn('[ProfilesListener] Build query lỗi:', qErr.message, '— fallback');
@@ -463,7 +467,9 @@ export function mountActiveProfilesListener(context) {
                     let activeMap = {};
                     snap.forEach(d => {
                         const id = d.id.trim();
-                        if (id) activeMap[id] = d.data();
+                        if (!id) return;
+                        const data = d.data();
+                        if (!isCoach || classifyProfileStatus(data) !== 'quit') activeMap[id] = data;
                     });
                     if (isCoach) {
                         _state.coachCanonicalActiveMap = activeMap;
@@ -554,10 +560,9 @@ export function mountActiveProfilesListener(context) {
             window.safeRegisterSnapshot(
                 aliasKey,
                 () => {
-                    const statusConstraint = statusValues.length === 1
-                        ? fbWhere('status', '==', statusValues[0])
-                        : fbWhere('status', 'in', statusValues);
-                    const aliasQuery = fbQuery(profRef, statusConstraint, fbWhere('branch', '==', alias));
+                    // Phase 4K-6V4D5: branch-only alias listener. See primary
+                    // coach query above; local classifier removes quit rows.
+                    const aliasQuery = fbQuery(profRef, fbWhere('branch', '==', alias));
                     return fbOnSnapshot(
                         aliasQuery,
                         (snap) => {
@@ -572,7 +577,9 @@ export function mountActiveProfilesListener(context) {
                             const aliasMap = {};
                             snap.forEach(d => {
                                 const id = d.id.trim();
-                                if (id) aliasMap[id] = d.data();
+                                if (!id) return;
+                                const data = d.data();
+                                if (classifyProfileStatus(data) !== 'quit') aliasMap[id] = data;
                             });
                             _state.coachAliasActiveMaps[aliasKey] = aliasMap;
                             // Keep legacy aggregate for older diagnostics; actual merge is per-alias

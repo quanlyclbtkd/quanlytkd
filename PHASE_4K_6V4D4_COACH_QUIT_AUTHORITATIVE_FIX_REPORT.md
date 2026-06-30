@@ -70,7 +70,7 @@ Có 4 luồng lỗi chính:
 
 ## Cache-bust runtime
 
-`coach-quit-authoritative-fix-20260630-v4d4`
+`coach-quit-attendance-full-recovery-20260630-v4d5`
 
 ## Kiểm tra đã chạy
 

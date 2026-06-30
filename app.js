@@ -89,9 +89,25 @@
         return fold(raw) === fold(sel) || fold(window.getBranchNameDisplay ? window.getBranchNameDisplay(raw) : raw) === fold(sel);
     };
     window.debtBranchMatchesFilter = window.debtBranchMatchesFilter || _branchMatchesFilter;
+
+    window.classifyProfileStatus = window.classifyProfileStatus || function(profile) {
+        const p = profile || {};
+        if (p.quit === true || p.stopped === true || p.isQuit === true) return 'quit';
+        if (p.active === false || p.isActive === false) return 'quit';
+        const dateFields = ['quitDate','stoppedDate','leftDate','inactiveDate','nghiDate','ngayNghi'];
+        for (let i = 0; i < dateFields.length; i++) {
+            const v = p[dateFields[i]];
+            if (v !== undefined && v !== null && v !== false && String(v).trim() !== '') return 'quit';
+        }
+        const raw = String(p.status == null ? '' : p.status).toLowerCase().trim()
+            .normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd');
+        if (!raw) return 'active';
+        if (raw.includes('nghi') || raw.includes('quit') || raw.includes('inactive') || raw.includes('stop') || raw.includes('left') || raw.includes('retired')) return 'quit';
+        return 'active';
+    };
 // Danh mục kho tùy chỉnh — được load từ Firestore khi đăng nhập thành công
 window.invCustomCategories = [];
-    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V4B1'; window.APP_PATCH_VERSION = '4K-6V3A1-payment-bundle-runtime-hotfix-20260616'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
+    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V4D5'; window.APP_PATCH_VERSION = '4K-6V4D5-coach-quit-attendance-full-recovery-20260630'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
     // Compatibility regression marker retained for Phase 4K-6Q gate: APP_PATCH_VERSION = '4K-6Q-mobile-filter-currency-stability-20260615'
     window.__appLoaded = true; // [Phase 2a] main.js kiểm tra để bỏ qua loadLegacyApp()
     window.__store = window.__store || {}; // [Phase 2b] Bridge object cho module system
@@ -1995,10 +2011,52 @@ service cloud.firestore {
                 reason: 'init-active-profiles'
             });
         } else if (window.RoleReadBoundary?.isCoachAttendanceOnly?.() === true) {
-            // Fail closed: tuyệt đối không full-read toàn CLB khi module branch-aware chưa sẵn.
-            allProfiles = {};
-            if (window.__store) window.__store.profiles = {};
-            console.error('[RoleReadBoundary] Coach profiles module unavailable — blocked full-club fallback');
+            const _coachBranchSafe = _canonicalBranch(window.coachBranch || (window.__store && window.__store.coachBranch) || '', '');
+            const _coachAliases = _branchAliases(_coachBranchSafe).filter(Boolean);
+            if (!_coachBranchSafe || !_coachAliases.length) {
+                allProfiles = {};
+                if (window.__store) window.__store.profiles = {};
+                console.error('[RoleReadBoundary] Coach profiles module unavailable and coachBranch missing — blocked fallback');
+            } else {
+                console.warn('[RoleReadBoundary] Coach profiles module unavailable — using branch-safe legacy fallback', { branch: _coachBranchSafe, aliases: _coachAliases });
+                const _coachMaps = {};
+                window.__coachBranchProfileFallbackUnsubs = window.__coachBranchProfileFallbackUnsubs || [];
+                _coachAliases.forEach(function(_alias, _idx) {
+                    try {
+                        const _q = query(profRef, where('branch', '==', _alias));
+                        const _u = onSnapshot(_q, function(_snap) {
+                            if (typeof window.recordFirestoreSnapshotAttribution === 'function') {
+                                window.recordFirestoreSnapshotAttribution('profiles.coachBranchLegacyFallbackListener', _snap, { initial: !_coachMaps[_alias], branch: _coachBranchSafe, alias: _alias, reason: 'app-module-not-ready-coach-safe' });
+                            }
+                            const _map = {};
+                            _snap.forEach(function(d) {
+                                const _id = String(d.id || '').trim();
+                                if (!_id) return;
+                                const _data = d.data() || {};
+                                const _kind = typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus(_data) : (_data.status === 'quit' ? 'quit' : 'active');
+                                if (_kind !== 'quit') _map[_id] = _data;
+                            });
+                            _coachMaps[_alias] = _map;
+                            allProfiles = Object.assign({}, ...Object.values(_coachMaps));
+                            if (window.__store) { window.__store.profiles = allProfiles; window.__store._coachBranchSafeFallbackActive = true; window.__store._coachBranchSafeFallbackAliases = _coachAliases.slice(); }
+                            if (window.studentProfileStore && typeof window.studentProfileStore.setActiveProfiles === 'function') {
+                                try { window.studentProfileStore.setActiveProfiles(allProfiles, 'app-coach-branch-safe-fallback'); } catch (_) {}
+                            }
+                            _updateHydrationMetrics({ profilesSnapshotCount: (window.__dataHydrationMetrics.profilesSnapshotCount || 0) + 1, profilesDocCount: Object.keys(allProfiles).length, lastReason: 'coach-branch-safe-fallback' });
+                            if (typeof window.renderAttendanceList === 'function') Promise.resolve().then(function() { window.renderAttendanceList(); }).catch(function(){});
+                            if (window.invalidateByDomain) window.invalidateByDomain('attendance', 'coach-branch-safe-fallback');
+                            else scheduleRender();
+                        }, function(err) {
+                            console.error('[RoleReadBoundary] Coach branch-safe fallback failed:', _alias, err && (err.code || err.message) || err);
+                        });
+                        activeListeners.push(_u);
+                        window.__coachBranchProfileFallbackUnsubs.push(_u);
+                        if (window.registerListener) window.registerListener('global:profiles:coach-safe:' + clubId + ':' + _idx, _u, { owner: 'students', scope: 'global', reason: 'coach-branch-safe-app-fallback' });
+                    } catch (_coachFallbackErr) {
+                        console.error('[RoleReadBoundary] Coach branch-safe fallback build failed:', _alias, _coachFallbackErr && (_coachFallbackErr.code || _coachFallbackErr.message) || _coachFallbackErr);
+                    }
+                });
+            }
         } else {
             // Fallback Admin only: full profiles listener (Phase 3.6D pattern — khi module chưa load)
             let _fallbackProfilesInitialSeen = false;

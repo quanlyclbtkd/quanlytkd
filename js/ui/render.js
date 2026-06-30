@@ -59,7 +59,7 @@ import {
     computeAndCacheStudents,
     getStudentsSummary,
     getStudentsCachedHtml,
-} from './render/computation/studentsRenderer.js?v=coach-quit-authoritative-fix-20260630-v4d4';
+} from './render/computation/studentsRenderer.js?v=coach-quit-attendance-full-recovery-20260630-v4d5';
 import {
     computeAndCacheInventory,
     getCachedLiveInvMap,

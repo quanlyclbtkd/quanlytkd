@@ -15,8 +15,8 @@ const app = read('app.js');
 const index = read('index.html');
 const main = read('js/main.js');
 
-check('cache bust updated to current runtime in index', index.includes('coach-quit-authoritative-fix-20260630-v4d4') || index.includes('profile-canonical-store-runtime-recovery-20260628-v4d1a'));
-check('main imports render.js with current runtime cache bust', main.includes('./ui/render.js?v=coach-quit-authoritative-fix-20260630-v4d4') || main.includes('./ui/render.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a'));
+check('cache bust updated to current runtime in index', index.includes('coach-quit-attendance-full-recovery-20260630-v4d5') || index.includes('profile-canonical-store-runtime-recovery-20260628-v4d1a'));
+check('main imports render.js with current runtime cache bust', main.includes('./ui/render.js?v=coach-quit-attendance-full-recovery-20260630-v4d5') || main.includes('./ui/render.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a'));
 check('render.js has small UI refresh helper', render.includes('function _refreshSmallStudentUi(tabId, reason)'));
 check('render.js early return calls small UI refresh', render.includes("_refreshSmallStudentUi(earlyTabId, 'renderApp-dataVersion-unchanged')"));
 check('render.js small UI refresh always renders birthday banner', render.includes("typeof window._renderHomeBirthdayBanner === 'function'") && render.includes('window._renderHomeBirthdayBanner()'));
@@ -28,7 +28,7 @@ check('attendance birthday accepts ngaySinh', attendance.includes('p.ngaySinh'))
 check('renderStudents merges canonical quit store', renderStudents.includes('canonicalStore') && renderStudents.includes('canonicalStore.quitProfiles'));
 check('renderStudents merges allProfiles quit fallback', renderStudents.includes('Object.assign({}, window.allProfiles || {}, (window.__store && window.__store.profiles) || {})'));
 check('renderStudents renders direct quit fallback before quitLoaded', renderStudents.includes('if (!_quitLoaded && _hasDirectQuit)'));
-check('renderStudents chooses direct if cached quit rows partial', renderStudents.includes('_directPreview.count > ((_htmlQ.match(/data-quit-id=/g) || []).length)'));
+check('renderStudents chooses direct if cached quit rows partial', renderStudents.includes('_directPreview.count > ((_htmlQ.match(/data-quit-id=/g) || []).length)') || renderStudents.includes('_directPreview.count >= _cachedQuitRows'));
 check('legacy app render early return refreshes small UI', app.includes('if(_dataVersion === _lastRenderedVersion) { _legacyRefreshSmallStudentUi(); return; }'));
 check('legacy app has small UI refresh helper', app.includes('function _legacyRefreshSmallStudentUi()'));
 check('legacy app small UI uses merged profiles', app.includes('function _legacyProfilesForSmallUi()') && app.includes('getAllProfilesCompat'));
