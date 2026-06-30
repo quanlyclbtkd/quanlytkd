@@ -13,7 +13,7 @@
 // Business logic should continue migrating to js/modules,
 // js/core, js/services, js/ui in small safe phases.
     const { initializeApp } = window._fb_init;
-    const { getFirestore, collection, doc, getDoc, onSnapshot, addDoc, updateDoc, deleteDoc, query, orderBy, where, writeBatch, setDoc, arrayUnion, arrayRemove, getDocs, limit, increment, getCountFromServer, startAfter, startAt, endAt } = window._fb_init;
+    const { getFirestore, collection, doc, getDoc, onSnapshot, addDoc, updateDoc, deleteDoc, query, orderBy, where, writeBatch, setDoc, arrayUnion, arrayRemove, getDocs, limit, increment, getCountFromServer, startAfter, startAt, endAt, documentId } = window._fb_init;
     const { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword, sendPasswordResetEmail, updatePassword, reauthenticateWithCredential, EmailAuthProvider, signInAnonymously } = window._fb_init;
     const firebaseConfig = {
       apiKey: "AIzaSyBfxbFrMabJHbARXpAqStIrSFlSAcCxgGY",

@@ -105,15 +105,15 @@ import { initFirebase }                        from './firebase/config.js';
 import { showToast, registerToastGlobal }      from './ui/toast.js';
 import { registerModalGlobals }                from './ui/modal.js';
 import { switchTab, registerTabGlobals }       from './ui/tabs.js';
-import { initRender }                          from './ui/render.js?v=admin-tx-slow-render-quit-full-authoritative-20260630-v4d10';
+import { initRender }                          from './ui/render.js?v=attendance-excel-tx-delete-reconcile-20260630-v4d11';
 // Phase 3.4: Render Isolation Architecture — island initialisers + legacy shims
 import { initFinanceIslands, registerFinanceLegacyGlobals }     from './ui/render/renderFinance.js';
-import { initStudentIslands, registerStudentsLegacyGlobals }     from './ui/render/renderStudents.js?v=admin-tx-slow-render-quit-full-authoritative-20260630-v4d10';
+import { initStudentIslands, registerStudentsLegacyGlobals }     from './ui/render/renderStudents.js?v=attendance-excel-tx-delete-reconcile-20260630-v4d11';
 import { initInventoryIslands, registerInventoryLegacyGlobals }  from './ui/render/renderInventory.js';
 import { initAttendanceIslands }                                  from './ui/render/renderAttendance.js';
 import { initDashboardIslands }                                   from './ui/render/renderDashboard.js';
 // Phase 3.5B: Render Invalidation & Lifecycle Stabilization
-import { registerInvalidationLegacyGlobals }                     from './ui/render/renderInvalidation.js?v=admin-tx-slow-render-quit-full-authoritative-20260630-v4d10';
+import { registerInvalidationLegacyGlobals }                     from './ui/render/renderInvalidation.js?v=attendance-excel-tx-delete-reconcile-20260630-v4d11';
 import { registerLoadingGlobals, showLoading, hideLoading, forceHideLoading } from './ui/loading.js';
 import {
     getLocalToday, formatDate, formatMonth,
@@ -266,7 +266,7 @@ import {
     ensureQuitProfilesAuthoritative,
     loadCoachBranchProfilesFallback,
     ensureCoachBranchProfilesReady,
-} from './listeners/profiles.listeners.js?v=admin-tx-slow-render-quit-full-authoritative-20260630-v4d10';
+} from './listeners/profiles.listeners.js?v=attendance-excel-tx-delete-reconcile-20260630-v4d11';
 
 // ── Phase 3.7C: Profile Status Config ────────────────────────────────────────
 import {
@@ -320,7 +320,7 @@ import {
 } from './firebase/paginatedQuery.js';
 
 // ── Phase 2d–3.2A: Business modules (eager — cần khi login) ────
-import { initStudents, initStudentPagination }        from './modules/students.js?v=admin-tx-slow-render-quit-full-authoritative-20260630-v4d10';
+import { initStudents, initStudentPagination }        from './modules/students.js?v=attendance-excel-tx-delete-reconcile-20260630-v4d11';
 // PHẦN 1 FIX + Phase 4K-2: Unified Search Controller — real cache + SearchBlob + stale guard
 import {
     initGlobalSearchRuntime,
@@ -345,7 +345,7 @@ async function ensureFinanceModuleLoaded(reason = 'finance-needed') {
     }
     if (__financeModule) return __financeModule;
     if (!__financeModulePromise) {
-        __financeModulePromise = import('./modules/finance.js?v=admin-tx-slow-render-quit-full-authoritative-20260630-v4d10')
+        __financeModulePromise = import('./modules/finance.js?v=attendance-excel-tx-delete-reconcile-20260630-v4d11')
             .then((mod) => {
                 __financeModule = mod;
                 try { mod.registerFinanceUiGlobals?.(); } catch (_) {}
@@ -378,7 +378,7 @@ function initTransactionPagination(...args) {
 }
 import { initInventory }                              from './modules/inventory.js?v=payment-bundle-runtime-hotfix-20260616-v3a1';
 // Compatibility marker: from './modules/attendance.js'
-import { initAttendance }                             from './modules/attendance.js?v=admin-tx-slow-render-quit-full-authoritative-20260630-v4d10';
+import { initAttendance }                             from './modules/attendance.js?v=attendance-excel-tx-delete-reconcile-20260630-v4d11';
 import { initDashboard }                              from './modules/dashboard.js?v=payment-bundle-runtime-hotfix-20260616-v3a1';
 // ── Phase 4K-6U: Heavy Reports module is lazy-loaded by reportExportFacade.js ──
 // ── Phase 4.0B-1: SuperAdmin — eager import trên HTTP/HTTPS ─────
@@ -5362,14 +5362,38 @@ window.reconcileStudentTuitionAfterDeletedTransaction = async function(studentNa
             return { ok: false, reason: 'no-profile' };
         }
 
-        // Lấy danh sách transactions còn lại
-        var txs =
-            Array.isArray(st.allTransactions)  ? st.allTransactions :
-            Array.isArray(window.allTransactions) ? window.allTransactions :
-            Array.isArray(st.transactions)     ? st.transactions :
-            [];
-
+        // Lấy danh sách transactions còn lại.
+        // Phase 4K-6V4D11: authoritative Firestore read after delete.
+        // The paginated tx cache only contains the visible month/page, so using it
+        // can incorrectly keep/clear paid months after deleting an old tuition tx.
+        var txs = [];
         var deletedTxId = deletedTx && deletedTx.id ? deletedTx.id : '';
+        try {
+            var sdk = window._fb_init || {};
+            var db  = st.db || window.db;
+            var clubId = st.clubId || st.currentClubId || window.currentClubId;
+            if (sdk.getDocs && sdk.query && sdk.collection && sdk.where && db && clubId && studentName) {
+                var snap = await sdk.getDocs(sdk.query(
+                    sdk.collection(db, 'clubs', clubId, 'transactions'),
+                    sdk.where('description', '==', studentName)
+                ));
+                if (snap && typeof snap.forEach === 'function') {
+                    snap.forEach(function(d) {
+                        if (!d || d.id === deletedTxId) return;
+                        txs.push(Object.assign({ id: d.id }, d.data ? d.data() : {}));
+                    });
+                }
+            }
+        } catch (fetchErr) {
+            console.warn('[reconcile] Không đọc được giao dịch còn lại từ Firestore, dùng cache tạm:', fetchErr && fetchErr.message ? fetchErr.message : fetchErr);
+        }
+        if (!txs.length) {
+            txs =
+                Array.isArray(st.allTransactions)  ? st.allTransactions :
+                Array.isArray(window.allTransactions) ? window.allTransactions :
+                Array.isArray(st.transactions)     ? st.transactions :
+                [];
+        }
 
         // paidMonths hiện tại
         var currentPaidMonths = Array.isArray(profile.paidMonths)

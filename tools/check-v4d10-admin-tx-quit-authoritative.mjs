@@ -4,7 +4,7 @@ import path from 'node:path';
 
 const root = process.cwd();
 const read = (rel) => fs.readFileSync(path.join(root, rel), 'utf8');
-const version = 'admin-tx-slow-render-quit-full-authoritative-20260630-v4d10';
+const version = 'attendance-excel-tx-delete-reconcile-20260630-v4d11';
 
 const files = {
   index: read('index.html'),

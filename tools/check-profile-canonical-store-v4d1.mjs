@@ -19,7 +19,7 @@ function includes(file, text) { return read(file).includes(text); }
 console.log('\n🔍 Phase 4K-6V4D1 — Profile Canonical Store Read-only Audit checks\n');
 
 const build = 'profile-canonical-store-runtime-recovery-20260628-v4d1a';
-const runtimeBuild = 'admin-tx-slow-render-quit-full-authoritative-20260630-v4d10';
+const runtimeBuild = 'attendance-excel-tx-delete-reconcile-20260630-v4d11';
 const baseBuild = 'profile-canonical-store-20260628-v4d1';
 const version = '4K-6V4D1-profile-canonical-store-readonly-audit-20260628';
 const runtimeVersion = '4K-6V4D1A-profile-canonical-store-runtime-recovery-20260628';

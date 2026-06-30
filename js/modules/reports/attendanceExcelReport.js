@@ -11,8 +11,9 @@ const MAX_PAGES = 200;
 
 export async function loadAttendanceMonthPaginated({ db, clubId, month, onProgress }) {
     const sdk = window._fb_init || {};
-    const { collection, query, where, orderBy, documentId, limit, startAfter, getDocs } = sdk;
-    const required = { collection, query, where, orderBy, documentId, limit, startAfter, getDocs };
+    const { collection, query, where, orderBy, limit, startAfter, getDocs } = sdk;
+    const documentIdFn = typeof sdk.documentId === 'function' ? sdk.documentId : null;
+    const required = { collection, query, where, orderBy, limit, startAfter, getDocs };
     const missing = Object.entries(required).filter(([, value]) => typeof value !== 'function').map(([name]) => name);
     if (missing.length) throw new Error('Firebase SDK chưa sẵn sàng: ' + missing.join(', '));
 
@@ -24,7 +25,10 @@ export async function loadAttendanceMonthPaginated({ db, clubId, month, onProgre
     while (pages < MAX_PAGES) {
         const constraints = [
             where('month', '==', month),
-            orderBy(documentId()),
+            // Phase 4K-6V4D11: Firebase CDN bootstrap now exposes documentId().
+            // Keep a __name__ fallback so old cached index.html does not break
+            // attendance Excel export while the new bundle is rolling out.
+            orderBy(documentIdFn ? documentIdFn() : '__name__'),
         ];
         if (cursor) constraints.push(startAfter(cursor));
         constraints.push(limit(PAGE_SIZE));

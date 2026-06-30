@@ -1,0 +1,31 @@
+#!/usr/bin/env node
+import fs from 'node:fs';
+import path from 'node:path';
+const root = process.cwd();
+const read = rel => fs.readFileSync(path.join(root, rel), 'utf8');
+const index = read('index.html');
+const app = read('app.js');
+const attendanceExcel = read('js/modules/reports/attendanceExcelReport.js');
+const finance = read('js/modules/finance.js');
+const main = read('js/main.js');
+const rules = read('firestore.rules');
+const publicIndex = read('public/index.html');
+let pass=0, fail=0;
+function check(name, ok){ if(ok){pass++; console.log('✅',name);} else {fail++; console.error('❌',name);} }
+console.log('\n=== Phase 4K-6V4D11 — Attendance Excel + TX Delete Reconcile ===\n');
+const build='attendance-excel-tx-delete-reconcile-20260630-v4d11';
+check('index cache-bust points app/main to V4D11', index.includes(`app.js?v=${build}`) && index.includes(`./js/main.js?v=${build}`));
+check('main lazy-loads finance module with V4D11 cache-bust and keeps report facade registered', main.includes(`./modules/finance.js?v=${build}`) && main.includes('registerReportExportFacade'));
+check('Firebase bootstrap imports documentId()', index.includes('documentId } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"'));
+check('Firebase bootstrap exposes documentId in window._fb_init', index.includes('endAt, documentId, getAuth'));
+check('public Firebase bootstrap mirrors documentId exposure', publicIndex.includes('endAt, documentId, getAuth'));
+check('legacy app destructures documentId for SDK bridge completeness', app.includes('endAt, documentId } = window._fb_init'));
+check('attendance Excel no longer treats documentId as hard missing SDK dependency', attendanceExcel.includes('const documentIdFn = typeof sdk.documentId') && !attendanceExcel.includes('required = { collection, query, where, orderBy, documentId'));
+check('attendance Excel keeps __name__ fallback for cached index rollout', attendanceExcel.includes("orderBy(documentIdFn ? documentIdFn() : '__name__')"));
+check('transaction delete catches permission-denied and does not leave uncaught promise', finance.includes("[deleteTx] delete transaction failed") && finance.includes('Không có quyền xóa giao dịch'));
+check('transaction delete reloads pagination after successful delete', finance.includes('await window.reloadTransactionsPage()'));
+check('rules allow Club Admin to delete transactions but not Coach/Viewer', rules.includes('allow delete: if isSuperAdmin() || isClubAdmin(clubId);'));
+check('reconcile after delete performs authoritative Firestore read of remaining tuition txs', main.includes('Phase 4K-6V4D11: authoritative Firestore read after delete') && main.includes("sdk.collection(db, 'clubs', clubId, 'transactions')") && main.includes("sdk.where('description', '==', studentName)"));
+console.log(`\nTotal: ${pass+fail} | PASS: ${pass} | FAIL: ${fail}`);
+if(fail) process.exit(1);
+console.log('Phase 4K-6V4D11 checks passed.\n');

@@ -16,7 +16,7 @@ const files = {
   publicRenderStudents: read('public/js/ui/render/renderStudents.js'),
   publicFinance: read('public/js/modules/finance.js'),
 };
-const BUILD = 'admin-tx-slow-render-quit-full-authoritative-20260630-v4d10';
+const BUILD = 'attendance-excel-tx-delete-reconcile-20260630-v4d11';
 let pass = 0, fail = 0;
 function check(name, ok) { if (ok) { pass++; console.log('✅', name); } else { fail++; console.error('❌', name); } }
 console.log('\n=== Phase 4K-6V4D7 — Coach Login + Quit Full List Recovery ===\n');
