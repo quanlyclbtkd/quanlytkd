@@ -50,8 +50,8 @@ import {
     normalizeYYYYMM,
     formatMonthCompact,
 } from '../utils/format.js';
-import { FinanceService } from '../services/finance.service.js?v=coach-attendance-warning-cleanup-20260630-v4d9';
-import { StudentService } from '../services/students.service.js?v=coach-attendance-warning-cleanup-20260630-v4d9';
+import { FinanceService } from '../services/finance.service.js?v=admin-tx-slow-render-quit-full-authoritative-20260630-v4d10';
+import { StudentService } from '../services/students.service.js?v=admin-tx-slow-render-quit-full-authoritative-20260630-v4d10';
 import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
 
 // ── Phase 4K-4D: Fallback classify helper (finance.js) ──
@@ -967,7 +967,7 @@ export function initTransactionPagination() {
         prepareNextPage, preparePreviousPage,
         renderPaginationControls, PAGE_SIZE,
     }) => {
-        import('../services/finance.service.js?v=coach-attendance-warning-cleanup-20260630-v4d9').then(({ FinanceService }) => {
+        import('../services/finance.service.js?v=admin-tx-slow-render-quit-full-authoritative-20260630-v4d10').then(({ FinanceService }) => {
 
             const store = window.__store;
             if (!store) { console.warn('[pagination/transactions] __store chưa sẵn sàng'); return; }
@@ -1101,10 +1101,14 @@ export function initTransactionPagination() {
                         }
                     })(pgState.currentItems, 'tx-pagination-page');
 
-                    // Phase 3.5D: Pagination chỉ ảnh hưởng tx.txList island — dùng list-level
-                    // invalidation thay vì invalidateFinance() (tránh cross-domain dashboard).
-                    // Fallback cascade an toàn: invalidateList → invalidateFinance → legacy.
-                    // Virtualization-ready boundary: 'tx.txList' là stable list boundary.
+                    // Phase 4K-6V4D10: one-page transaction load must not trigger
+                    // tx.txList render twice. V4D9 did invalidateList(tx) and then
+                    // invalidateFinance()/dashboard/refresh again, causing noisy slow-render
+                    // diagnostics on Admin login. Refresh computation once, paint tx island
+                    // once, then mark dashboard dirty separately.
+                    if (typeof window.refreshListsComputation === 'function') {
+                        window.refreshListsComputation(['tx.txList', 'dashboard.summary'], 'tx-pagination-data-hydrated');
+                    }
                     if (typeof window.invalidateList === 'function') {
                         window.invalidateList('tx.txList', 'tx-pagination');
                     } else if (typeof window.invalidateFinance === 'function') {
@@ -1114,20 +1118,8 @@ export function initTransactionPagination() {
                     } else if (typeof window.scheduleRender === 'function') {
                         window.scheduleRender();
                     }
-
-                    // [GITHUB-FIX Task 5] Thêm invalidation cho finance + dashboard
-                    // Doanh thu tháng không bị giữ 0 khi tx listener chưa hydrate
-                    if (typeof window.invalidateFinance === 'function') {
-                        window.invalidateFinance('tx-pagination-data-hydrated');
-                    }
                     if (typeof window.invalidateDashboard === 'function') {
                         window.invalidateDashboard('tx-pagination-data-hydrated');
-                    }
-                    if (typeof window.refreshListsComputation === 'function') {
-                        window.refreshListsComputation([
-                            'tx.txList',
-                            'dashboard.summary',
-                        ], 'tx-pagination-data-hydrated');
                     }
 
                     // Phase 4K-DATA-HYDRATION: Direct row inject vào #txList

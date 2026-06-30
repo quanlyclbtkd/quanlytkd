@@ -28,7 +28,7 @@
  */
 
 import { getLocalToday, formatDate, formatMonth, formatMonthCompact, addMonthsToYYYYMM } from '../utils/format.js';
-import { StudentService } from '../services/students.service.js?v=coach-attendance-warning-cleanup-20260630-v4d9';
+import { StudentService } from '../services/students.service.js?v=admin-tx-slow-render-quit-full-authoritative-20260630-v4d10';
 
 // ════════════════════════════════════════════════════════════════
 // BRIDGE HELPERS — đọc state từ app.js qua window.__store
@@ -1040,7 +1040,7 @@ export function initStudentPagination() {
         renderPaginationControls, PAGE_SIZE,
     }) => {
         import('./students.js').then(() => {}); // no-op — chỉ để IDE không warn
-        import('../services/students.service.js?v=coach-attendance-warning-cleanup-20260630-v4d9').then(({ StudentService }) => {
+        import('../services/students.service.js?v=admin-tx-slow-render-quit-full-authoritative-20260630-v4d10').then(({ StudentService }) => {
 
             const store = window.__store;
             if (!store) { console.warn('[pagination/students] __store chưa sẵn sàng'); return; }

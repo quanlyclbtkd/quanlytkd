@@ -15,7 +15,7 @@ const students = read('js/modules/students.js');
 const finance = read('js/modules/finance.js');
 const index = read('index.html');
 
-const build = 'coach-attendance-warning-cleanup-20260630-v4d9';
+const build = 'admin-tx-slow-render-quit-full-authoritative-20260630-v4d10';
 let pass = 0, fail = 0;
 function check(name, ok) {
   if (ok) { pass++; console.log('✅', name); }

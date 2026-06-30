@@ -82,6 +82,8 @@ const _state = {
     quitLoadingInProgress:  false,
     /** Phase 4K-6V4B3: full authoritative reconciliation for Admin quit tab */
     quitCompletenessReconciled: false,
+    /** Phase 4K-6V4D10: one guarded forced authority pass for Đã nghỉ */
+    quitAuthoritativeForceAttempted: false,
 
     // ── Full fallback loop guard (Phase 3.7C) ─────────────────────────────────
     /** Đang chạy fallback → chặn concurrent call */
@@ -992,7 +994,7 @@ export async function ensureCoachBranchProfilesReady(reason, contextOverride) {
  * @param {string} reason
  * @returns {Promise<boolean>}
  */
-export async function loadFullProfilesFallback(reason) {
+export async function loadFullProfilesFallback(reason, options = {}) {
     if (_isCoachContext()) {
         window.RoleReadBoundary?.canMount?.('profiles.full-fallback', { reason: reason || 'full-fallback' });
         return loadCoachBranchProfilesFallback('redirected-from-full:' + (reason || 'unknown'));
@@ -1003,7 +1005,8 @@ export async function loadFullProfilesFallback(reason) {
         return false;
     }
 
-    if (_state.fallbackCount >= _state.maxFallbackPerSession) {
+    const _forceQuitAuthority = !!(options && options.forceQuitAuthoritative);
+    if (_state.fallbackCount >= _state.maxFallbackPerSession && !_forceQuitAuthority) {
         console.warn(
             '[ProfilesFallback] Đạt maxFallbackPerSession (' + _state.maxFallbackPerSession + ') — stop. Reason:', reason
         );
@@ -1189,7 +1192,15 @@ export async function ensureQuitProfilesAuthoritative(reason) {
     }
     if (_state.quitCompletenessReconciled && _state.quitLoaded) return true;
     if (_state.fallbackInProgress) return false;
-    const ok = await loadFullProfilesFallback('quit-authoritative:' + (reason || 'unknown'));
+
+    // Phase 4K-6V4D10: Đã nghỉ must be authoritative on web/mobile even if
+    // earlier active/coverage recovery has consumed the generic fallback quota.
+    // Use one guarded force pass for Admin only; never loop.
+    const force = !_state.quitAuthoritativeForceAttempted;
+    _state.quitAuthoritativeForceAttempted = true;
+    const ok = await loadFullProfilesFallback('quit-authoritative:' + (reason || 'unknown'), {
+        forceQuitAuthoritative: force,
+    });
     _state.quitCompletenessReconciled = !!ok;
     if (ok) {
         _state.quitLoaded = true;
@@ -1231,6 +1242,7 @@ export function resetProfilesListeners(reason) {
     _state.quitLoadLastReason      = '';
     _state.quitLoadingInProgress   = false;
     _state.quitCompletenessReconciled = false;
+    _state.quitAuthoritativeForceAttempted = false;
 
     // Fallback guard
     _state.fallbackInProgress      = false;

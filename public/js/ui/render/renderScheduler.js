@@ -20,7 +20,7 @@ let   _totalCalls   = 0;
 let   _stormWarns   = 0;
 
 const STORM_THRESHOLD = 12;  // warn if > N unique renders queued in one frame
-const SLOW_MS         = 16;  // warn if a single render fn exceeds one frame budget (60fps)
+const SLOW_MS         = 32;  // Phase 4K-6V4D10: production slow-render noise guard
 
 function _isDev() {
     const h = window.location.hostname;
@@ -54,10 +54,13 @@ function _processFrame() {
         const ms = performance.now() - t0;
         _totalCalls++;
 
-        if (ms > SLOW_MS) {
+        // Phase 4K-6V4D10: Slow-render diagnostics are useful while developing,
+        // but a 20–25ms first table paint is not a functional Admin error.
+        // Keep the metric internally and warn only in localhost/debug mode.
+        if (ms > SLOW_MS && (_isDev() || window.__DEBUG_RENDER_PERF === true)) {
             console.warn(
                 `[renderScheduler] 🐢 Slow render "${key}": ${ms.toFixed(1)}ms ` +
-                `(budget ${SLOW_MS}ms @ 60fps)`
+                `(budget ${SLOW_MS}ms)`
             );
         }
     }

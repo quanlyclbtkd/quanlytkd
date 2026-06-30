@@ -59,7 +59,7 @@ import {
     computeAndCacheStudents,
     getStudentsSummary,
     getStudentsCachedHtml,
-} from './render/computation/studentsRenderer.js?v=coach-attendance-warning-cleanup-20260630-v4d9';
+} from './render/computation/studentsRenderer.js?v=admin-tx-slow-render-quit-full-authoritative-20260630-v4d10';
 import {
     computeAndCacheInventory,
     getCachedLiveInvMap,

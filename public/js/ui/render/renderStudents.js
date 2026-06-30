@@ -19,7 +19,7 @@
  */
 
 import { registerRender } from './renderRegistry.js';
-import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=coach-attendance-warning-cleanup-20260630-v4d9';
+import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=admin-tx-slow-render-quit-full-authoritative-20260630-v4d10';
 
 // ─── Core DOM helper ────────────────────────────────────────────────────────
 
@@ -88,6 +88,23 @@ function _isQuitMobileViewport() {
         return false;
     }
 }
+function _quitAuthorityReconciled() {
+    try {
+        const m = window.__profileScaleMetrics || (window.studentProfileStore && window.studentProfileStore.getProfileScaleMetrics && window.studentProfileStore.getProfileScaleMetrics()) || {};
+        return !!m.quitCompletenessReconciled;
+    } catch (_) { return false; }
+}
+function _isAdminContext() {
+    return String(window.userRole || window.currentUserRole || '').toLowerCase().includes('admin');
+}
+function _ensureQuitAuthorityFromRender(reason) {
+    try {
+        if (_isAdminContext() && !_quitAuthorityReconciled() && typeof window.ensureQuitProfilesAuthoritative === 'function') {
+            window.ensureQuitProfilesAuthoritative(reason || 'quit-render-authority');
+        }
+    } catch (_) {}
+}
+
 function _profileDisplayName(id, profile) {
     const p = profile || {};
     return String(p.name || p.fullName || p.displayName || p.studentName || p.memberName || id || '').trim();
@@ -241,8 +258,10 @@ export function renderQuitIsland() {
     let _htmlQ = getStudentsCachedHtml('quitRows');
     const _target = document.getElementById('quitList');
     const _quitLoaded = !!(window.studentProfileStore && typeof window.studentProfileStore.isQuitLoaded === 'function' && window.studentProfileStore.isQuitLoaded());
+    _ensureQuitAuthorityFromRender('quit-island-render');
     const _directPreview = _buildAuthoritativeQuitRows({ mobileFull: true, forceAll: true, fullList: true });
     const _hasDirectQuit = _directPreview && _directPreview.count > 0;
+    const _quitAuthorityReady = _quitAuthorityReconciled();
 
     // Phase 4K-6V4D1A: V4D1 is read-only, but its audit store can be available
     // before the async quit lazy loader finishes. Do not show a partial/blank
@@ -262,7 +281,7 @@ export function renderQuitIsland() {
         // Phase 4K-6V4D7: both web and mobile must prefer the authoritative full
         // quit union. Previous web path could keep a stale/page-limited cached
         // computation when counts were equal or cache had a load-more row.
-        if (_hasDirectQuit && (_isQuitMobileViewport() || !_htmlQ || _directPreview.count >= _cachedQuitRows)) {
+        if (_hasDirectQuit && (_quitAuthorityReady || _isQuitMobileViewport() || !_htmlQ || _directPreview.count >= _cachedQuitRows)) {
             _applyHtml(_target, _directPreview.html);
             _syncQuitMobileControl();
             return;

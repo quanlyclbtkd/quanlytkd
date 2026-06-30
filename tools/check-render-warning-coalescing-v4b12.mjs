@@ -20,7 +20,7 @@ function check(name, ok, detail = '') {
 }
 
 console.log('\n=== Phase 4K-6V4B12 — Render Warning Coalescing ===\n');
-const build = 'coach-attendance-warning-cleanup-20260630-v4d9';
+const build = 'admin-tx-slow-render-quit-full-authoritative-20260630-v4d10';
 const appBuilds = [build, 'profile-canonical-store-runtime-recovery-20260628-v4d1a', 'profile-canonical-store-20260628-v4d1', 'tuition-debt-source-of-truth-20260628-v4c'];
 
 check('index cache-busts app.js/main.js to current render-safe build',
