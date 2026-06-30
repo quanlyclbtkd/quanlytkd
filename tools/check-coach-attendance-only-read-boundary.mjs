@@ -82,7 +82,7 @@ check('Coach profile query is server-scoped by status + branch',
   profiles.includes("fbQuery(profRef, statusConstraint, fbWhere('branch', '==', coachBranch))"));
 check('Coach zero probe and fallback are branch-scoped',
   profiles.includes("fbWhere('branch', '==', coachBranch), _pL4k(1)") &&
-  (profiles.includes("fbQuery(ctx.profRef, fbWhere('branch', '==', alias))") || profiles.includes("const fields = ['branch', 'branchCode', 'coachBranch', 'branchName']")) &&
+  profiles.includes("fbQuery(ctx.profRef, fbWhere('branch', '==', alias))") &&
   profiles.includes('_coachBranchAliases(ctx)'));
 check('Coach never executes full-club profiles fallback, quit load or export load',
   profiles.includes("return loadCoachBranchProfilesFallback('redirected-from-full:'") &&

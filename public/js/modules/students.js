@@ -1175,12 +1175,21 @@ export function initStudentPagination() {
 
                     // Quit list — Phase 4K-6V4B8 mobile full authoritative render.
                     // Mobile must show the complete Đã nghỉ list from quitProfiles,
-                    // not the shared server-pagination page. Web + mobile both show the full list.
+                    // not the shared server-pagination page. Desktop keeps load-more.
                     if (listId === 'quitList' && _isQuitAuthoritativeLoaded()) {
                         const _quitEntries = _getAuthoritativeQuitEntries();
-                        if (_quitEntries.length > 0) {
+                        const _mobileFull  = true; // Phase 4K-6V4D6: web + mobile both show full Đã nghỉ list.
+                        const _quitLimit   = _quitEntries.length;
+                        const _remaining   = Math.max(0, _quitEntries.length - _quitLimit);
+                        const _btnStyle    = 'style="padding:0.45rem 1.2rem;font-size:0.85rem;background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;border-radius:6px;cursor:pointer;font-weight:600;"';
+                        if (_remaining > 0) {
+                            ctrlEl.innerHTML = '<div style="text-align:center;padding:0.75rem 0;">'
+                                + "<button type=\"button\" " + _btnStyle + " onclick=\"window._loadMore('quit')\">"
+                                + '⬇ Tải thêm — còn ' + _remaining + ' võ sinh đã nghỉ nữa'
+                                + '</button></div>';
+                        } else if (_quitEntries.length > 0) {
                             ctrlEl.innerHTML = '<div style="text-align:center;padding:0.5rem 0;color:#94a3b8;font-size:0.8rem;">'
-                                + 'Đã hiển thị đủ ' + _quitEntries.length + ' võ sinh đã nghỉ</div>';
+                                + (_mobileFull ? 'Đã hiển thị đủ ' : 'Đã tải hết ') + _quitEntries.length + ' võ sinh đã nghỉ</div>';
                         } else {
                             ctrlEl.innerHTML = '<div style="text-align:center;padding:0.5rem 0;color:#94a3b8;font-size:0.8rem;">Chưa có võ sinh đã nghỉ</div>';
                         }
@@ -1446,10 +1455,7 @@ export function initStudentPagination() {
 
             function _isMobileViewport() {
                 try {
-                    const mm = window.matchMedia ? window.matchMedia.bind(window) : null;
-                    return (mm && (mm('(max-width: 1024px)').matches || mm('(pointer: coarse)').matches))
-                        || /Android|iPhone|iPad|iPod|Mobile/i.test(String(navigator && navigator.userAgent || ''))
-                        || Number(window.innerWidth || 0) <= 1024;
+                    return (window.matchMedia && window.matchMedia('(max-width: 767px)').matches) || Number(window.innerWidth || 0) <= 767;
                 } catch (_) {
                     return false;
                 }
@@ -1457,7 +1463,7 @@ export function initStudentPagination() {
 
             function _isQuitAuthoritativeLoaded() {
                 try {
-                    return (typeof window.isQuitProfilesLoaded === 'function' && window.isQuitProfilesLoaded()) || !!(window.studentProfileStore && typeof window.studentProfileStore.isQuitLoaded === 'function' && window.studentProfileStore.isQuitLoaded() && (window.__profileScaleMetrics || {}).quitCompletenessReconciled);
+                    return !!(window.studentProfileStore && typeof window.studentProfileStore.isQuitLoaded === 'function' && window.studentProfileStore.isQuitLoaded());
                 } catch (_) {
                     return false;
                 }
@@ -1468,7 +1474,7 @@ export function initStudentPagination() {
                     const storeQuit = window.studentProfileStore && typeof window.studentProfileStore.getQuitProfiles === 'function'
                         ? (window.studentProfileStore.getQuitProfiles() || {})
                         : {};
-                    const profiles = Object.assign({}, window.allProfiles || {}, (window.__store && window.__store.profiles) || {});
+                    const profiles = (window.__store && window.__store.profiles) || {};
                     const merged = Object.assign({}, storeQuit);
                     Object.entries(profiles).forEach(function([id, profile]) {
                         const kind = typeof window.classifyProfileStatus === 'function'
@@ -2617,6 +2623,19 @@ window.syncStudentStatusLocal = function syncStudentStatusLocal(name, updateData
 
         const kind = classify(nextProfile);
 
+        // Phase 4K-6V4D6: keep the split profile store in sync immediately.
+        // Without this, a newly quit student can disappear from Đã nghỉ until lazy/full sync finishes.
+        try {
+            if (window.studentProfileStore && typeof window.studentProfileStore.mergeProfile === 'function') {
+                window.studentProfileStore.mergeProfile(key, nextProfile, reason + ':status-local-sync');
+            }
+            if (!window.__store._localQuitProfiles || typeof window.__store._localQuitProfiles !== 'object') {
+                window.__store._localQuitProfiles = {};
+            }
+            if (kind === 'quit') window.__store._localQuitProfiles[key] = nextProfile;
+            else delete window.__store._localQuitProfiles[key];
+        } catch (_) {}
+
         // HARD SEPARATION: nếu status=quit, loại ra khỏi pagination.currentItems ngay
         const pg = window.__store.pagination && window.__store.pagination.students;
         if (pg && Array.isArray(pg.currentItems) && kind === 'quit') {
@@ -2672,6 +2691,12 @@ window.syncStudentStatusLocal = function syncStudentStatusLocal(name, updateData
                 window.__store._lastDebtRemoveReason = reason;
                 window.__store._lastDebtRemoveName = key;
             }
+            try {
+                const _tab = typeof window.getCurrentActiveTabId === 'function' ? window.getCurrentActiveTabId() : '';
+                if (_tab === 'quit' && typeof window.renderQuitList === 'function') {
+                    Promise.resolve().then(() => window.renderQuitList());
+                }
+            } catch (_) {}
         }
 
         console.debug('[syncStudentStatusLocal] synced:', key, '->', kind, updateData.status || '');

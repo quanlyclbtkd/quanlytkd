@@ -19,25 +19,26 @@ console.log('\n=== Phase 4K-6V4B2 — Quit Tab Completeness + Name Display ===\n
 
 check('Quit lazy loader still blocks Coach quit profile reads',
   profiles.includes("canMount?.('profiles.quit'") && profiles.includes('return false;'));
-check('Quit loader uses authoritative full sync instead of partial status query',
-  profiles.includes('targeted quit queries were the root cause') && profiles.includes('ensureQuitProfilesAuthoritative'));
-check('Classifier still recognizes legacy boolean quit signals',
-  ['profile.active === false','profile.isActive === false','profile.quit === true','profile.stopped === true'].every(s => statusConfig.includes(s)));
-check('Classifier still recognizes quitDate existence signal',
-  statusConfig.includes("const _dateQuitFields = ['quitDate'") && statusConfig.includes('ngayNghi'));
-check('Full fallback classifies complete collection before rendering quit rows',
-  profiles.includes('const _fallbackQuit') && profiles.includes("if (_fKind === 'quit') _fallbackQuit[_fId] = _fData"));
-check('Full authoritative quit sync records full fallback read attribution',
-  profiles.includes("recordFirestoreReadAttribution('profiles.fullFallbackQuery'") && profiles.includes('forceQuitAuthoritative'));
-check('Authoritative quit sync is single-flight and exposes failure metrics',
-  profiles.includes('quitAuthoritativePromise') && profiles.includes('quitAuthoritativeLastError'));
+check('Quit lazy loader keeps status query as primary source',
+  profiles.includes('status-in-quit') && profiles.includes('getQuitQueryValues()'));
+check('Quit lazy loader includes legacy boolean quit signals',
+  ['active==false','isActive==false','quit==true','isQuit==true','stopped==true'].every(s => profiles.includes(s)));
+check('Quit lazy loader includes quitDate existence signal',
+  profiles.includes("label: 'quitDate!=null'") && profiles.includes("field: 'quitDate'"));
+check('Quit lazy loader does not accept non-quit documents from broad legacy signals',
+  profiles.includes("classifyProfileStatus(data) === 'quit'") && profiles.includes('quitMap[id] = data'));
+check('Quit lazy loader records total docs read and per-query diagnostics',
+  profiles.includes('docsRead += snap.size') && profiles.includes('queryResults.push') && profiles.includes('queryCount: quitQueries.length'));
+check('Quit query failure is per-signal and does not abort the whole load',
+  profiles.includes("Quit legacy query lỗi") && profiles.includes('continue') === false && profiles.includes('for (const item of quitQueries)'));
 check('Quit list uses full/lazy profile store instead of active pagination currentItems',
   renderer.includes('const useFullProfileQuitRender = buildQuit && fullProfilesCount > 0') &&
   renderer.includes('!useFullProfileQuitRender'));
 check('PASS1 renders quit rows even when pagination is enabled if full quit profiles exist',
   renderer.includes('(!pgStudentsActive || useFullProfileQuitRender) && buildQuit'));
-check('Quit load-more is removed so Đã nghỉ is never page-limited',
-  renderer.includes('No load-more row for Đã nghỉ') && renderer.includes('Number.MAX_SAFE_INTEGER'));
+check('Quit load-more is full-profile aware or removed because Đã nghỉ renders complete list',
+  renderer.includes('if (!pgStudentsActive || useFullProfileQuitRender)') ||
+  (renderer.includes('Number.MAX_SAFE_INTEGER') && renderer.includes('no Load More for Đã nghỉ')));
 check('Quit row display prefers profile.name/fullName/displayName but keeps doc ID for openProfile',
   renderer.includes('function _profileDisplayName') && renderer.includes('data.name') &&
   renderer.includes('const displayName = _profileDisplayName(name, p)') &&

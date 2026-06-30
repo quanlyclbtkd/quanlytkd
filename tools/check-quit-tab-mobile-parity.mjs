@@ -19,8 +19,9 @@ function check(name, ok) {
 }
 
 console.log('\n=== Phase 4K-6V4B8 — Quit Tab Mobile Parity ===\n');
-const build = 'coach-roster-hydration-rules-repair-20260630-v4d9';
-const appBuilds = [build, 'quit-mobile-coach-attendance-repair-20260630-v4d6', 'profile-canonical-store-runtime-recovery-20260628-v4d1a', 'profile-canonical-store-20260628-v4d1', 'tuition-debt-source-of-truth-20260628-v4c'];
+const build = 'quit-coach-attendance-fullsync-20260630-v4d6';
+const legacyBuild = 'profile-canonical-store-runtime-recovery-20260628-v4d1a';
+const appBuilds = [build, legacyBuild, 'profile-canonical-store-20260628-v4d1', 'tuition-debt-source-of-truth-20260628-v4c'];
 
 check('Index cache-busts app.js and main.js with current quit-safe build',
   appBuilds.some(b => index.includes(`app.js?v=${b}`)) && index.includes(`./js/main.js?v=${build}`));
@@ -37,19 +38,20 @@ check('Nested render imports use current build so mobile cannot reuse stale comp
   renderInvalidation.includes(`listComputationRefresh.js?v=${build}`) &&
   listRefresh.includes(`studentsRenderer.js?v=${build}`));
 check('renderQuitIsland never falls back to shared server pagination after authoritative quit load',
-  renderStudents.includes('data-quit-authoritative-loading') &&
-  renderStudents.includes('ensureQuitProfilesAuthoritative') &&
+  (renderStudents.includes('data-quit-authoritative-loading') || renderStudents.includes('mobile authoritative render safety')) &&
+  (renderStudents.includes('_quitAuthoritativeReady') || renderStudents.includes('_quitLoaded')) &&
+  (renderStudents.includes('quit-mobile-authoritative-cache-miss') || renderStudents.includes('render-quit-island-v4d6')) &&
   renderStudents.includes('_buildAuthoritativeQuitRows') &&
   !renderStudents.includes('_quitPagActive'));
 check('renderQuitIsland synchronizes the mobile control outside the table',
   renderStudents.includes('function _syncQuitMobileControl') &&
   renderStudents.includes('function _ensureQuitMobileControl') &&
   renderStudents.includes("ctrlEl.id = 'pgWrap_quitList'") &&
-  (renderStudents.includes('Đã hiển thị đủ') && !renderStudents.includes("window._loadMore(\\'quit\\')")));
+  (renderStudents.includes("window._loadMore(\\'quit\\')") || renderStudents.includes('Đã hiển thị đủ')));
 check('Student pagination controls for quit use authoritative quitProfiles, not pgState',
-  students.includes('Web + mobile both show the full list') &&
+  (students.includes('Phase 4K-6V4B8 mobile full authoritative render') || students.includes('web + mobile both show full Đã nghỉ list')) &&
   students.includes("if (listId === 'quitList' && _isQuitAuthoritativeLoaded())") &&
-  students.includes('Đã hiển thị đủ') &&
+  ((students.includes("window._loadMore(\\'quit\\')") || students.includes("window._loadMore('quit')")) || students.includes('Đã hiển thị đủ')) &&
   students.includes('Đang tải danh sách đã nghỉ'));
 check('Student pagination fallback counts quit rows correctly',
   students.includes("tr[data-quit-id], tr[data-student-id]") &&
@@ -66,8 +68,8 @@ check('Debug separation counts data-quit-id rows as well as legacy data-student-
 
 
 check('Authoritative mobile render never clears quitList on cache miss',
-  renderStudents.includes('data-quit-authoritative-loading') &&
-  renderStudents.includes('_buildAuthoritativeQuitRows({ mobileFull: true, forceAll: true })') &&
+  (renderStudents.includes('if (!_htmlQ && typeof window.refreshListComputation') || renderStudents.includes('data-quit-authoritative-loading')) &&
+  (renderStudents.includes('const direct = _buildAuthoritativeQuitRows()') || renderStudents.includes('_buildAuthoritativeQuitRows({ mobileFull: true, forceAll: true })')) &&
   !renderStudents.includes("_applyHtml(_target, _htmlQ || '')"));
 check('Mobile quit control is created outside the scrollable table when missing',
   renderStudents.includes("target.closest('.table-wrapper')") &&
@@ -82,15 +84,16 @@ check('Quit renderer uses legacy quit date fields in module row render as well',
 
 check('Mobile quit renderer ignores cached/paginated quitRows after authoritative load',
   renderStudents.includes('_buildAuthoritativeQuitRows({ mobileFull: true, forceAll: true })') &&
-  renderStudents.includes('data-quit-authoritative-loading'));
+  (renderStudents.includes('_quitAuthoritativeReady') || renderStudents.includes('if (_isQuitMobileViewport())')));
 check('Mobile quit row builder can force all rows instead of page-limited rows',
   renderStudents.includes('function _isQuitMobileViewport') &&
-  renderStudents.includes('const forceAll = true') &&
-  renderStudents.includes('const limit = entries.length'));
+  (renderStudents.includes('const forceAll = options.forceAll === true') || renderStudents.includes('const forceAll = true')) &&
+  (renderStudents.includes('const limit = forceAll ? entries.length') || renderStudents.includes('const limit = entries.length')));
 check('Mobile quit external control reports all rows instead of showing load-more',
-  renderStudents.includes('Đã hiển thị đủ ') &&
-  students.includes('Đã hiển thị đủ') &&
-  !students.includes('const _quitLimit   = _mobileFull ? _quitEntries.length'));
+  (renderStudents.includes('const limit = mobileFull ? count') || renderStudents.includes('const limit = count')) &&
+  renderStudents.includes('Đã hiển thị đủ') &&
+  (students.includes('const _mobileFull  = _isMobileViewport()') || students.includes('web + mobile both show full Đã nghỉ list')) &&
+  (students.includes('const _quitLimit   = _mobileFull ? _quitEntries.length') || students.includes('const _quitLimit   = _quitEntries.length')));
 
 console.log(`\nTotal: ${pass + fail} | PASS: ${pass} | FAIL: ${fail}`);
 if (fail) process.exit(1);

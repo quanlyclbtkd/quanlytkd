@@ -14,29 +14,7 @@
 function _sdk()    { return window._fb_init || {}; }
 function _db()     { const db = (window.__store || {}).db; if (!db) throw new Error('[AttendanceService] db chưa sẵn sàng'); return db; }
 function _clubId() { const id = (window.__store || {}).clubId; if (!id) throw new Error('[AttendanceService] clubId chưa sẵn sàng'); return id; }
-function _normalizeRole(value) {
-    const role = String(value || '').trim().toLowerCase().replace(/-/g, '_');
-    if (role === 'hlv' || role === 'trainer') return 'coach';
-    if (role === 'superadmin') return 'super_admin';
-    return role;
-}
-function _readCoachContext() {
-    try {
-        if (window.RoleReadBoundary && typeof window.RoleReadBoundary.readContext === 'function') {
-            return window.RoleReadBoundary.readContext() || {};
-        }
-    } catch (_) {}
-    return {};
-}
-function _isCoach() {
-    const ctx = _readCoachContext();
-    return window.RoleReadBoundary?.isCoachAttendanceOnly?.() === true
-        || _normalizeRole(ctx.role || window.userRole || window.__store?.userRole || '') === 'coach';
-}
-function _coachBranchValue() {
-    const ctx = _readCoachContext();
-    return ctx.coachBranch || window.coachBranch || window.__store?.coachBranch || '';
-}
+function _isCoach() { return window.RoleReadBoundary?.isCoachAttendanceOnly?.() === true || String(window.userRole || '').toLowerCase() === 'coach'; }
 function _canonicalBranch(value, fallback = '') {
     if (window.BranchIdentity?.normalize) return window.BranchIdentity.normalize(value, { fallback });
     const raw = String(value || '').trim();
@@ -51,7 +29,7 @@ function _branchAliases(value) {
 }
 function _scopedBranch(options = {}) {
     const coach = _isCoach();
-    const branch = _canonicalBranch(coach ? _coachBranchValue() : options.branch, coach ? '' : String(options.branch || '').trim());
+    const branch = _canonicalBranch(coach ? window.coachBranch : options.branch, coach ? '' : String(options.branch || '').trim());
     if (coach && !branch) {
         const error = new Error('[AttendanceService] Coach chưa được gán cơ sở — chặn query/write toàn CLB.');
         error.code = 'attendance/coach-branch-required';
@@ -64,57 +42,6 @@ function _branchConstraint(where, branch, coach) {
     const aliases = coach ? _branchAliases(branch) : [branch];
     return aliases.length > 1 ? where('branch', 'in', aliases) : where('branch', '==', aliases[0]);
 }
-function _branchQuerySpecs(branch, coach) {
-    if (!branch || branch === 'all') return [];
-    const aliases = coach ? _branchAliases(branch) : [branch];
-    const fields = coach ? ['branch', 'branchCode', 'coachBranch', 'branchName'] : ['branch'];
-    const specs = [];
-    const seen = new Set();
-    fields.forEach(field => aliases.forEach(alias => {
-        const value = String(alias || '').trim();
-        if (!value) return;
-        const key = field + '=' + value;
-        if (seen.has(key)) return;
-        seen.add(key);
-        specs.push({ field, value });
-    }));
-    return specs;
-}
-async function _queryByBranchSpecs({ collection, query, where, getDocs, basePath, baseConstraints, branch, coach }) {
-    const specs = _branchQuerySpecs(branch, coach);
-    if (!coach || specs.length === 0) {
-        const constraints = baseConstraints.slice();
-        const branchConstraint = _branchConstraint(where, branch, coach);
-        if (branchConstraint) constraints.push(branchConstraint);
-        return [await getDocs(query(basePath, ...constraints))];
-    }
-    const snapshots = [];
-    const deniedSpecs = [];
-    for (const spec of specs) {
-        try {
-            snapshots.push(await getDocs(query(basePath, ...baseConstraints, where(spec.field, '==', spec.value))));
-        } catch (error) {
-            if (error && error.code === 'permission-denied') {
-                deniedSpecs.push(spec.field + '=' + spec.value);
-                continue;
-            }
-            throw error;
-        }
-    }
-    if (deniedSpecs.length) {
-        console.warn('[AttendanceService] branch specs denied:', deniedSpecs.slice(0, 8).join(', '));
-    }
-    if (coach && snapshots.length === 0 && deniedSpecs.length) {
-        window.__attendanceBranchScopeDebug = {
-            deniedSpecs: deniedSpecs.slice(0, 20),
-            branch,
-            updatedAt: Date.now(),
-            reason: 'all-branch-specs-denied'
-        };
-        return [];
-    }
-    return snapshots;
-}
 function _prepareWriteData(data) {
     const source = data && typeof data === 'object' ? data : {};
     const { coach, branch } = _scopedBranch({ branch: source.branch || '' });
@@ -124,7 +51,7 @@ function _prepareWriteData(data) {
         error.code = 'attendance/branch-required';
         throw error;
     }
-    return { ...source, branch: canonical, branchCode: canonical };
+    return { ...source, branch: canonical };
 }
 
 export const AttendanceService = {
@@ -148,20 +75,18 @@ export const AttendanceService = {
         window.RoleReadBoundary?.canMount?.('attendance.daily', { date, branch, shiftId });
         const dailyLimit = Number((window.__scaleConfig || {}).attendanceDailyLimit) || 1200;
         const constraints = [where('date', '==', date)];
+        const branchConstraint = _branchConstraint(where, branch, isCoach);
+        if (branchConstraint) constraints.push(branchConstraint);
         // Filtering server-side reduces reads and avoids unrelated branch/shift records.
         if (shiftId) constraints.push(where('shiftId', '==', shiftId));
         if (_lim) constraints.push(_lim(dailyLimit));
 
-        const snapshots = await _queryByBranchSpecs({
-            collection, query, where, getDocs,
-            basePath: collection(db, 'clubs', clubId, 'attendance'),
-            baseConstraints: constraints,
-            branch,
-            coach: isCoach
-        });
-        const byId = new Map();
-        snapshots.forEach(snap => snap.forEach(d => byId.set(d.id, { id: d.id, data: d.data() })));
-        const results = Array.from(byId.values());
+        const snap = await getDocs(query(
+            collection(db, 'clubs', clubId, 'attendance'),
+            ...constraints
+        ));
+        const results = [];
+        snap.forEach(d => results.push({ id: d.id, data: d.data() }));
 
         const hitLimit = results.length >= dailyLimit;
         window.__attendanceDailyLoadMetrics = {
@@ -284,17 +209,18 @@ export const AttendanceService = {
         const clubId = _clubId();
         const { coach: isCoach, branch } = _scopedBranch(options);
         const constraints = [where('date', '==', date)];
+        const branchConstraint = _branchConstraint(where, branch, isCoach);
+        if (branchConstraint) constraints.push(branchConstraint);
         window.RoleReadBoundary?.canMount?.('attendance.notes', { date, branch });
-        const snapshots = await _queryByBranchSpecs({
-            collection, query, where, getDocs,
-            basePath: collection(db, 'clubs', clubId, 'attendanceNotes'),
-            baseConstraints: constraints,
-            branch,
-            coach: isCoach
-        });
-        const byId = new Map();
-        snapshots.forEach(snap => snap.forEach(d => byId.set(d.id, { id: d.id, data: d.data() })));
-        return Array.from(byId.values());
+        const snap   = await getDocs(
+            query(
+                collection(db, 'clubs', clubId, 'attendanceNotes'),
+                ...constraints
+            )
+        );
+        const results = [];
+        snap.forEach(d => results.push({ id: d.id, data: d.data() }));
+        return results;
     },
 
     // ── LOAD BY MONTH (thống kê tháng) ──────────────────────────────

@@ -22,17 +22,20 @@ check('Quit loader still blocks Coach quit/full reads',
 check('Classifier treats quitDate/date legacy signals as quit before active flags',
   statusConfig.includes("const _dateQuitFields = ['quitDate'") &&
   statusConfig.indexOf('_dateQuitFields') < statusConfig.indexOf('if (profile.active === true || profile.isActive === true)'));
-check('Classifier recognizes legacy status aliases such as Đã nghỉ and Nghỉ tập',
-  statusConfig.includes("'đã nghỉ'") && statusConfig.includes("'nghỉ tập'"));
-check('Classifier recognizes additional date fields beyond quitDate',
-  ['ngayNghi','inactiveDate','stoppedDate','leftDate'].every(s => statusConfig.includes(s)));
-check('Authoritative full fallback filters every profile through classifier',
-  profiles.includes('Object.entries(fullMap).forEach') && profiles.includes('classifyProfileStatus(_fData)'));
-check('Targeted partial quit map is disabled in favor of full authoritative sync',
-  profiles.includes('targeted quit queries were the root cause') && !profiles.includes('quitMap[id] = data'));
-check('Admin quit tab runs one authoritative full reconciliation before rendering',
-  profiles.includes('quitCompletenessReconciled') && profiles.includes('ensureQuitProfilesAuthoritative') &&
-  profiles.includes("loadFullProfilesFallback('quit-authoritative-full-sync:"));
+check('Quit loader queries legacy status aliases such as Đã nghỉ and Nghỉ tập',
+  profiles.includes('legacyStatusAliases') && profiles.includes("'Đã nghỉ'") && profiles.includes("'Nghỉ tập'") &&
+  profiles.includes('status-alias-in-'));
+check('Quit loader queries additional date fields beyond quitDate',
+  ['ngayNghi!=null','inactiveDate!=null','stoppedDate!=null','leftDate!=null'].every(s => profiles.includes(s)));
+check('Targeted quit loader still filters every result through classifier',
+  profiles.includes("classifyProfileStatus(data) === 'quit'") && profiles.includes('quitMap[id] = data'));
+check('Existing full/fallback quit profiles are preserved before setting targeted map',
+  profiles.includes('getQuitProfiles') && profiles.includes('Object.entries(existingQuit') && profiles.includes('!quitMap[id]'));
+check('Admin quit tab runs authoritative full reconciliation and does not rely on targeted preview',
+  (profiles.includes('quit-tab-authoritative-reconcile') || profiles.includes('ensureQuitProfilesAuthoritative')) &&
+  profiles.includes('quitCompletenessReconciled') &&
+  profiles.includes('forceQuitAuthoritative') &&
+  profiles.includes('quit-profiles-lazy-targeted-preview'));
 check('Full fallback classifies full collection into quitProfiles',
   profiles.includes('const _fallbackQuit') && profiles.includes("if (_fKind === 'quit') _fallbackQuit[_fId] = _fData") &&
   profiles.includes('setQuitProfiles(_fallbackQuit'));

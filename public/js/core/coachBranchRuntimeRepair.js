@@ -11,7 +11,7 @@
     const raw = String(value || '').trim();
     if (!raw) return fallback;
     if (/^(mặc định|mac dinh|default)$/i.test(raw)) return 'CS1';
-    const match = raw.match(/^CS[\s_\-]*0*([1-9]|10)$/i);
+    const match = raw.match(/^CS0*([1-9]|10)$/i);
     return match ? `CS${Number(match[1])}` : fallback;
   };
   const esc = value => String(value ?? '').replace(/[&<>'"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]));
@@ -61,11 +61,8 @@
       await setDoc(doc(firestore, 'users', result.uid), mirror, { merge: true });
       await setDoc(doc(firestore, 'coach_login_index', result.uid), mirror, { merge: true });
     } catch (cause) {
-      // Phase 4K-6V4D6: login must continue when branch is known. Mirror write
-      // errors are repaired by Admin sync / Rules deploy; blocking login here
-      // was the cause of Coach attendance accounts failing to enter the app.
-      console.warn('[CoachBranchRepair] mirror refresh failed; using assigned branch for this session:', cause.code || cause.message);
-      result._mirrorRepairPending = true;
+      const error = new Error('Cơ sở HLV chưa đồng bộ. Admin cần chọn đúng cơ sở, bấm “Lưu cơ sở” rồi chạy “Đồng bộ tài khoản HLV cũ”.');
+      error.code = 'auth/coach-branch-mirror-sync-failed'; error.cause = cause; throw error;
     }
     return { ...result, coachBranch: assignedBranch };
   }
@@ -140,11 +137,7 @@
       const base = { email, displayName:name, role:'coach', clubId:clubId(), branch, coachBranch:branch, uid, createdAt:new Date().toISOString() };
       await setDoc(doc(db(), 'clubs', clubId(), 'coaches', uid), base);
       let mirrorError = null;
-      try {
-        const mirror = { role:'coach', clubId:clubId(), branch, coachBranch:branch, email, uid, updatedAt:new Date().toISOString() };
-        await setDoc(doc(db(), 'users', uid), mirror, { merge:true });
-        await setDoc(doc(db(), 'coach_login_index', uid), mirror, { merge:true });
-      }
+      try { const mirror = { role:'coach', clubId:clubId(), branch, coachBranch:branch, email, uid, updatedAt:new Date().toISOString() }; await setDoc(doc(db(), 'users', uid), mirror, { merge:true }); await setDoc(doc(db(), 'coach_login_index', uid), mirror, { merge:true }); }
       catch (error) { mirrorError = error; }
       alert(mirrorError
         ? `⚠️ Auth và hồ sơ HLV đã tạo nhưng users/{uid} chưa ghi được.\n\nKHÔNG tạo lại để tránh trùng email. Hãy deploy Rules V4B1 rồi chạy đồng bộ.\n\nTên: ${name}\nEmail: ${email}\nCơ sở: ${branchName(branch)}`

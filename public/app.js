@@ -59,7 +59,7 @@
         const raw = String(value || '').trim();
         if (!raw) return fallback;
         if (/^(mặc định|mac dinh|default)$/i.test(raw)) return 'CS1';
-        const match = raw.match(/^CS[\s_\-]*0*([1-9]|10)$/i);
+        const match = raw.match(/^CS0*([1-9]|10)$/i);
         return match ? ('CS' + Number(match[1])) : fallback;
     };
     const _branchAliases = (value) => {
@@ -91,7 +91,7 @@
     window.debtBranchMatchesFilter = window.debtBranchMatchesFilter || _branchMatchesFilter;
 // Danh mục kho tùy chỉnh — được load từ Firestore khi đăng nhập thành công
 window.invCustomCategories = [];
-    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V4D9'; window.APP_PATCH_VERSION = '4K-6V4D9-coach-roster-hydration-rules-repair-20260630'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
+    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V4D6'; window.APP_PATCH_VERSION = '4K-6V4D6-quit-coach-attendance-fullsync-20260630'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
     // Compatibility regression marker retained for Phase 4K-6Q gate: APP_PATCH_VERSION = '4K-6Q-mobile-filter-currency-stability-20260615'
     window.__appLoaded = true; // [Phase 2a] main.js kiểm tra để bỏ qua loadLegacyApp()
     window.__store = window.__store || {}; // [Phase 2b] Bridge object cho module system
@@ -1865,12 +1865,6 @@ service cloud.firestore {
                 // Phase 4.0B-4D: mark settings loaded
                 _updateHydrationMetrics({ settingsLoaded: true, lastReason: 'settings-snapshot' });
                 applyClubConfigUI();
-                // Phase 4K-6V4D9: custom branchName aliases are only known after
-                // main_config is loaded. Rerun Coach branch fallback so rosters whose
-                // profiles store branchName/custom labels are hydrated for Attendance.
-                if (_coachAttendanceOnly && typeof window.loadCoachBranchProfilesFallback === 'function') {
-                    setTimeout(() => window.loadCoachBranchProfilesFallback('settings-ready-branch-aliases'), 0);
-                }
                 // [Phase 3.5C] settings thay đổi ảnh hưởng toàn bộ UI → invalidateByDomain('all')
                 // Dùng domain invalidation thay vì scheduleRender() toàn app.
                 // Fallback về scheduleRender() nếu Phase 3.5C chưa load.
@@ -1993,39 +1987,18 @@ service cloud.firestore {
         // main.js load TRƯỚC initSaaSDatabase (initSaaSDatabase chỉ gọi khi user login)
         // nên window.mountActiveProfilesListener đã có sẵn khi init club chạy.
         // Fallback an toàn: giữ full profiles listener nếu module chưa sẵn.
-        const _mountScopedProfiles = (reason) => {
-            if (typeof window.mountActiveProfilesListener === 'function') {
-                window.mountActiveProfilesListener({
-                    db, clubId, profRef, currentClubId,
-                    role: window.userRole || '',
-                    coachBranch: window.coachBranch || '',
-                    reason: reason || 'init-active-profiles'
-                });
-                return true;
-            }
-            return false;
-        };
-        if (_mountScopedProfiles('init-active-profiles')) {
-            // mounted
+        if (typeof window.mountActiveProfilesListener === 'function') {
+            window.mountActiveProfilesListener({
+                db, clubId, profRef, currentClubId,
+                role: window.userRole || '',
+                coachBranch: window.coachBranch || '',
+                reason: 'init-active-profiles'
+            });
         } else if (window.RoleReadBoundary?.isCoachAttendanceOnly?.() === true) {
-            // Phase 4K-6V4D9: fail closed without dead-ending Coach hydration.
-            // main.js can still be in async bootstrap, so retry until the branch-aware
-            // listener API is exposed. Never fall back to full-club reads for Coach.
+            // Fail closed: tuyệt đối không full-read toàn CLB khi module branch-aware chưa sẵn.
             allProfiles = {};
             if (window.__store) window.__store.profiles = {};
-            const _retryMountCoachProfiles = (attempt) => {
-                if (_mountScopedProfiles('coach-deferred-profile-mount-attempt-' + attempt)) return;
-                if (typeof window.loadCoachBranchProfilesFallback === 'function') {
-                    window.loadCoachBranchProfilesFallback('coach-module-deferred-fallback-attempt-' + attempt);
-                    return;
-                }
-                if (attempt < 40) {
-                    setTimeout(() => _retryMountCoachProfiles(attempt + 1), 150);
-                    return;
-                }
-                console.warn('[RoleReadBoundary] Coach profiles module still unavailable after retry — kept full-club fallback blocked');
-            };
-            setTimeout(() => _retryMountCoachProfiles(1), 0);
+            console.error('[RoleReadBoundary] Coach profiles module unavailable — blocked full-club fallback');
         } else {
             // Fallback Admin only: full profiles listener (Phase 3.6D pattern — khi module chưa load)
             let _fallbackProfilesInitialSeen = false;
@@ -3444,13 +3417,7 @@ service cloud.firestore {
             // Chỉ đánh dấu "đã ghi" SAU KHI addDoc thành công
             sessionStorage.setItem(sessionKey, '1');
         } catch(e) {
-            // Phase 4K-6V4D9: login history is non-critical. If Rules are not
-            // deployed yet, do not spam warnings or retry on every reload.
-            if (e && e.code === 'permission-denied') {
-                sessionStorage.setItem(sessionKey, 'permission-denied');
-                console.info('[login_history] Bỏ qua ghi lịch sử đăng nhập do Rules chưa cho phép.');
-                return;
-            }
+            // Không set sessionStorage → lần load tiếp theo sẽ tự thử lại
             console.warn('[login_history] Không thể ghi lịch sử đăng nhập:', e.message);
         }
     }
@@ -3505,19 +3472,7 @@ service cloud.firestore {
     const _resolveCoachBranchContext = async (user, context) => {
         const normalized = _normalizeAuthContext({ ...context, uid: user && user.uid });
         if (window.CoachBranchRuntimeRepair && typeof window.CoachBranchRuntimeRepair.resolveAuthContext === 'function') {
-            try {
-                return await window.CoachBranchRuntimeRepair.resolveAuthContext({ user, context: normalized, db });
-            } catch (error) {
-                // Phase 4K-6V4D6: mirror repair write failures must not block Coach login
-                // when the branch is already known. A blocked write can be fixed by Admin sync;
-                // attendance still needs a valid role/club/branch context to load safely.
-                console.warn('[AuthContext] Coach mirror repair failed, continuing with normalized context:', error.code || error.message);
-                if (normalized.role === 'coach' && normalized.clubId && (normalized.branch || normalized.coachBranch)) {
-                    normalized._mirrorRepairPending = true;
-                    return normalized;
-                }
-                throw error;
-            }
+            return window.CoachBranchRuntimeRepair.resolveAuthContext({ user, context: normalized, db });
         }
         return normalized;
     };
@@ -3527,17 +3482,15 @@ service cloud.firestore {
             const snap = await getDoc(doc(db, 'coach_login_index', user.uid));
             if (!snap.exists()) return null;
             const data = snap.data() || {};
-            const role = String(data.role || '').trim().toLowerCase().replace(/-/g, '_');
-            if (role !== 'coach') return null;
+            if (String(data.role || '').trim().toLowerCase().replace(/-/g, '_') !== 'coach') return null;
             const ctx = {
-                uid: user.uid,
                 role: 'coach',
                 clubId: data.clubId || '',
                 branch: data.branch || data.coachBranch || '',
                 coachBranch: data.coachBranch || data.branch || '',
             };
             if (!ctx.clubId || !(ctx.branch || ctx.coachBranch)) return null;
-            return await _resolveCoachBranchContext(user, ctx);
+            return _resolveCoachBranchContext(user, ctx);
         } catch (error) {
             console.warn('[AuthContext] coach_login_index read failed:', error.code || error.message);
             return null;
@@ -3674,10 +3627,7 @@ service cloud.firestore {
                 }
 
                 let _freshContext=null;
-                if (userDocSnap && userDocSnap.exists()) {
-                    const _ud=userDocSnap.data();
-                    _freshContext=await _resolveCoachBranchContext(user,{role:_ud.role||'',clubId:_ud.clubId,branch:_ud.branch||_ud.coachBranch||''});
-                }
+                if (userDocSnap && userDocSnap.exists()) { const _ud=userDocSnap.data(); _freshContext=await _resolveCoachBranchContext(user,{role:_ud.role||'',clubId:_ud.clubId,branch:_ud.branch||_ud.coachBranch||''}); }
                 if (!_freshContext) _freshContext = await _readCoachLoginIndexContext(user);
                 if (!_freshContext && _cached && _cached.role==='coach' && _cached.clubId) _freshContext=await _resolveCoachBranchContext(user,_cached);
                 if (_freshContext) {
@@ -7333,7 +7283,8 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         const _PAGE_LIMIT    = 100;
         const _activeLimit   = (window._activePage || 1) * _PAGE_LIMIT;
         const _debtLimit     = (window._debtPage   || 1) * _PAGE_LIMIT;
-        const _quitLimit     = (window._quitPage   || 1) * _PAGE_LIMIT;
+        // Phase 4K-6V4D6: Đã nghỉ renders full authoritative list on web + mobile.
+        const _quitLimit     = Number.MAX_SAFE_INTEGER;
         let _activeRendered = 0, _debtRendered = 0, _quitRendered = 0;
         let _activeTotalCount = 0, _debtTotalCount = 0, _quitTotalCount = 0;
 
@@ -7436,7 +7387,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         // Phase 4K-5Q: DISABLED — active load-more row moved outside table (single source via #pgWrap_activeList)
         // if(_activeTotalCount > _activeLimit)  activeHtml += `<tr>...</tr>`;
         if(_debtTotalCount   > _debtLimit)    debtHtml   += `<tr><td colspan="${_moreColspan}" ${_moreStyle}><button type="button" ${_moreBtnStyle} onclick="window._loadMore('debt')">⬇ Tải thêm — còn ${_debtTotalCount - _debtRendered} võ sinh nữa</button></td></tr>`;
-        if(_quitTotalCount   > _quitLimit)    quitHtml   += `<tr><td colspan="${_moreColspan}" ${_moreStyle}><button type="button" ${_moreBtnStyle} onclick="window._loadMore('quit')">⬇ Tải thêm — còn ${_quitTotalCount - _quitRendered} võ sinh nữa</button></td></tr>`;
+        // Phase 4K-6V4D6: no Load More for Đã nghỉ — complete list only.
 
         _tabHtmlCache = { txList: txHtml, uniformTxList: uniformTxHtml, expenseList: expHtml, examExpenseList: examExpHtml, debtList: debtHtml, activeList: activeHtml, quitList: quitHtml, inventoryList: invListHtml, reportList: reportHtml };
         if (window.__store) window.__store.tabHtmlCache = _tabHtmlCache; // [Phase 2b] sync cache
@@ -9716,9 +9667,9 @@ window.processMultiItem = async (action) => {
                 createdAt: now,
                 updatedAt: now
             };
-            await setDoc(doc(db, 'clubs', currentClubId, 'coaches', uid), coachPayload);
+            await setDoc(doc(db, 'clubs', currentClubId, 'coaches', uid), coachPayload, { merge: true });
 
-            // users/{uid} + coach_login_index/{uid} là 2 mirror đăng nhập/điểm danh bắt buộc.
+            // users/{uid} + coach_login_index/{uid} là 2 mirror phân quyền bắt buộc cho HLV.
             let provisioningError = null;
             try {
                 const mirrorPayload = { role: 'coach', clubId: currentClubId, branch, coachBranch: branch, email, uid, updatedAt: now };
@@ -9726,7 +9677,7 @@ window.processMultiItem = async (action) => {
                 await setDoc(doc(db, 'coach_login_index', uid), mirrorPayload, { merge: true });
             } catch(_permErr) {
                 provisioningError = _permErr;
-                console.error('Ghi users/{uid}/coach_login_index thất bại — HLV có thể chưa đăng nhập được đến khi deploy Rules + đồng bộ:', _permErr.code || _permErr.message);
+                console.error('Ghi users/{uid}/coach_login_index thất bại — tài khoản chưa thể đăng nhập:', _permErr.code || _permErr.message);
             }
 
             const branchDisplay = branch ? (' | Cơ sở: ' + (window.getBranchNameDisplay ? window.getBranchNameDisplay(branch) : branch)) : '';
@@ -9765,13 +9716,9 @@ window.processMultiItem = async (action) => {
             // Bước 2: Thử xóa users/{uid} (optional — có thể bị chặn bởi Firestore Rules)
             try {
                 await deleteDoc(doc(db, 'users', uid));
+                try { await deleteDoc(doc(db, 'coach_login_index', uid)); } catch(_) {}
             } catch(_permErr) {
                 console.warn('Không thể xóa users/{uid}:', _permErr.code, '— không ảnh hưởng chức năng');
-            }
-            try {
-                await deleteDoc(doc(db, 'coach_login_index', uid));
-            } catch(_idxErr) {
-                console.warn('Không thể xóa coach_login_index/{uid}:', _idxErr.code, '— không ảnh hưởng chức năng');
             }
             window.showToast('✅ Đã xóa tài khoản HLV: ' + email, 2500);
             window.loadCoachAccounts();
@@ -10169,10 +10116,11 @@ window.processMultiItem = async (action) => {
                     const mirrorPayload = { role: 'coach', clubId: currentClubId, branch: canonicalBranch, coachBranch: canonicalBranch, email: data.email || oldUser.email || '', uid, updatedAt: now };
                     if (userNeedsSync) {
                         await setDoc(userRef, mirrorPayload, { merge: true });
+                        await setDoc(doc(db, 'coach_login_index', uid), mirrorPayload, { merge: true });
                         userSynced++;
+                    } else {
+                        await setDoc(doc(db, 'coach_login_index', uid), mirrorPayload, { merge: true });
                     }
-                    // Phase 4K-6V4D6: always refresh deterministic login index for Coach accounts.
-                    await setDoc(doc(db, 'coach_login_index', uid), mirrorPayload, { merge: true });
                 } catch(_permErr) {
                     failed++;
                     console.warn('users/{uid} sync failed for', uid, ':', _permErr.code || _permErr.message);
@@ -10482,20 +10430,6 @@ window.processMultiItem = async (action) => {
     window.runRuntimeDataRecovery = async function runRuntimeDataRecovery(reason) {
         reason = reason || 'manual';
         const state = window.__runtimeRecoveryState;
-
-        // Phase 4K-6V4D9: runtime data-source recovery probes full/public Firestore
-        // paths and is not needed for Coach attendance-only sessions. Running it for
-        // Coach creates noisy permission-denied logs and can mask the real branch
-        // hydration issue.
-        if (window.RoleReadBoundary?.isCoachAttendanceOnly?.() === true) {
-            state.checked = true;
-            state.completed = true;
-            state.activeDataSource = 'coach-scoped';
-            state.reason = 'Skipped full datasource recovery for Coach attendance-only session';
-            state.completedAt = Date.now();
-            console.info('[RuntimeRecovery] Coach scoped session — skip full datasource probe.');
-            return;
-        }
 
         if (state.running) {
             console.debug('[RuntimeRecovery] Đang chạy — bỏ qua. reason=' + reason);

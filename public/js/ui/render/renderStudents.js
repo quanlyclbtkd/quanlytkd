@@ -19,7 +19,7 @@
  */
 
 import { registerRender } from './renderRegistry.js';
-import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=coach-roster-hydration-rules-repair-20260630-v4d9';
+import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=quit-coach-attendance-fullsync-20260630-v4d6';
 
 // ─── Core DOM helper ────────────────────────────────────────────────────────
 
@@ -98,7 +98,8 @@ function _getAuthoritativeQuitProfiles() {
         const storeQuit = window.studentProfileStore && typeof window.studentProfileStore.getQuitProfiles === 'function'
             ? (window.studentProfileStore.getQuitProfiles() || {})
             : {};
-        Object.assign(merged, storeQuit);
+        const localQuit = (window.__store && window.__store._localQuitProfiles) || {};
+        Object.assign(merged, storeQuit, localQuit);
     } catch (_) {}
     try {
         const canonicalStore = (window.__profileCanonicalStore || (window.ProfileCanonicalStore && window.ProfileCanonicalStore.ensure && window.ProfileCanonicalStore.ensure({ reason: 'quit-list-direct-fallback' }))) || null;
@@ -129,8 +130,9 @@ function _buildAuthoritativeQuitRows(options = {}) {
             : (profile.status === 'quit' || profile.status === 'inactive' || profile.active === false || profile.isActive === false ? 'quit' : 'active');
         return kind === 'quit';
     }).sort((a, b) => _profileDisplayName(a[0], a[1]).localeCompare(_profileDisplayName(b[0], b[1]), 'vi'));
-    // Phase 4K-6V4D6: Đã nghỉ is an authoritative audit list. Render full list
-    // on both web and mobile after full sync; never page-limit this tab.
+    const pageSize = (window.__store && window.__store.pagination && window.__store.pagination.students && window.__store.pagination.students.pageSize) || 50;
+    // Phase 4K-6V4D6: Đã nghỉ is an audit list. Always render every authoritative
+    // quit row on web and mobile; pagination caused repeated incomplete lists.
     const forceAll = true;
     const limit = entries.length;
     const cfg = (window.__store && window.__store.clubConfig) || window.clubConfig || {};
@@ -154,20 +156,20 @@ function _syncQuitMobileControl() {
     const ctrlEl = _ensureQuitMobileControl();
     if (!ctrlEl) return;
     const metrics = window.__profileScaleMetrics || {};
-    const coach = String(window.userRole || '').toLowerCase().replace(/-/g, '_') === 'coach';
-    const ready = coach
-        || (typeof window.isQuitProfilesLoaded === 'function' && window.isQuitProfilesLoaded())
-        || !!(metrics.quitLoaded && metrics.quitCompletenessReconciled)
-        || !!(window.studentProfileStore && typeof window.studentProfileStore.isQuitLoaded === 'function' && window.studentProfileStore.isQuitLoaded() && metrics.quitCompletenessReconciled);
-    if (!ready) {
-        const err = metrics.quitAuthoritativeLastError ? ' Mã lỗi: ' + _escapeHtml(metrics.quitAuthoritativeLastError) : '';
-        ctrlEl.innerHTML = '<div style="text-align:center;padding:0.5rem 0;color:#64748b;font-size:0.8rem;line-height:1.45;">Đang đối soát đầy đủ danh sách đã nghỉ...' + err + '</div>';
+    const quitLoaded = !!(metrics.quitCompletenessReconciled || (typeof window.isQuitProfilesAuthoritativeReady === 'function' && window.isQuitProfilesAuthoritativeReady()));
+    const mobileFull = true;
+    if (!quitLoaded) {
+        ctrlEl.innerHTML = '<div style="text-align:center;padding:0.5rem 0;color:#94a3b8;font-size:0.8rem;">Đang tải danh sách đã nghỉ...</div>';
         return;
     }
     let count = 0;
-    try { count = Object.keys(_getAuthoritativeQuitProfiles()).length; } catch (_) { count = 0; }
+    try {
+        count = Object.keys(_getAuthoritativeQuitProfiles()).length;
+    } catch (_) { count = 0; }
+    const limit = count;
     if (count > 0) {
-        ctrlEl.innerHTML = '<div style="text-align:center;padding:0.5rem 0;color:#94a3b8;font-size:0.8rem;">Đã hiển thị đủ ' + count + ' võ sinh đã nghỉ</div>';
+        ctrlEl.innerHTML = '<div style="text-align:center;padding:0.5rem 0;color:#94a3b8;font-size:0.8rem;">'
+            + 'Đã hiển thị đủ ' + count + ' võ sinh đã nghỉ</div>';
     } else {
         ctrlEl.innerHTML = '<div style="text-align:center;padding:0.5rem 0;color:#94a3b8;font-size:0.8rem;">Chưa có võ sinh đã nghỉ</div>';
     }
@@ -216,32 +218,24 @@ export function renderDebtIsland() {
 /** Render the quit student list (#quitList). */
 export function renderQuitIsland() {
     const _target = document.getElementById('quitList');
-    const metrics = window.__profileScaleMetrics || {};
-    const coach = String(window.userRole || '').toLowerCase().replace(/-/g, '_') === 'coach';
-    const ready = coach
-        || (typeof window.isQuitProfilesLoaded === 'function' && window.isQuitProfilesLoaded())
-        || !!(metrics.quitLoaded && metrics.quitCompletenessReconciled)
-        || !!(window.studentProfileStore && typeof window.studentProfileStore.isQuitLoaded === 'function' && window.studentProfileStore.isQuitLoaded() && metrics.quitCompletenessReconciled);
+    const _metrics = window.__profileScaleMetrics || {};
+    const _isCoach = String(window.userRole || '').toLowerCase().replace(/-/g, '_') === 'coach';
+    const _quitAuthoritativeReady = _isCoach || !!(_metrics.quitLoaded && _metrics.quitCompletenessReconciled)
+        || (typeof window.isQuitProfilesAuthoritativeReady === 'function' && window.isQuitProfilesAuthoritativeReady());
 
-    if (!ready) {
+    // Phase 4K-6V4D6: never present targeted/partial quit rows as final data.
+    if (!_quitAuthoritativeReady) {
         try {
-            if (!coach && typeof window.ensureQuitProfilesAuthoritative === 'function') {
-                window.ensureQuitProfilesAuthoritative('render-quit-island-v4d7').then((ok) => {
-                    if (ok && typeof window.renderQuitList === 'function') window.renderQuitList({ reason: 'quit-authoritative-ready-v4d7' });
-                    else if (typeof window.invalidateList === 'function') window.invalidateList('students.quitList', 'quit-authoritative-retry-v4d7');
-                }).catch(() => {});
-            } else if (!coach && typeof window.loadQuitProfilesIfNeeded === 'function') {
-                window.loadQuitProfilesIfNeeded('render-quit-island-v4d7').then((ok) => {
-                    if (ok && typeof window.renderQuitList === 'function') window.renderQuitList({ reason: 'quit-loaded-v4d7' });
-                }).catch(() => {});
+            if (typeof window.ensureQuitProfilesAuthoritative === 'function') {
+                window.ensureQuitProfilesAuthoritative('render-quit-island-v4d6');
+            } else if (typeof window.loadQuitProfilesIfNeeded === 'function') {
+                window.loadQuitProfilesIfNeeded('render-quit-island-v4d6');
             }
         } catch (_) {}
-        const existingCount = (() => {
-            try { return Object.keys(_getAuthoritativeQuitProfiles()).length; } catch (_) { return 0; }
-        })();
-        const suffix = existingCount > 0 ? ' Đã nhận diện tạm ' + existingCount + ' hồ sơ, đang đối soát đủ danh sách...' : '';
-        const err = metrics.quitAuthoritativeLastError ? ' Mã lỗi: ' + _escapeHtml(metrics.quitAuthoritativeLastError) : '';
-        _applyHtml(_target, '<tr data-quit-authoritative-loading="1"><td colspan="7" style="text-align:center;color:#64748b;padding:16px;font-size:0.82rem;line-height:1.5;">Đang tải đầy đủ danh sách võ sinh đã nghỉ.' + suffix + err + '</td></tr>');
+        const preview = _buildAuthoritativeQuitRows({ mobileFull: true, forceAll: true });
+        const seen = preview && preview.count ? (' Đã nhận diện tạm ' + preview.count + ' hồ sơ, đang đối soát đủ danh sách...') : '';
+        const err = _metrics.quitAuthoritativeLastError ? (' Mã lỗi: ' + _escapeHtml(_metrics.quitAuthoritativeLastError)) : '';
+        _applyHtml(_target, '<tr data-quit-authoritative-loading="1"><td colspan="7" style="text-align:center;color:#64748b;padding:16px;font-size:0.82rem;line-height:1.5;">Đang tải đầy đủ danh sách võ sinh đã nghỉ.' + seen + err + '</td></tr>');
         _syncQuitMobileControl();
         return;
     }

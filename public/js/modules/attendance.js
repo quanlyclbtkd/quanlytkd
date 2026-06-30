@@ -47,33 +47,6 @@ function _profiles() {
 function _config()   { return (window.__store || {}).clubConfig || {}; }
 function _clubData() { return (window.__store || {}).clubData || {}; }
 function _getLocalToday()  { return window.getLocalToday ? window.getLocalToday() : new Date().toISOString().slice(0, 10); }
-function _normalizeRole(value) {
-    const role = String(value || '').trim().toLowerCase().replace(/-/g, '_');
-    if (role === 'hlv' || role === 'trainer') return 'coach';
-    if (role === 'superadmin') return 'super_admin';
-    return role;
-}
-function _readRoleContext() {
-    try {
-        if (window.RoleReadBoundary && typeof window.RoleReadBoundary.readContext === 'function') {
-            return window.RoleReadBoundary.readContext() || {};
-        }
-    } catch (_) {}
-    return {};
-}
-function _isCoachRole() {
-    const ctx = _readRoleContext();
-    return window.RoleReadBoundary?.isCoachAttendanceOnly?.() === true
-        || _normalizeRole(ctx.role || window.userRole || window.__store?.userRole || '') === 'coach';
-}
-function _isAdminRole() {
-    const role = _normalizeRole(window.userRole || window.__store?.userRole || '');
-    return role === 'admin' || role === 'owner' || role === 'super_admin';
-}
-function _coachBranchValue() {
-    const ctx = _readRoleContext();
-    return ctx.coachBranch || window.coachBranch || window.__store?.coachBranch || '';
-}
 function _sameBranch(left, right) {
     if (window.BranchIdentity?.isSameBranch) return window.BranchIdentity.isSameBranch(left, right);
     const normalize = (value) => {
@@ -82,17 +55,6 @@ function _sameBranch(left, right) {
     };
     const a = normalize(left), b = normalize(right);
     return !!a && a === b;
-}
-
-function _profileBranchValue(profile) {
-    const p = profile && typeof profile === 'object' ? profile : {};
-    return p.branch || p.branchCode || p.coachBranch || p.branchName || p.location || p.facility || '';
-}
-function _profileMatchesBranch(profile, branch) {
-    if (!branch || branch === 'all') return true;
-    const p = profile && typeof profile === 'object' ? profile : {};
-    return [_profileBranchValue(p), p.branch, p.branchCode, p.coachBranch, p.branchName, p.location, p.facility]
-        .some(value => value && _sameBranch(value, branch));
 }
 /** @deprecated Phase 3.1 — Firebase calls đã chuyển sang AttendanceService */
 
@@ -127,7 +89,7 @@ function _resetAttendanceModuleState(nextClubId) {
 }
 
 async function _loadSessionNoteAfterAttendanceRender(date) {
-    if (!date || (!_isCoachRole() && !_isAdminRole())) return;
+    if (!date || (window.userRole !== 'coach' && window.userRole !== 'admin')) return;
     if (typeof window.loadSessionNote !== 'function') return;
     try {
         await Promise.resolve(window.loadSessionNote(date));
@@ -231,7 +193,7 @@ function getScheduledTrainingDatesForProfile(profile, monthStr, options) {
     const mo = parseInt(parts[1], 10);
     if (!yr || !mo || mo < 1 || mo > 12) return [];
     const daysInMonth = new Date(yr, mo, 0).getDate();
-    const branch  = options.branch  || _profileBranchValue(profile) || '';
+    const branch  = options.branch  || profile.branch  || '';
     const shiftId = options.shiftId || profile.trainingShiftId || '';
     const result  = [];
     for (let day = 1; day <= daysInMonth; day++) {
@@ -303,7 +265,7 @@ function _getFilteredAttProfiles() {
     const beltEl    = document.getElementById('att_belt');
     const allProfs  = _profiles();
     let selBranch   = branchEl ? branchEl.value : 'all';
-    if (_isCoachRole() && _coachBranchValue()) selBranch = _coachBranchValue();
+    if (window.userRole === 'coach' && window.coachBranch) selBranch = window.coachBranch;
     const selBelt   = beltEl ? beltEl.value : 'all';
     const selDateVal = document.getElementById('att_date') ? document.getElementById('att_date').value : '';
     const dayOfWeek  = selDateVal ? new Date(selDateVal + 'T00:00:00').getDay() : -1;
@@ -312,7 +274,7 @@ function _getFilteredAttProfiles() {
 
     return Object.entries(allProfs)
         .filter(([, p]) => isActiveProfileForAttendance(p))
-        .filter(([, p]) => _profileMatchesBranch(p, selBranch))
+        .filter(([, p]) => selBranch === 'all' || _sameBranch(p.branch, selBranch))
         .filter(([, p]) => {
             if (selBelt === 'all') return true;
             return (p.belt || '').toLowerCase().includes(selBelt.toLowerCase());
@@ -430,10 +392,10 @@ function _renderAdminBranchSummary(totalSummary) {
     const wrapEl = document.getElementById('admin_daily_branch_summary');
     const bodyEl = document.getElementById('admin_daily_branch_body');
     if (!wrapEl || !bodyEl) return;
-    if (!_isAdminRole()) { wrapEl.style.display = 'none'; return; }
+    if (window.userRole !== 'admin' && window.userRole !== 'super_admin') { wrapEl.style.display = 'none'; return; }
     const branchStats = {};
     _attCurrentProfiles.forEach(([name, p]) => {
-        const branch = _profileBranchValue(p) || 'Chung';
+        const branch = p.branch || 'Chung';
         if (!branchStats[branch]) branchStats[branch] = { present: 0, absent: 0, excused: 0, pending: 0, total: 0 };
         const st = window.currentAttendanceData[name] ?? 0;
         branchStats[branch].total++;
@@ -488,7 +450,7 @@ function _renderAdminBranchSummary(totalSummary) {
 
 async function _loadCoachForBranchSummary(date) {
     if (!date || !_clubId()) return;
-    if (!_isAdminRole()) return;
+    if (window.userRole !== 'admin' && window.userRole !== 'super_admin') return;
     try {
         const _notesList = await AttendanceService.loadCoachNotes(date);
         const _nSnap = { forEach: (fn) => _notesList.forEach(item => fn({ data: () => item.data, id: item.id })) };
@@ -555,7 +517,7 @@ async function _loadClubShifts() {
 function _renderShiftSelector() {
     const sel = document.getElementById('att_shift');
     if (!sel) return;
-    const coachBr = (_isCoachRole() && _coachBranchValue()) ? _coachBranchValue() : null;
+    const coachBr = (window.userRole === 'coach' && window.coachBranch) ? window.coachBranch : null;
     const shifts = coachBr ? _clubShifts.filter(s => !s.branch || _sameBranch(s.branch, coachBr)) : _clubShifts;
     let html = '<option value="">⏰ -- Chọn ca tập --</option>';
     shifts.forEach(s => {
@@ -608,7 +570,7 @@ function _saveAttOffline(clubId, date) {
             const docId   = getAttendanceDocId(name, date, shiftId || null);
             payload.records[name] = {
                 name, status: window.currentAttendanceData[name] ?? 0,
-                belt: p.belt || '', branch: _profileBranchValue(p) || '',
+                belt: p.belt || '', branch: p.branch || '',
                 date, month: date.substring(0, 7), profileId: name,
                 shiftId, docId
             };
@@ -653,12 +615,12 @@ export function initAttendance() {
         const parts = todayStr.split('-');
         const tYear = parts[0], tMon = parts[1], tDay = parts[2];
         if (!tMon || !tDay) { bannerEl.style.display = 'none'; return; }
-        const coachBr = (_isCoachRole() && _coachBranchValue()) ? _coachBranchValue() : null;
+        const coachBr = (window.userRole === 'coach' && window.coachBranch) ? window.coachBranch : null;
         const cfg = _config();
         const byBranch = {};
         Object.entries(_profiles() || {}).forEach(([name, p]) => {
             if (!isActiveProfileForAttendance(p)) return;
-            if (coachBr && !_profileMatchesBranch(p, coachBr)) return;
+            if (coachBr && !_sameBranch(p.branch, coachBr)) return;
             // Phase 4K-6V4D1A: birthday banner must accept all legacy DOB fields.
             // Some profiles imported from Excel use birthDate/birthday/ngaySinh instead
             // of dob, so the banner was hidden even though birthday data existed.
@@ -669,7 +631,7 @@ export function initAttendance() {
             else if (dob.includes('-')) { const dp = dob.split('-'); dobYear = dp[0]||''; dobMon = dp[1]||''; dobDay = dp[2]||''; }
             else return;
             if (dobDay !== tDay || dobMon !== tMon) return;
-            const branch = _profileBranchValue(p) || 'Chung';
+            const branch = p.branch || 'Chung';
             if (!byBranch[branch]) byBranch[branch] = [];
             const age = dobYear && tYear ? parseInt(tYear) - parseInt(dobYear) : null;
             byBranch[branch].push({ name, age });
@@ -820,6 +782,11 @@ export function initAttendance() {
         // Phase 4.0B-4J-5: update attendance debug info
         window.__attendanceDebug = window.__attendanceDebug || {};
         _attCurrentProfiles = _getFilteredAttProfiles();
+        if (window.userRole === 'coach' && window.coachBranch && _attCurrentProfiles.length === 0) {
+            window.__attendanceDebug = window.__attendanceDebug || {};
+            window.__attendanceDebug.emptyCoachBranch = window.coachBranch;
+            window.__attendanceDebug.profileSourceCount = Object.keys(_profiles() || {}).length;
+        }
         if (!_clubShiftsLoaded) await _loadClubShifts();
         if (_attCurrentProfiles.length === 0) {
             _renderAttCards();
@@ -832,8 +799,8 @@ export function initAttendance() {
         gridEl.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px 16px;color:#94a3b8;font-size:0.85rem;">⏳ Đang tải dữ liệu điểm danh...</div>';
         try {
             const _dailyBranchEl = document.getElementById('att_branch');
-            const _dailyBranch = (_isCoachRole() && _coachBranchValue())
-                ? _coachBranchValue()
+            const _dailyBranch = (window.userRole === 'coach' && window.coachBranch)
+                ? window.coachBranch
                 : ((_dailyBranchEl && _dailyBranchEl.value !== 'all') ? _dailyBranchEl.value : '');
             const attList = await AttendanceService.loadByDate(_attCurrentDate, {
                 shiftId: _currentShiftId,
@@ -886,7 +853,7 @@ export function initAttendance() {
             id: 'shift_' + Date.now(), name: sName,
             timeStart: startEl ? startEl.value : '',
             timeEnd:   endEl   ? endEl.value   : '',
-            branch: (_isCoachRole() && _coachBranchValue()) ? _coachBranchValue() : ''
+            branch: (window.userRole === 'coach' && window.coachBranch) ? window.coachBranch : ''
         };
         _clubShifts.push(newShift);
         try {
@@ -949,7 +916,7 @@ export function initAttendance() {
                 await AttendanceService.deleteRecord(docId);
             } else {
                 await AttendanceService.saveRecord(docId, {
-                    profileId: name, name, belt: p.belt || '', branch: _profileBranchValue(p) || '',
+                    profileId: name, name, belt: p.belt || '', branch: p.branch || '',
                     date: _attCurrentDate, month: _attCurrentDate.substring(0, 7),
                     status: newStatus, timestamp: Date.now(),
                     ...(_currentShiftId ? { shiftId: _currentShiftId } : {})
@@ -1019,7 +986,7 @@ export function initAttendance() {
             const bulkRecords = unmarked.map(([name, p]) => ({
                 docId: getAttendanceDocId(name, _attCurrentDate, _currentShiftId),
                 data: {
-                    profileId: name, name, belt: p.belt || '', branch: _profileBranchValue(p) || '',
+                    profileId: name, name, belt: p.belt || '', branch: p.branch || '',
                     date: _attCurrentDate, month: _attCurrentDate.substring(0, 7), status: 1,
                     ...(_currentShiftId ? { shiftId: _currentShiftId } : {}),
                     timestamp: Date.now()
@@ -1115,7 +1082,7 @@ export function initAttendance() {
         };
         const selMonth = monthEl ? monthEl.value : '';
         let selBranch  = branchEl ? branchEl.value : 'all';
-        if (_isCoachRole() && _coachBranchValue()) selBranch = _coachBranchValue();
+        if (window.userRole === 'coach' && window.coachBranch) selBranch = window.coachBranch;
         if (!selMonth) { _showMsg('Vui lòng chọn tháng để xem thống kê'); return; }
         _showMsg('⏳ Đang tải dữ liệu...');
         try {
@@ -1142,8 +1109,8 @@ export function initAttendance() {
             let rows = Object.values(grouped).filter(r => selBranch === 'all' || _sameBranch(r.branch, selBranch));
             Object.entries(_profiles()||{}).forEach(([pid,p]) => {
                 if (!isActiveProfileForAttendance(p)) return;
-                if (selBranch !== 'all' && !_profileMatchesBranch(p, selBranch)) return;
-                if (!grouped[pid]) rows.push({name:pid,belt:p.belt||'',branch:_profileBranchValue(p)||'',present:0,excused:0,absent:0});
+                if (selBranch !== 'all' && !_sameBranch(p.branch, selBranch)) return;
+                if (!grouped[pid]) rows.push({name:pid,belt:p.belt||'',branch:p.branch||'',present:0,excused:0,absent:0});
             });
             rows.sort((a,b)=>a.name.localeCompare(b.name,'vi'));
             if (rows.length===0) { _showMsg('Không có dữ liệu điểm danh trong tháng này'); return; }
@@ -1225,7 +1192,7 @@ export function initAttendance() {
                 });
                 tbody.innerHTML=html;
             }
-            if (_isAdminRole()) {
+            if (window.userRole==='admin'||window.userRole==='super_admin') {
                 if (typeof window.loadAllSessionNotes === 'function') window.loadAllSessionNotes(selMonth);
             }
         } catch(e) {
@@ -1294,8 +1261,8 @@ export function initAttendance() {
         const date     = _getLocalToday();
         const shiftId  = _currentShiftId || '';
         const branchEl = document.getElementById('att_branch');
-        const branch   = (_isCoachRole() && _coachBranchValue())
-            ? _coachBranchValue()
+        const branch   = (window.userRole === 'coach' && window.coachBranch)
+            ? window.coachBranch
             : (branchEl ? branchEl.value : 'all');
 
         const profiles = _attCurrentProfiles.length > 0
@@ -1366,7 +1333,7 @@ export function initAttendance() {
 
         Object.entries(allProfs).forEach(([name, p]) => {
             if (!isActiveProfileForAttendance(p)) return;
-            const br  = _profileBranchValue(p) || 'Chung';
+            const br  = p.branch || 'Chung';
             const sid = p.trainingShiftId || '';
             const key = sid ? br + '::' + sid : br;
             if (!branchStats[key]) {

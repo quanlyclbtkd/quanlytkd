@@ -59,7 +59,7 @@ import {
     computeAndCacheStudents,
     getStudentsSummary,
     getStudentsCachedHtml,
-} from './render/computation/studentsRenderer.js?v=coach-roster-hydration-rules-repair-20260630-v4d9';
+} from './render/computation/studentsRenderer.js?v=quit-coach-attendance-fullsync-20260630-v4d6';
 import {
     computeAndCacheInventory,
     getCachedLiveInvMap,

@@ -23,20 +23,20 @@ function check(name, ok, detail = '') {
 
 console.log('\n=== Phase 4K-6V4B1 — Coach Branch Runtime Repair ===\n');
 
-const appEntrypointBuilds = ['coach-roster-hydration-rules-repair-20260630-v4d9', 'quit-mobile-coach-attendance-repair-20260630-v4d6', 'profile-canonical-store-runtime-recovery-20260628-v4d1a', 'profile-canonical-store-20260628-v4d1', 'tuition-debt-source-of-truth-20260628-v4c'];
+const appEntrypointBuilds = ['quit-coach-attendance-fullsync-20260630-v4d6', 'profile-canonical-store-runtime-recovery-20260628-v4d1a', 'profile-canonical-store-20260628-v4d1', 'tuition-debt-source-of-truth-20260628-v4c'];
 check('Production entrypoints keep V4B1 branch repair and load current runtime cache marker',
-  ((index.match(/coach-roster-hydration-rules-repair-20260630-v4d9/g) || []).length >= 5 || (index.match(/quit-mobile-coach-attendance-repair-20260630-v4d6/g) || []).length >= 5 || (index.match(/coach-branch-runtime-repair-20260627-v4b1/g) || []).length >= 5) &&
+  ((index.match(/quit-coach-attendance-fullsync-20260630-v4d6/g) || []).length >= 5 || (index.match(/coach-branch-runtime-repair-20260627-v4b1/g) || []).length >= 5) &&
   appEntrypointBuilds.some(build => index.includes(`app.js?v=${build}`)) &&
-  (index.includes('./js/main.js?v=coach-roster-hydration-rules-repair-20260630-v4d9') || index.includes('./js/main.js?v=quit-mobile-coach-attendance-repair-20260630-v4d6') || index.includes('./js/main.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a') || index.includes('./js/main.js?v=profile-canonical-store-20260628-v4d1')) &&
-  (main.includes("profiles.listeners.js?v=coach-roster-hydration-rules-repair-20260630-v4d9") || main.includes("profiles.listeners.js?v=quit-mobile-coach-attendance-repair-20260630-v4d6") || main.includes("profiles.listeners.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a") || main.includes("profiles.listeners.js?v=profile-canonical-store-20260628-v4d1")) &&
-  (main.includes("attendance.js?v=coach-roster-hydration-rules-repair-20260630-v4d9") || main.includes("attendance.js?v=quit-mobile-coach-attendance-repair-20260630-v4d6") || main.includes("attendance.js?v=coach-branch-runtime-repair-20260627-v4b1")));
+  (index.includes('./js/main.js?v=quit-coach-attendance-fullsync-20260630-v4d6') || index.includes('./js/main.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a') || index.includes('./js/main.js?v=profile-canonical-store-20260628-v4d1')) &&
+  (main.includes("profiles.listeners.js?v=quit-coach-attendance-fullsync-20260630-v4d6") || main.includes("profiles.listeners.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a") || main.includes("profiles.listeners.js?v=profile-canonical-store-20260628-v4d1")) &&
+  (main.includes("attendance.js?v=quit-coach-attendance-fullsync-20260630-v4d6") || main.includes("attendance.js?v=coach-branch-runtime-repair-20260627-v4b1")));
 check('Coach creation requires one concrete branch',
   repair.includes("if (!name || !email || !branch || pass.length < 6)") &&
   /id="coach_branch"[\s\S]{0,500}<option value="CS1">/.test(index) &&
   !/id="coach_branch"[\s\S]{0,500}value=""[^>]*>[^<]*Tất cả cơ sở/.test(index));
 check('Coach creation mirrors branch into both authorization documents',
   repair.includes('branch, coachBranch:branch') &&
-  repair.includes("setDoc(doc(db(), 'users', uid)"));
+  repair.includes("setDoc(doc(db(), 'users', uid)") && repair.includes("coach_login_index"));
 check('Existing Coach accounts expose an explicit branch repair control',
   repair.includes('async function updateCoachBranch(uid)') &&
   repair.includes('coach_assigned_branch_') &&
@@ -63,13 +63,13 @@ check('Runtime reads only the exact Admin Coach assignment document',
 check('Runtime repairs users/{uid} only from Admin assignment data',
   repair.includes('const assignedBranch = canonical(assigned.branch || assigned.coachBranch') &&
   repair.includes("await setDoc(doc(firestore, 'users', result.uid)") &&
-  (repair.includes('auth/coach-branch-mirror-sync-failed') || repair.includes('mirror refresh failed; using assigned branch')));
+  repair.includes('auth/coach-branch-mirror-sync-failed'));
 check('Missing/invalid Coach branch remains fail-closed',
   app.includes("fresh.role === 'coach' && !fresh.coachBranch") &&
   profiles.includes('Coach missing branch — fail closed, no profiles query'));
 check('No full-club profile fallback is introduced for Coach repair',
   profiles.includes("loadCoachBranchProfilesFallback('redirected-from-full:") &&
-  (profiles.includes("fbWhere('branch', '==', alias)") || profiles.includes("['branch', 'branchCode', 'coachBranch', 'branchName']")) &&
+  profiles.includes("fbWhere('branch', '==', alias)") &&
   /không quét clubs/i.test(app));
 
 check('Profile listener query is server-scoped to assigned branch',
@@ -78,13 +78,12 @@ check('Profile listener query is server-scoped to assigned branch',
 check('Primary branch keeps scoped legacy Mặc định compatibility',
   profiles.includes("coachBranch === 'CS1'") &&
   profiles.includes("fbWhere('branch', '==', 'Mặc định')"));
-check('Attendance client filtering uses canonical branch equality across legacy branch fields',
+check('Attendance client filtering uses canonical branch equality',
   attendance.includes('function _sameBranch(left, right)') &&
-  attendance.includes('function _profileMatchesBranch') &&
-  attendance.includes('_profileMatchesBranch(p, selBranch)') &&
-  attendance.includes('p.branchCode'));
+  attendance.includes("_sameBranch(p.branch, selBranch)") &&
+  attendance.includes("_sameBranch(s.branch, coachBr)"));
 check('Coach daily and monthly services always receive assigned branch',
-  (attendance.includes("window.userRole === 'coach' && window.coachBranch") || attendance.includes('_isCoachRole() && _coachBranchValue()')) &&
+  attendance.includes("window.userRole === 'coach' && window.coachBranch") &&
   attendance.includes('branch: _dailyBranch') &&
   attendance.includes("branch: selBranch === 'all' ? '' : selBranch"));
 check('Attendance branch selectors are locked by app config for Coach',
@@ -95,11 +94,11 @@ check('Attendance branch selectors are locked by app config for Coach',
 check('Rules let Coach read only their own Admin assignment mirror',
   rules.includes('request.auth.uid == coachUid') &&
   rules.includes("resource.data.get('clubId', '') == clubId"));
-check('Rules permit self mirror repair only when Admin assignment is branch-equivalent',
+check('Rules permit self mirror repair only when exact Admin assignment matches',
   rules.includes('function selfCoachMirrorMatches(uid, data)') &&
   rules.includes('safeSelfCoachMirrorCreate(uid)') &&
   rules.includes('safeSelfCoachMirrorUpdate(uid)') &&
-  rules.includes('branchEquivalent(assignedBranch(get(/databases/$(database)/documents/clubs/$(clubId)/coaches/$(uid)).data), assignedBranch(data))'));
+  rules.includes('assignedBranch(get(/databases/$(database)/documents/clubs/$(clubId)/coaches/$(uid)).data) == assignedBranch(data)'));
 check('Rules still block arbitrary self role, tenant or branch selection',
   rules.includes("request.resource.data.get('role', '') == resource.data.get('role', '')") &&
   rules.includes("request.resource.data.get('clubId', '') == resource.data.get('clubId', '')") &&
@@ -123,10 +122,8 @@ check('Rules still block arbitrary self role, tenant or branch selection',
   });
   check('Dynamic: missing mirror branch is resolved from one exact Coach assignment read',
     reads.length === 1 && reads[0] === 'clubs/club-a/coaches/coach-1' && result.coachBranch === 'CS2');
-  check('Dynamic: repair writes users/{uid} and coach_login_index/{uid} authorization mirrors',
-    writes.length === 2 &&
-    writes.some(w => w.ref === 'users/coach-1' && w.data.branch === 'CS2' && w.data.coachBranch === 'CS2') &&
-    writes.some(w => w.ref === 'coach_login_index/coach-1' && w.data.branch === 'CS2' && w.data.coachBranch === 'CS2'));
+  check('Dynamic: repair writes users/{uid} and coach_login_index/{uid} mirrors',
+    writes.length === 2 && writes.some(w => w.ref === 'users/coach-1' && w.data.branch === 'CS2' && w.data.coachBranch === 'CS2') && writes.some(w => w.ref === 'coach_login_index/coach-1' && w.data.branch === 'CS2' && w.data.coachBranch === 'CS2'));
 }
 
 // Dynamic branch identity contract.
