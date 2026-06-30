@@ -59,7 +59,7 @@ import {
     computeAndCacheStudents,
     getStudentsSummary,
     getStudentsCachedHtml,
-} from './render/computation/studentsRenderer.js?v=coach-attendance-branch-rule-tolerant-20260630-v4d8';
+} from './render/computation/studentsRenderer.js?v=coach-attendance-render-scope-20260630-v4d9';
 import {
     computeAndCacheInventory,
     getCachedLiveInvMap,

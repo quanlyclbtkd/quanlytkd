@@ -86,9 +86,12 @@ service cloud.firestore {
     }
 
     function isCoach(clubId) {
+      // Phase 4K-6V4D9: user/coach_login_index may store either canonical CSx
+      // or a legacy human branch name. The actual profile/attendance access is still
+      // constrained by branchMatchesAssigned()/resourceBranchMatchesCoach().
       return isClubMember(clubId)
         && myRole() == 'coach'
-        && branchValueIsKnownInClub(clubId, myBranch());
+        && myBranch() != '';
     }
 
     function isAdminOrViewer(clubId) {
@@ -100,7 +103,7 @@ service cloud.firestore {
       return branchValue in ['CS1', 'CS01', 'CS 1', 'Cơ sở 1', 'Co so 1', '1', 'Mặc định', 'mac dinh', 'default', 'primary', 'Cơ sở mặc định', 'Co so mac dinh'];
     }
 
-    // Phase 4K-6V4D8: HLV được phân quyền bằng CSx hoặc tên cơ sở legacy, nhưng dữ liệu cũ có thể lưu
+    // Phase 4K-6V4D9: HLV được phân quyền bằng CSx hoặc tên cơ sở legacy, nhưng dữ liệu cũ có thể lưu
     // branch bằng CS02 / "Cơ sở 2" / tên cơ sở thật trong settings/main_config.
     function isNumberedBranchAlias(branchValue, code) {
       return (code == 'CS1' && isPrimaryBranchAlias(branchValue))
@@ -390,7 +393,7 @@ service cloud.firestore {
 
     function targetIsValidCoachInMyClub(data) {
       return existingCoachBelongsToMyClub(data)
-        && isAllowedCoachBranch(assignedBranch(data));
+        && (isAllowedCoachBranch(assignedBranch(data)) || branchValueIsKnownInClub(myClubId(), assignedBranch(data)));
     }
 
     // Coach assignment do Admin ghi tại clubs/{clubId}/coaches/{uid}.
@@ -402,7 +405,7 @@ service cloud.firestore {
         && request.auth.uid == uid
         && data.get('role', '') == 'coach'
         && clubId != ''
-        && isAllowedCoachBranch(assignedBranch(data))
+        && (isAllowedCoachBranch(assignedBranch(data)) || branchValueIsKnownInClub(clubId, assignedBranch(data)))
         && exists(/databases/$(database)/documents/clubs/$(clubId)/coaches/$(uid))
         && get(/databases/$(database)/documents/clubs/$(clubId)/coaches/$(uid)).data.get('role', '') == 'coach'
         && get(/databases/$(database)/documents/clubs/$(clubId)/coaches/$(uid)).data.get('clubId', '') == clubId
@@ -436,7 +439,7 @@ service cloud.firestore {
       return data.get('role', '') == 'coach'
         && data.get('clubId', '') != ''
         && isClubAdmin(data.get('clubId', ''))
-        && isAllowedCoachBranch(assignedBranch(data));
+        && (isAllowedCoachBranch(assignedBranch(data)) || branchValueIsKnownInClub(data.get('clubId', ''), assignedBranch(data)));
     }
 
     function safeSelfCoachLoginIndexWrite(uid) {

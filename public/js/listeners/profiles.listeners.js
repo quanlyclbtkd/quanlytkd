@@ -162,7 +162,7 @@ function _coachBranchAliases(context = _ctx) {
         add(branch);
         if (branch === 'CS1') add('Mặc định');
     }
-    // Phase 4K-6V4D8: settings may arrive after the first listener mount.
+    // Phase 4K-6V4D9: settings may arrive after the first listener mount.
     // Build dynamic name aliases directly here as well so the reconciliation query
     // can recover legacy profiles saved with the human branch name.
     const m = String(branch || '').match(/^CS([1-9]|10)$/);
@@ -184,7 +184,9 @@ function _mergedCoachActiveMap() {
 
 function _coachProfileQuerySpecs(context = _ctx, options = {}) {
     const branch = _coachBranch(context);
-    const aliases = _coachBranchAliases(context).filter(Boolean);
+    const aliases = (options && options.canonicalOnly)
+        ? [branch].filter(Boolean)
+        : _coachBranchAliases(context).filter(Boolean);
     const fields = options && options.includeMirrorFields
         ? ['branch', 'branchCode', 'coachBranch']
         : ['branch'];
@@ -198,6 +200,21 @@ function _coachProfileQuerySpecs(context = _ctx, options = {}) {
         }
     }));
     return specs;
+}
+
+async function _safeReadCoachProfileSpec(spec, context = _ctx) {
+    const fb = window._fb_init || {};
+    const { query: fbQuery, where: fbWhere, getDocs: fbGetDocs } = fb;
+    if (!fbQuery || !fbWhere || !fbGetDocs || !context || !context.profRef || !spec) {
+        return { spec, error: { code: 'sdk-or-context-missing' } };
+    }
+    try {
+        const q = fbQuery(context.profRef, fbWhere(spec.field, '==', spec.value));
+        const snap = await fbGetDocs(q);
+        return { spec, snap };
+    } catch (error) {
+        return { spec, error };
+    }
 }
 
 function _profileIsActiveForCoachAttendance(data) {
@@ -503,7 +520,7 @@ export function mountActiveProfilesListener(context) {
     // Therefore coach queries are branch-scoped only, then status is classified locally.
     // This keeps Firestore Rules strict: no full-club read, no public rule opening.
     if (isCoach) {
-        const specs = _coachProfileQuerySpecs(context, { includeMirrorFields: true });
+        const specs = _coachProfileQuerySpecs(context, { includeMirrorFields: true, canonicalOnly: true });
         if (!specs.length) {
             console.error('[ProfilesListener] Coach branch specs empty — fail closed');
             setActiveProfiles({}, 'coach-empty-branch-specs');
@@ -582,7 +599,7 @@ export function mountActiveProfilesListener(context) {
                     owner:  'students',
                     scope:  'global',
                     tabId:  'attendance',
-                    reason: 'coach-branch-authoritative-listener-4K-6V4D8',
+                    reason: 'coach-branch-authoritative-listener-4K-6V4D9',
                 }
             );
         });
@@ -951,11 +968,7 @@ export async function ensureCoachBranchProfilesHydrated(reason) {
     if (!fbQuery || !fbWhere || !fbGetDocs) return false;
     try {
         const specs = _coachProfileQuerySpecs(ctx, { includeMirrorFields: true });
-        const snapshots = await Promise.all(specs.map(spec =>
-            fbGetDocs(fbQuery(ctx.profRef, fbWhere(spec.field, '==', spec.value)))
-                .then(snap => ({ spec, snap }))
-                .catch(err => ({ spec, error: err }))
-        ));
+        const snapshots = await Promise.all(specs.map(spec => _safeReadCoachProfileSpec(spec, ctx)));
         let docsRead = 0;
         let okSpecs = 0;
         const activeMap = _mergedCoachActiveMap();
@@ -1016,11 +1029,7 @@ export async function loadCoachBranchProfilesFallback(reason) {
     _state.fallbackInProgress = true;
     try {
         const specs = _coachProfileQuerySpecs(ctx, { includeMirrorFields: true });
-        const snapshots = await Promise.all(specs.map(spec =>
-            fbGetDocs(fbQuery(ctx.profRef, fbWhere(spec.field, '==', spec.value)))
-                .then(snap => ({ spec, snap }))
-                .catch(error => ({ spec, error }))
-        ));
+        const snapshots = await Promise.all(specs.map(spec => _safeReadCoachProfileSpec(spec, ctx)));
         const aliases = _coachBranchAliases(ctx);
         let docsRead = 0;
         let okSpecs = 0;
@@ -1073,7 +1082,7 @@ export async function loadCoachBranchProfilesFallback(reason) {
     } catch (err) {
         _state.fallbackCount++;
         _state.fullFallbackReason = 'coach-branch-error:' + reason;
-        console.error('[ProfilesFallback] Coach branch load failed:', err.code || err.message);
+        console.warn('[ProfilesFallback] Coach branch load could not complete; keeping permitted partial data:', err.code || err.message);
         _updateWindowMetrics();
         return false;
     } finally {

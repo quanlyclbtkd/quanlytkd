@@ -1864,7 +1864,7 @@ service cloud.firestore {
                 // Phase 4.0B-4D: mark settings loaded
                 _updateHydrationMetrics({ settingsLoaded: true, lastReason: 'settings-snapshot' });
                 applyClubConfigUI();
-                // Phase 4K-6V4D8: Sau khi tên cơ sở được hydrate từ settings,
+                // Phase 4K-6V4D9: Sau khi tên cơ sở được hydrate từ settings,
                 // chạy reconcile branch-scoped cho HLV để lấy cả hồ sơ legacy lưu
                 // branch bằng tên cơ sở/branchCode/coachBranch, không full-read CLB.
                 if (_coachAttendanceOnly && typeof window.ensureCoachBranchProfilesHydrated === 'function') {
@@ -10227,11 +10227,27 @@ window.processMultiItem = async (action) => {
         }
 
         async function _hasCoachScopedProfileDoc() {
-            const role = String(window.userRole || window.__store?.userRole || '').toLowerCase(), branch = _canonicalBranch(window.coachBranch || window.__store?.coachBranch || '', '');
+            const role = String(window.userRole || window.__store?.userRole || '').toLowerCase();
+            const branch = _canonicalBranch(window.coachBranch || window.__store?.coachBranch || '', '');
             if (role !== 'coach' || !branch) return null;
-            for (const field of ['branch', 'branchCode', 'coachBranch']) for (const value of _branchAliases(branch).filter(Boolean)) {
-                try { if ((await getDocs(query(collection(_db, 'clubs', _clubId, 'profiles'), where(field, '==', value), limit(1)))).size > 0) return true; }
-                catch (e) { if (e && e.code === 'permission-denied') return 'permission-denied'; }
+            let denied = 0, checked = 0;
+            const aliases = _branchAliases(branch).filter(Boolean);
+            // Phase 4K-6V4D9: Runtime recovery is diagnostic only. For Coach accounts,
+            // some legacy branch aliases may be denied by strict Rules. That must not
+            // mark the whole attendance-only session as permission-error or block render.
+            for (const field of ['branch', 'branchCode', 'coachBranch']) {
+                for (const value of aliases) {
+                    checked++;
+                    try {
+                        const snap = await getDocs(query(collection(_db, 'clubs', _clubId, 'profiles'), where(field, '==', value), limit(1)));
+                        if (snap.size > 0) return true;
+                    } catch (e) {
+                        if (e && e.code === 'permission-denied') { denied++; continue; }
+                    }
+                }
+            }
+            if (denied > 0) {
+                console.warn('[resolveActiveDataSource] Coach scoped probe skipped denied aliases:', denied + '/' + checked);
             }
             return false;
         }
@@ -10252,7 +10268,7 @@ window.processMultiItem = async (action) => {
         const primary = { profilesHasDocs: pProf, transactionsHasDocs: pTx, inventoryHasDocs: pInv };
         const legacy  = { profilesHasDocs: lProf, transactionsHasDocs: lTx, inventoryHasDocs: lInv };
 
-        const permDenied   = isCoachRuntime ? (pProf === 'permission-denied') : [pProf, pTx, pInv].some(v => v === 'permission-denied');
+        const permDenied   = isCoachRuntime ? false : [pProf, pTx, pInv].some(v => v === 'permission-denied');
         const primaryHas   = pProf === true || pTx === true || pInv === true;
         const legacyHas    = lProf === true || lTx === true || lInv === true;
 
