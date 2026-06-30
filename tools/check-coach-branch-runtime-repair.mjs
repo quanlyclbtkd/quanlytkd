@@ -23,13 +23,13 @@ function check(name, ok, detail = '') {
 
 console.log('\n=== Phase 4K-6V4B1 — Coach Branch Runtime Repair ===\n');
 
-const appEntrypointBuilds = ['quit-mobile-coach-attendance-branch-rules-repair-20260630-v4d7', 'quit-mobile-coach-attendance-repair-20260630-v4d6', 'profile-canonical-store-runtime-recovery-20260628-v4d1a', 'profile-canonical-store-20260628-v4d1', 'tuition-debt-source-of-truth-20260628-v4c'];
+const appEntrypointBuilds = ['coach-profiles-bootstrap-repair-20260630-v4d8', 'quit-mobile-coach-attendance-repair-20260630-v4d6', 'profile-canonical-store-runtime-recovery-20260628-v4d1a', 'profile-canonical-store-20260628-v4d1', 'tuition-debt-source-of-truth-20260628-v4c'];
 check('Production entrypoints keep V4B1 branch repair and load current runtime cache marker',
-  ((index.match(/quit-mobile-coach-attendance-branch-rules-repair-20260630-v4d7/g) || []).length >= 5 || (index.match(/quit-mobile-coach-attendance-repair-20260630-v4d6/g) || []).length >= 5 || (index.match(/coach-branch-runtime-repair-20260627-v4b1/g) || []).length >= 5) &&
+  ((index.match(/coach-profiles-bootstrap-repair-20260630-v4d8/g) || []).length >= 5 || (index.match(/quit-mobile-coach-attendance-repair-20260630-v4d6/g) || []).length >= 5 || (index.match(/coach-branch-runtime-repair-20260627-v4b1/g) || []).length >= 5) &&
   appEntrypointBuilds.some(build => index.includes(`app.js?v=${build}`)) &&
-  (index.includes('./js/main.js?v=quit-mobile-coach-attendance-branch-rules-repair-20260630-v4d7') || index.includes('./js/main.js?v=quit-mobile-coach-attendance-repair-20260630-v4d6') || index.includes('./js/main.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a') || index.includes('./js/main.js?v=profile-canonical-store-20260628-v4d1')) &&
-  (main.includes("profiles.listeners.js?v=quit-mobile-coach-attendance-branch-rules-repair-20260630-v4d7") || main.includes("profiles.listeners.js?v=quit-mobile-coach-attendance-repair-20260630-v4d6") || main.includes("profiles.listeners.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a") || main.includes("profiles.listeners.js?v=profile-canonical-store-20260628-v4d1")) &&
-  (main.includes("attendance.js?v=quit-mobile-coach-attendance-branch-rules-repair-20260630-v4d7") || main.includes("attendance.js?v=quit-mobile-coach-attendance-repair-20260630-v4d6") || main.includes("attendance.js?v=coach-branch-runtime-repair-20260627-v4b1")));
+  (index.includes('./js/main.js?v=coach-profiles-bootstrap-repair-20260630-v4d8') || index.includes('./js/main.js?v=quit-mobile-coach-attendance-repair-20260630-v4d6') || index.includes('./js/main.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a') || index.includes('./js/main.js?v=profile-canonical-store-20260628-v4d1')) &&
+  (main.includes("profiles.listeners.js?v=coach-profiles-bootstrap-repair-20260630-v4d8") || main.includes("profiles.listeners.js?v=quit-mobile-coach-attendance-repair-20260630-v4d6") || main.includes("profiles.listeners.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a") || main.includes("profiles.listeners.js?v=profile-canonical-store-20260628-v4d1")) &&
+  (main.includes("attendance.js?v=coach-profiles-bootstrap-repair-20260630-v4d8") || main.includes("attendance.js?v=quit-mobile-coach-attendance-repair-20260630-v4d6") || main.includes("attendance.js?v=coach-branch-runtime-repair-20260627-v4b1")));
 check('Coach creation requires one concrete branch',
   repair.includes("if (!name || !email || !branch || pass.length < 6)") &&
   /id="coach_branch"[\s\S]{0,500}<option value="CS1">/.test(index) &&
@@ -83,7 +83,7 @@ check('Attendance client filtering uses canonical branch equality',
   attendance.includes("_sameBranch(p.branch, selBranch)") &&
   attendance.includes("_sameBranch(s.branch, coachBr)"));
 check('Coach daily and monthly services always receive assigned branch',
-  attendance.includes("window.userRole === 'coach' && window.coachBranch") &&
+  (attendance.includes("window.userRole === 'coach' && window.coachBranch") || attendance.includes('_isCoachRole() && _coachBranchValue()')) &&
   attendance.includes('branch: _dailyBranch') &&
   attendance.includes("branch: selBranch === 'all' ? '' : selBranch"));
 check('Attendance branch selectors are locked by app config for Coach',

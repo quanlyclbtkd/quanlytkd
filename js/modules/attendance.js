@@ -47,6 +47,33 @@ function _profiles() {
 function _config()   { return (window.__store || {}).clubConfig || {}; }
 function _clubData() { return (window.__store || {}).clubData || {}; }
 function _getLocalToday()  { return window.getLocalToday ? window.getLocalToday() : new Date().toISOString().slice(0, 10); }
+function _normalizeRole(value) {
+    const role = String(value || '').trim().toLowerCase().replace(/-/g, '_');
+    if (role === 'hlv' || role === 'trainer') return 'coach';
+    if (role === 'superadmin') return 'super_admin';
+    return role;
+}
+function _readRoleContext() {
+    try {
+        if (window.RoleReadBoundary && typeof window.RoleReadBoundary.readContext === 'function') {
+            return window.RoleReadBoundary.readContext() || {};
+        }
+    } catch (_) {}
+    return {};
+}
+function _isCoachRole() {
+    const ctx = _readRoleContext();
+    return window.RoleReadBoundary?.isCoachAttendanceOnly?.() === true
+        || _normalizeRole(ctx.role || window.userRole || window.__store?.userRole || '') === 'coach';
+}
+function _isAdminRole() {
+    const role = _normalizeRole(window.userRole || window.__store?.userRole || '');
+    return role === 'admin' || role === 'owner' || role === 'super_admin';
+}
+function _coachBranchValue() {
+    const ctx = _readRoleContext();
+    return ctx.coachBranch || window.coachBranch || window.__store?.coachBranch || '';
+}
 function _sameBranch(left, right) {
     if (window.BranchIdentity?.isSameBranch) return window.BranchIdentity.isSameBranch(left, right);
     const normalize = (value) => {
@@ -89,7 +116,7 @@ function _resetAttendanceModuleState(nextClubId) {
 }
 
 async function _loadSessionNoteAfterAttendanceRender(date) {
-    if (!date || (window.userRole !== 'coach' && window.userRole !== 'admin')) return;
+    if (!date || (!_isCoachRole() && !_isAdminRole())) return;
     if (typeof window.loadSessionNote !== 'function') return;
     try {
         await Promise.resolve(window.loadSessionNote(date));
@@ -265,7 +292,7 @@ function _getFilteredAttProfiles() {
     const beltEl    = document.getElementById('att_belt');
     const allProfs  = _profiles();
     let selBranch   = branchEl ? branchEl.value : 'all';
-    if (window.userRole === 'coach' && window.coachBranch) selBranch = window.coachBranch;
+    if (_isCoachRole() && _coachBranchValue()) selBranch = _coachBranchValue();
     const selBelt   = beltEl ? beltEl.value : 'all';
     const selDateVal = document.getElementById('att_date') ? document.getElementById('att_date').value : '';
     const dayOfWeek  = selDateVal ? new Date(selDateVal + 'T00:00:00').getDay() : -1;
@@ -392,7 +419,7 @@ function _renderAdminBranchSummary(totalSummary) {
     const wrapEl = document.getElementById('admin_daily_branch_summary');
     const bodyEl = document.getElementById('admin_daily_branch_body');
     if (!wrapEl || !bodyEl) return;
-    if (window.userRole !== 'admin' && window.userRole !== 'super_admin') { wrapEl.style.display = 'none'; return; }
+    if (!_isAdminRole()) { wrapEl.style.display = 'none'; return; }
     const branchStats = {};
     _attCurrentProfiles.forEach(([name, p]) => {
         const branch = p.branch || 'Chung';
@@ -450,7 +477,7 @@ function _renderAdminBranchSummary(totalSummary) {
 
 async function _loadCoachForBranchSummary(date) {
     if (!date || !_clubId()) return;
-    if (window.userRole !== 'admin' && window.userRole !== 'super_admin') return;
+    if (!_isAdminRole()) return;
     try {
         const _notesList = await AttendanceService.loadCoachNotes(date);
         const _nSnap = { forEach: (fn) => _notesList.forEach(item => fn({ data: () => item.data, id: item.id })) };
@@ -517,7 +544,7 @@ async function _loadClubShifts() {
 function _renderShiftSelector() {
     const sel = document.getElementById('att_shift');
     if (!sel) return;
-    const coachBr = (window.userRole === 'coach' && window.coachBranch) ? window.coachBranch : null;
+    const coachBr = (_isCoachRole() && _coachBranchValue()) ? _coachBranchValue() : null;
     const shifts = coachBr ? _clubShifts.filter(s => !s.branch || _sameBranch(s.branch, coachBr)) : _clubShifts;
     let html = '<option value="">⏰ -- Chọn ca tập --</option>';
     shifts.forEach(s => {
@@ -615,7 +642,7 @@ export function initAttendance() {
         const parts = todayStr.split('-');
         const tYear = parts[0], tMon = parts[1], tDay = parts[2];
         if (!tMon || !tDay) { bannerEl.style.display = 'none'; return; }
-        const coachBr = (window.userRole === 'coach' && window.coachBranch) ? window.coachBranch : null;
+        const coachBr = (_isCoachRole() && _coachBranchValue()) ? _coachBranchValue() : null;
         const cfg = _config();
         const byBranch = {};
         Object.entries(_profiles() || {}).forEach(([name, p]) => {
@@ -794,8 +821,8 @@ export function initAttendance() {
         gridEl.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px 16px;color:#94a3b8;font-size:0.85rem;">⏳ Đang tải dữ liệu điểm danh...</div>';
         try {
             const _dailyBranchEl = document.getElementById('att_branch');
-            const _dailyBranch = (window.userRole === 'coach' && window.coachBranch)
-                ? window.coachBranch
+            const _dailyBranch = (_isCoachRole() && _coachBranchValue())
+                ? _coachBranchValue()
                 : ((_dailyBranchEl && _dailyBranchEl.value !== 'all') ? _dailyBranchEl.value : '');
             const attList = await AttendanceService.loadByDate(_attCurrentDate, {
                 shiftId: _currentShiftId,
@@ -848,7 +875,7 @@ export function initAttendance() {
             id: 'shift_' + Date.now(), name: sName,
             timeStart: startEl ? startEl.value : '',
             timeEnd:   endEl   ? endEl.value   : '',
-            branch: (window.userRole === 'coach' && window.coachBranch) ? window.coachBranch : ''
+            branch: (_isCoachRole() && _coachBranchValue()) ? _coachBranchValue() : ''
         };
         _clubShifts.push(newShift);
         try {
@@ -1077,7 +1104,7 @@ export function initAttendance() {
         };
         const selMonth = monthEl ? monthEl.value : '';
         let selBranch  = branchEl ? branchEl.value : 'all';
-        if (window.userRole === 'coach' && window.coachBranch) selBranch = window.coachBranch;
+        if (_isCoachRole() && _coachBranchValue()) selBranch = _coachBranchValue();
         if (!selMonth) { _showMsg('Vui lòng chọn tháng để xem thống kê'); return; }
         _showMsg('⏳ Đang tải dữ liệu...');
         try {
@@ -1187,7 +1214,7 @@ export function initAttendance() {
                 });
                 tbody.innerHTML=html;
             }
-            if (window.userRole==='admin'||window.userRole==='super_admin') {
+            if (_isAdminRole()) {
                 if (typeof window.loadAllSessionNotes === 'function') window.loadAllSessionNotes(selMonth);
             }
         } catch(e) {
@@ -1256,8 +1283,8 @@ export function initAttendance() {
         const date     = _getLocalToday();
         const shiftId  = _currentShiftId || '';
         const branchEl = document.getElementById('att_branch');
-        const branch   = (window.userRole === 'coach' && window.coachBranch)
-            ? window.coachBranch
+        const branch   = (_isCoachRole() && _coachBranchValue())
+            ? _coachBranchValue()
             : (branchEl ? branchEl.value : 'all');
 
         const profiles = _attCurrentProfiles.length > 0

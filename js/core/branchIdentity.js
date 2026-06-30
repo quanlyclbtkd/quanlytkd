@@ -1,5 +1,5 @@
 /**
- * Phase 4K-6V4D7 — Canonical Branch Identity + Legacy Branch Alias Repair
+ * Phase 4K-6V4D8 — Canonical Branch Identity + Legacy Branch Alias Repair
  *
  * Keeps the current Firestore schema (`branch`) while making its values stable:
  * - Canonical persisted codes: CS1 ... CS10
@@ -9,9 +9,9 @@
 (function initBranchIdentity(global) {
     'use strict';
 
-    if (global.BranchIdentity && global.BranchIdentity.version === '4K-6V4D7') return;
+    if (global.BranchIdentity && global.BranchIdentity.version === '4K-6V4D8') return;
 
-    const VERSION = '4K-6V4D7';
+    const VERSION = '4K-6V4D8';
     const PRIMARY_ALIASES = new Set([
         'mặc định', 'mac dinh', 'default', 'primary', 'cơ sở mặc định', 'co so mac dinh',
         'cs01', 'cs 1', 'cơ sở 1', 'co so 1', '1'

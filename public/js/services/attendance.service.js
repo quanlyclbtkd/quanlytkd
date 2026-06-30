@@ -14,7 +14,29 @@
 function _sdk()    { return window._fb_init || {}; }
 function _db()     { const db = (window.__store || {}).db; if (!db) throw new Error('[AttendanceService] db chưa sẵn sàng'); return db; }
 function _clubId() { const id = (window.__store || {}).clubId; if (!id) throw new Error('[AttendanceService] clubId chưa sẵn sàng'); return id; }
-function _isCoach() { return window.RoleReadBoundary?.isCoachAttendanceOnly?.() === true || String(window.userRole || '').toLowerCase() === 'coach'; }
+function _normalizeRole(value) {
+    const role = String(value || '').trim().toLowerCase().replace(/-/g, '_');
+    if (role === 'hlv' || role === 'trainer') return 'coach';
+    if (role === 'superadmin') return 'super_admin';
+    return role;
+}
+function _readCoachContext() {
+    try {
+        if (window.RoleReadBoundary && typeof window.RoleReadBoundary.readContext === 'function') {
+            return window.RoleReadBoundary.readContext() || {};
+        }
+    } catch (_) {}
+    return {};
+}
+function _isCoach() {
+    const ctx = _readCoachContext();
+    return window.RoleReadBoundary?.isCoachAttendanceOnly?.() === true
+        || _normalizeRole(ctx.role || window.userRole || window.__store?.userRole || '') === 'coach';
+}
+function _coachBranchValue() {
+    const ctx = _readCoachContext();
+    return ctx.coachBranch || window.coachBranch || window.__store?.coachBranch || '';
+}
 function _canonicalBranch(value, fallback = '') {
     if (window.BranchIdentity?.normalize) return window.BranchIdentity.normalize(value, { fallback });
     const raw = String(value || '').trim();
@@ -29,7 +51,7 @@ function _branchAliases(value) {
 }
 function _scopedBranch(options = {}) {
     const coach = _isCoach();
-    const branch = _canonicalBranch(coach ? window.coachBranch : options.branch, coach ? '' : String(options.branch || '').trim());
+    const branch = _canonicalBranch(coach ? _coachBranchValue() : options.branch, coach ? '' : String(options.branch || '').trim());
     if (coach && !branch) {
         const error = new Error('[AttendanceService] Coach chưa được gán cơ sở — chặn query/write toàn CLB.');
         error.code = 'attendance/coach-branch-required';
@@ -81,6 +103,15 @@ async function _queryByBranchSpecs({ collection, query, where, getDocs, basePath
     }
     if (deniedSpecs.length) {
         console.warn('[AttendanceService] branch specs denied:', deniedSpecs.slice(0, 8).join(', '));
+    }
+    if (coach && snapshots.length === 0 && deniedSpecs.length) {
+        window.__attendanceBranchScopeDebug = {
+            deniedSpecs: deniedSpecs.slice(0, 20),
+            branch,
+            updatedAt: Date.now(),
+            reason: 'all-branch-specs-denied'
+        };
+        return [];
     }
     return snapshots;
 }

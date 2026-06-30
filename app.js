@@ -91,7 +91,7 @@
     window.debtBranchMatchesFilter = window.debtBranchMatchesFilter || _branchMatchesFilter;
 // Danh mục kho tùy chỉnh — được load từ Firestore khi đăng nhập thành công
 window.invCustomCategories = [];
-    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V4D7'; window.APP_PATCH_VERSION = '4K-6V4D7-quit-mobile-coach-attendance-branch-rules-repair-20260630'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
+    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V4D8'; window.APP_PATCH_VERSION = '4K-6V4D8-coach-profiles-bootstrap-repair-20260630'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
     // Compatibility regression marker retained for Phase 4K-6Q gate: APP_PATCH_VERSION = '4K-6Q-mobile-filter-currency-stability-20260615'
     window.__appLoaded = true; // [Phase 2a] main.js kiểm tra để bỏ qua loadLegacyApp()
     window.__store = window.__store || {}; // [Phase 2b] Bridge object cho module system
@@ -1987,18 +1987,39 @@ service cloud.firestore {
         // main.js load TRƯỚC initSaaSDatabase (initSaaSDatabase chỉ gọi khi user login)
         // nên window.mountActiveProfilesListener đã có sẵn khi init club chạy.
         // Fallback an toàn: giữ full profiles listener nếu module chưa sẵn.
-        if (typeof window.mountActiveProfilesListener === 'function') {
-            window.mountActiveProfilesListener({
-                db, clubId, profRef, currentClubId,
-                role: window.userRole || '',
-                coachBranch: window.coachBranch || '',
-                reason: 'init-active-profiles'
-            });
+        const _mountScopedProfiles = (reason) => {
+            if (typeof window.mountActiveProfilesListener === 'function') {
+                window.mountActiveProfilesListener({
+                    db, clubId, profRef, currentClubId,
+                    role: window.userRole || '',
+                    coachBranch: window.coachBranch || '',
+                    reason: reason || 'init-active-profiles'
+                });
+                return true;
+            }
+            return false;
+        };
+        if (_mountScopedProfiles('init-active-profiles')) {
+            // mounted
         } else if (window.RoleReadBoundary?.isCoachAttendanceOnly?.() === true) {
-            // Fail closed: tuyệt đối không full-read toàn CLB khi module branch-aware chưa sẵn.
+            // Phase 4K-6V4D8: fail closed without dead-ending Coach hydration.
+            // main.js can still be in async bootstrap, so retry until the branch-aware
+            // listener API is exposed. Never fall back to full-club reads for Coach.
             allProfiles = {};
             if (window.__store) window.__store.profiles = {};
-            console.error('[RoleReadBoundary] Coach profiles module unavailable — blocked full-club fallback');
+            const _retryMountCoachProfiles = (attempt) => {
+                if (_mountScopedProfiles('coach-deferred-profile-mount-attempt-' + attempt)) return;
+                if (typeof window.loadCoachBranchProfilesFallback === 'function') {
+                    window.loadCoachBranchProfilesFallback('coach-module-deferred-fallback-attempt-' + attempt);
+                    return;
+                }
+                if (attempt < 40) {
+                    setTimeout(() => _retryMountCoachProfiles(attempt + 1), 150);
+                    return;
+                }
+                console.warn('[RoleReadBoundary] Coach profiles module still unavailable after retry — kept full-club fallback blocked');
+            };
+            setTimeout(() => _retryMountCoachProfiles(1), 0);
         } else {
             // Fallback Admin only: full profiles listener (Phase 3.6D pattern — khi module chưa load)
             let _fallbackProfilesInitialSeen = false;
@@ -3417,7 +3438,7 @@ service cloud.firestore {
             // Chỉ đánh dấu "đã ghi" SAU KHI addDoc thành công
             sessionStorage.setItem(sessionKey, '1');
         } catch(e) {
-            // Phase 4K-6V4D7: login history is non-critical. If Rules are not
+            // Phase 4K-6V4D8: login history is non-critical. If Rules are not
             // deployed yet, do not spam warnings or retry on every reload.
             if (e && e.code === 'permission-denied') {
                 sessionStorage.setItem(sessionKey, 'permission-denied');
@@ -10455,6 +10476,20 @@ window.processMultiItem = async (action) => {
     window.runRuntimeDataRecovery = async function runRuntimeDataRecovery(reason) {
         reason = reason || 'manual';
         const state = window.__runtimeRecoveryState;
+
+        // Phase 4K-6V4D8: runtime data-source recovery probes full/public Firestore
+        // paths and is not needed for Coach attendance-only sessions. Running it for
+        // Coach creates noisy permission-denied logs and can mask the real branch
+        // hydration issue.
+        if (window.RoleReadBoundary?.isCoachAttendanceOnly?.() === true) {
+            state.checked = true;
+            state.completed = true;
+            state.activeDataSource = 'coach-scoped';
+            state.reason = 'Skipped full datasource recovery for Coach attendance-only session';
+            state.completedAt = Date.now();
+            console.info('[RuntimeRecovery] Coach scoped session — skip full datasource probe.');
+            return;
+        }
 
         if (state.running) {
             console.debug('[RuntimeRecovery] Đang chạy — bỏ qua. reason=' + reason);

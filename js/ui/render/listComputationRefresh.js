@@ -44,7 +44,7 @@ import {
 import {
     computeAndCacheStudents,
     getStudentsSummary,
-} from './computation/studentsRenderer.js?v=quit-mobile-coach-attendance-branch-rules-repair-20260630-v4d7';
+} from './computation/studentsRenderer.js?v=coach-profiles-bootstrap-repair-20260630-v4d8';
 import {
     computeAndCacheInventory,
     getCachedUnpaidInvCount,

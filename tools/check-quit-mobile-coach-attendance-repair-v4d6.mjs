@@ -22,7 +22,7 @@ function check(name, ok) {
   if (ok) { pass++; console.log('✅', name); }
   else { fail++; console.error('❌', name); }
 }
-const build = 'quit-mobile-coach-attendance-branch-rules-repair-20260630-v4d7';
+const build = 'coach-profiles-bootstrap-repair-20260630-v4d8';
 console.log('\n=== Phase 4K-6V4D7 — Quit Mobile + Coach Attendance Branch Rules Repair ===\n');
 
 check('Index cache-busts app/main/core scripts to V4D7',

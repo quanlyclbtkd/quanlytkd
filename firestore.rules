@@ -1,7 +1,7 @@
 rules_version = '2';
 // ══════════════════════════════════════════════════════════════════════════════
 // Firestore Security Rules — Taekwondo Club Management SaaS
-// Phase 4K-6V4D7 — Coach Branch Assignment + Alias Rules Repair
+// Phase 4K-6V4D8 — Coach Branch Assignment + Alias Rules Repair
 //
 // Mục tiêu:
 //   • Client UI không còn là lớp bảo vệ duy nhất.
@@ -82,7 +82,7 @@ service cloud.firestore {
     }
 
     function isAllowedCoachBranch(branchValue) {
-      // Phase 4K-6V4D7: allow canonical + legacy assignment labels. The actual
+      // Phase 4K-6V4D8: allow canonical + legacy assignment labels. The actual
       // document boundary is enforced by branchMatchesAssigned(), so this helper
       // only rejects empty/missing Coach assignments.
       return branchValue != '';
