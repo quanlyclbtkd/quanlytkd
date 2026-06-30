@@ -11,7 +11,7 @@
     const raw = String(value || '').trim();
     if (!raw) return fallback;
     if (/^(mặc định|mac dinh|default)$/i.test(raw)) return 'CS1';
-    const match = raw.match(/^CS0*([1-9]|10)$/i);
+    const match = raw.match(/^CS[\s_\-]*0*([1-9]|10)$/i);
     return match ? `CS${Number(match[1])}` : fallback;
   };
   const esc = value => String(value ?? '').replace(/[&<>'"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]));

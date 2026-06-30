@@ -59,7 +59,7 @@ import {
     computeAndCacheStudents,
     getStudentsSummary,
     getStudentsCachedHtml,
-} from './render/computation/studentsRenderer.js?v=quit-mobile-coach-attendance-repair-20260630-v4d6';
+} from './render/computation/studentsRenderer.js?v=quit-mobile-coach-attendance-branch-rules-repair-20260630-v4d7';
 import {
     computeAndCacheInventory,
     getCachedLiveInvMap,

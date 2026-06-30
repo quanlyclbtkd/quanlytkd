@@ -19,7 +19,7 @@
  */
 
 import { registerRender } from './renderRegistry.js';
-import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=quit-mobile-coach-attendance-repair-20260630-v4d6';
+import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=quit-mobile-coach-attendance-branch-rules-repair-20260630-v4d7';
 
 // ─── Core DOM helper ────────────────────────────────────────────────────────
 
@@ -226,15 +226,20 @@ export function renderQuitIsland() {
     if (!ready) {
         try {
             if (!coach && typeof window.ensureQuitProfilesAuthoritative === 'function') {
-                window.ensureQuitProfilesAuthoritative('render-quit-island-v4d6');
+                window.ensureQuitProfilesAuthoritative('render-quit-island-v4d7').then((ok) => {
+                    if (ok && typeof window.renderQuitList === 'function') window.renderQuitList({ reason: 'quit-authoritative-ready-v4d7' });
+                    else if (typeof window.invalidateList === 'function') window.invalidateList('students.quitList', 'quit-authoritative-retry-v4d7');
+                }).catch(() => {});
             } else if (!coach && typeof window.loadQuitProfilesIfNeeded === 'function') {
-                window.loadQuitProfilesIfNeeded('render-quit-island-v4d6');
+                window.loadQuitProfilesIfNeeded('render-quit-island-v4d7').then((ok) => {
+                    if (ok && typeof window.renderQuitList === 'function') window.renderQuitList({ reason: 'quit-loaded-v4d7' });
+                }).catch(() => {});
             }
         } catch (_) {}
         const existingCount = (() => {
             try { return Object.keys(_getAuthoritativeQuitProfiles()).length; } catch (_) { return 0; }
         })();
-        const suffix = existingCount > 0 ? ' Đã nhận diện tạm ' + existingCount + ' hồ sơ, đang xác minh đủ danh sách...' : '';
+        const suffix = existingCount > 0 ? ' Đã nhận diện tạm ' + existingCount + ' hồ sơ, đang đối soát đủ danh sách...' : '';
         const err = metrics.quitAuthoritativeLastError ? ' Mã lỗi: ' + _escapeHtml(metrics.quitAuthoritativeLastError) : '';
         _applyHtml(_target, '<tr data-quit-authoritative-loading="1"><td colspan="7" style="text-align:center;color:#64748b;padding:16px;font-size:0.82rem;line-height:1.5;">Đang tải đầy đủ danh sách võ sinh đã nghỉ.' + suffix + err + '</td></tr>');
         _syncQuitMobileControl();

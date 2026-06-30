@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** Phase 4K-6V4D6 — Quit Mobile + Coach Attendance Login Repair */
+/** Phase 4K-6V4D7 — Quit Mobile + Coach Attendance Branch Rules Repair */
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -22,12 +22,12 @@ function check(name, ok) {
   if (ok) { pass++; console.log('✅', name); }
   else { fail++; console.error('❌', name); }
 }
-const build = 'quit-mobile-coach-attendance-repair-20260630-v4d6';
-console.log('\n=== Phase 4K-6V4D6 — Quit Mobile + Coach Attendance Login Repair ===\n');
+const build = 'quit-mobile-coach-attendance-branch-rules-repair-20260630-v4d7';
+console.log('\n=== Phase 4K-6V4D7 — Quit Mobile + Coach Attendance Branch Rules Repair ===\n');
 
-check('Index cache-busts app/main/core scripts to V4D6',
+check('Index cache-busts app/main/core scripts to V4D7',
   index.includes(`app.js?v=${build}`) && index.includes(`./js/main.js?v=${build}`) && index.includes(`coachBranchRuntimeRepair.js?v=${build}`));
-check('Main imports quit/profile/attendance modules with V4D6 cache-bust',
+check('Main imports quit/profile/attendance modules with V4D7 cache-bust',
   main.includes(`./listeners/profiles.listeners.js?v=${build}`) &&
   main.includes(`./ui/render/renderStudents.js?v=${build}`) &&
   main.includes(`./modules/students.js?v=${build}`) &&
@@ -67,9 +67,17 @@ check('Firestore rules permit safe self coach_login_index recovery only against 
   rules.includes('match /coach_login_index/{uid}') && rules.includes('safeSelfCoachLoginIndexWrite') && rules.includes('selfCoachMirrorMatches(uid, request.resource.data)'));
 check('Firestore rules allow uid field in coach user mirror writes',
   rules.includes("'uid', 'photoURL'") && rules.includes("'branch', 'coachBranch', 'email', 'uid', 'updatedAt'"));
+check('Firestore rules accept branch aliases and configured branch names for Coach boundary',
+  rules.includes('branchEquivalent(left, right)') && rules.includes('branchName2') && rules.includes('branchCode'));
+check('Login history warning is fixed by explicit Rules + soft client handling',
+  rules.includes('match /login_history/{docId}') && app.includes('Bỏ qua ghi lịch sử đăng nhập do Rules chưa cho phép'));
+check('Coach profile fallback queries branch/branchCode/coachBranch/branchName aliases safely',
+  profiles.includes("const fields = ['branch', 'branchCode', 'coachBranch', 'branchName']") && profiles.includes('deniedSpecs'));
+check('BranchIdentity normalizes CS02/CS 2/Cơ sở 2/custom branch names',
+  read('js/core/branchIdentity.js').includes('_configuredBranchNameMap') && read('js/core/branchIdentity.js').includes('CS '));
 check('Attendance profile source merges studentProfileStore/allProfiles/__store for Coach attendance list',
   attendance.includes('getAllProfilesCompat') && attendance.includes('Object.assign(merged, window.allProfiles || {})') && attendance.includes("Object.assign(merged, (window.__store || {}).profiles || {})"));
 
 console.log(`\nTotal: ${pass + fail} | PASS: ${pass} | FAIL: ${fail}`);
 if (fail) process.exit(1);
-console.log('Phase 4K-6V4D6 checks passed.\n');
+console.log('Phase 4K-6V4D7 checks passed.\n');

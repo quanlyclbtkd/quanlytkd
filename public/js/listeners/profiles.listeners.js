@@ -67,6 +67,7 @@ const _state = {
     coachLegacyListenerKey: null,
     coachCanonicalActiveMap: {},
     coachLegacyActiveMap: {},
+    coachAliasCompletenessLoadedFor: '',
 
     // ── Quit load ─────────────────────────────────────────────────────────────
     quitLoaded:             false,
@@ -385,6 +386,7 @@ export function mountActiveProfilesListener(context) {
     _state.coachBranch = _coachBranch(context);
     _state.coachCanonicalActiveMap = {};
     _state.coachLegacyActiveMap = {};
+    _state.coachAliasCompletenessLoadedFor = '';
     const isCoach = _isCoachContext(context);
     const coachBranch = _coachBranch(context);
     if (isCoach && !coachBranch) {
@@ -481,6 +483,9 @@ export function mountActiveProfilesListener(context) {
                     // Nếu snapshot đầu tiên trả 0 nhưng collection có docs,
                     // data cũ có thể thiếu status field → trigger full fallback.
                     // Dùng getDocs(limit(1)) — nhẹ, không đọc full collection.
+                    if (activeCount === 0 && _state.activeSnapshotCount === 1 && isCoach) {
+                        Promise.resolve().then(() => loadCoachBranchProfilesFallback('coach-active-zero-alias-completeness'));
+                    }
                     if (activeCount === 0 && _state.activeSnapshotCount === 1) {
                         const _fb4k = window._fb_init || {};
                         const { query: _pQ4k, limit: _pL4k, getDocs: _pG4k } = _fb4k;
@@ -511,6 +516,16 @@ export function mountActiveProfilesListener(context) {
 
                     setActiveProfiles(activeMap, 'active-profiles-snapshot');
                     _syncLegacy();
+
+                    // Phase 4K-6V4D7: the realtime listener is deliberately scoped
+                    // to canonical `branch == CSx`. Legacy profiles may still store
+                    // `branchCode`, `CS02`, `CS 2`, custom branchName, etc. Run one
+                    // guarded alias fallback once per Coach branch so Attendance has
+                    // the complete assigned-branch roster.
+                    if (isCoach && _state.coachAliasCompletenessLoadedFor !== coachBranch && !_state.fallbackInProgress) {
+                        _state.coachAliasCompletenessLoadedFor = coachBranch;
+                        Promise.resolve().then(() => loadCoachBranchProfilesFallback('coach-alias-completeness:' + coachBranch));
+                    }
 
                     _state.activeListenerMounted = true;
                     _state.lastProfilesMode      = 'active-split';
@@ -691,25 +706,51 @@ export async function loadCoachBranchProfilesFallback(reason) {
     _state.fallbackInProgress = true;
     try {
         const aliases = _coachBranchAliases(ctx);
-        const snapshots = await Promise.all(aliases.map(alias =>
-            fbGetDocs(fbQuery(ctx.profRef, fbWhere('branch', '==', alias)))
-        ));
-        const docsRead = snapshots.reduce((sum, snap) => sum + (snap.size || 0), 0);
+        const fields = ['branch', 'branchCode', 'coachBranch', 'branchName'];
+        const specs = [];
+        const seenSpec = new Set();
+        fields.forEach(field => aliases.forEach(alias => {
+            const value = String(alias || '').trim();
+            if (!value) return;
+            const key = field + '=' + value;
+            if (seenSpec.has(key)) return;
+            seenSpec.add(key);
+            specs.push({ field, value });
+        }));
+
+        let docsRead = 0;
+        const activeMap = {};
+        const deniedSpecs = [];
+        for (const spec of specs) {
+            try {
+                const snap = await fbGetDocs(fbQuery(ctx.profRef, fbWhere(spec.field, '==', spec.value)));
+                docsRead += snap.size || 0;
+                snap.forEach(d => {
+                    const id = d.id.trim();
+                    if (!id) return;
+                    const data = d.data();
+                    if (classifyProfileStatus(data) !== 'quit') activeMap[id] = data;
+                });
+            } catch (err) {
+                if (err && err.code === 'permission-denied') {
+                    deniedSpecs.push(spec.field + '=' + spec.value);
+                    continue;
+                }
+                throw err;
+            }
+        }
+        if (deniedSpecs.length) {
+            console.warn('[ProfilesFallback] Coach branch alias specs denied:', deniedSpecs.slice(0, 8).join(', '));
+        }
         if (typeof window.recordFirestoreReadAttribution === 'function') {
             window.recordFirestoreReadAttribution('profiles.coachBranchFallbackQuery', docsRead, {
                 initial: true,
                 reason: reason || 'coach-branch-fallback',
                 branch,
-                aliases
+                aliases,
+                fields
             });
         }
-        const activeMap = {};
-        snapshots.forEach(snap => snap.forEach(d => {
-            const id = d.id.trim();
-            if (!id) return;
-            const data = d.data();
-            if (classifyProfileStatus(data) !== 'quit') activeMap[id] = data;
-        }));
         setActiveProfiles(activeMap, 'coach-branch-fallback:' + reason);
         setQuitProfiles({}, 'coach-branch-fallback:no-quit-data');
         _syncLegacy();
@@ -1001,6 +1042,7 @@ export function resetProfilesListeners(reason) {
     _state.coachLegacyListenerKey = null;
     _state.coachCanonicalActiveMap = {};
     _state.coachLegacyActiveMap = {};
+    _state.coachAliasCompletenessLoadedFor = '';
 
     // Quit
     _state.quitLoaded              = false;

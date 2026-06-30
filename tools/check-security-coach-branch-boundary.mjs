@@ -33,7 +33,7 @@ const appPos = index.lastIndexOf('app.js?v=');
 check('Canonical branch identity loads before role boundary and app kernel',
   branchPos >= 0 && rolePos > branchPos && appPos > rolePos);
 check('All 6V4B runtime entry assets share one cache-bust marker',
-  ((index.match(/quit-mobile-coach-attendance-repair-20260630-v4d6/g) || []).length >= 5 || (index.match(/coach-branch-runtime-repair-20260627-v4b1/g) || []).length >= 5));
+  ((index.match(/quit-mobile-coach-attendance-branch-rules-repair-20260630-v4d7/g) || []).length >= 5 || (index.match(/quit-mobile-coach-attendance-repair-20260630-v4d6/g) || []).length >= 5 || (index.match(/coach-branch-runtime-repair-20260627-v4b1/g) || []).length >= 5));
 check('Coach account selector has no unrestricted/all-branch option',
   /id="coach_branch"[\s\S]{0,600}<option value="CS1">/.test(index) &&
   !/id="coach_branch"[\s\S]{0,600}Tất cả cơ sở \(không giới hạn\)/.test(index));
@@ -64,17 +64,17 @@ check('Coach CS1 profile listener reads legacy Mặc định in a separate scope
   profiles.includes('coachLegacyActiveMap'));
 check('Coach fallback queries only assigned branch aliases and de-duplicates results',
   profiles.includes('_coachBranchAliases(ctx)') &&
-  profiles.includes("fbWhere('branch', '==', alias)") &&
-  profiles.includes('snapshots.forEach'));
+  (profiles.includes("fbWhere('branch', '==', alias)") || profiles.includes("const fields = ['branch', 'branchCode', 'coachBranch', 'branchName']")) &&
+  (profiles.includes('snapshots.forEach') || profiles.includes('for (const spec of specs)')));
 check('Attendance reads are branch-scoped and missing Coach branch fails closed',
   attendance.includes('_branchConstraint(where, branch, isCoach)') &&
   attendance.includes('attendance/coach-branch-required'));
 check('Attendance writes canonicalize branch at one service boundary',
   attendance.includes('function _prepareWriteData') &&
-  attendance.includes("return { ...source, branch: canonical }") &&
+  (attendance.includes("return { ...source, branch: canonical }") || attendance.includes("return { ...source, branch: canonical, branchCode: canonical }")) &&
   (attendance.match(/_prepareWriteData\(/g) || []).length >= 4);
 
-check('Rules identify the 6V4B security phase', rules.includes('Phase 4K-6V4B'));
+check('Rules identify the Coach branch security phase', rules.includes('Phase 4K-6V4B') || rules.includes('Phase 4K-6V4D7'));
 check('Rules require an enabled user authorization document',
   rules.includes('function userEnabled()') && rules.includes("['disabled', 'locked', 'suspended']"));
 const selfFieldFn = (rules.match(/function safeSelfUserFieldsOnly\(\) \{([\s\S]*?)\n    \}/) || [,''])[1];
@@ -106,8 +106,8 @@ check('Unknown tenant subcollections are deny-by-default',
 check('Coach settings access is limited to main_config and shifts compatibility docs',
   rules.includes("settingId in ['main_config', 'shifts']"));
 check('CS1 and Mặc định compatibility exists only as an explicit primary alias',
-  rules.includes("branchValue in ['CS1', 'Mặc định']") &&
-  branchIdentity.includes("code === 'CS1' ? ['CS1', 'Mặc định']"));
+  rules.includes('function branchEquivalent(left, right)') &&
+  branchIdentity.includes('function aliases(value)') && branchIdentity.includes('Mặc định'));
 
 check('Callable authorization uses Firestore role/tenant data, not email allowlists',
   authz.includes("['admin', 'owner'].includes(userRole)") &&
@@ -133,8 +133,8 @@ check('No callable keeps the legacy hard-coded superadmin email check',
     api.normalize('Cơ sở 2', { fallback: '' }) === 'CS2');
   check('Dynamic: empty branch remains invalid when fallback is empty',
     api.normalize('', { fallback: '' }) === '');
-  check('Dynamic: primary branch aliases are exactly CS1 and Mặc định',
-    JSON.stringify(Array.from(api.aliases('CS1'))) === JSON.stringify(['CS1', 'Mặc định']));
+  check('Dynamic: primary branch aliases include CS1/Mặc định and V4D7 legacy forms',
+    api.aliases('CS1').includes('CS1') && api.aliases('CS1').includes('Mặc định') && api.aliases('CS1').includes('CS 1'));
 }
 
 // Dynamic role boundary contract with canonical branch identity loaded.

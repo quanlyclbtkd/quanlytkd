@@ -59,7 +59,7 @@
         const raw = String(value || '').trim();
         if (!raw) return fallback;
         if (/^(mặc định|mac dinh|default)$/i.test(raw)) return 'CS1';
-        const match = raw.match(/^CS0*([1-9]|10)$/i);
+        const match = raw.match(/^CS[\s_\-]*0*([1-9]|10)$/i);
         return match ? ('CS' + Number(match[1])) : fallback;
     };
     const _branchAliases = (value) => {
@@ -91,7 +91,7 @@
     window.debtBranchMatchesFilter = window.debtBranchMatchesFilter || _branchMatchesFilter;
 // Danh mục kho tùy chỉnh — được load từ Firestore khi đăng nhập thành công
 window.invCustomCategories = [];
-    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V4B1'; window.APP_PATCH_VERSION = '4K-6V3A1-payment-bundle-runtime-hotfix-20260616'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
+    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V4D7'; window.APP_PATCH_VERSION = '4K-6V4D7-quit-mobile-coach-attendance-branch-rules-repair-20260630'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
     // Compatibility regression marker retained for Phase 4K-6Q gate: APP_PATCH_VERSION = '4K-6Q-mobile-filter-currency-stability-20260615'
     window.__appLoaded = true; // [Phase 2a] main.js kiểm tra để bỏ qua loadLegacyApp()
     window.__store = window.__store || {}; // [Phase 2b] Bridge object cho module system
@@ -3417,7 +3417,13 @@ service cloud.firestore {
             // Chỉ đánh dấu "đã ghi" SAU KHI addDoc thành công
             sessionStorage.setItem(sessionKey, '1');
         } catch(e) {
-            // Không set sessionStorage → lần load tiếp theo sẽ tự thử lại
+            // Phase 4K-6V4D7: login history is non-critical. If Rules are not
+            // deployed yet, do not spam warnings or retry on every reload.
+            if (e && e.code === 'permission-denied') {
+                sessionStorage.setItem(sessionKey, 'permission-denied');
+                console.info('[login_history] Bỏ qua ghi lịch sử đăng nhập do Rules chưa cho phép.');
+                return;
+            }
             console.warn('[login_history] Không thể ghi lịch sử đăng nhập:', e.message);
         }
     }

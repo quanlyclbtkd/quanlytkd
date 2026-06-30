@@ -138,7 +138,7 @@
     var raw = String(value || '').trim();
     if (!raw) return fallback || 'CS1';
     if (/^(mặc định|mac dinh|default)$/i.test(raw)) return 'CS1';
-    var match = raw.match(/^CS0*([1-9]|10)$/i);
+    var match = raw.match(/^CS[\s_\-]*0*([1-9]|10)$/i);
     return match ? ('CS' + Number(match[1])) : (fallback || raw || 'CS1');
   }
 

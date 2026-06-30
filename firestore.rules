@@ -1,7 +1,7 @@
 rules_version = '2';
 // ══════════════════════════════════════════════════════════════════════════════
 // Firestore Security Rules — Taekwondo Club Management SaaS
-// Phase 4K-6V4B1 — Coach Branch Assignment + Runtime Mirror Repair
+// Phase 4K-6V4D7 — Coach Branch Assignment + Alias Rules Repair
 //
 // Mục tiêu:
 //   • Client UI không còn là lớp bảo vệ duy nhất.
@@ -43,9 +43,13 @@ service cloud.firestore {
     }
 
     function assignedBranch(data) {
-      return data.get('branch', '') != ''
-        ? data.get('branch', '')
-        : data.get('coachBranch', '');
+      return data.get('branchCode', '') != ''
+        ? data.get('branchCode', '')
+        : (data.get('branch', '') != ''
+            ? data.get('branch', '')
+            : (data.get('coachBranch', '') != ''
+                ? data.get('coachBranch', '')
+                : data.get('branchName', '')));
     }
 
     function myBranch() {
@@ -78,11 +82,10 @@ service cloud.firestore {
     }
 
     function isAllowedCoachBranch(branchValue) {
-      return branchValue in [
-        'CS1', 'CS2', 'CS3', 'CS4', 'CS5',
-        'CS6', 'CS7', 'CS8', 'CS9', 'CS10',
-        'Mặc định'
-      ];
+      // Phase 4K-6V4D7: allow canonical + legacy assignment labels. The actual
+      // document boundary is enforced by branchMatchesAssigned(), so this helper
+      // only rejects empty/missing Coach assignments.
+      return branchValue != '';
     }
 
     function isCoach(clubId) {
@@ -96,25 +99,69 @@ service cloud.firestore {
     }
 
     // CS1 và dữ liệu legacy "Mặc định" là cùng cơ sở chính trong Phase 6V4B.
-    function isPrimaryBranchAlias(branchValue) {
-      return branchValue in ['CS1', 'Mặc định'];
+    function isBranch1Alias(branchValue) {
+      return branchValue in ['CS1', 'CS01', 'CS 1', 'Cơ sở 1', 'Co so 1', '1', 'Mặc định', 'mac dinh', 'default']
+        || branchValue == get(/databases/$(database)/documents/clubs/$(myClubId())/settings/main_config).data.get('branchName1', '');
+    }
+    function isBranch2Alias(branchValue) {
+      return branchValue in ['CS2', 'CS02', 'CS 2', 'Cơ sở 2', 'Co so 2', '2']
+        || branchValue == get(/databases/$(database)/documents/clubs/$(myClubId())/settings/main_config).data.get('branchName2', '');
+    }
+    function isBranch3Alias(branchValue) {
+      return branchValue in ['CS3', 'CS03', 'CS 3', 'Cơ sở 3', 'Co so 3', '3']
+        || branchValue == get(/databases/$(database)/documents/clubs/$(myClubId())/settings/main_config).data.get('branchName3', '');
+    }
+    function isBranch4Alias(branchValue) {
+      return branchValue in ['CS4', 'CS04', 'CS 4', 'Cơ sở 4', 'Co so 4', '4']
+        || branchValue == get(/databases/$(database)/documents/clubs/$(myClubId())/settings/main_config).data.get('branchName4', '');
+    }
+    function isBranch5Alias(branchValue) {
+      return branchValue in ['CS5', 'CS05', 'CS 5', 'Cơ sở 5', 'Co so 5', '5']
+        || branchValue == get(/databases/$(database)/documents/clubs/$(myClubId())/settings/main_config).data.get('branchName5', '');
+    }
+    function isBranch6Alias(branchValue) {
+      return branchValue in ['CS6', 'CS06', 'CS 6', 'Cơ sở 6', 'Co so 6', '6']
+        || branchValue == get(/databases/$(database)/documents/clubs/$(myClubId())/settings/main_config).data.get('branchName6', '');
+    }
+    function isBranch7Alias(branchValue) {
+      return branchValue in ['CS7', 'CS07', 'CS 7', 'Cơ sở 7', 'Co so 7', '7']
+        || branchValue == get(/databases/$(database)/documents/clubs/$(myClubId())/settings/main_config).data.get('branchName7', '');
+    }
+    function isBranch8Alias(branchValue) {
+      return branchValue in ['CS8', 'CS08', 'CS 8', 'Cơ sở 8', 'Co so 8', '8']
+        || branchValue == get(/databases/$(database)/documents/clubs/$(myClubId())/settings/main_config).data.get('branchName8', '');
+    }
+    function isBranch9Alias(branchValue) {
+      return branchValue in ['CS9', 'CS09', 'CS 9', 'Cơ sở 9', 'Co so 9', '9']
+        || branchValue == get(/databases/$(database)/documents/clubs/$(myClubId())/settings/main_config).data.get('branchName9', '');
+    }
+    function isBranch10Alias(branchValue) {
+      return branchValue in ['CS10', 'CS010', 'CS 10', 'Cơ sở 10', 'Co so 10', '10']
+        || branchValue == get(/databases/$(database)/documents/clubs/$(myClubId())/settings/main_config).data.get('branchName10', '');
+    }
+    function branchEquivalent(left, right) {
+      return (isBranch1Alias(left) && isBranch1Alias(right))
+        || (isBranch2Alias(left) && isBranch2Alias(right))
+        || (isBranch3Alias(left) && isBranch3Alias(right))
+        || (isBranch4Alias(left) && isBranch4Alias(right))
+        || (isBranch5Alias(left) && isBranch5Alias(right))
+        || (isBranch6Alias(left) && isBranch6Alias(right))
+        || (isBranch7Alias(left) && isBranch7Alias(right))
+        || (isBranch8Alias(left) && isBranch8Alias(right))
+        || (isBranch9Alias(left) && isBranch9Alias(right))
+        || (isBranch10Alias(left) && isBranch10Alias(right));
     }
 
     function branchMatchesAssigned(branchValue) {
-      return isCoach(myClubId()) && (
-        branchValue == myBranch()
-        || (isPrimaryBranchAlias(branchValue) && isPrimaryBranchAlias(myBranch()))
-      );
+      return isCoach(myClubId()) && branchEquivalent(branchValue, myBranch());
     }
 
     function resourceBranchMatchesCoach() {
-      return resource.data.keys().hasAll(['branch'])
-        && branchMatchesAssigned(resource.data.branch);
+      return branchMatchesAssigned(assignedBranch(resource.data));
     }
 
     function requestBranchMatchesCoach() {
-      return request.resource.data.keys().hasAll(['branch'])
-        && branchMatchesAssigned(request.resource.data.branch);
+      return branchMatchesAssigned(assignedBranch(request.resource.data));
     }
 
     function coachOwnsResource() {
@@ -399,6 +446,18 @@ service cloud.firestore {
         && targetIsValidCoachInMyClub(request.resource.data)
       );
       allow delete: if isSuperAdmin() || existingCoachBelongsToMyClub(resource.data);
+    }
+
+
+    // Client login audit. Non-critical, but allowing create removes noisy permission warnings.
+    match /login_history/{docId} {
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'email', 'clubId', 'role', 'loginAt', 'timestamp',
+          'browser', 'os', 'deviceType', 'deviceName'
+        ])
+        && request.resource.data.get('email', '') == request.auth.token.email;
+      allow get, list, update, delete: if isSuperAdmin();
     }
 
     match /super_admins/{uid} {
