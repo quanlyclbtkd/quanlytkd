@@ -413,15 +413,15 @@ export function ensureProfilesForTab(tabId, reason) {
             return compatCount > 0;
 
         case 'quit':
-            // Phase 4K-6V4D6: Đã nghỉ must be authoritative. Trigger full sync first,
-            // not a targeted preview, because mobile/web previously got stuck on partial rows.
-            if (typeof window.ensureQuitProfilesAuthoritative === 'function') {
-                window.ensureQuitProfilesAuthoritative('ensure-quit-tab:' + (reason || ''));
-            } else if (!_store.quitLoaded && typeof window.loadQuitProfilesIfNeeded === 'function') {
-                window.loadQuitProfilesIfNeeded('ensure-quit-tab:' + (reason || ''));
-            }
-            if (typeof window.isQuitProfilesAuthoritativeReady === 'function') {
-                return window.isQuitProfilesAuthoritativeReady() || compatCount > 0;
+            // [Phase 3.7B] Trigger lazy load nếu chưa loaded (fire-and-forget async).
+            // loadQuitProfilesIfNeeded tự guard: skip nếu đang load hoặc đã loaded.
+            // Sau khi getDocs xong → invalidateStudents('quit-profiles-loaded') → re-render tab Đã nghỉ.
+            if (!_store.quitLoaded) {
+                if (typeof window.loadQuitProfilesIfNeeded === 'function') {
+                    window.loadQuitProfilesIfNeeded('ensure-quit-tab:' + (reason || ''));
+                }
+            } else if (typeof window.ensureQuitProfilesAuthoritative === 'function') {
+                window.ensureQuitProfilesAuthoritative('ensure-quit-tab-authoritative:' + (reason || ''));
             }
             return _store.quitLoaded || compatCount > 0;
 

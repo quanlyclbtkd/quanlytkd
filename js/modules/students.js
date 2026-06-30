@@ -1178,8 +1178,8 @@ export function initStudentPagination() {
                     // not the shared server-pagination page. Desktop keeps load-more.
                     if (listId === 'quitList' && _isQuitAuthoritativeLoaded()) {
                         const _quitEntries = _getAuthoritativeQuitEntries();
-                        const _mobileFull  = true; // Phase 4K-6V4D6: web + mobile both show full Đã nghỉ list.
-                        const _quitLimit   = _quitEntries.length;
+                        const _mobileFull  = _isMobileViewport();
+                        const _quitLimit   = _mobileFull ? _quitEntries.length : ((window._quitPage || 1) * PAGE_SIZE);
                         const _remaining   = Math.max(0, _quitEntries.length - _quitLimit);
                         const _btnStyle    = 'style="padding:0.45rem 1.2rem;font-size:0.85rem;background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;border-radius:6px;cursor:pointer;font-weight:600;"';
                         if (_remaining > 0) {
@@ -1455,7 +1455,10 @@ export function initStudentPagination() {
 
             function _isMobileViewport() {
                 try {
-                    return (window.matchMedia && window.matchMedia('(max-width: 767px)').matches) || Number(window.innerWidth || 0) <= 767;
+                    const mm = window.matchMedia ? window.matchMedia.bind(window) : null;
+                    return (mm && (mm('(max-width: 1024px)').matches || mm('(pointer: coarse)').matches))
+                        || /Android|iPhone|iPad|iPod|Mobile/i.test(String(navigator && navigator.userAgent || ''))
+                        || Number(window.innerWidth || 0) <= 1024;
                 } catch (_) {
                     return false;
                 }
@@ -1475,7 +1478,17 @@ export function initStudentPagination() {
                         ? (window.studentProfileStore.getQuitProfiles() || {})
                         : {};
                     const profiles = (window.__store && window.__store.profiles) || {};
-                    const merged = Object.assign({}, storeQuit);
+                    const localQuit = (window.__store && window.__store._localQuitProfiles) || {};
+                    const compat = window.studentProfileStore && typeof window.studentProfileStore.getAllProfilesCompat === 'function'
+                        ? (window.studentProfileStore.getAllProfilesCompat() || {})
+                        : {};
+                    const merged = Object.assign({}, storeQuit, localQuit);
+                    Object.entries(compat).forEach(function([id, profile]) {
+                        const kind = typeof window.classifyProfileStatus === 'function'
+                            ? window.classifyProfileStatus(profile)
+                            : (profile && (profile.status === 'quit' || profile.active === false || profile.isActive === false || profile.quitDate || profile.ngayNghi) ? 'quit' : 'active');
+                        if (kind === 'quit' && id && !merged[id]) merged[id] = profile;
+                    });
                     Object.entries(profiles).forEach(function([id, profile]) {
                         const kind = typeof window.classifyProfileStatus === 'function'
                             ? window.classifyProfileStatus(profile)
@@ -2623,18 +2636,17 @@ window.syncStudentStatusLocal = function syncStudentStatusLocal(name, updateData
 
         const kind = classify(nextProfile);
 
-        // Phase 4K-6V4D6: keep the split profile store in sync immediately.
-        // Without this, a newly quit student can disappear from Đã nghỉ until lazy/full sync finishes.
-        try {
-            if (window.studentProfileStore && typeof window.studentProfileStore.mergeProfile === 'function') {
-                window.studentProfileStore.mergeProfile(key, nextProfile, reason + ':status-local-sync');
-            }
-            if (!window.__store._localQuitProfiles || typeof window.__store._localQuitProfiles !== 'object') {
-                window.__store._localQuitProfiles = {};
-            }
-            if (kind === 'quit') window.__store._localQuitProfiles[key] = nextProfile;
-            else delete window.__store._localQuitProfiles[key];
-        } catch (_) {}
+        // Phase 4K-6V4D4: local status changes must update split profile store too.
+        // Otherwise a newly quit student can disappear from Đã nghỉ after an
+        // active-only listener refreshes the compat map.
+        if (window.studentProfileStore && typeof window.studentProfileStore.mergeProfile === 'function') {
+            try { window.studentProfileStore.mergeProfile(key, nextProfile, reason + ':status-local-sync'); } catch (_) {}
+        }
+        if (!window.__store._localQuitProfiles || typeof window.__store._localQuitProfiles !== 'object') {
+            window.__store._localQuitProfiles = {};
+        }
+        if (kind === 'quit') window.__store._localQuitProfiles[key] = nextProfile;
+        else delete window.__store._localQuitProfiles[key];
 
         // HARD SEPARATION: nếu status=quit, loại ra khỏi pagination.currentItems ngay
         const pg = window.__store.pagination && window.__store.pagination.students;
@@ -2692,9 +2704,11 @@ window.syncStudentStatusLocal = function syncStudentStatusLocal(name, updateData
                 window.__store._lastDebtRemoveName = key;
             }
             try {
-                const _tab = typeof window.getCurrentActiveTabId === 'function' ? window.getCurrentActiveTabId() : '';
+                const _tab = typeof window.getCurrentActiveTabId === 'function'
+                    ? window.getCurrentActiveTabId()
+                    : ((document.querySelector('.tab-content.active') || {}).id || '').replace(/^tab_/, '');
                 if (_tab === 'quit' && typeof window.renderQuitList === 'function') {
-                    Promise.resolve().then(() => window.renderQuitList());
+                    Promise.resolve().then(function() { window.renderQuitList({ reason: reason + ':immediate-quit-repaint' }); });
                 }
             } catch (_) {}
         }

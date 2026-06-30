@@ -1,10 +1,10 @@
 /**
- * Phase 4K-6V4D7 — Coach Branch Assignment + Fallback Stability Repair
+ * Phase 4K-6V4B1 — Coach Branch Assignment + Runtime Mirror Repair
  * Owns the Coach authorization repair workflow outside legacy app.js.
  */
 (function initCoachBranchRuntimeRepair(global) {
   'use strict';
-  if (global.CoachBranchRuntimeRepair?.version === '4K-6V4D7') return;
+  if (global.CoachBranchRuntimeRepair?.version === '4K-6V4D4') return;
 
   const canonical = (value, fallback = '') => {
     if (global.BranchIdentity?.normalize) return global.BranchIdentity.normalize(value, { fallback });
@@ -51,20 +51,26 @@
     if (!snap.exists()) return result;
     const assigned = snap.data() || {};
     const assignedBranch = canonical(assigned.branch || assigned.coachBranch || '');
-    if (!assignedBranch) return { ...result, coachBranch: result.coachBranch };
+    const repaired = { ...result, coachBranch: assignedBranch || result.coachBranch };
+    if (!assignedBranch) return repaired;
+
+    // Phase 4K-6V4D4: every Coach login must self-heal the authorization mirror.
+    // Root cause: many legacy HLV users/{uid} docs had role='hlv'/missing clubId/branch.
+    // Firestore Rules then denied profile/attendance reads even when the Admin assignment
+    // clubs/{clubId}/coaches/{uid} was correct. The write is safe because Rules only
+    // allow it when it exactly matches that Admin assignment.
     try {
-      const now = new Date().toISOString();
-      const mirror = {
+      await setDoc(doc(firestore, 'users', result.uid), {
         role: 'coach', clubId: result.clubId, branch: assignedBranch, coachBranch: assignedBranch,
-        email: user?.email || assigned.email || '', uid: result.uid, updatedAt: now
-      };
-      await setDoc(doc(firestore, 'users', result.uid), mirror, { merge: true });
-      await setDoc(doc(firestore, 'coach_login_index', result.uid), mirror, { merge: true });
+        email: user?.email || assigned.email || '', updatedAt: new Date().toISOString()
+      }, { merge: true });
     } catch (cause) {
-      const error = new Error('Cơ sở HLV chưa đồng bộ. Admin cần chọn đúng cơ sở, bấm “Lưu cơ sở” rồi chạy “Đồng bộ tài khoản HLV cũ”.');
+      // Do not silently continue: without a repaired users/{uid}, security rules can
+      // still block profiles/attendance. Show one clear actionable login error.
+      const error = new Error('Cơ sở HLV chưa đồng bộ quyền truy cập. Admin cần deploy Rules mới rồi chạy “Đồng bộ tài khoản HLV cũ”.');
       error.code = 'auth/coach-branch-mirror-sync-failed'; error.cause = cause; throw error;
     }
-    return { ...result, coachBranch: assignedBranch };
+    return repaired;
   }
 
   async function loadCoachAccounts() {
@@ -111,8 +117,7 @@
       if (!coachSnap.exists()) throw new Error('Không tìm thấy hồ sơ HLV trong CLB.');
       const data = coachSnap.data() || {}, now = new Date().toISOString(), batch = writeBatch(db());
       batch.set(coachRef, { role:'coach', clubId:clubId(), branch, coachBranch:branch, updatedAt:now }, { merge:true });
-      batch.set(doc(db(), 'users', uid), { role:'coach', clubId:clubId(), branch, coachBranch:branch, email:data.email || '', uid, updatedAt:now }, { merge:true });
-      batch.set(doc(db(), 'coach_login_index', uid), { role:'coach', clubId:clubId(), branch, coachBranch:branch, email:data.email || '', uid, updatedAt:now }, { merge:true });
+      batch.set(doc(db(), 'users', uid), { role:'coach', clubId:clubId(), branch, coachBranch:branch, email:data.email || '', updatedAt:now }, { merge:true });
       await batch.commit();
       toast(`✅ Đã giao ${branchName(branch)} cho HLV. HLV cần đăng nhập lại.`, 4000);
       await loadCoachAccounts();
@@ -137,7 +142,7 @@
       const base = { email, displayName:name, role:'coach', clubId:clubId(), branch, coachBranch:branch, uid, createdAt:new Date().toISOString() };
       await setDoc(doc(db(), 'clubs', clubId(), 'coaches', uid), base);
       let mirrorError = null;
-      try { const mirror = { role:'coach', clubId:clubId(), branch, coachBranch:branch, email, uid, updatedAt:new Date().toISOString() }; await setDoc(doc(db(), 'users', uid), mirror, { merge:true }); await setDoc(doc(db(), 'coach_login_index', uid), mirror, { merge:true }); }
+      try { await setDoc(doc(db(), 'users', uid), { role:'coach', clubId:clubId(), branch, coachBranch:branch, email }); }
       catch (error) { mirrorError = error; }
       alert(mirrorError
         ? `⚠️ Auth và hồ sơ HLV đã tạo nhưng users/{uid} chưa ghi được.\n\nKHÔNG tạo lại để tránh trùng email. Hãy deploy Rules V4B1 rồi chạy đồng bộ.\n\nTên: ${name}\nEmail: ${email}\nCơ sở: ${branchName(branch)}`
@@ -164,11 +169,10 @@
           if (!branch) { needsAssignment++; continue; }
           const coachFix=data.role!=='coach'||data.clubId!==clubId()||data.branch!==branch||data.coachBranch!==branch;
           const userFix=!userSnap.exists()||old.role!=='coach'||old.clubId!==clubId()||old.branch!==branch||old.coachBranch!==branch||(data.email&&old.email!==data.email);
-          if (!coachFix && !userFix) { skipped++; }
+          if (!coachFix && !userFix) { skipped++; continue; }
           const now=new Date().toISOString(), batch=writeBatch(db());
           if (coachFix) { batch.set(doc(db(),'clubs',clubId(),'coaches',uid), { uid,role:'coach',clubId:clubId(),branch,coachBranch:branch,email:data.email||old.email||'',displayName:data.displayName||data.email||old.email||'',updatedAt:now }, {merge:true}); fixed++; }
-          if (userFix) { batch.set(userRef,{role:'coach',clubId:clubId(),branch,coachBranch:branch,email:data.email||old.email||'',uid,updatedAt:now},{merge:true}); synced++; }
-          batch.set(doc(db(),'coach_login_index',uid), {role:'coach',clubId:clubId(),branch,coachBranch:branch,email:data.email||old.email||'',uid,updatedAt:now},{merge:true});
+          if (userFix) { batch.set(userRef,{role:'coach',clubId:clubId(),branch,coachBranch:branch,email:data.email||old.email||'',updatedAt:now},{merge:true}); synced++; }
           await batch.commit();
         } catch (error) { failed++; console.warn('[CoachBranchRepair] sync failed:', coach.id, error.code || error.message); }
       }
@@ -187,6 +191,6 @@
     global.migrateCoachAccounts = migrateCoachAccounts;
   }
 
-  global.CoachBranchRuntimeRepair = Object.freeze({ version:'4K-6V4D7', resolveAuthContext, installAdminOverrides });
+  global.CoachBranchRuntimeRepair = Object.freeze({ version:'4K-6V4D4', resolveAuthContext, installAdminOverrides });
   installAdminOverrides();
 })(window);

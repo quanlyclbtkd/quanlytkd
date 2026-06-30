@@ -1,0 +1,26 @@
+PHASE_4K_6V4D4 — Changed files
+
+index.html
+app.js
+firestore.rules
+package.json
+js/main.js
+js/core/branchIdentity.js
+js/core/coachBranchRuntimeRepair.js
+js/listeners/profiles.listeners.js
+js/data/studentProfileStore.js
+js/ui/render/renderStudents.js
+js/modules/students.js
+js/modules/attendance.js
+tools/check-v4d4-coach-quit-authoritative-fix.mjs
+tools/check-quit-tab-mobile-parity.mjs
+tools/check-coach-branch-runtime-repair.mjs
+tools/check-security-coach-branch-boundary.mjs
+tools/check-inventory-ledger-reconciliation.mjs
+tools/check-debt-authoritative-tuition-coverage.mjs
+tools/check-render-warning-coalescing-v4b12.mjs
+tools/check-tuition-debt-source-of-truth-v4c.mjs
+tools/check-active-skipped-month-section-v4c2.mjs
+tools/check-profile-canonical-store-v4d1.mjs
+tools/check-v4d1a-runtime-recovery.mjs
+public mirrors for changed runtime files

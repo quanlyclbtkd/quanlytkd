@@ -342,8 +342,7 @@ export function computeAndCacheStudents(allProfiles, params) {
     const _PAGE_LIMIT   = 50;
     const _activeLimit  = window.__activeRenderLimit || activePage * _PAGE_LIMIT;
     const _debtLimit    = window.__debtRenderLimit || debtPage * _PAGE_LIMIT;
-    // Phase 4K-6V4D6: Đã nghỉ must render full authoritative list; no page cap.
-    const _quitLimit    = Number.MAX_SAFE_INTEGER;
+    const _quitLimit    = quitPage   * _PAGE_LIMIT;
 
     let _activeTotalCount = 0, _debtTotalCount = 0, _quitTotalCount = 0;
     let _activeRendered   = 0, _debtRendered   = 0, _quitRendered   = 0;
@@ -663,7 +662,12 @@ export function computeAndCacheStudents(allProfiles, params) {
     // Single source of truth is #pgWrap_activeList (outside table), rendered by _injectControls.
     // if (buildActive && _activeTotalCount > _activeRendered) { ... }
 
-    // Phase 4K-6V4D6: no Load More for Đã nghỉ; this tab is an audit list and must be complete.
+    // Quit load more — chỉ khi không có server-side pagination
+    if (!pgStudentsActive || useFullProfileQuitRender) {
+        if (buildQuit && _quitTotalCount > _quitLimit) {
+            quitRows += `<tr><td colspan="${_moreColspan}" ${_moreStyle}><button type="button" ${_moreBtnSt} onclick="_loadMore('quit')">⬇ Tải thêm — còn ${_quitTotalCount - _quitRendered} võ sinh nữa</button></td></tr>`;
+        }
+    }
 
     // ── Phase 4K-6V3D: debt coverage quality from the canonical read boundary ──
     const _boundaryStatus = typeof window.getDebtProfileCoverageStatus === 'function'

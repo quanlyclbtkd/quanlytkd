@@ -31,11 +31,10 @@ check('Targeted quit loader still filters every result through classifier',
   profiles.includes("classifyProfileStatus(data) === 'quit'") && profiles.includes('quitMap[id] = data'));
 check('Existing full/fallback quit profiles are preserved before setting targeted map',
   profiles.includes('getQuitProfiles') && profiles.includes('Object.entries(existingQuit') && profiles.includes('!quitMap[id]'));
-check('Admin quit tab runs authoritative full reconciliation and does not rely on targeted preview',
-  (profiles.includes('quit-tab-authoritative-reconcile') || profiles.includes('ensureQuitProfilesAuthoritative')) &&
+check('Admin quit tab runs one authoritative full reconciliation after targeted load',
   profiles.includes('quitCompletenessReconciled') &&
-  profiles.includes('forceQuitAuthoritative') &&
-  profiles.includes('quit-profiles-lazy-targeted-preview'));
+  profiles.includes("loadFullProfilesFallback('quit-tab-authoritative-reconcile:'") &&
+  profiles.includes('!_isCoachContext(ctx)'));
 check('Full fallback classifies full collection into quitProfiles',
   profiles.includes('const _fallbackQuit') && profiles.includes("if (_fKind === 'quit') _fallbackQuit[_fId] = _fData") &&
   profiles.includes('setQuitProfiles(_fallbackQuit'));

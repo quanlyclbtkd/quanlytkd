@@ -30,9 +30,9 @@ const main = read('js/main.js');
 const index = read('index.html');
 const pkg = read('package.json');
 
-const build = 'coach-attendance-fallback-stability-20260630-v4d7';
+const build = 'coach-quit-authoritative-fix-20260630-v4d4';
 
-check('index.html cache-busts app.js/main.js to V4D6',
+check('index.html cache-busts app.js/main.js to V4D1A',
   index.includes(`app.js?v=${build}`) && index.includes(`./js/main.js?v=${build}`));
 check('main.js APP_PATCH_VERSION markers include V4D1 lineage',
   main.includes("APP_BUILD_VERSION = '4K-6V4D1A-profile-canonical-store-runtime-recovery-20260628'") ||

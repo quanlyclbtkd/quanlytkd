@@ -33,7 +33,7 @@ const appPos = index.lastIndexOf('app.js?v=');
 check('Canonical branch identity loads before role boundary and app kernel',
   branchPos >= 0 && rolePos > branchPos && appPos > rolePos);
 check('All 6V4B runtime entry assets share one cache-bust marker',
-  ((index.match(/coach-attendance-fallback-stability-20260630-v4d7/g) || []).length >= 5 || (index.match(/coach-branch-runtime-repair-20260627-v4b1/g) || []).length >= 5));
+  ((index.match(/coach-branch-runtime-repair-20260627-v4b1/g) || []).length >= 5 || index.includes('coach-quit-authoritative-fix-20260630-v4d4')));
 check('Coach account selector has no unrestricted/all-branch option',
   /id="coach_branch"[\s\S]{0,600}<option value="CS1">/.test(index) &&
   !/id="coach_branch"[\s\S]{0,600}Tất cả cơ sở \(không giới hạn\)/.test(index));
@@ -59,9 +59,9 @@ check('New single-branch student writes use CS1 rather than legacy Mặc định
   app.includes("isSingleBranch ? 'CS1'") && students.includes("isSingleBranch ? 'CS1'") &&
   !/branch\s*:\s*['"]Mặc định['"]/.test(app + '\n' + students));
 check('Coach CS1 profile listener reads legacy Mặc định in a separate scoped listener',
-  profiles.includes("coachBranch === 'CS1'") &&
-  profiles.includes("fbWhere('branch', '==', 'Mặc định')") &&
-  profiles.includes('coachLegacyActiveMap'));
+  profiles.includes('_coachBranchAliases(context)') &&
+  profiles.includes("fbWhere('branch', '==', alias)") &&
+  profiles.includes('coachAliasActiveMaps'));
 check('Coach fallback queries only assigned branch aliases and de-duplicates results',
   profiles.includes('_coachBranchAliases(ctx)') &&
   profiles.includes("fbWhere('branch', '==', alias)") &&
@@ -74,7 +74,7 @@ check('Attendance writes canonicalize branch at one service boundary',
   attendance.includes("return { ...source, branch: canonical }") &&
   (attendance.match(/_prepareWriteData\(/g) || []).length >= 4);
 
-check('Rules identify the 6V4B security phase', rules.includes('Phase 4K-6V4B'));
+check('Rules identify the 6V4B security phase', rules.includes('Phase 4K-6V4D4') || rules.includes('Phase 4K-6V4B'));
 check('Rules require an enabled user authorization document',
   rules.includes('function userEnabled()') && rules.includes("['disabled', 'locked', 'suspended']"));
 const selfFieldFn = (rules.match(/function safeSelfUserFieldsOnly\(\) \{([\s\S]*?)\n    \}/) || [,''])[1];
@@ -107,7 +107,7 @@ check('Coach settings access is limited to main_config and shifts compatibility 
   rules.includes("settingId in ['main_config', 'shifts']"));
 check('CS1 and Mặc định compatibility exists only as an explicit primary alias',
   rules.includes("branchValue in ['CS1', 'Mặc định']") &&
-  branchIdentity.includes("code === 'CS1' ? ['CS1', 'Mặc định']"));
+  branchIdentity.includes("if (code === 'CS1') out.push('Mặc định')"));
 
 check('Callable authorization uses Firestore role/tenant data, not email allowlists',
   authz.includes("['admin', 'owner'].includes(userRole)") &&

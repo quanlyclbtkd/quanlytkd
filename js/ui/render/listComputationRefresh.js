@@ -44,7 +44,7 @@ import {
 import {
     computeAndCacheStudents,
     getStudentsSummary,
-} from './computation/studentsRenderer.js?v=coach-attendance-fallback-stability-20260630-v4d7';
+} from './computation/studentsRenderer.js?v=coach-quit-authoritative-fix-20260630-v4d4';
 import {
     computeAndCacheInventory,
     getCachedUnpaidInvCount,

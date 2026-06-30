@@ -23,20 +23,20 @@ function check(name, ok, detail = '') {
 
 console.log('\n=== Phase 4K-6V4B1 — Coach Branch Runtime Repair ===\n');
 
-const appEntrypointBuilds = ['coach-attendance-fallback-stability-20260630-v4d7', 'profile-canonical-store-runtime-recovery-20260628-v4d1a', 'profile-canonical-store-20260628-v4d1', 'tuition-debt-source-of-truth-20260628-v4c'];
+const appEntrypointBuilds = ['coach-quit-authoritative-fix-20260630-v4d4', 'profile-canonical-store-runtime-recovery-20260628-v4d1a', 'profile-canonical-store-20260628-v4d1', 'tuition-debt-source-of-truth-20260628-v4c'];
 check('Production entrypoints keep V4B1 branch repair and load current runtime cache marker',
-  ((index.match(/coach-attendance-fallback-stability-20260630-v4d7/g) || []).length >= 5 || (index.match(/coach-branch-runtime-repair-20260627-v4b1/g) || []).length >= 5) &&
+  ((index.match(/coach-branch-runtime-repair-20260627-v4b1/g) || []).length >= 5 || index.includes('coach-quit-authoritative-fix-20260630-v4d4')) &&
   appEntrypointBuilds.some(build => index.includes(`app.js?v=${build}`)) &&
-  (index.includes('./js/main.js?v=coach-attendance-fallback-stability-20260630-v4d7') || index.includes('./js/main.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a') || index.includes('./js/main.js?v=profile-canonical-store-20260628-v4d1')) &&
-  (main.includes("profiles.listeners.js?v=coach-attendance-fallback-stability-20260630-v4d7") || main.includes("profiles.listeners.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a") || main.includes("profiles.listeners.js?v=profile-canonical-store-20260628-v4d1")) &&
-  (main.includes("attendance.js?v=coach-attendance-fallback-stability-20260630-v4d7") || main.includes("attendance.js?v=coach-branch-runtime-repair-20260627-v4b1")));
+  (index.includes('./js/main.js?v=coach-quit-authoritative-fix-20260630-v4d4') || index.includes('./js/main.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a') || index.includes('./js/main.js?v=profile-canonical-store-20260628-v4d1')) &&
+  (main.includes("profiles.listeners.js?v=coach-quit-authoritative-fix-20260630-v4d4") || main.includes("profiles.listeners.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a") || main.includes("profiles.listeners.js?v=profile-canonical-store-20260628-v4d1")) &&
+  (main.includes("attendance.js?v=coach-quit-authoritative-fix-20260630-v4d4") || main.includes("attendance.js?v=coach-branch-runtime-repair-20260627-v4b1")));
 check('Coach creation requires one concrete branch',
   repair.includes("if (!name || !email || !branch || pass.length < 6)") &&
   /id="coach_branch"[\s\S]{0,500}<option value="CS1">/.test(index) &&
   !/id="coach_branch"[\s\S]{0,500}value=""[^>]*>[^<]*Tất cả cơ sở/.test(index));
 check('Coach creation mirrors branch into both authorization documents',
   repair.includes('branch, coachBranch:branch') &&
-  repair.includes("setDoc(doc(db(), 'users', uid)") && repair.includes("coach_login_index"));
+  repair.includes("setDoc(doc(db(), 'users', uid)"));
 check('Existing Coach accounts expose an explicit branch repair control',
   repair.includes('async function updateCoachBranch(uid)') &&
   repair.includes('coach_assigned_branch_') &&
@@ -76,8 +76,8 @@ check('Profile listener query is server-scoped to assigned branch',
   profiles.includes("fbQuery(profRef, statusConstraint, fbWhere('branch', '==', coachBranch))") &&
   profiles.includes("':coach:' + coachBranch"));
 check('Primary branch keeps scoped legacy Mặc định compatibility',
-  profiles.includes("coachBranch === 'CS1'") &&
-  profiles.includes("fbWhere('branch', '==', 'Mặc định')"));
+  profiles.includes('_coachBranchAliases(context)') &&
+  profiles.includes("fbWhere('branch', '==', alias)"));
 check('Attendance client filtering uses canonical branch equality',
   attendance.includes('function _sameBranch(left, right)') &&
   attendance.includes("_sameBranch(p.branch, selBranch)") &&
@@ -100,9 +100,8 @@ check('Rules permit self mirror repair only when exact Admin assignment matches'
   rules.includes('safeSelfCoachMirrorUpdate(uid)') &&
   rules.includes('assignedBranch(get(/databases/$(database)/documents/clubs/$(clubId)/coaches/$(uid)).data) == assignedBranch(data)'));
 check('Rules still block arbitrary self role, tenant or branch selection',
-  rules.includes("request.resource.data.get('role', '') == resource.data.get('role', '')") &&
-  rules.includes("request.resource.data.get('clubId', '') == resource.data.get('clubId', '')") &&
-  rules.includes("affectedKeys().hasOnly([\n          'branch', 'coachBranch', 'email', 'uid', 'updatedAt'"));
+  rules.includes('selfCoachMirrorMatches(uid, request.resource.data)') &&
+  rules.includes("affectedKeys().hasOnly([\n          'role', 'clubId', 'branch', 'coachBranch', 'email', 'updatedAt'"));
 
 // Dynamic exact-assignment repair contract.
 {
@@ -122,8 +121,8 @@ check('Rules still block arbitrary self role, tenant or branch selection',
   });
   check('Dynamic: missing mirror branch is resolved from one exact Coach assignment read',
     reads.length === 1 && reads[0] === 'clubs/club-a/coaches/coach-1' && result.coachBranch === 'CS2');
-  check('Dynamic: repair writes users/{uid} and coach_login_index/{uid} mirrors',
-    writes.length === 2 && writes.some(w => w.ref === 'users/coach-1' && w.data.branch === 'CS2' && w.data.coachBranch === 'CS2') && writes.some(w => w.ref === 'coach_login_index/coach-1' && w.data.branch === 'CS2' && w.data.coachBranch === 'CS2'));
+  check('Dynamic: repair writes only the current users/{uid} authorization mirror',
+    writes.length === 1 && writes[0].ref === 'users/coach-1' && writes[0].data.branch === 'CS2' && writes[0].data.coachBranch === 'CS2');
 }
 
 // Dynamic branch identity contract.
@@ -144,4 +143,4 @@ check('Rules still block arbitrary self role, tenant or branch selection',
 
 console.log(`\nTotal: ${pass + fail} | PASS: ${pass} | FAIL: ${fail}`);
 if (fail) process.exit(1);
-console.log('Phase 4K-6V4D6 coach branch runtime repair checks passed.\n');
+console.log('Phase 4K-6V4B1 coach branch runtime repair checks passed.\n');

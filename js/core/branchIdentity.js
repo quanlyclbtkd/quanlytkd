@@ -9,9 +9,9 @@
 (function initBranchIdentity(global) {
     'use strict';
 
-    if (global.BranchIdentity && global.BranchIdentity.version === '4K-6V4B1') return;
+    if (global.BranchIdentity && global.BranchIdentity.version === '4K-6V4D4') return;
 
-    const VERSION = '4K-6V4B1';
+    const VERSION = '4K-6V4D4';
     const PRIMARY_ALIASES = new Set([
         'mặc định', 'mac dinh', 'default', 'primary', 'cơ sở mặc định', 'co so mac dinh',
         'cs01', 'cs 1', 'cơ sở 1', 'co so 1', '1'
@@ -53,10 +53,22 @@
         return /^CS(?:[1-9]|10)$/.test(String(value || '').trim());
     }
 
+    function _configuredBranchName(code) {
+        const match = String(code || '').match(/^CS(?:0)?([1-9]|10)$/i);
+        if (!match) return '';
+        const idx = Number(match[1]);
+        const cfg = global.__store?.clubConfig || global.clubConfig || global.__store?.settings || {};
+        return String(cfg['branchName' + idx] || '').trim();
+    }
+
     function aliases(value) {
         const code = normalize(value, { fallback: '' });
         if (!code) return [];
-        return code === 'CS1' ? ['CS1', 'Mặc định'] : [code];
+        const out = [code];
+        if (code === 'CS1') out.push('Mặc định');
+        const display = _configuredBranchName(code);
+        if (display && !out.some(v => _fold(v) === _fold(display))) out.push(display);
+        return out;
     }
 
     function isSameBranch(a, b) {

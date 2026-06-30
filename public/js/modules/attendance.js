@@ -782,11 +782,6 @@ export function initAttendance() {
         // Phase 4.0B-4J-5: update attendance debug info
         window.__attendanceDebug = window.__attendanceDebug || {};
         _attCurrentProfiles = _getFilteredAttProfiles();
-        if (window.userRole === 'coach' && window.coachBranch && _attCurrentProfiles.length === 0) {
-            window.__attendanceDebug = window.__attendanceDebug || {};
-            window.__attendanceDebug.emptyCoachBranch = window.coachBranch;
-            window.__attendanceDebug.profileSourceCount = Object.keys(_profiles() || {}).length;
-        }
         if (!_clubShiftsLoaded) await _loadClubShifts();
         if (_attCurrentProfiles.length === 0) {
             _renderAttCards();

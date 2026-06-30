@@ -91,7 +91,7 @@
     window.debtBranchMatchesFilter = window.debtBranchMatchesFilter || _branchMatchesFilter;
 // Danh mục kho tùy chỉnh — được load từ Firestore khi đăng nhập thành công
 window.invCustomCategories = [];
-    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V4D7'; window.APP_PATCH_VERSION = '4K-6V4D7-coach-attendance-fallback-stability-20260630'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
+    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V4B1'; window.APP_PATCH_VERSION = '4K-6V3A1-payment-bundle-runtime-hotfix-20260616'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
     // Compatibility regression marker retained for Phase 4K-6Q gate: APP_PATCH_VERSION = '4K-6Q-mobile-filter-currency-stability-20260615'
     window.__appLoaded = true; // [Phase 2a] main.js kiểm tra để bỏ qua loadLegacyApp()
     window.__store = window.__store || {}; // [Phase 2b] Bridge object cho module system
@@ -3449,7 +3449,7 @@ service cloud.firestore {
     };
     const _saveAuthCache = (uid, role, clubId, coachBranch = '') => {
         const ctx = _normalizeAuthContext({ uid, role, clubId, coachBranch });
-        try { localStorage.setItem(_AUTH_CACHE_KEY, JSON.stringify({ ...ctx, version: '4K-6V4B1', ts: Date.now() })); } catch(e) {}
+        try { localStorage.setItem(_AUTH_CACHE_KEY, JSON.stringify({ ...ctx, version: '4K-6V4D4', ts: Date.now() })); } catch(e) {}
         return ctx;
     };
     const _getAuthCache = (uid) => {
@@ -3469,33 +3469,7 @@ service cloud.firestore {
         } catch(e) {}
     };
 
-    const _resolveCoachBranchContext = async (user, context) => {
-        const normalized = _normalizeAuthContext({ ...context, uid: user && user.uid });
-        if (window.CoachBranchRuntimeRepair && typeof window.CoachBranchRuntimeRepair.resolveAuthContext === 'function') {
-            return window.CoachBranchRuntimeRepair.resolveAuthContext({ user, context: normalized, db });
-        }
-        return normalized;
-    };
-    const _readCoachLoginIndexContext = async (user) => {
-        if (!user || !user.uid) return null;
-        try {
-            const snap = await getDoc(doc(db, 'coach_login_index', user.uid));
-            if (!snap.exists()) return null;
-            const data = snap.data() || {};
-            if (String(data.role || '').trim().toLowerCase().replace(/-/g, '_') !== 'coach') return null;
-            const ctx = {
-                role: 'coach',
-                clubId: data.clubId || '',
-                branch: data.branch || data.coachBranch || '',
-                coachBranch: data.coachBranch || data.branch || '',
-            };
-            if (!ctx.clubId || !(ctx.branch || ctx.coachBranch)) return null;
-            return _resolveCoachBranchContext(user, ctx);
-        } catch (error) {
-            console.warn('[AuthContext] coach_login_index read failed:', error.code || error.message);
-            return null;
-        }
-    };
+    const _resolveCoachBranchContext=(user,context)=>window.CoachBranchRuntimeRepair.resolveAuthContext({user,context:_normalizeAuthContext({...context,uid:user&&user.uid}),db});
 
     const _rebindVerifiedAuthContext = async (user, freshContext, cachedContext) => {
         const fresh = _normalizeAuthContext({ ...freshContext, uid: user && user.uid });
@@ -3628,8 +3602,7 @@ service cloud.firestore {
 
                 let _freshContext=null;
                 if (userDocSnap && userDocSnap.exists()) { const _ud=userDocSnap.data(); _freshContext=await _resolveCoachBranchContext(user,{role:_ud.role||'',clubId:_ud.clubId,branch:_ud.branch||_ud.coachBranch||''}); }
-                if (!_freshContext) _freshContext = await _readCoachLoginIndexContext(user);
-                if (!_freshContext && _cached && _cached.role==='coach' && _cached.clubId) _freshContext=await _resolveCoachBranchContext(user,_cached);
+                else if (_cached && _cached.role==='coach' && _cached.clubId) _freshContext=await _resolveCoachBranchContext(user,_cached);
                 if (_freshContext) {
                     if (_freshContext.role === 'coach' && !_freshContext.coachBranch) { await _showLoginError('Tài khoản HLV chưa được gán cơ sở. Admin cần chọn một cơ sở cụ thể rồi đăng nhập lại.'); return; }
                     if (!_freshContext.role || (_freshContext.role !== 'super_admin' && !_freshContext.clubId)) { await _showLoginError('Hồ sơ phân quyền không hợp lệ hoặc thiếu clubId. Vui lòng liên hệ quản trị viên hệ thống.'); return; }
@@ -7283,8 +7256,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         const _PAGE_LIMIT    = 100;
         const _activeLimit   = (window._activePage || 1) * _PAGE_LIMIT;
         const _debtLimit     = (window._debtPage   || 1) * _PAGE_LIMIT;
-        // Phase 4K-6V4D6: Đã nghỉ renders full authoritative list on web + mobile.
-        const _quitLimit     = Number.MAX_SAFE_INTEGER;
+        const _quitLimit     = (window._quitPage   || 1) * _PAGE_LIMIT;
         let _activeRendered = 0, _debtRendered = 0, _quitRendered = 0;
         let _activeTotalCount = 0, _debtTotalCount = 0, _quitTotalCount = 0;
 
@@ -7387,7 +7359,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         // Phase 4K-5Q: DISABLED — active load-more row moved outside table (single source via #pgWrap_activeList)
         // if(_activeTotalCount > _activeLimit)  activeHtml += `<tr>...</tr>`;
         if(_debtTotalCount   > _debtLimit)    debtHtml   += `<tr><td colspan="${_moreColspan}" ${_moreStyle}><button type="button" ${_moreBtnStyle} onclick="window._loadMore('debt')">⬇ Tải thêm — còn ${_debtTotalCount - _debtRendered} võ sinh nữa</button></td></tr>`;
-        // Phase 4K-6V4D6: no Load More for Đã nghỉ — complete list only.
+        if(_quitTotalCount   > _quitLimit)    quitHtml   += `<tr><td colspan="${_moreColspan}" ${_moreStyle}><button type="button" ${_moreBtnStyle} onclick="window._loadMore('quit')">⬇ Tải thêm — còn ${_quitTotalCount - _quitRendered} võ sinh nữa</button></td></tr>`;
 
         _tabHtmlCache = { txList: txHtml, uniformTxList: uniformTxHtml, expenseList: expHtml, examExpenseList: examExpHtml, debtList: debtHtml, activeList: activeHtml, quitList: quitHtml, inventoryList: invListHtml, reportList: reportHtml };
         if (window.__store) window.__store.tabHtmlCache = _tabHtmlCache; // [Phase 2b] sync cache
@@ -9655,31 +9627,24 @@ window.processMultiItem = async (action) => {
             try { await signOut(secondaryAuth); } catch(_) {}
 
             // Bước 2: Ghi hồ sơ HLV vào clubs/{clubId}/coaches/{uid} — LUÔN dùng quyền admin (critical path)
-            const now = new Date().toISOString();
-            const coachPayload = {
+            await setDoc(doc(db, 'clubs', currentClubId, 'coaches', uid), {
                 email,
                 displayName: name,
                 role:   'coach',
                 clubId: currentClubId,
                 branch: branch,
-                coachBranch: branch,
                 uid,
-                createdAt: now,
-                updatedAt: now
-            };
-            await setDoc(doc(db, 'clubs', currentClubId, 'coaches', uid), coachPayload, { merge: true });
+                createdAt: new Date().toISOString()
+            });
 
-            // users/{uid} + coach_login_index/{uid} là 2 mirror phân quyền bắt buộc cho HLV.
+            // users/{uid} là hồ sơ phân quyền bắt buộc; lỗi thì giữ coach doc để đồng bộ, không tạo lại Auth.
             let provisioningError = null;
             try {
-                const mirrorPayload = { role: 'coach', clubId: currentClubId, branch, coachBranch: branch, email, uid, updatedAt: now };
-                await setDoc(doc(db, 'users', uid), mirrorPayload, { merge: true });
-                await setDoc(doc(db, 'coach_login_index', uid), mirrorPayload, { merge: true });
+                await setDoc(doc(db, 'users', uid), { role: 'coach', clubId: currentClubId, branch, coachBranch: branch, email });
             } catch(_permErr) {
                 provisioningError = _permErr;
-                console.error('Ghi users/{uid}/coach_login_index thất bại — tài khoản chưa thể đăng nhập:', _permErr.code || _permErr.message);
+                console.error('Ghi users/{uid} thất bại — tài khoản chưa thể đăng nhập:', _permErr.code || _permErr.message);
             }
-
             const branchDisplay = branch ? (' | Cơ sở: ' + (window.getBranchNameDisplay ? window.getBranchNameDisplay(branch) : branch)) : '';
             if (provisioningError) alert('⚠️ Auth và hồ sơ HLV đã tạo nhưng users/{uid} chưa ghi được.\n\nKHÔNG tạo lại để tránh trùng email. Deploy Rules 6V4B rồi bấm “Đồng bộ tài khoản HLV cũ”.\n\nTên: ' + name + '\nEmail: ' + email + branchDisplay);
             else alert('✅ Tạo tài khoản HLV thành công!\n\nTên: ' + name + '\nEmail: ' + email + '\nMật khẩu: ' + pass + branchDisplay + '\n\nHLV có thể đăng nhập ngay bây giờ.');
@@ -9716,7 +9681,6 @@ window.processMultiItem = async (action) => {
             // Bước 2: Thử xóa users/{uid} (optional — có thể bị chặn bởi Firestore Rules)
             try {
                 await deleteDoc(doc(db, 'users', uid));
-                try { await deleteDoc(doc(db, 'coach_login_index', uid)); } catch(_) {}
             } catch(_permErr) {
                 console.warn('Không thể xóa users/{uid}:', _permErr.code, '— không ảnh hưởng chức năng');
             }
@@ -10112,14 +10076,9 @@ window.processMultiItem = async (action) => {
                     const oldUser = uSnap.exists() ? uSnap.data() : {};
                     const oldBranch = _canonicalBranch(oldUser.branch || oldUser.coachBranch || '', '');
                     const userNeedsSync = !uSnap.exists() || oldUser.role !== 'coach' || oldUser.clubId !== currentClubId || oldBranch !== canonicalBranch || oldUser.branch !== canonicalBranch || (data.email && oldUser.email !== data.email);
-                    const now = new Date().toISOString();
-                    const mirrorPayload = { role: 'coach', clubId: currentClubId, branch: canonicalBranch, coachBranch: canonicalBranch, email: data.email || oldUser.email || '', uid, updatedAt: now };
                     if (userNeedsSync) {
-                        await setDoc(userRef, mirrorPayload, { merge: true });
-                        await setDoc(doc(db, 'coach_login_index', uid), mirrorPayload, { merge: true });
+                        await setDoc(userRef, { role: 'coach', clubId: currentClubId, branch: canonicalBranch, coachBranch: canonicalBranch, email: data.email || oldUser.email || '' }, { merge: true });
                         userSynced++;
-                    } else {
-                        await setDoc(doc(db, 'coach_login_index', uid), mirrorPayload, { merge: true });
                     }
                 } catch(_permErr) {
                     failed++;

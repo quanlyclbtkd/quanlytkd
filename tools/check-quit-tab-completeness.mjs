@@ -36,9 +36,8 @@ check('Quit list uses full/lazy profile store instead of active pagination curre
   renderer.includes('!useFullProfileQuitRender'));
 check('PASS1 renders quit rows even when pagination is enabled if full quit profiles exist',
   renderer.includes('(!pgStudentsActive || useFullProfileQuitRender) && buildQuit'));
-check('Quit load-more is full-profile aware or removed because Đã nghỉ renders complete list',
-  renderer.includes('if (!pgStudentsActive || useFullProfileQuitRender)') ||
-  (renderer.includes('Number.MAX_SAFE_INTEGER') && renderer.includes('no Load More for Đã nghỉ')));
+check('Quit load-more also uses full quit profile count when full profiles exist',
+  renderer.includes('if (!pgStudentsActive || useFullProfileQuitRender)'));
 check('Quit row display prefers profile.name/fullName/displayName but keeps doc ID for openProfile',
   renderer.includes('function _profileDisplayName') && renderer.includes('data.name') &&
   renderer.includes('const displayName = _profileDisplayName(name, p)') &&
