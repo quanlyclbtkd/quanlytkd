@@ -30,7 +30,7 @@ const main = read('js/main.js');
 const index = read('index.html');
 const pkg = read('package.json');
 
-const build = 'quit-coach-attendance-fullsync-20260630-v4d6';
+const build = 'coach-attendance-fallback-stability-20260630-v4d7';
 
 check('index.html cache-busts app.js/main.js to V4D6',
   index.includes(`app.js?v=${build}`) && index.includes(`./js/main.js?v=${build}`));

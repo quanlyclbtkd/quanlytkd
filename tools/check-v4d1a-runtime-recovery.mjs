@@ -15,8 +15,8 @@ const app = read('app.js');
 const index = read('index.html');
 const main = read('js/main.js');
 
-check('cache bust updated to V4D6 in index', index.includes('quit-coach-attendance-fullsync-20260630-v4d6'));
-check('main imports render.js with V4D6 cache bust', main.includes('./ui/render.js?v=quit-coach-attendance-fullsync-20260630-v4d6'));
+check('cache bust updated to V4D6 in index', index.includes('coach-attendance-fallback-stability-20260630-v4d7'));
+check('main imports render.js with V4D6 cache bust', main.includes('./ui/render.js?v=coach-attendance-fallback-stability-20260630-v4d7'));
 check('render.js has small UI refresh helper', render.includes('function _refreshSmallStudentUi(tabId, reason)'));
 check('render.js early return calls small UI refresh', render.includes("_refreshSmallStudentUi(earlyTabId, 'renderApp-dataVersion-unchanged')"));
 check('render.js small UI refresh always renders birthday banner', render.includes("typeof window._renderHomeBirthdayBanner === 'function'") && render.includes('window._renderHomeBirthdayBanner()'));

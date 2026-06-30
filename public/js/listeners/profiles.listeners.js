@@ -67,6 +67,8 @@ const _state = {
     coachLegacyListenerKey: null,
     coachCanonicalActiveMap: {},
     coachLegacyActiveMap: {},
+    /** Phase 4K-6V4D7: branch fallback active docs must survive later empty active snapshots. */
+    coachFallbackActiveMap: {},
 
     // ── Quit load ─────────────────────────────────────────────────────────────
     quitLoaded:             false,
@@ -153,7 +155,14 @@ function _coachBranchAliases(context = _ctx) {
 }
 
 function _mergedCoachActiveMap() {
-    return Object.assign({}, _state.coachLegacyActiveMap || {}, _state.coachCanonicalActiveMap || {});
+    // Merge order: fallback → legacy primary alias → canonical realtime.
+    // Fallback covers legacy active docs missing status; canonical wins when realtime has data.
+    return Object.assign(
+        {},
+        _state.coachFallbackActiveMap || {},
+        _state.coachLegacyActiveMap || {},
+        _state.coachCanonicalActiveMap || {}
+    );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -387,6 +396,7 @@ export function mountActiveProfilesListener(context) {
     _state.coachBranch = _coachBranch(context);
     _state.coachCanonicalActiveMap = {};
     _state.coachLegacyActiveMap = {};
+    _state.coachFallbackActiveMap = {};
     const isCoach = _isCoachContext(context);
     const coachBranch = _coachBranch(context);
     if (isCoach && !coachBranch) {
@@ -619,6 +629,7 @@ export function cleanupActiveProfilesListener(reason) {
     _state.coachLegacyListenerKey = null;
     _state.coachCanonicalActiveMap = {};
     _state.coachLegacyActiveMap = {};
+    _state.coachFallbackActiveMap = {};
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -874,7 +885,8 @@ export async function loadCoachBranchProfilesFallback(reason) {
             const data = d.data();
             if (classifyProfileStatus(data) !== 'quit') activeMap[id] = data;
         }));
-        setActiveProfiles(activeMap, 'coach-branch-fallback:' + reason);
+        _state.coachFallbackActiveMap = activeMap;
+        setActiveProfiles(_mergedCoachActiveMap(), 'coach-branch-fallback:' + reason);
         setQuitProfiles({}, 'coach-branch-fallback:no-quit-data');
         _syncLegacy();
         _state.fallbackCompleted = true;
@@ -1178,6 +1190,7 @@ export function resetProfilesListeners(reason) {
     _state.coachLegacyListenerKey = null;
     _state.coachCanonicalActiveMap = {};
     _state.coachLegacyActiveMap = {};
+    _state.coachFallbackActiveMap = {};
 
     // Quit
     _state.quitLoaded              = false;

@@ -76,7 +76,7 @@ Khi thiếu mirror, hệ thống fail-closed đúng về bảo mật nhưng làm
 
 Build marker mới:
 
-`quit-coach-attendance-fullsync-20260630-v4d6`
+`coach-attendance-fallback-stability-20260630-v4d7`
 
 Đã build lại thư mục `public/` bằng `npm run build:public`.
 

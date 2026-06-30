@@ -19,7 +19,7 @@ function check(name, ok) {
 }
 
 console.log('\n=== Phase 4K-6V4B8 — Quit Tab Mobile Parity ===\n');
-const build = 'quit-coach-attendance-fullsync-20260630-v4d6';
+const build = 'coach-attendance-fallback-stability-20260630-v4d7';
 const legacyBuild = 'profile-canonical-store-runtime-recovery-20260628-v4d1a';
 const appBuilds = [build, legacyBuild, 'profile-canonical-store-20260628-v4d1', 'tuition-debt-source-of-truth-20260628-v4c'];
 

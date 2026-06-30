@@ -1,10 +1,10 @@
 /**
- * Phase 4K-6V4D6 — Coach Branch Assignment + Login Index Repair
+ * Phase 4K-6V4D7 — Coach Branch Assignment + Fallback Stability Repair
  * Owns the Coach authorization repair workflow outside legacy app.js.
  */
 (function initCoachBranchRuntimeRepair(global) {
   'use strict';
-  if (global.CoachBranchRuntimeRepair?.version === '4K-6V4D6') return;
+  if (global.CoachBranchRuntimeRepair?.version === '4K-6V4D7') return;
 
   const canonical = (value, fallback = '') => {
     if (global.BranchIdentity?.normalize) return global.BranchIdentity.normalize(value, { fallback });
@@ -187,6 +187,6 @@
     global.migrateCoachAccounts = migrateCoachAccounts;
   }
 
-  global.CoachBranchRuntimeRepair = Object.freeze({ version:'4K-6V4D6', resolveAuthContext, installAdminOverrides });
+  global.CoachBranchRuntimeRepair = Object.freeze({ version:'4K-6V4D7', resolveAuthContext, installAdminOverrides });
   installAdminOverrides();
 })(window);

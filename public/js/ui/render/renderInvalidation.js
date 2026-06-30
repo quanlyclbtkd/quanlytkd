@@ -69,7 +69,7 @@ import {
 } from './renderRegistry.js';
 
 import { invalidateFinanceRender }   from './computation/financeRenderer.js';
-import { invalidateStudentsRender }  from './computation/studentsRenderer.js?v=quit-coach-attendance-fullsync-20260630-v4d6';
+import { invalidateStudentsRender }  from './computation/studentsRenderer.js?v=coach-attendance-fallback-stability-20260630-v4d7';
 import { invalidateInventoryRender } from './computation/inventoryRenderer.js';
 import { invalidateDashboardCache }  from './computation/dashboardRenderer.js';
 
@@ -78,7 +78,7 @@ import {
     refreshListComputation,
     refreshListsComputation,
     getComputationDomainForList,
-} from './listComputationRefresh.js?v=quit-coach-attendance-fullsync-20260630-v4d6';
+} from './listComputationRefresh.js?v=coach-attendance-fallback-stability-20260630-v4d7';
 
 // ── Dev helper ────────────────────────────────────────────────────────────────
 function _isDev() {

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** Phase 4K-6V4D6 — Quit full sync + Coach login + Attendance branch access */
+/** Phase 4K-6V4D7 — Quit full sync + Coach login + Attendance branch access */
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -19,19 +19,19 @@ const files = {
   statusConfig: read('js/data/profileStatusConfig.js'),
   store: read('js/data/studentProfileStore.js'),
 };
-const build = 'quit-coach-attendance-fullsync-20260630-v4d6';
+const build = 'coach-attendance-fallback-stability-20260630-v4d7';
 let pass = 0, fail = 0;
 function check(name, ok) {
   if (ok) { pass++; console.log('✅', name); }
   else { fail++; console.error('❌', name); }
 }
-console.log('\n=== Phase 4K-6V4D6 — Quit / Coach / Attendance checks ===\n');
+console.log('\n=== Phase 4K-6V4D7 — Quit / Coach / Attendance checks ===\n');
 
-check('index cache-busts app.js, main.js and coach runtime to V4D6',
+check('index cache-busts app.js, main.js and coach runtime to V4D7',
   files.index.includes(`app.js?v=${build}`) &&
   files.index.includes(`./js/main.js?v=${build}`) &&
   files.index.includes(`coachBranchRuntimeRepair.js?v=${build}`));
-check('main imports quit/attendance-critical modules with V4D6 cache bust',
+check('main imports quit/attendance-critical modules with V4D7 cache bust',
   files.main.includes(`profiles.listeners.js?v=${build}`) &&
   files.main.includes(`modules/students.js?v=${build}`) &&
   files.main.includes(`modules/attendance.js?v=${build}`) &&
@@ -71,8 +71,8 @@ check('coach creation/sync writes users and coach_login_index mirrors',
   files.app.includes("setDoc(doc(db, 'coach_login_index', uid), mirrorPayload") &&
   files.app.includes("coach_login_index thất bại") &&
   files.app.includes("deleteDoc(doc(db, 'coach_login_index', uid))"));
-check('coach runtime repair writes both mirrors and exposes V4D6',
-  files.coachRepair.includes("version:'4K-6V4D6'") &&
+check('coach runtime repair writes both mirrors and exposes V4D7',
+  files.coachRepair.includes("version:'4K-6V4D7'") &&
   files.coachRepair.includes("coach_login_index") &&
   files.coachRepair.includes('setDoc(doc(firestore, \'users\''));
 check('firestore rules allow safe coach login index recovery only for matching coach assignment',
@@ -91,4 +91,4 @@ check('main exposes authoritative quit APIs globally',
 
 console.log(`\nTotal: ${pass + fail} | PASS: ${pass} | FAIL: ${fail}`);
 if (fail) process.exit(1);
-console.log('Phase 4K-6V4D6 checks passed.\n');
+console.log('Phase 4K-6V4D7 checks passed.\n');

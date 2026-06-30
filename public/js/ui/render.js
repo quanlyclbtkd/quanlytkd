@@ -59,7 +59,7 @@ import {
     computeAndCacheStudents,
     getStudentsSummary,
     getStudentsCachedHtml,
-} from './render/computation/studentsRenderer.js?v=quit-coach-attendance-fullsync-20260630-v4d6';
+} from './render/computation/studentsRenderer.js?v=coach-attendance-fallback-stability-20260630-v4d7';
 import {
     computeAndCacheInventory,
     getCachedLiveInvMap,
