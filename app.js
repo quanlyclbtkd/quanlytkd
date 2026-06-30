@@ -107,7 +107,7 @@
     };
 // Danh mục kho tùy chỉnh — được load từ Firestore khi đăng nhập thành công
 window.invCustomCategories = [];
-    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V4D8'; window.APP_PATCH_VERSION = '4K-6V4D8-coach-attendance-auth-roster-final-recovery-20260630'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
+    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V4D8'; window.APP_PATCH_VERSION = '4K-6V4D9-coach-attendance-warning-cleanup-20260630'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
     // Compatibility regression marker retained for Phase 4K-6Q gate: APP_PATCH_VERSION = '4K-6Q-mobile-filter-currency-stability-20260615'
     window.__appLoaded = true; // [Phase 2a] main.js kiểm tra để bỏ qua loadLegacyApp()
     window.__store = window.__store || {}; // [Phase 2b] Bridge object cho module system
@@ -3445,6 +3445,7 @@ service cloud.firestore {
 
             const now = new Date();
             await addDoc(collection(db, "login_history"), {
+                uid: user.uid || '',
                 email: user.email || '',
                 clubId: clubId || '',
                 role: role || 'viewer',
@@ -3458,8 +3459,16 @@ service cloud.firestore {
             // Chỉ đánh dấu "đã ghi" SAU KHI addDoc thành công
             sessionStorage.setItem(sessionKey, '1');
         } catch(e) {
-            // Không set sessionStorage → lần load tiếp theo sẽ tự thử lại
-            console.warn('[login_history] Không thể ghi lịch sử đăng nhập:', e.message);
+            const msg = String((e && (e.code || e.message)) || e || '');
+            // Phase 4K-6V4D9: login history is non-critical. Coach sessions may
+            // intentionally not have audit-write permission on older deployed rules.
+            // Do not show a warning that looks like a login/attendance failure.
+            if (/permission-denied|Missing or insufficient permissions/i.test(msg)) {
+                sessionStorage.setItem(sessionKey, '1');
+                console.info('[login_history] Bỏ qua ghi lịch sử đăng nhập do quyền hiện tại:', msg);
+            } else {
+                console.warn('[login_history] Không thể ghi lịch sử đăng nhập:', msg);
+            }
         }
     }
 

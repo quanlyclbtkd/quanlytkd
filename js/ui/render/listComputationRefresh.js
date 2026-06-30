@@ -44,7 +44,7 @@ import {
 import {
     computeAndCacheStudents,
     getStudentsSummary,
-} from './computation/studentsRenderer.js?v=coach-attendance-auth-roster-final-recovery-20260630-v4d8';
+} from './computation/studentsRenderer.js?v=coach-attendance-warning-cleanup-20260630-v4d9';
 import {
     computeAndCacheInventory,
     getCachedUnpaidInvCount,

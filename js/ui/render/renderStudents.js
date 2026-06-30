@@ -19,7 +19,7 @@
  */
 
 import { registerRender } from './renderRegistry.js';
-import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=coach-attendance-auth-roster-final-recovery-20260630-v4d8';
+import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=coach-attendance-warning-cleanup-20260630-v4d9';
 
 // ─── Core DOM helper ────────────────────────────────────────────────────────
 

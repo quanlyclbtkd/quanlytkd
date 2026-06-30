@@ -405,6 +405,20 @@ service cloud.firestore {
         && selfCoachMirrorMatches(uid, request.resource.data);
     }
 
+
+    // Phase 4K-6V4D9: login history is optional audit data. Signed-in users may
+    // create their own lightweight login record only; read remains SuperAdmin-only.
+    match /login_history/{docId} {
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'uid', 'email', 'clubId', 'role', 'loginAt', 'timestamp',
+          'browser', 'os', 'deviceType', 'deviceName'
+        ])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.role in ['super_admin', 'admin', 'owner', 'viewer', 'coach', 'hlv'];
+      allow read, update, delete: if isSuperAdmin();
+    }
+
     match /users/{uid} {
       allow get: if signedIn() && (
         request.auth.uid == uid

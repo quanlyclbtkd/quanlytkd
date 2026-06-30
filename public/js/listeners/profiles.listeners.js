@@ -69,6 +69,9 @@ const _state = {
     coachCanonicalActiveMap: {},
     coachLegacyActiveMap: {},
     coachAliasActiveMaps: {},
+    coachBranchFallbackScheduled: false,
+    coachPendingInvalidateReason: '',
+    coachInvalidateTimer: null,
 
     // ── Quit load ─────────────────────────────────────────────────────────────
     quitLoaded:             false,
@@ -177,7 +180,15 @@ const COACH_PROFILE_BRANCH_FIELDS = Object.freeze([
     'coso', 'coSo', 'co_so', 'coSoTap', 'noiTap', 'diaDiemTap', 'location'
 ]);
 
-function _coachProfileQuerySpecs(context = _ctx) {
+// Phase 4K-6V4D9: keep live listeners small and canonical. The broad legacy
+// branch-field sweep is one-shot fallback only; registering every legacy field
+// as onSnapshot caused permission-denied warnings and attendance render storms
+// for Coach accounts when rules/site cache were out of sync.
+const COACH_PROFILE_BRANCH_LIVE_FIELDS = Object.freeze([
+    'branch', 'branchCode', 'coachBranch', 'branchName', 'facility', 'base', 'coso', 'coSo'
+]);
+
+function _coachProfileQuerySpecs(context = _ctx, options = {}) {
     const branch = _coachBranch(context);
     if (!branch) return [];
     const aliases = _coachBranchAliases(context);
@@ -209,7 +220,8 @@ function _coachProfileQuerySpecs(context = _ctx) {
     };
     const specs = [];
     const seen = new Set();
-    COACH_PROFILE_BRANCH_FIELDS.forEach(field => {
+    const fieldList = Array.isArray(options.fields) && options.fields.length ? options.fields : COACH_PROFILE_BRANCH_FIELDS;
+    fieldList.forEach(field => {
         (valuesByField[field] || []).forEach(value => {
             const v = String(value || '').trim();
             if (!v) return;
@@ -253,10 +265,20 @@ function _syncLegacy() {
  */
 function _invalidateAll(reason) {
     if (_isCoachContext()) {
-        if (typeof window.invalidateByDomain === 'function') window.invalidateByDomain('attendance', reason);
-        if (typeof window.renderAttendanceList === 'function') {
-            Promise.resolve().then(() => window.renderAttendanceList()).catch(() => {});
-        }
+        // Phase 4K-6V4D9: coalesce Coach roster invalidations. Multiple branch
+        // queries can resolve in the same second; rendering attendance for each
+        // snapshot produced RenderStormWarning without adding new data value.
+        _state.coachPendingInvalidateReason = reason || _state.coachPendingInvalidateReason || 'coach-profile-update';
+        if (_state.coachInvalidateTimer) return;
+        _state.coachInvalidateTimer = setTimeout(() => {
+            const finalReason = _state.coachPendingInvalidateReason || reason || 'coach-profile-update';
+            _state.coachPendingInvalidateReason = '';
+            _state.coachInvalidateTimer = null;
+            if (typeof window.invalidateByDomain === 'function') window.invalidateByDomain('attendance', finalReason);
+            if (typeof window.renderAttendanceList === 'function') {
+                Promise.resolve().then(() => window.renderAttendanceList()).catch(() => {});
+            }
+        }, 80);
         return;
     }
     // [GITHUB-FIX] Task 5: Dùng invalidateLists cho tất cả student lists nếu có
@@ -622,59 +644,17 @@ export function mountActiveProfilesListener(context) {
         }
     );
 
-    // Phase 4K-6V4D7: Coach also reads every legacy branch field/alias.
-    // Root cause of the remaining attendance-empty bug: Firestore could store the
-    // assigned branch in `branchName`, `branchCode`, `coSo`, etc.; previous builds
-    // queried only `branch`, so the UI had no profiles to render.
-    if (isCoach) {
-        const specs = _coachProfileQuerySpecs(context).filter(spec => !(spec.field === 'branch' && spec.value === coachBranch));
-        specs.forEach((spec, index) => {
-            const aliasKey = key + ':field:' + index + ':' + String(spec.field + '_' + spec.value).replace(/[^A-Za-z0-9_-]/g, '_');
-            _state.coachLegacyListenerKey = _state.coachLegacyListenerKey || aliasKey;
-            if (!_state.coachAliasListenerKeys.includes(aliasKey)) _state.coachAliasListenerKeys.push(aliasKey);
-            window.safeRegisterSnapshot(
-                aliasKey,
-                () => {
-                    const aliasQuery = fbQuery(profRef, fbWhere(spec.field, '==', spec.value));
-                    return fbOnSnapshot(
-                        aliasQuery,
-                        (snap) => {
-                            if (typeof window.recordFirestoreSnapshotAttribution === 'function') {
-                                window.recordFirestoreSnapshotAttribution('profiles.activeCoachBranchAliasListener', snap, {
-                                    initial: true,
-                                    reason: 'coach-branch-field-alias-compat',
-                                    field: spec.field,
-                                    value: spec.value
-                                });
-                            }
-                            if (window.markListenerSnapshot) window.markListenerSnapshot(aliasKey);
-                            const aliasMap = {};
-                            snap.forEach(d => {
-                                const id = d.id.trim();
-                                if (!id) return;
-                                const data = d.data();
-                                if (classifyProfileStatus(data) !== 'quit') aliasMap[id] = data;
-                            });
-                            _state.coachAliasActiveMaps[aliasKey] = aliasMap;
-                            _state.coachLegacyActiveMap = Object.assign({}, ...Object.values(_state.coachAliasActiveMaps || {}));
-                            const merged = _mergedCoachActiveMap();
-                            setActiveProfiles(merged, 'coach-active-branch-field-alias-snapshot');
-                            _syncLegacy();
-                            _state.activeListenerMounted = true;
-                            _state.lastProfilesMode = 'coach-active-canonical-plus-branch-fields';
-                            _invalidateAll('coach-active-branch-field-alias-snapshot');
-                            _updateWindowMetrics();
-                        },
-                        (err) => {
-                            _state.activeQueryErrorCount++;
-                            console.warn('[ProfilesListener] Coach branch field query failed:', spec.field + '=' + spec.value, err.code || err.message);
-                        }
-                    );
-                },
-                { owner: 'students', scope: 'global', tabId: null, reason: 'coach-branch-field-alias-compat-4K-6V4D7' }
-            );
-        });
+    // Phase 4K-6V4D9: do not open live onSnapshot listeners for every legacy
+    // branch field. Use one guarded one-shot fallback after the canonical listener
+    // mounts. This keeps Coach roster recovery branch-scoped while preventing
+    // persistent permission-denied warning spam and render storms.
+    if (isCoach && !_state.coachBranchFallbackScheduled) {
+        _state.coachBranchFallbackScheduled = true;
+        setTimeout(() => {
+            loadCoachBranchProfilesFallback('coach-branch-legacy-one-shot-after-canonical');
+        }, 120);
     }
+
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -935,7 +915,15 @@ export async function loadCoachBranchProfilesFallback(reason, contextOverride) {
         snapshots.forEach(item => {
             if (item.error) {
                 queryErrors++;
-                console.warn('[ProfilesFallback] Coach branch-field query failed:', item.spec && (item.spec.field + '=' + item.spec.value), item.error && (item.error.code || item.error.message) || item.error);
+                const errCode = item.error && (item.error.code || item.error.message) || item.error;
+                // Permission-denied on optional legacy fields is expected when older
+                // rules are still deployed or the configured branch name is not an
+                // exact match. Do not warn users; keep diagnostics in debug only.
+                if (String(errCode || '').indexOf('permission-denied') === -1) {
+                    console.warn('[ProfilesFallback] Coach branch-field query failed:', item.spec && (item.spec.field + '=' + item.spec.value), errCode);
+                } else {
+                    console.debug?.('[ProfilesFallback] Optional coach branch-field denied:', item.spec && (item.spec.field + '=' + item.spec.value));
+                }
                 return;
             }
             item.snap.forEach(d => {

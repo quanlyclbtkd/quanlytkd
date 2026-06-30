@@ -30,7 +30,7 @@ const main = read('js/main.js');
 const index = read('index.html');
 const pkg = read('package.json');
 
-const build = 'coach-attendance-auth-roster-final-recovery-20260630-v4d8';
+const build = 'coach-attendance-warning-cleanup-20260630-v4d9';
 
 check('index.html cache-busts app.js/main.js to V4D1A',
   index.includes(`app.js?v=${build}`) && index.includes(`./js/main.js?v=${build}`));
