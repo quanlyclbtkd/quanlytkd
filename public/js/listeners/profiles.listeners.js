@@ -539,7 +539,7 @@ export function mountActiveProfilesListener(context) {
                 // so status+branch queries silently under-load. Branch-only remains
                 // rules-safe for Coach and we filter quit profiles locally.
                 activeQuery = isCoach
-                    ? fbQuery(profRef, fbWhere('branch', '==', coachBranch))
+                    ? fbQuery(profRef, fbWhere('branchCode', '==', coachBranch))
                     : fbQuery(profRef, statusConstraint);
             } catch (qErr) {
                 console.warn('[ProfilesListener] Build query lỗi:', qErr.message, '— fallback');
@@ -589,7 +589,7 @@ export function mountActiveProfilesListener(context) {
                         if (_pG4k && _pQ4k && _pL4k && profRef) {
                             // [GITHUB-FIX Task 4] Await fallback + invalidate sau khi hoàn tất
                             const _probeQuery = isCoach
-                                ? _pQ4k(profRef, fbWhere('branch', '==', coachBranch), _pL4k(1))
+                                ? _pQ4k(profRef, fbWhere('branchCode', '==', coachBranch), _pL4k(1))
                                 : _pQ4k(profRef, _pL4k(1));
                             _pG4k(_probeQuery).then(async function(_probe) {
                                 if (typeof window.recordFirestoreReadAttribution === 'function') {
@@ -736,6 +736,8 @@ export async function loadQuitProfilesIfNeeded(reason, contextOverride) {
 
     try {
         const quitQueries = [];
+        // Phase 4K-6V5: canonical quit query first; legacy status queries remain fallback.
+        quitQueries.push({ label: 'statusKind==quit', query: fbQuery(profRef, fbWhere('statusKind', '==', 'quit')) });
         if (quitValues.length === 1) {
             quitQueries.push({ label: 'status==quit', query: fbQuery(profRef, fbWhere('status', '==', quitValues[0])) });
         } else {

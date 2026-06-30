@@ -79,11 +79,11 @@ check('Programmatic tab switching is forced back to Attendance in all controller
 check('Coach profile listener key contains role and branch',
   profiles.includes("':coach:' + coachBranch") && profiles.includes("':admin'"));
 check('Coach profile query is branch-scoped and locally filters status',
-  profiles.includes("fbQuery(profRef, fbWhere('branch', '==', coachBranch))") &&
+  (profiles.includes("fbQuery(profRef, fbWhere('branch', '==', coachBranch))") || profiles.includes("fbQuery(profRef, fbWhere('branchCode', '==', coachBranch))")) &&
   profiles.includes('legacy active profiles have missing/old status values') &&
   profiles.includes("classifyProfileStatus(data) !== 'quit'"));
 check('Coach zero probe and fallback are branch-scoped',
-  profiles.includes("fbWhere('branch', '==', coachBranch), _pL4k(1)") &&
+  (profiles.includes("fbWhere('branch', '==', coachBranch), _pL4k(1)") || profiles.includes("fbWhere('branchCode', '==', coachBranch), _pL4k(1)")) &&
   profiles.includes('function _coachProfileQuerySpecs') &&
   profiles.includes("fbWhere(spec.field, '==', spec.value)") &&
   (profiles.includes('_coachBranchAliases(ctx)') || profiles.includes('_coachBranchAliases(context)')));

@@ -1,7 +1,7 @@
 rules_version = '2';
 // ══════════════════════════════════════════════════════════════════════════════
 // Firestore Security Rules — Taekwondo Club Management SaaS
-// Phase 4K-6V4D12 — SuperAdmin access recovery
+// Phase 4K-6V5 — Canonical Profile Status + Branch Index Boundary
 //
 // Mục tiêu:
 //   • Client UI không còn là lớp bảo vệ duy nhất.
@@ -11,7 +11,7 @@ rules_version = '2';
 //
 // Tương thích dữ liệu cũ:
 //   • CS1 và "Mặc định" được xem là cùng cơ sở chính trong giai đoạn chuyển tiếp.
-//   • Dữ liệu mới phải ghi branch chuẩn CS1…CS10.
+//   • Dữ liệu mới phải ghi branch chuẩn CS1…CS10 và statusKind/isQuit canonical.
 //
 // BẮT BUỘC: chạy Firebase Rules Emulator trước khi deploy production.
 // ══════════════════════════════════════════════════════════════════════════════

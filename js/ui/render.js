@@ -59,7 +59,7 @@ import {
     computeAndCacheStudents,
     getStudentsSummary,
     getStudentsCachedHtml,
-} from './render/computation/studentsRenderer.js?v=superadmin-access-recovery-20260630-v4d12';
+} from './render/computation/studentsRenderer.js?v=canonical-profile-status-branch-boundary-20260701-v5';
 import {
     computeAndCacheInventory,
     getCachedLiveInvMap,

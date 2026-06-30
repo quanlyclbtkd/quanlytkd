@@ -13,7 +13,7 @@ const publicIndex = read('public/index.html');
 let pass=0, fail=0;
 function check(name, ok){ if(ok){pass++; console.log('✅',name);} else {fail++; console.error('❌',name);} }
 console.log('\n=== Phase 4K-6V4D11 — Attendance Excel + TX Delete Reconcile ===\n');
-const build='superadmin-access-recovery-20260630-v4d12';
+const build='canonical-profile-status-branch-boundary-20260701-v5';
 check('index cache-bust points app/main to V4D11', index.includes(`app.js?v=${build}`) && index.includes(`./js/main.js?v=${build}`));
 check('main lazy-loads finance module with V4D11 cache-bust and keeps report facade registered', main.includes(`./modules/finance.js?v=${build}`) && main.includes('registerReportExportFacade'));
 check('Firebase bootstrap imports documentId()', index.includes('documentId } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"'));

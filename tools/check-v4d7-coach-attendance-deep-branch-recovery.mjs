@@ -18,7 +18,7 @@ const files = {
 let pass = 0, fail = 0;
 function check(name, ok) { if (ok) { pass++; console.log('✅', name); } else { fail++; console.error('❌', name); } }
 console.log('\n=== Phase 4K-6V4D7 — Coach Attendance Deep Branch Recovery ===\n');
-const build = 'superadmin-access-recovery-20260630-v4d12';
+const build = 'canonical-profile-status-branch-boundary-20260701-v5';
 check('Entrypoints cache-bust to V4D7', files.index.includes(`app.js?v=${build}`) && files.index.includes(`./js/main.js?v=${build}`));
 check('Main imports attendance/profiles with V4D7 cache-bust', files.main.includes(`./modules/attendance.js?v=${build}`) && files.main.includes(`./listeners/profiles.listeners.js?v=${build}`));
 check('Configured branch display names normalize to canonical codes', files.branchIdentity.includes('function _codeFromConfiguredName') && files.branchIdentity.includes('opts.config || opts.clubConfig'));

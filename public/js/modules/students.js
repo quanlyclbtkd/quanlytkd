@@ -28,7 +28,7 @@
  */
 
 import { getLocalToday, formatDate, formatMonth, formatMonthCompact, addMonthsToYYYYMM } from '../utils/format.js';
-import { StudentService } from '../services/students.service.js?v=superadmin-access-recovery-20260630-v4d12';
+import { StudentService } from '../services/students.service.js?v=canonical-profile-status-branch-boundary-20260701-v5';
 
 // ════════════════════════════════════════════════════════════════
 // BRIDGE HELPERS — đọc state từ app.js qua window.__store
@@ -510,12 +510,13 @@ export function initStudents() {
     window.openProfile = (name) => {
         const p = _profiles()[name];
         if (!p) return;
+        try { if (typeof window.selfHealProfileCanonicalFields === 'function') window.selfHealProfileCanonicalFields(name, p, 'module-open-profile-modal'); } catch (_) {}
 
         document.getElementById('m_old_name').value    = name;
         document.getElementById('m_name_input').value  = name;
         document.getElementById('m_memberId').value    = p.memberId || '';
         document.getElementById('m_status').value      = p.status || 'active';
-        document.getElementById('m_branch').value      = p.branch || 'CS1';
+        document.getElementById('m_branch').value      = p.branchCode || p.branch || 'CS1';
         document.getElementById('m_belt').value        = p.belt || 'Đai trắng - Cấp 10';
         document.getElementById('m_dob').value         = p.dob || '';
         document.getElementById('m_gender').value      = p.gender || '';
@@ -886,7 +887,7 @@ export function initStudents() {
             const _pKind = typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus(p) : (p.status === 'quit' ? 'quit' : 'active');
             if (_pKind !== 'active') return;
             if (p.feeExempt) return;
-            if (!isSingleBranch && selBranch !== 'all' && p.branch !== selBranch) return;
+            if (!isSingleBranch && selBranch !== 'all' && !(window.debtBranchMatchesFilter ? window.debtBranchMatchesFilter(p.branchCode || p.branch || p.branchName || '', selBranch) : (p.branchCode || p.branch) === selBranch)) return;
 
             let owedMonths = [];
             if (typeof window.getChargeableTuitionMonths === 'function') {
@@ -1040,7 +1041,7 @@ export function initStudentPagination() {
         renderPaginationControls, PAGE_SIZE,
     }) => {
         import('./students.js').then(() => {}); // no-op — chỉ để IDE không warn
-        import('../services/students.service.js?v=superadmin-access-recovery-20260630-v4d12').then(({ StudentService }) => {
+        import('../services/students.service.js?v=canonical-profile-status-branch-boundary-20260701-v5').then(({ StudentService }) => {
 
             const store = window.__store;
             if (!store) { console.warn('[pagination/students] __store chưa sẵn sàng'); return; }
@@ -2627,7 +2628,10 @@ window.syncStudentStatusLocal = function syncStudentStatusLocal(name, updateData
         if (!window.__store.profiles) window.__store.profiles = {};
 
         const oldProfile = window.__store.profiles[key] || {};
-        const nextProfile = Object.assign({}, oldProfile, updateData);
+        const canonicalUpdate = (typeof window.canonicalizeProfileForWrite === 'function' && (updateData.status !== undefined || updateData.statusKind !== undefined || updateData.branch !== undefined || updateData.branchCode !== undefined))
+            ? window.canonicalizeProfileForWrite(Object.assign({}, oldProfile, updateData), 'sync-student-status-local', { forceStatus: true, preserveBranch: true })
+            : updateData;
+        const nextProfile = Object.assign({}, oldProfile, canonicalUpdate);
         window.__store.profiles[key] = nextProfile;
 
         const classify = typeof window.classifyProfileStatus === 'function'
@@ -2927,7 +2931,9 @@ window.markStudentQuitFromDebt = async function(event, name, month) {
                 ? window.getLocalToday()
                 : new Date().toISOString().slice(0, 10);
 
-            var patch = { status: 'quit', quitDate: quitDate };
+            var patch = (typeof window.canonicalizeProfileForWrite === 'function')
+                ? window.canonicalizeProfileForWrite({ status: 'quit', quitDate: quitDate }, 'debt-mark-student-quit-module', { forceStatus: true, preserveBranch: true })
+                : { status: 'quit', statusKind: 'quit', isQuit: true, quitDate: quitDate, updatedAt: Date.now() };
 
             const svc = window.StudentService || StudentService;
 
@@ -3078,7 +3084,7 @@ window.debugDebtActionState = function(name) {
         ? normalizedPaidMonthsRaw.filter(function(m) { return m > normalizedPaidUntilForTrust; })
         : [];
     var branchFilter = (document.getElementById('filterBranch') && document.getElementById('filterBranch').value) || 'all';
-    var branchRaw = profile ? (profile.branch || 'CS1') : '';
+    var branchRaw = profile ? (profile.branchCode || profile.branch || 'CS1') : '';
     var branchPass = !profile ? false : (typeof window.debtBranchMatchesFilter === 'function'
         ? window.debtBranchMatchesFilter(branchRaw, branchFilter)
         : (branchFilter === 'all' || branchRaw === branchFilter));

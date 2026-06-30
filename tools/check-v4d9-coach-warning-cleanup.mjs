@@ -17,7 +17,7 @@ const files = {
 let pass = 0, fail = 0;
 function check(name, ok) { if (ok) { pass++; console.log('✅', name); } else { fail++; console.error('❌', name); } }
 console.log('\n=== Phase 4K-6V4D9 — Coach Warning Cleanup ===\n');
-const build = 'superadmin-access-recovery-20260630-v4d12';
+const build = 'canonical-profile-status-branch-boundary-20260701-v5';
 check('Entrypoints and module cache bust use V4D9', files.index.includes(`app.js?v=${build}`) && files.index.includes(`./js/main.js?v=${build}`) && files.main.includes(build));
 check('Finance lazy module variables use var to avoid TDZ before global ownership adoption', files.main.includes('var __financeModulePromise = null;') && files.main.includes('var __financeModule = null;'));
 check('Finance bootstrap remains lazy and coach attendance-only skips finance', files.main.includes('ensureFinanceModuleLoaded') && files.main.includes('Skip finance module for Coach attendance-only session'));

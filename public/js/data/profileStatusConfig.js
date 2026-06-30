@@ -216,7 +216,17 @@ export function getQuitStatusValues() {
 export function classifyProfileStatus(profile) {
     if (!profile) return 'active';
 
-    // ── 1. Boolean/date quit signals — kiểm tra trước status string ──────────
+    // ── Phase 4K-6V5: canonical fields are the primary read boundary. ───────
+    const _statusKind = String(profile.statusKind ?? '').toLowerCase().trim();
+    if (_statusKind === 'quit') return 'quit';
+    if (_statusKind === 'trial') return 'active';
+    if (_statusKind === 'active') {
+        // A canonical active doc remains active unless a canonical quit flag exists.
+        if (profile.isQuit === true) return 'quit';
+        return 'active';
+    }
+
+    // ── 1. Boolean/date quit signals — legacy fallback only when canonical is missing.
     // Legacy profiles without status are treated as active unless explicitly quit.
     if (profile.quit === true || profile.stopped === true || profile.isQuit === true) return 'quit';
     if (profile.active === false || profile.isActive === false) return 'quit';

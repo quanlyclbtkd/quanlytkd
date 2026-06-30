@@ -33,6 +33,24 @@ function _txColRef() {
     return (window.__store || {}).colRef;
 }
 
+function _profileWriteNeedsCanonical(data) {
+    if (!data || typeof data !== 'object') return false;
+    return ['status','statusKind','isQuit','branch','branchCode','branchName','coachBranch','facility','base','coso','coSo','location'].some(k => Object.prototype.hasOwnProperty.call(data, k));
+}
+
+function _canonicalProfileData(data, reason, options) {
+    const payload = data && typeof data === 'object' ? { ...data } : {};
+    if (typeof window.canonicalizeProfileForWrite === 'function') {
+        return window.canonicalizeProfileForWrite(payload, reason || 'student-service-profile-write', options || {});
+    }
+    const status = String(payload.status || payload.statusKind || 'active').toLowerCase();
+    payload.statusKind = status === 'quit' ? 'quit' : (status === 'trial' ? 'trial' : 'active');
+    payload.isQuit = payload.statusKind === 'quit';
+    if (payload.branch || payload.branchCode) payload.branchCode = payload.branchCode || payload.branch || 'CS1';
+    payload.updatedAt = Date.now();
+    return payload;
+}
+
 // ════════════════════════════════════════════════════════════════
 // StudentService — Singleton export
 // ════════════════════════════════════════════════════════════════
@@ -151,7 +169,8 @@ export const StudentService = {
      */
     async createProfile(key, data) {
         const { setDoc } = _sdk();
-        await setDoc(_profRef(key), data);
+        const payload = _canonicalProfileData(data, 'student-service-create-profile', { forceStatus: true, forceBranch: false, forceBranchIndex: true });
+        await setDoc(_profRef(key), payload);
     },
 
     // ── UPDATE ──────────────────────────────────────────────────
@@ -163,7 +182,10 @@ export const StudentService = {
      */
     async updateProfile(name, data) {
         const { setDoc } = _sdk();
-        await setDoc(_profRef(name), data, { merge: true });
+        const payload = _profileWriteNeedsCanonical(data)
+            ? _canonicalProfileData(data, 'student-service-update-profile', { forceStatus: true, forceBranch: false })
+            : data;
+        await setDoc(_profRef(name), payload, { merge: true });
     },
 
     /**
@@ -173,7 +195,10 @@ export const StudentService = {
      */
     async patchProfile(name, data) {
         const { updateDoc } = _sdk();
-        await updateDoc(_profRef(name), data);
+        const payload = _profileWriteNeedsCanonical(data)
+            ? _canonicalProfileData(data, 'student-service-patch-profile', { forceStatus: true, forceBranch: false })
+            : data;
+        await updateDoc(_profRef(name), payload);
     },
 
     /**
@@ -235,8 +260,9 @@ export const StudentService = {
 
         const batch = writeBatch(db);
 
-        // Set doc mới
-        batch.set(doc(db, 'clubs', clubId, 'profiles', newName), newData);
+        // Set doc mới — always write canonical profile read indexes.
+        const canonicalNewData = _canonicalProfileData(newData, 'student-service-rename-profile', { forceStatus: true, forceBranch: false, forceBranchIndex: true });
+        batch.set(doc(db, 'clubs', clubId, 'profiles', newName), canonicalNewData);
         // Delete doc cũ
         batch.delete(doc(db, 'clubs', clubId, 'profiles', oldName));
 

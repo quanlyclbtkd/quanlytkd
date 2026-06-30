@@ -44,7 +44,7 @@ import {
 import {
     computeAndCacheStudents,
     getStudentsSummary,
-} from './computation/studentsRenderer.js?v=superadmin-access-recovery-20260630-v4d12';
+} from './computation/studentsRenderer.js?v=canonical-profile-status-branch-boundary-20260701-v5';
 import {
     computeAndCacheInventory,
     getCachedUnpaidInvCount,

@@ -92,6 +92,9 @@
 
     window.classifyProfileStatus = window.classifyProfileStatus || function(profile) {
         const p = profile || {};
+        const sk = String(p.statusKind == null ? '' : p.statusKind).toLowerCase().trim();
+        if (sk === 'quit') return 'quit';
+        if (sk === 'trial' || sk === 'active') return p.isQuit === true ? 'quit' : 'active';
         if (p.quit === true || p.stopped === true || p.isQuit === true) return 'quit';
         if (p.active === false || p.isActive === false) return 'quit';
         const dateFields = ['quitDate','stoppedDate','leftDate','inactiveDate','nghiDate','ngayNghi'];
@@ -107,13 +110,15 @@
     };
 // Danh mục kho tùy chỉnh — được load từ Firestore khi đăng nhập thành công
 window.invCustomCategories = [];
-    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V4D8'; window.APP_PATCH_VERSION = '4K-6V4D9-coach-attendance-warning-cleanup-20260630'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
+    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V5'; window.APP_PATCH_VERSION = '4K-6V5-canonical-profile-status-branch-boundary-20260701'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
     // Compatibility regression marker retained for Phase 4K-6Q gate: APP_PATCH_VERSION = '4K-6Q-mobile-filter-currency-stability-20260615'
     window.__appLoaded = true; // [Phase 2a] main.js kiểm tra để bỏ qua loadLegacyApp()
     window.__store = window.__store || {}; // [Phase 2b] Bridge object cho module system
     // Phase 4K-6V3A canonical transaction boundary; fallback preserves legacy/file mode.
     const _canonicalTxPayload = (d, r) => typeof window.canonicalizeTransactionForWrite === 'function' ? window.canonicalizeTransactionForWrite(d, r || 'app-transaction-write') : (d && typeof d === 'object' ? { ...d } : d);
     const _canonicalTxPatch = (d, e, r) => typeof window.canonicalizeTransactionPatch === 'function' ? window.canonicalizeTransactionPatch(d, e, r || 'app-transaction-patch') : (d && typeof d === 'object' ? { ...d } : d);
+    const _canonicalProfilePayload = (d, r, o) => typeof window.canonicalizeProfileForWrite === 'function' ? window.canonicalizeProfileForWrite(d, r || 'app-profile-write', o || {}) : (d && typeof d === 'object' ? { ...d, statusKind: (d.status === 'quit' ? 'quit' : (d.status === 'trial' ? 'trial' : 'active')), branchCode: _canonicalBranch(d.branch || d.branchCode || 'CS1', 'CS1'), isQuit: d.status === 'quit', updatedAt: Date.now() } : d);
+    const _canonicalProfilePatch = (d, r, o) => typeof window.canonicalizeProfileForWrite === 'function' ? window.canonicalizeProfileForWrite(d, r || 'app-profile-patch', o || {}) : _canonicalProfilePayload(d, r, o);
     // ── Phase 4.0B-4C: App Context Ready state + helper ──────────────────────
     // Idempotent — nếu đã khởi tạo (ví dụ: HMR) thì giữ nguyên generation.
     window.__appContextReadyState = window.__appContextReadyState || {
@@ -3315,7 +3320,7 @@ service cloud.firestore { match /databases/{database}/documents {
                 const p = _dobRaw.split('-');
                 return p.length === 3 ? p[2]+'/'+p[1]+'/'+p[0] : _dobRaw;
             })() : '';
-            const _branchCode = _prof.branch || '';
+            const _branchCode = _prof.branchCode || _prof.branch || '';
             const _branchNum = _branchCode.startsWith('CS') ? parseInt(_branchCode.replace('CS',''),10) : 0;
             const _branchLabel = _branchNum ? (_cfg['branchName' + _branchNum] || ('Cơ sở ' + _branchNum)) : '';
             _resEl.innerHTML = `<div style="background:white;border-radius:14px;overflow:hidden;box-shadow:0 3px 14px rgba(0,51,160,0.1);border:1px solid #e2e8f0;">
@@ -4799,11 +4804,13 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
     window.openProfile = (name) => {
         const p = allProfiles[name];
         if(!p) return;
+        // Phase 4K-6V5: single-profile self-heal only when Admin opens the profile.
+        try { if (typeof window.selfHealProfileCanonicalFields === 'function') window.selfHealProfileCanonicalFields(name, p, 'open-profile-modal'); } catch (_) {}
         document.getElementById('m_old_name').value = name;
         document.getElementById('m_name_input').value = name;
         document.getElementById('m_memberId').value = p.memberId || '';
         document.getElementById('m_status').value = p.status || 'active';
-        document.getElementById('m_branch').value = p.branch || 'CS1';
+        document.getElementById('m_branch').value = p.branchCode || p.branch || 'CS1';
         document.getElementById('m_belt').value = p.belt || 'Đai trắng - Cấp 10';
         document.getElementById('m_dob').value = p.dob || '';
         document.getElementById('m_gender').value = p.gender || '';
@@ -4891,6 +4898,8 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                 updateData.paidUntil = `${ry}-${String(rm).padStart(2, '0')}`;
             }
         }
+        // Phase 4K-6V5: every full profile edit writes canonical read-index fields.
+        updateData = _canonicalProfilePayload(updateData, 'profile-modal-update', { forceStatus: true, forceBranch: true, forceBranchIndex: true, clearQuitDate: newStatus !== 'quit' });
 
         try {
             if (oldName !== newName) {
@@ -5030,7 +5039,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
 
     window.handleQuitOption = (name, month) => {
         if(confirm(`Võ sinh ${name} có tiếp tục tập không?\n- Bấm OK để báo NGHỈ TẬP luôn.\n- Bấm Cancel để chỉ BÁO NGHỈ THÁNG NÀY (miễn học phí tháng ${formatMonth(month)}).`)) {
-            let updateData = { status: 'quit', quitDate: getLocalToday() };
+            let updateData = _canonicalProfilePatch({ status: 'quit', quitDate: getLocalToday() }, 'debt-handle-quit', { forceStatus: true, preserveBranch: true, ensureQuitDate: true });
             setDoc(doc(db, "clubs", currentClubId, "profiles", name), updateData, { merge: true }).then(() => {
                 window.showToast("✅ Đã chuyển trạng thái Nghỉ tập!");
                 // Phase 4K-5A: Sync local store sau khi quit
@@ -5135,7 +5144,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             const _pKind = typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus(p) : (p.status === 'quit' ? 'quit' : 'active');
             if (_pKind !== 'active') return;
             if (p.feeExempt) return;
-            if (!isSingleBranch && selBranch !== 'all' && p.branch !== selBranch) return;
+            if (!isSingleBranch && selBranch !== 'all' && !(window.debtBranchMatchesFilter ? window.debtBranchMatchesFilter(p.branchCode || p.branch || p.branchName || '', selBranch) : (p.branchCode || p.branch) === selBranch)) return;
 
             let owedMonths = [];
             if (typeof window.getChargeableTuitionMonths === 'function') {
@@ -5338,8 +5347,9 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         const _addNickEl = document.getElementById('add_nickname');
         const _addNickVal = _addNickEl ? _addNickEl.value.trim() : '';
         // [SỬA] Dùng _saveKey (không phải name) làm Firestore doc ID để tránh overwrite
-        const _newProfileData = { status: 'active', memberId: memberId, branch, belt: document.getElementById('add_belt').value, dob: document.getElementById('add_dob').value, gender: document.getElementById('add_gender').value, cccd: document.getElementById('add_cccd').value.trim(), phone: document.getElementById('add_phone').value, tuitionFee: document.getElementById('add_fee_default_actual').value, notes: document.getElementById('add_notes').value.trim(), nickname: _addNickVal, trainingDays: trainingDays,
+        let _newProfileData = { status: 'active', memberId: memberId, branch, belt: document.getElementById('add_belt').value, dob: document.getElementById('add_dob').value, gender: document.getElementById('add_gender').value, cccd: document.getElementById('add_cccd').value.trim(), phone: document.getElementById('add_phone').value, tuitionFee: document.getElementById('add_fee_default_actual').value, notes: document.getElementById('add_notes').value.trim(), nickname: _addNickVal, trainingDays: trainingDays,
         trainingShiftId: (document.getElementById('add_shift') ? document.getElementById('add_shift').value : ''), createdAt: joinDate, paidUntil: newPaidUntil, paidMonths: monthsToRecord, tuitionPackageCount: tuitionPkg.packageCount, lastAdmissionTuitionStartMonth: startMonth, lastAdmissionTuitionMonths: monthsToRecord };
+        _newProfileData = _canonicalProfilePayload(_newProfileData, 'add-new-student', { forceStatus: true, forceBranch: true, forceBranchIndex: true });
         // Phase 4.0B-4J-8A: Ghi search index khi thêm võ sinh mới
         if (typeof buildStudentSearchIndex === 'function') {
             Object.assign(_newProfileData, buildStudentSearchIndex(_newProfileData, _saveKey));
@@ -7305,7 +7315,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         let _activeTotalCount = 0, _debtTotalCount = 0, _quitTotalCount = 0;
 
         Object.keys(allProfiles).forEach(name => {
-            const p = allProfiles[name]; let safeBranch = p.branch || "CS1";
+            const p = allProfiles[name]; let safeBranch = p.branchCode || p.branch || "CS1";
             const _joinM = p.createdAt ? p.createdAt.substring(0, 7) : "2000-01";
             const _quitM = p.quitDate ? p.quitDate.substring(0, 7) : null;
             if (_joinM === selMonth) m_new++;
@@ -7564,7 +7574,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             if((typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus(p) : p.status) !== 'active' || (p.belt || 'Đai trắng - Cấp 10') !== filterBelt) return;
 
             let isPaid = paidStudents[name]; let safeName = name.replace(/'/g, "\\'");
-            let branchTdHTML = isSingleBranch ? '' : `<td class="col-branch"><span class="badge bg-slate-100 text-slate-600 border border-slate-200">${window.getBranchNameDisplay(p.branch || 'CS1')}</span></td>`;
+            let branchTdHTML = isSingleBranch ? '' : `<td class="col-branch"><span class="badge bg-slate-100 text-slate-600 border border-slate-200">${window.getBranchNameDisplay(p.branchCode || p.branch || 'CS1')}</span></td>`;
             let statusBadge = isPaid ? `<span class="badge badge-active">Đã nộp (${Number(isPaid.amount).toLocaleString()} đ)</span>` : `<span class="badge badge-quit">Chưa nộp</span>`;
             let actionBtn = isPaid ? (window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-slate-200 hover:bg-slate-300 text-slate-700" onclick="cancelExamPayment('${isPaid.id}', '${safeName}')">Hủy</button>` : '') : (window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-orange-500 hover:bg-orange-600 text-white shadow-sm cursor-pointer" onclick="quickCollectExam('${safeName}')">💰 Thu phí</button>` : '');
 
@@ -8370,7 +8380,7 @@ window.updateMultiItemAutoFee = () => {
     const infoCard = document.getElementById('mi_profile_info');
     if (profile && name && infoCard) {
         document.getElementById('mi_profile_belt').textContent = profile.belt || 'Chưa có đai';
-        document.getElementById('mi_profile_branch').textContent = window.getBranchNameDisplay ? window.getBranchNameDisplay(profile.branch) : (profile.branch || '');
+        document.getElementById('mi_profile_branch').textContent = window.getBranchNameDisplay ? window.getBranchNameDisplay(profile.branchCode || profile.branch) : (profile.branchCode || profile.branch || '');
         document.getElementById('mi_profile_fee').textContent = baseFee > 0 ? baseFee.toLocaleString('vi-VN') + ' ₫/tháng' : 'Chưa cài';
         infoCard.style.display = 'flex';
         // Không refresh badges khi HLV vừa đổi gói học phí thủ công, vì _refreshMiHistoryBadges có thể tự chọn lại option thu nợ/default.
@@ -9343,7 +9353,7 @@ window.processMultiItem = async (action) => {
     const name = document.getElementById('mi_name').value.trim();
     if(!name) return alert('Vui lòng nhập tên võ sinh!');
     const profile = allProfiles[name] || {};
-    const branch = profile.branch || document.getElementById('branch').value || 'CS1';
+    const branch = profile.branchCode || profile.branch || document.getElementById('branch').value || 'CS1';
     const tuitionMonth = document.getElementById('mi_tuition_month').value;
     const pkg = Number(document.getElementById('mi_tuition_pkg').value) || 1;
     const tuition = Number(document.getElementById('mi_tuition_actual').value) || 0;
@@ -10664,7 +10674,7 @@ window.buildCanonicalExamPaymentLedger = function(options) {
             targetBelt: typeof window.getExamTargetBeltFromTx === 'function'
                 ? window.getExamTargetBeltFromTx(t, profile)
                 : (t.examTargetBelt || ''),
-            branch: t.branch || profile.branch || 'CS1',
+            branch: t.branch || profile.branchCode || profile.branch || 'CS1',
             sourceTx: t
         };
 
@@ -10830,7 +10840,7 @@ window.buildCanonicalExamBranchLedger = function(options) {
     ledger.records.forEach(function(r) {
         var rawBranch =
             r.branch ||
-            (r.profile && r.profile.branch) ||
+            (r.profile && (r.profile.branchCode || r.profile.branch)) ||
             (r.sourceTx && r.sourceTx.branch) ||
             'CS1';
 

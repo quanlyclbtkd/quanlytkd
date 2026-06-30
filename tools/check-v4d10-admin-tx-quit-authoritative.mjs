@@ -4,7 +4,7 @@ import path from 'node:path';
 
 const root = process.cwd();
 const read = (rel) => fs.readFileSync(path.join(root, rel), 'utf8');
-const version = 'superadmin-access-recovery-20260630-v4d12';
+const version = 'canonical-profile-status-branch-boundary-20260701-v5';
 
 const files = {
   index: read('index.html'),

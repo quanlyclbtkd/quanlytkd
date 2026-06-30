@@ -16,11 +16,11 @@ function includes(file, text) {
 check('canonical helper file exists', existsSync(resolve(root, 'js/core/tuitionDebtCanonical.js')));
 check('index loads tuitionDebtCanonical before app.js', (() => {
   const html = readFileSync(resolve(root, 'index.html'), 'utf8');
-  const helperPos = html.indexOf('js/core/tuitionDebtCanonical.js?v=superadmin-access-recovery-20260630-v4d12');
-  const appPos = html.indexOf('app.js?v=superadmin-access-recovery-20260630-v4d12');
+  const helperPos = html.indexOf('js/core/tuitionDebtCanonical.js?v=canonical-profile-status-branch-boundary-20260701-v5');
+  const appPos = html.indexOf('app.js?v=canonical-profile-status-branch-boundary-20260701-v5');
   return helperPos > -1 && appPos > -1 && helperPos < appPos;
 })());
-check('app.js cache-bust updated to current runtime build', includes('index.html', 'app.js?v=superadmin-access-recovery-20260630-v4d12'));
+check('app.js cache-bust updated to current runtime build', includes('index.html', 'app.js?v=canonical-profile-status-branch-boundary-20260701-v5'));
 check('getChargeableTuitionMonths delegates to computeTuitionDebtCanonical', includes('app.js', 'window.computeTuitionDebtCanonical') && includes('app.js', 'canonical.chargeableMonths'));
 check('debugDebtTrace exported', includes('js/core/tuitionDebtCanonical.js', 'window.debugDebtTrace = debugDebtTrace'));
 check('auditTuitionDebtCanonicalProfiles exported', includes('js/core/tuitionDebtCanonical.js', 'window.auditTuitionDebtCanonicalProfiles'));

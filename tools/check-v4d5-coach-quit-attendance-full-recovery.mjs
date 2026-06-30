@@ -16,16 +16,16 @@ const files = {
   publicRenderStudents: read('public/js/ui/render/renderStudents.js'),
   publicFinance: read('public/js/modules/finance.js'),
 };
-const BUILD = 'superadmin-access-recovery-20260630-v4d12';
+const BUILD = 'canonical-profile-status-branch-boundary-20260701-v5';
 let pass = 0, fail = 0;
 function check(name, ok) { if (ok) { pass++; console.log('✅', name); } else { fail++; console.error('❌', name); } }
 console.log('\n=== Phase 4K-6V4D7 — Coach Login + Quit Full List Recovery ===\n');
 check('index/app/main cache-bust to V4D5', files.index.includes(`app.js?v=${BUILD}`) && files.index.includes(`./js/main.js?v=${BUILD}`) && files.main.includes(`profiles.listeners.js?v=${BUILD}`));
-check('APP_PATCH_VERSION marks V4D5', (files.app.includes("APP_PATCH_VERSION = '4K-6V4D7-coach-quit-attendance-full-recovery-20260630'") || files.app.includes("APP_PATCH_VERSION = '4K-6V4D9-coach-attendance-warning-cleanup-20260630'")) && (files.main.includes("APP_PATCH_VERSION = '4K-6V4D7-coach-quit-attendance-full-recovery-20260630'") || files.main.includes("APP_PATCH_VERSION = '4K-6V4D9-coach-attendance-warning-cleanup-20260630'")));
+check('APP_PATCH_VERSION marks V4D5', files.app.includes("APP_PATCH_VERSION = '4K-6V5-canonical-profile-status-branch-boundary-20260701'") && files.main.includes("APP_PATCH_VERSION = '4K-6V5-canonical-profile-status-branch-boundary-20260701'"));
 check('legacy app has robust classifier before module availability', files.app.includes('window.classifyProfileStatus = window.classifyProfileStatus || function(profile)') && files.app.includes("'quitDate','stoppedDate','leftDate','inactiveDate','nghiDate','ngayNghi'"));
 check('legacy app no longer empties coach profiles when module unavailable', files.app.includes('using branch-field safe legacy fallback') && files.app.includes('onSnapshot(_q') && files.app.includes("where(_spec.field, '==', _spec.value)"));
 check('legacy app coach fallback filters quit locally and repaints attendance', files.app.includes("window.classifyProfileStatus(_data)") && files.app.includes("_kind!=='quit'") && files.app.includes('window.renderAttendanceList'));
-check('coach listener primary query is branch-only', files.profiles.includes("activeQuery = isCoach\n                    ? fbQuery(profRef, fbWhere('branch', '==', coachBranch))") && files.profiles.includes('so status+branch queries silently under-load'));
+check('coach listener primary query is branch-only', files.profiles.includes("activeQuery = isCoach\n                    ? fbQuery(profRef, fbWhere('branchCode', '==', coachBranch))") && files.profiles.includes('so status+branch queries silently under-load'));
 check('coach primary snapshot filters quit locally', files.profiles.includes('if (!isCoach || classifyProfileStatus(data) !== \'quit\') activeMap[id] = data;'));
 check('coach alias recovery is branch-field-only and no longer live listener storm', files.profiles.includes("fbWhere(spec.field, '==', spec.value)") && files.profiles.includes('coach-branch-legacy-one-shot-after-canonical') && !files.profiles.includes("const aliasQuery = fbQuery(profRef, statusConstraint, fbWhere('branch', '==', alias));"));
 check('coach alias recovery filters quit locally before merge', files.profiles.includes("if (classifyProfileStatus(data) !== 'quit') activeMap[id] = data;") || files.profiles.includes("if (classifyProfileStatus(data) !== 'quit') aliasMap[id] = data;"));
