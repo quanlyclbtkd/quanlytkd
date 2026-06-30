@@ -1889,6 +1889,7 @@ service cloud.firestore {
                 } else {
                     scheduleRender();
                 }
+                if (_coachAttendanceOnly) { const _refreshCoachRoster = function() { try { if (typeof window.ensureCoachBranchProfilesReady === 'function') window.ensureCoachBranchProfilesReady('settings-snapshot-branch-aliases'); else if (typeof window.loadCoachBranchProfilesFallback === 'function') window.loadCoachBranchProfilesFallback('settings-snapshot-branch-aliases'); } catch (_coachReadyErr) { console.warn('[CoachAttendance] settings-ready roster reconcile failed:', _coachReadyErr && (_coachReadyErr.code || _coachReadyErr.message) || _coachReadyErr); } }; setTimeout(_refreshCoachRoster, 0); setTimeout(_refreshCoachRoster, 700); }
                 // Coach attendance-only không đọc danh mục Kho.
                 if (!_coachAttendanceOnly && window.RoleReadBoundary?.canMount?.('inventory.categories', { reason: 'settings-snapshot' }) !== false) {
                     window.loadInvCategories().catch(e => console.warn('loadInvCategories error:', e));
@@ -9998,7 +9999,6 @@ window.processMultiItem = async (action) => {
         listEl.innerHTML = html;
         bannerEl.style.display = 'block';
     };
-
     // Kiểm tra thông báo chưa đọc khi Admin mở trang (getDocs — 1 lần)
     window.checkAdminNotifications = async () => {
         if (!currentClubId || (window.userRole !== 'admin' && window.userRole !== 'super_admin')) return;
@@ -10018,7 +10018,6 @@ window.processMultiItem = async (action) => {
             _renderNotifBanner(docs);
         } catch (_e) { /* im lặng — không làm gián đoạn giao diện */ }
     };
-
     // Lắng nghe real-time: admin đang online → thấy báo cáo mới của HLV ngay lập tức
     window.setupNotifListener = () => {
         if (!currentClubId || (window.userRole !== 'admin' && window.userRole !== 'super_admin')) return;
@@ -10068,7 +10067,6 @@ window.processMultiItem = async (action) => {
             }
         } catch (_e) {}
     };
-
     // Admin bấm "Đã xem" → đánh dấu tất cả là đã đọc trong Firestore
     window.dismissAdminNotifications = async () => {
         const bannerEl = document.getElementById('admin_notif_banner');
@@ -10085,7 +10083,6 @@ window.processMultiItem = async (action) => {
             await batch.commit();
         } catch (_e) { /* không cần báo lỗi — chỉ là đánh dấu đã đọc */ }
     };
-
     // ── MIGRATE: Tạo users/{uid} cho tài khoản HLV cũ không có users doc ──────
     window.migrateCoachAccounts = async () => {
         if (!['admin', 'owner', 'super_admin'].includes(window.userRole)) {
@@ -10151,9 +10148,7 @@ window.processMultiItem = async (action) => {
             alert('Lỗi đồng bộ: ' + (e.message || e));
         }
     };
-
     // Phase 4K-6V: session-note loading is called explicitly by attendance.js after daily render.
-
 
 
     // Phase 4K-5Q: isSuperAdminRole — single source of truth for SuperAdmin check
@@ -10212,6 +10207,14 @@ window.processMultiItem = async (action) => {
     window.resolveActiveDataSource = async function resolveActiveDataSource() {
         const _db     = db;
         const _clubId = window.__store && (window.__store.clubId || window.__store.currentClubId) || window.currentClubId || '';
+
+        if (window.RoleReadBoundary?.isCoachAttendanceOnly?.() === true || String(window.userRole || '').toLowerCase() === 'coach') {
+            const _branch = String(window.coachBranch || (window.__store && window.__store.coachBranch) || '').trim();
+            const result = { clubId: _clubId, source: 'coach-scoped', primary: { profilesHasDocs: 'coach-branch-scoped', transactionsHasDocs: 'not-probed-for-coach', inventoryHasDocs: 'not-probed-for-coach' }, legacy: { profilesHasDocs: 'not-probed-for-coach', transactionsHasDocs: 'not-probed-for-coach', inventoryHasDocs: 'not-probed-for-coach' }, reason: 'Coach attendance-only: skip full collection probes that Firestore Rules correctly deny', safeToRender: !!_branch };
+            Object.assign(window.__firestoreDataSourceMetrics, { source: result.source, reason: result.reason, checkedAt: Date.now(), activeDataSource: 'coach-scoped', fallbackUsed: false });
+            console.info('[resolveActiveDataSource] Coach scoped mode — skip public/full-club probes', { clubId: _clubId, branch: _branch || 'missing' });
+            return result;
+        }
 
         if (!_db || !_clubId) {
             const result = {
@@ -10471,11 +10474,9 @@ window.processMultiItem = async (action) => {
                 await window.activateLegacyRootFallback?.('auto-runtime-recovery');
                 state.recoveryUsed = true;
                 console.info('[RuntimeRecovery] ✅ Legacy fallback activated automatically.');
-            } else if (src && src.source === 'primary') {
-                console.info('[RuntimeRecovery] ✅ Primary data source — không cần fallback.');
-            } else {
-                console.warn('[RuntimeRecovery] source=' + state.activeDataSource + ' reason=' + state.reason);
-            }
+            } else if (src && src.source === 'primary') console.info('[RuntimeRecovery] ✅ Primary data source — không cần fallback.');
+            else if (src && src.source === 'coach-scoped') console.info('[RuntimeRecovery] ✅ Coach scoped data source — không chạy full-club recovery.');
+            else console.warn('[RuntimeRecovery] source=' + state.activeDataSource + ' reason=' + state.reason);
 
             state.completed   = true;
             state.completedAt = Date.now();

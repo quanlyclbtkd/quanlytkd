@@ -5,7 +5,7 @@ import path from 'node:path';
 
 const root = process.cwd();
 const read = rel => fs.readFileSync(path.join(root, rel), 'utf8');
-const build = 'coach-quit-attendance-full-recovery-20260630-v4d5';
+const build = 'coach-attendance-root-cause-recovery-20260630-v4d6';
 const files = {
   index: read('index.html'),
   app: read('app.js'),

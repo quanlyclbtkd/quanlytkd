@@ -105,15 +105,15 @@ import { initFirebase }                        from './firebase/config.js';
 import { showToast, registerToastGlobal }      from './ui/toast.js';
 import { registerModalGlobals }                from './ui/modal.js';
 import { switchTab, registerTabGlobals }       from './ui/tabs.js';
-import { initRender }                          from './ui/render.js?v=coach-quit-attendance-full-recovery-20260630-v4d5';
+import { initRender }                          from './ui/render.js?v=coach-attendance-root-cause-recovery-20260630-v4d6';
 // Phase 3.4: Render Isolation Architecture — island initialisers + legacy shims
 import { initFinanceIslands, registerFinanceLegacyGlobals }     from './ui/render/renderFinance.js';
-import { initStudentIslands, registerStudentsLegacyGlobals }     from './ui/render/renderStudents.js?v=coach-quit-attendance-full-recovery-20260630-v4d5';
+import { initStudentIslands, registerStudentsLegacyGlobals }     from './ui/render/renderStudents.js?v=coach-attendance-root-cause-recovery-20260630-v4d6';
 import { initInventoryIslands, registerInventoryLegacyGlobals }  from './ui/render/renderInventory.js';
 import { initAttendanceIslands }                                  from './ui/render/renderAttendance.js';
 import { initDashboardIslands }                                   from './ui/render/renderDashboard.js';
 // Phase 3.5B: Render Invalidation & Lifecycle Stabilization
-import { registerInvalidationLegacyGlobals }                     from './ui/render/renderInvalidation.js?v=coach-quit-attendance-full-recovery-20260630-v4d5';
+import { registerInvalidationLegacyGlobals }                     from './ui/render/renderInvalidation.js?v=coach-attendance-root-cause-recovery-20260630-v4d6';
 import { registerLoadingGlobals, showLoading, hideLoading, forceHideLoading } from './ui/loading.js';
 import {
     getLocalToday, formatDate, formatMonth,
@@ -264,7 +264,9 @@ import {
     getProfilesListenerMetrics,
     ensureAllProfilesForExport,
     ensureQuitProfilesAuthoritative,
-} from './listeners/profiles.listeners.js?v=coach-quit-attendance-full-recovery-20260630-v4d5';
+    loadCoachBranchProfilesFallback,
+    ensureCoachBranchProfilesReady,
+} from './listeners/profiles.listeners.js?v=coach-attendance-root-cause-recovery-20260630-v4d6';
 
 // ── Phase 3.7C: Profile Status Config ────────────────────────────────────────
 import {
@@ -318,7 +320,7 @@ import {
 } from './firebase/paginatedQuery.js';
 
 // ── Phase 2d–3.2A: Business modules (eager — cần khi login) ────
-import { initStudents, initStudentPagination }        from './modules/students.js?v=coach-quit-attendance-full-recovery-20260630-v4d5';
+import { initStudents, initStudentPagination }        from './modules/students.js?v=coach-attendance-root-cause-recovery-20260630-v4d6';
 // PHẦN 1 FIX + Phase 4K-2: Unified Search Controller — real cache + SearchBlob + stale guard
 import {
     initGlobalSearchRuntime,
@@ -327,10 +329,56 @@ import {
     invalidateSearchCache,
     debugSearchPerformance,
 } from './modules/searchRuntime.js';
-import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from './modules/finance.js?v=coach-quit-attendance-full-recovery-20260630-v4d5';
+// Phase 4K-6V4D6: Finance is non-critical for Coach attendance-only sessions.
+// Keep main.js bootable even if finance.service.js is stale/503; load finance lazily
+// only for Admin/Owner/Viewer workflows that actually need money/inventory tabs.
+let __financeModulePromise = null;
+let __financeModule = null;
+function _coachAttendanceOnlyRuntime() {
+    try { return window.RoleReadBoundary?.isCoachAttendanceOnly?.() === true || String(window.userRole || '').toLowerCase() === 'coach'; }
+    catch (_) { return String(window.userRole || '').toLowerCase() === 'coach'; }
+}
+async function ensureFinanceModuleLoaded(reason = 'finance-needed') {
+    if (_coachAttendanceOnlyRuntime()) {
+        console.info('[FinanceLazy] Skip finance module for Coach attendance-only session:', reason);
+        return null;
+    }
+    if (__financeModule) return __financeModule;
+    if (!__financeModulePromise) {
+        __financeModulePromise = import('./modules/finance.js?v=coach-attendance-root-cause-recovery-20260630-v4d6')
+            .then((mod) => {
+                __financeModule = mod;
+                try { mod.registerFinanceUiGlobals?.(); } catch (_) {}
+                return mod;
+            })
+            .catch((err) => {
+                __financeModulePromise = null;
+                console.warn('[FinanceLazy] Finance module unavailable; attendance runtime remains active:', err && (err.code || err.message) || err);
+                return null;
+            });
+    }
+    return __financeModulePromise;
+}
+function registerFinanceUiGlobals(...args) {
+    if (__financeModule && typeof __financeModule.registerFinanceUiGlobals === 'function') {
+        return __financeModule.registerFinanceUiGlobals(...args);
+    }
+    if (!_coachAttendanceOnlyRuntime()) ensureFinanceModuleLoaded('registerFinanceUiGlobals');
+    return false;
+}
+function initFinance(...args) {
+    if (_coachAttendanceOnlyRuntime()) return false;
+    ensureFinanceModuleLoaded('initFinance').then((mod) => mod?.initFinance?.(...args));
+    return true;
+}
+function initTransactionPagination(...args) {
+    if (_coachAttendanceOnlyRuntime()) return false;
+    ensureFinanceModuleLoaded('initTransactionPagination').then((mod) => mod?.initTransactionPagination?.(...args));
+    return true;
+}
 import { initInventory }                              from './modules/inventory.js?v=payment-bundle-runtime-hotfix-20260616-v3a1';
 // Compatibility marker: from './modules/attendance.js'
-import { initAttendance }                             from './modules/attendance.js?v=coach-quit-attendance-full-recovery-20260630-v4d5';
+import { initAttendance }                             from './modules/attendance.js?v=coach-attendance-root-cause-recovery-20260630-v4d6';
 import { initDashboard }                              from './modules/dashboard.js?v=payment-bundle-runtime-hotfix-20260616-v3a1';
 // ── Phase 4K-6U: Heavy Reports module is lazy-loaded by reportExportFacade.js ──
 // ── Phase 4.0B-1: SuperAdmin — eager import trên HTTP/HTTPS ─────
@@ -2129,6 +2177,8 @@ function _waitForExistingLegacyApp(ms) {
         // ── Phase 3.7C: Status Config + Export helper + Debug ─────────────────
         window.ensureAllProfilesForExport   = ensureAllProfilesForExport;
         window.ensureQuitProfilesAuthoritative = ensureQuitProfilesAuthoritative;
+        window.loadCoachBranchProfilesFallback = loadCoachBranchProfilesFallback;
+        window.ensureCoachBranchProfilesReady = ensureCoachBranchProfilesReady;
         window.getProfileStatusConfig       = getProfileStatusConfig;
         window.setProfileStatusConfigForDebug = setProfileStatusConfigForDebug;
         window.resetProfileStatusConfig     = resetProfileStatusConfig;

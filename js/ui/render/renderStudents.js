@@ -19,7 +19,7 @@
  */
 
 import { registerRender } from './renderRegistry.js';
-import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=coach-quit-attendance-full-recovery-20260630-v4d5';
+import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=coach-attendance-root-cause-recovery-20260630-v4d6';
 
 // ─── Core DOM helper ────────────────────────────────────────────────────────
 

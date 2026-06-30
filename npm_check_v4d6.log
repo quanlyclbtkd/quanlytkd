@@ -1,0 +1,2547 @@
+
+> taekwondo-club-app@1.0.0 check
+> npm run check:syntax && npm run check:mobile-startup-performance && npm run check:lazy-assets-loading && npm run check:tailwind-static-css-build && npm run check:mobile-filter-currency-stability && npm run check:exam-upgrade-finance-separation && npm run check:global-ownership-adoption-cleanup && npm run check:listener-ownership-boundary && npm run check:inventory-multiitem-readonly-ui && npm run check:financial-action-audit-guard && npm run check:diagnostics-tooling-isolation && npm run check:report-export-lazy-isolation && npm run check:attendance-canonical-ownership && npm run check:spark-read-cost-hardening && npm run check:inventory-history-active-debt && npm run check:inventory-consumer-hydration-hotfix && npm run check:inventory-dynamic-size-catalog && npm run check:inventory-ledger-reconciliation && npm run check:firestore-read-attribution-canonical-tx-boundary && npm run check:payment-bundle-runtime-hotfix && npm run check:canonical-transaction-safe-cutover && npm run check:debt-profile-read-boundary && npm run check:debt-authoritative-tuition-coverage && npm run check:coach-attendance-only-read-boundary && npm run check:security-coach-branch-boundary && npm run check:coach-branch-runtime-repair && npm run check:quit-tab-completeness && npm run check:quit-tab-authoritative-completeness && npm run check:quit-tab-mobile-parity && npm run check:render-warning-coalescing && npm run check:tuition-debt-source-of-truth && npm run check:active-skipped-month-section && npm run check:profile-canonical-store && npm run check:v4d1a-runtime-recovery && npm run check:v4d4-coach-quit-authoritative-fix && npm run check:v4d5-coach-quit-attendance-full-recovery && npm run check:v4d6-coach-attendance-root-cause-recovery
+
+
+> taekwondo-club-app@1.0.0 check:syntax
+> node tools/check-syntax.mjs
+
+[SyntaxCheck] Scanning project JS files and index.html inline scripts...
+
+
+[SyntaxCheck] Checked: 236 items
+              JS files: 228
+              Inline scripts in index.html: 8
+
+[SyntaxCheck] OK — JS files and inline scripts are valid.
+
+> taekwondo-club-app@1.0.0 check:mobile-startup-performance
+> node tools/check-mobile-startup-performance.mjs
+
+✅ check-mobile-startup-performance passed
+
+> taekwondo-club-app@1.0.0 check:lazy-assets-loading
+> node tools/check-lazy-assets-loading.mjs
+
+✅ check-lazy-assets-loading passed
+
+> taekwondo-club-app@1.0.0 check:tailwind-static-css-build
+> node tools/check-tailwind-static-css-build.mjs
+
+✅ check-tailwind-static-css-build passed
+
+> taekwondo-club-app@1.0.0 check:mobile-filter-currency-stability
+> node tools/check-mobile-filter-currency-stability.mjs
+
+
+🔎 Phase 4K-6R — Mobile Filter Cross-Browser Hardening + Currency Stability Check
+
+✅ index has 6R mobile filter hardening patch
+✅ style.css mirrors 6R mobile filter hardening patch
+✅ filter children can shrink and clip native overflow
+✅ filter controls are explicitly border-box and width constrained
+✅ all common portrait phones collapse filter to one column
+✅ medium mobile widths use two safe columns
+✅ desktop three-column layout is restored
+✅ obsolete 359px-only fallback is removed
+✅ default check includes mobile filter regression gate
+✅ check:all includes mobile filter regression gate
+✅ critical suite includes mobile filter regression gate
+✅ default tuition input requests numeric keyboard
+✅ default tuition input disables autocomplete
+✅ app has currency stability marker
+✅ currency formatting avoids Number/parseInt round-trip
+✅ currency binding has duplicate-listener guard
+✅ currency input preserves caret
+✅ currency input is composition-safe
+✅ patch version marker exists
+✅ currency helper block can be extracted
+✅ typing 300000 renders 300.000
+✅ hidden raw tuition stays 300000
+✅ caret remains at logical end
+✅ duplicate binding did not duplicate callback
+✅ middle edit keeps correct formatted value
+✅ middle edit does not jump caret to end
+✅ stored raw value initializes display safely
+✅ large digit strings format without floating-point conversion
+
+✅ Mobile filter hardening and currency stability checks passed.
+
+
+> taekwondo-club-app@1.0.0 check:exam-upgrade-finance-separation
+> node tools/check-exam-upgrade-finance-separation.mjs
+
+
+=== check-exam-upgrade-finance-separation ===
+
+  PASS: processBatchUpgrade exists
+  PASS: upgrade source excludes getClubExamFee
+  PASS: upgrade source excludes exam_fee_all_actual
+  PASS: upgrade source excludes allTransactions
+  PASS: upgrade source excludes studentsToCharge
+  PASS: upgrade source excludes chargeAmount
+  PASS: upgrade source excludes newTxRef
+  PASS: upgrade source excludes type: 'Lệ phí thi'
+  PASS: upgrade source excludes type: "Lệ phí thi"
+  PASS: upgrade source excludes transactions",
+  PASS: upgrade source excludes transactions',
+  PASS: upgrade confirmation contains no fee/revenue wording
+  PASS: upgrade writes to profiles collection
+  PASS: upgrade uses merge writes
+  PASS: upgrade has in-flight guard
+  PASS: upgrade restores in-flight state in finally
+  PASS: upgrade button has stable id
+  PASS: upgrade button calls only processBatchUpgrade
+  PASS: standalone Thu phí action remains available
+  PASS: quickCollectExam still exists as separate payment action
+  PASS: quickCollectExam still writes an exam-fee transaction
+  PASS: first click creates exactly one batch
+  PASS: button is disabled during commit
+  PASS: in-flight flag is set during commit
+  PASS: second click does not create a second batch
+  PASS: second click reports in-progress state
+  PASS: two selected students create two profile writes
+  PASS: every batch write targets clubs/{club}/profiles/{student}
+  PASS: profile payload contains only belt progression fields
+  PASS: all profile writes use merge:true
+  PASS: confirmation contains no fee language
+  PASS: existing transaction cache is unchanged before commit
+  PASS: transaction cache remains unchanged after commit
+  PASS: local profile cache is updated only after successful commit
+  PASS: store profile cache is synchronized
+  PASS: render runs once after commit
+  PASS: select-all checkbox is cleared
+  PASS: button is restored after commit
+  PASS: in-flight flag is cleared after commit
+  PASS: success toast reports only belt upgrade
+  PASS: no blocking alert occurred in valid scenario
+
+ALL CHECKS PASSED — 41 exam upgrade/finance separation checks
+
+> taekwondo-club-app@1.0.0 check:global-ownership-adoption-cleanup
+> node tools/check-global-ownership-adoption-cleanup.mjs
+
+
+🔎 Phase 4K-6S — Global Ownership Adoption + Duplicate UI Cleanup
+
+[attendance.js] ✅ Phase 4K-6V canonical attendance module ready
+[debugGlobalOwnership] {
+  ok: true,
+  phase: '4K-6V-attendance-canonical-ownership',
+  registeredCount: 55,
+  requiredRegistrationCount: 55,
+  manifestCount: 65,
+  collisionCount: 0,
+  fallbackCount: 40,
+  assertion: { ok: true, failures: [] },
+  coverage: { ok: true, failures: [] },
+  snapshot: {
+    phase: '4K-6V-attendance-canonical-ownership',
+    registered: [
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object]
+    ],
+    manifest: [
+      [Object], [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object], [Object]
+    ],
+    collisions: [],
+    restorations: [ [Object] ],
+    legacyFallbackNames: [
+      'openMobileMenu',
+      'closeMobileMenu',
+      '_checkMonthlyReminder',
+      '_dismissMonthlyReminder',
+      '_openMonthlyExport',
+      'openTaxModal',
+      'closeTaxModal',
+      'showToast',
+      'closeModal',
+      'formatMonthCompact',
+      'openComboModal',
+      'openExcelExportModal',
+      'updateExcelPeriodOptions',
+      'exportToExcel',
+      'executeExcelExport',
+      'exportAchievementsExcel',
+      'exportExamPaidList',
+      'updateTaxPeriodOptions',
+      'executeTaxExport',
+      'exportAttendanceExcel',
+      'copyAttReport',
+      '_getClubShifts',
+      '_ensureClubShiftsLoaded',
+      '_renderHomeBirthdayBanner',
+      'showAttMemberHistory',
+      'renderAttendanceList',
+      'onShiftChange',
+      'openShiftModal',
+      'closeShiftModal',
+      'addShift',
+      'deleteShift',
+      'toggleAttendance',
+      'toggleAttendanceStatus',
+      'bulkCheckIn',
+      'syncOfflineAttendance',
+      'switchAttSubTab',
+      'renderAttMonthly',
+      'printAttendanceStatus',
+      'printAttendanceSessionCompletion',
+      'printAttendanceBranchReport'
+    ]
+  }
+}
+┌─────────┬─────────────────────────────────────┬─────────────────────────────────────────────────┬───────────────────────────────────┬──────────────────┬───────────┬───────────────────┐
+│ (index) │ name                                │ owner                                           │ risk                              │ policy           │ installed │ hadLegacyFallback │
+├─────────┼─────────────────────────────────────┼─────────────────────────────────────────────────┼───────────────────────────────────┼──────────────────┼───────────┼───────────────────┤
+│ 0       │ 'openMobileMenu'                    │ 'js/ui/legacyUiShell.js'                        │ 'ui-only'                         │ 'module-primary' │ true      │ true              │
+│ 1       │ 'closeMobileMenu'                   │ 'js/ui/legacyUiShell.js'                        │ 'ui-only'                         │ 'module-primary' │ true      │ true              │
+│ 2       │ '_checkMonthlyReminder'             │ 'js/ui/legacyUiShell.js'                        │ 'ui-only'                         │ 'module-primary' │ true      │ true              │
+│ 3       │ '_dismissMonthlyReminder'           │ 'js/ui/legacyUiShell.js'                        │ 'ui-only'                         │ 'module-primary' │ true      │ true              │
+│ 4       │ '_openMonthlyExport'                │ 'js/ui/legacyUiShell.js'                        │ 'ui-readonly-orchestration'       │ 'module-primary' │ true      │ true              │
+│ 5       │ 'openTaxModal'                      │ 'js/ui/legacyUiShell.js'                        │ 'ui-only'                         │ 'module-primary' │ true      │ true              │
+│ 6       │ 'closeTaxModal'                     │ 'js/ui/legacyUiShell.js'                        │ 'ui-only'                         │ 'module-primary' │ true      │ true              │
+│ 7       │ 'showToast'                         │ 'js/ui/toast.js'                                │ 'ui-only'                         │ 'module-primary' │ true      │ true              │
+│ 8       │ 'closeModal'                        │ 'js/ui/modal.js'                                │ 'ui-only'                         │ 'module-primary' │ true      │ true              │
+│ 9       │ 'formatMonthCompact'                │ 'js/utils/format.js'                            │ 'pure-helper'                     │ 'module-primary' │ true      │ true              │
+│ 10      │ 'openComboModal'                    │ 'js/modules/finance.js'                         │ 'ui-only'                         │ 'module-primary' │ true      │ true              │
+│ 11      │ 'openExcelExportModal'              │ 'js/modules/reports/reportExportFacade.js'      │ 'report-readonly-lazy'            │ 'module-primary' │ true      │ true              │
+│ 12      │ 'updateExcelPeriodOptions'          │ 'js/modules/reports/reportExportFacade.js'      │ 'report-readonly-lazy'            │ 'module-primary' │ true      │ true              │
+│ 13      │ 'exportToExcel'                     │ 'js/modules/reports/reportExportFacade.js'      │ 'report-readonly-lazy'            │ 'module-primary' │ true      │ true              │
+│ 14      │ 'executeExcelExport'                │ 'js/modules/reports/reportExportFacade.js'      │ 'report-readonly-lazy'            │ 'module-primary' │ true      │ true              │
+│ 15      │ 'exportAchievementsExcel'           │ 'js/modules/reports/reportExportFacade.js'      │ 'report-readonly-lazy'            │ 'module-primary' │ true      │ true              │
+│ 16      │ 'exportExamPaidList'                │ 'js/modules/reports/reportExportFacade.js'      │ 'report-readonly-lazy'            │ 'module-primary' │ true      │ true              │
+│ 17      │ 'updateTaxPeriodOptions'            │ 'js/modules/reports/reportExportFacade.js'      │ 'report-readonly-lazy'            │ 'module-primary' │ true      │ true              │
+│ 18      │ 'executeTaxExport'                  │ 'js/modules/reports/reportExportFacade.js'      │ 'report-readonly-lazy'            │ 'module-primary' │ true      │ true              │
+│ 19      │ 'exportAttendanceExcel'             │ 'js/modules/reports/reportExportFacade.js'      │ 'report-readonly-lazy'            │ 'module-primary' │ true      │ true              │
+│ 20      │ 'copyAttReport'                     │ 'js/modules/reports/reportExportFacade.js'      │ 'ui-only'                         │ 'module-primary' │ true      │ true              │
+│ 21      │ 'debugMobileSuperAdminGate'         │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ 'diagnostics-readonly'            │ 'module-primary' │ true      │ false             │
+│ 22      │ 'printDataHydrationStatus'          │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ 'diagnostics-readonly'            │ 'module-primary' │ true      │ false             │
+│ 23      │ 'printTabDataStatus'                │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ 'diagnostics-readonly'            │ 'module-primary' │ true      │ false             │
+│ 24      │ 'printFirestorePathStatus'          │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ 'diagnostics-readonly'            │ 'module-primary' │ true      │ false             │
+│ 25      │ 'printPilotTabReadiness'            │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ 'diagnostics-readonly'            │ 'module-primary' │ true      │ false             │
+│ 26      │ 'printPilotLaunchStatus'            │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ 'diagnostics-readonly'            │ 'module-primary' │ true      │ false             │
+│ 27      │ 'printTenClubPilotReadiness'        │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ 'diagnostics-readonly'            │ 'module-primary' │ true      │ false             │
+│ 28      │ 'generatePilotLaunchSnapshot'       │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ 'diagnostics-readonly'            │ 'module-primary' │ true      │ false             │
+│ 29      │ 'printOneClubPilotGate'             │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ 'diagnostics-readonly'            │ 'module-primary' │ true      │ false             │
+│ 30      │ 'runOnboardingGate'                 │ 'js/diagnostics/legacyDiagnostics.js'           │ 'diagnostics-lazy-readonly'       │ 'module-primary' │ true      │ false             │
+│ 31      │ 'printOnboardingGate'               │ 'js/diagnostics/legacyDiagnostics.js'           │ 'diagnostics-lazy-readonly'       │ 'module-primary' │ true      │ false             │
+│ 32      │ 'generateOnboardingReportText'      │ 'js/diagnostics/legacyDiagnostics.js'           │ 'diagnostics-lazy-readonly'       │ 'module-primary' │ true      │ false             │
+│ 33      │ 'runSuperAdminAudit'                │ 'js/diagnostics/legacyDiagnostics.js'           │ 'diagnostics-lazy-readonly'       │ 'module-primary' │ true      │ false             │
+│ 34      │ 'printSuperAdminAudit'              │ 'js/diagnostics/legacyDiagnostics.js'           │ 'diagnostics-lazy-readonly'       │ 'module-primary' │ true      │ false             │
+│ 35      │ 'generateSuperAdminAuditReportText' │ 'js/diagnostics/legacyDiagnostics.js'           │ 'diagnostics-lazy-readonly'       │ 'module-primary' │ true      │ false             │
+│ 36      │ '_getClubShifts'                    │ 'js/modules/attendance.js'                      │ 'attendance-core'                 │ 'module-primary' │ true      │ true              │
+│ 37      │ '_ensureClubShiftsLoaded'           │ 'js/modules/attendance.js'                      │ 'attendance-core'                 │ 'module-primary' │ true      │ true              │
+│ 38      │ '_renderHomeBirthdayBanner'         │ 'js/modules/attendance.js'                      │ 'attendance-core'                 │ 'module-primary' │ true      │ true              │
+│ 39      │ 'showAttMemberHistory'              │ 'js/modules/attendance.js'                      │ 'attendance-core'                 │ 'module-primary' │ true      │ true              │
+│ 40      │ 'renderAttendanceList'              │ 'js/modules/attendance.js'                      │ 'attendance-core'                 │ 'module-primary' │ true      │ true              │
+│ 41      │ 'onShiftChange'                     │ 'js/modules/attendance.js'                      │ 'attendance-core'                 │ 'module-primary' │ true      │ true              │
+│ 42      │ 'openShiftModal'                    │ 'js/modules/attendance.js'                      │ 'attendance-core'                 │ 'module-primary' │ true      │ true              │
+│ 43      │ 'closeShiftModal'                   │ 'js/modules/attendance.js'                      │ 'attendance-core'                 │ 'module-primary' │ true      │ true              │
+│ 44      │ 'addShift'                          │ 'js/modules/attendance.js'                      │ 'attendance-core'                 │ 'module-primary' │ true      │ true              │
+│ 45      │ 'deleteShift'                       │ 'js/modules/attendance.js'                      │ 'attendance-core'                 │ 'module-primary' │ true      │ true              │
+│ 46      │ 'toggleAttendance'                  │ 'js/modules/attendance.js'                      │ 'attendance-core'                 │ 'module-primary' │ true      │ true              │
+│ 47      │ 'toggleAttendanceStatus'            │ 'js/modules/attendance.js'                      │ 'attendance-core'                 │ 'module-primary' │ true      │ true              │
+│ 48      │ 'bulkCheckIn'                       │ 'js/modules/attendance.js'                      │ 'attendance-core'                 │ 'module-primary' │ true      │ true              │
+│ 49      │ 'syncOfflineAttendance'             │ 'js/modules/attendance.js'                      │ 'attendance-core'                 │ 'module-primary' │ true      │ true              │
+│ 50      │ 'switchAttSubTab'                   │ 'js/modules/attendance.js'                      │ 'attendance-core'                 │ 'module-primary' │ true      │ true              │
+│ 51      │ 'renderAttMonthly'                  │ 'js/modules/attendance.js'                      │ 'attendance-core'                 │ 'module-primary' │ true      │ true              │
+│ 52      │ 'printAttendanceStatus'             │ 'js/modules/attendance.js'                      │ 'attendance-diagnostics-readonly' │ 'module-primary' │ true      │ true              │
+│ 53      │ 'printAttendanceSessionCompletion'  │ 'js/modules/attendance.js'                      │ 'attendance-diagnostics-readonly' │ 'module-primary' │ true      │ true              │
+│ 54      │ 'printAttendanceBranchReport'       │ 'js/modules/attendance.js'                      │ 'attendance-diagnostics-readonly' │ 'module-primary' │ true      │ true              │
+└─────────┴─────────────────────────────────────┴─────────────────────────────────────────────────┴───────────────────────────────────┴──────────────────┴───────────┴───────────────────┘
+[debugLegacyUiFallbacks] {
+  ok: true,
+  phase: '4K-6U-report-excel-lazy-isolation',
+  count: 21,
+  names: [
+    'showToast',
+    'openMobileMenu',
+    'closeMobileMenu',
+    '_checkMonthlyReminder',
+    '_dismissMonthlyReminder',
+    '_openMonthlyExport',
+    'openTaxModal',
+    'closeTaxModal',
+    'openComboModal',
+    'closeModal',
+    'formatMonthCompact',
+    'openExcelExportModal',
+    'updateExcelPeriodOptions',
+    'exportToExcel',
+    'executeExcelExport',
+    'exportAchievementsExcel',
+    'exportExamPaidList',
+    'updateTaxPeriodOptions',
+    'executeTaxExport',
+    'exportAttendanceExcel',
+    'copyAttReport'
+  ],
+  missing: [],
+  writeSafe: true
+}
+[debugLegacyUiShell] {
+  ok: true,
+  phase: '4K-6S-global-ownership-adoption-duplicate-ui-cleanup',
+  requiredCount: 7,
+  missing: [],
+  ownership: { ok: true, failures: [] },
+  hasLegacyUiShell: true,
+  protectedFlows: {
+    processMultiItem: false,
+    quickPay: false,
+    deleteTx: false,
+    markInvPaid: false,
+    initSaaSDatabase: false,
+    listenToData: false,
+    renderApp: false,
+    scheduleRender: false
+  }
+}
+✅ classic rollback layer exists
+✅ classic rollback layer loads before app.js
+✅ UI/report fallback layer retains its Phase 4K-6U contract
+✅ attendance classic rollback bridge exists
+✅ attendance rollback bridge loads before app.js
+✅ attendance rollback bridge declares Phase 4K-6V
+✅ fallback layer exposes health diagnostics
+✅ fallback layer contains showToast
+✅ app.js no longer owns duplicate body for showToast
+✅ fallback layer contains openMobileMenu
+✅ app.js no longer owns duplicate body for openMobileMenu
+✅ fallback layer contains closeMobileMenu
+✅ app.js no longer owns duplicate body for closeMobileMenu
+✅ fallback layer contains _checkMonthlyReminder
+✅ app.js no longer owns duplicate body for _checkMonthlyReminder
+✅ fallback layer contains _dismissMonthlyReminder
+✅ app.js no longer owns duplicate body for _dismissMonthlyReminder
+✅ fallback layer contains _openMonthlyExport
+✅ app.js no longer owns duplicate body for _openMonthlyExport
+✅ fallback layer contains openTaxModal
+✅ app.js no longer owns duplicate body for openTaxModal
+✅ fallback layer contains closeTaxModal
+✅ app.js no longer owns duplicate body for closeTaxModal
+✅ fallback layer contains openComboModal
+✅ app.js no longer owns duplicate body for openComboModal
+✅ fallback layer contains closeModal
+✅ app.js no longer owns duplicate body for closeModal
+✅ fallback layer contains formatMonthCompact
+✅ app.js no longer owns duplicate body for formatMonthCompact
+✅ fallback layer has no Firebase API: updateDoc(
+✅ fallback layer has no Firebase API: setDoc(
+✅ fallback layer has no Firebase API: addDoc(
+✅ fallback layer has no Firebase API: deleteDoc(
+✅ fallback layer has no Firebase API: writeBatch(
+✅ fallback layer has no Firebase API: runTransaction(
+✅ fallback layer has no Firebase API: onSnapshot(
+✅ fallback layer has no Firebase API: getDocs(
+✅ fallback layer has no Firebase API: getDoc(
+✅ app.js is smaller than Phase 4K-6R baseline
+✅ app.js line count is lower than Phase 4K-6R baseline
+✅ app.js documents extracted rollback layer
+✅ registry validates required canonical owner coverage
+✅ registry provides explicit canonical recovery
+✅ registry blocks accidental switchTab ownership
+✅ registry reports current Phase 4K-6V while preserving prior ownership rules
+✅ ownership manifest includes showToast
+✅ ownership manifest includes openMobileMenu
+✅ ownership manifest includes closeMobileMenu
+✅ ownership manifest includes _checkMonthlyReminder
+✅ ownership manifest includes _dismissMonthlyReminder
+✅ ownership manifest includes _openMonthlyExport
+✅ ownership manifest includes openTaxModal
+✅ ownership manifest includes closeTaxModal
+✅ ownership manifest includes openComboModal
+✅ ownership manifest includes closeModal
+✅ ownership manifest includes formatMonthCompact
+✅ toast module registers canonical showToast
+✅ modal module registers canonical closeModal
+✅ format module registers canonical formatMonthCompact
+✅ finance module registers canonical openComboModal
+✅ finance module no longer overwrites formatMonthCompact
+✅ finance module no longer directly overwrites openComboModal
+✅ students module no longer overwrites formatMonthCompact
+✅ students module uses imported pure formatter
+✅ main registers format ownership before business init
+✅ main registers finance UI ownership before business init
+✅ runtime smoke test includes rollback-layer diagnostics
+✅ main retains Phase 4K-6U compatibility marker
+✅ active APP_BUILD_VERSION is Phase 4K-6V or a later compatible phase
+✅ index cache bust is Phase 4K-6V or a later compatible phase
+✅ protected flow remains in legacy/runtime boundary: processMultiItem
+✅ protected flow remains in legacy/runtime boundary: quickPay
+✅ protected flow remains in legacy/runtime boundary: deleteTx
+✅ protected flow remains in legacy/runtime boundary: markInvPaid
+✅ protected flow remains in legacy/runtime boundary: cancelExamPayment
+✅ protected flow remains in legacy/runtime boundary: initSaaSDatabase
+✅ protected flow remains in legacy/runtime boundary: listenToData
+✅ protected flow remains in legacy/runtime boundary: renderApp
+✅ protected flow remains in legacy/runtime boundary: scheduleRender
+✅ switchTab remains audit-only due async wrapper/lifecycle coupling
+✅ package has Phase 4K-6S checker
+✅ default check includes Phase 4K-6S
+✅ check:all includes Phase 4K-6S
+✅ critical checks include Phase 4K-6S
+✅ all 11 reviewed Phase 4K-6S UI globals retain canonical owners
+✅ Phase 4K-6V registry contains 11 UI, 10 report, 19 attendance, and 15 diagnostics canonical owners
+✅ all 40 classic UI/report/attendance fallback references are preserved
+✅ all 19 attendance globals have canonical owners
+✅ attendance canonical references are installed
+✅ no ownership collision detected
+✅ all registered globals still point to canonical implementations
+✅ all required manifest owners are registered
+✅ registry preserved every original classic fallback reference
+✅ canonical showToast renders safely
+✅ canonical showToast sets text
+✅ canonical closeModal supports explicit modal IDs
+✅ canonical openComboModal opens combo modal
+✅ canonical formatter sorts month/year groups
+✅ mobile menu canonical owner works
+✅ registry detects later global replacement
+✅ registry explicitly restores replaced canonical global
+✅ restored showToast reference matches canonical implementation
+✅ global ownership diagnostics are healthy after recovery
+✅ classic rollback-layer diagnostics are healthy
+✅ legacy UI shell diagnostics are healthy
+
+✅ Phase 4K-6S check passed (105 assertions)
+
+
+> taekwondo-club-app@1.0.0 check:listener-ownership-boundary
+> node tools/check-listener-ownership-boundary.mjs
+
+✅ listenerOwnershipBoundary module exists
+✅ module declares 4K-6M phase
+✅ module exports ListenerOwnershipBoundary
+✅ module exports initListenerOwnershipBoundary
+✅ module has addOwnedEventListener
+✅ module has cleanupOwnedEventsByOwner
+✅ module has cleanupOwnedEventsByTabId
+✅ module has scheduleRender wrapper metrics
+✅ module exposes debugListenerOwnershipBoundary
+✅ module exposes debugEventBindingOwnership
+✅ module exposes debugRenderEventCleanup
+✅ module has no Firestore write calls
+✅ module does not own processMultiItem
+✅ main imports listener ownership boundary
+✅ main calls initListenerOwnershipBoundary
+✅ APP_BUILD_VERSION updated to 4K-6M
+✅ index cache bust updated to 4K-6M
+✅ debugRuntimeSmokeTest includes listener ownership debug
+✅ debugRuntimeSmokeTest includes event binding ownership debug
+✅ debugRuntimeSmokeTest includes render event cleanup debug
+✅ tabs.js notifies boundary on tab leave
+✅ tabs.js notifies boundary on tab enter
+✅ clubStatsAutoCache uses owned event boundary for window events
+✅ existing Firestore safeRegisterSnapshot registry still present
+✅ app.js scheduleRender still routes via LegacyRenderEntrypoints
+✅ app.js processMultiItem remains present
+✅ app.js quickPay remains present
+✅ package has check:listener-ownership-boundary
+
+check-listener-ownership-boundary PASS
+
+> taekwondo-club-app@1.0.0 check:inventory-multiitem-readonly-ui
+> node tools/check-inventory-multiitem-readonly-ui.mjs
+
+✅ module exists
+✅ module declares 4K-6L phase
+✅ module declares READ-ONLY UI scope
+✅ module exports InventoryMultiItemReadOnlyUI
+✅ module exports initInventoryMultiItemReadOnlyUI
+✅ module has buildMultiItemInventoryStockOptions
+✅ module has renderMultiItemInventoryCategoryOptions
+✅ module has renderMultiItemInventoryDebtPanel
+✅ module has updateMultiItemTotalDisplay
+✅ module has debugInventoryMultiItemReadOnlyUI
+✅ module has no Firestore write calls
+✅ module does not own processMultiItem
+✅ main imports InventoryMultiItemReadOnlyUI
+✅ main calls initInventoryMultiItemReadOnlyUI
+✅ main exposes window.InventoryMultiItemReadOnlyUI
+✅ APP_BUILD_VERSION updated to 4K-6L
+✅ index cache bust updated to 4K-6L
+✅ app.js toggleMiInvCategory delegates to read-only UI
+✅ app.js calcMiInvTotal delegates to read-only UI
+✅ app.js recalcMiInvDebt delegates to read-only UI
+✅ app.js updateMultiItemTotal delegates to read-only UI
+✅ multiItemInventorySafety delegates debt panel UI rendering
+✅ processMultiItem remains present
+✅ processMultiItem not delegated to read-only UI module
+✅ processMultiItem still uses buildMultiItemTuitionPackageMonths
+✅ processMultiItem still writes paidUntil when tuition paid
+✅ debugRuntimeSmokeTest includes read-only UI debug
+✅ package has check:inventory-multiitem-readonly-ui
+
+check-inventory-multiitem-readonly-ui PASS
+
+> taekwondo-club-app@1.0.0 check:financial-action-audit-guard
+> node tools/check-financial-action-audit-guard.mjs
+
+🔎 Phase 4K-6N — Financial Action Audit Trail + Write Intent Guard check
+✅ Có js/core/financialActionAuditGuard.js
+✅ Module có guardFinancialWriteIntent
+✅ Module có recordFinancialActionAudit
+✅ Module có withFinancialWriteIntent
+✅ Audit trail ghi best-effort vào collection financial_audit
+✅ Có debugFinancialActionAuditGuard
+✅ Có debugFinancialActionAuditTrail
+✅ Danh sách action tài chính trọng yếu có trong allow-list
+✅ main.js import initFinancialActionAuditGuard
+✅ main.js khởi tạo FinancialActionAuditGuard
+✅ APP_BUILD_VERSION đã cập nhật 4K-6N
+✅ debugRuntimeSmokeTest include FinancialActionAudit debug
+✅ index.html cache bust 4K-6N
+✅ quickPay có Write Intent Guard
+✅ quickPay có audit before/after/error
+✅ processMultiItem pay có Write Intent Guard
+✅ processMultiItem pay có audit before/after/error
+✅ deleteTx có Write Intent Guard
+✅ deleteTx có audit before/after/error
+✅ markInvPaid có Write Intent Guard
+✅ markInvPaid có audit before/after/error
+✅ cancelExamPayment có Write Intent Guard
+✅ cancelExamPayment có audit before/after/error
+✅ processMultiItem vẫn tồn tại
+✅ processMultiItem vẫn giữ paidUntil/paidMonths write logic
+✅ quickPay vẫn tồn tại
+✅ deleteTx vẫn tồn tại
+✅ markInvPaid vẫn tồn tại
+✅ cancelExamPayment vẫn tồn tại
+✅ package.json có check:financial-action-audit-guard
+✅ check:all include financial-action-audit-guard
+✅ check:all:critical include financial-action-audit-guard
+
+✅ Financial Action Audit Guard check PASSED
+
+> taekwondo-club-app@1.0.0 check:diagnostics-tooling-isolation
+> node tools/check-diagnostics-tooling-isolation.mjs
+
+
+🔎 Phase 4K-6T — Diagnostics / Pilot / Audit Tooling Isolation
+
+[debugDiagnosticsToolingIsolation] {
+  ok: true,
+  phase: '4K-6T-legacy-diagnostics-pilot-audit-tooling-isolation',
+  runtimeGlobalCount: 9,
+  lazyGlobalCount: 6,
+  onboardingLoaded: false,
+  superAdminAuditLoaded: false,
+  ownership: [
+    {
+      name: 'debugMobileSuperAdminGate',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printDataHydrationStatus',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printTabDataStatus',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printFirestorePathStatus',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printPilotTabReadiness',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printPilotLaunchStatus',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printTenClubPilotReadiness',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'generatePilotLaunchSnapshot',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printOneClubPilotGate',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'runOnboardingGate',
+      owner: 'js/diagnostics/legacyDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printOnboardingGate',
+      owner: 'js/diagnostics/legacyDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'generateOnboardingReportText',
+      owner: 'js/diagnostics/legacyDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'runSuperAdminAudit',
+      owner: 'js/diagnostics/legacyDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printSuperAdminAudit',
+      owner: 'js/diagnostics/legacyDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'generateSuperAdminAuditReportText',
+      owner: 'js/diagnostics/legacyDiagnostics.js',
+      installed: true
+    }
+  ]
+}
+┌─────────┬─────────────────────────────────────┬─────────────────────────────────────────────────┬───────────┐
+│ (index) │ name                                │ owner                                           │ installed │
+├─────────┼─────────────────────────────────────┼─────────────────────────────────────────────────┼───────────┤
+│ 0       │ 'debugMobileSuperAdminGate'         │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 1       │ 'printDataHydrationStatus'          │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 2       │ 'printTabDataStatus'                │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 3       │ 'printFirestorePathStatus'          │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 4       │ 'printPilotTabReadiness'            │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 5       │ 'printPilotLaunchStatus'            │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 6       │ 'printTenClubPilotReadiness'        │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 7       │ 'generatePilotLaunchSnapshot'       │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 8       │ 'printOneClubPilotGate'             │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 9       │ 'runOnboardingGate'                 │ 'js/diagnostics/legacyDiagnostics.js'           │ true      │
+│ 10      │ 'printOnboardingGate'               │ 'js/diagnostics/legacyDiagnostics.js'           │ true      │
+│ 11      │ 'generateOnboardingReportText'      │ 'js/diagnostics/legacyDiagnostics.js'           │ true      │
+│ 12      │ 'runSuperAdminAudit'                │ 'js/diagnostics/legacyDiagnostics.js'           │ true      │
+│ 13      │ 'printSuperAdminAudit'              │ 'js/diagnostics/legacyDiagnostics.js'           │ true      │
+│ 14      │ 'generateSuperAdminAuditReportText' │ 'js/diagnostics/legacyDiagnostics.js'           │ true      │
+└─────────┴─────────────────────────────────────┴─────────────────────────────────────────────────┴───────────┘
+┌────────────────────────┬─────────────────────┐
+│ (index)                │ Values              │
+├────────────────────────┼─────────────────────┤
+│ clubId                 │ 'club-test'         │
+│ appContextReady        │ true                │
+│ profilesDocCount       │ 2                   │
+│ transactionsDocCount   │ 1                   │
+│ inventoryDocCount      │ 1                   │
+│ storeProfilesCount     │ 2                   │
+│ storeTransactionsCount │ 1                   │
+│ storeInventoryCount    │ 1                   │
+│ settingsLoaded         │ true                │
+│ clubLoaded             │ true                │
+│ lastReason             │ 'phase-4k-6t-check' │
+└────────────────────────┴─────────────────────┘
+┌─────────────────────────────┬───────────┐
+│ (index)                     │ Values    │
+├─────────────────────────────┼───────────┤
+│ currentTab                  │ 'tuition' │
+│ selectedMonth               │ '2026-06' │
+│ profilesCount               │ 2         │
+│ transactionsCount           │ 1         │
+│ transactionsInSelectedMonth │ 1         │
+│ inventoryCount              │ 1         │
+│ tuitionTabCanRender         │ true      │
+│ debtTabCanRender            │ true      │
+│ inventoryTabCanRender       │ true      │
+│ dashboardCanRender          │ true      │
+└─────────────────────────────┴───────────┘
+┌────────────────────────┬─────────────────────┐
+│ (index)                │ Values              │
+├────────────────────────┼─────────────────────┤
+│ clubId                 │ 'club-test'         │
+│ appContextReady        │ true                │
+│ profilesDocCount       │ 2                   │
+│ transactionsDocCount   │ 1                   │
+│ inventoryDocCount      │ 1                   │
+│ storeProfilesCount     │ 2                   │
+│ storeTransactionsCount │ 1                   │
+│ storeInventoryCount    │ 1                   │
+│ settingsLoaded         │ true                │
+│ clubLoaded             │ true                │
+│ lastReason             │ 'phase-4k-6t-check' │
+└────────────────────────┴─────────────────────┘
+┌─────────────────────────────┬───────────┐
+│ (index)                     │ Values    │
+├─────────────────────────────┼───────────┤
+│ currentTab                  │ 'tuition' │
+│ selectedMonth               │ '2026-06' │
+│ profilesCount               │ 2         │
+│ transactionsCount           │ 1         │
+│ transactionsInSelectedMonth │ 1         │
+│ inventoryCount              │ 1         │
+│ tuitionTabCanRender         │ true      │
+│ debtTabCanRender            │ true      │
+│ inventoryTabCanRender       │ true      │
+│ dashboardCanRender          │ true      │
+└─────────────────────────────┴───────────┘
+┌─────────────────────┬───────────┐
+│ (index)             │ Values    │
+├─────────────────────┼───────────┤
+│ activeDataSource    │ 'primary' │
+│ profilesCount       │ 2         │
+│ transactionsCount   │ 1         │
+│ inventoryCount      │ 1         │
+│ tuitionReady        │ true      │
+│ debtReady           │ true      │
+│ activeStudentsReady │ true      │
+│ quitStudentsReady   │ true      │
+│ inventoryReady      │ true      │
+│ dashboardReady      │ true      │
+│ warnings            │ 'none'    │
+└─────────────────────┴───────────┘
+[PilotReadiness] ✅ Tất cả tabs sẵn sàng cho pilot!
+┌─────────────────────┬───────────┐
+│ (index)             │ Values    │
+├─────────────────────┼───────────┤
+│ activeDataSource    │ 'primary' │
+│ profilesCount       │ 2         │
+│ transactionsCount   │ 1         │
+│ inventoryCount      │ 1         │
+│ tuitionReady        │ true      │
+│ debtReady           │ true      │
+│ activeStudentsReady │ true      │
+│ quitStudentsReady   │ true      │
+│ inventoryReady      │ true      │
+│ dashboardReady      │ true      │
+│ warnings            │ 'none'    │
+└─────────────────────┴───────────┘
+[PilotReadiness] ✅ Tất cả tabs sẵn sàng cho pilot!
+┌─────────────────────┬───────────┐
+│ (index)             │ Values    │
+├─────────────────────┼───────────┤
+│ activeDataSource    │ 'primary' │
+│ profilesCount       │ 2         │
+│ transactionsCount   │ 1         │
+│ inventoryCount      │ 1         │
+│ tuitionReady        │ true      │
+│ debtReady           │ true      │
+│ activeStudentsReady │ true      │
+│ quitStudentsReady   │ true      │
+│ inventoryReady      │ true      │
+│ dashboardReady      │ true      │
+│ warnings            │ 'none'    │
+└─────────────────────┴───────────┘
+[PilotReadiness] ✅ Tất cả tabs sẵn sàng cho pilot!
+┌──────────────────────┬───────────┐
+│ (index)              │ Values    │
+├──────────────────────┼───────────┤
+│ runtimeRecovery      │           │
+│ activeDataSource     │ 'primary' │
+│ profilesCount        │ 2         │
+│ transactionsCount    │ 1         │
+│ inventoryCount       │ 1         │
+│ tuitionReady         │ true      │
+│ debtReady            │ true      │
+│ inventoryReady       │ true      │
+│ dashboardReady       │ true      │
+│ readyForInternalTest │ true      │
+│ readyForOneClubPilot │ true      │
+│ readyForTenClubPilot │ true      │
+│ pilotBlockers        │           │
+└──────────────────────┴───────────┘
+┌─────────────────────┬───────────┐
+│ (index)             │ Values    │
+├─────────────────────┼───────────┤
+│ activeDataSource    │ 'primary' │
+│ profilesCount       │ 2         │
+│ transactionsCount   │ 1         │
+│ inventoryCount      │ 1         │
+│ tuitionReady        │ true      │
+│ debtReady           │ true      │
+│ activeStudentsReady │ true      │
+│ quitStudentsReady   │ true      │
+│ inventoryReady      │ true      │
+│ dashboardReady      │ true      │
+│ warnings            │ 'none'    │
+└─────────────────────┴───────────┘
+[PilotReadiness] ✅ Tất cả tabs sẵn sàng cho pilot!
+┌──────────────────────┬───────────┐
+│ (index)              │ Values    │
+├──────────────────────┼───────────┤
+│ runtimeRecovery      │           │
+│ activeDataSource     │ 'primary' │
+│ profilesCount        │ 2         │
+│ transactionsCount    │ 1         │
+│ inventoryCount       │ 1         │
+│ tuitionReady         │ true      │
+│ debtReady            │ true      │
+│ inventoryReady       │ true      │
+│ dashboardReady       │ true      │
+│ readyForInternalTest │ true      │
+│ readyForOneClubPilot │ true      │
+│ readyForTenClubPilot │ true      │
+│ pilotBlockers        │           │
+└──────────────────────┴───────────┘
+┌────────────────────────┬─────────────────────┐
+│ (index)                │ Values              │
+├────────────────────────┼─────────────────────┤
+│ clubId                 │ 'club-test'         │
+│ appContextReady        │ true                │
+│ profilesDocCount       │ 2                   │
+│ transactionsDocCount   │ 1                   │
+│ inventoryDocCount      │ 1                   │
+│ storeProfilesCount     │ 2                   │
+│ storeTransactionsCount │ 1                   │
+│ storeInventoryCount    │ 1                   │
+│ settingsLoaded         │ true                │
+│ clubLoaded             │ true                │
+│ lastReason             │ 'phase-4k-6t-check' │
+└────────────────────────┴─────────────────────┘
+┌─────────────────────┬───────────┐
+│ (index)             │ Values    │
+├─────────────────────┼───────────┤
+│ activeDataSource    │ 'primary' │
+│ profilesCount       │ 2         │
+│ transactionsCount   │ 1         │
+│ inventoryCount      │ 1         │
+│ tuitionReady        │ true      │
+│ debtReady           │ true      │
+│ activeStudentsReady │ true      │
+│ quitStudentsReady   │ true      │
+│ inventoryReady      │ true      │
+│ dashboardReady      │ true      │
+│ warnings            │ 'none'    │
+└─────────────────────┴───────────┘
+[PilotReadiness] ✅ Tất cả tabs sẵn sàng cho pilot!
+┌──────────────────────┬───────────┐
+│ (index)              │ Values    │
+├──────────────────────┼───────────┤
+│ activeDataSource     │ 'primary' │
+│ profilesCount        │ 2         │
+│ transactionsCount    │ 1         │
+│ inventoryCount       │ 1         │
+│ readyForOneClubPilot │ true      │
+│ readyForTenClubPilot │ true      │
+│ blockers             │           │
+└──────────────────────┴───────────┘
+┌──────────────────────┬───────────┐
+│ (index)              │ Values    │
+├──────────────────────┼───────────┤
+│ readyForInternalTest │ true      │
+│ readyForOneClubPilot │ true      │
+│ readyForTenClubPilot │ true      │
+│ activeDataSource     │ 'primary' │
+│ profilesCount        │ 2         │
+│ transactionsCount    │ 1         │
+│ inventoryCount       │ 1         │
+│ tuitionReady         │ true      │
+│ debtReady            │ true      │
+│ dashboardReady       │ true      │
+│ inventoryReady       │ true      │
+│ blockers             │           │
+└──────────────────────┴───────────┘
+[printOneClubPilotGate] ✅ GO — sẵn sàng pilot 1 CLB.
+┌─────────────────────┬───────────┐
+│ (index)             │ Values    │
+├─────────────────────┼───────────┤
+│ activeDataSource    │ 'primary' │
+│ profilesCount       │ 2         │
+│ transactionsCount   │ 1         │
+│ inventoryCount      │ 1         │
+│ tuitionReady        │ true      │
+│ debtReady           │ true      │
+│ activeStudentsReady │ true      │
+│ quitStudentsReady   │ true      │
+│ inventoryReady      │ true      │
+│ dashboardReady      │ true      │
+│ warnings            │ 'none'    │
+└─────────────────────┴───────────┘
+[PilotReadiness] ✅ Tất cả tabs sẵn sàng cho pilot!
+┌──────────────────────┬───────────┐
+│ (index)              │ Values    │
+├──────────────────────┼───────────┤
+│ runtimeRecovery      │           │
+│ activeDataSource     │ 'primary' │
+│ profilesCount        │ 2         │
+│ transactionsCount    │ 1         │
+│ inventoryCount       │ 1         │
+│ tuitionReady         │ true      │
+│ debtReady            │ true      │
+│ inventoryReady       │ true      │
+│ dashboardReady       │ true      │
+│ readyForInternalTest │ true      │
+│ readyForOneClubPilot │ true      │
+│ readyForTenClubPilot │ true      │
+│ pilotBlockers        │           │
+└──────────────────────┴───────────┘
+┌────────────────────────┬─────────────────────┐
+│ (index)                │ Values              │
+├────────────────────────┼─────────────────────┤
+│ clubId                 │ 'club-test'         │
+│ appContextReady        │ true                │
+│ profilesDocCount       │ 2                   │
+│ transactionsDocCount   │ 1                   │
+│ inventoryDocCount      │ 1                   │
+│ storeProfilesCount     │ 2                   │
+│ storeTransactionsCount │ 1                   │
+│ storeInventoryCount    │ 1                   │
+│ settingsLoaded         │ true                │
+│ clubLoaded             │ true                │
+│ lastReason             │ 'phase-4k-6t-check' │
+└────────────────────────┴─────────────────────┘
+┌─────────────────────┬───────────┐
+│ (index)             │ Values    │
+├─────────────────────┼───────────┤
+│ activeDataSource    │ 'primary' │
+│ profilesCount       │ 2         │
+│ transactionsCount   │ 1         │
+│ inventoryCount      │ 1         │
+│ tuitionReady        │ true      │
+│ debtReady           │ true      │
+│ activeStudentsReady │ true      │
+│ quitStudentsReady   │ true      │
+│ inventoryReady      │ true      │
+│ dashboardReady      │ true      │
+│ warnings            │ 'none'    │
+└─────────────────────┴───────────┘
+[PilotReadiness] ✅ Tất cả tabs sẵn sàng cho pilot!
+┌──────────────────────┬───────────┐
+│ (index)              │ Values    │
+├──────────────────────┼───────────┤
+│ activeDataSource     │ 'primary' │
+│ profilesCount        │ 2         │
+│ transactionsCount    │ 1         │
+│ inventoryCount       │ 1         │
+│ readyForOneClubPilot │ true      │
+│ readyForTenClubPilot │ true      │
+│ blockers             │           │
+└──────────────────────┴───────────┘
+[runOnboardingGate] ✅ PASS — clubId: club-test — 2026-06-30T08:27:13.321Z
+  ┌──────────────────────┬─────────────┐
+  │ (index)              │ Values      │
+  ├──────────────────────┼─────────────┤
+  │ clubId               │ 'club-test' │
+  │ activeDataSource     │ 'primary'   │
+  │ readyForOneClubPilot │ true        │
+  │ readyForTenClubPilot │ true        │
+  │ profilesCount        │ 2           │
+  │ transactionsCount    │ 1           │
+  │ inventoryCount       │ 1           │
+  │ tuitionReady         │ true        │
+  │ debtReady            │ true        │
+  │ dashboardReady       │ true        │
+  │ blockers             │ 'none'      │
+  │ warnings             │ 'none'      │
+  └──────────────────────┴─────────────┘
+[debugDiagnosticsToolingIsolation] {
+  ok: true,
+  phase: '4K-6T-legacy-diagnostics-pilot-audit-tooling-isolation',
+  runtimeGlobalCount: 9,
+  lazyGlobalCount: 6,
+  onboardingLoaded: true,
+  superAdminAuditLoaded: false,
+  ownership: [
+    {
+      name: 'debugMobileSuperAdminGate',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printDataHydrationStatus',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printTabDataStatus',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printFirestorePathStatus',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printPilotTabReadiness',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printPilotLaunchStatus',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printTenClubPilotReadiness',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'generatePilotLaunchSnapshot',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printOneClubPilotGate',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'runOnboardingGate',
+      owner: 'js/diagnostics/legacyDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printOnboardingGate',
+      owner: 'js/diagnostics/legacyDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'generateOnboardingReportText',
+      owner: 'js/diagnostics/legacyDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'runSuperAdminAudit',
+      owner: 'js/diagnostics/legacyDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printSuperAdminAudit',
+      owner: 'js/diagnostics/legacyDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'generateSuperAdminAuditReportText',
+      owner: 'js/diagnostics/legacyDiagnostics.js',
+      installed: true
+    }
+  ]
+}
+┌─────────┬─────────────────────────────────────┬─────────────────────────────────────────────────┬───────────┐
+│ (index) │ name                                │ owner                                           │ installed │
+├─────────┼─────────────────────────────────────┼─────────────────────────────────────────────────┼───────────┤
+│ 0       │ 'debugMobileSuperAdminGate'         │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 1       │ 'printDataHydrationStatus'          │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 2       │ 'printTabDataStatus'                │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 3       │ 'printFirestorePathStatus'          │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 4       │ 'printPilotTabReadiness'            │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 5       │ 'printPilotLaunchStatus'            │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 6       │ 'printTenClubPilotReadiness'        │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 7       │ 'generatePilotLaunchSnapshot'       │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 8       │ 'printOneClubPilotGate'             │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 9       │ 'runOnboardingGate'                 │ 'js/diagnostics/legacyDiagnostics.js'           │ true      │
+│ 10      │ 'printOnboardingGate'               │ 'js/diagnostics/legacyDiagnostics.js'           │ true      │
+│ 11      │ 'generateOnboardingReportText'      │ 'js/diagnostics/legacyDiagnostics.js'           │ true      │
+│ 12      │ 'runSuperAdminAudit'                │ 'js/diagnostics/legacyDiagnostics.js'           │ true      │
+│ 13      │ 'printSuperAdminAudit'              │ 'js/diagnostics/legacyDiagnostics.js'           │ true      │
+│ 14      │ 'generateSuperAdminAuditReportText' │ 'js/diagnostics/legacyDiagnostics.js'           │ true      │
+└─────────┴─────────────────────────────────────┴─────────────────────────────────────────────────┴───────────┘
+┌────────────────────────┬─────────────────────┐
+│ (index)                │ Values              │
+├────────────────────────┼─────────────────────┤
+│ clubId                 │ 'club-test'         │
+│ appContextReady        │ true                │
+│ profilesDocCount       │ 2                   │
+│ transactionsDocCount   │ 1                   │
+│ inventoryDocCount      │ 1                   │
+│ storeProfilesCount     │ 2                   │
+│ storeTransactionsCount │ 1                   │
+│ storeInventoryCount    │ 1                   │
+│ settingsLoaded         │ true                │
+│ clubLoaded             │ true                │
+│ lastReason             │ 'phase-4k-6t-check' │
+└────────────────────────┴─────────────────────┘
+┌─────────────────────────────┬───────────┐
+│ (index)                     │ Values    │
+├─────────────────────────────┼───────────┤
+│ currentTab                  │ 'tuition' │
+│ selectedMonth               │ '2026-06' │
+│ profilesCount               │ 2         │
+│ transactionsCount           │ 1         │
+│ transactionsInSelectedMonth │ 1         │
+│ inventoryCount              │ 1         │
+│ tuitionTabCanRender         │ true      │
+│ debtTabCanRender            │ true      │
+│ inventoryTabCanRender       │ true      │
+│ dashboardCanRender          │ true      │
+└─────────────────────────────┴───────────┘
+┌─────────────────────┬───────────┐
+│ (index)             │ Values    │
+├─────────────────────┼───────────┤
+│ activeDataSource    │ 'primary' │
+│ profilesCount       │ 2         │
+│ transactionsCount   │ 1         │
+│ inventoryCount      │ 1         │
+│ tuitionReady        │ true      │
+│ debtReady           │ true      │
+│ activeStudentsReady │ true      │
+│ quitStudentsReady   │ true      │
+│ inventoryReady      │ true      │
+│ dashboardReady      │ true      │
+│ warnings            │ 'none'    │
+└─────────────────────┴───────────┘
+[PilotReadiness] ✅ Tất cả tabs sẵn sàng cho pilot!
+┌─────────────────────┬───────────┐
+│ (index)             │ Values    │
+├─────────────────────┼───────────┤
+│ activeDataSource    │ 'primary' │
+│ profilesCount       │ 2         │
+│ transactionsCount   │ 1         │
+│ inventoryCount      │ 1         │
+│ tuitionReady        │ true      │
+│ debtReady           │ true      │
+│ activeStudentsReady │ true      │
+│ quitStudentsReady   │ true      │
+│ inventoryReady      │ true      │
+│ dashboardReady      │ true      │
+│ warnings            │ 'none'    │
+└─────────────────────┴───────────┘
+[PilotReadiness] ✅ Tất cả tabs sẵn sàng cho pilot!
+┌─────────────────────┬───────────┐
+│ (index)             │ Values    │
+├─────────────────────┼───────────┤
+│ activeDataSource    │ 'primary' │
+│ profilesCount       │ 2         │
+│ transactionsCount   │ 1         │
+│ inventoryCount      │ 1         │
+│ tuitionReady        │ true      │
+│ debtReady           │ true      │
+│ activeStudentsReady │ true      │
+│ quitStudentsReady   │ true      │
+│ inventoryReady      │ true      │
+│ dashboardReady      │ true      │
+│ warnings            │ 'none'    │
+└─────────────────────┴───────────┘
+[PilotReadiness] ✅ Tất cả tabs sẵn sàng cho pilot!
+┌──────────────────────┬───────────┐
+│ (index)              │ Values    │
+├──────────────────────┼───────────┤
+│ runtimeRecovery      │           │
+│ activeDataSource     │ 'primary' │
+│ profilesCount        │ 2         │
+│ transactionsCount    │ 1         │
+│ inventoryCount       │ 1         │
+│ tuitionReady         │ true      │
+│ debtReady            │ true      │
+│ inventoryReady       │ true      │
+│ dashboardReady       │ true      │
+│ readyForInternalTest │ true      │
+│ readyForOneClubPilot │ true      │
+│ readyForTenClubPilot │ true      │
+│ pilotBlockers        │           │
+└──────────────────────┴───────────┘
+┌─────────────────────┬───────────┐
+│ (index)             │ Values    │
+├─────────────────────┼───────────┤
+│ activeDataSource    │ 'primary' │
+│ profilesCount       │ 2         │
+│ transactionsCount   │ 1         │
+│ inventoryCount      │ 1         │
+│ tuitionReady        │ true      │
+│ debtReady           │ true      │
+│ activeStudentsReady │ true      │
+│ quitStudentsReady   │ true      │
+│ inventoryReady      │ true      │
+│ dashboardReady      │ true      │
+│ warnings            │ 'none'    │
+└─────────────────────┴───────────┘
+[PilotReadiness] ✅ Tất cả tabs sẵn sàng cho pilot!
+┌──────────────────────┬───────────┐
+│ (index)              │ Values    │
+├──────────────────────┼───────────┤
+│ runtimeRecovery      │           │
+│ activeDataSource     │ 'primary' │
+│ profilesCount        │ 2         │
+│ transactionsCount    │ 1         │
+│ inventoryCount       │ 1         │
+│ tuitionReady         │ true      │
+│ debtReady            │ true      │
+│ inventoryReady       │ true      │
+│ dashboardReady       │ true      │
+│ readyForInternalTest │ true      │
+│ readyForOneClubPilot │ true      │
+│ readyForTenClubPilot │ true      │
+│ pilotBlockers        │           │
+└──────────────────────┴───────────┘
+┌────────────────────────┬─────────────────────┐
+│ (index)                │ Values              │
+├────────────────────────┼─────────────────────┤
+│ clubId                 │ 'club-test'         │
+│ appContextReady        │ true                │
+│ profilesDocCount       │ 2                   │
+│ transactionsDocCount   │ 1                   │
+│ inventoryDocCount      │ 1                   │
+│ storeProfilesCount     │ 2                   │
+│ storeTransactionsCount │ 1                   │
+│ storeInventoryCount    │ 1                   │
+│ settingsLoaded         │ true                │
+│ clubLoaded             │ true                │
+│ lastReason             │ 'phase-4k-6t-check' │
+└────────────────────────┴─────────────────────┘
+┌─────────────────────┬───────────┐
+│ (index)             │ Values    │
+├─────────────────────┼───────────┤
+│ activeDataSource    │ 'primary' │
+│ profilesCount       │ 2         │
+│ transactionsCount   │ 1         │
+│ inventoryCount      │ 1         │
+│ tuitionReady        │ true      │
+│ debtReady           │ true      │
+│ activeStudentsReady │ true      │
+│ quitStudentsReady   │ true      │
+│ inventoryReady      │ true      │
+│ dashboardReady      │ true      │
+│ warnings            │ 'none'    │
+└─────────────────────┴───────────┘
+[PilotReadiness] ✅ Tất cả tabs sẵn sàng cho pilot!
+┌──────────────────────┬───────────┐
+│ (index)              │ Values    │
+├──────────────────────┼───────────┤
+│ activeDataSource     │ 'primary' │
+│ profilesCount        │ 2         │
+│ transactionsCount    │ 1         │
+│ inventoryCount       │ 1         │
+│ readyForOneClubPilot │ true      │
+│ readyForTenClubPilot │ true      │
+│ blockers             │           │
+└──────────────────────┴───────────┘
+┌──────────────────────┬───────────┐
+│ (index)              │ Values    │
+├──────────────────────┼───────────┤
+│ readyForInternalTest │ true      │
+│ readyForOneClubPilot │ true      │
+│ readyForTenClubPilot │ true      │
+│ activeDataSource     │ 'primary' │
+│ profilesCount        │ 2         │
+│ transactionsCount    │ 1         │
+│ inventoryCount       │ 1         │
+│ tuitionReady         │ true      │
+│ debtReady            │ true      │
+│ dashboardReady       │ true      │
+│ inventoryReady       │ true      │
+│ blockers             │           │
+└──────────────────────┴───────────┘
+[printOneClubPilotGate] ✅ GO — sẵn sàng pilot 1 CLB.
+┌─────────────────────┬───────────┐
+│ (index)             │ Values    │
+├─────────────────────┼───────────┤
+│ activeDataSource    │ 'primary' │
+│ profilesCount       │ 2         │
+│ transactionsCount   │ 1         │
+│ inventoryCount      │ 1         │
+│ tuitionReady        │ true      │
+│ debtReady           │ true      │
+│ activeStudentsReady │ true      │
+│ quitStudentsReady   │ true      │
+│ inventoryReady      │ true      │
+│ dashboardReady      │ true      │
+│ warnings            │ 'none'    │
+└─────────────────────┴───────────┘
+[PilotReadiness] ✅ Tất cả tabs sẵn sàng cho pilot!
+┌──────────────────────┬───────────┐
+│ (index)              │ Values    │
+├──────────────────────┼───────────┤
+│ runtimeRecovery      │           │
+│ activeDataSource     │ 'primary' │
+│ profilesCount        │ 2         │
+│ transactionsCount    │ 1         │
+│ inventoryCount       │ 1         │
+│ tuitionReady         │ true      │
+│ debtReady            │ true      │
+│ inventoryReady       │ true      │
+│ dashboardReady       │ true      │
+│ readyForInternalTest │ true      │
+│ readyForOneClubPilot │ true      │
+│ readyForTenClubPilot │ true      │
+│ pilotBlockers        │           │
+└──────────────────────┴───────────┘
+┌────────────────────────┬─────────────────────┐
+│ (index)                │ Values              │
+├────────────────────────┼─────────────────────┤
+│ clubId                 │ 'club-test'         │
+│ appContextReady        │ true                │
+│ profilesDocCount       │ 2                   │
+│ transactionsDocCount   │ 1                   │
+│ inventoryDocCount      │ 1                   │
+│ storeProfilesCount     │ 2                   │
+│ storeTransactionsCount │ 1                   │
+│ storeInventoryCount    │ 1                   │
+│ settingsLoaded         │ true                │
+│ clubLoaded             │ true                │
+│ lastReason             │ 'phase-4k-6t-check' │
+└────────────────────────┴─────────────────────┘
+┌─────────────────────┬───────────┐
+│ (index)             │ Values    │
+├─────────────────────┼───────────┤
+│ activeDataSource    │ 'primary' │
+│ profilesCount       │ 2         │
+│ transactionsCount   │ 1         │
+│ inventoryCount      │ 1         │
+│ tuitionReady        │ true      │
+│ debtReady           │ true      │
+│ activeStudentsReady │ true      │
+│ quitStudentsReady   │ true      │
+│ inventoryReady      │ true      │
+│ dashboardReady      │ true      │
+│ warnings            │ 'none'    │
+└─────────────────────┴───────────┘
+[PilotReadiness] ✅ Tất cả tabs sẵn sàng cho pilot!
+┌──────────────────────┬───────────┐
+│ (index)              │ Values    │
+├──────────────────────┼───────────┤
+│ activeDataSource     │ 'primary' │
+│ profilesCount        │ 2         │
+│ transactionsCount    │ 1         │
+│ inventoryCount       │ 1         │
+│ readyForOneClubPilot │ true      │
+│ readyForTenClubPilot │ true      │
+│ blockers             │           │
+└──────────────────────┴───────────┘
+[runOnboardingGate] ✅ PASS — clubId: club-test — 2026-06-30T08:27:13.328Z
+  ┌──────────────────────┬─────────────┐
+  │ (index)              │ Values      │
+  ├──────────────────────┼─────────────┤
+  │ clubId               │ 'club-test' │
+  │ activeDataSource     │ 'primary'   │
+  │ readyForOneClubPilot │ true        │
+  │ readyForTenClubPilot │ true        │
+  │ profilesCount        │ 2           │
+  │ transactionsCount    │ 1           │
+  │ inventoryCount       │ 1           │
+  │ tuitionReady         │ true        │
+  │ debtReady            │ true        │
+  │ dashboardReady       │ true        │
+  │ blockers             │ 'none'      │
+  │ warnings             │ 'none'      │
+  └──────────────────────┴─────────────┘
+[runSuperAdminAudit] Audit — pilot — 2026-06-30T08:27:13.328Z
+  totalClubs: 1
+  readyForPilotCount: 0
+  blockedCount: 1
+  blockersSummary: [ 'No profiles loaded' ]
+[debugDiagnosticsToolingIsolation] {
+  ok: true,
+  phase: '4K-6T-legacy-diagnostics-pilot-audit-tooling-isolation',
+  runtimeGlobalCount: 9,
+  lazyGlobalCount: 6,
+  onboardingLoaded: true,
+  superAdminAuditLoaded: true,
+  ownership: [
+    {
+      name: 'debugMobileSuperAdminGate',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printDataHydrationStatus',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printTabDataStatus',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printFirestorePathStatus',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printPilotTabReadiness',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printPilotLaunchStatus',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printTenClubPilotReadiness',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'generatePilotLaunchSnapshot',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printOneClubPilotGate',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'runOnboardingGate',
+      owner: 'js/diagnostics/legacyDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printOnboardingGate',
+      owner: 'js/diagnostics/legacyDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'generateOnboardingReportText',
+      owner: 'js/diagnostics/legacyDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'runSuperAdminAudit',
+      owner: 'js/diagnostics/legacyDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printSuperAdminAudit',
+      owner: 'js/diagnostics/legacyDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'generateSuperAdminAuditReportText',
+      owner: 'js/diagnostics/legacyDiagnostics.js',
+      installed: true
+    }
+  ]
+}
+┌─────────┬─────────────────────────────────────┬─────────────────────────────────────────────────┬───────────┐
+│ (index) │ name                                │ owner                                           │ installed │
+├─────────┼─────────────────────────────────────┼─────────────────────────────────────────────────┼───────────┤
+│ 0       │ 'debugMobileSuperAdminGate'         │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 1       │ 'printDataHydrationStatus'          │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 2       │ 'printTabDataStatus'                │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 3       │ 'printFirestorePathStatus'          │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 4       │ 'printPilotTabReadiness'            │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 5       │ 'printPilotLaunchStatus'            │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 6       │ 'printTenClubPilotReadiness'        │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 7       │ 'generatePilotLaunchSnapshot'       │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 8       │ 'printOneClubPilotGate'             │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 9       │ 'runOnboardingGate'                 │ 'js/diagnostics/legacyDiagnostics.js'           │ true      │
+│ 10      │ 'printOnboardingGate'               │ 'js/diagnostics/legacyDiagnostics.js'           │ true      │
+│ 11      │ 'generateOnboardingReportText'      │ 'js/diagnostics/legacyDiagnostics.js'           │ true      │
+│ 12      │ 'runSuperAdminAudit'                │ 'js/diagnostics/legacyDiagnostics.js'           │ true      │
+│ 13      │ 'printSuperAdminAudit'              │ 'js/diagnostics/legacyDiagnostics.js'           │ true      │
+│ 14      │ 'generateSuperAdminAuditReportText' │ 'js/diagnostics/legacyDiagnostics.js'           │ true      │
+└─────────┴─────────────────────────────────────┴─────────────────────────────────────────────────┴───────────┘
+✅ js/diagnostics/runtimeReadinessDiagnostics.js exists
+✅ js/diagnostics/onboardingDiagnostics.js exists
+✅ js/diagnostics/superAdminAuditDiagnostics.js exists
+✅ js/diagnostics/legacyDiagnostics.js exists
+✅ onboarding diagnostics are lazy-loaded
+✅ SuperAdmin audit diagnostics are lazy-loaded
+✅ main.js does not eagerly import onboarding diagnostics
+✅ main.js does not eagerly import SuperAdmin audit diagnostics
+✅ main.js retains compatibility facade entrypoint
+✅ ownership registry initializes before diagnostics ownership
+✅ diagnostics contain no setDoc() call
+✅ diagnostics contain no updateDoc() call
+✅ diagnostics contain no addDoc() call
+✅ diagnostics contain no deleteDoc() call
+✅ diagnostics contain no writeBatch() call
+✅ diagnostics contain no runTransaction() call
+✅ diagnostics contain no onSnapshot() call
+✅ diagnostics contain no increment() call
+✅ diagnostics contain no arrayUnion() call
+✅ diagnostics contain no arrayRemove() call
+✅ runtime Firestore path diagnostics use limit(1)
+✅ SuperAdmin audit probes use limit(1)
+✅ runtime diagnostics do not issue unbounded compat get()
+✅ compat SuperAdmin probe remains bounded to one document
+✅ app.js no longer assigns window.debugMobileSuperAdminGate
+✅ app.js no longer defines debugMobileSuperAdminGate()
+✅ ownership manifest includes debugMobileSuperAdminGate
+✅ app.js no longer assigns window.printDataHydrationStatus
+✅ app.js no longer defines printDataHydrationStatus()
+✅ ownership manifest includes printDataHydrationStatus
+✅ app.js no longer assigns window.printTabDataStatus
+✅ app.js no longer defines printTabDataStatus()
+✅ ownership manifest includes printTabDataStatus
+✅ app.js no longer assigns window.printFirestorePathStatus
+✅ app.js no longer defines printFirestorePathStatus()
+✅ ownership manifest includes printFirestorePathStatus
+✅ app.js no longer assigns window.printPilotTabReadiness
+✅ app.js no longer defines printPilotTabReadiness()
+✅ ownership manifest includes printPilotTabReadiness
+✅ app.js no longer assigns window.printPilotLaunchStatus
+✅ app.js no longer defines printPilotLaunchStatus()
+✅ ownership manifest includes printPilotLaunchStatus
+✅ app.js no longer assigns window.printTenClubPilotReadiness
+✅ app.js no longer defines printTenClubPilotReadiness()
+✅ ownership manifest includes printTenClubPilotReadiness
+✅ app.js no longer assigns window.generatePilotLaunchSnapshot
+✅ app.js no longer defines generatePilotLaunchSnapshot()
+✅ ownership manifest includes generatePilotLaunchSnapshot
+✅ app.js no longer assigns window.printOneClubPilotGate
+✅ app.js no longer defines printOneClubPilotGate()
+✅ ownership manifest includes printOneClubPilotGate
+✅ app.js no longer assigns window.runOnboardingGate
+✅ app.js no longer defines runOnboardingGate()
+✅ ownership manifest includes runOnboardingGate
+✅ app.js no longer assigns window.printOnboardingGate
+✅ app.js no longer defines printOnboardingGate()
+✅ ownership manifest includes printOnboardingGate
+✅ app.js no longer assigns window.generateOnboardingReportText
+✅ app.js no longer defines generateOnboardingReportText()
+✅ ownership manifest includes generateOnboardingReportText
+✅ app.js no longer assigns window.runSuperAdminAudit
+✅ app.js no longer defines runSuperAdminAudit()
+✅ ownership manifest includes runSuperAdminAudit
+✅ app.js no longer assigns window.printSuperAdminAudit
+✅ app.js no longer defines printSuperAdminAudit()
+✅ ownership manifest includes printSuperAdminAudit
+✅ app.js no longer assigns window.generateSuperAdminAuditReportText
+✅ app.js no longer defines generateSuperAdminAuditReportText()
+✅ ownership manifest includes generateSuperAdminAuditReportText
+✅ app.js no longer contains probeClubDataReadOnly implementation
+✅ protected runtime kernel remains in app.js: bumpRuntimeDataVersion
+✅ diagnostics do not take ownership of bumpRuntimeDataVersion
+✅ protected runtime kernel remains in app.js: activateLegacyRootFallback
+✅ diagnostics do not take ownership of activateLegacyRootFallback
+✅ protected runtime kernel remains in app.js: runRuntimeDataRecovery
+✅ diagnostics do not take ownership of runRuntimeDataRecovery
+✅ protected runtime kernel remains in app.js: renderApp
+✅ diagnostics do not take ownership of renderApp
+✅ protected runtime kernel remains in app.js: scheduleRender
+✅ diagnostics do not take ownership of scheduleRender
+✅ protected runtime kernel remains in app.js: initSaaSDatabase
+✅ diagnostics do not take ownership of initSaaSDatabase
+✅ protected runtime kernel remains in app.js: listenToData
+✅ diagnostics do not take ownership of listenToData
+✅ app.js reduced to 687,862 bytes (target <= 760,000)
+✅ app.js reduced to 11,050 lines (target <= 12,200)
+✅ obsolete embedded Firestore rules comment was removed from app.js
+✅ firestore.rules remains the rules source of truth
+✅ registry reports current phase while retaining 4K-6T diagnostics ownership
+✅ main.js retains Phase 4K-6T compatibility marker
+✅ active build version is Phase 4K-6V or a later compatible phase
+✅ app.js cache-bust advances beyond Phase 4K-6T
+✅ main.js cache-bust advances beyond Phase 4K-6T
+✅ main initializes extracted diagnostics facade
+✅ package exposes Phase 4K-6T checker
+✅ default check includes Phase 4K-6T
+✅ check:all includes Phase 4K-6T
+✅ critical suite includes Phase 4K-6T
+✅ diagnostics facade installs every extracted global
+✅ nine runtime diagnostics are eager
+✅ six diagnostics are lazy wrappers
+✅ onboarding implementation is not loaded during startup
+✅ SuperAdmin audit implementation is not loaded during startup
+✅ all 15 extracted diagnostics have canonical owners
+✅ all diagnostic canonical globals remain installed
+✅ registered diagnostic ownership references are healthy
+✅ hydration diagnostics read the shared store correctly
+✅ tab diagnostics preserve month/readiness contract
+✅ lazy onboarding gate returns its structured contract
+✅ onboarding module loads only after first use
+✅ SuperAdmin audit remains unloaded after onboarding use
+✅ lazy SuperAdmin audit returns its structured contract
+✅ SuperAdmin audit module loads only after first use
+✅ diagnostic ownership creates no collision
+
+✅ Phase 4K-6T check passed (114 assertions)
+
+
+> taekwondo-club-app@1.0.0 check:report-export-lazy-isolation
+> node tools/check-report-export-lazy-isolation.mjs
+
+
+🔎 Phase 4K-6U — Report/Excel Lazy Isolation
+
+[reports.js] ✅ initReports() Phase 4K-6E-B — exam export belt-order sort
+✅ eager report facade exists
+✅ lazy attendance export module exists
+✅ main eagerly imports only the small report facade
+✅ main registers report facade after ownership registry
+✅ ownership registry initializes before report facade
+✅ main no longer static-imports heavy reports.js
+✅ main no longer initializes heavy reports at startup
+✅ facade lazy-imports heavy reports.js
+✅ facade lazy-imports attendance export
+✅ facade shares one reports import promise
+✅ facade shares one attendance import promise
+✅ facade guards duplicate rapid export actions
+✅ facade restores canonical globals after reports module init
+✅ facade blocks viewer before lazy loading report code
+✅ ownership manifest includes openExcelExportModal
+✅ report ownership points to facade
+✅ classic rollback layer includes openExcelExportModal
+✅ app.js no longer assigns window.openExcelExportModal
+✅ ownership manifest includes updateExcelPeriodOptions
+✅ report ownership points to facade
+✅ classic rollback layer includes updateExcelPeriodOptions
+✅ app.js no longer assigns window.updateExcelPeriodOptions
+✅ ownership manifest includes exportToExcel
+✅ report ownership points to facade
+✅ classic rollback layer includes exportToExcel
+✅ app.js no longer assigns window.exportToExcel
+✅ ownership manifest includes executeExcelExport
+✅ report ownership points to facade
+✅ classic rollback layer includes executeExcelExport
+✅ app.js no longer assigns window.executeExcelExport
+✅ ownership manifest includes exportAchievementsExcel
+✅ report ownership points to facade
+✅ classic rollback layer includes exportAchievementsExcel
+✅ app.js no longer assigns window.exportAchievementsExcel
+✅ ownership manifest includes exportExamPaidList
+✅ report ownership points to facade
+✅ classic rollback layer includes exportExamPaidList
+✅ app.js no longer assigns window.exportExamPaidList
+✅ ownership manifest includes updateTaxPeriodOptions
+✅ report ownership points to facade
+✅ classic rollback layer includes updateTaxPeriodOptions
+✅ app.js no longer assigns window.updateTaxPeriodOptions
+✅ ownership manifest includes executeTaxExport
+✅ report ownership points to facade
+✅ classic rollback layer includes executeTaxExport
+✅ app.js no longer assigns window.executeTaxExport
+✅ ownership manifest includes exportAttendanceExcel
+✅ report ownership points to facade
+✅ classic rollback layer includes exportAttendanceExcel
+✅ app.js no longer assigns window.exportAttendanceExcel
+✅ ownership manifest includes copyAttReport
+✅ report ownership points to facade
+✅ classic rollback layer includes copyAttReport
+✅ app.js no longer assigns window.copyAttReport
+✅ finance.js no longer owns openExcelExportModal
+✅ finance.js no longer owns updateExcelPeriodOptions
+✅ finance.js no longer owns executeExcelExport
+✅ duplicate finance Excel implementation was removed
+✅ lazy reports implementation still loads XLSX on demand
+✅ exam export remains XLSX-lazy
+✅ tax export remains XLSX-lazy
+✅ achievement export remains XLSX-lazy
+✅ attendance Excel implementation removed from app.js
+✅ app.js no longer has the fixed 10,000 attendance export query
+✅ attendance module lazy-loads XLSX
+✅ attendance query remains scoped to selected month
+✅ attendance pagination uses stable document-id ordering
+✅ attendance pagination advances with cursor
+✅ attendance pagination uses bounded page size
+✅ attendance pagination has a high but finite safety ceiling
+✅ attendance export refuses silent truncation
+✅ attendance module removed fixed 10,000 cap
+✅ report facade has no write/listener API: setDoc(
+✅ attendance report has no write/listener API: setDoc(
+✅ report facade has no write/listener API: updateDoc(
+✅ attendance report has no write/listener API: updateDoc(
+✅ report facade has no write/listener API: addDoc(
+✅ attendance report has no write/listener API: addDoc(
+✅ report facade has no write/listener API: deleteDoc(
+✅ attendance report has no write/listener API: deleteDoc(
+✅ report facade has no write/listener API: writeBatch(
+✅ attendance report has no write/listener API: writeBatch(
+✅ report facade has no write/listener API: runTransaction(
+✅ attendance report has no write/listener API: runTransaction(
+✅ report facade has no write/listener API: onSnapshot(
+✅ attendance report has no write/listener API: onSnapshot(
+✅ app.js reduced to 687,862 bytes (target <= 735,000)
+✅ app.js reduced to 11,050 lines (target <= 11,700)
+✅ finance.js reduced to 69,021 bytes (target <= 72,000)
+✅ app.js cache bust is current and preserves 4K-6U report isolation
+✅ main.js cache bust is current and preserves 4K-6U report isolation
+✅ main retains the 4K-6U compatibility marker
+✅ active build version advances beyond 4K-6U
+✅ ownership diagnostics report the current phase while preserving report owners
+✅ package exposes 4K-6U checker
+✅ default check includes 4K-6U checker
+✅ full check includes 4K-6U checker
+✅ critical check includes 4K-6U checker
+✅ runtime facade registers all report globals
+✅ canonical facade opens Excel modal
+✅ Excel modal becomes visible
+✅ quarter selector renders four options
+✅ tax period selector updates
+✅ tax half-year options remain compatible
+✅ UI/copy actions do not load heavy reports
+✅ viewer export is blocked before heavy module import
+✅ heavy reports module initializes successfully on first demand
+✅ facade reports heavy module ready after lazy init
+✅ facade restores every canonical global after lazy module initialization
+✅ attendance pagination loads all 10,500 documents
+✅ attendance pagination completes after 11 pages without truncation
+✅ all ten report globals have canonical owners
+✅ all report owners remain installed
+✅ report ownership introduces no collision
+✅ all report rollback references are preserved
+
+✅ Phase 4K-6U check passed (115 assertions)
+
+
+> taekwondo-club-app@1.0.0 check:attendance-canonical-ownership
+> node tools/check-attendance-canonical-ownership.mjs
+
+
+🔎 Phase 4K-6V — Attendance Canonical Ownership + Monthly Pagination
+
+[attendance.js] ✅ Phase 4K-6V canonical attendance module ready
+✅ attendance rollback bridge exists
+✅ attendance rollback bridge has current cache key
+✅ attendance rollback bridge loads before app.js
+✅ app.js cache key is 4K-6V or a later compatible phase
+✅ main.js cache key is 4K-6V or a later compatible phase
+✅ main contains 4K-6V compatibility build marker
+✅ active runtime build version is 4K-6V or later compatible phase
+✅ main imports attendance module
+✅ ownership registry initializes before attendance module
+✅ ownership manifest includes _getClubShifts
+✅ rollback bridge includes _getClubShifts
+✅ app.js no longer assigns window._getClubShifts
+✅ ownership manifest includes _ensureClubShiftsLoaded
+✅ rollback bridge includes _ensureClubShiftsLoaded
+✅ app.js no longer assigns window._ensureClubShiftsLoaded
+✅ ownership manifest includes _renderHomeBirthdayBanner
+✅ rollback bridge includes _renderHomeBirthdayBanner
+✅ app.js no longer assigns window._renderHomeBirthdayBanner
+✅ ownership manifest includes showAttMemberHistory
+✅ rollback bridge includes showAttMemberHistory
+✅ app.js no longer assigns window.showAttMemberHistory
+✅ ownership manifest includes renderAttendanceList
+✅ rollback bridge includes renderAttendanceList
+✅ app.js no longer assigns window.renderAttendanceList
+✅ ownership manifest includes onShiftChange
+✅ rollback bridge includes onShiftChange
+✅ app.js no longer assigns window.onShiftChange
+✅ ownership manifest includes openShiftModal
+✅ rollback bridge includes openShiftModal
+✅ app.js no longer assigns window.openShiftModal
+✅ ownership manifest includes closeShiftModal
+✅ rollback bridge includes closeShiftModal
+✅ app.js no longer assigns window.closeShiftModal
+✅ ownership manifest includes addShift
+✅ rollback bridge includes addShift
+✅ app.js no longer assigns window.addShift
+✅ ownership manifest includes deleteShift
+✅ rollback bridge includes deleteShift
+✅ app.js no longer assigns window.deleteShift
+✅ ownership manifest includes toggleAttendance
+✅ rollback bridge includes toggleAttendance
+✅ app.js no longer assigns window.toggleAttendance
+✅ ownership manifest includes toggleAttendanceStatus
+✅ rollback bridge includes toggleAttendanceStatus
+✅ app.js no longer assigns window.toggleAttendanceStatus
+✅ ownership manifest includes bulkCheckIn
+✅ rollback bridge includes bulkCheckIn
+✅ app.js no longer assigns window.bulkCheckIn
+✅ ownership manifest includes syncOfflineAttendance
+✅ rollback bridge includes syncOfflineAttendance
+✅ app.js no longer assigns window.syncOfflineAttendance
+✅ ownership manifest includes switchAttSubTab
+✅ rollback bridge includes switchAttSubTab
+✅ app.js no longer assigns window.switchAttSubTab
+✅ ownership manifest includes renderAttMonthly
+✅ rollback bridge includes renderAttMonthly
+✅ app.js no longer assigns window.renderAttMonthly
+✅ ownership manifest includes printAttendanceStatus
+✅ rollback bridge includes printAttendanceStatus
+✅ app.js no longer assigns window.printAttendanceStatus
+✅ ownership manifest includes printAttendanceSessionCompletion
+✅ rollback bridge includes printAttendanceSessionCompletion
+✅ app.js no longer assigns window.printAttendanceSessionCompletion
+✅ ownership manifest includes printAttendanceBranchReport
+✅ rollback bridge includes printAttendanceBranchReport
+✅ app.js no longer assigns window.printAttendanceBranchReport
+✅ attendance ownership manifest points to attendance.js
+✅ registry reports current attendance phase
+✅ attendance module declares canonical owner
+✅ attendance module registers canonical globals
+✅ attendance module can restore canonical globals
+✅ legacy renderAttendanceList monkey-patch was removed
+✅ legacy attendance core body was removed from app.js
+✅ session note loads through explicit attendance lifecycle
+✅ session note loader has stale-response sequence guard
+✅ stale session-note response cannot overwrite current date
+✅ online synchronization listener is bind-once
+✅ online synchronization listener remains installed
+✅ attendance cache applies correct selected-shift filter
+✅ daily read passes selected shift and branch to service
+✅ daily query filters selected shift server-side
+✅ monthly loader implementation is present
+✅ monthly loader remains scoped to selected month
+✅ monthly loader uses cursor pagination
+✅ monthly loader uses bounded page size
+✅ monthly page size is configurable
+✅ monthly safety ceiling is configurable
+✅ monthly loader throws instead of returning incomplete data
+✅ monthly loader supports request cancellation
+✅ monthly loader removed fixed 10,000-document cap
+✅ monthly loader has no setDoc( write/listener call
+✅ monthly loader has no updateDoc( write/listener call
+✅ monthly loader has no addDoc( write/listener call
+✅ monthly loader has no deleteDoc( write/listener call
+✅ monthly loader has no writeBatch( write/listener call
+✅ monthly loader has no runTransaction( write/listener call
+✅ monthly loader has no onSnapshot( write/listener call
+✅ monthly renderer creates an AbortController
+✅ monthly renderer rejects stale responses
+✅ monthly renderer reports safety-ceiling errors clearly
+✅ protected runtime/financial boundary remains in app.js: processMultiItem
+✅ protected runtime/financial boundary remains in app.js: quickPay
+✅ protected runtime/financial boundary remains in app.js: deleteTx
+✅ protected runtime/financial boundary remains in app.js: markInvPaid
+✅ protected runtime/financial boundary remains in app.js: cancelExamPayment
+✅ protected runtime/financial boundary remains in app.js: processBatchUpgrade
+✅ protected runtime/financial boundary remains in app.js: initSaaSDatabase
+✅ protected runtime/financial boundary remains in app.js: listenToData
+✅ protected runtime/financial boundary remains in app.js: renderApp
+✅ protected runtime/financial boundary remains in app.js: scheduleRender
+✅ app.js reduced from 730,409 to 687,862 bytes
+✅ app.js reduced from 11,681 to 11,050 lines
+✅ app.js meets Phase 4K-6V4B8 compatible size target (687,862 <= 700,000 bytes)
+✅ app.js remains within compatible Phase 4K-6V4B8+ size target (11,050 <= 11,050 lines)
+✅ package exposes Phase 4K-6V checker
+✅ default check includes Phase 4K-6V checker
+✅ full check includes Phase 4K-6V checker
+✅ critical check includes Phase 4K-6V checker
+✅ monthly pagination returns all 10,500 documents
+✅ monthly pagination returns no duplicate documents
+✅ 10,500 documents load in 11 bounded pages
+✅ cursor is applied after every full page
+✅ monthly progress callback reports all pages/documents
+✅ monthly pagination records completed metrics
+✅ monthly pagination metrics record full document count
+✅ monthly pagination aborts stale requests with explicit code
+✅ aborted monthly request is recorded in metrics
+✅ monthly loader throws at configured safety ceiling
+✅ safety error reports partial count for diagnostics
+✅ safety-ceiling metrics never claim completion
+✅ attendance init exposes a stable module API
+✅ all 19 attendance globals register at runtime
+✅ all attendance canonical globals are installed
+✅ attendance ownership creates no collision
+✅ all attendance rollback references are preserved
+✅ attendance online listener binds once during first init
+✅ repeated attendance init does not duplicate online listener
+✅ attendance canonical references remain healthy after repeated init
+✅ club switch resets attendance cache/state
+✅ attendance metrics track the active club after reset
+✅ club switch still does not duplicate online listener
+
+✅ Phase 4K-6V check passed (141 assertions)
+
+
+> taekwondo-club-app@1.0.0 check:spark-read-cost-hardening
+> node tools/check-spark-read-cost-hardening.mjs
+
+
+=== Phase 4K-6V1 — Spark Read Cost Hardening ===
+
+✅ Build marker 4K-6V1 exists
+✅ Dashboard history has TTL cache
+✅ TTL is at least one hour
+✅ Dashboard history uses single-flight map
+✅ Hidden dashboard skips network history fetch
+✅ Dashboard history is explicitly scheduled on dashboard tab open
+✅ Dashboard recompute routes through scheduler
+✅ Legacy direct fetch fallback is visibility-gated
+✅ 6-month fallback uses one txMonth range loader
+✅ 6-month fallback uses one date range loader
+✅ 6-month package query uses array-contains-any
+✅ Old per-month dashboard transaction fallback removed
+✅ Read metrics are exposed
+✅ Same-month transaction listener re-subscribe guard exists
+✅ Transaction snapshots coalesce dashboard invalidation
+✅ Financial write flows remain present
+✅ No Cloud Functions dependency added to Spark dashboard path
+
+Total: 17 | PASS: 17 | FAIL: 0
+Spark read-cost hardening checks passed.
+
+
+> taekwondo-club-app@1.0.0 check:inventory-history-active-debt
+> node tools/check-inventory-history-pagination-active-debt.mjs
+
+
+=== Phase 4K-6V2 — Inventory Pagination + Complete Active Debt ===
+
+✅ Build marker 4K-6V2 exists
+✅ Phase implementation block exists
+✅ Inventory history page size is 100
+✅ History uses date-desc cursor pagination
+✅ History is gated by active Inventory tab
+✅ Inventory tab explicitly starts lazy history load
+✅ Load-more control is rendered
+✅ Global 500-document inventory history listener is removed from Phase block
+✅ Complete debt query is unpaid == true with no limit
+✅ Debt listener has one club-scoped registry key
+✅ Debt mirror is reset on tenant switch/init
+✅ Debt snapshot is authoritative and indexed
+✅ Recent history publish never derives/overwrites complete debts
+✅ Debt listener failure marks incomplete coverage and blocks unsafe use
+✅ Debt identity index supports profileId, memberId and normalized name
+✅ New inventory writes enrich identity
+✅ Inventory edit preserves debt identity fields
+✅ Legacy/standalone complete-debt mirror is consumed by MultiItem safety
+✅ Inventory read metrics are exposed
+✅ Stock renderer overlays inventory_stats instead of trusting only first page
+✅ Dynamic: recent history page cannot overwrite authoritative debts
+✅ Dynamic: lookup prioritizes profileId
+✅ Dynamic: lookup falls back to memberId
+✅ Dynamic: lookup falls back to normalized name
+✅ Dynamic: completeness remains complete after history update
+
+Total: 25 | PASS: 25 | FAIL: 0
+Phase 4K-6V2 inventory pagination/complete-debt checks passed.
+
+
+> taekwondo-club-app@1.0.0 check:inventory-consumer-hydration-hotfix
+> node tools/check-inventory-consumer-hydration-hotfix.mjs
+
+
+=== Phase 4K-6V2A — Inventory Consumer Hydration Hotfix ===
+
+✅ Runtime exposes Phase 4K-6V2A patch version
+✅ Cache bust deploys the V2A hotfix
+✅ Canonical stock builder reads inventory_stats
+✅ Stock builder preserves category and size metadata
+✅ Stock builder overlays inventory_stats over lazy history fallback
+✅ Admission readiness accepts hydrated inventory_stats
+✅ Admission size lookup force-builds stock map from inventory_stats
+✅ Admission modal preserves selected size during realtime stats refresh
+✅ Inventory stats listener refreshes open Add Student modal
+✅ Inventory stats listener refreshes open MultiItem stock selector
+✅ Club switch clears old stock map
+✅ MultiItem read-only UI rebuilds stock map before using _liveInvMap
+✅ Modern Inventory module force-refreshes MultiItem stock
+✅ MultiItem debt lookup accepts identity object
+✅ MultiItem autocomplete stores profileId/memberId
+✅ MultiItem debt lookup passes selected identity
+✅ Dynamic: stock loads with zero history documents
+✅ Dynamic: legacy uniform stats key maps to Võ phục size
+✅ Dynamic: balance-only + out reconstructs correct stock
+✅ Dynamic: custom category stats key maps correctly
+✅ Dynamic: _liveInvMap is hydrated without opening Inventory tab
+✅ Dynamic: debt resolves by profileId from complete listener index
+✅ Dynamic: normalized debt row preserves identity
+✅ Dynamic: MultiItem readiness succeeds from stats + debt listener
+✅ Dynamic: readiness performs no history hydration requirement
+
+Total: 25 | PASS: 25 | FAIL: 0
+Phase 4K-6V2A inventory consumer hydration hotfix checks passed.
+
+
+> taekwondo-club-app@1.0.0 check:inventory-dynamic-size-catalog
+> node tools/check-inventory-dynamic-size-catalog.mjs
+
+
+=== Phase 4K-6V2B — Dynamic Inventory Size Catalog ===
+
+✅ Runtime exposes V2B patch version
+✅ Index cache-bust deploys V2B
+✅ Safety module defines normalized category identity
+✅ Safety module defines normalized size identity
+✅ Safety module canonicalizes history + stats maps
+✅ Safety module exposes dynamic category size builder
+✅ Safety module exposes normalized stock lookup
+✅ Read-only MultiItem UI uses dynamic size builder
+✅ Admission size bridge uses dynamic data-backed sizes
+✅ Legacy render cannot overwrite admission list with only hardcoded sizes
+✅ Modular render cannot overwrite admission list with only hardcoded sizes
+✅ Inventory module delegates MultiItem selector to read-only dynamic renderer
+✅ Category dropdown includes categories discovered from stock map
+✅ Legacy category dropdown includes stock-map categories
+✅ New inventory items maintain inventory_stats using increments
+✅ Summary maintenance adds no getDocs/read query
+✅ Legacy inventory writer also maintains summary with no reads
+✅ Changed nested modules are cache-busted
+✅ Dynamic: stock map built without any Firestore read API
+✅ Dynamic: non-hardcoded uniform size is included
+✅ Dynamic: case/spacing aliases merge into one size
+✅ Dynamic: inventory_stats remains authoritative for normalized alias
+✅ Dynamic: data-backed size appears even without category size config
+✅ Dynamic: configured sizes are preserved
+✅ Dynamic: stock-only size is appended to configured sizes
+✅ Dynamic: category casing aliases resolve correctly
+✅ Dynamic: Thu gộp UI receives complete configured + live size list
+✅ Dynamic: positive stock option remains enabled
+
+Total: 28 | PASS: 28 | FAIL: 0
+Phase 4K-6V2B dynamic inventory size catalog checks passed.
+
+
+> taekwondo-club-app@1.0.0 check:inventory-ledger-reconciliation
+> node tools/check-inventory-ledger-reconciliation.mjs
+
+
+=== Phase 4K-6V2C — Inventory Ledger Reconciliation ===
+
+✅ Runtime exposes V2C patch marker
+✅ Index deploys V2C cache bust
+✅ Changed inventory/student/finance modules are cache-busted
+✅ Changed service imports are cache-busted
+✅ History page uses date-desc cursor so repaired legacy rows remain queryable
+✅ New inventory writes always provide date and timestamp
+✅ Add inventory uses an atomic Firestore batch
+✅ Add inventory does not silently continue after stock-summary failure
+✅ Update reverses previous contribution and applies next contribution
+✅ Delete reverses inventory contribution atomically
+✅ Finance-related inventory deletion delegates to canonical ledger service
+✅ Add-student inventory write batches history and inventory_stats
+✅ Add-student module no longer performs a second stock decrement
+✅ Runtime write-through avoids an immediate history read
+✅ Manual reconciliation is explicit, not a recurring listener
+✅ Reconciliation reads the inventory collection exactly once
+✅ Reconciliation repairs legacy rows missing date/timestamp
+✅ Legacy unknown dates are retained at the end instead of being excluded
+✅ Temporal repairs are chunked below Firestore batch limit
+✅ Rebuilt inventory_stats replaces drifted summary
+✅ Full rebuild publishes already-read rows without a second query
+✅ Inventory service pagination no longer orders by timestamp
+✅ Canonical normal writes contain no full inventory scan
+✅ Dynamic: input and output rows are both saved
+✅ Dynamic: atomic ledger computes correct stock
+✅ Dynamic: editing quantity reverses old out and applies new out
+✅ Dynamic: edit with local original performs no document read
+✅ Dynamic: delete reverses stock and removes history row
+✅ Dynamic: rebuild performs one full collection read
+✅ Dynamic: rebuild repairs missing temporal fields
+✅ Dynamic: rebuilt summary includes legacy input
+✅ Dynamic: normal mutations required no full collection reads
+✅ Dynamic: inventory and summary were committed through batches
+
+Total: 33 | PASS: 33 | FAIL: 0
+Phase 4K-6V2C inventory ledger reconciliation checks passed.
+
+
+> taekwondo-club-app@1.0.0 check:firestore-read-attribution-canonical-tx-boundary
+> node tools/check-firestore-read-attribution-canonical-tx-boundary.mjs
+
+
+=== Phase 4K-6V3A — Firestore Read Attribution + Canonical Transaction Read Boundary ===
+
+✅ V3A patch marker is active in app and main
+✅ Canonical boundary script loads before app.js
+✅ Main module cache bust is V3A
+✅ Boundary exposes canonical create and patch helpers
+✅ Canonical months include date, txMonth, paymentMonth, packageMonths and components
+✅ Canonical schema fields are written
+✅ Boundary contains no realtime listener
+✅ Canonical parity query is manual and uses accountingMonths array-contains
+✅ Parity audit has in-memory TTL cache to avoid repeated reads
+✅ Legacy 3-query production authority remains present
+✅ Canonical query is not attached as production listener
+✅ Source-level transaction snapshots are attributed
+✅ Transaction overlap and canonical coverage are measured without extra reads
+✅ Same-month listener duplicate guard remains active
+✅ Direct app transaction creates all pass canonical boundary
+✅ Bundle builder returns canonical transaction
+✅ Finance service canonicalizes new transactions
+✅ Student service canonicalizes all transaction writers
+✅ Inventory service canonicalizes transaction create and related updates
+✅ Offline queued transaction writes are canonicalized
+✅ Month matching supports canonical accountingMonths first
+✅ Active, quit, fallback and debt profile reads are attributed
+✅ Inventory history and active-debt reads are attributed
+✅ Dashboard reads are attributed
+✅ Notification reads are attributed
+✅ Read audit warns that metrics are estimates, not billing truth
+✅ Dynamic: boundary initializes without any Firestore read
+✅ Dynamic: month union is normalized and complete
+✅ Dynamic: create writes schema fields and preserves source data
+✅ Dynamic: component months enter canonical boundary
+✅ Dynamic: attribution separates initial and changed documents
+✅ Dynamic: overlap detects duplicate source reads
+✅ Dynamic: manual parity audit compares canonical and legacy sets
+✅ Dynamic: repeated parity audit uses cache instead of another read
+
+Total: 34 | PASS: 34 | FAIL: 0
+Phase 4K-6V3A checks passed.
+
+
+> taekwondo-club-app@1.0.0 check:payment-bundle-runtime-hotfix
+> node tools/check-payment-bundle-runtime-hotfix.mjs
+
+✅ Builder is executable
+✅ Multi-item total is correct
+✅ Components contain no undefined entries
+✅ Every component has numeric amount
+✅ Tuition component is preserved
+✅ Inventory component is preserved
+✅ Canonical month is preserved
+✅ Admission bundle remains accounting type Học phí
+✅ Admission total is correct
+✅ Admission package months are preserved
+✅ Invalid/zero components are filtered safely
+✅ Non-array components fail with controlled error
+✅ Source map callback returns component object
+✅ Legacy addNewStudent still calls bundle builder
+✅ Modular addNewStudent still calls bundle builder
+✅ Modular addNewStudent catches runtime errors
+✅ Modular addNewStudent always releases submit lock
+✅ Admission bundle preflight runs before profile write
+✅ Admission preflight rejects malformed component arrays
+✅ V3A canonical boundary remains active
+
+Payment bundle runtime hotfix: 20 passed, 0 failed.
+
+> taekwondo-club-app@1.0.0 check:canonical-transaction-safe-cutover
+> node tools/check-canonical-transaction-safe-cutover.mjs
+
+
+=== Phase 4K-6V3BC1 — Automatic Canonical Transaction Optimization ===
+
+✅ V3BC1 cache-bust is active for boundary, app and main
+✅ Manual one-time optimizer button is no longer created
+✅ Automatic scheduling starts only after safe legacy overlap
+✅ Automatic cutover remains per-club and per-month
+✅ Automatic retry uses cooldown after failure
+✅ Transient offline/write-busy states are deferred, not marked successful
+✅ Only authorized club admin roles can auto-optimize
+✅ Backfill plan uses loaded store transactions instead of collection scan
+✅ Backfill writes only canonical fields in chunks of 400
+✅ Legacy listeners are detached before backfill
+✅ Exact parity remains mandatory before config cutover
+✅ Failure still reattaches legacy listener
+✅ Successful mode is persisted in each club main_config
+✅ Existing settings listener selects one or three listeners without new config listener
+✅ Club switch and logout cancel stale automatic timers
+✅ Emergency rollback API remains available without UI button
+✅ Dynamic: safe overlap automatically schedules one cutover
+✅ Dynamic: scheduling itself performs zero Firestore reads/writes
+✅ Dynamic: automatic cutover succeeds without button or confirm
+✅ Dynamic: auto backfill uses one batch and one parity query
+✅ Dynamic: per-club config is persisted after parity
+✅ Dynamic: listener lifecycle ends in canonical mode
+✅ Dynamic: automatic status records durable success
+✅ Dynamic: all migrated documents contain selected accounting month
+✅ Dynamic: emergency rollback returns to legacy mode
+✅ Dynamic: viewer account cannot auto-schedule migration writes
+✅ Dynamic: source limit blocks unsafe automatic cutover
+
+Total: 27 | PASS: 27 | FAIL: 0
+Phase 4K-6V3BC1 checks passed.
+
+
+> taekwondo-club-app@1.0.0 check:debt-profile-read-boundary
+> node tools/check-debt-profile-read-boundary.mjs
+
+
+=== Phase 4K-6V4C1 — Debt Profile Coverage Spark Aggregation Guard ===
+
+✅ V3D boundary remains loaded before app.js with current cache-bust
+✅ Firebase bridge exposes runTransaction for distributed lock
+✅ Debt tab compatibility loader no longer contains cursor full scan
+✅ app.js delegates debt readiness to shared coverage boundary
+✅ Automatic verification is scheduled from settings and active snapshot
+✅ Automatic debt readiness suppresses client aggregation by default
+✅ Manual count audit remains force-gated for diagnostics only
+✅ Resource-exhausted aggregation errors enter cooldown instead of retry storm
+✅ Manual count audit still uses at most three count aggregations when explicitly forced
+✅ Legacy normalization helper remains explicit/manual and is not called automatically on tab open
+✅ Normalization helper writes canonical status in chunks below batch limit when explicitly used
+✅ Automatic verification path contains no runCountAudit call
+✅ Per-club verification is stored in existing main_config
+✅ Distributed lock prevents two devices normalizing together
+✅ Renderer uses boundary readiness instead of pagination-size heuristic alone
+✅ Club switch and logout reset debt boundary state
+✅ Dynamic: debt readiness uses active listener cache with zero aggregation
+✅ Dynamic: unverified club still avoids automatic runAggregationQuery
+✅ Dynamic: local readiness does not write verification marker
+✅ Dynamic: legacy coverage path does not auto-count or auto-normalize on tab open
+✅ Dynamic: viewer readiness is no-read/no-write
+✅ Dynamic: forced manual count audit performs exactly three aggregation queries
+✅ Dynamic: resource-exhausted count audit enters cooldown and suppresses retry storm
+
+Total: 23 | PASS: 23 | FAIL: 0
+Phase 4K-6V4C1 checks passed.
+
+
+> taekwondo-club-app@1.0.0 check:debt-authoritative-tuition-coverage
+> node tools/check-debt-authoritative-tuition-coverage.mjs
+
+
+=== Phase 4K-6V4B11 — Debt Authoritative Tuition Coverage ===
+
+✅ index/main/app cache-busted for current debt phase
+✅ app normalizeYYYYMM supports MM/YYYY, T numeric and Vietnamese month-word formats
+✅ utils normalizeYYYYMM mirrors month-word parser
+✅ global normalizeTuitionMonth exposed
+✅ getChargeableTuitionMonths normalizes selectedMonth, paidUntil, paidMonths and skippedMonths
+✅ legacy isOwed is only additive and cannot suppress canonical debt
+✅ legacy app debt render uses getChargeableTuitionMonths
+✅ studentsRenderer ignores stale isOwed false and uses canonical months
+✅ studentsRenderer debt rows are not hidden by Active new/returning filter
+✅ studentsRenderer debt branch filter uses canonical branch aliases
+✅ legacy render debt branch filter uses canonical branch aliases
+✅ studentsRenderer fallback normalizes paidUntil/paidMonths/skippedMonths
+✅ pagination fallback summary uses canonical months
+✅ bulk Zalo debt list uses canonical months
+✅ debt debug exposes normalized paid fields, filters and hidden reasons
+✅ debugDebtCoverage uses chargeable months instead of raw paidUntil string compare
+✅ Dynamic: paidUntil 05/2026 owes 2026-06
+✅ Dynamic: paidUntil T5/2026 owes 2026-06
+✅ Dynamic: paidUntil Tháng 5/2026 owes 2026-06
+✅ Dynamic: paidUntil Tháng năm 2026 owes June only
+✅ Dynamic: paidUntil Tháng Năm năm 2026 owes June only
+✅ Dynamic: paidUntil thang nam 2026 normalizes to 2026-05
+✅ Dynamic: numeric month variants normalize to the same month 2026-05
+✅ Dynamic: paidUntil Tháng tư 2026 owes May and June
+✅ Dynamic: paidUntil Tháng Tư năm 2026 owes 2 months for June
+✅ Dynamic: paidUntil thang muoi mot 2026 normalizes to 2026-11
+✅ Dynamic: stale isOwed false cannot hide June debt
+✅ Dynamic: paidUntil April with stale paidMonths June still owes May and June
+✅ Dynamic: paidUntil May with stale future paidMonths June still owes June
+✅ Dynamic: skipped month suppresses June debt
+✅ Dynamic: legacy isOwed true may add older owed month only as extra evidence
+✅ Report debt export uses canonical chargeable months, not raw paidUntil comparison
+
+Total: 32 | PASS: 32 | FAIL: 0
+Phase 4K-6V4B11 checks passed.
+
+
+> taekwondo-club-app@1.0.0 check:coach-attendance-only-read-boundary
+> node tools/check-coach-attendance-only-read-boundary.mjs
+
+
+=== Phase 4K-6V4A compatibility — Coach Attendance-Only Read Boundary ===
+
+✅ Role read boundary loads before transaction boundary and app.js
+✅ Coach UI exposes only Attendance and hides full Add Student controls
+✅ Role/branch context is stored before app context-ready events
+✅ Coach bootstrap blocks inventory stats, active debts and transactions
+✅ Admin financial/Kho listener implementations remain present
+✅ Settings callback does not start finance/inventory/debt consumers for Coach
+✅ Direct listenToData calls are defensively blocked for Coach
+✅ Canonical transaction settings gate is defensively blocked for Coach
+✅ Main bootstrap skips Coach pagination, exam setting and club stats cache
+✅ Pagination modules have internal Coach guards
+✅ Programmatic tab switching is forced back to Attendance in all controllers
+✅ Coach profile listener key contains role and branch
+✅ Coach profile query is branch-scoped and locally filters status
+✅ Coach zero probe and fallback are branch-scoped
+✅ Coach never executes full-club profiles fallback, quit load or export load
+✅ Coach profile snapshot does not start debt coverage
+✅ Debt boundary refuses Coach coverage audit/full fallback
+✅ Club stats cache sync has a runtime Coach guard
+✅ Attendance daily query supports branch and fails closed when Coach branch is missing
+✅ Attendance monthly and member-history queries support branch scope
+✅ Attendance UI passes selected/assigned branch into daily and monthly services
+✅ Required Firestore indexes are declared
+✅ Dynamic: Coach may mount Attendance but not transactions/Kho
+✅ Dynamic: Coach is redirected to Attendance tab
+✅ Dynamic: Coach profile listener requires an assigned branch
+✅ Dynamic: Admin financial/Kho sources remain allowed
+✅ Dynamic: Coach daily Firestore query contains date + branch + shift
+✅ Dynamic: Coach monthly Firestore query contains month + branch
+✅ Dynamic: Coach member history contains profileId + month + branch
+✅ Dynamic: Missing Coach branch causes zero-query fail-closed behavior
+
+Total: 30 | PASS: 30 | FAIL: 0
+Phase 4K-6V4A compatibility checks passed.
+
+
+> taekwondo-club-app@1.0.0 check:security-coach-branch-boundary
+> node tools/check-security-coach-branch-boundary.mjs
+
+
+=== Phase 4K-6V4B — Security + Branch Boundary ===
+
+✅ Canonical branch identity loads before role boundary and app kernel
+✅ All 6V4B runtime entry assets share one cache-bust marker
+✅ Coach account selector has no unrestricted/all-branch option
+✅ Auth cache is versioned and treated as a hint
+✅ Verified auth changes trigger listener cleanup and atomic runtime rebind
+✅ Missing users authorization doc fails closed without full-club scan
+✅ Coach login requires a canonical assigned branch
+✅ Parent portal never recommends public Firestore reads
+✅ New single-branch student writes use CS1 rather than legacy Mặc định
+✅ Coach CS1 profile listener reads legacy Mặc định in a separate scoped listener
+✅ Coach fallback queries only assigned branch aliases and de-duplicates results
+✅ Attendance reads are branch-scoped and missing Coach branch fails closed
+✅ Attendance writes canonicalize branch at one service boundary
+✅ Rules identify the 6V4B security phase
+✅ Rules require an enabled user authorization document
+✅ Self user updates use a strict safe-field diff whitelist
+✅ User cannot self-update role, clubId, branch or status
+✅ Club Admin may provision/repair only same-tenant Coach users with a valid branch
+✅ Coach profile reads are enforced by Firestore branch authorization
+✅ Coach attendance create/update/delete are branch-scoped in Rules
+✅ Coach notes and notifications are restricted to own coachId
+✅ Coach cannot read transactions, inventory or stats
+✅ Unknown tenant subcollections are deny-by-default
+✅ Coach settings access is limited to main_config and shifts compatibility docs
+✅ CS1 and Mặc định compatibility exists only as an explicit primary alias
+✅ Callable authorization uses Firestore role/tenant data, not email allowlists
+✅ Debt recalculation callable is Admin-only
+✅ Stats rebuild callable is Admin-only
+✅ Summary refresh callable is Admin-only
+✅ No callable keeps the legacy hard-coded superadmin email check
+✅ Dynamic: Mặc định/CS01/Cơ sở 2 normalize to canonical codes
+✅ Dynamic: empty branch remains invalid when fallback is empty
+✅ Dynamic: primary branch aliases are exactly CS1 and Mặc định
+✅ Dynamic: legacy Coach branch becomes CS1 before authorization
+✅ Dynamic: missing Coach branch blocks active profiles
+
+Total: 35 | PASS: 35 | FAIL: 0
+Phase 4K-6V4B security/branch checks passed.
+
+
+> taekwondo-club-app@1.0.0 check:coach-branch-runtime-repair
+> node tools/check-coach-branch-runtime-repair.mjs
+
+
+=== Phase 4K-6V4B1 — Coach Branch Runtime Repair ===
+
+✅ Production entrypoints keep V4B1 branch repair and load current runtime cache marker
+✅ Coach creation requires one concrete branch
+✅ Coach creation mirrors branch into both authorization documents
+✅ Existing Coach accounts expose an explicit branch repair control
+✅ Admin branch repair writes coach doc and user mirror atomically
+✅ Migration never silently defaults a missing Coach branch to CS1
+✅ Migration synchronizes branch and coachBranch on both documents
+✅ Coach cache is not mounted before exact assignment verification
+✅ Runtime reads only the exact Admin Coach assignment document
+✅ Runtime repairs users/{uid} only from Admin assignment data
+✅ Missing/invalid Coach branch remains fail-closed
+✅ No full-club profile fallback is introduced for Coach repair
+✅ Profile listener query is server-scoped to assigned branch and filters status locally
+✅ Primary branch keeps scoped legacy Mặc định compatibility
+✅ Attendance client filtering uses canonical branch equality
+✅ Coach daily and monthly services always receive assigned branch
+✅ Attendance branch selectors are locked by app config for Coach
+✅ Rules let Coach read only their own Admin assignment mirror
+✅ Rules permit self mirror repair only when exact Admin assignment matches
+✅ Rules still block arbitrary self role, tenant or branch selection
+✅ Dynamic: missing mirror branch is resolved from one exact Coach assignment read
+✅ Dynamic: repair writes only the current users/{uid} authorization mirror
+✅ Dynamic: legacy primary values normalize to CS1
+✅ Dynamic: empty authorization branch stays invalid
+✅ Dynamic: CS1 and Mặc định compare as the same branch
+
+Total: 25 | PASS: 25 | FAIL: 0
+Phase 4K-6V4B1 coach branch runtime repair checks passed.
+
+
+> taekwondo-club-app@1.0.0 check:quit-tab-completeness
+> node tools/check-quit-tab-completeness.mjs
+
+
+=== Phase 4K-6V4B2 — Quit Tab Completeness + Name Display ===
+
+✅ Quit lazy loader still blocks Coach quit profile reads
+✅ Quit lazy loader keeps status query as primary source
+✅ Quit lazy loader includes legacy boolean quit signals
+✅ Quit lazy loader includes quitDate existence signal
+✅ Quit lazy loader does not accept non-quit documents from broad legacy signals
+✅ Quit lazy loader records total docs read and per-query diagnostics
+✅ Quit query failure is per-signal and does not abort the whole load
+✅ Quit list uses full/lazy profile store instead of active pagination currentItems
+✅ PASS1 renders quit rows even when pagination is enabled if full quit profiles exist
+✅ Quit load-more also uses full quit profile count when full profiles exist
+✅ Quit row display prefers profile.name/fullName/displayName but keeps doc ID for openProfile
+✅ Profile status classifier recognizes legacy quit signals used by loader
+
+Total: 12 | PASS: 12 | FAIL: 0
+Phase 4K-6V4B2 checks passed.
+
+
+> taekwondo-club-app@1.0.0 check:quit-tab-authoritative-completeness
+> node tools/check-quit-tab-authoritative-completeness.mjs
+
+
+=== Phase 4K-6V4B3 — Quit Tab Authoritative Completeness ===
+
+✅ Quit loader still blocks Coach quit/full reads
+✅ Classifier treats quitDate/date legacy signals as quit before active flags
+✅ Quit loader queries legacy status aliases such as Đã nghỉ and Nghỉ tập
+✅ Quit loader queries additional date fields beyond quitDate
+✅ Targeted quit loader still filters every result through classifier
+✅ Existing full/fallback quit profiles are preserved before setting targeted map
+✅ Admin quit tab runs one authoritative full reconciliation after targeted load
+✅ Full fallback classifies full collection into quitProfiles
+✅ Quit renderer uses full profile store and not active pagination when full quit profiles exist
+
+Total: 9 | PASS: 9 | FAIL: 0
+Phase 4K-6V4B3 checks passed.
+
+
+> taekwondo-club-app@1.0.0 check:quit-tab-mobile-parity
+> node tools/check-quit-tab-mobile-parity.mjs
+
+
+=== Phase 4K-6V4B8 — Quit Tab Mobile Parity ===
+
+✅ Index cache-busts app.js and main.js with current quit-safe build
+✅ Main cache-busts all quit render/profile modules with current quit-safe build
+✅ Nested render imports use current build so mobile cannot reuse stale computation cache
+✅ renderQuitIsland never falls back to shared server pagination after authoritative quit load
+✅ renderQuitIsland synchronizes the mobile control outside the table
+✅ Student pagination controls for quit use authoritative quitProfiles, not pgState
+✅ Student pagination fallback counts quit rows correctly
+✅ Student pagination fallback cannot overwrite authoritative quit list
+✅ Fallback/pagination quit rows use data-quit-id for DOM parity
+✅ Debug separation counts data-quit-id rows as well as legacy data-student-id
+✅ Authoritative render never clears quitList on cache miss
+✅ Mobile quit control is created outside the scrollable table when missing
+✅ Legacy renderApp quit rows also use data-quit-id and legacy quit date fields
+✅ Quit renderer uses legacy quit date fields in module row render as well
+✅ Mobile/web quit renderer prefers authoritative rows after authoritative load
+✅ Mobile quit row builder can force all rows instead of page-limited rows
+✅ Mobile quit external control reports all rows instead of showing load-more
+
+Total: 17 | PASS: 17 | FAIL: 0
+Phase 4K-6V4B8 mobile parity checks passed.
+
+
+> taekwondo-club-app@1.0.0 check:render-warning-coalescing
+> node tools/check-render-warning-coalescing-v4b12.mjs
+
+
+=== Phase 4K-6V4B12 — Render Warning Coalescing ===
+
+✅ index cache-busts app.js/main.js to current render-safe build
+✅ main imports changed render/list/student modules with current cache-bust
+✅ nested render imports use current cache-bust
+✅ students slow warning threshold raised and gated for production
+✅ listComputationRefresh threshold raised from 16ms to severe 64ms
+✅ listComputationRefresh has same-tick domain refresh coalescing
+✅ refreshListComputation reuses a recent identical domain refresh
+✅ refreshListsComputation reuses recent batch refresh by domain
+✅ ListComputationSlow warning is gated in production
+✅ UI-only invalidations do not bump dataVersion again
+✅ search/filter/load-more are routed as list-only invalidations before domain invalidation
+✅ direct legacy invalidateStudents(search/filter) no longer clears whole students cache
+✅ LegacyRenderWarning remains for diagnostics but is production-gated
+✅ APP patch version updated to V4B12 or later
+
+Total: 14 | PASS: 14 | FAIL: 0
+Phase 4K-6V4B12 render warning coalescing checks passed.
+
+
+> taekwondo-club-app@1.0.0 check:tuition-debt-source-of-truth
+> node tools/check-tuition-debt-source-of-truth-v4c.mjs
+
+✅ canonical helper file exists
+✅ index loads tuitionDebtCanonical before app.js
+✅ app.js cache-bust updated to current runtime build
+✅ getChargeableTuitionMonths delegates to computeTuitionDebtCanonical
+✅ debugDebtTrace exported
+✅ auditTuitionDebtCanonicalProfiles exported
+✅ profile canonical state exported
+✅ debugDebtActionState includes canonical trace
+✅ canonical API initialized
+✅ Tháng Năm 2026 -> 2026-05
+✅ Tháng 5 - 2026 -> 2026-05
+✅ 05/2026 -> 2026-05
+✅ 5/2026 -> 2026-05
+✅ Tháng Tư 2026 -> 2026-04
+✅ paidUntil is authoritative over stale future paidMonths
+✅ future paidMonths after paidUntil are reported
+✅ debt trace warns about stale paidMonths
+✅ two-month debt remains complete when stale paidMonths exists
+✅ skipped month suppresses debt only through canonical skippedMonths
+✅ feeExempt suppresses debt with explicit hidden reason
+✅ quit profile suppresses debt through statusCanonical
+✅ audit counts total profiles
+✅ audit detects debt profiles
+✅ audit detects paidMonths after paidUntil
+✅ audit exposes readyForCanonicalCutover flag
+✅ no write/migration APIs in canonical helper
+
+Tuition Debt Source of Truth V4C: all checks passed
+
+> taekwondo-club-app@1.0.0 check:active-skipped-month-section
+> node tools/check-active-skipped-month-section-v4c2.mjs
+
+
+🔍 Phase 4K-6V4D1A — Active skipped-month section checks
+
+  ✅ index.html cache-busts app.js/main.js to V4D1A
+  ✅ main.js APP_PATCH_VERSION markers include V4D1 lineage
+  ✅ render.js exposes updateSkippedMonthSection global
+  ✅ render.js skipped section uses canonical helper, not raw status/includes
+  ✅ render.js handles tab/month-only render calls when dataVersion unchanged
+  ✅ studentsRenderer summary normalizes skippedMonths for m_skipped
+  ✅ legacy app.js uses _legacySkippedNamesForMonth for skipped section
+  ✅ legacy app.js m_skipped uses canonical month compare
+  ✅ syncStudentSkippedMonthLocal refreshes activeList and debtList
+  ✅ syncStudentSkippedMonthLocal updates skipped section immediately
+  ✅ package.json includes active skipped section gate in npm check
+
+📊 Results: 11 passed, 0 failed
+
+
+> taekwondo-club-app@1.0.0 check:profile-canonical-store
+> node tools/check-profile-canonical-store-v4d1.mjs
+
+
+🔍 Phase 4K-6V4D1 — Profile Canonical Store Read-only Audit checks
+
+✅ profileCanonicalStore.js exists
+✅ public mirror profileCanonicalStore.js exists
+✅ index loads profileCanonicalStore after tuitionDebtCanonical and before app.js
+✅ index cache-busts app.js and main.js to V4D1A
+✅ main.js retains V4D1 lineage marker
+✅ profile canonical store exports public debug/audit API
+✅ profile canonical store exposes getProfileCanonicalStoreStatus
+✅ profile canonical store exposes auditProfileCanonicalStore
+✅ profile canonical store exposes debugProfileCanonical
+✅ profile canonical store exposes debugProfileCanonicalById
+✅ profile canonical store creates status/branch/month/search indexes
+✅ profile canonical store uses already loaded profile sources only
+✅ profile canonical store is read-only: no Firestore read/write APIs
+✅ profile canonical store reports noRead/extraReads safety
+✅ public mirror matches source helper
+✅ package.json includes V4D1 gate in npm check
+✅ VM API initialized
+✅ VM store builds from local profile cache
+✅ canonical branch normalizes aliases
+✅ canonical status classifies active/trial/quit
+✅ canonical month normalizes paidUntil and skippedMonths
+✅ search index can find by Vietnamese name fragment
+✅ debug by id returns canonical row
+✅ getProfileCanonicalStoreStatus shape is stable
+✅ audit detects data warnings without writes
+✅ global debug functions exported
+
+📊 Results: 27 passed, 0 failed
+
+
+> taekwondo-club-app@1.0.0 check:v4d1a-runtime-recovery
+> node tools/check-v4d1a-runtime-recovery.mjs
+
+✅ cache bust updated to current runtime in index
+✅ main imports render.js with current runtime cache bust
+✅ render.js has small UI refresh helper
+✅ render.js early return calls small UI refresh
+✅ render.js small UI refresh always renders birthday banner
+✅ render.js skipped section uses merged local profiles
+✅ render.js skipped section still canonical-normalizes skipped month
+✅ attendance birthday accepts birthDate
+✅ attendance birthday accepts birthday
+✅ attendance birthday accepts ngaySinh
+✅ renderStudents merges canonical quit store
+✅ renderStudents merges allProfiles quit fallback
+✅ renderStudents renders direct quit fallback before quitLoaded
+✅ renderStudents chooses direct if cached quit rows partial
+✅ legacy app render early return refreshes small UI
+✅ legacy app has small UI refresh helper
+✅ legacy app small UI uses merged profiles
+✅ public render.js synced
+✅ public attendance synced
+✅ public renderStudents synced
+✅ no new Firestore reads in profile canonical store
+✅ V4D1A does not introduce writes in profile canonical store
+
+V4D1A Runtime Recovery: 22/22 PASS

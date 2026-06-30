@@ -887,6 +887,17 @@ export async function loadCoachBranchProfilesFallback(reason) {
     }
 }
 
+/**
+ * Phase 4K-6V4D6 — Coach roster reconciliation after settings branch aliases load.
+ * The initial listener mounts before settings/main_config is available, so branchName
+ * aliases can be missing. This guarded getDocs path reloads only the assigned branch
+ * aliases, never the full club collection.
+ */
+export async function ensureCoachBranchProfilesReady(reason) {
+    if (!_isCoachContext()) return false;
+    return loadCoachBranchProfilesFallback(reason || 'ensure-coach-branch-profiles-ready');
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // FULL PROFILES FALLBACK — với loop guard (Phase 3.7C)
 // ─────────────────────────────────────────────────────────────────────────────
