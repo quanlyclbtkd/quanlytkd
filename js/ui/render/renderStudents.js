@@ -19,7 +19,7 @@
  */
 
 import { registerRender } from './renderRegistry.js';
-import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=attendance-excel-tx-delete-reconcile-20260630-v4d11';
+import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=superadmin-access-recovery-20260630-v4d12';
 
 // ─── Core DOM helper ────────────────────────────────────────────────────────
 

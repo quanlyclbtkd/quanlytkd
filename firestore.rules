@@ -1,7 +1,7 @@
 rules_version = '2';
 // ══════════════════════════════════════════════════════════════════════════════
 // Firestore Security Rules — Taekwondo Club Management SaaS
-// Phase 4K-6V4D8 — Coach attendance auth roster final recovery
+// Phase 4K-6V4D12 — SuperAdmin access recovery
 //
 // Mục tiêu:
 //   • Client UI không còn là lớp bảo vệ duy nhất.
@@ -57,10 +57,36 @@ service cloud.firestore {
         && !(currentUser().get('status', 'active') in ['disabled', 'locked', 'suspended']);
     }
 
+    // Phase 4K-6V4D12: SuperAdmin compatibility boundary.
+    // The app historically used several equivalent SuperAdmin markers:
+    //   - Auth email fast-path: admin@tstquynhon.com
+    //   - Custom claim role='super_admin' or legacy role='superadmin'
+    //   - users/{uid}.role='super_admin' or legacy aliases
+    //   - super_admins/{uid} marker document
+    // Firestore Rules must recognize the same canonical set; otherwise the UI
+    // may enter ROOT mode but list/read queries are denied.
+    function isSuperAdminRoleValue(roleValue) {
+      return roleValue in [
+        'super_admin',
+        'superadmin',
+        'root',
+        'root_admin',
+        'admin_root'
+      ];
+    }
+
+    function isTrustedSuperAdminEmail() {
+      return signedIn()
+        && request.auth.token.get('email', '') in ['admin@tstquynhon.com'];
+    }
+
     function isSuperAdmin() {
       return signedIn() && (
-        request.auth.token.get('role', '') == 'super_admin'
-        || (hasUserDoc() && myRole() == 'super_admin')
+        isTrustedSuperAdminEmail()
+        || isSuperAdminRoleValue(request.auth.token.get('role', ''))
+        || isSuperAdminRoleValue(request.auth.token.get('userRole', ''))
+        || isSuperAdminRoleValue(request.auth.token.get('adminRole', ''))
+        || (hasUserDoc() && isSuperAdminRoleValue(myRole()))
         || exists(/databases/$(database)/documents/super_admins/$(request.auth.uid))
       );
     }
@@ -417,7 +443,10 @@ service cloud.firestore {
           'browser', 'os', 'deviceType', 'deviceName'
         ])
         && request.resource.data.uid == request.auth.uid
-        && request.resource.data.role in ['super_admin', 'admin', 'owner', 'viewer', 'coach', 'hlv'];
+        && request.resource.data.role in [
+          'super_admin', 'superadmin', 'root', 'root_admin', 'admin_root',
+          'admin', 'owner', 'viewer', 'coach', 'hlv'
+        ];
       allow read, update, delete: if isSuperAdmin();
     }
 
@@ -447,7 +476,10 @@ service cloud.firestore {
     }
 
     match /super_admins/{uid} {
-      allow read, write: if isSuperAdmin();
+      // Allow the signed-in user to read only their own marker for diagnostics.
+      // Listing or changing markers remains restricted to already-recognized SuperAdmins.
+      allow get: if (signedIn() && request.auth.uid == uid) || isSuperAdmin();
+      allow list, create, update, delete: if isSuperAdmin();
     }
 
     // Deny by default for every top-level path not explicitly declared.

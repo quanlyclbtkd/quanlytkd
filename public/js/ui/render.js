@@ -59,7 +59,7 @@ import {
     computeAndCacheStudents,
     getStudentsSummary,
     getStudentsCachedHtml,
-} from './render/computation/studentsRenderer.js?v=attendance-excel-tx-delete-reconcile-20260630-v4d11';
+} from './render/computation/studentsRenderer.js?v=superadmin-access-recovery-20260630-v4d12';
 import {
     computeAndCacheInventory,
     getCachedLiveInvMap,

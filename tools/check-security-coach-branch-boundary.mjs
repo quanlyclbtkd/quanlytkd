@@ -33,7 +33,7 @@ const appPos = index.lastIndexOf('app.js?v=');
 check('Canonical branch identity loads before role boundary and app kernel',
   branchPos >= 0 && rolePos > branchPos && appPos > rolePos);
 check('All 6V4B runtime entry assets share one cache-bust marker',
-  ((index.match(/coach-branch-runtime-repair-20260627-v4b1/g) || []).length >= 5 || index.includes('attendance-excel-tx-delete-reconcile-20260630-v4d11')));
+  ((index.match(/coach-branch-runtime-repair-20260627-v4b1/g) || []).length >= 5 || index.includes('superadmin-access-recovery-20260630-v4d12')));
 check('Coach account selector has no unrestricted/all-branch option',
   /id="coach_branch"[\s\S]{0,600}<option value="CS1">/.test(index) &&
   !/id="coach_branch"[\s\S]{0,600}Tất cả cơ sở \(không giới hạn\)/.test(index));

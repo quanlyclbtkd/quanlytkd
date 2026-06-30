@@ -1238,19 +1238,13 @@ window.invCustomCategories = [];
     // ── Hàm hiển thị hướng dẫn sửa Firestore Rules ──────────────────────
     function _showLoginHistoryRulesGuide(contentEl, errorMsg, writeFailed) {
         const rulesText = `rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-
-    // === THÊM ĐOẠN NÀY VÀO RULES ===
-    match /login_history/{docId} {
-      allow write: if request.auth != null;
-      allow read: if request.auth != null
-        && request.auth.token.email == "admin@tstquynhon.com";
-    }
-
-    // ... (giữ nguyên các rules hiện có bên dưới)
-  }
-}`;
+service cloud.firestore { match /databases/{database}/documents {
+  // V4D12: SuperAdmin phải được nhận diện giống runtime (role aliases/email/marker).
+  function isSuperAdminRoleValue(r){ return r in ['super_admin','superadmin','root','root_admin','admin_root']; }
+  function isTrustedSuperAdminEmail(){ return request.auth != null && request.auth.token.email in ['admin@tstquynhon.com']; }
+  function isSuperAdmin(){ return request.auth != null && (isTrustedSuperAdminEmail() || isSuperAdminRoleValue(request.auth.token.get('role','')) || exists(/databases/$(database)/documents/super_admins/$(request.auth.uid))); }
+  match /login_history/{docId} { allow create: if request.auth != null && request.resource.data.uid == request.auth.uid; allow read, update, delete: if isSuperAdmin(); }
+}}`;
         const writeStatus = writeFailed
             ? `<div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:0.75rem;color:#92400e;">
                 <strong>⚠️ Ghi dữ liệu cũng đang bị chặn!</strong><br>
@@ -3480,7 +3474,7 @@ service cloud.firestore {
     const _normalizeAuthRole = (value) => {
         const role = String(value || '').trim().toLowerCase().replace(/-/g, '_');
         if (role === 'hlv' || role === 'trainer') return 'coach';
-        if (role === 'superadmin') return 'super_admin';
+        if (role === 'superadmin' || role === 'root' || role === 'root_admin' || role === 'admin_root') return 'super_admin';
         return role;
     };
     const _normalizeAuthContext = (input = {}) => {

@@ -28,7 +28,7 @@
  */
 
 import { getLocalToday, formatDate, formatMonth, formatMonthCompact, addMonthsToYYYYMM } from '../utils/format.js';
-import { StudentService } from '../services/students.service.js?v=attendance-excel-tx-delete-reconcile-20260630-v4d11';
+import { StudentService } from '../services/students.service.js?v=superadmin-access-recovery-20260630-v4d12';
 
 // ════════════════════════════════════════════════════════════════
 // BRIDGE HELPERS — đọc state từ app.js qua window.__store
@@ -1040,7 +1040,7 @@ export function initStudentPagination() {
         renderPaginationControls, PAGE_SIZE,
     }) => {
         import('./students.js').then(() => {}); // no-op — chỉ để IDE không warn
-        import('../services/students.service.js?v=attendance-excel-tx-delete-reconcile-20260630-v4d11').then(({ StudentService }) => {
+        import('../services/students.service.js?v=superadmin-access-recovery-20260630-v4d12').then(({ StudentService }) => {
 
             const store = window.__store;
             if (!store) { console.warn('[pagination/students] __store chưa sẵn sàng'); return; }

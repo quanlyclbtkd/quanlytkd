@@ -30,7 +30,7 @@ const main = read('js/main.js');
 const index = read('index.html');
 const pkg = read('package.json');
 
-const build = 'attendance-excel-tx-delete-reconcile-20260630-v4d11';
+const build = 'superadmin-access-recovery-20260630-v4d12';
 
 check('index.html cache-busts app.js/main.js to V4D1A',
   index.includes(`app.js?v=${build}`) && index.includes(`./js/main.js?v=${build}`));

@@ -15,7 +15,7 @@ const students = read('js/modules/students.js');
 const finance = read('js/modules/finance.js');
 const index = read('index.html');
 
-const build = 'attendance-excel-tx-delete-reconcile-20260630-v4d11';
+const build = 'superadmin-access-recovery-20260630-v4d12';
 let pass = 0, fail = 0;
 function check(name, ok) {
   if (ok) { pass++; console.log('✅', name); }
