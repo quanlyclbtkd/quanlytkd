@@ -197,7 +197,8 @@
     "check:profile-canonical-store": "node tools/check-profile-canonical-store-v4d1.mjs",
     "check:v4d1a-runtime-recovery": "node tools/check-v4d1a-runtime-recovery.mjs",
     "check:quit-mobile-coach-attendance-repair": "node tools/check-quit-mobile-coach-attendance-repair-v4d6.mjs",
-    "check:coach-profiles-bootstrap-repair": "node tools/check-coach-profiles-bootstrap-repair-v4d8.mjs"
+    "check:coach-profiles-bootstrap-repair": "node tools/check-coach-roster-hydration-rules-repair-v4d9.mjs",
+    "check:coach-roster-hydration-rules-repair": "node tools/check-coach-roster-hydration-rules-repair-v4d9.mjs"
   },
   "engines": {
     "node": ">=18.0.0"

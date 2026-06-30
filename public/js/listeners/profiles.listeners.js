@@ -64,6 +64,8 @@ const _state = {
     role:                   '',
     coachBranch:            '',
     coachBranchFallbackCount: 0,
+    coachBranchFallbackInProgress: false,
+    maxCoachBranchFallbackPerSession: 10,
     coachLegacyListenerKey: null,
     coachCanonicalActiveMap: {},
     coachLegacyActiveMap: {},
@@ -156,6 +158,18 @@ function _mergedCoachActiveMap() {
     return Object.assign({}, _state.coachLegacyActiveMap || {}, _state.coachCanonicalActiveMap || {});
 }
 
+function _withResolvedCoachBranch(data, branch) {
+    const source = data && typeof data === 'object' ? data : {};
+    const canonical = _coachBranch({ coachBranch: branch || source.branch || source.branchCode || source.coachBranch || source.branchName || '' });
+    const next = Object.assign({}, source);
+    if (canonical) {
+        if (!next.branch) next.branch = canonical;
+        if (!next.branchCode) next.branchCode = canonical;
+        next.__coachResolvedBranch = canonical;
+    }
+    return next;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // PRIVATE HELPERS
 // ─────────────────────────────────────────────────────────────────────────────
@@ -232,6 +246,7 @@ function _updateWindowMetrics() {
         role:                               _state.role,
         coachBranch:                        _state.coachBranch,
         coachBranchFallbackCount:           _state.coachBranchFallbackCount,
+        coachBranchFallbackInProgress:      !!_state.coachBranchFallbackInProgress,
         // Quit
         quitLoaded:                         _state.quitLoaded,
         quitLoadCount:                      _state.quitLoadCount,
@@ -697,13 +712,14 @@ export async function loadCoachBranchProfilesFallback(reason) {
         console.warn('[ProfilesFallback] Coach branch fallback blocked — missing safe context:', reason);
         return false;
     }
-    if (_state.fallbackInProgress || _state.fallbackCount >= _state.maxFallbackPerSession) return false;
+    if (_state.coachBranchFallbackInProgress) return false;
+    if (_state.coachBranchFallbackCount >= _state.maxCoachBranchFallbackPerSession) return false;
 
     const fb = window._fb_init || {};
     const { query: fbQuery, where: fbWhere, getDocs: fbGetDocs } = fb;
     if (!fbQuery || !fbWhere || !fbGetDocs) return false;
 
-    _state.fallbackInProgress = true;
+    _state.coachBranchFallbackInProgress = true;
     try {
         const aliases = _coachBranchAliases(ctx);
         const fields = ['branch', 'branchCode', 'coachBranch', 'branchName'];
@@ -729,7 +745,7 @@ export async function loadCoachBranchProfilesFallback(reason) {
                     const id = d.id.trim();
                     if (!id) return;
                     const data = d.data();
-                    if (classifyProfileStatus(data) !== 'quit') activeMap[id] = data;
+                    if (classifyProfileStatus(data) !== 'quit') activeMap[id] = _withResolvedCoachBranch(data, branch);
                 });
             } catch (err) {
                 if (err && err.code === 'permission-denied') {
@@ -742,6 +758,18 @@ export async function loadCoachBranchProfilesFallback(reason) {
         if (deniedSpecs.length) {
             console.warn('[ProfilesFallback] Coach branch alias specs denied:', deniedSpecs.slice(0, 8).join(', '));
         }
+        if (deniedSpecs.length === specs.length && Object.keys(activeMap).length === 0) {
+            window.__coachRosterLoadError = {
+                reason: 'all-branch-specs-denied',
+                branch,
+                deniedSpecs: deniedSpecs.slice(0, 20),
+                updatedAt: Date.now()
+            };
+            console.warn('[ProfilesFallback] Coach roster not hydrated — all branch specs denied. Deploy firestore.rules V4D9.');
+            _state.fullFallbackReason = 'coach-branch-all-denied:' + (reason || 'unknown');
+            _updateWindowMetrics();
+            return false;
+        }
         if (typeof window.recordFirestoreReadAttribution === 'function') {
             window.recordFirestoreReadAttribution('profiles.coachBranchFallbackQuery', docsRead, {
                 initial: true,
@@ -751,11 +779,13 @@ export async function loadCoachBranchProfilesFallback(reason) {
                 fields
             });
         }
-        setActiveProfiles(activeMap, 'coach-branch-fallback:' + reason);
+        // Merge with any canonical realtime rows already loaded; never replace a
+        // partial but valid roster with an empty fallback result.
+        const mergedActiveMap = Object.assign({}, _state.coachCanonicalActiveMap || {}, activeMap);
+        setActiveProfiles(mergedActiveMap, 'coach-branch-fallback:' + reason);
         setQuitProfiles({}, 'coach-branch-fallback:no-quit-data');
         _syncLegacy();
         _state.fallbackCompleted = true;
-        _state.fallbackCount++;
         _state.coachBranchFallbackCount++;
         _state.fullFallbackReason = 'coach-branch-only:' + reason;
         _state.lastProfilesMode = 'coach-branch-fallback';
@@ -765,13 +795,13 @@ export async function loadCoachBranchProfilesFallback(reason) {
         _updateWindowMetrics();
         return true;
     } catch (err) {
-        _state.fallbackCount++;
+        _state.coachBranchFallbackCount++;
         _state.fullFallbackReason = 'coach-branch-error:' + reason;
         console.error('[ProfilesFallback] Coach branch load failed:', err.code || err.message);
         _updateWindowMetrics();
         return false;
     } finally {
-        _state.fallbackInProgress = false;
+        _state.coachBranchFallbackInProgress = false;
     }
 }
 
@@ -1039,6 +1069,7 @@ export function resetProfilesListeners(reason) {
     _state.role                    = '';
     _state.coachBranch             = '';
     _state.coachBranchFallbackCount = 0;
+    _state.coachBranchFallbackInProgress = false;
     _state.coachLegacyListenerKey = null;
     _state.coachCanonicalActiveMap = {};
     _state.coachLegacyActiveMap = {};
@@ -1100,6 +1131,7 @@ export function getProfilesListenerMetrics() {
         role:                               _state.role,
         coachBranch:                        _state.coachBranch,
         coachBranchFallbackCount:           _state.coachBranchFallbackCount,
+        coachBranchFallbackInProgress:      !!_state.coachBranchFallbackInProgress,
         // Quit
         quitLoaded:                         _state.quitLoaded,
         quitLoadCount:                      _state.quitLoadCount,

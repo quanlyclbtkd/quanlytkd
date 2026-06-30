@@ -19,7 +19,7 @@
  */
 
 import { registerRender } from './renderRegistry.js';
-import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=coach-profiles-bootstrap-repair-20260630-v4d8';
+import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=coach-roster-hydration-rules-repair-20260630-v4d9';
 
 // ─── Core DOM helper ────────────────────────────────────────────────────────
 

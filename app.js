@@ -91,7 +91,7 @@
     window.debtBranchMatchesFilter = window.debtBranchMatchesFilter || _branchMatchesFilter;
 // Danh mục kho tùy chỉnh — được load từ Firestore khi đăng nhập thành công
 window.invCustomCategories = [];
-    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V4D8'; window.APP_PATCH_VERSION = '4K-6V4D8-coach-profiles-bootstrap-repair-20260630'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
+    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V4D9'; window.APP_PATCH_VERSION = '4K-6V4D9-coach-roster-hydration-rules-repair-20260630'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
     // Compatibility regression marker retained for Phase 4K-6Q gate: APP_PATCH_VERSION = '4K-6Q-mobile-filter-currency-stability-20260615'
     window.__appLoaded = true; // [Phase 2a] main.js kiểm tra để bỏ qua loadLegacyApp()
     window.__store = window.__store || {}; // [Phase 2b] Bridge object cho module system
@@ -1865,6 +1865,12 @@ service cloud.firestore {
                 // Phase 4.0B-4D: mark settings loaded
                 _updateHydrationMetrics({ settingsLoaded: true, lastReason: 'settings-snapshot' });
                 applyClubConfigUI();
+                // Phase 4K-6V4D9: custom branchName aliases are only known after
+                // main_config is loaded. Rerun Coach branch fallback so rosters whose
+                // profiles store branchName/custom labels are hydrated for Attendance.
+                if (_coachAttendanceOnly && typeof window.loadCoachBranchProfilesFallback === 'function') {
+                    setTimeout(() => window.loadCoachBranchProfilesFallback('settings-ready-branch-aliases'), 0);
+                }
                 // [Phase 3.5C] settings thay đổi ảnh hưởng toàn bộ UI → invalidateByDomain('all')
                 // Dùng domain invalidation thay vì scheduleRender() toàn app.
                 // Fallback về scheduleRender() nếu Phase 3.5C chưa load.
@@ -2002,7 +2008,7 @@ service cloud.firestore {
         if (_mountScopedProfiles('init-active-profiles')) {
             // mounted
         } else if (window.RoleReadBoundary?.isCoachAttendanceOnly?.() === true) {
-            // Phase 4K-6V4D8: fail closed without dead-ending Coach hydration.
+            // Phase 4K-6V4D9: fail closed without dead-ending Coach hydration.
             // main.js can still be in async bootstrap, so retry until the branch-aware
             // listener API is exposed. Never fall back to full-club reads for Coach.
             allProfiles = {};
@@ -3438,7 +3444,7 @@ service cloud.firestore {
             // Chỉ đánh dấu "đã ghi" SAU KHI addDoc thành công
             sessionStorage.setItem(sessionKey, '1');
         } catch(e) {
-            // Phase 4K-6V4D8: login history is non-critical. If Rules are not
+            // Phase 4K-6V4D9: login history is non-critical. If Rules are not
             // deployed yet, do not spam warnings or retry on every reload.
             if (e && e.code === 'permission-denied') {
                 sessionStorage.setItem(sessionKey, 'permission-denied');
@@ -10477,7 +10483,7 @@ window.processMultiItem = async (action) => {
         reason = reason || 'manual';
         const state = window.__runtimeRecoveryState;
 
-        // Phase 4K-6V4D8: runtime data-source recovery probes full/public Firestore
+        // Phase 4K-6V4D9: runtime data-source recovery probes full/public Firestore
         // paths and is not needed for Coach attendance-only sessions. Running it for
         // Coach creates noisy permission-denied logs and can mask the real branch
         // hydration issue.

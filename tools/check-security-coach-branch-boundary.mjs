@@ -33,7 +33,7 @@ const appPos = index.lastIndexOf('app.js?v=');
 check('Canonical branch identity loads before role boundary and app kernel',
   branchPos >= 0 && rolePos > branchPos && appPos > rolePos);
 check('All 6V4B runtime entry assets share one cache-bust marker',
-  ((index.match(/coach-profiles-bootstrap-repair-20260630-v4d8/g) || []).length >= 5 || (index.match(/quit-mobile-coach-attendance-repair-20260630-v4d6/g) || []).length >= 5 || (index.match(/coach-branch-runtime-repair-20260627-v4b1/g) || []).length >= 5));
+  ((index.match(/coach-roster-hydration-rules-repair-20260630-v4d9/g) || []).length >= 5 || (index.match(/quit-mobile-coach-attendance-repair-20260630-v4d6/g) || []).length >= 5 || (index.match(/coach-branch-runtime-repair-20260627-v4b1/g) || []).length >= 5));
 check('Coach account selector has no unrestricted/all-branch option',
   /id="coach_branch"[\s\S]{0,600}<option value="CS1">/.test(index) &&
   !/id="coach_branch"[\s\S]{0,600}Tất cả cơ sở \(không giới hạn\)/.test(index));
@@ -74,7 +74,7 @@ check('Attendance writes canonicalize branch at one service boundary',
   (attendance.includes("return { ...source, branch: canonical }") || attendance.includes("return { ...source, branch: canonical, branchCode: canonical }")) &&
   (attendance.match(/_prepareWriteData\(/g) || []).length >= 4);
 
-check('Rules identify the Coach branch security phase', rules.includes('Phase 4K-6V4B') || rules.includes('Phase 4K-6V4D7') || rules.includes('Phase 4K-6V4D8'));
+check('Rules identify the Coach branch security phase', rules.includes('Phase 4K-6V4B') || rules.includes('Phase 4K-6V4D7') || rules.includes('Phase 4K-6V4D9'));
 check('Rules require an enabled user authorization document',
   rules.includes('function userEnabled()') && rules.includes("['disabled', 'locked', 'suspended']"));
 const selfFieldFn = (rules.match(/function safeSelfUserFieldsOnly\(\) \{([\s\S]*?)\n    \}/) || [,''])[1];

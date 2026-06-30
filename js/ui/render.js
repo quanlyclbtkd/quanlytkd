@@ -59,7 +59,7 @@ import {
     computeAndCacheStudents,
     getStudentsSummary,
     getStudentsCachedHtml,
-} from './render/computation/studentsRenderer.js?v=coach-profiles-bootstrap-repair-20260630-v4d8';
+} from './render/computation/studentsRenderer.js?v=coach-roster-hydration-rules-repair-20260630-v4d9';
 import {
     computeAndCacheInventory,
     getCachedLiveInvMap,

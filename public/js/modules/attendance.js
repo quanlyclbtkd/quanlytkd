@@ -83,6 +83,17 @@ function _sameBranch(left, right) {
     const a = normalize(left), b = normalize(right);
     return !!a && a === b;
 }
+
+function _profileBranchValue(profile) {
+    const p = profile && typeof profile === 'object' ? profile : {};
+    return p.branch || p.branchCode || p.coachBranch || p.branchName || p.location || p.facility || '';
+}
+function _profileMatchesBranch(profile, branch) {
+    if (!branch || branch === 'all') return true;
+    const p = profile && typeof profile === 'object' ? profile : {};
+    return [_profileBranchValue(p), p.branch, p.branchCode, p.coachBranch, p.branchName, p.location, p.facility]
+        .some(value => value && _sameBranch(value, branch));
+}
 /** @deprecated Phase 3.1 — Firebase calls đã chuyển sang AttendanceService */
 
 // ── Module-local state (closure — giống biến cũ trong app.js) ──
@@ -220,7 +231,7 @@ function getScheduledTrainingDatesForProfile(profile, monthStr, options) {
     const mo = parseInt(parts[1], 10);
     if (!yr || !mo || mo < 1 || mo > 12) return [];
     const daysInMonth = new Date(yr, mo, 0).getDate();
-    const branch  = options.branch  || profile.branch  || '';
+    const branch  = options.branch  || _profileBranchValue(profile) || '';
     const shiftId = options.shiftId || profile.trainingShiftId || '';
     const result  = [];
     for (let day = 1; day <= daysInMonth; day++) {
@@ -301,7 +312,7 @@ function _getFilteredAttProfiles() {
 
     return Object.entries(allProfs)
         .filter(([, p]) => isActiveProfileForAttendance(p))
-        .filter(([, p]) => selBranch === 'all' || _sameBranch(p.branch, selBranch))
+        .filter(([, p]) => _profileMatchesBranch(p, selBranch))
         .filter(([, p]) => {
             if (selBelt === 'all') return true;
             return (p.belt || '').toLowerCase().includes(selBelt.toLowerCase());
@@ -422,7 +433,7 @@ function _renderAdminBranchSummary(totalSummary) {
     if (!_isAdminRole()) { wrapEl.style.display = 'none'; return; }
     const branchStats = {};
     _attCurrentProfiles.forEach(([name, p]) => {
-        const branch = p.branch || 'Chung';
+        const branch = _profileBranchValue(p) || 'Chung';
         if (!branchStats[branch]) branchStats[branch] = { present: 0, absent: 0, excused: 0, pending: 0, total: 0 };
         const st = window.currentAttendanceData[name] ?? 0;
         branchStats[branch].total++;
@@ -597,7 +608,7 @@ function _saveAttOffline(clubId, date) {
             const docId   = getAttendanceDocId(name, date, shiftId || null);
             payload.records[name] = {
                 name, status: window.currentAttendanceData[name] ?? 0,
-                belt: p.belt || '', branch: p.branch || '',
+                belt: p.belt || '', branch: _profileBranchValue(p) || '',
                 date, month: date.substring(0, 7), profileId: name,
                 shiftId, docId
             };
@@ -647,7 +658,7 @@ export function initAttendance() {
         const byBranch = {};
         Object.entries(_profiles() || {}).forEach(([name, p]) => {
             if (!isActiveProfileForAttendance(p)) return;
-            if (coachBr && !_sameBranch(p.branch, coachBr)) return;
+            if (coachBr && !_profileMatchesBranch(p, coachBr)) return;
             // Phase 4K-6V4D1A: birthday banner must accept all legacy DOB fields.
             // Some profiles imported from Excel use birthDate/birthday/ngaySinh instead
             // of dob, so the banner was hidden even though birthday data existed.
@@ -658,7 +669,7 @@ export function initAttendance() {
             else if (dob.includes('-')) { const dp = dob.split('-'); dobYear = dp[0]||''; dobMon = dp[1]||''; dobDay = dp[2]||''; }
             else return;
             if (dobDay !== tDay || dobMon !== tMon) return;
-            const branch = p.branch || 'Chung';
+            const branch = _profileBranchValue(p) || 'Chung';
             if (!byBranch[branch]) byBranch[branch] = [];
             const age = dobYear && tYear ? parseInt(tYear) - parseInt(dobYear) : null;
             byBranch[branch].push({ name, age });
@@ -938,7 +949,7 @@ export function initAttendance() {
                 await AttendanceService.deleteRecord(docId);
             } else {
                 await AttendanceService.saveRecord(docId, {
-                    profileId: name, name, belt: p.belt || '', branch: p.branch || '',
+                    profileId: name, name, belt: p.belt || '', branch: _profileBranchValue(p) || '',
                     date: _attCurrentDate, month: _attCurrentDate.substring(0, 7),
                     status: newStatus, timestamp: Date.now(),
                     ...(_currentShiftId ? { shiftId: _currentShiftId } : {})
@@ -1008,7 +1019,7 @@ export function initAttendance() {
             const bulkRecords = unmarked.map(([name, p]) => ({
                 docId: getAttendanceDocId(name, _attCurrentDate, _currentShiftId),
                 data: {
-                    profileId: name, name, belt: p.belt || '', branch: p.branch || '',
+                    profileId: name, name, belt: p.belt || '', branch: _profileBranchValue(p) || '',
                     date: _attCurrentDate, month: _attCurrentDate.substring(0, 7), status: 1,
                     ...(_currentShiftId ? { shiftId: _currentShiftId } : {}),
                     timestamp: Date.now()
@@ -1131,8 +1142,8 @@ export function initAttendance() {
             let rows = Object.values(grouped).filter(r => selBranch === 'all' || _sameBranch(r.branch, selBranch));
             Object.entries(_profiles()||{}).forEach(([pid,p]) => {
                 if (!isActiveProfileForAttendance(p)) return;
-                if (selBranch !== 'all' && !_sameBranch(p.branch, selBranch)) return;
-                if (!grouped[pid]) rows.push({name:pid,belt:p.belt||'',branch:p.branch||'',present:0,excused:0,absent:0});
+                if (selBranch !== 'all' && !_profileMatchesBranch(p, selBranch)) return;
+                if (!grouped[pid]) rows.push({name:pid,belt:p.belt||'',branch:_profileBranchValue(p)||'',present:0,excused:0,absent:0});
             });
             rows.sort((a,b)=>a.name.localeCompare(b.name,'vi'));
             if (rows.length===0) { _showMsg('Không có dữ liệu điểm danh trong tháng này'); return; }
@@ -1355,7 +1366,7 @@ export function initAttendance() {
 
         Object.entries(allProfs).forEach(([name, p]) => {
             if (!isActiveProfileForAttendance(p)) return;
-            const br  = p.branch || 'Chung';
+            const br  = _profileBranchValue(p) || 'Chung';
             const sid = p.trainingShiftId || '';
             const key = sid ? br + '::' + sid : br;
             if (!branchStats[key]) {

@@ -68,7 +68,7 @@ và không mount branch-scoped profiles listener, dẫn tới danh sách điểm
 
 ## Cache bust
 
-`coach-profiles-bootstrap-repair-20260630-v4d8`
+`coach-roster-hydration-rules-repair-20260630-v4d9`
 
 ## Kiểm tra đã chạy
 

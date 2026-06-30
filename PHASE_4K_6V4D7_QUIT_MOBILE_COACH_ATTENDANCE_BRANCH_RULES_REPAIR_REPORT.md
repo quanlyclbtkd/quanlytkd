@@ -83,7 +83,7 @@ V4D6 đã chặn danh sách tạm, nhưng chưa ép render lại sau khi `ensure
 
 Build marker mới:
 
-`coach-profiles-bootstrap-repair-20260630-v4d8`
+`coach-roster-hydration-rules-repair-20260630-v4d9`
 
 Đã đồng bộ root và thư mục `public/`.
 

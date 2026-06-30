@@ -1,7 +1,7 @@
 rules_version = '2';
 // ══════════════════════════════════════════════════════════════════════════════
 // Firestore Security Rules — Taekwondo Club Management SaaS
-// Phase 4K-6V4D8 — Coach Branch Assignment + Alias Rules Repair
+// Phase 4K-6V4D9 — Coach Roster Hydration + Branch Rules Repair
 //
 // Mục tiêu:
 //   • Client UI không còn là lớp bảo vệ duy nhất.
@@ -82,7 +82,7 @@ service cloud.firestore {
     }
 
     function isAllowedCoachBranch(branchValue) {
-      // Phase 4K-6V4D8: allow canonical + legacy assignment labels. The actual
+      // Phase 4K-6V4D9: allow canonical + legacy assignment labels. The actual
       // document boundary is enforced by branchMatchesAssigned(), so this helper
       // only rejects empty/missing Coach assignments.
       return branchValue != '';
@@ -156,12 +156,23 @@ service cloud.firestore {
       return isCoach(myClubId()) && branchEquivalent(branchValue, myBranch());
     }
 
+    // Phase 4K-6V4D9: do not collapse branch fields with priority for list rules.
+    // A query filtered by `branch == CS2` must be allowed even if some documents
+    // also carry a legacy `branchCode` field. Checking each field independently
+    // lets Firestore prove branch-scoped queries for Coach roster/attendance.
+    function dataHasAssignedBranch(data) {
+      return branchMatchesAssigned(data.get('branch', ''))
+        || branchMatchesAssigned(data.get('branchCode', ''))
+        || branchMatchesAssigned(data.get('coachBranch', ''))
+        || branchMatchesAssigned(data.get('branchName', ''));
+    }
+
     function resourceBranchMatchesCoach() {
-      return branchMatchesAssigned(assignedBranch(resource.data));
+      return isCoach(myClubId()) && dataHasAssignedBranch(resource.data);
     }
 
     function requestBranchMatchesCoach() {
-      return branchMatchesAssigned(assignedBranch(request.resource.data));
+      return isCoach(myClubId()) && dataHasAssignedBranch(request.resource.data);
     }
 
     function coachOwnsResource() {
@@ -374,7 +385,7 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/clubs/$(clubId)/coaches/$(uid))
         && get(/databases/$(database)/documents/clubs/$(clubId)/coaches/$(uid)).data.get('role', '') == 'coach'
         && get(/databases/$(database)/documents/clubs/$(clubId)/coaches/$(uid)).data.get('clubId', '') == clubId
-        && assignedBranch(get(/databases/$(database)/documents/clubs/$(clubId)/coaches/$(uid)).data) == assignedBranch(data);
+        && branchEquivalent(assignedBranch(get(/databases/$(database)/documents/clubs/$(clubId)/coaches/$(uid)).data), assignedBranch(data));
     }
 
     function safeSelfCoachMirrorCreate(uid) {
