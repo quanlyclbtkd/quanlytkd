@@ -15,9 +15,9 @@ const app = read('app.js');
 const index = read('index.html');
 const main = read('js/main.js');
 
-check('cache bust updated to V4D2 mobile recovery in index', index.includes('coach-attendance-branch-hydration-20260630-v4d6'));
-check('main imports render.js with V4D2 cache bust', main.includes('./ui/render.js?v=coach-attendance-branch-hydration-20260630-v4d6'));
-check('render.js has small UI refresh helper', render.includes('function _refreshSmallStudentUi(tabId, reason'));
+check('cache bust updated to V4D1A in index', index.includes('profile-canonical-store-runtime-recovery-20260628-v4d1a'));
+check('main imports render.js with V4D1A cache bust', main.includes('./ui/render.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a'));
+check('render.js has small UI refresh helper', render.includes('function _refreshSmallStudentUi(tabId, reason)'));
 check('render.js early return calls small UI refresh', render.includes("_refreshSmallStudentUi(earlyTabId, 'renderApp-dataVersion-unchanged')"));
 check('render.js small UI refresh always renders birthday banner', render.includes("typeof window._renderHomeBirthdayBanner === 'function'") && render.includes('window._renderHomeBirthdayBanner()'));
 check('render.js skipped section uses merged local profiles', render.includes('function _profilesForSmallUi()') && render.includes('getAllProfilesCompat'));
@@ -26,17 +26,15 @@ check('attendance birthday accepts birthDate', attendance.includes('p.birthDate'
 check('attendance birthday accepts birthday', attendance.includes('p.birthday'));
 check('attendance birthday accepts ngaySinh', attendance.includes('p.ngaySinh'));
 check('renderStudents merges canonical quit store', renderStudents.includes('canonicalStore') && renderStudents.includes('canonicalStore.quitProfiles'));
-check('renderStudents merges allProfiles quit fallback', renderStudents.includes('window.allProfiles || {}') && renderStudents.includes('(window.__store && window.__store.profiles) || {}'));
-check('renderStudents blocks partial quit fallback until authoritative sync completes', renderStudents.includes('data-quit-authoritative-loading') && renderStudents.includes('ensureQuitProfilesAuthoritative') && renderStudents.includes('_quitAuthoritativeReady'));
-check('renderStudents chooses direct authoritative full rows after quit loaded',
-  renderStudents.includes("_afterStudentIslandRender('quit-island-authoritative-full')") &&
-  renderStudents.includes('_buildAuthoritativeQuitRows({ mobileFull: true, forceAll: true })'));
+check('renderStudents merges allProfiles quit fallback', renderStudents.includes('Object.assign({}, window.allProfiles || {}, (window.__store && window.__store.profiles) || {})'));
+check('renderStudents renders direct quit fallback before quitLoaded', renderStudents.includes('if (!_quitLoaded && _hasDirectQuit)'));
+check('renderStudents chooses direct if cached quit rows partial', renderStudents.includes('_directPreview.count > ((_htmlQ.match(/data-quit-id=/g) || []).length)'));
 check('legacy app render early return refreshes small UI', app.includes('if(_dataVersion === _lastRenderedVersion) { _legacyRefreshSmallStudentUi(); return; }'));
 check('legacy app has small UI refresh helper', app.includes('function _legacyRefreshSmallStudentUi()'));
 check('legacy app small UI uses merged profiles', app.includes('function _legacyProfilesForSmallUi()') && app.includes('getAllProfilesCompat'));
-check('public render.js synced', renderPub.includes('function _refreshSmallStudentUi(tabId, reason'));
+check('public render.js synced', renderPub.includes('function _refreshSmallStudentUi(tabId, reason)'));
 check('public attendance synced', attendancePub.includes('p.birthDate') && attendancePub.includes('p.birthday'));
-check('public renderStudents synced', renderStudentsPub.includes('data-quit-authoritative-loading') && renderStudentsPub.includes('ensureQuitProfilesAuthoritative') && renderStudentsPub.includes('_quitAuthoritativeReady'));
+check('public renderStudents synced', renderStudentsPub.includes('if (!_quitLoaded && _hasDirectQuit)'));
 check('no new Firestore reads in profile canonical store', !read('js/core/profileCanonicalStore.js').match(/\b(getDocs|onSnapshot|getCountFromServer|runAggregationQuery)\b/));
 check('V4D1A does not introduce writes in profile canonical store', !read('js/core/profileCanonicalStore.js').match(/\b(setDoc|updateDoc|writeBatch|deleteDoc|addDoc)\b/));
 

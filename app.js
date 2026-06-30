@@ -600,6 +600,7 @@ window.invCustomCategories = [];
             return read(strippedYearMarker) || (strippedVietnameseYear ? read(strippedVietnameseYear) : 0);
         }
 
+
         const foldedRaw = _foldMonthText(raw);
         const yearMatch = foldedRaw.match(/\b(20\d{2})\b/);
         if (yearMatch) {
@@ -1864,12 +1865,6 @@ service cloud.firestore {
                 // Phase 4.0B-4D: mark settings loaded
                 _updateHydrationMetrics({ settingsLoaded: true, lastReason: 'settings-snapshot' });
                 applyClubConfigUI();
-                // Phase 4K-6V4D9: Sau khi tên cơ sở được hydrate từ settings,
-                // chạy reconcile branch-scoped cho HLV để lấy cả hồ sơ legacy lưu
-                // branch bằng tên cơ sở/branchCode/coachBranch, không full-read CLB.
-                if (_coachAttendanceOnly && typeof window.ensureCoachBranchProfilesHydrated === 'function') {
-                    setTimeout(() => window.ensureCoachBranchProfilesHydrated('settings-ready-branch-aliases'), 0);
-                }
                 // [Phase 3.5C] settings thay đổi ảnh hưởng toàn bộ UI → invalidateByDomain('all')
                 // Dùng domain invalidation thay vì scheduleRender() toàn app.
                 // Fallback về scheduleRender() nếu Phase 3.5C chưa load.
@@ -2485,6 +2480,8 @@ service cloud.firestore {
             }, 1200);
         }
     }
+
+
 
     //  SUPER ADMIN: NÂNG CẤP SỐ CƠ SỞ HOẠT ĐỘNG CỦA CLB
     let _buSelectedCount = 1;
@@ -3475,7 +3472,19 @@ service cloud.firestore {
     const _resolveCoachBranchContext = async (user, context) => {
         const normalized = _normalizeAuthContext({ ...context, uid: user && user.uid });
         if (window.CoachBranchRuntimeRepair && typeof window.CoachBranchRuntimeRepair.resolveAuthContext === 'function') {
-            return window.CoachBranchRuntimeRepair.resolveAuthContext({ user, context: normalized, db });
+            try {
+                return await window.CoachBranchRuntimeRepair.resolveAuthContext({ user, context: normalized, db });
+            } catch (error) {
+                // Phase 4K-6V4D6: mirror repair write failures must not block Coach login
+                // when the branch is already known. A blocked write can be fixed by Admin sync;
+                // attendance still needs a valid role/club/branch context to load safely.
+                console.warn('[AuthContext] Coach mirror repair failed, continuing with normalized context:', error.code || error.message);
+                if (normalized.role === 'coach' && normalized.clubId && (normalized.branch || normalized.coachBranch)) {
+                    normalized._mirrorRepairPending = true;
+                    return normalized;
+                }
+                throw error;
+            }
         }
         return normalized;
     };
@@ -3485,15 +3494,17 @@ service cloud.firestore {
             const snap = await getDoc(doc(db, 'coach_login_index', user.uid));
             if (!snap.exists()) return null;
             const data = snap.data() || {};
-            if (String(data.role || '').trim().toLowerCase().replace(/-/g, '_') !== 'coach') return null;
+            const role = String(data.role || '').trim().toLowerCase().replace(/-/g, '_');
+            if (role !== 'coach') return null;
             const ctx = {
+                uid: user.uid,
                 role: 'coach',
                 clubId: data.clubId || '',
                 branch: data.branch || data.coachBranch || '',
                 coachBranch: data.coachBranch || data.branch || '',
             };
             if (!ctx.clubId || !(ctx.branch || ctx.coachBranch)) return null;
-            return _resolveCoachBranchContext(user, ctx);
+            return await _resolveCoachBranchContext(user, ctx);
         } catch (error) {
             console.warn('[AuthContext] coach_login_index read failed:', error.code || error.message);
             return null;
@@ -4701,6 +4712,8 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         if (el) el.style.display = enabled ? 'block' : 'none';
     };
 
+
+
     // ── Phase 4.0B-4J-4: generateVietQR accepts optional branchOrAccount ─────
     function generateVietQR(amount, studentName, detailDesc, branchOrAccount) {
         const cName = removeVietnameseTonesForQR(studentName);
@@ -5207,6 +5220,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         }
         window.showToast(`✅ Hoàn thành! Đã gửi thông báo cho ${_bulkZaloIdx} võ sinh.`);
     };
+
 
     // PHASE 4K-4C — Gói học phí nhập học (helper dùng chung)
     window.buildAdmissionTuitionPackage = function(startDateOrMonth, packageCount) {
@@ -6896,6 +6910,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             .replace(/\s+/g, ' ');
     }
 
+
     // Phase 4K-6V4C2: canonical skipped-month helpers for the Active tab header.
     // Legacy fallback render must not hide skipped-month students because of
     // status aliases or month strings like "Tháng Sáu 2026".
@@ -6970,16 +6985,6 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             if (_curTabId === 'quit' && typeof window.renderQuitList === 'function') window.renderQuitList({ reason: 'legacy-small-ui-refresh' });
         } catch (_) {}
     }
-
-    window.refreshSmallStudentUi = window.refreshSmallStudentUi || function(reason, options) {
-        try {
-            if (options && options.skipQuitList) {
-                if (typeof window._renderHomeBirthdayBanner === 'function') window._renderHomeBirthdayBanner();
-                return;
-            }
-            _legacyRefreshSmallStudentUi(reason || 'legacy-external-small-ui-refresh');
-        } catch (_) {}
-    };
 
     function renderApp(reason) {
         // [Phase 4K-6H] Metrics
@@ -7295,8 +7300,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         const _PAGE_LIMIT    = 100;
         const _activeLimit   = (window._activePage || 1) * _PAGE_LIMIT;
         const _debtLimit     = (window._debtPage   || 1) * _PAGE_LIMIT;
-        // Phase 4K-6V4D4: Đã nghỉ renders the complete authoritative list on web + mobile.
-        const _quitLimit     = Number.MAX_SAFE_INTEGER;
+        const _quitLimit     = (window._quitPage   || 1) * _PAGE_LIMIT;
         let _activeRendered = 0, _debtRendered = 0, _quitRendered = 0;
         let _activeTotalCount = 0, _debtTotalCount = 0, _quitTotalCount = 0;
 
@@ -7399,7 +7403,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         // Phase 4K-5Q: DISABLED — active load-more row moved outside table (single source via #pgWrap_activeList)
         // if(_activeTotalCount > _activeLimit)  activeHtml += `<tr>...</tr>`;
         if(_debtTotalCount   > _debtLimit)    debtHtml   += `<tr><td colspan="${_moreColspan}" ${_moreStyle}><button type="button" ${_moreBtnStyle} onclick="window._loadMore('debt')">⬇ Tải thêm — còn ${_debtTotalCount - _debtRendered} võ sinh nữa</button></td></tr>`;
-        // Phase 4K-6V4D4: no load-more row for Đã nghỉ; this tab must be complete.
+        if(_quitTotalCount   > _quitLimit)    quitHtml   += `<tr><td colspan="${_moreColspan}" ${_moreStyle}><button type="button" ${_moreBtnStyle} onclick="window._loadMore('quit')">⬇ Tải thêm — còn ${_quitTotalCount - _quitRendered} võ sinh nữa</button></td></tr>`;
 
         _tabHtmlCache = { txList: txHtml, uniformTxList: uniformTxHtml, expenseList: expHtml, examExpenseList: examExpHtml, debtList: debtHtml, activeList: activeHtml, quitList: quitHtml, inventoryList: invListHtml, reportList: reportHtml };
         if (window.__store) window.__store.tabHtmlCache = _tabHtmlCache; // [Phase 2b] sync cache
@@ -8730,6 +8734,7 @@ document.getElementById('multiItemModal').addEventListener('click', e => {
     if(e.target === e.currentTarget) e.currentTarget.style.display = 'none';
 });
 
+
 // Phase 4K-5E — Bundle Label Helpers
 window.getPaymentComponentDisplayName = function(component) {
     const c = component || {};
@@ -8791,6 +8796,7 @@ window.getBundleSummaryLine = function(tx) {
         : '';
     return name + (detail ? ' — ' + detail : '');
 };
+
 
 // Phase 4K-6K-G — Admission Tuition Type Normalization
 // "Thu nhập học" là nhãn nghiệp vụ/biên lai, KHÔNG phải phân loại kế toán.
@@ -9137,6 +9143,7 @@ window.debugActiveQuitLeak = function() {
     }));
     return { activeDomCount: activeDom.length, leaks: leaks };
 };
+
 
 // Phase 4K-6K-D — MultiItem Tuition Package Guard
 // Giữ lựa chọn gói học phí thủ công (3/6/9/12 tháng) không bị _refreshMiHistoryBadges ghi đè.
@@ -9592,6 +9599,7 @@ window.processMultiItem = async (action) => {
     setupMiCurrency('mi_other_display', 'mi_other_actual', updateMultiItemTotal, false);
     setupMiCurrency('mi_inv_price_display', 'mi_inv_price_actual', window.calcMiInvTotal, false);
 
+
     // ĐIỂM DANH — Phase 4K-6V canonical module ownership
     // Full implementation moved to js/modules/attendance.js.
     // app.js intentionally keeps no duplicate attendance core.
@@ -9677,7 +9685,7 @@ window.processMultiItem = async (action) => {
             };
             await setDoc(doc(db, 'clubs', currentClubId, 'coaches', uid), coachPayload);
 
-            // users/{uid} + coach_login_index/{uid} là hồ sơ phân quyền bắt buộc; lỗi thì giữ coach doc để đồng bộ, không tạo lại Auth.
+            // users/{uid} + coach_login_index/{uid} là 2 mirror đăng nhập/điểm danh bắt buộc.
             let provisioningError = null;
             try {
                 const mirrorPayload = { role: 'coach', clubId: currentClubId, branch, coachBranch: branch, email, uid, updatedAt: now };
@@ -9685,11 +9693,11 @@ window.processMultiItem = async (action) => {
                 await setDoc(doc(db, 'coach_login_index', uid), mirrorPayload, { merge: true });
             } catch(_permErr) {
                 provisioningError = _permErr;
-                console.error('Ghi users/{uid}/coach_login_index thất bại — tài khoản chưa thể đăng nhập:', _permErr.code || _permErr.message);
+                console.error('Ghi users/{uid}/coach_login_index thất bại — HLV có thể chưa đăng nhập được đến khi deploy Rules + đồng bộ:', _permErr.code || _permErr.message);
             }
 
             const branchDisplay = branch ? (' | Cơ sở: ' + (window.getBranchNameDisplay ? window.getBranchNameDisplay(branch) : branch)) : '';
-            if (provisioningError) alert('⚠️ Auth và hồ sơ HLV đã tạo nhưng users/{uid} chưa ghi được.\n\nKHÔNG tạo lại để tránh trùng email. Deploy Rules V4D5 rồi bấm “Đồng bộ tài khoản HLV cũ”.\n\nTên: ' + name + '\nEmail: ' + email + branchDisplay);
+            if (provisioningError) alert('⚠️ Auth và hồ sơ HLV đã tạo nhưng users/{uid} chưa ghi được.\n\nKHÔNG tạo lại để tránh trùng email. Deploy Rules 6V4B rồi bấm “Đồng bộ tài khoản HLV cũ”.\n\nTên: ' + name + '\nEmail: ' + email + branchDisplay);
             else alert('✅ Tạo tài khoản HLV thành công!\n\nTên: ' + name + '\nEmail: ' + email + '\nMật khẩu: ' + pass + branchDisplay + '\n\nHLV có thể đăng nhập ngay bây giờ.');
             document.getElementById('coach_email').value  = '';
             document.getElementById('coach_pass').value   = '';
@@ -9726,6 +9734,11 @@ window.processMultiItem = async (action) => {
                 await deleteDoc(doc(db, 'users', uid));
             } catch(_permErr) {
                 console.warn('Không thể xóa users/{uid}:', _permErr.code, '— không ảnh hưởng chức năng');
+            }
+            try {
+                await deleteDoc(doc(db, 'coach_login_index', uid));
+            } catch(_idxErr) {
+                console.warn('Không thể xóa coach_login_index/{uid}:', _idxErr.code, '— không ảnh hưởng chức năng');
             }
             window.showToast('✅ Đã xóa tài khoản HLV: ' + email, 2500);
             window.loadCoachAccounts();
@@ -10123,12 +10136,10 @@ window.processMultiItem = async (action) => {
                     const mirrorPayload = { role: 'coach', clubId: currentClubId, branch: canonicalBranch, coachBranch: canonicalBranch, email: data.email || oldUser.email || '', uid, updatedAt: now };
                     if (userNeedsSync) {
                         await setDoc(userRef, mirrorPayload, { merge: true });
-                        await setDoc(doc(db, 'coach_login_index', uid), mirrorPayload, { merge: true });
                         userSynced++;
-                    } else {
-                        // Phase 4K-6V4D5: refresh deterministic login index even when users/{uid} is already correct.
-                        await setDoc(doc(db, 'coach_login_index', uid), mirrorPayload, { merge: true });
                     }
+                    // Phase 4K-6V4D6: always refresh deterministic login index for Coach accounts.
+                    await setDoc(doc(db, 'coach_login_index', uid), mirrorPayload, { merge: true });
                 } catch(_permErr) {
                     failed++;
                     console.warn('users/{uid} sync failed for', uid, ':', _permErr.code || _permErr.message);
@@ -10145,6 +10156,8 @@ window.processMultiItem = async (action) => {
 
     // Phase 4K-6V: session-note loading is called explicitly by attendance.js after daily render.
 
+
+
     // Phase 4K-5Q: isSuperAdminRole — single source of truth for SuperAdmin check
     window.isSuperAdminRole = function() {
         const role =
@@ -10157,6 +10170,7 @@ window.processMultiItem = async (action) => {
     // Phase 4K-5Q: debugMobileSuperAdminGate — debug helper
 
     // Phase 4K-6S: mobile menu fallbacks moved to js/legacy/legacyUiFallbacks.js.
+
 
     // Phase 4K-6T: read-only diagnostics, pilot/onboarding gates, and
     // SuperAdmin audit tooling moved to js/diagnostics/*.js. The runtime
@@ -10226,49 +10240,19 @@ window.processMultiItem = async (action) => {
             }
         }
 
-        async function _hasCoachScopedProfileDoc() {
-            const role = String(window.userRole || window.__store?.userRole || '').toLowerCase();
-            const branch = _canonicalBranch(window.coachBranch || window.__store?.coachBranch || '', '');
-            if (role !== 'coach' || !branch) return null;
-            let denied = 0, checked = 0;
-            const aliases = _branchAliases(branch).filter(Boolean);
-            // Phase 4K-6V4D9: Runtime recovery is diagnostic only. For Coach accounts,
-            // some legacy branch aliases may be denied by strict Rules. That must not
-            // mark the whole attendance-only session as permission-error or block render.
-            for (const field of ['branch', 'branchCode', 'coachBranch']) {
-                for (const value of aliases) {
-                    checked++;
-                    try {
-                        const snap = await getDocs(query(collection(_db, 'clubs', _clubId, 'profiles'), where(field, '==', value), limit(1)));
-                        if (snap.size > 0) return true;
-                    } catch (e) {
-                        if (e && e.code === 'permission-denied') { denied++; continue; }
-                    }
-                }
-            }
-            if (denied > 0) {
-                console.warn('[resolveActiveDataSource] Coach scoped probe skipped denied aliases:', denied + '/' + checked);
-            }
-            return false;
-        }
-        const isCoachRuntime = String(window.userRole || window.__store?.userRole || '').toLowerCase() === 'coach';
-        let pProf, pTx, pInv, lProf, lTx, lInv;
-        if (isCoachRuntime) { pProf = await _hasCoachScopedProfileDoc(); pTx = pInv = lProf = lTx = lInv = false; }
-        else {
-            [pProf, pTx, pInv, lProf, lTx, lInv] = await Promise.all([
-                _hasDoc('clubs/' + _clubId + '/profiles'),
-                _hasDoc('clubs/' + _clubId + '/transactions'),
-                _hasDoc('clubs/' + _clubId + '/inventory'),
-                _hasDoc('tst_profiles'),
-                _hasDoc('tst_transactions'),
-                _hasDoc('tst_inventory')
-            ]);
-        }
+        const [pProf, pTx, pInv, lProf, lTx, lInv] = await Promise.all([
+            _hasDoc('clubs/' + _clubId + '/profiles'),
+            _hasDoc('clubs/' + _clubId + '/transactions'),
+            _hasDoc('clubs/' + _clubId + '/inventory'),
+            _hasDoc('tst_profiles'),
+            _hasDoc('tst_transactions'),
+            _hasDoc('tst_inventory')
+        ]);
 
         const primary = { profilesHasDocs: pProf, transactionsHasDocs: pTx, inventoryHasDocs: pInv };
         const legacy  = { profilesHasDocs: lProf, transactionsHasDocs: lTx, inventoryHasDocs: lInv };
 
-        const permDenied   = isCoachRuntime ? false : [pProf, pTx, pInv].some(v => v === 'permission-denied');
+        const permDenied   = [pProf, pTx, pInv].some(v => v === 'permission-denied');
         const primaryHas   = pProf === true || pTx === true || pInv === true;
         const legacyHas    = lProf === true || lTx === true || lInv === true;
 
@@ -10284,10 +10268,6 @@ window.processMultiItem = async (action) => {
         } else if (legacyHas) {
             source = 'legacy-root';
             reason = 'Primary path rỗng — legacy root collections có dữ liệu. Gọi window.activateLegacyRootFallback() để bật.';
-            safeToRender = true;
-        } else if (isCoachRuntime) {
-            source = 'primary';
-            reason = 'HLV attendance-only: không có hồ sơ phù hợp branch hoặc branch chưa đồng bộ; vẫn an toàn để render Điểm danh.';
             safeToRender = true;
         } else {
             source = 'empty';
@@ -10588,6 +10568,7 @@ window.processMultiItem = async (action) => {
      * Kiểm tra sơ bộ trạng thái dữ liệu của một CLB qua Firestore.
      * Read-only. Dùng limit(1). Không log doc data. Không log PII.
      */
+
 
     /**
      * runSuperAdminAudit(options) — Phase 4.0B-4J.

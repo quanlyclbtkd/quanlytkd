@@ -19,7 +19,7 @@
  */
 
 import { registerRender } from './renderRegistry.js';
-import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=coach-attendance-render-scope-20260630-v4d9';
+import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=quit-mobile-coach-attendance-repair-20260630-v4d6';
 
 // ─── Core DOM helper ────────────────────────────────────────────────────────
 
@@ -40,18 +40,6 @@ function _applyHtml(el, html) {
     const tpl = document.createElement('template');
     tpl.innerHTML = html;
     el.replaceChildren(tpl.content);
-}
-
-function _afterStudentIslandRender(reason) {
-    try {
-        if (typeof window.refreshSmallStudentUi === 'function') {
-            window.refreshSmallStudentUi(reason || 'student-island-render', { skipQuitList: true });
-            return;
-        }
-    } catch (_) {}
-    try {
-        if (typeof window._renderHomeBirthdayBanner === 'function') window._renderHomeBirthdayBanner();
-    } catch (_) {}
 }
 
 function _ensureQuitMobileControl() {
@@ -110,11 +98,7 @@ function _getAuthoritativeQuitProfiles() {
         const storeQuit = window.studentProfileStore && typeof window.studentProfileStore.getQuitProfiles === 'function'
             ? (window.studentProfileStore.getQuitProfiles() || {})
             : {};
-        const localQuit = (window.__store && window.__store._localQuitProfiles) || {};
-        // Phase 4K-6V4D3: include local quit journal first. This survives an
-        // active-only listener refresh and prevents newly quit students from
-        // disappearing on mobile before lazy/full quit reconciliation completes.
-        Object.assign(merged, storeQuit, localQuit);
+        Object.assign(merged, storeQuit);
     } catch (_) {}
     try {
         const canonicalStore = (window.__profileCanonicalStore || (window.ProfileCanonicalStore && window.ProfileCanonicalStore.ensure && window.ProfileCanonicalStore.ensure({ reason: 'quit-list-direct-fallback' }))) || null;
@@ -126,10 +110,7 @@ function _getAuthoritativeQuitProfiles() {
         });
     } catch (_) {}
     try {
-        const compat = window.studentProfileStore && typeof window.studentProfileStore.getAllProfilesCompat === 'function'
-            ? (window.studentProfileStore.getAllProfilesCompat() || {})
-            : {};
-        const profiles = Object.assign({}, compat, window.allProfiles || {}, (window.__store && window.__store.profiles) || {});
+        const profiles = Object.assign({}, window.allProfiles || {}, (window.__store && window.__store.profiles) || {});
         Object.entries(profiles).forEach(([id, profile]) => {
             const kind = typeof window.classifyProfileStatus === 'function'
                 ? window.classifyProfileStatus(profile)
@@ -148,10 +129,8 @@ function _buildAuthoritativeQuitRows(options = {}) {
             : (profile.status === 'quit' || profile.status === 'inactive' || profile.active === false || profile.isActive === false ? 'quit' : 'active');
         return kind === 'quit';
     }).sort((a, b) => _profileDisplayName(a[0], a[1]).localeCompare(_profileDisplayName(b[0], b[1]), 'vi'));
-    const pageSize = (window.__store && window.__store.pagination && window.__store.pagination.students && window.__store.pagination.students.pageSize) || 50;
-    // Phase 4K-6V4D4: Đã nghỉ must be a complete authoritative list on both
-    // web and mobile. Previous versions only forced full render on mobile and
-    // kept desktop tied to window._quitPage, so web still looked incomplete.
+    // Phase 4K-6V4D6: Đã nghỉ is an authoritative audit list. Render full list
+    // on both web and mobile after full sync; never page-limit this tab.
     const forceAll = true;
     const limit = entries.length;
     const cfg = (window.__store && window.__store.clubConfig) || window.clubConfig || {};
@@ -167,39 +146,28 @@ function _buildAuthoritativeQuitRows(options = {}) {
         const quitDate = _formatDateSafe(p.quitDate || p.ngayNghi || p.inactiveDate || p.stoppedDate || p.leftDate || p.nghiDate);
         return `<tr data-quit-id="${safeIdAttr}" data-profile-name="${display}"><td class="name-link text-[0.95rem]" onclick="openProfile('${safeIdJs}')">${display}</td><td class="text-[0.7rem] font-bold text-slate-500">${memberId || '-'}</td><td>${belt}</td>${branchTd}<td>${_formatDateSafe(p.dob)}</td><td>${_escapeHtml(quitDate) || '-'}</td><td>${isAdmin ? `<button type="button" class="btn-sm bg-emerald-50 text-emerald-700 border border-emerald-200" onclick="openProfile('${safeIdJs}')">🔄 Khôi phục</button>` : ''}</td></tr>`;
     }).join('');
-    const remaining = Math.max(0, entries.length - limit);
-    const colspan = isSingleBranch ? 6 : 7;
-    const more = remaining > 0
-        ? `<tr class="load-more-row" data-load-more-for="quitList"><td colspan="${colspan}" style="padding:10px;text-align:center;"><button type="button" class="btn-sm" style="background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;font-size:0.78rem;cursor:pointer;" onclick="window._loadMore('quit')">⬇ Tải thêm — còn ${remaining} võ sinh đã nghỉ nữa</button></td></tr>`
-        : '';
-    return { html: rows + more, count: entries.length, limit, remaining };
+    const remaining = 0;
+    return { html: rows, count: entries.length, limit, remaining };
 }
 
 function _syncQuitMobileControl() {
     const ctrlEl = _ensureQuitMobileControl();
     if (!ctrlEl) return;
-    const quitLoaded = !!(window.studentProfileStore && typeof window.studentProfileStore.isQuitLoaded === 'function' && window.studentProfileStore.isQuitLoaded());
-    const mobileFull = true; // Phase 4K-6V4D4: web + mobile both show the complete Đã nghỉ list.
-    if (!quitLoaded) {
-        ctrlEl.innerHTML = '<div style="text-align:center;padding:0.5rem 0;color:#94a3b8;font-size:0.8rem;">Đang tải danh sách đã nghỉ...</div>';
+    const metrics = window.__profileScaleMetrics || {};
+    const coach = String(window.userRole || '').toLowerCase().replace(/-/g, '_') === 'coach';
+    const ready = coach
+        || (typeof window.isQuitProfilesLoaded === 'function' && window.isQuitProfilesLoaded())
+        || !!(metrics.quitLoaded && metrics.quitCompletenessReconciled)
+        || !!(window.studentProfileStore && typeof window.studentProfileStore.isQuitLoaded === 'function' && window.studentProfileStore.isQuitLoaded() && metrics.quitCompletenessReconciled);
+    if (!ready) {
+        const err = metrics.quitAuthoritativeLastError ? ' Mã lỗi: ' + _escapeHtml(metrics.quitAuthoritativeLastError) : '';
+        ctrlEl.innerHTML = '<div style="text-align:center;padding:0.5rem 0;color:#64748b;font-size:0.8rem;line-height:1.45;">Đang đối soát đầy đủ danh sách đã nghỉ...' + err + '</div>';
         return;
     }
     let count = 0;
-    try {
-        count = Object.keys(_getAuthoritativeQuitProfiles()).length;
-    } catch (_) { count = 0; }
-    const pageSize = (window.__store && window.__store.pagination && window.__store.pagination.students && window.__store.pagination.students.pageSize) || 50;
-    const limit = count;
-    const remaining = Math.max(0, count - limit);
-    const btnStyle = 'style="padding:0.45rem 1.2rem;font-size:0.85rem;background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;border-radius:6px;cursor:pointer;font-weight:600;"';
-    if (remaining > 0) {
-        ctrlEl.innerHTML = '<div style="text-align:center;padding:0.75rem 0;">'
-            + '<button type="button" ' + btnStyle + ' onclick="window._loadMore(\'quit\')">'
-            + '⬇ Tải thêm — còn ' + remaining + ' võ sinh đã nghỉ nữa'
-            + '</button></div>';
-    } else if (count > 0) {
-        ctrlEl.innerHTML = '<div style="text-align:center;padding:0.5rem 0;color:#94a3b8;font-size:0.8rem;">'
-            + (mobileFull ? 'Đã hiển thị đủ ' : 'Đã tải hết ') + count + ' võ sinh đã nghỉ</div>';
+    try { count = Object.keys(_getAuthoritativeQuitProfiles()).length; } catch (_) { count = 0; }
+    if (count > 0) {
+        ctrlEl.innerHTML = '<div style="text-align:center;padding:0.5rem 0;color:#94a3b8;font-size:0.8rem;">Đã hiển thị đủ ' + count + ' võ sinh đã nghỉ</div>';
     } else {
         ctrlEl.innerHTML = '<div style="text-align:center;padding:0.5rem 0;color:#94a3b8;font-size:0.8rem;">Chưa có võ sinh đã nghỉ</div>';
     }
@@ -229,7 +197,6 @@ export function renderActiveIsland() {
                 : '';
             if (_fbHtml) {
                 _applyHtml(document.getElementById('activeList'), _fbHtml);
-                _afterStudentIslandRender('active-island-pagination-fallback');
                 return;
             }
             // Builder chưa sẵn → bảo toàn DOM (không clear rows đang hiển thị)
@@ -239,74 +206,44 @@ export function renderActiveIsland() {
         }
     }
     _applyHtml(document.getElementById('activeList'), _html);
-    _afterStudentIslandRender('active-island-render');
 }
 
 /** Render the debt/unpaid list (#debtList). */
 export function renderDebtIsland() {
     _applyHtml(document.getElementById('debtList'), getStudentsCachedHtml('debtRows'));
-    _afterStudentIslandRender('debt-island-render');
 }
 
 /** Render the quit student list (#quitList). */
 export function renderQuitIsland() {
-    let _htmlQ = getStudentsCachedHtml('quitRows');
     const _target = document.getElementById('quitList');
-    const _quitLoaded = !!(window.studentProfileStore && typeof window.studentProfileStore.isQuitLoaded === 'function' && window.studentProfileStore.isQuitLoaded());
-    const _metrics = window.__profileScaleMetrics || {};
-    const _isCoach = String(window.userRole || '').toLowerCase().replace(/-/g, '_') === 'coach';
-    const _quitAuthoritativeReady = !!(_metrics.quitLoaded && _metrics.quitCompletenessReconciled);
-    const _directPreview = _buildAuthoritativeQuitRows({ mobileFull: true, forceAll: true });
-    const _hasDirectQuit = _directPreview && _directPreview.count > 0;
+    const metrics = window.__profileScaleMetrics || {};
+    const coach = String(window.userRole || '').toLowerCase().replace(/-/g, '_') === 'coach';
+    const ready = coach
+        || (typeof window.isQuitProfilesLoaded === 'function' && window.isQuitProfilesLoaded())
+        || !!(metrics.quitLoaded && metrics.quitCompletenessReconciled)
+        || !!(window.studentProfileStore && typeof window.studentProfileStore.isQuitLoaded === 'function' && window.studentProfileStore.isQuitLoaded() && metrics.quitCompletenessReconciled);
 
-    // Phase 4K-6V4D5: partial targeted quit rows must not be presented as the
-    // final Đã nghỉ list. Trigger the full authoritative sync and show a clear
-    // reconciliation state until it completes, so web/mobile cannot get stuck on
-    // an incomplete cached page.
-    if (!_isCoach && !_quitAuthoritativeReady) {
+    if (!ready) {
         try {
-            if (typeof window.ensureQuitProfilesAuthoritative === 'function') {
-                window.ensureQuitProfilesAuthoritative('render-quit-island-v4d5');
+            if (!coach && typeof window.ensureQuitProfilesAuthoritative === 'function') {
+                window.ensureQuitProfilesAuthoritative('render-quit-island-v4d6');
+            } else if (!coach && typeof window.loadQuitProfilesIfNeeded === 'function') {
+                window.loadQuitProfilesIfNeeded('render-quit-island-v4d6');
             }
         } catch (_) {}
-        const seen = _hasDirectQuit ? (' Đã nhận diện tạm ' + _directPreview.count + ' hồ sơ, đang đối soát đủ danh sách...') : '';
-        const err = _metrics.quitAuthoritativeLastError ? (' Mã lỗi: ' + _escapeHtml(_metrics.quitAuthoritativeLastError)) : '';
-        _applyHtml(_target, '<tr data-quit-authoritative-loading="1"><td colspan="7" style="text-align:center;color:#64748b;padding:16px;font-size:0.82rem;line-height:1.5;">Đang tải đầy đủ danh sách võ sinh đã nghỉ.' + seen + err + '</td></tr>');
+        const existingCount = (() => {
+            try { return Object.keys(_getAuthoritativeQuitProfiles()).length; } catch (_) { return 0; }
+        })();
+        const suffix = existingCount > 0 ? ' Đã nhận diện tạm ' + existingCount + ' hồ sơ, đang xác minh đủ danh sách...' : '';
+        const err = metrics.quitAuthoritativeLastError ? ' Mã lỗi: ' + _escapeHtml(metrics.quitAuthoritativeLastError) : '';
+        _applyHtml(_target, '<tr data-quit-authoritative-loading="1"><td colspan="7" style="text-align:center;color:#64748b;padding:16px;font-size:0.82rem;line-height:1.5;">Đang tải đầy đủ danh sách võ sinh đã nghỉ.' + suffix + err + '</td></tr>');
         _syncQuitMobileControl();
-        _afterStudentIslandRender('quit-island-authoritative-loading');
         return;
     }
 
-    // Phase 4K-6V4B5: mobile authoritative render safety. Mobile can open the
-    // tab while lazy quit reconciliation has completed but the computation cache
-    // is still empty/stale. Never clear #quitList in that state; rebuild from
-    // authoritative quitProfiles directly, then create an outside mobile control.
-    if (_quitLoaded) {
-        // Phase 4K-6V4D4: once quit data is loaded, never render #quitList from
-        // stale computation cache or page-limited HTML. Build directly from the
-        // authoritative quit union so web and mobile are identical and complete.
-        const direct = _buildAuthoritativeQuitRows({ mobileFull: true, forceAll: true });
-        _applyHtml(_target, direct.html || '<tr data-quit-empty="1"><td colspan="7" style="text-align:center;color:#94a3b8;padding:16px;font-size:0.82rem;">Chưa có võ sinh đã nghỉ</td></tr>');
-        _syncQuitMobileControl();
-        _afterStudentIslandRender('quit-island-authoritative-full');
-        return;
-    }
-
-    // Before quit data is ready, preserve any existing DOM rows instead of
-    // clearing the mobile table. This avoids a blank flash while lazy load runs.
-    if (!_htmlQ) {
-        const _hasRows = _target && _target.querySelector('tr[data-quit-id], tr[data-student-id]');
-        if (_hasRows) return;
-        if (_target) {
-            _applyHtml(_target, '<tr data-quit-loading="1"><td colspan="7" style="text-align:center;color:#94a3b8;padding:16px;font-size:0.82rem;">Đang tải danh sách đã nghỉ...</td></tr>');
-        }
-        _syncQuitMobileControl();
-        _afterStudentIslandRender('quit-island-loading');
-        return;
-    }
-    _applyHtml(_target, _htmlQ);
+    const direct = _buildAuthoritativeQuitRows({ mobileFull: true, forceAll: true });
+    _applyHtml(_target, direct.html || '<tr data-quit-empty="1"><td colspan="7" style="text-align:center;color:#94a3b8;padding:16px;font-size:0.82rem;">Chưa có võ sinh đã nghỉ</td></tr>');
     _syncQuitMobileControl();
-    _afterStudentIslandRender('quit-island-final-cache');
 }
 
 // ─── Island initialiser ──────────────────────────────────────────────────────

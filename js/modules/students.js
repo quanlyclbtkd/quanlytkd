@@ -1175,21 +1175,12 @@ export function initStudentPagination() {
 
                     // Quit list — Phase 4K-6V4B8 mobile full authoritative render.
                     // Mobile must show the complete Đã nghỉ list from quitProfiles,
-                    // not the shared server-pagination page. Desktop keeps load-more.
+                    // not the shared server-pagination page. Web + mobile both show the full list.
                     if (listId === 'quitList' && _isQuitAuthoritativeLoaded()) {
                         const _quitEntries = _getAuthoritativeQuitEntries();
-                        const _mobileFull  = true; // Phase 4K-6V4D4: web + mobile both show all quit profiles.
-                        const _quitLimit   = _quitEntries.length;
-                        const _remaining   = Math.max(0, _quitEntries.length - _quitLimit);
-                        const _btnStyle    = 'style="padding:0.45rem 1.2rem;font-size:0.85rem;background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;border-radius:6px;cursor:pointer;font-weight:600;"';
-                        if (_remaining > 0) {
-                            ctrlEl.innerHTML = '<div style="text-align:center;padding:0.75rem 0;">'
-                                + "<button type=\"button\" " + _btnStyle + " onclick=\"window._loadMore('quit')\">"
-                                + '⬇ Tải thêm — còn ' + _remaining + ' võ sinh đã nghỉ nữa'
-                                + '</button></div>';
-                        } else if (_quitEntries.length > 0) {
+                        if (_quitEntries.length > 0) {
                             ctrlEl.innerHTML = '<div style="text-align:center;padding:0.5rem 0;color:#94a3b8;font-size:0.8rem;">'
-                                + (_mobileFull ? 'Đã hiển thị đủ ' : 'Đã tải hết ') + _quitEntries.length + ' võ sinh đã nghỉ</div>';
+                                + 'Đã hiển thị đủ ' + _quitEntries.length + ' võ sinh đã nghỉ</div>';
                         } else {
                             ctrlEl.innerHTML = '<div style="text-align:center;padding:0.5rem 0;color:#94a3b8;font-size:0.8rem;">Chưa có võ sinh đã nghỉ</div>';
                         }
@@ -1466,7 +1457,7 @@ export function initStudentPagination() {
 
             function _isQuitAuthoritativeLoaded() {
                 try {
-                    return !!(window.studentProfileStore && typeof window.studentProfileStore.isQuitLoaded === 'function' && window.studentProfileStore.isQuitLoaded());
+                    return (typeof window.isQuitProfilesLoaded === 'function' && window.isQuitProfilesLoaded()) || !!(window.studentProfileStore && typeof window.studentProfileStore.isQuitLoaded === 'function' && window.studentProfileStore.isQuitLoaded() && (window.__profileScaleMetrics || {}).quitCompletenessReconciled);
                 } catch (_) {
                     return false;
                 }
@@ -1477,9 +1468,8 @@ export function initStudentPagination() {
                     const storeQuit = window.studentProfileStore && typeof window.studentProfileStore.getQuitProfiles === 'function'
                         ? (window.studentProfileStore.getQuitProfiles() || {})
                         : {};
-                    const profiles = (window.__store && window.__store.profiles) || {};
-                    const localQuit = (window.__store && window.__store._localQuitProfiles) || {};
-                    const merged = Object.assign({}, storeQuit, localQuit);
+                    const profiles = Object.assign({}, window.allProfiles || {}, (window.__store && window.__store.profiles) || {});
+                    const merged = Object.assign({}, storeQuit);
                     Object.entries(profiles).forEach(function([id, profile]) {
                         const kind = typeof window.classifyProfileStatus === 'function'
                             ? window.classifyProfileStatus(profile)
@@ -2627,23 +2617,6 @@ window.syncStudentStatusLocal = function syncStudentStatusLocal(name, updateData
 
         const kind = classify(nextProfile);
 
-        // Phase 4K-6V4D3: keep the split profile store in sync immediately.
-        // Root cause: on mobile, #quitList renders from studentProfileStore.quitProfiles
-        // after the active-only listener refreshes. If a newly quit student only lives in
-        // window.__store.profiles, the next active snapshot can overwrite the compat map
-        // and the student disappears from the mobile Đã nghỉ list until lazy quit reloads.
-        if (window.studentProfileStore && typeof window.studentProfileStore.mergeProfile === 'function') {
-            try { window.studentProfileStore.mergeProfile(key, nextProfile, reason + ':status-local-sync'); } catch (_) {}
-        }
-        if (!window.__store._localQuitProfiles || typeof window.__store._localQuitProfiles !== 'object') {
-            window.__store._localQuitProfiles = {};
-        }
-        if (kind === 'quit') {
-            window.__store._localQuitProfiles[key] = nextProfile;
-        } else {
-            delete window.__store._localQuitProfiles[key];
-        }
-
         // HARD SEPARATION: nếu status=quit, loại ra khỏi pagination.currentItems ngay
         const pg = window.__store.pagination && window.__store.pagination.students;
         if (pg && Array.isArray(pg.currentItems) && kind === 'quit') {
@@ -2699,17 +2672,6 @@ window.syncStudentStatusLocal = function syncStudentStatusLocal(name, updateData
                 window.__store._lastDebtRemoveReason = reason;
                 window.__store._lastDebtRemoveName = key;
             }
-            // If the user is already on mobile Đã nghỉ, repaint from the
-            // authoritative local quit union immediately instead of waiting for
-            // the async lazy/fallback query.
-            try {
-                const _tab = typeof window.getCurrentActiveTabId === 'function'
-                    ? window.getCurrentActiveTabId()
-                    : ((document.querySelector('.tab-content.active') || {}).id || '').replace(/^tab_/, '');
-                if (_tab === 'quit' && typeof window.renderQuitList === 'function') {
-                    Promise.resolve().then(function() { window.renderQuitList({ reason: reason + ':immediate-quit-repaint' }); });
-                }
-            } catch (_) {}
         }
 
         console.debug('[syncStudentStatusLocal] synced:', key, '->', kind, updateData.status || '');

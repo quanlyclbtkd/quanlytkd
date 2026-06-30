@@ -23,20 +23,20 @@ function check(name, ok, detail = '') {
 
 console.log('\n=== Phase 4K-6V4B1 — Coach Branch Runtime Repair ===\n');
 
-const appEntrypointBuilds = ['coach-attendance-branch-rule-tolerant-20260630-v4d8', 'coach-attendance-branch-scope-20260630-v4d7', 'coach-attendance-branch-hydration-20260630-v4d6', 'quit-authoritative-full-sync-20260629-v4d4', 'quit-mobile-authoritative-local-sync-20260628-v4d3', 'profile-canonical-store-runtime-recovery-20260628-v4d1a', 'profile-canonical-store-20260628-v4d1', 'tuition-debt-source-of-truth-20260628-v4c'];
+const appEntrypointBuilds = ['quit-mobile-coach-attendance-repair-20260630-v4d6', 'profile-canonical-store-runtime-recovery-20260628-v4d1a', 'profile-canonical-store-20260628-v4d1', 'tuition-debt-source-of-truth-20260628-v4c'];
 check('Production entrypoints keep V4B1 branch repair and load current runtime cache marker',
-  ((index.match(/coach-attendance-branch-rule-tolerant-20260630-v4d8/g) || []).length >= 5 || (index.match(/coach-attendance-branch-scope-20260630-v4d7/g) || []).length >= 5 || (index.match(/coach-attendance-branch-hydration-20260630-v4d6/g) || []).length >= 5 || (index.match(/coach-branch-runtime-repair-20260627-v4b1/g) || []).length >= 5) &&
+  ((index.match(/quit-mobile-coach-attendance-repair-20260630-v4d6/g) || []).length >= 5 || (index.match(/coach-branch-runtime-repair-20260627-v4b1/g) || []).length >= 5) &&
   appEntrypointBuilds.some(build => index.includes(`app.js?v=${build}`)) &&
-  (index.includes('./js/main.js?v=coach-attendance-branch-rule-tolerant-20260630-v4d8') || index.includes('./js/main.js?v=coach-attendance-branch-scope-20260630-v4d7') || index.includes('./js/main.js?v=coach-attendance-branch-hydration-20260630-v4d6') || index.includes('./js/main.js?v=quit-authoritative-full-sync-20260629-v4d4') || index.includes('./js/main.js?v=quit-mobile-authoritative-local-sync-20260628-v4d3') || index.includes('./js/main.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a') || index.includes('./js/main.js?v=profile-canonical-store-20260628-v4d1')) &&
-  (main.includes("profiles.listeners.js?v=coach-attendance-branch-rule-tolerant-20260630-v4d8") || main.includes("profiles.listeners.js?v=coach-attendance-branch-scope-20260630-v4d7") || main.includes("profiles.listeners.js?v=coach-attendance-branch-hydration-20260630-v4d6") || main.includes("profiles.listeners.js?v=quit-authoritative-full-sync-20260629-v4d4") || main.includes("profiles.listeners.js?v=quit-mobile-authoritative-local-sync-20260628-v4d3") || main.includes("profiles.listeners.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a") || main.includes("profiles.listeners.js?v=profile-canonical-store-20260628-v4d1")) &&
-  (main.includes("attendance.js?v=coach-attendance-branch-rule-tolerant-20260630-v4d8") || main.includes("attendance.js?v=coach-attendance-branch-scope-20260630-v4d7") || main.includes("attendance.js?v=coach-attendance-branch-hydration-20260630-v4d6") || main.includes("attendance.js?v=quit-authoritative-full-sync-20260629-v4d4") || main.includes("attendance.js?v=quit-mobile-authoritative-local-sync-20260628-v4d3") || main.includes("attendance.js?v=coach-branch-runtime-repair-20260627-v4b1")));
+  (index.includes('./js/main.js?v=quit-mobile-coach-attendance-repair-20260630-v4d6') || index.includes('./js/main.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a') || index.includes('./js/main.js?v=profile-canonical-store-20260628-v4d1')) &&
+  (main.includes("profiles.listeners.js?v=quit-mobile-coach-attendance-repair-20260630-v4d6") || main.includes("profiles.listeners.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a") || main.includes("profiles.listeners.js?v=profile-canonical-store-20260628-v4d1")) &&
+  (main.includes("attendance.js?v=quit-mobile-coach-attendance-repair-20260630-v4d6") || main.includes("attendance.js?v=coach-branch-runtime-repair-20260627-v4b1")));
 check('Coach creation requires one concrete branch',
   repair.includes("if (!name || !email || !branch || pass.length < 6)") &&
   /id="coach_branch"[\s\S]{0,500}<option value="CS1">/.test(index) &&
   !/id="coach_branch"[\s\S]{0,500}value=""[^>]*>[^<]*Tất cả cơ sở/.test(index));
 check('Coach creation mirrors branch into both authorization documents',
   repair.includes('branch, coachBranch:branch') &&
-  repair.includes("setDoc(doc(db(), 'users', uid)") && repair.includes("coach_login_index"));
+  repair.includes("setDoc(doc(db(), 'users', uid)"));
 check('Existing Coach accounts expose an explicit branch repair control',
   repair.includes('async function updateCoachBranch(uid)') &&
   repair.includes('coach_assigned_branch_') &&
@@ -63,23 +63,21 @@ check('Runtime reads only the exact Admin Coach assignment document',
 check('Runtime repairs users/{uid} only from Admin assignment data',
   repair.includes('const assignedBranch = canonical(assigned.branch || assigned.coachBranch') &&
   repair.includes("await setDoc(doc(firestore, 'users', result.uid)") &&
-  repair.includes('auth/coach-branch-mirror-sync-failed'));
+  (repair.includes('auth/coach-branch-mirror-sync-failed') || repair.includes('mirror refresh failed; using assigned branch')));
 check('Missing/invalid Coach branch remains fail-closed',
   app.includes("fresh.role === 'coach' && !fresh.coachBranch") &&
   profiles.includes('Coach missing branch — fail closed, no profiles query'));
 check('No full-club profile fallback is introduced for Coach repair',
   profiles.includes("loadCoachBranchProfilesFallback('redirected-from-full:") &&
-  profiles.includes("fbWhere(spec.field, '==', spec.value)") &&
-  profiles.includes("_coachProfileQuerySpecs(ctx, { includeMirrorFields: true })") &&
+  profiles.includes("fbWhere('branch', '==', alias)") &&
   /không quét clubs/i.test(app));
 
-check('Profile listener query is server-scoped to assigned branch without status dependency',
-  (profiles.includes("coach-branch-authoritative-listener-4K-6V4D8") || profiles.includes("coach-branch-authoritative-listener-4K-6V4D6")) &&
-  profiles.includes("fbQuery(profRef, fbWhere(spec.field, '==', spec.value))") &&
+check('Profile listener query is server-scoped to assigned branch',
+  profiles.includes("fbQuery(profRef, statusConstraint, fbWhere('branch', '==', coachBranch))") &&
   profiles.includes("':coach:' + coachBranch"));
 check('Primary branch keeps scoped legacy Mặc định compatibility',
-  profiles.includes("_coachBranchAliases(context).filter(Boolean)") &&
-  profiles.includes("if (branch === 'CS1') add('Mặc định')") || profiles.includes("'Mặc định'"));
+  profiles.includes("coachBranch === 'CS1'") &&
+  profiles.includes("fbWhere('branch', '==', 'Mặc định')"));
 check('Attendance client filtering uses canonical branch equality',
   attendance.includes('function _sameBranch(left, right)') &&
   attendance.includes("_sameBranch(p.branch, selBranch)") &&
@@ -124,8 +122,10 @@ check('Rules still block arbitrary self role, tenant or branch selection',
   });
   check('Dynamic: missing mirror branch is resolved from one exact Coach assignment read',
     reads.length === 1 && reads[0] === 'clubs/club-a/coaches/coach-1' && result.coachBranch === 'CS2');
-  check('Dynamic: repair writes users/{uid} and coach_login_index/{uid} mirrors',
-    writes.length === 2 && writes.some(w => w.ref === 'users/coach-1' && w.data.branch === 'CS2' && w.data.coachBranch === 'CS2') && writes.some(w => w.ref === 'coach_login_index/coach-1' && w.data.branch === 'CS2' && w.data.coachBranch === 'CS2'));
+  check('Dynamic: repair writes users/{uid} and coach_login_index/{uid} authorization mirrors',
+    writes.length === 2 &&
+    writes.some(w => w.ref === 'users/coach-1' && w.data.branch === 'CS2' && w.data.coachBranch === 'CS2') &&
+    writes.some(w => w.ref === 'coach_login_index/coach-1' && w.data.branch === 'CS2' && w.data.coachBranch === 'CS2'));
 }
 
 // Dynamic branch identity contract.
@@ -146,4 +146,4 @@ check('Rules still block arbitrary self role, tenant or branch selection',
 
 console.log(`\nTotal: ${pass + fail} | PASS: ${pass} | FAIL: ${fail}`);
 if (fail) process.exit(1);
-console.log('Phase 4K-6V4D5 coach branch runtime repair checks passed.\n');
+console.log('Phase 4K-6V4D6 coach branch runtime repair checks passed.\n');

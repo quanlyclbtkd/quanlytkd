@@ -44,7 +44,7 @@ import {
 import {
     computeAndCacheStudents,
     getStudentsSummary,
-} from './computation/studentsRenderer.js?v=coach-attendance-render-scope-20260630-v4d9';
+} from './computation/studentsRenderer.js?v=quit-mobile-coach-attendance-repair-20260630-v4d6';
 import {
     computeAndCacheInventory,
     getCachedUnpaidInvCount,
@@ -206,18 +206,7 @@ function _getSearch() {
     try { return (document.getElementById('searchInput')?.value || '').trim(); }
     catch (_) { return ''; }
 }
-function _getProfiles() {
-    const merged = {};
-    try {
-        const compat = window.studentProfileStore && typeof window.studentProfileStore.getAllProfilesCompat === 'function'
-            ? (window.studentProfileStore.getAllProfilesCompat() || {})
-            : {};
-        Object.assign(merged, compat);
-    } catch (_) {}
-    try { Object.assign(merged, window.allProfiles || {}); } catch (_) {}
-    try { Object.assign(merged, (window.__store || {}).profiles || {}); } catch (_) {}
-    return Object.keys(merged).length ? merged : {};
-}
+function _getProfiles()  { return (window.__store || {}).profiles     || window.allProfiles     || {}; }
 function _getTxs()       { return (window.__store || {}).transactions || window.allTransactions || []; }
 function _getInv()       { return (window.__store || {}).inventory    || window.allInventory    || []; }
 function _getConfig()    { return (window.__store || {}).clubConfig   || window.clubConfig      || {}; }

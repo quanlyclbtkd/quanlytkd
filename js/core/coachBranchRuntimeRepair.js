@@ -1,10 +1,10 @@
 /**
- * Phase 4K-6V4D5 — Coach Branch Assignment + Login Index Repair
+ * Phase 4K-6V4D6 — Coach Branch Assignment + Login Index Repair
  * Owns the Coach authorization repair workflow outside legacy app.js.
  */
 (function initCoachBranchRuntimeRepair(global) {
   'use strict';
-  if (global.CoachBranchRuntimeRepair?.version === '4K-6V4D5') return;
+  if (global.CoachBranchRuntimeRepair?.version === '4K-6V4D6') return;
 
   const canonical = (value, fallback = '') => {
     if (global.BranchIdentity?.normalize) return global.BranchIdentity.normalize(value, { fallback });
@@ -52,9 +52,6 @@
     const assigned = snap.data() || {};
     const assignedBranch = canonical(assigned.branch || assigned.coachBranch || '');
     if (!assignedBranch) return { ...result, coachBranch: result.coachBranch };
-    // Phase 4K-6V4D5: always refresh both mirrors, even when the branch already
-    // matches. This lets coach_login_index recover missing/stale users/{uid}
-    // without leaving HLV logged in but blocked by Firestore branch rules.
     try {
       const now = new Date().toISOString();
       const mirror = {
@@ -64,8 +61,11 @@
       await setDoc(doc(firestore, 'users', result.uid), mirror, { merge: true });
       await setDoc(doc(firestore, 'coach_login_index', result.uid), mirror, { merge: true });
     } catch (cause) {
-      const error = new Error('Cơ sở HLV chưa đồng bộ. Admin cần chọn đúng cơ sở, bấm “Lưu cơ sở” rồi chạy “Đồng bộ tài khoản HLV cũ”.');
-      error.code = 'auth/coach-branch-mirror-sync-failed'; error.cause = cause; throw error;
+      // Phase 4K-6V4D6: login must continue when branch is known. Mirror write
+      // errors are repaired by Admin sync / Rules deploy; blocking login here
+      // was the cause of Coach attendance accounts failing to enter the app.
+      console.warn('[CoachBranchRepair] mirror refresh failed; using assigned branch for this session:', cause.code || cause.message);
+      result._mirrorRepairPending = true;
     }
     return { ...result, coachBranch: assignedBranch };
   }
@@ -147,7 +147,7 @@
       }
       catch (error) { mirrorError = error; }
       alert(mirrorError
-        ? `⚠️ Auth và hồ sơ HLV đã tạo nhưng users/{uid} chưa ghi được.\n\nKHÔNG tạo lại để tránh trùng email. Hãy deploy Rules V4D5 rồi chạy đồng bộ.\n\nTên: ${name}\nEmail: ${email}\nCơ sở: ${branchName(branch)}`
+        ? `⚠️ Auth và hồ sơ HLV đã tạo nhưng users/{uid} chưa ghi được.\n\nKHÔNG tạo lại để tránh trùng email. Hãy deploy Rules V4B1 rồi chạy đồng bộ.\n\nTên: ${name}\nEmail: ${email}\nCơ sở: ${branchName(branch)}`
         : `✅ Tạo tài khoản HLV thành công!\n\nTên: ${name}\nEmail: ${email}\nMật khẩu: ${pass}\nCơ sở: ${branchName(branch)}`);
       ['coach_email','coach_pass','coach_name'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
       if (branchEl) branchEl.value = 'CS1';
@@ -194,6 +194,6 @@
     global.migrateCoachAccounts = migrateCoachAccounts;
   }
 
-  global.CoachBranchRuntimeRepair = Object.freeze({ version:'4K-6V4D5', resolveAuthContext, installAdminOverrides });
+  global.CoachBranchRuntimeRepair = Object.freeze({ version:'4K-6V4D6', resolveAuthContext, installAdminOverrides });
   installAdminOverrides();
 })(window);

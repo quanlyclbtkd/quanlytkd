@@ -30,7 +30,7 @@ const main = read('js/main.js');
 const index = read('index.html');
 const pkg = read('package.json');
 
-const build = 'coach-attendance-branch-hydration-20260630-v4d6';
+const build = 'profile-canonical-store-runtime-recovery-20260628-v4d1a';
 
 check('index.html cache-busts app.js/main.js to V4D1A',
   index.includes(`app.js?v=${build}`) && index.includes(`./js/main.js?v=${build}`));
@@ -38,8 +38,7 @@ check('main.js APP_PATCH_VERSION markers include V4D1 lineage',
   main.includes("APP_BUILD_VERSION = '4K-6V4D1A-profile-canonical-store-runtime-recovery-20260628'") ||
   main.includes("APP_PATCH_VERSION = '4K-6V4D1A-profile-canonical-store-runtime-recovery-20260628'") ||
   main.includes("APP_BUILD_VERSION = '4K-6V4D1-profile-canonical-store-readonly-audit-20260628'") ||
-  main.includes("APP_PATCH_VERSION = '4K-6V4D1-profile-canonical-store-readonly-audit-20260628'") || main.includes("APP_PATCH_VERSION = '4K-6V4D2-mobile-small-ui-recovery-20260628'") ||
-  main.includes("APP_PATCH_VERSION = '4K-6V4D4-quit-authoritative-full-sync-20260629'"));
+  main.includes("APP_PATCH_VERSION = '4K-6V4D1-profile-canonical-store-readonly-audit-20260628'"));
 check('render.js exposes updateSkippedMonthSection global',
   render.includes('window.updateSkippedMonthSection') && render.includes('_renderSkippedMonthSection'));
 check('render.js skipped section uses canonical helper, not raw status/includes',

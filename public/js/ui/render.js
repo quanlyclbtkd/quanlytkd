@@ -59,7 +59,7 @@ import {
     computeAndCacheStudents,
     getStudentsSummary,
     getStudentsCachedHtml,
-} from './render/computation/studentsRenderer.js?v=coach-attendance-render-scope-20260630-v4d9';
+} from './render/computation/studentsRenderer.js?v=quit-mobile-coach-attendance-repair-20260630-v4d6';
 import {
     computeAndCacheInventory,
     getCachedLiveInvMap,
@@ -102,21 +102,7 @@ function _requestCurrentTabIslands(tabId) {
 }
 
 // Bridge helpers — đọc tại call-time từ window.__store hoặc fallback legacy
-function _profiles() {
-    // Phase 4K-6V4D2: mobile/list-island renders can run while __store.profiles
-    // is still a small active-only snapshot. Merge every in-memory profile source
-    // before computing Active/Báo nghỉ/Đã nghỉ so small mobile UI does not miss data.
-    const merged = {};
-    try {
-        const compat = window.studentProfileStore && typeof window.studentProfileStore.getAllProfilesCompat === 'function'
-            ? (window.studentProfileStore.getAllProfilesCompat() || {})
-            : {};
-        Object.assign(merged, compat);
-    } catch (_) {}
-    try { Object.assign(merged, window.allProfiles || {}); } catch (_) {}
-    try { Object.assign(merged, (window.__store || {}).profiles || {}); } catch (_) {}
-    return Object.keys(merged).length ? merged : {};
-}
+function _profiles()     { return (window.__store || {}).profiles     || window.allProfiles     || {}; }
 
 // Phase 4K-6V4D1A: read-only canonical audit must not starve legacy UI sections.
 // Some small global widgets (birthday banner / active skipped-month header / quit
@@ -135,7 +121,7 @@ function _profilesForSmallUi() {
     return Object.keys(merged).length ? merged : _profiles();
 }
 
-function _refreshSmallStudentUi(tabId, reason, options = {}) {
+function _refreshSmallStudentUi(tabId, reason) {
     try {
         if (typeof window._renderHomeBirthdayBanner === 'function') window._renderHomeBirthdayBanner();
     } catch (_) {}
@@ -146,10 +132,7 @@ function _refreshSmallStudentUi(tabId, reason, options = {}) {
         }
     } catch (_) {}
     try {
-        // renderQuitIsland() may call this helper after applying #quitList.
-        // Avoid recursive renderQuitList() in that path while still keeping the
-        // birthday/skipped widgets fresh on mobile tab switches and list refreshes.
-        if (tabId === 'quit' && !options.skipQuitList && typeof window.renderQuitList === 'function') {
+        if (tabId === 'quit' && typeof window.renderQuitList === 'function') {
             window.renderQuitList({ reason: reason || 'small-ui-refresh' });
         }
     } catch (_) {}
@@ -553,15 +536,6 @@ function renderApp() {
 
 export function initRender() {
     window._moduleRenderApp = renderApp;
-    window.refreshSmallStudentUi = function(reason, options = {}) {
-        try {
-            const activeEl = document.querySelector('.tab-content.active');
-            const tabId = activeEl ? activeEl.id.replace('tab_', '') : '';
-            return _refreshSmallStudentUi(tabId, reason || 'external-small-ui-refresh', options || {});
-        } catch (_) {
-            return undefined;
-        }
-    };
     window.updateSkippedMonthSection = function(profiles, month) {
         const srcProfiles = profiles || _profiles();
         const sel = month || (document.getElementById('filterMonth') && document.getElementById('filterMonth').value) || '';

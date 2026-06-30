@@ -65,10 +65,8 @@ const _state = {
     coachBranch:            '',
     coachBranchFallbackCount: 0,
     coachLegacyListenerKey: null,
-    coachProfileListenerKeys: [],
     coachCanonicalActiveMap: {},
     coachLegacyActiveMap: {},
-    coachBranchFieldActiveMaps: {},
 
     // ── Quit load ─────────────────────────────────────────────────────────────
     quitLoaded:             false,
@@ -79,9 +77,7 @@ const _state = {
     quitLoadingInProgress:  false,
     /** Phase 4K-6V4B3: full authoritative reconciliation for Admin quit tab */
     quitCompletenessReconciled: false,
-    /** Phase 4K-6V4D4: targeted quit query may be partial; authoritative load has own guarded retry. */
-    quitTargetedLoaded:     false,
-    /** Phase 4K-6V4D5: single-flight promise for the authoritative Đã nghỉ full sync. */
+    /** Phase 4K-6V4D6: single-flight authoritative Đã nghỉ full sync. */
     quitAuthoritativePromise: null,
     quitAuthoritativeLastError: '',
     quitAuthoritativeFallbackCount: 0,
@@ -151,88 +147,12 @@ function _coachBranch(context = _ctx) {
 
 function _coachBranchAliases(context = _ctx) {
     const branch = _coachBranch(context);
-    const out = [];
-    const add = (v) => {
-        const raw = String(v == null ? '' : v).trim();
-        if (raw && !out.includes(raw)) out.push(raw);
-    };
-    if (window.BranchIdentity?.aliases) {
-        (window.BranchIdentity.aliases(branch) || []).forEach(add);
-    } else {
-        add(branch);
-        if (branch === 'CS1') add('Mặc định');
-    }
-    // Phase 4K-6V4D9: settings may arrive after the first listener mount.
-    // Build dynamic name aliases directly here as well so the reconciliation query
-    // can recover legacy profiles saved with the human branch name.
-    const m = String(branch || '').match(/^CS([1-9]|10)$/);
-    if (m) {
-        const idx = Number(m[1]);
-        const cfg = (window.__store && window.__store.clubConfig) || window.clubConfig || {};
-        const name = String((cfg && cfg['branchName' + idx]) || '').trim();
-        ['CS' + idx, 'CS' + String(idx).padStart(2, '0'), 'CS ' + idx, 'Cơ sở ' + idx, 'Co so ' + idx, String(idx)].forEach(add);
-        if (name) [name, 'Cơ sở ' + name, 'Co so ' + name, 'Cơ Sở ' + name, branch + ' ' + name, branch + ' - ' + name].forEach(add);
-    }
-    return out;
+    if (window.BranchIdentity?.aliases) return window.BranchIdentity.aliases(branch);
+    return branch === 'CS1' ? ['CS1', 'Mặc định'] : (branch ? [branch] : []);
 }
 
 function _mergedCoachActiveMap() {
-    const merged = Object.assign({}, _state.coachLegacyActiveMap || {}, _state.coachCanonicalActiveMap || {});
-    Object.values(_state.coachBranchFieldActiveMaps || {}).forEach(map => Object.assign(merged, map || {}));
-    return merged;
-}
-
-function _coachProfileQuerySpecs(context = _ctx, options = {}) {
-    const branch = _coachBranch(context);
-    const aliases = (options && options.canonicalOnly)
-        ? [branch].filter(Boolean)
-        : _coachBranchAliases(context).filter(Boolean);
-    const fields = options && options.includeMirrorFields
-        ? ['branch', 'branchCode', 'coachBranch']
-        : ['branch'];
-    const seen = new Set();
-    const specs = [];
-    fields.forEach(field => aliases.forEach(value => {
-        const key = field + ':' + value;
-        if (!seen.has(key)) {
-            seen.add(key);
-            specs.push({ field, value, key });
-        }
-    }));
-    return specs;
-}
-
-async function _safeReadCoachProfileSpec(spec, context = _ctx) {
-    const fb = window._fb_init || {};
-    const { query: fbQuery, where: fbWhere, getDocs: fbGetDocs } = fb;
-    if (!fbQuery || !fbWhere || !fbGetDocs || !context || !context.profRef || !spec) {
-        return { spec, error: { code: 'sdk-or-context-missing' } };
-    }
-    try {
-        const q = fbQuery(context.profRef, fbWhere(spec.field, '==', spec.value));
-        const snap = await fbGetDocs(q);
-        return { spec, snap };
-    } catch (error) {
-        return { spec, error };
-    }
-}
-
-function _profileIsActiveForCoachAttendance(data) {
-    return classifyProfileStatus(data) !== 'quit';
-}
-
-function _isPermissionDenied(err) {
-    return String((err && (err.code || err.message)) || '').toLowerCase().includes('permission-denied')
-        || String((err && (err.code || err.message)) || '').toLowerCase().includes('permission denied');
-}
-
-function _warnCoachSpecDenied(prefix, spec, err) {
-    const code = (err && (err.code || err.message)) || 'unknown';
-    if (_isPermissionDenied(err)) {
-        console.warn(prefix + ' skipped permission-denied spec:', spec.field + '=' + spec.value);
-    } else {
-        console.warn(prefix + ' spec failed:', code, spec);
-    }
+    return Object.assign({}, _state.coachLegacyActiveMap || {}, _state.coachCanonicalActiveMap || {});
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -318,12 +238,9 @@ function _updateWindowMetrics() {
         quitLoadInProgress:                 _state.quitLoadingInProgress,
         quitLoadLastReason:                 _state.quitLoadLastReason,
         quitCompletenessReconciled:         _state.quitCompletenessReconciled,
-        quitTargetedLoaded:                 _state.quitTargetedLoaded,
+        quitAuthoritativeInProgress:        !!_state.quitAuthoritativePromise,
+        quitAuthoritativeLastError:         _state.quitAuthoritativeLastError,
         quitAuthoritativeFallbackCount:     _state.quitAuthoritativeFallbackCount,
-        quitAuthoritativeInProgress:        !!_state.quitAuthoritativePromise,
-        quitAuthoritativeLastError:         _state.quitAuthoritativeLastError,
-        quitAuthoritativeInProgress:        !!_state.quitAuthoritativePromise,
-        quitAuthoritativeLastError:         _state.quitAuthoritativeLastError,
         // Fallback guard
         fallbackInProgress:                 _state.fallbackInProgress,
         fallbackCompleted:                  _state.fallbackCompleted,
@@ -468,8 +385,6 @@ export function mountActiveProfilesListener(context) {
     _state.coachBranch = _coachBranch(context);
     _state.coachCanonicalActiveMap = {};
     _state.coachLegacyActiveMap = {};
-    _state.coachBranchFieldActiveMaps = {};
-    _state.coachProfileListenerKeys = [];
     const isCoach = _isCoachContext(context);
     const coachBranch = _coachBranch(context);
     if (isCoach && !coachBranch) {
@@ -515,97 +430,6 @@ export function mountActiveProfilesListener(context) {
     // [Phase 3.7C] Đọc status values từ config
     const statusValues = getActiveQueryValues();
 
-    // Phase 4K-6V4D6: Coach attendance must load every active student in the assigned
-    // branch even when legacy profiles miss `status` or use a branch mirror field.
-    // Therefore coach queries are branch-scoped only, then status is classified locally.
-    // This keeps Firestore Rules strict: no full-club read, no public rule opening.
-    if (isCoach) {
-        const specs = _coachProfileQuerySpecs(context, { includeMirrorFields: true, canonicalOnly: true });
-        if (!specs.length) {
-            console.error('[ProfilesListener] Coach branch specs empty — fail closed');
-            setActiveProfiles({}, 'coach-empty-branch-specs');
-            setQuitProfiles({}, 'coach-empty-branch-specs');
-            _syncLegacy();
-            _updateWindowMetrics();
-            return false;
-        }
-        specs.forEach((spec) => {
-            const coachKey = key + ':' + spec.field + ':' + encodeURIComponent(spec.value);
-            _state.coachProfileListenerKeys.push(coachKey);
-            window.safeRegisterSnapshot(
-                coachKey,
-                () => {
-                    let coachQuery;
-                    try {
-                        coachQuery = fbQuery(profRef, fbWhere(spec.field, '==', spec.value));
-                    } catch (qErr) {
-                        console.warn('[ProfilesListener] Coach branch query build lỗi:', qErr.message, spec);
-                        return () => {};
-                    }
-                    return fbOnSnapshot(
-                        coachQuery,
-                        (snap) => {
-                            _state.activeSnapshotCount++;
-                            if (typeof window.recordFirestoreSnapshotAttribution === 'function') {
-                                window.recordFirestoreSnapshotAttribution('profiles.coachBranchListener', snap, {
-                                    initial: _state.activeSnapshotCount === 1,
-                                    reason: 'coach-branch-only-query',
-                                    field: spec.field,
-                                    value: spec.value
-                                });
-                            }
-                            if (window.markListenerSnapshot) window.markListenerSnapshot(coachKey);
-                            const activeMap = {};
-                            snap.forEach(d => {
-                                const id = d.id.trim();
-                                if (!id) return;
-                                const data = d.data();
-                                if (_profileIsActiveForCoachAttendance(data)) activeMap[id] = data;
-                            });
-                            _state.coachBranchFieldActiveMaps[spec.key] = activeMap;
-                            const merged = _mergedCoachActiveMap();
-                            if (Object.keys(merged).length === 0 && _state.coachBranchFallbackCount === 0) {
-                                loadCoachBranchProfilesFallback('coach-branch-empty-after-authoritative-listener');
-                            }
-                            setActiveProfiles(merged, 'coach-branch-authoritative-snapshot');
-                            setQuitProfiles({}, 'coach-branch-authoritative:no-quit-data');
-                            markActiveLoaded(true);
-                            _syncLegacy();
-                            _state.activeListenerMounted = true;
-                            _state.lastProfilesMode = 'coach-branch-authoritative';
-                            _invalidateAll('coach-branch-authoritative-snapshot');
-                            _updateWindowMetrics();
-                        },
-                        (err) => {
-                            _state.activeQueryErrorCount++;
-                            _warnCoachSpecDenied('[ProfilesListener] Coach branch listener', spec, err);
-                            _state.coachBranchFieldActiveMaps[spec.key] = {};
-                            const merged = _mergedCoachActiveMap();
-                            if (Object.keys(merged).length > 0) {
-                                setActiveProfiles(merged, 'coach-branch-authoritative-partial-after-denied-spec');
-                                markActiveLoaded(true);
-                                _syncLegacy();
-                                _invalidateAll('coach-branch-authoritative-partial-after-denied-spec');
-                                _updateWindowMetrics();
-                                return;
-                            }
-                            // Do not let one denied alias query fail all Coach data.
-                            // Fallback is per-spec tolerant and only merges successful branch-safe reads.
-                            loadCoachBranchProfilesFallback('coach-branch-query-error:' + spec.field + ':' + (err.code || 'unknown'));
-                        }
-                    );
-                },
-                {
-                    owner:  'students',
-                    scope:  'global',
-                    tabId:  'attendance',
-                    reason: 'coach-branch-authoritative-listener-4K-6V4D9',
-                }
-            );
-        });
-        return true;
-    }
-
     window.safeRegisterSnapshot(
         key,
         () => {
@@ -614,10 +438,15 @@ export function mountActiveProfilesListener(context) {
                 const statusConstraint = statusValues.length === 1
                     ? fbWhere('status', '==', statusValues[0])
                     : fbWhere('status', 'in', statusValues);
-                activeQuery = fbQuery(profRef, statusConstraint);
+                activeQuery = isCoach
+                    ? fbQuery(profRef, statusConstraint, fbWhere('branch', '==', coachBranch))
+                    : fbQuery(profRef, statusConstraint);
             } catch (qErr) {
                 console.warn('[ProfilesListener] Build query lỗi:', qErr.message, '— fallback');
-                setTimeout(() => loadFullProfilesFallback('query-build-error'), 0);
+                setTimeout(() => {
+                    if (isCoach) loadCoachBranchProfilesFallback('query-build-error');
+                    else loadFullProfilesFallback('query-build-error');
+                }, 0);
                 return () => {};
             }
 
@@ -628,16 +457,20 @@ export function mountActiveProfilesListener(context) {
                     if (typeof window.recordFirestoreSnapshotAttribution === 'function') {
                         window.recordFirestoreSnapshotAttribution('profiles.activeListener', snap, {
                             initial: _state.activeSnapshotCount === 1,
-                            reason: 'active-status-query'
+                            reason: isCoach ? 'active-status-branch-query' : 'active-status-query'
                         });
                     }
                     if (window.markListenerSnapshot) window.markListenerSnapshot(key);
 
-                    const activeMap = {};
+                    let activeMap = {};
                     snap.forEach(d => {
                         const id = d.id.trim();
                         if (id) activeMap[id] = d.data();
                     });
+                    if (isCoach) {
+                        _state.coachCanonicalActiveMap = activeMap;
+                        activeMap = _mergedCoachActiveMap();
+                    }
 
                     const activeCount = Object.keys(activeMap).length;
 
@@ -652,7 +485,10 @@ export function mountActiveProfilesListener(context) {
                         const _fb4k = window._fb_init || {};
                         const { query: _pQ4k, limit: _pL4k, getDocs: _pG4k } = _fb4k;
                         if (_pG4k && _pQ4k && _pL4k && profRef) {
-                            const _probeQuery = _pQ4k(profRef, _pL4k(1));
+                            // [GITHUB-FIX Task 4] Await fallback + invalidate sau khi hoàn tất
+                            const _probeQuery = isCoach
+                                ? _pQ4k(profRef, fbWhere('branch', '==', coachBranch), _pL4k(1))
+                                : _pQ4k(profRef, _pL4k(1));
                             _pG4k(_probeQuery).then(async function(_probe) {
                                 if (typeof window.recordFirestoreReadAttribution === 'function') {
                                     window.recordFirestoreReadAttribution('profiles.activeZeroProbe', _probe.size || 0, {
@@ -662,8 +498,12 @@ export function mountActiveProfilesListener(context) {
                                 }
                                 if (!_probe.empty) {
                                     console.warn('[ProfilesListener] active=0 but scoped collection has docs — safe fallback');
-                                    const ok = await loadFullProfilesFallback('active-zero-but-profiles-exist');
-                                    if (ok) _invalidateAll('active-zero-full-fallback-completed');
+                                    const ok = isCoach
+                                        ? await loadCoachBranchProfilesFallback('active-zero-but-branch-has-profiles')
+                                        : await loadFullProfilesFallback('active-zero-but-profiles-exist');
+                                    if (ok) {
+                                        _invalidateAll('active-zero-full-fallback-completed');
+                                    }
                                 }
                             }).catch(() => {});
                         }
@@ -677,14 +517,20 @@ export function mountActiveProfilesListener(context) {
 
                     _invalidateAll('active-profiles-snapshot');
                     _updateWindowMetrics();
-                    if (typeof window.scheduleAutomaticDebtProfileCoverage === 'function') {
+                    // Phase 4K-6V3D: verify debt coverage in idle time. The scheduler
+                    // reuses this snapshot and only runs count aggregation when needed.
+                    if (!isCoach && typeof window.scheduleAutomaticDebtProfileCoverage === 'function') {
                         window.scheduleAutomaticDebtProfileCoverage('active-profiles-snapshot');
                     }
                 },
                 (err) => {
                     _state.activeQueryErrorCount++;
-                    console.warn('[ProfilesListener] Active query lỗi:', err.code || err.message, '— fallback');
-                    loadFullProfilesFallback('active-query-error:' + (err.code || 'unknown'));
+                    console.warn(
+                        '[ProfilesListener] Active query lỗi:', err.code || err.message,
+                        '— fallback'
+                    );
+                    if (isCoach) loadCoachBranchProfilesFallback('active-query-error:' + (err.code || 'unknown'));
+                    else loadFullProfilesFallback('active-query-error:' + (err.code || 'unknown'));
                 }
             );
 
@@ -697,6 +543,58 @@ export function mountActiveProfilesListener(context) {
             reason: context.reason || 'active-profiles-mount-3.7C',
         }
     );
+
+    // Phase 4K-6V4B: CS1 also reads the legacy primary-branch value `Mặc định`.
+    // A separate listener avoids combining two Firestore `in` filters
+    // (`status in [...]` + `branch in [...]`), which is not portable across SDK/index versions.
+    if (isCoach && coachBranch === 'CS1') {
+        const legacyKey = key + ':legacy-primary';
+        _state.coachLegacyListenerKey = legacyKey;
+        window.safeRegisterSnapshot(
+            legacyKey,
+            () => {
+                const statusConstraint = statusValues.length === 1
+                    ? fbWhere('status', '==', statusValues[0])
+                    : fbWhere('status', 'in', statusValues);
+                const legacyQuery = fbQuery(profRef, statusConstraint, fbWhere('branch', '==', 'Mặc định'));
+                return fbOnSnapshot(
+                    legacyQuery,
+                    (snap) => {
+                        if (typeof window.recordFirestoreSnapshotAttribution === 'function') {
+                            window.recordFirestoreSnapshotAttribution('profiles.activeLegacyPrimaryListener', snap, {
+                                initial: true,
+                                reason: 'legacy-primary-branch-compat'
+                            });
+                        }
+                        if (window.markListenerSnapshot) window.markListenerSnapshot(legacyKey);
+                        const legacyMap = {};
+                        snap.forEach(d => {
+                            const id = d.id.trim();
+                            if (id) legacyMap[id] = d.data();
+                        });
+                        _state.coachLegacyActiveMap = legacyMap;
+                        const merged = _mergedCoachActiveMap();
+                        setActiveProfiles(merged, 'coach-active-legacy-primary-snapshot');
+                        _syncLegacy();
+                        _state.activeListenerMounted = true;
+                        _state.lastProfilesMode = 'coach-active-canonical-plus-legacy';
+                        _invalidateAll('coach-active-legacy-primary-snapshot');
+                        _updateWindowMetrics();
+                    },
+                    (err) => {
+                        _state.activeQueryErrorCount++;
+                        console.warn('[ProfilesListener] Legacy primary branch query failed:', err.code || err.message);
+                    }
+                );
+            },
+            {
+                owner: 'students',
+                scope: 'global',
+                tabId: null,
+                reason: 'coach-legacy-primary-branch-compat-4K-6V4B',
+            }
+        );
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -714,20 +612,11 @@ export function cleanupActiveProfilesListener(reason) {
     if (_state.coachLegacyListenerKey && window.removeListener) {
         window.removeListener(_state.coachLegacyListenerKey, reason || 'cleanup-coach-legacy-primary-profiles');
     }
-    if (Array.isArray(_state.coachProfileListenerKeys) && window.removeListener) {
-        _state.coachProfileListenerKeys.forEach(k => {
-            try { window.removeListener(k, reason || 'cleanup-coach-branch-profile-listeners'); } catch (_) {}
-        });
-    }
-    _state.coachProfileListenerKeys = [];
-    _state.coachBranchFieldActiveMaps = {};
     _state.activeListenerMounted = false;
     _state.activeListenerKey     = null;
     _state.coachLegacyListenerKey = null;
     _state.coachCanonicalActiveMap = {};
     _state.coachLegacyActiveMap = {};
-    _state.coachBranchFieldActiveMaps = {};
-    _state.coachProfileListenerKeys = [];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -752,185 +641,13 @@ export async function loadQuitProfilesIfNeeded(reason, contextOverride) {
         window.RoleReadBoundary?.canMount?.('profiles.quit', { reason: reason || 'quit-lazy' });
         return false;
     }
-    // Phase 4K-6V4D5: Đã nghỉ must use the full authoritative source first.
-    // Targeted queries are only a last-resort preview when the full sync cannot run.
+    // Phase 4K-6V4D6: targeted quit queries were the root cause of the persistent
+    // mobile/web incomplete Đã nghỉ list. They can only return a subset and could
+    // be rendered as final data. The quit tab now uses only a guarded full
+    // authoritative reconciliation. This is a one-shot read when the quit tab is
+    // opened and is never used for Coach attendance-only accounts.
     if (_state.quitLoaded && _state.quitCompletenessReconciled) return true;
-    if (!_isCoachContext(_effectiveContext)) {
-        const ok = await ensureQuitProfilesAuthoritative('load-quit-profiles:' + (reason || 'unknown'));
-        if (ok) return true;
-    }
-    if (_state.quitLoadingInProgress) {
-        return _state.quitAuthoritativePromise ? _state.quitAuthoritativePromise : false;
-    }
-
-    const ctx = contextOverride || _ctx;
-    if (!ctx || !ctx.profRef) {
-        console.warn('[ProfilesListener] loadQuitProfilesIfNeeded: thiếu context — skip');
-        return;
-    }
-
-    const fb = window._fb_init || {};
-    const { query: fbQuery, where: fbWhere, getDocs: fbGetDocs } = fb;
-
-    if (!fbGetDocs) {
-        console.warn('[ProfilesListener] loadQuitProfilesIfNeeded: getDocs không sẵn');
-        await loadFullProfilesFallback('quit-sdk-not-ready');
-        return;
-    }
-
-    _state.quitLoadingInProgress = true;
-    _state.quitLoadLastReason    = reason || '';
-
-    const { profRef } = ctx;
-    // [Phase 3.7C] Lấy quit values từ config
-    const quitValues  = getQuitQueryValues();
-
-    try {
-        const quitQueries = [];
-        if (quitValues.length === 1) {
-            quitQueries.push({ label: 'status==quit', query: fbQuery(profRef, fbWhere('status', '==', quitValues[0])) });
-        } else {
-            quitQueries.push({ label: 'status-in-quit', query: fbQuery(profRef, fbWhere('status', 'in', quitValues)) });
-        }
-        // Phase 4K-6V4B3: status legacy aliases. Các hồ sơ cũ có thể lưu
-        // status='Đã nghỉ'/'Nghỉ tập' thay vì quit/inactive/retired.
-        const legacyStatusAliases = [
-            'Đã nghỉ', 'đã nghỉ', 'Da nghi', 'da nghi', 'da_nghi',
-            'Nghỉ', 'nghỉ', 'Nghỉ tập', 'nghỉ tập',
-            'Nghi', 'nghi', 'Nghi tap', 'nghi tap', 'nghi_tap',
-            'Báo nghỉ', 'báo nghỉ', 'Bao nghi', 'bao nghi', 'bao_nghi',
-            'Tạm nghỉ', 'tạm nghỉ', 'Tam nghi', 'tam nghi', 'tam_nghi',
-            'Tạm dừng', 'tạm dừng', 'Tam dung', 'tam dung', 'tam_dung',
-            'Dừng tập', 'dừng tập', 'Dung tap', 'dung tap', 'dung_tap',
-            'Stopped', 'stopped', 'Left', 'left', 'Stop', 'stop', 'Leave', 'leave'
-        ];
-        const existingStatusValues = new Set(quitValues.map(v => String(v).toLowerCase()));
-        const aliasValues = legacyStatusAliases.filter(v => !existingStatusValues.has(String(v).toLowerCase()));
-        for (let i = 0; i < aliasValues.length; i += 8) {
-            const chunk = aliasValues.slice(i, i + 8);
-            if (chunk.length === 1) {
-                quitQueries.push({ label: 'status-alias==' + chunk[0], query: fbQuery(profRef, fbWhere('status', '==', chunk[0])) });
-            } else if (chunk.length > 1) {
-                quitQueries.push({ label: 'status-alias-in-' + (Math.floor(i / 8) + 1), query: fbQuery(profRef, fbWhere('status', 'in', chunk)) });
-            }
-        }
-        // Phase 4K-6V4B2: Legacy quit completeness. Older records can be marked
-        // quit via boolean flags or quitDate while status is missing/legacy text.
-        // These are targeted single-field queries, not a full profiles read.
-        const legacyQuitSignals = [
-            { label: 'active==false',   field: 'active',   op: '==', value: false },
-            { label: 'isActive==false', field: 'isActive', op: '==', value: false },
-            { label: 'quit==true',      field: 'quit',     op: '==', value: true  },
-            { label: 'isQuit==true',    field: 'isQuit',   op: '==', value: true  },
-            { label: 'stopped==true',   field: 'stopped',  op: '==', value: true  },
-            { label: 'quitDate!=null',  field: 'quitDate',     op: '!=', value: null  },
-            { label: 'ngayNghi!=null',  field: 'ngayNghi',     op: '!=', value: null  },
-            { label: 'inactiveDate!=null', field: 'inactiveDate', op: '!=', value: null },
-            { label: 'stoppedDate!=null', field: 'stoppedDate', op: '!=', value: null },
-            { label: 'leftDate!=null', field: 'leftDate', op: '!=', value: null },
-        ];
-        legacyQuitSignals.forEach(signal => {
-            try {
-                quitQueries.push({
-                    label: signal.label,
-                    query: fbQuery(profRef, fbWhere(signal.field, signal.op, signal.value)),
-                });
-            } catch (buildErr) {
-                console.debug('[ProfilesListener] Skip quit legacy signal query build:', signal.label, buildErr.message || buildErr);
-            }
-        });
-
-        const quitMap = {};
-        let docsRead = 0;
-        const queryResults = [];
-        for (const item of quitQueries) {
-            try {
-                const snap = await fbGetDocs(item.query);
-                docsRead += snap.size || 0;
-                let accepted = 0;
-                snap.forEach(d => {
-                    const id = d.id.trim();
-                    if (!id) return;
-                    const data = d.data();
-                    if (classifyProfileStatus(data) === 'quit') {
-                        quitMap[id] = data;
-                        accepted++;
-                    }
-                });
-                queryResults.push({ label: item.label, size: snap.size || 0, accepted });
-            } catch (queryErr) {
-                _state.quitQueryErrorCount++;
-                queryResults.push({ label: item.label, error: queryErr.code || queryErr.message || String(queryErr) });
-                console.warn('[ProfilesListener] Quit legacy query lỗi:', item.label, queryErr.code || queryErr.message);
-            }
-        }
-        if (typeof window.recordFirestoreReadAttribution === 'function') {
-            window.recordFirestoreReadAttribution('profiles.quitLazyQuery', docsRead, {
-                initial: true,
-                reason: reason || 'quit-lazy',
-                queryCount: quitQueries.length,
-                results: queryResults
-            });
-        }
-
-        // Preserve any already-loaded quit profiles that still classify as quit.
-        // This avoids replacing a fuller fallback result with a partial targeted result.
-        const existingQuit = typeof getQuitProfiles === 'function'
-            ? getQuitProfiles()
-            : (window.studentProfileStore?.getQuitProfiles?.() || {});
-        Object.entries(existingQuit || {}).forEach(([id, data]) => {
-            if (id && !quitMap[id] && classifyProfileStatus(data) === 'quit') quitMap[id] = data;
-        });
-
-        // Phase 4K-6V4D5: never let a delayed targeted query overwrite the
-        // completed authoritative full sync. This was the race that left web/mobile
-        // with a partial Đã nghỉ list after several quick tab switches.
-        if (_state.quitCompletenessReconciled && _state.quitLoaded) {
-            _state.quitLoadingInProgress = false;
-            _updateWindowMetrics();
-            return true;
-        }
-        if (_state.quitAuthoritativePromise) {
-            const ok = await _state.quitAuthoritativePromise;
-            _state.quitLoadingInProgress = false;
-            _updateWindowMetrics();
-            if (ok) return true;
-        }
-
-        setQuitProfiles(quitMap, 'quit-profiles-lazy-targeted:' + (reason || ''));
-        markQuitLoaded(true); // partial cache is available for immediate preview
-
-        _state.quitTargetedLoaded    = true;
-        _state.quitLoaded            = true;
-        // Do NOT set quitCompletenessReconciled here: targeted queries can be partial.
-        _state.quitLoadingInProgress = false;
-        _state.quitLoadCount++;
-
-        _syncLegacy();
-
-        if (typeof window.invalidateStudents     === 'function') window.invalidateStudents('quit-profiles-loaded-targeted');
-        if (typeof window.invalidateList         === 'function') window.invalidateList('students.quitList', 'quit-profiles-loaded-targeted');
-        if (typeof window.refreshListComputation === 'function') window.refreshListComputation('students.quitList', 'quit-profiles-loaded-targeted');
-
-        _updateWindowMetrics();
-        console.debug('[ProfilesListener] Quit targeted loaded —', Object.keys(quitMap).length, 'profiles —', reason);
-
-        // Phase 4K-6V4B3: Admin tab Đã nghỉ cần tính đầy đủ hơn tiết kiệm query.
-        // Targeted queries chỉ bắt được các schema đã biết; full fallback một lần/session
-        // là nguồn authority duy nhất để không bỏ sót hồ sơ legacy lạ.
-        if (!_state.quitCompletenessReconciled && !_state.fallbackInProgress && !_isCoachContext(ctx)) {
-            const ok = await loadFullProfilesFallback('quit-tab-authoritative-reconcile:' + (reason || ''), { forceQuitAuthoritative: true });
-            _state.quitCompletenessReconciled = !!ok;
-            _updateWindowMetrics();
-            if (ok) return true;
-        }
-
-    } catch (err) {
-        _state.quitLoadingInProgress = false;
-        _state.quitQueryErrorCount++;
-        console.warn('[ProfilesListener] Quit query lỗi:', err.code || err.message, '— fallback full');
-        await loadFullProfilesFallback('quit-query-error:' + (err.code || 'unknown'));
-    }
+    return ensureQuitProfilesAuthoritative('load-quit-profiles:' + (reason || 'unknown'));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -958,61 +675,6 @@ export function cleanupQuitProfilesListener(reason) {
 // COACH BRANCH-SAFE FALLBACK — never reads the full club collection
 // ─────────────────────────────────────────────────────────────────────────────
 
-
-export async function ensureCoachBranchProfilesHydrated(reason) {
-    const ctx = _ctx;
-    const branch = _coachBranch(ctx);
-    if (!_isCoachContext(ctx) || !ctx || !ctx.profRef || !branch) return false;
-    const fb = window._fb_init || {};
-    const { query: fbQuery, where: fbWhere, getDocs: fbGetDocs } = fb;
-    if (!fbQuery || !fbWhere || !fbGetDocs) return false;
-    try {
-        const specs = _coachProfileQuerySpecs(ctx, { includeMirrorFields: true });
-        const snapshots = await Promise.all(specs.map(spec => _safeReadCoachProfileSpec(spec, ctx)));
-        let docsRead = 0;
-        let okSpecs = 0;
-        const activeMap = _mergedCoachActiveMap();
-        snapshots.forEach(({ spec, snap, error }) => {
-            if (error) {
-                _warnCoachSpecDenied('[ProfilesListener] Coach branch hydration reconcile', spec, error);
-                return;
-            }
-            if (!snap) return;
-            okSpecs++;
-            docsRead += snap.size || 0;
-            snap.forEach(d => {
-                const id = d.id.trim();
-                if (!id) return;
-                const data = d.data();
-                if (_profileIsActiveForCoachAttendance(data)) activeMap[id] = data;
-            });
-        });
-        if (okSpecs === 0 && Object.keys(activeMap).length === 0) {
-            console.warn('[ProfilesListener] Coach branch hydration reconcile had no permitted specs:', reason);
-            return false;
-        }
-        if (typeof window.recordFirestoreReadAttribution === 'function') {
-            window.recordFirestoreReadAttribution('profiles.coachBranchHydrationReconcile', docsRead, {
-                initial: false,
-                reason: reason || 'coach-branch-hydration-reconcile',
-                branch,
-                aliases: _coachBranchAliases(ctx)
-            });
-        }
-        setActiveProfiles(activeMap, 'coach-branch-hydration-reconcile:' + (reason || 'manual'));
-        setQuitProfiles({}, 'coach-branch-hydration-reconcile:no-quit-data');
-        markActiveLoaded(true);
-        _syncLegacy();
-        _state.lastProfilesMode = 'coach-branch-hydration-reconcile';
-        _invalidateAll('coach-branch-hydration-reconcile');
-        _updateWindowMetrics();
-        return true;
-    } catch (err) {
-        console.warn('[ProfilesListener] Coach branch hydration reconcile failed:', err.code || err.message || err);
-        return false;
-    }
-}
-
 export async function loadCoachBranchProfilesFallback(reason) {
     const ctx = _ctx;
     const branch = _coachBranch(ctx);
@@ -1028,44 +690,26 @@ export async function loadCoachBranchProfilesFallback(reason) {
 
     _state.fallbackInProgress = true;
     try {
-        const specs = _coachProfileQuerySpecs(ctx, { includeMirrorFields: true });
-        const snapshots = await Promise.all(specs.map(spec => _safeReadCoachProfileSpec(spec, ctx)));
         const aliases = _coachBranchAliases(ctx);
-        let docsRead = 0;
-        let okSpecs = 0;
-        const activeMap = _mergedCoachActiveMap();
-        snapshots.forEach(({ spec, snap, error }) => {
-            if (error) {
-                _warnCoachSpecDenied('[ProfilesFallback] Coach branch fallback', spec, error);
-                return;
-            }
-            if (!snap) return;
-            okSpecs++;
-            docsRead += snap.size || 0;
-            snap.forEach(d => {
-                const id = d.id.trim();
-                if (!id) return;
-                const data = d.data();
-                if (_profileIsActiveForCoachAttendance(data)) activeMap[id] = data;
-            });
-        });
+        const snapshots = await Promise.all(aliases.map(alias =>
+            fbGetDocs(fbQuery(ctx.profRef, fbWhere('branch', '==', alias)))
+        ));
+        const docsRead = snapshots.reduce((sum, snap) => sum + (snap.size || 0), 0);
         if (typeof window.recordFirestoreReadAttribution === 'function') {
             window.recordFirestoreReadAttribution('profiles.coachBranchFallbackQuery', docsRead, {
                 initial: true,
                 reason: reason || 'coach-branch-fallback',
                 branch,
-                aliases,
-                okSpecs,
-                totalSpecs: specs.length
+                aliases
             });
         }
-        if (okSpecs === 0 && Object.keys(activeMap).length === 0) {
-            console.warn('[ProfilesFallback] Coach branch load skipped — no permitted branch specs:', reason);
-            _state.fallbackCount++;
-            _state.fullFallbackReason = 'coach-branch-no-permitted-specs:' + reason;
-            _updateWindowMetrics();
-            return false;
-        }
+        const activeMap = {};
+        snapshots.forEach(snap => snap.forEach(d => {
+            const id = d.id.trim();
+            if (!id) return;
+            const data = d.data();
+            if (classifyProfileStatus(data) !== 'quit') activeMap[id] = data;
+        }));
         setActiveProfiles(activeMap, 'coach-branch-fallback:' + reason);
         setQuitProfiles({}, 'coach-branch-fallback:no-quit-data');
         _syncLegacy();
@@ -1082,7 +726,7 @@ export async function loadCoachBranchProfilesFallback(reason) {
     } catch (err) {
         _state.fallbackCount++;
         _state.fullFallbackReason = 'coach-branch-error:' + reason;
-        console.warn('[ProfilesFallback] Coach branch load could not complete; keeping permitted partial data:', err.code || err.message);
+        console.error('[ProfilesFallback] Coach branch load failed:', err.code || err.message);
         _updateWindowMetrics();
         return false;
     } finally {
@@ -1123,7 +767,6 @@ export async function loadFullProfilesFallback(reason, options = {}) {
         );
         return false;
     }
-
     if (forceQuitAuthoritative && _state.quitAuthoritativeFallbackCount >= _state.maxQuitAuthoritativeFallbackPerSession) {
         console.warn(
             '[ProfilesFallback] Đạt maxQuitAuthoritativeFallbackPerSession (' + _state.maxQuitAuthoritativeFallbackPerSession + ') — stop. Reason:', reason
@@ -1189,7 +832,8 @@ export async function loadFullProfilesFallback(reason, options = {}) {
         _state.fullFallbackReason    = reason;
         _state.lastProfilesMode      = 'full-fallback';
         _state.quitLoaded            = true;
-        if (forceQuitAuthoritative) _state.quitCompletenessReconciled = true;
+        _state.quitCompletenessReconciled = true;
+        _state.quitAuthoritativeLastError = '';
         _state.quitLoadingInProgress = false;
         _state.activeListenerMounted = true;
         // [Phase 3.7C+A] Explicit store state sync — safety layer on top of syncLegacyAllProfiles
@@ -1247,6 +891,7 @@ export async function loadFullProfilesFallback(reason, options = {}) {
         _state.fallbackCount++;
         if (forceQuitAuthoritative) _state.quitAuthoritativeFallbackCount++;
         _state.fullFallbackReason = reason + ':error';
+        if (forceQuitAuthoritative) _state.quitAuthoritativeLastError = err.code || err.message || 'full-sync-failed';
         console.error('[ProfilesFallback] Full load thất bại:', err.message || err.code);
         _updateWindowMetrics();
         return false;
@@ -1279,7 +924,7 @@ export async function ensureAllProfilesForExport(reason) {
     _state.exportEnsureAllProfilesCount++;
     const tag = reason || 'export';
 
-    if (_state.quitLoaded) return true;
+    if (_state.quitLoaded && _state.quitCompletenessReconciled) return true;
 
     // Thử load quit trước (nhẹ hơn full fallback)
     try {
@@ -1288,28 +933,19 @@ export async function ensureAllProfilesForExport(reason) {
         // tiếp tục xuống full fallback
     }
 
-    if (_state.quitLoaded) return true;
+    if (_state.quitLoaded && _state.quitCompletenessReconciled) return true;
 
     // Fallback full nếu quit load thất bại
     const ok = await loadFullProfilesFallback(tag + ':full');
     _updateWindowMetrics();
-    return ok || _state.quitLoaded;
+    return ok || (_state.quitLoaded && _state.quitCompletenessReconciled);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// isQuitProfilesLoaded
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** @returns {boolean} */
-export function isQuitProfilesLoaded() {
-    return _state.quitLoaded;
-}
 
 /**
- * Ensure Admin Đã nghỉ has passed the full authoritative reconciliation.
- * This is intentionally fire-and-forget friendly for mobile tab render paths:
- * it does not add a new repeated read because loadFullProfilesFallback has
- * single-flight and max-per-session guards.
+ * Ensure Đã nghỉ list is fully authoritative (Admin only).
+ * Uses a single-flight promise so web/mobile tab switching cannot start a targeted
+ * partial result that overwrites the final full list.
  * @param {string} [reason]
  * @returns {Promise<boolean>}
  */
@@ -1318,44 +954,29 @@ export async function ensureQuitProfilesAuthoritative(reason) {
         window.RoleReadBoundary?.canMount?.('profiles.quit-authoritative', { reason: reason || 'quit-authoritative' });
         return false;
     }
-    if (_state.quitCompletenessReconciled && _state.quitLoaded) return true;
+    if (_state.quitLoaded && _state.quitCompletenessReconciled) return true;
     if (_state.quitAuthoritativePromise) return _state.quitAuthoritativePromise;
-
-    const run = (async () => {
-        _state.quitAuthoritativeLastError = '';
-        _updateWindowMetrics();
-
-        // If a generic full fallback is already running, wait briefly for it rather
-        // than starting targeted queries that can later overwrite the complete list.
-        for (let i = 0; _state.fallbackInProgress && i < 40; i++) {
-            await new Promise(resolve => setTimeout(resolve, 50));
-            if (_state.quitCompletenessReconciled && _state.quitLoaded) return true;
-        }
-        if (_state.fallbackInProgress) {
-            _state.quitAuthoritativeLastError = 'fallback-in-progress-timeout';
-            _updateWindowMetrics();
-            return false;
-        }
-
+    _state.quitAuthoritativeLastError = '';
+    _state.quitAuthoritativePromise = (async () => {
         const ok = await loadFullProfilesFallback('quit-authoritative-full-sync:' + (reason || 'unknown'), { forceQuitAuthoritative: true });
-        _state.quitCompletenessReconciled = !!ok;
-        if (ok) {
-            _state.quitLoaded = true;
-            _state.quitAuthoritativeLastError = '';
-            markQuitLoaded(true);
-        } else {
-            _state.quitAuthoritativeLastError = _state.fullFallbackReason || 'full-sync-failed';
-        }
+        if (!ok) _state.quitAuthoritativeLastError = _state.fullFallbackReason || 'full-sync-failed';
         _updateWindowMetrics();
         return !!ok;
-    })();
-
-    _state.quitAuthoritativePromise = run.finally(() => {
+    })().finally(() => {
         _state.quitAuthoritativePromise = null;
         _updateWindowMetrics();
     });
     _updateWindowMetrics();
     return _state.quitAuthoritativePromise;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// isQuitProfilesLoaded
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** @returns {boolean} */
+export function isQuitProfilesLoaded() {
+    return _isCoachContext() ? _state.quitLoaded : (_state.quitLoaded && _state.quitCompletenessReconciled);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1380,8 +1001,6 @@ export function resetProfilesListeners(reason) {
     _state.coachLegacyListenerKey = null;
     _state.coachCanonicalActiveMap = {};
     _state.coachLegacyActiveMap = {};
-    _state.coachBranchFieldActiveMaps = {};
-    _state.coachProfileListenerKeys = [];
 
     // Quit
     _state.quitLoaded              = false;
@@ -1390,7 +1009,6 @@ export function resetProfilesListeners(reason) {
     _state.quitLoadLastReason      = '';
     _state.quitLoadingInProgress   = false;
     _state.quitCompletenessReconciled = false;
-    _state.quitTargetedLoaded      = false;
     _state.quitAuthoritativePromise = null;
     _state.quitAuthoritativeLastError = '';
     _state.quitAuthoritativeFallbackCount = 0;
@@ -1447,7 +1065,8 @@ export function getProfilesListenerMetrics() {
         quitLoadInProgress:                 _state.quitLoadingInProgress,
         quitLoadLastReason:                 _state.quitLoadLastReason,
         quitCompletenessReconciled:         _state.quitCompletenessReconciled,
-        quitTargetedLoaded:                 _state.quitTargetedLoaded,
+        quitAuthoritativeInProgress:        !!_state.quitAuthoritativePromise,
+        quitAuthoritativeLastError:         _state.quitAuthoritativeLastError,
         quitAuthoritativeFallbackCount:     _state.quitAuthoritativeFallbackCount,
         // Fallback guard
         fallbackInProgress:                 _state.fallbackInProgress,

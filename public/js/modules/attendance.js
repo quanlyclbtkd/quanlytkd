@@ -48,55 +48,13 @@ function _config()   { return (window.__store || {}).clubConfig || {}; }
 function _clubData() { return (window.__store || {}).clubData || {}; }
 function _getLocalToday()  { return window.getLocalToday ? window.getLocalToday() : new Date().toISOString().slice(0, 10); }
 function _sameBranch(left, right) {
-    if (!left || !right) return false;
-    if (window.BranchIdentity?.isSameBranch && window.BranchIdentity.isSameBranch(left, right)) return true;
-    // Phase 4K-6V4D9: HLV có thể được gán CSx, nhưng hồ sơ cũ lại lưu tên cơ sở
-    // thật trong branch/branchCode/coachBranch/facility/base. So khớp thêm bằng aliases
-    // động từ cấu hình CLB để không bỏ sót võ sinh trong tab Điểm danh.
-    try {
-        const aliases = new Set([].concat(
-            window.BranchIdentity?.aliases?.(left) || [],
-            window.BranchIdentity?.aliases?.(right) || []
-        ).map(v => String(v || '').trim()).filter(Boolean));
-        if (aliases.has(String(left || '').trim()) && aliases.has(String(right || '').trim())) return true;
-        const lc = window.BranchIdentity?.normalize?.(left, { fallback: '' });
-        const rc = window.BranchIdentity?.normalize?.(right, { fallback: '' });
-        if (lc && rc && lc === rc) return true;
-    } catch (_) {}
-    const fold = (v) => String(v || '')
-        .normalize('NFD').replace(/[̀-ͯ]/g, '')
-        .replace(/đ/g, 'd').replace(/Đ/g, 'D')
-        .toLowerCase().replace(/\s+/g, ' ').trim();
-    const l = String(left || '').trim(), r = String(right || '').trim();
-    if (fold(l) === fold(r)) return true;
-    const rName = window.getBranchNameDisplay ? window.getBranchNameDisplay(r) : r;
-    const lName = window.getBranchNameDisplay ? window.getBranchNameDisplay(l) : l;
-    return fold(l) === fold(rName) || fold(lName) === fold(r);
-}
-
-function _profileBranchValues(profile) {
-    const p = profile || {};
-    const values = [
-        p.branch, p.branchCode, p.coachBranch, p.branchName,
-        p.facility, p.base, p.coso, p.coSo, p.location, p.trainingBranch
-    ];
-    const out = [];
-    values.forEach(v => {
-        const raw = String(v == null ? '' : v).trim();
-        if (raw && !out.includes(raw)) out.push(raw);
-    });
-    return out;
-}
-
-function _profileMatchesBranch(profile, selectedBranch) {
-    const sel = String(selectedBranch || 'all').trim();
-    if (!sel || sel === 'all') return true;
-    return _profileBranchValues(profile).some(v => _sameBranch(v, sel));
-}
-
-function _profileDisplayBranch(profile, fallback = 'Chung') {
-    const values = _profileBranchValues(profile);
-    return values[0] || fallback;
+    if (window.BranchIdentity?.isSameBranch) return window.BranchIdentity.isSameBranch(left, right);
+    const normalize = (value) => {
+        const raw = String(value || '').trim();
+        return /^(Mặc định|mac dinh|default)$/i.test(raw) ? 'CS1' : raw.toUpperCase();
+    };
+    const a = normalize(left), b = normalize(right);
+    return !!a && a === b;
 }
 /** @deprecated Phase 3.1 — Firebase calls đã chuyển sang AttendanceService */
 
@@ -316,7 +274,7 @@ function _getFilteredAttProfiles() {
 
     return Object.entries(allProfs)
         .filter(([, p]) => isActiveProfileForAttendance(p))
-        .filter(([, p]) => _profileMatchesBranch(p, selBranch))
+        .filter(([, p]) => selBranch === 'all' || _sameBranch(p.branch, selBranch))
         .filter(([, p]) => {
             if (selBelt === 'all') return true;
             return (p.belt || '').toLowerCase().includes(selBelt.toLowerCase());
@@ -437,7 +395,7 @@ function _renderAdminBranchSummary(totalSummary) {
     if (window.userRole !== 'admin' && window.userRole !== 'super_admin') { wrapEl.style.display = 'none'; return; }
     const branchStats = {};
     _attCurrentProfiles.forEach(([name, p]) => {
-        const branch = _profileDisplayBranch(p, 'Chung');
+        const branch = p.branch || 'Chung';
         if (!branchStats[branch]) branchStats[branch] = { present: 0, absent: 0, excused: 0, pending: 0, total: 0 };
         const st = window.currentAttendanceData[name] ?? 0;
         branchStats[branch].total++;
@@ -612,7 +570,7 @@ function _saveAttOffline(clubId, date) {
             const docId   = getAttendanceDocId(name, date, shiftId || null);
             payload.records[name] = {
                 name, status: window.currentAttendanceData[name] ?? 0,
-                belt: p.belt || '', branch: _profileDisplayBranch(p, ''),
+                belt: p.belt || '', branch: p.branch || '',
                 date, month: date.substring(0, 7), profileId: name,
                 shiftId, docId
             };
@@ -662,7 +620,7 @@ export function initAttendance() {
         const byBranch = {};
         Object.entries(_profiles() || {}).forEach(([name, p]) => {
             if (!isActiveProfileForAttendance(p)) return;
-            if (coachBr && !_profileMatchesBranch(p, coachBr)) return;
+            if (coachBr && !_sameBranch(p.branch, coachBr)) return;
             // Phase 4K-6V4D1A: birthday banner must accept all legacy DOB fields.
             // Some profiles imported from Excel use birthDate/birthday/ngaySinh instead
             // of dob, so the banner was hidden even though birthday data existed.
@@ -673,7 +631,7 @@ export function initAttendance() {
             else if (dob.includes('-')) { const dp = dob.split('-'); dobYear = dp[0]||''; dobMon = dp[1]||''; dobDay = dp[2]||''; }
             else return;
             if (dobDay !== tDay || dobMon !== tMon) return;
-            const branch = _profileDisplayBranch(p, 'Chung');
+            const branch = p.branch || 'Chung';
             if (!byBranch[branch]) byBranch[branch] = [];
             const age = dobYear && tYear ? parseInt(tYear) - parseInt(dobYear) : null;
             byBranch[branch].push({ name, age });
@@ -953,7 +911,7 @@ export function initAttendance() {
                 await AttendanceService.deleteRecord(docId);
             } else {
                 await AttendanceService.saveRecord(docId, {
-                    profileId: name, name, belt: p.belt || '', branch: _profileDisplayBranch(p, ''),
+                    profileId: name, name, belt: p.belt || '', branch: p.branch || '',
                     date: _attCurrentDate, month: _attCurrentDate.substring(0, 7),
                     status: newStatus, timestamp: Date.now(),
                     ...(_currentShiftId ? { shiftId: _currentShiftId } : {})
@@ -1023,7 +981,7 @@ export function initAttendance() {
             const bulkRecords = unmarked.map(([name, p]) => ({
                 docId: getAttendanceDocId(name, _attCurrentDate, _currentShiftId),
                 data: {
-                    profileId: name, name, belt: p.belt || '', branch: _profileDisplayBranch(p, ''),
+                    profileId: name, name, belt: p.belt || '', branch: p.branch || '',
                     date: _attCurrentDate, month: _attCurrentDate.substring(0, 7), status: 1,
                     ...(_currentShiftId ? { shiftId: _currentShiftId } : {}),
                     timestamp: Date.now()
@@ -1143,11 +1101,11 @@ export function initAttendance() {
                 if (data.status===3) grouped[pid].excused++;
                 if (data.date) grouped[pid].dateMap[data.date] = data.status; // [4J-6] per-date map để tính chuyên cần lịch
             });
-            let rows = Object.values(grouped).filter(r => _profileMatchesBranch(r, selBranch));
+            let rows = Object.values(grouped).filter(r => selBranch === 'all' || _sameBranch(r.branch, selBranch));
             Object.entries(_profiles()||{}).forEach(([pid,p]) => {
                 if (!isActiveProfileForAttendance(p)) return;
-                if (!_profileMatchesBranch(p, selBranch)) return;
-                if (!grouped[pid]) rows.push({name:pid,belt:p.belt||'',branch:_profileDisplayBranch(p, ''),present:0,excused:0,absent:0});
+                if (selBranch !== 'all' && !_sameBranch(p.branch, selBranch)) return;
+                if (!grouped[pid]) rows.push({name:pid,belt:p.belt||'',branch:p.branch||'',present:0,excused:0,absent:0});
             });
             rows.sort((a,b)=>a.name.localeCompare(b.name,'vi'));
             if (rows.length===0) { _showMsg('Không có dữ liệu điểm danh trong tháng này'); return; }
@@ -1370,7 +1328,7 @@ export function initAttendance() {
 
         Object.entries(allProfs).forEach(([name, p]) => {
             if (!isActiveProfileForAttendance(p)) return;
-            const br  = _profileDisplayBranch(p, 'Chung');
+            const br  = p.branch || 'Chung';
             const sid = p.trainingShiftId || '';
             const key = sid ? br + '::' + sid : br;
             if (!branchStats[key]) {

@@ -238,7 +238,7 @@ export function classifyProfileStatus(profile) {
         const _rawQ = String(profile.status ?? '').toLowerCase().trim();
         const _quitQ = _config.quitQueryValues || ['quit', 'inactive'];
         if (_quitQ.some(v => v.toLowerCase() === _rawQ)) return 'quit';
-        if (_rawQ.includes('nghỉ') || _rawQ.includes('nghi')) return 'quit';
+        if (_rawQ.includes('nghỉ') || _rawQ.includes('nghi') || _rawQ.includes('dừng') || _rawQ.includes('dung')) return 'quit';
         return 'active';
     }
 
@@ -267,7 +267,7 @@ export function classifyProfileStatus(profile) {
 
     // ── 8. Substring fallback: tiếng Việt dự phòng ──────────────────────────
     if (status.includes('đang') || status.includes('dang')) return 'active';
-    if (status.includes('nghỉ') || status.includes('nghi') || status.includes('stop') || status.includes('left') || status.includes('dung') || status.includes('dừng')) return 'quit';
+    if (status.includes('nghỉ') || status.includes('nghi') || status.includes('dừng') || status.includes('dung') || status.includes('stop') || status.includes('left')) return 'quit';
 
     // ── 9. Unknown status → active (legacy compat, không phải 'other') ───────
     // Legacy profiles without recognizable status are treated as active.

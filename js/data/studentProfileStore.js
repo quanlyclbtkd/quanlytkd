@@ -420,11 +420,6 @@ export function ensureProfilesForTab(tabId, reason) {
                 if (typeof window.loadQuitProfilesIfNeeded === 'function') {
                     window.loadQuitProfilesIfNeeded('ensure-quit-tab:' + (reason || ''));
                 }
-            } else if (typeof window.ensureQuitProfilesAuthoritative === 'function') {
-                // Phase 4K-6V4D3: targeted quit cache can be partial. On the
-                // Đã nghỉ tab, trigger the existing guarded full reconciliation
-                // so mobile does not stay on a partial list after the first page.
-                window.ensureQuitProfilesAuthoritative('ensure-quit-tab-authoritative:' + (reason || ''));
             }
             return _store.quitLoaded || compatCount > 0;
 
