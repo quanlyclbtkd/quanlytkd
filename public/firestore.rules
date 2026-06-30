@@ -1,7 +1,7 @@
 rules_version = '2';
 // ══════════════════════════════════════════════════════════════════════════════
 // Firestore Security Rules — Taekwondo Club Management SaaS
-// Phase 4K-6V4D4 — Coach login + quit-list authoritative repair
+// Phase 4K-6V4D8 — Coach attendance auth roster final recovery
 //
 // Mục tiêu:
 //   • Client UI không còn là lớp bảo vệ duy nhất.
@@ -91,6 +91,13 @@ service cloud.firestore {
         && isAllowedCoachBranch(myBranch());
     }
 
+    function hasCoachAssignmentDoc(clubId) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/clubs/$(clubId)/coaches/$(request.auth.uid))
+        && get(/databases/$(database)/documents/clubs/$(clubId)/coaches/$(request.auth.uid)).data.get('role', '') == 'coach'
+        && get(/databases/$(database)/documents/clubs/$(clubId)/coaches/$(request.auth.uid)).data.get('clubId', '') == clubId;
+    }
+
     function isAdminOrViewer(clubId) {
       return isClubAdmin(clubId) || isClubViewer(clubId);
     }
@@ -100,26 +107,28 @@ service cloud.firestore {
       return branchValue in ['CS1', 'Mặc định'];
     }
 
-    function branchNameMatchesAssigned(clubId, branchValue) {
+    function branchNameMatchesCode(clubId, branchValue, branchCode) {
       let cfg = get(/databases/$(database)/documents/clubs/$(clubId)/settings/main_config).data;
-      return (myBranch() == 'CS1'  && branchValue == cfg.get('branchName1',  ''))
-        || (myBranch() == 'CS2'  && branchValue == cfg.get('branchName2',  ''))
-        || (myBranch() == 'CS3'  && branchValue == cfg.get('branchName3',  ''))
-        || (myBranch() == 'CS4'  && branchValue == cfg.get('branchName4',  ''))
-        || (myBranch() == 'CS5'  && branchValue == cfg.get('branchName5',  ''))
-        || (myBranch() == 'CS6'  && branchValue == cfg.get('branchName6',  ''))
-        || (myBranch() == 'CS7'  && branchValue == cfg.get('branchName7',  ''))
-        || (myBranch() == 'CS8'  && branchValue == cfg.get('branchName8',  ''))
-        || (myBranch() == 'CS9'  && branchValue == cfg.get('branchName9',  ''))
-        || (myBranch() == 'CS10' && branchValue == cfg.get('branchName10', ''));
+      return (branchCode == 'CS1'  && branchValue == cfg.get('branchName1',  ''))
+        || (branchCode == 'CS2'  && branchValue == cfg.get('branchName2',  ''))
+        || (branchCode == 'CS3'  && branchValue == cfg.get('branchName3',  ''))
+        || (branchCode == 'CS4'  && branchValue == cfg.get('branchName4',  ''))
+        || (branchCode == 'CS5'  && branchValue == cfg.get('branchName5',  ''))
+        || (branchCode == 'CS6'  && branchValue == cfg.get('branchName6',  ''))
+        || (branchCode == 'CS7'  && branchValue == cfg.get('branchName7',  ''))
+        || (branchCode == 'CS8'  && branchValue == cfg.get('branchName8',  ''))
+        || (branchCode == 'CS9'  && branchValue == cfg.get('branchName9',  ''))
+        || (branchCode == 'CS10' && branchValue == cfg.get('branchName10', ''));
+    }
+
+    function branchValueMatchesCode(clubId, branchValue, branchCode) {
+      return branchValue == branchCode
+        || (isPrimaryBranchAlias(branchValue) && isPrimaryBranchAlias(branchCode))
+        || branchNameMatchesCode(clubId, branchValue, branchCode);
     }
 
     function branchMatchesAssigned(branchValue) {
-      return isCoach(myClubId()) && (
-        branchValue == myBranch()
-        || (isPrimaryBranchAlias(branchValue) && isPrimaryBranchAlias(myBranch()))
-        || branchNameMatchesAssigned(myClubId(), branchValue)
-      );
+      return isCoach(myClubId()) && branchValueMatchesCode(myClubId(), branchValue, myBranch());
     }
 
     function resourceBranchMatchesCoach() {
@@ -143,7 +152,7 @@ service cloud.firestore {
     // ── Club root and tenant collections ─────────────────────────────────────
 
     match /clubs/{clubId} {
-      allow get: if isSuperAdmin() || isClubMember(clubId);
+      allow get: if isSuperAdmin() || isClubMember(clubId) || hasCoachAssignmentDoc(clubId);
       allow list: if isSuperAdmin();
       allow create: if isSuperAdmin();
       allow update: if isSuperAdmin() || isClubAdmin(clubId);
@@ -237,7 +246,7 @@ service cloud.firestore {
       match /settings/{settingId} {
         allow get: if isSuperAdmin()
           || isAdminOrViewer(clubId)
-          || (isCoach(clubId) && settingId in ['main_config', 'shifts']);
+          || ((isCoach(clubId) || hasCoachAssignmentDoc(clubId)) && settingId in ['main_config', 'shifts']);
         allow list: if isSuperAdmin() || isAdminOrViewer(clubId);
         allow create, update, delete: if isSuperAdmin() || isClubAdmin(clubId);
       }
@@ -342,7 +351,9 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/clubs/$(clubId)/coaches/$(uid))
         && get(/databases/$(database)/documents/clubs/$(clubId)/coaches/$(uid)).data.get('role', '') == 'coach'
         && get(/databases/$(database)/documents/clubs/$(clubId)/coaches/$(uid)).data.get('clubId', '') == clubId
-        && assignedBranch(get(/databases/$(database)/documents/clubs/$(clubId)/coaches/$(uid)).data) == assignedBranch(data);
+        && branchValueMatchesCode(clubId,
+             assignedBranch(get(/databases/$(database)/documents/clubs/$(clubId)/coaches/$(uid)).data),
+             assignedBranch(data));
     }
 
     function safeSelfCoachMirrorCreate(uid) {

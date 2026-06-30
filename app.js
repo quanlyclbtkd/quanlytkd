@@ -107,7 +107,7 @@
     };
 // Danh mục kho tùy chỉnh — được load từ Firestore khi đăng nhập thành công
 window.invCustomCategories = [];
-    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V4D7'; window.APP_PATCH_VERSION = '4K-6V4D7-coach-quit-attendance-full-recovery-20260630'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
+    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V4D8'; window.APP_PATCH_VERSION = '4K-6V4D8-coach-attendance-auth-roster-final-recovery-20260630'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
     // Compatibility regression marker retained for Phase 4K-6Q gate: APP_PATCH_VERSION = '4K-6Q-mobile-filter-currency-stability-20260615'
     window.__appLoaded = true; // [Phase 2a] main.js kiểm tra để bỏ qua loadLegacyApp()
     window.__store = window.__store || {}; // [Phase 2b] Bridge object cho module system
@@ -1889,7 +1889,7 @@ service cloud.firestore {
                 } else {
                     scheduleRender();
                 }
-                if (_coachAttendanceOnly) { const _refreshCoachRoster = function() { try { if (typeof window.ensureCoachBranchProfilesReady === 'function') window.ensureCoachBranchProfilesReady('settings-snapshot-branch-aliases'); else if (typeof window.loadCoachBranchProfilesFallback === 'function') window.loadCoachBranchProfilesFallback('settings-snapshot-branch-aliases'); } catch (_coachReadyErr) { console.warn('[CoachAttendance] settings-ready roster reconcile failed:', _coachReadyErr && (_coachReadyErr.code || _coachReadyErr.message) || _coachReadyErr); } }; setTimeout(_refreshCoachRoster, 0); setTimeout(_refreshCoachRoster, 700); }
+                if (_coachAttendanceOnly) { const _refreshCoachRoster = function() { try { if (typeof window.ensureCoachBranchProfilesReady === 'function') window.ensureCoachBranchProfilesReady('settings-snapshot-branch-aliases', { db: window.__store&&window.__store.db, clubId: window.currentClubId || (window.__store&&window.__store.currentClubId), currentClubId: window.currentClubId || (window.__store&&window.__store.currentClubId), profRef: window.__store&&window.__store.profRef, role: window.userRole || 'coach', coachBranch: window.coachBranch || (window.__store&&window.__store.coachBranch) || '' }); else if (typeof window.loadCoachBranchProfilesFallback === 'function') window.loadCoachBranchProfilesFallback('settings-snapshot-branch-aliases'); } catch (_coachReadyErr) { console.warn('[CoachAttendance] settings-ready roster reconcile failed:', _coachReadyErr && (_coachReadyErr.code || _coachReadyErr.message) || _coachReadyErr); } }; setTimeout(_refreshCoachRoster, 0); setTimeout(_refreshCoachRoster, 700); }
                 // Coach attendance-only không đọc danh mục Kho.
                 if (!_coachAttendanceOnly && window.RoleReadBoundary?.canMount?.('inventory.categories', { reason: 'settings-snapshot' }) !== false) {
                     window.loadInvCategories().catch(e => console.warn('loadInvCategories error:', e));
@@ -2014,7 +2014,7 @@ service cloud.firestore {
         } else if (window.RoleReadBoundary?.isCoachAttendanceOnly?.() === true) {
             const _coachBranchSafe = _canonicalBranch(window.coachBranch || (window.__store && window.__store.coachBranch) || '', '');
             const _coachAliases = _branchAliases(_coachBranchSafe).filter(Boolean);
-            const _coachFields=['branch','branchCode','coachBranch','branchName','facility','base','coso','coSo','location'];
+            const _coachFields=['branch','branchCode','branchId','branchLabel','coachBranch','clubBranch','studentBranch','trainingBranch','classBranch','branchName','facility','base','campus','campusName','site','trainingBase','trainingLocation','coso','coSo','co_so','coSoTap','noiTap','diaDiemTap','location'];
             const _coachSpecs=[], _seenCoachSpec=new Set();
             _coachFields.forEach(function(_field){((_field==='branch'||_field==='branchName'||_field==='facility'||_field==='base'||_field==='coso'||_field==='coSo'||_field==='location')?_coachAliases:[_coachBranchSafe]).forEach(function(_value){_value=String(_value||'').trim(); const _k=_field+':'+_value.toLowerCase(); if(_value&&!_seenCoachSpec.has(_k)){_seenCoachSpec.add(_k); _coachSpecs.push({field:_field,value:_value});}});});
             if (!_coachBranchSafe || !_coachSpecs.length) {

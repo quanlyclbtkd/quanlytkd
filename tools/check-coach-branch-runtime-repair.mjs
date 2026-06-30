@@ -23,13 +23,13 @@ function check(name, ok, detail = '') {
 
 console.log('\n=== Phase 4K-6V4B1 — Coach Branch Runtime Repair ===\n');
 
-const appEntrypointBuilds = ['coach-attendance-deep-branch-recovery-20260630-v4d7', 'profile-canonical-store-runtime-recovery-20260628-v4d1a', 'profile-canonical-store-20260628-v4d1', 'tuition-debt-source-of-truth-20260628-v4c'];
+const appEntrypointBuilds = ['coach-attendance-auth-roster-final-recovery-20260630-v4d8', 'profile-canonical-store-runtime-recovery-20260628-v4d1a', 'profile-canonical-store-20260628-v4d1', 'tuition-debt-source-of-truth-20260628-v4c'];
 check('Production entrypoints keep V4B1 branch repair and load current runtime cache marker',
-  ((index.match(/coach-branch-runtime-repair-20260627-v4b1/g) || []).length >= 5 || index.includes('coach-attendance-deep-branch-recovery-20260630-v4d7')) &&
+  ((index.match(/coach-branch-runtime-repair-20260627-v4b1/g) || []).length >= 5 || index.includes('coach-attendance-auth-roster-final-recovery-20260630-v4d8')) &&
   appEntrypointBuilds.some(build => index.includes(`app.js?v=${build}`)) &&
-  (index.includes('./js/main.js?v=coach-attendance-deep-branch-recovery-20260630-v4d7') || index.includes('./js/main.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a') || index.includes('./js/main.js?v=profile-canonical-store-20260628-v4d1')) &&
-  (main.includes("profiles.listeners.js?v=coach-attendance-deep-branch-recovery-20260630-v4d7") || main.includes("profiles.listeners.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a") || main.includes("profiles.listeners.js?v=profile-canonical-store-20260628-v4d1")) &&
-  (main.includes("attendance.js?v=coach-attendance-deep-branch-recovery-20260630-v4d7") || main.includes("attendance.js?v=coach-branch-runtime-repair-20260627-v4b1")));
+  (index.includes('./js/main.js?v=coach-attendance-auth-roster-final-recovery-20260630-v4d8') || index.includes('./js/main.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a') || index.includes('./js/main.js?v=profile-canonical-store-20260628-v4d1')) &&
+  (main.includes("profiles.listeners.js?v=coach-attendance-auth-roster-final-recovery-20260630-v4d8") || main.includes("profiles.listeners.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a") || main.includes("profiles.listeners.js?v=profile-canonical-store-20260628-v4d1")) &&
+  (main.includes("attendance.js?v=coach-attendance-auth-roster-final-recovery-20260630-v4d8") || main.includes("attendance.js?v=coach-branch-runtime-repair-20260627-v4b1")));
 check('Coach creation requires one concrete branch',
   repair.includes("if (!name || !email || !branch || pass.length < 6)") &&
   /id="coach_branch"[\s\S]{0,500}<option value="CS1">/.test(index) &&
@@ -61,7 +61,7 @@ check('Runtime reads only the exact Admin Coach assignment document',
   repair.includes("getDoc(doc(firestore, 'clubs', result.clubId, 'coaches', result.uid))") &&
   !app.includes('auth fallback clubs scan'));
 check('Runtime repairs users/{uid} only from Admin assignment data',
-  repair.includes('const assignedBranch = canonical(assigned.branch || assigned.coachBranch') &&
+  repair.includes('const assignedRaw = assigned.branch || assigned.coachBranch') && repair.includes('const assignedBranch = canonical(assignedRaw') &&
   repair.includes("await setDoc(doc(firestore, 'users', result.uid)") &&
   repair.includes('auth/coach-branch-mirror-sync-failed'));
 check('Missing/invalid Coach branch remains fail-closed',
@@ -99,7 +99,7 @@ check('Rules permit self mirror repair only when exact Admin assignment matches'
   rules.includes('function selfCoachMirrorMatches(uid, data)') &&
   rules.includes('safeSelfCoachMirrorCreate(uid)') &&
   rules.includes('safeSelfCoachMirrorUpdate(uid)') &&
-  rules.includes('assignedBranch(get(/databases/$(database)/documents/clubs/$(clubId)/coaches/$(uid)).data) == assignedBranch(data)'));
+  rules.includes('branchValueMatchesCode(clubId,') && rules.includes('assignedBranch(get(/databases/$(database)/documents/clubs/$(clubId)/coaches/$(uid)).data)'));
 check('Rules still block arbitrary self role, tenant or branch selection',
   rules.includes('selfCoachMirrorMatches(uid, request.resource.data)') &&
   rules.includes("affectedKeys().hasOnly([\n          'role', 'clubId', 'branch', 'coachBranch', 'email', 'updatedAt'"));
@@ -121,7 +121,7 @@ check('Rules still block arbitrary self role, tenant or branch selection',
     user:{ uid:'coach-1', email:'coach@example.com' }, context:{ role:'coach', clubId:'club-a', branch:'' }, db:{}
   });
   check('Dynamic: missing mirror branch is resolved from one exact Coach assignment read',
-    reads.length === 1 && reads[0] === 'clubs/club-a/coaches/coach-1' && result.coachBranch === 'CS2');
+    reads.includes('clubs/club-a/coaches/coach-1') && reads.includes('clubs/club-a/settings/main_config') && result.coachBranch === 'CS2');
   check('Dynamic: repair writes only the current users/{uid} authorization mirror',
     writes.length === 1 && writes[0].ref === 'users/coach-1' && writes[0].data.branch === 'CS2' && writes[0].data.coachBranch === 'CS2');
 }

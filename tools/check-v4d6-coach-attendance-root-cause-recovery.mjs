@@ -15,7 +15,7 @@ const students = read('js/modules/students.js');
 const finance = read('js/modules/finance.js');
 const index = read('index.html');
 
-const build = 'coach-attendance-deep-branch-recovery-20260630-v4d7';
+const build = 'coach-attendance-auth-roster-final-recovery-20260630-v4d8';
 let pass = 0, fail = 0;
 function check(name, ok) {
   if (ok) { pass++; console.log('✅', name); }

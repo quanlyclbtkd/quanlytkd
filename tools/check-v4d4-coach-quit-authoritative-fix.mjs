@@ -5,7 +5,7 @@ import path from 'node:path';
 
 const root = process.cwd();
 const read = rel => fs.readFileSync(path.join(root, rel), 'utf8');
-const build = 'coach-attendance-deep-branch-recovery-20260630-v4d7';
+const build = 'coach-attendance-auth-roster-final-recovery-20260630-v4d8';
 const files = {
   index: read('index.html'),
   app: read('app.js'),
@@ -31,8 +31,8 @@ check('index/app/main cache bust updated to V4D4',
   files.index.includes(`app.js?v=${build}`) && files.index.includes(`./js/main.js?v=${build}`) &&
   files.main.includes(`renderStudents.js?v=${build}`) && files.main.includes(`attendance.js?v=${build}`));
 check('APP_PATCH_VERSION marks V4D4 runtime',
-  (files.main.includes("APP_PATCH_VERSION = '4K-6V4D4-coach-quit-authoritative-fix-20260630'") || files.main.includes("APP_PATCH_VERSION = '4K-6V4D7-coach-quit-attendance-full-recovery-20260630'")) &&
-  (files.main.includes("window.APP_PATCH_VERSION = '4K-6V4D4-coach-quit-authoritative-fix-20260630'") || files.main.includes("window.APP_PATCH_VERSION = '4K-6V4D7-coach-quit-attendance-full-recovery-20260630'")));
+  (files.main.includes("APP_PATCH_VERSION = '4K-6V4D4-coach-quit-authoritative-fix-20260630'") || (files.main.includes("APP_PATCH_VERSION = '4K-6V4D7-coach-quit-attendance-full-recovery-20260630'") || files.main.includes("APP_PATCH_VERSION = '4K-6V4D8-coach-attendance-auth-roster-final-recovery-20260630'"))) &&
+  (files.main.includes("window.APP_PATCH_VERSION = '4K-6V4D4-coach-quit-authoritative-fix-20260630'") || (files.main.includes("window.APP_PATCH_VERSION = '4K-6V4D7-coach-quit-attendance-full-recovery-20260630'") || files.main.includes("window.APP_PATCH_VERSION = '4K-6V4D8-coach-attendance-auth-roster-final-recovery-20260630'"))));
 
 check('Quit render merges quitProfiles + local journal + compat store',
   files.renderStudents.includes('getQuitProfiles') &&
@@ -84,7 +84,7 @@ check('Attendance profile source uses full compat merge for HLV attendance list'
   files.attendance.includes('Object.assign(merged, window.allProfiles || {})'));
 
 check('Coach runtime repair writes canonical users mirror fields from Admin assignment',
-  files.coachRepair.includes("version:'4K-6V4D4'") &&
+  (files.coachRepair.includes("version:'4K-6V4D4'") || files.coachRepair.includes("version:'4K-6V4D8'")) &&
   files.coachRepair.includes('every Coach login must self-heal') &&
   files.coachRepair.includes("role: 'coach'") &&
   files.coachRepair.includes('coachBranch: assignedBranch') &&
@@ -95,12 +95,12 @@ check('Firestore rules permit only safe self coach mirror repair from exact assi
   files.rules.includes("'role', 'clubId', 'branch', 'coachBranch', 'email', 'updatedAt'") &&
   !files.rules.includes("resource.data.role == 'coach'\n        && request.resource.data.clubId == resource.data.clubId"));
 check('Firestore rules authorize coach branch display-name data reads',
-  files.rules.includes('function branchNameMatchesAssigned') &&
+  (files.rules.includes('function branchNameMatchesAssigned') || files.rules.includes('function branchNameMatchesCode')) &&
   files.rules.includes("cfg.get('branchName2'") &&
-  files.rules.includes('|| branchNameMatchesAssigned(myClubId(), branchValue)'));
+  (files.rules.includes('|| branchNameMatchesAssigned(myClubId(), branchValue)') || files.rules.includes('branchValueMatchesCode(myClubId(), branchValue, myBranch())')));
 check('Legacy Admin coach creation/migration stores coachBranch too',
   files.app.includes('coachBranch: branch') &&
-  files.app.includes("version: '4K-6V4D4'") );
+  (files.app.includes("version: '4K-6V4D4'") || files.app.includes("COACH_BRANCH_RUNTIME_VERSION='4K-6V4D8'")) );
 check('No new broad write APIs added to render/attendance-only files',
   !/(setDoc|updateDoc|deleteDoc|writeBatch|addDoc)\s*\(/.test([files.renderStudents, files.attendance].join('\n')));
 

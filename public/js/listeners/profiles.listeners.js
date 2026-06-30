@@ -122,13 +122,26 @@ const _state = {
 /** Context: lưu từ mountActiveProfilesListener, dùng cho lazy quit + fallback */
 let _ctx = null;
 
+function _effectiveContext(context = _ctx) {
+    const st = window.__store || {};
+    return Object.assign({}, context || {}, {
+        db: (context && context.db) || st.db || window.db || window._db || null,
+        clubId: (context && (context.clubId || context.currentClubId)) || st.currentClubId || st.clubId || window.currentClubId || '',
+        currentClubId: (context && (context.currentClubId || context.clubId)) || st.currentClubId || st.clubId || window.currentClubId || '',
+        profRef: (context && context.profRef) || st.profRef || window.profRef || null,
+        role: (context && context.role) || st.userRole || window.userRole || '',
+        coachBranch: (context && context.coachBranch) || st.coachBranch || window.coachBranch || '',
+    });
+}
+
 function _normalizeRole(value) {
     const role = String(value || '').trim().toLowerCase().replace(/-/g, '_');
     return role === 'hlv' ? 'coach' : (role === 'superadmin' ? 'super_admin' : role);
 }
 
 function _contextRole(context = _ctx) {
-    return _normalizeRole((context && context.role) || _state.role || window.userRole || window.__store?.userRole || '');
+    const ctx = _effectiveContext(context);
+    return _normalizeRole((ctx && ctx.role) || _state.role || window.userRole || window.__store?.userRole || '');
 }
 
 function _isCoachContext(context = _ctx) {
@@ -136,7 +149,8 @@ function _isCoachContext(context = _ctx) {
 }
 
 function _coachBranch(context = _ctx) {
-    const raw = (context && context.coachBranch) || _state.coachBranch || window.coachBranch || window.__store?.coachBranch || '';
+    const ctx = _effectiveContext(context);
+    const raw = (ctx && ctx.coachBranch) || _state.coachBranch || window.coachBranch || window.__store?.coachBranch || '';
     if (window.BranchIdentity?.normalize) return window.BranchIdentity.normalize(raw, { fallback: '' });
     const value = String(raw || '').trim();
     return /^(Mặc định|mac dinh|default)$/i.test(value) ? 'CS1' : value;
@@ -158,7 +172,9 @@ function _coachBranchAliases(context = _ctx) {
 }
 
 const COACH_PROFILE_BRANCH_FIELDS = Object.freeze([
-    'branch', 'branchCode', 'coachBranch', 'branchName', 'facility', 'base', 'coso', 'coSo', 'location'
+    'branch', 'branchCode', 'branchId', 'branchLabel', 'coachBranch', 'clubBranch', 'studentBranch', 'trainingBranch', 'classBranch',
+    'branchName', 'facility', 'base', 'campus', 'campusName', 'site', 'trainingBase', 'trainingLocation',
+    'coso', 'coSo', 'co_so', 'coSoTap', 'noiTap', 'diaDiemTap', 'location'
 ]);
 
 function _coachProfileQuerySpecs(context = _ctx) {
@@ -168,12 +184,27 @@ function _coachProfileQuerySpecs(context = _ctx) {
     const valuesByField = {
         branch: aliases,
         branchCode: [branch],
+        branchId: [branch],
+        branchLabel: aliases,
         coachBranch: [branch],
+        clubBranch: [branch],
+        studentBranch: [branch],
+        trainingBranch: [branch],
+        classBranch: [branch],
         branchName: aliases,
         facility: aliases,
         base: aliases,
+        campus: aliases,
+        campusName: aliases,
+        site: aliases,
+        trainingBase: aliases,
+        trainingLocation: aliases,
         coso: aliases,
         coSo: aliases,
+        co_so: aliases,
+        coSoTap: aliases,
+        noiTap: aliases,
+        diaDiemTap: aliases,
         location: aliases,
     };
     const specs = [];
@@ -869,8 +900,8 @@ export function cleanupQuitProfilesListener(reason) {
 // COACH BRANCH-SAFE FALLBACK — never reads the full club collection
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function loadCoachBranchProfilesFallback(reason) {
-    const ctx = _ctx;
+export async function loadCoachBranchProfilesFallback(reason, contextOverride) {
+    const ctx = _effectiveContext(contextOverride || _ctx);
     const branch = _coachBranch(ctx);
     if (!_isCoachContext(ctx) || !ctx || !ctx.profRef || !branch) {
         console.warn('[ProfilesFallback] Coach branch fallback blocked — missing safe context:', reason);
@@ -915,7 +946,14 @@ export async function loadCoachBranchProfilesFallback(reason) {
             });
         });
         if (queryErrors && docsRead === 0) throw new Error('all coach branch-field queries failed');
-        setActiveProfiles(activeMap, 'coach-branch-fallback:' + reason);
+        let mergedActive = activeMap;
+        try {
+            const existing = window.studentProfileStore && typeof window.studentProfileStore.getActiveProfiles === 'function'
+                ? (window.studentProfileStore.getActiveProfiles() || {})
+                : {};
+            mergedActive = Object.assign({}, existing, activeMap);
+        } catch (_) {}
+        setActiveProfiles(mergedActive, 'coach-branch-fallback:' + reason);
         setQuitProfiles({}, 'coach-branch-fallback:no-quit-data');
         _syncLegacy();
         _state.fallbackCompleted = true;
@@ -945,9 +983,10 @@ export async function loadCoachBranchProfilesFallback(reason) {
  * aliases can be missing. This guarded getDocs path reloads only the assigned branch
  * aliases, never the full club collection.
  */
-export async function ensureCoachBranchProfilesReady(reason) {
-    if (!_isCoachContext()) return false;
-    return loadCoachBranchProfilesFallback(reason || 'ensure-coach-branch-profiles-ready');
+export async function ensureCoachBranchProfilesReady(reason, contextOverride) {
+    const ctx = _effectiveContext(contextOverride || _ctx);
+    if (!_isCoachContext(ctx)) return false;
+    return loadCoachBranchProfilesFallback(reason || 'ensure-coach-branch-profiles-ready', ctx);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

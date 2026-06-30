@@ -49,7 +49,7 @@ function _clubData() { return (window.__store || {}).clubData || {}; }
 function _getLocalToday()  { return window.getLocalToday ? window.getLocalToday() : new Date().toISOString().slice(0, 10); }
 function _profileBranchValue(p) {
     const x = p || {};
-    return x.branch || x.branchCode || x.branchName || x.coachBranch || x.facility || x.base || x.coso || x.coSo || x.location || '';
+    return x.branch || x.branchCode || x.branchId || x.branchLabel || x.coachBranch || x.clubBranch || x.studentBranch || x.trainingBranch || x.classBranch || x.branchName || x.facility || x.base || x.campus || x.campusName || x.site || x.trainingBase || x.trainingLocation || x.coso || x.coSo || x.co_so || x.coSoTap || x.noiTap || x.diaDiemTap || x.location || '';
 }
 function _sameBranch(left, right) {
     if (window.BranchIdentity?.isSameBranch) return window.BranchIdentity.isSameBranch(left, right);
