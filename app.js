@@ -107,7 +107,7 @@
     };
 // Danh mục kho tùy chỉnh — được load từ Firestore khi đăng nhập thành công
 window.invCustomCategories = [];
-    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V4D5'; window.APP_PATCH_VERSION = '4K-6V4D5-coach-quit-attendance-full-recovery-20260630'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
+    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V4D7'; window.APP_PATCH_VERSION = '4K-6V4D7-coach-quit-attendance-full-recovery-20260630'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
     // Compatibility regression marker retained for Phase 4K-6Q gate: APP_PATCH_VERSION = '4K-6Q-mobile-filter-currency-stability-20260615'
     window.__appLoaded = true; // [Phase 2a] main.js kiểm tra để bỏ qua loadLegacyApp()
     window.__store = window.__store || {}; // [Phase 2b] Bridge object cho module system
@@ -2014,49 +2014,31 @@ service cloud.firestore {
         } else if (window.RoleReadBoundary?.isCoachAttendanceOnly?.() === true) {
             const _coachBranchSafe = _canonicalBranch(window.coachBranch || (window.__store && window.__store.coachBranch) || '', '');
             const _coachAliases = _branchAliases(_coachBranchSafe).filter(Boolean);
-            if (!_coachBranchSafe || !_coachAliases.length) {
-                allProfiles = {};
-                if (window.__store) window.__store.profiles = {};
+            const _coachFields=['branch','branchCode','coachBranch','branchName','facility','base','coso','coSo','location'];
+            const _coachSpecs=[], _seenCoachSpec=new Set();
+            _coachFields.forEach(function(_field){((_field==='branch'||_field==='branchName'||_field==='facility'||_field==='base'||_field==='coso'||_field==='coSo'||_field==='location')?_coachAliases:[_coachBranchSafe]).forEach(function(_value){_value=String(_value||'').trim(); const _k=_field+':'+_value.toLowerCase(); if(_value&&!_seenCoachSpec.has(_k)){_seenCoachSpec.add(_k); _coachSpecs.push({field:_field,value:_value});}});});
+            if (!_coachBranchSafe || !_coachSpecs.length) {
+                allProfiles = {}; if (window.__store) window.__store.profiles = {};
                 console.error('[RoleReadBoundary] Coach profiles module unavailable and coachBranch missing — blocked fallback');
             } else {
-                console.warn('[RoleReadBoundary] Coach profiles module unavailable — using branch-safe legacy fallback', { branch: _coachBranchSafe, aliases: _coachAliases });
-                const _coachMaps = {};
-                window.__coachBranchProfileFallbackUnsubs = window.__coachBranchProfileFallbackUnsubs || [];
-                _coachAliases.forEach(function(_alias, _idx) {
-                    try {
-                        const _q = query(profRef, where('branch', '==', _alias));
-                        const _u = onSnapshot(_q, function(_snap) {
-                            if (typeof window.recordFirestoreSnapshotAttribution === 'function') {
-                                window.recordFirestoreSnapshotAttribution('profiles.coachBranchLegacyFallbackListener', _snap, { initial: !_coachMaps[_alias], branch: _coachBranchSafe, alias: _alias, reason: 'app-module-not-ready-coach-safe' });
-                            }
-                            const _map = {};
-                            _snap.forEach(function(d) {
-                                const _id = String(d.id || '').trim();
-                                if (!_id) return;
-                                const _data = d.data() || {};
-                                const _kind = typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus(_data) : (_data.status === 'quit' ? 'quit' : 'active');
-                                if (_kind !== 'quit') _map[_id] = _data;
-                            });
-                            _coachMaps[_alias] = _map;
-                            allProfiles = Object.assign({}, ...Object.values(_coachMaps));
-                            if (window.__store) { window.__store.profiles = allProfiles; window.__store._coachBranchSafeFallbackActive = true; window.__store._coachBranchSafeFallbackAliases = _coachAliases.slice(); }
-                            if (window.studentProfileStore && typeof window.studentProfileStore.setActiveProfiles === 'function') {
-                                try { window.studentProfileStore.setActiveProfiles(allProfiles, 'app-coach-branch-safe-fallback'); } catch (_) {}
-                            }
-                            _updateHydrationMetrics({ profilesSnapshotCount: (window.__dataHydrationMetrics.profilesSnapshotCount || 0) + 1, profilesDocCount: Object.keys(allProfiles).length, lastReason: 'coach-branch-safe-fallback' });
-                            if (typeof window.renderAttendanceList === 'function') Promise.resolve().then(function() { window.renderAttendanceList(); }).catch(function(){});
-                            if (window.invalidateByDomain) window.invalidateByDomain('attendance', 'coach-branch-safe-fallback');
-                            else scheduleRender();
-                        }, function(err) {
-                            console.error('[RoleReadBoundary] Coach branch-safe fallback failed:', _alias, err && (err.code || err.message) || err);
-                        });
-                        activeListeners.push(_u);
-                        window.__coachBranchProfileFallbackUnsubs.push(_u);
-                        if (window.registerListener) window.registerListener('global:profiles:coach-safe:' + clubId + ':' + _idx, _u, { owner: 'students', scope: 'global', reason: 'coach-branch-safe-app-fallback' });
-                    } catch (_coachFallbackErr) {
-                        console.error('[RoleReadBoundary] Coach branch-safe fallback build failed:', _alias, _coachFallbackErr && (_coachFallbackErr.code || _coachFallbackErr.message) || _coachFallbackErr);
-                    }
-                });
+                console.warn('[RoleReadBoundary] Coach profiles module unavailable — using branch-field safe legacy fallback', { branch: _coachBranchSafe, specs: _coachSpecs.map(function(s){ return s.field + '=' + s.value; }) });
+                const _coachMaps = {}; window.__coachBranchProfileFallbackUnsubs = window.__coachBranchProfileFallbackUnsubs || [];
+                _coachSpecs.forEach(function(_spec, _idx) { try {
+                    const _q = query(profRef, where(_spec.field, '==', _spec.value));
+                    const _u = onSnapshot(_q, function(_snap) {
+                        const _mapKey = _spec.field + ':' + _spec.value;
+                        if (typeof window.recordFirestoreSnapshotAttribution === 'function') window.recordFirestoreSnapshotAttribution('profiles.coachBranchLegacyFallbackListener', _snap, { initial: !_coachMaps[_mapKey], branch: _coachBranchSafe, field: _spec.field, value: _spec.value, reason: 'app-module-not-ready-coach-safe' });
+                        const _map = {}; _snap.forEach(function(d){ const _id=String(d.id||'').trim(); if(!_id)return; const _data=d.data()||{}; const _kind=typeof window.classifyProfileStatus==='function'?window.classifyProfileStatus(_data):(_data.status==='quit'?'quit':'active'); if(_kind!=='quit')_map[_id]=_data; });
+                        _coachMaps[_mapKey]=_map; allProfiles=Object.assign({}, ...Object.values(_coachMaps));
+                        if (window.__store) { window.__store.profiles=allProfiles; window.__store._coachBranchSafeFallbackActive=true; window.__store._coachBranchSafeFallbackAliases=_coachAliases.slice(); window.__store._coachBranchSafeFallbackSpecs=_coachSpecs.slice(); }
+                        if (window.studentProfileStore && typeof window.studentProfileStore.setActiveProfiles === 'function') { try { window.studentProfileStore.setActiveProfiles(allProfiles, 'app-coach-branch-field-safe-fallback'); } catch (_) {} }
+                        _updateHydrationMetrics({ profilesSnapshotCount: (window.__dataHydrationMetrics.profilesSnapshotCount || 0) + 1, profilesDocCount: Object.keys(allProfiles).length, lastReason: 'coach-branch-field-safe-fallback' });
+                        if (typeof window.renderAttendanceList === 'function') Promise.resolve().then(function() { window.renderAttendanceList(); }).catch(function(){});
+                        if (window.invalidateByDomain) window.invalidateByDomain('attendance', 'coach-branch-field-safe-fallback'); else scheduleRender();
+                    }, function(err) { console.error('[RoleReadBoundary] Coach branch-field safe fallback failed:', _spec.field + '=' + _spec.value, err && (err.code || err.message) || err); });
+                    activeListeners.push(_u); window.__coachBranchProfileFallbackUnsubs.push(_u);
+                    if (window.registerListener) window.registerListener('global:profiles:coach-safe:' + clubId + ':' + _idx, _u, { owner: 'students', scope: 'global', reason: 'coach-branch-field-safe-app-fallback' });
+                } catch (_coachFallbackErr) { console.error('[RoleReadBoundary] Coach branch-field safe fallback build failed:', _spec.field + '=' + _spec.value, _coachFallbackErr && (_coachFallbackErr.code || _coachFallbackErr.message) || _coachFallbackErr); } });
             }
         } else {
             // Fallback Admin only: full profiles listener (Phase 3.6D pattern — khi module chưa load)

@@ -1,4 +1,4 @@
-# Phase 4K-6V4D5 — Coach + Quit Attendance Full Recovery
+# Phase 4K-6V4D7 — Coach + Quit Attendance Full Recovery
 
 ## Mục tiêu
 Sửa dứt điểm 2 lỗi còn lại sau V4D4:

@@ -1,4 +1,4 @@
-# Phase 4K-6V4D6 — Coach Attendance Root-Cause Recovery
+# Phase 4K-6V4D7 — Coach Attendance Root-Cause Recovery
 
 ## Mục tiêu
 Sửa lỗi tài khoản HLV điểm danh vẫn không load đủ danh sách võ sinh trong cơ sở được giao, đặc biệt khi console có lỗi:
@@ -40,7 +40,7 @@ V4D6 thêm reconcile sau settings: sau khi `branchName1..10` có dữ liệu, HL
 - HLV attendance-only bỏ qua finance module, nên lỗi `finance.service.js 503` không còn làm hỏng luồng điểm danh.
 - Sau `settings/main_config` snapshot, hệ thống gọi `ensureCoachBranchProfilesReady('settings-snapshot-branch-aliases')` để nạp lại danh sách võ sinh đúng cơ sở theo alias cấu hình.
 - `profiles.listeners.js` export `ensureCoachBranchProfilesReady()` và `loadCoachBranchProfilesFallback()` để app có thể kích hoạt reconcile đúng thời điểm.
-- Cập nhật cache-bust cho `finance.service.js` và `students.service.js` sang `coach-attendance-root-cause-recovery-20260630-v4d6`.
+- Cập nhật cache-bust cho `finance.service.js` và `students.service.js` sang `coach-attendance-deep-branch-recovery-20260630-v4d7`.
 - Đồng bộ `public/` mirror cho bản deploy hosting.
 
 ## Không thay đổi / không mở rộng quyền nguy hiểm

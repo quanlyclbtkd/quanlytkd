@@ -44,7 +44,7 @@ import {
 import {
     computeAndCacheStudents,
     getStudentsSummary,
-} from './computation/studentsRenderer.js?v=coach-attendance-root-cause-recovery-20260630-v4d6';
+} from './computation/studentsRenderer.js?v=coach-attendance-deep-branch-recovery-20260630-v4d7';
 import {
     computeAndCacheInventory,
     getCachedUnpaidInvCount,

@@ -30,7 +30,7 @@ const main = read('js/main.js');
 const index = read('index.html');
 const pkg = read('package.json');
 
-const build = 'coach-attendance-root-cause-recovery-20260630-v4d6';
+const build = 'coach-attendance-deep-branch-recovery-20260630-v4d7';
 
 check('index.html cache-busts app.js/main.js to V4D1A',
   index.includes(`app.js?v=${build}`) && index.includes(`./js/main.js?v=${build}`));

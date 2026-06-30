@@ -19,7 +19,7 @@
  */
 
 import { registerRender } from './renderRegistry.js';
-import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=coach-attendance-root-cause-recovery-20260630-v4d6';
+import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=coach-attendance-deep-branch-recovery-20260630-v4d7';
 
 // ─── Core DOM helper ────────────────────────────────────────────────────────
 
@@ -259,7 +259,7 @@ export function renderQuitIsland() {
     // authoritative quitProfiles directly, then create an outside mobile control.
     if (_quitLoaded) {
         const _cachedQuitRows = ((_htmlQ || '').match(/data-quit-id=/g) || []).length;
-        // Phase 4K-6V4D5: both web and mobile must prefer the authoritative full
+        // Phase 4K-6V4D7: both web and mobile must prefer the authoritative full
         // quit union. Previous web path could keep a stale/page-limited cached
         // computation when counts were equal or cache had a load-more row.
         if (_hasDirectQuit && (_isQuitMobileViewport() || !_htmlQ || _directPreview.count >= _cachedQuitRows)) {

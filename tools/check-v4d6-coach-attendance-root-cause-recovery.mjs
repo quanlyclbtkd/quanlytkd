@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** Phase 4K-6V4D6 — Coach attendance root-cause recovery gate. */
+/** Phase 4K-6V4D7 — Coach attendance root-cause recovery gate. */
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -15,14 +15,14 @@ const students = read('js/modules/students.js');
 const finance = read('js/modules/finance.js');
 const index = read('index.html');
 
-const build = 'coach-attendance-root-cause-recovery-20260630-v4d6';
+const build = 'coach-attendance-deep-branch-recovery-20260630-v4d7';
 let pass = 0, fail = 0;
 function check(name, ok) {
   if (ok) { pass++; console.log('✅', name); }
   else { fail++; console.error('❌', name); }
 }
 
-console.log('\n=== Phase 4K-6V4D6 — Coach Attendance Root-Cause Recovery ===\n');
+console.log('\n=== Phase 4K-6V4D7 — Coach Attendance Root-Cause Recovery ===\n');
 
 check('Entrypoint cache-bust uses V4D6', index.includes(`./js/main.js?v=${build}`) && index.includes(`app.js?v=${build}`));
 check('resolveActiveDataSource skips full collection probes for Coach',
@@ -55,7 +55,7 @@ check('Main exposes coach roster fallback helpers globally',
   main.includes('ensureCoachBranchProfilesReady,') &&
   main.includes('window.ensureCoachBranchProfilesReady = ensureCoachBranchProfilesReady'));
 check('Coach fallback remains branch-alias scoped, never full-club',
-  profiles.includes('fbGetDocs(fbQuery(ctx.profRef, fbWhere(\'branch\', \'==\', alias)))') &&
+  (profiles.includes('fbGetDocs(fbQuery(ctx.profRef, fbWhere(\'branch\', \'==\', alias)))') || profiles.includes("fbGetDocs(fbQuery(ctx.profRef, fbWhere(spec.field, '==', spec.value)))")) &&
   !profiles.includes('await fbGetDocs(ctx.profRef);\n        const activeMap'));
 check('Public mirror is synced for hosted build',
   publicApp.includes("source: 'coach-scoped'") &&
@@ -64,4 +64,4 @@ check('Public mirror is synced for hosted build',
 
 console.log(`\nTotal: ${pass + fail} | PASS: ${pass} | FAIL: ${fail}`);
 if (fail) process.exit(1);
-console.log('Phase 4K-6V4D6 checks passed.\n');
+console.log('Phase 4K-6V4D7 checks passed.\n');

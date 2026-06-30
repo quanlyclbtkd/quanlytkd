@@ -127,6 +127,21 @@ service cloud.firestore {
         && branchMatchesAssigned(resource.data.branch);
     }
 
+    // Phase 4K-6V4D7: legacy profile imports may store the assigned branch in
+    // branchCode/branchName/coSo/facility/etc. Coach profile reads must allow
+    // those exact branch-scoped documents; attendance writes still require branch.
+    function resourceProfileBranchMatchesCoach() {
+      return (resource.data.keys().hasAll(['branch'])      && branchMatchesAssigned(resource.data.branch))
+        || (resource.data.keys().hasAll(['branchCode'])   && branchMatchesAssigned(resource.data.branchCode))
+        || (resource.data.keys().hasAll(['coachBranch'])  && branchMatchesAssigned(resource.data.coachBranch))
+        || (resource.data.keys().hasAll(['branchName'])   && branchMatchesAssigned(resource.data.branchName))
+        || (resource.data.keys().hasAll(['facility'])     && branchMatchesAssigned(resource.data.facility))
+        || (resource.data.keys().hasAll(['base'])         && branchMatchesAssigned(resource.data.base))
+        || (resource.data.keys().hasAll(['coso'])         && branchMatchesAssigned(resource.data.coso))
+        || (resource.data.keys().hasAll(['coSo'])         && branchMatchesAssigned(resource.data.coSo))
+        || (resource.data.keys().hasAll(['location'])     && branchMatchesAssigned(resource.data.location));
+    }
+
     function requestBranchMatchesCoach() {
       return request.resource.data.keys().hasAll(['branch'])
         && branchMatchesAssigned(request.resource.data.branch);
@@ -153,7 +168,7 @@ service cloud.firestore {
       match /profiles/{profileId} {
         allow get, list: if isSuperAdmin()
           || isAdminOrViewer(clubId)
-          || (isCoach(clubId) && resourceBranchMatchesCoach());
+          || (isCoach(clubId) && resourceProfileBranchMatchesCoach());
         allow create, update, delete: if isSuperAdmin() || isClubAdmin(clubId);
       }
 
@@ -161,7 +176,7 @@ service cloud.firestore {
       match /students/{studentId} {
         allow get, list: if isSuperAdmin()
           || isAdminOrViewer(clubId)
-          || (isCoach(clubId) && resourceBranchMatchesCoach());
+          || (isCoach(clubId) && resourceProfileBranchMatchesCoach());
         allow create, update, delete: if isSuperAdmin() || isClubAdmin(clubId);
       }
 

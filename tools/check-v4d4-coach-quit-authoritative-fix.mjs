@@ -5,7 +5,7 @@ import path from 'node:path';
 
 const root = process.cwd();
 const read = rel => fs.readFileSync(path.join(root, rel), 'utf8');
-const build = 'coach-attendance-root-cause-recovery-20260630-v4d6';
+const build = 'coach-attendance-deep-branch-recovery-20260630-v4d7';
 const files = {
   index: read('index.html'),
   app: read('app.js'),
@@ -31,8 +31,8 @@ check('index/app/main cache bust updated to V4D4',
   files.index.includes(`app.js?v=${build}`) && files.index.includes(`./js/main.js?v=${build}`) &&
   files.main.includes(`renderStudents.js?v=${build}`) && files.main.includes(`attendance.js?v=${build}`));
 check('APP_PATCH_VERSION marks V4D4 runtime',
-  (files.main.includes("APP_PATCH_VERSION = '4K-6V4D4-coach-quit-authoritative-fix-20260630'") || files.main.includes("APP_PATCH_VERSION = '4K-6V4D5-coach-quit-attendance-full-recovery-20260630'")) &&
-  (files.main.includes("window.APP_PATCH_VERSION = '4K-6V4D4-coach-quit-authoritative-fix-20260630'") || files.main.includes("window.APP_PATCH_VERSION = '4K-6V4D5-coach-quit-attendance-full-recovery-20260630'")));
+  (files.main.includes("APP_PATCH_VERSION = '4K-6V4D4-coach-quit-authoritative-fix-20260630'") || files.main.includes("APP_PATCH_VERSION = '4K-6V4D7-coach-quit-attendance-full-recovery-20260630'")) &&
+  (files.main.includes("window.APP_PATCH_VERSION = '4K-6V4D4-coach-quit-authoritative-fix-20260630'") || files.main.includes("window.APP_PATCH_VERSION = '4K-6V4D7-coach-quit-attendance-full-recovery-20260630'")));
 
 check('Quit render merges quitProfiles + local journal + compat store',
   files.renderStudents.includes('getQuitProfiles') &&
@@ -67,11 +67,13 @@ check('Coach branch aliases include configured branch display names',
   files.branchIdentity.includes('global.__store?.clubConfig') &&
   files.branchIdentity.includes('if (display && !out.some'));
 check('Coach active listener reads branch aliases without using where-in on branch',
-  files.profiles.includes('_coachBranchAliases(context)') &&
-  files.profiles.includes('coach-branch-alias-compat') &&
-  files.profiles.includes("fbWhere('branch', '==', alias)") &&
+  (files.profiles.includes('_coachBranchAliases(context)') || files.profiles.includes('function _coachProfileQuerySpecs')) &&
+  (files.profiles.includes('coach-branch-alias-compat') || files.profiles.includes('coach-branch-field-alias-compat')) &&
+  (files.profiles.includes("fbWhere('branch', '==', alias)") || files.profiles.includes("fbWhere(spec.field, '==', spec.value)")) &&
   files.profiles.includes('coachAliasListenerKeys') &&
-  files.profiles.includes('coachAliasActiveMaps'));
+  files.profiles.includes('coachAliasActiveMaps') &&
+  !files.profiles.includes("fbWhere('branch', 'in'") &&
+  !files.profiles.includes("where('branch', 'in'"));
 check('Coach alias cleanup removes every alias listener and avoids stale alias rows',
   files.profiles.includes('_state.coachAliasListenerKeys.forEach') &&
   files.profiles.includes('_state.coachAliasActiveMaps[aliasKey] = aliasMap') &&

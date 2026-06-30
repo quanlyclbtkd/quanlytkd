@@ -144,8 +144,51 @@ function _coachBranch(context = _ctx) {
 
 function _coachBranchAliases(context = _ctx) {
     const branch = _coachBranch(context);
-    if (window.BranchIdentity?.aliases) return window.BranchIdentity.aliases(branch);
-    return branch === 'CS1' ? ['CS1', 'Mặc định'] : (branch ? [branch] : []);
+    const aliases = window.BranchIdentity?.aliases
+        ? window.BranchIdentity.aliases(branch)
+        : (branch === 'CS1' ? ['CS1', 'Mặc định'] : (branch ? [branch] : []));
+    try {
+        const m = String(branch || '').match(/^CS(?:0)?([1-9]|10)$/i);
+        const cfg = window.__store?.clubConfig || window.clubConfig || window.__store?.settings || {};
+        const display = m ? String(cfg['branchName' + Number(m[1])] || '').trim() : '';
+        if (display) aliases.push(display);
+    } catch (_) {}
+    const seen = new Set();
+    return aliases.map(v => String(v || '').trim()).filter(v => v && !seen.has(v.toLowerCase()) && seen.add(v.toLowerCase()));
+}
+
+const COACH_PROFILE_BRANCH_FIELDS = Object.freeze([
+    'branch', 'branchCode', 'coachBranch', 'branchName', 'facility', 'base', 'coso', 'coSo', 'location'
+]);
+
+function _coachProfileQuerySpecs(context = _ctx) {
+    const branch = _coachBranch(context);
+    if (!branch) return [];
+    const aliases = _coachBranchAliases(context);
+    const valuesByField = {
+        branch: aliases,
+        branchCode: [branch],
+        coachBranch: [branch],
+        branchName: aliases,
+        facility: aliases,
+        base: aliases,
+        coso: aliases,
+        coSo: aliases,
+        location: aliases,
+    };
+    const specs = [];
+    const seen = new Set();
+    COACH_PROFILE_BRANCH_FIELDS.forEach(field => {
+        (valuesByField[field] || []).forEach(value => {
+            const v = String(value || '').trim();
+            if (!v) return;
+            const key = field + ':' + v.toLowerCase();
+            if (seen.has(key)) return;
+            seen.add(key);
+            specs.push({ field, value: v, canonicalBranch: branch });
+        });
+    });
+    return specs;
 }
 
 function _mergedCoachActiveMap() {
@@ -436,7 +479,7 @@ export function mountActiveProfilesListener(context) {
                 const statusConstraint = statusValues.length === 1
                     ? fbWhere('status', '==', statusValues[0])
                     : fbWhere('status', 'in', statusValues);
-                // Phase 4K-6V4D5: Coach attendance needs the complete assigned-branch
+                // Phase 4K-6V4D7: Coach attendance needs the complete assigned-branch
                 // roster. Many legacy active profiles have missing/old status values,
                 // so status+branch queries silently under-load. Branch-only remains
                 // rules-safe for Coach and we filter quit profiles locally.
@@ -548,29 +591,29 @@ export function mountActiveProfilesListener(context) {
         }
     );
 
-    // Phase 4K-6V4D4: Coach also reads branch aliases (legacy `Mặc định` and
-    // configured branch display name). Use one equality listener per alias instead
-    // of `branch in [...]` because the status query may already use `in`.
+    // Phase 4K-6V4D7: Coach also reads every legacy branch field/alias.
+    // Root cause of the remaining attendance-empty bug: Firestore could store the
+    // assigned branch in `branchName`, `branchCode`, `coSo`, etc.; previous builds
+    // queried only `branch`, so the UI had no profiles to render.
     if (isCoach) {
-        const aliases = (_coachBranchAliases(context) || []).filter(alias => alias && alias !== coachBranch);
-        aliases.forEach((alias, index) => {
-            const aliasKey = key + ':alias:' + index + ':' + String(alias).replace(/[^A-Za-z0-9_-]/g, '_');
+        const specs = _coachProfileQuerySpecs(context).filter(spec => !(spec.field === 'branch' && spec.value === coachBranch));
+        specs.forEach((spec, index) => {
+            const aliasKey = key + ':field:' + index + ':' + String(spec.field + '_' + spec.value).replace(/[^A-Za-z0-9_-]/g, '_');
             _state.coachLegacyListenerKey = _state.coachLegacyListenerKey || aliasKey;
             if (!_state.coachAliasListenerKeys.includes(aliasKey)) _state.coachAliasListenerKeys.push(aliasKey);
             window.safeRegisterSnapshot(
                 aliasKey,
                 () => {
-                    // Phase 4K-6V4D5: branch-only alias listener. See primary
-                    // coach query above; local classifier removes quit rows.
-                    const aliasQuery = fbQuery(profRef, fbWhere('branch', '==', alias));
+                    const aliasQuery = fbQuery(profRef, fbWhere(spec.field, '==', spec.value));
                     return fbOnSnapshot(
                         aliasQuery,
                         (snap) => {
                             if (typeof window.recordFirestoreSnapshotAttribution === 'function') {
                                 window.recordFirestoreSnapshotAttribution('profiles.activeCoachBranchAliasListener', snap, {
                                     initial: true,
-                                    reason: 'coach-branch-alias-compat',
-                                    alias
+                                    reason: 'coach-branch-field-alias-compat',
+                                    field: spec.field,
+                                    value: spec.value
                                 });
                             }
                             if (window.markListenerSnapshot) window.markListenerSnapshot(aliasKey);
@@ -582,24 +625,22 @@ export function mountActiveProfilesListener(context) {
                                 if (classifyProfileStatus(data) !== 'quit') aliasMap[id] = data;
                             });
                             _state.coachAliasActiveMaps[aliasKey] = aliasMap;
-                            // Keep legacy aggregate for older diagnostics; actual merge is per-alias
-                            // to avoid stale rows when one alias snapshot becomes empty.
                             _state.coachLegacyActiveMap = Object.assign({}, ...Object.values(_state.coachAliasActiveMaps || {}));
                             const merged = _mergedCoachActiveMap();
-                            setActiveProfiles(merged, 'coach-active-branch-alias-snapshot');
+                            setActiveProfiles(merged, 'coach-active-branch-field-alias-snapshot');
                             _syncLegacy();
                             _state.activeListenerMounted = true;
-                            _state.lastProfilesMode = 'coach-active-canonical-plus-alias';
-                            _invalidateAll('coach-active-branch-alias-snapshot');
+                            _state.lastProfilesMode = 'coach-active-canonical-plus-branch-fields';
+                            _invalidateAll('coach-active-branch-field-alias-snapshot');
                             _updateWindowMetrics();
                         },
                         (err) => {
                             _state.activeQueryErrorCount++;
-                            console.warn('[ProfilesListener] Coach branch alias query failed:', alias, err.code || err.message);
+                            console.warn('[ProfilesListener] Coach branch field query failed:', spec.field + '=' + spec.value, err.code || err.message);
                         }
                     );
                 },
-                { owner: 'students', scope: 'global', tabId: null, reason: 'coach-branch-alias-compat-4K-6V4D4' }
+                { owner: 'students', scope: 'global', tabId: null, reason: 'coach-branch-field-alias-compat-4K-6V4D7' }
             );
         });
     }
@@ -843,26 +884,37 @@ export async function loadCoachBranchProfilesFallback(reason) {
 
     _state.fallbackInProgress = true;
     try {
-        const aliases = _coachBranchAliases(ctx);
-        const snapshots = await Promise.all(aliases.map(alias =>
-            fbGetDocs(fbQuery(ctx.profRef, fbWhere('branch', '==', alias)))
+        const specs = _coachProfileQuerySpecs(ctx);
+        const snapshots = await Promise.all(specs.map(spec =>
+            fbGetDocs(fbQuery(ctx.profRef, fbWhere(spec.field, '==', spec.value)))
+                .then(snap => ({ spec, snap }))
+                .catch(err => ({ spec, error: err }))
         ));
-        const docsRead = snapshots.reduce((sum, snap) => sum + (snap.size || 0), 0);
+        const docsRead = snapshots.reduce((sum, item) => sum + ((item.snap && item.snap.size) || 0), 0);
         if (typeof window.recordFirestoreReadAttribution === 'function') {
             window.recordFirestoreReadAttribution('profiles.coachBranchFallbackQuery', docsRead, {
                 initial: true,
                 reason: reason || 'coach-branch-fallback',
                 branch,
-                aliases
+                querySpecs: specs.map(s => s.field + '=' + s.value)
             });
         }
         const activeMap = {};
-        snapshots.forEach(snap => snap.forEach(d => {
-            const id = d.id.trim();
-            if (!id) return;
-            const data = d.data();
-            if (classifyProfileStatus(data) !== 'quit') activeMap[id] = data;
-        }));
+        let queryErrors = 0;
+        snapshots.forEach(item => {
+            if (item.error) {
+                queryErrors++;
+                console.warn('[ProfilesFallback] Coach branch-field query failed:', item.spec && (item.spec.field + '=' + item.spec.value), item.error && (item.error.code || item.error.message) || item.error);
+                return;
+            }
+            item.snap.forEach(d => {
+                const id = d.id.trim();
+                if (!id) return;
+                const data = d.data();
+                if (classifyProfileStatus(data) !== 'quit') activeMap[id] = data;
+            });
+        });
+        if (queryErrors && docsRead === 0) throw new Error('all coach branch-field queries failed');
         setActiveProfiles(activeMap, 'coach-branch-fallback:' + reason);
         setQuitProfiles({}, 'coach-branch-fallback:no-quit-data');
         _syncLegacy();
@@ -888,7 +940,7 @@ export async function loadCoachBranchProfilesFallback(reason) {
 }
 
 /**
- * Phase 4K-6V4D6 — Coach roster reconciliation after settings branch aliases load.
+ * Phase 4K-6V4D7 — Coach roster reconciliation after settings branch aliases load.
  * The initial listener mounts before settings/main_config is available, so branchName
  * aliases can be missing. This guarded getDocs path reloads only the assigned branch
  * aliases, never the full club collection.

@@ -46,6 +46,12 @@
         const numbered = folded.match(/^(?:co so|cơ sở)\s*0*([1-9]|10)$/i);
         if (numbered) return 'CS' + Number(numbered[1]);
 
+        // Phase 4K-6V4D7: configured branch display names (e.g. "Nguyễn Trãi")
+        // are first-class legacy aliases. Without this, Coach listeners can read
+        // rows by branch name but Attendance filters drop them after render.
+        const configuredCode = _codeFromConfiguredName(raw);
+        if (configuredCode) return configuredCode;
+
         return fallback;
     }
 
@@ -59,6 +65,17 @@
         const idx = Number(match[1]);
         const cfg = global.__store?.clubConfig || global.clubConfig || global.__store?.settings || {};
         return String(cfg['branchName' + idx] || '').trim();
+    }
+
+    function _codeFromConfiguredName(raw) {
+        const foldedRaw = _fold(raw);
+        if (!foldedRaw) return '';
+        const cfg = global.__store?.clubConfig || global.clubConfig || global.__store?.settings || {};
+        for (let i = 1; i <= 10; i++) {
+            const name = String(cfg['branchName' + i] || '').trim();
+            if (name && _fold(name) === foldedRaw) return 'CS' + i;
+        }
+        return '';
     }
 
     function aliases(value) {

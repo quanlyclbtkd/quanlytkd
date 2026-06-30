@@ -15,8 +15,8 @@ const app = read('app.js');
 const index = read('index.html');
 const main = read('js/main.js');
 
-check('cache bust updated to current runtime in index', index.includes('coach-attendance-root-cause-recovery-20260630-v4d6') || index.includes('profile-canonical-store-runtime-recovery-20260628-v4d1a'));
-check('main imports render.js with current runtime cache bust', main.includes('./ui/render.js?v=coach-attendance-root-cause-recovery-20260630-v4d6') || main.includes('./ui/render.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a'));
+check('cache bust updated to current runtime in index', index.includes('coach-attendance-deep-branch-recovery-20260630-v4d7') || index.includes('profile-canonical-store-runtime-recovery-20260628-v4d1a'));
+check('main imports render.js with current runtime cache bust', main.includes('./ui/render.js?v=coach-attendance-deep-branch-recovery-20260630-v4d7') || main.includes('./ui/render.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a'));
 check('render.js has small UI refresh helper', render.includes('function _refreshSmallStudentUi(tabId, reason)'));
 check('render.js early return calls small UI refresh', render.includes("_refreshSmallStudentUi(earlyTabId, 'renderApp-dataVersion-unchanged')"));
 check('render.js small UI refresh always renders birthday banner', render.includes("typeof window._renderHomeBirthdayBanner === 'function'") && render.includes('window._renderHomeBirthdayBanner()'));

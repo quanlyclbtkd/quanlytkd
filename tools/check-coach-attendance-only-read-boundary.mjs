@@ -84,8 +84,9 @@ check('Coach profile query is branch-scoped and locally filters status',
   profiles.includes("classifyProfileStatus(data) !== 'quit'"));
 check('Coach zero probe and fallback are branch-scoped',
   profiles.includes("fbWhere('branch', '==', coachBranch), _pL4k(1)") &&
-  profiles.includes("fbQuery(ctx.profRef, fbWhere('branch', '==', alias))") &&
-  profiles.includes('_coachBranchAliases(ctx)'));
+  profiles.includes('function _coachProfileQuerySpecs') &&
+  profiles.includes("fbWhere(spec.field, '==', spec.value)") &&
+  (profiles.includes('_coachBranchAliases(ctx)') || profiles.includes('_coachBranchAliases(context)')));
 check('Coach never executes full-club profiles fallback, quit load or export load',
   profiles.includes("return loadCoachBranchProfilesFallback('redirected-from-full:'") &&
   profiles.includes("canMount?.('profiles.quit'") && profiles.includes("canMount?.('profiles.export-all'"));
