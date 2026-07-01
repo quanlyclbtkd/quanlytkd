@@ -21,7 +21,7 @@ const files = {
 let pass = 0, fail = 0;
 function check(name, ok, detail='') { if (ok) { pass++; console.log('✅', name); } else { fail++; console.error('❌', name + (detail ? ' — ' + detail : '')); } }
 console.log('\n=== Phase 4K-6V4D8 — Coach Attendance Auth + Roster Final Recovery ===\n');
-const build = 'coach-reminder-attendance-stability-20260701-v5b';
+const build = 'coach-attendance-tap-stability-20260701-v5c';
 check('Entrypoints use V4D8 cache bust', files.index.includes(`app.js?v=${build}`) && files.index.includes(`./js/main.js?v=${build}`));
 check('Main imports attendance/profiles/students/render with V4D8 cache bust',
   ['profiles.listeners.js','modules/attendance.js','modules/students.js','ui/render.js','ui/render/renderStudents.js'].every(x => files.main.includes(`${x}?v=${build}`)));

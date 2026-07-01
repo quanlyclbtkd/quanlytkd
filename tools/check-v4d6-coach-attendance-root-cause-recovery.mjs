@@ -15,7 +15,7 @@ const students = read('js/modules/students.js');
 const finance = read('js/modules/finance.js');
 const index = read('index.html');
 
-const build = 'coach-reminder-attendance-stability-20260701-v5b';
+const build = 'coach-attendance-tap-stability-20260701-v5c';
 let pass = 0, fail = 0;
 function check(name, ok) {
   if (ok) { pass++; console.log('✅', name); }

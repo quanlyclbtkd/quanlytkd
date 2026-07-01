@@ -19,7 +19,7 @@
  */
 
 import { registerRender } from './renderRegistry.js';
-import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=coach-reminder-attendance-stability-20260701-v5b';
+import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=coach-attendance-tap-stability-20260701-v5c';
 
 // ─── Core DOM helper ────────────────────────────────────────────────────────
 

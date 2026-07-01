@@ -5,7 +5,7 @@ import path from 'node:path';
 
 const root = process.cwd();
 const read = rel => fs.readFileSync(path.join(root, rel), 'utf8');
-const build = 'coach-reminder-attendance-stability-20260701-v5b';
+const build = 'coach-attendance-tap-stability-20260701-v5c';
 const files = {
   index: read('index.html'),
   app: read('app.js'),
@@ -31,8 +31,8 @@ check('index/app/main cache bust updated to V4D4',
   files.index.includes(`app.js?v=${build}`) && files.index.includes(`./js/main.js?v=${build}`) &&
   files.main.includes(`renderStudents.js?v=${build}`) && files.main.includes(`attendance.js?v=${build}`));
 check('APP_PATCH_VERSION marks V4D4 runtime',
-  files.main.includes("APP_PATCH_VERSION = '4K-6V5B-coach-reminder-attendance-stability-20260701'") &&
-  files.main.includes("window.APP_PATCH_VERSION = '4K-6V5B-coach-reminder-attendance-stability-20260701'"));
+  files.main.includes("APP_PATCH_VERSION = '4K-6V5C-coach-attendance-tap-stability-20260701'") &&
+  files.main.includes("window.APP_PATCH_VERSION = '4K-6V5C-coach-attendance-tap-stability-20260701'"));
 
 check('Quit render merges quitProfiles + local journal + compat store',
   files.renderStudents.includes('getQuitProfiles') &&

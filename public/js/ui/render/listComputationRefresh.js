@@ -44,7 +44,7 @@ import {
 import {
     computeAndCacheStudents,
     getStudentsSummary,
-} from './computation/studentsRenderer.js?v=coach-reminder-attendance-stability-20260701-v5b';
+} from './computation/studentsRenderer.js?v=coach-attendance-tap-stability-20260701-v5c';
 import {
     computeAndCacheInventory,
     getCachedUnpaidInvCount,

@@ -56,7 +56,7 @@ check('Firestore rules still allow Coach branchCode scoped profile reads',
   files.rules.includes('resource.data.keys().hasAll([\'branchCode\'])') && files.rules.includes('branchMatchesAssigned(resource.data.branchCode)'));
 check('public mirrors are synced',
   files.publicBoundary.includes('4K-6V5A-canonical-read-adoption-legacy-fallback-gate') &&
-  (files.publicApp.includes('4K-6V5A-canonical-read-adoption-legacy-fallback-gate') || files.publicApp.includes('4K-6V5B-coach-reminder-attendance-stability-20260701')));
+  (files.publicApp.includes('4K-6V5A-canonical-read-adoption-legacy-fallback-gate') || files.publicApp.includes('4K-6V5B-coach-reminder-attendance-stability-20260701') || files.publicApp.includes('4K-6V5C-coach-attendance-tap-stability-20260701')));
 
 let failed = 0;
 for (const c of checks) {
