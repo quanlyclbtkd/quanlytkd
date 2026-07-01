@@ -28,7 +28,7 @@
  */
 
 import { getLocalToday, formatDate, formatMonth, formatMonthCompact, addMonthsToYYYYMM } from '../utils/format.js';
-import { StudentService } from '../services/students.service.js?v=canonical-profile-status-branch-boundary-20260701-v5';
+import { StudentService } from '../services/students.service.js?v=coach-attendance-ui-reminder-guard-20260701-v5b';
 
 // ════════════════════════════════════════════════════════════════
 // BRIDGE HELPERS — đọc state từ app.js qua window.__store
@@ -884,10 +884,8 @@ export function initStudents() {
         _bulkZaloDebtors = [];
         Object.keys(profiles).sort().forEach(name => {
             const p = profiles[name];
-            const _pKind = typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus(p) : (p.status === 'quit' ? 'quit' : 'active');
-            if (_pKind !== 'active') return;
-            if (p.feeExempt) return;
-            if (!isSingleBranch && selBranch !== 'all' && !(window.debtBranchMatchesFilter ? window.debtBranchMatchesFilter(p.branchCode || p.branch || p.branchName || '', selBranch) : (p.branchCode || p.branch) === selBranch)) return;
+            if (typeof window.isProfileActiveForDebt === 'function' ? !window.isProfileActiveForDebt(p) : ((typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus(p) : (p.status === 'quit' ? 'quit' : 'active')) !== 'active' || p.feeExempt)) return;
+            if (!isSingleBranch && selBranch !== 'all' && !(window.profileBranchMatchesFilter ? window.profileBranchMatchesFilter(p, selBranch) : (window.debtBranchMatchesFilter ? window.debtBranchMatchesFilter(p.branchCode || p.branch || p.branchName || '', selBranch) : (p.branchCode || p.branch) === selBranch))) return;
 
             let owedMonths = [];
             if (typeof window.getChargeableTuitionMonths === 'function') {
@@ -1041,7 +1039,7 @@ export function initStudentPagination() {
         renderPaginationControls, PAGE_SIZE,
     }) => {
         import('./students.js').then(() => {}); // no-op — chỉ để IDE không warn
-        import('../services/students.service.js?v=canonical-profile-status-branch-boundary-20260701-v5').then(({ StudentService }) => {
+        import('../services/students.service.js?v=coach-attendance-ui-reminder-guard-20260701-v5b').then(({ StudentService }) => {
 
             const store = window.__store;
             if (!store) { console.warn('[pagination/students] __store chưa sẵn sàng'); return; }
@@ -3085,9 +3083,11 @@ window.debugDebtActionState = function(name) {
         : [];
     var branchFilter = (document.getElementById('filterBranch') && document.getElementById('filterBranch').value) || 'all';
     var branchRaw = profile ? (profile.branchCode || profile.branch || 'CS1') : '';
-    var branchPass = !profile ? false : (typeof window.debtBranchMatchesFilter === 'function'
-        ? window.debtBranchMatchesFilter(branchRaw, branchFilter)
-        : (branchFilter === 'all' || branchRaw === branchFilter));
+    var branchPass = !profile ? false : (typeof window.profileBranchMatchesFilter === 'function'
+        ? window.profileBranchMatchesFilter(profile, branchFilter)
+        : (typeof window.debtBranchMatchesFilter === 'function'
+            ? window.debtBranchMatchesFilter(branchRaw, branchFilter)
+            : (branchFilter === 'all' || branchRaw === branchFilter)));
     var searchRaw = (document.getElementById('searchInput') && document.getElementById('searchInput').value) || '';
     var debtOverdueMin = typeof window.getDebtOverdueFilterValue === 'function' ? window.getDebtOverdueFilterValue() : 0;
     var debtRowSelector = q

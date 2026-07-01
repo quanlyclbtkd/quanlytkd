@@ -26,6 +26,23 @@ function _safeStorageSet(key, value) {
   }
 }
 
+function _roleName() {
+  try {
+    const raw = String((typeof window !== 'undefined' && (window.userRole || window.currentUserRole || window.__store?.role)) || '').trim().toLowerCase();
+    return raw.replace(/[\s-]+/g, '_');
+  } catch (_) { return ''; }
+}
+
+function _isCoachRole() {
+  const role = _roleName();
+  return role === 'coach' || role === 'hlv' || role === 'huan_luyen_vien';
+}
+
+function _hideMonthlyReminder() {
+  const reminder = _getElement('monthlyReminder');
+  if (reminder) reminder.style.display = 'none';
+}
+
 function _asDate(value) {
   if (value instanceof Date && !Number.isNaN(value.getTime())) return value;
   const parsed = value ? new Date(value) : new Date();
@@ -56,12 +73,16 @@ export function closeMobileMenu() {
 }
 
 export function checkMonthlyReminder(now) {
+  if (_isCoachRole()) {
+    _hideMonthlyReminder();
+    return false;
+  }
   const today = _asDate(now);
   const day = today.getDate();
-  if (day < 1 || day > 3) return false;
+  if (day < 1 || day > 3) { _hideMonthlyReminder(); return false; }
 
   const monthKey = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0');
-  if (_safeStorageGet('mrDismissed_' + monthKey)) return false;
+  if (_safeStorageGet('mrDismissed_' + monthKey)) { _hideMonthlyReminder(); return false; }
 
   const prevDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
   const prevMonth = prevDate.getMonth() + 1;
@@ -85,6 +106,10 @@ export function dismissMonthlyReminder(now) {
 }
 
 export function openMonthlyExport(now) {
+  if (_isCoachRole()) {
+    _hideMonthlyReminder();
+    return false;
+  }
   const today = _asDate(now);
   dismissMonthlyReminder(today);
 
@@ -167,7 +192,7 @@ export function initLegacyUiShell() {
 
   window.LegacyUiShell = LegacyUiShell;
   window.__legacyUiShellInit = {
-    phase: '4K-6S-global-ownership-adoption-duplicate-ui-cleanup',
+    phase: '4K-6V5B-coach-attendance-ui-reminder-guard',
     ok: results.every((item) => item && item.ok),
     results,
   };
@@ -178,7 +203,7 @@ export function initLegacyUiShell() {
     const ownership = GlobalOwnershipRegistry.assertRegisteredOwnership();
     const result = {
       ok: missing.length === 0 && ownership.ok,
-      phase: '4K-6S-global-ownership-adoption-duplicate-ui-cleanup',
+      phase: '4K-6V5B-coach-attendance-ui-reminder-guard',
       requiredCount: required.length,
       missing,
       ownership,

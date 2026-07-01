@@ -34,7 +34,7 @@ const attendanceOwnedNames = [
   '_getClubShifts', '_ensureClubShiftsLoaded', '_renderHomeBirthdayBanner',
   'showAttMemberHistory', 'renderAttendanceList', 'onShiftChange',
   'openShiftModal', 'closeShiftModal', 'addShift', 'deleteShift',
-  'toggleAttendance', 'toggleAttendanceStatus', 'bulkCheckIn',
+  'toggleAttendance', 'toggleAttendanceStatus', 'setAttendanceStatus', 'bulkCheckIn',
   'syncOfflineAttendance', 'switchAttSubTab', 'renderAttMonthly',
   'printAttendanceStatus', 'printAttendanceSessionCompletion',
   'printAttendanceBranchReport',
@@ -182,10 +182,10 @@ try {
   const coverage = globalThis.GlobalOwnershipRegistry.assertManifestCoverage();
   const registeredUiNames = snapshot.registered.filter((item) => migratedNames.includes(item.name)).map((item) => item.name);
   check(registeredUiNames.length === 11, 'all 11 reviewed Phase 4K-6S UI globals retain canonical owners');
-  check(snapshot.registered.length === 55, 'Phase 4K-6V registry contains 11 UI, 10 report, 19 attendance, and 15 diagnostics canonical owners');
+  check(snapshot.registered.length === 56, 'Phase 4K-6V registry contains 11 UI, 10 report, 20 attendance, and 15 diagnostics canonical owners');
   check(snapshot.legacyFallbackNames.length === 40, 'all 40 classic UI/report/attendance fallback references are preserved');
   const registeredAttendanceNames = snapshot.registered.filter((item) => attendanceOwnedNames.includes(item.name));
-  check(registeredAttendanceNames.length === 19, 'all 19 attendance globals have canonical owners');
+  check(registeredAttendanceNames.length === 20, 'all 20 attendance globals have canonical owners');
   check(registeredAttendanceNames.every((item) => item.owner === 'js/modules/attendance.js' && item.installed), 'attendance canonical references are installed');
   check(snapshot.collisions.length === 0, 'no ownership collision detected');
   check(assertion.ok, 'all registered globals still point to canonical implementations');

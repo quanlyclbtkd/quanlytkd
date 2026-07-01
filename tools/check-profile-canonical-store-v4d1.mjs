@@ -19,10 +19,10 @@ function includes(file, text) { return read(file).includes(text); }
 console.log('\n🔍 Phase 4K-6V4D1 — Profile Canonical Store Read-only Audit checks\n');
 
 const build = 'profile-canonical-store-runtime-recovery-20260628-v4d1a';
-const runtimeBuild = 'canonical-profile-status-branch-boundary-20260701-v5';
+const runtimeBuild = 'coach-attendance-ui-reminder-guard-20260701-v5b';
 const baseBuild = 'profile-canonical-store-20260628-v4d1';
 const version = '4K-6V4D1-profile-canonical-store-readonly-audit-20260628';
-const runtimeVersion = '4K-6V5-canonical-profile-status-branch-boundary-20260701';
+const runtimeVersion = '4K-6V5A-canonical-read-adoption-legacy-fallback-gate-20260701';
 
 check('profileCanonicalStore.js exists', existsSync(resolve(root, 'js/core/profileCanonicalStore.js')));
 check('public mirror profileCanonicalStore.js exists', existsSync(resolve(root, 'public/js/core/profileCanonicalStore.js')));

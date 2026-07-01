@@ -88,10 +88,17 @@
         const fold = (v) => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase().trim();
         return fold(raw) === fold(sel) || fold(window.getBranchNameDisplay ? window.getBranchNameDisplay(raw) : raw) === fold(sel);
     };
-    window.debtBranchMatchesFilter = window.debtBranchMatchesFilter || _branchMatchesFilter;
+    window.debtBranchMatchesFilter = window.debtBranchMatchesFilter || function(profileOrBranch, selectedBranch) {
+        if (profileOrBranch && typeof profileOrBranch === 'object' && typeof window.profileBranchMatchesFilter === 'function') return window.profileBranchMatchesFilter(profileOrBranch, selectedBranch);
+        return _branchMatchesFilter(profileOrBranch, selectedBranch);
+    };
 
     window.classifyProfileStatus = window.classifyProfileStatus || function(profile) {
         const p = profile || {};
+        if (typeof window.getCanonicalProfileReadStatus === 'function') {
+            const info = window.getCanonicalProfileReadStatus(p);
+            return info && info.quit ? 'quit' : 'active';
+        }
         const sk = String(p.statusKind == null ? '' : p.statusKind).toLowerCase().trim();
         if (sk === 'quit') return 'quit';
         if (sk === 'trial' || sk === 'active') return p.isQuit === true ? 'quit' : 'active';
@@ -110,7 +117,7 @@
     };
 // Danh mục kho tùy chỉnh — được load từ Firestore khi đăng nhập thành công
 window.invCustomCategories = [];
-    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V5'; window.APP_PATCH_VERSION = '4K-6V5-canonical-profile-status-branch-boundary-20260701'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
+    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V5'; window.APP_PATCH_VERSION = '4K-6V5B-coach-attendance-ui-reminder-guard-20260701'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
     // Compatibility regression marker retained for Phase 4K-6Q gate: APP_PATCH_VERSION = '4K-6Q-mobile-filter-currency-stability-20260615'
     window.__appLoaded = true; // [Phase 2a] main.js kiểm tra để bỏ qua loadLegacyApp()
     window.__store = window.__store || {}; // [Phase 2b] Bridge object cho module system
@@ -3607,7 +3614,7 @@ service cloud.firestore { match /databases/{database}/documents {
                     // Phase 4.0A-3: Sync currentUser to __store (cache path)
                     if (window.__store) window.__store.currentUser = user;
                     // [SỬA] Giảm delay monthly reminder — UI đã hiện, nhắc nhở sau khi render xong
-        setTimeout(() => { if(typeof window._checkMonthlyReminder === 'function') window._checkMonthlyReminder(); }, 300);
+        setTimeout(() => { if(window.userRole !== 'coach' && typeof window._checkMonthlyReminder === 'function') window._checkMonthlyReminder(); }, 300);
                     // Xác minh cache trong nền. Cache không bao giờ là nguồn cấp quyền cuối cùng.
                     getDoc(doc(db, "users", user.uid)).then(async userDoc => {
                         if (!userDoc.exists()) {
@@ -3659,7 +3666,7 @@ service cloud.firestore { match /databases/{database}/documents {
                     _saveAuthCache(user.uid,window.userRole,currentClubId,window.coachBranch); _recordLoginEvent(user,window.userRole,currentClubId);
                     try { initSaaSDatabase(currentClubId); } catch(_ie) { console.error("initSaaSDatabase(slowPath):", _ie); }
                     if (window.__store) window.__store.currentUser=user;
-                    setTimeout(()=>{ if(typeof window._checkMonthlyReminder==='function') window._checkMonthlyReminder(); },300);
+                    setTimeout(()=>{ if(window.userRole !== 'coach' && typeof window._checkMonthlyReminder==='function') window._checkMonthlyReminder(); },300);
                 } else { _clearAuthCache(); await _showLoginError('Tài khoản chưa có hồ sơ phân quyền. Admin cần chọn đúng cơ sở, bấm “Lưu cơ sở” và “Đồng bộ tài khoản HLV cũ”.'); }
             } catch(e) {
                 // Outer catch chỉ xử lý lỗi xảy ra TRƯỚC khi initSaaSDatabase được gọi
@@ -5141,10 +5148,8 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         _bulkZaloDebtors = [];
         Object.keys(allProfiles).sort().forEach(name => {
             const p = allProfiles[name];
-            const _pKind = typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus(p) : (p.status === 'quit' ? 'quit' : 'active');
-            if (_pKind !== 'active') return;
-            if (p.feeExempt) return;
-            if (!isSingleBranch && selBranch !== 'all' && !(window.debtBranchMatchesFilter ? window.debtBranchMatchesFilter(p.branchCode || p.branch || p.branchName || '', selBranch) : (p.branchCode || p.branch) === selBranch)) return;
+            if (typeof window.isProfileActiveForDebt === 'function' ? !window.isProfileActiveForDebt(p) : ((typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus(p) : (p.status === 'quit' ? 'quit' : 'active')) !== 'active' || p.feeExempt)) return;
+            if (!isSingleBranch && selBranch !== 'all' && !(window.profileBranchMatchesFilter ? window.profileBranchMatchesFilter(p, selBranch) : (window.debtBranchMatchesFilter ? window.debtBranchMatchesFilter(p.branchCode || p.branch || p.branchName || '', selBranch) : (p.branchCode || p.branch) === selBranch))) return;
 
             let owedMonths = [];
             if (typeof window.getChargeableTuitionMonths === 'function') {

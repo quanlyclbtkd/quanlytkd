@@ -19,7 +19,7 @@
  */
 
 import { registerRender } from './renderRegistry.js';
-import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=canonical-profile-status-branch-boundary-20260701-v5';
+import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=coach-attendance-ui-reminder-guard-20260701-v5b';
 
 // ─── Core DOM helper ────────────────────────────────────────────────────────
 
@@ -171,7 +171,11 @@ function _buildAuthoritativeQuitRows(options = {}) {
         const safeIdJs = _escapeJs(id);
         const belt = _escapeHtml(p.belt || '');
         const memberId = _escapeHtml(p.memberId || p.studentCode || p.code || '');
-        const branchTd = isSingleBranch ? '' : '<td><span class="badge bg-slate-100 text-slate-600 border border-slate-200">' + _escapeHtml(typeof window.getBranchNameDisplay === 'function' ? window.getBranchNameDisplay(p.branchCode || p.branch || '') : (p.branchCode || p.branch || '')) + '</span></td>';
+        const _branchInfo = window.ProfileCanonicalBoundary && typeof window.ProfileCanonicalBoundary.getCanonicalProfileReadBranch === 'function'
+            ? window.ProfileCanonicalBoundary.getCanonicalProfileReadBranch(p)
+            : { branchCode: p.branchCode || p.branch || '' };
+        const _branchCode = _branchInfo.branchCode || p.branchCode || p.branch || '';
+        const branchTd = isSingleBranch ? '' : '<td><span class="badge bg-slate-100 text-slate-600 border border-slate-200">' + _escapeHtml(typeof window.getBranchNameDisplay === 'function' ? window.getBranchNameDisplay(_branchCode) : _branchCode) + '</span></td>';
         const quitDate = _formatDateSafe(p.quitDate || p.ngayNghi || p.inactiveDate || p.stoppedDate || p.leftDate || p.nghiDate);
         return `<tr data-quit-id="${safeIdAttr}" data-profile-name="${display}"><td class="name-link text-[0.95rem]" onclick="openProfile('${safeIdJs}')">${display}</td><td class="text-[0.7rem] font-bold text-slate-500">${memberId || '-'}</td><td>${belt}</td>${branchTd}<td>${_formatDateSafe(p.dob)}</td><td>${_escapeHtml(quitDate) || '-'}</td><td>${isAdmin ? `<button type="button" class="btn-sm bg-emerald-50 text-emerald-700 border border-emerald-200" onclick="openProfile('${safeIdJs}')">🔄 Khôi phục</button>` : ''}</td></tr>`;
     }).join('');

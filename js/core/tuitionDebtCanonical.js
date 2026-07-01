@@ -154,11 +154,17 @@
     } catch (_) {}
     var rawStatus = String(p.status || p.state || '').trim();
     var foldedStatus = _fold(rawStatus);
-    var isQuit = statusByClassifier === 'quit' || p.active === false || p.isActive === false || p.quit === true || p.isQuit === true ||
-      /\b(quit|inactive|retired|stopped|left|nghi|da nghi|nghi tap|bao nghi)\b/.test(foldedStatus);
+    var readStatus = (typeof window !== 'undefined' && window.ProfileCanonicalBoundary && typeof window.ProfileCanonicalBoundary.getCanonicalProfileReadStatus === 'function')
+      ? window.ProfileCanonicalBoundary.getCanonicalProfileReadStatus(p)
+      : null;
+    var isQuit = readStatus ? readStatus.quit : (statusByClassifier === 'quit' || p.active === false || p.isActive === false || p.quit === true || p.isQuit === true ||
+      /\b(quit|inactive|retired|stopped|left|nghi|da nghi|nghi tap|bao nghi)\b/.test(foldedStatus));
     var statusCanonical = isQuit ? 'quit' : 'active';
-    var branchRaw = p.branch || p.branchCode || p.coachBranch || p.facility || p.base || '';
-    var branchCanonical = _canonicalBranch(branchRaw, 'CS1');
+    var branchInfo = (typeof window !== 'undefined' && window.ProfileCanonicalBoundary && typeof window.ProfileCanonicalBoundary.getCanonicalProfileReadBranch === 'function')
+      ? window.ProfileCanonicalBoundary.getCanonicalProfileReadBranch(p, 'CS1')
+      : null;
+    var branchRaw = p.branchCode || p.branch || p.coachBranch || p.facility || p.base || '';
+    var branchCanonical = branchInfo && branchInfo.branchCode ? branchInfo.branchCode : _canonicalBranch(branchRaw, 'CS1');
     var quitAt = normalizeMonth(p.quitDate || p.ngayNghi || p.inactiveDate || p.stoppedDate || p.leftDate || p.nghiDate || '');
     if (!displayName) warnings.push('missing-display-name');
     if (!branchRaw) warnings.push('missing-branch-raw');

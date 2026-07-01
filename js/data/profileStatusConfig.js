@@ -216,12 +216,22 @@ export function getQuitStatusValues() {
 export function classifyProfileStatus(profile) {
     if (!profile) return 'active';
 
-    // ── Phase 4K-6V5: canonical fields are the primary read boundary. ───────
+    // ── Phase 4K-6V5A: one canonical read gate for every tab. ──────────────
+    // Canonical fields win over legacy strings. Legacy fallback is used only
+    // when statusKind/isQuit are absent. This keeps Đang tập / Đã nghỉ /
+    // Điểm danh / Báo nợ consistent without forcing a bulk migration.
+    if (typeof window !== 'undefined'
+        && window.ProfileCanonicalBoundary
+        && typeof window.ProfileCanonicalBoundary.getCanonicalProfileReadStatus === 'function') {
+        const info = window.ProfileCanonicalBoundary.getCanonicalProfileReadStatus(profile);
+        return info && info.quit ? 'quit' : 'active';
+    }
+
+    // ── Phase 4K-6V5: fallback if classic boundary has not loaded yet. ─────
     const _statusKind = String(profile.statusKind ?? '').toLowerCase().trim();
     if (_statusKind === 'quit') return 'quit';
     if (_statusKind === 'trial') return 'active';
     if (_statusKind === 'active') {
-        // A canonical active doc remains active unless a canonical quit flag exists.
         if (profile.isQuit === true) return 'quit';
         return 'active';
     }

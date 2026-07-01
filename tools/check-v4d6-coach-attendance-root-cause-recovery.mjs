@@ -15,7 +15,7 @@ const students = read('js/modules/students.js');
 const finance = read('js/modules/finance.js');
 const index = read('index.html');
 
-const build = 'canonical-profile-status-branch-boundary-20260701-v5';
+const build = 'coach-attendance-ui-reminder-guard-20260701-v5b';
 let pass = 0, fail = 0;
 function check(name, ok) {
   if (ok) { pass++; console.log('✅', name); }

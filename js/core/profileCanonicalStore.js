@@ -140,6 +140,12 @@
 
   function _branchRaw(raw) {
     var p = raw || {};
+    try {
+      if (global.ProfileCanonicalBoundary && typeof global.ProfileCanonicalBoundary.getCanonicalProfileReadBranch === 'function') {
+        var info = global.ProfileCanonicalBoundary.getCanonicalProfileReadBranch(p);
+        if (info && info.branchCode) return info.branchCode;
+      }
+    } catch (_) {}
     return p.branchCode || p.branch || p.branchName || p.coachBranch || p.facility || p.base || p.coso || p.coSo || p.location || '';
   }
 

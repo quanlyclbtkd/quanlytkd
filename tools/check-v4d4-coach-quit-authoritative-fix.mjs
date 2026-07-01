@@ -5,7 +5,7 @@ import path from 'node:path';
 
 const root = process.cwd();
 const read = rel => fs.readFileSync(path.join(root, rel), 'utf8');
-const build = 'canonical-profile-status-branch-boundary-20260701-v5';
+const build = 'coach-attendance-ui-reminder-guard-20260701-v5b';
 const files = {
   index: read('index.html'),
   app: read('app.js'),
@@ -31,8 +31,8 @@ check('index/app/main cache bust updated to V4D4',
   files.index.includes(`app.js?v=${build}`) && files.index.includes(`./js/main.js?v=${build}`) &&
   files.main.includes(`renderStudents.js?v=${build}`) && files.main.includes(`attendance.js?v=${build}`));
 check('APP_PATCH_VERSION marks V4D4 runtime',
-  files.main.includes("APP_PATCH_VERSION = '4K-6V5-canonical-profile-status-branch-boundary-20260701'") &&
-  files.main.includes("window.APP_PATCH_VERSION = '4K-6V5-canonical-profile-status-branch-boundary-20260701'"));
+  files.main.includes("APP_PATCH_VERSION = '4K-6V5A-canonical-read-adoption-legacy-fallback-gate-20260701'") &&
+  files.main.includes("window.APP_PATCH_VERSION = '4K-6V5A-canonical-read-adoption-legacy-fallback-gate-20260701'"));
 
 check('Quit render merges quitProfiles + local journal + compat store',
   files.renderStudents.includes('getQuitProfiles') &&

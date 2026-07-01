@@ -59,7 +59,7 @@ import {
     computeAndCacheStudents,
     getStudentsSummary,
     getStudentsCachedHtml,
-} from './render/computation/studentsRenderer.js?v=canonical-profile-status-branch-boundary-20260701-v5';
+} from './render/computation/studentsRenderer.js?v=coach-attendance-ui-reminder-guard-20260701-v5b';
 import {
     computeAndCacheInventory,
     getCachedLiveInvMap,

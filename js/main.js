@@ -1,7 +1,7 @@
 // Phase 4K-6V3A compatibility: 4K-6V3A-firestore-read-attribution-canonical-transaction-boundary
 // Compatibility marker: multiItemInventorySafety.js?v=inventory-ledger-reconciliation-20260616-v2c
 // Phase compatibility APP_BUILD_VERSION markers for static safety checks:
-// APP_PATCH_VERSION = '4K-6V5-canonical-profile-status-branch-boundary-20260701'
+// APP_PATCH_VERSION = '4K-6V5B-coach-attendance-ui-reminder-guard-20260701'
 // APP_BUILD_VERSION = '4K-6V4D1A-profile-canonical-store-runtime-recovery-20260628'
 // APP_BUILD_VERSION = '4K-6V4C2-active-skipped-month-section-20260628'
 // APP_BUILD_VERSION = '4K-6V4B8-debt-two-month-vietnamese-month-normalization-20260627'
@@ -105,15 +105,15 @@ import { initFirebase }                        from './firebase/config.js';
 import { showToast, registerToastGlobal }      from './ui/toast.js';
 import { registerModalGlobals }                from './ui/modal.js';
 import { switchTab, registerTabGlobals }       from './ui/tabs.js';
-import { initRender }                          from './ui/render.js?v=canonical-profile-status-branch-boundary-20260701-v5';
+import { initRender }                          from './ui/render.js?v=coach-attendance-ui-reminder-guard-20260701-v5b';
 // Phase 3.4: Render Isolation Architecture — island initialisers + legacy shims
 import { initFinanceIslands, registerFinanceLegacyGlobals }     from './ui/render/renderFinance.js';
-import { initStudentIslands, registerStudentsLegacyGlobals }     from './ui/render/renderStudents.js?v=canonical-profile-status-branch-boundary-20260701-v5';
+import { initStudentIslands, registerStudentsLegacyGlobals }     from './ui/render/renderStudents.js?v=coach-attendance-ui-reminder-guard-20260701-v5b';
 import { initInventoryIslands, registerInventoryLegacyGlobals }  from './ui/render/renderInventory.js';
 import { initAttendanceIslands }                                  from './ui/render/renderAttendance.js';
 import { initDashboardIslands }                                   from './ui/render/renderDashboard.js';
 // Phase 3.5B: Render Invalidation & Lifecycle Stabilization
-import { registerInvalidationLegacyGlobals }                     from './ui/render/renderInvalidation.js?v=canonical-profile-status-branch-boundary-20260701-v5';
+import { registerInvalidationLegacyGlobals }                     from './ui/render/renderInvalidation.js?v=coach-attendance-ui-reminder-guard-20260701-v5b';
 import { registerLoadingGlobals, showLoading, hideLoading, forceHideLoading } from './ui/loading.js';
 import {
     getLocalToday, formatDate, formatMonth,
@@ -266,7 +266,7 @@ import {
     ensureQuitProfilesAuthoritative,
     loadCoachBranchProfilesFallback,
     ensureCoachBranchProfilesReady,
-} from './listeners/profiles.listeners.js?v=canonical-profile-status-branch-boundary-20260701-v5';
+} from './listeners/profiles.listeners.js?v=coach-attendance-ui-reminder-guard-20260701-v5b';
 
 // ── Phase 3.7C: Profile Status Config ────────────────────────────────────────
 import {
@@ -320,7 +320,7 @@ import {
 } from './firebase/paginatedQuery.js';
 
 // ── Phase 2d–3.2A: Business modules (eager — cần khi login) ────
-import { initStudents, initStudentPagination }        from './modules/students.js?v=canonical-profile-status-branch-boundary-20260701-v5';
+import { initStudents, initStudentPagination }        from './modules/students.js?v=coach-attendance-ui-reminder-guard-20260701-v5b';
 // PHẦN 1 FIX + Phase 4K-2: Unified Search Controller — real cache + SearchBlob + stale guard
 import {
     initGlobalSearchRuntime,
@@ -345,7 +345,7 @@ async function ensureFinanceModuleLoaded(reason = 'finance-needed') {
     }
     if (__financeModule) return __financeModule;
     if (!__financeModulePromise) {
-        __financeModulePromise = import('./modules/finance.js?v=canonical-profile-status-branch-boundary-20260701-v5')
+        __financeModulePromise = import('./modules/finance.js?v=coach-attendance-ui-reminder-guard-20260701-v5b')
             .then((mod) => {
                 __financeModule = mod;
                 try { mod.registerFinanceUiGlobals?.(); } catch (_) {}
@@ -378,7 +378,7 @@ function initTransactionPagination(...args) {
 }
 import { initInventory }                              from './modules/inventory.js?v=payment-bundle-runtime-hotfix-20260616-v3a1';
 // Compatibility marker: from './modules/attendance.js'
-import { initAttendance }                             from './modules/attendance.js?v=canonical-profile-status-branch-boundary-20260701-v5';
+import { initAttendance }                             from './modules/attendance.js?v=coach-attendance-ui-reminder-guard-20260701-v5b';
 import { initDashboard }                              from './modules/dashboard.js?v=payment-bundle-runtime-hotfix-20260616-v3a1';
 // ── Phase 4K-6U: Heavy Reports module is lazy-loaded by reportExportFacade.js ──
 // ── Phase 4.0B-1: SuperAdmin — eager import trên HTTP/HTTPS ─────
@@ -3213,7 +3213,7 @@ window.debugProfileModalClose = function() {
 // PHẦN 1 — APP BUILD VERSION
 window.APP_BUILD_VERSION = '4K-6V2-inventory-history-pagination-complete-active-debt-20260616';
 // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
-window.APP_PATCH_VERSION = '4K-6V5-canonical-profile-status-branch-boundary-20260701';
+window.APP_PATCH_VERSION = '4K-6V5B-coach-attendance-ui-reminder-guard-20260701';
 window.APP_COPYRIGHT_OWNER   = 'Tình Trương';
 window.APP_PRODUCT_NAME      = 'Taekwondo Club Management Web App';
 window.APP_SECURITY_PHASE    = '4K-6E-scale-readiness-write-safety';

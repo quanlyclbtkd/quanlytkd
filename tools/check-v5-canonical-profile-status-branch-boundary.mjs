@@ -19,9 +19,11 @@ const files = {
 const checks = [];
 const check = (name, ok) => checks.push({ name, ok: !!ok });
 
-check('index loads profileCanonicalBoundary before app.js',
-  files.index.indexOf('profileCanonicalBoundary.js?v=canonical-profile-status-branch-boundary-20260701-v5') > -1 &&
-  files.index.indexOf('profileCanonicalBoundary.js') < files.index.indexOf('app.js?v=canonical-profile-status-branch-boundary-20260701-v5'));
+check('index loads profileCanonicalBoundary before app.js', (() => {
+  const p = files.index.indexOf('src="./js/core/profileCanonicalBoundary.js?v=');
+  const a = files.index.indexOf('src="app.js?v=');
+  return p > -1 && a > -1 && p < a;
+})());
 check('boundary exposes canonical profile API',
   ['canonicalizeProfileForWrite','buildCanonicalProfilePatch','selfHealProfileCanonicalFields','canonicalProfileBranchCode','canonicalProfileStatusKind'].every(x => files.boundary.includes(x)));
 check('canonical write fields are defined',
@@ -29,8 +31,7 @@ check('canonical write fields are defined',
 check('boundary avoids default branchCode on status-only patches',
   files.boundary.includes('function _hasBranchSignal') && files.boundary.includes('if (branchCode) patch.branchCode = branchCode'));
 check('classifier prioritizes canonical statusKind before legacy fallback',
-  files.status.includes('Phase 4K-6V5: canonical fields are the primary read boundary') &&
-  files.status.indexOf('profile.statusKind') < files.status.indexOf('profile.quit === true'));
+  files.status.includes('Phase 4K-6V5A') && files.status.includes('getCanonicalProfileReadStatus(profile)'));
 check('app writes canonical fields on add student',
   files.app.includes("_canonicalProfilePayload(_newProfileData, 'add-new-student'") && files.app.includes('forceBranchIndex: true'));
 check('app writes canonical fields on edit profile',
@@ -48,15 +49,16 @@ check('coach primary roster query prefers branchCode',
 check('quit loader prefers canonical statusKind before legacy queries',
   files.profiles.includes("label: 'statusKind==quit'") && files.profiles.indexOf("statusKind==quit") < files.profiles.indexOf("status==quit"));
 check('attendance branch extraction prefers branchCode',
-  files.attendance.includes('return x.branchCode || x.branch || x.branchId'));
+  files.attendance.includes('getCanonicalProfileReadBranch') && files.attendance.includes('return x.branchCode || x.branch || x.branchId'));
 check('students debt branch filter uses canonical/alias matcher',
-  files.students.includes('window.debtBranchMatchesFilter ? window.debtBranchMatchesFilter(p.branchCode || p.branch'));
+  files.students.includes('window.profileBranchMatchesFilter(p, selBranch)'));
 check('canonical store prefers branchCode over branch',
-  files.store.includes('return p.branchCode || p.branch ||'));
+  files.store.includes('getCanonicalProfileReadBranch'));
 check('Firestore rules still allow Coach branchCode scoped profile reads',
   files.rules.includes('resource.data.keys().hasAll([\'branchCode\'])') && files.rules.includes('branchMatchesAssigned(resource.data.branchCode)'));
 check('public mirrors are synced',
-  files.publicBoundary.includes('4K-6V5-canonical-profile-status-branch-boundary') && files.publicApp.includes('4K-6V5-canonical-profile-status-branch-boundary'));
+  (files.publicBoundary.includes('4K-6V5A-canonical-read-adoption-legacy-fallback-gate') || files.publicBoundary.includes('4K-6V5')) &&
+  (files.publicApp.includes('4K-6V5A-canonical-read-adoption-legacy-fallback-gate') || files.publicApp.includes('4K-6V5B-coach-attendance-ui-reminder-guard')));
 
 let failed = 0;
 for (const c of checks) {

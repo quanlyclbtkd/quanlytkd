@@ -58,6 +58,7 @@ export const GLOBAL_OWNERSHIP_MANIFEST = Object.freeze({
   deleteShift:                 { owner: 'js/modules/attendance.js', risk: 'attendance-write', policy: 'module-primary', registrationRequired: true },
   toggleAttendance:            { owner: 'js/modules/attendance.js', risk: 'attendance-write', policy: 'module-primary', registrationRequired: true },
   toggleAttendanceStatus:      { owner: 'js/modules/attendance.js', risk: 'attendance-write', policy: 'module-primary', registrationRequired: true },
+  setAttendanceStatus:         { owner: 'js/modules/attendance.js', risk: 'attendance-write', policy: 'module-primary', registrationRequired: true },
   bulkCheckIn:                 { owner: 'js/modules/attendance.js', risk: 'attendance-write', policy: 'module-primary', registrationRequired: true },
   syncOfflineAttendance:       { owner: 'js/modules/attendance.js', risk: 'attendance-write', policy: 'module-primary', registrationRequired: true },
   switchAttSubTab:             { owner: 'js/modules/attendance.js', risk: 'attendance-ui', policy: 'module-primary', registrationRequired: true },
