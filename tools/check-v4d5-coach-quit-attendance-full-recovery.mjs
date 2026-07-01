@@ -16,12 +16,12 @@ const files = {
   publicRenderStudents: read('public/js/ui/render/renderStudents.js'),
   publicFinance: read('public/js/modules/finance.js'),
 };
-const BUILD = 'coach-attendance-ui-reminder-guard-20260701-v5b';
+const BUILD = 'coach-reminder-attendance-stability-20260701-v5b';
 let pass = 0, fail = 0;
 function check(name, ok) { if (ok) { pass++; console.log('✅', name); } else { fail++; console.error('❌', name); } }
 console.log('\n=== Phase 4K-6V4D7 — Coach Login + Quit Full List Recovery ===\n');
 check('index/app/main cache-bust to V4D5', files.index.includes(`app.js?v=${BUILD}`) && files.index.includes(`./js/main.js?v=${BUILD}`) && files.main.includes(`profiles.listeners.js?v=${BUILD}`));
-check('APP_PATCH_VERSION marks V4D5', files.app.includes("APP_PATCH_VERSION = '4K-6V5A-canonical-read-adoption-legacy-fallback-gate-20260701'") && files.main.includes("APP_PATCH_VERSION = '4K-6V5A-canonical-read-adoption-legacy-fallback-gate-20260701'"));
+check('APP_PATCH_VERSION marks V4D5', files.app.includes("APP_PATCH_VERSION = '4K-6V5B-coach-reminder-attendance-stability-20260701'") && files.main.includes("APP_PATCH_VERSION = '4K-6V5B-coach-reminder-attendance-stability-20260701'"));
 check('legacy app has robust classifier before module availability', files.app.includes('window.classifyProfileStatus = window.classifyProfileStatus || function(profile)') && files.app.includes("'quitDate','stoppedDate','leftDate','inactiveDate','nghiDate','ngayNghi'"));
 check('legacy app no longer empties coach profiles when module unavailable', files.app.includes('using branch-field safe legacy fallback') && files.app.includes('onSnapshot(_q') && files.app.includes("where(_spec.field, '==', _spec.value)"));
 check('legacy app coach fallback filters quit locally and repaints attendance', files.app.includes("window.classifyProfileStatus(_data)") && files.app.includes("_kind!=='quit'") && files.app.includes('window.renderAttendanceList'));

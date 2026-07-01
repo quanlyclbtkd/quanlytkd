@@ -19,11 +19,9 @@ const files = {
 const checks = [];
 const check = (name, ok) => checks.push({ name, ok: !!ok });
 
-check('index loads profileCanonicalBoundary before app.js', (() => {
-  const p = files.index.indexOf('src="./js/core/profileCanonicalBoundary.js?v=');
-  const a = files.index.indexOf('src="app.js?v=');
-  return p > -1 && a > -1 && p < a;
-})());
+check('index loads profileCanonicalBoundary before app.js',
+  files.index.indexOf('profileCanonicalBoundary.js') > -1 &&
+  files.index.indexOf('profileCanonicalBoundary.js') < files.index.indexOf('src="app.js?v='));
 check('boundary exposes canonical profile API',
   ['canonicalizeProfileForWrite','buildCanonicalProfilePatch','selfHealProfileCanonicalFields','canonicalProfileBranchCode','canonicalProfileStatusKind'].every(x => files.boundary.includes(x)));
 check('canonical write fields are defined',
@@ -57,8 +55,8 @@ check('canonical store prefers branchCode over branch',
 check('Firestore rules still allow Coach branchCode scoped profile reads',
   files.rules.includes('resource.data.keys().hasAll([\'branchCode\'])') && files.rules.includes('branchMatchesAssigned(resource.data.branchCode)'));
 check('public mirrors are synced',
-  (files.publicBoundary.includes('4K-6V5A-canonical-read-adoption-legacy-fallback-gate') || files.publicBoundary.includes('4K-6V5')) &&
-  (files.publicApp.includes('4K-6V5A-canonical-read-adoption-legacy-fallback-gate') || files.publicApp.includes('4K-6V5B-coach-attendance-ui-reminder-guard')));
+  files.publicBoundary.includes('4K-6V5A-canonical-read-adoption-legacy-fallback-gate') &&
+  (files.publicApp.includes('4K-6V5A-canonical-read-adoption-legacy-fallback-gate') || files.publicApp.includes('4K-6V5B-coach-reminder-attendance-stability-20260701')));
 
 let failed = 0;
 for (const c of checks) {

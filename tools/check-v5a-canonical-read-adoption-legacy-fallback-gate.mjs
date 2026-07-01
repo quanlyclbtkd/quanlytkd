@@ -19,9 +19,9 @@ const files = {
 const checks = [];
 const check = (name, ok) => checks.push({ name, ok: !!ok });
 
-check('V5A/V5B cache-bust marker remains compatible',
-  (files.index.includes('coach-attendance-ui-reminder-guard-20260701-v5b') || files.index.includes('coach-attendance-ui-reminder-guard-20260701-v5b')) &&
-  (files.app.includes('4K-6V5A-canonical-read-adoption-legacy-fallback-gate-20260701') || files.app.includes('4K-6V5B-coach-attendance-ui-reminder-guard-20260701')));
+check('V5A/V5B cache-bust marker is active',
+  (files.index.includes('coach-reminder-attendance-stability-20260701-v5b') || files.index.includes('coach-reminder-attendance-stability-20260701-v5b')) &&
+  (files.app.includes('4K-6V5A-canonical-read-adoption-legacy-fallback-gate-20260701') || files.app.includes('4K-6V5B-coach-reminder-attendance-stability-20260701')));
 check('classic boundary exposes shared read helpers',
   ['getCanonicalProfileReadStatus','getCanonicalProfileReadBranch','getCanonicalProfileReadInfo','isProfileActiveForDisplay','isProfileQuitForDisplay','isProfileActiveForAttendance','isProfileActiveForDebt','profileBranchMatchesFilter'].every(x => files.boundary.includes(x)));
 check('canonical status gate falls back only after missing canonical fields',
@@ -50,8 +50,8 @@ check('canonical health metrics are available without Firestore reads',
 check('V5A check is wired into package scripts',
   files.pkg.includes('check:v5a-canonical-read-adoption-legacy-fallback-gate'));
 check('public mirrors are synced to V5A/V5B',
-  (files.publicBoundary.includes('4K-6V5A-canonical-read-adoption-legacy-fallback-gate') || files.publicBoundary.includes('4K-6V5')) &&
-  (files.publicApp.includes('4K-6V5A-canonical-read-adoption-legacy-fallback-gate') || files.publicApp.includes('4K-6V5B-coach-attendance-ui-reminder-guard')));
+  files.publicBoundary.includes('4K-6V5A-canonical-read-adoption-legacy-fallback-gate') &&
+  (files.publicApp.includes('4K-6V5A-canonical-read-adoption-legacy-fallback-gate') || files.publicApp.includes('4K-6V5B-coach-reminder-attendance-stability-20260701')));
 
 let failed = 0;
 for (const c of checks) {

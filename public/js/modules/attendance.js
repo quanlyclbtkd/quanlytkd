@@ -23,7 +23,7 @@ const ATTENDANCE_OWNED_GLOBALS = Object.freeze([
     '_getClubShifts', '_ensureClubShiftsLoaded', '_renderHomeBirthdayBanner',
     'showAttMemberHistory', 'renderAttendanceList', 'onShiftChange',
     'openShiftModal', 'closeShiftModal', 'addShift', 'deleteShift',
-    'toggleAttendance', 'toggleAttendanceStatus', 'setAttendanceStatus', 'bulkCheckIn',
+    'toggleAttendance', 'toggleAttendanceFromCard', 'toggleAttendanceStatus', 'bulkCheckIn',
     'syncOfflineAttendance', 'switchAttSubTab', 'renderAttMonthly',
     'printAttendanceStatus', 'printAttendanceSessionCompletion',
     'printAttendanceBranchReport'
@@ -79,13 +79,54 @@ let _onlineListenerBound = false;
 let _monthlyRenderRequestId = 0;
 let _monthlyAbortController = null;
 let _ownedAttendanceImplementations = null;
-let _attendanceSaveState = Object.create(null); // docId -> { pending: true }
+const _attWriteLocks = new Map();
+const _attPendingStatusByDocId = new Map();
+
+function _escapeHtml(value) {
+    return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function _setAttCardStatus(idx, status) {
+    const cardEl = document.getElementById('att_card_' + idx);
+    const cfg = _ATT_STATUS[_mapLegacyStatus(status)];
+    if (cardEl) {
+        cardEl.style.background = cfg.bg;
+        cardEl.style.color = cfg.text;
+        cardEl.style.borderColor = cfg.border;
+    }
+    const lblEl = document.getElementById('att_lbl_' + idx);
+    if (lblEl) lblEl.textContent = cfg.icon + ' ' + cfg.label;
+    return { cardEl, lblEl, cfg };
+}
+
+function _setAttCardSaving(idx, saving) {
+    const cardEl = document.getElementById('att_card_' + idx);
+    if (!cardEl) return;
+    if (saving) {
+        cardEl.dataset.attSaving = '1';
+        cardEl.style.pointerEvents = 'none';
+        cardEl.style.opacity = '0.72';
+    } else {
+        delete cardEl.dataset.attSaving;
+        cardEl.style.pointerEvents = '';
+        cardEl.style.opacity = '';
+    }
+}
+
+function _isAttendanceWriteLocked(docId) {
+    return !!docId && _attWriteLocks.has(docId);
+}
+
 
 function _resetAttendanceModuleState(nextClubId) {
     _attCurrentProfiles = [];
     _attCurrentDate = '';
     _attendanceCache = {};
-    _attendanceSaveState = Object.create(null);
     _clubShifts = [];
     _clubShiftsLoaded = false;
     _currentShiftId = '';
@@ -96,6 +137,8 @@ function _resetAttendanceModuleState(nextClubId) {
         _monthlyAbortController = null;
     }
     _monthlyRenderRequestId++;
+    _attWriteLocks.clear();
+    _attPendingStatusByDocId.clear();
 }
 
 async function _loadSessionNoteAfterAttendanceRender(date) {
@@ -173,83 +216,21 @@ const _ATT_STATUS = [
     { label: 'Chưa điểm danh', bg: '#f8fafc', text: '#64748b', border: '#cbd5e1', icon: '—'  },
     { label: 'Có mặt',         bg: '#f0fdf4', text: '#16a34a', border: '#22c55e', icon: '✅' },
     { label: 'Nghỉ không phép', bg: '#fef2f2', text: '#dc2626', border: '#ef4444', icon: '❌' },
-    { label: 'Nghỉ có phép',   bg: '#fefce8', text: '#ca8a04', border: '#eab308', icon: '📝' },
+    { label: 'Nghỉ có phép',    bg: '#fefce8', text: '#ca8a04', border: '#eab308', icon: '📝' },
 ];
 
 function _mapLegacyStatus(s) {
-    const n = Number(s);
-    return (n >= 0 && n <= 3) ? n : 0;
+    return (s >= 0 && s <= 3) ? s : 0;
 }
 
-function _sanitizeAttendanceStatus(status) {
-    const n = Number(status);
-    return Number.isFinite(n) && n >= 0 && n <= 3 ? Math.floor(n) : 0;
-}
+// Storage meaning remains: 1=present, 2=unexcused absent, 3=excused absent.
+// Tap cycle follows coach UX: Chưa điểm danh → Có mặt → Nghỉ có phép → Nghỉ không phép → Chưa điểm danh.
+const _ATT_TOGGLE_ORDER = Object.freeze([0, 1, 3, 2]);
 
-function _attendanceDocIdFor(name) {
-    return getAttendanceDocId(name, _attCurrentDate, _currentShiftId || null);
-}
-
-function _resolveAttendanceTarget(idxOrName) {
-    let idx = -1, name = '', profile = null;
-    if (typeof idxOrName === 'number') {
-        const entry = _attCurrentProfiles[idxOrName];
-        if (!entry) return null;
-        idx = idxOrName;
-        name = entry[0];
-        profile = entry[1] || {};
-    } else {
-        name = String(idxOrName || '');
-        idx = _attCurrentProfiles.findIndex(([n]) => n === name);
-        if (idx < 0) return null;
-        profile = (_attCurrentProfiles[idx] || [])[1] || {};
-    }
-    if (!_attCurrentDate) return null;
-    return { idx, name, profile, docId: _attendanceDocIdFor(name) };
-}
-
-function _attButtonHtml(idx, status, activeStatus) {
-    const cfg = _ATT_STATUS[status];
-    const active = status === activeStatus;
-    const label = status === 1 ? 'Có mặt' : status === 3 ? 'Nghỉ phép' : status === 2 ? 'Nghỉ KP' : 'Bỏ chọn';
-    const bg = active ? cfg.bg : '#fff';
-    const color = active ? cfg.text : '#64748b';
-    const border = active ? cfg.border : '#e2e8f0';
-    return '<button type="button" data-att-status-btn="' + status + '" onclick="event.stopPropagation();window.setAttendanceStatus(' + idx + ',' + status + ')"'
-        + ' style="flex:1;min-width:54px;padding:6px 5px;border-radius:8px;border:1.5px solid ' + border + ';background:' + bg + ';color:' + color + ';font-size:0.64rem;font-weight:900;cursor:pointer;line-height:1.15;touch-action:manipulation;white-space:nowrap;"'
-        + ' title="' + cfg.label + '">' + cfg.icon + ' ' + label + '</button>';
-}
-
-function _setAttendanceControlsPending(idx, pending) {
-    const cardEl = document.getElementById('att_card_' + idx);
-    if (!cardEl) return;
-    cardEl.setAttribute('data-att-pending', pending ? '1' : '0');
-    cardEl.style.opacity = pending ? '0.72' : '';
-    cardEl.querySelectorAll('[data-att-status-btn]').forEach(btn => {
-        btn.disabled = !!pending;
-        btn.style.opacity = pending ? '0.65' : '';
-        btn.style.cursor = pending ? 'wait' : 'pointer';
-    });
-}
-
-function _updateAttendanceCardUi(idx, status) {
-    const cfg = _ATT_STATUS[_sanitizeAttendanceStatus(status)];
-    const cardEl = document.getElementById('att_card_' + idx);
-    if (cardEl) {
-        cardEl.style.background = cfg.bg;
-        cardEl.style.color = cfg.text;
-        cardEl.style.borderColor = cfg.border;
-        cardEl.querySelectorAll('[data-att-status-btn]').forEach(btn => {
-            const st = _sanitizeAttendanceStatus(btn.getAttribute('data-att-status-btn'));
-            const bcfg = _ATT_STATUS[st];
-            const active = st === status;
-            btn.style.background = active ? bcfg.bg : '#fff';
-            btn.style.color = active ? bcfg.text : '#64748b';
-            btn.style.borderColor = active ? bcfg.border : '#e2e8f0';
-        });
-    }
-    const lblEl = document.getElementById('att_lbl_' + idx);
-    if (lblEl) lblEl.textContent = cfg.icon + ' ' + cfg.label;
+function _nextAttendanceStatus(currentStatus) {
+    const safe = _mapLegacyStatus(currentStatus);
+    const idx = _ATT_TOGGLE_ORDER.indexOf(safe);
+    return _ATT_TOGGLE_ORDER[(idx >= 0 ? idx + 1 : 1) % _ATT_TOGGLE_ORDER.length];
 }
 
 // ── Phase 4.0B-4J-6 — SCHEDULED SESSION CALCULATION ─────────────────────────
@@ -445,11 +426,12 @@ function _renderAttCards() {
             ? '<span style="font-size:0.58rem;background:#dcfce7;color:#15803d;border:1px solid #bbf7d0;border-radius:4px;padding:1px 4px;font-weight:900;margin-left:3px;vertical-align:middle;">MỚI</span>' : '';
         const _nickname = (p.nickname || '').trim();
         const _cardWarnClass = churnWarn3 ? 'att-card-warn-red' : churnWarn2 ? 'att-card-warn-yellow' : '';
-        html += '<div id="att_card_' + idx + '"'
+        const _attSaving = _isAttendanceWriteLocked(docId);
+        html += '<div id="att_card_' + idx + '" data-att-name="' + _escapeHtml(name) + '"'
             + (_cardWarnClass ? ' class="' + _cardWarnClass + '"' : '')
-            + ' data-att-card="' + idx + '"'
-            + ' style="background:' + cfg.bg + ';color:' + cfg.text + ';border:1.5px solid ' + cfg.border + ';border-radius:10px;padding:8px 10px;cursor:default;user-select:none;display:flex;flex-direction:column;gap:6px;transition:background 0.12s,border-color 0.12s,opacity 0.12s;box-shadow:0 1px 3px rgba(0,0,0,0.06);-webkit-tap-highlight-color:transparent;min-height:92px;"'
-            + '>'
+            + ' onclick="window.toggleAttendanceFromCard(this)"'
+            + ' style="background:' + cfg.bg + ';color:' + cfg.text + ';border:1.5px solid ' + cfg.border + ';border-radius:10px;padding:8px 10px;cursor:pointer;user-select:none;display:flex;flex-direction:column;gap:5px;transition:transform 0.12s;box-shadow:0 1px 3px rgba(0,0,0,0.06);-webkit-tap-highlight-color:transparent;min-height:74px;' + (_attSaving ? 'pointer-events:none;opacity:0.72;' : '') + '"'
+            + ' onpointerdown="this.style.transform=\'scale(0.94)\'" onpointerup="this.style.transform=\'\'" onpointercancel="this.style.transform=\'\'">'
             + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px;">'
             + '<div style="flex:1;min-width:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">'
             + '<span data-hidx="' + idx + '" onclick="event.stopPropagation();window.showAttMemberHistory(' + idx + ')" title="' + name.replace(/"/g,'&quot;') + ' — Xem lịch sử" style="font-weight:800;font-size:clamp(0.83rem,3.8vw,0.97rem);line-height:1.25;word-break:break-word;text-decoration:underline dotted;text-underline-offset:2px;cursor:pointer;">'
@@ -461,12 +443,6 @@ function _renderAttCards() {
             + '<div style="display:flex;align-items:center;justify-content:space-between;gap:3px;">'
             + '<div style="font-size:0.68rem;font-weight:700;opacity:0.85;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">🥋 ' + beltShort + '</div>'
             + '<div id="att_lbl_' + idx + '" style="font-size:0.65rem;font-weight:800;opacity:0.8;white-space:nowrap;flex-shrink:0;">' + cfg.icon + ' ' + cfg.label + '</div>'
-            + '</div>'
-            + '<div data-att-actions="' + idx + '" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;margin-top:1px;">'
-            + _attButtonHtml(idx, 1, status)
-            + _attButtonHtml(idx, 3, status)
-            + _attButtonHtml(idx, 2, status)
-            + _attButtonHtml(idx, 0, status)
             + '</div>'
             + '<div title="' + sessAttended + '/' + sessRequired + ' buổi – tiến độ thăng đai" style="height:2px;background:rgba(0,0,0,0.1);border-radius:2px;overflow:hidden;">'
             + '<div data-attbar="' + idx + '" style="width:' + sessPercent + '%;height:2px;background:' + sessColor + ';border-radius:2px;transition:width 0.4s;"></div>'
@@ -661,7 +637,7 @@ function _saveAttOffline(clubId, date) {
             const docId   = getAttendanceDocId(name, date, shiftId || null);
             payload.records[name] = {
                 name, status: window.currentAttendanceData[name] ?? 0,
-                belt: p.belt || '', branch: p.branch || '',
+                belt: p.belt || '', branch: _profileBranchValue(p) || p.branch || '',
                 date, month: date.substring(0, 7), profileId: name,
                 shiftId, docId
             };
@@ -900,6 +876,9 @@ export function initAttendance() {
                 if (_currentShiftId && _docShift !== _currentShiftId) return;
                 _attendanceCache[_id] = _mapLegacyStatus(_sd.status || 0);
             });
+            _attPendingStatusByDocId.forEach((pendingStatus, pendingDocId) => {
+                _attendanceCache[pendingDocId] = _mapLegacyStatus(pendingStatus);
+            });
         } catch(e) {
             console.warn('[Attendance] loadByDate failed:', e && e.message || e);
             _attendanceCache = {};
@@ -972,129 +951,105 @@ export function initAttendance() {
         }
     };
 
-    async function _saveAttendanceStatus(target, newStatus, currentStatus) {
-        const { idx, name, profile: p, docId } = target;
-        const branchValue = _profileBranchValue(p) || p.branch || '';
+    // ── Toggle điểm danh (xoay vòng 4 trạng thái) ──────────────
+    window.toggleAttendanceFromCard = (cardEl) => {
+        const name = cardEl && cardEl.dataset ? cardEl.dataset.attName : '';
+        return window.toggleAttendance(name || '');
+    };
+
+    window.toggleAttendance = async (idxOrName) => {
+        let idx, name, p;
+        if (typeof idxOrName === 'number') {
+            const entry = _attCurrentProfiles[idxOrName];
+            if (!entry) return;
+            [name, p] = entry; idx = idxOrName;
+        } else {
+            const rawName = String(idxOrName || '');
+            idx = _attCurrentProfiles.findIndex(([n]) => n === rawName);
+            if (idx === -1) return;
+            [name, p] = _attCurrentProfiles[idx];
+        }
+        const docId = getAttendanceDocId(name, _attCurrentDate, _currentShiftId || null);
+        if (_isAttendanceWriteLocked(docId)) {
+            return;
+        }
+        const currentStatus = window.currentAttendanceData[name] ?? 0;
+        const newStatus = _nextAttendanceStatus(currentStatus);
+        _attWriteLocks.set(docId, { startedAt: Date.now(), name, from: currentStatus, to: newStatus });
+        _attPendingStatusByDocId.set(docId, newStatus);
         window.currentAttendanceData[name] = newStatus;
         _attendanceCache[docId] = newStatus;
-        _updateAttendanceCardUi(idx, newStatus);
+        const { cardEl, cfg } = _setAttCardStatus(idx, newStatus);
+        _setAttCardSaving(idx, true);
         _updateAttSummary(null);
         _saveAttOffline(_clubId(), _attCurrentDate);
-
         if (!navigator.onLine) {
+            _attWriteLocks.delete(docId);
+            _attPendingStatusByDocId.delete(docId);
+            _setAttCardSaving(idx, false);
             window.showToast('📴 Đã lưu offline – sẽ đồng bộ khi có mạng', 2500);
-            return true;
+            return;
         }
-
-        if (newStatus === 0) {
-            await AttendanceService.deleteRecord(docId);
-        } else {
-            await AttendanceService.saveRecord(docId, {
-                profileId: name,
-                name,
-                belt: p.belt || '',
-                branch: branchValue,
-                branchCode: branchValue,
-                date: _attCurrentDate,
-                month: _attCurrentDate.substring(0, 7),
-                status: newStatus,
-                timestamp: Date.now(),
-                ...(_currentShiftId ? { shiftId: _currentShiftId } : {})
-            });
-        }
-        try { localStorage.removeItem('offline_att_' + _clubId() + '_' + _attCurrentDate); } catch(_e) {}
-
-        const _pu = {};
-        if (newStatus === 1 && currentStatus !== 1) {
-            p.totalSessionsAttended = (p.totalSessionsAttended || 0) + 1;
-            _pu.totalSessionsAttended = AttendanceService._increment(1);
-        } else if (currentStatus === 1 && newStatus !== 1) {
-            p.totalSessionsAttended = Math.max(0, (p.totalSessionsAttended || 0) - 1);
-            _pu.totalSessionsAttended = AttendanceService._increment(-1);
-        }
-        if (newStatus === 2 && currentStatus !== 2) {
-            if (p.lastAbsenceDate !== _attCurrentDate) {
-                p.consecutiveAbsences = (p.consecutiveAbsences || 0) + 1;
-                p.lastAbsenceDate = _attCurrentDate;
-                _pu.consecutiveAbsences = AttendanceService._increment(1);
-                _pu.lastAbsenceDate = _attCurrentDate;
-            }
-        } else if (newStatus !== 2 && currentStatus === 2) {
-            p.consecutiveAbsences = 0;
-            p.lastAbsenceDate = '';
-            _pu.consecutiveAbsences = 0;
-            _pu.lastAbsenceDate = '';
-        }
-        if (Object.keys(_pu).length > 0) {
-            AttendanceService.updateMemberStats(name, _pu).catch(() => {});
-        }
-
-        const cardEl = document.getElementById('att_card_' + idx);
-        const cfg = _ATT_STATUS[newStatus];
-        const _newCons = p.consecutiveAbsences || 0;
-        const nw2 = _newCons === 2, nw3 = _newCons >= 3;
-        if (cardEl) {
-            cardEl.classList.remove('att-card-warn-red', 'att-card-warn-yellow');
-            if (nw3) cardEl.classList.add('att-card-warn-red');
-            else if (nw2) cardEl.classList.add('att-card-warn-yellow');
-            else { cardEl.style.removeProperty('outline'); cardEl.style.borderColor = cfg.border; }
-            const _barEl = cardEl.querySelector('[data-attbar]');
-            if (_barEl) {
-                const _pct = Math.min(100, Math.round((p.totalSessionsAttended || 0) / (p.requiredSessions || 24) * 100));
-                _barEl.style.width = _pct + '%';
-                _barEl.style.background = _pct >= 100 ? '#16a34a' : _pct >= 60 ? '#2563eb' : '#f97316';
-                const _wp = _barEl.parentElement;
-                if (_wp) _wp.title = (p.totalSessionsAttended || 0) + '/' + (p.requiredSessions || 24) + ' buổi – tiến độ thăng đai';
-            }
-            const _churnEl = cardEl.querySelector('[data-churn-icon]');
-            if (_churnEl) {
-                if (nw3) { _churnEl.style.removeProperty('display'); _churnEl.className='abs-warn-red'; _churnEl.textContent='🔴'; _churnEl.title='Nghỉ '+_newCons+' buổi không phép liên tiếp — cần báo phụ huynh!'; _churnEl.style.fontSize='0.72rem'; _churnEl.style.marginLeft='3px'; }
-                else if (nw2) { _churnEl.style.removeProperty('display'); _churnEl.className='abs-warn-yellow'; _churnEl.textContent='🟡'; _churnEl.title='Nghỉ 2 buổi không phép liên tiếp — chú ý theo dõi!'; _churnEl.style.fontSize='0.72rem'; _churnEl.style.marginLeft='3px'; }
-                else { _churnEl.style.display='none'; _churnEl.className=''; _churnEl.textContent=''; _churnEl.title=''; }
-            }
-        }
-        return true;
-    }
-
-    async function _setAttendanceStatusExact(idxOrName, requestedStatus, options = {}) {
-        const target = _resolveAttendanceTarget(idxOrName);
-        if (!target) return false;
-        const newStatus = _sanitizeAttendanceStatus(requestedStatus);
-        const currentStatus = _sanitizeAttendanceStatus(window.currentAttendanceData[target.name] ?? _attendanceCache[target.docId] ?? 0);
-        if (newStatus === currentStatus && !_attendanceSaveState[target.docId]?.pending) return true;
-
-        const state = _attendanceSaveState[target.docId] || (_attendanceSaveState[target.docId] = { pending: false });
-        if (state.pending) {
-            if (!options.silent) window.showToast('⏳ Đang lưu điểm danh, vui lòng chờ...', 1400);
-            return false;
-        }
-        state.pending = true;
-        _setAttendanceControlsPending(target.idx, true);
         try {
-            await _saveAttendanceStatus(target, newStatus, currentStatus);
-            return true;
+            if (newStatus === 0) {
+                await AttendanceService.deleteRecord(docId);
+            } else {
+                await AttendanceService.saveRecord(docId, {
+                    profileId: name, name, belt: p.belt || '', branch: _profileBranchValue(p) || p.branch || '',
+                    date: _attCurrentDate, month: _attCurrentDate.substring(0, 7),
+                    status: newStatus, timestamp: Date.now(),
+                    ...(_currentShiftId ? { shiftId: _currentShiftId } : {})
+                });
+            }
+            try { localStorage.removeItem('offline_att_' + _clubId() + '_' + _attCurrentDate); } catch(_e) {}
+            const _pu = {};
+            if (newStatus === 1 && currentStatus !== 1) { p.totalSessionsAttended = (p.totalSessionsAttended||0)+1; _pu.totalSessionsAttended = AttendanceService._increment(1); }
+            else if (currentStatus === 1 && newStatus !== 1) { p.totalSessionsAttended = Math.max(0,(p.totalSessionsAttended||0)-1); _pu.totalSessionsAttended = AttendanceService._increment(-1); }
+            if (newStatus === 2 && currentStatus !== 2) {
+                if (p.lastAbsenceDate !== _attCurrentDate) {
+                    p.consecutiveAbsences = (p.consecutiveAbsences||0)+1; p.lastAbsenceDate = _attCurrentDate;
+                    _pu.consecutiveAbsences = AttendanceService._increment(1); _pu.lastAbsenceDate = _attCurrentDate;
+                }
+            } else if (newStatus !== 2 && currentStatus === 2) {
+                p.consecutiveAbsences = 0; p.lastAbsenceDate = '';
+                _pu.consecutiveAbsences = 0; _pu.lastAbsenceDate = '';
+            }
+            if (Object.keys(_pu).length > 0) {
+                AttendanceService.updateMemberStats(name, _pu).catch(() => {});
+            }
+            const _newCons = p.consecutiveAbsences || 0;
+            const nw2 = _newCons === 2, nw3 = _newCons >= 3;
+            if (cardEl) {
+                cardEl.classList.remove('att-card-warn-red', 'att-card-warn-yellow');
+                if (nw3) cardEl.classList.add('att-card-warn-red');
+                else if (nw2) cardEl.classList.add('att-card-warn-yellow');
+                else { cardEl.style.removeProperty('outline'); cardEl.style.borderColor = cfg.border; }
+                const _barEl = cardEl.querySelector('[data-attbar]');
+                if (_barEl) {
+                    const _pct = Math.min(100, Math.round((p.totalSessionsAttended||0)/(p.requiredSessions||24)*100));
+                    _barEl.style.width = _pct + '%';
+                    _barEl.style.background = _pct>=100?'#16a34a':_pct>=60?'#2563eb':'#f97316';
+                    const _wp = _barEl.parentElement;
+                    if (_wp) _wp.title = (p.totalSessionsAttended||0)+'/'+(p.requiredSessions||24)+' buổi – tiến độ thăng đai';
+                }
+                const _churnEl = cardEl.querySelector('[data-churn-icon]');
+                if (_churnEl) {
+                    if (nw3) { _churnEl.style.removeProperty('display'); _churnEl.className='abs-warn-red'; _churnEl.textContent='🔴'; _churnEl.title='Nghỉ '+_newCons+' buổi không phép liên tiếp — cần báo phụ huynh!'; _churnEl.style.fontSize='0.72rem'; _churnEl.style.marginLeft='3px'; }
+                    else if (nw2) { _churnEl.style.removeProperty('display'); _churnEl.className='abs-warn-yellow'; _churnEl.textContent='🟡'; _churnEl.title='Nghỉ 2 buổi không phép liên tiếp — chú ý theo dõi!'; _churnEl.style.fontSize='0.72rem'; _churnEl.style.marginLeft='3px'; }
+                    else { _churnEl.style.display='none'; _churnEl.className=''; _churnEl.textContent=''; _churnEl.title=''; }
+                }
+            }
         } catch(e) {
-            window.currentAttendanceData[target.name] = currentStatus;
-            _attendanceCache[target.docId] = currentStatus;
-            _updateAttendanceCardUi(target.idx, currentStatus);
+            window.currentAttendanceData[name] = currentStatus;
+            _attendanceCache[docId] = currentStatus;
+            _setAttCardStatus(idx, currentStatus);
             _updateAttSummary(null);
             window.showToast('⚠️ Lỗi khi lưu điểm danh!', 3000);
-            return false;
         } finally {
-            state.pending = false;
-            _setAttendanceControlsPending(target.idx, false);
+            _attWriteLocks.delete(docId);
+            _attPendingStatusByDocId.delete(docId);
+            _setAttCardSaving(idx, false);
         }
-    }
-
-    // ── Chọn trạng thái điểm danh chính xác, không xoay vòng khi HLV bấm nhanh ──────────────
-    window.setAttendanceStatus = async (idxOrName, status) => _setAttendanceStatusExact(idxOrName, status);
-
-    // Backward-compatible: inline legacy still cycles, but is guarded by the same save lock.
-    window.toggleAttendance = async (idxOrName) => {
-        const target = _resolveAttendanceTarget(idxOrName);
-        if (!target) return false;
-        const currentStatus = _sanitizeAttendanceStatus(window.currentAttendanceData[target.name] ?? _attendanceCache[target.docId] ?? 0);
-        return _setAttendanceStatusExact(idxOrName, (currentStatus + 1) % 4);
     };
     window.toggleAttendanceStatus = window.toggleAttendance;
 
@@ -1113,7 +1068,7 @@ export function initAttendance() {
             const bulkRecords = unmarked.map(([name, p]) => ({
                 docId: getAttendanceDocId(name, _attCurrentDate, _currentShiftId),
                 data: {
-                    profileId: name, name, belt: p.belt || '', branch: p.branch || '',
+                    profileId: name, name, belt: p.belt || '', branch: _profileBranchValue(p) || p.branch || '',
                     date: _attCurrentDate, month: _attCurrentDate.substring(0, 7), status: 1,
                     ...(_currentShiftId ? { shiftId: _currentShiftId } : {}),
                     timestamp: Date.now()

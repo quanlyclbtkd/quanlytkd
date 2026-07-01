@@ -20,7 +20,7 @@ function check(name, ok, detail = '') {
 }
 
 console.log('\n=== Phase 4K-6V4B12 — Render Warning Coalescing ===\n');
-const build = 'coach-attendance-ui-reminder-guard-20260701-v5b';
+const build = 'coach-reminder-attendance-stability-20260701-v5b';
 const appBuilds = [build, 'profile-canonical-store-runtime-recovery-20260628-v4d1a', 'profile-canonical-store-20260628-v4d1', 'tuition-debt-source-of-truth-20260628-v4c'];
 
 check('index cache-busts app.js/main.js to current render-safe build',
@@ -89,7 +89,8 @@ check('APP patch version updated to V4B12 or later',
   main.includes("APP_PATCH_VERSION = '4K-6V4D4-coach-quit-authoritative-fix-20260630'") ||
   main.includes("APP_PATCH_VERSION = '4K-6V4D7-coach-quit-attendance-full-recovery-20260630'") ||
   main.includes("APP_PATCH_VERSION = '4K-6V4D9-coach-attendance-warning-cleanup-20260630'") ||
-  main.includes("APP_PATCH_VERSION = '4K-6V5A-canonical-read-adoption-legacy-fallback-gate-20260701'"));
+  main.includes("APP_PATCH_VERSION = '4K-6V5A-canonical-read-adoption-legacy-fallback-gate-20260701'") ||
+  main.includes("APP_PATCH_VERSION = '4K-6V5B-coach-reminder-attendance-stability-20260701'"));
 
 console.log(`\nTotal: ${pass + fail} | PASS: ${pass} | FAIL: ${fail}`);
 if (fail) process.exit(1);

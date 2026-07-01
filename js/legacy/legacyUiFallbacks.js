@@ -34,6 +34,40 @@
     }
   }
 
+
+  function normalizeRole(value) {
+    var role = String(value || '').trim().toLowerCase().replace(/-/g, '_');
+    if (role === 'hlv' || role === 'trainer') return 'coach';
+    if (role === 'superadmin') return 'super_admin';
+    return role;
+  }
+
+  function currentRole() {
+    try {
+      if (global.RoleReadBoundary && typeof global.RoleReadBoundary.readContext === 'function') {
+        var ctx = global.RoleReadBoundary.readContext() || {};
+        var rbRole = normalizeRole(ctx.role || '');
+        if (rbRole) return rbRole;
+      }
+    } catch (_) {}
+    try {
+      var store = global.__store || {};
+      return normalizeRole(global.userRole || store.userRole || store.role || '');
+    } catch (_) {}
+    return '';
+  }
+
+  function canShowMonthlyReminder() {
+    var role = currentRole();
+    if (!role || role === 'coach') return false;
+    return role === 'admin' || role === 'super_admin' || role === 'viewer' || role === 'club_admin';
+  }
+
+  function hideMonthlyReminder() {
+    var reminder = getElement('monthlyReminder');
+    if (reminder) reminder.style.display = 'none';
+  }
+
   function asDate(value) {
     if (value instanceof Date && !Number.isNaN(value.getTime())) return value;
     var parsed = value ? new Date(value) : new Date();
@@ -86,9 +120,13 @@
   }
 
   function checkMonthlyReminder(now) {
+    if (!canShowMonthlyReminder()) {
+      hideMonthlyReminder();
+      return false;
+    }
     var today = asDate(now);
     var day = today.getDate();
-    if (day < 1 || day > 3) return false;
+    if (day < 1 || day > 3) { hideMonthlyReminder(); return false; }
     var monthKey = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0');
     if (safeStorageGet('mrDismissed_' + monthKey)) return false;
 
@@ -112,6 +150,10 @@
   }
 
   function openMonthlyExport(now) {
+    if (!canShowMonthlyReminder()) {
+      hideMonthlyReminder();
+      return false;
+    }
     var today = asDate(now);
     dismissMonthlyReminder(today);
     var prevDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);

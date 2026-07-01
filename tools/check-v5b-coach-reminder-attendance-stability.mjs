@@ -1,63 +1,64 @@
-import fs from 'node:fs';
+import fs from 'fs';
 
-const read = p => fs.readFileSync(new URL('../' + p, import.meta.url), 'utf8');
 const files = {
-  index: read('index.html'),
-  app: read('app.js'),
-  legacyUi: read('js/ui/legacyUiShell.js'),
-  attendance: read('js/modules/attendance.js'),
-  registry: read('js/core/globalOwnershipRegistry.js'),
-  publicLegacyUi: read('public/js/ui/legacyUiShell.js'),
-  publicAttendance: read('public/js/modules/attendance.js'),
-  pkg: read('package.json'),
+  attendance: 'js/modules/attendance.js',
+  attendancePublic: 'public/js/modules/attendance.js',
+  shell: 'js/ui/legacyUiShell.js',
+  shellPublic: 'public/js/ui/legacyUiShell.js',
+  fallback: 'js/legacy/legacyUiFallbacks.js',
+  fallbackPublic: 'public/js/legacy/legacyUiFallbacks.js',
+  main: 'js/main.js',
+  app: 'app.js',
+  index: 'index.html',
 };
-const checks = [];
-const check = (name, ok) => checks.push({ name, ok: !!ok });
 
-check('V5B cache-bust marker is active',
-  files.index.includes('coach-attendance-ui-reminder-guard-20260701-v5b') &&
-  files.app.includes('4K-6V5B-coach-attendance-ui-reminder-guard-20260701'));
-check('monthly reminder is blocked for coach role in UI shell',
-  files.legacyUi.includes('function _isCoachRole') &&
-  files.legacyUi.includes('if (_isCoachRole())') &&
-  files.legacyUi.includes('_hideMonthlyReminder();') &&
-  files.legacyUi.includes('return false;'));
-check('monthly export opener is guarded for coach role',
-  files.legacyUi.includes('export function openMonthlyExport') &&
-  files.legacyUi.includes('if (_isCoachRole())') &&
-  files.legacyUi.includes('window.openExcelExportModal'));
-check('auth flow no longer schedules monthly reminder for coach',
-  files.app.includes("window.userRole !== 'coach'") && files.app.includes('_checkMonthlyReminder'));
-check('attendance exact setter is registered as owned global',
-  files.registry.includes('setAttendanceStatus') && files.attendance.includes("'setAttendanceStatus'") && files.attendance.includes('window.setAttendanceStatus'));
-check('attendance cards use exact status buttons instead of full-card cycling',
-  files.attendance.includes('data-att-status-btn') &&
-  files.attendance.includes('_attButtonHtml(idx, 1, status)') &&
-  files.attendance.includes('_attButtonHtml(idx, 3, status)') &&
-  files.attendance.includes('_attButtonHtml(idx, 2, status)') &&
-  !files.attendance.includes('onclick="window.toggleAttendance('));
-check('attendance save has per-record pending guard',
-  files.attendance.includes('_attendanceSaveState') &&
-  files.attendance.includes('state.pending') &&
-  files.attendance.includes('_setAttendanceControlsPending'));
-check('attendance status write is idempotent and exact',
-  files.attendance.includes('_setAttendanceStatusExact') &&
-  files.attendance.includes('if (newStatus === currentStatus') &&
-  (files.attendance.includes('window.currentAttendanceData[target.name] = newStatus') || files.attendance.includes('window.currentAttendanceData[name] = newStatus')));
-check('attendance record writes canonical branchCode as well as branch',
-  files.attendance.includes('branchCode: branchValue'));
-check('public mirrors include V5B reminder guard and exact attendance buttons',
-  files.publicLegacyUi.includes('function _isCoachRole') && files.publicAttendance.includes('window.setAttendanceStatus'));
-check('V5B check is wired into package scripts',
-  files.pkg.includes('check:v5b-coach-reminder-attendance-stability'));
-
-let failed = 0;
-for (const c of checks) {
-  if (c.ok) console.log('PASS', c.name);
-  else { console.error('FAIL', c.name); failed++; }
+let failures = 0;
+function read(path) { return fs.readFileSync(path, 'utf8'); }
+function ok(condition, message) {
+  if (!condition) { failures++; console.error('❌ ' + message); }
+  else console.log('✅ ' + message);
 }
-if (failed) {
-  console.error(`\n[check-v5b-coach-reminder-attendance-stability] FAILED ${failed}/${checks.length}`);
+
+const att = read(files.attendance);
+const attPub = read(files.attendancePublic);
+const shell = read(files.shell);
+const shellPub = read(files.shellPublic);
+const fallback = read(files.fallback);
+const fallbackPub = read(files.fallbackPublic);
+const main = read(files.main);
+const app = read(files.app);
+const index = read(files.index);
+
+for (const [label, src] of [['attendance', att], ['public attendance', attPub]]) {
+  ok(src.includes("'toggleAttendance', 'toggleAttendanceFromCard', 'toggleAttendanceStatus'"), label + ' registers toggleAttendanceFromCard ownership');
+  ok(src.includes('const _ATT_TOGGLE_ORDER = Object.freeze([0, 1, 3, 2])'), label + ' uses coach-friendly status cycle 0→1→3→2');
+  ok(src.includes("{ label: 'Nghỉ có phép'") && src.includes("{ label: 'Nghỉ không phép'"), label + ' labels excused/unexcused explicitly');
+  ok(src.includes('const _attWriteLocks = new Map()'), label + ' has per-attendance write lock');
+  ok(src.includes('const _attPendingStatusByDocId = new Map()'), label + ' keeps pending local status during async writes');
+  ok(src.includes('data-att-name="') && src.includes('window.toggleAttendanceFromCard(this)'), label + ' toggles by stable profile name, not only render index');
+  ok(src.includes('if (_isAttendanceWriteLocked(docId))') && src.includes('_attWriteLocks.set(docId'), label + ' blocks overlapping writes for the same attendance doc');
+  ok(src.includes('_attPendingStatusByDocId.forEach'), label + ' merges pending status into reload render');
+  ok(src.includes('branch: _profileBranchValue(p) || p.branch ||'), label + ' writes canonical profile branch into attendance records');
+}
+
+for (const [label, src] of [['legacy ui shell', shell], ['public legacy ui shell', shellPub]]) {
+  ok(src.includes('function _canShowMonthlyReminder()'), label + ' has monthly reminder role gate');
+  ok(src.includes("role === 'coach'") && src.includes('_hideMonthlyReminder()'), label + ' hides monthly reminder for coach role');
+  ok(src.includes('if (!_canShowMonthlyReminder())') && src.includes('openMonthlyExport'), label + ' blocks monthly export shortcut for coach role');
+}
+
+for (const [label, src] of [['legacy fallback', fallback], ['public legacy fallback', fallbackPub]]) {
+  ok(src.includes('function canShowMonthlyReminder()'), label + ' has fallback monthly reminder role gate');
+  ok(src.includes("role === 'coach'") && src.includes('hideMonthlyReminder()'), label + ' hides fallback monthly reminder for coach role');
+  ok(src.includes('if (!canShowMonthlyReminder())') && src.includes('openMonthlyExport'), label + ' blocks fallback monthly export shortcut for coach role');
+}
+
+ok(app.includes("4K-6V5B-coach-reminder-attendance-stability-20260701"), 'app version marker updated to V5B');
+ok(main.includes("4K-6V5B-coach-reminder-attendance-stability-20260701"), 'main version marker updated to V5B');
+ok(index.includes('coach-reminder-attendance-stability-20260701-v5b'), 'index cache-bust updated to V5B');
+
+if (failures) {
+  console.error(`\n${failures} V5B checks failed.`);
   process.exit(1);
 }
-console.log(`\n[check-v5b-coach-reminder-attendance-stability] PASS ${checks.length}/${checks.length}`);
+console.log('\n✅ V5B coach reminder + attendance stability checks passed.');

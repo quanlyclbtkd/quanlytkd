@@ -16,11 +16,11 @@ function includes(file, text) {
 check('canonical helper file exists', existsSync(resolve(root, 'js/core/tuitionDebtCanonical.js')));
 check('index loads tuitionDebtCanonical before app.js', (() => {
   const html = readFileSync(resolve(root, 'index.html'), 'utf8');
-  const helperPos = html.indexOf('js/core/tuitionDebtCanonical.js?v=coach-attendance-ui-reminder-guard-20260701-v5b');
-  const appPos = html.indexOf('app.js?v=coach-attendance-ui-reminder-guard-20260701-v5b');
+  const helperPos = html.indexOf('js/core/tuitionDebtCanonical.js?v=coach-reminder-attendance-stability-20260701-v5b');
+  const appPos = html.indexOf('app.js?v=coach-reminder-attendance-stability-20260701-v5b');
   return helperPos > -1 && appPos > -1 && helperPos < appPos;
 })());
-check('app.js cache-bust updated to current runtime build', includes('index.html', 'app.js?v=coach-attendance-ui-reminder-guard-20260701-v5b'));
+check('app.js cache-bust updated to current runtime build', includes('index.html', 'app.js?v=coach-reminder-attendance-stability-20260701-v5b'));
 check('getChargeableTuitionMonths delegates to computeTuitionDebtCanonical', includes('app.js', 'window.computeTuitionDebtCanonical') && includes('app.js', 'canonical.chargeableMonths'));
 check('debugDebtTrace exported', includes('js/core/tuitionDebtCanonical.js', 'window.debugDebtTrace = debugDebtTrace'));
 check('auditTuitionDebtCanonicalProfiles exported', includes('js/core/tuitionDebtCanonical.js', 'window.auditTuitionDebtCanonicalProfiles'));

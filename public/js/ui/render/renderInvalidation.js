@@ -69,7 +69,7 @@ import {
 } from './renderRegistry.js';
 
 import { invalidateFinanceRender }   from './computation/financeRenderer.js';
-import { invalidateStudentsRender }  from './computation/studentsRenderer.js?v=coach-attendance-ui-reminder-guard-20260701-v5b';
+import { invalidateStudentsRender }  from './computation/studentsRenderer.js?v=coach-reminder-attendance-stability-20260701-v5b';
 import { invalidateInventoryRender } from './computation/inventoryRenderer.js';
 import { invalidateDashboardCache }  from './computation/dashboardRenderer.js';
 
@@ -78,7 +78,7 @@ import {
     refreshListComputation,
     refreshListsComputation,
     getComputationDomainForList,
-} from './listComputationRefresh.js?v=coach-attendance-ui-reminder-guard-20260701-v5b';
+} from './listComputationRefresh.js?v=coach-reminder-attendance-stability-20260701-v5b';
 
 // ── Dev helper ────────────────────────────────────────────────────────────────
 function _isDev() {

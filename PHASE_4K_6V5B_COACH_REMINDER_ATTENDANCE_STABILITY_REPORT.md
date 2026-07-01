@@ -1,93 +1,97 @@
-# Phase 4K-6V5B — Coach Reminder Guard + Attendance Tap Stability
+# Phase 4K-6V5B — Coach Reminder + Attendance Stability
 
-## Scope
+## Mục tiêu
 
-Fix two Coach-role issues without changing Admin/SuperAdmin financial/export workflows:
+1. Khóa/ẩn nhắc nhở tải file tổng kết tháng trên tài khoản HLV, không ảnh hưởng Admin/SuperAdmin/Viewer.
+2. Sửa hiện tượng thao tác điểm danh trên tài khoản HLV bị “nhảy loạn” khi bấm trạng thái:
+   - ✅ Có mặt
+   - 📝 Nghỉ có phép
+   - ❌ Nghỉ không phép
 
-1. Coach accounts were shown the monthly reminder banner: `Nhắc nhở: Tải file tổng kết Tháng ...`.
-2. Coach attendance cards could appear to jump/change unpredictably when selecting `Có mặt`, `Nghỉ có phép`, or `Nghỉ không phép`.
+## Nguyên nhân phát hiện
 
-## Root cause analysis
+### 1. HLV thấy nhắc tải tổng kết tháng
 
-### Monthly reminder visible for Coach
+Luồng `_checkMonthlyReminder()` được gọi sau khi hệ thống sẵn sàng nhưng không có role gate cho HLV. Vì vậy HLV vẫn có thể nhìn thấy banner `monthlyReminder` với nội dung “Nhắc nhở: Tải file tổng kết Tháng ...”, dù HLV chỉ nên dùng tab Điểm danh.
 
-`app.js` scheduled `_checkMonthlyReminder()` for every non-root login path after app context readiness. `legacyUiShell.checkMonthlyReminder()` only checked the date and dismissal key; it did not check role. Because Coach UI still contains the shared banner DOM, Coach accounts could receive an Admin-oriented monthly export reminder.
+### 2. Điểm danh bị nhảy trạng thái
 
-### Attendance status jumping
+Có 3 nguyên nhân kỹ thuật:
 
-The attendance UI used a full-card `onclick="window.toggleAttendance(idx)"` interaction. This cycles through 4 states: pending → present → absent → excused → pending. On mobile, a tap on a card or repeated taps while an async Firestore write is still pending can advance more than once, which looks like the status is jumping. The old code had no per-record save lock and no explicit status setter.
+- Card điểm danh dùng `idx` theo vị trí render để xác định võ sinh khi bấm. Nếu danh sách render lại, lọc lại, hoặc dữ liệu đang cập nhật, index có thể không còn là định danh ổn định.
+- Khi HLV bấm nhanh nhiều lần trên mobile, nhiều lệnh ghi Firestore/offline có thể chạy chồng nhau. Lệnh cũ có thể hoàn tất sau lệnh mới, làm UI/server trạng thái đảo ngược.
+- Chu kỳ bấm đang theo mã lưu trữ `0 → 1 → 2 → 3`, trong khi thao tác thực tế người dùng mong muốn là `Chưa điểm danh → Có mặt → Nghỉ có phép → Nghỉ không phép`.
 
-## Changes made
+## Đã sửa
 
-### Coach monthly reminder guard
+### Monthly reminder
 
-Files changed:
+- Thêm role gate cho monthly reminder:
+  - HLV/Coach: luôn ẩn banner và chặn mở export tổng kết tháng.
+  - Admin/SuperAdmin/Viewer: giữ nguyên chức năng.
+- Áp dụng ở cả canonical UI shell và legacy fallback:
+  - `js/ui/legacyUiShell.js`
+  - `public/js/ui/legacyUiShell.js`
+  - `js/legacy/legacyUiFallbacks.js`
+  - `public/js/legacy/legacyUiFallbacks.js`
 
-- `js/ui/legacyUiShell.js`
-- `app.js`
-- `public/js/ui/legacyUiShell.js`
-- `public/app.js`
+### Attendance stability
 
-Changes:
+- Thêm định danh bấm ổn định theo `data-att-name`, không còn phụ thuộc `idx` render.
+- Thêm `window.toggleAttendanceFromCard(this)` để card truyền đúng võ sinh đang bấm.
+- Giữ lại `window.toggleAttendance(...)` để không phá luồng cũ/rollback.
+- Thêm khóa ghi theo từng attendance document:
+  - Nếu đang ghi trạng thái cho một võ sinh, lần bấm tiếp theo trên cùng võ sinh sẽ bị bỏ qua cho tới khi ghi xong.
+- Thêm pending local status để render/reload trong lúc ghi không kéo UI quay lại trạng thái cũ.
+- Điều chỉnh chu kỳ bấm thân thiện với HLV:
+  - `0 → 1 → 3 → 2 → 0`
+  - Tức là: Chưa điểm danh → Có mặt → Nghỉ có phép → Nghỉ không phép → Chưa điểm danh.
+- Giữ nguyên ý nghĩa dữ liệu lưu trữ:
+  - `1 = Có mặt`
+  - `2 = Nghỉ không phép`
+  - `3 = Nghỉ có phép`
+- Attendance write dùng branch chuẩn từ `_profileBranchValue(profile)` trước khi fallback legacy.
 
-- Added role detection helper for Coach/HLV aliases.
-- `checkMonthlyReminder()` now returns false and hides `#monthlyReminder` for Coach.
-- `_openMonthlyExport()` is guarded for Coach, so even if called manually it will not open the Admin export modal.
-- `app.js` no longer schedules `_checkMonthlyReminder()` when `window.userRole === 'coach'`.
-
-### Attendance exact status selection
-
-Files changed:
+## File chính đã cập nhật
 
 - `js/modules/attendance.js`
-- `js/core/globalOwnershipRegistry.js`
 - `public/js/modules/attendance.js`
+- `js/ui/legacyUiShell.js`
+- `public/js/ui/legacyUiShell.js`
+- `js/legacy/legacyUiFallbacks.js`
+- `public/js/legacy/legacyUiFallbacks.js`
+- `js/core/globalOwnershipRegistry.js`
 - `public/js/core/globalOwnershipRegistry.js`
+- `js/legacy/legacyAttendanceFallbacks.js`
+- `public/js/legacy/legacyAttendanceFallbacks.js`
+- `app.js`
+- `public/app.js`
+- `js/main.js`
+- `public/js/main.js`
+- `index.html`
+- `public/index.html`
+- `package.json`
+- `public/package.json`
+- `tools/check-v5b-coach-reminder-attendance-stability.mjs`
 
-Changes:
+## Kiểm tra đã chạy
 
-- Added `window.setAttendanceStatus(idxOrName, status)` as the canonical exact setter.
-- Added explicit per-card buttons:
-  - `✅ Có mặt` → status `1`
-  - `📝 Nghỉ phép` → status `3`
-  - `❌ Nghỉ KP` → status `2`
-  - `— Bỏ chọn` → status `0`
-- Removed full-card status cycling from the attendance card UI.
-- Kept `window.toggleAttendance()` as a backward-compatible legacy API, but it now uses the same guarded setter.
-- Added per-record save guard `_attendanceSaveState` so the same student/date/shift cannot receive overlapping writes.
-- Buttons are disabled while that record is being saved.
-- Attendance records now write both `branch` and `branchCode` from the canonical branch extractor.
+- `npm run check:syntax` — PASS
+- `npm run check:v5b-coach-reminder-attendance-stability` — PASS
+- `npm run check:attendance-canonical-ownership` — PASS
+- `npm run check:global-ownership-adoption-cleanup` — PASS
+- `npm run check:coach-attendance-only-read-boundary` — PASS
+- `npm run check:security-coach-branch-boundary` — PASS
+- `npm run check:v5a-canonical-read-adoption-legacy-fallback-gate` — PASS
+- `npm run check:v5-canonical-profile-status-branch-boundary` — PASS
+- `npm run check:quit-tab-completeness` — PASS
+- `npm run check:quit-tab-authoritative-completeness` — PASS
+- `npm run check:quit-tab-mobile-parity` — PASS
+- `npm run check:debt-authoritative-tuition-coverage` — PASS
+- `npm run check:v4d11-attendance-excel-tx-delete-reconcile` — PASS
+- `npm run check:v4d12-superadmin-access-recovery` — PASS
+- `npm run check` — PASS toàn bộ pipeline
 
-## Build/version
+## Deploy note
 
-- Cache-bust marker updated to `coach-attendance-ui-reminder-guard-20260701-v5b`.
-- `window.APP_PATCH_VERSION` updated to `4K-6V5B-coach-attendance-ui-reminder-guard-20260701`.
-- `public/` rebuilt from source using `npm run build:public`.
-
-## Validation run
-
-Passed:
-
-- `npm run check:syntax`
-- `npm run check:v5b-coach-reminder-attendance-stability` — 11/11
-- `npm run check:v5a-canonical-read-adoption-legacy-fallback-gate` — 14/14
-- `npm run check:v5-canonical-profile-status-branch-boundary` — 18/18
-- `npm run check:quit-tab-mobile-parity` — 17/17
-- `npm run check:debt-authoritative-tuition-coverage` — 32/32
-- `npm run check:coach-attendance-only-read-boundary` — 30/30
-- `npm run check:security-coach-branch-boundary` — 35/35
-- `npm run check:global-ownership-adoption-cleanup` — 105 assertions
-- `npm run check:attendance-canonical-ownership` — 141 assertions
-- `npm run check:report-export-lazy-isolation` — 115 assertions
-- `npm run check:coach-branch-runtime-repair` — 25/25
-- `npm run check:v4d8-coach-attendance-auth-roster-final-recovery` — 18/18
-- `npm run check:v4d9-coach-warning-cleanup` — 12/12
-- `npm run check:v4d10-admin-tx-quit-authoritative` — 11/11
-- `npm run check:v4d11-attendance-excel-tx-delete-reconcile` — 12/12
-- `npm run check:v4d12-superadmin-access-recovery` — 14/14
-
-`npm run check` was also started. It progressed through multiple suites without failing but timed out before completing the full long pipeline, so the final validation above is based on the focused and regression suites listed.
-
-## Deployment notes
-
-This phase mainly changes Hosting/source runtime. Firestore Rules are not structurally changed for this fix, but the package still includes the current rules. Deploy Hosting/source. Deploy Rules too if production is behind the V4D7+/V5 line.
+Bản V5B chủ yếu là source/runtime UI fix, không thay đổi Firestore Rules. Chỉ cần deploy Hosting/source nếu Rules production đã ở bản V4D7/V5 trở lên. Nếu Rules production vẫn rất cũ, nên deploy kèm `firestore.rules` từ package để giữ đủ quyền HLV/Admin/SuperAdmin hiện tại.

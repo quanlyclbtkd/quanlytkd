@@ -4,7 +4,7 @@ import path from 'node:path';
 
 const root = process.cwd();
 const read = (rel) => fs.readFileSync(path.join(root, rel), 'utf8');
-const version = 'coach-attendance-ui-reminder-guard-20260701-v5b';
+const version = 'coach-reminder-attendance-stability-20260701-v5b';
 
 const files = {
   index: read('index.html'),

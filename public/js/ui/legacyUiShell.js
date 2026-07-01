@@ -26,16 +26,35 @@ function _safeStorageSet(key, value) {
   }
 }
 
-function _roleName() {
-  try {
-    const raw = String((typeof window !== 'undefined' && (window.userRole || window.currentUserRole || window.__store?.role)) || '').trim().toLowerCase();
-    return raw.replace(/[\s-]+/g, '_');
-  } catch (_) { return ''; }
+
+function _normalizeRole(value) {
+  const role = String(value || '').trim().toLowerCase().replace(/-/g, '_');
+  if (role === 'hlv' || role === 'trainer') return 'coach';
+  if (role === 'superadmin') return 'super_admin';
+  return role;
 }
 
-function _isCoachRole() {
-  const role = _roleName();
-  return role === 'coach' || role === 'hlv' || role === 'huan_luyen_vien';
+function _currentRole() {
+  try {
+    if (typeof window !== 'undefined' && window.RoleReadBoundary && typeof window.RoleReadBoundary.readContext === 'function') {
+      const ctx = window.RoleReadBoundary.readContext() || {};
+      const rbRole = _normalizeRole(ctx.role || '');
+      if (rbRole) return rbRole;
+    }
+  } catch (_) {}
+  try {
+    if (typeof window !== 'undefined') {
+      const store = window.__store || {};
+      return _normalizeRole(window.userRole || store.userRole || store.role || '');
+    }
+  } catch (_) {}
+  return '';
+}
+
+function _canShowMonthlyReminder() {
+  const role = _currentRole();
+  if (!role || role === 'coach') return false;
+  return role === 'admin' || role === 'super_admin' || role === 'viewer' || role === 'club_admin';
 }
 
 function _hideMonthlyReminder() {
@@ -73,7 +92,7 @@ export function closeMobileMenu() {
 }
 
 export function checkMonthlyReminder(now) {
-  if (_isCoachRole()) {
+  if (!_canShowMonthlyReminder()) {
     _hideMonthlyReminder();
     return false;
   }
@@ -82,7 +101,7 @@ export function checkMonthlyReminder(now) {
   if (day < 1 || day > 3) { _hideMonthlyReminder(); return false; }
 
   const monthKey = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0');
-  if (_safeStorageGet('mrDismissed_' + monthKey)) { _hideMonthlyReminder(); return false; }
+  if (_safeStorageGet('mrDismissed_' + monthKey)) return false;
 
   const prevDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
   const prevMonth = prevDate.getMonth() + 1;
@@ -106,7 +125,7 @@ export function dismissMonthlyReminder(now) {
 }
 
 export function openMonthlyExport(now) {
-  if (_isCoachRole()) {
+  if (!_canShowMonthlyReminder()) {
     _hideMonthlyReminder();
     return false;
   }
@@ -192,7 +211,7 @@ export function initLegacyUiShell() {
 
   window.LegacyUiShell = LegacyUiShell;
   window.__legacyUiShellInit = {
-    phase: '4K-6V5B-coach-attendance-ui-reminder-guard',
+    phase: '4K-6S-global-ownership-adoption-duplicate-ui-cleanup',
     ok: results.every((item) => item && item.ok),
     results,
   };
@@ -203,7 +222,7 @@ export function initLegacyUiShell() {
     const ownership = GlobalOwnershipRegistry.assertRegisteredOwnership();
     const result = {
       ok: missing.length === 0 && ownership.ok,
-      phase: '4K-6V5B-coach-attendance-ui-reminder-guard',
+      phase: '4K-6S-global-ownership-adoption-duplicate-ui-cleanup',
       requiredCount: required.length,
       missing,
       ownership,
