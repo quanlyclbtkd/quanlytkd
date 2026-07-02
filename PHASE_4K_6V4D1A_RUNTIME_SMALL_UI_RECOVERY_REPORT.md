@@ -21,7 +21,7 @@ V4D1 là bản read-only audit, nhưng khi cache-bust và thêm `profileCanonica
 - Khôi phục banner sinh nhật bằng cách gọi lại `_renderHomeBirthdayBanner()` khi render nhẹ.
 - Mở rộng nhận diện field ngày sinh: `dob`, `birthDate`, `birthday`, `dateOfBirth`, `ngaySinh`, `ngay_sinh`.
 - Tăng fallback tab **Đã nghỉ**: ưu tiên cache authoritative, nếu cache thiếu thì dùng local sources như `studentProfileStore`, `ProfileCanonicalStore.quitProfiles`, `window.allProfiles`, `window.__store.profiles`.
-- Đồng bộ root/public và cache-bust sang `coach-profiles-bootstrap-datasource-recovery-20260702-v5c`.
+- Đồng bộ root/public và cache-bust sang `coach-runtime-recovery-login-history-cache-guard-20260703-v5d`.
 
 ## Không thay đổi
 

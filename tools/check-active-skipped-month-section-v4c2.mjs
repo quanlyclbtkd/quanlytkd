@@ -30,7 +30,7 @@ const main = read('js/main.js');
 const index = read('index.html');
 const pkg = read('package.json');
 
-const build = 'coach-profiles-bootstrap-datasource-recovery-20260702-v5c';
+const build = 'coach-runtime-recovery-login-history-cache-guard-20260703-v5d';
 
 check('index.html cache-busts app.js/main.js to V4D1A',
   index.includes(`app.js?v=${build}`) && index.includes(`./js/main.js?v=${build}`));
@@ -39,7 +39,7 @@ check('main.js APP_PATCH_VERSION markers include V4D1 lineage',
   main.includes("APP_PATCH_VERSION = '4K-6V4D1A-profile-canonical-store-runtime-recovery-20260628'") ||
   main.includes("APP_BUILD_VERSION = '4K-6V4D1-profile-canonical-store-readonly-audit-20260628'") ||
   main.includes("APP_PATCH_VERSION = '4K-6V4D1-profile-canonical-store-readonly-audit-20260628'") ||
-  main.includes("APP_PATCH_VERSION = '4K-6V5C-coach-profiles-bootstrap-datasource-recovery-20260702'"));
+  main.includes("APP_PATCH_VERSION = '4K-6V5D-coach-runtime-recovery-login-history-cache-guard-20260703'"));
 check('render.js exposes updateSkippedMonthSection global',
   render.includes('window.updateSkippedMonthSection') && render.includes('_renderSkippedMonthSection'));
 check('render.js skipped section uses canonical helper, not raw status/includes',

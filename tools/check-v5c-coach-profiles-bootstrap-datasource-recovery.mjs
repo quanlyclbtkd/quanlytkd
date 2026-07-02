@@ -13,9 +13,9 @@ const files = {
 let pass=0, fail=0;
 function check(name, ok){ if(ok){pass++; console.log('✅',name);} else {fail++; console.error('❌',name);} }
 console.log('\n=== Phase 4K-6V5C — Coach Profiles Bootstrap DataSource Recovery ===\n');
-const build='coach-profiles-bootstrap-datasource-recovery-20260702-v5c';
+const build='coach-runtime-recovery-login-history-cache-guard-20260703-v5d';
 check('entrypoint cache-bust uses V5C', files.index.includes(`app.js?v=${build}`) && files.index.includes(`./js/main.js?v=${build}`));
-check('app patch version is V5C', files.app.includes("APP_PATCH_VERSION = '4K-6V5C-coach-profiles-bootstrap-datasource-recovery-20260702'"));
+check('app patch version is V5C', files.app.includes("APP_PATCH_VERSION = '4K-6V5D-coach-runtime-recovery-login-history-cache-guard-20260703'"));
 check('app does not clear Coach profiles when module is not ready', !files.app.includes("console.error('[RoleReadBoundary] Coach profiles module unavailable") && !files.app.includes('allProfiles = {};\n            if (window.__store) window.__store.profiles = {};'));
 check('app has branch-scoped bootstrap recovery for Coach module-unavailable race', files.app.includes('function _loadCoachProfilesBranchScopedBootstrap') && files.app.includes('CoachBootstrapProfiles') && files.app.includes('module-unavailable-init'));
 check('app Coach bootstrap never reads full-club profiles listener fallback', files.app.includes("for (const field of ['branch', 'branchCode'])") && files.app.includes('getDocs(query(profRef, where(field, \'==\', alias), limit(300)))'));

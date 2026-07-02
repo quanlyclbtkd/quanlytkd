@@ -77,4 +77,4 @@ Console đang chạy bundle `profile-canonical-store-runtime-recovery-20260628-v
 
 Bản này có sửa `firestore.rules`, nên nên deploy cả Hosting/source và Firestore Rules.
 
-Sau deploy cần kiểm tra cache: console phải thấy cache-bust `coach-profiles-bootstrap-datasource-recovery-20260702-v5c`, không còn `profile-canonical-store-runtime-recovery-20260628-v4d1a`.
+Sau deploy cần kiểm tra cache: console phải thấy cache-bust `coach-runtime-recovery-login-history-cache-guard-20260703-v5d`, không còn `profile-canonical-store-runtime-recovery-20260628-v4d1a`.

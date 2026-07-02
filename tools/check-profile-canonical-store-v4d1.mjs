@@ -18,7 +18,7 @@ function includes(file, text) { return read(file).includes(text); }
 
 console.log('\n🔍 Phase 4K-6V4D1 — Profile Canonical Store Read-only Audit checks\n');
 
-const build = 'coach-profiles-bootstrap-datasource-recovery-20260702-v5c';
+const build = 'coach-runtime-recovery-login-history-cache-guard-20260703-v5d';
 const baseBuild = 'profile-canonical-store-20260628-v4d1';
 const version = '4K-6V4D1-profile-canonical-store-readonly-audit-20260628';
 const runtimeVersion = '4K-6V4D1A-profile-canonical-store-runtime-recovery-20260628';
@@ -37,7 +37,7 @@ check('index loads profileCanonicalStore after tuitionDebtCanonical and before a
   index.indexOf(`js/core/profileCanonicalStore.js?v=${build}`) > index.indexOf(`js/core/tuitionDebtCanonical.js?v=${build}`) &&
   index.indexOf(`js/core/profileCanonicalStore.js?v=${build}`) < index.indexOf(`app.js?v=${build}`));
 check('index cache-busts app.js and main.js to V4D1A', index.includes(`app.js?v=${build}`) && index.includes(`./js/main.js?v=${build}`));
-check('main.js retains V4D1 lineage marker', main.includes(`APP_BUILD_VERSION = '${runtimeVersion}'`) || main.includes(`APP_PATCH_VERSION = '${runtimeVersion}'`) || main.includes(`APP_BUILD_VERSION = '${version}'`) || main.includes(`APP_PATCH_VERSION = '${version}'`) || main.includes("APP_PATCH_VERSION = '4K-6V5C-coach-profiles-bootstrap-datasource-recovery-20260702'"));
+check('main.js retains V4D1 lineage marker', main.includes(`APP_BUILD_VERSION = '${runtimeVersion}'`) || main.includes(`APP_PATCH_VERSION = '${runtimeVersion}'`) || main.includes(`APP_BUILD_VERSION = '${version}'`) || main.includes(`APP_PATCH_VERSION = '${version}'`) || main.includes("APP_PATCH_VERSION = '4K-6V5D-coach-runtime-recovery-login-history-cache-guard-20260703'"));
 check('profile canonical store exports public debug/audit API',
   src.includes('window.ProfileCanonicalStore') || src.includes('global.ProfileCanonicalStore'));
 check('profile canonical store exposes getProfileCanonicalStoreStatus', src.includes('getProfileCanonicalStoreStatus'));

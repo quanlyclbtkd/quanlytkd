@@ -57,10 +57,22 @@ service cloud.firestore {
         && !(currentUser().get('status', 'active') in ['disabled', 'locked', 'suspended']);
     }
 
+    function isSuperAdminRoleValue(roleValue) {
+      return roleValue in ['super_admin', 'superadmin', 'root', 'root_admin', 'admin_root'];
+    }
+
+    function isTrustedSuperAdminEmail() {
+      return signedIn()
+        && request.auth.token.get('email', '') in ['admin@tstquynhon.com'];
+    }
+
     function isSuperAdmin() {
       return signedIn() && (
-        request.auth.token.get('role', '') == 'super_admin'
-        || (hasUserDoc() && myRole() == 'super_admin')
+        isTrustedSuperAdminEmail()
+        || isSuperAdminRoleValue(request.auth.token.get('role', ''))
+        || isSuperAdminRoleValue(request.auth.token.get('userRole', ''))
+        || isSuperAdminRoleValue(request.auth.token.get('adminRole', ''))
+        || (hasUserDoc() && isSuperAdminRoleValue(myRole()))
         || exists(/databases/$(database)/documents/super_admins/$(request.auth.uid))
       );
     }
@@ -378,7 +390,22 @@ service cloud.firestore {
     }
 
     match /super_admins/{uid} {
-      allow read, write: if isSuperAdmin();
+      allow get: if (signedIn() && request.auth.uid == uid) || isSuperAdmin();
+      allow list, create, update, delete: if isSuperAdmin();
+    }
+
+    match /login_history/{docId} {
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'uid', 'email', 'clubId', 'role', 'loginAt', 'timestamp',
+          'browser', 'os', 'deviceType', 'deviceName'
+        ])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.role in [
+          'super_admin', 'superadmin', 'root', 'root_admin', 'admin_root',
+          'admin', 'owner', 'viewer', 'coach', 'hlv'
+        ];
+      allow read, update, delete: if isSuperAdmin();
     }
 
     // Deny by default for every top-level path not explicitly declared.

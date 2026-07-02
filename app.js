@@ -50,7 +50,6 @@
     let logoLoaded = false;
     let activeListeners = [];
     let renderTimeout = null;
-
     // Phase 4K-6V4B — one canonical branch code at every client boundary.
     const _canonicalBranch = (value, fallback = 'CS1') => {
         if (window.BranchIdentity && typeof window.BranchIdentity.normalize === 'function') {
@@ -91,7 +90,7 @@
     window.debtBranchMatchesFilter = window.debtBranchMatchesFilter || _branchMatchesFilter;
 // Danh mục kho tùy chỉnh — được load từ Firestore khi đăng nhập thành công
 window.invCustomCategories = [];
-    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V5C'; window.APP_PATCH_VERSION = '4K-6V5C-coach-profiles-bootstrap-datasource-recovery-20260702'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
+    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V5D'; window.APP_PATCH_VERSION = '4K-6V5D-coach-runtime-recovery-login-history-cache-guard-20260703'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
     // Compatibility regression marker retained for Phase 4K-6Q gate: APP_PATCH_VERSION = '4K-6Q-mobile-filter-currency-stability-20260615'
     window.__appLoaded = true; // [Phase 2a] main.js kiểm tra để bỏ qua loadLegacyApp()
     window.__store = window.__store || {}; // [Phase 2b] Bridge object cho module system
@@ -542,7 +541,6 @@ window.invCustomCategories = [];
                 }
             } catch (_) {}
         }
-
         // Phase 4K-6V4B8/B9: chuẩn hóa cả tháng tiếng Việt dạng chữ.
         // Ví dụ: "Tháng tư 2026", "Tháng Tư năm 2026", "thang muoi mot 2026".
         // Lỗi cũ: các chuỗi này parse rỗng → Báo nợ chỉ tính 1 tháng hoặc bị ẩn
@@ -563,7 +561,6 @@ window.invCustomCategories = [];
                 .replace(/\s+/g, ' ')
                 .trim();
             if (!key) return 0;
-
             // Phase 4K-6V4B9: “Tháng năm 2026” means month 5.
             // V4B8 stripped a trailing “nam” as the word “year” before checking the
             // month map, so “thang nam 2026” became empty and the debt engine missed
@@ -599,8 +596,6 @@ window.invCustomCategories = [];
             // Otherwise keep it as tháng năm = month 5.
             return read(strippedYearMarker) || (strippedVietnameseYear ? read(strippedVietnameseYear) : 0);
         }
-
-
         const foldedRaw = _foldMonthText(raw);
         const yearMatch = foldedRaw.match(/\b(20\d{2})\b/);
         if (yearMatch) {
@@ -610,7 +605,6 @@ window.invCustomCategories = [];
             let wordMonth = _monthWordToNumber(beforeYear) || _monthWordToNumber(afterYear);
             if (wordMonth >= 1 && wordMonth <= 12) return year + '-' + String(wordMonth).padStart(2, '0');
         }
-
         raw = raw
             .replace(/tháng/gi, '')
             .replace(/thang/gi, '')
@@ -1012,7 +1006,6 @@ window.invCustomCategories = [];
             ['nc_clubName', 'nc_clubId', 'nc_adminEmail', 'nc_adminPass', 'nc_logoFile'].forEach(id => document.getElementById(id).value = '');
             tempLogoBase64 = "";
             window.loadSuperAdminData();
-
         } catch (error) {
             if(error.code === 'auth/email-already-in-use') alert("Email này đã được đăng ký cho CLB khác. Vui lòng đổi email!");
             else if(error.message === "Club ID exists") alert("Mã Hệ Thống này đã tồn tại, vui lòng chọn mã khác!");
@@ -1021,7 +1014,6 @@ window.invCustomCategories = [];
             btn.innerHTML = `<span>⚡ KHỞI TẠO DỮ LIỆU</span>`; btn.disabled = false; await signOut(secondaryAuth);
         }
     };
-
     window.switchSATab = (tab) => {
         const tabs = ['list', 'revenue', 'loginlog'];
         tabs.forEach(t => {
@@ -1045,7 +1037,6 @@ window.invCustomCategories = [];
             if (_mEl && _mEl.value) window.loadSARevenue();
         }
     };
-
     // ── Helper: reset trạng thái DOM (xóa inline styles do JS ghi khi đã login) ──
     function _resetHtmlStateForExport(rawHtml) {
         // ── Bước 1: Sửa inline styles bằng regex (nhanh, chạy trước) ──────
@@ -1059,7 +1050,6 @@ window.invCustomCategories = [];
             /(<div\s[^>]*id="mainApp"[^>]*style=")([^"]*)"/,
             (m, prefix, style) => prefix + style.replace(/display\s*:\s*block\s*;?\s*/g, '') + '"'
         );
-
         // ── Bước 2: Inject script cleanup đồng bộ ngay trước </body> ───────
         // Script này chạy SAU khi DOM đã được parse đầy đủ nhưng TRƯỚC khi
         // module Firebase khởi động (vì <script type="module"> luôn bị defer).
@@ -1095,7 +1085,6 @@ window.invCustomCategories = [];
         rawHtml = rawHtml.replace('</body>', _cleanup + '\n</body>');
         return rawHtml;
     }
-
     // ── Tải bản gốc: đọc DOM hiện tại, không cần server ─────────────────
     window.saDownloadOriginal = () => {
         let html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
@@ -1108,7 +1097,6 @@ window.invCustomCategories = [];
         setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
         window.showToast('✅ Đã tải bản gốc thành công!');
     };
-
     // ── Tải bản làm rối: dùng javascript-obfuscator browser build (CDN) ──
     window.saDownloadObfuscated = async () => {
         const btn = document.getElementById('btnDownloadObfuscated');
@@ -1116,9 +1104,7 @@ window.invCustomCategories = [];
         const setBtn = (label, disabled) => {
             btn.innerHTML = label; btn.disabled = disabled; btn.style.opacity = disabled ? '0.75' : '1';
         };
-
         setBtn('<div class="loading-spinner" style="width:14px;height:14px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:6px;"></div> Đang tải thư viện...', true);
-
         try {
             // Tải browser build của javascript-obfuscator từ CDN nếu chưa có
             if (!window.JavascriptObfuscator) {
@@ -1130,16 +1116,12 @@ window.invCustomCategories = [];
                     document.head.appendChild(s);
                 });
             }
-
             setBtn('<div class="loading-spinner" style="width:14px;height:14px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:6px;"></div> Đang làm rối mã...', true);
-
             // Nhường luồng cho trình duyệt render spinner trước khi chạy tác vụ nặng
             await new Promise(r => setTimeout(r, 50));
-
             let rawHtml = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
             // Reset trạng thái DOM: loginOverlay phải hiển thị, mainApp phải ẩn
             rawHtml = _resetHtmlStateForExport(rawHtml);
-
             // Chỉ obfuscate khối <script> thông thường (KHÔNG phải type="module" và KHÔNG phải src=...)
             // Lý do: script type="module" dùng ES import statements — nếu obfuscator chèn bootstrap
             // string-array trước import → sai cú pháp module → lỗi Firebase / đăng nhập bị hỏng.
@@ -1171,7 +1153,6 @@ window.invCustomCategories = [];
                     return `${openTag}\n${result.getObfuscatedCode()}\n<\/script>`;
                 } catch { return fullMatch; }
             });
-
             const blob = new Blob([obfuscated], { type: 'text/html;charset=utf-8' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -1185,7 +1166,6 @@ window.invCustomCategories = [];
             setBtn(origHtml, false);
         }
     };
-
     window.loadSuperAdminData = async function() {
         // [HOTFIX] Phase 4.0B-1: fallback wrapper — hardened retry + clear error display.
         // Gọi từ nhiều nơi (initSaaSDatabase, tab switch, toolbar) → phải robust.
@@ -1217,21 +1197,18 @@ window.invCustomCategories = [];
         }
         if (window.showToast) window.showToast('Module SuperAdmin chưa sẵn sàng. Vui lòng tải lại trang.', 'warning');
     };
-
     // ── Tải & hiển thị lịch sử đăng nhập (Super Admin) ──────────────────
     // ── Hàm hiển thị hướng dẫn sửa Firestore Rules ──────────────────────
     function _showLoginHistoryRulesGuide(contentEl, errorMsg, writeFailed) {
         const rulesText = `rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
     // === THÊM ĐOẠN NÀY VÀO RULES ===
     match /login_history/{docId} {
       allow write: if request.auth != null;
       allow read: if request.auth != null
         && request.auth.token.email == "admin@tstquynhon.com";
     }
-
     // ... (giữ nguyên các rules hiện có bên dưới)
   }
 }`;
@@ -1250,7 +1227,6 @@ service cloud.firestore {
                 ${writeStatus}
                 <div style="background:#fef2f2;border:1.5px solid #fca5a5;border-radius:12px;padding:16px;">
                     <div style="font-weight:900;font-size:0.82rem;color:#991b1b;margin-bottom:12px;">📋 Cách sửa — Cập nhật Firestore Security Rules</div>
-
                     <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;font-size:0.78rem;color:#334155;">
                         <div style="display:flex;gap:8px;align-items:flex-start;">
                             <span style="background:#0033A0;color:#fff;font-weight:900;font-size:0.65rem;padding:2px 7px;border-radius:99px;flex-shrink:0;margin-top:1px;">1</span>
@@ -1269,7 +1245,6 @@ service cloud.firestore {
                             <span>Nhấn <strong>Publish</strong> để lưu</span>
                         </div>
                     </div>
-
                     <div style="position:relative;">
                         <pre id="_lh_rules_pre" style="background:#0f172a;color:#e2e8f0;border-radius:8px;padding:12px;font-size:0.68rem;overflow-x:auto;white-space:pre;line-height:1.6;margin:0;">${rulesText.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>
                         <button onclick="(function(){const t=document.getElementById('_lh_rules_pre').innerText;navigator.clipboard.writeText(t).then(()=>window.showToast('✅ Đã copy rules!')).catch(()=>window.showToast('⚠️ Copy thủ công nhé!'));})()"
@@ -1277,25 +1252,21 @@ service cloud.firestore {
                             📋 Copy
                         </button>
                     </div>
-
                     <div style="margin-top:10px;font-size:0.7rem;color:#64748b;text-align:center;">
                         Sau khi Publish xong → nhấn <strong>🔄 Làm mới</strong> ở trên để tải lại
                     </div>
                 </div>
             </div>`;
     }
-
     window.loadLoginHistory = async () => {
         const contentEl = document.getElementById('loginlog_content');
         const filterClub = (document.getElementById('loginlog_filter_club') || {}).value || '';
         if (!contentEl) return;
         contentEl.innerHTML = '<p style="text-align:center;color:#94a3b8;font-size:0.82rem;padding:20px 0;">⏳ Đang tải lịch sử đăng nhập...</p>';
-
         const writeFailed = false;
         try {
             const q = query(collection(db, "login_history"), orderBy("timestamp", "desc"), limit(500)); // OK_UI_DISPLAY_LIMIT [3.8D-Phase6]
             const snap = await getDocs(q);
-
             // Populate club filter dropdown (first load only)
             const filterEl = document.getElementById('loginlog_filter_club');
             if (filterEl && filterEl.options.length <= 1) {
@@ -1307,12 +1278,10 @@ service cloud.firestore {
                     filterEl.appendChild(opt);
                 });
             }
-
             // Lọc phía client nếu có filterClub (tránh cần composite index)
             let docs = [];
             snap.forEach(d => { if (!d.data()._test) docs.push(d.data()); });
             if (filterClub) docs = docs.filter(item => item.clubId === filterClub);
-
             if (docs.length === 0) {
                 if (writeFailed) {
                     _showLoginHistoryRulesGuide(contentEl,
@@ -1322,7 +1291,6 @@ service cloud.firestore {
                 }
                 return;
             }
-
             const rows = docs.map(item => {
                 const dt = item.loginAt ? new Date(item.loginAt) : null;
                 const dateStr = dt ? dt.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
@@ -1359,7 +1327,6 @@ service cloud.firestore {
                         </div>
                     </div>`;
             });
-
             contentEl.innerHTML = `
                 <div style="padding:7px 14px;background:#f8fafc;border-bottom:2px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;">
                     <div style="font-size:0.65rem;font-weight:900;color:#475569;text-transform:uppercase;">Lịch Sử Đăng Nhập</div>
@@ -1367,7 +1334,6 @@ service cloud.firestore {
                 </div>
                 ${rows.join('')}
                 <div style="padding:10px 14px;text-align:center;font-size:0.7rem;color:#94a3b8;">Hiển thị ${rows.length} bản ghi${filterClub ? ' cho CLB: ' + filterClub : ' gần nhất'}</div>`;
-
         } catch(e) {
             console.error('[login_history] Lỗi đọc:', e);
             const isPermission = e.message && (e.message.includes('permission') || e.message.includes('Missing'));
@@ -1377,7 +1343,6 @@ service cloud.firestore {
             _showLoginHistoryRulesGuide(contentEl, errMsg, writeFailed);
         }
     };
-
     window.openExpiryModal = async function(clubId, clubName, currentExpiry) {
         // Phase 4.0B-1: fallback wrapper — see js/modules/superadmin.js
         if (window.SuperAdminModule?.openExpiryModal) return window.SuperAdminModule.openExpiryModal(clubId, clubName, currentExpiry);
@@ -1389,7 +1354,6 @@ service cloud.firestore {
         console.warn('[SuperAdminFallback] openExpiryModal: module not loaded');
         if (window.showToast) window.showToast('Module SuperAdmin chưa sẵn sàng. Vui lòng tải lại trang.', 'warning');
     };
-
     window.saveClubExpiry = async () => {
         const clubId = document.getElementById('em_clubId').value;
         const newExpiry = document.getElementById('em_expiryDate').value;
@@ -1401,7 +1365,6 @@ service cloud.firestore {
             window.loadSuperAdminData();
         } catch (e) { console.error(e); alert("Lỗi cập nhật: " + e.message); }
     };
-
     window.lockClubAccount = async function(clubId, clubName) {
         // Phase 4.0B-1: fallback wrapper — see js/modules/superadmin.js
         if (window.SuperAdminModule?.lockClub) return window.SuperAdminModule.lockClub(clubId, clubName);
@@ -1413,7 +1376,6 @@ service cloud.firestore {
         console.warn('[SuperAdminFallback] lockClubAccount: module not loaded');
         if (window.showToast) window.showToast('Module SuperAdmin chưa sẵn sàng. Vui lòng tải lại trang.', 'warning');
     };
-
     window.unlockClubAccount = async function(clubId) {
         // Phase 4.0B-1: fallback wrapper — see js/modules/superadmin.js
         if (window.SuperAdminModule?.unlockClub) return window.SuperAdminModule.unlockClub(clubId);
@@ -1425,7 +1387,6 @@ service cloud.firestore {
         console.warn('[SuperAdminFallback] unlockClubAccount: module not loaded');
         if (window.showToast) window.showToast('Module SuperAdmin chưa sẵn sàng. Vui lòng tải lại trang.', 'warning');
     };
-
     window.toggleExamFeature = async function(clubId, clubName, currentEnabled) {
         // Phase 4.0B-1: fallback wrapper — see js/modules/superadmin.js
         if (window.SuperAdminModule?.toggleClubStatus) return window.SuperAdminModule.toggleClubStatus(clubId, clubName, currentEnabled);
@@ -1437,7 +1398,6 @@ service cloud.firestore {
         console.warn('[SuperAdminFallback] toggleExamFeature: module not loaded');
         if (window.showToast) window.showToast('Module SuperAdmin chưa sẵn sàng. Vui lòng tải lại trang.', 'warning');
     };
-
     window.saOpenDeleteTxModal = async function(clubId, clubName) {
         // Phase 4.0B-1: fallback wrapper — see js/modules/superadmin.js
         if (window.SuperAdminModule?.saOpenDeleteTxModal) return window.SuperAdminModule.saOpenDeleteTxModal(clubId, clubName);
@@ -3388,12 +3348,9 @@ service cloud.firestore {
     // ── Ghi nhận lịch sử đăng nhập (chỉ 1 lần mỗi session) ──────────────
     async function _recordLoginEvent(user, role, clubId) {
         try {
-            // Key có ngày hôm nay: cờ cũ của hôm qua (hoặc trước đó) không bao giờ khớp
-            // → tự hết hạn sau 1 ngày, không cần xóa thủ công, hoạt động ngay cả với file cũ đang cached
             const today = new Date().toISOString().split('T')[0]; // '2025-01-15'
             const sessionKey = 'lh_' + user.uid + '_' + today;
             if (sessionStorage.getItem(sessionKey)) return;
-            // KHÔNG đặt sessionStorage trước — chỉ đặt SAU KHI ghi Firestore thành công.
             const ua = navigator.userAgent;
             let browser = 'Khác';
             if (/Edg\//.test(ua)) browser = 'Edge';
@@ -3408,16 +3365,13 @@ service cloud.firestore {
             else if (/Linux/.test(ua)) os = 'Linux';
             const isMobile = /Mobile|Android|iPhone|iPad/.test(ua);
 
-            // Nhận dạng tên thiết bị / model điện thoại
             let deviceName = '';
-            // Thử Chromium's UA Client Hints API (hoạt động trên Chrome/Edge Android)
             if (navigator.userAgentData && navigator.userAgentData.getHighEntropyValues) {
                 try {
                     const hints = await navigator.userAgentData.getHighEntropyValues(['model', 'platform', 'platformVersion']);
                     if (hints.model) deviceName = hints.model;
                 } catch(e) {}
             }
-            // Fallback: phân tích chuỗi User-Agent
             if (!deviceName) {
                 if (/iPhone/.test(ua)) {
                     const m = ua.match(/CPU iPhone OS ([\d_]+)/);
@@ -3428,8 +3382,7 @@ service cloud.firestore {
                     const v = m ? m[1].replace(/_/g, '.') : '';
                     deviceName = 'iPad' + (v ? ' (iPadOS ' + v + ')' : '');
                 } else if (/Android/.test(ua)) {
-                    // Android UA: (Linux; Android X.X; MODEL Build/...)
-                    const m = ua.match(/Android\s[\d.]+;\s([^)]+?)\s*(?:Build\/|\))/);
+                            const m = ua.match(/Android\s[\d.]+;\s([^)]+?)\s*(?:Build\/|\))/);
                     if (m) deviceName = m[1].trim();
                     else deviceName = 'Android';
                 } else if (/Macintosh/.test(ua)) {
@@ -3443,6 +3396,7 @@ service cloud.firestore {
 
             const now = new Date();
             await addDoc(collection(db, "login_history"), {
+                uid: user.uid || '',
                 email: user.email || '',
                 clubId: clubId || '',
                 role: role || 'viewer',
@@ -3453,11 +3407,15 @@ service cloud.firestore {
                 deviceType: isMobile ? 'Mobile' : 'Desktop',
                 deviceName: deviceName || '',
             });
-            // Chỉ đánh dấu "đã ghi" SAU KHI addDoc thành công
             sessionStorage.setItem(sessionKey, '1');
         } catch(e) {
-            // Không set sessionStorage → lần load tiếp theo sẽ tự thử lại
-            console.warn('[login_history] Không thể ghi lịch sử đăng nhập:', e.message);
+            const msg = e && (e.message || String(e)) || '';
+            if ((e && e.code === 'permission-denied') || /Missing or insufficient permissions/i.test(msg)) {
+                sessionStorage.setItem(sessionKey, '1');
+                console.info('[login_history] Bỏ qua ghi lịch sử đăng nhập do quyền hiện tại:', msg);
+            } else {
+                console.warn('[login_history] Không thể ghi lịch sử đăng nhập:', msg);
+            }
         }
     }
 
@@ -10185,6 +10143,11 @@ window.processMultiItem = async (action) => {
         checkedAt:        0
     };
 
+    function _isCoachScopedRuntimeSession() {
+        const role = String(window.userRole || window.currentUserRole || (window.__store && window.__store.userRole) || '').toLowerCase().replace(/-/g, '_');
+        return role === 'coach' || role === 'hlv' || window.RoleReadBoundary?.isCoachAttendanceOnly?.() === true || (!!window.coachBranch && (window.__store && String(window.__store.userRole || '').toLowerCase().replace(/-/g, '_') === 'coach'));
+    }
+
     /**
      * resolveActiveDataSource() — Phase 4.0B-4E Phase 2.
      * Xác định nguồn dữ liệu: primary / legacy-root / empty / permission-error / unknown.
@@ -10207,8 +10170,7 @@ window.processMultiItem = async (action) => {
             return result;
         }
 
-        const _roleForDataSource = String(window.userRole || window.__store?.userRole || '').toLowerCase().replace(/-/g, '_');
-        if (_roleForDataSource === 'coach' || _roleForDataSource === 'hlv' || window.RoleReadBoundary?.isCoachAttendanceOnly?.() === true) {
+        if (_isCoachScopedRuntimeSession()) {
             const result = {
                 clubId: _clubId,
                 source: 'coach-scoped',
@@ -10446,6 +10408,22 @@ window.processMultiItem = async (action) => {
     window.runRuntimeDataRecovery = async function runRuntimeDataRecovery(reason) {
         reason = reason || 'manual';
         const state = window.__runtimeRecoveryState;
+
+        if (_isCoachScopedRuntimeSession()) {
+            state.checked = true; state.completed = true; state.activeDataSource = 'coach-scoped';
+            state.reason = 'Coach session skips full-club runtime recovery'; state.completedAt = Date.now();
+            if (window.__firestoreDataSourceMetrics) {
+                window.__firestoreDataSourceMetrics.source = 'coach-scoped';
+                window.__firestoreDataSourceMetrics.reason = state.reason;
+                window.__firestoreDataSourceMetrics.checkedAt = Date.now();
+            }
+            console.info('[RuntimeRecovery] Coach scoped session — skip full-club recovery probes.');
+            try {
+                if (typeof window.loadCoachBranchProfilesFallback === 'function') window.loadCoachBranchProfilesFallback('runtime-recovery-coach-skip');
+                else if (typeof window.mountActiveProfilesListenerIfNeeded === 'function') window.mountActiveProfilesListenerIfNeeded('runtime-recovery-coach-skip');
+            } catch (_) {}
+            return state;
+        }
 
         if (state.running) {
             console.debug('[RuntimeRecovery] Đang chạy — bỏ qua. reason=' + reason);
