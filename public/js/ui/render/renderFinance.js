@@ -35,20 +35,12 @@ import { getFinanceCachedHtml } from './computation/financeRenderer.js';
  */
 function _applyHtml(el, html) {
     if (!el) return;
-    const nextHtml = html || '';
-
-    // Phase 4K-6V4D10: avoid re-parsing/replacing the whole finance table when
-    // pagination + dashboard invalidations request the same tx.txList paint in
-    // quick succession. This fixes harmless but noisy Admin slow-render warnings.
-    if (el.__lastFinanceIslandHtml === nextHtml) return;
-    el.__lastFinanceIslandHtml = nextHtml;
-
-    if (!nextHtml) {
+    if (!html) {
         el.replaceChildren();
         return;
     }
     const tpl = document.createElement('template');
-    tpl.innerHTML = nextHtml;
+    tpl.innerHTML = html;
     el.replaceChildren(tpl.content);
 }
 

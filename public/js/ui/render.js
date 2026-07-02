@@ -59,7 +59,7 @@ import {
     computeAndCacheStudents,
     getStudentsSummary,
     getStudentsCachedHtml,
-} from './render/computation/studentsRenderer.js?v=coach-attendance-toggle-queue-fix-20260701-v5c';
+} from './render/computation/studentsRenderer.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a';
 import {
     computeAndCacheInventory,
     getCachedLiveInvMap,

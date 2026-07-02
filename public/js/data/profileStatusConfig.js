@@ -216,27 +216,7 @@ export function getQuitStatusValues() {
 export function classifyProfileStatus(profile) {
     if (!profile) return 'active';
 
-    // ── Phase 4K-6V5A: one canonical read gate for every tab. ──────────────
-    // Canonical fields win over legacy strings. Legacy fallback is used only
-    // when statusKind/isQuit are absent. This keeps Đang tập / Đã nghỉ /
-    // Điểm danh / Báo nợ consistent without forcing a bulk migration.
-    if (typeof window !== 'undefined'
-        && window.ProfileCanonicalBoundary
-        && typeof window.ProfileCanonicalBoundary.getCanonicalProfileReadStatus === 'function') {
-        const info = window.ProfileCanonicalBoundary.getCanonicalProfileReadStatus(profile);
-        return info && info.quit ? 'quit' : 'active';
-    }
-
-    // ── Phase 4K-6V5: fallback if classic boundary has not loaded yet. ─────
-    const _statusKind = String(profile.statusKind ?? '').toLowerCase().trim();
-    if (_statusKind === 'quit') return 'quit';
-    if (_statusKind === 'trial') return 'active';
-    if (_statusKind === 'active') {
-        if (profile.isQuit === true) return 'quit';
-        return 'active';
-    }
-
-    // ── 1. Boolean/date quit signals — legacy fallback only when canonical is missing.
+    // ── 1. Boolean/date quit signals — kiểm tra trước status string ──────────
     // Legacy profiles without status are treated as active unless explicitly quit.
     if (profile.quit === true || profile.stopped === true || profile.isQuit === true) return 'quit';
     if (profile.active === false || profile.isActive === false) return 'quit';

@@ -19,24 +19,23 @@ function check(name, ok) {
 }
 
 console.log('\n=== Phase 4K-6V4B8 — Quit Tab Mobile Parity ===\n');
-const build = 'coach-attendance-toggle-queue-fix-20260701-v5c';
-const compatBuilds = [build, 'coach-reminder-attendance-stability-20260701-v5b'];
-const appBuilds = [build, 'coach-reminder-attendance-stability-20260701-v5b', 'profile-canonical-store-runtime-recovery-20260628-v4d1a', 'profile-canonical-store-20260628-v4d1', 'tuition-debt-source-of-truth-20260628-v4c'];
+const build = 'profile-canonical-store-runtime-recovery-20260628-v4d1a';
+const appBuilds = [build, 'profile-canonical-store-20260628-v4d1', 'tuition-debt-source-of-truth-20260628-v4c'];
 
 check('Index cache-busts app.js and main.js with current quit-safe build',
-  appBuilds.some(b => index.includes(`app.js?v=${b}`)) && compatBuilds.some(b => index.includes(`./js/main.js?v=${b}`)));
+  appBuilds.some(b => index.includes(`app.js?v=${b}`)) && index.includes(`./js/main.js?v=${build}`));
 check('Main cache-busts all quit render/profile modules with current quit-safe build',
-  compatBuilds.some(b => main.includes(`./ui/render.js?v=${b}`)) &&
-  compatBuilds.some(b => main.includes(`./ui/render/renderStudents.js?v=${b}`)) &&
-  compatBuilds.some(b => main.includes(`./ui/render/renderInvalidation.js?v=${b}`)) &&
-  compatBuilds.some(b => main.includes(`./listeners/profiles.listeners.js?v=${b}`)) &&
-  compatBuilds.some(b => main.includes(`./modules/students.js?v=${b}`)));
+  main.includes(`./ui/render.js?v=${build}`) &&
+  main.includes(`./ui/render/renderStudents.js?v=${build}`) &&
+  main.includes(`./ui/render/renderInvalidation.js?v=${build}`) &&
+  main.includes(`./listeners/profiles.listeners.js?v=${build}`) &&
+  main.includes(`./modules/students.js?v=${build}`));
 check('Nested render imports use current build so mobile cannot reuse stale computation cache',
-  compatBuilds.some(b => renderJs.includes(`studentsRenderer.js?v=${b}`)) &&
-  compatBuilds.some(b => renderStudents.includes(`studentsRenderer.js?v=${b}`)) &&
-  compatBuilds.some(b => renderInvalidation.includes(`studentsRenderer.js?v=${b}`)) &&
-  compatBuilds.some(b => renderInvalidation.includes(`listComputationRefresh.js?v=${b}`)) &&
-  compatBuilds.some(b => listRefresh.includes(`studentsRenderer.js?v=${b}`)));
+  renderJs.includes(`studentsRenderer.js?v=${build}`) &&
+  renderStudents.includes(`studentsRenderer.js?v=${build}`) &&
+  renderInvalidation.includes(`studentsRenderer.js?v=${build}`) &&
+  renderInvalidation.includes(`listComputationRefresh.js?v=${build}`) &&
+  listRefresh.includes(`studentsRenderer.js?v=${build}`));
 check('renderQuitIsland never falls back to shared server pagination after authoritative quit load',
   renderStudents.includes('mobile authoritative render safety') &&
   renderStudents.includes('_quitLoaded') &&
@@ -67,9 +66,9 @@ check('Debug separation counts data-quit-id rows as well as legacy data-student-
   students.includes('r.dataset.quitId || r.dataset.studentId'));
 
 
-check('Authoritative render never clears quitList on cache miss',
+check('Authoritative mobile render never clears quitList on cache miss',
   renderStudents.includes('if (!_htmlQ && typeof window.refreshListComputation') &&
-  renderStudents.includes('_directPreview.count >= _cachedQuitRows') &&
+  renderStudents.includes('const direct = _buildAuthoritativeQuitRows()') &&
   !renderStudents.includes("_applyHtml(_target, _htmlQ || '')"));
 check('Mobile quit control is created outside the scrollable table when missing',
   renderStudents.includes("target.closest('.table-wrapper')") &&
@@ -82,17 +81,17 @@ check('Quit renderer uses legacy quit date fields in module row render as well',
   read('js/ui/render/computation/studentsRenderer.js').includes('p.quitDate || p.ngayNghi || p.inactiveDate || p.stoppedDate || p.leftDate || p.nghiDate'));
 
 
-check('Mobile/web quit renderer prefers authoritative rows after authoritative load',
-  renderStudents.includes('_isQuitMobileViewport() || !_htmlQ || _directPreview.count >= _cachedQuitRows') &&
-  renderStudents.includes('_buildAuthoritativeQuitRows({ mobileFull: true, forceAll: true') &&
-  renderStudents.indexOf('_directPreview.count >= _cachedQuitRows') < renderStudents.indexOf('if (!_htmlQ && typeof window.refreshListComputation'));
+check('Mobile quit renderer ignores cached/paginated quitRows after authoritative load',
+  renderStudents.includes('if (_isQuitMobileViewport())') &&
+  renderStudents.includes('_buildAuthoritativeQuitRows({ mobileFull: true, forceAll: true })') &&
+  renderStudents.indexOf('if (_isQuitMobileViewport())') < renderStudents.indexOf('if (!_htmlQ && typeof window.refreshListComputation'));
 check('Mobile quit row builder can force all rows instead of page-limited rows',
   renderStudents.includes('function _isQuitMobileViewport') &&
   renderStudents.includes('const forceAll = options.forceAll === true') &&
   renderStudents.includes('const limit = forceAll ? entries.length'));
 check('Mobile quit external control reports all rows instead of showing load-more',
-  renderStudents.includes('const limit = count') &&
-  renderStudents.includes("'Đã hiển thị đủ ' + count") &&
+  renderStudents.includes('const limit = mobileFull ? count') &&
+  renderStudents.includes("mobileFull ? 'Đã hiển thị đủ '") &&
   students.includes('const _mobileFull  = _isMobileViewport()') &&
   students.includes('const _quitLimit   = _mobileFull ? _quitEntries.length'));
 

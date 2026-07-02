@@ -71,7 +71,7 @@ check(!app.includes('XUẤT EXCEL BÁO CÁO ĐIỂM DANH THÁNG'), 'attendance E
 check(!app.includes('limit: monthly att export'), 'app.js no longer has the fixed 10,000 attendance export query');
 check(attendance.includes("ensureXlsxReady?.('export-attendance-excel')"), 'attendance module lazy-loads XLSX');
 check(attendance.includes("where('month', '==', month)"), 'attendance query remains scoped to selected month');
-check(attendance.includes('orderBy(documentIdFn ? documentIdFn() :') || attendance.includes('orderBy(documentId())'), 'attendance pagination uses stable document-id ordering');
+check(attendance.includes('orderBy(documentId())'), 'attendance pagination uses stable document-id ordering');
 check(attendance.includes('startAfter(cursor)'), 'attendance pagination advances with cursor');
 check(attendance.includes('limit(PAGE_SIZE)'), 'attendance pagination uses bounded page size');
 check(attendance.includes('MAX_PAGES = 200'), 'attendance pagination has a high but finite safety ceiling');

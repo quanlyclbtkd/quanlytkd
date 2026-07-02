@@ -4,17 +4,15 @@
  */
 (function initCoachBranchRuntimeRepair(global) {
   'use strict';
-  if (global.CoachBranchRuntimeRepair?.version === '4K-6V4D8') return;
+  if (global.CoachBranchRuntimeRepair?.version === '4K-6V4B1') return;
 
-  const fold = value => String(value ?? '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/\s+/g, ' ');
-  const codeFromConfig = (value, cfg) => { const f = fold(value); if (!f || !cfg) return ''; for (let i = 1; i <= 10; i++) { const name = String(cfg['branchName' + i] || '').trim(); if (name && fold(name) === f) return 'CS' + i; } return ''; };
-  const canonical = (value, fallback = '', cfg = null) => {
-    if (global.BranchIdentity?.normalize) return global.BranchIdentity.normalize(value, { fallback, config: cfg });
+  const canonical = (value, fallback = '') => {
+    if (global.BranchIdentity?.normalize) return global.BranchIdentity.normalize(value, { fallback });
     const raw = String(value || '').trim();
     if (!raw) return fallback;
     if (/^(mặc định|mac dinh|default)$/i.test(raw)) return 'CS1';
     const match = raw.match(/^CS0*([1-9]|10)$/i);
-    return match ? `CS${Number(match[1])}` : (codeFromConfig(raw, cfg) || fallback);
+    return match ? `CS${Number(match[1])}` : fallback;
   };
   const esc = value => String(value ?? '').replace(/[&<>'"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]));
   const sdk = () => global._fb_init || {};
@@ -27,19 +25,6 @@
   };
   const branchName = code => global.getBranchNameDisplay ? global.getBranchNameDisplay(code) : code;
   const branchCount = () => Math.max(1, Math.min(10, Number(global.__store?.clubConfig?.branchCount) || 1));
-  const readClubConfig = async (firestore, cid) => {
-    try {
-      const { doc, getDoc } = sdk();
-      if (!firestore || !cid || !doc || !getDoc) return {};
-      const snap = await getDoc(doc(firestore, 'clubs', cid, 'settings', 'main_config'));
-      const data = snap && snap.exists && snap.exists() ? (snap.data() || {}) : {};
-      if (global.BranchIdentity?.seedConfig) global.BranchIdentity.seedConfig(data);
-      return data;
-    } catch (error) {
-      console.warn('[CoachBranchRepair] settings/main_config read failed:', error && (error.code || error.message) || error);
-      return {};
-    }
-  };
   const selectId = uid => `coach_assigned_branch_${String(uid || '').replace(/[^A-Za-z0-9_-]/g, '_')}`;
   const options = selectedValue => {
     const selected = canonical(selectedValue);
@@ -65,29 +50,18 @@
     catch (error) { console.warn('[CoachBranchRepair] assignment read failed:', error.code || error.message); return result; }
     if (!snap.exists()) return result;
     const assigned = snap.data() || {};
-    const cfg = await readClubConfig(firestore, result.clubId);
-    const assignedRaw = assigned.branch || assigned.coachBranch || assigned.branchName || assigned.facility || assigned.base || assigned.coSo || assigned.coso || assigned.location || '';
-    const assignedBranch = canonical(assignedRaw, '', cfg) || canonical(context?.coachBranch || context?.branch || '', '', cfg);
-    const repaired = { ...result, coachBranch: assignedBranch || result.coachBranch };
-    if (!assignedBranch) return repaired;
-
-    // Phase 4K-6V4D4: every Coach login must self-heal the authorization mirror.
-    // Root cause: many legacy HLV users/{uid} docs had role='hlv'/missing clubId/branch.
-    // Firestore Rules then denied profile/attendance reads even when the Admin assignment
-    // clubs/{clubId}/coaches/{uid} was correct. The write is safe because Rules only
-    // allow it when it exactly matches that Admin assignment.
+    const assignedBranch = canonical(assigned.branch || assigned.coachBranch || '');
+    if (!assignedBranch || result.coachBranch === assignedBranch) return { ...result, coachBranch: assignedBranch || result.coachBranch };
     try {
       await setDoc(doc(firestore, 'users', result.uid), {
         role: 'coach', clubId: result.clubId, branch: assignedBranch, coachBranch: assignedBranch,
         email: user?.email || assigned.email || '', updatedAt: new Date().toISOString()
       }, { merge: true });
     } catch (cause) {
-      // Do not silently continue: without a repaired users/{uid}, security rules can
-      // still block profiles/attendance. Show one clear actionable login error.
-      const error = new Error('Cơ sở HLV chưa đồng bộ quyền truy cập. Admin cần deploy Rules mới rồi chạy “Đồng bộ tài khoản HLV cũ”.');
+      const error = new Error('Cơ sở HLV chưa đồng bộ. Admin cần chọn đúng cơ sở, bấm “Lưu cơ sở” rồi chạy “Đồng bộ tài khoản HLV cũ”.');
       error.code = 'auth/coach-branch-mirror-sync-failed'; error.cause = cause; throw error;
     }
-    return repaired;
+    return { ...result, coachBranch: assignedBranch };
   }
 
   async function loadCoachAccounts() {
@@ -208,6 +182,6 @@
     global.migrateCoachAccounts = migrateCoachAccounts;
   }
 
-  global.CoachBranchRuntimeRepair = Object.freeze({ version:'4K-6V4D8', resolveAuthContext, installAdminOverrides });
+  global.CoachBranchRuntimeRepair = Object.freeze({ version:'4K-6V4B1', resolveAuthContext, installAdminOverrides });
   installAdminOverrides();
 })(window);

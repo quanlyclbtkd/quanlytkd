@@ -19,7 +19,7 @@
  */
 
 import { registerRender } from './renderRegistry.js';
-import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=coach-attendance-toggle-queue-fix-20260701-v5c';
+import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a';
 
 // ─── Core DOM helper ────────────────────────────────────────────────────────
 
@@ -80,31 +80,11 @@ function _formatDateSafe(value) {
 }
 function _isQuitMobileViewport() {
     try {
-        const mm = window.matchMedia ? window.matchMedia.bind(window) : null;
-        return (mm && (mm('(max-width: 1024px)').matches || mm('(pointer: coarse)').matches))
-            || /Android|iPhone|iPad|iPod|Mobile/i.test(String(navigator && navigator.userAgent || ''))
-            || Number(window.innerWidth || 0) <= 1024;
+        return (window.matchMedia && window.matchMedia('(max-width: 767px)').matches) || Number(window.innerWidth || 0) <= 767;
     } catch (_) {
         return false;
     }
 }
-function _quitAuthorityReconciled() {
-    try {
-        const m = window.__profileScaleMetrics || (window.studentProfileStore && window.studentProfileStore.getProfileScaleMetrics && window.studentProfileStore.getProfileScaleMetrics()) || {};
-        return !!m.quitCompletenessReconciled;
-    } catch (_) { return false; }
-}
-function _isAdminContext() {
-    return String(window.userRole || window.currentUserRole || '').toLowerCase().includes('admin');
-}
-function _ensureQuitAuthorityFromRender(reason) {
-    try {
-        if (_isAdminContext() && !_quitAuthorityReconciled() && typeof window.ensureQuitProfilesAuthoritative === 'function') {
-            window.ensureQuitProfilesAuthoritative(reason || 'quit-render-authority');
-        }
-    } catch (_) {}
-}
-
 function _profileDisplayName(id, profile) {
     const p = profile || {};
     return String(p.name || p.fullName || p.displayName || p.studentName || p.memberName || id || '').trim();
@@ -115,17 +95,7 @@ function _getAuthoritativeQuitProfiles() {
         const storeQuit = window.studentProfileStore && typeof window.studentProfileStore.getQuitProfiles === 'function'
             ? (window.studentProfileStore.getQuitProfiles() || {})
             : {};
-        const compat = window.studentProfileStore && typeof window.studentProfileStore.getAllProfilesCompat === 'function'
-            ? (window.studentProfileStore.getAllProfilesCompat() || {})
-            : {};
-        const localQuit = (window.__store && window.__store._localQuitProfiles) || {};
-        Object.assign(merged, storeQuit, localQuit);
-        Object.entries(compat).forEach(([id, profile]) => {
-            const kind = typeof window.classifyProfileStatus === 'function'
-                ? window.classifyProfileStatus(profile)
-                : (profile && (profile.status === 'quit' || profile.status === 'inactive' || profile.active === false || profile.isActive === false || profile.quitDate || profile.ngayNghi) ? 'quit' : 'active');
-            if (kind === 'quit' && id && !merged[id]) merged[id] = profile;
-        });
+        Object.assign(merged, storeQuit);
     } catch (_) {}
     try {
         const canonicalStore = (window.__profileCanonicalStore || (window.ProfileCanonicalStore && window.ProfileCanonicalStore.ensure && window.ProfileCanonicalStore.ensure({ reason: 'quit-list-direct-fallback' }))) || null;
@@ -160,7 +130,7 @@ function _buildAuthoritativeQuitRows(options = {}) {
     // Phase 4K-6V4B6: mobile must show the full authoritative quit list.
     // Prior versions accepted the computation cache / page limit, so phones showed
     // only the first mobile page even though desktop and Firestore data were complete.
-    const forceAll = options.forceAll === true || options.fullList === true || options.mobileFull === true || _isQuitMobileViewport();
+    const forceAll = options.forceAll === true || (options.mobileFull === true && _isQuitMobileViewport());
     const limit = forceAll ? entries.length : (Math.max(1, window._quitPage || 1) * pageSize);
     const cfg = (window.__store && window.__store.clubConfig) || window.clubConfig || {};
     const isSingleBranch = Number(cfg.branchCount || 1) <= 1;
@@ -171,11 +141,7 @@ function _buildAuthoritativeQuitRows(options = {}) {
         const safeIdJs = _escapeJs(id);
         const belt = _escapeHtml(p.belt || '');
         const memberId = _escapeHtml(p.memberId || p.studentCode || p.code || '');
-        const _branchInfo = window.ProfileCanonicalBoundary && typeof window.ProfileCanonicalBoundary.getCanonicalProfileReadBranch === 'function'
-            ? window.ProfileCanonicalBoundary.getCanonicalProfileReadBranch(p)
-            : { branchCode: p.branchCode || p.branch || '' };
-        const _branchCode = _branchInfo.branchCode || p.branchCode || p.branch || '';
-        const branchTd = isSingleBranch ? '' : '<td><span class="badge bg-slate-100 text-slate-600 border border-slate-200">' + _escapeHtml(typeof window.getBranchNameDisplay === 'function' ? window.getBranchNameDisplay(_branchCode) : _branchCode) + '</span></td>';
+        const branchTd = isSingleBranch ? '' : '<td><span class="badge bg-slate-100 text-slate-600 border border-slate-200">' + _escapeHtml(typeof window.getBranchNameDisplay === 'function' ? window.getBranchNameDisplay(p.branch || '') : (p.branch || '')) + '</span></td>';
         const quitDate = _formatDateSafe(p.quitDate || p.ngayNghi || p.inactiveDate || p.stoppedDate || p.leftDate || p.nghiDate);
         return `<tr data-quit-id="${safeIdAttr}" data-profile-name="${display}"><td class="name-link text-[0.95rem]" onclick="openProfile('${safeIdJs}')">${display}</td><td class="text-[0.7rem] font-bold text-slate-500">${memberId || '-'}</td><td>${belt}</td>${branchTd}<td>${_formatDateSafe(p.dob)}</td><td>${_escapeHtml(quitDate) || '-'}</td><td>${isAdmin ? `<button type="button" class="btn-sm bg-emerald-50 text-emerald-700 border border-emerald-200" onclick="openProfile('${safeIdJs}')">🔄 Khôi phục</button>` : ''}</td></tr>`;
     }).join('');
@@ -201,7 +167,7 @@ function _syncQuitMobileControl() {
         count = Object.keys(_getAuthoritativeQuitProfiles()).length;
     } catch (_) { count = 0; }
     const pageSize = (window.__store && window.__store.pagination && window.__store.pagination.students && window.__store.pagination.students.pageSize) || 50;
-    const limit = count;
+    const limit = mobileFull ? count : ((window._quitPage || 1) * pageSize);
     const remaining = Math.max(0, count - limit);
     const btnStyle = 'style="padding:0.45rem 1.2rem;font-size:0.85rem;background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;border-radius:6px;cursor:pointer;font-weight:600;"';
     if (remaining > 0) {
@@ -211,7 +177,7 @@ function _syncQuitMobileControl() {
             + '</button></div>';
     } else if (count > 0) {
         ctrlEl.innerHTML = '<div style="text-align:center;padding:0.5rem 0;color:#94a3b8;font-size:0.8rem;">'
-            + 'Đã hiển thị đủ ' + count + ' võ sinh đã nghỉ</div>';
+            + (mobileFull ? 'Đã hiển thị đủ ' : 'Đã tải hết ') + count + ' võ sinh đã nghỉ</div>';
     } else {
         ctrlEl.innerHTML = '<div style="text-align:center;padding:0.5rem 0;color:#94a3b8;font-size:0.8rem;">Chưa có võ sinh đã nghỉ</div>';
     }
@@ -262,10 +228,8 @@ export function renderQuitIsland() {
     let _htmlQ = getStudentsCachedHtml('quitRows');
     const _target = document.getElementById('quitList');
     const _quitLoaded = !!(window.studentProfileStore && typeof window.studentProfileStore.isQuitLoaded === 'function' && window.studentProfileStore.isQuitLoaded());
-    _ensureQuitAuthorityFromRender('quit-island-render');
-    const _directPreview = _buildAuthoritativeQuitRows({ mobileFull: true, forceAll: true, fullList: true });
+    const _directPreview = _buildAuthoritativeQuitRows({ mobileFull: true, forceAll: _isQuitMobileViewport() });
     const _hasDirectQuit = _directPreview && _directPreview.count > 0;
-    const _quitAuthorityReady = _quitAuthorityReconciled();
 
     // Phase 4K-6V4D1A: V4D1 is read-only, but its audit store can be available
     // before the async quit lazy loader finishes. Do not show a partial/blank
@@ -281,11 +245,13 @@ export function renderQuitIsland() {
     // is still empty/stale. Never clear #quitList in that state; rebuild from
     // authoritative quitProfiles directly, then create an outside mobile control.
     if (_quitLoaded) {
-        const _cachedQuitRows = ((_htmlQ || '').match(/data-quit-id=/g) || []).length;
-        // Phase 4K-6V4D7: both web and mobile must prefer the authoritative full
-        // quit union. Previous web path could keep a stale/page-limited cached
-        // computation when counts were equal or cache had a load-more row.
-        if (_hasDirectQuit && (_quitAuthorityReady || _isQuitMobileViewport() || !_htmlQ || _directPreview.count >= _cachedQuitRows)) {
+        if (_isQuitMobileViewport()) {
+            const direct = _buildAuthoritativeQuitRows({ mobileFull: true, forceAll: true });
+            _applyHtml(_target, direct.html || '<tr data-quit-empty="1"><td colspan="7" style="text-align:center;color:#94a3b8;padding:16px;font-size:0.82rem;">Chưa có võ sinh đã nghỉ</td></tr>');
+            _syncQuitMobileControl();
+            return;
+        }
+        if (_hasDirectQuit && (!_htmlQ || (_directPreview.count > ((_htmlQ.match(/data-quit-id=/g) || []).length)))) {
             _applyHtml(_target, _directPreview.html);
             _syncQuitMobileControl();
             return;
@@ -297,7 +263,7 @@ export function renderQuitIsland() {
             } catch (_) {}
         }
         if (!_htmlQ) {
-            const direct = _buildAuthoritativeQuitRows({ forceAll: true, fullList: true });
+            const direct = _buildAuthoritativeQuitRows();
             _applyHtml(_target, direct.html || '<tr data-quit-empty="1"><td colspan="7" style="text-align:center;color:#94a3b8;padding:16px;font-size:0.82rem;">Chưa có võ sinh đã nghỉ</td></tr>');
             _syncQuitMobileControl();
             return;

@@ -65,13 +65,8 @@ const _state = {
     coachBranch:            '',
     coachBranchFallbackCount: 0,
     coachLegacyListenerKey: null,
-    coachAliasListenerKeys: [],
     coachCanonicalActiveMap: {},
     coachLegacyActiveMap: {},
-    coachAliasActiveMaps: {},
-    coachBranchFallbackScheduled: false,
-    coachPendingInvalidateReason: '',
-    coachInvalidateTimer: null,
 
     // ── Quit load ─────────────────────────────────────────────────────────────
     quitLoaded:             false,
@@ -82,8 +77,6 @@ const _state = {
     quitLoadingInProgress:  false,
     /** Phase 4K-6V4B3: full authoritative reconciliation for Admin quit tab */
     quitCompletenessReconciled: false,
-    /** Phase 4K-6V4D10: one guarded forced authority pass for Đã nghỉ */
-    quitAuthoritativeForceAttempted: false,
 
     // ── Full fallback loop guard (Phase 3.7C) ─────────────────────────────────
     /** Đang chạy fallback → chặn concurrent call */
@@ -127,26 +120,13 @@ const _state = {
 /** Context: lưu từ mountActiveProfilesListener, dùng cho lazy quit + fallback */
 let _ctx = null;
 
-function _effectiveContext(context = _ctx) {
-    const st = window.__store || {};
-    return Object.assign({}, context || {}, {
-        db: (context && context.db) || st.db || window.db || window._db || null,
-        clubId: (context && (context.clubId || context.currentClubId)) || st.currentClubId || st.clubId || window.currentClubId || '',
-        currentClubId: (context && (context.currentClubId || context.clubId)) || st.currentClubId || st.clubId || window.currentClubId || '',
-        profRef: (context && context.profRef) || st.profRef || window.profRef || null,
-        role: (context && context.role) || st.userRole || window.userRole || '',
-        coachBranch: (context && context.coachBranch) || st.coachBranch || window.coachBranch || '',
-    });
-}
-
 function _normalizeRole(value) {
     const role = String(value || '').trim().toLowerCase().replace(/-/g, '_');
     return role === 'hlv' ? 'coach' : (role === 'superadmin' ? 'super_admin' : role);
 }
 
 function _contextRole(context = _ctx) {
-    const ctx = _effectiveContext(context);
-    return _normalizeRole((ctx && ctx.role) || _state.role || window.userRole || window.__store?.userRole || '');
+    return _normalizeRole((context && context.role) || _state.role || window.userRole || window.__store?.userRole || '');
 }
 
 function _isCoachContext(context = _ctx) {
@@ -154,8 +134,7 @@ function _isCoachContext(context = _ctx) {
 }
 
 function _coachBranch(context = _ctx) {
-    const ctx = _effectiveContext(context);
-    const raw = (ctx && ctx.coachBranch) || _state.coachBranch || window.coachBranch || window.__store?.coachBranch || '';
+    const raw = (context && context.coachBranch) || _state.coachBranch || window.coachBranch || window.__store?.coachBranch || '';
     if (window.BranchIdentity?.normalize) return window.BranchIdentity.normalize(raw, { fallback: '' });
     const value = String(raw || '').trim();
     return /^(Mặc định|mac dinh|default)$/i.test(value) ? 'CS1' : value;
@@ -163,85 +142,12 @@ function _coachBranch(context = _ctx) {
 
 function _coachBranchAliases(context = _ctx) {
     const branch = _coachBranch(context);
-    const aliases = window.BranchIdentity?.aliases
-        ? window.BranchIdentity.aliases(branch)
-        : (branch === 'CS1' ? ['CS1', 'Mặc định'] : (branch ? [branch] : []));
-    try {
-        const m = String(branch || '').match(/^CS(?:0)?([1-9]|10)$/i);
-        const cfg = window.__store?.clubConfig || window.clubConfig || window.__store?.settings || {};
-        const display = m ? String(cfg['branchName' + Number(m[1])] || '').trim() : '';
-        if (display) aliases.push(display);
-    } catch (_) {}
-    const seen = new Set();
-    return aliases.map(v => String(v || '').trim()).filter(v => v && !seen.has(v.toLowerCase()) && seen.add(v.toLowerCase()));
-}
-
-const COACH_PROFILE_BRANCH_FIELDS = Object.freeze([
-    'branch', 'branchCode', 'branchId', 'branchLabel', 'coachBranch', 'clubBranch', 'studentBranch', 'trainingBranch', 'classBranch',
-    'branchName', 'facility', 'base', 'campus', 'campusName', 'site', 'trainingBase', 'trainingLocation',
-    'coso', 'coSo', 'co_so', 'coSoTap', 'noiTap', 'diaDiemTap', 'location'
-]);
-
-// Phase 4K-6V4D9: keep live listeners small and canonical. The broad legacy
-// branch-field sweep is one-shot fallback only; registering every legacy field
-// as onSnapshot caused permission-denied warnings and attendance render storms
-// for Coach accounts when rules/site cache were out of sync.
-const COACH_PROFILE_BRANCH_LIVE_FIELDS = Object.freeze([
-    'branch', 'branchCode', 'coachBranch', 'branchName', 'facility', 'base', 'coso', 'coSo'
-]);
-
-function _coachProfileQuerySpecs(context = _ctx, options = {}) {
-    const branch = _coachBranch(context);
-    if (!branch) return [];
-    const aliases = _coachBranchAliases(context);
-    const valuesByField = {
-        branch: aliases,
-        branchCode: [branch],
-        branchId: [branch],
-        branchLabel: aliases,
-        coachBranch: [branch],
-        clubBranch: [branch],
-        studentBranch: [branch],
-        trainingBranch: [branch],
-        classBranch: [branch],
-        branchName: aliases,
-        facility: aliases,
-        base: aliases,
-        campus: aliases,
-        campusName: aliases,
-        site: aliases,
-        trainingBase: aliases,
-        trainingLocation: aliases,
-        coso: aliases,
-        coSo: aliases,
-        co_so: aliases,
-        coSoTap: aliases,
-        noiTap: aliases,
-        diaDiemTap: aliases,
-        location: aliases,
-    };
-    const specs = [];
-    const seen = new Set();
-    const fieldList = Array.isArray(options.fields) && options.fields.length ? options.fields : COACH_PROFILE_BRANCH_FIELDS;
-    fieldList.forEach(field => {
-        (valuesByField[field] || []).forEach(value => {
-            const v = String(value || '').trim();
-            if (!v) return;
-            const key = field + ':' + v.toLowerCase();
-            if (seen.has(key)) return;
-            seen.add(key);
-            specs.push({ field, value: v, canonicalBranch: branch });
-        });
-    });
-    return specs;
+    if (window.BranchIdentity?.aliases) return window.BranchIdentity.aliases(branch);
+    return branch === 'CS1' ? ['CS1', 'Mặc định'] : (branch ? [branch] : []);
 }
 
 function _mergedCoachActiveMap() {
-    const mergedAliases = {};
-    try {
-        Object.values(_state.coachAliasActiveMaps || {}).forEach(map => Object.assign(mergedAliases, map || {}));
-    } catch (_) {}
-    return Object.assign({}, _state.coachLegacyActiveMap || {}, mergedAliases, _state.coachCanonicalActiveMap || {});
+    return Object.assign({}, _state.coachLegacyActiveMap || {}, _state.coachCanonicalActiveMap || {});
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -267,20 +173,10 @@ function _syncLegacy() {
  */
 function _invalidateAll(reason) {
     if (_isCoachContext()) {
-        // Phase 4K-6V4D9: coalesce Coach roster invalidations. Multiple branch
-        // queries can resolve in the same second; rendering attendance for each
-        // snapshot produced RenderStormWarning without adding new data value.
-        _state.coachPendingInvalidateReason = reason || _state.coachPendingInvalidateReason || 'coach-profile-update';
-        if (_state.coachInvalidateTimer) return;
-        _state.coachInvalidateTimer = setTimeout(() => {
-            const finalReason = _state.coachPendingInvalidateReason || reason || 'coach-profile-update';
-            _state.coachPendingInvalidateReason = '';
-            _state.coachInvalidateTimer = null;
-            if (typeof window.invalidateByDomain === 'function') window.invalidateByDomain('attendance', finalReason);
-            if (typeof window.renderAttendanceList === 'function') {
-                Promise.resolve().then(() => window.renderAttendanceList()).catch(() => {});
-            }
-        }, 80);
+        if (typeof window.invalidateByDomain === 'function') window.invalidateByDomain('attendance', reason);
+        if (typeof window.renderAttendanceList === 'function') {
+            Promise.resolve().then(() => window.renderAttendanceList()).catch(() => {});
+        }
         return;
     }
     // [GITHUB-FIX] Task 5: Dùng invalidateLists cho tất cả student lists nếu có
@@ -336,7 +232,6 @@ function _updateWindowMetrics() {
         quitQueryErrorCount:                _state.quitQueryErrorCount,
         quitLoadInProgress:                 _state.quitLoadingInProgress,
         quitLoadLastReason:                 _state.quitLoadLastReason,
-        quitCompletenessReconciled:         _state.quitCompletenessReconciled,
         // Fallback guard
         fallbackInProgress:                 _state.fallbackInProgress,
         fallbackCompleted:                  _state.fallbackCompleted,
@@ -534,12 +429,8 @@ export function mountActiveProfilesListener(context) {
                 const statusConstraint = statusValues.length === 1
                     ? fbWhere('status', '==', statusValues[0])
                     : fbWhere('status', 'in', statusValues);
-                // Phase 4K-6V4D7: Coach attendance needs the complete assigned-branch
-                // roster. Many legacy active profiles have missing/old status values,
-                // so status+branch queries silently under-load. Branch-only remains
-                // rules-safe for Coach and we filter quit profiles locally.
                 activeQuery = isCoach
-                    ? fbQuery(profRef, fbWhere('branchCode', '==', coachBranch))
+                    ? fbQuery(profRef, statusConstraint, fbWhere('branch', '==', coachBranch))
                     : fbQuery(profRef, statusConstraint);
             } catch (qErr) {
                 console.warn('[ProfilesListener] Build query lỗi:', qErr.message, '— fallback');
@@ -565,9 +456,7 @@ export function mountActiveProfilesListener(context) {
                     let activeMap = {};
                     snap.forEach(d => {
                         const id = d.id.trim();
-                        if (!id) return;
-                        const data = d.data();
-                        if (!isCoach || classifyProfileStatus(data) !== 'quit') activeMap[id] = data;
+                        if (id) activeMap[id] = d.data();
                     });
                     if (isCoach) {
                         _state.coachCanonicalActiveMap = activeMap;
@@ -589,7 +478,7 @@ export function mountActiveProfilesListener(context) {
                         if (_pG4k && _pQ4k && _pL4k && profRef) {
                             // [GITHUB-FIX Task 4] Await fallback + invalidate sau khi hoàn tất
                             const _probeQuery = isCoach
-                                ? _pQ4k(profRef, fbWhere('branchCode', '==', coachBranch), _pL4k(1))
+                                ? _pQ4k(profRef, fbWhere('branch', '==', coachBranch), _pL4k(1))
                                 : _pQ4k(profRef, _pL4k(1));
                             _pG4k(_probeQuery).then(async function(_probe) {
                                 if (typeof window.recordFirestoreReadAttribution === 'function') {
@@ -646,17 +535,57 @@ export function mountActiveProfilesListener(context) {
         }
     );
 
-    // Phase 4K-6V4D9: do not open live onSnapshot listeners for every legacy
-    // branch field. Use one guarded one-shot fallback after the canonical listener
-    // mounts. This keeps Coach roster recovery branch-scoped while preventing
-    // persistent permission-denied warning spam and render storms.
-    if (isCoach && !_state.coachBranchFallbackScheduled) {
-        _state.coachBranchFallbackScheduled = true;
-        setTimeout(() => {
-            loadCoachBranchProfilesFallback('coach-branch-legacy-one-shot-after-canonical');
-        }, 120);
+    // Phase 4K-6V4B: CS1 also reads the legacy primary-branch value `Mặc định`.
+    // A separate listener avoids combining two Firestore `in` filters
+    // (`status in [...]` + `branch in [...]`), which is not portable across SDK/index versions.
+    if (isCoach && coachBranch === 'CS1') {
+        const legacyKey = key + ':legacy-primary';
+        _state.coachLegacyListenerKey = legacyKey;
+        window.safeRegisterSnapshot(
+            legacyKey,
+            () => {
+                const statusConstraint = statusValues.length === 1
+                    ? fbWhere('status', '==', statusValues[0])
+                    : fbWhere('status', 'in', statusValues);
+                const legacyQuery = fbQuery(profRef, statusConstraint, fbWhere('branch', '==', 'Mặc định'));
+                return fbOnSnapshot(
+                    legacyQuery,
+                    (snap) => {
+                        if (typeof window.recordFirestoreSnapshotAttribution === 'function') {
+                            window.recordFirestoreSnapshotAttribution('profiles.activeLegacyPrimaryListener', snap, {
+                                initial: true,
+                                reason: 'legacy-primary-branch-compat'
+                            });
+                        }
+                        if (window.markListenerSnapshot) window.markListenerSnapshot(legacyKey);
+                        const legacyMap = {};
+                        snap.forEach(d => {
+                            const id = d.id.trim();
+                            if (id) legacyMap[id] = d.data();
+                        });
+                        _state.coachLegacyActiveMap = legacyMap;
+                        const merged = _mergedCoachActiveMap();
+                        setActiveProfiles(merged, 'coach-active-legacy-primary-snapshot');
+                        _syncLegacy();
+                        _state.activeListenerMounted = true;
+                        _state.lastProfilesMode = 'coach-active-canonical-plus-legacy';
+                        _invalidateAll('coach-active-legacy-primary-snapshot');
+                        _updateWindowMetrics();
+                    },
+                    (err) => {
+                        _state.activeQueryErrorCount++;
+                        console.warn('[ProfilesListener] Legacy primary branch query failed:', err.code || err.message);
+                    }
+                );
+            },
+            {
+                owner: 'students',
+                scope: 'global',
+                tabId: null,
+                reason: 'coach-legacy-primary-branch-compat-4K-6V4B',
+            }
+        );
     }
-
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -671,20 +600,14 @@ export function cleanupActiveProfilesListener(reason) {
     if (_state.activeListenerKey && window.removeListener) {
         window.removeListener(_state.activeListenerKey, reason || 'cleanup-active-profiles');
     }
-    if (Array.isArray(_state.coachAliasListenerKeys) && window.removeListener) {
-        _state.coachAliasListenerKeys.forEach(aliasKey => {
-            try { window.removeListener(aliasKey, reason || 'cleanup-coach-branch-alias-profiles'); } catch (_) {}
-        });
-    } else if (_state.coachLegacyListenerKey && window.removeListener) {
+    if (_state.coachLegacyListenerKey && window.removeListener) {
         window.removeListener(_state.coachLegacyListenerKey, reason || 'cleanup-coach-legacy-primary-profiles');
     }
     _state.activeListenerMounted = false;
     _state.activeListenerKey     = null;
     _state.coachLegacyListenerKey = null;
-    _state.coachAliasListenerKeys = [];
     _state.coachCanonicalActiveMap = {};
     _state.coachLegacyActiveMap = {};
-    _state.coachAliasActiveMaps = {};
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -736,8 +659,6 @@ export async function loadQuitProfilesIfNeeded(reason, contextOverride) {
 
     try {
         const quitQueries = [];
-        // Phase 4K-6V5: canonical quit query first; legacy status queries remain fallback.
-        quitQueries.push({ label: 'statusKind==quit', query: fbQuery(profRef, fbWhere('statusKind', '==', 'quit')) });
         if (quitValues.length === 1) {
             quitQueries.push({ label: 'status==quit', query: fbQuery(profRef, fbWhere('status', '==', quitValues[0])) });
         } else {
@@ -848,9 +769,8 @@ export async function loadQuitProfilesIfNeeded(reason, contextOverride) {
         // Targeted queries chỉ bắt được các schema đã biết; full fallback một lần/session
         // là nguồn authority duy nhất để không bỏ sót hồ sơ legacy lạ.
         if (!_state.quitCompletenessReconciled && !_state.fallbackInProgress && !_isCoachContext(ctx)) {
+            _state.quitCompletenessReconciled = true;
             const ok = await loadFullProfilesFallback('quit-tab-authoritative-reconcile:' + (reason || ''));
-            _state.quitCompletenessReconciled = !!ok;
-            _updateWindowMetrics();
             if (ok) return true;
         }
 
@@ -884,8 +804,8 @@ export function cleanupQuitProfilesListener(reason) {
 // COACH BRANCH-SAFE FALLBACK — never reads the full club collection
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function loadCoachBranchProfilesFallback(reason, contextOverride) {
-    const ctx = _effectiveContext(contextOverride || _ctx);
+export async function loadCoachBranchProfilesFallback(reason) {
+    const ctx = _ctx;
     const branch = _coachBranch(ctx);
     if (!_isCoachContext(ctx) || !ctx || !ctx.profRef || !branch) {
         console.warn('[ProfilesFallback] Coach branch fallback blocked — missing safe context:', reason);
@@ -899,53 +819,27 @@ export async function loadCoachBranchProfilesFallback(reason, contextOverride) {
 
     _state.fallbackInProgress = true;
     try {
-        const specs = _coachProfileQuerySpecs(ctx);
-        const snapshots = await Promise.all(specs.map(spec =>
-            fbGetDocs(fbQuery(ctx.profRef, fbWhere(spec.field, '==', spec.value)))
-                .then(snap => ({ spec, snap }))
-                .catch(err => ({ spec, error: err }))
+        const aliases = _coachBranchAliases(ctx);
+        const snapshots = await Promise.all(aliases.map(alias =>
+            fbGetDocs(fbQuery(ctx.profRef, fbWhere('branch', '==', alias)))
         ));
-        const docsRead = snapshots.reduce((sum, item) => sum + ((item.snap && item.snap.size) || 0), 0);
+        const docsRead = snapshots.reduce((sum, snap) => sum + (snap.size || 0), 0);
         if (typeof window.recordFirestoreReadAttribution === 'function') {
             window.recordFirestoreReadAttribution('profiles.coachBranchFallbackQuery', docsRead, {
                 initial: true,
                 reason: reason || 'coach-branch-fallback',
                 branch,
-                querySpecs: specs.map(s => s.field + '=' + s.value)
+                aliases
             });
         }
         const activeMap = {};
-        let queryErrors = 0;
-        snapshots.forEach(item => {
-            if (item.error) {
-                queryErrors++;
-                const errCode = item.error && (item.error.code || item.error.message) || item.error;
-                // Permission-denied on optional legacy fields is expected when older
-                // rules are still deployed or the configured branch name is not an
-                // exact match. Do not warn users; keep diagnostics in debug only.
-                if (String(errCode || '').indexOf('permission-denied') === -1) {
-                    console.warn('[ProfilesFallback] Coach branch-field query failed:', item.spec && (item.spec.field + '=' + item.spec.value), errCode);
-                } else {
-                    console.debug?.('[ProfilesFallback] Optional coach branch-field denied:', item.spec && (item.spec.field + '=' + item.spec.value));
-                }
-                return;
-            }
-            item.snap.forEach(d => {
-                const id = d.id.trim();
-                if (!id) return;
-                const data = d.data();
-                if (classifyProfileStatus(data) !== 'quit') activeMap[id] = data;
-            });
-        });
-        if (queryErrors && docsRead === 0) throw new Error('all coach branch-field queries failed');
-        let mergedActive = activeMap;
-        try {
-            const existing = window.studentProfileStore && typeof window.studentProfileStore.getActiveProfiles === 'function'
-                ? (window.studentProfileStore.getActiveProfiles() || {})
-                : {};
-            mergedActive = Object.assign({}, existing, activeMap);
-        } catch (_) {}
-        setActiveProfiles(mergedActive, 'coach-branch-fallback:' + reason);
+        snapshots.forEach(snap => snap.forEach(d => {
+            const id = d.id.trim();
+            if (!id) return;
+            const data = d.data();
+            if (classifyProfileStatus(data) !== 'quit') activeMap[id] = data;
+        }));
+        setActiveProfiles(activeMap, 'coach-branch-fallback:' + reason);
         setQuitProfiles({}, 'coach-branch-fallback:no-quit-data');
         _syncLegacy();
         _state.fallbackCompleted = true;
@@ -969,18 +863,6 @@ export async function loadCoachBranchProfilesFallback(reason, contextOverride) {
     }
 }
 
-/**
- * Phase 4K-6V4D7 — Coach roster reconciliation after settings branch aliases load.
- * The initial listener mounts before settings/main_config is available, so branchName
- * aliases can be missing. This guarded getDocs path reloads only the assigned branch
- * aliases, never the full club collection.
- */
-export async function ensureCoachBranchProfilesReady(reason, contextOverride) {
-    const ctx = _effectiveContext(contextOverride || _ctx);
-    if (!_isCoachContext(ctx)) return false;
-    return loadCoachBranchProfilesFallback(reason || 'ensure-coach-branch-profiles-ready', ctx);
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // FULL PROFILES FALLBACK — với loop guard (Phase 3.7C)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -996,7 +878,7 @@ export async function ensureCoachBranchProfilesReady(reason, contextOverride) {
  * @param {string} reason
  * @returns {Promise<boolean>}
  */
-export async function loadFullProfilesFallback(reason, options = {}) {
+export async function loadFullProfilesFallback(reason) {
     if (_isCoachContext()) {
         window.RoleReadBoundary?.canMount?.('profiles.full-fallback', { reason: reason || 'full-fallback' });
         return loadCoachBranchProfilesFallback('redirected-from-full:' + (reason || 'unknown'));
@@ -1007,8 +889,7 @@ export async function loadFullProfilesFallback(reason, options = {}) {
         return false;
     }
 
-    const _forceQuitAuthority = !!(options && options.forceQuitAuthoritative);
-    if (_state.fallbackCount >= _state.maxFallbackPerSession && !_forceQuitAuthority) {
+    if (_state.fallbackCount >= _state.maxFallbackPerSession) {
         console.warn(
             '[ProfilesFallback] Đạt maxFallbackPerSession (' + _state.maxFallbackPerSession + ') — stop. Reason:', reason
         );
@@ -1186,32 +1067,6 @@ export function isQuitProfilesLoaded() {
     return _state.quitLoaded;
 }
 
-/** Phase 4K-6V4D4: Ensure Admin Đã nghỉ has the full authoritative profile set. */
-export async function ensureQuitProfilesAuthoritative(reason) {
-    if (_isCoachContext()) {
-        window.RoleReadBoundary?.canMount?.('profiles.quit-authoritative', { reason: reason || 'quit-authoritative' });
-        return false;
-    }
-    if (_state.quitCompletenessReconciled && _state.quitLoaded) return true;
-    if (_state.fallbackInProgress) return false;
-
-    // Phase 4K-6V4D10: Đã nghỉ must be authoritative on web/mobile even if
-    // earlier active/coverage recovery has consumed the generic fallback quota.
-    // Use one guarded force pass for Admin only; never loop.
-    const force = !_state.quitAuthoritativeForceAttempted;
-    _state.quitAuthoritativeForceAttempted = true;
-    const ok = await loadFullProfilesFallback('quit-authoritative:' + (reason || 'unknown'), {
-        forceQuitAuthoritative: force,
-    });
-    _state.quitCompletenessReconciled = !!ok;
-    if (ok) {
-        _state.quitLoaded = true;
-        markQuitLoaded(true);
-    }
-    _updateWindowMetrics();
-    return !!ok;
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // RESET ALL (Phase 3.7C — reset _state fields mới)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1232,10 +1087,8 @@ export function resetProfilesListeners(reason) {
     _state.coachBranch             = '';
     _state.coachBranchFallbackCount = 0;
     _state.coachLegacyListenerKey = null;
-    _state.coachAliasListenerKeys = [];
     _state.coachCanonicalActiveMap = {};
     _state.coachLegacyActiveMap = {};
-    _state.coachAliasActiveMaps = {};
 
     // Quit
     _state.quitLoaded              = false;
@@ -1243,8 +1096,6 @@ export function resetProfilesListeners(reason) {
     _state.quitQueryErrorCount     = 0;
     _state.quitLoadLastReason      = '';
     _state.quitLoadingInProgress   = false;
-    _state.quitCompletenessReconciled = false;
-    _state.quitAuthoritativeForceAttempted = false;
 
     // Fallback guard
     _state.fallbackInProgress      = false;
@@ -1297,7 +1148,6 @@ export function getProfilesListenerMetrics() {
         quitQueryErrorCount:                _state.quitQueryErrorCount,
         quitLoadInProgress:                 _state.quitLoadingInProgress,
         quitLoadLastReason:                 _state.quitLoadLastReason,
-        quitCompletenessReconciled:         _state.quitCompletenessReconciled,
         // Fallback guard
         fallbackInProgress:                 _state.fallbackInProgress,
         fallbackCompleted:                  _state.fallbackCompleted,

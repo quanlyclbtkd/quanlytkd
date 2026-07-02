@@ -420,18 +420,7 @@ export function ensureProfilesForTab(tabId, reason) {
                 if (typeof window.loadQuitProfilesIfNeeded === 'function') {
                     window.loadQuitProfilesIfNeeded('ensure-quit-tab:' + (reason || ''));
                 }
-            } else if (typeof window.ensureQuitProfilesAuthoritative === 'function') {
-                window.ensureQuitProfilesAuthoritative('ensure-quit-tab-authoritative:' + (reason || ''));
             }
-            // Phase 4K-6V4D10: compatCount can be partial active/targeted data.
-            // Kick authority reconciliation whenever the Đã nghỉ tab is opened and
-            // the full quit pass has not been confirmed yet.
-            try {
-                const m = window.__profileScaleMetrics || {};
-                if (!m.quitCompletenessReconciled && typeof window.ensureQuitProfilesAuthoritative === 'function') {
-                    window.ensureQuitProfilesAuthoritative('ensure-quit-tab-force-authority:' + (reason || ''));
-                }
-            } catch (_) {}
             return _store.quitLoaded || compatCount > 0;
 
         case 'inventory':

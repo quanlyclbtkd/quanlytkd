@@ -50,8 +50,8 @@ import {
     normalizeYYYYMM,
     formatMonthCompact,
 } from '../utils/format.js';
-import { FinanceService } from '../services/finance.service.js?v=coach-attendance-toggle-queue-fix-20260701-v5c';
-import { StudentService } from '../services/students.service.js?v=coach-attendance-toggle-queue-fix-20260701-v5c';
+import { FinanceService } from '../services/finance.service.js?v=firestore-read-attribution-canonical-tx-boundary-20260616-v3a';
+import { StudentService } from '../services/students.service.js?v=firestore-read-attribution-canonical-tx-boundary-20260616-v3a';
 import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
 
 // ── Phase 4K-4D: Fallback classify helper (finance.js) ──
@@ -313,19 +313,7 @@ export function initFinance() {
         if (!confirm(confirmMsg)) return;
 
         // Xóa giao dịch chính
-        try {
-            await FinanceService.deleteTransaction(id);
-        } catch (deleteErr) {
-            console.error('[deleteTx] delete transaction failed:', deleteErr);
-            const code = deleteErr && (deleteErr.code || deleteErr.name || '');
-            const msg  = deleteErr && (deleteErr.message || String(deleteErr));
-            if (String(code).includes('permission-denied') || String(msg).includes('Missing or insufficient permissions')) {
-                alert('Không có quyền xóa giao dịch. Hãy deploy Firestore Rules bản mới hoặc đăng nhập bằng tài khoản Admin/SuperAdmin của CLB.');
-            } else {
-                alert('Không xóa được giao dịch: ' + (msg || deleteErr));
-            }
-            return;
-        }
+        await FinanceService.deleteTransaction(id);
 
         // Xóa bản ghi kho liên kết (nếu có)
         if (relatedInvId && relatedInvId !== 'undefined') {
@@ -371,11 +359,6 @@ export function initFinance() {
         // Refresh exam nếu có exam component
         if (impact && impact.requiresExamRefresh) {
             if (typeof window.renderExamList === 'function') window.renderExamList();
-        }
-
-        // Refresh transaction pagination/page after delete so the row disappears immediately.
-        if (typeof window.reloadTransactionsPage === 'function') {
-            try { await window.reloadTransactionsPage(); } catch (reloadErr) { console.warn('[deleteTx] reloadTransactionsPage failed:', reloadErr && reloadErr.message); }
         }
 
         // Refresh dashboard và lists
@@ -984,7 +967,7 @@ export function initTransactionPagination() {
         prepareNextPage, preparePreviousPage,
         renderPaginationControls, PAGE_SIZE,
     }) => {
-        import('../services/finance.service.js?v=coach-attendance-toggle-queue-fix-20260701-v5c').then(({ FinanceService }) => {
+        import('../services/finance.service.js?v=firestore-read-attribution-canonical-tx-boundary-20260616-v3a').then(({ FinanceService }) => {
 
             const store = window.__store;
             if (!store) { console.warn('[pagination/transactions] __store chưa sẵn sàng'); return; }
@@ -1118,14 +1101,10 @@ export function initTransactionPagination() {
                         }
                     })(pgState.currentItems, 'tx-pagination-page');
 
-                    // Phase 4K-6V4D10: one-page transaction load must not trigger
-                    // tx.txList render twice. V4D9 did invalidateList(tx) and then
-                    // invalidateFinance()/dashboard/refresh again, causing noisy slow-render
-                    // diagnostics on Admin login. Refresh computation once, paint tx island
-                    // once, then mark dashboard dirty separately.
-                    if (typeof window.refreshListsComputation === 'function') {
-                        window.refreshListsComputation(['tx.txList', 'dashboard.summary'], 'tx-pagination-data-hydrated');
-                    }
+                    // Phase 3.5D: Pagination chỉ ảnh hưởng tx.txList island — dùng list-level
+                    // invalidation thay vì invalidateFinance() (tránh cross-domain dashboard).
+                    // Fallback cascade an toàn: invalidateList → invalidateFinance → legacy.
+                    // Virtualization-ready boundary: 'tx.txList' là stable list boundary.
                     if (typeof window.invalidateList === 'function') {
                         window.invalidateList('tx.txList', 'tx-pagination');
                     } else if (typeof window.invalidateFinance === 'function') {
@@ -1135,8 +1114,20 @@ export function initTransactionPagination() {
                     } else if (typeof window.scheduleRender === 'function') {
                         window.scheduleRender();
                     }
+
+                    // [GITHUB-FIX Task 5] Thêm invalidation cho finance + dashboard
+                    // Doanh thu tháng không bị giữ 0 khi tx listener chưa hydrate
+                    if (typeof window.invalidateFinance === 'function') {
+                        window.invalidateFinance('tx-pagination-data-hydrated');
+                    }
                     if (typeof window.invalidateDashboard === 'function') {
                         window.invalidateDashboard('tx-pagination-data-hydrated');
+                    }
+                    if (typeof window.refreshListsComputation === 'function') {
+                        window.refreshListsComputation([
+                            'tx.txList',
+                            'dashboard.summary',
+                        ], 'tx-pagination-data-hydrated');
                     }
 
                     // Phase 4K-DATA-HYDRATION: Direct row inject vào #txList

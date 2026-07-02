@@ -31,7 +31,7 @@ const ownedNames = [
   '_getClubShifts', '_ensureClubShiftsLoaded', '_renderHomeBirthdayBanner',
   'showAttMemberHistory', 'renderAttendanceList', 'onShiftChange',
   'openShiftModal', 'closeShiftModal', 'addShift', 'deleteShift',
-  'toggleAttendance', 'toggleAttendanceFromCard', 'toggleAttendanceStatus', 'bulkCheckIn',
+  'toggleAttendance', 'toggleAttendanceStatus', 'bulkCheckIn',
   'syncOfflineAttendance', 'switchAttSubTab', 'renderAttMonthly',
   'printAttendanceStatus', 'printAttendanceSessionCompletion',
   'printAttendanceBranchReport',
@@ -236,7 +236,7 @@ try {
   const snapshot = globalThis.GlobalOwnershipRegistry.getSnapshot();
   const attendanceOwners = snapshot.registered.filter((item) => ownedNames.includes(item.name));
   check(!!api && globalThis.AttendanceModule === api, 'attendance init exposes a stable module API');
-  check(attendanceOwners.length === 20, 'all 20 attendance globals register at runtime');
+  check(attendanceOwners.length === 19, 'all 19 attendance globals register at runtime');
   check(attendanceOwners.every((item) => item.owner === 'js/modules/attendance.js' && item.installed), 'all attendance canonical globals are installed');
   check(snapshot.collisions.length === 0, 'attendance ownership creates no collision');
   check(ownedNames.every((name) => globalThis.GlobalOwnershipRegistry.getLegacyFallback(name) === fallbackRefs[name]), 'all attendance rollback references are preserved');

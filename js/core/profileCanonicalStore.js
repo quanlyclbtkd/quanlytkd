@@ -1,5 +1,5 @@
 /**
- * Phase 4K-6V5 — Profile Canonical Store Read-only Audit
+ * Phase 4K-6V4D1 — Profile Canonical Store Read-only Audit
  *
  * Purpose:
  *   - Build a read-only, in-memory canonical view of student profiles.
@@ -140,13 +140,7 @@
 
   function _branchRaw(raw) {
     var p = raw || {};
-    try {
-      if (global.ProfileCanonicalBoundary && typeof global.ProfileCanonicalBoundary.getCanonicalProfileReadBranch === 'function') {
-        var info = global.ProfileCanonicalBoundary.getCanonicalProfileReadBranch(p);
-        if (info && info.branchCode) return info.branchCode;
-      }
-    } catch (_) {}
-    return p.branchCode || p.branch || p.branchName || p.coachBranch || p.facility || p.base || p.coso || p.coSo || p.location || '';
+    return p.branch || p.branchCode || p.branchName || p.coachBranch || p.facility || p.base || p.coso || p.coSo || p.location || '';
   }
 
   function _branchCanonical(value) {

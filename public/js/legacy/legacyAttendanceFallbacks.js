@@ -26,7 +26,6 @@
     'addShift',
     'deleteShift',
     'toggleAttendance',
-    'toggleAttendanceFromCard',
     'toggleAttendanceStatus',
     'bulkCheckIn',
     'syncOfflineAttendance',

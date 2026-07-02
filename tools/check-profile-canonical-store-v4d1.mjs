@@ -19,20 +19,9 @@ function includes(file, text) { return read(file).includes(text); }
 console.log('\n🔍 Phase 4K-6V4D1 — Profile Canonical Store Read-only Audit checks\n');
 
 const build = 'profile-canonical-store-runtime-recovery-20260628-v4d1a';
-const runtimeBuild = 'coach-attendance-toggle-queue-fix-20260701-v5c';
-const acceptedRuntimeBuilds = [
-  'coach-attendance-toggle-queue-fix-20260701-v5c',
-  'coach-reminder-attendance-stability-20260701-v5b',
-  'profile-canonical-store-runtime-recovery-20260628-v4d1a'
-];
 const baseBuild = 'profile-canonical-store-20260628-v4d1';
 const version = '4K-6V4D1-profile-canonical-store-readonly-audit-20260628';
-const runtimeVersion = '4K-6V5C-coach-attendance-toggle-queue-fix-20260701';
-const acceptedRuntimeVersions = [
-  '4K-6V5C-coach-attendance-toggle-queue-fix-20260701',
-  '4K-6V5B-coach-reminder-attendance-stability-20260701',
-  version
-];
+const runtimeVersion = '4K-6V4D1A-profile-canonical-store-runtime-recovery-20260628';
 
 check('profileCanonicalStore.js exists', existsSync(resolve(root, 'js/core/profileCanonicalStore.js')));
 check('public mirror profileCanonicalStore.js exists', existsSync(resolve(root, 'public/js/core/profileCanonicalStore.js')));
@@ -44,16 +33,11 @@ const src = read('js/core/profileCanonicalStore.js');
 const publicSrc = read('public/js/core/profileCanonicalStore.js');
 
 check('index loads profileCanonicalStore after tuitionDebtCanonical and before app.js',
-  acceptedRuntimeBuilds.some(b =>
-    index.indexOf(`js/core/tuitionDebtCanonical.js?v=${b}`) > -1 &&
-    index.indexOf(`js/core/profileCanonicalStore.js?v=${b}`) > index.indexOf(`js/core/tuitionDebtCanonical.js?v=${b}`) &&
-    index.indexOf(`js/core/profileCanonicalStore.js?v=${b}`) < index.indexOf(`app.js?v=${b}`)
-  ));
-check('index cache-busts app.js and main.js to profile canonical compatible build',
-  acceptedRuntimeBuilds.some(b => index.includes(`app.js?v=${b}`) && index.includes(`./js/main.js?v=${b}`)));
-check('main.js retains V4D1 lineage marker', acceptedRuntimeVersions.some(v =>
-  main.includes(`APP_BUILD_VERSION = '${v}'`) || main.includes(`APP_PATCH_VERSION = '${v}'`)
-));
+  index.indexOf(`js/core/tuitionDebtCanonical.js?v=${build}`) > -1 &&
+  index.indexOf(`js/core/profileCanonicalStore.js?v=${build}`) > index.indexOf(`js/core/tuitionDebtCanonical.js?v=${build}`) &&
+  index.indexOf(`js/core/profileCanonicalStore.js?v=${build}`) < index.indexOf(`app.js?v=${build}`));
+check('index cache-busts app.js and main.js to V4D1A', index.includes(`app.js?v=${build}`) && index.includes(`./js/main.js?v=${build}`));
+check('main.js retains V4D1 lineage marker', main.includes(`APP_BUILD_VERSION = '${runtimeVersion}'`) || main.includes(`APP_PATCH_VERSION = '${runtimeVersion}'`) || main.includes(`APP_BUILD_VERSION = '${version}'`) || main.includes(`APP_PATCH_VERSION = '${version}'`));
 check('profile canonical store exports public debug/audit API',
   src.includes('window.ProfileCanonicalStore') || src.includes('global.ProfileCanonicalStore'));
 check('profile canonical store exposes getProfileCanonicalStoreStatus', src.includes('getProfileCanonicalStoreStatus'));

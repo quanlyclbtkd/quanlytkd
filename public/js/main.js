@@ -1,7 +1,6 @@
 // Phase 4K-6V3A compatibility: 4K-6V3A-firestore-read-attribution-canonical-transaction-boundary
 // Compatibility marker: multiItemInventorySafety.js?v=inventory-ledger-reconciliation-20260616-v2c
 // Phase compatibility APP_BUILD_VERSION markers for static safety checks:
-// APP_PATCH_VERSION = '4K-6V5C-coach-attendance-toggle-queue-fix-20260701'
 // APP_BUILD_VERSION = '4K-6V4D1A-profile-canonical-store-runtime-recovery-20260628'
 // APP_BUILD_VERSION = '4K-6V4C2-active-skipped-month-section-20260628'
 // APP_BUILD_VERSION = '4K-6V4B8-debt-two-month-vietnamese-month-normalization-20260627'
@@ -105,15 +104,15 @@ import { initFirebase }                        from './firebase/config.js';
 import { showToast, registerToastGlobal }      from './ui/toast.js';
 import { registerModalGlobals }                from './ui/modal.js';
 import { switchTab, registerTabGlobals }       from './ui/tabs.js';
-import { initRender }                          from './ui/render.js?v=coach-attendance-toggle-queue-fix-20260701-v5c';
+import { initRender }                          from './ui/render.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a';
 // Phase 3.4: Render Isolation Architecture — island initialisers + legacy shims
 import { initFinanceIslands, registerFinanceLegacyGlobals }     from './ui/render/renderFinance.js';
-import { initStudentIslands, registerStudentsLegacyGlobals }     from './ui/render/renderStudents.js?v=coach-attendance-toggle-queue-fix-20260701-v5c';
+import { initStudentIslands, registerStudentsLegacyGlobals }     from './ui/render/renderStudents.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a';
 import { initInventoryIslands, registerInventoryLegacyGlobals }  from './ui/render/renderInventory.js';
 import { initAttendanceIslands }                                  from './ui/render/renderAttendance.js';
 import { initDashboardIslands }                                   from './ui/render/renderDashboard.js';
 // Phase 3.5B: Render Invalidation & Lifecycle Stabilization
-import { registerInvalidationLegacyGlobals }                     from './ui/render/renderInvalidation.js?v=coach-attendance-toggle-queue-fix-20260701-v5c';
+import { registerInvalidationLegacyGlobals }                     from './ui/render/renderInvalidation.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a';
 import { registerLoadingGlobals, showLoading, hideLoading, forceHideLoading } from './ui/loading.js';
 import {
     getLocalToday, formatDate, formatMonth,
@@ -263,10 +262,7 @@ import {
     getQuitStatusValues,
     getProfilesListenerMetrics,
     ensureAllProfilesForExport,
-    ensureQuitProfilesAuthoritative,
-    loadCoachBranchProfilesFallback,
-    ensureCoachBranchProfilesReady,
-} from './listeners/profiles.listeners.js?v=coach-attendance-toggle-queue-fix-20260701-v5c';
+} from './listeners/profiles.listeners.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a';
 
 // ── Phase 3.7C: Profile Status Config ────────────────────────────────────────
 import {
@@ -320,7 +316,7 @@ import {
 } from './firebase/paginatedQuery.js';
 
 // ── Phase 2d–3.2A: Business modules (eager — cần khi login) ────
-import { initStudents, initStudentPagination }        from './modules/students.js?v=coach-attendance-toggle-queue-fix-20260701-v5c';
+import { initStudents, initStudentPagination }        from './modules/students.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a';
 // PHẦN 1 FIX + Phase 4K-2: Unified Search Controller — real cache + SearchBlob + stale guard
 import {
     initGlobalSearchRuntime,
@@ -329,56 +325,10 @@ import {
     invalidateSearchCache,
     debugSearchPerformance,
 } from './modules/searchRuntime.js';
-// Phase 4K-6V4D7: Finance is non-critical for Coach attendance-only sessions.
-// Keep main.js bootable even if finance.service.js is stale/503; load finance lazily
-// only for Admin/Owner/Viewer workflows that actually need money/inventory tabs.
-var __financeModulePromise = null;
-var __financeModule = null;
-function _coachAttendanceOnlyRuntime() {
-    try { return window.RoleReadBoundary?.isCoachAttendanceOnly?.() === true || String(window.userRole || '').toLowerCase() === 'coach'; }
-    catch (_) { return String(window.userRole || '').toLowerCase() === 'coach'; }
-}
-async function ensureFinanceModuleLoaded(reason = 'finance-needed') {
-    if (_coachAttendanceOnlyRuntime()) {
-        console.info('[FinanceLazy] Skip finance module for Coach attendance-only session:', reason);
-        return null;
-    }
-    if (__financeModule) return __financeModule;
-    if (!__financeModulePromise) {
-        __financeModulePromise = import('./modules/finance.js?v=coach-attendance-toggle-queue-fix-20260701-v5c')
-            .then((mod) => {
-                __financeModule = mod;
-                try { mod.registerFinanceUiGlobals?.(); } catch (_) {}
-                return mod;
-            })
-            .catch((err) => {
-                __financeModulePromise = null;
-                console.warn('[FinanceLazy] Finance module unavailable; attendance runtime remains active:', err && (err.code || err.message) || err);
-                return null;
-            });
-    }
-    return __financeModulePromise;
-}
-function registerFinanceUiGlobals(...args) {
-    if (__financeModule && typeof __financeModule.registerFinanceUiGlobals === 'function') {
-        return __financeModule.registerFinanceUiGlobals(...args);
-    }
-    if (!_coachAttendanceOnlyRuntime()) ensureFinanceModuleLoaded('registerFinanceUiGlobals');
-    return false;
-}
-function initFinance(...args) {
-    if (_coachAttendanceOnlyRuntime()) return false;
-    ensureFinanceModuleLoaded('initFinance').then((mod) => mod?.initFinance?.(...args));
-    return true;
-}
-function initTransactionPagination(...args) {
-    if (_coachAttendanceOnlyRuntime()) return false;
-    ensureFinanceModuleLoaded('initTransactionPagination').then((mod) => mod?.initTransactionPagination?.(...args));
-    return true;
-}
+import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from './modules/finance.js?v=payment-bundle-runtime-hotfix-20260616-v3a1';
 import { initInventory }                              from './modules/inventory.js?v=payment-bundle-runtime-hotfix-20260616-v3a1';
 // Compatibility marker: from './modules/attendance.js'
-import { initAttendance }                             from './modules/attendance.js?v=coach-attendance-toggle-queue-fix-20260701-v5c';
+import { initAttendance }                             from './modules/attendance.js?v=coach-branch-runtime-repair-20260627-v4b1';
 import { initDashboard }                              from './modules/dashboard.js?v=payment-bundle-runtime-hotfix-20260616-v3a1';
 // ── Phase 4K-6U: Heavy Reports module is lazy-loaded by reportExportFacade.js ──
 // ── Phase 4.0B-1: SuperAdmin — eager import trên HTTP/HTTPS ─────
@@ -1663,42 +1613,6 @@ function _waitForExistingLegacyApp(ms) {
         initFinance();
         initInventory();
         initAttendance();
-        // Phase 4K-6V4D8: Coach roster recovery after Attendance renderer exists.
-        // Root cause: app.js can receive the branch-scoped snapshot before
-        // attendance.js exposes renderAttendanceList(); the UI then remains empty.
-        try {
-            if (window.RoleReadBoundary?.isCoachAttendanceOnly?.() === true || String(window.userRole || '').toLowerCase() === 'coach') {
-                const _coachRosterContext = function(reason) {
-                    const st = window.__store || {};
-                    return {
-                        db: st.db || window.db || window._db || null,
-                        clubId: st.currentClubId || st.clubId || window.currentClubId || '',
-                        currentClubId: st.currentClubId || st.clubId || window.currentClubId || '',
-                        profRef: st.profRef || window.profRef || null,
-                        role: st.userRole || window.userRole || 'coach',
-                        coachBranch: st.coachBranch || window.coachBranch || '',
-                        reason: reason || 'post-attendance-init',
-                    };
-                };
-                const _retryCoachRoster = function(reason) {
-                    try {
-                        const ctx = _coachRosterContext(reason);
-                        if (typeof window.ensureCoachBranchProfilesReady === 'function') {
-                            Promise.resolve(window.ensureCoachBranchProfilesReady(reason, ctx)).finally(function() {
-                                if (typeof window.renderAttendanceList === 'function') window.renderAttendanceList();
-                            });
-                        } else if (typeof window.renderAttendanceList === 'function') {
-                            window.renderAttendanceList();
-                        }
-                    } catch (err) {
-                        console.warn('[CoachAttendance] post-attendance roster recovery failed:', err && (err.code || err.message) || err);
-                    }
-                };
-                setTimeout(function(){ _retryCoachRoster('post-attendance-init'); }, 0);
-                setTimeout(function(){ _retryCoachRoster('post-attendance-init-settings-wait'); }, 900);
-                setTimeout(function(){ _retryCoachRoster('post-attendance-init-cache-late'); }, 2200);
-            }
-        } catch (_) {}
         // Phase 4K-6U: reports.js and attendanceExcelReport.js load only on export.
 
         // [Phase 4.0B-1] SuperAdmin — eager init ngay sau khi app context sẵn sàng.
@@ -2212,9 +2126,6 @@ function _waitForExistingLegacyApp(ms) {
 
         // ── Phase 3.7C: Status Config + Export helper + Debug ─────────────────
         window.ensureAllProfilesForExport   = ensureAllProfilesForExport;
-        window.ensureQuitProfilesAuthoritative = ensureQuitProfilesAuthoritative;
-        window.loadCoachBranchProfilesFallback = loadCoachBranchProfilesFallback;
-        window.ensureCoachBranchProfilesReady = ensureCoachBranchProfilesReady;
         window.getProfileStatusConfig       = getProfileStatusConfig;
         window.setProfileStatusConfigForDebug = setProfileStatusConfigForDebug;
         window.resetProfileStatusConfig     = resetProfileStatusConfig;
@@ -3213,7 +3124,7 @@ window.debugProfileModalClose = function() {
 // PHẦN 1 — APP BUILD VERSION
 window.APP_BUILD_VERSION = '4K-6V2-inventory-history-pagination-complete-active-debt-20260616';
 // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
-window.APP_PATCH_VERSION = '4K-6V5C-coach-attendance-toggle-queue-fix-20260701';
+window.APP_PATCH_VERSION = '4K-6V4D1A-profile-canonical-store-runtime-recovery-20260628';
 window.APP_COPYRIGHT_OWNER   = 'Tình Trương';
 window.APP_PRODUCT_NAME      = 'Taekwondo Club Management Web App';
 window.APP_SECURITY_PHASE    = '4K-6E-scale-readiness-write-safety';
@@ -5362,38 +5273,14 @@ window.reconcileStudentTuitionAfterDeletedTransaction = async function(studentNa
             return { ok: false, reason: 'no-profile' };
         }
 
-        // Lấy danh sách transactions còn lại.
-        // Phase 4K-6V4D11: authoritative Firestore read after delete.
-        // The paginated tx cache only contains the visible month/page, so using it
-        // can incorrectly keep/clear paid months after deleting an old tuition tx.
-        var txs = [];
+        // Lấy danh sách transactions còn lại
+        var txs =
+            Array.isArray(st.allTransactions)  ? st.allTransactions :
+            Array.isArray(window.allTransactions) ? window.allTransactions :
+            Array.isArray(st.transactions)     ? st.transactions :
+            [];
+
         var deletedTxId = deletedTx && deletedTx.id ? deletedTx.id : '';
-        try {
-            var sdk = window._fb_init || {};
-            var db  = st.db || window.db;
-            var clubId = st.clubId || st.currentClubId || window.currentClubId;
-            if (sdk.getDocs && sdk.query && sdk.collection && sdk.where && db && clubId && studentName) {
-                var snap = await sdk.getDocs(sdk.query(
-                    sdk.collection(db, 'clubs', clubId, 'transactions'),
-                    sdk.where('description', '==', studentName)
-                ));
-                if (snap && typeof snap.forEach === 'function') {
-                    snap.forEach(function(d) {
-                        if (!d || d.id === deletedTxId) return;
-                        txs.push(Object.assign({ id: d.id }, d.data ? d.data() : {}));
-                    });
-                }
-            }
-        } catch (fetchErr) {
-            console.warn('[reconcile] Không đọc được giao dịch còn lại từ Firestore, dùng cache tạm:', fetchErr && fetchErr.message ? fetchErr.message : fetchErr);
-        }
-        if (!txs.length) {
-            txs =
-                Array.isArray(st.allTransactions)  ? st.allTransactions :
-                Array.isArray(window.allTransactions) ? window.allTransactions :
-                Array.isArray(st.transactions)     ? st.transactions :
-                [];
-        }
 
         // paidMonths hiện tại
         var currentPaidMonths = Array.isArray(profile.paidMonths)

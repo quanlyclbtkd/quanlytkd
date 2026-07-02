@@ -26,42 +26,6 @@ function _safeStorageSet(key, value) {
   }
 }
 
-
-function _normalizeRole(value) {
-  const role = String(value || '').trim().toLowerCase().replace(/-/g, '_');
-  if (role === 'hlv' || role === 'trainer') return 'coach';
-  if (role === 'superadmin') return 'super_admin';
-  return role;
-}
-
-function _currentRole() {
-  try {
-    if (typeof window !== 'undefined' && window.RoleReadBoundary && typeof window.RoleReadBoundary.readContext === 'function') {
-      const ctx = window.RoleReadBoundary.readContext() || {};
-      const rbRole = _normalizeRole(ctx.role || '');
-      if (rbRole) return rbRole;
-    }
-  } catch (_) {}
-  try {
-    if (typeof window !== 'undefined') {
-      const store = window.__store || {};
-      return _normalizeRole(window.userRole || store.userRole || store.role || '');
-    }
-  } catch (_) {}
-  return '';
-}
-
-function _canShowMonthlyReminder() {
-  const role = _currentRole();
-  if (!role || role === 'coach') return false;
-  return role === 'admin' || role === 'super_admin' || role === 'viewer' || role === 'club_admin';
-}
-
-function _hideMonthlyReminder() {
-  const reminder = _getElement('monthlyReminder');
-  if (reminder) reminder.style.display = 'none';
-}
-
 function _asDate(value) {
   if (value instanceof Date && !Number.isNaN(value.getTime())) return value;
   const parsed = value ? new Date(value) : new Date();
@@ -92,13 +56,9 @@ export function closeMobileMenu() {
 }
 
 export function checkMonthlyReminder(now) {
-  if (!_canShowMonthlyReminder()) {
-    _hideMonthlyReminder();
-    return false;
-  }
   const today = _asDate(now);
   const day = today.getDate();
-  if (day < 1 || day > 3) { _hideMonthlyReminder(); return false; }
+  if (day < 1 || day > 3) return false;
 
   const monthKey = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0');
   if (_safeStorageGet('mrDismissed_' + monthKey)) return false;
@@ -125,10 +85,6 @@ export function dismissMonthlyReminder(now) {
 }
 
 export function openMonthlyExport(now) {
-  if (!_canShowMonthlyReminder()) {
-    _hideMonthlyReminder();
-    return false;
-  }
   const today = _asDate(now);
   dismissMonthlyReminder(today);
 

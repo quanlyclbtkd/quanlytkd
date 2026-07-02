@@ -33,7 +33,7 @@ const appPos = index.lastIndexOf('app.js?v=');
 check('Canonical branch identity loads before role boundary and app kernel',
   branchPos >= 0 && rolePos > branchPos && appPos > rolePos);
 check('All 6V4B runtime entry assets share one cache-bust marker',
-  ((index.match(/coach-branch-runtime-repair-20260627-v4b1/g) || []).length >= 5 || index.includes('superadmin-access-recovery-20260630-v4d12')));
+  (index.match(/coach-branch-runtime-repair-20260627-v4b1/g) || []).length >= 5);
 check('Coach account selector has no unrestricted/all-branch option',
   /id="coach_branch"[\s\S]{0,600}<option value="CS1">/.test(index) &&
   !/id="coach_branch"[\s\S]{0,600}Tất cả cơ sở \(không giới hạn\)/.test(index));
@@ -59,12 +59,12 @@ check('New single-branch student writes use CS1 rather than legacy Mặc định
   app.includes("isSingleBranch ? 'CS1'") && students.includes("isSingleBranch ? 'CS1'") &&
   !/branch\s*:\s*['"]Mặc định['"]/.test(app + '\n' + students));
 check('Coach CS1 profile listener reads legacy Mặc định in a separate scoped listener',
-  profiles.includes('_coachBranchAliases(context)') &&
-  (profiles.includes("fbWhere('branch', '==', alias)") || profiles.includes("fbWhere(spec.field, '==', spec.value)")) &&
-  profiles.includes('coachAliasActiveMaps'));
+  profiles.includes("coachBranch === 'CS1'") &&
+  profiles.includes("fbWhere('branch', '==', 'Mặc định')") &&
+  profiles.includes('coachLegacyActiveMap'));
 check('Coach fallback queries only assigned branch aliases and de-duplicates results',
-  (profiles.includes('_coachBranchAliases(ctx)') || profiles.includes('_coachBranchAliases(context)') || profiles.includes('function _coachProfileQuerySpecs')) &&
-  (profiles.includes("fbWhere('branch', '==', alias)") || profiles.includes("fbWhere(spec.field, '==', spec.value)")) &&
+  profiles.includes('_coachBranchAliases(ctx)') &&
+  profiles.includes("fbWhere('branch', '==', alias)") &&
   profiles.includes('snapshots.forEach'));
 check('Attendance reads are branch-scoped and missing Coach branch fails closed',
   attendance.includes('_branchConstraint(where, branch, isCoach)') &&
@@ -74,7 +74,7 @@ check('Attendance writes canonicalize branch at one service boundary',
   attendance.includes("return { ...source, branch: canonical }") &&
   (attendance.match(/_prepareWriteData\(/g) || []).length >= 4);
 
-check('Rules identify the 6V4B security phase', rules.includes('Phase 4K-6V4D4') || rules.includes('Phase 4K-6V4B'));
+check('Rules identify the 6V4B security phase', rules.includes('Phase 4K-6V4B'));
 check('Rules require an enabled user authorization document',
   rules.includes('function userEnabled()') && rules.includes("['disabled', 'locked', 'suspended']"));
 const selfFieldFn = (rules.match(/function safeSelfUserFieldsOnly\(\) \{([\s\S]*?)\n    \}/) || [,''])[1];
@@ -90,7 +90,7 @@ check('Club Admin may provision/repair only same-tenant Coach users with a valid
   rules.includes('function targetIsValidCoachInMyClub(data)') &&
   rules.includes('isAllowedCoachBranch(assignedBranch(data))'));
 check('Coach profile reads are enforced by Firestore branch authorization',
-  /match \/profiles\/\{profileId\}[\s\S]{0,450}isCoach\(clubId\)[\s\S]{0,160}(resourceBranchMatchesCoach|resourceProfileBranchMatchesCoach)/.test(rules));
+  /match \/profiles\/\{profileId\}[\s\S]{0,350}isCoach\(clubId\)[\s\S]{0,120}resourceBranchMatchesCoach/.test(rules));
 check('Coach attendance create/update/delete are branch-scoped in Rules',
   /match \/attendance\/\{attendanceId\}[\s\S]{0,900}requestBranchMatchesCoach/.test(rules) &&
   /resourceBranchMatchesCoach\(\)[\s\S]{0,150}requestBranchMatchesCoach\(\)/.test(rules));
@@ -107,7 +107,7 @@ check('Coach settings access is limited to main_config and shifts compatibility 
   rules.includes("settingId in ['main_config', 'shifts']"));
 check('CS1 and Mặc định compatibility exists only as an explicit primary alias',
   rules.includes("branchValue in ['CS1', 'Mặc định']") &&
-  branchIdentity.includes("if (code === 'CS1') out.push('Mặc định')"));
+  branchIdentity.includes("code === 'CS1' ? ['CS1', 'Mặc định']"));
 
 check('Callable authorization uses Firestore role/tenant data, not email allowlists',
   authz.includes("['admin', 'owner'].includes(userRole)") &&

@@ -1,7 +1,7 @@
 rules_version = '2';
 // ══════════════════════════════════════════════════════════════════════════════
 // Firestore Security Rules — Taekwondo Club Management SaaS
-// Phase 4K-6V5 — Canonical Profile Status + Branch Index Boundary
+// Phase 4K-6V4B1 — Coach Branch Assignment + Runtime Mirror Repair
 //
 // Mục tiêu:
 //   • Client UI không còn là lớp bảo vệ duy nhất.
@@ -11,7 +11,7 @@ rules_version = '2';
 //
 // Tương thích dữ liệu cũ:
 //   • CS1 và "Mặc định" được xem là cùng cơ sở chính trong giai đoạn chuyển tiếp.
-//   • Dữ liệu mới phải ghi branch chuẩn CS1…CS10 và statusKind/isQuit canonical.
+//   • Dữ liệu mới phải ghi branch chuẩn CS1…CS10.
 //
 // BẮT BUỘC: chạy Firebase Rules Emulator trước khi deploy production.
 // ══════════════════════════════════════════════════════════════════════════════
@@ -57,36 +57,10 @@ service cloud.firestore {
         && !(currentUser().get('status', 'active') in ['disabled', 'locked', 'suspended']);
     }
 
-    // Phase 4K-6V4D12: SuperAdmin compatibility boundary.
-    // The app historically used several equivalent SuperAdmin markers:
-    //   - Auth email fast-path: admin@tstquynhon.com
-    //   - Custom claim role='super_admin' or legacy role='superadmin'
-    //   - users/{uid}.role='super_admin' or legacy aliases
-    //   - super_admins/{uid} marker document
-    // Firestore Rules must recognize the same canonical set; otherwise the UI
-    // may enter ROOT mode but list/read queries are denied.
-    function isSuperAdminRoleValue(roleValue) {
-      return roleValue in [
-        'super_admin',
-        'superadmin',
-        'root',
-        'root_admin',
-        'admin_root'
-      ];
-    }
-
-    function isTrustedSuperAdminEmail() {
-      return signedIn()
-        && request.auth.token.get('email', '') in ['admin@tstquynhon.com'];
-    }
-
     function isSuperAdmin() {
       return signedIn() && (
-        isTrustedSuperAdminEmail()
-        || isSuperAdminRoleValue(request.auth.token.get('role', ''))
-        || isSuperAdminRoleValue(request.auth.token.get('userRole', ''))
-        || isSuperAdminRoleValue(request.auth.token.get('adminRole', ''))
-        || (hasUserDoc() && isSuperAdminRoleValue(myRole()))
+        request.auth.token.get('role', '') == 'super_admin'
+        || (hasUserDoc() && myRole() == 'super_admin')
         || exists(/databases/$(database)/documents/super_admins/$(request.auth.uid))
       );
     }
@@ -117,13 +91,6 @@ service cloud.firestore {
         && isAllowedCoachBranch(myBranch());
     }
 
-    function hasCoachAssignmentDoc(clubId) {
-      return signedIn()
-        && exists(/databases/$(database)/documents/clubs/$(clubId)/coaches/$(request.auth.uid))
-        && get(/databases/$(database)/documents/clubs/$(clubId)/coaches/$(request.auth.uid)).data.get('role', '') == 'coach'
-        && get(/databases/$(database)/documents/clubs/$(clubId)/coaches/$(request.auth.uid)).data.get('clubId', '') == clubId;
-    }
-
     function isAdminOrViewer(clubId) {
       return isClubAdmin(clubId) || isClubViewer(clubId);
     }
@@ -133,63 +100,16 @@ service cloud.firestore {
       return branchValue in ['CS1', 'Mặc định'];
     }
 
-    function branchNameMatchesCode(clubId, branchValue, branchCode) {
-      let cfg = get(/databases/$(database)/documents/clubs/$(clubId)/settings/main_config).data;
-      return (branchCode == 'CS1'  && branchValue == cfg.get('branchName1',  ''))
-        || (branchCode == 'CS2'  && branchValue == cfg.get('branchName2',  ''))
-        || (branchCode == 'CS3'  && branchValue == cfg.get('branchName3',  ''))
-        || (branchCode == 'CS4'  && branchValue == cfg.get('branchName4',  ''))
-        || (branchCode == 'CS5'  && branchValue == cfg.get('branchName5',  ''))
-        || (branchCode == 'CS6'  && branchValue == cfg.get('branchName6',  ''))
-        || (branchCode == 'CS7'  && branchValue == cfg.get('branchName7',  ''))
-        || (branchCode == 'CS8'  && branchValue == cfg.get('branchName8',  ''))
-        || (branchCode == 'CS9'  && branchValue == cfg.get('branchName9',  ''))
-        || (branchCode == 'CS10' && branchValue == cfg.get('branchName10', ''));
-    }
-
-    function branchValueMatchesCode(clubId, branchValue, branchCode) {
-      return branchValue == branchCode
-        || (isPrimaryBranchAlias(branchValue) && isPrimaryBranchAlias(branchCode))
-        || branchNameMatchesCode(clubId, branchValue, branchCode);
-    }
-
     function branchMatchesAssigned(branchValue) {
-      return isCoach(myClubId()) && branchValueMatchesCode(myClubId(), branchValue, myBranch());
+      return isCoach(myClubId()) && (
+        branchValue == myBranch()
+        || (isPrimaryBranchAlias(branchValue) && isPrimaryBranchAlias(myBranch()))
+      );
     }
 
     function resourceBranchMatchesCoach() {
       return resource.data.keys().hasAll(['branch'])
         && branchMatchesAssigned(resource.data.branch);
-    }
-
-    // Phase 4K-6V4D7: legacy profile imports may store the assigned branch in
-    // branchCode/branchName/coSo/facility/etc. Coach profile reads must allow
-    // those exact branch-scoped documents; attendance writes still require branch.
-    function resourceProfileBranchMatchesCoach() {
-      return (resource.data.keys().hasAll(['branch'])      && branchMatchesAssigned(resource.data.branch))
-        || (resource.data.keys().hasAll(['branchCode'])   && branchMatchesAssigned(resource.data.branchCode))
-        || (resource.data.keys().hasAll(['coachBranch'])  && branchMatchesAssigned(resource.data.coachBranch))
-        || (resource.data.keys().hasAll(['branchName'])   && branchMatchesAssigned(resource.data.branchName))
-        || (resource.data.keys().hasAll(['facility'])     && branchMatchesAssigned(resource.data.facility))
-        || (resource.data.keys().hasAll(['base'])         && branchMatchesAssigned(resource.data.base))
-        || (resource.data.keys().hasAll(['coso'])         && branchMatchesAssigned(resource.data.coso))
-        || (resource.data.keys().hasAll(['coSo'])         && branchMatchesAssigned(resource.data.coSo))
-        || (resource.data.keys().hasAll(['branchId'])     && branchMatchesAssigned(resource.data.branchId))
-        || (resource.data.keys().hasAll(['branchLabel'])  && branchMatchesAssigned(resource.data.branchLabel))
-        || (resource.data.keys().hasAll(['clubBranch'])   && branchMatchesAssigned(resource.data.clubBranch))
-        || (resource.data.keys().hasAll(['studentBranch'])&& branchMatchesAssigned(resource.data.studentBranch))
-        || (resource.data.keys().hasAll(['trainingBranch'])&& branchMatchesAssigned(resource.data.trainingBranch))
-        || (resource.data.keys().hasAll(['classBranch'])  && branchMatchesAssigned(resource.data.classBranch))
-        || (resource.data.keys().hasAll(['campus'])       && branchMatchesAssigned(resource.data.campus))
-        || (resource.data.keys().hasAll(['campusName'])   && branchMatchesAssigned(resource.data.campusName))
-        || (resource.data.keys().hasAll(['site'])         && branchMatchesAssigned(resource.data.site))
-        || (resource.data.keys().hasAll(['trainingBase']) && branchMatchesAssigned(resource.data.trainingBase))
-        || (resource.data.keys().hasAll(['trainingLocation']) && branchMatchesAssigned(resource.data.trainingLocation))
-        || (resource.data.keys().hasAll(['co_so'])        && branchMatchesAssigned(resource.data.co_so))
-        || (resource.data.keys().hasAll(['coSoTap'])      && branchMatchesAssigned(resource.data.coSoTap))
-        || (resource.data.keys().hasAll(['noiTap'])       && branchMatchesAssigned(resource.data.noiTap))
-        || (resource.data.keys().hasAll(['diaDiemTap'])   && branchMatchesAssigned(resource.data.diaDiemTap))
-        || (resource.data.keys().hasAll(['location'])     && branchMatchesAssigned(resource.data.location));
     }
 
     function requestBranchMatchesCoach() {
@@ -208,7 +128,7 @@ service cloud.firestore {
     // ── Club root and tenant collections ─────────────────────────────────────
 
     match /clubs/{clubId} {
-      allow get: if isSuperAdmin() || isClubMember(clubId) || hasCoachAssignmentDoc(clubId);
+      allow get: if isSuperAdmin() || isClubMember(clubId);
       allow list: if isSuperAdmin();
       allow create: if isSuperAdmin();
       allow update: if isSuperAdmin() || isClubAdmin(clubId);
@@ -218,7 +138,7 @@ service cloud.firestore {
       match /profiles/{profileId} {
         allow get, list: if isSuperAdmin()
           || isAdminOrViewer(clubId)
-          || (isCoach(clubId) && resourceProfileBranchMatchesCoach());
+          || (isCoach(clubId) && resourceBranchMatchesCoach());
         allow create, update, delete: if isSuperAdmin() || isClubAdmin(clubId);
       }
 
@@ -226,7 +146,7 @@ service cloud.firestore {
       match /students/{studentId} {
         allow get, list: if isSuperAdmin()
           || isAdminOrViewer(clubId)
-          || (isCoach(clubId) && resourceProfileBranchMatchesCoach());
+          || (isCoach(clubId) && resourceBranchMatchesCoach());
         allow create, update, delete: if isSuperAdmin() || isClubAdmin(clubId);
       }
 
@@ -302,7 +222,7 @@ service cloud.firestore {
       match /settings/{settingId} {
         allow get: if isSuperAdmin()
           || isAdminOrViewer(clubId)
-          || ((isCoach(clubId) || hasCoachAssignmentDoc(clubId)) && settingId in ['main_config', 'shifts']);
+          || (isCoach(clubId) && settingId in ['main_config', 'shifts']);
         allow list: if isSuperAdmin() || isAdminOrViewer(clubId);
         allow create, update, delete: if isSuperAdmin() || isClubAdmin(clubId);
       }
@@ -325,9 +245,7 @@ service cloud.firestore {
       match /transactions/{transactionId} {
         allow get, list: if isSuperAdmin() || isAdminOrViewer(clubId);
         allow create, update: if isSuperAdmin() || isClubAdmin(clubId);
-        // Phase 4K-6V4D11: Admin CLB cần được xóa giao dịch sai để reconcile
-        // học phí/khoản nợ. Coach/Viewer vẫn bị chặn.
-        allow delete: if isSuperAdmin() || isClubAdmin(clubId);
+        allow delete: if isSuperAdmin();
       }
 
       match /inventory/{inventoryId} {
@@ -409,9 +327,7 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/clubs/$(clubId)/coaches/$(uid))
         && get(/databases/$(database)/documents/clubs/$(clubId)/coaches/$(uid)).data.get('role', '') == 'coach'
         && get(/databases/$(database)/documents/clubs/$(clubId)/coaches/$(uid)).data.get('clubId', '') == clubId
-        && branchValueMatchesCode(clubId,
-             assignedBranch(get(/databases/$(database)/documents/clubs/$(clubId)/coaches/$(uid)).data),
-             assignedBranch(data));
+        && assignedBranch(get(/databases/$(database)/documents/clubs/$(clubId)/coaches/$(uid)).data) == assignedBranch(data);
     }
 
     function safeSelfCoachMirrorCreate(uid) {
@@ -423,31 +339,13 @@ service cloud.firestore {
     }
 
     function safeSelfCoachMirrorUpdate(uid) {
-      // Phase 4K-6V4D4: allow a Coach to repair only their own legacy mirror
-      // (role='hlv'/missing clubId/branch) when the requested target exactly
-      // matches the Admin-authored clubs/{clubId}/coaches/{uid} assignment.
-      return request.auth.uid == uid
+      return resource.data.get('role', '') == 'coach'
+        && request.resource.data.get('role', '') == resource.data.get('role', '')
+        && request.resource.data.get('clubId', '') == resource.data.get('clubId', '')
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'role', 'clubId', 'branch', 'coachBranch', 'email', 'updatedAt'
+          'branch', 'coachBranch', 'email', 'updatedAt'
         ])
         && selfCoachMirrorMatches(uid, request.resource.data);
-    }
-
-
-    // Phase 4K-6V4D9: login history is optional audit data. Signed-in users may
-    // create their own lightweight login record only; read remains SuperAdmin-only.
-    match /login_history/{docId} {
-      allow create: if signedIn()
-        && request.resource.data.keys().hasOnly([
-          'uid', 'email', 'clubId', 'role', 'loginAt', 'timestamp',
-          'browser', 'os', 'deviceType', 'deviceName'
-        ])
-        && request.resource.data.uid == request.auth.uid
-        && request.resource.data.role in [
-          'super_admin', 'superadmin', 'root', 'root_admin', 'admin_root',
-          'admin', 'owner', 'viewer', 'coach', 'hlv'
-        ];
-      allow read, update, delete: if isSuperAdmin();
     }
 
     match /users/{uid} {
@@ -476,10 +374,7 @@ service cloud.firestore {
     }
 
     match /super_admins/{uid} {
-      // Allow the signed-in user to read only their own marker for diagnostics.
-      // Listing or changing markers remains restricted to already-recognized SuperAdmins.
-      allow get: if (signedIn() && request.auth.uid == uid) || isSuperAdmin();
-      allow list, create, update, delete: if isSuperAdmin();
+      allow read, write: if isSuperAdmin();
     }
 
     // Deny by default for every top-level path not explicitly declared.

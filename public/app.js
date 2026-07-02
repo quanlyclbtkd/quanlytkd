@@ -13,7 +13,7 @@
 // Business logic should continue migrating to js/modules,
 // js/core, js/services, js/ui in small safe phases.
     const { initializeApp } = window._fb_init;
-    const { getFirestore, collection, doc, getDoc, onSnapshot, addDoc, updateDoc, deleteDoc, query, orderBy, where, writeBatch, setDoc, arrayUnion, arrayRemove, getDocs, limit, increment, getCountFromServer, startAfter, startAt, endAt, documentId } = window._fb_init;
+    const { getFirestore, collection, doc, getDoc, onSnapshot, addDoc, updateDoc, deleteDoc, query, orderBy, where, writeBatch, setDoc, arrayUnion, arrayRemove, getDocs, limit, increment, getCountFromServer, startAfter, startAt, endAt } = window._fb_init;
     const { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword, sendPasswordResetEmail, updatePassword, reauthenticateWithCredential, EmailAuthProvider, signInAnonymously } = window._fb_init;
     const firebaseConfig = {
       apiKey: "AIzaSyBfxbFrMabJHbARXpAqStIrSFlSAcCxgGY",
@@ -88,44 +88,16 @@
         const fold = (v) => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase().trim();
         return fold(raw) === fold(sel) || fold(window.getBranchNameDisplay ? window.getBranchNameDisplay(raw) : raw) === fold(sel);
     };
-    window.debtBranchMatchesFilter = window.debtBranchMatchesFilter || function(profileOrBranch, selectedBranch) {
-        if (profileOrBranch && typeof profileOrBranch === 'object' && typeof window.profileBranchMatchesFilter === 'function') return window.profileBranchMatchesFilter(profileOrBranch, selectedBranch);
-        return _branchMatchesFilter(profileOrBranch, selectedBranch);
-    };
-
-    window.classifyProfileStatus = window.classifyProfileStatus || function(profile) {
-        const p = profile || {};
-        if (typeof window.getCanonicalProfileReadStatus === 'function') {
-            const info = window.getCanonicalProfileReadStatus(p);
-            return info && info.quit ? 'quit' : 'active';
-        }
-        const sk = String(p.statusKind == null ? '' : p.statusKind).toLowerCase().trim();
-        if (sk === 'quit') return 'quit';
-        if (sk === 'trial' || sk === 'active') return p.isQuit === true ? 'quit' : 'active';
-        if (p.quit === true || p.stopped === true || p.isQuit === true) return 'quit';
-        if (p.active === false || p.isActive === false) return 'quit';
-        const dateFields = ['quitDate','stoppedDate','leftDate','inactiveDate','nghiDate','ngayNghi'];
-        for (let i = 0; i < dateFields.length; i++) {
-            const v = p[dateFields[i]];
-            if (v !== undefined && v !== null && v !== false && String(v).trim() !== '') return 'quit';
-        }
-        const raw = String(p.status == null ? '' : p.status).toLowerCase().trim()
-            .normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd');
-        if (!raw) return 'active';
-        if (raw.includes('nghi') || raw.includes('quit') || raw.includes('inactive') || raw.includes('stop') || raw.includes('left') || raw.includes('retired')) return 'quit';
-        return 'active';
-    };
+    window.debtBranchMatchesFilter = window.debtBranchMatchesFilter || _branchMatchesFilter;
 // Danh mục kho tùy chỉnh — được load từ Firestore khi đăng nhập thành công
 window.invCustomCategories = [];
-    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V5'; window.APP_PATCH_VERSION = '4K-6V5C-coach-attendance-toggle-queue-fix-20260701'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
+    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V4B1'; window.APP_PATCH_VERSION = '4K-6V3A1-payment-bundle-runtime-hotfix-20260616'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
     // Compatibility regression marker retained for Phase 4K-6Q gate: APP_PATCH_VERSION = '4K-6Q-mobile-filter-currency-stability-20260615'
     window.__appLoaded = true; // [Phase 2a] main.js kiểm tra để bỏ qua loadLegacyApp()
     window.__store = window.__store || {}; // [Phase 2b] Bridge object cho module system
     // Phase 4K-6V3A canonical transaction boundary; fallback preserves legacy/file mode.
     const _canonicalTxPayload = (d, r) => typeof window.canonicalizeTransactionForWrite === 'function' ? window.canonicalizeTransactionForWrite(d, r || 'app-transaction-write') : (d && typeof d === 'object' ? { ...d } : d);
     const _canonicalTxPatch = (d, e, r) => typeof window.canonicalizeTransactionPatch === 'function' ? window.canonicalizeTransactionPatch(d, e, r || 'app-transaction-patch') : (d && typeof d === 'object' ? { ...d } : d);
-    const _canonicalProfilePayload = (d, r, o) => typeof window.canonicalizeProfileForWrite === 'function' ? window.canonicalizeProfileForWrite(d, r || 'app-profile-write', o || {}) : (d && typeof d === 'object' ? { ...d, statusKind: (d.status === 'quit' ? 'quit' : (d.status === 'trial' ? 'trial' : 'active')), branchCode: _canonicalBranch(d.branch || d.branchCode || 'CS1', 'CS1'), isQuit: d.status === 'quit', updatedAt: Date.now() } : d);
-    const _canonicalProfilePatch = (d, r, o) => typeof window.canonicalizeProfileForWrite === 'function' ? window.canonicalizeProfileForWrite(d, r || 'app-profile-patch', o || {}) : _canonicalProfilePayload(d, r, o);
     // ── Phase 4.0B-4C: App Context Ready state + helper ──────────────────────
     // Idempotent — nếu đã khởi tạo (ví dụ: HMR) thì giữ nguyên generation.
     window.__appContextReadyState = window.__appContextReadyState || {
@@ -1250,13 +1222,19 @@ window.invCustomCategories = [];
     // ── Hàm hiển thị hướng dẫn sửa Firestore Rules ──────────────────────
     function _showLoginHistoryRulesGuide(contentEl, errorMsg, writeFailed) {
         const rulesText = `rules_version = '2';
-service cloud.firestore { match /databases/{database}/documents {
-  // V4D12: SuperAdmin phải được nhận diện giống runtime (role aliases/email/marker).
-  function isSuperAdminRoleValue(r){ return r in ['super_admin','superadmin','root','root_admin','admin_root']; }
-  function isTrustedSuperAdminEmail(){ return request.auth != null && request.auth.token.email in ['admin@tstquynhon.com']; }
-  function isSuperAdmin(){ return request.auth != null && (isTrustedSuperAdminEmail() || isSuperAdminRoleValue(request.auth.token.get('role','')) || exists(/databases/$(database)/documents/super_admins/$(request.auth.uid))); }
-  match /login_history/{docId} { allow create: if request.auth != null && request.resource.data.uid == request.auth.uid; allow read, update, delete: if isSuperAdmin(); }
-}}`;
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // === THÊM ĐOẠN NÀY VÀO RULES ===
+    match /login_history/{docId} {
+      allow write: if request.auth != null;
+      allow read: if request.auth != null
+        && request.auth.token.email == "admin@tstquynhon.com";
+    }
+
+    // ... (giữ nguyên các rules hiện có bên dưới)
+  }
+}`;
         const writeStatus = writeFailed
             ? `<div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:0.75rem;color:#92400e;">
                 <strong>⚠️ Ghi dữ liệu cũng đang bị chặn!</strong><br>
@@ -1895,7 +1873,6 @@ service cloud.firestore { match /databases/{database}/documents {
                 } else {
                     scheduleRender();
                 }
-                if (_coachAttendanceOnly) { const _refreshCoachRoster = function() { try { if (typeof window.ensureCoachBranchProfilesReady === 'function') window.ensureCoachBranchProfilesReady('settings-snapshot-branch-aliases', { db: window.__store&&window.__store.db, clubId: window.currentClubId || (window.__store&&window.__store.currentClubId), currentClubId: window.currentClubId || (window.__store&&window.__store.currentClubId), profRef: window.__store&&window.__store.profRef, role: window.userRole || 'coach', coachBranch: window.coachBranch || (window.__store&&window.__store.coachBranch) || '' }); else if (typeof window.loadCoachBranchProfilesFallback === 'function') window.loadCoachBranchProfilesFallback('settings-snapshot-branch-aliases'); } catch (_coachReadyErr) { console.warn('[CoachAttendance] settings-ready roster reconcile failed:', _coachReadyErr && (_coachReadyErr.code || _coachReadyErr.message) || _coachReadyErr); } }; setTimeout(_refreshCoachRoster, 0); setTimeout(_refreshCoachRoster, 700); }
                 // Coach attendance-only không đọc danh mục Kho.
                 if (!_coachAttendanceOnly && window.RoleReadBoundary?.canMount?.('inventory.categories', { reason: 'settings-snapshot' }) !== false) {
                     window.loadInvCategories().catch(e => console.warn('loadInvCategories error:', e));
@@ -2018,34 +1995,10 @@ service cloud.firestore { match /databases/{database}/documents {
                 reason: 'init-active-profiles'
             });
         } else if (window.RoleReadBoundary?.isCoachAttendanceOnly?.() === true) {
-            const _coachBranchSafe = _canonicalBranch(window.coachBranch || (window.__store && window.__store.coachBranch) || '', '');
-            const _coachAliases = _branchAliases(_coachBranchSafe).filter(Boolean);
-            const _coachFields=['branch','branchCode','branchId','branchLabel','coachBranch','clubBranch','studentBranch','trainingBranch','classBranch','branchName','facility','base','campus','campusName','site','trainingBase','trainingLocation','coso','coSo','co_so','coSoTap','noiTap','diaDiemTap','location'];
-            const _coachSpecs=[], _seenCoachSpec=new Set();
-            _coachFields.forEach(function(_field){((_field==='branch'||_field==='branchName'||_field==='facility'||_field==='base'||_field==='coso'||_field==='coSo'||_field==='location')?_coachAliases:[_coachBranchSafe]).forEach(function(_value){_value=String(_value||'').trim(); const _k=_field+':'+_value.toLowerCase(); if(_value&&!_seenCoachSpec.has(_k)){_seenCoachSpec.add(_k); _coachSpecs.push({field:_field,value:_value});}});});
-            if (!_coachBranchSafe || !_coachSpecs.length) {
-                allProfiles = {}; if (window.__store) window.__store.profiles = {};
-                console.error('[RoleReadBoundary] Coach profiles module unavailable and coachBranch missing — blocked fallback');
-            } else {
-                console.warn('[RoleReadBoundary] Coach profiles module unavailable — using branch-field safe legacy fallback', { branch: _coachBranchSafe, specs: _coachSpecs.map(function(s){ return s.field + '=' + s.value; }) });
-                const _coachMaps = {}; window.__coachBranchProfileFallbackUnsubs = window.__coachBranchProfileFallbackUnsubs || [];
-                _coachSpecs.forEach(function(_spec, _idx) { try {
-                    const _q = query(profRef, where(_spec.field, '==', _spec.value));
-                    const _u = onSnapshot(_q, function(_snap) {
-                        const _mapKey = _spec.field + ':' + _spec.value;
-                        if (typeof window.recordFirestoreSnapshotAttribution === 'function') window.recordFirestoreSnapshotAttribution('profiles.coachBranchLegacyFallbackListener', _snap, { initial: !_coachMaps[_mapKey], branch: _coachBranchSafe, field: _spec.field, value: _spec.value, reason: 'app-module-not-ready-coach-safe' });
-                        const _map = {}; _snap.forEach(function(d){ const _id=String(d.id||'').trim(); if(!_id)return; const _data=d.data()||{}; const _kind=typeof window.classifyProfileStatus==='function'?window.classifyProfileStatus(_data):(_data.status==='quit'?'quit':'active'); if(_kind!=='quit')_map[_id]=_data; });
-                        _coachMaps[_mapKey]=_map; allProfiles=Object.assign({}, ...Object.values(_coachMaps));
-                        if (window.__store) { window.__store.profiles=allProfiles; window.__store._coachBranchSafeFallbackActive=true; window.__store._coachBranchSafeFallbackAliases=_coachAliases.slice(); window.__store._coachBranchSafeFallbackSpecs=_coachSpecs.slice(); }
-                        if (window.studentProfileStore && typeof window.studentProfileStore.setActiveProfiles === 'function') { try { window.studentProfileStore.setActiveProfiles(allProfiles, 'app-coach-branch-field-safe-fallback'); } catch (_) {} }
-                        _updateHydrationMetrics({ profilesSnapshotCount: (window.__dataHydrationMetrics.profilesSnapshotCount || 0) + 1, profilesDocCount: Object.keys(allProfiles).length, lastReason: 'coach-branch-field-safe-fallback' });
-                        if (typeof window.renderAttendanceList === 'function') Promise.resolve().then(function() { window.renderAttendanceList(); }).catch(function(){});
-                        if (window.invalidateByDomain) window.invalidateByDomain('attendance', 'coach-branch-field-safe-fallback'); else scheduleRender();
-                    }, function(err) { console.error('[RoleReadBoundary] Coach branch-field safe fallback failed:', _spec.field + '=' + _spec.value, err && (err.code || err.message) || err); });
-                    activeListeners.push(_u); window.__coachBranchProfileFallbackUnsubs.push(_u);
-                    if (window.registerListener) window.registerListener('global:profiles:coach-safe:' + clubId + ':' + _idx, _u, { owner: 'students', scope: 'global', reason: 'coach-branch-field-safe-app-fallback' });
-                } catch (_coachFallbackErr) { console.error('[RoleReadBoundary] Coach branch-field safe fallback build failed:', _spec.field + '=' + _spec.value, _coachFallbackErr && (_coachFallbackErr.code || _coachFallbackErr.message) || _coachFallbackErr); } });
-            }
+            // Fail closed: tuyệt đối không full-read toàn CLB khi module branch-aware chưa sẵn.
+            allProfiles = {};
+            if (window.__store) window.__store.profiles = {};
+            console.error('[RoleReadBoundary] Coach profiles module unavailable — blocked full-club fallback');
         } else {
             // Fallback Admin only: full profiles listener (Phase 3.6D pattern — khi module chưa load)
             let _fallbackProfilesInitialSeen = false;
@@ -3327,7 +3280,7 @@ service cloud.firestore { match /databases/{database}/documents {
                 const p = _dobRaw.split('-');
                 return p.length === 3 ? p[2]+'/'+p[1]+'/'+p[0] : _dobRaw;
             })() : '';
-            const _branchCode = _prof.branchCode || _prof.branch || '';
+            const _branchCode = _prof.branch || '';
             const _branchNum = _branchCode.startsWith('CS') ? parseInt(_branchCode.replace('CS',''),10) : 0;
             const _branchLabel = _branchNum ? (_cfg['branchName' + _branchNum] || ('Cơ sở ' + _branchNum)) : '';
             _resEl.innerHTML = `<div style="background:white;border-radius:14px;overflow:hidden;box-shadow:0 3px 14px rgba(0,51,160,0.1);border:1px solid #e2e8f0;">
@@ -3451,7 +3404,6 @@ service cloud.firestore { match /databases/{database}/documents {
 
             const now = new Date();
             await addDoc(collection(db, "login_history"), {
-                uid: user.uid || '',
                 email: user.email || '',
                 clubId: clubId || '',
                 role: role || 'viewer',
@@ -3465,16 +3417,8 @@ service cloud.firestore { match /databases/{database}/documents {
             // Chỉ đánh dấu "đã ghi" SAU KHI addDoc thành công
             sessionStorage.setItem(sessionKey, '1');
         } catch(e) {
-            const msg = String((e && (e.code || e.message)) || e || '');
-            // Phase 4K-6V4D9: login history is non-critical. Coach sessions may
-            // intentionally not have audit-write permission on older deployed rules.
-            // Do not show a warning that looks like a login/attendance failure.
-            if (/permission-denied|Missing or insufficient permissions/i.test(msg)) {
-                sessionStorage.setItem(sessionKey, '1');
-                console.info('[login_history] Bỏ qua ghi lịch sử đăng nhập do quyền hiện tại:', msg);
-            } else {
-                console.warn('[login_history] Không thể ghi lịch sử đăng nhập:', msg);
-            }
+            // Không set sessionStorage → lần load tiếp theo sẽ tự thử lại
+            console.warn('[login_history] Không thể ghi lịch sử đăng nhập:', e.message);
         }
     }
 
@@ -3486,7 +3430,7 @@ service cloud.firestore { match /databases/{database}/documents {
     const _normalizeAuthRole = (value) => {
         const role = String(value || '').trim().toLowerCase().replace(/-/g, '_');
         if (role === 'hlv' || role === 'trainer') return 'coach';
-        if (role === 'superadmin' || role === 'root' || role === 'root_admin' || role === 'admin_root') return 'super_admin';
+        if (role === 'superadmin') return 'super_admin';
         return role;
     };
     const _normalizeAuthContext = (input = {}) => {
@@ -3505,7 +3449,7 @@ service cloud.firestore { match /databases/{database}/documents {
     };
     const _saveAuthCache = (uid, role, clubId, coachBranch = '') => {
         const ctx = _normalizeAuthContext({ uid, role, clubId, coachBranch });
-        try { localStorage.setItem(_AUTH_CACHE_KEY, JSON.stringify({ ...ctx, version: '4K-6V4D4', ts: Date.now() })); } catch(e) {}
+        try { localStorage.setItem(_AUTH_CACHE_KEY, JSON.stringify({ ...ctx, version: '4K-6V4B1', ts: Date.now() })); } catch(e) {}
         return ctx;
     };
     const _getAuthCache = (uid) => {
@@ -4811,13 +4755,11 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
     window.openProfile = (name) => {
         const p = allProfiles[name];
         if(!p) return;
-        // Phase 4K-6V5: single-profile self-heal only when Admin opens the profile.
-        try { if (typeof window.selfHealProfileCanonicalFields === 'function') window.selfHealProfileCanonicalFields(name, p, 'open-profile-modal'); } catch (_) {}
         document.getElementById('m_old_name').value = name;
         document.getElementById('m_name_input').value = name;
         document.getElementById('m_memberId').value = p.memberId || '';
         document.getElementById('m_status').value = p.status || 'active';
-        document.getElementById('m_branch').value = p.branchCode || p.branch || 'CS1';
+        document.getElementById('m_branch').value = p.branch || 'CS1';
         document.getElementById('m_belt').value = p.belt || 'Đai trắng - Cấp 10';
         document.getElementById('m_dob').value = p.dob || '';
         document.getElementById('m_gender').value = p.gender || '';
@@ -4905,8 +4847,6 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                 updateData.paidUntil = `${ry}-${String(rm).padStart(2, '0')}`;
             }
         }
-        // Phase 4K-6V5: every full profile edit writes canonical read-index fields.
-        updateData = _canonicalProfilePayload(updateData, 'profile-modal-update', { forceStatus: true, forceBranch: true, forceBranchIndex: true, clearQuitDate: newStatus !== 'quit' });
 
         try {
             if (oldName !== newName) {
@@ -5046,7 +4986,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
 
     window.handleQuitOption = (name, month) => {
         if(confirm(`Võ sinh ${name} có tiếp tục tập không?\n- Bấm OK để báo NGHỈ TẬP luôn.\n- Bấm Cancel để chỉ BÁO NGHỈ THÁNG NÀY (miễn học phí tháng ${formatMonth(month)}).`)) {
-            let updateData = _canonicalProfilePatch({ status: 'quit', quitDate: getLocalToday() }, 'debt-handle-quit', { forceStatus: true, preserveBranch: true, ensureQuitDate: true });
+            let updateData = { status: 'quit', quitDate: getLocalToday() };
             setDoc(doc(db, "clubs", currentClubId, "profiles", name), updateData, { merge: true }).then(() => {
                 window.showToast("✅ Đã chuyển trạng thái Nghỉ tập!");
                 // Phase 4K-5A: Sync local store sau khi quit
@@ -5148,8 +5088,10 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         _bulkZaloDebtors = [];
         Object.keys(allProfiles).sort().forEach(name => {
             const p = allProfiles[name];
-            if (typeof window.isProfileActiveForDebt === 'function' ? !window.isProfileActiveForDebt(p) : ((typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus(p) : (p.status === 'quit' ? 'quit' : 'active')) !== 'active' || p.feeExempt)) return;
-            if (!isSingleBranch && selBranch !== 'all' && !(window.profileBranchMatchesFilter ? window.profileBranchMatchesFilter(p, selBranch) : (window.debtBranchMatchesFilter ? window.debtBranchMatchesFilter(p.branchCode || p.branch || p.branchName || '', selBranch) : (p.branchCode || p.branch) === selBranch))) return;
+            const _pKind = typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus(p) : (p.status === 'quit' ? 'quit' : 'active');
+            if (_pKind !== 'active') return;
+            if (p.feeExempt) return;
+            if (!isSingleBranch && selBranch !== 'all' && p.branch !== selBranch) return;
 
             let owedMonths = [];
             if (typeof window.getChargeableTuitionMonths === 'function') {
@@ -5352,9 +5294,8 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         const _addNickEl = document.getElementById('add_nickname');
         const _addNickVal = _addNickEl ? _addNickEl.value.trim() : '';
         // [SỬA] Dùng _saveKey (không phải name) làm Firestore doc ID để tránh overwrite
-        let _newProfileData = { status: 'active', memberId: memberId, branch, belt: document.getElementById('add_belt').value, dob: document.getElementById('add_dob').value, gender: document.getElementById('add_gender').value, cccd: document.getElementById('add_cccd').value.trim(), phone: document.getElementById('add_phone').value, tuitionFee: document.getElementById('add_fee_default_actual').value, notes: document.getElementById('add_notes').value.trim(), nickname: _addNickVal, trainingDays: trainingDays,
+        const _newProfileData = { status: 'active', memberId: memberId, branch, belt: document.getElementById('add_belt').value, dob: document.getElementById('add_dob').value, gender: document.getElementById('add_gender').value, cccd: document.getElementById('add_cccd').value.trim(), phone: document.getElementById('add_phone').value, tuitionFee: document.getElementById('add_fee_default_actual').value, notes: document.getElementById('add_notes').value.trim(), nickname: _addNickVal, trainingDays: trainingDays,
         trainingShiftId: (document.getElementById('add_shift') ? document.getElementById('add_shift').value : ''), createdAt: joinDate, paidUntil: newPaidUntil, paidMonths: monthsToRecord, tuitionPackageCount: tuitionPkg.packageCount, lastAdmissionTuitionStartMonth: startMonth, lastAdmissionTuitionMonths: monthsToRecord };
-        _newProfileData = _canonicalProfilePayload(_newProfileData, 'add-new-student', { forceStatus: true, forceBranch: true, forceBranchIndex: true });
         // Phase 4.0B-4J-8A: Ghi search index khi thêm võ sinh mới
         if (typeof buildStudentSearchIndex === 'function') {
             Object.assign(_newProfileData, buildStudentSearchIndex(_newProfileData, _saveKey));
@@ -7320,7 +7261,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         let _activeTotalCount = 0, _debtTotalCount = 0, _quitTotalCount = 0;
 
         Object.keys(allProfiles).forEach(name => {
-            const p = allProfiles[name]; let safeBranch = p.branchCode || p.branch || "CS1";
+            const p = allProfiles[name]; let safeBranch = p.branch || "CS1";
             const _joinM = p.createdAt ? p.createdAt.substring(0, 7) : "2000-01";
             const _quitM = p.quitDate ? p.quitDate.substring(0, 7) : null;
             if (_joinM === selMonth) m_new++;
@@ -7579,7 +7520,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             if((typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus(p) : p.status) !== 'active' || (p.belt || 'Đai trắng - Cấp 10') !== filterBelt) return;
 
             let isPaid = paidStudents[name]; let safeName = name.replace(/'/g, "\\'");
-            let branchTdHTML = isSingleBranch ? '' : `<td class="col-branch"><span class="badge bg-slate-100 text-slate-600 border border-slate-200">${window.getBranchNameDisplay(p.branchCode || p.branch || 'CS1')}</span></td>`;
+            let branchTdHTML = isSingleBranch ? '' : `<td class="col-branch"><span class="badge bg-slate-100 text-slate-600 border border-slate-200">${window.getBranchNameDisplay(p.branch || 'CS1')}</span></td>`;
             let statusBadge = isPaid ? `<span class="badge badge-active">Đã nộp (${Number(isPaid.amount).toLocaleString()} đ)</span>` : `<span class="badge badge-quit">Chưa nộp</span>`;
             let actionBtn = isPaid ? (window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-slate-200 hover:bg-slate-300 text-slate-700" onclick="cancelExamPayment('${isPaid.id}', '${safeName}')">Hủy</button>` : '') : (window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-orange-500 hover:bg-orange-600 text-white shadow-sm cursor-pointer" onclick="quickCollectExam('${safeName}')">💰 Thu phí</button>` : '');
 
@@ -8385,7 +8326,7 @@ window.updateMultiItemAutoFee = () => {
     const infoCard = document.getElementById('mi_profile_info');
     if (profile && name && infoCard) {
         document.getElementById('mi_profile_belt').textContent = profile.belt || 'Chưa có đai';
-        document.getElementById('mi_profile_branch').textContent = window.getBranchNameDisplay ? window.getBranchNameDisplay(profile.branchCode || profile.branch) : (profile.branchCode || profile.branch || '');
+        document.getElementById('mi_profile_branch').textContent = window.getBranchNameDisplay ? window.getBranchNameDisplay(profile.branch) : (profile.branch || '');
         document.getElementById('mi_profile_fee').textContent = baseFee > 0 ? baseFee.toLocaleString('vi-VN') + ' ₫/tháng' : 'Chưa cài';
         infoCard.style.display = 'flex';
         // Không refresh badges khi HLV vừa đổi gói học phí thủ công, vì _refreshMiHistoryBadges có thể tự chọn lại option thu nợ/default.
@@ -9358,7 +9299,7 @@ window.processMultiItem = async (action) => {
     const name = document.getElementById('mi_name').value.trim();
     if(!name) return alert('Vui lòng nhập tên võ sinh!');
     const profile = allProfiles[name] || {};
-    const branch = profile.branchCode || profile.branch || document.getElementById('branch').value || 'CS1';
+    const branch = profile.branch || document.getElementById('branch').value || 'CS1';
     const tuitionMonth = document.getElementById('mi_tuition_month').value;
     const pkg = Number(document.getElementById('mi_tuition_pkg').value) || 1;
     const tuition = Number(document.getElementById('mi_tuition_actual').value) || 0;
@@ -9699,7 +9640,7 @@ window.processMultiItem = async (action) => {
             // users/{uid} là hồ sơ phân quyền bắt buộc; lỗi thì giữ coach doc để đồng bộ, không tạo lại Auth.
             let provisioningError = null;
             try {
-                await setDoc(doc(db, 'users', uid), { role: 'coach', clubId: currentClubId, branch, coachBranch: branch, email });
+                await setDoc(doc(db, 'users', uid), { role: 'coach', clubId: currentClubId, branch, email });
             } catch(_permErr) {
                 provisioningError = _permErr;
                 console.error('Ghi users/{uid} thất bại — tài khoản chưa thể đăng nhập:', _permErr.code || _permErr.message);
@@ -9999,6 +9940,7 @@ window.processMultiItem = async (action) => {
         listEl.innerHTML = html;
         bannerEl.style.display = 'block';
     };
+
     // Kiểm tra thông báo chưa đọc khi Admin mở trang (getDocs — 1 lần)
     window.checkAdminNotifications = async () => {
         if (!currentClubId || (window.userRole !== 'admin' && window.userRole !== 'super_admin')) return;
@@ -10018,6 +9960,7 @@ window.processMultiItem = async (action) => {
             _renderNotifBanner(docs);
         } catch (_e) { /* im lặng — không làm gián đoạn giao diện */ }
     };
+
     // Lắng nghe real-time: admin đang online → thấy báo cáo mới của HLV ngay lập tức
     window.setupNotifListener = () => {
         if (!currentClubId || (window.userRole !== 'admin' && window.userRole !== 'super_admin')) return;
@@ -10067,6 +10010,7 @@ window.processMultiItem = async (action) => {
             }
         } catch (_e) {}
     };
+
     // Admin bấm "Đã xem" → đánh dấu tất cả là đã đọc trong Firestore
     window.dismissAdminNotifications = async () => {
         const bannerEl = document.getElementById('admin_notif_banner');
@@ -10083,6 +10027,7 @@ window.processMultiItem = async (action) => {
             await batch.commit();
         } catch (_e) { /* không cần báo lỗi — chỉ là đánh dấu đã đọc */ }
     };
+
     // ── MIGRATE: Tạo users/{uid} cho tài khoản HLV cũ không có users doc ──────
     window.migrateCoachAccounts = async () => {
         if (!['admin', 'owner', 'super_admin'].includes(window.userRole)) {
@@ -10132,7 +10077,7 @@ window.processMultiItem = async (action) => {
                     const oldBranch = _canonicalBranch(oldUser.branch || oldUser.coachBranch || '', '');
                     const userNeedsSync = !uSnap.exists() || oldUser.role !== 'coach' || oldUser.clubId !== currentClubId || oldBranch !== canonicalBranch || oldUser.branch !== canonicalBranch || (data.email && oldUser.email !== data.email);
                     if (userNeedsSync) {
-                        await setDoc(userRef, { role: 'coach', clubId: currentClubId, branch: canonicalBranch, coachBranch: canonicalBranch, email: data.email || oldUser.email || '' }, { merge: true });
+                        await setDoc(userRef, { role: 'coach', clubId: currentClubId, branch: canonicalBranch, email: data.email || oldUser.email || '' }, { merge: true });
                         userSynced++;
                     }
                 } catch(_permErr) {
@@ -10148,7 +10093,9 @@ window.processMultiItem = async (action) => {
             alert('Lỗi đồng bộ: ' + (e.message || e));
         }
     };
+
     // Phase 4K-6V: session-note loading is called explicitly by attendance.js after daily render.
+
 
 
     // Phase 4K-5Q: isSuperAdminRole — single source of truth for SuperAdmin check
@@ -10207,14 +10154,6 @@ window.processMultiItem = async (action) => {
     window.resolveActiveDataSource = async function resolveActiveDataSource() {
         const _db     = db;
         const _clubId = window.__store && (window.__store.clubId || window.__store.currentClubId) || window.currentClubId || '';
-
-        if (window.RoleReadBoundary?.isCoachAttendanceOnly?.() === true || String(window.userRole || '').toLowerCase() === 'coach') {
-            const _branch = String(window.coachBranch || (window.__store && window.__store.coachBranch) || '').trim();
-            const result = { clubId: _clubId, source: 'coach-scoped', primary: { profilesHasDocs: 'coach-branch-scoped', transactionsHasDocs: 'not-probed-for-coach', inventoryHasDocs: 'not-probed-for-coach' }, legacy: { profilesHasDocs: 'not-probed-for-coach', transactionsHasDocs: 'not-probed-for-coach', inventoryHasDocs: 'not-probed-for-coach' }, reason: 'Coach attendance-only: skip full collection probes that Firestore Rules correctly deny', safeToRender: !!_branch };
-            Object.assign(window.__firestoreDataSourceMetrics, { source: result.source, reason: result.reason, checkedAt: Date.now(), activeDataSource: 'coach-scoped', fallbackUsed: false });
-            console.info('[resolveActiveDataSource] Coach scoped mode — skip public/full-club probes', { clubId: _clubId, branch: _branch || 'missing' });
-            return result;
-        }
 
         if (!_db || !_clubId) {
             const result = {
@@ -10474,9 +10413,11 @@ window.processMultiItem = async (action) => {
                 await window.activateLegacyRootFallback?.('auto-runtime-recovery');
                 state.recoveryUsed = true;
                 console.info('[RuntimeRecovery] ✅ Legacy fallback activated automatically.');
-            } else if (src && src.source === 'primary') console.info('[RuntimeRecovery] ✅ Primary data source — không cần fallback.');
-            else if (src && src.source === 'coach-scoped') console.info('[RuntimeRecovery] ✅ Coach scoped data source — không chạy full-club recovery.');
-            else console.warn('[RuntimeRecovery] source=' + state.activeDataSource + ' reason=' + state.reason);
+            } else if (src && src.source === 'primary') {
+                console.info('[RuntimeRecovery] ✅ Primary data source — không cần fallback.');
+            } else {
+                console.warn('[RuntimeRecovery] source=' + state.activeDataSource + ' reason=' + state.reason);
+            }
 
             state.completed   = true;
             state.completedAt = Date.now();
@@ -10679,7 +10620,7 @@ window.buildCanonicalExamPaymentLedger = function(options) {
             targetBelt: typeof window.getExamTargetBeltFromTx === 'function'
                 ? window.getExamTargetBeltFromTx(t, profile)
                 : (t.examTargetBelt || ''),
-            branch: t.branch || profile.branchCode || profile.branch || 'CS1',
+            branch: t.branch || profile.branch || 'CS1',
             sourceTx: t
         };
 
@@ -10845,7 +10786,7 @@ window.buildCanonicalExamBranchLedger = function(options) {
     ledger.records.forEach(function(r) {
         var rawBranch =
             r.branch ||
-            (r.profile && (r.profile.branchCode || r.profile.branch)) ||
+            (r.profile && r.profile.branch) ||
             (r.sourceTx && r.sourceTx.branch) ||
             'CS1';
 

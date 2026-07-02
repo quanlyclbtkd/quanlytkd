@@ -69,7 +69,7 @@ import {
 } from './renderRegistry.js';
 
 import { invalidateFinanceRender }   from './computation/financeRenderer.js';
-import { invalidateStudentsRender }  from './computation/studentsRenderer.js?v=coach-attendance-toggle-queue-fix-20260701-v5c';
+import { invalidateStudentsRender }  from './computation/studentsRenderer.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a';
 import { invalidateInventoryRender } from './computation/inventoryRenderer.js';
 import { invalidateDashboardCache }  from './computation/dashboardRenderer.js';
 
@@ -78,7 +78,7 @@ import {
     refreshListComputation,
     refreshListsComputation,
     getComputationDomainForList,
-} from './listComputationRefresh.js?v=coach-attendance-toggle-queue-fix-20260701-v5c';
+} from './listComputationRefresh.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a';
 
 // ── Dev helper ────────────────────────────────────────────────────────────────
 function _isDev() {
@@ -95,17 +95,15 @@ function _checkStorm(label) {
     try {
         const now = Date.now();
         if (!_stormTracker[label]) {
-            _stormTracker[label] = { count: 0, resetAt: now + 1000, warned: false };
+            _stormTracker[label] = { count: 0, resetAt: now + 1000 };
         }
         const s = _stormTracker[label];
         if (now > s.resetAt) {
             s.count  = 0;
             s.resetAt = now + 1000;
-            s.warned  = false;
         }
         s.count++;
-        if (s.count > STORM_THRESHOLD_PER_SEC && !s.warned) {
-            s.warned = true;
+        if (s.count > STORM_THRESHOLD_PER_SEC) {
             console.warn(
                 `[RenderStormWarning] domain="${label}" — ${s.count} invalidations/sec ` +
                 `(threshold: ${STORM_THRESHOLD_PER_SEC}). Có thể bị render storm.`
