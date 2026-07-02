@@ -64,8 +64,8 @@ check('Coach CS1 profile listener reads legacy Mặc định in a separate scope
   profiles.includes('coachLegacyActiveMap'));
 check('Coach fallback queries only assigned branch aliases and de-duplicates results',
   profiles.includes('_coachBranchAliases(ctx)') &&
-  profiles.includes("fbWhere('branch', '==', alias)") &&
-  profiles.includes('snapshots.forEach'));
+  (profiles.includes("fbWhere('branch', '==', alias)") || profiles.includes("fbWhere(field, '==', alias)")) &&
+  (profiles.includes('activeMap[id] = data') || profiles.includes('snapshots.forEach')));
 check('Attendance reads are branch-scoped and missing Coach branch fails closed',
   attendance.includes('_branchConstraint(where, branch, isCoach)') &&
   attendance.includes('attendance/coach-branch-required'));

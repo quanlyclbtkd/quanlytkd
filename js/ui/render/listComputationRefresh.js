@@ -44,7 +44,7 @@ import {
 import {
     computeAndCacheStudents,
     getStudentsSummary,
-} from './computation/studentsRenderer.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a';
+} from './computation/studentsRenderer.js?v=coach-profiles-bootstrap-datasource-recovery-20260702-v5c';
 import {
     computeAndCacheInventory,
     getCachedUnpaidInvCount,

@@ -108,13 +108,17 @@ service cloud.firestore {
     }
 
     function resourceBranchMatchesCoach() {
-      return resource.data.keys().hasAll(['branch'])
-        && branchMatchesAssigned(resource.data.branch);
+      return (
+        (resource.data.keys().hasAll(['branch']) && branchMatchesAssigned(resource.data.branch))
+        || (resource.data.keys().hasAll(['branchCode']) && branchMatchesAssigned(resource.data.branchCode))
+      );
     }
 
     function requestBranchMatchesCoach() {
-      return request.resource.data.keys().hasAll(['branch'])
-        && branchMatchesAssigned(request.resource.data.branch);
+      return (
+        (request.resource.data.keys().hasAll(['branch']) && branchMatchesAssigned(request.resource.data.branch))
+        || (request.resource.data.keys().hasAll(['branchCode']) && branchMatchesAssigned(request.resource.data.branchCode))
+      );
     }
 
     function coachOwnsResource() {

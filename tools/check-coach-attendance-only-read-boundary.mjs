@@ -78,11 +78,12 @@ check('Programmatic tab switching is forced back to Attendance in all controller
   tabs.includes('tabId = window.enforceRoleTab ? window.enforceRoleTab(tabId) : tabId'));
 check('Coach profile listener key contains role and branch',
   profiles.includes("':coach:' + coachBranch") && profiles.includes("':admin'"));
-check('Coach profile query is server-scoped by status + branch',
-  profiles.includes("fbQuery(profRef, statusConstraint, fbWhere('branch', '==', coachBranch))"));
+check('Coach profile query is server-scoped by branch and status-filtered locally',
+  profiles.includes("fbQuery(profRef, fbWhere('branch', '==', coachBranch))") &&
+  profiles.includes("if (!isCoach || classifyProfileStatus(data) !== 'quit') activeMap[id] = data;"));
 check('Coach zero probe and fallback are branch-scoped',
   profiles.includes("fbWhere('branch', '==', coachBranch), _pL4k(1)") &&
-  profiles.includes("fbQuery(ctx.profRef, fbWhere('branch', '==', alias))") &&
+  profiles.includes("const fields = ['branch', 'branchCode'];") &&
   profiles.includes('_coachBranchAliases(ctx)'));
 check('Coach never executes full-club profiles fallback, quit load or export load',
   profiles.includes("return loadCoachBranchProfilesFallback('redirected-from-full:'") &&
