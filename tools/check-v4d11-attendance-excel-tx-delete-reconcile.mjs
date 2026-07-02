@@ -13,9 +13,15 @@ const publicIndex = read('public/index.html');
 let pass=0, fail=0;
 function check(name, ok){ if(ok){pass++; console.log('✅',name);} else {fail++; console.error('❌',name);} }
 console.log('\n=== Phase 4K-6V4D11 — Attendance Excel + TX Delete Reconcile ===\n');
-const build='coach-attendance-tap-stability-20260701-v5c';
-check('index cache-bust points app/main to V4D11', index.includes(`app.js?v=${build}`) && index.includes(`./js/main.js?v=${build}`));
-check('main lazy-loads finance module with V4D11 cache-bust and keeps report facade registered', main.includes(`./modules/finance.js?v=${build}`) && main.includes('registerReportExportFacade'));
+const compatibleBuilds = [
+  'attendance-excel-tx-delete-reconcile-20260630-v4d11',
+  'coach-reminder-attendance-stability-20260701-v5b',
+  'coach-attendance-toggle-queue-fix-20260701-v5c'
+];
+const hasIndexBuild = compatibleBuilds.some(build => index.includes(`app.js?v=${build}`) && index.includes(`./js/main.js?v=${build}`));
+const hasFinanceBuild = compatibleBuilds.some(build => main.includes(`./modules/finance.js?v=${build}`));
+check('index cache-bust points app/main to V4D11 or newer compatible build', hasIndexBuild);
+check('main lazy-loads finance module with compatible cache-bust and keeps report facade registered', hasFinanceBuild && main.includes('registerReportExportFacade'));
 check('Firebase bootstrap imports documentId()', index.includes('documentId } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"'));
 check('Firebase bootstrap exposes documentId in window._fb_init', index.includes('endAt, documentId, getAuth'));
 check('public Firebase bootstrap mirrors documentId exposure', publicIndex.includes('endAt, documentId, getAuth'));

@@ -53,9 +53,9 @@ for (const [label, src] of [['legacy fallback', fallback], ['public legacy fallb
   ok(src.includes('if (!canShowMonthlyReminder())') && src.includes('openMonthlyExport'), label + ' blocks fallback monthly export shortcut for coach role');
 }
 
-ok(app.includes("4K-6V5B-coach-reminder-attendance-stability-20260701") || app.includes("4K-6V5C-coach-attendance-tap-stability-20260701"), 'app version marker updated to V5B/V5C');
-ok(main.includes("4K-6V5B-coach-reminder-attendance-stability-20260701") || main.includes("4K-6V5C-coach-attendance-tap-stability-20260701"), 'main version marker updated to V5B/V5C');
-ok(index.includes('coach-reminder-attendance-stability-20260701-v5b') || index.includes('coach-attendance-tap-stability-20260701-v5c'), 'index cache-bust updated to V5B/V5C');
+ok(app.includes("4K-6V5B-coach-reminder-attendance-stability-20260701") || app.includes("4K-6V5C-coach-attendance-toggle-queue-fix-20260701"), 'app version marker is V5B or newer');
+ok(main.includes("4K-6V5B-coach-reminder-attendance-stability-20260701") || main.includes("4K-6V5C-coach-attendance-toggle-queue-fix-20260701"), 'main version marker is V5B or newer');
+ok(index.includes('coach-reminder-attendance-stability-20260701-v5b') || index.includes('coach-attendance-toggle-queue-fix-20260701-v5c'), 'index cache-bust is V5B or newer');
 
 if (failures) {
   console.error(`\n${failures} V5B checks failed.`);

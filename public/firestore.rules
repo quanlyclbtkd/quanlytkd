@@ -197,34 +197,6 @@ service cloud.firestore {
         && branchMatchesAssigned(request.resource.data.branch);
     }
 
-    // Phase 4K-6V5C: legacy attendance records created before branch canonicalization
-    // may have no usable `branch` field. Coaches could see the UI state flip back
-    // because their setDoc() became an update and Rules required the old resource
-    // branch to match. Allow a coach to repair only when the new payload is scoped
-    // to the assigned branch; normal reads remain branch-scoped.
-    function resourceAttendanceLegacyBranchRepairable() {
-      return !resource.data.keys().hasAll(['branch'])
-        || resource.data.branch == null
-        || resource.data.branch == ''
-        || (resource.data.keys().hasAll(['branchCode']) && branchMatchesAssigned(resource.data.branchCode))
-        || (resource.data.keys().hasAll(['coachBranch']) && branchMatchesAssigned(resource.data.coachBranch))
-        || (resource.data.keys().hasAll(['branchName']) && branchMatchesAssigned(resource.data.branchName))
-        || (resource.data.keys().hasAll(['trainingBase']) && branchMatchesAssigned(resource.data.trainingBase))
-        || (resource.data.keys().hasAll(['trainingLocation']) && branchMatchesAssigned(resource.data.trainingLocation))
-        || (resource.data.keys().hasAll(['coSo']) && branchMatchesAssigned(resource.data.coSo))
-        || (resource.data.keys().hasAll(['co_so']) && branchMatchesAssigned(resource.data.co_so))
-        || (resource.data.keys().hasAll(['coSoTap']) && branchMatchesAssigned(resource.data.coSoTap))
-        || (resource.data.keys().hasAll(['noiTap']) && branchMatchesAssigned(resource.data.noiTap))
-        || (resource.data.keys().hasAll(['diaDiemTap']) && branchMatchesAssigned(resource.data.diaDiemTap))
-        || (resource.data.keys().hasAll(['location']) && branchMatchesAssigned(resource.data.location));
-    }
-
-    function coachCanUpdateAttendanceResource() {
-      return isCoach(myClubId())
-        && requestBranchMatchesCoach()
-        && (resourceBranchMatchesCoach() || resourceAttendanceLegacyBranchRepairable());
-    }
-
     function coachOwnsResource() {
       return resource.data.get('coachId', '') == request.auth.uid;
     }
@@ -270,7 +242,9 @@ service cloud.firestore {
 
         allow update: if isSuperAdmin()
           || isClubAdmin(clubId)
-          || (isCoach(clubId) && coachCanUpdateAttendanceResource());
+          || (isCoach(clubId)
+              && resourceBranchMatchesCoach()
+              && requestBranchMatchesCoach());
 
         allow delete: if isSuperAdmin()
           || isClubAdmin(clubId)

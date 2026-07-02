@@ -44,7 +44,7 @@ import {
 import {
     computeAndCacheStudents,
     getStudentsSummary,
-} from './computation/studentsRenderer.js?v=coach-attendance-tap-stability-20260701-v5c';
+} from './computation/studentsRenderer.js?v=coach-attendance-toggle-queue-fix-20260701-v5c';
 import {
     computeAndCacheInventory,
     getCachedUnpaidInvCount,

@@ -4,7 +4,7 @@ import path from 'node:path';
 
 const root = process.cwd();
 const read = (rel) => fs.readFileSync(path.join(root, rel), 'utf8');
-const version = 'coach-attendance-tap-stability-20260701-v5c';
+const version = 'coach-attendance-toggle-queue-fix-20260701-v5c';
 
 const files = {
   index: read('index.html'),
