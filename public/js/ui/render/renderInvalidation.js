@@ -69,7 +69,7 @@ import {
 } from './renderRegistry.js';
 
 import { invalidateFinanceRender }   from './computation/financeRenderer.js';
-import { invalidateStudentsRender }  from './computation/studentsRenderer.js?v=audit-gate-superadmin-hardening-20260703-v5e';
+import { invalidateStudentsRender }  from './computation/studentsRenderer.js?v=debt-given-name-final-token-search-20260703-v5f';
 import { invalidateInventoryRender } from './computation/inventoryRenderer.js';
 import { invalidateDashboardCache }  from './computation/dashboardRenderer.js';
 
@@ -78,7 +78,7 @@ import {
     refreshListComputation,
     refreshListsComputation,
     getComputationDomainForList,
-} from './listComputationRefresh.js?v=audit-gate-superadmin-hardening-20260703-v5e';
+} from './listComputationRefresh.js?v=debt-given-name-final-token-search-20260703-v5f';
 
 // ── Dev helper ────────────────────────────────────────────────────────────────
 function _isDev() {

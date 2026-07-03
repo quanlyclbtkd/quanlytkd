@@ -1056,6 +1056,13 @@ export function initGlobalSearchRuntime() {
     // Phase 4K-2: Expose SearchBlob builders globally
     // Guard getProfileSearchBlob: main.js may already expose a version-aware implementation
     // (window.__searchTextCache with dataVersion-based invalidation). Only set if missing.
+    window.isPlainStudentGivenNameLookup = window.isPlainStudentGivenNameLookup || _isPlainStudentGivenNameLookup;
+    window.matchesStudentGivenNameOnly = window.matchesStudentGivenNameOnly || _matchesGivenNameOnly;
+    window.matchesStudentProfileSearch = window.matchesStudentProfileSearch || function(name, profile, term) {
+        if (_isPlainStudentGivenNameLookup(term, term)) return _matchesGivenNameOnly(name || profile?.name || profile?.fullName || profile?.studentName || '', term);
+        const blob = typeof window.getProfileSearchBlob === 'function' ? window.getProfileSearchBlob(name, profile || {}) : getProfileSearchBlob(name, profile || {});
+        return blob.includes(_normalizeSearch(term));
+    };
     if (!window.getProfileSearchBlob) window.getProfileSearchBlob = getProfileSearchBlob;
     window.getTransactionSearchBlob = getTransactionSearchBlob;
     window.getInventorySearchBlob   = getInventorySearchBlob;

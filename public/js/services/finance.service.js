@@ -1,4 +1,4 @@
-// Compatibility marker: inventory.service.js?v=audit-gate-superadmin-hardening-20260703-v5e
+// Compatibility marker: inventory.service.js?v=debt-given-name-final-token-search-20260703-v5f
 /**
  * js/services/finance.service.js — Phase 3.2A
  * ────────────────────────────────────────────────────────────────
@@ -17,7 +17,7 @@
  * ────────────────────────────────────────────────────────────────
  */
 
-import { InventoryService } from './inventory.service.js?v=audit-gate-superadmin-hardening-20260703-v5e';
+import { InventoryService } from './inventory.service.js?v=debt-given-name-final-token-search-20260703-v5f';
 
 function _sdk()    { return window._fb_init || {}; }
 function _db()     { const db = (window.__store || {}).db; if (!db) throw new Error('[FinanceService] db chưa sẵn sàng'); return db; }

@@ -1,7 +1,7 @@
 /**
  * js/core/studentSearchIndex.js
  * ────────────────────────────────────────────────────────────────
- * Phase 4K-6V5D — Given-Name Focused Student Search Gate
+ * Phase 4K-6V5F — Debt Given-Name Final Token Search Gate
  *
  * A read-only, in-memory student search index shared by active/quit/debt
  * search flows. It improves search accuracy for Vietnamese names, phone,
@@ -335,6 +335,27 @@ export const StudentSearchIndex = {
     return { score, matches: Array.from(new Set(matches)) };
   },
 
+  isPlainGivenNameLookup(rawTerm) {
+    const normTerm = normalizeStudentSearchText(rawTerm);
+    const digitTerm = _digits(rawTerm);
+    return _isPlainNameLookup(normTerm, digitTerm, rawTerm);
+  },
+
+  matchesGivenNameOnly(name, rawTerm) {
+    const q = normalizeStudentSearchText(rawTerm);
+    return _givenNameMatches({ name, givenNameTokens: _givenNameTokensFromName(name) }, q).ok;
+  },
+
+  matchesStudentProfileSearch(name, profile, rawTerm) {
+    const q = normalizeStudentSearchText(rawTerm);
+    if (!q) return true;
+    if (this.isPlainGivenNameLookup(rawTerm)) return this.matchesGivenNameOnly(name || profile?.name || profile?.fullName || profile?.studentName || '', rawTerm);
+    const p = profile || {};
+    const blob = [name, p.name, p.fullName, p.studentName, p.phone, p.parentPhone, p.contactPhone, p.memberId, p.studentCode, p.code, p.vtfCode, p.vtfId, p.belt, p.notes, p.note]
+      .filter(Boolean).map(normalizeStudentSearchText).join(' ');
+    return blob.includes(q);
+  },
+
   searchStudents(rawTerm, options = {}) {
     this.ensureIndex('search');
     const normTerm = normalizeStudentSearchText(rawTerm);
@@ -438,6 +459,15 @@ export function initStudentSearchIndex() {
   window.normalizeStudentSearchText = window.normalizeStudentSearchText || normalizeStudentSearchText;
   window.searchStudentsUnified = function(term, options) {
     return window.StudentSearchIndex.searchStudents(term, options || {});
+  };
+  window.isPlainStudentGivenNameLookup = window.isPlainStudentGivenNameLookup || function(term) {
+    return window.StudentSearchIndex.isPlainGivenNameLookup(term);
+  };
+  window.matchesStudentGivenNameOnly = window.matchesStudentGivenNameOnly || function(name, term) {
+    return window.StudentSearchIndex.matchesGivenNameOnly(name, term);
+  };
+  window.matchesStudentProfileSearch = window.matchesStudentProfileSearch || function(name, profile, term) {
+    return window.StudentSearchIndex.matchesStudentProfileSearch(name, profile || {}, term);
   };
   window.invalidateStudentSearchIndex = function(reason) {
     return window.StudentSearchIndex.invalidate(reason || 'manual');

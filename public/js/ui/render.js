@@ -34,7 +34,7 @@ import {
     updateSummaryNumbers,
     fetchAndRenderHistoricalCharts,
     tryApplyCurrentMonthStats,
-} from '../modules/dashboard.js?v=audit-gate-superadmin-hardening-20260703-v5e';
+} from '../modules/dashboard.js?v=debt-given-name-final-token-search-20260703-v5f';
 
 import { store } from '../store.js';
 import {
@@ -59,7 +59,7 @@ import {
     computeAndCacheStudents,
     getStudentsSummary,
     getStudentsCachedHtml,
-} from './render/computation/studentsRenderer.js?v=audit-gate-superadmin-hardening-20260703-v5e';
+} from './render/computation/studentsRenderer.js?v=debt-given-name-final-token-search-20260703-v5f';
 import {
     computeAndCacheInventory,
     getCachedLiveInvMap,

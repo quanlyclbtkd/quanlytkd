@@ -11,7 +11,7 @@ const files = {
   pkg: read('package.json'),
 };
 const pkg = JSON.parse(files.pkg);
-const build = 'audit-gate-superadmin-hardening-20260703-v5e';
+const build = 'debt-given-name-final-token-search-20260703-v5f';
 const checks = [];
 const check = (name, ok) => checks.push({ name, ok: !!ok });
 
@@ -22,7 +22,7 @@ check('SuperAdmin monthStats has explicit null-safe guard',
 check('SuperAdmin revenue display still uses derived safe revenue values',
   files.superadmin.includes('revenueShortDisplay') && files.superadmin.includes('revenueFullDisplay') && !files.superadmin.includes('Lỗi tải dữ liệu. Bạn cần quyền Super Admin!'));
 check('public superadmin mirror synced',
-  files.publicSuperadmin.includes('4K-6V5E') && files.publicSuperadmin.includes('const _monthStatsSafe = monthStats ? monthStats : null'));
+  files.publicSuperadmin.includes('4K-6V5F') && files.publicSuperadmin.includes('const _monthStatsSafe = monthStats ? monthStats : null'));
 check('check:all includes SuperAdmin monthStats guard',
   pkg.scripts['check:all']?.includes('check:superadmin-monthstats'));
 check('check:all includes SuperAdmin hotfix guard',

@@ -28,7 +28,7 @@
  */
 
 import { getLocalToday, formatDate, formatMonth, formatMonthCompact, addMonthsToYYYYMM } from '../utils/format.js';
-import { StudentService } from '../services/students.service.js?v=audit-gate-superadmin-hardening-20260703-v5e';
+import { StudentService } from '../services/students.service.js?v=debt-given-name-final-token-search-20260703-v5f';
 
 // ════════════════════════════════════════════════════════════════
 // BRIDGE HELPERS — đọc state từ app.js qua window.__store
@@ -1040,7 +1040,7 @@ export function initStudentPagination() {
         renderPaginationControls, PAGE_SIZE,
     }) => {
         import('./students.js').then(() => {}); // no-op — chỉ để IDE không warn
-        import('../services/students.service.js?v=audit-gate-superadmin-hardening-20260703-v5e').then(({ StudentService }) => {
+        import('../services/students.service.js?v=debt-given-name-final-token-search-20260703-v5f').then(({ StudentService }) => {
 
             const store = window.__store;
             if (!store) { console.warn('[pagination/students] __store chưa sẵn sàng'); return; }

@@ -1,4 +1,4 @@
-# Phase 4K-6V5E — Audit Gate Cleanup + SuperAdmin MonthStats Hardening
+# Phase 4K-6V5F — Audit Gate Cleanup + SuperAdmin MonthStats Hardening
 
 ## Mục tiêu
 
@@ -32,7 +32,7 @@ Mục tiêu: nếu một CLB chưa có `stats/{YYYY_MM}`, SuperAdmin dashboard v
 Cập nhật `js/main.js` và `public/js/main.js` để `superadmin.js` cũng dùng cache-bust build hiện tại:
 
 ```js
-./modules/superadmin.js?v=audit-gate-superadmin-hardening-20260703-v5e
+./modules/superadmin.js?v=debt-given-name-final-token-search-20260703-v5f
 ```
 
 Mục tiêu: tránh trình duyệt reuse SuperAdmin module cũ sau khi deploy.

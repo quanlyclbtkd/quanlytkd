@@ -91,7 +91,7 @@
     window.debtBranchMatchesFilter = window.debtBranchMatchesFilter || _branchMatchesFilter;
 // Danh mục kho tùy chỉnh — được load từ Firestore khi đăng nhập thành công
 window.invCustomCategories = [];
-    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V5D'; window.APP_PATCH_VERSION = '4K-6V5E-audit-gate-superadmin-hardening-20260703'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
+    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V5D'; window.APP_PATCH_VERSION = '4K-6V5F-audit-gate-superadmin-hardening-20260703'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
     // Compatibility regression marker retained for Phase 4K-6Q gate: APP_PATCH_VERSION = '4K-6Q-mobile-filter-currency-stability-20260615'
     window.__appLoaded = true; // [Phase 2a] main.js kiểm tra để bỏ qua loadLegacyApp()
     window.__store = window.__store || {}; // [Phase 2b] Bridge object cho module system
@@ -6889,6 +6889,44 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             .replace(/\s+/g, ' ');
     }
 
+    // Phase 4K-6V5F: strict student-name search for legacy render paths.
+    // For one-word Vietnamese name queries (e.g. "uyên"), match the final
+    // given-name token only. This prevents "Nguyễn/Nguyên/Tuyên" surname or
+    // middle-token substring matches from flooding Debt/Active/Quit lists.
+    function _legacySearchTokens(value) {
+        return _legacyNormalizeSearch(value).split(' ').filter(Boolean);
+    }
+    function _legacyIsPlainGivenNameLookup(search, raw) {
+        const q = _legacyNormalizeSearch(search);
+        if (!q || q.includes(' ')) return false;
+        if (!/^[a-z]+$/.test(q)) return false;
+        return !/[0-9@._-]/.test(String(raw || search || ''));
+    }
+    function _legacyMatchesGivenNameOnly(name, search) {
+        const toks = _legacySearchTokens(name);
+        const q = _legacyNormalizeSearch(search);
+        const last = toks[toks.length - 1] || '';
+        return !!q && (last === q || (q.length >= 2 && last.startsWith(q)));
+    }
+    function _legacyStudentProfileMatchesSearch(name, profile, search, rawSearch) {
+        const q = _legacyNormalizeSearch(search);
+        if (!q) return true;
+        const p = profile || {};
+        const displayName = name || p.name || p.fullName || p.studentName || '';
+        if (_legacyIsPlainGivenNameLookup(q, rawSearch)) {
+            return _legacyMatchesGivenNameOnly(displayName, q);
+        }
+        return _legacyNormalizeSearch(displayName).includes(q)
+            || _legacyNormalizeSearch(p.name || '').includes(q)
+            || _legacyNormalizeSearch(p.fullName || '').includes(q)
+            || _legacyNormalizeSearch(p.studentName || '').includes(q)
+            || String(p.phone || p.parentPhone || p.contactPhone || '').includes(q)
+            || _legacyNormalizeSearch(p.belt || '').includes(q)
+            || _legacyNormalizeSearch(p.notes || p.note || '').includes(q);
+    }
+    window.isPlainStudentGivenNameLookup = window.isPlainStudentGivenNameLookup || _legacyIsPlainGivenNameLookup;
+    window.matchesStudentGivenNameOnly = window.matchesStudentGivenNameOnly || _legacyMatchesGivenNameOnly;
+    window.matchesStudentProfileSearch = window.matchesStudentProfileSearch || _legacyStudentProfileMatchesSearch;
 
     // Phase 4K-6V4C2: canonical skipped-month helpers for the Active tab header.
     // Legacy fallback render must not hide skipped-month students because of
@@ -6994,7 +7032,8 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         const _fmEl = document.getElementById('filterMonth');
         const _fbEl = document.getElementById('filterBranch');
         const _srEl = document.getElementById('searchInput');
-        const selMonth = _fmEl ? _fmEl.value : ''; const selBranch = _fbEl ? _fbEl.value : 'all'; const search = _legacyNormalizeSearch(_srEl ? _srEl.value : '');
+        const _rawSearch = _srEl ? _srEl.value : '';
+        const selMonth = _fmEl ? _fmEl.value : ''; const selBranch = _fbEl ? _fbEl.value : 'all'; const search = _legacyNormalizeSearch(_rawSearch);
         const _txRows = [], _utxRows = [], _expRows = [], _eexpRows = [], _debtRows = [], _activeRows = [], _quitRows = [], _invRows = [];
         let txHtml = '', uniformTxHtml = '', expHtml = '', examExpHtml = '', debtHtml = '', activeHtml = '', quitHtml = '', invListHtml = '', reportHtml = '';
         let inc_tuition = 0, inc_exam = 0, inc_other = 0, inc_uniform = 0, exp_uniform = 0, exp = 0, exp_exam_total = 0, totalDebtEst = 0; let studentPayments = {};
@@ -7299,11 +7338,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             let safePhone = p.phone || ""; let safeBelt = p.belt || ""; let safeNotes = p.notes || ""; let safeNameEscaped = name.replace(/'/g, "\\'");
             let matchesSearch = true;
             if (search) {
-                matchesSearch =
-                    _legacyNormalizeSearch(name).includes(search) ||
-                    String(safePhone || '').includes(search) ||
-                    _legacyNormalizeSearch(safeBelt).includes(search) ||
-                    _legacyNormalizeSearch(safeNotes).includes(search);
+                matchesSearch = _legacyStudentProfileMatchesSearch(name, p, search, _rawSearch);
             }
             if (!matchesSearch) return;
             // Smart Name: gắn năm sinh nếu tên trùng

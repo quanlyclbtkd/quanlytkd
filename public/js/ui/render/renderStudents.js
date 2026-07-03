@@ -19,7 +19,7 @@
  */
 
 import { registerRender } from './renderRegistry.js';
-import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=audit-gate-superadmin-hardening-20260703-v5e';
+import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=debt-given-name-final-token-search-20260703-v5f';
 
 // ─── Core DOM helper ────────────────────────────────────────────────────────
 

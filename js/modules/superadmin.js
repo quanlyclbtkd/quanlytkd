@@ -980,7 +980,7 @@ window.debugSuperAdminAggregationHardStop = function() {
             const _pwMobId = 'pw_m_' + cid;
             const activeDisplay = _saFmtOptionalCount(activeCount);
             const profileDisplay = _saFmtOptionalCount(profileCount);
-            // Phase 4K-6V5E: explicit monthStats null-safe guard for CLBs that
+            // Phase 4K-6V5F: explicit monthStats null-safe guard for CLBs that
             // have not produced stats/{YYYY_MM}. Never dereference monthStats
             // directly inside the template.
             const _monthStatsSafe = monthStats ? monthStats : null;

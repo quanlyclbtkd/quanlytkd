@@ -20,7 +20,7 @@ function check(name, ok, detail = '') {
 }
 
 console.log('\n=== Phase 4K-6V4B12 — Render Warning Coalescing ===\n');
-const build = 'audit-gate-superadmin-hardening-20260703-v5e';
+const build = 'debt-given-name-final-token-search-20260703-v5f';
 const appBuilds = [build, 'profile-canonical-store-20260628-v4d1', 'tuition-debt-source-of-truth-20260628-v4c'];
 
 check('index cache-busts app.js/main.js to current render-safe build',
