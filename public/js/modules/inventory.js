@@ -1,4 +1,4 @@
-// Compatibility marker: inventory.service.js?v=audit-gate-superadmin-hardening-20260703-v5e
+// Compatibility marker: inventory.service.js?v=given-name-search-20260703-v5d
 /**
  * modules/inventory.js — Phase 2f
  * ────────────────────────────────────────────────────────────────
@@ -38,7 +38,7 @@
  */
 
 import { getLocalToday } from '../utils/format.js';
-import { InventoryService } from '../services/inventory.service.js?v=audit-gate-superadmin-hardening-20260703-v5e';
+import { InventoryService } from '../services/inventory.service.js?v=given-name-search-20260703-v5d';
 
 // ════════════════════════════════════════════════════════════════
 // BRIDGE HELPERS — đọc state từ window.__store tại call-time

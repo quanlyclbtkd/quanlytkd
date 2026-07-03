@@ -11,7 +11,7 @@ const files = {
   publicSearchIndex: read('public/js/core/studentSearchIndex.js'),
   pkg: read('package.json'),
 };
-const build = 'audit-gate-superadmin-hardening-20260703-v5e';
+const build = 'given-name-search-20260703-v5d';
 let pass = 0, fail = 0;
 function check(name, ok) { if (ok) { pass++; console.log('✅', name); } else { fail++; console.error('❌', name); } }
 

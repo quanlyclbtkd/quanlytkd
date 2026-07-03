@@ -162,7 +162,7 @@ Bản V3A1 ngăn lỗi builder xảy ra sau Firestore write bằng preflight, nh
 Các URL runtime được đổi sang:
 
 ```text
-audit-gate-superadmin-hardening-20260703-v5e
+given-name-search-20260703-v5d
 ```
 
 Sau khi upload GitHub Pages cần `Ctrl + Shift + R`.
