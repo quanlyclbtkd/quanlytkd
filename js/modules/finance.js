@@ -50,8 +50,8 @@ import {
     normalizeYYYYMM,
     formatMonthCompact,
 } from '../utils/format.js';
-import { FinanceService } from '../services/finance.service.js?v=tx-delete-reconcile-smart-search-20260703-v5c';
-import { StudentService } from '../services/students.service.js?v=tx-delete-reconcile-smart-search-20260703-v5c';
+import { FinanceService } from '../services/finance.service.js?v=given-name-search-20260703-v5d';
+import { StudentService } from '../services/students.service.js?v=given-name-search-20260703-v5d';
 import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
 
 // ── Phase 4K-4D: Fallback classify helper (finance.js) ──
@@ -312,7 +312,7 @@ export function initFinance() {
 
         if (!confirm(confirmMsg)) return;
 
-        // Xóa giao dịch chính. Phase 4K-6V5C: catch permission-denied
+        // Xóa giao dịch chính. Phase 4K-6V5D: catch permission-denied
         // để không còn Uncaught Promise và hướng dẫn đúng khi Rules chưa deploy.
         try {
             await FinanceService.deleteTransaction(id);
@@ -985,7 +985,7 @@ export function initTransactionPagination() {
         prepareNextPage, preparePreviousPage,
         renderPaginationControls, PAGE_SIZE,
     }) => {
-        import('../services/finance.service.js?v=tx-delete-reconcile-smart-search-20260703-v5c').then(({ FinanceService }) => {
+        import('../services/finance.service.js?v=given-name-search-20260703-v5d').then(({ FinanceService }) => {
 
             const store = window.__store;
             if (!store) { console.warn('[pagination/transactions] __store chưa sẵn sàng'); return; }

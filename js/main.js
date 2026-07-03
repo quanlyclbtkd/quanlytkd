@@ -1,5 +1,5 @@
 // Phase 4K-6V3A compatibility: 4K-6V3A-firestore-read-attribution-canonical-transaction-boundary
-// Compatibility marker: multiItemInventorySafety.js?v=tx-delete-reconcile-smart-search-20260703-v5c
+// Compatibility marker: multiItemInventorySafety.js?v=given-name-search-20260703-v5d
 // Phase compatibility APP_BUILD_VERSION markers for static safety checks:
 // APP_BUILD_VERSION = '4K-6V4D1A-profile-canonical-store-runtime-recovery-20260628'
 // APP_BUILD_VERSION = '4K-6V4C2-active-skipped-month-section-20260628'
@@ -48,9 +48,9 @@
 // APP_BUILD_VERSION = '4K-6V2A-inventory-consumer-hydration-hotfix-20260616'
 // Phase 4K-6V2C compatibility markers retained for regression gates only:
 // window.APP_PATCH_VERSION = '4K-6V2C-inventory-ledger-reconciliation-20260616'
-// modules/students.js?v=tx-delete-reconcile-smart-search-20260703-v5c
-// modules/finance.js?v=tx-delete-reconcile-smart-search-20260703-v5c
-// modules/inventory.js?v=tx-delete-reconcile-smart-search-20260703-v5c
+// modules/students.js?v=given-name-search-20260703-v5d
+// modules/finance.js?v=given-name-search-20260703-v5d
+// modules/inventory.js?v=given-name-search-20260703-v5d
 /**
  * main.js — Application Bootstrap (Phase 3.6B — Listener Registration Safety)
  * ────────────────────────────────────────────────────────────────────
@@ -104,15 +104,15 @@ import { initFirebase }                        from './firebase/config.js';
 import { showToast, registerToastGlobal }      from './ui/toast.js';
 import { registerModalGlobals }                from './ui/modal.js';
 import { switchTab, registerTabGlobals }       from './ui/tabs.js';
-import { initRender }                          from './ui/render.js?v=tx-delete-reconcile-smart-search-20260703-v5c';
+import { initRender }                          from './ui/render.js?v=given-name-search-20260703-v5d';
 // Phase 3.4: Render Isolation Architecture — island initialisers + legacy shims
 import { initFinanceIslands, registerFinanceLegacyGlobals }     from './ui/render/renderFinance.js';
-import { initStudentIslands, registerStudentsLegacyGlobals }     from './ui/render/renderStudents.js?v=tx-delete-reconcile-smart-search-20260703-v5c';
+import { initStudentIslands, registerStudentsLegacyGlobals }     from './ui/render/renderStudents.js?v=given-name-search-20260703-v5d';
 import { initInventoryIslands, registerInventoryLegacyGlobals }  from './ui/render/renderInventory.js';
 import { initAttendanceIslands }                                  from './ui/render/renderAttendance.js';
 import { initDashboardIslands }                                   from './ui/render/renderDashboard.js';
 // Phase 3.5B: Render Invalidation & Lifecycle Stabilization
-import { registerInvalidationLegacyGlobals }                     from './ui/render/renderInvalidation.js?v=tx-delete-reconcile-smart-search-20260703-v5c';
+import { registerInvalidationLegacyGlobals }                     from './ui/render/renderInvalidation.js?v=given-name-search-20260703-v5d';
 import { registerLoadingGlobals, showLoading, hideLoading, forceHideLoading } from './ui/loading.js';
 import {
     getLocalToday, formatDate, formatMonth,
@@ -231,8 +231,8 @@ import { LegacyAppAudit }      from './core/legacyAppAudit.js';
 import { initLegacyDiagnostics } from './diagnostics/legacyDiagnostics.js';
 
 // Phase 4K-6G: MultiItem Inventory Safety Module
-import { MultiItemInventorySafety } from './core/multiItemInventorySafety.js?v=tx-delete-reconcile-smart-search-20260703-v5c';
-import { InventoryMultiItemReadOnlyUI, initInventoryMultiItemReadOnlyUI } from './core/inventoryMultiItemReadOnlyUI.js?v=tx-delete-reconcile-smart-search-20260703-v5c';
+import { MultiItemInventorySafety } from './core/multiItemInventorySafety.js?v=given-name-search-20260703-v5d';
+import { InventoryMultiItemReadOnlyUI, initInventoryMultiItemReadOnlyUI } from './core/inventoryMultiItemReadOnlyUI.js?v=given-name-search-20260703-v5d';
 
 // ── Phase 3.3E: Firestore safety (expose globally for services) ──
 import { safeGetDocs, printQueryAuditReport }  from './utils/firestore-guard.js';
@@ -262,7 +262,7 @@ import {
     getQuitStatusValues,
     getProfilesListenerMetrics,
     ensureAllProfilesForExport,
-} from './listeners/profiles.listeners.js?v=tx-delete-reconcile-smart-search-20260703-v5c';
+} from './listeners/profiles.listeners.js?v=given-name-search-20260703-v5d';
 
 // ── Phase 3.7C: Profile Status Config ────────────────────────────────────────
 import {
@@ -316,7 +316,7 @@ import {
 } from './firebase/paginatedQuery.js';
 
 // ── Phase 2d–3.2A: Business modules (eager — cần khi login) ────
-import { initStudents, initStudentPagination }        from './modules/students.js?v=tx-delete-reconcile-smart-search-20260703-v5c';
+import { initStudents, initStudentPagination }        from './modules/students.js?v=given-name-search-20260703-v5d';
 // PHẦN 1 FIX + Phase 4K-2: Unified Search Controller — real cache + SearchBlob + stale guard
 import {
     initGlobalSearchRuntime,
@@ -325,11 +325,11 @@ import {
     invalidateSearchCache,
     debugSearchPerformance,
 } from './modules/searchRuntime.js';
-import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from './modules/finance.js?v=tx-delete-reconcile-smart-search-20260703-v5c';
-import { initInventory }                              from './modules/inventory.js?v=tx-delete-reconcile-smart-search-20260703-v5c';
+import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from './modules/finance.js?v=given-name-search-20260703-v5d';
+import { initInventory }                              from './modules/inventory.js?v=given-name-search-20260703-v5d';
 // Compatibility marker: from './modules/attendance.js'
-import { initAttendance }                             from './modules/attendance.js?v=tx-delete-reconcile-smart-search-20260703-v5c';
-import { initDashboard }                              from './modules/dashboard.js?v=tx-delete-reconcile-smart-search-20260703-v5c';
+import { initAttendance }                             from './modules/attendance.js?v=given-name-search-20260703-v5d';
+import { initDashboard }                              from './modules/dashboard.js?v=given-name-search-20260703-v5d';
 // ── Phase 4K-6U: Heavy Reports module is lazy-loaded by reportExportFacade.js ──
 // ── Phase 4.0B-1: SuperAdmin — eager import trên HTTP/HTTPS ─────
 // Không lazy nữa: phải init trước khi loadSuperAdminData() được gọi.
@@ -3124,7 +3124,7 @@ window.debugProfileModalClose = function() {
 // PHẦN 1 — APP BUILD VERSION
 window.APP_BUILD_VERSION = '4K-6V2-inventory-history-pagination-complete-active-debt-20260616';
 // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
-window.APP_PATCH_VERSION = '4K-6V5C-tx-delete-reconcile-smart-search-20260703';
+window.APP_PATCH_VERSION = '4K-6V5D-given-name-search-20260703';
 window.APP_COPYRIGHT_OWNER   = 'Tình Trương';
 window.APP_PRODUCT_NAME      = 'Taekwondo Club Management Web App';
 window.APP_SECURITY_PHASE    = '4K-6E-scale-readiness-write-safety';
@@ -5274,7 +5274,7 @@ window.reconcileStudentTuitionAfterDeletedTransaction = async function(studentNa
         }
 
         // Lấy danh sách transactions còn lại.
-        // Phase 4K-6V5C: đọc authoritative từ Firestore sau khi xóa. Cache
+        // Phase 4K-6V5D: đọc authoritative từ Firestore sau khi xóa. Cache
         // phân trang chỉ có tháng/trang đang xem nên không đủ để tính lại
         // paidMonths/paidUntil/Báo nợ sau khi xóa giao dịch học phí cũ.
         var txs = [];

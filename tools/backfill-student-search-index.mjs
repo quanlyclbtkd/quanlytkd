@@ -96,9 +96,11 @@ function buildStudentSearchIndex(profile = {}, name = '') {
         profile.alias ||
         '';
     const searchName = normalizeSearchText(_nameStr);
+    const searchNameTokens = searchName.split(' ').filter(Boolean).slice(0, 10);
     return {
         searchName,
-        searchNameTokens: searchName.split(' ').filter(Boolean).slice(0, 10),
+        searchGivenName: searchNameTokens[searchNameTokens.length - 1] || '',
+        searchNameTokens,
         searchPhone: normalizePhoneForSearch(phone),
         searchCode: normalizeSearchText(studentCode),
         searchNickname: normalizeSearchText(nickname),

@@ -1,4 +1,4 @@
-// Compatibility marker: inventory.service.js?v=tx-delete-reconcile-smart-search-20260703-v5c
+// Compatibility marker: inventory.service.js?v=given-name-search-20260703-v5d
 /**
  * modules/inventory.js — Phase 2f
  * ────────────────────────────────────────────────────────────────
@@ -38,7 +38,7 @@
  */
 
 import { getLocalToday } from '../utils/format.js';
-import { InventoryService } from '../services/inventory.service.js?v=tx-delete-reconcile-smart-search-20260703-v5c';
+import { InventoryService } from '../services/inventory.service.js?v=given-name-search-20260703-v5d';
 
 // ════════════════════════════════════════════════════════════════
 // BRIDGE HELPERS — đọc state từ window.__store tại call-time

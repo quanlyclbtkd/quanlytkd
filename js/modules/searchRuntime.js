@@ -101,6 +101,22 @@ function _normalizeSearch(raw) {
 }
 
 
+function _searchTokens(raw) {
+    return _normalizeSearch(raw).split(' ').filter(Boolean);
+}
+
+function _isPlainStudentGivenNameLookup(term, raw) {
+    const q = _normalizeSearch(term);
+    return !!q && !q.includes(' ') && /^[a-z]+$/.test(q) && !/[0-9@._-]/.test(String(raw || term || ''));
+}
+
+function _matchesGivenNameOnly(name, term) {
+    const toks = _searchTokens(name);
+    const q = _normalizeSearch(term);
+    const last = toks[toks.length - 1] || '';
+    return !!q && (last === q || (q.length >= 2 && last.startsWith(q)));
+}
+
 // ── Phase 4K-6K-C: Adaptive search latency helpers ──────────────────────────
 function _getProfileCount() {
     try {
@@ -745,6 +761,9 @@ async function _searchStudentsV2(term, tab, token) {
                         if (typeof window.shouldShowActiveStudentByNewFilter === 'function') {
                             if (!window.shouldShowActiveStudentByNewFilter(name, p)) return false;
                         }
+                    }
+                    if (_isPlainStudentGivenNameLookup(term, term)) {
+                        return _matchesGivenNameOnly(name || p.name || p.fullName || p.studentName || '', term);
                     }
                     const blob = typeof window.getProfileSearchBlob === 'function'
                         ? window.getProfileSearchBlob(name, p)

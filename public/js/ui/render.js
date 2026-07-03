@@ -34,7 +34,7 @@ import {
     updateSummaryNumbers,
     fetchAndRenderHistoricalCharts,
     tryApplyCurrentMonthStats,
-} from '../modules/dashboard.js?v=tx-delete-reconcile-smart-search-20260703-v5c';
+} from '../modules/dashboard.js?v=given-name-search-20260703-v5d';
 
 import { store } from '../store.js';
 import {
