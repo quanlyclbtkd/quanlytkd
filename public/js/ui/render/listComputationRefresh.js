@@ -44,7 +44,7 @@ import {
 import {
     computeAndCacheStudents,
     getStudentsSummary,
-} from './computation/studentsRenderer.js?v=given-name-priority-search-unification-20260703-v5g';
+} from './computation/studentsRenderer.js?v=login-history-large-list-guard-20260703-v5h';
 import {
     computeAndCacheInventory,
     getCachedUnpaidInvCount,

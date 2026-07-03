@@ -774,14 +774,16 @@ export function computeAndCacheStudents(allProfiles, params) {
     //   START: students.quitList   → vị trí bắt đầu render quit rows
     //   END:   mỗi section kết thúc ở load-more button (nếu có) hoặc cuối rows
     if (typeof window.trackLargeListRender === 'function') {
+        // Phase 4K-6V5H: track rendered DOM rows, not total matches.
+        // A debt list can have 573 matches but render 50/150 rows + Load More; that should not spam LargeListWarning.
         if (buildActive) {
-            window.trackLargeListRender('students.activeList', _activeTotalCount, 'computeAndCacheStudents');
+            window.trackLargeListRender('students.activeList', _activeRendered, { reason: 'computeAndCacheStudents', totalRows: _activeTotalCount });
         }
         if (buildDebt) {
-            window.trackLargeListRender('students.debtList', _debtTotalCount, 'computeAndCacheStudents');
+            window.trackLargeListRender('students.debtList', _debtRendered, { reason: 'computeAndCacheStudents', totalRows: _debtTotalCount });
         }
         if (buildQuit) {
-            window.trackLargeListRender('students.quitList', _quitTotalCount, 'computeAndCacheStudents');
+            window.trackLargeListRender('students.quitList', _quitRendered, { reason: 'computeAndCacheStudents', totalRows: _quitTotalCount });
         }
     }
 }

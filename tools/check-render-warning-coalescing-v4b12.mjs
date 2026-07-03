@@ -20,7 +20,7 @@ function check(name, ok, detail = '') {
 }
 
 console.log('\n=== Phase 4K-6V4B12 — Render Warning Coalescing ===\n');
-const build = 'given-name-priority-search-unification-20260703-v5g';
+const build = 'login-history-large-list-guard-20260703-v5h';
 const appBuilds = [build, 'profile-canonical-store-20260628-v4d1', 'tuition-debt-source-of-truth-20260628-v4c'];
 
 check('index cache-busts app.js/main.js to current render-safe build',
@@ -84,7 +84,7 @@ check('LegacyRenderWarning remains for diagnostics but is production-gated',
   renderInvalidation.includes('window.__ENABLE_LEGACY_RENDER_WARNINGS') &&
   renderInvalidation.includes('if (!_shouldEmitLegacyRenderWarning()) return'));
 check('APP patch version updated to V4B12 or later',
-  main.includes("APP_PATCH_VERSION = '4K-6V5G-given-name-priority-search-unification-20260703'") ||
+  main.includes("APP_PATCH_VERSION = '4K-6V5H-login-history-large-list-guard-20260703'") ||
   main.includes("APP_PATCH_VERSION = '4K-6V4B12-render-warning-coalescing-20260627'") ||
   main.includes("APP_PATCH_VERSION = '4K-6V4D1-profile-canonical-store-readonly-audit-20260628'"));
 

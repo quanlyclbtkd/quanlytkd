@@ -32,7 +32,7 @@ Mục tiêu: nếu một CLB chưa có `stats/{YYYY_MM}`, SuperAdmin dashboard v
 Cập nhật `js/main.js` và `public/js/main.js` để `superadmin.js` cũng dùng cache-bust build hiện tại:
 
 ```js
-./modules/superadmin.js?v=given-name-priority-search-unification-20260703-v5g
+./modules/superadmin.js?v=login-history-large-list-guard-20260703-v5h
 ```
 
 Mục tiêu: tránh trình duyệt reuse SuperAdmin module cũ sau khi deploy.

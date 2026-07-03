@@ -1,4 +1,4 @@
-// Compatibility marker: inventory.service.js?v=given-name-priority-search-unification-20260703-v5g
+// Compatibility marker: inventory.service.js?v=login-history-large-list-guard-20260703-v5h
 /**
  * modules/inventory.js — Phase 2f
  * ────────────────────────────────────────────────────────────────
@@ -38,7 +38,7 @@
  */
 
 import { getLocalToday } from '../utils/format.js';
-import { InventoryService } from '../services/inventory.service.js?v=given-name-priority-search-unification-20260703-v5g';
+import { InventoryService } from '../services/inventory.service.js?v=login-history-large-list-guard-20260703-v5h';
 
 // ════════════════════════════════════════════════════════════════
 // BRIDGE HELPERS — đọc state từ window.__store tại call-time

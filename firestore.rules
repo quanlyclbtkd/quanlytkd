@@ -1,7 +1,7 @@
 rules_version = '2';
 // ══════════════════════════════════════════════════════════════════════════════
 // Firestore Security Rules — Taekwondo Club Management SaaS
-// Phase 4K-6V4B1 — Coach Branch Assignment + Runtime Mirror Repair
+// Phase 4K-6V5H — Login History Permission + Large List Warning Guard
 //
 // Mục tiêu:
 //   • Client UI không còn là lớp bảo vệ duy nhất.
@@ -348,6 +348,27 @@ service cloud.firestore {
           'branch', 'coachBranch', 'email', 'updatedAt'
         ])
         && selfCoachMirrorMatches(uid, request.resource.data);
+    }
+
+    // Phase 4K-6V5H: login_history là audit phụ.
+    // Mọi user đã đăng nhập được tạo bản ghi của chính mình; chỉ SuperAdmin đọc/xóa.
+    function safeLoginHistoryCreate() {
+      return signedIn()
+        && request.resource.data.keys().hasOnly([
+          'uid', 'email', 'clubId', 'role', 'loginAt', 'timestamp',
+          'browser', 'os', 'deviceType', 'deviceName'
+        ])
+        && request.resource.data.get('uid', '') == request.auth.uid
+        && request.resource.data.get('role', 'viewer') in [
+          'super_admin', 'superadmin', 'root', 'root_admin', 'admin_root',
+          'admin', 'owner', 'viewer', 'coach', 'hlv'
+        ]
+        && (isSuperAdmin() || userEnabled());
+    }
+
+    match /login_history/{docId} {
+      allow create: if safeLoginHistoryCreate();
+      allow get, list, update, delete: if isSuperAdmin();
     }
 
     match /users/{uid} {

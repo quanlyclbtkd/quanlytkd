@@ -34,7 +34,7 @@ import {
     updateSummaryNumbers,
     fetchAndRenderHistoricalCharts,
     tryApplyCurrentMonthStats,
-} from '../modules/dashboard.js?v=given-name-priority-search-unification-20260703-v5g';
+} from '../modules/dashboard.js?v=login-history-large-list-guard-20260703-v5h';
 
 import { store } from '../store.js';
 import {
@@ -59,7 +59,7 @@ import {
     computeAndCacheStudents,
     getStudentsSummary,
     getStudentsCachedHtml,
-} from './render/computation/studentsRenderer.js?v=given-name-priority-search-unification-20260703-v5g';
+} from './render/computation/studentsRenderer.js?v=login-history-large-list-guard-20260703-v5h';
 import {
     computeAndCacheInventory,
     getCachedLiveInvMap,

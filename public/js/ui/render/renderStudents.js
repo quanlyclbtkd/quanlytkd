@@ -19,7 +19,7 @@
  */
 
 import { registerRender } from './renderRegistry.js';
-import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=given-name-priority-search-unification-20260703-v5g';
+import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=login-history-large-list-guard-20260703-v5h';
 
 // ─── Core DOM helper ────────────────────────────────────────────────────────
 

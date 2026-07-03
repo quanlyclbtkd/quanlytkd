@@ -69,7 +69,7 @@ import {
 } from './renderRegistry.js';
 
 import { invalidateFinanceRender }   from './computation/financeRenderer.js';
-import { invalidateStudentsRender }  from './computation/studentsRenderer.js?v=given-name-priority-search-unification-20260703-v5g';
+import { invalidateStudentsRender }  from './computation/studentsRenderer.js?v=login-history-large-list-guard-20260703-v5h';
 import { invalidateInventoryRender } from './computation/inventoryRenderer.js';
 import { invalidateDashboardCache }  from './computation/dashboardRenderer.js';
 
@@ -78,7 +78,7 @@ import {
     refreshListComputation,
     refreshListsComputation,
     getComputationDomainForList,
-} from './listComputationRefresh.js?v=given-name-priority-search-unification-20260703-v5g';
+} from './listComputationRefresh.js?v=login-history-large-list-guard-20260703-v5h';
 
 // ── Dev helper ────────────────────────────────────────────────────────────────
 function _isDev() {
@@ -972,6 +972,10 @@ const _largeListMetricsInternal = {
     largeListWarnings:   {},
     maxRowsPerList:      {},
     lastRowCountPerList: {},
+    totalRowsPerList:    {},
+    largeListWarningSuppressed: {},
+    lastWarnSignaturePerList: {},
+    lastWarnAtPerList:   {},
     totalLargeListHits:  0,
     lastWarnedList:      null,
     lastWarnedRowCount:  0,
@@ -991,30 +995,46 @@ function _trackLargeListRender(listKey, rowCount, reason) {
     if (!listKey || typeof rowCount !== 'number') return;
     try {
         const k = String(listKey);
+        const meta = reason && typeof reason === 'object' ? reason : { reason };
+        const renderedRows = Math.max(0, Number(rowCount) || 0);
+        const totalRows = typeof meta.totalRows === 'number' ? Math.max(0, meta.totalRows) : renderedRows;
+        const reasonText = meta.reason ? String(meta.reason) : '';
+        const now = Date.now();
         _largeListMetricsInternal.listRenderCalls[k]
             = (_largeListMetricsInternal.listRenderCalls[k] || 0) + 1;
-        _largeListMetricsInternal.lastRowCountPerList[k] = rowCount;
-        if (rowCount > (_largeListMetricsInternal.maxRowsPerList[k] || 0)) {
-            _largeListMetricsInternal.maxRowsPerList[k] = rowCount;
+        _largeListMetricsInternal.lastRowCountPerList[k] = renderedRows;
+        _largeListMetricsInternal.totalRowsPerList[k] = totalRows;
+        if (renderedRows > (_largeListMetricsInternal.maxRowsPerList[k] || 0)) {
+            _largeListMetricsInternal.maxRowsPerList[k] = renderedRows;
         }
 
-        if (rowCount > _LARGE_LIST_WARN_THRESHOLD) {
+        // Phase 4K-6V5H: warn only for actually-rendered rows, not total matches.
+        // Debt can have 573 matches but render only 50/150 rows with Load More; that is not a DOM large-list bug.
+        if (renderedRows > _LARGE_LIST_WARN_THRESHOLD) {
+            const signature = `${k}|${renderedRows}|${totalRows}|${reasonText}`;
+            const lastAt = _largeListMetricsInternal.lastWarnAtPerList[k] || 0;
+            const shouldWarn = _largeListMetricsInternal.lastWarnSignaturePerList[k] !== signature || (now - lastAt) > 120000;
             _largeListMetricsInternal.largeListWarnings[k]
                 = (_largeListMetricsInternal.largeListWarnings[k] || 0) + 1;
             _largeListMetricsInternal.totalLargeListHits++;
             _largeListMetricsInternal.lastWarnedList     = k;
-            _largeListMetricsInternal.lastWarnedRowCount = rowCount;
-            _largeListMetricsInternal.lastWarnedAt       = Date.now();
-            // [Phase 3.7C+D] Virtualization-readiness warning
-            console.warn(
-                `[LargeListWarning] list="${k}" rowCount=${rowCount} > threshold=${_LARGE_LIST_WARN_THRESHOLD}. ` +
-                `Cân nhắc virtualization (window scroll / intersection observer) cho list này. ` +
-                (reason ? `reason="${reason}"` : '')
-            );
+            _largeListMetricsInternal.lastWarnedRowCount = renderedRows;
+            _largeListMetricsInternal.lastWarnedAt       = now;
+            if (shouldWarn) {
+                _largeListMetricsInternal.lastWarnSignaturePerList[k] = signature;
+                _largeListMetricsInternal.lastWarnAtPerList[k] = now;
+                console.warn(
+                    `[LargeListWarning] list="${k}" renderedRows=${renderedRows} > threshold=${_LARGE_LIST_WARN_THRESHOLD}. ` +
+                    `totalRows=${totalRows}. Cân nhắc virtualization nếu số dòng render thực tế vượt ngưỡng. ` +
+                    (reasonText ? `reason="${reasonText}"` : '')
+                );
+            } else {
+                _largeListMetricsInternal.largeListWarningSuppressed[k]
+                    = (_largeListMetricsInternal.largeListWarningSuppressed[k] || 0) + 1;
+            }
         }
 
-        _largeListMetricsInternal.trackedAt = Date.now();
-        // Sync to window object
+        _largeListMetricsInternal.trackedAt = now;
         if (window.__largeListMetrics) {
             Object.assign(window.__largeListMetrics, _largeListMetricsInternal);
         }
@@ -1032,6 +1052,10 @@ export function registerInvalidationLegacyGlobals() {
             largeListWarnings:   {},
             maxRowsPerList:      {},
             lastRowCountPerList: {},
+            totalRowsPerList:    {},
+            largeListWarningSuppressed: {},
+            lastWarnSignaturePerList: {},
+            lastWarnAtPerList:   {},
             totalLargeListHits:  0,
             lastWarnedList:      null,
             lastWarnedRowCount:  0,

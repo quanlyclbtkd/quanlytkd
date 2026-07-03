@@ -1,4 +1,4 @@
-// Compatibility marker: inventory.service.js?v=given-name-priority-search-unification-20260703-v5g
+// Compatibility marker: inventory.service.js?v=login-history-large-list-guard-20260703-v5h
 /**
  * js/services/finance.service.js — Phase 3.2A
  * ────────────────────────────────────────────────────────────────
@@ -17,7 +17,7 @@
  * ────────────────────────────────────────────────────────────────
  */
 
-import { InventoryService } from './inventory.service.js?v=given-name-priority-search-unification-20260703-v5g';
+import { InventoryService } from './inventory.service.js?v=login-history-large-list-guard-20260703-v5h';
 
 function _sdk()    { return window._fb_init || {}; }
 function _db()     { const db = (window.__store || {}).db; if (!db) throw new Error('[FinanceService] db chưa sẵn sàng'); return db; }

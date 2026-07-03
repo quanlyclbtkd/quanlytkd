@@ -91,7 +91,7 @@
     window.debtBranchMatchesFilter = window.debtBranchMatchesFilter || _branchMatchesFilter;
 // Danh mục kho tùy chỉnh — được load từ Firestore khi đăng nhập thành công
 window.invCustomCategories = [];
-    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V5D'; window.APP_PATCH_VERSION = '4K-6V5G-given-name-priority-search-unification-20260703'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
+    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V5D'; window.APP_PATCH_VERSION = '4K-6V5H-login-history-large-list-guard-20260703'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
     // Compatibility regression marker retained for Phase 4K-6Q gate: APP_PATCH_VERSION = '4K-6Q-mobile-filter-currency-stability-20260615'
     window.__appLoaded = true; // [Phase 2a] main.js kiểm tra để bỏ qua loadLegacyApp()
     window.__store = window.__store || {}; // [Phase 2b] Bridge object cho module system
@@ -3404,6 +3404,7 @@ service cloud.firestore {
 
             const now = new Date();
             await addDoc(collection(db, "login_history"), {
+                uid: user.uid || '',
                 email: user.email || '',
                 clubId: clubId || '',
                 role: role || 'viewer',
@@ -3414,14 +3415,15 @@ service cloud.firestore {
                 deviceType: isMobile ? 'Mobile' : 'Desktop',
                 deviceName: deviceName || '',
             });
-            // Chỉ đánh dấu "đã ghi" SAU KHI addDoc thành công
-            sessionStorage.setItem(sessionKey, '1');
+            sessionStorage.setItem(sessionKey, '1'); // Chỉ đánh dấu sau khi addDoc thành công
         } catch(e) {
-            // Không set sessionStorage → lần load tiếp theo sẽ tự thử lại
-            console.warn('[login_history] Không thể ghi lịch sử đăng nhập:', e.message);
+            const msg = String(e && (e.message || e.code) || e || '');
+            if (/permission|PERMISSION_DENIED|insufficient/i.test(msg)) {
+                try { sessionStorage.setItem(sessionKey, 'permission-denied'); } catch (_) {}
+                console.info('[login_history] Bỏ qua ghi lịch sử đăng nhập trong phiên này: Firestore Rules chưa cho phép create login_history.');
+            } else console.warn('[login_history] Không thể ghi lịch sử đăng nhập:', msg);
         }
     }
-
     // ── LocalStorage cache để tăng tốc khởi động ──────────────────────────
     // Phase 4K-6V4B: cache chỉ là bootstrap hint, không phải nguồn cấp quyền.
     // Mọi phiên đều xác minh users/{uid}; khi role/club/branch thay đổi, runtime reload nguyên tử.
