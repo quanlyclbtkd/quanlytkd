@@ -19,7 +19,7 @@
  */
 
 import { registerRender } from './renderRegistry.js';
-import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=given-name-search-20260703-v5d';
+import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=tx-delete-reconcile-smart-search-20260703-v5c';
 
 // ─── Core DOM helper ────────────────────────────────────────────────────────
 

@@ -91,7 +91,7 @@
     window.debtBranchMatchesFilter = window.debtBranchMatchesFilter || _branchMatchesFilter;
 // Danh mục kho tùy chỉnh — được load từ Firestore khi đăng nhập thành công
 window.invCustomCategories = [];
-    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V5D'; window.APP_PATCH_VERSION = '4K-6V5D-given-name-search-20260703'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
+    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V5C'; window.APP_PATCH_VERSION = '4K-6V5C-tx-delete-reconcile-smart-search-20260703'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
     // Compatibility regression marker retained for Phase 4K-6Q gate: APP_PATCH_VERSION = '4K-6Q-mobile-filter-currency-stability-20260615'
     window.__appLoaded = true; // [Phase 2a] main.js kiểm tra để bỏ qua loadLegacyApp()
     window.__store = window.__store || {}; // [Phase 2b] Bridge object cho module system
@@ -4520,11 +4520,9 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         const studentCode = String((profile || {}).memberId || (profile || {}).studentCode || (profile || {}).code || (profile || {}).idCode || '');
         const nickname   = String((profile || {}).nickname || (profile || {}).shortName || (profile || {}).alias || '');
         const searchName = normalizeSearchText(fullName);
-        const searchNameTokens = searchName.split(' ').filter(Boolean).slice(0, 10);
         return {
             searchName,
-            searchGivenName: searchNameTokens[searchNameTokens.length - 1] || '',
-            searchNameTokens,
+            searchNameTokens: searchName.split(' ').filter(Boolean).slice(0, 10),
             searchPhone:     normalizePhoneForSearch(phone),
             searchCode:      normalizeSearchText(studentCode),
             searchNickname:  normalizeSearchText(nickname),
@@ -5569,7 +5567,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                 if (txToDelete && (txToDelete.type === 'Học phí' || txToDelete.type === 'Học phí + Lệ phí thi')) {
                     const studentName = (txToDelete.description || txToDelete.studentName || '').trim();
                     if (studentName) {
-                        // Phase 4K-6V5D: ưu tiên reconcile canonical nếu main.js đã load.
+                        // Phase 4K-6V5C: ưu tiên reconcile canonical nếu main.js đã load.
                         // Hàm này đọc lại giao dịch còn lại từ Firestore để tab Báo nợ đúng ngay
                         // cả khi allTransactions chỉ là cache phân trang/tháng hiện tại.
                         if (typeof window.reconcileStudentTuitionAfterDeletedTransaction === 'function') {

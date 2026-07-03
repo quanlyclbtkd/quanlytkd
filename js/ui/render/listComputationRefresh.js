@@ -44,7 +44,7 @@ import {
 import {
     computeAndCacheStudents,
     getStudentsSummary,
-} from './computation/studentsRenderer.js?v=given-name-search-20260703-v5d';
+} from './computation/studentsRenderer.js?v=tx-delete-reconcile-smart-search-20260703-v5c';
 import {
     computeAndCacheInventory,
     getCachedUnpaidInvCount,

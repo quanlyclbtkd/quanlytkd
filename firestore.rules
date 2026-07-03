@@ -245,7 +245,7 @@ service cloud.firestore {
       match /transactions/{transactionId} {
         allow get, list: if isSuperAdmin() || isAdminOrViewer(clubId);
         allow create, update: if isSuperAdmin() || isClubAdmin(clubId);
-        // Phase 4K-6V5D: Admin CLB được xóa giao dịch sai để hệ thống
+        // Phase 4K-6V5C: Admin CLB được xóa giao dịch sai để hệ thống
         // reconcile lại học phí/Báo nợ. Coach/Viewer vẫn bị chặn.
         allow delete: if isSuperAdmin() || isClubAdmin(clubId);
       }

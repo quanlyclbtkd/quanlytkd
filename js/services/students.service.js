@@ -365,17 +365,8 @@ export const StudentService = {
         }
 
         if (!isPhone || resultMap.size === 0) {
-            // Phase 4K-6V5D: tên võ sinh ưu tiên tên gọi/cuối tên.
-            // Ví dụ tìm "uyen" phải khớp Bảo Uyên, không kéo theo Nguyễn/Nguyên.
-            const _plainGivenNameLookup = normalized && !normalized.includes(' ') && /^[a-z]+$/.test(normalized);
-            if (_plainGivenNameLookup) {
-                await _run(
-                    query(colRef, orderBy('searchGivenName'), startAt(normalized), endAt(normalized + '\uf8ff'), limit(pageSize + 1)),
-                    'searchGivenName'
-                );
-            }
-            // Tìm theo tên đầy đủ chỉ khi người dùng nhập nhiều hơn một token.
-            if (normalized && !_plainGivenNameLookup) {
+            // Tìm theo tên đã chuẩn hoá (searchName field)
+            if (normalized) {
                 await _run(
                     query(colRef, orderBy('searchName'), startAt(normalized), endAt(normalized + '\uf8ff'), limit(pageSize + 1)),
                     'searchName'
@@ -385,7 +376,7 @@ export const StudentService = {
             // Ví dụ: "Văn A" → normalize "van a" → token "van" → matches "Nguyễn Văn A".
             // Chỉ chạy khi prefix search chưa tìm thấy. Tránh false-positive quá rộng.
             // Requires: searchNameTokens field (buildStudentSearchIndex) + Firestore array-contains.
-            if (resultMap.size === 0 && normalized.length >= 2 && !_plainGivenNameLookup) {
+            if (resultMap.size === 0 && normalized.length >= 2) {
                 const _toks = normalized.split(' ').filter(t => t.length >= 2);
                 for (const _tok of _toks) {
                     if (resultMap.size >= pageSize) break;

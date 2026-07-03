@@ -1,4 +1,4 @@
-# Phase 4K-6V5D — Transaction Delete Reconcile + Smart Student Search
+# Phase 4K-6V5C — Transaction Delete Reconcile + Smart Student Search
 
 ## Mục tiêu
 
@@ -55,7 +55,7 @@ allow delete: if isSuperAdmin() || isClubAdmin(clubId);
 Cập nhật toàn bộ entry/import quan trọng sang:
 
 ```txt
-given-name-search-20260703-v5d
+tx-delete-reconcile-smart-search-20260703-v5c
 ```
 
 Đặc biệt đã bỏ import stale V3A1 của finance/inventory/dashboard trong `main.js`.
