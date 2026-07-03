@@ -13,7 +13,7 @@ const files = {
   studentService: read('js/services/students.service.js'),
   pkg: read('package.json'),
 };
-const build = 'given-name-search-20260703-v5d';
+const build = 'audit-gate-superadmin-hardening-20260703-v5e';
 let pass = 0, fail = 0;
 function check(name, ok) { if (ok) { pass++; console.log('✅', name); } else { fail++; console.error('❌', name); } }
 

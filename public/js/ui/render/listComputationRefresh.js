@@ -44,7 +44,7 @@ import {
 import {
     computeAndCacheStudents,
     getStudentsSummary,
-} from './computation/studentsRenderer.js?v=given-name-search-20260703-v5d';
+} from './computation/studentsRenderer.js?v=audit-gate-superadmin-hardening-20260703-v5e';
 import {
     computeAndCacheInventory,
     getCachedUnpaidInvCount,
