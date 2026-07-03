@@ -23,12 +23,21 @@ function check(name, ok, detail = '') {
 
 console.log('\n=== Phase 4K-6V4B1 — Coach Branch Runtime Repair ===\n');
 
+<<<<<<< HEAD
 const appEntrypointBuilds = ['coach-runtime-recovery-login-history-cache-guard-20260703-v5d', 'profile-canonical-store-20260628-v4d1', 'tuition-debt-source-of-truth-20260628-v4c'];
 check('Production entrypoints keep V4B1 branch repair and load current runtime cache marker',
   (index.match(/coach-branch-runtime-repair-20260627-v4b1/g) || []).length >= 5 &&
   appEntrypointBuilds.some(build => index.includes(`app.js?v=${build}`)) &&
   (index.includes('./js/main.js?v=coach-runtime-recovery-login-history-cache-guard-20260703-v5d') || index.includes('./js/main.js?v=profile-canonical-store-20260628-v4d1')) &&
   (main.includes("profiles.listeners.js?v=coach-runtime-recovery-login-history-cache-guard-20260703-v5d") || main.includes("profiles.listeners.js?v=profile-canonical-store-20260628-v4d1")) &&
+=======
+const appEntrypointBuilds = ['profile-canonical-store-runtime-recovery-20260628-v4d1a', 'profile-canonical-store-20260628-v4d1', 'tuition-debt-source-of-truth-20260628-v4c'];
+check('Production entrypoints keep V4B1 branch repair and load current runtime cache marker',
+  (index.match(/coach-branch-runtime-repair-20260627-v4b1/g) || []).length >= 5 &&
+  appEntrypointBuilds.some(build => index.includes(`app.js?v=${build}`)) &&
+  (index.includes('./js/main.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a') || index.includes('./js/main.js?v=profile-canonical-store-20260628-v4d1')) &&
+  (main.includes("profiles.listeners.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a") || main.includes("profiles.listeners.js?v=profile-canonical-store-20260628-v4d1")) &&
+>>>>>>> parent of 4757e42 (upload)
   main.includes("attendance.js?v=coach-branch-runtime-repair-20260627-v4b1"));
 check('Coach creation requires one concrete branch',
   repair.includes("if (!name || !email || !branch || pass.length < 6)") &&
@@ -69,11 +78,11 @@ check('Missing/invalid Coach branch remains fail-closed',
   profiles.includes('Coach missing branch — fail closed, no profiles query'));
 check('No full-club profile fallback is introduced for Coach repair',
   profiles.includes("loadCoachBranchProfilesFallback('redirected-from-full:") &&
-  (profiles.includes("fbWhere('branch', '==', alias)") || profiles.includes("fbWhere(field, '==', alias)")) &&
-  (/không quét clubs/i.test(app) || app.includes('branch-scoped bootstrap query')));
+  profiles.includes("fbWhere('branch', '==', alias)") &&
+  /không quét clubs/i.test(app));
 
 check('Profile listener query is server-scoped to assigned branch',
-  (profiles.includes("fbQuery(profRef, statusConstraint, fbWhere('branch', '==', coachBranch))") || profiles.includes("fbQuery(profRef, fbWhere('branch', '==', coachBranch))")) &&
+  profiles.includes("fbQuery(profRef, statusConstraint, fbWhere('branch', '==', coachBranch))") &&
   profiles.includes("':coach:' + coachBranch"));
 check('Primary branch keeps scoped legacy Mặc định compatibility',
   profiles.includes("coachBranch === 'CS1'") &&

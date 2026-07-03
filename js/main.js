@@ -1,7 +1,11 @@
 // Phase 4K-6V3A compatibility: 4K-6V3A-firestore-read-attribution-canonical-transaction-boundary
 // Compatibility marker: multiItemInventorySafety.js?v=inventory-ledger-reconciliation-20260616-v2c
 // Phase compatibility APP_BUILD_VERSION markers for static safety checks:
+<<<<<<< HEAD
 // APP_BUILD_VERSION = '4K-6V5D-coach-runtime-recovery-login-history-cache-guard-20260703'
+=======
+// APP_BUILD_VERSION = '4K-6V4D1A-profile-canonical-store-runtime-recovery-20260628'
+>>>>>>> parent of 4757e42 (upload)
 // APP_BUILD_VERSION = '4K-6V4C2-active-skipped-month-section-20260628'
 // APP_BUILD_VERSION = '4K-6V4B8-debt-two-month-vietnamese-month-normalization-20260627'
 // APP_BUILD_VERSION = '4K-6V4B7-debt-authoritative-tuition-coverage-20260627'
@@ -104,15 +108,26 @@ import { initFirebase }                        from './firebase/config.js';
 import { showToast, registerToastGlobal }      from './ui/toast.js';
 import { registerModalGlobals }                from './ui/modal.js';
 import { switchTab, registerTabGlobals }       from './ui/tabs.js';
+<<<<<<< HEAD
 import { initRender }                          from './ui/render.js?v=coach-runtime-recovery-login-history-cache-guard-20260703-v5d';
 // Phase 3.4: Render Isolation Architecture — island initialisers + legacy shims
 import { initFinanceIslands, registerFinanceLegacyGlobals }     from './ui/render/renderFinance.js';
 import { initStudentIslands, registerStudentsLegacyGlobals }     from './ui/render/renderStudents.js?v=coach-runtime-recovery-login-history-cache-guard-20260703-v5d';
+=======
+import { initRender }                          from './ui/render.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a';
+// Phase 3.4: Render Isolation Architecture — island initialisers + legacy shims
+import { initFinanceIslands, registerFinanceLegacyGlobals }     from './ui/render/renderFinance.js';
+import { initStudentIslands, registerStudentsLegacyGlobals }     from './ui/render/renderStudents.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a';
+>>>>>>> parent of 4757e42 (upload)
 import { initInventoryIslands, registerInventoryLegacyGlobals }  from './ui/render/renderInventory.js';
 import { initAttendanceIslands }                                  from './ui/render/renderAttendance.js';
 import { initDashboardIslands }                                   from './ui/render/renderDashboard.js';
 // Phase 3.5B: Render Invalidation & Lifecycle Stabilization
+<<<<<<< HEAD
 import { registerInvalidationLegacyGlobals }                     from './ui/render/renderInvalidation.js?v=coach-runtime-recovery-login-history-cache-guard-20260703-v5d';
+=======
+import { registerInvalidationLegacyGlobals }                     from './ui/render/renderInvalidation.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a';
+>>>>>>> parent of 4757e42 (upload)
 import { registerLoadingGlobals, showLoading, hideLoading, forceHideLoading } from './ui/loading.js';
 import {
     getLocalToday, formatDate, formatMonth,
@@ -256,14 +271,17 @@ import {
     loadQuitProfilesIfNeeded,
     cleanupQuitProfilesListener,
     loadFullProfilesFallback,
-    loadCoachBranchProfilesFallback,
     isQuitProfilesLoaded,
     resetProfilesListeners,
     getActiveStatusValues,
     getQuitStatusValues,
     getProfilesListenerMetrics,
     ensureAllProfilesForExport,
+<<<<<<< HEAD
 } from './listeners/profiles.listeners.js?v=coach-runtime-recovery-login-history-cache-guard-20260703-v5d';
+=======
+} from './listeners/profiles.listeners.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a';
+>>>>>>> parent of 4757e42 (upload)
 
 // ── Phase 3.7C: Profile Status Config ────────────────────────────────────────
 import {
@@ -317,7 +335,11 @@ import {
 } from './firebase/paginatedQuery.js';
 
 // ── Phase 2d–3.2A: Business modules (eager — cần khi login) ────
+<<<<<<< HEAD
 import { initStudents, initStudentPagination }        from './modules/students.js?v=coach-runtime-recovery-login-history-cache-guard-20260703-v5d';
+=======
+import { initStudents, initStudentPagination }        from './modules/students.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a';
+>>>>>>> parent of 4757e42 (upload)
 // PHẦN 1 FIX + Phase 4K-2: Unified Search Controller — real cache + SearchBlob + stale guard
 import {
     initGlobalSearchRuntime,
@@ -2119,27 +2141,11 @@ function _waitForExistingLegacyApp(ms) {
         window.loadQuitProfilesIfNeeded     = loadQuitProfilesIfNeeded;
         window.cleanupQuitProfilesListener  = cleanupQuitProfilesListener;
         window.loadFullProfilesFallback     = loadFullProfilesFallback;
-        window.loadCoachBranchProfilesFallback = loadCoachBranchProfilesFallback;
         window.isQuitProfilesLoaded         = isQuitProfilesLoaded;
         window.resetProfilesListeners       = resetProfilesListeners;
         window.getActiveStatusValues        = getActiveStatusValues;
         window.getQuitStatusValues          = getQuitStatusValues;
         window.getProfilesListenerMetrics   = getProfilesListenerMetrics;
-
-        // Phase 4K-6V5C: If app.js initialized before profile listener API was
-        // exposed, retry Coach branch-scoped roster hydration after exports are ready.
-        if (window.RoleReadBoundary?.isCoachAttendanceOnly?.() === true) {
-            [0, 700, 1800].forEach(function(delay) {
-                setTimeout(function() {
-                    if (typeof window.mountActiveProfilesListenerIfNeeded === 'function') {
-                        window.mountActiveProfilesListenerIfNeeded('coach-profile-api-ready-retry');
-                    }
-                    if (typeof window.loadCoachBranchProfilesFallback === 'function') {
-                        window.loadCoachBranchProfilesFallback('coach-profile-api-ready-retry');
-                    }
-                }, delay);
-            });
-        }
 
         // ── Phase 3.7C: Status Config + Export helper + Debug ─────────────────
         window.ensureAllProfilesForExport   = ensureAllProfilesForExport;
@@ -3141,7 +3147,11 @@ window.debugProfileModalClose = function() {
 // PHẦN 1 — APP BUILD VERSION
 window.APP_BUILD_VERSION = '4K-6V2-inventory-history-pagination-complete-active-debt-20260616';
 // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
+<<<<<<< HEAD
 window.APP_PATCH_VERSION = '4K-6V5D-coach-runtime-recovery-login-history-cache-guard-20260703';
+=======
+window.APP_PATCH_VERSION = '4K-6V4D1A-profile-canonical-store-runtime-recovery-20260628';
+>>>>>>> parent of 4757e42 (upload)
 window.APP_COPYRIGHT_OWNER   = 'Tình Trương';
 window.APP_PRODUCT_NAME      = 'Taekwondo Club Management Web App';
 window.APP_SECURITY_PHASE    = '4K-6E-scale-readiness-write-safety';

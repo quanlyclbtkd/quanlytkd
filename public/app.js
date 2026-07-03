@@ -90,7 +90,11 @@
     window.debtBranchMatchesFilter = window.debtBranchMatchesFilter || _branchMatchesFilter;
 // Danh mục kho tùy chỉnh — được load từ Firestore khi đăng nhập thành công
 window.invCustomCategories = [];
+<<<<<<< HEAD
     window.COACH_BRANCH_RUNTIME_VERSION='4K-6V5D'; window.APP_PATCH_VERSION = '4K-6V5D-coach-runtime-recovery-login-history-cache-guard-20260703'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
+=======
+    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V4B1'; window.APP_PATCH_VERSION = '4K-6V3A1-payment-bundle-runtime-hotfix-20260616'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
+>>>>>>> parent of 4757e42 (upload)
     // Compatibility regression marker retained for Phase 4K-6Q gate: APP_PATCH_VERSION = '4K-6Q-mobile-filter-currency-stability-20260615'
     window.__appLoaded = true; // [Phase 2a] main.js kiểm tra để bỏ qua loadLegacyApp()
     window.__store = window.__store || {}; // [Phase 2b] Bridge object cho module system
@@ -1943,35 +1947,6 @@ service cloud.firestore {
             }
         };
 
-        // Phase 4K-6V5C — Coach branch-scoped bootstrap roster recovery.
-        async function _loadCoachProfilesBranchScopedBootstrap(reason) {
-            const role = String(window.userRole || window.__store?.userRole || '').toLowerCase().replace(/-/g, '_'), branchRaw = window.coachBranch || window.__store?.coachBranch || '';
-            const branch = window.BranchIdentity?.normalize ? window.BranchIdentity.normalize(branchRaw, { fallback: '' }) : String(branchRaw || '').trim();
-            if (!['coach','hlv'].includes(role) || !profRef || !branch) return false;
-            const aliases = window.BranchIdentity?.aliases ? window.BranchIdentity.aliases(branch) : (branch === 'CS1' ? ['CS1', 'Mặc định'] : [branch]);
-            const activeMap = {}, queryResults = []; let docsRead = 0;
-            for (const field of ['branch', 'branchCode']) for (const alias of aliases) {
-                if (!alias) continue;
-                try {
-                    const snap = await getDocs(query(profRef, where(field, '==', alias), limit(300))); docsRead += snap.size || 0; let accepted = 0;
-                    snap.forEach(d => { const id = d.id?.trim ? d.id.trim() : String(d.id || '').trim(); if (!id) return; const data = d.data ? d.data() : {}; const kind = typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus(data) : (data.status === 'quit' ? 'quit' : 'active'); if (kind !== 'quit') { activeMap[id] = data; accepted++; } });
-                    queryResults.push({ field, alias, size: snap.size || 0, accepted });
-                } catch (err) {
-                    const code = err && (err.code || err.message) || String(err); queryResults.push({ field, alias, error: code });
-                    if (String(code).indexOf('permission-denied') === -1) console.warn('[CoachBootstrapProfiles] branch query failed:', field + '=' + alias, code); else console.debug?.('[CoachBootstrapProfiles] optional branch query denied:', field + '=' + alias);
-                }
-            }
-            const count = Object.keys(activeMap).length;
-            if (typeof window.recordFirestoreReadAttribution === 'function') window.recordFirestoreReadAttribution('profiles.coachBootstrapBranchQuery', docsRead, { initial: true, reason: reason || 'coach-bootstrap', branch, results: queryResults });
-            if (!count) { console.warn('[CoachBootstrapProfiles] branch-scoped roster returned 0 docs:', { branch, reason, queryResults }); return false; }
-            allProfiles = activeMap; if (window.__store) window.__store.profiles = activeMap;
-            if (typeof window.syncProfilesToStudentStore === 'function') { try { window.syncProfilesToStudentStore(activeMap, 'coach-bootstrap-branch-scoped'); } catch (_) {} }
-            _updateHydrationMetrics({ profilesSnapshotCount: (window.__dataHydrationMetrics.profilesSnapshotCount || 0) + 1, profilesDocCount: count, lastReason: 'coach-bootstrap-branch-scoped' });
-            if (typeof window.invalidateByDomain === 'function') window.invalidateByDomain('attendance', 'coach-bootstrap-branch-scoped');
-            if (typeof window.renderAttendanceList === 'function') Promise.resolve().then(() => window.renderAttendanceList()).catch(() => {});
-            console.info('[CoachBootstrapProfiles] loaded branch-scoped roster:', { count, branch, reason }); return true;
-        }
-
         // [Phase 3.7B] Mount active-only realtime listener nếu module đã sẵn.
         // main.js load TRƯỚC initSaaSDatabase (initSaaSDatabase chỉ gọi khi user login)
         // nên window.mountActiveProfilesListener đã có sẵn khi init club chạy.
@@ -1984,20 +1959,10 @@ service cloud.firestore {
                 reason: 'init-active-profiles'
             });
         } else if (window.RoleReadBoundary?.isCoachAttendanceOnly?.() === true) {
-            // Phase 4K-6V5C: module may not be exposed yet on slow/cache sessions.
-            // Do not clear profiles and do not full-read the club. Use a bounded
-            // branch-scoped bootstrap query, then let main.js mount the realtime
-            // listener when profiles.listeners.js becomes available.
-            _loadCoachProfilesBranchScopedBootstrap('module-unavailable-init')
-                .then((ok) => {
-                    if (!ok) console.warn('[RoleReadBoundary] Coach profiles module unavailable — waiting for module retry, no full-club fallback');
-                })
-                .catch((err) => console.warn('[RoleReadBoundary] Coach bootstrap roster failed:', err && (err.code || err.message) || err));
-            setTimeout(() => {
-                if (typeof window.mountActiveProfilesListener === 'function') {
-                    window.mountActiveProfilesListener({ db, clubId, profRef, currentClubId, role: window.userRole || '', coachBranch: window.coachBranch || '', reason: 'coach-module-late-retry' });
-                }
-            }, 350);
+            // Fail closed: tuyệt đối không full-read toàn CLB khi module branch-aware chưa sẵn.
+            allProfiles = {};
+            if (window.__store) window.__store.profiles = {};
+            console.error('[RoleReadBoundary] Coach profiles module unavailable — blocked full-club fallback');
         } else {
             // Fallback Admin only: full profiles listener (Phase 3.6D pattern — khi module chưa load)
             let _fallbackProfilesInitialSeen = false;
@@ -10170,6 +10135,7 @@ window.processMultiItem = async (action) => {
             return result;
         }
 
+<<<<<<< HEAD
         if (_isCoachScopedRuntimeSession()) {
             const result = {
                 clubId: _clubId,
@@ -10187,6 +10153,8 @@ window.processMultiItem = async (action) => {
             return result;
         }
 
+=======
+>>>>>>> parent of 4757e42 (upload)
         async function _hasDoc(path) {
             try {
                 const parts = path.split('/');

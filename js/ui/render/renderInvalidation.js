@@ -69,7 +69,11 @@ import {
 } from './renderRegistry.js';
 
 import { invalidateFinanceRender }   from './computation/financeRenderer.js';
+<<<<<<< HEAD
 import { invalidateStudentsRender }  from './computation/studentsRenderer.js?v=coach-runtime-recovery-login-history-cache-guard-20260703-v5d';
+=======
+import { invalidateStudentsRender }  from './computation/studentsRenderer.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a';
+>>>>>>> parent of 4757e42 (upload)
 import { invalidateInventoryRender } from './computation/inventoryRenderer.js';
 import { invalidateDashboardCache }  from './computation/dashboardRenderer.js';
 
@@ -78,7 +82,11 @@ import {
     refreshListComputation,
     refreshListsComputation,
     getComputationDomainForList,
+<<<<<<< HEAD
 } from './listComputationRefresh.js?v=coach-runtime-recovery-login-history-cache-guard-20260703-v5d';
+=======
+} from './listComputationRefresh.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a';
+>>>>>>> parent of 4757e42 (upload)
 
 // ── Dev helper ────────────────────────────────────────────────────────────────
 function _isDev() {

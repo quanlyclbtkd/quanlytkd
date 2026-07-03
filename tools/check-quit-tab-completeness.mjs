@@ -30,7 +30,7 @@ check('Quit lazy loader does not accept non-quit documents from broad legacy sig
 check('Quit lazy loader records total docs read and per-query diagnostics',
   profiles.includes('docsRead += snap.size') && profiles.includes('queryResults.push') && profiles.includes('queryCount: quitQueries.length'));
 check('Quit query failure is per-signal and does not abort the whole load',
-  profiles.includes("Quit legacy query lỗi") && profiles.includes('for (const item of quitQueries)') && profiles.includes('queryResults.push({ label: item.label, error: queryErr.code'));
+  profiles.includes("Quit legacy query lỗi") && profiles.includes('continue') === false && profiles.includes('for (const item of quitQueries)'));
 check('Quit list uses full/lazy profile store instead of active pagination currentItems',
   renderer.includes('const useFullProfileQuitRender = buildQuit && fullProfilesCount > 0') &&
   renderer.includes('!useFullProfileQuitRender'));

@@ -59,7 +59,11 @@ import {
     computeAndCacheStudents,
     getStudentsSummary,
     getStudentsCachedHtml,
+<<<<<<< HEAD
 } from './render/computation/studentsRenderer.js?v=coach-runtime-recovery-login-history-cache-guard-20260703-v5d';
+=======
+} from './render/computation/studentsRenderer.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a';
+>>>>>>> parent of 4757e42 (upload)
 import {
     computeAndCacheInventory,
     getCachedLiveInvMap,

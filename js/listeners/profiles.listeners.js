@@ -429,11 +429,8 @@ export function mountActiveProfilesListener(context) {
                 const statusConstraint = statusValues.length === 1
                     ? fbWhere('status', '==', statusValues[0])
                     : fbWhere('status', 'in', statusValues);
-                // Phase 4K-6V5C: Coach query must be branch-only, then status-filter
-                // locally. Many legacy profiles have branch but missing/variant status;
-                // status+branch under-loads roster and appears intermittent.
                 activeQuery = isCoach
-                    ? fbQuery(profRef, fbWhere('branch', '==', coachBranch))
+                    ? fbQuery(profRef, statusConstraint, fbWhere('branch', '==', coachBranch))
                     : fbQuery(profRef, statusConstraint);
             } catch (qErr) {
                 console.warn('[ProfilesListener] Build query lỗi:', qErr.message, '— fallback');
@@ -459,9 +456,7 @@ export function mountActiveProfilesListener(context) {
                     let activeMap = {};
                     snap.forEach(d => {
                         const id = d.id.trim();
-                        if (!id) return;
-                        const data = d.data();
-                        if (!isCoach || classifyProfileStatus(data) !== 'quit') activeMap[id] = data;
+                        if (id) activeMap[id] = d.data();
                     });
                     if (isCoach) {
                         _state.coachCanonicalActiveMap = activeMap;
@@ -825,46 +820,25 @@ export async function loadCoachBranchProfilesFallback(reason) {
     _state.fallbackInProgress = true;
     try {
         const aliases = _coachBranchAliases(ctx);
-        const fields = ['branch', 'branchCode'];
-        const activeMap = {};
-        const queryResults = [];
-        let docsRead = 0;
-
-        for (const field of fields) {
-            for (const alias of aliases) {
-                if (!alias) continue;
-                try {
-                    const snap = await fbGetDocs(fbQuery(ctx.profRef, fbWhere(field, '==', alias)));
-                    docsRead += snap.size || 0;
-                    let accepted = 0;
-                    snap.forEach(d => {
-                        const id = d.id.trim();
-                        if (!id) return;
-                        const data = d.data();
-                        if (classifyProfileStatus(data) !== 'quit') { activeMap[id] = data; accepted++; }
-                    });
-                    queryResults.push({ field, alias, size: snap.size || 0, accepted });
-                } catch (queryErr) {
-                    const code = queryErr && (queryErr.code || queryErr.message) || String(queryErr);
-                    queryResults.push({ field, alias, error: code });
-                    if (String(code).indexOf('permission-denied') === -1) {
-                        console.warn('[ProfilesFallback] Coach branch field query failed:', field + '=' + alias, code);
-                    } else {
-                        console.debug?.('[ProfilesFallback] Optional coach branch field denied:', field + '=' + alias);
-                    }
-                }
-            }
-        }
-
+        const snapshots = await Promise.all(aliases.map(alias =>
+            fbGetDocs(fbQuery(ctx.profRef, fbWhere('branch', '==', alias)))
+        ));
+        const docsRead = snapshots.reduce((sum, snap) => sum + (snap.size || 0), 0);
         if (typeof window.recordFirestoreReadAttribution === 'function') {
             window.recordFirestoreReadAttribution('profiles.coachBranchFallbackQuery', docsRead, {
                 initial: true,
                 reason: reason || 'coach-branch-fallback',
                 branch,
-                aliases,
-                results: queryResults
+                aliases
             });
         }
+        const activeMap = {};
+        snapshots.forEach(snap => snap.forEach(d => {
+            const id = d.id.trim();
+            if (!id) return;
+            const data = d.data();
+            if (classifyProfileStatus(data) !== 'quit') activeMap[id] = data;
+        }));
         setActiveProfiles(activeMap, 'coach-branch-fallback:' + reason);
         setQuitProfiles({}, 'coach-branch-fallback:no-quit-data');
         _syncLegacy();
@@ -877,7 +851,7 @@ export async function loadCoachBranchProfilesFallback(reason) {
         markActiveLoaded(true);
         _invalidateAll('coach-branch-fallback');
         _updateWindowMetrics();
-        return Object.keys(activeMap).length > 0;
+        return true;
     } catch (err) {
         _state.fallbackCount++;
         _state.fullFallbackReason = 'coach-branch-error:' + reason;
@@ -888,6 +862,7 @@ export async function loadCoachBranchProfilesFallback(reason) {
         _state.fallbackInProgress = false;
     }
 }
+
 // ─────────────────────────────────────────────────────────────────────────────
 // FULL PROFILES FALLBACK — với loop guard (Phase 3.7C)
 // ─────────────────────────────────────────────────────────────────────────────
