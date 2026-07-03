@@ -19,11 +19,7 @@ function check(name, ok) {
 }
 
 console.log('\n=== Phase 4K-6V4B8 — Quit Tab Mobile Parity ===\n');
-<<<<<<< HEAD
-const build = 'coach-runtime-recovery-login-history-cache-guard-20260703-v5d';
-=======
 const build = 'profile-canonical-store-runtime-recovery-20260628-v4d1a';
->>>>>>> parent of 4757e42 (upload)
 const appBuilds = [build, 'profile-canonical-store-20260628-v4d1', 'tuition-debt-source-of-truth-20260628-v4c'];
 
 check('Index cache-busts app.js and main.js with current quit-safe build',

@@ -194,6 +194,8 @@ function getProfileSearchBlob(name, profile) {
     const parts = [
         name,
         p.name,
+        p.fullName,
+        p.studentName,
         p.nickname,
         p.memberId,
         p.studentCode,
@@ -215,7 +217,9 @@ function getProfileSearchBlob(name, profile) {
         p.guardianPhone,
         p.address,
         p.email,
+        p.branchCode,
         p.branch,
+        p.branchName,
     ];
     const blob = parts
         .filter(Boolean)

@@ -44,11 +44,7 @@ import {
 import {
     computeAndCacheStudents,
     getStudentsSummary,
-<<<<<<< HEAD
-} from './computation/studentsRenderer.js?v=coach-runtime-recovery-login-history-cache-guard-20260703-v5d';
-=======
-} from './computation/studentsRenderer.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a';
->>>>>>> parent of 4757e42 (upload)
+} from './computation/studentsRenderer.js?v=tx-delete-reconcile-smart-search-20260703-v5c';
 import {
     computeAndCacheInventory,
     getCachedUnpaidInvCount,

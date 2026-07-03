@@ -54,6 +54,17 @@ function _compact(value) {
   return normalizeStudentSearchText(value).replace(/\s+/g, '');
 }
 
+function _tokens(value) {
+  return normalizeStudentSearchText(value).split(' ').filter(t => t && t.length >= 1);
+}
+
+function _wordBoundaryContains(text, term) {
+  const t = normalizeStudentSearchText(text);
+  const q = normalizeStudentSearchText(term);
+  if (!q) return false;
+  return t.split(' ').some(part => part === q || part.startsWith(q) || part.includes(q));
+}
+
 function _digits(value) {
   return String(value || '').replace(/\D+/g, '');
 }
@@ -121,9 +132,9 @@ function _buildTokens(id, profile) {
   const name = _studentNameFromEntry(id, p);
   const parts = [];
   [
-    id, name, p.name, p.fullName, p.studentName, p.nickname,
+    id, name, p.name, p.fullName, p.studentName, p.nickname, p.searchName,
     p.gender, p.dob, p.birthDate,
-    p.branch, p.branchName, p.base, p.facility,
+    p.branchCode, p.branch, p.branchName, p.base, p.facility,
     p.belt, p.currentBelt, p.rank,
     p.notes, p.note, p.address, p.email,
     p.cccd, p.identityNo
@@ -139,7 +150,7 @@ function _buildTokens(id, profile) {
 
   const blob = Array.from(new Set(normalizedParts.concat(compactParts, digitParts, codeParts.map(normalizeStudentSearchText)))).join(' ');
 
-  return { parts, blob, compactName: _compact(name), normalizedName: normalizeStudentSearchText(name), digitParts, codeParts };
+  return { parts, blob, compactName: _compact(name), normalizedName: normalizeStudentSearchText(name), nameTokens: _tokens(name), digitParts, codeParts };
 }
 
 function _addToMap(map, key, entry) {
@@ -173,11 +184,12 @@ export const StudentSearchIndex = {
         profile: p,
         normalizedName: tokens.normalizedName,
         compactName: tokens.compactName,
+        nameTokens: tokens.nameTokens,
         blob: tokens.blob,
         codes: tokens.codeParts,
         phones: tokens.digitParts,
         status: String(p.status || '').toLowerCase(),
-        branch: p.branch || p.branchName || p.base || '',
+        branch: p.branchCode || p.branch || p.branchName || p.base || '',
         belt: p.belt || p.currentBelt || '',
         vtf: _getVtfValue(p)
       };
@@ -263,6 +275,11 @@ export const StudentSearchIndex = {
     else if (entry.normalizedName.startsWith(normTerm)) { score += 80; matches.push('name-prefix'); }
     else if (entry.normalizedName.includes(normTerm)) { score += 60; matches.push('name-contains'); }
 
+    const nameTokens = Array.isArray(entry.nameTokens) ? entry.nameTokens : _tokens(entry.name || entry.normalizedName || '');
+    if (normTerm && nameTokens.some(t => t === normTerm)) { score += 95; matches.push('name-token-exact'); }
+    else if (normTerm && nameTokens.some(t => t.startsWith(normTerm))) { score += 72; matches.push('name-token-prefix'); }
+    else if (normTerm && nameTokens.some(t => t.includes(normTerm))) { score += 58; matches.push('name-token-contains'); }
+
     if (compactTerm && entry.compactName === compactTerm) { score += 100; matches.push('compact-name'); }
     else if (compactTerm && entry.compactName.includes(compactTerm)) { score += 55; matches.push('compact-name-contains'); }
 
@@ -294,7 +311,11 @@ export const StudentSearchIndex = {
       if (!includeAllStatuses && !this.matchesMode(entry, mode)) continue;
       if (branch && branch !== 'all' && branch !== 'Tất cả cơ sở') {
         const eb = String(entry.branch || '').trim();
-        if (eb && eb !== branch) continue;
+        let sameBranch = eb === branch;
+        try {
+          if (window.BranchIdentity && typeof window.BranchIdentity.isSameBranch === 'function') sameBranch = window.BranchIdentity.isSameBranch(eb, branch);
+        } catch (_) {}
+        if (eb && !sameBranch) continue;
       }
       const scored = this._score(entry, normTerm, compactTerm, digitTerm, codeTerm);
       if (scored.score > 0) rows.push(Object.assign({ score: scored.score, matches: scored.matches }, entry));

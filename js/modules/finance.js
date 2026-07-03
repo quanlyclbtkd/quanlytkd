@@ -50,8 +50,8 @@ import {
     normalizeYYYYMM,
     formatMonthCompact,
 } from '../utils/format.js';
-import { FinanceService } from '../services/finance.service.js?v=firestore-read-attribution-canonical-tx-boundary-20260616-v3a';
-import { StudentService } from '../services/students.service.js?v=firestore-read-attribution-canonical-tx-boundary-20260616-v3a';
+import { FinanceService } from '../services/finance.service.js?v=tx-delete-reconcile-smart-search-20260703-v5c';
+import { StudentService } from '../services/students.service.js?v=tx-delete-reconcile-smart-search-20260703-v5c';
 import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
 
 // ── Phase 4K-4D: Fallback classify helper (finance.js) ──
@@ -312,8 +312,21 @@ export function initFinance() {
 
         if (!confirm(confirmMsg)) return;
 
-        // Xóa giao dịch chính
-        await FinanceService.deleteTransaction(id);
+        // Xóa giao dịch chính. Phase 4K-6V5C: catch permission-denied
+        // để không còn Uncaught Promise và hướng dẫn đúng khi Rules chưa deploy.
+        try {
+            await FinanceService.deleteTransaction(id);
+        } catch (deleteErr) {
+            console.error('[deleteTx] delete transaction failed:', deleteErr);
+            const code = deleteErr && (deleteErr.code || deleteErr.name || '');
+            const msg  = deleteErr && (deleteErr.message || String(deleteErr));
+            if (String(code).includes('permission-denied') || String(msg).includes('Missing or insufficient permissions')) {
+                alert('Không có quyền xóa giao dịch. Hãy deploy Firestore Rules bản V5C hoặc đăng nhập bằng tài khoản Admin/SuperAdmin của CLB.');
+            } else {
+                alert('Không xóa được giao dịch: ' + (msg || deleteErr));
+            }
+            return;
+        }
 
         // Xóa bản ghi kho liên kết (nếu có)
         if (relatedInvId && relatedInvId !== 'undefined') {
@@ -359,6 +372,11 @@ export function initFinance() {
         // Refresh exam nếu có exam component
         if (impact && impact.requiresExamRefresh) {
             if (typeof window.renderExamList === 'function') window.renderExamList();
+        }
+
+        // Refresh transaction pagination/page after delete so the row disappears immediately.
+        if (typeof window.reloadTransactionsPage === 'function') {
+            try { await window.reloadTransactionsPage(); } catch (reloadErr) { console.warn('[deleteTx] reloadTransactionsPage failed:', reloadErr && reloadErr.message); }
         }
 
         // Refresh dashboard và lists
@@ -967,7 +985,7 @@ export function initTransactionPagination() {
         prepareNextPage, preparePreviousPage,
         renderPaginationControls, PAGE_SIZE,
     }) => {
-        import('../services/finance.service.js?v=firestore-read-attribution-canonical-tx-boundary-20260616-v3a').then(({ FinanceService }) => {
+        import('../services/finance.service.js?v=tx-delete-reconcile-smart-search-20260703-v5c').then(({ FinanceService }) => {
 
             const store = window.__store;
             if (!store) { console.warn('[pagination/transactions] __store chưa sẵn sàng'); return; }

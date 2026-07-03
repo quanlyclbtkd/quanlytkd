@@ -16,17 +16,10 @@ function includes(file, text) {
 check('canonical helper file exists', existsSync(resolve(root, 'js/core/tuitionDebtCanonical.js')));
 check('index loads tuitionDebtCanonical before app.js', (() => {
   const html = readFileSync(resolve(root, 'index.html'), 'utf8');
-<<<<<<< HEAD
-  return html.indexOf('js/core/tuitionDebtCanonical.js?v=coach-runtime-recovery-login-history-cache-guard-20260703-v5d') > -1 &&
-    html.indexOf('js/core/tuitionDebtCanonical.js?v=coach-runtime-recovery-login-history-cache-guard-20260703-v5d') < html.indexOf('app.js?v=coach-runtime-recovery-login-history-cache-guard-20260703-v5d');
+  return html.indexOf('js/core/tuitionDebtCanonical.js?v=tx-delete-reconcile-smart-search-20260703-v5c') > -1 &&
+    html.indexOf('js/core/tuitionDebtCanonical.js?v=tx-delete-reconcile-smart-search-20260703-v5c') < html.indexOf('app.js?v=tx-delete-reconcile-smart-search-20260703-v5c');
 })());
-check('app.js cache-bust updated to current V4D1A build', includes('index.html', 'app.js?v=coach-runtime-recovery-login-history-cache-guard-20260703-v5d'));
-=======
-  return html.indexOf('js/core/tuitionDebtCanonical.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a') > -1 &&
-    html.indexOf('js/core/tuitionDebtCanonical.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a') < html.indexOf('app.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a');
-})());
-check('app.js cache-bust updated to current V4D1A build', includes('index.html', 'app.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a'));
->>>>>>> parent of 4757e42 (upload)
+check('app.js cache-bust updated to current V5C build', includes('index.html', 'app.js?v=tx-delete-reconcile-smart-search-20260703-v5c'));
 check('getChargeableTuitionMonths delegates to computeTuitionDebtCanonical', includes('app.js', 'window.computeTuitionDebtCanonical') && includes('app.js', 'canonical.chargeableMonths'));
 check('debugDebtTrace exported', includes('js/core/tuitionDebtCanonical.js', 'window.debugDebtTrace = debugDebtTrace'));
 check('auditTuitionDebtCanonicalProfiles exported', includes('js/core/tuitionDebtCanonical.js', 'window.auditTuitionDebtCanonicalProfiles'));

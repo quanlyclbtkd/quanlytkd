@@ -1,4 +1,4 @@
-// Compatibility marker: inventory.service.js?v=inventory-ledger-reconciliation-20260616-v2c
+// Compatibility marker: inventory.service.js?v=tx-delete-reconcile-smart-search-20260703-v5c
 /**
  * modules/inventory.js — Phase 2f
  * ────────────────────────────────────────────────────────────────
@@ -38,7 +38,7 @@
  */
 
 import { getLocalToday } from '../utils/format.js';
-import { InventoryService } from '../services/inventory.service.js?v=firestore-read-attribution-canonical-tx-boundary-20260616-v3a';
+import { InventoryService } from '../services/inventory.service.js?v=tx-delete-reconcile-smart-search-20260703-v5c';
 
 // ════════════════════════════════════════════════════════════════
 // BRIDGE HELPERS — đọc state từ window.__store tại call-time

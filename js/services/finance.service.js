@@ -1,4 +1,4 @@
-// Compatibility marker: inventory.service.js?v=inventory-ledger-reconciliation-20260616-v2c
+// Compatibility marker: inventory.service.js?v=tx-delete-reconcile-smart-search-20260703-v5c
 /**
  * js/services/finance.service.js — Phase 3.2A
  * ────────────────────────────────────────────────────────────────
@@ -17,7 +17,7 @@
  * ────────────────────────────────────────────────────────────────
  */
 
-import { InventoryService } from './inventory.service.js?v=firestore-read-attribution-canonical-tx-boundary-20260616-v3a';
+import { InventoryService } from './inventory.service.js?v=tx-delete-reconcile-smart-search-20260703-v5c';
 
 function _sdk()    { return window._fb_init || {}; }
 function _db()     { const db = (window.__store || {}).db; if (!db) throw new Error('[FinanceService] db chưa sẵn sàng'); return db; }

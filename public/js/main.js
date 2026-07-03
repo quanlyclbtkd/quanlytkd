@@ -1,11 +1,7 @@
 // Phase 4K-6V3A compatibility: 4K-6V3A-firestore-read-attribution-canonical-transaction-boundary
-// Compatibility marker: multiItemInventorySafety.js?v=inventory-ledger-reconciliation-20260616-v2c
+// Compatibility marker: multiItemInventorySafety.js?v=tx-delete-reconcile-smart-search-20260703-v5c
 // Phase compatibility APP_BUILD_VERSION markers for static safety checks:
-<<<<<<< HEAD
-// APP_BUILD_VERSION = '4K-6V5D-coach-runtime-recovery-login-history-cache-guard-20260703'
-=======
 // APP_BUILD_VERSION = '4K-6V4D1A-profile-canonical-store-runtime-recovery-20260628'
->>>>>>> parent of 4757e42 (upload)
 // APP_BUILD_VERSION = '4K-6V4C2-active-skipped-month-section-20260628'
 // APP_BUILD_VERSION = '4K-6V4B8-debt-two-month-vietnamese-month-normalization-20260627'
 // APP_BUILD_VERSION = '4K-6V4B7-debt-authoritative-tuition-coverage-20260627'
@@ -52,9 +48,9 @@
 // APP_BUILD_VERSION = '4K-6V2A-inventory-consumer-hydration-hotfix-20260616'
 // Phase 4K-6V2C compatibility markers retained for regression gates only:
 // window.APP_PATCH_VERSION = '4K-6V2C-inventory-ledger-reconciliation-20260616'
-// modules/students.js?v=inventory-ledger-reconciliation-20260616-v2c
-// modules/finance.js?v=inventory-ledger-reconciliation-20260616-v2c
-// modules/inventory.js?v=inventory-ledger-reconciliation-20260616-v2c
+// modules/students.js?v=tx-delete-reconcile-smart-search-20260703-v5c
+// modules/finance.js?v=tx-delete-reconcile-smart-search-20260703-v5c
+// modules/inventory.js?v=tx-delete-reconcile-smart-search-20260703-v5c
 /**
  * main.js — Application Bootstrap (Phase 3.6B — Listener Registration Safety)
  * ────────────────────────────────────────────────────────────────────
@@ -108,26 +104,15 @@ import { initFirebase }                        from './firebase/config.js';
 import { showToast, registerToastGlobal }      from './ui/toast.js';
 import { registerModalGlobals }                from './ui/modal.js';
 import { switchTab, registerTabGlobals }       from './ui/tabs.js';
-<<<<<<< HEAD
-import { initRender }                          from './ui/render.js?v=coach-runtime-recovery-login-history-cache-guard-20260703-v5d';
+import { initRender }                          from './ui/render.js?v=tx-delete-reconcile-smart-search-20260703-v5c';
 // Phase 3.4: Render Isolation Architecture — island initialisers + legacy shims
 import { initFinanceIslands, registerFinanceLegacyGlobals }     from './ui/render/renderFinance.js';
-import { initStudentIslands, registerStudentsLegacyGlobals }     from './ui/render/renderStudents.js?v=coach-runtime-recovery-login-history-cache-guard-20260703-v5d';
-=======
-import { initRender }                          from './ui/render.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a';
-// Phase 3.4: Render Isolation Architecture — island initialisers + legacy shims
-import { initFinanceIslands, registerFinanceLegacyGlobals }     from './ui/render/renderFinance.js';
-import { initStudentIslands, registerStudentsLegacyGlobals }     from './ui/render/renderStudents.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a';
->>>>>>> parent of 4757e42 (upload)
+import { initStudentIslands, registerStudentsLegacyGlobals }     from './ui/render/renderStudents.js?v=tx-delete-reconcile-smart-search-20260703-v5c';
 import { initInventoryIslands, registerInventoryLegacyGlobals }  from './ui/render/renderInventory.js';
 import { initAttendanceIslands }                                  from './ui/render/renderAttendance.js';
 import { initDashboardIslands }                                   from './ui/render/renderDashboard.js';
 // Phase 3.5B: Render Invalidation & Lifecycle Stabilization
-<<<<<<< HEAD
-import { registerInvalidationLegacyGlobals }                     from './ui/render/renderInvalidation.js?v=coach-runtime-recovery-login-history-cache-guard-20260703-v5d';
-=======
-import { registerInvalidationLegacyGlobals }                     from './ui/render/renderInvalidation.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a';
->>>>>>> parent of 4757e42 (upload)
+import { registerInvalidationLegacyGlobals }                     from './ui/render/renderInvalidation.js?v=tx-delete-reconcile-smart-search-20260703-v5c';
 import { registerLoadingGlobals, showLoading, hideLoading, forceHideLoading } from './ui/loading.js';
 import {
     getLocalToday, formatDate, formatMonth,
@@ -246,8 +231,8 @@ import { LegacyAppAudit }      from './core/legacyAppAudit.js';
 import { initLegacyDiagnostics } from './diagnostics/legacyDiagnostics.js';
 
 // Phase 4K-6G: MultiItem Inventory Safety Module
-import { MultiItemInventorySafety } from './core/multiItemInventorySafety.js?v=inventory-ledger-reconciliation-20260616-v2c';
-import { InventoryMultiItemReadOnlyUI, initInventoryMultiItemReadOnlyUI } from './core/inventoryMultiItemReadOnlyUI.js?v=inventory-ledger-reconciliation-20260616-v2c';
+import { MultiItemInventorySafety } from './core/multiItemInventorySafety.js?v=tx-delete-reconcile-smart-search-20260703-v5c';
+import { InventoryMultiItemReadOnlyUI, initInventoryMultiItemReadOnlyUI } from './core/inventoryMultiItemReadOnlyUI.js?v=tx-delete-reconcile-smart-search-20260703-v5c';
 
 // ── Phase 3.3E: Firestore safety (expose globally for services) ──
 import { safeGetDocs, printQueryAuditReport }  from './utils/firestore-guard.js';
@@ -277,11 +262,7 @@ import {
     getQuitStatusValues,
     getProfilesListenerMetrics,
     ensureAllProfilesForExport,
-<<<<<<< HEAD
-} from './listeners/profiles.listeners.js?v=coach-runtime-recovery-login-history-cache-guard-20260703-v5d';
-=======
-} from './listeners/profiles.listeners.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a';
->>>>>>> parent of 4757e42 (upload)
+} from './listeners/profiles.listeners.js?v=tx-delete-reconcile-smart-search-20260703-v5c';
 
 // ── Phase 3.7C: Profile Status Config ────────────────────────────────────────
 import {
@@ -335,11 +316,7 @@ import {
 } from './firebase/paginatedQuery.js';
 
 // ── Phase 2d–3.2A: Business modules (eager — cần khi login) ────
-<<<<<<< HEAD
-import { initStudents, initStudentPagination }        from './modules/students.js?v=coach-runtime-recovery-login-history-cache-guard-20260703-v5d';
-=======
-import { initStudents, initStudentPagination }        from './modules/students.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a';
->>>>>>> parent of 4757e42 (upload)
+import { initStudents, initStudentPagination }        from './modules/students.js?v=tx-delete-reconcile-smart-search-20260703-v5c';
 // PHẦN 1 FIX + Phase 4K-2: Unified Search Controller — real cache + SearchBlob + stale guard
 import {
     initGlobalSearchRuntime,
@@ -348,11 +325,11 @@ import {
     invalidateSearchCache,
     debugSearchPerformance,
 } from './modules/searchRuntime.js';
-import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from './modules/finance.js?v=payment-bundle-runtime-hotfix-20260616-v3a1';
-import { initInventory }                              from './modules/inventory.js?v=payment-bundle-runtime-hotfix-20260616-v3a1';
+import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from './modules/finance.js?v=tx-delete-reconcile-smart-search-20260703-v5c';
+import { initInventory }                              from './modules/inventory.js?v=tx-delete-reconcile-smart-search-20260703-v5c';
 // Compatibility marker: from './modules/attendance.js'
-import { initAttendance }                             from './modules/attendance.js?v=coach-branch-runtime-repair-20260627-v4b1';
-import { initDashboard }                              from './modules/dashboard.js?v=payment-bundle-runtime-hotfix-20260616-v3a1';
+import { initAttendance }                             from './modules/attendance.js?v=tx-delete-reconcile-smart-search-20260703-v5c';
+import { initDashboard }                              from './modules/dashboard.js?v=tx-delete-reconcile-smart-search-20260703-v5c';
 // ── Phase 4K-6U: Heavy Reports module is lazy-loaded by reportExportFacade.js ──
 // ── Phase 4.0B-1: SuperAdmin — eager import trên HTTP/HTTPS ─────
 // Không lazy nữa: phải init trước khi loadSuperAdminData() được gọi.
@@ -3147,11 +3124,7 @@ window.debugProfileModalClose = function() {
 // PHẦN 1 — APP BUILD VERSION
 window.APP_BUILD_VERSION = '4K-6V2-inventory-history-pagination-complete-active-debt-20260616';
 // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
-<<<<<<< HEAD
-window.APP_PATCH_VERSION = '4K-6V5D-coach-runtime-recovery-login-history-cache-guard-20260703';
-=======
-window.APP_PATCH_VERSION = '4K-6V4D1A-profile-canonical-store-runtime-recovery-20260628';
->>>>>>> parent of 4757e42 (upload)
+window.APP_PATCH_VERSION = '4K-6V5C-tx-delete-reconcile-smart-search-20260703';
 window.APP_COPYRIGHT_OWNER   = 'Tình Trương';
 window.APP_PRODUCT_NAME      = 'Taekwondo Club Management Web App';
 window.APP_SECURITY_PHASE    = '4K-6E-scale-readiness-write-safety';
@@ -5300,14 +5273,38 @@ window.reconcileStudentTuitionAfterDeletedTransaction = async function(studentNa
             return { ok: false, reason: 'no-profile' };
         }
 
-        // Lấy danh sách transactions còn lại
-        var txs =
-            Array.isArray(st.allTransactions)  ? st.allTransactions :
-            Array.isArray(window.allTransactions) ? window.allTransactions :
-            Array.isArray(st.transactions)     ? st.transactions :
-            [];
-
+        // Lấy danh sách transactions còn lại.
+        // Phase 4K-6V5C: đọc authoritative từ Firestore sau khi xóa. Cache
+        // phân trang chỉ có tháng/trang đang xem nên không đủ để tính lại
+        // paidMonths/paidUntil/Báo nợ sau khi xóa giao dịch học phí cũ.
+        var txs = [];
         var deletedTxId = deletedTx && deletedTx.id ? deletedTx.id : '';
+        try {
+            var sdk = window._fb_init || {};
+            var db  = st.db || window.db;
+            var clubId = st.clubId || st.currentClubId || window.currentClubId;
+            if (sdk.getDocs && sdk.query && sdk.collection && sdk.where && db && clubId && studentName) {
+                var snap = await sdk.getDocs(sdk.query(
+                    sdk.collection(db, 'clubs', clubId, 'transactions'),
+                    sdk.where('description', '==', studentName)
+                ));
+                if (snap && typeof snap.forEach === 'function') {
+                    snap.forEach(function(d) {
+                        if (!d || d.id === deletedTxId) return;
+                        txs.push(Object.assign({ id: d.id }, d.data ? d.data() : {}));
+                    });
+                }
+            }
+        } catch (fetchErr) {
+            console.warn('[reconcile] Không đọc được giao dịch còn lại từ Firestore, dùng cache tạm:', fetchErr && fetchErr.message ? fetchErr.message : fetchErr);
+        }
+        if (!txs.length) {
+            txs =
+                Array.isArray(st.allTransactions)  ? st.allTransactions :
+                Array.isArray(window.allTransactions) ? window.allTransactions :
+                Array.isArray(st.transactions)     ? st.transactions :
+                [];
+        }
 
         // paidMonths hiện tại
         var currentPaidMonths = Array.isArray(profile.paidMonths)

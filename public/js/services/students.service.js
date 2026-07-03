@@ -438,8 +438,8 @@ export const StudentService = {
                         .map(v => String(v || '').replace(/\D/g, ''));
                     if (phones.some(ph => ph.includes(phoneDigits))) return true;
                 }
-                const fields = [id, p.name, p.nickname, p.memberId, p.studentCode,
-                    p.code, p.belt, p.notes, p.phone, p.parentPhone];
+                const fields = [id, p.name, p.fullName, p.studentName, p.nickname, p.searchName, p.memberId, p.studentCode,
+                    p.code, p.belt, p.notes, p.phone, p.parentPhone, p.branchCode, p.branch, p.branchName];
                 return fields.some(v => _normalizeVN(v).includes(q));
             };
 
