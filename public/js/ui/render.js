@@ -34,7 +34,7 @@ import {
     updateSummaryNumbers,
     fetchAndRenderHistoricalCharts,
     tryApplyCurrentMonthStats,
-} from '../modules/dashboard.js?v=tx-delete-reconcile-smart-search-20260703-v5c';
+} from '../modules/dashboard.js?v=audit-gate-superadmin-hardening-20260703-v5e';
 
 import { store } from '../store.js';
 import {
@@ -59,7 +59,7 @@ import {
     computeAndCacheStudents,
     getStudentsSummary,
     getStudentsCachedHtml,
-} from './render/computation/studentsRenderer.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a';
+} from './render/computation/studentsRenderer.js?v=audit-gate-superadmin-hardening-20260703-v5e';
 import {
     computeAndCacheInventory,
     getCachedLiveInvMap,

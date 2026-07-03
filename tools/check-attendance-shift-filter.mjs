@@ -36,7 +36,7 @@ check('Không còn ternary shift filter sai',
 check('Module dùng logic đúng khi có ca',
   /if\s*\(\s*_currentShiftId\s*&&\s*_docShift\s*!==\s*_currentShiftId\s*\)\s*return/.test(mod));
 check('Module vẫn nạp cache sau filter',
-  /_attendanceCache\[_id\]\s*=\s*_mapLegacyStatus/.test(mod));
+  (/_attendanceCache\[_id\]\s*=\s*_mapLegacyStatus/.test(mod) || /nextCache\[_id\]\s*=\s*_mapLegacyStatus/.test(mod)));
 check('Service lọc shiftId phía server khi có ca',
   /if\s*\(shiftId\)\s*constraints\.push\(where\(['"]shiftId['"],\s*['"]==['"],\s*shiftId\)\)/.test(service));
 check('Service dùng attendanceDailyLimit tập trung',

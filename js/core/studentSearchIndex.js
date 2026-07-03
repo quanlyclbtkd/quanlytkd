@@ -1,7 +1,7 @@
 /**
  * js/core/studentSearchIndex.js
  * ────────────────────────────────────────────────────────────────
- * Phase 4K-6K-E — Unified Student Search Index Accuracy Gate
+ * Phase 4K-6V5D — Given-Name Focused Student Search Gate
  *
  * A read-only, in-memory student search index shared by active/quit/debt
  * search flows. It improves search accuracy for Vietnamese names, phone,
@@ -56,6 +56,35 @@ function _compact(value) {
 
 function _tokens(value) {
   return normalizeStudentSearchText(value).split(' ').filter(t => t && t.length >= 1);
+}
+
+function _isPlainNameLookup(normTerm, digitTerm, rawTerm) {
+  const q = String(normTerm || '').trim();
+  if (!q || q.includes(' ')) return false;
+  if (digitTerm && digitTerm.length >= 2) return false;
+  // A plain Vietnamese name query should not behave like a broad blob/code search.
+  return /^[a-z]+$/.test(q) && !/[0-9@._-]/.test(String(rawTerm || ''));
+}
+
+function _givenNameTokensFromName(name) {
+  const toks = _tokens(name);
+  if (!toks.length) return [];
+  const last = toks[toks.length - 1];
+  // Keep the final given-name token as the strict primary field.  This is what
+  // prevents searching "uyen" from matching surname/middle tokens like
+  // "nguyen"/"nguyen..." merely because they contain "uyen".
+  return [last];
+}
+
+function _givenNameMatches(entry, normTerm) {
+  const q = String(normTerm || '').trim();
+  if (!q) return { ok: false, score: 0, matches: [] };
+  const given = Array.isArray(entry.givenNameTokens) && entry.givenNameTokens.length
+    ? entry.givenNameTokens
+    : _givenNameTokensFromName(entry.name || entry.normalizedName || '');
+  if (given.some(t => t === q)) return { ok: true, score: 140, matches: ['given-name-exact'] };
+  if (q.length >= 2 && given.some(t => t.startsWith(q))) return { ok: true, score: 112, matches: ['given-name-prefix'] };
+  return { ok: false, score: 0, matches: [] };
 }
 
 function _wordBoundaryContains(text, term) {
@@ -150,7 +179,9 @@ function _buildTokens(id, profile) {
 
   const blob = Array.from(new Set(normalizedParts.concat(compactParts, digitParts, codeParts.map(normalizeStudentSearchText)))).join(' ');
 
-  return { parts, blob, compactName: _compact(name), normalizedName: normalizeStudentSearchText(name), nameTokens: _tokens(name), digitParts, codeParts };
+  const nameTokens = _tokens(name);
+  const givenNameTokens = _givenNameTokensFromName(name);
+  return { parts, blob, compactName: _compact(name), normalizedName: normalizeStudentSearchText(name), nameTokens, givenNameTokens, givenNameToken: givenNameTokens[0] || '', digitParts, codeParts };
 }
 
 function _addToMap(map, key, entry) {
@@ -185,6 +216,8 @@ export const StudentSearchIndex = {
         normalizedName: tokens.normalizedName,
         compactName: tokens.compactName,
         nameTokens: tokens.nameTokens,
+        givenNameTokens: tokens.givenNameTokens,
+        givenNameToken: tokens.givenNameToken,
         blob: tokens.blob,
         codes: tokens.codeParts,
         phones: tokens.digitParts,
@@ -267,10 +300,20 @@ export const StudentSearchIndex = {
     return true;
   },
 
-  _score(entry, normTerm, compactTerm, digitTerm, codeTerm) {
+  _score(entry, normTerm, compactTerm, digitTerm, codeTerm, rawTerm) {
     let score = 0;
     const matches = [];
     if (!entry) return { score, matches };
+
+    const plainNameLookup = _isPlainNameLookup(normTerm, digitTerm, rawTerm);
+    if (plainNameLookup) {
+      const given = _givenNameMatches(entry, normTerm);
+      if (!given.ok) return { score: 0, matches: [] };
+      score += given.score;
+      matches.push(...given.matches);
+      return { score, matches: Array.from(new Set(matches)) };
+    }
+
     if (entry.normalizedName === normTerm) { score += 120; matches.push('exact-name'); }
     else if (entry.normalizedName.startsWith(normTerm)) { score += 80; matches.push('name-prefix'); }
     else if (entry.normalizedName.includes(normTerm)) { score += 60; matches.push('name-contains'); }
@@ -278,10 +321,9 @@ export const StudentSearchIndex = {
     const nameTokens = Array.isArray(entry.nameTokens) ? entry.nameTokens : _tokens(entry.name || entry.normalizedName || '');
     if (normTerm && nameTokens.some(t => t === normTerm)) { score += 95; matches.push('name-token-exact'); }
     else if (normTerm && nameTokens.some(t => t.startsWith(normTerm))) { score += 72; matches.push('name-token-prefix'); }
-    else if (normTerm && nameTokens.some(t => t.includes(normTerm))) { score += 58; matches.push('name-token-contains'); }
 
     if (compactTerm && entry.compactName === compactTerm) { score += 100; matches.push('compact-name'); }
-    else if (compactTerm && entry.compactName.includes(compactTerm)) { score += 55; matches.push('compact-name-contains'); }
+    else if (compactTerm && entry.compactName.startsWith(compactTerm)) { score += 55; matches.push('compact-name-prefix'); }
 
     if (codeTerm && entry.codes.some(c => c === codeTerm)) { score += 115; matches.push('exact-code'); }
     else if (codeTerm && entry.codes.some(c => c.includes(codeTerm))) { score += 75; matches.push('code-contains'); }
@@ -317,7 +359,7 @@ export const StudentSearchIndex = {
         } catch (_) {}
         if (eb && !sameBranch) continue;
       }
-      const scored = this._score(entry, normTerm, compactTerm, digitTerm, codeTerm);
+      const scored = this._score(entry, normTerm, compactTerm, digitTerm, codeTerm, rawTerm);
       if (scored.score > 0) rows.push(Object.assign({ score: scored.score, matches: scored.matches }, entry));
     }
 
@@ -367,7 +409,7 @@ export const StudentSearchIndex = {
       digitTerm: _digits(rawTerm),
       total: result.total,
       returned: result.entries.length,
-      topMatches: result.entries.map(e => ({ name: e.name, id: e.id, score: e.score, matches: e.matches, status: e.profile && e.profile.status, memberId: e.profile && e.profile.memberId, vtf: e.vtf, phone: e.profile && e.profile.phone }))
+      topMatches: result.entries.map(e => ({ name: e.name, id: e.id, givenNameToken: e.givenNameToken, score: e.score, matches: e.matches, status: e.profile && e.profile.status, memberId: e.profile && e.profile.memberId, vtf: e.vtf, phone: e.profile && e.profile.phone }))
     };
     console.table(out.topMatches);
     return out;

@@ -1,4 +1,4 @@
-// Compatibility marker: inventory.service.js?v=tx-delete-reconcile-smart-search-20260703-v5c
+// Compatibility marker: inventory.service.js?v=audit-gate-superadmin-hardening-20260703-v5e
 /**
  * modules/inventory.js — Phase 2f
  * ────────────────────────────────────────────────────────────────
@@ -38,7 +38,7 @@
  */
 
 import { getLocalToday } from '../utils/format.js';
-import { InventoryService } from '../services/inventory.service.js?v=tx-delete-reconcile-smart-search-20260703-v5c';
+import { InventoryService } from '../services/inventory.service.js?v=audit-gate-superadmin-hardening-20260703-v5e';
 
 // ════════════════════════════════════════════════════════════════
 // BRIDGE HELPERS — đọc state từ window.__store tại call-time
