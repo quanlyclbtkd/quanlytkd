@@ -162,7 +162,7 @@ Bản V3A1 ngăn lỗi builder xảy ra sau Firestore write bằng preflight, nh
 Các URL runtime được đổi sang:
 
 ```text
-debt-given-name-final-token-search-20260703-v5f
+given-name-priority-search-unification-20260703-v5g
 ```
 
 Sau khi upload GitHub Pages cần `Ctrl + Shift + R`.

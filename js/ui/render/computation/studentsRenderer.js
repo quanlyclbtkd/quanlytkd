@@ -57,6 +57,50 @@ function _fallbackProfileBlob(name, p) {
     ].filter(Boolean).map(v => _nvFn(String(v))).join(' ');
 }
 
+// Phase 4K-6V5G: Given-name priority gate used by Active/Debt/Quit isolated renderer.
+// A one-token Vietnamese name query like "uyên" must search the final given-name
+// token only. It must not fall back to fullName/blob.includes(), because that
+// pulls surname/middle tokens such as Nguyễn/Nguyên/Tuyên into the debt list.
+function _normalizeStudentNameSearch(value) {
+    const fn = typeof window !== 'undefined' && window.normalizeVNForSearch;
+    if (typeof fn === 'function') return fn(value);
+    return String(value || '').normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd').replace(/Đ/g, 'D')
+        .toLowerCase().trim().replace(/\s+/g, ' ');
+}
+function _studentNameTokens(value) {
+    return _normalizeStudentNameSearch(value).split(' ').filter(Boolean);
+}
+function _isOneTokenGivenNameQuery(search) {
+    const q = _normalizeStudentNameSearch(search);
+    return !!q && !q.includes(' ') && /^[a-z]+$/.test(q) && !/[0-9@._-]/.test(String(search || ''));
+}
+function _profileNameForGivenSearch(id, profile) {
+    const p = profile || {};
+    return String(p.name || p.fullName || p.studentName || p.displayName || p.hoTen || id || '').trim();
+}
+function _matchesFinalGivenName(name, search) {
+    const toks = _studentNameTokens(name);
+    const q = _normalizeStudentNameSearch(search);
+    const finalToken = toks[toks.length - 1] || '';
+    return !!q && (finalToken === q || (q.length >= 2 && finalToken.startsWith(q)));
+}
+function _studentProfileMatchesSearch(name, profile, search) {
+    const q = _normalizeStudentNameSearch(search);
+    if (!q) return true;
+    const displayName = _profileNameForGivenSearch(name, profile);
+    if (_isOneTokenGivenNameQuery(search)) return _matchesFinalGivenName(displayName, q);
+    const p = profile || {};
+    if (typeof window !== 'undefined' && window.StudentSearchIndex && typeof window.StudentSearchIndex.matchesStudentProfileSearch === 'function') {
+        try { return !!window.StudentSearchIndex.matchesStudentProfileSearch(displayName, p, search); } catch (_) {}
+    }
+    const blob = typeof window !== 'undefined' && typeof window.getProfileSearchBlob === 'function'
+        ? window.getProfileSearchBlob(displayName, p)
+        : _fallbackProfileBlob(displayName, p);
+    return q && blob.includes(q);
+}
+
 
 function _monthList(values) {
     return Array.isArray(values)
@@ -444,16 +488,9 @@ export function computeAndCacheStudents(allProfiles, params) {
             let branchPassFilter = true;
             if (!isSingleBranch && !_branchMatchesFilter(safeBranch, selBranch)) branchPassFilter = false;
             let searchPassFilter = true;
-            // Phase 4K-2B PASS 1: Dùng getProfileSearchBlob() — pre-normalized blob, không normalize lại mỗi vòng lặp
-            if (search) {
-                const q = window.normalizeVNForSearch
-                    ? window.normalizeVNForSearch(search)
-                    : String(search || '').toLowerCase().trim();
-                const blob = typeof window.getProfileSearchBlob === 'function'
-                    ? window.getProfileSearchBlob(name, p)
-                    : _fallbackProfileBlob(name, p);
-                if (q && !blob.includes(q)) searchPassFilter = false;
-            }
+            // Phase 4K-6V5G: all student tabs use the same final-given-name
+            // gate for one-token name lookup. Do not use blob.includes() here.
+            if (search && !_studentProfileMatchesSearch(name, p, search)) searchPassFilter = false;
             const sharedPassFilter = branchPassFilter && searchPassFilter;
             let activePassFilter = sharedPassFilter;
 
@@ -561,16 +598,9 @@ export function computeAndCacheStudents(allProfiles, params) {
             if (isActive) {
                 let passFilter = true;
                 if (!isSingleBranch && selBranch !== 'all' && safeBranch !== selBranch) passFilter = false;
-                // Phase 4K-2B PASS 2: Dùng getProfileSearchBlob() — same pattern as PASS 1
-                if (search) {
-                    const q = window.normalizeVNForSearch
-                        ? window.normalizeVNForSearch(search)
-                        : String(search || '').toLowerCase().trim();
-                    const blob = typeof window.getProfileSearchBlob === 'function'
-                        ? window.getProfileSearchBlob(name, p)
-                        : _fallbackProfileBlob(name, p);
-                    if (q && !blob.includes(q)) passFilter = false;
-                }
+                // Phase 4K-6V5G: PASS 2 pagination override must follow the
+                // same final-given-name gate as PASS 1.
+                if (search && !_studentProfileMatchesSearch(name, p, search)) passFilter = false;
 
                 if (passFilter) {
                     _activeTotalCount++;

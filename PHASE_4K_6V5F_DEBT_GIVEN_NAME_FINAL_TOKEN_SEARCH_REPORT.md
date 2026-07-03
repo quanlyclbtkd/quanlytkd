@@ -1,4 +1,4 @@
-# Phase 4K-6V5F — Debt Given-Name Final Token Search Gate
+# Phase 4K-6V5G — Given-Name Priority Search Unification
 
 ## Mục tiêu
 
@@ -71,7 +71,7 @@ Expose các helper lên `window`:
 Đổi build marker sang:
 
 ```text
-debt-given-name-final-token-search-20260703-v5f
+given-name-priority-search-unification-20260703-v5g
 ```
 
 để tránh trình duyệt giữ lại bundle V5E/V5D.
@@ -145,5 +145,5 @@ Tìm full name vẫn hoạt động:
 V5F chỉ sửa source/runtime search. Nếu production đã deploy Rules từ V5C trở lên thì không cần deploy Rules lại. Sau deploy cần hard refresh/xóa cache site để tải bundle:
 
 ```text
-debt-given-name-final-token-search-20260703-v5f
+given-name-priority-search-unification-20260703-v5g
 ```

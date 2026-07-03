@@ -1,4 +1,4 @@
-// Compatibility marker: inventory.service.js?v=debt-given-name-final-token-search-20260703-v5f
+// Compatibility marker: inventory.service.js?v=given-name-priority-search-unification-20260703-v5g
 /**
  * modules/inventory.js — Phase 2f
  * ────────────────────────────────────────────────────────────────
@@ -38,7 +38,7 @@
  */
 
 import { getLocalToday } from '../utils/format.js';
-import { InventoryService } from '../services/inventory.service.js?v=debt-given-name-final-token-search-20260703-v5f';
+import { InventoryService } from '../services/inventory.service.js?v=given-name-priority-search-unification-20260703-v5g';
 
 // ════════════════════════════════════════════════════════════════
 // BRIDGE HELPERS — đọc state từ window.__store tại call-time

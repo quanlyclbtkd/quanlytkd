@@ -11,11 +11,11 @@ const files = {
   publicSearchIndex: read('public/js/core/studentSearchIndex.js'),
   pkg: read('package.json'),
 };
-const build = 'debt-given-name-final-token-search-20260703-v5f';
+const build = 'given-name-priority-search-unification-20260703-v5g';
 let pass = 0, fail = 0;
 function check(name, ok) { if (ok) { pass++; console.log('✅', name); } else { fail++; console.error('❌', name); } }
 
-console.log('\n=== Phase 4K-6V5F — Debt Given-Name Final Token Search Gate ===\n');
+console.log('\n=== Phase 4K-6V5G — Given-Name Priority Search Unification ===\n');
 check('V5F cache-bust active in index/main/app', files.index.includes(`app.js?v=${build}`) && files.index.includes(`./js/main.js?v=${build}`) && files.main.includes(build));
 check('legacy app has strict given-name helper', files.app.includes('_legacyStudentProfileMatchesSearch') && files.app.includes('_legacyMatchesGivenNameOnly') && files.app.includes('_legacyIsPlainGivenNameLookup'));
 check('legacy app debt/active/quit profile loop uses strict helper', files.app.includes('matchesSearch = _legacyStudentProfileMatchesSearch(name, p, search, _rawSearch)'));

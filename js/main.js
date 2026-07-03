@@ -1,5 +1,5 @@
 // Phase 4K-6V3A compatibility: 4K-6V3A-firestore-read-attribution-canonical-transaction-boundary
-// Compatibility marker: multiItemInventorySafety.js?v=debt-given-name-final-token-search-20260703-v5f
+// Compatibility marker: multiItemInventorySafety.js?v=given-name-priority-search-unification-20260703-v5g
 // Phase compatibility APP_BUILD_VERSION markers for static safety checks:
 // APP_BUILD_VERSION = '4K-6V4D1A-profile-canonical-store-runtime-recovery-20260628'
 // APP_BUILD_VERSION = '4K-6V4C2-active-skipped-month-section-20260628'
@@ -48,9 +48,9 @@
 // APP_BUILD_VERSION = '4K-6V2A-inventory-consumer-hydration-hotfix-20260616'
 // Phase 4K-6V2C compatibility markers retained for regression gates only:
 // window.APP_PATCH_VERSION = '4K-6V2C-inventory-ledger-reconciliation-20260616'
-// modules/students.js?v=debt-given-name-final-token-search-20260703-v5f
-// modules/finance.js?v=debt-given-name-final-token-search-20260703-v5f
-// modules/inventory.js?v=debt-given-name-final-token-search-20260703-v5f
+// modules/students.js?v=given-name-priority-search-unification-20260703-v5g
+// modules/finance.js?v=given-name-priority-search-unification-20260703-v5g
+// modules/inventory.js?v=given-name-priority-search-unification-20260703-v5g
 /**
  * main.js — Application Bootstrap (Phase 3.6B — Listener Registration Safety)
  * ────────────────────────────────────────────────────────────────────
@@ -104,15 +104,15 @@ import { initFirebase }                        from './firebase/config.js';
 import { showToast, registerToastGlobal }      from './ui/toast.js';
 import { registerModalGlobals }                from './ui/modal.js';
 import { switchTab, registerTabGlobals }       from './ui/tabs.js';
-import { initRender }                          from './ui/render.js?v=debt-given-name-final-token-search-20260703-v5f';
+import { initRender }                          from './ui/render.js?v=given-name-priority-search-unification-20260703-v5g';
 // Phase 3.4: Render Isolation Architecture — island initialisers + legacy shims
 import { initFinanceIslands, registerFinanceLegacyGlobals }     from './ui/render/renderFinance.js';
-import { initStudentIslands, registerStudentsLegacyGlobals }     from './ui/render/renderStudents.js?v=debt-given-name-final-token-search-20260703-v5f';
+import { initStudentIslands, registerStudentsLegacyGlobals }     from './ui/render/renderStudents.js?v=given-name-priority-search-unification-20260703-v5g';
 import { initInventoryIslands, registerInventoryLegacyGlobals }  from './ui/render/renderInventory.js';
 import { initAttendanceIslands }                                  from './ui/render/renderAttendance.js';
 import { initDashboardIslands }                                   from './ui/render/renderDashboard.js';
 // Phase 3.5B: Render Invalidation & Lifecycle Stabilization
-import { registerInvalidationLegacyGlobals }                     from './ui/render/renderInvalidation.js?v=debt-given-name-final-token-search-20260703-v5f';
+import { registerInvalidationLegacyGlobals }                     from './ui/render/renderInvalidation.js?v=given-name-priority-search-unification-20260703-v5g';
 import { registerLoadingGlobals, showLoading, hideLoading, forceHideLoading } from './ui/loading.js';
 import {
     getLocalToday, formatDate, formatMonth,
@@ -231,8 +231,8 @@ import { LegacyAppAudit }      from './core/legacyAppAudit.js';
 import { initLegacyDiagnostics } from './diagnostics/legacyDiagnostics.js';
 
 // Phase 4K-6G: MultiItem Inventory Safety Module
-import { MultiItemInventorySafety } from './core/multiItemInventorySafety.js?v=debt-given-name-final-token-search-20260703-v5f';
-import { InventoryMultiItemReadOnlyUI, initInventoryMultiItemReadOnlyUI } from './core/inventoryMultiItemReadOnlyUI.js?v=debt-given-name-final-token-search-20260703-v5f';
+import { MultiItemInventorySafety } from './core/multiItemInventorySafety.js?v=given-name-priority-search-unification-20260703-v5g';
+import { InventoryMultiItemReadOnlyUI, initInventoryMultiItemReadOnlyUI } from './core/inventoryMultiItemReadOnlyUI.js?v=given-name-priority-search-unification-20260703-v5g';
 
 // ── Phase 3.3E: Firestore safety (expose globally for services) ──
 import { safeGetDocs, printQueryAuditReport }  from './utils/firestore-guard.js';
@@ -262,7 +262,7 @@ import {
     getQuitStatusValues,
     getProfilesListenerMetrics,
     ensureAllProfilesForExport,
-} from './listeners/profiles.listeners.js?v=debt-given-name-final-token-search-20260703-v5f';
+} from './listeners/profiles.listeners.js?v=given-name-priority-search-unification-20260703-v5g';
 
 // ── Phase 3.7C: Profile Status Config ────────────────────────────────────────
 import {
@@ -316,7 +316,7 @@ import {
 } from './firebase/paginatedQuery.js';
 
 // ── Phase 2d–3.2A: Business modules (eager — cần khi login) ────
-import { initStudents, initStudentPagination }        from './modules/students.js?v=debt-given-name-final-token-search-20260703-v5f';
+import { initStudents, initStudentPagination }        from './modules/students.js?v=given-name-priority-search-unification-20260703-v5g';
 // PHẦN 1 FIX + Phase 4K-2: Unified Search Controller — real cache + SearchBlob + stale guard
 import {
     initGlobalSearchRuntime,
@@ -325,15 +325,15 @@ import {
     invalidateSearchCache,
     debugSearchPerformance,
 } from './modules/searchRuntime.js';
-import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from './modules/finance.js?v=debt-given-name-final-token-search-20260703-v5f';
-import { initInventory }                              from './modules/inventory.js?v=debt-given-name-final-token-search-20260703-v5f';
+import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from './modules/finance.js?v=given-name-priority-search-unification-20260703-v5g';
+import { initInventory }                              from './modules/inventory.js?v=given-name-priority-search-unification-20260703-v5g';
 // Compatibility marker: from './modules/attendance.js'
-import { initAttendance }                             from './modules/attendance.js?v=debt-given-name-final-token-search-20260703-v5f';
-import { initDashboard }                              from './modules/dashboard.js?v=debt-given-name-final-token-search-20260703-v5f';
+import { initAttendance }                             from './modules/attendance.js?v=given-name-priority-search-unification-20260703-v5g';
+import { initDashboard }                              from './modules/dashboard.js?v=given-name-priority-search-unification-20260703-v5g';
 // ── Phase 4K-6U: Heavy Reports module is lazy-loaded by reportExportFacade.js ──
 // ── Phase 4.0B-1: SuperAdmin — eager import trên HTTP/HTTPS ─────
 // Không lazy nữa: phải init trước khi loadSuperAdminData() được gọi.
-import { initSuperAdmin }                             from './modules/superadmin.js?v=debt-given-name-final-token-search-20260703-v5f';
+import { initSuperAdmin }                             from './modules/superadmin.js?v=given-name-priority-search-unification-20260703-v5g';
 
 // ── Phase 3.1: Event layer ──────────────────────────────────────
 import { initStudentsEvents }                         from './events/students.events.js';
@@ -537,7 +537,7 @@ const LAZY_TAB_MODULES = {
     // Giữ entry để ensureTabModule('superadmin') vẫn gọi được initSuperAdmin idempotent.
     superadmin: {
         key:    'module-superadmin',
-        import: () => import('./modules/superadmin.js?v=debt-given-name-final-token-search-20260703-v5f'),
+        import: () => import('./modules/superadmin.js?v=given-name-priority-search-unification-20260703-v5g'),
         init:   'initSuperAdmin',
     },
 };
@@ -1704,7 +1704,7 @@ function _waitForExistingLegacyApp(ms) {
                 // Dynamic import trả lại cached module — không import mạng lần nữa.
                 window.__superAdminModuleLoading = true;
                 try {
-                    const mod = await import('./modules/superadmin.js?v=debt-given-name-final-token-search-20260703-v5f');
+                    const mod = await import('./modules/superadmin.js?v=given-name-priority-search-unification-20260703-v5g');
                     if (typeof mod.initSuperAdmin === 'function') {
                         mod.initSuperAdmin();
                     }
@@ -3124,7 +3124,7 @@ window.debugProfileModalClose = function() {
 // PHẦN 1 — APP BUILD VERSION
 window.APP_BUILD_VERSION = '4K-6V2-inventory-history-pagination-complete-active-debt-20260616';
 // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
-window.APP_PATCH_VERSION = '4K-6V5F-audit-gate-superadmin-hardening-20260703';
+window.APP_PATCH_VERSION = '4K-6V5G-given-name-priority-search-unification-20260703';
 window.APP_COPYRIGHT_OWNER   = 'Tình Trương';
 window.APP_PRODUCT_NAME      = 'Taekwondo Club Management Web App';
 window.APP_SECURITY_PHASE    = '4K-6E-scale-readiness-write-safety';

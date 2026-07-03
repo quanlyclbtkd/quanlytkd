@@ -55,7 +55,7 @@ allow delete: if isSuperAdmin() || isClubAdmin(clubId);
 Cập nhật toàn bộ entry/import quan trọng sang:
 
 ```txt
-debt-given-name-final-token-search-20260703-v5f
+given-name-priority-search-unification-20260703-v5g
 ```
 
 Đặc biệt đã bỏ import stale V3A1 của finance/inventory/dashboard trong `main.js`.

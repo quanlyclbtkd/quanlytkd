@@ -28,7 +28,7 @@
  */
 
 import { getLocalToday, formatDate, formatMonth, formatMonthCompact, addMonthsToYYYYMM } from '../utils/format.js';
-import { StudentService } from '../services/students.service.js?v=debt-given-name-final-token-search-20260703-v5f';
+import { StudentService } from '../services/students.service.js?v=given-name-priority-search-unification-20260703-v5g';
 
 // ════════════════════════════════════════════════════════════════
 // BRIDGE HELPERS — đọc state từ app.js qua window.__store
@@ -1040,7 +1040,7 @@ export function initStudentPagination() {
         renderPaginationControls, PAGE_SIZE,
     }) => {
         import('./students.js').then(() => {}); // no-op — chỉ để IDE không warn
-        import('../services/students.service.js?v=debt-given-name-final-token-search-20260703-v5f').then(({ StudentService }) => {
+        import('../services/students.service.js?v=given-name-priority-search-unification-20260703-v5g').then(({ StudentService }) => {
 
             const store = window.__store;
             if (!store) { console.warn('[pagination/students] __store chưa sẵn sàng'); return; }
@@ -1070,9 +1070,19 @@ export function initStudentPagination() {
                 const q = normalizeVNForSearch(qRaw);
                 const phoneDigits = qRaw.replace(/\D/g, '');
 
+                const displayName = String((profile && (profile.name || profile.fullName || profile.studentName || profile.displayName || profile.hoTen)) || name || '').trim();
+                const isPlainGivenNameLookup = !!q && !q.includes(' ') && /^[a-z]+$/.test(q) && !/[0-9@._-]/.test(String(qRaw || ''));
+                if (isPlainGivenNameLookup) {
+                    const toks = normalizeVNForSearch(displayName).split(' ').filter(Boolean);
+                    const last = toks[toks.length - 1] || '';
+                    return !!last && (last === q || (q.length >= 2 && last.startsWith(q)));
+                }
+
                 const fields = [
-                    name,
+                    displayName,
                     profile && profile.name,
+                    profile && profile.fullName,
+                    profile && profile.studentName,
                     profile && profile.nickname,
                     profile && profile.memberId,
                     profile && profile.studentCode,

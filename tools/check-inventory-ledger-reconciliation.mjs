@@ -26,8 +26,8 @@ console.log('\n=== Phase 4K-6V2C — Inventory Ledger Reconciliation ===\n');
 
 check('Runtime exposes V2C patch marker', main.includes("window.APP_PATCH_VERSION = '4K-6V2C-inventory-ledger-reconciliation-20260616'"));
 check('Index deploys V2C cache bust', index.includes('inventory-ledger-reconciliation-20260616-v2c'));
-check('Changed inventory/student/finance modules are cache-busted', main.includes("modules/students.js?v=debt-given-name-final-token-search-20260703-v5f") && main.includes("modules/finance.js?v=debt-given-name-final-token-search-20260703-v5f") && main.includes("modules/inventory.js?v=debt-given-name-final-token-search-20260703-v5f"));
-check('Changed service imports are cache-busted', invModule.includes("inventory.service.js?v=debt-given-name-final-token-search-20260703-v5f") && financeService.includes("inventory.service.js?v=debt-given-name-final-token-search-20260703-v5f"));
+check('Changed inventory/student/finance modules are cache-busted', main.includes("modules/students.js?v=given-name-priority-search-unification-20260703-v5g") && main.includes("modules/finance.js?v=given-name-priority-search-unification-20260703-v5g") && main.includes("modules/inventory.js?v=given-name-priority-search-unification-20260703-v5g"));
+check('Changed service imports are cache-busted', invModule.includes("inventory.service.js?v=given-name-priority-search-unification-20260703-v5g") && financeService.includes("inventory.service.js?v=given-name-priority-search-unification-20260703-v5g"));
 check('History page uses date-desc cursor so repaired legacy rows remain queryable', app.includes("const constraints = [orderBy('date', 'desc')]") && app.includes('startAfter(cursor)'));
 check('New inventory writes always provide date and timestamp', service.includes('if (!payload.timestamp) payload.timestamp = Date.now()') && service.includes('if (!payload.date'));
 check('Add inventory uses an atomic Firestore batch', service.includes('async addItem(data)') && service.includes('batch.set(itemRef, payload)') && service.includes('batch.set(statsRef, summaryPatch, { merge: true })'));

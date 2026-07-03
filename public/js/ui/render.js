@@ -34,7 +34,7 @@ import {
     updateSummaryNumbers,
     fetchAndRenderHistoricalCharts,
     tryApplyCurrentMonthStats,
-} from '../modules/dashboard.js?v=debt-given-name-final-token-search-20260703-v5f';
+} from '../modules/dashboard.js?v=given-name-priority-search-unification-20260703-v5g';
 
 import { store } from '../store.js';
 import {
@@ -59,7 +59,7 @@ import {
     computeAndCacheStudents,
     getStudentsSummary,
     getStudentsCachedHtml,
-} from './render/computation/studentsRenderer.js?v=debt-given-name-final-token-search-20260703-v5f';
+} from './render/computation/studentsRenderer.js?v=given-name-priority-search-unification-20260703-v5g';
 import {
     computeAndCacheInventory,
     getCachedLiveInvMap,

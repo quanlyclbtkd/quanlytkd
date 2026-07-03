@@ -1,7 +1,7 @@
 /**
  * js/core/studentSearchIndex.js
  * ────────────────────────────────────────────────────────────────
- * Phase 4K-6V5F — Debt Given-Name Final Token Search Gate
+ * Phase 4K-6V5G — Given-Name Priority Search Unification
  *
  * A read-only, in-memory student search index shared by active/quit/debt
  * search flows. It improves search accuracy for Vietnamese names, phone,
@@ -346,6 +346,14 @@ export const StudentSearchIndex = {
     return _givenNameMatches({ name, givenNameTokens: _givenNameTokensFromName(name) }, q).ok;
   },
 
+  analyzeGivenNameMatch(name, rawTerm) {
+    const q = normalizeStudentSearchText(rawTerm);
+    const tokens = _tokens(name);
+    const finalToken = tokens[tokens.length - 1] || '';
+    const given = _givenNameMatches({ name, givenNameTokens: finalToken ? [finalToken] : [] }, q);
+    return { query: q, name, tokens, finalToken, ok: given.ok, matches: given.matches, score: given.score };
+  },
+
   matchesStudentProfileSearch(name, profile, rawTerm) {
     const q = normalizeStudentSearchText(rawTerm);
     if (!q) return true;
@@ -460,14 +468,19 @@ export function initStudentSearchIndex() {
   window.searchStudentsUnified = function(term, options) {
     return window.StudentSearchIndex.searchStudents(term, options || {});
   };
-  window.isPlainStudentGivenNameLookup = window.isPlainStudentGivenNameLookup || function(term) {
+  // V5G intentionally overwrites older legacy helpers: the isolated Debt renderer
+  // may have been loaded after app.js, and stale broad blob helpers must not win.
+  window.isPlainStudentGivenNameLookup = function(term) {
     return window.StudentSearchIndex.isPlainGivenNameLookup(term);
   };
-  window.matchesStudentGivenNameOnly = window.matchesStudentGivenNameOnly || function(name, term) {
+  window.matchesStudentGivenNameOnly = function(name, term) {
     return window.StudentSearchIndex.matchesGivenNameOnly(name, term);
   };
-  window.matchesStudentProfileSearch = window.matchesStudentProfileSearch || function(name, profile, term) {
+  window.matchesStudentProfileSearch = function(name, profile, term) {
     return window.StudentSearchIndex.matchesStudentProfileSearch(name, profile || {}, term);
+  };
+  window.debugGivenNameSearch = function(name, term) {
+    return window.StudentSearchIndex.analyzeGivenNameMatch(name, term || ((document.getElementById('searchInput') || {}).value || ''));
   };
   window.invalidateStudentSearchIndex = function(reason) {
     return window.StudentSearchIndex.invalidate(reason || 'manual');

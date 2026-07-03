@@ -30,7 +30,7 @@ const main = read('js/main.js');
 const index = read('index.html');
 const pkg = read('package.json');
 
-const build = 'debt-given-name-final-token-search-20260703-v5f';
+const build = 'given-name-priority-search-unification-20260703-v5g';
 
 check('index.html cache-busts app.js/main.js to V4D1A',
   index.includes(`app.js?v=${build}`) && index.includes(`./js/main.js?v=${build}`));

@@ -13,7 +13,7 @@ const files = {
   studentService: read('js/services/students.service.js'),
   pkg: read('package.json'),
 };
-const build = 'debt-given-name-final-token-search-20260703-v5f';
+const build = 'given-name-priority-search-unification-20260703-v5g';
 let pass = 0, fail = 0;
 function check(name, ok) { if (ok) { pass++; console.log('✅', name); } else { fail++; console.error('❌', name); } }
 

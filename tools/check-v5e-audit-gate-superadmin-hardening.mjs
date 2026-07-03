@@ -11,7 +11,7 @@ const files = {
   pkg: read('package.json'),
 };
 const pkg = JSON.parse(files.pkg);
-const build = 'debt-given-name-final-token-search-20260703-v5f';
+const build = 'given-name-priority-search-unification-20260703-v5g';
 const checks = [];
 const check = (name, ok) => checks.push({ name, ok: !!ok });
 

@@ -50,8 +50,8 @@ import {
     normalizeYYYYMM,
     formatMonthCompact,
 } from '../utils/format.js';
-import { FinanceService } from '../services/finance.service.js?v=debt-given-name-final-token-search-20260703-v5f';
-import { StudentService } from '../services/students.service.js?v=debt-given-name-final-token-search-20260703-v5f';
+import { FinanceService } from '../services/finance.service.js?v=given-name-priority-search-unification-20260703-v5g';
+import { StudentService } from '../services/students.service.js?v=given-name-priority-search-unification-20260703-v5g';
 import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
 
 // ── Phase 4K-4D: Fallback classify helper (finance.js) ──
@@ -985,7 +985,7 @@ export function initTransactionPagination() {
         prepareNextPage, preparePreviousPage,
         renderPaginationControls, PAGE_SIZE,
     }) => {
-        import('../services/finance.service.js?v=debt-given-name-final-token-search-20260703-v5f').then(({ FinanceService }) => {
+        import('../services/finance.service.js?v=given-name-priority-search-unification-20260703-v5g').then(({ FinanceService }) => {
 
             const store = window.__store;
             if (!store) { console.warn('[pagination/transactions] __store chưa sẵn sàng'); return; }

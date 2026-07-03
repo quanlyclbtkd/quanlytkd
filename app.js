@@ -91,7 +91,7 @@
     window.debtBranchMatchesFilter = window.debtBranchMatchesFilter || _branchMatchesFilter;
 // Danh mục kho tùy chỉnh — được load từ Firestore khi đăng nhập thành công
 window.invCustomCategories = [];
-    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V5D'; window.APP_PATCH_VERSION = '4K-6V5F-audit-gate-superadmin-hardening-20260703'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
+    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V5D'; window.APP_PATCH_VERSION = '4K-6V5G-given-name-priority-search-unification-20260703'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
     // Compatibility regression marker retained for Phase 4K-6Q gate: APP_PATCH_VERSION = '4K-6Q-mobile-filter-currency-stability-20260615'
     window.__appLoaded = true; // [Phase 2a] main.js kiểm tra để bỏ qua loadLegacyApp()
     window.__store = window.__store || {}; // [Phase 2b] Bridge object cho module system
@@ -6889,7 +6889,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             .replace(/\s+/g, ' ');
     }
 
-    // Phase 4K-6V5F: strict student-name search for legacy render paths.
+    // Phase 4K-6V5G: strict given-name priority search for legacy render paths.
     // For one-word Vietnamese name queries (e.g. "uyên"), match the final
     // given-name token only. This prevents "Nguyễn/Nguyên/Tuyên" surname or
     // middle-token substring matches from flooding Debt/Active/Quit lists.
@@ -6912,7 +6912,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         const q = _legacyNormalizeSearch(search);
         if (!q) return true;
         const p = profile || {};
-        const displayName = name || p.name || p.fullName || p.studentName || '';
+        const displayName = p.name || p.fullName || p.studentName || p.displayName || p.hoTen || name || '';
         if (_legacyIsPlainGivenNameLookup(q, rawSearch)) {
             return _legacyMatchesGivenNameOnly(displayName, q);
         }

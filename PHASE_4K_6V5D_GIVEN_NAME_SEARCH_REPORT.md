@@ -116,4 +116,4 @@ Tìm `Nguyên` sẽ khớp người có tên cuối là `Nguyên`, ví dụ `B�
 
 ## Ghi chú deploy
 
-Bản này chủ yếu là source/runtime search. Nếu bạn đã deploy Firestore Rules V5C để sửa xóa giao dịch thì V5D chỉ cần deploy Hosting/source. Sau deploy nên hard refresh hoặc xóa cache site để chắc chắn bundle mới `debt-given-name-final-token-search-20260703-v5f` được tải.
+Bản này chủ yếu là source/runtime search. Nếu bạn đã deploy Firestore Rules V5C để sửa xóa giao dịch thì V5D chỉ cần deploy Hosting/source. Sau deploy nên hard refresh hoặc xóa cache site để chắc chắn bundle mới `given-name-priority-search-unification-20260703-v5g` được tải.

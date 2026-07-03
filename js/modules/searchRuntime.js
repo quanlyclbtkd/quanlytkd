@@ -763,12 +763,12 @@ async function _searchStudentsV2(term, tab, token) {
                         }
                     }
                     if (_isPlainStudentGivenNameLookup(term, term)) {
-                        return _matchesGivenNameOnly(name || p.name || p.fullName || p.studentName || '', term);
+                        return _matchesGivenNameOnly(p.name || p.fullName || p.studentName || p.displayName || p.hoTen || name || '', term);
                     }
                     const blob = typeof window.getProfileSearchBlob === 'function'
-                        ? window.getProfileSearchBlob(name, p)
+                        ? window.getProfileSearchBlob(p.name || p.fullName || p.studentName || p.displayName || p.hoTen || name, p)
                         : _normalizeSearch([
-                            name, p.name, p.phone, p.parentPhone, p.memberId, p.studentCode,
+                            p.name || p.fullName || p.studentName || p.displayName || p.hoTen || name, p.name, p.phone, p.parentPhone, p.memberId, p.studentCode,
                             p.code, p.idCode, p.vtfCode, p.vtfId, p.vtf, p.vtfMemberId,
                             p.maVTF, p.maVtf, p.maHoiVienVTF, p.maHoiVienVtf, p.belt, p.branch, p.notes
                           ].filter(Boolean).join(' '));
@@ -1056,11 +1056,14 @@ export function initGlobalSearchRuntime() {
     // Phase 4K-2: Expose SearchBlob builders globally
     // Guard getProfileSearchBlob: main.js may already expose a version-aware implementation
     // (window.__searchTextCache with dataVersion-based invalidation). Only set if missing.
-    window.isPlainStudentGivenNameLookup = window.isPlainStudentGivenNameLookup || _isPlainStudentGivenNameLookup;
-    window.matchesStudentGivenNameOnly = window.matchesStudentGivenNameOnly || _matchesGivenNameOnly;
-    window.matchesStudentProfileSearch = window.matchesStudentProfileSearch || function(name, profile, term) {
-        if (_isPlainStudentGivenNameLookup(term, term)) return _matchesGivenNameOnly(name || profile?.name || profile?.fullName || profile?.studentName || '', term);
-        const blob = typeof window.getProfileSearchBlob === 'function' ? window.getProfileSearchBlob(name, profile || {}) : getProfileSearchBlob(name, profile || {});
+    // V5G: overwrite stale legacy helpers so all tab render paths use final-token search.
+    window.isPlainStudentGivenNameLookup = _isPlainStudentGivenNameLookup;
+    window.matchesStudentGivenNameOnly = _matchesGivenNameOnly;
+    window.matchesStudentProfileSearch = function(name, profile, term) {
+        const p = profile || {};
+        const displayName = p.name || p.fullName || p.studentName || p.displayName || p.hoTen || name || '';
+        if (_isPlainStudentGivenNameLookup(term, term)) return _matchesGivenNameOnly(displayName, term);
+        const blob = typeof window.getProfileSearchBlob === 'function' ? window.getProfileSearchBlob(displayName, p) : getProfileSearchBlob(displayName, p);
         return blob.includes(_normalizeSearch(term));
     };
     if (!window.getProfileSearchBlob) window.getProfileSearchBlob = getProfileSearchBlob;
