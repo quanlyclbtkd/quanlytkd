@@ -15,8 +15,8 @@ const files = {
 
 const checks = [];
 const check = (name, ok) => checks.push({ name, ok: !!ok });
-const build = 'login-history-large-list-guard-20260703-v5h';
-const patch = '4K-6V5H-login-history-large-list-guard-20260703';
+const build = 'superadmin-access-admin-provisioning-recovery-20260704-v5k';
+const patch = '4K-6V5K-superadmin-access-admin-provisioning-recovery-20260704';
 
 check('V5H cache-bust marker is active', files.index.includes(build) && files.app.includes(patch));
 check('login_history payload includes uid for rules ownership', files.app.includes('uid: user.uid ||') && files.rules.includes("request.resource.data.get('uid', '') == request.auth.uid"));

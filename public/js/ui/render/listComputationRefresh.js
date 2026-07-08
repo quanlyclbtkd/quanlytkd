@@ -44,7 +44,7 @@ import {
 import {
     computeAndCacheStudents,
     getStudentsSummary,
-} from './computation/studentsRenderer.js?v=login-history-large-list-guard-20260703-v5h';
+} from './computation/studentsRenderer.js?v=superadmin-access-admin-provisioning-recovery-20260704-v5k';
 import {
     computeAndCacheInventory,
     getCachedUnpaidInvCount,

@@ -1,4 +1,4 @@
-// Compatibility marker: inventory.service.js?v=login-history-large-list-guard-20260703-v5h
+// Compatibility marker: inventory.service.js?v=superadmin-access-admin-provisioning-recovery-20260704-v5k
 /**
  * modules/inventory.js — Phase 2f
  * ────────────────────────────────────────────────────────────────
@@ -38,7 +38,7 @@
  */
 
 import { getLocalToday } from '../utils/format.js';
-import { InventoryService } from '../services/inventory.service.js?v=login-history-large-list-guard-20260703-v5h';
+import { InventoryService } from '../services/inventory.service.js?v=superadmin-access-admin-provisioning-recovery-20260704-v5k';
 
 // ════════════════════════════════════════════════════════════════
 // BRIDGE HELPERS — đọc state từ window.__store tại call-time

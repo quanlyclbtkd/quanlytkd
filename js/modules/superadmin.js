@@ -219,6 +219,28 @@
       };
       const _m = () => window.__superAdminModuleMetrics;
 
+      function _isPermissionDenied(error) {
+          const text = String(error?.code || error?.message || error || '').toLowerCase();
+          return text.includes('permission-denied') || text.includes('permission_denied') || text.includes('missing or insufficient permissions') || text.includes('permission');
+      }
+
+      async function _assertSuperAdminFirestoreAccess(action = 'superadmin-action') {
+          try {
+              await getDocs(query(collection(db, 'clubs'), limit(1)));
+              window.__superAdminFirestoreReady = true;
+              window.__superAdminFirestoreReadyAt = Date.now();
+              return true;
+          } catch (error) {
+              window.__superAdminFirestoreReady = false;
+              if (_isPermissionDenied(error)) {
+                  window.__superAdminLastPermissionError = { action, message: error.message, at: Date.now() };
+                  if (window.showToast) window.showToast('⚠️ Firestore Rules chưa nhận diện SuperAdmin. Hãy deploy Rules V5K trước khi tạo/sửa tài khoản Admin.', 'warning');
+                  return false;
+              }
+              throw error;
+          }
+      }
+
       // ── Phase 4.0B: branch upgrade modal state ───────────────────
       let _buSelectedCount = 1;
 
@@ -234,6 +256,8 @@
         listEl.innerHTML = '<div class="text-center py-10 text-slate-400"><div class="text-2xl mb-2">⏳</div><p class="font-bold text-sm">Đang tải dữ liệu toàn hệ thống...</p></div>';
         try {
             const clubsSnap = await getDocs(query(collection(db, "clubs"), limit(200))); // [3.3E] SuperAdmin clubs list — bounded at 200
+            window.__superAdminFirestoreReady = true;
+            window.__superAdminFirestoreReadyAt = Date.now();
             const today = getLocalToday();
             const in30Days = (() => { const d = new Date(); d.setDate(d.getDate() + 30); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().split('T')[0]; })();
 
@@ -681,12 +705,13 @@
             }
 
         } catch (e) {
-            console.error(e);
             _m().lastError = e.message;
             // [HOTFIX] Hiển thị lỗi rõ — đặc biệt phân biệt permission-denied vs lỗi khác
-            const _isPermissionDenied = e.code === 'permission-denied' ||
-                (e.message && (e.message.includes('permission-denied') || e.message.includes('PERMISSION_DENIED')));
-            if (_isPermissionDenied) {
+            const _permissionDenied = _isPermissionDenied(e);
+            if (_permissionDenied) {
+                window.__superAdminFirestoreReady = false;
+                window.__superAdminLastPermissionError = { action: 'loadSuperAdminData', message: e.message, at: Date.now() };
+                console.warn('[SuperAdmin] Firestore Rules chưa cấp quyền SuperAdmin:', e.message);
                 listEl.innerHTML =
                     '<div class="text-center py-10 px-4 text-rose-500">' +
                     '<div class="text-3xl mb-3">🔒</div>' +
@@ -1119,20 +1144,30 @@ window.debugSuperAdminAggregationHardStop = function() {
         if(!confirm(`⚠️ XÁC NHẬN CẤP LẠI:\n- Tài khoản mới: ${newEmail}\n- Mật khẩu: ${newPass}\n- Sẽ được cấp quyền quản lý toàn bộ dữ liệu của CLB: ${clubId}\n\n(Yên tâm: Dữ liệu cũ của CLB vẫn được giữ nguyên 100%)`)) return;
 
         try {
+            const canWriteSuperAdmin = await _assertSuperAdminFirestoreAccess('forceReplaceAdmin-preflight');
+            if (!canWriteSuperAdmin) {
+                alert('⚠️ Chưa thể tạo tài khoản Admin vì Firestore Rules production chưa nhận diện tài khoản SuperAdmin.\n\nCần deploy Firestore Rules V5K trước, sau đó đăng xuất/đăng nhập lại và thử tạo Admin.\n\nThao tác đã dừng trước khi tạo Auth user để tránh sinh tài khoản mồ côi.');
+                return;
+            }
             const userCredential = await createUserWithEmailAndPassword(secondaryAuth, newEmail, newPass);
             const newUid = userCredential.user.uid;
 
-            await setDoc(doc(db, "users", newUid), { email: newEmail, role: "admin", clubId: clubId });
-            await updateDoc(doc(db, "clubs", clubId), { adminEmail: newEmail, adminPassword: newPass });
+            await setDoc(doc(db, "users", newUid), { email: newEmail, role: "admin", clubId: clubId, status: "active", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+            await updateDoc(doc(db, "clubs", clubId), { adminEmail: newEmail, adminPassword: newPass, updatedAt: new Date().toISOString() });
 
             _m().lastDurationMs = Date.now() - _t0;
             alert(`✅ ĐÃ TẠO TÀI KHOẢN THÀNH CÔNG!\n\nBạn có thể gửi ngay Email và Mật khẩu này cho quản lý cơ sở để họ đăng nhập. Toàn bộ dữ liệu cũ vẫn ở đó.`);
             window.loadSuperAdminData(); 
         } catch (error) {
             _m().lastError = error.message;
-            console.error(error);
-            if(error.code === 'auth/email-already-in-use') alert("❌ Lỗi: Email mới này đã được sử dụng ở một CLB khác rồi. Vui lòng chọn một email khác!");
-            else alert("❌ Lỗi hệ thống: " + error.message);
+            if (_isPermissionDenied(error)) {
+                console.warn('[SuperAdmin] Không ghi được user/admin vì Firestore Rules chưa cấp quyền:', error.message);
+                alert('❌ Không tạo được Admin vì Firestore Rules chưa cấp quyền SuperAdmin để ghi users/clubs.\n\nHãy deploy Firestore Rules V5K rồi thử lại. Nếu Auth user đã được tạo trước đó, hãy dùng email khác hoặc xóa user trong Firebase Auth.');
+            } else {
+                console.error(error);
+                if(error.code === 'auth/email-already-in-use') alert("❌ Lỗi: Email mới này đã được sử dụng ở một CLB khác rồi. Vui lòng chọn một email khác!");
+                else alert("❌ Lỗi hệ thống: " + error.message);
+            }
         } finally {
             await signOut(secondaryAuth);
         }

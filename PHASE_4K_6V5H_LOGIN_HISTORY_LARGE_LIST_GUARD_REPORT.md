@@ -138,5 +138,5 @@ Nếu chỉ deploy source mà không deploy Rules, `login_history` vẫn có th�
 Sau deploy cần hard refresh hoặc xóa cache site để tải bundle:
 
 ```text
-login-history-large-list-guard-20260703-v5h
+superadmin-access-admin-provisioning-recovery-20260704-v5k
 ```

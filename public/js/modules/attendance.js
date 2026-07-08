@@ -66,6 +66,12 @@ let _ownedAttendanceImplementations = null;
 let _attendancePendingWrites = Object.create(null);
 let _attendanceLastTap = Object.create(null);
 let _attendanceWriteSeq = 0;
+// Phase 4K-6V5I: Attendance daily list can reach 500+ students for Admin.
+// Render a safe window first, with Load More, while summaries still use the full filtered roster.
+const ATTENDANCE_RENDER_INITIAL_LIMIT = 150;
+const ATTENDANCE_RENDER_STEP = 150;
+let _attendanceVisibleLimit = ATTENDANCE_RENDER_INITIAL_LIMIT;
+let _attendanceListSignature = '';
 
 function _resetAttendanceModuleState(nextClubId) {
     _attCurrentProfiles = [];
@@ -82,6 +88,8 @@ function _resetAttendanceModuleState(nextClubId) {
     }
     _attendancePendingWrites = Object.create(null);
     _attendanceLastTap = Object.create(null);
+    _attendanceVisibleLimit = ATTENDANCE_RENDER_INITIAL_LIMIT;
+    _attendanceListSignature = '';
     _monthlyRenderRequestId++;
 }
 
@@ -162,6 +170,32 @@ function _profileBranchMatchesAttendance(p, selectedBranch) {
     const branchValue = (p && (p.branchCode || p.branch || p.branchName || p.coachBranch || p.facility || p.base || p.coso || p.coSo || p.location)) || '';
     return _sameBranch(branchValue, selectedBranch);
 }
+
+function _getAttendanceListSignature() {
+    const val = (id) => { const el = document.getElementById(id); return el ? String(el.value || '') : ''; };
+    const checked = (id) => { const el = document.getElementById(id); return el && el.checked ? '1' : '0'; };
+    return [
+        _attCurrentDate || '',
+        _currentShiftId || '',
+        val('att_branch'),
+        val('att_belt'),
+        checked('att_show_all'),
+        _attCurrentProfiles.length
+    ].join('|');
+}
+
+function _ensureAttendanceRenderWindow() {
+    const signature = _getAttendanceListSignature();
+    if (signature !== _attendanceListSignature) {
+        _attendanceListSignature = signature;
+        _attendanceVisibleLimit = ATTENDANCE_RENDER_INITIAL_LIMIT;
+    }
+    if (_attCurrentProfiles.length <= ATTENDANCE_RENDER_INITIAL_LIMIT) {
+        _attendanceVisibleLimit = Math.max(_attCurrentProfiles.length, ATTENDANCE_RENDER_INITIAL_LIMIT);
+    }
+    return Math.min(_attCurrentProfiles.length, _attendanceVisibleLimit || ATTENDANCE_RENDER_INITIAL_LIMIT);
+}
+
 function _applyAttendanceCardState(idx, status) {
     const cfg = _ATT_STATUS[_mapLegacyStatus(status)];
     const cardEl = document.getElementById('att_card_' + idx);
@@ -343,6 +377,8 @@ function _renderAttCards() {
         const k = _attStripSuffix(n);
         _attNCount[k] = (_attNCount[k] || 0) + 1;
     });
+    const _attVisibleCount = _ensureAttendanceRenderWindow();
+    const _attVisibleProfiles = _attCurrentProfiles.slice(0, _attVisibleCount);
     let html = '';
     window.currentAttendanceData = {};
     _attCurrentProfiles.forEach(([name]) => {
@@ -351,13 +387,16 @@ function _renderAttCards() {
     });
     const _attCurMonth = _attCurrentDate ? _attCurrentDate.substring(0, 7) : '';
     const summary = [0, 0, 0, 0];
-    _attCurrentProfiles.forEach(([name, p], idx) => {
+    _attCurrentProfiles.forEach(([name]) => {
+        const st = _mapLegacyStatus(window.currentAttendanceData[name] ?? 0);
+        summary[st]++;
+    });
+    _attVisibleProfiles.forEach(([name, p], idx) => {
         const docId   = _currentShiftId ? name + '_' + _attCurrentDate + '_' + _currentShiftId : name + '_' + _attCurrentDate;
         const status  = window.currentAttendanceData[name] ?? 0;
         const cfg     = _ATT_STATUS[status];
         const beltShort = (p.belt || 'Đai Trắng')
             .replace(/\s*\(Cấp \d+\)/g, '').replace('Đai ', '').replace(' - cấp', '').trim();
-        summary[status]++;
         const _consAbsent = p.consecutiveAbsences || 0;
         const churnWarn2 = _consAbsent === 2;
         const churnWarn3 = _consAbsent >= 3;
@@ -409,6 +448,14 @@ function _renderAttCards() {
             + '</div>'
             + '</div>';
     });
+    if (_attCurrentProfiles.length > _attVisibleCount) {
+        html += '<div style="grid-column:1/-1;text-align:center;padding:12px 8px;">'
+            + '<button type="button" onclick="window.loadMoreAttendanceCards()" '
+            + 'style="border:none;background:#eff6ff;color:#1d4ed8;border-radius:999px;padding:9px 18px;font-size:0.78rem;font-weight:900;cursor:pointer;box-shadow:0 1px 3px rgba(37,99,235,0.18);">'
+            + '⬇️ Tải thêm võ sinh (' + _attVisibleCount + '/' + _attCurrentProfiles.length + ')</button>'
+            + '<div style="margin-top:5px;font-size:0.66rem;color:#94a3b8;">Danh sách điểm danh lớn được chia nhỏ để tránh chậm máy/mobile.</div>'
+            + '</div>';
+    }
     gridEl.innerHTML = html;
     _updateAttSummary(summary);
     _renderAdminBranchSummary(summary);
@@ -816,7 +863,7 @@ export function initAttendance() {
             return;
         }
         if (typeof window.trackLargeListRender === 'function') {
-            window.trackLargeListRender('attendance.list', _attCurrentProfiles.length, { reason: 'render-attendance-list' });
+            window.trackLargeListRender('attendance.list', Math.min(_attCurrentProfiles.length, _attendanceVisibleLimit || ATTENDANCE_RENDER_INITIAL_LIMIT), { reason: 'render-attendance-list', totalRows: _attCurrentProfiles.length, suppressWarning: true });
         }
         gridEl.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px 16px;color:#94a3b8;font-size:0.85rem;">⏳ Đang tải dữ liệu điểm danh...</div>';
         try {
@@ -852,6 +899,11 @@ export function initAttendance() {
         }
         _renderAttCards();
         await _loadSessionNoteAfterAttendanceRender(_attCurrentDate);
+    };
+
+    window.loadMoreAttendanceCards = function loadMoreAttendanceCards() {
+        _attendanceVisibleLimit = Math.min(_attCurrentProfiles.length, (_attendanceVisibleLimit || ATTENDANCE_RENDER_INITIAL_LIMIT) + ATTENDANCE_RENDER_STEP);
+        _renderAttCards();
     };
 
     // ── Ca tập ─────────────────────────────────────────────────

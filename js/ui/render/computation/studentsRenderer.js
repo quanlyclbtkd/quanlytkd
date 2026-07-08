@@ -601,6 +601,14 @@ export function computeAndCacheStudents(allProfiles, params) {
                 // Phase 4K-6V5G: PASS 2 pagination override must follow the
                 // same final-given-name gate as PASS 1.
                 if (search && !_studentProfileMatchesSearch(name, p, search)) passFilter = false;
+                // Phase 4K-6E-C/V5J: PASS 2 pagination override must also obey
+                // the Active tab's new/returning filter; otherwise "Tất cả/Mới"
+                // can diverge after load-more or cache override.
+                if (
+                    passFilter &&
+                    typeof window.shouldShowActiveStudentByNewFilter === 'function' &&
+                    !window.shouldShowActiveStudentByNewFilter(name, p)
+                ) passFilter = false;
 
                 if (passFilter) {
                     _activeTotalCount++;

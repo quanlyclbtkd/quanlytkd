@@ -55,7 +55,7 @@ allow delete: if isSuperAdmin() || isClubAdmin(clubId);
 Cập nhật toàn bộ entry/import quan trọng sang:
 
 ```txt
-login-history-large-list-guard-20260703-v5h
+superadmin-access-admin-provisioning-recovery-20260704-v5k
 ```
 
 Đặc biệt đã bỏ import stale V3A1 của finance/inventory/dashboard trong `main.js`.

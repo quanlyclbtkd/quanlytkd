@@ -69,7 +69,7 @@ import {
 } from './renderRegistry.js';
 
 import { invalidateFinanceRender }   from './computation/financeRenderer.js';
-import { invalidateStudentsRender }  from './computation/studentsRenderer.js?v=login-history-large-list-guard-20260703-v5h';
+import { invalidateStudentsRender }  from './computation/studentsRenderer.js?v=superadmin-access-admin-provisioning-recovery-20260704-v5k';
 import { invalidateInventoryRender } from './computation/inventoryRenderer.js';
 import { invalidateDashboardCache }  from './computation/dashboardRenderer.js';
 
@@ -78,7 +78,7 @@ import {
     refreshListComputation,
     refreshListsComputation,
     getComputationDomainForList,
-} from './listComputationRefresh.js?v=login-history-large-list-guard-20260703-v5h';
+} from './listComputationRefresh.js?v=superadmin-access-admin-provisioning-recovery-20260704-v5k';
 
 // ── Dev helper ────────────────────────────────────────────────────────────────
 function _isDev() {
@@ -1010,10 +1010,11 @@ function _trackLargeListRender(listKey, rowCount, reason) {
 
         // Phase 4K-6V5H: warn only for actually-rendered rows, not total matches.
         // Debt can have 573 matches but render only 50/150 rows with Load More; that is not a DOM large-list bug.
+        const suppressWarning = meta.suppressWarning === true || meta.suppressLargeWarning === true;
         if (renderedRows > _LARGE_LIST_WARN_THRESHOLD) {
             const signature = `${k}|${renderedRows}|${totalRows}|${reasonText}`;
             const lastAt = _largeListMetricsInternal.lastWarnAtPerList[k] || 0;
-            const shouldWarn = _largeListMetricsInternal.lastWarnSignaturePerList[k] !== signature || (now - lastAt) > 120000;
+            const shouldWarn = !suppressWarning && (_largeListMetricsInternal.lastWarnSignaturePerList[k] !== signature || (now - lastAt) > 120000);
             _largeListMetricsInternal.largeListWarnings[k]
                 = (_largeListMetricsInternal.largeListWarnings[k] || 0) + 1;
             _largeListMetricsInternal.totalLargeListHits++;

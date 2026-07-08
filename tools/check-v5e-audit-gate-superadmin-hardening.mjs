@@ -11,7 +11,7 @@ const files = {
   pkg: read('package.json'),
 };
 const pkg = JSON.parse(files.pkg);
-const build = 'login-history-large-list-guard-20260703-v5h';
+const build = 'superadmin-access-admin-provisioning-recovery-20260704-v5k';
 const checks = [];
 const check = (name, ok) => checks.push({ name, ok: !!ok });
 

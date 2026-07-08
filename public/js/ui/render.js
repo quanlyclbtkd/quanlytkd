@@ -34,7 +34,7 @@ import {
     updateSummaryNumbers,
     fetchAndRenderHistoricalCharts,
     tryApplyCurrentMonthStats,
-} from '../modules/dashboard.js?v=login-history-large-list-guard-20260703-v5h';
+} from '../modules/dashboard.js?v=superadmin-access-admin-provisioning-recovery-20260704-v5k';
 
 import { store } from '../store.js';
 import {
@@ -59,7 +59,7 @@ import {
     computeAndCacheStudents,
     getStudentsSummary,
     getStudentsCachedHtml,
-} from './render/computation/studentsRenderer.js?v=login-history-large-list-guard-20260703-v5h';
+} from './render/computation/studentsRenderer.js?v=superadmin-access-admin-provisioning-recovery-20260704-v5k';
 import {
     computeAndCacheInventory,
     getCachedLiveInvMap,

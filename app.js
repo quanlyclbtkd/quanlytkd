@@ -91,7 +91,7 @@
     window.debtBranchMatchesFilter = window.debtBranchMatchesFilter || _branchMatchesFilter;
 // Danh mục kho tùy chỉnh — được load từ Firestore khi đăng nhập thành công
 window.invCustomCategories = [];
-    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V5D'; window.APP_PATCH_VERSION = '4K-6V5H-login-history-large-list-guard-20260703'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
+    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V5D'; window.APP_PATCH_VERSION = '4K-6V5K-superadmin-access-admin-provisioning-recovery-20260704'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
     // Compatibility regression marker retained for Phase 4K-6Q gate: APP_PATCH_VERSION = '4K-6Q-mobile-filter-currency-stability-20260615'
     window.__appLoaded = true; // [Phase 2a] main.js kiểm tra để bỏ qua loadLegacyApp()
     window.__store = window.__store || {}; // [Phase 2b] Bridge object cho module system
@@ -1369,10 +1369,10 @@ service cloud.firestore {
                 <div style="padding:10px 14px;text-align:center;font-size:0.7rem;color:#94a3b8;">Hiển thị ${rows.length} bản ghi${filterClub ? ' cho CLB: ' + filterClub : ' gần nhất'}</div>`;
 
         } catch(e) {
-            console.error('[login_history] Lỗi đọc:', e);
             const isPermission = e.message && (e.message.includes('permission') || e.message.includes('Missing'));
-            const isIndex = e.message && e.message.includes('index');
-            let errMsg = e.message;
+            if (isPermission) console.warn('[login_history] Firestore Rules chưa cấp quyền đọc lịch sử cho SuperAdmin:', e.message);
+            else console.error('[login_history] Lỗi đọc:', e);
+            const isIndex = e.message && e.message.includes('index'); let errMsg = e.message;
             if (isIndex) errMsg = 'Thiếu Composite Index (cần tạo index trong Firebase Console)';
             _showLoginHistoryRulesGuide(contentEl, errMsg, writeFailed);
         }

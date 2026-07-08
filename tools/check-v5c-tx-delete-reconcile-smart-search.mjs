@@ -13,7 +13,7 @@ const files = {
   studentService: read('js/services/students.service.js'),
   pkg: read('package.json'),
 };
-const build = 'login-history-large-list-guard-20260703-v5h';
+const build = 'superadmin-access-admin-provisioning-recovery-20260704-v5k';
 let pass = 0, fail = 0;
 function check(name, ok) { if (ok) { pass++; console.log('✅', name); } else { fail++; console.error('❌', name); } }
 

@@ -18,7 +18,7 @@ function includes(file, text) { return read(file).includes(text); }
 
 console.log('\n🔍 Phase 4K-6V4D1 — Profile Canonical Store Read-only Audit checks\n');
 
-const build = 'login-history-large-list-guard-20260703-v5h';
+const build = 'superadmin-access-admin-provisioning-recovery-20260704-v5k';
 const baseBuild = 'profile-canonical-store-20260628-v4d1';
 const version = '4K-6V4D1-profile-canonical-store-readonly-audit-20260628';
 const runtimeVersion = '4K-6V4D1A-profile-canonical-store-runtime-recovery-20260628';

@@ -1,7 +1,7 @@
 rules_version = '2';
 // ══════════════════════════════════════════════════════════════════════════════
 // Firestore Security Rules — Taekwondo Club Management SaaS
-// Phase 4K-6V5H — Login History Permission + Large List Warning Guard
+// Phase 4K-6V5K — SuperAdmin Access + Admin Account Provisioning Recovery (keeps Phase 4K-6V4B security boundary)
 //
 // Mục tiêu:
 //   • Client UI không còn là lớp bảo vệ duy nhất.
@@ -57,10 +57,27 @@ service cloud.firestore {
         && !(currentUser().get('status', 'active') in ['disabled', 'locked', 'suspended']);
     }
 
+    // Phase 4K-6V5K: SuperAdmin recognition must match runtime aliases.
+    // Production previously showed ROOT UI but Firestore denied /clubs list and
+    // /login_history list because rules only accepted exact role=super_admin.
+    function isSuperAdminRoleValue(roleValue) {
+      return roleValue in [
+        'super_admin', 'superadmin', 'root', 'root_admin', 'admin_root'
+      ];
+    }
+
+    function isTrustedSuperAdminEmail() {
+      return signedIn()
+        && request.auth.token.get('email', '') in ['admin@tstquynhon.com'];
+    }
+
     function isSuperAdmin() {
       return signedIn() && (
-        request.auth.token.get('role', '') == 'super_admin'
-        || (hasUserDoc() && myRole() == 'super_admin')
+        isTrustedSuperAdminEmail()
+        || isSuperAdminRoleValue(request.auth.token.get('role', ''))
+        || isSuperAdminRoleValue(request.auth.token.get('userRole', ''))
+        || isSuperAdminRoleValue(request.auth.token.get('adminRole', ''))
+        || (hasUserDoc() && isSuperAdminRoleValue(myRole()))
         || exists(/databases/$(database)/documents/super_admins/$(request.auth.uid))
       );
     }
@@ -350,7 +367,7 @@ service cloud.firestore {
         && selfCoachMirrorMatches(uid, request.resource.data);
     }
 
-    // Phase 4K-6V5H: login_history là audit phụ.
+    // Phase 4K-6V5I: login_history là audit phụ.
     // Mọi user đã đăng nhập được tạo bản ghi của chính mình; chỉ SuperAdmin đọc/xóa.
     function safeLoginHistoryCreate() {
       return signedIn()
@@ -397,7 +414,10 @@ service cloud.firestore {
     }
 
     match /super_admins/{uid} {
-      allow read, write: if isSuperAdmin();
+      // Cho phép tài khoản tự get marker của mình để runtime diagnostic hoạt động;
+      // list/create/update/delete vẫn chỉ SuperAdmin thực sự được phép.
+      allow get: if (signedIn() && request.auth.uid == uid) || isSuperAdmin();
+      allow list, create, update, delete: if isSuperAdmin();
     }
 
     // Deny by default for every top-level path not explicitly declared.
