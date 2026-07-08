@@ -162,7 +162,7 @@ Bản V3A1 ngăn lỗi builder xảy ra sau Firestore write bằng preflight, nh
 Các URL runtime được đổi sang:
 
 ```text
-superadmin-access-admin-provisioning-recovery-20260704-v5k
+attendance-status-quit-sync-20260704-v5m
 ```
 
 Sau khi upload GitHub Pages cần `Ctrl + Shift + R`.

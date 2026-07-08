@@ -55,7 +55,7 @@ allow delete: if isSuperAdmin() || isClubAdmin(clubId);
 Cập nhật toàn bộ entry/import quan trọng sang:
 
 ```txt
-superadmin-access-admin-provisioning-recovery-20260704-v5k
+attendance-status-quit-sync-20260704-v5m
 ```
 
 Đặc biệt đã bỏ import stale V3A1 của finance/inventory/dashboard trong `main.js`.

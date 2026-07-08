@@ -34,7 +34,7 @@ import {
     updateSummaryNumbers,
     fetchAndRenderHistoricalCharts,
     tryApplyCurrentMonthStats,
-} from '../modules/dashboard.js?v=superadmin-access-admin-provisioning-recovery-20260704-v5k';
+} from '../modules/dashboard.js?v=attendance-status-quit-sync-20260704-v5m';
 
 import { store } from '../store.js';
 import {
@@ -59,7 +59,7 @@ import {
     computeAndCacheStudents,
     getStudentsSummary,
     getStudentsCachedHtml,
-} from './render/computation/studentsRenderer.js?v=superadmin-access-admin-provisioning-recovery-20260704-v5k';
+} from './render/computation/studentsRenderer.js?v=attendance-status-quit-sync-20260704-v5m';
 import {
     computeAndCacheInventory,
     getCachedLiveInvMap,

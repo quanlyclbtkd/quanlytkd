@@ -76,7 +76,7 @@ Files chính:
 
 Build marker mới:
 
-`superadmin-access-admin-provisioning-recovery-20260704-v5k`
+`attendance-status-quit-sync-20260704-v5m`
 
 APP patch version:
 

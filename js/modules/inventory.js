@@ -1,4 +1,4 @@
-// Compatibility marker: inventory.service.js?v=superadmin-access-admin-provisioning-recovery-20260704-v5k
+// Compatibility marker: inventory.service.js?v=attendance-status-quit-sync-20260704-v5m
 /**
  * modules/inventory.js — Phase 2f
  * ────────────────────────────────────────────────────────────────
@@ -38,7 +38,7 @@
  */
 
 import { getLocalToday } from '../utils/format.js';
-import { InventoryService } from '../services/inventory.service.js?v=superadmin-access-admin-provisioning-recovery-20260704-v5k';
+import { InventoryService } from '../services/inventory.service.js?v=attendance-status-quit-sync-20260704-v5m';
 
 // ════════════════════════════════════════════════════════════════
 // BRIDGE HELPERS — đọc state từ window.__store tại call-time

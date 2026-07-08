@@ -23,13 +23,13 @@ function check(name, ok, detail = '') {
 
 console.log('\n=== Phase 4K-6V4B1 — Coach Branch Runtime Repair ===\n');
 
-const appEntrypointBuilds = ['superadmin-access-admin-provisioning-recovery-20260704-v5k', 'profile-canonical-store-runtime-recovery-20260628-v4d1a', 'profile-canonical-store-20260628-v4d1', 'tuition-debt-source-of-truth-20260628-v4c'];
+const appEntrypointBuilds = ['attendance-status-quit-sync-20260704-v5m', 'profile-canonical-store-runtime-recovery-20260628-v4d1a', 'profile-canonical-store-20260628-v4d1', 'tuition-debt-source-of-truth-20260628-v4c'];
 check('Production entrypoints keep V4B1 branch repair and load current runtime cache marker',
-  (((index.match(/coach-branch-runtime-repair-20260627-v4b1/g) || []).length >= 5) || ((index.match(/superadmin-access-admin-provisioning-recovery-20260704-v5k/g) || []).length >= 5)) &&
+  (((index.match(/coach-branch-runtime-repair-20260627-v4b1/g) || []).length >= 5) || ((index.match(/attendance-status-quit-sync-20260704-v5m/g) || []).length >= 5)) &&
   appEntrypointBuilds.some(build => index.includes(`app.js?v=${build}`)) &&
-  (index.includes('./js/main.js?v=superadmin-access-admin-provisioning-recovery-20260704-v5k') || index.includes('./js/main.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a') || index.includes('./js/main.js?v=profile-canonical-store-20260628-v4d1')) &&
-  (main.includes("profiles.listeners.js?v=superadmin-access-admin-provisioning-recovery-20260704-v5k") || main.includes("profiles.listeners.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a") || main.includes("profiles.listeners.js?v=profile-canonical-store-20260628-v4d1")) &&
-  (main.includes("attendance.js?v=superadmin-access-admin-provisioning-recovery-20260704-v5k") || main.includes("attendance.js?v=coach-branch-runtime-repair-20260627-v4b1")));
+  (index.includes('./js/main.js?v=attendance-status-quit-sync-20260704-v5m') || index.includes('./js/main.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a') || index.includes('./js/main.js?v=profile-canonical-store-20260628-v4d1')) &&
+  (main.includes("profiles.listeners.js?v=attendance-status-quit-sync-20260704-v5m") || main.includes("profiles.listeners.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a") || main.includes("profiles.listeners.js?v=profile-canonical-store-20260628-v4d1")) &&
+  (main.includes("attendance.js?v=attendance-status-quit-sync-20260704-v5m") || main.includes("attendance.js?v=coach-branch-runtime-repair-20260627-v4b1")));
 check('Coach creation requires one concrete branch',
   repair.includes("if (!name || !email || !branch || pass.length < 6)") &&
   /id="coach_branch"[\s\S]{0,500}<option value="CS1">/.test(index) &&

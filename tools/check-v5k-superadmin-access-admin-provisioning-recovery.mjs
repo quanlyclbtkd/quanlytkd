@@ -12,7 +12,7 @@ const files = {
 };
 const checks = [];
 const check = (name, ok) => checks.push({ name, ok: !!ok });
-check('V5K cache-bust marker is active', files.index.includes('superadmin-access-admin-provisioning-recovery-20260704-v5k') && files.app.includes('4K-6V5K-superadmin-access-admin-provisioning-recovery-20260704'));
+check('V5K/V5M cache-bust marker is active', files.index.includes('attendance-status-quit-sync-20260704-v5m') && (files.app.includes('4K-6V5M-attendance-status-quit-sync-20260704') || files.app.includes('4K-6V5L-superadmin-revenue-cache-fallback-20260704') || files.app.includes('4K-6V5K-superadmin-access-admin-provisioning-recovery-20260704')));
 check('Rules accepts SuperAdmin role aliases', files.rules.includes('function isSuperAdminRoleValue') && ['super_admin','superadmin','root','root_admin','admin_root'].every(x => files.rules.includes(`'${x}'`)));
 check('Rules accepts trusted SuperAdmin email fast path', files.rules.includes('function isTrustedSuperAdminEmail') && files.rules.includes('admin@tstquynhon.com'));
 check('Rules inspects role/userRole/adminRole custom claims', ['request.auth.token.get(\'role\'','request.auth.token.get(\'userRole\'','request.auth.token.get(\'adminRole\''].every(x => files.rules.includes(x)));
@@ -26,7 +26,7 @@ check('forceReplaceAdmin writes active admin status and timestamps', files.super
 check('SuperAdmin dashboard marks Firestore ready on successful clubs list', files.superadmin.includes('window.__superAdminFirestoreReady = true') && files.superadmin.includes('loadSuperAdminData'));
 check('SuperAdmin permission-denied is warn/friendly instead of raw console.error', files.superadmin.includes("console.warn('[SuperAdmin] Firestore Rules chưa cấp quyền SuperAdmin:'") && !files.superadmin.includes('console.error(e);\n            _m().lastError'));
 check('login_history read permission-denied is warn/friendly', files.app.includes("console.warn('[login_history] Firestore Rules chưa cấp quyền đọc lịch sử cho SuperAdmin:'"));
-check('Public mirrors are synced', files.publicApp.includes('4K-6V5K-superadmin-access-admin-provisioning-recovery') && files.publicSuperadmin.includes('forceReplaceAdmin-preflight'));
+check('Public mirrors are synced', (files.publicApp.includes('4K-6V5M-attendance-status-quit-sync') || files.publicApp.includes('4K-6V5K-superadmin-access-admin-provisioning-recovery') || files.publicApp.includes('4K-6V5L-superadmin-revenue-cache-fallback')) && files.publicSuperadmin.includes('forceReplaceAdmin-preflight'));
 check('Package exposes V5K check', files.pkg.includes('check:v5k-superadmin-access-admin-provisioning-recovery'));
 let failed = 0;
 for (const c of checks) {

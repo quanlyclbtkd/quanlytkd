@@ -667,9 +667,11 @@ export async function loadQuitProfilesIfNeeded(reason, contextOverride) {
         // Phase 4K-6V4B3: status legacy aliases. Các hồ sơ cũ có thể lưu
         // status='Đã nghỉ'/'Nghỉ tập' thay vì quit/inactive/retired.
         const legacyStatusAliases = [
-            'Đã nghỉ', 'đã nghỉ', 'Nghỉ', 'nghỉ', 'Nghỉ tập', 'nghỉ tập',
-            'Nghi', 'nghi', 'Nghi tap', 'nghi tap', 'Stopped', 'stopped',
-            'Left', 'left', 'Stop', 'stop', 'Leave', 'leave'
+            'Đã nghỉ', 'đã nghỉ', 'Đã Nghỉ', 'da nghi', 'Da nghi',
+            'Nghỉ', 'nghỉ', '🚫 Nghỉ', '🚫 nghỉ', 'Nghỉ tập', 'nghỉ tập',
+            'Nghỉ học', 'nghỉ học', 'Nghi', 'nghi', 'Nghi tap', 'nghi tap',
+            'Nghi hoc', 'nghi hoc', 'Stopped', 'stopped', 'Left', 'left',
+            'Stop', 'stop', 'Leave', 'leave', 'inactive', 'retired'
         ];
         const existingStatusValues = new Set(quitValues.map(v => String(v).toLowerCase()));
         const aliasValues = legacyStatusAliases.filter(v => !existingStatusValues.has(String(v).toLowerCase()));
@@ -692,6 +694,14 @@ export async function loadQuitProfilesIfNeeded(reason, contextOverride) {
             { label: 'stopped==true',   field: 'stopped',  op: '==', value: true  },
             { label: 'quitDate!=null',  field: 'quitDate',     op: '!=', value: null  },
             { label: 'ngayNghi!=null',  field: 'ngayNghi',     op: '!=', value: null  },
+            { label: 'ngayNghiTap!=null',  field: 'ngayNghiTap',     op: '!=', value: null  },
+            { label: 'ngayNghiHoc!=null',  field: 'ngayNghiHoc',     op: '!=', value: null  },
+            { label: 'nghiDate!=null',  field: 'nghiDate',     op: '!=', value: null  },
+            { label: 'nghiTapDate!=null',  field: 'nghiTapDate',     op: '!=', value: null  },
+            { label: 'nghiHocDate!=null',  field: 'nghiHocDate',     op: '!=', value: null  },
+            { label: 'quitAt!=null',  field: 'quitAt',     op: '!=', value: null  },
+            { label: 'leftAt!=null',  field: 'leftAt',     op: '!=', value: null  },
+            { label: 'stoppedAt!=null',  field: 'stoppedAt',     op: '!=', value: null  },
             { label: 'inactiveDate!=null', field: 'inactiveDate', op: '!=', value: null },
             { label: 'stoppedDate!=null', field: 'stoppedDate', op: '!=', value: null },
             { label: 'leftDate!=null', field: 'leftDate', op: '!=', value: null },

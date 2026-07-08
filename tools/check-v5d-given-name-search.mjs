@@ -11,7 +11,7 @@ const files = {
   publicSearchIndex: read('public/js/core/studentSearchIndex.js'),
   pkg: read('package.json'),
 };
-const build = 'superadmin-access-admin-provisioning-recovery-20260704-v5k';
+const build = 'attendance-status-quit-sync-20260704-v5m';
 let pass = 0, fail = 0;
 function check(name, ok) { if (ok) { pass++; console.log('✅', name); } else { fail++; console.error('❌', name); } }
 

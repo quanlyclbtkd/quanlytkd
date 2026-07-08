@@ -224,7 +224,7 @@ export function classifyProfileStatus(profile) {
     // Phase 4K-6V4B3: quitDate là tín hiệu canonical do app ghi khi chuyển Nghỉ.
     // Một số hồ sơ cũ chỉ có quitDate/ngayNghi mà thiếu status=quit, nên nếu
     // không nhận diện ở classifier thì lazy query quitDate!=null vẫn bị reject.
-    const _dateQuitFields = ['quitDate', 'stoppedDate', 'leftDate', 'inactiveDate', 'nghiDate', 'ngayNghi'];
+    const _dateQuitFields = ['quitDate', 'stoppedDate', 'leftDate', 'inactiveDate', 'nghiDate', 'ngayNghi', 'ngayNghiTap', 'ngayNghiHoc', 'nghiTapDate', 'nghiHocDate', 'quitAt', 'leftAt', 'stoppedAt'];
     for (const _field of _dateQuitFields) {
         const _value = profile[_field];
         if (_value !== undefined && _value !== null && _value !== false && String(_value).trim() !== '') return 'quit';
@@ -236,7 +236,7 @@ export function classifyProfileStatus(profile) {
         const _rawQ = String(profile.status ?? '').toLowerCase().trim();
         const _quitQ = _config.quitQueryValues || ['quit', 'inactive'];
         if (_quitQ.some(v => v.toLowerCase() === _rawQ)) return 'quit';
-        if (_rawQ.includes('nghỉ') || _rawQ.includes('nghi')) return 'quit';
+        if (_rawQ.includes('nghỉ') || _rawQ.includes('nghi') || _rawQ.includes('🚫')) return 'quit';
         return 'active';
     }
 
@@ -265,7 +265,7 @@ export function classifyProfileStatus(profile) {
 
     // ── 8. Substring fallback: tiếng Việt dự phòng ──────────────────────────
     if (status.includes('đang') || status.includes('dang')) return 'active';
-    if (status.includes('nghỉ') || status.includes('nghi') || status.includes('stop') || status.includes('left')) return 'quit';
+    if (status.includes('nghỉ') || status.includes('nghi') || status.includes('🚫') || status.includes('stop') || status.includes('left')) return 'quit';
 
     // ── 9. Unknown status → active (legacy compat, không phải 'other') ───────
     // Legacy profiles without recognizable status are treated as active.

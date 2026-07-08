@@ -71,7 +71,7 @@ Expose các helper lên `window`:
 Đổi build marker sang:
 
 ```text
-superadmin-access-admin-provisioning-recovery-20260704-v5k
+attendance-status-quit-sync-20260704-v5m
 ```
 
 để tránh trình duyệt giữ lại bundle V5E/V5D.
@@ -145,5 +145,5 @@ Tìm full name vẫn hoạt động:
 V5F chỉ sửa source/runtime search. Nếu production đã deploy Rules từ V5C trở lên thì không cần deploy Rules lại. Sau deploy cần hard refresh/xóa cache site để tải bundle:
 
 ```text
-superadmin-access-admin-provisioning-recovery-20260704-v5k
+attendance-status-quit-sync-20260704-v5m
 ```

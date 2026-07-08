@@ -153,8 +153,9 @@ function getAttendanceDocId(name, date, shiftId) {
 /** Kiểm tra võ sinh active — tương thích legacy (thiếu status) */
 function isActiveProfileForAttendance(p) {
     if (!p) return false;
+    if (_profileExplicitlyExcludedFromAttendance(p)) return false;
     if (typeof window.isProfileActiveForAttendance === 'function') {
-        return window.isProfileActiveForAttendance(p);
+        return window.isProfileActiveForAttendance(p) === true;
     }
     if (typeof window.classifyProfileStatus === 'function') {
         return window.classifyProfileStatus(p) === 'active';
@@ -169,6 +170,69 @@ function _profileBranchMatchesAttendance(p, selectedBranch) {
     }
     const branchValue = (p && (p.branchCode || p.branch || p.branchName || p.coachBranch || p.facility || p.base || p.coso || p.coSo || p.location)) || '';
     return _sameBranch(branchValue, selectedBranch);
+}
+
+// Phase 4K-6V5M: Attendance must follow the same ACTIVE source-of-truth as
+// the Đang tập tab. A student marked 🚫 Nghỉ or temporarily ⏸ Báo nghỉ for the
+// selected month must not remain in the attendance roster.
+function _normalizeAttendanceMonth(value) {
+    if (value === undefined || value === null || value === false) return '';
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    try {
+        if (typeof window.normalizeYYYYMM === 'function') return window.normalizeYYYYMM(raw) || '';
+    } catch (_) {}
+    try {
+        if (typeof window.normalizeTuitionMonthForMultiItem === 'function') return window.normalizeTuitionMonthForMultiItem(raw) || '';
+    } catch (_) {}
+    try {
+        if (typeof window.normalizeTuitionMonth === 'function') return window.normalizeTuitionMonth(raw) || '';
+    } catch (_) {}
+    const m = raw.match(/(20\d{2})[-\/]?(0?[1-9]|1[0-2])/);
+    if (m) return m[1] + '-' + String(m[2]).padStart(2, '0');
+    const lower = raw.toLowerCase();
+    const yearMatch = lower.match(/(20\d{2})/);
+    const monthWords = [
+        ['1', ['tháng một','thang mot','tháng 1','thang 1','t1']],
+        ['2', ['tháng hai','thang hai','tháng 2','thang 2','t2']],
+        ['3', ['tháng ba','thang ba','tháng 3','thang 3','t3']],
+        ['4', ['tháng tư','thang tu','tháng bốn','thang bon','tháng 4','thang 4','t4']],
+        ['5', ['tháng năm','thang nam','tháng 5','thang 5','t5']],
+        ['6', ['tháng sáu','thang sau','tháng 6','thang 6','t6']],
+        ['7', ['tháng bảy','thang bay','tháng 7','thang 7','t7']],
+        ['8', ['tháng tám','thang tam','tháng 8','thang 8','t8']],
+        ['9', ['tháng chín','thang chin','tháng 9','thang 9','t9']],
+        ['10', ['tháng mười','thang muoi','tháng 10','thang 10','t10']],
+        ['11', ['tháng mười một','thang muoi mot','tháng 11','thang 11','t11']],
+        ['12', ['tháng mười hai','thang muoi hai','tháng 12','thang 12','t12']],
+    ];
+    if (yearMatch) {
+        for (const [num, words] of monthWords) {
+            if (words.some(w => lower.includes(w))) return yearMatch[1] + '-' + String(num).padStart(2, '0');
+        }
+    }
+    return '';
+}
+function _attendanceMonthList(values) {
+    if (!Array.isArray(values)) return [];
+    return values.map(_normalizeAttendanceMonth).filter(Boolean);
+}
+function _profileSkippedForAttendanceMonth(p, selectedMonth) {
+    const selMon = _normalizeAttendanceMonth(selectedMonth || '');
+    if (!selMon || !p) return false;
+    const raw = [];
+    ['skippedMonths', 'skipMonths', 'pausedMonths', 'pauseMonths', 'breakMonths', 'nghiThang', 'baoNghiMonths'].forEach((field) => {
+        if (Array.isArray(p[field])) raw.push(...p[field]);
+    });
+    return _attendanceMonthList(raw).includes(selMon);
+}
+function _profileExplicitlyExcludedFromAttendance(p) {
+    if (!p) return false;
+    if (p.excludeAttendance === true || p.attendanceExcluded === true || p.noAttendance === true) return true;
+    const raw = String(p.attendanceStatus || p.attStatus || p.trainingStatus || p.studyStatus || '').toLowerCase().trim();
+    if (!raw) return false;
+    const normalized = raw.normalize ? raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd') : raw;
+    return normalized.includes('bao nghi') || normalized.includes('tam nghi') || normalized.includes('pause') || normalized.includes('paused') || normalized.includes('skip');
 }
 
 function _getAttendanceListSignature() {
@@ -352,10 +416,13 @@ function _getFilteredAttProfiles() {
             return p.trainingShiftId === _currentShiftId;
         })
         .filter(([, p]) => {
-            if (isShowAll) return true;
+            // Phase 4K-6V5M: ⏸ Báo nghỉ tháng phải bị loại khỏi Điểm danh theo
+            // tháng của ngày điểm danh, kể cả dữ liệu cũ lưu "Tháng Sáu 2026"
+            // hoặc "2026-6" thay vì chuẩn YYYY-MM.
+            // Lưu ý: "Hiển thị tất cả" chỉ bỏ qua lịch tập/ca, KHÔNG được đưa
+            // võ sinh đã báo nghỉ tháng hoặc đã nghỉ tập trở lại roster điểm danh.
             if (!selDateVal) return true;
-            const selMon = selDateVal.substring(0, 7);
-            return !(Array.isArray(p.skippedMonths) && p.skippedMonths.includes(selMon));
+            return !_profileSkippedForAttendanceMonth(p, selDateVal);
         })
         .sort((a, b) => a[0].localeCompare(b[0], 'vi'));
 }
@@ -856,6 +923,8 @@ export function initAttendance() {
         // Phase 4.0B-4J-5: update attendance debug info
         window.__attendanceDebug = window.__attendanceDebug || {};
         _attCurrentProfiles = _getFilteredAttProfiles();
+        window.__attendanceDebug.lastActiveRosterCount = _attCurrentProfiles.length;
+        window.__attendanceDebug.lastStatusGate = 'active-only-plus-skipped-month-v5m';
         if (!_clubShiftsLoaded) await _loadClubShifts();
         if (_attCurrentProfiles.length === 0) {
             _renderAttCards();

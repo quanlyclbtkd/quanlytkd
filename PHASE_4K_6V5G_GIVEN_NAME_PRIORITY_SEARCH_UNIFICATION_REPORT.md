@@ -174,5 +174,5 @@ Vẫn tìm được `Đỗ Bảo Uyên`.
 V5G chỉ sửa source/runtime search. Nếu bạn đã deploy Rules từ V5C trở lên thì không cần deploy lại Rules chỉ vì V5G. Sau khi deploy Hosting/source, cần hard refresh hoặc xóa cache site để trình duyệt tải build mới:
 
 ```text
-superadmin-access-admin-provisioning-recovery-20260704-v5k
+attendance-status-quit-sync-20260704-v5m
 ```

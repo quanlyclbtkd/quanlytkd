@@ -95,7 +95,7 @@ Trong `forceReplaceAdmin()`:
 Đổi build marker sang:
 
 ```text
-superadmin-access-admin-provisioning-recovery-20260704-v5k
+attendance-status-quit-sync-20260704-v5m
 ```
 
 ## Kiểm tra đã chạy

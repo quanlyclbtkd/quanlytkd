@@ -28,7 +28,7 @@
  */
 
 import { getLocalToday, formatDate, formatMonth, formatMonthCompact, addMonthsToYYYYMM } from '../utils/format.js';
-import { StudentService } from '../services/students.service.js?v=superadmin-access-admin-provisioning-recovery-20260704-v5k';
+import { StudentService } from '../services/students.service.js?v=attendance-status-quit-sync-20260704-v5m';
 
 // ════════════════════════════════════════════════════════════════
 // BRIDGE HELPERS — đọc state từ app.js qua window.__store
@@ -1040,7 +1040,7 @@ export function initStudentPagination() {
         renderPaginationControls, PAGE_SIZE,
     }) => {
         import('./students.js').then(() => {}); // no-op — chỉ để IDE không warn
-        import('../services/students.service.js?v=superadmin-access-admin-provisioning-recovery-20260704-v5k').then(({ StudentService }) => {
+        import('../services/students.service.js?v=attendance-status-quit-sync-20260704-v5m').then(({ StudentService }) => {
 
             const store = window.__store;
             if (!store) { console.warn('[pagination/students] __store chưa sẵn sàng'); return; }
@@ -2486,6 +2486,11 @@ window.ensureDebtProfilesReady = async function ensureDebtProfilesReady(reason) 
     if (typeof window.refreshListsComputation === 'function') {
         window.refreshListsComputation(['students.activeList', 'students.debtList', 'dashboard.summary'], reason);
     }
+    // Phase 4K-6V5M: Báo nghỉ tháng cũng ảnh hưởng danh sách Điểm danh của
+    // tháng tương ứng; invalidate attendance roster, not only Debt/Active.
+    if (typeof window.invalidateList === 'function') {
+        window.invalidateList('attendance.list', reason + ':attendance-skipped-month-sync');
+    }
     if (typeof window.updateSkippedMonthSection === 'function') {
         try {
             window.updateSkippedMonthSection(window.__store.profiles, month);
@@ -2494,6 +2499,7 @@ window.ensureDebtProfilesReady = async function ensureDebtProfilesReady(reason) 
     if (typeof window.invalidateList === 'function') {
         window.invalidateList('students.debtList', reason);
         window.invalidateList('students.activeList', reason);
+        window.invalidateList('attendance.list', reason + ':attendance-skipped-month-sync');
     } else if (typeof window.invalidateStudents === 'function') {
         window.invalidateStudents(reason);
     }
@@ -2645,6 +2651,14 @@ window.syncStudentStatusLocal = function syncStudentStatusLocal(name, updateData
         window.__store._dataVersion = (window.__store._dataVersion || 0) + 1;
         window.__store._studentStatusVersion = (window.__store._studentStatusVersion || 0) + 1;
 
+        // Phase 4K-6V5M: push the local status change into the canonical profile
+        // store immediately. Without this, a student marked 🚫 Nghỉ could be
+        // removed from Debt but remain missing from Đã nghỉ until the next
+        // Firestore snapshot/lazy reload.
+        if (window.studentProfileStore && typeof window.studentProfileStore.mergeProfile === 'function') {
+            try { window.studentProfileStore.mergeProfile(key, nextProfile, reason); } catch (_) {}
+        }
+
         if (typeof window.invalidateSearchCache === 'function') {
             window.invalidateSearchCache('students', reason);
         }
@@ -2657,12 +2671,18 @@ window.syncStudentStatusLocal = function syncStudentStatusLocal(name, updateData
             window.invalidateList('students.activeList', reason);
             window.invalidateList('students.quitList', reason);
             window.invalidateList('students.debtList', reason);
+            // Phase 4K-6V5M: Điểm danh phải đồng bộ với Đang tập/Đã nghỉ.
+            // Khi võ sinh chuyển 🚫 Nghỉ, loại khỏi attendance roster ngay.
+            if (kind === 'quit') window.invalidateList('attendance.list', reason + ':attendance-status-sync');
         } else if (typeof window.invalidateStudents === 'function') {
             window.invalidateStudents(reason);
         }
 
         if (typeof window.invalidateDashboard === 'function') {
             window.invalidateDashboard(reason);
+        }
+        if (kind === 'quit' && typeof window.renderAttendanceList === 'function') {
+            try { Promise.resolve().then(() => window.renderAttendanceList()); } catch (_) {}
         }
 
         // Phase 4K-6A-B: removed scheduleRender() — use list-level invalidation above
@@ -2845,6 +2865,11 @@ window.syncStudentSkippedMonthLocal = function(name, month, action, reason) {
     if (typeof window.refreshListsComputation === 'function') {
         window.refreshListsComputation(['students.activeList', 'students.debtList', 'dashboard.summary'], reason);
     }
+    // Phase 4K-6V5M: Báo nghỉ tháng cũng ảnh hưởng danh sách Điểm danh của
+    // tháng tương ứng; invalidate attendance roster, not only Debt/Active.
+    if (typeof window.invalidateList === 'function') {
+        window.invalidateList('attendance.list', reason + ':attendance-skipped-month-sync');
+    }
     if (typeof window.updateSkippedMonthSection === 'function') {
         try {
             window.updateSkippedMonthSection(window.__store.profiles, month);
@@ -2853,6 +2878,7 @@ window.syncStudentSkippedMonthLocal = function(name, month, action, reason) {
     if (typeof window.invalidateList === 'function') {
         window.invalidateList('students.debtList', reason);
         window.invalidateList('students.activeList', reason);
+        window.invalidateList('attendance.list', reason + ':attendance-skipped-month-sync');
     } else if (typeof window.invalidateStudents === 'function') {
         window.invalidateStudents(reason);
     }
@@ -2936,6 +2962,10 @@ window.markStudentQuitFromDebt = async function(event, name, month) {
             // Phase 4K-6A-B: ensure debt list re-renders after quit action
             if (typeof window.ensureStudentTabRendered === 'function') {
                 window.ensureStudentTabRendered('debt', 'after-mark-student-quit');
+                window.ensureStudentTabRendered('quit', 'after-mark-student-quit');
+            }
+            if (typeof window.invalidateList === 'function') {
+                window.invalidateList('attendance.list', 'after-mark-student-quit');
             }
             if (window.showToast) window.showToast('✅ Đã chuyển võ sinh sang Đã nghỉ!');
         },
@@ -3001,6 +3031,9 @@ window.skipDebtMonthFromDebt = async function(event, name, month) {
             // Phase 4K-6A-B: ensure debt list re-renders after skip action
             if (typeof window.ensureStudentTabRendered === 'function') {
                 window.ensureStudentTabRendered('debt', 'after-skip-debt-month');
+            }
+            if (typeof window.invalidateList === 'function') {
+                window.invalidateList('attendance.list', 'after-skip-debt-month');
             }
             if (window.showToast) window.showToast('✅ Đã báo nghỉ tháng này và miễn học phí!');
         },

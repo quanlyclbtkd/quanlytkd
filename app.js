@@ -91,7 +91,7 @@
     window.debtBranchMatchesFilter = window.debtBranchMatchesFilter || _branchMatchesFilter;
 // Danh mục kho tùy chỉnh — được load từ Firestore khi đăng nhập thành công
 window.invCustomCategories = [];
-    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V5D'; window.APP_PATCH_VERSION = '4K-6V5K-superadmin-access-admin-provisioning-recovery-20260704'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
+    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V5M'; window.APP_PATCH_VERSION = '4K-6V5M-attendance-status-quit-sync-20260704'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
     // Compatibility regression marker retained for Phase 4K-6Q gate: APP_PATCH_VERSION = '4K-6Q-mobile-filter-currency-stability-20260615'
     window.__appLoaded = true; // [Phase 2a] main.js kiểm tra để bỏ qua loadLegacyApp()
     window.__store = window.__store || {}; // [Phase 2b] Bridge object cho module system
@@ -2589,6 +2589,115 @@ service cloud.firestore {
         if (window.showToast) window.showToast('Module SuperAdmin chưa sẵn sàng. Vui lòng tải lại trang.', 'warning');
     };
 
+    // Phase 4K-6V5L: SuperAdmin revenue cache fallback helpers
+    // Mục tiêu: đọc doanh thu từ cache/stats nếu có, không cảnh báo sai và không scan tx khi có số 0 hợp lệ.
+    function _saFirstFiniteNumber(...values) {
+        for (const v of values) {
+            if (v === null || v === undefined || v === '') continue;
+            const n = Number(v);
+            if (Number.isFinite(n)) return n;
+        }
+        return null;
+    }
+    function _saStatsDocId(monthKey) {
+        return String(monthKey || '').replace('-', '_');
+    }
+    function _saReadStatsIncomeTotal(stats) {
+        if (!stats || typeof stats !== 'object') return null;
+        return _saFirstFiniteNumber(
+            stats['income.total'],
+            stats.income && stats.income.total,
+            stats.totalIncome,
+            stats.totalRevenue,
+            stats.revenue,
+            stats.revenueTotal,
+            stats.incomeTotal,
+            stats.monthlyRevenue,
+            stats.monthlyIncome,
+            stats.grossRevenue,
+            stats.total,
+            stats.amount
+        );
+    }
+    function _saReadStatsTxCount(stats) {
+        if (!stats || typeof stats !== 'object') return null;
+        return _saFirstFiniteNumber(
+            stats.txCount,
+            stats.monthlyTxCount,
+            stats.transactionCount,
+            stats.transactionsCount,
+            stats.count
+        );
+    }
+    function _saReadMonthlyCachedValue(source, monthKey, statsDocId) {
+        if (!source || typeof source !== 'object') return null;
+        const direct = source[monthKey] !== undefined ? source[monthKey] : source[statsDocId];
+        if (direct === null || direct === undefined || direct === '') return null;
+        if (typeof direct === 'number' || typeof direct === 'string') return _saFirstFiniteNumber(direct);
+        if (direct && typeof direct === 'object') return _saFirstFiniteNumber(
+            direct['income.total'],
+            direct.income && direct.income.total,
+            direct.totalIncome,
+            direct.totalRevenue,
+            direct.revenue,
+            direct.revenueTotal,
+            direct.incomeTotal,
+            direct.total,
+            direct.amount
+        );
+        return null;
+    }
+    function _saReadClubRevenueCache(clubData, monthKey) {
+        const data = clubData || {};
+        const statsDocId = _saStatsDocId(monthKey);
+        const sa = data.superAdminStats || data.clubSummary || data.summary || {};
+        const saMonth = String(sa.month || sa.monthKey || '').replace('_','-');
+        const saRevenue = (saMonth === monthKey || !saMonth) ? _saFirstFiniteNumber(
+            sa.revenueTotal,
+            sa.monthlyIncome,
+            sa.currentMonthRevenue,
+            sa.incomeTotal,
+            sa.income && sa.income.total,
+            sa.totalIncome,
+            sa.totalRevenue
+        ) : null;
+        const monthRevenue = _saFirstFiniteNumber(
+            _saReadMonthlyCachedValue(data.cachedMonthlyRevenue, monthKey, statsDocId),
+            _saReadMonthlyCachedValue(data.monthlyRevenue, monthKey, statsDocId),
+            _saReadMonthlyCachedValue(data.revenueByMonth, monthKey, statsDocId)
+        );
+        const currentMonth = (() => {
+            const now = new Date();
+            const ym = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+            return ym;
+        })();
+        const currentMonthRevenue = monthKey === currentMonth ? _saFirstFiniteNumber(
+            data.cachedCurrentMonthRevenue,
+            data.currentMonthRevenue,
+            data.monthlyIncome,
+            data.totalRevenue
+        ) : null;
+        const revenue = _saFirstFiniteNumber(monthRevenue, saRevenue, currentMonthRevenue);
+        const txCount = _saFirstFiniteNumber(
+            sa.monthlyTxCount,
+            sa.txCount,
+            data.cachedTxCount,
+            data.monthlyTxCount,
+            data.txCount
+        );
+        return {
+            hasRevenue: revenue !== null,
+            revenue: revenue !== null ? revenue : 0,
+            txCount: txCount !== null ? txCount : 0,
+            source: monthRevenue !== null ? 'club-cache-month' : (saRevenue !== null ? 'club-cache-superadmin' : 'club-cache-current')
+        };
+    }
+    function _saRevenueDebugEnabled() {
+        try {
+            return window.__SA_REVENUE_DEBUG === true || localStorage.getItem('saRevenueDebug') === '1';
+        } catch (_) { return window.__SA_REVENUE_DEBUG === true; }
+    }
+
     //  SUPER ADMIN: DOANH THU THỰC TẾ THEO THÁNG CỦA TỪNG CLB
     window.loadSARevenue = async () => {
         const monthEl = document.getElementById('sa_revenue_month');
@@ -2617,34 +2726,32 @@ service cloud.firestore {
                     const cdata = docSnap.data();
                     const cname = cdata.clubName || cid;
                     try {
-                        // Ưu tiên A: stats doc (O(1)) — tránh scan tx hoàn toàn
-                        const _statsDocRef = doc(db, "clubs", cid, "stats", selMonth.replace('-', '_'));
+                        // Phase 4K-6V5L: SuperAdmin revenue priority:
+                        // 1) clubs/{clubId} root cache written by Admin-side auto-cache/Function
+                        // 2) clubs/{clubId}/stats/{YYYY_MM} compatible stats schema
+                        // 3) transaction scan only when cache/stats are truly missing or explicitly incomplete
+                        const _statsDocId = selMonth.replace('-', '_');
+                        const _rootCache = _saReadClubRevenueCache(cdata, selMonth);
+                        if (_rootCache.hasRevenue) {
+                            return { cid, cname, total: _rootCache.revenue, txCount: _rootCache.txCount, source: _rootCache.source };
+                        }
+
+                        const _statsDocRef = doc(db, "clubs", cid, "stats", _statsDocId);
                         let _statsSnap = null;
-                        try { _statsSnap = await getDoc(_statsDocRef); } catch(_) { /* fallback */ }
+                        try { _statsSnap = await getDoc(_statsDocRef); } catch(_statsErr) {
+                            if (_saRevenueDebugEnabled()) console.warn('[SARevenue] Không đọc được stats doc cho CLB ' + cid + ' — sẽ dùng fallback tx scan nếu có quyền.', _statsErr?.message || _statsErr);
+                        }
                         if (_statsSnap && _statsSnap.exists()) {
-                            const _sd = _statsSnap.data();
-                            // [Phase 4K-FIX Lỗi 1] _readStatsIncomeTotal — đọc tương thích nhiều format stats:
-                            //   income.total nested (ghi bởi Cloud Functions FieldValue.increment),
-                            //   'income.total' flat key, totalIncome, totalRevenue, revenue
-                            const _tot = (
-                                Number(_sd?.income?.total)     ||
-                                Number(_sd?.['income.total'])  ||
-                                Number(_sd?.totalIncome)       ||
-                                Number(_sd?.totalRevenue)      ||
-                                Number(_sd?.revenue)           ||
-                                0
-                            );
-                            const _hasTxCount = (_sd.txCount || 0) > 0;
-                            if (_tot > 0 || _hasTxCount) {
-                                // stats doc có dữ liệu hợp lệ — không fallback sang scan tx
-                                if (_tot === 0 && _hasTxCount) {
-                                    // CLB có GD nhưng toàn chi phí (totalRevenue = 0 là đúng)
-                                    console.warn('[Phase 4K-FIX] CLB ' + cid + ': stats doc có txCount=' + _sd.txCount + ' nhưng income = 0 — có thể toàn chi phí');
-                                }
-                                return { cid, cname, total: _tot, txCount: _sd.txCount || 0, source: 'stats' };
+                            const _sd = _statsSnap.data() || {};
+                            const _tot = _saReadStatsIncomeTotal(_sd);
+                            const _txc = _saReadStatsTxCount(_sd);
+                            if (_tot !== null || _txc !== null) {
+                                // Revenue = 0 là giá trị hợp lệ, không phải lỗi.
+                                return { cid, cname, total: (_tot !== null ? _tot : 0), txCount: (_txc !== null ? _txc : 0), source: 'stats' };
                             }
-                            // stats doc tồn tại nhưng không đọc được doanh thu và txCount = 0
-                            console.warn('[Phase 4K-FIX] Stats doc tồn tại cho CLB ' + cid + ' nhưng không đọc được income — fallback sang tx scan');
+                            // Stats doc tồn tại nhưng không có field doanh thu chuẩn. Không warn ở production
+                            // vì đây là dữ liệu cache cũ/empty doc; fallback tx scan giữ số liệu chính xác.
+                            if (_saRevenueDebugEnabled()) console.info('[SARevenue] Stats doc legacy/empty cho CLB ' + cid + ' — fallback tx scan để giữ doanh thu chính xác.');
                         }
                         // Fallback B: paginated tx scan (không giới hạn cứng — fetchQueryPages)
                         const _txColRef = collection(db, "clubs", cid, "transactions");

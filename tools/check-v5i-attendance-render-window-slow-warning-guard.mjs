@@ -15,8 +15,8 @@ const files = {
 };
 let pass = 0, fail = 0;
 function check(name, ok) { if (ok) { pass++; console.log('PASS', name); } else { fail++; console.error('FAIL', name); } }
-const build = 'superadmin-access-admin-provisioning-recovery-20260704-v5k';
-const version = '4K-6V5K-superadmin-access-admin-provisioning-recovery-20260704';
+const build = 'attendance-status-quit-sync-20260704-v5m';
+const version = '4K-6V5L-superadmin-revenue-cache-fallback-20260704';
 check('index uses V5I cache bust for app and main', files.index.includes(`app.js?v=${build}`) && files.index.includes(`js/main.js?v=${build}`));
 check('main/app version markers are V5I', files.main.includes(version) && files.app.includes(version));
 check('attendance module defines a render window and step', files.attendance.includes('ATTENDANCE_RENDER_INITIAL_LIMIT') && files.attendance.includes('ATTENDANCE_RENDER_STEP'));
