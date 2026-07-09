@@ -44,7 +44,7 @@ import {
 import {
     computeAndCacheStudents,
     getStudentsSummary,
-} from './computation/studentsRenderer.js?v=attendance-status-quit-sync-20260704-v5m';
+} from './computation/studentsRenderer.js?v=role-runtime-audit-profiler-20260704-v5o';
 import {
     computeAndCacheInventory,
     getCachedUnpaidInvCount,

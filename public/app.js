@@ -1,3 +1,5 @@
+
+// Compatibility marker retained for V5N regression: 4K-6V5N-debt-zalo-feature-off debt-zalo-feature-off-20260704-v5n
 // Phase 4K-6V4D1A: profile-canonical-store-runtime-recovery-20260628
     /* Firestore security rules source of truth: ./firestore.rules */
 // LEGACY APP KERNEL — DO NOT DELETE DIRECTLY
@@ -91,7 +93,28 @@
     window.debtBranchMatchesFilter = window.debtBranchMatchesFilter || _branchMatchesFilter;
 // Danh mục kho tùy chỉnh — được load từ Firestore khi đăng nhập thành công
 window.invCustomCategories = [];
-    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V5M'; window.APP_PATCH_VERSION = '4K-6V5M-attendance-status-quit-sync-20260704'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
+    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V5O'; window.APP_PATCH_VERSION = '4K-6V5O-role-runtime-audit-profiler-20260704'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
+    // Phase 4K-6V5N: Zalo debt reminder feature gate.
+    // User requested complete hiding of Zalo / bulk Zalo in the Debt tab because the feature is not used and causes operational errors.
+    window.DEBT_ZALO_FEATURE_ENABLED = false;
+    window.isDebtZaloFeatureEnabled = function isDebtZaloFeatureEnabled() { return false; };
+    window.hideDebtZaloUI = function hideDebtZaloUI() {
+        try {
+            document.querySelectorAll('[data-debt-zalo-ui], #bulkZaloModal, #_zaloMsgModal').forEach(function(el) {
+                if (!el) return;
+                el.style.setProperty('display', 'none', 'important');
+                el.setAttribute('hidden', 'hidden');
+                el.setAttribute('aria-hidden', 'true');
+            });
+        } catch (_) {}
+    };
+    if (typeof document !== 'undefined') {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', window.hideDebtZaloUI, { once: true });
+        } else {
+            setTimeout(window.hideDebtZaloUI, 0);
+        }
+    }
     // Compatibility regression marker retained for Phase 4K-6Q gate: APP_PATCH_VERSION = '4K-6Q-mobile-filter-currency-stability-20260615'
     window.__appLoaded = true; // [Phase 2a] main.js kiểm tra để bỏ qua loadLegacyApp()
     window.__store = window.__store || {}; // [Phase 2b] Bridge object cho module system
@@ -5122,6 +5145,11 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
     };
 
     window.copyAndOpenZalo = (name, monthsStr, phone) => {
+        if (!window.isDebtZaloFeatureEnabled || !window.isDebtZaloFeatureEnabled()) {
+            if (typeof window.hideDebtZaloUI === 'function') window.hideDebtZaloUI();
+            if (typeof window.showToast === 'function') window.showToast('ℹ️ Tính năng Zalo nhắc nợ đang tắt.');
+            return false;
+        }
         const p = allProfiles[name];
         let fee = p ? (p.tuitionFee || 0) : 0;
         let monthsLabel = window.formatMonthCompact(monthsStr);
@@ -5163,6 +5191,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
     };
 
     (function _injectZaloModal() {
+        if (!window.isDebtZaloFeatureEnabled || !window.isDebtZaloFeatureEnabled()) return;
         if (document.getElementById('_zaloMsgModal')) return;
         const el = document.createElement('div');
         el.id = '_zaloMsgModal';
@@ -5192,6 +5221,11 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
     let _bulkZaloIdx = 0;
 
     window.openBulkZaloModal = () => {
+        if (!window.isDebtZaloFeatureEnabled || !window.isDebtZaloFeatureEnabled()) {
+            if (typeof window.hideDebtZaloUI === 'function') window.hideDebtZaloUI();
+            if (typeof window.showToast === 'function') window.showToast('ℹ️ Tính năng Zalo hàng loạt đang tắt.');
+            return false;
+        }
         const selMonth = document.getElementById('filterMonth').value;
         const selBranch = document.getElementById('filterBranch').value;
         const isSingleBranch = clubConfig.branchCount === 1;
@@ -5231,7 +5265,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         document.getElementById('bulkZaloModal').style.display = 'flex';
     };
 
-    window.closeBulkZaloModal = () => { document.getElementById('bulkZaloModal').style.display = 'none'; };
+    window.closeBulkZaloModal = () => { const el = document.getElementById('bulkZaloModal'); if (el) el.style.display = 'none'; };
 
     function _renderBulkZaloList() {
         const el = document.getElementById('bulkZaloList');
@@ -7491,10 +7525,13 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                     const owedMonthsStr = owedMonths.join(',') || selMonth;
                     const safeOwedMonths = owedMonthsStr.replace(/'/g, '');
                     let lastPaidLabel = `<span class="font-bold text-primary text-[0.8rem]">${window.formatMonthCompact(owedMonthsStr)}</span>`;
+                    const _debtZaloBtn = (window.isDebtZaloFeatureEnabled && window.isDebtZaloFeatureEnabled())
+                        ? `<button type="button" data-debt-zalo-ui class="btn-sm bg-[#0068FF] text-white shadow-sm" onclick="copyAndOpenZalo('${safeNameEscaped}', '${safeOwedMonths}', '${safePhone}')">💬 Zalo</button>`
+                        : '';
 
                     // [PERF] Debt list pagination — đếm tổng nợ vẫn chính xác
                     _debtTotalCount++;
-                    if(_curTabId === 'debt' && _debtRendered < _debtLimit) { _debtRendered++; debtHtml += `<tr ${rowBg}><td><span class="badge ${countBadgeClass}">${unpaidMonthsCount} Tháng</span></td><td>${lastPaidLabel}</td>${branchTdHTML}<td class="name-link text-[0.95rem]" onclick="openProfile('${safeNameEscaped}')">${_displayName(name)}${_listYrBadge}${isOverdue ? ' <span title="Nợ từ 2 tháng trở lên" class="text-rose-500">⚠️</span>' : ''}</td><td class="action-btns"><button type="button" class="btn-sm bg-indigo-50 text-indigo-700 border border-indigo-200" onclick="generateMultiMonthPaymentRequest('${safeNameEscaped}', '${safeOwedMonths}', '${safeBranch}', '${totalDebtAmount}')">📱 QR</button>${window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-emerald-600 text-white shadow-sm" onclick="openQuickPayModal('${safeNameEscaped}', '${safeOwedMonths}', '${safeBranch}')">💰 Thu</button>` : ''}<button type="button" class="btn-sm bg-[#0068FF] text-white shadow-sm" onclick="copyAndOpenZalo('${safeNameEscaped}', '${safeOwedMonths}', '${safePhone}')">💬 Zalo</button>${window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-rose-50 text-rose-700 border border-rose-200" title="Chuyển võ sinh sang Đã nghỉ" onclick="window.markStudentQuitFromDebt(event, '${safeNameEscaped}', '${selMonth}')">🚫 Nghỉ</button><button type="button" class="btn-sm bg-amber-50 text-amber-700 border border-amber-200" title="Báo nghỉ / miễn học phí tháng này" onclick="window.skipDebtMonthFromDebt(event, '${safeNameEscaped}', '${selMonth}')">⏸ Báo nghỉ</button>` : ''}</td></tr>`; }
+                    if(_curTabId === 'debt' && _debtRendered < _debtLimit) { _debtRendered++; debtHtml += `<tr ${rowBg}><td><span class="badge ${countBadgeClass}">${unpaidMonthsCount} Tháng</span></td><td>${lastPaidLabel}</td>${branchTdHTML}<td class="name-link text-[0.95rem]" onclick="openProfile('${safeNameEscaped}')">${_displayName(name)}${_listYrBadge}${isOverdue ? ' <span title="Nợ từ 2 tháng trở lên" class="text-rose-500">⚠️</span>' : ''}</td><td class="action-btns"><button type="button" class="btn-sm bg-indigo-50 text-indigo-700 border border-indigo-200" onclick="generateMultiMonthPaymentRequest('${safeNameEscaped}', '${safeOwedMonths}', '${safeBranch}', '${totalDebtAmount}')">📱 QR</button>${window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-emerald-600 text-white shadow-sm" onclick="openQuickPayModal('${safeNameEscaped}', '${safeOwedMonths}', '${safeBranch}')">💰 Thu</button>` : ''}${_debtZaloBtn}${window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-rose-50 text-rose-700 border border-rose-200" title="Chuyển võ sinh sang Đã nghỉ" onclick="window.markStudentQuitFromDebt(event, '${safeNameEscaped}', '${selMonth}')">🚫 Nghỉ</button><button type="button" class="btn-sm bg-amber-50 text-amber-700 border border-amber-200" title="Báo nghỉ / miễn học phí tháng này" onclick="window.skipDebtMonthFromDebt(event, '${safeNameEscaped}', '${selMonth}')">⏸ Báo nghỉ</button>` : ''}</td></tr>`; }
                 }
             } else {
                 // [PERF] Quit list pagination

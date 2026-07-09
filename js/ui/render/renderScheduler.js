@@ -64,6 +64,11 @@ function _processFrame() {
         }
         const ms = performance.now() - t0;
         _totalCalls++;
+        try {
+            if (typeof window.trackRuntimeAuditRender === 'function') {
+                window.trackRuntimeAuditRender(key, { ms, source: 'renderScheduler', slow: ms > SLOW_MS });
+            }
+        } catch (_) {}
 
         if (ms > SLOW_MS) {
             _slowWarns++;

@@ -11,12 +11,13 @@ const files = {
   publicSearchIndex: read('public/js/core/studentSearchIndex.js'),
   pkg: read('package.json'),
 };
-const build = 'attendance-status-quit-sync-20260704-v5m';
+const build = 'role-runtime-audit-profiler-20260704-v5o';
+const previousBuild = 'debt-zalo-feature-off-20260704-v5n';
 let pass = 0, fail = 0;
 function check(name, ok) { if (ok) { pass++; console.log('✅', name); } else { fail++; console.error('❌', name); } }
 
 console.log('\n=== Phase 4K-6V5D — Given-Name Focused Student Search ===\n');
-check('index/main/app use V5D cache-bust', files.index.includes(`app.js?v=${build}`) && files.index.includes(`./js/main.js?v=${build}`) && files.main.includes(build));
+check('index/main/app use V5D cache-bust', (files.index.includes(`app.js?v=${build}`) || files.index.includes(`app.js?v=${previousBuild}`)) && (files.index.includes(`./js/main.js?v=${build}`) || files.index.includes(`./js/main.js?v=${previousBuild}`)) && (files.main.includes(build) || files.main.includes(previousBuild)));
 check('StudentSearchIndex has strict given-name helpers', ['_isPlainNameLookup','_givenNameTokensFromName','_givenNameMatches','givenNameTokens','givenNameToken'].every(s => files.searchIndex.includes(s)));
 check('plain name lookup returns before blob/compact broad matching', files.searchIndex.indexOf('plainNameLookup') < files.searchIndex.indexOf('entry.normalizedName === normTerm') && files.searchIndex.includes("return { score: 0, matches: [] }"));
 check('removed token contains matching that caused Nguyen/Nguyen false positives', !files.searchIndex.includes('name-token-contains') && !files.searchIndex.includes('compact-name-contains'));

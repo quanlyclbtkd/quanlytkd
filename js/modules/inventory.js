@@ -1,4 +1,4 @@
-// Compatibility marker: inventory.service.js?v=attendance-status-quit-sync-20260704-v5m
+// Compatibility marker: inventory.service.js?v=role-runtime-audit-profiler-20260704-v5o
 /**
  * modules/inventory.js — Phase 2f
  * ────────────────────────────────────────────────────────────────
@@ -38,7 +38,7 @@
  */
 
 import { getLocalToday } from '../utils/format.js';
-import { InventoryService } from '../services/inventory.service.js?v=attendance-status-quit-sync-20260704-v5m';
+import { InventoryService } from '../services/inventory.service.js?v=role-runtime-audit-profiler-20260704-v5o';
 
 // ════════════════════════════════════════════════════════════════
 // BRIDGE HELPERS — đọc state từ window.__store tại call-time

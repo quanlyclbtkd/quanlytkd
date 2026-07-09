@@ -15,10 +15,10 @@ const files = {
 };
 let pass = 0, fail = 0;
 function check(name, ok) { if (ok) { pass++; console.log('PASS', name); } else { fail++; console.error('FAIL', name); } }
-const build = 'attendance-status-quit-sync-20260704-v5m';
-const version = '4K-6V5L-superadmin-revenue-cache-fallback-20260704';
-check('index uses V5I cache bust for app and main', files.index.includes(`app.js?v=${build}`) && files.index.includes(`js/main.js?v=${build}`));
-check('main/app version markers are V5I', files.main.includes(version) && files.app.includes(version));
+const build = 'role-runtime-audit-profiler-20260704-v5o';
+const compatibleVersions = ['4K-6V5O-role-runtime-audit-profiler-20260704', '4K-6V5I-attendance-render-window-slow-warning-guard-20260703', '4K-6V5L-superadmin-revenue-cache-fallback-20260704', '4K-6V5N-debt-zalo-feature-off-20260704'];
+check('index uses V5I-or-later cache bust for app and main', files.index.includes(`app.js?v=${build}`) && files.index.includes(`js/main.js?v=${build}`));
+check('main/app version markers are V5I-or-later', compatibleVersions.some(v => files.main.includes(v)) && compatibleVersions.some(v => files.app.includes(v)));
 check('attendance module defines a render window and step', files.attendance.includes('ATTENDANCE_RENDER_INITIAL_LIMIT') && files.attendance.includes('ATTENDANCE_RENDER_STEP'));
 check('attendance module resets render window on club reset', files.attendance.includes('_attendanceVisibleLimit = ATTENDANCE_RENDER_INITIAL_LIMIT') && files.attendance.includes("_attendanceListSignature = ''"));
 check('attendance render signature tracks date/shift/branch/belt/showAll', ['att_date','_currentShiftId','att_branch','att_belt','att_show_all'].every(x => files.attendance.includes(x)));

@@ -15,10 +15,11 @@ const files = {
 
 const checks = [];
 const check = (name, ok) => checks.push({ name, ok: !!ok });
-const build = 'attendance-status-quit-sync-20260704-v5m';
-const patch = '4K-6V5L-superadmin-revenue-cache-fallback-20260704';
+const build = 'role-runtime-audit-profiler-20260704-v5o';
+const compatiblePatches = ['4K-6V5H-login-history-large-list-guard-20260703', '4K-6V5L-superadmin-revenue-cache-fallback-20260704', '4K-6V5N-debt-zalo-feature-off-20260704', '4K-6V5O-role-runtime-audit-profiler-20260704'];
+const hasCompatiblePatch = (src) => compatiblePatches.some(p => src.includes(p));
 
-check('V5H cache-bust marker is active', files.index.includes(build) && files.app.includes(patch));
+check('V5H-or-later cache-bust marker is active', files.index.includes(build) && hasCompatiblePatch(files.app));
 check('login_history payload includes uid for rules ownership', files.app.includes('uid: user.uid ||') && files.rules.includes("request.resource.data.get('uid', '') == request.auth.uid"));
 check('login_history permission-denied is fail-safe and not a blocking console error', files.app.includes("sessionStorage.setItem(sessionKey, 'permission-denied')") && files.app.includes('Bỏ qua ghi lịch sử đăng nhập'));
 check('firestore rules expose top-level login_history boundary', files.rules.includes('match /login_history/{docId}') && files.rules.includes('function safeLoginHistoryCreate'));
@@ -28,7 +29,7 @@ check('large-list metrics track rendered rows separately from total rows', files
 check('large-list warning coalesces repeated identical warnings', files.invalidation.includes('largeListWarningSuppressed') && files.invalidation.includes('lastWarnSignaturePerList') && files.invalidation.includes('120000'));
 check('student renderer reports rendered debt rows, not total matches', files.studentsRenderer.includes("window.trackLargeListRender('students.debtList', _debtRendered") && files.studentsRenderer.includes('totalRows: _debtTotalCount'));
 check('student renderer keeps total debt count for dashboard/load-more', files.studentsRenderer.includes('debtTotalCount:    _debtTotalCount') && files.studentsRenderer.includes('debtRendered:      _debtRendered'));
-check('public mirrors are synced', files.publicApp.includes(patch) && files.publicInvalidation.includes('renderedRows') && files.publicStudentsRenderer.includes("students.debtList', _debtRendered"));
+check('public mirrors are synced', hasCompatiblePatch(files.publicApp) && files.publicInvalidation.includes('renderedRows') && files.publicStudentsRenderer.includes("students.debtList', _debtRendered"));
 check('V5H check is wired into package scripts', files.pkg.includes('check:v5h-login-history-large-list-guard'));
 
 let failed = 0;

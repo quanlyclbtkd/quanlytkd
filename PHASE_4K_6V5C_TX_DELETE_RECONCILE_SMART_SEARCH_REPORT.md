@@ -55,7 +55,7 @@ allow delete: if isSuperAdmin() || isClubAdmin(clubId);
 Cập nhật toàn bộ entry/import quan trọng sang:
 
 ```txt
-attendance-status-quit-sync-20260704-v5m
+debt-zalo-feature-off-20260704-v5n
 ```
 
 Đặc biệt đã bỏ import stale V3A1 của finance/inventory/dashboard trong `main.js`.

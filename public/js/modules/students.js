@@ -28,7 +28,7 @@
  */
 
 import { getLocalToday, formatDate, formatMonth, formatMonthCompact, addMonthsToYYYYMM } from '../utils/format.js';
-import { StudentService } from '../services/students.service.js?v=attendance-status-quit-sync-20260704-v5m';
+import { StudentService } from '../services/students.service.js?v=role-runtime-audit-profiler-20260704-v5o';
 
 // ════════════════════════════════════════════════════════════════
 // BRIDGE HELPERS — đọc state từ app.js qua window.__store
@@ -108,6 +108,7 @@ function renderAchievements(list) {
  * Modal có textarea chỉnh sửa tự do, nút Copy và nút Mở Zalo.
  */
 function _injectZaloModal() {
+    if (!window.isDebtZaloFeatureEnabled || !window.isDebtZaloFeatureEnabled()) return;
     if (document.getElementById('_zaloMsgModal')) return;
     const el = document.createElement('div');
     el.id = '_zaloMsgModal';
@@ -824,6 +825,11 @@ export function initStudents() {
      * @param {string} phone     — SĐT (có thể rỗng)
      */
     window.copyAndOpenZalo = (name, monthsStr, phone) => {
+        if (!window.isDebtZaloFeatureEnabled || !window.isDebtZaloFeatureEnabled()) {
+            if (typeof window.hideDebtZaloUI === 'function') window.hideDebtZaloUI();
+            if (typeof window.showToast === 'function') window.showToast('ℹ️ Tính năng Zalo nhắc nợ đang tắt.');
+            return false;
+        }
         const p         = _profiles()[name];
         const fee       = p ? (p.tuitionFee || 0) : 0;
         const monthsLabel = formatMonthCompact(monthsStr);
@@ -874,6 +880,11 @@ export function initStudents() {
      * Tính owedMonths giống renderApp (giới hạn 24 tháng tránh vòng lặp vô hạn).
      */
     window.openBulkZaloModal = () => {
+        if (!window.isDebtZaloFeatureEnabled || !window.isDebtZaloFeatureEnabled()) {
+            if (typeof window.hideDebtZaloUI === 'function') window.hideDebtZaloUI();
+            if (typeof window.showToast === 'function') window.showToast('ℹ️ Tính năng Zalo hàng loạt đang tắt.');
+            return false;
+        }
         const profiles       = _profiles();
         const config         = _config();
         const selMonth       = document.getElementById('filterMonth').value;
@@ -924,7 +935,8 @@ export function initStudents() {
 
     /** Đóng modal gửi Zalo hàng loạt */
     window.closeBulkZaloModal = () => {
-        document.getElementById('bulkZaloModal').style.display = 'none';
+        const el = document.getElementById('bulkZaloModal');
+        if (el) el.style.display = 'none';
     };
 
     /**
@@ -1040,7 +1052,7 @@ export function initStudentPagination() {
         renderPaginationControls, PAGE_SIZE,
     }) => {
         import('./students.js').then(() => {}); // no-op — chỉ để IDE không warn
-        import('../services/students.service.js?v=attendance-status-quit-sync-20260704-v5m').then(({ StudentService }) => {
+        import('../services/students.service.js?v=role-runtime-audit-profiler-20260704-v5o').then(({ StudentService }) => {
 
             const store = window.__store;
             if (!store) { console.warn('[pagination/students] __store chưa sẵn sàng'); return; }

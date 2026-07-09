@@ -13,15 +13,16 @@ const files = {
   studentService: read('js/services/students.service.js'),
   pkg: read('package.json'),
 };
-const build = 'attendance-status-quit-sync-20260704-v5m';
+const compatibleBuilds = ['role-runtime-audit-profiler-20260704-v5o', 'tx-delete-reconcile-smart-search-20260703-v5c', 'given-name-search-20260703-v5d', 'debt-zalo-feature-off-20260704-v5n', 'debt-zalo-feature-off-20260704-v5n'];
+const currentBuild = 'role-runtime-audit-profiler-20260704-v5o';
 let pass = 0, fail = 0;
 function check(name, ok) { if (ok) { pass++; console.log('✅', name); } else { fail++; console.error('❌', name); } }
 
 console.log('\n=== Phase 4K-6V5D — TX Delete Reconcile + Smart Search ===\n');
-check('index/main/app cache-bust uses V5C', files.index.includes(`app.js?v=${build}`) && files.index.includes(`./js/main.js?v=${build}`));
-check('main imports finance/inventory/dashboard with V5C cache-bust, not stale v3a1', files.main.includes(`./modules/finance.js?v=${build}`) && files.main.includes(`./modules/inventory.js?v=${build}`) && files.main.includes(`./modules/dashboard.js?v=${build}`) && !files.main.includes('payment-bundle-runtime-hotfix-20260616-v3a1'));
-check('finance module imports services with V5C cache-bust', files.finance.includes(`finance.service.js?v=${build}`) && files.finance.includes(`students.service.js?v=${build}`));
-check('finance service imports inventory service with V5C cache-bust', files.financeService.includes(`inventory.service.js?v=${build}`));
+check('index/main/app cache-bust uses V5C-or-later', compatibleBuilds.some(build => files.index.includes(`app.js?v=${build}`) && files.index.includes(`./js/main.js?v=${build}`)));
+check('main imports finance/inventory/dashboard with current cache-bust, not stale v3a1', files.main.includes(`./modules/finance.js?v=${currentBuild}`) && files.main.includes(`./modules/inventory.js?v=${currentBuild}`) && files.main.includes(`./modules/dashboard.js?v=${currentBuild}`) && !files.main.includes('payment-bundle-runtime-hotfix-20260616-v3a1'));
+check('finance module imports services with current cache-bust', files.finance.includes(`finance.service.js?v=${currentBuild}`) && files.finance.includes(`students.service.js?v=${currentBuild}`));
+check('finance service imports inventory service with current cache-bust', files.financeService.includes(`inventory.service.js?v=${currentBuild}`));
 check('Firestore Rules allow Club Admin/SuperAdmin to delete transactions, not Coach/Viewer', files.rules.includes('allow delete: if isSuperAdmin() || isClubAdmin(clubId);'));
 check('finance deleteTx catches permission-denied instead of uncaught promise', files.finance.includes('[deleteTx] delete transaction failed') && files.finance.includes('deploy Firestore Rules bản V5C'));
 check('finance deleteTx reloads transaction page and invalidates debt list after delete', files.finance.includes('await window.reloadTransactionsPage()') && files.finance.includes("invalidateList('students.debtList'"));

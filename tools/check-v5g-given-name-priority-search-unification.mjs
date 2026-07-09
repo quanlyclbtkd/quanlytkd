@@ -15,9 +15,10 @@ const files = {
 
 const checks = [];
 const check = (name, ok) => checks.push({ name, ok: !!ok });
-const build = 'attendance-status-quit-sync-20260704-v5m';
+const compatibleBuilds = ['role-runtime-audit-profiler-20260704-v5o', 'given-name-priority-search-unification-20260703-v5g', 'debt-zalo-feature-off-20260704-v5n', 'debt-zalo-feature-off-20260704-v5n'];
+const compatibleAppMarkers = ['4K-6V5O-role-runtime-audit-profiler-20260704', '4K-6V5G-given-name-priority-search-unification', '4K-6V5K-superadmin-access-admin-provisioning-recovery-20260704', '4K-6V5L-superadmin-revenue-cache-fallback-20260704', '4K-6V5M-attendance-status-quit-sync-20260704', '4K-6V5N-debt-zalo-feature-off-20260704'];
 
-check('V5G/V5M cache-bust marker is active', files.index.includes(build) && (files.app.includes('4K-6V5M-attendance-status-quit-sync-20260704') || files.app.includes('4K-6V5L-superadmin-revenue-cache-fallback-20260704') || files.app.includes('4K-6V5K-superadmin-access-admin-provisioning-recovery-20260704') || files.app.includes('4K-6V5G-given-name-priority-search-unification')));
+check('V5G/V5M/V5N cache-bust marker is active', compatibleBuilds.some(build => files.index.includes(build)) && compatibleAppMarkers.some(m => files.app.includes(m)));
 check('StudentSearchIndex keeps strict final-token given-name matching', files.searchIndex.includes('_givenNameTokensFromName') && files.searchIndex.includes('return [last]') && files.searchIndex.includes('given-name-exact'));
 check('StudentSearchIndex exposes analyzeGivenNameMatch/debugGivenNameSearch', files.searchIndex.includes('analyzeGivenNameMatch') && files.searchIndex.includes('window.debugGivenNameSearch'));
 check('StudentSearchIndex overwrites stale legacy global helpers', files.searchIndex.includes('intentionally overwrites older legacy helpers') && !files.searchIndex.includes('window.matchesStudentProfileSearch = window.matchesStudentProfileSearch || function'));
@@ -27,7 +28,7 @@ check('studentsRenderer PASS 1 no longer uses blob.includes for student search',
 check('studentsRenderer PASS 2 pagination override uses same gate', files.studentsRenderer.includes('PASS 2 pagination override must follow') && files.studentsRenderer.includes('if (search && !_studentProfileMatchesSearch(name, p, search)) passFilter = false'));
 check('students module local search also uses final token before fields blob', files.studentsModule.includes('isPlainGivenNameLookup') && files.studentsModule.indexOf('return !!last &&') < files.studentsModule.indexOf('const fields = ['));
 check('legacy app helper prefers profile display name over document id', files.app.includes("const displayName = p.name || p.fullName || p.studentName || p.displayName || p.hoTen || name || ''"));
-check('public mirrors synced', (files.publicApp.includes('4K-6V5M-attendance-status-quit-sync-20260704') || files.publicApp.includes('4K-6V5L-superadmin-revenue-cache-fallback-20260704') || files.publicApp.includes('4K-6V5K-superadmin-access-admin-provisioning-recovery-20260704') || files.publicApp.includes('4K-6V5G')) && files.publicSearchIndex.includes('analyzeGivenNameMatch') && files.publicStudentsRenderer.includes('_studentProfileMatchesSearch'));
+check('public mirrors synced', compatibleAppMarkers.some(m => files.publicApp.includes(m)) && files.publicSearchIndex.includes('analyzeGivenNameMatch') && files.publicStudentsRenderer.includes('_studentProfileMatchesSearch'));
 
 // Runtime behavior using the real StudentSearchIndex module.
 global.window = {

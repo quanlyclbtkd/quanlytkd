@@ -33,7 +33,7 @@ const appPos = index.lastIndexOf('app.js?v=');
 check('Canonical branch identity loads before role boundary and app kernel',
   branchPos >= 0 && rolePos > branchPos && appPos > rolePos);
 check('All 6V4B runtime entry assets share one cache-bust marker',
-  ((index.match(/coach-branch-runtime-repair-20260627-v4b1/g) || []).length >= 5) || ((index.match(/attendance-status-quit-sync-20260704-v5m/g) || []).length >= 5));
+  ((index.match(/coach-branch-runtime-repair-20260627-v4b1/g) || []).length >= 5) || ((index.match(/role-runtime-audit-profiler-20260704-v5o/g) || []).length >= 5) || ((index.match(/debt-zalo-feature-off-20260704-v5n/g) || []).length >= 5));
 check('Coach account selector has no unrestricted/all-branch option',
   /id="coach_branch"[\s\S]{0,600}<option value="CS1">/.test(index) &&
   !/id="coach_branch"[\s\S]{0,600}Tất cả cơ sở \(không giới hạn\)/.test(index));

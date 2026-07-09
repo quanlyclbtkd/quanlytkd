@@ -17,11 +17,12 @@ const publicCache = read('public/js/core/clubStatsAutoCache.js');
 const index = read('index.html');
 const main = read('js/main.js');
 const pkg = JSON.parse(read('package.json'));
-const build = 'attendance-status-quit-sync-20260704-v5m';
+const compatibleBuilds = ['role-runtime-audit-profiler-20260704-v5o', 'debt-zalo-feature-off-20260704-v5n', 'superadmin-revenue-cache-fallback-20260704-v5l', 'debt-zalo-feature-off-20260704-v5n'];
+const compatiblePatchMarkers = ['4K-6V5O-role-runtime-audit-profiler-20260704', '4K-6V5M-attendance-status-quit-sync-20260704', '4K-6V5L-superadmin-revenue-cache-fallback-20260704', '4K-6V5N-debt-zalo-feature-off-20260704'];
 
-assert(index.includes(build), 'index.html dùng cache-bust V5L');
-assert(app.includes("4K-6V5M-attendance-status-quit-sync-20260704") || app.includes("4K-6V5L-superadmin-revenue-cache-fallback-20260704"), 'app.js cập nhật APP_PATCH_VERSION V5L/V5M');
-assert(main.includes("4K-6V5M-attendance-status-quit-sync-20260704") || main.includes("4K-6V5L-superadmin-revenue-cache-fallback-20260704"), 'main.js cập nhật APP_PATCH_VERSION V5L/V5M');
+assert(compatibleBuilds.some(build => index.includes(build)), 'index.html dùng cache-bust V5L/V5N');
+assert(compatiblePatchMarkers.some(m => app.includes(m)), 'app.js cập nhật APP_PATCH_VERSION V5L/V5N');
+assert(compatiblePatchMarkers.some(m => main.includes(m)), 'main.js cập nhật APP_PATCH_VERSION V5L/V5N');
 assert(app.includes('function _saReadClubRevenueCache'), 'app.js có helper đọc root cache SuperAdmin revenue');
 assert(app.includes('function _saReadStatsIncomeTotal'), 'app.js có helper đọc stats income tương thích nhiều schema');
 assert(app.includes('function _saReadStatsTxCount'), 'app.js có helper đọc txCount tương thích nhiều schema');

@@ -109,5 +109,5 @@ Bản V5L chủ yếu sửa source/runtime. Nếu đã deploy Firestore Rules t�
 Sau deploy cần hard refresh/xóa cache site để tải build:
 
 ```text
-attendance-status-quit-sync-20260704-v5m
+debt-zalo-feature-off-20260704-v5n
 ```

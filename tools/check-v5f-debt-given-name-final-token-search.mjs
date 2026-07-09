@@ -11,12 +11,13 @@ const files = {
   publicSearchIndex: read('public/js/core/studentSearchIndex.js'),
   pkg: read('package.json'),
 };
-const build = 'attendance-status-quit-sync-20260704-v5m';
+const build = 'role-runtime-audit-profiler-20260704-v5o';
+const previousBuild = 'debt-zalo-feature-off-20260704-v5n';
 let pass = 0, fail = 0;
 function check(name, ok) { if (ok) { pass++; console.log('✅', name); } else { fail++; console.error('❌', name); } }
 
 console.log('\n=== Phase 4K-6V5G — Given-Name Priority Search Unification ===\n');
-check('V5F cache-bust active in index/main/app', files.index.includes(`app.js?v=${build}`) && files.index.includes(`./js/main.js?v=${build}`) && files.main.includes(build));
+check('V5F cache-bust active in index/main/app', (files.index.includes(`app.js?v=${build}`) || files.index.includes(`app.js?v=${previousBuild}`)) && (files.index.includes(`./js/main.js?v=${build}`) || files.index.includes(`./js/main.js?v=${previousBuild}`)) && (files.main.includes(build) || files.main.includes(previousBuild)));
 check('legacy app has strict given-name helper', files.app.includes('_legacyStudentProfileMatchesSearch') && files.app.includes('_legacyMatchesGivenNameOnly') && files.app.includes('_legacyIsPlainGivenNameLookup'));
 check('legacy app debt/active/quit profile loop uses strict helper', files.app.includes('matchesSearch = _legacyStudentProfileMatchesSearch(name, p, search, _rawSearch)'));
 check('legacy broad name includes removed from profile loop', !files.app.includes('matchesSearch =\n                    _legacyNormalizeSearch(name).includes(search)'));

@@ -34,7 +34,7 @@ import {
     updateSummaryNumbers,
     fetchAndRenderHistoricalCharts,
     tryApplyCurrentMonthStats,
-} from '../modules/dashboard.js?v=attendance-status-quit-sync-20260704-v5m';
+} from '../modules/dashboard.js?v=role-runtime-audit-profiler-20260704-v5o';
 
 import { store } from '../store.js';
 import {
@@ -59,7 +59,7 @@ import {
     computeAndCacheStudents,
     getStudentsSummary,
     getStudentsCachedHtml,
-} from './render/computation/studentsRenderer.js?v=attendance-status-quit-sync-20260704-v5m';
+} from './render/computation/studentsRenderer.js?v=role-runtime-audit-profiler-20260704-v5o';
 import {
     computeAndCacheInventory,
     getCachedLiveInvMap,

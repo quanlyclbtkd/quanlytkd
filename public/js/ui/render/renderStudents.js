@@ -19,7 +19,7 @@
  */
 
 import { registerRender } from './renderRegistry.js';
-import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=attendance-status-quit-sync-20260704-v5m';
+import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=role-runtime-audit-profiler-20260704-v5o';
 
 // ─── Core DOM helper ────────────────────────────────────────────────────────
 

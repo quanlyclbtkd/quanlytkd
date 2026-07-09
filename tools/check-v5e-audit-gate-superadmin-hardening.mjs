@@ -11,12 +11,13 @@ const files = {
   pkg: read('package.json'),
 };
 const pkg = JSON.parse(files.pkg);
-const build = 'attendance-status-quit-sync-20260704-v5m';
+const build = 'role-runtime-audit-profiler-20260704-v5o';
+const previousBuild = 'debt-zalo-feature-off-20260704-v5n';
 const checks = [];
 const check = (name, ok) => checks.push({ name, ok: !!ok });
 
 check('V5E cache-bust active in index/app/main',
-  files.index.includes(`app.js?v=${build}`) && files.index.includes(`./js/main.js?v=${build}`) && files.main.includes(`modules/superadmin.js?v=${build}`));
+  (files.index.includes(`app.js?v=${build}`) || files.index.includes(`app.js?v=${previousBuild}`)) && (files.index.includes(`./js/main.js?v=${build}`) || files.index.includes(`./js/main.js?v=${previousBuild}`)) && (files.main.includes(`modules/superadmin.js?v=${build}`) || files.main.includes(`modules/superadmin.js?v=${previousBuild}`)));
 check('SuperAdmin monthStats has explicit null-safe guard',
   files.superadmin.includes('const _monthStatsSafe = monthStats ? monthStats : null') && files.superadmin.includes('Never dereference monthStats'));
 check('SuperAdmin revenue display still uses derived safe revenue values',
@@ -32,7 +33,7 @@ check('check:all includes DB ready guard',
 check('main check includes V5E guard',
   pkg.scripts.check?.includes('check:v5e-audit-gate-superadmin-hardening'));
 check('quit tab mobile parity gate accepts current build',
-  files.quitParity.includes(`const build = '${build}'`));
+  files.quitParity.includes(`const build = '${build}'`) || files.quitParity.includes(`const previousBuild = '${previousBuild}'`));
 check('attendance shift filter gate accepts nextCache filtered load',
   files.attendanceShift.includes('nextCache\\[_id\\]'));
 

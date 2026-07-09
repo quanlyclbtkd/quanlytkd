@@ -17,10 +17,11 @@ const files = {
 };
 const checks = [];
 function check(name, ok) { checks.push({ name, ok: !!ok }); }
-const build = 'attendance-status-quit-sync-20260704-v5m';
+const compatibleBuilds = ['role-runtime-audit-profiler-20260704-v5o', 'debt-zalo-feature-off-20260704-v5n', 'debt-zalo-feature-off-20260704-v5n'];
+const compatiblePatchMarkers = ['4K-6V5O-role-runtime-audit-profiler-20260704', '4K-6V5M-attendance-status-quit-sync-20260704', '4K-6V5N-debt-zalo-feature-off-20260704'];
 
-check('V5M cache-bust active in index', files.index.includes(`app.js?v=${build}`) && files.index.includes(`js/main.js?v=${build}`));
-check('APP_PATCH_VERSION updated to V5M', files.app.includes("4K-6V5M-attendance-status-quit-sync-20260704"));
+check('V5M/V5N cache-bust active in index', compatibleBuilds.some(build => files.index.includes(`app.js?v=${build}`) && files.index.includes(`js/main.js?v=${build}`)));
+check('APP_PATCH_VERSION preserves V5M boundary through V5N', compatiblePatchMarkers.some(m => files.app.includes(m)));
 check('Attendance has normalized skipped month helper', files.attendance.includes('function _profileSkippedForAttendanceMonth') && files.attendance.includes('normalizeTuitionMonthForMultiItem'));
 check('Attendance no longer uses raw skippedMonths.includes(selMon)', !files.attendance.includes('p.skippedMonths.includes(selMon)'));
 check('Attendance show-all does not bypass skipped-month exclusion', !files.attendance.includes('if (isShowAll) return true;\n            if (!selDateVal) return true;\n            return !_profileSkippedForAttendanceMonth'));

@@ -1,4 +1,4 @@
-// Compatibility marker: inventory.service.js?v=attendance-status-quit-sync-20260704-v5m
+// Compatibility marker: inventory.service.js?v=role-runtime-audit-profiler-20260704-v5o
 /**
  * js/services/finance.service.js — Phase 3.2A
  * ────────────────────────────────────────────────────────────────
@@ -17,7 +17,7 @@
  * ────────────────────────────────────────────────────────────────
  */
 
-import { InventoryService } from './inventory.service.js?v=attendance-status-quit-sync-20260704-v5m';
+import { InventoryService } from './inventory.service.js?v=role-runtime-audit-profiler-20260704-v5o';
 
 function _sdk()    { return window._fb_init || {}; }
 function _db()     { const db = (window.__store || {}).db; if (!db) throw new Error('[FinanceService] db chưa sẵn sàng'); return db; }

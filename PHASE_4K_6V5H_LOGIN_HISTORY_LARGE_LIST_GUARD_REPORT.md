@@ -138,5 +138,5 @@ Nếu chỉ deploy source mà không deploy Rules, `login_history` vẫn có th�
 Sau deploy cần hard refresh hoặc xóa cache site để tải bundle:
 
 ```text
-attendance-status-quit-sync-20260704-v5m
+debt-zalo-feature-off-20260704-v5n
 ```

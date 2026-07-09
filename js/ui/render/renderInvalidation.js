@@ -69,7 +69,7 @@ import {
 } from './renderRegistry.js';
 
 import { invalidateFinanceRender }   from './computation/financeRenderer.js';
-import { invalidateStudentsRender }  from './computation/studentsRenderer.js?v=attendance-status-quit-sync-20260704-v5m';
+import { invalidateStudentsRender }  from './computation/studentsRenderer.js?v=role-runtime-audit-profiler-20260704-v5o';
 import { invalidateInventoryRender } from './computation/inventoryRenderer.js';
 import { invalidateDashboardCache }  from './computation/dashboardRenderer.js';
 
@@ -78,7 +78,7 @@ import {
     refreshListComputation,
     refreshListsComputation,
     getComputationDomainForList,
-} from './listComputationRefresh.js?v=attendance-status-quit-sync-20260704-v5m';
+} from './listComputationRefresh.js?v=role-runtime-audit-profiler-20260704-v5o';
 
 // ── Dev helper ────────────────────────────────────────────────────────────────
 function _isDev() {
@@ -1036,6 +1036,17 @@ function _trackLargeListRender(listKey, rowCount, reason) {
         }
 
         _largeListMetricsInternal.trackedAt = now;
+        try {
+            if (typeof window.trackRuntimeAuditRender === 'function') {
+                window.trackRuntimeAuditRender(k, {
+                    source: 'trackLargeListRender',
+                    renderedRows,
+                    totalRows,
+                    reason: reasonText,
+                    large: renderedRows > _LARGE_LIST_WARN_THRESHOLD
+                });
+            }
+        } catch (_) {}
         if (window.__largeListMetrics) {
             Object.assign(window.__largeListMetrics, _largeListMetricsInternal);
         }

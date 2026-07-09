@@ -95,7 +95,7 @@ Trong `forceReplaceAdmin()`:
 Đổi build marker sang:
 
 ```text
-attendance-status-quit-sync-20260704-v5m
+debt-zalo-feature-off-20260704-v5n
 ```
 
 ## Kiểm tra đã chạy

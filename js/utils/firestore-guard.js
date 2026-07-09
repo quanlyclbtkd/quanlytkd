@@ -106,6 +106,16 @@ export async function safeGetDocs(q, opts = {}) {
     const stack    = _isDev ? new Error().stack.split('\n')[2]?.trim() || '' : '';
 
     _logQuery(collName, hasLimit, limitValue, stack);
+    try {
+        if (typeof window.trackRuntimeAuditRead === 'function') {
+            window.trackRuntimeAuditRead(collName || 'unknown-query', {
+                source: 'safeGetDocs',
+                hasLimit,
+                limitValue,
+                allowUnbounded: opts.allowUnbounded === true
+            });
+        }
+    } catch (_) {}
 
     if (!hasLimit && !opts.allowUnbounded && !_ALLOWED_FULL_SCAN.has(collName)) {
         if (_isDev) {
