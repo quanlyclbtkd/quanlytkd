@@ -9,8 +9,9 @@ function ok(name, condition, details = '') {
   else { failures++; console.error(`❌ ${name}${details ? ` — ${details}` : ''}`); }
 }
 
-const marker = 'role-runtime-audit-profiler-20260704-v5o';
-const patch = '4K-6V5O-role-runtime-audit-profiler-20260704';
+const marker = 'quit-authoritative-data-boundary-20260704-v5p';
+const patch = '4K-6V5P-quit-authoritative-data-boundary-20260704';
+const legacyMarker = 'role-runtime-audit-profiler-20260704-v5o';
 const audit = read('js/core/roleRuntimeAudit.js');
 const auditPub = read('public/js/core/roleRuntimeAudit.js');
 const main = read('js/main.js');

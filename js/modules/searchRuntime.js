@@ -707,7 +707,21 @@ async function _dispatchSearchV2(term, tab, token) {
 
 async function _searchStudentsV2(term, tab, token) {
     const st       = window.__store || {};
-    const profiles = st.profiles || {};
+    let profiles = st.profiles || {};
+    // Phase 4K-6V5P: quit-tab search must use the union/canonical quit source,
+    // not only the active listener map in window.__store.profiles.
+    if (tab === 'quit') {
+        const merged = {};
+        try {
+            if (window.studentProfileStore && typeof window.studentProfileStore.getAllProfilesCompat === 'function') Object.assign(merged, window.studentProfileStore.getAllProfilesCompat() || {});
+        } catch (_) {}
+        try { Object.assign(merged, window.allProfiles || {}); } catch (_) {}
+        try { Object.assign(merged, st.profiles || {}); } catch (_) {}
+        try {
+            if (window.studentProfileStore && typeof window.studentProfileStore.getQuitProfiles === 'function') Object.assign(merged, window.studentProfileStore.getQuitProfiles() || {});
+        } catch (_) {}
+        profiles = Object.keys(merged).length ? merged : profiles;
+    }
     const profileCount = Object.keys(profiles).length;
 
     if (profileCount > 0) {

@@ -632,10 +632,20 @@ export async function loadQuitProfilesIfNeeded(reason, contextOverride) {
         window.RoleReadBoundary?.canMount?.('profiles.quit', { reason: reason || 'quit-lazy' });
         return false;
     }
-    if (_state.quitLoaded)            return; // Đã có data
-    if (_state.quitLoadingInProgress) return; // Đang load — tránh parallel
-
     const ctx = contextOverride || _ctx;
+    // Phase 4K-6V5P: quitLoaded only means a targeted/local quit set exists.
+    // It must not block the one authoritative full reconciliation required by
+    // the Đã nghỉ tab; otherwise restore search can miss legacy quit profiles.
+    if (_state.quitLoaded) {
+        if (!_state.quitCompletenessReconciled && !_state.fallbackInProgress && !_isCoachContext(ctx)) {
+            const ok = await loadFullProfilesFallback('quit-tab-authoritative-reconcile-after-loaded:' + (reason || ''));
+            _state.quitCompletenessReconciled = !!ok;
+            return ok;
+        }
+        return true;
+    }
+    if (_state.quitLoadingInProgress) return false; // Đang load — tránh parallel
+
     if (!ctx || !ctx.profRef) {
         console.warn('[ProfilesListener] loadQuitProfilesIfNeeded: thiếu context — skip');
         return;
@@ -779,8 +789,8 @@ export async function loadQuitProfilesIfNeeded(reason, contextOverride) {
         // Targeted queries chỉ bắt được các schema đã biết; full fallback một lần/session
         // là nguồn authority duy nhất để không bỏ sót hồ sơ legacy lạ.
         if (!_state.quitCompletenessReconciled && !_state.fallbackInProgress && !_isCoachContext(ctx)) {
-            _state.quitCompletenessReconciled = true;
             const ok = await loadFullProfilesFallback('quit-tab-authoritative-reconcile:' + (reason || ''));
+            _state.quitCompletenessReconciled = !!ok;
             if (ok) return true;
         }
 

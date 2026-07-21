@@ -44,7 +44,7 @@ import {
 import {
     computeAndCacheStudents,
     getStudentsSummary,
-} from './computation/studentsRenderer.js?v=role-runtime-audit-profiler-20260704-v5o';
+} from './computation/studentsRenderer.js?v=quit-authoritative-data-boundary-20260704-v5p';
 import {
     computeAndCacheInventory,
     getCachedUnpaidInvCount,
@@ -206,7 +206,33 @@ function _getSearch() {
     try { return (document.getElementById('searchInput')?.value || '').trim(); }
     catch (_) { return ''; }
 }
-function _getProfiles()  { return (window.__store || {}).profiles     || window.allProfiles     || {}; }
+function _getQuitAwareProfiles() {
+    const st = window.__store || {};
+    const merged = {};
+    // Phase 4K-6V5P: Đã nghỉ must use the canonical quit store as part of
+    // the computation source. window.__store.profiles can be active-only before
+    // lazy/full reconciliation finishes, which made quit restore search miss names.
+    try {
+        if (window.studentProfileStore && typeof window.studentProfileStore.getAllProfilesCompat === 'function') {
+            Object.assign(merged, window.studentProfileStore.getAllProfilesCompat() || {});
+        }
+    } catch (_) {}
+    try { Object.assign(merged, window.allProfiles || {}); } catch (_) {}
+    try { Object.assign(merged, st.profiles || {}); } catch (_) {}
+    try {
+        if (window.studentProfileStore && typeof window.studentProfileStore.getQuitProfiles === 'function') {
+            // Quit data wins for the quit tab so a locally-rested/legacy quit profile
+            // cannot be hidden by a stale active-only profile map.
+            Object.assign(merged, window.studentProfileStore.getQuitProfiles() || {});
+        }
+    } catch (_) {}
+    return Object.keys(merged).length ? merged : (st.profiles || window.allProfiles || {});
+}
+function _getProfiles()  {
+    return _getCurTabId() === 'quit'
+        ? _getQuitAwareProfiles()
+        : ((window.__store || {}).profiles || window.allProfiles || {});
+}
 function _getTxs()       { return (window.__store || {}).transactions || window.allTransactions || []; }
 function _getInv()       { return (window.__store || {}).inventory    || window.allInventory    || []; }
 function _getConfig()    { return (window.__store || {}).clubConfig   || window.clubConfig      || {}; }

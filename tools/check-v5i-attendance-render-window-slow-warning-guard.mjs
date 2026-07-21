@@ -15,8 +15,8 @@ const files = {
 };
 let pass = 0, fail = 0;
 function check(name, ok) { if (ok) { pass++; console.log('PASS', name); } else { fail++; console.error('FAIL', name); } }
-const build = 'role-runtime-audit-profiler-20260704-v5o';
-const compatibleVersions = ['4K-6V5O-role-runtime-audit-profiler-20260704', '4K-6V5I-attendance-render-window-slow-warning-guard-20260703', '4K-6V5L-superadmin-revenue-cache-fallback-20260704', '4K-6V5N-debt-zalo-feature-off-20260704'];
+const build = 'quit-authoritative-data-boundary-20260704-v5p';
+const compatibleVersions = ['4K-6V5O-role-runtime-audit-profiler-20260704', '4K-6V5I-attendance-render-window-slow-warning-guard-20260703', '4K-6V5L-superadmin-revenue-cache-fallback-20260704', '4K-6V5N-debt-zalo-feature-off-20260704', '4K-6V5P-quit-authoritative-data-boundary-20260704'];
 check('index uses V5I-or-later cache bust for app and main', files.index.includes(`app.js?v=${build}`) && files.index.includes(`js/main.js?v=${build}`));
 check('main/app version markers are V5I-or-later', compatibleVersions.some(v => files.main.includes(v)) && compatibleVersions.some(v => files.app.includes(v)));
 check('attendance module defines a render window and step', files.attendance.includes('ATTENDANCE_RENDER_INITIAL_LIMIT') && files.attendance.includes('ATTENDANCE_RENDER_STEP'));

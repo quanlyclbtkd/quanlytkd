@@ -1,7 +1,7 @@
 
 // Compatibility marker retained for V5N regression: debt-zalo-feature-off-20260704-v5n
 // Phase 4K-6V3A compatibility: 4K-6V3A-firestore-read-attribution-canonical-transaction-boundary
-// Compatibility marker: multiItemInventorySafety.js?v=role-runtime-audit-profiler-20260704-v5o
+// Compatibility marker: multiItemInventorySafety.js?v=quit-authoritative-data-boundary-20260704-v5p
 // Phase compatibility APP_BUILD_VERSION markers for static safety checks:
 // APP_BUILD_VERSION = '4K-6V4D1A-profile-canonical-store-runtime-recovery-20260628'
 // APP_BUILD_VERSION = '4K-6V4C2-active-skipped-month-section-20260628'
@@ -50,9 +50,9 @@
 // APP_BUILD_VERSION = '4K-6V2A-inventory-consumer-hydration-hotfix-20260616'
 // Phase 4K-6V2C compatibility markers retained for regression gates only:
 // window.APP_PATCH_VERSION = '4K-6V2C-inventory-ledger-reconciliation-20260616'
-// modules/students.js?v=role-runtime-audit-profiler-20260704-v5o
-// modules/finance.js?v=role-runtime-audit-profiler-20260704-v5o
-// modules/inventory.js?v=role-runtime-audit-profiler-20260704-v5o
+// modules/students.js?v=quit-authoritative-data-boundary-20260704-v5p
+// modules/finance.js?v=quit-authoritative-data-boundary-20260704-v5p
+// modules/inventory.js?v=quit-authoritative-data-boundary-20260704-v5p
 /**
  * main.js — Application Bootstrap (Phase 3.6B — Listener Registration Safety)
  * ────────────────────────────────────────────────────────────────────
@@ -96,7 +96,7 @@ import { initFinancialActionAuditGuard }      from './core/financialActionAuditG
 import { initMobileStartupPerformance }       from './core/mobileStartupPerformance.js';
 import { initStaticCssBuildHealth }           from './core/staticCssBuildHealth.js';
 import { initGlobalOwnershipRegistry }       from './core/globalOwnershipRegistry.js';
-import { initRoleRuntimeAudit }             from './core/roleRuntimeAudit.js?v=role-runtime-audit-profiler-20260704-v5o';
+import { initRoleRuntimeAudit }             from './core/roleRuntimeAudit.js?v=quit-authoritative-data-boundary-20260704-v5p';
 import { LegacyRenderEntrypoints }            from './core/legacyRenderEntrypoints.js';
 import { InlineHandlerAudit }                from './core/inlineHandlerAudit.js';
 import { EventActionBridge, initEventActionBridge } from './ui/eventActionBridge.js';
@@ -107,15 +107,15 @@ import { initFirebase }                        from './firebase/config.js';
 import { showToast, registerToastGlobal }      from './ui/toast.js';
 import { registerModalGlobals }                from './ui/modal.js';
 import { switchTab, registerTabGlobals }       from './ui/tabs.js';
-import { initRender }                          from './ui/render.js?v=role-runtime-audit-profiler-20260704-v5o';
+import { initRender }                          from './ui/render.js?v=quit-authoritative-data-boundary-20260704-v5p';
 // Phase 3.4: Render Isolation Architecture — island initialisers + legacy shims
 import { initFinanceIslands, registerFinanceLegacyGlobals }     from './ui/render/renderFinance.js';
-import { initStudentIslands, registerStudentsLegacyGlobals }     from './ui/render/renderStudents.js?v=role-runtime-audit-profiler-20260704-v5o';
+import { initStudentIslands, registerStudentsLegacyGlobals }     from './ui/render/renderStudents.js?v=quit-authoritative-data-boundary-20260704-v5p';
 import { initInventoryIslands, registerInventoryLegacyGlobals }  from './ui/render/renderInventory.js';
 import { initAttendanceIslands }                                  from './ui/render/renderAttendance.js';
 import { initDashboardIslands }                                   from './ui/render/renderDashboard.js';
 // Phase 3.5B: Render Invalidation & Lifecycle Stabilization
-import { registerInvalidationLegacyGlobals }                     from './ui/render/renderInvalidation.js?v=role-runtime-audit-profiler-20260704-v5o';
+import { registerInvalidationLegacyGlobals }                     from './ui/render/renderInvalidation.js?v=quit-authoritative-data-boundary-20260704-v5p';
 import { registerLoadingGlobals, showLoading, hideLoading, forceHideLoading } from './ui/loading.js';
 import {
     getLocalToday, formatDate, formatMonth,
@@ -242,8 +242,8 @@ import { LegacyAppAudit }      from './core/legacyAppAudit.js';
 import { initLegacyDiagnostics } from './diagnostics/legacyDiagnostics.js';
 
 // Phase 4K-6G: MultiItem Inventory Safety Module
-import { MultiItemInventorySafety } from './core/multiItemInventorySafety.js?v=role-runtime-audit-profiler-20260704-v5o';
-import { InventoryMultiItemReadOnlyUI, initInventoryMultiItemReadOnlyUI } from './core/inventoryMultiItemReadOnlyUI.js?v=role-runtime-audit-profiler-20260704-v5o';
+import { MultiItemInventorySafety } from './core/multiItemInventorySafety.js?v=quit-authoritative-data-boundary-20260704-v5p';
+import { InventoryMultiItemReadOnlyUI, initInventoryMultiItemReadOnlyUI } from './core/inventoryMultiItemReadOnlyUI.js?v=quit-authoritative-data-boundary-20260704-v5p';
 
 // ── Phase 3.3E: Firestore safety (expose globally for services) ──
 import { safeGetDocs, printQueryAuditReport }  from './utils/firestore-guard.js';
@@ -273,7 +273,7 @@ import {
     getQuitStatusValues,
     getProfilesListenerMetrics,
     ensureAllProfilesForExport,
-} from './listeners/profiles.listeners.js?v=role-runtime-audit-profiler-20260704-v5o';
+} from './listeners/profiles.listeners.js?v=quit-authoritative-data-boundary-20260704-v5p';
 
 // ── Phase 3.7C: Profile Status Config ────────────────────────────────────────
 import {
@@ -327,7 +327,7 @@ import {
 } from './firebase/paginatedQuery.js';
 
 // ── Phase 2d–3.2A: Business modules (eager — cần khi login) ────
-import { initStudents, initStudentPagination }        from './modules/students.js?v=role-runtime-audit-profiler-20260704-v5o';
+import { initStudents, initStudentPagination }        from './modules/students.js?v=quit-authoritative-data-boundary-20260704-v5p';
 // PHẦN 1 FIX + Phase 4K-2: Unified Search Controller — real cache + SearchBlob + stale guard
 import {
     initGlobalSearchRuntime,
@@ -336,15 +336,15 @@ import {
     invalidateSearchCache,
     debugSearchPerformance,
 } from './modules/searchRuntime.js';
-import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from './modules/finance.js?v=role-runtime-audit-profiler-20260704-v5o';
-import { initInventory }                              from './modules/inventory.js?v=role-runtime-audit-profiler-20260704-v5o';
+import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from './modules/finance.js?v=quit-authoritative-data-boundary-20260704-v5p';
+import { initInventory }                              from './modules/inventory.js?v=quit-authoritative-data-boundary-20260704-v5p';
 // Compatibility marker: from './modules/attendance.js'
-import { initAttendance }                             from './modules/attendance.js?v=role-runtime-audit-profiler-20260704-v5o';
-import { initDashboard }                              from './modules/dashboard.js?v=role-runtime-audit-profiler-20260704-v5o';
+import { initAttendance }                             from './modules/attendance.js?v=quit-authoritative-data-boundary-20260704-v5p';
+import { initDashboard }                              from './modules/dashboard.js?v=quit-authoritative-data-boundary-20260704-v5p';
 // ── Phase 4K-6U: Heavy Reports module is lazy-loaded by reportExportFacade.js ──
 // ── Phase 4.0B-1: SuperAdmin — eager import trên HTTP/HTTPS ─────
 // Không lazy nữa: phải init trước khi loadSuperAdminData() được gọi.
-import { initSuperAdmin }                             from './modules/superadmin.js?v=role-runtime-audit-profiler-20260704-v5o';
+import { initSuperAdmin }                             from './modules/superadmin.js?v=quit-authoritative-data-boundary-20260704-v5p';
 
 // ── Phase 3.1: Event layer ──────────────────────────────────────
 import { initStudentsEvents }                         from './events/students.events.js';
@@ -548,7 +548,7 @@ const LAZY_TAB_MODULES = {
     // Giữ entry để ensureTabModule('superadmin') vẫn gọi được initSuperAdmin idempotent.
     superadmin: {
         key:    'module-superadmin',
-        import: () => import('./modules/superadmin.js?v=role-runtime-audit-profiler-20260704-v5o'),
+        import: () => import('./modules/superadmin.js?v=quit-authoritative-data-boundary-20260704-v5p'),
         init:   'initSuperAdmin',
     },
 };
@@ -1716,7 +1716,7 @@ function _waitForExistingLegacyApp(ms) {
                 // Dynamic import trả lại cached module — không import mạng lần nữa.
                 window.__superAdminModuleLoading = true;
                 try {
-                    const mod = await import('./modules/superadmin.js?v=role-runtime-audit-profiler-20260704-v5o');
+                    const mod = await import('./modules/superadmin.js?v=quit-authoritative-data-boundary-20260704-v5p');
                     if (typeof mod.initSuperAdmin === 'function') {
                         mod.initSuperAdmin();
                     }

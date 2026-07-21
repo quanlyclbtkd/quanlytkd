@@ -28,7 +28,7 @@
  */
 
 import { getLocalToday, formatDate, formatMonth, formatMonthCompact, addMonthsToYYYYMM } from '../utils/format.js';
-import { StudentService } from '../services/students.service.js?v=role-runtime-audit-profiler-20260704-v5o';
+import { StudentService } from '../services/students.service.js?v=quit-authoritative-data-boundary-20260704-v5p';
 
 // ════════════════════════════════════════════════════════════════
 // BRIDGE HELPERS — đọc state từ app.js qua window.__store
@@ -1052,7 +1052,7 @@ export function initStudentPagination() {
         renderPaginationControls, PAGE_SIZE,
     }) => {
         import('./students.js').then(() => {}); // no-op — chỉ để IDE không warn
-        import('../services/students.service.js?v=role-runtime-audit-profiler-20260704-v5o').then(({ StudentService }) => {
+        import('../services/students.service.js?v=quit-authoritative-data-boundary-20260704-v5p').then(({ StudentService }) => {
 
             const store = window.__store;
             if (!store) { console.warn('[pagination/students] __store chưa sẵn sàng'); return; }
@@ -2745,6 +2745,17 @@ window.ensureStudentTabRendered = function(tabId, reason) {
     if (!key) return false;
 
     try {
+        // Phase 4K-6V5P: entering Đã nghỉ must start the authoritative quit
+        // loader/reconcile before rendering, otherwise the tab can show a partial
+        // local quit set and the restore search cannot find older quit profiles.
+        if (tabId === 'quit' && typeof window.loadQuitProfilesIfNeeded === 'function') {
+            Promise.resolve(window.loadQuitProfilesIfNeeded('ensure-student-tab-rendered:' + reason))
+                .then(function() {
+                    if (typeof window.refreshListComputation === 'function') window.refreshListComputation('students.quitList', 'quit-authoritative-ready');
+                    if (typeof window.invalidateList === 'function') window.invalidateList('students.quitList', 'quit-authoritative-ready');
+                })
+                .catch(function(err) { console.warn('[ensureStudentTabRendered] quit authoritative load failed:', err && (err.code || err.message) || err); });
+        }
         if (typeof window.refreshListComputation === 'function') {
             window.refreshListComputation(key, reason + ':' + tabId);
         } else if (typeof window.refreshListsComputation === 'function') {

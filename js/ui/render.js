@@ -34,7 +34,7 @@ import {
     updateSummaryNumbers,
     fetchAndRenderHistoricalCharts,
     tryApplyCurrentMonthStats,
-} from '../modules/dashboard.js?v=role-runtime-audit-profiler-20260704-v5o';
+} from '../modules/dashboard.js?v=quit-authoritative-data-boundary-20260704-v5p';
 
 import { store } from '../store.js';
 import {
@@ -59,7 +59,7 @@ import {
     computeAndCacheStudents,
     getStudentsSummary,
     getStudentsCachedHtml,
-} from './render/computation/studentsRenderer.js?v=role-runtime-audit-profiler-20260704-v5o';
+} from './render/computation/studentsRenderer.js?v=quit-authoritative-data-boundary-20260704-v5p';
 import {
     computeAndCacheInventory,
     getCachedLiveInvMap,
@@ -102,7 +102,24 @@ function _requestCurrentTabIslands(tabId) {
 }
 
 // Bridge helpers — đọc tại call-time từ window.__store hoặc fallback legacy
-function _profiles()     { return (window.__store || {}).profiles     || window.allProfiles     || {}; }
+function _quitAwareProfiles() {
+    const st = window.__store || {};
+    const merged = {};
+    try {
+        if (window.studentProfileStore && typeof window.studentProfileStore.getAllProfilesCompat === 'function') {
+            Object.assign(merged, window.studentProfileStore.getAllProfilesCompat() || {});
+        }
+    } catch (_) {}
+    try { Object.assign(merged, window.allProfiles || {}); } catch (_) {}
+    try { Object.assign(merged, st.profiles || {}); } catch (_) {}
+    try {
+        if (window.studentProfileStore && typeof window.studentProfileStore.getQuitProfiles === 'function') {
+            Object.assign(merged, window.studentProfileStore.getQuitProfiles() || {});
+        }
+    } catch (_) {}
+    return Object.keys(merged).length ? merged : (st.profiles || window.allProfiles || {});
+}
+function _profiles()     { return (typeof window.getCurrentActiveTabId === 'function' && window.getCurrentActiveTabId() === 'quit') ? _quitAwareProfiles() : ((window.__store || {}).profiles || window.allProfiles || {}); }
 
 // Phase 4K-6V4D1A: read-only canonical audit must not starve legacy UI sections.
 // Some small global widgets (birthday banner / active skipped-month header / quit

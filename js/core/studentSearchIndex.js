@@ -104,13 +104,23 @@ function _upperCode(value) {
 
 function _getProfiles() {
   const st = window.__store || {};
-  if (st.profiles && typeof st.profiles === 'object') return st.profiles;
+  const merged = {};
+  // Phase 4K-6V5P: build the search index from the union source, not only
+  // window.__store.profiles. The latter may be active-only while the Đã nghỉ
+  // tab already has quitProfiles in studentProfileStore.
   try {
     if (window.studentProfileStore && typeof window.studentProfileStore.getAllProfilesCompat === 'function') {
-      return window.studentProfileStore.getAllProfilesCompat() || {};
+      Object.assign(merged, window.studentProfileStore.getAllProfilesCompat() || {});
     }
   } catch (_) {}
-  return {};
+  try { Object.assign(merged, window.allProfiles || {}); } catch (_) {}
+  if (st.profiles && typeof st.profiles === 'object') Object.assign(merged, st.profiles);
+  try {
+    if (window.studentProfileStore && typeof window.studentProfileStore.getQuitProfiles === 'function') {
+      Object.assign(merged, window.studentProfileStore.getQuitProfiles() || {});
+    }
+  } catch (_) {}
+  return Object.keys(merged).length ? merged : {};
 }
 
 function _profileVersion(profiles) {

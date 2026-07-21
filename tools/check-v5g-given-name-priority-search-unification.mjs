@@ -15,8 +15,8 @@ const files = {
 
 const checks = [];
 const check = (name, ok) => checks.push({ name, ok: !!ok });
-const compatibleBuilds = ['role-runtime-audit-profiler-20260704-v5o', 'given-name-priority-search-unification-20260703-v5g', 'debt-zalo-feature-off-20260704-v5n', 'debt-zalo-feature-off-20260704-v5n'];
-const compatibleAppMarkers = ['4K-6V5O-role-runtime-audit-profiler-20260704', '4K-6V5G-given-name-priority-search-unification', '4K-6V5K-superadmin-access-admin-provisioning-recovery-20260704', '4K-6V5L-superadmin-revenue-cache-fallback-20260704', '4K-6V5M-attendance-status-quit-sync-20260704', '4K-6V5N-debt-zalo-feature-off-20260704'];
+const compatibleBuilds = ['quit-authoritative-data-boundary-20260704-v5p', 'role-runtime-audit-profiler-20260704-v5o', 'given-name-priority-search-unification-20260703-v5g', 'debt-zalo-feature-off-20260704-v5n', 'debt-zalo-feature-off-20260704-v5n'];
+const compatibleAppMarkers = ['4K-6V5P-quit-authoritative-data-boundary-20260704', '4K-6V5O-role-runtime-audit-profiler-20260704', '4K-6V5G-given-name-priority-search-unification', '4K-6V5K-superadmin-access-admin-provisioning-recovery-20260704', '4K-6V5L-superadmin-revenue-cache-fallback-20260704', '4K-6V5M-attendance-status-quit-sync-20260704', '4K-6V5N-debt-zalo-feature-off-20260704'];
 
 check('V5G/V5M/V5N cache-bust marker is active', compatibleBuilds.some(build => files.index.includes(build)) && compatibleAppMarkers.some(m => files.app.includes(m)));
 check('StudentSearchIndex keeps strict final-token given-name matching', files.searchIndex.includes('_givenNameTokensFromName') && files.searchIndex.includes('return [last]') && files.searchIndex.includes('given-name-exact'));

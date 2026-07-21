@@ -93,7 +93,7 @@
     window.debtBranchMatchesFilter = window.debtBranchMatchesFilter || _branchMatchesFilter;
 // Danh mục kho tùy chỉnh — được load từ Firestore khi đăng nhập thành công
 window.invCustomCategories = [];
-    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V5O'; window.APP_PATCH_VERSION = '4K-6V5O-role-runtime-audit-profiler-20260704'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
+    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V5P'; window.APP_PATCH_VERSION = '4K-6V5P-quit-authoritative-data-boundary-20260704'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
     // Phase 4K-6V5N: Zalo debt reminder feature gate.
     // User requested complete hiding of Zalo / bulk Zalo in the Debt tab because the feature is not used and causes operational errors.
     window.DEBT_ZALO_FEATURE_ENABLED = false;

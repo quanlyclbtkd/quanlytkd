@@ -18,8 +18,9 @@ function includes(file, text) { return read(file).includes(text); }
 
 console.log('\n🔍 Phase 4K-6V4D1 — Profile Canonical Store Read-only Audit checks\n');
 
-const build = 'role-runtime-audit-profiler-20260704-v5o';
+const build = 'quit-authoritative-data-boundary-20260704-v5p';
 const previousBuild = 'debt-zalo-feature-off-20260704-v5n';
+const previousBuild2 = 'role-runtime-audit-profiler-20260704-v5o';
 const baseBuild = 'profile-canonical-store-20260628-v4d1';
 const version = '4K-6V4D1-profile-canonical-store-readonly-audit-20260628';
 const runtimeVersion = '4K-6V4D1A-profile-canonical-store-runtime-recovery-20260628';
@@ -35,12 +36,12 @@ const publicSrc = read('public/js/core/profileCanonicalStore.js');
 
 check('index loads profileCanonicalStore after tuitionDebtCanonical and before app.js',
   (() => {
-    const tuitionIdx = index.indexOf(`js/core/tuitionDebtCanonical.js?v=${build}`) >= 0 ? index.indexOf(`js/core/tuitionDebtCanonical.js?v=${build}`) : index.indexOf(`js/core/tuitionDebtCanonical.js?v=${previousBuild}`);
-    const profileIdx = index.indexOf(`js/core/profileCanonicalStore.js?v=${build}`) >= 0 ? index.indexOf(`js/core/profileCanonicalStore.js?v=${build}`) : index.indexOf(`js/core/profileCanonicalStore.js?v=${previousBuild}`);
-    const appIdx = index.indexOf(`app.js?v=${build}`) >= 0 ? index.indexOf(`app.js?v=${build}`) : index.indexOf(`app.js?v=${previousBuild}`);
+    const tuitionIdx = index.indexOf(`js/core/tuitionDebtCanonical.js?v=${build}`) >= 0 ? index.indexOf(`js/core/tuitionDebtCanonical.js?v=${build}`) : (index.indexOf(`js/core/tuitionDebtCanonical.js?v=${previousBuild}`) >= 0 ? index.indexOf(`js/core/tuitionDebtCanonical.js?v=${previousBuild}`) : index.indexOf(`js/core/tuitionDebtCanonical.js?v=${previousBuild2}`));
+    const profileIdx = index.indexOf(`js/core/profileCanonicalStore.js?v=${build}`) >= 0 ? index.indexOf(`js/core/profileCanonicalStore.js?v=${build}`) : (index.indexOf(`js/core/profileCanonicalStore.js?v=${previousBuild}`) >= 0 ? index.indexOf(`js/core/profileCanonicalStore.js?v=${previousBuild}`) : index.indexOf(`js/core/profileCanonicalStore.js?v=${previousBuild2}`));
+    const appIdx = index.indexOf(`app.js?v=${build}`) >= 0 ? index.indexOf(`app.js?v=${build}`) : (index.indexOf(`app.js?v=${previousBuild}`) >= 0 ? index.indexOf(`app.js?v=${previousBuild}`) : index.indexOf(`app.js?v=${previousBuild2}`));
     return tuitionIdx > -1 && profileIdx > tuitionIdx && profileIdx < appIdx;
   })());
-check('index cache-busts app.js and main.js to V4D1A', (index.includes(`app.js?v=${build}`) || index.includes(`app.js?v=${previousBuild}`)) && (index.includes(`./js/main.js?v=${build}`) || index.includes(`./js/main.js?v=${previousBuild}`)));
+check('index cache-busts app.js and main.js to V4D1A', (index.includes(`app.js?v=${build}`) || index.includes(`app.js?v=${previousBuild}`) || index.includes(`app.js?v=${previousBuild2}`)) && (index.includes(`./js/main.js?v=${build}`) || index.includes(`./js/main.js?v=${previousBuild}`) || index.includes(`./js/main.js?v=${previousBuild2}`)));
 check('main.js retains V4D1 lineage marker', main.includes(`APP_BUILD_VERSION = '${runtimeVersion}'`) || main.includes(`APP_PATCH_VERSION = '${runtimeVersion}'`) || main.includes(`APP_BUILD_VERSION = '${version}'`) || main.includes(`APP_PATCH_VERSION = '${version}'`));
 check('profile canonical store exports public debug/audit API',
   src.includes('window.ProfileCanonicalStore') || src.includes('global.ProfileCanonicalStore'));

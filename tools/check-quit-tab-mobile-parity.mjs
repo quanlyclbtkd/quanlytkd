@@ -19,12 +19,12 @@ function check(name, ok) {
 }
 
 console.log('\n=== Phase 4K-6V4B8 — Quit Tab Mobile Parity ===\n');
-const build = 'role-runtime-audit-profiler-20260704-v5o';
-const previousBuild = 'debt-zalo-feature-off-20260704-v5n';
+const build = 'quit-authoritative-data-boundary-20260704-v5p';
+const previousBuild = 'role-runtime-audit-profiler-20260704-v5o';
 const appBuilds = [build, previousBuild, 'profile-canonical-store-runtime-recovery-20260628-v4d1a', 'profile-canonical-store-20260628-v4d1', 'tuition-debt-source-of-truth-20260628-v4c'];
 
 check('Index cache-busts app.js and main.js with current quit-safe build',
-  appBuilds.some(b => index.includes(`app.js?v=${b}`)) && (index.includes(`./js/main.js?v=${build}`) || index.includes(`./js/main.js?v=${previousBuild}`)));
+  appBuilds.some(b => index.includes(`app.js?v=${b}`)) && index.includes(`./js/main.js?v=${build}`));
 check('Main cache-busts all quit render/profile modules with current quit-safe build',
   main.includes(`./ui/render.js?v=${build}`) &&
   main.includes(`./ui/render/renderStudents.js?v=${build}`) &&

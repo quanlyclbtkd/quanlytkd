@@ -17,8 +17,8 @@ const publicCache = read('public/js/core/clubStatsAutoCache.js');
 const index = read('index.html');
 const main = read('js/main.js');
 const pkg = JSON.parse(read('package.json'));
-const compatibleBuilds = ['role-runtime-audit-profiler-20260704-v5o', 'debt-zalo-feature-off-20260704-v5n', 'superadmin-revenue-cache-fallback-20260704-v5l', 'debt-zalo-feature-off-20260704-v5n'];
-const compatiblePatchMarkers = ['4K-6V5O-role-runtime-audit-profiler-20260704', '4K-6V5M-attendance-status-quit-sync-20260704', '4K-6V5L-superadmin-revenue-cache-fallback-20260704', '4K-6V5N-debt-zalo-feature-off-20260704'];
+const compatibleBuilds = ['role-runtime-audit-profiler-20260704-v5o', 'debt-zalo-feature-off-20260704-v5n', 'quit-authoritative-data-boundary-20260704-v5p', 'superadmin-revenue-cache-fallback-20260704-v5l', 'debt-zalo-feature-off-20260704-v5n', 'quit-authoritative-data-boundary-20260704-v5p'];
+const compatiblePatchMarkers = ['4K-6V5O-role-runtime-audit-profiler-20260704', '4K-6V5M-attendance-status-quit-sync-20260704', '4K-6V5L-superadmin-revenue-cache-fallback-20260704', '4K-6V5N-debt-zalo-feature-off-20260704', '4K-6V5P-quit-authoritative-data-boundary-20260704'];
 
 assert(compatibleBuilds.some(build => index.includes(build)), 'index.html dùng cache-bust V5L/V5N');
 assert(compatiblePatchMarkers.some(m => app.includes(m)), 'app.js cập nhật APP_PATCH_VERSION V5L/V5N');

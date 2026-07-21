@@ -17,8 +17,8 @@ const files = {
 };
 const checks = [];
 function check(name, ok) { checks.push({ name, ok: !!ok }); }
-const compatibleBuilds = ['role-runtime-audit-profiler-20260704-v5o', 'debt-zalo-feature-off-20260704-v5n', 'debt-zalo-feature-off-20260704-v5n'];
-const compatiblePatchMarkers = ['4K-6V5O-role-runtime-audit-profiler-20260704', '4K-6V5M-attendance-status-quit-sync-20260704', '4K-6V5N-debt-zalo-feature-off-20260704'];
+const compatibleBuilds = ['quit-authoritative-data-boundary-20260704-v5p', 'role-runtime-audit-profiler-20260704-v5o', 'debt-zalo-feature-off-20260704-v5n', 'debt-zalo-feature-off-20260704-v5n'];
+const compatiblePatchMarkers = ['4K-6V5P-quit-authoritative-data-boundary-20260704', '4K-6V5O-role-runtime-audit-profiler-20260704', '4K-6V5M-attendance-status-quit-sync-20260704', '4K-6V5N-debt-zalo-feature-off-20260704'];
 
 check('V5M/V5N cache-bust active in index', compatibleBuilds.some(build => files.index.includes(`app.js?v=${build}`) && files.index.includes(`js/main.js?v=${build}`)));
 check('APP_PATCH_VERSION preserves V5M boundary through V5N', compatiblePatchMarkers.some(m => files.app.includes(m)));

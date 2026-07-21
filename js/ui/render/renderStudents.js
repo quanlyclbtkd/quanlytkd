@@ -19,7 +19,7 @@
  */
 
 import { registerRender } from './renderRegistry.js';
-import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=role-runtime-audit-profiler-20260704-v5o';
+import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=quit-authoritative-data-boundary-20260704-v5p';
 
 // ─── Core DOM helper ────────────────────────────────────────────────────────
 
@@ -89,6 +89,49 @@ function _profileDisplayName(id, profile) {
     const p = profile || {};
     return String(p.name || p.fullName || p.displayName || p.studentName || p.memberName || id || '').trim();
 }
+
+function _currentSearchTerm() {
+    try {
+        const el = document.getElementById('searchInput') || document.getElementById('search');
+        return String((el && el.value) || (window.__store && window.__store._globalSearchTerm) || '').trim();
+    } catch (_) { return ''; }
+}
+function _currentBranchFilter() {
+    try {
+        const el = document.getElementById('branchFilter') || document.getElementById('filterBranch') || document.getElementById('branchSelect');
+        return String((el && el.value) || (window.__store && window.__store.selectedBranch) || 'all').trim() || 'all';
+    } catch (_) { return 'all'; }
+}
+function _normalizeSearchText(value) {
+    if (typeof window.normalizeVNForSearch === 'function') return window.normalizeVNForSearch(value);
+    return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase().trim().replace(/\s+/g, ' ');
+}
+function _quitProfileMatchesSearch(id, profile, rawTerm) {
+    const q = _normalizeSearchText(rawTerm);
+    if (!q) return true;
+    const display = _profileDisplayName(id, profile);
+    try {
+        if (window.StudentSearchIndex && typeof window.StudentSearchIndex.matchesStudentProfileSearch === 'function') {
+            return !!window.StudentSearchIndex.matchesStudentProfileSearch(display, profile || {}, rawTerm);
+        }
+    } catch (_) {}
+    return _normalizeSearchText([display, profile && profile.memberId, profile && profile.studentCode, profile && profile.phone, profile && profile.parentPhone, profile && profile.branch].filter(Boolean).join(' ')).includes(q);
+}
+function _quitBranchMatches(profile, selectedBranch) {
+    const sel = String(selectedBranch || 'all').trim();
+    if (!sel || sel === 'all' || sel === 'Tất cả cơ sở') return true;
+    const raw = String((profile && (profile.branchCode || profile.branch || profile.branchName || profile.base)) || '').trim();
+    if (!raw) return false;
+    if (raw === sel) return true;
+    try {
+        if (window.BranchIdentity && typeof window.BranchIdentity.isSameBranch === 'function') return !!window.BranchIdentity.isSameBranch(raw, sel);
+        if (window.CoachBranchResolver && typeof window.CoachBranchResolver.normalize === 'function') {
+            const cfg = (window.__store && window.__store.clubConfig) || window.clubConfig || {};
+            return window.CoachBranchResolver.normalize(raw, cfg) === window.CoachBranchResolver.normalize(sel, cfg);
+        }
+    } catch (_) {}
+    return _normalizeSearchText(raw) === _normalizeSearchText(sel);
+}
 function _getAuthoritativeQuitProfiles() {
     const merged = {};
     try {
@@ -119,12 +162,17 @@ function _getAuthoritativeQuitProfiles() {
 }
 function _buildAuthoritativeQuitRows(options = {}) {
     const profiles = _getAuthoritativeQuitProfiles();
+    const searchTerm = options.applyFilters === false ? '' : _currentSearchTerm();
+    const branchFilter = options.applyFilters === false ? 'all' : _currentBranchFilter();
     const entries = Object.entries(profiles).filter(([id, profile]) => {
         if (!id || !profile) return false;
         const kind = typeof window.classifyProfileStatus === 'function'
             ? window.classifyProfileStatus(profile)
             : (profile.status === 'quit' || profile.status === 'inactive' || profile.active === false || profile.isActive === false ? 'quit' : 'active');
-        return kind === 'quit';
+        if (kind !== 'quit') return false;
+        if (!_quitBranchMatches(profile, branchFilter)) return false;
+        if (!_quitProfileMatchesSearch(id, profile, searchTerm)) return false;
+        return true;
     }).sort((a, b) => _profileDisplayName(a[0], a[1]).localeCompare(_profileDisplayName(b[0], b[1]), 'vi'));
     const pageSize = (window.__store && window.__store.pagination && window.__store.pagination.students && window.__store.pagination.students.pageSize) || 50;
     // Phase 4K-6V4B6: mobile must show the full authoritative quit list.

@@ -30,11 +30,12 @@ const main = read('js/main.js');
 const index = read('index.html');
 const pkg = read('package.json');
 
-const build = 'role-runtime-audit-profiler-20260704-v5o';
+const build = 'quit-authoritative-data-boundary-20260704-v5p';
 const previousBuild = 'debt-zalo-feature-off-20260704-v5n';
+const previousBuild2 = 'role-runtime-audit-profiler-20260704-v5o';
 
 check('index.html cache-busts app.js/main.js to V4D1A',
-  (index.includes(`app.js?v=${build}`) || index.includes(`app.js?v=${previousBuild}`)) && (index.includes(`./js/main.js?v=${build}`) || index.includes(`./js/main.js?v=${previousBuild}`)));
+  (index.includes(`app.js?v=${build}`) || index.includes(`app.js?v=${previousBuild}`) || index.includes(`app.js?v=${previousBuild2}`)) && (index.includes(`./js/main.js?v=${build}`) || index.includes(`./js/main.js?v=${previousBuild}`) || index.includes(`./js/main.js?v=${previousBuild2}`)));
 check('main.js APP_PATCH_VERSION markers include V4D1 lineage',
   main.includes("APP_BUILD_VERSION = '4K-6V4D1A-profile-canonical-store-runtime-recovery-20260628'") ||
   main.includes("APP_PATCH_VERSION = '4K-6V4D1A-profile-canonical-store-runtime-recovery-20260628'") ||

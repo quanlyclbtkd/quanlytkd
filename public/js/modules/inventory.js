@@ -1,4 +1,4 @@
-// Compatibility marker: inventory.service.js?v=role-runtime-audit-profiler-20260704-v5o
+// Compatibility marker: inventory.service.js?v=quit-authoritative-data-boundary-20260704-v5p
 /**
  * modules/inventory.js — Phase 2f
  * ────────────────────────────────────────────────────────────────
@@ -38,7 +38,7 @@
  */
 
 import { getLocalToday } from '../utils/format.js';
-import { InventoryService } from '../services/inventory.service.js?v=role-runtime-audit-profiler-20260704-v5o';
+import { InventoryService } from '../services/inventory.service.js?v=quit-authoritative-data-boundary-20260704-v5p';
 
 // ════════════════════════════════════════════════════════════════
 // BRIDGE HELPERS — đọc state từ window.__store tại call-time

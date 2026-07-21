@@ -69,7 +69,7 @@ import {
 } from './renderRegistry.js';
 
 import { invalidateFinanceRender }   from './computation/financeRenderer.js';
-import { invalidateStudentsRender }  from './computation/studentsRenderer.js?v=role-runtime-audit-profiler-20260704-v5o';
+import { invalidateStudentsRender }  from './computation/studentsRenderer.js?v=quit-authoritative-data-boundary-20260704-v5p';
 import { invalidateInventoryRender } from './computation/inventoryRenderer.js';
 import { invalidateDashboardCache }  from './computation/dashboardRenderer.js';
 
@@ -78,7 +78,7 @@ import {
     refreshListComputation,
     refreshListsComputation,
     getComputationDomainForList,
-} from './listComputationRefresh.js?v=role-runtime-audit-profiler-20260704-v5o';
+} from './listComputationRefresh.js?v=quit-authoritative-data-boundary-20260704-v5p';
 
 // ── Dev helper ────────────────────────────────────────────────────────────────
 function _isDev() {

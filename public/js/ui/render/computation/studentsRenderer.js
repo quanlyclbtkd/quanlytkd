@@ -560,10 +560,18 @@ export function computeAndCacheStudents(allProfiles, params) {
         } else {
             if (p.quitDate && p.quitDate.substring(0, 7) === selMonth) m_quit++;
             if ((!pgStudentsActive || useFullProfileQuitRender) && buildQuit) {
-                _quitTotalCount++;
-                if (_quitRendered < _quitLimit) {
-                    _quitRendered++;
-                    quitRows += renderQuitRow(name, p, { beltHTML, branchTdHTML, yrBadge, isAdmin });
+                // Phase 4K-6V5P: Đã nghỉ uses one canonical filter boundary.
+                // Branch/search must be applied here too; otherwise renderer cache,
+                // direct authoritative rows and search pagination disagree.
+                let quitPassFilter = true;
+                if (!isSingleBranch && !_branchMatchesFilter(safeBranch, selBranch)) quitPassFilter = false;
+                if (quitPassFilter && search && !_studentProfileMatchesSearch(name, p, search)) quitPassFilter = false;
+                if (quitPassFilter) {
+                    _quitTotalCount++;
+                    if (_quitRendered < _quitLimit) {
+                        _quitRendered++;
+                        quitRows += renderQuitRow(name, p, { beltHTML, branchTdHTML, yrBadge, isAdmin });
+                    }
                 }
             }
         }
@@ -635,8 +643,13 @@ export function computeAndCacheStudents(allProfiles, params) {
                     }
                 }
             } else if (buildQuit) {
-                _quitTotalCount++;
-                quitRows += renderQuitRow(name, p, { beltHTML, branchTdHTML, yrBadge, isAdmin });
+                let quitPassFilter = true;
+                if (!isSingleBranch && !_branchMatchesFilter(safeBranch, selBranch)) quitPassFilter = false;
+                if (quitPassFilter && search && !_studentProfileMatchesSearch(name, p, search)) quitPassFilter = false;
+                if (quitPassFilter) {
+                    _quitTotalCount++;
+                    quitRows += renderQuitRow(name, p, { beltHTML, branchTdHTML, yrBadge, isAdmin });
+                }
             }
         });
     }

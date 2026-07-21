@@ -13,8 +13,8 @@ const files = {
   studentService: read('js/services/students.service.js'),
   pkg: read('package.json'),
 };
-const compatibleBuilds = ['role-runtime-audit-profiler-20260704-v5o', 'tx-delete-reconcile-smart-search-20260703-v5c', 'given-name-search-20260703-v5d', 'debt-zalo-feature-off-20260704-v5n', 'debt-zalo-feature-off-20260704-v5n'];
-const currentBuild = 'role-runtime-audit-profiler-20260704-v5o';
+const compatibleBuilds = ['quit-authoritative-data-boundary-20260704-v5p', 'role-runtime-audit-profiler-20260704-v5o', 'tx-delete-reconcile-smart-search-20260703-v5c', 'given-name-search-20260703-v5d', 'debt-zalo-feature-off-20260704-v5n', 'debt-zalo-feature-off-20260704-v5n'];
+const currentBuild = 'quit-authoritative-data-boundary-20260704-v5p';
 let pass = 0, fail = 0;
 function check(name, ok) { if (ok) { pass++; console.log('✅', name); } else { fail++; console.error('❌', name); } }
 

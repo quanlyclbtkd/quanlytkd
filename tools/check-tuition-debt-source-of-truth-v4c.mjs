@@ -16,10 +16,10 @@ function includes(file, text) {
 check('canonical helper file exists', existsSync(resolve(root, 'js/core/tuitionDebtCanonical.js')));
 check('index loads tuitionDebtCanonical before app.js', (() => {
   const html = readFileSync(resolve(root, 'index.html'), 'utf8');
-  return html.indexOf('js/core/tuitionDebtCanonical.js?v=role-runtime-audit-profiler-20260704-v5o') > -1 &&
-    html.indexOf('js/core/tuitionDebtCanonical.js?v=role-runtime-audit-profiler-20260704-v5o') < html.indexOf('app.js?v=role-runtime-audit-profiler-20260704-v5o');
+  return html.indexOf('js/core/tuitionDebtCanonical.js?v=quit-authoritative-data-boundary-20260704-v5p') > -1 &&
+    html.indexOf('js/core/tuitionDebtCanonical.js?v=quit-authoritative-data-boundary-20260704-v5p') < html.indexOf('app.js?v=quit-authoritative-data-boundary-20260704-v5p');
 })());
-check('app.js cache-bust updated to current V5C build', includes('index.html', 'app.js?v=role-runtime-audit-profiler-20260704-v5o'));
+check('app.js cache-bust updated to current V5C build', includes('index.html', 'app.js?v=quit-authoritative-data-boundary-20260704-v5p'));
 check('getChargeableTuitionMonths delegates to computeTuitionDebtCanonical', includes('app.js', 'window.computeTuitionDebtCanonical') && includes('app.js', 'canonical.chargeableMonths'));
 check('debugDebtTrace exported', includes('js/core/tuitionDebtCanonical.js', 'window.debugDebtTrace = debugDebtTrace'));
 check('auditTuitionDebtCanonicalProfiles exported', includes('js/core/tuitionDebtCanonical.js', 'window.auditTuitionDebtCanonicalProfiles'));
