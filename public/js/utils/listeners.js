@@ -183,18 +183,6 @@ export function registerListener(key, unsubscribe, options = {}) {
     };
 
     _registry.set(key, entry);
-    try {
-        if (typeof window.trackRuntimeAuditRead === 'function') {
-            window.trackRuntimeAuditRead(key, {
-                source: 'registerListener',
-                owner: entry.owner,
-                scope: entry.scope,
-                tabId: entry.tabId || '',
-                clubId: entry.clubId || '',
-                reason: entry.reason || ''
-            });
-        }
-    } catch (_) {}
     _metrics.totalRegistered++;
     _incByOwner(owner);
     _metrics.byScope[scope] = (_metrics.byScope[scope] || 0) + 1;

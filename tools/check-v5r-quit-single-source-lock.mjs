@@ -1,0 +1,34 @@
+#!/usr/bin/env node
+import fs from 'node:fs';
+const read = p => fs.readFileSync(p, 'utf8');
+let pass=0, fail=0;
+const check=(n,o)=>{o?(pass++,console.log('✅',n)):(fail++,console.error('❌',n))};
+const build='quit-single-source-lock-20260721-v5r';
+const index=read('index.html');
+const main=read('js/main.js');
+const store=read('js/data/studentProfileStore.js');
+const listener=read('js/listeners/profiles.listeners.js');
+const boundary=read('js/data/quitProfileBoundary.js');
+const render=read('js/ui/render/renderStudents.js');
+const students=read('js/modules/students.js');
+const app=read('app.js');
+const pubBoundary=read('public/js/data/quitProfileBoundary.js');
+const pkg=JSON.parse(read('package.json'));
+
+check('V5R build marker active', index.includes(`app.js?v=${build}`) && index.includes(`js/main.js?v=${build}`) && main.includes(`quitProfileBoundary.js?v=${build}`));
+check('complete mode is dedicated quit store only', boundary.includes("_metrics.lastMode = 'complete-single-source'") && boundary.includes('if (complete)') && boundary.includes("'studentProfileStore.quitProfiles'"));
+check('legacy/canonical union is preview-only', boundary.includes('loading-preview-union') && boundary.includes('window.allProfiles.preview') && boundary.includes('canonical.quitProfiles.preview'));
+check('boundary dedupes preview by stable identity', boundary.includes('function _identity') && boundary.includes('identityIndex') && boundary.includes('delete target[previousKey]'));
+check('active bucket removes restored ids from quit bucket', store.includes('an active id cannot remain in quit/other caches') && store.includes('delete _store.quitProfiles[id]'));
+check('quit bucket removes ids from active bucket', store.includes('a quit id cannot remain in active/other caches') && store.includes('delete _store.activeProfiles[id]'));
+check('quit authority is club-scoped', listener.includes('quitAuthorityClubId') && listener.includes('sameClub') && listener.includes('_state.quitAuthorityClubId === currentClubId'));
+check('quit authority has freshness revalidation', listener.includes('quitAuthorityLoadedAt') && listener.includes('ageMs > 60000') && listener.includes('forceRefresh'));
+check('active query removals mark quit authority dirty', listener.includes("quitAuthorityState = 'dirty'") && listener.includes('active-query-removed') && listener.includes('markQuitComplete(false)'));
+check('current quit tab refreshes when active query removes docs', listener.includes("ensureQuitProfilesComplete('active-query-removed-current-quit')"));
+check('renderQuitIsland ignores cached quit HTML when boundary exists', render.includes('V5R single-render-source lock') && render.includes('if (window.QuitProfileBoundary)') && render.includes("getStudentsCachedHtml('quitRows')") && render.indexOf("getStudentsCachedHtml('quitRows')") > render.indexOf('Standalone legacy fallback only'));
+check('legacy tab switch cannot restore cached quit HTML', app.includes('the quit tab must never be restored from legacy tabHtmlCache') && app.includes("QuitProfileBoundary.ensureComplete?.('legacy-switch-tab-quit')"));
+check('profile rename updates canonical store immediately', students.includes('profile-rename-remove-old') && students.includes('profile-rename-merge-new') && students.includes('profile-rename-status-sync'));
+check('public boundary mirror synced', boundary === pubBoundary);
+check('V5R module performs no Firestore IO', !/\b(getDocs|getDoc|onSnapshot|setDoc|updateDoc|deleteDoc)\b/.test(boundary));
+check('package exposes V5R checks', pkg.scripts?.['check:v5r-quit-single-source-lock']?.includes('check-v5r-quit-single-source-lock.mjs') && pkg.scripts?.['check:v5r-quit-source-behavior']?.includes('check-v5r-quit-source-behavior.mjs'));
+console.log(`\nPASS ${pass}/${pass+fail}`); if(fail) process.exit(1);

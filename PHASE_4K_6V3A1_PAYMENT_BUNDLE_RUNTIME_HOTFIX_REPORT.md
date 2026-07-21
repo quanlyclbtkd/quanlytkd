@@ -162,7 +162,7 @@ Bản V3A1 ngăn lỗi builder xảy ra sau Firestore write bằng preflight, nh
 Các URL runtime được đổi sang:
 
 ```text
-debt-zalo-feature-off-20260704-v5n
+payment-bundle-runtime-hotfix-20260616-v3a1
 ```
 
 Sau khi upload GitHub Pages cần `Ctrl + Shift + R`.

@@ -1,5 +1,3 @@
-
-// Compatibility marker retained for V5N regression: 4K-6V5N-debt-zalo-feature-off debt-zalo-feature-off-20260704-v5n
 // Phase 4K-6V4D1A: profile-canonical-store-runtime-recovery-20260628
     /* Firestore security rules source of truth: ./firestore.rules */
 // LEGACY APP KERNEL — DO NOT DELETE DIRECTLY
@@ -93,28 +91,7 @@
     window.debtBranchMatchesFilter = window.debtBranchMatchesFilter || _branchMatchesFilter;
 // Danh mục kho tùy chỉnh — được load từ Firestore khi đăng nhập thành công
 window.invCustomCategories = [];
-    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V5P'; window.APP_PATCH_VERSION = '4K-6V5P-quit-authoritative-data-boundary-20260704'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
-    // Phase 4K-6V5N: Zalo debt reminder feature gate.
-    // User requested complete hiding of Zalo / bulk Zalo in the Debt tab because the feature is not used and causes operational errors.
-    window.DEBT_ZALO_FEATURE_ENABLED = false;
-    window.isDebtZaloFeatureEnabled = function isDebtZaloFeatureEnabled() { return false; };
-    window.hideDebtZaloUI = function hideDebtZaloUI() {
-        try {
-            document.querySelectorAll('[data-debt-zalo-ui], #bulkZaloModal, #_zaloMsgModal').forEach(function(el) {
-                if (!el) return;
-                el.style.setProperty('display', 'none', 'important');
-                el.setAttribute('hidden', 'hidden');
-                el.setAttribute('aria-hidden', 'true');
-            });
-        } catch (_) {}
-    };
-    if (typeof document !== 'undefined') {
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', window.hideDebtZaloUI, { once: true });
-        } else {
-            setTimeout(window.hideDebtZaloUI, 0);
-        }
-    }
+    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V5Q'; window.APP_PATCH_VERSION = '4K-6V5R-quit-single-source-lock-20260721'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
     // Compatibility regression marker retained for Phase 4K-6Q gate: APP_PATCH_VERSION = '4K-6Q-mobile-filter-currency-stability-20260615'
     window.__appLoaded = true; // [Phase 2a] main.js kiểm tra để bỏ qua loadLegacyApp()
     window.__store = window.__store || {}; // [Phase 2b] Bridge object cho module system
@@ -808,10 +785,23 @@ window.invCustomCategories = [];
             window.ensureInventoryForFeature?.('dashboard', 'enter-dashboard-tab');
         }
         else if(tabId === 'quit') window._quitPage = 1;
-        (_TAB_LISTS[tabId] || []).forEach(listId => {
-            const el = document.getElementById(listId);
-            if(el && _tabHtmlCache[listId] !== undefined) el.innerHTML = _tabHtmlCache[listId];
-        });
+        // V5R: the quit tab must never be restored from legacy tabHtmlCache
+        // in module runtime. That cache can be active-only/partial and was one of
+        // the sources that repeatedly overwrote the complete Đã nghỉ list.
+        if (tabId === 'quit' && window.QuitProfileBoundary) {
+            const quitEl = document.getElementById('quitList');
+            if (quitEl && !quitEl.querySelector('tr[data-quit-id]')) {
+                quitEl.innerHTML = '<tr data-quit-loading="1"><td colspan="7" style="text-align:center;color:#94a3b8;padding:16px;font-size:0.82rem;">Đang đối chiếu toàn bộ danh sách đã nghỉ...</td></tr>';
+            }
+            Promise.resolve(window.QuitProfileBoundary.ensureComplete?.('legacy-switch-tab-quit'))
+                .then(() => { try { window.renderQuitList?.(); } catch (_) {} })
+                .catch(() => {});
+        } else {
+            (_TAB_LISTS[tabId] || []).forEach(listId => {
+                const el = document.getElementById(listId);
+                if(el && _tabHtmlCache[listId] !== undefined) el.innerHTML = _tabHtmlCache[listId];
+            });
+        }
         if(tabId === 'dashboard') {
             const cd = _tabHtmlCache._chartData;
             if(cd && typeof Chart === 'undefined') {
@@ -1392,10 +1382,10 @@ service cloud.firestore {
                 <div style="padding:10px 14px;text-align:center;font-size:0.7rem;color:#94a3b8;">Hiển thị ${rows.length} bản ghi${filterClub ? ' cho CLB: ' + filterClub : ' gần nhất'}</div>`;
 
         } catch(e) {
+            console.error('[login_history] Lỗi đọc:', e);
             const isPermission = e.message && (e.message.includes('permission') || e.message.includes('Missing'));
-            if (isPermission) console.warn('[login_history] Firestore Rules chưa cấp quyền đọc lịch sử cho SuperAdmin:', e.message);
-            else console.error('[login_history] Lỗi đọc:', e);
-            const isIndex = e.message && e.message.includes('index'); let errMsg = e.message;
+            const isIndex = e.message && e.message.includes('index');
+            let errMsg = e.message;
             if (isIndex) errMsg = 'Thiếu Composite Index (cần tạo index trong Firebase Console)';
             _showLoginHistoryRulesGuide(contentEl, errMsg, writeFailed);
         }
@@ -2612,115 +2602,6 @@ service cloud.firestore {
         if (window.showToast) window.showToast('Module SuperAdmin chưa sẵn sàng. Vui lòng tải lại trang.', 'warning');
     };
 
-    // Phase 4K-6V5L: SuperAdmin revenue cache fallback helpers
-    // Mục tiêu: đọc doanh thu từ cache/stats nếu có, không cảnh báo sai và không scan tx khi có số 0 hợp lệ.
-    function _saFirstFiniteNumber(...values) {
-        for (const v of values) {
-            if (v === null || v === undefined || v === '') continue;
-            const n = Number(v);
-            if (Number.isFinite(n)) return n;
-        }
-        return null;
-    }
-    function _saStatsDocId(monthKey) {
-        return String(monthKey || '').replace('-', '_');
-    }
-    function _saReadStatsIncomeTotal(stats) {
-        if (!stats || typeof stats !== 'object') return null;
-        return _saFirstFiniteNumber(
-            stats['income.total'],
-            stats.income && stats.income.total,
-            stats.totalIncome,
-            stats.totalRevenue,
-            stats.revenue,
-            stats.revenueTotal,
-            stats.incomeTotal,
-            stats.monthlyRevenue,
-            stats.monthlyIncome,
-            stats.grossRevenue,
-            stats.total,
-            stats.amount
-        );
-    }
-    function _saReadStatsTxCount(stats) {
-        if (!stats || typeof stats !== 'object') return null;
-        return _saFirstFiniteNumber(
-            stats.txCount,
-            stats.monthlyTxCount,
-            stats.transactionCount,
-            stats.transactionsCount,
-            stats.count
-        );
-    }
-    function _saReadMonthlyCachedValue(source, monthKey, statsDocId) {
-        if (!source || typeof source !== 'object') return null;
-        const direct = source[monthKey] !== undefined ? source[monthKey] : source[statsDocId];
-        if (direct === null || direct === undefined || direct === '') return null;
-        if (typeof direct === 'number' || typeof direct === 'string') return _saFirstFiniteNumber(direct);
-        if (direct && typeof direct === 'object') return _saFirstFiniteNumber(
-            direct['income.total'],
-            direct.income && direct.income.total,
-            direct.totalIncome,
-            direct.totalRevenue,
-            direct.revenue,
-            direct.revenueTotal,
-            direct.incomeTotal,
-            direct.total,
-            direct.amount
-        );
-        return null;
-    }
-    function _saReadClubRevenueCache(clubData, monthKey) {
-        const data = clubData || {};
-        const statsDocId = _saStatsDocId(monthKey);
-        const sa = data.superAdminStats || data.clubSummary || data.summary || {};
-        const saMonth = String(sa.month || sa.monthKey || '').replace('_','-');
-        const saRevenue = (saMonth === monthKey || !saMonth) ? _saFirstFiniteNumber(
-            sa.revenueTotal,
-            sa.monthlyIncome,
-            sa.currentMonthRevenue,
-            sa.incomeTotal,
-            sa.income && sa.income.total,
-            sa.totalIncome,
-            sa.totalRevenue
-        ) : null;
-        const monthRevenue = _saFirstFiniteNumber(
-            _saReadMonthlyCachedValue(data.cachedMonthlyRevenue, monthKey, statsDocId),
-            _saReadMonthlyCachedValue(data.monthlyRevenue, monthKey, statsDocId),
-            _saReadMonthlyCachedValue(data.revenueByMonth, monthKey, statsDocId)
-        );
-        const currentMonth = (() => {
-            const now = new Date();
-            const ym = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
-            return ym;
-        })();
-        const currentMonthRevenue = monthKey === currentMonth ? _saFirstFiniteNumber(
-            data.cachedCurrentMonthRevenue,
-            data.currentMonthRevenue,
-            data.monthlyIncome,
-            data.totalRevenue
-        ) : null;
-        const revenue = _saFirstFiniteNumber(monthRevenue, saRevenue, currentMonthRevenue);
-        const txCount = _saFirstFiniteNumber(
-            sa.monthlyTxCount,
-            sa.txCount,
-            data.cachedTxCount,
-            data.monthlyTxCount,
-            data.txCount
-        );
-        return {
-            hasRevenue: revenue !== null,
-            revenue: revenue !== null ? revenue : 0,
-            txCount: txCount !== null ? txCount : 0,
-            source: monthRevenue !== null ? 'club-cache-month' : (saRevenue !== null ? 'club-cache-superadmin' : 'club-cache-current')
-        };
-    }
-    function _saRevenueDebugEnabled() {
-        try {
-            return window.__SA_REVENUE_DEBUG === true || localStorage.getItem('saRevenueDebug') === '1';
-        } catch (_) { return window.__SA_REVENUE_DEBUG === true; }
-    }
-
     //  SUPER ADMIN: DOANH THU THỰC TẾ THEO THÁNG CỦA TỪNG CLB
     window.loadSARevenue = async () => {
         const monthEl = document.getElementById('sa_revenue_month');
@@ -2749,32 +2630,34 @@ service cloud.firestore {
                     const cdata = docSnap.data();
                     const cname = cdata.clubName || cid;
                     try {
-                        // Phase 4K-6V5L: SuperAdmin revenue priority:
-                        // 1) clubs/{clubId} root cache written by Admin-side auto-cache/Function
-                        // 2) clubs/{clubId}/stats/{YYYY_MM} compatible stats schema
-                        // 3) transaction scan only when cache/stats are truly missing or explicitly incomplete
-                        const _statsDocId = selMonth.replace('-', '_');
-                        const _rootCache = _saReadClubRevenueCache(cdata, selMonth);
-                        if (_rootCache.hasRevenue) {
-                            return { cid, cname, total: _rootCache.revenue, txCount: _rootCache.txCount, source: _rootCache.source };
-                        }
-
-                        const _statsDocRef = doc(db, "clubs", cid, "stats", _statsDocId);
+                        // Ưu tiên A: stats doc (O(1)) — tránh scan tx hoàn toàn
+                        const _statsDocRef = doc(db, "clubs", cid, "stats", selMonth.replace('-', '_'));
                         let _statsSnap = null;
-                        try { _statsSnap = await getDoc(_statsDocRef); } catch(_statsErr) {
-                            if (_saRevenueDebugEnabled()) console.warn('[SARevenue] Không đọc được stats doc cho CLB ' + cid + ' — sẽ dùng fallback tx scan nếu có quyền.', _statsErr?.message || _statsErr);
-                        }
+                        try { _statsSnap = await getDoc(_statsDocRef); } catch(_) { /* fallback */ }
                         if (_statsSnap && _statsSnap.exists()) {
-                            const _sd = _statsSnap.data() || {};
-                            const _tot = _saReadStatsIncomeTotal(_sd);
-                            const _txc = _saReadStatsTxCount(_sd);
-                            if (_tot !== null || _txc !== null) {
-                                // Revenue = 0 là giá trị hợp lệ, không phải lỗi.
-                                return { cid, cname, total: (_tot !== null ? _tot : 0), txCount: (_txc !== null ? _txc : 0), source: 'stats' };
+                            const _sd = _statsSnap.data();
+                            // [Phase 4K-FIX Lỗi 1] _readStatsIncomeTotal — đọc tương thích nhiều format stats:
+                            //   income.total nested (ghi bởi Cloud Functions FieldValue.increment),
+                            //   'income.total' flat key, totalIncome, totalRevenue, revenue
+                            const _tot = (
+                                Number(_sd?.income?.total)     ||
+                                Number(_sd?.['income.total'])  ||
+                                Number(_sd?.totalIncome)       ||
+                                Number(_sd?.totalRevenue)      ||
+                                Number(_sd?.revenue)           ||
+                                0
+                            );
+                            const _hasTxCount = (_sd.txCount || 0) > 0;
+                            if (_tot > 0 || _hasTxCount) {
+                                // stats doc có dữ liệu hợp lệ — không fallback sang scan tx
+                                if (_tot === 0 && _hasTxCount) {
+                                    // CLB có GD nhưng toàn chi phí (totalRevenue = 0 là đúng)
+                                    console.warn('[Phase 4K-FIX] CLB ' + cid + ': stats doc có txCount=' + _sd.txCount + ' nhưng income = 0 — có thể toàn chi phí');
+                                }
+                                return { cid, cname, total: _tot, txCount: _sd.txCount || 0, source: 'stats' };
                             }
-                            // Stats doc tồn tại nhưng không có field doanh thu chuẩn. Không warn ở production
-                            // vì đây là dữ liệu cache cũ/empty doc; fallback tx scan giữ số liệu chính xác.
-                            if (_saRevenueDebugEnabled()) console.info('[SARevenue] Stats doc legacy/empty cho CLB ' + cid + ' — fallback tx scan để giữ doanh thu chính xác.');
+                            // stats doc tồn tại nhưng không đọc được doanh thu và txCount = 0
+                            console.warn('[Phase 4K-FIX] Stats doc tồn tại cho CLB ' + cid + ' nhưng không đọc được income — fallback sang tx scan');
                         }
                         // Fallback B: paginated tx scan (không giới hạn cứng — fetchQueryPages)
                         const _txColRef = collection(db, "clubs", cid, "transactions");
@@ -3534,7 +3417,6 @@ service cloud.firestore {
 
             const now = new Date();
             await addDoc(collection(db, "login_history"), {
-                uid: user.uid || '',
                 email: user.email || '',
                 clubId: clubId || '',
                 role: role || 'viewer',
@@ -3545,15 +3427,14 @@ service cloud.firestore {
                 deviceType: isMobile ? 'Mobile' : 'Desktop',
                 deviceName: deviceName || '',
             });
-            sessionStorage.setItem(sessionKey, '1'); // Chỉ đánh dấu sau khi addDoc thành công
+            // Chỉ đánh dấu "đã ghi" SAU KHI addDoc thành công
+            sessionStorage.setItem(sessionKey, '1');
         } catch(e) {
-            const msg = String(e && (e.message || e.code) || e || '');
-            if (/permission|PERMISSION_DENIED|insufficient/i.test(msg)) {
-                try { sessionStorage.setItem(sessionKey, 'permission-denied'); } catch (_) {}
-                console.info('[login_history] Bỏ qua ghi lịch sử đăng nhập trong phiên này: Firestore Rules chưa cho phép create login_history.');
-            } else console.warn('[login_history] Không thể ghi lịch sử đăng nhập:', msg);
+            // Không set sessionStorage → lần load tiếp theo sẽ tự thử lại
+            console.warn('[login_history] Không thể ghi lịch sử đăng nhập:', e.message);
         }
     }
+
     // ── LocalStorage cache để tăng tốc khởi động ──────────────────────────
     // Phase 4K-6V4B: cache chỉ là bootstrap hint, không phải nguồn cấp quyền.
     // Mọi phiên đều xác minh users/{uid}; khi role/club/branch thay đổi, runtime reload nguyên tử.
@@ -4652,11 +4533,9 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         const studentCode = String((profile || {}).memberId || (profile || {}).studentCode || (profile || {}).code || (profile || {}).idCode || '');
         const nickname   = String((profile || {}).nickname || (profile || {}).shortName || (profile || {}).alias || '');
         const searchName = normalizeSearchText(fullName);
-        const searchNameTokens = searchName.split(' ').filter(Boolean).slice(0, 10);
         return {
             searchName,
-            searchGivenName: searchNameTokens[searchNameTokens.length - 1] || '',
-            searchNameTokens,
+            searchNameTokens: searchName.split(' ').filter(Boolean).slice(0, 10),
             searchPhone:     normalizePhoneForSearch(phone),
             searchCode:      normalizeSearchText(studentCode),
             searchNickname:  normalizeSearchText(nickname),
@@ -5145,11 +5024,6 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
     };
 
     window.copyAndOpenZalo = (name, monthsStr, phone) => {
-        if (!window.isDebtZaloFeatureEnabled || !window.isDebtZaloFeatureEnabled()) {
-            if (typeof window.hideDebtZaloUI === 'function') window.hideDebtZaloUI();
-            if (typeof window.showToast === 'function') window.showToast('ℹ️ Tính năng Zalo nhắc nợ đang tắt.');
-            return false;
-        }
         const p = allProfiles[name];
         let fee = p ? (p.tuitionFee || 0) : 0;
         let monthsLabel = window.formatMonthCompact(monthsStr);
@@ -5191,7 +5065,6 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
     };
 
     (function _injectZaloModal() {
-        if (!window.isDebtZaloFeatureEnabled || !window.isDebtZaloFeatureEnabled()) return;
         if (document.getElementById('_zaloMsgModal')) return;
         const el = document.createElement('div');
         el.id = '_zaloMsgModal';
@@ -5221,11 +5094,6 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
     let _bulkZaloIdx = 0;
 
     window.openBulkZaloModal = () => {
-        if (!window.isDebtZaloFeatureEnabled || !window.isDebtZaloFeatureEnabled()) {
-            if (typeof window.hideDebtZaloUI === 'function') window.hideDebtZaloUI();
-            if (typeof window.showToast === 'function') window.showToast('ℹ️ Tính năng Zalo hàng loạt đang tắt.');
-            return false;
-        }
         const selMonth = document.getElementById('filterMonth').value;
         const selBranch = document.getElementById('filterBranch').value;
         const isSingleBranch = clubConfig.branchCount === 1;
@@ -5265,7 +5133,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         document.getElementById('bulkZaloModal').style.display = 'flex';
     };
 
-    window.closeBulkZaloModal = () => { const el = document.getElementById('bulkZaloModal'); if (el) el.style.display = 'none'; };
+    window.closeBulkZaloModal = () => { document.getElementById('bulkZaloModal').style.display = 'none'; };
 
     function _renderBulkZaloList() {
         const el = document.getElementById('bulkZaloList');
@@ -5710,14 +5578,8 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                     }
                 }
                 if (txToDelete && (txToDelete.type === 'Học phí' || txToDelete.type === 'Học phí + Lệ phí thi')) {
-                    const studentName = (txToDelete.description || txToDelete.studentName || '').trim();
+                    const studentName = (txToDelete.description || '').trim();
                     if (studentName) {
-                        // Phase 4K-6V5D: ưu tiên reconcile canonical nếu main.js đã load.
-                        // Hàm này đọc lại giao dịch còn lại từ Firestore để tab Báo nợ đúng ngay
-                        // cả khi allTransactions chỉ là cache phân trang/tháng hiện tại.
-                        if (typeof window.reconcileStudentTuitionAfterDeletedTransaction === 'function') {
-                            await window.reconcileStudentTuitionAfterDeletedTransaction(studentName, txToDelete, { reason: 'legacy-delete-transaction' });
-                        } else {
                         // [SỬA BÁO NỢ] Truy vấn Firestore lấy TẤT CẢ giao dịch học phí của võ sinh
                     // allTransactions chỉ chứa tháng đang xem → dùng sẽ tính sai paidUntil khi xóa tháng cũ
                     // [4.0B-4J-8A] Fixed: thay limit(500) bằng fetchQueryPages — tính đúng paidUntil kể cả võ sinh nhiều năm
@@ -5744,7 +5606,6 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                         const profileUpdate = { paidUntil: newPaidUntil };
                         if (deletedMonths.length > 0) profileUpdate.paidMonths = arrayRemove(...deletedMonths);
                         await updateDoc(profileRef, profileUpdate);
-                        }
                     }
                 }
                 if (typeof window.recordFinancialActionAudit === 'function') window.recordFinancialActionAudit('transaction.delete', 'after', {
@@ -5753,14 +5614,6 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                     type: txToDelete && txToDelete.type || '',
                     amount: txToDelete && txToDelete.amount || 0
                 });
-                if (typeof window.reloadTransactionsPage === 'function') {
-                    try { await window.reloadTransactionsPage(); } catch (reloadErr) { console.warn('[deleteTx legacy] reloadTransactionsPage failed:', reloadErr && reloadErr.message); }
-                }
-                if (typeof window.invalidateList === 'function') {
-                    window.invalidateList('tx.txList', 'legacy-delete-transaction');
-                    window.invalidateList('students.debtList', 'legacy-delete-transaction');
-                }
-                if (typeof window.invalidateDashboard === 'function') window.invalidateDashboard('legacy-delete-transaction');
                 window.showToast("✅ Đã xóa!");
             } catch (err) {
                 if (typeof window.recordFinancialActionAudit === 'function') window.recordFinancialActionAudit('transaction.delete', 'error', {
@@ -5769,13 +5622,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                     error: err && err.message || String(err)
                 });
                 console.error('[deleteTx] failed:', err);
-                const _code = err && (err.code || err.name || '');
-                const _msg  = err && (err.message || String(err));
-                if (String(_code).includes('permission-denied') || String(_msg).includes('Missing or insufficient permissions')) {
-                    alert('Không có quyền xóa giao dịch. Hãy deploy Firestore Rules bản V5C hoặc đăng nhập bằng tài khoản Admin/SuperAdmin của CLB.');
-                } else {
-                    alert('Không xóa được giao dịch. Vui lòng thử lại hoặc kiểm tra Console.');
-                }
+                alert('Không xóa được giao dịch. Vui lòng thử lại hoặc kiểm tra Console.');
             }
         }
     };
@@ -7032,44 +6879,6 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             .replace(/\s+/g, ' ');
     }
 
-    // Phase 4K-6V5G: strict given-name priority search for legacy render paths.
-    // For one-word Vietnamese name queries (e.g. "uyên"), match the final
-    // given-name token only. This prevents "Nguyễn/Nguyên/Tuyên" surname or
-    // middle-token substring matches from flooding Debt/Active/Quit lists.
-    function _legacySearchTokens(value) {
-        return _legacyNormalizeSearch(value).split(' ').filter(Boolean);
-    }
-    function _legacyIsPlainGivenNameLookup(search, raw) {
-        const q = _legacyNormalizeSearch(search);
-        if (!q || q.includes(' ')) return false;
-        if (!/^[a-z]+$/.test(q)) return false;
-        return !/[0-9@._-]/.test(String(raw || search || ''));
-    }
-    function _legacyMatchesGivenNameOnly(name, search) {
-        const toks = _legacySearchTokens(name);
-        const q = _legacyNormalizeSearch(search);
-        const last = toks[toks.length - 1] || '';
-        return !!q && (last === q || (q.length >= 2 && last.startsWith(q)));
-    }
-    function _legacyStudentProfileMatchesSearch(name, profile, search, rawSearch) {
-        const q = _legacyNormalizeSearch(search);
-        if (!q) return true;
-        const p = profile || {};
-        const displayName = p.name || p.fullName || p.studentName || p.displayName || p.hoTen || name || '';
-        if (_legacyIsPlainGivenNameLookup(q, rawSearch)) {
-            return _legacyMatchesGivenNameOnly(displayName, q);
-        }
-        return _legacyNormalizeSearch(displayName).includes(q)
-            || _legacyNormalizeSearch(p.name || '').includes(q)
-            || _legacyNormalizeSearch(p.fullName || '').includes(q)
-            || _legacyNormalizeSearch(p.studentName || '').includes(q)
-            || String(p.phone || p.parentPhone || p.contactPhone || '').includes(q)
-            || _legacyNormalizeSearch(p.belt || '').includes(q)
-            || _legacyNormalizeSearch(p.notes || p.note || '').includes(q);
-    }
-    window.isPlainStudentGivenNameLookup = window.isPlainStudentGivenNameLookup || _legacyIsPlainGivenNameLookup;
-    window.matchesStudentGivenNameOnly = window.matchesStudentGivenNameOnly || _legacyMatchesGivenNameOnly;
-    window.matchesStudentProfileSearch = window.matchesStudentProfileSearch || _legacyStudentProfileMatchesSearch;
 
     // Phase 4K-6V4C2: canonical skipped-month helpers for the Active tab header.
     // Legacy fallback render must not hide skipped-month students because of
@@ -7175,8 +6984,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         const _fmEl = document.getElementById('filterMonth');
         const _fbEl = document.getElementById('filterBranch');
         const _srEl = document.getElementById('searchInput');
-        const _rawSearch = _srEl ? _srEl.value : '';
-        const selMonth = _fmEl ? _fmEl.value : ''; const selBranch = _fbEl ? _fbEl.value : 'all'; const search = _legacyNormalizeSearch(_rawSearch);
+        const selMonth = _fmEl ? _fmEl.value : ''; const selBranch = _fbEl ? _fbEl.value : 'all'; const search = _legacyNormalizeSearch(_srEl ? _srEl.value : '');
         const _txRows = [], _utxRows = [], _expRows = [], _eexpRows = [], _debtRows = [], _activeRows = [], _quitRows = [], _invRows = [];
         let txHtml = '', uniformTxHtml = '', expHtml = '', examExpHtml = '', debtHtml = '', activeHtml = '', quitHtml = '', invListHtml = '', reportHtml = '';
         let inc_tuition = 0, inc_exam = 0, inc_other = 0, inc_uniform = 0, exp_uniform = 0, exp = 0, exp_exam_total = 0, totalDebtEst = 0; let studentPayments = {};
@@ -7481,7 +7289,11 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             let safePhone = p.phone || ""; let safeBelt = p.belt || ""; let safeNotes = p.notes || ""; let safeNameEscaped = name.replace(/'/g, "\\'");
             let matchesSearch = true;
             if (search) {
-                matchesSearch = _legacyStudentProfileMatchesSearch(name, p, search, _rawSearch);
+                matchesSearch =
+                    _legacyNormalizeSearch(name).includes(search) ||
+                    String(safePhone || '').includes(search) ||
+                    _legacyNormalizeSearch(safeBelt).includes(search) ||
+                    _legacyNormalizeSearch(safeNotes).includes(search);
             }
             if (!matchesSearch) return;
             // Smart Name: gắn năm sinh nếu tên trùng
@@ -7525,13 +7337,10 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                     const owedMonthsStr = owedMonths.join(',') || selMonth;
                     const safeOwedMonths = owedMonthsStr.replace(/'/g, '');
                     let lastPaidLabel = `<span class="font-bold text-primary text-[0.8rem]">${window.formatMonthCompact(owedMonthsStr)}</span>`;
-                    const _debtZaloBtn = (window.isDebtZaloFeatureEnabled && window.isDebtZaloFeatureEnabled())
-                        ? `<button type="button" data-debt-zalo-ui class="btn-sm bg-[#0068FF] text-white shadow-sm" onclick="copyAndOpenZalo('${safeNameEscaped}', '${safeOwedMonths}', '${safePhone}')">💬 Zalo</button>`
-                        : '';
 
                     // [PERF] Debt list pagination — đếm tổng nợ vẫn chính xác
                     _debtTotalCount++;
-                    if(_curTabId === 'debt' && _debtRendered < _debtLimit) { _debtRendered++; debtHtml += `<tr ${rowBg}><td><span class="badge ${countBadgeClass}">${unpaidMonthsCount} Tháng</span></td><td>${lastPaidLabel}</td>${branchTdHTML}<td class="name-link text-[0.95rem]" onclick="openProfile('${safeNameEscaped}')">${_displayName(name)}${_listYrBadge}${isOverdue ? ' <span title="Nợ từ 2 tháng trở lên" class="text-rose-500">⚠️</span>' : ''}</td><td class="action-btns"><button type="button" class="btn-sm bg-indigo-50 text-indigo-700 border border-indigo-200" onclick="generateMultiMonthPaymentRequest('${safeNameEscaped}', '${safeOwedMonths}', '${safeBranch}', '${totalDebtAmount}')">📱 QR</button>${window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-emerald-600 text-white shadow-sm" onclick="openQuickPayModal('${safeNameEscaped}', '${safeOwedMonths}', '${safeBranch}')">💰 Thu</button>` : ''}${_debtZaloBtn}${window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-rose-50 text-rose-700 border border-rose-200" title="Chuyển võ sinh sang Đã nghỉ" onclick="window.markStudentQuitFromDebt(event, '${safeNameEscaped}', '${selMonth}')">🚫 Nghỉ</button><button type="button" class="btn-sm bg-amber-50 text-amber-700 border border-amber-200" title="Báo nghỉ / miễn học phí tháng này" onclick="window.skipDebtMonthFromDebt(event, '${safeNameEscaped}', '${selMonth}')">⏸ Báo nghỉ</button>` : ''}</td></tr>`; }
+                    if(_curTabId === 'debt' && _debtRendered < _debtLimit) { _debtRendered++; debtHtml += `<tr ${rowBg}><td><span class="badge ${countBadgeClass}">${unpaidMonthsCount} Tháng</span></td><td>${lastPaidLabel}</td>${branchTdHTML}<td class="name-link text-[0.95rem]" onclick="openProfile('${safeNameEscaped}')">${_displayName(name)}${_listYrBadge}${isOverdue ? ' <span title="Nợ từ 2 tháng trở lên" class="text-rose-500">⚠️</span>' : ''}</td><td class="action-btns"><button type="button" class="btn-sm bg-indigo-50 text-indigo-700 border border-indigo-200" onclick="generateMultiMonthPaymentRequest('${safeNameEscaped}', '${safeOwedMonths}', '${safeBranch}', '${totalDebtAmount}')">📱 QR</button>${window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-emerald-600 text-white shadow-sm" onclick="openQuickPayModal('${safeNameEscaped}', '${safeOwedMonths}', '${safeBranch}')">💰 Thu</button>` : ''}<button type="button" class="btn-sm bg-[#0068FF] text-white shadow-sm" onclick="copyAndOpenZalo('${safeNameEscaped}', '${safeOwedMonths}', '${safePhone}')">💬 Zalo</button>${window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-rose-50 text-rose-700 border border-rose-200" title="Chuyển võ sinh sang Đã nghỉ" onclick="window.markStudentQuitFromDebt(event, '${safeNameEscaped}', '${selMonth}')">🚫 Nghỉ</button><button type="button" class="btn-sm bg-amber-50 text-amber-700 border border-amber-200" title="Báo nghỉ / miễn học phí tháng này" onclick="window.skipDebtMonthFromDebt(event, '${safeNameEscaped}', '${selMonth}')">⏸ Báo nghỉ</button>` : ''}</td></tr>`; }
                 }
             } else {
                 // [PERF] Quit list pagination

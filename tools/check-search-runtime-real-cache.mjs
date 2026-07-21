@@ -175,9 +175,10 @@ check('C8', 'profiles.listeners.js _invalidateAll is guarded (not default-called
 
 check('C9', 'app.js renderApp no longer uses raw .toLowerCase().includes(search)', () => {
     // Extract renderApp function body only
-    const fnStart = appJs.indexOf('function renderApp()');
-    // Look at a window of up to 6000 chars — the relevant search loops
-    const fnBody  = appJs.slice(fnStart, fnStart + 6500);
+    const fnMatch = /function\s+renderApp\s*\([^)]*\)\s*\{/.exec(appJs);
+    const fnStart = fnMatch ? fnMatch.index : -1;
+    // Look at a window containing the legacy search loops.
+    const fnBody  = fnStart >= 0 ? appJs.slice(fnStart, fnStart + 9000) : '';
 
     // Patterns we do NOT want
     const badPatterns = [

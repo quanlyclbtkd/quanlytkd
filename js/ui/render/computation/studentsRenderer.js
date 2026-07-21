@@ -57,50 +57,6 @@ function _fallbackProfileBlob(name, p) {
     ].filter(Boolean).map(v => _nvFn(String(v))).join(' ');
 }
 
-// Phase 4K-6V5G: Given-name priority gate used by Active/Debt/Quit isolated renderer.
-// A one-token Vietnamese name query like "uyên" must search the final given-name
-// token only. It must not fall back to fullName/blob.includes(), because that
-// pulls surname/middle tokens such as Nguyễn/Nguyên/Tuyên into the debt list.
-function _normalizeStudentNameSearch(value) {
-    const fn = typeof window !== 'undefined' && window.normalizeVNForSearch;
-    if (typeof fn === 'function') return fn(value);
-    return String(value || '').normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/đ/g, 'd').replace(/Đ/g, 'D')
-        .toLowerCase().trim().replace(/\s+/g, ' ');
-}
-function _studentNameTokens(value) {
-    return _normalizeStudentNameSearch(value).split(' ').filter(Boolean);
-}
-function _isOneTokenGivenNameQuery(search) {
-    const q = _normalizeStudentNameSearch(search);
-    return !!q && !q.includes(' ') && /^[a-z]+$/.test(q) && !/[0-9@._-]/.test(String(search || ''));
-}
-function _profileNameForGivenSearch(id, profile) {
-    const p = profile || {};
-    return String(p.name || p.fullName || p.studentName || p.displayName || p.hoTen || id || '').trim();
-}
-function _matchesFinalGivenName(name, search) {
-    const toks = _studentNameTokens(name);
-    const q = _normalizeStudentNameSearch(search);
-    const finalToken = toks[toks.length - 1] || '';
-    return !!q && (finalToken === q || (q.length >= 2 && finalToken.startsWith(q)));
-}
-function _studentProfileMatchesSearch(name, profile, search) {
-    const q = _normalizeStudentNameSearch(search);
-    if (!q) return true;
-    const displayName = _profileNameForGivenSearch(name, profile);
-    if (_isOneTokenGivenNameQuery(search)) return _matchesFinalGivenName(displayName, q);
-    const p = profile || {};
-    if (typeof window !== 'undefined' && window.StudentSearchIndex && typeof window.StudentSearchIndex.matchesStudentProfileSearch === 'function') {
-        try { return !!window.StudentSearchIndex.matchesStudentProfileSearch(displayName, p, search); } catch (_) {}
-    }
-    const blob = typeof window !== 'undefined' && typeof window.getProfileSearchBlob === 'function'
-        ? window.getProfileSearchBlob(displayName, p)
-        : _fallbackProfileBlob(displayName, p);
-    return q && blob.includes(q);
-}
-
 
 function _monthList(values) {
     return Array.isArray(values)
@@ -298,10 +254,7 @@ export function renderDebtRow(name, p, opts = {}) {
     const safeOwedMonths = owedMonthsStr.replace(/'/g, '');
     const totalDebtAmount = unpaidMonthsCount * (Number(p.tuitionFee) || 0);
     const lastPaidLabel  = `<span class="font-bold text-primary text-[0.8rem]">${formatMonthCompact(owedMonthsStr)}</span>`;
-    const debtZaloBtn = (typeof window !== 'undefined' && window.isDebtZaloFeatureEnabled && window.isDebtZaloFeatureEnabled())
-        ? `<button type="button" data-debt-zalo-ui class="btn-sm bg-[#0068FF] text-white shadow-sm" onclick="copyAndOpenZalo('${safeNameEsc}', '${safeOwedMonths}', '${p.phone || ''}')">💬 Zalo</button>`
-        : '';
-    return `<tr data-debt-id="${safeNameEsc}" ${rowBg}><td><span class="badge ${countBadgeCls}">${unpaidMonthsCount} Tháng</span></td><td>${lastPaidLabel}</td>${branchTdHTML}<td class="name-link text-[0.95rem]" onclick="openProfile('${safeNameEsc}')">${_disp(name)}${yrBadge}${isOverdue ? ' <span title="Nợ từ 2 tháng trở lên" class="text-rose-500">⚠️</span>' : ''}</td><td class="action-btns"><button type="button" class="btn-sm bg-indigo-50 text-indigo-700 border border-indigo-200" onclick="generateMultiMonthPaymentRequest('${safeNameEsc}', '${safeOwedMonths}', '${safeBranch}', '${totalDebtAmount}')">📱 QR</button>${isAdmin ? `<button type="button" class="btn-sm bg-emerald-600 text-white shadow-sm" onclick="openQuickPayModal('${safeNameEsc}', '${safeOwedMonths}', '${safeBranch}')">💰 Thu</button>` : ''}${debtZaloBtn}${isAdmin ? `<button type="button" class="btn-sm bg-rose-50 text-rose-700 border border-rose-200" title="Chuyển võ sinh sang Đã nghỉ" onclick="window.markStudentQuitFromDebt(event, '${safeNameEsc}', '${selMonth}')">🚫 Nghỉ</button><button type="button" class="btn-sm bg-amber-50 text-amber-700 border border-amber-200" title="Báo nghỉ / miễn học phí tháng này" onclick="window.skipDebtMonthFromDebt(event, '${safeNameEsc}', '${selMonth}')">⏸ Báo nghỉ</button>` : ''}</td></tr>`;
+    return `<tr data-debt-id="${safeNameEsc}" ${rowBg}><td><span class="badge ${countBadgeCls}">${unpaidMonthsCount} Tháng</span></td><td>${lastPaidLabel}</td>${branchTdHTML}<td class="name-link text-[0.95rem]" onclick="openProfile('${safeNameEsc}')">${_disp(name)}${yrBadge}${isOverdue ? ' <span title="Nợ từ 2 tháng trở lên" class="text-rose-500">⚠️</span>' : ''}</td><td class="action-btns"><button type="button" class="btn-sm bg-indigo-50 text-indigo-700 border border-indigo-200" onclick="generateMultiMonthPaymentRequest('${safeNameEsc}', '${safeOwedMonths}', '${safeBranch}', '${totalDebtAmount}')">📱 QR</button>${isAdmin ? `<button type="button" class="btn-sm bg-emerald-600 text-white shadow-sm" onclick="openQuickPayModal('${safeNameEsc}', '${safeOwedMonths}', '${safeBranch}')">💰 Thu</button>` : ''}<button type="button" class="btn-sm bg-[#0068FF] text-white shadow-sm" onclick="copyAndOpenZalo('${safeNameEsc}', '${safeOwedMonths}', '${p.phone || ''}')">💬 Zalo</button>${isAdmin ? `<button type="button" class="btn-sm bg-rose-50 text-rose-700 border border-rose-200" title="Chuyển võ sinh sang Đã nghỉ" onclick="window.markStudentQuitFromDebt(event, '${safeNameEsc}', '${selMonth}')">🚫 Nghỉ</button><button type="button" class="btn-sm bg-amber-50 text-amber-700 border border-amber-200" title="Báo nghỉ / miễn học phí tháng này" onclick="window.skipDebtMonthFromDebt(event, '${safeNameEsc}', '${selMonth}')">⏸ Báo nghỉ</button>` : ''}</td></tr>`;
 }
 
 /**
@@ -401,6 +354,16 @@ export function computeAndCacheStudents(allProfiles, params) {
     const buildActive = curTabId === 'active';
     const buildDebt   = curTabId === 'debt';
     const buildQuit   = curTabId === 'quit';
+    // Phase 4K-6V5Q: one quit source/filter boundary for computation, search,
+    // direct render and pagination. No shared active/search page can override it.
+    const _quitBoundaryEntries = buildQuit && window.QuitProfileBoundary?.getEntries
+        ? window.QuitProfileBoundary.getEntries({
+            search,
+            branch: selBranch,
+            reason: 'studentsRenderer.compute'
+          })
+        : null;
+    const _useQuitBoundary = Array.isArray(_quitBoundaryEntries);
 
     // Phase 4K-5J-3: Khai báo trước PASS 1 để tránh TDZ ReferenceError
     // Biến này dùng trong vòng lặp PASS 1 — phải khai báo tại đây, không được ở sau PASS 2
@@ -409,7 +372,7 @@ export function computeAndCacheStudents(allProfiles, params) {
     // Phase 4K-6V4B2: Quit tab must prefer the full/lazy quit profile store.
     // Pagination currentItems can belong to the Active tab or only one server page;
     // using it here causes missing quit students even when allProfiles already has them.
-    const useFullProfileQuitRender = buildQuit && fullProfilesCount > 0;
+    const useFullProfileQuitRender = buildQuit && (_useQuitBoundary || fullProfilesCount > 0);
 
     if (!buildActive && !buildDebt && !buildQuit) {
         _metrics.skippedHiddenTab++;
@@ -425,6 +388,12 @@ export function computeAndCacheStudents(allProfiles, params) {
         const k = _strip(n);
         nameNCount[k] = (nameNCount[k] || 0) + 1;
     });
+    if (_useQuitBoundary) {
+        _quitBoundaryEntries.forEach(([n]) => {
+            const k = _strip(n);
+            nameNCount[k] = Math.max(1, nameNCount[k] || 0);
+        });
+    }
 
     // ── PASS 1: Full iteration for stats + debt calc + non-paginated display ──
     // Phase 4K-6E-C: Sort current-month-new first, then newest-first by join timestamp
@@ -491,9 +460,16 @@ export function computeAndCacheStudents(allProfiles, params) {
             let branchPassFilter = true;
             if (!isSingleBranch && !_branchMatchesFilter(safeBranch, selBranch)) branchPassFilter = false;
             let searchPassFilter = true;
-            // Phase 4K-6V5G: all student tabs use the same final-given-name
-            // gate for one-token name lookup. Do not use blob.includes() here.
-            if (search && !_studentProfileMatchesSearch(name, p, search)) searchPassFilter = false;
+            // Phase 4K-2B PASS 1: Dùng getProfileSearchBlob() — pre-normalized blob, không normalize lại mỗi vòng lặp
+            if (search) {
+                const q = window.normalizeVNForSearch
+                    ? window.normalizeVNForSearch(search)
+                    : String(search || '').toLowerCase().trim();
+                const blob = typeof window.getProfileSearchBlob === 'function'
+                    ? window.getProfileSearchBlob(name, p)
+                    : _fallbackProfileBlob(name, p);
+                if (q && !blob.includes(q)) searchPassFilter = false;
+            }
             const sharedPassFilter = branchPassFilter && searchPassFilter;
             let activePassFilter = sharedPassFilter;
 
@@ -559,23 +535,31 @@ export function computeAndCacheStudents(allProfiles, params) {
             }
         } else {
             if (p.quitDate && p.quitDate.substring(0, 7) === selMonth) m_quit++;
-            if ((!pgStudentsActive || useFullProfileQuitRender) && buildQuit) {
-                // Phase 4K-6V5P: Đã nghỉ uses one canonical filter boundary.
-                // Branch/search must be applied here too; otherwise renderer cache,
-                // direct authoritative rows and search pagination disagree.
-                let quitPassFilter = true;
-                if (!isSingleBranch && !_branchMatchesFilter(safeBranch, selBranch)) quitPassFilter = false;
-                if (quitPassFilter && search && !_studentProfileMatchesSearch(name, p, search)) quitPassFilter = false;
-                if (quitPassFilter) {
-                    _quitTotalCount++;
-                    if (_quitRendered < _quitLimit) {
-                        _quitRendered++;
-                        quitRows += renderQuitRow(name, p, { beltHTML, branchTdHTML, yrBadge, isAdmin });
-                    }
+            if (!_useQuitBoundary && (!pgStudentsActive || useFullProfileQuitRender) && buildQuit) {
+                _quitTotalCount++;
+                if (_quitRendered < _quitLimit) {
+                    _quitRendered++;
+                    quitRows += renderQuitRow(name, p, { beltHTML, branchTdHTML, yrBadge, isAdmin });
                 }
             }
         }
     });
+
+    if (_useQuitBoundary) {
+        quitRows = '';
+        _quitTotalCount = _quitBoundaryEntries.length;
+        _quitRendered = 0;
+        _quitBoundaryEntries.slice(0, _quitLimit).forEach(([name, p]) => {
+            const safeBranch = p.branch || p.branchCode || 'CS1';
+            const yrBadge = _getYrBadge(name, p, nameNCount);
+            const beltHTML = getBeltBadge(p.belt);
+            const branchTdHTML = isSingleBranch
+                ? ''
+                : `<td><span class="badge bg-slate-100 text-slate-600 border border-slate-200">${_getBrN(safeBranch)}</span></td>`;
+            _quitRendered++;
+            quitRows += renderQuitRow(name, p, { beltHTML, branchTdHTML, yrBadge, isAdmin });
+        });
+    }
 
     // ── PASS 2 (Phase 3.2A): Override active from server-side pagination only
     // Phase 4K-6V4B2: Do NOT override quit rows when full/lazy quit profiles exist.
@@ -609,17 +593,16 @@ export function computeAndCacheStudents(allProfiles, params) {
             if (isActive) {
                 let passFilter = true;
                 if (!isSingleBranch && selBranch !== 'all' && safeBranch !== selBranch) passFilter = false;
-                // Phase 4K-6V5G: PASS 2 pagination override must follow the
-                // same final-given-name gate as PASS 1.
-                if (search && !_studentProfileMatchesSearch(name, p, search)) passFilter = false;
-                // Phase 4K-6E-C/V5J: PASS 2 pagination override must also obey
-                // the Active tab's new/returning filter; otherwise "Tất cả/Mới"
-                // can diverge after load-more or cache override.
-                if (
-                    passFilter &&
-                    typeof window.shouldShowActiveStudentByNewFilter === 'function' &&
-                    !window.shouldShowActiveStudentByNewFilter(name, p)
-                ) passFilter = false;
+                // Phase 4K-2B PASS 2: Dùng getProfileSearchBlob() — same pattern as PASS 1
+                if (search) {
+                    const q = window.normalizeVNForSearch
+                        ? window.normalizeVNForSearch(search)
+                        : String(search || '').toLowerCase().trim();
+                    const blob = typeof window.getProfileSearchBlob === 'function'
+                        ? window.getProfileSearchBlob(name, p)
+                        : _fallbackProfileBlob(name, p);
+                    if (q && !blob.includes(q)) passFilter = false;
+                }
 
                 if (passFilter) {
                     _activeTotalCount++;
@@ -643,13 +626,8 @@ export function computeAndCacheStudents(allProfiles, params) {
                     }
                 }
             } else if (buildQuit) {
-                let quitPassFilter = true;
-                if (!isSingleBranch && !_branchMatchesFilter(safeBranch, selBranch)) quitPassFilter = false;
-                if (quitPassFilter && search && !_studentProfileMatchesSearch(name, p, search)) quitPassFilter = false;
-                if (quitPassFilter) {
-                    _quitTotalCount++;
-                    quitRows += renderQuitRow(name, p, { beltHTML, branchTdHTML, yrBadge, isAdmin });
-                }
+                _quitTotalCount++;
+                quitRows += renderQuitRow(name, p, { beltHTML, branchTdHTML, yrBadge, isAdmin });
             }
         });
     }
@@ -798,16 +776,14 @@ export function computeAndCacheStudents(allProfiles, params) {
     //   START: students.quitList   → vị trí bắt đầu render quit rows
     //   END:   mỗi section kết thúc ở load-more button (nếu có) hoặc cuối rows
     if (typeof window.trackLargeListRender === 'function') {
-        // Phase 4K-6V5H: track rendered DOM rows, not total matches.
-        // A debt list can have 573 matches but render 50/150 rows + Load More; that should not spam LargeListWarning.
         if (buildActive) {
-            window.trackLargeListRender('students.activeList', _activeRendered, { reason: 'computeAndCacheStudents', totalRows: _activeTotalCount });
+            window.trackLargeListRender('students.activeList', _activeTotalCount, 'computeAndCacheStudents');
         }
         if (buildDebt) {
-            window.trackLargeListRender('students.debtList', _debtRendered, { reason: 'computeAndCacheStudents', totalRows: _debtTotalCount });
+            window.trackLargeListRender('students.debtList', _debtTotalCount, 'computeAndCacheStudents');
         }
         if (buildQuit) {
-            window.trackLargeListRender('students.quitList', _quitRendered, { reason: 'computeAndCacheStudents', totalRows: _quitTotalCount });
+            window.trackLargeListRender('students.quitList', _quitTotalCount, 'computeAndCacheStudents');
         }
     }
 }

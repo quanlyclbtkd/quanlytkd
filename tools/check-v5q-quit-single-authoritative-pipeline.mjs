@@ -1,0 +1,41 @@
+#!/usr/bin/env node
+import fs from 'node:fs';
+const read = p => fs.readFileSync(p, 'utf8');
+let pass=0, fail=0;
+function check(name, ok){ if(ok){pass++;console.log('✅',name)} else {fail++;console.error('❌',name)} }
+const build='quit-single-source-lock-20260721-v5r';
+const index=read('index.html');
+const main=read('js/main.js');
+const store=read('js/data/studentProfileStore.js');
+const listener=read('js/listeners/profiles.listeners.js');
+const boundary=read('js/data/quitProfileBoundary.js');
+const search=read('js/modules/searchRuntime.js');
+const students=read('js/modules/students.js');
+const renderer=read('js/ui/render/computation/studentsRenderer.js');
+const direct=read('js/ui/render/renderStudents.js');
+const status=read('js/data/profileStatusConfig.js');
+const pubBoundary=read('public/js/data/quitProfileBoundary.js');
+const pkg=JSON.parse(read('package.json'));
+
+check('V5Q/V5R cache bust active', index.includes(`app.js?v=${build}`) && index.includes(`js/main.js?v=${build}`) && main.includes(`quitProfileBoundary.js?v=${build}`));
+check('main exposes boundary and completeness APIs', main.includes('initQuitProfileBoundary()') && main.includes('window.ensureQuitProfilesComplete') && main.includes('window.isQuitProfilesComplete'));
+check('quit authority uses one full collection getDocs', listener.includes('const snap = await fbGetDocs(ctx.profRef)') && listener.includes('queryCount: 1'));
+check('old targeted query fan-out removed', !listener.includes('const quitQueries = []') && !listener.includes('legacyQuitSignals.forEach'));
+check('loaded short-circuit requires same-club fresh completeness', listener.includes('sameClub') && listener.includes('!forceRefresh') && listener.includes('_state.quitCompletenessReconciled && isQuitComplete()'));
+check('authority marks store/listener complete only after full snapshot', listener.includes("syncLegacyAllProfiles(fullMap, 'quit-authoritative:") && listener.includes('{ complete: true }') && listener.includes("quitAuthorityState = 'complete'"));
+check('authority clears shared pagination as source for quit', listener.includes("pg.currentItems = []") && listener.includes("pg.searchSource") === false);
+check('store tracks loaded vs complete separately', store.includes('quitComplete') && store.includes('isQuitComplete') && store.includes('markQuitComplete'));
+check('partial sync preserves existing quit profiles', store.includes('Critical V5Q rule') && store.includes('Partial merge') && store.includes('delete _store.quitProfiles[id]'));
+check('partial sync does not mark quit complete', store.includes('if (complete)') && store.includes('_store.quitComplete      = true'));
+check('pagination no longer full-resyncs partial st.profiles', students.includes('Never resync the whole st.profiles map here') && !students.includes("window.syncProfilesToStudentStore(st.profiles, reason || 'pagination-profile-hydrate')"));
+check('quit pagination/search use local authority', students.includes("_getCurrentTabIdSafe() === 'quit' && window.QuitProfileBoundary") && students.includes("source: 'quit-authoritative-boundary'"));
+check('SearchRuntime bypasses active-only index for quit', search.includes("if (tab === 'quit' && window.QuitProfileBoundary)") && search.includes("source: 'quit-authoritative-boundary'"));
+check('studentsRenderer gets quit rows from one boundary', renderer.includes('const _quitBoundaryEntries') && renderer.includes('studentsRenderer.compute') && renderer.includes('if (_useQuitBoundary)'));
+check('direct quit renderer uses same boundary and shared filters', direct.includes("QuitProfileBoundary.getEntries({ search, branch") && direct.includes('isQuitProfilesComplete'));
+check('boundary uses legacy/canonical sources only for preview and dedicated store for complete mode', boundary.includes('window.allProfiles.preview') && boundary.includes('canonical.quitProfiles.preview') && boundary.includes('complete-single-source') && boundary.includes('studentProfileStore.quitProfiles'));
+check('boundary centralizes branch and search filtering', boundary.includes('function _branchPass') && boundary.includes('function _profileBlob') && boundary.includes('getFilteredQuitEntries'));
+check('boundary performs no Firestore reads/writes', !/\b(getDocs|getDoc|onSnapshot|setDoc|updateDoc|deleteDoc)\b/.test(boundary));
+check('legacy quit date/status aliases expanded', status.includes('ngayNghiTap') && status.includes('nghiHocDate') && status.includes('🚫'));
+check('public boundary mirror synced', boundary === pubBoundary);
+check('package exposes V5Q test', pkg.scripts?.['check:v5q-quit-single-authoritative-pipeline']?.includes('check-v5q-quit-single-authoritative-pipeline.mjs'));
+console.log(`\nPASS ${pass}/${pass+fail}`); if(fail) process.exit(1);

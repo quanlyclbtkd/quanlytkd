@@ -23,13 +23,13 @@ function check(name, ok, detail = '') {
 
 console.log('\n=== Phase 4K-6V4B1 — Coach Branch Runtime Repair ===\n');
 
-const appEntrypointBuilds = ['role-runtime-audit-profiler-20260704-v5o', 'debt-zalo-feature-off-20260704-v5n', 'profile-canonical-store-runtime-recovery-20260628-v4d1a', 'profile-canonical-store-20260628-v4d1', 'tuition-debt-source-of-truth-20260628-v4c'];
+const appEntrypointBuilds = ['quit-single-source-lock-20260721-v5r', 'profile-canonical-store-runtime-recovery-20260628-v4d1a', 'profile-canonical-store-20260628-v4d1', 'tuition-debt-source-of-truth-20260628-v4c'];
 check('Production entrypoints keep V4B1 branch repair and load current runtime cache marker',
-  (((index.match(/coach-branch-runtime-repair-20260627-v4b1/g) || []).length >= 5) || ((index.match(/role-runtime-audit-profiler-20260704-v5o/g) || []).length >= 5) || ((index.match(/debt-zalo-feature-off-20260704-v5n/g) || []).length >= 5)) &&
+  (index.match(/coach-branch-runtime-repair-20260627-v4b1/g) || []).length >= 5 &&
   appEntrypointBuilds.some(build => index.includes(`app.js?v=${build}`)) &&
-  (index.includes('./js/main.js?v=role-runtime-audit-profiler-20260704-v5o') || index.includes('./js/main.js?v=debt-zalo-feature-off-20260704-v5n') || index.includes('./js/main.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a') || index.includes('./js/main.js?v=profile-canonical-store-20260628-v4d1')) &&
-  (main.includes("profiles.listeners.js?v=role-runtime-audit-profiler-20260704-v5o") || main.includes("profiles.listeners.js?v=debt-zalo-feature-off-20260704-v5n") || main.includes("profiles.listeners.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a") || main.includes("profiles.listeners.js?v=profile-canonical-store-20260628-v4d1")) &&
-  (main.includes("attendance.js?v=role-runtime-audit-profiler-20260704-v5o") || main.includes("attendance.js?v=debt-zalo-feature-off-20260704-v5n") || main.includes("attendance.js?v=coach-branch-runtime-repair-20260627-v4b1")));
+  (index.includes('./js/main.js?v=quit-single-source-lock-20260721-v5r') || index.includes('./js/main.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a') || index.includes('./js/main.js?v=profile-canonical-store-20260628-v4d1')) &&
+  (main.includes("profiles.listeners.js?v=quit-single-source-lock-20260721-v5r") || main.includes("profiles.listeners.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a") || main.includes("profiles.listeners.js?v=profile-canonical-store-20260628-v4d1")) &&
+  main.includes("attendance.js?v=coach-branch-runtime-repair-20260627-v4b1"));
 check('Coach creation requires one concrete branch',
   repair.includes("if (!name || !email || !branch || pass.length < 6)") &&
   /id="coach_branch"[\s\S]{0,500}<option value="CS1">/.test(index) &&

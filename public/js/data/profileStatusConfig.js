@@ -64,8 +64,8 @@ const PROFILE_STATUS_CONFIG_DEFAULT = Object.freeze({
      * Aliases quit.
      */
     quitAliases: [
-        'đã nghỉ', 'da nghi', 'nghỉ', 'nghi',
-        'nghỉ tập', 'nghi tap', 'nghỉ hẳn', 'nghi han',
+        'đã nghỉ', 'da nghi', 'nghỉ', 'nghi', '🚫 nghỉ',
+        'nghỉ tập', 'nghi tap', 'nghỉ học', 'nghi hoc', 'nghỉ hẳn', 'nghi han',
         'stopped', 'left', 'quit', 'inactive',
         'retired', 'stop', 'leave',
     ],

@@ -28,7 +28,7 @@
  */
 
 import { getLocalToday, formatDate, formatMonth, formatMonthCompact, addMonthsToYYYYMM } from '../utils/format.js';
-import { StudentService } from '../services/students.service.js?v=quit-authoritative-data-boundary-20260704-v5p';
+import { StudentService } from '../services/students.service.js?v=firestore-read-attribution-canonical-tx-boundary-20260616-v3a';
 
 // ════════════════════════════════════════════════════════════════
 // BRIDGE HELPERS — đọc state từ app.js qua window.__store
@@ -108,7 +108,6 @@ function renderAchievements(list) {
  * Modal có textarea chỉnh sửa tự do, nút Copy và nút Mở Zalo.
  */
 function _injectZaloModal() {
-    if (!window.isDebtZaloFeatureEnabled || !window.isDebtZaloFeatureEnabled()) return;
     if (document.getElementById('_zaloMsgModal')) return;
     const el = document.createElement('div');
     el.id = '_zaloMsgModal';
@@ -657,6 +656,30 @@ export function initStudents() {
                 });
 
                 await StudentService.renameWithBatch(oldName, newName, updateData, txUpdates);
+
+                // V5R: rename/status restore must update the single profile store
+                // immediately. Otherwise the old quit document id can remain in
+                // quitProfiles until the next full authority refresh.
+                const renamedProfile = { ...(profiles[oldName] || {}), ...updateData };
+                if (window.studentProfileStore) {
+                    try { window.studentProfileStore.removeProfile?.(oldName, 'profile-rename-remove-old'); } catch (_) {}
+                    try { window.studentProfileStore.mergeProfile?.(newName, renamedProfile, 'profile-rename-merge-new'); } catch (_) {}
+                }
+                if (window.__store && window.__store.profiles) {
+                    const nextProfiles = { ...window.__store.profiles };
+                    delete nextProfiles[oldName];
+                    nextProfiles[newName] = renamedProfile;
+                    window.__store.profiles = nextProfiles;
+                    window.__store._dataVersion = (window.__store._dataVersion || 0) + 1;
+                }
+                try {
+                    if (typeof window.refreshListsComputation === 'function') {
+                        window.refreshListsComputation(['students.activeList', 'students.quitList', 'students.debtList'], 'profile-rename-status-sync');
+                    }
+                    if (typeof window.invalidateLists === 'function') {
+                        window.invalidateLists(['students.activeList', 'students.quitList', 'students.debtList'], 'profile-rename-status-sync');
+                    }
+                } catch (_) {}
                 window.showToast('✅ Đã cập nhật và đồng bộ tên mới thành công!');
             } else {
                 // Chỉ sửa — không đổi tên
@@ -825,11 +848,6 @@ export function initStudents() {
      * @param {string} phone     — SĐT (có thể rỗng)
      */
     window.copyAndOpenZalo = (name, monthsStr, phone) => {
-        if (!window.isDebtZaloFeatureEnabled || !window.isDebtZaloFeatureEnabled()) {
-            if (typeof window.hideDebtZaloUI === 'function') window.hideDebtZaloUI();
-            if (typeof window.showToast === 'function') window.showToast('ℹ️ Tính năng Zalo nhắc nợ đang tắt.');
-            return false;
-        }
         const p         = _profiles()[name];
         const fee       = p ? (p.tuitionFee || 0) : 0;
         const monthsLabel = formatMonthCompact(monthsStr);
@@ -880,11 +898,6 @@ export function initStudents() {
      * Tính owedMonths giống renderApp (giới hạn 24 tháng tránh vòng lặp vô hạn).
      */
     window.openBulkZaloModal = () => {
-        if (!window.isDebtZaloFeatureEnabled || !window.isDebtZaloFeatureEnabled()) {
-            if (typeof window.hideDebtZaloUI === 'function') window.hideDebtZaloUI();
-            if (typeof window.showToast === 'function') window.showToast('ℹ️ Tính năng Zalo hàng loạt đang tắt.');
-            return false;
-        }
         const profiles       = _profiles();
         const config         = _config();
         const selMonth       = document.getElementById('filterMonth').value;
@@ -935,8 +948,7 @@ export function initStudents() {
 
     /** Đóng modal gửi Zalo hàng loạt */
     window.closeBulkZaloModal = () => {
-        const el = document.getElementById('bulkZaloModal');
-        if (el) el.style.display = 'none';
+        document.getElementById('bulkZaloModal').style.display = 'none';
     };
 
     /**
@@ -1052,7 +1064,7 @@ export function initStudentPagination() {
         renderPaginationControls, PAGE_SIZE,
     }) => {
         import('./students.js').then(() => {}); // no-op — chỉ để IDE không warn
-        import('../services/students.service.js?v=quit-authoritative-data-boundary-20260704-v5p').then(({ StudentService }) => {
+        import('../services/students.service.js?v=firestore-read-attribution-canonical-tx-boundary-20260616-v3a').then(({ StudentService }) => {
 
             const store = window.__store;
             if (!store) { console.warn('[pagination/students] __store chưa sẵn sàng'); return; }
@@ -1082,19 +1094,9 @@ export function initStudentPagination() {
                 const q = normalizeVNForSearch(qRaw);
                 const phoneDigits = qRaw.replace(/\D/g, '');
 
-                const displayName = String((profile && (profile.name || profile.fullName || profile.studentName || profile.displayName || profile.hoTen)) || name || '').trim();
-                const isPlainGivenNameLookup = !!q && !q.includes(' ') && /^[a-z]+$/.test(q) && !/[0-9@._-]/.test(String(qRaw || ''));
-                if (isPlainGivenNameLookup) {
-                    const toks = normalizeVNForSearch(displayName).split(' ').filter(Boolean);
-                    const last = toks[toks.length - 1] || '';
-                    return !!last && (last === q || (q.length >= 2 && last.startsWith(q)));
-                }
-
                 const fields = [
-                    displayName,
+                    name,
                     profile && profile.name,
-                    profile && profile.fullName,
-                    profile && profile.studentName,
                     profile && profile.nickname,
                     profile && profile.memberId,
                     profile && profile.studentCode,
@@ -1533,9 +1535,9 @@ export function initStudentPagination() {
                         try { window.studentProfileStore.mergeProfile(id, item, reason || 'pagination-profile-hydrate'); } catch (_) {}
                     }
                 });
-                if (typeof window.syncProfilesToStudentStore === 'function') {
-                    try { window.syncProfilesToStudentStore(st.profiles, reason || 'pagination-profile-hydrate'); } catch (_) {}
-                }
+                // V5Q: each pagination item was already merged above via mergeProfile().
+                // Never resync the whole st.profiles map here: it can be active-only or
+                // one search page and previously erased quitProfiles / marked quitLoaded.
                 if (window.__store) {
                     window.__store._dataVersion = (window.__store._dataVersion || 0) + 1;
                     window.__store._lastProfileHydrateReason = reason || 'pagination-profile-hydrate';
@@ -1568,6 +1570,45 @@ export function initStudentPagination() {
                 _injectControls(); // hiện spinner ngay
 
                 const search = searchOverride !== null ? searchOverride : _getCurrentSearch();
+
+                // Phase 4K-6V5Q: Quit tab never uses shared Firestore pagination.
+                // The full profile collection is loaded once by the quit authority,
+                // then search/filter/load-more are local and deterministic.
+                if (_getCurrentTabIdSafe() === 'quit' && window.QuitProfileBoundary) {
+                    try { await window.QuitProfileBoundary.ensureComplete('students-pagination-quit'); } catch (_) {}
+                    if (_isStaleSearch()) {
+                        pgState.isLoading = false;
+                        return { stale: true, items: [] };
+                    }
+                    const entries = window.QuitProfileBoundary.getEntries({
+                        search,
+                        branch: (document.getElementById('filterBranch') || {}).value || 'all',
+                        reason: 'students-pagination-quit'
+                    });
+                    pgState.currentItems = [];
+                    pgState.currentPage = 1;
+                    pgState.totalLoaded = entries.length;
+                    pgState.hasNext = false;
+                    pgState.hasPrevious = false;
+                    pgState.isLoading = false;
+                    pgState.enabled = false;
+                    pgState.searchQuery = search;
+                    pgState.searchActive = !!String(search || '').trim();
+                    pgState.searchSource = 'quit-authoritative-boundary';
+                    if (window.__store) {
+                        window.__store._studentsPaginationVersion = (window.__store._studentsPaginationVersion || 0) + 1;
+                        window.__store._dataVersion = (window.__store._dataVersion || 0) + 1;
+                        window.__store._globalSearchTerm = search;
+                    }
+                    if (typeof window.refreshListComputation === 'function') {
+                        window.refreshListComputation('students.quitList', 'students-pagination-quit-authority');
+                    }
+                    if (typeof window.invalidateList === 'function') {
+                        window.invalidateList('students.quitList', 'students-pagination-quit-authority');
+                    }
+                    _injectControls();
+                    return { items: entries.map(([id, profile]) => Object.assign({ id }, profile)), source: 'quit-authoritative-boundary' };
+                }
 
                 // Phase 4.0B-4J-8A: Search status element
                 const _srStatusId = 'searchStatusMsg_students';
@@ -2498,11 +2539,6 @@ window.ensureDebtProfilesReady = async function ensureDebtProfilesReady(reason) 
     if (typeof window.refreshListsComputation === 'function') {
         window.refreshListsComputation(['students.activeList', 'students.debtList', 'dashboard.summary'], reason);
     }
-    // Phase 4K-6V5M: Báo nghỉ tháng cũng ảnh hưởng danh sách Điểm danh của
-    // tháng tương ứng; invalidate attendance roster, not only Debt/Active.
-    if (typeof window.invalidateList === 'function') {
-        window.invalidateList('attendance.list', reason + ':attendance-skipped-month-sync');
-    }
     if (typeof window.updateSkippedMonthSection === 'function') {
         try {
             window.updateSkippedMonthSection(window.__store.profiles, month);
@@ -2511,7 +2547,6 @@ window.ensureDebtProfilesReady = async function ensureDebtProfilesReady(reason) 
     if (typeof window.invalidateList === 'function') {
         window.invalidateList('students.debtList', reason);
         window.invalidateList('students.activeList', reason);
-        window.invalidateList('attendance.list', reason + ':attendance-skipped-month-sync');
     } else if (typeof window.invalidateStudents === 'function') {
         window.invalidateStudents(reason);
     }
@@ -2663,14 +2698,6 @@ window.syncStudentStatusLocal = function syncStudentStatusLocal(name, updateData
         window.__store._dataVersion = (window.__store._dataVersion || 0) + 1;
         window.__store._studentStatusVersion = (window.__store._studentStatusVersion || 0) + 1;
 
-        // Phase 4K-6V5M: push the local status change into the canonical profile
-        // store immediately. Without this, a student marked 🚫 Nghỉ could be
-        // removed from Debt but remain missing from Đã nghỉ until the next
-        // Firestore snapshot/lazy reload.
-        if (window.studentProfileStore && typeof window.studentProfileStore.mergeProfile === 'function') {
-            try { window.studentProfileStore.mergeProfile(key, nextProfile, reason); } catch (_) {}
-        }
-
         if (typeof window.invalidateSearchCache === 'function') {
             window.invalidateSearchCache('students', reason);
         }
@@ -2683,18 +2710,12 @@ window.syncStudentStatusLocal = function syncStudentStatusLocal(name, updateData
             window.invalidateList('students.activeList', reason);
             window.invalidateList('students.quitList', reason);
             window.invalidateList('students.debtList', reason);
-            // Phase 4K-6V5M: Điểm danh phải đồng bộ với Đang tập/Đã nghỉ.
-            // Khi võ sinh chuyển 🚫 Nghỉ, loại khỏi attendance roster ngay.
-            if (kind === 'quit') window.invalidateList('attendance.list', reason + ':attendance-status-sync');
         } else if (typeof window.invalidateStudents === 'function') {
             window.invalidateStudents(reason);
         }
 
         if (typeof window.invalidateDashboard === 'function') {
             window.invalidateDashboard(reason);
-        }
-        if (kind === 'quit' && typeof window.renderAttendanceList === 'function') {
-            try { Promise.resolve().then(() => window.renderAttendanceList()); } catch (_) {}
         }
 
         // Phase 4K-6A-B: removed scheduleRender() — use list-level invalidation above
@@ -2745,17 +2766,6 @@ window.ensureStudentTabRendered = function(tabId, reason) {
     if (!key) return false;
 
     try {
-        // Phase 4K-6V5P: entering Đã nghỉ must start the authoritative quit
-        // loader/reconcile before rendering, otherwise the tab can show a partial
-        // local quit set and the restore search cannot find older quit profiles.
-        if (tabId === 'quit' && typeof window.loadQuitProfilesIfNeeded === 'function') {
-            Promise.resolve(window.loadQuitProfilesIfNeeded('ensure-student-tab-rendered:' + reason))
-                .then(function() {
-                    if (typeof window.refreshListComputation === 'function') window.refreshListComputation('students.quitList', 'quit-authoritative-ready');
-                    if (typeof window.invalidateList === 'function') window.invalidateList('students.quitList', 'quit-authoritative-ready');
-                })
-                .catch(function(err) { console.warn('[ensureStudentTabRendered] quit authoritative load failed:', err && (err.code || err.message) || err); });
-        }
         if (typeof window.refreshListComputation === 'function') {
             window.refreshListComputation(key, reason + ':' + tabId);
         } else if (typeof window.refreshListsComputation === 'function') {
@@ -2888,11 +2898,6 @@ window.syncStudentSkippedMonthLocal = function(name, month, action, reason) {
     if (typeof window.refreshListsComputation === 'function') {
         window.refreshListsComputation(['students.activeList', 'students.debtList', 'dashboard.summary'], reason);
     }
-    // Phase 4K-6V5M: Báo nghỉ tháng cũng ảnh hưởng danh sách Điểm danh của
-    // tháng tương ứng; invalidate attendance roster, not only Debt/Active.
-    if (typeof window.invalidateList === 'function') {
-        window.invalidateList('attendance.list', reason + ':attendance-skipped-month-sync');
-    }
     if (typeof window.updateSkippedMonthSection === 'function') {
         try {
             window.updateSkippedMonthSection(window.__store.profiles, month);
@@ -2901,7 +2906,6 @@ window.syncStudentSkippedMonthLocal = function(name, month, action, reason) {
     if (typeof window.invalidateList === 'function') {
         window.invalidateList('students.debtList', reason);
         window.invalidateList('students.activeList', reason);
-        window.invalidateList('attendance.list', reason + ':attendance-skipped-month-sync');
     } else if (typeof window.invalidateStudents === 'function') {
         window.invalidateStudents(reason);
     }
@@ -2985,10 +2989,6 @@ window.markStudentQuitFromDebt = async function(event, name, month) {
             // Phase 4K-6A-B: ensure debt list re-renders after quit action
             if (typeof window.ensureStudentTabRendered === 'function') {
                 window.ensureStudentTabRendered('debt', 'after-mark-student-quit');
-                window.ensureStudentTabRendered('quit', 'after-mark-student-quit');
-            }
-            if (typeof window.invalidateList === 'function') {
-                window.invalidateList('attendance.list', 'after-mark-student-quit');
             }
             if (window.showToast) window.showToast('✅ Đã chuyển võ sinh sang Đã nghỉ!');
         },
@@ -3054,9 +3054,6 @@ window.skipDebtMonthFromDebt = async function(event, name, month) {
             // Phase 4K-6A-B: ensure debt list re-renders after skip action
             if (typeof window.ensureStudentTabRendered === 'function') {
                 window.ensureStudentTabRendered('debt', 'after-skip-debt-month');
-            }
-            if (typeof window.invalidateList === 'function') {
-                window.invalidateList('attendance.list', 'after-skip-debt-month');
             }
             if (window.showToast) window.showToast('✅ Đã báo nghỉ tháng này và miễn học phí!');
         },

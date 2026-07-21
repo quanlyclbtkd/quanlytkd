@@ -205,10 +205,11 @@ if (mainJs) {
         'Use relative paths in main.js: from "./store.js" not from "/js/store.js"');
 
     // Dynamic imports for superadmin must be relative
-    const _hasDynImport = /import\(\s*["']\.\/modules\/superadmin\.js(?:\?[^"']*)?["']\s*\)/.test(mainJs);
+    const _hasDynImport = mainJs.includes("import('./modules/superadmin.js')") ||
+        mainJs.includes('import("./modules/superadmin.js")');
     check('main.js dynamic import for superadmin uses relative path (./modules/superadmin.js)',
         _hasDynImport,
-        'Use: await import("./modules/superadmin.js?v=...") — relative to main.js location in js/');
+        'Use: await import("./modules/superadmin.js") — relative to main.js location in js/');
 
     // ensureSuperAdminModule must exist
     check('main.js defines window.ensureSuperAdminModule',

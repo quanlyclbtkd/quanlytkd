@@ -52,6 +52,8 @@ const _store = {
     activeLoaded:       false,
     /** Đã load quitProfiles ít nhất 1 lần chưa */
     quitLoaded:         false,
+    /** Quit map đã được đối chiếu từ một full authoritative snapshot chưa */
+    quitComplete:       false,
     /** Đã load otherProfiles ít nhất 1 lần chưa */
     otherLoaded:        false,
     /** Tăng mỗi khi store thay đổi — dùng để detect staleness */
@@ -71,6 +73,7 @@ const _metrics = {
     allProfilesCompatCount:       0,
     activeLoaded:                 false,
     quitLoaded:                   false,
+    quitComplete:                 false,
     otherLoaded:                  false,
     version:                      0,
     syncCount:                    0,
@@ -93,6 +96,7 @@ function _updateMetrics() {
     _metrics.allProfilesCompatCount = Object.keys(_store.allProfilesCompat).length;
     _metrics.activeLoaded           = _store.activeLoaded;
     _metrics.quitLoaded             = _store.quitLoaded;
+    _metrics.quitComplete           = _store.quitComplete;
     _metrics.otherLoaded            = _store.otherLoaded;
     _metrics.version                = _store.version;
     _metrics.lastUpdatedAt          = _store.lastUpdatedAt;
@@ -155,6 +159,13 @@ function _rebuildCompat() {
 export function setActiveProfiles(map, reason) {
     if (!map || typeof map !== 'object') return;
     _store.activeProfiles = map;
+    // V5R bucket invariant: an active id cannot remain in quit/other caches.
+    // This removes restored students immediately when the active listener fires,
+    // including changes made from another browser/session.
+    for (const id of Object.keys(map)) {
+        delete _store.quitProfiles[id];
+        delete _store.otherProfiles[id];
+    }
     _store.activeLoaded   = true;
     _store.version++;
     _store.lastUpdatedAt  = Date.now();
@@ -169,10 +180,17 @@ export function setActiveProfiles(map, reason) {
  * @param {object} map
  * @param {string} reason
  */
-export function setQuitProfiles(map, reason) {
+export function setQuitProfiles(map, reason, options = {}) {
     if (!map || typeof map !== 'object') return;
     _store.quitProfiles = map;
+    // V5R bucket invariant: a quit id cannot remain in active/other caches.
+    for (const id of Object.keys(map)) {
+        delete _store.activeProfiles[id];
+        delete _store.otherProfiles[id];
+    }
     _store.quitLoaded   = true;
+    if (options.complete === true) _store.quitComplete = true;
+    else if (options.complete === false) _store.quitComplete = false;
     _store.version++;
     _store.lastUpdatedAt = Date.now();
     _rebuildCompat();
@@ -188,6 +206,10 @@ export function setQuitProfiles(map, reason) {
 export function setOtherProfiles(map, reason) {
     if (!map || typeof map !== 'object') return;
     _store.otherProfiles = map;
+    for (const id of Object.keys(map)) {
+        delete _store.activeProfiles[id];
+        delete _store.quitProfiles[id];
+    }
     _store.otherLoaded   = true;
     _store.version++;
     _store.lastUpdatedAt = Date.now();
@@ -272,6 +294,7 @@ export function resetStudentProfileStore(reason) {
     _store.allProfilesCompat = {};
     _store.activeLoaded      = false;
     _store.quitLoaded        = false;
+    _store.quitComplete      = false;
     _store.otherLoaded       = false;
     _store.version++;
     _store.lastUpdatedAt     = Date.now();
@@ -294,9 +317,13 @@ export function resetStudentProfileStore(reason) {
  * @param {object} allProfiles  - { [profileId]: profileData }
  * @param {string} reason
  */
-export function syncLegacyAllProfiles(allProfiles, reason) {
+export function syncLegacyAllProfiles(allProfiles, reason, options = {}) {
     if (!allProfiles || typeof allProfiles !== 'object') return;
 
+    const tag = String(reason || '');
+    // Critical V5Q rule: pagination/search/active-only hydration is PARTIAL and
+    // must never replace quitProfiles or mark the quit tab complete.
+    const complete = options.complete === true || /(^|:)(full-fallback|profiles-snapshot-legacy-fallback|quit-authoritative|full-profiles)(:|$)/.test(tag);
     const active = {}, quit = {}, other = {};
 
     for (const [id, data] of Object.entries(allProfiles)) {
@@ -307,19 +334,34 @@ export function syncLegacyAllProfiles(allProfiles, reason) {
         else                            other[id]  = data;
     }
 
-    _store.activeProfiles    = active;
-    _store.quitProfiles      = quit;
-    _store.otherProfiles     = other;
-    // allProfilesCompat = union đầy đủ — active thắng nếu id trùng
-    _store.allProfilesCompat = { ...other, ...quit, ...active };
-    _store.activeLoaded      = true;
-    _store.quitLoaded        = true;
-    _store.otherLoaded       = true;
-    _store.version++;
-    _store.lastUpdatedAt     = Date.now();
+    if (complete) {
+        _store.activeProfiles    = active;
+        _store.quitProfiles      = quit;
+        _store.otherProfiles     = other;
+        _store.activeLoaded      = true;
+        _store.quitLoaded        = true;
+        _store.quitComplete      = true;
+        _store.otherLoaded       = true;
+    } else {
+        // Partial merge. Remove each incoming id from its old bucket, then put it
+        // into the new one. Existing quit records not present in the page survive.
+        for (const id of Object.keys(allProfiles)) {
+            delete _store.activeProfiles[id];
+            delete _store.quitProfiles[id];
+            delete _store.otherProfiles[id];
+        }
+        Object.assign(_store.activeProfiles, active);
+        Object.assign(_store.quitProfiles, quit);
+        Object.assign(_store.otherProfiles, other);
+        if (Object.keys(active).length) _store.activeLoaded = true;
+        if (Object.keys(quit).length) _store.quitLoaded = true;
+    }
 
+    _rebuildCompat();
+    _store.version++;
+    _store.lastUpdatedAt = Date.now();
     _metrics.syncCount++;
-    _metrics.lastSyncReason = reason || '';
+    _metrics.lastSyncReason = tag;
     _updateMetrics();
 }
 
@@ -367,8 +409,10 @@ export function getProfileFromStore(profileId) {
 
 export function isActiveLoaded()        { return _store.activeLoaded; }
 export function isQuitLoaded()          { return _store.quitLoaded; }
+export function isQuitComplete()        { return _store.quitComplete; }
 export function markActiveLoaded(value) { _store.activeLoaded = !!value; _updateMetrics(); }
 export function markQuitLoaded(value)   { _store.quitLoaded   = !!value; _updateMetrics(); }
+export function markQuitComplete(value) { _store.quitComplete = !!value; _updateMetrics(); }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ensureProfilesForTab
@@ -412,16 +456,18 @@ export function ensureProfilesForTab(tabId, reason) {
             // Cần allProfilesCompat cho autocomplete + danh sách nợ
             return compatCount > 0;
 
-        case 'quit':
-            // [Phase 3.7B] Trigger lazy load nếu chưa loaded (fire-and-forget async).
-            // loadQuitProfilesIfNeeded tự guard: skip nếu đang load hoặc đã loaded.
-            // Sau khi getDocs xong → invalidateStudents('quit-profiles-loaded') → re-render tab Đã nghỉ.
-            if (!_store.quitLoaded) {
-                if (typeof window.loadQuitProfilesIfNeeded === 'function') {
-                    window.loadQuitProfilesIfNeeded('ensure-quit-tab:' + (reason || ''));
-                }
+        case 'quit': {
+            // V5R: always pass tab entry through the authority freshness gate.
+            // The loader short-circuits when the same-club snapshot is fresh and
+            // revalidates after the TTL/dirty signal, preventing stale quit lists.
+            const complete = _store.quitComplete === true &&
+                (typeof window.isQuitProfilesComplete !== 'function' || window.isQuitProfilesComplete() === true);
+            const ensure = window.ensureQuitProfilesComplete || window.loadQuitProfilesIfNeeded;
+            if (typeof ensure === 'function') {
+                Promise.resolve(ensure('ensure-quit-tab:' + (reason || ''))).catch(() => {});
             }
-            return _store.quitLoaded || compatCount > 0;
+            return complete || Object.keys(_store.quitProfiles).length > 0;
+        }
 
         case 'inventory':
         case 'expense':
@@ -507,6 +553,7 @@ export const studentProfileStore = {
     get allProfilesCompat() { return _store.allProfilesCompat; },
     get activeLoaded()      { return _store.activeLoaded; },
     get quitLoaded()        { return _store.quitLoaded; },
+    get quitComplete()      { return _store.quitComplete; },
     get otherLoaded()       { return _store.otherLoaded; },
     get version()           { return _store.version; },
     get lastUpdatedAt()     { return _store.lastUpdatedAt; },
@@ -529,8 +576,10 @@ export const studentProfileStore = {
     getProfileFromStore,
     isActiveLoaded,
     isQuitLoaded,
+    isQuitComplete,
     markActiveLoaded,
     markQuitLoaded,
+    markQuitComplete,
 
     // Helpers
     classifyProfileStatus,

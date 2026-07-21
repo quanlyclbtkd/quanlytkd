@@ -1,7 +1,7 @@
 rules_version = '2';
 // ══════════════════════════════════════════════════════════════════════════════
 // Firestore Security Rules — Taekwondo Club Management SaaS
-// Phase 4K-6V5K — SuperAdmin Access + Admin Account Provisioning Recovery (keeps Phase 4K-6V4B security boundary)
+// Phase 4K-6V4B1 — Coach Branch Assignment + Runtime Mirror Repair
 //
 // Mục tiêu:
 //   • Client UI không còn là lớp bảo vệ duy nhất.
@@ -57,27 +57,10 @@ service cloud.firestore {
         && !(currentUser().get('status', 'active') in ['disabled', 'locked', 'suspended']);
     }
 
-    // Phase 4K-6V5K: SuperAdmin recognition must match runtime aliases.
-    // Production previously showed ROOT UI but Firestore denied /clubs list and
-    // /login_history list because rules only accepted exact role=super_admin.
-    function isSuperAdminRoleValue(roleValue) {
-      return roleValue in [
-        'super_admin', 'superadmin', 'root', 'root_admin', 'admin_root'
-      ];
-    }
-
-    function isTrustedSuperAdminEmail() {
-      return signedIn()
-        && request.auth.token.get('email', '') in ['admin@tstquynhon.com'];
-    }
-
     function isSuperAdmin() {
       return signedIn() && (
-        isTrustedSuperAdminEmail()
-        || isSuperAdminRoleValue(request.auth.token.get('role', ''))
-        || isSuperAdminRoleValue(request.auth.token.get('userRole', ''))
-        || isSuperAdminRoleValue(request.auth.token.get('adminRole', ''))
-        || (hasUserDoc() && isSuperAdminRoleValue(myRole()))
+        request.auth.token.get('role', '') == 'super_admin'
+        || (hasUserDoc() && myRole() == 'super_admin')
         || exists(/databases/$(database)/documents/super_admins/$(request.auth.uid))
       );
     }
@@ -262,9 +245,7 @@ service cloud.firestore {
       match /transactions/{transactionId} {
         allow get, list: if isSuperAdmin() || isAdminOrViewer(clubId);
         allow create, update: if isSuperAdmin() || isClubAdmin(clubId);
-        // Phase 4K-6V5D: Admin CLB được xóa giao dịch sai để hệ thống
-        // reconcile lại học phí/Báo nợ. Coach/Viewer vẫn bị chặn.
-        allow delete: if isSuperAdmin() || isClubAdmin(clubId);
+        allow delete: if isSuperAdmin();
       }
 
       match /inventory/{inventoryId} {
@@ -367,27 +348,6 @@ service cloud.firestore {
         && selfCoachMirrorMatches(uid, request.resource.data);
     }
 
-    // Phase 4K-6V5I: login_history là audit phụ.
-    // Mọi user đã đăng nhập được tạo bản ghi của chính mình; chỉ SuperAdmin đọc/xóa.
-    function safeLoginHistoryCreate() {
-      return signedIn()
-        && request.resource.data.keys().hasOnly([
-          'uid', 'email', 'clubId', 'role', 'loginAt', 'timestamp',
-          'browser', 'os', 'deviceType', 'deviceName'
-        ])
-        && request.resource.data.get('uid', '') == request.auth.uid
-        && request.resource.data.get('role', 'viewer') in [
-          'super_admin', 'superadmin', 'root', 'root_admin', 'admin_root',
-          'admin', 'owner', 'viewer', 'coach', 'hlv'
-        ]
-        && (isSuperAdmin() || userEnabled());
-    }
-
-    match /login_history/{docId} {
-      allow create: if safeLoginHistoryCreate();
-      allow get, list, update, delete: if isSuperAdmin();
-    }
-
     match /users/{uid} {
       allow get: if signedIn() && (
         request.auth.uid == uid
@@ -414,10 +374,7 @@ service cloud.firestore {
     }
 
     match /super_admins/{uid} {
-      // Cho phép tài khoản tự get marker của mình để runtime diagnostic hoạt động;
-      // list/create/update/delete vẫn chỉ SuperAdmin thực sự được phép.
-      allow get: if (signedIn() && request.auth.uid == uid) || isSuperAdmin();
-      allow list, create, update, delete: if isSuperAdmin();
+      allow read, write: if isSuperAdmin();
     }
 
     // Deny by default for every top-level path not explicitly declared.

@@ -1,7 +1,7 @@
 /**
  * js/core/studentSearchIndex.js
  * ────────────────────────────────────────────────────────────────
- * Phase 4K-6V5G — Given-Name Priority Search Unification
+ * Phase 4K-6K-E — Unified Student Search Index Accuracy Gate
  *
  * A read-only, in-memory student search index shared by active/quit/debt
  * search flows. It improves search accuracy for Vietnamese names, phone,
@@ -54,46 +54,6 @@ function _compact(value) {
   return normalizeStudentSearchText(value).replace(/\s+/g, '');
 }
 
-function _tokens(value) {
-  return normalizeStudentSearchText(value).split(' ').filter(t => t && t.length >= 1);
-}
-
-function _isPlainNameLookup(normTerm, digitTerm, rawTerm) {
-  const q = String(normTerm || '').trim();
-  if (!q || q.includes(' ')) return false;
-  if (digitTerm && digitTerm.length >= 2) return false;
-  // A plain Vietnamese name query should not behave like a broad blob/code search.
-  return /^[a-z]+$/.test(q) && !/[0-9@._-]/.test(String(rawTerm || ''));
-}
-
-function _givenNameTokensFromName(name) {
-  const toks = _tokens(name);
-  if (!toks.length) return [];
-  const last = toks[toks.length - 1];
-  // Keep the final given-name token as the strict primary field.  This is what
-  // prevents searching "uyen" from matching surname/middle tokens like
-  // "nguyen"/"nguyen..." merely because they contain "uyen".
-  return [last];
-}
-
-function _givenNameMatches(entry, normTerm) {
-  const q = String(normTerm || '').trim();
-  if (!q) return { ok: false, score: 0, matches: [] };
-  const given = Array.isArray(entry.givenNameTokens) && entry.givenNameTokens.length
-    ? entry.givenNameTokens
-    : _givenNameTokensFromName(entry.name || entry.normalizedName || '');
-  if (given.some(t => t === q)) return { ok: true, score: 140, matches: ['given-name-exact'] };
-  if (q.length >= 2 && given.some(t => t.startsWith(q))) return { ok: true, score: 112, matches: ['given-name-prefix'] };
-  return { ok: false, score: 0, matches: [] };
-}
-
-function _wordBoundaryContains(text, term) {
-  const t = normalizeStudentSearchText(text);
-  const q = normalizeStudentSearchText(term);
-  if (!q) return false;
-  return t.split(' ').some(part => part === q || part.startsWith(q) || part.includes(q));
-}
-
 function _digits(value) {
   return String(value || '').replace(/\D+/g, '');
 }
@@ -104,23 +64,13 @@ function _upperCode(value) {
 
 function _getProfiles() {
   const st = window.__store || {};
-  const merged = {};
-  // Phase 4K-6V5P: build the search index from the union source, not only
-  // window.__store.profiles. The latter may be active-only while the Đã nghỉ
-  // tab already has quitProfiles in studentProfileStore.
+  if (st.profiles && typeof st.profiles === 'object') return st.profiles;
   try {
     if (window.studentProfileStore && typeof window.studentProfileStore.getAllProfilesCompat === 'function') {
-      Object.assign(merged, window.studentProfileStore.getAllProfilesCompat() || {});
+      return window.studentProfileStore.getAllProfilesCompat() || {};
     }
   } catch (_) {}
-  try { Object.assign(merged, window.allProfiles || {}); } catch (_) {}
-  if (st.profiles && typeof st.profiles === 'object') Object.assign(merged, st.profiles);
-  try {
-    if (window.studentProfileStore && typeof window.studentProfileStore.getQuitProfiles === 'function') {
-      Object.assign(merged, window.studentProfileStore.getQuitProfiles() || {});
-    }
-  } catch (_) {}
-  return Object.keys(merged).length ? merged : {};
+  return {};
 }
 
 function _profileVersion(profiles) {
@@ -171,9 +121,9 @@ function _buildTokens(id, profile) {
   const name = _studentNameFromEntry(id, p);
   const parts = [];
   [
-    id, name, p.name, p.fullName, p.studentName, p.nickname, p.searchName,
+    id, name, p.name, p.fullName, p.studentName, p.nickname,
     p.gender, p.dob, p.birthDate,
-    p.branchCode, p.branch, p.branchName, p.base, p.facility,
+    p.branch, p.branchName, p.base, p.facility,
     p.belt, p.currentBelt, p.rank,
     p.notes, p.note, p.address, p.email,
     p.cccd, p.identityNo
@@ -189,9 +139,7 @@ function _buildTokens(id, profile) {
 
   const blob = Array.from(new Set(normalizedParts.concat(compactParts, digitParts, codeParts.map(normalizeStudentSearchText)))).join(' ');
 
-  const nameTokens = _tokens(name);
-  const givenNameTokens = _givenNameTokensFromName(name);
-  return { parts, blob, compactName: _compact(name), normalizedName: normalizeStudentSearchText(name), nameTokens, givenNameTokens, givenNameToken: givenNameTokens[0] || '', digitParts, codeParts };
+  return { parts, blob, compactName: _compact(name), normalizedName: normalizeStudentSearchText(name), digitParts, codeParts };
 }
 
 function _addToMap(map, key, entry) {
@@ -225,14 +173,11 @@ export const StudentSearchIndex = {
         profile: p,
         normalizedName: tokens.normalizedName,
         compactName: tokens.compactName,
-        nameTokens: tokens.nameTokens,
-        givenNameTokens: tokens.givenNameTokens,
-        givenNameToken: tokens.givenNameToken,
         blob: tokens.blob,
         codes: tokens.codeParts,
         phones: tokens.digitParts,
         status: String(p.status || '').toLowerCase(),
-        branch: p.branchCode || p.branch || p.branchName || p.base || '',
+        branch: p.branch || p.branchName || p.base || '',
         belt: p.belt || p.currentBelt || '',
         vtf: _getVtfValue(p)
       };
@@ -310,30 +255,16 @@ export const StudentSearchIndex = {
     return true;
   },
 
-  _score(entry, normTerm, compactTerm, digitTerm, codeTerm, rawTerm) {
+  _score(entry, normTerm, compactTerm, digitTerm, codeTerm) {
     let score = 0;
     const matches = [];
     if (!entry) return { score, matches };
-
-    const plainNameLookup = _isPlainNameLookup(normTerm, digitTerm, rawTerm);
-    if (plainNameLookup) {
-      const given = _givenNameMatches(entry, normTerm);
-      if (!given.ok) return { score: 0, matches: [] };
-      score += given.score;
-      matches.push(...given.matches);
-      return { score, matches: Array.from(new Set(matches)) };
-    }
-
     if (entry.normalizedName === normTerm) { score += 120; matches.push('exact-name'); }
     else if (entry.normalizedName.startsWith(normTerm)) { score += 80; matches.push('name-prefix'); }
     else if (entry.normalizedName.includes(normTerm)) { score += 60; matches.push('name-contains'); }
 
-    const nameTokens = Array.isArray(entry.nameTokens) ? entry.nameTokens : _tokens(entry.name || entry.normalizedName || '');
-    if (normTerm && nameTokens.some(t => t === normTerm)) { score += 95; matches.push('name-token-exact'); }
-    else if (normTerm && nameTokens.some(t => t.startsWith(normTerm))) { score += 72; matches.push('name-token-prefix'); }
-
     if (compactTerm && entry.compactName === compactTerm) { score += 100; matches.push('compact-name'); }
-    else if (compactTerm && entry.compactName.startsWith(compactTerm)) { score += 55; matches.push('compact-name-prefix'); }
+    else if (compactTerm && entry.compactName.includes(compactTerm)) { score += 55; matches.push('compact-name-contains'); }
 
     if (codeTerm && entry.codes.some(c => c === codeTerm)) { score += 115; matches.push('exact-code'); }
     else if (codeTerm && entry.codes.some(c => c.includes(codeTerm))) { score += 75; matches.push('code-contains'); }
@@ -343,35 +274,6 @@ export const StudentSearchIndex = {
 
     if (entry.blob.includes(normTerm)) { score += 25; matches.push('blob'); }
     return { score, matches: Array.from(new Set(matches)) };
-  },
-
-  isPlainGivenNameLookup(rawTerm) {
-    const normTerm = normalizeStudentSearchText(rawTerm);
-    const digitTerm = _digits(rawTerm);
-    return _isPlainNameLookup(normTerm, digitTerm, rawTerm);
-  },
-
-  matchesGivenNameOnly(name, rawTerm) {
-    const q = normalizeStudentSearchText(rawTerm);
-    return _givenNameMatches({ name, givenNameTokens: _givenNameTokensFromName(name) }, q).ok;
-  },
-
-  analyzeGivenNameMatch(name, rawTerm) {
-    const q = normalizeStudentSearchText(rawTerm);
-    const tokens = _tokens(name);
-    const finalToken = tokens[tokens.length - 1] || '';
-    const given = _givenNameMatches({ name, givenNameTokens: finalToken ? [finalToken] : [] }, q);
-    return { query: q, name, tokens, finalToken, ok: given.ok, matches: given.matches, score: given.score };
-  },
-
-  matchesStudentProfileSearch(name, profile, rawTerm) {
-    const q = normalizeStudentSearchText(rawTerm);
-    if (!q) return true;
-    if (this.isPlainGivenNameLookup(rawTerm)) return this.matchesGivenNameOnly(name || profile?.name || profile?.fullName || profile?.studentName || '', rawTerm);
-    const p = profile || {};
-    const blob = [name, p.name, p.fullName, p.studentName, p.phone, p.parentPhone, p.contactPhone, p.memberId, p.studentCode, p.code, p.vtfCode, p.vtfId, p.belt, p.notes, p.note]
-      .filter(Boolean).map(normalizeStudentSearchText).join(' ');
-    return blob.includes(q);
   },
 
   searchStudents(rawTerm, options = {}) {
@@ -392,13 +294,9 @@ export const StudentSearchIndex = {
       if (!includeAllStatuses && !this.matchesMode(entry, mode)) continue;
       if (branch && branch !== 'all' && branch !== 'Tất cả cơ sở') {
         const eb = String(entry.branch || '').trim();
-        let sameBranch = eb === branch;
-        try {
-          if (window.BranchIdentity && typeof window.BranchIdentity.isSameBranch === 'function') sameBranch = window.BranchIdentity.isSameBranch(eb, branch);
-        } catch (_) {}
-        if (eb && !sameBranch) continue;
+        if (eb && eb !== branch) continue;
       }
-      const scored = this._score(entry, normTerm, compactTerm, digitTerm, codeTerm, rawTerm);
+      const scored = this._score(entry, normTerm, compactTerm, digitTerm, codeTerm);
       if (scored.score > 0) rows.push(Object.assign({ score: scored.score, matches: scored.matches }, entry));
     }
 
@@ -448,7 +346,7 @@ export const StudentSearchIndex = {
       digitTerm: _digits(rawTerm),
       total: result.total,
       returned: result.entries.length,
-      topMatches: result.entries.map(e => ({ name: e.name, id: e.id, givenNameToken: e.givenNameToken, score: e.score, matches: e.matches, status: e.profile && e.profile.status, memberId: e.profile && e.profile.memberId, vtf: e.vtf, phone: e.profile && e.profile.phone }))
+      topMatches: result.entries.map(e => ({ name: e.name, id: e.id, score: e.score, matches: e.matches, status: e.profile && e.profile.status, memberId: e.profile && e.profile.memberId, vtf: e.vtf, phone: e.profile && e.profile.phone }))
     };
     console.table(out.topMatches);
     return out;
@@ -477,20 +375,6 @@ export function initStudentSearchIndex() {
   window.normalizeStudentSearchText = window.normalizeStudentSearchText || normalizeStudentSearchText;
   window.searchStudentsUnified = function(term, options) {
     return window.StudentSearchIndex.searchStudents(term, options || {});
-  };
-  // V5G intentionally overwrites older legacy helpers: the isolated Debt renderer
-  // may have been loaded after app.js, and stale broad blob helpers must not win.
-  window.isPlainStudentGivenNameLookup = function(term) {
-    return window.StudentSearchIndex.isPlainGivenNameLookup(term);
-  };
-  window.matchesStudentGivenNameOnly = function(name, term) {
-    return window.StudentSearchIndex.matchesGivenNameOnly(name, term);
-  };
-  window.matchesStudentProfileSearch = function(name, profile, term) {
-    return window.StudentSearchIndex.matchesStudentProfileSearch(name, profile || {}, term);
-  };
-  window.debugGivenNameSearch = function(name, term) {
-    return window.StudentSearchIndex.analyzeGivenNameMatch(name, term || ((document.getElementById('searchInput') || {}).value || ''));
   };
   window.invalidateStudentSearchIndex = function(reason) {
     return window.StudentSearchIndex.invalidate(reason || 'manual');

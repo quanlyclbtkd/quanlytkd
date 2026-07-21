@@ -18,9 +18,6 @@ let   _rafId        = null; // current requestAnimationFrame handle
 let   _totalFrames  = 0;
 let   _totalCalls   = 0;
 let   _stormWarns   = 0;
-let   _slowWarns    = 0;
-const _slowRenderLastWarnAt = Object.create(null);
-const _slowRenderSuppressed = Object.create(null);
 
 const STORM_THRESHOLD = 12;  // warn if > N unique renders queued in one frame
 const SLOW_MS         = 16;  // warn if a single render fn exceeds one frame budget (60fps)
@@ -28,14 +25,6 @@ const SLOW_MS         = 16;  // warn if a single render fn exceeds one frame bud
 function _isDev() {
     const h = window.location.hostname;
     return h === 'localhost' || h === '127.0.0.1' || h.endsWith('.replit.dev');
-}
-
-function _shouldLogPerfWarning() {
-    try {
-        return _isDev() || window.__RENDER_DEBUG === true || localStorage.getItem('renderDebug') === '1';
-    } catch (_) {
-        return _isDev() || window.__RENDER_DEBUG === true;
-    }
 }
 
 function _processFrame() {
@@ -64,30 +53,12 @@ function _processFrame() {
         }
         const ms = performance.now() - t0;
         _totalCalls++;
-        try {
-            if (typeof window.trackRuntimeAuditRender === 'function') {
-                window.trackRuntimeAuditRender(key, { ms, source: 'renderScheduler', slow: ms > SLOW_MS });
-            }
-        } catch (_) {}
 
         if (ms > SLOW_MS) {
-            _slowWarns++;
-            if (!window.__renderSchedulerMetrics) window.__renderSchedulerMetrics = {};
-            window.__renderSchedulerMetrics.lastSlowRender = { key, ms, budget: SLOW_MS, at: Date.now() };
-            window.__renderSchedulerMetrics.slowWarnings = _slowWarns;
-            const now = Date.now();
-            const lastAt = _slowRenderLastWarnAt[key] || 0;
-            const shouldWarn = _shouldLogPerfWarning() && (now - lastAt > 120000);
-            if (shouldWarn) {
-                _slowRenderLastWarnAt[key] = now;
-                console.warn(
-                    `[renderScheduler] 🐢 Slow render "${key}": ${ms.toFixed(1)}ms ` +
-                    `(budget ${SLOW_MS}ms @ 60fps)`
-                );
-            } else {
-                _slowRenderSuppressed[key] = (_slowRenderSuppressed[key] || 0) + 1;
-                window.__renderSchedulerMetrics.slowWarningsSuppressed = _slowRenderSuppressed;
-            }
+            console.warn(
+                `[renderScheduler] 🐢 Slow render "${key}": ${ms.toFixed(1)}ms ` +
+                `(budget ${SLOW_MS}ms @ 60fps)`
+            );
         }
     }
 }

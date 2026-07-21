@@ -77,7 +77,7 @@ check('Offline queued transaction writes are canonicalized',
 check('Month matching supports canonical accountingMonths first',
   main.includes('Array.isArray(tx.accountingMonths) && tx.accountingMonths.includes(m)'));
 check('Active, quit, fallback and debt profile reads are attributed',
-  profilesListener.includes('profiles.activeListener') && profilesListener.includes('profiles.quitLazyQuery') &&
+  profilesListener.includes('profiles.activeListener') && (profilesListener.includes('profiles.quitAuthoritativeQuery') || profilesListener.includes('profiles.quitLazyQuery')) &&
   profilesListener.includes('profiles.fullFallbackQuery') && studentsModule.includes('profiles.debtFullScan'));
 check('Inventory history and active-debt reads are attributed',
   app.includes('inventory.historyPage') && app.includes('inventory.activeDebtListener'));

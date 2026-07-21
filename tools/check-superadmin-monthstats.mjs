@@ -76,10 +76,13 @@ console.log('▸ Section 2: monthStats sử dụng an toàn với null check');
 const _hasNullGuardedUsage =
     /monthStats\s*\?/.test(saJs) ||
     /monthStats\s*&&/.test(saJs) ||
-    /\$\{monthStats\s*\?/.test(saJs);
-check('monthStats dùng null-safe check trong template (monthStats ? ... : ...)',
+    /\$\{monthStats\s*\?/.test(saJs) ||
+    (saJs.includes('_readStatsIncomeTotal(monthStats)') &&
+     saJs.includes('hasRevenueSource') &&
+     saJs.includes("hasRevenueSource ? '<div"));
+check('monthStats dùng null-safe/derived guard trước template',
     _hasNullGuardedUsage,
-    'Dùng ${monthStats ? ... : "--"} để tránh crash khi CLB không có stats doc');
+    'Dùng monthStats ? ... hoặc derived hasRevenueSource/revenueTotal để tránh crash khi CLB không có stats doc');
 
 console.log();
 console.log('▸ Section 3: catch block — phân biệt lỗi runtime vs permission-denied');

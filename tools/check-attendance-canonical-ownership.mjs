@@ -106,10 +106,7 @@ const appLines = app.split('\n').length;
 check(appBytes < baselineAppBytes, `app.js reduced from ${baselineAppBytes.toLocaleString()} to ${appBytes.toLocaleString()} bytes`);
 check(appLines < baselineAppLines, `app.js reduced from ${baselineAppLines.toLocaleString()} to ${appLines.toLocaleString()} lines`);
 check(appBytes <= 700000, `app.js meets Phase 4K-6V4B8 compatible size target (${appBytes.toLocaleString()} <= 700,000 bytes)`);
-// Phase 4K-6V5M: The legacy app.js kernel is still intentionally retained.
-// Keep this as a soft compatibility ceiling instead of blocking attendance fixes
-// on a stale 11,050-line gate. The long-term V6 target remains app.js split.
-check(appLines <= 11200, `app.js remains within compatible Phase 4K-6V5M size target (${appLines.toLocaleString()} <= 11,200 lines)`);
+check(appLines <= 11050, `app.js remains within compatible Phase 4K-6V4B8+ size target (${appLines.toLocaleString()} <= 11,050 lines)`);
 
 check(!!pkg.scripts?.['check:attendance-canonical-ownership'], 'package exposes Phase 4K-6V checker');
 check(pkg.scripts?.check?.includes('check:attendance-canonical-ownership'), 'default check includes Phase 4K-6V checker');

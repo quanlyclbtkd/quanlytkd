@@ -60,18 +60,6 @@ let _onlineListenerBound = false;
 let _monthlyRenderRequestId = 0;
 let _monthlyAbortController = null;
 let _ownedAttendanceImplementations = null;
-// Phase 4K-6V5B: Coach/web/mobile attendance interaction guard.
-// Prevent render reloads or duplicate tap events from resetting a local status
-// back to ✅ Có mặt while a write is still pending.
-let _attendancePendingWrites = Object.create(null);
-let _attendanceLastTap = Object.create(null);
-let _attendanceWriteSeq = 0;
-// Phase 4K-6V5I: Attendance daily list can reach 500+ students for Admin.
-// Render a safe window first, with Load More, while summaries still use the full filtered roster.
-const ATTENDANCE_RENDER_INITIAL_LIMIT = 150;
-const ATTENDANCE_RENDER_STEP = 150;
-let _attendanceVisibleLimit = ATTENDANCE_RENDER_INITIAL_LIMIT;
-let _attendanceListSignature = '';
 
 function _resetAttendanceModuleState(nextClubId) {
     _attCurrentProfiles = [];
@@ -86,10 +74,6 @@ function _resetAttendanceModuleState(nextClubId) {
         try { _monthlyAbortController.abort(); } catch (_) {}
         _monthlyAbortController = null;
     }
-    _attendancePendingWrites = Object.create(null);
-    _attendanceLastTap = Object.create(null);
-    _attendanceVisibleLimit = ATTENDANCE_RENDER_INITIAL_LIMIT;
-    _attendanceListSignature = '';
     _monthlyRenderRequestId++;
 }
 
@@ -153,131 +137,11 @@ function getAttendanceDocId(name, date, shiftId) {
 /** Kiểm tra võ sinh active — tương thích legacy (thiếu status) */
 function isActiveProfileForAttendance(p) {
     if (!p) return false;
-    if (_profileExplicitlyExcludedFromAttendance(p)) return false;
-    if (typeof window.isProfileActiveForAttendance === 'function') {
-        return window.isProfileActiveForAttendance(p) === true;
-    }
     if (typeof window.classifyProfileStatus === 'function') {
         return window.classifyProfileStatus(p) === 'active';
     }
     if (!p.status) return true; // legacy: thiếu status → coi là đang tập
     return p.status === 'active' || p.status === 'trial' || p.status === 'đang tập';
-}
-function _profileBranchMatchesAttendance(p, selectedBranch) {
-    if (!selectedBranch || selectedBranch === 'all') return true;
-    if (typeof window.profileBranchMatchesFilter === 'function') {
-        return window.profileBranchMatchesFilter(p || {}, selectedBranch);
-    }
-    const branchValue = (p && (p.branchCode || p.branch || p.branchName || p.coachBranch || p.facility || p.base || p.coso || p.coSo || p.location)) || '';
-    return _sameBranch(branchValue, selectedBranch);
-}
-
-// Phase 4K-6V5M: Attendance must follow the same ACTIVE source-of-truth as
-// the Đang tập tab. A student marked 🚫 Nghỉ or temporarily ⏸ Báo nghỉ for the
-// selected month must not remain in the attendance roster.
-function _normalizeAttendanceMonth(value) {
-    if (value === undefined || value === null || value === false) return '';
-    const raw = String(value || '').trim();
-    if (!raw) return '';
-    try {
-        if (typeof window.normalizeYYYYMM === 'function') return window.normalizeYYYYMM(raw) || '';
-    } catch (_) {}
-    try {
-        if (typeof window.normalizeTuitionMonthForMultiItem === 'function') return window.normalizeTuitionMonthForMultiItem(raw) || '';
-    } catch (_) {}
-    try {
-        if (typeof window.normalizeTuitionMonth === 'function') return window.normalizeTuitionMonth(raw) || '';
-    } catch (_) {}
-    const m = raw.match(/(20\d{2})[-\/]?(0?[1-9]|1[0-2])/);
-    if (m) return m[1] + '-' + String(m[2]).padStart(2, '0');
-    const lower = raw.toLowerCase();
-    const yearMatch = lower.match(/(20\d{2})/);
-    const monthWords = [
-        ['1', ['tháng một','thang mot','tháng 1','thang 1','t1']],
-        ['2', ['tháng hai','thang hai','tháng 2','thang 2','t2']],
-        ['3', ['tháng ba','thang ba','tháng 3','thang 3','t3']],
-        ['4', ['tháng tư','thang tu','tháng bốn','thang bon','tháng 4','thang 4','t4']],
-        ['5', ['tháng năm','thang nam','tháng 5','thang 5','t5']],
-        ['6', ['tháng sáu','thang sau','tháng 6','thang 6','t6']],
-        ['7', ['tháng bảy','thang bay','tháng 7','thang 7','t7']],
-        ['8', ['tháng tám','thang tam','tháng 8','thang 8','t8']],
-        ['9', ['tháng chín','thang chin','tháng 9','thang 9','t9']],
-        ['10', ['tháng mười','thang muoi','tháng 10','thang 10','t10']],
-        ['11', ['tháng mười một','thang muoi mot','tháng 11','thang 11','t11']],
-        ['12', ['tháng mười hai','thang muoi hai','tháng 12','thang 12','t12']],
-    ];
-    if (yearMatch) {
-        for (const [num, words] of monthWords) {
-            if (words.some(w => lower.includes(w))) return yearMatch[1] + '-' + String(num).padStart(2, '0');
-        }
-    }
-    return '';
-}
-function _attendanceMonthList(values) {
-    if (!Array.isArray(values)) return [];
-    return values.map(_normalizeAttendanceMonth).filter(Boolean);
-}
-function _profileSkippedForAttendanceMonth(p, selectedMonth) {
-    const selMon = _normalizeAttendanceMonth(selectedMonth || '');
-    if (!selMon || !p) return false;
-    const raw = [];
-    ['skippedMonths', 'skipMonths', 'pausedMonths', 'pauseMonths', 'breakMonths', 'nghiThang', 'baoNghiMonths'].forEach((field) => {
-        if (Array.isArray(p[field])) raw.push(...p[field]);
-    });
-    return _attendanceMonthList(raw).includes(selMon);
-}
-function _profileExplicitlyExcludedFromAttendance(p) {
-    if (!p) return false;
-    if (p.excludeAttendance === true || p.attendanceExcluded === true || p.noAttendance === true) return true;
-    const raw = String(p.attendanceStatus || p.attStatus || p.trainingStatus || p.studyStatus || '').toLowerCase().trim();
-    if (!raw) return false;
-    const normalized = raw.normalize ? raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd') : raw;
-    return normalized.includes('bao nghi') || normalized.includes('tam nghi') || normalized.includes('pause') || normalized.includes('paused') || normalized.includes('skip');
-}
-
-function _getAttendanceListSignature() {
-    const val = (id) => { const el = document.getElementById(id); return el ? String(el.value || '') : ''; };
-    const checked = (id) => { const el = document.getElementById(id); return el && el.checked ? '1' : '0'; };
-    return [
-        _attCurrentDate || '',
-        _currentShiftId || '',
-        val('att_branch'),
-        val('att_belt'),
-        checked('att_show_all'),
-        _attCurrentProfiles.length
-    ].join('|');
-}
-
-function _ensureAttendanceRenderWindow() {
-    const signature = _getAttendanceListSignature();
-    if (signature !== _attendanceListSignature) {
-        _attendanceListSignature = signature;
-        _attendanceVisibleLimit = ATTENDANCE_RENDER_INITIAL_LIMIT;
-    }
-    if (_attCurrentProfiles.length <= ATTENDANCE_RENDER_INITIAL_LIMIT) {
-        _attendanceVisibleLimit = Math.max(_attCurrentProfiles.length, ATTENDANCE_RENDER_INITIAL_LIMIT);
-    }
-    return Math.min(_attCurrentProfiles.length, _attendanceVisibleLimit || ATTENDANCE_RENDER_INITIAL_LIMIT);
-}
-
-function _applyAttendanceCardState(idx, status) {
-    const cfg = _ATT_STATUS[_mapLegacyStatus(status)];
-    const cardEl = document.getElementById('att_card_' + idx);
-    const lblEl = document.getElementById('att_lbl_' + idx);
-    if (cardEl) { cardEl.style.background = cfg.bg; cardEl.style.color = cfg.text; cardEl.style.borderColor = cfg.border; }
-    if (lblEl) lblEl.textContent = cfg.icon + ' ' + cfg.label;
-}
-function _isDuplicateAttendanceTap(docId, eventObj) {
-    const now = Date.now();
-    const last = _attendanceLastTap[docId] || { at: 0, stamp: 0 };
-    const stamp = eventObj && Number(eventObj.timeStamp || 0);
-    // Same browser click/touch synthesized twice, or a duplicate event inside 140ms.
-    if ((stamp && last.stamp && Math.abs(stamp - last.stamp) < 2) || (now - last.at < 140)) {
-        _attendanceLastTap[docId] = { at: now, stamp };
-        return true;
-    }
-    _attendanceLastTap[docId] = { at: now, stamp };
-    return false;
 }
 
 // ── Trạng thái điểm danh (4 mức) ────────────────────────────────
@@ -399,7 +263,7 @@ function _getFilteredAttProfiles() {
 
     return Object.entries(allProfs)
         .filter(([, p]) => isActiveProfileForAttendance(p))
-        .filter(([, p]) => _profileBranchMatchesAttendance(p, selBranch))
+        .filter(([, p]) => selBranch === 'all' || _sameBranch(p.branch, selBranch))
         .filter(([, p]) => {
             if (selBelt === 'all') return true;
             return (p.belt || '').toLowerCase().includes(selBelt.toLowerCase());
@@ -416,13 +280,10 @@ function _getFilteredAttProfiles() {
             return p.trainingShiftId === _currentShiftId;
         })
         .filter(([, p]) => {
-            // Phase 4K-6V5M: ⏸ Báo nghỉ tháng phải bị loại khỏi Điểm danh theo
-            // tháng của ngày điểm danh, kể cả dữ liệu cũ lưu "Tháng Sáu 2026"
-            // hoặc "2026-6" thay vì chuẩn YYYY-MM.
-            // Lưu ý: "Hiển thị tất cả" chỉ bỏ qua lịch tập/ca, KHÔNG được đưa
-            // võ sinh đã báo nghỉ tháng hoặc đã nghỉ tập trở lại roster điểm danh.
+            if (isShowAll) return true;
             if (!selDateVal) return true;
-            return !_profileSkippedForAttendanceMonth(p, selDateVal);
+            const selMon = selDateVal.substring(0, 7);
+            return !(Array.isArray(p.skippedMonths) && p.skippedMonths.includes(selMon));
         })
         .sort((a, b) => a[0].localeCompare(b[0], 'vi'));
 }
@@ -444,8 +305,6 @@ function _renderAttCards() {
         const k = _attStripSuffix(n);
         _attNCount[k] = (_attNCount[k] || 0) + 1;
     });
-    const _attVisibleCount = _ensureAttendanceRenderWindow();
-    const _attVisibleProfiles = _attCurrentProfiles.slice(0, _attVisibleCount);
     let html = '';
     window.currentAttendanceData = {};
     _attCurrentProfiles.forEach(([name]) => {
@@ -454,16 +313,13 @@ function _renderAttCards() {
     });
     const _attCurMonth = _attCurrentDate ? _attCurrentDate.substring(0, 7) : '';
     const summary = [0, 0, 0, 0];
-    _attCurrentProfiles.forEach(([name]) => {
-        const st = _mapLegacyStatus(window.currentAttendanceData[name] ?? 0);
-        summary[st]++;
-    });
-    _attVisibleProfiles.forEach(([name, p], idx) => {
+    _attCurrentProfiles.forEach(([name, p], idx) => {
         const docId   = _currentShiftId ? name + '_' + _attCurrentDate + '_' + _currentShiftId : name + '_' + _attCurrentDate;
         const status  = window.currentAttendanceData[name] ?? 0;
         const cfg     = _ATT_STATUS[status];
         const beltShort = (p.belt || 'Đai Trắng')
             .replace(/\s*\(Cấp \d+\)/g, '').replace('Đai ', '').replace(' - cấp', '').trim();
+        summary[status]++;
         const _consAbsent = p.consecutiveAbsences || 0;
         const churnWarn2 = _consAbsent === 2;
         const churnWarn3 = _consAbsent >= 3;
@@ -495,7 +351,7 @@ function _renderAttCards() {
         const _cardWarnClass = churnWarn3 ? 'att-card-warn-red' : churnWarn2 ? 'att-card-warn-yellow' : '';
         html += '<div id="att_card_' + idx + '"'
             + (_cardWarnClass ? ' class="' + _cardWarnClass + '"' : '')
-            + ' onclick="window.toggleAttendance(event,' + idx + ')"'
+            + ' onclick="window.toggleAttendance(' + idx + ')"'
             + ' style="background:' + cfg.bg + ';color:' + cfg.text + ';border:1.5px solid ' + cfg.border + ';border-radius:10px;padding:8px 10px;cursor:pointer;user-select:none;display:flex;flex-direction:column;gap:5px;transition:transform 0.12s;box-shadow:0 1px 3px rgba(0,0,0,0.06);-webkit-tap-highlight-color:transparent;min-height:74px;"'
             + ' onpointerdown="this.style.transform=\'scale(0.94)\'" onpointerup="this.style.transform=\'\'" onpointercancel="this.style.transform=\'\'">'
             + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px;">'
@@ -515,14 +371,6 @@ function _renderAttCards() {
             + '</div>'
             + '</div>';
     });
-    if (_attCurrentProfiles.length > _attVisibleCount) {
-        html += '<div style="grid-column:1/-1;text-align:center;padding:12px 8px;">'
-            + '<button type="button" onclick="window.loadMoreAttendanceCards()" '
-            + 'style="border:none;background:#eff6ff;color:#1d4ed8;border-radius:999px;padding:9px 18px;font-size:0.78rem;font-weight:900;cursor:pointer;box-shadow:0 1px 3px rgba(37,99,235,0.18);">'
-            + '⬇️ Tải thêm võ sinh (' + _attVisibleCount + '/' + _attCurrentProfiles.length + ')</button>'
-            + '<div style="margin-top:5px;font-size:0.66rem;color:#94a3b8;">Danh sách điểm danh lớn được chia nhỏ để tránh chậm máy/mobile.</div>'
-            + '</div>';
-    }
     gridEl.innerHTML = html;
     _updateAttSummary(summary);
     _renderAdminBranchSummary(summary);
@@ -923,8 +771,6 @@ export function initAttendance() {
         // Phase 4.0B-4J-5: update attendance debug info
         window.__attendanceDebug = window.__attendanceDebug || {};
         _attCurrentProfiles = _getFilteredAttProfiles();
-        window.__attendanceDebug.lastActiveRosterCount = _attCurrentProfiles.length;
-        window.__attendanceDebug.lastStatusGate = 'active-only-plus-skipped-month-v5m';
         if (!_clubShiftsLoaded) await _loadClubShifts();
         if (_attCurrentProfiles.length === 0) {
             _renderAttCards();
@@ -932,7 +778,7 @@ export function initAttendance() {
             return;
         }
         if (typeof window.trackLargeListRender === 'function') {
-            window.trackLargeListRender('attendance.list', Math.min(_attCurrentProfiles.length, _attendanceVisibleLimit || ATTENDANCE_RENDER_INITIAL_LIMIT), { reason: 'render-attendance-list', totalRows: _attCurrentProfiles.length, suppressWarning: true });
+            window.trackLargeListRender('attendance.list', _attCurrentProfiles.length, { reason: 'render-attendance-list' });
         }
         gridEl.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px 16px;color:#94a3b8;font-size:0.85rem;">⏳ Đang tải dữ liệu điểm danh...</div>';
         try {
@@ -944,35 +790,20 @@ export function initAttendance() {
                 shiftId: _currentShiftId,
                 branch: _dailyBranch
             });
-            const nextCache = {};
+            _attendanceCache = {};
             attList.forEach(({ id: _id, data: _sd }) => {
                 const _docShift = _sd.shiftId || '';
                 // Không chọn ca: hiển thị mọi record trong ngày. Có chọn ca:
                 // chỉ hiển thị đúng ca đó. Records cũ không có shiftId vẫn tương thích.
                 if (_currentShiftId && _docShift !== _currentShiftId) return;
-                nextCache[_id] = _mapLegacyStatus(_sd.status || 0);
+                _attendanceCache[_id] = _mapLegacyStatus(_sd.status || 0);
             });
-            // Phase 4K-6V5B: preserve optimistic Coach/Admin writes that have
-            // not finished yet. A profile listener/render reload can otherwise
-            // reload the old Firestore value between two taps and make the second
-            // tap calculate from 0 again, returning to ✅ Có mặt.
-            Object.keys(_attendancePendingWrites || {}).forEach((_id) => {
-                if (_attendancePendingWrites[_id] && _attendancePendingWrites[_id].pending === true) {
-                    nextCache[_id] = _attendancePendingWrites[_id].status;
-                }
-            });
-            _attendanceCache = nextCache;
         } catch(e) {
             console.warn('[Attendance] loadByDate failed:', e && e.message || e);
             _attendanceCache = {};
         }
         _renderAttCards();
         await _loadSessionNoteAfterAttendanceRender(_attCurrentDate);
-    };
-
-    window.loadMoreAttendanceCards = function loadMoreAttendanceCards() {
-        _attendanceVisibleLimit = Math.min(_attCurrentProfiles.length, (_attendanceVisibleLimit || ATTENDANCE_RENDER_INITIAL_LIMIT) + ATTENDANCE_RENDER_STEP);
-        _renderAttCards();
     };
 
     // ── Ca tập ─────────────────────────────────────────────────
@@ -1040,12 +871,7 @@ export function initAttendance() {
     };
 
     // ── Toggle điểm danh (xoay vòng 4 trạng thái) ──────────────
-    window.toggleAttendance = async (eventOrIdx, maybeIdxOrName) => {
-        const _eventObj = eventOrIdx && typeof eventOrIdx === 'object' && typeof eventOrIdx.stopPropagation === 'function' ? eventOrIdx : null;
-        if (_eventObj) {
-            try { _eventObj.preventDefault(); _eventObj.stopPropagation(); } catch (_) {}
-        }
-        const idxOrName = _eventObj ? maybeIdxOrName : eventOrIdx;
+    window.toggleAttendance = async (idxOrName) => {
         let idx, name, p;
         if (typeof idxOrName === 'number') {
             const entry = _attCurrentProfiles[idxOrName];
@@ -1057,18 +883,15 @@ export function initAttendance() {
             [name, p] = _attCurrentProfiles[idx];
         }
         const docId         = _currentShiftId ? name + '_' + _attCurrentDate + '_' + _currentShiftId : name + '_' + _attCurrentDate;
-        if (_isDuplicateAttendanceTap(docId, _eventObj)) return;
-        const currentStatus = _mapLegacyStatus(
-            (_attendancePendingWrites[docId] && _attendancePendingWrites[docId].pending ? _attendancePendingWrites[docId].status : undefined) ??
-            window.currentAttendanceData[name] ??
-            _attendanceCache[docId] ?? 0
-        );
+        const currentStatus = window.currentAttendanceData[name] ?? 0;
         const newStatus     = (currentStatus + 1) % 4;
-        const writeSeq      = ++_attendanceWriteSeq;
         window.currentAttendanceData[name] = newStatus;
         _attendanceCache[docId] = newStatus;
-        _attendancePendingWrites[docId] = { pending: true, status: newStatus, previous: currentStatus, seq: writeSeq, name, idx };
-        _applyAttendanceCardState(idx, newStatus);
+        const cardEl = document.getElementById('att_card_' + idx);
+        const cfg    = _ATT_STATUS[newStatus];
+        if (cardEl) { cardEl.style.background = cfg.bg; cardEl.style.color = cfg.text; cardEl.style.borderColor = cfg.border; }
+        const lblEl = document.getElementById('att_lbl_' + idx);
+        if (lblEl) lblEl.textContent = cfg.icon + ' ' + cfg.label;
         _updateAttSummary(null);
         _saveAttOffline(_clubId(), _attCurrentDate);
         if (!navigator.onLine) { window.showToast('📴 Đã lưu offline – sẽ đồng bộ khi có mạng', 2500); return; }
@@ -1077,14 +900,11 @@ export function initAttendance() {
                 await AttendanceService.deleteRecord(docId);
             } else {
                 await AttendanceService.saveRecord(docId, {
-                    profileId: name, name, belt: p.belt || '', branch: p.branchCode || p.branch || '',
+                    profileId: name, name, belt: p.belt || '', branch: p.branch || '',
                     date: _attCurrentDate, month: _attCurrentDate.substring(0, 7),
                     status: newStatus, timestamp: Date.now(),
                     ...(_currentShiftId ? { shiftId: _currentShiftId } : {})
                 });
-            }
-            if (_attendancePendingWrites[docId] && _attendancePendingWrites[docId].seq === writeSeq) {
-                delete _attendancePendingWrites[docId];
             }
             try { localStorage.removeItem('offline_att_' + _clubId() + '_' + _attCurrentDate); } catch(_e) {}
             const _pu = {};
@@ -1104,8 +924,6 @@ export function initAttendance() {
             }
             const _newCons = p.consecutiveAbsences || 0;
             const nw2 = _newCons === 2, nw3 = _newCons >= 3;
-            const cardEl = document.getElementById('att_card_' + idx);
-            const cfg = _ATT_STATUS[newStatus];
             if (cardEl) {
                 cardEl.classList.remove('att-card-warn-red', 'att-card-warn-yellow');
                 if (nw3) cardEl.classList.add('att-card-warn-red');
@@ -1127,9 +945,10 @@ export function initAttendance() {
                 }
             }
         } catch(e) {
-            if (_attendancePendingWrites[docId] && _attendancePendingWrites[docId].seq === writeSeq) delete _attendancePendingWrites[docId];
             window.currentAttendanceData[name] = currentStatus; _attendanceCache[docId] = currentStatus;
-            _applyAttendanceCardState(idx, currentStatus);
+            const cfgOld = _ATT_STATUS[currentStatus];
+            if (cardEl) { cardEl.style.background=cfgOld.bg; cardEl.style.color=cfgOld.text; cardEl.style.borderColor=cfgOld.border; }
+            if (lblEl) lblEl.textContent = cfgOld.icon + ' ' + cfgOld.label;
             _updateAttSummary(null);
             window.showToast('⚠️ Lỗi khi lưu điểm danh!', 3000);
         }
@@ -1151,7 +970,7 @@ export function initAttendance() {
             const bulkRecords = unmarked.map(([name, p]) => ({
                 docId: getAttendanceDocId(name, _attCurrentDate, _currentShiftId),
                 data: {
-                    profileId: name, name, belt: p.belt || '', branch: p.branchCode || p.branch || '',
+                    profileId: name, name, belt: p.belt || '', branch: p.branch || '',
                     date: _attCurrentDate, month: _attCurrentDate.substring(0, 7), status: 1,
                     ...(_currentShiftId ? { shiftId: _currentShiftId } : {}),
                     timestamp: Date.now()

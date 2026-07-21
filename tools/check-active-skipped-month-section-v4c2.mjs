@@ -30,17 +30,16 @@ const main = read('js/main.js');
 const index = read('index.html');
 const pkg = read('package.json');
 
-const build = 'quit-authoritative-data-boundary-20260704-v5p';
-const previousBuild = 'debt-zalo-feature-off-20260704-v5n';
-const previousBuild2 = 'role-runtime-audit-profiler-20260704-v5o';
+const builds = ['quit-single-source-lock-20260721-v5r', 'profile-canonical-store-runtime-recovery-20260628-v4d1a'];
 
-check('index.html cache-busts app.js/main.js to V4D1A',
-  (index.includes(`app.js?v=${build}`) || index.includes(`app.js?v=${previousBuild}`) || index.includes(`app.js?v=${previousBuild2}`)) && (index.includes(`./js/main.js?v=${build}`) || index.includes(`./js/main.js?v=${previousBuild}`) || index.includes(`./js/main.js?v=${previousBuild2}`)));
+check('index.html cache-busts app.js/main.js to V4D1A-or-later',
+  builds.some(build => index.includes(`app.js?v=${build}`) && index.includes(`./js/main.js?v=${build}`)));
 check('main.js APP_PATCH_VERSION markers include V4D1 lineage',
   main.includes("APP_BUILD_VERSION = '4K-6V4D1A-profile-canonical-store-runtime-recovery-20260628'") ||
   main.includes("APP_PATCH_VERSION = '4K-6V4D1A-profile-canonical-store-runtime-recovery-20260628'") ||
   main.includes("APP_BUILD_VERSION = '4K-6V4D1-profile-canonical-store-readonly-audit-20260628'") ||
-  main.includes("APP_PATCH_VERSION = '4K-6V4D1-profile-canonical-store-readonly-audit-20260628'"));
+  main.includes("APP_PATCH_VERSION = '4K-6V4D1-profile-canonical-store-readonly-audit-20260628'") ||
+  main.includes("APP_PATCH_VERSION = '4K-6V5R-quit-single-source-lock-20260721'"));
 check('render.js exposes updateSkippedMonthSection global',
   render.includes('window.updateSkippedMonthSection') && render.includes('_renderSkippedMonthSection'));
 check('render.js skipped section uses canonical helper, not raw status/includes',

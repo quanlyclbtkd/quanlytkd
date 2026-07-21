@@ -16,10 +16,13 @@ function includes(file, text) {
 check('canonical helper file exists', existsSync(resolve(root, 'js/core/tuitionDebtCanonical.js')));
 check('index loads tuitionDebtCanonical before app.js', (() => {
   const html = readFileSync(resolve(root, 'index.html'), 'utf8');
-  return html.indexOf('js/core/tuitionDebtCanonical.js?v=quit-authoritative-data-boundary-20260704-v5p') > -1 &&
-    html.indexOf('js/core/tuitionDebtCanonical.js?v=quit-authoritative-data-boundary-20260704-v5p') < html.indexOf('app.js?v=quit-authoritative-data-boundary-20260704-v5p');
+  const helperMatch = html.match(/<script[^>]+src=["']\.\/js\/core\/tuitionDebtCanonical\.js\?v=([^"']+)["'][^>]*>/i);
+  const appMatch = html.match(/<script[^>]+src=["']app\.js\?v=([^"']+)["'][^>]*>/i);
+  return !!helperMatch && !!appMatch &&
+    html.indexOf(helperMatch[0]) < html.indexOf(appMatch[0]) &&
+    helperMatch[1] === appMatch[1];
 })());
-check('app.js cache-bust updated to current V5C build', includes('index.html', 'app.js?v=quit-authoritative-data-boundary-20260704-v5p'));
+check('app.js cache-bust uses current build marker', includes('index.html', 'app.js?v=quit-single-source-lock-20260721-v5r'));
 check('getChargeableTuitionMonths delegates to computeTuitionDebtCanonical', includes('app.js', 'window.computeTuitionDebtCanonical') && includes('app.js', 'canonical.chargeableMonths'));
 check('debugDebtTrace exported', includes('js/core/tuitionDebtCanonical.js', 'window.debugDebtTrace = debugDebtTrace'));
 check('auditTuitionDebtCanonicalProfiles exported', includes('js/core/tuitionDebtCanonical.js', 'window.auditTuitionDebtCanonicalProfiles'));

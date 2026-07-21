@@ -15,8 +15,8 @@ const app = read('app.js');
 const index = read('index.html');
 const main = read('js/main.js');
 
-check('cache bust updated to V4D1A in index', (index.includes('debt-zalo-feature-off-20260704-v5n') || index.includes('profile-canonical-store-runtime-recovery-20260628-v4d1a')));
-check('main imports render.js with V4D1A cache bust', (main.includes('./ui/render.js?v=debt-zalo-feature-off-20260704-v5n') || main.includes('./ui/render.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a')));
+check('cache bust updated to V4D1A-or-later in index', index.includes('quit-single-source-lock-20260721-v5r') || index.includes('profile-canonical-store-runtime-recovery-20260628-v4d1a'));
+check('main imports render.js with V4D1A-or-later cache bust', main.includes('./ui/render.js?v=quit-single-source-lock-20260721-v5r') || main.includes('./ui/render.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a'));
 check('render.js has small UI refresh helper', render.includes('function _refreshSmallStudentUi(tabId, reason)'));
 check('render.js early return calls small UI refresh', render.includes("_refreshSmallStudentUi(earlyTabId, 'renderApp-dataVersion-unchanged')"));
 check('render.js small UI refresh always renders birthday banner', render.includes("typeof window._renderHomeBirthdayBanner === 'function'") && render.includes('window._renderHomeBirthdayBanner()'));
@@ -27,14 +27,14 @@ check('attendance birthday accepts birthday', attendance.includes('p.birthday'))
 check('attendance birthday accepts ngaySinh', attendance.includes('p.ngaySinh'));
 check('renderStudents merges canonical quit store', renderStudents.includes('canonicalStore') && renderStudents.includes('canonicalStore.quitProfiles'));
 check('renderStudents merges allProfiles quit fallback', renderStudents.includes('Object.assign({}, window.allProfiles || {}, (window.__store && window.__store.profiles) || {})'));
-check('renderStudents renders direct quit fallback before quitLoaded', renderStudents.includes('if (!_quitLoaded && _hasDirectQuit)'));
-check('renderStudents chooses direct if cached quit rows partial', renderStudents.includes('_directPreview.count > ((_htmlQ.match(/data-quit-id=/g) || []).length)'));
+check('renderStudents uses QuitProfileBoundary as the single source once available', renderStudents.includes('if (window.QuitProfileBoundary)') && renderStudents.includes("ensureComplete?.('render-quit-island')") && renderStudents.includes('never restore #quitList from computation/legacy HTML caches'));
+check('renderStudents ignores cached quit rows when boundary is present', renderStudents.indexOf('if (window.QuitProfileBoundary)') < renderStudents.indexOf("const cached = getStudentsCachedHtml('quitRows')") && renderStudents.includes('Standalone legacy fallback only when the V5R boundary module is absent'));
 check('legacy app render early return refreshes small UI', app.includes('if(_dataVersion === _lastRenderedVersion) { _legacyRefreshSmallStudentUi(); return; }'));
 check('legacy app has small UI refresh helper', app.includes('function _legacyRefreshSmallStudentUi()'));
 check('legacy app small UI uses merged profiles', app.includes('function _legacyProfilesForSmallUi()') && app.includes('getAllProfilesCompat'));
 check('public render.js synced', renderPub.includes('function _refreshSmallStudentUi(tabId, reason)'));
 check('public attendance synced', attendancePub.includes('p.birthDate') && attendancePub.includes('p.birthday'));
-check('public renderStudents synced', renderStudentsPub.includes('if (!_quitLoaded && _hasDirectQuit)'));
+check('public renderStudents synced', renderStudentsPub.includes('if (window.QuitProfileBoundary)') && renderStudentsPub.includes('Standalone legacy fallback only when the V5R boundary module is absent'));
 check('no new Firestore reads in profile canonical store', !read('js/core/profileCanonicalStore.js').match(/\b(getDocs|onSnapshot|getCountFromServer|runAggregationQuery)\b/));
 check('V4D1A does not introduce writes in profile canonical store', !read('js/core/profileCanonicalStore.js').match(/\b(setDoc|updateDoc|writeBatch|deleteDoc|addDoc)\b/));
 

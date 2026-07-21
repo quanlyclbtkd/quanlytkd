@@ -1,47 +1,20 @@
 #!/usr/bin/env node
-/** Phase 4K-6V4B3 — Quit Tab Authoritative Completeness */
+/** Phase 4K-6V5Q — Quit Authoritative Completeness */
 import fs from 'node:fs';
-import path from 'node:path';
-
-const root = process.cwd();
-const read = rel => fs.readFileSync(path.join(root, rel), 'utf8');
-const profiles = read('js/listeners/profiles.listeners.js');
-const statusConfig = read('js/data/profileStatusConfig.js');
-const renderer = read('js/ui/render/computation/studentsRenderer.js');
-
-let pass = 0, fail = 0;
-function check(name, ok, detail='') {
-  if (ok) { pass++; console.log('✅', name); }
-  else { fail++; console.error('❌', name + (detail ? ' — ' + detail : '')); }
-}
-console.log('\n=== Phase 4K-6V4B3 — Quit Tab Authoritative Completeness ===\n');
-
-check('Quit loader still blocks Coach quit/full reads',
-  profiles.includes("canMount?.('profiles.quit'") && profiles.includes('return false;') &&
-  profiles.includes("canMount?.('profiles.full-fallback'"));
-check('Classifier treats quitDate/date legacy signals as quit before active flags',
-  statusConfig.includes("const _dateQuitFields = ['quitDate'") &&
-  statusConfig.indexOf('_dateQuitFields') < statusConfig.indexOf('if (profile.active === true || profile.isActive === true)'));
-check('Quit loader queries legacy status aliases such as Đã nghỉ and Nghỉ tập',
-  profiles.includes('legacyStatusAliases') && profiles.includes("'Đã nghỉ'") && profiles.includes("'Nghỉ tập'") &&
-  profiles.includes('status-alias-in-'));
-check('Quit loader queries additional date fields beyond quitDate',
-  ['ngayNghi!=null','inactiveDate!=null','stoppedDate!=null','leftDate!=null'].every(s => profiles.includes(s)));
-check('Targeted quit loader still filters every result through classifier',
-  profiles.includes("classifyProfileStatus(data) === 'quit'") && profiles.includes('quitMap[id] = data'));
-check('Existing full/fallback quit profiles are preserved before setting targeted map',
-  profiles.includes('getQuitProfiles') && profiles.includes('Object.entries(existingQuit') && profiles.includes('!quitMap[id]'));
-check('Admin quit tab runs one authoritative full reconciliation after targeted load',
-  profiles.includes('quitCompletenessReconciled') &&
-  profiles.includes("loadFullProfilesFallback('quit-tab-authoritative-reconcile:'") &&
-  profiles.includes('!_isCoachContext(ctx)'));
-check('Full fallback classifies full collection into quitProfiles',
-  profiles.includes('const _fallbackQuit') && profiles.includes("if (_fKind === 'quit') _fallbackQuit[_fId] = _fData") &&
-  profiles.includes('setQuitProfiles(_fallbackQuit'));
-check('Quit renderer uses full profile store and not active pagination when full quit profiles exist',
-  renderer.includes('const useFullProfileQuitRender = buildQuit && fullProfilesCount > 0') &&
-  renderer.includes('(!pgStudentsActive || useFullProfileQuitRender) && buildQuit'));
-
-console.log(`\nTotal: ${pass + fail} | PASS: ${pass} | FAIL: ${fail}`);
-if (fail) process.exit(1);
-console.log('Phase 4K-6V4B3 checks passed.\n');
+const read=p=>fs.readFileSync(p,'utf8');
+const profiles=read('js/listeners/profiles.listeners.js');
+const store=read('js/data/studentProfileStore.js');
+const search=read('js/modules/searchRuntime.js');
+const direct=read('js/ui/render/renderStudents.js');
+let pass=0,fail=0; const check=(n,o)=>{o?(pass++,console.log('✅',n)):(fail++,console.error('❌',n))};
+console.log('\n=== Phase 4K-6V5Q — Quit Authoritative Completeness ===\n');
+check('Authority only short-circuits when same-club fresh reconciled + complete', profiles.includes('!forceRefresh && sameClub') && profiles.includes('_state.quitCompletenessReconciled && isQuitComplete()'));
+check('One full snapshot sets all buckets as complete', profiles.includes("syncLegacyAllProfiles(fullMap, 'quit-authoritative:") && profiles.includes('{ complete: true }'));
+check('Authority state exposes complete/error diagnostics', profiles.includes("quitAuthorityState = 'complete'") && profiles.includes("quitAuthorityState = 'error'"));
+check('Store partial sync preserves existing quit data', store.includes('Critical V5Q rule') && store.includes('Partial merge'));
+check('Store has separate quitComplete flag', store.includes('quitComplete') && store.includes('markQuitComplete'));
+check('Quit search bypasses active-only profile index', search.includes("if (tab === 'quit' && window.QuitProfileBoundary)") && search.includes('quit-authoritative-boundary'));
+check('Direct renderer uses same boundary and filters', direct.includes('QuitProfileBoundary.getEntries({ search, branch'));
+check('Shared pagination is cleared after authority load', profiles.includes('pg.currentItems = []') && profiles.includes('pg.hasNext = false'));
+check('Full fallback also marks quit complete', profiles.includes('markQuitComplete(true)') && profiles.includes('_state.quitCompletenessReconciled = true'));
+console.log(`\nTotal ${pass+fail} | PASS ${pass} | FAIL ${fail}`); if(fail) process.exit(1);

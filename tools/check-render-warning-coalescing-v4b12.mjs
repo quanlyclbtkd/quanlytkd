@@ -20,8 +20,8 @@ function check(name, ok, detail = '') {
 }
 
 console.log('\n=== Phase 4K-6V4B12 — Render Warning Coalescing ===\n');
-const build = 'role-runtime-audit-profiler-20260704-v5o';
-const appBuilds = [build, 'profile-canonical-store-20260628-v4d1', 'tuition-debt-source-of-truth-20260628-v4c'];
+const build = 'quit-single-source-lock-20260721-v5r';
+const appBuilds = [build, 'profile-canonical-store-runtime-recovery-20260628-v4d1a', 'profile-canonical-store-20260628-v4d1', 'tuition-debt-source-of-truth-20260628-v4c'];
 
 check('index cache-busts app.js/main.js to current render-safe build',
   appBuilds.some(b => index.includes(`app.js?v=${b}`)) && index.includes(`main.js?v=${build}`));
@@ -84,9 +84,7 @@ check('LegacyRenderWarning remains for diagnostics but is production-gated',
   renderInvalidation.includes('window.__ENABLE_LEGACY_RENDER_WARNINGS') &&
   renderInvalidation.includes('if (!_shouldEmitLegacyRenderWarning()) return'));
 check('APP patch version updated to V4B12 or later',
-  main.includes("APP_PATCH_VERSION = '4K-6V5O-role-runtime-audit-profiler-20260704'") ||
-  main.includes("APP_PATCH_VERSION = '4K-6V5N-debt-zalo-feature-off-20260704'") ||
-  main.includes("APP_PATCH_VERSION = '4K-6V5K-superadmin-access-admin-provisioning-recovery-20260704'") ||
+  main.includes("APP_PATCH_VERSION = '4K-6V5R-quit-single-source-lock-20260721'") ||
   main.includes("APP_PATCH_VERSION = '4K-6V4B12-render-warning-coalescing-20260627'") ||
   main.includes("APP_PATCH_VERSION = '4K-6V4D1-profile-canonical-store-readonly-audit-20260628'"));
 

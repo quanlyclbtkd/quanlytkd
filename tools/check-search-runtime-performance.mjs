@@ -208,9 +208,12 @@ if (searchRuntime) {
     );
 
     check(
-        'searchRuntime.js có debounce 250ms hoặc 300ms',
-        searchRuntime.includes('}, 250)') || searchRuntime.includes('}, 300)'),
-        "PHẦN 1: _state.pendingTimer = setTimeout(() => { _dispatchSearch(raw); }, 250);"
+        'searchRuntime.js có debounce server-safe/adaptive',
+        searchRuntime.includes('debounceMs:         450') ||
+        searchRuntime.includes('baseDebounceMs') ||
+        searchRuntime.includes('}, 250)') ||
+        searchRuntime.includes('}, 300)'),
+        "Search runtime phải có debounce server-safe (V2 hiện dùng 450ms) hoặc adaptive debounce."
     );
 
     check(
@@ -226,9 +229,12 @@ if (searchRuntime) {
     );
 
     check(
-        'searchRuntime.js sets window.__searchRuntimeMounted = true',
-        searchRuntime.includes('window.__searchRuntimeMounted = true'),
-        "PHẦN 1: window.__searchRuntimeMounted = true; sau khi bind"
+        'searchRuntime.js sets mounted flag for V1/V2 runtime',
+        searchRuntime.includes('window.__searchRuntimeMounted') &&
+        (searchRuntime.includes('window.__searchRuntimeMounted   = true') ||
+         searchRuntime.includes('window.__searchRuntimeV2Mounted = true') ||
+         searchRuntime.includes('window.__searchRuntimeMounted = true')),
+        "Search runtime phải bật __searchRuntimeMounted hoặc __searchRuntimeV2Mounted sau khi bind."
     );
 }
 

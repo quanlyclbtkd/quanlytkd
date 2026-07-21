@@ -1,4 +1,4 @@
-// Compatibility marker: inventory.service.js?v=quit-authoritative-data-boundary-20260704-v5p
+// Compatibility marker: inventory.service.js?v=inventory-ledger-reconciliation-20260616-v2c
 /**
  * modules/inventory.js — Phase 2f
  * ────────────────────────────────────────────────────────────────
@@ -38,7 +38,7 @@
  */
 
 import { getLocalToday } from '../utils/format.js';
-import { InventoryService } from '../services/inventory.service.js?v=quit-authoritative-data-boundary-20260704-v5p';
+import { InventoryService } from '../services/inventory.service.js?v=firestore-read-attribution-canonical-tx-boundary-20260616-v3a';
 
 // ════════════════════════════════════════════════════════════════
 // BRIDGE HELPERS — đọc state từ window.__store tại call-time

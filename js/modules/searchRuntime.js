@@ -101,22 +101,6 @@ function _normalizeSearch(raw) {
 }
 
 
-function _searchTokens(raw) {
-    return _normalizeSearch(raw).split(' ').filter(Boolean);
-}
-
-function _isPlainStudentGivenNameLookup(term, raw) {
-    const q = _normalizeSearch(term);
-    return !!q && !q.includes(' ') && /^[a-z]+$/.test(q) && !/[0-9@._-]/.test(String(raw || term || ''));
-}
-
-function _matchesGivenNameOnly(name, term) {
-    const toks = _searchTokens(name);
-    const q = _normalizeSearch(term);
-    const last = toks[toks.length - 1] || '';
-    return !!q && (last === q || (q.length >= 2 && last.startsWith(q)));
-}
-
 // ── Phase 4K-6K-C: Adaptive search latency helpers ──────────────────────────
 function _getProfileCount() {
     try {
@@ -210,8 +194,6 @@ function getProfileSearchBlob(name, profile) {
     const parts = [
         name,
         p.name,
-        p.fullName,
-        p.studentName,
         p.nickname,
         p.memberId,
         p.studentCode,
@@ -233,9 +215,7 @@ function getProfileSearchBlob(name, profile) {
         p.guardianPhone,
         p.address,
         p.email,
-        p.branchCode,
         p.branch,
-        p.branchName,
     ];
     const blob = parts
         .filter(Boolean)
@@ -707,21 +687,54 @@ async function _dispatchSearchV2(term, tab, token) {
 
 async function _searchStudentsV2(term, tab, token) {
     const st       = window.__store || {};
-    let profiles = st.profiles || {};
-    // Phase 4K-6V5P: quit-tab search must use the union/canonical quit source,
-    // not only the active listener map in window.__store.profiles.
-    if (tab === 'quit') {
-        const merged = {};
+
+    // Phase 4K-6V5Q: Đã nghỉ search never uses active-only st.profiles,
+    // server pagination, or StudentSearchIndex built from a partial source.
+    // Load the single authority once, then filter locally from the same boundary
+    // used by renderQuitIsland/studentsRenderer.
+    if (tab === 'quit' && window.QuitProfileBoundary) {
         try {
-            if (window.studentProfileStore && typeof window.studentProfileStore.getAllProfilesCompat === 'function') Object.assign(merged, window.studentProfileStore.getAllProfilesCompat() || {});
+            await window.QuitProfileBoundary.ensureComplete('search-runtime-quit');
         } catch (_) {}
-        try { Object.assign(merged, window.allProfiles || {}); } catch (_) {}
-        try { Object.assign(merged, st.profiles || {}); } catch (_) {}
-        try {
-            if (window.studentProfileStore && typeof window.studentProfileStore.getQuitProfiles === 'function') Object.assign(merged, window.studentProfileStore.getQuitProfiles() || {});
-        } catch (_) {}
-        profiles = Object.keys(merged).length ? merged : profiles;
+        if (token !== _state.currentSearchToken) {
+            _state.staleDropped++;
+            return { stale: true };
+        }
+        const entries = window.QuitProfileBoundary.getEntries({
+            search: term,
+            branch: _getFilterBranch(),
+            reason: 'search-runtime-quit'
+        });
+        const items = entries.map(([id, profile]) => Object.assign({ id }, profile));
+        const pgState = st.pagination && st.pagination.students;
+        if (pgState) {
+            pgState.currentItems = [];
+            pgState.totalLoaded = items.length;
+            pgState.hasNext = false;
+            pgState.hasPrevious = false;
+            pgState.searchActive = true;
+            pgState.searchQuery = term;
+            pgState.enabled = false;
+            pgState.searchSource = 'quit-authoritative-boundary';
+        }
+        st._studentsPaginationVersion = (st._studentsPaginationVersion || 0) + 1;
+        st._dataVersion = (st._dataVersion || 0) + 1;
+        st._globalSearchTerm = term;
+        _state.localStudentRuns++;
+        _state.lastStudentIndexResult = {
+            term, tab, total: items.length, returned: items.length,
+            source: 'quit-authoritative-boundary', at: Date.now()
+        };
+        if (typeof window.refreshListsComputation === 'function') {
+            window.refreshListsComputation(['students.quitList'], 'search-v5q-quit-authority');
+        }
+        if (typeof window.invalidateList === 'function') {
+            window.invalidateList('students.quitList', 'search-v5q-quit-authority');
+        }
+        return { items, source: 'quit-authoritative-boundary' };
     }
+
+    const profiles = st.profiles || {};
     const profileCount = Object.keys(profiles).length;
 
     if (profileCount > 0) {
@@ -776,13 +789,10 @@ async function _searchStudentsV2(term, tab, token) {
                             if (!window.shouldShowActiveStudentByNewFilter(name, p)) return false;
                         }
                     }
-                    if (_isPlainStudentGivenNameLookup(term, term)) {
-                        return _matchesGivenNameOnly(p.name || p.fullName || p.studentName || p.displayName || p.hoTen || name || '', term);
-                    }
                     const blob = typeof window.getProfileSearchBlob === 'function'
-                        ? window.getProfileSearchBlob(p.name || p.fullName || p.studentName || p.displayName || p.hoTen || name, p)
+                        ? window.getProfileSearchBlob(name, p)
                         : _normalizeSearch([
-                            p.name || p.fullName || p.studentName || p.displayName || p.hoTen || name, p.name, p.phone, p.parentPhone, p.memberId, p.studentCode,
+                            name, p.name, p.phone, p.parentPhone, p.memberId, p.studentCode,
                             p.code, p.idCode, p.vtfCode, p.vtfId, p.vtf, p.vtfMemberId,
                             p.maVTF, p.maVtf, p.maHoiVienVTF, p.maHoiVienVtf, p.belt, p.branch, p.notes
                           ].filter(Boolean).join(' '));
@@ -1070,16 +1080,6 @@ export function initGlobalSearchRuntime() {
     // Phase 4K-2: Expose SearchBlob builders globally
     // Guard getProfileSearchBlob: main.js may already expose a version-aware implementation
     // (window.__searchTextCache with dataVersion-based invalidation). Only set if missing.
-    // V5G: overwrite stale legacy helpers so all tab render paths use final-token search.
-    window.isPlainStudentGivenNameLookup = _isPlainStudentGivenNameLookup;
-    window.matchesStudentGivenNameOnly = _matchesGivenNameOnly;
-    window.matchesStudentProfileSearch = function(name, profile, term) {
-        const p = profile || {};
-        const displayName = p.name || p.fullName || p.studentName || p.displayName || p.hoTen || name || '';
-        if (_isPlainStudentGivenNameLookup(term, term)) return _matchesGivenNameOnly(displayName, term);
-        const blob = typeof window.getProfileSearchBlob === 'function' ? window.getProfileSearchBlob(displayName, p) : getProfileSearchBlob(displayName, p);
-        return blob.includes(_normalizeSearch(term));
-    };
     if (!window.getProfileSearchBlob) window.getProfileSearchBlob = getProfileSearchBlob;
     window.getTransactionSearchBlob = getTransactionSearchBlob;
     window.getInventorySearchBlob   = getInventorySearchBlob;
