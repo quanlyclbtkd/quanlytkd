@@ -152,6 +152,7 @@ check(
         || indexHtml.includes('admission-tuition-package-receipt-fix')
         || indexHtml.includes('runtime-month-admission-hydration')
         || indexHtml.includes('deploy-gate-tuition-package-coverage')
+        || indexHtml.includes('canonical-domain-command-boundary-write-freeze-20260722-v5t')
     ),
     'Đổi version main.js?v=... trong index.html để bust cache GitHub Pages'
 );

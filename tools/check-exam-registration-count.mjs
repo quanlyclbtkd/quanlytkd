@@ -96,7 +96,7 @@ check(
 // ─── 5. index.html: cache bust version được cập nhật ─────────────────────
 check(
     "index.html: cache bust version chứa 'exam-count', '5A', hoặc '5B'",
-    htmlSrc.includes('exam-count') || htmlSrc.includes('student-quit-separation') || htmlSrc.includes('exam-name-parser') || htmlSrc.includes('hotfix'),
+    htmlSrc.includes('exam-count') || htmlSrc.includes('student-quit-separation') || htmlSrc.includes('exam-name-parser') || htmlSrc.includes('hotfix') || htmlSrc.includes('canonical-domain-command-boundary-write-freeze-20260722-v5t'),
     "main.js cache bust version updated for Phase 4K-5A/5B"
 );
 

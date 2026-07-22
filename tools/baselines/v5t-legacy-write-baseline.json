@@ -1,0 +1,293 @@
+{
+  "phase": "4K-6V5T",
+  "source": "V5S app.js before command-boundary adoption",
+  "counts": {
+    "addDoc": 26,
+    "setDoc": 21,
+    "updateDoc": 16,
+    "deleteDoc": 8
+  },
+  "total": 71,
+  "signatures": [
+    {
+      "op": "setDoc",
+      "signature": "await setDoc(doc(db, \"users\", newUid), { email: email, role: \"admin\", clubId: clubId });"
+    },
+    {
+      "op": "updateDoc",
+      "signature": "await updateDoc(doc(db, \"clubs\", clubId), { expiryDate: newExpiry, accountStatus: 'active' });"
+    },
+    {
+      "op": "updateDoc",
+      "signature": "await updateDoc(doc(db, 'clubs', currentClubId), {"
+    },
+    {
+      "op": "addDoc",
+      "signature": "await addDoc(collection(db, \"login_history\"), {"
+    },
+    {
+      "op": "setDoc",
+      "signature": "await setDoc("
+    },
+    {
+      "op": "setDoc",
+      "signature": "await setDoc("
+    },
+    {
+      "op": "setDoc",
+      "signature": "await setDoc(doc(db, \"clubs\", currentClubId, \"settings\", \"main_config\"), updateData, { merge: true });"
+    },
+    {
+      "op": "setDoc",
+      "signature": "if(parentCode) await setDoc(doc(db, \"clubs\", currentClubId), { parentCode }, { merge: true });"
+    },
+    {
+      "op": "addDoc",
+      "signature": "await addDoc(colRef, _canonicalTxPayload(txData, 'transaction-form'));"
+    },
+    {
+      "op": "updateDoc",
+      "signature": "await updateDoc(doc(db, \"clubs\", currentClubId, \"profiles\", name), {"
+    },
+    {
+      "op": "addDoc",
+      "signature": "await addDoc(_auditRef, {"
+    },
+    {
+      "op": "setDoc",
+      "signature": "await setDoc(doc(db, \"clubs\", currentClubId, \"profiles\", oldName), updateData, { merge: true });"
+    },
+    {
+      "op": "deleteDoc",
+      "signature": "await deleteDoc(doc(db, \"clubs\", currentClubId, \"profiles\", targetName)); closeModal(); window.showToast(\"✅ Đã xóa hồ sơ!\");"
+    },
+    {
+      "op": "setDoc",
+      "signature": "await setDoc(doc(db, \"clubs\", currentClubId, \"profiles\", name.trim()), { skippedMonths: arrayUnion(month) }, { merge: true });"
+    },
+    {
+      "op": "setDoc",
+      "signature": "await setDoc(doc(db, \"clubs\", currentClubId, \"profiles\", name.trim()), { skippedMonths: arrayRemove(month) }, { merge: true });"
+    },
+    {
+      "op": "setDoc",
+      "signature": "setDoc(doc(db, \"clubs\", currentClubId, \"profiles\", name), updateData, { merge: true }).then(() => {"
+    },
+    {
+      "op": "setDoc",
+      "signature": "await setDoc(doc(db, \"clubs\", currentClubId, \"profiles\", _saveKey), _newProfileData);"
+    },
+    {
+      "op": "addDoc",
+      "signature": "const invDoc = await addDoc(invRef, _admissionInvPayload);"
+    },
+    {
+      "op": "setDoc",
+      "signature": "await setDoc(doc(db, \"clubs\", currentClubId, \"settings\", \"inventory_stats\"), {"
+    },
+    {
+      "op": "addDoc",
+      "signature": "await addDoc(colRef, _canonicalTxPayload({ branch: 'Chung', type: 'Tặng Võ phục', description: 'Tặng ' + uniformSize + ' cho ' + _saveKey, amount: 0, date: joinDate, timestamp: Date.now() + 1, relatedInvId: _invDocId }, 'admission-uniform-gift'));"
+    },
+    {
+      "op": "addDoc",
+      "signature": "const _bundleDoc = await addDoc(colRef, _canonicalTxPayload(_bundleTx, 'payment-bundle'));"
+    },
+    {
+      "op": "updateDoc",
+      "signature": "try { await updateDoc(doc(db, 'clubs', currentClubId, 'inventory', _invDocId), { paymentBundleId: _bundleDoc.id, paidTxId: _bundleDoc.id }); } catch(_e) {}"
+    },
+    {
+      "op": "addDoc",
+      "signature": "const _txDoc = await addDoc(colRef, _canonicalTxPayload(_txPayload, 'admission-tuition'));"
+    },
+    {
+      "op": "addDoc",
+      "signature": "await addDoc(colRef, _canonicalTxPayload({ branch: 'Chung', type: 'Thu Võ phục', description: _saveKey, uniformSize: uniformSize, amount: uniformFee, date: joinDate, timestamp: Date.now() + 1, relatedInvId: _invDocId }, 'admission-uniform-sale'));"
+    },
+    {
+      "op": "addDoc",
+      "signature": "invDoc = await addDoc(invRef, invData);"
+    },
+    {
+      "op": "setDoc",
+      "signature": "await setDoc(doc(db, 'clubs', currentClubId, 'settings', 'inventory_stats'), {"
+    },
+    {
+      "op": "addDoc",
+      "signature": "await addDoc(colRef, _canonicalTxPayload({ branch, type: type === 'Nhập kho' ? `Chi ${category}` : `Thu ${category}`, description: type === 'Nhập kho' ? `Nhập ${category} ${size} từ ${desc}` : `Bán ${category} ${size} cho ${desc}`, amount, date, timestamp: Date.now(), relatedInvId: invDoc.id }, 'inventory-form-finance'));"
+    },
+    {
+      "op": "addDoc",
+      "signature": "await addDoc(colRef, _canonicalTxPayload({ branch, type: `Tặng ${category}`, description: `Tặng ${category} ${size} cho ${desc}`, amount: 0, date, timestamp: Date.now(), relatedInvId: invDoc.id }, 'inventory-form-gift'));"
+    },
+    {
+      "op": "updateDoc",
+      "signature": "await updateDoc(doc(db, \"clubs\", currentClubId, \"inventory\", invId), { unpaid: false, inventoryDebtStatus: 'paid', paidAt: Date.now() });"
+    },
+    {
+      "op": "updateDoc",
+      "signature": "await updateDoc(doc(db, \"clubs\", currentClubId, \"inventory\", invId), _editInvPayload);"
+    },
+    {
+      "op": "updateDoc",
+      "signature": "await updateDoc(doc(db, \"clubs\", currentClubId, \"transactions\", txId), _canonicalTxPatch({ type: txType, description: desc, amount, date }, _existingInvTx, 'legacy-save-inventory-edit'));"
+    },
+    {
+      "op": "updateDoc",
+      "signature": "await updateDoc(doc(db, \"clubs\", currentClubId, \"transactions\", txId), _canonicalTxPatch({ branch: branch, description: desc, amount: amt, date: date }, _existingExpenseTx, 'save-edit-expense'));"
+    },
+    {
+      "op": "deleteDoc",
+      "signature": "if (id && id !== 'undefined') await deleteDoc(doc(db, \"clubs\", currentClubId, \"transactions\", id));"
+    },
+    {
+      "op": "deleteDoc",
+      "signature": "await deleteDoc(doc(db, \"clubs\", currentClubId, \"inventory\", relatedInvId));"
+    },
+    {
+      "op": "updateDoc",
+      "signature": "await updateDoc(profileRef, profileUpdate);"
+    },
+    {
+      "op": "addDoc",
+      "signature": "await addDoc(colRef, _canonicalTxPayload({ branch: branch, type: 'Chi phí', description: document.getElementById('exp_desc').value.trim(), amount: Number(document.getElementById('exp_amountActual').value), date: document.getElementById('exp_date').value, timestamp: Date.now() }, 'expense-form'));"
+    },
+    {
+      "op": "addDoc",
+      "signature": "await addDoc(colRef, _canonicalTxPayload({ branch: 'Chung', type: 'Chi phí kỳ thi', description: document.getElementById('ee_desc').value.trim(), amount: Number(document.getElementById('ee_amountActual').value), date: _eeDate, txMonth: _eeMonth, timestamp: Date.now() }, 'exam-expense-form'));"
+    },
+    {
+      "op": "addDoc",
+      "signature": "await addDoc(colRef, _canonicalTxPayload({ branch: branch || 'CS1', type: 'Học phí', description: cleanName, amount: amount, date: _txDate, txMonth: actualLastMonth, packageMonths: paidMonthsList, timestamp: Date.now() }, 'quick-pay-tuition'));"
+    },
+    {
+      "op": "updateDoc",
+      "signature": "await updateDoc(doc(db, \"clubs\", currentClubId, \"profiles\", cleanName), {"
+    },
+    {
+      "op": "addDoc",
+      "signature": "await addDoc(_qpAuditRef, {"
+    },
+    {
+      "op": "addDoc",
+      "signature": "await addDoc(colRef, _canonicalTxPayload({"
+    },
+    {
+      "op": "addDoc",
+      "signature": "await addDoc(colRef, _canonicalTxPayload({ branch: b1, type: 'Học phí', description: n1, amount: f1, date: _d1, txMonth: m1, packageMonths: [m1], timestamp: Date.now() }, 'family-pay-student-1'));"
+    },
+    {
+      "op": "updateDoc",
+      "signature": "await updateDoc(doc(db, \"clubs\", currentClubId, \"profiles\", n1), { paidUntil: _np1 });"
+    },
+    {
+      "op": "addDoc",
+      "signature": "try { await addDoc(collection(db, \"clubs\", currentClubId, \"fee_audit\"), { studentId: n1, amount: f1, date: getLocalToday(), type: 'tuition', month: _np1, months: [m1], by: window.currentUserEmail || 'admin', timestamp: Date.now() }); } catch(_) {}"
+    },
+    {
+      "op": "addDoc",
+      "signature": "await addDoc(colRef, _canonicalTxPayload({ branch: b2, type: 'Học phí', description: n2, amount: f2, date: _d2, txMonth: m2, packageMonths: [m2], timestamp: Date.now() + 1 }, 'family-pay-student-2'));"
+    },
+    {
+      "op": "updateDoc",
+      "signature": "await updateDoc(doc(db, \"clubs\", currentClubId, \"profiles\", n2), { paidUntil: _np2 });"
+    },
+    {
+      "op": "addDoc",
+      "signature": "try { await addDoc(collection(db, \"clubs\", currentClubId, \"fee_audit\"), { studentId: n2, amount: f2, date: getLocalToday(), type: 'tuition', month: _np2, months: [m2], by: window.currentUserEmail || 'admin', timestamp: Date.now() + 1 }); } catch(_) {}"
+    },
+    {
+      "op": "deleteDoc",
+      "signature": "await deleteDoc(doc(db2, 'clubs', clubId, 'transactions', txId));"
+    },
+    {
+      "op": "updateDoc",
+      "signature": "await updateDoc(doc(db2, 'clubs', clubId, 'transactions', txId), updatePayload);"
+    },
+    {
+      "op": "setDoc",
+      "signature": "await setDoc(doc(db, 'clubs', currentClubId, 'profiles', name), { paidUntil: lastMonth, paidMonths: arrayUnion(...packageMonths) }, { merge: true });"
+    },
+    {
+      "op": "addDoc",
+      "signature": "const _invDoc = await addDoc(invRef, _miInvPayload);"
+    },
+    {
+      "op": "setDoc",
+      "signature": "await setDoc(doc(db, 'clubs', currentClubId, 'settings', 'inventory_stats'), {"
+    },
+    {
+      "op": "updateDoc",
+      "signature": "await Promise.all(invDebtIds.map(id => updateDoc(doc(db, 'clubs', currentClubId, 'inventory', id), { unpaid: false })));"
+    },
+    {
+      "op": "addDoc",
+      "signature": "const _bundleDoc = await addDoc(colRef, _canonicalTxPayload(_bundleTx, 'payment-bundle'));"
+    },
+    {
+      "op": "updateDoc",
+      "signature": "try { await updateDoc(doc(db, 'clubs', currentClubId, 'inventory', _invDocId), { paymentBundleId: _bundleDoc.id, paidTxId: _bundleDoc.id }); } catch(_e) {}"
+    },
+    {
+      "op": "updateDoc",
+      "signature": "await Promise.all(invDebtIds.map(function(id) { return updateDoc(doc(db, 'clubs', currentClubId, 'inventory', id), { paidTxId: _bundleDoc.id }); }));"
+    },
+    {
+      "op": "addDoc",
+      "signature": "await addDoc(colRef, _canonicalTxPayload({ branch: branch, type: 'Học phí', description: name, amount: tuition, date: today, txMonth: lastMonth, packageMonths: packageMonths, timestamp: Date.now() }, 'multi-item-tuition-fallback'));"
+    },
+    {
+      "op": "addDoc",
+      "signature": "await addDoc(colRef, _canonicalTxPayload({ branch: branch, type: 'Lệ phí thi', description: name + ' (' + examTitle + ')', studentName: name, profileName: name, profileId: name, amount: examFee, date: today, txMonth: refMonth, examTitle: examTitle, currentBeltAtPayment: _currentBelt, examTargetBelt: _examTargetBelt, timestamp: Date.now() + 1 }, 'multi-item-exam-fallback'));"
+    },
+    {
+      "op": "addDoc",
+      "signature": "await addDoc(colRef, _canonicalTxPayload({ branch: branch, type: 'Thu ' + invCat, description: 'Bán ' + invCat + ' ' + invSize + ' cho ' + name, amount: invTotal, date: today, txMonth: refMonth, timestamp: Date.now() + 3 }, 'multi-item-inventory-fallback'));"
+    },
+    {
+      "op": "addDoc",
+      "signature": "await addDoc(colRef, _canonicalTxPayload({ branch: branch, type: 'Thu khác', description: name + (otherDesc ? ' — ' + otherDesc : ''), amount: otherFee, date: today, txMonth: refMonth, timestamp: Date.now() + 4 }, 'multi-item-other-fallback'));"
+    },
+    {
+      "op": "setDoc",
+      "signature": "await setDoc(doc(db, 'clubs', currentClubId, 'coaches', uid), {"
+    },
+    {
+      "op": "setDoc",
+      "signature": "await setDoc(doc(db, 'users', uid), { role: 'coach', clubId: currentClubId, branch, email });"
+    },
+    {
+      "op": "deleteDoc",
+      "signature": "await deleteDoc(doc(db, 'clubs', currentClubId, 'coaches', uid));"
+    },
+    {
+      "op": "deleteDoc",
+      "signature": "await deleteDoc(doc(db, 'users', uid));"
+    },
+    {
+      "op": "deleteDoc",
+      "signature": "await deleteDoc(doc(db, 'clubs', currentClubId, 'attendanceNotes', docId));"
+    },
+    {
+      "op": "deleteDoc",
+      "signature": "try { await deleteDoc(doc(db, 'clubs', currentClubId, 'adminNotifications', docId)); } catch(_) {}"
+    },
+    {
+      "op": "setDoc",
+      "signature": "await setDoc(doc(db, 'clubs', currentClubId, 'attendanceNotes', docId), payload);"
+    },
+    {
+      "op": "setDoc",
+      "signature": "await setDoc(doc(db, 'clubs', currentClubId, 'adminNotifications', docId), {"
+    },
+    {
+      "op": "setDoc",
+      "signature": "await setDoc(doc(db, 'clubs', currentClubId, 'coaches', uid), {"
+    },
+    {
+      "op": "setDoc",
+      "signature": "await setDoc(userRef, { role: 'coach', clubId: currentClubId, branch: canonicalBranch, email: data.email || oldUser.email || '' }, { merge: true });"
+    }
+  ]
+}

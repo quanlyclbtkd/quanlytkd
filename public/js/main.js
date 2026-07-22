@@ -224,6 +224,7 @@ import { PerformanceMonitor } from './core/performanceMonitor.js';
 import { FinancialFlowMap }   from './core/financialFlowMap.js';
 import { SecurityPosture }   from './core/securityPosture.js';
 import { ActionGuard }        from './core/actionGuard.js';
+import { initCanonicalDomainCommandBoundary } from './core/canonicalDomainCommandBoundary.js?v=canonical-domain-command-boundary-write-freeze-20260722-v5t';
 // Phase 4K-6E: Transaction Delete Integrity
 import { TransactionDeleteIntegrity } from './core/transactionDeleteIntegrity.js';
 // Phase 4K-6F: Legacy App Kernel Audit + Diagnostics Extraction
@@ -1618,6 +1619,16 @@ function _waitForExistingLegacyApp(ms) {
         initFinance();
         initInventory();
         initAttendance();
+
+        // Phase 4K-6V5T: register reviewed public write commands only after
+        // existing student/finance/inventory/attendance modules have installed
+        // their canonical handlers. The boundary delegates to those exact
+        // handlers and does not add a Firestore/business implementation.
+        try {
+            initCanonicalDomainCommandBoundary();
+        } catch (e) {
+            console.warn('[BOOT] initCanonicalDomainCommandBoundary failed:', e);
+        }
         // Phase 4K-6U: reports.js and attendanceExcelReport.js load only on export.
 
         // [Phase 4.0B-1] SuperAdmin — eager init ngay sau khi app context sẵn sàng.
@@ -3135,7 +3146,7 @@ window.debugProfileModalClose = function() {
 // PHẦN 1 — APP BUILD VERSION
 window.APP_BUILD_VERSION = '4K-6V2-inventory-history-pagination-complete-active-debt-20260616';
 // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
-window.APP_PATCH_VERSION = '4K-6V5S-quit-context-render-loop-guard-20260722';
+window.APP_PATCH_VERSION = '4K-6V5T-canonical-domain-command-boundary-write-freeze-20260722';
 window.APP_COPYRIGHT_OWNER   = 'Tình Trương';
 window.APP_PRODUCT_NAME      = 'Taekwondo Club Management Web App';
 window.APP_SECURITY_PHASE    = '4K-6E-scale-readiness-write-safety';

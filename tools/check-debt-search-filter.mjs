@@ -46,7 +46,7 @@ console.log('\n📋 check-debt-search-filter\n');
 
     // Pattern: debtPassFilter hoặc passFilter bao quanh debtRows
     const hasDebtPassFilter = /debtPassFilter/.test(src);
-    const renderInsideGuard = /if\s*\(\s*debtPassFilter\s*\)[\s\S]{0,1000}debtRows\s*\+=/.test(src);
+    const renderInsideGuard = /if\s*\(\s*debtPassFilter(?:\s*&&[\s\S]{0,120})?\)[\s\S]{0,1200}debtRows\s*\+=/.test(src);
 
     if (hasDebtPassFilter && renderInsideGuard) {
         pass('debtRows render nằm trong debtPassFilter guard');

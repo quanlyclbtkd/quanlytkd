@@ -63,10 +63,11 @@ check('renderActiveIsland() return sớm (không clear DOM) khi pagination có i
 
 console.log();
 console.log('▸ Section 2: renderQuitIsland() guard tương tự');
-check('renderQuitIsland() có guard pagination state trước khi clear DOM',
+check('renderQuitIsland() có guard nguồn dữ liệu trước khi clear DOM',
     renderStuJs.includes('_hasQuitItems') ||
-    (renderStuJs.includes('renderQuitIsland') && renderStuJs.includes('_quitPagActive')),
-    'renderQuitIsland() cần guard tương tự: if (quitPagActive) { ... preserve DOM ... }');
+    (renderStuJs.includes('renderQuitIsland') && renderStuJs.includes('_quitPagActive')) ||
+    (renderStuJs.includes('if (window.QuitProfileBoundary)') && renderStuJs.includes('_buildAuthoritativeQuitRows') && !renderStuJs.includes("_applyHtml(target, getStudentsCachedHtml('quitRows'))")),
+    'renderQuitIsland() phải bảo toàn pagination legacy hoặc dùng QuitProfileBoundary authoritative single source.');
 
 console.log();
 console.log('▸ Section 3: window.buildStudentsRowsFromPagination trong students.js');

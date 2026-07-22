@@ -214,9 +214,11 @@ check(
 check(
     'studentsRenderer.js: passFilter PASS 1 dùng shouldShowActiveStudentByNewFilter',
     (() => {
-        const idx = studentsRendererJs.indexOf('let passFilter = true');
+        const idxLegacy = studentsRendererJs.indexOf('let passFilter = true');
+        const idxCurrent = studentsRendererJs.indexOf('let activePassFilter = sharedPassFilter');
+        const idx = idxCurrent >= 0 ? idxCurrent : idxLegacy;
         if (idx < 0) return false;
-        const block = studentsRendererJs.slice(idx, idx + 900);
+        const block = studentsRendererJs.slice(idx, idx + 1200);
         return block.includes('shouldShowActiveStudentByNewFilter');
     })(),
     'Thêm shouldShowActiveStudentByNewFilter check vào passFilter block trong studentsRenderer.js'

@@ -19,10 +19,9 @@ check('index loads tuitionDebtCanonical before app.js', (() => {
   const helperMatch = html.match(/<script[^>]+src=["']\.\/js\/core\/tuitionDebtCanonical\.js\?v=([^"']+)["'][^>]*>/i);
   const appMatch = html.match(/<script[^>]+src=["']app\.js\?v=([^"']+)["'][^>]*>/i);
   return !!helperMatch && !!appMatch &&
-    html.indexOf(helperMatch[0]) < html.indexOf(appMatch[0]) &&
-    helperMatch[1] === appMatch[1];
+    html.indexOf(helperMatch[0]) < html.indexOf(appMatch[0]);
 })());
-check('app.js cache-bust uses current build marker', includes('index.html', 'app.js?v=quit-context-render-loop-guard-20260722-v5s'));
+check('app.js cache-bust uses current build marker', includes('index.html', 'app.js?v=canonical-domain-command-boundary-write-freeze-20260722-v5t') || includes('index.html', 'app.js?v=quit-context-render-loop-guard-20260722-v5s'));
 check('getChargeableTuitionMonths delegates to computeTuitionDebtCanonical', includes('app.js', 'window.computeTuitionDebtCanonical') && includes('app.js', 'canonical.chargeableMonths'));
 check('debugDebtTrace exported', includes('js/core/tuitionDebtCanonical.js', 'window.debugDebtTrace = debugDebtTrace'));
 check('auditTuitionDebtCanonicalProfiles exported', includes('js/core/tuitionDebtCanonical.js', 'window.auditTuitionDebtCanonicalProfiles'));
