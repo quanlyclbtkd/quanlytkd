@@ -18,7 +18,7 @@ function includes(file, text) { return read(file).includes(text); }
 
 console.log('\n🔍 Phase 4K-6V4D1 — Profile Canonical Store Read-only Audit checks\n');
 
-const builds = ['quit-single-source-lock-20260721-v5r', 'profile-canonical-store-runtime-recovery-20260628-v4d1a'];
+const builds = ['quit-context-render-loop-guard-20260722-v5s', 'profile-canonical-store-runtime-recovery-20260628-v4d1a'];
 const build = builds[0];
 const baseBuild = 'profile-canonical-store-20260628-v4d1';
 const version = '4K-6V4D1-profile-canonical-store-readonly-audit-20260628';
@@ -38,7 +38,7 @@ check('index loads profileCanonicalStore after tuitionDebtCanonical and before a
     index.indexOf(`js/core/profileCanonicalStore.js?v=${b}`) > index.indexOf(`js/core/tuitionDebtCanonical.js?v=${b}`) &&
     index.indexOf(`js/core/profileCanonicalStore.js?v=${b}`) < index.indexOf(`app.js?v=${b}`)));
 check('index cache-busts app.js and main.js to V4D1A-or-later', builds.some(b => index.includes(`app.js?v=${b}`) && index.includes(`./js/main.js?v=${b}`)));
-check('main.js retains V4D1 lineage marker', main.includes(`APP_BUILD_VERSION = '${runtimeVersion}'`) || main.includes(`APP_PATCH_VERSION = '${runtimeVersion}'`) || main.includes(`APP_BUILD_VERSION = '${version}'`) || main.includes(`APP_PATCH_VERSION = '${version}'`) || main.includes("APP_PATCH_VERSION = '4K-6V5R-quit-single-source-lock-20260721'"));
+check('main.js retains V4D1 lineage marker', main.includes(`APP_BUILD_VERSION = '${runtimeVersion}'`) || main.includes(`APP_PATCH_VERSION = '${runtimeVersion}'`) || main.includes(`APP_BUILD_VERSION = '${version}'`) || main.includes(`APP_PATCH_VERSION = '${version}'`) || main.includes("APP_PATCH_VERSION = '4K-6V5S-quit-context-render-loop-guard-20260722'"));
 check('profile canonical store exports public debug/audit API',
   src.includes('window.ProfileCanonicalStore') || src.includes('global.ProfileCanonicalStore'));
 check('profile canonical store exposes getProfileCanonicalStoreStatus', src.includes('getProfileCanonicalStoreStatus'));

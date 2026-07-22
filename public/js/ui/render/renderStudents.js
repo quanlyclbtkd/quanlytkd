@@ -19,7 +19,41 @@
  */
 
 import { registerRender } from './renderRegistry.js';
-import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=quit-single-source-lock-20260721-v5r';
+import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=quit-context-render-loop-guard-20260722-v5s';
+
+// Phase 4K-6V5S: single-flight authority request for the Đã nghỉ render island.
+// A failed/missing-context ensure must never invalidate the same list again,
+// otherwise requestRender → ensure(false) → invalidateList creates an endless loop.
+let _quitRenderEnsurePromise = null;
+let _quitRenderEnsureRetryAfter = 0;
+const QUIT_RENDER_RETRY_BACKOFF_MS = 1200;
+
+function _requestQuitAuthorityForRender(reason) {
+    const boundary = window.QuitProfileBoundary;
+    if (!boundary || boundary.isComplete?.() === true) return;
+    if (_quitRenderEnsurePromise || Date.now() < _quitRenderEnsureRetryAfter) return;
+
+    _quitRenderEnsurePromise = Promise.resolve(boundary.ensureComplete?.(reason || 'render-quit-island'))
+        .then(ok => {
+            const complete = boundary.isComplete?.() === true;
+            if (ok === true && complete) {
+                _quitRenderEnsureRetryAfter = 0;
+                // Directly rebuild once from the authoritative map. Do not emit
+                // invalidateList here; the authority loader already invalidates once.
+                renderQuitIsland({ reason: 'quit-authority-complete' });
+                return true;
+            }
+            _quitRenderEnsureRetryAfter = Date.now() + QUIT_RENDER_RETRY_BACKOFF_MS;
+            return false;
+        })
+        .catch(() => {
+            _quitRenderEnsureRetryAfter = Date.now() + QUIT_RENDER_RETRY_BACKOFF_MS;
+            return false;
+        })
+        .finally(() => {
+            _quitRenderEnsurePromise = null;
+        });
+}
 
 // ─── Core DOM helper ────────────────────────────────────────────────────────
 
@@ -240,14 +274,7 @@ export function renderQuitIsland() {
     if (window.QuitProfileBoundary) {
         const complete = window.QuitProfileBoundary.isComplete?.() === true;
         if (!complete) {
-            Promise.resolve(window.QuitProfileBoundary.ensureComplete?.('render-quit-island'))
-                .then(() => {
-                    try {
-                        if (typeof window.invalidateList === 'function') window.invalidateList('students.quitList', 'quit-authority-complete');
-                        else renderQuitIsland();
-                    } catch (_) {}
-                })
-                .catch(() => {});
+            _requestQuitAuthorityForRender('render-quit-island');
 
             const preview = _buildAuthoritativeQuitRows({ mobileFull: true, forceAll: _isQuitMobileViewport() });
             if (preview.count > 0) {

@@ -373,6 +373,21 @@ service cloud.firestore {
       allow delete: if isSuperAdmin() || existingCoachBelongsToMyClub(resource.data);
     }
 
+    // Optional login audit. Each authenticated user may create only a
+    // self-attributed record; only SuperAdmin can read/delete the history.
+    // This is intentionally NOT public and does not affect club/profile rules.
+    match /login_history/{docId} {
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'email', 'clubId', 'role', 'loginAt', 'timestamp',
+          'browser', 'os', 'deviceType', 'deviceName'
+        ])
+        && request.resource.data.get('email', '') == request.auth.token.get('email', '')
+        && request.resource.data.get('timestamp', 0) is int;
+      allow get, list, delete: if isSuperAdmin();
+      allow update: if false;
+    }
+
     match /super_admins/{uid} {
       allow read, write: if isSuperAdmin();
     }

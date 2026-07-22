@@ -14,11 +14,15 @@
 
 import { classifyProfileStatus } from './profileStatusConfig.js';
 
-const VERSION = '4K-6V5R-quit-single-source-lock-20260721';
+const VERSION = '4K-6V5S-quit-context-render-loop-guard-20260722';
 
 const _metrics = {
     version: VERSION,
     mapBuilds: 0,
+    ensureCalls: 0,
+    ensureSingleFlightHits: 0,
+    ensureBackoffSuppressions: 0,
+    ensureFailures: 0,
     filteredBuilds: 0,
     lastCount: 0,
     lastFilteredCount: 0,
@@ -27,6 +31,10 @@ const _metrics = {
     lastReason: '',
     lastAt: 0,
 };
+
+let _ensurePromise = null;
+let _ensureBackoffUntil = 0;
+const ENSURE_RETRY_BACKOFF_MS = 1200;
 
 function _safe(fn, fallback) {
     try { return fn(); } catch (_) { return fallback; }
@@ -172,14 +180,50 @@ export function getFilteredQuitEntries(options = {}) {
 }
 
 export function ensureQuitAuthority(reason = 'quit-boundary') {
-    if (typeof window.ensureQuitProfilesComplete === 'function') {
-        return Promise.resolve(window.ensureQuitProfilesComplete(reason));
+    _metrics.ensureCalls++;
+    if (isQuitAuthorityComplete()) {
+        _ensureBackoffUntil = 0;
+        return Promise.resolve(true);
     }
-    if (isQuitAuthorityComplete()) return Promise.resolve(true);
-    if (typeof window.loadQuitProfilesIfNeeded === 'function') {
-        return Promise.resolve(window.loadQuitProfilesIfNeeded(reason));
+    if (_ensurePromise) {
+        _metrics.ensureSingleFlightHits++;
+        return _ensurePromise;
     }
-    return Promise.resolve(false);
+    if (Date.now() < _ensureBackoffUntil) {
+        _metrics.ensureBackoffSuppressions++;
+        return Promise.resolve(false);
+    }
+
+    const loader = typeof window.ensureQuitProfilesComplete === 'function'
+        ? window.ensureQuitProfilesComplete
+        : (typeof window.loadQuitProfilesIfNeeded === 'function' ? window.loadQuitProfilesIfNeeded : null);
+    if (!loader) {
+        _metrics.ensureFailures++;
+        _ensureBackoffUntil = Date.now() + ENSURE_RETRY_BACKOFF_MS;
+        return Promise.resolve(false);
+    }
+
+    _ensurePromise = Promise.resolve()
+        .then(() => loader(reason))
+        .then(ok => {
+            const complete = isQuitAuthorityComplete();
+            if (ok === true || complete) {
+                _ensureBackoffUntil = 0;
+                return true;
+            }
+            _metrics.ensureFailures++;
+            _ensureBackoffUntil = Date.now() + ENSURE_RETRY_BACKOFF_MS;
+            return false;
+        })
+        .catch(() => {
+            _metrics.ensureFailures++;
+            _ensureBackoffUntil = Date.now() + ENSURE_RETRY_BACKOFF_MS;
+            return false;
+        })
+        .finally(() => {
+            _ensurePromise = null;
+        });
+    return _ensurePromise;
 }
 
 export function getQuitBoundaryMetrics() {
@@ -200,6 +244,25 @@ export function initQuitProfileBoundary() {
     window.getFilteredQuitProfiles = getFilteredQuitEntries;
     window.ensureQuitProfileAuthority = ensureQuitAuthority;
     window.getQuitBoundaryMetrics = getQuitBoundaryMetrics;
+
+    // Context can become ready after the user opens Đã nghỉ. Reset the short
+    // backoff and allow exactly one guarded retry; renderQuitIsland owns the DOM.
+    const onContextReady = () => {
+        _ensureBackoffUntil = 0;
+        if (window.getCurrentActiveTabId?.() === 'quit' && !isQuitAuthorityComplete()) {
+            ensureQuitAuthority('quit-boundary-context-ready')
+                .then(ok => {
+                    if (ok === true && typeof window.renderQuitList === 'function') {
+                        window.renderQuitList({ reason: 'quit-boundary-context-ready' });
+                    }
+                })
+                .catch(() => {});
+        }
+    };
+    try {
+        window.addEventListener('app:context-ready', onContextReady);
+        window.addEventListener('app:db-ready', onContextReady);
+    } catch (_) {}
     return api;
 }
 

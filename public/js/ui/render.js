@@ -59,7 +59,7 @@ import {
     computeAndCacheStudents,
     getStudentsSummary,
     getStudentsCachedHtml,
-} from './render/computation/studentsRenderer.js?v=quit-single-source-lock-20260721-v5r';
+} from './render/computation/studentsRenderer.js?v=quit-context-render-loop-guard-20260722-v5s';
 import {
     computeAndCacheInventory,
     getCachedLiveInvMap,

@@ -1,0 +1,36 @@
+#!/usr/bin/env node
+import fs from 'node:fs';
+const read=p=>fs.readFileSync(p,'utf8');
+let pass=0, fail=0; const check=(n,o)=>o?(pass++,console.log('✅',n)):(fail++,console.error('❌',n));
+const build='quit-context-render-loop-guard-20260722-v5s';
+const patch='4K-6V5S-quit-context-render-loop-guard-20260722';
+const index=read('index.html');
+const main=read('js/main.js');
+const listener=read('js/listeners/profiles.listeners.js');
+const boundary=read('js/data/quitProfileBoundary.js');
+const render=read('js/ui/render/renderStudents.js');
+const app=read('app.js');
+const rules=read('firestore.rules');
+const pubListener=read('public/js/listeners/profiles.listeners.js');
+const pubBoundary=read('public/js/data/quitProfileBoundary.js');
+const pubRender=read('public/js/ui/render/renderStudents.js');
+const pubApp=read('public/app.js');
+const pkg=JSON.parse(read('package.json'));
+
+check('V5S cache-bust active', index.includes(`app.js?v=${build}`) && index.includes(`js/main.js?v=${build}`) && main.includes(`profiles.listeners.js?v=${build}`));
+check('V5S patch marker active', app.includes(patch) && main.includes(patch) && boundary.includes(patch));
+check('quit context resolver uses existing runtime bridges', listener.includes('function _resolveProfilesContext') && listener.includes("window.getAppContext('quit-authority-context-recovery')") && listener.includes('store.profRef'));
+check('context resolver may safely rebuild profRef from db+clubId', listener.includes("fbCollection(db, 'clubs', clubId, 'profiles')"));
+check('missing context becomes waiting state without production warning', listener.includes("quitAuthorityState = 'waiting-context'") && listener.includes('_armQuitContextRetry') && !listener.includes("console.warn('[ProfilesListener] Quit authority missing context"));
+check('context retries are capped and back off', listener.includes('quitContextRetryMax: 5') && listener.includes('Math.min(8000') && listener.includes('quitContextRetryCount >= _state.quitContextRetryMax'));
+check('coach still blocked from full quit collection', listener.includes("if (_isCoachContext(ctx))") && listener.includes("RoleReadBoundary?.canMount?.('profiles.quit'"));
+check('mounting active context triggers only guarded quit recovery', listener.includes("loadQuitProfilesIfNeeded('active-listener-context-ready'") && listener.includes('if (ok === true'));
+check('boundary has single-flight ensure and retry backoff', boundary.includes('let _ensurePromise = null') && boundary.includes('ensureSingleFlightHits') && boundary.includes('ensureBackoffSuppressions'));
+check('render island no longer invalidates itself after ensure(false)', render.includes('function _requestQuitAuthorityForRender') && !render.includes("invalidateList('students.quitList', 'quit-authority-complete')"));
+check('render retry requires ok=true and complete=true', render.includes('if (ok === true && complete)') && render.includes('QUIT_RENDER_RETRY_BACKOFF_MS'));
+check('legacy tab switch renders only after true completeness', app.includes('if (ok === true && window.QuitProfileBoundary?.isComplete?.() === true)'));
+check('login_history permission denial is session-coalesced', app.includes("blockedKey = sessionKey + '_permission_blocked'") && app.includes("sessionStorage.setItem(blockedKey, '1')") && app.includes('window.__LOGIN_HISTORY_DEBUG'));
+check('login_history Firestore rule is private and self-attributed', rules.includes('match /login_history/{docId}') && rules.includes("request.resource.data.get('email', '') == request.auth.token.get('email', '')") && rules.includes('allow get, list, delete: if isSuperAdmin()') && !rules.includes('match /login_history/{docId} {\n      allow read, write: if true'));
+check('public source mirrors are synchronized', listener===pubListener && boundary===pubBoundary && render===pubRender && app===pubApp);
+check('package exposes V5S checks', pkg.scripts?.['check:v5s-quit-context-render-loop-guard']?.includes('check-v5s-quit-context-render-loop-guard.mjs') && pkg.scripts?.['check:v5s-quit-context-behavior']?.includes('check-v5s-quit-context-behavior.mjs'));
+console.log(`\nPASS ${pass}/${pass+fail}`); if(fail) process.exit(1);

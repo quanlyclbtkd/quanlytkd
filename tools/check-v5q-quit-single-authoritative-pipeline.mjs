@@ -3,7 +3,7 @@ import fs from 'node:fs';
 const read = p => fs.readFileSync(p, 'utf8');
 let pass=0, fail=0;
 function check(name, ok){ if(ok){pass++;console.log('✅',name)} else {fail++;console.error('❌',name)} }
-const build='quit-single-source-lock-20260721-v5r';
+const build='quit-context-render-loop-guard-20260722-v5s';
 const index=read('index.html');
 const main=read('js/main.js');
 const store=read('js/data/studentProfileStore.js');

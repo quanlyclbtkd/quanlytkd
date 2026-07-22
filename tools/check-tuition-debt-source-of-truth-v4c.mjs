@@ -22,7 +22,7 @@ check('index loads tuitionDebtCanonical before app.js', (() => {
     html.indexOf(helperMatch[0]) < html.indexOf(appMatch[0]) &&
     helperMatch[1] === appMatch[1];
 })());
-check('app.js cache-bust uses current build marker', includes('index.html', 'app.js?v=quit-single-source-lock-20260721-v5r'));
+check('app.js cache-bust uses current build marker', includes('index.html', 'app.js?v=quit-context-render-loop-guard-20260722-v5s'));
 check('getChargeableTuitionMonths delegates to computeTuitionDebtCanonical', includes('app.js', 'window.computeTuitionDebtCanonical') && includes('app.js', 'canonical.chargeableMonths'));
 check('debugDebtTrace exported', includes('js/core/tuitionDebtCanonical.js', 'window.debugDebtTrace = debugDebtTrace'));
 check('auditTuitionDebtCanonicalProfiles exported', includes('js/core/tuitionDebtCanonical.js', 'window.auditTuitionDebtCanonicalProfiles'));

@@ -69,7 +69,7 @@ import {
 } from './renderRegistry.js';
 
 import { invalidateFinanceRender }   from './computation/financeRenderer.js';
-import { invalidateStudentsRender }  from './computation/studentsRenderer.js?v=quit-single-source-lock-20260721-v5r';
+import { invalidateStudentsRender }  from './computation/studentsRenderer.js?v=quit-context-render-loop-guard-20260722-v5s';
 import { invalidateInventoryRender } from './computation/inventoryRenderer.js';
 import { invalidateDashboardCache }  from './computation/dashboardRenderer.js';
 
@@ -78,7 +78,7 @@ import {
     refreshListComputation,
     refreshListsComputation,
     getComputationDomainForList,
-} from './listComputationRefresh.js?v=quit-single-source-lock-20260721-v5r';
+} from './listComputationRefresh.js?v=quit-context-render-loop-guard-20260722-v5s';
 
 // ── Dev helper ────────────────────────────────────────────────────────────────
 function _isDev() {

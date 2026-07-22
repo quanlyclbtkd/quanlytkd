@@ -91,7 +91,7 @@
     window.debtBranchMatchesFilter = window.debtBranchMatchesFilter || _branchMatchesFilter;
 // Danh mục kho tùy chỉnh — được load từ Firestore khi đăng nhập thành công
 window.invCustomCategories = [];
-    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V5Q'; window.APP_PATCH_VERSION = '4K-6V5R-quit-single-source-lock-20260721'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
+    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V5S'; window.APP_PATCH_VERSION = '4K-6V5S-quit-context-render-loop-guard-20260722'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
     // Compatibility regression marker retained for Phase 4K-6Q gate: APP_PATCH_VERSION = '4K-6Q-mobile-filter-currency-stability-20260615'
     window.__appLoaded = true; // [Phase 2a] main.js kiểm tra để bỏ qua loadLegacyApp()
     window.__store = window.__store || {}; // [Phase 2b] Bridge object cho module system
@@ -794,7 +794,13 @@ window.invCustomCategories = [];
                 quitEl.innerHTML = '<tr data-quit-loading="1"><td colspan="7" style="text-align:center;color:#94a3b8;padding:16px;font-size:0.82rem;">Đang đối chiếu toàn bộ danh sách đã nghỉ...</td></tr>';
             }
             Promise.resolve(window.QuitProfileBoundary.ensureComplete?.('legacy-switch-tab-quit'))
-                .then(() => { try { window.renderQuitList?.(); } catch (_) {} })
+                .then(ok => {
+                    try {
+                        if (ok === true && window.QuitProfileBoundary?.isComplete?.() === true) {
+                            window.renderQuitList?.({ reason: 'legacy-switch-tab-quit-complete' });
+                        }
+                    } catch (_) {}
+                })
                 .catch(() => {});
         } else {
             (_TAB_LISTS[tabId] || []).forEach(listId => {
@@ -3361,12 +3367,15 @@ service cloud.firestore {
 
     // ── Ghi nhận lịch sử đăng nhập (chỉ 1 lần mỗi session) ──────────────
     async function _recordLoginEvent(user, role, clubId) {
+        let sessionKey = '';
+        let blockedKey = '';
         try {
             // Key có ngày hôm nay: cờ cũ của hôm qua (hoặc trước đó) không bao giờ khớp
             // → tự hết hạn sau 1 ngày, không cần xóa thủ công, hoạt động ngay cả với file cũ đang cached
             const today = new Date().toISOString().split('T')[0]; // '2025-01-15'
-            const sessionKey = 'lh_' + user.uid + '_' + today;
-            if (sessionStorage.getItem(sessionKey)) return;
+            sessionKey = 'lh_' + user.uid + '_' + today;
+            blockedKey = sessionKey + '_permission_blocked';
+            if (sessionStorage.getItem(sessionKey) || sessionStorage.getItem(blockedKey)) return;
             // KHÔNG đặt sessionStorage trước — chỉ đặt SAU KHI ghi Firestore thành công.
             const ua = navigator.userAgent;
             let browser = 'Khác';
@@ -3430,8 +3439,20 @@ service cloud.firestore {
             // Chỉ đánh dấu "đã ghi" SAU KHI addDoc thành công
             sessionStorage.setItem(sessionKey, '1');
         } catch(e) {
-            // Không set sessionStorage → lần load tiếp theo sẽ tự thử lại
-            console.warn('[login_history] Không thể ghi lịch sử đăng nhập:', e.message);
+            const code = String(e?.code || '').toLowerCase();
+            const permissionDenied = code.includes('permission-denied') || /missing or insufficient permissions/i.test(String(e?.message || ''));
+            if (permissionDenied) {
+                // login_history is optional diagnostics. Do not retry on every auth
+                // callback in the same session and do not pollute production console.
+                try { if (blockedKey) sessionStorage.setItem(blockedKey, '1'); } catch (_) {}
+                try {
+                    if (window.__LOGIN_HISTORY_DEBUG === true || localStorage.getItem('loginHistoryDebug') === '1') {
+                        console.debug('[login_history] Firestore Rules chưa cấp quyền ghi; bỏ qua trong session này.');
+                    }
+                } catch (_) {}
+            } else {
+                console.warn('[login_history] Không thể ghi lịch sử đăng nhập:', e?.message || e);
+            }
         }
     }
 

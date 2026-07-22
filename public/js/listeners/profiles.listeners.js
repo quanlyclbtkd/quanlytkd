@@ -85,6 +85,13 @@ const _state = {
     quitAuthorityClubId:    '',
     quitAuthorityLoadedAt:  0,
     quitAuthorityDirtyReason: '',
+    /** Phase 4K-6V5S: context wait/recovery diagnostics (no console spam). */
+    quitMissingContextCount: 0,
+    quitContextRecoveryCount: 0,
+    quitContextRetryCount: 0,
+    quitContextRetryMax: 5,
+    quitContextLastMissingAt: 0,
+    quitContextLastRecoveredAt: 0,
 
     // ── Full fallback loop guard (Phase 3.7C) ─────────────────────────────────
     /** Đang chạy fallback → chặn concurrent call */
@@ -128,6 +135,9 @@ const _state = {
 /** Context: lưu từ mountActiveProfilesListener, dùng cho lazy quit + fallback */
 let _ctx = null;
 let _quitAuthorityPromise = null;
+let _quitContextRetryArmed = false;
+let _quitContextRetryTimer = null;
+let _quitContextRetryHandlers = [];
 
 function _normalizeRole(value) {
     const role = String(value || '').trim().toLowerCase().replace(/-/g, '_');
@@ -157,6 +167,113 @@ function _coachBranchAliases(context = _ctx) {
 
 function _mergedCoachActiveMap() {
     return Object.assign({}, _state.coachLegacyActiveMap || {}, _state.coachCanonicalActiveMap || {});
+}
+
+// Phase 4K-6V5S: recover the profile context from the canonical runtime bridge.
+// V5R stored context only when mountActiveProfilesListener() ran. If the user
+// opened Đã nghỉ before that mount completed, ensureQuitAuthority() repeatedly
+// returned false and the renderer invalidated itself forever. The resolver below
+// never adds a read; it only reuses already-created db/profRef/clubId references.
+function _resolveProfilesContext(contextOverride) {
+    const explicit = (contextOverride && typeof contextOverride === 'object') ? contextOverride : {};
+    const store = window.__store || {};
+    let appContext = {};
+    try {
+        appContext = (typeof window.getAppContext === 'function')
+            ? (window.getAppContext('quit-authority-context-recovery') || {})
+            : {};
+    } catch (_) {}
+
+    const base = Object.assign({}, appContext || {}, _ctx || {}, explicit);
+    const clubId = String(
+        base.clubId || base.currentClubId ||
+        store.currentClubId || store.clubId ||
+        window.currentClubId || ''
+    ).trim();
+    const db = base.db || store.db || appContext.db || window.db || window._db || null;
+    let profRef = base.profRef || store.profRef || appContext.profRef || null;
+
+    if (!profRef && db && clubId) {
+        try {
+            const fbCollection = (window._fb_init || {}).collection;
+            if (typeof fbCollection === 'function') {
+                profRef = fbCollection(db, 'clubs', clubId, 'profiles');
+            }
+        } catch (_) {}
+    }
+
+    return Object.assign({}, base, {
+        db,
+        clubId,
+        currentClubId: clubId,
+        profRef,
+        role: base.role || store.userRole || window.userRole || '',
+        coachBranch: base.coachBranch || store.coachBranch || window.coachBranch || '',
+    });
+}
+
+function _hasQuitContext(context) {
+    return !!(context && context.profRef && String(context.clubId || '').trim());
+}
+
+function _quitDebugEnabled() {
+    try {
+        return window.__QUIT_AUTHORITY_DEBUG === true || localStorage.getItem('quitAuthorityDebug') === '1';
+    } catch (_) {
+        return window.__QUIT_AUTHORITY_DEBUG === true;
+    }
+}
+
+function _clearQuitContextRetry() {
+    _quitContextRetryArmed = false;
+    if (_quitContextRetryTimer) clearTimeout(_quitContextRetryTimer);
+    _quitContextRetryTimer = null;
+    try {
+        _quitContextRetryHandlers.forEach(([name, fn]) => window.removeEventListener(name, fn));
+    } catch (_) {}
+    _quitContextRetryHandlers = [];
+}
+
+function _armQuitContextRetry(reason) {
+    if (_quitContextRetryArmed) return;
+    if (_state.quitContextRetryCount >= _state.quitContextRetryMax) return;
+
+    const activeTab = typeof window.getCurrentActiveTabId === 'function'
+        ? window.getCurrentActiveTabId()
+        : '';
+    if (activeTab && activeTab !== 'quit') return;
+
+    _quitContextRetryArmed = true;
+    _state.quitContextRetryCount++;
+    const delay = Math.min(8000, 400 * Math.pow(2, Math.max(0, _state.quitContextRetryCount - 1)));
+
+    const retry = () => {
+        _clearQuitContextRetry();
+        const recovered = _resolveProfilesContext();
+        if (_hasQuitContext(recovered)) {
+            _ctx = recovered;
+            _state.quitContextRecoveryCount++;
+            _state.quitContextLastRecoveredAt = Date.now();
+            _state.quitContextRetryCount = 0;
+            loadQuitProfilesIfNeeded('quit-context-recovered:' + (reason || 'unknown'), recovered)
+                .then(ok => {
+                    if (ok === true && typeof window.renderQuitList === 'function' && window.getCurrentActiveTabId?.() === 'quit') {
+                        window.renderQuitList({ reason: 'quit-context-recovered' });
+                    }
+                })
+                .catch(() => {});
+            return;
+        }
+        _armQuitContextRetry(reason);
+    };
+
+    try {
+        ['app:context-ready', 'app:db-ready'].forEach(name => {
+            window.addEventListener(name, retry, { once: true });
+            _quitContextRetryHandlers.push([name, retry]);
+        });
+    } catch (_) {}
+    _quitContextRetryTimer = setTimeout(retry, delay);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -248,6 +365,11 @@ function _updateWindowMetrics() {
         quitAuthorityClubId:                 _state.quitAuthorityClubId,
         quitAuthorityLoadedAt:               _state.quitAuthorityLoadedAt,
         quitAuthorityDirtyReason:             _state.quitAuthorityDirtyReason,
+        quitMissingContextCount:              _state.quitMissingContextCount,
+        quitContextRecoveryCount:             _state.quitContextRecoveryCount,
+        quitContextRetryCount:                _state.quitContextRetryCount,
+        quitContextLastMissingAt:              _state.quitContextLastMissingAt,
+        quitContextLastRecoveredAt:            _state.quitContextLastRecoveredAt,
         // Fallback guard
         fallbackInProgress:                 _state.fallbackInProgress,
         fallbackCompleted:                  _state.fallbackCompleted,
@@ -386,14 +508,32 @@ export function mountActiveProfilesListener(context) {
         return false;
     }
 
-    _ctx = context;
-    const { profRef, clubId } = context;
+    _ctx = _resolveProfilesContext(context);
+    _clearQuitContextRetry();
+    _state.quitContextRetryCount = 0;
+    const { profRef, clubId } = _ctx;
+    context = _ctx;
     _state.role = _contextRole(context);
     _state.coachBranch = _coachBranch(context);
     _state.coachCanonicalActiveMap = {};
     _state.coachLegacyActiveMap = {};
     const isCoach = _isCoachContext(context);
     const coachBranch = _coachBranch(context);
+
+    // If Đã nghỉ was opened before the active listener mounted, retry the
+    // authority exactly once now that the canonical context exists.
+    if (!isCoach && window.getCurrentActiveTabId?.() === 'quit' && !isQuitProfilesComplete()) {
+        setTimeout(() => {
+            loadQuitProfilesIfNeeded('active-listener-context-ready', context)
+                .then(ok => {
+                    if (ok === true && typeof window.renderQuitList === 'function') {
+                        window.renderQuitList({ reason: 'active-listener-context-ready' });
+                    }
+                })
+                .catch(() => {});
+        }, 0);
+    }
+
     if (isCoach && !coachBranch) {
         console.error('[ProfilesListener] Coach missing branch — fail closed, no profiles query');
         setActiveProfiles({}, 'coach-missing-branch');
@@ -659,7 +799,14 @@ export function cleanupActiveProfilesListener(reason) {
  * @returns {Promise<void>}
  */
 export async function loadQuitProfilesIfNeeded(reason, contextOverride, options = {}) {
-    const ctx = contextOverride || _ctx;
+    const ctx = _resolveProfilesContext(contextOverride);
+    if (_hasQuitContext(ctx) && (!_ctx || !_hasQuitContext(_ctx))) {
+        _ctx = ctx;
+        _state.quitContextRecoveryCount++;
+        _state.quitContextLastRecoveredAt = Date.now();
+        _state.quitContextRetryCount = 0;
+        _clearQuitContextRetry();
+    }
     if (_isCoachContext(ctx)) {
         window.RoleReadBoundary?.canMount?.('profiles.quit', { reason: reason || 'quit-authority' });
         return false;
@@ -677,8 +824,22 @@ export async function loadQuitProfilesIfNeeded(reason, contextOverride, options 
     if (!forceRefresh && sameClub && _state.quitCompletenessReconciled && isQuitComplete()) return true;
     if (_quitAuthorityPromise) return _quitAuthorityPromise;
 
-    if (!ctx || !ctx.profRef || !clubId) {
-        console.warn('[ProfilesListener] Quit authority missing context — cannot guarantee full list');
+    if (!_hasQuitContext(ctx)) {
+        _state.quitMissingContextCount++;
+        _state.quitContextLastMissingAt = Date.now();
+        _state.quitAuthorityState = 'waiting-context';
+        _state.quitAuthorityError = 'missing-context';
+        _state.quitLoadLastReason = reason || '';
+        _updateWindowMetrics();
+        _armQuitContextRetry(reason || 'quit-authority');
+        if (_quitDebugEnabled()) {
+            console.debug('[ProfilesListener] Quit authority waiting for runtime context', {
+                reason: reason || '',
+                hasClubId: !!clubId,
+                hasProfRef: !!ctx?.profRef,
+                retryCount: _state.quitContextRetryCount,
+            });
+        }
         return false;
     }
     const fb = window._fb_init || {};
@@ -1141,7 +1302,13 @@ export function resetProfilesListeners(reason) {
     _state.quitAuthorityClubId     = '';
     _state.quitAuthorityLoadedAt   = 0;
     _state.quitAuthorityDirtyReason = '';
+    _state.quitMissingContextCount = 0;
+    _state.quitContextRecoveryCount = 0;
+    _state.quitContextRetryCount = 0;
+    _state.quitContextLastMissingAt = 0;
+    _state.quitContextLastRecoveredAt = 0;
     _quitAuthorityPromise          = null;
+    _clearQuitContextRetry();
     markQuitComplete(false);
 
     // Fallback guard
@@ -1202,6 +1369,11 @@ export function getProfilesListenerMetrics() {
         quitAuthorityClubId:                 _state.quitAuthorityClubId,
         quitAuthorityLoadedAt:               _state.quitAuthorityLoadedAt,
         quitAuthorityDirtyReason:             _state.quitAuthorityDirtyReason,
+        quitMissingContextCount:              _state.quitMissingContextCount,
+        quitContextRecoveryCount:             _state.quitContextRecoveryCount,
+        quitContextRetryCount:                _state.quitContextRetryCount,
+        quitContextLastMissingAt:              _state.quitContextLastMissingAt,
+        quitContextLastRecoveredAt:            _state.quitContextLastRecoveredAt,
         // Fallback guard
         fallbackInProgress:                 _state.fallbackInProgress,
         fallbackCompleted:                  _state.fallbackCompleted,
