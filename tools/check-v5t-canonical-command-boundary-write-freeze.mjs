@@ -9,8 +9,8 @@ function check(name, condition, details = '') {
   else { failures++; console.error(`❌ ${name}${details ? ` — ${details}` : ''}`); }
 }
 
-const build = 'canonical-domain-command-boundary-write-freeze-20260722-v5t';
-const patch = '4K-6V5T-canonical-domain-command-boundary-write-freeze-20260722';
+const builds = ['canonical-domain-command-boundary-write-freeze-20260722-v5t', 'student-status-command-cutover-tx-delete-fix-20260722-v5u1'];
+const patches = ['4K-6V5T-canonical-domain-command-boundary-write-freeze-20260722', '4K-6V5U-1-student-status-command-cutover-tx-delete-fix-20260722'];
 const modulePath = 'js/core/canonicalDomainCommandBoundary.js';
 const publicModulePath = 'public/js/core/canonicalDomainCommandBoundary.js';
 const command = read(modulePath);
@@ -26,9 +26,9 @@ const pkg = JSON.parse(read('package.json'));
 const pkgPublic = JSON.parse(read('public/package.json'));
 
 check('V5T command module exists and public mirror is exact', command === commandPublic);
-check('V5T app/index/main markers active', app.includes(patch) && index.includes(`app.js?v=${build}`) && index.includes(`./js/main.js?v=${build}`) && main.includes(patch));
-check('V5T public app/index/main markers active', appPublic.includes(patch) && indexPublic.includes(`app.js?v=${build}`) && indexPublic.includes(`./js/main.js?v=${build}`) && mainPublic.includes(patch));
-check('main imports command boundary with V5T cache bust', main.includes(`./core/canonicalDomainCommandBoundary.js?v=${build}`));
+check('V5T-or-later app/index/main markers active', patches.some(p => app.includes(p)) && builds.some(b => index.includes(`app.js?v=${b}`) && index.includes(`./js/main.js?v=${b}`)) && patches.some(p => main.includes(p)));
+check('V5T-or-later public app/index/main markers active', patches.some(p => appPublic.includes(p)) && builds.some(b => indexPublic.includes(`app.js?v=${b}`) && indexPublic.includes(`./js/main.js?v=${b}`)) && patches.some(p => mainPublic.includes(p)));
+check('main imports command boundary with compatible cache bust', builds.some(b => main.includes(`./core/canonicalDomainCommandBoundary.js?v=${b}`)));
 check('command boundary initializes only after student/finance/inventory/attendance modules',
   main.indexOf('initStudents();') < main.indexOf('initCanonicalDomainCommandBoundary();') &&
   main.indexOf('initFinance();') < main.indexOf('initCanonicalDomainCommandBoundary();') &&

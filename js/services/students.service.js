@@ -233,22 +233,24 @@ export const StudentService = {
         const db     = _db();
         const clubId = _clubId();
 
-        const batch = writeBatch(db);
+        // V5U-1: profile rename is a small atomic batch. Transaction name
+        // updates are chunked afterwards so a long payment history never exceeds
+        // Firestore's 500-operation batch limit.
+        const profileBatch = writeBatch(db);
+        profileBatch.set(doc(db, 'clubs', clubId, 'profiles', newName), newData);
+        profileBatch.delete(doc(db, 'clubs', clubId, 'profiles', oldName));
+        await profileBatch.commit();
 
-        // Set doc mới
-        batch.set(doc(db, 'clubs', clubId, 'profiles', newName), newData);
-        // Delete doc cũ
-        batch.delete(doc(db, 'clubs', clubId, 'profiles', oldName));
-
-        // Cập nhật tất cả transactions liên quan
-        txUpdates.forEach(({ txId, newDesc }) => {
-            batch.update(
-                doc(db, 'clubs', clubId, 'transactions', txId),
-                { description: newDesc }
-            );
-        });
-
-        await batch.commit();
+        for (let i = 0; i < txUpdates.length; i += 400) {
+            const txBatch = writeBatch(db);
+            txUpdates.slice(i, i + 400).forEach(({ txId, newDesc }) => {
+                txBatch.update(
+                    doc(db, 'clubs', clubId, 'transactions', txId),
+                    { description: newDesc }
+                );
+            });
+            await txBatch.commit();
+        }
     },
 
     /**

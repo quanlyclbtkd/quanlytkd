@@ -224,7 +224,8 @@ import { PerformanceMonitor } from './core/performanceMonitor.js';
 import { FinancialFlowMap }   from './core/financialFlowMap.js';
 import { SecurityPosture }   from './core/securityPosture.js';
 import { ActionGuard }        from './core/actionGuard.js';
-import { initCanonicalDomainCommandBoundary } from './core/canonicalDomainCommandBoundary.js?v=canonical-domain-command-boundary-write-freeze-20260722-v5t';
+import { initCanonicalDomainCommandBoundary } from './core/canonicalDomainCommandBoundary.js?v=student-status-command-cutover-tx-delete-fix-20260722-v5u1';
+import { initStudentStatusCommandBoundary } from './core/studentStatusCommandBoundary.js?v=student-status-command-cutover-tx-delete-fix-20260722-v5u1';
 // Phase 4K-6E: Transaction Delete Integrity
 import { TransactionDeleteIntegrity } from './core/transactionDeleteIntegrity.js';
 // Phase 4K-6F: Legacy App Kernel Audit + Diagnostics Extraction
@@ -322,7 +323,7 @@ import {
 } from './firebase/paginatedQuery.js';
 
 // ── Phase 2d–3.2A: Business modules (eager — cần khi login) ────
-import { initStudents, initStudentPagination }        from './modules/students.js?v=quit-context-render-loop-guard-20260722-v5s';
+import { initStudents, initStudentPagination }        from './modules/students.js?v=student-status-command-cutover-tx-delete-fix-20260722-v5u1';
 // PHẦN 1 FIX + Phase 4K-2: Unified Search Controller — real cache + SearchBlob + stale guard
 import {
     initGlobalSearchRuntime,
@@ -331,7 +332,7 @@ import {
     invalidateSearchCache,
     debugSearchPerformance,
 } from './modules/searchRuntime.js';
-import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from './modules/finance.js?v=payment-bundle-runtime-hotfix-20260616-v3a1';
+import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from './modules/finance.js?v=student-status-command-cutover-tx-delete-fix-20260722-v5u1';
 import { initInventory }                              from './modules/inventory.js?v=payment-bundle-runtime-hotfix-20260616-v3a1';
 // Compatibility marker: from './modules/attendance.js'
 import { initAttendance }                             from './modules/attendance.js?v=coach-branch-runtime-repair-20260627-v4b1';
@@ -1597,6 +1598,8 @@ function _waitForExistingLegacyApp(ms) {
         registerInvalidationLegacyGlobals();
 
         initStudents();
+        // Phase 4K-6V5U-1: install the single student status writer before finance aliases.
+        initStudentStatusCommandBoundary();
 
         // ── Phase 4K-RUNTIME-INIT-FIX: editProfile legacy bridge ─────────────
         // editProfile is listed as a required global (health check + module guard)
@@ -3146,7 +3149,7 @@ window.debugProfileModalClose = function() {
 // PHẦN 1 — APP BUILD VERSION
 window.APP_BUILD_VERSION = '4K-6V2-inventory-history-pagination-complete-active-debt-20260616';
 // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
-window.APP_PATCH_VERSION = '4K-6V5T-canonical-domain-command-boundary-write-freeze-20260722';
+window.APP_PATCH_VERSION = '4K-6V5U-1-student-status-command-cutover-tx-delete-fix-20260722';
 window.APP_COPYRIGHT_OWNER   = 'Tình Trương';
 window.APP_PRODUCT_NAME      = 'Taekwondo Club Management Web App';
 window.APP_SECURITY_PHASE    = '4K-6E-scale-readiness-write-safety';

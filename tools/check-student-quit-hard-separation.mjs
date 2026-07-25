@@ -13,6 +13,7 @@ console.log('[check-student-quit-hard-separation] Phase 4K-5C static analysis...
 
 const studentsJs = readFileSync(join(__dirname, '../js/modules/students.js'), 'utf8');
 const appJs      = readFileSync(join(__dirname, '../app.js'), 'utf8');
+const boundaryJs = readFileSync(join(__dirname, '../js/core/studentStatusCommandBoundary.js'), 'utf8');
 
 const checks = {
     // Phase 6: syncStudentStatusLocal in students.js
@@ -26,9 +27,9 @@ const checks = {
     debugSepHasPaginationDiagnostics: studentsJs.includes('pgCurrentItemsCount') && studentsJs.includes('pgCurrentItemsQuitCount'),
     debugSepHasDataVersion: studentsJs.includes('dataVersion'),
     // Phase 6: quit call site passes reason
-    quitCallPassesReason: studentsJs.includes("'student-marked-quit'"),
+    quitCallPassesReason: studentsJs.includes('StudentStatusCommandBoundary.markQuit') && boundaryJs.includes('v5u1-mark-quit'),
     // app.js: syncStudentStatusLocal call sites exist
-    appJsCallsSyncStatus: appJs.includes('syncStudentStatusLocal'),
+    appJsCallsSyncStatus: appJs.includes('legacy student status writers were removed from app.js') && boundaryJs.includes('syncStudentStatusLocal'),
 };
 
 let allOk = true;

@@ -287,6 +287,8 @@ function scheduleClubStatsAutoCacheSync(reason = 'schedule') {
 }
 
 function initClubStatsAutoCache() {
+  const role = String(window.userRole || window.__store?.userRole || '').toLowerCase();
+  if (!['admin', 'owner', 'super_admin', 'superadmin', 'root', 'root_admin', 'admin_root'].includes(role)) return false;
   if (window.RoleReadBoundary?.canMount?.('club.stats-cache', { reason: 'initClubStatsAutoCache' }) === false) return false;
   if (_started) return;
   _started = true;

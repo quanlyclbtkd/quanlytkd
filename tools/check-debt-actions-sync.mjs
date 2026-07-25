@@ -53,6 +53,7 @@ const rendererJs    = readFile('js/ui/render/computation/studentsRenderer.js') |
 const appJs         = readFile('app.js') || '';
 const mainJs        = readFile('js/main.js') || '';
 const financeJs     = readFile('js/modules/finance.js') || '';
+const statusBoundary = readFile('js/core/studentStatusCommandBoundary.js') || '';
 
 // ── 1. syncStudentSkippedMonthLocal exists ──
 check('1', 'syncStudentSkippedMonthLocal defined in students.js',
@@ -71,8 +72,8 @@ check('4', 'skipDebtMonthFromDebt defined in students.js',
     studentsJs.includes('window.skipDebtMonthFromDebt'));
 
 // ── 5. skipMonth calls syncStudentSkippedMonthLocal ──
-check('5', 'skipMonth (app.js) calls syncStudentSkippedMonthLocal after Firestore',
-    appJs.includes('syncStudentSkippedMonthLocal') && appJs.includes('skipMonth'));
+check('5', 'V5U-1 skipMonth ownership moved out of app.js and boundary syncs skipped month',
+    appJs.includes('legacy student status writers were removed from app.js') && statusBoundary.includes('syncStudentSkippedMonthLocal'));
 
 // ── 6. syncStudentStatusLocal calls removeStudentFromDebtDom when kind=quit ──
 check('6', 'syncStudentStatusLocal calls removeStudentFromDebtDom on quit',
@@ -119,8 +120,8 @@ check('12', 'debugRuntimeSmokeTest in main.js includes debtActionState',
     const skipEnd   = studentsJs.indexOf('window.removeSkip', skipStart > 0 ? skipStart : 0);
     const skipBlock = (skipStart >= 0 && skipEnd > skipStart)
         ? studentsJs.slice(skipStart, skipEnd) : '';
-    check('A', 'students.js window.skipMonth gọi syncStudentSkippedMonthLocal sau Firestore',
-        skipBlock.includes('syncStudentSkippedMonthLocal'));
+    check('A', 'students.js window.skipMonth delegates to StudentStatusCommandBoundary and boundary syncs local month',
+        skipBlock.includes('StudentStatusCommandBoundary.addSkippedMonth') && statusBoundary.includes('syncStudentSkippedMonthLocal'));
 }
 
 // ── B. students.js skipMonth calls removeStudentFromDebtDom ──
@@ -129,8 +130,8 @@ check('12', 'debugRuntimeSmokeTest in main.js includes debtActionState',
     const skipEnd   = studentsJs.indexOf('window.removeSkip', skipStart > 0 ? skipStart : 0);
     const skipBlock = (skipStart >= 0 && skipEnd > skipStart)
         ? studentsJs.slice(skipStart, skipEnd) : '';
-    check('B', 'students.js window.skipMonth gọi removeStudentFromDebtDom sau Firestore',
-        skipBlock.includes('removeStudentFromDebtDom'));
+    check('B', 'V5U-1 boundary removes skipped student from Debt DOM after command success',
+        skipBlock.includes('StudentStatusCommandBoundary.addSkippedMonth') && statusBoundary.includes('removeStudentFromDebtDom'));
 }
 
 // ── C. students.js removeSkip calls syncStudentSkippedMonthLocal ──
@@ -139,8 +140,8 @@ check('12', 'debugRuntimeSmokeTest in main.js includes debtActionState',
     const rsEnd   = studentsJs.indexOf('window.addAchievementRow', rsStart > 0 ? rsStart : 0);
     const rsBlock = (rsStart >= 0 && rsEnd > rsStart)
         ? studentsJs.slice(rsStart, rsEnd) : '';
-    check('C', 'students.js window.removeSkip gọi syncStudentSkippedMonthLocal',
-        rsBlock.includes('syncStudentSkippedMonthLocal'));
+    check('C', 'students.js window.removeSkip delegates and boundary syncs removal locally',
+        rsBlock.includes('StudentStatusCommandBoundary.removeSkippedMonth') && statusBoundary.includes("'remove', 'v5u1-skip-month-remove'"));
 }
 
 // ── D. app.js legacy debt row does NOT use onclick="handleQuitOption( ──
@@ -154,8 +155,8 @@ check('D', 'app.js legacy debt row không còn onclick="handleQuitOption( làm n
     const fhqEnd   = financeJs.indexOf('window.deleteTx', fhqStart > 0 ? fhqStart : 0);
     const fhqBlock = (fhqStart >= 0 && fhqEnd > fhqStart)
         ? financeJs.slice(fhqStart, fhqEnd) : '';
-    check('E', 'finance.js handleQuitOption nhánh nghỉ tập gọi syncStudentStatusLocal',
-        fhqBlock.includes('syncStudentStatusLocal'));
+    check('E', 'finance.js handleQuitOption delegates quit and boundary commits canonical local status',
+        fhqBlock.includes('StudentStatusCommandBoundary.markQuit') && statusBoundary.includes('syncStudentStatusLocal'));
 }
 
 // ── Summary ──────────────────────────────────────────────────────────────────

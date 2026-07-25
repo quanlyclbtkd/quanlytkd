@@ -40,6 +40,7 @@ console.log('\n🔍 Phase 4K-5L-C — Debt Service Bridge Check\n');
 const financeJs  = readFile('js/modules/finance.js');
 const studentsJs = readFile('js/modules/students.js');
 const mainJs     = readFile('js/main.js');
+const statusBoundary = readFile('js/core/studentStatusCommandBoundary.js');
 
 check('financeJs readable',  !!financeJs,  'Không tìm thấy js/modules/finance.js');
 check('studentsJs readable', !!studentsJs, 'Không tìm thấy js/modules/students.js');
@@ -75,51 +76,33 @@ check(
     'Thêm window.StudentService = window.StudentService || StudentService; vào đầu initStudents()'
 );
 
-// ── 4. markStudentQuitFromDebt dùng window.StudentService || StudentService ───
+// ── 4–7. V5U-1: Debt actions delegate into the canonical student-status boundary ──
 {
     const mqStart = studentsJs.indexOf('window.markStudentQuitFromDebt');
     const mqEnd   = studentsJs.indexOf('window.skipDebtMonthFromDebt', mqStart > 0 ? mqStart : 0);
     const mqBlock = (mqStart >= 0 && mqEnd > mqStart) ? studentsJs.slice(mqStart, mqEnd) : '';
-    check(
-        '4. markStudentQuitFromDebt dùng window.StudentService || StudentService',
-        mqBlock.includes('window.StudentService || StudentService'),
-        'Sửa markStudentQuitFromDebt dùng const svc = window.StudentService || StudentService'
-    );
-}
-
-// ── 5. skipDebtMonthFromDebt dùng window.StudentService || StudentService ─────
-{
     const sdStart = studentsJs.indexOf('window.skipDebtMonthFromDebt');
     const sdEnd   = studentsJs.indexOf('window.debugDebtServiceBridge', sdStart > 0 ? sdStart : 0);
     const sdBlock = (sdStart >= 0 && sdEnd > sdStart) ? studentsJs.slice(sdStart, sdEnd) : '';
     check(
-        '5. skipDebtMonthFromDebt dùng window.StudentService || StudentService',
-        sdBlock.includes('window.StudentService || StudentService'),
-        'Sửa skipDebtMonthFromDebt dùng const svc = window.StudentService || StudentService'
+        '4. markStudentQuitFromDebt delegates to StudentStatusCommandBoundary',
+        mqBlock.includes('StudentStatusCommandBoundary.markQuit'),
+        'V5U-1 requires the Debt quit action to use the canonical status command owner'
     );
-}
-
-// ── 6. markStudentQuitFromDebt fallback dùng __store.clubId ──────────────────
-{
-    const mqStart = studentsJs.indexOf('window.markStudentQuitFromDebt');
-    const mqEnd   = studentsJs.indexOf('window.skipDebtMonthFromDebt', mqStart > 0 ? mqStart : 0);
-    const mqBlock = (mqStart >= 0 && mqEnd > mqStart) ? studentsJs.slice(mqStart, mqEnd) : '';
     check(
-        '6. markStudentQuitFromDebt fallback dùng window.__store.clubId',
-        mqBlock.includes('st.clubId || window.currentClubId'),
-        'Fallback trong markStudentQuitFromDebt phải dùng st.clubId || window.currentClubId'
+        '5. skipDebtMonthFromDebt delegates to StudentStatusCommandBoundary',
+        sdBlock.includes('StudentStatusCommandBoundary.addSkippedMonth'),
+        'V5U-1 requires the Debt skip-month action to use the canonical status command owner'
     );
-}
-
-// ── 7. skipDebtMonthFromDebt fallback dùng __store.clubId ────────────────────
-{
-    const sdStart = studentsJs.indexOf('window.skipDebtMonthFromDebt');
-    const sdEnd   = studentsJs.indexOf('window.debugDebtServiceBridge', sdStart > 0 ? sdStart : 0);
-    const sdBlock = (sdStart >= 0 && sdEnd > sdStart) ? studentsJs.slice(sdStart, sdEnd) : '';
     check(
-        '7. skipDebtMonthFromDebt fallback dùng window.__store.clubId',
-        sdBlock.includes('st.clubId || window.currentClubId'),
-        'Fallback trong skipDebtMonthFromDebt phải dùng st.clubId || window.currentClubId'
+        '6. canonical boundary resolves the existing StudentService bridge',
+        statusBoundary.includes('window.StudentService') && statusBoundary.includes('|| StudentService'),
+        'StudentStatusCommandBoundary must reuse the existing StudentService, not create a new write path'
+    );
+    check(
+        '7. canonical boundary centralizes local status/debt synchronization',
+        statusBoundary.includes('syncStudentStatusLocal') && statusBoundary.includes('syncStudentSkippedMonthLocal') && statusBoundary.includes('removeStudentFromDebtDom'),
+        'Boundary must commit local status and Debt removal only after the service succeeds'
     );
 }
 
@@ -137,27 +120,20 @@ check(
     "Thêm out.debtServiceBridge = await safeCall('debugDebtServiceBridge', ...) vào debugRuntimeSmokeTest"
 );
 
-// ── 10. finance.js skipMonth gọi syncStudentSkippedMonthLocal ────────────────
+// ── 10–11. finance.js delegates; boundary owns local synchronization ─────────
 {
     const smStart = financeJs.indexOf('window.skipMonth = async');
     const smEnd   = financeJs.indexOf('window.removeSkip = async', smStart > 0 ? smStart : 0);
     const smBlock = (smStart >= 0 && smEnd > smStart) ? financeJs.slice(smStart, smEnd) : '';
     check(
-        '10. finance.js skipMonth gọi syncStudentSkippedMonthLocal sau Firestore',
-        smBlock.includes('syncStudentSkippedMonthLocal'),
-        'Thêm window.syncStudentSkippedMonthLocal(...) sau await svc.addSkippedMonth trong skipMonth'
+        '10. finance.js skipMonth delegates to StudentStatusCommandBoundary',
+        smBlock.includes('StudentStatusCommandBoundary.addSkippedMonth'),
+        'Finance alias must not write status directly after V5U-1'
     );
-}
-
-// ── 11. finance.js skipMonth gọi removeStudentFromDebtDom ────────────────────
-{
-    const smStart = financeJs.indexOf('window.skipMonth = async');
-    const smEnd   = financeJs.indexOf('window.removeSkip = async', smStart > 0 ? smStart : 0);
-    const smBlock = (smStart >= 0 && smEnd > smStart) ? financeJs.slice(smStart, smEnd) : '';
     check(
-        '11. finance.js skipMonth gọi removeStudentFromDebtDom sau Firestore',
-        smBlock.includes('removeStudentFromDebtDom'),
-        'Thêm window.removeStudentFromDebtDom(name) sau await svc.addSkippedMonth trong skipMonth'
+        '11. boundary syncs skipped month and removes Debt row after success',
+        statusBoundary.includes('syncStudentSkippedMonthLocal') && statusBoundary.includes('removeStudentFromDebtDom'),
+        'Canonical status boundary owns local synchronization after the service write'
     );
 }
 

@@ -91,7 +91,7 @@
     window.debtBranchMatchesFilter = window.debtBranchMatchesFilter || _branchMatchesFilter;
 // Danh mục kho tùy chỉnh — được load từ Firestore khi đăng nhập thành công
 window.invCustomCategories = [];
-    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V5T'; window.APP_PATCH_VERSION = '4K-6V5T-canonical-domain-command-boundary-write-freeze-20260722'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
+    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V5U-1'; window.APP_PATCH_VERSION = '4K-6V5U-1-student-status-command-cutover-tx-delete-fix-20260722'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
     // Compatibility marker retained: 4K-6V5S-quit-context-render-loop-guard-20260722 / quit-context-render-loop-guard-20260722-v5s
     // Compatibility regression marker retained for Phase 4K-6Q gate: APP_PATCH_VERSION = '4K-6Q-mobile-filter-currency-stability-20260615'
     window.__appLoaded = true; // [Phase 2a] main.js kiểm tra để bỏ qua loadLegacyApp()
@@ -4839,137 +4839,17 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         document.getElementById('profileModal').style.display = 'flex';
     };
 
-    window.updateProfile = async () => {
-        if(window.userRole === 'viewer') return;
-        const oldName = document.getElementById('m_old_name').value.trim(); const newName = document.getElementById('m_name_input').value.trim(); const newStatus = document.getElementById('m_status').value;
-        const isSingleBranch = (clubConfig.branchCount === 1);
-        if (!newName) return alert("Tên võ sinh không được để trống!");
-
-        let updateData = {
-            status: newStatus,
-            memberId: document.getElementById('m_memberId').value.trim().toUpperCase(),
-            branch: isSingleBranch ? 'CS1' : _canonicalBranch(document.getElementById('m_branch').value, 'CS1'),
-            belt: document.getElementById('m_belt').value,
-            phone: document.getElementById('m_phone').value,
-            tuitionFee: document.getElementById('m_fee_actual').value,
-            dob: document.getElementById('m_dob').value,
-            gender: document.getElementById('m_gender').value,
-            cccd: document.getElementById('m_cccd').value.trim(),
-            notes: document.getElementById('m_notes').value,
-            // [THÊM] Lưu biệt danh từ form sửa hồ sơ vào Firestore
-            nickname: (document.getElementById('m_nickname') ? document.getElementById('m_nickname').value.trim() : ''),
-            feeExempt: document.getElementById('m_feeExempt').checked,
-            achievements: window._currentAchievements || [],
-            // Lưu lịch học: mảng các thứ trong tuần (theo Date.getDay())
-            trainingDays: Array.from(document.querySelectorAll('.m_trainingDay:checked')).map(cb => parseInt(cb.value)),
-            // [THÊM] Lưu Ca tập đã chọn vào hồ sơ võ sinh (đồng bộ với Điểm Danh Ngày)
-            trainingShiftId: document.getElementById('m_shift') ? document.getElementById('m_shift').value : ''
-        };
-        // Phase 4.0B-4J-8A: Ghi search index khi sửa hồ sơ võ sinh
-        if (typeof buildStudentSearchIndex === 'function') {
-            Object.assign(updateData, buildStudentSearchIndex(updateData, newName));
-        }
-        const updatedPaidUntil = document.getElementById('m_paidUntil').value;
-        if(updatedPaidUntil) updateData.paidUntil = updatedPaidUntil;
-
-        if (newStatus === 'quit' && (allProfiles[oldName] || {}).status !== 'quit') updateData.quitDate = getLocalToday();
-        else if (newStatus === 'active') {
-            updateData.quitDate = null;
-            if ((allProfiles[oldName] || {}).status === 'quit') {
-                const todayYYYYMM = getLocalToday().substring(0, 7);
-                let [ry, rm] = todayYYYYMM.split('-').map(Number);
-                rm -= 1; if (rm === 0) { rm = 12; ry -= 1; }
-                updateData.paidUntil = `${ry}-${String(rm).padStart(2, '0')}`;
-            }
-        }
-
-        try {
-            if (oldName !== newName) {
-                if (allProfiles[newName]) return alert("Tên võ sinh đã tồn tại!");
-                if (!confirm(`Bạn có chắc muốn đổi tên từ "${oldName}" thành "${newName}"?\nHệ thống sẽ tự động cập nhật tên mới trên tất cả hóa đơn.`)) return;
-                updateData.createdAt = (allProfiles[oldName] || {}).createdAt || getLocalToday();
-                if (allProfiles[oldName].skippedMonths) updateData.skippedMonths = allProfiles[oldName].skippedMonths;
-                if (allProfiles[oldName].paidUntil) updateData.paidUntil = allProfiles[oldName].paidUntil;
-
-                // [4.0B-4J-8A] Fixed: tách rename thành 2 giai đoạn — profile rename trước, tx updates sau (paginated).
-                // Trước đây: profile + tx updates trong 1 batch → giới hạn 500 writes, bỏ sót tx nếu CLB lớn.
-                // Bây giờ: profile rename trong 1 batch nhỏ → tx updates theo fetchQueryPages → batches 400.
-                const _profileRenameBatch = writeBatch(db);
-                _profileRenameBatch.set(doc(db, "clubs", currentClubId, "profiles", newName), updateData);
-                _profileRenameBatch.delete(doc(db, "clubs", currentClubId, "profiles", oldName));
-                await _profileRenameBatch.commit();
-
-                // Paginated tx scan — dùng fetchQueryPages để xử lý võ sinh có nhiều tx lịch sử
-                const _allOldTxDocs = await fetchQueryPages(
-                    ({ cursor, pageSize }) => {
-                        const _c = [
-                            where("description", ">=", oldName),
-                            where("description", "<=", oldName + '\uf8ff'),
-                            orderBy("description"),
-                            limit(pageSize)
-                        ];
-                        if (cursor) _c.splice(_c.length - 1, 0, startAfter(cursor));
-                        return query(colRef, ..._c);
-                    },
-                    { pageSize: 200, reason: 'rename-tx-scan', domain: 'transactions' }
-                );
-                const _txUpdates = [];
-                _allOldTxDocs.forEach(tDoc => {
-                    let t = tDoc.data(); let needsUpdate = false; let updatedDesc = t.description;
-                    if (t.description === oldName) { updatedDesc = newName; needsUpdate = true; }
-                    else if (t.description && t.description.startsWith(oldName + " (Thi lên")) { updatedDesc = t.description.replace(oldName, newName); needsUpdate = true; }
-                    else if (t.description && t.description.includes(oldName)) { updatedDesc = t.description.replace(oldName, newName); needsUpdate = true; }
-                    if (needsUpdate) _txUpdates.push({ id: tDoc.id, desc: updatedDesc });
-                });
-                for (let _ti = 0; _ti < _txUpdates.length; _ti += 400) {
-                    const _txB = writeBatch(db);
-                    _txUpdates.slice(_ti, _ti + 400).forEach(({ id, desc }) => {
-                        _txB.update(doc(db, "clubs", currentClubId, "transactions", id), { description: desc });
-                    });
-                    await _txB.commit();
-                }
-                window.showToast("✅ Đã cập nhật và đồng bộ tên mới thành công!");
-            } else {
-                await setDoc(doc(db, "clubs", currentClubId, "profiles", oldName), updateData, { merge: true });
-                // Phase 4K-5A: Sync local store sau khi update profile
-                if (typeof window.syncStudentStatusLocal === 'function') {
-                    window.syncStudentStatusLocal(oldName, updateData);
-                }
-                window.showToast("✅ Đã cập nhật hồ sơ!");
-            }
-            closeModal();
-        } catch (error) { console.error("Lỗi cập nhật:", error); alert("Đã xảy ra lỗi hệ thống khi lưu thay đổi!"); }
+    // Phase 4K-6V5U-1: legacy student status writers were removed from app.js.
+    // js/modules/students.js + StudentStatusCommandBoundary own these actions after bootstrap.
+    const _studentStatusNotReady = function(action) {
+        console.warn('[V5U-1] Student status command not ready:', action);
+        if (typeof window.showToast === 'function') window.showToast('Chức năng võ sinh đang khởi tạo, vui lòng thử lại sau.', 'warning');
+        return false;
     };
-
-    window.deleteProfile = async () => {
-        const targetName = document.getElementById('m_old_name').value.trim();
-        if(window.userRole !== 'viewer' && confirm(`⚠️ Xóa vĩnh viễn hồ sơ "${targetName}"? Lịch sử đóng tiền sẽ vẫn còn lưu nhưng sẽ bị mồ côi.`)) {
-            await deleteDoc(doc(db, "clubs", currentClubId, "profiles", targetName)); closeModal(); window.showToast("✅ Đã xóa hồ sơ!");
-        }
-    };
-
-    window.skipMonth = async (name, month) => {
-    await setDoc(doc(db, "clubs", currentClubId, "profiles", name.trim()), { skippedMonths: arrayUnion(month) }, { merge: true });
-    window.showToast("✅ Đã miễn phí tháng!");
-    // Phase 4K-5L: sync local store after Firestore success
-    if (typeof window.syncStudentSkippedMonthLocal === 'function') {
-        window.syncStudentSkippedMonthLocal(name, month, 'add', 'skipMonth');
-    }
-    if (typeof window.removeStudentFromDebtDom === 'function') {
-        window.removeStudentFromDebtDom(name);
-    }
-};
-    window.removeSkip = async (name, month) => {
-    if (window.userRole !== 'viewer' && confirm(`Hủy báo nghỉ tháng ${formatMonth(month)} cho ${name}?`)) {
-        await setDoc(doc(db, "clubs", currentClubId, "profiles", name.trim()), { skippedMonths: arrayRemove(month) }, { merge: true });
-        // Phase 4K-5L: sync local store after Firestore success
-        if (typeof window.syncStudentSkippedMonthLocal === 'function') {
-            window.syncStudentSkippedMonthLocal(name, month, 'remove', 'removeSkip');
-        }
-        closeModal();
-        window.showToast("✅ Đã khôi phục nợ!");
-    }
-};
+    window.updateProfile = async () => _studentStatusNotReady('updateProfile');
+    window.deleteProfile = async () => _studentStatusNotReady('deleteProfile');
+    window.skipMonth = async () => _studentStatusNotReady('skipMonth');
+    window.removeSkip = async () => _studentStatusNotReady('removeSkip');
 
     window._currentAchievements = [];
 
@@ -5020,22 +4900,16 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
     };
 
     window.handleQuitOption = (name, month) => {
-        if(confirm(`Võ sinh ${name} có tiếp tục tập không?\n- Bấm OK để báo NGHỈ TẬP luôn.\n- Bấm Cancel để chỉ BÁO NGHỈ THÁNG NÀY (miễn học phí tháng ${formatMonth(month)}).`)) {
-            let updateData = { status: 'quit', quitDate: getLocalToday() };
-            setDoc(doc(db, "clubs", currentClubId, "profiles", name), updateData, { merge: true }).then(() => {
-                window.showToast("✅ Đã chuyển trạng thái Nghỉ tập!");
-                // Phase 4K-5A: Sync local store sau khi quit
-                if (typeof window.syncStudentStatusLocal === 'function') {
-                    window.syncStudentStatusLocal(name, { status: 'quit', quitDate: updateData.quitDate });
-                }
-                // Phase 4K-5L: also remove from debt DOM
-                if (typeof window.removeStudentFromDebtDom === 'function') {
-                    window.removeStudentFromDebtDom(name);
-                }
-            });
-        } else {
-            if(confirm(`Xác nhận miễn nợ học phí tháng ${formatMonth(month)} cho ${name}?`)) window.skipMonth(name, month);
+        if (!window.StudentStatusCommandBoundary) return _studentStatusNotReady('handleQuitOption');
+        if (confirm(`Võ sinh ${name} có tiếp tục tập không?
+- Bấm OK để báo NGHỈ TẬP luôn.
+- Bấm Cancel để chỉ BÁO NGHỈ THÁNG NÀY (miễn học phí tháng ${formatMonth(month)}).`)) {
+            return window.StudentStatusCommandBoundary.markQuit(name, getLocalToday());
         }
+        if (confirm(`Xác nhận miễn nợ học phí tháng ${formatMonth(month)} cho ${name}?`)) {
+            return window.StudentStatusCommandBoundary.addSkippedMonth(name, month);
+        }
+        return false;
     };
 
     // Phase 4K-6S: formatMonthCompact fallback lives in the classic rollback layer;

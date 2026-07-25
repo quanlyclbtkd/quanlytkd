@@ -49,8 +49,17 @@ export const FinanceService = {
      * @param {string} txId — Firestore transaction doc ID
      */
     async deleteTransaction(txId) {
+        const id = String(txId || '').trim();
+        if (!id || id === 'undefined') throw new Error('[FinanceService] transaction id không hợp lệ');
         const { doc, deleteDoc } = _sdk();
-        await deleteDoc(doc(_db(), 'clubs', _clubId(), 'transactions', txId));
+        try {
+            await deleteDoc(doc(_db(), 'clubs', _clubId(), 'transactions', id));
+        } catch (error) {
+            if (error && (error.code === 'permission-denied' || /insufficient permissions/i.test(error.message || ''))) {
+                error.message = '[FinanceService] Tài khoản chưa được Firestore Rules cấp quyền xóa giao dịch: ' + (error.message || 'permission-denied');
+            }
+            throw error;
+        }
     },
 
     /**

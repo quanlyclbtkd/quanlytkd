@@ -11,6 +11,7 @@ const listener=read('js/listeners/profiles.listeners.js');
 const boundary=read('js/data/quitProfileBoundary.js');
 const render=read('js/ui/render/renderStudents.js');
 const students=read('js/modules/students.js');
+const statusBoundary=read('js/core/studentStatusCommandBoundary.js');
 const app=read('app.js');
 const pubBoundary=read('public/js/data/quitProfileBoundary.js');
 const pkg=JSON.parse(read('package.json'));
@@ -27,7 +28,7 @@ check('active query removals mark quit authority dirty', listener.includes("quit
 check('current quit tab refreshes when active query removes docs', listener.includes("ensureQuitProfilesComplete('active-query-removed-current-quit')"));
 check('renderQuitIsland ignores cached quit HTML when boundary exists', render.includes('V5R single-render-source lock') && render.includes('if (window.QuitProfileBoundary)') && render.includes("getStudentsCachedHtml('quitRows')") && render.indexOf("getStudentsCachedHtml('quitRows')") > render.indexOf('Standalone legacy fallback only'));
 check('legacy tab switch cannot restore cached quit HTML', app.includes('the quit tab must never be restored from legacy tabHtmlCache') && app.includes("QuitProfileBoundary.ensureComplete?.('legacy-switch-tab-quit')"));
-check('profile rename updates canonical store immediately', students.includes('profile-rename-remove-old') && students.includes('profile-rename-merge-new') && students.includes('profile-rename-status-sync'));
+check('profile rename updates canonical store immediately', (students.includes('profile-rename-remove-old') && students.includes('profile-rename-merge-new') && students.includes('profile-rename-status-sync')) || (students.includes('StudentStatusCommandBoundary.updateProfile') && statusBoundary.includes('studentProfileStore?.removeProfile') && statusBoundary.includes('studentProfileStore?.mergeProfile') && statusBoundary.includes('_commitRename')));
 check('public boundary mirror synced', boundary === pubBoundary);
 check('V5R module performs no Firestore IO', !/\b(getDocs|getDoc|onSnapshot|setDoc|updateDoc|deleteDoc)\b/.test(boundary));
 check('package exposes V5R checks', pkg.scripts?.['check:v5r-quit-single-source-lock']?.includes('check-v5r-quit-single-source-lock.mjs') && pkg.scripts?.['check:v5r-quit-source-behavior']?.includes('check-v5r-quit-source-behavior.mjs'));

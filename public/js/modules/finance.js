@@ -50,8 +50,8 @@ import {
     normalizeYYYYMM,
     formatMonthCompact,
 } from '../utils/format.js';
-import { FinanceService } from '../services/finance.service.js?v=firestore-read-attribution-canonical-tx-boundary-20260616-v3a';
-import { StudentService } from '../services/students.service.js?v=firestore-read-attribution-canonical-tx-boundary-20260616-v3a';
+import { FinanceService } from '../services/finance.service.js?v=student-status-command-cutover-tx-delete-fix-20260722-v5u1';
+import { StudentService } from '../services/students.service.js?v=student-status-command-cutover-tx-delete-fix-20260722-v5u1';
 import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
 
 // ── Phase 4K-4D: Fallback classify helper (finance.js) ──
@@ -154,30 +154,7 @@ export function initFinance() {
      * @param {string} month  — Tháng cần miễn, định dạng YYYY-MM
      */
     window.skipMonth = async (name, month) => {
-        const svc = window.StudentService || StudentService;
-
-        if (!svc || typeof svc.addSkippedMonth !== 'function') {
-            throw new Error('[skipMonth] StudentService.addSkippedMonth chưa sẵn sàng');
-        }
-
-        await svc.addSkippedMonth(name, month);
-
-        if (typeof window.syncStudentSkippedMonthLocal === 'function') {
-            window.syncStudentSkippedMonthLocal(name, month, 'add', 'skipMonth-finance');
-        }
-
-        if (typeof window.removeStudentFromDebtDom === 'function') {
-            window.removeStudentFromDebtDom(name);
-        }
-
-        if (typeof window.refreshListsComputation === 'function') {
-            window.refreshListsComputation(['students.debtList', 'dashboard.summary'], 'skipMonth-finance');
-        }
-
-        if (typeof window.invalidateList === 'function') {
-            window.invalidateList('students.debtList', 'skipMonth-finance');
-        }
-
+        await window.StudentStatusCommandBoundary.addSkippedMonth(name, month);
         window.showToast?.('✅ Đã miễn phí tháng!');
     };
 
@@ -191,23 +168,7 @@ export function initFinance() {
     window.removeSkip = async (name, month) => {
         if (window.userRole === 'viewer') return;
         if (!confirm(`Hủy báo nghỉ tháng ${formatMonth(month)} cho ${name}?`)) return;
-
-        const svc = window.StudentService || StudentService;
-        await svc.removeSkippedMonth(name, month);
-
-        if (typeof window.syncStudentSkippedMonthLocal === 'function') {
-            window.syncStudentSkippedMonthLocal(name, month, 'remove', 'removeSkip-finance');
-        }
-
-        if (typeof window.refreshListsComputation === 'function') {
-            window.refreshListsComputation(['students.debtList', 'dashboard.summary'], 'removeSkip-finance');
-        }
-
-        if (typeof window.invalidateList === 'function') {
-            window.invalidateList('students.debtList', 'removeSkip-finance');
-        }
-
-        // Đóng modal hồ sơ nếu đang mở
+        await window.StudentStatusCommandBoundary.removeSkippedMonth(name, month);
         if (typeof window.closeModal === 'function') window.closeModal('profileModal');
         window.showToast?.('✅ Đã khôi phục nợ!');
     };
@@ -227,28 +188,13 @@ export function initFinance() {
             `- Bấm OK để báo NGHỈ TẬP luôn.\n` +
             `- Bấm Cancel để chỉ BÁO NGHỈ THÁNG NÀY (miễn học phí tháng ${formatMonth(month)}).`
         )) {
-            const svc = window.StudentService || StudentService;
             const _quitData = { status: 'quit', quitDate: getLocalToday() };
-            svc.updateProfile(name, _quitData)
-                .then(() => {
-                    window.showToast?.('✅ Đã chuyển trạng thái Nghỉ tập!');
-                    if (typeof window.syncStudentStatusLocal === 'function') {
-                        window.syncStudentStatusLocal(name, { status: 'quit', quitDate: _quitData.quitDate }, 'handleQuitOption-finance');
-                    }
-                    if (typeof window.removeStudentFromDebtDom === 'function') {
-                        window.removeStudentFromDebtDom(name);
-                    }
-                    if (typeof window.refreshListsComputation === 'function') {
-                        window.refreshListsComputation(
-                            ['students.activeList', 'students.quitList', 'students.debtList', 'dashboard.summary'],
-                            'handleQuitOption-finance'
-                        );
-                    }
-                    if (typeof window.invalidateList === 'function') {
-                        window.invalidateList('students.debtList', 'handleQuitOption-finance');
-                    }
-                })
-                .catch(console.error);
+            window.StudentStatusCommandBoundary.markQuit(name, _quitData.quitDate)
+                .then(() => window.showToast?.('✅ Đã chuyển trạng thái Nghỉ tập!'))
+                .catch(err => {
+                    console.error('[handleQuitOption] markQuit failed:', err);
+                    window.showToast?.('❌ Không chuyển được trạng thái nghỉ tập.');
+                });
         } else {
             if (confirm(`Xác nhận miễn nợ học phí tháng ${formatMonth(month)} cho ${name}?`)) {
                 window.skipMonth(name, month);
@@ -312,6 +258,10 @@ export function initFinance() {
 
         if (!confirm(confirmMsg)) return;
 
+        const activeTabBeforeDelete = typeof window.getCurrentActiveTabId === 'function'
+            ? window.getCurrentActiveTabId()
+            : '';
+        try {
         // Xóa giao dịch chính
         await FinanceService.deleteTransaction(id);
 
@@ -371,6 +321,26 @@ export function initFinance() {
         }
 
         window.showToast('✅ Đã xóa!');
+        // Deleting a tuition transaction must never navigate the user to Debt.
+        if (activeTabBeforeDelete === 'tx' && typeof window.getCurrentActiveTabId === 'function'
+            && window.getCurrentActiveTabId() === 'debt' && typeof window.switchTab === 'function') {
+            window.switchTab('tx');
+        }
+        return true;
+        } catch (error) {
+            const denied = error && (error.code === 'permission-denied' || /insufficient permissions|chưa được Firestore Rules cấp quyền/i.test(error.message || ''));
+            console.error('[deleteTx] failed:', error);
+            if (denied) {
+                window.showToast?.('❌ Firestore Rules chưa cấp quyền xóa giao dịch cho Admin. Hãy deploy Rules của bản V5U-1.', 'error');
+            } else {
+                window.showToast?.('❌ Không xóa được giao dịch. Dữ liệu chưa bị thay đổi.', 'error');
+            }
+            if (activeTabBeforeDelete === 'tx' && typeof window.getCurrentActiveTabId === 'function'
+                && window.getCurrentActiveTabId() === 'debt' && typeof window.switchTab === 'function') {
+                window.switchTab('tx');
+            }
+            return false;
+        }
     };
 
     // ════════════════════════════════════════════════════════════
@@ -967,7 +937,7 @@ export function initTransactionPagination() {
         prepareNextPage, preparePreviousPage,
         renderPaginationControls, PAGE_SIZE,
     }) => {
-        import('../services/finance.service.js?v=firestore-read-attribution-canonical-tx-boundary-20260616-v3a').then(({ FinanceService }) => {
+        import('../services/finance.service.js?v=student-status-command-cutover-tx-delete-fix-20260722-v5u1').then(({ FinanceService }) => {
 
             const store = window.__store;
             if (!store) { console.warn('[pagination/transactions] __store chưa sẵn sàng'); return; }

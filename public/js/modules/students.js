@@ -28,7 +28,7 @@
  */
 
 import { getLocalToday, formatDate, formatMonth, formatMonthCompact, addMonthsToYYYYMM } from '../utils/format.js';
-import { StudentService } from '../services/students.service.js?v=firestore-read-attribution-canonical-tx-boundary-20260616-v3a';
+import { StudentService } from '../services/students.service.js?v=student-status-command-cutover-tx-delete-fix-20260722-v5u1';
 
 // ════════════════════════════════════════════════════════════════
 // BRIDGE HELPERS — đọc state từ app.js qua window.__store
@@ -655,39 +655,13 @@ export function initStudents() {
                     if (updatedDesc !== t.description) txUpdates.push({ txId, newDesc: updatedDesc });
                 });
 
-                await StudentService.renameWithBatch(oldName, newName, updateData, txUpdates);
+                await window.StudentStatusCommandBoundary.updateProfile({ oldName, newName, updateData, txUpdates });
 
-                // V5R: rename/status restore must update the single profile store
-                // immediately. Otherwise the old quit document id can remain in
-                // quitProfiles until the next full authority refresh.
-                const renamedProfile = { ...(profiles[oldName] || {}), ...updateData };
-                if (window.studentProfileStore) {
-                    try { window.studentProfileStore.removeProfile?.(oldName, 'profile-rename-remove-old'); } catch (_) {}
-                    try { window.studentProfileStore.mergeProfile?.(newName, renamedProfile, 'profile-rename-merge-new'); } catch (_) {}
-                }
-                if (window.__store && window.__store.profiles) {
-                    const nextProfiles = { ...window.__store.profiles };
-                    delete nextProfiles[oldName];
-                    nextProfiles[newName] = renamedProfile;
-                    window.__store.profiles = nextProfiles;
-                    window.__store._dataVersion = (window.__store._dataVersion || 0) + 1;
-                }
-                try {
-                    if (typeof window.refreshListsComputation === 'function') {
-                        window.refreshListsComputation(['students.activeList', 'students.quitList', 'students.debtList'], 'profile-rename-status-sync');
-                    }
-                    if (typeof window.invalidateLists === 'function') {
-                        window.invalidateLists(['students.activeList', 'students.quitList', 'students.debtList'], 'profile-rename-status-sync');
-                    }
-                } catch (_) {}
+                // V5U-1: local-store commit/invalidation is owned by StudentStatusCommandBoundary.
                 window.showToast('✅ Đã cập nhật và đồng bộ tên mới thành công!');
             } else {
                 // Chỉ sửa — không đổi tên
-                await StudentService.updateProfile(oldName, updateData);
-                // Phase 4K-5A: Sync local store sau khi update
-                if (typeof window.syncStudentStatusLocal === 'function') {
-                    window.syncStudentStatusLocal(oldName, updateData);
-                }
+                await window.StudentStatusCommandBoundary.updateProfile({ oldName, newName, updateData });
                 window.showToast('✅ Đã cập nhật hồ sơ!');
             }
             window.closeModal();
@@ -707,7 +681,7 @@ export function initStudents() {
     window.deleteProfile = async () => {
         const targetName = document.getElementById('m_old_name').value.trim();
         if (window.userRole !== 'viewer' && confirm(`⚠️ Xóa vĩnh viễn hồ sơ "${targetName}"? Lịch sử đóng tiền sẽ vẫn còn lưu nhưng sẽ bị mồ côi.`)) {
-            await StudentService.deleteProfile(targetName);
+            await window.StudentStatusCommandBoundary.deleteProfile(targetName);
             window.closeModal();
             window.showToast('✅ Đã xóa hồ sơ!');
         }
@@ -725,15 +699,7 @@ export function initStudents() {
      * @param {string} month — YYYY-MM
      */
     window.skipMonth = async (name, month) => {
-        await StudentService.addSkippedMonth(name, month);
-
-        if (typeof window.syncStudentSkippedMonthLocal === 'function') {
-            window.syncStudentSkippedMonthLocal(name, month, 'add', 'skipMonth-module');
-        }
-
-        if (typeof window.removeStudentFromDebtDom === 'function') {
-            window.removeStudentFromDebtDom(name);
-        }
+        await window.StudentStatusCommandBoundary.addSkippedMonth(name, month);
 
         window.showToast('✅ Đã miễn phí tháng!');
     };
@@ -747,19 +713,7 @@ export function initStudents() {
      */
     window.removeSkip = async (name, month) => {
         if (window.userRole !== 'viewer' && confirm(`Hủy báo nghỉ tháng ${formatMonth(month)} cho ${name}?`)) {
-            await StudentService.removeSkippedMonth(name, month);
-
-            if (typeof window.syncStudentSkippedMonthLocal === 'function') {
-                window.syncStudentSkippedMonthLocal(name, month, 'remove', 'removeSkip-module');
-            }
-
-            if (typeof window.refreshListsComputation === 'function') {
-                window.refreshListsComputation(['students.debtList', 'dashboard.summary'], 'removeSkip-module');
-            }
-
-            if (typeof window.invalidateList === 'function') {
-                window.invalidateList('students.debtList', 'removeSkip-module');
-            }
+            await window.StudentStatusCommandBoundary.removeSkippedMonth(name, month);
 
             window.closeModal();
             window.showToast('✅ Đã khôi phục nợ!');
@@ -814,13 +768,11 @@ export function initStudents() {
     window.handleQuitOption = (name, month) => {
         if (confirm(`Võ sinh ${name} có tiếp tục tập không?\n- Bấm OK để báo NGHỈ TẬP luôn.\n- Bấm Cancel để chỉ BÁO NGHỈ THÁNG NÀY (miễn học phí tháng ${formatMonth(month)}).`)) {
             const _quitData = { status: 'quit', quitDate: getLocalToday() };
-            StudentService.updateProfile(name, _quitData)
-                .then(() => {
-                    window.showToast('✅ Đã chuyển trạng thái Nghỉ tập!');
-                    // Phase 4K-5A: Sync local store
-                    if (typeof window.syncStudentStatusLocal === 'function') {
-                        window.syncStudentStatusLocal(name, _quitData, 'student-marked-quit');
-                    }
+            window.StudentStatusCommandBoundary.markQuit(name, _quitData.quitDate)
+                .then(() => window.showToast('✅ Đã chuyển trạng thái Nghỉ tập!'))
+                .catch(err => {
+                    console.error('[handleQuitOption] markQuit failed:', err);
+                    window.showToast?.('❌ Không chuyển được trạng thái nghỉ tập.');
                 });
         } else {
             if (confirm(`Xác nhận miễn nợ học phí tháng ${formatMonth(month)} cho ${name}?`)) {
@@ -1064,7 +1016,7 @@ export function initStudentPagination() {
         renderPaginationControls, PAGE_SIZE,
     }) => {
         import('./students.js').then(() => {}); // no-op — chỉ để IDE không warn
-        import('../services/students.service.js?v=firestore-read-attribution-canonical-tx-boundary-20260616-v3a').then(({ StudentService }) => {
+        import('../services/students.service.js?v=student-status-command-cutover-tx-delete-fix-20260722-v5u1').then(({ StudentService }) => {
 
             const store = window.__store;
             if (!store) { console.warn('[pagination/students] __store chưa sẵn sàng'); return; }
@@ -2959,30 +2911,7 @@ window.markStudentQuitFromDebt = async function(event, name, month) {
 
             var patch = { status: 'quit', quitDate: quitDate };
 
-            const svc = window.StudentService || StudentService;
-
-            if (svc && typeof svc.updateProfile === 'function') {
-                await svc.updateProfile(studentName, patch);
-            } else {
-                var st = window.__store || {};
-                var db = st.db || window.db;
-                var clubId = st.clubId || window.currentClubId;
-
-                if (window._fb_init && db && clubId) {
-                    var _fb = window._fb_init;
-                    await _fb.setDoc(
-                        _fb.doc(db, 'clubs', clubId, 'profiles', studentName),
-                        patch,
-                        { merge: true }
-                    );
-                } else {
-                    throw new Error('Không tìm thấy StudentService hoặc Firebase context để cập nhật hồ sơ.');
-                }
-            }
-
-            if (typeof window.syncStudentStatusLocal === 'function') {
-                window.syncStudentStatusLocal(studentName, patch, 'debt-mark-student-quit');
-            }
+            await window.StudentStatusCommandBoundary.markQuit(studentName, quitDate);
             if (typeof window.removeStudentFromDebtDom === 'function') {
                 window.removeStudentFromDebtDom(studentName);
             }
@@ -3022,32 +2951,7 @@ window.skipDebtMonthFromDebt = async function(event, name, month) {
     return window.runGuardedAction(
         'debt.skipMonth:' + studentName + ':' + selectedMonth,
         async function() {
-            const svc = window.StudentService || StudentService;
-
-            if (svc && typeof svc.addSkippedMonth === 'function') {
-                await svc.addSkippedMonth(studentName, selectedMonth);
-            } else if (typeof window.skipMonth === 'function') {
-                await window.skipMonth(studentName, selectedMonth);
-            } else {
-                var st = window.__store || {};
-                var db = st.db || window.db;
-                var clubId = st.clubId || window.currentClubId;
-
-                if (window._fb_init && db && clubId) {
-                    var _fb = window._fb_init;
-                    await _fb.setDoc(
-                        _fb.doc(db, 'clubs', clubId, 'profiles', studentName),
-                        { skippedMonths: _fb.arrayUnion(selectedMonth) },
-                        { merge: true }
-                    );
-                } else {
-                    throw new Error('Không tìm thấy StudentService/skipMonth/Firebase context để báo nghỉ.');
-                }
-            }
-
-            if (typeof window.syncStudentSkippedMonthLocal === 'function') {
-                window.syncStudentSkippedMonthLocal(studentName, selectedMonth, 'add', 'debt-skip-month');
-            }
+            await window.StudentStatusCommandBoundary.addSkippedMonth(studentName, selectedMonth);
             if (typeof window.removeStudentFromDebtDom === 'function') {
                 window.removeStudentFromDebtDom(studentName);
             }

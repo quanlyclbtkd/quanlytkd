@@ -64,6 +64,7 @@ check(
 
 // ─── 3. syncStudentStatusLocal tồn tại ────────────────────────────────────
 const studentsMod = readFile('js/modules/students.js');
+const statusBoundary = readFile('js/core/studentStatusCommandBoundary.js');
 check(
     "students.js: window.syncStudentStatusLocal được định nghĩa",
     studentsMod.includes("window.syncStudentStatusLocal"),
@@ -77,16 +78,11 @@ check(
 
 // ─── 4. handleQuitOption gọi syncStudentStatusLocal ───────────────────────
 check(
-    "students.js handleQuitOption: gọi syncStudentStatusLocal",
-    studentsMod.includes("syncStudentStatusLocal") &&
-        studentsMod.includes("handleQuitOption") &&
-        (() => {
-            const quitIdx = studentsMod.indexOf("window.handleQuitOption");
-            const syncIdx = studentsMod.indexOf("syncStudentStatusLocal", quitIdx);
-            const nextFn  = studentsMod.indexOf("window.", quitIdx + 30);
-            return syncIdx > quitIdx && (nextFn === -1 || syncIdx < nextFn + 200);
-        })(),
-    "syncStudentStatusLocal called inside handleQuitOption"
+    "students.js handleQuitOption: delegates quit to canonical status boundary",
+    studentsMod.includes("StudentStatusCommandBoundary.markQuit") &&
+        statusBoundary.includes("syncStudentStatusLocal") &&
+        statusBoundary.includes("async markQuit"),
+    "V5U-1 boundary owns Firestore write and local status commit"
 );
 
 // ─── 5. updateProfile gọi syncStudentStatusLocal ─────────────────────────
@@ -121,9 +117,11 @@ check(
 
 // ─── 8. app.js handleQuitOption gọi syncStudentStatusLocal ───────────────
 check(
-    "app.js handleQuitOption: gọi syncStudentStatusLocal",
-    appSrc.includes("window.syncStudentStatusLocal") && appSrc.includes("handleQuitOption"),
-    "app.js calls syncStudentStatusLocal after quit"
+    "app.js handleQuitOption: contains no direct status writer and delegates to boundary",
+    appSrc.includes("legacy student status writers were removed from app.js") &&
+        appSrc.includes("StudentStatusCommandBoundary.markQuit") &&
+        statusBoundary.includes("syncStudentStatusLocal"),
+    "V5U-1 removes legacy writer while preserving canonical local sync"
 );
 
 // ─── 9. debugRuntimeSmokeTest có studentStatusSeparation ─────────────────
