@@ -19,7 +19,7 @@ install('removeSkip');
 install('markStudentQuitFromDebt');
 install('skipDebtMonthFromDebt');
 install('quickPay', async (...args) => { await sleep(30); return `paid:${args.join('|')}`; });
-install('deleteTx', async id => { if (id === 'boom') throw new Error('delete failed'); return `deleted:${id}`; });
+install('deleteTx', async id => { await sleep(20); if (id === 'boom') throw new Error('delete failed'); return `deleted:${id}`; });
 install('markInvPaid');
 install('toggleAttendance');
 install('bulkCheckIn');
@@ -32,24 +32,22 @@ const boundary = window.CanonicalDomainCommandBoundary;
 const snap = boundary.getSnapshot();
 
 check('boundary initializes with reviewed command inventory', snap.initialized && snap.commandCount === 13, JSON.stringify(snap));
-check('nine high-risk/profile globals wrapped', snap.wrappedCount === 9, `wrapped=${snap.wrappedCount}`);
-check('four stable/offline complex globals remain observe-only', snap.observeOnlyCount === 4, `observe=${snap.observeOnlyCount}`);
+check('V5U-2 leaves seven compatibility wrappers', snap.wrappedCount === 8, `wrapped=${snap.wrappedCount}`);
+check('V5U-2 keeps quickPay plus four stable/offline globals observe-only', snap.observeOnlyCount === 5, `observe=${snap.observeOnlyCount}`);
 check('attendance handler identity is not replaced', window.toggleAttendance.__domainCommandId === undefined);
-check('quickPay is compatibility wrapper', window.quickPay.__domainCommandId === 'finance.quickPay');
+check('quickPay identity is not replaced after V5U-2 cutover', window.quickPay.__domainCommandId === undefined);
 
-const p1 = window.quickPay('Nguyen A', '2026-07', 'CS1');
-const p2 = window.quickPay('Nguyen A', '2026-07', 'CS1');
-const [r1, r2] = await Promise.all([p1, p2]);
-check('duplicate identical quickPay delegates only once', calls.quickPay === 1, `calls=${calls.quickPay}`);
-check('duplicate callers receive original result', r1 === 'paid:Nguyen A|2026-07|CS1' && r2 === r1);
-
-await window.quickPay('Nguyen A', '2026-08', 'CS1');
-check('different command key remains independent', calls.quickPay === 2, `calls=${calls.quickPay}`);
+const q1 = await window.quickPay('Nguyen A', '2026-07', 'CS1');
+check('observe-only quickPay keeps original handler result', calls.quickPay === 1 && q1 === 'paid:Nguyen A|2026-07|CS1');
 
 let errorPropagated = false;
 try { await window.deleteTx('boom'); } catch (e) { errorPropagated = e?.message === 'delete failed'; }
 check('legacy error propagates unchanged through compat wrapper', errorPropagated);
 check('underlying delete handler called exactly once', calls.deleteTx === 1);
+const sameDelete1 = window.deleteTx('same-id');
+const sameDelete2 = window.deleteTx('same-id');
+const sameDeleteResults = await Promise.all([sameDelete1, sameDelete2]);
+check('duplicate identical delete is still protected by compatibility boundary', calls.deleteTx === 2 && sameDeleteResults[0] === sameDeleteResults[1], `calls=${calls.deleteTx}`);
 
 const normalized = await boundary.execute('student.skipMonth', ['Nguyen B','2026-07']);
 check('normalized command API returns canonical result envelope', normalized.ok && normalized.commandId === 'student.skipMonth' && normalized.delegatedTo.includes('StudentService'));

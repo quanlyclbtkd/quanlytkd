@@ -98,7 +98,7 @@ import { LegacyRenderEntrypoints }            from './core/legacyRenderEntrypoin
 import { InlineHandlerAudit }                from './core/inlineHandlerAudit.js';
 import { EventActionBridge, initEventActionBridge } from './ui/eventActionBridge.js';
 import { initLegacyUiShell }                  from './ui/legacyUiShell.js';
-import { registerReportExportFacade }         from './modules/reports/reportExportFacade.js';
+import { registerReportExportFacade }         from './modules/reports/reportExportFacade.js?v=attendance-excel-documentid-sdk-fix-20260801-v5u2e';
 import { store, resetStore }                  from './store.js';
 import { initFirebase }                        from './firebase/config.js';
 import { showToast, registerToastGlobal }      from './ui/toast.js';
@@ -224,8 +224,9 @@ import { PerformanceMonitor } from './core/performanceMonitor.js';
 import { FinancialFlowMap }   from './core/financialFlowMap.js';
 import { SecurityPosture }   from './core/securityPosture.js';
 import { ActionGuard }        from './core/actionGuard.js';
-import { initCanonicalDomainCommandBoundary } from './core/canonicalDomainCommandBoundary.js?v=student-status-command-cutover-tx-delete-fix-20260722-v5u1';
-import { initStudentStatusCommandBoundary } from './core/studentStatusCommandBoundary.js?v=student-status-command-cutover-tx-delete-fix-20260722-v5u1';
+import { initCanonicalDomainCommandBoundary } from './core/canonicalDomainCommandBoundary.js?v=tuition-command-cutover-20260730-v5u2';
+import { initStudentStatusCommandBoundary } from './core/studentStatusCommandBoundary.js?v=tuition-command-cutover-20260730-v5u2';
+import { initTuitionCommandBoundary } from './core/tuitionCommandBoundary.js?v=tuition-command-cutover-20260730-v5u2';
 // Phase 4K-6E: Transaction Delete Integrity
 import { TransactionDeleteIntegrity } from './core/transactionDeleteIntegrity.js';
 // Phase 4K-6F: Legacy App Kernel Audit + Diagnostics Extraction
@@ -323,7 +324,7 @@ import {
 } from './firebase/paginatedQuery.js';
 
 // ── Phase 2d–3.2A: Business modules (eager — cần khi login) ────
-import { initStudents, initStudentPagination }        from './modules/students.js?v=student-status-command-cutover-tx-delete-fix-20260722-v5u1';
+import { initStudents, initStudentPagination }        from './modules/students.js?v=tuition-command-cutover-20260730-v5u2';
 // PHẦN 1 FIX + Phase 4K-2: Unified Search Controller — real cache + SearchBlob + stale guard
 import {
     initGlobalSearchRuntime,
@@ -332,7 +333,7 @@ import {
     invalidateSearchCache,
     debugSearchPerformance,
 } from './modules/searchRuntime.js';
-import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from './modules/finance.js?v=student-status-command-cutover-tx-delete-fix-20260722-v5u1';
+import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from './modules/finance.js?v=tuition-command-cutover-20260730-v5u2';
 import { initInventory }                              from './modules/inventory.js?v=payment-bundle-runtime-hotfix-20260616-v3a1';
 // Compatibility marker: from './modules/attendance.js'
 import { initAttendance }                             from './modules/attendance.js?v=coach-branch-runtime-repair-20260627-v4b1';
@@ -1600,6 +1601,9 @@ function _waitForExistingLegacyApp(ms) {
         initStudents();
         // Phase 4K-6V5U-1: install the single student status writer before finance aliases.
         initStudentStatusCommandBoundary();
+        // Phase 4K-6V5U-2: install the tuition writer before finance UI adapters.
+        // This boundary reuses FinanceService and does not own inventory/multi-item/family-pay.
+        initTuitionCommandBoundary();
 
         // ── Phase 4K-RUNTIME-INIT-FIX: editProfile legacy bridge ─────────────
         // editProfile is listed as a required global (health check + module guard)
@@ -3149,7 +3153,8 @@ window.debugProfileModalClose = function() {
 // PHẦN 1 — APP BUILD VERSION
 window.APP_BUILD_VERSION = '4K-6V2-inventory-history-pagination-complete-active-debt-20260616';
 // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
-window.APP_PATCH_VERSION = '4K-6V5U-1-student-status-command-cutover-tx-delete-fix-20260722';
+// Compatibility marker: window.APP_PATCH_VERSION = '4K-6V5U-2-tuition-command-cutover-20260730';
+window.APP_PATCH_VERSION = '4K-6V5U-2E-attendance-excel-documentid-sdk-fix-20260801';
 window.APP_COPYRIGHT_OWNER   = 'Tình Trương';
 window.APP_PRODUCT_NAME      = 'Taekwondo Club Management Web App';
 window.APP_SECURITY_PHASE    = '4K-6E-scale-readiness-write-safety';
@@ -5372,8 +5377,8 @@ window.reconcileStudentTuitionAfterDeletedTransaction = async function(studentNa
             window.allProfiles[studentName].paidUntil  = newPaidUntil;
         }
 
-        // Refresh lists
-        if (typeof window.invalidateList === 'function') {
+        // Refresh lists unless a command owner centralizes invalidation.
+        if (options.skipInvalidate !== true && typeof window.invalidateList === 'function') {
             window.invalidateList('students.debtList', 'reconcile-after-delete');
             window.invalidateList('tx.txList',         'reconcile-after-delete');
         }

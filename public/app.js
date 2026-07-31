@@ -91,7 +91,8 @@
     window.debtBranchMatchesFilter = window.debtBranchMatchesFilter || _branchMatchesFilter;
 // Danh mục kho tùy chỉnh — được load từ Firestore khi đăng nhập thành công
 window.invCustomCategories = [];
-    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V5U-1'; window.APP_PATCH_VERSION = '4K-6V5U-1-student-status-command-cutover-tx-delete-fix-20260722'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
+    // Compatibility marker: window.APP_PATCH_VERSION = '4K-6V5U-2-tuition-command-cutover-20260730';
+    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V5U-2E'; window.APP_PATCH_VERSION = '4K-6V5U-2E-attendance-excel-documentid-sdk-fix-20260801'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
     // Compatibility marker retained: 4K-6V5S-quit-context-render-loop-guard-20260722 / quit-context-render-loop-guard-20260722-v5s
     // Compatibility regression marker retained for Phase 4K-6Q gate: APP_PATCH_VERSION = '4K-6Q-mobile-filter-currency-stability-20260615'
     window.__appLoaded = true; // [Phase 2a] main.js kiểm tra để bỏ qua loadLegacyApp()
@@ -5446,81 +5447,12 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         window.showToast("✅ Đã sửa chi phí thành công!");
     };
 
-    window.deleteTx = async (id, relatedInvId) => {
-        if(window.userRole !== 'viewer' && confirm("⚠️ Bạn có chắc muốn xóa giao dịch này? (Nếu là giao dịch kho sẽ không tự hoàn trả số dư, hãy chủ động cập nhật lại kho sau khi xóa)")) {
-            if (typeof window.guardFinancialWriteIntent === 'function' && !window.guardFinancialWriteIntent('transaction.delete', { txId: id, relatedInvId: relatedInvId || '' })) return;
-            const txToDelete = allTransactions.find(t => t.id === id);
-            try {
-                if (typeof window.recordFinancialActionAudit === 'function') window.recordFinancialActionAudit('transaction.delete', 'before', {
-                    txId: id,
-                    relatedInvId: relatedInvId || '',
-                    type: txToDelete && txToDelete.type || '',
-                    amount: txToDelete && txToDelete.amount || 0,
-                    studentName: txToDelete && (txToDelete.studentName || txToDelete.description) || ''
-                });
-                if (relatedInvId && relatedInvId !== 'undefined' && window.InventoryService && typeof window.InventoryService.deleteItem === 'function') {
-                    const _localInventoryItem = (allInventory || []).find(row => row && row.id === relatedInvId)
-                        || (window.__completeInventoryDebts || []).find(row => row && row.id === relatedInvId)
-                        || null;
-                    await window.InventoryService.deleteItem(relatedInvId, {
-                        previous: _localInventoryItem,
-                        relatedTxId: id && id !== 'undefined' ? id : ''
-                    });
-                } else {
-                    if (id && id !== 'undefined') await deleteDoc(doc(db, "clubs", currentClubId, "transactions", id));
-                    if (relatedInvId && relatedInvId !== 'undefined') {
-                        await deleteDoc(doc(db, "clubs", currentClubId, "inventory", relatedInvId));
-                        window.notifyInventoryMutation?.('inventory-related-transaction-deleted');
-                    }
-                }
-                if (txToDelete && (txToDelete.type === 'Học phí' || txToDelete.type === 'Học phí + Lệ phí thi')) {
-                    const studentName = (txToDelete.description || '').trim();
-                    if (studentName) {
-                        // [SỬA BÁO NỢ] Truy vấn Firestore lấy TẤT CẢ giao dịch học phí của võ sinh
-                    // allTransactions chỉ chứa tháng đang xem → dùng sẽ tính sai paidUntil khi xóa tháng cũ
-                    // [4.0B-4J-8A] Fixed: thay limit(500) bằng fetchQueryPages — tính đúng paidUntil kể cả võ sinh nhiều năm
-                    const _stuTxDocs = await fetchQueryPages(
-                        ({ cursor, pageSize }) => {
-                            const _pC = [where("description", "==", studentName), orderBy("timestamp"), limit(pageSize)];
-                            if (cursor) _pC.splice(-1, 0, startAfter(cursor));
-                            return query(colRef, ..._pC);
-                        },
-                        { pageSize: 200, reason: 'paidUntil-recalc', domain: 'transactions' }
-                    );
-                        const remainingMonths = [];
-                        _stuTxDocs.forEach(tDoc => {
-                            if (tDoc.id === id) return;
-                            const _td = tDoc.data();
-                            if (_td.type !== 'Học phí' && _td.type !== 'Học phí + Lệ phí thi') return;
-                            if (_td.packageMonths) remainingMonths.push(..._td.packageMonths);
-                            else if (_td.txMonth) remainingMonths.push(_td.txMonth);
-                        });
-                        const sortedRemaining = [...new Set(remainingMonths)].sort();
-                        const newPaidUntil = sortedRemaining.length > 0 ? sortedRemaining[sortedRemaining.length - 1] : '';
-                        const deletedMonths = txToDelete.packageMonths || (txToDelete.txMonth ? [txToDelete.txMonth] : []);
-                        const profileRef = doc(db, "clubs", currentClubId, "profiles", studentName);
-                        const profileUpdate = { paidUntil: newPaidUntil };
-                        if (deletedMonths.length > 0) profileUpdate.paidMonths = arrayRemove(...deletedMonths);
-                        await updateDoc(profileRef, profileUpdate);
-                    }
-                }
-                if (typeof window.recordFinancialActionAudit === 'function') window.recordFinancialActionAudit('transaction.delete', 'after', {
-                    txId: id,
-                    relatedInvId: relatedInvId || '',
-                    type: txToDelete && txToDelete.type || '',
-                    amount: txToDelete && txToDelete.amount || 0
-                });
-                window.showToast("✅ Đã xóa!");
-            } catch (err) {
-                if (typeof window.recordFinancialActionAudit === 'function') window.recordFinancialActionAudit('transaction.delete', 'error', {
-                    txId: id,
-                    relatedInvId: relatedInvId || '',
-                    error: err && err.message || String(err)
-                });
-                console.error('[deleteTx] failed:', err);
-                alert('Không xóa được giao dịch. Vui lòng thử lại hoặc kiểm tra Console.');
-            }
-        }
+    // Phase 4K-6V5U-2: legacy Finance writers removed from app.js.
+    // main.js installs the module UI adapter and TuitionCommandBoundary.
+    window.deleteTx = async function v5u2DeleteTxNotReady() {
+        console.warn('[V5U-2] deleteTx called before Finance module/TuitionCommandBoundary is ready.');
+        window.showToast?.('Chức năng xóa giao dịch đang khởi tạo, vui lòng thử lại.', 'warning');
+        return false;
     };
 
     document.getElementById('expenseForm').onsubmit = async (e) => {
@@ -5544,113 +5476,10 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         }
     };
 
-    window.quickPay = async (name, monthsStr, branch, defaultFee, skipPrompt) => {
-        // [SỬA THU HỌC PHÍ] Thay alert() bằng showToast() — alert() bị block trong webview/PWA
-        if(window.userRole === 'viewer') { window.showToast('⚠️ Tài khoản khách không thể thu tiền!', 3000); return; }
-        let cleanName = name.replace(/\\'/g, "'");
-        let monthsList = monthsStr ? monthsStr.split(',').map(s => s.trim()).filter(Boolean) : [];
-        let lastMonth = monthsList.length > 0 ? monthsList[monthsList.length - 1] : monthsStr;
-        let monthLabel = window.formatMonthCompact(monthsStr);
-        let amount;
-        if (skipPrompt && defaultFee && Number(String(defaultFee).replace(/\D/g,'')) > 0) {
-            amount = Number(String(defaultFee).replace(/\D/g,''));
-        } else {
-            // [SỬA THU HỌC PHÍ] Fallback nếu gọi không có skipPrompt và không có modal
-            // Trường hợp này không nên xảy ra sau khi openQuickPayModal đã được cập nhật
-            let defaultAmountStr = defaultFee ? parseInt(defaultFee, 10).toLocaleString('vi-VN') : '0';
-            let inputAmount = prompt(`XÁC NHẬN THU HỌC PHÍ\nVõ sinh: ${cleanName}\nKỳ học phí: ${monthLabel}\n\nNhập số tiền thu (VNĐ):`, defaultAmountStr);
-            if (inputAmount === null) return;
-            amount = Number(inputAmount.replace(/\D/g, ''));
-            // [SỬA THU HỌC PHÍ] Thay alert() bằng showToast() cho validate số tiền
-            if (amount <= 0) { window.showToast('⚠️ Số tiền không hợp lệ!', 2500); return; }
-        }
-
-        // Tính số tháng thực tế được đóng dựa vào số tiền nhập — tránh đánh dấu dư tháng chưa đóng
-        let profile = allProfiles[cleanName] || {};
-        const feePerMonth = Number(profile.tuitionFee) || 0;
-        let paidMonthsList = monthsList.slice();
-        if (feePerMonth > 0 && monthsList.length > 1) {
-            const monthsPaid = Math.min(Math.floor(amount / feePerMonth), monthsList.length);
-            paidMonthsList = monthsList.slice(0, monthsPaid > 0 ? monthsPaid : 1);
-        }
-        const actualLastMonth = paidMonthsList[paidMonthsList.length - 1] || lastMonth;
-        const actualMonthLabel = window.formatMonthCompact(paidMonthsList.join(','));
-
-        if (typeof window.guardFinancialWriteIntent === 'function' && !window.guardFinancialWriteIntent('tuition.quickPay', {
-            studentName: cleanName,
-            months: paidMonthsList,
-            amount: amount,
-            branch: branch || 'CS1',
-            txMonth: actualLastMonth
-        })) return;
-
-        try {
-            if (typeof window.recordFinancialActionAudit === 'function') window.recordFinancialActionAudit('tuition.quickPay', 'before', {
-                studentName: cleanName,
-                months: paidMonthsList,
-                amount: amount,
-                branch: branch || 'CS1',
-                txMonth: actualLastMonth
-            });
-            // [FIX MẤT GIAO DỊCH] Khi thu bù tháng cũ, lưu date trong tháng đó (không dùng hôm nay)
-            // → giao dịch sẽ xuất hiện đúng khi lọc tháng đó.
-            const _today = getLocalToday();
-            const _txDate = actualLastMonth < _today.substring(0, 7) ? actualLastMonth + '-01' : _today;
-            await addDoc(colRef, _canonicalTxPayload({ branch: branch || 'CS1', type: 'Học phí', description: cleanName, amount: amount, date: _txDate, txMonth: actualLastMonth, packageMonths: paidMonthsList, timestamp: Date.now() }, 'quick-pay-tuition'));
-
-            // [FIX BÁO NỢ] Không cho paidUntil thụt lùi: chỉ cập nhật nếu actualLastMonth tiến xa hơn hiện tại
-            // [BƯỚC 2] Normalize paidUntil cũ để so sánh chuẩn YYYY-MM
-            const _normQPaid = normalizeYYYYMM(profile.paidUntil);
-            const _safeQPaidUntil = actualLastMonth > (_normQPaid || '') ? actualLastMonth : (_normQPaid || actualLastMonth);
-            // [BƯỚC 1] Chỉ updateDoc các field thanh toán — KHÔNG ghi đè belt/branch/status/createdAt
-            // setDoc(merge:true) với snapshot cũ là nguyên nhân gốc của race condition ghi đè dữ liệu
-            await updateDoc(doc(db, "clubs", currentClubId, "profiles", cleanName), {
-                paidUntil: _safeQPaidUntil,
-                paidMonths: arrayUnion(...paidMonthsList)
-            });
-            // [BƯỚC 3] Ghi audit log riêng vào fee_audit — bản ghi này không bị xóa khi deleteTx
-            try {
-                const _qpAuditRef = collection(db, "clubs", currentClubId, "fee_audit");
-                await addDoc(_qpAuditRef, {
-                    studentId: cleanName,
-                    amount: amount,
-                    date: getLocalToday(),
-                    type: 'tuition',
-                    month: _safeQPaidUntil,
-                    months: paidMonthsList,
-                    by: window.currentUserEmail || 'admin',
-                    timestamp: Date.now()
-                });
-            } catch(_) { /* audit log không chặn luồng chính */ }
-            const _monthsCount = paidMonthsList.length;
-            const _monthsLabel = paidMonthsList.map(m => { const [y, mo] = m.split('-'); return `tháng ${parseInt(mo)}/${y}`; }).join(', ');
-            const _toastMsg = _monthsCount > 1
-                ? `✅ ${cleanName} đóng học phí ${_monthsLabel} (${_monthsCount} tháng)!`
-                : `✅ ${cleanName} đóng học phí ${_monthsLabel}!`;
-            window.showToast(_toastMsg);
-            if(window.exportReceipt) {
-                const breakdown = [{ label: 'Học phí ' + actualMonthLabel, amount: amount }];
-                await window.exportReceipt(cleanName, amount, 'Học phí', getLocalToday(), paidMonthsList.join(','), branch || 'CS1', '', 'BIÊN LAI THU TIỀN', breakdown);
-            }
-            if (typeof window.recordFinancialActionAudit === 'function') window.recordFinancialActionAudit('tuition.quickPay', 'after', {
-                studentName: cleanName,
-                months: paidMonthsList,
-                amount: amount,
-                branch: branch || 'CS1',
-                txMonth: actualLastMonth,
-                paidUntil: _safeQPaidUntil
-            });
-        } catch (error) {
-            if (typeof window.recordFinancialActionAudit === 'function') window.recordFinancialActionAudit('tuition.quickPay', 'error', {
-                studentName: cleanName,
-                months: paidMonthsList,
-                amount: amount,
-                branch: branch || 'CS1',
-                txMonth: actualLastMonth,
-                error: error && error.message || String(error)
-            });
-            console.error("Lỗi:", error); window.showToast('⚠️ Lỗi hệ thống, vui lòng thử lại!', 4000);
-        }
+    window.quickPay = async function v5u2QuickPayNotReady() {
+        console.warn('[V5U-2] quickPay called before Finance module/TuitionCommandBoundary is ready.');
+        window.showToast?.('Chức năng thu học phí đang khởi tạo, vui lòng thử lại.', 'warning');
+        return false;
     };
 
     window.openQuickPayModal = (name, owedMonthsStr, branch) => {

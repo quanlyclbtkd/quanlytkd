@@ -30,8 +30,8 @@ function check(name, condition, hint = '') {
 function extractAddNewStudent(src) {
     const start = src.indexOf('window.addNewStudent = async () => {');
     if (start < 0) return '';
-    // Lấy 10000 ký tự (đủ bao phủ toàn bộ hàm dài nhất)
-    return src.substring(start, start + 10000);
+    // Lấy 20000 ký tự để bao phủ legacy addNewStudent sau các phase guard/cutover
+    return src.substring(start, start + 20000);
 }
 
 console.log('\n📦 Phase 4K-4C — Admission Tuition Package + Receipt Accuracy\n');
@@ -45,7 +45,7 @@ const appAddNewStudentIdx = appJs
     ? appJs.indexOf('let _addStudentInProgress = false;\n    window.addNewStudent = async () => {')
     : -1;
 const appAddNewChunk = appJs && appAddNewStudentIdx >= 0
-    ? appJs.substring(appAddNewStudentIdx, appAddNewStudentIdx + 10000)
+    ? appJs.substring(appAddNewStudentIdx, appAddNewStudentIdx + 20000)
     : (appJs ? extractAddNewStudent(appJs) : '');
 
 const stuAddNewChunk = studentsJs ? extractAddNewStudent(studentsJs) : '';

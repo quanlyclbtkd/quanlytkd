@@ -20,8 +20,9 @@ function check(name, ok) {
 
 console.log('\n=== Phase 4K-6V4B8 — Quit Tab Mobile Parity ===\n');
 const build = 'quit-context-render-loop-guard-20260722-v5s';
-const appBuild = 'student-status-command-cutover-tx-delete-fix-20260722-v5u1';
-const appBuilds = [build, 'profile-canonical-store-runtime-recovery-20260628-v4d1a', 'profile-canonical-store-20260628-v4d1', 'tuition-debt-source-of-truth-20260628-v4c'];
+const appBuild = 'tuition-command-cutover-20260730-v5u2';
+const previousAppBuild = 'student-status-command-cutover-tx-delete-fix-20260722-v5u1';
+const appBuilds = [appBuild, previousAppBuild, build, 'profile-canonical-store-runtime-recovery-20260628-v4d1a', 'profile-canonical-store-20260628-v4d1', 'tuition-debt-source-of-truth-20260628-v4c'];
 
 check('Index cache-busts app.js and main.js with current quit-safe build',
   (index.includes(`app.js?v=${appBuild}`) || appBuilds.some(b => index.includes(`app.js?v=${b}`))) && (index.includes(`./js/main.js?v=${appBuild}`) || index.includes(`./js/main.js?v=${build}`)));
@@ -30,7 +31,7 @@ check('Main cache-busts all quit render/profile modules with current quit-safe b
   main.includes(`./ui/render/renderStudents.js?v=${build}`) &&
   main.includes(`./ui/render/renderInvalidation.js?v=${build}`) &&
   main.includes(`./listeners/profiles.listeners.js?v=${build}`) &&
-  (main.includes(`./modules/students.js?v=${appBuild}`) || main.includes(`./modules/students.js?v=${build}`)));
+  (main.includes(`./modules/students.js?v=${appBuild}`) || main.includes(`./modules/students.js?v=${previousAppBuild}`) || main.includes(`./modules/students.js?v=${build}`)));
 check('Nested render imports use current build so mobile cannot reuse stale computation cache',
   renderJs.includes(`studentsRenderer.js?v=${build}`) &&
   renderStudents.includes(`studentsRenderer.js?v=${build}`) &&

@@ -8,8 +8,8 @@ function check(name, condition, details = '') {
   else { failures++; console.error(`❌ ${name}${details ? ` — ${details}` : ''}`); }
 }
 
-const build = 'student-status-command-cutover-tx-delete-fix-20260722-v5u1';
-const patch = '4K-6V5U-1-student-status-command-cutover-tx-delete-fix-20260722';
+const builds = ['student-status-command-cutover-tx-delete-fix-20260722-v5u1', 'tuition-command-cutover-20260730-v5u2', 'attendance-excel-documentid-sdk-fix-20260801-v5u2e'];
+const patches = ['4K-6V5U-1-student-status-command-cutover-tx-delete-fix-20260722', '4K-6V5U-2-tuition-command-cutover-20260730', '4K-6V5U-2E-attendance-excel-documentid-sdk-fix-20260801'];
 const boundary = read('js/core/studentStatusCommandBoundary.js');
 const boundaryPublic = read('public/js/core/studentStatusCommandBoundary.js');
 const main = read('js/main.js');
@@ -30,9 +30,9 @@ const baseline = JSON.parse(read('tools/baselines/v5u1-legacy-write-baseline.jso
 const pkg = JSON.parse(read('package.json'));
 
 check('V5U-1 boundary source/public mirrors are exact', boundary === boundaryPublic);
-check('V5U-1 app/index/main markers active', app.includes(patch) && main.includes(patch) && index.includes(`app.js?v=${build}`) && index.includes(`./js/main.js?v=${build}`));
-check('V5U-1 public app/index/main markers active', appPublic.includes(patch) && mainPublic.includes(patch) && indexPublic.includes(`app.js?v=${build}`) && indexPublic.includes(`./js/main.js?v=${build}`));
-check('main imports and initializes StudentStatusCommandBoundary', main.includes(`./core/studentStatusCommandBoundary.js?v=${build}`) && main.includes('initStudentStatusCommandBoundary();'));
+check('V5U-1-or-later app/index/main markers active', patches.some(p=>app.includes(p)) && patches.some(p=>main.includes(p)) && builds.some(b=>index.includes(`app.js?v=${b}`) && index.includes(`./js/main.js?v=${b}`)));
+check('V5U-1-or-later public app/index/main markers active', patches.some(p=>appPublic.includes(p)) && patches.some(p=>mainPublic.includes(p)) && builds.some(b=>indexPublic.includes(`app.js?v=${b}`) && indexPublic.includes(`./js/main.js?v=${b}`)));
+check('main imports and initializes StudentStatusCommandBoundary', builds.some(b=>main.includes(`./core/studentStatusCommandBoundary.js?v=${b}`)) && main.includes('initStudentStatusCommandBoundary();'));
 check('StudentStatus boundary initializes after students and before finance', main.indexOf('initStudents();') < main.indexOf('initStudentStatusCommandBoundary();') && main.indexOf('initStudentStatusCommandBoundary();') < main.indexOf('initFinance();'));
 check('StudentStatus boundary owns reviewed status commands', ['updateProfile','deleteProfile','addSkippedMonth','removeSkippedMonth','markQuit'].every(x => boundary.includes(`async ${x}`)));
 check('StudentStatus boundary delegates to existing StudentService only', boundary.includes('StudentService') && !/\b(addDoc|setDoc|updateDoc|deleteDoc|writeBatch|runTransaction)\s*\(/.test(boundary));
@@ -51,8 +51,8 @@ function countWrites(src) {
   return { counts, total: Object.values(counts).reduce((a,b)=>a+b,0) };
 }
 const actualWrites = countWrites(app);
-check('V5U-1 baseline reduced from 71 to 66 direct writes', baseline.phase === '4K-6V5U-1' && baseline.total === 66 && actualWrites.total === 66, JSON.stringify({ baseline: baseline.total, actual: actualWrites }));
-check('V5U-1 per-op write baseline is exact', JSON.stringify(actualWrites.counts) === JSON.stringify(baseline.counts), JSON.stringify(actualWrites.counts));
+check('V5U-1 baseline remains an upper bound after later cutovers', baseline.phase === '4K-6V5U-1' && baseline.total === 66 && actualWrites.total <= 66, JSON.stringify({ baseline: baseline.total, actual: actualWrites }));
+check('V5U-1 per-op write baseline did not regress', Object.entries(actualWrites.counts).every(([op,count]) => count <= Number(baseline.counts[op] || 0)), JSON.stringify(actualWrites.counts));
 check('app/public app direct-write surfaces remain exact', JSON.stringify(countWrites(app)) === JSON.stringify(countWrites(appPublic)));
 check('rename service chunks historical transaction updates', studentService.includes('for (let i = 0; i < txUpdates.length; i += 400)') && studentService.includes('profileBatch.commit()'));
 

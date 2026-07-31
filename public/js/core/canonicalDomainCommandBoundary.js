@@ -214,8 +214,8 @@ const REVIEWED_COMMANDS = Object.freeze([
   { id: 'student.skipDebtMonth', globalName: 'skipDebtMonthFromDebt', domain: 'student', action: 'skipDebtMonth', owner: 'js/modules/students.js → StudentService', key: a => `student.skipDebtMonth:${_safeString(a[1])}|${_safeString(a[2])}` },
 
   // Financial and inventory actions keep their exact existing canonical/guarded implementations.
-  { id: 'finance.quickPay', globalName: 'quickPay', domain: 'finance', action: 'quickPay', risk: 'high-write', owner: 'js/modules/finance.js guarded handler', key: a => `finance.quickPay:${_safeString(a[0])}|${_safeString(a[1])}|${_safeString(a[2])}` },
-  { id: 'finance.deleteTransaction', globalName: 'deleteTx', domain: 'finance', action: 'deleteTransaction', risk: 'high-write', owner: 'js/modules/finance.js + TransactionDeleteIntegrity', key: a => `finance.deleteTransaction:${_safeString(a[0])}` },
+  { id: 'finance.quickPay', globalName: 'quickPay', domain: 'finance', action: 'quickPay', mode: 'observe-only', risk: 'high-write', owner: 'js/modules/finance.js UI adapter → TuitionCommandBoundary' },
+  { id: 'finance.deleteTransaction', globalName: 'deleteTx', domain: 'finance', action: 'deleteTransaction', risk: 'high-write', owner: 'js/modules/finance.js UI adapter → TuitionCommandBoundary/FinanceService', key: a => `finance.deleteTransaction:${_safeString(a[0])}` },
   { id: 'inventory.markPaid', globalName: 'markInvPaid', domain: 'inventory', action: 'markPaid', risk: 'high-write', owner: 'js/modules/inventory.js guarded handler', key: a => `inventory.markPaid:${_safeString(a[0])}` },
 
   // Registered for ownership visibility only. Existing internal offline/session guards remain untouched.

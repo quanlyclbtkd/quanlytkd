@@ -28,7 +28,7 @@ assert(/ensureXlsxReady\?\.\('reports-export-exam-paid-list'\)/.test(reports), '
 assert(/ensureXlsxReady\?\.\('reports-tax-export'\)/.test(reports), 'Reports executeTaxExport must call ensureXlsxReady');
 assert(/ensureXlsxReady\?\.\('reports-achievements-export'\)/.test(reports), 'Reports exportAchievementsExcel must call ensureXlsxReady');
 assert(/import\('\.\.\/reports\.js'\)/.test(reportFacade), 'report facade must lazy-import reports.js');
-assert(/import\('\.\/attendanceExcelReport\.js'\)/.test(reportFacade), 'report facade must lazy-import attendance report');
+assert(/import\('\.\/attendanceExcelReport\.js(?:\?v=[^']+)?'\)/.test(reportFacade), 'report facade must lazy-import attendance report');
 assert(!/from ['"]\.\/modules\/reports\.js['"]/.test(main), 'main.js must not static-import reports.js');
 assert(!/ensureXlsxReady\?\.\('finance-excel-export'\)/.test(finance), 'finance.js must not keep duplicate Excel export implementation');
 assert(/ensureChartJsReady\('dashboard-render-charts'\)/.test(dashboard), 'dashboard module must lazy-load Chart.js');

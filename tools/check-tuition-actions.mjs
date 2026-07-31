@@ -154,6 +154,7 @@ check(
         || indexHtml.includes('deploy-gate-tuition-package-coverage')
         || indexHtml.includes('canonical-domain-command-boundary-write-freeze-20260722-v5t')
         || indexHtml.includes('student-status-command-cutover-tx-delete-fix-20260722-v5u1')
+        || indexHtml.includes('tuition-command-cutover-20260730-v5u2')
     ),
     'Đổi version main.js?v=... trong index.html để bust cache GitHub Pages'
 );

@@ -10,6 +10,8 @@ const PAGE_SIZE = 1000;
 const MAX_PAGES = 200;
 
 export async function loadAttendanceMonthPaginated({ db, clubId, month, onProgress }) {
+    // V5U-2E: documentId is supplied by the shared Firebase CDN bootstrap.
+    // Keep cursor ordering explicit and deterministic; do not introduce a second query path.
     const sdk = window._fb_init || {};
     const { collection, query, where, orderBy, documentId, limit, startAfter, getDocs } = sdk;
     const required = { collection, query, where, orderBy, documentId, limit, startAfter, getDocs };

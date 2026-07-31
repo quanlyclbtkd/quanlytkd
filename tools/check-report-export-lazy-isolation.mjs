@@ -32,13 +32,13 @@ console.log('\n🔎 Phase 4K-6U — Report/Excel Lazy Isolation\n');
 
 check(exists(facadePath), 'eager report facade exists');
 check(exists(attendancePath), 'lazy attendance export module exists');
-check(main.includes("from './modules/reports/reportExportFacade.js'"), 'main eagerly imports only the small report facade');
+check(main.includes("from './modules/reports/reportExportFacade.js") , 'main eagerly imports only the small report facade');
 check(main.includes('registerReportExportFacade();'), 'main registers report facade after ownership registry');
 check(main.indexOf('initGlobalOwnershipRegistry();') < main.indexOf('registerReportExportFacade();'), 'ownership registry initializes before report facade');
 check(!main.includes("from './modules/reports.js'"), 'main no longer static-imports heavy reports.js');
 check(!main.includes('initReports();'), 'main no longer initializes heavy reports at startup');
 check(facade.includes("import('../reports.js')"), 'facade lazy-imports heavy reports.js');
-check(facade.includes("import('./attendanceExcelReport.js')"), 'facade lazy-imports attendance export');
+check(facade.includes("import('./attendanceExcelReport.js"), 'facade lazy-imports attendance export');
 check(facade.includes('reportsModulePromise'), 'facade shares one reports import promise');
 check(facade.includes('attendanceModulePromise'), 'facade shares one attendance import promise');
 check(facade.includes('actionPromises'), 'facade guards duplicate rapid export actions');

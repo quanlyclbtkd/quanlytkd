@@ -9,8 +9,8 @@ function check(name, condition, details = '') {
   else { failures++; console.error(`❌ ${name}${details ? ` — ${details}` : ''}`); }
 }
 
-const builds = ['canonical-domain-command-boundary-write-freeze-20260722-v5t', 'student-status-command-cutover-tx-delete-fix-20260722-v5u1'];
-const patches = ['4K-6V5T-canonical-domain-command-boundary-write-freeze-20260722', '4K-6V5U-1-student-status-command-cutover-tx-delete-fix-20260722'];
+const builds = ['canonical-domain-command-boundary-write-freeze-20260722-v5t', 'student-status-command-cutover-tx-delete-fix-20260722-v5u1', 'tuition-command-cutover-20260730-v5u2', 'attendance-excel-documentid-sdk-fix-20260801-v5u2e'];
+const patches = ['4K-6V5T-canonical-domain-command-boundary-write-freeze-20260722', '4K-6V5U-1-student-status-command-cutover-tx-delete-fix-20260722', '4K-6V5U-2-tuition-command-cutover-20260730', '4K-6V5U-2E-attendance-excel-documentid-sdk-fix-20260801'];
 const modulePath = 'js/core/canonicalDomainCommandBoundary.js';
 const publicModulePath = 'public/js/core/canonicalDomainCommandBoundary.js';
 const command = read(modulePath);
@@ -49,9 +49,9 @@ check('reviewed cross-domain command manifest is complete', expectedCommands.eve
 check('attendance/offline and multi-item remain observe-only',
   command.includes("id: 'attendance.toggle', globalName: 'toggleAttendance', domain: 'attendance', action: 'toggle', mode: 'observe-only'") &&
   command.includes("id: 'admission.processMultiItem', globalName: 'processMultiItem', domain: 'admission', action: 'processMultiItem', mode: 'observe-only'"));
-check('student/finance/inventory wrappers delegate to existing module owners',
+check('student/finance/inventory command ownership stays explicit',
   command.includes("owner: 'js/modules/students.js → StudentService'") &&
-  command.includes("owner: 'js/modules/finance.js guarded handler'") &&
+  command.includes('TuitionCommandBoundary') &&
   command.includes("owner: 'js/modules/inventory.js guarded handler'"));
 check('runtime diagnostics exposed', ['window.DomainCommands','window.getDomainCommandMetrics','window.printDomainCommandStatus'].every(s => command.includes(s)));
 
