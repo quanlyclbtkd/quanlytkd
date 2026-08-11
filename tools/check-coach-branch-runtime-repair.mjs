@@ -55,8 +55,9 @@ check('Migration synchronizes branch and coachBranch on both documents',
   repair.includes('Không đồng bộ được'));
 
 check('Coach cache is not mounted before exact assignment verification',
-  app.includes("if (_cached && _cached.role !== 'coach')") &&
-  app.includes('Coach phải xác minh exact Admin assignment trước khi mount listener'));
+  app.includes('cache is a UI/performance hint only') &&
+  app.includes('await _resolveCoachBranchContext(user, _freshContext)') &&
+  app.indexOf('await _resolveCoachBranchContext(user, _freshContext)') < app.indexOf('_commitVerifiedAuthContext(user, _freshContext'));
 check('Runtime reads only the exact Admin Coach assignment document',
   repair.includes("getDoc(doc(firestore, 'clubs', result.clubId, 'coaches', result.uid))") &&
   !app.includes('auth fallback clubs scan'));
@@ -65,12 +66,12 @@ check('Runtime repairs users/{uid} only from Admin assignment data',
   repair.includes("await setDoc(doc(firestore, 'users', result.uid)") &&
   repair.includes('auth/coach-branch-mirror-sync-failed'));
 check('Missing/invalid Coach branch remains fail-closed',
-  app.includes("fresh.role === 'coach' && !fresh.coachBranch") &&
+  app.includes("_freshContext.role === 'coach' && !_freshContext.coachBranch") &&
   profiles.includes('Coach missing branch — fail closed, no profiles query'));
 check('No full-club profile fallback is introduced for Coach repair',
   profiles.includes("loadCoachBranchProfilesFallback('redirected-from-full:") &&
   profiles.includes("fbWhere('branch', '==', alias)") &&
-  /không quét clubs/i.test(app));
+  !app.includes('auth fallback clubs scan'));
 
 check('Profile listener query is server-scoped to assigned branch',
   profiles.includes("fbQuery(profRef, statusConstraint, fbWhere('branch', '==', coachBranch))") &&

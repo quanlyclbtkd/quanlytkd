@@ -36,7 +36,7 @@
     // Phase 4K-6V5U4 — legacy ROOT email is only a bootstrap identity hint.
     // Firestore authorization converges to super_admins/{uid} before mounting SuperAdmin data.
     const _SUPER_ADMIN_BOOTSTRAP_EMAIL = 'admin@tstquynhon.com';
-    window.SUPERADMIN_AUTH_PATCH_VERSION = '4K-6V5U4-superadmin-auth-principal-alignment-20260811';
+    window.SUPERADMIN_AUTH_PATCH_VERSION = '4K-6V5U5-canonical-security-truth-20260811';
     let currentClubId = "";
     let clubData = {};
     let allProfiles = {};
@@ -403,15 +403,19 @@ window.invCustomCategories = [];
       window.getAppContext = function(reason) {
           // reason dùng để debug — không log giá trị cá nhân
           try {
+              // Phase 4K-6V5U5: once verified, auth role/club/branch come only from
+              // the canonical committed context. Legacy globals remain compatibility mirrors.
+              const _verifiedAuth = window.__verifiedAuthContextState;
+              const _verifiedReady = !!(_verifiedAuth && _verifiedAuth.ready === true);
               return {
                   db,
                   auth,
-                  currentClubId,
-                  currentUser: auth ? auth.currentUser : null,
+                  currentClubId: _verifiedReady ? (_verifiedAuth.clubId || '') : currentClubId,
+                  currentUser: _verifiedReady ? ((window.__store && window.__store.currentUser) || (auth ? auth.currentUser : null)) : (auth ? auth.currentUser : null),
                   clubData:       clubData        || {},
                   clubConfig:     clubConfig      || {},
-                  userRole:       window.userRole || 'viewer',
-                  coachBranch:    window.coachBranch || '',
+                  userRole:       _verifiedReady ? (_verifiedAuth.role || 'viewer') : (window.userRole || 'viewer'),
+                  coachBranch:    _verifiedReady ? (_verifiedAuth.coachBranch || '') : (window.coachBranch || ''),
                   colRef:         colRef,
                   profRef:        profRef,
                   invRef:         invRef,
@@ -1020,10 +1024,11 @@ window.invCustomCategories = [];
             const newUid = userCredential.user.uid;
             await setDoc(doc(db, "users", newUid), { email: email, role: "admin", clubId: clubId });
             const batch = writeBatch(db);
+            // Phase 4K-6V5U5: Firebase Authentication is the only password authority.
+            // Never copy the temporary admin password into Firestore.
             batch.set(doc(db, "clubs", clubId), {
                 clubName: clubName,
                 adminEmail: email,
-                adminPassword: pass,
                 createdAt: new Date().toISOString(),
                 expiryDate: "2027-04-30",
                 accountStatus: "active"
@@ -1033,7 +1038,7 @@ window.invCustomCategories = [];
             batch.set(doc(db, "clubs", clubId, "settings", "main_config"), configData);
             batch.set(doc(db, "clubs", clubId, "settings", "inventory_stats"), {});
             await batch.commit();
-            alert(`TẠO CLB THÀNH CÔNG!\n\nClub Name: ${clubName}\nID: ${clubId}\nEmail: ${email}\nMật khẩu: ${pass}`);
+            alert(`TẠO CLB THÀNH CÔNG!\n\nClub Name: ${clubName}\nID: ${clubId}\nEmail: ${email}\n\nMật khẩu chỉ được lưu trong Firebase Authentication và không được sao chép vào Firestore.`);
             document.getElementById('newClubModal').style.display = 'none';
             ['nc_clubName', 'nc_clubId', 'nc_adminEmail', 'nc_adminPass', 'nc_logoFile'].forEach(id => document.getElementById(id).value = '');
             tempLogoBase64 = "";
@@ -1560,10 +1565,19 @@ window.invCustomCategories = [];
     }
 
     async function initSaaSDatabase(clubId) {
+        // Phase 4K-6V5U5: protected runtime may mount only after one verified auth commit.
+        const _verifiedAuth = window.__verifiedAuthContextState;
+        const _expectedClubId = String(clubId || '');
+        const _currentUid = String(auth.currentUser?.uid || '');
+        if (!_verifiedAuth || _verifiedAuth.ready !== true || !_currentUid || _verifiedAuth.uid !== _currentUid || String(_verifiedAuth.clubId || '') !== _expectedClubId || String(_verifiedAuth.role || '') !== String(window.userRole || '')) {
+            console.error('[AuthContext] initSaaSDatabase blocked before verified context commit.');
+            await _showLoginError('Không thể khởi tạo dữ liệu vì phiên phân quyền chưa được xác minh. Vui lòng đăng nhập lại.');
+            return false;
+        }
         document.getElementById('loginOverlay').style.display = 'none'; document.getElementById('mainApp').style.display = 'block'; document.getElementById('passInput').value = '';
 
-        // Role đã được xác định chính xác bởi onAuthStateChanged trước khi gọi hàm này.
-        // Không ghi đè window.userRole ở đây để tránh race condition.
+        // Role/club/branch đã được commit nguyên tử bởi _commitVerifiedAuthContext().
+        // initSaaSDatabase chỉ mount runtime và Firebase refs, không còn là auth-context writer.
 
         if(window.userRole === 'super_admin') {
             document.getElementById('superAdminView').style.display = 'block';
@@ -1675,8 +1689,8 @@ window.invCustomCategories = [];
 
         // ── Coach role: chỉ hiện tab Điểm danh, ẩn toàn bộ admin UI ─────────────
         if (window.userRole === 'coach') {
-            window.coachBranch = _canonicalBranch(window.coachBranch, '');
-            if (!window.coachBranch) {
+            const _verifiedCoachBranch = _canonicalBranch(window.coachBranch, '');
+            if (!_verifiedCoachBranch) {
                 console.error('[AuthContext] Coach missing canonical branch — runtime blocked.');
                 await _showLoginError('Tài khoản HLV chưa được gán cơ sở hợp lệ. Admin cần chọn một cơ sở cụ thể rồi đăng nhập lại.');
                 return;
@@ -1758,28 +1772,14 @@ window.invCustomCategories = [];
         if (window.__firestoreReadAttribution?.clubId && window.__firestoreReadAttribution.clubId !== clubId && typeof window.resetFirestoreReadAudit === 'function') window.resetFirestoreReadAudit('club-switch');
         if (window.__firestoreReadAttribution) window.__firestoreReadAttribution.clubId = clubId;
 
-        // [Phase 2d] Sync Firebase refs và clubId vào bridge ngay sau khi login
-        // → modules/students.js (và các module khác) đọc từ window.__store tại call time
+        // [Phase 2d] Sync only Firebase collection refs here.
+        // Phase 4K-6V5U5: role/clubId/coachBranch/currentUser were already committed
+        // atomically by _commitVerifiedAuthContext() before this runtime was mounted.
         if (window.__store) {
             window.__store.db      = db;
             window.__store.colRef  = colRef;
             window.__store.profRef = profRef;
             window.__store.invRef  = invRef;
-            window.__store.clubId  = clubId;
-            // Phase 4.0B-4C: alias thống nhất để main.js/modules đọc context
-            window.__store.currentClubId = clubId;
-            window.__store.currentUser   = auth.currentUser || null;
-            window.__store.userRole      = window.userRole || '';
-            window.__store.coachBranch   = window.coachBranch || '';
-        }
-        // Phase 4.0B-4C: alias global — đọc bởi dispatchAppContextReady + modules
-        window.currentClubId = clubId;
-        if (window.RoleReadBoundary && typeof window.RoleReadBoundary.setContext === 'function') {
-            window.RoleReadBoundary.setContext({
-                role: window.userRole || '',
-                coachBranch: window.coachBranch || '',
-                clubId: clubId || ''
-            });
         }
 
         // Phase 4.0B-4C: Dispatch app:context-ready — db + clubId + refs đã sẵn sàng.
@@ -2536,25 +2536,10 @@ window.invCustomCategories = [];
             if (!user) throw new Error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!');
             const credential = EmailAuthProvider.credential(user.email, currentPw);
             await reauthenticateWithCredential(user, credential);
-            // Bước 1: Đổi mật khẩu trên Firebase Auth
+            // Phase 4K-6V5U5: Firebase Authentication is the single password source.
             await updatePassword(user, newPw);
-            // Bước 2: Đồng bộ mật khẩu mới vào Firestore clubs/{clubId}
-            // để SuperAdmin luôn thấy mật khẩu mới nhất
-            // [SỬA ĐỒNG BỘ] Đồng bộ mật khẩu mới lên Firestore để SuperAdmin thấy mật khẩu mới nhất
-            if (currentClubId) {
-                try {
-                    await updateDoc(doc(db, 'clubs', currentClubId), {
-                        adminPassword: newPw,
-                        passwordChangedAt: new Date().toISOString(),
-                    });
-                } catch (_syncErr) {
-                    // Không chặn flow đổi mật khẩu, nhưng thông báo nếu đồng bộ thất bại
-                    console.warn('[Sync] Không thể đồng bộ mật khẩu lên hệ thống:', _syncErr.message);
-                    window.showToast('⚠️ Mật khẩu đã đổi thành công, nhưng chưa đồng bộ được lên SuperAdmin. Vui lòng liên hệ quản trị viên nếu cần.', 5000);
-                }
-            }
             document.getElementById('changePasswordModal').style.display = 'none';
-            window.showToast('✅ Đổi mật khẩu thành công! Vui lòng dùng mật khẩu mới cho lần đăng nhập tiếp theo.');
+            window.showToast('✅ Mật khẩu đã được thay đổi thành công trên Firebase Authentication.');
         } catch(e) {
             let msg = 'Lỗi: ' + e.message;
             if(e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') msg = '❌ Mật khẩu hiện tại không đúng! Vui lòng kiểm tra lại.';
@@ -3427,8 +3412,8 @@ window.invCustomCategories = [];
     }
 
     // ── LocalStorage cache để tăng tốc khởi động ──────────────────────────
-    // Phase 4K-6V4B: cache chỉ là bootstrap hint, không phải nguồn cấp quyền.
-    // Mọi phiên đều xác minh users/{uid}; khi role/club/branch thay đổi, runtime reload nguyên tử.
+    // Phase 4K-6V5U5: cache is a UI/performance hint only. It never commits
+    // role/club/branch and never mounts protected runtime before Firestore verification.
     const _AUTH_CACHE_KEY = '_qlclb_auth_v3';
     const _AUTH_CACHE_TTL_MS = 12 * 60 * 60 * 1000;
     const _normalizeAuthRole = (value) => {
@@ -3453,7 +3438,7 @@ window.invCustomCategories = [];
     };
     const _saveAuthCache = (uid, role, clubId, coachBranch = '') => {
         const ctx = _normalizeAuthContext({ uid, role, clubId, coachBranch });
-        try { localStorage.setItem(_AUTH_CACHE_KEY, JSON.stringify({ ...ctx, version: '4K-6V4B1', ts: Date.now() })); } catch(e) {}
+        try { localStorage.setItem(_AUTH_CACHE_KEY, JSON.stringify({ ...ctx, version: '4K-6V5U5', ts: Date.now() })); } catch(e) {}
         return ctx;
     };
     const _getAuthCache = (uid) => {
@@ -3473,6 +3458,82 @@ window.invCustomCategories = [];
         } catch(e) {}
     };
 
+    // Small diagnostics object only; not an authorization system and contains no token/password/student data.
+    window.__verifiedAuthContextState = window.__verifiedAuthContextState || {
+        ready: false, uid: '', role: '', clubId: '', coachBranch: '',
+        verifiedAt: 0, generation: 0, source: '', reason: 'initial'
+    };
+
+    // Phase 4K-6V5U5 — the single normal authenticated writer for auth context.
+    const _commitVerifiedAuthContext = (user, input, options = {}) => {
+        const ctx = _normalizeAuthContext({ ...input, uid: user?.uid || input?.uid || '' });
+        if (!user || !ctx.uid || ctx.uid !== String(user.uid || '')) throw new Error('Auth context UID không hợp lệ.');
+        if (!ctx.role || (ctx.role !== 'super_admin' && !ctx.clubId)) throw new Error('Auth context thiếu role/clubId.');
+        if (ctx.role === 'coach' && !ctx.coachBranch) throw new Error('Auth context HLV thiếu cơ sở canonical.');
+
+        currentClubId = ctx.clubId;
+        window.currentClubId = ctx.clubId;
+        window.userRole = ctx.role;
+        window.coachBranch = ctx.coachBranch;
+        if (window.__store) {
+            window.__store.clubId = ctx.clubId;
+            window.__store.currentClubId = ctx.clubId;
+            window.__store.userRole = ctx.role;
+            window.__store.coachBranch = ctx.coachBranch;
+            window.__store.currentUser = user;
+        }
+        if (window.RoleReadBoundary && typeof window.RoleReadBoundary.setContext === 'function') {
+            window.RoleReadBoundary.setContext({ role: ctx.role, coachBranch: ctx.coachBranch, clubId: ctx.clubId });
+        }
+
+        const state = window.__verifiedAuthContextState;
+        state.ready = true;
+        state.uid = ctx.uid;
+        state.role = ctx.role;
+        state.clubId = ctx.clubId;
+        state.coachBranch = ctx.coachBranch;
+        state.verifiedAt = Date.now();
+        state.generation = Number(state.generation || 0) + 1;
+        state.source = String(options.source || 'verified');
+        state.reason = 'commit';
+
+        // Cache is written only after the verified mirrors have been committed.
+        _saveAuthCache(ctx.uid, ctx.role, ctx.clubId, ctx.coachBranch);
+        return ctx;
+    };
+
+    const _resetVerifiedAuthContext = (reason = 'reset') => {
+        currentClubId = '';
+        window.currentClubId = '';
+        window.userRole = 'viewer';
+        window.coachBranch = '';
+        if (window.__store) {
+            window.__store.clubId = null;
+            window.__store.currentClubId = null;
+            window.__store.userRole = 'viewer';
+            window.__store.coachBranch = '';
+            window.__store.currentUser = null;
+        }
+        try { window.RoleReadBoundary?.reset?.(reason); } catch (_) {}
+        const state = window.__verifiedAuthContextState;
+        if (state) {
+            state.ready = false; state.uid = ''; state.role = ''; state.clubId = ''; state.coachBranch = '';
+            state.verifiedAt = 0; state.generation = Number(state.generation || 0) + 1; state.source = ''; state.reason = reason;
+        }
+    };
+
+    // Exactly one users/{uid} verification promise per authenticated session.
+    let _verifiedUserProfileFlight = { uid: '', promise: null };
+    const _readUserAuthorizationProfileOnce = (user) => {
+        const uid = String(user?.uid || '');
+        if (!uid) return Promise.reject(new Error('Thiếu UID để xác minh phân quyền.'));
+        if (_verifiedUserProfileFlight.uid === uid && _verifiedUserProfileFlight.promise) return _verifiedUserProfileFlight.promise;
+        const promise = getDoc(doc(db, 'users', uid));
+        _verifiedUserProfileFlight = { uid, promise };
+        return promise;
+    };
+    const _isDisabledUserAuthorization = (data) => ['disabled', 'locked', 'suspended'].includes(String(data?.status || 'active').trim().toLowerCase());
+
     // Phase 4K-6V5U4 — converge legacy ROOT email bootstrap to a canonical
     // server-authoritative super_admins/{uid} principal before any SuperAdmin list/read.
     const _ensureSuperAdminPrincipal = async (user) => {
@@ -3485,9 +3546,7 @@ window.invCustomCategories = [];
             const existing = await getDoc(principalRef);
             if (existing.exists()) return true;
         } catch (readErr) {
-            // New V5U4 Rules allow this exact ROOT identity to get only its own
-            // principal doc before bootstrap. If old Rules are still deployed,
-            // continue to the create attempt so the final error is explicit.
+            // V5U4+ Rules allow this exact ROOT identity to get only its own principal doc.
             if (readErr?.code !== 'permission-denied') throw readErr;
         }
 
@@ -3501,7 +3560,7 @@ window.invCustomCategories = [];
             return true;
         } catch (writeErr) {
             const err = new Error(
-                'Firestore chưa cấp đường bootstrap SuperAdmin. Hãy deploy firestore.rules của bản V5U4, sau đó đăng xuất và đăng nhập lại. Không mở Rules public.'
+                'Firestore chưa cấp đường bootstrap SuperAdmin. Hãy deploy firestore.rules V5U4/V5U5, sau đó đăng xuất và đăng nhập lại. Không mở Rules public.'
             );
             err.code = 'auth/superadmin-principal-bootstrap-failed';
             err.cause = writeErr;
@@ -3510,48 +3569,6 @@ window.invCustomCategories = [];
     };
 
     const _resolveCoachBranchContext=(user,context)=>window.CoachBranchRuntimeRepair.resolveAuthContext({user,context:_normalizeAuthContext({...context,uid:user&&user.uid}),db});
-
-    const _rebindVerifiedAuthContext = async (user, freshContext, cachedContext) => {
-        const fresh = _normalizeAuthContext({ ...freshContext, uid: user && user.uid });
-        if (fresh.role === 'coach' && !fresh.coachBranch) {
-            _clearAuthCache();
-            await _showLoginError('Tài khoản HLV chưa được gán cơ sở. Admin cần chọn một cơ sở cụ thể (CS1...CS10) rồi đăng nhập lại.');
-            return false;
-        }
-        if (!fresh.role || (fresh.role !== 'super_admin' && !fresh.clubId)) {
-            _clearAuthCache();
-            await _showLoginError('Hồ sơ phân quyền không hợp lệ hoặc thiếu clubId. Vui lòng liên hệ quản trị viên hệ thống.');
-            return false;
-        }
-
-        _saveAuthCache(fresh.uid, fresh.role, fresh.clubId, fresh.coachBranch);
-        if (_sameAuthContext(fresh, cachedContext)) return true;
-
-        console.warn('[AuthContext] Quyền/cơ sở đã thay đổi — reload runtime an toàn.', {
-            from: _normalizeAuthContext(cachedContext || {}),
-            to: fresh,
-        });
-        try {
-            document.getElementById('mainApp').style.display = 'none';
-            document.getElementById('loginOverlay').style.display = 'flex';
-        } catch (_) {}
-        try { window.cleanupAllListeners?.('auth-context-rebind'); } catch (_) {}
-        try { window.resetProfilesListeners?.('auth-context-rebind'); } catch (_) {}
-        try { window.resetStudentProfileStore?.('auth-context-rebind'); } catch (_) {}
-        try { window.RoleReadBoundary?.reset?.('auth-context-rebind'); } catch (_) {}
-
-        if (typeof window.location?.reload === 'function') {
-            window.location.reload();
-            return false;
-        }
-
-        // Fallback cho môi trường test không hỗ trợ reload.
-        currentClubId = fresh.clubId;
-        window.userRole = fresh.role;
-        window.coachBranch = fresh.coachBranch;
-        await initSaaSDatabase(fresh.clubId);
-        return true;
-    };
 
     // Helper: reset UI đăng nhập + sign out + thông báo lỗi rõ ràng
     // [SỬA] _showLoginError — hiển thị lỗi inline, không dùng alert() chặn UI
@@ -3574,8 +3591,8 @@ window.invCustomCategories = [];
         if (user) {
             try {
                 // ── Phase 4K-6V5U4: SuperAdmin principal convergence ──
-                // Email is only the bootstrap identity. Before mounting any ROOT data,
-                // create/verify the canonical super_admins/{uid} principal allowed by Rules.
+                // V5U5 keeps ROOT email as bootstrap identity only, then commits through
+                // the same canonical auth-context writer used by every verified role.
                 if (user.email && user.email.toLowerCase() === _SUPER_ADMIN_BOOTSTRAP_EMAIL) {
                     try {
                         const principalReady = await _ensureSuperAdminPrincipal(user);
@@ -3585,93 +3602,89 @@ window.invCustomCategories = [];
                         await _showLoginError(_principalErr?.message || 'Không thể xác nhận quyền SuperAdmin.');
                         return;
                     }
-                    window.userRole = 'super_admin';
-                    currentClubId = '';
-                    _saveAuthCache(user.uid, 'super_admin', '', '');
-                    try { initSaaSDatabase(''); } catch(_ie) { console.error("initSaaSDatabase(super_admin):", _ie); }
-                    _recordLoginEvent(user, 'super_admin', '').catch(() => {});
-                    // Phase 4.0A-2/4.0A-3: Sync currentUser to __store
-                    if (window.__store) window.__store.currentUser = user;
+                    const _saContext = _commitVerifiedAuthContext(user, {
+                        role: 'super_admin', clubId: '', coachBranch: ''
+                    }, { source: 'super_admins/{uid}' });
+                    try { await initSaaSDatabase(_saContext.clubId); } catch(_ie) { console.error('initSaaSDatabase(super_admin):', _ie); }
+                    _recordLoginEvent(user, _saContext.role, _saContext.clubId).catch(() => {});
                     return;
                 }
 
-                // Coach phải xác minh exact Admin assignment trước khi mount listener; cache chỉ dùng cho role khác.
+                // Cache is intentionally read only as a hint/diagnostic. It never writes
+                // role/club/branch and never calls initSaaSDatabase before verification.
                 const _cached = _getAuthCache(user.uid);
-                if (_cached && _cached.role !== 'coach') {
-                    currentClubId = _cached.clubId;
-                    window.userRole = _cached.role;
-                    window.coachBranch = _cached.role === 'coach' ? _canonicalBranch(_cached.coachBranch, '') : '';
-                    try { initSaaSDatabase(currentClubId); } catch(_ie) { console.error("initSaaSDatabase(cache):", _ie); }
-                    // Phase 4.0A-3: Sync currentUser to __store (cache path)
-                    if (window.__store) window.__store.currentUser = user;
-                    // [SỬA] Giảm delay monthly reminder — UI đã hiện, nhắc nhở sau khi render xong
-        setTimeout(() => { if(typeof window._checkMonthlyReminder === 'function') window._checkMonthlyReminder(); }, 300);
-                    // Xác minh cache trong nền. Cache không bao giờ là nguồn cấp quyền cuối cùng.
-                    getDoc(doc(db, "users", user.uid)).then(async userDoc => {
-                        if (!userDoc.exists()) {
-                            _clearAuthCache();
-                            await _showLoginError('Không tìm thấy hồ sơ phân quyền users/{uid}. Admin cần đồng bộ lại tài khoản trước khi đăng nhập.');
-                            return;
-                        }
-                        const _ud = userDoc.data();
-                        const _freshRole = (user.email && user.email.toLowerCase() === _SUPER_ADMIN_BOOTSTRAP_EMAIL)
-                            ? 'super_admin'
-                            : (_ud.role || '');
-                        const _freshContext = _normalizeAuthContext({
-                            uid: user.uid,
-                            role: _freshRole,
-                            clubId: _ud.clubId,
-                            branch: _ud.branch || _ud.coachBranch || ''
-                        });
-                        const _ok = await _rebindVerifiedAuthContext(user, _freshContext, _cached);
-                        if (_ok) _recordLoginEvent(user, _freshContext.role, _freshContext.clubId);
-                    }).catch(async (_verifyErr) => {
-                        console.warn('[AuthContext] Không thể xác minh cache:', _verifyErr.code || _verifyErr.message);
-                        if (_verifyErr && _verifyErr.code === 'permission-denied') {
-                            _clearAuthCache();
-                            await _showLoginError('Không thể xác minh quyền tài khoản (permission-denied). Vui lòng đăng nhập lại hoặc liên hệ quản trị viên.');
-                        }
-                    });
-                    return;
-                }
-                // ── SLOW PATH: lần đầu đăng nhập hoặc cache hết hạn — đọc Firestore ──
+
                 let userDocSnap = null;
                 try {
-                    userDocSnap = await getDoc(doc(db, "users", user.uid));
+                    userDocSnap = await _readUserAuthorizationProfileOnce(user);
                 } catch(_readErr) {
-                    // permission-denied hoặc lỗi mạng đều không được suy đoán quyền bằng cách quét toàn CLB
-                    console.warn("users/{uid} read failed:", _readErr.code, "— fail closed, không quét clubs");
-                    if (_readErr.code !== 'permission-denied') {
-                        _showLoginError('Không thể kết nối Firestore (' + (_readErr.code || _readErr.message) + '). Vui lòng kiểm tra mạng và thử lại.');
-                        return;
-                    }
+                    console.warn('users/{uid} verification failed:', _readErr.code || _readErr.message);
+                    _clearAuthCache();
+                    await _showLoginError(
+                        _readErr?.code === 'permission-denied'
+                            ? 'Không thể xác minh quyền tài khoản (permission-denied). Vui lòng đăng nhập lại hoặc liên hệ quản trị viên.'
+                            : 'Không thể kết nối Firestore (' + (_readErr.code || _readErr.message) + '). Vui lòng kiểm tra mạng và thử lại.'
+                    );
+                    return;
                 }
 
-                let _freshContext=null;
-                if (userDocSnap && userDocSnap.exists()) { const _ud=userDocSnap.data(); _freshContext=await _resolveCoachBranchContext(user,{role:_ud.role||'',clubId:_ud.clubId,branch:_ud.branch||_ud.coachBranch||''}); }
-                else if (_cached && _cached.role==='coach' && _cached.clubId) _freshContext=await _resolveCoachBranchContext(user,_cached);
-                if (_freshContext) {
-                    if (_freshContext.role === 'coach' && !_freshContext.coachBranch) { await _showLoginError('Tài khoản HLV chưa được gán cơ sở. Admin cần chọn một cơ sở cụ thể rồi đăng nhập lại.'); return; }
-                    if (!_freshContext.role || (_freshContext.role !== 'super_admin' && !_freshContext.clubId)) { await _showLoginError('Hồ sơ phân quyền không hợp lệ hoặc thiếu clubId. Vui lòng liên hệ quản trị viên hệ thống.'); return; }
-                    currentClubId=_freshContext.clubId; window.userRole=_freshContext.role; window.coachBranch=_freshContext.coachBranch;
-                    _saveAuthCache(user.uid,window.userRole,currentClubId,window.coachBranch); _recordLoginEvent(user,window.userRole,currentClubId);
-                    try { initSaaSDatabase(currentClubId); } catch(_ie) { console.error("initSaaSDatabase(slowPath):", _ie); }
-                    if (window.__store) window.__store.currentUser=user;
-                    setTimeout(()=>{ if(typeof window._checkMonthlyReminder==='function') window._checkMonthlyReminder(); },300);
-                } else { _clearAuthCache(); await _showLoginError('Tài khoản chưa có hồ sơ phân quyền. Admin cần chọn đúng cơ sở, bấm “Lưu cơ sở” và “Đồng bộ tài khoản HLV cũ”.'); }
+                if (!userDocSnap || !userDocSnap.exists()) {
+                    _clearAuthCache();
+                    await _showLoginError('Không tìm thấy hồ sơ phân quyền users/{uid}. Admin cần đồng bộ lại tài khoản trước khi đăng nhập.');
+                    return;
+                }
+
+                const _ud = userDocSnap.data() || {};
+                if (_isDisabledUserAuthorization(_ud)) {
+                    _clearAuthCache();
+                    await _showLoginError('Tài khoản đã bị khóa hoặc vô hiệu hóa. Vui lòng liên hệ quản trị viên hệ thống.');
+                    return;
+                }
+
+                let _freshContext = _normalizeAuthContext({
+                    uid: user.uid,
+                    role: _ud.role || '',
+                    clubId: _ud.clubId,
+                    branch: _ud.branch || _ud.coachBranch || ''
+                });
+                if (_freshContext.role === 'coach') {
+                    _freshContext = await _resolveCoachBranchContext(user, _freshContext);
+                }
+
+                if (_freshContext.role === 'coach' && !_freshContext.coachBranch) {
+                    _clearAuthCache();
+                    await _showLoginError('Tài khoản HLV chưa được gán cơ sở. Admin cần chọn một cơ sở cụ thể (CS1...CS10) rồi đăng nhập lại.');
+                    return;
+                }
+                if (!_freshContext.role || (_freshContext.role !== 'super_admin' && !_freshContext.clubId)) {
+                    _clearAuthCache();
+                    await _showLoginError('Hồ sơ phân quyền không hợp lệ hoặc thiếu clubId. Vui lòng liên hệ quản trị viên hệ thống.');
+                    return;
+                }
+
+                // Stale cache is discarded before runtime mount; no rebind/reload is needed
+                // because no protected listener has been mounted from cache.
+                if (_cached && !_sameAuthContext(_freshContext, _cached)) {
+                    console.info('[AuthContext] Cache cũ đã bị bỏ qua sau xác minh Firestore.');
+                }
+
+                const _committed = _commitVerifiedAuthContext(user, _freshContext, { source: 'users/{uid}' });
+                _recordLoginEvent(user, _committed.role, _committed.clubId).catch(() => {});
+                try { await initSaaSDatabase(_committed.clubId); } catch(_ie) { console.error('initSaaSDatabase(verified):', _ie); }
+                setTimeout(() => { if(typeof window._checkMonthlyReminder === 'function') window._checkMonthlyReminder(); }, 300);
             } catch(e) {
-                // Outer catch chỉ xử lý lỗi xảy ra TRƯỚC khi initSaaSDatabase được gọi
-                // (vì mỗi initSaaSDatabase() đã được bọc trong try/catch riêng ở trên).
-                // → Luôn báo lỗi để người dùng không bị kẹt màn hình đăng nhập im lặng.
-                console.error("Auth flow error:", e);
-                _showLoginError(
+                console.error('Auth flow error:', e);
+                _clearAuthCache();
+                await _showLoginError(
                     e.code === 'auth/coach-branch-mirror-sync-failed' ? e.message : e.code === 'permission-denied'
-                        ? 'Lỗi phân quyền Firestore (permission-denied). Vui lòng deploy firestore.rules của bản V4B1 rồi đăng nhập lại.'
+                        ? 'Lỗi phân quyền Firestore (permission-denied). Vui lòng deploy firestore.rules canonical rồi đăng nhập lại.'
                         : 'Lỗi xác thực hệ thống (' + (e.code || e.message) + ').\nVui lòng kiểm tra kết nối mạng và thử lại.'
                 );
             }
         } else {
             _clearAuthCache();
+            _verifiedUserProfileFlight = { uid: '', promise: null };
+            _resetVerifiedAuthContext('logout');
             // Xóa toàn bộ cờ lịch sử đăng nhập (cả format cũ lẫn mới) khi logout
             Object.keys(sessionStorage)
                 .filter(k => k.startsWith('lh_'))
@@ -3687,8 +3700,6 @@ window.invCustomCategories = [];
             if (window.resetStudentProfileStore) window.resetStudentProfileStore('logout');
             // Phase 4.0A-3: Reset reports module idempotency state on logout
             window.resetReportsModuleState?.('logout');
-            // Phase 4.0A-3: Clear currentUser from __store on logout
-            if (window.__store) window.__store.currentUser = null;
             // Phase 4.0B-4C: Reset app context ready state khi logout (idempotent)
             window.__appContextReadyState = {
                 ready:       false,
@@ -3711,11 +3722,6 @@ window.invCustomCategories = [];
             };
             if (typeof window.resetAutomaticCanonicalTransactionOptimization === 'function') window.resetAutomaticCanonicalTransactionOptimization('logout');
             if (typeof window.resetDebtProfileReadBoundary === 'function') window.resetDebtProfileReadBoundary('logout');
-            window.currentClubId = null;
-            if (window.__store) {
-                window.__store.currentClubId = null;
-                window.__store.clubId        = null;
-            }
             activeListeners.forEach(fn => { try { fn(); } catch(e) {} });
             activeListeners = [];
             if(currentTxUnsub) { currentTxUnsub(); currentTxUnsub = null; if (window.__txListenerMetrics) { window.__txListenerMetrics.txListenerDetached = (window.__txListenerMetrics.txListenerDetached || 0) + 1; window.__txListenerMetrics.lastDetachedAt = Date.now(); } }

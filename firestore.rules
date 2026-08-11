@@ -136,11 +136,25 @@ service cloud.firestore {
 
     // ── Club root and tenant collections ─────────────────────────────────────
 
+    // Phase 4K-6V5U5 — safe transition away from plaintext adminPassword.
+    // Legacy docs may temporarily keep the exact old value during unrelated updates.
+    // Only a canonical SuperAdmin may remove it; no writer may create/replace it with
+    // a new non-empty secret. This keeps old clubs operable until explicit cleanup.
+    function clubCreateHasNoAdminPasswordSecret() {
+      return request.resource.data.get('adminPassword', '') == '';
+    }
+
+    function clubAdminPasswordTransitionSafe() {
+      let oldSecret = resource.data.get('adminPassword', '');
+      let newSecret = request.resource.data.get('adminPassword', '');
+      return newSecret == oldSecret || (isSuperAdmin() && newSecret == '');
+    }
+
     match /clubs/{clubId} {
       allow get: if isSuperAdmin() || isClubMember(clubId);
       allow list: if isSuperAdmin();
-      allow create: if isSuperAdmin();
-      allow update: if isSuperAdmin() || isClubAdmin(clubId);
+      allow create: if isSuperAdmin() && clubCreateHasNoAdminPasswordSecret();
+      allow update: if (isSuperAdmin() || isClubAdmin(clubId)) && clubAdminPasswordTransitionSafe();
       allow delete: if isSuperAdmin();
 
       // Hồ sơ võ sinh thực tế của ứng dụng.

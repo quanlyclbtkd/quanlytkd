@@ -29,6 +29,7 @@ const publicApp = read('public/app.js');
 const pkg = JSON.parse(read('package.json'));
 const publicPkgExists = fs.existsSync(path.join(root, 'public/package.json'));
 const searchBuild = 'student-given-name-priority-20260811-v5u3';
+const v5u5Build = 'canonical-security-truth-20260811-v5u5';
 
 console.log('\n🔎 Phase 4K-6V5U-2E — Attendance Excel Firebase SDK Dependency Fix\n');
 
@@ -42,7 +43,7 @@ check('report facade cache-busts attendance module', facade.includes(`import('./
 check('report facade source/public mirrors match', facade === publicFacade);
 check('main cache-busts report facade', main.includes(`reportExportFacade.js?v=${build}`));
 check('main source/public mirrors match for report import', publicMain.includes(`reportExportFacade.js?v=${build}`));
-check('index cache-busts app/main V5U-2E-or-later', index.includes(`app.js?v=${build}`) && (index.includes(`./js/main.js?v=${searchBuild}`) || index.includes(`./js/main.js?v=${build}`)));
+check('index cache-busts app/main V5U-2E-or-later', (index.includes(`app.js?v=${build}`) || index.includes(`app.js?v=${v5u5Build}`)) && (index.includes(`./js/main.js?v=${searchBuild}`) || index.includes(`./js/main.js?v=${build}`) || index.includes(`./js/main.js?v=${v5u5Build}`)));
 check('public index cache-busts app/main V5U-2E-or-later', publicIndex.includes(`app.js?v=${build}`) && (publicIndex.includes(`./js/main.js?v=${searchBuild}`) || publicIndex.includes(`./js/main.js?v=${build}`)));
 check('APP patch marker updated in app/main', app.includes(patch) && main.includes(patch));
 check('public APP patch marker updated', publicApp.includes(patch) && publicMain.includes(patch));

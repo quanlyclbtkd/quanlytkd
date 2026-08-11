@@ -42,9 +42,14 @@ check('Coach UI exposes only Attendance and hides full Add Student controls',
   app.includes("(btn.id === 'btn_attendance')") &&
   app.includes("'btnAddStudent'") &&
   app.includes("_coachAddWrap.style.display = 'none'"));
+const _v5u5CommitPos = app.indexOf('const _commitVerifiedAuthContext =');
+const _v5u5AuthCommitCallPos = app.indexOf('_commitVerifiedAuthContext(user, _freshContext');
+const _v5u5InitCallPos = app.indexOf('initSaaSDatabase(_committed.clubId)');
 check('Role/branch context is stored before app context-ready events',
   app.includes('window.__store.userRole') && app.includes('window.__store.coachBranch') &&
-  app.indexOf('RoleReadBoundary.setContext') < app.indexOf("dispatchAppContextReady('initSaaSDatabase-store-synced')"));
+  _v5u5CommitPos >= 0 && app.slice(_v5u5CommitPos, _v5u5CommitPos + 5000).includes('RoleReadBoundary.setContext') &&
+  _v5u5AuthCommitCallPos >= 0 && _v5u5InitCallPos > _v5u5AuthCommitCallPos &&
+  app.includes("dispatchAppContextReady('initSaaSDatabase-store-synced')"));
 check('Coach bootstrap blocks inventory stats, active debts and transactions',
   app.includes("canMount?.('inventory.stats'") &&
   app.includes("canMount?.('inventory.active-debts'") &&

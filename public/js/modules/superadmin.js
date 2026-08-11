@@ -20,6 +20,8 @@
   // Phase 4K-6I-B: Background count refresh queue (concurrency = 1)
   const _saCountRefreshQueue = [];
   let _saCountRefreshRunning = false;
+  // Phase 4K-6V5U5: module-owned explicit maintenance action; no new window global.
+  let _cleanupLegacyAdminCredentials = null;
 
   // Phase 4K-6I-C: HARD STOP — không tự động chạy aggregation khi mở SuperAdmin.
   // SuperAdmin dashboard phải cached-first; count thiếu sẽ hiển thị "--" để tránh vượt quota Firestore.
@@ -129,6 +131,7 @@
           editClubName:                 window.editClubName,
           saOpenDeleteTxModal:          window.saOpenDeleteTxModal,
           saResetAdminPassword:         window.saResetAdminPassword,
+          cleanupLegacyAdminCredentials: _cleanupLegacyAdminCredentials,
 
           // ── Metrics ─────────────────────────────────────────────
           printMetrics:                 window.printSuperAdminModuleMetrics,
@@ -164,7 +167,7 @@
       const _fb = window._fb_init || {};
       const {
           getDocs, query, collection, limit, updateDoc, doc, where,
-          setDoc, getDoc, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut,
+          setDoc, getDoc, writeBatch, deleteField, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut,
       } = _fb;
 
       // ── App context: db, auth ────────────────────────────────────
@@ -218,6 +221,88 @@
           console.table(window.__superAdminModuleMetrics);
       };
       const _m = () => window.__superAdminModuleMetrics;
+
+      // ── Phase 4K-6V5U5: explicit legacy credential purge ──────────
+      // Detection reuses the already-loaded SuperAdmin clubDataList; it never performs
+      // a second clubs query and never runs automatically on dashboard load.
+      const _legacyCredentialItems = (clubDataList) => (Array.isArray(clubDataList) ? clubDataList : [])
+          .filter(item => {
+              const data = item?.data || {};
+              return String(data.adminPassword || '').length > 0 || Object.prototype.hasOwnProperty.call(data, 'passwordChangedAt');
+          });
+
+      const _renderLegacyCredentialWarning = (clubDataList) => {
+          const listEl = document.getElementById('sysClubListMain');
+          if (!listEl || !listEl.parentElement) return;
+          const affected = _legacyCredentialItems(clubDataList);
+          let warning = document.getElementById('saLegacyCredentialWarning');
+          if (!warning) {
+              warning = document.createElement('div');
+              warning.id = 'saLegacyCredentialWarning';
+              listEl.parentElement.insertBefore(warning, listEl);
+          }
+          if (!affected.length) {
+              warning.style.display = 'none';
+              warning.innerHTML = '';
+              return;
+          }
+          warning.style.display = 'block';
+          warning.style.cssText = 'margin:10px 12px;padding:12px 14px;border:1px solid #fdba74;background:#fff7ed;border-radius:12px;color:#9a3412;font-size:.78rem;line-height:1.45;';
+          warning.innerHTML = `<div style="font-weight:900;margin-bottom:7px;">⚠️ Phát hiện ${affected.length} CLB còn dữ liệu mật khẩu legacy.</div>
+              <div style="margin-bottom:9px;">Dữ liệu này không còn được hệ thống sử dụng. Firebase Authentication là nguồn duy nhất quản lý mật khẩu.</div>
+              <button type="button" onclick="window.SuperAdminModule?.cleanupLegacyAdminCredentials?.()" style="border:0;background:#c2410c;color:#fff;font-weight:900;padding:8px 11px;border-radius:9px;cursor:pointer;font-size:.72rem;">🧹 XÓA DỮ LIỆU MẬT KHẨU LEGACY</button>`;
+      };
+
+      _cleanupLegacyAdminCredentials = async () => {
+          const verified = window.__verifiedAuthContextState;
+          if (!verified || verified.ready !== true || verified.role !== 'super_admin') {
+              alert('Chỉ SuperAdmin đã được xác minh canonical mới có thể thực hiện bảo trì này.');
+              return false;
+          }
+          const clubDataList = window._saClubData?.clubDataList;
+          if (!Array.isArray(clubDataList)) {
+              alert('Danh sách CLB chưa sẵn sàng. Hãy tải trang SuperAdmin trước khi chạy cleanup.');
+              return false;
+          }
+          const affected = _legacyCredentialItems(clubDataList);
+          if (!affected.length) {
+              window.showToast?.('✅ Không còn dữ liệu mật khẩu legacy cần xóa.');
+              _renderLegacyCredentialWarning(clubDataList);
+              return true;
+          }
+          if (typeof writeBatch !== 'function' || typeof deleteField !== 'function') {
+              alert('Firebase SDK chưa có writeBatch/deleteField. Không thực hiện cleanup để tránh ghi schema không an toàn.');
+              return false;
+          }
+          const ok = confirm(`⚠️ XÓA DỮ LIỆU MẬT KHẨU LEGACY\n\nPhát hiện ${affected.length} CLB còn adminPassword/passwordChangedAt.\n\nThao tác này chỉ xóa các field legacy khỏi Firestore; KHÔNG đổi mật khẩu Firebase Authentication.\n\nTiếp tục?`);
+          if (!ok) return false;
+
+          const batch = writeBatch(db);
+          affected.forEach(({ cid, data }) => {
+              const patch = { adminPassword: deleteField() };
+              if (Object.prototype.hasOwnProperty.call(data || {}, 'passwordChangedAt')) patch.passwordChangedAt = deleteField();
+              batch.update(doc(db, 'clubs', cid), patch);
+          });
+          try {
+              await batch.commit();
+              // Reuse loaded cache; no getDocs/loadSuperAdminData round-trip after cleanup.
+              affected.forEach(({ data }) => {
+                  if (data && typeof data === 'object') {
+                      delete data.adminPassword;
+                      delete data.passwordChangedAt;
+                  }
+              });
+              _renderLegacyCredentialWarning(clubDataList);
+              if (typeof window.filterSAClubs === 'function') window.filterSAClubs();
+              window.showToast?.(`✅ Đã xóa dữ liệu mật khẩu legacy khỏi ${affected.length} CLB.`);
+              return true;
+          } catch (error) {
+              _m().lastError = error?.message || String(error);
+              console.error('[SuperAdminCredentialCleanup] failed:', error);
+              alert('Không thể xóa dữ liệu mật khẩu legacy: ' + (error?.message || error));
+              return false;
+          }
+      };
 
       // ── Phase 4.0B: branch upgrade modal state ───────────────────
       let _buSelectedCount = 1;
@@ -662,6 +747,7 @@
 
             // Store globally for client-side filtering
             window._saClubData = { clubDataList, today, in30Days };
+            _renderLegacyCredentialWarning(clubDataList);
             // Render using shared function (also used by filterSAClubs)
             window._renderSAClubRows(clubDataList, today, in30Days);
 
@@ -978,9 +1064,6 @@ window.debugSuperAdminAggregationHardStop = function() {
             const _safeEmail = email.replace(/'/g, "&#x27;");
             const _safeCname = cname.replace(/'/g, "&#x27;");
 
-            const _safePass = (data.adminPassword || '').replace(/"/g, '&quot;');
-            const _pwDeskId = 'pw_d_' + cid;
-            const _pwMobId = 'pw_m_' + cid;
             const activeDisplay = _saFmtOptionalCount(activeCount);
             const profileDisplay = _saFmtOptionalCount(profileCount);
             const revenueShortDisplay = _saFmtRevenueShort(revenueTotal);
@@ -999,7 +1082,7 @@ window.debugSuperAdminAggregationHardStop = function() {
                 </div>
                 <div style="overflow:hidden;">
                     <div style="font-size:0.72rem;font-weight:600;color:#475569;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${email}">${email}</div>
-                    ${_safePass ? `<div style="margin-top:3px;display:flex;align-items:center;gap:3px;"><span style="font-size:0.6rem;color:#94a3b8;">MK:</span><span id="${_pwDeskId}" data-pw="${_safePass}" style="font-size:0.65rem;font-family:monospace;color:#475569;letter-spacing:0.06em;">••••••</span><button type="button" onclick="const e=document.getElementById('${_pwDeskId}');e.textContent=e.textContent.includes('•')?e.dataset.pw:'••••••'" style="background:none;border:none;cursor:pointer;font-size:0.7rem;color:#94a3b8;padding:0 2px;line-height:1;">👁</button></div>` : ''}</div>
+                    <div style="font-size:0.6rem;color:#94a3b8;margin-top:3px;">🔐 Mật khẩu được quản lý bởi Firebase Authentication</div></div>
                 <div style="text-align:center;">
                     <div style="font-size:1.2rem;font-weight:900;color:#4338ca;">${activeDisplay}</div>
                     <div style="font-size:0.6rem;color:#94a3b8;">/ ${profileDisplay}</div>
@@ -1036,7 +1119,7 @@ window.debugSuperAdminAggregationHardStop = function() {
                         <span style="font-size:0.7rem;font-weight:900;color:#4338ca;font-family:monospace;background:#eef2ff;padding:2px 7px;border-radius:5px;">${cid}</span>
                         <div style="font-size:1rem;font-weight:800;color:#0f172a;margin-top:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${cname}</div>
                         <div style="font-size:0.68rem;color:#64748b;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${email}">📧 ${email}</div>
-                        ${_safePass ? `<div style="font-size:0.65rem;color:#94a3b8;margin-top:3px;display:flex;align-items:center;gap:3px;"><span>🔑</span><span id="${_pwMobId}" data-pw="${_safePass}" style="font-family:monospace;letter-spacing:0.06em;">••••••</span><button type="button" onclick="const e=document.getElementById('${_pwMobId}');e.textContent=e.textContent.includes('•')?e.dataset.pw:'••••••'" style="background:none;border:none;cursor:pointer;font-size:0.72rem;color:#94a3b8;padding:0 2px;line-height:1;">👁</button></div>` : ''}
+                        <div style="font-size:0.63rem;color:#94a3b8;margin-top:3px;">🔐 Mật khẩu: Firebase Authentication</div>
                     </div>
                     <div style="flex-shrink:0;">${statusBadge}</div>
                 </div>
@@ -1114,17 +1197,17 @@ window.debugSuperAdminAggregationHardStop = function() {
         const newPass = prompt(`Nhập MẬT KHẨU MỚI cho tài khoản ${newEmail} (Yêu cầu ít nhất 6 ký tự):`);
         if(!newPass || newPass.length < 6) return alert("Mật khẩu quá ngắn, phải từ 6 ký tự trở lên!");
         
-        if(!confirm(`⚠️ XÁC NHẬN CẤP LẠI:\n- Tài khoản mới: ${newEmail}\n- Mật khẩu: ${newPass}\n- Sẽ được cấp quyền quản lý toàn bộ dữ liệu của CLB: ${clubId}\n\n(Yên tâm: Dữ liệu cũ của CLB vẫn được giữ nguyên 100%)`)) return;
+        if(!confirm(`⚠️ XÁC NHẬN CẤP LẠI:\n- Tài khoản mới: ${newEmail}\n- Mật khẩu mới: đã nhập (không hiển thị lại)\n- Sẽ được cấp quyền quản lý toàn bộ dữ liệu của CLB: ${clubId}\n\n(Yên tâm: Dữ liệu cũ của CLB vẫn được giữ nguyên 100%)`)) return;
 
         try {
             const userCredential = await createUserWithEmailAndPassword(secondaryAuth, newEmail, newPass);
             const newUid = userCredential.user.uid;
 
             await setDoc(doc(db, "users", newUid), { email: newEmail, role: "admin", clubId: clubId });
-            await updateDoc(doc(db, "clubs", clubId), { adminEmail: newEmail, adminPassword: newPass });
+            await updateDoc(doc(db, "clubs", clubId), { adminEmail: newEmail });
 
             _m().lastDurationMs = Date.now() - _t0;
-            alert(`✅ ĐÃ TẠO TÀI KHOẢN THÀNH CÔNG!\n\nBạn có thể gửi ngay Email và Mật khẩu này cho quản lý cơ sở để họ đăng nhập. Toàn bộ dữ liệu cũ vẫn ở đó.`);
+            alert(`✅ ĐÃ TẠO TÀI KHOẢN THÀNH CÔNG!\n\nTài khoản Firebase Authentication đã được tạo. Mật khẩu không được lưu hoặc hiển thị lại trong hệ thống. Toàn bộ dữ liệu cũ của CLB vẫn được giữ nguyên.`);
             window.loadSuperAdminData(); 
         } catch (error) {
             _m().lastError = error.message;

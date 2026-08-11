@@ -40,7 +40,7 @@ export function initFirebase() {
         getAuth,
         // Firestore functions
         collection, doc, getDoc, onSnapshot, addDoc, updateDoc,
-        deleteDoc, query, orderBy, documentId, where, writeBatch, setDoc,
+        deleteDoc, deleteField, query, orderBy, documentId, where, writeBatch, setDoc,
         arrayUnion, arrayRemove, getDocs, limit, increment, getCountFromServer,
         // Auth functions
         signInWithEmailAndPassword, signOut, onAuthStateChanged,
@@ -63,7 +63,7 @@ export function initFirebase() {
         secondaryAuth: store.secondaryAuth,
         sdk: {
             collection, doc, getDoc, onSnapshot, addDoc, updateDoc,
-            deleteDoc, query, orderBy, documentId, where, writeBatch, setDoc,
+            deleteDoc, deleteField, query, orderBy, documentId, where, writeBatch, setDoc,
             arrayUnion, arrayRemove, getDocs, limit, increment, getCountFromServer,
             signInWithEmailAndPassword, signOut, onAuthStateChanged,
             createUserWithEmailAndPassword, sendPasswordResetEmail,

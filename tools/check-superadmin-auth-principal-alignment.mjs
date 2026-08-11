@@ -30,15 +30,15 @@ check('login_history remains SuperAdmin-only for read/delete', /match \/login_hi
 
 check('Client defines canonical bootstrap helper', app.includes('const _ensureSuperAdminPrincipal = async (user) =>'));
 const fastStart = app.indexOf('// ── Phase 4K-6V5U4: SuperAdmin principal convergence');
-const fastEnd = app.indexOf('// Coach phải xác minh', fastStart);
+const fastEnd = app.indexOf('// Cache is intentionally read only as a hint/diagnostic.', fastStart);
 const fastBlock = app.slice(fastStart, fastEnd);
-check('Client verifies/creates principal before ROOT UI role', fastBlock.indexOf('await _ensureSuperAdminPrincipal(user)') >= 0 && fastBlock.indexOf('await _ensureSuperAdminPrincipal(user)') < fastBlock.indexOf("window.userRole = 'super_admin'"));
+check('Client verifies/creates principal before canonical ROOT context commit', fastBlock.indexOf('await _ensureSuperAdminPrincipal(user)') >= 0 && fastBlock.indexOf('await _ensureSuperAdminPrincipal(user)') < fastBlock.indexOf('_commitVerifiedAuthContext(user'));
 check('Bootstrap uses only one principal path', app.includes("doc(db, 'super_admins', uid)") && app.includes("source: 'bootstrap-email-v1'"));
 check('Failed bootstrap fails closed through login error', fastBlock.includes('_showLoginError') && fastBlock.includes('return;'));
 check('Unsafe login_history Rules copy guide removed', !app.includes('allow write: if request.auth != null;') && app.includes('Không mở Rules public'));
 check('SuperAdmin permission UI points to V5U4 principal', sa.includes('canonical SuperAdmin principal') && sa.includes('firestore.rules V5U4'));
 check('Cloud Functions remain canonical via super_admins principal', authz.includes('super_admins/${uid}') && !authz.includes('admin@tstquynhon.com'));
-check('App cache-bust changed without breaking V5U2E lineage', index.includes('app.js?v=attendance-excel-documentid-sdk-fix-20260801-v5u2e&p=superadmin-auth-principal-20260811-v5u4'));
+check('App cache-bust keeps V5U4 compatibility and advances to V5U5', index.includes('app.js?v=attendance-excel-documentid-sdk-fix-20260801-v5u2e&p=superadmin-auth-principal-20260811-v5u4') && index.includes('app.js?v=canonical-security-truth-20260811-v5u5'));
 check('Package exposes this gate', pkg.scripts?.['check:superadmin-auth-principal-alignment'] === 'node tools/check-superadmin-auth-principal-alignment.mjs');
 
 console.log(`\nPASS ${pass}/${pass+fail}`);

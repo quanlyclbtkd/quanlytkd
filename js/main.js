@@ -1,3 +1,4 @@
+// Phase 4K-6V5U5 — Canonical Security Truth + Credential Purge + Auth Context Single Writer + Legacy Global Freeze
 // Phase 4K-6V3A compatibility: 4K-6V3A-firestore-read-attribution-canonical-transaction-boundary
 // Compatibility marker: multiItemInventorySafety.js?v=inventory-ledger-reconciliation-20260616-v2c
 // Phase compatibility APP_BUILD_VERSION markers for static safety checks:
@@ -3151,7 +3152,7 @@ window.debugProfileModalClose = function() {
 // ════════════════════════════════════════════════════════════════
 
 // PHẦN 1 — APP BUILD VERSION
-window.APP_BUILD_VERSION = '4K-6V2-inventory-history-pagination-complete-active-debt-20260616';
+window.APP_BUILD_VERSION = '4K-6V5U5-canonical-security-truth-20260811';
 // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
 // Compatibility marker: window.APP_PATCH_VERSION = '4K-6V5U-2-tuition-command-cutover-20260730';
 window.APP_PATCH_VERSION = '4K-6V5U-2E-attendance-excel-documentid-sdk-fix-20260801';

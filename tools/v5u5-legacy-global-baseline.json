@@ -1,0 +1,9 @@
+{
+  "appSizeBytes": 663426,
+  "appLines": 10739,
+  "windowAssignments": 538,
+  "duplicateGlobals": 159,
+  "globalOwnershipRegistrySha256": "40ebfab400b3a575d1aac2daa6db73c246be731a84a2906674fcea3c211bd133",
+  "legacyAppAuditSha256": "38c05474191672096370fda3bd677cb6894e4ce1bd85054ec99f0aa65baa8455",
+  "baselineSource": "Phase 4K-6V5U4 source before V5U5 changes"
+}

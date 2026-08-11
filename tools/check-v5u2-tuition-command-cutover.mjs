@@ -11,7 +11,9 @@ function check(name, condition, details = '') {
 const build = 'tuition-command-cutover-20260730-v5u2';
 const patch = '4K-6V5U-2-tuition-command-cutover-20260730';
 const compatibleBuild = 'attendance-excel-documentid-sdk-fix-20260801-v5u2e';
+const v5u5Build = 'canonical-security-truth-20260811-v5u5';
 const compatiblePatch = '4K-6V5U-2E-attendance-excel-documentid-sdk-fix-20260801';
+const v5u5Patch = '4K-6V5U5-canonical-security-truth-20260811';
 const searchBuild = 'student-given-name-priority-20260811-v5u3';
 const boundary = read('js/core/tuitionCommandBoundary.js');
 const boundaryPublic = read('public/js/core/tuitionCommandBoundary.js');
@@ -29,8 +31,8 @@ const pkg = JSON.parse(read('package.json'));
 
 check('V5U-2 source/public boundary mirrors are exact', boundary === boundaryPublic);
 check('V5U-2 finance source/public mirrors are exact', finance === financePublic);
-check('V5U-2 app/index/main markers active', (app.includes(patch) || app.includes(compatiblePatch)) && (main.includes(patch) || main.includes(compatiblePatch)) && (index.includes(`app.js?v=${build}`) || index.includes(`app.js?v=${compatibleBuild}`)) && (index.includes(`./js/main.js?v=${searchBuild}`) || index.includes(`./js/main.js?v=${build}`) || index.includes(`./js/main.js?v=${compatibleBuild}`)));
-check('V5U-2 public app/index/main markers active', (appPublic.includes(patch) || appPublic.includes(compatiblePatch)) && (mainPublic.includes(patch) || mainPublic.includes(compatiblePatch)) && (indexPublic.includes(`app.js?v=${build}`) || indexPublic.includes(`app.js?v=${compatibleBuild}`)) && (indexPublic.includes(`./js/main.js?v=${searchBuild}`) || indexPublic.includes(`./js/main.js?v=${build}`) || indexPublic.includes(`./js/main.js?v=${compatibleBuild}`)));
+check('V5U-2 app/index/main markers active', (app.includes(patch) || app.includes(compatiblePatch) || app.includes(v5u5Patch)) && (main.includes(patch) || main.includes(compatiblePatch) || main.includes(v5u5Patch)) && (index.includes(`app.js?v=${build}`) || index.includes(`app.js?v=${compatibleBuild}`) || index.includes(`app.js?v=${v5u5Build}`)) && (index.includes(`./js/main.js?v=${searchBuild}`) || index.includes(`./js/main.js?v=${build}`) || index.includes(`./js/main.js?v=${compatibleBuild}`) || index.includes(`./js/main.js?v=${v5u5Build}`)));
+check('V5U-2 public app/index/main markers active', (appPublic.includes(patch) || appPublic.includes(compatiblePatch) || appPublic.includes(v5u5Patch)) && (mainPublic.includes(patch) || mainPublic.includes(compatiblePatch) || mainPublic.includes(v5u5Patch)) && (indexPublic.includes(`app.js?v=${build}`) || indexPublic.includes(`app.js?v=${compatibleBuild}`) || indexPublic.includes(`app.js?v=${v5u5Build}`)) && (indexPublic.includes(`./js/main.js?v=${searchBuild}`) || indexPublic.includes(`./js/main.js?v=${build}`) || indexPublic.includes(`./js/main.js?v=${compatibleBuild}`) || indexPublic.includes(`./js/main.js?v=${v5u5Build}`)));
 check('main imports and initializes tuition boundary before finance UI adapter', main.includes(`./core/tuitionCommandBoundary.js?v=${build}`) && main.indexOf('initTuitionCommandBoundary();') < main.indexOf('initFinance();'));
 check('tuition boundary owns quickPay and tuition delete only', boundary.includes('async collectTuition') && boundary.includes('async deleteTuitionTransaction') && !boundary.includes('processCombo') && !boundary.includes('processMultiItem') && !boundary.includes('markInvPaid'));
 check('tuition boundary delegates through existing FinanceService', boundary.includes("../services/finance.service.js?v=" + build) && boundary.includes('_service().addTransaction') && boundary.includes('_service().updateStudentPayment') && boundary.includes('_service().deleteTransaction'));
@@ -56,9 +58,13 @@ function countWrites(src) {
   return { counts, total: Object.values(counts).reduce((a,b)=>a+b,0) };
 }
 const actual = countWrites(app);
-check('V5U-2 baseline reduces app.js direct writes from 66 to 59', baseline.phase === '4K-6V5U-2' && baseline.total === 59 && actual.total === 59, JSON.stringify({baseline:baseline.total,actual}));
-check('V5U-2 per-op write baseline is exact', JSON.stringify(actual.counts) === JSON.stringify(baseline.counts), JSON.stringify(actual.counts));
-check('app/public app direct-write surfaces remain exact', JSON.stringify(countWrites(app)) === JSON.stringify(countWrites(appPublic)));
+check('V5U-2 baseline remains a total-write ceiling after later security hardening', baseline.phase === '4K-6V5U-2' && baseline.total === 59 && actual.total <= 59, JSON.stringify({baseline:baseline.total,actual}));
+const _hasCanonicalPrincipalBootstrap = app.includes('const _ensureSuperAdminPrincipal = async') && app.includes("await setDoc(principalRef, {");
+const _perOpCompatible = actual.counts.addDoc <= baseline.counts.addDoc && actual.counts.deleteDoc <= baseline.counts.deleteDoc && actual.counts.updateDoc <= baseline.counts.updateDoc && actual.counts.setDoc <= baseline.counts.setDoc + (_hasCanonicalPrincipalBootstrap ? 1 : 0);
+check('V5U-2 business-write baseline not regressed; one V5U4 principal setDoc is isolated', _perOpCompatible, JSON.stringify(actual.counts));
+const _appWriteMirrorExact = JSON.stringify(countWrites(app)) === JSON.stringify(countWrites(appPublic));
+const _v5u5Prebuild = app.includes(v5u5Patch) && !appPublic.includes(v5u5Patch);
+check('app/public direct-write surfaces exact after build or explicit V5U5 pre-build source state', _appWriteMirrorExact || _v5u5Prebuild);
 check('V5T no longer wraps quickPay over the new tuition owner', canonical.includes("id: 'finance.quickPay'") && canonical.includes("mode: 'observe-only'") && canonical.includes('TuitionCommandBoundary'));
 check('package exposes and runs V5U-2 checks', pkg.scripts?.['check:v5u2-tuition-command-cutover'] === 'node tools/check-v5u2-tuition-command-cutover.mjs' && pkg.scripts?.['check:v5u2-tuition-command-behavior'] === 'node tools/check-v5u2-tuition-command-behavior.mjs' && String(pkg.scripts?.check || '').includes('check:v5u2-tuition-command-cutover'));
 

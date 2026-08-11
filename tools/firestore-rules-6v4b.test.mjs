@@ -8,6 +8,7 @@ import {
 import {
   collection,
   deleteDoc,
+  deleteField,
   doc,
   getDoc,
   getDocs,
@@ -59,8 +60,9 @@ await env.withSecurityRulesDisabled(async context => {
   await seed('users/super-1', { role: 'super_admin', status: 'active' });
   await seed('super_admins/super-1', { enabled: true });
 
-  await seed('clubs/club-a', { name: 'Club A' });
+  await seed('clubs/club-a', { name: 'Club A', adminPassword: 'legacy-secret', passwordChangedAt: '2026-05-01' });
   await seed('clubs/club-b', { name: 'Club B' });
+  await seed('login_history/login-1', { email: 'someone@example.com', clubId: 'club-a', role: 'admin', loginAt: '2026-08-11T00:00:00.000Z', timestamp: 1786406400000, browser: 'test', os: 'test', deviceType: 'Desktop', deviceName: 'test' });
 
   // Admin-authored Coach assignment mirrors used by the V4B1 exact repair path.
   await seed('clubs/club-a/coaches/coach-a1', { uid: 'coach-a1', role: 'coach', clubId: 'club-a', branch: 'CS1', coachBranch: 'CS1', email: 'a1@example.com' });
@@ -99,7 +101,9 @@ const adminA = dbAs('admin-a');
 const adminB = dbAs('admin-b');
 const viewerA = dbAs('viewer-a');
 const lockedA = dbAs('locked-a');
-const superDb = dbAs('super-1', { role: 'super_admin' });
+const superDb = dbAs('super-1', { role: 'super_admin', email: 'super@example.com' });
+const rootBootstrapDb = dbAs('root-bootstrap', { email: 'admin@tstquynhon.com' });
+const wrongBootstrapDb = dbAs('wrong-bootstrap', { email: 'other@example.com' });
 
 try {
   await test('Coach CS1 reads canonical profile in assigned branch', async () => {
@@ -235,6 +239,51 @@ try {
   });
   await test('SuperAdmin retains cross-tenant access', async () => {
     await assertSucceeds(getDoc(doc(superDb, 'clubs/club-b/profiles/p-b')));
+  });
+
+  // ── Phase 4K-6V5U5: Canonical security truth / credential transition ──
+  await test('V5U5 canonical SuperAdmin can list clubs', async () => {
+    await assertSucceeds(getDocs(collection(superDb, 'clubs')));
+  });
+  await test('V5U5 Admin can read own club root', async () => {
+    await assertSucceeds(getDoc(doc(adminA, 'clubs/club-a')));
+  });
+  await test('V5U5 legacy club may update unrelated field while old secret is unchanged', async () => {
+    await assertSucceeds(updateDoc(doc(adminA, 'clubs/club-a'), { name: 'Club A Updated' }));
+  });
+  await test('V5U5 Admin cannot replace legacy adminPassword with a new secret', async () => {
+    await assertFails(updateDoc(doc(adminA, 'clubs/club-a'), { adminPassword: 'new-secret-must-fail' }));
+  });
+  await test('V5U5 canonical SuperAdmin can remove old credential fields', async () => {
+    await assertSucceeds(updateDoc(doc(superDb, 'clubs/club-a'), {
+      adminPassword: deleteField(),
+      passwordChangedAt: deleteField(),
+    }));
+  });
+  await test('V5U5 new club cannot be created with non-empty adminPassword', async () => {
+    await assertFails(setDoc(doc(superDb, 'clubs/club-secret-denied'), {
+      clubName: 'Denied Secret Club', adminEmail: 'denied@example.com', adminPassword: 'plaintext-secret', accountStatus: 'active',
+    }));
+    await assertSucceeds(setDoc(doc(superDb, 'clubs/club-clean-create'), {
+      clubName: 'Clean Club', adminEmail: 'clean@example.com', accountStatus: 'active',
+    }));
+  });
+  await test('V5U5 normal Admin has no SuperAdmin list/login_history permission', async () => {
+    await assertFails(getDocs(collection(adminA, 'clubs')));
+    await assertFails(getDocs(collection(adminA, 'login_history')));
+  });
+  await test('V5U5 wrong email cannot bootstrap SuperAdmin principal', async () => {
+    await assertFails(setDoc(doc(wrongBootstrapDb, 'super_admins/wrong-bootstrap'), {
+      enabled: true, email: 'other@example.com', createdAt: 1786406400000, source: 'bootstrap-email-v1',
+    }));
+  });
+  await test('V5U5 exact ROOT email may bootstrap only own principal then use canonical access', async () => {
+    await assertSucceeds(getDoc(doc(rootBootstrapDb, 'super_admins/root-bootstrap')));
+    await assertSucceeds(setDoc(doc(rootBootstrapDb, 'super_admins/root-bootstrap'), {
+      enabled: true, email: 'admin@tstquynhon.com', createdAt: 1786406400000, source: 'bootstrap-email-v1',
+    }));
+    await assertSucceeds(getDocs(collection(rootBootstrapDb, 'clubs')));
+    await assertSucceeds(getDocs(collection(rootBootstrapDb, 'login_history')));
   });
 
   console.log(`\nRules Emulator total: ${passed} passed`);

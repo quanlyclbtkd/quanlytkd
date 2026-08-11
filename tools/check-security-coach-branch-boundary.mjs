@@ -40,16 +40,17 @@ check('Coach account selector has no unrestricted/all-branch option',
 
 check('Auth cache is versioned and treated as a hint',
   app.includes("const _AUTH_CACHE_KEY = '_qlclb_auth_v3'") &&
-  app.includes('cache chỉ là bootstrap hint, không phải nguồn cấp quyền'));
-check('Verified auth changes trigger listener cleanup and atomic runtime rebind',
-  app.includes('_rebindVerifiedAuthContext') &&
-  app.includes("cleanupAllListeners?.('auth-context-rebind')") &&
-  app.includes("resetProfilesListeners?.('auth-context-rebind')") &&
-  app.includes('window.location.reload()'));
+  app.includes('cache is a UI/performance hint only') &&
+  app.includes("version: '4K-6V5U5'"));
+check('Verified auth changes cannot require rebind because cache never mounts protected runtime',
+  app.includes('Stale cache is discarded before runtime mount') &&
+  app.includes('_commitVerifiedAuthContext') &&
+  !app.includes('_rebindVerifiedAuthContext'));
 check('Missing users authorization doc fails closed without full-club scan',
-  /fail closed/i.test(app) && /không quét clubs/i.test(app) && !app.includes('auth fallback clubs scan'));
+  app.includes('Không tìm thấy hồ sơ phân quyền users/{uid}') &&
+  !app.includes('auth fallback clubs scan'));
 check('Coach login requires a canonical assigned branch',
-  app.includes("fresh.role === 'coach' && !fresh.coachBranch") &&
+  app.includes("_freshContext.role === 'coach' && !_freshContext.coachBranch") &&
   app.includes('Tài khoản HLV chưa được gán cơ sở'));
 check('Parent portal never recommends public Firestore reads',
   app.includes('Không được dùng <code>allow read: if true</code>') &&
