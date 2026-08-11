@@ -50,6 +50,76 @@ export function normalizeStudentSearchText(value) {
     .trim();
 }
 
+// Phase 4K-6V5U3 — Student Given-Name Search Priority.
+// Ranking only: this helper NEVER decides whether an item matches search.
+// Lower numeric tier = stronger name relevance. Tier 8 means the existing
+// search flow matched through metadata/compact fields or the name did not match.
+function _getStudentNameSearchPriorityNormalized(normalizedName, normalizedQuery) {
+  if (!normalizedName || !normalizedQuery) return 8;
+
+  const nameTokens = normalizedName.split(' ').filter(Boolean);
+  const finalToken = nameTokens[nameTokens.length - 1] || '';
+  const queryTokens = normalizedQuery.split(' ').filter(Boolean);
+
+  // P1 — exact full name.
+  if (normalizedName === normalizedQuery) return 1;
+
+  // P2 — exact Vietnamese given-name/final token.
+  if (queryTokens.length === 1 && finalToken === normalizedQuery) return 2;
+
+  // P3 — exact multi-token suffix, e.g. "Nguyễn Bảo An" + "bao an".
+  if (queryTokens.length > 1 && normalizedName.endsWith(' ' + normalizedQuery)) return 3;
+
+  // P4 — final token starts with query, e.g. Anh startsWith("an").
+  if (finalToken && finalToken.startsWith(normalizedQuery)) return 4;
+
+  const otherTokens = nameTokens.slice(0, -1);
+
+  // P5 — exact token elsewhere in the full name.
+  if (otherTokens.some(token => token === normalizedQuery)) return 5;
+
+  // P6 — another token starts with query.
+  if (otherTokens.some(token => token.startsWith(normalizedQuery))) return 6;
+
+  // P7 — generic full-name contains.
+  if (normalizedName.includes(normalizedQuery)) return 7;
+
+  // P8 — metadata/search-blob-only or compact-name-only match.
+  return 8;
+}
+
+export function getStudentNameSearchPriority(name, rawQuery) {
+  return _getStudentNameSearchPriorityNormalized(
+    normalizeStudentSearchText(name),
+    normalizeStudentSearchText(rawQuery)
+  );
+}
+
+/**
+ * Stable presentation-only ranking for an ALREADY MATCHED candidate list.
+ * - Blank query: returns the same order.
+ * - Same relevance tier: preserves original order.
+ * - Does not filter or add candidates.
+ */
+export function rankStudentNameSearchResults(items, rawQuery, getName = null) {
+  const list = Array.isArray(items) ? items : [];
+  const normalizedQuery = normalizeStudentSearchText(rawQuery);
+  if (!normalizedQuery || list.length < 2) return list.slice();
+
+  const nameOf = typeof getName === 'function'
+    ? getName
+    : (item => item && (item.name || item.studentName || item.fullName || item.displayName || item.id) || '');
+
+  return list
+    .map((item, originalIndex) => ({
+      item,
+      originalIndex,
+      priority: _getStudentNameSearchPriorityNormalized(normalizeStudentSearchText(nameOf(item)), normalizedQuery),
+    }))
+    .sort((a, b) => a.priority - b.priority || a.originalIndex - b.originalIndex)
+    .map(row => row.item);
+}
+
 function _compact(value) {
   return normalizeStudentSearchText(value).replace(/\s+/g, '');
 }
@@ -258,7 +328,10 @@ export const StudentSearchIndex = {
   _score(entry, normTerm, compactTerm, digitTerm, codeTerm) {
     let score = 0;
     const matches = [];
-    if (!entry) return { score, matches };
+    if (!entry) return { score, matches, namePriority: 8 };
+
+    // IMPORTANT: keep the existing match/scoring predicates intact. V5U3 only
+    // adds a deterministic name relevance tier used by the comparator below.
     if (entry.normalizedName === normTerm) { score += 120; matches.push('exact-name'); }
     else if (entry.normalizedName.startsWith(normTerm)) { score += 80; matches.push('name-prefix'); }
     else if (entry.normalizedName.includes(normTerm)) { score += 60; matches.push('name-contains'); }
@@ -273,7 +346,12 @@ export const StudentSearchIndex = {
     else if (digitTerm && digitTerm.length >= 3 && entry.phones.some(p => p.includes(digitTerm))) { score += 70; matches.push('phone-contains'); }
 
     if (entry.blob.includes(normTerm)) { score += 25; matches.push('blob'); }
-    return { score, matches: Array.from(new Set(matches)) };
+
+    return {
+      score,
+      matches: Array.from(new Set(matches)),
+      namePriority: _getStudentNameSearchPriorityNormalized(entry.normalizedName, normTerm),
+    };
   },
 
   searchStudents(rawTerm, options = {}) {
@@ -290,17 +368,45 @@ export const StudentSearchIndex = {
     if (!normTerm && !digitTerm && !codeTerm) return { items: [], entries: [], total: 0, term: normTerm, source: 'student-search-index' };
 
     const rows = [];
+    let originalIndex = 0;
     for (const entry of _entries) {
+      const entryIndex = originalIndex++;
       if (!includeAllStatuses && !this.matchesMode(entry, mode)) continue;
       if (branch && branch !== 'all' && branch !== 'Tất cả cơ sở') {
         const eb = String(entry.branch || '').trim();
         if (eb && eb !== branch) continue;
       }
       const scored = this._score(entry, normTerm, compactTerm, digitTerm, codeTerm);
-      if (scored.score > 0) rows.push(Object.assign({ score: scored.score, matches: scored.matches }, entry));
+      // Match predicate remains exactly score > 0 from the pre-V5U3 flow.
+      if (scored.score > 0) {
+        rows.push(Object.assign({
+          score: scored.score,
+          matches: scored.matches,
+          namePriority: scored.namePriority,
+          _searchOriginalIndex: entryIndex,
+        }, entry));
+      }
     }
 
-    rows.sort((a, b) => b.score - a.score || String(a.name).localeCompare(String(b.name), 'vi'));
+    rows.sort((a, b) => {
+      // Exact phone/member/VTF code keeps the existing structured-field priority
+      // and is never pushed down merely because another result has a name match.
+      const aExactStructured = a.matches.includes('exact-code') || a.matches.includes('exact-phone');
+      const bExactStructured = b.matches.includes('exact-code') || b.matches.includes('exact-phone');
+      if (aExactStructured !== bExactStructured) return aExactStructured ? -1 : 1;
+      if (aExactStructured && bExactStructured) {
+        return b.score - a.score || a._searchOriginalIndex - b._searchOriginalIndex;
+      }
+
+      const aPriority = Number(a.namePriority || 8);
+      const bPriority = Number(b.namePriority || 8);
+      if (aPriority !== bPriority) return aPriority - bPriority;
+
+      // Same name tier must be stable. For metadata-only matches (tier 8), keep
+      // the old score ordering before falling back to original index.
+      if (aPriority >= 8 && b.score !== a.score) return b.score - a.score;
+      return a._searchOriginalIndex - b._searchOriginalIndex;
+    });
     const sliced = rows.slice(0, limit);
     _state.searchCount++;
     _state.lastSearchAt = Date.now();
@@ -373,6 +479,8 @@ export const StudentSearchIndex = {
 export function initStudentSearchIndex() {
   window.StudentSearchIndex = window.StudentSearchIndex || StudentSearchIndex;
   window.normalizeStudentSearchText = window.normalizeStudentSearchText || normalizeStudentSearchText;
+  window.getStudentNameSearchPriority = window.getStudentNameSearchPriority || getStudentNameSearchPriority;
+  window.rankStudentNameSearchResults = window.rankStudentNameSearchResults || rankStudentNameSearchResults;
   window.searchStudentsUnified = function(term, options) {
     return window.StudentSearchIndex.searchStudents(term, options || {});
   };

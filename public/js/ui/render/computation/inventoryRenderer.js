@@ -27,6 +27,7 @@
  */
 
 import { formatDate } from '../../../utils/format.js';
+import { rankStudentNameSearchResults } from '../../../core/studentSearchIndex.js?v=student-given-name-priority-20260811-v5u3';
 
 // ── Phase 4K-2B: Fallback inv blob builder (used when getInventorySearchBlob unavailable) ──
 function _fallbackInvBlob(t) {
@@ -244,6 +245,11 @@ export function computeAndCacheInventory(allInventory, allTransactions, params) 
     let uniformTxRows  = null;
     let unpaidInvCount = 0;
 
+    // Phase 4K-6V5U3: rank only the already-matched inventory transaction rows
+    // for presentation when global search is active. Stock/ledger calculations
+    // remain on the original arrays and original ordering.
+    const _uniformSearchCandidates = curTabId === 'inventory' && String(search || '').trim() ? [] : null;
+
     const buildInvTable   = curTabId === 'inventory';
     const buildUniformTx  = curTabId === 'inventory';
 
@@ -287,8 +293,24 @@ export function computeAndCacheInventory(allInventory, allTransactions, params) 
             if (isUnpaid) unpaidInvCount++;
 
             const relTx = relatedTxByInvId.get(t.id) || null;
-            uniformTxRows += renderUniformTxRow(t, { isAdmin, relTx, invCats });
+            const rowHtml = renderUniformTxRow(t, { isAdmin, relTx, invCats });
+            if (_uniformSearchCandidates) {
+                _uniformSearchCandidates.push({
+                    html: rowHtml,
+                    studentName: String(t.studentName || t.profileName || t.name || '')
+                });
+            } else {
+                uniformTxRows += rowHtml;
+            }
         });
+
+        if (_uniformSearchCandidates) {
+            uniformTxRows = rankStudentNameSearchResults(
+                _uniformSearchCandidates,
+                search,
+                row => row.studentName
+            ).map(row => row.html).join('');
+        }
 
         const pg = typeof window.getInventoryHistoryPaginationState === 'function'
             ? window.getInventoryHistoryPaginationState()

@@ -4,6 +4,8 @@ const read = p => fs.readFileSync(p, 'utf8');
 let pass=0, fail=0;
 const check=(n,o)=>{o?(pass++,console.log('✅',n)):(fail++,console.error('❌',n))};
 const build='quit-context-render-loop-guard-20260722-v5s';
+const searchBuild='student-given-name-priority-20260811-v5u3';
+const appBuild='attendance-excel-documentid-sdk-fix-20260801-v5u2e';
 const index=read('index.html');
 const main=read('js/main.js');
 const store=read('js/data/studentProfileStore.js');
@@ -16,7 +18,7 @@ const app=read('app.js');
 const pubBoundary=read('public/js/data/quitProfileBoundary.js');
 const pkg=JSON.parse(read('package.json'));
 
-check('V5R build marker active', index.includes(`app.js?v=${build}`) && index.includes(`js/main.js?v=${build}`) && main.includes(`quitProfileBoundary.js?v=${build}`));
+check('V5R build marker active', (index.includes(`app.js?v=${appBuild}`) || index.includes(`app.js?v=${build}`)) && (index.includes(`js/main.js?v=${searchBuild}`) || index.includes(`js/main.js?v=${build}`)) && (main.includes(`quitProfileBoundary.js?v=${searchBuild}`) || main.includes(`quitProfileBoundary.js?v=${build}`)));
 check('complete mode is dedicated quit store only', boundary.includes("_metrics.lastMode = 'complete-single-source'") && boundary.includes('if (complete)') && boundary.includes("'studentProfileStore.quitProfiles'"));
 check('legacy/canonical union is preview-only', boundary.includes('loading-preview-union') && boundary.includes('window.allProfiles.preview') && boundary.includes('canonical.quitProfiles.preview'));
 check('boundary dedupes preview by stable identity', boundary.includes('function _identity') && boundary.includes('identityIndex') && boundary.includes('delete target[previousKey]'));

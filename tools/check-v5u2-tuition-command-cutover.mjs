@@ -12,6 +12,7 @@ const build = 'tuition-command-cutover-20260730-v5u2';
 const patch = '4K-6V5U-2-tuition-command-cutover-20260730';
 const compatibleBuild = 'attendance-excel-documentid-sdk-fix-20260801-v5u2e';
 const compatiblePatch = '4K-6V5U-2E-attendance-excel-documentid-sdk-fix-20260801';
+const searchBuild = 'student-given-name-priority-20260811-v5u3';
 const boundary = read('js/core/tuitionCommandBoundary.js');
 const boundaryPublic = read('public/js/core/tuitionCommandBoundary.js');
 const finance = read('js/modules/finance.js');
@@ -28,8 +29,8 @@ const pkg = JSON.parse(read('package.json'));
 
 check('V5U-2 source/public boundary mirrors are exact', boundary === boundaryPublic);
 check('V5U-2 finance source/public mirrors are exact', finance === financePublic);
-check('V5U-2 app/index/main markers active', (app.includes(patch) || app.includes(compatiblePatch)) && (main.includes(patch) || main.includes(compatiblePatch)) && (index.includes(`app.js?v=${build}`) || index.includes(`app.js?v=${compatibleBuild}`)) && (index.includes(`./js/main.js?v=${build}`) || index.includes(`./js/main.js?v=${compatibleBuild}`)));
-check('V5U-2 public app/index/main markers active', (appPublic.includes(patch) || appPublic.includes(compatiblePatch)) && (mainPublic.includes(patch) || mainPublic.includes(compatiblePatch)) && (indexPublic.includes(`app.js?v=${build}`) || indexPublic.includes(`app.js?v=${compatibleBuild}`)) && (indexPublic.includes(`./js/main.js?v=${build}`) || indexPublic.includes(`./js/main.js?v=${compatibleBuild}`)));
+check('V5U-2 app/index/main markers active', (app.includes(patch) || app.includes(compatiblePatch)) && (main.includes(patch) || main.includes(compatiblePatch)) && (index.includes(`app.js?v=${build}`) || index.includes(`app.js?v=${compatibleBuild}`)) && (index.includes(`./js/main.js?v=${searchBuild}`) || index.includes(`./js/main.js?v=${build}`) || index.includes(`./js/main.js?v=${compatibleBuild}`)));
+check('V5U-2 public app/index/main markers active', (appPublic.includes(patch) || appPublic.includes(compatiblePatch)) && (mainPublic.includes(patch) || mainPublic.includes(compatiblePatch)) && (indexPublic.includes(`app.js?v=${build}`) || indexPublic.includes(`app.js?v=${compatibleBuild}`)) && (indexPublic.includes(`./js/main.js?v=${searchBuild}`) || indexPublic.includes(`./js/main.js?v=${build}`) || indexPublic.includes(`./js/main.js?v=${compatibleBuild}`)));
 check('main imports and initializes tuition boundary before finance UI adapter', main.includes(`./core/tuitionCommandBoundary.js?v=${build}`) && main.indexOf('initTuitionCommandBoundary();') < main.indexOf('initFinance();'));
 check('tuition boundary owns quickPay and tuition delete only', boundary.includes('async collectTuition') && boundary.includes('async deleteTuitionTransaction') && !boundary.includes('processCombo') && !boundary.includes('processMultiItem') && !boundary.includes('markInvPaid'));
 check('tuition boundary delegates through existing FinanceService', boundary.includes("../services/finance.service.js?v=" + build) && boundary.includes('_service().addTransaction') && boundary.includes('_service().updateStudentPayment') && boundary.includes('_service().deleteTransaction'));

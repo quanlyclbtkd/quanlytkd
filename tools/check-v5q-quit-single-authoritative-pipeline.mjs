@@ -4,6 +4,8 @@ const read = p => fs.readFileSync(p, 'utf8');
 let pass=0, fail=0;
 function check(name, ok){ if(ok){pass++;console.log('✅',name)} else {fail++;console.error('❌',name)} }
 const build='quit-context-render-loop-guard-20260722-v5s';
+const searchBuild='student-given-name-priority-20260811-v5u3';
+const appBuild='attendance-excel-documentid-sdk-fix-20260801-v5u2e';
 const index=read('index.html');
 const main=read('js/main.js');
 const store=read('js/data/studentProfileStore.js');
@@ -17,7 +19,7 @@ const status=read('js/data/profileStatusConfig.js');
 const pubBoundary=read('public/js/data/quitProfileBoundary.js');
 const pkg=JSON.parse(read('package.json'));
 
-check('V5Q/V5R cache bust active', index.includes(`app.js?v=${build}`) && index.includes(`js/main.js?v=${build}`) && main.includes(`quitProfileBoundary.js?v=${build}`));
+check('V5Q/V5R cache bust active', (index.includes(`app.js?v=${appBuild}`) || index.includes(`app.js?v=${build}`)) && (index.includes(`js/main.js?v=${searchBuild}`) || index.includes(`js/main.js?v=${build}`)) && (main.includes(`quitProfileBoundary.js?v=${searchBuild}`) || main.includes(`quitProfileBoundary.js?v=${build}`)));
 check('main exposes boundary and completeness APIs', main.includes('initQuitProfileBoundary()') && main.includes('window.ensureQuitProfilesComplete') && main.includes('window.isQuitProfilesComplete'));
 check('quit authority uses one full collection getDocs', listener.includes('const snap = await fbGetDocs(ctx.profRef)') && listener.includes('queryCount: 1'));
 check('old targeted query fan-out removed', !listener.includes('const quitQueries = []') && !listener.includes('legacyQuitSignals.forEach'));

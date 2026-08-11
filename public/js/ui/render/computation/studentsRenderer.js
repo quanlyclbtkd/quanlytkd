@@ -44,6 +44,7 @@ import {
 
 // Phase 4K-STUDENT-LIST: Classifier chung — không dùng p.status === 'quit' trực tiếp
 import { classifyProfileStatus } from '../../../data/profileStatusConfig.js';
+import { rankStudentNameSearchResults } from '../../../core/studentSearchIndex.js?v=student-given-name-priority-20260811-v5u3';
 
 // ── Phase 4K-2B: Fallback blob builder (used when getProfileSearchBlob unavailable) ──
 function _fallbackProfileBlob(name, p) {
@@ -382,6 +383,12 @@ export function computeAndCacheStudents(allProfiles, params) {
     let debtRows   = buildDebt   ? '' : null;
     let quitRows   = buildQuit   ? '' : null;
 
+    // Phase 4K-6V5U3: Debt qualification/calculation stays in PASS 1 exactly as
+    // before. When search is non-empty we only collect already-qualified rows,
+    // rank that presentation copy once, then render. Blank search keeps the
+    // original newest-first/debt ordering byte-for-byte through the old path.
+    const _debtSearchCandidates = buildDebt && String(search || '').trim() ? [] : null;
+
     // ── Pre-compute nameNCount for year-badge disambiguation ──
     const nameNCount = {};
     Object.keys(allProfiles).forEach(n => {
@@ -524,12 +531,17 @@ export function computeAndCacheStudents(allProfiles, params) {
                     const totalDebtAmount = unpaidMonthsCount * (Number(p.tuitionFee) || 0);
                     totalDebtEst += totalDebtAmount;
                     _debtTotalCount++;
-                    if (buildDebt && _debtRendered < _debtLimit) {
-                        _debtRendered++;
+                    if (buildDebt) {
                         const owedMonthsStr = owedMonths.join(',') || selMonth;
-                        debtRows += renderDebtRow(name, p, {
+                        const renderOptions = {
                             unpaidMonthsCount, owedMonthsStr, branchTdHTML, isAdmin, selMonth, yrBadge,
-                        });
+                        };
+                        if (_debtSearchCandidates) {
+                            _debtSearchCandidates.push({ name, profile: p, renderOptions });
+                        } else if (_debtRendered < _debtLimit) {
+                            _debtRendered++;
+                            debtRows += renderDebtRow(name, p, renderOptions);
+                        }
                     }
                 }
             }
@@ -544,6 +556,19 @@ export function computeAndCacheStudents(allProfiles, params) {
             }
         }
     });
+
+    if (_debtSearchCandidates) {
+        const rankedDebtCandidates = rankStudentNameSearchResults(
+            _debtSearchCandidates,
+            search,
+            candidate => _profileDisplayName(candidate.name, candidate.profile)
+        );
+        _debtRendered = Math.min(rankedDebtCandidates.length, _debtLimit);
+        debtRows = rankedDebtCandidates
+            .slice(0, _debtLimit)
+            .map(candidate => renderDebtRow(candidate.name, candidate.profile, candidate.renderOptions))
+            .join('');
+    }
 
     if (_useQuitBoundary) {
         quitRows = '';

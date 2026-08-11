@@ -10,6 +10,7 @@ function check(name, condition, details = '') {
 }
 
 const builds = ['canonical-domain-command-boundary-write-freeze-20260722-v5t', 'student-status-command-cutover-tx-delete-fix-20260722-v5u1', 'tuition-command-cutover-20260730-v5u2', 'attendance-excel-documentid-sdk-fix-20260801-v5u2e'];
+const searchBuild = 'student-given-name-priority-20260811-v5u3';
 const patches = ['4K-6V5T-canonical-domain-command-boundary-write-freeze-20260722', '4K-6V5U-1-student-status-command-cutover-tx-delete-fix-20260722', '4K-6V5U-2-tuition-command-cutover-20260730', '4K-6V5U-2E-attendance-excel-documentid-sdk-fix-20260801'];
 const modulePath = 'js/core/canonicalDomainCommandBoundary.js';
 const publicModulePath = 'public/js/core/canonicalDomainCommandBoundary.js';
@@ -23,11 +24,11 @@ const index = read('index.html');
 const indexPublic = read('public/index.html');
 const baseline = JSON.parse(read('tools/baselines/v5t-legacy-write-baseline.json'));
 const pkg = JSON.parse(read('package.json'));
-const pkgPublic = JSON.parse(read('public/package.json'));
+const publicPkgExists = fs.existsSync('public/package.json');
 
 check('V5T command module exists and public mirror is exact', command === commandPublic);
-check('V5T-or-later app/index/main markers active', patches.some(p => app.includes(p)) && builds.some(b => index.includes(`app.js?v=${b}`) && index.includes(`./js/main.js?v=${b}`)) && patches.some(p => main.includes(p)));
-check('V5T-or-later public app/index/main markers active', patches.some(p => appPublic.includes(p)) && builds.some(b => indexPublic.includes(`app.js?v=${b}`) && indexPublic.includes(`./js/main.js?v=${b}`)) && patches.some(p => mainPublic.includes(p)));
+check('V5T-or-later app/index/main markers active', patches.some(p => app.includes(p)) && builds.some(b => index.includes(`app.js?v=${b}`)) && (index.includes(`./js/main.js?v=${searchBuild}`) || builds.some(b => index.includes(`./js/main.js?v=${b}`))) && patches.some(p => main.includes(p)));
+check('V5T-or-later public app/index/main markers active', patches.some(p => appPublic.includes(p)) && builds.some(b => indexPublic.includes(`app.js?v=${b}`)) && (indexPublic.includes(`./js/main.js?v=${searchBuild}`) || builds.some(b => indexPublic.includes(`./js/main.js?v=${b}`))) && patches.some(p => mainPublic.includes(p)));
 check('main imports command boundary with compatible cache bust', builds.some(b => main.includes(`./core/canonicalDomainCommandBoundary.js?v=${b}`)));
 check('command boundary initializes only after student/finance/inventory/attendance modules',
   main.indexOf('initStudents();') < main.indexOf('initCanonicalDomainCommandBoundary();') &&
@@ -95,9 +96,7 @@ check('baseline is explicitly V5T/V5S freeze inventory', baseline.phase === '4K-
 check('package exposes V5T static and behavior checks',
   pkg.scripts?.['check:v5t-command-boundary-write-freeze'] === 'node tools/check-v5t-canonical-command-boundary-write-freeze.mjs' &&
   pkg.scripts?.['check:v5t-command-boundary-behavior'] === 'node tools/check-v5t-command-boundary-behavior.mjs');
-check('public package mirrors V5T scripts',
-  pkgPublic.scripts?.['check:v5t-command-boundary-write-freeze'] === pkg.scripts?.['check:v5t-command-boundary-write-freeze'] &&
-  pkgPublic.scripts?.['check:v5t-command-boundary-behavior'] === pkg.scripts?.['check:v5t-command-boundary-behavior']);
+check('build:public keeps public as runtime-only output', !publicPkgExists);
 check('default check pipeline includes both V5T gates',
   String(pkg.scripts?.check || '').includes('check:v5t-command-boundary-write-freeze') &&
   String(pkg.scripts?.check || '').includes('check:v5t-command-boundary-behavior'));

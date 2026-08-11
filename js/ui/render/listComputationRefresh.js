@@ -40,15 +40,15 @@
 import {
     computeAndCacheFinance,
     getFinanceSummary,
-} from './computation/financeRenderer.js';
+} from './computation/financeRenderer.js?v=student-given-name-priority-20260811-v5u3';
 import {
     computeAndCacheStudents,
     getStudentsSummary,
-} from './computation/studentsRenderer.js?v=quit-context-render-loop-guard-20260722-v5s';
+} from './computation/studentsRenderer.js?v=student-given-name-priority-20260811-v5u3';
 import {
     computeAndCacheInventory,
     getCachedUnpaidInvCount,
-} from './computation/inventoryRenderer.js';
+} from './computation/inventoryRenderer.js?v=student-given-name-priority-20260811-v5u3';
 import {
     invalidateDashboardCache,
     cacheDashboardData,

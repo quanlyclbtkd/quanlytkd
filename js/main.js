@@ -88,7 +88,7 @@ import { SuperAdminQuotaGuard }               from './core/superAdminQuotaGuard.
 import { initClubStatsAutoCache }              from './core/clubStatsAutoCache.js';
 import { initSuperAdminServerRefresh }          from './core/superAdminServerRefresh.js';
 import { initProductionStabilityGate }        from './core/productionStabilityGate.js';
-import { initStudentSearchIndex }             from './core/studentSearchIndex.js';
+import { initStudentSearchIndex }             from './core/studentSearchIndex.js?v=student-given-name-priority-20260811-v5u3';
 import { initListenerOwnershipBoundary }      from './core/listenerOwnershipBoundary.js';
 import { initFinancialActionAuditGuard }      from './core/financialActionAuditGuard.js';
 import { initMobileStartupPerformance }       from './core/mobileStartupPerformance.js';
@@ -104,15 +104,15 @@ import { initFirebase }                        from './firebase/config.js';
 import { showToast, registerToastGlobal }      from './ui/toast.js';
 import { registerModalGlobals }                from './ui/modal.js';
 import { switchTab, registerTabGlobals }       from './ui/tabs.js';
-import { initRender }                          from './ui/render.js?v=quit-context-render-loop-guard-20260722-v5s';
+import { initRender }                          from './ui/render.js?v=student-given-name-priority-20260811-v5u3';
 // Phase 3.4: Render Isolation Architecture — island initialisers + legacy shims
-import { initFinanceIslands, registerFinanceLegacyGlobals }     from './ui/render/renderFinance.js';
-import { initStudentIslands, registerStudentsLegacyGlobals }     from './ui/render/renderStudents.js?v=quit-context-render-loop-guard-20260722-v5s';
-import { initInventoryIslands, registerInventoryLegacyGlobals }  from './ui/render/renderInventory.js';
+import { initFinanceIslands, registerFinanceLegacyGlobals }     from './ui/render/renderFinance.js?v=student-given-name-priority-20260811-v5u3';
+import { initStudentIslands, registerStudentsLegacyGlobals }     from './ui/render/renderStudents.js?v=student-given-name-priority-20260811-v5u3';
+import { initInventoryIslands, registerInventoryLegacyGlobals }  from './ui/render/renderInventory.js?v=student-given-name-priority-20260811-v5u3';
 import { initAttendanceIslands }                                  from './ui/render/renderAttendance.js';
 import { initDashboardIslands }                                   from './ui/render/renderDashboard.js';
 // Phase 3.5B: Render Invalidation & Lifecycle Stabilization
-import { registerInvalidationLegacyGlobals }                     from './ui/render/renderInvalidation.js?v=quit-context-render-loop-guard-20260722-v5s';
+import { registerInvalidationLegacyGlobals }                     from './ui/render/renderInvalidation.js?v=student-given-name-priority-20260811-v5u3';
 import { registerLoadingGlobals, showLoading, hideLoading, forceHideLoading } from './ui/loading.js';
 import {
     getLocalToday, formatDate, formatMonth,
@@ -277,7 +277,7 @@ import {
     setProfileStatusConfigForDebug,
     resetProfileStatusConfig,
 } from './data/profileStatusConfig.js';
-import { initQuitProfileBoundary, QuitProfileBoundary } from './data/quitProfileBoundary.js?v=quit-context-render-loop-guard-20260722-v5s';
+import { initQuitProfileBoundary, QuitProfileBoundary } from './data/quitProfileBoundary.js?v=student-given-name-priority-20260811-v5u3';
 
 // ── Phase 3.8B: Inventory Debt Derivation & Feature Guard Completion ──────────
 import {
@@ -332,7 +332,7 @@ import {
     getSearchRuntimeState,
     invalidateSearchCache,
     debugSearchPerformance,
-} from './modules/searchRuntime.js';
+} from './modules/searchRuntime.js?v=student-given-name-priority-20260811-v5u3';
 import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from './modules/finance.js?v=tuition-command-cutover-20260730-v5u2';
 import { initInventory }                              from './modules/inventory.js?v=payment-bundle-runtime-hotfix-20260616-v3a1';
 // Compatibility marker: from './modules/attendance.js'

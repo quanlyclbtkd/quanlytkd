@@ -19,7 +19,7 @@ check(core.includes('searchStudents') && core.includes('matchesMode'), 'searchSt
 check(core.includes('debugStudentSearchIndex') && core.includes('debugSearchAccuracy') && core.includes('debugSearchIndexForStudent'), 'debug globals exist');
 check(main.includes("import { initStudentSearchIndex }") && main.includes("./core/studentSearchIndex.js"), 'main imports initStudentSearchIndex');
 check(main.includes('initStudentSearchIndex();') && main.indexOf('initStudentSearchIndex();') < main.indexOf('initGlobalSearchRuntime();'), 'student index initializes before SearchRuntime');
-check(rt.includes("import { StudentSearchIndex }") && rt.includes('../core/studentSearchIndex.js'), 'SearchRuntime imports StudentSearchIndex');
+check(/import\s*\{[^}]*StudentSearchIndex[^}]*\}\s*from\s*['"]\.\.\/core\/studentSearchIndex\.js(?:\?v=[^'"]+)?['"]/.test(rt), 'SearchRuntime imports StudentSearchIndex');
 check(rt.includes('window.StudentSearchIndex.searchStudents') || rt.includes('StudentSearchIndex.searchStudents'), 'SearchRuntime uses StudentSearchIndex.searchStudents');
 check(rt.includes('student-search-index') && rt.includes('studentIndexRuns'), 'SearchRuntime records student index source/metrics');
 check(rt.includes('server-pagination') && rt.includes('profileCount > 0'), 'server fallback only after local profile availability check');

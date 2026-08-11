@@ -13,7 +13,7 @@
  * ────────────────────────────────────────────────────────────────
  */
 
-import { StudentSearchIndex } from '../core/studentSearchIndex.js';
+import { StudentSearchIndex, rankStudentNameSearchResults } from '../core/studentSearchIndex.js?v=student-given-name-priority-20260811-v5u3';
 
 // ── Internal state ────────────────────────────────────────────────────────────
 
@@ -779,7 +779,7 @@ async function _searchStudentsV2(term, tab, token) {
             };
         } else {
             _state.studentIndexFallbacks++;
-            items = Object.entries(profiles)
+            const fallbackMatchedEntries = Object.entries(profiles)
                 .filter(function([name, p]) {
                     if (typeof window.filterStudentItemsForMode === 'function') {
                         const modeItems = window.filterStudentItemsForMode([Object.assign({ id: name }, p)], tab);
@@ -798,7 +798,14 @@ async function _searchStudentsV2(term, tab, token) {
                           ].filter(Boolean).join(' '));
                     return blob.includes(term);
                 })
-                .slice(0, 100)
+                .slice(0, 100); // preserve the exact legacy fallback result set/limit
+
+            const rankedFallbackEntries = rankStudentNameSearchResults(
+                fallbackMatchedEntries,
+                term,
+                ([name, p]) => String(p?.name || p?.fullName || p?.studentName || p?.displayName || name || '')
+            );
+            items = rankedFallbackEntries
                 .map(function([name, p]) { return Object.assign({ id: name }, p); });
         }
 

@@ -54,18 +54,18 @@ import {
     computeAndCacheFinance,
     getFinanceSummary,
     getFinanceCachedHtml,
-} from './render/computation/financeRenderer.js';
+} from './render/computation/financeRenderer.js?v=student-given-name-priority-20260811-v5u3';
 import {
     computeAndCacheStudents,
     getStudentsSummary,
     getStudentsCachedHtml,
-} from './render/computation/studentsRenderer.js?v=quit-context-render-loop-guard-20260722-v5s';
+} from './render/computation/studentsRenderer.js?v=student-given-name-priority-20260811-v5u3';
 import {
     computeAndCacheInventory,
     getCachedLiveInvMap,
     getInventoryCachedHtml,
     getCachedUnpaidInvCount,
-} from './render/computation/inventoryRenderer.js';
+} from './render/computation/inventoryRenderer.js?v=student-given-name-priority-20260811-v5u3';
 
 // Phase 3.5B: Dashboard computation cache
 import { cacheDashboardData } from './render/computation/dashboardRenderer.js';

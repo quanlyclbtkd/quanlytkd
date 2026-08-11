@@ -27,6 +27,7 @@
  */
 
 import { formatDate, formatMonth } from '../../../utils/format.js';
+import { rankStudentNameSearchResults } from '../../../core/studentSearchIndex.js?v=student-given-name-priority-20260811-v5u3';
 
 // ── Phase 4K-4D: Fallback classify (nếu window.classifyInventoryFinanceTx chưa load) ──
 function _fallbackClassifyInvTx(tx, invCats) {
@@ -364,6 +365,11 @@ export function computeAndCacheFinance(transactions, params) {
     let expenseRows = buildExpRows ? '' : null;
     let examExpRows = buildExamExpRows ? '' : null;
 
+    // Phase 4K-6V5U3: when the existing global search is active, rank only
+    // already-matched transaction rows for presentation. Summary/accounting
+    // still runs over the original transactions array in its original order.
+    const _txSearchCandidates = buildTxRows && String(search || '').trim() ? [] : null;
+
     // ── Single pass — mirrors renderApp() lines 249-324 exactly ──
     // Phase 4K-4F: guard selectedMonth to avoid cross-month contamination when store
     // may contain merged transactions from multiple months (packageMonths rollup)
@@ -564,12 +570,28 @@ export function computeAndCacheFinance(transactions, params) {
                 }
             }
 
-            // Build tx row (current tab only)
+            // Build tx row (current tab only). Search ranking is presentation-only.
             if (buildTxRows && isBranchMatch) {
-                txRows += renderTxRow(t, { isSingleBranch, isAdmin, branchTdHTML, btnDel });
+                const rowHtml = renderTxRow(t, { isSingleBranch, isAdmin, branchTdHTML, btnDel });
+                if (_txSearchCandidates) {
+                    _txSearchCandidates.push({
+                        html: rowHtml,
+                        studentName: String(t.studentName || t.profileName || t.name || cleanName || '')
+                    });
+                } else {
+                    txRows += rowHtml;
+                }
             }
         }
     });
+
+    if (_txSearchCandidates) {
+        txRows = rankStudentNameSearchResults(
+            _txSearchCandidates,
+            search,
+            row => row.studentName
+        ).map(row => row.html).join('');
+    }
 
     // ── Phase 4K-5P: Override exam branch stats with canonical ledger ────────
     const examBranchLedger = typeof window.buildCanonicalExamBranchLedger === 'function'

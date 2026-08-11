@@ -21,23 +21,25 @@ function check(name, ok, detail = '') {
 
 console.log('\n=== Phase 4K-6V4B12 — Render Warning Coalescing ===\n');
 const build = 'quit-context-render-loop-guard-20260722-v5s';
+const searchBuild = 'student-given-name-priority-20260811-v5u3';
+const excelFixBuild = 'attendance-excel-documentid-sdk-fix-20260801-v5u2e';
 const appBuild = 'tuition-command-cutover-20260730-v5u2';
 const previousAppBuild = 'student-status-command-cutover-tx-delete-fix-20260722-v5u1';
-const appBuilds = [appBuild, previousAppBuild, build, 'profile-canonical-store-runtime-recovery-20260628-v4d1a', 'profile-canonical-store-20260628-v4d1', 'tuition-debt-source-of-truth-20260628-v4c'];
+const appBuilds = [excelFixBuild, appBuild, previousAppBuild, build, 'profile-canonical-store-runtime-recovery-20260628-v4d1a', 'profile-canonical-store-20260628-v4d1', 'tuition-debt-source-of-truth-20260628-v4c'];
 
 check('index cache-busts app.js/main.js to current render-safe build',
-  (index.includes(`app.js?v=${appBuild}`) || appBuilds.some(b => index.includes(`app.js?v=${b}`))) && (index.includes(`main.js?v=${appBuild}`) || index.includes(`main.js?v=${build}`)));
+  (index.includes(`app.js?v=${appBuild}`) || appBuilds.some(b => index.includes(`app.js?v=${b}`))) && (index.includes(`main.js?v=${searchBuild}`) || index.includes(`main.js?v=${appBuild}`) || index.includes(`main.js?v=${build}`)));
 check('main imports changed render/list/student modules with current cache-bust',
-  main.includes(`./ui/render.js?v=${build}`) &&
-  main.includes(`./ui/render/renderStudents.js?v=${build}`) &&
-  main.includes(`./ui/render/renderInvalidation.js?v=${build}`) &&
+  (main.includes(`./ui/render.js?v=${searchBuild}`) || main.includes(`./ui/render.js?v=${build}`)) &&
+  (main.includes(`./ui/render/renderStudents.js?v=${searchBuild}`) || main.includes(`./ui/render/renderStudents.js?v=${build}`)) &&
+  (main.includes(`./ui/render/renderInvalidation.js?v=${searchBuild}`) || main.includes(`./ui/render/renderInvalidation.js?v=${build}`)) &&
   (main.includes(`./modules/students.js?v=${appBuild}`) || main.includes(`./modules/students.js?v=${previousAppBuild}`) || main.includes(`./modules/students.js?v=${build}`)));
 check('nested render imports use current cache-bust',
-  renderJs.includes(`studentsRenderer.js?v=${build}`) &&
-  renderStudents.includes(`studentsRenderer.js?v=${build}`) &&
-  renderInvalidation.includes(`studentsRenderer.js?v=${build}`) &&
-  renderInvalidation.includes(`listComputationRefresh.js?v=${build}`) &&
-  listRefresh.includes(`studentsRenderer.js?v=${build}`));
+  (renderJs.includes(`studentsRenderer.js?v=${searchBuild}`) || renderJs.includes(`studentsRenderer.js?v=${build}`)) &&
+  (renderStudents.includes(`studentsRenderer.js?v=${searchBuild}`) || renderStudents.includes(`studentsRenderer.js?v=${build}`)) &&
+  (renderInvalidation.includes(`studentsRenderer.js?v=${searchBuild}`) || renderInvalidation.includes(`studentsRenderer.js?v=${build}`)) &&
+  (renderInvalidation.includes(`listComputationRefresh.js?v=${searchBuild}`) || renderInvalidation.includes(`listComputationRefresh.js?v=${build}`)) &&
+  (listRefresh.includes(`studentsRenderer.js?v=${searchBuild}`) || listRefresh.includes(`studentsRenderer.js?v=${build}`)));
 check('students slow warning threshold raised and gated for production',
   studentsRenderer.includes('const _STUDENTS_SLOW_WARN_MS = 64') &&
   studentsRenderer.includes('function _shouldWarnStudentCompute') &&

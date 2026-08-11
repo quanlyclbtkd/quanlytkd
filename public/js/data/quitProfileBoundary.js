@@ -13,6 +13,7 @@
  */
 
 import { classifyProfileStatus } from './profileStatusConfig.js';
+import { rankStudentNameSearchResults } from '../core/studentSearchIndex.js?v=student-given-name-priority-20260811-v5u3';
 
 const VERSION = '4K-6V5S-quit-context-render-loop-guard-20260722';
 
@@ -169,11 +170,22 @@ export function getFilteredQuitEntries(options = {}) {
         if (!search) return true;
         return _profileBlob(id, profile).includes(search);
     });
-    entries.sort((a, b) => {
-        const an = String(a[1]?.name || a[1]?.fullName || a[1]?.displayName || a[0] || '');
-        const bn = String(b[1]?.name || b[1]?.fullName || b[1]?.displayName || b[0] || '');
-        return an.localeCompare(bn, 'vi');
-    });
+    if (search) {
+        // Phase 4K-6V5U3: filter/result set is unchanged; only presentation order
+        // is ranked by the shared canonical name helper. Stable ties preserve the
+        // authoritative map order. No Firestore read or fallback source is added.
+        const ranked = rankStudentNameSearchResults(entries, search, ([id, profile]) =>
+            String(profile?.name || profile?.fullName || profile?.displayName || profile?.studentName || id || '')
+        );
+        entries.splice(0, entries.length, ...ranked);
+    } else {
+        // Blank search retains the existing Đã nghỉ alphabetical behavior.
+        entries.sort((a, b) => {
+            const an = String(a[1]?.name || a[1]?.fullName || a[1]?.displayName || a[0] || '');
+            const bn = String(b[1]?.name || b[1]?.fullName || b[1]?.displayName || b[0] || '');
+            return an.localeCompare(bn, 'vi');
+        });
+    }
     _metrics.filteredBuilds++;
     _metrics.lastFilteredCount = entries.length;
     return entries;

@@ -1073,7 +1073,7 @@ export function initTransactionPagination() {
                         if (_txEl && pgState.currentItems && pgState.currentItems.length > 0) {
                             const _hasRows = _txEl.querySelector('tr[data-tx-id]');
                             if (!_hasRows) {
-                                const { renderTxRow } = await import('../ui/render/computation/financeRenderer.js');
+                                const { renderTxRow } = await import('../ui/render/computation/financeRenderer.js?v=student-given-name-priority-20260811-v5u3');
                                 const _html = pgState.currentItems.map(function(tx) {
                                     return renderTxRow(tx, {
                                         isSingleBranch: true,
