@@ -9,6 +9,19 @@
       return window.getAppContext ? window.getAppContext(reason) : {};
   }
 
+  // Phase 4K-6V5U4 — privileged reads require the canonical verified session.
+  function _hasVerifiedSuperAdmin() {
+      return typeof window.isVerifiedSuperAdminSession === 'function'
+          && window.isVerifiedSuperAdminSession() === true;
+  }
+
+  function _renderSuperAdminAuthRequired(listEl) {
+      if (listEl) {
+          listEl.innerHTML = '<div class="text-center py-10 px-4" style="color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:12px;"><div class="text-3xl mb-3">🔐</div><p class="font-bold text-sm mb-2">Quyền SuperAdmin chưa được Firestore xác nhận.</p><p class="text-xs text-slate-500">Kiểm tra custom claim, users/{uid}.role hoặc super_admins/{uid} theo Firestore Rules hiện hành. Không mở Rules public.</p></div>';
+      }
+      return { ok: false, reason: 'superadmin-not-verified' };
+  }
+
   // ── Module-level idempotency ─────────────────────────────────────
   let __saInitialized = false;
 
@@ -231,7 +244,8 @@
         _m().lastAction = 'loadSuperAdminData';
         const _t0 = Date.now();
         const listEl = document.getElementById('sysClubListMain');
-        listEl.innerHTML = '<div class="text-center py-10 text-slate-400"><div class="text-2xl mb-2">⏳</div><p class="font-bold text-sm">Đang tải dữ liệu toàn hệ thống...</p></div>';
+        if (!_hasVerifiedSuperAdmin()) return _renderSuperAdminAuthRequired(listEl);
+        if (listEl) listEl.innerHTML = '<div class="text-center py-10 text-slate-400"><div class="text-2xl mb-2">⏳</div><p class="font-bold text-sm">Đang tải dữ liệu toàn hệ thống...</p></div>';
         try {
             const clubsSnap = await getDocs(query(collection(db, "clubs"), limit(200))); // [3.3E] SuperAdmin clubs list — bounded at 200
             const today = getLocalToday();
@@ -728,6 +742,8 @@
       {
           const _coreLoad = window.loadSuperAdminData;
           window.loadSuperAdminData = async function _saLoadWrapped() {
+              const listEl = document.getElementById('sysClubListMain');
+              if (!_hasVerifiedSuperAdmin()) return _renderSuperAdminAuthRequired(listEl);
               const now = Date.now();
               if (_saLoadPromise) {
                   console.info('[SuperAdmin] loadSuperAdminData single-flight reuse');

@@ -8,9 +8,9 @@ function check(name, condition, details = '') {
   else { failures++; console.error(`❌ ${name}${details ? ` — ${details}` : ''}`); }
 }
 
-const builds = ['student-status-command-cutover-tx-delete-fix-20260722-v5u1', 'tuition-command-cutover-20260730-v5u2', 'attendance-excel-documentid-sdk-fix-20260801-v5u2e'];
+const builds = ['student-status-command-cutover-tx-delete-fix-20260722-v5u1', 'tuition-command-cutover-20260730-v5u2', 'attendance-excel-documentid-sdk-fix-20260801-v5u2e', 'superadmin-verified-auth-contract-20260811-v5u4'];
 const searchBuild = 'student-given-name-priority-20260811-v5u3';
-const patches = ['4K-6V5U-1-student-status-command-cutover-tx-delete-fix-20260722', '4K-6V5U-2-tuition-command-cutover-20260730', '4K-6V5U-2E-attendance-excel-documentid-sdk-fix-20260801'];
+const patches = ['4K-6V5U-1-student-status-command-cutover-tx-delete-fix-20260722', '4K-6V5U-2-tuition-command-cutover-20260730', '4K-6V5U-2E-attendance-excel-documentid-sdk-fix-20260801', '4K-6V5U4-superadmin-verified-auth-contract-20260811'];
 const boundary = read('js/core/studentStatusCommandBoundary.js');
 const boundaryPublic = read('public/js/core/studentStatusCommandBoundary.js');
 const main = read('js/main.js');

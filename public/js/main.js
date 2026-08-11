@@ -341,7 +341,7 @@ import { initDashboard }                              from './modules/dashboard.
 // ── Phase 4K-6U: Heavy Reports module is lazy-loaded by reportExportFacade.js ──
 // ── Phase 4.0B-1: SuperAdmin — eager import trên HTTP/HTTPS ─────
 // Không lazy nữa: phải init trước khi loadSuperAdminData() được gọi.
-import { initSuperAdmin }                             from './modules/superadmin.js';
+import { initSuperAdmin }                             from './modules/superadmin.js?v=superadmin-verified-auth-contract-20260811-v5u4';
 
 // ── Phase 3.1: Event layer ──────────────────────────────────────
 import { initStudentsEvents }                         from './events/students.events.js';
@@ -545,7 +545,7 @@ const LAZY_TAB_MODULES = {
     // Giữ entry để ensureTabModule('superadmin') vẫn gọi được initSuperAdmin idempotent.
     superadmin: {
         key:    'module-superadmin',
-        import: () => import('./modules/superadmin.js'),
+        import: () => import('./modules/superadmin.js?v=superadmin-verified-auth-contract-20260811-v5u4'),
         init:   'initSuperAdmin',
     },
 };
@@ -1727,7 +1727,7 @@ function _waitForExistingLegacyApp(ms) {
                 // Dynamic import trả lại cached module — không import mạng lần nữa.
                 window.__superAdminModuleLoading = true;
                 try {
-                    const mod = await import('./modules/superadmin.js');
+                    const mod = await import('./modules/superadmin.js?v=superadmin-verified-auth-contract-20260811-v5u4');
                     if (typeof mod.initSuperAdmin === 'function') {
                         mod.initSuperAdmin();
                     }

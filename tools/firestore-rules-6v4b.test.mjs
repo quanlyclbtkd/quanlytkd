@@ -58,9 +58,16 @@ await env.withSecurityRulesDisabled(async context => {
   await seed('users/locked-a', { role: 'admin', clubId: 'club-a', status: 'locked' });
   await seed('users/super-1', { role: 'super_admin', status: 'active' });
   await seed('super_admins/super-1', { enabled: true });
+  // Phase 4K-6V5U4 — distinct authorization sources for split-brain regression.
+  await seed('users/super-userdoc', { role: 'super_admin', status: 'active' });
+  await seed('users/super-marker', { role: 'viewer', clubId: 'club-a', status: 'active' });
+  await seed('super_admins/super-marker', { enabled: true });
+  await seed('users/super-claim', { role: 'viewer', clubId: 'club-a', status: 'active' });
+  await seed('users/email-only', { role: 'viewer', clubId: 'club-a', status: 'active', email: 'admin@tstquynhon.com' });
 
   await seed('clubs/club-a', { name: 'Club A' });
   await seed('clubs/club-b', { name: 'Club B' });
+  await seed('login_history/seed-v5u4', { email: 'seed@example.com', clubId: 'club-a', role: 'admin', loginAt: '2026-08-11T00:00:00.000Z', timestamp: 1786406400000, browser: 'Chrome', os: 'Test', deviceType: 'Desktop', deviceName: 'Rules Emulator' });
 
   // Admin-authored Coach assignment mirrors used by the V4B1 exact repair path.
   await seed('clubs/club-a/coaches/coach-a1', { uid: 'coach-a1', role: 'coach', clubId: 'club-a', branch: 'CS1', coachBranch: 'CS1', email: 'a1@example.com' });
@@ -100,6 +107,11 @@ const adminB = dbAs('admin-b');
 const viewerA = dbAs('viewer-a');
 const lockedA = dbAs('locked-a');
 const superDb = dbAs('super-1', { role: 'super_admin' });
+const normalNoSuper = dbAs('viewer-a');
+const superUserDoc = dbAs('super-userdoc');
+const superClaim = dbAs('super-claim', { role: 'super_admin' });
+const superMarker = dbAs('super-marker');
+const emailOnly = dbAs('email-only', { email: 'admin@tstquynhon.com' });
 
 try {
   await test('Coach CS1 reads canonical profile in assigned branch', async () => {
@@ -235,6 +247,28 @@ try {
   });
   await test('SuperAdmin retains cross-tenant access', async () => {
     await assertSucceeds(getDoc(doc(superDb, 'clubs/club-b/profiles/p-b')));
+  });
+
+  // Phase 4K-6V5U4 — exact production split-brain regression cases.
+  await test('Normal authenticated user cannot list clubs or login_history', async () => {
+    await assertFails(getDocs(collection(normalNoSuper, 'clubs')));
+    await assertFails(getDocs(collection(normalNoSuper, 'login_history')));
+  });
+  await test('users/{uid}.role=super_admin can list clubs and login_history', async () => {
+    await assertSucceeds(getDocs(collection(superUserDoc, 'clubs')));
+    await assertSucceeds(getDocs(collection(superUserDoc, 'login_history')));
+  });
+  await test('Custom claim role=super_admin can list clubs and login_history', async () => {
+    await assertSucceeds(getDocs(collection(superClaim, 'clubs')));
+    await assertSucceeds(getDocs(collection(superClaim, 'login_history')));
+  });
+  await test('super_admins/{uid} marker can list clubs and login_history', async () => {
+    await assertSucceeds(getDocs(collection(superMarker, 'clubs')));
+    await assertSucceeds(getDocs(collection(superMarker, 'login_history')));
+  });
+  await test('Special email alone cannot list clubs or login_history', async () => {
+    await assertFails(getDocs(collection(emailOnly, 'clubs')));
+    await assertFails(getDocs(collection(emailOnly, 'login_history')));
   });
 
   console.log(`\nRules Emulator total: ${passed} passed`);

@@ -14,7 +14,7 @@
 // js/core, js/services, js/ui in small safe phases.
     const { initializeApp } = window._fb_init;
     const { getFirestore, collection, doc, getDoc, onSnapshot, addDoc, updateDoc, deleteDoc, query, orderBy, where, writeBatch, setDoc, arrayUnion, arrayRemove, getDocs, limit, increment, getCountFromServer, startAfter, startAt, endAt } = window._fb_init;
-    const { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword, sendPasswordResetEmail, updatePassword, reauthenticateWithCredential, EmailAuthProvider, signInAnonymously } = window._fb_init;
+    const { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword, sendPasswordResetEmail, updatePassword, reauthenticateWithCredential, EmailAuthProvider, signInAnonymously, getIdTokenResult } = window._fb_init;
     const firebaseConfig = {
       apiKey: "AIzaSyBfxbFrMabJHbARXpAqStIrSFlSAcCxgGY",
       authDomain: "quanly-tst.firebaseapp.com",
@@ -92,7 +92,7 @@
 // Danh mục kho tùy chỉnh — được load từ Firestore khi đăng nhập thành công
 window.invCustomCategories = [];
     // Compatibility marker: window.APP_PATCH_VERSION = '4K-6V5U-2-tuition-command-cutover-20260730';
-    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V5U-2E'; window.APP_PATCH_VERSION = '4K-6V5U-2E-attendance-excel-documentid-sdk-fix-20260801'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
+    window.COACH_BRANCH_RUNTIME_VERSION='4K-6V5U-4'; window.APP_PATCH_VERSION = '4K-6V5U4-superadmin-verified-auth-contract-20260811'; // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
     // Compatibility marker retained: 4K-6V5S-quit-context-render-loop-guard-20260722 / quit-context-render-loop-guard-20260722-v5s
     // Compatibility regression marker retained for Phase 4K-6Q gate: APP_PATCH_VERSION = '4K-6Q-mobile-filter-currency-stability-20260615'
     window.__appLoaded = true; // [Phase 2a] main.js kiểm tra để bỏ qua loadLegacyApp()
@@ -1056,7 +1056,7 @@ window.invCustomCategories = [];
             }
             if (panel) panel.style.display = isActive ? 'block' : 'none';
         });
-        // [SỬA ĐỒNG BỘ] Tải lại dữ liệu mỗi khi chuyển tab để đảm bảo đồng bộ mới nhất
+        // Phase 4K-6V5U4: login history uses session TTL cache; manual Refresh bypasses TTL.
         if (tab === 'loginlog') window.loadLoginHistory();
         // [SỬA ĐỒNG BỘ] Tải lại danh sách CLB khi chuyển sang tab list
         if (tab === 'list') window.loadSuperAdminData();
@@ -1208,6 +1208,12 @@ window.invCustomCategories = [];
     };
 
     window.loadSuperAdminData = async function() {
+        // Phase 4K-6V5U4: never start privileged module/query before server-backed verification.
+        if (typeof window.isVerifiedSuperAdminSession !== 'function' || !window.isVerifiedSuperAdminSession()) {
+            const _guardEl = document.getElementById('sysClubListMain');
+            if (_guardEl) _guardEl.innerHTML = '<div class="text-center py-10 px-4" style="color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:12px;"><div class="text-3xl mb-3">🔐</div><p class="font-bold text-sm mb-2">Quyền SuperAdmin chưa được Firestore xác nhận.</p><p class="text-xs text-slate-500">Kiểm tra server-backed authorization cho UID hiện tại.</p></div>';
+            return { ok: false, reason: 'superadmin-not-verified' };
+        }
         // [HOTFIX] Phase 4.0B-1: fallback wrapper — hardened retry + clear error display.
         // Gọi từ nhiều nơi (initSaaSDatabase, tab switch, toolbar) → phải robust.
         if (window.SuperAdminModule?.loadSuperAdminDashboard) {
@@ -1240,162 +1246,137 @@ window.invCustomCategories = [];
     };
 
     // ── Tải & hiển thị lịch sử đăng nhập (Super Admin) ──────────────────
-    // ── Hàm hiển thị hướng dẫn sửa Firestore Rules ──────────────────────
+    // Phase 4K-6V5U4: Firestore Rules là source of truth. Không dùng email allowlist.
     function _showLoginHistoryRulesGuide(contentEl, errorMsg, writeFailed) {
-        const rulesText = `rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-
-    // === THÊM ĐOẠN NÀY VÀO RULES ===
-    match /login_history/{docId} {
-      allow write: if request.auth != null;
-      allow read: if request.auth != null
-        && request.auth.token.email == "admin@tstquynhon.com";
-    }
-
-    // ... (giữ nguyên các rules hiện có bên dưới)
-  }
-}`;
         const writeStatus = writeFailed
-            ? `<div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:0.75rem;color:#92400e;">
-                <strong>⚠️ Ghi dữ liệu cũng đang bị chặn!</strong><br>
-                Lịch sử đăng nhập KHÔNG được lưu vào Firestore. Sau khi sửa rules, bạn cần đăng nhập lại để ghi bản ghi đầu tiên.
-               </div>`
-            : `<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:0.75rem;color:#166534;">
-                <strong>✅ Ghi dữ liệu hoạt động bình thường.</strong><br>
-                Lịch sử đăng nhập đã được lưu. Chỉ cần sửa quyền ĐỌC là xong.
-               </div>`;
+            ? `<div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:0.75rem;color:#92400e;"><strong>⚠️ Ghi lịch sử đăng nhập đang bị chặn.</strong><br>Không mở Rules public. Kiểm tra Rules production và đăng nhập lại sau khi cấu hình authorization.</div>`
+            : '';
         contentEl.innerHTML = `
             <div style="padding:16px;">
-                <div style="text-align:center;margin-bottom:14px;color:#dc2626;font-size:0.85rem;font-weight:800;">❌ Lỗi: ${errorMsg}</div>
+                <div style="text-align:center;margin-bottom:14px;color:#dc2626;font-size:0.85rem;font-weight:800;">❌ ${errorMsg || 'Không thể đọc lịch sử đăng nhập.'}</div>
                 ${writeStatus}
-                <div style="background:#fef2f2;border:1.5px solid #fca5a5;border-radius:12px;padding:16px;">
-                    <div style="font-weight:900;font-size:0.82rem;color:#991b1b;margin-bottom:12px;">📋 Cách sửa — Cập nhật Firestore Security Rules</div>
-
-                    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;font-size:0.78rem;color:#334155;">
-                        <div style="display:flex;gap:8px;align-items:flex-start;">
-                            <span style="background:#0033A0;color:#fff;font-weight:900;font-size:0.65rem;padding:2px 7px;border-radius:99px;flex-shrink:0;margin-top:1px;">1</span>
-                            <span>Truy cập <strong>console.firebase.google.com</strong> → chọn project <strong>quanly-tst</strong></span>
-                        </div>
-                        <div style="display:flex;gap:8px;align-items:flex-start;">
-                            <span style="background:#0033A0;color:#fff;font-weight:900;font-size:0.65rem;padding:2px 7px;border-radius:99px;flex-shrink:0;margin-top:1px;">2</span>
-                            <span>Vào <strong>Firestore Database → Rules</strong> (tab trên cùng)</span>
-                        </div>
-                        <div style="display:flex;gap:8px;align-items:flex-start;">
-                            <span style="background:#0033A0;color:#fff;font-weight:900;font-size:0.65rem;padding:2px 7px;border-radius:99px;flex-shrink:0;margin-top:1px;">3</span>
-                            <span>Thêm đoạn <code style="background:#f1f5f9;padding:1px 5px;border-radius:4px;">match /login_history/{docId} { ... }</code> vào bên trong block <code style="background:#f1f5f9;padding:1px 5px;border-radius:4px;">match /databases/{database}/documents</code></span>
-                        </div>
-                        <div style="display:flex;gap:8px;align-items:flex-start;">
-                            <span style="background:#0033A0;color:#fff;font-weight:900;font-size:0.65rem;padding:2px 7px;border-radius:99px;flex-shrink:0;margin-top:1px;">4</span>
-                            <span>Nhấn <strong>Publish</strong> để lưu</span>
-                        </div>
-                    </div>
-
-                    <div style="position:relative;">
-                        <pre id="_lh_rules_pre" style="background:#0f172a;color:#e2e8f0;border-radius:8px;padding:12px;font-size:0.68rem;overflow-x:auto;white-space:pre;line-height:1.6;margin:0;">${rulesText.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>
-                        <button onclick="(function(){const t=document.getElementById('_lh_rules_pre').innerText;navigator.clipboard.writeText(t).then(()=>window.showToast('✅ Đã copy rules!')).catch(()=>window.showToast('⚠️ Copy thủ công nhé!'));})()"
-                            style="position:absolute;top:8px;right:8px;background:#334155;color:#e2e8f0;border:none;border-radius:6px;padding:4px 10px;font-size:0.68rem;font-weight:700;cursor:pointer;">
-                            📋 Copy
-                        </button>
-                    </div>
-
-                    <div style="margin-top:10px;font-size:0.7rem;color:#64748b;text-align:center;">
-                        Sau khi Publish xong → nhấn <strong>🔄 Làm mới</strong> ở trên để tải lại
-                    </div>
+                <div style="background:#f8fafc;border:1.5px solid #cbd5e1;border-radius:12px;padding:16px;font-size:0.78rem;color:#334155;line-height:1.65;">
+                    <div style="font-weight:900;color:#0f172a;margin-bottom:8px;">🔐 Authorization contract hiện hành</div>
+                    <div>Firestore Rules sử dụng canonical <code style="background:#e2e8f0;padding:1px 5px;border-radius:4px;">isSuperAdmin()</code>. Không thêm email allowlist và không mở quyền public.</div>
+                    <div style="margin-top:8px;">Hãy xác nhận UID hiện tại có ít nhất một nguồn server-backed hợp lệ:</div>
+                    <div style="margin-top:5px;padding-left:12px;">• Firebase Auth custom claim <strong>role = super_admin</strong><br>• <strong>users/{uid}.role = super_admin</strong><br>• marker tương thích <strong>super_admins/{uid}</strong></div>
+                    <div style="margin-top:8px;color:#64748b;">Sau khi cấu hình server-side và deploy/publish <strong>firestore.rules</strong>, hãy đăng xuất rồi đăng nhập lại.</div>
                 </div>
             </div>`;
     }
 
-    window.loadLoginHistory = async () => {
+    const _LOGIN_HISTORY_CACHE_TTL_MS = 45 * 1000;
+    let _loginHistoryLoadPromise = null;
+    let _loginHistoryCache = { uid: '', loadedAt: 0, docs: [] };
+
+    function _renderLoginHistoryDocs(contentEl, sourceDocs, filterClub) {
+        const allDocs = Array.isArray(sourceDocs) ? sourceDocs : [];
+        const filterEl = document.getElementById('loginlog_filter_club');
+        if (filterEl && filterEl.options.length <= 1) {
+            const allClubIds = new Set();
+            allDocs.forEach(item => { if (item?.clubId && !item?._test) allClubIds.add(item.clubId); });
+            allClubIds.forEach(cid => {
+                const opt = document.createElement('option');
+                opt.value = cid; opt.textContent = '🏢 ' + cid;
+                filterEl.appendChild(opt);
+            });
+        }
+
+        let docs = allDocs.filter(item => item && !item._test);
+        if (filterClub) docs = docs.filter(item => item.clubId === filterClub);
+        if (docs.length === 0) {
+            contentEl.innerHTML = '<p style="text-align:center;color:#94a3b8;font-size:0.82rem;font-style:italic;padding:24px 0;">Chưa có lịch sử đăng nhập nào.<br><span style="font-size:0.72rem;">Đăng xuất rồi đăng nhập lại để tạo bản ghi đầu tiên.</span></p>';
+            return docs;
+        }
+
+        const rows = docs.map(item => {
+            const dt = item.loginAt ? new Date(item.loginAt) : null;
+            const dateStr = dt ? dt.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
+            const timeStr = dt ? dt.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '—';
+            const roleLabel = item.role === 'super_admin'
+                ? '<span style="background:#ede9fe;color:#6d28d9;padding:2px 7px;border-radius:5px;font-size:0.65rem;font-weight:800;white-space:nowrap;">SUPER</span>'
+                : item.role === 'admin'
+                ? '<span style="background:#dbeafe;color:#1d4ed8;padding:2px 7px;border-radius:5px;font-size:0.65rem;font-weight:800;white-space:nowrap;">ADMIN</span>'
+                : '<span style="background:#f1f5f9;color:#64748b;padding:2px 7px;border-radius:5px;font-size:0.65rem;font-weight:700;white-space:nowrap;">VIEWER</span>';
+            const deviceIcon = item.deviceType === 'Mobile' ? '📱' : '🖥️';
+            const browserIcon = { 'Chrome': '🟡', 'Firefox': '🟠', 'Safari': '🔵', 'Edge': '💙' }[item.browser] || '🌐';
+            const deviceLabel = item.deviceName
+                ? `<span style="font-weight:800;color:#0f172a;">${item.deviceName}</span>`
+                : `<span style="color:#475569;">${item.os || '—'}</span>`;
+            return `
+                <div style="padding:10px 14px;border-bottom:1px solid #f1f5f9;">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:5px;">
+                        <div style="min-width:0;flex:1;">
+                            <div style="font-weight:700;color:#0033A0;font-size:0.82rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${item.email || '—'}</div>
+                            <div style="font-size:0.65rem;color:#64748b;margin-top:1px;">${item.clubId || 'System'}</div>
+                        </div>
+                        <div style="flex-shrink:0;">${roleLabel}</div>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px;">
+                        <div><span style="font-size:0.78rem;font-weight:800;color:#1e293b;">${timeStr}</span><span style="font-size:0.65rem;color:#94a3b8;margin-left:6px;">${dateStr}</span></div>
+                        <div style="font-size:0.72rem;color:#475569;display:flex;align-items:center;gap:4px;"><span>${deviceIcon}</span><span style="background:${item.deviceName ? '#eef2ff' : '#f1f5f9'};padding:2px 8px;border-radius:6px;font-size:0.68rem;">${deviceLabel}</span><span>${browserIcon} ${item.browser || '—'}</span></div>
+                    </div>
+                </div>`;
+        });
+        contentEl.innerHTML = `
+            <div style="padding:7px 14px;background:#f8fafc;border-bottom:2px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;">
+                <div style="font-size:0.65rem;font-weight:900;color:#475569;text-transform:uppercase;">Lịch Sử Đăng Nhập</div>
+                <div style="font-size:0.65rem;color:#94a3b8;">${rows.length} bản ghi${filterClub ? ' — CLB: ' + filterClub : ''}</div>
+            </div>
+            ${rows.join('')}
+            <div style="padding:10px 14px;text-align:center;font-size:0.7rem;color:#94a3b8;">Hiển thị ${rows.length} bản ghi${filterClub ? ' cho CLB: ' + filterClub : ' gần nhất'}</div>`;
+        return docs;
+    }
+
+    window.loadLoginHistory = async (options = {}) => {
         const contentEl = document.getElementById('loginlog_content');
         const filterClub = (document.getElementById('loginlog_filter_club') || {}).value || '';
-        if (!contentEl) return;
-        contentEl.innerHTML = '<p style="text-align:center;color:#94a3b8;font-size:0.82rem;padding:20px 0;">⏳ Đang tải lịch sử đăng nhập...</p>';
+        if (!contentEl) return { ok: false, reason: 'missing-content' };
 
+        if (typeof window.isVerifiedSuperAdminSession !== 'function' || !window.isVerifiedSuperAdminSession()) {
+            contentEl.innerHTML = '<div style="padding:22px;text-align:center;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:12px;"><div style="font-size:1.4rem;margin-bottom:6px;">🔐</div><div style="font-weight:900;">Quyền SuperAdmin chưa được Firestore xác nhận.</div><div style="font-size:0.74rem;color:#64748b;margin-top:6px;line-height:1.55;">Kiểm tra custom claim, users/{uid}.role hoặc super_admins/{uid} theo Firestore Rules hiện hành.</div></div>';
+            return { ok: false, reason: 'superadmin-not-verified' };
+        }
+
+        const force = options === true || options?.force === true;
+        const uid = String(auth.currentUser?.uid || '');
+        const cacheFresh = !force && _loginHistoryCache.uid === uid
+            && (Date.now() - _loginHistoryCache.loadedAt) < _LOGIN_HISTORY_CACHE_TTL_MS;
+        if (cacheFresh) {
+            _renderLoginHistoryDocs(contentEl, _loginHistoryCache.docs, filterClub);
+            return { ok: true, cached: true, count: _loginHistoryCache.docs.length };
+        }
+        if (_loginHistoryLoadPromise) {
+            await _loginHistoryLoadPromise;
+            if (_loginHistoryCache.uid === uid) {
+                _renderLoginHistoryDocs(contentEl, _loginHistoryCache.docs, filterClub);
+                return { ok: true, cached: true, sharedFlight: true, count: _loginHistoryCache.docs.length };
+            }
+        }
+
+        contentEl.innerHTML = '<p style="text-align:center;color:#94a3b8;font-size:0.82rem;padding:20px 0;">⏳ Đang tải lịch sử đăng nhập...</p>';
         const writeFailed = false;
-        try {
+        _loginHistoryLoadPromise = (async () => {
             const q = query(collection(db, "login_history"), orderBy("timestamp", "desc"), limit(500)); // OK_UI_DISPLAY_LIMIT [3.8D-Phase6]
             const snap = await getDocs(q);
-
-            // Populate club filter dropdown (first load only)
-            const filterEl = document.getElementById('loginlog_filter_club');
-            if (filterEl && filterEl.options.length <= 1) {
-                const allClubIds = new Set();
-                snap.forEach(d => { if(d.data().clubId && !d.data()._test) allClubIds.add(d.data().clubId); });
-                allClubIds.forEach(cid => {
-                    const opt = document.createElement('option');
-                    opt.value = cid; opt.textContent = '🏢 ' + cid;
-                    filterEl.appendChild(opt);
-                });
-            }
-
-            // Lọc phía client nếu có filterClub (tránh cần composite index)
-            let docs = [];
-            snap.forEach(d => { if (!d.data()._test) docs.push(d.data()); });
-            if (filterClub) docs = docs.filter(item => item.clubId === filterClub);
-
-            if (docs.length === 0) {
-                if (writeFailed) {
-                    _showLoginHistoryRulesGuide(contentEl,
-                        'Chưa có dữ liệu — quyền ghi bị chặn nên không có bản ghi nào', true);
-                } else {
-                    contentEl.innerHTML = '<p style="text-align:center;color:#94a3b8;font-size:0.82rem;font-style:italic;padding:24px 0;">Chưa có lịch sử đăng nhập nào.<br><span style="font-size:0.72rem;">Đăng xuất rồi đăng nhập lại để tạo bản ghi đầu tiên.</span></p>';
-                }
-                return;
-            }
-
-            const rows = docs.map(item => {
-                const dt = item.loginAt ? new Date(item.loginAt) : null;
-                const dateStr = dt ? dt.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
-                const timeStr = dt ? dt.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '—';
-                const roleLabel = item.role === 'super_admin'
-                    ? '<span style="background:#ede9fe;color:#6d28d9;padding:2px 7px;border-radius:5px;font-size:0.65rem;font-weight:800;white-space:nowrap;">SUPER</span>'
-                    : item.role === 'admin'
-                    ? '<span style="background:#dbeafe;color:#1d4ed8;padding:2px 7px;border-radius:5px;font-size:0.65rem;font-weight:800;white-space:nowrap;">ADMIN</span>'
-                    : '<span style="background:#f1f5f9;color:#64748b;padding:2px 7px;border-radius:5px;font-size:0.65rem;font-weight:700;white-space:nowrap;">VIEWER</span>';
-                const deviceIcon = item.deviceType === 'Mobile' ? '📱' : '🖥️';
-                const browserIcon = { 'Chrome': '🟡', 'Firefox': '🟠', 'Safari': '🔵', 'Edge': '💙' }[item.browser] || '🌐';
-                const deviceLabel = item.deviceName
-                    ? `<span style="font-weight:800;color:#0f172a;">${item.deviceName}</span>`
-                    : `<span style="color:#475569;">${item.os || '—'}</span>`;
-                return `
-                    <div style="padding:10px 14px;border-bottom:1px solid #f1f5f9;">
-                        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:5px;">
-                            <div style="min-width:0;flex:1;">
-                                <div style="font-weight:700;color:#0033A0;font-size:0.82rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${item.email || '—'}</div>
-                                <div style="font-size:0.65rem;color:#64748b;margin-top:1px;">${item.clubId || 'System'}</div>
-                            </div>
-                            <div style="flex-shrink:0;">${roleLabel}</div>
-                        </div>
-                        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px;">
-                            <div>
-                                <span style="font-size:0.78rem;font-weight:800;color:#1e293b;">${timeStr}</span>
-                                <span style="font-size:0.65rem;color:#94a3b8;margin-left:6px;">${dateStr}</span>
-                            </div>
-                            <div style="font-size:0.72rem;color:#475569;display:flex;align-items:center;gap:4px;">
-                                <span>${deviceIcon}</span>
-                                <span style="background:${item.deviceName ? '#eef2ff' : '#f1f5f9'};padding:2px 8px;border-radius:6px;font-size:0.68rem;">${deviceLabel}</span>
-                                <span>${browserIcon} ${item.browser || '—'}</span>
-                            </div>
-                        </div>
-                    </div>`;
-            });
-
-            contentEl.innerHTML = `
-                <div style="padding:7px 14px;background:#f8fafc;border-bottom:2px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;">
-                    <div style="font-size:0.65rem;font-weight:900;color:#475569;text-transform:uppercase;">Lịch Sử Đăng Nhập</div>
-                    <div style="font-size:0.65rem;color:#94a3b8;">${rows.length} bản ghi${filterClub ? ' — CLB: ' + filterClub : ''}</div>
-                </div>
-                ${rows.join('')}
-                <div style="padding:10px 14px;text-align:center;font-size:0.7rem;color:#94a3b8;">Hiển thị ${rows.length} bản ghi${filterClub ? ' cho CLB: ' + filterClub : ' gần nhất'}</div>`;
-
+            const rawDocs = [];
+            snap.forEach(d => { const data = d.data(); if (!data?._test) rawDocs.push(data); });
+            _loginHistoryCache = { uid, loadedAt: Date.now(), docs: rawDocs };
+            return rawDocs;
+        })();
+        try {
+            const docs = await _loginHistoryLoadPromise;
+            _renderLoginHistoryDocs(contentEl, docs, filterClub);
+            return { ok: true, cached: false, count: docs.length };
         } catch(e) {
-            console.error('[login_history] Lỗi đọc:', e);
-            const isPermission = e.message && (e.message.includes('permission') || e.message.includes('Missing'));
-            const isIndex = e.message && e.message.includes('index');
-            let errMsg = e.message;
-            if (isIndex) errMsg = 'Thiếu Composite Index (cần tạo index trong Firebase Console)';
+            const isPermission = String(e?.code || '').includes('permission-denied') || /permission|Missing/i.test(String(e?.message || ''));
+            const isIndex = /index/i.test(String(e?.message || ''));
+            let errMsg = isIndex ? 'Thiếu Composite Index (cần tạo index trong Firebase Console)' : (e?.message || 'Không thể tải lịch sử đăng nhập.');
+            if (isPermission) errMsg = 'Firestore chưa xác nhận quyền SuperAdmin cho UID hiện tại.';
             _showLoginHistoryRulesGuide(contentEl, errMsg, writeFailed);
+            return { ok: false, reason: isPermission ? 'permission-denied' : 'read-failed', error: e };
+        } finally {
+            _loginHistoryLoadPromise = null;
         }
     };
 
@@ -1598,6 +1579,13 @@ service cloud.firestore {
         // Không ghi đè window.userRole ở đây để tránh race condition.
 
         if(window.userRole === 'super_admin') {
+            if (typeof window.isVerifiedSuperAdminSession !== 'function' || !window.isVerifiedSuperAdminSession()) {
+                window.userRole = 'viewer';
+                document.getElementById('mainApp').style.display = 'none';
+                document.getElementById('loginOverlay').style.display = 'flex';
+                _setLoginError('Quyền SuperAdmin chưa được Firestore xác nhận. Hãy cấu hình server-backed authorization cho UID rồi đăng nhập lại.');
+                return;
+            }
             document.getElementById('superAdminView').style.display = 'block';
             document.getElementById('mainTabsWrapper').style.display = 'none';
             document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
@@ -3505,6 +3493,79 @@ service cloud.firestore {
         } catch(e) {}
     };
 
+
+    // Phase 4K-6V5U4 — privileged authorization must be verified by the same
+    // server-backed contract as firestore.rules:isSuperAdmin(). LocalStorage,
+    // window.userRole and email are never authorization evidence.
+    window.__superAdminAuthState = window.__superAdminAuthState || {
+        verified: false, uid: '', source: '', verifiedAt: 0, reason: 'bootstrap'
+    };
+    const _resetVerifiedSuperAdminState = (reason = 'reset') => {
+        window.__superAdminAuthState = { verified: false, uid: '', source: '', verifiedAt: 0, reason };
+        return window.__superAdminAuthState;
+    };
+    window.resetVerifiedSuperAdminState = _resetVerifiedSuperAdminState;
+    window.isVerifiedSuperAdminSession = (uid = '') => {
+        const st = window.__superAdminAuthState || {};
+        const currentUid = String(auth.currentUser?.uid || '');
+        const expectedUid = String(uid || currentUid || '');
+        return st.verified === true && !!st.uid && st.uid === currentUid && (!expectedUid || st.uid === expectedUid);
+    };
+
+    async function resolveVerifiedSuperAdminContext(user, options = {}) {
+        const uid = String(user?.uid || '').trim();
+        if (!uid) return { verified: false, source: 'none', userDocSnap: null, userData: null };
+        if ((window.__superAdminAuthState?.uid || '') !== uid) _resetVerifiedSuperAdminState('auth-user-changed');
+
+        let userDocSnap = options.userDocSnap || null;
+        let userData = userDocSnap?.exists?.() ? userDocSnap.data() : null;
+        try {
+            if (typeof getIdTokenResult === 'function') {
+                const tokenResult = await getIdTokenResult(user, false);
+                if (_normalizeAuthRole(tokenResult?.claims?.role) === 'super_admin') {
+                    window.__superAdminAuthState = { verified: true, uid, source: 'custom_claim', verifiedAt: Date.now(), reason: 'verified' };
+                    return { verified: true, source: 'custom_claim', userDocSnap, userData };
+                }
+            }
+        } catch (_) {
+            // Claim lookup failure does not grant or deny by itself; continue with Firestore-backed sources.
+        }
+
+        if (!userDocSnap) {
+            try { userDocSnap = await getDoc(doc(db, 'users', uid)); } catch (_) { userDocSnap = null; }
+            userData = userDocSnap?.exists?.() ? userDocSnap.data() : null;
+        }
+        if (_normalizeAuthRole(userData?.role) === 'super_admin') {
+            window.__superAdminAuthState = { verified: true, uid, source: 'users_doc', verifiedAt: Date.now(), reason: 'verified' };
+            return { verified: true, source: 'users_doc', userDocSnap, userData };
+        }
+
+        try {
+            const markerSnap = await getDoc(doc(db, 'super_admins', uid));
+            if (markerSnap.exists()) {
+                window.__superAdminAuthState = { verified: true, uid, source: 'super_admin_marker', verifiedAt: Date.now(), reason: 'verified' };
+                return { verified: true, source: 'super_admin_marker', userDocSnap, userData };
+            }
+        } catch (_) {
+            // Under the current Rules a missing marker probe is permission-denied; fail closed, không quét clubs, không spam console.
+        }
+        _resetVerifiedSuperAdminState('not-verified');
+        return { verified: false, source: 'none', userDocSnap, userData };
+    }
+    window.resolveVerifiedSuperAdminContext = resolveVerifiedSuperAdminContext;
+
+    const _activateVerifiedSuperAdmin = async (user, verifiedContext) => {
+        if (!verifiedContext?.verified || !window.isVerifiedSuperAdminSession(user?.uid)) return false;
+        window.userRole = 'super_admin';
+        window.coachBranch = '';
+        currentClubId = '';
+        _saveAuthCache(user.uid, 'super_admin', '', ''); // bootstrap hint only; never bypasses next-session verification
+        if (window.__store) window.__store.currentUser = user;
+        try { await initSaaSDatabase(''); } catch (_ie) { console.error('initSaaSDatabase(super_admin):', _ie); }
+        _recordLoginEvent(user, 'super_admin', '').catch(() => {});
+        return true;
+    };
+
     const _resolveCoachBranchContext=(user,context)=>window.CoachBranchRuntimeRepair.resolveAuthContext({user,context:_normalizeAuthContext({...context,uid:user&&user.uid}),db});
 
     const _rebindVerifiedAuthContext = async (user, freshContext, cachedContext) => {
@@ -3569,85 +3630,102 @@ service cloud.firestore {
     onAuthStateChanged(auth, async (user) => {
         if (user) {
             try {
-                // ── BUG FIX: Super Admin fast path — bypass Firestore entirely ──
-                // Trước đây, super_admin vẫn phải đọc Firestore users/{uid}.
-                // Nếu document đó chưa tồn tại hoặc Rules chặn → đăng nhập thất bại.
-                // Fix: kiểm tra email trước, không cần Firestore document.
-                if (user.email && user.email.toLowerCase() === "admin@tstquynhon.com") {
-                    window.userRole = 'super_admin';
-                    currentClubId = '';
-                    _saveAuthCache(user.uid, 'super_admin', '', '');
-                    try { initSaaSDatabase(''); } catch(_ie) { console.error("initSaaSDatabase(super_admin):", _ie); }
-                    _recordLoginEvent(user, 'super_admin', '').catch(() => {});
-                    // Phase 4.0A-2/4.0A-3: Sync currentUser to __store
-                    if (window.__store) window.__store.currentUser = user;
-                    return;
+                if ((window.__superAdminAuthState?.uid || '') !== user.uid) _resetVerifiedSuperAdminState('auth-user-changed');
+                const _cached = _getAuthCache(user.uid);
+
+                // Privileged cache is only a hint. A cached super_admin MUST be
+                // server-verified before ROOT UI or privileged Firestore reads mount.
+                if (_cached?.role === 'super_admin') {
+                    const _verified = await resolveVerifiedSuperAdminContext(user);
+                    if (_verified.verified) {
+                        await _activateVerifiedSuperAdmin(user, _verified);
+                        return;
+                    }
+                    _clearAuthCache();
                 }
 
                 // Coach phải xác minh exact Admin assignment trước khi mount listener; cache chỉ dùng cho role khác.
-                const _cached = _getAuthCache(user.uid);
+                // Keep the existing fast bootstrap for normal non-coach roles. SuperAdmin cache is never authoritative.
                 if (_cached && _cached.role !== 'coach') {
+                    if (_cached.role === 'super_admin') {
+                        // Privileged cache was rejected above; continue to the verified slow path.
+                    } else {
                     currentClubId = _cached.clubId;
                     window.userRole = _cached.role;
-                    window.coachBranch = _cached.role === 'coach' ? _canonicalBranch(_cached.coachBranch, '') : '';
+                    window.coachBranch = '';
                     try { initSaaSDatabase(currentClubId); } catch(_ie) { console.error("initSaaSDatabase(cache):", _ie); }
-                    // Phase 4.0A-3: Sync currentUser to __store (cache path)
                     if (window.__store) window.__store.currentUser = user;
-                    // [SỬA] Giảm delay monthly reminder — UI đã hiện, nhắc nhở sau khi render xong
-        setTimeout(() => { if(typeof window._checkMonthlyReminder === 'function') window._checkMonthlyReminder(); }, 300);
-                    // Xác minh cache trong nền. Cache không bao giờ là nguồn cấp quyền cuối cùng.
-                    getDoc(doc(db, "users", user.uid)).then(async userDoc => {
-                        if (!userDoc.exists()) {
+                    setTimeout(() => { if(typeof window._checkMonthlyReminder === 'function') window._checkMonthlyReminder(); }, 300);
+
+                    // Background verification retains existing normal-role behavior while
+                    // also detecting server-side promotion to SuperAdmin safely.
+                    resolveVerifiedSuperAdminContext(user).then(async (_verified) => {
+                        if (_verified.verified) {
+                            const _freshSA = _normalizeAuthContext({ uid: user.uid, role: 'super_admin', clubId: '' });
+                            const _ok = await _rebindVerifiedAuthContext(user, _freshSA, _cached);
+                            if (_ok && window.isVerifiedSuperAdminSession(user.uid)) _recordLoginEvent(user, 'super_admin', '');
+                            return;
+                        }
+                        const userDoc = _verified.userDocSnap;
+                        if (!userDoc || !userDoc.exists()) {
                             _clearAuthCache();
                             await _showLoginError('Không tìm thấy hồ sơ phân quyền users/{uid}. Admin cần đồng bộ lại tài khoản trước khi đăng nhập.');
                             return;
                         }
                         const _ud = userDoc.data();
-                        const _freshRole = (user.email && user.email.toLowerCase() === "admin@tstquynhon.com")
-                            ? 'super_admin'
-                            : (_ud.role || '');
                         const _freshContext = _normalizeAuthContext({
                             uid: user.uid,
-                            role: _freshRole,
+                            role: _ud.role || '',
                             clubId: _ud.clubId,
                             branch: _ud.branch || _ud.coachBranch || ''
                         });
                         const _ok = await _rebindVerifiedAuthContext(user, _freshContext, _cached);
                         if (_ok) _recordLoginEvent(user, _freshContext.role, _freshContext.clubId);
                     }).catch(async (_verifyErr) => {
-                        console.warn('[AuthContext] Không thể xác minh cache:', _verifyErr.code || _verifyErr.message);
-                        if (_verifyErr && _verifyErr.code === 'permission-denied') {
-                            _clearAuthCache();
-                            await _showLoginError('Không thể xác minh quyền tài khoản (permission-denied). Vui lòng đăng nhập lại hoặc liên hệ quản trị viên.');
-                        }
+                        console.warn('[AuthContext] Không thể xác minh cache:', _verifyErr?.code || _verifyErr?.message);
+                        _clearAuthCache();
+                        await _showLoginError('Không thể xác minh quyền tài khoản. Vui lòng đăng nhập lại hoặc liên hệ quản trị viên.');
                     });
                     return;
-                }
-                // ── SLOW PATH: lần đầu đăng nhập hoặc cache hết hạn — đọc Firestore ──
-                let userDocSnap = null;
-                try {
-                    userDocSnap = await getDoc(doc(db, "users", user.uid));
-                } catch(_readErr) {
-                    // permission-denied hoặc lỗi mạng đều không được suy đoán quyền bằng cách quét toàn CLB
-                    console.warn("users/{uid} read failed:", _readErr.code, "— fail closed, không quét clubs");
-                    if (_readErr.code !== 'permission-denied') {
-                        _showLoginError('Không thể kết nối Firestore (' + (_readErr.code || _readErr.message) + '). Vui lòng kiểm tra mạng và thử lại.');
-                        return;
                     }
                 }
 
-                let _freshContext=null;
-                if (userDocSnap && userDocSnap.exists()) { const _ud=userDocSnap.data(); _freshContext=await _resolveCoachBranchContext(user,{role:_ud.role||'',clubId:_ud.clubId,branch:_ud.branch||_ud.coachBranch||''}); }
-                else if (_cached && _cached.role==='coach' && _cached.clubId) _freshContext=await _resolveCoachBranchContext(user,_cached);
+                // Slow path: resolve the canonical SuperAdmin contract first. The helper
+                // reuses users/{uid} for the normal-role path, so no duplicate user read.
+                const _verified = await resolveVerifiedSuperAdminContext(user);
+                if (_verified.verified) {
+                    await _activateVerifiedSuperAdmin(user, _verified);
+                    return;
+                }
+
+                const userDocSnap = _verified.userDocSnap;
+                let _freshContext = null;
+                if (userDocSnap && userDocSnap.exists()) {
+                    const _ud = userDocSnap.data();
+                    _freshContext = await _resolveCoachBranchContext(user, {
+                        role: _ud.role || '',
+                        clubId: _ud.clubId,
+                        branch: _ud.branch || _ud.coachBranch || ''
+                    });
+                } else if (_cached && _cached.role === 'coach' && _cached.clubId) {
+                    _freshContext = await _resolveCoachBranchContext(user, _cached);
+                }
+
                 if (_freshContext) {
                     if (_freshContext.role === 'coach' && !_freshContext.coachBranch) { await _showLoginError('Tài khoản HLV chưa được gán cơ sở. Admin cần chọn một cơ sở cụ thể rồi đăng nhập lại.'); return; }
                     if (!_freshContext.role || (_freshContext.role !== 'super_admin' && !_freshContext.clubId)) { await _showLoginError('Hồ sơ phân quyền không hợp lệ hoặc thiếu clubId. Vui lòng liên hệ quản trị viên hệ thống.'); return; }
-                    currentClubId=_freshContext.clubId; window.userRole=_freshContext.role; window.coachBranch=_freshContext.coachBranch;
-                    _saveAuthCache(user.uid,window.userRole,currentClubId,window.coachBranch); _recordLoginEvent(user,window.userRole,currentClubId);
+                    currentClubId = _freshContext.clubId;
+                    window.userRole = _freshContext.role;
+                    window.coachBranch = _freshContext.coachBranch;
+                    _saveAuthCache(user.uid, window.userRole, currentClubId, window.coachBranch);
+                    _recordLoginEvent(user, window.userRole, currentClubId);
                     try { initSaaSDatabase(currentClubId); } catch(_ie) { console.error("initSaaSDatabase(slowPath):", _ie); }
-                    if (window.__store) window.__store.currentUser=user;
-                    setTimeout(()=>{ if(typeof window._checkMonthlyReminder==='function') window._checkMonthlyReminder(); },300);
-                } else { _clearAuthCache(); await _showLoginError('Tài khoản chưa có hồ sơ phân quyền. Admin cần chọn đúng cơ sở, bấm “Lưu cơ sở” và “Đồng bộ tài khoản HLV cũ”.'); }
+                    if (window.__store) window.__store.currentUser = user;
+                    setTimeout(() => { if(typeof window._checkMonthlyReminder === 'function') window._checkMonthlyReminder(); }, 300);
+                } else {
+                    _clearAuthCache();
+                    await _showLoginError('Tài khoản chưa có hồ sơ phân quyền hợp lệ. SuperAdmin cần server-backed authorization; Admin/HLV cần users/{uid} hợp lệ.');
+                }
             } catch(e) {
                 // Outer catch chỉ xử lý lỗi xảy ra TRƯỚC khi initSaaSDatabase được gọi
                 // (vì mỗi initSaaSDatabase() đã được bọc trong try/catch riêng ở trên).
@@ -3661,6 +3739,11 @@ service cloud.firestore {
             }
         } else {
             _clearAuthCache();
+            _resetVerifiedSuperAdminState('logout');
+            window.userRole = 'viewer';
+            window.coachBranch = '';
+            _loginHistoryLoadPromise = null;
+            _loginHistoryCache = { uid: '', loadedAt: 0, docs: [] };
             // Xóa toàn bộ cờ lịch sử đăng nhập (cả format cũ lẫn mới) khi logout
             Object.keys(sessionStorage)
                 .filter(k => k.startsWith('lh_'))
