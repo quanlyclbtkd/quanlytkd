@@ -57,6 +57,15 @@ service cloud.firestore {
         && !(currentUser().get('status', 'active') in ['disabled', 'locked', 'suspended']);
     }
 
+    // Phase 4K-6V5U4 — one-time bootstrap identity for the designated ROOT account.
+    // This does NOT grant access to club data by email. It only allows that exact
+    // authenticated account to create/read its own super_admins/{uid} principal doc.
+    function isBootstrapSuperAdminIdentity(uid) {
+      return signedIn()
+        && request.auth.uid == uid
+        && request.auth.token.get('email', '') == 'admin@tstquynhon.com';
+    }
+
     function isSuperAdmin() {
       return signedIn() && (
         request.auth.token.get('role', '') == 'super_admin'
@@ -388,8 +397,22 @@ service cloud.firestore {
       allow update: if false;
     }
 
+    // Canonical SuperAdmin principal.
+    // Normal authorization is still isSuperAdmin(). The designated ROOT email gets
+    // only a narrow self-bootstrap create/get path so the legacy email fast-path can
+    // converge to this server-authoritative document without public Rules/Functions.
     match /super_admins/{uid} {
-      allow read, write: if isSuperAdmin();
+      allow get: if isSuperAdmin() || isBootstrapSuperAdminIdentity(uid);
+      allow list: if isSuperAdmin();
+      allow create: if isSuperAdmin() || (
+        isBootstrapSuperAdminIdentity(uid)
+        && request.resource.data.keys().hasOnly(['enabled', 'email', 'createdAt', 'source'])
+        && request.resource.data.get('enabled', false) == true
+        && request.resource.data.get('email', '') == request.auth.token.get('email', '')
+        && request.resource.data.get('createdAt', 0) is int
+        && request.resource.data.get('source', '') == 'bootstrap-email-v1'
+      );
+      allow update, delete: if isSuperAdmin();
     }
 
     // Deny by default for every top-level path not explicitly declared.

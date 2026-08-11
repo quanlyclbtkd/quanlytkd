@@ -9,19 +9,6 @@
       return window.getAppContext ? window.getAppContext(reason) : {};
   }
 
-  // Phase 4K-6V5U4 — privileged reads require the canonical verified session.
-  function _hasVerifiedSuperAdmin() {
-      return typeof window.isVerifiedSuperAdminSession === 'function'
-          && window.isVerifiedSuperAdminSession() === true;
-  }
-
-  function _renderSuperAdminAuthRequired(listEl) {
-      if (listEl) {
-          listEl.innerHTML = '<div class="text-center py-10 px-4" style="color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:12px;"><div class="text-3xl mb-3">🔐</div><p class="font-bold text-sm mb-2">Quyền SuperAdmin chưa được Firestore xác nhận.</p><p class="text-xs text-slate-500">Kiểm tra custom claim, users/{uid}.role hoặc super_admins/{uid} theo Firestore Rules hiện hành. Không mở Rules public.</p></div>';
-      }
-      return { ok: false, reason: 'superadmin-not-verified' };
-  }
-
   // ── Module-level idempotency ─────────────────────────────────────
   let __saInitialized = false;
 
@@ -244,8 +231,7 @@
         _m().lastAction = 'loadSuperAdminData';
         const _t0 = Date.now();
         const listEl = document.getElementById('sysClubListMain');
-        if (!_hasVerifiedSuperAdmin()) return _renderSuperAdminAuthRequired(listEl);
-        if (listEl) listEl.innerHTML = '<div class="text-center py-10 text-slate-400"><div class="text-2xl mb-2">⏳</div><p class="font-bold text-sm">Đang tải dữ liệu toàn hệ thống...</p></div>';
+        listEl.innerHTML = '<div class="text-center py-10 text-slate-400"><div class="text-2xl mb-2">⏳</div><p class="font-bold text-sm">Đang tải dữ liệu toàn hệ thống...</p></div>';
         try {
             const clubsSnap = await getDocs(query(collection(db, "clubs"), limit(200))); // [3.3E] SuperAdmin clubs list — bounded at 200
             const today = getLocalToday();
@@ -704,20 +690,23 @@
                 listEl.innerHTML =
                     '<div class="text-center py-10 px-4 text-rose-500">' +
                     '<div class="text-3xl mb-3">🔒</div>' +
-                    '<p class="font-bold text-sm mb-2">Tài khoản đã vào giao diện ROOT nhưng Firestore Rules chưa cấp quyền SuperAdmin.</p>' +
-                    '<p class="text-xs text-slate-600 mb-3">Cần thực hiện <b>MỘT</b> trong hai cách sau:</p>' +
+                    '<p class="font-bold text-sm mb-2">UI đã nhận diện ROOT nhưng Firestore chưa xác nhận canonical SuperAdmin principal.</p>' +
+                    '<p class="text-xs text-slate-600 mb-3">Không mở Rules public. Hãy deploy <b>firestore.rules V5U4</b> rồi đăng xuất/đăng nhập lại.</p>' +
                     '<div class="text-left text-xs text-slate-700 bg-slate-50 border border-slate-200 rounded-lg p-3 inline-block">' +
-                    '<p class="mb-1">① Tạo document <code class="bg-slate-200 px-1 rounded">super_admins/{uid}</code> trong Firestore</p>' +
-                    '<p>② Hoặc set Custom Claim <code class="bg-slate-200 px-1 rounded">role=super_admin</code> cho tài khoản</p>' +
+                    '<p class="mb-1">① V5U4 chỉ cho ROOT email định danh tự tạo <code class="bg-slate-200 px-1 rounded">super_admins/{uid}</code> của chính mình.</p>' +
+                    '<p>② Sau bootstrap, Rules và Cloud Functions đều dùng canonical principal này; không cấp quyền CLB trực tiếp bằng email.</p>' +
                     '</div>' +
-                    '<p class="text-xs text-slate-400 mt-3">UID hiện tại: <span id="_sa_perm_uid" class="font-mono">đang tải...</span></p>' +
+                    '<p class="text-xs text-slate-400 mt-3">UID: <span id="_sa_perm_uid" class="font-mono">đang tải...</span><br>Email: <span id="_sa_perm_email" class="font-mono">đang tải...</span></p>' +
                     '</div>';
                 // Hiển thị UID để dễ dàng tạo super_admins/{uid}
                 try {
                     const _authCtx = window.getAppContext ? window.getAppContext('sa-perm-uid') : {};
                     const _uid = _authCtx?.auth?.currentUser?.uid || '(chưa có auth)';
+                    const _email = _authCtx?.auth?.currentUser?.email || '(chưa có email)';
                     const _uidEl = document.getElementById('_sa_perm_uid');
+                    const _emailEl = document.getElementById('_sa_perm_email');
                     if (_uidEl) _uidEl.innerText = _uid;
+                    if (_emailEl) _emailEl.innerText = _email;
                 } catch (_ue) {}
             } else {
                 // [HOTFIX] Phân biệt lỗi runtime (ReferenceError/TypeError) vs lỗi khác
@@ -742,8 +731,6 @@
       {
           const _coreLoad = window.loadSuperAdminData;
           window.loadSuperAdminData = async function _saLoadWrapped() {
-              const listEl = document.getElementById('sysClubListMain');
-              if (!_hasVerifiedSuperAdmin()) return _renderSuperAdminAuthRequired(listEl);
               const now = Date.now();
               if (_saLoadPromise) {
                   console.info('[SuperAdmin] loadSuperAdminData single-flight reuse');

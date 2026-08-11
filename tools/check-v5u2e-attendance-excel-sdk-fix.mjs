@@ -29,8 +29,6 @@ const publicApp = read('public/app.js');
 const pkg = JSON.parse(read('package.json'));
 const publicPkgExists = fs.existsSync(path.join(root, 'public/package.json'));
 const searchBuild = 'student-given-name-priority-20260811-v5u3';
-const superAdminBuild = 'superadmin-verified-auth-contract-20260811-v5u4';
-const superAdminPatch = '4K-6V5U4-superadmin-verified-auth-contract-20260811';
 
 console.log('\n🔎 Phase 4K-6V5U-2E — Attendance Excel Firebase SDK Dependency Fix\n');
 
@@ -44,10 +42,10 @@ check('report facade cache-busts attendance module', facade.includes(`import('./
 check('report facade source/public mirrors match', facade === publicFacade);
 check('main cache-busts report facade', main.includes(`reportExportFacade.js?v=${build}`));
 check('main source/public mirrors match for report import', publicMain.includes(`reportExportFacade.js?v=${build}`));
-check('index cache-busts app/main V5U-2E-or-later', (index.includes(`app.js?v=${superAdminBuild}`) && index.includes(`./js/main.js?v=${superAdminBuild}`)) || (index.includes(`app.js?v=${build}`) && (index.includes(`./js/main.js?v=${searchBuild}`) || index.includes(`./js/main.js?v=${build}`))));
-check('public index cache-busts app/main V5U-2E-or-later', (publicIndex.includes(`app.js?v=${superAdminBuild}`) && publicIndex.includes(`./js/main.js?v=${superAdminBuild}`)) || (publicIndex.includes(`app.js?v=${build}`) && (publicIndex.includes(`./js/main.js?v=${searchBuild}`) || publicIndex.includes(`./js/main.js?v=${build}`))));
-check('APP patch marker updated in app/main', (app.includes(superAdminPatch) || app.includes(patch)) && main.includes(patch));
-check('public APP patch marker updated', (publicApp.includes(superAdminPatch) || publicApp.includes(patch)) && publicMain.includes(patch));
+check('index cache-busts app/main V5U-2E-or-later', index.includes(`app.js?v=${build}`) && (index.includes(`./js/main.js?v=${searchBuild}`) || index.includes(`./js/main.js?v=${build}`)));
+check('public index cache-busts app/main V5U-2E-or-later', publicIndex.includes(`app.js?v=${build}`) && (publicIndex.includes(`./js/main.js?v=${searchBuild}`) || publicIndex.includes(`./js/main.js?v=${build}`)));
+check('APP patch marker updated in app/main', app.includes(patch) && main.includes(patch));
+check('public APP patch marker updated', publicApp.includes(patch) && publicMain.includes(patch));
 check('report remains read-only', !/(?:setDoc|updateDoc|addDoc|deleteDoc|writeBatch|runTransaction|onSnapshot)\s*\(/.test(report));
 check('no second attendance export query path introduced', (report.match(/loadAttendanceMonthPaginated\(/g) || []).length === 2 && (report.match(/getDocs\(/g) || []).length === 1);
 check('package exposes V5U-2E check', pkg.scripts?.['check:v5u2e-attendance-excel-sdk-fix'] === 'node tools/check-v5u2e-attendance-excel-sdk-fix.mjs');
