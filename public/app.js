@@ -1564,6 +1564,265 @@ window.invCustomCategories = [];
         // Logo được quản lý bởi applyClubConfigUI() — hàm này giữ lại để tương thích
     }
 
+    // Phase 4K-6V5U6B — ONE clubs/{clubId} authority:
+    // first onSnapshot owns bootstrap access decision and the SAME listener stays realtime.
+    const _clubAccessBootstrapState = window.__clubAccessBootstrapState || {
+        generation: 0,
+        clubId: '',
+        listenerKey: '',
+        status: 'idle',
+        firstSnapshotSeen: false,
+        ready: false,
+        blockedReason: '',
+        snapshotSource: '',
+        readyAt: 0,
+        legacyExpiryFallback: false,
+    };
+    if (!window.__clubAccessBootstrapState) {
+        Object.defineProperty(window, '__clubAccessBootstrapState', {
+            value: _clubAccessBootstrapState,
+            writable: false,
+            configurable: true,
+        });
+    }
+    let _clubAccessBootstrapFlight = null;
+
+    const _commitClubAccessBootstrapState = (patch = {}) => {
+        Object.assign(_clubAccessBootstrapState, patch);
+        return _clubAccessBootstrapState;
+    };
+
+    const _isCurrentClubBootstrapGeneration = (identity) => {
+        const authState = window.__verifiedAuthContextState;
+        const currentUid = String(auth.currentUser?.uid || '');
+        return !!identity && !!authState && authState.ready === true &&
+            String(identity.uid || '') === currentUid &&
+            String(identity.uid || '') === String(authState.uid || '') &&
+            String(identity.clubId || '') === String(authState.clubId || '') &&
+            Number(identity.authGeneration || 0) === Number(authState.generation || 0);
+    };
+
+    const _hideClubProtectedUI = () => {
+        ['mainTabsWrapper','filterArea','btnSettings','exportTaxBtn','exportBtn'].forEach(id => {
+            const el = document.getElementById(id); if (el) el.style.display = 'none';
+        });
+        document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+        document.querySelectorAll('.desktop-action-btns .btn-sm, .desktop-action-btns button:not([onclick*="Logout"]):not([onclick*="logout"])').forEach(el => el.style.display = 'none');
+    };
+
+    const _cleanupProtectedTenantRuntimeKeepClubRoot = (clubKey, reason) => {
+        // Registry owns modern listeners. Preserve the canonical root listener so a future
+        // server snapshot cannot resurrect runtime automatically, but diagnostics remain live.
+        try {
+            const metrics = window.getListenerMetrics ? window.getListenerMetrics() : null;
+            const entries = Array.isArray(metrics?.activeEntries) ? metrics.activeEntries : [];
+            entries.forEach(entry => {
+                if (entry?.key && entry.key !== clubKey && !!window.removeListener) {
+                    window.removeListener(entry.key, 'club-access-blocked:' + reason);
+                }
+            });
+        } catch (cleanupErr) {
+            console.warn('[ClubAccessGate] registry cleanup warning:', cleanupErr);
+        }
+        // Legacy fallbacks are never used for the root authority in V5U6B, so they can all be
+        // stopped without removing the canonical clubs/{clubId} listener.
+        activeListeners.forEach(fn => { try { fn(); } catch (_) {} });
+        activeListeners = [];
+    };
+
+    const _renderClubAccessBlocked = (reason, expiryDate = '') => {
+        _hideClubProtectedUI();
+        const loginOverlay = document.getElementById('loginOverlay'); if (loginOverlay) loginOverlay.style.display = 'none';
+        const mainApp = document.getElementById('mainApp'); if (mainApp) mainApp.style.display = 'block';
+        const previous = document.getElementById('clubAccessBlockBanner'); if (previous) previous.remove();
+        const banner = document.createElement('div');
+        banner.id = 'clubAccessBlockBanner';
+        banner.style.cssText = 'padding:20px 16px;';
+        let icon = '⚠️', title = 'Không thể xác minh quyền truy cập CLB', body = 'Không thể tải thông tin CLB an toàn. Vui lòng đăng xuất, kiểm tra kết nối và thử lại.';
+        if (reason === 'locked') {
+            icon = '🔒'; title = 'Tài khoản đã bị khóa';
+            body = 'Tài khoản phần mềm quản lý CLB của bạn đã bị khóa bởi Super Admin.<br>Vui lòng liên hệ <strong>0905.109.344 (Tình)</strong> để được hỗ trợ mở khóa và tiếp tục sử dụng.';
+        } else if (reason === 'expired') {
+            icon = '⛔'; title = 'Tài khoản đã hết hạn sử dụng';
+            body = `Phần mềm quản lý CLB của bạn đã hết hạn${expiryDate ? ` vào ngày <strong>${formatDate(expiryDate)}</strong>` : ''}.<br>Vui lòng liên hệ <strong>0905.109.344 (Tình)</strong> để gia hạn tài khoản và tiếp tục sử dụng.`;
+        } else if (reason === 'missing') {
+            title = 'Không tìm thấy dữ liệu CLB';
+            body = 'Hồ sơ CLB không tồn tại hoặc chưa được cấp quyền. Không có dữ liệu nghiệp vụ nào được tải trong phiên này.';
+        } else if (reason === 'permission-denied') {
+            title = 'Không đủ quyền truy cập CLB';
+            body = 'Firestore từ chối đọc hồ sơ CLB. Vui lòng đăng xuất và liên hệ quản trị viên để kiểm tra phân quyền.';
+        } else if (reason === 'listener-registration-failed') {
+            title = 'Không thể khởi tạo phiên dữ liệu CLB';
+            body = 'Listener bảo vệ hồ sơ CLB không đăng ký được. Hệ thống đã dừng trước khi tải dữ liệu nghiệp vụ.';
+        }
+        banner.innerHTML = `<div style="margin:0 auto;max-width:520px;background:#fff1f2;border:2px solid #fecaca;border-radius:20px;padding:32px 24px;text-align:center;box-shadow:0 8px 32px rgba(200,16,46,0.10);">
+            <div style="font-size:3rem;margin-bottom:12px;">${icon}</div>
+            <h2 style="color:#991b1b;font-size:1.15rem;font-weight:900;margin-bottom:8px;text-transform:uppercase;">${title}</h2>
+            <p style="color:#7f1d1d;font-size:0.92rem;line-height:1.6;margin-bottom:16px;">${body}</p>
+            <button onclick="window.handleLogout()" style="background:#991b1b;color:#fff;border:none;padding:10px 28px;border-radius:10px;font-weight:700;cursor:pointer;font-size:0.9rem;">🚪 Đăng xuất</button>
+        </div>`;
+        if (mainApp) mainApp.prepend(banner);
+    };
+
+    const _validateClubAccessSnapshot = (snap) => {
+        const source = snap?.metadata?.fromCache === true ? 'cache' : 'server';
+        if (!snap || typeof snap.exists !== 'function' || !snap.exists()) {
+            return { accepted: false, reason: 'missing', source, data: null, expiryDate: '', expiryMissing: false, warning: false };
+        }
+        const data = snap.data() || {};
+        const accountStatus = String(data.accountStatus || 'active').trim().toLowerCase();
+        const expiryMissing = !data.expiryDate;
+        // Backward compatible with pre-expiry documents; V5U6B does not migrate data.
+        const expiryDate = String(data.expiryDate || '2027-04-30');
+        const today = getLocalToday();
+        const in30Days = (() => { const d = new Date(); d.setDate(d.getDate() + 30); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().split('T')[0]; })();
+        if (accountStatus === 'locked') return { accepted: false, reason: 'locked', source, data, expiryDate, expiryMissing, warning: false };
+        if (expiryDate < today) return { accepted: false, reason: 'expired', source, data, expiryDate, expiryMissing, warning: false };
+        return { accepted: true, reason: '', source, data, expiryDate, expiryMissing, warning: expiryDate <= in30Days };
+    };
+
+    const _applyAcceptedClubRootSnapshot = (data, access) => {
+        clubData = data || {};
+        if (window.__store) window.__store.clubData = clubData;
+        _updateHydrationMetrics({ clubLoaded: true, lastReason: 'club-snapshot' });
+        const cName = clubData.clubName || 'HỆ THỐNG QUẢN LÝ CLB';
+        const displayClubName = document.getElementById('displayClubName'); if (displayClubName) displayClubName.innerText = cName.toUpperCase();
+        const receiptClubName = document.getElementById('r_club_name'); if (receiptClubName) receiptClubName.innerText = cName.toUpperCase();
+        const mobileClubName = document.getElementById('mhbClubName'); if (mobileClubName) mobileClubName.innerText = cName.toUpperCase();
+        const examEnabled = clubData.examEnabled !== false;
+        const btnExam = document.getElementById('btn_exam');
+        const tabExam = document.getElementById('tab_exam');
+        if (btnExam) btnExam.style.display = (examEnabled && window.userRole !== 'coach') ? '' : 'none';
+        if (tabExam && (!examEnabled || window.userRole === 'coach') && tabExam.classList.contains('active')) window.switchTab('attendance');
+        const warningBanner = document.getElementById('expiryWarningBanner');
+        const warningText = document.getElementById('expiryWarningText');
+        if (warningBanner) warningBanner.style.display = access.warning ? 'block' : 'none';
+        if (access.warning && warningText) warningText.innerText = `Phần mềm quản lý của CLB sẽ hết hạn vào ngày ${formatDate(access.expiryDate)}.`;
+    };
+
+    const _transitionClubAccessBlocked = (identity, clubKey, reason, expiryDate = '') => {
+        if (!_isCurrentClubBootstrapGeneration(identity)) return false;
+        if (_clubAccessBootstrapState.status === 'blocked' || _clubAccessBootstrapState.status === 'error') return false;
+        _commitClubAccessBootstrapState({
+            status: reason === 'listener-error' || reason === 'listener-registration-failed' || reason === 'permission-denied' ? 'error' : 'blocked',
+            ready: false,
+            blockedReason: reason,
+            readyAt: 0,
+        });
+        _cleanupProtectedTenantRuntimeKeepClubRoot(clubKey, reason);
+        _renderClubAccessBlocked(reason, expiryDate);
+        return true;
+    };
+
+    const _mountClubRootAuthority = (clubId, verifiedAuth) => {
+        const uid = String(verifiedAuth?.uid || '');
+        const authGeneration = Number(verifiedAuth?.generation || 0);
+        const clubKey = 'global:club:' + clubId;
+        const identity = { uid, clubId: String(clubId || ''), authGeneration };
+
+        if (_clubAccessBootstrapFlight &&
+            _clubAccessBootstrapFlight.clubId === identity.clubId &&
+            _clubAccessBootstrapFlight.uid === identity.uid &&
+            _clubAccessBootstrapFlight.authGeneration === identity.authGeneration) {
+            return _clubAccessBootstrapFlight;
+        }
+
+        _commitClubAccessBootstrapState({
+            generation: authGeneration,
+            clubId: identity.clubId,
+            listenerKey: clubKey,
+            status: 'waiting',
+            firstSnapshotSeen: false,
+            ready: false,
+            blockedReason: '',
+            snapshotSource: '',
+            readyAt: 0,
+            legacyExpiryFallback: false,
+        });
+
+        let settled = false;
+        let settleFirst;
+        const firstSnapshotPromise = new Promise(resolve => { settleFirst = resolve; });
+        const finishFirst = result => {
+            if (settled) return;
+            settled = true;
+            settleFirst(result);
+        };
+
+        const clubRef = doc(db, 'clubs', clubId);
+        const handleSnapshot = (snap) => {
+            if (!_isCurrentClubBootstrapGeneration(identity)) return;
+            if (window.markListenerSnapshot) window.markListenerSnapshot(clubKey);
+            const access = _validateClubAccessSnapshot(snap);
+            const firstSeenNow = _clubAccessBootstrapState.firstSnapshotSeen !== true;
+            _commitClubAccessBootstrapState({
+                firstSnapshotSeen: true,
+                snapshotSource: access.source,
+                legacyExpiryFallback: access.expiryMissing === true,
+            });
+
+            // Once blocked in a session, an unlock/renew snapshot does not auto-remount runtime.
+            if (_clubAccessBootstrapState.status === 'blocked' || _clubAccessBootstrapState.status === 'error') {
+                finishFirst({ accepted: false, reason: _clubAccessBootstrapState.blockedReason || 'blocked' });
+                return;
+            }
+            if (!access.accepted) {
+                _transitionClubAccessBlocked(identity, clubKey, access.reason, access.expiryDate);
+                finishFirst({ accepted: false, reason: access.reason, source: access.source });
+                return;
+            }
+
+            _applyAcceptedClubRootSnapshot(access.data, access);
+            if (_clubAccessBootstrapState.status !== 'ready') {
+                _commitClubAccessBootstrapState({ status: 'ready', ready: true, blockedReason: '', readyAt: Date.now() });
+            }
+            if (firstSeenNow || !settled) finishFirst({ accepted: true, source: access.source, data: access.data });
+        };
+        const handleError = (err) => {
+            if (!_isCurrentClubBootstrapGeneration(identity)) return;
+            const code = String(err?.code || 'listener-error');
+            const reason = code === 'permission-denied' ? 'permission-denied' : 'listener-error';
+            _commitClubAccessBootstrapState({ firstSnapshotSeen: _clubAccessBootstrapState.firstSnapshotSeen === true, snapshotSource: 'error' });
+            _transitionClubAccessBlocked(identity, clubKey, reason);
+            finishFirst({ accepted: false, reason, error: code });
+        };
+
+        const register = () => window.safeRegisterSnapshot(
+            clubKey,
+            () => onSnapshot(clubRef, handleSnapshot, handleError),
+            { owner: 'club', scope: 'global', clubId, sessionId: String(authGeneration), reason: 'v5u6b-club-bootstrap-realtime-authority' }
+        );
+
+        if (typeof window.safeRegisterSnapshot !== 'function') {
+            _commitClubAccessBootstrapState({ status: 'error', blockedReason: 'listener-registration-failed' });
+            _renderClubAccessBlocked('listener-registration-failed');
+            finishFirst({ accepted: false, reason: 'listener-registration-failed' });
+        } else {
+            let registered = register();
+            if (!registered) {
+                const existing = window.getListenerMetrics
+                    ? window.getListenerMetrics()?.activeEntries?.find(entry => entry.key === clubKey)
+                    : null;
+                const sameFlight = _clubAccessBootstrapFlight &&
+                    _clubAccessBootstrapFlight.clubId === identity.clubId &&
+                    _clubAccessBootstrapFlight.uid === identity.uid &&
+                    _clubAccessBootstrapFlight.authGeneration === identity.authGeneration;
+                if (existing && sameFlight) return _clubAccessBootstrapFlight;
+                // Duplicate with no provable current flight is stale/ambiguous: remove once, remount once.
+                if (existing && !!window.removeListener) window.removeListener(clubKey, 'v5u6b-stale-bootstrap-owner');
+                registered = !existing ? false : register();
+            }
+            if (!registered) {
+                _commitClubAccessBootstrapState({ status: 'error', blockedReason: 'listener-registration-failed' });
+                _renderClubAccessBlocked('listener-registration-failed');
+                finishFirst({ accepted: false, reason: 'listener-registration-failed' });
+            }
+        }
+
+        _clubAccessBootstrapFlight = { ...identity, listenerKey: clubKey, firstSnapshotPromise };
+        return _clubAccessBootstrapFlight;
+    };
+
     async function initSaaSDatabase(clubId) {
         // Phase 4K-6V5U5: protected runtime may mount only after one verified auth commit.
         const _verifiedAuth = window.__verifiedAuthContextState;
@@ -1574,7 +1833,20 @@ window.invCustomCategories = [];
             await _showLoginError('Không thể khởi tạo dữ liệu vì phiên phân quyền chưa được xác minh. Vui lòng đăng nhập lại.');
             return false;
         }
-        document.getElementById('loginOverlay').style.display = 'none'; document.getElementById('mainApp').style.display = 'block'; document.getElementById('passInput').value = '';
+        const _loginOverlay = document.getElementById('loginOverlay');
+        const _mainApp = document.getElementById('mainApp');
+        const _passInput = document.getElementById('passInput'); if (_passInput) _passInput.value = '';
+        // SuperAdmin has no tenant club-access gate. Normal tenant content stays hidden until
+        // the first accepted clubs/{clubId} snapshot has made the access decision.
+        if ('super_admin' === window.userRole) {
+            if (_loginOverlay) _loginOverlay.style.display = 'none';
+            if (_mainApp) _mainApp.style.display = 'block';
+        } else {
+            if (_mainApp) _mainApp.style.display = 'none';
+            if (_loginOverlay) _loginOverlay.style.display = 'flex';
+            const _loginTextGate = document.getElementById('loginText'); if (_loginTextGate) _loginTextGate.innerText = 'Đang kiểm tra quyền truy cập CLB...';
+            const _loginLoadingGate = document.getElementById('loginLoading'); if (_loginLoadingGate) _loginLoadingGate.classList.remove('hidden');
+        }
 
         // Role/club/branch đã được commit nguyên tử bởi _commitVerifiedAuthContext().
         // initSaaSDatabase chỉ mount runtime và Firebase refs, không còn là auth-context writer.
@@ -1625,68 +1897,20 @@ window.invCustomCategories = [];
         const _cpBtn = document.getElementById('btnChangePassword'); if(_cpBtn) _cpBtn.style.display = 'flex';
         const _mmsCpBtn = document.getElementById('mmsChangePasswordBtn'); if(_mmsCpBtn) _mmsCpBtn.style.display = 'block';
 
-        // ── Kiểm tra hạn sử dụng và trạng thái tài khoản CLB ──
-        if (window.userRole !== 'super_admin') {
-            try {
-                const clubDocForExpiry = await getDoc(doc(db, "clubs", clubId));
-                if (clubDocForExpiry.exists()) {
-                    const clubInfo = clubDocForExpiry.data();
-                    const acctStatus = clubInfo.accountStatus || 'active';
-                    const expiryDate = clubInfo.expiryDate || '2027-04-30';
-                    const today = getLocalToday();
-                    const in30Days = (() => { const d = new Date(); d.setDate(d.getDate() + 30); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().split('T')[0]; })();
+        // Phase 4K-6V5U6B — mount the ONE root-club authority before any protected
+        // downstream source. Its first snapshot owns access bootstrap; the same listener stays realtime.
+        const _clubBootstrap = _mountClubRootAuthority(clubId, _verifiedAuth);
+        const _clubFirstSnapshot = await _clubBootstrap.firstSnapshotPromise;
+        if (!_isCurrentClubBootstrapGeneration({ uid: _verifiedAuth.uid, clubId, authGeneration: _verifiedAuth.generation })) return false;
+        if (!_clubFirstSnapshot?.accepted || _clubAccessBootstrapState.ready !== true) return false;
 
-                    // Helper: ẩn toàn bộ giao diện CLB khi bị chặn
-                    const hideClubUI = () => {
-                        ['mainTabsWrapper','filterArea','btnSettings','exportTaxBtn','exportBtn'].forEach(id => {
-                            const el = document.getElementById(id); if(el) el.style.display = 'none';
-                        });
-                        document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
-                        // Ẩn nút header navbar
-                        document.querySelectorAll('.desktop-action-btns .btn-sm, .desktop-action-btns button:not([onclick*="Logout"]):not([onclick*="logout"])').forEach(el => el.style.display='none');
-                    };
+        // Access accepted: only now may protected tenant shell/runtime become visible.
+        if (_loginOverlay) _loginOverlay.style.display = 'none';
+        if (_mainApp) _mainApp.style.display = 'block';
+        const _loginTextReady = document.getElementById('loginText'); if (_loginTextReady) _loginTextReady.innerText = 'ĐĂNG NHẬP';
+        const _loginLoadingReady = document.getElementById('loginLoading'); if (_loginLoadingReady) _loginLoadingReady.classList.add('hidden');
 
-                    if (acctStatus === 'locked') {
-                        hideClubUI();
-                        const banner = document.createElement('div');
-                        banner.style.cssText = 'padding:20px 16px;';
-                        banner.innerHTML = `<div style="margin:0 auto;max-width:520px;background:#fff1f2;border:2px solid #fecaca;border-radius:20px;padding:32px 24px;text-align:center;box-shadow:0 8px 32px rgba(200,16,46,0.10);">
-                            <div style="font-size:3rem;margin-bottom:12px;">🔒</div>
-                            <h2 style="color:#991b1b;font-size:1.15rem;font-weight:900;margin-bottom:8px;text-transform:uppercase;">Tài khoản đã bị khóa</h2>
-                            <p style="color:#7f1d1d;font-size:0.92rem;line-height:1.6;margin-bottom:16px;">Tài khoản phần mềm quản lý CLB của bạn đã bị khóa bởi Super Admin.<br>Vui lòng liên hệ <strong>0905.109.344 (Tình)</strong> để được hỗ trợ mở khóa và tiếp tục sử dụng.</p>
-                            <button onclick="window.handleLogout()" style="background:#991b1b;color:#fff;border:none;padding:10px 28px;border-radius:10px;font-weight:700;cursor:pointer;font-size:0.9rem;">🚪 Đăng xuất</button>
-                        </div>`;
-                        document.getElementById('mainApp').prepend(banner);
-                        return;
-                    }
-
-                    if (expiryDate < today) {
-                        hideClubUI();
-                        const banner = document.createElement('div');
-                        banner.style.cssText = 'padding:20px 16px;';
-                        banner.innerHTML = `<div style="margin:0 auto;max-width:520px;background:#fff1f2;border:2px solid #fecaca;border-radius:20px;padding:32px 24px;text-align:center;box-shadow:0 8px 32px rgba(200,16,46,0.10);">
-                            <div style="font-size:3rem;margin-bottom:12px;">⛔</div>
-                            <h2 style="color:#991b1b;font-size:1.15rem;font-weight:900;margin-bottom:8px;text-transform:uppercase;">Tài khoản đã hết hạn sử dụng</h2>
-                            <p style="color:#7f1d1d;font-size:0.92rem;line-height:1.6;margin-bottom:16px;">Phần mềm quản lý CLB của bạn đã hết hạn vào ngày <strong>${formatDate(expiryDate)}</strong>.<br>Vui lòng liên hệ <strong>0905.109.344 (Tình)</strong> để gia hạn tài khoản và tiếp tục sử dụng.</p>
-                            <button onclick="window.handleLogout()" style="background:#991b1b;color:#fff;border:none;padding:10px 28px;border-radius:10px;font-weight:700;cursor:pointer;font-size:0.9rem;">🚪 Đăng xuất</button>
-                        </div>`;
-                        document.getElementById('mainApp').prepend(banner);
-                        return;
-                    }
-
-                    // Sắp hết hạn (trong vòng 30 ngày)
-                    if (expiryDate <= in30Days) {
-                        const banner = document.getElementById('expiryWarningBanner');
-                        const textEl = document.getElementById('expiryWarningText');
-                        if (banner && textEl) {
-                            textEl.innerText = `Phần mềm quản lý của CLB sẽ hết hạn vào ngày ${formatDate(expiryDate)}.`;
-                            banner.style.display = 'block';
-                        }
-                    }
-                }
-            } catch(expiryErr) { console.warn("Không kiểm tra được hạn TK:", expiryErr); }
-        }
-
+        let _shouldAutoRenderCoachAttendance = false;
         // ── Coach role: chỉ hiện tab Điểm danh, ẩn toàn bộ admin UI ─────────────
         if (window.userRole === 'coach') {
             const _verifiedCoachBranch = _canonicalBranch(window.coachBranch, '');
@@ -1742,9 +1966,9 @@ window.invCustomCategories = [];
             }
             // [SỬA] Tự động load danh sách điểm danh khi HLV đăng nhập —
             // không cần click thêm, hệ thống hiển thị ngay danh sách cơ sở được giao.
-            if (typeof window.renderAttendanceList === 'function') {
-                window.renderAttendanceList();
-            }
+            // V5U6B: defer the first attendance consumer until protected ready events
+            // have been dispatched after the accepted club snapshot.
+            _shouldAutoRenderCoachAttendance = typeof window.renderAttendanceList != 'undefined';
         }
 
         if(window.userRole === 'viewer') {
@@ -1754,7 +1978,6 @@ window.invCustomCategories = [];
             const btnBatch = document.querySelector('#tab_exam button.bg-gradient-to-r'); if(btnBatch) btnBatch.style.display = 'none';
         }
 
-        const clubRef = doc(db, "clubs", clubId);
         profRef = collection(db, "clubs", clubId, "profiles");
         colRef = collection(db, "clubs", clubId, "transactions");
         invRef = collection(db, "clubs", clubId, "inventory");
@@ -1801,39 +2024,12 @@ window.invCustomCategories = [];
         // Phase 4.0B-4J-8A: Dispatch app:shell-ready — shell đã hiện, dữ liệu đang tải.
         window.dispatchEvent(new CustomEvent('app:shell-ready'));
         if (typeof markLoginPerf === 'function') markLoginPerf('shellShown');
-
-        // [Phase 3.6C] club listener — migrated to safeRegisterSnapshot()
-        // No activeListeners.push needed — registry is source of cleanup.
-        const _clubKey = 'global:club:' + clubId;
-        const _clubCb = (snap) => {
-            if (window.markListenerSnapshot) window.markListenerSnapshot(_clubKey);
-            if(snap.exists()) {
-                clubData = snap.data();
-                if (window.__store) window.__store.clubData = clubData; // [Phase 2e] sync cho finance.js
-                // Phase 4.0B-4D: mark club doc loaded
-                _updateHydrationMetrics({ clubLoaded: true, lastReason: 'club-snapshot' });
-                const cName = clubData.clubName || "HỆ THỐNG QUẢN LÝ CLB";
-                document.getElementById('displayClubName').innerText = cName.toUpperCase(); document.getElementById('r_club_name').innerText = cName.toUpperCase();
-                const _mhbCN = document.getElementById('mhbClubName'); if(_mhbCN) _mhbCN.innerText = cName.toUpperCase();
-                // Ẩn/hiện tab Thi Đai theo cấu hình từ SuperAdmin
-                // Coach luôn ẩn tab Thi Đai bất kể cấu hình
-                const _examEnabled = clubData.examEnabled !== false;
-                const _btnExam = document.getElementById('btn_exam');
-                const _tabExam = document.getElementById('tab_exam');
-                if (_btnExam) _btnExam.style.display = (_examEnabled && window.userRole !== 'coach') ? '' : 'none';
-                if (_tabExam && (!_examEnabled || window.userRole === 'coach') && _tabExam.classList.contains('active')) {
-                    window.switchTab('attendance');
-                }
-            }
-        };
-        if (window.safeRegisterSnapshot) {
-            window.safeRegisterSnapshot(_clubKey, () => onSnapshot(clubRef, _clubCb),
-                { owner: 'club', scope: 'global', clubId: clubId, reason: 'init-club-config' });
-        } else {
-            const _u_club = onSnapshot(clubRef, _clubCb);
-            activeListeners.push(_u_club);
-            if (window.registerListener) window.registerListener(_clubKey, _u_club, { owner: 'club', scope: 'global', reason: 'init-club-config' });
+        if (_shouldAutoRenderCoachAttendance && typeof window.renderAttendanceList === 'function') {
+            window.renderAttendanceList();
         }
+
+        // Phase 4K-6V5U6B: root club listener already mounted above and remains the
+        // canonical realtime authority after its accepted first snapshot. No replacement listener here.
 
         // [Phase 3.6C] settings listener — migrated to safeRegisterSnapshot()
         // No activeListeners.push needed — registry is source of cleanup.
@@ -2459,13 +2655,13 @@ window.invCustomCategories = [];
             loadLogoForReceipt();
         }
 
-        // ── Khởi động hệ thống thông báo báo cáo HLV (Admin only) ──────────
-        // setupNotifListener dùng onSnapshot nên cập nhật real-time khi HLV gửi báo cáo
-        // checkAdminNotifications dùng getDocs — fallback kiểm tra 1 lần khi vừa login
+        // ── Phase 4K-6V5U6A: Admin notifications have ONE normal read authority. ──
+        // setupNotifListener() owns both the initial unread snapshot and realtime updates.
+        // checkAdminNotifications() is retained strictly as a one-shot fallback when the
+        // canonical listener cannot be created or fails before its first successful snapshot.
         if (window.userRole === 'admin' || window.userRole === 'super_admin') {
             setTimeout(() => {
-                if (typeof window.setupNotifListener === 'function')   window.setupNotifListener();
-                if (typeof window.checkAdminNotifications === 'function') window.checkAdminNotifications();
+                if (typeof window.setupNotifListener === 'function') window.setupNotifListener();
             }, 1200);
         }
     }
@@ -3685,6 +3881,8 @@ window.invCustomCategories = [];
             _clearAuthCache();
             _verifiedUserProfileFlight = { uid: '', promise: null };
             _resetVerifiedAuthContext('logout');
+            _clubAccessBootstrapFlight = null;
+            _commitClubAccessBootstrapState({ generation: Number(window.__verifiedAuthContextState?.generation || 0), clubId: '', listenerKey: '', status: 'idle', firstSnapshotSeen: false, ready: false, blockedReason: '', snapshotSource: '', readyAt: 0, legacyExpiryFallback: false });
             // Xóa toàn bộ cờ lịch sử đăng nhập (cả format cũ lẫn mới) khi logout
             Object.keys(sessionStorage)
                 .filter(k => k.startsWith('lh_'))
@@ -9696,74 +9894,111 @@ window.processMultiItem = async (action) => {
         bannerEl.style.display = 'block';
     };
 
-    // Kiểm tra thông báo chưa đọc khi Admin mở trang (getDocs — 1 lần)
-    window.checkAdminNotifications = async () => {
-        if (!currentClubId || (window.userRole !== 'admin' && window.userRole !== 'super_admin')) return;
-        try {
-            const q    = query(
-                collection(db, 'clubs', currentClubId, 'adminNotifications'),
-                where('readAt', '==', null),
-                orderBy('createdAt', 'desc'),
-                limit(50) // [3.3E] max 50 unread admin notifications
-            );
-            const snap = await getDocs(q);
-            if (typeof window.recordFirestoreReadAttribution === 'function') {
-                window.recordFirestoreReadAttribution('notifications.initialQuery', snap.size || 0, { initial: true, reason: 'unread-limit-50' });
+    // Phase 4K-6V5U6A — notification read authority convergence.
+    // onSnapshot is canonical. This one-shot GET is fallback-only and single-flight.
+    let _notifFallbackPromise = null;
+    let _notifFallbackUsedKey = '';
+
+    window.checkAdminNotifications = async (options = {}) => {
+        if (!currentClubId || (window.userRole !== 'admin' && window.userRole !== 'super_admin')) return false;
+        if (options.fallback !== true) return false;
+        // Scope the once-only fallback to the verified auth generation. This keeps
+        // duplicate setup calls in the same login single-flight while allowing a clean
+        // logout/login of the same club to use one fallback again if its new listener fails.
+        const _notifAuthGeneration = Number(window.__verifiedAuthContextState?.generation || 0);
+        const _notifAuthUid = String(auth?.currentUser?.uid || '');
+        const fallbackKey = `${_notifAuthUid}:${String(currentClubId)}:${_notifAuthGeneration}`;
+        if (_notifFallbackUsedKey === fallbackKey) return _notifFallbackPromise || false;
+        if (_notifFallbackPromise) return _notifFallbackPromise;
+        _notifFallbackUsedKey = fallbackKey;
+        _notifFallbackPromise = (async () => {
+            try {
+                const q = query(
+                    collection(db, 'clubs', currentClubId, 'adminNotifications'),
+                    where('readAt', '==', null),
+                    orderBy('createdAt', 'desc'),
+                    limit(50)
+                );
+                const snap = await getDocs(q);
+                if (typeof window.recordFirestoreReadAttribution === 'function') {
+                    window.recordFirestoreReadAttribution('notifications.initialQuery', snap.size || 0, {
+                        initial: true,
+                        reason: options.reason || 'listener-fallback-unread-limit-50'
+                    });
+                }
+                const docs = [];
+                snap.forEach(d => docs.push({ id: d.id, data: d.data() }));
+                _renderNotifBanner(docs);
+                return true;
+            } catch (_e) {
+                return false;
+            } finally {
+                _notifFallbackPromise = null;
             }
+        })();
+        return _notifFallbackPromise;
+    };
+
+    const _runNotifFallbackOnce = (reason) => {
+        if (typeof window.checkAdminNotifications !== 'function') return Promise.resolve(false);
+        return Promise.resolve(window.checkAdminNotifications({ fallback: true, reason }));
+    };
+
+    // Lắng nghe real-time: initial snapshot + realtime updates are the canonical source.
+    window.setupNotifListener = () => {
+        if (!currentClubId || (window.userRole !== 'admin' && window.userRole !== 'super_admin')) return false;
+        const _notifKey = 'global:notif:' + currentClubId;
+        // Remove old listener before re-init so logout/login or tenant switch cannot leave an orphan.
+        if (window.removeListener) window.removeListener(_notifKey, 'notif-reinit');
+        if (window._notifUnsubscribe) { try { window._notifUnsubscribe(); } catch(_) {} window._notifUnsubscribe = null; }
+        let _notifInitialSnapshotSeen = false;
+        const _recordNotifSnapshot = (snap) => {
+            if (typeof window.recordFirestoreSnapshotAttribution === 'function') {
+                window.recordFirestoreSnapshotAttribution('notifications.unreadListener', snap, {
+                    initial: !_notifInitialSnapshotSeen,
+                    reason: 'unread-realtime'
+                });
+            }
+            _notifInitialSnapshotSeen = true;
+        };
+        const _onNotifSnapshot = (snap) => {
+            _recordNotifSnapshot(snap);
+            if (window.markListenerSnapshot) window.markListenerSnapshot(_notifKey);
             const docs = [];
             snap.forEach(d => docs.push({ id: d.id, data: d.data() }));
             _renderNotifBanner(docs);
-        } catch (_e) { /* im lặng — không làm gián đoạn giao diện */ }
-    };
-
-    // Lắng nghe real-time: admin đang online → thấy báo cáo mới của HLV ngay lập tức
-    window.setupNotifListener = () => {
-        if (!currentClubId || (window.userRole !== 'admin' && window.userRole !== 'super_admin')) return;
-        const _notifKey = 'global:notif:' + currentClubId;
-        // [Phase 3.6C] Remove old listener trước khi tạo mới (re-subscribable pattern).
-        // Sau khi remove, safeRegisterSnapshot thấy key không còn → sẽ proceed tạo listener mới.
-        if (window.removeListener) window.removeListener(_notifKey, 'notif-reinit');
-        if (window._notifUnsubscribe) { try { window._notifUnsubscribe(); } catch(_) {} window._notifUnsubscribe = null; }
+        };
+        const _onNotifError = (_err) => {
+            // Firestore listener error is terminal. Only a pre-first-snapshot failure may
+            // use the one-shot fallback; a healthy listener never pays the extra GET.
+            if (!_notifInitialSnapshotSeen) _runNotifFallbackOnce('listener-error-before-first-snapshot');
+        };
         try {
             const q = query(
                 collection(db, 'clubs', currentClubId, 'adminNotifications'),
                 where('readAt', '==', null),
                 orderBy('createdAt', 'desc')
             );
-            let _notifInitialSnapshotSeen = false;
-            const _recordNotifSnapshot = (snap) => {
-                if (typeof window.recordFirestoreSnapshotAttribution === 'function') {
-                    window.recordFirestoreSnapshotAttribution('notifications.unreadListener', snap, {
-                        initial: !_notifInitialSnapshotSeen,
-                        reason: 'unread-realtime'
-                    });
-                }
-                _notifInitialSnapshotSeen = true;
-            };
-            // [Phase 3.6C] safeRegisterSnapshot — key đã removed ở trên nên sẽ proceed
             if (window.safeRegisterSnapshot) {
-                window.safeRegisterSnapshot(_notifKey, () => {
-                    const _unsub = onSnapshot(q, (snap) => {
-                        _recordNotifSnapshot(snap);
-                        if (window.markListenerSnapshot) window.markListenerSnapshot(_notifKey);
-                        const docs = [];
-                        snap.forEach(d => docs.push({ id: d.id, data: d.data() }));
-                        _renderNotifBanner(docs);
-                    }, (_err) => { /* lỗi listener — im lặng */ });
-                    window._notifUnsubscribe = _unsub; // bridge: legacy logout cleanup (line ~2783)
+                const registered = window.safeRegisterSnapshot(_notifKey, () => {
+                    const _unsub = onSnapshot(q, _onNotifSnapshot, _onNotifError);
+                    window._notifUnsubscribe = _unsub;
                     return _unsub;
                 }, { owner: 'notif', scope: 'global', clubId: currentClubId, reason: 'setup-notif-listener' });
-            } else {
-                // Fallback Phase 3.6
-                window._notifUnsubscribe = onSnapshot(q, (snap) => {
-                    _recordNotifSnapshot(snap);
-                    const docs = [];
-                    snap.forEach(d => docs.push({ id: d.id, data: d.data() }));
-                    _renderNotifBanner(docs);
-                }, (_err) => {});
-                if (window.registerListener) window.registerListener(_notifKey, window._notifUnsubscribe, { owner: 'notif', scope: 'global', reason: 'setup-notif-listener' });
+                if (registered === false) {
+                    // Because this function removes its own key above, false here means the
+                    // listener factory/registration failed rather than a normal duplicate.
+                    _runNotifFallbackOnce('listener-registration-failed');
+                }
+                return registered;
             }
-        } catch (_e) {}
+            window._notifUnsubscribe = onSnapshot(q, _onNotifSnapshot, _onNotifError);
+            if (window.registerListener) window.registerListener(_notifKey, window._notifUnsubscribe, { owner: 'notif', scope: 'global', reason: 'setup-notif-listener' });
+            return true;
+        } catch (_e) {
+            _runNotifFallbackOnce('listener-create-exception');
+            return false;
+        }
     };
 
     // Admin bấm "Đã xem" → đánh dấu tất cả là đã đọc trong Firestore

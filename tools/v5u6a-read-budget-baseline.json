@@ -1,0 +1,652 @@
+{
+  "phase": "4K-6V5U6A",
+  "baselineSource": "V5U5 canonical security truth hardening package",
+  "runtimeInclude": [
+    "app.js",
+    "js/**/*.js"
+  ],
+  "runtimeExclude": [
+    "public/**",
+    "tools/**",
+    "functions/**",
+    "js/migrations/**",
+    "js/diagnostics/**"
+  ],
+  "callSiteCounts": {
+    "getDoc": 33,
+    "getDocs": 56,
+    "onSnapshot": 17
+  },
+  "callSites": {
+    "getDoc": [
+      {
+        "file": "app.js",
+        "line": 1021,
+        "code": "const clubDoc = await getDoc(doc(db, \"clubs\", clubId));"
+      },
+      {
+        "file": "app.js",
+        "line": 1631,
+        "code": "const clubDocForExpiry = await getDoc(doc(db, \"clubs\", clubId));"
+      },
+      {
+        "file": "app.js",
+        "line": 2597,
+        "code": "try { _statsSnap = await getDoc(_statsDocRef); } catch(_) { /* fallback */ }"
+      },
+      {
+        "file": "app.js",
+        "line": 3114,
+        "code": "const _cfgSnap = await getDoc(doc(_dbForParent, 'clubs', _clubId, 'settings', 'main_config'));"
+      },
+      {
+        "file": "app.js",
+        "line": 3122,
+        "code": "let _profSnap = await getDoc(doc(_dbForParent, 'clubs', _clubId, 'profiles', _name));"
+      },
+      {
+        "file": "app.js",
+        "line": 3531,
+        "code": "const promise = getDoc(doc(db, 'users', uid));"
+      },
+      {
+        "file": "app.js",
+        "line": 3546,
+        "code": "const existing = await getDoc(principalRef);"
+      },
+      {
+        "file": "app.js",
+        "line": 4123,
+        "code": "const snap = await getDoc(doc(db, 'clubs', currentClubId, 'settings', 'inv_categories'));"
+      },
+      {
+        "file": "app.js",
+        "line": 5367,
+        "code": "const docSnap = await getDoc(doc(db, \"clubs\", currentClubId, \"inventory\", invId));"
+      },
+      {
+        "file": "app.js",
+        "line": 5382,
+        "code": "const txSnap = await getDoc(doc(db, \"clubs\", currentClubId, \"transactions\", txId));"
+      },
+      {
+        "file": "app.js",
+        "line": 5440,
+        "code": "const txSnap = await getDoc(doc(db, \"clubs\", currentClubId, \"transactions\", txId));"
+      },
+      {
+        "file": "app.js",
+        "line": 9469,
+        "code": "const noteDoc = await getDoc(doc(db, 'clubs', requestClubId, 'attendanceNotes', docId));"
+      },
+      {
+        "file": "app.js",
+        "line": 9523,
+        "code": "const coachDoc = await getDoc(doc(db, 'clubs', currentClubId, 'coaches', uid));"
+      },
+      {
+        "file": "app.js",
+        "line": 9830,
+        "code": "const userRef = doc(db, 'users', uid), uSnap = await getDoc(userRef);"
+      },
+      {
+        "file": "js/core/coachBranchRuntimeRepair.js",
+        "line": 49,
+        "code": "try { snap = await getDoc(doc(firestore, 'clubs', result.clubId, 'coaches', result.uid)); }"
+      },
+      {
+        "file": "js/core/coachBranchRuntimeRepair.js",
+        "line": 107,
+        "code": "const coachSnap = await getDoc(coachRef);"
+      },
+      {
+        "file": "js/core/coachBranchRuntimeRepair.js",
+        "line": 158,
+        "code": "const data=coach.data() || {}, uid=coach.id, userRef=doc(db(),'users',uid), userSnap=await getDoc(userRef), old=userSnap.exists()?userSnap.data():{};"
+      },
+      {
+        "file": "js/main.js",
+        "line": 1165,
+        "code": "const generalSnap = await _getDoc(_doc(db, 'clubs', clubId, 'settings', 'general'));"
+      },
+      {
+        "file": "js/main.js",
+        "line": 1182,
+        "code": "const mainSnap = await _getDoc(_doc(db, 'clubs', clubId, 'settings', 'main_config'));"
+      },
+      {
+        "file": "js/main.js",
+        "line": 2679,
+        "code": "const _statsSnap = await getDoc(doc(_db, 'clubs', _cid, 'stats', 'monthly_' + _ym));"
+      },
+      {
+        "file": "js/modules/dashboard.js",
+        "line": 369,
+        "code": "return getDoc(doc(db, 'clubs', clubId, 'stats', docId))"
+      },
+      {
+        "file": "js/modules/dashboard.js",
+        "line": 447,
+        "code": "const snap = await getDoc(doc(db, 'clubs', clubId, 'stats', docId));"
+      },
+      {
+        "file": "js/modules/dashboard.js",
+        "line": 768,
+        "code": "const snap = await getDoc(doc(db, 'clubs', clubId, 'stats', month.replace('-', '_')));"
+      },
+      {
+        "file": "js/modules/superadmin.js",
+        "line": 624,
+        "code": "const _sSnap = await getDoc(doc(db, 'clubs', cid, 'stats', _statsDocId4K));"
+      },
+      {
+        "file": "js/modules/superadmin.js",
+        "line": 1293,
+        "code": "const settingsSnap = await getDoc(doc(db, \"clubs\", clubId, \"settings\", \"main_config\"));"
+      },
+      {
+        "file": "js/services/attendance.service.js",
+        "line": 149,
+        "code": "const snap = await getDoc("
+      },
+      {
+        "file": "js/services/inventory.service.js",
+        "line": 178,
+        "code": "const snap = await getDoc("
+      },
+      {
+        "file": "js/services/inventory.service.js",
+        "line": 209,
+        "code": "const snap = await getDoc("
+      },
+      {
+        "file": "js/services/inventory.service.js",
+        "line": 263,
+        "code": "const snap = await getDoc(itemRef); // one read only when the caller has no local original"
+      },
+      {
+        "file": "js/services/inventory.service.js",
+        "line": 306,
+        "code": "const snap = await getDoc(itemRef); // fallback read only on explicit delete"
+      },
+      {
+        "file": "js/services/inventory.service.js",
+        "line": 381,
+        "code": "const invSnap = await getDoc(doc(db, 'clubs', clubId, 'inventory', invId));"
+      },
+      {
+        "file": "js/services/inventory.service.js",
+        "line": 525,
+        "code": "const snap = await getDoc("
+      },
+      {
+        "file": "js/services/students.service.js",
+        "line": 51,
+        "code": "const snap = await getDoc(_profRef(name));"
+      }
+    ],
+    "getDocs": [
+      {
+        "file": "app.js",
+        "line": 1291,
+        "code": "const snap = await getDocs(q);"
+      },
+      {
+        "file": "app.js",
+        "line": 1466,
+        "code": "const _ds = await getDocs(query(txRef, where('date', '<', beforeDate), limit(_DEL_PAGE)));"
+      },
+      {
+        "file": "app.js",
+        "line": 2221,
+        "code": "const snap = await getDocs(query(invRef, ...constraints));"
+      },
+      {
+        "file": "app.js",
+        "line": 2574,
+        "code": "const clubsSnap = await getDocs(query(collection(db, \"clubs\"), limit(200))); // [3.3E] SuperAdmin clubs list — bounded at 200"
+      },
+      {
+        "file": "app.js",
+        "line": 3092,
+        "code": "const _qSnap = await getDocs(query(_q, limit(50))); // [3.3E] parent code lookup — bounded"
+      },
+      {
+        "file": "app.js",
+        "line": 3136,
+        "code": "const _srSnap = await getDocs(query(_profColRef, orderBy('searchName'), startAt(_normInput), endAt(_normInput + '\\uf8ff'), limit(5)));"
+      },
+      {
+        "file": "app.js",
+        "line": 3143,
+        "code": "const _idSnap = await getDocs(query(_profColRef, orderBy('__name__'), startAt(_normInput), endAt(_normInput + '\\uf8ff'), limit(5)));"
+      },
+      {
+        "file": "app.js",
+        "line": 3157,
+        "code": ": await getDocs(query(_profColRef, limit(500))).then(s => { const a = []; s.forEach(d => a.push(d)); return a; });"
+      },
+      {
+        "file": "app.js",
+        "line": 4460,
+        "code": "const _dupSnap = await getDocs(query(_dupQ, limit(10))); // [3.3E] dup-check: only need 1 result"
+      },
+      {
+        "file": "app.js",
+        "line": 4609,
+        "code": "const snap = await getDocs(q);"
+      },
+      {
+        "file": "app.js",
+        "line": 8313,
+        "code": "const snap = await getDocs(query(colRef,"
+      },
+      {
+        "file": "app.js",
+        "line": 9333,
+        "code": "const snap = await getDocs(query(coachesRef, limit(200))); // [3.3E] coaches list"
+      },
+      {
+        "file": "app.js",
+        "line": 9591,
+        "code": "const snap = await getDocs(q);"
+      },
+      {
+        "file": "app.js",
+        "line": 9709,
+        "code": "const snap = await getDocs(q);"
+      },
+      {
+        "file": "app.js",
+        "line": 9795,
+        "code": "const coachesSnap = await getDocs(query(coachesRef, limit(200))); // [3.3E] limit: coaches list"
+      },
+      {
+        "file": "app.js",
+        "line": 9930,
+        "code": "const snap  = await getDocs(query(ref, limit(1)));"
+      },
+      {
+        "file": "app.js",
+        "line": 10036,
+        "code": "const snap = await getDocs(query(ref, limit(_legacyLim)));"
+      },
+      {
+        "file": "js/core/coachBranchRuntimeRepair.js",
+        "line": 74,
+        "code": "const snap = await getDocs(query(collection(db(), 'clubs', clubId(), 'coaches'), limit(200)));"
+      },
+      {
+        "file": "js/core/coachBranchRuntimeRepair.js",
+        "line": 154,
+        "code": "const snap = await getDocs(query(collection(db(), 'clubs', clubId(), 'coaches'), limit(200)));"
+      },
+      {
+        "file": "js/core/transactionCanonicalBoundary.js",
+        "line": 252,
+        "code": "const snap = await sdk.getDocs(canonicalQuery);"
+      },
+      {
+        "file": "js/firebase/paginatedQuery.js",
+        "line": 209,
+        "code": "const snap = await _getDocs(q);"
+      },
+      {
+        "file": "js/listeners/profiles.listeners.js",
+        "line": 639,
+        "code": "_pG4k(_probeQuery).then(async function(_probe) {"
+      },
+      {
+        "file": "js/listeners/profiles.listeners.js",
+        "line": 870,
+        "code": "const snap = await fbGetDocs(ctx.profRef);"
+      },
+      {
+        "file": "js/listeners/profiles.listeners.js",
+        "line": 1016,
+        "code": "fbGetDocs(fbQuery(ctx.profRef, fbWhere('branch', '==', alias)))"
+      },
+      {
+        "file": "js/listeners/profiles.listeners.js",
+        "line": 1108,
+        "code": "const snap    = await fbGetDocs(ctx.profRef);"
+      },
+      {
+        "file": "js/modules/dashboard.js",
+        "line": 646,
+        "code": "jobs.push(getDocs(query("
+      },
+      {
+        "file": "js/modules/dashboard.js",
+        "line": 664,
+        "code": "jobs.push(getDocs(query("
+      },
+      {
+        "file": "js/modules/dashboard.js",
+        "line": 673,
+        "code": "jobs.push(getDocs(query("
+      },
+      {
+        "file": "js/modules/reports/attendanceExcelReport.js",
+        "line": 34,
+        "code": "const snap = await getDocs(query(ref, ...constraints));"
+      },
+      {
+        "file": "js/modules/reports.js",
+        "line": 398,
+        "code": "const _fbSnap = await getDocs(query(colRef, where(\"date\", \">=\", startStr), where(\"date\", \"<=\", endStr), limit(2000))); // [ExportPaginationFallback]"
+      },
+      {
+        "file": "js/modules/reports.js",
+        "line": 400,
+        "code": "const _fbSnapM = await getDocs(query(colRef, where(\"txMonth\", \">=\", _startM), where(\"txMonth\", \"<=\", _endM), limit(2000))); // [ExportPaginationFallback]"
+      },
+      {
+        "file": "js/modules/reports.js",
+        "line": 404,
+        "code": "const _fbInvSnap = await getDocs(query(invRef, where(\"date\", \">=\", startStr), where(\"date\", \"<=\", endStr), limit(1000))); // [ExportPaginationFallback]"
+      },
+      {
+        "file": "js/modules/reports.js",
+        "line": 1417,
+        "code": "const _fbSnap = await getDocs(query(_qTxFb, limit(2000))); // [ExportPaginationFallback]"
+      },
+      {
+        "file": "js/modules/superadmin.js",
+        "line": 321,
+        "code": "const clubsSnap = await getDocs(query(collection(db, \"clubs\"), limit(200))); // [3.3E] SuperAdmin clubs list — bounded at 200"
+      },
+      {
+        "file": "js/services/attendance.service.js",
+        "line": 84,
+        "code": "const snap = await getDocs(query("
+      },
+      {
+        "file": "js/services/attendance.service.js",
+        "line": 192,
+        "code": "return getDocs(query(collection(db, 'clubs', clubId, 'attendance'), ...constraints));"
+      },
+      {
+        "file": "js/services/attendance.service.js",
+        "line": 215,
+        "code": "const snap   = await getDocs("
+      },
+      {
+        "file": "js/services/attendance.service.js",
+        "line": 286,
+        "code": "const snap = await getDocs(query("
+      },
+      {
+        "file": "js/services/finance.service.js",
+        "line": 76,
+        "code": "const snap   = await getDocs("
+      },
+      {
+        "file": "js/services/finance.service.js",
+        "line": 148,
+        "code": "return getDocs(query(colRef, ...constraints));"
+      },
+      {
+        "file": "js/services/finance.service.js",
+        "line": 180,
+        "code": "getDocs(qByTxMonth),"
+      },
+      {
+        "file": "js/services/finance.service.js",
+        "line": 181,
+        "code": "getDocs(qByDate),"
+      },
+      {
+        "file": "js/services/finance.service.js",
+        "line": 182,
+        "code": "getDocs(qByPackage),"
+      },
+      {
+        "file": "js/services/finance.service.js",
+        "line": 271,
+        "code": "return getDocs(query(colRef, ...constraints));"
+      },
+      {
+        "file": "js/services/finance.service.js",
+        "line": 342,
+        "code": "const snap = await getDocs("
+      },
+      {
+        "file": "js/services/finance.service.js",
+        "line": 360,
+        "code": "const snap = await getDocs("
+      },
+      {
+        "file": "js/services/finance.service.js",
+        "line": 383,
+        "code": "const snap = await getDocs("
+      },
+      {
+        "file": "js/services/finance.service.js",
+        "line": 404,
+        "code": "const snap = await getDocs("
+      },
+      {
+        "file": "js/services/inventory.service.js",
+        "line": 334,
+        "code": "const snap = await getDocs(collection(db, 'clubs', clubId, 'inventory'));"
+      },
+      {
+        "file": "js/services/inventory.service.js",
+        "line": 398,
+        "code": "const txSnap = await getDocs(q);"
+      },
+      {
+        "file": "js/services/inventory.service.js",
+        "line": 513,
+        "code": "return getDocs(query(invRef, ...constraints));"
+      },
+      {
+        "file": "js/services/students.service.js",
+        "line": 142,
+        "code": "return getDocs(query(colRef, ...constraints));"
+      },
+      {
+        "file": "js/services/students.service.js",
+        "line": 289,
+        "code": "const snap = await getDocs("
+      },
+      {
+        "file": "js/services/students.service.js",
+        "line": 345,
+        "code": "const snap = await getDocs(q);"
+      },
+      {
+        "file": "js/utils/firestore-guard.js",
+        "line": 123,
+        "code": "return getDocs(q);"
+      },
+      {
+        "file": "js/utils/monthlyHelpers.js",
+        "line": 165,
+        "code": "const snaps = await Promise.allSettled(queries.map(q => getDocs(q)));"
+      }
+    ],
+    "onSnapshot": [
+      {
+        "file": "app.js",
+        "line": 1830,
+        "code": "window.safeRegisterSnapshot(_clubKey, () => onSnapshot(clubRef, _clubCb),"
+      },
+      {
+        "file": "app.js",
+        "line": 1833,
+        "code": "const _u_club = onSnapshot(clubRef, _clubCb);"
+      },
+      {
+        "file": "app.js",
+        "line": 1877,
+        "code": "window.safeRegisterSnapshot(_settingsKey, () => onSnapshot(settingsRef, _settingsCb),"
+      },
+      {
+        "file": "app.js",
+        "line": 1880,
+        "code": "const _u_settings = onSnapshot(settingsRef, _settingsCb);"
+      },
+      {
+        "file": "app.js",
+        "line": 1936,
+        "code": "window.safeRegisterSnapshot(_invStatsKey, () => onSnapshot(invStatsRef, _invStatsCb),"
+      },
+      {
+        "file": "app.js",
+        "line": 1939,
+        "code": "const _u_invStats = onSnapshot(invStatsRef, _invStatsCb);"
+      },
+      {
+        "file": "app.js",
+        "line": 1994,
+        "code": "const _u_profiles = onSnapshot(profRef, (snap) => {"
+      },
+      {
+        "file": "app.js",
+        "line": 2418,
+        "code": "() => onSnapshot(_inventoryDebtQuery, _inventoryDebtCb, _inventoryDebtError),"
+      },
+      {
+        "file": "app.js",
+        "line": 2423,
+        "code": "const unsubscribe = onSnapshot(_inventoryDebtQuery, _inventoryDebtCb, _inventoryDebtError);"
+      },
+      {
+        "file": "app.js",
+        "line": 3900,
+        "code": "const canonicalUnsub = onSnapshot(qCanonical, (snap) => { _recordTxSourceSnapshot('canonical', snap); _byDate = snap.docs.map(d => ({id: d.id, ...d.data()})); _byTxMonth = []; _byPackageMonth = []; _mergeAndRender(); });"
+      },
+      {
+        "file": "app.js",
+        "line": 3903,
+        "code": "const u1 = onSnapshot(qByDate, (snap) => { _recordTxSourceSnapshot('byDate', snap); _byDate = snap.docs.map(d => ({id: d.id, ...d.data()})); _mergeAndRender(); });"
+      },
+      {
+        "file": "app.js",
+        "line": 3904,
+        "code": "const u2 = onSnapshot(qByTxMonth, (snap) => { _recordTxSourceSnapshot('byTxMonth', snap); _byTxMonth = snap.docs.map(d => ({id: d.id, ...d.data()})); _mergeAndRender(); });"
+      },
+      {
+        "file": "app.js",
+        "line": 3905,
+        "code": "const u3 = onSnapshot(qByPackageMonth, (snap) => { _recordTxSourceSnapshot('byPackageMonth', snap); _byPackageMonth = snap.docs.map(d => ({id: d.id, ...d.data()})); _mergeAndRender(); });"
+      },
+      {
+        "file": "app.js",
+        "line": 9746,
+        "code": "const _unsub = onSnapshot(q, (snap) => {"
+      },
+      {
+        "file": "app.js",
+        "line": 9758,
+        "code": "window._notifUnsubscribe = onSnapshot(q, (snap) => {"
+      },
+      {
+        "file": "js/listeners/profiles.listeners.js",
+        "line": 600,
+        "code": "const unsub = fbOnSnapshot("
+      },
+      {
+        "file": "js/listeners/profiles.listeners.js",
+        "line": 723,
+        "code": "return fbOnSnapshot("
+      }
+    ]
+  },
+  "startupAuthorities": [
+    {
+      "id": "auth.users.verify",
+      "primitive": "getDoc",
+      "source": "app.js:_readUserAuthorizationProfileOnce",
+      "normalStartup": true
+    },
+    {
+      "id": "auth.superadmin.principal",
+      "primitive": "getDoc",
+      "source": "app.js:_ensureSuperAdminPrincipal",
+      "normalStartup": "superadmin-only"
+    },
+    {
+      "id": "tenant.club.bootstrap",
+      "primitive": "getDoc",
+      "source": "app.js:initSaaSDatabase expiry/status check",
+      "normalStartup": "non-superadmin"
+    },
+    {
+      "id": "tenant.club.listener",
+      "primitive": "onSnapshot",
+      "source": "app.js:initSaaSDatabase clubRef",
+      "normalStartup": "tenant"
+    },
+    {
+      "id": "settings.main.listener",
+      "primitive": "onSnapshot",
+      "source": "app.js:initSaaSDatabase settings/main_config",
+      "normalStartup": "admin/viewer"
+    },
+    {
+      "id": "settings.inventory.listener",
+      "primitive": "onSnapshot",
+      "source": "app.js:initSaaSDatabase settings/inventory_stats",
+      "normalStartup": "admin/viewer"
+    },
+    {
+      "id": "profiles.active.listener",
+      "primitive": "onSnapshot",
+      "source": "js/listeners/profiles.listeners.js",
+      "normalStartup": "tenant"
+    },
+    {
+      "id": "transactions.month.listener",
+      "primitive": "onSnapshot",
+      "source": "app.js:listenToData",
+      "normalStartup": "admin/viewer"
+    },
+    {
+      "id": "inventory.activeDebt.listener",
+      "primitive": "onSnapshot",
+      "source": "app.js:initSaaSDatabase",
+      "normalStartup": "admin/viewer"
+    },
+    {
+      "id": "notifications.listener",
+      "primitive": "onSnapshot",
+      "source": "app.js:setupNotifListener",
+      "normalStartup": "admin"
+    },
+    {
+      "id": "notifications.initialQuery",
+      "primitive": "getDocs",
+      "source": "app.js:checkAdminNotifications",
+      "normalStartup": "admin",
+      "redundantWith": "notifications.listener"
+    },
+    {
+      "id": "superadmin.clubs.list",
+      "primitive": "getDocs",
+      "source": "js/modules/superadmin.js:loadSuperAdminData",
+      "normalStartup": "superadmin"
+    },
+    {
+      "id": "superadmin.stats.perClub",
+      "primitive": "getDoc",
+      "source": "js/modules/superadmin.js:loadSuperAdminData",
+      "normalStartup": "superadmin"
+    }
+  ],
+  "notificationOneShotSignature": "window.checkAdminNotifications = async",
+  "superAdminStatsReadSignature": "getDoc(doc(db, 'clubs', cid, 'stats', _statsDocId4K))",
+  "transactionSourceInvariant": {
+    "canonical": 1,
+    "legacy": 3,
+    "simultaneousAllowed": false
+  },
+  "globalMetrics": {
+    "appSizeBytes": 662494,
+    "appLines": 10745,
+    "windowAssignments": 534,
+    "duplicateGlobals": 159
+  }
+}

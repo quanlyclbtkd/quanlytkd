@@ -49,6 +49,7 @@
   }
 
   function _saFmtOptionalCount(value) {
+      if (value === null || value === undefined || value === '') return '--';
       const n = Number(value);
       return Number.isFinite(n) ? n.toLocaleString('vi-VN') : '--';
   }
@@ -63,6 +64,91 @@
   function _saFmtRevenueFull(value) {
       const n = Number(value);
       return Number.isFinite(n) ? n.toLocaleString('vi-VN') + '₫' : '--';
+  }
+
+
+  // Phase 4K-6V5U6A — pure presentation recompute from already-loaded SuperAdmin data.
+  // No Firestore access. Used after initial load and after server summary responses are
+  // merged into window._saClubData so auto refresh never needs a full client reload.
+  function _renderSuperAdminSummaryFromLoadedData(clubDataList, today, in30Days, curMonth) {
+      const list = Array.isArray(clubDataList) ? clubDataList : [];
+      const month = String(curMonth || list[0]?.curMonth || '').slice(0, 7);
+      const totalKB = list.reduce((sum, item) => sum + (Number(item?.estimatedKB) || 0), 0);
+      const FREE_QUOTA_KB = 1024 * 1024;
+      const usagePct = Math.min(100, (totalKB / FREE_QUOTA_KB) * 100).toFixed(2);
+      const totalDisplay = totalKB >= 1024 ? (totalKB / 1024).toFixed(2) + ' MB' : totalKB + ' KB';
+      const usageBarEl = document.getElementById('firebaseUsageBar');
+      if (usageBarEl) {
+          usageBarEl.style.display = 'block';
+          const totalUsage = document.getElementById('firebaseTotalUsage');
+          if (totalUsage) totalUsage.innerText = `${totalDisplay} / 1 GB (${usagePct}%)`;
+          const barColor = usagePct > 80 ? '#ef4444' : usagePct > 50 ? '#f59e0b' : '#6366f1';
+          const fill = document.getElementById('firebaseUsageBarFill');
+          if (fill) { fill.style.width = Math.max(0.5, usagePct) + '%'; fill.style.background = `linear-gradient(90deg,${barColor},${barColor}cc)`; }
+      }
+
+      let totalActive = 0, totalExpiring = 0, totalExpired = 0, totalLocked = 0;
+      let totalStudents = 0, studentKnownClubCount = 0;
+      let totalRevenue = 0, revenueClubCount = 0;
+      list.forEach(({ data = {}, studentCountForSummary, revenueTotal, hasRevenueSource }) => {
+          if (hasRevenueSource && Number.isFinite(Number(revenueTotal))) {
+              totalRevenue += Number(revenueTotal || 0);
+              revenueClubCount++;
+          }
+          const expiryDate = data.expiryDate || '2027-04-30';
+          const acctStatus = data.accountStatus || 'active';
+          const isExpired = expiryDate < today;
+          const isExpiring = !isExpired && expiryDate <= in30Days;
+          const isLocked = acctStatus === 'locked';
+          if (isLocked) totalLocked++;
+          else if (isExpired) totalExpired++;
+          else if (isExpiring) totalExpiring++;
+          else totalActive++;
+          if (studentCountForSummary !== null && studentCountForSummary !== undefined && studentCountForSummary !== '' && Number.isFinite(Number(studentCountForSummary))) {
+              totalStudents += Number(studentCountForSummary);
+              studentKnownClubCount++;
+          }
+      });
+
+      const totalStudentsDisplay = studentKnownClubCount > 0 ? totalStudents.toLocaleString('vi-VN') : '--';
+      const totalStudentsNote = studentKnownClubCount > 0
+          ? (studentKnownClubCount + '/' + list.length + ' CLB có cache')
+          : 'chưa có cache thống kê';
+      const revenueDisplay = revenueClubCount > 0 ? _saFmtRevenueShort(totalRevenue) : '--';
+      const revenueNote = revenueClubCount + '/' + list.length + ' CLB có stats/cache';
+      const statsEl = document.getElementById('superAdminStats');
+      if (statsEl) {
+          statsEl.innerHTML = `
+              <div style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1.5px solid #86efac;padding:14px 12px;border-radius:14px;text-align:center;position:relative;overflow:hidden;">
+                  <div style="font-size:0.65rem;font-weight:900;color:#15803d;text-transform:uppercase;letter-spacing:0.05em;">Tổng CLB</div>
+                  <div style="font-size:2rem;font-weight:900;color:#15803d;line-height:1.1;margin-top:4px;">${list.length}</div>
+                  <div style="font-size:0.65rem;color:#86efac;font-weight:700;margin-top:2px;">${totalActive} đang hoạt động</div>
+              </div>
+              <div style="background:linear-gradient(135deg,#fefce8,#fef9c3);border:1.5px solid #fde047;padding:14px 12px;border-radius:14px;text-align:center;">
+                  <div style="font-size:0.65rem;font-weight:900;color:#a16207;text-transform:uppercase;letter-spacing:0.05em;">Sắp Hết Hạn</div>
+                  <div style="font-size:2rem;font-weight:900;color:#ca8a04;line-height:1.1;margin-top:4px;">${totalExpiring}</div>
+                  <div style="font-size:0.65rem;color:#fbbf24;font-weight:700;margin-top:2px;">${totalExpired} đã hết hạn</div>
+              </div>
+              <div style="background:linear-gradient(135deg,#eef2ff,#e0e7ff);border:1.5px solid #a5b4fc;padding:14px 12px;border-radius:14px;text-align:center;">
+                  <div style="font-size:0.65rem;font-weight:900;color:#4338ca;text-transform:uppercase;letter-spacing:0.05em;">Tổng Võ Sinh</div>
+                  <div style="font-size:2rem;font-weight:900;color:#4338ca;line-height:1.1;margin-top:4px;">${totalStudentsDisplay}</div>
+                  <div style="font-size:0.65rem;color:#a5b4fc;font-weight:700;margin-top:2px;">${totalStudentsNote}</div>
+              </div>
+              <div style="background:linear-gradient(135deg,#f0fdf4,#d1fae5);border:1.5px solid #6ee7b7;padding:14px 12px;border-radius:14px;text-align:center;">
+                  <div style="font-size:0.65rem;font-weight:900;color:#065f46;text-transform:uppercase;letter-spacing:0.05em;">Doanh Thu T.${(month.split('-')[1] || '?')}</div>
+                  <div style="font-size:1.1rem;font-weight:900;color:#065f46;line-height:1.1;margin-top:4px;">${revenueDisplay}</div>
+                  <div style="font-size:0.65rem;color:#34d399;font-weight:700;margin-top:2px;">${revenueNote}</div>
+              </div>
+              <div style="background:linear-gradient(135deg,#f8fafc,#f1f5f9);border:1.5px solid #cbd5e1;padding:14px 12px;border-radius:14px;text-align:center;">
+                  <div style="font-size:0.65rem;font-weight:900;color:#475569;text-transform:uppercase;letter-spacing:0.05em;">Dung Lượng</div>
+                  <div style="font-size:1.5rem;font-weight:900;color:#334155;line-height:1.1;margin-top:4px;">${totalDisplay}</div>
+                  <div style="font-size:0.65rem;color:#94a3b8;font-weight:700;margin-top:2px;">${totalLocked} bị khóa</div>
+              </div>`;
+          if (studentKnownClubCount < list.length || revenueClubCount < list.length) {
+              statsEl.innerHTML += '<div style="grid-column:1/-1;margin-top:6px;font-size:0.72rem;color:#64748b;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:8px 10px;">ℹ️ SuperAdmin đang dùng dữ liệu cache/stats tự động từ tài khoản Admin CLB để tránh vượt quota Firestore. CLB nào chưa có cache sẽ hiển thị <b>--</b> cho tới khi Admin CLB đó đăng nhập hoặc Cloud Functions cập nhật stats.</div>';
+          }
+      }
+      return { totalKB, totalActive, totalExpiring, totalExpired, totalLocked, totalStudents, studentKnownClubCount, totalRevenue, revenueClubCount };
   }
 
   window.__saRenderScopeFix = true;
@@ -108,6 +194,7 @@
 
           // ── Club list ───────────────────────────────────────────
           renderClubList:               window._renderSAClubRows,
+          renderSummaryFromLoadedData:  _renderSuperAdminSummaryFromLoadedData,
           filterClubs:                  window.filterSAClubs,
           filterSAClubs:                window.filterSAClubs,
 
@@ -392,26 +479,49 @@
                 return null;
             }
 
+            function _normalizeStatsMonth(value) {
+                const raw = String(value || '').trim().replace('_', '-');
+                const match = raw.match(/^(\d{4})-(\d{2})/);
+                return match ? `${match[1]}-${match[2]}` : '';
+            }
+
+            // V5U6A: revenue is a root-cache hit only when its current-month provenance
+            // is provable. Keyed maps are self-describing; generic "current month"
+            // fields require superAdminStats.month to match the requested month.
             function _readClubCachedRevenue(clubData, monthKey, statsDocId) {
                 if (!clubData || typeof clubData !== 'object') return null;
+                const keyedRevenue = _firstFiniteNumber(
+                    _readMonthlyCachedValue(clubData.cachedMonthlyRevenue, monthKey, statsDocId),
+                    _readMonthlyCachedValue(clubData.monthlyRevenue, monthKey, statsDocId),
+                    _readMonthlyCachedValue(clubData.revenueByMonth, monthKey, statsDocId),
+                    _readMonthlyCachedValue(clubData.statsByMonth, monthKey, statsDocId)
+                );
+                if (Number.isFinite(Number(keyedRevenue))) return keyedRevenue;
+
                 const saStats = clubData.superAdminStats || clubData.clubSummary || clubData.summary || {};
+                const marker = _normalizeStatsMonth(saStats.month || saStats.currentMonth || saStats.monthKey);
+                if (marker !== monthKey) return null;
                 return _firstFiniteNumber(
                     saStats.revenueTotal,
                     saStats.monthlyIncome,
                     saStats.currentMonthRevenue,
                     saStats.incomeTotal,
                     saStats.income && saStats.income.total,
-                    _readMonthlyCachedValue(clubData.cachedMonthlyRevenue, monthKey, statsDocId),
-                    _readMonthlyCachedValue(clubData.monthlyRevenue, monthKey, statsDocId),
-                    _readMonthlyCachedValue(clubData.revenueByMonth, monthKey, statsDocId),
-                    _readMonthlyCachedValue(clubData.statsByMonth, monthKey, statsDocId),
                     clubData.cachedCurrentMonthRevenue,
                     clubData.currentMonthRevenue,
                     clubData.monthRevenue,
-                    clubData.monthlyIncome,
-                    clubData.cachedRevenue,
-                    clubData.totalRevenue
+                    clubData.monthlyIncome
                 );
+            }
+
+            function _readProvableCurrentMonthRootCache(clubData, monthKey, statsDocId) {
+                const student = _readStudentCountFromClub(clubData);
+                const revenue = _readClubCachedRevenue(clubData, monthKey, statsDocId);
+                // _firstFiniteNumber-style helpers return null for unknown. Do not coerce
+                // null through Number(null) because that fabricates a valid zero cache hit.
+                const hasStudent = student !== null && Number.isFinite(student);
+                const hasRevenue = revenue !== null && Number.isFinite(revenue);
+                return { student, revenue, hasStudent, hasRevenue, complete: hasStudent && hasRevenue };
             }
 
             function _readStudentCountFromStats(stats) {
@@ -617,30 +727,28 @@
                 // Ước tính dung lượng (KB): profile ~1KB, tx ~0.5KB, inv ~0.4KB (null → 0)
                 let estimatedKB = Math.round((profileCount || 0) * 1 + (txCount || 0) * 0.5 + (invCount || 0) * 0.4);
 
-                // [Phase 4K] Đọc monthly stats doc — KHÔNG scan transactions cho revenue.
-                // Stats path: clubs/{clubId}/stats/{YYYY_MM}. Ghi bởi Cloud Functions CRUD triggers.
+                // Phase 4K-6V5U6A: root club cache first. Only a club whose current-month
+                // root cache is incomplete pays the stats/{YYYY_MM} point read.
+                const _rootMonthCache = _readProvableCurrentMonthRootCache(data, _curMonth4K, _statsDocId4K);
                 let monthStats = null;
-                try {
-                    const _sSnap = await getDoc(doc(db, 'clubs', cid, 'stats', _statsDocId4K));
-                    if (_sSnap.exists()) {
-                        monthStats = _sSnap.data();
+                if (!_rootMonthCache.complete) {
+                    try {
+                        const _sSnap = await getDoc(doc(db, 'clubs', cid, 'stats', _statsDocId4K));
                         if (window.__txListenerMetrics) {
                             window.__txListenerMetrics.superAdminStatsRead = (window.__txListenerMetrics.superAdminStatsRead || 0) + 1;
                         }
-                    }
-                } catch (_se) { /* silent — stats doc optional; không crash SuperAdmin */ }
+                        if (_sSnap.exists()) monthStats = _sSnap.data();
+                    } catch (_se) { /* optional targeted fallback; keep unknown as -- */ }
+                }
 
-                // Phase 4K-6I-D: derive display-safe stats from cached club doc + stats doc.
-                // Không dùng aggregation. Nếu không có cache/stats thì giữ null để UI hiện "--" thay vì 0 sai.
                 const statsStudentCount = _readStudentCountFromStats(monthStats);
-                activeCount = _firstFiniteNumber(activeCount, statsStudentCount, _readStudentCountFromClub(data));
+                activeCount = _firstFiniteNumber(activeCount, statsStudentCount, _rootMonthCache.student, _readStudentCountFromClub(data));
                 profileCount = _firstFiniteNumber(profileCount, data.cachedProfileCount, data.profileCount, data.totalStudents, activeCount);
                 const studentCountForSummary = _firstFiniteNumber(activeCount, profileCount);
-                const revenueTotal = _firstFiniteNumber(
-                    _readStatsIncomeTotal(monthStats),
-                    _readClubCachedRevenue(data, _curMonth4K, _statsDocId4K)
-                );
-                const hasRevenueSource = Number.isFinite(Number(revenueTotal));
+                const revenueTotal = _rootMonthCache.complete
+                    ? _rootMonthCache.revenue
+                    : _firstFiniteNumber(_readStatsIncomeTotal(monthStats), _rootMonthCache.revenue);
+                const hasRevenueSource = revenueTotal !== null && Number.isFinite(revenueTotal);
                 estimatedKB = Math.round((profileCount || studentCountForSummary || 0) * 1 + (txCount || 0) * 0.5 + (invCount || 0) * 0.4);
 
                 return {
@@ -655,89 +763,9 @@
                 };
             }));
 
-            // Tính tổng dung lượng hệ thống
-            const totalKB = clubDataList.reduce((s, c) => s + c.estimatedKB, 0);
-            const FREE_QUOTA_KB = 1024 * 1024; // 1GB free Firestore quota (ước tính)
-            const usagePct = Math.min(100, (totalKB / FREE_QUOTA_KB) * 100).toFixed(2);
-            const totalDisplay = totalKB >= 1024 ? (totalKB / 1024).toFixed(2) + ' MB' : totalKB + ' KB';
-
-            const usageBarEl = document.getElementById('firebaseUsageBar');
-            if (usageBarEl) {
-                usageBarEl.style.display = 'block';
-                document.getElementById('firebaseTotalUsage').innerText = `${totalDisplay} / 1 GB (${usagePct}%)`;
-                const barColor = usagePct > 80 ? '#ef4444' : usagePct > 50 ? '#f59e0b' : '#6366f1';
-                const fill = document.getElementById('firebaseUsageBarFill');
-                if (fill) { fill.style.width = Math.max(0.5, usagePct) + '%'; fill.style.background = `linear-gradient(90deg,${barColor},${barColor}cc)`; }
-            }
-
-            // Thống kê
-            let totalActive = 0, totalExpiring = 0, totalExpired = 0, totalLocked = 0;
-            let totalStudents = 0;
-            let studentKnownClubCount = 0;
-            // [Phase 4K-6I-D] Tổng doanh thu tháng từ stats/cache docs — không scan transactions, không aggregation.
-            let totalRevenue = 0; let revenueClubCount = 0;
-            clubDataList.forEach(({ revenueTotal, hasRevenueSource }) => {
-                if (hasRevenueSource && Number.isFinite(Number(revenueTotal))) {
-                    totalRevenue += Number(revenueTotal || 0);
-                    revenueClubCount++;
-                }
-            });
-            clubDataList.forEach(({ data, studentCountForSummary }) => {
-                const expiryDate = data.expiryDate || '2027-04-30';
-                const acctStatus = data.accountStatus || 'active';
-                const isExpired = expiryDate < today;
-                const isExpiring = !isExpired && expiryDate <= in30Days;
-                const isLocked = acctStatus === 'locked';
-                if (isLocked) totalLocked++;
-                else if (isExpired) totalExpired++;
-                else if (isExpiring) totalExpiring++;
-                else totalActive++;
-                if (Number.isFinite(Number(studentCountForSummary))) {
-                    totalStudents += Number(studentCountForSummary);
-                    studentKnownClubCount++;
-                }
-            });
-            const totalStudentsDisplay = studentKnownClubCount > 0 ? totalStudents.toLocaleString('vi-VN') : '--';
-            const totalStudentsNote = studentKnownClubCount > 0
-                ? (studentKnownClubCount + '/' + clubDataList.length + ' CLB có cache')
-                : 'chưa có cache thống kê';
-            const revenueDisplay = revenueClubCount > 0 ? _saFmtRevenueShort(totalRevenue) : '--';
-            const revenueNote = revenueClubCount + '/' + clubDataList.length + ' CLB có stats/cache';
-
-            const statsEl = document.getElementById('superAdminStats');
-            if (statsEl) {
-                const totalClubs = clubDataList.length;
-                statsEl.innerHTML = `
-                    <div style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1.5px solid #86efac;padding:14px 12px;border-radius:14px;text-align:center;position:relative;overflow:hidden;">
-                        <div style="font-size:0.65rem;font-weight:900;color:#15803d;text-transform:uppercase;letter-spacing:0.05em;">Tổng CLB</div>
-                        <div style="font-size:2rem;font-weight:900;color:#15803d;line-height:1.1;margin-top:4px;">${totalClubs}</div>
-                        <div style="font-size:0.65rem;color:#86efac;font-weight:700;margin-top:2px;">${totalActive} đang hoạt động</div>
-                    </div>
-                    <div style="background:linear-gradient(135deg,#fefce8,#fef9c3);border:1.5px solid #fde047;padding:14px 12px;border-radius:14px;text-align:center;">
-                        <div style="font-size:0.65rem;font-weight:900;color:#a16207;text-transform:uppercase;letter-spacing:0.05em;">Sắp Hết Hạn</div>
-                        <div style="font-size:2rem;font-weight:900;color:#ca8a04;line-height:1.1;margin-top:4px;">${totalExpiring}</div>
-                        <div style="font-size:0.65rem;color:#fbbf24;font-weight:700;margin-top:2px;">${totalExpired} đã hết hạn</div>
-                    </div>
-                    <div style="background:linear-gradient(135deg,#eef2ff,#e0e7ff);border:1.5px solid #a5b4fc;padding:14px 12px;border-radius:14px;text-align:center;">
-                        <div style="font-size:0.65rem;font-weight:900;color:#4338ca;text-transform:uppercase;letter-spacing:0.05em;">Tổng Võ Sinh</div>
-                        <div style="font-size:2rem;font-weight:900;color:#4338ca;line-height:1.1;margin-top:4px;">${totalStudentsDisplay}</div>
-                        <div style="font-size:0.65rem;color:#a5b4fc;font-weight:700;margin-top:2px;">${totalStudentsNote}</div>
-                    </div>
-                    <div style="background:linear-gradient(135deg,#f0fdf4,#d1fae5);border:1.5px solid #6ee7b7;padding:14px 12px;border-radius:14px;text-align:center;">
-                        <div style="font-size:0.65rem;font-weight:900;color:#065f46;text-transform:uppercase;letter-spacing:0.05em;">Doanh Thu T.${_curMonth4K.split('-')[1]}</div>
-                        <div style="font-size:1.1rem;font-weight:900;color:#065f46;line-height:1.1;margin-top:4px;">${revenueDisplay}</div>
-                        <div style="font-size:0.65rem;color:#34d399;font-weight:700;margin-top:2px;">${revenueNote}</div>
-                    </div>
-                    <div style="background:linear-gradient(135deg,#f8fafc,#f1f5f9);border:1.5px solid #cbd5e1;padding:14px 12px;border-radius:14px;text-align:center;">
-                        <div style="font-size:0.65rem;font-weight:900;color:#475569;text-transform:uppercase;letter-spacing:0.05em;">Dung Lượng</div>
-                        <div style="font-size:1.5rem;font-weight:900;color:#334155;line-height:1.1;margin-top:4px;">${totalDisplay}</div>
-                        <div style="font-size:0.65rem;color:#94a3b8;font-weight:700;margin-top:2px;">${totalLocked} bị khóa</div>
-                    </div>
-                `;
-                if (studentKnownClubCount < clubDataList.length || revenueClubCount < clubDataList.length) {
-                    statsEl.innerHTML += '<div style="grid-column:1/-1;margin-top:6px;font-size:0.72rem;color:#64748b;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:8px 10px;">ℹ️ SuperAdmin đang dùng dữ liệu cache/stats tự động từ tài khoản Admin CLB để tránh vượt quota Firestore. CLB nào chưa có cache sẽ hiển thị <b>--</b> cho tới khi Admin CLB đó đăng nhập hoặc Cloud Functions cập nhật stats.</div>';
-                }
-            }
+            // Phase 4K-6V5U6A: all top-level SuperAdmin presentation is derived from
+            // the already-loaded clubDataList. This helper performs zero Firestore reads.
+            _renderSuperAdminSummaryFromLoadedData(clubDataList, today, in30Days, _curMonth4K);
 
             // Render từng CLB
             if (clubDataList.length === 0) {

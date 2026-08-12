@@ -115,27 +115,38 @@ function hasClubSummaryCache(clubItem, options = {}) {
     data.profileCount,
     data.studentCount
   );
-  const revenue = _firstFiniteNumber(
-    item.revenueTotal,
+  const keyedRevenue = _firstFiniteNumber(
+    _readMonthlyCachedValue(data.cachedMonthlyRevenue, monthKey, docId),
+    _readMonthlyCachedValue(data.monthlyRevenue, monthKey, docId),
+    _readMonthlyCachedValue(data.revenueByMonth, monthKey, docId)
+  );
+  const statsMonth = String(sa.month || sa.currentMonth || '').trim().replace('_', '-').slice(0, 7);
+  const markedRevenue = statsMonth === monthKey ? _firstFiniteNumber(
     sa.revenueTotal,
     sa.monthlyIncome,
     sa.currentMonthRevenue,
     sa.incomeTotal,
     sa.income && sa.income.total,
-    _readMonthlyCachedValue(data.cachedMonthlyRevenue, monthKey, docId),
-    _readMonthlyCachedValue(data.monthlyRevenue, monthKey, docId),
-    _readMonthlyCachedValue(data.revenueByMonth, monthKey, docId),
     data.cachedCurrentMonthRevenue,
     data.currentMonthRevenue,
-    data.monthlyIncome,
-    data.totalRevenue
-  );
+    data.monthlyIncome
+  ) : null;
+  // item.revenueTotal is trusted only after loadSuperAdminData has derived it through
+  // the current-month cache/stats boundary (item.curMonth must match this request).
+  const itemRevenue = String(item.curMonth || '').slice(0, 7) === monthKey
+    ? _firstFiniteNumber(item.revenueTotal)
+    : null;
+  const revenue = _firstFiniteNumber(itemRevenue, keyedRevenue, markedRevenue);
+  // Null means unknown. Never let Number(null) turn an unknown cache field into a
+  // fabricated zero/complete state; that would suppress the targeted stats/server fallback.
+  const hasStudent = student !== null && Number.isFinite(student);
+  const hasRevenue = revenue !== null && Number.isFinite(revenue);
   return {
-    hasStudent: Number.isFinite(Number(student)),
-    hasRevenue: Number.isFinite(Number(revenue)),
+    hasStudent,
+    hasRevenue,
     student,
     revenue,
-    missing: !(Number.isFinite(Number(student)) && Number.isFinite(Number(revenue)))
+    missing: !(hasStudent && hasRevenue)
   };
 }
 
@@ -226,6 +237,9 @@ function _applySummaryToClubData(cid, summary) {
     updatedAt: Date.now(),
     source: 'callable-refreshSuperAdminSummaryForClub'
   });
+  // Presentation-only estimate: keep the loaded row coherent without a Firestore reload.
+  item.estimatedKB = Math.round((item.profileCount || item.studentCountForSummary || 0) * 1 + (item.txCount || 0) * 0.5 + (item.invCount || 0) * 0.4);
+  item.curMonth = month;
   return true;
 }
 
@@ -333,9 +347,17 @@ async function maybeAutoRefreshSuperAdminSummaries(clubDataList, options = {}) {
     _inFlight = null;
     if (ok > 0 && window._saClubData && typeof window._renderSAClubRows === 'function') {
       try {
-        window._renderSAClubRows(window._saClubData.clubDataList, window._saClubData.today, window._saClubData.in30Days);
-      } catch (e) { console.warn('[SuperAdminServerRefresh] row rerender failed:', e?.message || e); }
-      setTimeout(() => { try { window.loadSuperAdminData?.(); } catch (_) {} }, 600);
+        const loaded = window._saClubData;
+        window._renderSAClubRows(loaded.clubDataList, loaded.today, loaded.in30Days);
+        // V5U6A: server response has already been merged into loaded RAM. Recompute the
+        // aggregate presentation from that same data instead of re-reading all clubs/stats.
+        window.SuperAdminModule?.renderSummaryFromLoadedData?.(
+          loaded.clubDataList,
+          loaded.today,
+          loaded.in30Days,
+          options.month || _monthVN()
+        );
+      } catch (e) { console.warn('[SuperAdminServerRefresh] in-memory rerender failed:', e?.message || e); }
     }
     _renderStatus(ok > 0 ? `✅ Đã cập nhật thống kê nền ${ok}/${total} CLB. Nếu còn CLB hiển thị --, hệ thống sẽ tiếp tục ở lần mở sau hoặc khi Functions chạy lịch.` : '⚠️ Chưa cập nhật được thống kê nền. Kiểm tra deploy Cloud Functions/quyền SuperAdmin.', ok > 0 ? 'ok' : 'warn');
     return { ok: ok > 0, refreshed: ok, attempted: done, total };

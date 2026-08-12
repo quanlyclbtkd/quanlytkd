@@ -216,7 +216,13 @@
     "check:superadmin-auth-principal-alignment": "node tools/check-superadmin-auth-principal-alignment.mjs",
     "check:admin-credential-single-source": "node tools/check-admin-credential-single-source.mjs",
     "check:auth-context-single-writer": "node tools/check-auth-context-single-writer.mjs",
-    "check:legacy-global-freeze": "node tools/check-legacy-global-freeze.mjs"
+    "check:legacy-global-freeze": "node tools/check-legacy-global-freeze.mjs",
+    "check:notification-single-read-authority": "node tools/check-notification-single-read-authority.mjs",
+    "check:superadmin-cache-first-read": "node tools/check-superadmin-cache-first-read.mjs",
+    "check:parallel-read-authority": "node tools/check-parallel-read-authority.mjs",
+    "check:startup-read-budget-freeze": "node tools/check-startup-read-budget-freeze.mjs",
+    "check:club-bootstrap-single-read-authority": "node tools/check-club-bootstrap-single-read-authority.mjs",
+    "check:club-initial-snapshot-access-gate": "node tools/check-club-initial-snapshot-access-gate.mjs"
   },
   "engines": {
     "node": ">=18.0.0"
