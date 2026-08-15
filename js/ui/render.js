@@ -32,9 +32,8 @@ import {
     renderBranchStats,
     renderExamBranchFees,
     updateSummaryNumbers,
-    fetchAndRenderHistoricalCharts,
-    tryApplyCurrentMonthStats,
-} from '../modules/dashboard.js?v=firestore-read-attribution-canonical-tx-boundary-20260616-v3a';
+    getDashboardCanonicalStatsSnapshot,
+} from '../modules/dashboard.js?v=dashboard-hydration-mutation-guard-20260812-v5u6c2';
 
 import { store } from '../store.js';
 import {
@@ -260,8 +259,12 @@ function renderApp() {
     const _curTabEl = document.querySelector('.tab-content.active');
     const _curTabId = _curTabEl ? _curTabEl.id.replace('tab_', '') : 'tx';
 
-    if (_curTabId === 'attendance' && typeof window.renderAttendanceList === 'function') {
-        window.renderAttendanceList();
+    if (_curTabId === 'attendance') {
+        if (typeof window.AttendanceModule?.renderDailyFromRam === 'function') {
+            window.AttendanceModule.renderDailyFromRam('module-renderApp-profile-presentation');
+        } else if (typeof window.renderAttendanceList === 'function') {
+            window.renderAttendanceList('module-renderApp-profile-presentation', { presentationOnly: true, allowInitialLoad: true });
+        }
     }
 
     const fmEl      = document.getElementById('filterMonth');
@@ -365,9 +368,31 @@ function renderApp() {
     const reportHtml = `<tr><td class="font-black text-primary">${formatMonth(selMonth)}</td><td class="text-slate-800 font-bold text-base">${m_actual}</td><td class="text-emerald-600 font-medium">+${m_new}</td><td class="text-rose-600 font-medium">-${m_quit}</td><td class="text-emerald-600 font-bold">${tInc.toLocaleString()} ₫</td><td class="text-rose-600 font-bold">${tExp.toLocaleString()} ₫</td><td class="${(tInc - tExp) < 0 ? 'text-rose-600' : 'text-emerald-600'} font-black text-base bg-slate-50">${(tInc - tExp).toLocaleString()} ₫</td></tr>`;
 
     // ── Chart data — 6 tháng gần nhất ───────────────────────────────────────
+    // Phase 4K-6V5U6C: render.js is RAM-only. It may consume the accepted
+    // canonical Dashboard snapshot, but it never starts a Firestore stats read.
+    const _canonicalDashboard = selMonth
+        ? getDashboardCanonicalStatsSnapshot(selMonth)
+        : { ready: false, chartData: null, reportHtml: '' };
+
     const chartLabels = [], chartIncome = [], chartExpense = [], chartActive = [];
-    const historicalMonths = [];
-    if (selMonth) {
+    if (_canonicalDashboard.ready && _canonicalDashboard.chartData) {
+        const cd = _canonicalDashboard.chartData;
+        chartLabels.push(...(Array.isArray(cd.labels) ? cd.labels : []));
+        chartIncome.push(...(Array.isArray(cd.income) ? cd.income : []));
+        chartExpense.push(...(Array.isArray(cd.expense) ? cd.expense : []));
+        chartActive.push(...(Array.isArray(cd.active) ? cd.active : []));
+        // V5U6C1: a dirty selected month may reuse clean historical cache, but its
+        // current finance/member point must stay on fresh RAM until canonical stats catch up.
+        if (_canonicalDashboard.freshness && _canonicalDashboard.freshness.selectedMonthDirty) {
+            const currentIdx = Array.isArray(_canonicalDashboard.months)
+                ? _canonicalDashboard.months.indexOf(selMonth) : -1;
+            if (currentIdx >= 0) {
+                chartIncome[currentIdx] = tInc;
+                chartExpense[currentIdx] = tExp;
+                chartActive[currentIdx] = m_actual;
+            }
+        }
+    } else if (selMonth) {
         const [sy, sm] = selMonth.split('-').map(Number);
         const months = [];
         for (let i = 0; i < 6; i++) {
@@ -375,32 +400,25 @@ function renderApp() {
             if (m <= 0) { m += 12; y -= 1; }
             months.push(`${y}-${String(m).padStart(2, '0')}`);
         }
+        months.reverse().forEach((m, idx) => {
+            chartLabels[idx]  = formatMonth(m);
+            chartIncome[idx]  = m === selMonth ? tInc : 0;
+            chartExpense[idx] = m === selMonth ? tExp : 0;
+            chartActive[idx]  = m === selMonth ? m_actual : 0;
+        });
+    }
 
-        // Phase 4K-5D: Bảo vệ historical data — không overwrite bằng current-only chart
-        const _hist = typeof window.getDashboardHistoricalSnapshot === 'function'
-            ? window.getDashboardHistoricalSnapshot()
-            : null;
-        const _useHist = _hist && _hist.hasHistory && _hist.chartData && _hist.reportRows >= 2;
-
-        if (_useHist && _hist.chartData) {
-            // Dùng dữ liệu lịch sử đã có — chỉ cập nhật tháng hiện tại
-            const _hc = _hist.chartData;
-            months.reverse().forEach((m, idx) => {
-                chartLabels[idx]  = _hc.labels  && _hc.labels[idx]  !== undefined ? _hc.labels[idx]  : formatMonth(m);
-                chartIncome[idx]  = m === selMonth ? tInc : (_hc.income  && _hc.income[idx]  !== undefined ? _hc.income[idx]  : 0);
-                chartExpense[idx] = m === selMonth ? tExp : (_hc.expense && _hc.expense[idx] !== undefined ? _hc.expense[idx] : 0);
-                chartActive[idx]  = m === selMonth ? m_actual : (_hc.active && _hc.active[idx] !== undefined ? _hc.active[idx] : 0);
-                if (m !== selMonth) historicalMonths.push({ month: m, idx });
-            });
-        } else {
-            months.reverse().forEach((m, idx) => {
-                chartLabels[idx]  = formatMonth(m);
-                chartIncome[idx]  = m === selMonth ? tInc : 0;
-                chartExpense[idx] = m === selMonth ? tExp : 0;
-                chartActive[idx]  = m === selMonth ? m_actual : 0;
-                if (m !== selMonth) historicalMonths.push({ month: m, idx });
-            });
-        }
+    let _dashboardReportHtml = (
+        _canonicalDashboard.ready &&
+        typeof _canonicalDashboard.reportHtml === 'string' &&
+        _canonicalDashboard.reportHtml
+    ) ? _canonicalDashboard.reportHtml : reportHtml;
+    if (_canonicalDashboard.ready && _canonicalDashboard.freshness?.selectedMonthDirty) {
+        // Keep historical rows, replace only the selected row with the fresh RAM row.
+        const selectedRowPattern = /<tr><td class="font-black text-primary">[\s\S]*?<\/tr>/;
+        _dashboardReportHtml = selectedRowPattern.test(_dashboardReportHtml)
+            ? _dashboardReportHtml.replace(selectedRowPattern, reportHtml)
+            : reportHtml;
     }
 
     // ── Summary numbers object (Phase 3.5B: dùng cho dashboard island) ──────
@@ -435,7 +453,7 @@ function renderApp() {
         activeList:      getStudentsCachedHtml('activeRows'),
         quitList:        getStudentsCachedHtml('quitRows'),
         inventoryList:   getInventoryCachedHtml('invListRows'),
-        reportList:      reportHtml,
+        reportList:      _dashboardReportHtml,
         _chartData,
     };
     if (window.__store) window.__store.tabHtmlCache = tabHtmlCache;
@@ -443,7 +461,7 @@ function renderApp() {
     // Phase 3.5B: lưu dashboard data vào dashboardRenderer module-local cache
     // Islands (renderDashboard.js) đọc từ đây thay vì tabHtmlCache trực tiếp
     cacheDashboardData({
-        reportHtml,
+        reportHtml:     _dashboardReportHtml,
         chartData:      _chartData,
         bStats:         _bStats,
         bExamStats:     _bExamStats,
@@ -498,38 +516,13 @@ function renderApp() {
         renderBranchStats(_bStats);
         renderExamBranchFees(_bExamStats, inc_exam);
         updateSummaryNumbers(_summaryNumbers);
-
-        // [Phase 4K-FIX Lỗi 4] Ưu tiên stats doc cho tổng thu/chi tháng hiện tại.
-        // tryApplyCurrentMonthStats đọc stats doc (Cloud Functions) và override
-        // totalIncomeDashboard / totalExpenseDashboard / totalProfitDashboard nếu có.
-        // Fallback an toàn: nếu stats doc chưa tồn tại → giữ allTransactions-based numbers.
-        if (selMonth && typeof window.tryApplyCurrentMonthStats === 'function') {
-            window.tryApplyCurrentMonthStats(selMonth).catch(() => {
-                // silent fail — không phá dashboard nếu stats doc read lỗi
-            });
-        }
-
-        if (historicalMonths.length > 0) {
-            fetchAndRenderHistoricalCharts(
-                historicalMonths, chartLabels, chartIncome, chartExpense, chartActive
-            ).catch(err => {
-                const h = window.location.hostname;
-                if (h === 'localhost' || h.endsWith('.replit.dev')) {
-                    console.warn('[render.js] Historical stats load (OK nếu Cloud Functions chưa deploy):', err.message);
-                }
-            });
-        }
     } else if (_curTabId === 'dashboard') {
-        // Trường hợp hiếm: _curTabId là dashboard nhưng DOM class chưa sync
-        // Gọi bình thường để đảm bảo không hiển thị trắng
+        // Trường hợp hiếm: _curTabId là dashboard nhưng DOM class chưa sync.
+        // V5U6C vẫn chỉ render RAM/canonical snapshot, không tạo Firestore read.
         renderDashboardCharts(_chartData);
         renderBranchStats(_bStats);
         renderExamBranchFees(_bExamStats, inc_exam);
         updateSummaryNumbers(_summaryNumbers);
-        // [Phase 4K-FIX Lỗi 4] Cũng áp dụng stats doc override ở đây
-        if (selMonth && typeof window.tryApplyCurrentMonthStats === 'function') {
-            window.tryApplyCurrentMonthStats(selMonth).catch(() => {});
-        }
     }
     // Nếu dashboard không active: data đã cache, islands đã mark dirty → skip DOM work
 }

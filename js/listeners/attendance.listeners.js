@@ -16,7 +16,7 @@
  *   Tab mount:
  *     → safeRegisterSnapshot() guard — không mount trùng khi click tab nhiều lần
  *     → nếu đã mount: chỉ trigger re-render (không tạo entry mới)
- *     → trigger invalidateAttendance() → renderAttendanceList()
+ *     → trigger invalidateAttendance() → active-subtab presentation island
  *
  *   Tab cleanup (khi rời tab):
  *     → xóa pseudo-entry khỏi registry
@@ -26,7 +26,7 @@
  *     → attendance không nhận onSnapshot trực tiếp
  *     → khi allProfiles thay đổi (profiles global listener), app.js gọi
  *       window.invalidateStudents() + window.invalidateAttendance()
- *     → renderAttendanceList() re-run khi tab attendance active
+ *     → daily cards re-render from canonical RAM snapshot when Day is active
  *
  * TODO Phase 3.6C:
  *   Nếu attendance cần realtime onSnapshot (multi-device sync thực sự):
@@ -116,15 +116,18 @@ export function cleanupAttendanceListeners(reason = 'tab-leave') {
 
 /**
  * Trigger render attendance sau khi mount/remount.
- * Dùng invalidateAttendance nếu có (Phase 3.5B+), fallback renderAttendanceList.
+ * Dùng invalidateAttendance nếu có (Phase 3.5B+), fallback vẫn chỉ
+ * request canonical RAM presentation; không tạo daily network owner thứ hai.
  * @param {string} reason
  */
 function _triggerAttendanceRender(reason) {
     try {
         if (typeof window.invalidateAttendance === 'function') {
             window.invalidateAttendance(reason);
+        } else if (typeof window.AttendanceModule?.renderDailyFromRam === 'function') {
+            window.AttendanceModule.renderDailyFromRam(reason);
         } else if (typeof window.renderAttendanceList === 'function') {
-            window.renderAttendanceList();
+            window.renderAttendanceList(reason, { presentationOnly: true, allowInitialLoad: true });
         }
     } catch (e) {
         if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {

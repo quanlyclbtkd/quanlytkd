@@ -139,8 +139,10 @@ console.log('[TenantIsolation] [4] Kiểm tra legacy fallback có guard — khô
 // Guard đúng: fallback chỉ kích hoạt khi source = 'legacy-root'
 checkPattern(appSrc, "source === 'legacy-root'",
     "Guard: fallback chỉ kích hoạt khi source = 'legacy-root'");
-checkPattern(appSrc, "'auto-runtime-recovery'",
-    "Fallback được gọi có reason='auto-runtime-recovery' (có kiểm soát)");
+checkPattern(appSrc, "'manual-runtime-recovery'",
+    "Fallback chỉ được gọi với reason='manual-runtime-recovery'");
+checkAbsent(appSrc, "'auto-runtime-recovery'",
+    'Không còn legacy fallback tự động trong production runtime');
 
 // ════════════════════════════════════════════════════════════════
 // 5. Firestore rules không có catch-all public read
@@ -217,11 +219,21 @@ if (!hasMigration) {
 console.log('');
 console.log('[TenantIsolation] [9] Kiểm tra SuperAdmin guard...');
 if (rulesSrc) {
-    // SuperAdmin route phải yêu cầu isSuperAdmin(), không phải isClubAdmin
+    // Canonical SuperAdmin authority permits one deliberately narrow ROOT
+    // self-bootstrap path; list/update/delete remain isSuperAdmin-only.
     checkPattern(rulesSrc, /match\s*\/super_admins\/\{uid\}/,
         'super_admins collection có match rule riêng biệt');
-    checkPattern(rulesSrc, /allow\s+read,\s*write\s*:\s*if\s+isSuperAdmin\(\)/,
-        'super_admins chỉ cho phép isSuperAdmin() — không phải isClubAdmin');
+    const saStart = rulesSrc.search(/match\s*\/super_admins\/\{uid\}/);
+    const saEnd = saStart >= 0 ? rulesSrc.indexOf('match /{document=**}', saStart) : -1;
+    const saBlock = saStart >= 0 ? rulesSrc.slice(saStart, saEnd >= 0 ? saEnd : undefined) : '';
+    checkPattern(saBlock, /allow\s+get\s*:\s*if\s+isSuperAdmin\(\)\s*\|\|\s*isBootstrapSuperAdminIdentity\(uid\)/,
+        'super_admins get chỉ có canonical SuperAdmin hoặc narrow self-bootstrap');
+    checkPattern(saBlock, /allow\s+list\s*:\s*if\s+isSuperAdmin\(\)/,
+        'super_admins list chỉ cho canonical SuperAdmin');
+    checkPattern(saBlock, /allow\s+create\s*:\s*if[\s\S]*isBootstrapSuperAdminIdentity\(uid\)[\s\S]*keys\(\)\.hasOnly\(\['enabled', 'email', 'createdAt', 'source'\]\)/,
+        'super_admins bootstrap create có identity + payload whitelist hẹp');
+    checkAbsent(saBlock, /isClubAdmin\s*\(|isAdminOrViewer\s*\(|allow\s+read\s*:\s*if\s+true/,
+        'super_admins không mở cho Club Admin/Viewer/public');
 }
 // Trong app.js: SuperAdmin logic được bảo vệ bởi server-side check
 checkPattern(appSrc, /isSuperAdmin|superAdmin|super_admin/,

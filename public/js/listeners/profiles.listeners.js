@@ -300,9 +300,6 @@ function _syncLegacy() {
 function _invalidateAll(reason) {
     if (_isCoachContext()) {
         if (typeof window.invalidateByDomain === 'function') window.invalidateByDomain('attendance', reason);
-        if (typeof window.renderAttendanceList === 'function') {
-            Promise.resolve().then(() => window.renderAttendanceList()).catch(() => {});
-        }
         return;
     }
     // [GITHUB-FIX] Task 5: Dùng invalidateLists cho tất cả student lists nếu có
@@ -520,6 +517,35 @@ export function mountActiveProfilesListener(context) {
     const isCoach = _isCoachContext(context);
     const coachBranch = _coachBranch(context);
 
+    // V5U6G: Admin emergency full-profile fallback and the normal active-module
+    // owner are mutually exclusive. The fallback must be removed BEFORE the
+    // active listener is created, so there is no overlap window on recovery.
+    if (!isCoach) {
+        const emergencyFallbackKey = 'global:profiles:' + clubId;
+        if (typeof window.hasListener === 'function' && window.hasListener(emergencyFallbackKey)) {
+            if (typeof window.removeListener !== 'function') {
+                console.error('[ProfilesAuthority] Cannot takeover emergency fallback without listener cleanup API — fail closed');
+                if (typeof window.recordRuntimeError === 'function') {
+                    window.recordRuntimeError('profiles.fallback-takeover', new Error('listener-cleanup-api-unavailable'), {
+                        classification: 'profile-fallback-takeover-blocked', clubId,
+                    });
+                }
+                return false;
+            }
+            window.removeListener(emergencyFallbackKey, 'profiles-active-module-takeover');
+            if (window.hasListener(emergencyFallbackKey)) {
+                console.error('[ProfilesAuthority] Emergency fallback cleanup verification failed — active mount blocked');
+                if (typeof window.recordRuntimeError === 'function') {
+                    window.recordRuntimeError('profiles.fallback-takeover', new Error('fallback-cleanup-verification-failed'), {
+                        classification: 'profile-fallback-takeover-blocked', clubId,
+                    });
+                }
+                return false;
+            }
+            console.info('[ProfilesAuthority] emergency-full-fallback → active-module takeover completed');
+        }
+    }
+
     // If Đã nghỉ was opened before the active listener mounted, retry the
     // authority exactly once now that the canonical context exists.
     if (!isCoach && window.getCurrentActiveTabId?.() === 'quit' && !isQuitProfilesComplete()) {
@@ -651,8 +677,29 @@ export function mountActiveProfilesListener(context) {
                                     if (ok) {
                                         _invalidateAll('active-zero-full-fallback-completed');
                                     }
+                                } else if (!isCoach && typeof window._moduleDashboard?.reconcileHydrationEvidence === 'function') {
+                                    // V5U6G: the existing zero probe is authoritative evidence that the
+                                    // profiles source is truly empty. Close the provisional hydration
+                                    // state in RAM; no second profile query/reader is introduced.
+                                    window._moduleDashboard.reconcileHydrationEvidence({
+                                        domain: 'members',
+                                        reason: 'active-profiles-zero-probe-empty',
+                                        evidence: {
+                                            activeCount: 0,
+                                            activeAvailable: true,
+                                            coverageComplete: true,
+                                        },
+                                    });
                                 }
-                            }).catch(() => {});
+                            }).catch((error) => {
+                                console.warn('[ProfilesListener] active-zero probe failed; hydration remains incomplete:', error?.code || error?.message || error);
+                                if (typeof window.recordRuntimeError === 'function') {
+                                    window.recordRuntimeError('profiles.active-zero-probe', error, {
+                                        classification: 'profile-zero-probe-failed',
+                                        clubId,
+                                    });
+                                }
+                            });
                         }
                     }
 
@@ -674,6 +721,28 @@ export function mountActiveProfilesListener(context) {
 
                     setActiveProfiles(activeMap, 'active-profiles-snapshot');
                     _syncLegacy();
+                    // V5U6C2: snapshot #1 is hydration evidence, never an automatic
+                    // mutation. Later snapshots mark dirty only when Firestore reports
+                    // a real added/modified/removed document change. Coach remains
+                    // Attendance-only and never participates in Dashboard freshness.
+                    if (!isCoach && _state.activeSnapshotCount === 1 && typeof window._moduleDashboard?.reconcileHydrationEvidence === 'function') {
+                        window._moduleDashboard.reconcileHydrationEvidence({
+                            domain: 'members',
+                            reason: 'active-profiles-initial-hydration',
+                            evidence: {
+                                activeCount,
+                                activeAvailable: true,
+                                coverageComplete: activeCount > 0,
+                            },
+                        });
+                    } else if (!isCoach && _state.activeSnapshotCount > 1 && typeof snap.docChanges === 'function') {
+                        const dashboardProfileChanges = snap.docChanges().filter(change =>
+                            change && (change.type === 'added' || change.type === 'modified' || change.type === 'removed')
+                        );
+                        if (dashboardProfileChanges.length > 0 && typeof window._moduleDashboard?.markStatsDirty === 'function') {
+                            window._moduleDashboard.markStatsDirty('', 'profiles-live-mutation', 'members');
+                        }
+                    }
 
                     _state.activeListenerMounted = true;
                     _state.lastProfilesMode      = 'active-split';
@@ -1157,6 +1226,26 @@ export async function loadFullProfilesFallback(reason) {
         _state.quitAuthorityLoadedAt = Date.now();
         _state.quitAuthorityDirtyReason = '';
         _state.quitAuthorityDocsRead = snap.size || 0;
+
+        // V5U6C2: if the initial status query needed its existing full fallback,
+        // replace the provisional zero/incomplete hydration evidence with the
+        // complete classified active set. This remains RAM-only for Dashboard.
+        if (
+            !_isCoachContext() &&
+            _state.activeSnapshotCount <= 1 &&
+            /active-zero|active-query-error/.test(String(reason || '')) &&
+            typeof window._moduleDashboard?.reconcileHydrationEvidence === 'function'
+        ) {
+            window._moduleDashboard.reconcileHydrationEvidence({
+                domain: 'members',
+                reason: 'active-profiles-initial-fallback-hydration',
+                evidence: {
+                    activeCount: Object.keys(_fallbackActive).length,
+                    activeAvailable: true,
+                    coverageComplete: true,
+                },
+            });
+        }
 
         // [GITHUB-FIX Task 4] Bump _dataVersion + refreshListsComputation sau fallback
         if (window.__store) {

@@ -58,7 +58,7 @@ if (dashboardJs) {
         'fetchHistoricalDashboardFallback build reportRows cho nhiều tháng (vòng lặp)',
         dashboardJs.includes('fetchHistoricalDashboardFallback') &&
         (dashboardJs.includes('reportRows') || dashboardJs.includes('reportHtml')) &&
-        dashboardJs.includes('Array(6)'),
+        (dashboardJs.includes('Array(monthStrings.length)') || dashboardJs.includes('Array(6)')),
         'fetchHistoricalDashboardFallback phải build báo cáo nhiều dòng (6 tháng)'
     );
 

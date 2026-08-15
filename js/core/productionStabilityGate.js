@@ -208,6 +208,7 @@ function getSuperAdminStatsReadiness() {
   const hardStop = _safeCallSync('debugSuperAdminAggregationHardStop', window.debugSuperAdminAggregationHardStop);
   const serverRefresh = _safeCallSync('debugSuperAdminServerRefresh', window.debugSuperAdminServerRefresh);
   const noClientAggregation = window.__saDisableBackgroundCountRefresh === true || window.__saAggregationHardStop === true;
+  const authorityPolicy = window.ProductionAuthorityPolicy || null;
   const functionsReady = !!(window._fb_init && window._fb_init.getFunctions && window._fb_init.httpsCallable);
   const callableReady = _isFunction('refreshSuperAdminCountsForClub') || !!(window.SuperAdminServerRefresh && typeof window.SuperAdminServerRefresh.refreshClub === 'function');
   const result = {
@@ -215,6 +216,7 @@ function getSuperAdminStatsReadiness() {
     isSuperAdmin: isSA,
     superAdminModuleReady: !!window.SuperAdminModule,
     noClientAggregation,
+    authorityPolicy,
     functionsSdkReady: functionsReady,
     callableRefreshReady: callableReady,
     superAdminStatsDom: dom,
@@ -224,8 +226,7 @@ function getSuperAdminStatsReadiness() {
     serverRefresh: serverRefresh.ok ? serverRefresh.value : serverRefresh,
     recommendations: []
   };
-  if (isSA && !functionsReady) result.recommendations.push('Firebase Functions SDK chưa sẵn sàng — SuperAdmin safe server refresh sẽ không chạy.');
-  if (isSA && dom.hasPlaceholder) result.recommendations.push('Một số CLB còn thiếu cache/stats; deploy Cloud Functions và để safe server refresh cập nhật dần.');
+  if (isSA && authorityPolicy?.superAdminServerRefresh === false && dom.hasPlaceholder) result.recommendations.push('Một số CLB có finance cache UNKNOWN; giữ hiển thị -- cho đến khi Admin writer có coverage complete.');
   if (!noClientAggregation) result.recommendations.push('Không được bật lại client aggregation trong SuperAdmin.');
   console.log('[debugSuperAdminStatsReadiness]', result);
   return result;
@@ -290,7 +291,7 @@ function getProductionStabilityGate() {
   const recommendations = [];
 
   if (runtime.runtimeErrorCount > 0) recommendations.push('Có runtime errors gần đây — kiểm tra debugRuntimeErrors().');
-  if (_isSuperAdmin() && superAdmin.superAdminStatsDom?.hasPlaceholder) recommendations.push('SuperAdmin còn CLB thiếu cache/stats; cần deploy Functions hoặc chờ safe server refresh.');
+  if (_isSuperAdmin() && superAdmin.superAdminStatsDom?.hasPlaceholder) recommendations.push('SuperAdmin còn CLB có cache UNKNOWN; không tự gọi Functions và không hiển thị số 0 giả.');
   if (!_isSuperAdmin() && data.profileCount === 0 && data.clubId) recommendations.push('Admin CLB có clubId nhưng profiles = 0 — kiểm tra listener/hydration.');
   if (!financial.ok) recommendations.push('Có bất thường giao dịch — kiểm tra debugFinancialSafetySnapshot().');
   if (!excel.ok) recommendations.push('Excel import VTF chưa sẵn sàng — kiểm tra handleImportExcel/debugExcelImportVtfUpsert.');

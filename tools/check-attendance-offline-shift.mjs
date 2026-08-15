@@ -60,11 +60,14 @@ else
     fail('bulkSyncOffline does NOT write shiftId to Firestore document');
 
 // ─────────────────────────────────────────────────────────────────────────────
-section('6. bulkSyncOffline removes docId from written data (no docId field in Firestore doc)');
-if (/delete writeData\.docId/.test(svc))
-    pass('bulkSyncOffline removes docId from Firestore write data');
+section('6. bulkSyncOffline canonical sanitizer excludes docId/journal metadata');
+const canonicalWriteStart = svc.indexOf('function _toCanonicalAttendanceWrite(');
+const canonicalWriteEnd = svc.indexOf('export const AttendanceService', canonicalWriteStart);
+const canonicalWriteBlock = svc.slice(canonicalWriteStart, canonicalWriteEnd);
+if (canonicalWriteStart >= 0 && !/\bdocId\s*:/.test(canonicalWriteBlock) && !canonicalWriteBlock.includes('...rec'))
+    pass('bulkSyncOffline whitelist sanitizer excludes docId and journal metadata from Firestore data');
 else
-    warn('bulkSyncOffline may write docId as a field — harmless but noisy in Firestore');
+    fail('bulkSyncOffline canonical sanitizer missing or may leak docId/journal metadata');
 
 // ─────────────────────────────────────────────────────────────────────────────
 section('7. bulkCheckIn catch rollback uses getAttendanceDocId');

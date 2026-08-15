@@ -62,6 +62,36 @@ function _transactionsArray() {
          Array.isArray(window.allTransactions) ? window.allTransactions : [];
 }
 
+function _authorityPolicy() {
+  return window.ProductionAuthorityPolicy || null;
+}
+
+function _clientStatsWriterAllowed() {
+  const policy = _authorityPolicy();
+  return !!(policy && policy.mode === 'client-only' && policy.statsWriter === 'client');
+}
+
+function _transactionFinanceCoverage(monthKey, clubId) {
+  const coverage = window.__store?.transactionCoverage;
+  const sameClub = !!coverage && String(coverage.clubId || '') === String(clubId || '');
+  const sameMonth = !!coverage && String(coverage.month || '') === String(monthKey || '');
+  const financeComplete = sameClub && sameMonth && coverage.ready === true && coverage.complete === true;
+  return {
+    month: monthKey,
+    financeComplete,
+    transactionReadMode: String(coverage?.readMode || 'unknown'),
+    transactionHitLimit: coverage?.hitLimit === true,
+    transactionObservedCount: Math.max(0, Number(coverage?.mergedCount) || 0),
+    transactionSourceCounts: coverage?.sourceCounts && typeof coverage.sourceCounts === 'object'
+      ? { ...coverage.sourceCounts }
+      : {},
+    transactionLimit: Math.max(0, Number(coverage?.limit) || 0),
+    sameClub,
+    sameMonth,
+    checkedAt: Date.now(),
+  };
+}
+
 function _inventoryArray() {
   const st = window.__store || {};
   return Array.isArray(st.inventory) ? st.inventory :
@@ -143,6 +173,7 @@ function computeClubStatsCache(monthKey = getCurrentMonthVN()) {
     else if (_isIncomeTx(tx)) monthlyIncome += amt;
   }
 
+  const transactionCoverage = _transactionFinanceCoverage(monthKey, _clubId());
   return {
     month: monthKey,
     statsDocId: _statsDocId(monthKey),
@@ -156,6 +187,8 @@ function computeClubStatsCache(monthKey = getCurrentMonthVN()) {
     monthlyExpense,
     monthlyProfit: monthlyIncome - monthlyExpense,
     monthlyTxCount,
+    transactionCoverage,
+    financeComplete: transactionCoverage.financeComplete,
     source: 'admin-client-auto-cache',
     computedAt: Date.now(),
     ready: profileEntries.length > 0 || txs.length > 0 || inv.length > 0,
@@ -163,7 +196,7 @@ function computeClubStatsCache(monthKey = getCurrentMonthVN()) {
 }
 
 function _fingerprint(stats) {
-  return [stats.month, stats.activeCount, stats.profileCount, stats.txCount, stats.inventoryCount, stats.monthlyIncome, stats.monthlyExpense, stats.monthlyTxCount].join('|');
+  return [stats.month, stats.activeCount, stats.profileCount, stats.txCount, stats.inventoryCount, stats.monthlyIncome, stats.monthlyExpense, stats.monthlyTxCount, stats.financeComplete, stats.transactionCoverage?.transactionReadMode, stats.transactionCoverage?.transactionHitLimit].join('|');
 }
 
 async function syncClubStatsCache(reason = 'manual') {
@@ -179,7 +212,8 @@ async function syncClubStatsCache(reason = 'manual') {
     const setDoc = fb.setDoc;
     const doc = fb.doc;
 
-    const blockedReason = !cid ? 'missing-club-id' :
+    const blockedReason = !_clientStatsWriterAllowed() ? 'production-policy-stats-writer-disabled' :
+      !cid ? 'missing-club-id' :
       !db ? 'missing-db' :
       !setDoc || !doc ? 'missing-firestore-helpers' :
       _isSuperAdminRuntime() ? 'skip-superadmin-runtime' : '';
@@ -204,41 +238,78 @@ async function syncClubStatsCache(reason = 'manual') {
     }
 
     const statsDocId = stats.statsDocId;
+    const financeComplete = stats.financeComplete === true;
+    const coveragePayload = {
+      month: monthKey,
+      financeComplete,
+      transactionReadMode: stats.transactionCoverage.transactionReadMode,
+      transactionHitLimit: stats.transactionCoverage.transactionHitLimit,
+      transactionObservedCount: stats.transactionCoverage.transactionObservedCount,
+      transactionSourceCounts: stats.transactionCoverage.transactionSourceCounts,
+      transactionLimit: stats.transactionCoverage.transactionLimit,
+      checkedAt: now,
+    };
+    // Member/root cache remains independently useful. Financial fields are added
+    // only when the listener proves full coverage for this exact club + month.
     const payload = {
       cachedActiveCount: stats.activeCount,
       cachedStudentCount: stats.activeCount,
       activeStudentCount: stats.activeCount,
       totalStudents: stats.profileCount,
       cachedProfileCount: stats.profileCount,
-      cachedTxCount: stats.txCount,
       cachedInvCount: stats.inventoryCount,
-      cachedCurrentMonthRevenue: stats.monthlyIncome,
-      currentMonthRevenue: stats.monthlyIncome,
-      cachedMonthlyRevenue: {
-        [monthKey]: stats.monthlyIncome,
-        [statsDocId]: stats.monthlyIncome,
-      },
-      revenueByMonth: {
-        [monthKey]: stats.monthlyIncome,
-        [statsDocId]: stats.monthlyIncome,
-      },
-      superAdminStats: {
-        month: monthKey,
-        activeCount: stats.activeCount,
-        profileCount: stats.profileCount,
-        txCount: stats.txCount,
-        inventoryCount: stats.inventoryCount,
-        revenueTotal: stats.monthlyIncome,
-        expenseTotal: stats.monthlyExpense,
-        profit: stats.monthlyProfit,
-        monthlyTxCount: stats.monthlyTxCount,
-        updatedAt: now,
-        source: stats.source,
-      },
       cachedCountUpdatedAt: now,
-      statsUpdatedAt: now,
-      statsSource: stats.source,
+      cacheCoverage: coveragePayload,
     };
+    if (financeComplete) {
+      Object.assign(payload, {
+        cachedTxCount: stats.txCount,
+        cachedCurrentMonthRevenue: stats.monthlyIncome,
+        currentMonthRevenue: stats.monthlyIncome,
+        cachedMonthlyRevenue: {
+          [monthKey]: stats.monthlyIncome,
+          [statsDocId]: stats.monthlyIncome,
+        },
+        revenueByMonth: {
+          [monthKey]: stats.monthlyIncome,
+          [statsDocId]: stats.monthlyIncome,
+        },
+        superAdminStats: {
+          month: monthKey,
+          activeCount: stats.activeCount,
+          profileCount: stats.profileCount,
+          txCount: stats.txCount,
+          inventoryCount: stats.inventoryCount,
+          revenueTotal: stats.monthlyIncome,
+          expenseTotal: stats.monthlyExpense,
+          profit: stats.monthlyProfit,
+          monthlyTxCount: stats.monthlyTxCount,
+          updatedAt: now,
+          source: stats.source,
+        },
+        statsUpdatedAt: now,
+        statsSource: stats.source,
+      });
+    }
+
+    const statsPayload = {
+      month: monthKey,
+      activeCount: stats.activeCount,
+      profileCount: stats.profileCount,
+      totalStudents: stats.profileCount,
+      cacheCoverage: coveragePayload,
+      memberUpdatedAt: now,
+    };
+    if (financeComplete) {
+      Object.assign(statsPayload, {
+        income: { total: stats.monthlyIncome },
+        expense: { total: stats.monthlyExpense },
+        profit: stats.monthlyProfit,
+        txCount: stats.monthlyTxCount,
+        source: stats.source,
+        updatedAt: now,
+      });
+    }
 
     let rootWriteOk = false;
     let statsWriteOk = false;
@@ -251,18 +322,7 @@ async function syncClubStatsCache(reason = 'manual') {
 
     // Optional stats doc mirror. Some rules may block client writes to stats; root cache above is enough for SuperAdmin.
     try {
-      await setDoc(doc(db, 'clubs', cid, 'stats', statsDocId), {
-        month: monthKey,
-        income: { total: stats.monthlyIncome },
-        expense: { total: stats.monthlyExpense },
-        profit: stats.monthlyProfit,
-        txCount: stats.monthlyTxCount,
-        activeCount: stats.activeCount,
-        profileCount: stats.profileCount,
-        totalStudents: stats.profileCount,
-        source: stats.source,
-        updatedAt: now,
-      }, { merge: true });
+      await setDoc(doc(db, 'clubs', cid, 'stats', statsDocId), statsPayload, { merge: true });
       statsWriteOk = true;
     } catch (_) {
       // Stats collection may be Cloud Functions-only. Do not warn loudly.
@@ -272,8 +332,25 @@ async function syncClubStatsCache(reason = 'manual') {
       _lastFingerprint = fp;
       _lastSyncAt = now;
     }
-    _lastResult = { ok: rootWriteOk, rootWriteOk, statsWriteOk, clubId: cid, reason, stats, at: now };
-    if (rootWriteOk) console.info('[ClubStatsAutoCache] synced SuperAdmin cache', { cid, active: stats.activeCount, revenue: stats.monthlyIncome, reason });
+    _lastResult = {
+      ok: rootWriteOk,
+      rootWriteOk,
+      statsWriteOk,
+      financialRootWriteOk: rootWriteOk && financeComplete,
+      financialStatsWriteOk: statsWriteOk && financeComplete,
+      financeWriteSkipped: !financeComplete,
+      clubId: cid,
+      reason,
+      stats,
+      at: now,
+    };
+    if (rootWriteOk) console.info('[ClubStatsAutoCache] synced cache', {
+      cid,
+      active: stats.activeCount,
+      revenue: financeComplete ? stats.monthlyIncome : 'unknown',
+      financeComplete,
+      reason,
+    });
     return _lastResult;
   })().finally(() => { _syncInFlight = null; });
   return _syncInFlight;
@@ -288,6 +365,7 @@ function scheduleClubStatsAutoCacheSync(reason = 'schedule') {
 
 function initClubStatsAutoCache() {
   const role = String(window.userRole || window.__store?.userRole || '').toLowerCase();
+  if (!_clientStatsWriterAllowed()) return false;
   if (!['admin', 'owner', 'super_admin', 'superadmin', 'root', 'root_admin', 'admin_root'].includes(role)) return false;
   if (window.RoleReadBoundary?.canMount?.('club.stats-cache', { reason: 'initClubStatsAutoCache' }) === false) return false;
   if (_started) return;
@@ -338,9 +416,9 @@ function initClubStatsAutoCache() {
       clubId: _clubId(),
       currentStatsPreview: stats,
       recommendations: [
-        'Admin/HLV đăng nhập sẽ tự cập nhật cached counts/revenue lên clubs/{clubId}.',
+        'Admin chỉ cập nhật finance cache khi transaction coverage của đúng CLB/tháng là complete.',
+        'Coverage unknown/incomplete vẫn có thể cập nhật member cache nhưng không ghi doanh thu/chi phí/lợi nhuận.',
         'SuperAdmin đọc root cache O(1), không chạy runAggregationQuery hàng loạt.',
-        'Nếu CLB cũ chưa có cache, chỉ cần Admin CLB đó đăng nhập/mở app một lần để tự đồng bộ.',
       ],
     };
     console.log('[debugClubStatsAutoCache]', result);

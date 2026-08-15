@@ -1,0 +1,10 @@
+PHASE 4K-6V5U6G — Remote Functions verification
+Status: REMOTE FUNCTIONS = UNKNOWN
+
+Evidence:
+- .firebaserc: not present in package root
+- firebase CLI: not installed in execution environment
+- firebase functions:list --project quanly-tst: not executable here
+
+No Firebase Functions deploy/delete operation was performed.
+Local source/config is not treated as proof of remote deployment state.

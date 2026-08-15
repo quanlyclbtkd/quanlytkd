@@ -38,6 +38,10 @@ function _isSuperAdminRuntime() {
     return role === 'super_admin' || role === 'superadmin' || role === 'root' || !!st.currentUser?.isSuperAdmin;
   } catch (_) { return false; }
 }
+function _policyAllowsServerRefresh() {
+  const policy = window.ProductionAuthorityPolicy;
+  return !!(policy && policy.superAdminServerRefresh === true && policy.mode !== 'client-only');
+}
 function _storageGet(key) { try { return localStorage.getItem(key); } catch (_) { return null; } }
 function _storageSet(key, value) { try { localStorage.setItem(key, String(value)); } catch (_) {} }
 function _disabledUntil() { return Number(_storageGet(GLOBAL_DISABLE_KEY) || 0); }
@@ -97,6 +101,9 @@ function hasClubSummaryCache(clubItem, options = {}) {
   const monthKey = options.month || item.curMonth || _monthVN();
   const docId = _statsDocId(monthKey);
   const sa = data.superAdminStats || data.clubSummary || data.summary || {};
+  const coverage = data.cacheCoverage && typeof data.cacheCoverage === 'object' ? data.cacheCoverage : null;
+  const coverageMonth = String(coverage?.month || '').trim().replace('_', '-').slice(0, 7);
+  const financeRejected = !!coverage && coverageMonth === monthKey && coverage.financeComplete !== true;
   const student = _firstFiniteNumber(
     item.studentCountForSummary,
     item.activeCount,
@@ -136,7 +143,7 @@ function hasClubSummaryCache(clubItem, options = {}) {
   const itemRevenue = String(item.curMonth || '').slice(0, 7) === monthKey
     ? _firstFiniteNumber(item.revenueTotal)
     : null;
-  const revenue = _firstFiniteNumber(itemRevenue, keyedRevenue, markedRevenue);
+  const revenue = financeRejected ? null : _firstFiniteNumber(itemRevenue, keyedRevenue, markedRevenue);
   // Null means unknown. Never let Number(null) turn an unknown cache field into a
   // fabricated zero/complete state; that would suppress the targeted stats/server fallback.
   const hasStudent = student !== null && Number.isFinite(student);
@@ -146,6 +153,7 @@ function hasClubSummaryCache(clubItem, options = {}) {
     hasRevenue,
     student,
     revenue,
+    financeRejected,
     missing: !(hasStudent && hasRevenue)
   };
 }
@@ -245,6 +253,7 @@ function _applySummaryToClubData(cid, summary) {
 
 async function refreshSuperAdminSummaryForClubViaServer(clubId, options = {}) {
   if (!clubId) return { ok: false, reason: 'missing-club-id' };
+  if (!_policyAllowsServerRefresh()) return { ok: false, skipped: true, reason: 'production-policy-client-only' };
   if (!_isSuperAdminRuntime()) return { ok: false, reason: 'not-superadmin-runtime' };
   if (_isGloballyDisabled()) return { ok: false, reason: 'global-disabled', disabledUntil: _disabledUntil(), disabledReason: _disabledReason };
 
@@ -302,6 +311,7 @@ function _missingClubItems(clubDataList, options = {}) {
 }
 
 async function maybeAutoRefreshSuperAdminSummaries(clubDataList, options = {}) {
+  if (!_policyAllowsServerRefresh()) return { ok: false, skipped: true, reason: 'production-policy-client-only' };
   if (!_isSuperAdminRuntime()) return { ok: false, reason: 'not-superadmin-runtime' };
   if (_running || _inFlight) return { ok: true, skipped: true, reason: 'already-running' };
   if (_isGloballyDisabled()) return { ok: false, reason: 'global-disabled', disabledUntil: _disabledUntil(), disabledReason: _disabledReason };
@@ -382,6 +392,7 @@ function getSuperAdminServerRefreshState() {
     recent: _recent.slice(),
     hasFunctionsSdk: !!(window._fb_init && window._fb_init.getFunctions && window._fb_init.httpsCallable),
     isSuperAdminRuntime: _isSuperAdminRuntime(),
+    productionPolicyAllowsServerRefresh: _policyAllowsServerRefresh(),
   };
 }
 

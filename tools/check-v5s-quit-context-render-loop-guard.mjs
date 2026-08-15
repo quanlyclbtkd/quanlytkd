@@ -6,6 +6,7 @@ const build='quit-context-render-loop-guard-20260722-v5s';
 const currentBuild='canonical-domain-command-boundary-write-freeze-20260722-v5t';
 const v5u2Build='tuition-command-cutover-20260730-v5u2';
 const v5u1Build='student-status-command-cutover-tx-delete-fix-20260722-v5u1';
+const v5u6c1Build='dashboard-mutation-aware-cache-freshness-20260812-v5u6c1';
 const patch='4K-6V5S-quit-context-render-loop-guard-20260722';
 const currentPatch='4K-6V5T-canonical-domain-command-boundary-write-freeze-20260722';
 const v5u2Patch='4K-6V5U-2-tuition-command-cutover-20260730';
@@ -23,7 +24,7 @@ const pubRender=read('public/js/ui/render/renderStudents.js');
 const pubApp=read('public/app.js');
 const pkg=JSON.parse(read('package.json'));
 
-check('V5S/V5T cache-bust lineage active', (index.includes(`app.js?v=${v5u2Build}`) || index.includes(`app.js?v=${v5u1Build}`) || index.includes(`app.js?v=${currentBuild}`) || index.includes(`app.js?v=${build}`)) && (index.includes(`js/main.js?v=${v5u2Build}`) || index.includes(`js/main.js?v=${v5u1Build}`) || index.includes(`js/main.js?v=${currentBuild}`) || index.includes(`js/main.js?v=${build}`)) && main.includes(`profiles.listeners.js?v=${build}`));
+check('V5S/V5T cache-bust lineage active', (index.includes(`p=${v5u6c1Build}`) || index.includes(`app.js?v=${v5u2Build}`) || index.includes(`app.js?v=${v5u1Build}`) || index.includes(`app.js?v=${currentBuild}`) || index.includes(`app.js?v=${build}`)) && (index.includes(`js/main.js?v=${v5u6c1Build}`) || index.includes(`js/main.js?v=${v5u2Build}`) || index.includes(`js/main.js?v=${v5u1Build}`) || index.includes(`js/main.js?v=${currentBuild}`) || index.includes(`js/main.js?v=${build}`)) && (main.includes(`profiles.listeners.js?v=${v5u6c1Build}`) || main.includes(`profiles.listeners.js?v=${build}`)));
 check('V5S behavior retained under V5T patch marker', (app.includes(v5u2Patch) || app.includes(v5u1Patch) || app.includes(currentPatch) || app.includes(patch)) && (main.includes(v5u2Patch) || main.includes(v5u1Patch) || main.includes(currentPatch) || main.includes(patch)) && boundary.includes(patch));
 check('quit context resolver uses existing runtime bridges', listener.includes('function _resolveProfilesContext') && listener.includes("window.getAppContext('quit-authority-context-recovery')") && listener.includes('store.profRef'));
 check('context resolver may safely rebuild profRef from db+clubId', listener.includes("fbCollection(db, 'clubs', clubId, 'profiles')"));

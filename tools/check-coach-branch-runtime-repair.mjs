@@ -23,13 +23,13 @@ function check(name, ok, detail = '') {
 
 console.log('\n=== Phase 4K-6V4B1 — Coach Branch Runtime Repair ===\n');
 
-const appEntrypointBuilds = ['quit-context-render-loop-guard-20260722-v5s', 'profile-canonical-store-runtime-recovery-20260628-v4d1a', 'profile-canonical-store-20260628-v4d1', 'tuition-debt-source-of-truth-20260628-v4c'];
+const appEntrypointBuilds = ['production-authority-closure-20260814-v5u6e', 'attendance-daily-single-refresh-authority-20260813-v5u6d', 'canonical-security-truth-20260811-v5u5', 'quit-context-render-loop-guard-20260722-v5s', 'profile-canonical-store-runtime-recovery-20260628-v4d1a', 'profile-canonical-store-20260628-v4d1', 'tuition-debt-source-of-truth-20260628-v4c'];
 check('Production entrypoints keep V4B1 branch repair and load current runtime cache marker',
   (index.match(/coach-branch-runtime-repair-20260627-v4b1/g) || []).length >= 5 &&
   appEntrypointBuilds.some(build => index.includes(`app.js?v=${build}`)) &&
-  (index.includes('./js/main.js?v=quit-context-render-loop-guard-20260722-v5s') || index.includes('./js/main.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a') || index.includes('./js/main.js?v=profile-canonical-store-20260628-v4d1')) &&
-  (main.includes("profiles.listeners.js?v=quit-context-render-loop-guard-20260722-v5s") || main.includes("profiles.listeners.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a") || main.includes("profiles.listeners.js?v=profile-canonical-store-20260628-v4d1")) &&
-  main.includes("attendance.js?v=coach-branch-runtime-repair-20260627-v4b1"));
+  (index.includes('./js/main.js?v=attendance-explicit-shift-authority-20260814-v5u6f') || index.includes('./js/main.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d') || index.includes('./js/main.js?v=dashboard-mutation-aware-cache-freshness-20260812-v5u6c1') || index.includes('./js/main.js?v=quit-context-render-loop-guard-20260722-v5s') || index.includes('./js/main.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a') || index.includes('./js/main.js?v=profile-canonical-store-20260628-v4d1')) &&
+  (main.includes("profiles.listeners.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d") || main.includes("profiles.listeners.js?v=dashboard-mutation-aware-cache-freshness-20260812-v5u6c1") || main.includes("profiles.listeners.js?v=quit-context-render-loop-guard-20260722-v5s") || main.includes("profiles.listeners.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a") || main.includes("profiles.listeners.js?v=profile-canonical-store-20260628-v4d1")) &&
+  (main.includes("attendance.js?v=attendance-explicit-shift-authority-20260814-v5u6f") || main.includes("attendance.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d") || main.includes("attendance.js?v=coach-branch-runtime-repair-20260627-v4b1")));
 check('Coach creation requires one concrete branch',
   repair.includes("if (!name || !email || !branch || pass.length < 6)") &&
   /id="coach_branch"[\s\S]{0,500}<option value="CS1">/.test(index) &&
@@ -82,10 +82,10 @@ check('Primary branch keeps scoped legacy Mặc định compatibility',
 check('Attendance client filtering uses canonical branch equality',
   attendance.includes('function _sameBranch(left, right)') &&
   attendance.includes("_sameBranch(p.branch, selBranch)") &&
-  attendance.includes("_sameBranch(s.branch, coachBr)"));
+  (attendance.includes("_sameBranch(s.branch, coachBr)") || attendance.includes("_sameBranch(shiftBranch, branch)")));
 check('Coach daily and monthly services always receive assigned branch',
   attendance.includes("window.userRole === 'coach' && window.coachBranch") &&
-  attendance.includes('branch: _dailyBranch') &&
+  attendance.includes("branch: token.branch === 'all' ? '' : token.branch") &&
   attendance.includes("branch: selBranch === 'all' ? '' : selBranch"));
 check('Attendance branch selectors are locked by app config for Coach',
   app.includes("['att_branch', 'att_month_branch']") &&

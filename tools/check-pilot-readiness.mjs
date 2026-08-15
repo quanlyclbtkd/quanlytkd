@@ -279,8 +279,8 @@ checkAnyPattern(appSrc, [
     '__runtimeRecoveryState.completed',
     /const\s+state\s*=\s*window\.__runtimeRecoveryState[\s\S]{0,200}?state\.completed/
 ], '__runtimeRecoveryState.completed guard');
-checkPattern(appSrc, "activateLegacyRootFallback?.('auto-runtime-recovery')",
-    "activateLegacyRootFallback gọi với reason='auto-runtime-recovery'");
+checkPattern(appSrc, "activateLegacyRootFallback?.('manual-runtime-recovery')",
+    "activateLegacyRootFallback chỉ gọi với reason='manual-runtime-recovery'");
 
 // ── 15. window.__runtimeRecoveryState ────────────────────────────
 console.log('');
@@ -291,16 +291,18 @@ checkPattern(appSrc, 'completedAt:',                            'completedAt fie
 
 // ── 16. Listener/scheduler sau app:context-ready ─────────────────
 console.log('');
-console.log('[PilotReadinessCheck] [4F] Kiểm tra auto-recovery listener sau app:context-ready...');
+console.log('[PilotReadinessCheck] [4F] Kiểm tra recovery không auto-run sau app:context-ready...');
 // Kiểm tra trong main.js (ưu tiên) hoặc app.js
 const combinedSrc = (mainSrc || '') + appSrc;
 checkPattern(combinedSrc, 'app:context-ready',
     'addEventListener app:context-ready tồn tại (main.js hoặc app.js)');
-checkPattern(combinedSrc, 'runRuntimeDataRecovery',
-    'runRuntimeDataRecovery được gọi sau context-ready');
-// Kiểm tra có setTimeout delay nhỏ để tránh race condition
-checkPattern(combinedSrc, /app.context-ready[\s\S]{0,500}setTimeout/,
-    'setTimeout delay trong app:context-ready handler (tránh race condition)');
+checkPattern(appSrc, 'explicit-probe-required',
+    'runRuntimeDataRecovery yêu cầu explicit probe');
+const noAutoRecovery = !mainSrc.includes("runRuntimeDataRecovery?.('app-context-ready')") &&
+    !mainSrc.includes("runRuntimeDataRecovery('main-replay-context-ready')");
+checked++;
+if (noAutoRecovery) pass('app:context-ready không còn sở hữu legacy recovery network');
+else fail('app:context-ready vẫn tự chạy legacy runtime recovery');
 
 // ── 17. allProfiles sync ──────────────────────────────────────────
 console.log('');

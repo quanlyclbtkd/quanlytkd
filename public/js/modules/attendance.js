@@ -15,7 +15,7 @@
  * ────────────────────────────────────────────────────────────────
  */
 
-import { AttendanceService } from '../services/attendance.service.js';
+import { AttendanceService } from '../services/attendance.service.js?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1';
 import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
 
 const ATTENDANCE_OWNER = 'js/modules/attendance.js';
@@ -52,22 +52,339 @@ let _attCurrentProfiles = [];
 let _attCurrentDate     = '';
 let _attendanceCache    = {};
 let _clubShifts         = [];
-let _clubShiftsLoaded   = false;
+let _clubShiftsLoadedClubId = '';
+let _clubShiftsLoadPromise = null;
 let _currentShiftId     = '';
 let _attendanceInitialized = false;
 let _attendanceInitializedClubId = '';
 let _onlineListenerBound = false;
+let _offlineAttendanceSyncPromise = null;
+let _offlineAttendanceActiveContext = null;
+let _offlineAttendancePendingContext = null;
+const _ATTENDANCE_OFFLINE_V2_PREFIX = 'offline_att_v2_';
+const _ATTENDANCE_OFFLINE_SYNC_CHUNK = 400;
 let _monthlyRenderRequestId = 0;
 let _monthlyAbortController = null;
 let _ownedAttendanceImplementations = null;
+
+const _ATTENDANCE_DAILY_CACHE_TTL_MS = 20 * 1000;
+const _ATTENDANCE_AUX_CACHE_TTL_MS = 30 * 1000;
+const _attendanceDailyState = {
+    requestGeneration: 0,
+    currentSnapshotKey: '',
+    currentSnapshotAuthGeneration: -1,
+    currentSnapshotAt: 0,
+    inFlight: new Map(),
+    latestIntent: null,
+    mutationRevision: 0,
+    cacheReady: false,
+};
+// V5U6F: one module-local authority distinguishes an authoritative empty
+// shifts document from loading/error/unknown. Blank shift is only legacy-safe
+// after this state reaches ready + configured=false.
+const _attendanceShiftAuthority = {
+    clubId: '',
+    authGeneration: 0,
+    status: 'idle', // idle | loading | ready | error
+    configured: null,
+    eligibleCount: 0,
+    selectedShiftId: '',
+    lastError: '',
+    updatedAt: 0,
+};
+const _coachNotesState = {
+    cache: new Map(),
+    inFlight: new Map(),
+};
+
+function _attendanceDebug() {
+    const debug = window.__attendanceDebug = window.__attendanceDebug || {};
+    const defaults = {
+        dailyIntentCount: 0,
+        dailyNetworkLoads: 0,
+        dailySingleFlightCoalesced: 0,
+        dailyCacheHits: 0,
+        dailyStaleDropped: 0,
+        dailyMutationRevisionDropped: 0,
+        dailyPresentationOnlyRenders: 0,
+        dailyLastKey: '',
+        shiftsLoads: 0,
+        shiftsCoalesced: 0,
+        coachNotesLoads: 0,
+        coachNotesCoalesced: 0,
+        sessionNoteLoads: 0,
+        sessionNoteCacheHits: 0,
+        daySubtabMonthlyReadPrevented: 0,
+        monthSubtabDailyReadPrevented: 0,
+        shiftRequiredBlockedReads: 0,
+        shiftRequiredBlockedWrites: 0,
+        shiftConfigErrors: 0,
+        shiftConfigRetryCount: 0,
+        legacyNoShiftReads: 0,
+        explicitShiftReads: 0,
+        invalidSelectedShiftCleared: 0,
+        blankShiftAllReadPrevented: 0,
+        blankShiftWritePrevented: 0,
+        offlineJournalQueued: 0,
+        offlineJournalCoalesced: 0,
+        offlineScopedCleanup: 0,
+        offlineSyncFlights: 0,
+        offlineSyncCoalesced: 0,
+        offlineSyncErrors: 0,
+        offlineSyncCrossClubBlocked: 0,
+        offlineSyncInvalidShiftBlocked: 0,
+        offlineSyncMalformedBlocked: 0,
+        offlineSyncLegacyV1: 0,
+        offlineCanonicalPayloadSanitized: 0,
+        offlineJournalMetadataStripped: 0,
+        offlineSyncContextCaptured: 0,
+        offlineSyncContextStaleStops: 0,
+        offlineSyncDifferentContextQueued: 0,
+        offlineSyncDifferentContextFollowups: 0,
+        offlineSyncPendingContextReplaced: 0,
+        offlineSyncStaleUiRefreshDropped: 0,
+        offlineSyncCommittedChunkCleanup: 0,
+        offlineSyncUncommittedChunkPreserved: 0,
+        offlineSyncLastErrorType: '',
+    };
+    Object.entries(defaults).forEach(([key, value]) => {
+        if (!Number.isFinite(debug[key]) && typeof value === 'number') debug[key] = value;
+        else if (debug[key] === undefined) debug[key] = value;
+    });
+    return debug;
+}
+
+function _authGeneration() {
+    return Number(window.__verifiedAuthContextState?.generation || 0);
+}
+
+function _captureOfflineAttendanceSyncContext() {
+    const verified = window.__verifiedAuthContextState || {};
+    const clubId = String((verified.ready === true && verified.clubId) || _clubId() || '').trim();
+    const context = Object.freeze({
+        clubId,
+        authGeneration: Number(verified.generation || 0),
+        uid: String(verified.uid || ''),
+    });
+    _attendanceDebug().offlineSyncContextCaptured++;
+    return context;
+}
+
+function _sameOfflineAttendanceSyncContext(left, right) {
+    return !!left && !!right &&
+        String(left.clubId || '') === String(right.clubId || '') &&
+        Number(left.authGeneration || 0) === Number(right.authGeneration || 0);
+}
+
+function _isOfflineAttendanceSyncContextCurrent(context) {
+    const verified = window.__verifiedAuthContextState || {};
+    const currentClubId = String((verified.ready === true && verified.clubId) || _clubId() || '').trim();
+    return !!context && String(context.clubId || '') === currentClubId &&
+        Number(context.authGeneration || 0) === Number(verified.generation || 0);
+}
+
+function _canonicalAttendanceBranch(value, fallback = '') {
+    if (window.BranchIdentity?.normalize) return window.BranchIdentity.normalize(value, { fallback });
+    const raw = String(value || '').trim();
+    if (!raw) return fallback;
+    return /^(Mặc định|mac dinh|default)$/i.test(raw) ? 'CS1' : raw;
+}
+
+function _isAttendanceMainTabActive() {
+    const tab = document.getElementById('tab_attendance');
+    return !!tab && tab.classList.contains('active');
+}
+
+function _isVisibleSubtab(el) {
+    if (!el) return false;
+    return el.style.display !== 'none' && !el.hidden;
+}
+
+function _isAttendanceDaySubtabActive() {
+    return _isAttendanceMainTabActive() && _isVisibleSubtab(document.getElementById('att_sub_day'));
+}
+
+function _isAttendanceMonthSubtabActive() {
+    return _isAttendanceMainTabActive() && _isVisibleSubtab(document.getElementById('att_sub_month'));
+}
+
+function _captureAttendanceDailyContext() {
+    const dateEl = document.getElementById('att_date');
+    const branchEl = document.getElementById('att_branch');
+    const shiftEl = document.getElementById('att_shift');
+    const role = String(window.userRole || window.__store?.userRole || 'viewer').toLowerCase();
+    const coachBranch = role === 'coach'
+        ? _canonicalAttendanceBranch(window.coachBranch || window.__store?.coachBranch || '', '')
+        : '';
+    const selectedBranch = branchEl && branchEl.value !== 'all' ? branchEl.value : '';
+    const branch = role === 'coach'
+        ? coachBranch
+        : _canonicalAttendanceBranch(selectedBranch, selectedBranch ? '' : 'all');
+    const date = String(dateEl?.value || _getLocalToday()).slice(0, 10);
+    const shiftId = String(shiftEl?.value ?? _currentShiftId ?? '');
+    const clubId = String(_clubId() || '').trim();
+    return Object.freeze({
+        clubId,
+        authGeneration: _authGeneration(),
+        role,
+        date,
+        branch: branch || (role === 'coach' ? '' : 'all'),
+        shiftId,
+        coachBranch,
+        key: [clubId, date, branch || (role === 'coach' ? '' : 'all'), shiftId].join('|'),
+    });
+}
+
+// Pure RAM helper. A branch-specific view receives its branch shifts plus
+// global shifts; Coach can never see a shift owned by another branch.
+function _getEligibleAttendanceShifts(context) {
+    const ctx = context && typeof context === 'object' ? context : {};
+    const role = String(ctx.role || '').toLowerCase();
+    const branch = role === 'coach'
+        ? _canonicalAttendanceBranch(ctx.coachBranch || ctx.branch || '', '')
+        : _canonicalAttendanceBranch(ctx.branch || '', ctx.branch === 'all' ? 'all' : '');
+    return _clubShifts.filter((shift) => {
+        const shiftBranch = String(shift?.branch || '').trim();
+        if (!shiftBranch) return true;
+        if (role === 'coach') return !!branch && _sameBranch(shiftBranch, branch);
+        if (branch && branch !== 'all') return _sameBranch(shiftBranch, branch);
+        return true;
+    });
+}
+
+// Canonical read/write decision. This function only inspects module RAM and
+// immutable context: no Firestore, DOM render, timer or polling authority.
+function _resolveAttendanceShiftAuthority(context) {
+    const ctx = context && typeof context === 'object' ? context : {};
+    const selectedShiftId = String(ctx.shiftId || '');
+    const identityMatches = _attendanceShiftAuthority.clubId === String(ctx.clubId || '') &&
+        Number(_attendanceShiftAuthority.authGeneration || 0) === Number(ctx.authGeneration || 0);
+    if (!identityMatches || _attendanceShiftAuthority.status !== 'ready') {
+        return Object.freeze({
+            allowed: false,
+            mode: 'shift-config-unavailable',
+            shiftId: '',
+            eligibleShifts: [],
+            invalidSelected: false,
+            reason: _attendanceShiftAuthority.status === 'error'
+                ? (_attendanceShiftAuthority.lastError || 'shift-config-error')
+                : 'shift-config-not-ready',
+        });
+    }
+
+    const eligibleShifts = _getEligibleAttendanceShifts(ctx);
+    if (_attendanceShiftAuthority.configured === false) {
+        return Object.freeze({
+            allowed: true,
+            mode: 'legacy-no-shift',
+            shiftId: '',
+            eligibleShifts,
+            invalidSelected: !!selectedShiftId,
+            reason: 'authoritative-empty-shift-list',
+        });
+    }
+    if (!selectedShiftId) {
+        return Object.freeze({
+            allowed: false,
+            mode: 'shift-required',
+            shiftId: '',
+            eligibleShifts,
+            invalidSelected: false,
+            reason: eligibleShifts.length ? 'explicit-shift-required' : 'no-eligible-shift-for-branch',
+        });
+    }
+    if (!eligibleShifts.some((shift) => String(shift?.id || '') === selectedShiftId)) {
+        return Object.freeze({
+            allowed: false,
+            mode: 'shift-required',
+            shiftId: '',
+            eligibleShifts,
+            invalidSelected: true,
+            reason: 'selected-shift-not-eligible',
+        });
+    }
+    return Object.freeze({
+        allowed: true,
+        mode: 'explicit-shift',
+        shiftId: selectedShiftId,
+        eligibleShifts,
+        invalidSelected: false,
+        reason: 'eligible-explicit-shift',
+    });
+}
+
+function _attendanceContextWithShift(context, shiftId, mode = '') {
+    const resolvedShiftId = String(shiftId || '');
+    return Object.freeze({
+        ...context,
+        shiftId: resolvedShiftId,
+        shiftAuthorityMode: mode,
+        key: [context.clubId, context.date, context.branch || (context.role === 'coach' ? '' : 'all'), resolvedShiftId].join('|'),
+    });
+}
+
+function _normalizeAttendanceShiftDecision(context, decision) {
+    if (decision.invalidSelected) {
+        const shiftEl = document.getElementById('att_shift');
+        if (shiftEl) shiftEl.value = '';
+        _currentShiftId = '';
+        _attendanceDebug().invalidSelectedShiftCleared++;
+    }
+    _attendanceShiftAuthority.eligibleCount = decision.eligibleShifts.length;
+    _attendanceShiftAuthority.selectedShiftId = decision.shiftId;
+    return _attendanceContextWithShift(context, decision.shiftId, decision.mode);
+}
+
+function _sameAttendanceContext(left, right) {
+    return !!left && !!right && left.clubId === right.clubId &&
+        Number(left.authGeneration || 0) === Number(right.authGeneration || 0) &&
+        left.date === right.date && left.branch === right.branch && left.shiftId === right.shiftId;
+}
+
+function _isAttendanceDailyTokenCurrent(token) {
+    if (!token || !_attendanceDailyState.latestIntent) return false;
+    const current = _captureAttendanceDailyContext();
+    return _isAttendanceDaySubtabActive() &&
+        _sameAttendanceContext(token, current) &&
+        _sameAttendanceContext(token, _attendanceDailyState.latestIntent) &&
+        Number(token.generation || 0) === Number(_attendanceDailyState.requestGeneration || 0) &&
+        Number(token.mutationRevision || 0) === Number(_attendanceDailyState.mutationRevision || 0);
+}
+
+function _markAttendanceDailyMutation(reason) {
+    _attendanceDailyState.mutationRevision += 1;
+    _attendanceDebug().dailyLastMutationReason = String(reason || 'local-write');
+    return _attendanceDailyState.mutationRevision;
+}
 
 function _resetAttendanceModuleState(nextClubId) {
     _attCurrentProfiles = [];
     _attCurrentDate = '';
     _attendanceCache = {};
     _clubShifts = [];
-    _clubShiftsLoaded = false;
+    _clubShiftsLoadedClubId = '';
+    _clubShiftsLoadPromise = null;
     _currentShiftId = '';
+    Object.assign(_attendanceShiftAuthority, {
+        clubId: nextClubId || '',
+        authGeneration: _authGeneration(),
+        status: 'idle',
+        configured: null,
+        eligibleCount: 0,
+        selectedShiftId: '',
+        lastError: '',
+        updatedAt: Date.now(),
+    });
+    _attendanceDailyState.requestGeneration += 1;
+    _attendanceDailyState.currentSnapshotKey = '';
+    _attendanceDailyState.currentSnapshotAuthGeneration = -1;
+    _attendanceDailyState.currentSnapshotAt = 0;
+    _attendanceDailyState.inFlight.clear();
+    _attendanceDailyState.latestIntent = null;
+    _attendanceDailyState.mutationRevision = 0;
+    _attendanceDailyState.cacheReady = false;
+    _coachNotesState.cache.clear();
+    _coachNotesState.inFlight.clear();
     _attendanceInitializedClubId = nextClubId || '';
     window.currentAttendanceData = {};
     if (_monthlyAbortController) {
@@ -77,11 +394,12 @@ function _resetAttendanceModuleState(nextClubId) {
     _monthlyRenderRequestId++;
 }
 
-async function _loadSessionNoteAfterAttendanceRender(date) {
-    if (!date || (window.userRole !== 'coach' && window.userRole !== 'admin')) return;
+async function _loadSessionNoteAfterAttendanceRender(context) {
+    const date = context?.date || '';
+    if (!date || !_isAttendanceDailyTokenCurrent(context) || (window.userRole !== 'coach' && window.userRole !== 'admin')) return;
     if (typeof window.loadSessionNote !== 'function') return;
     try {
-        await Promise.resolve(window.loadSessionNote(date));
+        await Promise.resolve(window.loadSessionNote(date, { attendanceContext: context }));
     } catch (error) {
         console.warn('[Attendance] Không thể tải ghi chú buổi tập:', error && error.message || error);
     }
@@ -374,7 +692,6 @@ function _renderAttCards() {
     gridEl.innerHTML = html;
     _updateAttSummary(summary);
     _renderAdminBranchSummary(summary);
-    if (_attCurrentDate) _loadCoachForBranchSummary(_attCurrentDate);
 }
 
 function _renderAdminBranchSummary(totalSummary) {
@@ -437,11 +754,9 @@ function _renderAdminBranchSummary(totalSummary) {
     bodyEl.innerHTML = html;
 }
 
-async function _loadCoachForBranchSummary(date) {
-    if (!date || !_clubId()) return;
-    if (window.userRole !== 'admin' && window.userRole !== 'super_admin') return;
+function _applyCoachNotesToBranchSummary(_notesList, context) {
+    if (!_isAttendanceDailyTokenCurrent(context)) return false;
     try {
-        const _notesList = await AttendanceService.loadCoachNotes(date);
         const _nSnap = { forEach: (fn) => _notesList.forEach(item => fn({ data: () => item.data, id: item.id })) };
         const _brData = {};
         _nSnap.forEach(d => {
@@ -474,11 +789,71 @@ async function _loadCoachForBranchSummary(date) {
                 el.innerHTML = '<span style="font-size:0.6rem;color:#cbd5e1;">Chưa có ghi chú hôm nay</span>';
             }
         });
+        return true;
     } catch(_e) {
         document.querySelectorAll('[id^="coach_info_"]').forEach(el => {
             if (el.innerHTML.includes('⏳')) el.innerHTML = '';
         });
+        return false;
     }
+}
+
+function _applyCachedCoachNotes(context) {
+    if (!context || (context.role !== 'admin' && context.role !== 'super_admin')) return false;
+    const key = context.clubId + '|' + context.date;
+    const cached = _coachNotesState.cache.get(key);
+    return cached ? _applyCoachNotesToBranchSummary(cached.items, context) : false;
+}
+
+async function _loadCoachForBranchSummary(context, options = {}) {
+    if (!context?.date || !context.clubId) return null;
+    if (context.role !== 'admin' && context.role !== 'super_admin') return null;
+    const key = context.clubId + '|' + context.date;
+    const cached = _coachNotesState.cache.get(key);
+    if (!options.force && cached && (Date.now() - cached.loadedAt) <= _ATTENDANCE_AUX_CACHE_TTL_MS) {
+        _applyCoachNotesToBranchSummary(cached.items, context);
+        return cached.items;
+    }
+    if (_coachNotesState.inFlight.has(key)) {
+        _attendanceDebug().coachNotesCoalesced++;
+        const items = await _coachNotesState.inFlight.get(key);
+        if (_isAttendanceDailyTokenCurrent(context)) {
+            _coachNotesState.cache.set(key, { items, loadedAt: Date.now() });
+        }
+        _applyCoachNotesToBranchSummary(items, context);
+        return items;
+    }
+    const promise = (async () => {
+        _attendanceDebug().coachNotesLoads++;
+        const items = await AttendanceService.loadCoachNotes(context.date);
+        if (_isAttendanceDailyTokenCurrent(context)) {
+            _coachNotesState.cache.set(key, { items, loadedAt: Date.now() });
+        }
+        return items;
+    })().finally(() => {
+        if (_coachNotesState.inFlight.get(key) === promise) _coachNotesState.inFlight.delete(key);
+    });
+    _coachNotesState.inFlight.set(key, promise);
+    try {
+        const items = await promise;
+        _applyCoachNotesToBranchSummary(items, context);
+        return items;
+    } catch (_e) {
+        if (_isAttendanceDailyTokenCurrent(context)) {
+            document.querySelectorAll('[id^="coach_info_"]').forEach(el => {
+                if (el.innerHTML.includes('⏳')) el.innerHTML = '';
+            });
+        }
+        return null;
+    }
+}
+
+async function _loadAcceptedAttendanceAuxiliary(context) {
+    if (!_isAttendanceDailyTokenCurrent(context)) return;
+    await Promise.all([
+        _loadCoachForBranchSummary(context),
+        _loadSessionNoteAfterAttendanceRender(context),
+    ]);
 }
 
 function _updateAttSummary(summary) {
@@ -495,28 +870,147 @@ function _updateAttSummary(summary) {
         '<span style="font-size:0.7rem;background:#f1f5f9;color:#475569;padding:3px 10px;border-radius:99px;font-weight:700;">— ' + (summary[0]||0) + '</span>';
 }
 
-async function _loadClubShifts() {
-    try {
-        _clubShifts = await AttendanceService.loadShifts();
-    } catch(e) { _clubShifts = []; }
-    _clubShiftsLoaded = true;
+async function _loadClubShifts(options = {}) {
+    const clubId = String(_clubId() || '').trim();
+    const authGeneration = _authGeneration();
+    if (!clubId) {
+        Object.assign(_attendanceShiftAuthority, {
+            clubId: '', authGeneration, status: 'idle', configured: null,
+            eligibleCount: 0, selectedShiftId: '', lastError: '', updatedAt: Date.now(),
+        });
+        return [];
+    }
+    if (options.force === true) _attendanceDebug().shiftConfigRetryCount++;
+    if (!options.force && _attendanceShiftAuthority.status === 'ready' &&
+        _attendanceShiftAuthority.clubId === clubId &&
+        Number(_attendanceShiftAuthority.authGeneration || 0) === authGeneration &&
+        _clubShiftsLoadedClubId === clubId) {
+        _renderShiftSelector();
+        return _clubShifts;
+    }
+    if (_clubShiftsLoadPromise?.clubId === clubId &&
+        Number(_clubShiftsLoadPromise.authGeneration || 0) === authGeneration) {
+        _attendanceDebug().shiftsCoalesced++;
+        return _clubShiftsLoadPromise.promise;
+    }
+    const holder = { clubId, authGeneration, promise: null };
+    _attendanceDailyState.requestGeneration += 1;
+    Object.assign(_attendanceShiftAuthority, {
+        clubId,
+        authGeneration,
+        status: 'loading',
+        configured: null,
+        eligibleCount: 0,
+        selectedShiftId: _currentShiftId,
+        lastError: '',
+        updatedAt: Date.now(),
+    });
+    _renderShiftSelector();
+    holder.promise = (async () => {
+        _attendanceDebug().shiftsLoads++;
+        const shifts = await AttendanceService.loadShifts();
+        if (String(_clubId() || '').trim() !== clubId || _authGeneration() !== authGeneration) {
+            const staleError = new Error('Stale shift settings response');
+            staleError.code = 'attendance/stale-shift-config';
+            throw staleError;
+        }
+        _clubShifts = Array.isArray(shifts) ? shifts.slice() : [];
+        _clubShiftsLoadedClubId = clubId;
+        Object.assign(_attendanceShiftAuthority, {
+            clubId,
+            authGeneration,
+            status: 'ready',
+            configured: _clubShifts.length > 0,
+            eligibleCount: 0,
+            selectedShiftId: '',
+            lastError: '',
+            updatedAt: Date.now(),
+        });
+        _renderShiftSelector();
+        return _clubShifts;
+    })().catch((error) => {
+        const stillCurrent = String(_clubId() || '').trim() === clubId && _authGeneration() === authGeneration;
+        if (stillCurrent) {
+            _clubShifts = [];
+            _clubShiftsLoadedClubId = '';
+            _currentShiftId = '';
+            _attendanceDebug().shiftConfigErrors++;
+            Object.assign(_attendanceShiftAuthority, {
+                clubId,
+                authGeneration,
+                status: 'error',
+                configured: null,
+                eligibleCount: 0,
+                selectedShiftId: '',
+                lastError: String(error?.message || 'shift-config-error'),
+                updatedAt: Date.now(),
+            });
+            _renderShiftSelector();
+        }
+        throw error;
+    }).finally(() => {
+        if (_clubShiftsLoadPromise === holder) _clubShiftsLoadPromise = null;
+    });
+    _clubShiftsLoadPromise = holder;
+    return holder.promise;
+}
+
+function _commitAttendanceShiftSettingsFromRam(reason) {
+    const clubId = String(_clubId() || '').trim();
+    const authGeneration = _authGeneration();
+    _clubShiftsLoadedClubId = clubId;
+    _attendanceDailyState.requestGeneration += 1;
+    Object.assign(_attendanceShiftAuthority, {
+        clubId,
+        authGeneration,
+        status: 'ready',
+        configured: _clubShifts.length > 0,
+        eligibleCount: 0,
+        selectedShiftId: _currentShiftId,
+        lastError: '',
+        updatedAt: Date.now(),
+    });
+    _attendanceDebug().dailyLastShiftConfigMutation = String(reason || 'shift-settings-save');
     _renderShiftSelector();
 }
 
 function _renderShiftSelector() {
     const sel = document.getElementById('att_shift');
     if (!sel) return;
-    const coachBr = (window.userRole === 'coach' && window.coachBranch) ? window.coachBranch : null;
-    const shifts = coachBr ? _clubShifts.filter(s => !s.branch || _sameBranch(s.branch, coachBr)) : _clubShifts;
+    const stateIsCurrent = _attendanceShiftAuthority.clubId === String(_clubId() || '').trim() &&
+        Number(_attendanceShiftAuthority.authGeneration || 0) === _authGeneration();
+    if (!stateIsCurrent || _attendanceShiftAuthority.status !== 'ready') {
+        const isError = stateIsCurrent && _attendanceShiftAuthority.status === 'error';
+        const pendingShiftId = String(_currentShiftId || sel.value || '');
+        sel.innerHTML = '<option value="">' + (isError
+            ? '⚠️ Không tải được cấu hình ca'
+            : '⏳ Đang tải cấu hình ca...') + '</option>';
+        sel.value = '';
+        sel.disabled = true;
+        _currentShiftId = isError ? '' : pendingShiftId;
+        _attendanceShiftAuthority.selectedShiftId = _currentShiftId;
+        return;
+    }
+    sel.disabled = false;
+    const context = _captureAttendanceDailyContext();
+    const shifts = _getEligibleAttendanceShifts(context);
     let html = '<option value="">⏰ -- Chọn ca tập --</option>';
     shifts.forEach(s => {
         const time = s.timeStart && s.timeEnd ? ' (' + s.timeStart + '–' + s.timeEnd + ')' : '';
         html += '<option value="' + s.id + '">' + s.name + time + '</option>';
     });
     sel.innerHTML = html;
-    if (_currentShiftId && shifts.some(s => s.id === _currentShiftId)) {
-        sel.value = _currentShiftId;
-    } else { sel.value = ''; _currentShiftId = ''; }
+    const selected = String(_currentShiftId || context.shiftId || '');
+    if (selected && shifts.some(s => String(s.id || '') === selected)) {
+        sel.value = selected;
+        _currentShiftId = selected;
+    } else {
+        if (selected) _attendanceDebug().invalidSelectedShiftCleared++;
+        sel.value = '';
+        _currentShiftId = '';
+    }
+    _attendanceShiftAuthority.eligibleCount = shifts.length;
+    _attendanceShiftAuthority.selectedShiftId = _currentShiftId;
     ['add_shift', 'm_shift'].forEach(function(sid) {
         const _ss = document.getElementById(sid);
         if (!_ss) return;
@@ -534,6 +1028,10 @@ function _renderShiftSelector() {
 function _renderShiftListInModal() {
     const listEl = document.getElementById('shiftList');
     if (!listEl) return;
+    if (_attendanceShiftAuthority.status === 'error') {
+        listEl.innerHTML = '<div style="text-align:center;padding:20px;color:#b45309;font-size:0.82rem;font-weight:700;">⚠️ Chưa tải được cấu hình ca tập. Vui lòng thử lại.</div>';
+        return;
+    }
     if (_clubShifts.length === 0) {
         listEl.innerHTML = '<div style="text-align:center;padding:20px;color:#94a3b8;font-size:0.82rem;">Chưa có ca tập nào. Thêm ca phía trên để bắt đầu.</div>';
         return;
@@ -549,23 +1047,403 @@ function _renderShiftListInModal() {
     }).join('');
 }
 
-function _saveAttOffline(clubId, date) {
+function _renderAttendanceShiftBlocked(context, decision) {
+    if (!context || !_isAttendanceDaySubtabActive() || !_isAttendanceDailyTokenCurrent(context)) {
+        return { blocked: true, mode: decision.mode, rendered: false };
+    }
+    const gridEl = document.getElementById('attendanceGrid');
+    _attCurrentDate = context.date;
+    _currentShiftId = '';
+    _attCurrentProfiles = [];
+    window.currentAttendanceData = {};
+    if (gridEl) {
+        if (decision.mode === 'shift-config-unavailable') {
+            gridEl.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px 16px;color:#b45309;font-size:0.86rem;font-weight:700;">'
+                + '⚠️ Chưa tải được cấu hình ca tập.<br><span style="font-weight:500;">Vui lòng thử lại.</span>'
+                + '<div style="margin-top:12px;"><button type="button" onclick="window.AttendanceModule?.retryShiftConfig?.()" '
+                + 'style="border:1px solid #f59e0b;background:#fffbeb;color:#92400e;border-radius:8px;padding:7px 12px;font-weight:800;cursor:pointer;">Thử tải lại ca tập</button></div></div>';
+        } else {
+            const noEligible = decision.reason === 'no-eligible-shift-for-branch';
+            gridEl.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px 16px;color:#475569;font-size:0.86rem;font-weight:700;">'
+                + (noEligible
+                    ? '⏰ Chưa có ca tập phù hợp với cơ sở này.'
+                    : '⏰ Vui lòng chọn ca tập để điểm danh.')
+                + '</div>';
+        }
+    }
+    _updateAttSummary([0,0,0,0]);
+    const branchWrap = document.getElementById('admin_daily_branch_summary');
+    const branchBody = document.getElementById('admin_daily_branch_body');
+    if (branchWrap) branchWrap.style.display = 'none';
+    if (branchBody) branchBody.innerHTML = '';
+    _attendanceDebug().dailyLastShiftAuthorityMode = decision.mode === 'shift-config-unavailable' &&
+        _attendanceShiftAuthority.status === 'error' ? 'shift-config-error' : decision.mode;
+    return { blocked: true, mode: decision.mode, rendered: true, key: context.key };
+}
+
+function _recordAttendanceShiftReadBlocked(decision) {
+    const debug = _attendanceDebug();
+    debug.shiftRequiredBlockedReads++;
+    if (decision.mode === 'shift-required') {
+        debug.blankShiftAllReadPrevented++;
+    }
+}
+
+function _resolveAttendanceWriteGuard(reason) {
+    const rawContext = _captureAttendanceDailyContext();
+    const decision = _resolveAttendanceShiftAuthority(rawContext);
+    const context = _normalizeAttendanceShiftDecision(rawContext, decision);
+    if (decision.allowed) {
+        _currentShiftId = decision.shiftId;
+        _attendanceShiftAuthority.selectedShiftId = decision.shiftId;
+        return { context, decision };
+    }
+    const token = _captureAttendanceDailyToken(context);
+    const debug = _attendanceDebug();
+    debug.shiftRequiredBlockedWrites++;
+    if (decision.mode === 'shift-required') debug.blankShiftWritePrevented++;
+    debug.dailyLastBlockedWriteReason = String(reason || 'attendance-write');
+    _renderAttendanceShiftBlocked(token, decision);
+    window.showToast(decision.mode === 'shift-config-unavailable'
+        ? '⚠️ Chưa tải được cấu hình ca tập. Vui lòng thử lại.'
+        : '⚠️ Vui lòng chọn ca tập trước khi điểm danh.', 3000);
+    return null;
+}
+
+function _attendanceOfflineKeyPart(value) {
+    return encodeURIComponent(String(value == null ? '' : value));
+}
+
+function _attendanceOfflineMutationKey(record) {
+    const shiftToken = record?.shiftMode === 'explicit-shift'
+        ? String(record.shiftId || '')
+        : 'legacy-no-shift';
+    return _ATTENDANCE_OFFLINE_V2_PREFIX + [
+        record?.clubId || '', record?.date || '', shiftToken, record?.docId || ''
+    ].map(_attendanceOfflineKeyPart).join('~');
+}
+
+function _classifyAttendanceOfflineError(error, fallback = 'unknown') {
+    const code = String(error?.code || '').toLowerCase();
+    const message = String(error?.message || error || '').toLowerCase();
+    if (code.includes('permission-denied') || message.includes('permission-denied') || message.includes('permission denied')) return 'permission-denied';
+    if (code.includes('unavailable') || code.includes('network') || message.includes('network') || message.includes('offline')) return 'network';
+    return fallback || 'unknown';
+}
+
+function _recordAttendanceOfflineIssue(kind, error, extra = {}) {
+    const debug = _attendanceDebug();
+    const resolved = String(kind || _classifyAttendanceOfflineError(error, 'unknown'));
+    debug.offlineSyncErrors++;
+    debug.offlineSyncLastErrorType = resolved;
+    if (resolved === 'wrong-club') debug.offlineSyncCrossClubBlocked++;
+    if (resolved === 'invalid-shift') debug.offlineSyncInvalidShiftBlocked++;
+    if (resolved === 'malformed-payload') debug.offlineSyncMalformedBlocked++;
+    const details = { classification: resolved, attendanceOffline: true, ...extra };
+    console.warn('[AttendanceOffline]', resolved, details, error || '');
+    // Guard outcomes are expected and remain pending; actual failures are also recorded
+    // in the existing runtime error store. No second diagnostics authority is created.
+    if (!['wrong-club', 'invalid-shift'].includes(resolved) && typeof window.recordRuntimeError === 'function') {
+        window.recordRuntimeError('attendance.offline-sync:' + resolved, error || new Error(resolved), details);
+    }
+}
+
+function _recordAttendanceSecondaryFailure(classification, error, extra = {}) {
+    const resolved = String(classification || 'attendance-secondary-write-failed');
+    const details = { classification: resolved, secondaryWrite: true, reconciliationNeeded: true, ...extra };
+    console.warn('[AttendanceConsistency]', resolved, details, error || '');
+    if (typeof window.recordRuntimeError === 'function') {
+        window.recordRuntimeError('attendance.secondary:' + resolved, error || new Error(resolved), details);
+    }
+}
+
+function _saveAttOffline(clubId, date, shiftDecision, changedRecords = []) {
+    if (!shiftDecision || shiftDecision.allowed !== true || !Array.isArray(changedRecords) || changedRecords.length === 0) return [];
+    const savedRecords = [];
     try {
-        const key = 'offline_att_' + clubId + '_' + date;
-        const payload = { clubId, date, records: {} };
-        _attCurrentProfiles.forEach(([name, p]) => {
-            // [4J-6A] Lưu shiftId và docId để bulkSyncOffline ghi đúng document
-            const shiftId = _currentShiftId || '';
-            const docId   = getAttendanceDocId(name, date, shiftId || null);
-            payload.records[name] = {
-                name, status: window.currentAttendanceData[name] ?? 0,
-                belt: p.belt || '', branch: p.branch || '',
-                date, month: date.substring(0, 7), profileId: name,
-                shiftId, docId
+        changedRecords.forEach((entry) => {
+            const name = String(entry?.name || '').trim();
+            const p = entry?.profile || entry?.p || {};
+            if (!name) return;
+            const shiftId = String(shiftDecision.shiftId || '');
+            const shiftMode = shiftDecision.mode === 'explicit-shift' ? 'explicit-shift' : 'legacy-no-shift';
+            const docId = String(entry?.docId || getAttendanceDocId(name, date, shiftId || null));
+            const status = Number(entry?.status ?? window.currentAttendanceData[name] ?? 0);
+            const now = Date.now();
+            const record = {
+                version: 2,
+                clubId: String(clubId || ''),
+                date: String(date || ''),
+                month: String(date || '').substring(0, 7),
+                branch: p.branch || entry?.branch || '',
+                shiftMode,
+                shiftId,
+                docId,
+                profileId: String(entry?.profileId || name),
+                name,
+                operation: status === 0 ? 'delete' : 'set',
+                status,
+                belt: p.belt || entry?.belt || '',
+                queuedAt: now,
+                lastUpdatedAt: now,
+                revision: 1,
             };
+            const key = _attendanceOfflineMutationKey(record);
+            try {
+                const previous = JSON.parse(localStorage.getItem(key) || 'null');
+                if (previous?.version === 2) {
+                    if (previous?.queuedAt) record.queuedAt = previous.queuedAt;
+                    record.revision = Math.max(1, Number(previous.revision || 0) + 1);
+                    _attendanceDebug().offlineJournalCoalesced++;
+                }
+            } catch (_) {}
+            localStorage.setItem(key, JSON.stringify(record));
+            _attendanceDebug().offlineJournalQueued++;
+            savedRecords.push(Object.freeze({ ...record }));
         });
-        localStorage.setItem(key, JSON.stringify(payload));
-    } catch(e) {}
+        return savedRecords;
+    } catch (error) {
+        _recordAttendanceOfflineIssue('unknown', error, { subtype: 'local-storage', stage: 'enqueue', clubId, date });
+        return [];
+    }
+}
+
+function _removeAttOfflineMutation(record) {
+    if (!record?.clubId || !record?.date || !record?.docId) return false;
+    const key = _attendanceOfflineMutationKey(record);
+    try {
+        const currentRaw = localStorage.getItem(key);
+        if (!currentRaw) return false;
+        if (Number(record.revision || 0) > 0) {
+            let current = null;
+            try { current = JSON.parse(currentRaw); }
+            catch (error) {
+                _recordAttendanceOfflineIssue('malformed-payload', error, { stage: 'revision-cleanup-parse' });
+                _attendanceDebug().offlineSyncUncommittedChunkPreserved++;
+                return false;
+            }
+            if (Number(current?.revision || 0) !== Number(record.revision || 0)) {
+                _attendanceDebug().offlineSyncUncommittedChunkPreserved++;
+                return false;
+            }
+        }
+        localStorage.removeItem(key);
+        _attendanceDebug().offlineScopedCleanup++;
+        return true;
+    } catch (error) {
+        _recordAttendanceOfflineIssue('unknown', error, { subtype: 'local-storage', stage: 'scoped-cleanup' });
+        return false;
+    }
+}
+
+function _buildOfflineRecordForWrite({ clubId, date, shiftDecision, name, profile, status, docId }) {
+    const shiftId = String(shiftDecision?.shiftId || '');
+    return {
+        version: 2,
+        clubId: String(clubId || ''),
+        date: String(date || ''),
+        month: String(date || '').substring(0, 7),
+        branch: profile?.branch || '',
+        shiftMode: shiftDecision?.mode === 'explicit-shift' ? 'explicit-shift' : 'legacy-no-shift',
+        shiftId,
+        docId: String(docId || getAttendanceDocId(name, date, shiftId || null)),
+        profileId: String(name || ''),
+        name: String(name || ''),
+        operation: Number(status || 0) === 0 ? 'delete' : 'set',
+        status: Number(status || 0),
+        belt: profile?.belt || '',
+    };
+}
+
+function _isOfflineAttendanceRecordAllowed(record) {
+    if (!record || String(record.clubId || '') !== String(_clubId() || '')) return { allowed: false, reason: 'wrong-club' };
+    if (_attendanceShiftAuthority.status !== 'ready' ||
+        _attendanceShiftAuthority.clubId !== String(_clubId() || '') ||
+        Number(_attendanceShiftAuthority.authGeneration || 0) !== _authGeneration()) {
+        return { allowed: false, reason: 'shift-config-unavailable' };
+    }
+    if (_attendanceShiftAuthority.configured === false) {
+        return record.shiftMode === 'legacy-no-shift' || !record.shiftId
+            ? { allowed: true, mode: 'legacy-no-shift' }
+            : { allowed: false, reason: 'invalid-shift' };
+    }
+    const role = String(window.userRole || window.__store?.userRole || 'viewer').toLowerCase();
+    const coachBranch = role === 'coach'
+        ? _canonicalAttendanceBranch(window.coachBranch || window.__store?.coachBranch || '', '')
+        : '';
+    const branch = role === 'coach' ? coachBranch : _canonicalAttendanceBranch(record.branch || '', '');
+    const context = {
+        clubId: String(record.clubId || ''),
+        authGeneration: _authGeneration(),
+        role,
+        coachBranch,
+        branch: branch || (role === 'coach' ? '' : 'all'),
+        shiftId: String(record.shiftId || ''),
+    };
+    const decision = _resolveAttendanceShiftAuthority(context);
+    return decision.mode === 'explicit-shift'
+        ? { allowed: true, mode: 'explicit-shift' }
+        : { allowed: false, reason: 'invalid-shift' };
+}
+
+function _isOfflineAttendancePayloadAllowed(payload) {
+    if (!payload || String(payload.clubId || '') !== String(_clubId() || '')) return false;
+    if (_attendanceShiftAuthority.status !== 'ready' ||
+        _attendanceShiftAuthority.clubId !== String(_clubId() || '') ||
+        Number(_attendanceShiftAuthority.authGeneration || 0) !== _authGeneration()) return false;
+    const records = Object.values(payload.records || {});
+    if (_attendanceShiftAuthority.configured === false) return true;
+    if (!records.length) return false;
+    return records.every((record) => _isOfflineAttendanceRecordAllowed({
+        ...record,
+        version: 1,
+        clubId: payload.clubId,
+        shiftMode: record?.shiftId ? 'explicit-shift' : 'legacy-no-shift',
+    }).allowed === true);
+}
+
+function _renderAttendanceDailyFromRam(context, reason = 'presentation-only') {
+    if (!context || !_isAttendanceDaySubtabActive()) return { skipped: 'day-subtab-hidden' };
+    const current = _captureAttendanceDailyContext();
+    if (!_sameAttendanceContext(context, current)) return { skipped: 'context-changed' };
+    const shiftDecision = _resolveAttendanceShiftAuthority(context);
+    if (!shiftDecision.allowed) return _renderAttendanceShiftBlocked(context, shiftDecision);
+    _attCurrentDate = context.date;
+    _currentShiftId = shiftDecision.shiftId;
+    _attCurrentProfiles = _getFilteredAttProfiles();
+    if (typeof window.trackLargeListRender === 'function') {
+        window.trackLargeListRender('attendance.list', _attCurrentProfiles.length, { reason });
+    }
+    _attendanceDebug().dailyPresentationOnlyRenders++;
+    _renderAttCards();
+    _applyCachedCoachNotes(context);
+    return { rendered: true, key: context.key, profiles: _attCurrentProfiles.length };
+}
+
+function _captureAttendanceDailyToken(context) {
+    const previous = _attendanceDailyState.latestIntent;
+    if (!_sameAttendanceContext(previous, context)) _attendanceDailyState.requestGeneration += 1;
+    const token = Object.freeze({
+        ...context,
+        generation: _attendanceDailyState.requestGeneration,
+        mutationRevision: _attendanceDailyState.mutationRevision,
+    });
+    _attendanceDailyState.latestIntent = token;
+    const debug = _attendanceDebug();
+    debug.dailyIntentCount++;
+    debug.dailyLastKey = token.key;
+    return token;
+}
+
+function _recordAttendanceDailyStale(token) {
+    const debug = _attendanceDebug();
+    debug.dailyStaleDropped++;
+    if (Number(token?.mutationRevision || 0) !== Number(_attendanceDailyState.mutationRevision || 0)) {
+        debug.dailyMutationRevisionDropped++;
+    }
+}
+
+async function _requestAttendanceDailyRefresh(reason = 'compatibility-render', options = {}) {
+    if (!_isAttendanceDaySubtabActive()) {
+        _attendanceDebug().monthSubtabDailyReadPrevented++;
+        return { skipped: 'day-subtab-hidden' };
+    }
+    const dateEl = document.getElementById('att_date');
+    const gridEl = document.getElementById('attendanceGrid');
+    if (!gridEl) return { skipped: 'grid-missing' };
+    if (dateEl && !dateEl.value) dateEl.value = _getLocalToday();
+
+    try {
+        await _loadClubShifts({ force: options.forceShiftConfig === true });
+    } catch (error) {
+        // The loader has already committed an explicit error/unknown state.
+        // Continue only to publish a blocked intent; never fall open as [].
+        _attendanceDebug().dailyLastShiftLoadError = String(error?.message || error || 'shift-config-error');
+    }
+    if (!_isAttendanceDaySubtabActive()) {
+        _attendanceDebug().monthSubtabDailyReadPrevented++;
+        return { skipped: 'day-subtab-changed' };
+    }
+
+    const rawContext = _captureAttendanceDailyContext();
+    const shiftDecision = _resolveAttendanceShiftAuthority(rawContext);
+    const context = _normalizeAttendanceShiftDecision(rawContext, shiftDecision);
+    const token = _captureAttendanceDailyToken(context);
+    if (!shiftDecision.allowed) {
+        _recordAttendanceShiftReadBlocked(shiftDecision);
+        return _renderAttendanceShiftBlocked(token, shiftDecision);
+    }
+    const sameSnapshot = _attendanceDailyState.cacheReady &&
+        _attendanceDailyState.currentSnapshotKey === context.key &&
+        Number(_attendanceDailyState.currentSnapshotAuthGeneration) === Number(context.authGeneration);
+    const cacheFresh = sameSnapshot && (Date.now() - _attendanceDailyState.currentSnapshotAt) <= _ATTENDANCE_DAILY_CACHE_TTL_MS;
+    const presentationOnly = options.presentationOnly === true;
+    if (sameSnapshot && (presentationOnly || (!options.force && cacheFresh))) {
+        _attendanceDebug().dailyCacheHits++;
+        const rendered = _renderAttendanceDailyFromRam(token, reason + ':ram-cache');
+        if (!presentationOnly) await _loadAcceptedAttendanceAuxiliary(token);
+        return { ...rendered, cacheHit: true };
+    }
+    if (presentationOnly && options.allowInitialLoad !== true) {
+        return _renderAttendanceDailyFromRam(token, reason + ':ram-only-no-snapshot');
+    }
+
+    const running = _attendanceDailyState.inFlight.get(context.key);
+    if (running && _sameAttendanceContext(running.token, token) &&
+        Number(running.token.mutationRevision || 0) === Number(token.mutationRevision || 0)) {
+        _attendanceDebug().dailySingleFlightCoalesced++;
+        return running.promise;
+    }
+
+    if (_isAttendanceDailyTokenCurrent(token)) {
+        gridEl.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px 16px;color:#94a3b8;font-size:0.85rem;">⏳ Đang tải dữ liệu điểm danh...</div>';
+    }
+
+    const flight = { token, promise: null };
+    flight.promise = (async () => {
+        const debug = _attendanceDebug();
+        debug.dailyNetworkLoads++;
+        if (shiftDecision.mode === 'explicit-shift') debug.explicitShiftReads++;
+        else debug.legacyNoShiftReads++;
+        const attList = await AttendanceService.loadByDate(token.date, {
+            shiftId: token.shiftId,
+            branch: token.branch === 'all' ? '' : token.branch,
+            shiftAuthorityMode: shiftDecision.mode,
+            requireShift: shiftDecision.mode === 'explicit-shift',
+        });
+        if (!_isAttendanceDailyTokenCurrent(token)) {
+            _recordAttendanceDailyStale(token);
+            return { stale: true, key: token.key };
+        }
+        const nextCache = {};
+        attList.forEach(({ id, data }) => {
+            const docShift = data.shiftId || '';
+            if (token.shiftId && docShift !== token.shiftId) return;
+            nextCache[id] = _mapLegacyStatus(data.status || 0);
+        });
+        _attendanceCache = nextCache;
+        _attendanceDailyState.currentSnapshotKey = token.key;
+        _attendanceDailyState.currentSnapshotAuthGeneration = token.authGeneration;
+        _attendanceDailyState.currentSnapshotAt = Date.now();
+        _attendanceDailyState.cacheReady = true;
+        _renderAttendanceDailyFromRam(token, reason + ':network-accepted');
+        await _loadAcceptedAttendanceAuxiliary(token);
+        return { applied: true, key: token.key, records: attList.length };
+    })().catch((error) => {
+        if (!_isAttendanceDailyTokenCurrent(token)) {
+            _recordAttendanceDailyStale(token);
+            return { stale: true, error: true, key: token.key };
+        }
+        console.warn('[Attendance] loadByDate failed:', error && error.message || error);
+        _renderAttendanceDailyFromRam(token, reason + ':current-error-ram-preserved');
+        return { error: true, key: token.key };
+    }).finally(() => {
+        if (_attendanceDailyState.inFlight.get(token.key) === flight) {
+            _attendanceDailyState.inFlight.delete(token.key);
+        }
+    });
+    _attendanceDailyState.inFlight.set(context.key, flight);
+    return flight.promise;
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -592,7 +1470,7 @@ export function initAttendance() {
     // Expose getters cho các module khác (students.js dùng khi openAddModal)
     window._getClubShifts = function() { return _clubShifts; };
     window._ensureClubShiftsLoaded = async function() {
-        if (!_clubShiftsLoaded) await _loadClubShifts();
+        return _loadClubShifts();
     };
     window.currentAttendanceData = {};
 
@@ -762,55 +1640,17 @@ export function initAttendance() {
     };
 
     // ── Render danh sách điểm danh ngày ────────────────────────
-    window.renderAttendanceList = async () => {
-        const dateEl = document.getElementById('att_date');
-        const gridEl = document.getElementById('attendanceGrid');
-        if (!gridEl) return;
-        if (dateEl && !dateEl.value) dateEl.value = _getLocalToday();
-        _attCurrentDate     = dateEl ? dateEl.value : _getLocalToday();
-        // Phase 4.0B-4J-5: update attendance debug info
-        window.__attendanceDebug = window.__attendanceDebug || {};
-        _attCurrentProfiles = _getFilteredAttProfiles();
-        if (!_clubShiftsLoaded) await _loadClubShifts();
-        if (_attCurrentProfiles.length === 0) {
-            _renderAttCards();
-            await _loadSessionNoteAfterAttendanceRender(_attCurrentDate);
-            return;
-        }
-        if (typeof window.trackLargeListRender === 'function') {
-            window.trackLargeListRender('attendance.list', _attCurrentProfiles.length, { reason: 'render-attendance-list' });
-        }
-        gridEl.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px 16px;color:#94a3b8;font-size:0.85rem;">⏳ Đang tải dữ liệu điểm danh...</div>';
-        try {
-            const _dailyBranchEl = document.getElementById('att_branch');
-            const _dailyBranch = (window.userRole === 'coach' && window.coachBranch)
-                ? window.coachBranch
-                : ((_dailyBranchEl && _dailyBranchEl.value !== 'all') ? _dailyBranchEl.value : '');
-            const attList = await AttendanceService.loadByDate(_attCurrentDate, {
-                shiftId: _currentShiftId,
-                branch: _dailyBranch
-            });
-            _attendanceCache = {};
-            attList.forEach(({ id: _id, data: _sd }) => {
-                const _docShift = _sd.shiftId || '';
-                // Không chọn ca: hiển thị mọi record trong ngày. Có chọn ca:
-                // chỉ hiển thị đúng ca đó. Records cũ không có shiftId vẫn tương thích.
-                if (_currentShiftId && _docShift !== _currentShiftId) return;
-                _attendanceCache[_id] = _mapLegacyStatus(_sd.status || 0);
-            });
-        } catch(e) {
-            console.warn('[Attendance] loadByDate failed:', e && e.message || e);
-            _attendanceCache = {};
-        }
-        _renderAttCards();
-        await _loadSessionNoteAfterAttendanceRender(_attCurrentDate);
-    };
+    // Backward-compatible entry only. The canonical orchestration owner below
+    // owns cache reuse, same-key single-flight and latest-context apply.
+    window.renderAttendanceList = async (reason = 'legacy-renderAttendanceList', options = {}) =>
+        _requestAttendanceDailyRefresh(reason, options);
 
     // ── Ca tập ─────────────────────────────────────────────────
     window.onShiftChange = () => {
         const sel = document.getElementById('att_shift');
         _currentShiftId = sel ? sel.value : '';
-        if (typeof window.renderAttendanceList === 'function') window.renderAttendanceList();
+        _attendanceShiftAuthority.selectedShiftId = _currentShiftId;
+        return _requestAttendanceDailyRefresh('shift-change', { force: true });
     };
 
     window.openShiftModal = async () => {
@@ -818,7 +1658,7 @@ export function initAttendance() {
         if (!modal) return;
         modal.style.display = 'flex';
         ['shift_name','shift_start','shift_end'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-        await _loadClubShifts();
+        try { await _loadClubShifts(); } catch (_) {}
         _renderShiftListInModal();
     };
 
@@ -828,6 +1668,10 @@ export function initAttendance() {
     };
 
     window.addShift = async () => {
+        if (_attendanceShiftAuthority.status !== 'ready') {
+            window.showToast('⚠️ Chưa tải được cấu hình ca tập. Vui lòng thử lại.', 3000);
+            return { blocked: true };
+        }
         const nameEl  = document.getElementById('shift_name');
         const startEl = document.getElementById('shift_start');
         const endEl   = document.getElementById('shift_end');
@@ -842,36 +1686,56 @@ export function initAttendance() {
         _clubShifts.push(newShift);
         try {
             await AttendanceService.saveShifts(_clubShifts);
-            if (nameEl) nameEl.value = ''; if (startEl) startEl.value = ''; if (endEl) endEl.value = '';
-            _renderShiftSelector(); _renderShiftListInModal();
-            window.showToast('✅ Đã thêm ca: ' + sName, 2000);
         } catch(e) {
             _clubShifts.pop();
             window.showToast('⚠️ Lỗi thêm ca: ' + (e.message || ''), 3000);
+            return;
+        }
+        _commitAttendanceShiftSettingsFromRam('add-shift');
+        if (nameEl) nameEl.value = ''; if (startEl) startEl.value = ''; if (endEl) endEl.value = '';
+        _renderShiftListInModal();
+        window.showToast('✅ Đã thêm ca: ' + sName, 2000);
+        if (_isAttendanceDaySubtabActive()) {
+            try { await _requestAttendanceDailyRefresh('shift-config-add', { force: false }); } catch (_) {}
         }
     };
 
     window.deleteShift = async (shiftId) => {
+        if (_attendanceShiftAuthority.status !== 'ready') {
+            window.showToast('⚠️ Chưa tải được cấu hình ca tập. Vui lòng thử lại.', 3000);
+            return { blocked: true };
+        }
         const idx = _clubShifts.findIndex(s => s.id === shiftId);
         if (idx === -1) return;
         const removed = _clubShifts.splice(idx, 1)[0];
         try {
             await AttendanceService.saveShifts(_clubShifts);
-            if (_currentShiftId === shiftId) {
-                _currentShiftId = '';
-                const sel = document.getElementById('att_shift');
-                if (sel) sel.value = '';
-            }
-            _renderShiftSelector(); _renderShiftListInModal();
-            window.showToast('🗑️ Đã xóa ca: ' + removed.name, 2000);
         } catch(e) {
             _clubShifts.splice(idx, 0, removed);
             window.showToast('⚠️ Lỗi xóa ca: ' + (e.message || ''), 3000);
+            return;
+        }
+        if (_currentShiftId === shiftId) {
+            _currentShiftId = '';
+            const sel = document.getElementById('att_shift');
+            if (sel) sel.value = '';
+        }
+        _commitAttendanceShiftSettingsFromRam('delete-shift');
+        _renderShiftListInModal();
+        window.showToast('🗑️ Đã xóa ca: ' + removed.name, 2000);
+        if (_isAttendanceDaySubtabActive()) {
+            try { await _requestAttendanceDailyRefresh('shift-config-delete', { force: false }); } catch (_) {}
         }
     };
 
     // ── Toggle điểm danh (xoay vòng 4 trạng thái) ──────────────
     window.toggleAttendance = async (idxOrName) => {
+        const shiftGuard = _resolveAttendanceWriteGuard('toggleAttendance');
+        if (!shiftGuard) return { blocked: true };
+        const writeDate = shiftGuard.context.date;
+        const writeShiftId = shiftGuard.decision.shiftId;
+        _attCurrentDate = writeDate;
+        _currentShiftId = writeShiftId;
         let idx, name, p;
         if (typeof idxOrName === 'number') {
             const entry = _attCurrentProfiles[idxOrName];
@@ -882,9 +1746,10 @@ export function initAttendance() {
             if (idx === -1) return;
             [name, p] = _attCurrentProfiles[idx];
         }
-        const docId         = _currentShiftId ? name + '_' + _attCurrentDate + '_' + _currentShiftId : name + '_' + _attCurrentDate;
+        const docId         = getAttendanceDocId(name, writeDate, writeShiftId);
         const currentStatus = window.currentAttendanceData[name] ?? 0;
         const newStatus     = (currentStatus + 1) % 4;
+        _markAttendanceDailyMutation('toggleAttendance');
         window.currentAttendanceData[name] = newStatus;
         _attendanceCache[docId] = newStatus;
         const cardEl = document.getElementById('att_card_' + idx);
@@ -893,7 +1758,8 @@ export function initAttendance() {
         const lblEl = document.getElementById('att_lbl_' + idx);
         if (lblEl) lblEl.textContent = cfg.icon + ' ' + cfg.label;
         _updateAttSummary(null);
-        _saveAttOffline(_clubId(), _attCurrentDate);
+        const queuedMutations = _saveAttOffline(_clubId(), writeDate, shiftGuard.decision, [{ name, profile: p, status: newStatus, docId }]);
+        const pendingMutation = queuedMutations[0] || _buildOfflineRecordForWrite({ clubId: _clubId(), date: writeDate, shiftDecision: shiftGuard.decision, name, profile: p, status: newStatus, docId });
         if (!navigator.onLine) { window.showToast('📴 Đã lưu offline – sẽ đồng bộ khi có mạng', 2500); return; }
         try {
             if (newStatus === 0) {
@@ -901,26 +1767,31 @@ export function initAttendance() {
             } else {
                 await AttendanceService.saveRecord(docId, {
                     profileId: name, name, belt: p.belt || '', branch: p.branch || '',
-                    date: _attCurrentDate, month: _attCurrentDate.substring(0, 7),
+                    date: writeDate, month: writeDate.substring(0, 7),
                     status: newStatus, timestamp: Date.now(),
-                    ...(_currentShiftId ? { shiftId: _currentShiftId } : {})
+                    ...(writeShiftId ? { shiftId: writeShiftId } : {})
                 });
             }
-            try { localStorage.removeItem('offline_att_' + _clubId() + '_' + _attCurrentDate); } catch(_e) {}
+            _removeAttOfflineMutation(pendingMutation);
             const _pu = {};
             if (newStatus === 1 && currentStatus !== 1) { p.totalSessionsAttended = (p.totalSessionsAttended||0)+1; _pu.totalSessionsAttended = AttendanceService._increment(1); }
             else if (currentStatus === 1 && newStatus !== 1) { p.totalSessionsAttended = Math.max(0,(p.totalSessionsAttended||0)-1); _pu.totalSessionsAttended = AttendanceService._increment(-1); }
             if (newStatus === 2 && currentStatus !== 2) {
-                if (p.lastAbsenceDate !== _attCurrentDate) {
-                    p.consecutiveAbsences = (p.consecutiveAbsences||0)+1; p.lastAbsenceDate = _attCurrentDate;
-                    _pu.consecutiveAbsences = AttendanceService._increment(1); _pu.lastAbsenceDate = _attCurrentDate;
+                if (p.lastAbsenceDate !== writeDate) {
+                    p.consecutiveAbsences = (p.consecutiveAbsences||0)+1; p.lastAbsenceDate = writeDate;
+                    _pu.consecutiveAbsences = AttendanceService._increment(1); _pu.lastAbsenceDate = writeDate;
                 }
             } else if (newStatus !== 2 && currentStatus === 2) {
                 p.consecutiveAbsences = 0; p.lastAbsenceDate = '';
                 _pu.consecutiveAbsences = 0; _pu.lastAbsenceDate = '';
             }
             if (Object.keys(_pu).length > 0) {
-                AttendanceService.updateMemberStats(name, _pu).catch(() => {});
+                AttendanceService.updateMemberStats(name, _pu).catch((error) => {
+                    _recordAttendanceSecondaryFailure('attendance-member-stats-reconcile-required', error, {
+                        stage: 'attendance-member-stats', profileId: name, date: writeDate, shiftId: writeShiftId,
+                        canonicalAttendancePreserved: true
+                    });
+                });
             }
             const _newCons = p.consecutiveAbsences || 0;
             const nw2 = _newCons === 2, nw3 = _newCons >= 3;
@@ -945,6 +1816,7 @@ export function initAttendance() {
                 }
             }
         } catch(e) {
+            _markAttendanceDailyMutation('toggleAttendance-rollback');
             window.currentAttendanceData[name] = currentStatus; _attendanceCache[docId] = currentStatus;
             const cfgOld = _ATT_STATUS[currentStatus];
             if (cardEl) { cardEl.style.background=cfgOld.bg; cardEl.style.color=cfgOld.text; cardEl.style.borderColor=cfgOld.border; }
@@ -957,69 +1829,276 @@ export function initAttendance() {
 
     // ── Điểm danh hàng loạt ────────────────────────────────────
     window.bulkCheckIn = async () => {
-        if (!_attCurrentDate) { window.showToast('⚠️ Vui lòng chọn ngày điểm danh!', 2500); return; }
+        const shiftGuard = _resolveAttendanceWriteGuard('bulkCheckIn');
+        if (!shiftGuard) return { blocked: true };
+        const writeDate = shiftGuard.context.date;
+        const writeShiftId = shiftGuard.decision.shiftId;
+        _attCurrentDate = writeDate;
+        _currentShiftId = writeShiftId;
+        if (!writeDate) { window.showToast('⚠️ Vui lòng chọn ngày điểm danh!', 2500); return; }
         const unmarked = _attCurrentProfiles.filter(([name]) => (window.currentAttendanceData[name] ?? 0) === 0);
         if (unmarked.length === 0) { window.showToast('ℹ️ Tất cả võ sinh đã được điểm danh!', 2500); return; }
-        unmarked.forEach(([name]) => { window.currentAttendanceData[name] = 1; _attendanceCache[getAttendanceDocId(name, _attCurrentDate, _currentShiftId)] = 1; });
+        _markAttendanceDailyMutation('bulkCheckIn');
+        unmarked.forEach(([name]) => { window.currentAttendanceData[name] = 1; _attendanceCache[getAttendanceDocId(name, writeDate, writeShiftId)] = 1; });
         _renderAttCards();
         const btn = document.getElementById('att_bulk_btn');
-        _saveAttOffline(_clubId(), _attCurrentDate);
+        const pendingBulkMutations = _saveAttOffline(_clubId(), writeDate, shiftGuard.decision, unmarked.map(([name, p]) => ({
+            name, profile: p, status: 1, docId: getAttendanceDocId(name, writeDate, writeShiftId)
+        })));
         if (!navigator.onLine) { window.showToast('📴 Mất mạng! Đã lưu offline ' + unmarked.length + ' võ sinh – sẽ tự đồng bộ khi có kết nối.', 3500); return; }
         if (btn) { btn.disabled = true; btn.textContent = '⏳ Đang lưu ' + unmarked.length + ' võ sinh...'; }
         try {
             const bulkRecords = unmarked.map(([name, p]) => ({
-                docId: getAttendanceDocId(name, _attCurrentDate, _currentShiftId),
+                docId: getAttendanceDocId(name, writeDate, writeShiftId),
                 data: {
                     profileId: name, name, belt: p.belt || '', branch: p.branch || '',
-                    date: _attCurrentDate, month: _attCurrentDate.substring(0, 7), status: 1,
-                    ...(_currentShiftId ? { shiftId: _currentShiftId } : {}),
+                    date: writeDate, month: writeDate.substring(0, 7), status: 1,
+                    ...(writeShiftId ? { shiftId: writeShiftId } : {}),
                     timestamp: Date.now()
                 }
             }));
             await AttendanceService.bulkSaveRecords(bulkRecords);
 
+            pendingBulkMutations.forEach(_removeAttOfflineMutation);
             window.__attendanceDebug.cacheCount = Object.keys(_attendanceCache).length;
             window.showToast('✅ Đã điểm danh hàng loạt ' + unmarked.length + ' võ sinh!', 3000);
         } catch(e) {
             // [4J-6A] Rollback cache dùng đúng key theo ca tập
-            unmarked.forEach(([name]) => { window.currentAttendanceData[name]=0; _attendanceCache[getAttendanceDocId(name, _attCurrentDate, _currentShiftId)]=0; });
+            _markAttendanceDailyMutation('bulkCheckIn-rollback');
+            unmarked.forEach(([name]) => { window.currentAttendanceData[name]=0; _attendanceCache[getAttendanceDocId(name, writeDate, writeShiftId)]=0; });
             _renderAttCards(); window.showToast('⚠️ Lỗi khi lưu điểm danh hàng loạt!', 3500);
         } finally {
             if (btn) { btn.disabled=false; btn.textContent='✅ Đánh dấu tất cả có mặt'; }
-            try { localStorage.removeItem('offline_att_' + _clubId() + '_' + _attCurrentDate); } catch(_e) {}
         }
     };
 
     // ── Offline sync ────────────────────────────────────────────
-    window.syncOfflineAttendance = async () => {
-        if (!navigator.onLine) return;
-        const offlineKeys = [];
+    const _runOfflineAttendanceSync = async (syncContext) => {
+        if (!navigator.onLine) return { skipped: 'offline' };
+        if (!syncContext?.clubId) return { skipped: 'no-club' };
+        if (!_isOfflineAttendanceSyncContextCurrent(syncContext)) {
+            _attendanceDebug().offlineSyncContextStaleStops++;
+            return { skipped: 'stale-context' };
+        }
+
+        const keys = [];
         for (let i = 0; i < localStorage.length; i++) {
-            const k = localStorage.key(i);
-            if (k && k.startsWith('offline_att_')) offlineKeys.push(k);
+            const key = localStorage.key(i);
+            if (key && key.startsWith('offline_att_')) keys.push(key);
         }
-        if (!offlineKeys.length) return;
-        window.showToast('🔄 Đang đồng bộ ' + offlineKeys.length + ' ngày điểm danh offline...', 4000);
+        if (!keys.length) return { synced: 0, pending: 0 };
+
+        const currentClub = String(syncContext.clubId || '');
+        const v2Entries = [];
+        const legacyEntries = [];
+        for (const key of keys) {
+            let payload = null;
+            try { payload = JSON.parse(localStorage.getItem(key) || 'null'); }
+            catch (error) {
+                _recordAttendanceOfflineIssue('malformed-payload', error, { stage: 'parse' });
+                continue;
+            }
+            if (key.startsWith(_ATTENDANCE_OFFLINE_V2_PREFIX)) {
+                if (!payload || payload.version !== 2 || !payload.clubId || !payload.date || !payload.docId || !payload.name) {
+                    _recordAttendanceOfflineIssue('malformed-payload', new Error('Invalid V2 attendance journal record'), { stage: 'validate-v2' });
+                    continue;
+                }
+                if (String(payload.clubId) !== currentClub) {
+                    _recordAttendanceOfflineIssue('wrong-club', null, { stage: 'club-scope-v2' });
+                    continue;
+                }
+                v2Entries.push({ key, record: payload });
+            } else {
+                if (!payload || !payload.records || !payload.clubId) {
+                    _recordAttendanceOfflineIssue('malformed-payload', new Error('Invalid V1 attendance payload'), { stage: 'validate-v1' });
+                    continue;
+                }
+                if (String(payload.clubId) !== currentClub) {
+                    _recordAttendanceOfflineIssue('wrong-club', null, { stage: 'club-scope-v1', legacy: true });
+                    continue;
+                }
+                legacyEntries.push({ key, payload });
+            }
+        }
+
+        if (!v2Entries.length && !legacyEntries.length) return { synced: 0, pending: keys.length, blocked: 'other-club-or-malformed' };
+        if (!_isOfflineAttendanceSyncContextCurrent(syncContext)) {
+            _attendanceDebug().offlineSyncContextStaleStops++;
+            _attendanceDebug().offlineSyncUncommittedChunkPreserved += v2Entries.length + legacyEntries.length;
+            return { synced: 0, pending: keys.length, skipped: 'stale-context-before-shifts' };
+        }
+        try {
+            await _loadClubShifts();
+        } catch (error) {
+            if (!_isOfflineAttendanceSyncContextCurrent(syncContext)) {
+                _attendanceDebug().offlineSyncContextStaleStops++;
+                _attendanceDebug().offlineSyncUncommittedChunkPreserved += v2Entries.length + legacyEntries.length;
+                return { synced: 0, pending: keys.length, skipped: 'stale-context-during-shifts' };
+            }
+            _attendanceDebug().shiftRequiredBlockedWrites++;
+            _recordAttendanceOfflineIssue(_classifyAttendanceOfflineError(error, 'unknown'), error, { subtype: 'shift-config-unavailable', stage: 'load-shifts' });
+            window.showToast('⚠️ Chưa tải được cấu hình ca tập. Dữ liệu offline chưa được đồng bộ.', 3500);
+            return { blocked: true, mode: 'shift-config-unavailable' };
+        }
+        if (!_isOfflineAttendanceSyncContextCurrent(syncContext)) {
+            _attendanceDebug().offlineSyncContextStaleStops++;
+            _attendanceDebug().offlineSyncUncommittedChunkPreserved += v2Entries.length + legacyEntries.length;
+            return { synced: 0, pending: keys.length, skipped: 'stale-context-after-shifts' };
+        }
+
+        window.showToast('🔄 Đang đồng bộ điểm danh offline...', 3000);
         let syncedCount = 0;
-        for (const key of offlineKeys) {
+        let legacySynced = 0;
+        let staleStopped = false;
+
+        // V1 compatibility shares the same canonical AttendanceService writer.
+        // The legacy key is deleted only after the batch commit is confirmed.
+        for (const { key, payload } of legacyEntries) {
+            if (!_isOfflineAttendanceSyncContextCurrent(syncContext)) {
+                _attendanceDebug().offlineSyncContextStaleStops++;
+                _attendanceDebug().offlineSyncUncommittedChunkPreserved++;
+                staleStopped = true;
+                break;
+            }
+            if (!_isOfflineAttendancePayloadAllowed(payload)) {
+                _attendanceDebug().shiftRequiredBlockedWrites++;
+                _recordAttendanceOfflineIssue('invalid-shift', null, { legacy: true, stage: 'legacy-guard' });
+                continue;
+            }
             try {
-                const payload = JSON.parse(localStorage.getItem(key) || 'null');
-                if (!payload || !payload.records) { localStorage.removeItem(key); continue; }
-                const { clubId, date, records } = payload;
-                await AttendanceService.bulkSyncOffline(clubId, date, records);
-                localStorage.removeItem(key); syncedCount++;
-            } catch(e) {}
+                await AttendanceService.bulkSyncOffline(syncContext.clubId, payload.date, payload.records);
+                localStorage.removeItem(key);
+                const count = Object.keys(payload.records || {}).length;
+                syncedCount += count;
+                legacySynced += count;
+                _attendanceDebug().offlineSyncLegacyV1 += count;
+                _attendanceDebug().offlineSyncCommittedChunkCleanup += count;
+                if (!_isOfflineAttendanceSyncContextCurrent(syncContext)) {
+                    _attendanceDebug().offlineSyncContextStaleStops++;
+                    staleStopped = true;
+                    break;
+                }
+            } catch (error) {
+                _recordAttendanceOfflineIssue(_classifyAttendanceOfflineError(error, 'unknown'), error, { legacy: true, stage: 'legacy-commit' });
+            }
         }
+
+        const validByDate = new Map();
+        if (!staleStopped) v2Entries.forEach((entry) => {
+            const verdict = _isOfflineAttendanceRecordAllowed(entry.record);
+            if (!verdict.allowed) {
+                _attendanceDebug().shiftRequiredBlockedWrites++;
+                _recordAttendanceOfflineIssue(verdict.reason || 'invalid-shift', null, { stage: 'v2-guard' });
+                return;
+            }
+            const date = String(entry.record.date || '');
+            if (!validByDate.has(date)) validByDate.set(date, []);
+            validByDate.get(date).push(entry);
+        });
+
+        v2Dates:
+        for (const [date, entries] of validByDate.entries()) {
+            for (let offset = 0; offset < entries.length; offset += _ATTENDANCE_OFFLINE_SYNC_CHUNK) {
+                if (!_isOfflineAttendanceSyncContextCurrent(syncContext)) {
+                    _attendanceDebug().offlineSyncContextStaleStops++;
+                    _attendanceDebug().offlineSyncUncommittedChunkPreserved += entries.length - offset;
+                    staleStopped = true;
+                    break v2Dates;
+                }
+                const chunk = entries.slice(offset, offset + _ATTENDANCE_OFFLINE_SYNC_CHUNK);
+                const records = {};
+                chunk.forEach(({ record }) => { records[record.docId] = record; });
+                try {
+                    await AttendanceService.bulkSyncOffline(syncContext.clubId, date, records);
+                    let cleaned = 0;
+                    chunk.forEach(({ record }) => { if (_removeAttOfflineMutation(record)) cleaned++; });
+                    _attendanceDebug().offlineSyncCommittedChunkCleanup += cleaned;
+                    syncedCount += chunk.length;
+                    if (!_isOfflineAttendanceSyncContextCurrent(syncContext)) {
+                        _attendanceDebug().offlineSyncContextStaleStops++;
+                        const remaining = Math.max(0, entries.length - (offset + chunk.length));
+                        _attendanceDebug().offlineSyncUncommittedChunkPreserved += remaining;
+                        staleStopped = true;
+                        break v2Dates;
+                    }
+                } catch (error) {
+                    _attendanceDebug().offlineSyncUncommittedChunkPreserved += chunk.length;
+                    _recordAttendanceOfflineIssue(_classifyAttendanceOfflineError(error, 'unknown'), error, {
+                        date, stage: 'v2-commit', pendingCount: chunk.length,
+                    });
+                    // No blind retry. Failed/uncommitted records remain for a future explicit trigger.
+                    break v2Dates;
+                }
+            }
+        }
+
         if (syncedCount > 0) {
-            window.showToast('✅ Đã đồng bộ ' + syncedCount + ' bản ghi điểm danh offline!', 3000);
-            if (_attCurrentDate && typeof window.renderAttendanceList === 'function') window.renderAttendanceList();
+            if (_isOfflineAttendanceSyncContextCurrent(syncContext)) {
+                window.showToast('✅ Đã đồng bộ ' + syncedCount + ' bản ghi điểm danh offline!', 3000);
+                const dailyContext = _captureAttendanceDailyContext();
+                if (_attCurrentDate && String(dailyContext.clubId || '') === String(syncContext.clubId || '') &&
+                    Number(dailyContext.authGeneration || 0) === Number(syncContext.authGeneration || 0)) {
+                    _markAttendanceDailyMutation('offline-sync-complete');
+                    await _requestAttendanceDailyRefresh('offline-sync-complete', { force: true });
+                }
+            } else {
+                _attendanceDebug().offlineSyncStaleUiRefreshDropped++;
+            }
         }
+        let pending = 0;
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('offline_att_')) pending++;
+        }
+        return { synced: syncedCount, legacySynced, pending, staleStopped };
+    };
+
+    const _startOfflineAttendanceSyncFlight = (syncContext) => {
+        _attendanceDebug().offlineSyncFlights++;
+        _offlineAttendanceActiveContext = syncContext;
+        const flight = _runOfflineAttendanceSync(syncContext).finally(() => {
+            if (_offlineAttendanceSyncPromise !== flight) return;
+            _offlineAttendanceSyncPromise = null;
+            _offlineAttendanceActiveContext = null;
+            const pendingContext = _offlineAttendancePendingContext;
+            _offlineAttendancePendingContext = null;
+            if (pendingContext && _isOfflineAttendanceSyncContextCurrent(pendingContext)) {
+                _attendanceDebug().offlineSyncDifferentContextFollowups++;
+                _startOfflineAttendanceSyncFlight(pendingContext).catch((error) => {
+                    _recordAttendanceOfflineIssue(_classifyAttendanceOfflineError(error, 'unknown'), error, { stage: 'context-follow-up' });
+                });
+            }
+        });
+        _offlineAttendanceSyncPromise = flight;
+        return flight;
+    };
+
+    window.syncOfflineAttendance = () => {
+        const requestedContext = _captureOfflineAttendanceSyncContext();
+        if (!requestedContext.clubId) return Promise.resolve({ skipped: 'no-club' });
+        if (_offlineAttendanceSyncPromise) {
+            if (_sameOfflineAttendanceSyncContext(requestedContext, _offlineAttendanceActiveContext)) {
+                _attendanceDebug().offlineSyncCoalesced++;
+                return _offlineAttendanceSyncPromise;
+            }
+            if (_sameOfflineAttendanceSyncContext(_offlineAttendancePendingContext, requestedContext)) {
+                _attendanceDebug().offlineSyncCoalesced++;
+                return _offlineAttendanceSyncPromise;
+            }
+            if (_offlineAttendancePendingContext) _attendanceDebug().offlineSyncPendingContextReplaced++;
+            _offlineAttendancePendingContext = requestedContext;
+            _attendanceDebug().offlineSyncDifferentContextQueued++;
+            return _offlineAttendanceSyncPromise;
+        }
+        return _startOfflineAttendanceSyncFlight(requestedContext);
     };
     if (!_onlineListenerBound) {
         window.addEventListener('online', window.syncOfflineAttendance);
         _onlineListenerBound = true;
     }
-    window.syncOfflineAttendance();
+    window.syncOfflineAttendance().catch((error) => {
+        _recordAttendanceOfflineIssue(_classifyAttendanceOfflineError(error, 'unknown'), error, { stage: 'startup-sync' });
+    });
 
     // ── Sub-tab chuyển Ngày / Tháng ─────────────────────────────
     window.switchAttSubTab = (tab) => {
@@ -1036,7 +2115,9 @@ export function initAttendance() {
             _monthlyAbortController = null;
             _monthlyRenderRequestId++;
         }
-        if (!isDay) {
+        if (isDay) {
+            _requestAttendanceDailyRefresh('attendance-subtab-day', { allowInitialLoad: true }).catch(() => {});
+        } else {
             const attMon = document.getElementById('att_month');
             if (attMon && !attMon.value) { const now=new Date(); attMon.value=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0'); }
             window.renderAttMonthly();
@@ -1045,6 +2126,10 @@ export function initAttendance() {
 
     // ── Thống kê tháng ─────────────────────────────────────────
     window.renderAttMonthly = async () => {
+        if (!_isAttendanceMonthSubtabActive()) {
+            _attendanceDebug().daySubtabMonthlyReadPrevented++;
+            return { skipped: 'month-subtab-hidden' };
+        }
         const monthEl  = document.getElementById('att_month');
         const branchEl = document.getElementById('att_month_branch');
         const tbody    = document.getElementById('att_monthly_body');
@@ -1368,23 +2453,65 @@ export function initAttendance() {
 
     window.AttendanceModule = Object.freeze({
         ..._ownedAttendanceImplementations,
+        requestDailyRefresh(reason, options = {}) {
+            return _requestAttendanceDailyRefresh(reason || 'AttendanceModule.requestDailyRefresh', options);
+        },
+        renderDailyFromRam(reason = 'AttendanceModule.presentation') {
+            return _requestAttendanceDailyRefresh(reason, { presentationOnly: true, allowInitialLoad: true });
+        },
+        isDaySubtabActive: _isAttendanceDaySubtabActive,
+        isMonthSubtabActive: _isAttendanceMonthSubtabActive,
+        ensureShiftsLoaded(options = {}) {
+            return _loadClubShifts(options);
+        },
+        retryShiftConfig() {
+            return _requestAttendanceDailyRefresh('shift-config-retry', {
+                force: true,
+                forceShiftConfig: true,
+            });
+        },
+        getShiftAuthority() {
+            return { ..._attendanceShiftAuthority };
+        },
+        getEligibleShifts() {
+            return _getEligibleAttendanceShifts(_captureAttendanceDailyContext()).map((shift) => ({ ...shift }));
+        },
+        resolveShiftAuthority(context) {
+            const resolved = _resolveAttendanceShiftAuthority(context || _captureAttendanceDailyContext());
+            return { ...resolved, eligibleShifts: resolved.eligibleShifts.map((shift) => ({ ...shift })) };
+        },
+        getDailyState() {
+            return {
+                requestGeneration: _attendanceDailyState.requestGeneration,
+                currentSnapshotKey: _attendanceDailyState.currentSnapshotKey,
+                currentSnapshotAuthGeneration: _attendanceDailyState.currentSnapshotAuthGeneration,
+                currentSnapshotAt: _attendanceDailyState.currentSnapshotAt,
+                inFlightKeys: Array.from(_attendanceDailyState.inFlight.keys()),
+                latestIntent: _attendanceDailyState.latestIntent ? { ..._attendanceDailyState.latestIntent } : null,
+                mutationRevision: _attendanceDailyState.mutationRevision,
+                cacheReady: _attendanceDailyState.cacheReady,
+                cacheTtlMs: _ATTENDANCE_DAILY_CACHE_TTL_MS,
+                shiftAuthority: { ..._attendanceShiftAuthority },
+            };
+        },
         resetForClub(clubId) {
             _resetAttendanceModuleState(clubId || _clubId());
             return true;
         },
         getMetrics() {
             return {
-                phase: '4K-6V-attendance-canonical-ownership',
+                phase: '4K-6V5U6G-production-stability-residual-defect-closure',
                 initialized: _attendanceInitialized,
                 clubId: _attendanceInitializedClubId,
                 ownedGlobals: ATTENDANCE_OWNED_GLOBALS.slice(),
                 ownershipFailures: failedOwnership.slice(),
                 monthlyPagination: window.__attendanceMonthlyPaginationMetrics || null,
+                daily: window.__attendanceDebug || null,
                 onlineListenerBound: _onlineListenerBound
             };
         }
     });
 
-    console.info('[attendance.js] ✅ Phase 4K-6V canonical attendance module ready');
+    console.info('[attendance.js] ✅ Phase 4K-6V5U6G residual closure: explicit shift + V2 offline journal ready');
     return window.AttendanceModule;
 }

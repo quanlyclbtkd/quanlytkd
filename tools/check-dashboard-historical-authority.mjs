@@ -19,21 +19,14 @@ try { lcr = readFileSync('js/ui/render/listComputationRefresh.js', 'utf8'); } ca
 
 console.log('\n=== check-dashboard-historical-authority ===\n');
 
-// 1. render.js must not have bare current-only overwrite without getDashboardHistoricalSnapshot guard
-const bareOverwritePattern = /chartIncome\[idx\]\s*=\s*m\s*===\s*selMonth\s*\?\s*tInc\s*:\s*0/;
-if (bareOverwritePattern.test(renderJs)) {
-    // It's OK if it's inside an else block guarded by getDashboardHistoricalSnapshot
-    if (!renderJs.includes('getDashboardHistoricalSnapshot')) {
-        fail('render.js has bare current-only chartIncome overwrite without getDashboardHistoricalSnapshot guard');
-    } else {
-        pass('render.js has getDashboardHistoricalSnapshot guard around current-only overwrite');
-    }
+// 1. V5U6C render.js may build a RAM-only current-month fallback only when the
+// canonical snapshot is not ready. It must explicitly consume the canonical snapshot first.
+const hasCanonicalGuard = renderJs.includes('getDashboardCanonicalStatsSnapshot(selMonth)') &&
+    renderJs.includes('_canonicalDashboard.ready');
+if (!hasCanonicalGuard) {
+    fail('render.js does not guard current-only RAM fallback with canonical Dashboard snapshot');
 } else {
-    if (!renderJs.includes('getDashboardHistoricalSnapshot')) {
-        fail('render.js does not reference getDashboardHistoricalSnapshot (guard missing)');
-    } else {
-        pass('render.js: no unguarded current-only overwrite (guard exists)');
-    }
+    pass('render.js protects historical authority with canonical Dashboard snapshot guard');
 }
 
 // 2. listComputationRefresh.js guard (if file exists)
@@ -62,11 +55,11 @@ if (!mainJs.includes('window.refreshDashboardHistory')) {
     pass('window.refreshDashboardHistory exists');
 }
 
-// 5. fetchHistoricalDashboardFallback must fallback when stats doc is empty
-if (!dashJs.includes('statLooksEmpty') && !dashJs.includes('statLooksEmpty')) {
-    fail('fetchHistoricalDashboardFallback does not check for empty stats doc (missing statLooksEmpty)');
+// 5. V5U6C: fallback decision must use field coverage, not zero-value truthiness
+if (!dashJs.includes('stats.coverage.income') || !dashJs.includes('stats.coverage.expense')) {
+    fail('fetchHistoricalDashboardFallback does not use explicit stats coverage for fallback');
 } else {
-    pass('fetchHistoricalDashboardFallback handles empty stats doc (statLooksEmpty check)');
+    pass('fetchHistoricalDashboardFallback uses explicit stats coverage; zero values remain valid');
 }
 
 // 6. debugDashboardHistory must report historicalSnapshot

@@ -29,7 +29,7 @@ export function initAttendanceEvents() {
     const attDate = document.getElementById('att_date');
     if (attDate && !attDate.dataset.evtBound) {
         attDate.addEventListener('change', () => {
-            if (typeof window.renderAttendanceList === 'function') window.renderAttendanceList();
+            window.AttendanceModule?.requestDailyRefresh?.('date-change', { force: true });
         });
         attDate.dataset.evtBound = '1';
     }
@@ -39,7 +39,11 @@ export function initAttendanceEvents() {
         const el = document.getElementById(id);
         if (el && !el.dataset.evtBound) {
             el.addEventListener('change', () => {
-                if (typeof window.renderAttendanceList === 'function') window.renderAttendanceList();
+                if (id === 'att_branch') {
+                    window.AttendanceModule?.requestDailyRefresh?.('branch-change', { force: true });
+                } else {
+                    window.AttendanceModule?.renderDailyFromRam?.('belt-filter-change');
+                }
             });
             el.dataset.evtBound = '1';
         }
@@ -58,7 +62,7 @@ export function initAttendanceEvents() {
     const showAll = document.getElementById('chk_show_all_att');
     if (showAll && !showAll.dataset.evtBound) {
         showAll.addEventListener('change', () => {
-            if (typeof window.renderAttendanceList === 'function') window.renderAttendanceList();
+            window.AttendanceModule?.renderDailyFromRam?.('show-all-filter-change');
         });
         showAll.dataset.evtBound = '1';
     }

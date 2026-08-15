@@ -26,6 +26,9 @@ if (!existsSync(rulesPath)) { console.error(`${TAG} FAIL  firestore.rules not fo
 const svc   = readFileSync(svcPath,   'utf-8');
 const att   = readFileSync(attPath,   'utf-8');
 const rules = readFileSync(rulesPath, 'utf-8');
+const bulkStart = att.indexOf('window.bulkCheckIn = async');
+const bulkEnd = att.indexOf('// ── Offline sync', bulkStart);
+const bulkBlock = att.slice(bulkStart, bulkEnd);
 
 // ─────────────────────────────────────────────────────────────────────────────
 section('1. AttendanceService.loadByDate — limit destructure');
@@ -53,15 +56,15 @@ else
 
 // ─────────────────────────────────────────────────────────────────────────────
 section('3. bulkCheckIn — shift-aware docId');
-if (/getAttendanceDocId\(name,\s*_attCurrentDate,\s*_currentShiftId\)/.test(att))
-    pass('bulkCheckIn uses getAttendanceDocId with _currentShiftId');
+if (/getAttendanceDocId\(name,\s*(?:_attCurrentDate|writeDate),\s*(?:_currentShiftId|writeShiftId)\)/.test(bulkBlock))
+    pass('bulkCheckIn uses getAttendanceDocId with its guarded shift capture');
 else
     fail('bulkCheckIn does NOT use getAttendanceDocId — docId will be wrong for shift mode');
 
 // ─────────────────────────────────────────────────────────────────────────────
 section('4. bulkCheckIn — shiftId in data');
-if (/_currentShiftId\s*\?\s*\{\s*shiftId\s*:\s*_currentShiftId\s*\}/.test(att.replace(/\s+/g,' ')))
-    pass('bulkCheckIn data includes shiftId when _currentShiftId set');
+if (/(?:_currentShiftId|writeShiftId)\s*\?\s*\{\s*shiftId\s*:\s*(?:_currentShiftId|writeShiftId)\s*\}/.test(bulkBlock.replace(/\s+/g,' ')))
+    pass('bulkCheckIn data includes the same guarded shift captured by its docId');
 else
     fail('bulkCheckIn data MISSING shiftId field for shift records');
 

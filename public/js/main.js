@@ -2,6 +2,7 @@
 // Phase 4K-6V3A compatibility: 4K-6V3A-firestore-read-attribution-canonical-transaction-boundary
 // Compatibility marker: multiItemInventorySafety.js?v=inventory-ledger-reconciliation-20260616-v2c
 // Phase compatibility APP_BUILD_VERSION markers for static safety checks:
+// APP_BUILD_VERSION = '4K-6V5U6G-production-stability-residual-defect-closure-20260814'
 // APP_BUILD_VERSION = '4K-6V4D1A-profile-canonical-store-runtime-recovery-20260628'
 // APP_BUILD_VERSION = '4K-6V4C2-active-skipped-month-section-20260628'
 // APP_BUILD_VERSION = '4K-6V4B8-debt-two-month-vietnamese-month-normalization-20260627'
@@ -86,9 +87,10 @@
 
 // ── Phase 1–3.2: Core imports (eager — cần ngay khi app start) ──
 import { SuperAdminQuotaGuard }               from './core/superAdminQuotaGuard.js';
-import { initClubStatsAutoCache }              from './core/clubStatsAutoCache.js';
-import { initSuperAdminServerRefresh }          from './core/superAdminServerRefresh.js';
-import { initProductionStabilityGate }        from './core/productionStabilityGate.js';
+import { initProductionAuthorityPolicy }       from './core/productionAuthorityPolicy.js?v=production-authority-closure-20260814-v5u6e';
+import { initClubStatsAutoCache }              from './core/clubStatsAutoCache.js?v=production-authority-closure-20260814-v5u6e';
+import { initSuperAdminServerRefresh }         from './core/superAdminServerRefresh.js?v=production-authority-closure-20260814-v5u6e';
+import { initProductionStabilityGate }         from './core/productionStabilityGate.js?v=production-authority-closure-20260814-v5u6e';
 import { initStudentSearchIndex }             from './core/studentSearchIndex.js?v=student-given-name-priority-20260811-v5u3';
 import { initListenerOwnershipBoundary }      from './core/listenerOwnershipBoundary.js';
 import { initFinancialActionAuditGuard }      from './core/financialActionAuditGuard.js';
@@ -104,13 +106,13 @@ import { store, resetStore }                  from './store.js';
 import { initFirebase }                        from './firebase/config.js';
 import { showToast, registerToastGlobal }      from './ui/toast.js';
 import { registerModalGlobals }                from './ui/modal.js';
-import { switchTab, registerTabGlobals }       from './ui/tabs.js';
-import { initRender }                          from './ui/render.js?v=student-given-name-priority-20260811-v5u3';
+import { switchTab, registerTabGlobals }       from './ui/tabs.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d';
+import { initRender }                          from './ui/render.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d';
 // Phase 3.4: Render Isolation Architecture — island initialisers + legacy shims
 import { initFinanceIslands, registerFinanceLegacyGlobals }     from './ui/render/renderFinance.js?v=student-given-name-priority-20260811-v5u3';
 import { initStudentIslands, registerStudentsLegacyGlobals }     from './ui/render/renderStudents.js?v=student-given-name-priority-20260811-v5u3';
 import { initInventoryIslands, registerInventoryLegacyGlobals }  from './ui/render/renderInventory.js?v=student-given-name-priority-20260811-v5u3';
-import { initAttendanceIslands }                                  from './ui/render/renderAttendance.js';
+import { initAttendanceIslands }                                  from './ui/render/renderAttendance.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d';
 import { initDashboardIslands }                                   from './ui/render/renderDashboard.js';
 // Phase 3.5B: Render Invalidation & Lifecycle Stabilization
 import { registerInvalidationLegacyGlobals }                     from './ui/render/renderInvalidation.js?v=student-given-name-priority-20260811-v5u3';
@@ -124,6 +126,14 @@ import { escapeForAttr, escapeHtml, formatVND, parseVND } from './utils/helpers.
 import { Formatters, initFormatters } from './utils/formatters.js';
 import { ReceiptHelpers, initReceiptHelpers } from './modules/receiptHelpers.js';
 import { QRBankingHelpers, initQRBankingHelpers } from './modules/qrBankingHelpers.js';
+
+// Phase 4K-6V5U6E: install the immutable authority policy before any runtime
+// writer, SuperAdmin module, or diagnostic helper can initialize.
+try {
+    initProductionAuthorityPolicy();
+} catch (e) {
+    console.error('[BOOT] Production authority policy failed closed:', e);
+}
 
 // Phase 4K-6S: adopt canonical ownership for all reviewed low-risk UI globals.
 // This runs before authenticated interaction and before business-module init.
@@ -270,7 +280,8 @@ import {
     getQuitStatusValues,
     getProfilesListenerMetrics,
     ensureAllProfilesForExport,
-} from './listeners/profiles.listeners.js?v=quit-context-render-loop-guard-20260722-v5s';
+} from './listeners/profiles.listeners.js?v=production-stability-residual-defect-closure-20260814-v5u6g';
+// Compatibility marker: ./listeners/profiles.listeners.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d
 
 // ── Phase 3.7C: Profile Status Config ────────────────────────────────────────
 import {
@@ -325,7 +336,8 @@ import {
 } from './firebase/paginatedQuery.js';
 
 // ── Phase 2d–3.2A: Business modules (eager — cần khi login) ────
-import { initStudents, initStudentPagination }        from './modules/students.js?v=tuition-command-cutover-20260730-v5u2';
+import { initStudents, initStudentPagination }        from './modules/students.js?v=production-stability-residual-defect-closure-20260814-v5u6g';
+// Compatibility marker: ./modules/students.js?v=tuition-command-cutover-20260730-v5u2
 // PHẦN 1 FIX + Phase 4K-2: Unified Search Controller — real cache + SearchBlob + stale guard
 import {
     initGlobalSearchRuntime,
@@ -337,16 +349,22 @@ import {
 import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from './modules/finance.js?v=tuition-command-cutover-20260730-v5u2';
 import { initInventory }                              from './modules/inventory.js?v=payment-bundle-runtime-hotfix-20260616-v3a1';
 // Compatibility marker: from './modules/attendance.js'
-import { initAttendance }                             from './modules/attendance.js?v=coach-branch-runtime-repair-20260627-v4b1';
-import { initDashboard }                              from './modules/dashboard.js?v=payment-bundle-runtime-hotfix-20260616-v3a1';
+import { initAttendance }                             from './modules/attendance.js?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1';
+// Compatibility marker: ./modules/attendance.js?v=attendance-explicit-shift-authority-20260814-v5u6f
+import { initDashboard }                              from './modules/dashboard.js?v=dashboard-hydration-mutation-guard-20260812-v5u6c2';
+// V5U6C1 compatibility markers retained for lineage-only regression gates:
+// ./ui/render.js?v=dashboard-mutation-aware-cache-freshness-20260812-v5u6c1
+// ./listeners/profiles.listeners.js?v=dashboard-mutation-aware-cache-freshness-20260812-v5u6c1
+// ./modules/dashboard.js?v=dashboard-mutation-aware-cache-freshness-20260812-v5u6c1
 // ── Phase 4K-6U: Heavy Reports module is lazy-loaded by reportExportFacade.js ──
 // ── Phase 4.0B-1: SuperAdmin — eager import trên HTTP/HTTPS ─────
 // Không lazy nữa: phải init trước khi loadSuperAdminData() được gọi.
-import { initSuperAdmin }                             from './modules/superadmin.js';
+import { initSuperAdmin }                             from './modules/superadmin.js?v=production-authority-closure-20260814-v5u6e';
 
 // ── Phase 3.1: Event layer ──────────────────────────────────────
 import { initStudentsEvents }                         from './events/students.events.js';
 import { initFinanceEvents, initFinanceActionEvents } from './events/finance.events.js';
+import { initAttendanceEvents }                       from './events/attendance.events.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d';
 
 // ────────────────────────────────────────────────────────────────
 // Phase 3.3G: GLOBAL ERROR HANDLERS
@@ -546,7 +564,7 @@ const LAZY_TAB_MODULES = {
     // Giữ entry để ensureTabModule('superadmin') vẫn gọi được initSuperAdmin idempotent.
     superadmin: {
         key:    'module-superadmin',
-        import: () => import('./modules/superadmin.js'),
+        import: () => import('./modules/superadmin.js?v=production-authority-closure-20260814-v5u6e'),
         init:   'initSuperAdmin',
     },
 };
@@ -1396,33 +1414,73 @@ window.formatVNDText = function(value) {
 // ══════════════════════════════════════════════════════════════════
 window.getDashboardHistoricalSnapshot = function() {
     var st = window.__store || {};
+    var selectedMonth =
+        (document.getElementById('filterMonth') && document.getElementById('filterMonth').value) ||
+        st.selectedMonth ||
+        '';
+
+    // V5U6C: prefer the canonical module-local RAM snapshot. This bridge remains
+    // for legacy readers but is no longer a Dashboard network authority.
+    var canonical =
+        window._moduleDashboard &&
+        typeof window._moduleDashboard.getCanonicalStatsSnapshot === 'function'
+            ? window._moduleDashboard.getCanonicalStatsSnapshot(selectedMonth)
+            : null;
+
+    if (canonical && canonical.ready && canonical.chartData) {
+        var canonicalRows = canonical.reportHtml
+            ? (String(canonical.reportHtml).match(/<tr/g) || []).length
+            : 0;
+        return {
+            hasHistory: Array.isArray(canonical.months) && canonical.months.length >= 6,
+            chartData: canonical.chartData,
+            reportHtml: canonical.reportHtml || '',
+            reportRows: canonicalRows,
+            fetchedAt: canonical.fetchedAt || 0,
+            reason: st._lastDashboardHistoryReason || '',
+            source: canonical.source || '',
+            canonical: true
+        };
+    }
+
     var cache = st.tabHtmlCache || {};
     var cd = cache._chartData || null;
     var reportHtml = cache.reportList || cache.reportHtml || '';
-
-    var hasHistory =
-        cd &&
-        Array.isArray(cd.labels) &&
-        cd.labels.length >= 6 &&
-        (
-            (Array.isArray(cd.income) && cd.income.some(function(v) { return Number(v || 0) > 0; })) ||
-            (Array.isArray(cd.expense) && cd.expense.some(function(v) { return Number(v || 0) > 0; })) ||
-            (Array.isArray(cd.active) && cd.active.some(function(v) { return Number(v || 0) > 0; }))
-        );
-
     var reportRows = reportHtml
         ? (String(reportHtml).match(/<tr/g) || []).length
         : 0;
 
     return {
-        hasHistory: !!hasHistory,
+        hasHistory: !!(cd && Array.isArray(cd.labels) && cd.labels.length >= 6 && reportRows >= 2),
         chartData: cd,
         reportHtml: reportHtml,
         reportRows: reportRows,
         fetchedAt: st._lastDashboardHistoryFetchAt || 0,
-        reason: st._lastDashboardHistoryReason || ''
+        reason: st._lastDashboardHistoryReason || '',
+        source: st._lastDashboardHistorySource || '',
+        canonical: false
     };
 };
+
+function _getDashboardBridgeLocalMonth() {
+    try {
+        if (typeof window._moduleDashboard?.getLocalMonth === 'function') {
+            return window._moduleDashboard.getLocalMonth();
+        }
+        const today = String(getLocalToday() || '');
+        if (/^\d{4}-\d{2}-\d{2}$/.test(today)) return today.slice(0, 7);
+    } catch (_) {}
+    try {
+        const parts = new Intl.DateTimeFormat('en-US', {
+            timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit'
+        }).formatToParts(new Date());
+        const values = {};
+        parts.forEach(function(part) { if (part.type !== 'literal') values[part.type] = part.value; });
+        if (values.year && values.month) return values.year + '-' + values.month;
+    } catch (_) {}
+    const now = new Date();
+    return now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+}
 
 window.refreshDashboardHistory = async function(month, reason) {
     reason = reason || 'manual';
@@ -1430,7 +1488,7 @@ window.refreshDashboardHistory = async function(month, reason) {
         month ||
         (document.getElementById('filterMonth') && document.getElementById('filterMonth').value) ||
         (window.__store && window.__store.selectedMonth) ||
-        new Date().toISOString().slice(0, 7);
+        _getDashboardBridgeLocalMonth();
 
     if (typeof window.fetchHistoricalDashboardFallback === 'function') {
         return window.fetchHistoricalDashboardFallback(selectedMonth, reason);
@@ -1443,7 +1501,7 @@ window.forceReloadDashboardHistory = async function(month) {
         month ||
         (document.getElementById('filterMonth') && document.getElementById('filterMonth').value) ||
         (window.__store && window.__store.selectedMonth) ||
-        new Date().toISOString().slice(0, 7);
+        _getDashboardBridgeLocalMonth();
 
     if (typeof window.refreshDashboardHistory === 'function') {
         await window.refreshDashboardHistory(selectedMonth, 'force-reload');
@@ -1728,7 +1786,7 @@ function _waitForExistingLegacyApp(ms) {
                 // Dynamic import trả lại cached module — không import mạng lần nữa.
                 window.__superAdminModuleLoading = true;
                 try {
-                    const mod = await import('./modules/superadmin.js');
+                    const mod = await import('./modules/superadmin.js?v=production-authority-closure-20260814-v5u6e');
                     if (typeof mod.initSuperAdmin === 'function') {
                         mod.initSuperAdmin();
                     }
@@ -1763,6 +1821,7 @@ function _waitForExistingLegacyApp(ms) {
 
         if (guardOnce('initStudentsEvents')) initStudentsEvents();
         if (guardOnce('initFinanceEvents'))  initFinanceEvents();
+        if (guardOnce('initAttendanceEvents')) initAttendanceEvents();
 
         // Phase 4K-3: Tuition Receipt Action Recovery + Student Profile Click Binding
         _installTuitionActionBridges();
@@ -2007,32 +2066,9 @@ function _waitForExistingLegacyApp(ms) {
         // Chạy sau event loop tick — đảm bảo tất cả window globals đã expose.
         // Dùng optional chaining vì printRuntimeHealth được assign cuối file.
         setTimeout(() => { window.printRuntimeHealth?.({ phase: 'bootstrap' }); }, 0);
-        // ── Phase 4.0B-4F — Phase 2: Auto runtime recovery sau app:context-ready ──
-        // Đăng ký một lần. runRuntimeDataRecovery() tự guard bằng state.completed.
-        if (!window.__runtimeRecoveryListenerRegistered) {
-            window.__runtimeRecoveryListenerRegistered = true;
-            window.addEventListener('app:context-ready', function _onAppContextReady() {
-                // Delay 500ms để modules/stores kịp mount trước khi Firestore query
-                setTimeout(function() {
-                    window.runRuntimeDataRecovery?.('app-context-ready');
-                }, 500);
-            }, { once: false }); // false: nghe lại được sau logout-login
-        }
-        // ── End Phase 4.0B-4F Phase 2 ────────────────────────────────────────
-
-        // ── [GITHUB-FIX] Task 4: Replay app:context-ready nếu đã bắn trước khi main.js kịp đăng ký ──
-        // Trên GitHub Pages, main.js load sau khi app.js — event có thể đã bắn rồi
-        if (
-            window.__appContextReadyState &&
-            window.__appContextReadyState.ready
-        ) {
-            setTimeout(function() {
-                if (typeof window.runRuntimeDataRecovery === 'function') {
-                    window.runRuntimeDataRecovery('main-replay-context-ready');
-                }
-            }, 500);
-        }
-        // ── End Task 4 ────────────────────────────────────────────────────────
+        // Phase 4K-6V5U6E: verified tenant bootstrap is the normal production
+        // authority. Legacy source probing/recovery remains available only through
+        // an explicit manual diagnostic call with { probe: true }.
 
         setTimeout(() => {
             if (typeof window.forceHideLoading === 'function') window.forceHideLoading();
@@ -3152,7 +3188,12 @@ window.debugProfileModalClose = function() {
 // ════════════════════════════════════════════════════════════════
 
 // PHẦN 1 — APP BUILD VERSION
-window.APP_BUILD_VERSION = '4K-6V5U5-canonical-security-truth-20260811';
+window.APP_BUILD_VERSION = '4K-6V5U6G1-attendance-offline-canonical-sync-closure-20260815';
+// Compatibility marker only: window.APP_BUILD_VERSION = '4K-6V5U6F-attendance-explicit-shift-authority-20260814'
+// Compatibility marker only: window.APP_BUILD_VERSION = '4K-6V5U6E-production-authority-closure-20260814'
+// Compatibility marker only: window.APP_BUILD_VERSION = '4K-6V5U6D-attendance-daily-single-refresh-authority-20260813'
+// Compatibility marker only: window.APP_BUILD_VERSION = '4K-6V5U6C2-dashboard-hydration-mutation-guard-20260812'
+// Compatibility marker only: window.APP_BUILD_VERSION = '4K-6V5U6C1-dashboard-mutation-aware-cache-freshness-20260812'
 // Compatibility marker: 4K-6V3BC-canonical-transaction-safe-cutover
 // Compatibility marker: window.APP_PATCH_VERSION = '4K-6V5U-2-tuition-command-cutover-20260730';
 window.APP_PATCH_VERSION = '4K-6V5U-2E-attendance-excel-documentid-sdk-fix-20260801';
@@ -5748,4 +5789,3 @@ window.debugFirebaseWriteSafety = function() {
     console.log('[debugFirebaseWriteSafety]', result);
     return result;
 };
-

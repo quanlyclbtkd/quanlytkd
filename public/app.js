@@ -55,6 +55,14 @@
     let activeListeners = [];
     let renderTimeout = null;
 
+    // V5U6G: observable secondary/projection failure; never retry canonical writes.
+    const _recordSecondaryConsistencyFailure = (classification, error, extra = {}) => {
+        const details = Object.assign({ classification: String(classification || 'secondary-write-failed'), secondaryWrite: true, reconciliationNeeded: true }, extra || {});
+        console.warn('[SecondaryConsistency]', details.classification, details, error || '');
+        const runtimeRecorder = window['recordRuntimeError'];
+        if (typeof runtimeRecorder === 'function') runtimeRecorder('secondary-consistency:' + details.classification, error || new Error(details.classification), details);
+    };
+
     // Phase 4K-6V4B — one canonical branch code at every client boundary.
     const _canonicalBranch = (value, fallback = 'CS1') => {
         if (window.BranchIdentity && typeof window.BranchIdentity.normalize === 'function') {
@@ -102,6 +110,56 @@ window.invCustomCategories = [];
     // Compatibility regression marker retained for Phase 4K-6Q gate: APP_PATCH_VERSION = '4K-6Q-mobile-filter-currency-stability-20260615'
     window.__appLoaded = true; // [Phase 2a] main.js kiểm tra để bỏ qua loadLegacyApp()
     window.__store = window.__store || {}; // [Phase 2b] Bridge object cho module system
+    // Phase 4K-6V5U6E: canonical transaction coverage belongs to the transaction
+    // listener owner and travels with its RAM snapshot. A size equal to the query
+    // limit is never proof of completeness.
+    function _buildTransactionCoverage(input) {
+        const src = input && typeof input === 'object' ? input : {};
+        const readMode = String(src.readMode || 'unknown');
+        const limitValue = Math.max(1, Number(src.limit) || 1200);
+        const seen = src.sourceSeen && typeof src.sourceSeen === 'object' ? src.sourceSeen : {};
+        const countsIn = src.sourceCounts && typeof src.sourceCounts === 'object' ? src.sourceCounts : {};
+        const required = readMode === 'canonical'
+            ? ['canonical']
+            : ['byDate', 'byTxMonth', 'byPackageMonth'];
+        const sourceCounts = {};
+        required.forEach(function(key) {
+            sourceCounts[key] = Math.max(0, Number(countsIn[key]) || 0);
+        });
+        const ready = required.every(function(key) { return seen[key] === true; });
+        const hitLimit = required.some(function(key) {
+            return seen[key] === true && sourceCounts[key] >= limitValue;
+        });
+        return {
+            clubId: String(src.clubId || ''),
+            month: String(src.month || ''),
+            readMode: readMode,
+            ready: ready,
+            complete: ready && !hitLimit,
+            hitLimit: hitLimit,
+            mergedCount: Math.max(0, Number(src.mergedCount) || 0),
+            sourceCounts: sourceCounts,
+            limit: limitValue,
+            updatedAt: Number(src.updatedAt) || Date.now(),
+            reason: String(src.reason || ''),
+        };
+    }
+    function _resetTransactionCoverage(reason, overrides) {
+        if (!window.__store) return null;
+        const extra = overrides && typeof overrides === 'object' ? overrides : {};
+        const reset = _buildTransactionCoverage({
+            clubId: extra.clubId || '',
+            month: extra.month || '',
+            readMode: extra.readMode || 'unknown',
+            limit: extra.limit || ((window.__scaleConfig || {}).txListenerLimit) || 1200,
+            sourceSeen: {},
+            sourceCounts: {},
+            mergedCount: 0,
+            reason: reason || 'reset',
+        });
+        window.__store.transactionCoverage = reset;
+        return reset;
+    }
     // Phase 4K-6V3A canonical transaction boundary; fallback preserves legacy/file mode.
     const _canonicalTxPayload = (d, r) => typeof window.canonicalizeTransactionForWrite === 'function' ? window.canonicalizeTransactionForWrite(d, r || 'app-transaction-write') : (d && typeof d === 'object' ? { ...d } : d);
     const _canonicalTxPatch = (d, e, r) => typeof window.canonicalizeTransactionPatch === 'function' ? window.canonicalizeTransactionPatch(d, e, r || 'app-transaction-patch') : (d && typeof d === 'object' ? { ...d } : d);
@@ -1983,6 +2041,10 @@ window.invCustomCategories = [];
         invRef = collection(db, "clubs", clubId, "inventory");
         const settingsRef = doc(db, "clubs", clubId, "settings", "main_config");
         const invStatsRef = doc(db, "clubs", clubId, "settings", "inventory_stats");
+
+        // Until this club's transaction listener publishes its own snapshot coverage,
+        // financial RAM is UNKNOWN and must not become stats authority.
+        _resetTransactionCoverage('club-switch', { clubId: clubId, readMode: 'unknown' });
 
         // Phase 4K-6V3BC1: reset per-club auto optimization before the new club chooses tx read mode.
         if (typeof window.resetAutomaticCanonicalTransactionOptimization === 'function') window.resetAutomaticCanonicalTransactionOptimization('club-switch');
@@ -3898,6 +3960,7 @@ window.invCustomCategories = [];
             if (window.resetStudentProfileStore) window.resetStudentProfileStore('logout');
             // Phase 4.0A-3: Reset reports module idempotency state on logout
             window.resetReportsModuleState?.('logout');
+            window._moduleDashboard?.resetFreshness?.('logout');
             // Phase 4.0B-4C: Reset app context ready state khi logout (idempotent)
             window.__appContextReadyState = {
                 ready:       false,
@@ -3918,6 +3981,7 @@ window.invCustomCategories = [];
                 checkedAt:        0,
                 completedAt:      0
             };
+            _resetTransactionCoverage('logout');
             if (typeof window.resetAutomaticCanonicalTransactionOptimization === 'function') window.resetAutomaticCanonicalTransactionOptimization('logout');
             if (typeof window.resetDebtProfileReadBoundary === 'function') window.resetDebtProfileReadBoundary('logout');
             activeListeners.forEach(fn => { try { fn(); } catch(e) {} });
@@ -3978,6 +4042,24 @@ window.invCustomCategories = [];
         }
 
         let start = monthStr + "-01"; let end = monthStr + "-31";
+        const _txListLim = ((window.__scaleConfig || {}).txListenerLimit) || 1200;
+
+        // Publish UNKNOWN before any new-club/month/mode callback can run. This
+        // prevents the previous listener's RAM/coverage from authorizing a write.
+        if (window.__store) {
+            window.__store._activeTxListenerMonth = monthStr;
+            window.__store._activeTxReadMode = _desiredTxReadMode;
+            window.__store.transactionCoverage = _buildTransactionCoverage({
+                clubId: _cid,
+                month: monthStr,
+                readMode: _desiredTxReadMode,
+                limit: _txListLim,
+                sourceSeen: {},
+                sourceCounts: {},
+                mergedCount: 0,
+                reason: 'listener-context-reset',
+            });
+        }
 
         // [FIX MẤT GIAO DỊCH] Dùng 2 query song song:
         // 1. Theo date (giao dịch được nhập đúng tháng)
@@ -3994,8 +4076,46 @@ window.invCustomCategories = [];
                     reason: 'month=' + monthStr
                 });
             }
+            return { initial, sourceKey };
         };
+        const _isTxInitialHydrationComplete = () => _desiredTxReadMode === 'canonical'
+            ? _txSourceSnapshotSeen.canonical
+            : (_txSourceSnapshotSeen.byDate && _txSourceSnapshotSeen.byTxMonth && _txSourceSnapshotSeen.byPackageMonth);
+        const _txHydrationCoverageComplete = () => _desiredTxReadMode === 'canonical'
+            ? _byDate.length < _txListLim
+            : [_byDate, _byTxMonth, _byPackageMonth].every(items => items.length < _txListLim);
+        const _fingerprintMergedTransactions = (items) => JSON.stringify((items || []).map(tx => tx || null));
+        let _txHydrationReconciled = false;
+        let _lastCommittedTxFingerprint = '';
         let _dashboardInvalidateTimer = null;
+        const _isCurrentTxListenerContext = () => {
+            const st = window.__store || {};
+            return String(st.clubId || '') === String(_cid || '') &&
+                String(st._activeTxListenerMonth || '') === String(monthStr || '') &&
+                String(st._activeTxReadMode || 'legacy') === String(_desiredTxReadMode || 'legacy');
+        };
+        const _publishTransactionCoverage = (reason) => {
+            if (!_isCurrentTxListenerContext()) return null;
+            const sourceCounts = _desiredTxReadMode === 'canonical'
+                ? { canonical: _byDate.length }
+                : {
+                    byDate: _byDate.length,
+                    byTxMonth: _byTxMonth.length,
+                    byPackageMonth: _byPackageMonth.length,
+                };
+            const coverage = _buildTransactionCoverage({
+                clubId: _cid,
+                month: monthStr,
+                readMode: _desiredTxReadMode,
+                limit: _txListLim,
+                sourceSeen: _txSourceSnapshotSeen,
+                sourceCounts: sourceCounts,
+                mergedCount: allTransactions.length,
+                reason: reason || 'transactions-snapshot',
+            });
+            window.__store.transactionCoverage = coverage;
+            return coverage;
+        };
         const _invalidateDashboardCoalesced = (reason) => {
             if (_dashboardInvalidateTimer) clearTimeout(_dashboardInvalidateTimer);
             _dashboardInvalidateTimer = setTimeout(() => {
@@ -4003,7 +4123,8 @@ window.invCustomCategories = [];
                 if (window.invalidateDashboard) window.invalidateDashboard(reason || 'transactions-snapshot-coalesced');
             }, 120);
         };
-        const _mergeAndRender = () => {
+        const _mergeAndRender = (snapshotMeta = {}) => {
+            if (!_isCurrentTxListenerContext()) return;
             const seen = new Set();
             // Phase 4K-4F: merge 3 queries (date + txMonth + packageMonths)
             allTransactions = [..._byDate, ..._byTxMonth, ..._byPackageMonth].filter(t => {
@@ -4025,6 +4146,39 @@ window.invCustomCategories = [];
                 return;
             }
             if (window.__store) window.__store.transactions = allTransactions; // [Phase 2e] sync cho finance.js
+            _publishTransactionCoverage(snapshotMeta.initial === true
+                ? 'transactions-initial-hydration'
+                : 'transactions-live-snapshot');
+            // V5U6C2: the full initial source set establishes a hydration baseline.
+            // Only a later merged-RAM change is a live mutation. The fingerprint
+            // coalesces one legacy transaction delivered by 2/3 source callbacks.
+            const _committedTxFingerprint = _fingerprintMergedTransactions(allTransactions);
+            if (!_txHydrationReconciled && _isTxInitialHydrationComplete()) {
+                _txHydrationReconciled = true;
+                _lastCommittedTxFingerprint = _committedTxFingerprint;
+                if (typeof window._moduleDashboard?.reconcileHydrationEvidence === 'function') {
+                    window._moduleDashboard.reconcileHydrationEvidence({
+                        domain: 'finance',
+                        month: monthStr,
+                        reason: _desiredTxReadMode === 'canonical'
+                            ? 'transactions-canonical-initial-hydration'
+                            : 'transactions-legacy-three-source-initial-hydration',
+                        evidence: {
+                            localMonthTxCount: allTransactions.length,
+                            coverageComplete: _txHydrationCoverageComplete(),
+                        },
+                    });
+                }
+            } else if (
+                _txHydrationReconciled &&
+                snapshotMeta.initial === false &&
+                _committedTxFingerprint !== _lastCommittedTxFingerprint
+            ) {
+                _lastCommittedTxFingerprint = _committedTxFingerprint;
+                if (typeof window._moduleDashboard?.markStatsDirty === 'function') {
+                    window._moduleDashboard.markStatsDirty(monthStr, 'transactions-live-mutation', 'finance');
+                }
+            }
             if (_desiredTxReadMode === 'legacy' && typeof window.recordTransactionQueryOverlap === 'function') {
                 window.recordTransactionQueryOverlap(monthStr, { byDate: _byDate, byTxMonth: _byTxMonth, byPackageMonth: _byPackageMonth, sourceSeen: _txSourceSnapshotSeen, queryLimit: _txListLim });
             }
@@ -4084,7 +4238,6 @@ window.invCustomCategories = [];
         // OK_UI_DISPLAY_LIMIT [3.8D-Phase6] — finance realtime listener chỉ hiển thị giao dịch tháng hiện tại.
         // Export/report dùng loadTransactionsForDateRange / loadTransactionsForTxMonthRange (không bị limit này).
         // [4J-8] Bumped from 500 → txListenerLimit (1200) để hỗ trợ CLB 1000 võ sinh.
-        const _txListLim  = ((window.__scaleConfig || {}).txListenerLimit) || 1200;
         const qByDate    = query(colRef, where("date", ">=", start), where("date", "<=", end), orderBy("date", "desc"), limit(_txListLim));
         const qByTxMonth = query(colRef, where("txMonth", "==", monthStr), limit(_txListLim));
         // Phase 4K-4F: 3rd query — giao dịch gói nhiều tháng có tháng giữa (2026-07 trong gói 06-08)
@@ -4095,12 +4248,12 @@ window.invCustomCategories = [];
 
         const _attachTxSnapshots = () => {
             if (_desiredTxReadMode === 'canonical') {
-                const canonicalUnsub = onSnapshot(qCanonical, (snap) => { _recordTxSourceSnapshot('canonical', snap); _byDate = snap.docs.map(d => ({id: d.id, ...d.data()})); _byTxMonth = []; _byPackageMonth = []; _mergeAndRender(); });
+                const canonicalUnsub = onSnapshot(qCanonical, (snap) => { const meta = _recordTxSourceSnapshot('canonical', snap); _byDate = snap.docs.map(d => ({id: d.id, ...d.data()})); _byTxMonth = []; _byPackageMonth = []; _mergeAndRender(meta); });
                 currentTxUnsub = canonicalUnsub; return canonicalUnsub;
             }
-            const u1 = onSnapshot(qByDate, (snap) => { _recordTxSourceSnapshot('byDate', snap); _byDate = snap.docs.map(d => ({id: d.id, ...d.data()})); _mergeAndRender(); });
-            const u2 = onSnapshot(qByTxMonth, (snap) => { _recordTxSourceSnapshot('byTxMonth', snap); _byTxMonth = snap.docs.map(d => ({id: d.id, ...d.data()})); _mergeAndRender(); });
-            const u3 = onSnapshot(qByPackageMonth, (snap) => { _recordTxSourceSnapshot('byPackageMonth', snap); _byPackageMonth = snap.docs.map(d => ({id: d.id, ...d.data()})); _mergeAndRender(); });
+            const u1 = onSnapshot(qByDate, (snap) => { const meta = _recordTxSourceSnapshot('byDate', snap); _byDate = snap.docs.map(d => ({id: d.id, ...d.data()})); _mergeAndRender(meta); });
+            const u2 = onSnapshot(qByTxMonth, (snap) => { const meta = _recordTxSourceSnapshot('byTxMonth', snap); _byTxMonth = snap.docs.map(d => ({id: d.id, ...d.data()})); _mergeAndRender(meta); });
+            const u3 = onSnapshot(qByPackageMonth, (snap) => { const meta = _recordTxSourceSnapshot('byPackageMonth', snap); _byPackageMonth = snap.docs.map(d => ({id: d.id, ...d.data()})); _mergeAndRender(meta); });
             const combinedUnsub = () => { try { u1(); } catch(_) {} try { u2(); } catch(_) {} try { u3(); } catch(_) {} };
             currentTxUnsub = combinedUnsub;
             return combinedUnsub;
@@ -4997,7 +5150,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                     by: window.currentUserEmail || 'admin',
                     timestamp: Date.now()
                 });
-            } catch(_) { /* audit log không chặn luồng chính */ }
+            } catch(_auditError) { _recordSecondaryConsistencyFailure('fee-audit-write-failed', _auditError, { domain: 'tuition', studentId: name, canonicalPaymentPreserved: true }); }
         }
 
         e.target.reset(); document.getElementById('date').value = getLocalToday(); document.getElementById('tx_package').value = "1"; document.getElementById('tx_discount').checked = false; document.getElementById('tx_discount_pct').value = '10'; const _svdEl = document.getElementById('tx_discount_saved'); if(_svdEl) _svdEl.style.display = 'none'; document.getElementById('tx_exam_amountActual').value = ""; window.toggleTxFormType(); window.showToast("✅ Đã lưu khoản thu!");
@@ -5469,7 +5622,8 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                 const _bundleDoc = await addDoc(colRef, _canonicalTxPayload(_bundleTx, 'payment-bundle'));
                 tuitionTx = Object.assign({ id: _bundleDoc.id }, _bundleTx);
                 if(_invDocId && !isGift) {
-                    try { await updateDoc(doc(db, 'clubs', currentClubId, 'inventory', _invDocId), { paymentBundleId: _bundleDoc.id, paidTxId: _bundleDoc.id }); } catch(_e) {}
+                    try { await updateDoc(doc(db, 'clubs', currentClubId, 'inventory', _invDocId), { paymentBundleId: _bundleDoc.id, paidTxId: _bundleDoc.id }); }
+                    catch(_e) { _recordSecondaryConsistencyFailure('inventory-payment-link-reconcile-required', _e, { domain: 'inventory', inventoryId: _invDocId, paidTxId: _bundleDoc.id, canonicalTransactionPreserved: true }); }
                 }
                 if(typeof window.mergeTransactionIntoRuntimeStore === 'function') {
                     window.mergeTransactionIntoRuntimeStore(tuitionTx, 'admission-bundle-created');
@@ -5825,7 +5979,8 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                     const _np1 = m1 > _cu1 ? m1 : _cu1;
                     await updateDoc(doc(db, "clubs", currentClubId, "profiles", n1), { paidUntil: _np1 });
                     // [BƯỚC 3] Audit log cho thu gộp
-                    try { await addDoc(collection(db, "clubs", currentClubId, "fee_audit"), { studentId: n1, amount: f1, date: getLocalToday(), type: 'tuition', month: _np1, months: [m1], by: window.currentUserEmail || 'admin', timestamp: Date.now() }); } catch(_) {}
+                    try { await addDoc(collection(db, "clubs", currentClubId, "fee_audit"), { studentId: n1, amount: f1, date: getLocalToday(), type: 'tuition', month: _np1, months: [m1], by: window.currentUserEmail || 'admin', timestamp: Date.now() }); }
+                    catch(_auditError) { _recordSecondaryConsistencyFailure('fee-audit-write-failed', _auditError, { domain: 'tuition', studentId: n1, canonicalPaymentPreserved: true }); }
                 }
                 if(n2 && f2 > 0) {
                     const _d2 = m2 < _todayMCombo ? m2 + '-01' : _todayCombo;
@@ -5836,7 +5991,8 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                     const _np2 = m2 > _cu2 ? m2 : _cu2;
                     await updateDoc(doc(db, "clubs", currentClubId, "profiles", n2), { paidUntil: _np2 });
                     // [BƯỚC 3] Audit log cho thu gộp
-                    try { await addDoc(collection(db, "clubs", currentClubId, "fee_audit"), { studentId: n2, amount: f2, date: getLocalToday(), type: 'tuition', month: _np2, months: [m2], by: window.currentUserEmail || 'admin', timestamp: Date.now() + 1 }); } catch(_) {}
+                    try { await addDoc(collection(db, "clubs", currentClubId, "fee_audit"), { studentId: n2, amount: f2, date: getLocalToday(), type: 'tuition', month: _np2, months: [m2], by: window.currentUserEmail || 'admin', timestamp: Date.now() + 1 }); }
+                    catch(_auditError) { _recordSecondaryConsistencyFailure('fee-audit-write-failed', _auditError, { domain: 'tuition', studentId: n2, canonicalPaymentPreserved: true }); }
                 }
                 window.showToast("✅ Đã ghi sổ gộp thành công!");
                 exportReceipt(combinedNameStr, totalAmt, 'Học phí', getLocalToday(), combinedMonthStr, branch, 'Gộp Gia Đình', 'BIÊN LAI THU TIỀN');
@@ -6917,8 +7073,12 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
 
         // [SỬA] Tự động load danh sách điểm danh khi dữ liệu cập nhật
         // và tab Điểm danh đang mở (tránh trường hợp list trống sau khi data về).
-        if (_curTabId === 'attendance' && typeof window.renderAttendanceList === 'function') {
-            window.renderAttendanceList();
+        if (_curTabId === 'attendance') {
+            if (typeof window.AttendanceModule?.renderDailyFromRam === 'function') {
+                window.AttendanceModule.renderDailyFromRam('legacy-renderApp-profile-presentation');
+            } else if (typeof window.renderAttendanceList === 'function') {
+                window.renderAttendanceList('legacy-renderApp-profile-presentation', { presentationOnly: true, allowInitialLoad: true });
+            }
         }
 
         const _fmEl = document.getElementById('filterMonth');
@@ -9454,10 +9614,19 @@ window.processMultiItem = async (action) => {
                 });
                 const _bundleDoc = await addDoc(colRef, _canonicalTxPayload(_bundleTx, 'payment-bundle'));
                 if(_invDocId) {
-                    try { await updateDoc(doc(db, 'clubs', currentClubId, 'inventory', _invDocId), { paymentBundleId: _bundleDoc.id, paidTxId: _bundleDoc.id }); } catch(_e) {}
+                    try {
+                        await updateDoc(doc(db, 'clubs', currentClubId, 'inventory', _invDocId), { paymentBundleId: _bundleDoc.id, paidTxId: _bundleDoc.id });
+                    } catch(_e) {
+                        _recordSecondaryConsistencyFailure('inventory-payment-link-reconcile-required', _e, {
+                            domain: 'inventory', inventoryId: _invDocId, paidTxId: _bundleDoc.id, canonicalTransactionPreserved: true
+                        });
+                    }
                 }
                 if(invDebtIds.length > 0) {
-                    await Promise.all(invDebtIds.map(function(id) { return updateDoc(doc(db, 'clubs', currentClubId, 'inventory', id), { paidTxId: _bundleDoc.id }); }));
+                    await Promise.all(invDebtIds.map(async function(id) {
+                        try { await updateDoc(doc(db, 'clubs', currentClubId, 'inventory', id), { paidTxId: _bundleDoc.id }); }
+                        catch(_linkError) { _recordSecondaryConsistencyFailure('inventory-payment-link-reconcile-required', _linkError, { domain: 'inventory', inventoryId: id, paidTxId: _bundleDoc.id, canonicalTransactionPreserved: true }); }
+                    }));
                 }
                 if(typeof window.mergeTransactionIntoRuntimeStore === 'function') {
                     window.mergeTransactionIntoRuntimeStore(Object.assign({ id: _bundleDoc.id }, _bundleTx), 'processMultiItem-bundle');
@@ -9647,39 +9816,94 @@ window.processMultiItem = async (action) => {
     // TÍNH NĂNG: GHI CHÚ BUỔI ĐIỂM DANH (HLV ghi lý do nghỉ, nhận xét)
     // Lưu vào: clubs/{clubId}/attendanceNotes/{date}_{coachId}
 
-    let _sessionNoteCache = {};   // { [date]: { note, coachName, updatedAt } }
+    let _sessionNoteCache = Object.create(null); // { [club|uid|date]: data|null }; null = loaded missing
+    const _sessionNoteInFlight = new Map();
     let _currentNoteDate  = '';
+    let _currentNoteIdentity = null;
     let _sessionNoteLoadSeq = 0;   // Phase 4K-6V: prevent stale date response overwriting current note
 
-    // Tải ghi chú của ngày hiện tại khi HLV chọn ngày
-    window.loadSessionNote = async (date) => {
-        if (!date || !currentClubId) return;
-        const requestSeq = ++_sessionNoteLoadSeq;
-        const requestClubId = currentClubId;
-        _currentNoteDate = date;
-        const auth_ = getAuth(app);
-        const uid = auth_.currentUser ? auth_.currentUser.uid : '';
-        const docId = date + (uid ? '_' + uid : '');
+    const _sessionNoteDebug = (field) => {
+        const debug = window.__attendanceDebug;
+        if (!debug) return;
+        debug[field] = Number(debug[field] || 0) + 1;
+    };
+    const _applySessionNoteToCurrentView = (data, identity, requestSeq, attendanceContext) => {
+        const authGeneration = Number(window.__verifiedAuthContextState?.generation || 0);
+        const latestDaily = window.AttendanceModule?.getDailyState?.().latestIntent;
+        const dailyStillCurrent = !attendanceContext || (
+            latestDaily?.key === attendanceContext.key &&
+            Number(latestDaily?.generation || 0) === Number(attendanceContext.generation || 0)
+        );
+        if (
+            requestSeq !== _sessionNoteLoadSeq ||
+            currentClubId !== identity.clubId ||
+            authGeneration !== identity.authGeneration ||
+            _currentNoteDate !== identity.date ||
+            _currentNoteIdentity?.key !== identity.key ||
+            !dailyStillCurrent
+        ) return false;
         const noteArea = document.getElementById('session_note_text');
         const noteBadge = document.getElementById('session_note_badge');
-        if (!noteArea) return;
-        try {
+        if (!noteArea) return false;
+        noteArea.value = data?.note || '';
+        if (noteBadge) {
+            if (data) { noteBadge.textContent = '✏️ Đã có ghi chú'; noteBadge.style.display = 'inline-block'; }
+            else noteBadge.style.display = 'none';
+        }
+        return true;
+    };
+
+    // Tải ghi chú của ngày hiện tại khi HLV chọn ngày
+    window.loadSessionNote = async (date, options = {}) => {
+        if (!date || !currentClubId) return;
+        const requestClubId = currentClubId;
+        const auth_ = getAuth(app);
+        const uid = auth_.currentUser ? auth_.currentUser.uid : '';
+        const authGeneration = Number(window.__verifiedAuthContextState?.generation || 0);
+        const key = [requestClubId, uid, date].join('|');
+        if (_currentNoteIdentity?.key !== key) _sessionNoteLoadSeq++;
+        const requestSeq = _sessionNoteLoadSeq;
+        const identity = Object.freeze({ key, clubId: requestClubId, uid, date, authGeneration });
+        _currentNoteDate = date;
+        _currentNoteIdentity = identity;
+        const docId = date + (uid ? '_' + uid : '');
+        if (!document.getElementById('session_note_text')) return;
+        if (Object.prototype.hasOwnProperty.call(_sessionNoteCache, key)) {
+            _sessionNoteDebug('sessionNoteCacheHits');
+            _applySessionNoteToCurrentView(_sessionNoteCache[key], identity, requestSeq, options.attendanceContext);
+            return _sessionNoteCache[key];
+        }
+        if (_sessionNoteInFlight.has(key)) {
+            _sessionNoteDebug('sessionNoteCoalesced');
+            const data = await _sessionNoteInFlight.get(key);
+            _applySessionNoteToCurrentView(data, identity, requestSeq, options.attendanceContext);
+            return data;
+        }
+        const promise = (async () => {
+            _sessionNoteDebug('sessionNoteLoads');
             const noteDoc = await getDoc(doc(db, 'clubs', requestClubId, 'attendanceNotes', docId));
-            // Ignore an older response after the user changed date or logged into another club.
-            if (requestSeq !== _sessionNoteLoadSeq || currentClubId !== requestClubId || _currentNoteDate !== date) return;
-            if (noteDoc.exists()) {
-                const data = noteDoc.data();
-                _sessionNoteCache[date] = data;
-                noteArea.value = data.note || '';
-                if (noteBadge) { noteBadge.textContent = '✏️ Đã có ghi chú'; noteBadge.style.display = 'inline-block'; }
-            } else {
-                _sessionNoteCache[date] = null;
-                noteArea.value = '';
-                if (noteBadge) noteBadge.style.display = 'none';
+            if (typeof window.recordFirestoreReadAttribution === 'function') {
+                window.recordFirestoreReadAttribution('attendance.sessionNote', 1, { initial: true, reason: 'attendance-daily-accepted', date });
             }
+            const data = noteDoc.exists() ? noteDoc.data() : null;
+            _sessionNoteCache[key] = data;
+            return data;
+        })().finally(() => {
+            if (_sessionNoteInFlight.get(key) === promise) _sessionNoteInFlight.delete(key);
+        });
+        _sessionNoteInFlight.set(key, promise);
+        try {
+            const data = await promise;
+            _applySessionNoteToCurrentView(data, identity, requestSeq, options.attendanceContext);
+            return data;
         } catch(e) {
-            if (requestSeq !== _sessionNoteLoadSeq || currentClubId !== requestClubId || _currentNoteDate !== date) return;
-            noteArea.value = _sessionNoteCache[date]?.note || '';
+            if (requestSeq !== _sessionNoteLoadSeq || currentClubId !== requestClubId || _currentNoteIdentity?.key !== key) return;
+            _applySessionNoteToCurrentView(
+                Object.prototype.hasOwnProperty.call(_sessionNoteCache, key) ? _sessionNoteCache[key] : null,
+                identity,
+                requestSeq,
+                options.attendanceContext
+            );
         }
     };
 
@@ -9701,8 +9925,9 @@ window.processMultiItem = async (action) => {
                 // Xóa ghi chú nếu rỗng
                 await deleteDoc(doc(db, 'clubs', currentClubId, 'attendanceNotes', docId));
                 // Đồng thời xóa thông báo admin tương ứng (không còn cần hiện nữa)
-                try { await deleteDoc(doc(db, 'clubs', currentClubId, 'adminNotifications', docId)); } catch(_) {}
-                _sessionNoteCache[_currentNoteDate] = null;
+                try { await deleteDoc(doc(db, 'clubs', currentClubId, 'adminNotifications', docId)); }
+                catch(_projectionError) { _recordSecondaryConsistencyFailure('attendance-note-notification-projection-failed', _projectionError, { domain: 'attendance', noteId: docId, operation: 'delete-notification', canonicalSessionNotePreserved: true }); }
+                if (_currentNoteIdentity?.key) _sessionNoteCache[_currentNoteIdentity.key] = null;
                 const noteBadge = document.getElementById('session_note_badge');
                 if (noteBadge) noteBadge.style.display = 'none';
                 window.showToast('🗑️ Đã xóa báo cáo buổi tập', 2000);
@@ -9726,7 +9951,7 @@ window.processMultiItem = async (action) => {
                 } catch(_) {}
 
                 await setDoc(doc(db, 'clubs', currentClubId, 'attendanceNotes', docId), payload);
-                _sessionNoteCache[_currentNoteDate] = payload;
+                if (_currentNoteIdentity?.key) _sessionNoteCache[_currentNoteIdentity.key] = payload;
                 const noteBadge = document.getElementById('session_note_badge');
                 if (noteBadge) { noteBadge.textContent = '✏️ Đã có ghi chú'; noteBadge.style.display = 'inline-block'; }
                 window.showToast('✅ Đã gửi báo cáo buổi tập!', 2500);
@@ -9744,7 +9969,7 @@ window.processMultiItem = async (action) => {
                         createdAt:   new Date().toISOString(),
                         readAt:      null
                     });
-                } catch (_ne) { /* không chặn flow chính nếu lỗi ghi notif */ }
+                } catch (_ne) { _recordSecondaryConsistencyFailure('attendance-note-notification-projection-failed', _ne, { domain: 'attendance', noteId: docId, operation: 'set-notification', canonicalSessionNotePreserved: true }); }
             }
         } catch(e) {
             window.showToast('⚠️ Lỗi lưu ghi chú: ' + (e.message || ''), 3000);
@@ -10137,13 +10362,50 @@ window.processMultiItem = async (action) => {
     };
 
     /**
-     * resolveActiveDataSource() — Phase 4.0B-4E Phase 2.
-     * Xác định nguồn dữ liệu: primary / legacy-root / empty / permission-error / unknown.
-     * Chỉ limit(1). Không ghi Firestore. Không log PII.
+     * resolveActiveDataSource(options) — V5U6E diagnostic compatibility API.
+     * Mặc định trả canonical runtime state từ RAM (zero read). Chỉ khi gọi rõ
+     * { probe:true, includeLegacy:true } mới chạy các limit(1) diagnostic probes.
      */
-    window.resolveActiveDataSource = async function resolveActiveDataSource() {
+    window.resolveActiveDataSource = async function resolveActiveDataSource(options) {
+        const opts = options && typeof options === 'object' ? options : {};
         const _db     = db;
         const _clubId = window.__store && (window.__store.clubId || window.__store.currentClubId) || window.currentClubId || '';
+        const _storeSource = String(window.__store?.activeDataSource || '');
+        const _verified = window.__verifiedAuthContextState;
+        const _canonicalReady = !!(
+            _verified && _verified.ready === true &&
+            String(_verified.clubId || '') === String(_clubId || '')
+        );
+        const _runtimeSource = _storeSource === 'legacy-root'
+            ? 'legacy-root'
+            : (_canonicalReady || _storeSource === 'primary' ? 'primary' : 'unknown');
+        const _coachRuntime = window.RoleReadBoundary?.isCoachAttendanceOnly?.() === true ||
+            String(window.userRole || '').toLowerCase() === 'coach';
+        if (_coachRuntime && opts.probe === true) {
+            window.RoleReadBoundary?.canMount?.('runtime-recovery.probe', { reason: 'explicit-source-diagnostic' });
+        }
+
+        // Normal callers receive the already-verified runtime truth from RAM.
+        // Firestore probes are diagnostic-only and Coach never executes them.
+        if (opts.probe !== true || _coachRuntime) {
+            const reason = _coachRuntime && opts.probe === true
+                ? 'Coach attendance-only: diagnostic source probes are blocked'
+                : 'Canonical runtime state from verified tenant bootstrap (zero probe)';
+            const result = {
+                clubId: _clubId,
+                source: _runtimeSource,
+                primary: { profilesHasDocs: null, transactionsHasDocs: null, inventoryHasDocs: null },
+                legacy:  { profilesHasDocs: null, transactionsHasDocs: null, inventoryHasDocs: null },
+                reason: reason,
+                safeToRender: _runtimeSource === 'primary' || _runtimeSource === 'legacy-root',
+                probed: false,
+                probeBlockedForCoach: _coachRuntime && opts.probe === true,
+            };
+            window.__firestoreDataSourceMetrics.source = _runtimeSource;
+            window.__firestoreDataSourceMetrics.reason = reason;
+            window.__firestoreDataSourceMetrics.checkedAt = Date.now();
+            return result;
+        }
 
         if (!_db || !_clubId) {
             const result = {
@@ -10152,7 +10414,8 @@ window.processMultiItem = async (action) => {
                 primary: { profilesHasDocs: null, transactionsHasDocs: null, inventoryHasDocs: null },
                 legacy:  { profilesHasDocs: null, transactionsHasDocs: null, inventoryHasDocs: null },
                 reason:  'db hoặc clubId chưa sẵn sàng',
-                safeToRender: false
+                safeToRender: false,
+                probed: false
             };
             console.warn('[resolveActiveDataSource]', result.reason);
             return result;
@@ -10170,14 +10433,21 @@ window.processMultiItem = async (action) => {
             }
         }
 
-        const [pProf, pTx, pInv, lProf, lTx, lInv] = await Promise.all([
-            _hasDoc('clubs/' + _clubId + '/profiles'),
-            _hasDoc('clubs/' + _clubId + '/transactions'),
-            _hasDoc('clubs/' + _clubId + '/inventory'),
-            _hasDoc('tst_profiles'),
-            _hasDoc('tst_transactions'),
-            _hasDoc('tst_inventory')
+        const includeLegacy = opts.includeLegacy === true;
+        const [primaryProbe, legacyProbe] = await Promise.all([
+            Promise.all([
+                _hasDoc('clubs/' + _clubId + '/profiles'),
+                _hasDoc('clubs/' + _clubId + '/transactions'),
+                _hasDoc('clubs/' + _clubId + '/inventory')
+            ]),
+            includeLegacy ? Promise.all([
+                _hasDoc('tst_profiles'),
+                _hasDoc('tst_transactions'),
+                _hasDoc('tst_inventory')
+            ]) : Promise.resolve([null, null, null])
         ]);
+        const [pProf, pTx, pInv] = primaryProbe;
+        const [lProf, lTx, lInv] = legacyProbe;
 
         const primary = { profilesHasDocs: pProf, transactionsHasDocs: pTx, inventoryHasDocs: pInv };
         const legacy  = { profilesHasDocs: lProf, transactionsHasDocs: lTx, inventoryHasDocs: lInv };
@@ -10215,7 +10485,7 @@ window.processMultiItem = async (action) => {
             window.__firestoreDataSourceMetrics.fallbackUsed     = false;
         }
 
-        const result = { clubId: _clubId, source, primary, legacy, reason, safeToRender };
+        const result = { clubId: _clubId, source, primary, legacy, reason, safeToRender, probed: true, includeLegacy };
 
         console.group('[resolveActiveDataSource] source=' + source);
         console.table({ clubId: _clubId, source, safeToRender, reason });
@@ -10258,6 +10528,12 @@ window.processMultiItem = async (action) => {
         reason = reason || 'manual';
         console.warn('[LegacyFallback] 🔶 Bật legacy-root read-only fallback. reason=' + reason);
         console.warn('[LegacyFallback] Đây là chế độ tạm trước khi migration chính thức. Không ghi Firestore.');
+
+        // Recovery reads are capped and therefore never financial authority.
+        _resetTransactionCoverage('explicit-legacy-root-recovery', {
+            clubId: (window.__store && (window.__store.clubId || window.__store.currentClubId)) || '',
+            readMode: 'legacy-root-recovery',
+        });
 
         if (window.__store) window.__store.activeDataSource = 'legacy-root';
         window.__firestoreDataSourceMetrics.activeDataSource = 'legacy-root';
@@ -10371,14 +10647,23 @@ window.processMultiItem = async (action) => {
     // Phase 4.0B-4F — RUNTIME RECOVERY + PILOT LAUNCH STATUS
 
     /**
-     * runRuntimeDataRecovery() — Phase 4.0B-4F Phase 2.
-     * Tự động phát hiện data source sau login.
-     * Nếu source = legacy-root → tự kích hoạt activateLegacyRootFallback.
-     * Chạy tối đa 1 lần mỗi login session. Reset khi logout.
+     * runRuntimeDataRecovery() — V5U6E explicit manual recovery only.
+     * Không tham gia login/bootstrap. Caller phải truyền { probe:true } và chỉ
+     * activate fallback khi truyền thêm { activateLegacy:true }.
      */
-    window.runRuntimeDataRecovery = async function runRuntimeDataRecovery(reason) {
-        reason = reason || 'manual';
+    window.runRuntimeDataRecovery = async function runRuntimeDataRecovery(reason, options) {
+        if (reason && typeof reason === 'object') {
+            options = reason;
+            reason = 'manual-diagnostic';
+        }
+        reason = reason || 'manual-diagnostic';
+        const opts = options && typeof options === 'object' ? options : {};
         const state = window.__runtimeRecoveryState;
+
+        if (opts.probe !== true) {
+            state.reason = 'explicit-probe-required';
+            return { ok: false, skipped: true, reason: 'explicit-probe-required' };
+        }
 
         if (state.running) {
             console.debug('[RuntimeRecovery] Đang chạy — bỏ qua. reason=' + reason);
@@ -10394,15 +10679,20 @@ window.processMultiItem = async (action) => {
         state.checkedAt = Date.now();
 
         try {
-            const src = await window.resolveActiveDataSource?.();
+            const src = await window.resolveActiveDataSource?.({
+                probe: true,
+                includeLegacy: opts.includeLegacy === true,
+            });
 
             state.activeDataSource = src ? (src.source || 'unknown') : 'unknown';
             state.reason           = src ? (src.reason || '')        : '';
 
-            if (src && src.source === 'legacy-root') {
-                await window.activateLegacyRootFallback?.('auto-runtime-recovery');
+            if (src && src.source === 'legacy-root' && opts.activateLegacy === true) {
+                await window.activateLegacyRootFallback?.('manual-runtime-recovery');
                 state.recoveryUsed = true;
-                console.info('[RuntimeRecovery] ✅ Legacy fallback activated automatically.');
+                console.info('[RuntimeRecovery] ✅ Legacy fallback activated by explicit diagnostic request.');
+            } else if (src && src.source === 'legacy-root') {
+                console.warn('[RuntimeRecovery] Legacy source detected; activation remains explicit/manual.');
             } else if (src && src.source === 'primary') {
                 console.info('[RuntimeRecovery] ✅ Primary data source — không cần fallback.');
             } else {

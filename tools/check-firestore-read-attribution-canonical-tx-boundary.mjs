@@ -82,8 +82,8 @@ check('Active, quit, fallback and debt profile reads are attributed',
 check('Inventory history and active-debt reads are attributed',
   app.includes('inventory.historyPage') && app.includes('inventory.activeDebtListener'));
 check('Dashboard reads are attributed',
-  dashboard.includes('dashboard.historicalStatsPointReads') && dashboard.includes('dashboard.monthStatsPointRead') &&
-  dashboard.includes('dashboard.transactionFallbackQueries') && dashboard.includes('dashboard.sparkHistoryStatsReads'));
+  dashboard.includes('dashboard.canonicalStatsReads') && dashboard.includes('dashboard.transactionFallbackDocs') &&
+  dashboard.includes('dashboard.transactionFallbackQueries') && dashboard.includes('dashboardCanonicalStatsReads'));
 check('Notification reads are attributed',
   app.includes('notifications.initialQuery') && app.includes('notifications.unreadListener'));
 check('Read audit warns that metrics are estimates, not billing truth',

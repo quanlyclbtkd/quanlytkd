@@ -107,7 +107,7 @@ check('Attendance monthly and member-history queries support branch scope',
   attendanceService.includes("canMount?.('attendance.member-history'") &&
   attendanceService.includes("constraints.push(where('branch', '==', alias))"));
 check('Attendance UI passes selected/assigned branch into daily and monthly services',
-  attendanceModule.includes('branch: _dailyBranch') &&
+  attendanceModule.includes("branch: token.branch === 'all' ? '' : token.branch") &&
   attendanceModule.includes("branch: selBranch === 'all' ? '' : selBranch"));
 check('Required Firestore indexes are declared',
   hasIndex('profiles',['status','branch']) &&

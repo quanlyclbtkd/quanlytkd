@@ -44,9 +44,9 @@ check(exists(fallbackPath), 'attendance rollback bridge exists');
 check(index.includes('js/legacy/legacyAttendanceFallbacks.js?v=attendance-canonical-ownership-20260616'), 'attendance rollback bridge has current cache key');
 check(index.indexOf('js/legacy/legacyAttendanceFallbacks.js') < index.indexOf('src="app.js'), 'attendance rollback bridge loads before app.js');
 check(index.includes('app.js?v=attendance-canonical-ownership-20260616') || index.includes('app.js?v=inventory-pagination-complete-debt-20260616') || index.includes('app.js?v=inventory-dynamic-size-catalog-20260616-v2b') || index.includes('app.js?v=inventory-ledger-reconciliation-20260616-v2c') || index.includes('app.js?v=canonical-security-truth-20260811-v5u5'), 'app.js cache key is 4K-6V or a later compatible phase');
-check(index.includes('main.js?v=attendance-canonical-ownership-20260616') || index.includes('main.js?v=inventory-pagination-complete-debt-20260616') || index.includes('main.js?v=inventory-dynamic-size-catalog-20260616-v2b') || index.includes('main.js?v=inventory-ledger-reconciliation-20260616-v2c') || index.includes('main.js?v=canonical-security-truth-20260811-v5u5'), 'main.js cache key is 4K-6V or a later compatible phase');
+check(index.includes('main.js?v=attendance-canonical-ownership-20260616') || index.includes('main.js?v=inventory-pagination-complete-debt-20260616') || index.includes('main.js?v=inventory-dynamic-size-catalog-20260616-v2b') || index.includes('main.js?v=inventory-ledger-reconciliation-20260616-v2c') || index.includes('main.js?v=canonical-security-truth-20260811-v5u5') || index.includes('main.js?v=dashboard-mutation-aware-cache-freshness-20260812-v5u6c1'), 'main.js cache key is 4K-6V or a later compatible phase');
 check(main.includes("APP_BUILD_VERSION = '4K-6V-attendance-canonical-ownership-pagination-20260616'"), 'main contains 4K-6V compatibility build marker');
-check(main.includes("window.APP_BUILD_VERSION = '4K-6V-attendance-canonical-ownership-pagination-20260616'") || main.includes("window.APP_BUILD_VERSION = '4K-6V2-inventory-history-pagination-complete-active-debt-20260616'") || main.includes("window.APP_BUILD_VERSION = '4K-6V5U5-canonical-security-truth-20260811'"), 'active runtime build version is 4K-6V or later compatible phase');
+check(main.includes("window.APP_BUILD_VERSION = '4K-6V-attendance-canonical-ownership-pagination-20260616'") || main.includes("window.APP_BUILD_VERSION = '4K-6V2-inventory-history-pagination-complete-active-debt-20260616'") || main.includes("window.APP_BUILD_VERSION = '4K-6V5U5-canonical-security-truth-20260811'") || main.includes("window.APP_BUILD_VERSION = '4K-6V5U6C1-dashboard-mutation-aware-cache-freshness-20260812'"), 'active runtime build version is 4K-6V or later compatible phase');
 check(main.includes("from './modules/attendance.js'"), 'main imports attendance module');
 check(main.indexOf('initGlobalOwnershipRegistry();') < main.indexOf('initAttendance();'), 'ownership registry initializes before attendance module');
 
@@ -64,13 +64,13 @@ check(attendance.includes('GlobalOwnershipRegistry.register(name, implementation
 check(attendance.includes('GlobalOwnershipRegistry.restoreCanonical(name)'), 'attendance module can restore canonical globals');
 check(!app.includes('_origRenderAttendanceList'), 'legacy renderAttendanceList monkey-patch was removed');
 check(!app.includes('const _ATT_STATUS = ['), 'legacy attendance core body was removed from app.js');
-check(attendance.includes('await _loadSessionNoteAfterAttendanceRender(_attCurrentDate)'), 'session note loads through explicit attendance lifecycle');
+check(attendance.includes('await _loadAcceptedAttendanceAuxiliary(token)') && attendance.includes('_loadSessionNoteAfterAttendanceRender(context)'), 'session note loads only through accepted canonical daily lifecycle');
 check(app.includes('let _sessionNoteLoadSeq = 0'), 'session note loader has stale-response sequence guard');
 check(app.includes('requestSeq !== _sessionNoteLoadSeq'), 'stale session-note response cannot overwrite current date');
 check(attendance.includes('if (!_onlineListenerBound)'), 'online synchronization listener is bind-once');
 check(attendance.includes("window.addEventListener('online', window.syncOfflineAttendance)"), 'online synchronization listener remains installed');
-check(attendance.includes('if (_currentShiftId && _docShift !== _currentShiftId) return;'), 'attendance cache applies correct selected-shift filter');
-check(attendance.includes('AttendanceService.loadByDate(_attCurrentDate, {') && attendance.includes('shiftId: _currentShiftId') && attendance.includes('branch: _dailyBranch'), 'daily read passes selected shift and branch to service');
+check(attendance.includes('if (token.shiftId && docShift !== token.shiftId) return;'), 'attendance cache applies captured selected-shift filter');
+check(attendance.includes('AttendanceService.loadByDate(token.date, {') && attendance.includes('shiftId: token.shiftId') && attendance.includes("branch: token.branch === 'all' ? '' : token.branch"), 'daily read passes immutable date, shift and branch token to service');
 check(service.includes("constraints.push(where('shiftId', '==', shiftId))"), 'daily query filters selected shift server-side');
 
 // ── Monthly pagination correctness / safety ───────────────────────────
@@ -106,7 +106,10 @@ const appLines = app.split('\n').length;
 check(appBytes < baselineAppBytes, `app.js reduced from ${baselineAppBytes.toLocaleString()} to ${appBytes.toLocaleString()} bytes`);
 check(appLines < baselineAppLines, `app.js reduced from ${baselineAppLines.toLocaleString()} to ${appLines.toLocaleString()} lines`);
 check(appBytes <= 700000, `app.js meets Phase 4K-6V4B8 compatible size target (${appBytes.toLocaleString()} <= 700,000 bytes)`);
-check(appLines <= 11050, `app.js remains within compatible Phase 4K-6V4B8+ size target (${appLines.toLocaleString()} <= 11,050 lines)`);
+// V5U6E adds the transaction-coverage publisher and explicit recovery-probe guard
+// at the canonical listener/bootstrap owners. Keep a tight compatible ceiling
+// without treating those authorized safety guards as Attendance ownership drift.
+check(appLines <= 11300, `app.js remains within compatible Phase 4K-6V5U6E size target (${appLines.toLocaleString()} <= 11,300 lines)`);
 
 check(!!pkg.scripts?.['check:attendance-canonical-ownership'], 'package exposes Phase 4K-6V checker');
 check(pkg.scripts?.check?.includes('check:attendance-canonical-ownership'), 'default check includes Phase 4K-6V checker');

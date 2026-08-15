@@ -10,6 +10,7 @@ function check(name, condition, details = '') {
 
 const builds = ['student-status-command-cutover-tx-delete-fix-20260722-v5u1', 'tuition-command-cutover-20260730-v5u2', 'attendance-excel-documentid-sdk-fix-20260801-v5u2e', 'canonical-security-truth-20260811-v5u5'];
 const searchBuild = 'student-given-name-priority-20260811-v5u3';
+const dashboardBuild = 'dashboard-mutation-aware-cache-freshness-20260812-v5u6c1';
 const patches = ['4K-6V5U-1-student-status-command-cutover-tx-delete-fix-20260722', '4K-6V5U-2-tuition-command-cutover-20260730', '4K-6V5U-2E-attendance-excel-documentid-sdk-fix-20260801', '4K-6V5U5-canonical-security-truth-20260811'];
 const boundary = read('js/core/studentStatusCommandBoundary.js');
 const boundaryPublic = read('public/js/core/studentStatusCommandBoundary.js');
@@ -31,8 +32,8 @@ const baseline = JSON.parse(read('tools/baselines/v5u1-legacy-write-baseline.jso
 const pkg = JSON.parse(read('package.json'));
 
 check('V5U-1 boundary source/public mirrors are exact', boundary === boundaryPublic);
-check('V5U-1-or-later app/index/main markers active', patches.some(p=>app.includes(p)) && patches.some(p=>main.includes(p)) && builds.some(b=>index.includes(`app.js?v=${b}`)) && (index.includes(`./js/main.js?v=${searchBuild}`) || builds.some(b=>index.includes(`./js/main.js?v=${b}`))));
-check('V5U-1-or-later public app/index/main markers active', patches.some(p=>appPublic.includes(p)) && patches.some(p=>mainPublic.includes(p)) && builds.some(b=>indexPublic.includes(`app.js?v=${b}`)) && (indexPublic.includes(`./js/main.js?v=${searchBuild}`) || builds.some(b=>indexPublic.includes(`./js/main.js?v=${b}`))));
+check('V5U-1-or-later app/index/main markers active', patches.some(p=>app.includes(p)) && patches.some(p=>main.includes(p)) && builds.some(b=>index.includes(`app.js?v=${b}`)) && (index.includes(`./js/main.js?v=${dashboardBuild}`) || index.includes(`./js/main.js?v=${searchBuild}`) || builds.some(b=>index.includes(`./js/main.js?v=${b}`))));
+check('V5U-1-or-later public app/index/main markers active', patches.some(p=>appPublic.includes(p)) && patches.some(p=>mainPublic.includes(p)) && builds.some(b=>indexPublic.includes(`app.js?v=${b}`)) && (indexPublic.includes(`./js/main.js?v=${dashboardBuild}`) || indexPublic.includes(`./js/main.js?v=${searchBuild}`) || builds.some(b=>indexPublic.includes(`./js/main.js?v=${b}`))));
 check('main imports and initializes StudentStatusCommandBoundary', builds.some(b=>main.includes(`./core/studentStatusCommandBoundary.js?v=${b}`)) && main.includes('initStudentStatusCommandBoundary();'));
 check('StudentStatus boundary initializes after students and before finance', main.indexOf('initStudents();') < main.indexOf('initStudentStatusCommandBoundary();') && main.indexOf('initStudentStatusCommandBoundary();') < main.indexOf('initFinance();'));
 check('StudentStatus boundary owns reviewed status commands', ['updateProfile','deleteProfile','addSkippedMonth','removeSkippedMonth','markQuit'].every(x => boundary.includes(`async ${x}`)));

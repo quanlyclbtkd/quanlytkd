@@ -205,8 +205,8 @@ if (mainJs) {
         'Use relative paths in main.js: from "./store.js" not from "/js/store.js"');
 
     // Dynamic imports for superadmin must be relative
-    const _hasDynImport = mainJs.includes("import('./modules/superadmin.js')") ||
-        mainJs.includes('import("./modules/superadmin.js")');
+    // A cache-bust query does not change the GitHub Pages-relative module path.
+    const _hasDynImport = /import\(\s*['"]\.\/modules\/superadmin\.js(?:\?[^'"]*)?['"]\s*\)/.test(mainJs);
     check('main.js dynamic import for superadmin uses relative path (./modules/superadmin.js)',
         _hasDynImport,
         'Use: await import("./modules/superadmin.js") — relative to main.js location in js/');

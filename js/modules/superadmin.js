@@ -449,6 +449,8 @@
 
             function _readStatsIncomeTotal(stats) {
                 if (!stats || typeof stats !== 'object') return null;
+                const statsCoverage = stats.cacheCoverage;
+                if (statsCoverage && statsCoverage.financeComplete !== true) return null;
                 return _firstFiniteNumber(
                     stats['income.total'],
                     stats.income && stats.income.total,
@@ -485,11 +487,18 @@
                 return match ? `${match[1]}-${match[2]}` : '';
             }
 
+            function _isFinanceCoverageRejected(source, monthKey) {
+                const coverage = source && source.cacheCoverage;
+                if (!coverage || typeof coverage !== 'object') return false;
+                return _normalizeStatsMonth(coverage.month) === monthKey && coverage.financeComplete !== true;
+            }
+
             // V5U6A: revenue is a root-cache hit only when its current-month provenance
             // is provable. Keyed maps are self-describing; generic "current month"
             // fields require superAdminStats.month to match the requested month.
             function _readClubCachedRevenue(clubData, monthKey, statsDocId) {
                 if (!clubData || typeof clubData !== 'object') return null;
+                if (_isFinanceCoverageRejected(clubData, monthKey)) return null;
                 const keyedRevenue = _firstFiniteNumber(
                     _readMonthlyCachedValue(clubData.cachedMonthlyRevenue, monthKey, statsDocId),
                     _readMonthlyCachedValue(clubData.monthlyRevenue, monthKey, statsDocId),
@@ -516,12 +525,13 @@
 
             function _readProvableCurrentMonthRootCache(clubData, monthKey, statsDocId) {
                 const student = _readStudentCountFromClub(clubData);
+                const financeRejected = _isFinanceCoverageRejected(clubData, monthKey);
                 const revenue = _readClubCachedRevenue(clubData, monthKey, statsDocId);
                 // _firstFiniteNumber-style helpers return null for unknown. Do not coerce
                 // null through Number(null) because that fabricates a valid zero cache hit.
                 const hasStudent = student !== null && Number.isFinite(student);
                 const hasRevenue = revenue !== null && Number.isFinite(revenue);
-                return { student, revenue, hasStudent, hasRevenue, complete: hasStudent && hasRevenue };
+                return { student, revenue, hasStudent, hasRevenue, financeRejected, complete: hasStudent && hasRevenue };
             }
 
             function _readStudentCountFromStats(stats) {
@@ -731,7 +741,7 @@
                 // root cache is incomplete pays the stats/{YYYY_MM} point read.
                 const _rootMonthCache = _readProvableCurrentMonthRootCache(data, _curMonth4K, _statsDocId4K);
                 let monthStats = null;
-                if (!_rootMonthCache.complete) {
+                if (!_rootMonthCache.complete && !_rootMonthCache.financeRejected) {
                     try {
                         const _sSnap = await getDoc(doc(db, 'clubs', cid, 'stats', _statsDocId4K));
                         if (window.__txListenerMetrics) {
@@ -745,7 +755,9 @@
                 activeCount = _firstFiniteNumber(activeCount, statsStudentCount, _rootMonthCache.student, _readStudentCountFromClub(data));
                 profileCount = _firstFiniteNumber(profileCount, data.cachedProfileCount, data.profileCount, data.totalStudents, activeCount);
                 const studentCountForSummary = _firstFiniteNumber(activeCount, profileCount);
-                const revenueTotal = _rootMonthCache.complete
+                const revenueTotal = _rootMonthCache.financeRejected
+                    ? null
+                    : _rootMonthCache.complete
                     ? _rootMonthCache.revenue
                     : _firstFiniteNumber(_readStatsIncomeTotal(monthStats), _rootMonthCache.revenue);
                 const hasRevenueSource = revenueTotal !== null && Number.isFinite(revenueTotal);
@@ -779,20 +791,9 @@
             // Render using shared function (also used by filterSAClubs)
             window._renderSAClubRows(clubDataList, today, in30Days);
 
-            // Phase 4K-6I-H: If cache/stats are missing, use server callable refresh safely.
-            // This does NOT run client getCountFromServer/runAggregationQuery. It calls one Cloud Function per CLB sequentially.
-            try {
-                if (typeof window.maybeAutoRefreshSuperAdminSummaries === 'function') {
-                    window.maybeAutoRefreshSuperAdminSummaries(clubDataList, {
-                        reason: 'superadmin-dashboard-missing-cache',
-                        maxPerSession: 12,
-                        delayMs: 1600,
-                        month: _curMonth4K
-                    }).catch(e => console.warn('[SuperAdmin] server summary auto refresh failed:', e?.message || e));
-                }
-            } catch (_serverRefreshErr) {
-                console.warn('[SuperAdmin] server summary auto refresh dispatch failed:', _serverRefreshErr?.message || _serverRefreshErr);
-            }
+            // Phase 4K-6V5U6E client-only authority: missing or explicitly
+            // incomplete finance cache remains "--". SuperAdmin never auto-calls
+            // Functions and never aggregates tenant transactions in the browser.
 
         } catch (e) {
             console.error(e);

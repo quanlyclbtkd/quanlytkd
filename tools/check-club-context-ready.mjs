@@ -7,7 +7,7 @@
  * 3. app:context-ready và app:db-ready được dispatch sau db sẵn sàng.
  * 4. __dbReadyEventDispatched guard chặn dispatch lặp.
  * 5. Profile listener được mount SAU khi db + currentClubId ready.
- * 6. app:context-ready listener trong main.js kích hoạt runtime recovery.
+ * 6. app:context-ready không tự kích hoạt legacy runtime recovery.
  *
  * Chạy: node tools/check-club-context-ready.mjs
  * ─────────────────────────────────────────────────────────────────────
@@ -134,11 +134,11 @@ if (appJs) {
 }
 
 console.log();
-console.log('▸ Section 5: main.js — runtime recovery sau app:context-ready');
+console.log('▸ Section 5: main.js — legacy recovery isolation');
 if (mainJs) {
-    check('main.js lắng nghe app:context-ready để recovery',
-        mainJs.includes('app:context-ready') && mainJs.includes('runRuntimeDataRecovery'),
-        "window.addEventListener('app:context-ready', ...) phải gọi runRuntimeDataRecovery()");
+    check('main.js không tự chạy runtime recovery từ app:context-ready',
+        !mainJs.includes("runRuntimeDataRecovery?.('app-context-ready')") && !mainJs.includes("runRuntimeDataRecovery('main-replay-context-ready')"),
+        'Legacy recovery chỉ được chạy bằng manual diagnostics explicit');
 
     check('main.js lắng nghe app:db-ready cho pagination init',
         mainJs.includes('app:db-ready') && mainJs.includes('_tryInitPaginationsOnDbReady'),

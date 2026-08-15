@@ -9,9 +9,9 @@ function check(name, condition, details = '') {
   else { failures++; console.error(`❌ ${name}${details ? ` — ${details}` : ''}`); }
 }
 
-const builds = ['canonical-domain-command-boundary-write-freeze-20260722-v5t', 'student-status-command-cutover-tx-delete-fix-20260722-v5u1', 'tuition-command-cutover-20260730-v5u2', 'attendance-excel-documentid-sdk-fix-20260801-v5u2e', 'canonical-security-truth-20260811-v5u5'];
+const builds = ['canonical-domain-command-boundary-write-freeze-20260722-v5t', 'student-status-command-cutover-tx-delete-fix-20260722-v5u1', 'tuition-command-cutover-20260730-v5u2', 'attendance-excel-documentid-sdk-fix-20260801-v5u2e', 'canonical-security-truth-20260811-v5u5', 'dashboard-mutation-aware-cache-freshness-20260812-v5u6c1'];
 const searchBuild = 'student-given-name-priority-20260811-v5u3';
-const patches = ['4K-6V5T-canonical-domain-command-boundary-write-freeze-20260722', '4K-6V5U-1-student-status-command-cutover-tx-delete-fix-20260722', '4K-6V5U-2-tuition-command-cutover-20260730', '4K-6V5U-2E-attendance-excel-documentid-sdk-fix-20260801', '4K-6V5U5-canonical-security-truth-20260811'];
+const patches = ['4K-6V5T-canonical-domain-command-boundary-write-freeze-20260722', '4K-6V5U-1-student-status-command-cutover-tx-delete-fix-20260722', '4K-6V5U-2-tuition-command-cutover-20260730', '4K-6V5U-2E-attendance-excel-documentid-sdk-fix-20260801', '4K-6V5U5-canonical-security-truth-20260811', '4K-6V5U6C1-dashboard-mutation-aware-cache-freshness-20260812'];
 const modulePath = 'js/core/canonicalDomainCommandBoundary.js';
 const publicModulePath = 'public/js/core/canonicalDomainCommandBoundary.js';
 const command = read(modulePath);
@@ -82,13 +82,32 @@ function multiset(rows) {
 }
 const actual = collectWrites(app);
 const allowed = multiset(baseline.signatures || []);
+// V5U6G diagnostic-only bridge: PATCH D changes catch/error visibility around
+// five EXISTING legacy writes, but does not change their Firestore call expression.
+// Map only those exact call expressions back to the frozen V5T line signature;
+// totals/per-operation counts and every other direct-write signature remain frozen.
+const _v5u6gDiagnosticCallFragments = [
+  "updateDoc(doc(db, 'clubs', currentClubId, 'inventory', _invDocId), { paymentBundleId: _bundleDoc.id, paidTxId: _bundleDoc.id })",
+  'addDoc(collection(db, "clubs", currentClubId, "fee_audit"), { studentId: n1, amount: f1',
+  'addDoc(collection(db, "clubs", currentClubId, "fee_audit"), { studentId: n2, amount: f2',
+  "updateDoc(doc(db, 'clubs', currentClubId, 'inventory', id), { paidTxId: _bundleDoc.id })",
+  "deleteDoc(doc(db, 'clubs', currentClubId, 'adminNotifications', docId))",
+];
+function _normalizeV5u6gDiagnosticWrite(row) {
+  if (!main.includes("4K-6V5U6G-production-stability-residual-defect-closure-20260814")) return row;
+  const fragment = _v5u6gDiagnosticCallFragments.find(f => row.signature.includes(f));
+  if (!fragment) return row;
+  const candidates = (baseline.signatures || []).filter(b => b.op === row.op && String(b.signature || '').includes(fragment));
+  const unique = [...new Set(candidates.map(b => b.signature))];
+  return unique.length === 1 ? { ...row, signature: unique[0] } : row;
+}
 // V5U4 introduced one narrow security-principal bootstrap write in app.js.
 // It is outside business-domain command ownership and remains explicitly sanctioned in V5U5.
 if (app.includes('const _ensureSuperAdminPrincipal = async') && app.includes("doc(db, 'super_admins', uid)")) {
   const k = 'setDoc|await setDoc(principalRef, {';
   allowed.set(k, Math.max(1, allowed.get(k) || 0));
 }
-const current = multiset(actual.signatures);
+const current = multiset(actual.signatures.map(_normalizeV5u6gDiagnosticWrite));
 const newSignatures = [];
 for (const [key, count] of current.entries()) {
   if (count > (allowed.get(key) || 0)) newSignatures.push({ key, count, allowed: allowed.get(key) || 0 });

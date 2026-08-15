@@ -9,16 +9,14 @@
  *   attendance.list    → calls window.renderAttendanceList()
  *   attendance.monthly → calls window.renderAttMonthly()
  *
- * Why wrapper-style (not cache-based)?
- *   Attendance HTML is NOT pre-built in renderApp — the attendance module
- *   owns its own rendering logic including live Firestore reads per date.
- *   The islands here bring attendance into the scheduler lifecycle
- *   (RAF batching, hidden-tab skip, dirty flush) WITHOUT touching
- *   the attendance module's internal rendering logic.
+ * The Day island is presentation-first: it asks the canonical AttendanceModule
+ * to reuse its accepted RAM snapshot. Only that module may decide that an
+ * initial daily load is required. The Month island is independently guarded by
+ * the visible nested subtab.
  *
  * Backward compatibility:
- *   window.renderAttendanceList and window.renderAttMonthly remain unchanged.
- *   These islands are additive wrappers only.
+ *   window.renderAttendanceList remains a compatibility entry that delegates
+ *   to the same canonical owner.
  */
 
 import { registerRender } from './renderRegistry.js';
@@ -30,8 +28,12 @@ import { registerRender } from './renderRegistry.js';
  * Delegates to attendance.js implementation via window global.
  */
 export function renderAttendanceListIsland() {
-    if (typeof window.renderAttendanceList === 'function') {
-        window.renderAttendanceList();
+    const dayActive = window.AttendanceModule?.isDaySubtabActive?.() === true;
+    if (!dayActive) return;
+    if (typeof window.AttendanceModule?.renderDailyFromRam === 'function') {
+        window.AttendanceModule.renderDailyFromRam('attendance-list-island');
+    } else if (typeof window.renderAttendanceList === 'function') {
+        window.renderAttendanceList('attendance-list-island');
     }
 }
 
@@ -40,7 +42,8 @@ export function renderAttendanceListIsland() {
  * Delegates to attendance.js implementation via window global.
  */
 export function renderAttMonthlyIsland() {
-    if (typeof window.renderAttMonthly === 'function') {
+    const monthActive = window.AttendanceModule?.isMonthSubtabActive?.() === true;
+    if (monthActive && typeof window.renderAttMonthly === 'function') {
         window.renderAttMonthly();
     }
 }

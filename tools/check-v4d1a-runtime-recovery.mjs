@@ -16,7 +16,7 @@ const index = read('index.html');
 const main = read('js/main.js');
 
 check('cache bust updated to V4D1A-or-later in index', index.includes('quit-context-render-loop-guard-20260722-v5s') || index.includes('profile-canonical-store-runtime-recovery-20260628-v4d1a'));
-check('main imports render.js with V4D1A-or-later cache bust', main.includes('./ui/render.js?v=student-given-name-priority-20260811-v5u3') || main.includes('./ui/render.js?v=quit-context-render-loop-guard-20260722-v5s') || main.includes('./ui/render.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a'));
+check('main imports render.js with V4D1A-or-later cache bust', main.includes('./ui/render.js?v=dashboard-mutation-aware-cache-freshness-20260812-v5u6c1') || main.includes('./ui/render.js?v=student-given-name-priority-20260811-v5u3') || main.includes('./ui/render.js?v=quit-context-render-loop-guard-20260722-v5s') || main.includes('./ui/render.js?v=profile-canonical-store-runtime-recovery-20260628-v4d1a'));
 check('render.js has small UI refresh helper', render.includes('function _refreshSmallStudentUi(tabId, reason)'));
 check('render.js early return calls small UI refresh', render.includes("_refreshSmallStudentUi(earlyTabId, 'renderApp-dataVersion-unchanged')"));
 check('render.js small UI refresh always renders birthday banner', render.includes("typeof window._renderHomeBirthdayBanner === 'function'") && render.includes('window._renderHomeBirthdayBanner()'));

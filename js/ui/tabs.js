@@ -53,7 +53,7 @@ import { runTabRenders, cleanupTabRenders, flushDirtyRenders } from './render/re
 
 // Phase 3.6: Listener Ownership Isolation — tab-scoped mount/cleanup
 import { cleanupListenersByTabId } from '../utils/listeners.js';
-import { mountAttendanceListeners, cleanupAttendanceListeners } from '../listeners/attendance.listeners.js';
+import { mountAttendanceListeners, cleanupAttendanceListeners } from '../listeners/attendance.listeners.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d';
 import { mountExamListeners, cleanupExamListeners } from '../listeners/exam.listeners.js';
 
 // ────────────────────────────────────────────────────────────────

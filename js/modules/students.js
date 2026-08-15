@@ -49,6 +49,16 @@ function _profiles() { return (window.__store || {}).profiles || {}; }
 function _config()   { return (window.__store || {}).clubConfig || {}; }
 /** @deprecated Phase 3.1 — Firebase calls đã chuyển sang StudentService */
 
+// Phase 4K-6V5U6G: secondary linkage failure remains observable without
+// retrying/duplicating the canonical admission transaction.
+const _recordStudentSecondaryFailure = (classification, error, extra = {}) => {
+    const details = { classification, secondaryWrite: true, reconciliationNeeded: true, ...extra };
+    console.warn('[StudentConsistency]', classification, details, error || '');
+    if (typeof window.recordRuntimeError === 'function') {
+        window.recordRuntimeError('students.secondary:' + classification, error || new Error(classification), details);
+    }
+};
+
 // ════════════════════════════════════════════════════════════════
 // MODULE-LEVEL STATE (thay thế closure vars trong app.js)
 // ════════════════════════════════════════════════════════════════
@@ -425,7 +435,11 @@ export function initStudents() {
                                 paymentBundleId: tuitionTx.id || '',
                                 paidTxId: tuitionTx.id || '',
                             });
-                        } catch (_e) {}
+                        } catch (_e) {
+                            _recordStudentSecondaryFailure('inventory-payment-link-reconcile-required', _e, {
+                                domain: 'inventory', inventoryId: _invId, paidTxId: tuitionTx.id || '', canonicalTransactionPreserved: true
+                            });
+                        }
                     }
                     if (typeof window.mergeTransactionIntoRuntimeStore === 'function') {
                         window.mergeTransactionIntoRuntimeStore(tuitionTx, 'admission-bundle-created');

@@ -54,6 +54,27 @@ function _prepareWriteData(data) {
     return { ...source, branch: canonical };
 }
 
+// V5U6G1: Offline journal metadata is orchestration-only. Build the canonical
+// Firestore Attendance document from an explicit business-field whitelist so
+// future journal fields cannot leak through a spread into persisted schema.
+function _toCanonicalAttendanceWrite(record, fallbackDate = '') {
+    const rec = record && typeof record === 'object' ? record : {};
+    const date = String(rec.date || fallbackDate || '').slice(0, 10);
+    const payload = {
+        profileId: String(rec.profileId || rec.name || ''),
+        name: String(rec.name || ''),
+        belt: String(rec.belt || ''),
+        branch: String(rec.branch || ''),
+        date,
+        month: String(rec.month || date.slice(0, 7)),
+        status: Number(rec.status || 0),
+        timestamp: Date.now(),
+    };
+    const shiftId = String(rec.shiftId || '').trim();
+    if (shiftId) payload.shiftId = shiftId;
+    return _prepareWriteData(payload);
+}
+
 export const AttendanceService = {
 
     // ── LOAD ATTENDANCE ─────────────────────────────────────────
@@ -71,6 +92,12 @@ export const AttendanceService = {
         if (!_lim) console.warn('[AttendanceService] limit not available in SDK — loadByDate running without limit()');
 
         const shiftId = String(options.shiftId || '');
+        if (options.requireShift === true && !shiftId) {
+            const error = new Error('[AttendanceService] Explicit shift is required before the daily query.');
+            error.code = 'attendance/explicit-shift-required';
+            throw error;
+        }
+        const shiftAuthorityMode = String(options.shiftAuthorityMode || (shiftId ? 'explicit-shift' : 'legacy-no-shift'));
         const { coach: isCoach, branch } = _scopedBranch(options);
         window.RoleReadBoundary?.canMount?.('attendance.daily', { date, branch, shiftId });
         const dailyLimit = Number((window.__scaleConfig || {}).attendanceDailyLimit) || 1200;
@@ -87,6 +114,16 @@ export const AttendanceService = {
         ));
         const results = [];
         snap.forEach(d => results.push({ id: d.id, data: d.data() }));
+        if (typeof window.recordFirestoreReadAttribution === 'function') {
+            window.recordFirestoreReadAttribution('attendance.daily', Number(snap.size || results.length || 0), {
+                initial: true,
+                reason: 'canonical-daily-refresh',
+                date,
+                branch,
+                shiftId,
+                shiftAuthorityMode,
+            });
+        }
 
         const hitLimit = results.length >= dailyLimit;
         window.__attendanceDailyLoadMetrics = {
@@ -97,10 +134,11 @@ export const AttendanceService = {
             docs: results.length,
             limit: dailyLimit,
             hitLimit,
+            shiftAuthorityMode,
             updatedAt: Date.now()
         };
         if (hitLimit) {
-            const shiftInfo = shiftId ? ' / ca: ' + shiftId : ' (tất cả ca)';
+            const shiftInfo = shiftId ? ' / ca: ' + shiftId : ' (legacy không cấu hình ca)';
             console.warn(
                 '[Attendance] ⚠️ Đạt limit ' + dailyLimit + ' record — ngày ' + date + shiftInfo +
                 '. Dữ liệu có thể bị cắt bớt. Hãy chọn ca cụ thể hoặc dùng aggregation.'
@@ -149,6 +187,12 @@ export const AttendanceService = {
         const snap = await getDoc(
             doc(_db(), 'clubs', _clubId(), 'settings', 'shifts')
         );
+        if (typeof window.recordFirestoreReadAttribution === 'function') {
+            window.recordFirestoreReadAttribution('attendance.shifts', 1, {
+                initial: true,
+                reason: 'attendance-shifts-single-flight',
+            });
+        }
         return snap.exists() ? (snap.data().list || []) : [];
     },
 
@@ -220,6 +264,14 @@ export const AttendanceService = {
         );
         const results = [];
         snap.forEach(d => results.push({ id: d.id, data: d.data() }));
+        if (typeof window.recordFirestoreReadAttribution === 'function') {
+            window.recordFirestoreReadAttribution('attendance.coachNotes', Number(snap.size || results.length || 0), {
+                initial: true,
+                reason: 'attendance-daily-accepted',
+                date,
+                branch,
+            });
+        }
         return results;
     },
 
@@ -382,17 +434,20 @@ export const AttendanceService = {
             return (shiftId && shiftId !== '') ? (name + '_' + d + '_' + shiftId) : (name + '_' + d);
         }
         Object.values(records).forEach(rec => {
-            // Ưu tiên docId đã lưu trong record (Phase 4J-6A), fallback legacy
+            // Ưu tiên docId đã lưu trong journal, fallback legacy shift-aware ID.
             const docId  = rec.docId || _getAttDocId(rec.name, rec.date || date, rec.shiftId || '');
             const docRef = doc(db, 'clubs', clubId, 'attendance', docId);
-            if (!rec.status || rec.status === 0) {
+            const operation = String(rec.operation || '').toLowerCase();
+            if (operation === 'delete' || Number(rec.status || 0) === 0) {
                 batch.delete(docRef);
             } else {
-                const writeData = _prepareWriteData({ ...rec, timestamp: Date.now() });
-                // Đảm bảo shiftId luôn có trong document nếu record có shiftId
-                if (rec.shiftId) writeData.shiftId = rec.shiftId;
-                // Xóa docId khỏi data ghi Firestore (chỉ dùng làm document path)
-                delete writeData.docId;
+                const writeData = _toCanonicalAttendanceWrite(rec, date);
+                const debug = window.__attendanceDebug;
+                if (debug) {
+                    debug.offlineCanonicalPayloadSanitized = Number(debug.offlineCanonicalPayloadSanitized || 0) + 1;
+                    const journalOnlyFields = ['version','clubId','operation','shiftMode','queuedAt','lastUpdatedAt','revision','docId','journalKey','syncState','retryCount'];
+                    debug.offlineJournalMetadataStripped = Number(debug.offlineJournalMetadataStripped || 0) + journalOnlyFields.reduce((n, key) => n + (Object.prototype.hasOwnProperty.call(rec || {}, key) ? 1 : 0), 0);
+                }
                 batch.set(docRef, writeData);
             }
         });
@@ -404,19 +459,18 @@ export const AttendanceService = {
     /**
      * Cập nhật stats chuyên cần (totalSessionsAttended, consecutiveAbsences...).
      * Ghi vào collection "members" (tách biệt với "profiles" — performance stats).
-     * Swallow error vì đây là non-critical background update.
+     * Đây là derived metadata. Caller giữ canonical attendance success nhưng
+     * phải quan sát/reconcile failure; service không được nuốt lỗi.
      *
      * @param {string} name   — tên võ sinh
      * @param {Object} data   — FieldValue updates (increment, literal values)
      */
     async updateMemberStats(name, data) {
         const { doc, updateDoc } = _sdk();
-        try {
-            await updateDoc(
-                doc(_db(), 'clubs', _clubId(), 'members', name),
-                data
-            );
-        } catch (_) { /* non-critical — không chặn điểm danh */ }
+        await updateDoc(
+            doc(_db(), 'clubs', _clubId(), 'members', name),
+            data
+        );
     },
 
     /**

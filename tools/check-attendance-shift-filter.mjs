@@ -34,17 +34,17 @@ check('Module có canonical renderAttendanceList',
 check('Không còn ternary shift filter sai',
   !/_currentShiftId\s*\?\s*\(_docShift\s*!==\s*_currentShiftId\)/.test(mod));
 check('Module dùng logic đúng khi có ca',
-  /if\s*\(\s*_currentShiftId\s*&&\s*_docShift\s*!==\s*_currentShiftId\s*\)\s*return/.test(mod));
+  /if\s*\(\s*token\.shiftId\s*&&\s*docShift\s*!==\s*token\.shiftId\s*\)\s*return/.test(mod));
 check('Module vẫn nạp cache sau filter',
-  /_attendanceCache\[_id\]\s*=\s*_mapLegacyStatus/.test(mod));
+  /nextCache\[id\]\s*=\s*_mapLegacyStatus/.test(mod));
 check('Service lọc shiftId phía server khi có ca',
   /if\s*\(shiftId\)\s*constraints\.push\(where\(['"]shiftId['"],\s*['"]==['"],\s*shiftId\)\)/.test(service));
 check('Service dùng attendanceDailyLimit tập trung',
   service.includes('attendanceDailyLimit'));
 check('Service cảnh báo khi chạm daily limit',
   service.includes('hitLimit') && service.includes('warnUnsafeLimit'));
-check('Module truyền _currentShiftId vào loadByDate',
-  /loadByDate\(_attCurrentDate,\s*\{[\s\S]*?shiftId:\s*_currentShiftId[\s\S]*?branch:\s*_dailyBranch[\s\S]*?\}\)/.test(mod));
+check('Module truyền immutable token vào loadByDate',
+  /loadByDate\(token\.date,\s*\{[\s\S]*?shiftId:\s*token\.shiftId[\s\S]*?branch:\s*token\.branch[\s\S]*?\}\)/.test(mod));
 
 console.log(`\nTotal: ${pass + fail} | Pass: ${pass} | Fail: ${fail}`);
 if (fail) process.exit(1);
