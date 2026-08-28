@@ -1,0 +1,11 @@
+{
+  "phase": "4K-6V5U6H4",
+  "runtimeBuild": "4K-6V5U6H3-residual-security-data-integrity-release-verification-20260818",
+  "algorithm": "SHA-256",
+  "rootFileCount": 123,
+  "publicFileCount": 123,
+  "missingPublic": [],
+  "extraPublic": [],
+  "hashMismatches": [],
+  "status": "PASS"
+}

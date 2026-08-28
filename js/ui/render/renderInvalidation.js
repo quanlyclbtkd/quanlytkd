@@ -1,3 +1,5 @@
+// V5U3 quit compatibility: studentsRenderer.js?v=student-given-name-priority-20260811-v5u3
+// V5U3 quit compatibility: listComputationRefresh.js?v=student-given-name-priority-20260811-v5u3
 /**
  * renderInvalidation.js — Phase 3.5E List-Level Computation Refresh
  *                        (Builds on Phase 3.5D LoadMore & List-Level Render Invalidation)
@@ -68,8 +70,8 @@ import {
     invalidateTabRenders,
 } from './renderRegistry.js';
 
-import { invalidateFinanceRender }   from './computation/financeRenderer.js?v=student-given-name-priority-20260811-v5u3';
-import { invalidateStudentsRender }  from './computation/studentsRenderer.js?v=student-given-name-priority-20260811-v5u3';
+import { invalidateFinanceRender }   from './computation/financeRenderer.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
+import { invalidateStudentsRender }  from './computation/studentsRenderer.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
 import { invalidateInventoryRender } from './computation/inventoryRenderer.js?v=student-given-name-priority-20260811-v5u3';
 import { invalidateDashboardCache }  from './computation/dashboardRenderer.js';
 
@@ -78,7 +80,7 @@ import {
     refreshListComputation,
     refreshListsComputation,
     getComputationDomainForList,
-} from './listComputationRefresh.js?v=student-given-name-priority-20260811-v5u3';
+} from './listComputationRefresh.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
 
 // ── Dev helper ────────────────────────────────────────────────────────────────
 function _isDev() {

@@ -18,7 +18,7 @@ async function requireClubAdmin({ db, functions, context, clubId }) {
   const user = userSnap.exists ? userSnap.data() : {};
   const tokenRole = String((context.auth.token && context.auth.token.role) || '').toLowerCase();
   const userRole = String(user.role || '').toLowerCase();
-  const isSuperAdmin = tokenRole === 'super_admin' || userRole === 'super_admin' || superAdminSnap.exists;
+  const isSuperAdmin = tokenRole === 'super_admin' || userRole === 'super_admin' || (superAdminSnap.exists && (superAdminSnap.data() || {}).enabled === true);
 
   if (isSuperAdmin) return { uid, role: 'super_admin', clubId, isSuperAdmin: true, user };
 

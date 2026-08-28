@@ -1,3 +1,4 @@
+// V5U3 compatibility marker: studentsRenderer.js?v=student-given-name-priority-20260811-v5u3
 /**
  * listComputationRefresh.js — Phase 3.5E List-Level Computation Refresh
  *
@@ -40,11 +41,11 @@
 import {
     computeAndCacheFinance,
     getFinanceSummary,
-} from './computation/financeRenderer.js?v=student-given-name-priority-20260811-v5u3';
+} from './computation/financeRenderer.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
 import {
     computeAndCacheStudents,
     getStudentsSummary,
-} from './computation/studentsRenderer.js?v=student-given-name-priority-20260811-v5u3';
+} from './computation/studentsRenderer.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
 import {
     computeAndCacheInventory,
     getCachedUnpaidInvCount,
@@ -53,7 +54,7 @@ import {
     invalidateDashboardCache,
     cacheDashboardData,
 } from './computation/dashboardRenderer.js';
-import { formatMonth } from '../../utils/format.js';
+import { formatMonth } from '../../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
 
 // ── List key → computation domain mapping ─────────────────────────────────────
 //

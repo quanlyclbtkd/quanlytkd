@@ -1,0 +1,29 @@
+PHASE 4K-6V5U6H1 — CHANGED FILES / RELEASE EVIDENCE
+
+RUNTIME SOURCE CHANGED: NONE
+RUNTIME BUILD MARKER CHANGED: NO
+PACKAGE.JSON CHANGED: NO
+PACKAGE-LOCK.JSON CHANGED: NO
+FIRESTORE.RULES CHANGED: NO
+BUILD TOOL CHANGED: NO
+
+Generated/updated release evidence files only:
+- PHASE_4K_6V5U6H_PRODUCTION_SECURITY_TRUST_BOUNDARY_RELEASE_ASSURANCE_REPORT.md
+- PHASE_4K_6V5U6H_CHANGED_FILES.txt
+- PHASE_4K_6V5U6H_FULL_REGRESSION_OUTPUT.txt
+- PHASE_4K_6V5U6H_RULES_EMULATOR_RESULT.txt
+- PHASE_4K_6V5U6H_ROOT_PUBLIC_HASH_RESULT.json
+- PHASE_4K_6V5U6H_REMOTE_FUNCTIONS_STATUS.md
+- PHASE_4K_6V5U6H_PRODUCTION_SMOKE_MATRIX.md
+
+Generated through canonical build only:
+- public/index.html
+- public/app.js
+- public/style.css
+- public/.nojekyll
+- public/js/**
+- public/css/**
+
+The public regeneration is not a runtime behavior change: post-build SHA-256 comparison is 123/123 matched, missing=0, extra=0, mismatch=0.
+
+Baseline non-public source/config/tool hash comparison before adding H1 evidence: changed=0, missing=0.

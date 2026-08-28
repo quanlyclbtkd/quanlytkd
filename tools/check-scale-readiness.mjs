@@ -46,6 +46,8 @@ console.log('══════════════════════�
 // ── Section 1: Global Scale Config ───────────────────────────────────
 console.log('▸ Section 1: window.__scaleConfig (app.js)');
 const appJs = readFile('app.js');
+const studentsModule = readFile('js/modules/students.js');
+const tuitionBoundary = readFile('js/core/tuitionCommandBoundary.js');
 check('app.js exists', !!appJs, 'File not found');
 if (appJs) {
     check('__scaleConfig defined', appJs.includes('window.__scaleConfig = window.__scaleConfig ||'), 'Add __scaleConfig init block');
@@ -127,14 +129,14 @@ console.log('▸ Section 7: Transactions Real-time Listener (app.js)');
 if (appJs) {
     check('TX listener uses txListenerLimit', appJs.includes('txListenerLimit'), 'Use __scaleConfig.txListenerLimit in transactions listener');
     check('TX listener bumped from 500', appJs.includes('txListenerLimit') && appJs.includes('1200'), 'Bump tx listener limit from 500 to 1200');
-    check('TX listener has recordReadMetric', appJs.includes("recordReadMetric('transactions'") || appJs.includes('recordReadMetric("transactions"'), 'Add recordReadMetric call in transactions snapshot');
+    check('TX listener has canonical snapshot attribution', appJs.includes("recordFirestoreSnapshotAttribution('transactions.listener.' + sourceKey"), 'Keep canonical transaction snapshot attribution on listener sources');
 }
 console.log();
 
 // ── Section 8: Inventory Listener Read Metric ─────────────────────────
 console.log('▸ Section 8: Inventory Listener Metrics (app.js)');
 if (appJs) {
-    check('Inventory listener has recordReadMetric', appJs.includes("recordReadMetric('inventory'") || appJs.includes('recordReadMetric("inventory"'), 'Add recordReadMetric call in inventory snapshot callback');
+    check('Inventory current authorities are attributed', appJs.includes("recordFirestoreReadAttribution('inventory.historyPage'") && appJs.includes("recordFirestoreSnapshotAttribution('inventory.activeDebtListener'"), 'Verify lazy history-page reads + active-debt snapshot attribution; do not add a generic listener');
 }
 console.log();
 
@@ -164,7 +166,10 @@ if (appJs) {
     check('normalizePhoneForSearch() defined', appJs.includes('function normalizePhoneForSearch'), 'Add normalizePhoneForSearch() helper to app.js closure');
     check('fetchQueryPages() defined',         appJs.includes('function fetchQueryPages'),         'Add fetchQueryPages() paginated helper to app.js closure');
     check('searchIndex written in addNewStudent',  appJs.includes('buildStudentSearchIndex(_newProfileData'), 'Add searchIndex to addNewStudent setDoc call');
-    check('searchIndex written in updateProfile',  appJs.includes('buildStudentSearchIndex(updateData'),     'Add searchIndex to updateProfile updateData');
+    const updateStart = studentsModule ? studentsModule.indexOf('window.updateProfile = async () =>') : -1;
+    const updateEnd = updateStart >= 0 ? studentsModule.indexOf('window.deleteProfile = async () =>', updateStart) : -1;
+    const updateBody = updateStart >= 0 && updateEnd > updateStart ? studentsModule.slice(updateStart, updateEnd) : '';
+    check('searchIndex written in active updateProfile', updateBody.includes('window.buildStudentSearchIndex') && updateBody.includes('Object.assign(updateData') && updateBody.indexOf('window.buildStudentSearchIndex') < updateBody.lastIndexOf('StudentStatusCommandBoundary.updateProfile'), 'Active students.js must rebuild index before canonical update command');
     check('markLoginPerf exposed',             appJs.includes('function markLoginPerf'),            'Add markLoginPerf() login performance tracking');
     check('markLoginPerf dataHydrated called', appJs.includes("markLoginPerf('dataHydrated')"),     'Add markLoginPerf(dataHydrated) in profiles/inventory listener');
 }
@@ -180,8 +185,12 @@ if (appJs) {
     check('deleteTx batch delete fixed (no warnUnsafeLimit)', !appJs.includes("warnUnsafeLimit('deleteTx:batchDelete:limit500'"), 'Fix batch delete to use paginated loop instead of single limit(500)');
     check('rename tx scan fixed (no warnUnsafeLimit)',        !appJs.includes("warnUnsafeLimit('students:renameTxScan:limit500'"),  'Fix rename tx scan to use fetchQueryPages');
     check('paidUntil recalc fixed (no warnUnsafeLimit)',      !appJs.includes("warnUnsafeLimit('deleteTx:paidUntilRecalc:limit500'"), 'Fix paidUntil recalc to use fetchQueryPages');
-    check('rename uses _profileRenameBatch (clean 2-step)',   appJs.includes('_profileRenameBatch'),  'Confirm profile rename uses _profileRenameBatch separate from tx batch');
-    check('paidUntil recalc uses fetchQueryPages',            appJs.includes('paidUntil-recalc'),     'Confirm paidUntil recalc uses fetchQueryPages');
+    const renameStart = studentsModule ? studentsModule.indexOf('window.updateProfile = async () =>') : -1;
+    const renameEnd = renameStart >= 0 ? studentsModule.indexOf('window.deleteProfile = async () =>', renameStart) : -1;
+    const renameBody = renameStart >= 0 && renameEnd > renameStart ? studentsModule.slice(renameStart, renameEnd) : '';
+    const renameGuard = renameBody.indexOf('if (oldName !== newName)');
+    check('primary rename is fail-closed before lookup/write', renameGuard >= 0 && renameBody.indexOf('return;', renameGuard) >= 0 && renameGuard < renameBody.indexOf('StudentService.findTransactionsByStudent') && renameGuard < renameBody.indexOf('StudentStatusCommandBoundary.updateProfile'), 'Primary-name rename must remain blocked before transaction lookup/canonical write');
+    check('tuition delete uses targeted student reconciliation', !!tuitionBoundary && tuitionBoundary.includes('deleteTuitionTransaction') && tuitionBoundary.includes('getStudentTuitionTxs(studentName)') && !!financeService && /where\(\s*['"]description['"]\s*,\s*['"]==['"]\s*,\s*studentName\s*\)/.test(financeService), 'Tuition delete must query only the target student description, not full transaction collection');
 }
 console.log();
 

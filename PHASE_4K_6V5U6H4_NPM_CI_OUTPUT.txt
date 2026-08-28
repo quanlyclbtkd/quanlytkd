@@ -1,0 +1,16 @@
+PHASE 4K-6V5U6H4 — npm ci
+2026-08-19T00:32:46+00:00
+node: v22.16.0
+npm: 10.9.2
+$ npm ci
+
+--- extracted npm debug evidence ---
+debug_log_basename=2026-08-19T00_35_20_462Z-debug-0.log
+tool_result=TIMEOUT_WITH_PROCESS_HUNG
+process_action=terminated
+partial_node_modules=removed
+dependency_install_status=BLOCKED
+
+===== BOUNDED DIAGNOSTIC RERUN =====
+timestamp=2026-08-19T00:37:20+00:00
+env: npm_config_fetch_retries=0 (diagnostic only; dependency versions unchanged)

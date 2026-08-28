@@ -1,0 +1,16 @@
+# PHASE 4K-6V5U6H4 — Authenticated Deployed Smoke Matrix
+
+Only deployed/browser evidence can mark these cases PASS. Automated source gates are noted separately and are not substituted for deployed smoke.
+
+| ID | Environment | Role | Tenant | Branch | Action | Expected | Actual | Console | Network observation | Status | Evidence | Notes |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| H4-A01 | Production candidate | Admin | safe test tenant | — | Login + Dashboard + Students + Attendance + Settings | All canonical modules load; no Parent Portal; no unexpected permission-denied | Deployment prerequisite not met | N/A | N/A | BLOCKED | Rules Emulator/remote state blocker | No production deploy executed |
+| H4-C01 | Production candidate | Coach | safe test tenant | assigned branch | Attendance-only login/profile/shift/toggle/note | Assigned-branch only; no finance/debt/inventory readers | Deployment prerequisite not met | N/A | N/A | BLOCKED | Rules Emulator/remote state blocker | No production deploy executed |
+| H4-V01 | Production candidate | Viewer | safe test tenant | — | Read-only Dashboard/profiles/Attendance | No write authority/cross-tenant data | Deployment prerequisite not met | N/A | N/A | BLOCKED | Rules Emulator/remote state blocker | No production deploy executed |
+| H4-SA01 | Production candidate | SuperAdmin enabled | test principal | — | Club list/login history/revenue/admin views | Privileged reads work; XSS sinks inert | Deployment prerequisite not met | N/A | N/A | BLOCKED | Rules Emulator/remote state blocker | No production deploy executed |
+| H4-SA02 | Production candidate | SuperAdmin disabled | disposable principal | — | enabled:false authority test | Fail-closed; no auto re-enable | Not safe/executable without deployed test environment | N/A | N/A | BLOCKED | No disposable deployed principal session | Static/dynamic source harness already PASS |
+| H4-LH01 | Production candidate | Admin/Coach/Viewer | safe tenant | — | login_history normal write + spoof attacks | Valid own identity ALLOW; spoof role/club/email DENY | Rules not deployed/verified | N/A | N/A | BLOCKED | Emulator blocked | Source Rules matrix exists but is not substitute |
+| H4-XSS01 | Staging/test tenant | SuperAdmin | safe test tenant | — | Legacy login_history XSS browser fixture | Payload inert; no handler execution | No verified staging/test browser environment | N/A | N/A | BLOCKED | Safe staging unavailable | No XSS injected into real production |
+| H4-XSS02 | Staging/test tenant | SuperAdmin | safe test tenant | — | Revenue clubName XSS browser fixture | Payload inert | No verified staging/test browser environment | N/A | N/A | BLOCKED | Safe staging unavailable | No XSS injected into real production |
+| H4-ATT01 | Production candidate | Admin | safe test tenant | test branch | Offline toggle/repeat/multi-shift/reconnect | G1 semantics preserved | Deployed smoke not executable | N/A | N/A | BLOCKED | No deployed candidate | Automated G1 gate PASS 39/39 |
+| H4-CACHE01 | Production candidate | All | safe test tenant | — | Fresh/hard reload/incognito/mobile cache transition | H3 build marker and Parent Portal absent | No Hosting deployment | N/A | N/A | BLOCKED | Deployment not executed | Local root/public exact |

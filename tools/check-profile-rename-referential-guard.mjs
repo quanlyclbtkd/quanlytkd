@@ -1,0 +1,22 @@
+#!/usr/bin/env node
+import fs from 'node:fs';
+let pass=0,fail=0; const c=(n,x,d='')=>x?(pass++,console.log('✅',n)):(fail++,console.error('❌',n,d));
+const src=fs.readFileSync('js/modules/students.js','utf8');
+const service=fs.readFileSync('js/services/students.service.js','utf8');
+const start=src.indexOf('window.updateProfile = async () =>');
+const end=src.indexOf('window.deleteProfile = async',start);
+const fn=src.slice(start,end);
+const guard=fn.indexOf('if (oldName !== newName)');
+const guardReturn=fn.indexOf('return;',guard);
+const lookup=fn.indexOf('findTransactionsByStudent');
+const command=fn.indexOf('StudentStatusCommandBoundary.updateProfile');
+c('primary rename guard exists', guard>=0);
+c('rename guard is fail-closed with explicit return', guard>=0 && guardReturn>guard && guardReturn < fn.indexOf('let updateData'));
+c('rename guard executes before transaction lookup', guardReturn>=0 && lookup>guardReturn);
+c('rename guard executes before any updateProfile command write', guardReturn>=0 && command>guardReturn);
+c('same-name profile edit path remains', /else\s*\{\s*\/\/ Chỉ sửa — không đổi tên[\s\S]*StudentStatusCommandBoundary\.updateProfile\(\{ oldName, newName, updateData \}\)/.test(fn));
+c('legacy rename service retained but not duplicated', /renameWithBatch/.test(service) && (service.match(/renameWithBatch/g)||[]).length >= 1);
+c('no Attendance historical migration added to profile edit flow', !/attendance\/|collection\([^\n]*attendance|AttendanceService/.test(fn));
+c('no startup/background rename repair added', !/setInterval[\s\S]{0,200}rename|setTimeout[\s\S]{0,200}rename/i.test(src));
+c('guard message explains intentional data-integrity block', /Chưa thể đổi tên chính[^\n]*lịch sử Điểm danh[^\n]*giao dịch/.test(fn));
+console.log(`PASS ${pass}/${pass+fail}`); if(fail)process.exit(1);

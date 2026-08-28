@@ -27,7 +27,8 @@
  * ────────────────────────────────────────────────────────────────
  */
 
-import { getLocalToday, formatDate, formatMonth, formatMonthCompact, addMonthsToYYYYMM } from '../utils/format.js';
+import { getLocalToday, formatDate, formatMonth, formatMonthCompact, addMonthsToYYYYMM } from '../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
+import { escapeHtml } from '../utils/helpers.js';
 import { StudentService } from '../services/students.service.js?v=student-status-command-cutover-tx-delete-fix-20260722-v5u1';
 
 // ════════════════════════════════════════════════════════════════
@@ -160,8 +161,8 @@ function _renderBulkZaloList() {
         return `<div id="bzRow_${i}" style="display:flex;align-items:center;gap:10px;padding:9px 6px;border-bottom:1px solid #f1f5f9;border-radius:8px;background:#fff;margin-bottom:2px;">
             <div style="width:26px;height:26px;min-width:26px;background:#e0edff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:0.72rem;color:#0044CC;">${i + 1}</div>
             <div style="flex:1;min-width:0;">
-                <div style="font-weight:800;font-size:0.88rem;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${d.name}</div>
-                <div style="font-size:0.72rem;color:#64748b;margin-top:1px;">Kỳ: <span style="font-weight:700;color:#0033A0;">${d.monthsLabel}</span>${d.totalFee > 0 ? ' · <b>' + d.totalFee.toLocaleString('vi-VN') + ' ₫</b>' : ''} ${hasPhone ? '' : '<span style="color:#ef4444;font-weight:700;">· Chưa có SĐT</span>'}</div>
+                <div style="font-weight:800;font-size:0.88rem;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(d.name)}</div>
+                <div style="font-size:0.72rem;color:#64748b;margin-top:1px;">Kỳ: <span style="font-weight:700;color:#0033A0;">${escapeHtml(d.monthsLabel)}</span>${d.totalFee > 0 ? ' · <b>' + d.totalFee.toLocaleString('vi-VN') + ' ₫</b>' : ''} ${hasPhone ? '' : '<span style="color:#ef4444;font-weight:700;">· Chưa có SĐT</span>'}</div>
             </div>
             <button onclick="sendBulkZaloOne(${i})" style="background:${hasPhone ? '#0068FF' : '#cbd5e1'};color:#fff;border:none;padding:6px 11px;border-radius:8px;font-weight:700;font-size:0.78rem;cursor:${hasPhone ? 'pointer' : 'not-allowed'};" ${hasPhone ? '' : 'disabled'}>💬</button>
         </div>`;
@@ -607,6 +608,10 @@ export function initStudents() {
         const isSingleBranch = (config.branchCount === 1);
 
         if (!newName) return alert('Tên võ sinh không được để trống!');
+        if (oldName !== newName) {
+            alert('⚠️ Chưa thể đổi tên chính của võ sinh ở phiên bản này.\n\nTên hiện đang được dùng làm mã liên kết cho lịch sử Điểm danh và một số giao dịch. Để bảo vệ dữ liệu cũ, hệ thống đã chặn thao tác đổi tên.\n\nBạn vẫn có thể chỉnh sửa các thông tin khác của võ sinh.');
+            return;
+        }
 
         let updateData = {
             status:          newStatus,
@@ -642,6 +647,14 @@ export function initStudents() {
                 if (rm === 0) { rm = 12; ry -= 1; }
                 updateData.paidUntil = `${ry}-${String(rm).padStart(2, '0')}`;
             }
+        }
+
+        // H3: keep denormalized search fields consistent inside the SAME canonical
+        // profile update command. Reuse the existing builder and current RAM profile;
+        // no Firestore read and no second write are introduced.
+        if (typeof window.buildStudentSearchIndex === 'function') {
+            const mergedProfile = { ...(profiles[oldName] || {}), ...updateData };
+            Object.assign(updateData, window.buildStudentSearchIndex(mergedProfile, oldName));
         }
 
         try {

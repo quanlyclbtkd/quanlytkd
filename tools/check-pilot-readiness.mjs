@@ -153,6 +153,15 @@ checkPattern(appSrc, 'DataSourceLock',                      '[DataSourceLock] gu
 checkPattern(appSrc, 'Skip primary empty overwrite (profiles/active)',   'guard cho profiles/active');
 checkPattern(appSrc, 'Skip primary empty overwrite (profiles/fallback)', 'guard cho profiles/fallback');
 checkPattern(appSrc, 'Skip primary empty overwrite (inventory)',         'guard cho inventory');
+const invLoadStart = appSrc.indexOf('const _loadInventoryHistoryPage = async function');
+const invLoadEnd = invLoadStart >= 0 ? appSrc.indexOf('window.ensureInventoryHistoryLoaded', invLoadStart) : -1;
+const invLoadBody = invLoadStart >= 0 && invLoadEnd > invLoadStart ? appSrc.slice(invLoadStart, invLoadEnd) : '';
+checkAnyPattern(invLoadBody, [/reset[\s\S]*snap\.empty[\s\S]*activeDataSource === 'legacy-root'[\s\S]*allInventory\.length > 0/], 'inventory guard scope đúng legacy-root + primary empty + reset');
+checkAnyPattern(invLoadBody, [/_inventoryHistoryState\.loaded = true[\s\S]*_inventoryHistoryState\.hasMore = snap\.size === _INVENTORY_HISTORY_PAGE_SIZE[\s\S]*preserveLegacyInventory/], 'inventory primary-empty vẫn hoàn tất pagination state trước preserve guard');
+const shouldPreserveInventory = (reset, empty, source, count) => !!(reset && empty && source === 'legacy-root' && count > 0);
+checked++; shouldPreserveInventory(true, true, 'legacy-root', 2) ? pass('I1 legacy-root + primary empty preserves legacy inventory') : fail('I1 legacy-root + primary empty preserve predicate sai');
+checked++; !shouldPreserveInventory(true, false, 'legacy-root', 2) ? pass('I2 primary non-empty does not force legacy preserve') : fail('I2 non-empty primary predicate sai');
+checked++; !shouldPreserveInventory(true, true, 'primary', 2) ? pass('I3 primary mode empty retains normal primary semantics') : fail('I3 primary mode predicate sai');
 checkPattern(appSrc, 'Skip primary empty overwrite (transactions)',      'guard cho transactions');
 
 // ── 5. printPilotTabReadiness ─────────────────────────────────────
@@ -271,13 +280,14 @@ console.log('[PilotReadinessCheck] ═══════════════
 console.log('');
 console.log('[PilotReadinessCheck] [4F] Kiểm tra window.runRuntimeDataRecovery...');
 checkPattern(appSrc, 'runRuntimeDataRecovery',                  'window.runRuntimeDataRecovery được định nghĩa trong app.js');
-checkAnyPattern(appSrc, [
-    '__runtimeRecoveryState.running',
-    /const\s+state\s*=\s*window\.__runtimeRecoveryState[\s\S]{0,200}?state\.running/
+const recoveryStart = appSrc.indexOf('window.runRuntimeDataRecovery = async function runRuntimeDataRecovery');
+const recoveryEnd = recoveryStart >= 0 ? appSrc.indexOf('printPilotLaunchStatus() —', recoveryStart) : -1;
+const recoveryBody = recoveryStart >= 0 && recoveryEnd > recoveryStart ? appSrc.slice(recoveryStart, recoveryEnd) : '';
+checkAnyPattern(recoveryBody, [
+    /if\s*\(state\.running\)/
 ], '__runtimeRecoveryState.running guard');
-checkAnyPattern(appSrc, [
-    '__runtimeRecoveryState.completed',
-    /const\s+state\s*=\s*window\.__runtimeRecoveryState[\s\S]{0,200}?state\.completed/
+checkAnyPattern(recoveryBody, [
+    /if\s*\(state\.completed\)/
 ], '__runtimeRecoveryState.completed guard');
 checkPattern(appSrc, "activateLegacyRootFallback?.('manual-runtime-recovery')",
     "activateLegacyRootFallback chỉ gọi với reason='manual-runtime-recovery'");

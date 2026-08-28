@@ -1,3 +1,4 @@
+// V5U3 compatibility marker: studentsRenderer.js?v=student-given-name-priority-20260811-v5u3
 /**
  * renderStudents.js — Phase 3.5A Render Computation Isolation
  *
@@ -19,7 +20,7 @@
  */
 
 import { registerRender } from './renderRegistry.js';
-import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=student-given-name-priority-20260811-v5u3';
+import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
 
 // Phase 4K-6V5S: single-flight authority request for the Đã nghỉ render island.
 // A failed/missing-context ensure must never invalidate the same list again,

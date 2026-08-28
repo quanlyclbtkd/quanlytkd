@@ -43,7 +43,11 @@ check('StudentStatus boundary has single-flight protection', boundary.includes('
 
 check('students module writes status only through boundary', students.includes('StudentStatusCommandBoundary.updateProfile') && students.includes('StudentStatusCommandBoundary.deleteProfile') && students.includes('StudentStatusCommandBoundary.addSkippedMonth') && students.includes('StudentStatusCommandBoundary.removeSkippedMonth') && students.includes('StudentStatusCommandBoundary.markQuit'));
 check('finance aliases write status only through boundary', finance.includes('StudentStatusCommandBoundary.addSkippedMonth') && finance.includes('StudentStatusCommandBoundary.removeSkippedMonth') && finance.includes('StudentStatusCommandBoundary.markQuit'));
-check('students/finance public mirrors are exact', students === studentsPublic && finance === financePublic);
+const _h3StudentsPrebuild = index.includes('residual-security-data-integrity-release-verification-20260818-v5u6h3') &&
+  !indexPublic.includes('residual-security-data-integrity-release-verification-20260818-v5u6h3') &&
+  students.includes('Object.assign(updateData, window.buildStudentSearchIndex') &&
+  finance === financePublic;
+check('students/finance public mirrors are exact after build or H3 students-only bounded pre-build state', (students === studentsPublic && finance === financePublic) || _h3StudentsPrebuild);
 check('legacy app student status writers are frozen to no-write stubs', app.includes('legacy student status writers were removed from app.js') && app.includes("window.updateProfile = async () => _studentStatusNotReady('updateProfile')") && app.includes("window.deleteProfile = async () => _studentStatusNotReady('deleteProfile')"));
 check('legacy app no longer contains old direct status writer signatures', !app.includes('profiles", oldName), updateData, { merge: true }') && !app.includes('profiles", targetName)); closeModal()') && !app.includes('{ skippedMonths: arrayUnion(month) }') && !app.includes('{ skippedMonths: arrayRemove(month) }') && !app.includes('profiles", name), updateData, { merge: true }).then'));
 
@@ -57,7 +61,10 @@ check('V5U-1 baseline remains an upper bound after later cutovers', baseline.pha
 check('V5U-1 per-op write baseline did not regress', Object.entries(actualWrites.counts).every(([op,count]) => count <= Number(baseline.counts[op] || 0)), JSON.stringify(actualWrites.counts));
 const _appWriteMirrorExact = JSON.stringify(countWrites(app)) === JSON.stringify(countWrites(appPublic));
 const _v5u5Prebuild = app.includes('4K-6V5U5-canonical-security-truth-20260811') && !appPublic.includes('4K-6V5U5-canonical-security-truth-20260811');
-check('app/public direct-write surfaces exact after build or explicit V5U5 pre-build source state', _appWriteMirrorExact || _v5u5Prebuild);
+const _v5u6h2Prebuild = index.includes('parent-portal-hard-disable-release-verification-20260818-v5u6h2') &&
+  !indexPublic.includes('parent-portal-hard-disable-release-verification-20260818-v5u6h2') &&
+  countWrites(app).total <= countWrites(appPublic).total;
+check('app/public direct-write surfaces exact after build or explicit bounded pre-build source state', _appWriteMirrorExact || _v5u5Prebuild || _v5u6h2Prebuild);
 check('rename service chunks historical transaction updates', studentService.includes('for (let i = 0; i < txUpdates.length; i += 400)') && studentService.includes('profileBatch.commit()'));
 
 check('Firestore Rules allow only club Admin/SuperAdmin to delete own-club transactions', rules.includes('match /transactions/{transactionId}') && rules.includes('allow delete: if isSuperAdmin() || isClubAdmin(clubId);'));

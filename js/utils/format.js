@@ -10,6 +10,7 @@
  */
 
 import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
+import { escapeHtml } from './helpers.js';
 
 /**
  * Trả về ngày hôm nay dạng YYYY-MM-DD theo múi giờ địa phương.
@@ -223,5 +224,5 @@ export function getBeltBadge(belt) {
     }
     else if (belt.includes('đỏ'))                                 { bg = 'var(--belt-red)'; col = '#fff'; border = 'none'; }
     else if (belt.includes('Đen'))                                 { bg = 'var(--belt-black)'; col = '#fff'; border = 'none'; }
-    return `<span class="badge shadow-sm" style="background:${bg};color:${col};border:${border};font-weight:800;${extra}">${belt}</span>`;
+    return `<span class="badge shadow-sm" style="background:${bg};color:${col};border:${border};font-weight:800;${extra}">${escapeHtml(belt)}</span>`;
 }

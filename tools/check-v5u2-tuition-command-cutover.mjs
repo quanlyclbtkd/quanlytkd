@@ -66,7 +66,10 @@ const _perOpCompatible = actual.counts.addDoc <= baseline.counts.addDoc && actua
 check('V5U-2 business-write baseline not regressed; one V5U4 principal setDoc is isolated', _perOpCompatible, JSON.stringify(actual.counts));
 const _appWriteMirrorExact = JSON.stringify(countWrites(app)) === JSON.stringify(countWrites(appPublic));
 const _v5u5Prebuild = app.includes(v5u5Patch) && !appPublic.includes(v5u5Patch);
-check('app/public direct-write surfaces exact after build or explicit V5U5 pre-build source state', _appWriteMirrorExact || _v5u5Prebuild);
+const _v5u6h2Prebuild = index.includes('parent-portal-hard-disable-release-verification-20260818-v5u6h2') &&
+  !indexPublic.includes('parent-portal-hard-disable-release-verification-20260818-v5u6h2') &&
+  countWrites(app).total <= countWrites(appPublic).total;
+check('app/public direct-write surfaces exact after build or explicit bounded pre-build source state', _appWriteMirrorExact || _v5u5Prebuild || _v5u6h2Prebuild);
 check('V5T no longer wraps quickPay over the new tuition owner', canonical.includes("id: 'finance.quickPay'") && canonical.includes("mode: 'observe-only'") && canonical.includes('TuitionCommandBoundary'));
 check('package exposes and runs V5U-2 checks', pkg.scripts?.['check:v5u2-tuition-command-cutover'] === 'node tools/check-v5u2-tuition-command-cutover.mjs' && pkg.scripts?.['check:v5u2-tuition-command-behavior'] === 'node tools/check-v5u2-tuition-command-behavior.mjs' && String(pkg.scripts?.check || '').includes('check:v5u2-tuition-command-cutover'));
 

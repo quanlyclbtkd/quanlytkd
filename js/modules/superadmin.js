@@ -1,4 +1,5 @@
 // js/modules/superadmin.js
+import { escapeHtml } from '../utils/helpers.js';
 // Phase 4K-6I-F — SuperAdmin auto club stats cache sync reader
   // Phase 4.0B: SuperAdmin Module — Production-Safe Extraction
   // Extracted from app.js. All window.* APIs remain backward compatible.
@@ -22,6 +23,24 @@
   let _saCountRefreshRunning = false;
   // Phase 4K-6V5U5: module-owned explicit maintenance action; no new window global.
   let _cleanupLegacyAdminCredentials = null;
+
+  // Phase 4K-6V5U6H — cross-role display values never travel through inline
+  // JavaScript parameters. Handlers receive only an encoded canonical club id
+  // and resolve current display data from the already-loaded SuperAdmin RAM row.
+  function _saEncodeClubId(value) {
+      return 'e:' + encodeURIComponent(String(value || '')).replace(/'/g, '%27');
+  }
+  function _saDecodeClubId(value) {
+      const raw = String(value || '');
+      if (!raw.startsWith('e:')) return raw;
+      try { return decodeURIComponent(raw.slice(2)); } catch (_) { return ''; }
+  }
+  function _saLoadedClub(clubId) {
+      const cid = _saDecodeClubId(clubId);
+      const rows = window._saClubData?.clubDataList || [];
+      const row = rows.find(item => String(item?.cid || '') === cid);
+      return { cid, data: row?.data || {} };
+  }
 
   // Phase 4K-6I-C: HARD STOP — không tự động chạy aggregation khi mở SuperAdmin.
   // SuperAdmin dashboard phải cached-first; count thiếu sẽ hiển thị "--" để tránh vượt quota Firestore.
@@ -835,7 +854,7 @@
                 } else {
                     _errMsg = 'Lỗi tải dữ liệu SuperAdmin: ' + e.message;
                 }
-                listEl.innerHTML = `<div class="text-center py-10 text-rose-500"><div class="text-2xl mb-2">❌</div><p class="font-bold text-sm">${_errMsg}</p><p class="text-xs text-slate-400 mt-1">${e.message}</p></div>`;
+                listEl.innerHTML = `<div class="text-center py-10 text-rose-500"><div class="text-2xl mb-2">❌</div><p class="font-bold text-sm">${escapeHtml(_errMsg)}</p><p class="text-xs text-slate-400 mt-1">${escapeHtml(e.message || '')}</p></div>`;
             }
         } finally {
             _m().lastDurationMs = Date.now() - _t0;
@@ -934,6 +953,9 @@ window.debugSuperAdminAggregationHardStop = function() {
       // 2. openExpiryModal — Open expiry date modal
       // ════════════════════════════════════════════════════════════
           window.openExpiryModal = (clubId, clubName, currentExpiry) => {
+        const _club = _saLoadedClub(clubId); clubId = _club.cid;
+        clubName = clubName ?? _club.data.clubName ?? 'Chưa đặt tên';
+        currentExpiry = currentExpiry ?? _club.data.expiryDate ?? '2027-04-30';
         document.getElementById('em_clubId').value = clubId;
         document.getElementById('em_clubName').innerText = clubName;
         document.getElementById('em_expiryDate').value = currentExpiry || '2027-04-30';
@@ -944,6 +966,7 @@ window.debugSuperAdminAggregationHardStop = function() {
       // 3. lockClubAccount / unlockClubAccount
       // ════════════════════════════════════════════════════════════
           window.lockClubAccount = async (clubId, clubName) => {
+        const _club = _saLoadedClub(clubId); clubId = _club.cid; clubName = clubName ?? _club.data.clubName ?? 'Chưa đặt tên';
         _m().lockClubCalls++; _m().lastAction = 'lockClubAccount';
         if (!confirm(`⚠️ KHÓA TÀI KHOẢN\n\nBạn có chắc muốn KHÓA tài khoản CLB:\n"${clubName}" (${clubId})?\n\nSau khi khóa, HLV của CLB này sẽ không thể đăng nhập và sử dụng phần mềm cho đến khi được mở khóa lại.`)) return;
         const _t0 = Date.now();
@@ -956,6 +979,7 @@ window.debugSuperAdminAggregationHardStop = function() {
     };
 
           window.unlockClubAccount = async (clubId) => {
+        clubId = _saDecodeClubId(clubId);
         _m().unlockClubCalls++; _m().lastAction = 'unlockClubAccount';
         const _t0 = Date.now();
         try {
@@ -970,6 +994,8 @@ window.debugSuperAdminAggregationHardStop = function() {
       // 4. toggleExamFeature — Enable/disable exam tab per club
       // ════════════════════════════════════════════════════════════
           window.toggleExamFeature = async (clubId, clubName, currentEnabled) => {
+        const _club = _saLoadedClub(clubId); clubId = _club.cid; clubName = clubName ?? _club.data.clubName ?? 'Chưa đặt tên';
+        currentEnabled = typeof currentEnabled === 'boolean' ? currentEnabled : (_club.data.examEnabled !== false);
         _m().toggleExamCalls++; _m().lastAction = 'toggleExamFeature';
         const action = currentEnabled ? 'TẮT' : 'BẬT';
         const actionVi = currentEnabled ? 'tắt' : 'bật';
@@ -987,6 +1013,7 @@ window.debugSuperAdminAggregationHardStop = function() {
       // 5. saOpenDeleteTxModal — Open delete transaction modal
       // ════════════════════════════════════════════════════════════
           window.saOpenDeleteTxModal = (clubId, clubName) => {
+        const _club = _saLoadedClub(clubId); clubId = _club.cid; clubName = clubName ?? _club.data.clubName ?? 'Chưa đặt tên';
         document.getElementById('deleteTxModal_clubId').value = clubId;
         document.getElementById('deleteTxModal_clubName').innerText = clubName;
         document.getElementById('deleteTxModal_before').value = '';
@@ -1090,8 +1117,11 @@ window.debugSuperAdminAggregationHardStop = function() {
             const _cfgBtnStyle = 'font-size:0.72rem;font-weight:800;padding:7px 13px;border-radius:8px;cursor:pointer;border:1.5px solid #4f46e5;background:linear-gradient(135deg,#4f46e5,#6366f1);color:#fff;white-space:nowrap;box-shadow:0 2px 8px rgba(79,70,229,0.25);';
             const _cfgItemStyle = 'display:block;width:100%;text-align:left;padding:8px 13px;border-radius:8px;border:none;cursor:pointer;font-size:0.78rem;font-weight:700;background:transparent;transition:background 0.1s;';
             const _cfgSep = '<div style="height:1px;background:#f1f5f9;margin:3px 8px;"></div>';
-            const _safeEmail = email.replace(/'/g, "&#x27;");
-            const _safeCname = cname.replace(/'/g, "&#x27;");
+            const _safeCid = escapeHtml(cid);
+            const _safeCname = escapeHtml(cname);
+            const _safeEmail = escapeHtml(email);
+            const _cidToken = _saEncodeClubId(cid);
+            const _cidUi = _cidToken;
 
             const activeDisplay = _saFmtOptionalCount(activeCount);
             const profileDisplay = _saFmtOptionalCount(profileCount);
@@ -1101,16 +1131,16 @@ window.debugSuperAdminAggregationHardStop = function() {
             // ── Desktop row ──
             const desktopRow = `<div class="hidden md:grid items-center gap-2 px-4 py-3 border-b border-slate-100 hover:bg-slate-50/80 transition-colors" style="grid-template-columns:148px 1fr 185px 80px 115px 115px 1fr;${rowBg}">
                 <div>
-                    <div style="font-size:0.78rem;font-weight:900;color:#4338ca;font-family:monospace;letter-spacing:-0.3px;">${cid}</div>
+                    <div style="font-size:0.78rem;font-weight:900;color:#4338ca;font-family:monospace;letter-spacing:-0.3px;">${_safeCid}</div>
                     <div style="font-size:0.6rem;color:#94a3b8;margin-top:2px;">Tạo: ${created}</div>
                 </div>
                 <div>
-                    <div style="font-size:0.9rem;font-weight:800;color:#0f172a;">${cname}</div>
+                    <div style="font-size:0.9rem;font-weight:800;color:#0f172a;">${_safeCname}</div>
                     <div style="font-size:0.62rem;color:#94a3b8;margin-top:2px;">${activeDisplay}/${profileDisplay} võ sinh · ${sizeDisplay}</div>
                     ${hasRevenueSource ? '<div style="font-size:0.6rem;color:#059669;margin-top:2px;font-weight:700;">💰 T' + (curMonth||'').split('-')[1] + ': ' + revenueFullDisplay + '</div>' : '<div style="font-size:0.6rem;color:#94a3b8;margin-top:2px;font-weight:700;">💰 T' + ((curMonth||'').split('-')[1]||'?') + ': --</div>'}
                 </div>
                 <div style="overflow:hidden;">
-                    <div style="font-size:0.72rem;font-weight:600;color:#475569;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${email}">${email}</div>
+                    <div style="font-size:0.72rem;font-weight:600;color:#475569;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${_safeEmail}">${_safeEmail}</div>
                     <div style="font-size:0.6rem;color:#94a3b8;margin-top:3px;">🔐 Mật khẩu được quản lý bởi Firebase Authentication</div></div>
                 <div style="text-align:center;">
                     <div style="font-size:1.2rem;font-weight:900;color:#4338ca;">${activeDisplay}</div>
@@ -1121,22 +1151,22 @@ window.debugSuperAdminAggregationHardStop = function() {
                 </div>
                 <div>${statusBadge}</div>
                 <div style="position:relative;display:flex;align-items:flex-start;">
-                    <button class="sa-cfg-btn" onclick="_toggleSAConfig('${cid}',event)" style="${_cfgBtnStyle}">⚙️ Cấu hình ▾</button>
-                    <div id="sa_cfg_${cid}" class="sa-cfg-dd" style="display:none;position:absolute;right:0;top:calc(100% + 6px);z-index:9999;background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;box-shadow:0 16px 40px rgba(0,0,0,0.18);padding:6px;min-width:195px;">
+                    <button class="sa-cfg-btn" onclick="_toggleSAConfig('${_cidUi}',event)" style="${_cfgBtnStyle}">⚙️ Cấu hình ▾</button>
+                    <div id="sa_cfg_${_cidUi}" class="sa-cfg-dd" style="display:none;position:absolute;right:0;top:calc(100% + 6px);z-index:9999;background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;box-shadow:0 16px 40px rgba(0,0,0,0.18);padding:6px;min-width:195px;">
                         <div style="padding:6px 12px 4px;font-size:0.6rem;font-weight:900;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">Quản lý tài khoản</div>
-                        <button onclick="_toggleSAConfig('${cid}');openExpiryModal('${cid}','${_safeCname}','${expiryDate}')" style="${_cfgItemStyle}color:#5b21b6;" onmouseover="this.style.background='#ede9fe'" onmouseout="this.style.background='transparent'">📅 Gia Hạn Sử Dụng</button>
-                        <button onclick="_toggleSAConfig('${cid}');${isLocked ? `unlockClubAccount('${cid}')` : `lockClubAccount('${cid}','${_safeCname}')`}" style="${_cfgItemStyle}color:${isLocked ? '#065f46' : '#be123c'};" onmouseover="this.style.background='${isLocked ? '#d1fae5' : '#fff1f2'}'" onmouseout="this.style.background='transparent'">${isLocked ? '🔓 Mở Khóa TK' : '🔒 Khóa Tài Khoản'}</button>
+                        <button onclick="_toggleSAConfig('${_cidUi}');openExpiryModal('${_cidToken}')" style="${_cfgItemStyle}color:#5b21b6;" onmouseover="this.style.background='#ede9fe'" onmouseout="this.style.background='transparent'">📅 Gia Hạn Sử Dụng</button>
+                        <button onclick="_toggleSAConfig('${_cidUi}');${isLocked ? `unlockClubAccount('${_cidToken}')` : `lockClubAccount('${_cidToken}')`}" style="${_cfgItemStyle}color:${isLocked ? '#065f46' : '#be123c'};" onmouseover="this.style.background='${isLocked ? '#d1fae5' : '#fff1f2'}'" onmouseout="this.style.background='transparent'">${isLocked ? '🔓 Mở Khóa TK' : '🔒 Khóa Tài Khoản'}</button>
                         ${_cfgSep}
                         <div style="padding:6px 12px 4px;font-size:0.6rem;font-weight:900;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">Cấu hình CLB</div>
-                        <button onclick="_toggleSAConfig('${cid}');editClubName('${cid}','${_safeCname}')" style="${_cfgItemStyle}color:#1d4ed8;" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='transparent'">✏️ Sửa Tên CLB</button>
-                        <button onclick="_toggleSAConfig('${cid}');openBranchUpgradeModal('${cid}','${_safeCname}')" style="${_cfgItemStyle}color:#166534;" onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background='transparent'">🏢 Cấu hình Cơ Sở</button>
-                        <button onclick="_toggleSAConfig('${cid}');toggleExamFeature('${cid}','${_safeCname}',${examEnabled})" style="${_cfgItemStyle}color:${examEnabled ? '#854d0e' : '#166534'};" onmouseover="this.style.background='${examEnabled ? '#fef9c3' : '#f0fdf4'}'" onmouseout="this.style.background='transparent'">${examEnabled ? '🏆 Tắt Tính Năng Thi' : '🏆 Bật Tính Năng Thi'}</button>
+                        <button onclick="_toggleSAConfig('${_cidUi}');editClubName('${_cidToken}')" style="${_cfgItemStyle}color:#1d4ed8;" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='transparent'">✏️ Sửa Tên CLB</button>
+                        <button onclick="_toggleSAConfig('${_cidUi}');openBranchUpgradeModal('${_cidToken}')" style="${_cfgItemStyle}color:#166534;" onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background='transparent'">🏢 Cấu hình Cơ Sở</button>
+                        <button onclick="_toggleSAConfig('${_cidUi}');toggleExamFeature('${_cidToken}')" style="${_cfgItemStyle}color:${examEnabled ? '#854d0e' : '#166534'};" onmouseover="this.style.background='${examEnabled ? '#fef9c3' : '#f0fdf4'}'" onmouseout="this.style.background='transparent'">${examEnabled ? '🏆 Tắt Tính Năng Thi' : '🏆 Bật Tính Năng Thi'}</button>
                         ${_cfgSep}
                         <div style="padding:6px 12px 4px;font-size:0.6rem;font-weight:900;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">Tài khoản đăng nhập</div>
-                        <button onclick="_toggleSAConfig('${cid}');forceReplaceAdmin('${cid}')" style="${_cfgItemStyle}color:#6d28d9;" onmouseover="this.style.background='#f5f3ff'" onmouseout="this.style.background='transparent'">🔄 Cấp Lại Tài Khoản</button>
-                        <button onclick="_toggleSAConfig('${cid}');saResetAdminPassword('${_safeEmail}','${_safeCname}')" style="${_cfgItemStyle}color:#0369a1;" onmouseover="this.style.background='#f0f9ff'" onmouseout="this.style.background='transparent'">🔑 Đổi Mật Khẩu</button>
+                        <button onclick="_toggleSAConfig('${_cidUi}');forceReplaceAdmin('${_cidToken}')" style="${_cfgItemStyle}color:#6d28d9;" onmouseover="this.style.background='#f5f3ff'" onmouseout="this.style.background='transparent'">🔄 Cấp Lại Tài Khoản</button>
+                        <button onclick="_toggleSAConfig('${_cidUi}');saResetAdminPassword('${_cidToken}')" style="${_cfgItemStyle}color:#0369a1;" onmouseover="this.style.background='#f0f9ff'" onmouseout="this.style.background='transparent'">🔑 Đổi Mật Khẩu</button>
                         ${_cfgSep}
-                        <button onclick="_toggleSAConfig('${cid}');saOpenDeleteTxModal('${cid}','${_safeCname}')" style="${_cfgItemStyle}color:#9f1239;" onmouseover="this.style.background='#fff1f2'" onmouseout="this.style.background='transparent'">🗑️ Xóa Biên Lai</button>
+                        <button onclick="_toggleSAConfig('${_cidUi}');saOpenDeleteTxModal('${_cidToken}')" style="${_cfgItemStyle}color:#9f1239;" onmouseover="this.style.background='#fff1f2'" onmouseout="this.style.background='transparent'">🗑️ Xóa Biên Lai</button>
                     </div>
                 </div>
             </div>`;
@@ -1145,9 +1175,9 @@ window.debugSuperAdminAggregationHardStop = function() {
             const mobileCard = `<div class="md:hidden border-b border-slate-100 px-4 py-4" style="${rowBg}">
                 <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;gap:8px;">
                     <div style="flex:1;min-width:0;">
-                        <span style="font-size:0.7rem;font-weight:900;color:#4338ca;font-family:monospace;background:#eef2ff;padding:2px 7px;border-radius:5px;">${cid}</span>
-                        <div style="font-size:1rem;font-weight:800;color:#0f172a;margin-top:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${cname}</div>
-                        <div style="font-size:0.68rem;color:#64748b;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${email}">📧 ${email}</div>
+                        <span style="font-size:0.7rem;font-weight:900;color:#4338ca;font-family:monospace;background:#eef2ff;padding:2px 7px;border-radius:5px;">${_safeCid}</span>
+                        <div style="font-size:1rem;font-weight:800;color:#0f172a;margin-top:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${_safeCname}</div>
+                        <div style="font-size:0.68rem;color:#64748b;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${_safeEmail}">📧 ${_safeEmail}</div>
                         <div style="font-size:0.63rem;color:#94a3b8;margin-top:3px;">🔐 Mật khẩu: Firebase Authentication</div>
                     </div>
                     <div style="flex-shrink:0;">${statusBadge}</div>
@@ -1170,24 +1200,24 @@ window.debugSuperAdminAggregationHardStop = function() {
                     </div>
                 </div>
                 <div style="position:relative;">
-                    <button class="sa-cfg-btn" onclick="_toggleSAConfig('${cid}_m',event)" style="width:100%;font-size:0.85rem;font-weight:800;padding:12px 16px;border-radius:10px;cursor:pointer;border:1.5px solid #4f46e5;background:linear-gradient(135deg,#4f46e5,#6366f1);color:#fff;text-align:center;box-shadow:0 2px 8px rgba(79,70,229,0.25);">⚙️ Cấu hình CLB ▾</button>
-                    <div id="sa_cfg_${cid}_m" class="sa-cfg-dd" style="display:none;position:fixed;left:12px;right:12px;bottom:0;z-index:10001;background:#fff;border-radius:20px 20px 0 0;box-shadow:0 -8px 40px rgba(0,0,0,0.22);padding:8px 6px 24px;">
+                    <button class="sa-cfg-btn" onclick="_toggleSAConfig('${_cidUi}_m',event)" style="width:100%;font-size:0.85rem;font-weight:800;padding:12px 16px;border-radius:10px;cursor:pointer;border:1.5px solid #4f46e5;background:linear-gradient(135deg,#4f46e5,#6366f1);color:#fff;text-align:center;box-shadow:0 2px 8px rgba(79,70,229,0.25);">⚙️ Cấu hình CLB ▾</button>
+                    <div id="sa_cfg_${_cidUi}_m" class="sa-cfg-dd" style="display:none;position:fixed;left:12px;right:12px;bottom:0;z-index:10001;background:#fff;border-radius:20px 20px 0 0;box-shadow:0 -8px 40px rgba(0,0,0,0.22);padding:8px 6px 24px;">
                         <div style="text-align:center;padding:8px 0 12px;"><div style="width:36px;height:4px;background:#e2e8f0;border-radius:99px;margin:0 auto;"></div></div>
                         <div style="padding:2px 8px 6px;font-size:0.62rem;font-weight:900;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">Quản lý tài khoản</div>
-                        <button onclick="_toggleSAConfig('${cid}_m');openExpiryModal('${cid}','${_safeCname}','${expiryDate}')" style="${_cfgItemStyle}color:#5b21b6;font-size:0.88rem;padding:12px 14px;" onmouseover="this.style.background='#ede9fe'" onmouseout="this.style.background='transparent'">📅 Gia Hạn Sử Dụng</button>
-                        <button onclick="_toggleSAConfig('${cid}_m');${isLocked ? `unlockClubAccount('${cid}')` : `lockClubAccount('${cid}','${_safeCname}')`}" style="${_cfgItemStyle}color:${isLocked ? '#065f46' : '#be123c'};font-size:0.88rem;padding:12px 14px;" onmouseover="this.style.background='${isLocked ? '#d1fae5' : '#fff1f2'}'" onmouseout="this.style.background='transparent'">${isLocked ? '🔓 Mở Khóa Tài Khoản' : '🔒 Khóa Tài Khoản'}</button>
+                        <button onclick="_toggleSAConfig('${_cidUi}_m');openExpiryModal('${_cidToken}')" style="${_cfgItemStyle}color:#5b21b6;font-size:0.88rem;padding:12px 14px;" onmouseover="this.style.background='#ede9fe'" onmouseout="this.style.background='transparent'">📅 Gia Hạn Sử Dụng</button>
+                        <button onclick="_toggleSAConfig('${_cidUi}_m');${isLocked ? `unlockClubAccount('${_cidToken}')` : `lockClubAccount('${_cidToken}')`}" style="${_cfgItemStyle}color:${isLocked ? '#065f46' : '#be123c'};font-size:0.88rem;padding:12px 14px;" onmouseover="this.style.background='${isLocked ? '#d1fae5' : '#fff1f2'}'" onmouseout="this.style.background='transparent'">${isLocked ? '🔓 Mở Khóa Tài Khoản' : '🔒 Khóa Tài Khoản'}</button>
                         ${_cfgSep}
                         <div style="padding:6px 8px 4px;font-size:0.62rem;font-weight:900;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">Cấu hình CLB</div>
-                        <button onclick="_toggleSAConfig('${cid}_m');editClubName('${cid}','${_safeCname}')" style="${_cfgItemStyle}color:#1d4ed8;font-size:0.88rem;padding:12px 14px;" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='transparent'">✏️ Sửa Tên CLB</button>
-                        <button onclick="_toggleSAConfig('${cid}_m');openBranchUpgradeModal('${cid}','${_safeCname}')" style="${_cfgItemStyle}color:#166534;font-size:0.88rem;padding:12px 14px;" onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background='transparent'">🏢 Cấu hình Cơ Sở</button>
-                        <button onclick="_toggleSAConfig('${cid}_m');toggleExamFeature('${cid}','${_safeCname}',${examEnabled})" style="${_cfgItemStyle}color:${examEnabled ? '#854d0e' : '#166534'};font-size:0.88rem;padding:12px 14px;" onmouseover="this.style.background='${examEnabled ? '#fef9c3' : '#f0fdf4'}'" onmouseout="this.style.background='transparent'">${examEnabled ? '🏆 Tắt Tính Năng Thi' : '🏆 Bật Tính Năng Thi'}</button>
+                        <button onclick="_toggleSAConfig('${_cidUi}_m');editClubName('${_cidToken}')" style="${_cfgItemStyle}color:#1d4ed8;font-size:0.88rem;padding:12px 14px;" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='transparent'">✏️ Sửa Tên CLB</button>
+                        <button onclick="_toggleSAConfig('${_cidUi}_m');openBranchUpgradeModal('${_cidToken}')" style="${_cfgItemStyle}color:#166534;font-size:0.88rem;padding:12px 14px;" onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background='transparent'">🏢 Cấu hình Cơ Sở</button>
+                        <button onclick="_toggleSAConfig('${_cidUi}_m');toggleExamFeature('${_cidToken}')" style="${_cfgItemStyle}color:${examEnabled ? '#854d0e' : '#166534'};font-size:0.88rem;padding:12px 14px;" onmouseover="this.style.background='${examEnabled ? '#fef9c3' : '#f0fdf4'}'" onmouseout="this.style.background='transparent'">${examEnabled ? '🏆 Tắt Tính Năng Thi' : '🏆 Bật Tính Năng Thi'}</button>
                         ${_cfgSep}
                         <div style="padding:6px 8px 4px;font-size:0.62rem;font-weight:900;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">Tài khoản đăng nhập</div>
-                        <button onclick="_toggleSAConfig('${cid}_m');forceReplaceAdmin('${cid}')" style="${_cfgItemStyle}color:#6d28d9;font-size:0.88rem;padding:12px 14px;" onmouseover="this.style.background='#f5f3ff'" onmouseout="this.style.background='transparent'">🔄 Cấp Lại Tài Khoản</button>
-                        <button onclick="_toggleSAConfig('${cid}_m');saResetAdminPassword('${_safeEmail}','${_safeCname}')" style="${_cfgItemStyle}color:#0369a1;font-size:0.88rem;padding:12px 14px;" onmouseover="this.style.background='#f0f9ff'" onmouseout="this.style.background='transparent'">🔑 Đổi Mật Khẩu</button>
+                        <button onclick="_toggleSAConfig('${_cidUi}_m');forceReplaceAdmin('${_cidToken}')" style="${_cfgItemStyle}color:#6d28d9;font-size:0.88rem;padding:12px 14px;" onmouseover="this.style.background='#f5f3ff'" onmouseout="this.style.background='transparent'">🔄 Cấp Lại Tài Khoản</button>
+                        <button onclick="_toggleSAConfig('${_cidUi}_m');saResetAdminPassword('${_cidToken}')" style="${_cfgItemStyle}color:#0369a1;font-size:0.88rem;padding:12px 14px;" onmouseover="this.style.background='#f0f9ff'" onmouseout="this.style.background='transparent'">🔑 Đổi Mật Khẩu</button>
                         ${_cfgSep}
-                        <button onclick="_toggleSAConfig('${cid}_m');saOpenDeleteTxModal('${cid}','${_safeCname}')" style="${_cfgItemStyle}color:#9f1239;font-size:0.88rem;padding:12px 14px;" onmouseover="this.style.background='#fff1f2'" onmouseout="this.style.background='transparent'">🗑️ Xóa Biên Lai</button>
-                        <button onclick="_toggleSAConfig('${cid}_m')" style="width:100%;margin-top:8px;padding:12px;border:1.5px solid #e2e8f0;border-radius:10px;background:#f8fafc;color:#64748b;font-size:0.82rem;font-weight:700;cursor:pointer;">✕ Đóng</button>
+                        <button onclick="_toggleSAConfig('${_cidUi}_m');saOpenDeleteTxModal('${_cidToken}')" style="${_cfgItemStyle}color:#9f1239;font-size:0.88rem;padding:12px 14px;" onmouseover="this.style.background='#fff1f2'" onmouseout="this.style.background='transparent'">🗑️ Xóa Biên Lai</button>
+                        <button onclick="_toggleSAConfig('${_cidUi}_m')" style="width:100%;margin-top:8px;padding:12px;border:1.5px solid #e2e8f0;border-radius:10px;background:#f8fafc;color:#64748b;font-size:0.82rem;font-weight:700;cursor:pointer;">✕ Đóng</button>
                     </div>
                 </div>
             </div>`;
@@ -1218,6 +1248,7 @@ window.debugSuperAdminAggregationHardStop = function() {
       // 9. forceReplaceAdmin — Create new admin account for club
       // ════════════════════════════════════════════════════════════
           window.forceReplaceAdmin = async (clubId) => {
+        clubId = _saDecodeClubId(clubId);
         _m().forceReplaceAdminCalls++; _m().lastAction = 'forceReplaceAdmin';
         const _t0 = Date.now();
         const newEmail = prompt(`CẤP LẠI TÀI KHOẢN CHO MÃ HỆ THỐNG: ${clubId}\n\nNhập EMAIL MỚI (Lưu ý: Phải là email chưa từng đăng ký trên hệ thống này):`);
@@ -1252,6 +1283,7 @@ window.debugSuperAdminAggregationHardStop = function() {
       // 10. editClubName
       // ════════════════════════════════════════════════════════════
           window.editClubName = async (clubId, currentName) => {
+        const _club = _saLoadedClub(clubId); clubId = _club.cid; currentName = currentName ?? _club.data.clubName ?? 'Chưa đặt tên';
         _m().editClubNameCalls++; _m().lastAction = 'editClubName';
         const newName = prompt(`Nhập TÊN HIỂN THỊ mới cho CLB [${clubId}]:`, currentName);
         if (!newName || newName.trim() === currentName) return;
@@ -1304,6 +1336,7 @@ window.debugSuperAdminAggregationHardStop = function() {
     // redefined window.openBranchUpgradeModal — so the first call never opened
     // the modal. Now: one flat async function with the full implementation.
     window.openBranchUpgradeModal = async (clubId, clubName) => {
+        const _club = _saLoadedClub(clubId); clubId = _club.cid; clubName = clubName ?? _club.data.clubName ?? 'Chưa đặt tên';
         _m().lastAction = 'openBranchUpgradeModal';
         document.getElementById('bu_clubId').value = clubId;
         document.getElementById('bu_clubName').innerText = clubName + ' (' + clubId + ')';
@@ -1374,7 +1407,12 @@ window.debugSuperAdminAggregationHardStop = function() {
       // ════════════════════════════════════════════════════════════
       // 12. saResetAdminPassword
       // ════════════════════════════════════════════════════════════
-          window.saResetAdminPassword = async (adminEmail, clubName) => {
+          window.saResetAdminPassword = async (clubIdOrEmail, clubName) => {
+        const _rawIdOrEmail = String(clubIdOrEmail || '');
+        const _legacyEmailCall = !_rawIdOrEmail.startsWith('e:') && _rawIdOrEmail.includes('@');
+        const _club = _legacyEmailCall ? { data: {} } : _saLoadedClub(_rawIdOrEmail);
+        const adminEmail = _legacyEmailCall ? _rawIdOrEmail : (_club.data.adminEmail || '');
+        clubName = clubName ?? _club.data.clubName ?? 'Chưa đặt tên';
         _m().saResetPasswordCalls++; _m().lastAction = 'saResetAdminPassword';
         if (!adminEmail || !adminEmail.includes('@')) return alert('Email admin không hợp lệ!');
         const choice = confirm('🔑 ĐỔI MẬT KHẨU ADMIN CLB\n\nCLB: ' + clubName + '\nEmail: ' + adminEmail + '\n\nNhấn OK để gửi email đặt lại mật khẩu đến địa chỉ trên.\nAdmin CLB sẽ nhận được link để tự đặt mật khẩu mới.\n\n(Nhấn Hủy để không gửi)');

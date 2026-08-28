@@ -117,7 +117,13 @@ check('legacy app.js per-operation write counts did not increase', Object.entrie
 check('legacy app.js has no new direct-write call signature', newSignatures.length === 0, JSON.stringify(newSignatures.slice(0,5)));
 const _writeMirrorExact = JSON.stringify(collectWrites(app)) === JSON.stringify(collectWrites(appPublic));
 const _v5u5Prebuild = app.includes('4K-6V5U5-canonical-security-truth-20260811') && !appPublic.includes('4K-6V5U5-canonical-security-truth-20260811');
-check('app.js/public write surface exact after build or explicit V5U5 pre-build source state', _writeMirrorExact || _v5u5Prebuild);
+// H2 intentionally removes legacy Parent Portal writes before canonical build:public.
+// Accept only the bounded pre-build state where the source index carries H2 and public does not yet;
+// after build:public, _writeMirrorExact must become true again.
+const _v5u6h2Prebuild = index.includes('parent-portal-hard-disable-release-verification-20260818-v5u6h2') &&
+  !indexPublic.includes('parent-portal-hard-disable-release-verification-20260818-v5u6h2') &&
+  actual.total <= collectWrites(appPublic).total;
+check('app.js/public write surface exact after build or explicit bounded pre-build source state', _writeMirrorExact || _v5u5Prebuild || _v5u6h2Prebuild);
 check('baseline is explicitly V5T/V5S freeze inventory', baseline.phase === '4K-6V5T' && baseline.total === 71);
 
 check('package exposes V5T static and behavior checks',

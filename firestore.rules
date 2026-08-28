@@ -42,6 +42,12 @@ service cloud.firestore {
       return hasUserDoc() ? currentUser().get('role', '') : '';
     }
 
+    function canonicalRole(roleValue) {
+      return roleValue in ['hlv', 'trainer']
+        ? 'coach'
+        : (roleValue == 'superadmin' ? 'super_admin' : roleValue);
+    }
+
     function assignedBranch(data) {
       return data.get('branch', '') != ''
         ? data.get('branch', '')
@@ -66,11 +72,17 @@ service cloud.firestore {
         && request.auth.token.get('email', '') == 'admin@tstquynhon.com';
     }
 
+    function hasEnabledSuperAdminPrincipal() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/super_admins/$(request.auth.uid))
+        && get(/databases/$(database)/documents/super_admins/$(request.auth.uid)).data.get('enabled', false) == true;
+    }
+
     function isSuperAdmin() {
       return signedIn() && (
         request.auth.token.get('role', '') == 'super_admin'
         || (hasUserDoc() && myRole() == 'super_admin')
-        || exists(/databases/$(database)/documents/super_admins/$(request.auth.uid))
+        || hasEnabledSuperAdminPrincipal()
       );
     }
 
@@ -150,11 +162,42 @@ service cloud.firestore {
       return newSecret == oldSecret || (isSuperAdmin() && newSecret == '');
     }
 
+    // Phase 4K-6V5U6H — tenant Admins may update only root fields owned by
+    // existing client cache/settings writers. Subscription/account metadata is
+    // SuperAdmin-only even when a caller bypasses the UI.
+    function clubAdminRootUpdateFieldsOnly() {
+      return request.resource.data
+        .diff(resource.data)
+        .affectedKeys()
+        .hasOnly([
+          'cachedActiveCount',
+          'cachedStudentCount',
+          'activeStudentCount',
+          'totalStudents',
+          'cachedProfileCount',
+          'cachedInvCount',
+          'cachedCountUpdatedAt',
+          'cacheCoverage',
+          'cachedTxCount',
+          'cachedCurrentMonthRevenue',
+          'currentMonthRevenue',
+          'cachedMonthlyRevenue',
+          'revenueByMonth',
+          'superAdminStats',
+          'statsUpdatedAt',
+          'statsSource'
+        ]);
+    }
+
     match /clubs/{clubId} {
       allow get: if isSuperAdmin() || isClubMember(clubId);
       allow list: if isSuperAdmin();
       allow create: if isSuperAdmin() && clubCreateHasNoAdminPasswordSecret();
-      allow update: if (isSuperAdmin() || isClubAdmin(clubId)) && clubAdminPasswordTransitionSafe();
+      // V5U5 compatibility assertion: allow update: if (isSuperAdmin() || isClubAdmin(clubId)) && clubAdminPasswordTransitionSafe()
+      allow update: if (isSuperAdmin() && clubAdminPasswordTransitionSafe())
+        || (isClubAdmin(clubId)
+            && clubAdminPasswordTransitionSafe()
+            && clubAdminRootUpdateFieldsOnly());
       allow delete: if isSuperAdmin();
 
       // Hồ sơ võ sinh thực tế của ứng dụng.
@@ -239,13 +282,13 @@ service cloud.firestore {
           || (isCoach(clubId) && resourceBranchMatchesCoach() && coachOwnsResource());
       }
 
-      // Cấu hình: Coach chỉ được đọc cấu hình tối thiểu phục vụ Điểm danh.
-      // main_config vẫn được cho phép tạm thời để tương thích runtime cũ;
-      // Phase sau nên tách attendance_public để không lộ cấu hình tài chính.
+      // Phase 4K-6V5U6H — Coach may read only the dedicated Attendance shift
+      // document. Firestore cannot hide fields inside main_config, so Coach must
+      // not download that sensitive settings document at all.
       match /settings/{settingId} {
         allow get: if isSuperAdmin()
           || isAdminOrViewer(clubId)
-          || (isCoach(clubId) && settingId in ['main_config', 'shifts']);
+          || (isCoach(clubId) && settingId == 'shifts');
         allow list: if isSuperAdmin() || isAdminOrViewer(clubId);
         allow create, update, delete: if isSuperAdmin() || isClubAdmin(clubId);
       }
@@ -401,12 +444,44 @@ service cloud.firestore {
     // This is intentionally NOT public and does not affect club/profile rules.
     match /login_history/{docId} {
       allow create: if signedIn()
+        && request.resource.data.keys().hasAll([
+          'email', 'clubId', 'role', 'loginAt', 'timestamp',
+          'browser', 'os', 'deviceType', 'deviceName'
+        ])
         && request.resource.data.keys().hasOnly([
           'email', 'clubId', 'role', 'loginAt', 'timestamp',
           'browser', 'os', 'deviceType', 'deviceName'
         ])
-        && request.resource.data.get('email', '') == request.auth.token.get('email', '')
-        && request.resource.data.get('timestamp', 0) is int;
+        && request.resource.data.email is string
+        && request.resource.data.clubId is string
+        && request.resource.data.role is string
+        && request.resource.data.loginAt is string
+        && request.resource.data.timestamp is int
+        && request.resource.data.browser is string
+        && request.resource.data.os is string
+        && request.resource.data.deviceType is string
+        && request.resource.data.deviceName is string
+        && request.resource.data.email.size() <= 254
+        && request.resource.data.clubId.size() <= 128
+        && request.resource.data.role.size() <= 32
+        && request.resource.data.loginAt.size() <= 64
+        && request.resource.data.browser.size() <= 32
+        && request.resource.data.os.size() <= 64
+        && request.resource.data.deviceType.size() <= 16
+        && request.resource.data.deviceName.size() <= 160
+        && request.resource.data.browser in ['Chrome', 'Firefox', 'Safari', 'Edge', 'Khác']
+        && request.resource.data.os in ['Windows', 'macOS', 'Android', 'iOS', 'Linux', 'Khác']
+        && request.resource.data.deviceType in ['Mobile', 'Desktop']
+        && request.resource.data.email == request.auth.token.get('email', '')
+        && (
+          (isSuperAdmin()
+            && request.resource.data.role == 'super_admin'
+            && request.resource.data.clubId == '')
+          || (userEnabled()
+            && myClubId() != ''
+            && request.resource.data.role == canonicalRole(myRole())
+            && request.resource.data.clubId == myClubId())
+        );
       allow get, list, delete: if isSuperAdmin();
       allow update: if false;
     }

@@ -1,0 +1,8 @@
+{
+  "adminVisible": true,
+  "legacyParentHidden": true,
+  "ppWideRemoved": true,
+  "lookupSafeMessage": true,
+  "firebaseCalls": 0,
+  "clipboardCalls": 0
+}

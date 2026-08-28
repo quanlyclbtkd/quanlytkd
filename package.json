@@ -5,9 +5,9 @@
   "type": "module",
   "description": "Ứng dụng Quản lý CLB Taekwondo — Vanilla JS + Firebase",
   "scripts": {
-    "precheck": "npm run check:production-authority-closure && npm run check:attendance-explicit-shift-authority && npm run check:attendance-daily-single-refresh-authority",
-    "precheck:all": "npm run check:production-authority-closure && npm run check:attendance-explicit-shift-authority && npm run check:attendance-daily-single-refresh-authority",
-    "precheck:all:critical": "npm run check:production-authority-closure && npm run check:attendance-explicit-shift-authority && npm run check:attendance-daily-single-refresh-authority",
+    "precheck": "npm run check:production-authority-closure && npm run check:attendance-explicit-shift-authority && npm run check:attendance-daily-single-refresh-authority && npm run check:production-security-trust-boundary",
+    "precheck:all": "npm run check:production-authority-closure && npm run check:attendance-explicit-shift-authority && npm run check:attendance-daily-single-refresh-authority && npm run check:production-security-trust-boundary",
+    "precheck:all:critical": "npm run check:production-authority-closure && npm run check:attendance-explicit-shift-authority && npm run check:attendance-daily-single-refresh-authority && npm run check:production-security-trust-boundary",
     "check": "npm run check:syntax && npm run check:mobile-startup-performance && npm run check:lazy-assets-loading && npm run check:tailwind-static-css-build && npm run check:mobile-filter-currency-stability && npm run check:exam-upgrade-finance-separation && npm run check:global-ownership-adoption-cleanup && npm run check:listener-ownership-boundary && npm run check:inventory-multiitem-readonly-ui && npm run check:financial-action-audit-guard && npm run check:diagnostics-tooling-isolation && npm run check:report-export-lazy-isolation && npm run check:attendance-canonical-ownership && npm run check:spark-read-cost-hardening && npm run check:inventory-history-active-debt && npm run check:inventory-consumer-hydration-hotfix && npm run check:inventory-dynamic-size-catalog && npm run check:inventory-ledger-reconciliation && npm run check:firestore-read-attribution-canonical-tx-boundary && npm run check:payment-bundle-runtime-hotfix && npm run check:canonical-transaction-safe-cutover && npm run check:debt-profile-read-boundary && npm run check:debt-authoritative-tuition-coverage && npm run check:coach-attendance-only-read-boundary && npm run check:security-coach-branch-boundary && npm run check:coach-branch-runtime-repair && npm run check:quit-tab-completeness && npm run check:quit-tab-authoritative-completeness && npm run check:quit-tab-mobile-parity && npm run check:render-warning-coalescing && npm run check:tuition-debt-source-of-truth && npm run check:active-skipped-month-section && npm run check:profile-canonical-store && npm run check:v4d1a-runtime-recovery && npm run check:v5q-quit-single-authoritative-pipeline && npm run check:v5r-quit-single-source-lock && npm run check:v5r-quit-source-behavior && npm run check:v5s-quit-context-render-loop-guard && npm run check:v5s-quit-context-behavior && npm run check:v5t-command-boundary-write-freeze && npm run check:v5t-command-boundary-behavior && npm run check:v5u1-student-status-command-cutover && npm run check:v5u1-student-status-command-behavior && npm run check:v5u2-tuition-command-cutover && npm run check:v5u2-tuition-command-behavior && npm run check:v5u2e-attendance-excel-sdk-fix && npm run check:student-name-search-priority && npm run check:superadmin-auth-principal-alignment && npm run check:admin-credential-single-source && npm run check:auth-context-single-writer && npm run check:legacy-global-freeze && npm run check:dashboard-single-read-authority && npm run check:dashboard-cache-freshness-guard && npm run check:dashboard-hydration-mutation-guard",
     "check:verbose": "node tools/check-syntax.mjs --verbose",
     "check:syntax": "node tools/check-syntax.mjs",
@@ -235,7 +235,14 @@
     "check:dashboard-cache-freshness-guard": "node tools/check-dashboard-cache-freshness-guard.mjs",
     "check:dashboard-hydration-mutation-guard": "node tools/check-dashboard-hydration-mutation-guard.mjs",
     "check:production-residual-defect-closure": "node tools/check-production-residual-defect-closure.mjs",
-    "check:attendance-offline-canonical-sync-guard": "node tools/check-attendance-offline-canonical-sync-guard.mjs"
+    "check:attendance-offline-canonical-sync-guard": "node tools/check-attendance-offline-canonical-sync-guard.mjs",
+    "check:club-root-field-authority": "node tools/check-club-root-field-authority.mjs",
+    "check:stored-xss-trust-boundary": "node tools/check-stored-xss-trust-boundary.mjs",
+    "check:coach-sensitive-config-closure": "node tools/check-coach-sensitive-config-closure.mjs",
+    "check:profile-rename-referential-guard": "node tools/check-profile-rename-referential-guard.mjs",
+    "check:production-security-trust-boundary": "node tools/check-production-security-trust-boundary.mjs",
+    "check:club-listener-bootstrap-readiness": "node tools/check-club-listener-bootstrap-readiness.mjs",
+    "check:exam-export-full-roster": "node tools/check-exam-export-full-roster.mjs"
   },
   "engines": {
     "node": ">=18.0.0"

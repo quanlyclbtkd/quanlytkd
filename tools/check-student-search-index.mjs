@@ -6,6 +6,8 @@ const main = read('js/main.js');
 const rt = read('js/modules/searchRuntime.js');
 const core = read('js/core/studentSearchIndex.js');
 const pkg = JSON.parse(read('package.json') || '{}');
+const students = read('js/modules/students.js');
+const app = read('app.js');
 let ok = true;
 function pass(msg){ console.log('✅', msg); }
 function fail(msg){ console.error('❌', msg); ok = false; }
@@ -32,8 +34,29 @@ check(idx.includes('unified-student-search-index-20260608') || idx.includes('rec
 check(pkg.scripts && pkg.scripts['check:student-search-index'], 'package script check:student-search-index registered');
 check(pkg.scripts?.['check:all']?.includes('check:student-search-index'), 'check:all includes student search index check');
 check(pkg.scripts?.['check:all:critical']?.includes('check:student-search-index'), 'check:all:critical includes student search index check');
+
+const updateStart=students.indexOf('window.updateProfile = async () =>');
+const updateEnd=updateStart>=0 ? students.indexOf('window.deleteProfile = async () =>',updateStart) : -1;
+const updateBody=updateStart>=0 && updateEnd>updateStart ? students.slice(updateStart,updateEnd) : '';
+check(updateBody.includes("oldName !== newName") && updateBody.indexOf("oldName !== newName") < updateBody.indexOf('StudentStatusCommandBoundary.updateProfile'), 'profile rename remains fail-closed before canonical write');
+check(updateBody.includes('window.buildStudentSearchIndex') && updateBody.includes('mergedProfile') && updateBody.includes('Object.assign(updateData'), 'active updateProfile rebuilds search index from RAM + updateData');
+check(updateBody.indexOf('window.buildStudentSearchIndex') < updateBody.lastIndexOf('StudentStatusCommandBoundary.updateProfile'), 'search index is merged before canonical profile update write');
+check(!/getDoc\s*\(|getDocs\s*\(|onSnapshot\s*\(/.test(updateBody), 'search-index-on-edit adds zero Firestore reads/listeners');
+
+const helperStart=app.indexOf('function normalizeSearchText');
+const helperEnd=app.indexOf('window.buildStudentSearchIndex = window.buildStudentSearchIndex || buildStudentSearchIndex;',helperStart);
+if (helperStart>=0 && helperEnd>helperStart) {
+  const helperSrc=app.slice(helperStart,helperEnd);
+  const build = new Function(`${helperSrc}; return buildStudentSearchIndex;`)();
+  const base={phone:'0901111111',memberId:'VS001',nickname:'An',belt:'Đen'};
+  const edited={...base,phone:'0988888888',memberId:'VS999',nickname:'Bảo An'};
+  const idxEdited=build(edited,'Nguyễn Văn An');
+  check(idxEdited.searchPhone==='0988888888', 'Edit phone updates searchPhone in same payload');
+  check(idxEdited.searchCode==='vs999', 'Edit memberId updates searchCode in same payload');
+  check(idxEdited.searchNickname==='bao an', 'Edit nickname updates searchNickname in same payload');
+  check(idxEdited.searchName==='nguyen van an' && Array.isArray(idxEdited.searchNameTokens) && idxEdited.searchNameTokens.includes('an'), 'Normal edit keeps canonical searchName/searchNameTokens');
+}
 // Guard: high-risk functions should remain in app.js unchanged by this phase.
-const app = read('app.js');
 check(app.includes('window.processMultiItem') || app.includes('processMultiItem'), 'processMultiItem still present in app.js');
 check(app.includes('window.handleImportExcel') || app.includes('handleImportExcel'), 'Excel import write flow still present');
 process.exit(ok ? 0 : 1);

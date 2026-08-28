@@ -1315,12 +1315,15 @@ window.invCustomCategories = [];
         const user = auth.currentUser;
         const uid = user?.uid || '(không xác định)';
         const email = user?.email || '(không xác định)';
+        const safeErrorMsg = window.escapeHtml(String(errorMsg || 'permission-denied'));
+        const safeUid = window.escapeHtml(String(uid));
+        const safeEmail = window.escapeHtml(String(email));
         const permissionHint = writeFailed
             ? 'Quyền ghi audit cũng chưa sẵn sàng trong phiên này.'
             : 'Không thay đổi Rules riêng cho login_history.';
         contentEl.innerHTML = `
             <div style="padding:16px;">
-                <div style="text-align:center;margin-bottom:14px;color:#dc2626;font-size:0.85rem;font-weight:800;">❌ Không đọc được lịch sử đăng nhập: ${String(errorMsg || 'permission-denied').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+                <div style="text-align:center;margin-bottom:14px;color:#dc2626;font-size:0.85rem;font-weight:800;">❌ Không đọc được lịch sử đăng nhập: ${safeErrorMsg}</div>
                 <div style="background:#fff7ed;border:1.5px solid #fdba74;border-radius:12px;padding:16px;color:#7c2d12;">
                     <div style="font-weight:900;font-size:0.82rem;margin-bottom:10px;">🔐 SuperAdmin authorization chưa hội tụ</div>
                     <div style="font-size:0.76rem;line-height:1.65;color:#475569;">
@@ -1330,8 +1333,8 @@ window.invCustomCategories = [];
                         <p style="margin:0;">3. Không dùng <code style="background:#ffedd5;padding:1px 5px;border-radius:4px;">allow read/write: if request.auth != null</code> và không mở public Rules.</p>
                     </div>
                     <div style="margin-top:12px;background:#fff;border:1px solid #fed7aa;border-radius:8px;padding:9px 10px;font-size:0.7rem;color:#64748b;">
-                        UID: <span style="font-family:monospace;font-weight:800;">${uid}</span><br>
-                        Email: <span style="font-family:monospace;font-weight:800;">${email}</span>
+                        UID: <span style="font-family:monospace;font-weight:800;">${safeUid}</span><br>
+                        Email: <span style="font-family:monospace;font-weight:800;">${safeEmail}</span>
                     </div>
                 </div>
             </div>`;
@@ -1375,7 +1378,13 @@ window.invCustomCategories = [];
                 return;
             }
 
+            const safeFilterClub = window.escapeHtml(String(filterClub || ''));
             const rows = docs.map(item => {
+                const safeEmail = window.escapeHtml(String(item.email || '—'));
+                const safeClubId = window.escapeHtml(String(item.clubId || 'System'));
+                const safeDeviceName = window.escapeHtml(String(item.deviceName || ''));
+                const safeOs = window.escapeHtml(String(item.os || '—'));
+                const safeBrowser = window.escapeHtml(String(item.browser || '—'));
                 const dt = item.loginAt ? new Date(item.loginAt) : null;
                 const dateStr = dt ? dt.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
                 const timeStr = dt ? dt.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '—';
@@ -1387,14 +1396,14 @@ window.invCustomCategories = [];
                 const deviceIcon = item.deviceType === 'Mobile' ? '📱' : '🖥️';
                 const browserIcon = { 'Chrome': '🟡', 'Firefox': '🟠', 'Safari': '🔵', 'Edge': '💙' }[item.browser] || '🌐';
                 const deviceLabel = item.deviceName
-                    ? `<span style="font-weight:800;color:#0f172a;">${item.deviceName}</span>`
-                    : `<span style="color:#475569;">${item.os || '—'}</span>`;
+                    ? `<span style="font-weight:800;color:#0f172a;">${safeDeviceName}</span>`
+                    : `<span style="color:#475569;">${safeOs}</span>`;
                 return `
                     <div style="padding:10px 14px;border-bottom:1px solid #f1f5f9;">
                         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:5px;">
                             <div style="min-width:0;flex:1;">
-                                <div style="font-weight:700;color:#0033A0;font-size:0.82rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${item.email || '—'}</div>
-                                <div style="font-size:0.65rem;color:#64748b;margin-top:1px;">${item.clubId || 'System'}</div>
+                                <div style="font-weight:700;color:#0033A0;font-size:0.82rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${safeEmail}</div>
+                                <div style="font-size:0.65rem;color:#64748b;margin-top:1px;">${safeClubId}</div>
                             </div>
                             <div style="flex-shrink:0;">${roleLabel}</div>
                         </div>
@@ -1406,7 +1415,7 @@ window.invCustomCategories = [];
                             <div style="font-size:0.72rem;color:#475569;display:flex;align-items:center;gap:4px;">
                                 <span>${deviceIcon}</span>
                                 <span style="background:${item.deviceName ? '#eef2ff' : '#f1f5f9'};padding:2px 8px;border-radius:6px;font-size:0.68rem;">${deviceLabel}</span>
-                                <span>${browserIcon} ${item.browser || '—'}</span>
+                                <span>${browserIcon} ${safeBrowser}</span>
                             </div>
                         </div>
                     </div>`;
@@ -1415,10 +1424,10 @@ window.invCustomCategories = [];
             contentEl.innerHTML = `
                 <div style="padding:7px 14px;background:#f8fafc;border-bottom:2px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;">
                     <div style="font-size:0.65rem;font-weight:900;color:#475569;text-transform:uppercase;">Lịch Sử Đăng Nhập</div>
-                    <div style="font-size:0.65rem;color:#94a3b8;">${rows.length} bản ghi${filterClub ? ' — CLB: ' + filterClub : ''}</div>
+                    <div style="font-size:0.65rem;color:#94a3b8;">${rows.length} bản ghi${filterClub ? ' — CLB: ' + safeFilterClub : ''}</div>
                 </div>
                 ${rows.join('')}
-                <div style="padding:10px 14px;text-align:center;font-size:0.7rem;color:#94a3b8;">Hiển thị ${rows.length} bản ghi${filterClub ? ' cho CLB: ' + filterClub : ' gần nhất'}</div>`;
+                <div style="padding:10px 14px;text-align:center;font-size:0.7rem;color:#94a3b8;">Hiển thị ${rows.length} bản ghi${filterClub ? ' cho CLB: ' + safeFilterClub : ' gần nhất'}</div>`;
 
         } catch(e) {
             console.error('[login_history] Lỗi đọc:', e);
@@ -1635,6 +1644,7 @@ window.invCustomCategories = [];
         snapshotSource: '',
         readyAt: 0,
         legacyExpiryFallback: false,
+        registrationDiagnostic: '',
     };
     if (!window.__clubAccessBootstrapState) {
         Object.defineProperty(window, '__clubAccessBootstrapState', {
@@ -1644,6 +1654,44 @@ window.invCustomCategories = [];
         });
     }
     let _clubAccessBootstrapFlight = null;
+    let _listenerRegistryReadinessPromise = null;
+    const _LISTENER_REGISTRY_READY_TIMEOUT_MS = 10000;
+
+    // Phase 4K-6V5U6H5 — Listener Registry is a mandatory bootstrap dependency.
+    // Wait once for main.js to expose the canonical registry bridge; never create a
+    // direct onSnapshot/getDoc fallback while the registry is unavailable.
+    const _waitForListenerRegistryReady = () => {
+        if (typeof window['safeRegisterSnapshot'] === 'function') {
+            return Promise.resolve({ ready: true, reason: 'registry-ready' });
+        }
+        if (window['__LISTENER_REGISTRY_FAILED'] === true || window['__MAIN_JS_LOAD_FAILED'] === true) {
+            return Promise.resolve({ ready: false, reason: 'registry-not-ready' });
+        }
+        if (_listenerRegistryReadinessPromise) return _listenerRegistryReadinessPromise;
+
+        _listenerRegistryReadinessPromise = new Promise(resolve => {
+            let settled = false;
+            let timeoutId = null;
+            const finish = (result) => {
+                if (settled) return;
+                settled = true;
+                if (timeoutId !== null) clearTimeout(timeoutId);
+                window.removeEventListener('app:listener-registry-ready', onReady);
+                window.removeEventListener('app:listener-registry-failed', onFailed);
+                resolve(result);
+            };
+            const onReady = () => finish({
+                ready: typeof window['safeRegisterSnapshot'] === 'function',
+                reason: typeof window['safeRegisterSnapshot'] === 'function' ? 'registry-ready' : 'registry-not-ready',
+            });
+            const onFailed = () => finish({ ready: false, reason: 'registry-not-ready' });
+
+            window.addEventListener('app:listener-registry-ready', onReady, { once: true });
+            window.addEventListener('app:listener-registry-failed', onFailed, { once: true });
+            timeoutId = setTimeout(() => finish({ ready: false, reason: 'registry-timeout' }), _LISTENER_REGISTRY_READY_TIMEOUT_MS);
+        });
+        return _listenerRegistryReadinessPromise;
+    };
 
     const _commitClubAccessBootstrapState = (patch = {}) => {
         Object.assign(_clubAccessBootstrapState, patch);
@@ -1796,6 +1844,7 @@ window.invCustomCategories = [];
             snapshotSource: '',
             readyAt: 0,
             legacyExpiryFallback: false,
+            registrationDiagnostic: typeof window['safeRegisterSnapshot'] === 'function' ? 'registry-ready' : 'registry-not-ready',
         });
 
         let settled = false;
@@ -1806,6 +1855,11 @@ window.invCustomCategories = [];
             settled = true;
             settleFirst(result);
         };
+
+        // Commit the ONE canonical flight before any async readiness wait/registration.
+        // Re-entrant calls for the same uid/club/authGeneration now reuse this flight.
+        const flight = { ...identity, listenerKey: clubKey, firstSnapshotPromise };
+        _clubAccessBootstrapFlight = flight;
 
         const clubRef = doc(db, 'clubs', clubId);
         const handleSnapshot = (snap) => {
@@ -1848,37 +1902,78 @@ window.invCustomCategories = [];
         const register = () => window.safeRegisterSnapshot(
             clubKey,
             () => onSnapshot(clubRef, handleSnapshot, handleError),
-            { owner: 'club', scope: 'global', clubId, sessionId: String(authGeneration), reason: 'v5u6b-club-bootstrap-realtime-authority' }
+            { owner: 'club', scope: 'global', clubId, sessionId: String(authGeneration), reason: 'v5u6h5-club-bootstrap-realtime-authority' }
         );
-
-        if (typeof window.safeRegisterSnapshot !== 'function') {
-            _commitClubAccessBootstrapState({ status: 'error', blockedReason: 'listener-registration-failed' });
+        const failRegistration = (diagnostic, extra = {}) => {
+            if (!_isCurrentClubBootstrapGeneration(identity)) {
+                finishFirst({ accepted: false, reason: 'stale-auth-generation' });
+                return;
+            }
+            console.error('[ClubAccessGate] root listener registration failed:', diagnostic, extra);
+            _commitClubAccessBootstrapState({ status: 'error', blockedReason: 'listener-registration-failed', registrationDiagnostic: diagnostic });
             _renderClubAccessBlocked('listener-registration-failed');
-            finishFirst({ accepted: false, reason: 'listener-registration-failed' });
-        } else {
-            let registered = register();
-            if (!registered) {
-                const existing = window.getListenerMetrics
-                    ? window.getListenerMetrics()?.activeEntries?.find(entry => entry.key === clubKey)
-                    : null;
-                const sameFlight = _clubAccessBootstrapFlight &&
-                    _clubAccessBootstrapFlight.clubId === identity.clubId &&
-                    _clubAccessBootstrapFlight.uid === identity.uid &&
-                    _clubAccessBootstrapFlight.authGeneration === identity.authGeneration;
-                if (existing && sameFlight) return _clubAccessBootstrapFlight;
-                // Duplicate with no provable current flight is stale/ambiguous: remove once, remount once.
-                if (existing && !!window.removeListener) window.removeListener(clubKey, 'v5u6b-stale-bootstrap-owner');
-                registered = !existing ? false : register();
-            }
-            if (!registered) {
-                _commitClubAccessBootstrapState({ status: 'error', blockedReason: 'listener-registration-failed' });
-                _renderClubAccessBlocked('listener-registration-failed');
-                finishFirst({ accepted: false, reason: 'listener-registration-failed' });
-            }
-        }
+            finishFirst({ accepted: false, reason: 'listener-registration-failed', diagnostic });
+        };
 
-        _clubAccessBootstrapFlight = { ...identity, listenerKey: clubKey, firstSnapshotPromise };
-        return _clubAccessBootstrapFlight;
+        void (async () => {
+            const readiness = await _waitForListenerRegistryReady();
+            if (!_isCurrentClubBootstrapGeneration(identity)) {
+                finishFirst({ accepted: false, reason: 'stale-auth-generation' });
+                return;
+            }
+            if (!readiness?.ready || typeof window.safeRegisterSnapshot !== 'function') {
+                failRegistration(readiness?.reason || 'registry-not-ready');
+                return;
+            }
+
+            _commitClubAccessBootstrapState({ registrationDiagnostic: 'registry-ready' });
+            const beforeMetrics = window.getListenerMetrics ? window.getListenerMetrics() : null;
+            const beforeCreateErrors = Number(beforeMetrics?.createErrors || 0);
+            let registered = register();
+            if (registered) {
+                _commitClubAccessBootstrapState({ registrationDiagnostic: 'registered' });
+                return;
+            }
+
+            const afterMetrics = window.getListenerMetrics ? window.getListenerMetrics() : null;
+            const existing = Array.isArray(afterMetrics?.activeEntries)
+                ? afterMetrics.activeEntries.find(entry => entry.key === clubKey)
+                : null;
+            if (existing) {
+                _commitClubAccessBootstrapState({ registrationDiagnostic: 'duplicate-existing' });
+                const sameSession = existing.owner === 'club' &&
+                    String(existing.clubId || '') === identity.clubId &&
+                    String(existing.sessionId || '') === String(identity.authGeneration);
+
+                // A proven current-session listener that has already accepted access can be reused.
+                // Otherwise it is stale/ambiguous for this new flight: remove once, remount once.
+                if (sameSession && _clubAccessBootstrapState.ready === true && _clubAccessBootstrapState.firstSnapshotSeen === true) {
+                    finishFirst({ accepted: true, source: _clubAccessBootstrapState.snapshotSource || 'registry-existing' });
+                    return;
+                }
+                if (!!window.removeListener) {
+                    window.removeListener(clubKey, 'v5u6h5-stale-bootstrap-owner');
+                    if (!_isCurrentClubBootstrapGeneration(identity)) {
+                        finishFirst({ accepted: false, reason: 'stale-auth-generation' });
+                        return;
+                    }
+                    registered = register(); // bounded stale-remount: exactly one retry
+                    if (registered) {
+                        _commitClubAccessBootstrapState({ registrationDiagnostic: 'registered-after-stale-remount' });
+                        return;
+                    }
+                }
+            }
+
+            const finalMetrics = window.getListenerMetrics ? window.getListenerMetrics() : null;
+            const createErrors = Number(finalMetrics?.createErrors || 0);
+            failRegistration(createErrors > beforeCreateErrors ? 'snapshot-create-error' : 'registration-failed', {
+                duplicateExisting: !!existing,
+                createErrors,
+            });
+        })();
+
+        return flight;
     };
 
     async function initSaaSDatabase(clubId) {
@@ -2041,6 +2136,7 @@ window.invCustomCategories = [];
         invRef = collection(db, "clubs", clubId, "inventory");
         const settingsRef = doc(db, "clubs", clubId, "settings", "main_config");
         const invStatsRef = doc(db, "clubs", clubId, "settings", "inventory_stats");
+        const _coachAttendanceOnlyRuntime = window.RoleReadBoundary?.isCoachAttendanceOnly?.() === true;
 
         // Until this club's transaction listener publishes its own snapshot coverage,
         // financial RAM is UNKNOWN and must not become stats authority.
@@ -2096,6 +2192,11 @@ window.invCustomCategories = [];
         // [Phase 3.6C] settings listener — migrated to safeRegisterSnapshot()
         // No activeListeners.push needed — registry is source of cleanup.
         const _settingsKey = 'global:settings:' + clubId;
+        const _completeSettingsReady = ({ skipped = false, reason = '' } = {}) => {
+            window.__settingsSnapshotReady = true;
+            if (!skipped && window.RoleReadBoundary?.isCoachAttendanceOnly?.() !== true && typeof window.scheduleAutomaticDebtProfileCoverage === 'function') window.scheduleAutomaticDebtProfileCoverage('settings-ready');
+            try { window.dispatchEvent(new CustomEvent('app:settings-ready', { detail: { clubId: clubId, ...(skipped ? { skipped: true, reason } : {}) } })); } catch (_) {}
+        };
         const _settingsCb = (docSnap) => {
             if (window.markListenerSnapshot) window.markListenerSnapshot(_settingsKey);
             if(docSnap.exists()) {
@@ -2125,13 +2226,12 @@ window.invCustomCategories = [];
                     window.loadInvCategories().catch(e => console.warn('loadInvCategories error:', e));
                 }
             }
-            window.__settingsSnapshotReady = true;
-            if (window.RoleReadBoundary?.isCoachAttendanceOnly?.() !== true && typeof window.scheduleAutomaticDebtProfileCoverage === 'function') {
-                window.scheduleAutomaticDebtProfileCoverage('settings-ready');
-            }
-            try { window.dispatchEvent(new CustomEvent('app:settings-ready', { detail: { clubId: clubId } })); } catch (_) {}
+            _completeSettingsReady();
         };
-        if (window.safeRegisterSnapshot) {
+        if (_coachAttendanceOnlyRuntime) {
+            _updateHydrationMetrics({ settingsLoaded: true, lastReason: 'coach-main-config-skipped' });
+            _completeSettingsReady({ skipped: true, reason: 'coach-attendance-only' });
+        } else if (window.safeRegisterSnapshot) {
             window.safeRegisterSnapshot(_settingsKey, () => onSnapshot(settingsRef, _settingsCb),
                 { owner: 'settings', scope: 'global', clubId: clubId, reason: 'init-settings' });
         } else {
@@ -2497,6 +2597,21 @@ window.invCustomCategories = [];
                 window.__inventoryReadMetrics.lastUpdatedAt = Date.now();
                 if (typeof window.recordReadMetric === 'function') {
                     window.recordReadMetric('inventoryHistory', snap.size, reset ? 'inventory-history-first-page' : 'inventory-history-next-page');
+                }
+
+                // H3: manual legacy-root recovery may already hold valid inventory in RAM.
+                // A confirmed empty primary first page completes pagination state, but must
+                // not erase that recovery data. No fallback read/retry is started here.
+                const preserveLegacyInventory = !!(
+                    reset
+                    && snap.empty
+                    && window.__store?.activeDataSource === 'legacy-root'
+                    && Array.isArray(allInventory)
+                    && allInventory.length > 0
+                );
+                if (preserveLegacyInventory) {
+                    console.warn('[DataSourceLock] Skip primary empty overwrite (inventory) — legacy-root active');
+                    return allInventory;
                 }
 
                 _publishInventoryHistory(Array.from(byId.values()), reset ? 'inventory-history-first-page' : 'inventory-history-next-page');
@@ -2910,15 +3025,17 @@ window.invCustomCategories = [];
             const maxRev = Math.max(...revenueList.map(r => r.total), 1);
             const monthLabel = 'Tháng ' + m + '/' + y;
             let rowsHtml = revenueList.map((r, i) => {
+                const safeClubName = window.escapeHtml(String(r.cname || ''));
+                const safeClubId = window.escapeHtml(String(r.cid || ''));
                 const pct = Math.round((r.total / maxRev) * 100);
                 const color = r.total > 0 ? (pct === 100 ? '#16a34a' : pct > 50 ? '#059669' : '#34d399') : '#cbd5e1';
                 const rank = i === 0 && r.total > 0 ? '🥇' : i === 1 && r.total > 0 ? '🥈' : i === 2 && r.total > 0 ? '🥉' : (i+1) + '.';
                 return '<div style="display:grid;grid-template-columns:32px 1fr 140px;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9;">'
                     + '<div style="font-size:0.78rem;font-weight:800;color:#94a3b8;text-align:center;">' + rank + '</div>'
                     + '<div>'
-                    + '<div style="font-size:0.85rem;font-weight:800;color:#1e293b;">' + r.cname + '</div>'
+                    + '<div style="font-size:0.85rem;font-weight:800;color:#1e293b;">' + safeClubName + '</div>'
                     + '<div style="background:#e2e8f0;border-radius:99px;height:5px;margin-top:4px;overflow:hidden;"><div style="background:' + color + ';height:100%;width:' + pct + '%;border-radius:99px;"></div></div>'
-                    + '<div style="font-size:0.6rem;color:#94a3b8;margin-top:2px;font-family:monospace;">' + r.cid + ' · ' + r.txCount + ' giao dịch</div>'
+                    + '<div style="font-size:0.6rem;color:#94a3b8;margin-top:2px;font-family:monospace;">' + safeClubId + ' · ' + r.txCount + ' giao dịch</div>'
                     + '</div>'
                     + '<div style="text-align:right;">'
                     // [SỬA ĐỒNG BỘ] Hiển thị "0" (màu vàng) thay vì "—" khi có giao dịch nhưng doanh thu = 0
@@ -2934,35 +3051,24 @@ window.invCustomCategories = [];
                 + '<div>' + rowsHtml + '</div>'
                 + '<p style="font-size:0.65rem;color:#cbd5e1;text-align:center;margin-top:10px;font-style:italic;">* Chỉ tính các giao dịch THU trong ' + monthLabel + '</p>';
         } catch(e) {
-            contentEl.innerHTML = '<div style="color:#ef4444;font-size:0.82rem;font-weight:700;padding:12px;text-align:center;">❌ Lỗi tải dữ liệu: ' + e.message + '</div>';
+            const safeRevenueError = window.escapeHtml(String(e?.message || e || 'unknown-error'));
+            contentEl.innerHTML = '<div style="color:#ef4444;font-size:0.82rem;font-weight:700;padding:12px;text-align:center;">❌ Lỗi tải dữ liệu: ' + safeRevenueError + '</div>';
         }
     };
 
-    // ═══ PARENT PORTAL — Login Tab Logic ════════════════════════════════
-    window.switchLoginTab = (tab) => {
-        const isAdmin = tab === 'admin';
-        // [THÊM] Xóa lỗi đăng nhập cũ khi đổi tab
+    // ═══ PARENT PORTAL RETIRED — cache-safe compatibility no-ops ═══════
+    window.switchLoginTab = () => {
         window._clearLoginError && window._clearLoginError();
-        const ap = document.getElementById('loginPane_admin');
-        const pp = document.getElementById('loginPane_parent');
-        const ta = document.getElementById('loginTab_admin');
-        const tp = document.getElementById('loginTab_parent');
+        const adminPane = document.getElementById('loginPane_admin');
+        const parentPane = document.getElementById('loginPane_parent');
         const card = document.querySelector('#loginOverlay .login-card');
-        if (ap) ap.style.display = isAdmin ? 'block' : 'none';
-        if (pp) pp.style.display = isAdmin ? 'none' : 'flex';
-        if (pp) pp.style.flexDirection = 'column';
-        // Expand card when parent tab active
-        if (card) { isAdmin ? card.classList.remove('pp-wide') : card.classList.add('pp-wide'); }
-        if (ta) ta.className = `flex-1 py-3 text-[0.78rem] font-bold transition-all border-b-2 ${isAdmin ? 'text-primary border-primary bg-white' : 'text-slate-400 border-transparent hover:text-slate-600'}`;
-        if (tp) tp.className = `flex-1 py-3 text-[0.78rem] font-bold transition-all border-b-2 ${!isAdmin ? 'text-orange-600 border-orange-500 bg-white' : 'text-slate-400 border-transparent hover:text-slate-600'}`;
-        // [THÊM] Auto-focus ô email khi chuyển về tab admin
-        if (isAdmin) setTimeout(() => { const _ei = document.getElementById('emailInput'); if(_ei) _ei.focus(); }, 80);
+        if (adminPane) adminPane.style.display = 'block';
+        if (parentPane) parentPane.style.display = 'none';
+        if (card) card.classList.remove('pp-wide');
     };
 
     window.copyParentCode = () => {
-        const code = (document.getElementById('cfg_parentCode').value || '').trim().toUpperCase();
-        if (!code) return window.showToast('⚠️ Chưa có mã. Hãy nhập và lưu trước.');
-        navigator.clipboard.writeText(code).then(() => window.showToast(`✅ Đã copy mã CLB: ${code}`));
+        window.showToast && window.showToast('ℹ️ Cổng Phụ huynh hiện không được cung cấp.');
     };
 
     function _ppAddM(ym, n) {
@@ -3068,8 +3174,8 @@ window.invCustomCategories = [];
             <div style="margin:14px 18px 0;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;">
                 <div style="min-width:0;">
                     <div style="font-size:0.6rem;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px;">Học sinh</div>
-                    <div style="font-size:0.98rem;font-weight:900;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${d.studentName || '—'}</div>
-                    <div style="font-size:0.72rem;color:#64748b;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${d.clubName || ''}</div>
+                    <div style="font-size:0.98rem;font-weight:900;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${window.escapeHtml(String(d.studentName || '—'))}</div>
+                    <div style="font-size:0.72rem;color:#64748b;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${window.escapeHtml(String(d.clubName || ''))}</div>
                 </div>
                 <div style="text-align:right;flex-shrink:0;">
                     <div style="font-size:0.6rem;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px;">Số tiền</div>
@@ -3303,279 +3409,9 @@ window.invCustomCategories = [];
     };
 
     window.ppLookupLogin = async () => {
-        const _code = (document.getElementById('pp_codeInput').value || '').trim().toUpperCase();
-        const _name = (document.getElementById('pp_nameInputLogin').value || '').trim();
-        const _resEl = document.getElementById('pp_loginResults');
-        if (!_code || !_name) {
-            _resEl.innerHTML = `<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:12px;text-align:center;font-size:0.82rem;font-weight:700;color:#c2410c;">⚠️ Vui lòng nhập đầy đủ Mã CLB và tên võ sinh.</div>`;
-            return;
-        }
-        _resEl.innerHTML = `<div style="text-align:center;padding:20px;color:#64748b;font-size:0.85rem;font-weight:600;">⏳ Đang tra cứu...</div>`;
-        try {
-            // FIX: Nếu HLV/admin đang đăng nhập, dùng db chính (đã có quyền truy cập đầy đủ).
-            // Nếu không, dùng đăng nhập ẩn danh trên secondaryAuth.
-            let _dbForParent;
-            if (auth.currentUser && !auth.currentUser.isAnonymous) {
-                // Admin đang đăng nhập — dùng luôn db chính, không cần anonymous auth
-                _dbForParent = db;
-            } else {
-                // Chế độ phụ huynh — cần anonymous auth
-                if (!secondaryAuth.currentUser || secondaryAuth.currentUser.isAnonymous === false) {
-                    try {
-                        await signInAnonymously(secondaryAuth);
-                    } catch(_authErr) {
-                        const _ec = _authErr && _authErr.code ? _authErr.code : '';
-                        if (_ec === 'auth/operation-not-allowed') {
-                            _resEl.innerHTML = `<div style="background:#fef9c3;border:1px solid #fde047;border-radius:14px;padding:18px;">
-                                <div style="font-size:1.1rem;margin-bottom:6px;">⚙️</div>
-                                <div style="font-weight:900;color:#854d0e;font-size:0.92rem;margin-bottom:8px;">Cần bật "Đăng nhập ẩn danh" trong Firebase</div>
-                                <div style="font-size:0.78rem;color:#713f12;line-height:1.7;text-align:left;">
-                                    <b>Hướng dẫn (1 lần duy nhất):</b><br>
-                                    1. Vào <a href="https://console.firebase.google.com/project/quanly-tst/authentication/providers" target="_blank" style="color:#0033A0;font-weight:700;text-decoration:underline;">Firebase Console → Authentication</a><br>
-                                    2. Chọn <b>Sign-in method</b> → <b>Anonymous</b><br>
-                                    3. Bật <b>Enable</b> → Lưu<br>
-                                    4. Thử lại tại đây
-                                </div>
-                                <button onclick="window.ppLookupLogin()" style="margin-top:12px;background:#0033A0;color:white;border:none;border-radius:8px;padding:8px 20px;font-weight:700;font-size:0.82rem;cursor:pointer;width:100%;">🔄 Thử lại sau khi bật</button>
-                            </div>`;
-                            return;
-                        }
-                        // FIX: Với mọi lỗi auth khác, ném lỗi thay vì tiếp tục không có auth
-                        throw _authErr;
-                    }
-                }
-                _dbForParent = getFirestore(secondaryApp);
-            }
-            const _q = query(collection(_dbForParent, 'clubs'), where('parentCode', '==', _code));
-            const _qSnap = await getDocs(query(_q, limit(50))); // [3.3E] parent code lookup — bounded
-            if (_qSnap.empty) {
-                _resEl.innerHTML = `<div style="background:#fff1f2;border:1px solid #fecdd3;border-radius:12px;padding:16px;text-align:center;">
-                    <div style="font-size:1.4rem;margin-bottom:6px;">❌</div>
-                    <div style="font-weight:800;color:#dc2626;font-size:0.9rem;">Không tìm thấy mã "<strong>${_code}</strong>"</div>
-                    <div style="font-size:0.75rem;color:#64748b;margin-top:4px;">Vui lòng kiểm tra lại mã CLB.</div>
-                </div>`;
-                return;
-            }
-            // ── Phát hiện nhiều CLB dùng cùng mã — báo lỗi ngay ───────────
-            if (_qSnap.docs.length > 1) {
-                _resEl.innerHTML = `<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:14px;padding:18px;text-align:center;">
-                    <div style="font-size:1.4rem;margin-bottom:6px;">⚠️</div>
-                    <div style="font-weight:900;color:#b45309;font-size:0.92rem;margin-bottom:6px;">Mã CLB bị trùng — không thể xác định CLB chính xác</div>
-                    <div style="font-size:0.78rem;color:#78350f;line-height:1.7;">Có <strong>${_qSnap.docs.length} CLB</strong> đang dùng cùng mã <strong>"${_code}"</strong>.<br>Vui lòng liên hệ HLV để được cấp lại mã CLB duy nhất.</div>
-                </div>`;
-                return;
-            }
-            const _clubDoc = _qSnap.docs[0];
-            const _clubId = _clubDoc.id;
-            const _clubName = _clubDoc.data().clubName || 'CLB Taekwondo';
-
-            const _cfgSnap = await getDoc(doc(_dbForParent, 'clubs', _clubId, 'settings', 'main_config'));
-            const _cfg = _cfgSnap.exists() ? _cfgSnap.data() : {};
-
-            // Hàm chuẩn hoá tiếng Việt: bỏ dấu + chuyển thường để so sánh
-            const _normalizeVN = s => s ? s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/Đ/g,'D').toLowerCase().replace(/\s+/g,' ').trim() : '';
-            const _normInput = _normalizeVN(_name);
-
-            // Thử exact match trước (nhanh nhất)
-            let _profSnap = await getDoc(doc(_dbForParent, 'clubs', _clubId, 'profiles', _name));
-            let _actualName = _name;
-
-            if (!_profSnap.exists()) {
-                // Phase 4J-9B: Thay limit(500) scan bằng 3-tier server-side search.
-                // Ưu tiên A: searchName prefix index (hồ sơ mới đã có field — không scan toàn bộ).
-                // Fallback B: __name__ prefix (doc ID = tên võ sinh, hỗ trợ legacy).
-                // Fallback C: fetchQueryPages paginated scan (không hard-cap 500, với guard anti-loop).
-                let _foundDoc = null;
-                const _profColRef = collection(_dbForParent, 'clubs', _clubId, 'profiles');
-
-                // A: searchName index
-                if (!_foundDoc && _normInput) {
-                    try {
-                        const _srSnap = await getDocs(query(_profColRef, orderBy('searchName'), startAt(_normInput), endAt(_normInput + '\uf8ff'), limit(5)));
-                        _srSnap.forEach(d => { if (!_foundDoc) _foundDoc = d; });
-                    } catch(_e) { /* index chưa build → fallback B */ }
-                }
-                // B: __name__ prefix (doc ID normalized match)
-                if (!_foundDoc && _normInput) {
-                    try {
-                        const _idSnap = await getDocs(query(_profColRef, orderBy('__name__'), startAt(_normInput), endAt(_normInput + '\uf8ff'), limit(5)));
-                        _idSnap.forEach(d => { if (!_foundDoc && _normalizeVN(d.id) === _normInput) _foundDoc = d; });
-                    } catch(_e) {}
-                }
-                // C: paginated scan — không còn hard-cap 500
-                if (!_foundDoc) {
-                    if (typeof window.warnUnsafeLimit === 'function') window.warnUnsafeLimit('parentClub:profileScan:paginatedFallback', 'parent-club-profile-scan-paginated');
-                    const _scanDocs = typeof fetchQueryPages === 'function'
-                        ? await fetchQueryPages(
-                            ({ cursor, pageSize }) => {
-                                if (cursor) return query(_profColRef, startAfter(cursor), limit(pageSize));
-                                return query(_profColRef, limit(pageSize));
-                            },
-                            { pageSize: 300, reason: 'parent-profile-scan', domain: 'profiles' })
-                        : await getDocs(query(_profColRef, limit(500))).then(s => { const a = []; s.forEach(d => a.push(d)); return a; });
-                    for (const _d of _scanDocs) {
-                        if (_normalizeVN(_d.id) === _normInput) { _foundDoc = _d; break; }
-                    }
-                }
-                if (_foundDoc) { _profSnap = _foundDoc; _actualName = _foundDoc.id; }
-            }
-
-            if (!_profSnap.exists()) {
-                _resEl.innerHTML = `<div style="background:#fff1f2;border:1px solid #fecdd3;border-radius:12px;padding:16px;text-align:center;">
-                    <div style="font-size:1.4rem;margin-bottom:6px;">🔍</div>
-                    <div style="font-weight:800;color:#dc2626;font-size:0.9rem;">Không tìm thấy "<strong>${_name}</strong>"</div>
-                    <div style="font-size:0.75rem;color:#64748b;margin-top:4px;">Tại ${_clubName}. Vui lòng kiểm tra lại chính tả hoặc nhập đầy đủ họ tên.</div>
-                </div>`;
-                return;
-            }
-            const _prof = _profSnap.data();
-            const _name_display = _actualName;
-            if (_prof.status === 'quit') {
-                _resEl.innerHTML = `<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px;text-align:center;color:#94a3b8;font-weight:700;font-size:0.88rem;">ℹ️ Võ sinh đã nghỉ tập.</div>`;
-                return;
-            }
-
-            const _today = new Date();
-            const _curM = `${_today.getFullYear()}-${String(_today.getMonth()+1).padStart(2,'0')}`;
-            const _skipped = _prof.skippedMonths || [];
-            const _feeExempt = _prof.feeExempt || false;
-            let _owedMonths = [];
-            if (!_feeExempt) {
-                let _from = _prof.paidUntil ? _ppAddM(_prof.paidUntil, 1)
-                                            : (_prof.createdAt ? _prof.createdAt.substring(0,7) : _curM);
-                let _c = _from;
-                while (_c <= _curM) { if (!_skipped.includes(_c)) _owedMonths.push(_c); _c = _ppAddM(_c, 1); }
-            }
-            const _fee = Number(_prof.tuitionFee) || 0;
-            const _total = _owedMonths.length * _fee;
-            const _paidLabel = _prof.paidUntil ? _prof.paidUntil.split('-').reverse().join('/') : '—';
-
-            // Phase 4.0B-4J-4: resolve effective bank account for student's branch (fixed)
-            const _debtBranch = _prof.branch || _prof.branchName || _prof.location || _prof.facility || '';
-            const _pa4j3r = (typeof getPaymentAccountForBranch === 'function')
-                ? getPaymentAccountForBranch(_debtBranch, _cfg)
-                : null;
-            const _effBankId   = (_pa4j3r && _pa4j3r.bankId)      || _cfg.bankId      || '';
-            const _effAccNo    = (_pa4j3r && _pa4j3r.accountNo)    || _cfg.accountNo   || '';
-            const _effAccName  = (_pa4j3r && _pa4j3r.accountName)  || _cfg.accountName || '';
-
-            let _qrHtml = '';
-            if (_total > 0 && _effBankId && _effAccNo) {
-                const _ms = _owedMonths.map(m => { const p = m.split('-'); return `T${parseInt(p[1])}-${p[0]}`; }).join(' ');
-                const _addInfo = `${_ppClean(_actualName)} hoc phi ${_ms}`.substring(0, 48);
-                const _qrUrl = `https://img.vietqr.io/image/${_effBankId}-${_effAccNo}-compact2.png?amount=${_total}&addInfo=${encodeURIComponent(_addInfo)}&accountName=${encodeURIComponent(_ppClean(_effAccName||''))}`;
-                // Store data globally to avoid escaping issues in onclick
-                window._ppTransferData = { bankId: _effBankId, accountNo: _effAccNo, amount: _total, addInfo: _addInfo, accountName: _effAccName || '', studentName: _name_display, clubName: _clubName, fee: _fee, owedCount: _owedMonths.length };
-                _qrHtml = `<div style="margin-top:8px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;padding:12px 14px;">
-                    <div style="font-size:0.6rem;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;text-align:center;">📱 Thanh toán chuyển khoản</div>
-                    <div style="display:flex;flex-direction:column;align-items:center;gap:10px;">
-                        <img src="${_qrUrl}" crossorigin="anonymous"
-                            style="width:min(220px,100%);height:auto;aspect-ratio:1/1;border-radius:10px;border:1px solid #cbd5e1;padding:4px;background:white;"
-                            onerror="this.style.display='none'" />
-                        <div style="font-size:0.78rem;color:#334155;line-height:1.9;text-align:center;width:100%;background:white;border-radius:8px;border:1px solid #e2e8f0;padding:8px 12px;">
-                            <div><span style="color:#94a3b8;font-size:0.62rem;font-weight:700;text-transform:uppercase;">Ngân hàng: </span><strong>${_effBankId}</strong></div>
-                            <div><span style="color:#94a3b8;font-size:0.62rem;font-weight:700;text-transform:uppercase;">Số TK: </span><strong>${_effAccNo}</strong></div>
-                            ${_effAccName ? `<div><span style="color:#94a3b8;font-size:0.62rem;font-weight:700;text-transform:uppercase;">Tên TK: </span><strong style="word-break:break-word;">${_effAccName}</strong></div>` : ''}
-                        </div>
-                        <button onclick="window.ppOpenTransferSheet()"
-                            style="width:100%;background:linear-gradient(135deg,#0033A0,#1e40af);color:white;font-weight:900;font-size:0.85rem;padding:12px 10px;border-radius:11px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 14px rgba(0,51,160,0.28);letter-spacing:0.02em;">
-                            💳 Chuyển khoản ngay — không cần quét QR
-                        </button>
-                        <div style="font-size:0.6rem;color:#94a3b8;text-align:center;margin-top:-4px;">Hoặc quét mã QR bên trên nếu ứng dụng không tự điền</div>
-                    </div>
-                </div>`;
-            }
-
-            const _owedBadges = _owedMonths.map(m => { const p = m.split('-'); return `<span style="background:#fda4af;color:#881337;padding:2px 7px;border-radius:20px;font-size:0.68rem;font-weight:700;">T${parseInt(p[1])}/${p[0]}</span>`; }).join('');
-            const _body = _feeExempt
-                ? `<div style="background:#fefce8;border:1px solid #fde047;border-radius:8px;padding:8px 12px;text-align:center;font-weight:800;color:#a16207;font-size:0.82rem;">🎟️ Được miễn học phí</div>`
-                : _owedMonths.length === 0
-                ? `<div style="background:#dcfce7;border:1px solid #bbf7d0;border-radius:8px;padding:10px 12px;text-align:center;">
-                       <div style="font-weight:800;color:#166534;font-size:0.88rem;">✅ Đã đóng học phí đầy đủ!</div>
-                   </div>`
-                : `<div style="background:#fff1f2;border:1px solid #fecdd3;border-radius:8px;padding:8px 10px;">
-                       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
-                           <div style="font-size:0.6rem;font-weight:800;color:#be123c;text-transform:uppercase;letter-spacing:0.04em;">📋 Tháng còn nợ</div>
-                           <div style="font-size:0.78rem;font-weight:900;color:#C8102E;">${_total.toLocaleString('vi-VN')} ₫ <span style="font-size:0.6rem;color:#9a3412;font-weight:600;">(${_owedMonths.length}T)</span></div>
-                       </div>
-                       <div style="display:flex;flex-wrap:wrap;gap:4px;">${_owedBadges}</div>
-                   </div>
-                   ${_qrHtml}`;
-
-            const _logoHtml = _cfg.logoBase64
-                ? `<img src="${_cfg.logoBase64}" style="width:36px;height:36px;border-radius:8px;object-fit:contain;background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.25);padding:2px;flex-shrink:0;" />`
-                : `<div style="width:36px;height:36px;border-radius:8px;background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;">🥋</div>`;
-            const _dobRaw = _prof.dob || _prof.birthDate || _prof.birthday || '';
-            const _dobLabel = _dobRaw ? (() => {
-                // accepts DD/MM/YYYY or YYYY-MM-DD
-                if (_dobRaw.includes('/')) return _dobRaw;
-                const p = _dobRaw.split('-');
-                return p.length === 3 ? p[2]+'/'+p[1]+'/'+p[0] : _dobRaw;
-            })() : '';
-            const _branchCode = _prof.branch || '';
-            const _branchNum = _branchCode.startsWith('CS') ? parseInt(_branchCode.replace('CS',''),10) : 0;
-            const _branchLabel = _branchNum ? (_cfg['branchName' + _branchNum] || ('Cơ sở ' + _branchNum)) : '';
-            _resEl.innerHTML = `<div style="background:white;border-radius:14px;overflow:hidden;box-shadow:0 3px 14px rgba(0,51,160,0.1);border:1px solid #e2e8f0;">
-
-                <!-- Header: CLB + Võ sinh -->
-                <div style="background:linear-gradient(135deg,#0033A0,#1e40af);padding:10px 14px;">
-                    <!-- CLB row -->
-                    <div style="display:flex;align-items:center;gap:9px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.13);">
-                        ${_logoHtml}
-                        <div style="min-width:0;">
-                            <div style="font-size:0.55rem;font-weight:700;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.06em;">Câu lạc bộ</div>
-                            <div style="font-size:0.88rem;font-weight:900;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${_clubName}</div>
-                        </div>
-                    </div>
-                    <!-- Võ sinh row -->
-                    <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:8px;">
-                        <div>
-                            <div style="font-size:0.55rem;font-weight:700;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:2px;">Võ sinh</div>
-                            <div style="font-size:1rem;font-weight:900;color:white;line-height:1.2;">${_name_display}</div>
-                            <div style="display:flex;align-items:center;gap:8px;margin-top:3px;flex-wrap:wrap;">
-                                <span style="font-size:0.68rem;color:rgba(255,255,255,0.72);">🥋 ${_prof.belt || 'Đai trắng'}</span>
-                                ${_dobLabel ? `<span style="font-size:0.68rem;color:rgba(255,255,255,0.65);">🎂 ${_dobLabel}</span>` : ''}
-                                ${_branchLabel ? `<span style="font-size:0.68rem;color:rgba(255,255,255,0.65);">📍 ${_branchLabel}</span>` : ''}
-                            </div>
-                        </div>
-                        <div style="text-align:right;flex-shrink:0;">
-                            <div style="font-size:0.55rem;font-weight:700;color:rgba(255,255,255,0.5);text-transform:uppercase;margin-bottom:2px;">Học phí/tháng</div>
-                            <div style="font-size:1rem;font-weight:900;color:#fde68a;">${_fee.toLocaleString('vi-VN')} ₫</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Trạng thái học phí -->
-                <div style="padding:10px 14px 12px;">
-                    <!-- Đã đóng đến -->
-                    <div style="display:flex;align-items:center;justify-content:space-between;background:#f8fafc;border-radius:8px;padding:7px 10px;margin-bottom:8px;">
-                        <span style="font-size:0.62rem;color:#64748b;font-weight:700;text-transform:uppercase;">Đã đóng đến</span>
-                        <span style="font-size:0.9rem;font-weight:900;color:#334155;">${_paidLabel}</span>
-                    </div>
-                    ${_body}
-                </div>
-            </div>`;
-        } catch(e) {
-            console.error('PP lookup error', e);
-            const _errCode = e && e.code ? e.code : '';
-            let _errMsg = '⚠️ Lỗi kết nối. Vui lòng thử lại.';
-            let _errHint = 'Kiểm tra kết nối internet và thử lại.';
-            if (_errCode === 'permission-denied' || _errCode === 'PERMISSION_DENIED') {
-                _errMsg = '🔒 Firestore chưa cấp quyền đọc ẩn danh.';
-                _errHint = 'Cổng phụ huynh đang bị khóa an toàn. Không mở quyền đọc công khai cho clubs/profiles/settings; cần triển khai public projection hoặc API xác thực riêng.';
-            } else if (_errCode === 'unavailable' || _errCode === 'network-request-failed') {
-                _errMsg = '📡 Mất kết nối mạng.';
-                _errHint = 'Vui lòng kiểm tra Wi-Fi / 4G và thử lại.';
-            }
-            const _isPermDenied = (_errCode === 'permission-denied' || _errCode === 'PERMISSION_DENIED');
-            _resEl.innerHTML = `<div style="background:#fff1f2;border:1px solid #fecdd3;border-radius:12px;padding:16px;text-align:center;">
-                <div style="font-size:1.3rem;margin-bottom:6px;">⚠️</div>
-                <div style="font-weight:800;color:#dc2626;font-size:0.9rem;">${_errMsg}</div>
-                <div style="font-size:0.75rem;color:#64748b;margin-top:6px;text-align:left;line-height:1.6;">${_errHint}</div>
-                ${_isPermDenied ? `<div style="margin-top:10px;font-size:0.72rem;color:#9f1239;">Không được dùng <code>allow read: if true</code> để mở lại tính năng này.</div>` : ''}
-                <button onclick="window.ppLookupLogin()" style="margin-top:10px;background:#0033A0;color:white;border:none;border-radius:8px;padding:8px 20px;font-weight:700;font-size:0.82rem;cursor:pointer;">🔄 Thử lại</button>
-            </div>`;
-        }
+        const resultEl = document.getElementById('pp_loginResults');
+        if (resultEl) resultEl.textContent = 'Cổng Phụ huynh hiện không được cung cấp.';
+        return;
     };
 
     // ── Ghi nhận lịch sử đăng nhập (chỉ 1 lần mỗi session) ──────────────
@@ -3802,7 +3638,13 @@ window.invCustomCategories = [];
         const principalRef = doc(db, 'super_admins', uid);
         try {
             const existing = await getDoc(principalRef);
-            if (existing.exists()) return true;
+            if (existing.exists()) {
+                const principalData = existing.data() || {};
+                if (principalData.enabled === true) return true;
+                const disabledErr = new Error('SuperAdmin principal đã bị vô hiệu hóa.');
+                disabledErr.code = 'auth/superadmin-principal-disabled';
+                throw disabledErr;
+            }
         } catch (readErr) {
             // V5U4+ Rules allow this exact ROOT identity to get only its own principal doc.
             if (readErr?.code !== 'permission-denied') throw readErr;
@@ -4546,8 +4388,8 @@ window.invCustomCategories = [];
                     : 'Nhập size tự do';
                 html += `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#fff;border-radius:10px;margin-bottom:6px;border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
                     <div style="flex:1;min-width:0;">
-                        <span style="font-weight:700;font-size:0.85rem;">📦 ${cat.name}</span>
-                        <div style="font-size:0.68rem;color:#64748b;margin-top:2px;">${sizesText}</div>
+                        <span style="font-weight:700;font-size:0.85rem;">📦 ${window.escapeHtml(String(cat.name || ''))}</span>
+                        <div style="font-size:0.68rem;color:#64748b;margin-top:2px;">${window.escapeHtml(String(sizesText || ''))}</div>
                     </div>
                     <button type="button" onclick="window.deleteInvCategory(${idx})" style="background:#fee2e2;border:none;color:#dc2626;border-radius:8px;padding:5px 10px;font-size:0.75rem;font-weight:700;cursor:pointer;flex-shrink:0;margin-left:8px;">🗑 Xóa</button>
                 </div>`;
@@ -4742,7 +4584,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                     const _bKey = 'CS' + _bi;
                     const _bName = clubConfig['branchName' + _bi] || ('Cơ sở ' + _bi);
                     const _bSel = _bMap[_bKey] || 'bank1';
-                    _mapHtml += `<div class="flex items-center gap-2"><span class="text-[0.72rem] font-bold text-slate-600 flex-1 min-w-0 truncate">${_bName}</span>`
+                    _mapHtml += `<div class="flex items-center gap-2"><span class="text-[0.72rem] font-bold text-slate-600 flex-1 min-w-0 truncate">${window.escapeHtml(String(_bName || ''))}</span>`
                         + `<select id="cfg_bankMap_${_bKey}" class="bg-white border-slate-200 text-xs font-bold" style="width:auto;padding:6px 8px;">`
                         + `<option value="bank1">Tài khoản 1</option>`
                         + `<option value="bank2"${!_b2IsEnabled ? ' disabled' : ''}${_bSel==='bank2'&&_b2IsEnabled ? '' : ''}>Tài khoản 2${!_b2IsEnabled?' (chưa bật)':''}</option>`
@@ -4777,16 +4619,6 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         if(clubConfig.signatureBase64) { const sp = document.getElementById('cfg_signaturePreview'); sp.src = clubConfig.signatureBase64; sp.classList.remove('hidden'); }
         else { document.getElementById('cfg_signaturePreview').classList.add('hidden'); }
 
-        const _existingCode = (clubConfig.parentCode || '').toUpperCase();
-        const _pcInput = document.getElementById('cfg_parentCode');
-        _pcInput.value = _existingCode;
-        // Gợi ý mã dựa trên club ID nếu chưa đặt mã
-        if (!_existingCode && currentClubId) {
-            const _suggested = currentClubId.replace(/[^a-z0-9]/gi, '').toUpperCase().substring(0, 8);
-            _pcInput.placeholder = `Gợi ý: ${_suggested}`;
-        } else {
-            _pcInput.placeholder = 'VD: TST001';
-        }
 
         document.getElementById('settingsModal').style.display = 'flex';
     };
@@ -4801,28 +4633,8 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         if(!bankId || !accountNo || !accountName) return alert("Vui lòng điền đầy đủ thông tin!");
 
         const trainerName = document.getElementById('cfg_trainerName').value.trim();
-        const parentCode = document.getElementById('cfg_parentCode').value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
-        document.getElementById('cfg_parentCode').value = parentCode;
-
-        // ── Kiểm tra mã CLB trùng với CLB khác trước khi lưu ──────────────
-        if (parentCode) {
-            try {
-                const _dupQ = query(collection(db, 'clubs'), where('parentCode', '==', parentCode));
-                const _dupSnap = await getDocs(query(_dupQ, limit(10))); // [3.3E] dup-check: only need 1 result
-                const _conflicting = _dupSnap.docs.filter(d => d.id !== currentClubId);
-                if (_conflicting.length > 0) {
-                    const _conflictName = _conflicting[0].data().clubName || _conflicting[0].id;
-                    alert(`❌ Mã CLB "${parentCode}" đã được sử dụng bởi CLB khác: "${_conflictName}"!\n\nPhụ huynh nhập mã này sẽ bị dẫn nhầm sang CLB đó.\nVui lòng chọn mã khác để tránh xung đột hệ thống.`);
-                    document.getElementById('cfg_parentCode').focus();
-                    return;
-                }
-            } catch (_dupErr) {
-                console.error('Lỗi kiểm tra trùng mã:', _dupErr);
-            }
-        }
 
         let updateData = { bankId, accountNo, accountName, location, trainerName };
-        if(parentCode) updateData.parentCode = parentCode;
         if(tempLogoBase64) updateData.logoBase64 = tempLogoBase64;
         if(tempSignatureBase64) updateData.signatureBase64 = tempSignatureBase64;
         if(clubConfig.branchCount > 1) {
@@ -4872,9 +4684,8 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
 
         try {
             await setDoc(doc(db, "clubs", currentClubId, "settings", "main_config"), updateData, { merge: true });
-            if(parentCode) await setDoc(doc(db, "clubs", currentClubId), { parentCode }, { merge: true });
             tempLogoBase64 = ""; tempSignatureBase64 = "";
-            window.showToast("✅ Đã lưu cấu hình thành công! Mã CLB đã được xác nhận là duy nhất.");
+            window.showToast("✅ Đã lưu cấu hình thành công!");
             document.getElementById('settingsModal').style.display = 'none';
         } catch (error) {
             console.error(error);
@@ -5411,8 +5222,8 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             return `<div id="bzRow_${i}" style="display:flex;align-items:center;gap:10px;padding:9px 6px;border-bottom:1px solid #f1f5f9;border-radius:8px;background:#fff;margin-bottom:2px;">
                 <div style="width:26px;height:26px;min-width:26px;background:#e0edff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:0.72rem;color:#0044CC;">${i+1}</div>
                 <div style="flex:1;min-width:0;">
-                    <div style="font-weight:800;font-size:0.88rem;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${d.name}</div>
-                    <div style="font-size:0.72rem;color:#64748b;margin-top:1px;">Kỳ: <span style="font-weight:700;color:#0033A0;">${d.monthsLabel}</span>${d.totalFee > 0 ? ' · <b>' + d.totalFee.toLocaleString('vi-VN') + ' ₫</b>' : ''} ${hasPhone ? '' : '<span style="color:#ef4444;font-weight:700;">· Chưa có SĐT</span>'}</div>
+                    <div style="font-weight:800;font-size:0.88rem;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${window.escapeHtml(String(d.name || ''))}</div>
+                    <div style="font-size:0.72rem;color:#64748b;margin-top:1px;">Kỳ: <span style="font-weight:700;color:#0033A0;">${window.escapeHtml(String(d.monthsLabel || ''))}</span>${d.totalFee > 0 ? ' · <b>' + d.totalFee.toLocaleString('vi-VN') + ' ₫</b>' : ''} ${hasPhone ? '' : '<span style="color:#ef4444;font-weight:700;">· Chưa có SĐT</span>'}</div>
                 </div>
                 <button onclick="sendBulkZaloOne(${i})" style="background:${hasPhone ? '#0068FF' : '#cbd5e1'};color:#fff;border:none;padding:6px 11px;border-radius:8px;font-weight:700;font-size:0.78rem;cursor:${hasPhone ? 'pointer' : 'not-allowed'};" ${hasPhone ? '' : 'disabled'}>💬</button>
             </div>`;
@@ -6755,11 +6566,12 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             });
             matches.forEach(name => {
                 let div = document.createElement('div');
+                const _escAutocomplete = window.escapeHtml || (v => String(v || ''));
                 let branchHtml = (!clubConfig.branchCount || clubConfig.branchCount > 1)
-                    ? `<span class="badge bg-slate-100 text-slate-600 border border-slate-200">${window.getBranchNameDisplay(allProfiles[name].branch || 'CS1')}</span>`
+                    ? `<span class="badge bg-slate-100 text-slate-600 border border-slate-200">${_escAutocomplete(window.getBranchNameDisplay(allProfiles[name].branch || 'CS1'))}</span>`
                     : ``;
 
-                div.innerHTML = `<strong class="text-primary">${name}</strong> ${branchHtml}`;
+                div.innerHTML = `<strong class="text-primary">${_escAutocomplete(name)}</strong> ${branchHtml}`;
                 div.onclick = () => {
                     inp.value = name;
                     if(mode === 'tx') {
@@ -7039,7 +6851,17 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                         const _title = document.getElementById('skippedSectionTitle');
                         const _list = document.getElementById('skippedThisMonthList');
                         if (_title) _title.innerText = `⏸ Báo nghỉ tháng ${formatMonth(_m)} — ${_names.length} võ sinh miễn học phí`;
-                        if (_list) _list.innerHTML = _names.sort().map(n => `<span class="badge bg-amber-200 text-amber-900 border border-amber-400 shadow-sm cursor-pointer hover:bg-amber-300" onclick="openProfile('${String(n).replace(/'/g,"\'")}')" title="Bấm để xem hồ sơ">${n}</span>`).join('');
+                        if (_list) {
+                            _list.innerHTML = '';
+                            _names.sort().forEach(n => {
+                                const badge = document.createElement('span');
+                                badge.className = 'badge bg-amber-200 text-amber-900 border border-amber-400 shadow-sm cursor-pointer hover:bg-amber-300';
+                                badge.title = 'Bấm để xem hồ sơ';
+                                badge.textContent = String(n || '');
+                                badge.onclick = () => window.openProfile?.(n);
+                                _list.appendChild(badge);
+                            });
+                        }
                     } else {
                         _section.classList.add('hidden');
                         const _list = document.getElementById('skippedThisMonthList');
@@ -7274,7 +7096,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             if (search && !_legacyNormalizeSearch(cleanName).includes(search) && !_legacyNormalizeSearch(t.examTitle).includes(search)) isSearchMatch = false;
 
             let safeBranch = t.branch || "CS1"; let safeNameEscaped = cleanName.replace(/'/g, "\\'");
-            let branchTdHTML = isSingleBranch ? '' : `<td class="col-branch"><span class="badge bg-slate-100 text-slate-600 border border-slate-200">${window.getBranchNameDisplay(safeBranch)}</span></td>`;
+            let branchTdHTML = isSingleBranch ? '' : `<td class="col-branch"><span class="badge bg-slate-100 text-slate-600 border border-slate-200">${window.escapeHtml(String(window.getBranchNameDisplay(safeBranch) || ''))}</span></td>`;
             const btnDel = window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-rose-50 text-rose-600 hover:bg-rose-500 hover:text-white ml-1" onclick="deleteTx('${t.id}', '${t.relatedInvId || ''}')">🗑</button>` : '';
 
             if (isUniformTx) {
@@ -7290,10 +7112,10 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
 
             if(t.type === 'Chi phí') {
                 exp += Number(t.amount) || 0;
-                if(_curTabId === 'expense') expHtml += `<tr><td>${formatDate(t.date)}</td>${branchTdHTML}<td class="font-bold text-slate-800">${t.description}</td><td class="text-rose-600 font-bold">-${(Number(t.amount)||0).toLocaleString()}</td><td class="action-btns">${btnEditExp}${btnDel}</td></tr>`;
+                if(_curTabId === 'expense') expHtml += `<tr><td>${formatDate(t.date)}</td>${branchTdHTML}<td class="font-bold text-slate-800">${window.escapeHtml(String(t.description || ''))}</td><td class="text-rose-600 font-bold">-${(Number(t.amount)||0).toLocaleString()}</td><td class="action-btns">${btnEditExp}${btnDel}</td></tr>`;
             } else if (t.type === 'Chi phí kỳ thi') {
                 exp_exam_total += Number(t.amount) || 0;
-                if(_curTabId === 'exam') examExpHtml += `<tr><td>${formatDate(t.date)}</td><td class="font-bold text-slate-800">${t.description}</td><td class="text-rose-600 font-bold">-${(Number(t.amount)||0).toLocaleString()}</td><td class="action-btns">${btnEditExp}${btnDel}</td></tr>`;
+                if(_curTabId === 'exam') examExpHtml += `<tr><td>${formatDate(t.date)}</td><td class="font-bold text-slate-800">${window.escapeHtml(String(t.description || ''))}</td><td class="text-rose-600 font-bold">-${(Number(t.amount)||0).toLocaleString()}</td><td class="action-btns">${btnEditExp}${btnDel}</td></tr>`;
             } else {
                 // [THÊM BUG 7] Đếm giao dịch thu học phí qua filter hiện tại để cập nhật badge
                 txCountRender++;
@@ -7403,16 +7225,16 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                 ? ' <span style="font-size:0.62rem;background:#dcfce7;color:#15803d;border:1px solid #bbf7d0;border-radius:5px;padding:1px 5px;font-weight:900;vertical-align:middle;">MỚI</span>'
                 : '';
 
-            let beltHTML = window.getBeltBadge ? window.getBeltBadge(p.belt) : `<span class="badge bg-slate-100 text-slate-700 border border-slate-300">${p.belt}</span>`;
+            let beltHTML = window.getBeltBadge ? window.getBeltBadge(p.belt) : `<span class="badge bg-slate-100 text-slate-700 border border-slate-300">${window.escapeHtml(String(p.belt || ''))}</span>`;
             if((typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus(p) : p.status) === 'active') {
                 activeCount++;
                 let lastPaidStr = p.paidUntil ? formatMonth(p.paidUntil) : "Chưa cập nhật";
                 // [ĐÃ XÓA] Không còn hiện badge "Miễn phí" bên cạnh tên — chỉ hiển thị ở cột "đã đóng tới tháng"
                 const paidBadge = p.feeExempt ? `<span class="badge hidden md:inline-block" style="background:#f3e8ff;color:#6b21a8;border:1px solid #d8b4fe;font-weight:900;">Miễn Học Phí</span><span class="badge md:hidden" style="background:#f3e8ff;color:#6b21a8;border:1px solid #d8b4fe;font-weight:900;">Miễn HP</span>` : `<span class="badge badge-active">${lastPaidStr}</span>`;
                 // [THÊM] Badge biệt danh hiển thị ngay trong danh sách (không phải chỉ trong hồ sơ)
-                const _activeNickBadge = p.nickname ? ' <span style="font-size:0.65rem;background:#ede9fe;color:#7c3aed;border:1px solid #ddd6fe;border-radius:4px;padding:1px 5px;font-weight:800;vertical-align:middle;">🏷 ' + p.nickname + '</span>' : '';
+                const _activeNickBadge = p.nickname ? ' <span style="font-size:0.65rem;background:#ede9fe;color:#7c3aed;border:1px solid #ddd6fe;border-radius:4px;padding:1px 5px;font-weight:800;vertical-align:middle;">🏷 ' + window.escapeHtml(String(p.nickname)) + '</span>' : '';
                 // [PERF] Đếm tổng trước — badge count vẫn chính xác dù giới hạn render
-                if(_curTabId === 'active') { _activeTotalCount++; if(_activeRendered < _activeLimit) { _activeRendered++; activeHtml += `<tr><td class="name-link text-[0.95rem]" onclick="openProfile('${safeNameEscaped}')">${_displayName(name)}${_listYrBadge}${_newBadge}${p.notes ? ' <span title="'+p.notes+'">📝</span>' : ''}${_activeNickBadge}</td><td class="text-[0.7rem] font-bold text-slate-500">${p.memberId || '-'}</td><td>${beltHTML}</td>${branchTdHTML}<td>${formatDate(p.dob)}</td><td>${paidBadge}</td><td class="font-medium text-slate-600">${safePhone}</td><td class="text-slate-500">${formatDate(p.createdAt)}</td><td><button type="button" class="btn-sm bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200" onclick="openProfile('${safeNameEscaped}')">${window.userRole === 'admin' ? '✏️ Sửa' : '👁️ Xem'}</button></td></tr>`; } }
+                if(_curTabId === 'active') { _activeTotalCount++; if(_activeRendered < _activeLimit) { _activeRendered++; activeHtml += `<tr><td class="name-link text-[0.95rem]" onclick="openProfile('${safeNameEscaped}')">${window.escapeHtml(String(_displayName(name) || ''))}${_listYrBadge}${_newBadge}${p.notes ? ' <span title="'+window.escapeHtml(String(p.notes))+'">📝</span>' : ''}${_activeNickBadge}</td><td class="text-[0.7rem] font-bold text-slate-500">${window.escapeHtml(String(p.memberId || '-'))}</td><td>${beltHTML}</td>${branchTdHTML}<td>${formatDate(p.dob)}</td><td>${paidBadge}</td><td class="font-medium text-slate-600">${window.escapeHtml(String(safePhone || ''))}</td><td class="text-slate-500">${formatDate(p.createdAt)}</td><td><button type="button" class="btn-sm bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200" onclick="openProfile('${safeNameEscaped}')">${window.userRole === 'admin' ? '✏️ Sửa' : '👁️ Xem'}</button></td></tr>`; } }
 
                 let isDebt = false;
                 let unpaidMonthsCount = 0;
@@ -7484,7 +7306,18 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             if(skippedNames.length > 0) {
                 skippedSection.classList.remove('hidden');
                 document.getElementById('skippedSectionTitle').innerText = `⏸ Báo nghỉ tháng ${formatMonth(selMonth)} — ${skippedNames.length} võ sinh miễn học phí`;
-                document.getElementById('skippedThisMonthList').innerHTML = skippedNames.sort().map(n => `<span class="badge bg-amber-200 text-amber-900 border border-amber-400 shadow-sm cursor-pointer hover:bg-amber-300" onclick="openProfile('${n.replace(/'/g,"\\'")}')" title="Bấm để xem hồ sơ">${n}</span>`).join('');
+                const _skippedList = document.getElementById('skippedThisMonthList');
+                if (_skippedList) {
+                    _skippedList.innerHTML = '';
+                    skippedNames.sort().forEach(n => {
+                        const badge = document.createElement('span');
+                        badge.className = 'badge bg-amber-200 text-amber-900 border border-amber-400 shadow-sm cursor-pointer hover:bg-amber-300';
+                        badge.title = 'Bấm để xem hồ sơ';
+                        badge.textContent = String(n || '');
+                        badge.onclick = () => window.openProfile?.(n);
+                        _skippedList.appendChild(badge);
+                    });
+                }
             } else {
                 skippedSection.classList.add('hidden');
             }
@@ -7540,7 +7373,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                     _feeBreakdownHtml = '<div class="flex flex-wrap gap-1.5 mt-2.5 pt-2.5 border-t border-slate-100">' + _tuitionBadges + _examBadges + '</div>';
                 }
                 const _debtHtml = _bData.debt > 0 ? `<div class="text-xs mt-1" style="color:#dc2626;font-weight:700;">⚠️ ${_bData.debt} võ sinh nợ học phí</div>` : '';
-                _bsHtml += `<div class="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm"><div class="flex items-center gap-4"><div class="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center text-xl flex-shrink-0">🏢</div><div class="flex-1 min-w-0"><div class="font-black text-slate-800 text-sm truncate">${_bName}</div><div class="text-emerald-600 font-bold text-base">${_bData.income.toLocaleString()} ₫</div><div class="text-slate-500 text-xs mt-0.5">👥 ${_bData.active} võ sinh đang tập</div>${_debtHtml}</div></div>${_feeBreakdownHtml}</div>`;
+                _bsHtml += `<div class="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm"><div class="flex items-center gap-4"><div class="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center text-xl flex-shrink-0">🏢</div><div class="flex-1 min-w-0"><div class="font-black text-slate-800 text-sm truncate">${window.escapeHtml(String(_bName || ''))}</div><div class="text-emerald-600 font-bold text-base">${_bData.income.toLocaleString()} ₫</div><div class="text-slate-500 text-xs mt-0.5">👥 ${_bData.active} võ sinh đang tập</div>${_debtHtml}</div></div>${_feeBreakdownHtml}</div>`;
             }
             _bsGrid.innerHTML = _bsHtml;
         } else if(_bsSec) {
@@ -7579,7 +7412,8 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         else if(belt.includes('Đen - Đỏ') || belt.includes('Đỏ - Đen')) { bg = 'linear-gradient(to bottom, #1e293b 50%, #C8102E 50%)'; col = '#fff'; border = 'none'; extra = 'text-shadow:0 1px 3px rgba(0,0,0,0.6);'; }
         else if(belt.includes('đỏ')) { bg = 'var(--belt-red)'; col = '#fff'; border = 'none'; }
         else if(belt.includes('Đen')) { bg = 'var(--belt-black)'; col = '#fff'; border = 'none'; }
-        return `<span class="badge shadow-sm" style="background:${bg}; color:${col}; border:${border}; min-width: 90px; text-align:center;${extra}">${belt}</span>`;
+        const safeBelt = window.escapeHtml(String(belt || ''));
+        return `<span class="badge shadow-sm" style="background:${bg}; color:${col}; border:${border}; min-width: 90px; text-align:center;${extra}">${safeBelt}</span>`;
     }
 
     window.renderExamList = () => {
@@ -7633,16 +7467,16 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             if((typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus(p) : p.status) !== 'active' || (p.belt || 'Đai trắng - Cấp 10') !== filterBelt) return;
 
             let isPaid = paidStudents[name]; let safeName = name.replace(/'/g, "\\'");
-            let branchTdHTML = isSingleBranch ? '' : `<td class="col-branch"><span class="badge bg-slate-100 text-slate-600 border border-slate-200">${window.getBranchNameDisplay(p.branch || 'CS1')}</span></td>`;
+            let branchTdHTML = isSingleBranch ? '' : `<td class="col-branch"><span class="badge bg-slate-100 text-slate-600 border border-slate-200">${window.escapeHtml(String(window.getBranchNameDisplay(p.branch || 'CS1') || ''))}</span></td>`;
             let statusBadge = isPaid ? `<span class="badge badge-active">Đã nộp (${Number(isPaid.amount).toLocaleString()} đ)</span>` : `<span class="badge badge-quit">Chưa nộp</span>`;
             let actionBtn = isPaid ? (window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-slate-200 hover:bg-slate-300 text-slate-700" onclick="cancelExamPayment('${isPaid.id}', '${safeName}')">Hủy</button>` : '') : (window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-orange-500 hover:bg-orange-600 text-white shadow-sm cursor-pointer" onclick="quickCollectExam('${safeName}')">💰 Thu phí</button>` : '');
 
             const isNewlyUpgraded = typeof window.isNewlyUpgradedExamStudent === 'function'
                 ? window.isNewlyUpgradedExamStudent(name, p, selMonth)
                 : (p.upgradedAt && String(p.upgradedAt).slice(0, 7) >= selMonth.substring(0, 7) && p.upgradedFrom);
-            const newBadge = isNewlyUpgraded ? `<span class="ml-1 text-[0.65rem] font-black bg-amber-400 text-amber-900 px-1.5 py-0.5 rounded uppercase" title="Vừa thăng từ ${p.upgradedFrom} tháng ${p.upgradedAt}">↑ Mới lên</span>` : '';
+            const newBadge = isNewlyUpgraded ? `<span class="ml-1 text-[0.65rem] font-black bg-amber-400 text-amber-900 px-1.5 py-0.5 rounded uppercase" title="Vừa thăng từ ${window.escapeHtml(String(p.upgradedFrom || ''))} tháng ${window.escapeHtml(String(p.upgradedAt || ''))}">↑ Mới lên</span>` : '';
 
-            const row = `<tr class="${isNewlyUpgraded ? 'bg-amber-50/60' : ''}"><td><input type="checkbox" class="exam-check w-4 h-4 cursor-pointer accent-orange-500 rounded" value="${name.replace(/"/g, '&quot;')}"></td><td class="name-link text-[0.95rem]" onclick="openProfile('${safeName}')">${name}${newBadge}</td>${branchTdHTML}<td>${getBeltBadge(p.belt)}</td><td>${statusBadge}</td><td>${actionBtn}</td></tr>`;
+            const row = `<tr class="${isNewlyUpgraded ? 'bg-amber-50/60' : ''}"><td><input type="checkbox" class="exam-check w-4 h-4 cursor-pointer accent-orange-500 rounded" value="${window.escapeHtml(String(name || ''))}"></td><td class="name-link text-[0.95rem]" onclick="openProfile('${safeName}')">${window.escapeHtml(String(name || ''))}${newBadge}</td>${branchTdHTML}<td>${getBeltBadge(p.belt)}</td><td>${statusBadge}</td><td>${actionBtn}</td></tr>`;
 
             if(isNewlyUpgraded) { htmlNewlyUpgraded += row; newlyUpgradedCount++; }
             else { htmlOriginal += row; }
@@ -8767,7 +8601,8 @@ window._setupMiAutocomplete = () => {
             const p2 = allProfiles[nm];
             const beltStr = p2 ? (p2.belt || '') : '';
             const feeStr = p2 && p2.tuitionFee ? ' · ' + Number(p2.tuitionFee).toLocaleString('vi-VN') + '₫' : '';
-            div.innerHTML = '<span style="font-weight:700;color:#1e293b;">' + nm + '</span><span style="color:#94a3b8;font-size:0.72rem;">' + beltStr + feeStr + '</span>';
+            const _escMi = window.escapeHtml || (v => String(v || ''));
+            div.innerHTML = '<span style="font-weight:700;color:#1e293b;">' + _escMi(nm) + '</span><span style="color:#94a3b8;font-size:0.72rem;">' + _escMi(beltStr) + feeStr + '</span>';
             div.addEventListener('mousedown', e => { e.preventDefault(); pickName(nm); });
             div.addEventListener('touchend', e => { e.preventDefault(); pickName(nm); });
             listEl.appendChild(div);
@@ -10053,24 +9888,24 @@ window.processMultiItem = async (action) => {
                         ? (window.getBranchNameDisplay ? window.getBranchNameDisplay(data.branch) : data.branch)
                         : '';
                     const branchTag = branchDisplay
-                        ? `<span style="font-size:0.65rem;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:99px;padding:2px 7px;font-weight:700;">${branchDisplay}</span>`
+                        ? `<span style="font-size:0.65rem;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:99px;padding:2px 7px;font-weight:700;">${(window.escapeHtml || (v => String(v || '')))(branchDisplay)}</span>`
                         : '';
                     // Nền card hôm nay nổi bật hơn ngày cũ
                     const cardBg = isToday ? '#fffbeb' : '#fff';
                     const cardBorder = isToday ? '1px solid #fde68a' : '1px solid #e2e8f0';
                     html += `<div style="background:${cardBg};border:${cardBorder};border-radius:10px;padding:10px 13px;margin-bottom:5px;">
                         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:5px;">
-                            <span style="font-size:0.78rem;font-weight:800;color:#334155;">👨‍🏫 ${(data.coachName || 'HLV').replace(/</g,'&lt;')}</span>
+                            <span style="font-size:0.78rem;font-weight:800;color:#334155;">👨‍🏫 ${(window.escapeHtml || (v => String(v || '')))(data.coachName || 'HLV')}</span>
                             ${branchTag}
                         </div>
-                        <div style="font-size:0.83rem;color:#334155;line-height:1.6;white-space:pre-wrap;">${(data.note || '').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+                        <div style="font-size:0.83rem;color:#334155;line-height:1.6;white-space:pre-wrap;">${(window.escapeHtml || (v => String(v || '')))(data.note || '')}</div>
                     </div>`;
                 });
                 html += '</div>';
             });
             listEl.innerHTML = html;
         } catch(e) {
-            listEl.innerHTML = `<p style="color:#dc2626;font-size:0.82rem;text-align:center;padding:12px;">Lỗi tải ghi chú: ${e.message}</p>`;
+            listEl.innerHTML = `<p style="color:#dc2626;font-size:0.82rem;text-align:center;padding:12px;">Lỗi tải ghi chú: ${(window.escapeHtml || (v => String(v || '')))(e.message || '')}</p>`;
         }
     };
 
@@ -10086,16 +9921,16 @@ window.processMultiItem = async (action) => {
             ? (window.getBranchNameDisplay ? window.getBranchNameDisplay(data.branch) : data.branch)
             : '';
         const branchTag = branchDisplay
-            ? `<span style="font-size:0.63rem;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:99px;padding:2px 8px;font-weight:700;">${branchDisplay}</span>`
+            ? `<span style="font-size:0.63rem;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:99px;padding:2px 8px;font-weight:700;">${(window.escapeHtml || (v => String(v || '')))(branchDisplay)}</span>`
             : '';
         const dateDisplay = data.date ? data.date.split('-').reverse().join('/') : '';
         return `<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:9px;padding:9px 11px;">
             <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px;">
-                <strong style="font-size:0.8rem;color:#92400e;">👨‍🏫 ${(data.coachName || 'Huấn luyện viên').replace(/</g,'&lt;')}</strong>
+                <strong style="font-size:0.8rem;color:#92400e;">👨‍🏫 ${(window.escapeHtml || (v => String(v || '')))(data.coachName || 'Huấn luyện viên')}</strong>
                 ${branchTag}
                 <span style="font-size:0.72rem;color:#b45309;margin-left:2px;">• Ngày ${dateDisplay}</span>
             </div>
-            <div style="font-size:0.78rem;color:#78350f;line-height:1.55;white-space:pre-wrap;">${(data.notePreview || '').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+            <div style="font-size:0.78rem;color:#78350f;line-height:1.55;white-space:pre-wrap;">${(window.escapeHtml || (v => String(v || '')))(data.notePreview || '')}</div>
         </div>`;
     };
 

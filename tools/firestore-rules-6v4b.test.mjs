@@ -59,8 +59,11 @@ await env.withSecurityRulesDisabled(async context => {
   await seed('users/locked-a', { role: 'admin', clubId: 'club-a', status: 'locked' });
   await seed('users/super-1', { role: 'super_admin', status: 'active' });
   await seed('super_admins/super-1', { enabled: true });
+  await seed('super_admins/enabled-sa', { enabled: true, email: 'enabled-sa@example.com' });
+  await seed('super_admins/disabled-sa', { enabled: false, email: 'disabled-sa@example.com' });
+  await seed('super_admins/root-disabled', { enabled: false, email: 'admin@tstquynhon.com' });
 
-  await seed('clubs/club-a', { name: 'Club A', adminPassword: 'legacy-secret', passwordChangedAt: '2026-05-01' });
+  await seed('clubs/club-a', { name: 'Club A', clubName: 'Club A', adminEmail: 'admin-a@example.com', accountStatus: 'active', expiryDate: '2026-12-31', examEnabled: true, parentCode: 'PA001', cachedActiveCount: 2, cachedProfileCount: 3, cacheCoverage: { profiles: true }, adminPassword: 'legacy-secret', passwordChangedAt: '2026-05-01' });
   await seed('clubs/club-b', { name: 'Club B' });
   await seed('login_history/login-1', { email: 'someone@example.com', clubId: 'club-a', role: 'admin', loginAt: '2026-08-11T00:00:00.000Z', timestamp: 1786406400000, browser: 'test', os: 'test', deviceType: 'Desktop', deviceName: 'test' });
 
@@ -92,18 +95,37 @@ await env.withSecurityRulesDisabled(async context => {
   await seed('clubs/club-a/unknown_private/x1', { secret: true });
 });
 
-const coach1 = dbAs('coach-a1');
-const coach2 = dbAs('coach-a2');
-const coachStale = dbAs('coach-stale');
-const coachMissing = dbAs('coach-missing');
-const coachNoAssignment = dbAs('coach-no-assignment');
-const adminA = dbAs('admin-a');
-const adminB = dbAs('admin-b');
-const viewerA = dbAs('viewer-a');
-const lockedA = dbAs('locked-a');
+const coach1 = dbAs('coach-a1', { email: 'coach-a1@example.com' });
+const coach2 = dbAs('coach-a2', { email: 'coach-a2@example.com' });
+const coachStale = dbAs('coach-stale', { email: 'stale@example.com' });
+const coachMissing = dbAs('coach-missing', { email: 'missing@example.com' });
+const coachNoAssignment = dbAs('coach-no-assignment', { email: 'no@example.com' });
+const adminA = dbAs('admin-a', { email: 'admin-a@example.com' });
+const adminB = dbAs('admin-b', { email: 'admin-b@example.com' });
+const viewerA = dbAs('viewer-a', { email: 'viewer-a@example.com' });
+const lockedA = dbAs('locked-a', { email: 'locked-a@example.com' });
 const superDb = dbAs('super-1', { role: 'super_admin', email: 'super@example.com' });
+const enabledPrincipalDb = dbAs('enabled-sa', { email: 'enabled-sa@example.com' });
+const disabledPrincipalDb = dbAs('disabled-sa', { email: 'disabled-sa@example.com' });
+const rootDisabledDb = dbAs('root-disabled', { email: 'admin@tstquynhon.com' });
 const rootBootstrapDb = dbAs('root-bootstrap', { email: 'admin@tstquynhon.com' });
 const wrongBootstrapDb = dbAs('wrong-bootstrap', { email: 'other@example.com' });
+const unauthDb = env.unauthenticatedContext().firestore();
+
+function loginHistoryPayload(email, role, clubId, overrides = {}) {
+  return {
+    email,
+    clubId,
+    role,
+    loginAt: '2026-08-18T12:34:56.000Z',
+    timestamp: 1787056496000,
+    browser: 'Chrome',
+    os: 'Windows',
+    deviceType: 'Desktop',
+    deviceName: 'Test Device',
+    ...overrides,
+  };
+}
 
 try {
   await test('Coach CS1 reads canonical profile in assigned branch', async () => {
@@ -134,10 +156,13 @@ try {
   await test('Coach cannot read stats', async () => {
     await assertFails(getDoc(doc(coach1, 'clubs/club-a/stats/2026_06')));
   });
-  await test('Coach can read only compatible attendance settings', async () => {
-    await assertSucceeds(getDoc(doc(coach1, 'clubs/club-a/settings/main_config')));
+  await test('Coach sensitive config closure: main_config denied, shifts allowed', async () => {
+    await assertFails(getDoc(doc(coach1, 'clubs/club-a/settings/main_config')));
     await assertSucceeds(getDoc(doc(coach1, 'clubs/club-a/settings/shifts')));
     await assertFails(getDoc(doc(coach1, 'clubs/club-a/settings/inventory_stats')));
+  });
+  await test('Viewer retains existing main_config read behavior', async () => {
+    await assertSucceeds(getDoc(doc(viewerA, 'clubs/club-a/settings/main_config')));
   });
 
   await test('Coach can create attendance in assigned branch', async () => {
@@ -241,6 +266,112 @@ try {
     await assertSucceeds(getDoc(doc(superDb, 'clubs/club-b/profiles/p-b')));
   });
 
+
+  // ── Phase 4K-6V5U6H: Club root field-level authority ────────────────
+  await test('H unauthenticated actor cannot read club root', async () => {
+    await assertFails(getDoc(doc(unauthDb, 'clubs/club-a')));
+  });
+  await test('H Admin may update legitimate root cache fields', async () => {
+    await assertSucceeds(updateDoc(doc(adminA, 'clubs/club-a'), {
+      cachedActiveCount: 3,
+      cachedProfileCount: 4,
+      cacheCoverage: { profiles: true, source: 'rules-test' },
+    }));
+  });
+  await test('H2 Admin cannot update legacy parentCode', async () => {
+    await assertFails(updateDoc(doc(adminA, 'clubs/club-a'), { parentCode: 'PA002' }));
+  });
+  await test('H2 legacy parentCode may remain while Admin updates allowed cache only', async () => {
+    await assertSucceeds(updateDoc(doc(adminA, 'clubs/club-a'), { cachedActiveCount: 4 }));
+  });
+  await test('H2 mixed cache plus parentCode update is denied atomically', async () => {
+    await assertFails(updateDoc(doc(adminA, 'clubs/club-a'), { cachedActiveCount: 100, parentCode: 'NEWCODE' }));
+  });
+  await test('H Admin cannot extend expiryDate', async () => {
+    await assertFails(updateDoc(doc(adminA, 'clubs/club-a'), { expiryDate: '2099-12-31' }));
+  });
+  await test('H Admin cannot reactivate accountStatus', async () => {
+    await assertFails(updateDoc(doc(adminA, 'clubs/club-a'), { accountStatus: 'active-bypass' }));
+  });
+  await test('H Admin cannot mutate adminEmail', async () => {
+    await assertFails(updateDoc(doc(adminA, 'clubs/club-a'), { adminEmail: 'attacker@example.com' }));
+  });
+  await test('H Admin cannot mutate clubName', async () => {
+    await assertFails(updateDoc(doc(adminA, 'clubs/club-a'), { clubName: '<img src=x onerror=1>' }));
+  });
+  await test('H Admin cannot mutate examEnabled', async () => {
+    await assertFails(updateDoc(doc(adminA, 'clubs/club-a'), { examEnabled: false }));
+  });
+  await test('H Admin cannot create or replace plaintext adminPassword', async () => {
+    await assertFails(updateDoc(doc(adminA, 'clubs/club-a'), { adminPassword: 'new-secret-must-fail' }));
+  });
+  await test('H mixed cache plus privileged root update is denied atomically', async () => {
+    await assertFails(updateDoc(doc(adminA, 'clubs/club-a'), { cachedActiveCount: 100, expiryDate: '2099-12-31' }));
+  });
+  await test('H SuperAdmin retains privileged root metadata authority', async () => {
+    await assertSucceeds(updateDoc(doc(superDb, 'clubs/club-a'), {
+      expiryDate: '2027-12-31', accountStatus: 'active', clubName: 'Club A Super', adminEmail: 'admin-super@example.com', examEnabled: false,
+    }));
+  });
+  await test('H Viewer cannot update club root', async () => {
+    await assertFails(updateDoc(doc(viewerA, 'clubs/club-a'), { cachedActiveCount: 9 }));
+  });
+  await test('H Coach cannot update club root', async () => {
+    await assertFails(updateDoc(doc(coach1, 'clubs/club-a'), { cachedActiveCount: 9 }));
+  });
+  await test('H other-tenant Admin cannot update club root', async () => {
+    await assertFails(updateDoc(doc(adminB, 'clubs/club-a'), { cachedActiveCount: 9 }));
+  });
+
+  // ── Phase 4K-6V5U6H3: login_history identity + enabled principal ──
+  await test('H3 LH1 Admin valid login_history audit is allowed', async () => {
+    await assertSucceeds(setDoc(doc(adminA, 'login_history/lh-admin-valid'), loginHistoryPayload('admin-a@example.com', 'admin', 'club-a')));
+  });
+  await test('H3 LH2 Viewer valid login_history audit is allowed', async () => {
+    await assertSucceeds(setDoc(doc(viewerA, 'login_history/lh-viewer-valid'), loginHistoryPayload('viewer-a@example.com', 'viewer', 'club-a')));
+  });
+  await test('H3 LH3 Coach valid login_history audit is allowed', async () => {
+    await assertSucceeds(setDoc(doc(coach1, 'login_history/lh-coach-valid'), loginHistoryPayload('coach-a1@example.com', 'coach', 'club-a')));
+  });
+  await test('H3 LH4 Admin cannot spoof super_admin role', async () => {
+    await assertFails(setDoc(doc(adminA, 'login_history/lh-role-spoof'), loginHistoryPayload('admin-a@example.com', 'super_admin', 'club-a')));
+  });
+  await test('H3 LH5 Admin cannot spoof another club', async () => {
+    await assertFails(setDoc(doc(adminA, 'login_history/lh-club-spoof'), loginHistoryPayload('admin-a@example.com', 'admin', 'club-b')));
+  });
+  await test('H3 LH6 login_history email must match auth token', async () => {
+    await assertFails(setDoc(doc(adminA, 'login_history/lh-email-spoof'), loginHistoryPayload('attacker@example.com', 'admin', 'club-a')));
+  });
+  await test('H3 LH7 invalid deviceType is denied', async () => {
+    await assertFails(setDoc(doc(adminA, 'login_history/lh-device-type'), loginHistoryPayload('admin-a@example.com', 'admin', 'club-a', { deviceType: 'Tablet' })));
+  });
+  await test('H3 LH8 oversized deviceName is denied', async () => {
+    await assertFails(setDoc(doc(adminA, 'login_history/lh-device-name'), loginHistoryPayload('admin-a@example.com', 'admin', 'club-a', { deviceName: 'x'.repeat(161) })));
+  });
+  await test('H3 LH9 unknown login_history field is denied', async () => {
+    await assertFails(setDoc(doc(adminA, 'login_history/lh-unknown'), loginHistoryPayload('admin-a@example.com', 'admin', 'club-a', { injected: true })));
+  });
+  await test('H3 LH10 canonical SuperAdmin login_history audit is allowed', async () => {
+    await assertSucceeds(setDoc(doc(superDb, 'login_history/lh-super-valid'), loginHistoryPayload('super@example.com', 'super_admin', '')));
+  });
+
+  await test('H3 SA1 enabled principal alone can list clubs', async () => {
+    await assertSucceeds(getDocs(collection(enabledPrincipalDb, 'clubs')));
+  });
+  await test('H3 SA2 enabled principal alone can read login_history', async () => {
+    await assertSucceeds(getDocs(collection(enabledPrincipalDb, 'login_history')));
+  });
+  await test('H3 SA3 disabled principal alone cannot list clubs', async () => {
+    await assertFails(getDocs(collection(disabledPrincipalDb, 'clubs')));
+  });
+  await test('H3 SA4 disabled principal alone cannot read login_history', async () => {
+    await assertFails(getDocs(collection(disabledPrincipalDb, 'login_history')));
+  });
+  await test('H3 SA5 ROOT can read own disabled principal but gains no club-list authority', async () => {
+    await assertSucceeds(getDoc(doc(rootDisabledDb, 'super_admins/root-disabled')));
+    await assertFails(getDocs(collection(rootDisabledDb, 'clubs')));
+  });
+
   // ── Phase 4K-6V5U5: Canonical security truth / credential transition ──
   await test('V5U5 canonical SuperAdmin can list clubs', async () => {
     await assertSucceeds(getDocs(collection(superDb, 'clubs')));
@@ -248,8 +379,8 @@ try {
   await test('V5U5 Admin can read own club root', async () => {
     await assertSucceeds(getDoc(doc(adminA, 'clubs/club-a')));
   });
-  await test('V5U5 legacy club may update unrelated field while old secret is unchanged', async () => {
-    await assertSucceeds(updateDoc(doc(adminA, 'clubs/club-a'), { name: 'Club A Updated' }));
+  await test('V5U5 legacy club may update an allowed cache field while old secret is unchanged', async () => {
+    await assertSucceeds(updateDoc(doc(adminA, 'clubs/club-a'), { cachedStudentCount: 4 }));
   });
   await test('V5U5 Admin cannot replace legacy adminPassword with a new secret', async () => {
     await assertFails(updateDoc(doc(adminA, 'clubs/club-a'), { adminPassword: 'new-secret-must-fail' }));

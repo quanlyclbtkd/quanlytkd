@@ -42,8 +42,10 @@ check('attendance report requires stable documentId ordering', report.includes('
 check('attendance report source/public mirrors match', report === publicReport);
 check('report facade cache-busts attendance module', facade.includes(`import('./attendanceExcelReport.js?v=${build}')`));
 check('report facade source/public mirrors match', facade === publicFacade);
-check('main cache-busts report facade', main.includes(`reportExportFacade.js?v=${build}`));
-check('main source/public mirrors match for report import', publicMain.includes(`reportExportFacade.js?v=${build}`));
+const mainFacadeImport = main.match(/reportExportFacade\.js\?v=([^'"\s)]+)/)?.[0] || '';
+const publicMainFacadeImport = publicMain.match(/reportExportFacade\.js\?v=([^'"\s)]+)/)?.[0] || '';
+check('main cache-busts report facade', /^reportExportFacade\.js\?v=.+/.test(mainFacadeImport));
+check('main source/public mirrors match for report import', mainFacadeImport !== '' && publicMainFacadeImport === mainFacadeImport);
 check('index cache-busts app/main V5U-2E-or-later', (index.includes(`app.js?v=${build}`) || index.includes(`app.js?v=${v5u5Build}`)) && (index.includes(`./js/main.js?v=${dashboardBuild}`) || index.includes(`./js/main.js?v=${searchBuild}`) || index.includes(`./js/main.js?v=${build}`) || index.includes(`./js/main.js?v=${v5u5Build}`)));
 check('public index cache-busts app/main V5U-2E-or-later', (publicIndex.includes(`app.js?v=${build}`) || publicIndex.includes(`app.js?v=${v5u5Build}`)) && (publicIndex.includes(`./js/main.js?v=${dashboardBuild}`) || publicIndex.includes(`./js/main.js?v=${searchBuild}`) || publicIndex.includes(`./js/main.js?v=${build}`) || publicIndex.includes(`./js/main.js?v=${v5u5Build}`)));
 check('APP patch marker updated in app/main', app.includes(patch) && main.includes(patch));

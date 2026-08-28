@@ -65,7 +65,7 @@ function restoreFacadeOwnership() {
 async function ensureReportsApi() {
   if (reportsApi) return reportsApi;
   if (!reportsModulePromise) {
-    reportsModulePromise = import('../reports.js')
+    reportsModulePromise = import('../reports.js?v=club-root-listener-bootstrap-readiness-exam-full-roster-export-20260827-v5u6h5')
       .then((mod) => {
         if (typeof mod.initReports !== 'function') {
           throw new Error('reports.js không export initReports()');

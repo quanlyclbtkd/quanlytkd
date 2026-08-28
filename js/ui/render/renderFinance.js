@@ -21,7 +21,7 @@
  */
 
 import { registerRender } from './renderRegistry.js';
-import { getFinanceCachedHtml } from './computation/financeRenderer.js?v=student-given-name-priority-20260811-v5u3';
+import { getFinanceCachedHtml } from './computation/financeRenderer.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
 
 // ─── Core DOM helper ────────────────────────────────────────────────────────
 

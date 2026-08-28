@@ -1,0 +1,59 @@
+PHASE 4K-6V5U6H3 — CHANGED FILES
+Baseline: PHASE 4K-6V5U6H2_PARENT_PORTAL_HARD_DISABLE_PRODUCTION_VERIFICATION_SOURCE
+
+RUNTIME / RULES SOURCE MODIFIED
+- app.js
+  - login_history canonical output escaping
+  - SuperAdmin revenue output escaping
+  - enabled:false SuperAdmin principal fail-closed
+  - Inventory legacy-root primary-empty preserve guard
+- firestore.rules
+  - login_history strict schema/types/enums/identity binding
+  - super_admins principal requires enabled == true
+- functions/src/authz.js
+  - source-only enabled:true principal alignment (NOT deployed)
+- js/modules/students.js
+  - rebuild existing student search-index fields in same canonical update payload
+- js/main.js
+  - H3 build marker; students.js targeted cache bust
+- index.html
+  - H3 app/main cache bust; H2 compatibility marker preserved
+
+TEST / DIAGNOSTIC TOOLING MODIFIED
+- tools/check-stored-xss-trust-boundary.mjs
+- tools/check-superadmin-auth-principal-alignment.mjs
+- tools/check-production-security-trust-boundary.mjs
+- tools/check-student-search-index.mjs
+- tools/check-pilot-readiness.mjs
+- tools/check-scale-readiness.mjs
+- tools/firestore-rules-6v4b.test.mjs
+- tools/check-v5u1-student-status-command-cutover.mjs
+  - only to model bounded H3 source/H2 public pre-build state; exact mirror required again after build
+
+PUBLIC MIRRORS REGENERATED ONLY BY npm run build:public
+- public/app.js
+- public/index.html
+- public/js/main.js
+- public/js/modules/students.js
+
+UNCHANGED / FREEZE EVIDENCE
+- package.json: unchanged
+- package-lock.json: unchanged
+- js/modules/attendance.js: unchanged
+- js/services/attendance.service.js: unchanged
+- js/modules/dashboard.js: unchanged
+- js/modules/finance.js: unchanged
+- js/services/finance.service.js: unchanged
+- js/modules/debt.js: unchanged
+- js/modules/inventory.js: unchanged
+- js/core/transactionCanonicalBoundary.js: unchanged
+- js/core/tuitionCommandBoundary.js: unchanged
+- js/core/authContextAuthority.js: unchanged
+- tools/baselines/v5t-legacy-write-baseline.json: unchanged
+- tools/baselines/v5u1-legacy-write-baseline.json: unchanged
+- tools/baselines/v5u2-legacy-write-baseline.json: unchanged
+
+NEW CLIENT FIRESTORE READER: 0
+NEW CLIENT LISTENER: 0
+NEW CLIENT WRITER AUTHORITY: 0
+NEW POLLING/SCHEDULER: 0

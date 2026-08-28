@@ -37,7 +37,8 @@
  * ────────────────────────────────────────────────────────────────
  */
 
-import { getLocalToday } from '../utils/format.js';
+import { getLocalToday } from '../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
+import { escapeHtml } from '../utils/helpers.js';
 import { InventoryService } from '../services/inventory.service.js?v=firestore-read-attribution-canonical-tx-boundary-20260616-v3a';
 
 // ════════════════════════════════════════════════════════════════
@@ -208,8 +209,8 @@ export function initInventory() {
                     : 'Nhập size tự do';
                 html += `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#fff;border-radius:10px;margin-bottom:6px;border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
                     <div style="flex:1;min-width:0;">
-                        <span style="font-weight:700;font-size:0.85rem;">📦 ${cat.name}</span>
-                        <div style="font-size:0.68rem;color:#64748b;margin-top:2px;">${sizesText}</div>
+                        <span style="font-weight:700;font-size:0.85rem;">📦 ${escapeHtml(cat.name)}</span>
+                        <div style="font-size:0.68rem;color:#64748b;margin-top:2px;">${escapeHtml(sizesText)}</div>
                     </div>
                     <button type="button" onclick="window.deleteInvCategory(${idx})" style="background:#fee2e2;border:none;color:#dc2626;border-radius:8px;padding:5px 10px;font-size:0.75rem;font-weight:700;cursor:pointer;flex-shrink:0;margin-left:8px;">🗑 Xóa</button>
                 </div>`;

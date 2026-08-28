@@ -1,0 +1,77 @@
+===== npm run build:public =====
+
+> taekwondo-club-app@1.0.0 build:public
+> node tools/build-public.mjs
+
+[BuildPublic] Built /mnt/data/h4_work/PHASE_4K_6V5U6H3_RESIDUAL_SECURITY_DATA_INTEGRITY_RELEASE_VERIFICATION_SOURCE/public
+[BuildPublic] Included only: index.html, app.js, style.css, .nojekyll, js, css
+EXIT_CODE=0
+
+===== npm run check:deploy-package =====
+
+> taekwondo-club-app@1.0.0 check:deploy-package
+> node tools/check-deploy-package.mjs
+
+
+══════════════════════════════════════════════════════════
+  Deploy Package Structure Check
+══════════════════════════════════════════════════════════
+
+▸ Root files bắt buộc
+  ✅ index.html tồn tại
+  ✅ app.js tồn tại (legacy standalone mode)
+  ✅ style.css tồn tại
+  ✅ package.json tồn tại
+  ✅ .nojekyll tồn tại (GitHub Pages — ngăn Jekyll bỏ qua _prefix files)
+
+▸ Module JS files bắt buộc
+  ✅ js/main.js tồn tại (ES module entry point)
+  ✅ js/modules/superadmin.js tồn tại
+  ✅ js/modules/dashboard.js tồn tại
+  ✅ js/modules/students.js tồn tại
+
+▸ Thư mục bắt buộc
+  ✅ js/ thư mục tồn tại
+  ✅ js/modules/ thư mục tồn tại
+  ✅ js/services/ thư mục tồn tại
+
+══════════════════════════════════════════════════════════
+  Total: 12 checks | ✅ Pass: 12 | ❌ Fail: 0
+
+  🎉 Deploy package structure hợp lệ!
+  Tất cả file/thư mục bắt buộc đều có mặt — an toàn để đóng gói ZIP.
+══════════════════════════════════════════════════════════
+
+EXIT_CODE=0
+
+===== npm run check:deploy =====
+
+> taekwondo-club-app@1.0.0 check:deploy
+> node tools/check-deploy-contract.mjs
+
+[DeployContract] Kiểm tra Firebase Hosting deploy contract...
+
+[DeployContract] PASS  firebase.json tồn tại
+[DeployContract] PASS  firebase.json hợp lệ JSON
+[DeployContract] PASS  Có "hosting" config trong firebase.json
+[DeployContract] INFO  hosting.public = "public"
+[DeployContract] INFO  Hosting serve từ sub-directory "public"
+[DeployContract] PASS  Public root "public" tồn tại
+
+[DeployContract] Kiểm tra file bắt buộc trong public root...
+[DeployContract] PASS  public/index.html
+[DeployContract] PASS  public/app.js
+[DeployContract] PASS  public/style.css
+[DeployContract] PASS  public/js/main.js
+
+[DeployContract] Kiểm tra rewrites config...
+[DeployContract] PASS  SPA catch-all rewrite "**" → "/index.html" OK (Single Page App mode)
+
+[DeployContract] Kiểm tra ignore config...
+[DeployContract] PASS  Public sub-directory cô lập functions/tools/reports khỏi Hosting
+[DeployContract] PASS  ignore config không xóa nhầm file app chính
+
+[DeployContract] Đã kiểm tra: public="public", rewrites=1, ignores=3
+[DeployContract] ✅ OK — Deploy contract hoàn toàn hợp lệ.
+EXIT_CODE=0
+

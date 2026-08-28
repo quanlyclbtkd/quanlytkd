@@ -17,6 +17,7 @@
 
 import { AttendanceService } from '../services/attendance.service.js?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1';
 import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
+import { escapeHtml } from '../utils/helpers.js';
 
 const ATTENDANCE_OWNER = 'js/modules/attendance.js';
 const ATTENDANCE_OWNED_GLOBALS = Object.freeze([
@@ -666,6 +667,10 @@ function _renderAttCards() {
         const attNewBadge = (_attJoinM && _attCurMonth && _attJoinM === _attCurMonth)
             ? '<span style="font-size:0.58rem;background:#dcfce7;color:#15803d;border:1px solid #bbf7d0;border-radius:4px;padding:1px 4px;font-weight:900;margin-left:3px;vertical-align:middle;">MỚI</span>' : '';
         const _nickname = (p.nickname || '').trim();
+        const _safeNameHtml = escapeHtml(name);
+        const _safeDisplayNameHtml = escapeHtml(_attDisplayName(name));
+        const _safeNicknameHtml = escapeHtml(_nickname);
+        const _safeBeltHtml = escapeHtml(beltShort);
         const _cardWarnClass = churnWarn3 ? 'att-card-warn-red' : churnWarn2 ? 'att-card-warn-yellow' : '';
         html += '<div id="att_card_' + idx + '"'
             + (_cardWarnClass ? ' class="' + _cardWarnClass + '"' : '')
@@ -674,14 +679,14 @@ function _renderAttCards() {
             + ' onpointerdown="this.style.transform=\'scale(0.94)\'" onpointerup="this.style.transform=\'\'" onpointercancel="this.style.transform=\'\'">'
             + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px;">'
             + '<div style="flex:1;min-width:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">'
-            + '<span data-hidx="' + idx + '" onclick="event.stopPropagation();window.showAttMemberHistory(' + idx + ')" title="' + name.replace(/"/g,'&quot;') + ' — Xem lịch sử" style="font-weight:800;font-size:clamp(0.83rem,3.8vw,0.97rem);line-height:1.25;word-break:break-word;text-decoration:underline dotted;text-underline-offset:2px;cursor:pointer;">'
-            + _attDisplayName(name) + attYearBadge + attNewBadge + tuitionBadge + churnBadge
+            + '<span data-hidx="' + idx + '" onclick="event.stopPropagation();window.showAttMemberHistory(' + idx + ')" title="' + _safeNameHtml + ' — Xem lịch sử" style="font-weight:800;font-size:clamp(0.83rem,3.8vw,0.97rem);line-height:1.25;word-break:break-word;text-decoration:underline dotted;text-underline-offset:2px;cursor:pointer;">'
+            + _safeDisplayNameHtml + attYearBadge + attNewBadge + tuitionBadge + churnBadge
             + '</span></div>'
             + '<div style="font-size:1.15rem;flex-shrink:0;line-height:1;margin-top:1px;">' + cfg.icon + '</div>'
             + '</div>'
-            + (_nickname ? '<div style="font-size:0.58rem;font-weight:800;color:#7c3aed;background:#ede9fe;border:1px solid #ddd6fe;border-radius:5px;padding:2px 7px;display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:-1px;">🏷 ' + _nickname + '</div>' : '')
+            + (_nickname ? '<div style="font-size:0.58rem;font-weight:800;color:#7c3aed;background:#ede9fe;border:1px solid #ddd6fe;border-radius:5px;padding:2px 7px;display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:-1px;">🏷 ' + _safeNicknameHtml + '</div>' : '')
             + '<div style="display:flex;align-items:center;justify-content:space-between;gap:3px;">'
-            + '<div style="font-size:0.68rem;font-weight:700;opacity:0.85;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">🥋 ' + beltShort + '</div>'
+            + '<div style="font-size:0.68rem;font-weight:700;opacity:0.85;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">🥋 ' + _safeBeltHtml + '</div>'
             + '<div id="att_lbl_' + idx + '" style="font-size:0.65rem;font-weight:800;opacity:0.8;white-space:nowrap;flex-shrink:0;">' + cfg.icon + ' ' + cfg.label + '</div>'
             + '</div>'
             + '<div title="' + sessAttended + '/' + sessRequired + ' buổi – tiến độ thăng đai" style="height:2px;background:rgba(0,0,0,0.1);border-radius:2px;overflow:hidden;">'
@@ -719,10 +724,12 @@ function _renderAdminBranchSummary(totalSummary) {
         branches.sort().forEach(br => {
             const s = branchStats[br];
             const brName = window.getBranchNameDisplay ? window.getBranchNameDisplay(br) : br;
+            const _safeBrName = escapeHtml(brName);
+            const _safeBrId = escapeHtml(br);
             const pct = s.total > 0 ? Math.round(s.present / s.total * 100) : 0;
             const pctColor = pct >= 80 ? '#16a34a' : pct >= 60 ? '#d97706' : '#dc2626';
             html += `<div style="background:#f8fafc;border-radius:10px;padding:10px 12px;border:1.5px solid #e2e8f0;">
-                <div style="font-size:0.7rem;font-weight:900;color:#0033A0;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">📍 ${brName}</div>
+                <div style="font-size:0.7rem;font-weight:900;color:#0033A0;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">📍 ${_safeBrName}</div>
                 <div style="display:flex;gap:6px;flex-wrap:wrap;">
                     <span style="font-size:0.7rem;background:#f0fdf4;color:#16a34a;padding:2px 7px;border-radius:99px;font-weight:800;border:1px solid #22c55e;">✅ ${s.present}</span>
                     <span style="font-size:0.7rem;background:#fef2f2;color:#dc2626;padding:2px 7px;border-radius:99px;font-weight:800;border:1px solid #ef4444;">❌ ${s.absent}</span>
@@ -732,12 +739,13 @@ function _renderAdminBranchSummary(totalSummary) {
                     <div style="width:${pct}%;height:4px;background:${pctColor};border-radius:2px;transition:width 0.4s;"></div>
                 </div>
                 <div style="font-size:0.65rem;color:#64748b;margin-top:3px;font-weight:700;">${pct}% chuyên cần · ${s.total} VS</div>
-                <div id="coach_info_${br}" style="margin-top:5px;min-height:13px;"><span style="font-size:0.6rem;color:#cbd5e1;">⏳</span></div>
+                <div id="coach_info_${_safeBrId}" style="margin-top:5px;min-height:13px;"><span style="font-size:0.6rem;color:#cbd5e1;">⏳</span></div>
             </div>`;
         });
         html += '</div>';
     } else {
         const _onlyBr = branches[0];
+        const _safeOnlyBrId = escapeHtml(_onlyBr);
         const s = Object.values(branchStats)[0];
         const pct = s.total > 0 ? Math.round(s.present / s.total * 100) : 0;
         const pctColor = pct >= 80 ? '#16a34a' : pct >= 60 ? '#d97706' : '#dc2626';
@@ -748,7 +756,7 @@ function _renderAdminBranchSummary(totalSummary) {
                 <span style="font-size:0.78rem;background:#fefce8;color:#ca8a04;padding:4px 12px;border-radius:99px;font-weight:800;border:1.5px solid #eab308;">📝 Có phép: ${s.excused}</span>
                 <span style="font-size:0.78rem;font-weight:900;color:${pctColor};">${pct}% chuyên cần</span>
             </div>
-            <div id="coach_info_${_onlyBr}" style="margin-top:6px;min-height:13px;"><span style="font-size:0.6rem;color:#cbd5e1;">⏳</span></div>
+            <div id="coach_info_${_safeOnlyBrId}" style="margin-top:6px;min-height:13px;"><span style="font-size:0.6rem;color:#cbd5e1;">⏳</span></div>
         </div>`;
     }
     bodyEl.innerHTML = html;
@@ -773,12 +781,12 @@ function _applyCoachNotesToBranchSummary(_notesList, context) {
             if (!el) return;
             const multiCoach = data.coaches.length > 1;
             const coachLine = data.coaches.length
-                ? `<div style="font-size:0.62rem;font-weight:800;color:#0033A0;margin-bottom:3px;">👨‍🏫 ${data.coaches.join(', ')}</div>` : '';
+                ? `<div style="font-size:0.62rem;font-weight:800;color:#0033A0;margin-bottom:3px;">👨‍🏫 ${data.coaches.map(escapeHtml).join(', ')}</div>` : '';
             const notesHtml = data.notes.map(n => {
-                const pfx = multiCoach && n.coach ? `<span style="color:#0052cc;font-weight:800;">${n.coach}: </span>` : '';
+                const pfx = multiCoach && n.coach ? `<span style="color:#0052cc;font-weight:800;">${escapeHtml(n.coach)}: </span>` : '';
                 return `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:6px 9px;margin-top:4px;">
                     <div style="font-size:0.6rem;color:#15803d;font-weight:700;margin-bottom:2px;">✏️ Ghi chú buổi tập</div>
-                    <div style="font-size:0.75rem;color:#1e293b;line-height:1.55;white-space:pre-line;">${pfx}${n.note}</div>
+                    <div style="font-size:0.75rem;color:#1e293b;line-height:1.55;white-space:pre-line;">${pfx}${escapeHtml(n.note)}</div>
                 </div>`;
             }).join('');
             el.innerHTML = coachLine + (notesHtml || '<span style="font-size:0.6rem;color:#94a3b8;">HLV chưa để lại nội dung ghi chú</span>');
@@ -1510,10 +1518,11 @@ export function initAttendance() {
         html += '<div style="font-size:0.73rem;font-weight:900;color:#92400e;margin-bottom:7px;display:flex;align-items:center;gap:6px;"><span style="font-size:1.05rem;">🎂</span>SINH NHẬT HÔM NAY — ' + tDay + '/' + tMon + '</div>';
         branches.sort().forEach(br => {
             const brName = window.getBranchNameDisplay ? window.getBranchNameDisplay(br) : br;
+            const _safeBrName = escapeHtml(brName);
             const people = byBranch[br];
             html += '<div style="display:flex;align-items:baseline;flex-wrap:wrap;gap:4px;margin-bottom:3px;">';
             if (!hideBranchLabel) html += '<span style="font-size:0.64rem;font-weight:900;background:#fcd34d;color:#78350f;padding:1px 7px;border-radius:99px;flex-shrink:0;">📍 ' + brName + '</span>';
-            html += '<span style="font-size:0.78rem;font-weight:700;color:#92400e;">' + people.map(pr => pr.name + (pr.age ? ' (' + pr.age + ' tuổi)' : '')).join(', ') + '</span></div>';
+            html += '<span style="font-size:0.78rem;font-weight:700;color:#92400e;">' + people.map(pr => escapeHtml(pr.name) + (pr.age ? ' (' + pr.age + ' tuổi)' : '')).join(', ') + '</span></div>';
         });
         html += '</div>';
         bannerEl.innerHTML = html;
@@ -1615,8 +1624,8 @@ export function initAttendance() {
             calHtml += '</div>';
             bodyEl.innerHTML =
                 '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">'
-                + '<div><div style="font-size:1rem;font-weight:900;color:#0033A0;">' + name + '</div>'
-                + '<div style="font-size:0.72rem;color:#64748b;margin-top:3px;">🥋 ' + (p.belt||'Đai Trắng') + '</div></div>'
+                + '<div><div style="font-size:1rem;font-weight:900;color:#0033A0;">' + escapeHtml(name) + '</div>'
+                + '<div style="font-size:0.72rem;color:#64748b;margin-top:3px;">🥋 ' + escapeHtml(p.belt||'Đai Trắng') + '</div></div>'
                 + '<button onclick="document.getElementById(\'attHistModal\').style.display=\'none\'" style="background:#f1f5f9;border:none;border-radius:50%;width:32px;height:32px;font-size:1rem;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#475569;">✕</button>'
                 + '</div>' + scheduleHtml
                 + '<div style="display:flex;gap:7px;margin-bottom:12px;flex-wrap:wrap;">'
@@ -2184,7 +2193,7 @@ export function initAttendance() {
             rows.sort((a,b)=>a.name.localeCompare(b.name,'vi'));
             if (rows.length===0) { _showMsg('Không có dữ liệu điểm danh trong tháng này'); return; }
             const monthDisplay = selMonth.split('-').reverse().join('/');
-            const _mkBeltBadge = (belt) => window.getBeltBadge ? window.getBeltBadge(belt||'Trắng') : `<span class="badge" style="background:#f0f4ff;color:#0033A0;">${(belt||'Trắng').replace(/^Đai /i,'')}</span>`;
+            const _mkBeltBadge = (belt) => window.getBeltBadge ? window.getBeltBadge(belt||'Trắng') : `<span class="badge" style="background:#f0f4ff;color:#0033A0;">${escapeHtml((belt||'Trắng').replace(/^Đai /i,''))}</span>`;
             const _rateColor = (r) => r>=80?'#16a34a':r>=60?'#d97706':'#dc2626';
             const _rateBg    = (r) => r>=80?'#f0fdf4':r>=60?'#fefce8':'#fff1f2';
             const isMobile   = window.innerWidth <= 639;
@@ -2194,7 +2203,7 @@ export function initAttendance() {
                 cardsEl.style.display='block'; if(tableWrap)tableWrap.style.display='none';
                 let cardsHtml='';
                 rows.forEach(r => {
-                    const _safeName=r.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+                    const _nameToken=encodeURIComponent(String(r.name || '')).replace(/'/g,'%27');
                     const _mTot=r.present+r.excused+r.absent, _mRate=_mTot>0?Math.round(r.present/_mTot*100):null;
                     const _rateStr=_mRate!==null?`${_mRate}%`:'—', _rColor=_mRate!==null?_rateColor(_mRate):'#94a3b8', _rBg=_mRate!==null?_rateBg(_mRate):'#f8fafc';
                     const _mProfile=(_profiles()||{})[r.name]||{}, _mConsAbs=_mProfile.consecutiveAbsences||0;
@@ -2225,7 +2234,7 @@ export function initAttendance() {
                         : `<div style="margin-top:7px;padding-top:7px;border-top:1.5px dashed #e2e8f0;font-size:0.6rem;color:#94a3b8;font-style:italic;">📅 Chưa có lịch học để tính chuyên cần chuẩn</div>`;
                     cardsHtml+=`<div style="background:#fff;border-radius:14px;border:1px solid #e8edf5;padding:12px 14px;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,0.05);">
                         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:9px;">
-                            <div style="flex:1;min-width:0;overflow:hidden;"><span onclick="window.showAttMemberHistory('${_safeName}','${selMonth}')" style="font-weight:800;font-size:0.9rem;color:#0033A0;cursor:pointer;text-decoration:underline dotted;">${r.name}</span>${_mWarnHtml}</div>
+                            <div style="flex:1;min-width:0;overflow:hidden;"><span onclick="window.showAttMemberHistory(decodeURIComponent('${_nameToken}'),'${selMonth}')" style="font-weight:800;font-size:0.9rem;color:#0033A0;cursor:pointer;text-decoration:underline dotted;">${escapeHtml(r.name)}</span>${_mWarnHtml}</div>
                             <div style="flex-shrink:0;max-width:45%;">${_mkBeltBadge(r.belt)}</div>
                         </div>
                         <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:5px;margin-bottom:5px;">
@@ -2235,7 +2244,7 @@ export function initAttendance() {
                             <div style="text-align:center;background:${_rBg};border-radius:10px;padding:6px 3px;"><div style="font-size:1.05rem;font-weight:900;color:${_rColor};">${_rateStr}</div><div style="font-size:0.5rem;font-weight:800;color:${_rColor};margin-top:2px;">📊 CC</div></div>
                         </div>
                         ${_schedBlock}
-                        <button onclick="event.stopPropagation();window.copyAttReport('${_safeName}',${r.present},${r.excused},${r.absent},'${monthDisplay}')" style="width:100%;padding:8px;background:#0068FF;color:#fff;border:none;border-radius:10px;font-size:0.75rem;font-weight:800;cursor:pointer;margin-top:7px;">📋 Copy báo cáo Zalo gửi phụ huynh</button>
+                        <button onclick="event.stopPropagation();window.copyAttReport(decodeURIComponent('${_nameToken}'),${r.present},${r.excused},${r.absent},'${monthDisplay}')" style="width:100%;padding:8px;background:#0068FF;color:#fff;border:none;border-radius:10px;font-size:0.75rem;font-weight:800;cursor:pointer;margin-top:7px;">📋 Copy báo cáo Zalo gửi phụ huynh</button>
                     </div>`;
                 });
                 cardsEl.innerHTML=cardsHtml;
@@ -2243,7 +2252,7 @@ export function initAttendance() {
                 if(cardsEl)cardsEl.style.display='none'; if(tableWrap)tableWrap.style.display='';
                 let html='';
                 rows.forEach((r,i) => {
-                    const _safeName=r.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+                    const _nameToken=encodeURIComponent(String(r.name || '')).replace(/'/g,'%27');
                     const rowBg=i%2===0?'':'background:#f8fafc;', _mTot=r.present+r.excused+r.absent, _mRate=_mTot>0?Math.round(r.present/_mTot*100):null;
                     const _rateHtml=_mRate!==null?`<span style="font-weight:900;font-size:0.88rem;color:${_rateColor(_mRate)};">${_mRate}%</span>`:`<span style="color:#94a3b8;font-size:0.75rem;">—</span>`;
                     const _dtProfile=(_profiles()||{})[r.name]||{}, _dtConsAbs=_dtProfile.consecutiveAbsences||0;
@@ -2257,7 +2266,7 @@ export function initAttendance() {
                     const _cmpR2 = _acc2.completionRate !== null ? Math.round(_acc2.completionRate * 100) : null;
                     const _accHtml2 = _accR2 !== null ? `<span style="font-weight:900;font-size:0.85rem;color:${_rateColor(_accR2)};">${_accR2}%</span>` : `<span style="color:#94a3b8;font-size:0.72rem;">${_hasS ? '' : 'Chưa có lịch'}</span>`;
                     const _cmpHtml2 = _cmpR2 !== null ? `<span style="font-size:0.75rem;color:#475569;">${_cmpR2}%</span>` : `<span style="color:#cbd5e1;font-size:0.7rem;">—</span>`;
-                    html+=`<tr style="${rowBg}"><td><span onclick="window.showAttMemberHistory('${_safeName}','${selMonth}')" style="font-weight:700;color:#0033A0;cursor:pointer;text-decoration:underline dotted;">${r.name}</span>${_dtWarn}</td><td>${_mkBeltBadge(r.belt)}</td><td style="text-align:center;"><span style="font-weight:800;color:#16a34a;font-size:1rem;">${r.present}</span></td><td style="text-align:center;"><span style="font-weight:800;color:#2563eb;font-size:1rem;">${r.excused}</span></td><td style="text-align:center;"><span style="font-weight:800;color:#dc2626;font-size:1rem;">${r.absent}</span></td><td style="text-align:center;">${_rateHtml}</td><td style="text-align:center;">${_expHtml}</td><td style="text-align:center;">${_misHtml}</td><td style="text-align:center;">${_accHtml2}<br><span style="font-size:0.6rem;color:#94a3b8;">HT:${_cmpHtml2}</span></td><td style="text-align:center;"><button onclick="event.stopPropagation();window.copyAttReport('${_safeName}',${r.present},${r.excused},${r.absent},'${monthDisplay}')" style="background:#0068FF;color:#fff;border:none;padding:5px 9px;border-radius:8px;font-size:0.7rem;font-weight:700;cursor:pointer;">📋 Zalo</button></td></tr>`;
+                    html+=`<tr style="${rowBg}"><td><span onclick="window.showAttMemberHistory(decodeURIComponent('${_nameToken}'),'${selMonth}')" style="font-weight:700;color:#0033A0;cursor:pointer;text-decoration:underline dotted;">${escapeHtml(r.name)}</span>${_dtWarn}</td><td>${_mkBeltBadge(r.belt)}</td><td style="text-align:center;"><span style="font-weight:800;color:#16a34a;font-size:1rem;">${r.present}</span></td><td style="text-align:center;"><span style="font-weight:800;color:#2563eb;font-size:1rem;">${r.excused}</span></td><td style="text-align:center;"><span style="font-weight:800;color:#dc2626;font-size:1rem;">${r.absent}</span></td><td style="text-align:center;">${_rateHtml}</td><td style="text-align:center;">${_expHtml}</td><td style="text-align:center;">${_misHtml}</td><td style="text-align:center;">${_accHtml2}<br><span style="font-size:0.6rem;color:#94a3b8;">HT:${_cmpHtml2}</span></td><td style="text-align:center;"><button onclick="event.stopPropagation();window.copyAttReport(decodeURIComponent('${_nameToken}'),${r.present},${r.excused},${r.absent},'${monthDisplay}')" style="background:#0068FF;color:#fff;border:none;padding:5px 9px;border-radius:8px;font-size:0.7rem;font-weight:700;cursor:pointer;">📋 Zalo</button></td></tr>`;
                 });
                 tbody.innerHTML=html;
             }

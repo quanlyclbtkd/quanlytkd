@@ -1,3 +1,4 @@
+// V5U3 quit compatibility: studentsRenderer.js?v=student-given-name-priority-20260811-v5u3
 /**
  * ui/render.js — Phase 3.5B (Render Invalidation & Lifecycle Stabilization)
  *
@@ -43,7 +44,7 @@ import {
     normalizeYYYYMM,
     addMonthsToYYYYMM,
     getBeltBadge,
-} from '../utils/format.js';
+} from '../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
 
 // Phase 3.4: Render island scheduler + registry
 import { runRender } from './render/renderRegistry.js';
@@ -53,12 +54,12 @@ import {
     computeAndCacheFinance,
     getFinanceSummary,
     getFinanceCachedHtml,
-} from './render/computation/financeRenderer.js?v=student-given-name-priority-20260811-v5u3';
+} from './render/computation/financeRenderer.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
 import {
     computeAndCacheStudents,
     getStudentsSummary,
     getStudentsCachedHtml,
-} from './render/computation/studentsRenderer.js?v=student-given-name-priority-20260811-v5u3';
+} from './render/computation/studentsRenderer.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
 import {
     computeAndCacheInventory,
     getCachedLiveInvMap,

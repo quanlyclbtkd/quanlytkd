@@ -52,9 +52,10 @@ check('Missing users authorization doc fails closed without full-club scan',
 check('Coach login requires a canonical assigned branch',
   app.includes("_freshContext.role === 'coach' && !_freshContext.coachBranch") &&
   app.includes('Tài khoản HLV chưa được gán cơ sở'));
-check('Parent portal never recommends public Firestore reads',
-  app.includes('Không được dùng <code>allow read: if true</code>') &&
-  !app.includes('thêm quyền đọc cho bộ sưu tập "clubs", "profiles", "settings"'));
+check('Retired Parent Portal has no public Firestore runtime path',
+  !index.includes('loginPane_parent') &&
+  !/where\s*\(\s*['"]parentCode['"]/.test(app) &&
+  !/allow\s+(?:read|write|get|list)\s*:\s*if\s+true\s*;/.test(rules));
 
 check('New single-branch student writes use CS1 rather than legacy Mặc định',
   app.includes("isSingleBranch ? 'CS1'") && students.includes("isSingleBranch ? 'CS1'") &&
@@ -104,8 +105,9 @@ check('Coach cannot read transactions, inventory or stats',
   /match \/stats\/[\s\S]{0,220}isAdminOrViewer/.test(rules));
 check('Unknown tenant subcollections are deny-by-default',
   /match \/\{subcollection\}\/\{documentId\}[\s\S]{0,120}allow read, write: if false/.test(rules));
-check('Coach settings access is limited to main_config and shifts compatibility docs',
-  rules.includes("settingId in ['main_config', 'shifts']"));
+check('Coach settings access is limited to shifts; main_config is denied',
+  rules.includes("isCoach(clubId) && settingId == 'shifts'") &&
+  !rules.includes("settingId in ['main_config', 'shifts']"));
 check('CS1 and Mặc định compatibility exists only as an explicit primary alias',
   rules.includes("branchValue in ['CS1', 'Mặc định']") &&
   branchIdentity.includes("code === 'CS1' ? ['CS1', 'Mặc định']"));

@@ -1,0 +1,27 @@
+PHASE 4K-6V5U6H4 — FIRESTORE RULES EMULATOR RESULT
+timestamp=2026-08-19T00:33:41+00:00
+node=v22.16.0
+npm=10.9.2
+java:
+openjdk version "21.0.11" 2026-04-21
+OpenJDK Runtime Environment (build 21.0.11+10-1-deb13u2-Debian)
+OpenJDK 64-Bit Server VM (build 21.0.11+10-1-deb13u2-Debian, mixed mode, sharing)
+firebase_cli_local:
+UNAVAILABLE
+firebase_cli_global:
+UNAVAILABLE
+npm_ci_status=BLOCKED
+npm_ci_reason=DNS/REGISTRY EAI_AGAIN; see PHASE_4K_6V5U6H4_NPM_CI_OUTPUT.txt and npm debug log
+command=npm run check:rules:emulator
+project=demo-taekwondo-6v4b
+--- command output ---
+
+> taekwondo-club-app@1.0.0 check:rules:emulator
+> firebase emulators:exec --only firestore --project demo-taekwondo-6v4b "node tools/firestore-rules-6v4b.test.mjs"
+
+sh: 1: firebase: not found
+--- end command output ---
+exit_code=127
+classification=A_DEPENDENCY_ENVIRONMENT_FAILURE
+final_status=BLOCKED
+rules_verified=NO

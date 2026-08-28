@@ -176,6 +176,40 @@ const sortExamExportEntries = function(entries) {
     });
 };
 
+// Phase 4K-6V5U6H5 — Exam export roster builder.
+// Profiles are already canonical RAM state; paidByName comes from the existing
+// canonical exam-payment ledger. This helper performs zero Firestore reads/writes.
+export function buildExamFullRosterDataForExport({ profiles = {}, paidByName = {}, classifyProfileStatus, beltNext = {} } = {}) {
+    const roster = {};
+    Object.keys(profiles || {}).forEach(name => {
+        const profile = profiles[name] || {};
+        const status = typeof classifyProfileStatus === 'function'
+            ? classifyProfileStatus(profile)
+            : (profile.status === 'quit' || profile.active === false || profile.isActive === false ? 'quit' : 'active');
+        if (status !== 'active') return;
+
+        const paidEntry = paidByName[name] || null;
+        const paid = !!paidEntry && Number(paidEntry.amount || 0) > 0;
+        const currentBelt = profile.belt || 'Đai trắng - Cấp 10';
+        const targetBelt = (paidEntry && paidEntry.targetBelt)
+            || (beltNext && beltNext[currentBelt])
+            || '';
+
+        roster[name] = {
+            profile,
+            branch: (paidEntry && paidEntry.branch) || profile.branch || 'CS1',
+            currentBelt,
+            targetBelt,
+            paid,
+            amount: paid ? Number(paidEntry.amount || 0) : 0,
+            txId: paid ? String(paidEntry.txId || '') : '',
+            timestamp: paid ? Number(paidEntry.timestamp || 0) : 0,
+        };
+    });
+    return roster;
+}
+
+
 // ── Phase 4K-4D: Fallback classify helper (reports — Node/export context safe) ──
 function _classifyInvTxForReport(tx, cats) {
     const type   = String(tx && tx.type || '').trim();
@@ -1170,7 +1204,15 @@ export function initReports() {
             if (window.__reportsModuleMetrics) window.__reportsModuleMetrics.lastError = String(_paidDataErr && _paidDataErr.message);
         }
 
-        if (Object.keys(paidData).length === 0) return alert(`Không có võ sinh nào ĐÃ NỘP Lệ phí thi trong kỳ ${formatMonth(selMonth)}! Vui lòng thu lệ phí trước khi xuất danh sách.`);
+        const examRosterData = buildExamFullRosterDataForExport({
+            profiles: allProfiles,
+            paidByName: paidData,
+            classifyProfileStatus: typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus : undefined,
+            beltNext: window.BELT_NEXT || {},
+        });
+        if (Object.keys(examRosterData).length === 0) {
+            return alert('Không có võ sinh đang tập để xuất danh sách.');
+        }
 
         const NCOLS    = 11;
         const clubName = (clubData && clubData.clubName) || 'CLB';
@@ -1186,6 +1228,7 @@ export function initReports() {
         const fTitle= { bold:true, sz:14, name:'Arial', color:{rgb:'FFFFFF'} };
         const fSub  = { bold:true, sz:10, name:'Arial', color:{rgb:'1E3A6E'} };
         const fPaid = { bold:true, sz:10, name:'Arial', color:{rgb:'166534'} };
+        const fUnpaid = { bold:true, sz:10, name:'Arial', color:{rgb:'B91C1C'} };
         const fTot  = { bold:true, sz:11, name:'Arial', color:{rgb:'166534'} };
         const fSign = { sz:10, name:'Arial', italic:true, color:{rgb:'475569'} };
 
@@ -1194,6 +1237,7 @@ export function initReports() {
         const fillHdr   = { patternType:'solid', fgColor:{rgb:'1E40AF'} };
         const fillAlt   = { patternType:'solid', fgColor:{rgb:'F0F4FF'} };
         const fillPaid  = { patternType:'solid', fgColor:{rgb:'DCFCE7'} };
+        const fillUnpaid = { patternType:'solid', fgColor:{rgb:'FEE2E2'} };
         const fillTot   = { patternType:'solid', fgColor:{rgb:'D1FAE5'} };
 
         const cCenter = { horizontal:'center', vertical:'center', wrapText:true };
@@ -1213,7 +1257,7 @@ export function initReports() {
         const cc = (v, alt) => mc(v, fNorm, alt ? fillAlt : null, bAll, cCenter);
         const bMixBorder = {top:{style:'thin',color:{rgb:'AAAAAA'}},bottom:{style:'medium',color:{rgb:'0033A0'}},left:{style:'medium',color:{rgb:'0033A0'}},right:{style:'medium',color:{rgb:'0033A0'}}};
 
-        const buildSheet = (subset, titleLine1, titleLine2, _capturePreview) => {
+        const buildSheet = (subset, titleLine1, _capturePreview) => {
             // Phase 4K-6E-B: sort by belt order instead of plain name sort
             const _entries = Object.keys(subset).map(name => ({
                 name,
@@ -1227,7 +1271,10 @@ export function initReports() {
             }
 
             const totalStudents = sortedEntries.length;
-            const totalFee     = sortedEntries.reduce((s, e) => s + (e.amount || 0), 0);
+            const paidStudents = sortedEntries.filter(e => e.paid === true).length;
+            const unpaidStudents = totalStudents - paidStudents;
+            const totalFee = sortedEntries.reduce((sum, entry) => sum + (entry.paid ? Number(entry.amount || 0) : 0), 0);
+            const titleLine2 = `Tổng võ sinh: ${totalStudents}  |  Đã nộp phí: ${paidStudents}  |  Chưa nộp phí: ${unpaidStudents}  |  Tổng lệ phí đã thu: ${totalFee.toLocaleString('vi-VN')} ₫  |  Ngày xuất: ${formatDate(getLocalToday())}`;
 
             const ws_data = [
                 [mc(titleLine1, fTitle, fillTitle, bBold, cCenter),
@@ -1244,26 +1291,27 @@ export function initReports() {
                 const name = entry.name;
                 const p   = entry.profile || allProfiles[name] || {};
                 const alt = stt % 2 === 0;
-                const paidCell = mc('✔ Đã nộp phí', fPaid, fillPaid, bAll, cCenter);
+                const paidCell = entry.paid
+                    ? mc(`✔ Đã nộp phí — ${Number(entry.amount || 0).toLocaleString('vi-VN')} ₫`, fPaid, fillPaid, bAll, cCenter)
+                    : mc('✖ Chưa nộp phí', fUnpaid, fillUnpaid, bAll, cCenter);
                 ws_data.push([
                     cc(stt++, alt),
                     bc(name, alt),
                     cc(p.gender || '', alt),
                     cc(p.dob || '', alt),
                     cc(p.memberId || '', alt),
-                    cc(_branchName(p.branch || 'CS1'), alt),
+                    cc(_branchName(entry.branch || p.branch || 'CS1'), alt),
                     nc(p.belt || 'Chưa cập nhật', alt),
-                    nc(entry.targetBelt || subset[name].targetBelt, alt),
+                    nc(entry.targetBelt || '', alt),
                     cc(p.cccd || '', alt),
                     paidCell,
                     mc('', fNorm, alt ? fillAlt : null, bAll, cCenter),
                 ]);
             });
 
-            const feeStr = totalFee > 0 ? '  —  Tổng phí: ' + totalFee.toLocaleString('vi-VN') + ' ₫' : '';
             ws_data.push([
                 mc('TỔNG CỘNG', fTot, fillTot, bBold, cCenter),
-                mc(`${totalStudents} võ sinh${feeStr}`, fTot, fillTot, bBold, cLeft),
+                mc(`${totalStudents} võ sinh — Đã nộp: ${paidStudents} — Chưa nộp: ${unpaidStudents} — Tổng phí: ${totalFee.toLocaleString('vi-VN')} ₫`, fTot, fillTot, bBold, cLeft),
                 ...Array.from({length: NCOLS-2}, () => mc('', fTot, fillTot, bBold, cCenter)),
             ]);
 
@@ -1294,13 +1342,9 @@ export function initReports() {
             return ws;
         };
 
-        const totalStudents   = Object.keys(paidData).length;
-        const overallTotalFee = Object.values(paidData).reduce((s, d) => s + (d.amount || 0), 0);
-        const overallFeeStr   = overallTotalFee > 0 ? `  |  Tổng lệ phí: ${overallTotalFee.toLocaleString('vi-VN')} ₫` : '';
         const ws1 = buildSheet(
-            paidData,
+            examRosterData,
             'DANH SÁCH ĐĂNG KÝ THI LÊN ĐAI',
-            `Tổng số võ sinh đăng ký: ${totalStudents}${overallFeeStr}  |  Ngày xuất: ${formatDate(getLocalToday())}`,
             true  // Phase 4K-6E-B: capture preview for debugExamExportSortPreview
         );
 
@@ -1312,17 +1356,17 @@ export function initReports() {
                 const branchCode  = 'CS' + _bi;
                 const branchName  = _branchName(branchCode);
                 const branchSubset = {};
-                Object.keys(paidData).forEach(name => {
-                    const entryBranch = paidData[name].branch || (allProfiles[name] || {}).branch || 'CS1';
-                    if (entryBranch === branchCode) branchSubset[name] = paidData[name];
+                Object.keys(examRosterData).forEach(name => {
+                    const entryBranchRaw = examRosterData[name].branch || (allProfiles[name] || {}).branch || 'CS1';
+                    const entryBranch = window.BranchIdentity?.normalize
+                        ? window.BranchIdentity.normalize(entryBranchRaw, { fallback: entryBranchRaw || 'CS1' })
+                        : entryBranchRaw;
+                    if (entryBranch === branchCode) branchSubset[name] = examRosterData[name];
                 });
                 if (Object.keys(branchSubset).length === 0) continue;
-                const branchTotal    = Object.values(branchSubset).reduce((s, d) => s + (d.amount || 0), 0);
-                const branchStuCount = Object.keys(branchSubset).length;
                 const ws_branch = buildSheet(
                     branchSubset,
-                    `DANH SÁCH ĐĂNG KÝ THI — ${branchName.toUpperCase()}`,
-                    `Võ sinh: ${branchStuCount}  |  Tổng lệ phí: ${branchTotal > 0 ? branchTotal.toLocaleString('vi-VN') + ' ₫' : 'N/A'}  |  Ngày xuất: ${formatDate(getLocalToday())}`
+                    `DANH SÁCH ĐĂNG KÝ THI — ${branchName.toUpperCase()}`
                 );
                 const safeSheetName = (branchCode + '_' + branchName).replace(/[:\\\/\?\*\[\]]/g, '').substring(0, 31);
                 XLSX.utils.book_append_sheet(wb, ws_branch, safeSheetName);

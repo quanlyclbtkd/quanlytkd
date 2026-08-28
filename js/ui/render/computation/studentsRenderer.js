@@ -40,11 +40,12 @@ import {
     normalizeYYYYMM,
     addMonthsToYYYYMM,
     getBeltBadge,
-} from '../../../utils/format.js';
+} from '../../../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
 
 // Phase 4K-STUDENT-LIST: Classifier chung — không dùng p.status === 'quit' trực tiếp
 import { classifyProfileStatus } from '../../../data/profileStatusConfig.js';
 import { rankStudentNameSearchResults } from '../../../core/studentSearchIndex.js?v=student-given-name-priority-20260811-v5u3';
+import { escapeHtml } from '../../../utils/helpers.js';
 
 // ── Phase 4K-2B: Fallback blob builder (used when getProfileSearchBlob unavailable) ──
 function _fallbackProfileBlob(name, p) {
@@ -233,7 +234,11 @@ export function renderActiveRow(name, p, opts = {}) {
         newBadge = '', nickBadge = '', paidBadge = '', isAdmin = false,
     } = opts;
     const safeNameEsc = name.replace(/'/g, "\\'");
-    return `<tr data-student-id="${safeNameEsc}"><td class="name-link text-[0.95rem]" onclick="openProfile('${safeNameEsc}')">${_disp(name)}${yrBadge}${newBadge}${p.notes ? ` <span title="${p.notes}">📝</span>` : ''}${nickBadge}</td><td class="text-[0.7rem] font-bold text-slate-500">${p.memberId || '-'}</td><td>${beltHTML}</td>${branchTdHTML}<td>${formatDate(p.dob)}</td><td>${paidBadge}</td><td class="font-medium text-slate-600">${p.phone || ''}</td><td class="text-slate-500">${formatDate(p.createdAt)}</td><td><button type="button" class="btn-sm bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200" onclick="openProfile('${safeNameEsc}')">${isAdmin ? '✏️ Sửa' : '👁️ Xem'}</button></td></tr>`;
+    const safeDisplay = escapeHtml(_disp(name));
+    const safeNotes = escapeHtml(p.notes || '');
+    const safeMemberId = escapeHtml(p.memberId || '-');
+    const safePhone = escapeHtml(p.phone || '');
+    return `<tr data-student-id="${escapeHtml(name)}"><td class="name-link text-[0.95rem]" onclick="openProfile('${safeNameEsc}')">${safeDisplay}${yrBadge}${newBadge}${p.notes ? ` <span title="${safeNotes}">📝</span>` : ''}${nickBadge}</td><td class="text-[0.7rem] font-bold text-slate-500">${safeMemberId}</td><td>${beltHTML}</td>${branchTdHTML}<td>${formatDate(p.dob)}</td><td>${paidBadge}</td><td class="font-medium text-slate-600">${safePhone}</td><td class="text-slate-500">${formatDate(p.createdAt)}</td><td><button type="button" class="btn-sm bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200" onclick="openProfile('${safeNameEsc}')">${isAdmin ? '✏️ Sửa' : '👁️ Xem'}</button></td></tr>`;
 }
 
 /**
@@ -454,7 +459,7 @@ export function computeAndCacheStudents(allProfiles, params) {
                 ? `<span class="badge bg-blue-100 text-blue-600 text-[0.6rem] ml-1">MỚI</span>`
                 : '';
             const nickBadge = p.nickname
-                ? `<span class="text-[0.7rem] text-slate-400 ml-1">(${p.nickname})</span>`
+                ? `<span class="text-[0.7rem] text-slate-400 ml-1">(${escapeHtml(p.nickname)})</span>`
                 : '';
             // Phase 4K-6V4C2: skipped-month summary must use canonical month
             // normalization. Raw includes(selMonth) hides values like "Tháng Sáu 2026".
@@ -642,7 +647,7 @@ export function computeAndCacheStudents(allProfiles, params) {
                         ? `<span class="badge bg-blue-100 text-blue-600 text-[0.6rem] ml-1">MỚI</span>`
                         : '';
                     const nickBadge = p.nickname
-                        ? `<span class="text-[0.7rem] text-slate-400 ml-1">(${p.nickname})</span>`
+                        ? `<span class="text-[0.7rem] text-slate-400 ml-1">(${escapeHtml(p.nickname)})</span>`
                         : '';
                     if (buildActive) {
                         activeRows += renderActiveRow(name, p, {

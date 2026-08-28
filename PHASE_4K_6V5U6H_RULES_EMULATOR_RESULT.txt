@@ -1,0 +1,32 @@
+PHASE 4K-6V5U6H1 — FIRESTORE RULES EMULATOR RESULT
+Timestamp UTC: 2026-08-17T15:29:26Z
+Node version: v22.16.0
+npm version: 10.9.2
+Firebase CLI version: UNAVAILABLE
+Canonical emulator project: demo-taekwondo-6v4b
+Firestore emulator host/port: 127.0.0.1:8180
+
+DEPENDENCY INSTALL
+Command: npm ci
+Exit code: 1 on deterministic retry; initial exact run also failed to complete because package fetch DNS resolution failed.
+Environment evidence: package downloads from packages.applied-caas-gateway1.internal.api.openai.org and npm registry returned EAI_AGAIN; lockfile was not changed.
+Representative npm debug evidence:
+  GET .../zod-4.4.3.tgz attempt 1 failed with EAI_AGAIN
+  GET .../zip-stream-6.0.1.tgz attempt 1 failed with EAI_AGAIN
+  npm v10.9.2 ultimately exited code 1 ("Exit handler never called!") after network fetch failures.
+Classification: DEPENDENCY INSTALL = BLOCKED (environment/network resolution)
+
+RULES EMULATOR
+Command executed: npm run check:rules:emulator
+Expanded command: firebase emulators:exec --only firestore --project demo-taekwondo-6v4b "node tools/firestore-rules-6v4b.test.mjs"
+Raw result:
+  sh: 1: firebase: not found
+Exit code: 127
+Classification: B. dependency/environment failure
+Rules semantic test execution: NOT EXECUTED
+
+IMPORTANT
+- firestore.rules was NOT modified.
+- The emulator project was NOT changed to quanly-tst.
+- No Rules test touched production.
+- This result is NOT a Rules PASS and cannot be used to claim RULES VERIFIED.

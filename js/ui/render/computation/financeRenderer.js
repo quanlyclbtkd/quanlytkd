@@ -26,7 +26,7 @@
  *   can key on it without re-scanning table structure.
  */
 
-import { formatDate, formatMonth } from '../../../utils/format.js';
+import { formatDate, formatMonth } from '../../../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
 import { rankStudentNameSearchResults } from '../../../core/studentSearchIndex.js?v=student-given-name-priority-20260811-v5u3';
 
 // ── Phase 4K-4D: Fallback classify (nếu window.classifyInventoryFinanceTx chưa load) ──
@@ -278,7 +278,7 @@ export function renderTxRow(tx, opts = {}) {
  */
 export function renderExpenseRow(tx, opts = {}) {
     const { branchTdHTML = '', btnDel = '', btnEditExp = '' } = opts;
-    return `<tr data-expense-id="${tx.id || ''}"><td>${formatDate(tx.date)}</td>${branchTdHTML}<td class="font-bold text-slate-800">${tx.description}</td><td class="text-rose-600 font-bold">-${(Number(tx.amount) || 0).toLocaleString()}</td><td class="action-btns">${btnEditExp}${btnDel}</td></tr>`;
+    return `<tr data-expense-id="${_escAttr(tx.id || '')}"><td>${formatDate(tx.date)}</td>${branchTdHTML}<td class="font-bold text-slate-800">${_escHtml(tx.description)}</td><td class="text-rose-600 font-bold">-${(Number(tx.amount) || 0).toLocaleString()}</td><td class="action-btns">${btnEditExp}${btnDel}</td></tr>`;
 }
 
 /**
@@ -293,7 +293,7 @@ export function renderExpenseRow(tx, opts = {}) {
  */
 export function renderExamExpRow(tx, opts = {}) {
     const { btnDel = '', btnEditExp = '' } = opts;
-    return `<tr data-exam-exp-id="${tx.id || ''}"><td>${formatDate(tx.date)}</td><td class="font-bold text-slate-800">${tx.description}</td><td class="text-rose-600 font-bold">-${(Number(tx.amount) || 0).toLocaleString()}</td><td class="action-btns">${btnEditExp}${btnDel}</td></tr>`;
+    return `<tr data-exam-exp-id="${_escAttr(tx.id || '')}"><td>${formatDate(tx.date)}</td><td class="font-bold text-slate-800">${_escHtml(tx.description)}</td><td class="text-rose-600 font-bold">-${(Number(tx.amount) || 0).toLocaleString()}</td><td class="action-btns">${btnEditExp}${btnDel}</td></tr>`;
 }
 
 // ── Core computation ──────────────────────────────────────────────────────────
