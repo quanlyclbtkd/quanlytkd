@@ -1,0 +1,1990 @@
+
+> taekwondo-club-app@1.0.0 check:release
+> node tools/check-release.mjs
+
+
+=== PHASE 4K-6V5U6H6 — CANONICAL RELEASE GATE ===
+
+
+>>> npm run check:syntax
+
+> taekwondo-club-app@1.0.0 check:syntax
+> node tools/check-syntax.mjs
+
+[SyntaxCheck] Scanning project JS files and index.html inline scripts...
+
+
+[SyntaxCheck] Checked: 246 items
+              JS files: 238
+              Inline scripts in index.html: 8
+
+[SyntaxCheck] OK — JS files and inline scripts are valid.
+
+>>> npm run check:production-authority-closure
+
+> taekwondo-club-app@1.0.0 check:production-authority-closure
+> node tools/check-production-authority-closure.mjs
+
+✅ immutable production authority policy exists
+✅ policy selects exactly the client stats writer
+✅ policy disables legacy runtime recovery
+✅ policy is exposed read-only
+✅ main installs policy before runtime writers
+✅ exact V5U6E build marker is active
+✅ transaction listener publishes one store coverage object
+✅ coverage carries club/month/readMode
+✅ canonical coverage requires canonical source seen
+✅ legacy coverage requires all three source snapshots
+✅ limit hit uses >= and never assumes exact limit complete
+✅ coverage resets on club switch
+✅ coverage resets on logout
+✅ coverage resets before month/read-mode listener attach
+✅ legacy root recovery explicitly resets finance coverage
+✅ stats writer requires same club and month
+✅ stats writer requires ready and complete true
+✅ stats writer fails closed without selected production policy
+✅ incomplete finance is represented by metadata, not zero
+✅ financial root payload is conditional
+✅ financial stats payload is conditional
+✅ member cache remains outside finance conditional
+✅ SuperAdmin auto callable dispatch is removed
+✅ server refresh compatibility API is policy guarded
+✅ default client does not load Firebase Functions SDK
+✅ default deployment config excludes Functions
+✅ Functions source has explicit archive-only config
+✅ SuperAdmin rejects explicitly incomplete root finance cache
+✅ incomplete root coverage suppresses targeted stats fallback
+✅ app-context-ready no longer auto-runs recovery
+✅ late main replay no longer auto-runs recovery
+✅ normal resolve call is zero-probe
+✅ manual source probes require explicit options
+✅ manual runtime recovery requires explicit probe
+✅ legacy activation requires explicit activateLegacy
+✅ Coach diagnostic probe is blocked before _hasDoc
+✅ parallel gate freezes no automatic source detector
+✅ tenant rules retain narrow bootstrap get
+✅ tenant rules retain SuperAdmin-only list
+✅ tenant rules do not grant Club Admin/Viewer/public access
+✅ dynamic canonical < limit is complete
+✅ dynamic canonical = limit is incomplete
+✅ dynamic legacy all sources < limit is complete
+✅ dynamic legacy one source = limit is incomplete
+✅ dynamic legacy hydration waits for all three sources
+✅ dynamic merged dedup count cannot hide a source limit hit
+[ClubStatsAutoCache] synced cache {
+  cid: 'club_A',
+  active: 1,
+  revenue: 'unknown',
+  financeComplete: false,
+  reason: 'v5u6e-dynamic'
+}
+✅ dynamic high-volume still allows member root cache update
+✅ dynamic high-volume root has financeComplete=false metadata
+✅ dynamic high-volume root writes zero financial fields
+✅ dynamic high-volume stats doc writes zero financial fields
+✅ dynamic high-volume member write does not advance finance updatedAt
+✅ dynamic high-volume result reports financial writes skipped
+✅ dynamic unknown finance is not fabricated as zero
+[ClubStatsAutoCache] synced cache {
+  cid: 'club_A',
+  active: 1,
+  revenue: 449500000,
+  financeComplete: true,
+  reason: 'v5u6e-dynamic'
+}
+✅ dynamic complete coverage authorizes root finance
+✅ dynamic complete coverage authorizes stats finance
+✅ dynamic complete coverage totals are exact
+[ClubStatsAutoCache] synced cache {
+  cid: 'club_A',
+  active: 1,
+  revenue: 'unknown',
+  financeComplete: false,
+  reason: 'v5u6e-dynamic'
+}
+✅ dynamic Club B coverage cannot authorize Club A finance
+✅ dynamic non-client policy blocks all client stats writes
+✅ dynamic installed policy is frozen
+✅ dynamic installed policy property is non-writable
+✅ dynamic SuperAdmin treats incomplete preserved revenue as unknown
+✅ dynamic SuperAdmin auto refresh is policy-disabled
+✅ dynamic SuperAdmin manual compatibility refresh is policy-disabled
+✅ dynamic client-only SuperAdmin makes zero callable requests
+
+Production Authority Closure: 64/64 PASS
+
+>>> npm run check:production-security-trust-boundary
+
+> taekwondo-club-app@1.0.0 check:production-security-trust-boundary
+> node tools/check-production-security-trust-boundary.mjs
+
+✅ clubAdminRootUpdateFieldsOnly helper exists
+✅ Admin root helper uses affectedKeys().hasOnly()
+✅ legitimate Admin root field remains whitelisted: cachedActiveCount
+✅ legitimate Admin root field remains whitelisted: cachedStudentCount
+✅ legitimate Admin root field remains whitelisted: activeStudentCount
+✅ legitimate Admin root field remains whitelisted: totalStudents
+✅ legitimate Admin root field remains whitelisted: cachedProfileCount
+✅ legitimate Admin root field remains whitelisted: cachedInvCount
+✅ legitimate Admin root field remains whitelisted: cachedCountUpdatedAt
+✅ legitimate Admin root field remains whitelisted: cacheCoverage
+✅ legitimate Admin root field remains whitelisted: cachedTxCount
+✅ legitimate Admin root field remains whitelisted: cachedCurrentMonthRevenue
+✅ legitimate Admin root field remains whitelisted: currentMonthRevenue
+✅ legitimate Admin root field remains whitelisted: cachedMonthlyRevenue
+✅ legitimate Admin root field remains whitelisted: revenueByMonth
+✅ legitimate Admin root field remains whitelisted: superAdminStats
+✅ legitimate Admin root field remains whitelisted: statsUpdatedAt
+✅ legitimate Admin root field remains whitelisted: statsSource
+✅ privileged field excluded from Admin root whitelist: parentCode
+✅ privileged field excluded from Admin root whitelist: expiryDate
+✅ privileged field excluded from Admin root whitelist: accountStatus
+✅ privileged field excluded from Admin root whitelist: adminEmail
+✅ privileged field excluded from Admin root whitelist: clubName
+✅ privileged field excluded from Admin root whitelist: examEnabled
+✅ privileged field excluded from Admin root whitelist: adminPassword
+✅ privileged field excluded from Admin root whitelist: passwordChangedAt
+✅ SuperAdmin root update authority preserved
+✅ Club Admin root update requires field whitelist
+✅ password transition guard remains part of root update
+✅ no public club root write
+PASS 30/30
+✅ security sub-gate exits 0: check-club-root-field-authority.mjs
+✅ escapeHtml fixture is inert: <img src=x onerror="wi
+✅ escapeHtml fixture is inert: "><svg onload="window.
+✅ escapeHtml fixture is inert: </div><img src=x onerr
+✅ escapeHtml fixture is inert: O'Brien
+✅ escapeHtml fixture is inert: "Test Club"
+✅ escapeHtml fixture is inert: <>&"'
+✅ escapeHtml preserves apostrophe as display-safe entity
+✅ escapeHtml escapes full HTML special set
+✅ SuperAdmin clubName display uses canonical escapeHtml
+✅ SuperAdmin adminEmail display uses canonical escapeHtml
+✅ SuperAdmin inline actions receive canonical club token, not clubName/email
+✅ SuperAdmin club token is URI-encoded for inline JS context
+✅ Attendance coach names escaped before branch-summary innerHTML
+✅ Attendance coach note escaped and pre-line preserved
+✅ Attendance card profile name/nickname/belt use canonical escapeHtml
+✅ Attendance monthly profile name is escaped and inline JS gets URI token
+✅ Admin session note renderer escapes coachName/note/branch
+✅ Admin notification renderer escapes notePreview
+✅ Transaction descriptions escaped at both canonical and legacy render boundaries
+✅ Inventory category display text escaped
+✅ Student debt display names escaped
+✅ Student active-row display/name metadata escaped
+✅ Belt badge text escapes canonical value
+✅ Exam profile name display escapes HTML
+✅ Known raw SuperAdmin P0 render patterns absent
+✅ Known raw Coach-note P0 pattern absent
+✅ login_history email is escaped before innerHTML
+✅ login_history clubId is escaped before innerHTML
+✅ login_history deviceName is escaped before innerHTML
+✅ login_history os is escaped before innerHTML
+✅ login_history browser is escaped before innerHTML
+✅ login_history filterClub is escaped before innerHTML
+✅ login_history error guide uses canonical escapeHtml for error/uid/email
+✅ login_history raw Firestore display interpolations are absent
+✅ SuperAdmin revenue clubName is escaped before innerHTML
+✅ SuperAdmin revenue clubId is escaped before innerHTML
+✅ SuperAdmin revenue error message is escaped before innerHTML
+✅ SuperAdmin revenue raw club/error HTML concatenations are absent
+PASS 38/38
+✅ security sub-gate exits 0: check-stored-xss-trust-boundary.mjs
+✅ Coach attendance-only runtime role captured before settings mount
+✅ Coach branch completes settings-ready without main_config snapshot
+✅ main_config onSnapshot is only in non-Coach else path
+✅ settings-ready event lifecycle is preserved
+✅ Coach startup does not getDoc(settingsRef)
+✅ Rules deny Coach main_config and allow only shifts
+✅ Coach has no settings list permission
+✅ RoleReadBoundary still blocks Coach financial domain transactions.month
+✅ RoleReadBoundary still blocks Coach financial domain inventory.stats
+✅ RoleReadBoundary still blocks Coach financial domain inventory.history
+✅ RoleReadBoundary still blocks Coach financial domain debt.coverage
+✅ RoleReadBoundary still blocks Coach financial domain exam.settings
+✅ No attendance_public projection/source introduced
+PASS 13/13
+✅ security sub-gate exits 0: check-coach-sensitive-config-closure.mjs
+✅ primary rename guard exists
+✅ rename guard is fail-closed with explicit return
+✅ rename guard executes before transaction lookup
+✅ rename guard executes before any updateProfile command write
+✅ same-name profile edit path remains
+✅ legacy rename service retained but not duplicated
+✅ no Attendance historical migration added to profile edit flow
+✅ no startup/background rename repair added
+✅ guard message explains intentional data-integrity block
+PASS 9/9
+✅ security sub-gate exits 0: check-profile-rename-referential-guard.mjs
+✅ Parent Portal remains fail-closed: clubs list is SuperAdmin-only
+✅ No public allow read/write true introduced
+✅ Anonymous profiles are not public
+✅ Anonymous main_config is not public
+✅ RoleReadBoundary still declares Coach attendance-only
+✅ H2 fresh login UI has no Parent Portal tab
+✅ H2 fresh login UI has no Parent Portal pane
+✅ H2 fresh login UI has no Parent Portal code input
+✅ H2 fresh login UI has no Parent Portal name input
+✅ H2 fresh login UI has no Parent Portal results container
+✅ H2 fresh settings UI has no parentCode input
+✅ H2 ppLookupLogin compatibility no-op remains
+✅ H2 ppLookupLogin performs zero Auth/Firestore calls
+✅ H2 active app has no parentCode query
+✅ H2 active app has no cfg_parentCode DOM access
+✅ H2 active app has no parentCode root writer
+✅ H2 Club Admin root whitelist excludes parentCode
+✅ getDoc hard budget unchanged (29 <= 31)
+✅ getDocs hard budget unchanged (51 <= 56)
+✅ onSnapshot hard budget unchanged (16 <= 16)
+✅ No Coach settings polling introduced
+✅ Attendance offline Firestore writer remains one bulkSyncOffline owner
+✅ Attendance offline active flight remains one Promise latch
+✅ No second attendance_public settings authority introduced
+✅ Auth canonical commit authority remains
+✅ Transaction canonical boundary remains
+✅ Dashboard canonical single-flight/loader markers remain
+✅ Attendance daily canonical refresh owner remains
+✅ Attendance explicit shift authority remains
+✅ G1 cross-context pending follow-up remains
+✅ Club Admin privileged root fields are excluded by rules helper
+✅ Coach main_config denied at Rules boundary
+✅ Profile primary rename safety guard present
+✅ H3 login_history output is escaped at canonical HTML sink
+✅ H3 login_history Rules bind role and club to verified identity
+✅ H3 SuperAdmin principal existence alone is insufficient
+✅ H3 Functions source principal also requires enabled:true
+Hard static counts: { getDoc: 29, getDocs: 51, onSnapshot: 16 }
+PASS 41/41
+
+>>> npm run check:auth-context-single-writer
+
+> taekwondo-club-app@1.0.0 check:auth-context-single-writer
+> node tools/check-auth-context-single-writer.mjs
+
+
+🧭 Phase 4K-6V5U5 — Auth Context Single Writer Gate
+
+✅ PASS  Canonical _commitVerifiedAuthContext tồn tại
+✅ PASS  Commit normalize context trước khi ghi mirrors
+✅ PASS  Commit mirror: window.currentClubId = ctx.clubId
+✅ PASS  Commit mirror: window.userRole = ctx.role
+✅ PASS  Commit mirror: window.coachBranch = ctx.coachBranch
+✅ PASS  Commit mirror: window.__store.clubId = ctx.clubId
+✅ PASS  Commit mirror: window.__store.currentClubId = ctx.clubId
+✅ PASS  Commit mirror: window.__store.userRole = ctx.role
+✅ PASS  Commit mirror: window.__store.coachBranch = ctx.coachBranch
+✅ PASS  Commit mirror: window.__store.currentUser = user
+✅ PASS  Commit cập nhật RoleReadBoundary
+✅ PASS  Auth cache chỉ lưu sau canonical mirror commit
+✅ PASS  Verified diagnostics state không chứa token/password/student data
+✅ PASS  window.userRole chỉ có initial + commit + reset writers
+✅ PASS  window.coachBranch chỉ có initial + commit + reset writers
+✅ PASS  window.currentClubId chỉ có commit + reset writers
+✅ PASS  initSaaSDatabase có verified-context guard
+✅ PASS  initSaaSDatabase không còn ghi auth mirrors
+✅ PASS  users/{uid} verification dùng single-flight Promise
+✅ PASS  Auth flow reuse single-flight verifier
+✅ PASS  Auth flow không có direct getDoc users/{uid} thứ hai
+✅ PASS  Warm cache chỉ được đọc trước verification
+✅ PASS  Warm cache không ghi role/club/branch
+✅ PASS  Warm cache không mount initSaaSDatabase
+✅ PASS  Verified commit xảy ra sau users read
+✅ PASS  Protected init xảy ra sau verified commit
+✅ PASS  Disabled/locked/suspended guard xảy ra trước commit
+✅ PASS  Coach branch verify xảy ra trước commit
+✅ PASS  SuperAdmin principal READY trước canonical commit
+✅ PASS  SuperAdmin path không direct role assignment
+✅ PASS  Logout reset canonical auth context
+✅ PASS  Logout reset single-flight Promise
+✅ PASS  getAppContext ưu tiên committed verified context khi ready
+✅ PASS  CASE1 cache đúng: exactly one users read, commit rồi init A
+✅ PASS  CASE2 cache cũ: không init A, commit/init B sau verify
+✅ PASS  CASE3 stale role: không mount privileged Admin từ cache
+✅ PASS  CASE4 coach: branch verify trước commit
+✅ PASS  CASE5 disabled/locked: không commit/init
+✅ PASS  CASE6 SuperAdmin: principal trước commit
+✅ PASS  CASE7 logout implementation resets all compatibility mirrors
+
+📊 Kết quả: 40 PASS / 0 FAIL
+✅ Auth Context Single Writer Gate PASS.
+
+
+>>> npm run check:club-bootstrap-single-read-authority
+
+> taekwondo-club-app@1.0.0 check:club-bootstrap-single-read-authority
+> node tools/check-club-bootstrap-single-read-authority.mjs
+
+✅ V5U6B bootstrap helper exists
+✅ normal tenant init has no clubs/{clubId} point getDoc
+✅ legacy clubDocForExpiry bootstrap read removed
+✅ root club has exactly one onSnapshot authority in app.js
+✅ root listener uses canonical key global:club:{clubId}
+✅ root listener registered through safeRegisterSnapshot
+✅ root listener has first snapshot promise
+✅ first snapshot promise settles at most once
+✅ registration failure settles first snapshot promise
+✅ duplicate registration has one stale-owner cleanup path
+✅ duplicate registration remount is bounded to one explicit retry
+✅ listener remains mounted after accepted first snapshot
+✅ blocked cleanup explicitly preserves root listener key
+✅ same root listener owns future access revalidation
+✅ listener error callback is part of same onSnapshot
+✅ no replacement club listener exists after access await
+✅ init awaits the root first snapshot before proceeding
+✅ first snapshot acceptance gates protected runtime
+✅ no getDocFromServer/getDocFromCache replacement introduced
+✅ no polling/retry interval in club bootstrap helper
+
+PASS 20/20
+
+>>> npm run check:club-initial-snapshot-access-gate
+
+> taekwondo-club-app@1.0.0 check:club-initial-snapshot-access-gate
+> node tools/check-club-initial-snapshot-access-gate.mjs
+
+✅ event order: first snapshot wait precedes accepted gate
+✅ event order: accepted gate precedes app:context-ready
+✅ event order: context-ready precedes db-ready
+✅ event order: db-ready precedes shell-ready
+✅ event order: shell-ready precedes direct settings listener mount
+✅ event order: accepted gate precedes profile mount
+✅ event order: accepted gate precedes inventory debt source
+✅ tenant mainApp stays hidden before gate
+✅ active snapshot reveals tenant shell only after accepted gate
+✅ missing club snapshot blocks
+✅ accountStatus missing remains backward-compatible active
+✅ locked club blocks
+✅ legacy/missing expiry keeps current fallback policy
+✅ expired club blocks
+✅ <=30 day expiry warning remains non-blocking
+✅ cache snapshot source is recorded without second read
+✅ server snapshots are revalidated by same callback
+✅ ready -> blocked cleanup is idempotent
+✅ blocked -> ready auto-remount is prevented in same session
+✅ stale callback guard includes auth uid
+✅ stale callback guard includes clubId
+✅ stale callback guard includes auth generation
+✅ permission-denied before first snapshot fails closed
+✅ listener registration failure fails closed
+✅ logout resets bootstrap flight/state
+✅ Coach CS1 + Mặc định compatibility unchanged
+✅ Coach attendance first render is deferred until after ready events
+✅ simulation: active admin accepted
+✅ simulation: active viewer accepted
+✅ simulation: active coach accepted
+✅ simulation: coach CS1 access policy accepted
+✅ simulation: locked blocks
+✅ simulation: expired blocks
+✅ simulation: expiry warning <=30d accepted
+✅ simulation: missing document blocks
+✅ simulation: cache active can bootstrap compatibly
+✅ simulation: later server locked would block
+✅ simulation: stale Club A callback cannot activate Club B
+✅ simulation: old generation same uid/club cannot reactivate new login
+
+PASS 39/39
+
+>>> npm run check:club-listener-bootstrap-readiness
+
+> taekwondo-club-app@1.0.0 check:club-listener-bootstrap-readiness
+> node tools/check-club-listener-bootstrap-readiness.mjs
+
+✅ Club Root keeps exactly one canonical onSnapshot call in mount helper
+✅ Root listener key remains global:club:${clubId}
+✅ Root listener registration remains safeRegisterSnapshot-only
+✅ No direct onSnapshot fallback exists
+✅ No getDoc/getDocs replacement in root mount helper
+✅ Readiness barrier exists in app.js
+✅ Readiness wait listens one-shot for ready event
+✅ Readiness wait listens one-shot for failure event
+✅ Readiness wait is bounded to 8–12 seconds
+✅ Club bootstrap helper has no setInterval polling
+✅ Club bootstrap helper has no recursive retry loop
+✅ Canonical flight is committed before async registry wait
+✅ Same uid/club/authGeneration reuses existing flight
+✅ Stale auth generation is rechecked after readiness wait
+✅ Registry timeout fails closed through registration failure path
+✅ Duplicate metadata is inspected before remount
+✅ Stale duplicate remount is bounded to one explicit retry
+✅ Listener diagnostics classify required failure modes
+✅ main.js exposes registry bridge before one-shot readiness signal
+✅ main.js readiness dispatch is guarded to one time
+✅ index main.js load error emits readiness failure signal
+✅ B1 normal registry-ready bootstrap mounts one listener and accepts
+✅ B2 restored session does not fail before registry becomes ready
+✅ B2 restored session resumes through registry and mounts exactly one listener
+✅ B3 slow main.js causes no premature blocked banner
+✅ B3 slow main.js continues after readiness
+✅ B4 main.js failure is bounded fail-closed with zero root network listener
+✅ Timeout fails closed without polling/fallback listener
+✅ B5 logout while waiting invalidates old flight and mounts no listener
+✅ B6 rapid relogin ignores old generation and mounts only new generation
+✅ B7 duplicate mount returns the same canonical flight object
+✅ B7 duplicate same-session mount creates one root listener
+✅ Stale duplicate removal/remount is bounded to one remove + two registration attempts
+✅ getDoc call-sites do not increase above H4
+✅ getDocs call-sites do not increase above H4
+✅ onSnapshot call-sites do not increase above H4
+Static counts: { getDoc: 29, getDocs: 51, onSnapshot: 16 }
+
+Club Listener Bootstrap Readiness: 36/36 PASS
+
+>>> npm run check:club-root-field-authority
+
+> taekwondo-club-app@1.0.0 check:club-root-field-authority
+> node tools/check-club-root-field-authority.mjs
+
+✅ clubAdminRootUpdateFieldsOnly helper exists
+✅ Admin root helper uses affectedKeys().hasOnly()
+✅ legitimate Admin root field remains whitelisted: cachedActiveCount
+✅ legitimate Admin root field remains whitelisted: cachedStudentCount
+✅ legitimate Admin root field remains whitelisted: activeStudentCount
+✅ legitimate Admin root field remains whitelisted: totalStudents
+✅ legitimate Admin root field remains whitelisted: cachedProfileCount
+✅ legitimate Admin root field remains whitelisted: cachedInvCount
+✅ legitimate Admin root field remains whitelisted: cachedCountUpdatedAt
+✅ legitimate Admin root field remains whitelisted: cacheCoverage
+✅ legitimate Admin root field remains whitelisted: cachedTxCount
+✅ legitimate Admin root field remains whitelisted: cachedCurrentMonthRevenue
+✅ legitimate Admin root field remains whitelisted: currentMonthRevenue
+✅ legitimate Admin root field remains whitelisted: cachedMonthlyRevenue
+✅ legitimate Admin root field remains whitelisted: revenueByMonth
+✅ legitimate Admin root field remains whitelisted: superAdminStats
+✅ legitimate Admin root field remains whitelisted: statsUpdatedAt
+✅ legitimate Admin root field remains whitelisted: statsSource
+✅ privileged field excluded from Admin root whitelist: parentCode
+✅ privileged field excluded from Admin root whitelist: expiryDate
+✅ privileged field excluded from Admin root whitelist: accountStatus
+✅ privileged field excluded from Admin root whitelist: adminEmail
+✅ privileged field excluded from Admin root whitelist: clubName
+✅ privileged field excluded from Admin root whitelist: examEnabled
+✅ privileged field excluded from Admin root whitelist: adminPassword
+✅ privileged field excluded from Admin root whitelist: passwordChangedAt
+✅ SuperAdmin root update authority preserved
+✅ Club Admin root update requires field whitelist
+✅ password transition guard remains part of root update
+✅ no public club root write
+PASS 30/30
+
+>>> npm run check:parallel-read-authority
+
+> taekwondo-club-app@1.0.0 check:parallel-read-authority
+> node tools/check-parallel-read-authority.mjs
+
+✅ Auth users verification remains single-flight source
+✅ Notifications have no normal parallel GET
+✅ Canonical transaction source remains one listener
+✅ Legacy transaction sources remain exactly three
+✅ Canonical/legacy branch remains mutually exclusive
+✅ Coach CS1 intentional dual listener remains documented
+✅ Active-zero probe remains conditional first-empty only
+✅ Full profiles fallback remains guarded
+✅ Production policy selects one client stats writer
+✅ SuperAdmin render has no automatic callable owner
+✅ Callable compatibility path fails closed before lookup
+✅ Stats writer requires same-club/month complete coverage
+✅ Incomplete RAM omits financial root and stats payload fields
+✅ Normal bootstrap has no automatic legacy recovery owner
+✅ runtime: automatic SuperAdmin refresh is policy-disabled
+✅ runtime: manual compatibility refresh is policy-disabled
+✅ runtime: policy-disabled paths make zero callable requests
+✅ Dashboard render has no direct stats Firestore reader
+✅ Dashboard render does not invoke legacy historical network owner
+✅ Dashboard render does not invoke standalone current stats network owner
+✅ Legacy historical API is RAM-only
+✅ Current-month compatibility API is RAM-only
+✅ Canonical Dashboard scheduler/loader remain the single normal authority
+✅ Dashboard mutation intent routes through existing module namespace
+✅ Dashboard hydration reconciliation performs no Firestore read
+✅ Dashboard hydration reconciliation creates no second network owner
+✅ Dashboard dirty backoff is eligibility-only with no polling owner
+✅ Dashboard dirty refresh does not create a second stats reader
+✅ Dashboard same freshness revision preserves single-flight ownership
+✅ Dashboard running flight token remains immutable across newer mutation revision
+✅ Attendance has one canonical daily orchestrator
+✅ Attendance module has exactly one loadByDate invocation
+✅ Attendance compatibility global delegates to canonical owner
+✅ Attendance daily coalescing is isolated by auth context
+✅ Profiles invalidation has no direct daily render owner
+✅ Legacy and module renderApp paths are RAM presentation only
+✅ Attendance pseudo-listener fallback is RAM presentation only
+✅ Attendance shifts have one same-club Promise latch
+✅ Attendance Day island blocks hidden monthly owner
+✅ Attendance Month island blocks hidden daily owner
+✅ Attendance RAM reconciliation performs no service/Firestore read
+✅ Attendance Firestore daily query remains service-owned
+✅ Attendance configured blank shift cannot create an all-shift reader
+✅ Attendance shift decision helper creates no network owner
+✅ Attendance toggle and bulk share the same shift write authority
+✅ Attendance shift retry stays on the existing Promise owner
+✅ Attendance offline different-context handoff cannot create a parallel writer
+✅ Attendance offline follow-up starts only after active flight is released
+PASS 48/48
+
+>>> npm run check:startup-read-budget-freeze
+
+> taekwondo-club-app@1.0.0 check:startup-read-budget-freeze
+> node tools/check-startup-read-budget-freeze.mjs
+
+✅ getDoc runtime call sites do not increase (29 <= 33)
+✅ getDocs runtime call sites do not increase (51 <= 56)
+✅ onSnapshot runtime call sites do not increase (16 <= 17)
+✅ window assignments do not increase (532 <= 534)
+✅ duplicate globals do not increase (157 <= 159)
+✅ no polling added to tenant startup
+✅ notification startup one-shot removed
+✅ transaction startup still delegates existing owner
+Current static counts: { getDoc: 29, getDocs: 51, onSnapshot: 16 }
+PASS 8/8
+
+>>> npm run check:dashboard-single-read-authority
+
+> taekwondo-club-app@1.0.0 check:dashboard-single-read-authority
+> node tools/check-dashboard-single-read-authority.mjs
+
+
+=== Phase 4K-6V5U6C2 — Dashboard Single Read Authority + Freshness Freeze ===
+
+✅ render.js Dashboard section has zero Firestore getDoc/getDocs
+✅ render.js no longer calls legacy historical network owner
+✅ render.js no longer calls standalone current-month network owner
+✅ render.js consumes canonical RAM snapshot
+✅ legacy fetchAndRenderHistoricalCharts has no getDoc/getDocs
+✅ legacy fetchAndRenderHistoricalCharts is RAM compatibility only
+✅ tryApplyCurrentMonthStats has no standalone fetchMonthStats call
+✅ tryApplyCurrentMonthStats consumes canonical payload
+✅ canonical scheduler remains trigger aggregator
+✅ canonical loader owns six-month/targeted stats acquisition
+✅ canonical loader reuses existing TTL
+✅ canonical loader reuses one single-flight map
+✅ canonical loader uses immutable flight freshness token
+✅ dirty month revalidation remains inside canonical loader
+✅ hidden Dashboard remains zero-read via scheduler gate
+✅ compact transaction fallback remains txMonth/date/packageMonths
+✅ canonical payload includes monthStats/current month reuse
+✅ zero values use coverage, not truthiness, for authority
+✅ stale guard captures club/month/auth/request generation
+✅ stale result increments dedicated metric
+✅ canonical read attribution uses dashboard.canonicalStatsReads
+✅ transaction fallback docs metric exists
+✅ main APP_BUILD_VERSION is V5U6C2 marker
+✅ Dashboard recompute still routes network intent through scheduler
+✅ dynamic single-flight: 3 same-key calls perform exactly 6 stats reads
+✅ dynamic single-flight: coalesced metric increments
+✅ dynamic current-month stats authority overrides RAM totals
+✅ dynamic TTL: repeat call performs zero additional stats reads
+✅ dynamic TTL: cacheHit metric increments
+✅ dynamic force refresh still single-flights same key
+✅ dynamic zero semantics: zero-valued covered stats do not trigger transaction fallback
+✅ dynamic zero semantics: authoritative zero applies to current total
+✅ dynamic stale month: newer month B is applied
+✅ dynamic stale month: late month A is dropped
+✅ dynamic stale month: staleResultDropped increments
+✅ dynamic stale month: only B renders charts
+✅ dynamic stale club: late Club A result is dropped
+✅ dynamic stale club: canonical snapshot remains Club B
+
+PASS 38/38
+
+>>> npm run check:dashboard-cache-freshness-guard
+
+> taekwondo-club-app@1.0.0 check:dashboard-cache-freshness-guard
+> node tools/check-dashboard-cache-freshness-guard.mjs
+
+
+=== Phase 4K-6V5U6C2 — Dashboard Cache Freshness + Hydration/Backoff Freeze ===
+
+✅ cache schema version bumped to v3
+✅ single module-local mutation freshness state exists
+✅ canonical dirty API is exported once
+✅ dirty API performs no Firestore read/render
+✅ dirty API uses existing _moduleDashboard namespace, not new window global
+✅ transaction live mutation marks finance dirty after store commit
+✅ transaction mutation callback does not directly fetch Dashboard stats
+✅ initial transaction hydration is reconciled instead of unconditionally dirty
+✅ profile snapshot #1 reconciles and only real later docChanges mark dirty
+✅ render.js remains zero Dashboard Firestore reads
+✅ render.js keeps dirty current chart/report on RAM evidence
+✅ canonical loader reuses clean per-month cache and targets dirty months
+✅ canonical loader keeps one stats getDoc owner
+✅ flight token is immutable and old flight token is never relabeled
+✅ freshness revision participates in request stale guard
+✅ new revision during flight records one bounded follow-up intent
+✅ current stats rejects stats txCount behind local transaction evidence
+✅ updatedAt normalizer supports Timestamp/Date/seconds
+✅ member mutation cannot be falsely cleared by transaction count alone
+✅ Vietnam month helper avoids UTC ISO month authority
+✅ unresolved dirty revalidation is bounded without polling
+✅ main build marker is exact V5U6C2 marker
+✅ freshness metrics extend existing __sparkReadMetrics
+[dashboard.js] ✅ Phase 4K-6V5U6C2 (hydration/mutation guard + unresolved dirty read backoff)
+✅ dynamic cold Dashboard remains <= 6 stats reads
+✅ dynamic warm clean TTL hit performs zero stats reads
+✅ dynamic stale cache cannot overwrite newer payment RAM before revalidation
+✅ dynamic dirty current month revalidates exactly one stats doc
+✅ dynamic clean historical months are reused without reread
+✅ dynamic stats txCount behind local evidence preserves RAM total
+✅ dynamic stale stats rejection metrics increment
+✅ dynamic dirty remains unresolved while server stats are behind
+✅ dynamic server catch-up before retry deadline performs zero reads
+✅ dynamic dirty remains until an eligible trigger
+✅ dynamic server catch-up costs one targeted current-month stats read
+✅ dynamic server catch-up is accepted and dirty clears
+✅ dynamic server catch-up keeps authoritative current income
+✅ dynamic clean cache after catch-up returns to zero reads
+✅ dynamic Vietnam boundary 2026-09-01 00:30 => 2026-09
+✅ dynamic Vietnam year boundary 2027-01-01 00:15 => 2027-01
+[dashboard.js] ✅ Phase 4K-6V5U6C2 (hydration/mutation guard + unresolved dirty read backoff)
+✅ dynamic five invalidations coalesce to <= 1 targeted network read
+✅ dynamic burst targeted read metric increments once
+[dashboard.js] ✅ Phase 4K-6V5U6C2 (hydration/mutation guard + unresolved dirty read backoff)
+✅ dynamic hidden Dashboard mutation causes zero immediate stats reads
+✅ dynamic opening Dashboard after hidden dirty state performs one targeted read
+[dashboard.js] ✅ Phase 4K-6V5U6C2 (hydration/mutation guard + unresolved dirty read backoff)
+✅ dynamic newer revision reuses running same-key flight instead of parallel flight
+✅ dynamic old revision result is stale-dropped
+✅ dynamic stale old flight cannot clear newer dirty revision
+✅ dynamic mutation during flight schedules exactly one bounded follow-up read
+✅ dynamic bounded follow-up clears latest dirty revision after server catches up
+✅ dynamic latest RAM/current summary cannot be overwritten by old flight
+
+PASS 49/49
+
+>>> npm run check:dashboard-hydration-mutation-guard
+
+> taekwondo-club-app@1.0.0 check:dashboard-hydration-mutation-guard
+> node tools/check-dashboard-hydration-mutation-guard.mjs
+
+
+=== Phase 4K-6V5U6C2 — Dashboard Hydration/Mutation Guard + Dirty Backoff ===
+
+✅ cache schema remains v3 because hydration/backoff metadata is RAM-only
+✅ hydration state extends the existing freshness owner
+✅ hydration reconciliation performs no Firestore read
+✅ hydration API stays on the existing _moduleDashboard namespace
+✅ dirty backoff is timestamp-only and has no polling
+✅ all C2 metrics extend __sparkReadMetrics
+✅ transaction source recorder returns initial/source metadata
+✅ canonical transaction snapshot is hydration before mutation
+✅ legacy hydration requires all three initial sources
+✅ legacy callbacks pass source metadata into one merge owner
+✅ live transaction dirty requires post-hydration fingerprint change
+✅ legacy duplicate callbacks coalesce at the transaction owner
+✅ transaction dirty becomes visible before delayed Dashboard invalidation
+✅ profile snapshot #1 records member hydration evidence
+✅ profile live dirty requires real docChanges
+✅ Coach is excluded from both profile reconciliation and dirty marks
+✅ logout resets Dashboard hydration identity
+✅ all targeted stats reads remain inside canonical loader
+✅ unresolved dirty skip is evaluated before monthsToFetch
+✅ new dirty revisions reset retry metadata
+✅ build marker is exact C2 marker
+[dashboard.js] ✅ Phase 4K-6V5U6C2 (hydration/mutation guard + unresolved dirty read backoff)
+✅ finance initial match establishes CLEAN hydration baseline
+✅ member initial match establishes CLEAN hydration baseline
+✅ Viewer opens Dashboard five times with matching cache and zero stats reads
+✅ matching hydration records no false dirty revision
+[dashboard.js] ✅ Phase 4K-6V5U6C2 (hydration/mutation guard + unresolved dirty read backoff)
+✅ initial finance mismatch marks dirty exactly once
+✅ unresolved finance dirty performs one targeted current-month read
+✅ unresolved finance dirty preserves RAM and sets retry eligibility
+✅ ten Dashboard triggers before retry deadline perform zero extra reads
+✅ next eligible trigger performs one targeted read
+✅ server catch-up resolves hydration dirty
+✅ real mutation after hydration increments one live dirty revision
+✅ new mutation resets the old retry cooldown
+✅ new revision is immediately eligible for one targeted read
+✅ RAM current-month authority remains protected during backoff
+[dashboard.js] ✅ Phase 4K-6V5U6C2 (hydration/mutation guard + unresolved dirty read backoff)
+✅ initial member mismatch marks dirty once
+✅ unresolved member mismatch costs one targeted read
+✅ member RAM authority protects selected chart point
+[dashboard.js] ✅ Phase 4K-6V5U6C2 (hydration/mutation guard + unresolved dirty read backoff)
+✅ hydration without canonical payload stays clean and pending
+✅ cold mismatch uses the normal six-read canonical flight only
+✅ cold canonical response detects mismatch and preserves dirty once
+[dashboard.js] ✅ Phase 4K-6V5U6C2 (hydration/mutation guard + unresolved dirty read backoff)
+✅ Coach hydration reconciliation is skipped with zero Dashboard dirty marks
+✅ Coach hydration reconciliation performs zero stats reads
+[dashboard.js] ✅ Phase 4K-6V5U6C2 (hydration/mutation guard + unresolved dirty read backoff)
+✅ club/auth switch clears Club A dirty and hydration state
+
+PASS 44/44
+
+>>> npm run check:attendance-explicit-shift-authority
+
+> taekwondo-club-app@1.0.0 check:attendance-explicit-shift-authority
+> node tools/check-attendance-explicit-shift-authority.mjs
+
+
+🔎 Phase 4K-6V5U6F — Attendance Explicit Shift Authority
+
+[attendance.js] ✅ Phase 4K-6V5U6G residual closure: explicit shift + V2 offline journal ready
+✅ one canonical daily refresh owner remains
+✅ daily service invocation count remains exactly one
+✅ one shifts acquisition owner remains
+✅ module-local shift authority distinguishes unknown from ready-empty
+✅ legacy loaded boolean no longer represents shift authority
+✅ shift loader has loading/ready/error states
+✅ successful shift load derives configured state from authoritative list
+✅ force/retry calls reuse the same Promise latch
+✅ shift load errors are explicit and never swallowed as an empty list
+✅ one RAM decision helper exposes all canonical shift modes
+✅ shift decision helper has no network/render/timer owner
+✅ eligible shifts reuse canonical branch identity and Coach scope
+✅ no implicit first-shift auto selection exists
+✅ configured blank/error is blocked before loadByDate
+✅ blank all-shift read prevention is diagnosed
+✅ actual daily reads distinguish legacy and explicit shift modes
+✅ service defense rejects missing required shift before getDocs
+✅ blank daily reads are no longer labelled all-shifts
+✅ toggle uses canonical shift guard before optimistic mutation
+✅ bulk check-in uses the same guard before optimistic mutation
+✅ offline queue creation cannot bypass shift authority
+✅ offline synchronization validates queued shift evidence before write
+✅ toggle/bulk doc identity and payload use the same captured shift
+✅ invalid branch/deleted selection is cleared without a query
+✅ first-shift creation and selected-shift deletion re-enter canonical owner
+✅ no second daily state or in-flight map is introduced
+✅ Attendance orchestration adds no listener or polling
+✅ V5U6F boundary is preserved under the V5U6G1 targeted cache-bust
+✅ package exposes the V5U6F gate
+✅ runtime: configured blank resolves to shift-required
+✅ runtime: configured blank performs zero daily reads and renders prompt
+✅ runtime: successful non-empty config is authoritative
+✅ runtime: explicit eligible shift performs exactly one daily read
+✅ runtime: canonical owner passes explicit defensive service contract
+✅ runtime: existing name_date_shift record maps to the selected shift card
+✅ runtime: same explicit shift reuses warm daily snapshot
+✅ runtime: explicit toggle writes matching shift-aware doc id and payload
+✅ runtime: authoritative empty config preserves legacy no-shift read
+✅ runtime: legacy blank is explicitly labelled legacy-no-shift
+✅ runtime: shift config error performs zero daily reads
+✅ runtime: shift error is not coerced to empty configuration
+✅ runtime: config error blocks toggle/bulk before cache, offline, or Firestore writes
+✅ runtime: shift retry and concurrent ensure reuse one shifts point read
+✅ runtime: configured blank cannot create name_date duplicate through toggle or bulk
+✅ runtime: A response is stale-dropped after explicit blank intent
+✅ runtime: A cannot overwrite shift-required presentation
+✅ runtime: A→B latest-wins remains intact
+✅ runtime: branch change clears incompatible shift and performs zero blank reads
+✅ runtime: incompatible branch selection is diagnosed once
+✅ runtime: selecting eligible Branch B shift performs one read
+✅ runtime: Coach configured blank performs zero daily reads
+✅ runtime: Coach eligible shifts are assigned branch plus global only
+✅ runtime: deleting selected shift leaves configured blank blocked with zero daily reads
+✅ runtime: first saved shift immediately converts blank to blocked authority
+✅ runtime: no legacy no-shift write is allowed after first shift save
+✅ runtime: allowed offline record carries explicit shift identity
+✅ runtime: configured blank cannot mutate offline queue
+✅ runtime: required V5U6F read/write metrics are populated
+✅ runtime simulation creates no unintended offline sync writes
+✅ runtime shift create/delete scenarios use existing settings writer
+
+✅ V5U6F gate passed (60/60 assertions)
+
+
+>>> npm run check:attendance-daily-single-refresh-authority
+
+> taekwondo-club-app@1.0.0 check:attendance-daily-single-refresh-authority
+> node tools/check-attendance-daily-single-refresh-authority.mjs
+
+
+🔎 Phase 4K-6V5U6D — Attendance Daily Single Refresh Authority
+
+[attendance.js] ✅ Phase 4K-6V5U6G residual closure: explicit shift + V2 offline journal ready
+✅ one canonical daily refresh orchestrator is declared
+✅ loadByDate is called exactly once inside the canonical module path
+✅ renderAttendanceList delegates to the canonical orchestrator
+✅ daily owner keeps module-local single-flight state
+✅ same-key/same-auth daily requests reuse one running flight
+✅ same-key daily snapshot has bounded short-TTL reuse
+✅ daily cache reuse is isolated by auth generation
+✅ RAM card renderer performs no service read
+✅ daily context captures club/auth/date/branch/shift identity
+✅ actual daily request token is immutable and captures mutation revision
+✅ latest-context guard checks immutable identity and generation
+✅ stale guard runs before daily cache commit
+✅ toggle and bulk optimistic writes advance the daily mutation revision
+✅ mutation-revision stale drops are diagnosed
+✅ daily error path preserves the accepted/optimistic cache
+✅ shift settings use a same-club Promise latch
+✅ late shift response cannot commit across clubs/auth generations
+✅ nested Day/Month visibility helpers exist
+✅ Day island is guarded and presentation-first
+✅ Month island is independently guarded
+✅ inactive nested subtabs return before their network paths
+✅ card presentation no longer loads admin coach notes
+✅ coach notes use accepted-context cache/single-flight
+✅ session note distinguishes loaded-missing from not-loaded and uses single-flight
+✅ session note point reads are attributed without adding a reader
+✅ attendance daily/shifts/coach-note reads use existing attribution metrics
+✅ belt and show-all handlers are RAM-only
+✅ date and branch handlers remain network-eligible canonical intents
+✅ profile snapshots do not invoke a second direct daily render path
+✅ attendance pseudo-listener fallback is presentation-only
+✅ legacy and module renderApp paths reuse daily RAM
+✅ canonical attendance event layer is mounted once by main
+✅ every changed nested runtime module has the V5U6D cache key
+✅ attendance filter controls have no duplicate inline onchange owner
+✅ runtime build version is exactly V5U6D
+✅ package exposes the V5U6D gate
+✅ default/full/critical suites include the V5U6D gate through npm pre-hooks
+✅ orchestrator/reconciliation module introduces no Firestore read owner
+✅ runtime: three same-key intents perform exactly one daily load
+✅ runtime: two same-key callers are diagnosed as coalesced
+✅ runtime: all same-key callers observe one accepted snapshot
+✅ runtime: late date A cannot overwrite accepted date B
+✅ runtime: late date response is stale-dropped exactly once
+✅ runtime: each distinct date intent performs exactly one daily read
+✅ runtime: final daily snapshot identity belongs to the newest date
+✅ runtime: late CS1 response cannot overwrite CS2 cards
+✅ runtime: each distinct branch intent performs exactly one daily read
+✅ runtime: final daily snapshot identity belongs to the newest branch
+✅ runtime: late shift A response cannot overwrite shift B cards
+✅ runtime: each distinct shift intent performs exactly one daily read
+✅ runtime: final daily snapshot identity belongs to the newest shift
+✅ runtime: late Club A/auth generation response cannot mutate Club B UI
+✅ runtime: snapshot identity resets to the accepted club
+✅ runtime: same-club old-auth flight is not shared and cannot overwrite new auth
+✅ runtime: accepted daily cache records the current auth generation
+✅ runtime: local toggle applies optimistically while the old read is running
+✅ runtime: pre-toggle read cannot erase optimistic status
+✅ runtime: toggle race is rejected by mutation revision
+✅ runtime: bulk check-in applies optimistically while the old read is running
+✅ runtime: pre-bulk read cannot erase optimistic statuses
+✅ runtime: belt/show-all/profile presentation storm performs zero daily reads
+✅ runtime: profile display changes still rebuild cards from RAM
+✅ runtime: daily/ensure/modal share exactly one shifts read
+✅ runtime: concurrent shifts consumers are diagnosed as coalesced
+✅ runtime: Admin cold daily shape is shifts 1 / daily 1 / coachNotes 1 / sessionNote 1
+✅ runtime: warm card presentation performs zero auxiliary reads
+✅ runtime: Day subtab prevents hidden monthly load
+✅ runtime: Month subtab prevents hidden daily load
+✅ runtime: active Month subtab retains its canonical monthly flow
+✅ runtime: hidden Attendance main tab performs zero day/month reads
+✅ runtime: Coach daily request remains server-scoped to canonical assigned branch
+✅ runtime: Coach daily lifecycle never loads admin coach-notes summary
+✅ runtime: Coach cold daily shape is shifts 1 / daily 1 / sessionNote 1
+
+✅ V5U6D gate passed (73/73 assertions)
+
+
+>>> npm run check:attendance-offline-canonical-sync-guard
+
+> taekwondo-club-app@1.0.0 check:attendance-offline-canonical-sync-guard
+> node tools/check-attendance-offline-canonical-sync-guard.mjs
+
+
+🔎 Phase 4K-6V5U6G1 — Attendance Offline Canonical Sync Guard
+
+✅ Canonical offline payload uses explicit business-field whitelist 
+✅ Canonical Firestore payload never spreads journal/source object 
+✅ Canonical builder excludes journal field: version 
+✅ Canonical builder excludes journal field: clubId 
+✅ Canonical builder excludes journal field: operation 
+✅ Canonical builder excludes journal field: shiftMode 
+✅ Canonical builder excludes journal field: queuedAt 
+✅ Canonical builder excludes journal field: lastUpdatedAt 
+✅ Canonical builder excludes journal field: revision 
+✅ Canonical builder excludes journal field: docId 
+✅ ONE AttendanceService.bulkSyncOffline writer owner remains 
+✅ ONE active offline sync Promise latch remains 
+✅ ONE latest pending context RAM state exists 
+✅ Same-context requests coalesce to active flight 
+✅ Different-context request has one bounded follow-up handoff 
+✅ No per-club Promise map/parallel writer introduced 
+✅ No polling or recursive timer retry added to offline sync 
+✅ Stale context is checked before chunks and stops future chunks 
+✅ Committed cleanup is revision-scoped 
+✅ No new getDoc call-site (29 <= 31) 
+✅ No new getDocs call-site (51 <= 56) 
+✅ No new onSnapshot call-site (16 <= 16) 
+✅ G1 canonical batch.set payload contains business fields only 
+✅ G2 journal metadata is absent from Firestore payload 
+✅ G3 operation=delete preserves delete semantics 
+✅ G4 legacy V1 record uses the same canonical sanitizer 
+[attendance.js] ✅ Phase 4K-6V5U6G residual closure: explicit shift + V2 offline journal ready
+✅ G5 same-context requests share exactly one writer flight 
+[AttendanceOffline] wrong-club {
+  classification: 'wrong-club',
+  attendanceOffline: true,
+  stage: 'club-scope-v2'
+} 
+✅ G6 A→B queues B without starting a parallel writer 
+✅ G7 A settle starts exactly one B follow-up flight 
+✅ G7 committed A and follow-up B clean only their confirmed entries 
+✅ G9 late A completion cannot refresh Club B Attendance UI 
+[AttendanceOffline] wrong-club {
+  classification: 'wrong-club',
+  attendanceOffline: true,
+  stage: 'club-scope-v2'
+} 
+[AttendanceOffline] wrong-club {
+  classification: 'wrong-club',
+  attendanceOffline: true,
+  stage: 'club-scope-v2'
+} 
+[AttendanceOffline] wrong-club {
+  classification: 'wrong-club',
+  attendanceOffline: true,
+  stage: 'club-scope-v2'
+} 
+✅ G8 A→B→C follows only latest C; B queue remains pending 
+✅ G10 stale old context starts zero chunk-2/chunk-3 network writes 
+✅ G11/G12 only committed chunk-1 is cleaned; 450 uncommitted entries remain 
+✅ G13 successful revision-3 commit preserves newer local revision-4 mutation 
+✅ G14 Morning/Evening same-date mutations remain isolated 
+✅ G15 configured shifts + blank selection performs zero offline write 
+✅ G16 true legacy no-shift Attendance remains supported 
+✅ Existing online event owner remains idempotent (one listener in runtime harness) 
+
+Total: 39 | PASS: 39 | FAIL: 0
+Phase 4K-6V5U6G1 Attendance Offline Canonical Sync Guard passed.
+
+
+>>> npm run check:attendance-canonical-ownership
+
+> taekwondo-club-app@1.0.0 check:attendance-canonical-ownership
+> node tools/check-attendance-canonical-ownership.mjs
+
+
+🔎 Phase 4K-6V — Attendance Canonical Ownership + Monthly Pagination
+
+[attendance.js] ✅ Phase 4K-6V5U6G residual closure: explicit shift + V2 offline journal ready
+✅ attendance rollback bridge exists
+✅ attendance rollback bridge has current cache key
+✅ attendance rollback bridge loads before app.js
+✅ app.js cache key is 4K-6V or a later compatible phase
+✅ main.js cache key is 4K-6V or a later compatible phase
+✅ main contains 4K-6V compatibility build marker
+✅ active runtime build version is 4K-6V or later compatible phase
+✅ main imports attendance module
+✅ ownership registry initializes before attendance module
+✅ ownership manifest includes _getClubShifts
+✅ rollback bridge includes _getClubShifts
+✅ app.js no longer assigns window._getClubShifts
+✅ ownership manifest includes _ensureClubShiftsLoaded
+✅ rollback bridge includes _ensureClubShiftsLoaded
+✅ app.js no longer assigns window._ensureClubShiftsLoaded
+✅ ownership manifest includes _renderHomeBirthdayBanner
+✅ rollback bridge includes _renderHomeBirthdayBanner
+✅ app.js no longer assigns window._renderHomeBirthdayBanner
+✅ ownership manifest includes showAttMemberHistory
+✅ rollback bridge includes showAttMemberHistory
+✅ app.js no longer assigns window.showAttMemberHistory
+✅ ownership manifest includes renderAttendanceList
+✅ rollback bridge includes renderAttendanceList
+✅ app.js no longer assigns window.renderAttendanceList
+✅ ownership manifest includes onShiftChange
+✅ rollback bridge includes onShiftChange
+✅ app.js no longer assigns window.onShiftChange
+✅ ownership manifest includes openShiftModal
+✅ rollback bridge includes openShiftModal
+✅ app.js no longer assigns window.openShiftModal
+✅ ownership manifest includes closeShiftModal
+✅ rollback bridge includes closeShiftModal
+✅ app.js no longer assigns window.closeShiftModal
+✅ ownership manifest includes addShift
+✅ rollback bridge includes addShift
+✅ app.js no longer assigns window.addShift
+✅ ownership manifest includes deleteShift
+✅ rollback bridge includes deleteShift
+✅ app.js no longer assigns window.deleteShift
+✅ ownership manifest includes toggleAttendance
+✅ rollback bridge includes toggleAttendance
+✅ app.js no longer assigns window.toggleAttendance
+✅ ownership manifest includes toggleAttendanceStatus
+✅ rollback bridge includes toggleAttendanceStatus
+✅ app.js no longer assigns window.toggleAttendanceStatus
+✅ ownership manifest includes bulkCheckIn
+✅ rollback bridge includes bulkCheckIn
+✅ app.js no longer assigns window.bulkCheckIn
+✅ ownership manifest includes syncOfflineAttendance
+✅ rollback bridge includes syncOfflineAttendance
+✅ app.js no longer assigns window.syncOfflineAttendance
+✅ ownership manifest includes switchAttSubTab
+✅ rollback bridge includes switchAttSubTab
+✅ app.js no longer assigns window.switchAttSubTab
+✅ ownership manifest includes renderAttMonthly
+✅ rollback bridge includes renderAttMonthly
+✅ app.js no longer assigns window.renderAttMonthly
+✅ ownership manifest includes printAttendanceStatus
+✅ rollback bridge includes printAttendanceStatus
+✅ app.js no longer assigns window.printAttendanceStatus
+✅ ownership manifest includes printAttendanceSessionCompletion
+✅ rollback bridge includes printAttendanceSessionCompletion
+✅ app.js no longer assigns window.printAttendanceSessionCompletion
+✅ ownership manifest includes printAttendanceBranchReport
+✅ rollback bridge includes printAttendanceBranchReport
+✅ app.js no longer assigns window.printAttendanceBranchReport
+✅ attendance ownership manifest points to attendance.js
+✅ registry reports current attendance phase
+✅ attendance module declares canonical owner
+✅ attendance module registers canonical globals
+✅ attendance module can restore canonical globals
+✅ legacy renderAttendanceList monkey-patch was removed
+✅ legacy attendance core body was removed from app.js
+✅ session note loads only through accepted canonical daily lifecycle
+✅ session note loader has stale-response sequence guard
+✅ stale session-note response cannot overwrite current date
+✅ online synchronization listener is bind-once
+✅ online synchronization listener remains installed
+✅ attendance cache applies captured selected-shift filter
+✅ daily read passes immutable date, shift and branch token to service
+✅ daily query filters selected shift server-side
+✅ monthly loader implementation is present
+✅ monthly loader remains scoped to selected month
+✅ monthly loader uses cursor pagination
+✅ monthly loader uses bounded page size
+✅ monthly page size is configurable
+✅ monthly safety ceiling is configurable
+✅ monthly loader throws instead of returning incomplete data
+✅ monthly loader supports request cancellation
+✅ monthly loader removed fixed 10,000-document cap
+✅ monthly loader has no setDoc( write/listener call
+✅ monthly loader has no updateDoc( write/listener call
+✅ monthly loader has no addDoc( write/listener call
+✅ monthly loader has no deleteDoc( write/listener call
+✅ monthly loader has no writeBatch( write/listener call
+✅ monthly loader has no runTransaction( write/listener call
+✅ monthly loader has no onSnapshot( write/listener call
+✅ monthly renderer creates an AbortController
+✅ monthly renderer rejects stale responses
+✅ monthly renderer reports safety-ceiling errors clearly
+✅ protected runtime/financial boundary remains in app.js: processMultiItem
+✅ protected runtime/financial boundary remains in app.js: quickPay
+✅ protected runtime/financial boundary remains in app.js: deleteTx
+✅ protected runtime/financial boundary remains in app.js: markInvPaid
+✅ protected runtime/financial boundary remains in app.js: cancelExamPayment
+✅ protected runtime/financial boundary remains in app.js: processBatchUpgrade
+✅ protected runtime/financial boundary remains in app.js: initSaaSDatabase
+✅ protected runtime/financial boundary remains in app.js: listenToData
+✅ protected runtime/financial boundary remains in app.js: renderApp
+✅ protected runtime/financial boundary remains in app.js: scheduleRender
+✅ app.js reduced from 730,409 to 675,599 bytes
+✅ app.js reduced from 11,681 to 11,106 lines
+✅ app.js meets Phase 4K-6V4B8 compatible size target (675,599 <= 700,000 bytes)
+✅ app.js remains within compatible Phase 4K-6V5U6E size target (11,106 <= 11,300 lines)
+✅ package exposes Phase 4K-6V checker
+✅ default check includes Phase 4K-6V checker
+✅ full check includes Phase 4K-6V checker
+✅ critical check includes Phase 4K-6V checker
+✅ monthly pagination returns all 10,500 documents
+✅ monthly pagination returns no duplicate documents
+✅ 10,500 documents load in 11 bounded pages
+✅ cursor is applied after every full page
+✅ monthly progress callback reports all pages/documents
+✅ monthly pagination records completed metrics
+✅ monthly pagination metrics record full document count
+✅ monthly pagination aborts stale requests with explicit code
+✅ aborted monthly request is recorded in metrics
+✅ monthly loader throws at configured safety ceiling
+✅ safety error reports partial count for diagnostics
+✅ safety-ceiling metrics never claim completion
+✅ attendance init exposes a stable module API
+✅ all 19 attendance globals register at runtime
+✅ all attendance canonical globals are installed
+✅ attendance ownership creates no collision
+✅ all attendance rollback references are preserved
+✅ attendance online listener binds once during first init
+✅ repeated attendance init does not duplicate online listener
+✅ attendance canonical references remain healthy after repeated init
+✅ club switch resets attendance cache/state
+✅ attendance metrics track the active club after reset
+✅ club switch still does not duplicate online listener
+
+✅ Phase 4K-6V check passed (141 assertions)
+
+
+>>> npm run check:canonical-transaction-safe-cutover
+
+> taekwondo-club-app@1.0.0 check:canonical-transaction-safe-cutover
+> node tools/check-canonical-transaction-safe-cutover.mjs
+
+
+=== Phase 4K-6V3BC1 — Automatic Canonical Transaction Optimization ===
+
+✅ V3BC1 cache-bust is active for boundary, app and main
+✅ Manual one-time optimizer button is no longer created
+✅ Automatic scheduling starts only after safe legacy overlap
+✅ Automatic cutover remains per-club and per-month
+✅ Automatic retry uses cooldown after failure
+✅ Transient offline/write-busy states are deferred, not marked successful
+✅ Only authorized club admin roles can auto-optimize
+✅ Backfill plan uses loaded store transactions instead of collection scan
+✅ Backfill writes only canonical fields in chunks of 400
+✅ Legacy listeners are detached before backfill
+✅ Exact parity remains mandatory before config cutover
+✅ Failure still reattaches legacy listener
+✅ Successful mode is persisted in each club main_config
+✅ Existing settings listener selects one or three listeners without new config listener
+✅ Club switch and logout cancel stale automatic timers
+✅ Emergency rollback API remains available without UI button
+✅ Dynamic: safe overlap automatically schedules one cutover
+✅ Dynamic: scheduling itself performs zero Firestore reads/writes
+✅ Dynamic: automatic cutover succeeds without button or confirm
+✅ Dynamic: auto backfill uses one batch and one parity query
+✅ Dynamic: per-club config is persisted after parity
+✅ Dynamic: listener lifecycle ends in canonical mode
+✅ Dynamic: automatic status records durable success
+✅ Dynamic: all migrated documents contain selected accounting month
+✅ Dynamic: emergency rollback returns to legacy mode
+✅ Dynamic: viewer account cannot auto-schedule migration writes
+✅ Dynamic: source limit blocks unsafe automatic cutover
+
+Total: 27 | PASS: 27 | FAIL: 0
+Phase 4K-6V3BC1 checks passed.
+
+
+>>> npm run check:debt-authoritative-tuition-coverage
+
+> taekwondo-club-app@1.0.0 check:debt-authoritative-tuition-coverage
+> node tools/check-debt-authoritative-tuition-coverage.mjs
+
+
+=== Phase 4K-6V4B11 — Debt Authoritative Tuition Coverage ===
+
+✅ index/main/app cache-busted for current debt phase
+✅ app normalizeYYYYMM supports MM/YYYY, T numeric and Vietnamese month-word formats
+✅ utils normalizeYYYYMM mirrors month-word parser
+✅ global normalizeTuitionMonth exposed
+✅ getChargeableTuitionMonths normalizes selectedMonth, paidUntil, paidMonths and skippedMonths
+✅ legacy isOwed is only additive and cannot suppress canonical debt
+✅ legacy app debt render uses getChargeableTuitionMonths
+✅ studentsRenderer ignores stale isOwed false and uses canonical months
+✅ studentsRenderer debt rows are not hidden by Active new/returning filter
+✅ studentsRenderer debt branch filter uses canonical branch aliases
+✅ legacy render debt branch filter uses canonical branch aliases
+✅ studentsRenderer fallback normalizes paidUntil/paidMonths/skippedMonths
+✅ pagination fallback summary uses canonical months
+✅ bulk Zalo debt list uses canonical months
+✅ debt debug exposes normalized paid fields, filters and hidden reasons
+✅ debugDebtCoverage uses chargeable months instead of raw paidUntil string compare
+✅ Dynamic: paidUntil 05/2026 owes 2026-06
+✅ Dynamic: paidUntil T5/2026 owes 2026-06
+✅ Dynamic: paidUntil Tháng 5/2026 owes 2026-06
+✅ Dynamic: paidUntil Tháng năm 2026 owes June only
+✅ Dynamic: paidUntil Tháng Năm năm 2026 owes June only
+✅ Dynamic: paidUntil thang nam 2026 normalizes to 2026-05
+✅ Dynamic: numeric month variants normalize to the same month 2026-05
+✅ Dynamic: paidUntil Tháng tư 2026 owes May and June
+✅ Dynamic: paidUntil Tháng Tư năm 2026 owes 2 months for June
+✅ Dynamic: paidUntil thang muoi mot 2026 normalizes to 2026-11
+✅ Dynamic: stale isOwed false cannot hide June debt
+✅ Dynamic: paidUntil April with stale paidMonths June still owes May and June
+✅ Dynamic: paidUntil May with stale future paidMonths June still owes June
+✅ Dynamic: skipped month suppresses June debt
+✅ Dynamic: legacy isOwed true may add older owed month only as extra evidence
+✅ Report debt export uses canonical chargeable months, not raw paidUntil comparison
+
+Total: 32 | PASS: 32 | FAIL: 0
+Phase 4K-6V4B11 checks passed.
+
+
+>>> npm run check:inventory-ledger-reconciliation
+
+> taekwondo-club-app@1.0.0 check:inventory-ledger-reconciliation
+> node tools/check-inventory-ledger-reconciliation.mjs
+
+
+=== Phase 4K-6V2C — Inventory Ledger Reconciliation ===
+
+✅ Runtime exposes V2C patch marker
+✅ Index deploys V2C cache bust
+✅ Changed inventory/student/finance modules are cache-busted
+✅ Changed service imports are cache-busted
+✅ History page uses date-desc cursor so repaired legacy rows remain queryable
+✅ New inventory writes always provide date and timestamp
+✅ Add inventory uses an atomic Firestore batch
+✅ Add inventory does not silently continue after stock-summary failure
+✅ Update reverses previous contribution and applies next contribution
+✅ Delete reverses inventory contribution atomically
+✅ Finance-related inventory deletion delegates to canonical ledger service
+✅ Add-student inventory write batches history and inventory_stats
+✅ Add-student module no longer performs a second stock decrement
+✅ Runtime write-through avoids an immediate history read
+✅ Manual reconciliation is explicit, not a recurring listener
+✅ Reconciliation reads the inventory collection exactly once
+✅ Reconciliation repairs legacy rows missing date/timestamp
+✅ Legacy unknown dates are retained at the end instead of being excluded
+✅ Temporal repairs are chunked below Firestore batch limit
+✅ Rebuilt inventory_stats replaces drifted summary
+✅ Full rebuild publishes already-read rows without a second query
+✅ Inventory service pagination no longer orders by timestamp
+✅ Canonical normal writes contain no full inventory scan
+✅ Dynamic: input and output rows are both saved
+✅ Dynamic: atomic ledger computes correct stock
+✅ Dynamic: editing quantity reverses old out and applies new out
+✅ Dynamic: edit with local original performs no document read
+✅ Dynamic: delete reverses stock and removes history row
+✅ Dynamic: rebuild performs one full collection read
+✅ Dynamic: rebuild repairs missing temporal fields
+✅ Dynamic: rebuilt summary includes legacy input
+✅ Dynamic: normal mutations required no full collection reads
+✅ Dynamic: inventory and summary were committed through batches
+
+Total: 33 | PASS: 33 | FAIL: 0
+Phase 4K-6V2C inventory ledger reconciliation checks passed.
+
+
+>>> npm run check:coach-attendance-only-read-boundary
+
+> taekwondo-club-app@1.0.0 check:coach-attendance-only-read-boundary
+> node tools/check-coach-attendance-only-read-boundary.mjs
+
+
+=== Phase 4K-6V4A compatibility — Coach Attendance-Only Read Boundary ===
+
+✅ Role read boundary loads before transaction boundary and app.js
+✅ Coach UI exposes only Attendance and hides full Add Student controls
+✅ Role/branch context is stored before app context-ready events
+✅ Coach bootstrap blocks inventory stats, active debts and transactions
+✅ Admin financial/Kho listener implementations remain present
+✅ Settings callback does not start finance/inventory/debt consumers for Coach
+✅ Direct listenToData calls are defensively blocked for Coach
+✅ Canonical transaction settings gate is defensively blocked for Coach
+✅ Main bootstrap skips Coach pagination, exam setting and club stats cache
+✅ Pagination modules have internal Coach guards
+✅ Programmatic tab switching is forced back to Attendance in all controllers
+✅ Coach profile listener key contains role and branch
+✅ Coach profile query is server-scoped by status + branch
+✅ Coach zero probe and fallback are branch-scoped
+✅ Coach never executes full-club profiles fallback, quit load or export load
+✅ Coach profile snapshot does not start debt coverage
+✅ Debt boundary refuses Coach coverage audit/full fallback
+✅ Club stats cache sync has a runtime Coach guard
+✅ Attendance daily query supports branch and fails closed when Coach branch is missing
+✅ Attendance monthly and member-history queries support branch scope
+✅ Attendance UI passes selected/assigned branch into daily and monthly services
+✅ Required Firestore indexes are declared
+✅ Dynamic: Coach may mount Attendance but not transactions/Kho
+✅ Dynamic: Coach is redirected to Attendance tab
+✅ Dynamic: Coach profile listener requires an assigned branch
+✅ Dynamic: Admin financial/Kho sources remain allowed
+✅ Dynamic: Coach daily Firestore query contains date + branch + shift
+✅ Dynamic: Coach monthly Firestore query contains month + branch
+✅ Dynamic: Coach member history contains profileId + month + branch
+✅ Dynamic: Missing Coach branch causes zero-query fail-closed behavior
+
+Total: 30 | PASS: 30 | FAIL: 0
+Phase 4K-6V4A compatibility checks passed.
+
+
+>>> npm run check:security-coach-branch-boundary
+
+> taekwondo-club-app@1.0.0 check:security-coach-branch-boundary
+> node tools/check-security-coach-branch-boundary.mjs
+
+
+=== Phase 4K-6V4B — Security + Branch Boundary ===
+
+✅ Canonical branch identity loads before role boundary and app kernel
+✅ All 6V4B runtime entry assets share one cache-bust marker
+✅ Coach account selector has no unrestricted/all-branch option
+✅ Auth cache is versioned and treated as a hint
+✅ Verified auth changes cannot require rebind because cache never mounts protected runtime
+✅ Missing users authorization doc fails closed without full-club scan
+✅ Coach login requires a canonical assigned branch
+✅ Retired Parent Portal has no public Firestore runtime path
+✅ New single-branch student writes use CS1 rather than legacy Mặc định
+✅ Coach CS1 profile listener reads legacy Mặc định in a separate scoped listener
+✅ Coach fallback queries only assigned branch aliases and de-duplicates results
+✅ Attendance reads are branch-scoped and missing Coach branch fails closed
+✅ Attendance writes canonicalize branch at one service boundary
+✅ Rules identify the 6V4B security phase
+✅ Rules require an enabled user authorization document
+✅ Self user updates use a strict safe-field diff whitelist
+✅ User cannot self-update role, clubId, branch or status
+✅ Club Admin may provision/repair only same-tenant Coach users with a valid branch
+✅ Coach profile reads are enforced by Firestore branch authorization
+✅ Coach attendance create/update/delete are branch-scoped in Rules
+✅ Coach notes and notifications are restricted to own coachId
+✅ Coach cannot read transactions, inventory or stats
+✅ Unknown tenant subcollections are deny-by-default
+✅ Coach settings access is limited to shifts; main_config is denied
+✅ CS1 and Mặc định compatibility exists only as an explicit primary alias
+✅ Callable authorization uses Firestore role/tenant data, not email allowlists
+✅ Debt recalculation callable is Admin-only
+✅ Stats rebuild callable is Admin-only
+✅ Summary refresh callable is Admin-only
+✅ No callable keeps the legacy hard-coded superadmin email check
+✅ Dynamic: Mặc định/CS01/Cơ sở 2 normalize to canonical codes
+✅ Dynamic: empty branch remains invalid when fallback is empty
+✅ Dynamic: primary branch aliases are exactly CS1 and Mặc định
+✅ Dynamic: legacy Coach branch becomes CS1 before authorization
+✅ Dynamic: missing Coach branch blocks active profiles
+
+Total: 35 | PASS: 35 | FAIL: 0
+Phase 4K-6V4B security/branch checks passed.
+
+
+>>> npm run check:coach-sensitive-config-closure
+
+> taekwondo-club-app@1.0.0 check:coach-sensitive-config-closure
+> node tools/check-coach-sensitive-config-closure.mjs
+
+✅ Coach attendance-only runtime role captured before settings mount
+✅ Coach branch completes settings-ready without main_config snapshot
+✅ main_config onSnapshot is only in non-Coach else path
+✅ settings-ready event lifecycle is preserved
+✅ Coach startup does not getDoc(settingsRef)
+✅ Rules deny Coach main_config and allow only shifts
+✅ Coach has no settings list permission
+✅ RoleReadBoundary still blocks Coach financial domain transactions.month
+✅ RoleReadBoundary still blocks Coach financial domain inventory.stats
+✅ RoleReadBoundary still blocks Coach financial domain inventory.history
+✅ RoleReadBoundary still blocks Coach financial domain debt.coverage
+✅ RoleReadBoundary still blocks Coach financial domain exam.settings
+✅ No attendance_public projection/source introduced
+PASS 13/13
+
+>>> npm run check:exam-upgrade-finance-separation
+
+> taekwondo-club-app@1.0.0 check:exam-upgrade-finance-separation
+> node tools/check-exam-upgrade-finance-separation.mjs
+
+
+=== check-exam-upgrade-finance-separation ===
+
+  PASS: processBatchUpgrade exists
+  PASS: upgrade source excludes getClubExamFee
+  PASS: upgrade source excludes exam_fee_all_actual
+  PASS: upgrade source excludes allTransactions
+  PASS: upgrade source excludes studentsToCharge
+  PASS: upgrade source excludes chargeAmount
+  PASS: upgrade source excludes newTxRef
+  PASS: upgrade source excludes type: 'Lệ phí thi'
+  PASS: upgrade source excludes type: "Lệ phí thi"
+  PASS: upgrade source excludes transactions",
+  PASS: upgrade source excludes transactions',
+  PASS: upgrade confirmation contains no fee/revenue wording
+  PASS: upgrade writes to profiles collection
+  PASS: upgrade uses merge writes
+  PASS: upgrade has in-flight guard
+  PASS: upgrade restores in-flight state in finally
+  PASS: upgrade button has stable id
+  PASS: upgrade button calls only processBatchUpgrade
+  PASS: standalone Thu phí action remains available
+  PASS: quickCollectExam still exists as separate payment action
+  PASS: quickCollectExam still writes an exam-fee transaction
+  PASS: first click creates exactly one batch
+  PASS: button is disabled during commit
+  PASS: in-flight flag is set during commit
+  PASS: second click does not create a second batch
+  PASS: second click reports in-progress state
+  PASS: two selected students create two profile writes
+  PASS: every batch write targets clubs/{club}/profiles/{student}
+  PASS: profile payload contains only belt progression fields
+  PASS: all profile writes use merge:true
+  PASS: confirmation contains no fee language
+  PASS: existing transaction cache is unchanged before commit
+  PASS: transaction cache remains unchanged after commit
+  PASS: local profile cache is updated only after successful commit
+  PASS: store profile cache is synchronized
+  PASS: render runs once after commit
+  PASS: select-all checkbox is cleared
+  PASS: button is restored after commit
+  PASS: in-flight flag is cleared after commit
+  PASS: success toast reports only belt upgrade
+  PASS: no blocking alert occurred in valid scenario
+
+ALL CHECKS PASSED — 41 exam upgrade/finance separation checks
+
+>>> npm run check:exam-export-belt-sort
+
+> taekwondo-club-app@1.0.0 check:exam-export-belt-sort
+> node tools/check-exam-export-belt-sort.mjs
+
+
+🔍 Phase 4K-6E-B — Exam Export Belt Sort Check
+
+[32m✅ PASS[0m  reports.js readable
+[32m✅ PASS[0m  main.js readable
+[32m✅ PASS[0m  buildSheet không còn Object.keys(subset).sort()
+[32m✅ PASS[0m  reports.js có EXAM_EXPORT_BELT_ORDER
+[32m✅ PASS[0m  reports.js có getExamExportBeltRank
+[32m✅ PASS[0m  getExamExportBeltRank có alias fallback cho cap X
+[32m✅ PASS[0m  reports.js có sortExamExportEntries
+[32m✅ PASS[0m  buildSheet gọi sortExamExportEntries
+[32m✅ PASS[0m  sortExamExportEntries đọc profile.belt hoặc currentBelt
+[32m✅ PASS[0m  sortExamExportEntries xét targetBelt
+[32m✅ PASS[0m  sortExamExportEntries xét branch
+[32m✅ PASS[0m  reports.js có debugExamExportSortPreview
+[32m✅ PASS[0m  debugRuntimeSmokeTest references debugExamExportSortPreview
+[32m✅ PASS[0m  index.html cache bust có 4K-6E-B hoặc mới hơn
+[32m✅ PASS[0m  main.js APP_BUILD_VERSION có 4K-6E-B
+
+[32m✅ All checks passed (13/13)[0m
+
+
+>>> npm run check:exam-export-download
+
+> taekwondo-club-app@1.0.0 check:exam-export-download
+> node tools/check-exam-export-download.mjs
+
+
+▸ Section 1: reports.js — canonical ledger branch không dùng undefined t/curTs
+  ✅ Canonical ledger branch không dùng t.branch (undefined variable)
+  ✅ Canonical ledger branch không dùng t.id (undefined variable)
+  ✅ Canonical ledger branch không dùng curTs (undefined variable)
+  ✅ Canonical ledger branch dùng r.branch
+  ✅ Canonical ledger branch dùng r.txId
+  ✅ Canonical ledger branch dùng r.timestamp
+
+▸ Section 2: reports.js — try/catch bao quanh paidData build
+  ✅ try/catch trong exportExamPaidList bao paidData build
+
+▸ Section 3: reports.js — debugExamExportReadiness
+  ✅ window.debugExamExportReadiness defined in reports.js
+
+▸ Section 4: main.js — debugRuntimeSmokeTest tham chiếu examExportReadiness
+  ✅ debugRuntimeSmokeTest gọi debugExamExportReadiness
+  ✅ summary.examExportReadinessOk in summary
+
+══════════════════════════════════════════════
+Kết quả: 10 ✅  0 ⚠️   0 ❌
+✅ check:exam-export-download PASSED
+
+>>> npm run check:exam-export-full-roster
+
+> taekwondo-club-app@1.0.0 check:exam-export-full-roster
+> node tools/check-exam-export-full-roster.mjs
+
+✅ Compatibility public API exportExamPaidList remains one owner
+✅ Full roster builder reads canonical profiles RAM state
+✅ Export still joins through canonical exam payment ledger with explicit loaded transactions
+✅ Zero-paid abort was removed
+✅ Only true zero-active roster aborts export
+✅ Unpaid target belt uses existing BELT_NEXT authority
+✅ Per-row fee status has paid and unpaid variants
+✅ Summary includes total/paid/unpaid/collected amount
+✅ Branch sheets are built from full roster, not paid-only data
+✅ Existing belt sorter remains canonical buildSheet sorter
+✅ No direct profile Firestore reader added to exam export
+[reports.js] ✅ initReports() Phase 4K-6E-B — exam export belt-order sort
+[ReportsModule] examPaidList load: txMonth= 3 date= 0 deduped= 3
+✅ E1 10 active / 3 paid / 7 unpaid exports 10 rows
+[ReportsModule] examPaidList load: txMonth= 0 date= 0 deduped= 0
+✅ E2 10 active / 0 paid exports 10 unpaid rows with no abort
+[ReportsModule] examPaidList load: txMonth= 0 date= 0 deduped= 0
+✅ E3 8 active + 2 quit exports exactly 8 rows
+[ReportsModule] examPaidList load: txMonth= 1 date= 0 deduped= 1
+✅ E4 direct Lệ phí thi keeps 250000 canonical exam amount
+[ReportsModule] examPaidList load: txMonth= 1 date= 0 deduped= 1
+✅ E5 combo uses examAmount=250000 instead of total amount
+[ReportsModule] examPaidList load: txMonth= 1 date= 0 deduped= 1
+✅ E6 examPaidCancelled=true exports student as unpaid
+[ReportsModule] examPaidList load: txMonth= 1 date= 0 deduped= 1
+✅ E7 multi-branch exports DS_ToanBo=10, CS1=5, CS2=5
+[ReportsModule] examPaidList load: txMonth= 0 date= 0 deduped= 0
+✅ E8 unpaid target belt comes from existing BELT_NEXT
+✅ E9 full roster builder performs zero Firebase reads/listeners
+✅ E10 full roster buildSheet still routes through existing belt sorter
+
+Exam Full Roster Export: 21/21 PASS
+
+>>> npm run check:exam-export-state-purity
+
+> taekwondo-club-app@1.0.0 check:exam-export-state-purity
+> node tools/check-exam-export-state-purity.mjs
+
+✅ Exactly one canonical Exam ledger call remains in export
+✅ Canonical ledger receives export transactions explicitly
+✅ Export contains no assignment to window.__store.transactions
+✅ Export contains no delete of window.__store.transactions
+✅ Legacy _prevTxs temporary mutation token removed
+✅ No second Exam ledger implementation introduced in reports module
+✅ Exam export adds no direct Firestore profile reader/listener
+[reports.js] ✅ initReports() Phase 4K-6E-B — exam export belt-order sort
+[ReportsModule] examPaidList load: txMonth= 1 date= 0 deduped= 1
+[ReportsModule] exportExamPaidList paidData build error: H6 forced ledger failure
+✅ E6 ledger failure leaves window.__store.transactions reference unchanged
+✅ E6 ledger received loaded export subset without global mutation
+
+Exam Export State Purity: 9/9 PASS
+
+>>> npm run check:reports-module-syntax
+
+> taekwondo-club-app@1.0.0 check:reports-module-syntax
+> node tools/check-reports-module-syntax.mjs
+
+
+══════════════════════════════════════════════════════════
+  Phase 4K-4E — reports.js Module Syntax Safety Check
+══════════════════════════════════════════════════════════
+
+▸ Section 1: reports.js file check
+  ✅ js/modules/reports.js exists
+  ✅ No function declaration inside import {} block
+  ✅ _classifyInvTxForReport helper is present
+  ✅ initReports is exported
+  ✅ import block ends before _classifyInvTxForReport
+  ✅ getLocalToday imported correctly
+
+▸ Section 2: node --check syntax verification
+  ✅ node --check js/modules/reports.js passes
+
+▸ Section 3: finance.js companion (no regression)
+  ✅ node --check js/modules/finance.js passes (no regression)
+
+══════════════════════════════════════════════════════════
+  Total: 8 checks | ✅ Pass: 8 | ❌ Fail: 0
+
+  🎉 All reports.js module syntax checks passed!
+  Không còn lỗi "Unexpected reserved word" khi import reports.js.
+══════════════════════════════════════════════════════════
+
+
+>>> npm run check:report-export-lazy-isolation
+
+> taekwondo-club-app@1.0.0 check:report-export-lazy-isolation
+> node tools/check-report-export-lazy-isolation.mjs
+
+
+🔎 Phase 4K-6U — Report/Excel Lazy Isolation
+
+[reports.js] ✅ initReports() Phase 4K-6E-B — exam export belt-order sort
+✅ eager report facade exists
+✅ lazy attendance export module exists
+✅ main eagerly imports only the small report facade
+✅ main registers report facade after ownership registry
+✅ ownership registry initializes before report facade
+✅ main no longer static-imports heavy reports.js
+✅ main no longer initializes heavy reports at startup
+✅ facade lazy-imports heavy reports.js
+✅ facade lazy-imports attendance export
+✅ facade shares one reports import promise
+✅ facade shares one attendance import promise
+✅ facade guards duplicate rapid export actions
+✅ facade restores canonical globals after reports module init
+✅ facade blocks viewer before lazy loading report code
+✅ ownership manifest includes openExcelExportModal
+✅ report ownership points to facade
+✅ classic rollback layer includes openExcelExportModal
+✅ app.js no longer assigns window.openExcelExportModal
+✅ ownership manifest includes updateExcelPeriodOptions
+✅ report ownership points to facade
+✅ classic rollback layer includes updateExcelPeriodOptions
+✅ app.js no longer assigns window.updateExcelPeriodOptions
+✅ ownership manifest includes exportToExcel
+✅ report ownership points to facade
+✅ classic rollback layer includes exportToExcel
+✅ app.js no longer assigns window.exportToExcel
+✅ ownership manifest includes executeExcelExport
+✅ report ownership points to facade
+✅ classic rollback layer includes executeExcelExport
+✅ app.js no longer assigns window.executeExcelExport
+✅ ownership manifest includes exportAchievementsExcel
+✅ report ownership points to facade
+✅ classic rollback layer includes exportAchievementsExcel
+✅ app.js no longer assigns window.exportAchievementsExcel
+✅ ownership manifest includes exportExamPaidList
+✅ report ownership points to facade
+✅ classic rollback layer includes exportExamPaidList
+✅ app.js no longer assigns window.exportExamPaidList
+✅ ownership manifest includes updateTaxPeriodOptions
+✅ report ownership points to facade
+✅ classic rollback layer includes updateTaxPeriodOptions
+✅ app.js no longer assigns window.updateTaxPeriodOptions
+✅ ownership manifest includes executeTaxExport
+✅ report ownership points to facade
+✅ classic rollback layer includes executeTaxExport
+✅ app.js no longer assigns window.executeTaxExport
+✅ ownership manifest includes exportAttendanceExcel
+✅ report ownership points to facade
+✅ classic rollback layer includes exportAttendanceExcel
+✅ app.js no longer assigns window.exportAttendanceExcel
+✅ ownership manifest includes copyAttReport
+✅ report ownership points to facade
+✅ classic rollback layer includes copyAttReport
+✅ app.js no longer assigns window.copyAttReport
+✅ finance.js no longer owns openExcelExportModal
+✅ finance.js no longer owns updateExcelPeriodOptions
+✅ finance.js no longer owns executeExcelExport
+✅ duplicate finance Excel implementation was removed
+✅ lazy reports implementation still loads XLSX on demand
+✅ exam export remains XLSX-lazy
+✅ tax export remains XLSX-lazy
+✅ achievement export remains XLSX-lazy
+✅ attendance Excel implementation removed from app.js
+✅ app.js no longer has the fixed 10,000 attendance export query
+✅ attendance module lazy-loads XLSX
+✅ attendance query remains scoped to selected month
+✅ attendance pagination uses stable document-id ordering
+✅ attendance pagination advances with cursor
+✅ attendance pagination uses bounded page size
+✅ attendance pagination has a high but finite safety ceiling
+✅ attendance export refuses silent truncation
+✅ attendance module removed fixed 10,000 cap
+✅ report facade has no write/listener API: setDoc(
+✅ attendance report has no write/listener API: setDoc(
+✅ report facade has no write/listener API: updateDoc(
+✅ attendance report has no write/listener API: updateDoc(
+✅ report facade has no write/listener API: addDoc(
+✅ attendance report has no write/listener API: addDoc(
+✅ report facade has no write/listener API: deleteDoc(
+✅ attendance report has no write/listener API: deleteDoc(
+✅ report facade has no write/listener API: writeBatch(
+✅ attendance report has no write/listener API: writeBatch(
+✅ report facade has no write/listener API: runTransaction(
+✅ attendance report has no write/listener API: runTransaction(
+✅ report facade has no write/listener API: onSnapshot(
+✅ attendance report has no write/listener API: onSnapshot(
+✅ app.js reduced to 675,599 bytes (target <= 735,000)
+✅ app.js reduced to 11,106 lines (target <= 11,700)
+✅ finance.js reduced to 67,402 bytes (target <= 72,000)
+✅ app.js cache bust is current and preserves 4K-6U report isolation
+✅ main.js cache bust is current and preserves 4K-6U report isolation
+✅ main retains the 4K-6U compatibility marker
+✅ active build version advances beyond 4K-6U
+✅ ownership diagnostics report the current phase while preserving report owners
+✅ package exposes 4K-6U checker
+✅ default check includes 4K-6U checker
+✅ full check includes 4K-6U checker
+✅ critical check includes 4K-6U checker
+✅ runtime facade registers all report globals
+✅ canonical facade opens Excel modal
+✅ Excel modal becomes visible
+✅ quarter selector renders four options
+✅ tax period selector updates
+✅ tax half-year options remain compatible
+✅ UI/copy actions do not load heavy reports
+✅ viewer export is blocked before heavy module import
+✅ heavy reports module initializes successfully on first demand
+✅ facade reports heavy module ready after lazy init
+✅ facade restores every canonical global after lazy module initialization
+✅ attendance pagination loads all 10,500 documents
+✅ attendance pagination completes after 11 pages without truncation
+✅ all ten report globals have canonical owners
+✅ all report owners remain installed
+✅ report ownership introduces no collision
+✅ all report rollback references are preserved
+
+✅ Phase 4K-6U check passed (115 assertions)
+
+
+>>> npm run check:stored-xss-trust-boundary
+
+> taekwondo-club-app@1.0.0 check:stored-xss-trust-boundary
+> node tools/check-stored-xss-trust-boundary.mjs
+
+✅ escapeHtml fixture is inert: <img src=x onerror="wi
+✅ escapeHtml fixture is inert: "><svg onload="window.
+✅ escapeHtml fixture is inert: </div><img src=x onerr
+✅ escapeHtml fixture is inert: O'Brien
+✅ escapeHtml fixture is inert: "Test Club"
+✅ escapeHtml fixture is inert: <>&"'
+✅ escapeHtml preserves apostrophe as display-safe entity
+✅ escapeHtml escapes full HTML special set
+✅ SuperAdmin clubName display uses canonical escapeHtml
+✅ SuperAdmin adminEmail display uses canonical escapeHtml
+✅ SuperAdmin inline actions receive canonical club token, not clubName/email
+✅ SuperAdmin club token is URI-encoded for inline JS context
+✅ Attendance coach names escaped before branch-summary innerHTML
+✅ Attendance coach note escaped and pre-line preserved
+✅ Attendance card profile name/nickname/belt use canonical escapeHtml
+✅ Attendance monthly profile name is escaped and inline JS gets URI token
+✅ Admin session note renderer escapes coachName/note/branch
+✅ Admin notification renderer escapes notePreview
+✅ Transaction descriptions escaped at both canonical and legacy render boundaries
+✅ Inventory category display text escaped
+✅ Student debt display names escaped
+✅ Student active-row display/name metadata escaped
+✅ Belt badge text escapes canonical value
+✅ Exam profile name display escapes HTML
+✅ Known raw SuperAdmin P0 render patterns absent
+✅ Known raw Coach-note P0 pattern absent
+✅ login_history email is escaped before innerHTML
+✅ login_history clubId is escaped before innerHTML
+✅ login_history deviceName is escaped before innerHTML
+✅ login_history os is escaped before innerHTML
+✅ login_history browser is escaped before innerHTML
+✅ login_history filterClub is escaped before innerHTML
+✅ login_history error guide uses canonical escapeHtml for error/uid/email
+✅ login_history raw Firestore display interpolations are absent
+✅ SuperAdmin revenue clubName is escaped before innerHTML
+✅ SuperAdmin revenue clubId is escaped before innerHTML
+✅ SuperAdmin revenue error message is escaped before innerHTML
+✅ SuperAdmin revenue raw club/error HTML concatenations are absent
+PASS 38/38
+
+>>> npm run check:profile-rename-referential-guard
+
+> taekwondo-club-app@1.0.0 check:profile-rename-referential-guard
+> node tools/check-profile-rename-referential-guard.mjs
+
+✅ primary rename guard exists
+✅ rename guard is fail-closed with explicit return
+✅ rename guard executes before transaction lookup
+✅ rename guard executes before any updateProfile command write
+✅ same-name profile edit path remains
+✅ legacy rename service retained but not duplicated
+✅ no Attendance historical migration added to profile edit flow
+✅ no startup/background rename repair added
+✅ guard message explains intentional data-integrity block
+PASS 9/9
+
+>>> npm run check:production-residual-defect-closure
+
+> taekwondo-club-app@1.0.0 check:production-residual-defect-closure
+> node tools/check-production-residual-defect-closure.mjs
+
+
+🔎 Phase 4K-6V5U6G — Production Residual Defect Closure
+
+✅ Attendance V2 journal prefix exists 
+✅ Attendance V2 journal is per-record, never whole-class snapshot 
+✅ Attendance journal identity includes club/date/shift/docId 
+✅ Attendance journal records mutation operation and profile identity 
+✅ Repeated toggle coalesces into one same-doc journal mutation 
+✅ Successful single write cleanup is scoped to its own mutation and matching revision 
+✅ No whole-day offline cleanup remains 
+✅ Bulk cleanup occurs only after successful canonical bulk commit 
+✅ Bulk failure preserves pending journal mutations 
+✅ Attendance offline synchronization is single-flight 
+✅ V2 journal and V1 compatibility share one sync owner 
+✅ Cross-club and invalid/deleted shift entries fail closed and remain pending 
+✅ Offline sync failures are classified/observable, not swallowed 
+✅ Attendance sync adds no polling or blind retry loop 
+✅ V5U6G1 offline Firestore payload is whitelist-built, never journal-spread 
+✅ V5U6G1 journal metadata cannot enter canonical Attendance payload 
+✅ V5U6G1 retains max-one active flight context plus max-one latest pending context 
+✅ V5U6G1 same-context coalesces while different-context request is bounded/pending 
+✅ V5U6G1 pending active context receives exactly one bounded follow-up path 
+✅ V5U6G1 stale flight cannot start later uncommitted chunks 
+✅ V5U6G1 stale flight cannot refresh the new club Attendance UI 
+✅ package exposes the V5U6G1 canonical offline sync guard 
+✅ True-zero path reuses exactly the existing zero probe 
+✅ Empty zero-probe closes Dashboard members hydration as complete active=0 
+✅ True-zero evidence explicitly publishes active=0 as available 
+✅ Zero-probe failure remains incomplete and is observable 
+✅ Active profile owner recognizes the Admin emergency full fallback key 
+✅ Fallback is unsubscribed before active-module listener creation 
+✅ Fallback takeover verifies cleanup and fails closed if verification fails 
+✅ Coach can never enter the full-club profile fallback 
+✅ Admin emergency fallback remains registered in the existing listener registry for explicit takeover 
+✅ Attendance derived stats service propagates failure to the existing caller 
+✅ Attendance stats failure emits reconciliation diagnostic without rolling back canonical attendance 
+✅ Inventory payment linkage failure is observable in legacy and module admission paths 
+✅ Fee audit failure is observable and never invalidates successful payment 
+✅ Session-note notification projection failure is observable while note remains canonical 
+✅ Post-transaction inventory links cannot surface as false primary failure or start retry loops 
+✅ getDoc call-site budget unchanged (29 <= 31) 
+✅ getDocs call-site budget unchanged (51 <= 56) 
+✅ onSnapshot call-site budget unchanged (16 <= 16) 
+✅ legacy app window assignment budget does not increase (532 <= 534) 
+✅ H5 readiness barrier owns exactly two once:true registry event listeners (2) 
+✅ H5 readiness barrier owns exactly one bounded 10s timeout (1) 
+✅ H5 readiness barrier has no polling, Firestore wait, or recursive retry 
+✅ event/timer freeze allows only approved H5 readiness delta (total 117/1/87; outside 115/1/86) 
+✅ No generic global request manager was introduced 
+✅ Generic offline queue has no Attendance/business caller overlap 
+✅ Exact V5U6G1 build version is active while V5U6G boundaries remain frozen 
+✅ Only changed root runtime main.js receives the V5U6G1 cache-bust; unchanged app.js stays on V5U6G 
+✅ Changed Attendance modules are cache-busted; frozen Profiles/Students modules are not mass-busted 
+✅ package exposes the V5U6G master gate 
+[attendance.js] ✅ Phase 4K-6V5U6G residual closure: explicit shift + V2 offline journal ready
+✅ A1 single-shift offline queues exactly one Alice mutation 
+✅ A3 repeated Alice toggles coalesce to one latest journal record 
+✅ A2 Morning and Evening same-date mutations coexist without key collision 
+✅ A4 bulk offline queues only changed/unmarked profiles 
+✅ A5 online success clears only its own mutation and preserves unrelated shift/profile pending data 
+✅ A6 failed online attendance write preserves its pending mutation 
+[AttendanceOffline] wrong-club {
+  classification: 'wrong-club',
+  attendanceOffline: true,
+  stage: 'club-scope-v2'
+} 
+✅ A7 cross-club pending queue is retained and never synced under another club 
+[AttendanceOffline] invalid-shift {
+  classification: 'invalid-shift',
+  attendanceOffline: true,
+  stage: 'v2-guard'
+} 
+✅ A8 Coach wrong-branch queued record fails closed and remains pending 
+[AttendanceOffline] invalid-shift {
+  classification: 'invalid-shift',
+  attendanceOffline: true,
+  stage: 'v2-guard'
+} 
+✅ A9 deleted shift cannot sync and pending mutation is preserved 
+✅ A10 true legacy no-shift club uses V2 journal without inventing a shift 
+✅ A11 legacy V1 payload syncs once and is removed only after successful commit 
+[AttendanceOffline] unknown {
+  classification: 'unknown',
+  attendanceOffline: true,
+  legacy: true,
+  stage: 'legacy-commit'
+} Error: legacy commit failed
+    at bulkSyncImpl (file:///mnt/data/h8_work/taekwondo_club_phase_4k_6v5u6h7_firebase_runtime_release_verification/tools/check-production-residual-defect-closure.mjs:403:40)
+    at AttendanceService.bulkSyncOffline (file:///mnt/data/h8_work/taekwondo_club_phase_4k_6v5u6h7_firebase_runtime_release_verification/tools/check-production-residual-defect-closure.mjs:288:86)
+    at _runOfflineAttendanceSync (file:///mnt/data/h8_work/taekwondo_club_phase_4k_6v5u6h7_firebase_runtime_release_verification/js/modules/attendance.js?v5u6g=1788276925380:1978:41)
+    at async file:///mnt/data/h8_work/taekwondo_club_phase_4k_6v5u6h7_firebase_runtime_release_verification/tools/check-production-residual-defect-closure.mjs:404:5
+✅ A11 failed V1 compatibility commit preserves legacy queue key 
+✅ A12 all concurrent Attendance sync triggers receive the same Promise latch 
+✅ A12 concurrent sync triggers perform exactly one canonical sync flight 
+✅ Silent-failure matrix: attendance derived stats rejection is observable to caller 
+
+Total: 66 | PASS: 66 | FAIL: 0
+Phase 4K-6V5U6G residual defect closure gate passed.
+
+
+>>> npm run check:db-ready-guards
+
+> taekwondo-club-app@1.0.0 check:db-ready-guards
+> node tools/check-db-ready-guards.mjs
+
+
+══════════════════════════════════════════════════════════
+  Firebase DB Ready Guards Check
+══════════════════════════════════════════════════════════
+
+▸ Section 1: main.js — initStudentPagination có db guard
+  ✅ initStudentPagination được guard bằng window.__store.db
+  ✅ initTransactionPagination được guard bằng window.__store.db
+
+▸ Section 2: main.js — ensureModuleRuntimeReady có typeof guard
+  ✅ ensureModuleRuntimeReady calls có typeof guard trước khi gọi
+  ✅ Có console.warn khi ensureModuleRuntimeReady chưa sẵn sàng
+
+▸ Section 3: students.service.js — _db() có error message rõ ràng
+  ✅ students.service.js _db() throw với message rõ ràng (không silent fail)
+  ✅ students.service.js _db() throw Error (không return null silently)
+
+▸ Section 4: finance.service.js — _db() có error message rõ ràng
+  ✅ finance.service.js _db() throw với message rõ ràng
+  ✅ finance.service.js _db() throw Error (không return null silently)
+
+▸ Section 5: package.json có check:db-ready-guards
+  ✅ check:db-ready-guards script defined in package.json
+  ✅ canonical check:release includes check:db-ready-guards
+
+▸ Section 6: app:context-ready / app:db-ready listener cho pagination
+  ✅ app:context-ready listener trigger pagination init
+  ✅ app:db-ready listener trigger pagination init
+  ✅ __studentPaginationInitialized double-init guard tồn tại
+  ✅ __transactionPaginationInitialized double-init guard tồn tại
+
+══════════════════════════════════════════════════════════
+  Total: 14 checks | ✅ Pass: 14 | ❌ Fail: 0
+
+  🎉 All DB ready guard checks passed!
+  Pagination services sẽ không crash khi db chưa sẵn sàng.
+══════════════════════════════════════════════════════════
+
+
+>>> npm run check:runtime-month-admission-hydration
+
+> taekwondo-club-app@1.0.0 check:runtime-month-admission-hydration
+> node tools/check-runtime-month-admission-hydration.mjs
+
+
+══════════════════════════════════════════════════════════
+  Phase 4K-4E — Runtime Month + Admission Hydration Check
+══════════════════════════════════════════════════════════
+
+▸ Section 1: reports.js syntax — no function inside import block
+  ✅ reports.js: no function inside import {} block
+  ✅ reports.js: node --check passes
+
+▸ Section 2: package.json scripts
+  ✅ package.json: check:reports-module-syntax defined
+  ✅ package.json: check:runtime-month-admission-hydration defined
+  ✅ package.json: ONE canonical check:release defined
+  ✅ check:release includes reports syntax validation
+  ✅ check:release includes runtime month/admission validation
+
+▸ Section 3: main.js Month Change Controller
+  ✅ main.js: window.handleFilterMonthChange defined
+  ✅ main.js: handleFilterMonthChange calls listenToData
+  ✅ main.js: handleFilterMonthChange invalidates finance
+  ✅ main.js: window.onFilterMonthChange alias defined
+  ✅ main.js: window.initFilterMonthController defined
+  ✅ main.js: initFilterMonthController uses __filterMonthControllerBound guard
+
+▸ Section 4: app.js filterMonth binding bridges http-module mode
+  ✅ app.js: filterMonth onchange bridges handleFilterMonthChange in http-module
+  ✅ app.js: filterMonth onchange still calls listenToData as fallback
+
+▸ Section 5: StudentService canonical transaction writers return { id, ...data }
+  ✅ students.service.js: addTuitionTransaction returns docRef.id
+  ✅ students.service.js: addUniformTransaction returns docRef.id
+  ✅ students.service.js: canonical addGenericTransaction returns docRef.id
+
+▸ Section 6: main.js mergeTransactionIntoRuntimeStore helper
+  ✅ main.js: window.mergeTransactionIntoRuntimeStore defined
+  ✅ mergeTransactionIntoRuntimeStore: uses Map to avoid duplicates
+  ✅ mergeTransactionIntoRuntimeStore: checks packageMonths when matching selected month
+  ✅ mergeTransactionIntoRuntimeStore: calls invalidateFinance or refreshListsComputation
+
+▸ Section 7: js/modules/students.js canonical admission bundle hydration
+  ✅ students.js: admission uses existing buildPaymentBundleTransaction authority
+  ✅ students.js: admission uses generic canonical writer with compatible tuition fallback
+  ✅ students.js: captures canonical bundle transaction and hydrates same tx into runtime store
+
+▸ Section 8: app.js legacy-compatible admission bundle hydration
+  ✅ app.js: legacy path prefers existing payment bundle authority
+  ✅ app.js: legacy bundle captures created id and hydrates same transaction
+  ✅ app.js: old direct tuition path remains compatibility fallback only
+
+▸ Section 9: debug helpers
+  ✅ main.js: window.debugMonthRuntime defined
+  ✅ main.js: debugMonthRuntime checks filterMonthValue
+  ✅ main.js: window.debugAdmissionTxHydration defined
+  ✅ main.js: debugAdmissionTxHydration checks packageMonths match
+  ✅ main.js: debugRuntimeSmokeTest includes monthRuntime
+  ✅ main.js: debugRuntimeSmokeTest includes admissionTxHydration
+
+▸ Section 10: lazy reports / SuperAdmin isolation
+  ✅ main.js: registers lightweight reportExportFacade rather than eager reports.js
+  ✅ reportExportFacade: dynamically imports reports.js only on report action
+  ✅ reportExportFacade: initializes loaded reports implementation after lazy import
+  ✅ main.js: initSuperAdmin remains isolated by try/catch
+
+══════════════════════════════════════════════════════════
+  Total: 38 checks | ✅ Pass: 38 | ❌ Fail: 0
+
+  🎉 All runtime month + admission hydration checks passed!
+  reports.js syntax OK, month controller ready, tx hydration ready.
+══════════════════════════════════════════════════════════
+
+
+>>> npm run check:deploy-package
+
+> taekwondo-club-app@1.0.0 check:deploy-package
+> node tools/check-deploy-package.mjs
+
+
+══════════════════════════════════════════════════════════
+  Deploy Package Structure Check
+══════════════════════════════════════════════════════════
+
+▸ Root files bắt buộc
+  ✅ index.html tồn tại
+  ✅ app.js tồn tại (legacy standalone mode)
+  ✅ style.css tồn tại
+  ✅ package.json tồn tại
+  ✅ .nojekyll tồn tại (GitHub Pages — ngăn Jekyll bỏ qua _prefix files)
+
+▸ Module JS files bắt buộc
+  ✅ js/main.js tồn tại (ES module entry point)
+  ✅ js/modules/superadmin.js tồn tại
+  ✅ js/modules/dashboard.js tồn tại
+  ✅ js/modules/students.js tồn tại
+
+▸ Thư mục bắt buộc
+  ✅ js/ thư mục tồn tại
+  ✅ js/modules/ thư mục tồn tại
+  ✅ js/services/ thư mục tồn tại
+
+══════════════════════════════════════════════════════════
+  Total: 12 checks | ✅ Pass: 12 | ❌ Fail: 0
+
+  🎉 Deploy package structure hợp lệ!
+  Tất cả file/thư mục bắt buộc đều có mặt — an toàn để đóng gói ZIP.
+══════════════════════════════════════════════════════════
+
+
+RELEASE GATE PASS — 36/36 canonical checks passed.
+EXIT_CODE=0

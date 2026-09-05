@@ -54,6 +54,8 @@ const appJs       = readFile('app.js');
 const reportsJs   = readFile('js/modules/reports.js');
 const studentsJs  = readFile('js/modules/students.js');
 const svcJs       = readFile('js/services/students.service.js');
+const reportFacadeJs = readFile('js/modules/reports/reportExportFacade.js');
+const releaseGateJs  = readFile('tools/check-release.mjs');
 const pkgRaw      = readFile('package.json');
 
 // ── Section 1: reports.js syntax ──────────────────────────────────────
@@ -91,12 +93,15 @@ if (pkgRaw) {
         check('package.json: check:runtime-month-admission-hydration defined',
             !!pkg.scripts['check:runtime-month-admission-hydration'],
             'Add "check:runtime-month-admission-hydration": "node tools/check-runtime-month-admission-hydration.mjs"');
-        check('package.json: check:all includes check:reports-module-syntax',
-            pkg.scripts['check:all'] && pkg.scripts['check:all'].includes('check:reports-module-syntax'),
-            'Add check:reports-module-syntax to check:all');
-        check('package.json: check:all includes check:runtime-month-admission-hydration',
-            pkg.scripts['check:all'] && pkg.scripts['check:all'].includes('check:runtime-month-admission-hydration'),
-            'Add check:runtime-month-admission-hydration to check:all');
+        check('package.json: ONE canonical check:release defined',
+            !!pkg.scripts['check:release'] && !pkg.scripts['check:release2'] && !pkg.scripts['check:release-new'],
+            'H6 release authority must be one canonical check:release command');
+        check('check:release includes reports syntax validation',
+            !!releaseGateJs && releaseGateJs.includes("'check:reports-module-syntax'"),
+            'Canonical release gate must run check:reports-module-syntax');
+        check('check:release includes runtime month/admission validation',
+            !!releaseGateJs && releaseGateJs.includes("'check:runtime-month-admission-hydration'"),
+            'Canonical release gate must run check:runtime-month-admission-hydration');
     }
 }
 console.log();
@@ -138,7 +143,7 @@ if (appJs) {
 console.log();
 
 // ── Section 5: StudentService.addTuitionTransaction ──────────────
-console.log('▸ Section 5: StudentService.addTuitionTransaction returns { id, ...data }');
+console.log('▸ Section 5: StudentService canonical transaction writers return { id, ...data }');
 if (svcJs) {
     check('students.service.js: addTuitionTransaction returns docRef.id',
         svcJs.includes('addTuitionTransaction') && svcJs.includes('docRef.id') &&
@@ -147,6 +152,10 @@ if (svcJs) {
     check('students.service.js: addUniformTransaction returns docRef.id',
         svcJs.includes('addUniformTransaction') && svcJs.includes('return { id: docRef.id'),
         'addUniformTransaction must also return { id: docRef.id, ...data }');
+    check('students.service.js: canonical addGenericTransaction returns docRef.id',
+        svcJs.includes('addGenericTransaction') && svcJs.includes("canonicalizeTransactionForWrite(data, 'student-service-generic')") &&
+        svcJs.includes('return { id: docRef.id, ...payload }'),
+        'Admission bundle writer must return canonical transaction identity for same-write runtime hydration');
 }
 console.log();
 
@@ -168,30 +177,40 @@ if (mainJs) {
 }
 console.log();
 
-// ── Section 7: students.js addNewStudent ─────────────────────────
-console.log('▸ Section 7: js/modules/students.js addNewStudent merge tuitionTx');
+// ── Section 7: students.js canonical admission bundle ─────────────
+console.log('▸ Section 7: js/modules/students.js canonical admission bundle hydration');
 if (studentsJs) {
-    check('students.js: captures return value of addTuitionTransaction',
-        studentsJs.includes('tuitionTx = await StudentService.addTuitionTransaction'),
-        'addNewStudent must capture: tuitionTx = await StudentService.addTuitionTransaction(...)');
-    check('students.js: calls mergeTransactionIntoRuntimeStore after addTuitionTransaction',
-        studentsJs.includes('mergeTransactionIntoRuntimeStore') &&
-        studentsJs.includes('admission-tuition-created'),
-        'addNewStudent must call mergeTransactionIntoRuntimeStore(tuitionTx, "admission-tuition-created")');
+    const admissionStart = studentsJs.indexOf('window.addNewStudent = async');
+    const admissionEnd = studentsJs.indexOf('window.updateProfile = async', admissionStart >= 0 ? admissionStart : 0);
+    const admissionBody = admissionStart >= 0 ? studentsJs.slice(admissionStart, admissionEnd > admissionStart ? admissionEnd : admissionStart + 40000) : '';
+    check('students.js: admission uses existing buildPaymentBundleTransaction authority',
+        admissionBody.includes('buildPaymentBundleTransaction') && admissionBody.includes('components: _admComponents'),
+        'Admission must construct one canonical payment bundle; do not restore separate transaction truth');
+    check('students.js: admission uses generic canonical writer with compatible tuition fallback',
+        admissionBody.includes('StudentService.addGenericTransaction') &&
+        admissionBody.includes('StudentService.addTuitionTransaction.bind(StudentService)'),
+        'Use addGenericTransaction for canonical bundle while retaining current compatible writer fallback');
+    check('students.js: captures canonical bundle transaction and hydrates same tx into runtime store',
+        admissionBody.includes('tuitionTx = await _addFn(_bundleTx)') &&
+        admissionBody.includes("mergeTransactionIntoRuntimeStore(tuitionTx, 'admission-bundle-created')"),
+        'The exact created bundle transaction must be merged once into runtime store');
 }
 console.log();
 
-// ── Section 8: app.js addNewStudent legacy ─────────────────────────
-console.log('▸ Section 8: app.js addNewStudent legacy merge tuitionTx');
+// ── Section 8: app.js legacy-compatible admission bundle ─────────
+console.log('▸ Section 8: app.js legacy-compatible admission bundle hydration');
 if (appJs) {
-    check('app.js: legacy addNewStudent captures tuitionTx after addDoc',
-        appJs.includes('tuitionTx') && appJs.includes('_txDoc.id') &&
-        appJs.includes('admission-tuition-created-legacy'),
-        'app.js addNewStudent: capture const _txDoc = await addDoc(...); tuitionTx = { id: _txDoc.id, ...txPayload }');
-    check('app.js: legacy addNewStudent calls mergeTransactionIntoRuntimeStore',
-        appJs.includes('mergeTransactionIntoRuntimeStore') &&
-        appJs.includes('admission-tuition-created-legacy'),
-        'app.js addNewStudent must call mergeTransactionIntoRuntimeStore(tuitionTx, "admission-tuition-created-legacy")');
+    check('app.js: legacy path prefers existing payment bundle authority',
+        appJs.includes('if(_hasFinancialPayment && typeof window.buildPaymentBundleTransaction') &&
+        appJs.includes("_canonicalTxPayload(_bundleTx, 'payment-bundle')"),
+        'Legacy path must reuse buildPaymentBundleTransaction + canonical transaction writer when available');
+    check('app.js: legacy bundle captures created id and hydrates same transaction',
+        appJs.includes('tuitionTx = Object.assign({ id: _bundleDoc.id }, _bundleTx)') &&
+        appJs.includes("mergeTransactionIntoRuntimeStore(tuitionTx, 'admission-bundle-created')"),
+        'Legacy-compatible path must hydrate the exact canonical bundle transaction');
+    check('app.js: old direct tuition path remains compatibility fallback only',
+        appJs.includes('} else if(fee > 0) {') && appJs.includes("'admission-tuition-created-legacy'"),
+        'Direct tuition write may remain only as existing compatibility fallback, not primary admission authority');
 }
 console.log();
 
@@ -219,18 +238,24 @@ if (mainJs) {
 }
 console.log();
 
-// ── Section 10: initReports/initSuperAdmin isolation ─────────────
-console.log('▸ Section 10: initReports / initSuperAdmin isolation in main.js');
-if (mainJs) {
-    check('main.js: initReports wrapped in try/catch',
-        mainJs.includes('initReports') &&
-        (mainJs.includes('initReports()') &&
-         /try\s*\{[^}]*initReports\(\)/.test(mainJs.replace(/\n/g, ' '))),
-        'Wrap initReports() in try/catch so syntax error does not kill SuperAdmin');
-    check('main.js: initSuperAdmin wrapped in try/catch',
-        mainJs.includes('initSuperAdmin') &&
-        /try\s*\{[^}]*initSuperAdmin\(\)/.test(mainJs.replace(/\n/g, ' ')),
-        'Wrap initSuperAdmin() in try/catch so other module errors do not kill it');
+// ── Section 10: lazy reports / SuperAdmin isolation ───────────────
+console.log('▸ Section 10: lazy reports / SuperAdmin isolation');
+if (mainJs && reportFacadeJs) {
+    check('main.js: registers lightweight reportExportFacade rather than eager reports.js',
+        mainJs.includes('registerReportExportFacade') &&
+        mainJs.includes("from './modules/reports/reportExportFacade.js") &&
+        !/from\s+['\"]\.\/modules\/reports\.js/.test(mainJs),
+        'Startup may register the facade only; heavy reports.js must not be an eager import');
+    check('reportExportFacade: dynamically imports reports.js only on report action',
+        /import\(['\"]\.\.\/reports\.js(?:\?[^'\"]*)?['\"]\)/.test(reportFacadeJs) &&
+        reportFacadeJs.includes('reportsModulePromise'),
+        'Heavy reports module must remain behind the existing lazy facade');
+    check('reportExportFacade: initializes loaded reports implementation after lazy import',
+        reportFacadeJs.includes("typeof mod.initReports !== 'function'") && reportFacadeJs.includes('mod.initReports()'),
+        'initReports belongs inside lazy module resolution, not app startup');
+    check('main.js: initSuperAdmin remains isolated by try/catch',
+        /try\s*\{\s*initSuperAdmin\(\);\s*\}\s*catch/s.test(mainJs),
+        'SuperAdmin init must remain isolated from unrelated module failures');
 }
 console.log();
 

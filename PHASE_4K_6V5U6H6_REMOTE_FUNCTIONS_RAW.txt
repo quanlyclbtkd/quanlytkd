@@ -1,0 +1,5 @@
+TIMESTAMP_UTC=2026-08-28T22:00:35Z
+PROJECT=quanly-tst
+COMMAND=firebase functions:list --project quanly-tst
+bash: line 5: firebase: command not found
+EXIT_CODE=127

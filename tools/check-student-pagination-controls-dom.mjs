@@ -63,9 +63,22 @@ if (studentsJs) {
     );
 
     check(
-        '_injectControls dùng prefix students_quit cho quitList',
-        studentsJs.includes("'students_quit'") || studentsJs.includes('"students_quit"'),
-        "_injectControls phải: prefix = 'students_quit' cho quitList"
+        'quitList ưu tiên authoritative quit dataset khi coverage complete',
+        studentsJs.includes("if (listId === 'quitList' && _isQuitAuthoritativeLoaded())") && studentsJs.includes('_getAuthoritativeQuitEntries()'),
+        'Quit controls must derive from complete authoritative quit data once loaded'
+    );
+    check(
+        'quitList mobile hiển thị full authoritative data; desktop dùng bounded load-more',
+        studentsJs.includes('const _mobileFull  = _isMobileViewport()') &&
+        studentsJs.includes('_mobileFull ? _quitEntries.length') &&
+        studentsJs.includes("window._loadMore('quit')") &&
+        studentsJs.includes("'Đã hiển thị đủ '") && studentsJs.includes("'Đã tải hết '"),
+        'Mobile must render complete quit authority while desktop may expose bounded load-more'
+    );
+    check(
+        'quitList không ép shared server pagination khi authoritative coverage chưa ready',
+        studentsJs.includes("if (listId === 'quitList')") && studentsJs.includes('Đang tải danh sách đã nghỉ...'),
+        'Before authoritative quit coverage is ready, show loading state rather than obsolete shared pagination'
     );
 }
 

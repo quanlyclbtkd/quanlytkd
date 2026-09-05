@@ -39,7 +39,7 @@ const exportBody = extractExportBody();
 // Static contract
 check('Compatibility public API exportExamPaidList remains one owner', (reportsSrc.match(/window\.exportExamPaidList\s*=\s*async/g)||[]).length === 1);
 check('Full roster builder reads canonical profiles RAM state', exportBody.includes('const allProfiles = _profiles();') && exportBody.includes('buildExamFullRosterDataForExport'));
-check('Export still joins through canonical exam payment ledger', exportBody.includes('window.buildCanonicalExamPaymentLedger({ month: selMonth })'));
+check('Export still joins through canonical exam payment ledger with explicit loaded transactions', /window\.buildCanonicalExamPaymentLedger\(\{[\s\S]*?month:\s*selMonth,[\s\S]*?transactions:\s*allTransactions[\s\S]*?\}\)/.test(exportBody));
 check('Zero-paid abort was removed', !exportBody.includes('Không có võ sinh nào ĐÃ NỘP'));
 check('Only true zero-active roster aborts export', exportBody.includes('Không có võ sinh đang tập để xuất danh sách.'));
 check('Unpaid target belt uses existing BELT_NEXT authority', exportBody.includes('beltNext: window.BELT_NEXT || {}'));

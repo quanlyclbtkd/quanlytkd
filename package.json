@@ -193,7 +193,7 @@
     "check:security-coach-branch-boundary": "node tools/check-security-coach-branch-boundary.mjs",
     "build:public": "node tools/build-public.mjs",
     "check:rules:emulator": "firebase emulators:exec --only firestore --project demo-taekwondo-6v4b \"node tools/firestore-rules-6v4b.test.mjs\"",
-    "deploy:hosting": "npm run check && npm run build:public && firebase deploy --only hosting",
+    "deploy:hosting": "npm run check:release && npm run build:public && npm run check:root-public-parity && npm run check:deploy-package && firebase deploy --only hosting --project quanly-tst",
     "check:coach-branch-runtime-repair": "node tools/check-coach-branch-runtime-repair.mjs",
     "check:quit-tab-completeness": "node tools/check-quit-tab-completeness.mjs",
     "check:quit-tab-authoritative-completeness": "node tools/check-quit-tab-authoritative-completeness.mjs",
@@ -242,7 +242,10 @@
     "check:profile-rename-referential-guard": "node tools/check-profile-rename-referential-guard.mjs",
     "check:production-security-trust-boundary": "node tools/check-production-security-trust-boundary.mjs",
     "check:club-listener-bootstrap-readiness": "node tools/check-club-listener-bootstrap-readiness.mjs",
-    "check:exam-export-full-roster": "node tools/check-exam-export-full-roster.mjs"
+    "check:exam-export-full-roster": "node tools/check-exam-export-full-roster.mjs",
+    "check:exam-export-state-purity": "node tools/check-exam-export-state-purity.mjs",
+    "check:release": "node tools/check-release.mjs",
+    "check:root-public-parity": "node tools/check-root-public-parity.mjs"
   },
   "engines": {
     "node": ">=18.0.0"

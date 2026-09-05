@@ -103,7 +103,7 @@ import { LegacyRenderEntrypoints }            from './core/legacyRenderEntrypoin
 import { InlineHandlerAudit }                from './core/inlineHandlerAudit.js';
 import { EventActionBridge, initEventActionBridge } from './ui/eventActionBridge.js';
 import { initLegacyUiShell }                  from './ui/legacyUiShell.js';
-import { registerReportExportFacade }         from './modules/reports/reportExportFacade.js?v=club-root-listener-bootstrap-readiness-exam-full-roster-export-20260827-v5u6h5';
+import { registerReportExportFacade }         from './modules/reports/reportExportFacade.js?v=release-authority-exam-state-purity-firebase-final-verification-20260829-v5u6h6';
 import { store, resetStore }                  from './store.js';
 import { initFirebase }                        from './firebase/config.js';
 import { showToast, registerToastGlobal }      from './ui/toast.js';
@@ -3203,7 +3203,8 @@ window.debugProfileModalClose = function() {
 // ════════════════════════════════════════════════════════════════
 
 // PHẦN 1 — APP BUILD VERSION
-window.APP_BUILD_VERSION = '4K-6V5U6H5-club-root-listener-bootstrap-readiness-exam-full-roster-export-20260827';
+// H5 compatibility build marker: APP_BUILD_VERSION = '4K-6V5U6H5-club-root-listener-bootstrap-readiness-exam-full-roster-export-20260827'
+window.APP_BUILD_VERSION = '4K-6V5U6H6-release-authority-exam-state-purity-firebase-final-verification-20260829';
 // Compatibility marker only: window.APP_BUILD_VERSION = '4K-6V5U6H3-residual-security-data-integrity-release-verification-20260818';
 // Compatibility marker only: window.APP_BUILD_VERSION = '4K-6V5U6H2-parent-portal-hard-disable-release-verification-20260818'
 // Compatibility marker only: window.APP_BUILD_VERSION = '4K-6V5U6H-production-security-trust-boundary-release-assurance-20260816'

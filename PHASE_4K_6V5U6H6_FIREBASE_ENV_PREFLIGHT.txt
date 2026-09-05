@@ -1,0 +1,20 @@
+TIMESTAMP_UTC=2026-08-28T21:59:12Z
+--- node --version ---
+v22.16.0
+EXIT=0
+--- npm --version ---
+10.9.2
+EXIT=0
+--- java -version ---
+openjdk version "21.0.11" 2026-04-21
+OpenJDK Runtime Environment (build 21.0.11+10-1-deb13u2-Debian)
+OpenJDK 64-Bit Server VM (build 21.0.11+10-1-deb13u2-Debian, mixed mode, sharing)
+EXIT=0
+--- npm config get ignore-scripts ---
+false
+EXIT=0
+--- firebase --version ---
+bash: line 7: firebase: command not found
+EXIT=127
+--- local firebase before npm ci ---
+UNAVAILABLE

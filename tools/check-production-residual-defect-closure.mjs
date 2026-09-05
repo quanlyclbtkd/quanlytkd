@@ -135,7 +135,41 @@ check(appWindowAssignments <= 534, `legacy app window assignment budget does not
 const eventCalls = count(runtimeText, /\baddEventListener\s*\(/g);
 const intervalCalls = count(runtimeText, /\bsetInterval\s*\(/g);
 const timeoutCalls = count(runtimeText, /\bsetTimeout\s*\(/g);
-check(eventCalls <= 115 && intervalCalls <= 1 && timeoutCalls <= 87, `event/timer call-sites do not increase (${eventCalls}/${intervalCalls}/${timeoutCalls})`);
+// H6 reconciliation: H5 intentionally added one bounded listener-registry readiness
+// barrier (2 once:true event listeners + 1 bounded timeout). Freeze that exact
+// approved delta structurally while keeping the historical runtime outside the
+// readiness block at or below its pre-H5 budget.
+const readinessBlock = block(app, 'const _waitForListenerRegistryReady = () => {', 'const _commitClubAccessBootstrapState =');
+const readinessEventCalls = count(readinessBlock, /\baddEventListener\s*\(/g);
+const readinessIntervalCalls = count(readinessBlock, /\bsetInterval\s*\(/g);
+const readinessTimeoutCalls = count(readinessBlock, /\bsetTimeout\s*\(/g);
+const outsideReadinessText = runtimeText.replace(readinessBlock, '');
+const outsideEventCalls = count(outsideReadinessText, /\baddEventListener\s*\(/g);
+const outsideIntervalCalls = count(outsideReadinessText, /\bsetInterval\s*\(/g);
+const outsideTimeoutCalls = count(outsideReadinessText, /\bsetTimeout\s*\(/g);
+check(
+    readinessEventCalls === 2 &&
+    readinessBlock.includes("window.addEventListener('app:listener-registry-ready', onReady, { once: true })") &&
+    readinessBlock.includes("window.addEventListener('app:listener-registry-failed', onFailed, { once: true })"),
+    `H5 readiness barrier owns exactly two once:true registry event listeners (${readinessEventCalls})`
+);
+check(
+    readinessTimeoutCalls === 1 &&
+    /const _LISTENER_REGISTRY_READY_TIMEOUT_MS = 10000;/.test(app) &&
+    /setTimeout\([^;]*_LISTENER_REGISTRY_READY_TIMEOUT_MS\)/s.test(readinessBlock),
+    `H5 readiness barrier owns exactly one bounded 10s timeout (${readinessTimeoutCalls})`
+);
+check(
+    readinessIntervalCalls === 0 &&
+    !/\b(?:getDoc|getDocs|onSnapshot)\s*\(/.test(readinessBlock) &&
+    count(readinessBlock, /_waitForListenerRegistryReady\s*\(/g) === 0,
+    'H5 readiness barrier has no polling, Firestore wait, or recursive retry'
+);
+check(
+    outsideEventCalls <= 115 && outsideIntervalCalls <= 1 && outsideTimeoutCalls <= 86 &&
+    eventCalls <= 117 && intervalCalls <= 1 && timeoutCalls <= 87,
+    `event/timer freeze allows only approved H5 readiness delta (total ${eventCalls}/${intervalCalls}/${timeoutCalls}; outside ${outsideEventCalls}/${outsideIntervalCalls}/${outsideTimeoutCalls})`
+);
 check(!runtimeText.includes('GlobalAsyncManager') && !runtimeText.includes('FetchCoordinatorV2'), 'No generic global request manager was introduced');
 check(!/queueWrite\s*\(/.test(runtimeText.replace(read('js/utils/offline-queue.js'), '')), 'Generic offline queue has no Attendance/business caller overlap');
 check(main.includes("window.APP_BUILD_VERSION = '4K-6V5U6G1-attendance-offline-canonical-sync-closure-20260815'"), 'Exact V5U6G1 build version is active while V5U6G boundaries remain frozen');

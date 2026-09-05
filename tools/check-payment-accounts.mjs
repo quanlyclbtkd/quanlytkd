@@ -17,6 +17,8 @@ function section(s) { console.log(`\n${TAG} ── ${s} ──`); }
 
 const appJs   = readFileSync(resolve(rootDir, 'app.js'),    'utf-8');
 const htmlSrc = readFileSync(resolve(rootDir, 'index.html'),'utf-8');
+const financeJs = readFileSync(resolve(rootDir, 'js/modules/finance.js'),'utf-8');
+const studentsJs = readFileSync(resolve(rootDir, 'js/modules/students.js'),'utf-8');
 
 // ─────────────────────────────────────────────────────────────────────────────
 section('1. paymentAccounts data model');
@@ -119,34 +121,36 @@ if (/clubConfig\.accountNo.*paymentContent|paymentContent.*clubConfig\.accountNo
     warn('exportReceipt may still use clubConfig.accountNo directly — verify manually');
 
 // ─────────────────────────────────────────────────────────────────────────────
-section('8. Báo Nợ QR — _debtBranch fallback chain (Phase 4J-4)');
-if (/_debtBranch/.test(appJs))
-    pass('_debtBranch fallback variable present');
+section('8. Báo Nợ QR — canonical branch propagation');
+const _appFlat = appJs.replace(/\s+/g,' ');
+const _studentsFlat = studentsJs.replace(/\s+/g,' ');
+if (/generateMultiMonthPaymentRequest\([^)]*safeBranch/.test(_appFlat))
+    pass('Debt QR passes canonical safeBranch into generateMultiMonthPaymentRequest');
 else
-    fail('_debtBranch MISSING from debt QR block');
+    fail('Debt QR does not pass canonical safeBranch into generateMultiMonthPaymentRequest');
 
-if (/_prof\.branch\s*\|\|\s*_prof\.branchName/.test(appJs.replace(/\s+/g,' ')))
-    pass('_debtBranch includes _prof.branchName fallback');
+if (/window\.generateMultiMonthPaymentRequest\s*=\s*\([^)]*branch[^)]*\)\s*=>\s*\{[\s\S]*?window\.exportReceipt\([\s\S]*?monthsStr,\s*branch,/.test(studentsJs))
+    pass('generateMultiMonthPaymentRequest passes branch into exportReceipt');
 else
-    fail('_debtBranch missing _prof.branchName fallback');
-
-if (/getPaymentAccountForBranch\(_debtBranch/.test(appJs))
-    pass('getPaymentAccountForBranch called with _debtBranch');
-else
-    fail('getPaymentAccountForBranch NOT called with _debtBranch');
+    fail('generateMultiMonthPaymentRequest does not pass branch into exportReceipt');
 
 // Check no self-reference bug
-if (/const _effBankId\s*=.*\|\|\s*_effBankId/.test(appJs.replace(/\s+/g,' ')))
+if (/const _effBankId\s*=.*\|\|\s*_effBankId/.test(_appFlat))
     fail('Self-referencing _effBankId bug still present (4J-3 regression)');
 else
     pass('No self-referencing _effBankId bug');
 
 // ─────────────────────────────────────────────────────────────────────────────
-section('9. quickPay passes branch to exportReceipt (Phase 4J-4)');
-if (/exportReceipt\(cleanName.*branch\s*\|\|/.test(appJs.replace(/\s+/g,' ')))
-    pass('quickPay passes branch to exportReceipt');
+section('9. quickPay uses Tuition Command canonical branch for receipt');
+const _financeFlat = financeJs.replace(/\s+/g,' ');
+if (/TuitionCommandBoundary\.collectTuition\(\{[^}]*branch:\s*branch\s*\|\|\s*'CS1'/.test(_financeFlat))
+    pass('quickPay passes requested branch into TuitionCommandBoundary.collectTuition');
 else
-    fail('quickPay does NOT pass branch to exportReceipt');
+    fail('quickPay does not pass branch into TuitionCommandBoundary.collectTuition');
+if (/window\.exportReceipt\([\s\S]*?result\.branch,/.test(financeJs))
+    pass('quickPay receipt uses canonical result.branch returned by Tuition Command');
+else
+    fail('quickPay receipt does not use canonical result.branch');
 
 // ─────────────────────────────────────────────────────────────────────────────
 section('10. processCombo cross-branch warning (Phase 4J-4)');

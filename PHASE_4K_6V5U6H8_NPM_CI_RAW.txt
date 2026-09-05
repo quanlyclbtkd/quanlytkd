@@ -1,0 +1,5 @@
+COMMAND: npm ci
+RESULT: TOOL EXECUTION TIMEOUT after 180 seconds; command did not complete and produced no stdout/stderr through tee before timeout.
+POST-TIMEOUT: lingering npm ci process was terminated; partial node_modules removed.
+CLASSIFICATION PROBE: npm view firebase-tools version with retries disabled returned EAI_AGAIN registry.npmjs.org, EXIT 1.
+FINAL CLASSIFICATION: DEPENDENCY/DNS BLOCKED. No package.json/package-lock version change.

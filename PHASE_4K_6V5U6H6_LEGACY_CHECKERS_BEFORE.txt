@@ -1,0 +1,420 @@
+===== check:runtime-bootstrap =====
+
+> taekwondo-club-app@1.0.0 check:runtime-bootstrap
+> node tools/check-runtime-bootstrap.mjs
+
+[RuntimeBootstrapCheck] Kiểm tra runtime bootstrap guard (Phase 4B + 4C)...
+
+[RuntimeBootstrapCheck] INFO  js/main.js: 283163 ký tự
+
+[RuntimeBootstrapCheck] [main.js] Kiểm tra health registry...
+[RuntimeBootstrapCheck] PASS  runtime health registry (RUNTIME_HEALTH_CHECKS)
+[RuntimeBootstrapCheck] PASS  severity: 'critical' entry
+[RuntimeBootstrapCheck] PASS  severity: 'warning' entry
+[RuntimeBootstrapCheck] PASS  severity: 'info' entry
+[RuntimeBootstrapCheck] PASS  phase: 'bootstrap' entry
+[RuntimeBootstrapCheck] PASS  phase: 'after-login' entry
+
+[RuntimeBootstrapCheck] [main.js] Kiểm tra getRuntimeHealthStatus...
+[RuntimeBootstrapCheck] PASS  window.getRuntimeHealthStatus định nghĩa
+[RuntimeBootstrapCheck] PASS  criticalMissing field trong kết quả
+[RuntimeBootstrapCheck] PASS  checkedAt timestamp trong kết quả
+
+[RuntimeBootstrapCheck] [main.js] Kiểm tra printRuntimeHealth...
+[RuntimeBootstrapCheck] PASS  window.printRuntimeHealth định nghĩa
+[RuntimeBootstrapCheck] PASS  console.group trong printRuntimeHealth
+[RuntimeBootstrapCheck] PASS  console.table trong printRuntimeHealth
+
+[RuntimeBootstrapCheck] [main.js] Kiểm tra ensureModuleRuntimeReady...
+[RuntimeBootstrapCheck] PASS  window.ensureModuleRuntimeReady định nghĩa
+[RuntimeBootstrapCheck] PASS  gọi ensureModuleRuntimeReady cho 'finance'
+[RuntimeBootstrapCheck] PASS  gọi ensureModuleRuntimeReady cho 'inventory'
+[RuntimeBootstrapCheck] PASS  gọi ensureModuleRuntimeReady cho 'students'
+
+[RuntimeBootstrapCheck] [main.js] Kiểm tra ensureModuleRuntimeReady typeof guard (HOTFIX)...
+[RuntimeBootstrapCheck] PASS  typeof guard trước khi gọi ensureModuleRuntimeReady (tránh 'is not a function' crash)
+
+[RuntimeBootstrapCheck] [main.js] Kiểm tra db guard cho pagination inits...
+[RuntimeBootstrapCheck] PASS  initStudentPagination/initTransactionPagination có check window.__store.db
+
+[RuntimeBootstrapCheck] [main.js] Kiểm tra app:context-ready listener...
+[RuntimeBootstrapCheck] PASS  listener app:context-ready cho after-login health check
+[RuntimeBootstrapCheck] WARN  bootstrap health check phase filter  ← optional, không tìm thấy
+
+[RuntimeBootstrapCheck] [main.js] Kiểm tra bootstrap health check call...
+[RuntimeBootstrapCheck] PASS  bootstrap health check setTimeout call
+
+[RuntimeBootstrapCheck] [main.js] Kiểm tra không có throw trong health check...
+[RuntimeBootstrapCheck] PASS  Không có throw trong check() functions
+
+[RuntimeBootstrapCheck] [main.js] Kiểm tra health check cũ còn guard...
+[RuntimeBootstrapCheck] PASS  _runHealthCheck cũ vẫn được guard bởi _isDev (backward compat OK)
+
+══════════════════════════════════════════════
+[RuntimeBootstrapCheck] [app.js] Kiểm tra app context ready dispatch (Phase 4C)...
+══════════════════════════════════════════════
+[RuntimeBootstrapCheck] INFO  app.js: 658690 ký tự
+
+[RuntimeBootstrapCheck] [app.js] Kiểm tra dispatchAppContextReady helper...
+[RuntimeBootstrapCheck] PASS  hàm dispatchAppContextReady định nghĩa
+[RuntimeBootstrapCheck] PASS  window.dispatchAppContextReady exposed
+[RuntimeBootstrapCheck] PASS  __appContextReadyState state object
+[RuntimeBootstrapCheck] PASS  dispatch CustomEvent('app:context-ready')
+[RuntimeBootstrapCheck] PASS  generation counter trong state
+
+[RuntimeBootstrapCheck] [app.js] Kiểm tra initSaaSDatabase dispatch...
+[RuntimeBootstrapCheck] PASS  gọi dispatchAppContextReady sau sync store
+
+[RuntimeBootstrapCheck] [app.js] Kiểm tra currentClubId aliases...
+[RuntimeBootstrapCheck] FAIL  window.__store.currentClubId được set  ← KHÔNG TÌM THẤY
+[RuntimeBootstrapCheck] FAIL  window.currentClubId được set trong initSaaSDatabase  ← KHÔNG TÌM THẤY
+
+[RuntimeBootstrapCheck] [app.js] Kiểm tra currentUser sync...
+[RuntimeBootstrapCheck] FAIL  window.__store.currentUser được sync trong initSaaSDatabase  ← KHÔNG TÌM THẤY
+
+[RuntimeBootstrapCheck] [app.js] Kiểm tra logout reset...
+[RuntimeBootstrapCheck] PASS  logout reset __appContextReadyState.reason = 'logout'
+[RuntimeBootstrapCheck] FAIL  window.currentClubId = null khi logout  ← KHÔNG TÌM THẤY
+[RuntimeBootstrapCheck] PASS  window.__store.currentClubId = null khi logout
+
+[RuntimeBootstrapCheck] [app.js] Kiểm tra idempotent guard...
+[RuntimeBootstrapCheck] PASS  guard idempotent: ready check
+[RuntimeBootstrapCheck] PASS  guard idempotent: clubId check
+
+[RuntimeBootstrapCheck] Đã kiểm tra: 37 patterns trong js/main.js + app.js
+[RuntimeBootstrapCheck] ❌ FAILED — 4 lỗi.
+EXIT_CODE=1
+===== check:payment-accounts =====
+
+> taekwondo-club-app@1.0.0 check:payment-accounts
+> node tools/check-payment-accounts.mjs
+
+
+[PaymentAccountsCheck] ── 1. paymentAccounts data model ──
+[PaymentAccountsCheck] PASS  paymentAccounts present in app.js
+[PaymentAccountsCheck] PASS  bank1 key present in app.js
+[PaymentAccountsCheck] PASS  bank2 key present in app.js
+
+[PaymentAccountsCheck] ── 2. branchPaymentAccountMap ──
+[PaymentAccountsCheck] PASS  branchPaymentAccountMap present in app.js
+
+[PaymentAccountsCheck] ── 3. normalizeBranchKeyForPayment (Phase 4J-4) ──
+[PaymentAccountsCheck] PASS  normalizeBranchKeyForPayment defined
+[PaymentAccountsCheck] PASS  CS\d+ match logic present
+[PaymentAccountsCheck] PASS  coSoMatch (Cơ sở N) normalization present
+[PaymentAccountsCheck] PASS  branchNameN lookup loop present in normalizeBranchKeyForPayment
+
+[PaymentAccountsCheck] ── 4. getPaymentAccountForBranch helper (Phase 4J-4 robust) ──
+[PaymentAccountsCheck] PASS  getPaymentAccountForBranch defined
+[PaymentAccountsCheck] PASS  getPaymentAccountForBranch uses normalizeBranchKeyForPayment
+[PaymentAccountsCheck] PASS  multi-key map fallback chain present
+[PaymentAccountsCheck] PASS  getPaymentAccountForBranch returns bankKey field
+[PaymentAccountsCheck] PASS  disabled bank2 fallback to bank1
+
+[PaymentAccountsCheck] ── 5. saveClubSettings — alias map for branch names ──
+[PaymentAccountsCheck] PASS  saveClubSettings stores branch name alias (_bName4j4)
+[PaymentAccountsCheck] PASS  saveClubSettings stores normalized branch name alias (_bNorm4j4)
+
+[PaymentAccountsCheck] ── 6. generateVietQR accepts branchOrAccount (Phase 4J-4) ──
+[PaymentAccountsCheck] PASS  generateVietQR signature includes branchOrAccount
+[PaymentAccountsCheck] PASS  generateVietQR handles account object passthrough
+[PaymentAccountsCheck] PASS  generateVietQR calls getPaymentAccountForBranch when branch string given
+
+[PaymentAccountsCheck] ── 7. exportReceipt passes branch to generateVietQR (Phase 4J-4) ──
+[PaymentAccountsCheck] PASS  exportReceipt passes branch to generateVietQR
+
+[PaymentAccountsCheck] ── 8. Báo Nợ QR — _debtBranch fallback chain (Phase 4J-4) ──
+[PaymentAccountsCheck] FAIL  _debtBranch MISSING from debt QR block
+[PaymentAccountsCheck] FAIL  _debtBranch missing _prof.branchName fallback
+[PaymentAccountsCheck] FAIL  getPaymentAccountForBranch NOT called with _debtBranch
+[PaymentAccountsCheck] PASS  No self-referencing _effBankId bug
+
+[PaymentAccountsCheck] ── 9. quickPay passes branch to exportReceipt (Phase 4J-4) ──
+[PaymentAccountsCheck] FAIL  quickPay does NOT pass branch to exportReceipt
+
+[PaymentAccountsCheck] ── 10. processCombo cross-branch warning (Phase 4J-4) ──
+[PaymentAccountsCheck] PASS  processCombo cross-branch warning present
+
+[PaymentAccountsCheck] ── 11. Debug helpers ──
+[PaymentAccountsCheck] PASS  testPaymentAccountForBranch defined
+[PaymentAccountsCheck] PASS  printPaymentAccountMapping preserved
+[PaymentAccountsCheck] PASS  maskAccountNumber helper present
+
+[PaymentAccountsCheck] ── 12. UI — bank account fields in HTML ──
+[PaymentAccountsCheck] PASS  cfg_bankId field present
+[PaymentAccountsCheck] PASS  cfg_bank2Enabled toggle present
+[PaymentAccountsCheck] PASS  cfg_branchBankMapBlock section present
+
+[PaymentAccountsCheck] ── 13. Backward compatibility ──
+[PaymentAccountsCheck] PASS  Legacy bankId/accountNo/accountName fields preserved
+
+[PaymentAccountsCheck] ── 14. Report file ──
+[PaymentAccountsCheck] PASS  PHASE_4B4J3_MULTI_BANK_ACCOUNT_REPORT.md exists
+
+[PaymentAccountsCheck] Checked: 33 items
+[PaymentAccountsCheck] ❌ FAILED — 4 failure(s), 0 warning(s), 29 passed.
+EXIT_CODE=1
+===== check:search-bindings =====
+
+> taekwondo-club-app@1.0.0 check:search-bindings
+> node tools/check-search-bindings.mjs
+
+
+══════════════════════════════════════════════════════════
+  Phase 4J-9B — Search Bindings & Stability Check
+══════════════════════════════════════════════════════════
+
+▸ Section 1: students.search.js
+  ✅ students.search.js exists
+  ✅ Không còn STATUS: Stub
+  ✅ Export normalizeSearchInput
+  ✅ Export initStudentSearchController
+  ✅ Export disposeStudentSearchController
+  ✅ Có quản lý __studentSearchControllerMounted
+
+▸ Section 2: Search binding guards
+  ✅ app.js oninput có guard __studentSearchControllerMounted
+  ✅ app.js destructure startAfter, startAt, endAt
+  ✅ students.js set __studentSearchControllerMounted = true
+  ✅ students.js có debounce search (350ms)
+  ✅ students.events.js guard __studentSearchControllerMounted
+  ✅ students.events.js fallback callback có runtime guard bên trong
+
+▸ Section 3: Parent-club profile scan
+  ❌ Parent scan có server-side search (searchName index)
+     → Thêm getDocs(query(profColRef, orderBy("searchName"), startAt(norm), endAt(norm+\uf8ff), limit(5))) trước fallback scan
+  ✅ Parent scan dùng fetchQueryPages (không hard-cap 500 nữa)
+
+▸ Section 4: Transaction listener guard
+  ✅ listenToData có cleanupListenersByOwner
+  ✅ listenToData có safeRegisterSnapshot guard
+  ✅ Transaction listener key có clubId + monthStr
+
+▸ Section 5: Attendance limit guard
+  ✅ Attendance dùng attendanceDailyLimit từ scaleConfig
+  ❌ Attendance có server-side shift filter khi chọn ca
+     → Canonical module phải truyền shiftId và service phải lọc ở Firestore query
+  ✅ Attendance warning khi chạm limit có date + shift info
+
+▸ Section 6: Business calculation limits
+  ✅ Không còn UNSAFE_LIMIT_FOR_CALCULATION cho nghiệp vụ tính toán tài chính
+  ✅ fetchQueryPages được dùng cho paginated business calculation
+  ✅ SA revenue không còn limit(1000) cứng
+
+▸ Section 7: searchNameTokens — mid-name search
+  ✅ searchProfilesServerSide có searchNameTokens array-contains
+  ✅ searchProfilesServerSide destructure where từ _sdk()
+  ✅ buildStudentSearchIndex tạo searchNameTokens
+
+══════════════════════════════════════════════════════════
+  Total: 26 checks | ✅ Pass: 24 | ❌ Fail: 2
+
+Failed checks:
+  - Parent scan có server-side search (searchName index)
+  - Attendance có server-side shift filter khi chọn ca
+══════════════════════════════════════════════════════════
+
+EXIT_CODE=1
+===== check:profile-hydration =====
+
+> taekwondo-club-app@1.0.0 check:profile-hydration
+> node tools/check-profile-hydration.mjs
+
+
+══════════════════════════════════════════════════════════
+  Profile Hydration Safety Check — Phase 4K-RUNTIME-CLEANUP
+══════════════════════════════════════════════════════════
+
+▸ Section 1: app.js — profile listener init sau db ready
+  ✅ initSaaSDatabase trong app.js khởi tạo profile listener
+  ✅ Profile listener fallback an toàn (active + full fallback)
+  ✅ resetProfilesListeners được gọi khi logout trong app.js
+  ✅ resetStudentProfileStore được gọi khi logout
+
+▸ Section 2: app.js — app:context-ready và app:db-ready dispatch
+  ✅ app:context-ready dispatch sau db ready
+  ✅ app:db-ready dispatch sau db ready
+  ✅ __dbReadyEventDispatched guard ngăn dispatch lặp
+
+▸ Section 3: main.js — pagination hydration via event listener
+  ✅ app:context-ready listener cho pagination init
+  ✅ app:db-ready listener cho pagination init
+  ✅ __studentPaginationInitialized guard chống double-init
+  ✅ __transactionPaginationInitialized guard chống double-init
+
+▸ Section 4: main.js — logout reset guards để re-hydrate sau login lại
+  ✅ __studentPaginationInitialized reset = false khi logout
+  ✅ __transactionPaginationInitialized reset = false khi logout
+  ✅ __dbReadyEventDispatched reset = false khi logout
+
+▸ Section 5: app.js — profile status query compatibility
+  ❌ app.js check status === 'active' cho active profiles
+     → Cần filter profile active: status === 'active'
+  ✅ Profile mới tạo có status: 'active'
+
+══════════════════════════════════════════════════════════
+  Total: 16 | ✅ 15 | ❌ 1
+  ❌ app.js check status === 'active' cho active profiles
+
+  ⚠️  Profile hydration pipeline có vấn đề — số liệu có thể về 0!
+══════════════════════════════════════════════════════════
+
+EXIT_CODE=1
+===== check:student-pagination-controls-dom =====
+
+> taekwondo-club-app@1.0.0 check:student-pagination-controls-dom
+> node tools/check-student-pagination-controls-dom.mjs
+
+
+══════════════════════════════════════════════════════════
+  check:student-pagination-controls-dom
+══════════════════════════════════════════════════════════
+
+▸ Section 1: _injectControls — DOM insertion an toàn ngoài TABLE
+  ✅ _injectControls dùng tbody.closest('table') để tìm table element
+  ✅ _injectControls insert ctrlEl SAU table/anchor, không inside tbody
+  ✅ Không còn tạo html với prefix "students" cho cả 2 lists (fixed to per-list prefix)
+  ✅ _injectControls dùng prefix students_active cho activeList
+  ❌ _injectControls dùng prefix students_quit cho quitList
+     → _injectControls phải: prefix = 'students_quit' cho quitList
+
+▸ Section 2: Handler aliases cho unique prefix IDs
+  ✅ window._pgNext_students_active được define
+  ✅ window._pgPrev_students_active được define
+  ✅ window._pgNext_students_quit được define
+  ✅ window._pgPrev_students_quit được define
+
+▸ Section 3: debugStudentPagination tồn tại
+  ✅ window.debugStudentPagination được define
+  ✅ debugStudentPagination kiểm tra duplicateOldNextButtons
+  ✅ debugStudentPagination kiểm tra nextActiveBtnHTML (unique id)
+
+▸ Section 4: Debug state tracking sau processPage
+  ✅ _lastSnapSize được gán sau processPage
+  ✅ _lastHasNext được gán sau processPage
+  ✅ _lastCursorId được gán sau processPage
+
+▸ Section 5: PHẦN 5 FIX — Event delegation trong students.events.js lắng nghe ID mới
+  ✅ students.events.js lắng nghe #pgNext_students_active
+  ✅ students.events.js lắng nghe #pgPrev_students_active
+  ✅ students.events.js lắng nghe #pgNext_students_quit
+  ✅ students.events.js lắng nghe #pgPrev_students_quit
+
+══════════════════════════════════════════════════════════
+  Total: 19 | ✅ 18 | ❌ 1
+  ❌ _injectControls dùng prefix students_quit cho quitList
+══════════════════════════════════════════════════════════
+
+EXIT_CODE=1
+===== check:modal-close-compat =====
+
+> taekwondo-club-app@1.0.0 check:modal-close-compat
+> node tools/check-modal-close-compat.mjs
+
+
+══════════════════════════════════════════════════════════
+  check:modal-close-compat
+══════════════════════════════════════════════════════════
+
+▸ Section 1: modal.js — default parameter cho closeModal
+  ✅ closeModal có default profileModal
+  ✅ openModal có default profileModal
+  ✅ closeModal dùng fallback: const id = modalId || "profileModal"
+
+▸ Section 2: registerModalGlobals — legacy compatibility
+  ❌ registerModalGlobals lưu legacyClose trước khi ghi đè
+     → Thêm: const legacyClose = window.closeModal; trước khi gán window.closeModal
+  ✅ registerModalGlobals assign window.closeModalLegacy
+  ❌ window.closeModal trong registerModalGlobals xử lý cả có và không có arg
+     → window.closeModal phải: if (modalId) return closeModal(modalId); return closeModal('profileModal');
+
+▸ Section 3: index.html — không còn onclick="closeModal()" không arg cho profileModal
+  ✅ Không còn onclick="closeModal()" không có argument
+  ✅ Có onclick="closeModal('profileModal')" trong index.html
+
+══════════════════════════════════════════════════════════
+  Total: 8 | ✅ 6 | ❌ 2
+  ❌ registerModalGlobals lưu legacyClose trước khi ghi đè
+  ❌ window.closeModal trong registerModalGlobals xử lý cả có và không có arg
+══════════════════════════════════════════════════════════
+
+EXIT_CODE=1
+===== check:runtime-month-admission-hydration =====
+
+> taekwondo-club-app@1.0.0 check:runtime-month-admission-hydration
+> node tools/check-runtime-month-admission-hydration.mjs
+
+
+══════════════════════════════════════════════════════════
+  Phase 4K-4E — Runtime Month + Admission Hydration Check
+══════════════════════════════════════════════════════════
+
+▸ Section 1: reports.js syntax — no function inside import block
+  ✅ reports.js: no function inside import {} block
+  ✅ reports.js: node --check passes
+
+▸ Section 2: package.json scripts
+  ✅ package.json: check:reports-module-syntax defined
+  ✅ package.json: check:runtime-month-admission-hydration defined
+  ❌ package.json: check:all includes check:reports-module-syntax
+     → Add check:reports-module-syntax to check:all
+  ❌ package.json: check:all includes check:runtime-month-admission-hydration
+     → Add check:runtime-month-admission-hydration to check:all
+
+▸ Section 3: main.js Month Change Controller
+  ✅ main.js: window.handleFilterMonthChange defined
+  ✅ main.js: handleFilterMonthChange calls listenToData
+  ✅ main.js: handleFilterMonthChange invalidates finance
+  ✅ main.js: window.onFilterMonthChange alias defined
+  ✅ main.js: window.initFilterMonthController defined
+  ✅ main.js: initFilterMonthController uses __filterMonthControllerBound guard
+
+▸ Section 4: app.js filterMonth binding bridges http-module mode
+  ✅ app.js: filterMonth onchange bridges handleFilterMonthChange in http-module
+  ✅ app.js: filterMonth onchange still calls listenToData as fallback
+
+▸ Section 5: StudentService.addTuitionTransaction returns { id, ...data }
+  ✅ students.service.js: addTuitionTransaction returns docRef.id
+  ✅ students.service.js: addUniformTransaction returns docRef.id
+
+▸ Section 6: main.js mergeTransactionIntoRuntimeStore helper
+  ✅ main.js: window.mergeTransactionIntoRuntimeStore defined
+  ✅ mergeTransactionIntoRuntimeStore: uses Map to avoid duplicates
+  ✅ mergeTransactionIntoRuntimeStore: checks packageMonths when matching selected month
+  ✅ mergeTransactionIntoRuntimeStore: calls invalidateFinance or refreshListsComputation
+
+▸ Section 7: js/modules/students.js addNewStudent merge tuitionTx
+  ❌ students.js: captures return value of addTuitionTransaction
+     → addNewStudent must capture: tuitionTx = await StudentService.addTuitionTransaction(...)
+  ❌ students.js: calls mergeTransactionIntoRuntimeStore after addTuitionTransaction
+     → addNewStudent must call mergeTransactionIntoRuntimeStore(tuitionTx, "admission-tuition-created")
+
+▸ Section 8: app.js addNewStudent legacy merge tuitionTx
+  ✅ app.js: legacy addNewStudent captures tuitionTx after addDoc
+  ✅ app.js: legacy addNewStudent calls mergeTransactionIntoRuntimeStore
+
+▸ Section 9: debug helpers
+  ✅ main.js: window.debugMonthRuntime defined
+  ✅ main.js: debugMonthRuntime checks filterMonthValue
+  ✅ main.js: window.debugAdmissionTxHydration defined
+  ✅ main.js: debugAdmissionTxHydration checks packageMonths match
+  ✅ main.js: debugRuntimeSmokeTest includes monthRuntime
+  ✅ main.js: debugRuntimeSmokeTest includes admissionTxHydration
+
+▸ Section 10: initReports / initSuperAdmin isolation in main.js
+  ❌ main.js: initReports wrapped in try/catch
+     → Wrap initReports() in try/catch so syntax error does not kill SuperAdmin
+  ✅ main.js: initSuperAdmin wrapped in try/catch
+
+══════════════════════════════════════════════════════════
+  Total: 32 checks | ✅ Pass: 27 | ❌ Fail: 5
+
+Failed checks:
+  - package.json: check:all includes check:reports-module-syntax
+  - package.json: check:all includes check:runtime-month-admission-hydration
+  - students.js: captures return value of addTuitionTransaction
+  - students.js: calls mergeTransactionIntoRuntimeStore after addTuitionTransaction
+  - main.js: initReports wrapped in try/catch
+══════════════════════════════════════════════════════════
+
+EXIT_CODE=1

@@ -1148,16 +1148,11 @@ export function initReports() {
         let paidData = {};
         try {
         if (typeof window.buildCanonicalExamPaymentLedger === 'function') {
-            // Inject loaded transactions tạm thời vào __store để ledger đọc được
-            const _prevTxs = (window.__store || {}).transactions;
-            if (!window.__store) window.__store = {};
-            window.__store.transactions = allTransactions;
-
-            const _ledger = window.buildCanonicalExamPaymentLedger({ month: selMonth });
-
-            // Restore transactions
-            if (_prevTxs !== undefined) window.__store.transactions = _prevTxs;
-            else delete window.__store.transactions;
+            // H6: export transaction subset is passed explicitly; never mutate canonical runtime store.
+            const _ledger = window.buildCanonicalExamPaymentLedger({
+                month: selMonth,
+                transactions: allTransactions
+            });
 
             _ledger.records.forEach(r => {
                 const profile = allProfiles[r.studentName] || {};
