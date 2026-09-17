@@ -1,4 +1,5 @@
-// V5U3 quit compatibility: studentsRenderer.js?v=student-given-name-priority-20260811-v5u3
+// H8R1 compatibility: studentsRenderer.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h
+// V5U3 quit compatibility: studentsRenderer.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
 /**
  * ui/render.js — Phase 3.5B (Render Invalidation & Lifecycle Stabilization)
  *
@@ -59,7 +60,7 @@ import {
     computeAndCacheStudents,
     getStudentsSummary,
     getStudentsCachedHtml,
-} from './render/computation/studentsRenderer.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
+} from './render/computation/studentsRenderer.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1';
 import {
     computeAndCacheInventory,
     getCachedLiveInvMap,

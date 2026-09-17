@@ -245,7 +245,8 @@
     "check:exam-export-full-roster": "node tools/check-exam-export-full-roster.mjs",
     "check:exam-export-state-purity": "node tools/check-exam-export-state-purity.mjs",
     "check:release": "node tools/check-release.mjs",
-    "check:root-public-parity": "node tools/check-root-public-parity.mjs"
+    "check:root-public-parity": "node tools/check-root-public-parity.mjs",
+    "check:profile-display-name-safe-edit": "node tools/check-profile-display-name-safe-edit.mjs"
   },
   "engines": {
     "node": ">=18.0.0"

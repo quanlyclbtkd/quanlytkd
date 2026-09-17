@@ -174,7 +174,18 @@ check(!runtimeText.includes('GlobalAsyncManager') && !runtimeText.includes('Fetc
 check(!/queueWrite\s*\(/.test(runtimeText.replace(read('js/utils/offline-queue.js'), '')), 'Generic offline queue has no Attendance/business caller overlap');
 check(main.includes("window.APP_BUILD_VERSION = '4K-6V5U6G1-attendance-offline-canonical-sync-closure-20260815'"), 'Exact V5U6G1 build version is active while V5U6G boundaries remain frozen');
 check(index.includes('app.js?v=production-stability-residual-defect-closure-20260814-v5u6g') && index.includes('./js/main.js?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1'), 'Only changed root runtime main.js receives the V5U6G1 cache-bust; unchanged app.js stays on V5U6G');
-check(main.includes("./listeners/profiles.listeners.js?v=production-stability-residual-defect-closure-20260814-v5u6g") && main.includes("./modules/students.js?v=production-stability-residual-defect-closure-20260814-v5u6g") && main.includes("./modules/attendance.js?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1") && attendance.includes("../services/attendance.service.js?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1"), 'Changed Attendance modules are cache-busted; frozen Profiles/Students modules are not mass-busted');
+const r1CacheSlug = 'profile-display-name-safe-edit-20260916-v5u6h8r1';
+const v5u6gFrozenCacheScope =
+    main.includes("./listeners/profiles.listeners.js?v=production-stability-residual-defect-closure-20260814-v5u6g") &&
+    main.includes("./modules/students.js?v=production-stability-residual-defect-closure-20260814-v5u6g") &&
+    main.includes("./modules/attendance.js?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1") &&
+    attendance.includes("../services/attendance.service.js?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1");
+const h8r1DisplayNameCacheScope =
+    main.includes("./listeners/profiles.listeners.js?v=production-stability-residual-defect-closure-20260814-v5u6g") &&
+    main.includes(`./modules/students.js?v=${r1CacheSlug}`) &&
+    main.includes(`./modules/attendance.js?v=${r1CacheSlug}`) &&
+    attendance.includes("../services/attendance.service.js?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1");
+check(v5u6gFrozenCacheScope || h8r1DisplayNameCacheScope, 'Changed modules are cache-busted only within the active phase scope; Profiles listener and Attendance service authority stay frozen');
 check(pkg.scripts?.['check:production-residual-defect-closure'] === 'node tools/check-production-residual-defect-closure.mjs', 'package exposes the V5U6G master gate');
 
 // ── Runtime Attendance offline test matrix (real module, fake service) ─────

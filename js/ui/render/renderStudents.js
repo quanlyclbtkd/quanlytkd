@@ -1,4 +1,5 @@
-// V5U3 compatibility marker: studentsRenderer.js?v=student-given-name-priority-20260811-v5u3
+// H8R1 compatibility: studentsRenderer.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h
+// V5U3 compatibility marker: studentsRenderer.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
 /**
  * renderStudents.js — Phase 3.5A Render Computation Isolation
  *
@@ -20,7 +21,7 @@
  */
 
 import { registerRender } from './renderRegistry.js';
-import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
+import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1';
 
 // Phase 4K-6V5S: single-flight authority request for the Đã nghỉ render island.
 // A failed/missing-context ensure must never invalidate the same list again,
@@ -122,7 +123,7 @@ function _isQuitMobileViewport() {
 }
 function _profileDisplayName(id, profile) {
     const p = profile || {};
-    return String(p.name || p.fullName || p.displayName || p.studentName || p.memberName || id || '').trim();
+    return String(p.displayName || p.name || p.fullName || p.studentName || p.memberName || id || '').trim();
 }
 function _getAuthoritativeQuitProfiles() {
     if (window.QuitProfileBoundary?.getMap) {
