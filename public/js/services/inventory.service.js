@@ -213,18 +213,16 @@ export const InventoryService = {
     },
 
     /**
-     * Thêm một bản ghi kho mới (Nhập hoặc Xuất).
-     * @param {Object} data — { category, size, type, qty, desc, amount, date, ... }
-     * @returns {string} ID của doc vừa tạo
+     * H8R2: pure prepare primitive for the existing inventory ledger owner.
+     * No Firestore read/write occurs here. It lets an existing cross-domain
+     * owner include inventory + inventory_stats in ONE caller-owned atomic batch.
      */
-    async addItem(data) {
-        const { doc, writeBatch, increment } = _sdk();
+    prepareAddItemMutation(data) {
+        const { doc, increment } = _sdk();
         const invRef = _invRef();
-        if (!invRef) throw new Error('[InventoryService] invRef chưa sẵn sàng');
-        if (typeof writeBatch !== 'function' || typeof increment !== 'function') {
-            throw new Error('[InventoryService] Firestore batch/increment chưa sẵn sàng');
+        if (!invRef || typeof doc !== 'function' || typeof increment !== 'function') {
+            throw new Error('[InventoryService] Không thể chuẩn bị inventory mutation.');
         }
-
         const payload = { ...(data || {}) };
         if (!payload.timestamp) payload.timestamp = Date.now();
         if (!payload.date) payload.date = typeof window.getLocalToday === 'function' ? window.getLocalToday() : new Date().toISOString().slice(0, 10);
@@ -234,19 +232,59 @@ export const InventoryService = {
             if (identity.memberId) payload.memberId = identity.memberId;
             if (!payload.studentName && identity.studentName) payload.studentName = identity.studentName;
         }
-
         const itemRef = doc(invRef);
         const statsRef = doc(_db(), 'clubs', _clubId(), 'settings', 'inventory_stats');
         const summaryPatch = _buildLedgerIncrementPatch([{ item: payload, direction: 1 }], increment);
+        return { itemRef, statsRef, payload, summaryPatch, runtimeItem: { id: itemRef.id, ...payload } };
+    },
+
+
+    /**
+     * H8R2.1 R1 — PURE canonical paid-state patch for an existing inventory debt.
+     * This helper performs ZERO Firestore reads/writes/listeners. It exists so a
+     * caller-owned atomic batch can reuse the exact same paid-state semantics as
+     * InventoryService.markPaid() without creating a second writer.
+     */
+    prepareMarkPaidPatch({ txId = '', paymentBundleId = '', paidDate = '', paidAt = 0 } = {}) {
+        const timestamp = Number(paidAt) || Date.now();
+        const date = String(paidDate || '').trim() || (typeof window.getLocalToday === 'function'
+            ? window.getLocalToday()
+            : new Date(timestamp).toISOString().slice(0, 10));
+        const patch = {
+            unpaid: false,
+            inventoryDebtStatus: 'paid',
+            paidAt: timestamp,
+            paidDate: date,
+        };
+        const canonicalTxId = String(txId || '').trim();
+        const canonicalBundleId = String(paymentBundleId || canonicalTxId || '').trim();
+        if (canonicalTxId) patch.paidTxId = canonicalTxId;
+        if (canonicalBundleId) patch.paymentBundleId = canonicalBundleId;
+        return patch;
+    },
+
+    /**
+     * Thêm một bản ghi kho mới (Nhập hoặc Xuất).
+     * @param {Object} data — { category, size, type, qty, desc, amount, date, ... }
+     * @returns {string} ID của doc vừa tạo
+     */
+    async addItem(data) {
+        const { writeBatch, increment } = _sdk();
+        const invRef = _invRef();
+        if (!invRef) throw new Error('[InventoryService] invRef chưa sẵn sàng');
+        if (typeof writeBatch !== 'function' || typeof increment !== 'function') {
+            throw new Error('[InventoryService] Firestore batch/increment chưa sẵn sàng');
+        }
+
+        const prepared = this.prepareAddItemMutation(data);
         const batch = writeBatch(_db());
-        batch.set(itemRef, payload);
-        if (Object.keys(summaryPatch).length) batch.set(statsRef, summaryPatch, { merge: true });
+        batch.set(prepared.itemRef, prepared.payload);
+        if (Object.keys(prepared.summaryPatch).length) batch.set(prepared.statsRef, prepared.summaryPatch, { merge: true });
         await batch.commit();
 
-        const runtimeItem = { id: itemRef.id, ...payload };
-        _mergeRuntimeInventory(runtimeItem, 'inventory-service-add-item');
+        _mergeRuntimeInventory(prepared.runtimeItem, 'inventory-service-add-item');
         window.notifyInventoryMutation?.('inventory-service-add-item', { writeThrough: true });
-        return itemRef.id;
+        return prepared.itemRef.id;
     },
 
     /**
@@ -373,84 +411,72 @@ export const InventoryService = {
      * @param {Object} [options] - { date: 'YYYY-MM-DD' } để override ngày thu
      */
     async markPaid(invId, options = {}) {
-        const { doc, getDoc, updateDoc, addDoc, query, where, getDocs, collection } = _sdk();
+        const { doc, getDoc, updateDoc, addDoc, query, where, getDocs, collection, writeBatch } = _sdk();
         const db     = _db();
         const clubId = _clubId();
 
-        // 1. Load inventory doc
-        const invSnap = await getDoc(doc(db, 'clubs', clubId, 'inventory', invId));
+        // Existing reads are retained only to resolve canonical current state/idempotency.
+        const invRef = doc(db, 'clubs', clubId, 'inventory', invId);
+        const invSnap = await getDoc(invRef);
         if (!invSnap.exists()) throw new Error('[InventoryService] Inventory item not found: ' + invId);
-
         const inv = { id: invSnap.id, ...invSnap.data() };
-
-        // 2. Kiểm tra đã thu trước đó chưa
         if (inv.unpaid === false && inv.inventoryDebtStatus === 'paid') {
-            return { alreadyPaid: true, inv };
+            return { alreadyPaid: true, inv, txId: inv.paidTxId || '' };
         }
 
-        const today   = options.date
-            || (typeof window.getLocalToday === 'function' ? window.getLocalToday() : new Date().toISOString().slice(0, 10));
+        const today   = options.date || (typeof window.getLocalToday === 'function' ? window.getLocalToday() : new Date().toISOString().slice(0, 10));
         const txMonth = today.slice(0, 7);
-
-        // 3. Tìm transaction đã có relatedInvId
-        const txRef  = collection(db, 'clubs', clubId, 'transactions');
-        const q      = query(txRef, where('relatedInvId', '==', invId));
-        const txSnap = await getDocs(q);
-
+        const txCol   = collection(db, 'clubs', clubId, 'transactions');
+        const q       = query(txCol, where('relatedInvId', '==', invId));
+        const txSnap  = await getDocs(q);
         const invAmount = Number(inv.amount || 0);
-        if (invAmount <= 0) {
-            console.warn('[InventoryService] markPaid: amount <= 0 cho invId=' + invId + '. Sẽ vẫn mark paid nhưng không tạo transaction.');
-        }
+        if (invAmount <= 0) console.warn('[InventoryService] markPaid: amount <= 0 cho invId=' + invId + '. Không tạo transaction mới.');
 
         const txData = {
-            branch:               inv.branch || 'Chung',
-            type:                 'Thu ' + (inv.category || 'Võ phục'),
-            description:          ('Thu nợ ' + (inv.category || 'Võ phục') + ' ' + (inv.size || '') + ' của ' + (inv.desc || '')).trim(),
-            amount:               invAmount,
-            date:                 today,
+            branch: inv.branch || 'Chung',
+            type: 'Thu ' + (inv.category || 'Võ phục'),
+            description: ('Thu nợ ' + (inv.category || 'Võ phục') + ' ' + (inv.size || '') + ' của ' + (inv.desc || '')).trim(),
+            amount: invAmount,
+            date: today,
             txMonth,
-            timestamp:            Date.now(),
-            relatedInvId:         invId,
+            timestamp: Date.now(),
+            relatedInvId: invId,
             inventoryDebtPayment: true,
-            inventoryDebtPaidAt:  Date.now(),
-            inventoryCategory:    inv.category || 'Võ phục',
-            inventorySize:        inv.size  || '',
-            inventoryDesc:        inv.desc  || '',
+            inventoryDebtPaidAt: Date.now(),
+            inventoryCategory: inv.category || 'Võ phục',
+            inventorySize: inv.size || '',
+            inventoryDesc: inv.desc || '',
         };
 
+        const batch = writeBatch(db);
         let txId = '';
-
-        // 4. Cập nhật transaction cũ nếu có, hoặc tạo mới
         if (!txSnap.empty) {
             const existing = txSnap.docs[0];
             txId = existing.id;
             const canonicalPatch = typeof window.canonicalizeTransactionPatch === 'function'
                 ? window.canonicalizeTransactionPatch(txData, existing.data(), 'inventory-service-mark-paid-existing')
                 : txData;
-            await updateDoc(existing.ref, canonicalPatch);
-        } else {
-            if (invAmount > 0) {
-                const canonicalTxData = typeof window.canonicalizeTransactionForWrite === 'function'
-                    ? window.canonicalizeTransactionForWrite(txData, 'inventory-service-mark-paid')
-                    : txData;
-                const newTx = await addDoc(txRef, canonicalTxData);
-                txId = newTx.id;
-            }
+            batch.update(existing.ref, canonicalPatch);
+        } else if (invAmount > 0) {
+            const txDocRef = doc(txCol);
+            txId = txDocRef.id;
+            const canonicalTxData = typeof window.canonicalizeTransactionForWrite === 'function'
+                ? window.canonicalizeTransactionForWrite(txData, 'inventory-service-mark-paid')
+                : txData;
+            batch.set(txDocRef, canonicalTxData);
         }
 
-        // 5. Update inventory doc
-        const invUpdate = {
-            unpaid:               false,
-            inventoryDebtStatus:  'paid',
-            paidAt:               Date.now(),
-            paidDate:             today,
-        };
-        if (txId) invUpdate.paidTxId = txId;
+        const invUpdate = this.prepareMarkPaidPatch({
+            txId,
+            paymentBundleId: txId,
+            paidDate: today,
+            paidAt: Date.now(),
+        });
+        batch.update(invRef, invUpdate);
+        await batch.commit();
 
-        await updateDoc(doc(db, 'clubs', clubId, 'inventory', invId), invUpdate);
         window.notifyInventoryMutation?.('inventory-service-mark-paid');
-
-        return { alreadyPaid: false, inv, txId };
+        return { alreadyPaid: false, inv: { ...inv, ...invUpdate }, txId };
     },
 
     // ── PAGINATION (Phase 4J-8) ──────────────────────────────────

@@ -71,7 +71,7 @@ check(attendance.includes('if (!_onlineListenerBound)'), 'online synchronization
 check(attendance.includes("window.addEventListener('online', window.syncOfflineAttendance)"), 'online synchronization listener remains installed');
 check(attendance.includes('if (token.shiftId && docShift !== token.shiftId) return;'), 'attendance cache applies captured selected-shift filter');
 check(attendance.includes('AttendanceService.loadByDate(token.date, {') && attendance.includes('shiftId: token.shiftId') && attendance.includes("branch: token.branch === 'all' ? '' : token.branch"), 'daily read passes immutable date, shift and branch token to service');
-check(service.includes("constraints.push(where('shiftId', '==', shiftId))"), 'daily query filters selected shift server-side');
+check(service.includes("baseConstraints.push(where('shiftId', '==', shiftId))"), 'daily query filters selected shift server-side');
 
 // ── Monthly pagination correctness / safety ───────────────────────────
 const monthlyStart = service.indexOf('async loadByMonth(month, options = {})');

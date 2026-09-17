@@ -85,11 +85,18 @@ export const AttendanceService = {
      * @returns {Array<{id, data}>}
      */
     async loadByDate(date, options = {}) {
-        const { getDocs, query, where, collection, limit: _limit } = _sdk();
+        const { getDocs, query, where, collection, limit: _limit, startAfter } = _sdk();
         const db     = _db();
         const clubId = _clubId();
         const _lim   = typeof _limit === 'function' ? _limit : null;
-        if (!_lim) console.warn('[AttendanceService] limit not available in SDK — loadByDate running without limit()');
+        // H8R2.1 R5 — cursor pagination is part of this canonical reader's
+        // correctness contract. Missing primitives must fail BEFORE the first
+        // Firestore read; never fall back to unbounded or partial coverage.
+        if (!_lim || typeof startAfter !== 'function') {
+            const error = new Error('[AttendanceService] Daily pagination primitives are unavailable.');
+            error.code = 'attendance/daily-pagination-unavailable';
+            throw error;
+        }
 
         const shiftId = String(options.shiftId || '');
         if (options.requireShift === true && !shiftId) {
@@ -100,53 +107,101 @@ export const AttendanceService = {
         const shiftAuthorityMode = String(options.shiftAuthorityMode || (shiftId ? 'explicit-shift' : 'legacy-no-shift'));
         const { coach: isCoach, branch } = _scopedBranch(options);
         window.RoleReadBoundary?.canMount?.('attendance.daily', { date, branch, shiftId });
-        const dailyLimit = Number((window.__scaleConfig || {}).attendanceDailyLimit) || 1200;
-        const constraints = [where('date', '==', date)];
-        const branchConstraint = _branchConstraint(where, branch, isCoach);
-        if (branchConstraint) constraints.push(branchConstraint);
-        // Filtering server-side reduces reads and avoids unrelated branch/shift records.
-        if (shiftId) constraints.push(where('shiftId', '==', shiftId));
-        if (_lim) constraints.push(_lim(dailyLimit));
 
-        const snap = await getDocs(query(
-            collection(db, 'clubs', clubId, 'attendance'),
-            ...constraints
-        ));
+        // H8R2: one canonical daily reader, internally cursor-paged. The former
+        // 1200 hard cap could silently truncate a large day. Keep the same query
+        // semantics and the same getDocs call-site, but iterate with startAfter.
+        const pageSize = Math.max(100, Math.min(500, Number((window.__scaleConfig || {}).attendanceDailyPageSize) || 400));
+        const safetyCeiling = Math.max(pageSize, Number((window.__scaleConfig || {}).attendanceDailySafetyCeiling) || 10000);
+        const baseConstraints = [where('date', '==', date)];
+        const branchConstraint = _branchConstraint(where, branch, isCoach);
+        if (branchConstraint) baseConstraints.push(branchConstraint);
+        if (shiftId) baseConstraints.push(where('shiftId', '==', shiftId));
+
         const results = [];
-        snap.forEach(d => results.push({ id: d.id, data: d.data() }));
-        if (typeof window.recordFirestoreReadAttribution === 'function') {
-            window.recordFirestoreReadAttribution('attendance.daily', Number(snap.size || results.length || 0), {
-                initial: true,
-                reason: 'canonical-daily-refresh',
-                date,
-                branch,
-                shiftId,
-                shiftAuthorityMode,
+        let cursor = null;
+        let pageCount = 0;
+        let coverageComplete = true;
+        let staleAborted = false;
+        let lastPageSize = 0;
+
+        while (true) {
+            if (typeof options.isCurrent === 'function' && options.isCurrent() !== true) {
+                staleAborted = true;
+                coverageComplete = false;
+                break;
+            }
+            const constraints = baseConstraints.slice();
+            if (cursor) constraints.push(startAfter(cursor));
+            constraints.push(_lim(pageSize));
+
+            const snap = await getDocs(query(
+                collection(db, 'clubs', clubId, 'attendance'),
+                ...constraints
+            ));
+            pageCount++;
+            lastPageSize = Number(snap.size || 0);
+            snap.forEach(d => {
+                if (results.length < safetyCeiling) results.push({ id: d.id, data: d.data() });
             });
+
+            if (typeof window.recordFirestoreReadAttribution === 'function') {
+                window.recordFirestoreReadAttribution('attendance.daily', Number(snap.size || 0), {
+                    initial: pageCount === 1,
+                    reason: 'canonical-daily-refresh-page',
+                    page: pageCount,
+                    date,
+                    branch,
+                    shiftId,
+                    shiftAuthorityMode,
+                });
+            }
+
+            if (results.length >= safetyCeiling && lastPageSize >= pageSize) {
+                coverageComplete = false;
+                break;
+            }
+            if (lastPageSize < pageSize || snap.docs.length === 0) break;
+            cursor = snap.docs[snap.docs.length - 1];
+            if (!cursor) {
+                const error = new Error('[AttendanceService] Daily pagination cursor is unavailable.');
+                error.code = 'attendance/daily-pagination-unavailable';
+                throw error;
+            }
         }
 
-        const hitLimit = results.length >= dailyLimit;
         window.__attendanceDailyLoadMetrics = {
             date,
             shiftFiltered: !!shiftId,
             branchFiltered: !!branch && branch !== 'all',
             branch,
             docs: results.length,
-            limit: dailyLimit,
-            hitLimit,
+            pageSize,
+            pages: pageCount,
+            safetyCeiling,
+            coverageComplete,
+            staleAborted,
             shiftAuthorityMode,
             updatedAt: Date.now()
         };
-        if (hitLimit) {
-            const shiftInfo = shiftId ? ' / ca: ' + shiftId : ' (legacy không cấu hình ca)';
-            console.warn(
-                '[Attendance] ⚠️ Đạt limit ' + dailyLimit + ' record — ngày ' + date + shiftInfo +
-                '. Dữ liệu có thể bị cắt bớt. Hãy chọn ca cụ thể hoặc dùng aggregation.'
-            );
+
+        if (!coverageComplete && !staleAborted) {
+            const error = new Error('[AttendanceService] Daily attendance safety ceiling reached before coverage completed.');
+            error.code = 'attendance/daily-coverage-incomplete';
+            error.coverageComplete = false;
+            error.loadedCount = results.length;
+            error.safetyCeiling = safetyCeiling;
             if (typeof window.warnUnsafeLimit === 'function') {
-                window.warnUnsafeLimit('attendance:renderList:limitHit', 'att-daily-list-truncated');
+                window.warnUnsafeLimit('attendance:daily:safety-ceiling', 'att-daily-coverage-incomplete');
             }
+            throw error;
         }
+
+        Object.defineProperties(results, {
+            coverageComplete: { value: coverageComplete, enumerable: false },
+            staleAborted: { value: staleAborted, enumerable: false },
+            pageCount: { value: pageCount, enumerable: false },
+        });
         return results;
     },
 
@@ -408,15 +463,38 @@ export const AttendanceService = {
      * Lưu nhiều bản ghi điểm danh trong 1 writeBatch (điểm danh hàng loạt).
      * @param {Array<{docId, data}>} records — mảng records cần lưu
      */
-    async bulkSaveRecords(records) {
+    async bulkSaveRecords(records, options = {}) {
         const { writeBatch, doc } = _sdk();
         const db     = _db();
         const clubId = _clubId();
-        const batch  = writeBatch(db);
-        records.forEach(({ docId, data }) => {
-            batch.set(doc(db, 'clubs', clubId, 'attendance', docId), _prepareWriteData(data));
-        });
-        await batch.commit();
+        const rows = Array.isArray(records) ? records : [];
+        const chunkSize = Math.max(1, Math.min(400, Number(options.chunkSize) || 400));
+        let committed = 0;
+        const committedIds = [];
+
+        for (let offset = 0; offset < rows.length; offset += chunkSize) {
+            const chunk = rows.slice(offset, offset + chunkSize);
+            const batch = writeBatch(db);
+            chunk.forEach(({ docId, data }) => {
+                batch.set(doc(db, 'clubs', clubId, 'attendance', docId), _prepareWriteData(data));
+            });
+            try {
+                await batch.commit();
+                committed += chunk.length;
+                chunk.forEach(row => committedIds.push(String(row.docId || '')));
+                if (typeof options.onChunkCommitted === 'function') {
+                    options.onChunkCommitted(chunk, { committed, total: rows.length, chunkSize });
+                }
+            } catch (error) {
+                error.code = error.code || 'attendance/bulk-partial-failure';
+                error.committed = committed;
+                error.total = rows.length;
+                error.pending = rows.length - committed;
+                error.committedIds = committedIds.slice();
+                throw error;
+            }
+        }
+        return { committed, total: rows.length, pending: 0, committedIds };
     },
 
     /**
@@ -428,13 +506,18 @@ export const AttendanceService = {
     async bulkSyncOffline(clubId, date, records) {
         const { writeBatch, doc } = _sdk();
         const db    = _db();
+        const rows = Object.values(records || {});
+        if (rows.length > 400) {
+            const error = new Error('[AttendanceService] Offline sync chunk exceeds safe batch size (400).');
+            error.code = 'attendance/offline-chunk-too-large';
+            throw error;
+        }
         const batch = writeBatch(db);
         // [4J-6A] Helper shift-aware docId cho backward compat
         function _getAttDocId(name, d, shiftId) {
             return (shiftId && shiftId !== '') ? (name + '_' + d + '_' + shiftId) : (name + '_' + d);
         }
-        Object.values(records).forEach(rec => {
-            // Ưu tiên docId đã lưu trong journal, fallback legacy shift-aware ID.
+        rows.forEach(rec => {
             const docId  = rec.docId || _getAttDocId(rec.name, rec.date || date, rec.shiftId || '');
             const docRef = doc(db, 'clubs', clubId, 'attendance', docId);
             const operation = String(rec.operation || '').toLowerCase();
@@ -452,6 +535,7 @@ export const AttendanceService = {
             }
         });
         await batch.commit();
+        return { committed: rows.length, pending: 0 };
     },
 
     // ── MEMBER STATS (chuyên cần thăng đai) ─────────────────────

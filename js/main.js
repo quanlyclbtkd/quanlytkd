@@ -248,8 +248,8 @@ import { FinancialFlowMap }   from './core/financialFlowMap.js';
 import { SecurityPosture }   from './core/securityPosture.js';
 import { ActionGuard }        from './core/actionGuard.js';
 import { initCanonicalDomainCommandBoundary } from './core/canonicalDomainCommandBoundary.js?v=tuition-command-cutover-20260730-v5u2';
-import { initStudentStatusCommandBoundary } from './core/studentStatusCommandBoundary.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1';
-import { initTuitionCommandBoundary } from './core/tuitionCommandBoundary.js?v=tuition-command-cutover-20260730-v5u2';
+import { initStudentStatusCommandBoundary } from './core/studentStatusCommandBoundary.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1';
+import { initTuitionCommandBoundary } from './core/tuitionCommandBoundary.js?v=long-term-production-stability-20260917-v5u6h8r2';
 // Phase 4K-6E: Transaction Delete Integrity
 import { TransactionDeleteIntegrity } from './core/transactionDeleteIntegrity.js';
 // Phase 4K-6F: Legacy App Kernel Audit + Diagnostics Extraction
@@ -284,6 +284,7 @@ import {
     loadQuitProfilesIfNeeded,
     ensureQuitProfilesComplete,
     isQuitProfilesComplete,
+    markQuitAuthorityDirty,
     cleanupQuitProfilesListener,
     loadFullProfilesFallback,
     isQuitProfilesLoaded,
@@ -292,8 +293,10 @@ import {
     getQuitStatusValues,
     getProfilesListenerMetrics,
     ensureAllProfilesForExport,
-} from './listeners/profiles.listeners.js?v=production-stability-residual-defect-closure-20260814-v5u6g';
+} from './listeners/profiles.listeners.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1';
 // Compatibility marker: ./listeners/profiles.listeners.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d
+
+// H8R2.1 cache compatibility: ./listeners/profiles.listeners.js?v=long-term-production-stability-20260917-v5u6h8r2 ; ./modules/attendance.js?v=long-term-production-stability-20260917-v5u6h8r2 ; ./core/studentStatusCommandBoundary.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1 ; ./modules/inventory.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h
 
 // ── Phase 3.7C: Profile Status Config ────────────────────────────────────────
 import {
@@ -360,10 +363,10 @@ import {
     debugSearchPerformance,
 } from './modules/searchRuntime.js?v=student-given-name-priority-20260811-v5u3';
 // Compatibility marker: ./modules/finance.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h
-import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from './modules/finance.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1';
-import { initInventory }                              from './modules/inventory.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
+import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from './modules/finance.js?v=long-term-production-stability-20260917-v5u6h8r2';
+import { initInventory }                              from './modules/inventory.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1';
 // Compatibility marker: from './modules/attendance.js'
-import { initAttendance }                             from './modules/attendance.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1';
+import { initAttendance }                             from './modules/attendance.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1';
 // Compatibility marker: ./modules/attendance.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
 // V5U6G1 compatibility marker: ./modules/attendance.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
 import { initDashboard }                              from './modules/dashboard.js?v=dashboard-hydration-mutation-guard-20260812-v5u6c2';
@@ -1598,6 +1601,13 @@ function _waitForExistingLegacyApp(ms) {
             tabId = window.enforceRoleTab ? window.enforceRoleTab(tabId) : tabId;
             await ensureTabModule(tabId);
             if (typeof _origSwitchTab === 'function') _origSwitchTab(tabId);
+            // H8R2 Patch A: reuse the existing tab activation hook. Pagination
+            // reads are allowed only when Thu Chi is actually active.
+            if (tabId === 'tx' && typeof window.ensureTransactionPaginationForActiveTab === 'function') {
+                Promise.resolve(window.ensureTransactionPaginationForActiveTab('switch-tab-tx')).catch(function(error) {
+                    console.warn('[switchTab] transaction pagination activation failed:', error);
+                });
+            }
             // Phase 4K-4: Refresh exam fee UI when entering exam tab
             if (tabId === 'exam') {
                 if (typeof window.initExamFeeSettingUI === 'function') window.initExamFeeSettingUI();
@@ -2208,6 +2218,7 @@ function _waitForExistingLegacyApp(ms) {
         window.isQuitProfilesLoaded         = isQuitProfilesLoaded;
         window.ensureQuitProfilesComplete    = ensureQuitProfilesComplete;
         window.isQuitProfilesComplete        = isQuitProfilesComplete;
+        window.markQuitAuthorityDirty        = markQuitAuthorityDirty;
         window.isQuitStoreComplete           = isQuitComplete;
         window.markQuitStoreComplete         = markQuitComplete;
         window.resetProfilesListeners       = resetProfilesListeners;

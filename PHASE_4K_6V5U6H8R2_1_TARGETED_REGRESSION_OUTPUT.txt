@@ -1,0 +1,177 @@
+\n===== npm run check:long-term-production-stability =====
+
+> taekwondo-club-app@1.0.0 check:long-term-production-stability
+> node tools/check-long-term-production-stability.mjs
+
+
+🔎 H8R2.1 — Long-Term Production Stability + Residual Correctness Gate
+
+✅ 1. Transaction pagination is not activated by hidden DOM existence 
+✅ 2. Hidden Transaction tab causes no pagination load and only marks local context dirty 
+✅ 2b. Existing tab activation hook starts pagination only on real Thu Chi activation 
+✅ 3. Attendance loadByDate owns bounded cursor pagination 
+✅ 4. Attendance daily cannot silently truncate at legacy 1200 limit 
+✅ 5. Attendance bulk writer chunks at <=400 inside the existing writer 
+✅ 6. Attendance bulk exposes committed-chunk scoped cleanup/partial failure metadata 
+✅ 6b. Attendance UI cleans only committed journal records, never the whole day in finally 
+✅ 7. Existing FinanceService owns one safe atomic logical write plan 
+✅ 8. transactionForm no longer sequences independent primary tuition writes 
+✅ 9. processCombo routes primary writes through existing atomic finance owner 
+✅ 10. processMultiItem commits one logical primary batch and has no sequential fallback writer 
+✅ 11. No new parallel financial writer authority introduced 
+✅ 11b. TuitionCommandBoundary keeps canonical ownership; audit stays secondary 
+✅ 11c. Inventory existing owner exposes pure prepare primitive and atomic debt-payment linkage 
+✅ 12. Quit authority has no 60-second time-only full refresh 
+✅ 13. Quit full snapshot requires incomplete/dirty/error/explicit refresh semantics 
+✅ 14. Quit authority itself adds no listener; it reuses existing profile ownership 
+✅ 15. Exam promotion/reset cannot exceed safe batch size 
+✅ 16. Exam retry writes deterministic target state and reports committed/pending 
+✅ 17. Main bootstrap retry is bounded by a hard deadline 
+✅ 18. Permanent 3-second mobile-header interval removed; existing context event reused 
+✅ 19. User text has fail-closed escaping instead of raw identity fallback 
+✅ 20. Firestore static budget unchanged (29/51/16 <= 29/51/16) 
+✅ B6 dynamic: 1501 daily records load completely across 4 pages 
+✅ B10 dynamic: injected chunk-2 failure reports 400 committed / 601 pending without false all-success 
+✅ 28. MultiItem debt-paid patch is canonical (paid status/date/tx/bundle) and no longer classifies active 
+✅ 29. InventoryService paid mutation preparer is PURE and performs ZERO Firestore write/read/listener 
+✅ 30. MultiItem debt paid mutation stays inside the SAME existing atomic batch 
+✅ 31. Debt-only MultiItem payment invalidates the existing Inventory cache/history path without a new read 
+✅ 32. MultiItem paidUntil uses max(existing,candidate); F1/F2/F3 monotonic cases PASS and raw lastMonth write is forbidden 
+✅ 33. MultiItem requires canonical profile existence before any atomic write plan/commit 
+✅ 34. MultiItem tuition profile mutation cannot create a missing profile; update() makes disappearance fail the whole batch 
+✅ 35. MultiItem has no raw-input profile identity fallback; profileId=name is only used after exact canonical profile existence is proven 
+✅ 36. Quit-profile canonical mutation marks the EXISTING Quit authority dirty locally with ZERO read/write/listener 
+[ProfilesListener] reset — h8r21-test-reset
+✅ 37. Quit Q1-Q4: repeated opens reuse complete cache; one local dirty mutation causes exactly one existing canonical refresh 
+✅ 38. Attendance A2/A3 fails closed before any read when limit/startAfter primitives are unavailable 
+✅ 39. H8R2.1 Firestore static budget preserved (29/51/16 <= 29/51/16) 
+✅ Package exposes check:long-term-production-stability 
+
+Total: 39 | PASS: 39 | FAIL: 0
+
+H8R2.1 long-term/residual stability gate PASS.
+EXIT=0
+\n===== npm run check:profile-display-name-safe-edit =====
+
+> taekwondo-club-app@1.0.0 check:profile-display-name-safe-edit
+> node tools/check-profile-display-name-safe-edit.mjs
+
+✅ N1/N4 openProfile keeps immutable key in m_old_name
+✅ N1/N4 openProfile resolves editable display label
+✅ N2/N5 update writes displayName only on same canonical key
+✅ N2/N21 no rename/create/delete profile path in display edit
+✅ N6 no Attendance history migration from display edit
+✅ N6 no historical transaction rewrite from display edit
+✅ legacy renameWithBatch retained but unreachable from display edit
+✅ N7/N8 Attendance doc identity still profileKey/name based
+✅ N7 Daily Attendance visible label resolves current profile
+✅ N9 Monthly Attendance keeps r.name action token
+✅ N9 Monthly Attendance visible label resolves current displayName
+✅ N10 debt row label uses profile display resolver
+✅ N10/N12 debt actions retain profileKey
+✅ N15 quit/restore action retains profileKey
+✅ N16 search entry prefers displayName
+✅ N19 search tokens preserve immutable id/profileKey
+✅ N17/N18 search still indexes code + phone fields
+✅ N20 same profile update invalidates RAM search index
+✅ N13 Exam canonical identity remains profileId=profileKey
+✅ N13 new Exam visible labels use displayName
+✅ N13 Exam UI displays resolved name but actions retain profileKey
+✅ N13 Exam ledger prioritizes exact profileId before visible label
+✅ Report/export labels resolve displayName without changing roster key
+✅ resolver is pure and displayName-first
+✅ resolver adds zero Firestore reads/writes/listeners
+✅ N16 dynamic searchName follows displayName
+✅ N17 dynamic memberId remains indexed
+✅ N18 dynamic phone remains indexed
+PASS 28/28
+EXIT=0
+\n===== npm run check:profile-rename-referential-guard =====
+
+> taekwondo-club-app@1.0.0 check:profile-rename-referential-guard
+> node tools/check-profile-rename-referential-guard.mjs
+
+✅ displayName edit supported
+✅ profileKey remains immutable modal identity
+✅ canonical command receives oldName/newName as same profileKey
+✅ display edit has zero renameWithBatch call
+✅ display edit has zero transaction lookup
+✅ display edit has zero profile delete/create branch
+✅ legacy rename service retained only for compatibility
+✅ no Attendance historical migration added to profile edit flow
+✅ no historical transaction rewrite added to profile edit flow
+✅ Attendance identity primitives remain profile-key based
+✅ no startup/background rename repair added
+PASS 11/11
+EXIT=0
+\n===== npm run check:profile-canonical-store =====
+
+> taekwondo-club-app@1.0.0 check:profile-canonical-store
+> node tools/check-profile-canonical-store-v4d1.mjs
+
+
+🔍 Phase 4K-6V4D1 — Profile Canonical Store Read-only Audit checks
+
+✅ profileCanonicalStore.js exists
+✅ public mirror profileCanonicalStore.js exists
+✅ index loads profileCanonicalStore after tuitionDebtCanonical and before app.js
+✅ index cache-busts app.js and main.js to V4D1A-or-later
+✅ main.js retains V4D1 lineage marker
+✅ profile canonical store exports public debug/audit API
+✅ profile canonical store exposes getProfileCanonicalStoreStatus
+✅ profile canonical store exposes auditProfileCanonicalStore
+✅ profile canonical store exposes debugProfileCanonical
+✅ profile canonical store exposes debugProfileCanonicalById
+✅ profile canonical store creates status/branch/month/search indexes
+✅ profile canonical store uses already loaded profile sources only
+✅ profile canonical store is read-only: no Firestore read/write APIs
+✅ profile canonical store reports noRead/extraReads safety
+✅ public mirror matches source helper
+✅ package.json includes V4D1 gate in npm check
+✅ VM API initialized
+✅ VM store builds from local profile cache
+✅ canonical branch normalizes aliases
+✅ canonical status classifies active/trial/quit
+✅ canonical month normalizes paidUntil and skippedMonths
+✅ search index can find by Vietnamese name fragment
+✅ debug by id returns canonical row
+✅ getProfileCanonicalStoreStatus shape is stable
+✅ audit detects data warnings without writes
+✅ global debug functions exported
+
+📊 Results: 27 passed, 0 failed
+
+EXIT=0
+\n===== npm run check:v5u1-student-status-command-cutover =====
+
+> taekwondo-club-app@1.0.0 check:v5u1-student-status-command-cutover
+> node tools/check-v5u1-student-status-command-cutover.mjs
+
+❌ V5U-1 boundary source/public mirrors are exact
+✅ V5U-1-or-later app/index/main markers active
+✅ V5U-1-or-later public app/index/main markers active
+✅ main imports and initializes StudentStatusCommandBoundary
+✅ StudentStatus boundary initializes after students and before finance
+✅ StudentStatus boundary owns reviewed status commands
+✅ StudentStatus boundary delegates to existing StudentService only
+✅ StudentStatus boundary centralizes affected domain invalidation
+✅ StudentStatus boundary has single-flight protection
+✅ students module writes status only through boundary
+✅ finance aliases write status only through boundary
+✅ students/finance public mirrors are exact after build or H3 students-only bounded pre-build state
+✅ legacy app student status writers are frozen to no-write stubs
+✅ legacy app no longer contains old direct status writer signatures
+✅ V5U-1 baseline remains an upper bound after later cutovers
+✅ V5U-1 per-op write baseline did not regress
+✅ app/public direct-write surfaces exact after build or explicit bounded pre-build source state
+✅ rename service chunks historical transaction updates
+✅ Firestore Rules allow only club Admin/SuperAdmin to delete own-club transactions
+✅ FinanceService annotates permission-denied delete failures
+✅ deleteTx catches permission errors and retains Tuition tab
+✅ clubStatsAutoCache is write-mounted only for admin/owner/root roles
+✅ package exposes V5U-1 checks
+✅ default pipelines include V5U-1 checks
+
+V5U-1 student status command cutover check FAILED: 1
+EXIT=1
+FAILED_SCRIPT=check:v5u1-student-status-command-cutover

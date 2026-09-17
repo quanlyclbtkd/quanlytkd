@@ -50,7 +50,7 @@ import {
     normalizeYYYYMM,
     formatMonthCompact,
 } from '../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
-import { FinanceService } from '../services/finance.service.js?v=tuition-command-cutover-20260730-v5u2';
+import { FinanceService } from '../services/finance.service.js?v=long-term-production-stability-20260917-v5u6h8r2';
 import { StudentService } from '../services/students.service.js?v=tuition-command-cutover-20260730-v5u2';
 import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
 
@@ -661,77 +661,76 @@ export function initFinance() {
         const b1 = (profiles[n1] && profiles[n1].branch) || 'CS1';
         const b2 = (profiles[n2] && profiles[n2].branch) || 'CS1';
         const branch = b1 || b2 || 'CS1';
-
         if (n1) { comboNames.push(n1); if (m1) comboMonths.add(m1); }
         if (n2) { comboNames.push(n2); if (m2) comboMonths.add(m2); }
-
         const combinedNameStr = comboNames.join(' & ');
         const combinedMonthStr = Array.from(comboMonths).join(', ');
         const totalAmt = f1 + f2;
 
+        if (action === 'pay' && window.processCombo.__atomicInFlight === true) {
+            return window.showToast('⏳ Giao dịch thu gộp đang được xử lý.');
+        }
+
         try {
             if (action === 'pay') {
+                window.processCombo.__atomicInFlight = true;
                 const today = getLocalToday();
                 const todayM = today.substring(0, 7);
+                const transactions = [];
+                const profileUpdates = [];
+                const audits = [];
 
-                // Võ sinh 1
                 if (n1 && f1 > 0) {
                     const d1 = m1 < todayM ? m1 + '-01' : today;
-                    await FinanceService.addTransaction({
-                        branch: b1, type: 'Học phí', description: n1,
-                        amount: f1, date: d1, txMonth: m1, packageMonths: [m1],
-                        timestamp: Date.now(),
-                    });
-                    // Chỉ ghi paidUntil, không ghi đè các field khác
                     const cu1 = normalizeYYYYMM((profiles[n1] && profiles[n1].paidUntil) || '');
                     const np1 = m1 > cu1 ? m1 : cu1;
-                    await FinanceService.patchProfile(n1, { paidUntil: np1 });
-                    await FinanceService.addFeeAuditSilent({
-                        studentId: n1, amount: f1, date: today,
-                        type: 'tuition', month: np1, months: [m1],
-                        by: window.currentUserEmail || 'admin', timestamp: Date.now(),
-                    });
+                    transactions.push({ data: {
+                        branch: b1, type: 'Học phí', description: n1,
+                        amount: f1, date: d1, txMonth: m1, packageMonths: [m1], timestamp: Date.now(),
+                    }, reason: 'family-pay-student-1' });
+                    profileUpdates.push({ studentName: n1, data: {
+                        paidUntil: np1,
+                        paidMonths: FinanceService._arrayUnion(m1),
+                    }});
+                    audits.push({ studentId: n1, amount: f1, date: today, type: 'tuition', month: np1, months: [m1], by: window.currentUserEmail || 'admin', timestamp: Date.now() });
                 }
-
-                // Võ sinh 2
                 if (n2 && f2 > 0) {
                     const d2 = m2 < todayM ? m2 + '-01' : today;
-                    await FinanceService.addTransaction({
-                        branch: b2, type: 'Học phí', description: n2,
-                        amount: f2, date: d2, txMonth: m2, packageMonths: [m2],
-                        timestamp: Date.now() + 1,
-                    });
                     const cu2 = normalizeYYYYMM((profiles[n2] && profiles[n2].paidUntil) || '');
                     const np2 = m2 > cu2 ? m2 : cu2;
-                    await FinanceService.patchProfile(n2, { paidUntil: np2 });
-                    await FinanceService.addFeeAuditSilent({
-                        studentId: n2, amount: f2, date: today,
-                        type: 'tuition', month: np2, months: [m2],
-                        by: window.currentUserEmail || 'admin', timestamp: Date.now() + 1,
-                    });
+                    transactions.push({ data: {
+                        branch: b2, type: 'Học phí', description: n2,
+                        amount: f2, date: d2, txMonth: m2, packageMonths: [m2], timestamp: Date.now() + 1,
+                    }, reason: 'family-pay-student-2' });
+                    profileUpdates.push({ studentName: n2, data: {
+                        paidUntil: np2,
+                        paidMonths: FinanceService._arrayUnion(m2),
+                    }});
+                    audits.push({ studentId: n2, amount: f2, date: today, type: 'tuition', month: np2, months: [m2], by: window.currentUserEmail || 'admin', timestamp: Date.now() + 1 });
                 }
+
+                await FinanceService.commitAtomicWritePlan({ transactions, profileUpdates });
+                // Class-2 secondary audit writes: canonical success is already committed.
+                for (const audit of audits) await FinanceService.addFeeAuditSilent(audit);
 
                 window.showToast('✅ Đã ghi sổ gộp thành công!');
                 if (window.exportReceipt) {
-                    window.exportReceipt(
-                        combinedNameStr, totalAmt, 'Học phí', today,
-                        combinedMonthStr, branch, 'Gộp Gia Đình', 'BIÊN LAI THU TIỀN'
-                    );
+                    window.exportReceipt(combinedNameStr, totalAmt, 'Học phí', today, combinedMonthStr, branch, 'Gộp Gia Đình', 'BIÊN LAI THU TIỀN');
                 }
                 document.getElementById('comboModal').style.display = 'none';
-
             } else if (action === 'report') {
                 if (window.exportReceipt) {
-                    window.exportReceipt(
-                        combinedNameStr, totalAmt, 'Học phí', getLocalToday(),
-                        combinedMonthStr, branch, 'Gộp Gia Đình', 'PHIẾU BÁO HỌC PHÍ'
-                    );
+                    window.exportReceipt(combinedNameStr, totalAmt, 'Học phí', getLocalToday(), combinedMonthStr, branch, 'Gộp Gia Đình', 'PHIẾU BÁO HỌC PHÍ');
                 }
                 document.getElementById('comboModal').style.display = 'none';
             }
         } catch (error) {
             console.error('[finance.js] processCombo lỗi:', error);
-            window.showToast('❌ Lỗi khi xử lý thu gộp!');
+            window.showToast(error?.code === 'finance/atomic-plan-too-large'
+                ? '⚠️ Thao tác vượt giới hạn an toàn, chưa có dữ liệu nào được ghi.'
+                : '❌ Lỗi khi xử lý thu gộp!');
+        } finally {
+            if (action === 'pay') window.processCombo.__atomicInFlight = false;
         }
     };
 
@@ -758,94 +757,100 @@ export function initFinance() {
         _txFormEl.onsubmit = async (e) => {
             e.preventDefault();
             if (window.userRole === 'viewer') return;
-
-            const profiles = _profiles();
-            const config = _config();
-
-            const type    = document.getElementById('type').value;
-            const name    = document.getElementById('description').value.trim();
-            const amount  = Number(document.getElementById('amountActual').value);
-            const date    = document.getElementById('date').value;
-            const isSingleBranch = (config.branchCount === 1);
-            const branch  = isSingleBranch
-                ? 'Mặc định'
-                : document.getElementById('branch').value;
-            const txMonth = date.substring(0, 7);
-            const packageCount = parseInt(document.getElementById('tx_package').value) || 1;
-
-            if (!name) return;
-
-            let txData = { branch, type, description: name, date, timestamp: Date.now() };
-            let monthsToRecord = [];
-            let newPaidUntil = '';
-            const profile = profiles[name] || {};
-
-            if (type === 'Học phí' || type === 'Học phí + Lệ phí thi') {
-                let [y, m] = txMonth.split('-').map(Number);
-                for (let i = 0; i < packageCount; i++) {
-                    let curM = m + i;
-                    let curY = y;
-                    while (curM > 12) { curM -= 12; curY += 1; }
-                    monthsToRecord.push(`${curY}-${curM.toString().padStart(2, '0')}`);
-                }
-                // Không cho paidUntil thụt lùi
-                const lastRecorded = monthsToRecord[monthsToRecord.length - 1] || txMonth;
-                const normSavePaid = normalizeYYYYMM(profile.paidUntil);
-                newPaidUntil = lastRecorded > (normSavePaid || '')
-                    ? lastRecorded
-                    : (normSavePaid || lastRecorded);
+            if (_txFormEl.dataset.atomicSubmitInFlight === '1') {
+                window.showToast('⏳ Khoản thu đang được lưu.');
+                return;
             }
+            _txFormEl.dataset.atomicSubmitInFlight = '1';
+            try {
+                const profiles = _profiles();
+                const config = _config();
+                const type    = document.getElementById('type').value;
+                const name    = document.getElementById('description').value.trim();
+                const amount  = Number(document.getElementById('amountActual').value);
+                const date    = document.getElementById('date').value;
+                const isSingleBranch = (config.branchCount === 1);
+                const branch  = isSingleBranch ? 'Mặc định' : document.getElementById('branch').value;
+                const txMonth = date.substring(0, 7);
+                const packageCount = parseInt(document.getElementById('tx_package').value) || 1;
+                if (!name) return;
 
-            if (type === 'Học phí + Lệ phí thi') {
-                const examAmount = Number(document.getElementById('tx_exam_amountActual').value);
-                const examTitle  = document.getElementById('tx_exam_title').value.trim();
-                txData.tuitionAmount = amount;
-                txData.examAmount    = examAmount;
-                txData.examTitle     = examTitle;
-                txData.amount        = amount + examAmount;
-                txData.txMonth       = txMonth;
-                txData.packageMonths = monthsToRecord;
-            } else {
-                txData.amount = amount;
-                if (type === 'Học phí') {
+                let txData = { branch, type, description: name, date, timestamp: Date.now() };
+                let monthsToRecord = [];
+                let newPaidUntil = '';
+                const profile = profiles[name] || {};
+                if (type === 'Học phí' || type === 'Học phí + Lệ phí thi') {
+                    let [y, m] = txMonth.split('-').map(Number);
+                    for (let i = 0; i < packageCount; i++) {
+                        let curM = m + i;
+                        let curY = y;
+                        while (curM > 12) { curM -= 12; curY += 1; }
+                        monthsToRecord.push(`${curY}-${curM.toString().padStart(2, '0')}`);
+                    }
+                    const lastRecorded = monthsToRecord[monthsToRecord.length - 1] || txMonth;
+                    const normSavePaid = normalizeYYYYMM(profile.paidUntil);
+                    newPaidUntil = lastRecorded > (normSavePaid || '') ? lastRecorded : (normSavePaid || lastRecorded);
+                }
+                if (type === 'Học phí + Lệ phí thi') {
+                    const examAmount = Number(document.getElementById('tx_exam_amountActual').value);
+                    const examTitle  = document.getElementById('tx_exam_title').value.trim();
+                    txData.tuitionAmount = amount;
+                    txData.examAmount    = examAmount;
+                    txData.examTitle     = examTitle;
+                    txData.amount        = amount + examAmount;
                     txData.txMonth       = txMonth;
                     txData.packageMonths = monthsToRecord;
+                } else {
+                    txData.amount = amount;
+                    if (type === 'Học phí') {
+                        txData.txMonth = txMonth;
+                        txData.packageMonths = monthsToRecord;
+                    }
                 }
+
+                if (monthsToRecord.length > 0) {
+                    await FinanceService.commitAtomicWritePlan({
+                        transactions: [{ data: txData, reason: 'transaction-form-tuition' }],
+                        profileUpdates: [{ studentName: name, data: {
+                            paidUntil: newPaidUntil,
+                            paidMonths: FinanceService._arrayUnion(...monthsToRecord),
+                        }}],
+                    });
+                    await FinanceService.addFeeAuditSilent({
+                        studentId: name,
+                        amount: txData.amount,
+                        date: getLocalToday(),
+                        type: 'tuition',
+                        month: newPaidUntil,
+                        months: monthsToRecord,
+                        by: window.currentUserEmail || 'admin',
+                        timestamp: Date.now(),
+                    });
+                } else {
+                    await FinanceService.addTransaction(txData);
+                }
+
+                e.target.reset();
+                document.getElementById('date').value = getLocalToday();
+                document.getElementById('tx_package').value = '1';
+                const discEl = document.getElementById('tx_discount');
+                if (discEl) discEl.checked = false;
+                const discPctEl = document.getElementById('tx_discount_pct');
+                if (discPctEl) discPctEl.value = '10';
+                const svdEl = document.getElementById('tx_discount_saved');
+                if (svdEl) svdEl.style.display = 'none';
+                const examAmtEl = document.getElementById('tx_exam_amountActual');
+                if (examAmtEl) examAmtEl.value = '';
+                if (typeof window.toggleTxFormType === 'function') window.toggleTxFormType();
+                window.showToast('✅ Đã lưu khoản thu!');
+            } catch (error) {
+                console.error('[finance.js] transactionForm atomic save failed:', error);
+                window.showToast(error?.code === 'finance/atomic-plan-too-large'
+                    ? '⚠️ Thao tác vượt giới hạn an toàn, chưa có dữ liệu nào được ghi.'
+                    : '❌ Không thể lưu khoản thu. Chưa có dữ liệu tài chính dở dang được ghi.');
+            } finally {
+                delete _txFormEl.dataset.atomicSubmitInFlight;
             }
-
-            await FinanceService.addTransaction(txData);
-
-            if (monthsToRecord.length > 0) {
-                await FinanceService.updateStudentPayment(name, {
-                    paidUntil: newPaidUntil,
-                    paidMonths: FinanceService._arrayUnion(...monthsToRecord),
-                });
-                // Audit log (không chặn luồng chính)
-                await FinanceService.addFeeAuditSilent({
-                    studentId: name,
-                    amount: txData.amount,
-                    date: getLocalToday(),
-                    type: 'tuition',
-                    month: newPaidUntil,
-                    months: monthsToRecord,
-                    by: window.currentUserEmail || 'admin',
-                    timestamp: Date.now(),
-                });
-            }
-
-            e.target.reset();
-            document.getElementById('date').value = getLocalToday();
-            document.getElementById('tx_package').value = '1';
-            const discEl = document.getElementById('tx_discount');
-            if (discEl) discEl.checked = false;
-            const discPctEl = document.getElementById('tx_discount_pct');
-            if (discPctEl) discPctEl.value = '10';
-            const svdEl = document.getElementById('tx_discount_saved');
-            if (svdEl) svdEl.style.display = 'none';
-            const examAmtEl = document.getElementById('tx_exam_amountActual');
-            if (examAmtEl) examAmtEl.value = '';
-            if (typeof window.toggleTxFormType === 'function') window.toggleTxFormType();
-            window.showToast('✅ Đã lưu khoản thu!');
         };
     }
 
@@ -904,7 +909,7 @@ export function initTransactionPagination() {
         prepareNextPage, preparePreviousPage,
         renderPaginationControls, PAGE_SIZE,
     }) => {
-        import('../services/finance.service.js?v=tuition-command-cutover-20260730-v5u2').then(({ FinanceService }) => {
+        import('../services/finance.service.js?v=long-term-production-stability-20260917-v5u6h8r2').then(({ FinanceService }) => {
 
             const store = window.__store;
             if (!store) { console.warn('[pagination/transactions] __store chưa sẵn sàng'); return; }
@@ -927,6 +932,25 @@ export function initTransactionPagination() {
                            document.querySelector('#tx input[type="search"]');
                 return el ? el.value.trim().toLowerCase() : '';
             }
+
+            // H8R2 Patch A: DOM existence is NOT tab activity. Reuse the existing
+            // tab authority; no new listener/reader is introduced.
+            function _isTransactionTabActuallyActive() {
+                try {
+                    if (typeof window.getCurrentActiveTabId === 'function') {
+                        return window.getCurrentActiveTabId() === 'tx';
+                    }
+                } catch (_) {}
+                const active = document.querySelector('.tab-content.active');
+                return !!active && active.id === 'tab_tx';
+            }
+
+            function _currentPaginationContextKey() {
+                return _getCurrentMonth() + '|' + _getCurrentSearch();
+            }
+
+            pgState._initializedContextKey = pgState._initializedContextKey || '';
+            pgState._contextDirty = pgState._contextDirty === true;
 
             // ── Render pagination controls vào DOM ──────────────────────
             // Phase 4K-5H: helper lấy host container bên NGOÀI table cho controls
@@ -1121,10 +1145,29 @@ export function initTransactionPagination() {
 
             // ── API: Load trang đầu tiên ────────────────────────────────
             async function loadFirstPage() {
+                if (!_isTransactionTabActuallyActive()) {
+                    pgState._contextDirty = true;
+                    return { skipped: 'transaction-tab-hidden' };
+                }
                 resetPagination(pgState);
                 pgState.currentPage = 1;
                 await _doLoad(null, 'first');
+                pgState._initializedContextKey = _currentPaginationContextKey();
+                pgState._contextDirty = false;
+                return { loaded: true, contextKey: pgState._initializedContextKey };
             }
+
+            async function _ensureActiveTransactionPage(reason) {
+                if (!_isTransactionTabActuallyActive()) return { skipped: 'transaction-tab-hidden', reason };
+                const contextKey = _currentPaginationContextKey();
+                const needsLoad = pgState._contextDirty === true ||
+                    !pgState._initializedContextKey ||
+                    pgState._initializedContextKey !== contextKey ||
+                    !Array.isArray(pgState.currentItems);
+                if (!needsLoad) return { reused: true, contextKey, reason };
+                return loadFirstPage();
+            }
+            window.ensureTransactionPaginationForActiveTab = _ensureActiveTransactionPage;
 
             // ── API: Trang tiếp theo ────────────────────────────────────
             window._pgNext_transactions = async function () {
@@ -1189,9 +1232,9 @@ export function initTransactionPagination() {
 
             // ── API: Reload (sau add/delete tx) ────────────────────────
             window.reloadTransactionsPage = async function () {
-                resetPagination(pgState);
-                pgState.currentPage = 1;
-                await _doLoad(null, 'first');
+                pgState._contextDirty = true;
+                if (!_isTransactionTabActuallyActive()) return { skipped: 'transaction-tab-hidden' };
+                return loadFirstPage();
             };
 
             // ── Bind: Reset pagination khi đổi tháng ──────────────────
@@ -1202,7 +1245,8 @@ export function initTransactionPagination() {
                 el.addEventListener('change', () => {
                     resetPagination(pgState);
                     pgState.currentPage = 1;
-                    _doLoad(null, 'first');
+                    pgState._contextDirty = true;
+                    if (_isTransactionTabActuallyActive()) _ensureActiveTransactionPage('month-change');
                 });
             }
 
@@ -1218,7 +1262,8 @@ export function initTransactionPagination() {
                     _debounce = setTimeout(() => {
                         resetPagination(pgState);
                         pgState.currentPage = 1;
-                        _doLoad(null, 'first');
+                        pgState._contextDirty = true;
+                        if (_isTransactionTabActuallyActive()) _ensureActiveTransactionPage('search-change');
                     }, 350);
                 });
             }
@@ -1227,10 +1272,9 @@ export function initTransactionPagination() {
             setTimeout(() => {
                 _bindMonthReset();
                 _bindSearchReset();
-                // Chỉ load nếu tab tx đang active
-                const curTab = (window.__store || {}).currentTab || '';
-                if (curTab === 'tx' || document.getElementById('txList')) {
-                    loadFirstPage();
+                // H8R2: hidden DOM must never trigger a transaction page read.
+                if (_isTransactionTabActuallyActive()) {
+                    _ensureActiveTransactionPage('pagination-auto-start-active');
                 }
             }, 700);
 

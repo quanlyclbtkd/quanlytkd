@@ -17,7 +17,7 @@
  * ────────────────────────────────────────────────────────────────
  */
 
-import { InventoryService } from './inventory.service.js?v=firestore-read-attribution-canonical-tx-boundary-20260616-v3a';
+import { InventoryService } from './inventory.service.js?v=long-term-production-stability-20260917-v5u6h8r2';
 
 function _sdk()    { return window._fb_init || {}; }
 function _db()     { const db = (window.__store || {}).db; if (!db) throw new Error('[FinanceService] db chưa sẵn sàng'); return db; }
@@ -269,6 +269,59 @@ export const FinanceService = {
         constraints.push(limit(pageSize + 1));
 
         return getDocs(query(colRef, ...constraints));
+    },
+
+    /**
+     * H8R2 — Commit one logical financial write plan atomically.
+     * This is an extension of the EXISTING FinanceService writer authority,
+     * not a second writer. Primary transaction/profile writes share one batch.
+     * Secondary audit/telemetry stays outside this commit.
+     *
+     * plan.transactions: [{ id?, data }]
+     * plan.profileUpdates: [{ studentName, data }]
+     */
+    async commitAtomicWritePlan(plan = {}) {
+        const { writeBatch, doc, collection } = _sdk();
+        const db = _db();
+        const clubId = _clubId();
+        if (typeof writeBatch !== 'function' || typeof doc !== 'function') {
+            throw new Error('[FinanceService] Firestore atomic batch chưa sẵn sàng.');
+        }
+        const transactions = Array.isArray(plan.transactions) ? plan.transactions : [];
+        const profileUpdates = Array.isArray(plan.profileUpdates) ? plan.profileUpdates : [];
+        const operationCount = transactions.length + profileUpdates.length;
+        const SAFE_LIMIT = 400;
+        if (operationCount <= 0) return { committed: 0, txIds: [] };
+        if (operationCount > SAFE_LIMIT) {
+            const error = new Error('Thao tác vượt giới hạn an toàn, chưa có dữ liệu nào được ghi.');
+            error.code = 'finance/atomic-plan-too-large';
+            error.operationCount = operationCount;
+            error.safeLimit = SAFE_LIMIT;
+            throw error;
+        }
+
+        const batch = writeBatch(db);
+        const txCol = collection(db, 'clubs', clubId, 'transactions');
+        const txIds = [];
+        transactions.forEach((entry) => {
+            const input = entry && typeof entry === 'object' ? entry : {};
+            const ref = input.id
+                ? doc(db, 'clubs', clubId, 'transactions', String(input.id))
+                : doc(txCol);
+            const payload = typeof window.canonicalizeTransactionForWrite === 'function'
+                ? window.canonicalizeTransactionForWrite(input.data || {}, input.reason || 'finance-service-atomic-plan')
+                : (input.data || {});
+            batch.set(ref, payload);
+            txIds.push(ref.id);
+        });
+        profileUpdates.forEach((entry) => {
+            const name = String(entry?.studentName || '').trim();
+            if (!name) throw new Error('[FinanceService] Atomic plan thiếu profileKey.');
+            batch.update(doc(db, 'clubs', clubId, 'profiles', name), entry.data || {});
+        });
+
+        await batch.commit();
+        return { committed: operationCount, txIds };
     },
 
     // ── PROFILES (payment fields only) ──────────────────────────

@@ -11,7 +11,7 @@
  *   - no inventory, family-pay, multi-item, admission or exam-fee ownership;
  *   - one single-flight key, one local commit and one invalidation map per success.
  */
-import { FinanceService } from '../services/finance.service.js?v=tuition-command-cutover-20260730-v5u2';
+import { FinanceService } from '../services/finance.service.js?v=long-term-production-stability-20260917-v5u6h8r2';
 import { getLocalToday, normalizeYYYYMM, formatMonthCompact } from '../utils/format.js';
 
 const BUILD = 'tuition-command-cutover-20260730-v5u2';
@@ -197,19 +197,19 @@ export const TuitionCommandBoundary = Object.freeze({
       };
       let txId = '';
       try {
-        txId = await _service().addTransaction(txPayload);
         const normalizedCurrent = normalizeYYYYMM(profile.paidUntil);
         const paidUntil = lastMonth > (normalizedCurrent || '') ? lastMonth : (normalizedCurrent || lastMonth);
-        try {
-          await _service().updateStudentPayment(name, {
-            paidUntil,
-            paidMonths: _service()._arrayUnion(...paidMonths),
-          });
-        } catch (profileError) {
-          profileError.partialWrite = true;
-          profileError.transactionId = txId;
-          throw profileError;
-        }
+        const atomic = await _service().commitAtomicWritePlan({
+          transactions: [{ data: txPayload, reason: 'tuition-command-collect' }],
+          profileUpdates: [{
+            studentName: name,
+            data: {
+              paidUntil,
+              paidMonths: _service()._arrayUnion(...paidMonths),
+            },
+          }],
+        });
+        txId = String(atomic?.txIds?.[0] || '');
         await _service().addFeeAuditSilent({
           studentId: name,
           amount: numericAmount,
@@ -238,10 +238,8 @@ export const TuitionCommandBoundary = Object.freeze({
         return result;
       } catch (error) {
         _audit('tuition.quickPay', 'error', { ...auditPayload, txId, partialWrite: error?.partialWrite === true, error: error?.message || String(error) });
-        // If transaction creation succeeded but profile update failed, force the
-        // transaction/debt views to refresh so the partial state is visible and
-        // can be reconciled instead of being hidden by stale local HTML.
-        if (txId) _invalidateTuition('v5u2-tuition-partial-write');
+        // H8R2: transaction + profile are one atomic primary commit. A commit
+        // failure leaves no half-paid state to refresh or reconcile.
         throw error;
       }
     });

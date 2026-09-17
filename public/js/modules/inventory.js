@@ -1,3 +1,4 @@
+// H8R2 compatibility marker: inventory.service.js?v=long-term-production-stability-20260917-v5u6h8r2
 // Compatibility marker: inventory.service.js?v=inventory-ledger-reconciliation-20260616-v2c
 /**
  * modules/inventory.js — Phase 2f
@@ -39,7 +40,7 @@
 
 import { getLocalToday } from '../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
 import { escapeHtml } from '../utils/helpers.js';
-import { InventoryService } from '../services/inventory.service.js?v=firestore-read-attribution-canonical-tx-boundary-20260616-v3a';
+import { InventoryService } from '../services/inventory.service.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1';
 
 // ════════════════════════════════════════════════════════════════
 // BRIDGE HELPERS — đọc state từ window.__store tại call-time

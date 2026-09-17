@@ -1,0 +1,44 @@
+\n===== npm run check:quit-tab-authoritative-completeness =====
+
+> taekwondo-club-app@1.0.0 check:quit-tab-authoritative-completeness
+> node tools/check-quit-tab-authoritative-completeness.mjs
+
+
+=== Phase 4K-6V5Q — Quit Authoritative Completeness ===
+
+✅ Authority only short-circuits when same-club fresh reconciled + complete
+✅ One full snapshot sets all buckets as complete
+✅ Authority state exposes complete/error diagnostics
+✅ Store partial sync preserves existing quit data
+✅ Store has separate quitComplete flag
+✅ Quit search bypasses active-only profile index
+✅ Direct renderer uses same boundary and filters
+✅ Shared pagination is cleared after authority load
+✅ Full fallback also marks quit complete
+
+Total 9 | PASS 9 | FAIL 0
+EXIT=0
+\n===== npm run check:attendance-explicit-shift-authority =====
+
+> taekwondo-club-app@1.0.0 check:attendance-explicit-shift-authority
+> node tools/check-attendance-explicit-shift-authority.mjs
+
+
+🔎 Phase 4K-6V5U6F — Attendance Explicit Shift Authority
+
+[attendance.js] ✅ Phase 4K-6V5U6G residual closure: explicit shift + V2 offline journal ready
+file:///mnt/data/h8r2_1_work/taekwondo_club_phase_4k_6v5u6h8_production_readiness_verification/js/services/attendance.service.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1:243
+            doc(_db(), 'clubs', _clubId(), 'settings', 'shifts')
+            ^
+
+TypeError: doc is not a function
+    at Object.loadShifts (file:///mnt/data/h8r2_1_work/taekwondo_club_phase_4k_6v5u6h8_production_readiness_verification/js/services/attendance.service.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1:243:13)
+    at file:///mnt/data/h8r2_1_work/taekwondo_club_phase_4k_6v5u6h8_production_readiness_verification/js/modules/attendance.js?v5u6f=1789660829002:925:48
+    at _loadClubShifts (file:///mnt/data/h8r2_1_work/taekwondo_club_phase_4k_6v5u6h8_production_readiness_verification/js/modules/attendance.js?v5u6f=1789660829002:945:7)
+    at _requestAttendanceDailyRefresh (file:///mnt/data/h8r2_1_work/taekwondo_club_phase_4k_6v5u6h8_production_readiness_verification/js/modules/attendance.js?v5u6f=1789660829002:1371:15)
+    at Object.retryShiftConfig (file:///mnt/data/h8r2_1_work/taekwondo_club_phase_4k_6v5u6h8_production_readiness_verification/js/modules/attendance.js?v5u6f=1789660829002:2507:20)
+    at file:///mnt/data/h8r2_1_work/taekwondo_club_phase_4k_6v5u6h8_production_readiness_verification/tools/check-attendance-explicit-shift-authority.mjs:355:24
+
+Node.js v22.16.0
+EXIT=1
+FAILED_SCRIPT=check:attendance-explicit-shift-authority

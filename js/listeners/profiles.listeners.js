@@ -703,18 +703,20 @@ export function mountActiveProfilesListener(context) {
                         }
                     }
 
-                    // V5R: a document removed from the active query may have
-                    // changed to quit or been deleted. Mark the quit authority dirty so
-                    // the next/current Đã nghỉ view performs one full reconciliation.
+                    // H8R2 D: reuse the EXISTING active-profile listener as the
+                    // mutation signal for Quit authority. Membership changes cover both
+                    // active→quit (removed) and quit→active/restore (added). Initial
+                    // hydration is explicitly excluded, so this never creates a second
+                    // listener or a time-driven full scan.
                     if (!isCoach && _state.activeSnapshotCount > 1 && typeof snap.docChanges === 'function') {
-                        const removedChanges = snap.docChanges().filter(change => change && change.type === 'removed');
-                        if (removedChanges.length > 0) {
+                        const membershipChanges = snap.docChanges().filter(change => change && (change.type === 'removed' || change.type === 'added'));
+                        if (membershipChanges.length > 0) {
                             _state.quitCompletenessReconciled = false;
                             _state.quitAuthorityState = 'dirty';
-                            _state.quitAuthorityDirtyReason = 'active-query-removed:' + removedChanges.length;
+                            _state.quitAuthorityDirtyReason = 'active-query-membership-change:' + membershipChanges.length;
                             markQuitComplete(false);
                             if (window.getCurrentActiveTabId?.() === 'quit') {
-                                Promise.resolve().then(() => ensureQuitProfilesComplete('active-query-removed-current-quit')).catch(() => {});
+                                Promise.resolve().then(() => ensureQuitProfilesComplete('active-query-membership-current-quit')).catch(() => {});
                             }
                         }
                     }
@@ -882,15 +884,17 @@ export async function loadQuitProfilesIfNeeded(reason, contextOverride, options 
     }
 
     const clubId = String((ctx && ctx.clubId) || window.__store?.clubId || '').trim();
-    const now = Date.now();
-    const ageMs = _state.quitAuthorityLoadedAt ? now - _state.quitAuthorityLoadedAt : Number.POSITIVE_INFINITY;
-    const tabRefreshReason = /switch-tab|ensure-quit-tab|tab-open|current-quit/.test(String(reason || ''));
-    const forceRefresh = options.force === true || (tabRefreshReason && ageMs > 60000);
+    const forceRefresh = options.force === true;
     const sameClub = !!clubId && _state.quitAuthorityClubId === clubId;
+    const dirty = _state.quitAuthorityState === 'dirty' ||
+        _state.quitAuthorityState === 'error' ||
+        !!_state.quitAuthorityDirtyReason;
 
-    // V5R: "loaded" is not enough. Short-circuit only for the same club,
-    // a clean complete snapshot, and a fresh tab-open authority window.
-    if (!forceRefresh && sameClub && _state.quitCompletenessReconciled && isQuitComplete()) return true;
+    // H8R2 D: completeness/mutation state is the primary invalidation authority.
+    // Re-opening the tab or merely waiting 60 seconds MUST NOT trigger another
+    // full profiles getDocs. Retry remains allowed after error/incomplete/dirty
+    // state or an explicit force request.
+    if (!forceRefresh && sameClub && !dirty && _state.quitCompletenessReconciled && isQuitComplete()) return true;
     if (_quitAuthorityPromise) return _quitAuthorityPromise;
 
     if (!_hasQuitContext(ctx)) {
@@ -1032,6 +1036,22 @@ export function isQuitProfilesComplete() {
         _state.quitCompletenessReconciled === true &&
         _state.quitAuthorityState === 'complete' &&
         isQuitComplete() === true;
+}
+
+
+/**
+ * H8R2.1 R4 — local-only invalidation for the EXISTING Quit authority.
+ * Called by the canonical profile mutation owner when a mutation touches a
+ * profile that was/is quit. ZERO Firestore read/write/listener is performed.
+ */
+export function markQuitAuthorityDirty(reason = 'canonical-quit-profile-mutation') {
+    if (_isCoachContext(_ctx)) return false;
+    _state.quitCompletenessReconciled = false;
+    _state.quitAuthorityState = 'dirty';
+    _state.quitAuthorityDirtyReason = String(reason || 'canonical-quit-profile-mutation');
+    markQuitComplete(false);
+    _updateWindowMetrics();
+    return true;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
