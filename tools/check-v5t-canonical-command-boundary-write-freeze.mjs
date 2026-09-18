@@ -81,39 +81,7 @@ function multiset(rows) {
   return m;
 }
 const actual = collectWrites(app);
-
-// H8R2.1C1D: the family/combo fee_audit projection was reshaped from two
-// unrolled Class-2 addDoc lines into one bounded loop over the same two audit
-// rows. Treat those call shapes as one semantic equivalence class ONLY when the
-// canonical primary commit happens first and the secondary failure is surfaced
-// without rollback/retry. This does not increase baseline total/per-op limits.
-const _comboStart = app.indexOf('window.processCombo = async');
-const _comboEnd = app.indexOf('window.processBatchUpgrade = async', _comboStart);
-const _comboSegment = _comboStart >= 0 && _comboEnd > _comboStart ? app.slice(_comboStart, _comboEnd) : '';
-const _approvedFeeAuditLoop =
-  _comboSegment.includes("const _auditRows = []") &&
-  (_comboSegment.match(/_auditRows\.push\(/g) || []).length <= 2 &&
-  _comboSegment.includes("await _financeOwner.commitAtomicWritePlan") &&
-  _comboSegment.includes("for (const _row of _auditRows)") &&
-  _comboSegment.includes("collection(db, 'clubs', currentClubId, 'fee_audit')") &&
-  _comboSegment.includes("_recordSecondaryConsistencyFailure('fee-audit-write-failed'") &&
-  _comboSegment.includes('canonicalPaymentPreserved: true') &&
-  !/setInterval\s*\(|while\s*\(|fee-audit-write-failed[\s\S]{0,500}addDoc\(/.test(_comboSegment.slice(_comboSegment.indexOf("for (const _row of _auditRows)")));
-
-function _normalizeApprovedSecondaryProjection(row) {
-  if (row.op !== 'addDoc') return row;
-  const sig = String(row.signature || '');
-  const isHistoricalFeeAudit = sig.includes('collection(db, "clubs", currentClubId, "fee_audit")') &&
-    (sig.includes('studentId: n1') || sig.includes('studentId: n2'));
-  const isCurrentBoundedLoop = _approvedFeeAuditLoop &&
-    sig.includes("collection(db, 'clubs', currentClubId, 'fee_audit')") &&
-    sig.includes('{ ..._row');
-  return (isHistoricalFeeAudit || isCurrentBoundedLoop)
-    ? { ...row, signature: '__approved_class2_combo_fee_audit_projection__' }
-    : row;
-}
-
-const allowed = multiset((baseline.signatures || []).map(_normalizeApprovedSecondaryProjection));
+const allowed = multiset(baseline.signatures || []);
 // V5U6G diagnostic-only bridge: PATCH D changes catch/error visibility around
 // five EXISTING legacy writes, but does not change their Firestore call expression.
 // Map only those exact call expressions back to the frozen V5T line signature;
@@ -139,15 +107,11 @@ if (app.includes('const _ensureSuperAdminPrincipal = async') && app.includes("do
   const k = 'setDoc|await setDoc(principalRef, {';
   allowed.set(k, Math.max(1, allowed.get(k) || 0));
 }
-const current = multiset(actual.signatures.map(_normalizeV5u6gDiagnosticWrite).map(_normalizeApprovedSecondaryProjection));
+const current = multiset(actual.signatures.map(_normalizeV5u6gDiagnosticWrite));
 const newSignatures = [];
 for (const [key, count] of current.entries()) {
   if (count > (allowed.get(key) || 0)) newSignatures.push({ key, count, allowed: allowed.get(key) || 0 });
 }
-check('approved combo fee_audit loop remains Class-2 secondary projection after canonical primary commit', _approvedFeeAuditLoop);
-check('approved combo fee_audit loop has bounded historical capacity',
-  (baseline.signatures || []).filter(r => r.op === 'addDoc' && String(r.signature || '').includes('fee_audit') && (String(r.signature || '').includes('studentId: n1') || String(r.signature || '').includes('studentId: n2'))).length === 2 &&
-  (actual.signatures.filter(r => r.op === 'addDoc' && String(r.signature || '').includes("fee_audit") && String(r.signature || '').includes('{ ..._row')).length <= 1));
 check('legacy app.js direct-write total did not increase', actual.total <= baseline.total, `${actual.total} > ${baseline.total}`);
 check('legacy app.js per-operation write counts did not increase', Object.entries(actual.counts).every(([op,count]) => count <= Number(baseline.counts[op] || 0)), JSON.stringify(actual.counts));
 check('legacy app.js has no new direct-write call signature', newSignatures.length === 0, JSON.stringify(newSignatures.slice(0,5)));

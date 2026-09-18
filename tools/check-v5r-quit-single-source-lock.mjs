@@ -25,30 +25,9 @@ check('boundary dedupes preview by stable identity', boundary.includes('function
 check('active bucket removes restored ids from quit bucket', store.includes('an active id cannot remain in quit/other caches') && store.includes('delete _store.quitProfiles[id]'));
 check('quit bucket removes ids from active bucket', store.includes('a quit id cannot remain in active/other caches') && store.includes('delete _store.activeProfiles[id]'));
 check('quit authority is club-scoped', listener.includes('quitAuthorityClubId') && listener.includes('sameClub') && listener.includes('_state.quitAuthorityClubId === currentClubId'));
-const quitLoadStart = listener.indexOf('export async function loadQuitProfilesIfNeeded');
-const quitLoadEnd = listener.indexOf('export async function ensureQuitProfilesComplete', quitLoadStart);
-const quitLoadSegment = quitLoadStart >= 0 && quitLoadEnd > quitLoadStart ? listener.slice(quitLoadStart, quitLoadEnd) : '';
-check('quit authority is event-driven: no 60-second mandatory refresh or polling',
-  !/ageMs\s*>\s*60000/.test(quitLoadSegment) &&
-  !/setInterval\s*\(/.test(quitLoadSegment) &&
-  listener.includes('waiting 60 seconds MUST NOT trigger another') &&
-  listener.includes("if (!forceRefresh && sameClub && !dirty && _state.quitCompletenessReconciled && isQuitComplete()) return true;"));
-check('quit authority keeps one existing authoritative getDocs flight',
-  (quitLoadSegment.match(/fbGetDocs\(ctx\.profRef\)/g) || []).length === 1 &&
-  quitLoadSegment.includes('if (_quitAuthorityPromise) return _quitAuthorityPromise') &&
-  quitLoadSegment.includes('_quitAuthorityPromise = (async () =>'));
-check('membership mutations mark quit authority dirty',
-  listener.includes("_state.quitAuthorityState = 'dirty'") &&
-  listener.includes('active-query-membership-change:') &&
-  listener.includes('markQuitComplete(false)') &&
-  statusBoundary.includes('window.markQuitAuthorityDirty?.(`${reason}:quit-profile-mutation`)'));
-check('current quit tab refreshes authoritatively after membership change',
-  listener.includes("window.getCurrentActiveTabId?.() === 'quit'") &&
-  listener.includes("ensureQuitProfilesComplete('active-query-membership-current-quit')"));
-check('Coach fails closed before quit full-profile authority read',
-  quitLoadSegment.includes('if (_isCoachContext(ctx))') &&
-  quitLoadSegment.includes("window.RoleReadBoundary?.canMount?.('profiles.quit'") &&
-  quitLoadSegment.indexOf('if (_isCoachContext(ctx))') < quitLoadSegment.indexOf('const fbGetDocs = fb.getDocs'));
+check('quit authority has freshness revalidation', listener.includes('quitAuthorityLoadedAt') && listener.includes('ageMs > 60000') && listener.includes('forceRefresh'));
+check('active query removals mark quit authority dirty', listener.includes("quitAuthorityState = 'dirty'") && listener.includes('active-query-removed') && listener.includes('markQuitComplete(false)'));
+check('current quit tab refreshes when active query removes docs', listener.includes("ensureQuitProfilesComplete('active-query-removed-current-quit')"));
 check('renderQuitIsland ignores cached quit HTML when boundary exists', render.includes('V5R single-render-source lock') && render.includes('if (window.QuitProfileBoundary)') && render.includes("getStudentsCachedHtml('quitRows')") && render.indexOf("getStudentsCachedHtml('quitRows')") > render.indexOf('Standalone legacy fallback only'));
 check('legacy tab switch cannot restore cached quit HTML', app.includes('the quit tab must never be restored from legacy tabHtmlCache') && app.includes("QuitProfileBoundary.ensureComplete?.('legacy-switch-tab-quit')"));
 check('profile rename updates canonical store immediately', (students.includes('profile-rename-remove-old') && students.includes('profile-rename-merge-new') && students.includes('profile-rename-status-sync')) || (students.includes('StudentStatusCommandBoundary.updateProfile') && statusBoundary.includes('studentProfileStore?.removeProfile') && statusBoundary.includes('studentProfileStore?.mergeProfile') && statusBoundary.includes('_commitRename')));

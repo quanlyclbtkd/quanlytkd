@@ -22,12 +22,12 @@ const nav=extractBetween(html,'<nav id="mobileBottomNav"','</nav>');
 const navButtons=[...nav.matchAll(/<button\b/g)].length;
 check(nav.length>0,'1. Mobile bottom navigation exists');
 check(navButtons===5,'2. Exactly 5 primary mobile navigation items');
-check(nav.includes("switchTab('tx')")&&nav.includes("switchTab('debt')")&&nav.includes("switchTab('attendance')")&&nav.includes("switchTab('active')")&&nav.includes('openMobileMenu()'),'3. Primary nav maps only to existing switchTab/openMobileMenu authorities');
+check(nav.includes("switchTab('dashboard')")&&nav.includes("switchTab('tx')")&&nav.includes("switchTab('attendance')")&&nav.includes("switchTab('active')")&&nav.includes('openMobileMenu()'),'3. Primary nav maps only to existing switchTab/openMobileMenu authorities');
 check(!/(mobileRouter|mobileState|navigationStore|activeModuleStore|history\.pushState|location\.hash\s*=)/.test(nav+css),'4. No mobile router or navigation state store added');
 check(html.includes('id="mainTabsWrapper"')&&html.includes('id="btn_dashboard"')&&html.includes('id="btn_tx"'),'5. Legacy desktop navigation remains in DOM');
 check(css.includes('@media (max-width: 767px)')&&css.includes('#mainTabsWrapper { display: none; }')&&!/@media \(min-width: 768px\)[\s\S]{0,800}#mainTabsWrapper\s*\{\s*display:\s*none/.test(css),'6. Legacy horizontal tab strip is hidden only in mobile shell');
-check(html.includes('id="mobileMenuSheet"')&&html.includes('id="mobileMoreDashboard"')&&html.includes('id="mobileMoreQuit"'),'7. Existing mobile More sheet contains module navigation');
-check(["dashboard","inventory","exam","expense","quit"].every(x=>html.includes(`switchTab('${x}')`)),'8. More-sheet module actions reuse existing switchTab actions');
+check(html.includes('id="mobileMenuSheet"')&&html.includes('id="mobileMoreDebt"')&&html.includes('id="mobileMoreQuit"'),'7. Existing mobile More sheet contains module navigation');
+check(["debt","inventory","exam","expense","quit"].every(x=>html.includes(`switchTab('${x}')`)),'8. More-sheet module actions reuse existing switchTab actions');
 const uiMarkup=extractBetween(html,'<div id="filterArea"','<div id="home_birthday_banner"')+nav+extractBetween(html,'<div id="mobileMenuSheet"','<script>');
 const fsApi=/\b(getDoc|getDocs|onSnapshot|setDoc|updateDoc|addDoc|writeBatch|runTransaction)\s*\(/;
 check(!fsApi.test(uiMarkup),'9. Shell/navigation/filter wrappers contain ZERO Firestore API calls');
@@ -81,7 +81,7 @@ check(css.includes(coachDomPredicate+' #mobileMoreModuleSection { display: none;
 check(css.includes('body:has(#superAdminView[style*="display: block"]) #mobileMoreModuleSection'),'37. SuperAdmin mobile More tenant module section is hidden');
 check(navButtons===5&&css.includes(tenantNavSelector),'38. Normal accepted tenant Admin retains the 5-item Bottom Navigation');
 check(viewerBlock.length>0&&!/\.tab-btn|mainTabsWrapper[^\n;]*display\s*=\s*['"]none/.test(viewerBlock)&&css.includes(tenantNavSelector),'39. Viewer tenant shell remains navigable according to existing viewer presentation authority');
-const coachHiddenIds=['mobileNavTuition','mobileNavDebt','mobileNavStudents','mobileNavMore'];
+const coachHiddenIds=['mobileNavDashboard','mobileNavTuition','mobileNavStudents','mobileNavMore'];
 check(css.includes(coachDomPredicate+' .ui-bottom-nav { grid-template-columns: 1fr; }')&&coachHiddenIds.every(id=>css.includes(coachDomPredicate+' #'+id))&&!css.includes(coachDomPredicate+' #mobileNavAttendance'),'40. Coach tenant Bottom Navigation exposes exactly Attendance');
 check(html.includes('id="mmsSettingsAction"')&&html.includes('id="mmsTaxAction"')&&html.includes('id="mmsExcelAction"')&&
   css.includes('body:has(#btnSettings[style*="display: none"]) #mmsSettingsAction')&&
@@ -138,18 +138,6 @@ check(emergencyOpen.includes("global.isSuperAdminRole")&&emergencyOpen.includes(
 check(!fsApi.test(canonicalOpen+canonicalClose+emergencyOpen+emergencyClose+moreScript),'68. No Firestore API appears in canonical or fallback More-menu owners');
 check(!/(mobileMenuV2|mobileMenuController2|mobileSheetManager|newMobileMenuOwner)/.test(legacyUiShell+legacyUiFallbacks+moreScript)&&/GlobalOwnershipRegistry\.register\(name, fn/.test(legacyUiShell),'69. No competing More-menu global owner/controller was introduced');
 check(counts.getDoc<=29&&counts.getDocs<=51&&counts.onSnapshot<=16,`70. Firestore static budget remains <=29/51/16 (${counts.getDoc}/${counts.getDocs}/${counts.onSnapshot})`);
-
-// H8R2.1C1C — User-approved mobile nav order + tuition layout closure.
-const navIds=[...nav.matchAll(/id="(mobileNav[^"]+)"/g)].map(m=>m[1]);
-check(JSON.stringify(navIds)===JSON.stringify(['mobileNavTuition','mobileNavDebt','mobileNavAttendance','mobileNavStudents','mobileNavMore']),'71. Mobile nav exact order is Học Phí → Báo Nợ → Điểm danh → Đang tập → Khác');
-check(nav.includes('>💳</span><span>Học Phí</span>')&&nav.includes('>⚠️</span><span>Báo Nợ</span>')&&nav.includes('>📋</span><span>Điểm danh</span>')&&nav.includes('>🥋</span><span>Đang tập</span>')&&nav.includes('>☰</span><span>Khác</span>'),'72. All five mobile nav items include the approved icon + label');
-const tuitionActionsIndex=html.indexOf('id="tuitionPrimaryActions"');
-const filterIndex=html.indexOf('id="filterArea"');
-const txTabIndex=html.indexOf('id="tab_tx"');
-check(tuitionActionsIndex>=0&&filterIndex>tuitionActionsIndex&&txTabIndex>filterIndex&&html.includes('id="btnMultiItem"')&&html.includes('id="btnComboPay"')&&html.includes('id="btnAddStudent"'),'73. Tuition title/actions are physically above Search/Filter while existing action IDs/handlers are preserved');
-check(app.includes('class="tx-date-cell"')&&app.includes('class="tx-month-cell"')&&app.includes('class="tx-name-cell name-link')&&app.includes('class="tx-amount-cell"')&&app.includes('class="tx-actions-cell action-btns"'),'74. Tuition transaction renderer exposes semantic mobile card cells without changing transaction data semantics');
-check(html.includes('#tbl_tx tbody td.tx-date-cell{grid-column:1 / -1;grid-row:3')&&html.includes('#tbl_tx tbody td.tx-month-cell{grid-column:1;grid-row:2')&&!html.includes('#tbl_tx tbody td:first-child{grid-column:1;grid-row:2')&&!html.includes('#tbl_tx tbody td:nth-last-child(5){grid-column:1;grid-row:2'),'75. Mobile Ngày nộp and Kỳ/Tháng occupy separate rows and cannot overlap');
-
 
 // Mandatory dynamic canonical-owner fixture. This executes the module that
 // GlobalOwnershipRegistry installs, rather than the inline rollback fallback.

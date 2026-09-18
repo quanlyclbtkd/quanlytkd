@@ -244,13 +244,11 @@
     "check:club-listener-bootstrap-readiness": "node tools/check-club-listener-bootstrap-readiness.mjs",
     "check:exam-export-full-roster": "node tools/check-exam-export-full-roster.mjs",
     "check:exam-export-state-purity": "node tools/check-exam-export-state-purity.mjs",
-    "check:release": "node tools/check-release.mjs && npm run check:h8r2-1c1d",
+    "check:release": "node tools/check-release.mjs",
     "check:root-public-parity": "node tools/check-root-public-parity.mjs",
     "check:profile-display-name-safe-edit": "node tools/check-profile-display-name-safe-edit.mjs",
     "check:long-term-production-stability": "node tools/check-long-term-production-stability.mjs",
-    "check:ui-mobile-app-shell": "node tools/check-ui-mobile-app-shell.mjs",
-    "check:h8r2-1c1d": "node tools/check-h8r2-1c1d-regression-gate-runtime-readiness.mjs",
-    "check:h8r2-1c1e-ui": "node tools/check-h8r2-1c1e-ui-precision.mjs"
+    "check:ui-mobile-app-shell": "node tools/check-ui-mobile-app-shell.mjs"
   },
   "engines": {
     "node": ">=18.0.0"

@@ -35,23 +35,7 @@ check('Modular render cannot overwrite admission list with only hardcoded sizes'
 check('Inventory module delegates MultiItem selector to read-only dynamic renderer', inventoryModuleSrc.includes("renderer({ reason: 'inventory-module-toggle-category' })"));
 check('Category dropdown includes categories discovered from stock map', inventoryModuleSrc.includes('const stockNames = Object.values(window._liveInvMap || {})'));
 check('Legacy category dropdown includes stock-map categories', appSrc.includes('const stockNames = Object.values(window._liveInvMap || {})'));
-const prepareStart = serviceSrc.indexOf('prepareAddItemMutation(data)');
-const addItemStart = serviceSrc.indexOf('async addItem(data)');
-const updateItemStart = serviceSrc.indexOf('async updateItem(', addItemStart);
-const prepareAddSegment = prepareStart >= 0 && addItemStart > prepareStart ? serviceSrc.slice(prepareStart, addItemStart) : '';
-const addItemSegment = addItemStart >= 0 && updateItemStart > addItemStart ? serviceSrc.slice(addItemStart, updateItemStart) : '';
-check('New inventory items maintain inventory_stats using canonical prepared increment patch',
-  serviceSrc.includes('function _buildLedgerIncrementPatch') &&
-  serviceSrc.includes("patch[base + '_balance'] = incrementFn") &&
-  prepareAddSegment.includes('_buildLedgerIncrementPatch([{ item: payload, direction: 1 }], increment)') &&
-  prepareAddSegment.includes('return { itemRef, statsRef, payload, summaryPatch') &&
-  addItemSegment.includes('const prepared = this.prepareAddItemMutation(data)') &&
-  /batch\.set\(prepared\.statsRef,\s*prepared\.summaryPatch,\s*\{\s*merge:\s*true\s*\}\)/.test(addItemSegment));
-check('Prepared inventory summary is committed in the same batch without a duplicate writer',
-  /const batch = writeBatch\(_db\(\)\)/.test(addItemSegment) &&
-  /batch\.set\(prepared\.itemRef,\s*prepared\.payload\)/.test(addItemSegment) &&
-  (addItemSegment.match(/await\s+batch\.commit\(\)/g) || []).length === 1 &&
-  !/\b(addDoc|setDoc|updateDoc|deleteDoc)\s*\(/.test(prepareAddSegment));
+check('New inventory items maintain inventory_stats using increments', serviceSrc.includes('function _buildLedgerIncrementPatch') && serviceSrc.includes("patch[base + '_balance'] = incrementFn") && serviceSrc.includes('batch.set(statsRef, summaryPatch, { merge: true })'));
 check('Summary maintenance adds no getDocs/read query', !serviceSrc.slice(serviceSrc.indexOf('async addItem'), serviceSrc.indexOf('async updateItem')).includes('getDocs('));
 check('Legacy inventory writer also maintains summary with no reads', appSrc.includes("window.InventoryService && typeof window.InventoryService.addItem === 'function'"));
 check('Changed nested modules are cache-busted', (mainSrc.includes("multiItemInventorySafety.js?v=inventory-dynamic-size-catalog-20260616-v2b") || mainSrc.includes("multiItemInventorySafety.js?v=inventory-ledger-reconciliation-20260616-v2c")) && (inventoryModuleSrc.includes("inventory.service.js?v=inventory-dynamic-size-catalog-20260616-v2b") || inventoryModuleSrc.includes("inventory.service.js?v=inventory-ledger-reconciliation-20260616-v2c")));
