@@ -45,11 +45,6 @@ export function openMobileMenu() {
   }
 
   sheet.classList.add('open');
-  sheet.setAttribute('aria-hidden', 'false');
-  document.querySelectorAll('[aria-controls="mobileMenuSheet"]').forEach((trigger) => {
-    trigger.setAttribute('aria-expanded', 'true');
-  });
-  if (document.body) document.body.style.overflow = 'hidden';
   return true;
 }
 
@@ -57,11 +52,6 @@ export function closeMobileMenu() {
   const sheet = _getElement('mobileMenuSheet');
   if (!sheet) return false;
   sheet.classList.remove('open');
-  sheet.setAttribute('aria-hidden', 'true');
-  document.querySelectorAll('[aria-controls="mobileMenuSheet"]').forEach((trigger) => {
-    trigger.setAttribute('aria-expanded', 'false');
-  });
-  if (document.body) document.body.style.overflow = '';
   return true;
 }
 
