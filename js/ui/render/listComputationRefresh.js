@@ -1,4 +1,5 @@
-// V5U3 compatibility marker: studentsRenderer.js?v=student-given-name-priority-20260811-v5u3
+// H8R1 compatibility: studentsRenderer.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h
+// V5U3 compatibility marker: studentsRenderer.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
 /**
  * listComputationRefresh.js — Phase 3.5E List-Level Computation Refresh
  *
@@ -45,7 +46,7 @@ import {
 import {
     computeAndCacheStudents,
     getStudentsSummary,
-} from './computation/studentsRenderer.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
+} from './computation/studentsRenderer.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1';
 import {
     computeAndCacheInventory,
     getCachedUnpaidInvCount,

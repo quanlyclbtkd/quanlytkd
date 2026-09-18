@@ -584,18 +584,22 @@ export function initFinance() {
         }
 
         const profiles = _profiles();
+        const profile = profiles[name] || {};
+        const displayName = (window.ProfileCanonicalStore && typeof window.ProfileCanonicalStore.resolveDisplayName === 'function')
+            ? window.ProfileCanonicalStore.resolveDisplayName(name, profile)
+            : String(profile.displayName || profile.name || profile.fullName || profile.studentName || name || '').trim();
 
         const DEFAULT_EXAM_FEE = 250000;
         const feeEl = document.getElementById('exam_fee_all_actual');
         const defaultFee = feeEl && feeEl.value
             ? feeEl.value
             : (window.getClubExamFee ? window.getClubExamFee() : DEFAULT_EXAM_FEE);
-        const inputAmount = prompt(`Nhập lệ phí thi của ${name}:`, defaultFee);
+        const inputAmount = prompt(`Nhập lệ phí thi của ${displayName}:`, defaultFee);
         if (!inputAmount) return;
         const amount = Number(inputAmount.replace(/\D/g, ''));
         if (amount <= 0) return;
 
-        const curBelt = (profiles[name] && profiles[name].belt) || 'Đai trắng - Cấp 10';
+        const curBelt = profile.belt || 'Đai trắng - Cấp 10';
         const nextBelt = (window.BELT_NEXT && window.BELT_NEXT[curBelt]) || curBelt;
 
         const filterMonthEl = document.getElementById('filterMonth');
@@ -609,11 +613,11 @@ export function initFinance() {
             : (examMonth < todayMonth ? examMonth + '-28' : examMonth + '-01');
 
         await FinanceService.addTransaction({
-            branch: branch || (profiles[name] && profiles[name].branch) || 'CS1',
+            branch: branch || profile.branch || 'CS1',
             type: 'Lệ phí thi',
-            description: `${name} (Thi lên ${nextBelt})`,
-            studentName: name,
-            profileName: name,
+            description: `${displayName} (Thi lên ${nextBelt})`,
+            studentName: displayName,
+            profileName: displayName,
             profileId: name,
             amount,
             date: examDate,
@@ -624,7 +628,7 @@ export function initFinance() {
             timestamp: Date.now(),
         });
 
-        window.showToast(`✅ Đã thu lệ phí thi cho ${name}!`);
+        window.showToast(`✅ Đã thu lệ phí thi cho ${displayName}!`);
         if (typeof window.renderExamList === 'function') window.renderExamList();
     };
 

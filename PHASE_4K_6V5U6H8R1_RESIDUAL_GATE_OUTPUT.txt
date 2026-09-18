@@ -1,0 +1,103 @@
+
+> taekwondo-club-app@1.0.0 check:production-residual-defect-closure
+> node tools/check-production-residual-defect-closure.mjs
+
+
+🔎 Phase 4K-6V5U6G — Production Residual Defect Closure
+
+✅ Attendance V2 journal prefix exists 
+✅ Attendance V2 journal is per-record, never whole-class snapshot 
+✅ Attendance journal identity includes club/date/shift/docId 
+✅ Attendance journal records mutation operation and profile identity 
+✅ Repeated toggle coalesces into one same-doc journal mutation 
+✅ Successful single write cleanup is scoped to its own mutation and matching revision 
+✅ No whole-day offline cleanup remains 
+✅ Bulk cleanup occurs only after successful canonical bulk commit 
+✅ Bulk failure preserves pending journal mutations 
+✅ Attendance offline synchronization is single-flight 
+✅ V2 journal and V1 compatibility share one sync owner 
+✅ Cross-club and invalid/deleted shift entries fail closed and remain pending 
+✅ Offline sync failures are classified/observable, not swallowed 
+✅ Attendance sync adds no polling or blind retry loop 
+✅ V5U6G1 offline Firestore payload is whitelist-built, never journal-spread 
+✅ V5U6G1 journal metadata cannot enter canonical Attendance payload 
+✅ V5U6G1 retains max-one active flight context plus max-one latest pending context 
+✅ V5U6G1 same-context coalesces while different-context request is bounded/pending 
+✅ V5U6G1 pending active context receives exactly one bounded follow-up path 
+✅ V5U6G1 stale flight cannot start later uncommitted chunks 
+✅ V5U6G1 stale flight cannot refresh the new club Attendance UI 
+✅ package exposes the V5U6G1 canonical offline sync guard 
+✅ True-zero path reuses exactly the existing zero probe 
+✅ Empty zero-probe closes Dashboard members hydration as complete active=0 
+✅ True-zero evidence explicitly publishes active=0 as available 
+✅ Zero-probe failure remains incomplete and is observable 
+✅ Active profile owner recognizes the Admin emergency full fallback key 
+✅ Fallback is unsubscribed before active-module listener creation 
+✅ Fallback takeover verifies cleanup and fails closed if verification fails 
+✅ Coach can never enter the full-club profile fallback 
+✅ Admin emergency fallback remains registered in the existing listener registry for explicit takeover 
+✅ Attendance derived stats service propagates failure to the existing caller 
+✅ Attendance stats failure emits reconciliation diagnostic without rolling back canonical attendance 
+✅ Inventory payment linkage failure is observable in legacy and module admission paths 
+✅ Fee audit failure is observable and never invalidates successful payment 
+✅ Session-note notification projection failure is observable while note remains canonical 
+✅ Post-transaction inventory links cannot surface as false primary failure or start retry loops 
+✅ getDoc call-site budget unchanged (29 <= 31) 
+✅ getDocs call-site budget unchanged (51 <= 56) 
+✅ onSnapshot call-site budget unchanged (16 <= 16) 
+✅ legacy app window assignment budget does not increase (532 <= 534) 
+✅ H5 readiness barrier owns exactly two once:true registry event listeners (2) 
+✅ H5 readiness barrier owns exactly one bounded 10s timeout (1) 
+✅ H5 readiness barrier has no polling, Firestore wait, or recursive retry 
+✅ event/timer freeze allows only approved H5 readiness delta (total 117/1/87; outside 115/1/86) 
+✅ No generic global request manager was introduced 
+✅ Generic offline queue has no Attendance/business caller overlap 
+✅ Exact V5U6G1 build version is active while V5U6G boundaries remain frozen 
+✅ Only changed root runtime main.js receives the V5U6G1 cache-bust; unchanged app.js stays on V5U6G 
+✅ Changed modules are cache-busted only within the active phase scope; Profiles listener and Attendance service authority stay frozen 
+✅ package exposes the V5U6G master gate 
+[attendance.js] ✅ Phase 4K-6V5U6G residual closure: explicit shift + V2 offline journal ready
+✅ A1 single-shift offline queues exactly one Alice mutation 
+✅ A3 repeated Alice toggles coalesce to one latest journal record 
+✅ A2 Morning and Evening same-date mutations coexist without key collision 
+✅ A4 bulk offline queues only changed/unmarked profiles 
+✅ A5 online success clears only its own mutation and preserves unrelated shift/profile pending data 
+✅ A6 failed online attendance write preserves its pending mutation 
+[AttendanceOffline] wrong-club {
+  classification: 'wrong-club',
+  attendanceOffline: true,
+  stage: 'club-scope-v2'
+} 
+✅ A7 cross-club pending queue is retained and never synced under another club 
+[AttendanceOffline] invalid-shift {
+  classification: 'invalid-shift',
+  attendanceOffline: true,
+  stage: 'v2-guard'
+} 
+✅ A8 Coach wrong-branch queued record fails closed and remains pending 
+[AttendanceOffline] invalid-shift {
+  classification: 'invalid-shift',
+  attendanceOffline: true,
+  stage: 'v2-guard'
+} 
+✅ A9 deleted shift cannot sync and pending mutation is preserved 
+✅ A10 true legacy no-shift club uses V2 journal without inventing a shift 
+✅ A11 legacy V1 payload syncs once and is removed only after successful commit 
+[AttendanceOffline] unknown {
+  classification: 'unknown',
+  attendanceOffline: true,
+  legacy: true,
+  stage: 'legacy-commit'
+} Error: legacy commit failed
+    at bulkSyncImpl (file:///mnt/data/h8r1_work/taekwondo_club_phase_4k_6v5u6h8_production_readiness_verification/tools/check-production-residual-defect-closure.mjs:414:40)
+    at AttendanceService.bulkSyncOffline (file:///mnt/data/h8r1_work/taekwondo_club_phase_4k_6v5u6h8_production_readiness_verification/tools/check-production-residual-defect-closure.mjs:299:86)
+    at _runOfflineAttendanceSync (file:///mnt/data/h8r1_work/taekwondo_club_phase_4k_6v5u6h8_production_readiness_verification/js/modules/attendance.js?v5u6g=1789528039255:1983:41)
+    at async file:///mnt/data/h8r1_work/taekwondo_club_phase_4k_6v5u6h8_production_readiness_verification/tools/check-production-residual-defect-closure.mjs:415:5
+✅ A11 failed V1 compatibility commit preserves legacy queue key 
+✅ A12 all concurrent Attendance sync triggers receive the same Promise latch 
+✅ A12 concurrent sync triggers perform exactly one canonical sync flight 
+✅ Silent-failure matrix: attendance derived stats rejection is observable to caller 
+
+Total: 66 | PASS: 66 | FAIL: 0
+Phase 4K-6V5U6G residual defect closure gate passed.
+

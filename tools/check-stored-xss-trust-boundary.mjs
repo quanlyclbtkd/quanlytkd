@@ -36,14 +36,14 @@ check('SuperAdmin club token is URI-encoded for inline JS context', /encodeURICo
 check('Attendance coach names escaped before branch-summary innerHTML', /data\.coaches\.map\(escapeHtml\)/.test(att) && /escapeHtml\(n\.coach\)/.test(att));
 check('Attendance coach note escaped and pre-line preserved', /white-space:pre-line;[^`]*\$\{pfx\}\$\{escapeHtml\(n\.note\)\}/.test(att));
 check('Attendance card profile name/nickname/belt use canonical escapeHtml', /_safeNameHtml = escapeHtml\(name\)/.test(att) && /_safeNicknameHtml = escapeHtml\(_nickname\)/.test(att) && /_safeBeltHtml = escapeHtml\(beltShort\)/.test(att));
-check('Attendance monthly profile name is escaped and inline JS gets URI token', /_nameToken=encodeURIComponent/.test(att) && /\$\{escapeHtml\(r\.name\)\}/.test(att));
+check('Attendance monthly profile display name is escaped and inline JS keeps profileKey URI token', /_nameToken=encodeURIComponent/.test(att) && /escapeHtml\(\(window\.ProfileCanonicalStore\?\.resolveDisplayName/.test(att));
 
 check('Admin session note renderer escapes coachName/note/branch', /escapeHtml[^\n]*coachName|window\.escapeHtml[^\n]*coachName/.test(app) && /escapeHtml[^\n]*data\.note|window\.escapeHtml[^\n]*data\.note/.test(app));
 check('Admin notification renderer escapes notePreview', /escapeHtml[^\n]*notePreview|window\.escapeHtml[^\n]*notePreview/.test(app));
 check('Transaction descriptions escaped at both canonical and legacy render boundaries', /_escHtml\(tx\.description\)/.test(fin) && /window\.escapeHtml\(String\(t\.description/.test(app));
 check('Inventory category display text escaped', /escapeHtml\(cat\.name\)/.test(inv) && /window\.escapeHtml\(String\(cat\.name/.test(app));
 check('Student debt display names escaped', /escapeHtml\(d\.name\)/.test(students) && /window\.escapeHtml\(String\(d\.name/.test(app));
-check('Student active-row display/name metadata escaped', /safeDisplay = escapeHtml\(_disp\(name\)\)/.test(studentRenderer) && /escapeHtml\(p\.nickname\)/.test(studentRenderer));
+check('Student active-row display/name metadata escaped', /safeDisplay = escapeHtml\(_disp\(_profileDisplayName\(name, p\)\)\)/.test(studentRenderer) && /escapeHtml\(p\.nickname\)/.test(studentRenderer));
 check('Belt badge text escapes canonical value', /escapeHtml\(belt\)/.test(format) && /const safeBelt = window\.escapeHtml/.test(app));
 check('Exam profile name display escapes HTML', /window\.escapeHtml\(String\(name \|\| ''\)\)/.test(app));
 check('Known raw SuperAdmin P0 render patterns absent', !/\$\{cname\}/.test(saRender) && !/title="\$\{email\}"/.test(saRender));

@@ -44,7 +44,7 @@ import {
 
 // Phase 4K-STUDENT-LIST: Classifier chung — không dùng p.status === 'quit' trực tiếp
 import { classifyProfileStatus } from '../../../data/profileStatusConfig.js';
-import { rankStudentNameSearchResults } from '../../../core/studentSearchIndex.js?v=student-given-name-priority-20260811-v5u3';
+import { rankStudentNameSearchResults } from '../../../core/studentSearchIndex.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1';
 import { escapeHtml } from '../../../utils/helpers.js';
 
 // ── Phase 4K-2B: Fallback blob builder (used when getProfileSearchBlob unavailable) ──
@@ -138,9 +138,9 @@ const _disp  = (k) => k.replace(/\s*\([^)]*\)\s*$/, '').replace(/\s*\[[^\]]*\]\s
 function _profileDisplayName(id, p) {
     const data = p || {};
     const candidates = [
+        data.displayName,
         data.name,
         data.fullName,
-        data.displayName,
         data.studentName,
         data.hoTen,
         id,
@@ -234,7 +234,7 @@ export function renderActiveRow(name, p, opts = {}) {
         newBadge = '', nickBadge = '', paidBadge = '', isAdmin = false,
     } = opts;
     const safeNameEsc = name.replace(/'/g, "\\'");
-    const safeDisplay = escapeHtml(_disp(name));
+    const safeDisplay = escapeHtml(_disp(_profileDisplayName(name, p)));
     const safeNotes = escapeHtml(p.notes || '');
     const safeMemberId = escapeHtml(p.memberId || '-');
     const safePhone = escapeHtml(p.phone || '');
@@ -260,7 +260,7 @@ export function renderDebtRow(name, p, opts = {}) {
     const safeOwedMonths = owedMonthsStr.replace(/'/g, '');
     const totalDebtAmount = unpaidMonthsCount * (Number(p.tuitionFee) || 0);
     const lastPaidLabel  = `<span class="font-bold text-primary text-[0.8rem]">${formatMonthCompact(owedMonthsStr)}</span>`;
-    return `<tr data-debt-id="${safeNameEsc}" ${rowBg}><td><span class="badge ${countBadgeCls}">${unpaidMonthsCount} Tháng</span></td><td>${lastPaidLabel}</td>${branchTdHTML}<td class="name-link text-[0.95rem]" onclick="openProfile('${safeNameEsc}')">${_disp(name)}${yrBadge}${isOverdue ? ' <span title="Nợ từ 2 tháng trở lên" class="text-rose-500">⚠️</span>' : ''}</td><td class="action-btns"><button type="button" class="btn-sm bg-indigo-50 text-indigo-700 border border-indigo-200" onclick="generateMultiMonthPaymentRequest('${safeNameEsc}', '${safeOwedMonths}', '${safeBranch}', '${totalDebtAmount}')">📱 QR</button>${isAdmin ? `<button type="button" class="btn-sm bg-emerald-600 text-white shadow-sm" onclick="openQuickPayModal('${safeNameEsc}', '${safeOwedMonths}', '${safeBranch}')">💰 Thu</button>` : ''}<button type="button" class="btn-sm bg-[#0068FF] text-white shadow-sm" onclick="copyAndOpenZalo('${safeNameEsc}', '${safeOwedMonths}', '${p.phone || ''}')">💬 Zalo</button>${isAdmin ? `<button type="button" class="btn-sm bg-rose-50 text-rose-700 border border-rose-200" title="Chuyển võ sinh sang Đã nghỉ" onclick="window.markStudentQuitFromDebt(event, '${safeNameEsc}', '${selMonth}')">🚫 Nghỉ</button><button type="button" class="btn-sm bg-amber-50 text-amber-700 border border-amber-200" title="Báo nghỉ / miễn học phí tháng này" onclick="window.skipDebtMonthFromDebt(event, '${safeNameEsc}', '${selMonth}')">⏸ Báo nghỉ</button>` : ''}</td></tr>`;
+    return `<tr data-debt-id="${safeNameEsc}" ${rowBg}><td><span class="badge ${countBadgeCls}">${unpaidMonthsCount} Tháng</span></td><td>${lastPaidLabel}</td>${branchTdHTML}<td class="name-link text-[0.95rem]" onclick="openProfile('${safeNameEsc}')">${_disp(_profileDisplayName(name, p))}${yrBadge}${isOverdue ? ' <span title="Nợ từ 2 tháng trở lên" class="text-rose-500">⚠️</span>' : ''}</td><td class="action-btns"><button type="button" class="btn-sm bg-indigo-50 text-indigo-700 border border-indigo-200" onclick="generateMultiMonthPaymentRequest('${safeNameEsc}', '${safeOwedMonths}', '${safeBranch}', '${totalDebtAmount}')">📱 QR</button>${isAdmin ? `<button type="button" class="btn-sm bg-emerald-600 text-white shadow-sm" onclick="openQuickPayModal('${safeNameEsc}', '${safeOwedMonths}', '${safeBranch}')">💰 Thu</button>` : ''}<button type="button" class="btn-sm bg-[#0068FF] text-white shadow-sm" onclick="copyAndOpenZalo('${safeNameEsc}', '${safeOwedMonths}', '${p.phone || ''}')">💬 Zalo</button>${isAdmin ? `<button type="button" class="btn-sm bg-rose-50 text-rose-700 border border-rose-200" title="Chuyển võ sinh sang Đã nghỉ" onclick="window.markStudentQuitFromDebt(event, '${safeNameEsc}', '${selMonth}')">🚫 Nghỉ</button><button type="button" class="btn-sm bg-amber-50 text-amber-700 border border-amber-200" title="Báo nghỉ / miễn học phí tháng này" onclick="window.skipDebtMonthFromDebt(event, '${safeNameEsc}', '${selMonth}')">⏸ Báo nghỉ</button>` : ''}</td></tr>`;
 }
 
 /**

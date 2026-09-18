@@ -27,7 +27,7 @@
  */
 
 import { formatDate } from '../../../utils/format.js';
-import { rankStudentNameSearchResults } from '../../../core/studentSearchIndex.js?v=student-given-name-priority-20260811-v5u3';
+import { rankStudentNameSearchResults } from '../../../core/studentSearchIndex.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1';
 
 // ── Phase 4K-2B: Fallback inv blob builder (used when getInventorySearchBlob unavailable) ──
 function _fallbackInvBlob(t) {

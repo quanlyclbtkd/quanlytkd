@@ -92,12 +92,10 @@ function _commitProfilePatch(name, patch, reason) {
     if (!window.__store) window.__store = {};
     if (!window.__store.profiles) window.__store.profiles = {};
     window.__store.profiles[key] = next;
+    window.__store._dataVersion = (window.__store._dataVersion || 0) + 1;
   } catch (_) {}
-<<<<<<< HEAD
-=======
   try { window.StudentSearchIndex?.invalidate?.(reason); } catch (_) {}
   try { window.invalidateSearchCache?.('students', reason); } catch (_) {}
->>>>>>> parent of 1fa1b61 (upload 17-9)
 
   // Attendance does not share the students computation domain; invalidate it explicitly.
   try { window.invalidateList?.('attendance.list', reason); } catch (_) {}
