@@ -10,7 +10,6 @@
 import { readFileSync, existsSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import vm from 'node:vm';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, '..');
@@ -81,14 +80,14 @@ check(
 
 // ── 4. processMultiItem lưu profileName ───────────────────────────────────
 check(
-    'processMultiItem giữ profileId=profileKey và profileName=displayName trong bundle',
+    'processMultiItem lưu profileName trong giao dịch Lệ phí thi',
     (function() {
         const idx = appJs.indexOf('window.processMultiItem');
         if (idx === -1) return false;
         const block = appJs.slice(idx, idx + 50000);
-        return block.includes('profileId: name') && block.includes('profileName: _miDisplayName') && block.includes('studentName: _miDisplayName');
+        return block.includes('profileName: name') || block.includes("profileName:name");
     })(),
-    'processMultiItem phải giữ identity profileId=name và chỉ dùng displayName cho nhãn'
+    'processMultiItem phải lưu profileName: name khi tạo giao dịch Lệ phí thi'
 );
 
 // ── 5. processMultiItem lưu examTargetBelt ────────────────────────────────
@@ -192,106 +191,9 @@ check(
     'Thêm window.debugExamPaymentIdentity vào app.js (Phase 9)'
 );
 
-
-// ── 15. H8R2.1A: quickCollectExam must bind profile from existing local canonical map ──
-const _quickExamStart = appJs.indexOf('window.quickCollectExam = async');
-const _quickExamEnd = _quickExamStart >= 0 ? appJs.indexOf('window.processCombo = async', _quickExamStart) : -1;
-const _quickExamBlock = (_quickExamStart >= 0 && _quickExamEnd > _quickExamStart)
-    ? appJs.slice(_quickExamStart, _quickExamEnd)
-    : '';
-
-check(
-    'H8R2.1A quickCollectExam binds _profileForExam from allProfiles[name]',
-    /const\s+_profileForExam\s*=\s*allProfiles\[name\]\s*\|\|\s*\{\}\s*;/.test(_quickExamBlock) &&
-        !/const\s+_profileForExam\s*=\s*profile\s*;/.test(_quickExamBlock),
-    'Không được dùng undeclared profile; phải reuse local allProfiles[name]'
-);
-
-check(
-    'H8R2.1A quickCollectExam does not add Firestore profile reads',
-    !/\bgetDoc\s*\(|\bgetDocs\s*\(|\bonSnapshot\s*\(/.test(_quickExamBlock),
-    'Quick exam chỉ được lookup profile từ local RAM map'
-);
-
-check(
-    'H8R2.1A quickCollectExam does not mutate/create profile',
-    !/\bsetDoc\s*\(|\bupdateDoc\s*\(|\bdeleteDoc\s*\(|\bwriteBatch\s*\(/.test(_quickExamBlock),
-    'Quick exam chỉ tạo transaction hiện hữu, không được profile write'
-);
-
-// Dynamic QX: evaluate the actual legacy function block with local profile data.
-let _dynamicQuickExamError = null;
-let _dynamicQuickExamPayload = null;
-let _dynamicQuickExamAddCount = 0;
-try {
-    const sandbox = {
-        allProfiles: {
-            'Nguyen Van A': {
-                belt: 'Đai trắng - Cấp 10',
-                branch: 'CS1',
-                displayName: 'Nguyễn Văn Anh'
-            }
-        },
-        prompt() { return '250000'; },
-        document: {
-            getElementById(id) {
-                if (id === 'filterMonth') return { value: '2026-09' };
-                return { value: '' };
-            }
-        },
-        getLocalToday() { return '2026-09-17'; },
-        colRef: { id: 'transactions' },
-        _canonicalTxPayload(data) { return data; },
-        async addDoc(_ref, payload) {
-            _dynamicQuickExamAddCount += 1;
-            _dynamicQuickExamPayload = payload;
-            return { id: 'tx-exam-1' };
-        },
-        console: { log() {}, warn() {}, error() {} }
-    };
-    sandbox.window = {
-        userRole: 'admin',
-        getClubExamFee() { return 250000; },
-        formatVNDNumber(v) { return String(v); },
-        parseVNDNumber(v) { return Number(String(v).replace(/\D/g, '')); },
-        BELT_NEXT: { 'Đai trắng - Cấp 10': 'Đai vàng - Cấp 9' },
-        ProfileCanonicalStore: {
-            resolveDisplayName(profileKey, profile) {
-                return String(profile?.displayName || profile?.name || profileKey || '').trim();
-            }
-        },
-        showToast() {},
-        renderExamList() {}
-    };
-    vm.runInNewContext(_quickExamBlock, sandbox, { filename: 'quickCollectExam.vm.js' });
-    await sandbox.window.quickCollectExam('Nguyen Van A', 'CS1');
-} catch (error) {
-    _dynamicQuickExamError = error;
-}
-
-check(
-    'H8R2.1A dynamic quickCollectExam has no ReferenceError',
-    !_dynamicQuickExamError,
-    _dynamicQuickExamError ? String(_dynamicQuickExamError.stack || _dynamicQuickExamError) : ''
-);
-check(
-    'H8R2.1A dynamic quickCollectExam writes exactly one canonical exam transaction',
-    _dynamicQuickExamAddCount === 1,
-    `Expected addDoc=1, got ${_dynamicQuickExamAddCount}`
-);
-check(
-    'H8R2.1A dynamic quick exam preserves profileKey + displayName + branch + amount',
-    _dynamicQuickExamPayload?.profileId === 'Nguyen Van A' &&
-        _dynamicQuickExamPayload?.studentName === 'Nguyễn Văn Anh' &&
-        _dynamicQuickExamPayload?.profileName === 'Nguyễn Văn Anh' &&
-        _dynamicQuickExamPayload?.branch === 'CS1' &&
-        _dynamicQuickExamPayload?.amount === 250000,
-    'Payload phải giữ profileId=profileKey và display fields từ resolveDisplayName'
-);
-
 // ── Summary ───────────────────────────────────────────────────────────────
 console.log('');
-const total = 20;
+const total = 14;
 if (failures === 0) {
     console.log(`\x1b[32m✅ All checks passed (${total}/${total})\x1b[0m\n`);
     process.exit(0);

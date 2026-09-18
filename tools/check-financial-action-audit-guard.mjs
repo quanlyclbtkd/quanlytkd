@@ -46,7 +46,7 @@ must(app.includes("guardFinancialWriteIntent('exam.cancelPayment'"), 'cancelExam
 must(app.includes("recordFinancialActionAudit('exam.cancelPayment', 'before'") && app.includes("recordFinancialActionAudit('exam.cancelPayment', 'after'") && app.includes("recordFinancialActionAudit('exam.cancelPayment', 'error'"), 'cancelExamPayment có audit before/after/error');
 
 must(app.includes('window.processMultiItem = async (action) =>'), 'processMultiItem vẫn tồn tại');
-must(app.includes("paidUntil: _resultPaidUntil") && app.includes("paidMonths: arrayUnion(...packageMonths)") && app.includes("_batch.update(doc(db, 'clubs', currentClubId, 'profiles', name)"), 'processMultiItem giữ paidUntil monotonic/paidMonths trong cùng atomic batch và fail-closed nếu profile biến mất');
+must(app.includes("await setDoc(doc(db, 'clubs', currentClubId, 'profiles', name), { paidUntil: lastMonth, paidMonths: arrayUnion(...packageMonths) }, { merge: true });"), 'processMultiItem vẫn giữ paidUntil/paidMonths write logic');
 must(finance.includes('window.quickPay = async (name, monthsStr, branch, defaultFee, skipPrompt)'), 'quickPay UI adapter vẫn tồn tại');
 must(finance.includes('window.deleteTx = async (id, relatedInvId)'), 'deleteTx UI adapter vẫn tồn tại');
 must(app.includes('window.markInvPaid = async (invId)'), 'markInvPaid vẫn tồn tại');

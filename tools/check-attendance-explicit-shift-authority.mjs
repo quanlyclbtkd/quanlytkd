@@ -226,7 +226,7 @@ try {
     globalThis.__verifiedAuthContextState = { generation: 1 };
     globalThis._fb_init = {};
 
-    const serviceUrl = pathToFileURL(path.join(root, 'js/services/attendance.service.js')).href + '?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1';
+    const serviceUrl = pathToFileURL(path.join(root, 'js/services/attendance.service.js')).href + '?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1';
     const { AttendanceService } = await import(serviceUrl);
     let dailyCalls = 0;
     let shiftCalls = 0;

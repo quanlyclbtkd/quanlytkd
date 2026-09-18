@@ -1,4 +1,3 @@
-// H8R2 compatibility marker: attendance.service.js?v=long-term-production-stability-20260917-v5u6h8r2
 /**
  * modules/attendance.js — Phase 2h (Đầy đủ)
  * ────────────────────────────────────────────────────────────────
@@ -16,7 +15,7 @@
  * ────────────────────────────────────────────────────────────────
  */
 
-import { AttendanceService } from '../services/attendance.service.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1';
+import { AttendanceService } from '../services/attendance.service.js?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1';
 import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
 import { escapeHtml } from '../utils/helpers.js';
 
@@ -1424,7 +1423,6 @@ async function _requestAttendanceDailyRefresh(reason = 'compatibility-render', o
             branch: token.branch === 'all' ? '' : token.branch,
             shiftAuthorityMode: shiftDecision.mode,
             requireShift: shiftDecision.mode === 'explicit-shift',
-            isCurrent: () => _isAttendanceDailyTokenCurrent(token),
         });
         if (!_isAttendanceDailyTokenCurrent(token)) {
             _recordAttendanceDailyStale(token);
@@ -1450,9 +1448,6 @@ async function _requestAttendanceDailyRefresh(reason = 'compatibility-render', o
             return { stale: true, error: true, key: token.key };
         }
         console.warn('[Attendance] loadByDate failed:', error && error.message || error);
-        if (error?.code === 'attendance/daily-coverage-incomplete') {
-            window.showToast('⚠️ Dữ liệu điểm danh vượt giới hạn an toàn và chưa tải đủ. Hệ thống giữ dữ liệu cũ thay vì hiển thị thiếu.', 5000);
-        }
         _renderAttendanceDailyFromRam(token, reason + ':current-error-ram-preserved');
         return { error: true, key: token.key };
     }).finally(() => {
@@ -1876,36 +1871,16 @@ export function initAttendance() {
                     timestamp: Date.now()
                 }
             }));
-            const result = await AttendanceService.bulkSaveRecords(bulkRecords, {
-                chunkSize: 400,
-                onChunkCommitted(chunk) {
-                    const committedIds = new Set(chunk.map(row => String(row.docId || '')));
-                    pendingBulkMutations.forEach(record => {
-                        if (committedIds.has(String(record.docId || ''))) _removeAttOfflineMutation(record);
-                    });
-                }
-            });
+            await AttendanceService.bulkSaveRecords(bulkRecords);
 
+            pendingBulkMutations.forEach(_removeAttOfflineMutation);
             window.__attendanceDebug.cacheCount = Object.keys(_attendanceCache).length;
-            window.showToast('✅ Đã điểm danh hàng loạt ' + Number(result?.committed || unmarked.length) + ' võ sinh!', 3000);
+            window.showToast('✅ Đã điểm danh hàng loạt ' + unmarked.length + ' võ sinh!', 3000);
         } catch(e) {
-            const committedIds = new Set(Array.isArray(e?.committedIds) ? e.committedIds.map(String) : []);
-            const pendingRows = unmarked.filter(([name]) => !committedIds.has(getAttendanceDocId(name, writeDate, writeShiftId)));
-            // H8R2: only the uncommitted tail is rolled back; committed chunks stay
-            // canonical and their offline journal entries were already scoped-cleaned.
-            if (pendingRows.length > 0) {
-                _markAttendanceDailyMutation('bulkCheckIn-partial-rollback');
-                pendingRows.forEach(([name]) => { window.currentAttendanceData[name]=0; _attendanceCache[getAttendanceDocId(name, writeDate, writeShiftId)]=0; });
-                _renderAttCards();
-            }
-            const committed = Number(e?.committed || committedIds.size || 0);
-            const pending = Number(e?.pending || pendingRows.length || 0);
-            window.showToast(
-                committed > 0
-                    ? ('⚠️ Đã lưu ' + committed + ' võ sinh; còn ' + pending + ' bản ghi chưa lưu và vẫn đang chờ đồng bộ.')
-                    : '⚠️ Lỗi khi lưu điểm danh hàng loạt!',
-                4500
-            );
+            // [4J-6A] Rollback cache dùng đúng key theo ca tập
+            _markAttendanceDailyMutation('bulkCheckIn-rollback');
+            unmarked.forEach(([name]) => { window.currentAttendanceData[name]=0; _attendanceCache[getAttendanceDocId(name, writeDate, writeShiftId)]=0; });
+            _renderAttCards(); window.showToast('⚠️ Lỗi khi lưu điểm danh hàng loạt!', 3500);
         } finally {
             if (btn) { btn.disabled=false; btn.textContent='✅ Đánh dấu tất cả có mặt'; }
         }

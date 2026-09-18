@@ -162,17 +162,6 @@ window.invCustomCategories = [];
     }
     // Phase 4K-6V3A canonical transaction boundary; fallback preserves legacy/file mode.
     const _canonicalTxPayload = (d, r) => typeof window.canonicalizeTransactionForWrite === 'function' ? window.canonicalizeTransactionForWrite(d, r || 'app-transaction-write') : (d && typeof d === 'object' ? { ...d } : d);
-
-    // H8R2 F3: fail-closed local fallback only. Do not publish a competing
-    // global escape authority. User-controlled text must never fall back to raw.
-    function _legacyEscapeHtmlFailClosed(value) {
-        return String(value == null ? '' : value)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
-    }
     const _canonicalTxPatch = (d, e, r) => typeof window.canonicalizeTransactionPatch === 'function' ? window.canonicalizeTransactionPatch(d, e, r || 'app-transaction-patch') : (d && typeof d === 'object' ? { ...d } : d);
     // ── Phase 4.0B-4C: App Context Ready state + helper ──────────────────────
     // Idempotent — nếu đã khởi tạo (ví dụ: HMR) thì giữ nguyên generation.
@@ -1561,14 +1550,14 @@ window.invCustomCategories = [];
             const batchSize = 400; // kept for success message below
             // SECURITY TODO: XSS risk — clubName và beforeDate đến từ Firestore/input.
             // Dùng window.escapeHtml() khi available. Phase 4.1: patch toàn bộ.
-            const _esc = window.escapeHtml || _legacyEscapeHtmlFailClosed;
+            const _esc = window.escapeHtml || (s => s);
             resultEl.innerHTML = `<div style="color:#16a34a;font-weight:800;font-size:0.85rem;margin-top:10px;padding:10px 14px;background:#f0fdf4;border:1px solid #86efac;border-radius:10px;">✅ Đã xóa thành công <strong>${total} giao dịch</strong> trước ngày ${_esc(beforeDate)} của CLB "${_esc(clubName)}".</div>`;
             window.showToast(`✅ Đã xóa ${total} giao dịch!`);
             window.loadSuperAdminData();
         } catch (e) {
             console.error(e);
             // SECURITY TODO: e.message có thể chứa ký tự đặc biệt từ Firestore error.
-            const _esc2 = window.escapeHtml || _legacyEscapeHtmlFailClosed;
+            const _esc2 = window.escapeHtml || (s => s);
             resultEl.innerHTML = `<div style="color:#dc2626;font-weight:700;font-size:0.82rem;margin-top:10px;">❌ Lỗi: ${_esc2(e.message)}</div>`;
         } finally {
             btn.disabled = false; btn.innerText = '🗑️ Xóa Giao Dịch';
@@ -2125,7 +2114,7 @@ window.invCustomCategories = [];
                     ? (window.getBranchNameDisplay ? window.getBranchNameDisplay(window.coachBranch) : window.coachBranch)
                     : 'Tất cả';
                 // SECURITY TODO: _branchName đến từ Firestore — cần escapeHtml. Phase 4.1.
-                const _escBranch = window.escapeHtml || _legacyEscapeHtmlFailClosed;
+                const _escBranch = window.escapeHtml || (s => s);
                 _attHeader.innerHTML = `<span style="font-size:0.78rem;background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd;padding:6px 14px;border-radius:99px;font-weight:700;">👨‍🏫 HLV đang điểm danh — Cơ sở: ${_escBranch(_branchName)}</span>`;
             }
             // [SỬA] Tự động load danh sách điểm danh khi HLV đăng nhập —
@@ -3356,7 +3345,7 @@ window.invCustomCategories = [];
             msgEl.style.border = '1px solid rgba(99,102,241,0.3)';
             msgEl.style.color = '#a5b4fc';
             // SECURITY TODO: name (tên ngân hàng) đến từ config Firestore — cần escapeHtml. Phase 4.1.
-            const _escName = window.escapeHtml || _legacyEscapeHtmlFailClosed;
+            const _escName = window.escapeHtml || (s => s);
             msgEl.innerHTML = '&#128242; Đang mở <strong>' + _escName(name) + '</strong>… Thông tin chuyển khoản đã được điền sẵn.';
         }
 
@@ -5793,53 +5782,35 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
 
         try {
             if(action === 'pay') {
-                if (window.processCombo.__atomicInFlight) {
-                    window.showToast('⏳ Giao dịch đang được xử lý, vui lòng không gửi lại.');
-                    return;
+                // [FIX MẤT GIAO DỊCH] Date phải nằm trong tháng học phí, không dùng hôm nay cho tháng cũ
+                const _todayCombo = getLocalToday(); const _todayMCombo = _todayCombo.substring(0, 7);
+                if(n1 && f1 > 0) {
+                    const _d1 = m1 < _todayMCombo ? m1 + '-01' : _todayCombo;
+                    await addDoc(colRef, _canonicalTxPayload({ branch: b1, type: 'Học phí', description: n1, amount: f1, date: _d1, txMonth: m1, packageMonths: [m1], timestamp: Date.now() }, 'family-pay-student-1'));
+                    // [BƯỚC 1] Đổi setDoc → updateDoc: chỉ ghi paidUntil, không ghi đè profile khác
+                    // [BƯỚC 2] Normalize paidUntil trước khi so sánh
+                    const _cu1 = normalizeYYYYMM((allProfiles[n1] && allProfiles[n1].paidUntil) || '');
+                    const _np1 = m1 > _cu1 ? m1 : _cu1;
+                    await updateDoc(doc(db, "clubs", currentClubId, "profiles", n1), { paidUntil: _np1 });
+                    // [BƯỚC 3] Audit log cho thu gộp
+                    try { await addDoc(collection(db, "clubs", currentClubId, "fee_audit"), { studentId: n1, amount: f1, date: getLocalToday(), type: 'tuition', month: _np1, months: [m1], by: window.currentUserEmail || 'admin', timestamp: Date.now() }); }
+                    catch(_auditError) { _recordSecondaryConsistencyFailure('fee-audit-write-failed', _auditError, { domain: 'tuition', studentId: n1, canonicalPaymentPreserved: true }); }
                 }
-                const _financeOwner = window.FinanceService;
-                if (!_financeOwner || typeof _financeOwner.commitAtomicWritePlan !== 'function') {
-                    window.showToast('❌ Finance canonical owner chưa sẵn sàng. Chưa có dữ liệu nào được ghi.');
-                    return;
+                if(n2 && f2 > 0) {
+                    const _d2 = m2 < _todayMCombo ? m2 + '-01' : _todayCombo;
+                    await addDoc(colRef, _canonicalTxPayload({ branch: b2, type: 'Học phí', description: n2, amount: f2, date: _d2, txMonth: m2, packageMonths: [m2], timestamp: Date.now() + 1 }, 'family-pay-student-2'));
+                    // [BƯỚC 1] Đổi setDoc → updateDoc: chỉ ghi paidUntil, không ghi đè profile khác
+                    // [BƯỚC 2] Normalize paidUntil trước khi so sánh
+                    const _cu2 = normalizeYYYYMM((allProfiles[n2] && allProfiles[n2].paidUntil) || '');
+                    const _np2 = m2 > _cu2 ? m2 : _cu2;
+                    await updateDoc(doc(db, "clubs", currentClubId, "profiles", n2), { paidUntil: _np2 });
+                    // [BƯỚC 3] Audit log cho thu gộp
+                    try { await addDoc(collection(db, "clubs", currentClubId, "fee_audit"), { studentId: n2, amount: f2, date: getLocalToday(), type: 'tuition', month: _np2, months: [m2], by: window.currentUserEmail || 'admin', timestamp: Date.now() + 1 }); }
+                    catch(_auditError) { _recordSecondaryConsistencyFailure('fee-audit-write-failed', _auditError, { domain: 'tuition', studentId: n2, canonicalPaymentPreserved: true }); }
                 }
-                window.processCombo.__atomicInFlight = true;
-                try {
-                    const _todayCombo = getLocalToday();
-                    const _todayMCombo = _todayCombo.substring(0, 7);
-                    const _transactions = [];
-                    const _profileUpdates = [];
-                    const _auditRows = [];
-                    if(n1 && f1 > 0) {
-                        const _d1 = m1 < _todayMCombo ? m1 + '-01' : _todayCombo;
-                        const _cu1 = normalizeYYYYMM((allProfiles[n1] && allProfiles[n1].paidUntil) || '');
-                        const _np1 = m1 > _cu1 ? m1 : _cu1;
-                        _transactions.push({ data: { branch: b1, type: 'Học phí', description: n1, amount: f1, date: _d1, txMonth: m1, packageMonths: [m1], timestamp: Date.now() }, reason: 'family-pay-student-1-atomic' });
-                        _profileUpdates.push({ studentName: n1, data: { paidUntil: _np1, paidMonths: arrayUnion(m1) } });
-                        _auditRows.push({ studentId: n1, amount: f1, month: _np1, months: [m1], timestamp: Date.now() });
-                    }
-                    if(n2 && f2 > 0) {
-                        const _d2 = m2 < _todayMCombo ? m2 + '-01' : _todayCombo;
-                        const _cu2 = normalizeYYYYMM((allProfiles[n2] && allProfiles[n2].paidUntil) || '');
-                        const _np2 = m2 > _cu2 ? m2 : _cu2;
-                        _transactions.push({ data: { branch: b2, type: 'Học phí', description: n2, amount: f2, date: _d2, txMonth: m2, packageMonths: [m2], timestamp: Date.now() + 1 }, reason: 'family-pay-student-2-atomic' });
-                        _profileUpdates.push({ studentName: n2, data: { paidUntil: _np2, paidMonths: arrayUnion(m2) } });
-                        _auditRows.push({ studentId: n2, amount: f2, month: _np2, months: [m2], timestamp: Date.now() + 1 });
-                    }
-                    await _financeOwner.commitAtomicWritePlan({ transactions: _transactions, profileUpdates: _profileUpdates, reason: 'legacy-process-combo-atomic' });
-                    // fee_audit is Class-2: canonical success must remain success if audit fails.
-                    for (const _row of _auditRows) {
-                        try {
-                            await addDoc(collection(db, 'clubs', currentClubId, 'fee_audit'), { ..._row, date: getLocalToday(), type: 'tuition', by: window.currentUserEmail || 'admin' });
-                        } catch(_auditError) {
-                            _recordSecondaryConsistencyFailure('fee-audit-write-failed', _auditError, { domain: 'tuition', studentId: _row.studentId, canonicalPaymentPreserved: true });
-                        }
-                    }
-                    window.showToast('✅ Đã ghi sổ gộp thành công!');
-                    exportReceipt(combinedNameStr, totalAmt, 'Học phí', getLocalToday(), combinedMonthStr, branch, 'Gộp Gia Đình', 'BIÊN LAI THU TIỀN');
-                    document.getElementById('comboModal').style.display = 'none';
-                } finally {
-                    window.processCombo.__atomicInFlight = false;
-                }
+                window.showToast("✅ Đã ghi sổ gộp thành công!");
+                exportReceipt(combinedNameStr, totalAmt, 'Học phí', getLocalToday(), combinedMonthStr, branch, 'Gộp Gia Đình', 'BIÊN LAI THU TIỀN');
+                document.getElementById('comboModal').style.display = 'none';
             } else if (action === 'report') {
                 exportReceipt(combinedNameStr, totalAmt, 'Học phí', getLocalToday(), combinedMonthStr, branch, 'Gộp Gia Đình', 'PHIẾU BÁO HỌC PHÍ');
                 document.getElementById('comboModal').style.display = 'none';
@@ -5890,45 +5861,31 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
 
         try {
             const currentMonth = (document.getElementById('filterMonth') || {}).value || getLocalToday().substring(0, 7);
-            // H8R2 E: promotion is PER-STUDENT atomic/idempotent. Each write sets a
-            // deterministic target belt from the expected source belt; retries cannot
-            // increment an already-committed student again. Chunking stays inside the
-            // existing Exam owner and never exceeds Firestore batch safety limits.
-            const EXAM_CHUNK_SIZE = 400;
-            let committed = 0;
-            for (let offset = 0; offset < profilesToUpgrade.length; offset += EXAM_CHUNK_SIZE) {
-                const chunk = profilesToUpgrade.slice(offset, offset + EXAM_CHUNK_SIZE);
-                const batch = writeBatch(db);
-                for (const name of chunk) {
-                    batch.set(doc(db, "clubs", currentClubId, "profiles", name), {
-                        belt: newBelt,
-                        upgradedAt: currentMonth,
-                        upgradedFrom: currentBelt
-                    }, { merge: true });
-                }
-                try {
-                    await batch.commit();
-                } catch (chunkError) {
-                    chunkError.examCommitted = committed;
-                    chunkError.examPending = profilesToUpgrade.length - committed;
-                    throw chunkError;
-                }
-                committed += chunk.length;
+            const batch = writeBatch(db);
 
-                // Commit-scoped RAM update: on a later chunk failure, already committed
-                // students are locally marked at target belt, making retry fail-safe.
-                for (const name of chunk) {
-                    if(allProfiles[name]) {
-                        allProfiles[name].belt = newBelt;
-                        allProfiles[name].upgradedAt = currentMonth;
-                        allProfiles[name].upgradedFrom = currentBelt;
-                    }
-                    const storeProfiles = window.__store && window.__store.profiles;
-                    if(storeProfiles && storeProfiles[name] && storeProfiles[name] !== allProfiles[name]) {
-                        storeProfiles[name].belt = newBelt;
-                        storeProfiles[name].upgradedAt = currentMonth;
-                        storeProfiles[name].upgradedFrom = currentBelt;
-                    }
+            for (const name of profilesToUpgrade) {
+                batch.set(doc(db, "clubs", currentClubId, "profiles", name), {
+                    belt: newBelt,
+                    upgradedAt: currentMonth,
+                    upgradedFrom: currentBelt
+                }, { merge: true });
+            }
+
+            await batch.commit();
+
+            // Đồng bộ cache tại chỗ sau khi Firestore commit thành công để UI không hiển thị
+            // danh sách cũ trong khoảng chờ listener realtime phản hồi.
+            for (const name of profilesToUpgrade) {
+                if(allProfiles[name]) {
+                    allProfiles[name].belt = newBelt;
+                    allProfiles[name].upgradedAt = currentMonth;
+                    allProfiles[name].upgradedFrom = currentBelt;
+                }
+                const storeProfiles = window.__store && window.__store.profiles;
+                if(storeProfiles && storeProfiles[name] && storeProfiles[name] !== allProfiles[name]) {
+                    storeProfiles[name].belt = newBelt;
+                    storeProfiles[name].upgradedAt = currentMonth;
+                    storeProfiles[name].upgradedFrom = currentBelt;
                 }
             }
 
@@ -5938,14 +5895,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             renderExamList();
         } catch (error) {
             console.error('[exam-upgrade] Không thể xác nhận thăng đai:', error);
-            const _done = Number(error && error.examCommitted) || 0;
-            const _pending = Number(error && error.examPending) || profilesToUpgrade.length;
-            if (_done > 0) {
-                window.showToast(`⚠️ Đã thăng ${_done} võ sinh; còn ${_pending} chưa commit. Có thể thử lại an toàn.`);
-                renderExamList();
-            } else {
-                window.showToast("❌ Không thể xác nhận thăng đai. Chưa có võ sinh nào được commit.");
-            }
+            window.showToast("❌ Không thể xác nhận thăng đai. Vui lòng thử lại.");
         } finally {
             window.__examUpgradeInFlight = false;
             if(btn) {
@@ -6619,7 +6569,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             });
             matches.forEach(name => {
                 let div = document.createElement('div');
-                const _escAutocomplete = window.escapeHtml || _legacyEscapeHtmlFailClosed;
+                const _escAutocomplete = window.escapeHtml || (v => String(v || ''));
                 let branchHtml = (!clubConfig.branchCount || clubConfig.branchCount > 1)
                     ? `<span class="badge bg-slate-100 text-slate-600 border border-slate-200">${_escAutocomplete(window.getBranchNameDisplay(allProfiles[name].branch || 'CS1'))}</span>`
                     : ``;
@@ -7807,47 +7757,14 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         if(upgradedNames.length === 0) return alert("Không có võ sinh nào được đánh dấu thăng đai trong kỳ này.");
         if(!confirm(`Hoàn tất kỳ thi?\n\nThao tác này sẽ:\n✅ Xóa nhãn "Mới lên" của ${upgradedNames.length} võ sinh\n✅ Hệ thống trở lại trạng thái ban đầu cho kỳ thi tiếp theo\n\nDữ liệu thu chi và đai hiện tại KHÔNG bị thay đổi.`)) return;
         try {
-            // H8R2 E: session-marker reset is also per-student idempotent. Setting
-            // null repeatedly is deterministic, so chunk retry cannot corrupt belts.
-            const EXAM_CHUNK_SIZE = 400;
-            let committed = 0;
-            for (let offset = 0; offset < upgradedNames.length; offset += EXAM_CHUNK_SIZE) {
-                const chunk = upgradedNames.slice(offset, offset + EXAM_CHUNK_SIZE);
-                const batch = writeBatch(db);
-                for(const name of chunk) {
-                    batch.set(doc(db, "clubs", currentClubId, "profiles", name), { upgradedAt: null, upgradedFrom: null }, { merge: true });
-                }
-                try {
-                    await batch.commit();
-                } catch (chunkError) {
-                    chunkError.examCommitted = committed;
-                    chunkError.examPending = upgradedNames.length - committed;
-                    throw chunkError;
-                }
-                committed += chunk.length;
-                for (const name of chunk) {
-                    if (allProfiles[name]) {
-                        allProfiles[name].upgradedAt = null;
-                        allProfiles[name].upgradedFrom = null;
-                    }
-                    const storeProfiles = window.__store && window.__store.profiles;
-                    if (storeProfiles && storeProfiles[name] && storeProfiles[name] !== allProfiles[name]) {
-                        storeProfiles[name].upgradedAt = null;
-                        storeProfiles[name].upgradedFrom = null;
-                    }
-                }
+            const batch = writeBatch(db);
+            for(const name of upgradedNames) {
+                batch.set(doc(db, "clubs", currentClubId, "profiles", name), { upgradedAt: null, upgradedFrom: null }, { merge: true });
             }
+            await batch.commit();
             window.showToast(`🏁 Đã hoàn tất kỳ thi! Đã reset ${upgradedNames.length} võ sinh về trạng thái bình thường.`);
             renderExamList();
-        } catch(err) {
-            console.error(err);
-            const _done = Number(err && err.examCommitted) || 0;
-            const _pending = Number(err && err.examPending) || upgradedNames.length;
-            alert(_done > 0
-                ? `Đã reset ${_done} võ sinh; còn ${_pending} chưa commit. Có thể thử lại an toàn.`
-                : `Lỗi: ${err.message}`);
-            if (_done > 0) renderExamList();
-        }
+        } catch(err) { console.error(err); alert("Lỗi: " + err.message); }
     };
 
     // ─── Phase 4K-5B: Helper chuẩn hóa tên võ sinh từ giao dịch thi ───────────
@@ -8696,7 +8613,7 @@ window._setupMiAutocomplete = () => {
             const p2 = allProfiles[nm];
             const beltStr = p2 ? (p2.belt || '') : '';
             const feeStr = p2 && p2.tuitionFee ? ' · ' + Number(p2.tuitionFee).toLocaleString('vi-VN') + '₫' : '';
-            const _escMi = window.escapeHtml || _legacyEscapeHtmlFailClosed;
+            const _escMi = window.escapeHtml || (v => String(v || ''));
             div.innerHTML = '<span style="font-weight:700;color:#1e293b;">' + _escMi(nm) + '</span><span style="color:#94a3b8;font-size:0.72rem;">' + _escMi(beltStr) + feeStr + '</span>';
             div.addEventListener('mousedown', e => { e.preventDefault(); pickName(nm); });
             div.addEventListener('touchend', e => { e.preventDefault(); pickName(nm); });
@@ -8870,8 +8787,6 @@ window.debugAdmissionTuitionTypeNormalization = function() {
 window.buildPaymentBundleTransaction = function(payload) {
     payload = payload || {};
     const studentName = payload.studentName || '';
-    const profileName = payload.profileName || studentName;
-    const profileId   = payload.profileId || studentName;
     const branch      = payload.branch || 'CS1';
     const date        = payload.date || '';
     const refMonth    = payload.refMonth || '';
@@ -8924,8 +8839,8 @@ window.buildPaymentBundleTransaction = function(payload) {
         paymentKind: safeComponents.length > 1 ? 'bundle' : 'single',
         description: studentName,
         studentName: studentName,
-        profileName: profileName,
-        profileId: profileId,
+        profileName: studentName,
+        profileId: studentName,
         amount: total,
         date: date,
         txMonth: refMonth,
@@ -9343,10 +9258,7 @@ window.debugMultiItemSkippedMonth = function(name) {
 window.processMultiItem = async (action) => {
     const name = document.getElementById('mi_name').value.trim();
     if(!name) return alert('Vui lòng nhập tên võ sinh!');
-    // H8R2.1 R3 — MultiItem identity must already exist in the canonical RAM
-    // profile map. Never turn raw text input into a create-if-missing profile.
-    const profile = allProfiles[name];
-    if(!profile) return alert('Không tìm thấy hồ sơ võ sinh hợp lệ. Vui lòng chọn võ sinh từ danh sách.');
+    const profile = allProfiles[name] || {};
     const branch = profile.branch || document.getElementById('branch').value || 'CS1';
     const tuitionMonth = document.getElementById('mi_tuition_month').value;
     const pkg = Number(document.getElementById('mi_tuition_pkg').value) || 1;
@@ -9456,15 +9368,6 @@ window.processMultiItem = async (action) => {
     if(hasOther && otherFee > 0) _labelParts.push(otherDesc || 'Khoản khác');
     const receiptTypeLabel = _labelParts.join(' + ') || 'Khoản thu';
 
-    // H8R2.1 R2 — paidUntil is monotonic. Reuse the same normalized YYYY-MM
-    // comparison semantics as TuitionCommandBoundary; never let a back-payment
-    // move the canonical paid boundary backwards.
-    const _previousPaidUntil = normalizeYYYYMM(profile.paidUntil || '');
-    const _candidatePaidUntil = hasTuition && packageMonths.length > 0 ? normalizeYYYYMM(lastMonth) : '';
-    const _resultPaidUntil = _candidatePaidUntil
-        ? (_candidatePaidUntil > (_previousPaidUntil || '') ? _candidatePaidUntil : (_previousPaidUntil || _candidatePaidUntil))
-        : _previousPaidUntil;
-
     const _miAuditPayload = {
         studentName: name,
         branch: branch,
@@ -9473,10 +9376,7 @@ window.processMultiItem = async (action) => {
         total: total,
         tuition: hasTuition ? tuition : 0,
         packageMonths: packageMonths,
-        paidUntil: _resultPaidUntil,
-        previousPaidUntil: _previousPaidUntil,
-        candidatePaidUntil: _candidatePaidUntil,
-        resultPaidUntil: _resultPaidUntil,
+        paidUntil: lastMonth,
         examFee: hasExam ? examFee : 0,
         inventoryTotal: invTotal,
         inventoryDebtTotal: invDebtTotal,
@@ -9486,58 +9386,45 @@ window.processMultiItem = async (action) => {
     try {
         if(action === 'pay') {
             if(window.userRole === 'viewer') return alert('Tài khoản khách không thể ghi sổ!');
-            if (window.processMultiItem.__atomicInFlight) {
-                window.showToast?.('⏳ Giao dịch đang được xử lý, vui lòng không gửi lại.');
-                return;
-            }
             if (typeof window.guardFinancialWriteIntent === 'function' && !window.guardFinancialWriteIntent('multiitem.pay', _miAuditPayload)) return;
             if (typeof window.recordFinancialActionAudit === 'function') window.recordFinancialActionAudit('multiitem.pay', 'before', _miAuditPayload);
-            window.processMultiItem.__atomicInFlight = true;
             const today = getLocalToday();
 
-            // H8R2 C3 — PREPARE → VALIDATE → ONE ATOMIC COMMIT.
-            // This remains inside the existing multi-item owner and reuses the
-            // existing InventoryService pure prepare primitive. No parallel writer.
-            if (typeof window.buildPaymentBundleTransaction !== 'function') {
-                throw new Error('Payment bundle authority chưa sẵn sàng. Chưa có dữ liệu nào được ghi.');
-            }
-            if (hasInv && invTotal > 0 && !(window.InventoryService && typeof window.InventoryService.prepareAddItemMutation === 'function')) {
-                throw new Error('Inventory canonical owner chưa sẵn sàng. Chưa có dữ liệu nào được ghi.');
-            }
-            if (invDebtIds.length > 0 && !(window.InventoryService && typeof window.InventoryService.prepareMarkPaidPatch === 'function')) {
-                throw new Error('Inventory debt canonical owner chưa sẵn sàng. Chưa có dữ liệu nào được ghi.');
+            // Phase 4K-5C: Gom tất cả khoản thành 1 bundle transaction
+            // 1. Cập nhật paidUntil/paidMonths học phí
+            if(hasTuition && packageMonths.length > 0) {
+                await setDoc(doc(db, 'clubs', currentClubId, 'profiles', name), { paidUntil: lastMonth, paidMonths: arrayUnion(...packageMonths) }, { merge: true });
             }
 
-            // Pre-generate the canonical transaction id so inventory/debt links can
-            // participate in the same atomic Firestore batch.
-            const _bundleDocRef = doc(colRef);
-            let _preparedInventory = null;
+            // 2. Tạo inventory doc (quản lý kho) — riêng biệt, không là giao dịch tài chính
             let _invDocId = '';
             if(hasInv && invTotal > 0) {
                 const _miIdentity = typeof window.resolveInventoryDebtIdentity === 'function' ? window.resolveInventoryDebtIdentity(name) : {};
-                const _miInvPayload = {
-                    category: invCat,
-                    size: invSize,
-                    type: 'Xuất bán',
-                    qty: invQty,
-                    desc: name,
-                    studentName: name,
-                    profileId: _miIdentity.profileId || '',
-                    memberId: _miIdentity.memberId || '',
-                    amount: invTotal,
-                    date: today,
-                    timestamp: Date.now() + 2,
-                    paymentBundleId: _bundleDocRef.id,
-                    paidTxId: _bundleDocRef.id
-                };
-                _preparedInventory = window.InventoryService.prepareAddItemMutation(_miInvPayload);
-                _invDocId = _preparedInventory.itemRef.id;
+                const _miInvPayload = { category: invCat, size: invSize, type: 'Xuất bán', qty: invQty, desc: name, studentName: name, profileId: _miIdentity.profileId || '', memberId: _miIdentity.memberId || '', amount: invTotal, date: today, timestamp: Date.now() + 2 };
+                if (window.InventoryService && typeof window.InventoryService.addItem === 'function') {
+                    _invDocId = await window.InventoryService.addItem(_miInvPayload);
+                } else {
+                    const _invDoc = await addDoc(invRef, _miInvPayload);
+                    _invDocId = _invDoc.id;
+                    const _miBase = invCat + '|||' + invSize;
+                    await setDoc(doc(db, 'clubs', currentClubId, 'settings', 'inventory_stats'), {
+                        [_miBase + '_balance']: increment(-invQty),
+                        [_miBase + '_out']: increment(invQty)
+                    }, { merge: true });
+                    window.mergeInventoryIntoRuntimeStore?.({ id: _invDocId, ..._miInvPayload }, 'multi-item-inventory-created-legacy');
+                }
             }
 
-            // Build components before any write.
-            const _profileForExam = profile;
+            // 3. Đánh dấu nợ kho đã thanh toán
+            if(invDebtIds.length > 0) {
+                await Promise.all(invDebtIds.map(id => updateDoc(doc(db, 'clubs', currentClubId, 'inventory', id), { unpaid: false })));
+            }
+
+            // 4. Build components cho bundle
+            const _profileForExam = allProfiles[name] || {};
             const _currentBelt = _profileForExam.belt || '';
             const _examTargetBelt = (window.BELT_NEXT && _currentBelt && window.BELT_NEXT[_currentBelt]) ? window.BELT_NEXT[_currentBelt] : '';
+
             const _components = [];
             if(hasTuition && tuition > 0) {
                 const _tuitionLabel = packageMonths.length
@@ -9554,84 +9441,57 @@ window.processMultiItem = async (action) => {
                 _components.push({ kind: 'inventory', type: 'Thu ' + invCat, label: invCat + ' ' + invSize + ' x' + invQty, amount: invTotal, category: invCat, size: invSize, qty: invQty, relatedInvId: _invDocId });
             }
             if(invDebtTotal > 0) {
-                Array.from(invDebtChecks).forEach(function(c) {
-                    const _itemAmt = Number(c.getAttribute && c.getAttribute('data-amount')) || 0;
-                    if(_itemAmt > 0) _components.push({ kind: 'inventoryDebt', type: 'Thu nợ kho', label: 'Nợ kho: ' + (c.getAttribute && c.getAttribute('data-label') || 'Đồ'), amount: _itemAmt });
-                });
+                if(typeof invDebtChecks !== 'undefined') {
+                    Array.from(invDebtChecks).forEach(function(c) {
+                        const _itemAmt = Number(c.getAttribute && c.getAttribute('data-amount')) || 0;
+                        if(_itemAmt > 0) _components.push({ kind: 'inventoryDebt', type: 'Thu nợ kho', label: 'Nợ kho: ' + (c.getAttribute && c.getAttribute('data-label') || 'Đồ'), amount: _itemAmt });
+                    });
+                }
             }
             if(hasOther && otherFee > 0) {
                 _components.push({ kind: 'other', type: 'Thu khác', label: otherDesc || 'Khoản khác', amount: otherFee });
             }
-            if (_components.length === 0) {
-                throw new Error('Không có khoản thu hợp lệ. Chưa có dữ liệu nào được ghi.');
-            }
 
-            const _miDisplayName = (window.ProfileCanonicalStore && typeof window.ProfileCanonicalStore.resolveDisplayName === 'function')
-                ? window.ProfileCanonicalStore.resolveDisplayName(name, profile)
-                : String(profile.displayName || profile.name || profile.fullName || profile.studentName || name || '').trim();
-            const _bundleTx = window.buildPaymentBundleTransaction({
-                studentName: _miDisplayName,
-                profileName: _miDisplayName,
-                profileId: name,
-                branch: branch,
-                date: today,
-                refMonth: refMonth,
-                receiptType: typeof receiptTypeLabel !== 'undefined' ? receiptTypeLabel : '',
-                components: _components
-            });
-
-            // Count canonical writes BEFORE committing. A logical financial action
-            // must never be split into independent batches.
-            let _opCount = 1; // bundle transaction
-            if(hasTuition && packageMonths.length > 0) _opCount += 1;
-            if(_preparedInventory) {
-                _opCount += 1; // inventory item
-                if (_preparedInventory.summaryPatch && Object.keys(_preparedInventory.summaryPatch).length) _opCount += 1; // inventory_stats
-            }
-            _opCount += invDebtIds.length;
-            if (_opCount > 400) {
-                const _tooLarge = new Error('Thao tác vượt giới hạn an toàn, chưa có dữ liệu nào được ghi.');
-                _tooLarge.code = 'finance/atomic-plan-too-large';
-                throw _tooLarge;
-            }
-
-            const _batch = writeBatch(db);
-            if(hasTuition && packageMonths.length > 0) {
-                _batch.update(doc(db, 'clubs', currentClubId, 'profiles', name), {
-                    paidUntil: _resultPaidUntil,
-                    paidMonths: arrayUnion(...packageMonths)
+            // 5. Tạo 1 bundle transaction duy nhất
+            if (typeof window.buildPaymentBundleTransaction === 'function' && _components.length > 0) {
+                const _bundleTx = window.buildPaymentBundleTransaction({
+                    studentName: name, branch: branch, date: today, refMonth: refMonth,
+                    receiptType: typeof receiptTypeLabel !== 'undefined' ? receiptTypeLabel : '',
+                    components: _components
                 });
-            }
-            if (_preparedInventory) {
-                _batch.set(_preparedInventory.itemRef, _preparedInventory.payload);
-                if (_preparedInventory.summaryPatch && Object.keys(_preparedInventory.summaryPatch).length) {
-                    _batch.set(_preparedInventory.statsRef, _preparedInventory.summaryPatch, { merge: true });
+                const _bundleDoc = await addDoc(colRef, _canonicalTxPayload(_bundleTx, 'payment-bundle'));
+                if(_invDocId) {
+                    try {
+                        await updateDoc(doc(db, 'clubs', currentClubId, 'inventory', _invDocId), { paymentBundleId: _bundleDoc.id, paidTxId: _bundleDoc.id });
+                    } catch(_e) {
+                        _recordSecondaryConsistencyFailure('inventory-payment-link-reconcile-required', _e, {
+                            domain: 'inventory', inventoryId: _invDocId, paidTxId: _bundleDoc.id, canonicalTransactionPreserved: true
+                        });
+                    }
                 }
-            }
-            const _inventoryDebtPaidAt = Date.now();
-            const _inventoryDebtPaidPatch = invDebtIds.length > 0
-                ? window.InventoryService.prepareMarkPaidPatch({
-                    txId: _bundleDocRef.id,
-                    paymentBundleId: _bundleDocRef.id,
-                    paidDate: today,
-                    paidAt: _inventoryDebtPaidAt,
-                })
-                : null;
-            invDebtIds.forEach(function(id) {
-                _batch.update(doc(db, 'clubs', currentClubId, 'inventory', id), _inventoryDebtPaidPatch);
-            });
-            _batch.set(_bundleDocRef, _canonicalTxPayload(_bundleTx, 'payment-bundle-atomic'));
-            await _batch.commit();
-
-            // Runtime state updates happen only after canonical commit succeeds.
-            if (_preparedInventory && _preparedInventory.runtimeItem) {
-                window.mergeInventoryIntoRuntimeStore?.(_preparedInventory.runtimeItem, 'processMultiItem-atomic-inventory');
-            }
-            if (_preparedInventory || invDebtIds.length > 0) {
-                window.notifyInventoryMutation?.('processMultiItem-atomic', { writeThrough: true });
-            }
-            if(typeof window.mergeTransactionIntoRuntimeStore === 'function') {
-                window.mergeTransactionIntoRuntimeStore(Object.assign({ id: _bundleDocRef.id }, _bundleTx), 'processMultiItem-atomic-bundle');
+                if(invDebtIds.length > 0) {
+                    await Promise.all(invDebtIds.map(async function(id) {
+                        try { await updateDoc(doc(db, 'clubs', currentClubId, 'inventory', id), { paidTxId: _bundleDoc.id }); }
+                        catch(_linkError) { _recordSecondaryConsistencyFailure('inventory-payment-link-reconcile-required', _linkError, { domain: 'inventory', inventoryId: id, paidTxId: _bundleDoc.id, canonicalTransactionPreserved: true }); }
+                    }));
+                }
+                if(typeof window.mergeTransactionIntoRuntimeStore === 'function') {
+                    window.mergeTransactionIntoRuntimeStore(Object.assign({ id: _bundleDoc.id }, _bundleTx), 'processMultiItem-bundle');
+                }
+            } else {
+                // Fallback: ghi riêng từng khoản như cũ
+                if(hasTuition && packageMonths.length > 0) {
+                    await addDoc(colRef, _canonicalTxPayload({ branch: branch, type: 'Học phí', description: name, amount: tuition, date: today, txMonth: lastMonth, packageMonths: packageMonths, timestamp: Date.now() }, 'multi-item-tuition-fallback'));
+                }
+                if(hasExam && examFee > 0) {
+                    await addDoc(colRef, _canonicalTxPayload({ branch: branch, type: 'Lệ phí thi', description: name + ' (' + examTitle + ')', studentName: name, profileName: name, profileId: name, amount: examFee, date: today, txMonth: refMonth, examTitle: examTitle, currentBeltAtPayment: _currentBelt, examTargetBelt: _examTargetBelt, timestamp: Date.now() + 1 }, 'multi-item-exam-fallback'));
+                }
+                if(hasInv && invTotal > 0) {
+                    await addDoc(colRef, _canonicalTxPayload({ branch: branch, type: 'Thu ' + invCat, description: 'Bán ' + invCat + ' ' + invSize + ' cho ' + name, amount: invTotal, date: today, txMonth: refMonth, timestamp: Date.now() + 3 }, 'multi-item-inventory-fallback'));
+                }
+                if(hasOther && otherFee > 0) {
+                    await addDoc(colRef, _canonicalTxPayload({ branch: branch, type: 'Thu khác', description: name + (otherDesc ? ' — ' + otherDesc : ''), amount: otherFee, date: today, txMonth: refMonth, timestamp: Date.now() + 4 }, 'multi-item-other-fallback'));
+                }
             }
             if (typeof window.recordFinancialActionAudit === 'function') window.recordFinancialActionAudit('multiitem.pay', 'after', _miAuditPayload);
             window.showToast('✅ Đã ghi sổ thành công!');
@@ -9643,8 +9503,6 @@ window.processMultiItem = async (action) => {
     } catch(err) {
         if (action === 'pay' && typeof window.recordFinancialActionAudit === 'function') window.recordFinancialActionAudit('multiitem.pay', 'error', Object.assign({}, _miAuditPayload, { error: err && err.message || String(err) }));
         console.error(err); alert('Lỗi: ' + err.message);
-    } finally {
-        if (action === 'pay') window.processMultiItem.__atomicInFlight = false;
     }
 };
 
@@ -10042,24 +9900,24 @@ window.processMultiItem = async (action) => {
                         ? (window.getBranchNameDisplay ? window.getBranchNameDisplay(data.branch) : data.branch)
                         : '';
                     const branchTag = branchDisplay
-                        ? `<span style="font-size:0.65rem;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:99px;padding:2px 7px;font-weight:700;">${(window.escapeHtml || _legacyEscapeHtmlFailClosed)(branchDisplay)}</span>`
+                        ? `<span style="font-size:0.65rem;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:99px;padding:2px 7px;font-weight:700;">${(window.escapeHtml || (v => String(v || '')))(branchDisplay)}</span>`
                         : '';
                     // Nền card hôm nay nổi bật hơn ngày cũ
                     const cardBg = isToday ? '#fffbeb' : '#fff';
                     const cardBorder = isToday ? '1px solid #fde68a' : '1px solid #e2e8f0';
                     html += `<div style="background:${cardBg};border:${cardBorder};border-radius:10px;padding:10px 13px;margin-bottom:5px;">
                         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:5px;">
-                            <span style="font-size:0.78rem;font-weight:800;color:#334155;">👨‍🏫 ${(window.escapeHtml || _legacyEscapeHtmlFailClosed)(data.coachName || 'HLV')}</span>
+                            <span style="font-size:0.78rem;font-weight:800;color:#334155;">👨‍🏫 ${(window.escapeHtml || (v => String(v || '')))(data.coachName || 'HLV')}</span>
                             ${branchTag}
                         </div>
-                        <div style="font-size:0.83rem;color:#334155;line-height:1.6;white-space:pre-wrap;">${(window.escapeHtml || _legacyEscapeHtmlFailClosed)(data.note || '')}</div>
+                        <div style="font-size:0.83rem;color:#334155;line-height:1.6;white-space:pre-wrap;">${(window.escapeHtml || (v => String(v || '')))(data.note || '')}</div>
                     </div>`;
                 });
                 html += '</div>';
             });
             listEl.innerHTML = html;
         } catch(e) {
-            listEl.innerHTML = `<p style="color:#dc2626;font-size:0.82rem;text-align:center;padding:12px;">Lỗi tải ghi chú: ${(window.escapeHtml || _legacyEscapeHtmlFailClosed)(e.message || '')}</p>`;
+            listEl.innerHTML = `<p style="color:#dc2626;font-size:0.82rem;text-align:center;padding:12px;">Lỗi tải ghi chú: ${(window.escapeHtml || (v => String(v || '')))(e.message || '')}</p>`;
         }
     };
 
@@ -10075,16 +9933,16 @@ window.processMultiItem = async (action) => {
             ? (window.getBranchNameDisplay ? window.getBranchNameDisplay(data.branch) : data.branch)
             : '';
         const branchTag = branchDisplay
-            ? `<span style="font-size:0.63rem;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:99px;padding:2px 8px;font-weight:700;">${(window.escapeHtml || _legacyEscapeHtmlFailClosed)(branchDisplay)}</span>`
+            ? `<span style="font-size:0.63rem;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:99px;padding:2px 8px;font-weight:700;">${(window.escapeHtml || (v => String(v || '')))(branchDisplay)}</span>`
             : '';
         const dateDisplay = data.date ? data.date.split('-').reverse().join('/') : '';
         return `<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:9px;padding:9px 11px;">
             <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px;">
-                <strong style="font-size:0.8rem;color:#92400e;">👨‍🏫 ${(window.escapeHtml || _legacyEscapeHtmlFailClosed)(data.coachName || 'Huấn luyện viên')}</strong>
+                <strong style="font-size:0.8rem;color:#92400e;">👨‍🏫 ${(window.escapeHtml || (v => String(v || '')))(data.coachName || 'Huấn luyện viên')}</strong>
                 ${branchTag}
                 <span style="font-size:0.72rem;color:#b45309;margin-left:2px;">• Ngày ${dateDisplay}</span>
             </div>
-            <div style="font-size:0.78rem;color:#78350f;line-height:1.55;white-space:pre-wrap;">${(window.escapeHtml || _legacyEscapeHtmlFailClosed)(data.notePreview || '')}</div>
+            <div style="font-size:0.78rem;color:#78350f;line-height:1.55;white-space:pre-wrap;">${(window.escapeHtml || (v => String(v || '')))(data.notePreview || '')}</div>
         </div>`;
     };
 

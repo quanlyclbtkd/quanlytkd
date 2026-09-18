@@ -12,22 +12,12 @@ window.currentUserEmail = 'admin@example.com';
 window.__store = { profiles: { 'Nguyen A': { tuitionFee: 100000, paidUntil: '2026-05', paidMonths: ['2026-05'] } }, transactions: [], allTransactions: [] };
 window.allProfiles = window.__store.profiles;
 window.allTransactions = [];
-const calls = { add:0, update:0, atomic:0, audit:0, del:0, query:0, updateAfterDelete:0, reconcile:0, invalidate:0, auditEvents:[] };
-let failAtomicCommit = false;
+const calls = { add:0, update:0, audit:0, del:0, query:0, updateAfterDelete:0, reconcile:0, invalidate:0, auditEvents:[] };
+let failProfileUpdate = false;
 let failReconcile = false;
 window.FinanceService = {
   async addTransaction(data) { calls.add++; await sleep(25); calls.lastTx = data; return `tx-${calls.add}`; },
-  async updateStudentPayment(name, data) { calls.update++; calls.lastProfileUpdate = {name,data}; },
-  async commitAtomicWritePlan(plan) {
-    calls.atomic++;
-    await sleep(25);
-    if (failAtomicCommit) throw new Error('atomic commit failed');
-    const tx = (plan.transactions || [])[0] || {};
-    const pu = (plan.profileUpdates || [])[0] || {};
-    calls.lastTx = tx.data;
-    calls.lastProfileUpdate = { name: pu.studentName, data: pu.data };
-    return { committed: (plan.transactions || []).length + (plan.profileUpdates || []).length, txIds: [`tx-atomic-${calls.atomic}`] };
-  },
+  async updateStudentPayment(name, data) { calls.update++; calls.lastProfileUpdate = {name,data}; if (failProfileUpdate) throw new Error('profile update failed'); },
   _arrayUnion(...items) { return { __arrayUnion: items }; },
   async addFeeAuditSilent(data) { calls.audit++; calls.lastAudit = data; },
   async deleteTransaction(id) { calls.del++; calls.lastDelete = id; await sleep(20); },
@@ -51,7 +41,7 @@ const boundary = window.TuitionCommandBoundary;
 const p1 = boundary.collectTuition({ studentName:'Nguyen A', months:['2026-06','2026-07'], branch:'CS1', amount:200000 });
 const p2 = boundary.collectTuition({ studentName:'Nguyen A', months:['2026-06','2026-07'], branch:'CS1', amount:200000 });
 const [r1,r2] = await Promise.all([p1,p2]);
-check('identical quickPay command commits one atomic plan once', calls.atomic === 1 && calls.add === 0 && calls.update === 0 && calls.audit === 1, JSON.stringify(calls));
+check('identical quickPay command writes transaction once', calls.add === 1 && calls.update === 1 && calls.audit === 1, JSON.stringify(calls));
 check('duplicate quickPay callers share same result', r1.txId === r2.txId && r1.paidMonths.length === 2);
 check('quickPay preserves canonical transaction fields', calls.lastTx.type === 'Học phí' && calls.lastTx.description === 'Nguyen A' && calls.lastTx.txMonth === '2026-07' && calls.lastTx.packageMonths.join(',') === '2026-06,2026-07');
 check('quickPay advances paidUntil without overwriting profile status fields', r1.paidUntil === '2026-07' && calls.lastProfileUpdate.name === 'Nguyen A' && Object.keys(calls.lastProfileUpdate.data).sort().join(',') === 'paidMonths,paidUntil');
@@ -81,19 +71,17 @@ check('delete partial state removes stale local transaction row', window.__store
 check('delete partial state forces tuition/debt refresh', calls.lastInvalidation.reason === 'v5u2-delete-tuition-partial-reconcile');
 failReconcile = false;
 
-failAtomicCommit = true;
-const beforeAtomicFailProfile = window.__store.profiles['Nguyen A'].paidUntil;
-let atomicFailedCleanly = false;
+failProfileUpdate = true;
+let partial = false;
 try {
   await boundary.collectTuition({ studentName:'Nguyen A', months:['2026-08'], branch:'CS1', amount:100000 });
-} catch (e) { atomicFailedCleanly = e.partialWrite !== true && /atomic commit failed/.test(e.message); }
-check('atomic commit failure is surfaced without partial-write marker', atomicFailedCleanly);
-check('atomic failure does not commit paidUntil locally', window.__store.profiles['Nguyen A'].paidUntil === beforeAtomicFailProfile);
-check('atomic failure does not synthesize a transaction/profile divergence', calls.lastInvalidation.reason !== 'v5u2-tuition-partial-write');
-failAtomicCommit = false;
+} catch (e) { partial = e.partialWrite === true && !!e.transactionId; }
+check('profile-update failure is surfaced as partial write', partial);
+check('partial write does not commit paidUntil locally', window.__store.profiles['Nguyen A'].paidUntil === '2026-07');
+check('partial write forces visible refresh for reconciliation', calls.lastInvalidation.reason === 'v5u2-tuition-partial-write');
 
 const metrics = boundary.getMetrics();
-check('tuition command metrics record duplicate prevention and only genuine delete-reconcile partial write', metrics.duplicatePrevented >= 2 && metrics.partialWrites === 1, JSON.stringify(metrics));
+check('tuition command metrics record duplicate prevention and partial writes', metrics.duplicatePrevented >= 2 && metrics.partialWrites === 2, JSON.stringify(metrics));
 
 if (failures) {
   console.error(`\nV5U-2 tuition command behavior check FAILED: ${failures}`);

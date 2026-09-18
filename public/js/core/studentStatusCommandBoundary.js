@@ -80,17 +80,6 @@ function _getProfile(name) {
   return window.__store?.profiles?.[key] || window.allProfiles?.[key] || {};
 }
 
-
-function _isQuitProfile(profile) {
-  if (!profile || typeof profile !== 'object') return false;
-  try {
-    if (typeof window !== 'undefined' && typeof window.classifyProfileStatus === 'function') {
-      return window.classifyProfileStatus(profile) === 'quit';
-    }
-  } catch (_) {}
-  return String(profile.status || '').trim().toLowerCase() === 'quit';
-}
-
 function _commitProfilePatch(name, patch, reason) {
   if (typeof window === 'undefined') return;
   const key = String(name || '').trim();
@@ -107,13 +96,6 @@ function _commitProfilePatch(name, patch, reason) {
   } catch (_) {}
   try { window.StudentSearchIndex?.invalidate?.(reason); } catch (_) {}
   try { window.invalidateSearchCache?.('students', reason); } catch (_) {}
-
-  // H8R2.1 R4: same-status edits of an already-quit profile are invisible to
-  // the active-profile membership listener. Dirty the EXISTING lazy Quit
-  // authority locally after the canonical write succeeds; no new listener/read.
-  if (_isQuitProfile(previous) || _isQuitProfile(next)) {
-    try { window.markQuitAuthorityDirty?.(`${reason}:quit-profile-mutation`); } catch (_) {}
-  }
 
   // Attendance does not share the students computation domain; invalidate it explicitly.
   try { window.invalidateList?.('attendance.list', reason); } catch (_) {}
