@@ -239,7 +239,11 @@ import { FinancialFlowMap }   from './core/financialFlowMap.js';
 import { SecurityPosture }   from './core/securityPosture.js';
 import { ActionGuard }        from './core/actionGuard.js';
 import { initCanonicalDomainCommandBoundary } from './core/canonicalDomainCommandBoundary.js?v=tuition-command-cutover-20260730-v5u2';
+<<<<<<< HEAD
 import { initStudentStatusCommandBoundary } from './core/studentStatusCommandBoundary.js?v=tuition-command-cutover-20260730-v5u2';
+=======
+import { initStudentStatusCommandBoundary } from './core/studentStatusCommandBoundary.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1';
+>>>>>>> parent of 1fa1b61 (upload 17-9)
 import { initTuitionCommandBoundary } from './core/tuitionCommandBoundary.js?v=tuition-command-cutover-20260730-v5u2';
 // Phase 4K-6E: Transaction Delete Integrity
 import { TransactionDeleteIntegrity } from './core/transactionDeleteIntegrity.js';
@@ -350,12 +354,22 @@ import {
     invalidateSearchCache,
     debugSearchPerformance,
 } from './modules/searchRuntime.js?v=student-given-name-priority-20260811-v5u3';
+<<<<<<< HEAD
 import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from './modules/finance.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
 import { initInventory }                              from './modules/inventory.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
 // Compatibility marker: from './modules/attendance.js'
 import { initAttendance }                             from './modules/attendance.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
 // Compatibility marker: ./modules/attendance.js?v=attendance-explicit-shift-authority-20260814-v5u6f
 // V5U6G1 compatibility marker: ./modules/attendance.js?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1
+=======
+// Compatibility marker: ./modules/finance.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h
+import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from './modules/finance.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1';
+import { initInventory }                              from './modules/inventory.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
+// Compatibility marker: from './modules/attendance.js'
+import { initAttendance }                             from './modules/attendance.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1';
+// Compatibility marker: ./modules/attendance.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
+// V5U6G1 compatibility marker: ./modules/attendance.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
+>>>>>>> parent of 1fa1b61 (upload 17-9)
 import { initDashboard }                              from './modules/dashboard.js?v=dashboard-hydration-mutation-guard-20260812-v5u6c2';
 // V5U6C1 compatibility markers retained for lineage-only regression gates:
 // ./ui/render.js?v=dashboard-mutation-aware-cache-freshness-20260812-v5u6c1
