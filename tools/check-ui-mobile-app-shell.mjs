@@ -20,14 +20,17 @@ function extractBetween(src,a,b){const i=src.indexOf(a); if(i<0)return ''; const
 console.log('\n📱 H8R2.1C1 — Mobile Shell Role/Access + UI Contract Closure Gate\n');
 const nav=extractBetween(html,'<nav id="mobileBottomNav"','</nav>');
 const navButtons=[...nav.matchAll(/<button\b/g)].length;
+const navIds=[...nav.matchAll(/<button\b[^>]*\bid="([^"]+)"/g)].map((m)=>m[1]);
+const navTag=(id)=>(nav.match(new RegExp(`<button\\b[^>]*\\bid="${id}"[^>]*>`))||[])[0]||'';
+const moreModules=extractBetween(html,'<div id="mobileMoreModuleSection"','<div class="ui-more-section-label ui-more-utility-label">');
 check(nav.length>0,'1. Mobile bottom navigation exists');
 check(navButtons===5,'2. Exactly 5 primary mobile navigation items');
-check(nav.includes("switchTab('dashboard')")&&nav.includes("switchTab('tx')")&&nav.includes("switchTab('attendance')")&&nav.includes("switchTab('active')")&&nav.includes('openMobileMenu()'),'3. Primary nav maps only to existing switchTab/openMobileMenu authorities');
+check(nav.includes("switchTab('tx')")&&nav.includes("switchTab('debt')")&&nav.includes("switchTab('attendance')")&&nav.includes("switchTab('active')")&&nav.includes('openMobileMenu()'),'3. Primary nav maps only to existing switchTab/openMobileMenu authorities');
 check(!/(mobileRouter|mobileState|navigationStore|activeModuleStore|history\.pushState|location\.hash\s*=)/.test(nav+css),'4. No mobile router or navigation state store added');
 check(html.includes('id="mainTabsWrapper"')&&html.includes('id="btn_dashboard"')&&html.includes('id="btn_tx"'),'5. Legacy desktop navigation remains in DOM');
 check(css.includes('@media (max-width: 767px)')&&css.includes('#mainTabsWrapper { display: none; }')&&!/@media \(min-width: 768px\)[\s\S]{0,800}#mainTabsWrapper\s*\{\s*display:\s*none/.test(css),'6. Legacy horizontal tab strip is hidden only in mobile shell');
-check(html.includes('id="mobileMenuSheet"')&&html.includes('id="mobileMoreDebt"')&&html.includes('id="mobileMoreQuit"'),'7. Existing mobile More sheet contains module navigation');
-check(["debt","inventory","exam","expense","quit"].every(x=>html.includes(`switchTab('${x}')`)),'8. More-sheet module actions reuse existing switchTab actions');
+check(html.includes('id="mobileMenuSheet"')&&html.includes('id="mobileMoreDashboard"')&&html.includes('id="mobileMoreQuit"'),'7. Existing mobile More sheet contains module navigation');
+check(["dashboard","inventory","exam","expense","quit"].every(x=>moreModules.includes(`switchTab('${x}')`)),'8. More-sheet module actions reuse existing switchTab actions');
 const uiMarkup=extractBetween(html,'<div id="filterArea"','<div id="home_birthday_banner"')+nav+extractBetween(html,'<div id="mobileMenuSheet"','<script>');
 const fsApi=/\b(getDoc|getDocs|onSnapshot|setDoc|updateDoc|addDoc|writeBatch|runTransaction)\s*\(/;
 check(!fsApi.test(uiMarkup),'9. Shell/navigation/filter wrappers contain ZERO Firestore API calls');
@@ -46,7 +49,7 @@ check(/\.ui-search-input[^}]*font-size:\s*16px/.test(css)&&/\.ui-filter-control[
 check(css.includes('env(safe-area-inset-bottom)')&&css.includes('env(safe-area-inset-top)'),'20. Shell supports top and bottom safe areas');
 check(!/(overflow-x:\s*hidden|\.no-horizontal-overflow|\.overflow-fix)/.test(css),'21. No page-level horizontal-overflow helper hack added');
 const shellLinks=[...html.matchAll(/<link[^>]+ui-mobile-shell\.css[^>]*>/g)];
-check(shellLinks.length===1,'22. Canonical H8R2.1C stylesheet is loaded exactly once');
+check(shellLinks.length===1&&shellLinks[0][0].includes('ui-mobile-shell-20260918-h8r2_1c1c'),'22. Canonical H8R2.1C stylesheet is loaded exactly once with the C1C cache marker');
 check((html.match(/ui-mobile-shell\.css/g)||[]).length===1,'23. No duplicate H8R2.1C stylesheet reference');
 check(!css.includes('!important'),'24. H8R2.1C adds zero !important declarations');
 const missingIds=[];
@@ -76,12 +79,12 @@ const shellGuardSource=nav+extractBetween(html,'<div id="filterArea"','<div id="
 
 check(css.includes(':not(:has(#superAdminView[style*="display: block"]))')&&css.includes('body:has(#superAdminView[style*="display: block"]) .ui-bottom-nav'),'33. SuperAdmin root view suppresses tenant Bottom Navigation');
 check(css.includes(':not(:has(#clubAccessBlockBanner))')&&css.includes('body:has(#clubAccessBlockBanner) .ui-bottom-nav'),'34. clubAccessBlockBanner suppresses tenant Bottom Navigation');
-check(css.includes('body:has(#clubAccessBlockBanner) #mobileMenuSheet { display: none; }')&&css.includes('body:has(#clubAccessBlockBanner) #mobileMoreModuleSection { display: none; }'),'35. Access-block state cannot expose mobile tenant module navigation');
+check(css.includes('body:has(#clubAccessBlockBanner) #mobileMenuSheet { display: none; }')&&css.includes('body:has(#clubAccessBlockBanner) #mobileMoreModuleSection { display: none; }')&&css.includes('body:has(#clubAccessBlockBanner) #mobileTuitionContextHeading'),'35. Access-block state cannot expose mobile tenant navigation or context heading');
 check(css.includes(coachDomPredicate+' #mobileMoreModuleSection { display: none; }'),'36. Coach mobile More tenant module section is hidden from existing role presentation markers');
 check(css.includes('body:has(#superAdminView[style*="display: block"]) #mobileMoreModuleSection'),'37. SuperAdmin mobile More tenant module section is hidden');
 check(navButtons===5&&css.includes(tenantNavSelector),'38. Normal accepted tenant Admin retains the 5-item Bottom Navigation');
 check(viewerBlock.length>0&&!/\.tab-btn|mainTabsWrapper[^\n;]*display\s*=\s*['"]none/.test(viewerBlock)&&css.includes(tenantNavSelector),'39. Viewer tenant shell remains navigable according to existing viewer presentation authority');
-const coachHiddenIds=['mobileNavDashboard','mobileNavTuition','mobileNavStudents','mobileNavMore'];
+const coachHiddenIds=['mobileNavTuition','mobileNavDebt','mobileNavStudents','mobileNavMore'];
 check(css.includes(coachDomPredicate+' .ui-bottom-nav { grid-template-columns: 1fr; }')&&coachHiddenIds.every(id=>css.includes(coachDomPredicate+' #'+id))&&!css.includes(coachDomPredicate+' #mobileNavAttendance'),'40. Coach tenant Bottom Navigation exposes exactly Attendance');
 check(html.includes('id="mmsSettingsAction"')&&html.includes('id="mmsTaxAction"')&&html.includes('id="mmsExcelAction"')&&
   css.includes('body:has(#btnSettings[style*="display: none"]) #mmsSettingsAction')&&
@@ -192,6 +195,38 @@ try {
   if(savedDocument===undefined) delete globalThis.document; else globalThis.document=savedDocument;
   if(savedLocalStorage===undefined) delete globalThis.localStorage; else globalThis.localStorage=savedLocalStorage;
 }
+
+// H8R2.1C1C — Mobile Primary Navigation contract (Patch A).
+const c1cNavOrder=['mobileNavTuition','mobileNavDebt','mobileNavAttendance','mobileNavStudents','mobileNavMore'];
+check(navButtons===5,'C1C-A. Bottom Navigation contains exactly five primary items');
+check(JSON.stringify(navIds)===JSON.stringify(c1cNavOrder),'C1C-B. Bottom Navigation order is Tuition, Debt, Attendance, Active, More');
+check(!nav.includes('id="mobileNavDashboard"')&&!nav.includes("switchTab('dashboard')"),'C1C-C. Dashboard is not a primary Bottom Navigation item');
+check(/onclick="switchTab\('tx'\)"/.test(navTag('mobileNavTuition')),'C1C-D. Học Phí maps only to switchTab(tx)');
+check(/onclick="switchTab\('debt'\)"/.test(navTag('mobileNavDebt')),'C1C-E. Báo Nợ maps only to switchTab(debt)');
+check(/onclick="switchTab\('attendance'\)"/.test(navTag('mobileNavAttendance')),'C1C-F. Điểm danh maps only to switchTab(attendance)');
+check(/onclick="switchTab\('active'\)"/.test(navTag('mobileNavStudents'))&&navTag('mobileNavStudents').includes('aria-label="Đang tập"'),'C1C-G. Đang tập maps only to switchTab(active) with aligned accessible label');
+check(/onclick="openMobileMenu\(\)"/.test(navTag('mobileNavMore')),'C1C-H. Khác maps to canonical openMobileMenu');
+check(moreModules.includes('id="mobileMoreDashboard"')&&moreModules.includes("closeMobileMenu();switchTab('dashboard')"),'C1C-I. More contains Dashboard through the existing switchTab authority');
+check(!moreModules.includes('id="mobileMoreDebt"')&&!moreModules.includes("switchTab('debt')"),'C1C-J. More contains no duplicate Debt module action');
+check(coachHiddenIds.every((id)=>css.includes(coachDomPredicate+' #'+id)),'C1C-K. Coach presentation hides Tuition, Debt, Active, and More');
+check(!css.includes(coachDomPredicate+' #mobileNavAttendance'),'C1C-L. Coach Attendance remains visible');
+const tuitionCardCss=extractBetween(css,'/* C1C tuition-card correction.','/* MODALS');
+const txRowRule=extractBetween(tuitionCardCss,'#tbl_tx tbody tr {','}');
+const txDateRule=extractBetween(tuitionCardCss,'#tbl_tx tbody .tx-date-cell,\n  #tbl_tx tbody td:first-child {','}');
+const txMonthRule=extractBetween(tuitionCardCss,'#tbl_tx tbody .tx-month-cell,\n  #tbl_tx tbody td:nth-last-child(5) {','}');
+check(txRowRule.includes('grid-template-columns: minmax(0, 1fr) auto')&&txRowRule.includes('grid-template-rows: auto auto auto')&&txDateRule.includes('grid-row: 2')&&txMonthRule.includes('grid-row: 3'),'C1C-M. Date and Month cannot share a mobile grid row or area');
+check(txDateRule.includes('grid-column: 1')&&txDateRule.includes('grid-row: 2'),'C1C-N. Tuition Date occupies mobile grid column 1 row 2');
+check(txMonthRule.includes('grid-column: 1')&&txMonthRule.includes('grid-row: 3'),'C1C-O. Tuition Month occupies mobile grid column 1 row 3');
+const mobileHeadingIndex=html.indexOf('id="mobileTuitionContextHeading"');
+const filterAreaIndex=html.indexOf('id="filterArea"');
+const countMarkupId=(id)=>(html.match(new RegExp(`\\bid="${id}"`,'g'))||[]).length;
+const filterIds=['searchInput','filterMonth','filterBranch','uiFilterToggle','filterArea'];
+check(/id="mobileTuitionContextHeading"[^>]*>💳 GHI NHẬN THU HỌC PHÍ<\/div>/.test(html)&&html.includes('class="tx-primary-heading '),'C1C-P. Mobile tuition context heading and semantic original-title marker exist');
+check(mobileHeadingIndex>=0&&mobileHeadingIndex<filterAreaIndex&&css.includes('body:has(#tab_tx.active) #mobileTuitionContextHeading')&&css.includes('#tab_tx.active .tx-primary-heading { display: none; }')&&css.includes('body:has(#superAdminView[style*="display: block"]) #mobileTuitionContextHeading')&&css.includes('body:has(#clubAccessBlockBanner) #mobileTuitionContextHeading'),'C1C-Q. Mobile tuition heading precedes Filter, replaces only the duplicate tx title, and remains fail-closed');
+check(filterIds.every((id)=>countMarkupId(id)===1),'C1C-R. Existing search/filter IDs each occur exactly once');
+const c1cPresentationMarkup=html.slice(mobileHeadingIndex,html.indexOf('<div id="home_birthday_banner"',mobileHeadingIndex))+nav+moreModules+tuitionCardCss;
+check(!fsApi.test(c1cPresentationMarkup),'C1C-S. C1C presentation adds no Firestore API');
+check(counts.getDoc===29&&counts.getDocs===51&&counts.onSnapshot===16,`C1C-T. Firestore static budget is unchanged at ${counts.getDoc}/${counts.getDocs}/${counts.onSnapshot}`);
 
 check(pkg.scripts?.['check:ui-mobile-app-shell']==='node tools/check-ui-mobile-app-shell.mjs','Package exposes check:ui-mobile-app-shell');
 console.log(`\nTotal: ${pass+fail} | PASS: ${pass} | FAIL: ${fail}`);
