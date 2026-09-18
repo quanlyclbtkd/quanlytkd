@@ -83,7 +83,7 @@ check('G1 cross-context pending follow-up remains', /_offlineAttendancePendingCo
 // H-specific source boundaries.
 check('Club Admin privileged root fields are excluded by rules helper', /clubAdminRootUpdateFieldsOnly/.test(rules) && !/hasOnly\([\s\S]{0,700}'expiryDate'/.test((rules.match(/clubAdminRootUpdateFieldsOnly[\s\S]*?\n\s*\}/)||[''])[0]||''));
 check('Coach main_config denied at Rules boundary', /isCoach\(clubId\) && settingId == 'shifts'/.test(rules));
-check('Profile display-name edit preserves immutable profile key', /oldName:\s*profileKey[\s\S]{0,100}newName:\s*profileKey/.test(fs.readFileSync('js/modules/students.js','utf8')) && /displayName:\s*requestedDisplayName/.test(fs.readFileSync('js/modules/students.js','utf8')));
+check('Profile primary rename safety guard present', /Chưa thể đổi tên chính của võ sinh/.test(fs.readFileSync('js/modules/students.js','utf8')));
 
 // H3 residual security trust boundaries.
 const loginHistoryStart=app.indexOf('window.loadLoginHistory = async () =>');

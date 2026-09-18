@@ -50,20 +50,6 @@ function _profiles() { return (window.__store || {}).profiles || {}; }
 function _config()   { return (window.__store || {}).clubConfig || {}; }
 /** @deprecated Phase 3.1 — Firebase calls đã chuyển sang StudentService */
 
-function _resolveDisplayName(profileKey, profile) {
-    try {
-        if (window.ProfileCanonicalStore && typeof window.ProfileCanonicalStore.resolveDisplayName === 'function') {
-            return window.ProfileCanonicalStore.resolveDisplayName(profileKey, profile);
-        }
-        if (typeof window.resolveProfileDisplayName === 'function') {
-            return window.resolveProfileDisplayName(profileKey, profile);
-        }
-    } catch (_) {}
-    const p = profile || {};
-    return String(p.displayName || p.name || p.fullName || p.studentName || profileKey || '').trim();
-}
-
-
 // Phase 4K-6V5U6G: secondary linkage failure remains observable without
 // retrying/duplicating the canonical admission transaction.
 const _recordStudentSecondaryFailure = (classification, error, extra = {}) => {
@@ -540,9 +526,8 @@ export function initStudents() {
         const p = _profiles()[name];
         if (!p) return;
 
-        const profileKey = name;
-        document.getElementById('m_old_name').value    = profileKey;
-        document.getElementById('m_name_input').value  = _resolveDisplayName(profileKey, p);
+        document.getElementById('m_old_name').value    = name;
+        document.getElementById('m_name_input').value  = name;
         document.getElementById('m_memberId').value    = p.memberId || '';
         document.getElementById('m_status').value      = p.status || 'active';
         document.getElementById('m_branch').value      = p.branch || 'CS1';
@@ -598,10 +583,13 @@ export function initStudents() {
     /**
      * Lưu thay đổi hồ sơ võ sinh vào Firestore.
      *
-     * H8R1: profile document ID là immutable profileKey.
-     * Trường tên trong modal chỉ sửa `displayName`; mọi update tiếp tục ghi
-     * vào đúng document hiện hữu qua StudentStatusCommandBoundary.
-     * Không gọi renameWithBatch, không migrate Attendance/transactions.
+     * Khi ĐỔI TÊN (oldName ≠ newName):
+     *   - writeBatch atomic: set doc mới + delete doc cũ
+     *   - Đồng bộ tên trong tất cả transactions liên quan
+     *   - Yêu cầu xác nhận trước khi thực hiện
+     *
+     * Khi SỬA (không đổi tên):
+     *   - setDoc merge để chỉ cập nhật các field thay đổi
      *
      * Logic trạng thái:
      *   active → quit  : ghi quitDate = hôm nay
@@ -614,16 +602,18 @@ export function initStudents() {
         const profiles = _profiles();
         const config   = _config();
 
-        const profileKey = document.getElementById('m_old_name').value.trim();
-        const requestedDisplayName = document.getElementById('m_name_input').value.trim();
+        const oldName  = document.getElementById('m_old_name').value.trim();
+        const newName  = document.getElementById('m_name_input').value.trim();
         const newStatus = document.getElementById('m_status').value;
         const isSingleBranch = (config.branchCount === 1);
 
-        if (!profileKey) return alert('Không xác định được mã hồ sơ võ sinh. Vui lòng đóng và mở lại hồ sơ!');
-        if (!requestedDisplayName) return alert('Tên võ sinh không được để trống!');
+        if (!newName) return alert('Tên võ sinh không được để trống!');
+        if (oldName !== newName) {
+            alert('⚠️ Chưa thể đổi tên chính của võ sinh ở phiên bản này.\n\nTên hiện đang được dùng làm mã liên kết cho lịch sử Điểm danh và một số giao dịch. Để bảo vệ dữ liệu cũ, hệ thống đã chặn thao tác đổi tên.\n\nBạn vẫn có thể chỉnh sửa các thông tin khác của võ sinh.');
+            return;
+        }
 
         let updateData = {
-            displayName:     requestedDisplayName,
             status:          newStatus,
             memberId:        document.getElementById('m_memberId').value.trim().toUpperCase(),
             branch:          isSingleBranch ? 'CS1' : (window.BranchIdentity?.normalize?.(document.getElementById('m_branch').value, { fallback: 'CS1' }) || 'CS1'),
@@ -645,11 +635,11 @@ export function initStudents() {
         if (updatedPaidUntil) updateData.paidUntil = updatedPaidUntil;
 
         // Xử lý chuyển trạng thái
-        if (newStatus === 'quit' && (profiles[profileKey] || {}).status !== 'quit') {
+        if (newStatus === 'quit' && (profiles[oldName] || {}).status !== 'quit') {
             updateData.quitDate = getLocalToday();
         } else if (newStatus === 'active') {
             updateData.quitDate = null;
-            if ((profiles[profileKey] || {}).status === 'quit') {
+            if ((profiles[oldName] || {}).status === 'quit') {
                 // Reset paidUntil về tháng trước để tính nợ đúng
                 const todayYYYYMM = getLocalToday().substring(0, 7);
                 let [ry, rm] = todayYYYYMM.split('-').map(Number);
@@ -663,17 +653,44 @@ export function initStudents() {
         // profile update command. Reuse the existing builder and current RAM profile;
         // no Firestore read and no second write are introduced.
         if (typeof window.buildStudentSearchIndex === 'function') {
-            const mergedProfile = { ...(profiles[profileKey] || {}), ...updateData };
-            Object.assign(updateData, window.buildStudentSearchIndex(mergedProfile, profileKey));
+            const mergedProfile = { ...(profiles[oldName] || {}), ...updateData };
+            Object.assign(updateData, window.buildStudentSearchIndex(mergedProfile, oldName));
         }
 
         try {
-            await window.StudentStatusCommandBoundary.updateProfile({
-                oldName: profileKey,
-                newName: profileKey,
-                updateData
-            });
-            window.showToast('✅ Đã cập nhật hồ sơ!');
+            if (oldName !== newName) {
+                // Đổi tên — atomic batch
+                if (profiles[newName]) return alert('Tên võ sinh đã tồn tại!');
+                if (!confirm(`Bạn có chắc muốn đổi tên từ "${oldName}" thành "${newName}"?\nHệ thống sẽ tự động cập nhật tên mới trên tất cả hóa đơn.`)) return;
+
+                updateData.createdAt = (profiles[oldName] || {}).createdAt || getLocalToday();
+                if ((profiles[oldName] || {}).skippedMonths) updateData.skippedMonths = profiles[oldName].skippedMonths;
+                if ((profiles[oldName] || {}).paidUntil)     updateData.paidUntil     = profiles[oldName].paidUntil;
+
+                // Tìm tất cả transactions liên quan để đồng bộ tên
+                const oldTxDocs = await StudentService.findTransactionsByStudent(oldName);
+                const txUpdates = [];
+                oldTxDocs.forEach(({ id: txId, data: t }) => {
+                    let updatedDesc = t.description;
+                    if (t.description === oldName) {
+                        updatedDesc = newName;
+                    } else if (t.description && t.description.startsWith(oldName + ' (Thi lên')) {
+                        updatedDesc = t.description.replace(oldName, newName);
+                    } else if (t.description && t.description.includes(oldName)) {
+                        updatedDesc = t.description.replace(oldName, newName);
+                    }
+                    if (updatedDesc !== t.description) txUpdates.push({ txId, newDesc: updatedDesc });
+                });
+
+                await window.StudentStatusCommandBoundary.updateProfile({ oldName, newName, updateData, txUpdates });
+
+                // V5U-1: local-store commit/invalidation is owned by StudentStatusCommandBoundary.
+                window.showToast('✅ Đã cập nhật và đồng bộ tên mới thành công!');
+            } else {
+                // Chỉ sửa — không đổi tên
+                await window.StudentStatusCommandBoundary.updateProfile({ oldName, newName, updateData });
+                window.showToast('✅ Đã cập nhật hồ sơ!');
+            }
             window.closeModal();
         } catch (error) {
             console.error('Lỗi cập nhật:', error);

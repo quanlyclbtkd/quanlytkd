@@ -55,14 +55,6 @@ import {
     addMonthsToYYYYMM,
 } from '../utils/format.js';
 
-const resolveReportDisplayName = function(profileKey, profile) {
-    const p = profile || {};
-    if (typeof window !== 'undefined' && window.ProfileCanonicalStore && typeof window.ProfileCanonicalStore.resolveDisplayName === 'function') {
-        return window.ProfileCanonicalStore.resolveDisplayName(profileKey, p);
-    }
-    return String(p.displayName || p.name || p.fullName || p.studentName || profileKey || '').trim();
-};
-
 // ════════════════════════════════════════════════════════════════
 // Phase 4K-6E-B: Belt ordering helpers for exam export sort
 // ════════════════════════════════════════════════════════════════
@@ -662,8 +654,8 @@ export function initReports() {
                 const p = allProfiles[name];
                 if (p.status !== 'active') return;
                 const row = isSingle
-                    ? [nc(String(stt++)), bc(resolveReportDisplayName(name, p)), nc(p.memberId||'-'), nc(p.belt||''), nc(p.dob||''), nc(p.phone||''), nc(p.paidUntil ? formatMonth(p.paidUntil) : ''), nNum(p.tuitionFee||0)]
-                    : [nc(String(stt++)), bc(resolveReportDisplayName(name, p)), nc(p.memberId||'-'), nc(_branchName(p.branch)), nc(p.belt||''), nc(p.dob||''), nc(p.phone||''), nc(p.paidUntil ? formatMonth(p.paidUntil) : ''), nNum(p.tuitionFee||0)];
+                    ? [nc(String(stt++)), bc(name), nc(p.memberId||'-'), nc(p.belt||''), nc(p.dob||''), nc(p.phone||''), nc(p.paidUntil ? formatMonth(p.paidUntil) : ''), nNum(p.tuitionFee||0)]
+                    : [nc(String(stt++)), bc(name), nc(p.memberId||'-'), nc(_branchName(p.branch)), nc(p.belt||''), nc(p.dob||''), nc(p.phone||''), nc(p.paidUntil ? formatMonth(p.paidUntil) : ''), nNum(p.tuitionFee||0)];
                 stu_rows.push(row);
             });
             const ws_stu = XLSX.utils.aoa_to_sheet(stu_rows);
@@ -752,8 +744,8 @@ export function initReports() {
                 totalDebt += debt;
                 const monthsLabel = `${months} tháng` + (owedMonths.length ? ` (${formatMonthCompact(owedMonths.join(','))})` : '');
                 const row = isSingle
-                    ? [bc(resolveReportDisplayName(name, p)), nc(monthsLabel), nNum(p.tuitionFee||0), warnNum(debt)]
-                    : [bc(resolveReportDisplayName(name, p)), nc(_branchName(p.branch)), nc(monthsLabel), nNum(p.tuitionFee||0), warnNum(debt)];
+                    ? [bc(name), nc(monthsLabel), nNum(p.tuitionFee||0), warnNum(debt)]
+                    : [bc(name), nc(_branchName(p.branch)), nc(monthsLabel), nNum(p.tuitionFee||0), warnNum(debt)];
                 debt_rows.push(row);
             });
             const debtCols  = isSingle ? 4 : 5;
@@ -771,18 +763,13 @@ export function initReports() {
             let paidExamStudents = {};
             txAll.forEach(t => {
                 if (t.type === 'Lệ phí thi' || t.type === 'Học phí + Lệ phí thi') {
-                    const rawStuName = String(t.profileId || t.studentId || '').trim() || (
-                        typeof window.extractExamStudentName === 'function'
-                            ? window.extractExamStudentName(t)
-                            : (function(tx) {
-                                const desc = String(tx.description || '').trim();
-                                const m = desc.match(/^(.*?)\s*\(Thi lên/i);
-                                return m ? m[1].trim() : desc.split(' (')[0].trim();
-                            })(t)
-                    );
-                    const stuName = typeof window.getCanonicalStudentName === 'function'
-                        ? window.getCanonicalStudentName(rawStuName, allProfiles)
-                        : rawStuName;
+                    const stuName = typeof window.extractExamStudentName === 'function'
+                        ? window.extractExamStudentName(t)
+                        : (function(tx) {
+                            const desc = String(tx.description || '').trim();
+                            const m = desc.match(/^(.*?)\s*\(Thi lên/i);
+                            return m ? m[1].trim() : desc.split(' (')[0].trim();
+                        })(t);
                     if (!stuName) return;
                     const _ep = allProfiles[stuName] || {};
                     const belt = typeof window.getExamTargetBeltFromTx === 'function'
@@ -807,8 +794,8 @@ export function initReports() {
                 const paid = paidExamStudents[name];
                 const paidCell = { v:`Đã nộp (${Number(paid.amount||0).toLocaleString()} đ)`, t:'s', s:{ font:Object.assign({},boldFont,{color:{rgb:'166534'}}), fill:{patternType:'solid',fgColor:{rgb:'DCFCE7'}}, border:borderAll, alignment:leftAlign } };
                 const row = isSingle
-                    ? [nc(String(stt2++)), bc(resolveReportDisplayName(name, p)), nc(p.memberId||'-'), nc(p.belt||''), nc(paid.belt||''), paidCell]
-                    : [nc(String(stt2++)), bc(resolveReportDisplayName(name, p)), nc(p.memberId||'-'), nc(_branchName(p.branch)), nc(p.belt||''), nc(paid.belt||''), paidCell];
+                    ? [nc(String(stt2++)), bc(name), nc(p.memberId||'-'), nc(p.belt||''), nc(paid.belt||''), paidCell]
+                    : [nc(String(stt2++)), bc(name), nc(p.memberId||'-'), nc(_branchName(p.branch)), nc(p.belt||''), nc(paid.belt||''), paidCell];
                 exam_rows.push(row);
             });
             const ws_exam = XLSX.utils.aoa_to_sheet(exam_rows);
@@ -1304,7 +1291,7 @@ export function initReports() {
                     : mc('✖ Chưa nộp phí', fUnpaid, fillUnpaid, bAll, cCenter);
                 ws_data.push([
                     cc(stt++, alt),
-                    bc(resolveReportDisplayName(name, p), alt),
+                    bc(name, alt),
                     cc(p.gender || '', alt),
                     cc(p.dob || '', alt),
                     cc(p.memberId || '', alt),

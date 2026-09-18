@@ -114,16 +114,16 @@ check(
     'processMultiItem phải lưu currentBeltAtPayment khi tạo giao dịch Lệ phí thi'
 );
 
-// ── 7. H8R1: quickCollectExam giữ profileId identity + display label ───────
+// ── 7. quickCollectExam trong app.js lưu studentName ─────────────────────
 check(
-    'app.js quickCollectExam giữ profileId=profileKey và studentName=displayName',
+    'app.js quickCollectExam lưu studentName',
     (function() {
         const idx = appJs.indexOf('window.quickCollectExam');
         if (idx === -1) return false;
         const block = appJs.slice(idx, idx + 5000);
-        return block.includes('profileId: name') && block.includes('studentName: _examDisplayName');
+        return block.includes('studentName: name') || block.includes("studentName:name");
     })(),
-    'H8R1 yêu cầu profileId: name và studentName: _examDisplayName'
+    'quickCollectExam trong app.js phải lưu studentName: name'
 );
 
 // ── 8. quickCollectExam trong app.js lưu examTargetBelt ──────────────────
@@ -138,16 +138,17 @@ check(
     'quickCollectExam trong app.js phải lưu examTargetBelt'
 );
 
-// ── 9. H8R1: finance quickCollectExam giữ profileId + display label ───────
+// ── 9. finance.js quickCollectExam lưu studentName ───────────────────────
 check(
-    'finance.js quickCollectExam giữ profileId=profileKey và studentName=displayName',
+    'finance.js quickCollectExam lưu studentName',
     (function() {
+        // Tìm định nghĩa hàm (assignment), không phải reference đầu tiên
         const idx = financeJs.indexOf('window.quickCollectExam = async');
         if (idx === -1) return false;
         const block = financeJs.slice(idx, idx + 5000);
-        return block.includes('profileId: name') && block.includes('studentName: displayName');
+        return block.includes('studentName: name') || block.includes("studentName:name");
     })(),
-    'H8R1 yêu cầu profileId: name và studentName: displayName'
+    'quickCollectExam trong finance.js phải lưu studentName: name'
 );
 
 // ── 10. exportExamPaidList dùng extractExamStudentName ───────────────────

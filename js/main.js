@@ -1,13 +1,4 @@
-// H8R1 cache-bust compatibility: runtime imports use profile-display-name-safe-edit-20260916-v5u6h8r1
-// Legacy lineage markers retained for regression gates only:
-// ./modules/attendance.js?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1
-// ./modules/attendance.js?v=attendance-explicit-shift-authority-20260814-v5u6f
-// ./modules/attendance.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h
-// ./modules/students.js?v=residual-security-data-integrity-release-verification-20260818-v5u6h3
-// ./core/studentSearchIndex.js?v=student-given-name-priority-20260811-v5u3
-// ./core/studentStatusCommandBoundary.js?v=tuition-command-cutover-20260730-v5u2
-// ./ui/render/renderStudents.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h
-// V5U3 quit compatibility: ./ui/render/renderStudents.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
+// V5U3 quit compatibility: ./ui/render/renderStudents.js?v=student-given-name-priority-20260811-v5u3
 // V5U3 quit compatibility: ./ui/render/renderInvalidation.js?v=student-given-name-priority-20260811-v5u3
 // Phase 4K-6V5U5 — Canonical Security Truth + Credential Purge + Auth Context Single Writer + Legacy Global Freeze
 // Phase 4K-6V3A compatibility: 4K-6V3A-firestore-read-attribution-canonical-transaction-boundary
@@ -61,7 +52,7 @@
 // APP_BUILD_VERSION = '4K-6V2A-inventory-consumer-hydration-hotfix-20260616'
 // Phase 4K-6V2C compatibility markers retained for regression gates only:
 // window.APP_PATCH_VERSION = '4K-6V2C-inventory-ledger-reconciliation-20260616'
-// modules/students.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
+// modules/students.js?v=inventory-ledger-reconciliation-20260616-v2c
 // modules/finance.js?v=inventory-ledger-reconciliation-20260616-v2c
 // modules/inventory.js?v=inventory-ledger-reconciliation-20260616-v2c
 /**
@@ -102,7 +93,7 @@ import { initProductionAuthorityPolicy }       from './core/productionAuthorityP
 import { initClubStatsAutoCache }              from './core/clubStatsAutoCache.js?v=production-authority-closure-20260814-v5u6e';
 import { initSuperAdminServerRefresh }         from './core/superAdminServerRefresh.js?v=production-authority-closure-20260814-v5u6e';
 import { initProductionStabilityGate }         from './core/productionStabilityGate.js?v=production-authority-closure-20260814-v5u6e';
-import { initStudentSearchIndex }             from './core/studentSearchIndex.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1';
+import { initStudentSearchIndex }             from './core/studentSearchIndex.js?v=student-given-name-priority-20260811-v5u3';
 import { initListenerOwnershipBoundary }      from './core/listenerOwnershipBoundary.js';
 import { initFinancialActionAuditGuard }      from './core/financialActionAuditGuard.js';
 import { initMobileStartupPerformance }       from './core/mobileStartupPerformance.js';
@@ -122,7 +113,7 @@ import { initRender }                          from './ui/render.js?v=production
 // V5U6D compatibility marker: ./ui/render.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d
 // Phase 3.4: Render Isolation Architecture — island initialisers + legacy shims
 import { initFinanceIslands, registerFinanceLegacyGlobals }     from './ui/render/renderFinance.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
-import { initStudentIslands, registerStudentsLegacyGlobals }     from './ui/render/renderStudents.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1';
+import { initStudentIslands, registerStudentsLegacyGlobals }     from './ui/render/renderStudents.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
 import { initInventoryIslands, registerInventoryLegacyGlobals }  from './ui/render/renderInventory.js?v=student-given-name-priority-20260811-v5u3';
 import { initAttendanceIslands }                                  from './ui/render/renderAttendance.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d';
 import { initDashboardIslands }                                   from './ui/render/renderDashboard.js';
@@ -248,7 +239,7 @@ import { FinancialFlowMap }   from './core/financialFlowMap.js';
 import { SecurityPosture }   from './core/securityPosture.js';
 import { ActionGuard }        from './core/actionGuard.js';
 import { initCanonicalDomainCommandBoundary } from './core/canonicalDomainCommandBoundary.js?v=tuition-command-cutover-20260730-v5u2';
-import { initStudentStatusCommandBoundary } from './core/studentStatusCommandBoundary.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1';
+import { initStudentStatusCommandBoundary } from './core/studentStatusCommandBoundary.js?v=tuition-command-cutover-20260730-v5u2';
 import { initTuitionCommandBoundary } from './core/tuitionCommandBoundary.js?v=tuition-command-cutover-20260730-v5u2';
 // Phase 4K-6E: Transaction Delete Integrity
 import { TransactionDeleteIntegrity } from './core/transactionDeleteIntegrity.js';
@@ -348,9 +339,9 @@ import {
 } from './firebase/paginatedQuery.js';
 
 // ── Phase 2d–3.2A: Business modules (eager — cần khi login) ────
-import { initStudents, initStudentPagination }        from './modules/students.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1';
-// V5U6G compatibility marker: ./modules/students.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
-// Compatibility marker: ./modules/students.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
+import { initStudents, initStudentPagination }        from './modules/students.js?v=residual-security-data-integrity-release-verification-20260818-v5u6h3';
+// V5U6G compatibility marker: ./modules/students.js?v=production-stability-residual-defect-closure-20260814-v5u6g
+// Compatibility marker: ./modules/students.js?v=tuition-command-cutover-20260730-v5u2
 // PHẦN 1 FIX + Phase 4K-2: Unified Search Controller — real cache + SearchBlob + stale guard
 import {
     initGlobalSearchRuntime,
@@ -359,13 +350,12 @@ import {
     invalidateSearchCache,
     debugSearchPerformance,
 } from './modules/searchRuntime.js?v=student-given-name-priority-20260811-v5u3';
-// Compatibility marker: ./modules/finance.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h
-import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from './modules/finance.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1';
+import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from './modules/finance.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
 import { initInventory }                              from './modules/inventory.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
 // Compatibility marker: from './modules/attendance.js'
-import { initAttendance }                             from './modules/attendance.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1';
-// Compatibility marker: ./modules/attendance.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
-// V5U6G1 compatibility marker: ./modules/attendance.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
+import { initAttendance }                             from './modules/attendance.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
+// Compatibility marker: ./modules/attendance.js?v=attendance-explicit-shift-authority-20260814-v5u6f
+// V5U6G1 compatibility marker: ./modules/attendance.js?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1
 import { initDashboard }                              from './modules/dashboard.js?v=dashboard-hydration-mutation-guard-20260812-v5u6c2';
 // V5U6C1 compatibility markers retained for lineage-only regression gates:
 // ./ui/render.js?v=dashboard-mutation-aware-cache-freshness-20260812-v5u6c1

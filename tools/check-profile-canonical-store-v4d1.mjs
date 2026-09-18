@@ -18,8 +18,7 @@ function includes(file, text) { return read(file).includes(text); }
 
 console.log('\n🔍 Phase 4K-6V4D1 — Profile Canonical Store Read-only Audit checks\n');
 
-const r1Build = 'profile-display-name-safe-edit-20260916-v5u6h8r1';
-const builds = [r1Build, 'quit-context-render-loop-guard-20260722-v5s', 'profile-canonical-store-runtime-recovery-20260628-v4d1a'];
+const builds = ['quit-context-render-loop-guard-20260722-v5s', 'profile-canonical-store-runtime-recovery-20260628-v4d1a'];
 const currentAppBuild = 'attendance-excel-documentid-sdk-fix-20260801-v5u2e';
 const tuitionAppBuild = 'tuition-command-cutover-20260730-v5u2';
 const previousAppBuild = 'student-status-command-cutover-tx-delete-fix-20260722-v5u1';
@@ -42,10 +41,10 @@ check('index loads profileCanonicalStore after tuitionDebtCanonical and before a
   (() => {
     const tuitionIdx = Math.max(...builds.map(b => index.indexOf(`js/core/tuitionDebtCanonical.js?v=${b}`)));
     const profileIdx = Math.max(...builds.map(b => index.indexOf(`js/core/profileCanonicalStore.js?v=${b}`)));
-    const appIdx = index.indexOf(`app.js?v=${r1Build}`) >= 0 ? index.indexOf(`app.js?v=${r1Build}`) : (index.indexOf(`app.js?v=${currentAppBuild}`) >= 0 ? index.indexOf(`app.js?v=${currentAppBuild}`) : (index.indexOf(`app.js?v=${tuitionAppBuild}`) >= 0 ? index.indexOf(`app.js?v=${tuitionAppBuild}`) : (index.indexOf(`app.js?v=${previousAppBuild}`) >= 0 ? index.indexOf(`app.js?v=${previousAppBuild}`) : (index.indexOf(`app.js?v=${olderAppBuild}`) >= 0 ? index.indexOf(`app.js?v=${olderAppBuild}`) : Math.max(...builds.map(b => index.indexOf(`app.js?v=${b}`)))))));
+    const appIdx = index.indexOf(`app.js?v=${currentAppBuild}`) >= 0 ? index.indexOf(`app.js?v=${currentAppBuild}`) : (index.indexOf(`app.js?v=${tuitionAppBuild}`) >= 0 ? index.indexOf(`app.js?v=${tuitionAppBuild}`) : (index.indexOf(`app.js?v=${previousAppBuild}`) >= 0 ? index.indexOf(`app.js?v=${previousAppBuild}`) : (index.indexOf(`app.js?v=${olderAppBuild}`) >= 0 ? index.indexOf(`app.js?v=${olderAppBuild}`) : Math.max(...builds.map(b => index.indexOf(`app.js?v=${b}`))))));
     return tuitionIdx > -1 && profileIdx > tuitionIdx && appIdx > profileIdx;
   })());
-check('index cache-busts app.js and main.js to V4D1A-or-later', (index.includes(`app.js?v=${r1Build}`) && index.includes(`./js/main.js?v=${r1Build}`)) || (index.includes(`app.js?v=${currentAppBuild}`) && index.includes(`./js/main.js?v=${currentAppBuild}`)) || (index.includes(`app.js?v=${tuitionAppBuild}`) && index.includes(`./js/main.js?v=${tuitionAppBuild}`)) || (index.includes(`app.js?v=${previousAppBuild}`) && index.includes(`./js/main.js?v=${previousAppBuild}`)) || (index.includes(`app.js?v=${olderAppBuild}`) && index.includes(`./js/main.js?v=${olderAppBuild}`)) || builds.some(b => index.includes(`app.js?v=${b}`) && index.includes(`./js/main.js?v=${b}`)));
+check('index cache-busts app.js and main.js to V4D1A-or-later', (index.includes(`app.js?v=${currentAppBuild}`) && index.includes(`./js/main.js?v=${currentAppBuild}`)) || (index.includes(`app.js?v=${tuitionAppBuild}`) && index.includes(`./js/main.js?v=${tuitionAppBuild}`)) || (index.includes(`app.js?v=${previousAppBuild}`) && index.includes(`./js/main.js?v=${previousAppBuild}`)) || (index.includes(`app.js?v=${olderAppBuild}`) && index.includes(`./js/main.js?v=${olderAppBuild}`)) || builds.some(b => index.includes(`app.js?v=${b}`) && index.includes(`./js/main.js?v=${b}`)));
 check('main.js retains V4D1 lineage marker', main.includes(`APP_BUILD_VERSION = '${runtimeVersion}'`) || main.includes(`APP_PATCH_VERSION = '${runtimeVersion}'`) || main.includes(`APP_BUILD_VERSION = '${version}'`) || main.includes(`APP_PATCH_VERSION = '${version}'`) || main.includes("APP_PATCH_VERSION = '4K-6V5U-2E-attendance-excel-documentid-sdk-fix-20260801'") || main.includes("APP_PATCH_VERSION = '4K-6V5U-2-tuition-command-cutover-20260730'") || main.includes("APP_PATCH_VERSION = '4K-6V5U-1-student-status-command-cutover-tx-delete-fix-20260722'") || main.includes("APP_PATCH_VERSION = '4K-6V5T-canonical-domain-command-boundary-write-freeze-20260722'") || main.includes("APP_PATCH_VERSION = '4K-6V5S-quit-context-render-loop-guard-20260722'"));
 check('profile canonical store exports public debug/audit API',
   src.includes('window.ProfileCanonicalStore') || src.includes('global.ProfileCanonicalStore'));

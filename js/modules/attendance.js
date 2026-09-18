@@ -618,12 +618,7 @@ function _renderAttCards() {
         return;
     }
     const _attStripSuffix = (k) => k.replace(/\s*\([^)]*\)\s*$/, '').replace(/\s*\[[^\]]*\]\s*$/, '').trim().toLowerCase();
-    const _attDisplayName = (profileKey, profile) => {
-        const raw = (window.ProfileCanonicalStore && typeof window.ProfileCanonicalStore.resolveDisplayName === 'function')
-            ? window.ProfileCanonicalStore.resolveDisplayName(profileKey, profile)
-            : String(profile?.displayName || profile?.name || profile?.fullName || profile?.studentName || profileKey || '').trim();
-        return raw.replace(/\s*\([^)]*\)\s*$/, '').replace(/\s*\[[^\]]*\]\s*$/, '').trim();
-    };
+    const _attDisplayName = (k) => k.replace(/\s*\([^)]*\)\s*$/, '').replace(/\s*\[[^\]]*\]\s*$/, '').trim();
     const _attNCount = {};
     Object.keys(allProfs || {}).forEach(n => {
         const k = _attStripSuffix(n);
@@ -673,7 +668,7 @@ function _renderAttCards() {
             ? '<span style="font-size:0.58rem;background:#dcfce7;color:#15803d;border:1px solid #bbf7d0;border-radius:4px;padding:1px 4px;font-weight:900;margin-left:3px;vertical-align:middle;">MỚI</span>' : '';
         const _nickname = (p.nickname || '').trim();
         const _safeNameHtml = escapeHtml(name);
-        const _safeDisplayNameHtml = escapeHtml(_attDisplayName(name, p));
+        const _safeDisplayNameHtml = escapeHtml(_attDisplayName(name));
         const _safeNicknameHtml = escapeHtml(_nickname);
         const _safeBeltHtml = escapeHtml(beltShort);
         const _cardWarnClass = churnWarn3 ? 'att-card-warn-red' : churnWarn2 ? 'att-card-warn-yellow' : '';
@@ -1629,7 +1624,7 @@ export function initAttendance() {
             calHtml += '</div>';
             bodyEl.innerHTML =
                 '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">'
-                + '<div><div style="font-size:1rem;font-weight:900;color:#0033A0;">' + escapeHtml((window.ProfileCanonicalStore?.resolveDisplayName?.(name, p)) || p.displayName || p.name || p.fullName || p.studentName || name) + '</div>'
+                + '<div><div style="font-size:1rem;font-weight:900;color:#0033A0;">' + escapeHtml(name) + '</div>'
                 + '<div style="font-size:0.72rem;color:#64748b;margin-top:3px;">🥋 ' + escapeHtml(p.belt||'Đai Trắng') + '</div></div>'
                 + '<button onclick="document.getElementById(\'attHistModal\').style.display=\'none\'" style="background:#f1f5f9;border:none;border-radius:50%;width:32px;height:32px;font-size:1rem;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#475569;">✕</button>'
                 + '</div>' + scheduleHtml
@@ -2239,7 +2234,7 @@ export function initAttendance() {
                         : `<div style="margin-top:7px;padding-top:7px;border-top:1.5px dashed #e2e8f0;font-size:0.6rem;color:#94a3b8;font-style:italic;">📅 Chưa có lịch học để tính chuyên cần chuẩn</div>`;
                     cardsHtml+=`<div style="background:#fff;border-radius:14px;border:1px solid #e8edf5;padding:12px 14px;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,0.05);">
                         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:9px;">
-                            <div style="flex:1;min-width:0;overflow:hidden;"><span onclick="window.showAttMemberHistory(decodeURIComponent('${_nameToken}'),'${selMonth}')" style="font-weight:800;font-size:0.9rem;color:#0033A0;cursor:pointer;text-decoration:underline dotted;">${escapeHtml((window.ProfileCanonicalStore?.resolveDisplayName?.(r.name, _mProfile)) || _mProfile.displayName || _mProfile.name || _mProfile.fullName || _mProfile.studentName || r.name)}</span>${_mWarnHtml}</div>
+                            <div style="flex:1;min-width:0;overflow:hidden;"><span onclick="window.showAttMemberHistory(decodeURIComponent('${_nameToken}'),'${selMonth}')" style="font-weight:800;font-size:0.9rem;color:#0033A0;cursor:pointer;text-decoration:underline dotted;">${escapeHtml(r.name)}</span>${_mWarnHtml}</div>
                             <div style="flex-shrink:0;max-width:45%;">${_mkBeltBadge(r.belt)}</div>
                         </div>
                         <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:5px;margin-bottom:5px;">
@@ -2271,7 +2266,7 @@ export function initAttendance() {
                     const _cmpR2 = _acc2.completionRate !== null ? Math.round(_acc2.completionRate * 100) : null;
                     const _accHtml2 = _accR2 !== null ? `<span style="font-weight:900;font-size:0.85rem;color:${_rateColor(_accR2)};">${_accR2}%</span>` : `<span style="color:#94a3b8;font-size:0.72rem;">${_hasS ? '' : 'Chưa có lịch'}</span>`;
                     const _cmpHtml2 = _cmpR2 !== null ? `<span style="font-size:0.75rem;color:#475569;">${_cmpR2}%</span>` : `<span style="color:#cbd5e1;font-size:0.7rem;">—</span>`;
-                    html+=`<tr style="${rowBg}"><td><span onclick="window.showAttMemberHistory(decodeURIComponent('${_nameToken}'),'${selMonth}')" style="font-weight:700;color:#0033A0;cursor:pointer;text-decoration:underline dotted;">${escapeHtml((window.ProfileCanonicalStore?.resolveDisplayName?.(r.name, _dtProfile)) || _dtProfile.displayName || _dtProfile.name || _dtProfile.fullName || _dtProfile.studentName || r.name)}</span>${_dtWarn}</td><td>${_mkBeltBadge(r.belt)}</td><td style="text-align:center;"><span style="font-weight:800;color:#16a34a;font-size:1rem;">${r.present}</span></td><td style="text-align:center;"><span style="font-weight:800;color:#2563eb;font-size:1rem;">${r.excused}</span></td><td style="text-align:center;"><span style="font-weight:800;color:#dc2626;font-size:1rem;">${r.absent}</span></td><td style="text-align:center;">${_rateHtml}</td><td style="text-align:center;">${_expHtml}</td><td style="text-align:center;">${_misHtml}</td><td style="text-align:center;">${_accHtml2}<br><span style="font-size:0.6rem;color:#94a3b8;">HT:${_cmpHtml2}</span></td><td style="text-align:center;"><button onclick="event.stopPropagation();window.copyAttReport(decodeURIComponent('${_nameToken}'),${r.present},${r.excused},${r.absent},'${monthDisplay}')" style="background:#0068FF;color:#fff;border:none;padding:5px 9px;border-radius:8px;font-size:0.7rem;font-weight:700;cursor:pointer;">📋 Zalo</button></td></tr>`;
+                    html+=`<tr style="${rowBg}"><td><span onclick="window.showAttMemberHistory(decodeURIComponent('${_nameToken}'),'${selMonth}')" style="font-weight:700;color:#0033A0;cursor:pointer;text-decoration:underline dotted;">${escapeHtml(r.name)}</span>${_dtWarn}</td><td>${_mkBeltBadge(r.belt)}</td><td style="text-align:center;"><span style="font-weight:800;color:#16a34a;font-size:1rem;">${r.present}</span></td><td style="text-align:center;"><span style="font-weight:800;color:#2563eb;font-size:1rem;">${r.excused}</span></td><td style="text-align:center;"><span style="font-weight:800;color:#dc2626;font-size:1rem;">${r.absent}</span></td><td style="text-align:center;">${_rateHtml}</td><td style="text-align:center;">${_expHtml}</td><td style="text-align:center;">${_misHtml}</td><td style="text-align:center;">${_accHtml2}<br><span style="font-size:0.6rem;color:#94a3b8;">HT:${_cmpHtml2}</span></td><td style="text-align:center;"><button onclick="event.stopPropagation();window.copyAttReport(decodeURIComponent('${_nameToken}'),${r.present},${r.excused},${r.absent},'${monthDisplay}')" style="background:#0068FF;color:#fff;border:none;padding:5px 9px;border-radius:8px;font-size:0.7rem;font-weight:700;cursor:pointer;">📋 Zalo</button></td></tr>`;
                 });
                 tbody.innerHTML=html;
             }
