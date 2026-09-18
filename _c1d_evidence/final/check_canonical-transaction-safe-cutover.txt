@@ -1,0 +1,38 @@
+
+> taekwondo-club-app@1.0.0 check:canonical-transaction-safe-cutover
+> node tools/check-canonical-transaction-safe-cutover.mjs
+
+
+=== Phase 4K-6V3BC1 — Automatic Canonical Transaction Optimization ===
+
+✅ V3BC1 cache-bust is active for boundary, app and main
+✅ Manual one-time optimizer button is no longer created
+✅ Automatic scheduling starts only after safe legacy overlap
+✅ Automatic cutover remains per-club and per-month
+✅ Automatic retry uses cooldown after failure
+✅ Transient offline/write-busy states are deferred, not marked successful
+✅ Only authorized club admin roles can auto-optimize
+✅ Backfill plan uses loaded store transactions instead of collection scan
+✅ Backfill writes only canonical fields in chunks of 400
+✅ Legacy listeners are detached before backfill
+✅ Exact parity remains mandatory before config cutover
+✅ Failure still reattaches legacy listener
+✅ Successful mode is persisted in each club main_config
+✅ Existing settings listener selects one or three listeners without new config listener
+✅ Club switch and logout cancel stale automatic timers
+✅ Emergency rollback API remains available without UI button
+✅ Dynamic: safe overlap automatically schedules one cutover
+✅ Dynamic: scheduling itself performs zero Firestore reads/writes
+✅ Dynamic: automatic cutover succeeds without button or confirm
+✅ Dynamic: auto backfill uses one batch and one parity query
+✅ Dynamic: per-club config is persisted after parity
+✅ Dynamic: listener lifecycle ends in canonical mode
+✅ Dynamic: automatic status records durable success
+✅ Dynamic: all migrated documents contain selected accounting month
+✅ Dynamic: emergency rollback returns to legacy mode
+✅ Dynamic: viewer account cannot auto-schedule migration writes
+✅ Dynamic: source limit blocks unsafe automatic cutover
+
+Total: 27 | PASS: 27 | FAIL: 0
+Phase 4K-6V3BC1 checks passed.
+

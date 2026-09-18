@@ -1,0 +1,36 @@
+
+> taekwondo-club-app@1.0.0 check:coach-branch-runtime-repair
+> node tools/check-coach-branch-runtime-repair.mjs
+
+
+=== Phase 4K-6V4B1 — Coach Branch Runtime Repair ===
+
+✅ Production entrypoints keep V4B1 branch repair and load current runtime cache marker
+✅ Coach creation requires one concrete branch
+✅ Coach creation mirrors branch into both authorization documents
+✅ Existing Coach accounts expose an explicit branch repair control
+✅ Admin branch repair writes coach doc and user mirror atomically
+✅ Migration never silently defaults a missing Coach branch to CS1
+✅ Migration synchronizes branch and coachBranch on both documents
+✅ Coach cache is not mounted before exact assignment verification
+✅ Runtime reads only the exact Admin Coach assignment document
+✅ Runtime repairs users/{uid} only from Admin assignment data
+✅ Missing/invalid Coach branch remains fail-closed
+✅ No full-club profile fallback is introduced for Coach repair
+✅ Profile listener query is server-scoped to assigned branch
+✅ Primary branch keeps scoped legacy Mặc định compatibility
+✅ Attendance client filtering uses canonical branch equality
+✅ Coach daily and monthly services always receive assigned branch
+✅ Attendance branch selectors are locked by app config for Coach
+✅ Rules let Coach read only their own Admin assignment mirror
+✅ Rules permit self mirror repair only when exact Admin assignment matches
+✅ Rules still block arbitrary self role, tenant or branch selection
+✅ Dynamic: missing mirror branch is resolved from one exact Coach assignment read
+✅ Dynamic: repair writes only the current users/{uid} authorization mirror
+✅ Dynamic: legacy primary values normalize to CS1
+✅ Dynamic: empty authorization branch stays invalid
+✅ Dynamic: CS1 and Mặc định compare as the same branch
+
+Total: 25 | PASS: 25 | FAIL: 0
+Phase 4K-6V4B1 coach branch runtime repair checks passed.
+

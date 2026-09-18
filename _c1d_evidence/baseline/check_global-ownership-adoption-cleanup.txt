@@ -1,0 +1,111 @@
+
+> taekwondo-club-app@1.0.0 check:global-ownership-adoption-cleanup
+> node tools/check-global-ownership-adoption-cleanup.mjs
+
+
+🔎 Phase 4K-6S — Global Ownership Adoption + Duplicate UI Cleanup
+
+[attendance.js] ✅ Phase 4K-6V5U6G residual closure: explicit shift + V2 offline journal ready
+✅ classic rollback layer exists
+✅ classic rollback layer loads before app.js
+✅ UI/report fallback layer retains its Phase 4K-6U contract
+✅ attendance classic rollback bridge exists
+✅ attendance rollback bridge loads before app.js
+✅ attendance rollback bridge declares Phase 4K-6V
+✅ fallback layer exposes health diagnostics
+✅ fallback layer contains showToast
+✅ app.js no longer owns duplicate body for showToast
+✅ fallback layer contains openMobileMenu
+✅ app.js no longer owns duplicate body for openMobileMenu
+✅ fallback layer contains closeMobileMenu
+✅ app.js no longer owns duplicate body for closeMobileMenu
+✅ fallback layer contains _checkMonthlyReminder
+✅ app.js no longer owns duplicate body for _checkMonthlyReminder
+✅ fallback layer contains _dismissMonthlyReminder
+✅ app.js no longer owns duplicate body for _dismissMonthlyReminder
+✅ fallback layer contains _openMonthlyExport
+✅ app.js no longer owns duplicate body for _openMonthlyExport
+✅ fallback layer contains openTaxModal
+✅ app.js no longer owns duplicate body for openTaxModal
+✅ fallback layer contains closeTaxModal
+✅ app.js no longer owns duplicate body for closeTaxModal
+✅ fallback layer contains openComboModal
+✅ app.js no longer owns duplicate body for openComboModal
+✅ fallback layer contains closeModal
+✅ app.js no longer owns duplicate body for closeModal
+✅ fallback layer contains formatMonthCompact
+✅ app.js no longer owns duplicate body for formatMonthCompact
+✅ fallback layer has no Firebase API: updateDoc(
+✅ fallback layer has no Firebase API: setDoc(
+✅ fallback layer has no Firebase API: addDoc(
+✅ fallback layer has no Firebase API: deleteDoc(
+✅ fallback layer has no Firebase API: writeBatch(
+✅ fallback layer has no Firebase API: runTransaction(
+✅ fallback layer has no Firebase API: onSnapshot(
+✅ fallback layer has no Firebase API: getDocs(
+✅ fallback layer has no Firebase API: getDoc(
+✅ app.js is smaller than Phase 4K-6R baseline
+✅ app.js line count is lower than Phase 4K-6R baseline
+✅ app.js documents extracted rollback layer
+✅ registry validates required canonical owner coverage
+✅ registry provides explicit canonical recovery
+✅ registry blocks accidental switchTab ownership
+✅ registry reports current Phase 4K-6V while preserving prior ownership rules
+✅ ownership manifest includes showToast
+✅ ownership manifest includes openMobileMenu
+✅ ownership manifest includes closeMobileMenu
+✅ ownership manifest includes _checkMonthlyReminder
+✅ ownership manifest includes _dismissMonthlyReminder
+✅ ownership manifest includes _openMonthlyExport
+✅ ownership manifest includes openTaxModal
+✅ ownership manifest includes closeTaxModal
+✅ ownership manifest includes openComboModal
+✅ ownership manifest includes closeModal
+✅ ownership manifest includes formatMonthCompact
+✅ toast module registers canonical showToast
+✅ modal module registers canonical closeModal
+✅ format module registers canonical formatMonthCompact
+✅ finance module registers canonical openComboModal
+✅ finance module no longer overwrites formatMonthCompact
+✅ finance module no longer directly overwrites openComboModal
+✅ students module no longer overwrites formatMonthCompact
+✅ students module uses imported pure formatter
+✅ main registers format ownership before business init
+✅ main registers finance UI ownership before business init
+✅ runtime smoke test includes rollback-layer diagnostics
+✅ main retains Phase 4K-6U compatibility marker
+✅ active APP_BUILD_VERSION is Phase 4K-6V or a later compatible phase
+✅ index cache bust is Phase 4K-6V or a later compatible phase
+✅ protected flow remains in legacy/runtime boundary: processMultiItem
+✅ protected flow remains in legacy/runtime boundary: quickPay
+✅ protected flow remains in legacy/runtime boundary: deleteTx
+✅ protected flow remains in legacy/runtime boundary: markInvPaid
+✅ protected flow remains in legacy/runtime boundary: cancelExamPayment
+✅ protected flow remains in legacy/runtime boundary: initSaaSDatabase
+✅ protected flow remains in legacy/runtime boundary: listenToData
+✅ protected flow remains in legacy/runtime boundary: renderApp
+✅ protected flow remains in legacy/runtime boundary: scheduleRender
+✅ switchTab remains audit-only due async wrapper/lifecycle coupling
+✅ package has Phase 4K-6S checker
+✅ default check includes Phase 4K-6S
+✅ check:all includes Phase 4K-6S
+✅ critical checks include Phase 4K-6S
+✅ all 11 reviewed Phase 4K-6S UI globals retain canonical owners
+✅ Phase 4K-6V registry contains 11 UI, 10 report, 19 attendance, and 15 diagnostics canonical owners
+✅ all 40 classic UI/report/attendance fallback references are preserved
+✅ all 19 attendance globals have canonical owners
+✅ attendance canonical references are installed
+✅ no ownership collision detected
+✅ all registered globals still point to canonical implementations
+✅ all required manifest owners are registered
+✅ registry preserved every original classic fallback reference
+✅ canonical showToast renders safely
+✅ canonical showToast sets text
+✅ canonical closeModal supports explicit modal IDs
+✅ canonical openComboModal opens combo modal
+✅ canonical formatter sorts month/year groups
+
+❌ Phase 4K-6S check failed (1)
+FAIL: runtime simulation failed: TypeError: sheet.setAttribute is not a function
+    at openMobileMenu (file:///mnt/data/h8r2_1c1d_work/js/ui/legacyUiShell.js:48:9)
+    at file:///mnt/data/h8r2_1c1d_work/tools/check-global-ownership-adoption-cleanup.mjs:200:20

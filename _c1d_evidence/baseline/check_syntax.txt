@@ -1,0 +1,12 @@
+
+> taekwondo-club-app@1.0.0 check:syntax
+> node tools/check-syntax.mjs
+
+[SyntaxCheck] Scanning project JS files and index.html inline scripts...
+
+
+[SyntaxCheck] Checked: 246 items
+              JS files: 238
+              Inline scripts in index.html: 8
+
+[SyntaxCheck] OK — JS files and inline scripts are valid.

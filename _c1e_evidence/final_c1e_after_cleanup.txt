@@ -1,0 +1,28 @@
+
+> taekwondo-club-app@1.0.0 check:h8r2-1c1e-ui
+> node tools/check-h8r2-1c1e-ui-precision.mjs
+
+✅ 1. canonical Search input exists exactly once
+✅ 2. canonical Search icon exists exactly once and remains presentation-only
+✅ 3. no duplicate Search control
+✅ 4. Debt header/actions are before Search
+✅ 5. Zalo action is before Search and keeps the existing handler once
+✅ 6. Group invoice action is before Search and keeps the existing handler once
+✅ 7. Search is before Debt list
+✅ 8. Debt filters are before Debt list
+✅ 9. no duplicate Zalo action in Debt priority block
+✅ 10. no duplicate Group Invoice action in Debt priority block
+✅ 11. existing Debt action handlers are preserved without wrapper event replacement
+✅ 12. Tuition compact semantic panel exists with 44px touch target contract
+✅ 13. Tuition transaction semantic card classes remain
+✅ 14. Bottom Nav order preserved
+✅ 15. Dashboard remains in More
+✅ 16. Debt is not duplicated in More
+✅ 17. no new getDoc
+✅ 18. no new getDocs
+✅ 19. no new onSnapshot
+✅ 20. root/public runtime parity
+
+Firestore static budget: 29/51/16
+Total: 20 | PASS: 20 | FAIL: 0
+H8R2.1C1E UI precision gate PASS.

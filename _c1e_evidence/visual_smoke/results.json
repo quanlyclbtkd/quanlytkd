@@ -1,0 +1,266 @@
+[
+  {
+    "viewport": "320x568",
+    "tuition": {
+      "iconCenterDelta": 0,
+      "inputH": 44,
+      "iconH": 20,
+      "panelH": 86.796875,
+      "panelDisplay": "flex",
+      "buttons": [
+        {
+          "w": 87.328125,
+          "h": 44,
+          "top": 103.796875,
+          "left": 23
+        },
+        {
+          "w": 87.328125,
+          "h": 44,
+          "top": 103.796875,
+          "left": 116.328125
+        },
+        {
+          "w": 87.34375,
+          "h": 44,
+          "top": 103.796875,
+          "left": 209.65625
+        }
+      ],
+      "overflow": 0,
+      "bottomNav": "none"
+    },
+    "debt": {
+      "display": "block",
+      "priorityTop": 70,
+      "priorityBottom": 259.53125,
+      "searchTop": 269.53125,
+      "searchBottom": 333.53125,
+      "debtTop": 349.1351318359375,
+      "order": true,
+      "zaloH": 51,
+      "groupH": 51,
+      "overflow": 0
+    }
+  },
+  {
+    "viewport": "360x800",
+    "tuition": {
+      "iconCenterDelta": 0,
+      "inputH": 44,
+      "iconH": 20,
+      "panelH": 86.796875,
+      "panelDisplay": "flex",
+      "buttons": [
+        {
+          "w": 100.65625,
+          "h": 44,
+          "top": 103.796875,
+          "left": 23
+        },
+        {
+          "w": 100.671875,
+          "h": 44,
+          "top": 103.796875,
+          "left": 129.65625
+        },
+        {
+          "w": 100.65625,
+          "h": 44,
+          "top": 103.796875,
+          "left": 236.328125
+        }
+      ],
+      "overflow": 0,
+      "bottomNav": "none"
+    },
+    "debt": {
+      "display": "block",
+      "priorityTop": 70,
+      "priorityBottom": 252.53125,
+      "searchTop": 262.53125,
+      "searchBottom": 326.53125,
+      "debtTop": 344.53125,
+      "order": true,
+      "zaloH": 44,
+      "groupH": 44,
+      "overflow": 0
+    }
+  },
+  {
+    "viewport": "390x844",
+    "tuition": {
+      "iconCenterDelta": 0,
+      "inputH": 44,
+      "iconH": 20,
+      "panelH": 86.796875,
+      "panelDisplay": "flex",
+      "buttons": [
+        {
+          "w": 110.65625,
+          "h": 44,
+          "top": 103.796875,
+          "left": 23
+        },
+        {
+          "w": 110.671875,
+          "h": 44,
+          "top": 103.796875,
+          "left": 139.65625
+        },
+        {
+          "w": 110.65625,
+          "h": 44,
+          "top": 103.796875,
+          "left": 256.328125
+        }
+      ],
+      "overflow": 0,
+      "bottomNav": "none"
+    },
+    "debt": {
+      "display": "block",
+      "priorityTop": 70,
+      "priorityBottom": 252.53125,
+      "searchTop": 262.53125,
+      "searchBottom": 326.53125,
+      "debtTop": 344.53125,
+      "order": true,
+      "zaloH": 44,
+      "groupH": 44,
+      "overflow": 0
+    }
+  },
+  {
+    "viewport": "430x932",
+    "tuition": {
+      "iconCenterDelta": 0,
+      "inputH": 44,
+      "iconH": 20,
+      "panelH": 86.796875,
+      "panelDisplay": "flex",
+      "buttons": [
+        {
+          "w": 124,
+          "h": 44,
+          "top": 103.796875,
+          "left": 23
+        },
+        {
+          "w": 124,
+          "h": 44,
+          "top": 103.796875,
+          "left": 153
+        },
+        {
+          "w": 124,
+          "h": 44,
+          "top": 103.796875,
+          "left": 283
+        }
+      ],
+      "overflow": 0,
+      "bottomNav": "none"
+    },
+    "debt": {
+      "display": "block",
+      "priorityTop": 70,
+      "priorityBottom": 252.53125,
+      "searchTop": 262.53125,
+      "searchBottom": 326.53125,
+      "debtTop": 344.53125,
+      "order": true,
+      "zaloH": 44,
+      "groupH": 44,
+      "overflow": 0
+    }
+  },
+  {
+    "viewport": "768x1024",
+    "tuition": {
+      "iconCenterDelta": 0,
+      "inputH": 22,
+      "iconH": 20,
+      "panelH": 62.53125,
+      "panelDisplay": "flex",
+      "buttons": [
+        {
+          "w": 171.6875,
+          "h": 37.5,
+          "top": 193.125,
+          "left": 282.953125
+        },
+        {
+          "w": 116.6875,
+          "h": 37.5,
+          "top": 193.125,
+          "left": 462.640625
+        },
+        {
+          "w": 155.671875,
+          "h": 37.5,
+          "top": 193.125,
+          "left": 587.328125
+        }
+      ],
+      "overflow": 0,
+      "bottomNav": "none"
+    },
+    "debt": {
+      "display": "block",
+      "priorityTop": 180.609375,
+      "priorityBottom": 344.140625,
+      "searchTop": 368.140625,
+      "searchBottom": 480.203125,
+      "debtTop": 510.203125,
+      "order": true,
+      "zaloH": 33.5,
+      "groupH": 33.5,
+      "overflow": 0
+    }
+  },
+  {
+    "viewport": "1024x900",
+    "tuition": {
+      "iconCenterDelta": 0,
+      "inputH": 22,
+      "iconH": 20,
+      "panelH": 62.53125,
+      "panelDisplay": "flex",
+      "buttons": [
+        {
+          "w": 171.6875,
+          "h": 37.5,
+          "top": 180.734375,
+          "left": 538.953125
+        },
+        {
+          "w": 116.6875,
+          "h": 37.5,
+          "top": 180.734375,
+          "left": 718.640625
+        },
+        {
+          "w": 155.671875,
+          "h": 37.5,
+          "top": 180.734375,
+          "left": 843.328125
+        }
+      ],
+      "overflow": 0,
+      "bottomNav": "none"
+    },
+    "debt": {
+      "display": "block",
+      "priorityTop": 168.21875,
+      "priorityBottom": 331.75,
+      "searchTop": 355.75,
+      "searchBottom": 467.8125,
+      "debtTop": 495.4163818359375,
+      "order": true,
+      "zaloH": 33.5,
+      "groupH": 33.5,
+      "overflow": 0
+    }
+  }
+]

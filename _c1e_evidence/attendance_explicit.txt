@@ -1,0 +1,71 @@
+
+> taekwondo-club-app@1.0.0 check:attendance-explicit-shift-authority
+> node tools/check-attendance-explicit-shift-authority.mjs
+
+
+🔎 Phase 4K-6V5U6F — Attendance Explicit Shift Authority
+
+[attendance.js] ✅ Phase 4K-6V5U6G residual closure: explicit shift + V2 offline journal ready
+✅ one canonical daily refresh owner remains
+✅ daily service invocation count remains exactly one
+✅ one shifts acquisition owner remains
+✅ module-local shift authority distinguishes unknown from ready-empty
+✅ legacy loaded boolean no longer represents shift authority
+✅ shift loader has loading/ready/error states
+✅ successful shift load derives configured state from authoritative list
+✅ force/retry calls reuse the same Promise latch
+✅ shift load errors are explicit and never swallowed as an empty list
+✅ one RAM decision helper exposes all canonical shift modes
+✅ shift decision helper has no network/render/timer owner
+✅ eligible shifts reuse canonical branch identity and Coach scope
+✅ no implicit first-shift auto selection exists
+✅ configured blank/error is blocked before loadByDate
+✅ blank all-shift read prevention is diagnosed
+✅ actual daily reads distinguish legacy and explicit shift modes
+✅ service defense rejects missing required shift before getDocs
+✅ blank daily reads are no longer labelled all-shifts
+✅ toggle uses canonical shift guard before optimistic mutation
+✅ bulk check-in uses the same guard before optimistic mutation
+✅ offline queue creation cannot bypass shift authority
+✅ offline synchronization validates queued shift evidence before write
+✅ toggle/bulk doc identity and payload use the same captured shift
+✅ invalid branch/deleted selection is cleared without a query
+✅ first-shift creation and selected-shift deletion re-enter canonical owner
+✅ no second daily state or in-flight map is introduced
+✅ Attendance orchestration adds no listener or polling
+✅ V5U6F boundary is preserved under the V5U6G1 targeted cache-bust
+✅ package exposes the V5U6F gate
+✅ runtime: configured blank resolves to shift-required
+✅ runtime: configured blank performs zero daily reads and renders prompt
+✅ runtime: successful non-empty config is authoritative
+✅ runtime: explicit eligible shift performs exactly one daily read
+✅ runtime: canonical owner passes explicit defensive service contract
+✅ runtime: existing name_date_shift record maps to the selected shift card
+✅ runtime: same explicit shift reuses warm daily snapshot
+✅ runtime: explicit toggle writes matching shift-aware doc id and payload
+✅ runtime: authoritative empty config preserves legacy no-shift read
+✅ runtime: legacy blank is explicitly labelled legacy-no-shift
+✅ runtime: shift config error performs zero daily reads
+✅ runtime: shift error is not coerced to empty configuration
+✅ runtime: config error blocks toggle/bulk before cache, offline, or Firestore writes
+✅ runtime: shift retry and concurrent ensure reuse one shifts point read
+✅ runtime: configured blank cannot create name_date duplicate through toggle or bulk
+✅ runtime: A response is stale-dropped after explicit blank intent
+✅ runtime: A cannot overwrite shift-required presentation
+✅ runtime: A→B latest-wins remains intact
+✅ runtime: branch change clears incompatible shift and performs zero blank reads
+✅ runtime: incompatible branch selection is diagnosed once
+✅ runtime: selecting eligible Branch B shift performs one read
+✅ runtime: Coach configured blank performs zero daily reads
+✅ runtime: Coach eligible shifts are assigned branch plus global only
+✅ runtime: deleting selected shift leaves configured blank blocked with zero daily reads
+✅ runtime: first saved shift immediately converts blank to blocked authority
+✅ runtime: no legacy no-shift write is allowed after first shift save
+✅ runtime: allowed offline record carries explicit shift identity
+✅ runtime: configured blank cannot mutate offline queue
+✅ runtime: required V5U6F read/write metrics are populated
+✅ runtime simulation creates no unintended offline sync writes
+✅ runtime shift create/delete scenarios use existing settings writer
+
+✅ V5U6F gate passed (60/60 assertions)
+

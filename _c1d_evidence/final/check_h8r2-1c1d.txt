@@ -1,0 +1,24 @@
+
+> taekwondo-club-app@1.0.0 check:h8r2-1c1d
+> node tools/check-h8r2-1c1d-regression-gate-runtime-readiness.mjs
+
+✅ 1. paidUntil monotonic gate aligned (T1-T4 + payment/debt)
+✅ 2. stale paidUntil:lastMonth requirement removed from processMultiItem
+✅ 3. GlobalOwnership fixture supports current ARIA contract
+✅ 4. Inventory summaryPatch semantic gate aligned
+✅ 5. Quit has no 60-second polling requirement
+✅ 6. Quit dirty/completeness authority preserved
+✅ 7. V5T recognizes approved fee_audit Class-2 loop
+✅ 8. getDoc unchanged
+✅ 9. getDocs unchanged
+✅ 10. onSnapshot unchanged
+✅ 11. mobile shell canonical owner unchanged
+✅ 12. nav order correct
+✅ 13. Dashboard moved to More
+✅ 14. Debt not duplicated in More
+✅ 15. Tuition semantic card classes remain
+✅ 16. root/public parity
+
+Firestore static budget: 29/51/16
+Total: 16 | PASS: 16 | FAIL: 0
+H8R2.1C1D regression gate/runtime readiness PASS.

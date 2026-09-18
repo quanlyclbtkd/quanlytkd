@@ -1,0 +1,1783 @@
+
+> taekwondo-club-app@1.0.0 precheck:all
+> npm run check:production-authority-closure && npm run check:attendance-explicit-shift-authority && npm run check:attendance-daily-single-refresh-authority && npm run check:production-security-trust-boundary
+
+
+> taekwondo-club-app@1.0.0 check:production-authority-closure
+> node tools/check-production-authority-closure.mjs
+
+✅ immutable production authority policy exists
+✅ policy selects exactly the client stats writer
+✅ policy disables legacy runtime recovery
+✅ policy is exposed read-only
+✅ main installs policy before runtime writers
+✅ exact V5U6E build marker is active
+✅ transaction listener publishes one store coverage object
+✅ coverage carries club/month/readMode
+✅ canonical coverage requires canonical source seen
+✅ legacy coverage requires all three source snapshots
+✅ limit hit uses >= and never assumes exact limit complete
+✅ coverage resets on club switch
+✅ coverage resets on logout
+✅ coverage resets before month/read-mode listener attach
+✅ legacy root recovery explicitly resets finance coverage
+✅ stats writer requires same club and month
+✅ stats writer requires ready and complete true
+✅ stats writer fails closed without selected production policy
+✅ incomplete finance is represented by metadata, not zero
+✅ financial root payload is conditional
+✅ financial stats payload is conditional
+✅ member cache remains outside finance conditional
+✅ SuperAdmin auto callable dispatch is removed
+✅ server refresh compatibility API is policy guarded
+✅ default client does not load Firebase Functions SDK
+✅ default deployment config excludes Functions
+✅ Functions source has explicit archive-only config
+✅ SuperAdmin rejects explicitly incomplete root finance cache
+✅ incomplete root coverage suppresses targeted stats fallback
+✅ app-context-ready no longer auto-runs recovery
+✅ late main replay no longer auto-runs recovery
+✅ normal resolve call is zero-probe
+✅ manual source probes require explicit options
+✅ manual runtime recovery requires explicit probe
+✅ legacy activation requires explicit activateLegacy
+✅ Coach diagnostic probe is blocked before _hasDoc
+✅ parallel gate freezes no automatic source detector
+✅ tenant rules retain narrow bootstrap get
+✅ tenant rules retain SuperAdmin-only list
+✅ tenant rules do not grant Club Admin/Viewer/public access
+✅ dynamic canonical < limit is complete
+✅ dynamic canonical = limit is incomplete
+✅ dynamic legacy all sources < limit is complete
+✅ dynamic legacy one source = limit is incomplete
+✅ dynamic legacy hydration waits for all three sources
+✅ dynamic merged dedup count cannot hide a source limit hit
+[ClubStatsAutoCache] synced cache {
+  cid: 'club_A',
+  active: 1,
+  revenue: 'unknown',
+  financeComplete: false,
+  reason: 'v5u6e-dynamic'
+}
+✅ dynamic high-volume still allows member root cache update
+✅ dynamic high-volume root has financeComplete=false metadata
+✅ dynamic high-volume root writes zero financial fields
+✅ dynamic high-volume stats doc writes zero financial fields
+✅ dynamic high-volume member write does not advance finance updatedAt
+✅ dynamic high-volume result reports financial writes skipped
+✅ dynamic unknown finance is not fabricated as zero
+[ClubStatsAutoCache] synced cache {
+  cid: 'club_A',
+  active: 1,
+  revenue: 449500000,
+  financeComplete: true,
+  reason: 'v5u6e-dynamic'
+}
+✅ dynamic complete coverage authorizes root finance
+✅ dynamic complete coverage authorizes stats finance
+✅ dynamic complete coverage totals are exact
+[ClubStatsAutoCache] synced cache {
+  cid: 'club_A',
+  active: 1,
+  revenue: 'unknown',
+  financeComplete: false,
+  reason: 'v5u6e-dynamic'
+}
+✅ dynamic Club B coverage cannot authorize Club A finance
+✅ dynamic non-client policy blocks all client stats writes
+✅ dynamic installed policy is frozen
+✅ dynamic installed policy property is non-writable
+✅ dynamic SuperAdmin treats incomplete preserved revenue as unknown
+✅ dynamic SuperAdmin auto refresh is policy-disabled
+✅ dynamic SuperAdmin manual compatibility refresh is policy-disabled
+✅ dynamic client-only SuperAdmin makes zero callable requests
+
+Production Authority Closure: 64/64 PASS
+
+> taekwondo-club-app@1.0.0 check:attendance-explicit-shift-authority
+> node tools/check-attendance-explicit-shift-authority.mjs
+
+
+🔎 Phase 4K-6V5U6F — Attendance Explicit Shift Authority
+
+[attendance.js] ✅ Phase 4K-6V5U6G residual closure: explicit shift + V2 offline journal ready
+✅ one canonical daily refresh owner remains
+✅ daily service invocation count remains exactly one
+✅ one shifts acquisition owner remains
+✅ module-local shift authority distinguishes unknown from ready-empty
+✅ legacy loaded boolean no longer represents shift authority
+✅ shift loader has loading/ready/error states
+✅ successful shift load derives configured state from authoritative list
+✅ force/retry calls reuse the same Promise latch
+✅ shift load errors are explicit and never swallowed as an empty list
+✅ one RAM decision helper exposes all canonical shift modes
+✅ shift decision helper has no network/render/timer owner
+✅ eligible shifts reuse canonical branch identity and Coach scope
+✅ no implicit first-shift auto selection exists
+✅ configured blank/error is blocked before loadByDate
+✅ blank all-shift read prevention is diagnosed
+✅ actual daily reads distinguish legacy and explicit shift modes
+✅ service defense rejects missing required shift before getDocs
+✅ blank daily reads are no longer labelled all-shifts
+✅ toggle uses canonical shift guard before optimistic mutation
+✅ bulk check-in uses the same guard before optimistic mutation
+✅ offline queue creation cannot bypass shift authority
+✅ offline synchronization validates queued shift evidence before write
+✅ toggle/bulk doc identity and payload use the same captured shift
+✅ invalid branch/deleted selection is cleared without a query
+✅ first-shift creation and selected-shift deletion re-enter canonical owner
+✅ no second daily state or in-flight map is introduced
+✅ Attendance orchestration adds no listener or polling
+✅ V5U6F boundary is preserved under the V5U6G1 targeted cache-bust
+✅ package exposes the V5U6F gate
+✅ runtime: configured blank resolves to shift-required
+✅ runtime: configured blank performs zero daily reads and renders prompt
+✅ runtime: successful non-empty config is authoritative
+✅ runtime: explicit eligible shift performs exactly one daily read
+✅ runtime: canonical owner passes explicit defensive service contract
+✅ runtime: existing name_date_shift record maps to the selected shift card
+✅ runtime: same explicit shift reuses warm daily snapshot
+✅ runtime: explicit toggle writes matching shift-aware doc id and payload
+✅ runtime: authoritative empty config preserves legacy no-shift read
+✅ runtime: legacy blank is explicitly labelled legacy-no-shift
+✅ runtime: shift config error performs zero daily reads
+✅ runtime: shift error is not coerced to empty configuration
+✅ runtime: config error blocks toggle/bulk before cache, offline, or Firestore writes
+✅ runtime: shift retry and concurrent ensure reuse one shifts point read
+✅ runtime: configured blank cannot create name_date duplicate through toggle or bulk
+✅ runtime: A response is stale-dropped after explicit blank intent
+✅ runtime: A cannot overwrite shift-required presentation
+✅ runtime: A→B latest-wins remains intact
+✅ runtime: branch change clears incompatible shift and performs zero blank reads
+✅ runtime: incompatible branch selection is diagnosed once
+✅ runtime: selecting eligible Branch B shift performs one read
+✅ runtime: Coach configured blank performs zero daily reads
+✅ runtime: Coach eligible shifts are assigned branch plus global only
+✅ runtime: deleting selected shift leaves configured blank blocked with zero daily reads
+✅ runtime: first saved shift immediately converts blank to blocked authority
+✅ runtime: no legacy no-shift write is allowed after first shift save
+✅ runtime: allowed offline record carries explicit shift identity
+✅ runtime: configured blank cannot mutate offline queue
+✅ runtime: required V5U6F read/write metrics are populated
+✅ runtime simulation creates no unintended offline sync writes
+✅ runtime shift create/delete scenarios use existing settings writer
+
+✅ V5U6F gate passed (60/60 assertions)
+
+
+> taekwondo-club-app@1.0.0 check:attendance-daily-single-refresh-authority
+> node tools/check-attendance-daily-single-refresh-authority.mjs
+
+
+🔎 Phase 4K-6V5U6D — Attendance Daily Single Refresh Authority
+
+[attendance.js] ✅ Phase 4K-6V5U6G residual closure: explicit shift + V2 offline journal ready
+✅ one canonical daily refresh orchestrator is declared
+✅ loadByDate is called exactly once inside the canonical module path
+✅ renderAttendanceList delegates to the canonical orchestrator
+✅ daily owner keeps module-local single-flight state
+✅ same-key/same-auth daily requests reuse one running flight
+✅ same-key daily snapshot has bounded short-TTL reuse
+✅ daily cache reuse is isolated by auth generation
+✅ RAM card renderer performs no service read
+✅ daily context captures club/auth/date/branch/shift identity
+✅ actual daily request token is immutable and captures mutation revision
+✅ latest-context guard checks immutable identity and generation
+✅ stale guard runs before daily cache commit
+✅ toggle and bulk optimistic writes advance the daily mutation revision
+✅ mutation-revision stale drops are diagnosed
+✅ daily error path preserves the accepted/optimistic cache
+✅ shift settings use a same-club Promise latch
+✅ late shift response cannot commit across clubs/auth generations
+✅ nested Day/Month visibility helpers exist
+✅ Day island is guarded and presentation-first
+✅ Month island is independently guarded
+✅ inactive nested subtabs return before their network paths
+✅ card presentation no longer loads admin coach notes
+✅ coach notes use accepted-context cache/single-flight
+✅ session note distinguishes loaded-missing from not-loaded and uses single-flight
+✅ session note point reads are attributed without adding a reader
+✅ attendance daily/shifts/coach-note reads use existing attribution metrics
+✅ belt and show-all handlers are RAM-only
+✅ date and branch handlers remain network-eligible canonical intents
+✅ profile snapshots do not invoke a second direct daily render path
+✅ attendance pseudo-listener fallback is presentation-only
+✅ legacy and module renderApp paths reuse daily RAM
+✅ canonical attendance event layer is mounted once by main
+✅ every changed nested runtime module has the V5U6D cache key
+✅ attendance filter controls have no duplicate inline onchange owner
+✅ runtime build version is exactly V5U6D
+✅ package exposes the V5U6D gate
+✅ default/full/critical suites include the V5U6D gate through npm pre-hooks
+✅ orchestrator/reconciliation module introduces no Firestore read owner
+✅ runtime: three same-key intents perform exactly one daily load
+✅ runtime: two same-key callers are diagnosed as coalesced
+✅ runtime: all same-key callers observe one accepted snapshot
+✅ runtime: late date A cannot overwrite accepted date B
+✅ runtime: late date response is stale-dropped exactly once
+✅ runtime: each distinct date intent performs exactly one daily read
+✅ runtime: final daily snapshot identity belongs to the newest date
+✅ runtime: late CS1 response cannot overwrite CS2 cards
+✅ runtime: each distinct branch intent performs exactly one daily read
+✅ runtime: final daily snapshot identity belongs to the newest branch
+✅ runtime: late shift A response cannot overwrite shift B cards
+✅ runtime: each distinct shift intent performs exactly one daily read
+✅ runtime: final daily snapshot identity belongs to the newest shift
+✅ runtime: late Club A/auth generation response cannot mutate Club B UI
+✅ runtime: snapshot identity resets to the accepted club
+✅ runtime: same-club old-auth flight is not shared and cannot overwrite new auth
+✅ runtime: accepted daily cache records the current auth generation
+✅ runtime: local toggle applies optimistically while the old read is running
+✅ runtime: pre-toggle read cannot erase optimistic status
+✅ runtime: toggle race is rejected by mutation revision
+✅ runtime: bulk check-in applies optimistically while the old read is running
+✅ runtime: pre-bulk read cannot erase optimistic statuses
+✅ runtime: belt/show-all/profile presentation storm performs zero daily reads
+✅ runtime: profile display changes still rebuild cards from RAM
+✅ runtime: daily/ensure/modal share exactly one shifts read
+✅ runtime: concurrent shifts consumers are diagnosed as coalesced
+✅ runtime: Admin cold daily shape is shifts 1 / daily 1 / coachNotes 1 / sessionNote 1
+✅ runtime: warm card presentation performs zero auxiliary reads
+✅ runtime: Day subtab prevents hidden monthly load
+✅ runtime: Month subtab prevents hidden daily load
+✅ runtime: active Month subtab retains its canonical monthly flow
+✅ runtime: hidden Attendance main tab performs zero day/month reads
+✅ runtime: Coach daily request remains server-scoped to canonical assigned branch
+✅ runtime: Coach daily lifecycle never loads admin coach-notes summary
+✅ runtime: Coach cold daily shape is shifts 1 / daily 1 / sessionNote 1
+
+✅ V5U6D gate passed (73/73 assertions)
+
+
+> taekwondo-club-app@1.0.0 check:production-security-trust-boundary
+> node tools/check-production-security-trust-boundary.mjs
+
+✅ clubAdminRootUpdateFieldsOnly helper exists
+✅ Admin root helper uses affectedKeys().hasOnly()
+✅ legitimate Admin root field remains whitelisted: cachedActiveCount
+✅ legitimate Admin root field remains whitelisted: cachedStudentCount
+✅ legitimate Admin root field remains whitelisted: activeStudentCount
+✅ legitimate Admin root field remains whitelisted: totalStudents
+✅ legitimate Admin root field remains whitelisted: cachedProfileCount
+✅ legitimate Admin root field remains whitelisted: cachedInvCount
+✅ legitimate Admin root field remains whitelisted: cachedCountUpdatedAt
+✅ legitimate Admin root field remains whitelisted: cacheCoverage
+✅ legitimate Admin root field remains whitelisted: cachedTxCount
+✅ legitimate Admin root field remains whitelisted: cachedCurrentMonthRevenue
+✅ legitimate Admin root field remains whitelisted: currentMonthRevenue
+✅ legitimate Admin root field remains whitelisted: cachedMonthlyRevenue
+✅ legitimate Admin root field remains whitelisted: revenueByMonth
+✅ legitimate Admin root field remains whitelisted: superAdminStats
+✅ legitimate Admin root field remains whitelisted: statsUpdatedAt
+✅ legitimate Admin root field remains whitelisted: statsSource
+✅ privileged field excluded from Admin root whitelist: parentCode
+✅ privileged field excluded from Admin root whitelist: expiryDate
+✅ privileged field excluded from Admin root whitelist: accountStatus
+✅ privileged field excluded from Admin root whitelist: adminEmail
+✅ privileged field excluded from Admin root whitelist: clubName
+✅ privileged field excluded from Admin root whitelist: examEnabled
+✅ privileged field excluded from Admin root whitelist: adminPassword
+✅ privileged field excluded from Admin root whitelist: passwordChangedAt
+✅ SuperAdmin root update authority preserved
+✅ Club Admin root update requires field whitelist
+✅ password transition guard remains part of root update
+✅ no public club root write
+PASS 30/30
+✅ security sub-gate exits 0: check-club-root-field-authority.mjs
+✅ escapeHtml fixture is inert: <img src=x onerror="wi
+✅ escapeHtml fixture is inert: "><svg onload="window.
+✅ escapeHtml fixture is inert: </div><img src=x onerr
+✅ escapeHtml fixture is inert: O'Brien
+✅ escapeHtml fixture is inert: "Test Club"
+✅ escapeHtml fixture is inert: <>&"'
+✅ escapeHtml preserves apostrophe as display-safe entity
+✅ escapeHtml escapes full HTML special set
+✅ SuperAdmin clubName display uses canonical escapeHtml
+✅ SuperAdmin adminEmail display uses canonical escapeHtml
+✅ SuperAdmin inline actions receive canonical club token, not clubName/email
+✅ SuperAdmin club token is URI-encoded for inline JS context
+✅ Attendance coach names escaped before branch-summary innerHTML
+✅ Attendance coach note escaped and pre-line preserved
+✅ Attendance card profile name/nickname/belt use canonical escapeHtml
+✅ Attendance monthly profile display name is escaped and inline JS keeps profileKey URI token
+✅ Admin session note renderer escapes coachName/note/branch
+✅ Admin notification renderer escapes notePreview
+✅ Transaction descriptions escaped at both canonical and legacy render boundaries
+✅ Inventory category display text escaped
+✅ Student debt display names escaped
+✅ Student active-row display/name metadata escaped
+✅ Belt badge text escapes canonical value
+✅ Exam profile name display escapes HTML
+✅ Known raw SuperAdmin P0 render patterns absent
+✅ Known raw Coach-note P0 pattern absent
+✅ login_history email is escaped before innerHTML
+✅ login_history clubId is escaped before innerHTML
+✅ login_history deviceName is escaped before innerHTML
+✅ login_history os is escaped before innerHTML
+✅ login_history browser is escaped before innerHTML
+✅ login_history filterClub is escaped before innerHTML
+✅ login_history error guide uses canonical escapeHtml for error/uid/email
+✅ login_history raw Firestore display interpolations are absent
+✅ SuperAdmin revenue clubName is escaped before innerHTML
+✅ SuperAdmin revenue clubId is escaped before innerHTML
+✅ SuperAdmin revenue error message is escaped before innerHTML
+✅ SuperAdmin revenue raw club/error HTML concatenations are absent
+PASS 38/38
+✅ security sub-gate exits 0: check-stored-xss-trust-boundary.mjs
+✅ Coach attendance-only runtime role captured before settings mount
+✅ Coach branch completes settings-ready without main_config snapshot
+✅ main_config onSnapshot is only in non-Coach else path
+✅ settings-ready event lifecycle is preserved
+✅ Coach startup does not getDoc(settingsRef)
+✅ Rules deny Coach main_config and allow only shifts
+✅ Coach has no settings list permission
+✅ RoleReadBoundary still blocks Coach financial domain transactions.month
+✅ RoleReadBoundary still blocks Coach financial domain inventory.stats
+✅ RoleReadBoundary still blocks Coach financial domain inventory.history
+✅ RoleReadBoundary still blocks Coach financial domain debt.coverage
+✅ RoleReadBoundary still blocks Coach financial domain exam.settings
+✅ No attendance_public projection/source introduced
+PASS 13/13
+✅ security sub-gate exits 0: check-coach-sensitive-config-closure.mjs
+✅ displayName edit supported
+✅ profileKey remains immutable modal identity
+✅ canonical command receives oldName/newName as same profileKey
+✅ display edit has zero renameWithBatch call
+✅ display edit has zero transaction lookup
+✅ display edit has zero profile delete/create branch
+✅ legacy rename service retained only for compatibility
+✅ no Attendance historical migration added to profile edit flow
+✅ no historical transaction rewrite added to profile edit flow
+✅ Attendance identity primitives remain profile-key based
+✅ no startup/background rename repair added
+PASS 11/11
+✅ security sub-gate exits 0: check-profile-rename-referential-guard.mjs
+✅ Parent Portal remains fail-closed: clubs list is SuperAdmin-only
+✅ No public allow read/write true introduced
+✅ Anonymous profiles are not public
+✅ Anonymous main_config is not public
+✅ RoleReadBoundary still declares Coach attendance-only
+✅ H2 fresh login UI has no Parent Portal tab
+✅ H2 fresh login UI has no Parent Portal pane
+✅ H2 fresh login UI has no Parent Portal code input
+✅ H2 fresh login UI has no Parent Portal name input
+✅ H2 fresh login UI has no Parent Portal results container
+✅ H2 fresh settings UI has no parentCode input
+✅ H2 ppLookupLogin compatibility no-op remains
+✅ H2 ppLookupLogin performs zero Auth/Firestore calls
+✅ H2 active app has no parentCode query
+✅ H2 active app has no cfg_parentCode DOM access
+✅ H2 active app has no parentCode root writer
+✅ H2 Club Admin root whitelist excludes parentCode
+✅ getDoc hard budget unchanged (29 <= 31)
+✅ getDocs hard budget unchanged (51 <= 56)
+✅ onSnapshot hard budget unchanged (16 <= 16)
+✅ No Coach settings polling introduced
+✅ Attendance offline Firestore writer remains one bulkSyncOffline owner
+✅ Attendance offline active flight remains one Promise latch
+✅ No second attendance_public settings authority introduced
+✅ Auth canonical commit authority remains
+✅ Transaction canonical boundary remains
+✅ Dashboard canonical single-flight/loader markers remain
+✅ Attendance daily canonical refresh owner remains
+✅ Attendance explicit shift authority remains
+✅ G1 cross-context pending follow-up remains
+✅ Club Admin privileged root fields are excluded by rules helper
+✅ Coach main_config denied at Rules boundary
+✅ Profile display-name edit preserves immutable profile key
+✅ H3 login_history output is escaped at canonical HTML sink
+✅ H3 login_history Rules bind role and club to verified identity
+✅ H3 SuperAdmin principal existence alone is insufficient
+✅ H3 Functions source principal also requires enabled:true
+Hard static counts: { getDoc: 29, getDocs: 51, onSnapshot: 16 }
+PASS 41/41
+
+> taekwondo-club-app@1.0.0 check:all
+> npm run check:syntax && npm run check:mobile-startup-performance && npm run check:lazy-assets-loading && npm run check:tailwind-static-css-build && npm run check:mobile-filter-currency-stability && npm run check:low-risk-helper-extraction && npm run check:receipt-qr-helper-extraction && npm run check:transaction-realtime && npm run check:stats-aggregation && npm run check:runtime-smoke-test && npm run check:deploy-package && npm run check:github-pages-paths && npm run check:runtime-stability-gate && npm run check:dashboard-exam-registration-branch && npm run check:dashboard-branch-components && npm run check:dashboard-chart-lifecycle && npm run check:debt-service-bridge && npm run check:debt-actions-sync && npm run check:multiitem-skipped-months && npm run check:active-loadmore-newest-first && npm run check:mobile-superadmin-gate && npm run check:search-runtime-v2 && npm run check:search-latency-optimization && npm run check:student-search-index && npm run check:cross-tab-search-replay && npm run check:active-loadmore-single-source && npm run check:exam-auto-select-paid && npm run check:exam-upgrade-finance-separation && npm run check:performance-stability-gate && npm run check:tab-render-recovery && npm run check:financial-flow-guard-readiness && npm run check:security-license-ip-protection && npm run check:scale-readiness-write-safety && npm run check:exam-export-belt-sort && npm run check:active-new-students-filter && npm run check:legacy-app-reduction-readiness && npm run check:multiitem-inventory-hydration && npm run check:legacy-diagnostics-extraction && npm run check:legacy-render-entrypoints && npm run check:inline-handler-bridge && npm run check:superadmin-aggregation-hard-stop && npm run check:superadmin-quota-guard && npm run check:legacy-runtime-fallback-fix && npm run check:superadmin-cache-stats-island-fallback && npm run check:superadmin-render-scope-fix && npm run check:club-stats-auto-cache && npm run check:superadmin-server-summary-cache && npm run check:superadmin-safe-server-refresh && npm run check:excel-import-vtf-upsert && npm run check:production-stability-gate && npm run check:multiitem-tuition-package-fix && npm run check:admission-tuition-type-normalization && npm run check:inventory-multiitem-readonly-ui && npm run check:listener-ownership-boundary && npm run check:financial-action-audit-guard && npm run check:global-ownership-adoption-cleanup && npm run check:diagnostics-tooling-isolation && npm run check:report-export-lazy-isolation && npm run check:attendance-canonical-ownership && npm run check:spark-read-cost-hardening && npm run check:inventory-history-active-debt && npm run check:inventory-consumer-hydration-hotfix && npm run check:inventory-dynamic-size-catalog && npm run check:inventory-ledger-reconciliation && npm run check:firestore-read-attribution-canonical-tx-boundary && npm run check:payment-bundle-runtime-hotfix && npm run check:canonical-transaction-safe-cutover && npm run check:debt-profile-read-boundary && npm run check:debt-authoritative-tuition-coverage && npm run check:tuition-package-month-coverage && npm run check:coach-attendance-only-read-boundary && npm run check:security-coach-branch-boundary && npm run check:coach-branch-runtime-repair && npm run check:quit-tab-completeness && npm run check:quit-tab-authoritative-completeness && npm run check:quit-tab-mobile-parity && npm run check:superadmin-monthstats && npm run check:v5r-quit-single-source-lock && npm run check:v5r-quit-source-behavior && npm run check:v5s-quit-context-render-loop-guard && npm run check:v5s-quit-context-behavior && npm run check:superadmin-hotfix && npm run check:v5t-command-boundary-write-freeze && npm run check:v5t-command-boundary-behavior && npm run check:v5u1-student-status-command-cutover && npm run check:v5u1-student-status-command-behavior && npm run check:v5u2-tuition-command-cutover && npm run check:v5u2-tuition-command-behavior && npm run check:v5u2e-attendance-excel-sdk-fix && npm run check:student-name-search-priority && npm run check:superadmin-auth-principal-alignment && npm run check:admin-credential-single-source && npm run check:auth-context-single-writer && npm run check:legacy-global-freeze && npm run check:dashboard-single-read-authority && npm run check:dashboard-cache-freshness-guard && npm run check:dashboard-hydration-mutation-guard
+
+
+> taekwondo-club-app@1.0.0 check:syntax
+> node tools/check-syntax.mjs
+
+[SyntaxCheck] Scanning project JS files and index.html inline scripts...
+
+
+[SyntaxCheck] Checked: 246 items
+              JS files: 238
+              Inline scripts in index.html: 8
+
+[SyntaxCheck] OK — JS files and inline scripts are valid.
+
+> taekwondo-club-app@1.0.0 check:mobile-startup-performance
+> node tools/check-mobile-startup-performance.mjs
+
+✅ check-mobile-startup-performance passed
+
+> taekwondo-club-app@1.0.0 check:lazy-assets-loading
+> node tools/check-lazy-assets-loading.mjs
+
+✅ check-lazy-assets-loading passed
+
+> taekwondo-club-app@1.0.0 check:tailwind-static-css-build
+> node tools/check-tailwind-static-css-build.mjs
+
+✅ check-tailwind-static-css-build passed
+
+> taekwondo-club-app@1.0.0 check:mobile-filter-currency-stability
+> node tools/check-mobile-filter-currency-stability.mjs
+
+
+🔎 Phase 4K-6R — Mobile Filter Cross-Browser Hardening + Currency Stability Check
+
+✅ index has 6R mobile filter hardening patch
+✅ style.css mirrors 6R mobile filter hardening patch
+✅ filter children can shrink and clip native overflow
+✅ filter controls are explicitly border-box and width constrained
+✅ all common portrait phones collapse filter to one column
+✅ medium mobile widths use two safe columns
+✅ desktop three-column layout is restored
+✅ obsolete 359px-only fallback is removed
+✅ default check includes mobile filter regression gate
+✅ check:all includes mobile filter regression gate
+✅ critical suite includes mobile filter regression gate
+✅ default tuition input requests numeric keyboard
+✅ default tuition input disables autocomplete
+✅ app has currency stability marker
+✅ currency formatting avoids Number/parseInt round-trip
+✅ currency binding has duplicate-listener guard
+✅ currency input preserves caret
+✅ currency input is composition-safe
+✅ patch version marker exists
+✅ currency helper block can be extracted
+✅ typing 300000 renders 300.000
+✅ hidden raw tuition stays 300000
+✅ caret remains at logical end
+✅ duplicate binding did not duplicate callback
+✅ middle edit keeps correct formatted value
+✅ middle edit does not jump caret to end
+✅ stored raw value initializes display safely
+✅ large digit strings format without floating-point conversion
+
+✅ Mobile filter hardening and currency stability checks passed.
+
+
+> taekwondo-club-app@1.0.0 check:low-risk-helper-extraction
+> node tools/check-low-risk-helper-extraction.mjs
+
+Phase 4K-6K-A — Low-Risk Formatters Extraction Check
+Warnings: 0
+✅ check:low-risk-helper-extraction PASS
+
+> taekwondo-club-app@1.0.0 check:receipt-qr-helper-extraction
+> node tools/check-receipt-qr-helper-extraction.mjs
+
+✅ check:receipt-qr-helper-extraction PASS
+
+> taekwondo-club-app@1.0.0 check:transaction-realtime
+> node tools/check-transaction-realtime.mjs
+
+
+══════════════════════════════════════════════════════════
+  Phase 4K — Transaction Realtime Listener Safety Check
+══════════════════════════════════════════════════════════
+
+▸ Section 1: __txListenerMetrics Infrastructure (app.js)
+  ✅ app.js exists
+  ✅ __txListenerMetrics defined
+  ✅ txListenerAttached tracked
+  ✅ txListenerDetached tracked
+  ✅ txListenerDuplicatePrevented tracked
+  ✅ printTxListenerMetrics exposed
+
+▸ Section 2: Duplicate Transaction Listener Guard (app.js)
+  ✅ safeRegisterSnapshot used for tx listener
+  ✅ cleanupListenersByOwner called before re-subscribe
+  ✅ currentTxUnsub cleanup before re-subscribe
+  ✅ qByDate inside safeRegisterSnapshot factory
+
+▸ Section 3: Logout TX Listener Cleanup (app.js)
+  ✅ currentTxUnsub cleaned on logout
+  ✅ activeListeners cleared on logout
+  ✅ cleanupListenersByOwner called on logout/month-change
+
+▸ Section 4: No Unsafe Fixed limit() for Revenue Calculation
+  ✅ No limit(1000) for revenue calculation
+  ✅ SuperAdmin does NOT scan transactions with large fixed limit for revenue
+
+▸ Section 5: Dashboard reads stats docs for historical data (dashboard.js)
+  ✅ dashboard.js exists
+  ✅ fetchAndRenderHistoricalCharts() uses stats docs
+  ✅ Dashboard reads stats via getDoc (not onSnapshot scan)
+  ✅ dashboardStatsRead metric tracked
+
+▸ Section 6: SuperAdmin reads stats docs for revenue (superadmin.js)
+  ✅ superadmin.js exists
+  ✅ SuperAdmin fetches monthly stats doc for each club
+  ✅ superAdminStatsRead metric tracked
+  ✅ SuperAdmin has fallback when stats doc missing
+
+▸ Section 7: Finance Listener Lifecycle (finance.listeners.js + app.js)
+  ✅ finance.listeners.js exists
+  ✅ getTxListenerKey() defined (key pattern consistent)
+  ✅ cleanupFinanceListeners() defined
+  ✅ hasTxListener() defined
+  ✅ listenToData() cleanup old listener before re-subscribe
+  ✅ Month change triggers listener swap (not duplicate)
+
+▸ Section 8: Transaction Listener Metrics Emission
+  ✅ txListenerAttached emitted in listenToData()
+  ✅ txListenerDetached emitted on logout
+  ✅ txListenerDuplicatePrevented emitted on duplicate attempt
+  ✅ txStatsRead or dashboardStatsRead metric exists
+
+▸ Section 9: Firestore Indexes for Transaction Queries
+  ✅ firestore.indexes.json exists
+  ✅ firestore.indexes.json not empty
+  ✅ firestore.indexes.json valid JSON
+  ✅ Has transactions indexes
+  ✅ Has txMonth + timestamp composite index
+  ✅ Has date + timestamp composite index
+
+▸ Section 10: Phase 4K Check Tools
+  ✅ check-transaction-realtime.mjs exists
+  ✅ check-stats-aggregation.mjs exists
+  ✅ rebuild-transaction-stats.mjs exists
+  ✅ check:transaction-realtime script defined
+  ✅ check:stats-aggregation script defined
+  ✅ check:all includes transaction-realtime
+  ✅ check:all includes stats-aggregation
+
+══════════════════════════════════════════════════════════
+  Total: 46 checks | ✅ Pass: 46 | ❌ Fail: 0
+
+  🎉 All transaction realtime checks passed!
+  Firestore transaction reads are safe for 20 CLB × 1000 võ sinh.
+══════════════════════════════════════════════════════════
+
+
+> taekwondo-club-app@1.0.0 check:stats-aggregation
+> node tools/check-stats-aggregation.mjs
+
+
+══════════════════════════════════════════════════════════
+  Phase 4K — Stats Aggregation Safety Check
+══════════════════════════════════════════════════════════
+
+▸ Section 1: Cloud Functions Aggregation Triggers (functions/)
+  ✅ functions/index.js exists
+  ✅ functions/src/statsAggregation.js exists
+  ✅ onTransactionCreate exported
+  ✅ onTransactionDelete exported
+  ✅ onTransactionUpdate exported
+  ✅ rebuildStatsForClub callable exported
+
+▸ Section 2: Stats Aggregation Trigger Implementation (functions/src/statsAggregation.js)
+  ✅ onCreate trigger defined
+  ✅ onDelete trigger defined
+  ✅ onUpdate trigger defined — trừ cũ, cộng mới
+  ✅ Firestore path correct (clubs/{clubId}/transactions/{txId})
+  ✅ Stats path correct (clubs/{clubId}/stats/{docId})
+  ✅ FieldValue.increment() used for atomic updates
+  ✅ set({ merge: true }) used for upsert
+  ✅ rebuildStatsForClub callable implemented
+  ✅ rebuildStatsForClub uses pagination or batching (not raw scan)
+  ✅ rebuildStatsForClub checks auth
+
+▸ Section 3: Transaction Classification (functions/src/helpers.js)
+  ✅ classifyTx() defined
+  ✅ getTxMonth() defined
+  ✅ Handles "Học phí" type
+  ✅ Handles "Lệ phí thi" type
+  ✅ Handles "Chi phí" type
+  ✅ Handles "Học phí + Lệ phí thi" combo type
+  ✅ Returns null for unknown/non-stats types (safe)
+  ✅ getTxMonth fallback to date field
+  ✅ Amount parsed safely (Number())
+  ✅ Phase 4K-4D: classifyInventoryTxType defined
+  ✅ Phase 4K-4D: "Thu " + relatedInvId handled → income.uniform
+  ✅ Phase 4K-4D: "Chi " + relatedInvId handled → expense.uniform
+  ✅ Phase 4K-4D: "Tặng " + relatedInvId returns null (not counted)
+  ✅ Phase 4K-4D: classifyTx calls classifyInventoryTxType
+
+▸ Section 4: Dashboard reads stats docs for historical charts (dashboard.js)
+  ✅ fetchAndRenderHistoricalCharts() defined
+  ✅ Reads from clubs/{clubId}/stats/ collection
+  ✅ Uses getDoc() not getDocs() for stats
+  ✅ Promise.all for parallel stats reads
+  ✅ income.total field read correctly
+  ✅ expense.total field read correctly
+  ✅ dashboardStatsRead metric tracked
+  ✅ Graceful skip if stats doc missing (snap.exists())
+
+▸ Section 5: SuperAdmin reads stats docs for revenue (superadmin.js)
+  ✅ SuperAdmin fetches monthly stats doc
+  ✅ monthStats or monthRevenue used in render
+  ✅ superAdminStatsRead metric tracked
+  ✅ SuperAdmin has graceful fallback when stats doc missing
+  ✅ SuperAdmin does NOT scan transactions with large fixed limit
+
+▸ Section 6: No unsafe fixed limit() for revenue calculation
+  ✅ app.js: no limit(1000+) for transaction revenue scan
+  ✅ superadmin.js: no limit(1000+) for transaction revenue scan
+  ✅ dashboard.js: no limit(1000+) for transaction revenue scan
+
+▸ Section 7: Stats doc schema completeness (statsAggregation.js)
+  ✅ Stats doc has income.tuition field
+  ✅ Stats doc has income.exam field
+  ✅ Stats doc has income.total field
+  ✅ Stats doc has expense.total field
+  ✅ Stats doc has profit field
+  ✅ Stats doc has txCount field
+  ✅ Stats doc has updatedAt field
+  ✅ Stats doc has month field
+
+▸ Section 8: Rebuild Stats Tool
+  ✅ tools/rebuild-transaction-stats.mjs exists
+  ✅ Rebuild tool documents clubId parameter
+  ✅ Rebuild tool documents month parameter
+  ✅ Rebuild tool has dry-run mode
+  ✅ Rebuild tool does not require deploy
+
+▸ Section 9: package.json Scripts
+  ✅ check:stats-aggregation script defined
+  ✅ check:transaction-realtime script defined
+  ✅ check:all includes check-stats-aggregation
+  ✅ check:all includes check-transaction-realtime
+
+══════════════════════════════════════════════════════════
+  Total: 63 checks | ✅ Pass: 63 | ❌ Fail: 0
+
+  🎉 All stats aggregation checks passed!
+  Dashboard và SuperAdmin đọc stats docs — không scan transactions lớn.
+══════════════════════════════════════════════════════════
+
+
+> taekwondo-club-app@1.0.0 check:runtime-smoke-test
+> node tools/check-runtime-smoke-test.mjs
+
+
+🔍 Phase 4K-4B — debugRuntimeSmokeTest Check
+
+[32m✅ PASS[0m  mainJs readable
+[32m✅ PASS[0m  main.js có window.debugRuntimeSmokeTest
+[32m✅ PASS[0m  debugRuntimeSmokeTest references debugExamFeeSetting
+[32m✅ PASS[0m  debugRuntimeSmokeTest references debugTuitionActions
+[32m✅ PASS[0m  debugRuntimeSmokeTest references debugAdmissionUniformSize
+[32m✅ PASS[0m  debugRuntimeSmokeTest references debugSearchPerformance
+[32m✅ PASS[0m  debugRuntimeSmokeTest references debugDashboardHistory
+[32m✅ PASS[0m  debugRuntimeSmokeTest references debugStudentPagination
+[32m✅ PASS[0m  debugRuntimeSmokeTest references debugProfileModalClose
+[32m✅ PASS[0m  debugRuntimeSmokeTest có safeCall (crash-safe)
+[32m✅ PASS[0m  debugRuntimeSmokeTest return { summary, detail }
+[32m✅ PASS[0m  debugRuntimeSmokeTest gọi console.table(summary)
+
+[32m✅ All checks passed (12/12)[0m
+
+
+> taekwondo-club-app@1.0.0 check:deploy-package
+> node tools/check-deploy-package.mjs
+
+
+══════════════════════════════════════════════════════════
+  Deploy Package Structure Check
+══════════════════════════════════════════════════════════
+
+▸ Root files bắt buộc
+  ✅ index.html tồn tại
+  ✅ app.js tồn tại (legacy standalone mode)
+  ✅ style.css tồn tại
+  ✅ package.json tồn tại
+  ✅ .nojekyll tồn tại (GitHub Pages — ngăn Jekyll bỏ qua _prefix files)
+
+▸ Module JS files bắt buộc
+  ✅ js/main.js tồn tại (ES module entry point)
+  ✅ js/modules/superadmin.js tồn tại
+  ✅ js/modules/dashboard.js tồn tại
+  ✅ js/modules/students.js tồn tại
+
+▸ Thư mục bắt buộc
+  ✅ js/ thư mục tồn tại
+  ✅ js/modules/ thư mục tồn tại
+  ✅ js/services/ thư mục tồn tại
+
+══════════════════════════════════════════════════════════
+  Total: 12 checks | ✅ Pass: 12 | ❌ Fail: 0
+
+  🎉 Deploy package structure hợp lệ!
+  Tất cả file/thư mục bắt buộc đều có mặt — an toàn để đóng gói ZIP.
+══════════════════════════════════════════════════════════
+
+
+> taekwondo-club-app@1.0.0 check:github-pages-paths
+> node tools/check-github-pages-paths.mjs
+
+
+══════════════════════════════════════════════════════════
+  GitHub Pages Module Path Check
+══════════════════════════════════════════════════════════
+
+▸ Section 1: Required JS files exist
+  ✅ js/main.js exists
+  ✅ js/modules/superadmin.js exists
+  ✅ js/modules/dashboard.js exists
+  ✅ js/modules/students.js exists
+  ✅ index.html exists
+  ✅ .nojekyll exists (prevents Jekyll from processing files with _ prefix)
+
+▸ Section 2: index.html — module path safety
+  ✅ index.html has no absolute src="/js/..." script tags
+  ✅ index.html has no absolute import("/js/...") calls
+  ✅ index.html loads main.js with relative path (./js/main.js or js/main.js)
+  ✅ No <script type="module" src="/js/..."> with absolute path
+  ✅ main.js dynamic injection has onerror handler
+  ✅ index.html has file:// guard (prevents ES module load on file:// protocol)
+
+▸ Section 3: Runtime JS — no absolute /js/ paths in imports
+  ✅ No absolute /js/ paths in runtime ES module imports (118 files scanned)
+
+▸ Section 4: main.js — imports use relative paths
+  ✅ js/main.js exists (already verified)
+  ✅ main.js static imports do not use absolute /js/ paths
+  ✅ main.js dynamic import for superadmin uses relative path (./modules/superadmin.js)
+  ✅ main.js defines window.ensureSuperAdminModule
+
+▸ Section 5: app.js — no absolute /js/ paths
+  ✅ app.js has no absolute /js/ dynamic imports
+
+══════════════════════════════════════════════════════════
+  Total: 18 checks | ✅ Pass: 18 | ❌ Fail: 0
+
+  🎉 All GitHub Pages path checks passed!
+  Source có relative paths đúng — an toàn để deploy lên GitHub Pages.
+══════════════════════════════════════════════════════════
+
+
+> taekwondo-club-app@1.0.0 check:runtime-stability-gate
+> node tools/check-runtime-stability-gate.mjs
+
+
+🔍 Phase 4K-5Q — check-runtime-stability-gate
+
+  ✅ PASS  APP_BUILD_VERSION được định nghĩa (Phase 5Q)
+  ✅ PASS  window.debugAppVersion được định nghĩa
+  ✅ PASS  window.__runtimeErrors được khởi tạo
+  ✅ PASS  window.recordRuntimeError được định nghĩa
+  ✅ PASS  window.debugRuntimeErrors được định nghĩa
+  ✅ PASS  window.safeDebugCall được định nghĩa
+  ✅ PASS  window.debugDataSourceAuthority được định nghĩa
+  ✅ PASS  window.debugFinanceReconcile được định nghĩa
+  ✅ PASS  window.debugRenderHealth được định nghĩa
+  ✅ PASS  window.runGuardedAction được định nghĩa
+  ✅ PASS  runGuardedAction có __actionLocks guard
+  ✅ PASS  debugRuntimeSmokeTest gọi debugAppVersion
+  ✅ PASS  debugRuntimeSmokeTest gọi debugRuntimeErrors
+  ✅ PASS  debugRuntimeSmokeTest gọi debugDataSourceAuthority
+  ✅ PASS  debugRuntimeSmokeTest gọi debugFinanceReconcile
+  ✅ PASS  debugRuntimeSmokeTest gọi debugRenderHealth
+  ✅ PASS  index.html có executable s.src assignment cho main.js
+  ✅ PASS  actual s.src assignment không dùng undeclared slug
+  ✅ PASS  actual s.src resolves tới deterministic ./js/main.js?v=<version>
+  ✅ PASS  actual main.js cache bust không dùng Date.now()/Math.random()
+  ✅ PASS  bootstrap append main module đúng một executable call
+  ✅ PASS  MAIN_JS_LOADED chỉ được set sau existing s.onload path
+  ✅ PASS  existing 15-second bounded boot deadline remains intact
+  ✅ PASS  dynamic boot B1: dependencies ready => no ReferenceError
+  ✅ PASS  dynamic boot B1: appended script URL contains js/main.js?v=
+  ✅ PASS  dynamic boot B2: main module appended exactly once
+  ✅ PASS  dynamic boot B2: MAIN_JS_LOADED becomes true after onload
+  ✅ PASS  dynamic boot B3: dependency-not-ready uses one existing 50ms retry
+  ✅ PASS  dynamic boot B4: deadline exceeded stops polling
+
+══════════════════════════════════════════════════════════
+  Total: 29 checks | ✅ Pass: 29 | ❌ Fail: 0
+
+  🎉 All runtime stability gate checks passed!
+
+
+> taekwondo-club-app@1.0.0 check:dashboard-exam-registration-branch
+> node tools/check-dashboard-exam-registration-branch.mjs
+
+
+🔍 Phase 4K-5P — check-dashboard-exam-registration-branch
+
+[32m✅ PASS[0m  app.js readable
+[32m✅ PASS[0m  dashboard.js readable
+[32m✅ PASS[0m  financeRenderer.js readable
+[32m✅ PASS[0m  js/main.js readable
+[32m✅ PASS[0m  buildCanonicalExamBranchLedger được định nghĩa trong app.js
+[32m✅ PASS[0m  buildCanonicalExamPaymentLedger hỗ trợ options.transactions
+[32m✅ PASS[0m  financeRenderer gọi buildCanonicalExamBranchLedger
+[32m✅ PASS[0m  refreshDashboardBranchStatsFullMonth gọi buildCanonicalExamBranchLedger
+[32m✅ PASS[0m  renderBranchStats hiển thị examRegisteredCount
+[32m✅ PASS[0m  debugExamBranchRegistrationMismatch được định nghĩa trong app.js
+[32m✅ PASS[0m  debugRuntimeSmokeTest gọi debugExamBranchRegistrationMismatch
+[32m✅ PASS[0m  financeRenderer có canonical exam branch override (không chỉ dùng transaction loop)
+[32m✅ PASS[0m  financeRenderer set examRegisteredNames trong bStats branch
+[32m✅ PASS[0m  dashboard.js refreshDashboardBranchStatsFullMonth set examRegisteredNames
+
+[32m✅ All checks passed — Phase 4K-5P Dashboard Exam Registration Branch[0m
+
+
+> taekwondo-club-app@1.0.0 check:dashboard-branch-components
+> node tools/check-dashboard-branch-components.mjs
+
+
+🔍 Phase 4K-5N — check-dashboard-branch-components
+
+[32m✅ PASS[0m  dashboard.js readable
+[32m✅ PASS[0m  financeRenderer.js readable
+[32m✅ PASS[0m  js/main.js readable
+[32m✅ PASS[0m  window.normalizeBranchCodeForStats được định nghĩa trong dashboard.js
+[32m✅ PASS[0m  window.getComponentAmountForSelectedMonth được định nghĩa trong dashboard.js
+[32m✅ PASS[0m  financeRenderer branch stats dùng getAccountingComponents / expandTransactionComponentsForAccounting
+[32m✅ PASS[0m  financeRenderer branch stats có component path (không chỉ dùng t.type)
+[32m✅ PASS[0m  financeRenderer có !_usedCompBranch guard để tránh double count
+[32m✅ PASS[0m  financeRenderer dùng normalizeBranchCodeForStats để normalize branch
+[32m✅ PASS[0m  window.debugDashboardBranchRevenue được định nghĩa
+[32m✅ PASS[0m  debugRuntimeSmokeTest references debugDashboardBranchRevenue
+[32m✅ PASS[0m  financeRenderer component branch path cập nhật bExamStats
+
+[32m✅ All dashboard branch component checks passed[0m
+
+
+> taekwondo-club-app@1.0.0 check:dashboard-chart-lifecycle
+> node tools/check-dashboard-chart-lifecycle.mjs
+
+
+🔍 Phase 4K-5N — check-dashboard-chart-lifecycle
+
+[32m✅ PASS[0m  dashboard.js readable
+[32m✅ PASS[0m  dashboard.js uses Chart.getChart (orphan detection)
+[32m✅ PASS[0m  dashboard.js destroys orphan before new Chart()
+[32m✅ PASS[0m  window.debugDashboardCharts được export
+[32m✅ PASS[0m  fetchHistoricalDashboardFallback không gọi renderDashboardCharts 2 lần trực tiếp
+[32m✅ PASS[0m  window.normalizeBranchCodeForStats được định nghĩa
+[32m✅ PASS[0m  window.getComponentAmountForSelectedMonth được định nghĩa
+[32m✅ PASS[0m  _destroyDashboardCharts clear cả store chart instances khi logout
+
+[32m✅ All dashboard chart lifecycle checks passed[0m
+
+
+> taekwondo-club-app@1.0.0 check:debt-service-bridge
+> node tools/check-debt-service-bridge.mjs
+
+
+🔍 Phase 4K-5L-C — Debt Service Bridge Check
+
+[32m✅ PASS[0m  financeJs readable
+[32m✅ PASS[0m  studentsJs readable
+[32m✅ PASS[0m  mainJs readable
+[32m✅ PASS[0m  1. finance.js imports StudentService from students.service.js
+[32m✅ PASS[0m  2. finance.js không còn dùng StudentService. mà không import
+[32m✅ PASS[0m  3. students.js expose window.StudentService trong initStudents()
+[32m✅ PASS[0m  4. markStudentQuitFromDebt delegates to StudentStatusCommandBoundary
+[32m✅ PASS[0m  5. skipDebtMonthFromDebt delegates to StudentStatusCommandBoundary
+[32m✅ PASS[0m  6. canonical boundary resolves the existing StudentService bridge
+[32m✅ PASS[0m  7. canonical boundary centralizes local status/debt synchronization
+[32m✅ PASS[0m  8. students.js có window.debugDebtServiceBridge
+[32m✅ PASS[0m  9. debugRuntimeSmokeTest trong main.js include debtServiceBridge
+[32m✅ PASS[0m  10. finance.js skipMonth delegates to StudentStatusCommandBoundary
+[32m✅ PASS[0m  11. boundary syncs skipped month and removes Debt row after success
+
+[32m✅ All checks passed (11/11)[0m
+
+
+> taekwondo-club-app@1.0.0 check:debt-actions-sync
+> node tools/check-debt-actions-sync.mjs
+
+
+🔍 check-debt-actions-sync.mjs — Phase 4K-5L
+
+  ✅ [1] syncStudentSkippedMonthLocal defined in students.js
+  ✅ [2] removeStudentFromDebtDom defined in students.js
+  ✅ [3] markStudentQuitFromDebt defined in students.js
+  ✅ [4] skipDebtMonthFromDebt defined in students.js
+  ✅ [5] V5U-1 skipMonth ownership moved out of app.js and boundary syncs skipped month
+  ✅ [6] syncStudentStatusLocal calls removeStudentFromDebtDom on quit
+  ✅ [7] renderDebtRow does NOT use onclick="handleQuitOption as action button
+  ✅ [8] renderDebtRow has markStudentQuitFromDebt button
+  ✅ [9] renderDebtRow has skipDebtMonthFromDebt button
+  ✅ [10] app.js has markStudentQuitFromDebt or removeStudentFromDebtDom wired (legacy bridge)
+  ✅ [11] debugDebtActionState defined in students.js
+  ✅ [12] debugRuntimeSmokeTest in main.js includes debtActionState
+  ✅ [A] students.js window.skipMonth delegates to StudentStatusCommandBoundary and boundary syncs local month
+  ✅ [B] V5U-1 boundary removes skipped student from Debt DOM after command success
+  ✅ [C] students.js window.removeSkip delegates and boundary syncs removal locally
+  ✅ [D] app.js legacy debt row không còn onclick="handleQuitOption( làm nút chính
+  ✅ [E] finance.js handleQuitOption delegates quit and boundary commits canonical local status
+
+Results: 17 passed, 0 failed
+
+✅ All debt-actions-sync checks passed.
+
+
+> taekwondo-club-app@1.0.0 check:multiitem-skipped-months
+> node tools/check-multiitem-skipped-months.mjs
+
+
+🔍 check:multiitem-skipped-months — Phase 4K-5M
+
+  ✅ PASS — window.getChargeableTuitionMonths is defined as a global helper in app.js
+  ✅ PASS — _refreshMiHistoryBadges calls window.getChargeableTuitionMonths (not raw while loop)
+  ✅ PASS — _refreshMiHistoryBadges has no bare while(cur <= today) loop without skippedMonths guard
+  ✅ PASS — _refreshMiHistoryBadges sets data-months attribute on pkgSelect with chargeable months
+  ✅ PASS — updateMultiItemAutoFee reads data-months attribute to compute pkg count
+  ✅ PASS — processMultiItem reads data-months attribute from mi_tuition_pkg select
+  ✅ PASS — processMultiItem filters skippedMonths in fallback packageMonths computation
+  ✅ PASS — breakdown and _tuitionLabel use window.formatTuitionMonthList for month formatting
+  ✅ PASS — window.debugMultiItemSkippedMonth debug helper is defined in app.js
+  ✅ PASS — studentsRenderer debt loop uses window.getChargeableTuitionMonths or an equivalent skippedMonths guard
+
+📊 Results: 10 passed, 0 failed
+
+
+> taekwondo-club-app@1.0.0 check:active-loadmore-newest-first
+> node tools/check-active-loadmore-newest-first.mjs
+
+✅ OK:   __activeRenderLimit defined
+✅ OK:   resetActiveRenderLimit defined
+✅ OK:   loadMoreActiveStudents increments __activeRenderLimit
+✅ OK:   loadMoreActiveStudents calls refreshListsComputation
+✅ OK:   loadMoreActiveStudents calls invalidateList
+✅ OK:   studentsRenderer _activeLimit uses window.__activeRenderLimit
+✅ OK:   studentsRenderer paramsKey has arl:/drl: keys
+✅ OK:   studentsRenderer PASS 2 has useFullProfileActiveRender guard
+✅ OK:   active load more nằm ngoài if (!pgStudentsActive)
+✅ OK:   active load more button calls window.loadMoreActiveStudents(event)
+✅ OK:   getStudentJoinTimestamp has admissionDate + joinDate
+✅ OK:   addNewStudent saves admissionDate + joinDate
+✅ OK:   debugActiveLoadMoreAndSort defined
+✅ OK:   app.js renderExamList dùng extractExamStudentName
+✅ OK:   admissionDate ưu tiên trước createdAt trong getStudentJoinTimestamp candidates
+✅ OK:   joinDate ưu tiên trước createdAt trong getStudentJoinTimestamp candidates
+✅ OK:   useFullProfileActiveRender khai báo trước PASS 1 — không còn TDZ
+
+────────────────────────────────────────────────────────────
+✅ check-active-loadmore-newest-first: TẤT CẢ PASS
+
+> taekwondo-club-app@1.0.0 check:mobile-superadmin-gate
+> node tools/check-mobile-superadmin-gate.mjs
+
+
+=== check-mobile-superadmin-gate ===
+
+  PASS: window.isSuperAdminRole defined
+  PASS: openMobileMenu uses isSuperAdminRole and excludes normal admin accounts
+  PASS: openNewClubModal has isSuperAdminRole guard
+  PASS: debugMobileSuperAdminGate defined in runtime diagnostics module
+  PASS: debugRuntimeSmokeTest includes debugMobileSuperAdminGate
+
+Result: ✅ ALL PASS
+
+
+> taekwondo-club-app@1.0.0 check:search-runtime-v2
+> node tools/check-search-runtime-v2.mjs
+
+
+=== check-search-runtime-v2 ===
+
+  PASS: __searchRuntimeV2Mounted set in searchRuntime.js
+  PASS: inputHandler reference saved in _state
+  PASS: disposeGlobalSearchRuntime uses removeEventListener
+  PASS: compositionstart/compositionend handlers present
+  PASS: debounceMs = 450 (>= 400)
+  PASS: queuedTerm (latest-only queue) present
+  PASS: Server search blocked for term < 2 chars
+  PASS: debugUnifiedSearchV2 defined
+  PASS: app.js legacy search guards __searchRuntimeV2Mounted
+  PASS: debugRuntimeSmokeTest includes debugUnifiedSearchV2
+
+Result: ✅ ALL PASS
+
+
+> taekwondo-club-app@1.0.0 check:search-latency-optimization
+> node tools/check-search-latency-optimization.mjs
+
+✅ check:search-latency-optimization PASS
+
+> taekwondo-club-app@1.0.0 check:student-search-index
+> node tools/check-student-search-index.mjs
+
+
+🔍 Phase 4K-6K-E/6K-F — Unified Student Search Index Accuracy Gate Check
+
+✅ js/core/studentSearchIndex.js exists
+✅ Vietnamese normalization exists
+✅ VTF/memberId fields indexed
+✅ phone/digit search indexed
+✅ searchStudents + mode filter exists
+✅ debug globals exist
+✅ main imports initStudentSearchIndex
+✅ student index initializes before SearchRuntime
+✅ SearchRuntime imports StudentSearchIndex
+✅ SearchRuntime uses StudentSearchIndex.searchStudents
+✅ SearchRuntime records student index source/metrics
+✅ server fallback only after local profile availability check
+✅ cross-tab search replay preserved
+✅ adaptive debounce preserved
+✅ runtime smoke test includes student search index
+✅ student search index does not add Firestore reads
+✅ APP_BUILD_VERSION updated to 4K-6K-E/6K-F
+✅ index cache bust updated to 4K-6K-E/6K-F
+✅ package script check:student-search-index registered
+✅ check:all includes student search index check
+✅ check:all:critical includes student search index check
+✅ display-name edit uses same canonical profile key without rename flow
+✅ active updateProfile rebuilds search index from RAM + updateData
+✅ search index is merged before canonical profile update write
+✅ search-index-on-edit adds zero Firestore reads/listeners
+✅ Edit phone updates searchPhone in same payload
+✅ Edit memberId updates searchCode in same payload
+✅ Edit nickname updates searchNickname in same payload
+✅ Normal edit keeps canonical searchName/searchNameTokens
+✅ displayName takes precedence over immutable profileKey in search fields
+✅ processMultiItem still present in app.js
+✅ Excel import write flow still present
+
+> taekwondo-club-app@1.0.0 check:cross-tab-search-replay
+> node tools/check-cross-tab-search-replay.mjs
+
+✅ check:cross-tab-search-replay PASS
+
+> taekwondo-club-app@1.0.0 check:active-loadmore-single-source
+> node tools/check-active-loadmore-single-source.mjs
+
+
+=== check-active-loadmore-single-source ===
+
+  PASS: studentsRenderer does NOT contain active load-more-row block
+  PASS: app.js legacy active load-more row is disabled (commented)
+  PASS: debugActiveLoadMoreSingleSource defined
+  PASS: _injectControls uses __activeRenderLimit for active load more
+  PASS: active load more calls loadMoreActiveStudents(event)
+  PASS: debugRuntimeSmokeTest includes debugActiveLoadMoreSingleSource
+
+Result: ✅ ALL PASS
+
+
+> taekwondo-club-app@1.0.0 check:exam-auto-select-paid
+> node tools/check-exam-auto-select-paid.mjs
+
+
+🔍 Phase 4K-5R — check-exam-auto-select-paid
+
+  ✅ PASS  selectPaidStudents gọi buildCanonicalExamPaymentLedger
+  ✅ PASS  selectPaidStudents dùng canonical ledger làm nguồn chính (trước fallback allTransactions)
+  ✅ PASS  selectPaidStudents xử lý components trong fallback
+  ✅ PASS  selectPaidStudents xử lý paymentKind === 'bundle' trong fallback
+  ✅ PASS  selectPaidStudents kiểm tra examPaidCancelled
+  ✅ PASS  window.isNewlyUpgradedExamStudent được định nghĩa
+  ✅ PASS  selectPaidStudents loại trừ isNewlyUpgradedExamStudent
+  ✅ PASS  window.debugExamAutoSelectPaid được định nghĩa
+  ✅ PASS  debugExamAutoSelectPaid có paidButSkippedBecauseNewlyUpgraded
+  ✅ PASS  debugRuntimeSmokeTest trong main.js include debugExamAutoSelectPaid
+  ✅ PASS  isExamStudentPaidCanonical dùng buildCanonicalExamPaymentLedger
+
+══════════════════════════════════════════════════════════
+  Total: 11 checks | ✅ Pass: 11 | ❌ Fail: 0
+
+  🎉 All exam auto select paid checks passed!
+
+
+> taekwondo-club-app@1.0.0 check:exam-upgrade-finance-separation
+> node tools/check-exam-upgrade-finance-separation.mjs
+
+
+=== check-exam-upgrade-finance-separation ===
+
+  PASS: processBatchUpgrade exists
+  PASS: upgrade source excludes getClubExamFee
+  PASS: upgrade source excludes exam_fee_all_actual
+  PASS: upgrade source excludes allTransactions
+  PASS: upgrade source excludes studentsToCharge
+  PASS: upgrade source excludes chargeAmount
+  PASS: upgrade source excludes newTxRef
+  PASS: upgrade source excludes type: 'Lệ phí thi'
+  PASS: upgrade source excludes type: "Lệ phí thi"
+  PASS: upgrade source excludes transactions",
+  PASS: upgrade source excludes transactions',
+  PASS: upgrade confirmation contains no fee/revenue wording
+  PASS: upgrade writes to profiles collection
+  PASS: upgrade uses merge writes
+  PASS: upgrade has in-flight guard
+  PASS: upgrade restores in-flight state in finally
+  PASS: upgrade button has stable id
+  PASS: upgrade button calls only processBatchUpgrade
+  PASS: standalone Thu phí action remains available
+  PASS: quickCollectExam still exists as separate payment action
+  PASS: quickCollectExam still writes an exam-fee transaction
+  PASS: first click creates exactly one batch
+  PASS: button is disabled during commit
+  PASS: in-flight flag is set during commit
+  PASS: second click does not create a second batch
+  PASS: second click reports in-progress state
+  PASS: two selected students create two profile writes
+  PASS: every batch write targets clubs/{club}/profiles/{student}
+  PASS: profile payload contains only belt progression fields
+  PASS: all profile writes use merge:true
+  PASS: confirmation contains no fee language
+  PASS: existing transaction cache is unchanged before commit
+  PASS: transaction cache remains unchanged after commit
+  PASS: local profile cache is updated only after successful commit
+  PASS: store profile cache is synchronized
+  PASS: render runs once after commit
+  PASS: select-all checkbox is cleared
+  PASS: button is restored after commit
+  PASS: in-flight flag is cleared after commit
+  PASS: success toast reports only belt upgrade
+  PASS: no blocking alert occurred in valid scenario
+
+ALL CHECKS PASSED — 41 exam upgrade/finance separation checks
+
+> taekwondo-club-app@1.0.0 check:performance-stability-gate
+> node tools/check-performance-stability-gate.mjs
+
+
+[1] performanceMonitor.js exists + exports
+  ✅ PASS — js/core/performanceMonitor.js tồn tại
+  ✅ PASS — PerformanceMonitor.markStart được định nghĩa
+  ✅ PASS — PerformanceMonitor.markEnd được định nghĩa
+  ✅ PASS — PerformanceMonitor.record được định nghĩa
+
+[2] window.PerformanceMonitor expose trong main.js
+  ✅ PASS — window.PerformanceMonitor expose trong main.js
+
+[3] ActionGuard + runGuardedAction
+  ✅ PASS — js/core/actionGuard.js tồn tại
+  ✅ PASS — ActionGuard.run được định nghĩa trong actionGuard.js
+  ✅ PASS — window.runGuardedAction được expose trong main.js
+
+[4] runGuardedAction có action lock logic
+  ✅ PASS — ActionGuard dùng __actionLocks để chống double click
+
+[5] window.__actionHistory
+  ✅ PASS — window.__actionHistory được khởi tạo
+
+[6] Debug functions trong main.js
+  ✅ PASS — debugPerformanceHealth trong main.js
+  ✅ PASS — debugActionGuardState trong main.js
+  ✅ PASS — debugDashboardCacheHealth trong main.js
+  ✅ PASS — debugLargeListHealth trong main.js
+
+[7] debugRuntimeSmokeTest include 4 debug mới
+  ✅ PASS — debugRuntimeSmokeTest include debugPerformanceHealth
+  ✅ PASS — debugRuntimeSmokeTest include debugActionGuardState
+  ✅ PASS — debugRuntimeSmokeTest include debugDashboardCacheHealth
+  ✅ PASS — debugRuntimeSmokeTest include debugLargeListHealth
+
+[8] 3 action đã được migrate sang runGuardedAction
+  ✅ PASS — markStudentQuitFromDebt dùng runGuardedAction
+  ✅ PASS — skipDebtMonthFromDebt dùng runGuardedAction
+  ✅ PASS — loadMoreActiveStudents dùng runGuardedAction
+
+[9] processMultiItem KHÔNG bị migrate trong phase này
+  ✅ PASS — processMultiItem KHÔNG dùng runGuardedAction (chưa migrate)
+
+[10] Search performance được đo
+  ✅ PASS — searchRuntime.js gọi PerformanceMonitor?.markStart('search:
+
+[11] Render performance được đo
+  ✅ PASS — studentsRenderer.js gọi PerformanceMonitor?.record('render:students
+  ✅ PASS — financeRenderer.js gọi PerformanceMonitor?.record('render:finance
+
+[12] Cache bust + APP_BUILD_VERSION
+  ✅ PASS — index.html có cache bust phase 4K- (flexible)
+  ✅ PASS — APP_BUILD_VERSION = '4K-6A-B-tab-render-recovery-exam-direct-render-20260605'
+
+══════════════════════════════════════════════════════════
+  Total: 27 checks | ✅ Pass: 27 | ❌ Fail: 0
+
+  🎉 All performance stability gate checks passed!
+
+> taekwondo-club-app@1.0.0 check:tab-render-recovery
+> node tools/check-tab-render-recovery.mjs
+
+
+🔍 Phase 4K-6A-B — check-tab-render-recovery
+
+  ✅ PASS — syncStudentStatusLocal không còn gọi scheduleRender
+  ✅ PASS — window.ensureStudentTabRendered được định nghĩa
+  ✅ PASS — markStudentQuitFromDebt gọi ensureStudentTabRendered('debt')
+  ✅ PASS — skipDebtMonthFromDebt gọi ensureStudentTabRendered('debt')
+  ✅ PASS — tabs.js gọi ensureStudentTabRendered khi tab active/debt/quit
+  ✅ PASS — exam.listeners.js không gọi invalidateByDomain('exam')
+  ✅ PASS — _triggerExamRender gọi trực tiếp renderExamList
+  ✅ PASS — window.debugStudentTabRenderRecovery được định nghĩa
+  ✅ PASS — window.debugExamRenderRecovery được định nghĩa
+  ✅ PASS — debugRuntimeSmokeTest include debugStudentTabRenderRecovery
+  ✅ PASS — debugRuntimeSmokeTest include debugExamRenderRecovery
+
+══════════════════════════════════════════════════════════
+  Total: 11 checks | ✅ Pass: 11 | ❌ Fail: 0
+
+  🎉 All tab render recovery checks passed!
+
+
+> taekwondo-club-app@1.0.0 check:financial-flow-guard-readiness
+> node tools/check-financial-flow-guard-readiness.mjs
+
+
+🔍 Phase 4K-6C-A — check-financial-flow-guard-readiness
+
+  ✅ PASS — js/core/financialFlowMap.js tồn tại
+  ✅ PASS — window.FinancialFlowMap được expose trong main.js
+  ✅ PASS — window.validatePaymentComponentsContract được định nghĩa
+  ✅ PASS — window.debugPaymentFlowIntegrity được định nghĩa
+  ✅ PASS — window.getFinancialPostWriteRefreshPlan được định nghĩa
+  ✅ PASS — window.debugExamCancelRisk được định nghĩa
+  ✅ PASS — window.debugInventoryPaidRisk được định nghĩa
+  ✅ PASS — window.debugFinancialActionMap được định nghĩa
+  ✅ PASS — debugRuntimeSmokeTest include debugFinancialActionMap
+  ✅ PASS — debugRuntimeSmokeTest include debugPaymentFlowIntegrity
+  ✅ PASS — debugRuntimeSmokeTest include debugExamCancelRisk
+  ✅ PASS — debugRuntimeSmokeTest include debugInventoryPaidRisk
+  ✅ PASS — processMultiItem KHÔNG bị bọc runGuardedAction
+  ✅ PASS — quickPay KHÔNG bị bọc runGuardedAction
+  ✅ PASS — quickCollectExam KHÔNG bị bọc runGuardedAction
+  ✅ PASS — cancelExamPayment KHÔNG bị bọc runGuardedAction
+  ✅ PASS — markInvPaid KHÔNG bị bọc runGuardedAction
+  ✅ PASS — index.html có cache bust phase 4K- (flexible)
+  ✅ PASS — APP_BUILD_VERSION = '4K-...' (flexible)
+
+══════════════════════════════════════════════════════════
+  Total: 19 checks | ✅ Pass: 19 | ❌ Fail: 0
+
+  🎉 All financial flow guard readiness checks passed!
+
+
+> taekwondo-club-app@1.0.0 check:security-license-ip-protection
+> node tools/check-security-license-ip-protection.mjs
+
+
+🔍 Phase 4K-6D — check-security-license-ip-protection
+
+  ✅ PASS — js/core/securityPosture.js tồn tại
+  ✅ PASS — window.SecurityPosture được expose trong main.js
+  ✅ PASS — window.APP_COPYRIGHT_OWNER được định nghĩa
+  ✅ PASS — window.APP_PRODUCT_NAME được định nghĩa
+  ✅ PASS — window.APP_BUILD_FINGERPRINT được định nghĩa
+  ✅ PASS — window.debugBuildFingerprint được định nghĩa
+  ✅ PASS — window.debugSecurityPosture được định nghĩa
+  ✅ PASS — window.debugLicenseGuardReadiness được định nghĩa
+  ✅ PASS — window.debugAppCheckReadiness được định nghĩa
+  ✅ PASS — window.debugApiKeyDomainRestrictionChecklist được định nghĩa
+  ✅ PASS — window.debugSourceProtectionStatus được định nghĩa
+  ✅ PASS — window.debugPrivilegedClientActions được định nghĩa
+  ✅ PASS — window.debugFirestoreRulesReadiness được định nghĩa
+  ✅ PASS — debugRuntimeSmokeTest include debugBuildFingerprint
+  ✅ PASS — debugRuntimeSmokeTest include debugSecurityPosture
+  ✅ PASS — debugRuntimeSmokeTest include debugLicenseGuardReadiness
+  ✅ PASS — debugRuntimeSmokeTest include debugAppCheckReadiness
+  ✅ PASS — debugRuntimeSmokeTest include debugApiKeyDomainRestrictionChecklist
+  ✅ PASS — debugRuntimeSmokeTest include debugSourceProtectionStatus
+  ✅ PASS — debugRuntimeSmokeTest include debugPrivilegedClientActions
+  ✅ PASS — debugRuntimeSmokeTest include debugFirestoreRulesReadiness
+  ✅ PASS — Không có file *.map trong package
+  ✅ PASS — Không có file .env trong package
+  ✅ PASS — Không có file tên serviceAccount trong package
+  ✅ PASS — Không có file chứa private_key trong package
+  ✅ PASS — Không có file chứa client_secret trong package
+  ✅ PASS — index.html có cache bust 'security-license-ip-protection-readiness-20260605' hoặc phase mới hơn
+  ✅ PASS — APP_BUILD_VERSION = '4K-6D-...' hoặc phase mới hơn
+  ✅ PASS — Không có hard block license (shouldHardBlockNow phải false)
+  ✅ PASS — Không có obfuscator/minify mới trong phase này
+
+══════════════════════════════════════════════════════════
+  Total: 30 checks | ✅ Pass: 30 | ❌ Fail: 0
+
+  🎉 All security license IP protection checks passed!
+
+
+> taekwondo-club-app@1.0.0 check:scale-readiness-write-safety
+> node tools/check-scale-readiness-write-safety.mjs
+
+
+🔍 Phase 4K-6E — Scale Readiness 1500 + Firebase Write Safety Audit
+
+[32m✅ PASS[0m  js/core/transactionDeleteIntegrity.js tồn tại
+[32m✅ PASS[0m  transactionDeleteIntegrity.js export TransactionDeleteIntegrity
+[32m✅ PASS[0m  transactionDeleteIntegrity.js có extractTuitionMonthsFromTransaction
+[32m✅ PASS[0m  transactionDeleteIntegrity.js có analyzeTransactionDeleteImpact
+[32m✅ PASS[0m  main.js expose window.TransactionDeleteIntegrity
+[32m✅ PASS[0m  main.js import TransactionDeleteIntegrity
+[32m✅ PASS[0m  main.js có window.reconcileStudentTuitionAfterDeletedTransaction
+[32m✅ PASS[0m  main.js có window.isTuitionMonthStillPaidByAnotherTransaction
+[32m✅ PASS[0m  main.js có window.recalculatePaidUntilFromPaidMonths
+[32m✅ PASS[0m  app.js getChargeableTuitionMonths kiểm tra paidMonths
+[32m✅ PASS[0m  finance.js deleteTx gọi analyzeTransactionDeleteImpact
+[32m✅ PASS[0m  finance.js deleteTx gọi reconcileStudentTuitionAfterDeletedTransaction
+[32m✅ PASS[0m  finance.js deleteTx chặn unsafe inventory bundle delete
+[32m✅ PASS[0m  main.js có window.debugTransactionDeleteIntegrity
+[32m✅ PASS[0m  main.js có window.debugStudentTuitionPaymentSources
+[32m✅ PASS[0m  main.js có window.debugScaleReadiness1500
+[32m✅ PASS[0m  main.js có window.debugFirebaseWriteSafety
+[32m✅ PASS[0m  main.js debugRuntimeSmokeTest include debugTransactionDeleteIntegrity
+[32m✅ PASS[0m  main.js debugRuntimeSmokeTest include debugScaleReadiness1500
+[32m✅ PASS[0m  main.js debugRuntimeSmokeTest include debugFirebaseWriteSafety
+[32m✅ PASS[0m  main.js summary có transactionDeleteIntegrityOk
+[32m✅ PASS[0m  main.js summary có scaleReadiness1500Ok
+[32m✅ PASS[0m  main.js summary có firebaseWriteSafetyOk
+[32m✅ PASS[0m  index.html có cache bust Phase 4K-6E hoặc mới hơn
+[32m✅ PASS[0m  main.js APP_BUILD_VERSION có Phase 4K-6E hoặc mới hơn
+
+[32m✅ All checks passed (22/22)[0m
+
+
+> taekwondo-club-app@1.0.0 check:exam-export-belt-sort
+> node tools/check-exam-export-belt-sort.mjs
+
+
+🔍 Phase 4K-6E-B — Exam Export Belt Sort Check
+
+[32m✅ PASS[0m  reports.js readable
+[32m✅ PASS[0m  main.js readable
+[32m✅ PASS[0m  buildSheet không còn Object.keys(subset).sort()
+[32m✅ PASS[0m  reports.js có EXAM_EXPORT_BELT_ORDER
+[32m✅ PASS[0m  reports.js có getExamExportBeltRank
+[32m✅ PASS[0m  getExamExportBeltRank có alias fallback cho cap X
+[32m✅ PASS[0m  reports.js có sortExamExportEntries
+[32m✅ PASS[0m  buildSheet gọi sortExamExportEntries
+[32m✅ PASS[0m  sortExamExportEntries đọc profile.belt hoặc currentBelt
+[32m✅ PASS[0m  sortExamExportEntries xét targetBelt
+[32m✅ PASS[0m  sortExamExportEntries xét branch
+[32m✅ PASS[0m  reports.js có debugExamExportSortPreview
+[32m✅ PASS[0m  debugRuntimeSmokeTest references debugExamExportSortPreview
+[32m✅ PASS[0m  index.html cache bust có 4K-6E-B hoặc mới hơn
+[32m✅ PASS[0m  main.js APP_BUILD_VERSION có 4K-6E-B
+
+[32m✅ All checks passed (13/13)[0m
+
+
+> taekwondo-club-app@1.0.0 check:active-new-students-filter
+> node tools/check-active-new-students-filter.mjs
+
+
+🔍 Phase 4K-6E-C — Active New Students Filter Check
+
+[32m✅ PASS[0m  monthlyHelpers.js readable
+[32m✅ PASS[0m  students.js readable
+[32m✅ PASS[0m  studentsRenderer.js readable
+[32m✅ PASS[0m  searchRuntime.js readable
+[32m✅ PASS[0m  main.js readable
+[32m✅ PASS[0m  index.html readable
+[32m✅ PASS[0m  monthlyHelpers.js: getCurrentAdmissionMonth exported
+[32m✅ PASS[0m  monthlyHelpers.js: getStudentJoinMonth exported
+[32m✅ PASS[0m  monthlyHelpers.js: isCurrentMonthNewStudent exported
+[32m✅ PASS[0m  monthlyHelpers.js: sortActiveStudentEntries exported
+[32m✅ PASS[0m  initMonthlyHelpers đăng ký getCurrentAdmissionMonth lên window
+[32m✅ PASS[0m  initMonthlyHelpers đăng ký sortActiveStudentEntries lên window
+[32m✅ PASS[0m  index.html: activeNewStudentFilter select element
+[32m✅ PASS[0m  index.html: activeNewStudentCountBadge element
+[32m✅ PASS[0m  index.html: activeNewStudentFilterWrap div
+[32m✅ PASS[0m  students.js: window.__activeStudentNewFilter declared
+[32m✅ PASS[0m  students.js: shouldShowActiveStudentByNewFilter
+[32m✅ PASS[0m  students.js: countCurrentMonthNewActiveStudents
+[32m✅ PASS[0m  students.js: updateActiveNewStudentCountBadge
+[32m✅ PASS[0m  students.js: bindActiveNewStudentFilterUI
+[32m✅ PASS[0m  students.js: ensureFullProfilesForActiveNewFilter
+[32m✅ PASS[0m  students.js: debugActiveNewStudents
+[32m✅ PASS[0m  students.js: _injectControls dùng shouldShowActiveStudentByNewFilter trong remaining calc
+[32m✅ PASS[0m  students.js: filterStudentItemsForMode active branch dùng shouldShowActiveStudentByNewFilter
+[32m✅ PASS[0m  students.js: bindActiveNewStudentFilterUI gọi sau _injectControls() trong _doLoad
+[32m✅ PASS[0m  students.js: buildStudentsRowsFromPagination dùng sortActiveStudentEntries
+[32m✅ PASS[0m  studentsRenderer.js: paramsKey chứa anf: và adm:
+[32m✅ PASS[0m  studentsRenderer.js: PASS 1 sort dùng sortActiveStudentEntries
+[32m✅ PASS[0m  studentsRenderer.js: newBadge dùng isCurrentMonthNewStudent (không phải selMonth)
+[32m✅ PASS[0m  studentsRenderer.js: passFilter PASS 1 dùng shouldShowActiveStudentByNewFilter
+[32m✅ PASS[0m  main.js: APP_BUILD_VERSION Phase 4K-6E-C hoặc mới hơn
+[32m✅ PASS[0m  main.js: switchTab gọi bindActiveNewStudentFilterUI cho tab active
+[32m✅ PASS[0m  main.js: debugRuntimeSmokeTest gọi debugActiveNewStudents
+[32m✅ PASS[0m  index.html: cache bust Phase 4K-6E-C hoặc mới hơn
+
+[32m✅ Tất cả 30 kiểm tra PASS — Phase 4K-6E-C Active New Students Filter OK[0m
+
+
+> taekwondo-club-app@1.0.0 check:legacy-app-reduction-readiness
+> node tools/check-legacy-app-reduction-readiness.mjs
+
+
+🔍 Phase 4K-6F — Legacy App Kernel Boundary + Diagnostics Extraction Gate
+
+✅ PASS  app.js tồn tại
+✅ PASS  index.html vẫn load app.js
+✅ PASS  app.js chưa bị xóa (có nội dung)
+✅ PASS  js/core/legacyAppAudit.js tồn tại
+✅ PASS  js/diagnostics/legacyDiagnostics.js tồn tại
+✅ PASS  main.js import LegacyAppAudit
+✅ PASS  main.js import initLegacyDiagnostics
+✅ PASS  main.js gọi initLegacyDiagnostics()
+✅ PASS  main.js expose window.LegacyAppAudit
+✅ PASS  main.js có window.debugLegacyAppAudit
+✅ PASS  main.js có window.debugAppJsReductionPlan
+✅ PASS  debugRuntimeSmokeTest include debugLegacyAppAudit
+📊 app.js size      : 667.2 KB (0.65 MB)
+✅ PASS  app.js size measured: 667.2 KB
+📊 app.js lines     : 11,262
+✅ PASS  app.js line count measured: 11262
+📊 window.X = count : 531 in app.js
+✅ PASS  window assignment count measured: 531
+📊 duplicate globals: 159 between app.js and js/**/*.js
+   top duplicates   : userRole, debtBranchMatchesFilter, invCustomCategories, APP_PATCH_VERSION, __appLoaded, __store, canonicalizeTransactionForWrite, canonicalizeTransactionPatch, getAppContext, __pendingDomainInvalidations, scheduleRender, _activePage, _debtPage, _quitPage, normalizeTuitionMonth, getChargeableTuitionMonths, computeTuitionDebtCanonical, classifyProfileStatus, formatMonthCompact, openAddModal...
+✅ PASS  duplicate global count measured: 159
+✅ PASS  app.js size trong giới hạn <= 800KB
+✅ PASS  app.js lines trong giới hạn <= 13.000
+✅ PASS  duplicate globals trong giới hạn
+✅ PASS  app.js còn initSaaSDatabase
+✅ PASS  app.js còn listenToData
+✅ PASS  app.js còn onAuthStateChanged
+✅ PASS  app.js còn renderApp
+✅ PASS  app.js hoặc renderInvalidation còn scheduleRender
+✅ PASS  main.js APP_BUILD_VERSION có 4K-6F
+✅ PASS  index.html cache bust có 4K-6F hoặc legacy-app-kernel-boundary
+
+── App.js Reduction Summary ─────────────────────────────────────────────────
+   Size        : 667.2 KB
+   Lines       : 11262
+   window.X =  : 531 assignments
+   Duplicates  : 159 globals shared with js/**/*.js
+   Risk Level  : MEDIUM
+─────────────────────────────────────────────────────────────────────────────
+
+✅ Tất cả 26 kiểm tra PASS — Phase 4K-6F Legacy App Kernel Boundary OK
+
+
+> taekwondo-club-app@1.0.0 check:multiitem-inventory-hydration
+> node tools/check-multiitem-inventory-hydration.mjs
+
+
+── check:multiitem-inventory-hydration ─────────────────────────────────
+✅ PASS  1. js/core/multiItemInventorySafety.js exists
+✅ PASS  2. MultiItemInventorySafety exposed to window in main.js
+✅ PASS  3. ensureMultiItemInventoryReady defined in multiItemInventorySafety.js
+✅ PASS  4. resolveMultiItemInventoryDebts defined in multiItemInventorySafety.js
+✅ PASS  5. buildInventoryStockMapForMultiItem defined in multiItemInventorySafety.js
+✅ PASS  6. renderMultiItemInventoryDebtPanel defined in multiItemInventorySafety.js
+✅ PASS  7. _refreshMiHistoryBadges is async in app.js
+✅ PASS  8. _refreshMiHistoryBadges calls ensureMultiItemInventoryReady in app.js
+✅ PASS  9. _refreshMiHistoryBadges does not only call ensureInventoryForFeature synchronously before reading debts
+✅ PASS  10. resolveMultiItemInventoryDebts normalizes Vietnamese and checks multiple name fields
+✅ PASS  11. toggleMiInvCategory in app.js has fallback buildInventoryStockMapForMultiItem
+✅ PASS  12. toggleMiInvCategory in js/modules/inventory.js has fallback buildInventoryStockMapForMultiItem
+✅ PASS  13. app.js has auto-refresh multiItemModal when inventory snapshot arrives
+✅ PASS  14. debugMultiItemInventoryHydration exists in main.js or app.js
+✅ PASS  15. debugMultiItemInventoryDebtResolution exists in main.js or app.js
+✅ PASS  16. debugRuntimeSmokeTest includes debugMultiItemInventoryHydration
+
+Result: 16 passed, 0 failed
+
+✅ check:multiitem-inventory-hydration PASS (16/16)
+
+
+> taekwondo-club-app@1.0.0 check:legacy-diagnostics-extraction
+> node tools/check-legacy-diagnostics-extraction.mjs
+
+
+── check:legacy-diagnostics-extraction ─────────────────────────────────
+✅ PASS  1. LegacyDiagnostics object exported from legacyDiagnostics.js
+✅ PASS  2. initLegacyDiagnostics exported from legacyDiagnostics.js
+✅ PASS  3. initLegacyDiagnostics assigns window.LegacyDiagnostics
+✅ PASS  4. initLegacyDiagnostics imported in main.js
+✅ PASS  5. legacyAppAudit.js getAppJsReductionPlan mentions 4K-6G MultiItem Inventory Hydration fix
+✅ PASS  6. processMultiItem still exists in app.js (not moved or deleted)
+✅ PASS  7. initSaaSDatabase still exists in app.js (not removed)
+✅ PASS  8. listenToData still exists in app.js (not removed)
+✅ PASS  9. renderApp still exists in app.js (not removed)
+✅ PASS  10. scheduleRender still exists in app.js (not removed)
+
+Result: 10 passed, 0 failed
+
+✅ check:legacy-diagnostics-extraction PASS (10/10)
+
+
+> taekwondo-club-app@1.0.0 check:legacy-render-entrypoints
+> node tools/check-legacy-render-entrypoints.mjs
+
+
+══════════════════════════════════════════════════════
+ check-legacy-render-entrypoints — Phase 4K-6H
+══════════════════════════════════════════════════════
+
+  ✓ PASS: js/core/legacyRenderEntrypoints.js exists
+  ✓ PASS: main.js exposes window.LegacyRenderEntrypoints
+  ✓ PASS: main.js exposes window.debugLegacyRenderEntrypoints
+  ✓ PASS: app.js scheduleRender calls recordLegacyRenderCall
+  ✓ PASS: app.js scheduleRender gọi routeLegacyRenderReason
+  ✓ PASS: app.js renderApp() calls recordLegacyRenderCall
+  ✓ PASS: renderInvalidation.js vẫn có _moduleRenderApp
+  ✓ PASS: renderInvalidation.js _moduleRenderApp calls recordLegacyRenderCall
+  ✓ PASS: renderInvalidation.js vẫn giữ LegacyRenderWarning
+  ✓ PASS: legacyRenderEntrypoints.js có classifyRenderReason
+  ✓ PASS: legacyRenderEntrypoints.js có routeLegacyRenderReason
+  ✓ PASS: debugRuntimeSmokeTest includes debugLegacyRenderEntrypoints
+  ✓ PASS: renderApp() vẫn còn trong app.js (không bị xóa)
+  ✓ PASS: scheduleRender vẫn còn trong app.js (không bị xóa)
+  ✓ PASS: initSaaSDatabase vẫn còn trong app.js
+  ✓ PASS: listenToData vẫn còn trong app.js
+  ✓ PASS: processMultiItem vẫn còn trong app.js (không bị xóa/rewrite)
+  ✓ PASS: index.html có cache bust Phase 4K-6H hoặc mới hơn
+  ✓ PASS: APP_BUILD_VERSION đã cập nhật Phase 4K-6H
+
+══════════════════════════════════════════════════════
+ ✓ check-legacy-render-entrypoints PASSED (0 warnings)
+══════════════════════════════════════════════════════
+
+
+> taekwondo-club-app@1.0.0 check:inline-handler-bridge
+> node tools/check-inline-handler-bridge.mjs
+
+
+══════════════════════════════════════════════════════
+ check-inline-handler-bridge — Phase 4K-6I
+══════════════════════════════════════════════════════
+
+  ✓ PASS: js/core/inlineHandlerAudit.js exists
+  ✓ PASS: js/ui/eventActionBridge.js exists
+  ✓ PASS: main.js imports EventActionBridge
+  ✓ PASS: main.js imports InlineHandlerAudit
+  ✓ PASS: main.js inits eventActionBridge
+  ✓ PASS: main.js has window.debugInlineHandlerAudit
+  ✓ PASS: main.js has window.debugEventActionBridge
+  ✓ PASS: main.js exposes window.EventActionBridge
+  ✓ PASS: main.js exposes window.InlineHandlerAudit
+  ✓ PASS: eventActionBridge.js has __eventActionBridgeBound idempotency guard
+  ✓ PASS: eventActionBridge.js has hasInlineHandler guard
+  ✓ PASS: eventActionBridge.js skips element with inline handler
+  ✓ PASS: eventActionBridge.js has risk metadata in actions
+  ✓ PASS: eventActionBridge.js registers close-modal-by-id
+  ✓ PASS: eventActionBridge.js registers close-self-on-backdrop
+  ✓ PASS: eventActionBridge.js registers select-branch-card
+  ✓ PASS: index.html has data-action="select-branch-card" (branch cards migrated)
+  ✓ PASS: index.html no longer has onclick="selectBranchCard(
+  ✓ PASS: index.html has data-action="close-modal-by-id" (close buttons migrated)
+  ✓ PASS: index.html has data-action="close-self-on-backdrop" (backdrops migrated)
+  ✓ PASS: index.html has no forbidden financial/write/auth/superadmin data-action
+  ✓ PASS: No element has both data-action and onclick/onchange/oninput/onsubmit (no double execution)
+  ✓ PASS: app.js still has processMultiItem (not deleted)
+  ✓ PASS: app.js still has renderApp (not deleted)
+  ✓ PASS: app.js still has scheduleRender (not deleted)
+  ✓ PASS: Phase 6I does NOT rewrite processMultiItem (guard: function signature intact)
+  ✓ PASS: debugRuntimeSmokeTest includes debugInlineHandlerAudit
+  ✓ PASS: debugRuntimeSmokeTest includes debugEventActionBridge
+  ✓ PASS: index.html cache bust has 4K-6I or inline-handler-bridge
+  ✓ PASS: main.js APP_BUILD_VERSION has 4K-6I
+  ⚠ WARN: onclick còn 113 — nên giảm xuống dưới 110
+
+══════════════════════════════════════════════════════
+ ✓ check-inline-handler-bridge PASSED (1 warning)
+══════════════════════════════════════════════════════
+
+
+> taekwondo-club-app@1.0.0 check:superadmin-aggregation-hard-stop
+> node tools/check-superadmin-aggregation-hard-stop.mjs
+
+══════════════════════════════════════════════════════
+ check-superadmin-aggregation-hard-stop — Phase 4K-6I-C/D
+══════════════════════════════════════════════════════
+
+  ✓ PASS: debugSuperAdminAggregationHardStop defined
+  ✓ PASS: __saDisableBackgroundCountRefresh defaults true
+  ✓ PASS: __saAggregationHardStop defaults true
+  ✓ PASS: countDocs throws quota/resource-exhausted/429 errors
+  ✓ PASS: old countDocs return-null quota pattern removed
+  ✓ PASS: runThrottledCount treats null/{ok:false} as failure
+  ✓ PASS: quota circuit opens after first quota error for >=15 minutes
+  ✓ PASS: count refresh queue clears/stops when circuit opens
+  ✓ PASS: dashboard load does not directly refresh counts; auto queue guarded by disabled flag
+  ✓ PASS: manual per-club refresh function exists
+  ✓ PASS: no Promise.all aggregation storm
+  ✓ PASS: UI has -- / cached-only fallback for missing counts
+  ✓ PASS: debugRuntimeSmokeTest includes debugSuperAdminAggregationHardStop
+  ✓ PASS: APP_BUILD_VERSION updated to 4K-6I-C/D/E/F
+  ✓ PASS: index.html cache bust updated to 4K-6I-C/D/E/F
+  ✓ PASS: package.json includes check:superadmin-aggregation-hard-stop
+
+══════════════════════════════════════════════════════
+ ✓ check-superadmin-aggregation-hard-stop PASSED
+══════════════════════════════════════════════════════
+
+> taekwondo-club-app@1.0.0 check:superadmin-quota-guard
+> node tools/check-superadmin-quota-guard.mjs
+
+══════════════════════════════════════════════════════
+ check-superadmin-quota-guard — Phase 4K-6I-B
+══════════════════════════════════════════════════════
+
+  ✓ PASS: js/core/superAdminQuotaGuard.js exists
+  ✓ PASS: main.js exposes window.SuperAdminQuotaGuard
+  ✓ PASS: main.js has window.debugSuperAdminQuotaGuard
+  ✓ PASS: debugSuperAdminLoadState defined
+  ✓ PASS: loadSuperAdminData has single-flight/cooldown guard
+  ✓ PASS: main.js HOTFIX retry has __saDashboardLoadInFlight guard
+  ✓ PASS: superadmin.js: no Promise.all with 4 countDocs aggregation storm
+  ✓ PASS: superadmin.js: countDocs not called directly in render loop for all clubs
+  ✓ PASS: superAdminQuotaGuard.js has circuit breaker for quota errors
+  ✓ PASS: superadmin.js: cached counts write guarded (no null/undefined writes)
+  ✓ PASS: superadmin.js has background refresh queue
+  ✓ PASS: superadmin.js has UI fallback "--" for null counts
+  ✓ PASS: index.html cache bust has Phase 4K-6I-B
+  ✓ PASS: main.js APP_BUILD_VERSION has 4K-6I-B/6I-C
+  ✓ PASS: main.js imports/references SuperAdminQuotaGuard
+
+══════════════════════════════════════════════════════
+ ✓ check-superadmin-quota-guard PASSED
+══════════════════════════════════════════════════════
+
+> taekwondo-club-app@1.0.0 check:legacy-runtime-fallback-fix
+> node tools/check-legacy-runtime-fallback-fix.mjs
+
+══════════════════════════════════════════════════════
+ check-legacy-runtime-fallback-fix — Phase 4K-6I-B
+══════════════════════════════════════════════════════
+
+  ✓ PASS: app.js _invCb: no bare scheduleRender() without reason
+  ✓ PASS: flushOrQueueDomainInvalidation defined (app.js or main.js)
+  ✓ PASS: main.js _flushPendingDomainInvalidations handles inventory domain
+  ✓ PASS: students.js: bare 300ms setTimeout fallback replaced or guarded
+  ✓ PASS: scheduleStudentsPaginationFallback defined
+  ✓ PASS: main.js has debugPendingDomainInvalidations
+
+══════════════════════════════════════════════════════
+ ✓ check-legacy-runtime-fallback-fix PASSED
+══════════════════════════════════════════════════════
+
+> taekwondo-club-app@1.0.0 check:superadmin-cache-stats-island-fallback
+> node tools/check-superadmin-cache-stats-island-fallback.mjs
+
+══════════════════════════════════════════════════════
+ check-superadmin-cache-stats-island-fallback — Phase 4K-6I-D
+══════════════════════════════════════════════════════
+
+  ✓ PASS: SuperAdmin reads revenue from stats docs robustly
+  ✓ PASS: SuperAdmin reads cached revenue from club doc fallback
+  ✓ PASS: SuperAdmin has cached student count readers
+  ✓ PASS: SuperAdmin top total students is cache-aware
+  ✓ PASS: SuperAdmin top revenue is cache/stats-aware
+  ✓ PASS: SuperAdmin UI explains cache-only -- fallback
+  ✓ PASS: SuperAdmin no longer sums missing active counts as 0
+  ✓ PASS: SuperAdmin no longer hides valid zero/missing revenue with old >0 check
+  ✓ PASS: debugStudentsPaginationIslandFallback defined
+  ✓ PASS: student pagination fallback tries island render before legacy fallback
+  ✓ PASS: fallback warning only after island timeout
+  ✓ PASS: runtime smoke includes student pagination island fallback debug
+  ✓ PASS: APP_BUILD_VERSION updated to 4K-6I-D/E/F
+  ✓ PASS: index.html cache bust updated to 4K-6I-D/E/F
+  ✓ PASS: package.json includes check:superadmin-cache-stats-island-fallback
+
+══════════════════════════════════════════════════════
+ ✓ check-superadmin-cache-stats-island-fallback PASSED
+══════════════════════════════════════════════════════
+
+> taekwondo-club-app@1.0.0 check:superadmin-render-scope-fix
+> node tools/check-superadmin-render-scope-fix.mjs
+
+══════════════════════════════════════════════════════
+ check-superadmin-render-scope-fix — Phase 4K-6I-E
+══════════════════════════════════════════════════════
+
+  ✓ PASS: module-level SuperAdmin revenue formatters exist
+  ✓ PASS: render scope fix marker is present
+  ✓ PASS: debugSuperAdminRenderScopeFix defined
+  ✓ PASS: _renderSAClubRows uses module-level formatters
+  ✓ PASS: _renderSAClubRows no longer calls scoped _fmtRevenueShort
+  ✓ PASS: _renderSAClubRows no longer calls scoped _fmtRevenueFull
+  ✓ PASS: debugRuntimeSmokeTest includes debugSuperAdminRenderScopeFix
+  ✓ PASS: APP_BUILD_VERSION updated to 4K-6I-E
+  ✓ PASS: index.html cache bust updated to 4K-6I-E/F
+  ✓ PASS: package.json includes check:superadmin-render-scope-fix
+
+══════════════════════════════════════════════════════
+ ✓ check-superadmin-render-scope-fix PASSED
+══════════════════════════════════════════════════════
+
+> taekwondo-club-app@1.0.0 check:club-stats-auto-cache
+> node tools/check-club-stats-auto-cache.mjs
+
+✅ clubStatsAutoCache module exists
+✅ main imports initClubStatsAutoCache
+✅ main calls initClubStatsAutoCache
+✅ debugClubStatsAutoCache exposed
+✅ syncClubStatsCache exposed
+✅ SuperAdmin runtime guard exists
+✅ root club cached fields written
+✅ SuperAdmin reads automatic cache fields
+✅ runtime smoke includes debugClubStatsAutoCache
+✅ APP_BUILD_VERSION updated
+✅ index cache bust updated
+✅ check:club-stats-auto-cache PASS
+
+> taekwondo-club-app@1.0.0 check:superadmin-server-summary-cache
+> node tools/check-superadmin-server-summary-cache.mjs
+
+PASS: profile trigger exists
+PASS: transaction trigger exists
+PASS: scheduled backfill exists
+PASS: callable refresh one club exists
+PASS: root cache fields written
+PASS: functions exported in index.js
+PASS: functions lint includes new file
+PASS: APP_BUILD_VERSION updated
+PASS: index cache bust updated
+PASS: deploy guide exists
+
+> taekwondo-club-app@1.0.0 check:superadmin-safe-server-refresh
+> node tools/check-superadmin-safe-server-refresh.mjs
+
+[check-superadmin-safe-server-refresh] PASS — client-only policy closes callable runtime
+
+> taekwondo-club-app@1.0.0 check:excel-import-vtf-upsert
+> node tools/check-excel-import-vtf-upsert.mjs
+
+Phase 4K-6I-I Excel Import VTF Upsert Check
+✅ has debugExcelImportVtfUpsert
+✅ has normalized name matching
+✅ has memberId/VTF aliases
+✅ updates existing profile with merge
+✅ does not skip existing system names before update
+✅ protects paidUntil for existing students
+✅ prevents duplicate VTF in system
+✅ prevents duplicate VTF in file
+✅ supports batch chunking
+✅ reports updated count
+✅ refreshes students after excel upsert
+✅ has phase version in main
+✅ has cache bust in index
+✅ package script registered
+✅ check:all includes script
+✅ check:all:critical includes script
+
+PASS: 16/16 checks passed
+
+> taekwondo-club-app@1.0.0 check:production-stability-gate
+> node tools/check-production-stability-gate.mjs
+
+Phase 4K-6J Production Stability Gate Check
+✅ has productionStabilityGate module
+✅ exports ProductionStabilityGate
+✅ exports initProductionStabilityGate
+✅ defines debugProductionStabilityGate
+✅ defines debugFinancialSafetySnapshot
+✅ defines debugSuperAdminStatsReadiness
+✅ defines debugExcelImportVtfReadiness
+✅ module is read-only: no updateDoc/setDoc/addDoc/deleteDoc
+✅ main imports initProductionStabilityGate
+✅ main initializes production stability gate
+✅ runtime smoke includes production gate
+✅ runtime smoke includes financial snapshot
+✅ runtime smoke includes SuperAdmin readiness
+✅ runtime smoke includes Excel VTF readiness
+✅ SuperAdmin client aggregation hard stop still present
+✅ Excel VTF protections still present
+✅ processMultiItem still present in app.js
+✅ APP_BUILD_VERSION updated
+✅ index cache bust updated
+✅ package script registered
+✅ check:all includes production gate
+✅ check:all:critical includes production gate
+
+PASS: 22/22 checks passed
+
+> taekwondo-club-app@1.0.0 check:multiitem-tuition-package-fix
+> node tools/check-multiitem-tuition-package-fix.mjs
+
+❌ check:multiitem-tuition-package-fix failed
+ - paidUntil lastMonth missing

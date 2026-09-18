@@ -41,7 +41,9 @@
 
 .ui-bottom-nav { display: none; }
 #tuitionPrimaryActions { display: none; }
+#debtPrimaryActions { display: none; }
 body:has(#tab_tx.active):not(:has(#superAdminView[style*="display: block"])):not(:has(#clubAccessBlockBanner)) #tuitionPrimaryActions { display: flex; }
+body:has(#tab_debt.active):not(:has(#superAdminView[style*="display: block"])):not(:has(#clubAccessBlockBanner)) #debtPrimaryActions { display: block; }
 .ui-filter-sheet-head { display: none; }
 .ui-filter-toggle { display: none; }
 .ui-more-title { font-size: 0.78rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.07em; }
@@ -52,6 +54,9 @@ body:has(#tab_tx.active):not(:has(#superAdminView[style*="display: block"])):not
 .ui-more-module { min-height: 52px; border: 1px solid #e2e8f0; border-radius: var(--ui-radius-md); background: #f8fafc; color: #334155; font-weight: 800; font-size: var(--ui-font-sm); display: flex; align-items: center; gap: 8px; padding: 10px 12px; cursor: pointer; }
 .ui-more-module > span:first-child { font-size: 1.05rem; }
 .ui-icon-button { min-width: var(--ui-touch-min); min-height: var(--ui-touch-min); display: inline-flex; align-items: center; justify-content: center; }
+.ui-context-search { min-width: 0; }
+.ui-search-icon { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; line-height: 1; font-size: 1rem; }
+.ui-search-input { box-sizing: border-box; line-height: 1.25; }
 .ui-shell-overlay { align-items: center; justify-content: center; padding: 20px; }
 .ui-more-close { background: #f1f5f9; border: 0; border-radius: 50%; color: #64748b; cursor: pointer; }
 
@@ -59,7 +64,7 @@ body:has(#tab_tx.active):not(:has(#superAdminView[style*="display: block"])):not
 @media (min-width: 768px) {
   .ui-context-bar { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; background: #f8fafc; padding: 16px; border-radius: 12px; border: 1px solid #f1f5f9; margin-bottom: 24px; }
   .ui-context-search { grid-column: 3; position: relative; display: flex; align-items: center; }
-  .ui-search-icon { position: absolute; left: 12px; z-index: 1; color: #64748b; }
+  .ui-search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; z-index: 1; color: #64748b; }
   .ui-search-input { padding-left: 40px; }
   .ui-filter-controls { grid-column: 1 / 3; grid-row: 1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   .ui-filter-field label { display: block; font-size: 0.7rem; font-weight: 800; color: #64748b; margin-bottom: 4px; text-transform: uppercase; }
@@ -99,10 +104,16 @@ body:has(#tab_tx.active):not(:has(#superAdminView[style*="display: block"])):not
   .ui-filter-note { display: none; }
 
   /* TUITION PRIORITY ACTIONS — requested order: actions first, search/filter immediately below. */
-  #tuitionPrimaryActions { margin: 0 0 10px; padding: 10px 12px; background: #fff; border: 1px solid #e2e8f0; border-radius: var(--ui-radius-md); box-shadow: var(--ui-shadow-sm); }
-  #tuitionPrimaryActions h4 { margin: 0; font-size: 1rem; line-height: 1.35; }
-  #tuitionPrimaryActions > div { width: 100%; }
-  #tuitionPrimaryActions button { min-height: var(--ui-touch-min); white-space: normal; line-height: 1.2; }
+  #tuitionPrimaryActions.ui-tuition-payment-panel { margin: 0 0 8px; padding: 8px 10px; gap: 6px; background: #fff; border: 1px solid #e2e8f0; border-radius: var(--ui-radius-md); box-shadow: var(--ui-shadow-sm); }
+  #tuitionPrimaryActions.ui-tuition-payment-panel h4 { margin: 0; font-size: 0.94rem; line-height: 1.25; }
+  #tuitionPrimaryActions.ui-tuition-payment-panel > div { width: 100%; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  #tuitionPrimaryActions.ui-tuition-payment-panel button { width: auto; min-width: 0; min-height: var(--ui-touch-min); padding: 7px 6px; white-space: normal; line-height: 1.15; font-size: 0.72rem; }
+  #debtPrimaryActions { margin: 0 0 10px; }
+  #debtPrimaryActions .ui-debt-priority-header { margin-bottom: 8px; }
+  #debtPrimaryActions .ui-debt-priority-header > div { width: 100%; display: flex; gap: 6px; flex-wrap: wrap; }
+  #debtPrimaryActions .ui-debt-priority-header button { min-height: var(--ui-touch-min); flex: 1 1 145px; }
+  #debtPrimaryActions .ui-debt-summary { padding: 8px 10px; gap: 8px; margin-bottom: 10px; }
+  #debtPrimaryActions .ui-debt-summary .block { font-size: 0.95rem; }
   body:has(#clubAccessBlockBanner) #tuitionPrimaryActions,
   body:has(#superAdminView[style*="display: block"]) #tuitionPrimaryActions { display: none; }
 

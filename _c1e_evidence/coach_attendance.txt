@@ -1,0 +1,41 @@
+
+> taekwondo-club-app@1.0.0 check:coach-attendance-only-read-boundary
+> node tools/check-coach-attendance-only-read-boundary.mjs
+
+
+=== Phase 4K-6V4A compatibility — Coach Attendance-Only Read Boundary ===
+
+✅ Role read boundary loads before transaction boundary and app.js
+✅ Coach UI exposes only Attendance and hides full Add Student controls
+✅ Role/branch context is stored before app context-ready events
+✅ Coach bootstrap blocks inventory stats, active debts and transactions
+✅ Admin financial/Kho listener implementations remain present
+✅ Settings callback does not start finance/inventory/debt consumers for Coach
+✅ Direct listenToData calls are defensively blocked for Coach
+✅ Canonical transaction settings gate is defensively blocked for Coach
+✅ Main bootstrap skips Coach pagination, exam setting and club stats cache
+✅ Pagination modules have internal Coach guards
+✅ Programmatic tab switching is forced back to Attendance in all controllers
+✅ Coach profile listener key contains role and branch
+✅ Coach profile query is server-scoped by status + branch
+✅ Coach zero probe and fallback are branch-scoped
+✅ Coach never executes full-club profiles fallback, quit load or export load
+✅ Coach profile snapshot does not start debt coverage
+✅ Debt boundary refuses Coach coverage audit/full fallback
+✅ Club stats cache sync has a runtime Coach guard
+✅ Attendance daily query supports branch and fails closed when Coach branch is missing
+✅ Attendance monthly and member-history queries support branch scope
+✅ Attendance UI passes selected/assigned branch into daily and monthly services
+✅ Required Firestore indexes are declared
+✅ Dynamic: Coach may mount Attendance but not transactions/Kho
+✅ Dynamic: Coach is redirected to Attendance tab
+✅ Dynamic: Coach profile listener requires an assigned branch
+✅ Dynamic: Admin financial/Kho sources remain allowed
+✅ Dynamic: Coach daily Firestore query contains date + branch + shift
+✅ Dynamic: Coach monthly Firestore query contains month + branch
+✅ Dynamic: Coach member history contains profileId + month + branch
+✅ Dynamic: Missing Coach branch causes zero-query fail-closed behavior
+
+Total: 30 | PASS: 30 | FAIL: 0
+Phase 4K-6V4A compatibility checks passed.
+

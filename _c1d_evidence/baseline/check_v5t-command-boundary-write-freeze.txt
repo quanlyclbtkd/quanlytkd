@@ -1,0 +1,27 @@
+
+> taekwondo-club-app@1.0.0 check:v5t-command-boundary-write-freeze
+> node tools/check-v5t-canonical-command-boundary-write-freeze.mjs
+
+✅ V5T command module exists and public mirror is exact
+✅ V5T-or-later app/index/main markers active
+✅ V5T-or-later public app/index/main markers active
+✅ main imports command boundary with compatible cache bust
+✅ command boundary initializes only after student/finance/inventory/attendance modules
+✅ command boundary contains no Firestore write implementation
+✅ command boundary does not mutate render/store domains
+✅ command boundary preserves raw legacy result through executeCompat
+✅ command boundary has identical-action single-flight protection
+✅ reviewed cross-domain command manifest is complete
+✅ attendance/offline and multi-item remain observe-only
+✅ student/finance/inventory command ownership stays explicit
+✅ runtime diagnostics exposed
+✅ legacy app.js direct-write total did not increase
+✅ legacy app.js per-operation write counts did not increase
+❌ legacy app.js has no new direct-write call signature — [{"key":"addDoc|await addDoc(collection(db, 'clubs', currentClubId, 'fee_audit'), { ..._row, date: getLocalToday(), type: 'tuition', by: window.currentUserEmail || 'admin' });","count":1,"allowed":0}]
+✅ app.js/public write surface exact after build or explicit bounded pre-build source state
+✅ baseline is explicitly V5T/V5S freeze inventory
+✅ package exposes V5T static and behavior checks
+✅ build:public keeps public as runtime-only output
+✅ default check pipeline includes both V5T gates
+
+V5T canonical command boundary/write-freeze check FAILED: 1

@@ -1,0 +1,39 @@
+
+> taekwondo-club-app@1.0.0 check:financial-action-audit-guard
+> node tools/check-financial-action-audit-guard.mjs
+
+🔎 Phase 4K-6N — Financial Action Audit Trail + Write Intent Guard check
+✅ Có js/core/financialActionAuditGuard.js
+✅ Module có guardFinancialWriteIntent
+✅ Module có recordFinancialActionAudit
+✅ Module có withFinancialWriteIntent
+✅ Audit trail ghi best-effort vào collection financial_audit
+✅ Có debugFinancialActionAuditGuard
+✅ Có debugFinancialActionAuditTrail
+✅ Danh sách action tài chính trọng yếu có trong allow-list
+✅ main.js import initFinancialActionAuditGuard
+✅ main.js khởi tạo FinancialActionAuditGuard
+✅ APP_BUILD_VERSION đã cập nhật 4K-6N
+✅ debugRuntimeSmokeTest include FinancialActionAudit debug
+✅ index.html cache bust 4K-6N
+✅ quickPay có Write Intent Guard tại TuitionCommandBoundary
+✅ quickPay có audit before/after/error tại owner mới
+✅ processMultiItem pay có Write Intent Guard
+✅ processMultiItem pay có audit before/after/error
+✅ deleteTx có guard cho cả tuition và non-tuition path
+✅ deleteTx có audit before/after/error ở đúng owner
+✅ markInvPaid có Write Intent Guard
+✅ markInvPaid có audit before/after/error
+✅ cancelExamPayment có Write Intent Guard
+✅ cancelExamPayment có audit before/after/error
+✅ processMultiItem vẫn tồn tại
+✅ processMultiItem giữ paidUntil monotonic/paidMonths trong cùng atomic batch và fail-closed nếu profile biến mất
+✅ quickPay UI adapter vẫn tồn tại
+✅ deleteTx UI adapter vẫn tồn tại
+✅ markInvPaid vẫn tồn tại
+✅ cancelExamPayment vẫn tồn tại
+✅ package.json có check:financial-action-audit-guard
+✅ check:all include financial-action-audit-guard
+✅ check:all:critical include financial-action-audit-guard
+
+✅ Financial Action Audit Guard check PASSED

@@ -1,0 +1,6 @@
+
+> taekwondo-club-app@1.0.0 check:multiitem-tuition-package-fix
+> node tools/check-multiitem-tuition-package-fix.mjs
+
+❌ check:multiitem-tuition-package-fix failed
+ - paidUntil lastMonth missing

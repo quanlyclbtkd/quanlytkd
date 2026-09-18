@@ -1,0 +1,31 @@
+
+> taekwondo-club-app@1.0.0 check:v5u2-tuition-command-cutover
+> node tools/check-v5u2-tuition-command-cutover.mjs
+
+✅ V5U-2 source/public boundary mirrors are exact
+✅ V5U-2 finance source/public mirrors are exact
+✅ V5U-2 app/index/main markers active
+✅ V5U-2 public app/index/main markers active
+✅ main imports and initializes tuition boundary before finance UI adapter
+✅ tuition boundary owns quickPay and tuition delete only
+✅ tuition boundary delegates through existing FinanceService
+✅ tuition boundary has no Firestore direct writer/import
+✅ tuition boundary preserves existing transaction schema fields
+✅ tuition boundary centralizes local commit and invalidation
+✅ tuition boundary has identical-action single-flight
+✅ tuition boundary prevents transaction/profile partial write atomically
+✅ tuition delete reuses existing reconcile helper without duplicate invalidation
+✅ tuition delete reports post-delete reconcile failure as partial state
+✅ finance quickPay is UI-only adapter into tuition boundary
+✅ finance delete routes tuition-only transaction into tuition boundary
+✅ non-tuition/inventory delete remains existing FinanceService path
+✅ family pay and multi-item remain outside TuitionCommandBoundary while using existing atomic owners
+✅ legacy app tuition/delete writers are no-write stubs
+✅ legacy app no longer contains quickPay/delete direct-write signatures
+✅ V5U-2 baseline remains a total-write ceiling after later security hardening
+✅ V5U-2 business-write baseline not regressed; one V5U4 principal setDoc is isolated
+✅ app/public direct-write surfaces exact after build or explicit bounded pre-build source state
+✅ V5T no longer wraps quickPay over the new tuition owner
+✅ package exposes and runs V5U-2 checks
+
+V5U-2 tuition command cutover check PASS.

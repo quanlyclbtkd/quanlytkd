@@ -1,0 +1,152 @@
+
+> taekwondo-club-app@1.0.0 check:attendance-canonical-ownership
+> node tools/check-attendance-canonical-ownership.mjs
+
+
+🔎 Phase 4K-6V — Attendance Canonical Ownership + Monthly Pagination
+
+[attendance.js] ✅ Phase 4K-6V5U6G residual closure: explicit shift + V2 offline journal ready
+✅ attendance rollback bridge exists
+✅ attendance rollback bridge has current cache key
+✅ attendance rollback bridge loads before app.js
+✅ app.js cache key is 4K-6V or a later compatible phase
+✅ main.js cache key is 4K-6V or a later compatible phase
+✅ main contains 4K-6V compatibility build marker
+✅ active runtime build version is 4K-6V or later compatible phase
+✅ main imports attendance module
+✅ ownership registry initializes before attendance module
+✅ ownership manifest includes _getClubShifts
+✅ rollback bridge includes _getClubShifts
+✅ app.js no longer assigns window._getClubShifts
+✅ ownership manifest includes _ensureClubShiftsLoaded
+✅ rollback bridge includes _ensureClubShiftsLoaded
+✅ app.js no longer assigns window._ensureClubShiftsLoaded
+✅ ownership manifest includes _renderHomeBirthdayBanner
+✅ rollback bridge includes _renderHomeBirthdayBanner
+✅ app.js no longer assigns window._renderHomeBirthdayBanner
+✅ ownership manifest includes showAttMemberHistory
+✅ rollback bridge includes showAttMemberHistory
+✅ app.js no longer assigns window.showAttMemberHistory
+✅ ownership manifest includes renderAttendanceList
+✅ rollback bridge includes renderAttendanceList
+✅ app.js no longer assigns window.renderAttendanceList
+✅ ownership manifest includes onShiftChange
+✅ rollback bridge includes onShiftChange
+✅ app.js no longer assigns window.onShiftChange
+✅ ownership manifest includes openShiftModal
+✅ rollback bridge includes openShiftModal
+✅ app.js no longer assigns window.openShiftModal
+✅ ownership manifest includes closeShiftModal
+✅ rollback bridge includes closeShiftModal
+✅ app.js no longer assigns window.closeShiftModal
+✅ ownership manifest includes addShift
+✅ rollback bridge includes addShift
+✅ app.js no longer assigns window.addShift
+✅ ownership manifest includes deleteShift
+✅ rollback bridge includes deleteShift
+✅ app.js no longer assigns window.deleteShift
+✅ ownership manifest includes toggleAttendance
+✅ rollback bridge includes toggleAttendance
+✅ app.js no longer assigns window.toggleAttendance
+✅ ownership manifest includes toggleAttendanceStatus
+✅ rollback bridge includes toggleAttendanceStatus
+✅ app.js no longer assigns window.toggleAttendanceStatus
+✅ ownership manifest includes bulkCheckIn
+✅ rollback bridge includes bulkCheckIn
+✅ app.js no longer assigns window.bulkCheckIn
+✅ ownership manifest includes syncOfflineAttendance
+✅ rollback bridge includes syncOfflineAttendance
+✅ app.js no longer assigns window.syncOfflineAttendance
+✅ ownership manifest includes switchAttSubTab
+✅ rollback bridge includes switchAttSubTab
+✅ app.js no longer assigns window.switchAttSubTab
+✅ ownership manifest includes renderAttMonthly
+✅ rollback bridge includes renderAttMonthly
+✅ app.js no longer assigns window.renderAttMonthly
+✅ ownership manifest includes printAttendanceStatus
+✅ rollback bridge includes printAttendanceStatus
+✅ app.js no longer assigns window.printAttendanceStatus
+✅ ownership manifest includes printAttendanceSessionCompletion
+✅ rollback bridge includes printAttendanceSessionCompletion
+✅ app.js no longer assigns window.printAttendanceSessionCompletion
+✅ ownership manifest includes printAttendanceBranchReport
+✅ rollback bridge includes printAttendanceBranchReport
+✅ app.js no longer assigns window.printAttendanceBranchReport
+✅ attendance ownership manifest points to attendance.js
+✅ registry reports current attendance phase
+✅ attendance module declares canonical owner
+✅ attendance module registers canonical globals
+✅ attendance module can restore canonical globals
+✅ legacy renderAttendanceList monkey-patch was removed
+✅ legacy attendance core body was removed from app.js
+✅ session note loads only through accepted canonical daily lifecycle
+✅ session note loader has stale-response sequence guard
+✅ stale session-note response cannot overwrite current date
+✅ online synchronization listener is bind-once
+✅ online synchronization listener remains installed
+✅ attendance cache applies captured selected-shift filter
+✅ daily read passes immutable date, shift and branch token to service
+✅ daily query filters selected shift server-side
+✅ monthly loader implementation is present
+✅ monthly loader remains scoped to selected month
+✅ monthly loader uses cursor pagination
+✅ monthly loader uses bounded page size
+✅ monthly page size is configurable
+✅ monthly safety ceiling is configurable
+✅ monthly loader throws instead of returning incomplete data
+✅ monthly loader supports request cancellation
+✅ monthly loader removed fixed 10,000-document cap
+✅ monthly loader has no setDoc( write/listener call
+✅ monthly loader has no updateDoc( write/listener call
+✅ monthly loader has no addDoc( write/listener call
+✅ monthly loader has no deleteDoc( write/listener call
+✅ monthly loader has no writeBatch( write/listener call
+✅ monthly loader has no runTransaction( write/listener call
+✅ monthly loader has no onSnapshot( write/listener call
+✅ monthly renderer creates an AbortController
+✅ monthly renderer rejects stale responses
+✅ monthly renderer reports safety-ceiling errors clearly
+✅ protected runtime/financial boundary remains in app.js: processMultiItem
+✅ protected runtime/financial boundary remains in app.js: quickPay
+✅ protected runtime/financial boundary remains in app.js: deleteTx
+✅ protected runtime/financial boundary remains in app.js: markInvPaid
+✅ protected runtime/financial boundary remains in app.js: cancelExamPayment
+✅ protected runtime/financial boundary remains in app.js: processBatchUpgrade
+✅ protected runtime/financial boundary remains in app.js: initSaaSDatabase
+✅ protected runtime/financial boundary remains in app.js: listenToData
+✅ protected runtime/financial boundary remains in app.js: renderApp
+✅ protected runtime/financial boundary remains in app.js: scheduleRender
+✅ app.js reduced from 730,409 to 683,202 bytes
+✅ app.js reduced from 11,681 to 11,262 lines
+✅ app.js meets Phase 4K-6V4B8 compatible size target (683,202 <= 700,000 bytes)
+✅ app.js remains within compatible Phase 4K-6V5U6E size target (11,262 <= 11,300 lines)
+✅ package exposes Phase 4K-6V checker
+✅ default check includes Phase 4K-6V checker
+✅ full check includes Phase 4K-6V checker
+✅ critical check includes Phase 4K-6V checker
+✅ monthly pagination returns all 10,500 documents
+✅ monthly pagination returns no duplicate documents
+✅ 10,500 documents load in 11 bounded pages
+✅ cursor is applied after every full page
+✅ monthly progress callback reports all pages/documents
+✅ monthly pagination records completed metrics
+✅ monthly pagination metrics record full document count
+✅ monthly pagination aborts stale requests with explicit code
+✅ aborted monthly request is recorded in metrics
+✅ monthly loader throws at configured safety ceiling
+✅ safety error reports partial count for diagnostics
+✅ safety-ceiling metrics never claim completion
+✅ attendance init exposes a stable module API
+✅ all 19 attendance globals register at runtime
+✅ all attendance canonical globals are installed
+✅ attendance ownership creates no collision
+✅ all attendance rollback references are preserved
+✅ attendance online listener binds once during first init
+✅ repeated attendance init does not duplicate online listener
+✅ attendance canonical references remain healthy after repeated init
+✅ club switch resets attendance cache/state
+✅ attendance metrics track the active club after reset
+✅ club switch still does not duplicate online listener
+
+✅ Phase 4K-6V check passed (141 assertions)
+

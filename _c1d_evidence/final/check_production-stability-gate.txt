@@ -1,0 +1,29 @@
+
+> taekwondo-club-app@1.0.0 check:production-stability-gate
+> node tools/check-production-stability-gate.mjs
+
+Phase 4K-6J Production Stability Gate Check
+✅ has productionStabilityGate module
+✅ exports ProductionStabilityGate
+✅ exports initProductionStabilityGate
+✅ defines debugProductionStabilityGate
+✅ defines debugFinancialSafetySnapshot
+✅ defines debugSuperAdminStatsReadiness
+✅ defines debugExcelImportVtfReadiness
+✅ module is read-only: no updateDoc/setDoc/addDoc/deleteDoc
+✅ main imports initProductionStabilityGate
+✅ main initializes production stability gate
+✅ runtime smoke includes production gate
+✅ runtime smoke includes financial snapshot
+✅ runtime smoke includes SuperAdmin readiness
+✅ runtime smoke includes Excel VTF readiness
+✅ SuperAdmin client aggregation hard stop still present
+✅ Excel VTF protections still present
+✅ processMultiItem still present in app.js
+✅ APP_BUILD_VERSION updated
+✅ index cache bust updated
+✅ package script registered
+✅ check:all includes production gate
+✅ check:all:critical includes production gate
+
+PASS: 22/22 checks passed

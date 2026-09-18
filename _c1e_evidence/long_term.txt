@@ -1,0 +1,51 @@
+
+> taekwondo-club-app@1.0.0 check:long-term-production-stability
+> node tools/check-long-term-production-stability.mjs
+
+
+🔎 H8R2.1 — Long-Term Production Stability + Residual Correctness Gate
+
+✅ 1. Transaction pagination is not activated by hidden DOM existence 
+✅ 2. Hidden Transaction tab causes no pagination load and only marks local context dirty 
+✅ 2b. Existing tab activation hook starts pagination only on real Thu Chi activation 
+✅ 3. Attendance loadByDate owns bounded cursor pagination 
+✅ 4. Attendance daily cannot silently truncate at legacy 1200 limit 
+✅ 5. Attendance bulk writer chunks at <=400 inside the existing writer 
+✅ 6. Attendance bulk exposes committed-chunk scoped cleanup/partial failure metadata 
+✅ 6b. Attendance UI cleans only committed journal records, never the whole day in finally 
+✅ 7. Existing FinanceService owns one safe atomic logical write plan 
+✅ 8. transactionForm no longer sequences independent primary tuition writes 
+✅ 9. processCombo routes primary writes through existing atomic finance owner 
+✅ 10. processMultiItem commits one logical primary batch and has no sequential fallback writer 
+✅ 11. No new parallel financial writer authority introduced 
+✅ 11b. TuitionCommandBoundary keeps canonical ownership; audit stays secondary 
+✅ 11c. Inventory existing owner exposes pure prepare primitive and atomic debt-payment linkage 
+✅ 12. Quit authority has no 60-second time-only full refresh 
+✅ 13. Quit full snapshot requires incomplete/dirty/error/explicit refresh semantics 
+✅ 14. Quit authority itself adds no listener; it reuses existing profile ownership 
+✅ 15. Exam promotion/reset cannot exceed safe batch size 
+✅ 16. Exam retry writes deterministic target state and reports committed/pending 
+✅ 17. Main bootstrap retry is bounded by a hard deadline 
+✅ 18. Permanent 3-second mobile-header interval removed; existing context event reused 
+✅ 19. User text has fail-closed escaping instead of raw identity fallback 
+✅ 20. Firestore static budget unchanged (29/51/16 <= 29/51/16) 
+✅ B6 dynamic: 1501 daily records load completely across 4 pages 
+✅ B10 dynamic: injected chunk-2 failure reports 400 committed / 601 pending without false all-success 
+✅ 28. MultiItem debt-paid patch is canonical (paid status/date/tx/bundle) and no longer classifies active 
+✅ 29. InventoryService paid mutation preparer is PURE and performs ZERO Firestore write/read/listener 
+✅ 30. MultiItem debt paid mutation stays inside the SAME existing atomic batch 
+✅ 31. Debt-only MultiItem payment invalidates the existing Inventory cache/history path without a new read 
+✅ 32. MultiItem paidUntil uses max(existing,candidate); F1/F2/F3 monotonic cases PASS and raw lastMonth write is forbidden 
+✅ 33. MultiItem requires canonical profile existence before any atomic write plan/commit 
+✅ 34. MultiItem tuition profile mutation cannot create a missing profile; update() makes disappearance fail the whole batch 
+✅ 35. MultiItem has no raw-input profile identity fallback; profileId=name is only used after exact canonical profile existence is proven 
+✅ 36. Quit-profile canonical mutation marks the EXISTING Quit authority dirty locally with ZERO read/write/listener 
+[ProfilesListener] reset — h8r21-test-reset
+✅ 37. Quit Q1-Q4: repeated opens reuse complete cache; one local dirty mutation causes exactly one existing canonical refresh 
+✅ 38. Attendance A2/A3 fails closed before any read when limit/startAfter primitives are unavailable 
+✅ 39. H8R2.1 Firestore static budget preserved (29/51/16 <= 29/51/16) 
+✅ Package exposes check:long-term-production-stability 
+
+Total: 39 | PASS: 39 | FAIL: 0
+
+H8R2.1 long-term/residual stability gate PASS.

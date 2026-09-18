@@ -1,0 +1,10 @@
+check:release	0
+check:deploy-package	0
+check:root-public-parity	0
+check:ui-mobile-app-shell	0
+check:canonical-transaction-safe-cutover	0
+check:financial-action-audit-guard	0
+check:production-stability-gate	0
+check:long-term-production-stability	0
+check:production-residual-defect-closure	0
+check:h8r2-1c1d	0

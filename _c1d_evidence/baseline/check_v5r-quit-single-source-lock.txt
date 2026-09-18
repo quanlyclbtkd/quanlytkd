@@ -1,0 +1,22 @@
+
+> taekwondo-club-app@1.0.0 check:v5r-quit-single-source-lock
+> node tools/check-v5r-quit-single-source-lock.mjs
+
+✅ V5R build marker active
+✅ complete mode is dedicated quit store only
+✅ legacy/canonical union is preview-only
+✅ boundary dedupes preview by stable identity
+✅ active bucket removes restored ids from quit bucket
+✅ quit bucket removes ids from active bucket
+✅ quit authority is club-scoped
+❌ quit authority has freshness revalidation
+❌ active query removals mark quit authority dirty
+❌ current quit tab refreshes when active query removes docs
+✅ renderQuitIsland ignores cached quit HTML when boundary exists
+✅ legacy tab switch cannot restore cached quit HTML
+✅ profile rename updates canonical store immediately
+✅ public boundary mirror synced
+✅ V5R module performs no Firestore IO
+✅ package exposes V5R checks
+
+PASS 13/16

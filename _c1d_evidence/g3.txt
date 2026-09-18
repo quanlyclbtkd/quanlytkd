@@ -1,0 +1,40 @@
+
+> taekwondo-club-app@1.0.0 check:inventory-dynamic-size-catalog
+> node tools/check-inventory-dynamic-size-catalog.mjs
+
+
+=== Phase 4K-6V2B — Dynamic Inventory Size Catalog ===
+
+✅ Runtime exposes V2B patch version
+✅ Index cache-bust deploys V2B
+✅ Safety module defines normalized category identity
+✅ Safety module defines normalized size identity
+✅ Safety module canonicalizes history + stats maps
+✅ Safety module exposes dynamic category size builder
+✅ Safety module exposes normalized stock lookup
+✅ Read-only MultiItem UI uses dynamic size builder
+✅ Admission size bridge uses dynamic data-backed sizes
+✅ Legacy render cannot overwrite admission list with only hardcoded sizes
+✅ Modular render cannot overwrite admission list with only hardcoded sizes
+✅ Inventory module delegates MultiItem selector to read-only dynamic renderer
+✅ Category dropdown includes categories discovered from stock map
+✅ Legacy category dropdown includes stock-map categories
+✅ New inventory items maintain inventory_stats using canonical prepared increment patch
+✅ Prepared inventory summary is committed in the same batch without a duplicate writer
+✅ Summary maintenance adds no getDocs/read query
+✅ Legacy inventory writer also maintains summary with no reads
+✅ Changed nested modules are cache-busted
+✅ Dynamic: stock map built without any Firestore read API
+✅ Dynamic: non-hardcoded uniform size is included
+✅ Dynamic: case/spacing aliases merge into one size
+✅ Dynamic: inventory_stats remains authoritative for normalized alias
+✅ Dynamic: data-backed size appears even without category size config
+✅ Dynamic: configured sizes are preserved
+✅ Dynamic: stock-only size is appended to configured sizes
+✅ Dynamic: category casing aliases resolve correctly
+✅ Dynamic: Thu gộp UI receives complete configured + live size list
+✅ Dynamic: positive stock option remains enabled
+
+Total: 29 | PASS: 29 | FAIL: 0
+Phase 4K-6V2B dynamic inventory size catalog checks passed.
+

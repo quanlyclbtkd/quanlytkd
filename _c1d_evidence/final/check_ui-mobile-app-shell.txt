@@ -1,0 +1,91 @@
+
+> taekwondo-club-app@1.0.0 check:ui-mobile-app-shell
+> node tools/check-ui-mobile-app-shell.mjs
+
+
+📱 H8R2.1C1 — Mobile Shell Role/Access + UI Contract Closure Gate
+
+✅ 1. Mobile bottom navigation exists
+✅ 2. Exactly 5 primary mobile navigation items
+✅ 3. Primary nav maps only to existing switchTab/openMobileMenu authorities
+✅ 4. No mobile router or navigation state store added
+✅ 5. Legacy desktop navigation remains in DOM
+✅ 6. Legacy horizontal tab strip is hidden only in mobile shell
+✅ 7. Existing mobile More sheet contains module navigation
+✅ 8. More-sheet module actions reuse existing switchTab actions
+✅ 9. Shell/navigation/filter wrappers contain ZERO Firestore API calls
+✅ 10. H8R2.1C shell adds no setInterval
+✅ 11. H8R2.1C shell adds no onSnapshot
+✅ 12. H8R2.1C shell adds no getDoc
+✅ 13. H8R2.1C shell adds no getDocs
+✅ 14. H8R2.1C shell adds no business writer
+✅ 15. Viewport allows user zoom
+✅ 16. viewport-fit=cover is preserved
+✅ 17. Canonical touch-target token is >=44px
+✅ 18. Mobile body text baseline is >=14px
+✅ 19. Mobile inputs use >=16px typography
+✅ 20. Shell supports top and bottom safe areas
+✅ 21. No page-level horizontal-overflow helper hack added
+✅ 22. Canonical H8R2.1C stylesheet is loaded exactly once
+✅ 23. No duplicate H8R2.1C stylesheet reference
+✅ 24. H8R2.1C adds zero !important declarations
+✅ 25. Existing critical DOM ID contract preserved
+✅ 26. Mobile navigation adds no duplicate click event binding
+✅ 27. Hidden Transaction pagination optimization remains intact
+✅ 28. Firestore static budget unchanged (29/51/16 <= 29/51/16)
+✅ 29. Custom mobile overlays no longer pin align-items:center inline over the canonical sheet layer
+✅ 30. Bottom navigation uses accepted-tenant DOM predicate, not mainApp visibility alone
+✅ 31. All static icon-only close/add buttons have an accessible name
+✅ 33. SuperAdmin root view suppresses tenant Bottom Navigation
+✅ 34. clubAccessBlockBanner suppresses tenant Bottom Navigation
+✅ 35. Access-block state cannot expose mobile tenant module navigation
+✅ 36. Coach mobile More tenant module section is hidden from existing role presentation markers
+✅ 37. SuperAdmin mobile More tenant module section is hidden
+✅ 38. Normal accepted tenant Admin retains the 5-item Bottom Navigation
+✅ 39. Viewer tenant shell remains navigable according to existing viewer presentation authority
+✅ 40. Coach tenant Bottom Navigation exposes exactly Attendance
+✅ 41. Mobile utility visibility mirrors existing desktop control visibility
+✅ 42. No new role/auth/access state store introduced
+✅ 43. Shell role/access guards contain ZERO Firestore API calls
+✅ 44. C1 UI wrappers add no switchTab implementation
+✅ 45. C1 UI wrappers never call ensureTabModule directly
+✅ 46. Filter trigger exposes aria-controls/aria-expanded and switches to named modal-dialog semantics only while open
+✅ 47. More sheet markup has dialog semantics and named trigger contract; runtime-owner behavior is verified below
+✅ 48. Bottom-nav label typography is >=12px equivalent (>=0.75rem)
+✅ 49. Firestore static budget remains <=29/51/16 (29/51/16)
+✅ 50. S1 LOGIN fixture: tenant Bottom Navigation hidden
+✅ 51. S2 NORMAL ADMIN fixture: five tenant nav items available
+✅ 52. S3 VIEWER fixture: existing tenant navigation presentation remains available
+✅ 53. S4 COACH fixture: Attendance only; tenant More modules suppressed
+✅ 54. S5 SUPERADMIN fixture: tenant nav/modules suppressed
+✅ 55. S6 LOCKED fixture: tenant nav/modules suppressed
+✅ 56. S7 EXPIRED fixture: same fail-closed presentation as blocked
+✅ 57. S8 PERMISSION-DENIED fixture: same fail-closed presentation as blocked
+✅ 58. GlobalOwnership manifest keeps open/closeMobileMenu owned by js/ui/legacyUiShell.js
+✅ 59. Canonical openMobileMenu sets aria-hidden=false
+✅ 60. Canonical openMobileMenu expands every mobileMenuSheet trigger
+✅ 61. Canonical openMobileMenu locks body scroll
+✅ 62. Canonical closeMobileMenu sets aria-hidden=true
+✅ 63. Canonical closeMobileMenu resets every trigger aria-expanded=false
+✅ 64. Canonical closeMobileMenu restores body overflow
+✅ 65. Canonical SuperAdmin mmsAdminBtn visibility behavior is preserved
+✅ 66. Legacy inline rollback fallback has open/close presentation parity including SuperAdmin visibility
+✅ 67. Emergency legacyUiFallbacks More-menu path has canonical presentation parity
+✅ 68. No Firestore API appears in canonical or fallback More-menu owners
+✅ 69. No competing More-menu global owner/controller was introduced
+✅ 70. Firestore static budget remains <=29/51/16 (29/51/16)
+✅ 71. Mobile nav exact order is Học Phí → Báo Nợ → Điểm danh → Đang tập → Khác
+✅ 72. All five mobile nav items include the approved icon + label
+✅ 73. Tuition title/actions are physically above Search/Filter while existing action IDs/handlers are preserved
+✅ 74. Tuition transaction renderer exposes semantic mobile card cells without changing transaction data semantics
+✅ 75. Mobile Ngày nộp and Kỳ/Tháng occupy separate rows and cannot overlap
+✅ D1. initLegacyUiShell installs the canonical module implementation over the inline fallback
+✅ D2. Actual canonical openMobileMenu opens sheet, expands triggers, and locks body scroll
+✅ D3. Actual canonical closeMobileMenu closes sheet, resets triggers, and restores body scroll
+✅ D4. Canonical SuperAdmin open keeps Mở CLB Mới utility visible
+✅ D5. Canonical normal-tenant open keeps SuperAdmin utility hidden
+✅ Package exposes check:ui-mobile-app-shell
+
+Total: 80 | PASS: 80 | FAIL: 0
+
+H8R2.1C1 UI mobile app shell role/access gate PASS.

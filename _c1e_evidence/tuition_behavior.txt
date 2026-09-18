@@ -1,0 +1,23 @@
+
+> taekwondo-club-app@1.0.0 check:v5u2-tuition-command-behavior
+> node tools/check-v5u2-tuition-command-behavior.mjs
+
+✅ identical quickPay command commits one atomic plan once
+✅ duplicate quickPay callers share same result
+✅ quickPay preserves canonical transaction fields
+✅ quickPay advances paidUntil without overwriting profile status fields
+✅ quickPay commits canonical local profile after success
+✅ quickPay invalidates tuition/debt domains once
+✅ quickPay financial audit records before and after
+✅ identical tuition delete executes Firestore delete once
+✅ tuition delete reuses existing reconcile helper
+✅ tuition delete centralizes invalidation after reconcile
+✅ delete reconcile failure reports transaction-already-deleted partial state
+✅ delete partial state removes stale local transaction row
+✅ delete partial state forces tuition/debt refresh
+✅ atomic commit failure is surfaced without partial-write marker
+✅ atomic failure does not commit paidUntil locally
+✅ atomic failure does not synthesize a transaction/profile divergence
+✅ tuition command metrics record duplicate prevention and only genuine delete-reconcile partial write
+
+V5U-2 tuition command behavior check PASS.

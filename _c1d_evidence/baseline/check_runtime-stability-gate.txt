@@ -1,0 +1,42 @@
+
+> taekwondo-club-app@1.0.0 check:runtime-stability-gate
+> node tools/check-runtime-stability-gate.mjs
+
+
+🔍 Phase 4K-5Q — check-runtime-stability-gate
+
+  ✅ PASS  APP_BUILD_VERSION được định nghĩa (Phase 5Q)
+  ✅ PASS  window.debugAppVersion được định nghĩa
+  ✅ PASS  window.__runtimeErrors được khởi tạo
+  ✅ PASS  window.recordRuntimeError được định nghĩa
+  ✅ PASS  window.debugRuntimeErrors được định nghĩa
+  ✅ PASS  window.safeDebugCall được định nghĩa
+  ✅ PASS  window.debugDataSourceAuthority được định nghĩa
+  ✅ PASS  window.debugFinanceReconcile được định nghĩa
+  ✅ PASS  window.debugRenderHealth được định nghĩa
+  ✅ PASS  window.runGuardedAction được định nghĩa
+  ✅ PASS  runGuardedAction có __actionLocks guard
+  ✅ PASS  debugRuntimeSmokeTest gọi debugAppVersion
+  ✅ PASS  debugRuntimeSmokeTest gọi debugRuntimeErrors
+  ✅ PASS  debugRuntimeSmokeTest gọi debugDataSourceAuthority
+  ✅ PASS  debugRuntimeSmokeTest gọi debugFinanceReconcile
+  ✅ PASS  debugRuntimeSmokeTest gọi debugRenderHealth
+  ✅ PASS  index.html có executable s.src assignment cho main.js
+  ✅ PASS  actual s.src assignment không dùng undeclared slug
+  ✅ PASS  actual s.src resolves tới deterministic ./js/main.js?v=<version>
+  ✅ PASS  actual main.js cache bust không dùng Date.now()/Math.random()
+  ✅ PASS  bootstrap append main module đúng một executable call
+  ✅ PASS  MAIN_JS_LOADED chỉ được set sau existing s.onload path
+  ✅ PASS  existing 15-second bounded boot deadline remains intact
+  ✅ PASS  dynamic boot B1: dependencies ready => no ReferenceError
+  ✅ PASS  dynamic boot B1: appended script URL contains js/main.js?v=
+  ✅ PASS  dynamic boot B2: main module appended exactly once
+  ✅ PASS  dynamic boot B2: MAIN_JS_LOADED becomes true after onload
+  ✅ PASS  dynamic boot B3: dependency-not-ready uses one existing 50ms retry
+  ✅ PASS  dynamic boot B4: deadline exceeded stops polling
+
+══════════════════════════════════════════════════════════
+  Total: 29 checks | ✅ Pass: 29 | ❌ Fail: 0
+
+  🎉 All runtime stability gate checks passed!
+

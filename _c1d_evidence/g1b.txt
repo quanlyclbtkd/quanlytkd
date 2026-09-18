@@ -1,0 +1,37 @@
+
+> taekwondo-club-app@1.0.0 check:inventory-multiitem-readonly-ui
+> node tools/check-inventory-multiitem-readonly-ui.mjs
+
+✅ module exists
+✅ module declares 4K-6L phase
+✅ module declares READ-ONLY UI scope
+✅ module exports InventoryMultiItemReadOnlyUI
+✅ module exports initInventoryMultiItemReadOnlyUI
+✅ module has buildMultiItemInventoryStockOptions
+✅ module has renderMultiItemInventoryCategoryOptions
+✅ module has renderMultiItemInventoryDebtPanel
+✅ module has updateMultiItemTotalDisplay
+✅ module has debugInventoryMultiItemReadOnlyUI
+✅ module has no Firestore write calls
+✅ module does not own processMultiItem
+✅ main imports InventoryMultiItemReadOnlyUI
+✅ main calls initInventoryMultiItemReadOnlyUI
+✅ main exposes window.InventoryMultiItemReadOnlyUI
+✅ APP_BUILD_VERSION updated to 4K-6L
+✅ index cache bust updated to 4K-6L
+✅ app.js toggleMiInvCategory delegates to read-only UI
+✅ app.js calcMiInvTotal delegates to read-only UI
+✅ app.js recalcMiInvDebt delegates to read-only UI
+✅ app.js updateMultiItemTotal delegates to read-only UI
+✅ multiItemInventorySafety delegates debt panel UI rendering
+✅ processMultiItem remains present
+✅ processMultiItem not delegated to read-only UI module
+✅ processMultiItem still uses buildMultiItemTuitionPackageMonths
+✅ processMultiItem preserves monotonic paidUntil semantics T1-T4
+✅ processMultiItem profile write uses monotonic result + packageMonths
+✅ processMultiItem keeps canonical tuition bundle write
+✅ Debt boundary consumes final profile paidUntil
+✅ debugRuntimeSmokeTest includes read-only UI debug
+✅ package has check:inventory-multiitem-readonly-ui
+
+check-inventory-multiitem-readonly-ui PASS

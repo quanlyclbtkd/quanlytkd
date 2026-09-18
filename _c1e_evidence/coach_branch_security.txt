@@ -1,0 +1,46 @@
+
+> taekwondo-club-app@1.0.0 check:security-coach-branch-boundary
+> node tools/check-security-coach-branch-boundary.mjs
+
+
+=== Phase 4K-6V4B — Security + Branch Boundary ===
+
+✅ Canonical branch identity loads before role boundary and app kernel
+✅ All 6V4B runtime entry assets share one cache-bust marker
+✅ Coach account selector has no unrestricted/all-branch option
+✅ Auth cache is versioned and treated as a hint
+✅ Verified auth changes cannot require rebind because cache never mounts protected runtime
+✅ Missing users authorization doc fails closed without full-club scan
+✅ Coach login requires a canonical assigned branch
+✅ Retired Parent Portal has no public Firestore runtime path
+✅ New single-branch student writes use CS1 rather than legacy Mặc định
+✅ Coach CS1 profile listener reads legacy Mặc định in a separate scoped listener
+✅ Coach fallback queries only assigned branch aliases and de-duplicates results
+✅ Attendance reads are branch-scoped and missing Coach branch fails closed
+✅ Attendance writes canonicalize branch at one service boundary
+✅ Rules identify the 6V4B security phase
+✅ Rules require an enabled user authorization document
+✅ Self user updates use a strict safe-field diff whitelist
+✅ User cannot self-update role, clubId, branch or status
+✅ Club Admin may provision/repair only same-tenant Coach users with a valid branch
+✅ Coach profile reads are enforced by Firestore branch authorization
+✅ Coach attendance create/update/delete are branch-scoped in Rules
+✅ Coach notes and notifications are restricted to own coachId
+✅ Coach cannot read transactions, inventory or stats
+✅ Unknown tenant subcollections are deny-by-default
+✅ Coach settings access is limited to shifts; main_config is denied
+✅ CS1 and Mặc định compatibility exists only as an explicit primary alias
+✅ Callable authorization uses Firestore role/tenant data, not email allowlists
+✅ Debt recalculation callable is Admin-only
+✅ Stats rebuild callable is Admin-only
+✅ Summary refresh callable is Admin-only
+✅ No callable keeps the legacy hard-coded superadmin email check
+✅ Dynamic: Mặc định/CS01/Cơ sở 2 normalize to canonical codes
+✅ Dynamic: empty branch remains invalid when fallback is empty
+✅ Dynamic: primary branch aliases are exactly CS1 and Mặc định
+✅ Dynamic: legacy Coach branch becomes CS1 before authorization
+✅ Dynamic: missing Coach branch blocks active profiles
+
+Total: 35 | PASS: 35 | FAIL: 0
+Phase 4K-6V4B security/branch checks passed.
+

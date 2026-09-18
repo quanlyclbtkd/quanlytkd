@@ -1,0 +1,12 @@
+
+> taekwondo-club-app@1.0.0 check:v5r-quit-source-behavior
+> node tools/check-v5r-quit-source-behavior.mjs
+
+[StudentProfileStore] reset — v5r-test
+✅ active listener restore removes id from quit bucket
+✅ quit update removes id from active bucket
+✅ complete boundary ignores stale broad sources
+✅ incomplete boundary may show preview union while loading
+✅ boundary mode reports preview vs complete
+
+PASS 5/5

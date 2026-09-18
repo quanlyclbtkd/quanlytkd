@@ -1,0 +1,32 @@
+
+> taekwondo-club-app@1.0.0 check:tuition-debt-source-of-truth
+> node tools/check-tuition-debt-source-of-truth-v4c.mjs
+
+✅ canonical helper file exists
+✅ index loads tuitionDebtCanonical before app.js
+✅ app.js cache-bust uses current build marker
+✅ getChargeableTuitionMonths delegates to computeTuitionDebtCanonical
+✅ debugDebtTrace exported
+✅ auditTuitionDebtCanonicalProfiles exported
+✅ profile canonical state exported
+✅ debugDebtActionState includes canonical trace
+✅ canonical API initialized
+✅ Tháng Năm 2026 -> 2026-05
+✅ Tháng 5 - 2026 -> 2026-05
+✅ 05/2026 -> 2026-05
+✅ 5/2026 -> 2026-05
+✅ Tháng Tư 2026 -> 2026-04
+✅ paidUntil is authoritative over stale future paidMonths
+✅ future paidMonths after paidUntil are reported
+✅ debt trace warns about stale paidMonths
+✅ two-month debt remains complete when stale paidMonths exists
+✅ skipped month suppresses debt only through canonical skippedMonths
+✅ feeExempt suppresses debt with explicit hidden reason
+✅ quit profile suppresses debt through statusCanonical
+✅ audit counts total profiles
+✅ audit detects debt profiles
+✅ audit detects paidMonths after paidUntil
+✅ audit exposes readyForCanonicalCutover flag
+✅ no write/migration APIs in canonical helper
+
+Tuition Debt Source of Truth V4C: all checks passed

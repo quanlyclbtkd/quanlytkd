@@ -1,0 +1,17 @@
+check:ui-mobile-app-shell	0
+check:syntax	0
+check:canonical-transaction-safe-cutover	0
+check:financial-action-audit-guard	0
+check:runtime-stability-gate	0
+check:long-term-production-stability	0
+precheck:all:critical	0
+check:release	0
+check:deploy-package	0
+check:root-public-parity	0
+check:production-residual-defect-closure	0
+check:multiitem-tuition-package-fix	1
+check:inventory-multiitem-readonly-ui	1
+check:global-ownership-adoption-cleanup	1
+check:inventory-dynamic-size-catalog	1
+check:v5r-quit-single-source-lock	1
+check:v5t-command-boundary-write-freeze	1

@@ -1,0 +1,84 @@
+
+> taekwondo-club-app@1.0.0 check:attendance-daily-single-refresh-authority
+> node tools/check-attendance-daily-single-refresh-authority.mjs
+
+
+🔎 Phase 4K-6V5U6D — Attendance Daily Single Refresh Authority
+
+[attendance.js] ✅ Phase 4K-6V5U6G residual closure: explicit shift + V2 offline journal ready
+✅ one canonical daily refresh orchestrator is declared
+✅ loadByDate is called exactly once inside the canonical module path
+✅ renderAttendanceList delegates to the canonical orchestrator
+✅ daily owner keeps module-local single-flight state
+✅ same-key/same-auth daily requests reuse one running flight
+✅ same-key daily snapshot has bounded short-TTL reuse
+✅ daily cache reuse is isolated by auth generation
+✅ RAM card renderer performs no service read
+✅ daily context captures club/auth/date/branch/shift identity
+✅ actual daily request token is immutable and captures mutation revision
+✅ latest-context guard checks immutable identity and generation
+✅ stale guard runs before daily cache commit
+✅ toggle and bulk optimistic writes advance the daily mutation revision
+✅ mutation-revision stale drops are diagnosed
+✅ daily error path preserves the accepted/optimistic cache
+✅ shift settings use a same-club Promise latch
+✅ late shift response cannot commit across clubs/auth generations
+✅ nested Day/Month visibility helpers exist
+✅ Day island is guarded and presentation-first
+✅ Month island is independently guarded
+✅ inactive nested subtabs return before their network paths
+✅ card presentation no longer loads admin coach notes
+✅ coach notes use accepted-context cache/single-flight
+✅ session note distinguishes loaded-missing from not-loaded and uses single-flight
+✅ session note point reads are attributed without adding a reader
+✅ attendance daily/shifts/coach-note reads use existing attribution metrics
+✅ belt and show-all handlers are RAM-only
+✅ date and branch handlers remain network-eligible canonical intents
+✅ profile snapshots do not invoke a second direct daily render path
+✅ attendance pseudo-listener fallback is presentation-only
+✅ legacy and module renderApp paths reuse daily RAM
+✅ canonical attendance event layer is mounted once by main
+✅ every changed nested runtime module has the V5U6D cache key
+✅ attendance filter controls have no duplicate inline onchange owner
+✅ runtime build version is exactly V5U6D
+✅ package exposes the V5U6D gate
+✅ default/full/critical suites include the V5U6D gate through npm pre-hooks
+✅ orchestrator/reconciliation module introduces no Firestore read owner
+✅ runtime: three same-key intents perform exactly one daily load
+✅ runtime: two same-key callers are diagnosed as coalesced
+✅ runtime: all same-key callers observe one accepted snapshot
+✅ runtime: late date A cannot overwrite accepted date B
+✅ runtime: late date response is stale-dropped exactly once
+✅ runtime: each distinct date intent performs exactly one daily read
+✅ runtime: final daily snapshot identity belongs to the newest date
+✅ runtime: late CS1 response cannot overwrite CS2 cards
+✅ runtime: each distinct branch intent performs exactly one daily read
+✅ runtime: final daily snapshot identity belongs to the newest branch
+✅ runtime: late shift A response cannot overwrite shift B cards
+✅ runtime: each distinct shift intent performs exactly one daily read
+✅ runtime: final daily snapshot identity belongs to the newest shift
+✅ runtime: late Club A/auth generation response cannot mutate Club B UI
+✅ runtime: snapshot identity resets to the accepted club
+✅ runtime: same-club old-auth flight is not shared and cannot overwrite new auth
+✅ runtime: accepted daily cache records the current auth generation
+✅ runtime: local toggle applies optimistically while the old read is running
+✅ runtime: pre-toggle read cannot erase optimistic status
+✅ runtime: toggle race is rejected by mutation revision
+✅ runtime: bulk check-in applies optimistically while the old read is running
+✅ runtime: pre-bulk read cannot erase optimistic statuses
+✅ runtime: belt/show-all/profile presentation storm performs zero daily reads
+✅ runtime: profile display changes still rebuild cards from RAM
+✅ runtime: daily/ensure/modal share exactly one shifts read
+✅ runtime: concurrent shifts consumers are diagnosed as coalesced
+✅ runtime: Admin cold daily shape is shifts 1 / daily 1 / coachNotes 1 / sessionNote 1
+✅ runtime: warm card presentation performs zero auxiliary reads
+✅ runtime: Day subtab prevents hidden monthly load
+✅ runtime: Month subtab prevents hidden daily load
+✅ runtime: active Month subtab retains its canonical monthly flow
+✅ runtime: hidden Attendance main tab performs zero day/month reads
+✅ runtime: Coach daily request remains server-scoped to canonical assigned branch
+✅ runtime: Coach daily lifecycle never loads admin coach-notes summary
+✅ runtime: Coach cold daily shape is shifts 1 / daily 1 / sessionNote 1
+
+✅ V5U6D gate passed (73/73 assertions)
+

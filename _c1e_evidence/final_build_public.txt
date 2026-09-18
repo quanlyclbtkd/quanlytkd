@@ -1,0 +1,6 @@
+
+> taekwondo-club-app@1.0.0 build:public
+> node tools/build-public.mjs
+
+[BuildPublic] Built /mnt/data/h8r2_1c1e_work/public
+[BuildPublic] Included only: index.html, app.js, style.css, .nojekyll, js, css
