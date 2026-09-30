@@ -30,7 +30,7 @@ check('Changed inventory/student/finance modules are cache-busted', (main.includ
 check('Changed service imports are cache-busted', invModule.includes("inventory.service.js?v=inventory-ledger-reconciliation-20260616-v2c") && financeService.includes("inventory.service.js?v=inventory-ledger-reconciliation-20260616-v2c"));
 check('History page uses date-desc cursor so repaired legacy rows remain queryable', app.includes("const constraints = [orderBy('date', 'desc')]") && app.includes('startAfter(cursor)'));
 check('New inventory writes always provide date and timestamp', service.includes('if (!payload.timestamp) payload.timestamp = Date.now()') && service.includes('if (!payload.date'));
-check('Add inventory uses an atomic Firestore batch', service.includes('async addItem(data)') && service.includes('batch.set(itemRef, payload)') && service.includes('batch.set(statsRef, summaryPatch, { merge: true })'));
+check('Add inventory uses an atomic Firestore batch', service.includes('async addItem(data)') && service.includes('batch.set(prepared.itemRef, prepared.payload)') && service.includes('batch.set(prepared.statsRef, prepared.summaryPatch, { merge: true })'));
 check('Add inventory does not silently continue after stock-summary failure', !service.slice(service.indexOf('async addItem(data)'), service.indexOf('async updateItem')).includes('catch'));
 check('Update reverses previous contribution and applies next contribution', service.includes('{ item: previous, direction: -1 }') && service.includes('{ item: next, direction: 1 }'));
 check('Delete reverses inventory contribution atomically', service.includes('async deleteItem') && service.includes("[{ item: previous, direction: -1 }]") && service.includes('batch.delete(itemRef)'));

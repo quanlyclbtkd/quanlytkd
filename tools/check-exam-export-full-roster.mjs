@@ -191,5 +191,21 @@ const v=(cell)=>cell?.v;
 // E10 existing belt sort contract remains wired
 check('E10 full roster buildSheet still routes through existing belt sorter', /const sortedEntries = sortExamExportEntries\(_entries\)/.test(exportBody));
 
+// Incomplete transaction source must abort before creating an official file.
+{
+  const {cap}=setup({profiles:mkProfiles(3),transactions:[directTx('Student 1')]});
+  window.loadTransactionsForTxMonthRange = async () => { throw new Error('permission-denied'); };
+  window.showToast = () => {};
+  await window.exportExamPaidList();
+  check('E11 failed month source does not download an exam roster', !cap.filename && !cap.wb);
+}
+{
+  const {cap}=setup({profiles:mkProfiles(3),transactions:[directTx('Student 1')]});
+  window.loadTransactionsForTxMonthRange = async () => [];
+  window.loadTransactionsForDateRange = async () => { throw new Error('index-required'); };
+  await window.exportExamPaidList();
+  check('E12 failed date source does not download an exam roster', !cap.filename && !cap.wb);
+}
+
 console.log(`\nExam Full Roster Export: ${pass}/${pass+fail} PASS`);
 if (fail) process.exit(1);

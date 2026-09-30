@@ -57,6 +57,9 @@ function _escAttr(v) {
 function _escHtml(v) {
     return String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+function _actionToken(v) {
+    return _escAttr(encodeURIComponent(String(v ?? '')).replace(/'/g, '%27'));
+}
 
 // ── Phase 4K-2B: Fallback tx blob builder (used when getTransactionSearchBlob unavailable) ──
 function _fallbackTxBlob(t, cleanName) {
@@ -146,7 +149,7 @@ export function renderTxRow(tx, opts = {}) {
         const _amount    = Number(tx.amount || 0);
         const _txId      = tx.id || tx.txId || '';
         const _monthBadge = tx.txMonth
-            ? `<span class="badge bg-violet-50 text-violet-700 border border-violet-200">${formatMonth(tx.txMonth)}</span>`
+            ? `<span class="badge bg-violet-50 text-violet-700 border border-violet-200">${_escHtml(formatMonth(tx.txMonth))}</span>`
             : `<span class="badge bg-slate-100 text-slate-400">-</span>`;
 
         // Detail line — dùng getBundleDetailSummary (không có tên võ sinh)
@@ -181,7 +184,7 @@ export function renderTxRow(tx, opts = {}) {
         }
 
         return `<tr data-tx-id="${_escAttr(_txId)}">`
-            + `<td class="tx-date-cell text-slate-500 text-[0.8rem]" title="${_escAttr(formatDate(tx.date))}">${_formatDateCompactB(tx.date)}</td>`
+            + `<td class="tx-date-cell text-slate-500 text-[0.8rem]" title="${_escAttr(formatDate(tx.date))}">${_escHtml(_formatDateCompactB(tx.date))}</td>`
             + branchTdHTML.replace('class="', 'class="tx-branch-cell ')
             + `<td class="tx-month-cell">${_monthBadge}</td>`
             + _nameTdBundle
@@ -253,7 +256,7 @@ export function renderTxRow(tx, opts = {}) {
         return formatDate(date);
     }
     return `<tr data-tx-id="${_escAttr(tx.id || tx.txId || '')}">`
-        + `<td class="tx-date-cell text-slate-500 text-[0.8rem]" title="${_escAttr(formatDate(tx.date))}">${_formatDateCompact(tx.date)}</td>`
+        + `<td class="tx-date-cell text-slate-500 text-[0.8rem]" title="${_escAttr(formatDate(tx.date))}">${_escHtml(_formatDateCompact(tx.date))}</td>`
         + branchTdHTML.replace('class="', 'class="tx-branch-cell ')
         + monthBadgeTd.replace('<td>', '<td class="tx-month-cell">')
         + nameTd.replace('class="name-link', 'class="tx-name-cell name-link')
@@ -278,7 +281,7 @@ export function renderTxRow(tx, opts = {}) {
  */
 export function renderExpenseRow(tx, opts = {}) {
     const { branchTdHTML = '', btnDel = '', btnEditExp = '' } = opts;
-    return `<tr data-expense-id="${_escAttr(tx.id || '')}"><td>${formatDate(tx.date)}</td>${branchTdHTML}<td class="font-bold text-slate-800">${_escHtml(tx.description)}</td><td class="text-rose-600 font-bold">-${(Number(tx.amount) || 0).toLocaleString()}</td><td class="action-btns">${btnEditExp}${btnDel}</td></tr>`;
+    return `<tr data-expense-id="${_escAttr(tx.id || '')}"><td>${_escHtml(formatDate(tx.date))}</td>${branchTdHTML}<td class="font-bold text-slate-800">${_escHtml(tx.description)}</td><td class="text-rose-600 font-bold">-${(Number(tx.amount) || 0).toLocaleString()}</td><td class="action-btns">${btnEditExp}${btnDel}</td></tr>`;
 }
 
 /**
@@ -293,7 +296,7 @@ export function renderExpenseRow(tx, opts = {}) {
  */
 export function renderExamExpRow(tx, opts = {}) {
     const { btnDel = '', btnEditExp = '' } = opts;
-    return `<tr data-exam-exp-id="${_escAttr(tx.id || '')}"><td>${formatDate(tx.date)}</td><td class="font-bold text-slate-800">${_escHtml(tx.description)}</td><td class="text-rose-600 font-bold">-${(Number(tx.amount) || 0).toLocaleString()}</td><td class="action-btns">${btnEditExp}${btnDel}</td></tr>`;
+    return `<tr data-exam-exp-id="${_escAttr(tx.id || '')}"><td>${_escHtml(formatDate(tx.date))}</td><td class="font-bold text-slate-800">${_escHtml(tx.description)}</td><td class="text-rose-600 font-bold">-${(Number(tx.amount) || 0).toLocaleString()}</td><td class="action-btns">${btnEditExp}${btnDel}</td></tr>`;
 }
 
 // ── Core computation ──────────────────────────────────────────────────────────
@@ -412,9 +415,9 @@ export function computeAndCacheFinance(transactions, params) {
         const safeNameEsc  = cleanName.replace(/'/g, "\\'");
         const branchTdHTML = isSingleBranch
             ? ''
-            : `<td class="col-branch"><span class="badge bg-slate-100 text-slate-600 border border-slate-200">${_getBrN(safeBranch)}</span></td>`;
+            : `<td class="col-branch"><span class="badge bg-slate-100 text-slate-600 border border-slate-200">${_escHtml(_getBrN(safeBranch))}</span></td>`;
         const btnDel = isAdmin
-            ? `<button type="button" class="btn-sm bg-rose-50 text-rose-600 hover:bg-rose-500 hover:text-white ml-1" onclick="deleteTx('${t.id}', '${t.relatedInvId || ''}')">🗑</button>`
+            ? `<button type="button" class="btn-sm bg-rose-50 text-rose-600 hover:bg-rose-500 hover:text-white ml-1" onclick="deleteTx(decodeURIComponent('${_actionToken(t.id)}'), decodeURIComponent('${_actionToken(t.relatedInvId || '')}'))">🗑</button>`
             : '';
 
         if (isUniformTx) {
@@ -426,7 +429,7 @@ export function computeAndCacheFinance(transactions, params) {
         if (!isBranchMatch || !isSearchMatch) return;
 
         const btnEditExp = isAdmin
-            ? `<button type="button" class="btn-sm bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white" onclick="openEditExpense('${t.id}')">✏️</button>`
+            ? `<button type="button" class="btn-sm bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white" onclick="openEditExpense(decodeURIComponent('${_actionToken(t.id)}'))">✏️</button>`
             : '';
 
         if (t.type === 'Chi phí') {

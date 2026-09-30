@@ -22,7 +22,7 @@ export function getProcessMultiItemSegment(appSrc) {
 
 export function evaluateExtractedPaidUntilBlock(appSrc, { previousPaidUntil = '', lastMonth = '', hasTuition = true, packageMonths = [] } = {}) {
   const segment = getProcessMultiItemSegment(appSrc);
-  const start = segment.indexOf('const _previousPaidUntil');
+  const start = segment.indexOf('let _previousPaidUntil');
   const end = segment.indexOf('const _miAuditPayload', start);
   if (start < 0 || end < 0) throw new Error('processMultiItem monotonic paidUntil block not found');
   const exactProductionBlock = segment.slice(start, end);

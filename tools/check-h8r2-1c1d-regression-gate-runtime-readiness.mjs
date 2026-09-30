@@ -6,7 +6,7 @@ import { inspectPaidUntilSemantics } from './helpers/paidUntilMonotonicGate.mjs'
 
 const root=process.cwd();
 const read=p=>fs.readFileSync(path.join(root,p),'utf8');
-const app=read('app.js'), html=read('index.html'), shell=read('js/ui/legacyUiShell.js');
+const app=read('app.js'), html=read('index.html'), shell=read('js/ui/legacyUiShell.js'), financeService=read('js/services/finance.service.js');
 const listener=read('js/listeners/profiles.listeners.js'), inv=read('js/services/inventory.service.js');
 const debt=read('js/core/tuitionDebtCanonical.js');
 const globalGate=read('tools/check-global-ownership-adoption-cleanup.mjs');
@@ -23,14 +23,14 @@ check('4. Inventory summaryPatch semantic gate aligned', inv.includes('prepareAd
 const qStart=listener.indexOf('export async function loadQuitProfilesIfNeeded'), qEnd=listener.indexOf('export async function ensureQuitProfilesComplete',qStart), qSeg=listener.slice(qStart,qEnd);
 check('5. Quit has no 60-second polling requirement', !/ageMs\s*>\s*60000/.test(qSeg) && !/setInterval\s*\(/.test(qSeg) && quitGate.includes('event-driven'));
 check('6. Quit dirty/completeness authority preserved', listener.includes("_state.quitAuthorityState = 'dirty'") && listener.includes('markQuitComplete(false)') && listener.includes("ensureQuitProfilesComplete('active-query-membership-current-quit')") && listener.includes("if (!forceRefresh && sameClub && !dirty && _state.quitCompletenessReconciled && isQuitComplete()) return true;"));
-check('7. V5T recognizes approved fee_audit Class-2 loop', v5tGate.includes('__approved_class2_combo_fee_audit_projection__') && v5tGate.includes('canonicalPaymentPreserved: true') && v5tGate.includes('bounded historical capacity'));
+check('7. V5T recognizes approved detached fee_audit Class-2 projection after legacy Combo hard-disable', v5tGate.includes('_legacyComboHardDisabled') && v5tGate.includes('_detachFeeAudit(audit)') && v5tGate.includes('preserves frozen historical capacity') && financeService.includes("classification: 'fee-audit-write-failed'") && financeService.includes('canonicalPaymentPreserved: true'));
 
 function walkJs(dir,out=[]){for(const e of fs.readdirSync(dir,{withFileTypes:true})){const f=path.join(dir,e.name);if(e.isDirectory()){if(['migrations','diagnostics'].includes(e.name))continue;walkJs(f,out)}else if(e.name.endsWith('.js'))out.push(f)}return out}
 const runtime=[path.join(root,'app.js'),...walkJs(path.join(root,'js'))];
 const pats={getDoc:/(?<![A-Za-z0-9_$])(?:getDoc|_getDoc|fbGetDoc)\s*\(/g,getDocs:/(?<![A-Za-z0-9_$])(?:getDocs|_getDocs|fbGetDocs|_pG4k)\s*\(/g,onSnapshot:/(?<![A-Za-z0-9_$])(?:onSnapshot|fbOnSnapshot)\s*\(/g};
 const counts={getDoc:0,getDocs:0,onSnapshot:0}; for(const f of runtime){for(const line of fs.readFileSync(f,'utf8').split('\n')){const t=line.trim();if(t.startsWith('//')||t.startsWith('*')||t.startsWith('/*'))continue;for(const [k,re] of Object.entries(pats)){re.lastIndex=0;if(re.test(line))counts[k]++}}}
 check('8. getDoc unchanged', counts.getDoc===29, JSON.stringify(counts));
-check('9. getDocs unchanged', counts.getDocs===51, JSON.stringify(counts));
+check('9. getDocs unchanged', counts.getDocs===45, JSON.stringify(counts));
 check('10. onSnapshot unchanged', counts.onSnapshot===16, JSON.stringify(counts));
 check('11. mobile shell canonical owner unchanged', shell.includes("const owner = 'js/ui/legacyUiShell.js'") && shell.includes("['openMobileMenu', openMobileMenu") && shell.includes("['closeMobileMenu', closeMobileMenu"));
 const nav=(html.match(/<nav id="mobileBottomNav"[\s\S]*?<\/nav>/)||[''])[0];

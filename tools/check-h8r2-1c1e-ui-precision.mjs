@@ -87,7 +87,7 @@ for (const f of runtime) {
   }
 }
 check('17. no new getDoc', counts.getDoc === 29, JSON.stringify(counts));
-check('18. no new getDocs', counts.getDocs === 51, JSON.stringify(counts));
+check('18. no new getDocs', counts.getDocs === 45, JSON.stringify(counts));
 check('19. no new onSnapshot', counts.onSnapshot === 16, JSON.stringify(counts));
 
 const parityRoots = ['index.html','app.js','style.css','.nojekyll','js','css'];
@@ -112,6 +112,16 @@ const hash = (f) => createHash('sha256').update(fs.readFileSync(f)).digest('hex'
 const publicSet = new Set(publicFiles);
 const parity = rootFiles.length === publicFiles.length && rootFiles.every((f) => publicSet.has(f) && hash(path.join(root, f)) === hash(path.join(publicRoot, f)));
 check('20. root/public runtime parity', parity, `${rootFiles.length}/${publicFiles.length}`);
+
+
+check('21. Search icon is box-anchored inside the canonical relative wrapper without transform centering', /\.ui-context-search\s*\{[^}]*position:\s*relative/s.test(css) && /\.ui-search-icon\s*\{[^}]*position:\s*absolute[^}]*top:\s*0[^}]*bottom:\s*0[^}]*margin-block:\s*auto/s.test(css) && !/\.ui-search-icon\s*\{[^}]*transform:\s*translateY/s.test(css));
+check('22. Mobile top-right More trigger is presentation-hidden while Bottom Nav Khác remains canonical', /\.mobile-header-bar \.mhb-title-row > \.mhb-menu-btn\s*\{\s*display:\s*none;\s*\}/.test(css) && navIds.includes('mobileNavMore') && nav.includes('onclick="openMobileMenu()"'));
+check('23. Empty legacy transactionForm shell collapses without removing the form lifecycle', /id="transactionForm"[^>]*data-ui-empty-shell="collapse"/.test(html) && /#transactionForm\[data-ui-empty-shell="collapse"\]:not\(:has\(/.test(css));
+check('24. canonical filterBranch exists exactly once with no mobile proxy/clone', count(/id="filterBranch"/g, html) === 1 && !/mobileFilterBranch|filterBranchProxy|cloneNode\([^)]*filterBranch/.test(html + css));
+check('25. mobile hides legacy filter trigger and exposes canonical branch directly', /@media \(max-width: 767px\)[\s\S]*?\.ui-filter-toggle\s*\{\s*display:\s*none;/.test(css) && /\.ui-filter-controls, #filterArea\.mobile-filter-open \.ui-filter-controls\s*\{\s*display:\s*contents;/.test(css) && /\.input-branch #filterBranch/.test(css));
+check('26. filterMonth remains directly accessible in compact secondary row', count(/id="filterMonth"/g, html) === 1 && /\.ui-filter-controls > \.ui-filter-field:not\(\.input-branch\)[^}]*grid-row:\s*2/s.test(css));
+check('27. debtOverdueFilter remains distinct and present exactly once', count(/id="debtOverdueFilter"/g, html) === 1 && debtFilterIndex > debtTabIndex);
+check('28. canonical branch handler ownership remains unchanged', /document\.getElementById\('filterBranch'\)\.onchange\s*=/.test(app) && !/mobileFilterBranch|branchProxyState|syncBranchSelect/.test(app + html));
 
 console.log(`\nFirestore static budget: ${counts.getDoc}/${counts.getDocs}/${counts.onSnapshot}`);
 console.log(`Total: ${pass + fail} | PASS: ${pass} | FAIL: ${fail}`);

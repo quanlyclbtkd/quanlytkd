@@ -20,6 +20,8 @@ const main = read('js/main.js');
 const mainPublic = read('public/js/main.js');
 const app = read('app.js');
 const appPublic = read('public/app.js');
+const finance = read('js/modules/finance.js');
+const financePublic = read('public/js/modules/finance.js');
 const index = read('index.html');
 const indexPublic = read('public/index.html');
 const baseline = JSON.parse(read('tools/baselines/v5t-legacy-write-baseline.json'));
@@ -81,7 +83,44 @@ function multiset(rows) {
   return m;
 }
 const actual = collectWrites(app);
-const allowed = multiset(baseline.signatures || []);
+
+// H8R2.1C1D → D1B: fee_audit remains a Class-2 secondary projection, but
+// the active Family Combo business owner is now js/modules/finance.js. The
+// legacy app.js processCombo is deliberately a zero-write bootstrap stub.
+// Freeze the authority contract, not the obsolete legacy implementation:
+// primary commit + local canonical commits happen inside the tuition lanes,
+// then fee_audit is projected through the existing FinanceService secondary
+// owner only after the lane result returns. No rollback/retry/polling is added.
+const _legacyComboStart = app.indexOf('window.processCombo = async');
+const _legacyComboEnd = app.indexOf('window.processBatchUpgrade = async', _legacyComboStart);
+const _legacyComboSegment = _legacyComboStart >= 0 && _legacyComboEnd > _legacyComboStart ? app.slice(_legacyComboStart, _legacyComboEnd) : '';
+const _financeComboStart = finance.indexOf('window.processCombo = async');
+const _financeComboEnd = finance.indexOf('// ════════════════════════════════════════════════════════════════\n    // 10. saveTx', _financeComboStart);
+const _financeComboSegment = _financeComboStart >= 0 && _financeComboEnd > _financeComboStart ? finance.slice(_financeComboStart, _financeComboEnd) : '';
+const _legacyComboHardDisabled =
+  _legacyComboSegment.includes('Chức năng tài chính đang khởi tạo') &&
+  !/\b(addDoc|setDoc|updateDoc|deleteDoc|writeBatch|commitAtomicWritePlan|addFeeAuditSilent)\s*\(/.test(_legacyComboSegment);
+const _approvedFeeAuditLoop =
+  _legacyComboHardDisabled &&
+  _financeComboSegment.includes('runInProfileTuitionMutationLanes') &&
+  _financeComboSegment.includes('await FinanceService.commitAtomicWritePlan') &&
+  _financeComboSegment.includes('commitLocalTuitionPaymentState') &&
+  _financeComboSegment.includes('for(const audit of result.audits)_detachFeeAudit(audit)') &&
+  _financeComboSegment.indexOf('await FinanceService.commitAtomicWritePlan') < _financeComboSegment.indexOf('for(const audit of result.audits)_detachFeeAudit(audit)') &&
+  !/setInterval\s*\(|while\s*\(|_detachFeeAudit[\s\S]{0,500}commitAtomicWritePlan/.test(_financeComboSegment);
+
+function _normalizeApprovedSecondaryProjection(row) {
+  if (row.op !== 'addDoc') return row;
+  const sig = String(row.signature || '');
+  const isHistoricalFeeAudit = sig.includes('collection(db, "clubs", currentClubId, "fee_audit")') &&
+    (sig.includes('studentId: n1') || sig.includes('studentId: n2'));
+  const isCurrentBoundedLoop = false; // D1B: active Combo projects via FinanceService, not app.js direct addDoc.
+  return (isHistoricalFeeAudit || isCurrentBoundedLoop)
+    ? { ...row, signature: '__approved_class2_combo_fee_audit_projection__' }
+    : row;
+}
+
+const allowed = multiset((baseline.signatures || []).map(_normalizeApprovedSecondaryProjection));
 // V5U6G diagnostic-only bridge: PATCH D changes catch/error visibility around
 // five EXISTING legacy writes, but does not change their Firestore call expression.
 // Map only those exact call expressions back to the frozen V5T line signature;
@@ -107,11 +146,18 @@ if (app.includes('const _ensureSuperAdminPrincipal = async') && app.includes("do
   const k = 'setDoc|await setDoc(principalRef, {';
   allowed.set(k, Math.max(1, allowed.get(k) || 0));
 }
-const current = multiset(actual.signatures.map(_normalizeV5u6gDiagnosticWrite));
+const current = multiset(actual.signatures.map(_normalizeV5u6gDiagnosticWrite).map(_normalizeApprovedSecondaryProjection));
 const newSignatures = [];
 for (const [key, count] of current.entries()) {
   if (count > (allowed.get(key) || 0)) newSignatures.push({ key, count, allowed: allowed.get(key) || 0 });
 }
+check('approved combo fee_audit loop remains Class-2 secondary projection after canonical primary commit', _approvedFeeAuditLoop);
+check('approved combo fee_audit projection preserves frozen historical capacity without legacy direct writer',
+  (baseline.signatures || []).filter(r => r.op === 'addDoc' && String(r.signature || '').includes('fee_audit') && (String(r.signature || '').includes('studentId: n1') || String(r.signature || '').includes('studentId: n2'))).length === 2 &&
+  actual.signatures.filter(r => r.op === 'addDoc' && String(r.signature || '').includes('fee_audit')).length <=
+    (baseline.signatures || []).filter(r => r.op === 'addDoc' && String(r.signature || '').includes('fee_audit')).length &&
+  _legacyComboHardDisabled);
+check('canonical finance module/public mirror is exact for active Combo authority', finance === financePublic);
 check('legacy app.js direct-write total did not increase', actual.total <= baseline.total, `${actual.total} > ${baseline.total}`);
 check('legacy app.js per-operation write counts did not increase', Object.entries(actual.counts).every(([op,count]) => count <= Number(baseline.counts[op] || 0)), JSON.stringify(actual.counts));
 check('legacy app.js has no new direct-write call signature', newSignatures.length === 0, JSON.stringify(newSignatures.slice(0,5)));

@@ -415,13 +415,14 @@ export function initReports() {
                         const _next = _mm === 12 ? (_my + 1) + '-01' : _my + '-' + String(_mm + 1).padStart(2, '0');
                         _mCursor = _next;
                     }
+                    if (_mCursor <= _endM) throw new Error('Kỳ xuất vượt giới hạn 36 tháng; chưa đọc đủ dữ liệu.');
                     if (window.FinanceService && typeof window.FinanceService.queryTxByPackageMonths === 'function') {
                         txByPackage = await window.FinanceService.queryTxByPackageMonths(_months);
                     } else if (typeof FinanceService !== 'undefined' && typeof FinanceService.queryTxByPackageMonths === 'function') {
                         txByPackage = await FinanceService.queryTxByPackageMonths(_months);
-                    }
+                    } else throw new Error('Thiếu nguồn giao dịch packageMonths.');
                 } catch (_pkgErr) {
-                    console.warn('[ExcelExport] packageMonths query failed (non-blocking):', _pkgErr && _pkgErr.message);
+                    throw _pkgErr;
                 }
                 txAll = window.dedupeDocsById([...txByDate, ...txByMonth, ...txByPackage]);
                 txAll.sort((a, b) => a.date > b.date ? 1 : -1);
@@ -433,21 +434,10 @@ export function initReports() {
                 });
                 invAll.sort((a, b) => a.date > b.date ? 1 : -1);
             } catch (_paginationErr) {
-                console.warn('[ExportPaginationFallback] Paginated helper lỗi, fallback legacy query (limit 2000/1000):', _paginationErr && _paginationErr.message);
-                if (typeof window.warnUnsafeLimit === 'function') window.warnUnsafeLimit('excel-export:fallback-legacy', 'paginated-helper-failed');
-                const _qs38d = window.__queryScaleMetrics;
-                if (_qs38d) _qs38d.exportPaginationFallbackCount = (_qs38d.exportPaginationFallbackCount || 0) + 1;
-                const _fbSnap = await getDocs(query(colRef, where("date", ">=", startStr), where("date", "<=", endStr), limit(2000))); // [ExportPaginationFallback]
-                txAll = _fbSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-                const _fbSnapM = await getDocs(query(colRef, where("txMonth", ">=", _startM), where("txMonth", "<=", _endM), limit(2000))); // [ExportPaginationFallback]
-                const _fbSeen = new Set(txAll.map(d => d.id));
-                _fbSnapM.docs.forEach(d => { if (!_fbSeen.has(d.id)) txAll.push({ id: d.id, ...d.data() }); });
-                txAll.sort((a, b) => a.date > b.date ? 1 : -1);
-                const _fbInvSnap = await getDocs(query(invRef, where("date", ">=", startStr), where("date", "<=", endStr), limit(1000))); // [ExportPaginationFallback]
-                invAll = _fbInvSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-                invAll.sort((a, b) => a.date > b.date ? 1 : -1);
+                throw _paginationErr;
+            } finally {
+                clearTimeout(_paginationToastTimer);
             }
-            clearTimeout(_paginationToastTimer);
 
             const wb       = XLSX.utils.book_new();
             const clubName = clubData.clubName || 'CLB';
@@ -1097,7 +1087,7 @@ export function initReports() {
                     reason:     'exam-paid-export-txMonth',
                 });
                 _txMonthCount = _txByMonth.length;
-            }
+            } else throw new Error('Thiếu nguồn giao dịch txMonth.');
 
             // Source 2: query by date field (catches docs missing txMonth)
             if (typeof window.loadTransactionsForDateRange === 'function' && _startDate && _endDate) {
@@ -1108,7 +1098,7 @@ export function initReports() {
                     reason:    'exam-paid-export-date',
                 });
                 _dateCount = _txByDate.length;
-            }
+            } else throw new Error('Thiếu nguồn giao dịch theo ngày.');
 
             // Merge + dedupe by document id
             const _combined = [..._txByMonth, ..._txByDate];
@@ -1124,15 +1114,9 @@ export function initReports() {
             }
             console.debug('[ReportsModule] examPaidList load: txMonth=', _txMonthCount, 'date=', _dateCount, 'deduped=', allTransactions.length);
         } catch (_txErr) {
-            console.warn('[ReportsModule] exportExamPaidList paginated load failed, fallback:', _txErr && _txErr.message);
-            if (window.__reportsModuleMetrics)
-                window.__reportsModuleMetrics.examPaidFallbackTransactionsUsed++;
-            allTransactions = [];
-        }
-        if (!allTransactions || allTransactions.length === 0) {
-            allTransactions = _transactions();
-            if (window.__reportsModuleMetrics)
-                window.__reportsModuleMetrics.examPaidFallbackTransactionsUsed++;
+            console.error('[ReportsModule] exportExamPaidList incomplete:', _txErr);
+            window.showToast?.('⚠️ Chưa đọc đủ giao dịch. Không thể xuất danh sách thi.', 6000);
+            return;
         }
         const allProfiles = _profiles();
         const clubConfig  = _config();
@@ -1461,13 +1445,7 @@ export function initReports() {
                     _qs38d.taxExportPages = _mFetch ? _mFetch.pages : 1;
                 }
             } catch (_taxPaginationErr) {
-                console.warn('[ExportPaginationFallback] Tax export paginated helper lỗi, fallback legacy query (limit 2000):', _taxPaginationErr && _taxPaginationErr.message);
-                if (typeof window.warnUnsafeLimit === 'function') window.warnUnsafeLimit('tax-export:fallback-legacy', 'paginated-helper-failed');
-                const _qs38d = window.__queryScaleMetrics;
-                if (_qs38d) _qs38d.exportPaginationFallbackCount = (_qs38d.exportPaginationFallbackCount || 0) + 1;
-                const _qTxFb  = query(colRef, where("date", ">=", startStr), where("date", "<=", endStr));
-                const _fbSnap = await getDocs(query(_qTxFb, limit(2000))); // [ExportPaginationFallback]
-                _taxRawDocs = _fbSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+                throw _taxPaginationErr;
             }
 
             let filteredTx = _taxRawDocs.filter(t => {

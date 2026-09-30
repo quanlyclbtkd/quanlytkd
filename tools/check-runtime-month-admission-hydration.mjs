@@ -186,13 +186,15 @@ if (studentsJs) {
     check('students.js: admission uses existing buildPaymentBundleTransaction authority',
         admissionBody.includes('buildPaymentBundleTransaction') && admissionBody.includes('components: _admComponents'),
         'Admission must construct one canonical payment bundle; do not restore separate transaction truth');
-    check('students.js: admission uses generic canonical writer with compatible tuition fallback',
-        admissionBody.includes('StudentService.addGenericTransaction') &&
-        admissionBody.includes('StudentService.addTuitionTransaction.bind(StudentService)'),
-        'Use addGenericTransaction for canonical bundle while retaining current compatible writer fallback');
-    check('students.js: captures canonical bundle transaction and hydrates same tx into runtime store',
-        admissionBody.includes('tuitionTx = await _addFn(_bundleTx)') &&
-        admissionBody.includes("mergeTransactionIntoRuntimeStore(tuitionTx, 'admission-bundle-created')"),
+    check('students.js: admission prepares canonical Finance bundle in same batch',
+        admissionBody.includes('FinanceService.prepareTransactionMutation') &&
+        admissionBody.includes('batch.set(feePlan.ref, feePlan.payload)') &&
+        admissionBody.includes('await batch.commit();') &&
+        !admissionBody.includes('await StudentService.addGenericTransaction'),
+        'Finance plan must share the profile/inventory batch; no separate transaction commit');
+    check('students.js: hydrates the exact committed bundle transaction identity',
+        admissionBody.includes('const tuitionTx = { id: feePlan.ref.id, ...feePlan.payload }') &&
+        admissionBody.includes("mergeTransactionIntoRuntimeStore?.(tuitionTx, 'admission-bundle-created')"),
         'The exact created bundle transaction must be merged once into runtime store');
 }
 console.log();

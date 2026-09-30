@@ -12,6 +12,8 @@ const fin=read('js/ui/render/computation/financeRenderer.js');
 const inv=read('js/modules/inventory.js');
 const students=read('js/modules/students.js');
 const studentRenderer=read('js/ui/render/computation/studentsRenderer.js');
+const studentIsland=read('js/ui/render/renderStudents.js');
+const renderIsland=read('js/ui/render.js');
 const format=read('js/utils/format.js');
 
 const fixtures = [
@@ -44,6 +46,31 @@ check('Transaction descriptions escaped at both canonical and legacy render boun
 check('Inventory category display text escaped', /escapeHtml\(cat\.name\)/.test(inv) && /window\.escapeHtml\(String\(cat\.name/.test(app));
 check('Student debt display names escaped', /escapeHtml\(d\.name\)/.test(students) && /window\.escapeHtml\(String\(d\.name/.test(app));
 check('Student active-row display/name metadata escaped', /safeDisplay = escapeHtml\(_disp\(_profileDisplayName\(name, p\)\)\)/.test(studentRenderer) && /escapeHtml\(p\.nickname\)/.test(studentRenderer));
+check('Student row actions carry encoded IDs through existing handlers',
+  /_actionToken = value => escapeHtml\(encodeURIComponent/.test(studentRenderer)
+  && /openProfile\(decodeURIComponent\('\$\{nameToken\}'\)\)/.test(studentRenderer)
+  && !/openProfile\('\$\{safeNameEsc\}'\)/.test(studentRenderer));
+check('Debt actions encode phone, branch, month and owed months',
+  ['phoneToken','branchToken','monthToken','owedToken'].every(s => studentRenderer.includes('_actionToken') && studentRenderer.includes(s))
+  && !/onclick="[^"\n]*\$\{p\.phone/.test(studentRenderer));
+check('Quit mobile row uses encoded handler ID and escaped display',
+  studentIsland.includes('const safeIdJs = _actionToken(id)')
+  && studentIsland.includes("openProfile(decodeURIComponent('${safeIdJs}'))"));
+check('Skipped-month badges escape text and encode action ID',
+  renderIsland.includes("encodeURIComponent(String(n)).replace(/'/g, '%27')")
+  && renderIsland.includes('${safeText}'));
+check('Shift option labels use DOM Option and shift delete uses encoded token',
+  att.includes("new Option(String(s.name || '') + _t")
+  && students.includes("new Option(String(s.name || '') + _t")
+  && att.includes("window.deleteShift(decodeURIComponent"));
+check('Bootstrap shift selector also uses text Option',
+  app.includes("_addShiftSel.add(new Option(String(s.name || '') + _t, String(s.id || '')))")
+  && !app.includes('_addShiftSel.innerHTML = _asHtml'));
+check('Transaction row dates, month, branch and action IDs escape their contexts',
+  fin.includes('_escHtml(formatDate(tx.date))')
+  && fin.includes('_escHtml(formatMonth(tx.txMonth))')
+  && fin.includes('_escHtml(_getBrN(safeBranch))')
+  && fin.includes("decodeURIComponent('${_actionToken(t.id)}')"));
 check('Belt badge text escapes canonical value', /escapeHtml\(belt\)/.test(format) && /const safeBelt = window\.escapeHtml/.test(app));
 check('Exam profile name display escapes HTML', /window\.escapeHtml\(String\(name \|\| ''\)\)/.test(app));
 check('Known raw SuperAdmin P0 render patterns absent', !/\$\{cname\}/.test(saRender) && !/title="\$\{email\}"/.test(saRender));

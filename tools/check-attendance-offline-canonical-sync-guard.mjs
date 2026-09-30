@@ -109,7 +109,7 @@ try {
     doc: (...parts) => ({ parts }),
     writeBatch: () => ({ set: (ref, payload) => writes.push({ ref, payload }), delete: ref => deletes.push(ref), commit: async () => {} }),
   };
-  const serviceUrl = pathToFileURL(path.join(root, 'js/services/attendance.service.js')).href + '?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1';
+  const serviceUrl = pathToFileURL(path.join(root, 'js/services/attendance.service.js')).href + '?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1';
   const { AttendanceService } = await import(serviceUrl);
   const realBulkSyncOffline = AttendanceService.bulkSyncOffline.bind(AttendanceService);
   const dirty = { version: 2, clubId: 'club-a', operation: 'set', shiftMode: 'explicit-shift', queuedAt: 100, lastUpdatedAt: 200, revision: 3, docId: 'Alice_2026-08-15_morning', journalKey: 'local', syncState: 'pending', retryCount: 9, profileId: 'p1', name: 'Alice', belt: 'Đai Đen', branch: 'CS1', date: '2026-08-15', month: '2026-08', shiftId: 'morning', status: 1 };

@@ -28,6 +28,7 @@
 
 import { formatDate } from '../../../utils/format.js';
 import { rankStudentNameSearchResults } from '../../../core/studentSearchIndex.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1';
+import { TransactionDeleteIntegrity } from '../../../core/transactionDeleteIntegrity.js';
 
 // ── Phase 4K-2B: Fallback inv blob builder (used when getInventorySearchBlob unavailable) ──
 function _fallbackInvBlob(t) {
@@ -177,7 +178,7 @@ export function renderUniformTxRow(t, opts = {}) {
         ? `<span class="font-bold ${isInc ? 'text-rose-600' : (isUnpaid ? 'text-orange-500' : 'text-emerald-600')}">${isInc ? '-' : '+'}${displayAmt.toLocaleString()}</span>`
         : `<span class="font-bold text-slate-400">0</span>`;
     const descHtml   = (displayDesc || (isInc ? `Nhập ${t.size}` : `Xuất ${t.size}`)) + unpaidBadge;
-    const txIdForDel = relTx ? relTx.id : 'undefined';
+    const txIdForDel = relTx && relTx.id ? String(relTx.id) : '';
     const txCat      = t.category || 'Võ phục';
     const txCatColors = {
         'Võ phục': 'bg-blue-50 text-blue-700 border-blue-200',
@@ -271,7 +272,7 @@ export function computeAndCacheInventory(allInventory, allTransactions, params) 
         // Build relatedTxByInvId cross-reference (mirrors render.js lines 200-202)
         const relatedTxByInvId = new Map();
         allTransactions.forEach(tx => {
-            if (tx.relatedInvId) relatedTxByInvId.set(tx.relatedInvId, tx);
+            TransactionDeleteIntegrity.extractInventoryRefsFromTransaction(tx).forEach(invId => relatedTxByInvId.set(invId, tx));
         });
 
         uniformTxRows = '';
