@@ -251,7 +251,7 @@ export function renderActiveRow(name, p, opts = {}) {
 export function renderDebtRow(name, p, opts = {}) {
     const {
         unpaidMonthsCount = 0, owedMonthsStr = '', branchTdHTML = '',
-        isAdmin = false, selMonth = '', yrBadge = '',
+        isAdmin = false, selMonth = '', yrBadge = '', ambiguousMonths = [],
     } = opts;
     const nameToken      = _actionToken(name);
     const safeBranch     = p.branch || 'CS1';
@@ -265,7 +265,21 @@ export function renderDebtRow(name, p, opts = {}) {
     const phoneToken     = _actionToken(p.phone || '');
     const monthToken     = _actionToken(selMonth);
     const totalDebtAmount = unpaidMonthsCount * (Number(p.tuitionFee) || 0);
-    return `<tr data-debt-id="${_html(name)}" ${rowBg}><td><span class="badge ${countBadgeCls}">${Number(unpaidMonthsCount) || 0} Tháng</span></td><td><span class="font-bold text-primary text-[0.8rem]">${_html(formatMonthCompact(owedMonthsStr))}</span></td>${branchTdHTML}<td class="name-link text-[0.95rem]" onclick="openProfile(decodeURIComponent('${nameToken}'))">${_html(_disp(_profileDisplayName(name, p)))}${yrBadge}${isOverdue ? ' <span title="Nợ từ 2 tháng trở lên" class="text-rose-500">⚠️</span>' : ''}</td><td class="action-btns"><button type="button" class="btn-sm bg-indigo-50 text-indigo-700 border border-indigo-200" onclick="generateMultiMonthPaymentRequest(decodeURIComponent('${nameToken}'), decodeURIComponent('${owedToken}'), decodeURIComponent('${branchToken}'), ${Number.isFinite(totalDebtAmount) ? totalDebtAmount : 0})">📱 QR</button>${isAdmin ? `<button type="button" class="btn-sm bg-emerald-600 text-white shadow-sm" onclick="openQuickPayModal(decodeURIComponent('${nameToken}'), decodeURIComponent('${owedToken}'), decodeURIComponent('${branchToken}'))">💰 Thu</button>` : ''}<button type="button" class="btn-sm bg-[#0068FF] text-white shadow-sm" onclick="copyAndOpenZalo(decodeURIComponent('${nameToken}'), decodeURIComponent('${owedToken}'), decodeURIComponent('${phoneToken}'))">💬 Zalo</button>${isAdmin ? `<button type="button" class="btn-sm bg-rose-50 text-rose-700 border border-rose-200" title="Chuyển võ sinh sang Đã nghỉ" onclick="window.markStudentQuitFromDebt(event, decodeURIComponent('${nameToken}'), decodeURIComponent('${monthToken}'))">🚫 Nghỉ</button><button type="button" class="btn-sm bg-amber-50 text-amber-700 border border-amber-200" title="Báo nghỉ / miễn học phí tháng này" onclick="window.skipDebtMonthFromDebt(event, decodeURIComponent('${nameToken}'), decodeURIComponent('${monthToken}'))">⏸ Báo nghỉ</button>` : ''}</td></tr>`;
+    const ambiguity = _monthList(ambiguousMonths);
+    const hasAmbiguity = ambiguity.length > 0;
+    const hasDefiniteDebt = unpaidMonthsCount > 0 && !!owedMonthsStr;
+    const selectedIsAmbiguous = ambiguity.includes(normalizeYYYYMM(selMonth));
+    const statusBadge = hasDefiniteDebt
+        ? `<span class="badge ${countBadgeCls}">${Number(unpaidMonthsCount) || 0} Tháng</span>${hasAmbiguity ? ' <span class="badge bg-amber-50 text-amber-700 border border-amber-200">Cần đối soát</span>' : ''}`
+        : '<span class="badge bg-amber-50 text-amber-700 border border-amber-200">Cần đối soát</span>';
+    const periods = `${hasDefiniteDebt ? `<span class="font-bold text-primary text-[0.8rem]">${_html(formatMonthCompact(owedMonthsStr))}</span>` : ''}${hasAmbiguity ? `<span class="block text-[0.68rem] font-semibold text-amber-700">Đối soát: ${_html(formatMonthCompact(ambiguity.join(',')))}</span>` : ''}`;
+    const paymentActions = hasDefiniteDebt
+        ? `<button type="button" class="btn-sm bg-indigo-50 text-indigo-700 border border-indigo-200" onclick="generateMultiMonthPaymentRequest(decodeURIComponent('${nameToken}'), decodeURIComponent('${owedToken}'), decodeURIComponent('${branchToken}'), ${Number.isFinite(totalDebtAmount) ? totalDebtAmount : 0})">📱 QR</button>${isAdmin ? `<button type="button" class="btn-sm bg-emerald-600 text-white shadow-sm" onclick="openQuickPayModal(decodeURIComponent('${nameToken}'), decodeURIComponent('${owedToken}'), decodeURIComponent('${branchToken}'))">💰 Thu</button>` : ''}<button type="button" class="btn-sm bg-[#0068FF] text-white shadow-sm" onclick="copyAndOpenZalo(decodeURIComponent('${nameToken}'), decodeURIComponent('${owedToken}'), decodeURIComponent('${phoneToken}'))">💬 Zalo</button>`
+        : `<button type="button" class="btn-sm bg-amber-50 text-amber-800 border border-amber-200" onclick="openProfile(decodeURIComponent('${nameToken}'))">🔎 Kiểm tra</button>`;
+    const adminActions = isAdmin && hasDefiniteDebt
+        ? `<button type="button" class="btn-sm bg-rose-50 text-rose-700 border border-rose-200" title="Chuyển võ sinh sang Đã nghỉ" onclick="window.markStudentQuitFromDebt(event, decodeURIComponent('${nameToken}'), decodeURIComponent('${monthToken}'))">🚫 Nghỉ</button>${selectedIsAmbiguous ? '' : `<button type="button" class="btn-sm bg-amber-50 text-amber-700 border border-amber-200" title="Báo nghỉ / miễn học phí tháng này" onclick="window.skipDebtMonthFromDebt(event, decodeURIComponent('${nameToken}'), decodeURIComponent('${monthToken}'))">⏸ Báo nghỉ</button>`}`
+        : '';
+    return `<tr data-debt-id="${_html(name)}" data-debt-reconciliation="${hasAmbiguity ? 'required' : 'none'}" ${rowBg}><td>${statusBadge}</td><td>${periods}</td>${branchTdHTML}<td class="name-link text-[0.95rem]" onclick="openProfile(decodeURIComponent('${nameToken}'))">${_html(_disp(_profileDisplayName(name, p)))}${yrBadge}${isOverdue ? ' <span title="Nợ từ 2 tháng trở lên" class="text-rose-500">⚠️</span>' : ''}</td><td class="action-btns">${paymentActions}${adminActions}</td></tr>`;
 }
 
 /**
@@ -516,14 +530,24 @@ export function computeAndCacheStudents(allProfiles, params) {
             // Phase 4K-6V4B7: legacy isOwed/owedMonths may be stale and must not
             // suppress a real debt. A student paid through 05/2026 must appear in
             // 06/2026 even when isOwed=false or owedMonths=[] was left by old code.
-            let isDebt = false, unpaidMonthsCount = 0, owedMonths = [];
+            let isDebt = false, unpaidMonthsCount = 0, owedMonths = [], ambiguousMonths = [];
 
             if (!p.feeExempt) {
-                owedMonths = typeof window.getChargeableTuitionMonths === 'function'
-                    ? window.getChargeableTuitionMonths(p, selMonth, { reason: 'studentsRenderer.debt-list' })
-                    : _fallbackChargeableTuitionMonths(p, selMonth);
+                const canonicalDebt = typeof window.computeTuitionDebtCanonical === 'function'
+                    ? window.computeTuitionDebtCanonical(p, selMonth, { name, reason: 'studentsRenderer.debt-list' })
+                    : null;
+                owedMonths = canonicalDebt
+                    ? (Array.isArray(canonicalDebt.chargeableMonths) ? canonicalDebt.chargeableMonths.slice() : [])
+                    : (typeof window.getChargeableTuitionMonths === 'function'
+                        ? window.getChargeableTuitionMonths(p, selMonth, { name, reason: 'studentsRenderer.debt-list' })
+                        : _fallbackChargeableTuitionMonths(p, selMonth));
+                ambiguousMonths = canonicalDebt && Array.isArray(canonicalDebt.ambiguousFuturePaidMonths)
+                    ? canonicalDebt.ambiguousFuturePaidMonths.slice()
+                    : [];
                 unpaidMonthsCount = owedMonths.length;
-                isDebt = unpaidMonthsCount > 0;
+                isDebt = canonicalDebt
+                    ? canonicalDebt.shouldAppearInDebtBeforeRender === true
+                    : unpaidMonthsCount > 0;
             }
 
             if (isDebt) {
@@ -542,9 +566,9 @@ export function computeAndCacheStudents(allProfiles, params) {
                     totalDebtEst += totalDebtAmount;
                     _debtTotalCount++;
                     if (buildDebt) {
-                        const owedMonthsStr = owedMonths.join(',') || selMonth;
+                        const owedMonthsStr = owedMonths.join(',');
                         const renderOptions = {
-                            unpaidMonthsCount, owedMonthsStr, branchTdHTML, isAdmin, selMonth, yrBadge,
+                            unpaidMonthsCount, owedMonthsStr, ambiguousMonths, branchTdHTML, isAdmin, selMonth, yrBadge,
                         };
                         if (_debtSearchCandidates) {
                             _debtSearchCandidates.push({ name, profile: p, renderOptions });

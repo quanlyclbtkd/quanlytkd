@@ -1417,3 +1417,80 @@ button, a, [role="button"] {
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
   }
 }
+
+/* ══ D1C3B — Tuition mobile row density / semantic cell placement ════════
+   Mobile-only override. Desktop geometry >=768px remains owned by 4K-5H. */
+@media (max-width: 767px) {
+  #tbl_tx tbody tr {
+    grid-template-columns: minmax(0, 1fr) minmax(112px, auto) !important;
+    grid-template-rows: auto auto auto !important;
+    gap: 2px 8px !important;
+    padding: 5px 8px !important;
+  }
+
+  #tbl_tx tbody td.tx-name-cell {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    min-width: 0 !important;
+    overflow: visible !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+  }
+
+  #tbl_tx tbody td.tx-amount-cell,
+  #tbl_tx tbody td:nth-last-child(2) {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    display: flex !important;
+    flex-direction: column;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    white-space: normal !important;
+    min-width: 112px !important;
+  }
+
+  #tbl_tx tbody td.tx-month-cell {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+    display: flex !important;
+    align-items: center;
+    min-width: 0 !important;
+    white-space: normal !important;
+  }
+
+  #tbl_tx tbody td.tx-date-cell {
+    grid-column: 1 !important;
+    grid-row: 3 !important;
+    display: flex !important;
+    align-items: center;
+    min-width: 0 !important;
+    white-space: nowrap !important;
+  }
+
+  #tbl_tx tbody td.tx-actions-cell {
+    grid-column: 2 !important;
+    grid-row: 2 / 4 !important;
+    display: flex !important;
+    align-items: center !important;
+    align-content: center !important;
+    justify-content: flex-end !important;
+    flex-wrap: wrap !important;
+    gap: 4px !important;
+    min-width: 112px !important;
+    white-space: normal !important;
+  }
+
+  #tbl_tx tbody td.tx-actions-cell .btn-sm {
+    min-height: 44px !important;
+    padding: 6px 8px !important;
+  }
+
+  #tbl_tx .tx-bundle-detail {
+    max-width: 100% !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    line-height: 1.25;
+  }
+}

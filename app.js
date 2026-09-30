@@ -8853,40 +8853,21 @@ window.debugBundleDisplay = function(studentName) {
 
 // Phase 4K-5F — Debt Coverage + Active/Quit Debug
 
-// ensureDebtProfilesReady — Phase 4K-6V3D debt profile read boundary.
-// Primary source: active profiles listener already loaded at login.
-// Emergency compatibility: DebtProfileReadBoundary may call loadFullProfilesFallback only
-// when lightweight count coverage detects legacy/missing status documents.
+// ensureDebtProfilesReady — legacy compatibility delegate only.
+// The canonical UI/readiness owner is installed by js/modules/students.js after
+// bootstrap. Keep this early app.js definition thin so there are never two
+// independent debt-refresh implementations competing after module load.
 window.ensureDebtProfilesReady = async function(reason) {
     reason = reason || 'debt-tab-open';
-    let result = null;
+    if (typeof window.loadAllProfilesForDebt === 'function') {
+        return window.loadAllProfilesForDebt(reason);
+    }
     if (typeof window.ensureDebtProfileCoverage === 'function') {
-        result = await window.ensureDebtProfileCoverage(reason);
-    } else {
-        const st = window.__store || {};
-        const profilesCount = Object.keys(st.profiles || {}).length;
-        result = { ok: profilesCount > 0, ready: profilesCount > 0, source: 'legacy-active-store', profilesCount };
+        return window.ensureDebtProfileCoverage(reason);
     }
-
-    if (typeof window.refreshListsComputation === 'function') {
-        window.refreshListsComputation(['students.debtList', 'dashboard.summary'], reason);
-    }
-    if (typeof window.invalidateList === 'function') {
-        window.invalidateList('students.debtList', reason);
-    }
-
     const st = window.__store || {};
-    st._profilesFullLoadedForDebt = !!(result && result.fallback);
-    st._debtProfileCoverageReady = !!(result && result.ready);
-    st._debtProfileCoverageSource = (result && result.source) || 'unknown';
-    st._debtProfileCoverageCheckedAt = Date.now();
-
-    return {
-        beforeProfilesCount: Object.keys(st.profiles || {}).length,
-        afterProfilesCount: Object.keys(st.profiles || {}).length,
-        reason,
-        ...result
-    };
+    const profilesCount = Object.keys(st.profiles || {}).length;
+    return { ok: profilesCount > 0, ready: profilesCount > 0, coverageVerified: false, source: 'legacy-active-store-unverified', profilesCount, reason };
 };
 
 // debugDebtCoverage — compare DOM debt rows to computed debt from profiles

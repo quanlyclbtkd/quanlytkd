@@ -38,6 +38,8 @@ const primary = new Map();
 const toasts = [];
 const secondary = [];
 const receiptCalls = [];
+const refreshCalls = [];
+const invalidateCalls = [];
 
 window._fb_init = {
   doc: (...args) => ({
@@ -120,8 +122,8 @@ window.notifyInventoryMutation = () => {};
 window.mergeTransactionIntoRuntimeStore = () => {};
 window.updateActiveNewStudentCountBadge = () => {};
 window.resetActiveRenderLimit = () => {};
-window.refreshListsComputation = () => {};
-window.invalidateList = () => {};
+window.refreshListsComputation = (keys, reason) => refreshCalls.push({keys:Array.from(keys || []), reason});
+window.invalidateList = (key, reason) => invalidateCalls.push({key, reason});
 
 vm.createContext(sandbox);
 vm.runInContext(bundleBuilder, sandbox, { filename:'app.js:buildPaymentBundleTransaction' });
@@ -146,6 +148,8 @@ function resetCase() {
   toasts.length = 0;
   secondary.length = 0;
   receiptCalls.length = 0;
+  refreshCalls.length = 0;
+  invalidateCalls.length = 0;
   window.__store.profiles = {};
   window.userRole = 'admin';
   window.exportReceipt = async (...args) => { receiptCalls.push(args); return { ok: true }; };
@@ -155,8 +159,8 @@ function resetCase() {
   window.closeAddModal = () => {};
   window.updateActiveNewStudentCountBadge = () => {};
   window.resetActiveRenderLimit = () => {};
-  window.refreshListsComputation = () => {};
-  window.invalidateList = () => {};
+  window.refreshListsComputation = (keys, reason) => refreshCalls.push({keys:Array.from(keys || []), reason});
+  window.invalidateList = (key, reason) => invalidateCalls.push({key, reason});
   branchCount = 1;
   resetForm();
 }
@@ -243,7 +247,9 @@ resetCase(); set('add_fee_actual',0); set('add_package',12);
 await window.addNewStudent();
 assert.equal(commits,1); assert.equal(entries('profiles').length,1); assert.equal(entries('transactions').length,0); assert.equal(entries('inventory').length,0); assert.equal(receiptCalls.length,0);
 assertUnpaidAdmission(onlyPayload('profiles'), []);
-pass('F07','zero tuition profile-only commit remains canonical debt');
+assert.ok(refreshCalls.some(c => c.reason === 'after-add-new-student' && c.keys.includes('students.debtList')), 'F07 must refresh debt computation immediately');
+assert.ok(invalidateCalls.some(c => c.reason === 'after-add-new-student' && c.key === 'students.debtList'), 'F07 must invalidate debt list immediately');
+pass('F07','zero tuition profile-only commit remains canonical debt and refreshes debt list without reload');
 
 // F08 — zero tuition + paid uniform: accounting is uniform only; tuition remains debt.
 resetCase(); set('add_fee_actual',0); set('add_package',12); set('add_uniform_size','S'); set('add_uniform_actual',50000);

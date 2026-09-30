@@ -79,5 +79,21 @@ check('debugBundleDisplay defined in app.js',
 check('financeRenderer has _formatDateCompact or compact date logic',
     financeRenderer.includes('_formatDateCompact') || financeRenderer.includes('substring(8,10)'));
 
+
+// D1C3B mobile semantic density contract (<=767 only).
+const d1c3bMobile = styleCss.slice(styleCss.lastIndexOf('/* ══ D1C3B — Tuition mobile row density'));
+check('D1C3B mobile amount is centered in right column row 1 for semantic and legacy single-line rows',
+    d1c3bMobile.includes('#tbl_tx tbody td.tx-amount-cell') && d1c3bMobile.includes('#tbl_tx tbody td:nth-last-child(2)') && d1c3bMobile.includes('grid-column: 2 !important') && d1c3bMobile.includes('grid-row: 1 !important') && d1c3bMobile.includes('text-align: center !important'));
+check('D1C3B mobile month/date occupy left rows 2/3 without overlap',
+    d1c3bMobile.includes('#tbl_tx tbody td.tx-month-cell') && d1c3bMobile.includes('grid-row: 2 !important') && d1c3bMobile.includes('#tbl_tx tbody td.tx-date-cell') && d1c3bMobile.includes('grid-row: 3 !important'));
+check('D1C3B mobile actions occupy right column rows 2 through 3',
+    d1c3bMobile.includes('#tbl_tx tbody td.tx-actions-cell') && d1c3bMobile.includes('grid-row: 2 / 4 !important'));
+check('D1C3B mobile transaction action touch target remains at least 44px',
+    d1c3bMobile.includes('#tbl_tx tbody td.tx-actions-cell .btn-sm') && d1c3bMobile.includes('min-height: 44px !important'));
+check('D1C3B mobile long student/bundle text remains non-truncated',
+    d1c3bMobile.includes('overflow-wrap: anywhere') && d1c3bMobile.includes('text-overflow: clip !important'));
+check('D1C3B density override is scoped below 768px and desktop block remains present',
+    d1c3bMobile.includes('@media (max-width: 767px)') && styleCss.includes('@media (min-width: 768px)'));
+
 console.log(`\n  ${passed} passed, ${failed} failed\n`);
 if (failed > 0) process.exit(1);

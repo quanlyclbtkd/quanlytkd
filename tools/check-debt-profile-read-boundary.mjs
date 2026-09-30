@@ -31,14 +31,15 @@ check('Debt tab compatibility loader no longer contains cursor full scan',
   students.includes('uses the global active-profile listener') &&
   !students.slice(students.indexOf('window.loadAllProfilesForDebt'), students.indexOf('// debugListPaginationCoverage')).includes('while (true)') &&
   !students.slice(students.indexOf('window.loadAllProfilesForDebt'), students.indexOf('// debugListPaginationCoverage')).includes('getDocs('));
-check('app.js delegates debt readiness to shared coverage boundary',
-  app.includes("window.ensureDebtProfileCoverage(reason)") && app.includes('_debtProfileCoverageSource'));
+check('app.js is thin compatibility delegate while students.js owns debt refresh state',
+  app.includes("return window.ensureDebtProfileCoverage(reason)") &&
+  students.includes('_debtProfileCoverageSource') && students.includes('_debtProfileCoverageVerified'));
 check('Automatic verification is scheduled from settings and active snapshot',
   app.includes("scheduleAutomaticDebtProfileCoverage('settings-ready')") &&
   profilesListener.includes("scheduleAutomaticDebtProfileCoverage('active-profiles-snapshot')"));
 check('Automatic debt readiness suppresses client aggregation by default',
   boundary.includes('count-audit-disabled-spark-guard') &&
-  boundary.includes('active-listener-local-trusted-no-aggregation') &&
+  boundary.includes('active-listener-query-ready-unverified') &&
   boundary.includes('countAggregationSuppressed'));
 check('Manual count audit remains force-gated for diagnostics only',
   boundary.includes('runCountAudit(reason, options)') &&
@@ -71,7 +72,7 @@ function makeRuntime({ docs, role = 'admin', verified = false, lockBusy = false,
   let countQueries = 0, fallbackRuns = 0, batchCommits = 0, configWrites = 0, lockWrites = 0;
   const dbDocs = new Map(Object.entries(docs).map(([id, data]) => [id, { ...data }]));
   const config = verified ? {
-    debtProfileCoverageVersion: 1,
+    debtProfileCoverageVersion: 2,
     debtProfileCoverageVerified: true,
     debtProfileCoverageVerifiedAt: Date.now(),
   } : {};
@@ -171,6 +172,8 @@ function makeRuntime({ docs, role = 'admin', verified = false, lockBusy = false,
   const c = rt.counters();
   check('Dynamic: debt readiness uses active listener cache with zero aggregation',
     result.ready && result.noRead === true && c.countQueries === 0 && c.fallbackRuns === 0);
+  check('C4 behavioral: explicit verified config may establish full coverage without a new read',
+    result.coverageVerified === true && rt.api.getStatus().coverageVerified === true && result.audit?.coverageVerified === true);
 }
 
 // Clean but not marked: no automatic count aggregation, no full scan, no marker write.
@@ -179,9 +182,12 @@ function makeRuntime({ docs, role = 'admin', verified = false, lockBusy = false,
   const result = await rt.api.ensureDebtProfileCoverage('clean-audit');
   const c = rt.counters();
   check('Dynamic: unverified club still avoids automatic runAggregationQuery',
-    result.ready && result.source === 'active-listener-local-trusted-no-aggregation' && c.countQueries === 0 && c.fallbackRuns === 0);
+    result.ready && result.coverageVerified === false && result.source === 'active-listener-query-ready-unverified' && c.countQueries === 0 && c.fallbackRuns === 0);
   check('Dynamic: local readiness does not write verification marker',
     c.configWrites === 0 && rt.config.debtProfileCoverageVerified !== true);
+  const status = rt.api.getStatus();
+  check('Dynamic: filtered query readiness never promotes session/full coverage verification',
+    status.sessionVerified === false && status.coverageVerified === false && result.audit?.localCacheAudited === true && result.audit?.coverageVerified === false);
 }
 
 // Missing/legacy status: no automatic normalization/write storm; debt tab stays readable from existing cache.
@@ -197,7 +203,9 @@ function makeRuntime({ docs, role = 'admin', verified = false, lockBusy = false,
   const result = await rt.api.ensureDebtProfileCoverage('legacy-gap');
   const c = rt.counters();
   check('Dynamic: legacy coverage path does not auto-count or auto-normalize on tab open',
-    result.ready && c.countQueries === 0 && c.fallbackRuns === 0 && c.batchCommits === 0 && c.configWrites === 0);
+    result.ready && result.coverageVerified === false && c.countQueries === 0 && c.fallbackRuns === 0 && c.batchCommits === 0 && c.configWrites === 0);
+  check('C1-C3 behavioral: missing/Vietnamese/unknown legacy statuses cannot be silently called fully covered by filtered cache',
+    rt.api.getStatus().sessionVerified === false && result.audit?.coverageVerified === false && result.audit?.covered === false);
 }
 
 // Non-admin clean session never triggers client aggregation or writes.

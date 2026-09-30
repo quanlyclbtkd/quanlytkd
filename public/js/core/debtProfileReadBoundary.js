@@ -152,6 +152,8 @@
     function runLocalCoverageAudit(reason) {
         const source = activeSourceReady();
         const profiles = (global.__store && global.__store.profiles) || {};
+        const ctx = context();
+        const coverageVerified = isConfigVerified(ctx.config) || _state.sessionVerified || _state.fullFallbackReady;
         let active = 0, quit = 0, unknown = 0;
         Object.values(profiles || {}).forEach(profile => {
             try {
@@ -174,8 +176,15 @@
             unknownLoaded: unknown,
             activeSourceReady: !!source.ready,
             profilesCount: source.profilesCount,
-            covered: !!source.ready,
-            coveredBy: 'active-listener-cache',
+            ready: !!source.ready,
+            localCacheAudited: true,
+            coverageVerified: !!coverageVerified,
+            // Compatibility alias: "covered" now means full coverage is
+            // actually verified, never merely that the filtered query is ready.
+            covered: !!coverageVerified,
+            coveredBy: coverageVerified
+                ? (_state.fullFallbackReady ? 'full-fallback-verified' : (isConfigVerified(ctx.config) ? 'config-verified' : 'session-verified'))
+                : 'local-cache-only-unverified',
             auditedAt: now(),
         };
         _state.lastAudit = audit;
@@ -413,21 +422,21 @@
 
             const localAudit = runLocalCoverageAudit(reason || 'automatic-local');
 
-            if (isConfigVerified(context().config) || _state.sessionVerified) {
+            if (isConfigVerified(context().config) || _state.sessionVerified || _state.fullFallbackReady) {
                 _state.lastSource = 'active-listener-verified';
                 _metrics.lastSource = _state.lastSource;
                 _metrics.fullScansAvoided++;
-                return { ok: true, ready: true, source: _state.lastSource, noRead: true, audit: localAudit };
+                return { ok: true, ready: true, coverageVerified: true, source: _state.lastSource, noRead: true, audit: localAudit };
             }
 
-            // Spark guard: Báo nợ only needs the already-mounted active profile cache.
-            // Do not auto-run three client aggregation counts (total/active/quit) on login/tab open.
-            _state.sessionVerified = true;
-            _metrics.verifiedWithoutFullScan++;
+            // Spark guard: the mounted filtered active query may make the UI
+            // ready, but it cannot prove full canonical-active coverage because
+            // missing/legacy statuses are not guaranteed to match the query.
+            // Keep this path ZERO-READ and explicitly UNVERIFIED.
             _metrics.fullScansAvoided++;
-            _state.lastSource = 'active-listener-local-trusted-no-aggregation';
+            _state.lastSource = 'active-listener-query-ready-unverified';
             _metrics.lastSource = _state.lastSource;
-            return { ok: true, ready: true, source: _state.lastSource, audit: localAudit, noRead: true };
+            return { ok: true, ready: true, coverageVerified: false, source: _state.lastSource, audit: localAudit, noRead: true };
 
         } catch (error) {
             _state.lastError = String(error && (error.code || error.message) || error);
@@ -448,21 +457,19 @@
         const ctx = context();
         const source = await waitForActiveSource();
 
-        if (source.ready && (isConfigVerified(ctx.config) || _state.sessionVerified)) {
+        if (source.ready && (isConfigVerified(ctx.config) || _state.sessionVerified || _state.fullFallbackReady)) {
             _metrics.fullScansAvoided++;
             _state.lastSource = 'active-listener-verified';
             _metrics.lastSource = _state.lastSource;
-            return { ok: true, ready: true, source: _state.lastSource, profilesCount: source.profilesCount, noRead: true, audit: runLocalCoverageAudit(reason || 'ensure-verified-local') };
+            return { ok: true, ready: true, coverageVerified: true, source: _state.lastSource, profilesCount: source.profilesCount, noRead: true, audit: runLocalCoverageAudit(reason || 'ensure-verified-local') };
         }
 
         if (source.ready) {
             const audit = runLocalCoverageAudit(reason || 'ensure-local');
-            _state.sessionVerified = true;
             _metrics.fullScansAvoided++;
-            _metrics.verifiedWithoutFullScan++;
-            _state.lastSource = 'active-listener-local-trusted-no-aggregation';
+            _state.lastSource = 'active-listener-query-ready-unverified';
             _metrics.lastSource = _state.lastSource;
-            return { ok: true, ready: true, source: _state.lastSource, profilesCount: source.profilesCount, noRead: true, audit };
+            return { ok: true, ready: true, coverageVerified: false, source: _state.lastSource, profilesCount: source.profilesCount, noRead: true, audit };
         }
 
         // Admin may explicitly run count audit via runCountAudit(reason, { force: true }) for diagnostics.
@@ -483,13 +490,14 @@
             const ok = await global.loadFullProfilesFallback('debt-coverage-emergency:' + (reason || 'debt-tab'));
             if (ok) {
                 _state.fullFallbackReady = true;
+                _state.sessionVerified = true;
                 _state.lastSource = 'full-fallback-emergency';
                 _metrics.lastSource = _state.lastSource;
-                return { ok: true, ready: true, source: _state.lastSource, fallback: true };
+                return { ok: true, ready: true, coverageVerified: true, source: _state.lastSource, fallback: true };
             }
         }
 
-        return { ok: source.ready, ready: source.ready, source: source.ready ? 'active-listener-unverified' : 'not-ready' };
+        return { ok: source.ready, ready: source.ready, coverageVerified: false, source: source.ready ? 'active-listener-query-ready-unverified' : 'not-ready' };
     }
 
     function scheduleAutomaticVerification(reason, delay) {
@@ -544,6 +552,7 @@
             clubId: ctx.clubId,
             configVerified: isConfigVerified(ctx.config),
             sessionVerified: _state.sessionVerified,
+            coverageVerified: isConfigVerified(ctx.config) || _state.sessionVerified || _state.fullFallbackReady,
             inFlight: _state.inFlight,
             scheduled: _state.scheduled,
             source: _state.lastSource,

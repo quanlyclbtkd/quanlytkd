@@ -546,9 +546,10 @@ export function initStudents() {
                     : '✅ Đã thêm võ sinh ' + _saveKey + '. Học phí tháng nhập học chưa thu và đang được tính nợ.', 4000);
                 window.updateActiveNewStudentCountBadge?.();
                 window.resetActiveRenderLimit?.('after-add-new-student');
-                window.refreshListsComputation?.(['students.activeList', 'dashboard.summary'], 'after-add-new-student');
+                window.refreshListsComputation?.(['students.activeList', 'students.debtList', 'dashboard.summary'], 'after-add-new-student');
                 if (typeof window.invalidateList === 'function') {
                     window.invalidateList('students.activeList', 'after-add-new-student');
+                    window.invalidateList('students.debtList', 'after-add-new-student');
                 } else window.invalidateStudents?.('after-add-new-student');
             } catch (secondary) {
                 _recordStudentSecondaryFailure('admission-ui-refresh', secondary, { transactionId: committedTxId });
@@ -2567,6 +2568,7 @@ window.ensureDebtProfilesReady = async function ensureDebtProfilesReady(reason) 
 
     st._profilesFullLoadedForDebt = !!(result && result.fallback);
     st._debtProfileCoverageReady = !!(result && result.ready);
+    st._debtProfileCoverageVerified = !!(result && result.coverageVerified);
     st._debtProfileCoverageSource = (result && result.source) || 'unknown';
     st._debtProfileCoverageCheckedAt = Date.now();
 
@@ -2575,7 +2577,8 @@ window.ensureDebtProfilesReady = async function ensureDebtProfilesReady(reason) 
     }
     if (typeof window.updateSkippedMonthSection === 'function') {
         try {
-            window.updateSkippedMonthSection(window.__store.profiles, month);
+            const selectedMonth = (document.getElementById('filterMonth') || {}).value || st.selectedMonth || '';
+            if (selectedMonth) window.updateSkippedMonthSection(window.__store.profiles, selectedMonth);
         } catch (_) {}
     }
     if (typeof window.invalidateList === 'function') {
@@ -2589,6 +2592,7 @@ window.ensureDebtProfilesReady = async function ensureDebtProfilesReady(reason) 
         profilesCount: Object.keys(st.profiles || {}).length,
         fullLoaded: !!st._profilesFullLoadedForDebt,
         coverageReady: !!st._debtProfileCoverageReady,
+        coverageVerified: !!st._debtProfileCoverageVerified,
         source: st._debtProfileCoverageSource,
         ...(result || {})
     };

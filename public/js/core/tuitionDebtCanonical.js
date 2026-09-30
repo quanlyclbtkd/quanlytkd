@@ -343,22 +343,38 @@
     var rawPaidMonths = normalizeMonthList(p.paidMonths);
     var paidUntil = normalizeMonth(p.paidUntil || '');
     var txPaidMonths = extractTuitionTransactionMonths(p, name, opt);
-    var trustFuturePaidMonths = opt.trustFuturePaidMonths === true;
     var trustTransactionMonths = opt.trustTransactionMonths === true;
 
-    var trustedPaidMonths = rawPaidMonths.slice();
     var futurePaidMonthsAfterPaidUntil = paidUntil ? rawPaidMonths.filter(function (m) { return m > paidUntil; }) : [];
+    var verifiedFuturePaidMonths = [];
+    var ambiguousFuturePaidMonths = [];
+    var trustedPaidMonths = rawPaidMonths.slice();
     var ignoredFuturePaidMonthsAfterPaidUntil = [];
+
+    if (paidUntil) {
+      // paidUntil is the contiguous payment boundary. Explicit paidMonths beyond
+      // that boundary are only safe to suppress from Debt when an existing,
+      // surviving tuition transaction in the computation context verifies the
+      // same month. Otherwise preserve the month as AMBIGUOUS so the profile
+      // remains visible for reconciliation without enabling a double charge.
+      var contiguousPaidMonths = rawPaidMonths.filter(function (m) { return m <= paidUntil; });
+      verifiedFuturePaidMonths = futurePaidMonthsAfterPaidUntil.filter(function (m) { return txPaidMonths.includes(m); });
+      ambiguousFuturePaidMonths = futurePaidMonthsAfterPaidUntil.filter(function (m) { return !verifiedFuturePaidMonths.includes(m); });
+      trustedPaidMonths = Array.from(new Set(contiguousPaidMonths.concat(verifiedFuturePaidMonths))).sort();
+      ignoredFuturePaidMonthsAfterPaidUntil = ambiguousFuturePaidMonths.slice();
+    }
 
     if (!paidUntil && txPaidMonths.length) {
       // Safe fallback only when profile paidUntil is absent. Existing profile boundary remains authoritative.
       trustedPaidMonths = Array.from(new Set(trustedPaidMonths.concat(txPaidMonths))).sort();
       warnings.push('paidUntil-missing-used-transaction-months-as-evidence');
-    } else if (paidUntil && txPaidMonths.some(function (m) { return m > paidUntil; }) && !trustTransactionMonths) {
+    } else if (paidUntil && txPaidMonths.some(function (m) { return m > paidUntil && !rawPaidMonths.includes(m); }) && !trustTransactionMonths) {
       warnings.push('transaction-months-after-paidUntil-not-used-for-debt-suppression');
     }
 
     if (futurePaidMonthsAfterPaidUntil.length) warnings.push('paidMonths-after-paidUntil-preserved');
+    if (verifiedFuturePaidMonths.length) warnings.push('future-paid-month-verified-by-transaction');
+    if (ambiguousFuturePaidMonths.length) warnings.push('future-paid-month-requires-reconciliation');
     if (p.isOwed === false || (Array.isArray(p.owedMonths) && p.owedMonths.length === 0)) warnings.push('legacy-owed-flags-not-authoritative');
 
     var hiddenReasons = [];
@@ -381,18 +397,18 @@
         throw new Error('Không thể tính đủ nợ học phí: khoảng tháng không hợp lệ hoặc vượt 80 năm.');
       }
       while (cur && cur <= selected) {
-        if (!skippedMonths.includes(cur) && !trustedPaidMonths.includes(cur)) chargeableMonths.push(cur);
+        if (!skippedMonths.includes(cur) && !trustedPaidMonths.includes(cur) && !ambiguousFuturePaidMonths.includes(cur)) chargeableMonths.push(cur);
         cur = addMonths(cur, 1);
       }
       if (p.isOwed === true && Array.isArray(p.owedMonths)) {
         normalizeMonthList(p.owedMonths).forEach(function (m) {
-          if (m <= selected && !skippedMonths.includes(m) && !trustedPaidMonths.includes(m) && !chargeableMonths.includes(m)) {
+          if (m <= selected && !skippedMonths.includes(m) && !trustedPaidMonths.includes(m) && !ambiguousFuturePaidMonths.includes(m) && !chargeableMonths.includes(m)) {
             chargeableMonths.push(m);
           }
         });
         chargeableMonths.sort();
       }
-      if (!chargeableMonths.length) hiddenReasons.push('no-chargeable-months');
+      if (!chargeableMonths.length && !ambiguousFuturePaidMonths.length) hiddenReasons.push('no-chargeable-months');
     }
 
     return {
@@ -406,13 +422,16 @@
       trustedPaidMonthsForDebt: trustedPaidMonths,
       ignoredFuturePaidMonthsAfterPaidUntil: ignoredFuturePaidMonthsAfterPaidUntil,
       futurePaidMonthsAfterPaidUntil: futurePaidMonthsAfterPaidUntil,
+      verifiedFuturePaidMonths: verifiedFuturePaidMonths,
+      ambiguousFuturePaidMonths: ambiguousFuturePaidMonths,
+      requiresReconciliation: ambiguousFuturePaidMonths.length > 0,
       transactionPaidMonths: txPaidMonths,
       skippedMonthsRaw: Array.isArray(p.skippedMonths) ? p.skippedMonths.slice() : [],
       skippedMonthsCanonical: skippedMonths,
       feeExempt: p.feeExempt === true,
       chargeableMonths: chargeableMonths,
       debtMonths: chargeableMonths,
-      shouldAppearInDebtBeforeRender: chargeableMonths.length > 0 && hiddenReasons.length === 0,
+      shouldAppearInDebtBeforeRender: (chargeableMonths.length > 0 || ambiguousFuturePaidMonths.length > 0) && hiddenReasons.length === 0,
       hiddenReasons: hiddenReasons,
       warnings: Array.from(new Set(warnings))
     };
@@ -443,7 +462,7 @@
       var p = entry[1] || {};
       var d = computeProfileDebt(p, summary.selectedMonth, Object.assign({}, options || {}, { name: name, reason: 'auditTuitionDebtCanonicalProfiles' }));
       if (d.profileState.statusCanonical === 'quit') summary.quitProfiles++; else summary.activeProfiles++;
-      if (d.chargeableMonths.length) summary.debtProfiles++;
+      if (d.shouldAppearInDebtBeforeRender) summary.debtProfiles++;
       if (!d.profileState.profileId) summary.missingProfileId++;
       if (!d.profileState.branchRaw) summary.missingBranch++;
       if (p.paidUntil && !d.paidUntilCanonical) summary.paidUntilFormatIssues++;
@@ -452,7 +471,7 @@
       if (p.feeExempt === true) summary.feeExemptProfiles++;
       if (Array.isArray(p.skippedMonths) && p.skippedMonths.length) summary.skippedMonthProfiles++;
       d.warnings.forEach(function (w) { summary.warningsByType[w] = (summary.warningsByType[w] || 0) + 1; });
-      if (summary.samples.length < 20 && (d.warnings.length || d.chargeableMonths.length)) {
+      if (summary.samples.length < 20 && (d.warnings.length || d.chargeableMonths.length || d.ambiguousFuturePaidMonths.length)) {
         summary.samples.push({ name: d.profileState.displayName || name, profileId: d.profileState.profileId, warnings: d.warnings, chargeableMonths: d.chargeableMonths });
       }
     });
