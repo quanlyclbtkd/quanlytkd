@@ -63,6 +63,12 @@ const _state = {
     activeListenerMounted:  false,
     activeSnapshotCount:    0,
     activeQueryErrorCount:  0,
+    // D1C3B: Admin reuses this one listener slot as the complete current-club
+    // profile authority. Coach keeps the existing scoped active query.
+    authorityClubId:        '',
+    fullAuthoritySnapshotSeen: false,
+    fullAuthoritySnapshotCount: 0,
+    fullAuthorityComplete:  false,
     role:                   '',
     coachBranch:            '',
     coachBranchFallbackCount: 0,
@@ -346,6 +352,10 @@ function _updateWindowMetrics() {
         activeListenerMounted:              _state.activeListenerMounted,
         activeSnapshotCount:                _state.activeSnapshotCount,
         activeQueryErrorCount:              _state.activeQueryErrorCount,
+        authorityClubId:                    _state.authorityClubId,
+        fullAuthoritySnapshotSeen:          _state.fullAuthoritySnapshotSeen,
+        fullAuthoritySnapshotCount:         _state.fullAuthoritySnapshotCount,
+        fullAuthorityComplete:              _state.fullAuthorityComplete,
         role:                               _state.role,
         coachBranch:                        _state.coachBranch,
         coachBranchFallbackCount:           _state.coachBranchFallbackCount,
@@ -486,8 +496,9 @@ function _checkActiveProfileCoverage(activeCount) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Tạo active-only realtime onSnapshot listener.
- * Query: where('status', 'in', getActiveQueryValues())
+ * Canonical profiles listener.
+ * Admin: ONE full current-club profRef onSnapshot, classified locally.
+ * Coach: existing branch + active-status scoped query.
  *
  * Phase 3.7C:
  *   - Dùng config từ profileStatusConfig.js (không hardcode values)
@@ -516,6 +527,13 @@ export function mountActiveProfilesListener(context) {
     _state.coachLegacyActiveMap = {};
     const isCoach = _isCoachContext(context);
     const coachBranch = _coachBranch(context);
+    if (!isCoach) {
+        _state.authorityClubId = clubId;
+        _state.fullAuthoritySnapshotSeen = false;
+        _state.fullAuthoritySnapshotCount = 0;
+        _state.fullAuthorityComplete = false;
+        markQuitComplete(false);
+    }
 
     // V5U6G: Admin emergency full-profile fallback and the normal active-module
     // owner are mutually exclusive. The fallback must be removed BEFORE the
@@ -546,20 +564,6 @@ export function mountActiveProfilesListener(context) {
         }
     }
 
-    // If Đã nghỉ was opened before the active listener mounted, retry the
-    // authority exactly once now that the canonical context exists.
-    if (!isCoach && window.getCurrentActiveTabId?.() === 'quit' && !isQuitProfilesComplete()) {
-        setTimeout(() => {
-            loadQuitProfilesIfNeeded('active-listener-context-ready', context)
-                .then(ok => {
-                    if (ok === true && typeof window.renderQuitList === 'function') {
-                        window.renderQuitList({ reason: 'active-listener-context-ready' });
-                    }
-                })
-                .catch(() => {});
-        }, 0);
-    }
-
     if (isCoach && !coachBranch) {
         console.error('[ProfilesListener] Coach missing branch — fail closed, no profiles query');
         setActiveProfiles({}, 'coach-missing-branch');
@@ -586,7 +590,7 @@ export function mountActiveProfilesListener(context) {
     const fb = window._fb_init || {};
     const { query: fbQuery, where: fbWhere, onSnapshot: fbOnSnapshot } = fb;
 
-    if (!fbQuery || !fbWhere || !fbOnSnapshot) {
+    if (!fbOnSnapshot || (isCoach && (!fbQuery || !fbWhere))) {
         console.warn('[ProfilesListener] Firebase SDK chưa sẵn — fallback');
         if (isCoach) loadCoachBranchProfilesFallback('sdk-not-ready');
         else loadFullProfilesFallback('sdk-not-ready');
@@ -600,20 +604,24 @@ export function mountActiveProfilesListener(context) {
         return false;
     }
 
-    // [Phase 3.7C] Đọc status values từ config
-    const statusValues = getActiveQueryValues();
+    // Coach keeps the existing status query contract. Admin does not use these
+    // values as a completeness boundary because legacy-active profiles can have
+    // missing/Vietnamese/custom status strings.
+    const statusValues = isCoach ? getActiveQueryValues() : [];
 
     window.safeRegisterSnapshot(
         key,
         () => {
             let activeQuery;
             try {
-                const statusConstraint = statusValues.length === 1
-                    ? fbWhere('status', '==', statusValues[0])
-                    : fbWhere('status', 'in', statusValues);
-                activeQuery = isCoach
-                    ? fbQuery(profRef, statusConstraint, fbWhere('branch', '==', coachBranch))
-                    : fbQuery(profRef, statusConstraint);
+                if (isCoach) {
+                    const statusConstraint = statusValues.length === 1
+                        ? fbWhere('status', '==', statusValues[0])
+                        : fbWhere('status', 'in', statusValues);
+                    activeQuery = fbQuery(profRef, statusConstraint, fbWhere('branch', '==', coachBranch));
+                } else {
+                    activeQuery = profRef;
+                }
             } catch (qErr) {
                 console.warn('[ProfilesListener] Build query lỗi:', qErr.message, '— fallback');
                 setTimeout(() => {
@@ -630,38 +638,30 @@ export function mountActiveProfilesListener(context) {
                     if (typeof window.recordFirestoreSnapshotAttribution === 'function') {
                         window.recordFirestoreSnapshotAttribution('profiles.activeListener', snap, {
                             initial: _state.activeSnapshotCount === 1,
-                            reason: isCoach ? 'active-status-branch-query' : 'active-status-query'
+                            reason: isCoach ? 'active-status-branch-query' : 'full-profiles-authoritative'
                         });
                     }
                     if (window.markListenerSnapshot) window.markListenerSnapshot(key);
 
-                    let activeMap = {};
+                    let snapshotMap = {};
                     snap.forEach(d => {
                         const id = d.id.trim();
-                        if (id) activeMap[id] = d.data();
+                        if (id) snapshotMap[id] = d.data();
                     });
                     if (isCoach) {
+                        let activeMap = snapshotMap;
                         _state.coachCanonicalActiveMap = activeMap;
                         activeMap = _mergedCoachActiveMap();
-                    }
+                        const activeCount = Object.keys(activeMap).length;
 
-                    const activeCount = Object.keys(activeMap).length;
-
-                    // [Phase 3.7C] Coverage guard — trước khi cập nhật store
-                    _checkActiveProfileCoverage(activeCount);
-
-                    // Phase 4K-STUDENT-LIST: Active-zero probe —
-                    // Nếu snapshot đầu tiên trả 0 nhưng collection có docs,
-                    // data cũ có thể thiếu status field → trigger full fallback.
-                    // Dùng getDocs(limit(1)) — nhẹ, không đọc full collection.
-                    if (activeCount === 0 && _state.activeSnapshotCount === 1) {
+                        // Coach remains scoped and may retain the existing coverage
+                        // guard/probe behavior inside the Attendance-only boundary.
+                        _checkActiveProfileCoverage(activeCount);
+                        if (activeCount === 0 && _state.activeSnapshotCount === 1) {
                         const _fb4k = window._fb_init || {};
                         const { query: _pQ4k, limit: _pL4k, getDocs: _pG4k } = _fb4k;
                         if (_pG4k && _pQ4k && _pL4k && profRef) {
-                            // [GITHUB-FIX Task 4] Await fallback + invalidate sau khi hoàn tất
-                            const _probeQuery = isCoach
-                                ? _pQ4k(profRef, fbWhere('branch', '==', coachBranch), _pL4k(1))
-                                : _pQ4k(profRef, _pL4k(1));
+                            const _probeQuery = _pQ4k(profRef, fbWhere('branch', '==', coachBranch), _pL4k(1));
                             _pG4k(_probeQuery).then(async function(_probe) {
                                 if (typeof window.recordFirestoreReadAttribution === 'function') {
                                     window.recordFirestoreReadAttribution('profiles.activeZeroProbe', _probe.size || 0, {
@@ -671,25 +671,10 @@ export function mountActiveProfilesListener(context) {
                                 }
                                 if (!_probe.empty) {
                                     console.warn('[ProfilesListener] active=0 but scoped collection has docs — safe fallback');
-                                    const ok = isCoach
-                                        ? await loadCoachBranchProfilesFallback('active-zero-but-branch-has-profiles')
-                                        : await loadFullProfilesFallback('active-zero-but-profiles-exist');
+                                    const ok = await loadCoachBranchProfilesFallback('active-zero-but-branch-has-profiles');
                                     if (ok) {
                                         _invalidateAll('active-zero-full-fallback-completed');
                                     }
-                                } else if (!isCoach && typeof window._moduleDashboard?.reconcileHydrationEvidence === 'function') {
-                                    // V5U6G: the existing zero probe is authoritative evidence that the
-                                    // profiles source is truly empty. Close the provisional hydration
-                                    // state in RAM; no second profile query/reader is introduced.
-                                    window._moduleDashboard.reconcileHydrationEvidence({
-                                        domain: 'members',
-                                        reason: 'active-profiles-zero-probe-empty',
-                                        evidence: {
-                                            activeCount: 0,
-                                            activeAvailable: true,
-                                            coverageComplete: true,
-                                        },
-                                    });
                                 }
                             }).catch((error) => {
                                 console.warn('[ProfilesListener] active-zero probe failed; hydration remains incomplete:', error?.code || error?.message || error);
@@ -701,40 +686,53 @@ export function mountActiveProfilesListener(context) {
                                 }
                             });
                         }
-                    }
-
-                    // H8R2 D: reuse the EXISTING active-profile listener as the
-                    // mutation signal for Quit authority. Membership changes cover both
-                    // active→quit (removed) and quit→active/restore (added). Initial
-                    // hydration is explicitly excluded, so this never creates a second
-                    // listener or a time-driven full scan.
-                    if (!isCoach && _state.activeSnapshotCount > 1 && typeof snap.docChanges === 'function') {
-                        const membershipChanges = snap.docChanges().filter(change => change && (change.type === 'removed' || change.type === 'added'));
-                        if (membershipChanges.length > 0) {
-                            _state.quitCompletenessReconciled = false;
-                            _state.quitAuthorityState = 'dirty';
-                            _state.quitAuthorityDirtyReason = 'active-query-membership-change:' + membershipChanges.length;
-                            markQuitComplete(false);
-                            if (window.getCurrentActiveTabId?.() === 'quit') {
-                                Promise.resolve().then(() => ensureQuitProfilesComplete('active-query-membership-current-quit')).catch(() => {});
-                            }
                         }
+                        setActiveProfiles(activeMap, 'coach-active-profiles-snapshot');
+                        _syncLegacy();
+                        _state.activeListenerMounted = true;
+                        _state.lastProfilesMode = 'coach-active-split';
+                        _invalidateAll('coach-active-profiles-snapshot');
+                        _updateWindowMetrics();
+                        return;
                     }
 
-                    setActiveProfiles(activeMap, 'active-profiles-snapshot');
+                    // D1C3B Admin authority: this full snapshot is the sole input that
+                    // replaces all profile buckets. A later partial status snapshot can
+                    // no longer overwrite the canonical active set because Admin no
+                    // longer owns a status-filtered profile listener.
+                    const fullMap = snapshotMap;
+                    let activeCount = 0;
+                    Object.values(fullMap).forEach(profile => {
+                        if (classifyProfileStatus(profile) === 'active') activeCount++;
+                    });
+                    syncLegacyAllProfiles(fullMap, 'full-profiles:admin-authority', { complete: true });
+                    markActiveLoaded(true);
+                    markQuitLoaded(true);
+                    markQuitComplete(true);
                     _syncLegacy();
-                    // V5U6C2: snapshot #1 is hydration evidence, never an automatic
-                    // mutation. Later snapshots mark dirty only when Firestore reports
-                    // a real added/modified/removed document change. Coach remains
-                    // Attendance-only and never participates in Dashboard freshness.
+
+                    _state.authorityClubId = clubId;
+                    _state.fullAuthoritySnapshotSeen = true;
+                    _state.fullAuthoritySnapshotCount = Number(snap.size || Object.keys(fullMap).length || 0);
+                    _state.fullAuthorityComplete = true;
+                    _state.quitLoaded = true;
+                    _state.quitCompletenessReconciled = true;
+                    _state.quitAuthorityState = 'complete';
+                    _state.quitAuthorityClubId = clubId;
+                    _state.quitAuthorityLoadedAt = Date.now();
+                    _state.quitAuthorityDirtyReason = '';
+                    _state.activeListenerMounted = true;
+                    _state.lastProfilesMode      = 'full-profiles-authoritative';
+
+                    // Initial snapshot is complete even when the club has zero profiles.
                     if (!isCoach && _state.activeSnapshotCount === 1 && typeof window._moduleDashboard?.reconcileHydrationEvidence === 'function') {
                         window._moduleDashboard.reconcileHydrationEvidence({
                             domain: 'members',
-                            reason: 'active-profiles-initial-hydration',
+                            reason: 'full-profiles-authoritative-initial-hydration',
                             evidence: {
                                 activeCount,
                                 activeAvailable: true,
-                                coverageComplete: activeCount > 0,
+                                coverageComplete: true,
                             },
                         });
                     } else if (!isCoach && _state.activeSnapshotCount > 1 && typeof snap.docChanges === 'function') {
@@ -746,15 +744,10 @@ export function mountActiveProfilesListener(context) {
                         }
                     }
 
-                    _state.activeListenerMounted = true;
-                    _state.lastProfilesMode      = 'active-split';
-
-                    _invalidateAll('active-profiles-snapshot');
+                    _invalidateAll('full-profiles-authoritative-snapshot');
                     _updateWindowMetrics();
-                    // Phase 4K-6V3D: verify debt coverage in idle time. The scheduler
-                    // reuses this snapshot and only runs count aggregation when needed.
                     if (!isCoach && typeof window.scheduleAutomaticDebtProfileCoverage === 'function') {
-                        window.scheduleAutomaticDebtProfileCoverage('active-profiles-snapshot');
+                        window.scheduleAutomaticDebtProfileCoverage('full-profiles-authoritative-snapshot');
                     }
                 },
                 (err) => {
@@ -889,6 +882,24 @@ export async function loadQuitProfilesIfNeeded(reason, contextOverride, options 
     const dirty = _state.quitAuthorityState === 'dirty' ||
         _state.quitAuthorityState === 'error' ||
         !!_state.quitAuthorityDirtyReason;
+
+    // D1C3B: Admin's full realtime snapshot already classified quitProfiles from
+    // the same authoritative input. Never pay a second full getDocs for Quit.
+    if (
+        clubId &&
+        _state.fullAuthoritySnapshotSeen === true &&
+        _state.fullAuthorityComplete === true &&
+        _state.authorityClubId === clubId &&
+        isQuitComplete() === true
+    ) {
+        _state.quitLoaded = true;
+        _state.quitCompletenessReconciled = true;
+        _state.quitAuthorityState = 'complete';
+        _state.quitAuthorityClubId = clubId;
+        _state.quitAuthorityDirtyReason = '';
+        _updateWindowMetrics();
+        return true;
+    }
 
     // H8R2 D: completeness/mutation state is the primary invalidation authority.
     // Re-opening the tab or merely waiting 60 seconds MUST NOT trigger another
@@ -1046,6 +1057,28 @@ export function isQuitProfilesComplete() {
  */
 export function markQuitAuthorityDirty(reason = 'canonical-quit-profile-mutation') {
     if (_isCoachContext(_ctx)) return false;
+    const clubId = String((_ctx && _ctx.clubId) || window.__store?.clubId || '').trim();
+
+    // D1C3B: under the Admin full realtime authority, the canonical mutation owner
+    // already merges the updated profile into studentProfileStore immediately and
+    // the one full listener will confirm it. Do not demote completeness and trigger
+    // a second full getDocs just because membership/status changed locally.
+    if (
+        clubId &&
+        _state.fullAuthoritySnapshotSeen === true &&
+        _state.fullAuthorityComplete === true &&
+        _state.authorityClubId === clubId &&
+        isQuitComplete() === true
+    ) {
+        _state.quitLoaded = true;
+        _state.quitCompletenessReconciled = true;
+        _state.quitAuthorityState = 'complete';
+        _state.quitAuthorityClubId = clubId;
+        _state.quitAuthorityDirtyReason = '';
+        _updateWindowMetrics();
+        return true;
+    }
+
     _state.quitCompletenessReconciled = false;
     _state.quitAuthorityState = 'dirty';
     _state.quitAuthorityDirtyReason = String(reason || 'canonical-quit-profile-mutation');
@@ -1183,6 +1216,36 @@ export async function loadFullProfilesFallback(reason) {
         return false;
     }
 
+    const clubId = String(ctx.clubId || window.__store?.clubId || '').trim();
+    if (
+        clubId &&
+        _state.fullAuthoritySnapshotSeen === true &&
+        _state.fullAuthorityComplete === true &&
+        _state.authorityClubId === clubId
+    ) {
+        return true;
+    }
+
+    // Emergency one-shot fallback and the normal Admin full listener are
+    // mutually exclusive. If state says the realtime authority is mounted,
+    // takeover is allowed only when the existing registry can prove cleanup.
+    if (_state.activeListenerKey && _state.activeListenerMounted === true) {
+        if (typeof window.hasListener !== 'function' || typeof window.removeListener !== 'function') {
+            console.error('[ProfilesFallback] Listener cleanup/verification API unavailable — fallback blocked');
+            return false;
+        }
+        if (window.hasListener(_state.activeListenerKey)) {
+            window.removeListener(_state.activeListenerKey, 'full-fallback-takeover:' + (reason || 'unknown'));
+            if (window.hasListener(_state.activeListenerKey)) {
+                console.error('[ProfilesFallback] Active authority cleanup verification failed — fallback blocked');
+                return false;
+            }
+        }
+        _state.activeListenerMounted = false;
+        _state.fullAuthoritySnapshotSeen = false;
+        _state.fullAuthorityComplete = false;
+    }
+
     const fb = window._fb_init || {};
     const { getDocs: fbGetDocs } = fb;
     if (!fbGetDocs) {
@@ -1207,9 +1270,8 @@ export async function loadFullProfilesFallback(reason) {
             if (id) fullMap[id] = d.data();
         });
 
-        // Phase 4K-STUDENT-LIST: Phân loại active/quit dùng classifyProfileStatus() mới
-        // để data cũ thiếu status (→ 'active') vào activeProfiles đúng cách
-        // Sau classifier: setActiveProfiles + setQuitProfiles riêng biệt trước syncLegacy
+        // One complete-store mutation from the full snapshot. Avoid separate
+        // setActive/setQuit version bumps that could create competing authority.
         const _fallbackActive = {};
         const _fallbackQuit   = {};
         Object.entries(fullMap).forEach(([_fId, _fData]) => {
@@ -1217,14 +1279,7 @@ export async function loadFullProfilesFallback(reason) {
             if (_fKind === 'quit') _fallbackQuit[_fId] = _fData;
             else _fallbackActive[_fId] = _fData;
         });
-        setActiveProfiles(_fallbackActive, 'full-fallback-active:' + reason);
-        setQuitProfiles(_fallbackQuit, 'full-fallback-quit-classified:' + reason, { complete: true });
-
-        if (window.syncProfilesToStudentStore) {
-            window.syncProfilesToStudentStore(fullMap, 'full-fallback:' + reason);
-        } else {
-            syncLegacyAllProfiles(fullMap, 'full-fallback:' + reason);
-        }
+        syncLegacyAllProfiles(fullMap, 'full-fallback:' + reason, { complete: true });
 
         _syncLegacy();
 
@@ -1233,9 +1288,14 @@ export async function loadFullProfilesFallback(reason) {
         _state.fallbackCount++;
         _state.fullFallbackReason    = reason;
         _state.lastProfilesMode      = 'full-fallback';
+        _state.authorityClubId       = clubId;
+        _state.fullAuthoritySnapshotSeen = true;
+        _state.fullAuthoritySnapshotCount = Number(snap.size || Object.keys(fullMap).length || 0);
+        _state.fullAuthorityComplete = true;
         _state.quitLoaded            = true;
         _state.quitLoadingInProgress = false;
-        _state.activeListenerMounted = true;
+        // This is a one-shot emergency full read, not a mounted realtime listener.
+        _state.activeListenerMounted = false;
         // [Phase 3.7C+A] Explicit store state sync — safety layer on top of syncLegacyAllProfiles
         markActiveLoaded(true);
         markQuitLoaded(true);
@@ -1391,6 +1451,10 @@ export function resetProfilesListeners(reason) {
     _state.activeListenerMounted   = false;
     _state.activeSnapshotCount     = 0;
     _state.activeQueryErrorCount   = 0;
+    _state.authorityClubId         = '';
+    _state.fullAuthoritySnapshotSeen = false;
+    _state.fullAuthoritySnapshotCount = 0;
+    _state.fullAuthorityComplete  = false;
     _state.role                    = '';
     _state.coachBranch             = '';
     _state.coachBranchFallbackCount = 0;
@@ -1462,6 +1526,10 @@ export function getProfilesListenerMetrics() {
         activeListenerMounted:              _state.activeListenerMounted,
         activeSnapshotCount:                _state.activeSnapshotCount,
         activeQueryErrorCount:              _state.activeQueryErrorCount,
+        authorityClubId:                    _state.authorityClubId,
+        fullAuthoritySnapshotSeen:          _state.fullAuthoritySnapshotSeen,
+        fullAuthoritySnapshotCount:         _state.fullAuthoritySnapshotCount,
+        fullAuthorityComplete:              _state.fullAuthorityComplete,
         role:                               _state.role,
         coachBranch:                        _state.coachBranch,
         coachBranchFallbackCount:           _state.coachBranchFallbackCount,

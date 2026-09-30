@@ -70,12 +70,13 @@ check(syncBlock.includes('break v2Dates') && syncBlock.includes('_isOfflineAtten
 check(syncBlock.includes('offlineSyncStaleUiRefreshDropped++') && syncBlock.indexOf('_isOfflineAttendanceSyncContextCurrent(syncContext)') < syncBlock.indexOf("_requestAttendanceDailyRefresh('offline-sync-complete'"), 'V5U6G1 stale flight cannot refresh the new club Attendance UI');
 check(pkg.scripts?.['check:attendance-offline-canonical-sync-guard'] === 'node tools/check-attendance-offline-canonical-sync-guard.mjs', 'package exposes the V5U6G1 canonical offline sync guard');
 
-// ── Dashboard true-zero hydration reuses the existing probe ────────────────
-const zeroProbeBlock = block(profiles, 'if (activeCount === 0 && _state.activeSnapshotCount === 1)', '// V5R: a document removed');
-check(count(zeroProbeBlock, /_pG4k\s*\(/g) === 1, 'True-zero path reuses exactly the existing zero probe');
-check(zeroProbeBlock.includes('if (!_probe.empty)') && zeroProbeBlock.includes("reason: 'active-profiles-zero-probe-empty'") && zeroProbeBlock.includes('coverageComplete: true'), 'Empty zero-probe closes Dashboard members hydration as complete active=0');
-check(zeroProbeBlock.includes("activeCount: 0") && zeroProbeBlock.includes('activeAvailable: true'), 'True-zero evidence explicitly publishes active=0 as available');
-check(zeroProbeBlock.includes("classification: 'profile-zero-probe-failed'"), 'Zero-probe failure remains incomplete and is observable');
+// ── D1C3B Dashboard true-zero hydration comes from the Admin full snapshot ──
+const adminAuthorityBlock = block(profiles, '// D1C3B Admin authority:', "window.scheduleAutomaticDebtProfileCoverage('full-profiles-authoritative-snapshot')");
+const coachZeroProbeBlock = block(profiles, 'if (activeCount === 0 && _state.activeSnapshotCount === 1)', 'setActiveProfiles(activeMap');
+check(!/_pG4k\s*\(|fbGetDocs\s*\(/.test(adminAuthorityBlock), 'Admin true-zero hydration uses the full snapshot itself with zero probe/read');
+check(adminAuthorityBlock.includes('_state.activeSnapshotCount === 1') && adminAuthorityBlock.includes('coverageComplete: true'), 'Initial Admin full snapshot closes Dashboard members hydration as complete even at zero profiles');
+check(adminAuthorityBlock.includes('activeCount,') && adminAuthorityBlock.includes('activeAvailable: true') && adminAuthorityBlock.includes('_state.fullAuthorityComplete = true'), 'Full authoritative evidence publishes active count availability and completeness');
+check(coachZeroProbeBlock.includes("classification: 'profile-zero-probe-failed'") && coachZeroProbeBlock.includes("fbWhere('branch', '==', coachBranch)"), 'Coach scoped zero-probe failure remains incomplete and observable without full-club read');
 
 // ── Profile fallback ownership ──────────────────────────────────────────────
 const mountProfiles = block(profiles, 'export function mountActiveProfilesListener(context)', 'export function cleanupActiveProfilesListener');

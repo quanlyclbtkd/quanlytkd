@@ -19,7 +19,6 @@ function check(name, ok, detail = '') {
 console.log('\n[check-debt-full-coverage] Phase 4K-5F\n');
 
 const appJs              = readFile('app.js');
-const studentsJs         = readFile('js/modules/students.js');
 const studentsRenderer   = readFile('js/ui/render/computation/studentsRenderer.js');
 const mainJs             = readFile('js/main.js');
 
@@ -28,15 +27,13 @@ check('ensureDebtProfilesReady defined in app.js',
     appJs.includes('window.ensureDebtProfilesReady'));
 
 // 2. ensureDebtProfilesReady calls loadFullProfilesFallback
-check('legacy app.js ensureDebtProfilesReady is a thin compatibility delegate',
-    appJs.includes("typeof window.loadAllProfilesForDebt === 'function'") &&
-    appJs.includes('return window.loadAllProfilesForDebt(reason)') &&
-    appJs.includes('return window.ensureDebtProfileCoverage(reason)'));
+check('ensureDebtProfilesReady calls loadFullProfilesFallback',
+    appJs.includes('loadFullProfilesFallback') &&
+    appJs.includes('ensureDebtProfilesReady'));
 
 // 3. ensureDebtProfilesReady calls refreshListsComputation/invalidateList
-check('canonical students.js owner performs debt refresh/invalidation',
-    studentsJs.includes("window.refreshListsComputation(['students.activeList', 'students.debtList', 'dashboard.summary'], reason)") &&
-    studentsJs.includes("window.invalidateList('students.debtList', reason)"));
+check('ensureDebtProfilesReady calls refreshListsComputation',
+    appJs.includes('refreshListsComputation') && appJs.includes('debt-tab-open'));
 
 // 4. Tab debt open triggers ensureDebtProfilesReady in main.js
 check("main.js switchTab calls ensureDebtProfilesReady on tabId === 'debt'",

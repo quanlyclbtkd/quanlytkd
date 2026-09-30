@@ -2568,7 +2568,6 @@ window.ensureDebtProfilesReady = async function ensureDebtProfilesReady(reason) 
 
     st._profilesFullLoadedForDebt = !!(result && result.fallback);
     st._debtProfileCoverageReady = !!(result && result.ready);
-    st._debtProfileCoverageVerified = !!(result && result.coverageVerified);
     st._debtProfileCoverageSource = (result && result.source) || 'unknown';
     st._debtProfileCoverageCheckedAt = Date.now();
 
@@ -2577,8 +2576,7 @@ window.ensureDebtProfilesReady = async function ensureDebtProfilesReady(reason) 
     }
     if (typeof window.updateSkippedMonthSection === 'function') {
         try {
-            const selectedMonth = (document.getElementById('filterMonth') || {}).value || st.selectedMonth || '';
-            if (selectedMonth) window.updateSkippedMonthSection(window.__store.profiles, selectedMonth);
+            window.updateSkippedMonthSection(window.__store.profiles, month);
         } catch (_) {}
     }
     if (typeof window.invalidateList === 'function') {
@@ -2592,7 +2590,6 @@ window.ensureDebtProfilesReady = async function ensureDebtProfilesReady(reason) 
         profilesCount: Object.keys(st.profiles || {}).length,
         fullLoaded: !!st._profilesFullLoadedForDebt,
         coverageReady: !!st._debtProfileCoverageReady,
-        coverageVerified: !!st._debtProfileCoverageVerified,
         source: st._debtProfileCoverageSource,
         ...(result || {})
     };

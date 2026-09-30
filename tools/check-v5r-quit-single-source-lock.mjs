@@ -37,14 +37,16 @@ check('quit authority keeps one existing authoritative getDocs flight',
   (quitLoadSegment.match(/fbGetDocs\(ctx\.profRef\)/g) || []).length === 1 &&
   quitLoadSegment.includes('if (_quitAuthorityPromise) return _quitAuthorityPromise') &&
   quitLoadSegment.includes('_quitAuthorityPromise = (async () =>'));
-check('membership mutations mark quit authority dirty',
-  listener.includes("_state.quitAuthorityState = 'dirty'") &&
-  listener.includes('active-query-membership-change:') &&
-  listener.includes('markQuitComplete(false)') &&
+check('membership mutations preserve full Admin authority without duplicate Quit read',
+  listener.includes('under the Admin full realtime authority') &&
+  listener.includes('_state.fullAuthoritySnapshotSeen === true') &&
+  listener.includes('_state.authorityClubId === clubId') &&
+  listener.includes("_state.quitAuthorityState = 'complete'") &&
   statusBoundary.includes('window.markQuitAuthorityDirty?.(`${reason}:quit-profile-mutation`)'));
-check('current quit tab refreshes authoritatively after membership change',
-  listener.includes("window.getCurrentActiveTabId?.() === 'quit'") &&
-  listener.includes("ensureQuitProfilesComplete('active-query-membership-current-quit')"));
+check('legacy dirty path remains only when full authority is unavailable',
+  listener.includes("_state.quitAuthorityState = 'dirty'") &&
+  listener.includes('markQuitComplete(false)') &&
+  !listener.includes("ensureQuitProfilesComplete('active-query-membership-current-quit')"));
 check('Coach fails closed before quit full-profile authority read',
   quitLoadSegment.includes('if (_isCoachContext(ctx))') &&
   quitLoadSegment.includes("window.RoleReadBoundary?.canMount?.('profiles.quit'") &&

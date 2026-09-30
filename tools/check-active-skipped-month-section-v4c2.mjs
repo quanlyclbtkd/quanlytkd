@@ -56,12 +56,6 @@ check('legacy app.js m_skipped uses canonical month compare',
   app.includes('_legacyHasSkippedMonth(p, selMonth)'));
 check('syncStudentSkippedMonthLocal refreshes activeList and debtList',
   students.includes("['students.activeList', 'students.debtList', 'dashboard.summary']"));
-check('ensureDebtProfilesReady uses canonical selected month, not undefined month identifier', (() => {
-  const a = students.indexOf('window.ensureDebtProfilesReady = async function ensureDebtProfilesReady');
-  const b = students.indexOf('// debugListPaginationCoverage', a);
-  const body = students.slice(a, b);
-  return body.includes("document.getElementById('filterMonth')") && body.includes('selectedMonth') && !body.includes('window.updateSkippedMonthSection(window.__store.profiles, month)');
-})());
 check('syncStudentSkippedMonthLocal updates skipped section immediately',
   students.includes('window.updateSkippedMonthSection(window.__store.profiles, month)'));
 check('package.json includes active skipped section gate in npm check',

@@ -8853,21 +8853,40 @@ window.debugBundleDisplay = function(studentName) {
 
 // Phase 4K-5F — Debt Coverage + Active/Quit Debug
 
-// ensureDebtProfilesReady — legacy compatibility delegate only.
-// The canonical UI/readiness owner is installed by js/modules/students.js after
-// bootstrap. Keep this early app.js definition thin so there are never two
-// independent debt-refresh implementations competing after module load.
+// ensureDebtProfilesReady — Phase 4K-6V3D debt profile read boundary.
+// Primary source: active profiles listener already loaded at login.
+// Emergency compatibility: DebtProfileReadBoundary may call loadFullProfilesFallback only
+// when lightweight count coverage detects legacy/missing status documents.
 window.ensureDebtProfilesReady = async function(reason) {
     reason = reason || 'debt-tab-open';
-    if (typeof window.loadAllProfilesForDebt === 'function') {
-        return window.loadAllProfilesForDebt(reason);
-    }
+    let result = null;
     if (typeof window.ensureDebtProfileCoverage === 'function') {
-        return window.ensureDebtProfileCoverage(reason);
+        result = await window.ensureDebtProfileCoverage(reason);
+    } else {
+        const st = window.__store || {};
+        const profilesCount = Object.keys(st.profiles || {}).length;
+        result = { ok: profilesCount > 0, ready: profilesCount > 0, source: 'legacy-active-store', profilesCount };
     }
+
+    if (typeof window.refreshListsComputation === 'function') {
+        window.refreshListsComputation(['students.debtList', 'dashboard.summary'], reason);
+    }
+    if (typeof window.invalidateList === 'function') {
+        window.invalidateList('students.debtList', reason);
+    }
+
     const st = window.__store || {};
-    const profilesCount = Object.keys(st.profiles || {}).length;
-    return { ok: profilesCount > 0, ready: profilesCount > 0, coverageVerified: false, source: 'legacy-active-store-unverified', profilesCount, reason };
+    st._profilesFullLoadedForDebt = !!(result && result.fallback);
+    st._debtProfileCoverageReady = !!(result && result.ready);
+    st._debtProfileCoverageSource = (result && result.source) || 'unknown';
+    st._debtProfileCoverageCheckedAt = Date.now();
+
+    return {
+        beforeProfilesCount: Object.keys(st.profiles || {}).length,
+        afterProfilesCount: Object.keys(st.profiles || {}).length,
+        reason,
+        ...result
+    };
 };
 
 // debugDebtCoverage — compare DOM debt rows to computed debt from profiles

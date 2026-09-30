@@ -243,9 +243,9 @@ export function renderTxRow(tx, opts = {}) {
         const totalAllo = isTuition && tx.type === 'Học phí + Lệ phí thi'
             ? (Number(tx.tuitionAmount) || 0) + (Number(tx.examAmount) || 0)
             : Number(tx.amount) || 0;
-        amtCell = `<td><div class="text-emerald-600 font-black text-base">+${totalAllo.toLocaleString()}</div><div class="text-[0.65rem] text-slate-500 font-bold whitespace-nowrap">Tổng: ${(Number(tx.amount)||0).toLocaleString()}</div></td>`;
+        amtCell = `<td class="tx-amount-cell"><div class="text-emerald-600 font-black text-base">+${totalAllo.toLocaleString()}</div><div class="text-[0.65rem] text-slate-500 font-bold whitespace-nowrap">Tổng: ${(Number(tx.amount)||0).toLocaleString()}</div></td>`;
     } else {
-        amtCell = `<td class="text-emerald-600 font-bold">+${(Number(tx.amount) || 0).toLocaleString()} ₫</td>`;
+        amtCell = `<td class="tx-amount-cell text-emerald-600 font-bold">+${(Number(tx.amount) || 0).toLocaleString()} ₫</td>`;
     }
 
     // ── Phase 4K-3: Print button with stable data attrs (event delegation target) ──

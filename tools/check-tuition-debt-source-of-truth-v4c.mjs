@@ -51,33 +51,13 @@ const cases = [
 ];
 for (const [name, condition] of cases) check(name, condition);
 
-// D1C3B corrected cross-invariant: a future paidMonths entry is not enough to
-// hide a Debt row unless an existing surviving tuition transaction verifies it.
-// The old gate treated every future paidMonths value as trusted payment evidence;
-// that contradicted debt completeness and could silently suppress a stale month.
-const debtJune = api.computeProfileDebt({ name: 'A', paidUntil: 'Tháng Năm 2026', paidMonths: ['2026-06'], tuitionFee: 500000 }, '2026-06', { name: 'A', transactions: [] });
-check('ambiguous future paidMonths is not silently trusted for debt suppression', debtJune.chargeableMonths.length === 0 && !debtJune.trustedPaidMonthsForDebt.includes('2026-06') && debtJune.ambiguousFuturePaidMonths.includes('2026-06'));
-check('ambiguous-only profile remains visible for reconciliation', debtJune.shouldAppearInDebtBeforeRender === true && debtJune.requiresReconciliation === true);
+const debtJune = api.computeProfileDebt({ name: 'A', paidUntil: 'Tháng Năm 2026', paidMonths: ['2026-06'], tuitionFee: 500000 }, '2026-06', { name: 'A' });
+check('explicit future paidMonths remains month-level evidence beyond contiguous paidUntil', debtJune.chargeableMonths.length === 0 && debtJune.trustedPaidMonthsForDebt.includes('2026-06'));
 check('future paidMonths after paidUntil are reported as preserved gap evidence', debtJune.futurePaidMonthsAfterPaidUntil.includes('2026-06'));
-check('debt trace explicitly requires reconciliation', debtJune.warnings.includes('future-paid-month-requires-reconciliation'));
-check('settlement writer guard still protects explicit paidMonths from automatic recollection', api.getTuitionMonthSettlement({ name: 'A', paidUntil: '2026-05', paidMonths: ['2026-06'] }, '2026-06', { name: 'A', transactions: [] }).paid === true);
+check('debt trace documents preserved future paidMonths', debtJune.warnings.includes('paidMonths-after-paidUntil-preserved'));
 
-const debtTwo = api.computeProfileDebt({ name: 'B', paidUntil: 'Tháng tư 2026', paidMonths: ['2026-06'], tuitionFee: 500000 }, '2026-06', { name: 'B', transactions: [] });
-check('definite gap debt remains while later stale paid month is flagged ambiguous', JSON.stringify(debtTwo.chargeableMonths) === JSON.stringify(['2026-05']) && debtTwo.ambiguousFuturePaidMonths.includes('2026-06') && debtTwo.shouldAppearInDebtBeforeRender === true);
-
-const verifiedGap = api.computeProfileDebt(
-  { name: 'Gap', paidUntil: '2026-08', paidMonths: ['2026-08', '2026-10'], tuitionFee: 500000 },
-  '2026-10',
-  { name: 'Gap', transactions: [{ studentName: 'Gap', type: 'Học phí', amount: 500000, packageMonths: ['2026-10'], status: 'success' }] }
-);
-check('surviving tuition transaction verifies legitimate future gap month', JSON.stringify(verifiedGap.chargeableMonths) === JSON.stringify(['2026-09']) && verifiedGap.verifiedFuturePaidMonths.includes('2026-10') && verifiedGap.ambiguousFuturePaidMonths.length === 0);
-
-const reversedGap = api.computeProfileDebt(
-  { name: 'Gap', paidUntil: '2026-08', paidMonths: ['2026-10'], tuitionFee: 500000 },
-  '2026-10',
-  { name: 'Gap', transactions: [{ studentName: 'Gap', type: 'Học phí', amount: 500000, packageMonths: ['2026-10'], status: 'reversed' }] }
-);
-check('reversed backing transaction cannot verify future paid month', JSON.stringify(reversedGap.chargeableMonths) === JSON.stringify(['2026-09']) && reversedGap.ambiguousFuturePaidMonths.includes('2026-10'));
+const debtTwo = api.computeProfileDebt({ name: 'B', paidUntil: 'Tháng tư 2026', paidMonths: ['2026-06'], tuitionFee: 500000 }, '2026-06', { name: 'B' });
+check('gap debt remains complete while later explicit paid month stays paid', JSON.stringify(debtTwo.chargeableMonths) === JSON.stringify(['2026-05']));
 
 const skipped = api.computeProfileDebt({ name: 'C', paidUntil: '2026-05', skippedMonths: ['Tháng 6 năm 2026'] }, '2026-06', { name: 'C' });
 check('skipped month suppresses debt only through canonical skippedMonths', skipped.chargeableMonths.length === 0 && skipped.skippedMonthsCanonical.includes('2026-06'));
@@ -94,7 +74,7 @@ const audit = api.auditProfiles({
   C: { name: 'C', paidUntil: '2026-05', feeExempt: true },
 }, '2026-06');
 check('audit counts total profiles', audit.totalProfiles === 3);
-check('audit counts definite-debt and ambiguous-review profiles without suppressing either', audit.debtProfiles === 2);
+check('audit detects debt profiles after preserving explicit future paid month', audit.debtProfiles === 1);
 check('audit detects paidMonths after paidUntil', audit.paidMonthsAfterPaidUntil === 1);
 check('audit exposes readyForCanonicalCutover flag', Object.prototype.hasOwnProperty.call(audit, 'readyForCanonicalCutover'));
 

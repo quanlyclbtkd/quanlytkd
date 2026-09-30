@@ -261,7 +261,9 @@
     "check:h8r2-1c1f1d1a": "node tools/check-h8r2-1c1f1d1a-actual-runtime-authority-closure.mjs",
     "check:h8r2-1c1f1d1b": "node tools/check-h8r2-1c1f1d1b-final-tuition-caller-convergence.mjs",
     "check:h8r2-1c1f1d1c": "node tools/check-h8r2-1c1f1d1c-final-production-correctness.mjs",
-    "check:h8r2-1c1f1d1c1": "node tools/check-h8r2-1c1f1d1c1-final-financial-authority.mjs"
+    "check:h8r2-1c1f1d1c1": "node tools/check-h8r2-1c1f1d1c1-final-financial-authority.mjs",
+    "check:d1c3b-debt-authoritative-profile-coverage": "node tools/check-d1c3b-debt-authoritative-profile-coverage.mjs",
+    "check:d1c3b-tuition-mobile-compaction": "node tools/check-d1c3b-tuition-mobile-compaction.mjs"
   },
   "engines": {
     "node": ">=18.0.0"

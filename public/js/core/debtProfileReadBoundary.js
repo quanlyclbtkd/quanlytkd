@@ -105,20 +105,30 @@
 
     function activeSourceReady() {
         const st = global.__store || {};
+        const ctx = context();
         const listener = typeof global.getProfilesListenerMetrics === 'function'
             ? global.getProfilesListenerMetrics()
             : (global.__profileScaleMetrics || {});
-        const activeLoaded = !!(
-            (global.studentProfileStore && global.studentProfileStore.activeLoaded) ||
-            listener.activeLoaded ||
-            listener.activeListenerMounted ||
-            Object.keys(st.profiles || {}).length > 0
+        const authorityClubId = String(listener.authorityClubId || '').trim();
+        const currentClubId = String(ctx.clubId || '').trim();
+        const fullAuthoritySnapshotSeen = listener.fullAuthoritySnapshotSeen === true;
+        const authorityComplete = listener.fullAuthorityComplete === true;
+        const completeStore = !!(
+            (global.studentProfileStore && global.studentProfileStore.quitComplete === true) ||
+            listener.quitComplete === true
         );
-        const initialSeen = Number(listener.activeSnapshotCount || 0) > 0 || listener.lastProfilesMode === 'full-fallback';
+        const sameClub = !!currentClubId && authorityClubId === currentClubId;
+        const authorityMode = String(listener.lastProfilesMode || '');
+        const allowedMode = authorityMode === 'full-profiles-authoritative' || authorityMode === 'full-fallback';
         return {
-            ready: activeLoaded && (initialSeen || Object.keys(st.profiles || {}).length > 0),
+            ready: isAdminRole(ctx.role) && sameClub && fullAuthoritySnapshotSeen && authorityComplete && completeStore && allowedMode,
             listener,
-            profilesCount: Object.keys(st.profiles || {}).length,
+            authorityClubId,
+            currentClubId,
+            fullAuthoritySnapshotSeen,
+            completeStore,
+            authorityMode,
+            profilesCount: Number(listener.fullAuthoritySnapshotCount || Object.keys(st.profiles || {}).length || 0),
         };
     }
 
@@ -152,8 +162,6 @@
     function runLocalCoverageAudit(reason) {
         const source = activeSourceReady();
         const profiles = (global.__store && global.__store.profiles) || {};
-        const ctx = context();
-        const coverageVerified = isConfigVerified(ctx.config) || _state.sessionVerified || _state.fullFallbackReady;
         let active = 0, quit = 0, unknown = 0;
         Object.values(profiles || {}).forEach(profile => {
             try {
@@ -176,15 +184,8 @@
             unknownLoaded: unknown,
             activeSourceReady: !!source.ready,
             profilesCount: source.profilesCount,
-            ready: !!source.ready,
-            localCacheAudited: true,
-            coverageVerified: !!coverageVerified,
-            // Compatibility alias: "covered" now means full coverage is
-            // actually verified, never merely that the filtered query is ready.
-            covered: !!coverageVerified,
-            coveredBy: coverageVerified
-                ? (_state.fullFallbackReady ? 'full-fallback-verified' : (isConfigVerified(ctx.config) ? 'config-verified' : 'session-verified'))
-                : 'local-cache-only-unverified',
+            covered: !!source.ready,
+            coveredBy: source.ready ? 'full-profile-authority' : 'not-authoritative',
             auditedAt: now(),
         };
         _state.lastAudit = audit;
@@ -422,21 +423,15 @@
 
             const localAudit = runLocalCoverageAudit(reason || 'automatic-local');
 
-            if (isConfigVerified(context().config) || _state.sessionVerified || _state.fullFallbackReady) {
-                _state.lastSource = 'active-listener-verified';
-                _metrics.lastSource = _state.lastSource;
-                _metrics.fullScansAvoided++;
-                return { ok: true, ready: true, coverageVerified: true, source: _state.lastSource, noRead: true, audit: localAudit };
-            }
-
-            // Spark guard: the mounted filtered active query may make the UI
-            // ready, but it cannot prove full canonical-active coverage because
-            // missing/legacy statuses are not guaranteed to match the query.
-            // Keep this path ZERO-READ and explicitly UNVERIFIED.
+            // D1C3B: only a same-club complete profile authority can verify Debt
+            // coverage. Local audit describes already-loaded docs but never proves
+            // that a filtered query did not omit other active profiles.
+            _state.sessionVerified = true;
+            _metrics.verifiedWithoutFullScan++;
             _metrics.fullScansAvoided++;
-            _state.lastSource = 'active-listener-query-ready-unverified';
+            _state.lastSource = source.authorityMode || 'full-profile-authority';
             _metrics.lastSource = _state.lastSource;
-            return { ok: true, ready: true, coverageVerified: false, source: _state.lastSource, audit: localAudit, noRead: true };
+            return { ok: true, ready: true, source: _state.lastSource, audit: localAudit, noRead: true };
 
         } catch (error) {
             _state.lastError = String(error && (error.code || error.message) || error);
@@ -455,21 +450,23 @@
         }
         _metrics.ensureCalls++;
         const ctx = context();
+        if (!isAdminRole(ctx.role)) {
+            return { ok: false, ready: false, blocked: true, source: 'role-not-allowed' };
+        }
+        if (_state.clubId && _state.clubId !== ctx.clubId) {
+            _state.sessionVerified = false;
+            _state.fullFallbackReady = false;
+            _state.lastSource = 'club-switch-waiting-authority';
+        }
+        _state.clubId = ctx.clubId || '';
         const source = await waitForActiveSource();
 
-        if (source.ready && (isConfigVerified(ctx.config) || _state.sessionVerified || _state.fullFallbackReady)) {
-            _metrics.fullScansAvoided++;
-            _state.lastSource = 'active-listener-verified';
-            _metrics.lastSource = _state.lastSource;
-            return { ok: true, ready: true, coverageVerified: true, source: _state.lastSource, profilesCount: source.profilesCount, noRead: true, audit: runLocalCoverageAudit(reason || 'ensure-verified-local') };
-        }
-
         if (source.ready) {
-            const audit = runLocalCoverageAudit(reason || 'ensure-local');
+            _state.sessionVerified = true;
             _metrics.fullScansAvoided++;
-            _state.lastSource = 'active-listener-query-ready-unverified';
+            _state.lastSource = source.authorityMode || 'full-profile-authority';
             _metrics.lastSource = _state.lastSource;
-            return { ok: true, ready: true, coverageVerified: false, source: _state.lastSource, profilesCount: source.profilesCount, noRead: true, audit };
+            return { ok: true, ready: true, source: _state.lastSource, profilesCount: source.profilesCount, noRead: true, audit: runLocalCoverageAudit(reason || 'ensure-verified-local') };
         }
 
         // Admin may explicitly run count audit via runCountAudit(reason, { force: true }) for diagnostics.
@@ -490,21 +487,20 @@
             const ok = await global.loadFullProfilesFallback('debt-coverage-emergency:' + (reason || 'debt-tab'));
             if (ok) {
                 _state.fullFallbackReady = true;
-                _state.sessionVerified = true;
                 _state.lastSource = 'full-fallback-emergency';
                 _metrics.lastSource = _state.lastSource;
-                return { ok: true, ready: true, coverageVerified: true, source: _state.lastSource, fallback: true };
+                return { ok: true, ready: true, source: _state.lastSource, fallback: true };
             }
         }
 
-        return { ok: source.ready, ready: source.ready, coverageVerified: false, source: source.ready ? 'active-listener-query-ready-unverified' : 'not-ready' };
+        return { ok: false, ready: false, source: 'not-ready' };
     }
 
     function scheduleAutomaticVerification(reason, delay) {
         const ctx = context();
         if (!ctx.clubId || !isAdminRole(ctx.role)) return false;
         if (_state.scheduled || _state.inFlight) return false;
-        if (isConfigVerified(ctx.config) || _state.sessionVerified) return false;
+        if (_state.sessionVerified) return false;
 
         _state.scheduled = true;
         _metrics.scheduledRuns++;
@@ -552,7 +548,6 @@
             clubId: ctx.clubId,
             configVerified: isConfigVerified(ctx.config),
             sessionVerified: _state.sessionVerified,
-            coverageVerified: isConfigVerified(ctx.config) || _state.sessionVerified || _state.fullFallbackReady,
             inFlight: _state.inFlight,
             scheduled: _state.scheduled,
             source: _state.lastSource,
