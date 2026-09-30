@@ -172,6 +172,7 @@ console.log();
 console.log('▸ Section 7: js/modules/students.js addNewStudent merge tuitionTx');
 if (studentsJs) {
 <<<<<<< HEAD
+<<<<<<< HEAD
     const admissionStart = studentsJs.indexOf('window.addNewStudent = async');
     const admissionEnd = studentsJs.indexOf('window.updateProfile = async', admissionStart >= 0 ? admissionStart : 0);
     const admissionBody = admissionStart >= 0 ? studentsJs.slice(admissionStart, admissionEnd > admissionStart ? admissionEnd : admissionStart + 40000) : '';
@@ -189,6 +190,8 @@ if (studentsJs) {
         admissionBody.includes("mergeTransactionIntoRuntimeStore?.(tuitionTx, 'admission-bundle-created')"),
         'The exact created bundle transaction must be merged once into runtime store');
 =======
+=======
+>>>>>>> parent of 6e762ab (upload)
     check('students.js: captures return value of addTuitionTransaction',
         studentsJs.includes('tuitionTx = await StudentService.addTuitionTransaction'),
         'addNewStudent must capture: tuitionTx = await StudentService.addTuitionTransaction(...)');
@@ -196,6 +199,9 @@ if (studentsJs) {
         studentsJs.includes('mergeTransactionIntoRuntimeStore') &&
         studentsJs.includes('admission-tuition-created'),
         'addNewStudent must call mergeTransactionIntoRuntimeStore(tuitionTx, "admission-tuition-created")');
+<<<<<<< HEAD
+>>>>>>> parent of 6e762ab (upload)
+=======
 >>>>>>> parent of 6e762ab (upload)
 }
 console.log();

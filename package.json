@@ -243,6 +243,7 @@
     "check:production-security-trust-boundary": "node tools/check-production-security-trust-boundary.mjs",
     "check:club-listener-bootstrap-readiness": "node tools/check-club-listener-bootstrap-readiness.mjs",
 <<<<<<< HEAD
+<<<<<<< HEAD
     "check:exam-export-full-roster": "node tools/check-exam-export-full-roster.mjs",
     "check:exam-export-state-purity": "node tools/check-exam-export-state-purity.mjs",
 <<<<<<< HEAD
@@ -275,6 +276,9 @@
     "check:profile-display-name-safe-edit": "node tools/check-profile-display-name-safe-edit.mjs"
 >>>>>>> parent of 1fa1b61 (upload 17-9)
 >>>>>>> parent of 3efd58c (UPLOAD)
+=======
+    "check:exam-export-full-roster": "node tools/check-exam-export-full-roster.mjs"
+>>>>>>> parent of 6e762ab (upload)
 =======
     "check:exam-export-full-roster": "node tools/check-exam-export-full-roster.mjs"
 >>>>>>> parent of 6e762ab (upload)
