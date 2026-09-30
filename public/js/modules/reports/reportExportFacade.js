@@ -65,8 +65,7 @@ function restoreFacadeOwnership() {
 async function ensureReportsApi() {
   if (reportsApi) return reportsApi;
   if (!reportsModulePromise) {
-    // Compatibility marker: ../reports.js?v=release-authority-exam-state-purity-firebase-final-verification-20260829-v5u6h6
-    reportsModulePromise = import('../reports.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1')
+    reportsModulePromise = import('../reports.js?v=release-authority-exam-state-purity-firebase-final-verification-20260829-v5u6h6')
       .then((mod) => {
         if (typeof mod.initReports !== 'function') {
           throw new Error('reports.js không export initReports()');

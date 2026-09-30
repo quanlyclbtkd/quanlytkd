@@ -13,7 +13,7 @@
  */
 
 import { classifyProfileStatus } from './profileStatusConfig.js';
-import { rankStudentNameSearchResults } from '../core/studentSearchIndex.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1';
+import { rankStudentNameSearchResults } from '../core/studentSearchIndex.js?v=student-given-name-priority-20260811-v5u3';
 
 const VERSION = '4K-6V5S-quit-context-render-loop-guard-20260722';
 

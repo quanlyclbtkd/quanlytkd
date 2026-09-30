@@ -115,16 +115,26 @@ check(
     'processMultiItem phải lưu currentBeltAtPayment khi tạo giao dịch Lệ phí thi'
 );
 
-// ── 7. H8R1: quickCollectExam giữ profileId identity + display label ───────
+// ── 7. quickCollectExam trong app.js lưu studentName ─────────────────────
 check(
+<<<<<<< HEAD
     'app.js quickCollectExam is a fail-closed bootstrap stub',
+=======
+    'app.js quickCollectExam lưu studentName',
+>>>>>>> parent of 3efd58c (UPLOAD)
     (function() {
         const idx = appJs.indexOf('window.quickCollectExam');
         if (idx === -1) return false;
         const block = appJs.slice(idx, idx + 5000);
+<<<<<<< HEAD
         return block.includes('đang khởi tạo') && !/\b(addDoc|setDoc|updateDoc|deleteDoc)\s*\(/.test(block);
     })(),
     'Bootstrap không được ghi lệ phí thi trực tiếp'
+=======
+        return block.includes('studentName: name') || block.includes("studentName:name");
+    })(),
+    'quickCollectExam trong app.js phải lưu studentName: name'
+>>>>>>> parent of 3efd58c (UPLOAD)
 );
 
 // ── 8. quickCollectExam trong app.js lưu examTargetBelt ──────────────────
@@ -139,16 +149,21 @@ check(
     'Canonical finance handler phải lưu examTargetBelt'
 );
 
-// ── 9. H8R1: finance quickCollectExam giữ profileId + display label ───────
+// ── 9. finance.js quickCollectExam lưu studentName ───────────────────────
 check(
-    'finance.js quickCollectExam giữ profileId=profileKey và studentName=displayName',
+    'finance.js quickCollectExam lưu studentName',
     (function() {
+        // Tìm định nghĩa hàm (assignment), không phải reference đầu tiên
         const idx = financeJs.indexOf('window.quickCollectExam = async');
         if (idx === -1) return false;
         const block = financeJs.slice(idx, idx + 5000);
+<<<<<<< HEAD
         return /profileId\s*:\s*name/.test(block) && /studentName\s*:\s*displayName/.test(block);
+=======
+        return block.includes('studentName: name') || block.includes("studentName:name");
+>>>>>>> parent of 3efd58c (UPLOAD)
     })(),
-    'H8R1 yêu cầu profileId: name và studentName: displayName'
+    'quickCollectExam trong finance.js phải lưu studentName: name'
 );
 
 // ── 10. exportExamPaidList dùng extractExamStudentName ───────────────────

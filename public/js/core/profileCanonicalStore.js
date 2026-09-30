@@ -46,14 +46,9 @@
       .trim();
   }
 
-  function resolveDisplayName(profileKey, profile) {
-    var p = profile || {};
-    return String(p.displayName || p.name || p.fullName || p.studentName || profileKey || '').trim();
-  }
-
   function _displayName(raw, key) {
     var p = raw || {};
-    return resolveDisplayName(key, p) || String(p.hoTen || p.memberName || key || '').trim();
+    return String(p.name || p.fullName || p.studentName || p.displayName || p.hoTen || p.memberName || key || '').trim();
   }
 
   function _rawProfileId(raw, key) {
@@ -497,7 +492,6 @@
     debugProfileCanonicalById: debugById,
     findById: findById,
     findByName: findByName,
-    resolveDisplayName: resolveDisplayName,
     normalizeMonth: _normalizeMonth,
     normalizeMonthList: _normalizeMonthList,
     fold: _fold
@@ -509,5 +503,4 @@
   global.auditProfileCanonicalStore = function (options) { return audit(options || {}); };
   global.debugProfileCanonical = function (name) { return debugByName(name); };
   global.debugProfileCanonicalById = function (id) { return debugById(id); };
-  global.resolveProfileDisplayName = function (profileKey, profile) { return resolveDisplayName(profileKey, profile); };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -44,7 +44,7 @@ import {
 
 // Phase 4K-STUDENT-LIST: Classifier chung — không dùng p.status === 'quit' trực tiếp
 import { classifyProfileStatus } from '../../../data/profileStatusConfig.js';
-import { rankStudentNameSearchResults } from '../../../core/studentSearchIndex.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1';
+import { rankStudentNameSearchResults } from '../../../core/studentSearchIndex.js?v=student-given-name-priority-20260811-v5u3';
 import { escapeHtml } from '../../../utils/helpers.js';
 
 // ── Phase 4K-2B: Fallback blob builder (used when getProfileSearchBlob unavailable) ──
@@ -138,9 +138,9 @@ const _disp  = (k) => k.replace(/\s*\([^)]*\)\s*$/, '').replace(/\s*\[[^\]]*\]\s
 function _profileDisplayName(id, p) {
     const data = p || {};
     const candidates = [
-        data.displayName,
         data.name,
         data.fullName,
+        data.displayName,
         data.studentName,
         data.hoTen,
         id,
@@ -236,12 +236,21 @@ export function renderActiveRow(name, p, opts = {}) {
         beltHTML = '', branchTdHTML = '', yrBadge = '',
         newBadge = '', nickBadge = '', paidBadge = '', isAdmin = false,
     } = opts;
+<<<<<<< HEAD
     const nameToken = _actionToken(name);
     const safeDisplay = escapeHtml(_disp(_profileDisplayName(name, p)));
     const safeNotes = _html(p.notes || '');
     const safeMemberId = _html(p.memberId || '-');
     const safePhone = _html(p.phone || '');
     return `<tr data-student-id="${_html(name)}"><td class="name-link text-[0.95rem]" onclick="openProfile(decodeURIComponent('${nameToken}'))">${safeDisplay}${yrBadge}${newBadge}${p.notes ? ` <span title="${safeNotes}">📝</span>` : ''}${nickBadge}</td><td class="text-[0.7rem] font-bold text-slate-500">${safeMemberId}</td><td>${beltHTML}</td>${branchTdHTML}<td>${_html(formatDate(p.dob))}</td><td>${paidBadge}</td><td class="font-medium text-slate-600">${safePhone}</td><td class="text-slate-500">${_html(formatDate(p.createdAt))}</td><td><button type="button" class="btn-sm bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200" onclick="openProfile(decodeURIComponent('${nameToken}'))">${isAdmin ? '✏️ Sửa' : '👁️ Xem'}</button></td></tr>`;
+=======
+    const safeNameEsc = name.replace(/'/g, "\\'");
+    const safeDisplay = escapeHtml(_disp(name));
+    const safeNotes = escapeHtml(p.notes || '');
+    const safeMemberId = escapeHtml(p.memberId || '-');
+    const safePhone = escapeHtml(p.phone || '');
+    return `<tr data-student-id="${escapeHtml(name)}"><td class="name-link text-[0.95rem]" onclick="openProfile('${safeNameEsc}')">${safeDisplay}${yrBadge}${newBadge}${p.notes ? ` <span title="${safeNotes}">📝</span>` : ''}${nickBadge}</td><td class="text-[0.7rem] font-bold text-slate-500">${safeMemberId}</td><td>${beltHTML}</td>${branchTdHTML}<td>${formatDate(p.dob)}</td><td>${paidBadge}</td><td class="font-medium text-slate-600">${safePhone}</td><td class="text-slate-500">${formatDate(p.createdAt)}</td><td><button type="button" class="btn-sm bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200" onclick="openProfile('${safeNameEsc}')">${isAdmin ? '✏️ Sửa' : '👁️ Xem'}</button></td></tr>`;
+>>>>>>> parent of 3efd58c (UPLOAD)
 }
 
 /**
@@ -265,7 +274,12 @@ export function renderDebtRow(name, p, opts = {}) {
     const phoneToken     = _actionToken(p.phone || '');
     const monthToken     = _actionToken(selMonth);
     const totalDebtAmount = unpaidMonthsCount * (Number(p.tuitionFee) || 0);
+<<<<<<< HEAD
     return `<tr data-debt-id="${_html(name)}" ${rowBg}><td><span class="badge ${countBadgeCls}">${Number(unpaidMonthsCount) || 0} Tháng</span></td><td><span class="font-bold text-primary text-[0.8rem]">${_html(formatMonthCompact(owedMonthsStr))}</span></td>${branchTdHTML}<td class="name-link text-[0.95rem]" onclick="openProfile(decodeURIComponent('${nameToken}'))">${_html(_disp(_profileDisplayName(name, p)))}${yrBadge}${isOverdue ? ' <span title="Nợ từ 2 tháng trở lên" class="text-rose-500">⚠️</span>' : ''}</td><td class="action-btns"><button type="button" class="btn-sm bg-indigo-50 text-indigo-700 border border-indigo-200" onclick="generateMultiMonthPaymentRequest(decodeURIComponent('${nameToken}'), decodeURIComponent('${owedToken}'), decodeURIComponent('${branchToken}'), ${Number.isFinite(totalDebtAmount) ? totalDebtAmount : 0})">📱 QR</button>${isAdmin ? `<button type="button" class="btn-sm bg-emerald-600 text-white shadow-sm" onclick="openQuickPayModal(decodeURIComponent('${nameToken}'), decodeURIComponent('${owedToken}'), decodeURIComponent('${branchToken}'))">💰 Thu</button>` : ''}<button type="button" class="btn-sm bg-[#0068FF] text-white shadow-sm" onclick="copyAndOpenZalo(decodeURIComponent('${nameToken}'), decodeURIComponent('${owedToken}'), decodeURIComponent('${phoneToken}'))">💬 Zalo</button>${isAdmin ? `<button type="button" class="btn-sm bg-rose-50 text-rose-700 border border-rose-200" title="Chuyển võ sinh sang Đã nghỉ" onclick="window.markStudentQuitFromDebt(event, decodeURIComponent('${nameToken}'), decodeURIComponent('${monthToken}'))">🚫 Nghỉ</button><button type="button" class="btn-sm bg-amber-50 text-amber-700 border border-amber-200" title="Báo nghỉ / miễn học phí tháng này" onclick="window.skipDebtMonthFromDebt(event, decodeURIComponent('${nameToken}'), decodeURIComponent('${monthToken}'))">⏸ Báo nghỉ</button>` : ''}</td></tr>`;
+=======
+    const lastPaidLabel  = `<span class="font-bold text-primary text-[0.8rem]">${formatMonthCompact(owedMonthsStr)}</span>`;
+    return `<tr data-debt-id="${safeNameEsc}" ${rowBg}><td><span class="badge ${countBadgeCls}">${unpaidMonthsCount} Tháng</span></td><td>${lastPaidLabel}</td>${branchTdHTML}<td class="name-link text-[0.95rem]" onclick="openProfile('${safeNameEsc}')">${_disp(name)}${yrBadge}${isOverdue ? ' <span title="Nợ từ 2 tháng trở lên" class="text-rose-500">⚠️</span>' : ''}</td><td class="action-btns"><button type="button" class="btn-sm bg-indigo-50 text-indigo-700 border border-indigo-200" onclick="generateMultiMonthPaymentRequest('${safeNameEsc}', '${safeOwedMonths}', '${safeBranch}', '${totalDebtAmount}')">📱 QR</button>${isAdmin ? `<button type="button" class="btn-sm bg-emerald-600 text-white shadow-sm" onclick="openQuickPayModal('${safeNameEsc}', '${safeOwedMonths}', '${safeBranch}')">💰 Thu</button>` : ''}<button type="button" class="btn-sm bg-[#0068FF] text-white shadow-sm" onclick="copyAndOpenZalo('${safeNameEsc}', '${safeOwedMonths}', '${p.phone || ''}')">💬 Zalo</button>${isAdmin ? `<button type="button" class="btn-sm bg-rose-50 text-rose-700 border border-rose-200" title="Chuyển võ sinh sang Đã nghỉ" onclick="window.markStudentQuitFromDebt(event, '${safeNameEsc}', '${selMonth}')">🚫 Nghỉ</button><button type="button" class="btn-sm bg-amber-50 text-amber-700 border border-amber-200" title="Báo nghỉ / miễn học phí tháng này" onclick="window.skipDebtMonthFromDebt(event, '${safeNameEsc}', '${selMonth}')">⏸ Báo nghỉ</button>` : ''}</td></tr>`;
+>>>>>>> parent of 3efd58c (UPLOAD)
 }
 
 /**

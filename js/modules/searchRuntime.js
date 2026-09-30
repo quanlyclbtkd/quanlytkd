@@ -13,7 +13,7 @@
  * ────────────────────────────────────────────────────────────────
  */
 
-import { StudentSearchIndex, rankStudentNameSearchResults } from '../core/studentSearchIndex.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1';
+import { StudentSearchIndex, rankStudentNameSearchResults } from '../core/studentSearchIndex.js?v=student-given-name-priority-20260811-v5u3';
 
 // ── Internal state ────────────────────────────────────────────────────────────
 
@@ -792,7 +792,7 @@ async function _searchStudentsV2(term, tab, token) {
                     const blob = typeof window.getProfileSearchBlob === 'function'
                         ? window.getProfileSearchBlob(name, p)
                         : _normalizeSearch([
-                            name, p.displayName, p.name, p.fullName, p.studentName, p.phone, p.parentPhone, p.memberId, p.studentCode,
+                            name, p.name, p.phone, p.parentPhone, p.memberId, p.studentCode,
                             p.code, p.idCode, p.vtfCode, p.vtfId, p.vtf, p.vtfMemberId,
                             p.maVTF, p.maVtf, p.maHoiVienVTF, p.maHoiVienVtf, p.belt, p.branch, p.notes
                           ].filter(Boolean).join(' '));

@@ -4740,7 +4740,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
      * @returns {{searchName, searchNameTokens, searchPhone, searchCode, searchNickname}}
      */
     function buildStudentSearchIndex(profile, name) {
-        const fullName   = String((profile || {}).displayName || (profile || {}).name || (profile || {}).fullName || (profile || {}).studentName || name || '').trim();
+        const fullName   = String(name || (profile || {}).name || '').trim();
         const phone      = String((profile || {}).phone || (profile || {}).parentPhone || (profile || {}).contactPhone || (profile || {}).guardianPhone || '');
         const studentCode = String((profile || {}).memberId || (profile || {}).studentCode || (profile || {}).code || (profile || {}).idCode || '');
         const nickname   = String((profile || {}).nickname || (profile || {}).shortName || (profile || {}).alias || '');
@@ -5635,8 +5635,43 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
     };
 
     window.quickCollectExam = async (name, branch) => {
+<<<<<<< HEAD
         window.showToast?.('Chức năng thu lệ phí thi đang khởi tạo, vui lòng thử lại.', 3000);
         return false;
+=======
+        // Phase 4K-5D: getClubExamFee là nguồn ưu tiên
+        if(window.userRole === 'viewer') return window.showToast("⛔ Tài khoản khách không thể thu tiền!");
+        const currentFee = window.getClubExamFee
+            ? window.getClubExamFee()
+            : (window.parseVNDNumber
+                ? window.parseVNDNumber((document.getElementById('exam_fee_all_actual') || {}).value)
+                : (Number((document.getElementById('exam_fee_all_actual') || {}).value) || 250000));
+        const _defaultFmtFee = window.formatVNDNumber ? window.formatVNDNumber(currentFee) : String(currentFee);
+        let inputAmount = prompt(`Nhập lệ phí thi của ${name}:`, _defaultFmtFee); if (!inputAmount) return;
+        let amount = window.parseVNDNumber ? window.parseVNDNumber(inputAmount) : Number(String(inputAmount || '').replace(/\D/g, '')); if (amount <= 0) return;
+        const _curBelt = (allProfiles[name] && allProfiles[name].belt) || 'Đai trắng - Cấp 10';
+        const _nextBelt = window.BELT_NEXT[_curBelt] || _curBelt;
+        const _examMonth = document.getElementById('filterMonth').value || getLocalToday().substring(0, 7);
+        const _examDate = _examMonth === getLocalToday().substring(0, 7) ? getLocalToday() : (_examMonth < getLocalToday().substring(0, 7) ? _examMonth + '-28' : _examMonth + '-01');
+        const _profileForExam = allProfiles[name] || {};
+        await addDoc(colRef, _canonicalTxPayload({
+            branch: branch || _profileForExam.branch || 'CS1',
+            type: 'Lệ phí thi',
+            description: `${name} (Thi lên ${_nextBelt})`,
+            studentName: name,
+            profileName: name,
+            profileId: name,
+            amount,
+            date: _examDate,
+            txMonth: _examMonth,
+            examTitle: `Thi lên ${_nextBelt}`,
+            currentBeltAtPayment: _curBelt,
+            examTargetBelt: _nextBelt,
+            timestamp: Date.now()
+        }, 'quick-collect-exam'));
+        window.showToast(`✅ Đã thu lệ phí thi cho ${name}!`);
+        window.renderExamList();
+>>>>>>> parent of 3efd58c (UPLOAD)
     };
 
     window.processCombo = async () => {
@@ -7350,9 +7385,6 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             if((typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus(p) : p.status) !== 'active' || (p.belt || 'Đai trắng - Cấp 10') !== filterBelt) return;
 
             let isPaid = paidStudents[name]; let safeName = name.replace(/'/g, "\\'");
-            const examDisplayName = (window.ProfileCanonicalStore && typeof window.ProfileCanonicalStore.resolveDisplayName === 'function')
-                ? window.ProfileCanonicalStore.resolveDisplayName(name, p)
-                : String(p.displayName || p.name || p.fullName || p.studentName || name || '').trim();
             let branchTdHTML = isSingleBranch ? '' : `<td class="col-branch"><span class="badge bg-slate-100 text-slate-600 border border-slate-200">${window.escapeHtml(String(window.getBranchNameDisplay(p.branch || 'CS1') || ''))}</span></td>`;
             let statusBadge = isPaid ? `<span class="badge badge-active">Đã nộp (${Number(isPaid.amount).toLocaleString()} đ)</span>` : `<span class="badge badge-quit">Chưa nộp</span>`;
             let actionBtn = isPaid ? (window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-slate-200 hover:bg-slate-300 text-slate-700" onclick="cancelExamPayment('${isPaid.id}', '${safeName}')">Hủy</button>` : '') : (window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-orange-500 hover:bg-orange-600 text-white shadow-sm cursor-pointer" onclick="quickCollectExam('${safeName}')">💰 Thu phí</button>` : '');
@@ -7362,7 +7394,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                 : (p.upgradedAt && String(p.upgradedAt).slice(0, 7) >= selMonth.substring(0, 7) && p.upgradedFrom);
             const newBadge = isNewlyUpgraded ? `<span class="ml-1 text-[0.65rem] font-black bg-amber-400 text-amber-900 px-1.5 py-0.5 rounded uppercase" title="Vừa thăng từ ${window.escapeHtml(String(p.upgradedFrom || ''))} tháng ${window.escapeHtml(String(p.upgradedAt || ''))}">↑ Mới lên</span>` : '';
 
-            const row = `<tr class="${isNewlyUpgraded ? 'bg-amber-50/60' : ''}"><td><input type="checkbox" class="exam-check w-4 h-4 cursor-pointer accent-orange-500 rounded" value="${window.escapeHtml(String(name || ''))}"></td><td class="name-link text-[0.95rem]" onclick="openProfile('${safeName}')">${window.escapeHtml(String(examDisplayName || ''))}${newBadge}</td>${branchTdHTML}<td>${getBeltBadge(p.belt)}</td><td>${statusBadge}</td><td>${actionBtn}</td></tr>`;
+            const row = `<tr class="${isNewlyUpgraded ? 'bg-amber-50/60' : ''}"><td><input type="checkbox" class="exam-check w-4 h-4 cursor-pointer accent-orange-500 rounded" value="${window.escapeHtml(String(name || ''))}"></td><td class="name-link text-[0.95rem]" onclick="openProfile('${safeName}')">${window.escapeHtml(String(name || ''))}${newBadge}</td>${branchTdHTML}<td>${getBeltBadge(p.belt)}</td><td>${statusBadge}</td><td>${actionBtn}</td></tr>`;
 
             if(isNewlyUpgraded) { htmlNewlyUpgraded += row; newlyUpgradedCount++; }
             else { htmlOriginal += row; }
@@ -7718,14 +7750,8 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         };
 
         const normRaw = _norm(raw);
-        const matches = Object.keys(map).filter(function(k) {
-            const p = map[k] || {};
-            const candidates = [k, p.displayName, p.name, p.fullName, p.studentName]
-                .map(function(v) { return String(v || '').trim(); })
-                .filter(Boolean);
-            return candidates.some(function(v) { return _norm(v) === normRaw; });
-        });
-        return matches.length === 1 ? matches[0] : raw;
+        const found = Object.keys(map).find(k => _norm(k) === normRaw);
+        return found || raw;
     };
 
     window.getExamTargetBeltFromTx = function(tx, profile) {
@@ -10670,11 +10696,9 @@ window.buildCanonicalExamPaymentLedger = function(options) {
         }
         if (examAmount <= 0) return;
 
-        var rawName = String(t.profileId || t.studentId || '').trim() || (
-            typeof window.extractExamStudentName === 'function'
-                ? window.extractExamStudentName(t)
-                : String(t.studentName || t.profileName || t.description || '').trim()
-        );
+        var rawName = typeof window.extractExamStudentName === 'function'
+            ? window.extractExamStudentName(t)
+            : String(t.studentName || t.profileName || t.description || '').trim();
 
         var name = typeof window.getCanonicalStudentName === 'function'
             ? window.getCanonicalStudentName(rawName, profiles)

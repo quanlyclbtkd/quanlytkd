@@ -509,6 +509,7 @@ export function initFinance() {
 
     /** Thu lệ phí thi theo võ sinh và cơ sở. */
     window.quickCollectExam = async (name, branch) => {
+<<<<<<< HEAD
         if(window.quickCollectExam.__inFlight)return false;
         window.quickCollectExam.__inFlight=true;
         try {
@@ -537,6 +538,56 @@ export function initFinance() {
             return true;
         } catch(error) { console.error('[finance.js] quickCollectExam failed:',error);window.showToast('❌ Chưa lưu được lệ phí thi.');return false; }
         finally { window.quickCollectExam.__inFlight=false; }
+=======
+        if (window.userRole === 'viewer') {
+            window.showToast('⛔ Tài khoản khách không thể thu tiền!');
+            return;
+        }
+
+        const profiles = _profiles();
+
+        const DEFAULT_EXAM_FEE = 250000;
+        const feeEl = document.getElementById('exam_fee_all_actual');
+        const defaultFee = feeEl && feeEl.value
+            ? feeEl.value
+            : (window.getClubExamFee ? window.getClubExamFee() : DEFAULT_EXAM_FEE);
+        const inputAmount = prompt(`Nhập lệ phí thi của ${name}:`, defaultFee);
+        if (!inputAmount) return;
+        const amount = Number(inputAmount.replace(/\D/g, ''));
+        if (amount <= 0) return;
+
+        const curBelt = (profiles[name] && profiles[name].belt) || 'Đai trắng - Cấp 10';
+        const nextBelt = (window.BELT_NEXT && window.BELT_NEXT[curBelt]) || curBelt;
+
+        const filterMonthEl = document.getElementById('filterMonth');
+        const examMonth = filterMonthEl
+            ? (filterMonthEl.value || getLocalToday().substring(0, 7))
+            : getLocalToday().substring(0, 7);
+        const today = getLocalToday();
+        const todayMonth = today.substring(0, 7);
+        const examDate = examMonth === todayMonth
+            ? today
+            : (examMonth < todayMonth ? examMonth + '-28' : examMonth + '-01');
+
+        await FinanceService.addTransaction({
+            branch: branch || (profiles[name] && profiles[name].branch) || 'CS1',
+            type: 'Lệ phí thi',
+            description: `${name} (Thi lên ${nextBelt})`,
+            studentName: name,
+            profileName: name,
+            profileId: name,
+            amount,
+            date: examDate,
+            txMonth: examMonth,
+            examTitle: `Thi lên ${nextBelt}`,
+            currentBeltAtPayment: curBelt,
+            examTargetBelt: nextBelt,
+            timestamp: Date.now(),
+        });
+
+        window.showToast(`✅ Đã thu lệ phí thi cho ${name}!`);
+        if (typeof window.renderExamList === 'function') window.renderExamList();
+>>>>>>> parent of 3efd58c (UPLOAD)
     };
 
     // 8. processCombo — Thu gộp học phí 2 võ sinh cùng gia đình
