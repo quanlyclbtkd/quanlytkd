@@ -1,0 +1,225 @@
+PASS A01 guard missing
+PASS A02 normalizer missing
+PASS A03 guard throws
+PASS A04 boolean false
+PASS A05 structured blocked
+PASS A06 malformed result
+[financial-intent-guard] blocked {
+  ok: false,
+  intentId: '4K-6N-nonexistent.action-1790575364957-hp3kh9',
+  action: 'nonexistent.action',
+  reasons: [ 'unknown-action' ],
+  clubId: 'club-A',
+  user: {
+    uid: 'u1',
+    email: 'qa@example.test',
+    role: 'admin',
+    coachBranch: ''
+  },
+  payload: { amount: 100000 },
+  time: '2026-09-28T06:02:44.957Z',
+  timestamp: 1790575364957,
+  soft: false
+}
+PASS A07 unknown action
+PASS A08 missing club actual handler
+PASS A09 unauthorized role actual handler
+PASS B06 invalid month 2026-13
+PASS B06b malformed month
+[financial-intent-guard] ok {
+  action: 'tuition.quickPay',
+  intentId: '4K-6N-tuition.quickPay-1790575364963-8t6ruc',
+  clubId: 'club-A',
+  role: 'admin'
+}
+[financial-intent-guard] ok {
+  action: 'tuition.quickPay',
+  intentId: '4K-6N-tuition.quickPay-1790575364964-mkrc7m',
+  clubId: 'club-A',
+  role: 'admin'
+}
+[financial-audit] {
+  action: 'tuition.quickPay',
+  stage: 'before',
+  intentId: '4K-6N-tuition.quickPay-1790575364964-mkrc7m'
+}
+[financial-audit] {
+  action: 'tuition.quickPay',
+  stage: 'after',
+  intentId: '4K-6N-tuition.quickPay-1790575364964-mkrc7m'
+}
+PASS B valid QuickPay one primary effect
+PASS B02 Thu khác zero is blocked
+PASS B03 Thu khác blank date is blocked
+PASS B08 mixed Tuition+Exam invalid component is blocked
+PASS B unknown type is blocked
+[financial-intent-guard] ok {
+  action: 'exam.collect',
+  intentId: '4K-6N-exam.collect-1790575364978-brbsjt',
+  clubId: 'club-A',
+  role: 'admin'
+}
+PASS C01 exam valid collects once and writes through
+PASS C03 immediate exam repeat before snapshot has zero new effects
+PASS C05 exam guard missing has zero effects
+[financial-intent-guard] ok {
+  action: 'exam.collect',
+  intentId: '4K-6N-exam.collect-1790575364979-b3mohy',
+  clubId: 'club-A',
+  role: 'admin'
+}
+PASS C02 rapid double click creates one effect
+[financial-intent-guard] ok {
+  action: 'exam.cancelPayment',
+  intentId: '4K-6N-exam.cancelPayment-1790575364982-kr172k',
+  clubId: 'club-A',
+  role: 'admin'
+}
+[financial-audit] {
+  action: 'exam.cancelPayment',
+  stage: 'before',
+  intentId: '4K-6N-exam.cancelPayment-1790575364982-kr172k'
+}
+[financial-audit] {
+  action: 'exam.cancelPayment',
+  stage: 'after',
+  intentId: '4K-6N-exam.cancelPayment-1790575364982-kr172k'
+}
+PASS C08 pure cancel deletes and clears all local ledgers
+[financial-intent-guard] ok {
+  action: 'exam.cancelPayment',
+  intentId: '4K-6N-exam.cancelPayment-1790575364984-i39k1o',
+  clubId: 'club-A',
+  role: 'admin'
+}
+[exam-cancel] transaction not found in runtime store: pure-1
+PASS C09 repeat cancel of removed tx has zero effects
+[financial-intent-guard] ok {
+  action: 'exam.cancelPayment',
+  intentId: '4K-6N-exam.cancelPayment-1790575364984-z43yyw',
+  clubId: 'club-A',
+  role: 'admin'
+}
+[financial-audit] {
+  action: 'exam.cancelPayment',
+  stage: 'before',
+  intentId: '4K-6N-exam.cancelPayment-1790575364984-z43yyw'
+}
+[financial-audit] {
+  action: 'exam.cancelPayment',
+  stage: 'after',
+  intentId: '4K-6N-exam.cancelPayment-1790575364984-z43yyw'
+}
+PASS C10 mixed cancel preserves Tuition and only updates exam fields
+[financial-intent-guard] ok {
+  action: 'exam.cancelPayment',
+  intentId: '4K-6N-exam.cancelPayment-1790575364985-bo6z8p',
+  clubId: 'club-A',
+  role: 'admin'
+}
+[financial-audit] {
+  action: 'exam.cancelPayment',
+  stage: 'before',
+  intentId: '4K-6N-exam.cancelPayment-1790575364985-bo6z8p'
+}
+[financial-audit] {
+  action: 'exam.cancelPayment',
+  stage: 'error',
+  intentId: '4K-6N-exam.cancelPayment-1790575364985-bo6z8p'
+}
+[exam-cancel] Firestore error: Error: rejected
+    at window._fb_init.deleteDoc (file:///workspace/scratch/96669c3f314f/candidate/h8r2_1c1f1d1c_work/tools/check-h8r2-1c1f1d1c1-financial-entry.mjs:191:65)
+    at Object.deleteTransaction (file:///workspace/scratch/96669c3f314f/candidate/h8r2_1c1f1d1c_work/js/services/finance.service.js?v=long-term-production-stability-20260917-v5u6h8r2:105:19)
+    at Object.cancelExamPayment (file:///workspace/scratch/96669c3f314f/candidate/h8r2_1c1f1d1c_work/js/services/finance.service.js?v=long-term-production-stability-20260917-v5u6h8r2:122:24)
+    at window.cancelExamPayment (app.js:cancelExamPayment:40:47)
+    at file:///workspace/scratch/96669c3f314f/candidate/h8r2_1c1f1d1c_work/tools/check-h8r2-1c1f1d1c1-financial-entry.mjs:230:35
+    at test (file:///workspace/scratch/96669c3f314f/candidate/h8r2_1c1f1d1c_work/tools/check-h8r2-1c1f1d1c1-financial-entry.mjs:61:15)
+    at file:///workspace/scratch/96669c3f314f/candidate/h8r2_1c1f1d1c_work/tools/check-h8r2-1c1f1d1c1-financial-entry.mjs:227:7
+PASS C11 rejected cancel leaves canonical local ledgers intact
+PASS E01 expense create: guard missing, zero amount, blank date have no effect
+[financial-intent-guard] ok {
+  action: 'expense.create',
+  intentId: '4K-6N-expense.create-1790575364986-944i7o',
+  clubId: 'club-A',
+  role: 'admin'
+}
+[financial-intent-guard] ok {
+  action: 'expense.create',
+  intentId: '4K-6N-expense.create-1790575364986-xkm52c',
+  clubId: 'club-A',
+  role: 'admin'
+}
+PASS E02 valid expense and exam expense each create one transaction
+PASS E03 invalid exam month and unauthorized role have no effect
+[financial-intent-guard] ok {
+  action: 'expense.create',
+  intentId: '4K-6N-expense.create-1790575364987-werdcc',
+  clubId: 'club-A',
+  role: 'admin'
+}
+[finance.js] expense create failed: Error: rejected
+    at FinanceService.addTransaction (file:///workspace/scratch/96669c3f314f/candidate/h8r2_1c1f1d1c_work/tools/check-h8r2-1c1f1d1c1-financial-entry.mjs:268:67)
+    at Object.createExpense (file:///workspace/scratch/96669c3f314f/candidate/h8r2_1c1f1d1c_work/js/services/finance.service.js?v=long-term-production-stability-20260917-v5u6h8r2:75:21)
+    at form.onsubmit (file:///workspace/scratch/96669c3f314f/candidate/h8r2_1c1f1d1c_work/js/modules/finance.js?v=long-term-production-stability-20260917-v5u6h8r2:630:38)
+    at expenseForm (file:///workspace/scratch/96669c3f314f/candidate/h8r2_1c1f1d1c_work/tools/check-h8r2-1c1f1d1c1-financial-entry.mjs:242:15)
+    at file:///workspace/scratch/96669c3f314f/candidate/h8r2_1c1f1d1c_work/tools/check-h8r2-1c1f1d1c1-financial-entry.mjs:270:9
+    at test (file:///workspace/scratch/96669c3f314f/candidate/h8r2_1c1f1d1c_work/tools/check-h8r2-1c1f1d1c1-financial-entry.mjs:61:15)
+    at file:///workspace/scratch/96669c3f314f/candidate/h8r2_1c1f1d1c_work/tools/check-h8r2-1c1f1d1c1-financial-entry.mjs:266:7
+[financial-intent-guard] ok {
+  action: 'expense.create',
+  intentId: '4K-6N-expense.create-1790575364987-bu1uue',
+  clubId: 'club-A',
+  role: 'admin'
+}
+[finance.js] expense create failed: Error: rejected
+    at FinanceService.addTransaction (file:///workspace/scratch/96669c3f314f/candidate/h8r2_1c1f1d1c_work/tools/check-h8r2-1c1f1d1c1-financial-entry.mjs:268:67)
+    at Object.createExpense (file:///workspace/scratch/96669c3f314f/candidate/h8r2_1c1f1d1c_work/js/services/finance.service.js?v=long-term-production-stability-20260917-v5u6h8r2:75:21)
+    at form.onsubmit (file:///workspace/scratch/96669c3f314f/candidate/h8r2_1c1f1d1c_work/js/modules/finance.js?v=long-term-production-stability-20260917-v5u6h8r2:630:38)
+    at expenseForm (file:///workspace/scratch/96669c3f314f/candidate/h8r2_1c1f1d1c_work/tools/check-h8r2-1c1f1d1c1-financial-entry.mjs:242:15)
+    at file:///workspace/scratch/96669c3f314f/candidate/h8r2_1c1f1d1c_work/tools/check-h8r2-1c1f1d1c1-financial-entry.mjs:270:44
+    at async test (file:///workspace/scratch/96669c3f314f/candidate/h8r2_1c1f1d1c_work/tools/check-h8r2-1c1f1d1c1-financial-entry.mjs:61:9)
+    at async file:///workspace/scratch/96669c3f314f/candidate/h8r2_1c1f1d1c_work/tools/check-h8r2-1c1f1d1c1-financial-entry.mjs:266:1
+PASS E04 rejected persistence leaves form intact and unlocks retry
+[financial-intent-guard] ok {
+  action: 'expense.create',
+  intentId: '4K-6N-expense.create-1790575364987-7iycyu',
+  clubId: 'club-A',
+  role: 'admin'
+}
+PASS E05 rapid double submit has one primary effect
+PASS E06 edit rejects unrelated tuition and stale edit identity
+[financial-intent-guard] ok {
+  action: 'expense.edit',
+  intentId: '4K-6N-expense.edit-1790575364988-8qfb2u',
+  clubId: 'club-A',
+  role: 'admin'
+}
+PASS E07 expense edit allowlist, one persistence and local merge
+[financial-intent-guard] ok {
+  action: 'expense.edit',
+  intentId: '4K-6N-expense.edit-1790575364988-xt0njo',
+  clubId: 'club-A',
+  role: 'admin'
+}
+[finance.js] expense edit failed: Error: permission-denied
+    at window._fb_init.updateDoc (file:///workspace/scratch/96669c3f314f/candidate/h8r2_1c1f1d1c_work/tools/check-h8r2-1c1f1d1c1-financial-entry.mjs:314:62)
+    at Object.updateExpenseTransaction (file:///workspace/scratch/96669c3f314f/candidate/h8r2_1c1f1d1c_work/js/services/finance.service.js?v=long-term-production-stability-20260917-v5u6h8r2:91:15)
+    at window.saveEditExpense (file:///workspace/scratch/96669c3f314f/candidate/h8r2_1c1f1d1c_work/js/modules/finance.js?v=long-term-production-stability-20260917-v5u6h8r2:613:34)
+    at file:///workspace/scratch/96669c3f314f/candidate/h8r2_1c1f1d1c_work/tools/check-h8r2-1c1f1d1c1-financial-entry.mjs:315:29
+    at test (file:///workspace/scratch/96669c3f314f/candidate/h8r2_1c1f1d1c_work/tools/check-h8r2-1c1f1d1c1-financial-entry.mjs:61:15)
+    at file:///workspace/scratch/96669c3f314f/candidate/h8r2_1c1f1d1c_work/tools/check-h8r2-1c1f1d1c1-financial-entry.mjs:307:7
+[financial-intent-guard] ok {
+  action: 'expense.edit',
+  intentId: '4K-6N-expense.edit-1790575364988-c12gjs',
+  clubId: 'club-A',
+  role: 'admin'
+}
+[finance.js] expense edit failed: Error: permission-denied
+    at window._fb_init.updateDoc (file:///workspace/scratch/96669c3f314f/candidate/h8r2_1c1f1d1c_work/tools/check-h8r2-1c1f1d1c1-financial-entry.mjs:314:62)
+    at Object.updateExpenseTransaction (file:///workspace/scratch/96669c3f314f/candidate/h8r2_1c1f1d1c_work/js/services/finance.service.js?v=long-term-production-stability-20260917-v5u6h8r2:91:15)
+    at window.saveEditExpense (file:///workspace/scratch/96669c3f314f/candidate/h8r2_1c1f1d1c_work/js/modules/finance.js?v=long-term-production-stability-20260917-v5u6h8r2:613:34)
+    at file:///workspace/scratch/96669c3f314f/candidate/h8r2_1c1f1d1c_work/tools/check-h8r2-1c1f1d1c1-financial-entry.mjs:316:29
+    at async test (file:///workspace/scratch/96669c3f314f/candidate/h8r2_1c1f1d1c_work/tools/check-h8r2-1c1f1d1c1-financial-entry.mjs:61:9)
+    at async file:///workspace/scratch/96669c3f314f/candidate/h8r2_1c1f1d1c_work/tools/check-h8r2-1c1f1d1c1-financial-entry.mjs:307:1
+PASS E08 failed edit does not merge local state and allows retry
+D1C1 financial entry: 32 passed

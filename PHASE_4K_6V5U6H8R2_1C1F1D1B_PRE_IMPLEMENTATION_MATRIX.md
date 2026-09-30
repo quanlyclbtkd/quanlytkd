@@ -1,0 +1,27 @@
+# PHASE 4K-6V5U6H8R2.1C1F1D1B — PRE-IMPLEMENTATION MATRIX
+
+Created before any D1B production patch.
+
+| ID | Function | Runtime owner | State-read timing | Lane acquisition | Settlement timing | Plan construction | Primary writer | Local state commit | Legacy duplicate? | Reachable? | Root cause | Planned patch | Read impact | Write impact | Listener impact | Risk |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| D1B-01 | `transactionForm.onsubmit` | `js/modules/finance.js` | `profiles[name]` before lane | after `txData/newPaidUntil/profileUpdates` are built | none | before lane | `FinanceService.commitAtomicWritePlan()` | none | yes, full app.js writer exists pre-module | yes | lane serializes commit only, not financial decision | move latest-profile resolve, settlement, paidUntil reconciliation and final plan build inside existing profile lane; local commit before release | 0 | same approved writer | 0 | high |
+| D1B-02 | `window.processCombo('pay')` | `js/modules/finance.js` | `profiles[n1/n2]` before lanes | after `transactions/profileUpdates/audits` are built | none | before lanes | `FinanceService.commitAtomicWritePlan()` | none | yes, full app.js writer exists pre-module | yes | multi-lane currently protects only precomputed write | acquire existing deterministic multi-profile lanes first; resolve every latest local profile and settlement inside; build final plan there; local commits before release | 0 | same approved writer | 0 | high |
+| D1B-03 | transaction form same-month wait | finance module | stale | late | absent | stale | same | absent | n/a | yes | QuickPay can settle target while form waits, then stale form still writes second tx | canonical `areTuitionMonthsSettled` inside lane; no-write/fail-closed | 0 | decreases duplicate risk | 0 | high |
+| D1B-04 | combo stale participant | finance module | stale | late | absent | stale | same | absent | n/a | yes | any participant can change while combo waits; silently dropping/repricing would corrupt bundle semantics | any changed tuition component => fail-closed before primary write | 0 | zero on stale case | 0 | high |
+| D1B-05 | post-primary local state window | Form + Combo | local profile remains stale until snapshot | lane releases immediately after Firestore batch | n/a | n/a | same | missing | n/a | yes | immediate QuickPay before snapshot can see unpaid state and duplicate | call existing `commitLocalTuitionPaymentState` inside lane after primary success and before release | 0 | no extra Firestore write | 0 | high |
+| D1B-06 | `app.js transactionForm.onsubmit` | legacy app kernel | direct closure state | none | custom | full legacy writer | direct `addDoc/updateDoc` | none | **yes** | reachable before main module ready | full fallback remains an active financial writer | replace with fail-closed no-write bootstrap stub; finance module later owns form | 0 | removes duplicate legacy writes | 0 | high |
+| D1B-07 | `app.js window.processCombo` | legacy app kernel | direct closure state | none | custom | full legacy writer | `FinanceService.commitAtomicWritePlan` + direct audit | none | **yes** | reachable before main module ready | second full financial business implementation | hard-disable pay/report entrypoint before canonical owner by fail-closed stub; canonical finance.js override after bootstrap | 0 | removes duplicate legacy write | 0 | high |
+| D1B-08 | `deleteTuitionTransaction` | `TuitionCommandBoundary` | tx + optional impact | internal lane | delete/reconcile logic | n/a | FinanceService | reconciliation | caller guards exist | yes | owner itself only checks top-level `relatedInvId`; nested inventory/mixed impact could be passed by bad caller | owner-level canonical `TransactionDeleteIntegrity` self-guard for invalid/mixed/inventory rollback impact | 0 | safer rejection only | 0 | high |
+| D1B-09 | `finance.events` form submit listener | `js/events/finance.events.js` | none | n/a | n/a | n/a | delegates `window.saveTx` only | n/a | potential duplicate event surface | reachable | `saveTx` is not mounted by current canonical module, so listener is currently no-write; must remain classified, not treated as writer | no production patch unless actual duplicate mutation found; gate asserts one authoritative mutation | 0 | 0 | 0 | low |
+| D1B-10 | QuickPay / MultiItem existing paths | TCB / app protected owner | inside lane | correct | canonical | inside lane | approved writers | existing local commit | no | yes | baseline already correct | preserve unchanged | 0 | 0 | 0 | low |
+
+## Authority conclusions before patch
+
+- Tuition serialization authority: **ONE** — `TuitionCommandBoundary.profileMutationLanes`.
+- Tuition settlement authority: **ONE** — `TuitionDebtCanonical`.
+- QuickPay writer: existing `FinanceService.commitAtomicWritePlan()` via `TuitionCommandBoundary`.
+- Transaction Form writer: canonical `js/modules/finance.js`, but financial decision is stale-before-lane.
+- Family Combo writer: canonical `js/modules/finance.js`, but financial decision is stale-before-lanes.
+- MultiItem writer: protected `app.js` owner using same tuition lane (F1D1/D1A baseline).
+- Legacy app.js Transaction Form and processCombo are still full writer implementations before canonical module bootstrap: **duplicate active fallback authority to remove/hard-disable**.
+- Tuition delete boundary needs self-guard against canonical inventory/mixed impact even when caller misroutes.

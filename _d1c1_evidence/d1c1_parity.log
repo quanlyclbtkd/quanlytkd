@@ -1,0 +1,14 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> taekwondo-club-app@1.0.0 check:root-public-parity
+> node tools/check-root-public-parity.mjs
+
+{
+  "algorithm": "SHA-256",
+  "rootFileCount": 124,
+  "publicFileCount": 124,
+  "missingPublic": [],
+  "extraPublic": [],
+  "hashMismatches": [],
+  "status": "PASS"
+}

@@ -1,0 +1,8 @@
+H8R2.1 FINAL EVIDENCE
+Master: 39/39 PASS
+Precheck critical: EXIT 0
+Release: 36/36 PASS
+Deploy package: 12/12 PASS
+Root/public parity: 123/123, missing=0, extra=0, hashMismatch=0
+Static Firestore: getDoc=29 getDocs=51 onSnapshot=16
+Production runtime evidence: PENDING authenticated smoke + R1-R8 + 25-cycle + soak

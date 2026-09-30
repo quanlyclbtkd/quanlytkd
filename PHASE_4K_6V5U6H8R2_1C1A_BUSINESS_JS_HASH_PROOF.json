@@ -1,0 +1,10 @@
+{
+  "baseline": "H8R2.1C1",
+  "excluded_allowed_ui_owners": [
+    "js/ui/legacyUiShell.js",
+    "js/legacy/legacyUiFallbacks.js"
+  ],
+  "unchanged_js_files_checked": 123,
+  "changed_business_js": [],
+  "pass": true
+}

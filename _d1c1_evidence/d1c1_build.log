@@ -1,0 +1,7 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> taekwondo-club-app@1.0.0 build:public
+> node tools/build-public.mjs
+
+[BuildPublic] Built /workspace/scratch/96669c3f314f/candidate/h8r2_1c1f1d1c_work/public
+[BuildPublic] Included only: index.html, app.js, style.css, .nojekyll, js, css

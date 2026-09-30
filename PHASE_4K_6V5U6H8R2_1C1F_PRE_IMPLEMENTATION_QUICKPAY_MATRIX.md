@@ -1,0 +1,27 @@
+# PHASE 4K-6V5U6H8R2.1C1F — Pre-Implementation QuickPay Matrix
+
+Baseline gates before code: C1D PASS 16/16; C1E UI PASS 23/23; Release PASS; Tuition Command Cutover PASS; Debt Source of Truth PASS; Canonical Transaction PASS 27/27; Payment Accounts PASS; Root/Public parity PASS 124/124. Canonical budget asserted by existing C1D/C1E gates: 29/51/16.
+
+| Stage | Function / owner | Input → output | Await boundary | Firestore write | Class | Failure/caller behavior | Race / overlap | Planned fix |
+|---|---|---|---|---|---|---|---|---|
+| Q1 Debt action | `studentsRenderer` → `openQuickPayModal(...)` | name/months/branch → modal | none | no | UI | Calls global modal owner | Global owner can be legacy or module during bootstrap | Preserve renderer; close owner overlap |
+| Q2 Canonical modal | `js/modules/finance.js::window.openQuickPayModal` | debt context → one of existing `window.quickPay` calls | currently no submit lock | no | UI | Each option immediately hides modal and starts quickPay | double tap/click can invoke twice before UI settles | Add module-local submit guard/pending UI only |
+| Q3 Legacy modal | `app.js::window.openQuickPayModal` | same input → full legacy modal implementation | none | no | bootstrap/legacy UI | Can open while `window.quickPay` is V5U2 not-ready stub | competing full owner | Fail closed unless true legacy mode; module remains canonical HTTP owner |
+| Q4 Canonical payment command | `TuitionCommandBoundary.collectTuition` | student/months/branch/amount → canonical result | `await commitAtomicWritePlan()` | transaction + profile in one atomic plan | PRIMARY | commit failure throws; caller correctly treats as payment failure | `_run` provides authoritative single-flight | Preserve exactly |
+| Q5 Local canonical state | `_commitProfilePayment` + `_invalidateTuition` | committed result → RAM/invalidation | sync | no | PRIMARY post-commit | currently happens only after awaited audit | delayed by secondary audit | Move immediately after primary commit |
+| Q6 Fee audit | `FinanceService.addFeeAuditSilent` | audit payload → currently undefined | currently awaited by command | existing `fee_audit` addDoc | SECONDARY Class-2 | service swallows error; command waits anyway; failure not observable | slow addDoc blocks result/receipt | Keep same writer exactly once; return structured status; launch non-blocking with diagnostic |
+| Q7 QuickPay caller | `js/modules/finance.js::window.quickPay` | canonical result → toast + receipt | awaits `exportReceipt` | no | caller | payment catch and receipt catch are separated, but receipt currently swallows internally | double click path possible | Inspect structured receipt result; never reclassify payment success |
+| Q8 Receipt asset | `app.js::window.exportReceipt` | receipt data → html2canvas | direct ad-hoc script insertion | no | receipt secondary | script has no shared promise and no timeout | two callers can inject two script tags | Extend existing lazy asset owner `_loadScriptOnce`; one shared promise + timeout |
+| Q9 Receipt DOM | `#receiptTemplate` / preview/modal | receipt data → canvas/jpeg/preview | async QR + html2canvas | no | receipt secondary | one shared global template | concurrent A/B can overwrite shared DOM | Reproduce with deterministic harness; serialize only if reproduced |
+| Q10 Receipt contract | `window.exportReceipt` | success/failure → currently `undefined` both ways | catches internally | no | receipt secondary | failure toast + swallowed exception, caller cannot distinguish | deterministic result absent | Return `{ok:true,...}` / `{ok:false,reason,error}` while keeping legacy callers compatible |
+| Q11 Branch filter | `#filterBranch` existing DOM + existing onchange/change paths | branch → existing invalidation/render | event | no new write/read authority | UI state | currently inside mobile filter sheet | no duplicate DOM, but not direct mobile | Reuse same element with CSS `display:contents`; no clone/listener |
+| Q12 Month filter | `#filterMonth` | month → existing handlers | event | existing canonical behavior | UI state | accessible only in filter controls today | could disappear if sheet hidden blindly | keep visible in compact secondary row |
+| Q13 Debt overdue | `#debtOverdueFilter` | debt threshold → Debt render | event | none | Debt presentation | independent from branch | no authority conflict | preserve untouched |
+
+## Root-cause classification
+- **RC-A / P1 correctness-UX:** Class-2 `fee_audit` is awaited on the canonical success path; a slow audit delays payment result and receipt even though primary commit already succeeded.
+- **RC-B / P1 receipt determinism:** html2canvas has a second ad-hoc loader in `app.js`; no shared promise/timeout.
+- **RC-C / P1 receipt observability:** `exportReceipt` catches and swallows its own failure, so quickPay cannot distinguish receipt success from failure.
+- **RC-D / P1 bootstrap ownership:** `app.js` exposes a full `openQuickPayModal` while `quickPay` is intentionally a not-ready stub until Finance module adoption.
+- **RC-E / P1 concurrency candidate:** global `#receiptTemplate` is mutated across awaits and is therefore susceptible to cross-call overwrite; must be test-proven before serialization patch.
+- **RC-F / P2 mobile UX:** canonical `#filterBranch` exists only inside the mobile filter sheet; direct mobile branch selection can be achieved without a second select or state authority.
