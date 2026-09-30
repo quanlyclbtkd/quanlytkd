@@ -52,12 +52,12 @@ const cases = [
 for (const [name, condition] of cases) check(name, condition);
 
 const debtJune = api.computeProfileDebt({ name: 'A', paidUntil: 'Tháng Năm 2026', paidMonths: ['2026-06'], tuitionFee: 500000 }, '2026-06', { name: 'A' });
-check('explicit future paidMonths remains month-level evidence beyond contiguous paidUntil', debtJune.chargeableMonths.length === 0 && debtJune.trustedPaidMonthsForDebt.includes('2026-06'));
-check('future paidMonths after paidUntil are reported as preserved gap evidence', debtJune.futurePaidMonthsAfterPaidUntil.includes('2026-06'));
-check('debt trace documents preserved future paidMonths', debtJune.warnings.includes('paidMonths-after-paidUntil-preserved'));
+check('paidUntil is authoritative over stale future paidMonths', JSON.stringify(debtJune.chargeableMonths) === JSON.stringify(['2026-06']));
+check('future paidMonths after paidUntil are reported', debtJune.ignoredFuturePaidMonthsAfterPaidUntil.includes('2026-06'));
+check('debt trace warns about stale paidMonths', debtJune.warnings.includes('paidMonths-after-paidUntil-ignored'));
 
 const debtTwo = api.computeProfileDebt({ name: 'B', paidUntil: 'Tháng tư 2026', paidMonths: ['2026-06'], tuitionFee: 500000 }, '2026-06', { name: 'B' });
-check('gap debt remains complete while later explicit paid month stays paid', JSON.stringify(debtTwo.chargeableMonths) === JSON.stringify(['2026-05']));
+check('two-month debt remains complete when stale paidMonths exists', JSON.stringify(debtTwo.chargeableMonths) === JSON.stringify(['2026-05', '2026-06']));
 
 const skipped = api.computeProfileDebt({ name: 'C', paidUntil: '2026-05', skippedMonths: ['Tháng 6 năm 2026'] }, '2026-06', { name: 'C' });
 check('skipped month suppresses debt only through canonical skippedMonths', skipped.chargeableMonths.length === 0 && skipped.skippedMonthsCanonical.includes('2026-06'));
@@ -74,7 +74,7 @@ const audit = api.auditProfiles({
   C: { name: 'C', paidUntil: '2026-05', feeExempt: true },
 }, '2026-06');
 check('audit counts total profiles', audit.totalProfiles === 3);
-check('audit detects debt profiles after preserving explicit future paid month', audit.debtProfiles === 1);
+check('audit detects debt profiles', audit.debtProfiles === 2);
 check('audit detects paidMonths after paidUntil', audit.paidMonthsAfterPaidUntil === 1);
 check('audit exposes readyForCanonicalCutover flag', Object.prototype.hasOwnProperty.call(audit, 'readyForCanonicalCutover'));
 

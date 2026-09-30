@@ -75,15 +75,6 @@
           : 'none';
     }
     if (sheet.classList) sheet.classList.add('open');
-    if (typeof sheet.setAttribute === 'function') sheet.setAttribute('aria-hidden', 'false');
-    if (global.document && typeof global.document.querySelectorAll === 'function') {
-      global.document.querySelectorAll('[aria-controls="mobileMenuSheet"]').forEach(function(trigger) {
-        if (trigger && typeof trigger.setAttribute === 'function') trigger.setAttribute('aria-expanded', 'true');
-      });
-    }
-    if (global.document && global.document.body && global.document.body.style) {
-      global.document.body.style.overflow = 'hidden';
-    }
     return true;
   }
 
@@ -91,15 +82,6 @@
     var sheet = getElement('mobileMenuSheet');
     if (!sheet) return false;
     if (sheet.classList) sheet.classList.remove('open');
-    if (typeof sheet.setAttribute === 'function') sheet.setAttribute('aria-hidden', 'true');
-    if (global.document && typeof global.document.querySelectorAll === 'function') {
-      global.document.querySelectorAll('[aria-controls="mobileMenuSheet"]').forEach(function(trigger) {
-        if (trigger && typeof trigger.setAttribute === 'function') trigger.setAttribute('aria-expanded', 'false');
-      });
-    }
-    if (global.document && global.document.body && global.document.body.style) {
-      global.document.body.style.overflow = '';
-    }
     return true;
   }
 

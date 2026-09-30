@@ -222,11 +222,7 @@ function _renderSkippedMonthSection(allProfiles, selectedMonth) {
         if (titleEl) titleEl.innerText = `⏸ Báo nghỉ tháng ${formatMonth(selMonth)} — ${skippedNames.length} võ sinh miễn học phí`;
         const listEl = document.getElementById('skippedThisMonthList');
         if (listEl) {
-            listEl.innerHTML = skippedNames.sort().map(n => {
-                const token = encodeURIComponent(String(n)).replace(/'/g, '%27');
-                const safeText = String(n).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
-                return `<span class="badge bg-amber-200 text-amber-900 border border-amber-400 shadow-sm cursor-pointer hover:bg-amber-300" onclick="openProfile(decodeURIComponent('${token}'))" title="Bấm để xem hồ sơ">${safeText}</span>`;
-            }).join('');
+            listEl.innerHTML = skippedNames.sort().map(n => `<span class="badge bg-amber-200 text-amber-900 border border-amber-400 shadow-sm cursor-pointer hover:bg-amber-300" onclick="openProfile('${String(n).replace(/'/g, "\\'")}')" title="Bấm để xem hồ sơ">${n}</span>`).join('');
         }
     } else {
         skippedSection.classList.add('hidden');

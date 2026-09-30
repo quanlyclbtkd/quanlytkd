@@ -14,8 +14,6 @@ const root = process.cwd();
 const read = (rel) => fs.readFileSync(path.join(root, rel), 'utf8');
 const attendance = read('js/modules/attendance.js');
 const attendanceService = read('js/services/attendance.service.js');
-const financeService = read('js/services/finance.service.js');
-const financeModule = read('js/modules/finance.js');
 const profiles = read('js/listeners/profiles.listeners.js');
 const students = read('js/modules/students.js');
 const app = read('app.js');
@@ -50,7 +48,7 @@ check(saveOffline.includes("operation: status === 0 ? 'delete' : 'set'") && save
 check(saveOffline.includes('previous?.version === 2') && saveOffline.includes('record.queuedAt = previous.queuedAt'), 'Repeated toggle coalesces into one same-doc journal mutation');
 check(cleanupOffline.includes('const key = _attendanceOfflineMutationKey(record)') && cleanupOffline.includes('current?.revision') && cleanupOffline.includes('localStorage.removeItem(key)'), 'Successful single write cleanup is scoped to its own mutation and matching revision');
 check(!attendance.includes("localStorage.removeItem('offline_att_' +") && !attendance.includes('finally {\n            localStorage.removeItem'), 'No whole-day offline cleanup remains');
-check(bulkBlock.includes('onChunkCommitted') && bulkBlock.includes('_removeAttOfflineMutation') && bulkBlock.includes('committedIds'), 'Bulk cleanup is scoped to each successfully committed chunk');
+check(bulkBlock.includes('pendingBulkMutations.forEach(_removeAttOfflineMutation)') && bulkBlock.indexOf('await AttendanceService.bulkSaveRecords') < bulkBlock.indexOf('pendingBulkMutations.forEach(_removeAttOfflineMutation)'), 'Bulk cleanup occurs only after successful canonical bulk commit');
 check(!block(bulkBlock, '} catch(e) {', '} finally {').includes('removeItem'), 'Bulk failure preserves pending journal mutations');
 check(attendance.includes('let _offlineAttendanceSyncPromise = null;') && syncBlock.includes('if (_offlineAttendanceSyncPromise)') && syncBlock.includes('return _offlineAttendanceSyncPromise'), 'Attendance offline synchronization is single-flight');
 check(syncBlock.includes("key.startsWith(_ATTENDANCE_OFFLINE_V2_PREFIX)") && syncBlock.includes('legacyEntries.push'), 'V2 journal and V1 compatibility share one sync owner');
@@ -70,13 +68,12 @@ check(syncBlock.includes('break v2Dates') && syncBlock.includes('_isOfflineAtten
 check(syncBlock.includes('offlineSyncStaleUiRefreshDropped++') && syncBlock.indexOf('_isOfflineAttendanceSyncContextCurrent(syncContext)') < syncBlock.indexOf("_requestAttendanceDailyRefresh('offline-sync-complete'"), 'V5U6G1 stale flight cannot refresh the new club Attendance UI');
 check(pkg.scripts?.['check:attendance-offline-canonical-sync-guard'] === 'node tools/check-attendance-offline-canonical-sync-guard.mjs', 'package exposes the V5U6G1 canonical offline sync guard');
 
-// ── D1C3B Dashboard true-zero hydration comes from the Admin full snapshot ──
-const adminAuthorityBlock = block(profiles, '// D1C3B Admin authority:', "window.scheduleAutomaticDebtProfileCoverage('full-profiles-authoritative-snapshot')");
-const coachZeroProbeBlock = block(profiles, 'if (activeCount === 0 && _state.activeSnapshotCount === 1)', 'setActiveProfiles(activeMap');
-check(!/_pG4k\s*\(|fbGetDocs\s*\(/.test(adminAuthorityBlock), 'Admin true-zero hydration uses the full snapshot itself with zero probe/read');
-check(adminAuthorityBlock.includes('_state.activeSnapshotCount === 1') && adminAuthorityBlock.includes('coverageComplete: true'), 'Initial Admin full snapshot closes Dashboard members hydration as complete even at zero profiles');
-check(adminAuthorityBlock.includes('activeCount,') && adminAuthorityBlock.includes('activeAvailable: true') && adminAuthorityBlock.includes('_state.fullAuthorityComplete = true'), 'Full authoritative evidence publishes active count availability and completeness');
-check(coachZeroProbeBlock.includes("classification: 'profile-zero-probe-failed'") && coachZeroProbeBlock.includes("fbWhere('branch', '==', coachBranch)"), 'Coach scoped zero-probe failure remains incomplete and observable without full-club read');
+// ── Dashboard true-zero hydration reuses the existing probe ────────────────
+const zeroProbeBlock = block(profiles, 'if (activeCount === 0 && _state.activeSnapshotCount === 1)', '// V5R: a document removed');
+check(count(zeroProbeBlock, /_pG4k\s*\(/g) === 1, 'True-zero path reuses exactly the existing zero probe');
+check(zeroProbeBlock.includes('if (!_probe.empty)') && zeroProbeBlock.includes("reason: 'active-profiles-zero-probe-empty'") && zeroProbeBlock.includes('coverageComplete: true'), 'Empty zero-probe closes Dashboard members hydration as complete active=0');
+check(zeroProbeBlock.includes("activeCount: 0") && zeroProbeBlock.includes('activeAvailable: true'), 'True-zero evidence explicitly publishes active=0 as available');
+check(zeroProbeBlock.includes("classification: 'profile-zero-probe-failed'"), 'Zero-probe failure remains incomplete and is observable');
 
 // ── Profile fallback ownership ──────────────────────────────────────────────
 const mountProfiles = block(profiles, 'export function mountActiveProfilesListener(context)', 'export function cleanupActiveProfilesListener');
@@ -93,18 +90,11 @@ check(appFallback.includes("registerListener('global:profiles:' + clubId"), 'Adm
 const memberStatsBlock = block(attendanceService, 'async updateMemberStats(name, data)', '_increment(n)');
 check(memberStatsBlock.includes('await updateDoc(') && !/catch\s*\(/.test(memberStatsBlock), 'Attendance derived stats service propagates failure to the existing caller');
 check(attendance.includes("'attendance-member-stats-reconcile-required'") && attendance.includes('canonicalAttendancePreserved: true'), 'Attendance stats failure emits reconciliation diagnostic without rolling back canonical attendance');
-check(app.includes("'inventory-payment-link-reconcile-required'")
-    && students.includes('paymentBundleId: feePlan.ref.id')
-    && students.includes('paidTxId: feePlan.ref.id')
-    && students.includes('batch.set(inventoryPlan.itemRef, inventoryPlan.payload)')
-    && students.includes('batch.set(feePlan.ref, feePlan.payload)')
-    && students.includes('await batch.commit();')
-    && !students.includes('await StudentService.updateInventoryDoc(_invId'),
-    'Module admission links inventory and payment in one batch; legacy linkage failure stays observable');
-check(financeService.includes("classification: 'fee-audit-write-failed'") && financeService.includes('canonicalPaymentPreserved: true') && financeService.includes("recordRuntimeError?.('secondary-consistency:'") && financeModule.includes('FinanceService.addFeeAuditSilent'), 'Fee audit failure is observable and never invalidates successful payment');
+check(app.includes("'inventory-payment-link-reconcile-required'") && students.includes("'inventory-payment-link-reconcile-required'"), 'Inventory payment linkage failure is observable in legacy and module admission paths');
+check(app.includes("'fee-audit-write-failed'") && app.includes('canonicalPaymentPreserved: true'), 'Fee audit failure is observable and never invalidates successful payment');
 check(app.includes("'attendance-note-notification-projection-failed'") && app.includes('canonicalSessionNotePreserved: true'), 'Session-note notification projection failure is observable while note remains canonical');
-const multiItem = block(app, 'window.processMultiItem = async (action) =>', '// ─── Setup currency inputs');
-check(multiItem.includes("_batch.update(doc(db, 'clubs', currentClubId, 'inventory', id)") && multiItem.includes('paidTxId: _bundleDocRef.id') && multiItem.includes('_batch.set(_bundleDocRef') && !multiItem.includes('setInterval('), 'Inventory debt/payment links commit in the same canonical multi-item batch, with no retry loop');
+const multiItem = block(app, '// 5. Tạo 1 bundle transaction duy nhất', "if (typeof window.recordFinancialActionAudit === 'function') window.recordFinancialActionAudit('multiitem.pay'");
+check(multiItem.includes('await Promise.all(invDebtIds.map(async function(id)') && multiItem.includes("'inventory-payment-link-reconcile-required'") && !multiItem.includes('setInterval('), 'Post-transaction inventory links cannot surface as false primary failure or start retry loops');
 
 // ── No new runtime authority/read/polling budget ────────────────────────────
 function walkJs(dir, out = []) {
@@ -150,38 +140,7 @@ check(!runtimeText.includes('GlobalAsyncManager') && !runtimeText.includes('Fetc
 check(!/queueWrite\s*\(/.test(runtimeText.replace(read('js/utils/offline-queue.js'), '')), 'Generic offline queue has no Attendance/business caller overlap');
 check(main.includes("window.APP_BUILD_VERSION = '4K-6V5U6G1-attendance-offline-canonical-sync-closure-20260815'"), 'Exact V5U6G1 build version is active while V5U6G boundaries remain frozen');
 check(index.includes('app.js?v=production-stability-residual-defect-closure-20260814-v5u6g') && index.includes('./js/main.js?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1'), 'Only changed root runtime main.js receives the V5U6G1 cache-bust; unchanged app.js stays on V5U6G');
-<<<<<<< HEAD
 check(main.includes("./listeners/profiles.listeners.js?v=production-stability-residual-defect-closure-20260814-v5u6g") && main.includes("./modules/students.js?v=production-stability-residual-defect-closure-20260814-v5u6g") && main.includes("./modules/attendance.js?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1") && attendance.includes("../services/attendance.service.js?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1"), 'Changed Attendance modules are cache-busted; frozen Profiles/Students modules are not mass-busted');
-=======
-const r1CacheSlug = 'profile-display-name-safe-edit-20260916-v5u6h8r1';
-const v5u6gFrozenCacheScope =
-    main.includes("./listeners/profiles.listeners.js?v=production-stability-residual-defect-closure-20260814-v5u6g") &&
-    main.includes("./modules/students.js?v=production-stability-residual-defect-closure-20260814-v5u6g") &&
-    main.includes("./modules/attendance.js?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1") &&
-    attendance.includes("../services/attendance.service.js?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1");
-const h8r1DisplayNameCacheScope =
-    main.includes("./listeners/profiles.listeners.js?v=production-stability-residual-defect-closure-20260814-v5u6g") &&
-    main.includes(`./modules/students.js?v=${r1CacheSlug}`) &&
-    main.includes(`./modules/attendance.js?v=${r1CacheSlug}`) &&
-    attendance.includes("../services/attendance.service.js?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1");
-<<<<<<< HEAD
-const r2CacheSlug = 'long-term-production-stability-20260917-v5u6h8r2';
-const h8r2StabilityCacheScope =
-    main.includes(`./listeners/profiles.listeners.js?v=${r2CacheSlug}`) &&
-    main.includes(`./modules/students.js?v=${r1CacheSlug}`) &&
-    main.includes(`./modules/attendance.js?v=${r2CacheSlug}`) &&
-    attendance.includes(`../services/attendance.service.js?v=${r2CacheSlug}`);
-const r21CacheSlug = 'residual-financial-cache-correctness-20260917-v5u6h8r2_1';
-const h8r21ResidualCacheScope =
-    main.includes(`./listeners/profiles.listeners.js?v=${r21CacheSlug}`) &&
-    main.includes(`./modules/students.js?v=${r1CacheSlug}`) &&
-    main.includes(`./modules/attendance.js?v=${r21CacheSlug}`) &&
-    attendance.includes(`../services/attendance.service.js?v=${r21CacheSlug}`);
-check(v5u6gFrozenCacheScope || h8r1DisplayNameCacheScope || h8r2StabilityCacheScope || h8r21ResidualCacheScope, 'Changed modules are cache-busted only within the active phase scope');
-=======
-check(v5u6gFrozenCacheScope || h8r1DisplayNameCacheScope, 'Changed modules are cache-busted only within the active phase scope; Profiles listener and Attendance service authority stay frozen');
->>>>>>> parent of 1fa1b61 (upload 17-9)
->>>>>>> parent of 3efd58c (UPLOAD)
 check(pkg.scripts?.['check:production-residual-defect-closure'] === 'node tools/check-production-residual-defect-closure.mjs', 'package exposes the V5U6G master gate');
 
 // ── Runtime Attendance offline test matrix (real module, fake service) ─────
@@ -276,7 +235,7 @@ try {
     const runtimeErrors = [];
     globalThis.recordRuntimeError = (source, err, extra) => runtimeErrors.push({ source, err, extra });
 
-    const serviceUrl = pathToFileURL(path.join(root, 'js/services/attendance.service.js')).href + '?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1';
+    const serviceUrl = pathToFileURL(path.join(root, 'js/services/attendance.service.js')).href + '?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1';
     const { AttendanceService } = await import(serviceUrl);
     const realUpdateMemberStats = AttendanceService.updateMemberStats.bind(AttendanceService);
     let shiftImpl = async () => [];

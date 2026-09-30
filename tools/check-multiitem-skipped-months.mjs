@@ -126,9 +126,10 @@ check(
         if (fnStart < 0) return 'window.processMultiItem not found';
         const fnEnd = appJs.indexOf('\nwindow.', fnStart + 100);
         const block = fnEnd > fnStart ? appJs.slice(fnStart, fnEnd) : appJs.slice(fnStart, fnStart + 5000);
-        if (block.includes("getAttribute('data-months')") || block.includes('getAttribute("data-months")')) return true;
-        if (block.includes('buildMultiItemTuitionPackageMonths') && block.includes('pkgSelect:sel')) return true;
-        return 'processMultiItem neither reads data-months directly nor delegates to canonical package-month resolver';
+        if (!block.includes("getAttribute('data-months')") && !block.includes('getAttribute("data-months")')) {
+            return 'processMultiItem does not read data-months attribute';
+        }
+        return true;
     }
 );
 
@@ -140,9 +141,10 @@ check(
         if (fnStart < 0) return 'window.processMultiItem not found';
         const fnEnd = appJs.indexOf('\nwindow.', fnStart + 100);
         const block = fnEnd > fnStart ? appJs.slice(fnStart, fnEnd) : appJs.slice(fnStart, fnStart + 5000);
-        if (block.includes('skippedMonths') || block.includes('_skipped')) return true;
-        if (block.includes('buildMultiItemTuitionPackageMonths')) return true;
-        return 'processMultiItem has no skippedMonths-aware canonical package-month resolver';
+        if (!block.includes('skippedMonths') && !block.includes('_skipped')) {
+            return 'processMultiItem has no skippedMonths filter in fallback path';
+        }
+        return true;
     }
 );
 

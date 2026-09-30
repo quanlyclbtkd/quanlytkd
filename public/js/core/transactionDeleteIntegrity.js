@@ -99,65 +99,28 @@ function extractExamComponentsFromTransaction(tx) {
 function extractInventoryComponentsFromTransaction(tx) {
     if (!tx) return [];
     const items = [];
-    const linkage = function(obj) {
-        obj = obj || {};
-        return obj.relatedInvId || obj.inventoryId || obj.invId || obj.paymentBundleId || obj.paidTxId || '';
-    };
-    const rollbackRef = function(obj) {
-        obj = obj || {};
-        return obj.relatedInvId || obj.inventoryId || obj.invId || '';
-    };
 
     if (Array.isArray(tx.components)) {
         tx.components.forEach(function(c) {
-            if (!c) return;
-            const kind = String(c.kind || c.domain || '').trim();
-            if (kind === 'inventory' || kind === 'inventoryDebt') {
-                items.push(Object.assign({}, c, { relatedInvId: rollbackRef(c), inventoryLinkId: linkage(c) }));
+            if (c && (c.kind === 'inventory' || c.kind === 'inventoryDebt')) {
+                items.push(c);
             }
         });
     }
 
-    // Inventory direct/linkage evidence. A bundle may be labelled "Học phí"
-    // while its inventory responsibility exists only in a component or linkage.
+    // Inventory trực tiếp (không phải bundle)
     const type = String(tx.type || '').trim();
-    const paymentKind = String(tx.paymentKind || '').trim();
-    const invTypes = ['Kho đồ', 'Đồng phục', 'Dụng cụ', 'Kho', 'Võ phục'];
+    const invTypes = ['Kho đồ', 'Đồng phục', 'Dụng cụ', 'Kho'];
     const isDirectInv = invTypes.some(function(t) { return type.includes(t); });
-    const topLevelRef = linkage(tx);
-    if ((isDirectInv || (paymentKind === 'bundle' && topLevelRef)) && items.length === 0) {
+    if (isDirectInv && items.length === 0) {
         items.push({
             kind: 'inventory',
-            relatedInvId: topLevelRef,
+            relatedInvId: tx.relatedInvId || tx.paymentBundleId || '',
             amount: Number(tx.amount || 0),
         });
     }
 
     return items;
-}
-
-// Canonical transaction -> Inventory document identity.  Payment linkage
-// fields (paymentBundleId/paidTxId) are evidence only; they are never treated as
-// inventory document ids.
-function extractInventoryRefsFromTransaction(tx) {
-    if (!tx || typeof tx !== 'object') return [];
-    var refs = [];
-    var fields = ['relatedInvId', 'inventoryId', 'invId'];
-    function add(value) {
-        var id = String(value || '').trim();
-        if (!id || id === 'undefined' || id === 'null' || refs.indexOf(id) >= 0) return;
-        refs.push(id);
-    }
-    fields.forEach(function(k) { add(tx[k]); });
-    if (Array.isArray(tx.components)) {
-        tx.components.forEach(function(c) {
-            if (!c || typeof c !== 'object') return;
-            var kind = String(c.kind || c.domain || '').trim();
-            if (kind !== 'inventory' && kind !== 'inventoryDebt') return;
-            fields.forEach(function(k) { add(c[k]); });
-        });
-    }
-    return refs;
 }
 
 // ── 4. analyzeTransactionDeleteImpact ────────────────────────────────────────
@@ -171,20 +134,16 @@ function extractInventoryRefsFromTransaction(tx) {
 function analyzeTransactionDeleteImpact(tx, options) {
     options = options || {};
 
-    var rawTxId = tx && typeof tx === 'object' ? String(tx.id || '').trim() : '';
-    var invalidTxId = !rawTxId || rawTxId === 'undefined' || rawTxId === 'null';
-    if (!tx || typeof tx !== 'object' || invalidTxId) {
+    if (!tx) {
         return {
-            valid: false, failClosed: true,
             txId: '', type: '', paymentKind: '', studentName: '', branch: '', amount: 0,
             hasComponents: false, componentKinds: [],
             tuitionMonths: [], hasTuition: false, hasExam: false,
-            hasInventory: false, hasInventoryDebt: false, hasInventoryLinkage: false,
-            inventoryRefs: [], isMixedBundle: false, isPureInventory: false, isPureTuition: false,
+            hasInventory: false, hasInventoryDebt: false,
             safeToHardDelete: false, requiresProfileReconcile: false,
             requiresExamRefresh: false, requiresInventoryRollback: false,
             requiresDashboardRefresh: false,
-            warnings: ['invalid-or-missing-transaction-identity'], blockers: ['invalid-tx-id'],
+            warnings: ['tx is null or undefined'], blockers: ['no-tx'],
         };
     }
 
@@ -216,59 +175,30 @@ function analyzeTransactionDeleteImpact(tx, options) {
     var warnings = [];
     var blockers = [];
 
-    // Canonical inventory linkage detection must inspect nested components as
-    // well as the transaction shell. Top-level relatedInvId is not sufficient.
-    var inventoryLinkFields = ['relatedInvId', 'inventoryId', 'invId', 'paymentBundleId', 'paidTxId'];
-    var inventoryRefFields = ['relatedInvId', 'inventoryId', 'invId'];
-    var hasInventoryLinkage = inventoryLinkFields.some(function(k) { return !!tx[k]; }) || invItems.some(function(c) {
-        return inventoryLinkFields.some(function(k) { return !!(c && c[k]); });
-    });
-    var inventoryRefs = extractInventoryRefsFromTransaction(tx);
-    // An explicit Inventory document ref is itself canonical Inventory impact
-    // evidence even when the legacy transaction type is labelled "Học phí".
-    // Payment-only linkage (paymentBundleId/paidTxId) remains evidence-only.
-    if (inventoryRefs.length > 0) hasInventory = true;
-
-    // A paymentBundleId/paidTxId proves linkage but is not an inventory document id.
-    // Destructive inventory rollback requires one explicit canonical inventory ref.
+    // Kiểm tra inventory rollback safety
     var invUnsafe = false;
     if (hasInventory) {
         invItems.forEach(function(c) {
-            var componentRefs = [];
-            inventoryRefFields.forEach(function(k) {
-                var id = String((c && c[k]) || '').trim();
-                if (id && id !== 'undefined' && componentRefs.indexOf(id) < 0) componentRefs.push(id);
-            });
-            if (!componentRefs.length && !inventoryRefs.length) {
+            var hasRef = !!(c.relatedInvId || c.paymentBundleId || tx.relatedInvId || tx.paymentBundleId);
+            if (!hasRef) {
                 invUnsafe = true;
                 warnings.push('inventory-component-no-ref-id');
             }
         });
-        if (!inventoryRefs.length) blockers.push('inventory-no-canonical-ref');
-        if (inventoryRefs.length > 1) blockers.push('multiple-inventory-refs-no-proven-owner');
-        if (paymentKind === 'bundle' && invUnsafe) blockers.push('bundle-inventory-no-safe-rollback');
+        if (paymentKind === 'bundle' && hasInventory && invUnsafe) {
+            blockers.push('bundle-inventory-no-safe-rollback');
+        }
     }
+
+    var safeToHardDelete = blockers.length === 0;
 
     var requiresProfileReconcile  = hasTuition && !!studentName;
     var requiresExamRefresh       = hasExam;
-    var requiresInventoryRollback = hasInventory && inventoryRefs.length > 0;
-    var isMixedBundle = hasTuition && hasInventory;
-    var nonInventoryComponent = componentKinds.some(function(k) { return k !== 'inventory' && k !== 'inventoryDebt'; });
-    var isPureInventory = hasInventory && !hasTuition && !hasExam && !nonInventoryComponent;
-    var isPureTuition = hasTuition && !hasInventory && !requiresInventoryRollback && !isMixedBundle;
-
-    // F1D: no existing owner proves a full cross-domain Tuition + Inventory
-    // rollback (transaction + stock ledger + profile settlement) atomically.
-    // Mixed-domain deletion therefore fails closed BEFORE destructive writes.
-    if (isMixedBundle) blockers.push('mixed-domain-delete-requires-specialized-owner');
-
-    var safeToHardDelete = blockers.length === 0;
+    var requiresInventoryRollback = hasInventory && !invUnsafe;
     var requiresDashboardRefresh  = true;
 
     return {
-        valid:            true,
-        failClosed:       false,
-        txId:             rawTxId,
+        txId:             tx.id || '',
         type:             type,
         paymentKind:      paymentKind,
         studentName:      studentName,
@@ -281,11 +211,6 @@ function analyzeTransactionDeleteImpact(tx, options) {
         hasExam:          hasExam,
         hasInventory:     hasInventory,
         hasInventoryDebt: hasInventoryDebt,
-        hasInventoryLinkage: hasInventoryLinkage,
-        inventoryRefs:    inventoryRefs.slice(),
-        isMixedBundle:    isMixedBundle,
-        isPureInventory:  isPureInventory,
-        isPureTuition:    isPureTuition,
         safeToHardDelete:           safeToHardDelete,
         requiresProfileReconcile:   requiresProfileReconcile,
         requiresExamRefresh:        requiresExamRefresh,
@@ -350,7 +275,6 @@ export const TransactionDeleteIntegrity = {
     extractTuitionMonthsFromTransaction:   extractTuitionMonthsFromTransaction,
     extractExamComponentsFromTransaction:  extractExamComponentsFromTransaction,
     extractInventoryComponentsFromTransaction: extractInventoryComponentsFromTransaction,
-    extractInventoryRefsFromTransaction:       extractInventoryRefsFromTransaction,
     isTransactionDeleteSafe:               isTransactionDeleteSafe,
     reconcileAfterTransactionDelete:       reconcileAfterTransactionDelete,
 };

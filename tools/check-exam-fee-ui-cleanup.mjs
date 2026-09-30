@@ -110,11 +110,11 @@ check(
 
 // ── 8. quickCollectExam/processBatchUpgrade dùng getClubExamFee hoặc exam_fee_all_actual
 check(
-    'finance.js quickCollectExam dùng getClubExamFee hoặc exam_fee_all_actual',
+    'app.js quickCollectExam dùng getClubExamFee hoặc exam_fee_all_actual',
     (function() {
-        const idx = financeJs?.indexOf('window.quickCollectExam = async') ?? -1;
+        const idx = appJs.indexOf('window.quickCollectExam');
         if (idx === -1) return false;
-        const block = financeJs.slice(idx, idx + 2500);
+        const block = appJs.slice(idx, idx + 500);
         return block.includes('getClubExamFee') || block.includes('exam_fee_all_actual');
     })(),
     'quickCollectExam phải dùng getClubExamFee() hoặc exam_fee_all_actual làm default fee'

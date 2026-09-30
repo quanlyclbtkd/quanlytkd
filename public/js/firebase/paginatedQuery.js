@@ -186,7 +186,6 @@ export async function fetchAllMatchingDocs({
     metricsKey = '',
     onPage,
     stopWhen,
-    requireComplete = typeof stopWhen !== 'function',
 } = {}) {
     const qs      = _qs();
     const t0      = Date.now();
@@ -194,13 +193,12 @@ export async function fetchAllMatchingDocs({
     let cursor    = null;
     let pages     = 0;
 
-    let complete = false;
     try {
         const sdk       = _getSDK();
         const _getDocs  = sdk.getDocs;
 
         if (!_getDocs || !baseQueryBuilder) {
-            if (requireComplete) throw new Error('Không thể đọc đủ dữ liệu: thiếu getDocs hoặc query builder.');
+            console.warn('[paginatedQuery] fetchAllMatchingDocs: thiếu getDocs hoặc baseQueryBuilder.');
             return [];
         }
 
@@ -211,7 +209,7 @@ export async function fetchAllMatchingDocs({
             const snap = await _getDocs(q);
             pages++;
 
-            if (!snap || snap.empty) { complete = true; break; }
+            if (!snap || snap.empty) break;
 
             const rawDocs  = snap.docs;
             const pageDocs = rawDocs.slice(0, pageSize).map(d => ({ id: d.id, ...d.data() }));
@@ -222,15 +220,18 @@ export async function fetchAllMatchingDocs({
             }
 
             // Điều kiện dừng
-            if (rawDocs.length < pageSize) { complete = true; break; }
+            if (rawDocs.length < pageSize) break;     // trang cuối (ít hơn pageSize docs)
             if (typeof stopWhen === 'function' && stopWhen(results)) break;
 
             // Cursor cho trang tiếp theo — lấy document thực từ snap (không phải từ mapped object)
             cursor = rawDocs[rawDocs.length - 1];
         }
 
-        if (!complete && requireComplete) {
-            throw new Error(`Chưa chứng minh đã đọc hết dữ liệu (maxPages=${maxPages}; ${metricsKey || reason}).`);
+        if (pages >= maxPages && results.length > 0) {
+            console.warn(
+                `[paginatedQuery] fetchAllMatchingDocs đạt maxPages=${maxPages}. ` +
+                `Đã load ${results.length} docs. Key: ${metricsKey || reason}`
+            );
         }
     } catch (err) {
         const msg = (err && err.message) || String(err);
@@ -243,7 +244,6 @@ export async function fetchAllMatchingDocs({
         } else {
             console.warn('[paginatedQuery] fetchAllMatchingDocs error:', msg);
         }
-        if (requireComplete) throw err;
     }
 
     const durationMs = Date.now() - t0;
@@ -254,7 +254,6 @@ export async function fetchAllMatchingDocs({
             qs.paginatedFetches[metricsKey] = {
                 pages,
                 docs:      results.length,
-                complete,
                 durationMs,
                 reason,
                 lastAt:    Date.now(),
@@ -262,7 +261,6 @@ export async function fetchAllMatchingDocs({
         }
     }
 
-    if (!complete) Object.defineProperty(results, 'complete', { value: false });
     return results;
 }
 
@@ -293,7 +291,6 @@ export async function loadTransactionsForPeriod({
 
     if (!colRef || !month) {
         console.warn('[paginatedQuery] loadTransactionsForPeriod: thiếu colRef hoặc month.');
-        if (forExport) throw new Error('Thiếu nguồn giao dịch hoặc tháng để xuất báo cáo.');
         return [];
     }
 
@@ -308,7 +305,6 @@ export async function loadTransactionsForPeriod({
         if (!_where || !_orderBy || !_query) {
             console.warn('[paginatedQuery] loadTransactionsForPeriod: Firebase SDK functions chưa sẵn sàng.');
             if (qs) qs.fallbackToLimitedTransactionsCount++;
-            if (forExport) throw new Error('Không thể đọc đủ giao dịch: SDK chưa sẵn sàng.');
             return [];
         }
 
@@ -346,7 +342,6 @@ export async function loadTransactionsForPeriod({
             qs.fallbackToLimitedTransactionsCount++;
             _recordWarn(`transactions:${month}`, reason);
         }
-        if (forExport) throw err;
         return [];
     }
 }
@@ -405,7 +400,8 @@ export async function loadTransactionsForDateRange({
     const t0 = Date.now();
 
     if (!colRef || !startDate || !endDate) {
-        throw new Error('loadTransactionsForDateRange: thiếu colRef / startDate / endDate.');
+        console.warn('[paginatedQuery] loadTransactionsForDateRange: thiếu colRef / startDate / endDate.');
+        return [];
     }
 
     try {
@@ -417,7 +413,8 @@ export async function loadTransactionsForDateRange({
         const _limit      = sdk.limit;
 
         if (!_where || !_orderBy || !_query || !_limit) {
-            throw new Error('loadTransactionsForDateRange: Firebase SDK chưa sẵn sàng.');
+            console.warn('[paginatedQuery] loadTransactionsForDateRange: Firebase SDK chưa sẵn sàng.');
+            return [];
         }
 
         const _builder = (cursor) => {
@@ -464,7 +461,7 @@ export async function loadTransactionsForDateRange({
             console.warn('[paginatedQuery] loadTransactionsForDateRange error:', msg);
         }
         if (qs) _recordWarn(`loadTransactionsForDateRange:${startDate}~${endDate}`, reason);
-        throw err;
+        return [];
     }
 }
 
@@ -504,7 +501,8 @@ export async function loadTransactionsForTxMonthRange({
     const t0 = Date.now();
 
     if (!colRef || !startMonth || !endMonth) {
-        throw new Error('loadTransactionsForTxMonthRange: thiếu colRef / startMonth / endMonth.');
+        console.warn('[paginatedQuery] loadTransactionsForTxMonthRange: thiếu colRef / startMonth / endMonth.');
+        return [];
     }
 
     try {
@@ -516,7 +514,8 @@ export async function loadTransactionsForTxMonthRange({
         const _limit      = sdk.limit;
 
         if (!_where || !_orderBy || !_query || !_limit) {
-            throw new Error('loadTransactionsForTxMonthRange: Firebase SDK chưa sẵn sàng.');
+            console.warn('[paginatedQuery] loadTransactionsForTxMonthRange: Firebase SDK chưa sẵn sàng.');
+            return [];
         }
 
         const _builder = (cursor) => {
@@ -563,7 +562,7 @@ export async function loadTransactionsForTxMonthRange({
             console.warn('[paginatedQuery] loadTransactionsForTxMonthRange error:', msg);
         }
         if (qs) _recordWarn(`loadTransactionsForTxMonthRange:${startMonth}~${endMonth}`, reason);
-        throw err;
+        return [];
     }
 }
 
@@ -599,7 +598,8 @@ export async function loadInventoryForDateRange({
     const t0 = Date.now();
 
     if (!invRef || !startDate || !endDate) {
-        throw new Error('loadInventoryForDateRange: thiếu invRef / startDate / endDate.');
+        console.warn('[paginatedQuery] loadInventoryForDateRange: thiếu invRef / startDate / endDate.');
+        return [];
     }
 
     try {
@@ -611,7 +611,8 @@ export async function loadInventoryForDateRange({
         const _limit      = sdk.limit;
 
         if (!_where || !_orderBy || !_query || !_limit) {
-            throw new Error('loadInventoryForDateRange: Firebase SDK chưa sẵn sàng.');
+            console.warn('[paginatedQuery] loadInventoryForDateRange: Firebase SDK chưa sẵn sàng.');
+            return [];
         }
 
         const _builder = (cursor) => {
@@ -658,7 +659,7 @@ export async function loadInventoryForDateRange({
             console.warn('[paginatedQuery] loadInventoryForDateRange error:', msg);
         }
         if (qs) _recordWarn(`loadInventoryForDateRange:${startDate}~${endDate}`, reason);
-        throw err;
+        return [];
     }
 }
 

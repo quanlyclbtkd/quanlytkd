@@ -131,11 +131,6 @@
     return String(pp.profileId || pp.id || pp.uid || pp.memberId || _displayName(name, pp) || '').trim();
   }
 
-  function _stableProfileId(p) {
-    var pp = p || {};
-    return String(pp.profileId || pp.id || pp.uid || pp.memberId || pp.memberID || pp.studentId || '').trim();
-  }
-
   function _canonicalBranch(value, fallback) {
     if (typeof window !== 'undefined' && window.BranchIdentity && typeof window.BranchIdentity.normalize === 'function') {
       return window.BranchIdentity.normalize(value, { fallback: fallback || 'CS1' });
@@ -204,127 +199,23 @@
 
   function _txMatchesProfile(tx, profile, name) {
     var p = profile || {};
-    var stableProfileId = _stableProfileId(p);
-    var txStableId = String((tx && (tx.profileId || tx.studentId || tx.memberId || tx.memberID)) || '').trim();
-    if (stableProfileId && txStableId) return txStableId === stableProfileId;
-
+    var pid = _profileId(name, p);
     var display = _fold(_displayName(name, p));
+    var txPid = String((tx && (tx.profileId || tx.studentId || tx.memberId || tx.memberID)) || '').trim();
+    if (pid && txPid && txPid === pid) return true;
     var txName = _fold(tx && (tx.studentName || tx.name || tx.profileName || tx.memberName));
-    if (display && txName) return display === txName;
-
-    var legacyDescription = _fold(tx && tx.description);
-    return !!(display && legacyDescription && display === legacyDescription);
-  }
-
-  function getTuitionMonthSettlement(profile, month, options) {
-    var p = profile || {};
-    var target = normalizeMonth(month);
-    if (!target) return { month: '', paid: false, settled: false, skipped: false, reason: 'invalid-month' };
-    var skippedMonths = normalizeMonthList(p.skippedMonths);
-    if (skippedMonths.includes(target)) {
-      return { month: target, paid: false, settled: false, skipped: true, reason: 'skipped-month' };
-    }
-    var paidUntil = normalizeMonth(p.paidUntil || '');
-    var paidMonths = normalizeMonthList(p.paidMonths);
-    if (paidMonths.includes(target)) {
-      return {
-        month: target, paid: true, settled: true, skipped: false,
-        reason: paidUntil && target <= paidUntil ? 'paid-month-and-paid-until' : 'paid-month'
-      };
-    }
-    if (paidUntil && target <= paidUntil) {
-      return { month: target, paid: true, settled: true, skipped: false, reason: 'legacy-paid-until' };
-    }
-    if (!(options && options.allowTransactionFallback === false)) {
-      var txPaidMonths = extractTuitionTransactionMonths(p, (options && options.name) || _displayName('', p), options || {});
-      if (txPaidMonths.includes(target)) {
-        return { month: target, paid: true, settled: true, skipped: false, reason: 'transaction-fallback' };
-      }
-    }
-    return { month: target, paid: false, settled: false, skipped: false, reason: 'unpaid' };
-  }
-
-  function reconcilePaidUntilFromMonthEvidence(profile, paidMonths, options) {
-    var p = profile || {};
-    var opt = options || {};
-    var skipped = normalizeMonthList(p.skippedMonths);
-    var paid = normalizeMonthList(paidMonths);
-    var previous = normalizeMonth(p.paidUntil || '');
-    var allowRegression = opt.allowRegression === true;
-    var removedMonths = normalizeMonthList(opt.removedMonths || opt.monthsActuallyRemoved);
-
-    // Reversal baseline is derived from the months actually removed, not only
-    // from the remaining explicit paidMonths array. This preserves legacy
-    // contiguous coverage when deleting a future gap payment (e.g. Aug baseline
-    // + explicit Oct, delete Oct => baseline stays Aug), while allowing a real
-    // removal inside the previous contiguous boundary to reopen only the
-    // affected suffix.
-    if (allowRegression && previous && removedMonths.length) {
-      var affectingBoundary = removedMonths.filter(function (month) {
-        return month <= previous && !skipped.includes(month);
-      });
-      if (!affectingBoundary.length) return previous;
-      var boundary = addMonths(affectingBoundary[0], -1);
-      while (boundary && skipped.includes(boundary)) boundary = addMonths(boundary, -1);
-      return boundary;
-    }
-
-    if (!paid.length) return allowRegression ? '' : previous;
-
-    if (!allowRegression && previous) {
-      var paidSet = new Set(paid);
-      var maxPaid = paid[paid.length - 1];
-      var cursor = addMonths(previous, 1);
-      var contiguous = previous;
-      while (cursor && cursor <= maxPaid) {
-        if (skipped.includes(cursor)) { cursor = addMonths(cursor, 1); continue; }
-        if (!paidSet.has(cursor)) break;
-        contiguous = cursor;
-        cursor = addMonths(cursor, 1);
-      }
-      return contiguous;
-    }
-
-    var contiguousEnd = paid[0];
-    for (var i = 1; i < paid.length; i++) {
-      var cursor2 = addMonths(contiguousEnd, 1);
-      while (cursor2 && cursor2 < paid[i] && skipped.includes(cursor2)) cursor2 = addMonths(cursor2, 1);
-      if (cursor2 !== paid[i]) break;
-      contiguousEnd = paid[i];
-    }
-    return contiguousEnd;
-  }
-
-  function areTuitionMonthsSettled(profile, months, options) {
-    var normalized = normalizeMonthList(Array.isArray(months) ? months : [months]);
-    var states = normalized.map(function (month) { return getTuitionMonthSettlement(profile, month, options || {}); });
-    return {
-      months: normalized,
-      states: states,
-      allSettled: states.length > 0 && states.every(function (state) { return state.paid === true; }),
-      paidMonths: states.filter(function (state) { return state.paid === true; }).map(function (state) { return state.month; }),
-      skippedMonths: states.filter(function (state) { return state.skipped === true; }).map(function (state) { return state.month; }),
-      unpaidMonths: states.filter(function (state) { return state.paid !== true; }).map(function (state) { return state.month; })
-    };
+    return !!(display && txName && display === txName);
   }
 
   function extractTuitionTransactionMonths(profile, name, options) {
     var out = [];
     _txArray(options).forEach(function (tx) {
-      if (!tx || tx.deleted === true || tx.isDeleted === true) return;
-      var status = _fold(tx.status || tx.state || '');
-      if (status === 'deleted' || status === 'reversed' || status === 'void') return;
       if (!_looksLikeTuitionTx(tx) || !_txMatchesProfile(tx, profile, name)) return;
       var candidates = [];
-      if (Array.isArray(tx.packageMonths)) candidates = candidates.concat(tx.packageMonths);
-      if (Array.isArray(tx.accountingMonths)) candidates = candidates.concat(tx.accountingMonths);
       if (Array.isArray(tx.months)) candidates = candidates.concat(tx.months);
       if (Array.isArray(tx.tuitionMonths)) candidates = candidates.concat(tx.tuitionMonths);
       if (Array.isArray(tx.paidMonths)) candidates = candidates.concat(tx.paidMonths);
-      candidates = candidates.concat([
-        tx.txMonth, tx.month, tx.tuitionMonth, tx.paymentMonth,
-        tx.primaryAccountingMonth, tx.paidUntil, tx.period, tx.forMonth
-      ]);
+      candidates = candidates.concat([tx.month, tx.tuitionMonth, tx.paidUntil, tx.period, tx.forMonth]);
       normalizeMonthList(candidates).forEach(function (m) { if (!out.includes(m)) out.push(m); });
     });
     return out.sort();
@@ -346,9 +237,12 @@
     var trustFuturePaidMonths = opt.trustFuturePaidMonths === true;
     var trustTransactionMonths = opt.trustTransactionMonths === true;
 
-    var trustedPaidMonths = rawPaidMonths.slice();
-    var futurePaidMonthsAfterPaidUntil = paidUntil ? rawPaidMonths.filter(function (m) { return m > paidUntil; }) : [];
-    var ignoredFuturePaidMonthsAfterPaidUntil = [];
+    var trustedPaidMonths = paidUntil && !trustFuturePaidMonths
+      ? rawPaidMonths.filter(function (m) { return m <= paidUntil; })
+      : rawPaidMonths.slice();
+    var ignoredFuturePaidMonthsAfterPaidUntil = paidUntil && !trustFuturePaidMonths
+      ? rawPaidMonths.filter(function (m) { return m > paidUntil; })
+      : [];
 
     if (!paidUntil && txPaidMonths.length) {
       // Safe fallback only when profile paidUntil is absent. Existing profile boundary remains authoritative.
@@ -358,7 +252,7 @@
       warnings.push('transaction-months-after-paidUntil-not-used-for-debt-suppression');
     }
 
-    if (futurePaidMonthsAfterPaidUntil.length) warnings.push('paidMonths-after-paidUntil-preserved');
+    if (paidUntil && ignoredFuturePaidMonthsAfterPaidUntil.length) warnings.push('paidMonths-after-paidUntil-ignored');
     if (p.isOwed === false || (Array.isArray(p.owedMonths) && p.owedMonths.length === 0)) warnings.push('legacy-owed-flags-not-authoritative');
 
     var hiddenReasons = [];
@@ -374,16 +268,13 @@
         startMonth = normalizeMonth(p.admissionDate || p.joinDate || p.joinedAt || p.createdAt || p.enrollDate || selected) || selected;
       }
       var cur = startMonth;
-      var fromParts = startMonth.split('-').map(Number);
-      var toParts = selected.split('-').map(Number);
-      var span = (toParts[0] - fromParts[0]) * 12 + toParts[1] - fromParts[1] + 1;
-      if (!Number.isInteger(span) || span > 960) {
-        throw new Error('Không thể tính đủ nợ học phí: khoảng tháng không hợp lệ hoặc vượt 80 năm.');
-      }
-      while (cur && cur <= selected) {
+      var guard = 0;
+      while (cur && cur <= selected && guard < 60) {
         if (!skippedMonths.includes(cur) && !trustedPaidMonths.includes(cur)) chargeableMonths.push(cur);
         cur = addMonths(cur, 1);
+        guard++;
       }
+      if (guard >= 60) warnings.push('month-loop-guard-hit');
       if (p.isOwed === true && Array.isArray(p.owedMonths)) {
         normalizeMonthList(p.owedMonths).forEach(function (m) {
           if (m <= selected && !skippedMonths.includes(m) && !trustedPaidMonths.includes(m) && !chargeableMonths.includes(m)) {
@@ -405,7 +296,6 @@
       paidMonthsCanonical: rawPaidMonths,
       trustedPaidMonthsForDebt: trustedPaidMonths,
       ignoredFuturePaidMonthsAfterPaidUntil: ignoredFuturePaidMonthsAfterPaidUntil,
-      futurePaidMonthsAfterPaidUntil: futurePaidMonthsAfterPaidUntil,
       transactionPaidMonths: txPaidMonths,
       skippedMonthsRaw: Array.isArray(p.skippedMonths) ? p.skippedMonths.slice() : [],
       skippedMonthsCanonical: skippedMonths,
@@ -447,7 +337,7 @@
       if (!d.profileState.profileId) summary.missingProfileId++;
       if (!d.profileState.branchRaw) summary.missingBranch++;
       if (p.paidUntil && !d.paidUntilCanonical) summary.paidUntilFormatIssues++;
-      if (d.futurePaidMonthsAfterPaidUntil.length) summary.paidMonthsAfterPaidUntil++;
+      if (d.ignoredFuturePaidMonthsAfterPaidUntil.length) summary.paidMonthsAfterPaidUntil++;
       if (p.isOwed === false || (Array.isArray(p.owedMonths) && p.owedMonths.length === 0)) summary.legacyOwedFlagsNotAuthoritative++;
       if (p.feeExempt === true) summary.feeExemptProfiles++;
       if (Array.isArray(p.skippedMonths) && p.skippedMonths.length) summary.skippedMonthProfiles++;
@@ -508,9 +398,6 @@
     addMonths: addMonths,
     normalizeMonthList: normalizeMonthList,
     deriveProfileCanonicalState: deriveProfileCanonicalState,
-    getTuitionMonthSettlement: getTuitionMonthSettlement,
-    areTuitionMonthsSettled: areTuitionMonthsSettled,
-    reconcilePaidUntilFromMonthEvidence: reconcilePaidUntilFromMonthEvidence,
     computeProfileDebt: computeProfileDebt,
     auditProfiles: auditProfiles,
     debugDebtTrace: debugDebtTrace,
@@ -520,9 +407,6 @@
   window.TuitionDebtCanonical = api;
   window.normalizeTuitionDebtMonth = normalizeMonth;
   window.deriveProfileCanonicalState = deriveProfileCanonicalState;
-  window.getTuitionMonthSettlement = getTuitionMonthSettlement;
-  window.areTuitionMonthsSettled = areTuitionMonthsSettled;
-  window.reconcilePaidUntilFromMonthEvidence = reconcilePaidUntilFromMonthEvidence;
   window.computeTuitionDebtCanonical = computeProfileDebt;
   window.auditTuitionDebtCanonicalProfiles = function (selectedMonth, options) {
     var st = window.__store || {};

@@ -239,17 +239,8 @@ import { FinancialFlowMap }   from './core/financialFlowMap.js';
 import { SecurityPosture }   from './core/securityPosture.js';
 import { ActionGuard }        from './core/actionGuard.js';
 import { initCanonicalDomainCommandBoundary } from './core/canonicalDomainCommandBoundary.js?v=tuition-command-cutover-20260730-v5u2';
-<<<<<<< HEAD
-import { initStudentStatusCommandBoundary } from './core/studentStatusCommandBoundary.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1';
-import { initTuitionCommandBoundary } from './core/tuitionCommandBoundary.js?v=long-term-production-stability-20260917-v5u6h8r2';
-=======
-<<<<<<< HEAD
 import { initStudentStatusCommandBoundary } from './core/studentStatusCommandBoundary.js?v=tuition-command-cutover-20260730-v5u2';
-=======
-import { initStudentStatusCommandBoundary } from './core/studentStatusCommandBoundary.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1';
->>>>>>> parent of 1fa1b61 (upload 17-9)
 import { initTuitionCommandBoundary } from './core/tuitionCommandBoundary.js?v=tuition-command-cutover-20260730-v5u2';
->>>>>>> parent of 3efd58c (UPLOAD)
 // Phase 4K-6E: Transaction Delete Integrity
 import { TransactionDeleteIntegrity } from './core/transactionDeleteIntegrity.js';
 // Phase 4K-6F: Legacy App Kernel Audit + Diagnostics Extraction
@@ -284,7 +275,6 @@ import {
     loadQuitProfilesIfNeeded,
     ensureQuitProfilesComplete,
     isQuitProfilesComplete,
-    markQuitAuthorityDirty,
     cleanupQuitProfilesListener,
     loadFullProfilesFallback,
     isQuitProfilesLoaded,
@@ -293,10 +283,8 @@ import {
     getQuitStatusValues,
     getProfilesListenerMetrics,
     ensureAllProfilesForExport,
-} from './listeners/profiles.listeners.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1';
+} from './listeners/profiles.listeners.js?v=production-stability-residual-defect-closure-20260814-v5u6g';
 // Compatibility marker: ./listeners/profiles.listeners.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d
-
-// H8R2.1 cache compatibility: ./listeners/profiles.listeners.js?v=long-term-production-stability-20260917-v5u6h8r2 ; ./modules/attendance.js?v=long-term-production-stability-20260917-v5u6h8r2 ; ./core/studentStatusCommandBoundary.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1 ; ./modules/inventory.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h
 
 // ── Phase 3.7C: Profile Status Config ────────────────────────────────────────
 import {
@@ -362,22 +350,12 @@ import {
     invalidateSearchCache,
     debugSearchPerformance,
 } from './modules/searchRuntime.js?v=student-given-name-priority-20260811-v5u3';
-<<<<<<< HEAD
 import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from './modules/finance.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
 import { initInventory }                              from './modules/inventory.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
 // Compatibility marker: from './modules/attendance.js'
 import { initAttendance }                             from './modules/attendance.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
 // Compatibility marker: ./modules/attendance.js?v=attendance-explicit-shift-authority-20260814-v5u6f
 // V5U6G1 compatibility marker: ./modules/attendance.js?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1
-=======
-// Compatibility marker: ./modules/finance.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h
-import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from './modules/finance.js?v=long-term-production-stability-20260917-v5u6h8r2';
-import { initInventory }                              from './modules/inventory.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1';
-// Compatibility marker: from './modules/attendance.js'
-import { initAttendance }                             from './modules/attendance.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1';
-// Compatibility marker: ./modules/attendance.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
-// V5U6G1 compatibility marker: ./modules/attendance.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
->>>>>>> parent of 1fa1b61 (upload 17-9)
 import { initDashboard }                              from './modules/dashboard.js?v=dashboard-hydration-mutation-guard-20260812-v5u6c2';
 // V5U6C1 compatibility markers retained for lineage-only regression gates:
 // ./ui/render.js?v=dashboard-mutation-aware-cache-freshness-20260812-v5u6c1
@@ -1610,13 +1588,6 @@ function _waitForExistingLegacyApp(ms) {
             tabId = window.enforceRoleTab ? window.enforceRoleTab(tabId) : tabId;
             await ensureTabModule(tabId);
             if (typeof _origSwitchTab === 'function') _origSwitchTab(tabId);
-            // H8R2 Patch A: reuse the existing tab activation hook. Pagination
-            // reads are allowed only when Thu Chi is actually active.
-            if (tabId === 'tx' && typeof window.ensureTransactionPaginationForActiveTab === 'function') {
-                Promise.resolve(window.ensureTransactionPaginationForActiveTab('switch-tab-tx')).catch(function(error) {
-                    console.warn('[switchTab] transaction pagination activation failed:', error);
-                });
-            }
             // Phase 4K-4: Refresh exam fee UI when entering exam tab
             if (tabId === 'exam') {
                 if (typeof window.initExamFeeSettingUI === 'function') window.initExamFeeSettingUI();
@@ -2227,7 +2198,6 @@ function _waitForExistingLegacyApp(ms) {
         window.isQuitProfilesLoaded         = isQuitProfilesLoaded;
         window.ensureQuitProfilesComplete    = ensureQuitProfilesComplete;
         window.isQuitProfilesComplete        = isQuitProfilesComplete;
-        window.markQuitAuthorityDirty        = markQuitAuthorityDirty;
         window.isQuitStoreComplete           = isQuitComplete;
         window.markQuitStoreComplete         = markQuitComplete;
         window.resetProfilesListeners       = resetProfilesListeners;
@@ -5308,12 +5278,6 @@ window.isTuitionMonthStillPaidByAnotherTransaction = function(studentName, month
  */
 window.recalculatePaidUntilFromPaidMonths = function(profile, paidMonths, options) {
     options = options || {};
-    if (window.TuitionDebtCanonical && typeof window.TuitionDebtCanonical.reconcilePaidUntilFromMonthEvidence === 'function') {
-        return window.TuitionDebtCanonical.reconcilePaidUntilFromMonthEvidence(profile || {}, paidMonths || [], {
-            allowRegression: true,
-            removedMonths: options.monthsActuallyRemoved || options.removedMonths || [],
-        });
-    }
     var p = profile || {};
     var skipped = Array.isArray(p.skippedMonths)
         ? p.skippedMonths.map(function(m) { return String(m || '').slice(0, 7); })
@@ -5430,9 +5394,7 @@ window.reconcileStudentTuitionAfterDeletedTransaction = async function(studentNa
             return !monthsToRemove.includes(m);
         });
 
-        var newPaidUntil = window.recalculatePaidUntilFromPaidMonths(profile, newPaidMonths, Object.assign({}, options, {
-            monthsActuallyRemoved: monthsToRemove,
-        }));
+        var newPaidUntil = window.recalculatePaidUntilFromPaidMonths(profile, newPaidMonths, options);
 
         console.info('[reconcile] studentName:', studentName,
             'removing months:', monthsToRemove,
@@ -5466,18 +5428,14 @@ window.reconcileStudentTuitionAfterDeletedTransaction = async function(studentNa
             console.error('[reconcile] Lỗi ghi Firestore:', writeErr);
         }
 
-        // Sync local canonical state only after the profile reversal write is confirmed.
-        // If Firestore reconciliation fails, retaining the paid local state keeps
-        // QuickPay fail-closed and prevents a stale recollect from becoming tx-2.
-        if (writeOk) {
-            if (st.profiles && st.profiles[studentName]) {
-                st.profiles[studentName].paidMonths = newPaidMonths;
-                st.profiles[studentName].paidUntil  = newPaidUntil;
-            }
-            if (window.allProfiles && window.allProfiles[studentName]) {
-                window.allProfiles[studentName].paidMonths = newPaidMonths;
-                window.allProfiles[studentName].paidUntil  = newPaidUntil;
-            }
+        // Sync local store
+        if (st.profiles && st.profiles[studentName]) {
+            st.profiles[studentName].paidMonths = newPaidMonths;
+            st.profiles[studentName].paidUntil  = newPaidUntil;
+        }
+        if (window.allProfiles && window.allProfiles[studentName]) {
+            window.allProfiles[studentName].paidMonths = newPaidMonths;
+            window.allProfiles[studentName].paidUntil  = newPaidUntil;
         }
 
         // Refresh lists unless a command owner centralizes invalidation.

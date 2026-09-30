@@ -14,7 +14,6 @@ import vm from 'node:vm';
 
 const appJs = readFileSync('app.js', 'utf8');
 const indexHtml = readFileSync('index.html', 'utf8');
-const financeJs = readFileSync('js/modules/finance.js', 'utf8');
 
 let failures = 0;
 let checks = 0;
@@ -79,10 +78,7 @@ const quickStart = appJs.indexOf('window.quickCollectExam');
 const quickEnd = appJs.indexOf('window.processCombo', quickStart);
 const quickBlock = quickStart >= 0 ? appJs.slice(quickStart, quickEnd > quickStart ? quickEnd : quickStart + 5000) : '';
 check('quickCollectExam still exists as separate payment action', Boolean(quickBlock));
-const canonicalQuick = financeJs.slice(financeJs.indexOf('window.quickCollectExam ='), financeJs.indexOf('window.processCombo ='));
-check('legacy exam writer blocks until the canonical Finance owner loads',
-  quickBlock.includes('return false') && !quickBlock.includes('addDoc')
-  && canonicalQuick.includes("type:'Lệ phí thi'") && canonicalQuick.includes('FinanceService.addTransaction'));
+check('quickCollectExam still writes an exam-fee transaction', quickBlock.includes("type: 'Lệ phí thi'") && quickBlock.includes('addDoc'));
 
 // Dynamic behavior test with a deferred commit to exercise double-click protection.
 if (block) {

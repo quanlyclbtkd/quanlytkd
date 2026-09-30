@@ -1,4 +1,3 @@
-// H8R2 compatibility marker: attendance.service.js?v=long-term-production-stability-20260917-v5u6h8r2
 /**
  * modules/attendance.js — Phase 2h (Đầy đủ)
  * ────────────────────────────────────────────────────────────────
@@ -16,7 +15,7 @@
  * ────────────────────────────────────────────────────────────────
  */
 
-import { AttendanceService } from '../services/attendance.service.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1';
+import { AttendanceService } from '../services/attendance.service.js?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1';
 import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
 import { escapeHtml } from '../utils/helpers.js';
 
@@ -1024,11 +1023,12 @@ function _renderShiftSelector() {
         const _ss = document.getElementById(sid);
         if (!_ss) return;
         const _curVal = _ss.value;
-        _ss.replaceChildren(new Option('-- Không chọn ca --', ''));
+        let _sh = '<option value="">-- Không chọn ca --</option>';
         _clubShifts.forEach(function(s) {
             const _t = (s.timeStart && s.timeEnd) ? ' (' + s.timeStart + '\u2013' + s.timeEnd + ')' : '';
-            _ss.add(new Option(String(s.name || '') + _t, String(s.id || '')));
+            _sh += '<option value="' + s.id + '">' + s.name + _t + '</option>';
         });
+        _ss.innerHTML = _sh;
         _ss.value = _clubShifts.some(function(s) { return s.id === _curVal; }) ? _curVal : '';
     });
 }
@@ -1046,11 +1046,10 @@ function _renderShiftListInModal() {
     }
     listEl.innerHTML = _clubShifts.map(s => {
         const time = s.timeStart && s.timeEnd ? s.timeStart + ' – ' + s.timeEnd : 'Chưa đặt giờ';
-        const token = encodeURIComponent(String(s.id || '')).replace(/'/g, '%27');
         return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:6px;">'
-            + '<div style="min-width:0;"><div style="font-size:0.85rem;font-weight:800;color:#1e293b;">' + escapeHtml(String(s.name || '')) + '</div>'
-            + '<div style="font-size:0.72rem;color:#64748b;margin-top:1px;">🕐 ' + escapeHtml(String(time)) + '</div></div>'
-            + '<button onclick="window.deleteShift(decodeURIComponent(\'' + token + '\'))" type="button"'
+            + '<div style="min-width:0;"><div style="font-size:0.85rem;font-weight:800;color:#1e293b;">' + s.name + '</div>'
+            + '<div style="font-size:0.72rem;color:#64748b;margin-top:1px;">🕐 ' + time + '</div></div>'
+            + '<button onclick="window.deleteShift(\'' + s.id + '\')" type="button"'
             + ' style="flex-shrink:0;padding:6px 11px;background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:8px;font-size:0.72rem;font-weight:800;cursor:pointer;">🗑️ Xóa</button>'
             + '</div>';
     }).join('');
@@ -1419,7 +1418,6 @@ async function _requestAttendanceDailyRefresh(reason = 'compatibility-render', o
             branch: token.branch === 'all' ? '' : token.branch,
             shiftAuthorityMode: shiftDecision.mode,
             requireShift: shiftDecision.mode === 'explicit-shift',
-            isCurrent: () => _isAttendanceDailyTokenCurrent(token),
         });
         if (!_isAttendanceDailyTokenCurrent(token)) {
             _recordAttendanceDailyStale(token);
@@ -1445,9 +1443,6 @@ async function _requestAttendanceDailyRefresh(reason = 'compatibility-render', o
             return { stale: true, error: true, key: token.key };
         }
         console.warn('[Attendance] loadByDate failed:', error && error.message || error);
-        if (error?.code === 'attendance/daily-coverage-incomplete') {
-            window.showToast('⚠️ Dữ liệu điểm danh vượt giới hạn an toàn và chưa tải đủ. Hệ thống giữ dữ liệu cũ thay vì hiển thị thiếu.', 5000);
-        }
         _renderAttendanceDailyFromRam(token, reason + ':current-error-ram-preserved');
         return { error: true, key: token.key };
     }).finally(() => {
@@ -1871,36 +1866,16 @@ export function initAttendance() {
                     timestamp: Date.now()
                 }
             }));
-            const result = await AttendanceService.bulkSaveRecords(bulkRecords, {
-                chunkSize: 400,
-                onChunkCommitted(chunk) {
-                    const committedIds = new Set(chunk.map(row => String(row.docId || '')));
-                    pendingBulkMutations.forEach(record => {
-                        if (committedIds.has(String(record.docId || ''))) _removeAttOfflineMutation(record);
-                    });
-                }
-            });
+            await AttendanceService.bulkSaveRecords(bulkRecords);
 
+            pendingBulkMutations.forEach(_removeAttOfflineMutation);
             window.__attendanceDebug.cacheCount = Object.keys(_attendanceCache).length;
-            window.showToast('✅ Đã điểm danh hàng loạt ' + Number(result?.committed || unmarked.length) + ' võ sinh!', 3000);
+            window.showToast('✅ Đã điểm danh hàng loạt ' + unmarked.length + ' võ sinh!', 3000);
         } catch(e) {
-            const committedIds = new Set(Array.isArray(e?.committedIds) ? e.committedIds.map(String) : []);
-            const pendingRows = unmarked.filter(([name]) => !committedIds.has(getAttendanceDocId(name, writeDate, writeShiftId)));
-            // H8R2: only the uncommitted tail is rolled back; committed chunks stay
-            // canonical and their offline journal entries were already scoped-cleaned.
-            if (pendingRows.length > 0) {
-                _markAttendanceDailyMutation('bulkCheckIn-partial-rollback');
-                pendingRows.forEach(([name]) => { window.currentAttendanceData[name]=0; _attendanceCache[getAttendanceDocId(name, writeDate, writeShiftId)]=0; });
-                _renderAttCards();
-            }
-            const committed = Number(e?.committed || committedIds.size || 0);
-            const pending = Number(e?.pending || pendingRows.length || 0);
-            window.showToast(
-                committed > 0
-                    ? ('⚠️ Đã lưu ' + committed + ' võ sinh; còn ' + pending + ' bản ghi chưa lưu và vẫn đang chờ đồng bộ.')
-                    : '⚠️ Lỗi khi lưu điểm danh hàng loạt!',
-                4500
-            );
+            // [4J-6A] Rollback cache dùng đúng key theo ca tập
+            _markAttendanceDailyMutation('bulkCheckIn-rollback');
+            unmarked.forEach(([name]) => { window.currentAttendanceData[name]=0; _attendanceCache[getAttendanceDocId(name, writeDate, writeShiftId)]=0; });
+            _renderAttCards(); window.showToast('⚠️ Lỗi khi lưu điểm danh hàng loạt!', 3500);
         } finally {
             if (btn) { btn.disabled=false; btn.textContent='✅ Đánh dấu tất cả có mặt'; }
         }

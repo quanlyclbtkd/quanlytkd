@@ -10,7 +10,6 @@
 import { readFileSync, existsSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import vm from 'node:vm';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, '..');
@@ -81,14 +80,14 @@ check(
 
 // ── 4. processMultiItem lưu profileName ───────────────────────────────────
 check(
-    'processMultiItem giữ profileId=profileKey và profileName=displayName trong bundle',
+    'processMultiItem lưu profileName trong giao dịch Lệ phí thi',
     (function() {
         const idx = appJs.indexOf('window.processMultiItem');
         if (idx === -1) return false;
         const block = appJs.slice(idx, idx + 50000);
-        return block.includes('profileId: name') && block.includes('profileName: _miDisplayName') && block.includes('studentName: _miDisplayName');
+        return block.includes('profileName: name') || block.includes("profileName:name");
     })(),
-    'processMultiItem phải giữ identity profileId=name và chỉ dùng displayName cho nhãn'
+    'processMultiItem phải lưu profileName: name khi tạo giao dịch Lệ phí thi'
 );
 
 // ── 5. processMultiItem lưu examTargetBelt ────────────────────────────────
@@ -117,36 +116,26 @@ check(
 
 // ── 7. quickCollectExam trong app.js lưu studentName ─────────────────────
 check(
-<<<<<<< HEAD
-    'app.js quickCollectExam is a fail-closed bootstrap stub',
-=======
     'app.js quickCollectExam lưu studentName',
->>>>>>> parent of 3efd58c (UPLOAD)
     (function() {
         const idx = appJs.indexOf('window.quickCollectExam');
         if (idx === -1) return false;
         const block = appJs.slice(idx, idx + 5000);
-<<<<<<< HEAD
-        return block.includes('đang khởi tạo') && !/\b(addDoc|setDoc|updateDoc|deleteDoc)\s*\(/.test(block);
-    })(),
-    'Bootstrap không được ghi lệ phí thi trực tiếp'
-=======
         return block.includes('studentName: name') || block.includes("studentName:name");
     })(),
     'quickCollectExam trong app.js phải lưu studentName: name'
->>>>>>> parent of 3efd58c (UPLOAD)
 );
 
 // ── 8. quickCollectExam trong app.js lưu examTargetBelt ──────────────────
 check(
-    'finance.js quickCollectExam lưu examTargetBelt',
+    'app.js quickCollectExam lưu examTargetBelt',
     (function() {
-        const idx = financeJs.indexOf('window.quickCollectExam = async');
+        const idx = appJs.indexOf('window.quickCollectExam');
         if (idx === -1) return false;
-        const block = financeJs.slice(idx, idx + 3000);
+        const block = appJs.slice(idx, idx + 5000);
         return block.includes('examTargetBelt');
     })(),
-    'Canonical finance handler phải lưu examTargetBelt'
+    'quickCollectExam trong app.js phải lưu examTargetBelt'
 );
 
 // ── 9. finance.js quickCollectExam lưu studentName ───────────────────────
@@ -157,11 +146,7 @@ check(
         const idx = financeJs.indexOf('window.quickCollectExam = async');
         if (idx === -1) return false;
         const block = financeJs.slice(idx, idx + 5000);
-<<<<<<< HEAD
-        return /profileId\s*:\s*name/.test(block) && /studentName\s*:\s*displayName/.test(block);
-=======
         return block.includes('studentName: name') || block.includes("studentName:name");
->>>>>>> parent of 3efd58c (UPLOAD)
     })(),
     'quickCollectExam trong finance.js phải lưu studentName: name'
 );
@@ -207,108 +192,9 @@ check(
     'Thêm window.debugExamPaymentIdentity vào app.js (Phase 9)'
 );
 
-
-// ── 15. H8R2.1A: quickCollectExam must bind profile from existing local canonical map ──
-const _quickExamStart = financeJs.indexOf('window.quickCollectExam = async');
-const _quickExamEnd = _quickExamStart >= 0 ? financeJs.indexOf('// 8. processCombo', _quickExamStart) : -1;
-const _quickExamBlock = (_quickExamStart >= 0 && _quickExamEnd > _quickExamStart)
-    ? financeJs.slice(_quickExamStart, _quickExamEnd)
-    : '';
-
-check(
-    'H8R2.1A canonical quickCollectExam binds profile from local store',
-    /profile\s*=\s*_profiles\(\)\[name\]/.test(_quickExamBlock),
-    'Không được lấy hồ sơ từ biến ngoài scope hoặc đọc Firestore'
-);
-
-check(
-    'H8R2.1A quickCollectExam does not add Firestore profile reads',
-    !/\bgetDoc\s*\(|\bgetDocs\s*\(|\bonSnapshot\s*\(/.test(_quickExamBlock),
-    'Quick exam chỉ được lookup profile từ local RAM map'
-);
-
-check(
-    'H8R2.1A quickCollectExam does not mutate/create profile',
-    !/\bsetDoc\s*\(|\bupdateDoc\s*\(|\bdeleteDoc\s*\(|\bwriteBatch\s*\(/.test(_quickExamBlock),
-    'Quick exam chỉ tạo transaction hiện hữu, không được profile write'
-);
-
-// Dynamic QX: execute the production finance handler with only its I/O mocked.
-let _dynamicQuickExamError = null;
-let _dynamicQuickExamPayload = null;
-let _dynamicQuickExamAddCount = 0;
-try {
-    const profiles = { 'Nguyen Van A': { belt: 'Đai trắng - Cấp 10', branch: 'CS1', displayName: 'Nguyễn Văn Anh' } };
-    const store = { clubId: 'club-A', profiles, transactions: [], allTransactions: [] };
-    const sandbox = {
-        prompt() { return '250000'; },
-        document: {
-            getElementById(id) {
-                if (id === 'filterMonth') return { value: '2026-09' };
-                if (id === 'exam_fee_all_actual') return { value: '250000' };
-                return { value: '' };
-            }
-        },
-        getLocalToday() { return '2026-09-17'; },
-        _profiles() { return store.profiles; },
-        _clubId() { return store.clubId; },
-        _vMonth(v) { return /^\d{4}-(0[1-9]|1[0-2])$/.test(v); },
-        _positiveAmount(v) { return Number.isFinite(v) && v > 0 ? v : null; },
-        _guardAllowed(action) { return action === 'exam.collect'; },
-        FinanceService: { async addTransaction(payload) {
-            _dynamicQuickExamAddCount++; _dynamicQuickExamPayload = payload;
-            store.transactions.push({ id: 'tx-exam-1', ...payload }); return 'tx-exam-1';
-        } },
-        Date,
-        console: { log() {}, warn() {}, error() {} }
-    };
-    sandbox.window = {
-        __store: store,
-        buildCanonicalExamPaymentLedger({ transactions }) {
-            return { byName: Object.fromEntries(transactions.filter(t => t.type === 'Lệ phí thi').map(t => [t.profileId, t])) };
-        },
-        userRole: 'admin',
-        getClubExamFee() { return 250000; },
-        mergeTransactionIntoRuntimeStore(tx) { store.transactions.push(tx); },
-        BELT_NEXT: { 'Đai trắng - Cấp 10': 'Đai vàng - Cấp 9' },
-        ProfileCanonicalStore: {
-            resolveDisplayName(profileKey, profile) {
-                return String(profile?.displayName || profile?.name || profileKey || '').trim();
-            }
-        },
-        showToast() {},
-        renderExamList() {}
-    };
-    vm.runInNewContext(_quickExamBlock, sandbox, { filename: 'finance.quickCollectExam.vm.js' });
-    await sandbox.window.quickCollectExam('Nguyen Van A', 'CS1');
-    await sandbox.window.quickCollectExam('Nguyen Van A', 'CS1');
-} catch (error) {
-    _dynamicQuickExamError = error;
-}
-
-check(
-    'H8R2.1A dynamic quickCollectExam has no ReferenceError',
-    !_dynamicQuickExamError,
-    _dynamicQuickExamError ? String(_dynamicQuickExamError.stack || _dynamicQuickExamError) : ''
-);
-check(
-    'H8R2.1A dynamic quickCollectExam writes exactly one canonical exam transaction',
-    _dynamicQuickExamAddCount === 1,
-    `Expected addDoc=1, got ${_dynamicQuickExamAddCount}`
-);
-check(
-    'H8R2.1A dynamic quick exam preserves profileKey + displayName + branch + amount',
-    _dynamicQuickExamPayload?.profileId === 'Nguyen Van A' &&
-        _dynamicQuickExamPayload?.studentName === 'Nguyễn Văn Anh' &&
-        _dynamicQuickExamPayload?.profileName === 'Nguyễn Văn Anh' &&
-        _dynamicQuickExamPayload?.branch === 'CS1' &&
-        _dynamicQuickExamPayload?.amount === 250000,
-    'Payload phải giữ profileId=profileKey và display fields từ resolveDisplayName'
-);
-
 // ── Summary ───────────────────────────────────────────────────────────────
 console.log('');
-const total = 20;
+const total = 14;
 if (failures === 0) {
     console.log(`\x1b[32m✅ All checks passed (${total}/${total})\x1b[0m\n`);
     process.exit(0);

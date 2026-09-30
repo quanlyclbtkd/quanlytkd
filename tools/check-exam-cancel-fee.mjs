@@ -37,7 +37,6 @@ function check(label, condition, hint) {
 console.log('\n🔍 Phase 4K-4H — Exam Cancel Fee Check\n');
 
 const appJs = readFile('app.js');
-const financeService = readFile('js/services/finance.service.js') || '';
 
 check('app.js readable', !!appJs, 'Không tìm thấy app.js');
 
@@ -73,40 +72,36 @@ check(
 
 // ── 3. cancelExamPayment xử lý type 'Lệ phí thi' ─────────────────────────
 check(
-    'cancelExamPayment chỉ xóa thu phí thi thuần qua FinanceService và DeleteIntegrity',
-    (function() {
-        return appJs.includes('await financeOwner.cancelExamPayment(tx)')
-            && financeService.includes("tx.type === 'Lệ phí thi'")
-            && financeService.includes('impact?.safeToHardDelete')
-            && financeService.includes('await this.deleteTransaction(id)')
-            && financeService.includes('await deleteDoc(');
-    })(),
-    'Pure Exam phải qua FinanceService.deleteTransaction và TransactionDeleteIntegrity'
-);
-
-// ── 4. cancelExamPayment xử lý type 'Học phí + Lệ phí thi' ──────────────
-check(
-    'cancelExamPayment chỉ cập nhật lệ phí thi trong giao dịch mixed',
-    (function() {
-        return financeService.includes("tx.type !== 'Học phí + Lệ phí thi'")
-            && financeService.includes("type: 'Học phí', amount: Number(tx.tuitionAmount)")
-            && financeService.includes('await updateDoc(')
-            && !appJs.slice(appJs.indexOf('window.cancelExamPayment = async function'),
-                appJs.indexOf('// ─── Phase 4K-4H: Debug helpers')).includes('deleteDoc(');
-    })(),
-    'Mixed giữ tuitionAmount, ghi bản vá allowlist trong FinanceService'
-);
-
-// ── 5. cancelExamPayment cập nhật window.__store.transactions ─────────────
-check(
-    'cancelExamPayment cập nhật cả ba ledger local ngay sau commit',
+    'cancelExamPayment xử lý tx.type Lệ phí thi bằng deleteDoc',
     (function() {
         const idx = appJs.indexOf('window.cancelExamPayment');
         if (idx === -1) return false;
         const block = appJs.slice(idx, idx + 10000);
-        return block.includes('st.transactions = updateLocalExamLedger(st.transactions)')
-            && block.includes('st.allTransactions = updateLocalExamLedger(st.allTransactions)')
-            && block.includes('allTransactions = updateLocalExamLedger(allTransactions');
+        return block.includes("'Lệ phí thi'") && block.includes('deleteDoc');
+    })(),
+    'cancelExamPayment phải gọi deleteDoc khi type là "Lệ phí thi"'
+);
+
+// ── 4. cancelExamPayment xử lý type 'Học phí + Lệ phí thi' ──────────────
+check(
+    'cancelExamPayment xử lý tx.type Học phí + Lệ phí thi bằng updateDoc',
+    (function() {
+        const idx = appJs.indexOf('window.cancelExamPayment');
+        if (idx === -1) return false;
+        const block = appJs.slice(idx, idx + 10000);
+        return block.includes("'Học phí + Lệ phí thi'") && block.includes('updateDoc');
+    })(),
+    'cancelExamPayment phải gọi updateDoc (không xóa học phí) khi type là "Học phí + Lệ phí thi"'
+);
+
+// ── 5. cancelExamPayment cập nhật window.__store.transactions ─────────────
+check(
+    'cancelExamPayment cập nhật window.__store.transactions ngay',
+    (function() {
+        const idx = appJs.indexOf('window.cancelExamPayment');
+        if (idx === -1) return false;
+        const block = appJs.slice(idx, idx + 10000);
+        return block.includes('window.__store.transactions');
     })(),
     'cancelExamPayment phải cập nhật window.__store.transactions để UI phản ánh ngay'
 );

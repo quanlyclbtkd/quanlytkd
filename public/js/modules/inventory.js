@@ -1,4 +1,3 @@
-// H8R2 compatibility marker: inventory.service.js?v=long-term-production-stability-20260917-v5u6h8r2
 // Compatibility marker: inventory.service.js?v=inventory-ledger-reconciliation-20260616-v2c
 /**
  * modules/inventory.js — Phase 2f
@@ -40,7 +39,7 @@
 
 import { getLocalToday } from '../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
 import { escapeHtml } from '../utils/helpers.js';
-import { InventoryService } from '../services/inventory.service.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1';
+import { InventoryService } from '../services/inventory.service.js?v=firestore-read-attribution-canonical-tx-boundary-20260616-v3a';
 
 // ════════════════════════════════════════════════════════════════
 // BRIDGE HELPERS — đọc state từ window.__store tại call-time
@@ -417,7 +416,6 @@ export function initInventory() {
         _invFormEl.onsubmit = async (e) => {
             e.preventDefault();
             if (window.userRole === 'viewer') return alert('Tài khoản khách không thể nhập xuất kho!');
-            if (_invFormEl.dataset.atomicSubmitInFlight === '1') return;
 
             const category = (document.getElementById('inv_category') || {}).value || 'Võ phục';
             const _invSizeEl    = document.getElementById('inv_size');
@@ -438,61 +436,50 @@ export function initInventory() {
             const isUnpaid = type === 'Xuất bán'
                 && document.getElementById('inv_unpaid')
                 && document.getElementById('inv_unpaid').checked;
-            const validDate = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(date)
-                && new Date(date + 'T00:00:00Z').toISOString().slice(0, 10) === date;
-            if (!['Nhập kho', 'Xuất bán'].includes(type) || !Number.isInteger(qty) || qty <= 0
-                || !Number.isFinite(amount) || amount < 0 || (isUnpaid && amount <= 0)
-                || !validDate || !category.trim()) return window.showToast('⚠️ Dữ liệu Kho không hợp lệ.');
-            try {
-                if (typeof window.guardFinancialWriteIntent !== 'function'
-                    || typeof window.isFinancialWriteAllowed !== 'function'
-                    || window.isFinancialWriteAllowed(window.guardFinancialWriteIntent('inventory.create', { amount, qty, type, category })) !== true) return;
-            } catch (_) { return; }
 
-            _invFormEl.dataset.atomicSubmitInFlight = '1';
-            try {
             const invData = { category, size, type, qty, desc, amount, date, timestamp: Date.now() };
             if (isUnpaid) {
                 invData.unpaid = true;
                 invData.inventoryDebtStatus = 'pending';
             }
 
-            const prepared = InventoryService.prepareAddItemMutation(invData);
-            const invId = prepared.itemRef.id;
-            let txData = null;
+            const invId = await InventoryService.addItem(invData);
+
+            // Phase 4K-4D: Nhập kho → Chi ngay. Xuất bán có nợ → KHÔNG tạo tx doanh thu.
             if (type === 'Nhập kho' && amount > 0) {
-                txData = {
+                // Chi nhập kho → cộng chi ngay
+                await InventoryService.addTransaction({
                     branch: 'Chung',
                     type:   `Chi ${category}`,
                     description: `Nhập ${category} ${size} từ ${desc}`,
                     amount, date,
                     timestamp: Date.now(),
                     relatedInvId: invId,
-                };
+                });
             } else if (type === 'Xuất bán' && !isUnpaid && amount > 0) {
-                txData = {
+                // Xuất bán đã thu tiền ngay → cộng doanh thu
+                await InventoryService.addTransaction({
                     branch: 'Chung',
                     type:   `Thu ${category}`,
                     description: `Bán ${category} ${size} cho ${desc}`,
                     amount, date,
                     timestamp: Date.now(),
                     relatedInvId: invId,
-                };
+                });
+            } else if (type === 'Xuất bán' && isUnpaid) {
+                // Bán nợ → KHÔNG tạo transaction doanh thu. Chờ "Đã Thu" mới cộng.
+                // (inventoryDebtStatus: 'pending' đã set trong invData nếu cần)
             } else if (type === 'Xuất bán' && amount === 0) {
-                txData = {
+                // Tặng (amount = 0)
+                await InventoryService.addTransaction({
                     branch: 'Chung',
                     type:   `Tặng ${category}`,
                     description: `Tặng ${category} ${size} cho ${desc}`,
                     amount: 0, date,
                     timestamp: Date.now(),
                     relatedInvId: invId,
-                };
+                });
             }
-            const financeOwner = window.FinanceService;
-            if (txData && typeof financeOwner?.prepareTransactionMutation !== 'function')
-                throw new Error('[Inventory] Finance owner chưa sẵn sàng.');
-            const financeTx = txData ? financeOwner.prepareTransactionMutation(txData, 'inventory-form') : null;
-            await InventoryService.commitPreparedAddItem({ prepared, financeTx });
 
             // Reset form về trạng thái mặc định
             e.target.reset();
@@ -509,10 +496,6 @@ export function initInventory() {
             window.populateInvCategorySelects && window.populateInvCategorySelects();
             window.toggleInvType && window.toggleInvType();
             window.showToast('✅ Đã cập nhật Kho!');
-            } catch (error) {
-                console.error('[inventoryForm] Atomic write failed:', error);
-                window.showToast('❌ Chưa lưu Kho và chứng từ. Vui lòng kiểm tra lại.');
-            } finally { delete _invFormEl.dataset.atomicSubmitInFlight; }
         };
     }
 
@@ -548,7 +531,6 @@ export function initInventory() {
 
                 const txData = await InventoryService.getTransaction(txId);
                 if (txData) {
-                    window.__editingInventoryTransactionOriginal = { ...txData };
                     setVal('ei_desc',          txData.description || '');
                     setVal('ei_amountActual',   txData.amount || 0);
                     setVal('ei_amountDisplay', (txData.amount || 0).toLocaleString('vi-VN'));
@@ -567,8 +549,6 @@ export function initInventory() {
     window.closeEditInvModal = () => {
         const el = document.getElementById('editInvModal');
         if (el) el.style.display = 'none';
-        window.__editingInventoryOriginal = null;
-        window.__editingInventoryTransactionOriginal = null;
     };
 
     /**
@@ -577,24 +557,9 @@ export function initInventory() {
      */
     window.markInvPaid = async (invId) => {
         if (window.userRole !== 'admin') return;
-        if (window.markInvPaid.__inFlight) return;
-        try {
-            if (typeof window.guardFinancialWriteIntent !== 'function'
-                || typeof window.isFinancialWriteAllowed !== 'function'
-                || window.isFinancialWriteAllowed(window.guardFinancialWriteIntent('inventory.markPaid', { invId })) !== true) return;
-        } catch (_) { return; }
         if (!confirm('Xác nhận đã thu tiền cho đơn hàng nợ này?')) return;
-        const audit = (stage, extra = {}) => {
-            try {
-                const pending = window.recordFinancialActionAudit?.('inventory.markPaid', stage, { invId, ...extra });
-                if (pending && typeof pending.catch === 'function') pending.catch(e => console.warn('[inventory.markPaid] audit:', e));
-            } catch (e) { console.warn('[inventory.markPaid] audit:', e); }
-        };
-        window.markInvPaid.__inFlight = true;
         try {
-            audit('before');
             const result = await InventoryService.markPaid(invId);
-            audit('after', { txId: result?.txId || '', alreadyPaid: !!result?.alreadyPaid });
             if (result && result.alreadyPaid) {
                 window.showToast('ℹ️ Đơn này đã được thu trước đó');
             } else {
@@ -609,10 +574,9 @@ export function initInventory() {
                 window.invalidateSearchCache('finance',   'inventory-debt-paid');
             }
         } catch (err) {
-            audit('error', { error: err && err.message || String(err) });
             console.error('[inventory.js] markInvPaid lỗi:', err);
             alert('Lỗi khi cập nhật!');
-        } finally { window.markInvPaid.__inFlight = false; }
+        }
     };
 
     /**
@@ -632,23 +596,6 @@ export function initInventory() {
         const date  = getVal('ei_date');
         const desc  = getVal('ei_desc').trim();
         const amount = Number(getVal('ei_amountActual'));
-        const previous = window.__editingInventoryOriginal;
-        const previousTx = window.__editingInventoryTransactionOriginal;
-        const validDate = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(date)
-            && new Date(date + 'T00:00:00Z').toISOString().slice(0, 10) === date;
-        // Cross-type, paid-state and gift/paid transitions need a separate ledger contract.
-        if (!previous || String(previous.id) !== String(invId) || !previousTx
-            || String(previousTx.id) !== String(txId) || String(previousTx.relatedInvId) !== String(invId)
-            || previous.type !== type || previous.unpaid === true
-            || !['Nhập kho','Xuất bán'].includes(type) || !eiCat.trim() || !size
-            || !Number.isInteger(qty) || qty <= 0 || !Number.isFinite(amount) || amount < 0
-            || !validDate || (Number(previous.amount) === 0) !== (amount === 0))
-            return window.showToast('⚠️ Chuyển trạng thái Kho này chưa được hỗ trợ. Dữ liệu chưa thay đổi.');
-        try {
-            if (typeof window.guardFinancialWriteIntent !== 'function'
-                || typeof window.isFinancialWriteAllowed !== 'function'
-                || window.isFinancialWriteAllowed(window.guardFinancialWriteIntent('inventory.edit', { invId, txId, amount })) !== true) return;
-        } catch (_) { return; }
 
         const invPayload = { category: eiCat, size, type, qty, date, desc, description: desc, amount };
         if (type === 'Xuất bán') {
@@ -661,17 +608,15 @@ export function initInventory() {
                 if (identity.studentName) invPayload.studentName = identity.studentName;
             }
         }
-        const txType = type === 'Nhập kho' ? `Chi ${eiCat}` : (amount === 0 ? `Tặng ${eiCat}` : `Thu ${eiCat}`);
+        const txType = type === 'Nhập kho' ? `Chi ${eiCat}` : `Thu ${eiCat}`;
         await InventoryService.updateItem(invId, invPayload, {
-            previous,
+            previous: window.__editingInventoryOriginal || null,
             relatedTransaction: {
                 id: txId,
-                data: { type: txType, description: desc, amount, date },
-                previous: previousTx
+                data: { type: txType, description: desc, amount, date }
             }
         });
         window.__editingInventoryOriginal = null;
-        window.__editingInventoryTransactionOriginal = null;
 
         const modal = document.getElementById('editInvModal');
         if (modal) modal.style.display = 'none';

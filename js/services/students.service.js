@@ -144,15 +144,6 @@ export const StudentService = {
 
     // ── CREATE ──────────────────────────────────────────────────
 
-    /** Pure admission plan. The existing student coordinator commits this ref
-     * with the Finance and Inventory plans in one Firestore batch. */
-    prepareProfileMutation(key, data) {
-        if (!String(key || '').trim() || !data || typeof data !== 'object') {
-            throw new Error('[StudentService] Hồ sơ nhập học không hợp lệ.');
-        }
-        return { profileRef: _profRef(key), profilePayload: { ...data } };
-    },
-
     /**
      * Tạo profile doc mới (setDoc — tạo mới hoặc ghi đè).
      * @param {string} key  — doc ID (tên võ sinh, có thể là "Tên (năm-Nick)")

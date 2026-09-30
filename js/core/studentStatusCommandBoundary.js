@@ -80,17 +80,6 @@ function _getProfile(name) {
   return window.__store?.profiles?.[key] || window.allProfiles?.[key] || {};
 }
 
-
-function _isQuitProfile(profile) {
-  if (!profile || typeof profile !== 'object') return false;
-  try {
-    if (typeof window !== 'undefined' && typeof window.classifyProfileStatus === 'function') {
-      return window.classifyProfileStatus(profile) === 'quit';
-    }
-  } catch (_) {}
-  return String(profile.status || '').trim().toLowerCase() === 'quit';
-}
-
 function _commitProfilePatch(name, patch, reason) {
   if (typeof window === 'undefined') return;
   const key = String(name || '').trim();
@@ -104,18 +93,6 @@ function _commitProfilePatch(name, patch, reason) {
     if (!window.__store.profiles) window.__store.profiles = {};
     window.__store.profiles[key] = next;
   } catch (_) {}
-<<<<<<< HEAD
-=======
-  try { window.StudentSearchIndex?.invalidate?.(reason); } catch (_) {}
-  try { window.invalidateSearchCache?.('students', reason); } catch (_) {}
->>>>>>> parent of 1fa1b61 (upload 17-9)
-
-  // H8R2.1 R4: same-status edits of an already-quit profile are invisible to
-  // the active-profile membership listener. Dirty the EXISTING lazy Quit
-  // authority locally after the canonical write succeeds; no new listener/read.
-  if (_isQuitProfile(previous) || _isQuitProfile(next)) {
-    try { window.markQuitAuthorityDirty?.(`${reason}:quit-profile-mutation`); } catch (_) {}
-  }
 
   // Attendance does not share the students computation domain; invalidate it explicitly.
   try { window.invalidateList?.('attendance.list', reason); } catch (_) {}
@@ -169,23 +146,15 @@ export const StudentStatusCommandBoundary = Object.freeze({
     const newKey = String(newName || oldName || '').trim();
     if (!oldKey || !newKey) throw new Error('[StudentStatusCommandBoundary] Thiếu tên võ sinh.');
     return _run('student.updateProfile', `${oldKey}|${newKey}`, async () => {
-      const mutate = async () => {
-        const svc = _service();
-        if (oldKey !== newKey) {
-          await svc.renameWithBatch(oldKey, newKey, updateData, txUpdates);
-          _commitRename(oldKey, newKey, updateData, 'v5u1-profile-rename');
-        } else {
-          await svc.updateProfile(oldKey, updateData);
-          _commitProfilePatch(oldKey, updateData, 'v5u1-profile-update');
-        }
-        return { oldName: oldKey, newName: newKey, renamed: oldKey !== newKey };
-      };
-      const tuitionFields = ['paidUntil', 'paidMonths', 'skippedMonths'];
-      const tuitionAffecting = !!(updateData && tuitionFields.some((field) => Object.prototype.hasOwnProperty.call(updateData, field)));
-      if (!tuitionAffecting) return mutate();
-      const lane = window.TuitionCommandBoundary?.runInProfileTuitionMutationLane;
-      if (typeof lane !== 'function') throw new Error('[StudentStatusCommandBoundary] Tuition profile mutation lane chưa sẵn sàng.');
-      return lane.call(window.TuitionCommandBoundary, { studentName: oldKey, reason: 'student.updateProfile-tuition-fields' }, mutate);
+      const svc = _service();
+      if (oldKey !== newKey) {
+        await svc.renameWithBatch(oldKey, newKey, updateData, txUpdates);
+        _commitRename(oldKey, newKey, updateData, 'v5u1-profile-rename');
+      } else {
+        await svc.updateProfile(oldKey, updateData);
+        _commitProfilePatch(oldKey, updateData, 'v5u1-profile-update');
+      }
+      return { oldName: oldKey, newName: newKey, renamed: oldKey !== newKey };
     });
   },
 
@@ -203,15 +172,11 @@ export const StudentStatusCommandBoundary = Object.freeze({
     const key = String(name || '').trim();
     const m = String(month || '').trim();
     return _run('student.addSkippedMonth', `${key}|${m}`, async () => {
-      const lane = window.TuitionCommandBoundary?.runInProfileTuitionMutationLane;
-      if (typeof lane !== 'function') throw new Error('[StudentStatusCommandBoundary] Tuition profile mutation lane chưa sẵn sàng.');
-      return lane.call(window.TuitionCommandBoundary, { studentName: key, reason: 'student.addSkippedMonth' }, async () => {
-        await _service().addSkippedMonth(key, m);
-        try { window.syncStudentSkippedMonthLocal?.(key, m, 'add', 'v5u1-skip-month-add'); } catch (_) {}
-        try { window.invalidateList?.('attendance.list', 'v5u1-skip-month-add'); } catch (_) {}
-        try { window.removeStudentFromDebtDom?.(key); } catch (_) {}
-        return { name: key, month: m };
-      });
+      await _service().addSkippedMonth(key, m);
+      try { window.syncStudentSkippedMonthLocal?.(key, m, 'add', 'v5u1-skip-month-add'); } catch (_) {}
+      try { window.invalidateList?.('attendance.list', 'v5u1-skip-month-add'); } catch (_) {}
+      try { window.removeStudentFromDebtDom?.(key); } catch (_) {}
+      return { name: key, month: m };
     });
   },
 
@@ -219,14 +184,10 @@ export const StudentStatusCommandBoundary = Object.freeze({
     const key = String(name || '').trim();
     const m = String(month || '').trim();
     return _run('student.removeSkippedMonth', `${key}|${m}`, async () => {
-      const lane = window.TuitionCommandBoundary?.runInProfileTuitionMutationLane;
-      if (typeof lane !== 'function') throw new Error('[StudentStatusCommandBoundary] Tuition profile mutation lane chưa sẵn sàng.');
-      return lane.call(window.TuitionCommandBoundary, { studentName: key, reason: 'student.removeSkippedMonth' }, async () => {
-        await _service().removeSkippedMonth(key, m);
-        try { window.syncStudentSkippedMonthLocal?.(key, m, 'remove', 'v5u1-skip-month-remove'); } catch (_) {}
-        try { window.invalidateList?.('attendance.list', 'v5u1-skip-month-remove'); } catch (_) {}
-        return { name: key, month: m };
-      });
+      await _service().removeSkippedMonth(key, m);
+      try { window.syncStudentSkippedMonthLocal?.(key, m, 'remove', 'v5u1-skip-month-remove'); } catch (_) {}
+      try { window.invalidateList?.('attendance.list', 'v5u1-skip-month-remove'); } catch (_) {}
+      return { name: key, month: m };
     });
   },
 

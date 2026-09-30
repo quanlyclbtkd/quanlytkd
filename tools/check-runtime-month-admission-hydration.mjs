@@ -171,27 +171,6 @@ console.log();
 // ── Section 7: students.js addNewStudent ─────────────────────────
 console.log('▸ Section 7: js/modules/students.js addNewStudent merge tuitionTx');
 if (studentsJs) {
-<<<<<<< HEAD
-<<<<<<< HEAD
-    const admissionStart = studentsJs.indexOf('window.addNewStudent = async');
-    const admissionEnd = studentsJs.indexOf('window.updateProfile = async', admissionStart >= 0 ? admissionStart : 0);
-    const admissionBody = admissionStart >= 0 ? studentsJs.slice(admissionStart, admissionEnd > admissionStart ? admissionEnd : admissionStart + 40000) : '';
-    check('students.js: admission uses existing buildPaymentBundleTransaction authority',
-        admissionBody.includes('buildPaymentBundleTransaction') && admissionBody.includes('components: _admComponents'),
-        'Admission must construct one canonical payment bundle; do not restore separate transaction truth');
-    check('students.js: admission prepares canonical Finance bundle in same batch',
-        admissionBody.includes('FinanceService.prepareTransactionMutation') &&
-        admissionBody.includes('batch.set(feePlan.ref, feePlan.payload)') &&
-        admissionBody.includes('await batch.commit();') &&
-        !admissionBody.includes('await StudentService.addGenericTransaction'),
-        'Finance plan must share the profile/inventory batch; no separate transaction commit');
-    check('students.js: hydrates the exact committed bundle transaction identity',
-        admissionBody.includes('const tuitionTx = { id: feePlan.ref.id, ...feePlan.payload }') &&
-        admissionBody.includes("mergeTransactionIntoRuntimeStore?.(tuitionTx, 'admission-bundle-created')"),
-        'The exact created bundle transaction must be merged once into runtime store');
-=======
-=======
->>>>>>> parent of 6e762ab (upload)
     check('students.js: captures return value of addTuitionTransaction',
         studentsJs.includes('tuitionTx = await StudentService.addTuitionTransaction'),
         'addNewStudent must capture: tuitionTx = await StudentService.addTuitionTransaction(...)');
@@ -199,10 +178,6 @@ if (studentsJs) {
         studentsJs.includes('mergeTransactionIntoRuntimeStore') &&
         studentsJs.includes('admission-tuition-created'),
         'addNewStudent must call mergeTransactionIntoRuntimeStore(tuitionTx, "admission-tuition-created")');
-<<<<<<< HEAD
->>>>>>> parent of 6e762ab (upload)
-=======
->>>>>>> parent of 6e762ab (upload)
 }
 console.log();
 

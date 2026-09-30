@@ -11,11 +11,6 @@ const BUILD = 'financial-action-audit-trail-write-intent-20260608';
 
 const ALLOWED_ACTIONS = new Set([
   'tuition.quickPay',
-  'tuition.transactionForm',
-  'tuition.familyCombo',
-  'transaction.otherIncome',
-  'exam.collect',
-  'inventory.create',
   'multiitem.pay',
   'transaction.delete',
   'inventory.markPaid',
@@ -26,7 +21,6 @@ const ALLOWED_ACTIONS = new Set([
 ]);
 
 const WRITE_ROLES = new Set(['admin', 'super_admin', 'superadmin', 'root_admin', 'root']);
-const POSITIVE_AMOUNT_ACTIONS = new Set(['tuition.quickPay', 'tuition.transactionForm', 'tuition.familyCombo', 'transaction.otherIncome', 'exam.collect', 'expense.create', 'expense.edit', 'multiitem.pay']);
 
 const state = {
   phase: PHASE,
@@ -102,26 +96,13 @@ function _pushLimited(arr, row) {
   while (arr.length > state.maxMemoryRows) arr.shift();
 }
 
-function _validateAmount(payload, action) {
-  if (!payload || payload.amount == null && payload.total == null) {
-    return POSITIVE_AMOUNT_ACTIONS.has(action)
-      ? { ok: false, reason: 'missing-amount' }
-      : { ok: true };
-  }
+function _validateAmount(payload) {
+  if (!payload || payload.amount == null && payload.total == null) return { ok: true };
   const value = payload.amount != null ? payload.amount : payload.total;
-  const text = typeof value === 'string' ? value.trim() : value;
-  if (text === '') return { ok: false, reason: 'invalid-amount' };
-  const n = typeof text === 'number' ? text : Number(String(text).replace(/[^\d.-]/g, ''));
+  const n = Number(String(value).replace(/[^\d.-]/g, ''));
   if (!Number.isFinite(n)) return { ok: false, reason: 'invalid-amount' };
   if (n < 0) return { ok: false, reason: 'negative-amount' };
-  if (POSITIVE_AMOUNT_ACTIONS.has(action) && n <= 0) return { ok: false, reason: 'non-positive-amount' };
   return { ok: true, amount: n };
-}
-
-function isFinancialWriteAllowed(result) {
-  if (result === true) return true;
-  if (result === false || result == null) return false;
-  return typeof result === 'object' && result.ok === true;
 }
 
 function guardFinancialWriteIntent(action, payload = {}, options = {}) {
@@ -130,7 +111,7 @@ function guardFinancialWriteIntent(action, payload = {}, options = {}) {
   const cleanPayload = _sanitizePayload(payload);
   const now = Date.now();
   const intentId = `${PHASE}-${action || 'unknown'}-${now}-${Math.random().toString(36).slice(2, 8)}`;
-  const amountCheck = _validateAmount(payload, action);
+  const amountCheck = _validateAmount(payload);
 
   const reasons = [];
   if (!state.enabled) reasons.push('guard-disabled');
@@ -139,8 +120,7 @@ function guardFinancialWriteIntent(action, payload = {}, options = {}) {
   if (!WRITE_ROLES.has(user.role || '')) reasons.push('role-not-allowed:' + (user.role || ''));
   if (!amountCheck.ok) reasons.push(amountCheck.reason);
 
-  // An audit-only option must never authorize a rejected financial mutation.
-  const ok = reasons.length === 0;
+  const ok = reasons.length === 0 || options.soft === true;
   const row = {
     ok,
     intentId,
@@ -312,7 +292,6 @@ export function initFinancialActionAuditGuard() {
     build: BUILD,
     state,
     guardFinancialWriteIntent,
-    isAllowed: isFinancialWriteAllowed,
     recordFinancialActionAudit,
     withFinancialWriteIntent,
     debugFinancialActionAuditGuard,
@@ -320,7 +299,6 @@ export function initFinancialActionAuditGuard() {
   };
 
   window.guardFinancialWriteIntent = guardFinancialWriteIntent;
-  window.isFinancialWriteAllowed = isFinancialWriteAllowed;
   window.recordFinancialActionAudit = recordFinancialActionAudit;
   window.withFinancialWriteIntent = withFinancialWriteIntent;
   window.debugFinancialActionAuditGuard = debugFinancialActionAuditGuard;
@@ -332,7 +310,6 @@ export function initFinancialActionAuditGuard() {
 export const FinancialActionAuditGuard = {
   initFinancialActionAuditGuard,
   guardFinancialWriteIntent,
-  isFinancialWriteAllowed,
   recordFinancialActionAudit,
   withFinancialWriteIntent,
   debugFinancialActionAuditGuard,
