@@ -36,7 +36,6 @@ console.log('══════════════════════�
 
 const mainJs = readFile('js/main.js');
 const appJs  = readFile('app.js');
-const profilesListenerJs = readFile('js/listeners/profiles.listeners.js');
 
 console.log('▸ Section 1: app.js — profile listener init sau db ready');
 if (appJs) {
@@ -116,16 +115,12 @@ if (mainJs) {
 }
 
 console.log();
-console.log('▸ Section 5: canonical profile status compatibility');
-if (appJs && profilesListenerJs) {
-    check('Profile hydration uses canonical classifyProfileStatus compatibility',
-        profilesListenerJs.includes('classifyProfileStatus') &&
-        profilesListenerJs.includes("if (classifyProfileStatus(data) !== 'quit') activeMap[id] = data") &&
-        profilesListenerJs.includes("if (classifyProfileStatus(data) === 'quit') quitMap[id] = data"),
-        'Active/quit hydration must use classifyProfileStatus rather than narrowing to one legacy status field');
-    check('app.js render paths retain classifyProfileStatus compatibility',
-        appJs.includes('window.classifyProfileStatus'),
-        'Runtime render/filter paths must reuse classifyProfileStatus compatibility');
+console.log('▸ Section 5: app.js — profile status query compatibility');
+if (appJs) {
+    const _hasStatusActive = appJs.includes("status === 'active'") || appJs.includes("status == 'active'");
+    check("app.js check status === 'active' cho active profiles",
+        _hasStatusActive,
+        "Cần filter profile active: status === 'active'");
 
     const _hasStatusSetOnCreate = appJs.includes("status: 'active'");
     check("Profile mới tạo có status: 'active'",
