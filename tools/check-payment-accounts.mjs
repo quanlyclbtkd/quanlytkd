@@ -3,6 +3,7 @@
 import { readFileSync, existsSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { execFileSync } from 'node:child_process';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const rootDir   = resolve(__dirname, '..');
@@ -66,20 +67,15 @@ if (/normalizedKey\s*=\s*normalizeBranchKeyForPayment/.test(appJs))
 else
     fail('getPaymentAccountForBranch does NOT use normalizeBranchKeyForPayment');
 
-if (/map\[normalizedKey\]\s*\|\|\s*map\[String/.test(appJs.replace(/\s+/g,' ')))
-    pass('multi-key map fallback chain present');
-else
-    fail('multi-key map fallback chain MISSING');
-
-if (/bankKey:\s*selected/.test(appJs))
-    pass('getPaymentAccountForBranch returns bankKey field');
-else
-    fail('getPaymentAccountForBranch missing bankKey field in return');
-
-if (/!account\s*\|\|\s*account\.enabled\s*===\s*false/.test(appJs))
-    pass('disabled bank2 fallback to bank1');
-else
-    fail('disabled bank2 fallback MISSING');
+if (/selectedKeys\s*=.*aliases/.test(appJs.replace(/\s+/g,' ')) && /selectedValues\.length > 1/.test(appJs))
+    pass('resolver checks all branch-map aliases and blocks conflicting mappings');
+else fail('resolver does not prove conflict-safe branch map selection');
+if (/return \{bankKey, bankId, accountNo, accountName/.test(appJs) && /return deny\('mapped-account-disabled-or-missing'\)/.test(appJs))
+    pass('resolver returns a complete selected tuple or denies disabled mapped account');
+else fail('resolver can return a mixed/incomplete/disabled account');
+if (/Object\.keys\(accounts\)\.length > 0\) return deny\('branch-unmapped'\)/.test(appJs))
+    pass('unmapped multi-account configuration cannot silently select bank1 or bank2');
+else fail('unmapped account can silently use another bank');
 
 // ─────────────────────────────────────────────────────────────────────────────
 section('5. saveClubSettings — alias map for branch names');
@@ -111,11 +107,12 @@ else
     fail('generateVietQR does not call getPaymentAccountForBranch');
 
 // ─────────────────────────────────────────────────────────────────────────────
-section('7. exportReceipt passes branch to generateVietQR (Phase 4J-4)');
-if (/generateVietQR\(amount,\s*qrName,\s*paymentContent,\s*branch/.test(appJs.replace(/\s+/g,' ')))
-    pass('exportReceipt passes branch to generateVietQR');
+section('7. exportReceipt resolves verified payment account before generateVietQR');
+const _qrRoute = appJs.replace(/\s+/g,' ');
+if (/const _accounts = _branches\.map/.test(_qrRoute) && /getPaymentAccountForBranch\(b, clubConfig\)/.test(_qrRoute) && /generateVietQR\(amount, qrName, paymentContent, _accounts\[0\], 'qr_only'\)/.test(_qrRoute))
+    pass('report branch resolves verified account snapshot and passes it to qr_only generator');
 else
-    fail('exportReceipt DOES NOT pass branch to generateVietQR');
+    fail('report branch did not demonstrate canonical account resolver to QR');
 
 if (/clubConfig\.accountNo.*paymentContent|paymentContent.*clubConfig\.accountNo/.test(appJs))
     warn('exportReceipt may still use clubConfig.accountNo directly — verify manually');
@@ -153,11 +150,15 @@ else
     fail('quickPay receipt does not use canonical result.branch');
 
 // ─────────────────────────────────────────────────────────────────────────────
-section('10. processCombo cross-branch warning (Phase 4J-4)');
-if (/Combo contains multiple branches/.test(appJs))
-    pass('processCombo cross-branch warning present');
+section('10. processCombo cross-bank safety in actual finance owner');
+if (/branches=intents\.map/.test(financeJs) && /await window\.exportReceipt/.test(financeJs) && /_accounts\.some\(acc => acc\.bankId/.test(appJs))
+    pass('family report submits both branches and QR owner rejects mixed accounts');
 else
-    fail('processCombo cross-branch warning MISSING');
+    fail('family cross-account branch validation missing');
+try {
+    execFileSync(process.execPath, [resolve(rootDir, 'tools/check-qr-report-render-payment-intent.mjs')], { cwd: rootDir, timeout: 15000, stdio: 'pipe' });
+    pass('actual-handler QR report payment account/branch negative matrix passes');
+} catch (e) { fail('actual-handler QR payment account/branch matrix failed: '+String(e.message).slice(0,160)); }
 
 // ─────────────────────────────────────────────────────────────────────────────
 section('11. Debug helpers');
