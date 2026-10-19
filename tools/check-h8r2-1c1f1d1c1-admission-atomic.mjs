@@ -390,4 +390,16 @@ assert.equal(commits,1); assert.equal(entries('profiles').length,1); assert.equa
 assertUnpaidAdmission(onlyPayload('profiles'),[]);
 pass('F15','same-runtime zero-fee double click commits once and remains debt');
 
-console.log('ADMISSION F01-F15 PASS: 15/15');
+// D1C3B1 Z02/Z03 — empty/string-zero fee inputs are the same unpaid admission contract.
+for (const [id, rawFee] of [['Z02',''],['Z03','0']]) {
+  resetCase(); set('add_fee_actual', rawFee); set('add_fee_display', rawFee); set('add_package', 1);
+  await window.addNewStudent();
+  assert.equal(commits,1); assert.equal(entries('profiles').length,1); assert.equal(entries('transactions').length,0); assert.equal(receiptCalls.length,0);
+  assertUnpaidAdmission(onlyPayload('profiles'),[]);
+  assert.equal(refreshCalls.length,1);
+  assert.deepEqual(refreshCalls[0].keys,['students.activeList','students.debtList','dashboard.summary']);
+  assert.equal(invalidateCalls.filter(x => x.key === 'students.debtList').length,1);
+  console.log(`PASS ${id} — ${rawFee === '' ? 'empty' : 'string-zero'} fee remains unpaid admission debt`);
+}
+
+console.log('ADMISSION F01-F15 PASS: 15/15 + D1C3B1 Z02/Z03');

@@ -137,6 +137,7 @@ check(quitDirty.includes("_state.quitAuthorityState = 'dirty'") && quitDirty.inc
   '36. Quit-profile canonical mutation marks the EXISTING Quit authority dirty locally with ZERO read/write/listener');
 
 let quitReads = 0;
+let quitSnapshotMetadata = { fromCache: false, hasPendingWrites: false };
 window.__store = { db:{}, clubId:'club-quit', profiles:{} };
 window.currentClubId = 'club-quit';
 window.userRole = 'admin';
@@ -146,7 +147,7 @@ window._fb_init = {
   getDocs:async()=>{ quitReads++; const qdocs=[
     {id:'active-a',data:()=>({status:'active',displayName:'Active A'})},
     {id:'quit-a',data:()=>({status:'quit',displayName:'Quit A'})},
-  ]; return {size:qdocs.length,docs:qdocs,forEach(fn){qdocs.forEach(fn);}}; }
+  ]; return {size:qdocs.length,docs:qdocs,metadata:{...quitSnapshotMetadata},forEach(fn){qdocs.forEach(fn);}}; }
 };
 const profilesRuntime = await import(pathToFileURL(path.join(root,'js/listeners/profiles.listeners.js')).href+'?h8r21quit='+Date.now());
 profilesRuntime.resetProfilesListeners('h8r21-test-reset');
@@ -160,6 +161,31 @@ await profilesRuntime.loadQuitProfilesIfNeeded('q4-after-dirty',qctx);
 const qReadsAfterDirtyReload = quitReads;
 for(let i=0;i<10;i++) await profilesRuntime.loadQuitProfilesIfNeeded('q-post-refresh-'+i,qctx);
 check(qReadsAfterRepeat===1 && qDirtyBeforeReload && qReadsAfterDirtyReload===2 && quitReads===2, '37. Quit Q1-Q4: repeated opens reuse complete cache; one local dirty mutation causes exactly one existing canonical refresh');
+// R2R6R2 T02–T04: negative metadata fixtures must NOT earn server authority.
+// Keep using the imported production Quit handler and its actual metrics/store.
+for (const [label, metadata] of [
+  ['cache-only', {fromCache:true, hasPendingWrites:false}],
+  ['pending-writes', {fromCache:false, hasPendingWrites:true}],
+  ['missing-metadata', null],
+]) {
+  profilesRuntime.resetProfilesListeners('h8r21-quit-negative-'+label);
+  quitSnapshotMetadata = metadata;
+  const before = quitReads;
+  const trusted = await profilesRuntime.loadQuitProfilesIfNeeded('negative-'+label,qctx);
+  const metrics = profilesRuntime.getProfilesListenerMetrics();
+  check(trusted === false && quitReads === before+1 &&
+      metrics.quitAuthorityState === 'pending-server-confirmation' &&
+      metrics.quitCompletenessReconciled !== true &&
+      profilesRuntime.isQuitProfilesComplete() === false,
+    '37'+({ 'cache-only':'a','pending-writes':'b','missing-metadata':'c' }[label])+'. Quit '+label+' snapshot cannot promote authoritative completeness');
+}
+// T05: later trusted metadata must promote using the SAME owner and same read slot.
+quitSnapshotMetadata = {fromCache:false,hasPendingWrites:false};
+const trustedAfterNegative = await profilesRuntime.loadQuitProfilesIfNeeded('after-negative-server-confirmed',qctx);
+const postTrustMetrics = profilesRuntime.getProfilesListenerMetrics();
+check(trustedAfterNegative === true && postTrustMetrics.quitAuthorityState === 'complete' &&
+  postTrustMetrics.quitCompletenessReconciled === true, '37d. Quit recovery requires a fresh server-confirmed snapshot');
+
 
 let primitiveReads = 0;
 window.__store = { db:{}, clubId:'club-att' };

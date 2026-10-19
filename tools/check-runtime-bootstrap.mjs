@@ -206,23 +206,43 @@ console.log('');
 console.log('[RuntimeBootstrapCheck] [app.js] Kiểm tra initSaaSDatabase dispatch...');
 checkPattern(appSrc, "dispatchAppContextReady('initSaaSDatabase-store-synced')", "gọi dispatchAppContextReady sau sync store");
 
-// ── B3. Alias currentClubId ─────────────────────────────────────
+// ── B3/B4. Canonical Auth Context Single Writer ─────────────────
 console.log('');
-console.log('[RuntimeBootstrapCheck] [app.js] Kiểm tra currentClubId aliases...');
-checkPattern(appSrc, 'window.__store.currentClubId = clubId', 'window.__store.currentClubId được set');
-checkPattern(appSrc, 'window.currentClubId = clubId',         'window.currentClubId được set trong initSaaSDatabase');
+console.log('[RuntimeBootstrapCheck] [app.js] Kiểm tra canonical auth-context writer...');
+const _commitStart = appSrc.indexOf('const _commitVerifiedAuthContext =');
+const _resetStart = appSrc.indexOf('const _resetVerifiedAuthContext =');
+const _verifyFlightStart = appSrc.indexOf('// Exactly one users/{uid} verification promise', _resetStart);
+const _commitBlock = _commitStart >= 0 && _resetStart > _commitStart ? appSrc.slice(_commitStart, _resetStart) : '';
+const _resetBlock = _resetStart >= 0 && _verifyFlightStart > _resetStart ? appSrc.slice(_resetStart, _verifyFlightStart) : '';
+checkPattern(_commitBlock, 'currentClubId = ctx.clubId', 'canonical commit writes module currentClubId');
+checkPattern(_commitBlock, 'window.currentClubId = ctx.clubId', 'canonical commit writes window.currentClubId');
+checkPattern(_commitBlock, 'window.userRole = ctx.role', 'canonical commit writes window.userRole');
+checkPattern(_commitBlock, 'window.coachBranch = ctx.coachBranch', 'canonical commit writes window.coachBranch');
+checkPattern(_commitBlock, 'window.__store.clubId = ctx.clubId', 'canonical commit writes store.clubId');
+checkPattern(_commitBlock, 'window.__store.currentClubId = ctx.clubId', 'canonical commit writes store.currentClubId');
+checkPattern(_commitBlock, 'window.__store.userRole = ctx.role', 'canonical commit writes store.userRole');
+checkPattern(_commitBlock, 'window.__store.coachBranch = ctx.coachBranch', 'canonical commit writes store.coachBranch');
+checkPattern(_commitBlock, 'window.__store.currentUser = user', 'canonical commit writes store.currentUser');
 
-// ── B4. currentUser sync ────────────────────────────────────────
+// ── B5. Logout resets through canonical reset authority ──────────
 console.log('');
-console.log('[RuntimeBootstrapCheck] [app.js] Kiểm tra currentUser sync...');
-checkPattern(appSrc, 'window.__store.currentUser   = auth.currentUser', 'window.__store.currentUser được sync trong initSaaSDatabase');
+console.log('[RuntimeBootstrapCheck] [app.js] Kiểm tra logout reset qua canonical authority...');
+checkPattern(appSrc, "reason:      'logout'", "logout reset __appContextReadyState.reason = 'logout'");
+checkPattern(appSrc, "_resetVerifiedAuthContext('logout')", "logout calls canonical _resetVerifiedAuthContext('logout')");
+checkPattern(_resetBlock, "window.currentClubId = ''", 'canonical reset clears window.currentClubId');
+checkPattern(_resetBlock, 'window.__store.currentClubId = null', 'canonical reset clears store.currentClubId');
+checkPattern(_resetBlock, 'window.__store.currentUser = null', 'canonical reset clears store.currentUser');
 
-// ── B5. Logout reset ────────────────────────────────────────────
-console.log('');
-console.log('[RuntimeBootstrapCheck] [app.js] Kiểm tra logout reset...');
-checkPattern(appSrc, "reason:      'logout'",        "logout reset __appContextReadyState.reason = 'logout'");
-checkPattern(appSrc, 'window.currentClubId = null',  'window.currentClubId = null khi logout');
-checkPattern(appSrc, 'window.__store.currentClubId = null', 'window.__store.currentClubId = null khi logout');
+// Historical init must not regain direct auth mirror ownership.
+const _initStart = appSrc.indexOf('async function initSaaSDatabase');
+const _initEnd = appSrc.indexOf('async function', _initStart + 10);
+const _initBlock = _initStart >= 0 ? appSrc.slice(_initStart, _initEnd > _initStart ? _initEnd : _initStart + 12000) : '';
+checked++;
+if (!/window\.(?:currentClubId|userRole|coachBranch)\s*=(?!=)/.test(_initBlock) && !/window\.__store\.(?:clubId|currentClubId|userRole|coachBranch|currentUser)\s*=(?!=)/.test(_initBlock)) {
+    pass('initSaaSDatabase không giành lại quyền ghi Auth Context');
+} else {
+    fail('initSaaSDatabase có direct auth-context mirror write — vi phạm single writer');
+}
 
 // ── B6. Guard chống dispatch lặp ────────────────────────────────
 console.log('');

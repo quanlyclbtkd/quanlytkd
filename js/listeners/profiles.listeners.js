@@ -45,6 +45,7 @@ import {
     getProfileStatusConfig,
     classifyProfileStatus,
 } from '../data/profileStatusConfig.js';
+import { getListenerMetrics } from '../utils/listeners.js';
 
 // ── Backward compat aliases (Phase 3.7B callers dùng tên cũ) ──────────────
 export { getActiveQueryValues as getActiveStatusValues };
@@ -62,13 +63,33 @@ const _state = {
     // ── Active listener ───────────────────────────────────────────────────────
     activeListenerMounted:  false,
     activeSnapshotCount:    0,
+    dashboardHydrationReconciled: false,
     activeQueryErrorCount:  0,
+    activeListenerFailed: false,
+    // D1C3B: Admin reuses this one listener slot as the complete current-club
+    // profile authority. Coach keeps the existing scoped active query.
+    authorityClubId:        '',
+    fullAuthoritySnapshotSeen: false,
+    fullAuthoritySnapshotCount: 0,
+    fullAuthorityComplete:  false,
+    // D1C3B3: evidence belongs to the existing listener owner, not the cache.
+    authorityServerConfirmed: false,
+    authorityFreshness: 'pending', // pending | fresh | stale
+    authorityHasPendingWrites: false,
+    authoritySnapshotVersion: 0,
+    authoritySessionEpoch: null,
+    activeOwnerUid: null,
     role:                   '',
     coachBranch:            '',
     coachBranchFallbackCount: 0,
     coachLegacyListenerKey: null,
     coachCanonicalActiveMap: {},
     coachLegacyActiveMap: {},
+    // B6: metadata no-op evidence for each EXISTING Coach listener slot.
+    coachPrimaryServerSeen: false,
+    coachLegacyServerSeen: false,
+    coachPrimaryFailed: false,
+    coachLegacyFailed: false,
 
     // ── Quit load ─────────────────────────────────────────────────────────────
     quitLoaded:             false,
@@ -134,10 +155,55 @@ const _state = {
 
 /** Context: lưu từ mountActiveProfilesListener, dùng cho lazy quit + fallback */
 let _ctx = null;
+// Existing listener lifecycle epoch: disposed callbacks cannot mutate a later owner.
+let _activeMountGeneration = 0;
 let _quitAuthorityPromise = null;
 let _quitContextRetryArmed = false;
 let _quitContextRetryTimer = null;
 let _quitContextRetryHandlers = [];
+
+function _currentVerifiedOwnerMatches(context, capturedEpoch, capturedUid) {
+    const auth = window.__verifiedAuthContextState;
+    const st = window.__store || {};
+    const expectedClub = String(context?.clubId || '').trim();
+    const expectedRole = _normalizeRole(context?.role || '');
+    if (!expectedClub || !expectedRole) return false;
+    if (auth) {
+        if (auth.ready !== true || Number(auth.generation) !== Number(capturedEpoch)) return false;
+        if (capturedUid !== undefined && String(auth.uid || '') !== String(capturedUid || '')) return false;
+        if ((_normalizeRole(auth.role) !== 'super_admin' && String(auth.clubId || '') !== expectedClub)
+            || _normalizeRole(auth.role) !== expectedRole) return false;
+    }
+    const stClub = String(st.clubId || st.currentClubId || '').trim();
+    if (stClub && stClub !== expectedClub) return false;
+    for (const candidate of [st.userRole, window.userRole]) {
+        if (candidate && _normalizeRole(candidate) !== expectedRole) return false;
+    }
+    if (expectedRole === 'coach') {
+        const expectedBranch = _coachBranch(context);
+        for (const value of [auth?.coachBranch, st.coachBranch, window.coachBranch]) {
+            if (value && _normalizeBranchForAuthority(value) !== expectedBranch) return false;
+        }
+    }
+    return true;
+}
+// Reconcile the first accepted server-authoritative member snapshot per owner.
+// Cache callbacks cannot consume this latch; this is Dashboard evidence, not data authority.
+function _reconcileInitialDashboardMembers(activeCount) {
+    if (_state.dashboardHydrationReconciled || typeof window._moduleDashboard?.reconcileHydrationEvidence !== 'function') return false;
+    window._moduleDashboard.reconcileHydrationEvidence({
+        domain: 'members',
+        reason: 'full-profiles-authoritative-initial-hydration',
+        evidence: { activeCount, activeAvailable: true, coverageComplete: true },
+    });
+    _state.dashboardHydrationReconciled = true;
+    return true;
+}
+
+function _normalizeBranchForAuthority(branch) {
+    const v = String(branch || '').trim();
+    return /^(Mặc định|mac dinh|default)$/i.test(v) ? 'CS1' : v;
+}
 
 function _normalizeRole(value) {
     const role = String(value || '').trim().toLowerCase().replace(/-/g, '_');
@@ -167,6 +233,33 @@ function _coachBranchAliases(context = _ctx) {
 
 function _mergedCoachActiveMap() {
     return Object.assign({}, _state.coachLegacyActiveMap || {}, _state.coachCanonicalActiveMap || {});
+}
+
+// R1: server freshness proves coverage ONLY for the existing branch-only slots.
+// CS1 requires BOTH primary and legacy alias server evidence in this owner.
+function _coachRosterReadiness() {
+    if (_state.role !== 'coach') return 'not-applicable';
+    if (_state.activeListenerFailed || _state.coachPrimaryFailed || _state.coachLegacyFailed) return 'error';
+    if (_state.coachPrimaryServerSeen &&
+        (_normalizeBranchForAuthority(_state.coachBranch) !== 'CS1' || _state.coachLegacyServerSeen)) return 'verified';
+    if (_state.fallbackCompleted || _state.activeSnapshotCount || _state.coachLegacyServerSeen) return 'provisional';
+    return 'pending';
+}
+
+// The SAME owner publishes one current branch roster; a one-shot fallback may
+// supply provisional display data but cannot be unioned with verified realtime.
+function _publishCoachRealtimeRoster(reason) {
+    if (_coachRosterReadiness() !== 'verified') return false;
+    const active = _mergedCoachActiveMap(); // primary ID wins over alias ID
+    setActiveProfiles(active, 'coach-branch-authoritative:' + reason);
+    _syncLegacy();
+    _state.activeListenerMounted = true;
+    _state.lastProfilesMode = 'coach-branch-realtime';
+    _state.fallbackCompleted = false; // discard one-shot source, never resurrect it
+    markActiveLoaded(true);
+    _invalidateAll('coach-branch-realtime:' + reason);
+    _updateWindowMetrics();
+    return true;
 }
 
 // Phase 4K-6V5S: recover the profile context from the canonical runtime bridge.
@@ -343,11 +436,25 @@ function _updateWindowMetrics() {
 
     Object.assign(window.__profileScaleMetrics, storeM, {
         // Listener
+        activeListenerKey:                  _state.activeListenerKey,
+        activeListenerKey:                  _state.activeListenerKey,
         activeListenerMounted:              _state.activeListenerMounted,
+        activeListenerFailed:               _state.activeListenerFailed,
         activeSnapshotCount:                _state.activeSnapshotCount,
         activeQueryErrorCount:              _state.activeQueryErrorCount,
+        authorityClubId:                    _state.authorityClubId,
+        fullAuthoritySnapshotSeen:          _state.fullAuthoritySnapshotSeen,
+        fullAuthoritySnapshotCount:         _state.fullAuthoritySnapshotCount,
+        fullAuthorityComplete:              _state.fullAuthorityComplete,
+        authorityServerConfirmed:           _state.authorityServerConfirmed,
+        authorityFreshness:                 _state.authorityFreshness,
+        authorityHasPendingWrites:          _state.authorityHasPendingWrites,
+        authoritySnapshotVersion:           _state.authoritySnapshotVersion,
+        authoritySessionEpoch:              _state.authoritySessionEpoch,
         role:                               _state.role,
         coachBranch:                        _state.coachBranch,
+        coachRosterCoverage:                _state.role === 'coach' ? (_coachRosterReadiness() === 'verified' ? 'branch-server-verified' : 'branch-pending') : 'not-applicable',
+        coachRosterReadiness:               _coachRosterReadiness(),
         coachBranchFallbackCount:           _state.coachBranchFallbackCount,
         // Quit
         quitLoaded:                         _state.quitLoaded,
@@ -486,8 +593,9 @@ function _checkActiveProfileCoverage(activeCount) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Tạo active-only realtime onSnapshot listener.
- * Query: where('status', 'in', getActiveQueryValues())
+ * Canonical profiles listener.
+ * Admin: ONE full current-club profRef onSnapshot, classified locally.
+ * Coach: existing branch + active-status scoped query.
  *
  * Phase 3.7C:
  *   - Dùng config từ profileStatusConfig.js (không hardcode values)
@@ -506,16 +614,112 @@ export function mountActiveProfilesListener(context) {
     }
 
     _ctx = _resolveProfilesContext(context);
-    _clearQuitContextRetry();
-    _state.quitContextRetryCount = 0;
     const { profRef, clubId } = _ctx;
     context = _ctx;
-    _state.role = _contextRole(context);
-    _state.coachBranch = _coachBranch(context);
-    _state.coachCanonicalActiveMap = {};
-    _state.coachLegacyActiveMap = {};
     const isCoach = _isCoachContext(context);
     const coachBranch = _coachBranch(context);
+
+    if (isCoach && !coachBranch) {
+        console.error('[ProfilesListener] Coach missing branch — fail closed, no profiles query');
+        setActiveProfiles({}, 'coach-missing-branch');
+        setQuitProfiles({}, 'coach-missing-branch');
+        _syncLegacy();
+        _state.lastProfilesMode = 'coach-missing-branch';
+        _updateWindowMetrics();
+        return false;
+    }
+
+    const key = isCoach
+        ? 'students:profiles:active:' + clubId + ':coach:' + coachBranch
+        : 'students:profiles:active:' + clubId + ':admin';
+
+    // D1C3B1: duplicate mount is idempotent. Preserve pending/complete authority
+    // state and let the already-registered listener deliver its own snapshot.
+    // Registry key is not an auth identity; same key + changed UID/epoch must re-own.
+    const sameVerifiedListenerOwner = _state.activeListenerKey === key &&
+        _currentVerifiedOwnerMatches(context, _state.authoritySessionEpoch, _state.activeOwnerUid) &&
+        _normalizeRole(_state.role) === _contextRole(context) &&
+        _normalizeBranchForAuthority(_state.coachBranch) === _normalizeBranchForAuthority(coachBranch);
+    // B6 L01: idempotence requires the complete expected topology, not just
+    // the primary key. Reuse the SAME owner/generation to repair only a missing
+    // existing slot; never reset a healthy subscription or its active map.
+    let primaryRegistered = typeof window.hasListener === 'function' && window.hasListener(key);
+    const legacyKey = isCoach && coachBranch === 'CS1' ? key + ':legacy-primary' : null;
+    let legacyRegistered = !legacyKey || (typeof window.hasListener === 'function' && window.hasListener(legacyKey));
+    const repairSameOwnerSlot = sameVerifiedListenerOwner && (!primaryRegistered || !legacyRegistered);
+    if (primaryRegistered && sameVerifiedListenerOwner && legacyRegistered && window.hasListener(key)) {
+        _state.activeListenerKey = key;
+        _state.activeListenerMounted = true;
+        _state.role = _contextRole(context);
+        _state.coachBranch = coachBranch;
+        _updateWindowMetrics();
+        return true;
+    }
+    if ((primaryRegistered && !sameVerifiedListenerOwner) ||
+        (_state.activeListenerKey && _state.activeListenerKey !== key &&
+            typeof window.hasListener === 'function' && window.hasListener(_state.activeListenerKey))) {
+        const unsubscribeErrorsBefore = getListenerMetrics().unsubscribeErrors;
+        resetProfilesListeners('verified-owner-changed-on-same-key');
+        // A thrown unsubscribe can remove the registry key while the physical
+        // subscription remains alive. A second SDK listener would overlap it.
+        if (getListenerMetrics().unsubscribeErrors !== unsubscribeErrorsBefore) {
+            console.error('[ProfilesListener] owner takeover blocked: unsubscribe failed');
+            return false;
+        }
+        // Fail closed if cleanup couldn't remove old owner. No parallel readers.
+        if (typeof window.hasListener === 'function' &&
+            (window.hasListener(key) || (legacyKey && window.hasListener(legacyKey)))) return false;
+        setActiveProfiles({}, 'verified-owner-changed');
+        setQuitProfiles({}, 'verified-owner-changed');
+        _syncLegacy();
+        _ctx = _resolveProfilesContext(context);
+        primaryRegistered = typeof window.hasListener === 'function' && window.hasListener(key);
+        legacyRegistered = !legacyKey || (typeof window.hasListener === 'function' && window.hasListener(legacyKey));
+    }
+
+    const mountGeneration = repairSameOwnerSlot ? _activeMountGeneration : ++_activeMountGeneration;
+    const capturedAuthEpoch = window.__verifiedAuthContextState?.generation ?? null;
+    const capturedAuthUid = window.__verifiedAuthContextState?.uid ?? null;
+    _state.authoritySessionEpoch = capturedAuthEpoch;
+    _state.activeOwnerUid = capturedAuthUid;
+    if (!repairSameOwnerSlot) {
+        _state.dashboardHydrationReconciled = false;
+        _clearQuitContextRetry();
+        _state.quitContextRetryCount = 0;
+        _state.coachCanonicalActiveMap = {};
+        _state.coachLegacyActiveMap = {};
+        _state.coachPrimaryServerSeen = false;
+        _state.coachLegacyServerSeen = false;
+        _state.coachPrimaryFailed = false;
+        _state.coachLegacyFailed = false;
+        _state.activeListenerFailed = false;
+    }
+    _state.role = _contextRole(context);
+    _state.coachBranch = coachBranch;
+    // Restored slots have a fresh first snapshot even if the sibling is healthy.
+    // Do not let the old slot's metadata latch skip that initial delivery.
+    if (repairSameOwnerSlot && !primaryRegistered) {
+        _state.coachPrimaryServerSeen = false;
+        _state.coachCanonicalActiveMap = {};
+        _state.coachPrimaryFailed = false;
+    }
+    if (repairSameOwnerSlot && !legacyRegistered) {
+        _state.coachLegacyServerSeen = false;
+        _state.coachLegacyActiveMap = {};
+        _state.coachLegacyFailed = false;
+    }
+    if (repairSameOwnerSlot) _invalidateAll('coach-listener-slot-repair-pending');
+    if (!isCoach && !repairSameOwnerSlot) {
+        _state.authorityClubId = clubId;
+        _state.fullAuthoritySnapshotSeen = false;
+        _state.fullAuthoritySnapshotCount = 0;
+        _state.fullAuthorityComplete = false;
+        _state.authorityServerConfirmed = false;
+        _state.authorityFreshness = 'pending';
+        _state.authorityHasPendingWrites = false;
+        _state.authoritySnapshotVersion = 0;
+        markQuitComplete(false);
+    }
 
     // V5U6G: Admin emergency full-profile fallback and the normal active-module
     // owner are mutually exclusive. The fallback must be removed BEFORE the
@@ -546,32 +750,6 @@ export function mountActiveProfilesListener(context) {
         }
     }
 
-    // If Đã nghỉ was opened before the active listener mounted, retry the
-    // authority exactly once now that the canonical context exists.
-    if (!isCoach && window.getCurrentActiveTabId?.() === 'quit' && !isQuitProfilesComplete()) {
-        setTimeout(() => {
-            loadQuitProfilesIfNeeded('active-listener-context-ready', context)
-                .then(ok => {
-                    if (ok === true && typeof window.renderQuitList === 'function') {
-                        window.renderQuitList({ reason: 'active-listener-context-ready' });
-                    }
-                })
-                .catch(() => {});
-        }, 0);
-    }
-
-    if (isCoach && !coachBranch) {
-        console.error('[ProfilesListener] Coach missing branch — fail closed, no profiles query');
-        setActiveProfiles({}, 'coach-missing-branch');
-        setQuitProfiles({}, 'coach-missing-branch');
-        _syncLegacy();
-        _state.lastProfilesMode = 'coach-missing-branch';
-        _updateWindowMetrics();
-        return false;
-    }
-    const key = isCoach
-        ? 'students:profiles:active:' + clubId + ':coach:' + coachBranch
-        : 'students:profiles:active:' + clubId + ':admin';
     _state.activeListenerKey = key;
 
     // [Phase 3.7C] Capture baseline compat count TRƯỚC khi mount
@@ -586,7 +764,7 @@ export function mountActiveProfilesListener(context) {
     const fb = window._fb_init || {};
     const { query: fbQuery, where: fbWhere, onSnapshot: fbOnSnapshot } = fb;
 
-    if (!fbQuery || !fbWhere || !fbOnSnapshot) {
+    if (!fbOnSnapshot || (isCoach && (!fbQuery || !fbWhere))) {
         console.warn('[ProfilesListener] Firebase SDK chưa sẵn — fallback');
         if (isCoach) loadCoachBranchProfilesFallback('sdk-not-ready');
         else loadFullProfilesFallback('sdk-not-ready');
@@ -600,23 +778,26 @@ export function mountActiveProfilesListener(context) {
         return false;
     }
 
-    // [Phase 3.7C] Đọc status values từ config
-    const statusValues = getActiveQueryValues();
+    // Coach uses existing branch slots; local classifier handles legacy statuses.
 
-    window.safeRegisterSnapshot(
+    if (!primaryRegistered) window.safeRegisterSnapshot(
         key,
         () => {
             let activeQuery;
             try {
-                const statusConstraint = statusValues.length === 1
-                    ? fbWhere('status', '==', statusValues[0])
-                    : fbWhere('status', 'in', statusValues);
-                activeQuery = isCoach
-                    ? fbQuery(profRef, statusConstraint, fbWhere('branch', '==', coachBranch))
-                    : fbQuery(profRef, statusConstraint);
+                if (isCoach) {
+                    activeQuery = fbQuery(profRef, fbWhere('branch', '==', coachBranch));
+                } else {
+                    activeQuery = profRef;
+                }
             } catch (qErr) {
                 console.warn('[ProfilesListener] Build query lỗi:', qErr.message, '— fallback');
                 setTimeout(() => {
+                    // Existing deferred fallback must remain owned by the caller
+                    // even if verified authentication changes before this tick.
+                    if (_state.activeListenerKey !== key ||
+                        mountGeneration !== _activeMountGeneration ||
+                        !_currentVerifiedOwnerMatches(context, capturedAuthEpoch, capturedAuthUid)) return;
                     if (isCoach) loadCoachBranchProfilesFallback('query-build-error');
                     else loadFullProfilesFallback('query-build-error');
                 }, 0);
@@ -625,117 +806,132 @@ export function mountActiveProfilesListener(context) {
 
             const unsub = fbOnSnapshot(
                 activeQuery,
+                { includeMetadataChanges: true },
                 (snap) => {
+                    // An old/disposed snapshot may not replace the current club authority.
+                    if (_ctx?.clubId !== clubId || _state.activeListenerKey !== key || mountGeneration !== _activeMountGeneration || !_currentVerifiedOwnerMatches(context, capturedAuthEpoch, capturedAuthUid)) return;
+                    if (isCoach) {
+                        _state.coachPrimaryFailed = false;
+                        _state.activeListenerFailed = _state.coachLegacyFailed;
+                    } else _state.activeListenerFailed = false;
                     _state.activeSnapshotCount++;
                     if (typeof window.recordFirestoreSnapshotAttribution === 'function') {
                         window.recordFirestoreSnapshotAttribution('profiles.activeListener', snap, {
                             initial: _state.activeSnapshotCount === 1,
-                            reason: isCoach ? 'active-status-branch-query' : 'active-status-query'
+                            reason: isCoach ? 'coach-branch-only-query' : 'full-profiles-authoritative'
                         });
                     }
                     if (window.markListenerSnapshot) window.markListenerSnapshot(key);
 
-                    let activeMap = {};
+                    // B6 P01/P02: already-server-verified, unchanged metadata
+                    // must not traverse 1,500 documents or invalidate Attendance.
+                    // First snapshot and cache/pending→server transitions still run.
+                    const stableServerEvent = snap?.metadata?.fromCache === false &&
+                        snap?.metadata?.hasPendingWrites === false;
+                    const noDocumentChanges = typeof snap?.docChanges === 'function' &&
+                        snap.docChanges().length === 0;
+                    if (stableServerEvent && noDocumentChanges &&
+                        (isCoach ? _state.coachPrimaryServerSeen :
+                            (_state.authorityServerConfirmed && _state.authorityFreshness === 'fresh' &&
+                             _state.dashboardHydrationReconciled))) {
+                        _updateWindowMetrics();
+                        return;
+                    }
+                    if (isCoach) _state.coachPrimaryServerSeen = stableServerEvent;
+
+                    let snapshotMap = {};
                     snap.forEach(d => {
                         const id = d.id.trim();
-                        if (id) activeMap[id] = d.data();
+                        if (id) snapshotMap[id] = d.data();
                     });
                     if (isCoach) {
+                        // No status prefilter in Firestore: classify EACH in-branch
+                        // profile using the existing canonical status contract.
+                        const activeMap = {};
+                        for (const [id, profile] of Object.entries(snapshotMap)) {
+                            if (classifyProfileStatus(profile) === 'active') activeMap[id] = profile;
+                        }
                         _state.coachCanonicalActiveMap = activeMap;
-                        activeMap = _mergedCoachActiveMap();
-                    }
-
-                    const activeCount = Object.keys(activeMap).length;
-
-                    // [Phase 3.7C] Coverage guard — trước khi cập nhật store
-                    _checkActiveProfileCoverage(activeCount);
-
-                    // Phase 4K-STUDENT-LIST: Active-zero probe —
-                    // Nếu snapshot đầu tiên trả 0 nhưng collection có docs,
-                    // data cũ có thể thiếu status field → trigger full fallback.
-                    // Dùng getDocs(limit(1)) — nhẹ, không đọc full collection.
-                    if (activeCount === 0 && _state.activeSnapshotCount === 1) {
-                        const _fb4k = window._fb_init || {};
-                        const { query: _pQ4k, limit: _pL4k, getDocs: _pG4k } = _fb4k;
-                        if (_pG4k && _pQ4k && _pL4k && profRef) {
-                            // [GITHUB-FIX Task 4] Await fallback + invalidate sau khi hoàn tất
-                            const _probeQuery = isCoach
-                                ? _pQ4k(profRef, fbWhere('branch', '==', coachBranch), _pL4k(1))
-                                : _pQ4k(profRef, _pL4k(1));
-                            _pG4k(_probeQuery).then(async function(_probe) {
-                                if (typeof window.recordFirestoreReadAttribution === 'function') {
-                                    window.recordFirestoreReadAttribution('profiles.activeZeroProbe', _probe.size || 0, {
-                                        initial: true,
-                                        reason: 'active-zero-probe'
-                                    });
-                                }
-                                if (!_probe.empty) {
-                                    console.warn('[ProfilesListener] active=0 but scoped collection has docs — safe fallback');
-                                    const ok = isCoach
-                                        ? await loadCoachBranchProfilesFallback('active-zero-but-branch-has-profiles')
-                                        : await loadFullProfilesFallback('active-zero-but-profiles-exist');
-                                    if (ok) {
-                                        _invalidateAll('active-zero-full-fallback-completed');
-                                    }
-                                } else if (!isCoach && typeof window._moduleDashboard?.reconcileHydrationEvidence === 'function') {
-                                    // V5U6G: the existing zero probe is authoritative evidence that the
-                                    // profiles source is truly empty. Close the provisional hydration
-                                    // state in RAM; no second profile query/reader is introduced.
-                                    window._moduleDashboard.reconcileHydrationEvidence({
-                                        domain: 'members',
-                                        reason: 'active-profiles-zero-probe-empty',
-                                        evidence: {
-                                            activeCount: 0,
-                                            activeAvailable: true,
-                                            coverageComplete: true,
-                                        },
-                                    });
-                                }
-                            }).catch((error) => {
-                                console.warn('[ProfilesListener] active-zero probe failed; hydration remains incomplete:', error?.code || error?.message || error);
-                                if (typeof window.recordRuntimeError === 'function') {
-                                    window.recordRuntimeError('profiles.active-zero-probe', error, {
-                                        classification: 'profile-zero-probe-failed',
-                                        clubId,
-                                    });
-                                }
-                            });
+                        // A cache/pending callback may demote verified freshness,
+                        // but must never replace the last-good canonical roster.
+                        if (!_publishCoachRealtimeRoster('primary-snapshot')) {
+                            if (_coachRosterReadiness() !== 'verified') _updateWindowMetrics();
                         }
+                        return;
                     }
 
-                    // V5R: a document removed from the active query may have
-                    // changed to quit or been deleted. Mark the quit authority dirty so
-                    // the next/current Đã nghỉ view performs one full reconciliation.
-                    if (!isCoach && _state.activeSnapshotCount > 1 && typeof snap.docChanges === 'function') {
-                        const removedChanges = snap.docChanges().filter(change => change && change.type === 'removed');
-                        if (removedChanges.length > 0) {
-                            _state.quitCompletenessReconciled = false;
-                            _state.quitAuthorityState = 'dirty';
-                            _state.quitAuthorityDirtyReason = 'active-query-removed:' + removedChanges.length;
-                            markQuitComplete(false);
-                            if (window.getCurrentActiveTabId?.() === 'quit') {
-                                Promise.resolve().then(() => ensureQuitProfilesComplete('active-query-removed-current-quit')).catch(() => {});
-                            }
+                    // D1C3B3: metadata is required evidence. A cached or pending-write
+                    // snapshot may support offline display elsewhere, but it cannot
+                    // promote Debt/Quit/Dashboard totals to server-verified.
+                    const metadata = snap?.metadata;
+                    const serverVerified = metadata?.fromCache === false && metadata?.hasPendingWrites === false;
+                    const wasVerified = _state.authorityServerConfirmed === true;
+                    _state.authorityHasPendingWrites = metadata?.hasPendingWrites === true;
+                    if (!serverVerified) {
+                        _state.authorityFreshness = wasVerified ? 'stale' : 'pending';
+                        _updateWindowMetrics();
+                        if (typeof window.invalidateByDomain === 'function') window.invalidateByDomain('debt', 'profiles-snapshot-unverified');
+                        if (typeof window.invalidateDashboard === 'function') window.invalidateDashboard('profiles-snapshot-unverified');
+                        return;
+                    }
+                    // Metadata-only server acknowledgement: promote pending cache once;
+                    // after confirmation no redundant complete-store sync/render.
+                    const changes = typeof snap.docChanges === 'function' ? snap.docChanges() : null;
+                    if (wasVerified && _state.authorityFreshness === 'fresh' && changes && changes.length === 0) {
+                        _state.authorityHasPendingWrites = false;
+                        if (!_state.dashboardHydrationReconciled) {
+                            _reconcileInitialDashboardMembers(Object.values(snapshotMap).filter(p => classifyProfileStatus(p) === 'active').length);
                         }
+                        _updateWindowMetrics();
+                        return;
                     }
+                    _state.authorityServerConfirmed = true;
+                    _state.authorityFreshness = 'fresh';
+                    _state.authorityHasPendingWrites = false;
+                    _state.authoritySnapshotVersion++;
 
-                    setActiveProfiles(activeMap, 'active-profiles-snapshot');
+                    // D1C3B Admin authority: this full snapshot is the sole input that
+                    // replaces all profile buckets. A later partial status snapshot can
+                    // no longer overwrite the canonical active set because Admin no
+                    // longer owns a status-filtered profile listener.
+                    const fullMap = snapshotMap;
+                    let activeCount = 0;
+                    Object.values(fullMap).forEach(profile => {
+                        if (classifyProfileStatus(profile) === 'active') activeCount++;
+                    });
+                    syncLegacyAllProfiles(fullMap, 'full-profiles:admin-authority', { complete: true });
+                    markActiveLoaded(true);
+                    markQuitLoaded(true);
+                    markQuitComplete(true);
                     _syncLegacy();
-                    // V5U6C2: snapshot #1 is hydration evidence, never an automatic
-                    // mutation. Later snapshots mark dirty only when Firestore reports
-                    // a real added/modified/removed document change. Coach remains
-                    // Attendance-only and never participates in Dashboard freshness.
-                    if (!isCoach && _state.activeSnapshotCount === 1 && typeof window._moduleDashboard?.reconcileHydrationEvidence === 'function') {
+
+                    _state.authorityClubId = clubId;
+                    _state.fullAuthoritySnapshotSeen = true;
+                    _state.fullAuthoritySnapshotCount = Number(snap.size || Object.keys(fullMap).length || 0);
+                    _state.fullAuthorityComplete = true;
+                    _state.quitLoaded = true;
+                    _state.quitCompletenessReconciled = true;
+                    _state.quitAuthorityState = 'complete';
+                    _state.quitAuthorityClubId = clubId;
+                    _state.quitAuthorityLoadedAt = Date.now();
+                    _state.quitAuthorityDirtyReason = '';
+                    _state.activeListenerMounted = true;
+                    _state.lastProfilesMode      = 'full-profiles-authoritative';
+
+                    // Initial snapshot is complete even when the club has zero profiles.
+                    if (!isCoach && _state.activeSnapshotCount === 1 && !_state.dashboardHydrationReconciled &&
+                        typeof window._moduleDashboard?.reconcileHydrationEvidence === 'function') {
+                        // Server-first Admin snapshot: canonical complete even at zero.
                         window._moduleDashboard.reconcileHydrationEvidence({
                             domain: 'members',
-                            reason: 'active-profiles-initial-hydration',
-                            evidence: {
-                                activeCount,
-                                activeAvailable: true,
-                                coverageComplete: activeCount > 0,
-                            },
+                            reason: 'full-profiles-authoritative-initial-hydration',
+                            evidence: { activeCount, activeAvailable: true, coverageComplete: true },
                         });
-                    } else if (!isCoach && _state.activeSnapshotCount > 1 && typeof snap.docChanges === 'function') {
+                        _state.dashboardHydrationReconciled = true;
+                    } else if (!isCoach && _state.activeSnapshotCount > 1 && !_state.dashboardHydrationReconciled) {
+                        // Cache→server metadata-only delivery can be callback #2 or later.
+                        _reconcileInitialDashboardMembers(activeCount);
+                    } else if (!isCoach && _state.activeSnapshotCount > 1 && _state.dashboardHydrationReconciled && typeof snap.docChanges === 'function') {
                         const dashboardProfileChanges = snap.docChanges().filter(change =>
                             change && (change.type === 'added' || change.type === 'modified' || change.type === 'removed')
                         );
@@ -744,25 +940,29 @@ export function mountActiveProfilesListener(context) {
                         }
                     }
 
-                    _state.activeListenerMounted = true;
-                    _state.lastProfilesMode      = 'active-split';
-
-                    _invalidateAll('active-profiles-snapshot');
+                    _invalidateAll('full-profiles-authoritative-snapshot');
                     _updateWindowMetrics();
-                    // Phase 4K-6V3D: verify debt coverage in idle time. The scheduler
-                    // reuses this snapshot and only runs count aggregation when needed.
                     if (!isCoach && typeof window.scheduleAutomaticDebtProfileCoverage === 'function') {
-                        window.scheduleAutomaticDebtProfileCoverage('active-profiles-snapshot');
+                        window.scheduleAutomaticDebtProfileCoverage('full-profiles-authoritative-snapshot');
                     }
                 },
                 (err) => {
+                    if (_ctx?.clubId !== clubId || _state.activeListenerKey !== key ||
+                        mountGeneration !== _activeMountGeneration ||
+                        !_currentVerifiedOwnerMatches(context, capturedAuthEpoch, capturedAuthUid)) return;
+                    _state.activeListenerFailed = true;
                     _state.activeQueryErrorCount++;
                     console.warn(
                         '[ProfilesListener] Active query lỗi:', err.code || err.message,
                         '— fallback'
                     );
-                    if (isCoach) loadCoachBranchProfilesFallback('active-query-error:' + (err.code || 'unknown'));
-                    else loadFullProfilesFallback('active-query-error:' + (err.code || 'unknown'));
+                    if (isCoach) {
+                        _state.coachPrimaryServerSeen = false;
+                        _state.coachPrimaryFailed = true;
+                        _invalidateAll('coach-branch-primary-error');
+                        _updateWindowMetrics();
+                        if (err?.code !== 'permission-denied') loadCoachBranchProfilesFallback('active-query-error:' + (err.code || 'unknown'));
+                    } else loadFullProfilesFallback('active-query-error:' + (err.code || 'unknown'));
                 }
             );
 
@@ -782,16 +982,21 @@ export function mountActiveProfilesListener(context) {
     if (isCoach && coachBranch === 'CS1') {
         const legacyKey = key + ':legacy-primary';
         _state.coachLegacyListenerKey = legacyKey;
-        window.safeRegisterSnapshot(
+        if (!legacyRegistered) window.safeRegisterSnapshot(
             legacyKey,
             () => {
-                const statusConstraint = statusValues.length === 1
-                    ? fbWhere('status', '==', statusValues[0])
-                    : fbWhere('status', 'in', statusValues);
-                const legacyQuery = fbQuery(profRef, statusConstraint, fbWhere('branch', '==', 'Mặc định'));
+                const legacyQuery = fbQuery(profRef, fbWhere('branch', '==', 'Mặc định'));
                 return fbOnSnapshot(
                     legacyQuery,
+                    { includeMetadataChanges: true },
                     (snap) => {
+                        // D1C3B4: a queued callback from a disposed CS1 legacy listener
+                        // cannot revive profiles from an earlier club, uid or auth epoch.
+                        if (_ctx?.clubId !== clubId ||
+                            _state.activeListenerKey !== key || _state.coachLegacyListenerKey !== legacyKey ||
+                            mountGeneration !== _activeMountGeneration || _state.role !== 'coach' ||
+                            _normalizeBranchForAuthority(_state.coachBranch) !== _normalizeBranchForAuthority(coachBranch) ||
+                            !_currentVerifiedOwnerMatches(context, capturedAuthEpoch, capturedAuthUid)) return;
                         if (typeof window.recordFirestoreSnapshotAttribution === 'function') {
                             window.recordFirestoreSnapshotAttribution('profiles.activeLegacyPrimaryListener', snap, {
                                 initial: true,
@@ -799,22 +1004,40 @@ export function mountActiveProfilesListener(context) {
                             });
                         }
                         if (window.markListenerSnapshot) window.markListenerSnapshot(legacyKey);
+                        const stableServerEvent = snap?.metadata?.fromCache === false &&
+                            snap?.metadata?.hasPendingWrites === false;
+                        if (stableServerEvent && _state.coachLegacyServerSeen &&
+                            typeof snap?.docChanges === 'function' && snap.docChanges().length === 0) {
+                            _updateWindowMetrics();
+                            return;
+                        }
+                        _state.coachLegacyFailed = false;
+                        _state.activeListenerFailed = _state.coachPrimaryFailed;
+                        _state.coachLegacyServerSeen = stableServerEvent;
                         const legacyMap = {};
                         snap.forEach(d => {
                             const id = d.id.trim();
-                            if (id) legacyMap[id] = d.data();
+                            if (!id) return;
+                            const profile = d.data();
+                            if (classifyProfileStatus(profile) === 'active') legacyMap[id] = profile;
                         });
                         _state.coachLegacyActiveMap = legacyMap;
-                        const merged = _mergedCoachActiveMap();
-                        setActiveProfiles(merged, 'coach-active-legacy-primary-snapshot');
-                        _syncLegacy();
-                        _state.activeListenerMounted = true;
-                        _state.lastProfilesMode = 'coach-active-canonical-plus-legacy';
-                        _invalidateAll('coach-active-legacy-primary-snapshot');
-                        _updateWindowMetrics();
+                        if (!_publishCoachRealtimeRoster('legacy-alias-snapshot')) _updateWindowMetrics();
                     },
                     (err) => {
+                        // The context object may be rebuilt by an idempotent
+                        // mount. Use the same verified owner predicate as data.
+                        if (_ctx?.clubId !== clubId || _state.activeListenerKey !== key ||
+                            _state.coachLegacyListenerKey !== legacyKey || mountGeneration !== _activeMountGeneration ||
+                            _state.role !== 'coach' ||
+                            _normalizeBranchForAuthority(_state.coachBranch) !== _normalizeBranchForAuthority(coachBranch) ||
+                            !_currentVerifiedOwnerMatches(context, capturedAuthEpoch, capturedAuthUid)) return;
                         _state.activeQueryErrorCount++;
+                        _state.coachLegacyServerSeen = false;
+                        _state.coachLegacyFailed = true;
+                        _state.activeListenerFailed = true;
+                        _invalidateAll('coach-branch-alias-error');
+                        _updateWindowMetrics();
                         console.warn('[ProfilesListener] Legacy primary branch query failed:', err.code || err.message);
                     }
                 );
@@ -849,6 +1072,10 @@ export function cleanupActiveProfilesListener(reason) {
     _state.coachLegacyListenerKey = null;
     _state.coachCanonicalActiveMap = {};
     _state.coachLegacyActiveMap = {};
+    _state.coachPrimaryServerSeen = false;
+    _state.coachLegacyServerSeen = false;
+    _state.coachPrimaryFailed = false;
+    _state.coachLegacyFailed = false;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -882,15 +1109,45 @@ export async function loadQuitProfilesIfNeeded(reason, contextOverride, options 
     }
 
     const clubId = String((ctx && ctx.clubId) || window.__store?.clubId || '').trim();
-    const now = Date.now();
-    const ageMs = _state.quitAuthorityLoadedAt ? now - _state.quitAuthorityLoadedAt : Number.POSITIVE_INFINITY;
-    const tabRefreshReason = /switch-tab|ensure-quit-tab|tab-open|current-quit/.test(String(reason || ''));
-    const forceRefresh = options.force === true || (tabRefreshReason && ageMs > 60000);
+    const forceRefresh = options.force === true;
     const sameClub = !!clubId && _state.quitAuthorityClubId === clubId;
+    const dirty = _state.quitAuthorityState === 'dirty' ||
+        _state.quitAuthorityState === 'error' ||
+        !!_state.quitAuthorityDirtyReason;
 
-    // V5R: "loaded" is not enough. Short-circuit only for the same club,
-    // a clean complete snapshot, and a fresh tab-open authority window.
-    if (!forceRefresh && sameClub && _state.quitCompletenessReconciled && isQuitComplete()) return true;
+    // D1C3B: Admin's full realtime snapshot already classified quitProfiles from
+    // the same authoritative input. Never pay a second full getDocs for Quit.
+    if (
+        clubId &&
+        _state.fullAuthoritySnapshotSeen === true &&
+        _state.fullAuthorityComplete === true &&
+        _state.authorityClubId === clubId &&
+        _state.authorityServerConfirmed === true &&
+        _state.authorityFreshness === 'fresh' &&
+        isQuitComplete() === true
+    ) {
+        _state.quitLoaded = true;
+        _state.quitCompletenessReconciled = true;
+        _state.quitAuthorityState = 'complete';
+        _state.quitAuthorityClubId = clubId;
+        _state.quitAuthorityDirtyReason = '';
+        _updateWindowMetrics();
+        return true;
+    }
+
+    // D1C3B3: while the Admin full-profile owner is pending (including cache
+    // snapshots), Quit must wait for that SAME owner. Never start a parallel
+    // full getDocs just because the initial snapshot was not server-confirmed.
+    if ((_state.activeListenerKey && !_state.activeListenerFailed) || _state.fallbackInProgress) {
+        _state.quitAuthorityState = _state.authorityFreshness === 'stale' ? 'stale' : 'loading';
+        _updateWindowMetrics();
+        return false;
+    }
+    // H8R2 D: completeness/mutation state is the primary invalidation authority.
+    // Re-opening the tab or merely waiting 60 seconds MUST NOT trigger another
+    // full profiles getDocs. Retry remains allowed after error/incomplete/dirty
+    // state or an explicit force request.
+    if (!forceRefresh && sameClub && !dirty && _state.quitCompletenessReconciled && isQuitComplete()) return true;
     if (_quitAuthorityPromise) return _quitAuthorityPromise;
 
     if (!_hasQuitContext(ctx)) {
@@ -931,12 +1188,22 @@ export async function loadQuitProfilesIfNeeded(reason, contextOverride, options 
     _state.quitAuthorityError = '';
     markQuitComplete(false);
 
+    const quitAuthEpoch = window.__verifiedAuthContextState?.generation ?? null;
     _quitAuthorityPromise = (async () => {
         try {
             // Single authoritative flow: one full collection snapshot, once/session,
             // then local classification. This replaces the old fan-out of many
             // status/boolean/date queries that could each miss a legacy schema.
             const snap = await fbGetDocs(ctx.profRef);
+            if (!_currentVerifiedOwnerMatches(ctx, quitAuthEpoch)
+                || snap?.metadata?.fromCache !== false || snap?.metadata?.hasPendingWrites !== false) {
+                _state.quitLoadingInProgress = false;
+                _state.quitAuthorityState = 'pending-server-confirmation';
+                _state.quitAuthorityError = 'cached-or-stale-quit-snapshot';
+                markQuitComplete(false);
+                _updateWindowMetrics();
+                return false;
+            }
             const fullMap = {};
             snap.forEach(d => {
                 const id = String(d.id || '').trim();
@@ -1031,7 +1298,47 @@ export function isQuitProfilesComplete() {
         _state.quitAuthorityClubId === currentClubId &&
         _state.quitCompletenessReconciled === true &&
         _state.quitAuthorityState === 'complete' &&
+        _state.authorityServerConfirmed === true &&
+        _state.authorityFreshness === 'fresh' &&
         isQuitComplete() === true;
+}
+
+
+/**
+ * H8R2.1 R4 — local-only invalidation for the EXISTING Quit authority.
+ * Called by the canonical profile mutation owner when a mutation touches a
+ * profile that was/is quit. ZERO Firestore read/write/listener is performed.
+ */
+export function markQuitAuthorityDirty(reason = 'canonical-quit-profile-mutation') {
+    if (_isCoachContext(_ctx)) return false;
+    const clubId = String((_ctx && _ctx.clubId) || window.__store?.clubId || '').trim();
+
+    // D1C3B: under the Admin full realtime authority, the canonical mutation owner
+    // already merges the updated profile into studentProfileStore immediately and
+    // the one full listener will confirm it. Do not demote completeness and trigger
+    // a second full getDocs just because membership/status changed locally.
+    if (
+        clubId &&
+        _state.fullAuthoritySnapshotSeen === true &&
+        _state.fullAuthorityComplete === true &&
+        _state.authorityClubId === clubId &&
+        isQuitComplete() === true
+    ) {
+        _state.quitLoaded = true;
+        _state.quitCompletenessReconciled = true;
+        _state.quitAuthorityState = 'complete';
+        _state.quitAuthorityClubId = clubId;
+        _state.quitAuthorityDirtyReason = '';
+        _updateWindowMetrics();
+        return true;
+    }
+
+    _state.quitCompletenessReconciled = false;
+    _state.quitAuthorityState = 'dirty';
+    _state.quitAuthorityDirtyReason = String(reason || 'canonical-quit-profile-mutation');
+    markQuitComplete(false);
+    _updateWindowMetrics();
+    return true;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1072,18 +1379,52 @@ export async function loadCoachBranchProfilesFallback(reason) {
         console.warn('[ProfilesFallback] Coach branch fallback blocked — missing safe context:', reason);
         return false;
     }
-    if (_state.fallbackInProgress || _state.fallbackCount >= _state.maxFallbackPerSession) return false;
+    if (_coachRosterReadiness() === 'verified' ||
+        _state.fallbackInProgress || _state.fallbackCount >= _state.maxFallbackPerSession) return false;
 
     const fb = window._fb_init || {};
     const { query: fbQuery, where: fbWhere, getDocs: fbGetDocs } = fb;
     if (!fbQuery || !fbWhere || !fbGetDocs) return false;
 
+    const fallbackMountGeneration = _activeMountGeneration;
+    const fallbackListenerKey = _state.activeListenerKey;
+    const fallbackAuthEpoch = window.__verifiedAuthContextState?.generation ?? null;
+    const fallbackAuthUid = window.__verifiedAuthContextState?.uid ?? null;
+    const isCurrentCoachFallback = () => _ctx?.clubId === ctx.clubId &&
+        _activeMountGeneration === fallbackMountGeneration &&
+        _state.activeListenerKey === fallbackListenerKey &&
+        _normalizeRole(_state.role) === 'coach' &&
+        _normalizeBranchForAuthority(_state.coachBranch) === _normalizeBranchForAuthority(branch) &&
+        _currentVerifiedOwnerMatches(ctx, fallbackAuthEpoch, fallbackAuthUid);
+    if (!isCurrentCoachFallback()) return false;
     _state.fallbackInProgress = true;
     try {
         const aliases = _coachBranchAliases(ctx);
-        const snapshots = await Promise.all(aliases.map(alias =>
+        // R2: reuse ONLY a healthy, same-generation, physically mounted slot.
+        // ServerSeen alone is insufficient after listener error/dispose/reconnect.
+        const slotHealthy = (alias) => {
+            const primary = alias === branch;
+            const key = primary ? _state.activeListenerKey : _state.coachLegacyListenerKey;
+            return !!key && (typeof window.hasListener === 'function' && window.hasListener(key)) &&
+                (primary ? (_state.coachPrimaryServerSeen && !_state.coachPrimaryFailed)
+                         : (_state.coachLegacyServerSeen && !_state.coachLegacyFailed));
+        };
+        const missingAliases = aliases.filter(alias => !slotHealthy(alias));
+        if (!missingAliases.length) return false; // all healthy slots: no emergency read
+        const snapshots = await Promise.all(missingAliases.map(alias =>
             fbGetDocs(fbQuery(ctx.profRef, fbWhere('branch', '==', alias)))
         ));
+        if (!isCurrentCoachFallback() || _coachRosterReadiness() === 'verified') return false;
+        // If a reused slot turned stale while awaiting, this request did NOT read
+        // that alias. Reject the result instead of publishing a mixed-epoch union.
+        if (aliases.some(alias => !missingAliases.includes(alias) && !slotHealthy(alias))) return false;
+        // Cache/pending results cannot act as complete even for provisional read.
+        if (snapshots.some(snap => snap?.metadata?.fromCache !== false || snap?.metadata?.hasPendingWrites !== false)) {
+            _state.fallbackCount++;
+            _state.fullFallbackReason = 'coach-branch-unverified:' + reason;
+            _updateWindowMetrics();
+            return false;
+        }
         const docsRead = snapshots.reduce((sum, snap) => sum + (snap.size || 0), 0);
         if (typeof window.recordFirestoreReadAttribution === 'function') {
             window.recordFirestoreReadAttribution('profiles.coachBranchFallbackQuery', docsRead, {
@@ -1094,12 +1435,24 @@ export async function loadCoachBranchProfilesFallback(reason) {
             });
         }
         const activeMap = {};
-        snapshots.forEach(snap => snap.forEach(d => {
-            const id = d.id.trim();
-            if (!id) return;
-            const data = d.data();
-            if (classifyProfileStatus(data) !== 'quit') activeMap[id] = data;
-        }));
+        // Read the latest live map at COMMIT time, never freeze it at getDocs start.
+        // The primary slot wins duplicate document IDs as in existing realtime.
+        for (const alias of aliases.slice().reverse()) {
+            if (slotHealthy(alias)) {
+                const slotMap = alias === branch ? _state.coachCanonicalActiveMap : _state.coachLegacyActiveMap;
+                Object.assign(activeMap, slotMap || {});
+            } else {
+                const index = missingAliases.indexOf(alias);
+                if (index < 0) return false;
+                snapshots[index].forEach(d => {
+                    const id = d.id.trim();
+                    if (!id) return;
+                    const data = d.data();
+                    if (classifyProfileStatus(data) === 'active') activeMap[id] = data;
+                });
+            }
+        }
+        if (!isCurrentCoachFallback() || _coachRosterReadiness() === 'verified') return false;
         setActiveProfiles(activeMap, 'coach-branch-fallback:' + reason);
         setQuitProfiles({}, 'coach-branch-fallback:no-quit-data');
         _syncLegacy();
@@ -1114,13 +1467,15 @@ export async function loadCoachBranchProfilesFallback(reason) {
         _updateWindowMetrics();
         return true;
     } catch (err) {
+        if (!isCurrentCoachFallback()) return false;
         _state.fallbackCount++;
         _state.fullFallbackReason = 'coach-branch-error:' + reason;
         console.error('[ProfilesFallback] Coach branch load failed:', err.code || err.message);
         _updateWindowMetrics();
         return false;
     } finally {
-        _state.fallbackInProgress = false;
+        // The previous session must not clear the new session's in-flight flag.
+        if (isCurrentCoachFallback()) _state.fallbackInProgress = false;
     }
 }
 
@@ -1163,6 +1518,43 @@ export async function loadFullProfilesFallback(reason) {
         return false;
     }
 
+    const clubId = String(ctx.clubId || window.__store?.clubId || '').trim();
+    if (
+        clubId &&
+        _state.fullAuthoritySnapshotSeen === true &&
+        _state.fullAuthorityComplete === true &&
+        _state.authorityClubId === clubId
+    ) {
+        return true;
+    }
+
+    // D1C3B2: a registered listener with no initial snapshot is PENDING,
+    // not failed. An eight-second Debt wait timeout must never dispose it.
+    // Only the existing listener error callback can authorize takeover.
+    if (_state.activeListenerKey && !_state.activeListenerFailed) {
+        return false;
+    }
+
+    // Emergency one-shot fallback and normal realtime authority are exclusive.
+    // The failed owner must be removed AND its absence proven before getDocs.
+    if (_state.activeListenerKey) {
+        if (typeof window.hasListener !== 'function' || typeof window.removeListener !== 'function') {
+            console.error('[ProfilesFallback] Listener cleanup/verification API unavailable — fallback blocked');
+            return false;
+        }
+        if (window.hasListener(_state.activeListenerKey)) {
+            window.removeListener(_state.activeListenerKey, 'full-fallback-takeover:' + (reason || 'unknown'));
+            if (window.hasListener(_state.activeListenerKey)) {
+                console.error('[ProfilesFallback] Active authority cleanup verification failed — fallback blocked');
+                return false;
+            }
+        }
+        ++_activeMountGeneration; // discard callbacks from disposed owner
+        _state.activeListenerMounted = false;
+        _state.fullAuthoritySnapshotSeen = false;
+        _state.fullAuthorityComplete = false;
+    }
+
     const fb = window._fb_init || {};
     const { getDocs: fbGetDocs } = fb;
     if (!fbGetDocs) {
@@ -1172,14 +1564,49 @@ export async function loadFullProfilesFallback(reason) {
 
     console.warn('[ProfilesFallback] Loading full profiles —', reason);
     _state.fallbackInProgress = true;
+    const fallbackContext = ctx;
+    const fallbackEpoch = window.__verifiedAuthContextState?.generation ?? null;
+    const isCurrentFallbackContext = () => _ctx === fallbackContext
+        && _currentVerifiedOwnerMatches(fallbackContext, fallbackEpoch)
+        && String(window.__store?.clubId || window.__store?.currentClubId || '') === clubId
+        && (!window.__store?.currentClubId || String(window.__store.currentClubId) === clubId)
+        && _normalizeRole(window.userRole || window.__store?.userRole || fallbackContext.role) === _normalizeRole(fallbackContext.role)
+        && !_isCoachContext();
+    const recoverRealtimeOwner = () => {
+        if (_ctx !== fallbackContext) return false;
+        // Fail closed during recovery, including when the SDK/registry is missing
+        // or the bounded recovery budget has been exhausted. A one-shot scan
+        // must not masquerade as permanent realtime coverage.
+        _state.fullAuthoritySnapshotSeen = false;
+        _state.fullAuthorityComplete = false;
+        _state.lastProfilesMode = 'full-fallback-awaiting-realtime';
+        _updateWindowMetrics();
+        if (isCurrentFallbackContext() && _state.fallbackCount < _state.maxFallbackPerSession) {
+            return mountActiveProfilesListener({ ...fallbackContext, reason: 'full-fallback-realtime-recovery' }) === true;
+        }
+        return false;
+    };
 
     try {
         const snap    = await fbGetDocs(ctx.profRef);
+        if (!isCurrentFallbackContext()) {
+            _state.fallbackInProgress = false;
+            return false; // logout/club/role switch occurred during one-shot read
+        }
         if (typeof window.recordFirestoreReadAttribution === 'function') {
             window.recordFirestoreReadAttribution('profiles.fullFallbackQuery', snap.size || 0, {
                 initial: true,
                 reason: reason || 'full-fallback'
             });
+        }
+        // A getDocs response can be served entirely by offline persistence.
+        // Cache-only one-shot results must never become full profile authority.
+        if (snap?.metadata?.fromCache !== false || snap?.metadata?.hasPendingWrites !== false) {
+            _state.fallbackInProgress = false;
+            _state.fallbackCount++;
+            _state.authorityFreshness = _state.authorityServerConfirmed ? 'stale' : 'pending';
+            recoverRealtimeOwner();
+            return false;
         }
         const fullMap = {};
         snap.forEach(d => {
@@ -1187,9 +1614,8 @@ export async function loadFullProfilesFallback(reason) {
             if (id) fullMap[id] = d.data();
         });
 
-        // Phase 4K-STUDENT-LIST: Phân loại active/quit dùng classifyProfileStatus() mới
-        // để data cũ thiếu status (→ 'active') vào activeProfiles đúng cách
-        // Sau classifier: setActiveProfiles + setQuitProfiles riêng biệt trước syncLegacy
+        // One complete-store mutation from the full snapshot. Avoid separate
+        // setActive/setQuit version bumps that could create competing authority.
         const _fallbackActive = {};
         const _fallbackQuit   = {};
         Object.entries(fullMap).forEach(([_fId, _fData]) => {
@@ -1197,14 +1623,7 @@ export async function loadFullProfilesFallback(reason) {
             if (_fKind === 'quit') _fallbackQuit[_fId] = _fData;
             else _fallbackActive[_fId] = _fData;
         });
-        setActiveProfiles(_fallbackActive, 'full-fallback-active:' + reason);
-        setQuitProfiles(_fallbackQuit, 'full-fallback-quit-classified:' + reason, { complete: true });
-
-        if (window.syncProfilesToStudentStore) {
-            window.syncProfilesToStudentStore(fullMap, 'full-fallback:' + reason);
-        } else {
-            syncLegacyAllProfiles(fullMap, 'full-fallback:' + reason);
-        }
+        syncLegacyAllProfiles(fullMap, 'full-fallback:' + reason, { complete: true });
 
         _syncLegacy();
 
@@ -1213,9 +1632,19 @@ export async function loadFullProfilesFallback(reason) {
         _state.fallbackCount++;
         _state.fullFallbackReason    = reason;
         _state.lastProfilesMode      = 'full-fallback';
+        _state.authorityClubId       = clubId;
+        _state.fullAuthoritySnapshotSeen = true;
+        _state.fullAuthoritySnapshotCount = Number(snap.size || Object.keys(fullMap).length || 0);
+        _state.fullAuthorityComplete = true;
+        _state.authorityServerConfirmed = true;
+        _state.authorityFreshness = 'fresh';
+        _state.authorityHasPendingWrites = false;
+        _state.authoritySnapshotVersion++;
+        _state.authoritySessionEpoch = fallbackEpoch;
         _state.quitLoaded            = true;
         _state.quitLoadingInProgress = false;
-        _state.activeListenerMounted = true;
+        // This is a one-shot emergency full read, not a mounted realtime listener.
+        _state.activeListenerMounted = false;
         // [Phase 3.7C+A] Explicit store state sync — safety layer on top of syncLegacyAllProfiles
         markActiveLoaded(true);
         markQuitLoaded(true);
@@ -1291,6 +1720,7 @@ export async function loadFullProfilesFallback(reason) {
         }
 
         _updateWindowMetrics();
+        recoverRealtimeOwner();
         return true;
 
     } catch (err) {
@@ -1299,6 +1729,7 @@ export async function loadFullProfilesFallback(reason) {
         _state.fullFallbackReason = reason + ':error';
         console.error('[ProfilesFallback] Full load thất bại:', err.message || err.code);
         _updateWindowMetrics();
+        recoverRealtimeOwner();
         return false;
     }
 }
@@ -1364,19 +1795,37 @@ export function isQuitProfilesLoaded() {
  * @param {string} [reason]
  */
 export function resetProfilesListeners(reason) {
+    ++_activeMountGeneration;
     cleanupActiveProfilesListener(reason || 'reset');
     cleanupQuitProfilesListener(reason   || 'reset');
 
     // Listener
     _state.activeListenerMounted   = false;
     _state.activeSnapshotCount     = 0;
+    _state.dashboardHydrationReconciled = false;
     _state.activeQueryErrorCount   = 0;
+    _state.activeListenerFailed = false;
+    _state.activeListenerFailed = false;
+    _state.authorityClubId         = '';
+    _state.fullAuthoritySnapshotSeen = false;
+    _state.fullAuthoritySnapshotCount = 0;
+    _state.fullAuthorityComplete  = false;
+    _state.authorityServerConfirmed = false;
+    _state.authorityFreshness = 'pending';
+    _state.authorityHasPendingWrites = false;
+    _state.authoritySnapshotVersion = 0;
+    _state.authoritySessionEpoch = null;
+    _state.activeOwnerUid = null;
     _state.role                    = '';
     _state.coachBranch             = '';
     _state.coachBranchFallbackCount = 0;
     _state.coachLegacyListenerKey = null;
     _state.coachCanonicalActiveMap = {};
     _state.coachLegacyActiveMap = {};
+    _state.coachPrimaryServerSeen = false;
+    _state.coachLegacyServerSeen = false;
+    _state.coachPrimaryFailed = false;
+    _state.coachLegacyFailed = false;
 
     // Quit
     _state.quitLoaded              = false;
@@ -1442,9 +1891,29 @@ export function getProfilesListenerMetrics() {
         activeListenerMounted:              _state.activeListenerMounted,
         activeSnapshotCount:                _state.activeSnapshotCount,
         activeQueryErrorCount:              _state.activeQueryErrorCount,
+        authorityClubId:                    _state.authorityClubId,
+        fullAuthoritySnapshotSeen:          _state.fullAuthoritySnapshotSeen,
+        fullAuthoritySnapshotCount:         _state.fullAuthoritySnapshotCount,
+        fullAuthorityComplete:              _state.fullAuthorityComplete,
+        authorityServerConfirmed:           _state.authorityServerConfirmed,
+        authorityFreshness:                 _state.authorityFreshness,
+        authorityHasPendingWrites:          _state.authorityHasPendingWrites,
+        authoritySnapshotVersion:           _state.authoritySnapshotVersion,
+        authoritySessionEpoch:              _state.authoritySessionEpoch,
+        // R2: read-only identity of existing physical Coach roster owner for
+        // Attendance write guard; not a new auth/store authority.
+        activeOwnerUid:                     _state.activeOwnerUid,
+        activeListenerKey:                  _state.activeListenerKey,
+        coachLegacyListenerKey:             _state.coachLegacyListenerKey,
+        coachPrimaryServerSeen:             _state.coachPrimaryServerSeen,
+        coachLegacyServerSeen:              _state.coachLegacyServerSeen,
+        coachPrimaryFailed:                 _state.coachPrimaryFailed,
+        coachLegacyFailed:                  _state.coachLegacyFailed,
         role:                               _state.role,
         coachBranch:                        _state.coachBranch,
         coachBranchFallbackCount:           _state.coachBranchFallbackCount,
+        coachRosterReadiness:               _coachRosterReadiness(),
+        coachRosterCoverage:                _state.role === 'coach' ? (_coachRosterReadiness() === 'verified' ? 'branch-server-verified' : 'branch-pending') : 'not-applicable',
         // Quit
         quitLoaded:                         _state.quitLoaded,
         quitLoadCount:                      _state.quitLoadCount,

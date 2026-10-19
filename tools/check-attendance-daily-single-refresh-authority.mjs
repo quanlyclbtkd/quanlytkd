@@ -189,10 +189,13 @@ try {
     globalThis.currentClubId = 'club-a';
     globalThis.userRole = 'viewer';
     globalThis.coachBranch = '';
-    globalThis.__verifiedAuthContextState = { generation: 1 };
+    globalThis.__verifiedAuthContextState = { ready:true,uid:'uid-fixture',role:'viewer',clubId:'club-a',coachBranch:'',generation:1 };
+    const roleHolder = {};
+    (await import('node:vm')).runInNewContext(read('js/core/roleReadBoundary.js'), { window:roleHolder });
+    globalThis.RoleReadBoundary = { normalizeRole:roleHolder.RoleReadBoundary.normalizeRole };
     globalThis._fb_init = {};
 
-    const serviceUrl = pathToFileURL(path.join(root, 'js/services/attendance.service.js')).href + '?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1';
+    const serviceUrl = pathToFileURL(path.join(root, 'js/services/attendance.service.js')).href + '?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1';
     const { AttendanceService } = await import(serviceUrl);
     let dailyCalls = 0;
     let shiftCalls = 0;
@@ -231,7 +234,7 @@ try {
         globalThis.userRole = role;
         globalThis.coachBranch = role === 'coach' ? 'CS1' : '';
         globalThis.__store.coachBranch = globalThis.coachBranch;
-        globalThis.__verifiedAuthContextState.generation = auth;
+        Object.assign(globalThis.__verifiedAuthContextState, { ready:true,uid:'uid-fixture',role,clubId:club,coachBranch:globalThis.coachBranch,generation:auth });
         dateEl.value = date;
         branchEl.value = branch;
         shiftEl.value = '';
@@ -367,7 +370,7 @@ try {
     check(api.getDailyState().currentSnapshotAuthGeneration === 71, 'runtime: accepted daily cache records the current auth generation');
 
     // Local toggle during an older read.
-    reset({ club: 'club-write', auth: 20 });
+    reset({ club: 'club-write', role: 'admin', auth: 20 });
     dailyImpl = async () => [];
     await api.requestDailyRefresh('write-baseline', { force: true });
     const oldToggleRead = deferred();
@@ -384,7 +387,7 @@ try {
     check(globalThis.__attendanceDebug.dailyMutationRevisionDropped === mutationDropBefore + 1, 'runtime: toggle race is rejected by mutation revision');
 
     // Bulk write during an older read.
-    reset({ club: 'club-bulk', auth: 21 });
+    reset({ club: 'club-bulk', role: 'admin', auth: 21 });
     dailyImpl = async () => [];
     await api.requestDailyRefresh('bulk-baseline', { force: true });
     const oldBulkRead = deferred();

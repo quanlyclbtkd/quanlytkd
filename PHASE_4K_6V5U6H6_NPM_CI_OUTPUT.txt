@@ -1,0 +1,39 @@
+DEPENDENCY INSTALL = BLOCKED
+classification = DNS / registry EAI_AGAIN
+command = npm ci
+firebase_cli_local = unavailable
+1464 verbose audit error     at process.processTicksAndRejections (node:internal/process/task_queues:91:21) {
+1464 verbose audit error   code: 'EAI_AGAIN',
+1464 verbose audit error   errno: 'EAI_AGAIN',
+1464 verbose audit error   syscall: 'getaddrinfo',
+1464 verbose audit error   hostname: 'registry.npmjs.org',
+1464 verbose audit error   type: 'system'
+1464 verbose audit error }
+1465 silly audit error undefined
+1466 silly audit report null
+1467 http fetch GET https://packages.applied-caas-gateway1.internal.api.openai.org/artifactory/api/npm/npm-public/zod/-/zod-4.4.3.tgz attempt 1 failed with EAI_AGAIN
+1468 http fetch GET https://packages.applied-caas-gateway1.internal.api.openai.org/artifactory/api/npm/npm-public/zip-stream/-/zip-stream-6.0.1.tgz attempt 1 failed with EAI_AGAIN
+1469 http fetch GET https://packages.applied-caas-gateway1.internal.api.openai.org/artifactory/api/npm/npm-public/yoctocolors-cjs/-/yoctocolors-cjs-2.1.3.tgz attempt 1 failed with EAI_AGAIN
+1470 http fetch GET https://packages.applied-caas-gateway1.internal.api.openai.org/artifactory/api/npm/npm-public/zod-to-json-schema/-/zod-to-json-schema-3.25.2.tgz attempt 1 failed with EAI_AGAIN
+1471 http fetch GET https://packages.applied-caas-gateway1.internal.api.openai.org/artifactory/api/npm/npm-public/yargs-parser/-/yargs-parser-21.1.1.tgz attempt 1 failed with EAI_AGAIN
+1472 http fetch GET https://packages.applied-caas-gateway1.internal.api.openai.org/artifactory/api/npm/npm-public/yaml/-/yaml-2.9.0.tgz attempt 1 failed with EAI_AGAIN
+1473 http fetch GET https://packages.applied-caas-gateway1.internal.api.openai.org/artifactory/api/npm/npm-public/yallist/-/yallist-5.0.0.tgz attempt 1 failed with EAI_AGAIN
+1474 http fetch GET https://packages.applied-caas-gateway1.internal.api.openai.org/artifactory/api/npm/npm-public/y18n/-/y18n-5.0.8.tgz attempt 1 failed with EAI_AGAIN
+1475 http fetch GET https://packages.applied-caas-gateway1.internal.api.openai.org/artifactory/api/npm/npm-public/yargs/-/yargs-17.7.3.tgz attempt 1 failed with EAI_AGAIN
+1476 http fetch GET https://packages.applied-caas-gateway1.internal.api.openai.org/artifactory/api/npm/npm-public/xtend/-/xtend-4.0.2.tgz attempt 1 failed with EAI_AGAIN
+1477 http fetch GET https://packages.applied-caas-gateway1.internal.api.openai.org/artifactory/api/npm/npm-public/ws/-/ws-7.5.11.tgz attempt 1 failed with EAI_AGAIN
+1478 http fetch GET https://packages.applied-caas-gateway1.internal.api.openai.org/artifactory/api/npm/npm-public/write-file-atomic/-/write-file-atomic-3.0.3.tgz attempt 1 failed with EAI_AGAIN
+1479 http fetch GET https://packages.applied-caas-gateway1.internal.api.openai.org/artifactory/api/npm/npm-public/wrap-ansi/-/wrap-ansi-7.0.0.tgz attempt 1 failed with EAI_AGAIN
+1480 http fetch GET https://packages.applied-caas-gateway1.internal.api.openai.org/artifactory/api/npm/npm-public/xdg-basedir/-/xdg-basedir-4.0.0.tgz attempt 1 failed with EAI_AGAIN
+1481 http fetch GET https://packages.applied-caas-gateway1.internal.api.openai.org/artifactory/api/npm/npm-public/wrappy/-/wrappy-1.0.2.tgz attempt 1 failed with EAI_AGAIN
+1482 http fetch GET https://packages.applied-caas-gateway1.internal.api.openai.org/artifactory/api/npm/npm-public/zip-stream/-/zip-stream-6.0.1.tgz attempt 2 failed with EAI_AGAIN
+1483 http fetch GET https://packages.applied-caas-gateway1.internal.api.openai.org/artifactory/api/npm/npm-public/yoctocolors-cjs/-/yoctocolors-cjs-2.1.3.tgz attempt 2 failed with EAI_AGAIN
+1484 http fetch GET https://packages.applied-caas-gateway1.internal.api.openai.org/artifactory/api/npm/npm-public/zod-to-json-schema/-/zod-to-json-schema-3.25.2.tgz attempt 2 failed with EAI_AGAIN
+1485 http fetch GET https://packages.applied-caas-gateway1.internal.api.openai.org/artifactory/api/npm/npm-public/zod/-/zod-4.4.3.tgz attempt 2 failed with EAI_AGAIN
+1486 http fetch GET https://packages.applied-caas-gateway1.internal.api.openai.org/artifactory/api/npm/npm-public/yargs-parser/-/yargs-parser-21.1.1.tgz attempt 2 failed with EAI_AGAIN
+1487 http fetch GET https://packages.applied-caas-gateway1.internal.api.openai.org/artifactory/api/npm/npm-public/yallist/-/yallist-5.0.0.tgz attempt 2 failed with EAI_AGAIN
+1488 http fetch GET https://packages.applied-caas-gateway1.internal.api.openai.org/artifactory/api/npm/npm-public/y18n/-/y18n-5.0.8.tgz attempt 2 failed with EAI_AGAIN
+1489 http fetch GET https://packages.applied-caas-gateway1.internal.api.openai.org/artifactory/api/npm/npm-public/yargs/-/yargs-17.7.3.tgz attempt 2 failed with EAI_AGAIN
+1490 http fetch GET https://packages.applied-caas-gateway1.internal.api.openai.org/artifactory/api/npm/npm-public/yaml/-/yaml-2.9.0.tgz attempt 2 failed with EAI_AGAIN
+1491 http fetch GET https://packages.applied-caas-gateway1.internal.api.openai.org/artifactory/api/npm/npm-public/xtend/-/xtend-4.0.2.tgz attempt 2 failed with EAI_AGAIN
+1492 http fetch GET https://packages.applied-caas-gateway1.internal.api.openai.org/artifactory/api/npm/npm-public/write-file-atomic/-/write-file-atomic-3.0.3.tgz attempt 2 failed with EAI_AGAIN

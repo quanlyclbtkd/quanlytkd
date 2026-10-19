@@ -223,10 +223,14 @@ try {
     globalThis.currentClubId = 'club-a';
     globalThis.userRole = 'admin';
     globalThis.coachBranch = '';
-    globalThis.__verifiedAuthContextState = { generation: 1 };
+    globalThis.__verifiedAuthContextState = { ready: true, uid: 'uid-test', role: 'admin', clubId: 'club-a', coachBranch: '', generation: 1 };
+    // Test fixture must include the same preloaded canonical role normalizer as index.html.
+    const roleHolder = { };
+    (await import('node:vm')).runInNewContext(read('js/core/roleReadBoundary.js'), { window: roleHolder });
+    globalThis.RoleReadBoundary = { normalizeRole: roleHolder.RoleReadBoundary.normalizeRole };
     globalThis._fb_init = {};
 
-    const serviceUrl = pathToFileURL(path.join(root, 'js/services/attendance.service.js')).href + '?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1';
+    const serviceUrl = pathToFileURL(path.join(root, 'js/services/attendance.service.js')).href + '?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1';
     const { AttendanceService } = await import(serviceUrl);
     let dailyCalls = 0;
     let shiftCalls = 0;
@@ -267,7 +271,7 @@ try {
         globalThis.userRole = role;
         globalThis.coachBranch = role === 'coach' ? 'CS1' : '';
         globalThis.__store.coachBranch = globalThis.coachBranch;
-        globalThis.__verifiedAuthContextState.generation = auth;
+        Object.assign(globalThis.__verifiedAuthContextState, { ready: true, uid: 'uid-test', role, clubId: club, coachBranch: globalThis.coachBranch, generation: auth });
         navigatorState.onLine = online;
         dateEl.value = '2026-08-14';
         branchEl.value = branch;

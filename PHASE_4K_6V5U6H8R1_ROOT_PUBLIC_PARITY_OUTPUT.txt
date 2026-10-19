@@ -1,0 +1,13 @@
+
+> taekwondo-club-app@1.0.0 check:root-public-parity
+> node tools/check-root-public-parity.mjs
+
+{
+  "algorithm": "SHA-256",
+  "rootFileCount": 123,
+  "publicFileCount": 123,
+  "missingPublic": [],
+  "extraPublic": [],
+  "hashMismatches": [],
+  "status": "PASS"
+}

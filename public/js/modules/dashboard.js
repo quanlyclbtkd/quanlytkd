@@ -276,7 +276,7 @@ export function updateSummaryNumbers(data) {
         incTuition = 0, incExam = 0, incOther = 0, incUniform = 0,
         expTotal = 0, expExamTotal = 0, expUniform = 0,
         activeCount = 0, debtCount = 0, totalDebtEst = 0,
-        txCount, selMonth, unpaidInvCount = 0
+        debtSummaryPending = false, txCount, selMonth, unpaidInvCount = 0
     } = data;
 
     const tInc        = incTuition + incOther + incExam + incUniform;
@@ -291,8 +291,8 @@ export function updateSummaryNumbers(data) {
     _set('sum_exam_expense_tab',     _fmt(expExamTotal) + ' ₫');
     _set('sum_exam_profit_tab',      _fmt(incExam - expExamTotal) + ' ₫');
     _set('sum_expense_tab',          _fmt(expTotal)    + ' ₫');
-    _set('sum_debt_count_tab',       debtCount         + ' Bạn');
-    _set('sum_debt_amount_tab',      _fmt(totalDebtEst) + ' ₫');
+    _set('sum_debt_count_tab',       debtSummaryPending ? 'Đang đồng bộ…' : debtCount + ' Bạn');
+    _set('sum_debt_amount_tab',      debtSummaryPending ? 'Đang đồng bộ…' : _fmt(totalDebtEst) + ' ₫');
     _set('sum_uniform_in',           _fmt(incUniform)  + ' ₫');
     _set('sum_uniform_out',          _fmt(expUniform)  + ' ₫');
     _set('sum_uniform_profit',       _fmt(uniformProfit) + ' ₫');
@@ -301,14 +301,14 @@ export function updateSummaryNumbers(data) {
     _set('totalProfitDashboard',     _fmt(tInc - tExp) + ' ₫');
     _set('totalUniformProfitDashboard', _fmt(uniformProfit) + ' ₫');
     _set('activeStudentCount',       String(activeCount));
-    _set('debtCount',                debtCount         + ' Bạn');
-    _set('debtEst',                  'Dự thu: ' + _fmt(totalDebtEst) + ' ₫');
-    _set('debtTabCountBadge',        String(debtCount));
+    _set('debtCount',                debtSummaryPending ? 'Đang đồng bộ…' : debtCount + ' Bạn');
+    _set('debtEst',                  debtSummaryPending ? 'Đang đồng bộ…' : 'Dự thu: ' + _fmt(totalDebtEst) + ' ₫');
+    _set('debtTabCountBadge',        debtSummaryPending ? '…' : String(debtCount));
     if (txCount !== undefined) _set('txTabCountBadge', String(txCount));
 
     // Mobile header bar (mhb*)
     const mhbAC  = document.getElementById('mhbActiveCount'); if (mhbAC)  mhbAC.innerText  = activeCount;
-    const mhbDC  = document.getElementById('mhbDebtCount');   if (mhbDC)  mhbDC.innerText  = debtCount;
+    const mhbDC  = document.getElementById('mhbDebtCount');   if (mhbDC)  mhbDC.innerText  = debtSummaryPending ? '…' : debtCount;
     const mhbInc = document.getElementById('mhbIncome');      if (mhbInc) mhbInc.innerText = _fmtK(tInc);
     const mhbMon = document.getElementById('mhbMonth');
     if (mhbMon && selMonth) {

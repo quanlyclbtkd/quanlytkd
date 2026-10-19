@@ -105,20 +105,47 @@
 
     function activeSourceReady() {
         const st = global.__store || {};
+        const ctx = context();
         const listener = typeof global.getProfilesListenerMetrics === 'function'
             ? global.getProfilesListenerMetrics()
             : (global.__profileScaleMetrics || {});
-        const activeLoaded = !!(
-            (global.studentProfileStore && global.studentProfileStore.activeLoaded) ||
-            listener.activeLoaded ||
-            listener.activeListenerMounted ||
-            Object.keys(st.profiles || {}).length > 0
+        const authorityClubId = String(listener.authorityClubId || '').trim();
+        const currentClubId = String(ctx.clubId || '').trim();
+        const fullAuthoritySnapshotSeen = listener.fullAuthoritySnapshotSeen === true;
+        const authorityComplete = listener.fullAuthorityComplete === true;
+        const completeStore = !!(
+            (global.studentProfileStore && global.studentProfileStore.quitComplete === true) ||
+            listener.quitComplete === true
         );
-        const initialSeen = Number(listener.activeSnapshotCount || 0) > 0 || listener.lastProfilesMode === 'full-fallback';
+        const sameClub = !!currentClubId && authorityClubId === currentClubId;
+        const authorityMode = String(listener.lastProfilesMode || '');
+        const allowedMode = authorityMode === 'full-profiles-authoritative' || authorityMode === 'full-fallback';
+        const auth = global.__verifiedAuthContextState;
+        const sameSession = !auth || (auth.ready === true
+            && Number(auth.generation) === Number(listener.authoritySessionEpoch)
+            && (String(auth.role || '').toLowerCase().replace(/-/g, '_') === 'super_admin'
+                || String(auth.clubId || '') === currentClubId)
+            && String(auth.role || '').toLowerCase().replace(/-/g, '_') === String(listener.role || '').toLowerCase().replace(/-/g, '_'));
+        const serverVerified = listener.authorityServerConfirmed === true
+            && listener.authorityFreshness === 'fresh'
+            && listener.authorityHasPendingWrites === false;
+        const ready = isAdminRole(ctx.role) && sameClub && sameSession && serverVerified
+            && fullAuthoritySnapshotSeen && authorityComplete && completeStore && allowedMode;
         return {
-            ready: activeLoaded && (initialSeen || Object.keys(st.profiles || {}).length > 0),
+            ready,
             listener,
-            profilesCount: Object.keys(st.profiles || {}).length,
+            authorityClubId,
+            currentClubId,
+            sameClub,
+            sameSession,
+            serverVerified,
+            authorityFreshness: listener.authorityFreshness || 'pending',
+            fullAuthoritySnapshotSeen,
+            fullAuthorityComplete: authorityComplete,
+            storeComplete: completeStore,
+            completeStore,
+            authorityMode,
+            profilesCount: Number(listener.fullAuthoritySnapshotCount || Object.keys(st.profiles || {}).length || 0),
         };
     }
 
@@ -175,7 +202,7 @@
             activeSourceReady: !!source.ready,
             profilesCount: source.profilesCount,
             covered: !!source.ready,
-            coveredBy: 'active-listener-cache',
+            coveredBy: source.ready ? 'full-profile-authority' : 'not-authoritative',
             auditedAt: now(),
         };
         _state.lastAudit = audit;
@@ -413,19 +440,13 @@
 
             const localAudit = runLocalCoverageAudit(reason || 'automatic-local');
 
-            if (isConfigVerified(context().config) || _state.sessionVerified) {
-                _state.lastSource = 'active-listener-verified';
-                _metrics.lastSource = _state.lastSource;
-                _metrics.fullScansAvoided++;
-                return { ok: true, ready: true, source: _state.lastSource, noRead: true, audit: localAudit };
-            }
-
-            // Spark guard: Báo nợ only needs the already-mounted active profile cache.
-            // Do not auto-run three client aggregation counts (total/active/quit) on login/tab open.
+            // D1C3B: only a same-club complete profile authority can verify Debt
+            // coverage. Local audit describes already-loaded docs but never proves
+            // that a filtered query did not omit other active profiles.
             _state.sessionVerified = true;
             _metrics.verifiedWithoutFullScan++;
             _metrics.fullScansAvoided++;
-            _state.lastSource = 'active-listener-local-trusted-no-aggregation';
+            _state.lastSource = source.authorityMode || 'full-profile-authority';
             _metrics.lastSource = _state.lastSource;
             return { ok: true, ready: true, source: _state.lastSource, audit: localAudit, noRead: true };
 
@@ -446,23 +467,43 @@
         }
         _metrics.ensureCalls++;
         const ctx = context();
+        if (!isAdminRole(ctx.role)) {
+            return { ok: false, ready: false, blocked: true, source: 'role-not-allowed' };
+        }
+        if (_state.clubId && _state.clubId !== ctx.clubId) {
+            _state.sessionVerified = false;
+            _state.fullFallbackReady = false;
+            _state.lastSource = 'club-switch-waiting-authority';
+        }
+        _state.clubId = ctx.clubId || '';
         const source = await waitForActiveSource();
 
-        if (source.ready && (isConfigVerified(ctx.config) || _state.sessionVerified)) {
-            _metrics.fullScansAvoided++;
-            _state.lastSource = 'active-listener-verified';
-            _metrics.lastSource = _state.lastSource;
-            return { ok: true, ready: true, source: _state.lastSource, profilesCount: source.profilesCount, noRead: true, audit: runLocalCoverageAudit(reason || 'ensure-verified-local') };
-        }
-
         if (source.ready) {
-            const audit = runLocalCoverageAudit(reason || 'ensure-local');
             _state.sessionVerified = true;
             _metrics.fullScansAvoided++;
-            _metrics.verifiedWithoutFullScan++;
-            _state.lastSource = 'active-listener-local-trusted-no-aggregation';
+            _state.lastSource = source.authorityMode || 'full-profile-authority';
             _metrics.lastSource = _state.lastSource;
-            return { ok: true, ready: true, source: _state.lastSource, profilesCount: source.profilesCount, noRead: true, audit };
+            return {
+                ok: true,
+                ...source,
+                ready: true,
+                source: _state.lastSource,
+                profilesCount: source.profilesCount,
+                noRead: true,
+                audit: runLocalCoverageAudit(reason || 'ensure-verified-local'),
+            };
+        }
+
+        // D1C3B2: a registered Admin listener still awaiting its first snapshot
+        // is not a failure. Return fail-closed loading instead of evicting it
+        // merely because WAIT_TIMEOUT_MS elapsed. Original callback stays live.
+        const pending = source.listener || {};
+        if (pending.activeListenerKey && pending.activeListenerFailed !== true
+            && source.authorityClubId === ctx.clubId
+            && typeof global.hasListener === 'function'
+            && global.hasListener(pending.activeListenerKey)) {
+            return { ok: false, ready: false, deferred: true,
+                source: 'full-profile-listener-pending', authorityClubId: ctx.clubId };
         }
 
         // Admin may explicitly run count audit via runCountAudit(reason, { force: true }) for diagnostics.
@@ -482,21 +523,25 @@
             _metrics.fullFallbackRuns++;
             const ok = await global.loadFullProfilesFallback('debt-coverage-emergency:' + (reason || 'debt-tab'));
             if (ok) {
-                _state.fullFallbackReady = true;
-                _state.lastSource = 'full-fallback-emergency';
-                _metrics.lastSource = _state.lastSource;
-                return { ok: true, ready: true, source: _state.lastSource, fallback: true };
+                const fallbackSource = activeSourceReady();
+                if (fallbackSource.ready) {
+                    _state.fullFallbackReady = true;
+                    _state.sessionVerified = true;
+                    _state.lastSource = fallbackSource.authorityMode || 'full-fallback';
+                    _metrics.lastSource = _state.lastSource;
+                    return { ok: true, ...fallbackSource, ready: true, source: _state.lastSource, fallback: true };
+                }
             }
         }
 
-        return { ok: source.ready, ready: source.ready, source: source.ready ? 'active-listener-unverified' : 'not-ready' };
+        return { ok: false, ready: false, source: 'not-ready' };
     }
 
     function scheduleAutomaticVerification(reason, delay) {
         const ctx = context();
         if (!ctx.clubId || !isAdminRole(ctx.role)) return false;
         if (_state.scheduled || _state.inFlight) return false;
-        if (isConfigVerified(ctx.config) || _state.sessionVerified) return false;
+        if (_state.sessionVerified) return false;
 
         _state.scheduled = true;
         _metrics.scheduledRuns++;
@@ -539,9 +584,17 @@
 
     function getStatus() {
         const ctx = context();
+        const source = activeSourceReady();
         return {
             schemaVersion: SCHEMA_VERSION,
             clubId: ctx.clubId,
+            ready: source.ready === true,
+            authorityClubId: source.authorityClubId,
+            sameClub: source.sameClub === true,
+            fullAuthoritySnapshotSeen: source.fullAuthoritySnapshotSeen === true,
+            fullAuthorityComplete: source.fullAuthorityComplete === true,
+            storeComplete: source.storeComplete === true,
+            authorityMode: source.authorityMode,
             configVerified: isConfigVerified(ctx.config),
             sessionVerified: _state.sessionVerified,
             inFlight: _state.inFlight,
@@ -550,7 +603,7 @@
             lastAudit: _state.lastAudit,
             lastError: _state.lastError,
             countAuditDisabledUntil: _state.countAuditDisabledUntil,
-            activeSource: activeSourceReady(),
+            activeSource: source,
             metrics: { ..._metrics },
         };
     }

@@ -1,4 +1,5 @@
-// V5U3 compatibility marker: studentsRenderer.js?v=student-given-name-priority-20260811-v5u3
+// H8R1 compatibility: studentsRenderer.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h
+// V5U3 compatibility marker: studentsRenderer.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
 /**
  * renderStudents.js — Phase 3.5A Render Computation Isolation
  *
@@ -20,7 +21,7 @@
  */
 
 import { registerRender } from './renderRegistry.js';
-import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
+import { getStudentsCachedHtml, getStudentsCacheMetrics } from './computation/studentsRenderer.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1';
 
 // Phase 4K-6V5S: single-flight authority request for the Đã nghỉ render island.
 // A failed/missing-context ensure must never invalidate the same list again,
@@ -100,10 +101,11 @@ function _escapeHtml(value) {
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
 }
-function _escapeJs(value) {
-    return String(value == null ? '' : value).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+function _actionToken(value) {
+    return _escapeHtml(encodeURIComponent(String(value == null ? '' : value)).replace(/'/g, '%27'));
 }
 function _formatDateSafe(value) {
     const text = String(value || '').trim();
@@ -122,7 +124,7 @@ function _isQuitMobileViewport() {
 }
 function _profileDisplayName(id, profile) {
     const p = profile || {};
-    return String(p.name || p.fullName || p.displayName || p.studentName || p.memberName || id || '').trim();
+    return String(p.displayName || p.name || p.fullName || p.studentName || p.memberName || id || '').trim();
 }
 function _getAuthoritativeQuitProfiles() {
     if (window.QuitProfileBoundary?.getMap) {
@@ -179,12 +181,12 @@ function _buildAuthoritativeQuitRows(options = {}) {
     const rows = entries.slice(0, limit).map(([id, p]) => {
         const display = _escapeHtml(_profileDisplayName(id, p));
         const safeIdAttr = _escapeHtml(id);
-        const safeIdJs = _escapeJs(id);
+        const safeIdJs = _actionToken(id);
         const belt = _escapeHtml(p.belt || '');
         const memberId = _escapeHtml(p.memberId || p.studentCode || p.code || '');
         const branchTd = isSingleBranch ? '' : '<td><span class="badge bg-slate-100 text-slate-600 border border-slate-200">' + _escapeHtml(typeof window.getBranchNameDisplay === 'function' ? window.getBranchNameDisplay(p.branch || '') : (p.branch || '')) + '</span></td>';
         const quitDate = _formatDateSafe(p.quitDate || p.ngayNghi || p.inactiveDate || p.stoppedDate || p.leftDate || p.nghiDate);
-        return `<tr data-quit-id="${safeIdAttr}" data-profile-name="${display}"><td class="name-link text-[0.95rem]" onclick="openProfile('${safeIdJs}')">${display}</td><td class="text-[0.7rem] font-bold text-slate-500">${memberId || '-'}</td><td>${belt}</td>${branchTd}<td>${_formatDateSafe(p.dob)}</td><td>${_escapeHtml(quitDate) || '-'}</td><td>${isAdmin ? `<button type="button" class="btn-sm bg-emerald-50 text-emerald-700 border border-emerald-200" onclick="openProfile('${safeIdJs}')">🔄 Khôi phục</button>` : ''}</td></tr>`;
+        return `<tr data-quit-id="${safeIdAttr}" data-profile-name="${display}"><td class="name-link text-[0.95rem]" onclick="openProfile(decodeURIComponent('${safeIdJs}'))">${display}</td><td class="text-[0.7rem] font-bold text-slate-500">${memberId || '-'}</td><td>${belt}</td>${branchTd}<td>${_escapeHtml(_formatDateSafe(p.dob))}</td><td>${_escapeHtml(quitDate) || '-'}</td><td>${isAdmin ? `<button type="button" class="btn-sm bg-emerald-50 text-emerald-700 border border-emerald-200" onclick="openProfile(decodeURIComponent('${safeIdJs}'))">🔄 Khôi phục</button>` : ''}</td></tr>`;
     }).join('');
     const remaining = Math.max(0, entries.length - limit);
     const colspan = isSingleBranch ? 6 : 7;

@@ -14,6 +14,8 @@ const root = process.cwd();
 const read = (rel) => fs.readFileSync(path.join(root, rel), 'utf8');
 const attendance = read('js/modules/attendance.js');
 const attendanceService = read('js/services/attendance.service.js');
+const financeService = read('js/services/finance.service.js');
+const financeModule = read('js/modules/finance.js');
 const profiles = read('js/listeners/profiles.listeners.js');
 const students = read('js/modules/students.js');
 const app = read('app.js');
@@ -46,9 +48,14 @@ check(saveOffline.includes('changedRecords.forEach') && !saveOffline.includes('_
 check(attendance.includes("record?.clubId || '', record?.date || '', shiftToken, record?.docId || ''"), 'Attendance journal identity includes club/date/shift/docId');
 check(saveOffline.includes("operation: status === 0 ? 'delete' : 'set'") && saveOffline.includes('profileId:'), 'Attendance journal records mutation operation and profile identity');
 check(saveOffline.includes('previous?.version === 2') && saveOffline.includes('record.queuedAt = previous.queuedAt'), 'Repeated toggle coalesces into one same-doc journal mutation');
-check(cleanupOffline.includes('const key = _attendanceOfflineMutationKey(record)') && cleanupOffline.includes('current?.revision') && cleanupOffline.includes('localStorage.removeItem(key)'), 'Successful single write cleanup is scoped to its own mutation and matching revision');
+check(cleanupOffline.includes('const key = _attendanceOfflineMutationKey(record)') &&
+    cleanupOffline.includes('localStorage.getItem(key) !== expectedRaw') &&
+    cleanupOffline.includes('typeof expectedRaw') &&
+    cleanupOffline.includes('localStorage.removeItem(key)') &&
+    !cleanupOffline.includes('current?.revision'),
+    'C01 scoped cleanup requires canonical key and exact queued raw (revision equality is insufficient)');
 check(!attendance.includes("localStorage.removeItem('offline_att_' +") && !attendance.includes('finally {\n            localStorage.removeItem'), 'No whole-day offline cleanup remains');
-check(bulkBlock.includes('pendingBulkMutations.forEach(_removeAttOfflineMutation)') && bulkBlock.indexOf('await AttendanceService.bulkSaveRecords') < bulkBlock.indexOf('pendingBulkMutations.forEach(_removeAttOfflineMutation)'), 'Bulk cleanup occurs only after successful canonical bulk commit');
+check(bulkBlock.includes('onChunkCommitted') && bulkBlock.includes('_removeAttOfflineMutation') && bulkBlock.includes('committedIds'), 'Bulk cleanup is scoped to each successfully committed chunk');
 check(!block(bulkBlock, '} catch(e) {', '} finally {').includes('removeItem'), 'Bulk failure preserves pending journal mutations');
 check(attendance.includes('let _offlineAttendanceSyncPromise = null;') && syncBlock.includes('if (_offlineAttendanceSyncPromise)') && syncBlock.includes('return _offlineAttendanceSyncPromise'), 'Attendance offline synchronization is single-flight');
 check(syncBlock.includes("key.startsWith(_ATTENDANCE_OFFLINE_V2_PREFIX)") && syncBlock.includes('legacyEntries.push'), 'V2 journal and V1 compatibility share one sync owner');
@@ -68,12 +75,13 @@ check(syncBlock.includes('break v2Dates') && syncBlock.includes('_isOfflineAtten
 check(syncBlock.includes('offlineSyncStaleUiRefreshDropped++') && syncBlock.indexOf('_isOfflineAttendanceSyncContextCurrent(syncContext)') < syncBlock.indexOf("_requestAttendanceDailyRefresh('offline-sync-complete'"), 'V5U6G1 stale flight cannot refresh the new club Attendance UI');
 check(pkg.scripts?.['check:attendance-offline-canonical-sync-guard'] === 'node tools/check-attendance-offline-canonical-sync-guard.mjs', 'package exposes the V5U6G1 canonical offline sync guard');
 
-// ── Dashboard true-zero hydration reuses the existing probe ────────────────
-const zeroProbeBlock = block(profiles, 'if (activeCount === 0 && _state.activeSnapshotCount === 1)', '// V5R: a document removed');
-check(count(zeroProbeBlock, /_pG4k\s*\(/g) === 1, 'True-zero path reuses exactly the existing zero probe');
-check(zeroProbeBlock.includes('if (!_probe.empty)') && zeroProbeBlock.includes("reason: 'active-profiles-zero-probe-empty'") && zeroProbeBlock.includes('coverageComplete: true'), 'Empty zero-probe closes Dashboard members hydration as complete active=0');
-check(zeroProbeBlock.includes("activeCount: 0") && zeroProbeBlock.includes('activeAvailable: true'), 'True-zero evidence explicitly publishes active=0 as available');
-check(zeroProbeBlock.includes("classification: 'profile-zero-probe-failed'"), 'Zero-probe failure remains incomplete and is observable');
+// ── D1C3B Dashboard true-zero hydration comes from the Admin full snapshot ──
+const adminAuthorityBlock = block(profiles, '// D1C3B Admin authority:', "window.scheduleAutomaticDebtProfileCoverage('full-profiles-authoritative-snapshot')");
+const coachBranchOwnerBlock = block(profiles, 'export function mountActiveProfilesListener(context)', 'export function cleanupActiveProfilesListener');
+check(!/_pG4k\s*\(|fbGetDocs\s*\(/.test(adminAuthorityBlock), 'Admin true-zero hydration uses the full snapshot itself with zero probe/read');
+check(adminAuthorityBlock.includes('_state.activeSnapshotCount === 1') && adminAuthorityBlock.includes('coverageComplete: true'), 'Initial Admin full snapshot closes Dashboard members hydration as complete even at zero profiles');
+check(adminAuthorityBlock.includes('activeCount,') && adminAuthorityBlock.includes('activeAvailable: true') && adminAuthorityBlock.includes('_state.fullAuthorityComplete = true'), 'Full authoritative evidence publishes active count availability and completeness');
+check(!coachBranchOwnerBlock.includes('profiles.activeZeroProbe') && coachBranchOwnerBlock.includes("fbQuery(profRef, fbWhere('branch', '==', coachBranch))") && profiles.includes("_coachRosterReadiness() === 'verified'"), 'Coach branch-complete server roster has no obsolete zero-probe and fallback stays within existing scoped owner');
 
 // ── Profile fallback ownership ──────────────────────────────────────────────
 const mountProfiles = block(profiles, 'export function mountActiveProfilesListener(context)', 'export function cleanupActiveProfilesListener');
@@ -90,11 +98,18 @@ check(appFallback.includes("registerListener('global:profiles:' + clubId"), 'Adm
 const memberStatsBlock = block(attendanceService, 'async updateMemberStats(name, data)', '_increment(n)');
 check(memberStatsBlock.includes('await updateDoc(') && !/catch\s*\(/.test(memberStatsBlock), 'Attendance derived stats service propagates failure to the existing caller');
 check(attendance.includes("'attendance-member-stats-reconcile-required'") && attendance.includes('canonicalAttendancePreserved: true'), 'Attendance stats failure emits reconciliation diagnostic without rolling back canonical attendance');
-check(app.includes("'inventory-payment-link-reconcile-required'") && students.includes("'inventory-payment-link-reconcile-required'"), 'Inventory payment linkage failure is observable in legacy and module admission paths');
-check(app.includes("'fee-audit-write-failed'") && app.includes('canonicalPaymentPreserved: true'), 'Fee audit failure is observable and never invalidates successful payment');
+check(app.includes("'inventory-payment-link-reconcile-required'")
+    && students.includes('paymentBundleId: feePlan.ref.id')
+    && students.includes('paidTxId: feePlan.ref.id')
+    && students.includes('batch.set(inventoryPlan.itemRef, inventoryPlan.payload)')
+    && students.includes('batch.set(feePlan.ref, feePlan.payload)')
+    && students.includes('await batch.commit();')
+    && !students.includes('await StudentService.updateInventoryDoc(_invId'),
+    'Module admission links inventory and payment in one batch; legacy linkage failure stays observable');
+check(financeService.includes("classification: 'fee-audit-write-failed'") && financeService.includes('canonicalPaymentPreserved: true') && financeService.includes("recordRuntimeError?.('secondary-consistency:'") && financeModule.includes('FinanceService.addFeeAuditSilent'), 'Fee audit failure is observable and never invalidates successful payment');
 check(app.includes("'attendance-note-notification-projection-failed'") && app.includes('canonicalSessionNotePreserved: true'), 'Session-note notification projection failure is observable while note remains canonical');
-const multiItem = block(app, '// 5. Tạo 1 bundle transaction duy nhất', "if (typeof window.recordFinancialActionAudit === 'function') window.recordFinancialActionAudit('multiitem.pay'");
-check(multiItem.includes('await Promise.all(invDebtIds.map(async function(id)') && multiItem.includes("'inventory-payment-link-reconcile-required'") && !multiItem.includes('setInterval('), 'Post-transaction inventory links cannot surface as false primary failure or start retry loops');
+const multiItem = block(app, 'window.processMultiItem = async (action) =>', '// ─── Setup currency inputs');
+check(multiItem.includes("_batch.update(doc(db, 'clubs', currentClubId, 'inventory', id)") && multiItem.includes('paidTxId: _bundleDocRef.id') && multiItem.includes('_batch.set(_bundleDocRef') && !multiItem.includes('setInterval('), 'Inventory debt/payment links commit in the same canonical multi-item batch, with no retry loop');
 
 // ── No new runtime authority/read/polling budget ────────────────────────────
 function walkJs(dir, out = []) {
@@ -135,12 +150,69 @@ check(appWindowAssignments <= 534, `legacy app window assignment budget does not
 const eventCalls = count(runtimeText, /\baddEventListener\s*\(/g);
 const intervalCalls = count(runtimeText, /\bsetInterval\s*\(/g);
 const timeoutCalls = count(runtimeText, /\bsetTimeout\s*\(/g);
-check(eventCalls <= 115 && intervalCalls <= 1 && timeoutCalls <= 87, `event/timer call-sites do not increase (${eventCalls}/${intervalCalls}/${timeoutCalls})`);
+// H6 reconciliation: H5 intentionally added one bounded listener-registry readiness
+// barrier (2 once:true event listeners + 1 bounded timeout). Freeze that exact
+// approved delta structurally while keeping the historical runtime outside the
+// readiness block at or below its pre-H5 budget.
+const readinessBlock = block(app, 'const _waitForListenerRegistryReady = () => {', 'const _commitClubAccessBootstrapState =');
+const readinessEventCalls = count(readinessBlock, /\baddEventListener\s*\(/g);
+const readinessIntervalCalls = count(readinessBlock, /\bsetInterval\s*\(/g);
+const readinessTimeoutCalls = count(readinessBlock, /\bsetTimeout\s*\(/g);
+const outsideReadinessText = runtimeText.replace(readinessBlock, '');
+const outsideEventCalls = count(outsideReadinessText, /\baddEventListener\s*\(/g);
+const outsideIntervalCalls = count(outsideReadinessText, /\bsetInterval\s*\(/g);
+const outsideTimeoutCalls = count(outsideReadinessText, /\bsetTimeout\s*\(/g);
+check(
+    readinessEventCalls === 2 &&
+    readinessBlock.includes("window.addEventListener('app:listener-registry-ready', onReady, { once: true })") &&
+    readinessBlock.includes("window.addEventListener('app:listener-registry-failed', onFailed, { once: true })"),
+    `H5 readiness barrier owns exactly two once:true registry event listeners (${readinessEventCalls})`
+);
+check(
+    readinessTimeoutCalls === 1 &&
+    /const _LISTENER_REGISTRY_READY_TIMEOUT_MS = 10000;/.test(app) &&
+    /setTimeout\([^;]*_LISTENER_REGISTRY_READY_TIMEOUT_MS\)/s.test(readinessBlock),
+    `H5 readiness barrier owns exactly one bounded 10s timeout (${readinessTimeoutCalls})`
+);
+check(
+    readinessIntervalCalls === 0 &&
+    !/\b(?:getDoc|getDocs|onSnapshot)\s*\(/.test(readinessBlock) &&
+    count(readinessBlock, /_waitForListenerRegistryReady\s*\(/g) === 0,
+    'H5 readiness barrier has no polling, Firestore wait, or recursive retry'
+);
+check(
+    outsideEventCalls <= 115 && outsideIntervalCalls <= 1 && outsideTimeoutCalls <= 86 &&
+    eventCalls <= 117 && intervalCalls <= 1 && timeoutCalls <= 87,
+    `event/timer freeze allows only approved H5 readiness delta (total ${eventCalls}/${intervalCalls}/${timeoutCalls}; outside ${outsideEventCalls}/${outsideIntervalCalls}/${outsideTimeoutCalls})`
+);
 check(!runtimeText.includes('GlobalAsyncManager') && !runtimeText.includes('FetchCoordinatorV2'), 'No generic global request manager was introduced');
 check(!/queueWrite\s*\(/.test(runtimeText.replace(read('js/utils/offline-queue.js'), '')), 'Generic offline queue has no Attendance/business caller overlap');
 check(main.includes("window.APP_BUILD_VERSION = '4K-6V5U6G1-attendance-offline-canonical-sync-closure-20260815'"), 'Exact V5U6G1 build version is active while V5U6G boundaries remain frozen');
 check(index.includes('app.js?v=production-stability-residual-defect-closure-20260814-v5u6g') && index.includes('./js/main.js?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1'), 'Only changed root runtime main.js receives the V5U6G1 cache-bust; unchanged app.js stays on V5U6G');
-check(main.includes("./listeners/profiles.listeners.js?v=production-stability-residual-defect-closure-20260814-v5u6g") && main.includes("./modules/students.js?v=production-stability-residual-defect-closure-20260814-v5u6g") && main.includes("./modules/attendance.js?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1") && attendance.includes("../services/attendance.service.js?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1"), 'Changed Attendance modules are cache-busted; frozen Profiles/Students modules are not mass-busted');
+const r1CacheSlug = 'profile-display-name-safe-edit-20260916-v5u6h8r1';
+const v5u6gFrozenCacheScope =
+    main.includes("./listeners/profiles.listeners.js?v=production-stability-residual-defect-closure-20260814-v5u6g") &&
+    main.includes("./modules/students.js?v=production-stability-residual-defect-closure-20260814-v5u6g") &&
+    main.includes("./modules/attendance.js?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1") &&
+    attendance.includes("../services/attendance.service.js?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1");
+const h8r1DisplayNameCacheScope =
+    main.includes("./listeners/profiles.listeners.js?v=production-stability-residual-defect-closure-20260814-v5u6g") &&
+    main.includes(`./modules/students.js?v=${r1CacheSlug}`) &&
+    main.includes(`./modules/attendance.js?v=${r1CacheSlug}`) &&
+    attendance.includes("../services/attendance.service.js?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1");
+const r2CacheSlug = 'long-term-production-stability-20260917-v5u6h8r2';
+const h8r2StabilityCacheScope =
+    main.includes(`./listeners/profiles.listeners.js?v=${r2CacheSlug}`) &&
+    main.includes(`./modules/students.js?v=${r1CacheSlug}`) &&
+    main.includes(`./modules/attendance.js?v=${r2CacheSlug}`) &&
+    attendance.includes(`../services/attendance.service.js?v=${r2CacheSlug}`);
+const r21CacheSlug = 'residual-financial-cache-correctness-20260917-v5u6h8r2_1';
+const h8r21ResidualCacheScope =
+    main.includes(`./listeners/profiles.listeners.js?v=${r21CacheSlug}`) &&
+    main.includes(`./modules/students.js?v=${r1CacheSlug}`) &&
+    main.includes(`./modules/attendance.js?v=${r21CacheSlug}`) &&
+    attendance.includes(`../services/attendance.service.js?v=${r21CacheSlug}`);
+check(v5u6gFrozenCacheScope || h8r1DisplayNameCacheScope || h8r2StabilityCacheScope || h8r21ResidualCacheScope, 'Changed modules are cache-busted only within the active phase scope');
 check(pkg.scripts?.['check:production-residual-defect-closure'] === 'node tools/check-production-residual-defect-closure.mjs', 'package exposes the V5U6G master gate');
 
 // ── Runtime Attendance offline test matrix (real module, fake service) ─────
@@ -195,6 +267,29 @@ try {
         body: { appendChild() {}, removeChild() {} },
     };
     const storage = new Map();
+    // Test-only observation of actual runtime classification; never derive permissions
+    // from these diagnostics. Distinguish scope guards from malformed-key guards.
+    const observedOfflineIssues = [];
+    const originalConsoleWarn = console.warn;
+    console.warn = (...args) => {
+        if (args[0] === '[AttendanceOffline]') {
+            observedOfflineIssues.push({ reason: String(args[1]), stage: String(args[2]?.stage || '') });
+        }
+        originalConsoleWarn(...args);
+    };
+    const issueAt = () => observedOfflineIssues.length;
+    const observedSince = (offset, reason, stage) =>
+        observedOfflineIssues.slice(offset).some((entry) => entry.reason === reason && entry.stage === stage);
+    const keyForV2 = (record) => 'offline_att_v2_' + [
+        record.clubId, record.date,
+        record.shiftMode === 'explicit-shift' ? record.shiftId : 'legacy-no-shift',
+        record.docId,
+    ].map((value) => encodeURIComponent(String(value))).join('~');
+    const putV2 = (record) => {
+        const key = keyForV2(record);
+        storage.set(key, JSON.stringify(record));
+        return key;
+    };
     globalThis.localStorage = {
         get length() { return storage.size; },
         key(i) { return Array.from(storage.keys())[i] || null; },
@@ -230,12 +325,20 @@ try {
     };
     globalThis.__store = { db: {}, clubId: 'club-a', currentClubId: 'club-a', userRole: 'admin', coachBranch: '', profiles: profilesMap, clubConfig: {}, clubData: {} };
     globalThis.currentClubId = 'club-a'; globalThis.userRole = 'admin'; globalThis.coachBranch = '';
-    globalThis.__verifiedAuthContextState = { generation: 100 };
+    globalThis.__verifiedAuthContextState = {
+        ready: true, uid: 'uid-club-a', clubId: 'club-a', role: 'admin',
+        coachBranch: '', generation: 100,
+    };
+    const roleHolder = {};
+    (await import('node:vm')).runInNewContext(read('js/core/roleReadBoundary.js'), { window: roleHolder });
+    globalThis.RoleReadBoundary = { normalizeRole: roleHolder.RoleReadBoundary.normalizeRole,
+        isCoachAttendanceOnly: () => globalThis.userRole === 'coach', canMount: () => true };
+
     globalThis._fb_init = {};
     const runtimeErrors = [];
     globalThis.recordRuntimeError = (source, err, extra) => runtimeErrors.push({ source, err, extra });
 
-    const serviceUrl = pathToFileURL(path.join(root, 'js/services/attendance.service.js')).href + '?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1';
+    const serviceUrl = pathToFileURL(path.join(root, 'js/services/attendance.service.js')).href + '?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1';
     const { AttendanceService } = await import(serviceUrl);
     const realUpdateMemberStats = AttendanceService.updateMemberStats.bind(AttendanceService);
     let shiftImpl = async () => [];
@@ -267,7 +370,10 @@ try {
         globalThis.__store.clubId = club; globalThis.__store.currentClubId = club; globalThis.currentClubId = club;
         globalThis.__store.userRole = role; globalThis.userRole = role;
         globalThis.__store.coachBranch = coachBranch; globalThis.coachBranch = coachBranch;
-        globalThis.__verifiedAuthContextState.generation++;
+        Object.assign(globalThis.__verifiedAuthContextState, {
+            ready: true, uid: 'uid-' + club, role, clubId: club, coachBranch,
+            generation: Number(globalThis.__verifiedAuthContextState.generation || 0) + 1,
+        });
         dateEl.value = '2026-08-14'; branchEl.value = role === 'coach' ? coachBranch : 'all'; beltEl.value = 'all'; shiftEl.value = '';
         showAll.checked = true; day.style.display = ''; month.style.display = 'none'; tab.classList.add('active');
         shiftImpl = async () => shifts;
@@ -327,29 +433,222 @@ try {
     await globalThis.toggleAttendance('Alice');
     check(getV2Entries(storage).length === 1 && getV2Entries(storage)[0][1].name === 'Alice', 'A6 failed online attendance write preserves its pending mutation');
 
-    // A7: cross-club queue is neither written nor deleted.
+    // C02/C05: the actual online toggle uses one service ACK and cannot clear
+    // another date/shift's pending mutation. The prior A5 already exercises this.
+    await reset({ shifts: [{ id: 'morning', name: 'Ca sáng', branch: 'CS1' }], online: true });
+    await selectShift('morning');
+    const onlineBefore = saveRecordCalls;
+    await globalThis.toggleAttendance('Alice');
+    check(saveRecordCalls === onlineBefore + 1 && getV2Entries(storage).length === 0,
+        'C02 online single successful ACK cleans exact matching journal through real toggle');
+
+    // C03: an outstanding SDK Promise cannot authorize cleanup before its ACK.
+    await reset({ shifts: [{ id: 'morning', name: 'Ca sáng', branch: 'CS1' }], online: true });
+    await selectShift('morning');
+    const c03 = deferred();
+    saveRecordImpl = () => c03.promise;
+    const callsC03 = saveRecordCalls;
+    const pendingC03 = globalThis.toggleAttendance('Alice');
+    try {
+        await waitFor(() => saveRecordCalls > callsC03, 'C03 online single writer submission');
+        check(getV2Entries(storage).length === 1 && saveRecordCalls === callsC03 + 1,
+            'C03 while writer is pending, journal is not removed by UI handler');
+    } finally {
+        c03.reject(Object.assign(new Error('test-only deny'), { code: 'permission-denied' }));
+        await Promise.allSettled([pendingC03]);
+    }
+    check(getV2Entries(storage).length === 1,
+        'C03 rejected online single writer leaves original raw journal pending');
+
+    // C04: two writers can generate equal revision with distinct raw values.
+    // The older ACK must not remove the latest raw, even if revision is equal.
+    await reset({ shifts: [{ id: 'morning', name: 'Ca sáng', branch: 'CS1' }], online: true });
+    await selectShift('morning');
+    const c04 = deferred();
+    saveRecordImpl = () => c04.promise;
+    const callsC04 = saveRecordCalls;
+    const pendingC04 = globalThis.toggleAttendance('Alice');
+    let newerKey = '', newerRaw = '';
+    try {
+        await waitFor(() => saveRecordCalls > callsC04, 'C04 pending writer');
+        const [[key, record]] = getV2Entries(storage);
+        newerKey = key;
+        newerRaw = JSON.stringify({ ...record, status: 2, lastUpdatedAt: Number(record.lastUpdatedAt) + 1 });
+        check(JSON.parse(newerRaw).revision === record.revision && newerRaw !== storage.get(key),
+            'C04 equal-revision raw replacement is a distinct journal intent');
+        storage.set(key, newerRaw);
+    } finally {
+        c04.resolve({ committed: 1 });
+        await Promise.allSettled([pendingC04]);
+    }
+    check(storage.get(newerKey) === newerRaw && saveRecordCalls === callsC04 + 1,
+        'C04 ACK of older raw cannot delete newly enqueued equal-revision raw');
+
+    // C06: current-session switch after submission forbids stale ACK cleanup.
+    await reset({ shifts: [{ id: 'morning', name: 'Ca sáng', branch: 'CS1' }], online: true });
+    await selectShift('morning');
+    const c06 = deferred();
+    saveRecordImpl = () => c06.promise;
+    const callsC06 = saveRecordCalls;
+    const pendingC06 = globalThis.toggleAttendance('Alice');
+    let preservedC06 = null;
+    try {
+        await waitFor(() => saveRecordCalls > callsC06, 'C06 submitted prior owner');
+        preservedC06 = getV2Entries(storage)[0]?.[0];
+        globalThis.__verifiedAuthContextState.uid = 'different-uid';
+    } finally {
+        c06.resolve({ committed: 1 });
+        await Promise.allSettled([pendingC06]);
+    }
+    check(storage.has(preservedC06) && saveRecordCalls === callsC06 + 1,
+        'C06 stale UID cannot cleanup old journal or send another canonical writer');
+
+    // C07: cleanup storage access failure after canonical ACK preserves pending raw.
+    await reset({ shifts: [{ id: 'morning', name: 'Ca sáng', branch: 'CS1' }], online: true });
+    await selectShift('morning');
+    const c07 = deferred();
+    saveRecordImpl = () => c07.promise;
+    const callsC07 = saveRecordCalls;
+    const pendingC07 = globalThis.toggleAttendance('Alice');
+    let rawC07, keyC07;
+    const originalGet = globalThis.localStorage.getItem;
+    try {
+        await waitFor(() => saveRecordCalls > callsC07, 'C07 queued journal before ACK');
+        [[keyC07, rawC07]] = Array.from(storage.entries());
+        globalThis.localStorage.getItem = (key) => {
+            if (key === keyC07) throw Error('test-only storage getItem failure');
+            return originalGet.call(globalThis.localStorage, key);
+        };
+        c07.resolve({ committed: 1 });
+        await Promise.allSettled([pendingC07]);
+    } finally {
+        globalThis.localStorage.getItem = originalGet;
+        c07.resolve({ committed: 1 });
+    }
+    check(storage.get(keyC07) === rawC07 && saveRecordCalls === callsC07 + 1,
+        'C07 localStorage getItem throw during cleanup never blindly removes journal');
+
+    // C06 variants: Admin club/role/generation are authoritative scalar changes.
+    // Coach branch transitions are covered by the existing verified-Coach role gate;
+    // changing coachBranch for an Admin is not a change to an assigned Coach scope.
+    for (const [label, changed] of [
+        ['club', { clubId: 'club-other' }],
+        ['role', { role: 'coach' }],
+        ['generation', { generation: 999999 }],
+    ]) {
+        await reset({ shifts: [{ id: 'morning', name: 'Ca sáng', branch: 'CS1' }], online: true });
+        await selectShift('morning');
+        const gate = deferred();
+        saveRecordImpl = () => gate.promise;
+        const countBefore = saveRecordCalls;
+        const task = globalThis.toggleAttendance('Alice');
+        let oldKey;
+        try {
+            await waitFor(() => saveRecordCalls > countBefore, 'C06 ' + label + ' writer');
+            oldKey = getV2Entries(storage)[0][0];
+            Object.assign(globalThis.__verifiedAuthContextState, changed);
+        } finally {
+            gate.resolve({ committed: 1 });
+            await Promise.allSettled([task]);
+        }
+        check(storage.has(oldKey) && saveRecordCalls === countBefore + 1,
+            'C06 stale ' + label + ' principal does not erase journal after ACK');
+    }
+
+    // C07 negative: removeItem failure after ACK is cleanup-deferred, not blind deletion.
+    await reset({ shifts: [{ id: 'morning', name: 'Ca sáng', branch: 'CS1' }], online: true });
+    await selectShift('morning');
+    const gateRemove = deferred();
+    saveRecordImpl = () => gateRemove.promise;
+    const countRemove = saveRecordCalls;
+    const taskRemove = globalThis.toggleAttendance('Alice');
+    const originalRemove = globalThis.localStorage.removeItem;
+    let removeKey, removeRaw;
+    try {
+        await waitFor(() => saveRecordCalls > countRemove, 'C07 removeItem writer');
+        [[removeKey, removeRaw]] = Array.from(storage.entries());
+        globalThis.localStorage.removeItem = (key) => {
+            if (key === removeKey) throw new Error('test-only removeItem failure');
+            return originalRemove.call(globalThis.localStorage, key);
+        };
+        gateRemove.resolve({ committed: 1 });
+        await Promise.allSettled([taskRemove]);
+    } finally {
+        globalThis.localStorage.removeItem = originalRemove;
+        gateRemove.resolve({ committed: 1 });
+    }
+    check(storage.get(removeKey) === removeRaw && saveRecordCalls === countRemove + 1,
+        'C07 failed removeItem after ACK leaves exact journal pending');
+
+    // C08: actual bulk callback cleans only the ACKed portion of a partial batch.
+    await reset({ shifts: [{ id: 'morning', name: 'Ca sáng', branch: 'CS1' }], online: true });
+    await selectShift('morning');
+    const beforeC08 = bulkSaveCalls;
+    bulkSaveImpl = async (rows, options) => {
+        options.onChunkCommitted(rows.slice(0, 1));
+        throw Object.assign(new Error('test-only partially committed batch'), {
+            code: 'unavailable', committedIds: [rows[0].docId], committed: 1,
+        });
+    };
+    await globalThis.bulkCheckIn();
+    const remainingC08 = getV2Entries(storage);
+    check(bulkSaveCalls === beforeC08 + 1 && remainingC08.length === 2 &&
+        !remainingC08.some(([, row]) => row.name === 'Alice') &&
+        remainingC08.some(([, row]) => row.name === 'Bob') &&
+        remainingC08.some(([, row]) => row.name === 'Carol'),
+        'C08 partial bulk ACK only cleans committed ID; uncommitted journal remains');
+
+    // A7: canonical foreign-club key + payload must be recognized at club-scope.
     await reset({ club: 'club-a', shifts: [], online: true });
     const foreign = { version: 2, clubId: 'club-b', date: '2026-08-14', month: '2026-08', branch: 'CS1', shiftMode: 'legacy-no-shift', shiftId: '', docId: 'Alice_2026-08-14', profileId: 'Alice', name: 'Alice', operation: 'set', status: 1, queuedAt: Date.now(), lastUpdatedAt: Date.now() };
-    storage.set('offline_att_v2_club-b~2026-08-14~legacy-no-shift~Alice', JSON.stringify(foreign));
-    const crossBefore = bulkSyncCalls;
+    const foreignKey = putV2(foreign);
+    const crossBefore = bulkSyncCalls, foreignIssues = issueAt();
     await globalThis.syncOfflineAttendance();
-    check(storage.size === 1 && bulkSyncCalls === crossBefore, 'A7 cross-club pending queue is retained and never synced under another club');
+    check(storage.get(foreignKey) === JSON.stringify(foreign) && bulkSyncCalls === crossBefore &&
+        observedSince(foreignIssues, 'wrong-club', 'club-scope-v2') &&
+        !observedSince(foreignIssues, 'malformed-payload', 'v2-key-or-club-mismatch'),
+        'A7 canonical foreign-club journal is ignored/preserved by actual club-scope guard');
 
-    // A8: Coach wrong branch is blocked/pending.
+    // A7 positive counterpart: foreign key must not block independently valid club-a V2.
+    const ownA7 = { ...foreign, clubId: 'club-a', docId: 'Bob_2026-08-14', name: 'Bob', profileId: 'Bob' };
+    const ownA7Key = putV2(ownA7);
+    const ownCalls = bulkSyncCalls;
+    await globalThis.syncOfflineAttendance();
+    check(bulkSyncCalls === ownCalls + 1 && !storage.has(ownA7Key) && storage.has(foreignKey),
+        'A7 foreign-club record does not block same-device current-club journal ACK');
+
+    // A8: canonical Coach CS2 key must reach branch authorization, not parse error.
     await reset({ club: 'club-a', role: 'coach', coachBranch: 'CS1', shifts: [{ id: 'evening', name: 'Ca chiều', branch: 'CS2' }], online: true });
     const wrongBranch = { ...foreign, clubId: 'club-a', branch: 'CS2', shiftMode: 'explicit-shift', shiftId: 'evening', docId: 'Alice_2026-08-14_evening' };
-    storage.set('offline_att_v2_coach-wrong-branch', JSON.stringify(wrongBranch));
-    const coachBefore = bulkSyncCalls;
+    const wrongKey = putV2(wrongBranch);
+    const coachBefore = bulkSyncCalls, coachIssues = issueAt();
     await globalThis.syncOfflineAttendance();
-    check(storage.size === 1 && bulkSyncCalls === coachBefore, 'A8 Coach wrong-branch queued record fails closed and remains pending');
+    check(storage.get(wrongKey) === JSON.stringify(wrongBranch) && bulkSyncCalls === coachBefore &&
+        observedSince(coachIssues, 'wrong-branch', 'v2-guard') &&
+        !observedSince(coachIssues, 'malformed-payload', 'v2-key-or-club-mismatch'),
+        'A8 canonical wrong-branch Coach journal rejected at branch guard (not malformed key)');
 
-    // A9: deleted/nonexistent shift stays blocked/pending.
+    // A9: valid key with deleted/nonexistent shift must reach shift validator.
     await reset({ club: 'club-a', role: 'admin', shifts: [{ id: 'morning', name: 'Ca sáng', branch: 'CS1' }], online: true });
     const deletedShift = { ...foreign, clubId: 'club-a', shiftMode: 'explicit-shift', shiftId: 'deleted-evening', docId: 'Alice_2026-08-14_deleted-evening' };
-    storage.set('offline_att_v2_deleted-shift', JSON.stringify(deletedShift));
-    const deletedBefore = bulkSyncCalls;
+    const deletedKey = putV2(deletedShift);
+    const deletedBefore = bulkSyncCalls, deletedIssues = issueAt();
     await globalThis.syncOfflineAttendance();
-    check(storage.size === 1 && bulkSyncCalls === deletedBefore, 'A9 deleted shift cannot sync and pending mutation is preserved');
+    check(storage.get(deletedKey) === JSON.stringify(deletedShift) && bulkSyncCalls === deletedBefore &&
+        observedSince(deletedIssues, 'invalid-shift', 'v2-guard') &&
+        !observedSince(deletedIssues, 'malformed-payload', 'v2-key-or-club-mismatch'),
+        'A9 canonical journal with deleted shift fails at existing shift validator');
+
+    // N01: malformed key remains denied for its own reason (not counted as A7–A9).
+    await reset({ club: 'club-a', shifts: [], online: true });
+    const negativeKey = 'offline_att_v2_legacy-malformed-key';
+    const negative = { ...foreign, clubId: 'club-a' };
+    storage.set(negativeKey, JSON.stringify(negative));
+    const negativeBefore = bulkSyncCalls, negativeIssues = issueAt();
+    await globalThis.syncOfflineAttendance();
+    check(storage.get(negativeKey) === JSON.stringify(negative) && bulkSyncCalls === negativeBefore &&
+        observedSince(negativeIssues, 'malformed-payload', 'v2-key-or-club-mismatch'),
+        'N01 malformed V2 key is separately rejected at mismatch stage');
 
     // A10: legacy no-shift club writes a V2 legacy-no-shift journal record.
     await reset({ shifts: [], online: false });
@@ -370,22 +669,56 @@ try {
     await globalThis.syncOfflineAttendance();
     check(storage.has(legacyKey), 'A11 failed V1 compatibility commit preserves legacy queue key');
 
-    // A12: concurrent startup/manual/online-style triggers reuse one Promise flight.
+    // A12: canonical V2 entry reaches REAL sync owner and holds one service ACK.
     await reset({ shifts: [], online: true });
     const v2LatchRecord = { ...foreign, clubId: 'club-a' };
-    storage.set('offline_att_v2_single-flight', JSON.stringify(v2LatchRecord));
+    const latchKey = putV2(v2LatchRecord);
     const latch = deferred();
-    bulkSyncImpl = () => latch.promise;
+    bulkSyncImpl = (...args) => latch.promise;
     const sfBefore = bulkSyncCalls;
-    const p1 = globalThis.syncOfflineAttendance();
-    const p2 = globalThis.syncOfflineAttendance();
-    const p3 = onlineHandlers.length ? onlineHandlers[0]() : globalThis.syncOfflineAttendance();
-    check(p1 === p2 && p2 === p3, 'A12 all concurrent Attendance sync triggers receive the same Promise latch');
-    await waitFor(() => bulkSyncCalls === sfBefore + 1, 'one offline sync service call');
-    check(bulkSyncCalls === sfBefore + 1, 'A12 concurrent sync triggers perform exactly one canonical sync flight');
-    latch.resolve(); await Promise.all([p1, p2, p3]);
+    let p1, p2, p3;
+    try {
+        p1 = globalThis.syncOfflineAttendance();
+        p2 = globalThis.syncOfflineAttendance();
+        p3 = onlineHandlers.length ? onlineHandlers[0]() : globalThis.syncOfflineAttendance();
+        check(p1 === p2 && p2 === p3, 'A12 same-session manual/manual/online requests share one Promise identity');
+        await waitFor(() => bulkSyncCalls > sfBefore, 'one actual offline sync service call');
+        check(bulkSyncCalls === sfBefore + 1 && storage.has(latchKey),
+            'A12 precisely one canonical service call while ACK is pending; no early cleanup');
+    } catch (err) {
+        check(false, 'A12 service ACK latch reached with canonical journal', err?.message || String(err));
+    } finally {
+        // Always settle the existing flight, even if a pre-ACK assertion fails.
+        latch.resolve();
+        await Promise.allSettled([p1, p2, p3].filter(Boolean));
+    }
+    check(bulkSyncCalls === sfBefore + 1 && !storage.has(latchKey),
+        'A12 confirmed ACK removes only the exact matched journal');
+    const repeatBefore = bulkSyncCalls;
+    await globalThis.syncOfflineAttendance();
+    check(bulkSyncCalls === repeatBefore,
+        'A12 repeated manual sync after confirmed cleanup does not resubmit');
 
-    // Silent failure runtime evidence: derived stats service rejects to caller.
+    // A12 negative: reject must not clear journal or start an extra service lane.
+    await reset({ shifts: [], online: true });
+    const rejected = { ...v2LatchRecord, queuedAt: Date.now() + 1 };
+    const rejectedKey = putV2(rejected);
+    const rejectedLatch = deferred();
+    bulkSyncImpl = () => rejectedLatch.promise;
+    const rejectBefore = bulkSyncCalls;
+    const rejectedFlight = globalThis.syncOfflineAttendance();
+    try {
+        await waitFor(() => bulkSyncCalls > rejectBefore, 'rejected offline service call');
+        check(bulkSyncCalls === rejectBefore + 1 && storage.has(rejectedKey),
+            'A12 rejected writer waits with raw journal unchanged');
+    } finally {
+        rejectedLatch.reject(Object.assign(new Error('fixture permission-denied'), { code: 'permission-denied' }));
+        await Promise.allSettled([rejectedFlight]);
+    }
+    check(storage.has(rejectedKey) && bulkSyncCalls === rejectBefore + 1,
+        'A12 rejected/unknown ACK preserves journal without duplicate service call');
+
+    // Silent failure must be executed even if A12 assertions fail.
     let statsRejected = false;
     const oldSdk = globalThis._fb_init;
     globalThis._fb_init = { doc: () => ({}), updateDoc: async () => { throw new Error('stats fail'); } };

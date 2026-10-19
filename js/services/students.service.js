@@ -144,6 +144,15 @@ export const StudentService = {
 
     // ── CREATE ──────────────────────────────────────────────────
 
+    /** Pure admission plan. The existing student coordinator commits this ref
+     * with the Finance and Inventory plans in one Firestore batch. */
+    prepareProfileMutation(key, data) {
+        if (!String(key || '').trim() || !data || typeof data !== 'object') {
+            throw new Error('[StudentService] Hồ sơ nhập học không hợp lệ.');
+        }
+        return { profileRef: _profRef(key), profilePayload: { ...data } };
+    },
+
     /**
      * Tạo profile doc mới (setDoc — tạo mới hoặc ghi đè).
      * @param {string} key  — doc ID (tên võ sinh, có thể là "Tên (năm-Nick)")
@@ -336,13 +345,106 @@ export const StudentService = {
         const phoneNorm  = raw.replace(/\D/g, '');
         const isPhone    = /^\d{6,}$/.test(phoneNorm);
 
+        // D1C3B3: a server-confirmed full Admin listener already owns this entire
+        // club. Search that canonical in-memory set (including legacy index-less
+        // profiles) instead of issuing partial indexed queries / additional reads.
+        const runtime = window.__store || {};
+        const owner = typeof window.getProfilesListenerMetrics === 'function'
+            ? window.getProfilesListenerMetrics() : {};
+        const auth = window.__verifiedAuthContextState;
+        const normRole = v => {
+            const r = String(v || '').toLowerCase().replace(/-/g, '_');
+            return r === 'hlv' || r === 'trainer' ? 'coach' : (r === 'superadmin' ? 'super_admin' : r);
+        };
+        const runtimeRole = normRole(runtime.userRole || window.userRole);
+        const sameContext = !!clubId && String(runtime.clubId || '') === clubId
+            && (!window.userRole || normRole(window.userRole) === runtimeRole)
+            && (!auth || (auth.ready === true && (runtimeRole === 'super_admin' || String(auth.clubId || '') === clubId)
+                && normRole(auth.role) === runtimeRole));
+        const fullAdmin = sameContext && (runtimeRole === 'admin' || runtimeRole === 'super_admin')
+            && String(owner.authorityClubId || '') === clubId && normRole(owner.role) === runtimeRole
+            && (!auth || Number(owner.authoritySessionEpoch) === Number(auth.generation))
+            && owner.authorityServerConfirmed === true && owner.authorityFreshness === 'fresh'
+            && owner.fullAuthorityComplete === true && owner.lastProfilesMode === 'full-profiles-authoritative'
+            && window.studentProfileStore?.quitComplete === true;
+        if (fullAdmin) {
+            const canon = window.studentProfileStore?.getAllProfilesCompat?.() || runtime.profiles || {};
+            const normalize = v => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                .replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase().trim().replace(/\s+/g, ' ');
+            const digitQuery = raw.replace(/\D/g, '');
+            const branchFilter = String(options.branchFilter || '').trim();
+            const canonicalBranch = v => {
+                const x = String(v || '').trim();
+                return /^(Mặc định|mac dinh|default)$/i.test(x) ? 'CS1' : x;
+            };
+            const statusFilter = options.statusFilter || 'active';
+            const matches = Object.entries(canon).filter(([id, profile]) => {
+                if (!profile || typeof profile !== 'object') return false;
+                if (branchFilter && branchFilter !== 'all' && branchFilter !== 'Tất cả'
+                    && canonicalBranch(profile.branch) !== canonicalBranch(branchFilter)) return false;
+                const mode = typeof window.classifyProfileStatus === 'function'
+                    ? window.classifyProfileStatus(profile)
+                    : (profile.active === false || profile.isActive === false || /^(quit|inactive|retired|đã nghỉ)$/i.test(String(profile.status || '')) ? 'quit' : 'active');
+                if ((statusFilter === 'quit' && mode !== 'quit') || (statusFilter === 'active' && mode === 'quit')) return false;
+                const names = [id,profile.name,profile.nickname,profile.alias,profile.memberId,
+                    profile.studentCode,profile.code,profile.searchName,profile.searchNickname,
+                    profile.searchCode,profile.phone,profile.parentPhone,profile.contactPhone,profile.guardianPhone];
+                if (names.some(value => normalize(value).includes(normalized))) return true;
+                return digitQuery.length >= 3 && [profile.phone,profile.parentPhone,profile.contactPhone,profile.guardianPhone]
+                    .some(value => String(value || '').replace(/\D/g, '').includes(digitQuery));
+            });
+            matches.sort(([a,pa],[b,pb]) => normalize(pa.name || a).localeCompare(normalize(pb.name || b), 'vi') || a.localeCompare(b, 'vi'));
+            const offset = Math.max(0, Number(options.offset) || 0);
+            const page = matches.slice(offset, offset + pageSize).map(([id, profile]) => ({...profile, id}));
+            return { items: page, hasMore: offset + pageSize < matches.length,
+                nextCursor: null, source: 'client-authoritative-full', searchTerm: raw,
+                normalizedSearchTerm: normalized, totalMatches: matches.length };
+        }
+
+        // Coach must fail closed when its branch or verified owner conflicts.
+        const coach = runtimeRole === 'coach';
+        const coachBranch = String(auth?.coachBranch || runtime.coachBranch || window.coachBranch || '').trim();
+        // D1C3B4: the caller can switch principal/club/branch while an indexed
+        // query is pending. The service must never return the old principal's rows.
+        const searchEpoch = auth?.generation ?? null;
+        const searchUid = String(auth?.uid || '');
+        const branchKey = v => /^(Mặc định|mac dinh|default)$/i.test(String(v || '').trim()) ? 'CS1' : String(v || '').trim();
+        const isCurrentSearchOwner = () => {
+            const current = window.__store || {};
+            const currentAuth = window.__verifiedAuthContextState;
+            if (String(current.clubId || '') !== clubId || normRole(current.userRole) !== runtimeRole ||
+                (window.userRole && normRole(window.userRole) !== runtimeRole)) return false;
+            if (!!currentAuth !== !!auth) return false;
+            if (auth && (currentAuth.ready !== true || Number(currentAuth.generation) !== Number(searchEpoch) ||
+                String(currentAuth.uid || '') !== searchUid || normRole(currentAuth.role) !== runtimeRole ||
+                (runtimeRole !== 'super_admin' && String(currentAuth.clubId || '') !== clubId))) return false;
+            if (coach) {
+                if (!coachBranch || branchKey(current.coachBranch) !== branchKey(coachBranch) ||
+                    (window.coachBranch && branchKey(window.coachBranch) !== branchKey(coachBranch)) ||
+                    (currentAuth && branchKey(currentAuth.coachBranch) !== branchKey(coachBranch))) return false;
+            }
+            return true;
+        };
+        if (!sameContext || (coach && (!coachBranch || (runtime.coachBranch && runtime.coachBranch !== coachBranch)
+            || (window.coachBranch && window.coachBranch !== coachBranch)))) {
+            return { items: [], hasMore: false, nextCursor: null, source: 'context-blocked', searchTerm: raw,
+                normalizedSearchTerm: normalized };
+        }
         const resultMap = new Map(); // key = doc.id → dedupe
         let hasMore = false;
         let source  = 'name';
 
         const _run = async (q, tag) => {
+            // Abort future indexed reads as well as rejecting a late response.
+            if (!isCurrentSearchOwner()) return 0;
             try {
-                const snap = await getDocs(q);
+                // Rules are not filters: ALL Coach search queries must prove a
+                // branch predicate, including name/code/phone/index queries.
+                const branchConstraint = coach ? where('branch', coachBranch === 'CS1' ? 'in' : '==',
+                    coachBranch === 'CS1' ? ['CS1', 'Mặc định'] : coachBranch) : null;
+                const scopedQuery = branchConstraint ? query(q, branchConstraint) : q;
+                const snap = await getDocs(scopedQuery);
+                if (!isCurrentSearchOwner()) return 0;
                 snap.forEach(d => {
                     if (!resultMap.has(d.id)) resultMap.set(d.id, { id: d.id, ...d.data() });
                 });
@@ -424,7 +526,7 @@ export const StudentService = {
 
         // ── [PART 4 FIX] Client-side fallback khi server-side query không tìm thấy ──
         // Đảm bảo hồ sơ cũ chưa có searchName/searchPhone index vẫn tìm được.
-        if (resultMap.size === 0) {
+        if (resultMap.size === 0 && !coach) {
             const _normalizeVN = (v) => String(v || '')
                 .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
                 .replace(/đ/g, 'd').replace(/Đ/g, 'D')
@@ -504,7 +606,16 @@ export const StudentService = {
         }
 
         // Phase 4K-5F: filter by statusFilter (active/quit) for correct tab search
+        if (!isCurrentSearchOwner()) {
+            return { items: [], hasMore: false, nextCursor: null, source: 'context-stale',
+                searchTerm: raw, normalizedSearchTerm: normalized };
+        }
         let items = Array.from(resultMap.values());
+        if (coach) {
+            const normalizeBranch = v => /^(Mặc định|mac dinh|default)$/i.test(String(v || '').trim())
+                ? 'CS1' : String(v || '').trim();
+            items = items.filter(p => normalizeBranch(p.branch) === normalizeBranch(coachBranch));
+        }
         const _statusMode = options.statusFilter ||
             (typeof window.getCurrentActiveTabId === 'function' ? window.getCurrentActiveTabId() : '');
         if (_statusMode === 'active' || _statusMode === 'quit') {

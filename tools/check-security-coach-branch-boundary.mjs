@@ -67,7 +67,7 @@ check('Coach CS1 profile listener reads legacy Mặc định in a separate scope
 check('Coach fallback queries only assigned branch aliases and de-duplicates results',
   profiles.includes('_coachBranchAliases(ctx)') &&
   profiles.includes("fbWhere('branch', '==', alias)") &&
-  profiles.includes('snapshots.forEach'));
+  profiles.includes('missingAliases.map') && profiles.includes('slotHealthy(alias)') && profiles.includes('setActiveProfiles(activeMap')); 
 check('Attendance reads are branch-scoped and missing Coach branch fails closed',
   attendance.includes('_branchConstraint(where, branch, isCoach)') &&
   attendance.includes('attendance/coach-branch-required'));

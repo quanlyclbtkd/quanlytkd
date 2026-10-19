@@ -8,16 +8,21 @@
 
   var X_URL = 'https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js';
   var C_URL = 'https://cdn.jsdelivr.net/npm/chart.js';
+  var H_URL = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
   var _state = window.__mobileStartupPerf = window.__mobileStartupPerf || {
     phase: '4K-6O-mobile-startup-performance-lazy-assets-20260608',
     startAt: (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now(),
     marks: [],
     assets: {
       xlsx:  { loadedAtStart: !!window.XLSX, requested: 0, loaded: !!window.XLSX, loading: false, failed: false, reason: '', durationMs: 0 },
-      chart: { loadedAtStart: !!window.Chart, requested: 0, loaded: !!window.Chart, loading: false, failed: false, reason: '', durationMs: 0 }
+      chart: { loadedAtStart: !!window.Chart, requested: 0, loaded: !!window.Chart, loading: false, failed: false, reason: '', durationMs: 0 },
+      html2canvas: { loadedAtStart: !!window.html2canvas, requested: 0, loaded: !!window.html2canvas, loading: false, failed: false, reason: '', durationMs: 0 }
     },
     errors: []
   };
+
+  _state.assets = _state.assets || {};
+  _state.assets.html2canvas = _state.assets.html2canvas || { loadedAtStart: !!window.html2canvas, requested: 0, loaded: !!window.html2canvas, loading: false, failed: false, reason: '', durationMs: 0 };
 
   function now() {
     return (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
@@ -36,6 +41,7 @@
     if (window[globalName]) {
       asset.loaded = true;
       asset.loading = false;
+      asset.failed = false;
       mark('asset:' + key + ':already-ready', { reason: reason || '' });
       return Promise.resolve(window[globalName]);
     }
@@ -48,48 +54,80 @@
 
     asset.requested += 1;
     asset.loading = true;
+    asset.failed = false;
     asset.reason = reason || '';
     asset.startedAt = now();
-    mark('asset:' + key + ':load-start', { url: url, reason: reason || '' });
+    asset.generation = (Number(asset.generation) || 0) + 1;
+    var generation = asset.generation;
+    mark('asset:' + key + ':load-start', { url: url, reason: reason || '', generation: generation });
 
-    asset.promise = new Promise(function (resolve, reject) {
+    var flightPromise;
+    flightPromise = new Promise(function (resolve, reject) {
+      var settled = false;
       var s = document.createElement('script');
       s.src = url;
       s.async = true;
       s.crossOrigin = 'anonymous';
+      asset.script = s;
+
+      function isCurrentFlight() {
+        return asset.generation === generation && asset.promise === flightPromise;
+      }
+      function detachFailedScript() {
+        try { s.onload = null; s.onerror = null; } catch (_) {}
+        try { if (s.parentNode) s.parentNode.removeChild(s); } catch (_) {}
+        if (asset.script === s) asset.script = null;
+      }
+      function terminalFailure(err, markName) {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        if (!isCurrentFlight()) return;
+        asset.failed = true;
+        asset.loaded = false;
+        asset.loading = false;
+        asset.durationMs = Math.round(now() - (asset.startedAt || now()));
+        asset.promise = null;
+        detachFailedScript();
+        _state.errors.push({ key: key, message: err.message, code: err.code || '', reason: reason || '', at: new Date().toISOString() });
+        mark('asset:' + key + ':' + markName, { reason: reason || '', generation: generation });
+        reject(err);
+      }
+
       var timer = setTimeout(function () {
         var err = new Error(key + ' lazy load timeout');
-        asset.failed = true;
-        asset.loading = false;
-        _state.errors.push({ key: key, message: err.message, reason: reason || '', at: new Date().toISOString() });
-        mark('asset:' + key + ':load-timeout', { reason: reason || '' });
-        reject(err);
+        err.code = 'asset-load-timeout';
+        terminalFailure(err, 'load-timeout');
       }, 20000);
 
       s.onload = function () {
+        if (settled || !isCurrentFlight()) return;
+        if (!window[globalName]) {
+          var err = new Error(globalName + ' not available after script load');
+          err.code = 'asset-load-invalid';
+          terminalFailure(err, 'load-invalid');
+          return;
+        }
+        settled = true;
         clearTimeout(timer);
-        asset.loaded = !!window[globalName];
+        asset.loaded = true;
         asset.loading = false;
-        asset.failed = !asset.loaded;
+        asset.failed = false;
         asset.loadedAt = now();
         asset.durationMs = Math.round((asset.loadedAt || now()) - (asset.startedAt || now()));
-        mark('asset:' + key + ':load-done', { ok: asset.loaded, durationMs: asset.durationMs, reason: reason || '' });
-        if (window[globalName]) resolve(window[globalName]);
-        else reject(new Error(globalName + ' not available after script load'));
+        mark('asset:' + key + ':load-done', { ok: true, durationMs: asset.durationMs, reason: reason || '', generation: generation });
+        resolve(window[globalName]);
       };
       s.onerror = function () {
-        clearTimeout(timer);
         var err = new Error(key + ' lazy load failed');
-        asset.failed = true;
-        asset.loading = false;
-        _state.errors.push({ key: key, message: err.message, reason: reason || '', at: new Date().toISOString() });
-        mark('asset:' + key + ':load-error', { reason: reason || '' });
-        reject(err);
+        err.code = 'asset-load-failed';
+        terminalFailure(err, 'load-error');
       };
       document.head.appendChild(s);
     });
 
-    return asset.promise;
+    asset.promise = flightPromise;
+    return flightPromise;
   }
 
   window.markMobileStartup = window.markMobileStartup || mark;
@@ -100,6 +138,10 @@
 
   window.ensureChartJsReady = window.ensureChartJsReady || function ensureChartJsReady(reason) {
     return _loadScriptOnce('chart', C_URL, 'Chart', reason || 'chart-needed');
+  };
+
+  window.ensureHtml2CanvasReady = window.ensureHtml2CanvasReady || function ensureHtml2CanvasReady(reason) {
+    return _loadScriptOnce('html2canvas', H_URL, 'html2canvas', reason || 'receipt-render');
   };
 
   window.debugMobileStartupPerformance = window.debugMobileStartupPerformance || function debugMobileStartupPerformance() {

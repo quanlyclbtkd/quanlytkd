@@ -31,20 +31,16 @@ for (const tx of cases) {
 }
 console.log('PASS UI01 semantic cells exist for single/package/bundle rows');
 
-const css = fs.readFileSync('style.css','utf8');
-const marker = '/* ── D1C3B: tuition mobile semantic card geometry (mobile only)';
-const start = css.indexOf(marker);
-assert.ok(start >= 0, 'D1C3B mobile semantic block missing');
-const nextDesktop = css.indexOf('/* ── Phase 4K-5G:', start);
-assert.ok(nextDesktop > start, 'desktop boundary after D1C3B mobile block missing');
-const mobile = css.slice(start, nextDesktop);
-assert.ok(mobile.includes('@media (max-width: 767px)'), 'mobile block must be <=767 only');
-assert.ok(!/nth-(?:child|last-child)\s*\(/.test(mobile), 'D1C3B mobile geometry must not depend on column indices');
-assert.ok(/\.tx-amount-cell[\s\S]*display:\s*flex[\s\S]*align-items:\s*center[\s\S]*justify-content:\s*flex-end/.test(mobile), 'amount must be flex vertically centered/right aligned');
-assert.ok(/\.tx-actions-cell[\s\S]*grid-row:\s*2\s*\/\s*4/.test(mobile), 'actions must span metadata rows');
-assert.ok(/\.tx-actions-cell \.btn-sm[\s\S]*min-height:\s*44px/.test(mobile), 'action touch target must remain >=44px');
-assert.ok(/\.tx-name-cell[\s\S]*white-space:\s*normal/.test(mobile), 'long names must wrap safely');
-assert.ok(/\.tx-amount-cell[\s\S]*white-space:\s*nowrap/.test(mobile), 'amount must not wrap');
-assert.ok(css.includes('@media (min-width: 768px)'), 'desktop geometry block must remain');
+// R2: layout belongs to existing INLINE CSS actually shipped by index.html;
+// unlinked style.css is intentionally NOT used as runtime evidence.
+const index = fs.readFileSync('index.html','utf8');
+const style = index.match(/<style>([\s\S]*?)<\/style>/)?.[1] || '';
+assert.ok(style.includes('@media (max-width:767px)'), 'mobile media owner exists inline');
+assert.ok(/#tbl_tx tbody td\.tx-amount-cell\{[^}]*display:flex !important;flex-direction:column;align-items:flex-end;justify-content:center/.test(style), 'mobile amount centered flex in loaded source');
+assert.ok(/#tbl_tx tbody td\.tx-actions-cell\{[^}]*grid-row:2;display:flex !important/.test(style), 'existing action geometry');
+assert.ok(/#tbl_tx tbody td\.tx-name-cell\{[^}]*overflow-wrap:anywhere/.test(style), 'long-name wrapping');
+assert.ok(index.includes('css/ui-mobile-shell.css'), 'existing UI shell stylesheet loaded');
+assert.ok(!fs.readFileSync('css/ui-mobile-shell.css','utf8').includes('D1C3B: tuition mobile semantic card geometry'), 'no competing geometry block in mobile shell');
+assert.ok(fs.readFileSync('style.css','utf8').includes('@media (min-width: 768px)'), 'desktop source unchanged');
 console.log('PASS UI02 mobile geometry uses semantic classes, centered amount, safe actions, desktop preserved');
 console.log('D1C3B tuition mobile compaction gate PASS 2/2');

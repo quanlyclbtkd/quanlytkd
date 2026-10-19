@@ -49,9 +49,9 @@ const pats={getDoc:/(?<![A-Za-z0-9_$])(?:getDoc|_getDoc|fbGetDoc)\s*\(/g,getDocs
 const counts={getDoc:0,getDocs:0,onSnapshot:0};
 for(const f of runtime) for(const line of read(f).split('\n')) { const t=line.trim(); if(t.startsWith('//')||t.startsWith('*')||t.startsWith('/*')) continue; for(const[k,re]of Object.entries(pats)){re.lastIndex=0;if(re.test(line))counts[k]++;} }
 check('26. no new getDoc', counts.getDoc===29, JSON.stringify(counts));
-check('27. no new getDocs', counts.getDocs===45, JSON.stringify(counts));
+check('27. no new getDocs', counts.getDocs===44, JSON.stringify(counts));
 check('28. no new onSnapshot', counts.onSnapshot===16, JSON.stringify(counts));
-check('29. Firestore budget 29/45/16', counts.getDoc===29&&counts.getDocs===45&&counts.onSnapshot===16, JSON.stringify(counts));
+check('29. Firestore budget 29/44/16', counts.getDoc===29&&counts.getDocs===44&&counts.onSnapshot===16, JSON.stringify(counts));
 
 let importSeq=0;
 async function makeHarness({clubId='clubA', profiles, delayMode=false}={}) {

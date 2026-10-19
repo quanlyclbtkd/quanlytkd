@@ -43,7 +43,7 @@ const pats={getDoc:/(?<![A-Za-z0-9_$])(?:getDoc|_getDoc|fbGetDoc)\s*\(/g,getDocs
 const counts={getDoc:0,getDocs:0,onSnapshot:0};
 for (const f of runtime) for (const line of read(f).split('\n')) { const t=line.trim(); if (t.startsWith('//')||t.startsWith('*')||t.startsWith('/*')) continue; for (const [k,re] of Object.entries(pats)) { re.lastIndex=0; if (re.test(line)) counts[k]++; } }
 check('18. no new getDoc', counts.getDoc===29, JSON.stringify(counts));
-check('19. no new getDocs', counts.getDocs===45, JSON.stringify(counts));
+check('19. no new getDocs', counts.getDocs===44, JSON.stringify(counts));
 check('20. no new onSnapshot', counts.onSnapshot===16, JSON.stringify(counts));
 
 // Dynamic completed replay tests: ID01-ID08 core semantics.

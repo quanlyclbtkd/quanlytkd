@@ -85,7 +85,7 @@ function walk(d,o=[]){for(const e of fs.readdirSync(d,{withFileTypes:true})){con
 const runtime=['app.js',...walk('js')], pats={getDoc:/(?<![A-Za-z0-9_$])(?:getDoc|_getDoc|fbGetDoc)\s*\(/g,getDocs:/(?<![A-Za-z0-9_$])(?:getDocs|_getDocs|fbGetDocs|_pG4k)\s*\(/g,onSnapshot:/(?<![A-Za-z0-9_$])(?:onSnapshot|fbOnSnapshot)\s*\(/g},counts={getDoc:0,getDocs:0,onSnapshot:0};
 for(const f of runtime)for(const line of read(f).split('\n')){const t=line.trim();if(t.startsWith('//')||t.startsWith('*')||t.startsWith('/*'))continue;for(const[k,re]of Object.entries(pats)){re.lastIndex=0;if(re.test(line))counts[k]++}}
 check('43. no new getDoc',counts.getDoc===29,JSON.stringify(counts));
-check('44. no new getDocs',counts.getDocs===45,JSON.stringify(counts));
-check('45. no new onSnapshot / budget 29/45/16',counts.onSnapshot===16&&counts.getDoc===29&&counts.getDocs===45,JSON.stringify(counts));
+check('44. no new getDocs',counts.getDocs===44,JSON.stringify(counts));
+check('45. no new onSnapshot / budget 29/44/16',counts.onSnapshot===16&&counts.getDoc===29&&counts.getDocs===44,JSON.stringify(counts));
 const parity=spawnSync(process.execPath,['tools/check-root-public-parity.mjs'],{encoding:'utf8'});check('46. root/public parity PASS',parity.status===0,(parity.stderr||parity.stdout||'').slice(-400));
 console.log(`\nTotal: ${pass+fail} | PASS: ${pass} | FAIL: ${fail}`);if(fail)process.exit(1);console.log('H8R2.1C1F1D1 multiitem/inventory closure gate PASS.');

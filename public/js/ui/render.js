@@ -1,4 +1,5 @@
-// V5U3 quit compatibility: studentsRenderer.js?v=student-given-name-priority-20260811-v5u3
+// H8R1 compatibility: studentsRenderer.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h
+// V5U3 quit compatibility: studentsRenderer.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
 /**
  * ui/render.js — Phase 3.5B (Render Invalidation & Lifecycle Stabilization)
  *
@@ -59,7 +60,7 @@ import {
     computeAndCacheStudents,
     getStudentsSummary,
     getStudentsCachedHtml,
-} from './render/computation/studentsRenderer.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
+} from './render/computation/studentsRenderer.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1';
 import {
     computeAndCacheInventory,
     getCachedLiveInvMap,
@@ -222,7 +223,11 @@ function _renderSkippedMonthSection(allProfiles, selectedMonth) {
         if (titleEl) titleEl.innerText = `⏸ Báo nghỉ tháng ${formatMonth(selMonth)} — ${skippedNames.length} võ sinh miễn học phí`;
         const listEl = document.getElementById('skippedThisMonthList');
         if (listEl) {
-            listEl.innerHTML = skippedNames.sort().map(n => `<span class="badge bg-amber-200 text-amber-900 border border-amber-400 shadow-sm cursor-pointer hover:bg-amber-300" onclick="openProfile('${String(n).replace(/'/g, "\\'")}')" title="Bấm để xem hồ sơ">${n}</span>`).join('');
+            listEl.innerHTML = skippedNames.sort().map(n => {
+                const token = encodeURIComponent(String(n)).replace(/'/g, '%27');
+                const safeText = String(n).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+                return `<span class="badge bg-amber-200 text-amber-900 border border-amber-400 shadow-sm cursor-pointer hover:bg-amber-300" onclick="openProfile(decodeURIComponent('${token}'))" title="Bấm để xem hồ sơ">${safeText}</span>`;
+            }).join('');
         }
     } else {
         skippedSection.classList.add('hidden');
@@ -354,8 +359,9 @@ function renderApp() {
     });
     const _stdSummary     = getStudentsSummary() || {};
     const activeCount     = _stdSummary.activeCount   || 0;
-    const debtCountRender = _stdSummary.debtCount     || 0;
-    const totalDebtEst    = _stdSummary.totalDebtEst  || 0;
+    const debtSummaryPending = _stdSummary.debtSummaryPending !== false;
+    const debtCountRender = debtSummaryPending ? null : (_stdSummary.debtCount || 0);
+    const totalDebtEst    = debtSummaryPending ? null : (_stdSummary.totalDebtEst || 0);
     const m_active_theo   = _stdSummary.m_active_theo || 0;
     const m_new           = _stdSummary.m_new         || 0;
     const m_quit          = _stdSummary.m_quit        || 0;
@@ -429,7 +435,7 @@ function renderApp() {
         expTotal: exp,           expExamTotal: exp_exam_total,
         expUniform: exp_uniform, activeCount,
         debtCount: debtCountRender,
-        totalDebtEst, txCount: txCountRender,
+        totalDebtEst, debtSummaryPending, txCount: txCountRender,
         selMonth, unpaidInvCount,
     };
 

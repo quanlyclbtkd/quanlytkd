@@ -20,21 +20,18 @@ function findFunctionDef(src, funcExpr) {
 
 const appJs   = readFileSync('app.js',         'utf8');
 const mainJs  = readFileSync('js/main.js',     'utf8');
+const financeJs = readFileSync('js/modules/finance.js', 'utf8');
 
 console.log('\n=== check-exam-fee-save-pipeline ===\n');
 
 // 1. quickCollectExam must use getClubExamFee FIRST (not exam_fee_all_actual first)
-const qcIdx = findFunctionDef(appJs, 'window.quickCollectExam');
+const qcIdx = financeJs.indexOf('window.quickCollectExam = async');
 if (qcIdx === -1) {
-    fail('quickCollectExam not found in app.js');
+    fail('quickCollectExam not found in canonical finance module');
 } else {
-    const qcBlock = appJs.slice(qcIdx, qcIdx + 800);
-    const gceIdx    = qcBlock.indexOf('getClubExamFee');
-    const hiddenIdx = qcBlock.indexOf("exam_fee_all_actual");
-    if (gceIdx === -1) {
-        fail('quickCollectExam does not reference getClubExamFee');
-    } else if (hiddenIdx !== -1 && hiddenIdx < gceIdx) {
-        fail('quickCollectExam reads exam_fee_all_actual BEFORE getClubExamFee (priority wrong)');
+    const qcBlock = financeJs.slice(qcIdx, qcIdx + 2600);
+    if (!/const suggested=window\.getClubExamFee\?\.\(\)\|\|feeEl\?\.value\|\|250000/.test(qcBlock)) {
+        fail('quickCollectExam does not prioritize getClubExamFee before hidden fallback');
     } else {
         pass('quickCollectExam uses getClubExamFee as primary source');
     }

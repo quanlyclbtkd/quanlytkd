@@ -42,6 +42,9 @@ window.invalidateDashboard = () => invalidated.push('dashboard');
 window.invalidateSearchCache = () => invalidated.push('search');
 window.refreshListsComputation = keys => invalidated.push(...keys.map(k => `refresh:${k}`));
 window.removeStudentFromDebtDom = name => invalidated.push(`debt-dom:${name}`);
+window.TuitionCommandBoundary = {
+  async runInProfileTuitionMutationLane(_ctx, task) { return task(); }
+};
 
 const mod = await import(`../js/core/studentStatusCommandBoundary.js?behavior=${Date.now()}`);
 mod.initStudentStatusCommandBoundary();

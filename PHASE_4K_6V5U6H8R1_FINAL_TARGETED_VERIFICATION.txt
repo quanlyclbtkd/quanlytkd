@@ -1,0 +1,394 @@
+=== H8R1 FINAL TARGETED VERIFICATION ===
+2026-09-16T03:08:25+00:00
+\n>>> npm run check:profile-display-name-safe-edit
+
+> taekwondo-club-app@1.0.0 check:profile-display-name-safe-edit
+> node tools/check-profile-display-name-safe-edit.mjs
+
+✅ N1/N4 openProfile keeps immutable key in m_old_name
+✅ N1/N4 openProfile resolves editable display label
+✅ N2/N5 update writes displayName only on same canonical key
+✅ N2/N21 no rename/create/delete profile path in display edit
+✅ N6 no Attendance history migration from display edit
+✅ N6 no historical transaction rewrite from display edit
+✅ legacy renameWithBatch retained but unreachable from display edit
+✅ N7/N8 Attendance doc identity still profileKey/name based
+✅ N7 Daily Attendance visible label resolves current profile
+✅ N9 Monthly Attendance keeps r.name action token
+✅ N9 Monthly Attendance visible label resolves current displayName
+✅ N10 debt row label uses profile display resolver
+✅ N10/N12 debt actions retain profileKey
+✅ N15 quit/restore action retains profileKey
+✅ N16 search entry prefers displayName
+✅ N19 search tokens preserve immutable id/profileKey
+✅ N17/N18 search still indexes code + phone fields
+✅ N20 same profile update invalidates RAM search index
+✅ resolver is pure and displayName-first
+✅ resolver adds zero Firestore reads/writes/listeners
+✅ N16 dynamic searchName follows displayName
+✅ N17 dynamic memberId remains indexed
+✅ N18 dynamic phone remains indexed
+PASS 23/23
+\n>>> npm run check:profile-rename-referential-guard
+
+> taekwondo-club-app@1.0.0 check:profile-rename-referential-guard
+> node tools/check-profile-rename-referential-guard.mjs
+
+✅ displayName edit supported
+✅ profileKey remains immutable modal identity
+✅ canonical command receives oldName/newName as same profileKey
+✅ display edit has zero renameWithBatch call
+✅ display edit has zero transaction lookup
+✅ display edit has zero profile delete/create branch
+✅ legacy rename service retained only for compatibility
+✅ no Attendance historical migration added to profile edit flow
+✅ no historical transaction rewrite added to profile edit flow
+✅ Attendance identity primitives remain profile-key based
+✅ no startup/background rename repair added
+PASS 11/11
+\n>>> npm run check:student-search-index
+
+> taekwondo-club-app@1.0.0 check:student-search-index
+> node tools/check-student-search-index.mjs
+
+
+🔍 Phase 4K-6K-E/6K-F — Unified Student Search Index Accuracy Gate Check
+
+✅ js/core/studentSearchIndex.js exists
+✅ Vietnamese normalization exists
+✅ VTF/memberId fields indexed
+✅ phone/digit search indexed
+✅ searchStudents + mode filter exists
+✅ debug globals exist
+✅ main imports initStudentSearchIndex
+✅ student index initializes before SearchRuntime
+✅ SearchRuntime imports StudentSearchIndex
+✅ SearchRuntime uses StudentSearchIndex.searchStudents
+✅ SearchRuntime records student index source/metrics
+✅ server fallback only after local profile availability check
+✅ cross-tab search replay preserved
+✅ adaptive debounce preserved
+✅ runtime smoke test includes student search index
+✅ student search index does not add Firestore reads
+✅ APP_BUILD_VERSION updated to 4K-6K-E/6K-F
+✅ index cache bust updated to 4K-6K-E/6K-F
+✅ package script check:student-search-index registered
+✅ check:all includes student search index check
+✅ check:all:critical includes student search index check
+✅ display-name edit uses same canonical profile key without rename flow
+✅ active updateProfile rebuilds search index from RAM + updateData
+✅ search index is merged before canonical profile update write
+✅ search-index-on-edit adds zero Firestore reads/listeners
+✅ Edit phone updates searchPhone in same payload
+✅ Edit memberId updates searchCode in same payload
+✅ Edit nickname updates searchNickname in same payload
+✅ Normal edit keeps canonical searchName/searchNameTokens
+✅ displayName takes precedence over immutable profileKey in search fields
+✅ processMultiItem still present in app.js
+✅ Excel import write flow still present
+\n>>> npm run check:production-security-trust-boundary
+
+> taekwondo-club-app@1.0.0 check:production-security-trust-boundary
+> node tools/check-production-security-trust-boundary.mjs
+
+✅ clubAdminRootUpdateFieldsOnly helper exists
+✅ Admin root helper uses affectedKeys().hasOnly()
+✅ legitimate Admin root field remains whitelisted: cachedActiveCount
+✅ legitimate Admin root field remains whitelisted: cachedStudentCount
+✅ legitimate Admin root field remains whitelisted: activeStudentCount
+✅ legitimate Admin root field remains whitelisted: totalStudents
+✅ legitimate Admin root field remains whitelisted: cachedProfileCount
+✅ legitimate Admin root field remains whitelisted: cachedInvCount
+✅ legitimate Admin root field remains whitelisted: cachedCountUpdatedAt
+✅ legitimate Admin root field remains whitelisted: cacheCoverage
+✅ legitimate Admin root field remains whitelisted: cachedTxCount
+✅ legitimate Admin root field remains whitelisted: cachedCurrentMonthRevenue
+✅ legitimate Admin root field remains whitelisted: currentMonthRevenue
+✅ legitimate Admin root field remains whitelisted: cachedMonthlyRevenue
+✅ legitimate Admin root field remains whitelisted: revenueByMonth
+✅ legitimate Admin root field remains whitelisted: superAdminStats
+✅ legitimate Admin root field remains whitelisted: statsUpdatedAt
+✅ legitimate Admin root field remains whitelisted: statsSource
+✅ privileged field excluded from Admin root whitelist: parentCode
+✅ privileged field excluded from Admin root whitelist: expiryDate
+✅ privileged field excluded from Admin root whitelist: accountStatus
+✅ privileged field excluded from Admin root whitelist: adminEmail
+✅ privileged field excluded from Admin root whitelist: clubName
+✅ privileged field excluded from Admin root whitelist: examEnabled
+✅ privileged field excluded from Admin root whitelist: adminPassword
+✅ privileged field excluded from Admin root whitelist: passwordChangedAt
+✅ SuperAdmin root update authority preserved
+✅ Club Admin root update requires field whitelist
+✅ password transition guard remains part of root update
+✅ no public club root write
+PASS 30/30
+✅ security sub-gate exits 0: check-club-root-field-authority.mjs
+✅ escapeHtml fixture is inert: <img src=x onerror="wi
+✅ escapeHtml fixture is inert: "><svg onload="window.
+✅ escapeHtml fixture is inert: </div><img src=x onerr
+✅ escapeHtml fixture is inert: O'Brien
+✅ escapeHtml fixture is inert: "Test Club"
+✅ escapeHtml fixture is inert: <>&"'
+✅ escapeHtml preserves apostrophe as display-safe entity
+✅ escapeHtml escapes full HTML special set
+✅ SuperAdmin clubName display uses canonical escapeHtml
+✅ SuperAdmin adminEmail display uses canonical escapeHtml
+✅ SuperAdmin inline actions receive canonical club token, not clubName/email
+✅ SuperAdmin club token is URI-encoded for inline JS context
+✅ Attendance coach names escaped before branch-summary innerHTML
+✅ Attendance coach note escaped and pre-line preserved
+✅ Attendance card profile name/nickname/belt use canonical escapeHtml
+✅ Attendance monthly profile display name is escaped and inline JS keeps profileKey URI token
+✅ Admin session note renderer escapes coachName/note/branch
+✅ Admin notification renderer escapes notePreview
+✅ Transaction descriptions escaped at both canonical and legacy render boundaries
+✅ Inventory category display text escaped
+✅ Student debt display names escaped
+✅ Student active-row display/name metadata escaped
+✅ Belt badge text escapes canonical value
+✅ Exam profile name display escapes HTML
+✅ Known raw SuperAdmin P0 render patterns absent
+✅ Known raw Coach-note P0 pattern absent
+✅ login_history email is escaped before innerHTML
+✅ login_history clubId is escaped before innerHTML
+✅ login_history deviceName is escaped before innerHTML
+✅ login_history os is escaped before innerHTML
+✅ login_history browser is escaped before innerHTML
+✅ login_history filterClub is escaped before innerHTML
+✅ login_history error guide uses canonical escapeHtml for error/uid/email
+✅ login_history raw Firestore display interpolations are absent
+✅ SuperAdmin revenue clubName is escaped before innerHTML
+✅ SuperAdmin revenue clubId is escaped before innerHTML
+✅ SuperAdmin revenue error message is escaped before innerHTML
+✅ SuperAdmin revenue raw club/error HTML concatenations are absent
+PASS 38/38
+✅ security sub-gate exits 0: check-stored-xss-trust-boundary.mjs
+✅ Coach attendance-only runtime role captured before settings mount
+✅ Coach branch completes settings-ready without main_config snapshot
+✅ main_config onSnapshot is only in non-Coach else path
+✅ settings-ready event lifecycle is preserved
+✅ Coach startup does not getDoc(settingsRef)
+✅ Rules deny Coach main_config and allow only shifts
+✅ Coach has no settings list permission
+✅ RoleReadBoundary still blocks Coach financial domain transactions.month
+✅ RoleReadBoundary still blocks Coach financial domain inventory.stats
+✅ RoleReadBoundary still blocks Coach financial domain inventory.history
+✅ RoleReadBoundary still blocks Coach financial domain debt.coverage
+✅ RoleReadBoundary still blocks Coach financial domain exam.settings
+✅ No attendance_public projection/source introduced
+PASS 13/13
+✅ security sub-gate exits 0: check-coach-sensitive-config-closure.mjs
+✅ displayName edit supported
+✅ profileKey remains immutable modal identity
+✅ canonical command receives oldName/newName as same profileKey
+✅ display edit has zero renameWithBatch call
+✅ display edit has zero transaction lookup
+✅ display edit has zero profile delete/create branch
+✅ legacy rename service retained only for compatibility
+✅ no Attendance historical migration added to profile edit flow
+✅ no historical transaction rewrite added to profile edit flow
+✅ Attendance identity primitives remain profile-key based
+✅ no startup/background rename repair added
+PASS 11/11
+✅ security sub-gate exits 0: check-profile-rename-referential-guard.mjs
+✅ Parent Portal remains fail-closed: clubs list is SuperAdmin-only
+✅ No public allow read/write true introduced
+✅ Anonymous profiles are not public
+✅ Anonymous main_config is not public
+✅ RoleReadBoundary still declares Coach attendance-only
+✅ H2 fresh login UI has no Parent Portal tab
+✅ H2 fresh login UI has no Parent Portal pane
+✅ H2 fresh login UI has no Parent Portal code input
+✅ H2 fresh login UI has no Parent Portal name input
+✅ H2 fresh login UI has no Parent Portal results container
+✅ H2 fresh settings UI has no parentCode input
+✅ H2 ppLookupLogin compatibility no-op remains
+✅ H2 ppLookupLogin performs zero Auth/Firestore calls
+✅ H2 active app has no parentCode query
+✅ H2 active app has no cfg_parentCode DOM access
+✅ H2 active app has no parentCode root writer
+✅ H2 Club Admin root whitelist excludes parentCode
+✅ getDoc hard budget unchanged (29 <= 31)
+✅ getDocs hard budget unchanged (51 <= 56)
+✅ onSnapshot hard budget unchanged (16 <= 16)
+✅ No Coach settings polling introduced
+✅ Attendance offline Firestore writer remains one bulkSyncOffline owner
+✅ Attendance offline active flight remains one Promise latch
+✅ No second attendance_public settings authority introduced
+✅ Auth canonical commit authority remains
+✅ Transaction canonical boundary remains
+✅ Dashboard canonical single-flight/loader markers remain
+✅ Attendance daily canonical refresh owner remains
+✅ Attendance explicit shift authority remains
+✅ G1 cross-context pending follow-up remains
+✅ Club Admin privileged root fields are excluded by rules helper
+✅ Coach main_config denied at Rules boundary
+✅ Profile display-name edit preserves immutable profile key
+✅ H3 login_history output is escaped at canonical HTML sink
+✅ H3 login_history Rules bind role and club to verified identity
+✅ H3 SuperAdmin principal existence alone is insufficient
+✅ H3 Functions source principal also requires enabled:true
+Hard static counts: { getDoc: 29, getDocs: 51, onSnapshot: 16 }
+PASS 41/41
+\n>>> npm run check:production-residual-defect-closure
+
+> taekwondo-club-app@1.0.0 check:production-residual-defect-closure
+> node tools/check-production-residual-defect-closure.mjs
+
+
+🔎 Phase 4K-6V5U6G — Production Residual Defect Closure
+
+✅ Attendance V2 journal prefix exists 
+✅ Attendance V2 journal is per-record, never whole-class snapshot 
+✅ Attendance journal identity includes club/date/shift/docId 
+✅ Attendance journal records mutation operation and profile identity 
+✅ Repeated toggle coalesces into one same-doc journal mutation 
+✅ Successful single write cleanup is scoped to its own mutation and matching revision 
+✅ No whole-day offline cleanup remains 
+✅ Bulk cleanup occurs only after successful canonical bulk commit 
+✅ Bulk failure preserves pending journal mutations 
+✅ Attendance offline synchronization is single-flight 
+✅ V2 journal and V1 compatibility share one sync owner 
+✅ Cross-club and invalid/deleted shift entries fail closed and remain pending 
+✅ Offline sync failures are classified/observable, not swallowed 
+✅ Attendance sync adds no polling or blind retry loop 
+✅ V5U6G1 offline Firestore payload is whitelist-built, never journal-spread 
+✅ V5U6G1 journal metadata cannot enter canonical Attendance payload 
+✅ V5U6G1 retains max-one active flight context plus max-one latest pending context 
+✅ V5U6G1 same-context coalesces while different-context request is bounded/pending 
+✅ V5U6G1 pending active context receives exactly one bounded follow-up path 
+✅ V5U6G1 stale flight cannot start later uncommitted chunks 
+✅ V5U6G1 stale flight cannot refresh the new club Attendance UI 
+✅ package exposes the V5U6G1 canonical offline sync guard 
+✅ True-zero path reuses exactly the existing zero probe 
+✅ Empty zero-probe closes Dashboard members hydration as complete active=0 
+✅ True-zero evidence explicitly publishes active=0 as available 
+✅ Zero-probe failure remains incomplete and is observable 
+✅ Active profile owner recognizes the Admin emergency full fallback key 
+✅ Fallback is unsubscribed before active-module listener creation 
+✅ Fallback takeover verifies cleanup and fails closed if verification fails 
+✅ Coach can never enter the full-club profile fallback 
+✅ Admin emergency fallback remains registered in the existing listener registry for explicit takeover 
+✅ Attendance derived stats service propagates failure to the existing caller 
+✅ Attendance stats failure emits reconciliation diagnostic without rolling back canonical attendance 
+✅ Inventory payment linkage failure is observable in legacy and module admission paths 
+✅ Fee audit failure is observable and never invalidates successful payment 
+✅ Session-note notification projection failure is observable while note remains canonical 
+✅ Post-transaction inventory links cannot surface as false primary failure or start retry loops 
+✅ getDoc call-site budget unchanged (29 <= 31) 
+✅ getDocs call-site budget unchanged (51 <= 56) 
+✅ onSnapshot call-site budget unchanged (16 <= 16) 
+✅ legacy app window assignment budget does not increase (532 <= 534) 
+✅ H5 readiness barrier owns exactly two once:true registry event listeners (2) 
+✅ H5 readiness barrier owns exactly one bounded 10s timeout (1) 
+✅ H5 readiness barrier has no polling, Firestore wait, or recursive retry 
+✅ event/timer freeze allows only approved H5 readiness delta (total 117/1/87; outside 115/1/86) 
+✅ No generic global request manager was introduced 
+✅ Generic offline queue has no Attendance/business caller overlap 
+✅ Exact V5U6G1 build version is active while V5U6G boundaries remain frozen 
+✅ Only changed root runtime main.js receives the V5U6G1 cache-bust; unchanged app.js stays on V5U6G 
+✅ Changed modules are cache-busted only within the active phase scope; Profiles listener and Attendance service authority stay frozen 
+✅ package exposes the V5U6G master gate 
+[attendance.js] ✅ Phase 4K-6V5U6G residual closure: explicit shift + V2 offline journal ready
+✅ A1 single-shift offline queues exactly one Alice mutation 
+✅ A3 repeated Alice toggles coalesce to one latest journal record 
+✅ A2 Morning and Evening same-date mutations coexist without key collision 
+✅ A4 bulk offline queues only changed/unmarked profiles 
+✅ A5 online success clears only its own mutation and preserves unrelated shift/profile pending data 
+✅ A6 failed online attendance write preserves its pending mutation 
+[AttendanceOffline] wrong-club {
+  classification: 'wrong-club',
+  attendanceOffline: true,
+  stage: 'club-scope-v2'
+} 
+✅ A7 cross-club pending queue is retained and never synced under another club 
+[AttendanceOffline] invalid-shift {
+  classification: 'invalid-shift',
+  attendanceOffline: true,
+  stage: 'v2-guard'
+} 
+✅ A8 Coach wrong-branch queued record fails closed and remains pending 
+[AttendanceOffline] invalid-shift {
+  classification: 'invalid-shift',
+  attendanceOffline: true,
+  stage: 'v2-guard'
+} 
+✅ A9 deleted shift cannot sync and pending mutation is preserved 
+✅ A10 true legacy no-shift club uses V2 journal without inventing a shift 
+✅ A11 legacy V1 payload syncs once and is removed only after successful commit 
+[AttendanceOffline] unknown {
+  classification: 'unknown',
+  attendanceOffline: true,
+  legacy: true,
+  stage: 'legacy-commit'
+} Error: legacy commit failed
+    at bulkSyncImpl (file:///mnt/data/h8r1_work/taekwondo_club_phase_4k_6v5u6h8_production_readiness_verification/tools/check-production-residual-defect-closure.mjs:414:40)
+    at AttendanceService.bulkSyncOffline (file:///mnt/data/h8r1_work/taekwondo_club_phase_4k_6v5u6h8_production_readiness_verification/tools/check-production-residual-defect-closure.mjs:299:86)
+    at _runOfflineAttendanceSync (file:///mnt/data/h8r1_work/taekwondo_club_phase_4k_6v5u6h8_production_readiness_verification/js/modules/attendance.js?v5u6g=1789528106718:1983:41)
+    at async file:///mnt/data/h8r1_work/taekwondo_club_phase_4k_6v5u6h8_production_readiness_verification/tools/check-production-residual-defect-closure.mjs:415:5
+✅ A11 failed V1 compatibility commit preserves legacy queue key 
+✅ A12 all concurrent Attendance sync triggers receive the same Promise latch 
+✅ A12 concurrent sync triggers perform exactly one canonical sync flight 
+✅ Silent-failure matrix: attendance derived stats rejection is observable to caller 
+
+Total: 66 | PASS: 66 | FAIL: 0
+Phase 4K-6V5U6G residual defect closure gate passed.
+
+\n>>> npm run check:club-listener-bootstrap-readiness
+
+> taekwondo-club-app@1.0.0 check:club-listener-bootstrap-readiness
+> node tools/check-club-listener-bootstrap-readiness.mjs
+
+✅ Club Root keeps exactly one canonical onSnapshot call in mount helper
+✅ Root listener key remains global:club:${clubId}
+✅ Root listener registration remains safeRegisterSnapshot-only
+✅ No direct onSnapshot fallback exists
+✅ No getDoc/getDocs replacement in root mount helper
+✅ Readiness barrier exists in app.js
+✅ Readiness wait listens one-shot for ready event
+✅ Readiness wait listens one-shot for failure event
+✅ Readiness wait is bounded to 8–12 seconds
+✅ Club bootstrap helper has no setInterval polling
+✅ Club bootstrap helper has no recursive retry loop
+✅ Canonical flight is committed before async registry wait
+✅ Same uid/club/authGeneration reuses existing flight
+✅ Stale auth generation is rechecked after readiness wait
+✅ Registry timeout fails closed through registration failure path
+✅ Duplicate metadata is inspected before remount
+✅ Stale duplicate remount is bounded to one explicit retry
+✅ Listener diagnostics classify required failure modes
+✅ main.js exposes registry bridge before one-shot readiness signal
+✅ main.js readiness dispatch is guarded to one time
+✅ index main.js load error emits readiness failure signal
+✅ B1 normal registry-ready bootstrap mounts one listener and accepts
+✅ B2 restored session does not fail before registry becomes ready
+✅ B2 restored session resumes through registry and mounts exactly one listener
+✅ B3 slow main.js causes no premature blocked banner
+✅ B3 slow main.js continues after readiness
+✅ B4 main.js failure is bounded fail-closed with zero root network listener
+✅ Timeout fails closed without polling/fallback listener
+✅ B5 logout while waiting invalidates old flight and mounts no listener
+✅ B6 rapid relogin ignores old generation and mounts only new generation
+✅ B7 duplicate mount returns the same canonical flight object
+✅ B7 duplicate same-session mount creates one root listener
+✅ Stale duplicate removal/remount is bounded to one remove + two registration attempts
+✅ getDoc call-sites do not increase above H4
+✅ getDocs call-sites do not increase above H4
+✅ onSnapshot call-sites do not increase above H4
+Static counts: { getDoc: 29, getDocs: 51, onSnapshot: 16 }
+
+Club Listener Bootstrap Readiness: 36/36 PASS
+\n>>> npm run check:root-public-parity
+
+> taekwondo-club-app@1.0.0 check:root-public-parity
+> node tools/check-root-public-parity.mjs
+
+{
+  "algorithm": "SHA-256",
+  "rootFileCount": 123,
+  "publicFileCount": 123,
+  "missingPublic": [],
+  "extraPublic": [],
+  "hashMismatches": [],
+  "status": "PASS"
+}

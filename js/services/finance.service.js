@@ -17,16 +17,41 @@
  * ────────────────────────────────────────────────────────────────
  */
 
-import { InventoryService } from './inventory.service.js?v=firestore-read-attribution-canonical-tx-boundary-20260616-v3a';
+import { InventoryService } from './inventory.service.js?v=long-term-production-stability-20260917-v5u6h8r2';
 
 function _sdk()    { return window._fb_init || {}; }
 function _db()     { const db = (window.__store || {}).db; if (!db) throw new Error('[FinanceService] db chưa sẵn sàng'); return db; }
 function _clubId() { const id = (window.__store || {}).clubId; if (!id) throw new Error('[FinanceService] clubId chưa sẵn sàng'); return id; }
 function _colRef() { return (window.__store || {}).colRef; }
+function _expenseDateValid(value) {
+    const s = String(value || '');
+    if (!/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(s)) return false;
+    const d = new Date(s + 'T00:00:00Z');
+    return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
+}
+function _expenseValid(data) {
+    return ['Chi phí', 'Chi phí kỳ thi'].includes(data?.type)
+        && String(data?.description || '').trim().length > 0
+        && String(data?.branch || '').trim().length > 0
+        && Number.isFinite(Number(data?.amount)) && Number(data.amount) > 0
+        && _expenseDateValid(data?.date)
+        && (data.type !== 'Chi phí kỳ thi' || data.txMonth === data.date.slice(0, 7));
+}
 
 export const FinanceService = {
 
     // ── TRANSACTIONS ────────────────────────────────────────────
+
+    /** Pure transaction plan for an existing caller's cross-domain batch. */
+    prepareTransactionMutation(data, reason = 'finance-prepared-transaction', existingRef = null) {
+        const { doc } = _sdk();
+        const colRef = _colRef();
+        if (!colRef || typeof doc !== 'function') throw new Error('[FinanceService] Transaction ref chưa sẵn sàng.');
+        const ref = existingRef || doc(colRef);
+        const payload = typeof window.canonicalizeTransactionForWrite === 'function'
+            ? window.canonicalizeTransactionForWrite(data, reason) : { ...data };
+        return { ref, payload, runtimeTx: { id: ref.id, ...payload } };
+    },
 
     /**
      * Thêm một giao dịch mới.
@@ -41,7 +66,33 @@ export const FinanceService = {
             ? window.canonicalizeTransactionForWrite(data, 'finance-service-add')
             : data;
         const docRef = await addDoc(colRef, payload);
+        try { window.mergeTransactionIntoRuntimeStore?.({ id: docRef.id, ...payload }, 'finance-service-add'); }
+        catch (error) { console.warn('[FinanceService] local transaction projection failed after commit:', error); try { window.recordRuntimeError?.('finance.local-projection-after-commit', error, { transactionId: docRef.id }); } catch (_) {} }
         return docRef.id;
+    },
+
+    async createExpense(data) {
+        if (!_expenseValid(data)) throw new Error('[FinanceService] Chi phí không hợp lệ.');
+        return this.addTransaction(data);
+    },
+
+    async updateExpenseTransaction(original, changes) {
+        const id = String(original?.id || '').trim();
+        if (!id || id === 'undefined' || id === 'null' || !_expenseValid(original)
+            || !changes || !Object.keys(changes).every(k => ['branch', 'description', 'amount', 'date'].includes(k))) {
+            throw new Error('[FinanceService] Không thể sửa giao dịch này.');
+        }
+        const next = { ...original, ...changes };
+        if (!_expenseValid(next) || (original.type === 'Chi phí kỳ thi' && next.date.slice(0, 7) !== original.txMonth)) {
+            throw new Error('[FinanceService] Nội dung chi phí không hợp lệ.');
+        }
+        const patch = typeof window.canonicalizeTransactionPatch === 'function'
+            ? window.canonicalizeTransactionPatch(changes, original, 'finance-expense-edit') : { ...changes };
+        const { doc, updateDoc } = _sdk();
+        await updateDoc(doc(_db(), 'clubs', _clubId(), 'transactions', id), patch);
+        try { window.mergeTransactionIntoRuntimeStore?.({ ...original, ...patch, id }, 'finance-expense-edit'); }
+        catch (error) { console.warn('[FinanceService] local expense projection failed after commit:', error); try { window.recordRuntimeError?.('finance.expense-local-projection-after-commit', error, { transactionId: id }); } catch (_) {} }
+        return id;
     },
 
     /**
@@ -50,7 +101,7 @@ export const FinanceService = {
      */
     async deleteTransaction(txId) {
         const id = String(txId || '').trim();
-        if (!id || id === 'undefined') throw new Error('[FinanceService] transaction id không hợp lệ');
+        if (!id || id === 'undefined' || id === 'null') throw new Error('[FinanceService] transaction id không hợp lệ');
         const { doc, deleteDoc } = _sdk();
         try {
             await deleteDoc(doc(_db(), 'clubs', _clubId(), 'transactions', id));
@@ -60,6 +111,33 @@ export const FinanceService = {
             }
             throw error;
         }
+    },
+
+    /** Narrow exam cancellation; identity/amount fields cannot be caller patched. */
+    async cancelExamPayment(tx) {
+        const id = String(tx?.id || '').trim();
+        if (!id || id === 'undefined' || tx?.examPaidCancelled === true) throw new Error('[FinanceService] Lệ phí thi không hợp lệ.');
+        if (tx.type === 'Lệ phí thi') {
+            const impact = window.TransactionDeleteIntegrity?.analyzeTransactionDeleteImpact?.(tx);
+            if (!impact?.safeToHardDelete || impact.hasTuition || impact.hasInventory
+                || !Number.isFinite(Number(tx.amount)) || Number(tx.amount) <= 0) throw new Error('[FinanceService] Không thể xóa lệ phí thi có liên kết.');
+            await this.deleteTransaction(id);
+            return { id, deleted: true };
+        }
+        if (tx.type !== 'Học phí + Lệ phí thi' || !Number.isFinite(Number(tx.tuitionAmount))
+            || Number(tx.tuitionAmount) <= 0 || !Number.isFinite(Number(tx.examAmount))
+            || Number(tx.examAmount) <= 0 || tx.relatedInvId
+            || (Array.isArray(tx.components) && tx.components.some(c => c?.kind === 'inventory'))) {
+            throw new Error('[FinanceService] Không thể hủy thành phần lệ phí thi trong giao dịch này.');
+        }
+        const patch = {
+            type: 'Học phí', amount: Number(tx.tuitionAmount), examAmount: 0,
+            examPaidCancelled: true, examPaidCancelledAt: Date.now(),
+            examPaidCancelledBy: window.currentUserEmail || ''
+        };
+        const { doc, updateDoc } = _sdk();
+        await updateDoc(doc(_db(), 'clubs', _clubId(), 'transactions', id), patch);
+        return { id, deleted: false, patch };
     },
 
     /**
@@ -113,11 +191,15 @@ export const FinanceService = {
         direction = 'first',
         monthStr  = '',
         search    = '',
+        monthState = null,
     } = {}) {
         // Phase 4K-4F: First page with monthStr → use inclusive query (txMonth + date + packageMonths)
         // to capture gói nhiều tháng where selectedMonth is a middle month
-        if (monthStr && direction === 'first' && !cursor) {
-            const result = await this.getTransactionsForMonthInclusive({ pageSize, monthStr, search });
+        if (monthStr) {
+            const result = await this.getTransactionsForMonthInclusive({
+                pageSize, monthStr, search,
+                state: direction === 'next' ? monthState : null,
+            });
             return result;
         }
 
@@ -162,36 +244,36 @@ export const FinanceService = {
         pageSize = 50,
         monthStr = '',
         search   = '',
+        state    = null,
     } = {}) {
-        const { getDocs, query, collection, where, limit } = _sdk();
+        const { getDocs, query, collection, where, limit, startAfter } = _sdk();
         const db     = _db();
         const clubId = _clubId();
         const colRef = collection(db, 'clubs', clubId, 'transactions');
-
+        if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(monthStr) || !startAfter || !Number.isInteger(pageSize) || pageSize < 1) {
+            throw new Error('[FinanceService] Không thể đọc đủ giao dịch tháng: query không hợp lệ.');
+        }
         const start = monthStr + '-01';
         const end   = monthStr + '-31';
-        const lim   = pageSize + 200;
-
-        const qByTxMonth  = query(colRef, where('txMonth', '==', monthStr), limit(lim));
-        const qByDate     = query(colRef, where('date', '>=', start), where('date', '<=', end), limit(lim));
-        const qByPackage  = query(colRef, where('packageMonths', 'array-contains', monthStr), limit(lim));
-
-        const snaps = await Promise.allSettled([
-            getDocs(qByTxMonth),
-            getDocs(qByDate),
-            getDocs(qByPackage),
-        ]);
-
-        const map = new Map();
-        snaps.forEach(res => {
-            if (res.status !== 'fulfilled') {
-                console.warn('[FinanceService] getTransactionsForMonthInclusive partial failure:', res.reason && res.reason.message);
-                return;
-            }
-            res.value.forEach(d => {
-                const data = d.data();
-                map.set(d.id, { id: d.id, ...data, _docSnap: d });
-            });
+        const key = clubId + '|' + monthStr + '|' + search + '|' + pageSize;
+        const previous = state && state.key === key ? state : null;
+        // Per-source cursors and fetched buffers belong to this FinanceService query.
+        // Copy before I/O so a rejected branch never corrupts the last good page.
+        const branches = previous ? previous.branches.map(b => ({ ...b }))
+            : [{ cursor: null, done: false }, { cursor: null, done: false }, { cursor: null, done: false }];
+        const builders = [
+            c => query(colRef, where('txMonth', '==', monthStr), ...(c ? [startAfter(c)] : []), limit(pageSize)),
+            c => query(colRef, where('date', '>=', start), where('date', '<=', end), ...(c ? [startAfter(c)] : []), limit(pageSize)),
+            c => query(colRef, where('packageMonths', 'array-contains', monthStr), ...(c ? [startAfter(c)] : []), limit(pageSize)),
+        ];
+        const snaps = await Promise.all(branches.map((b, i) => b.done ? null : getDocs(builders[i](b.cursor))));
+        const map = new Map(previous ? previous.items.map(t => [t.id, t]) : []);
+        snaps.forEach((snap, i) => {
+            if (!snap) return;
+            if (!Array.isArray(snap.docs)) throw new Error('[FinanceService] Trang giao dịch không hợp lệ.');
+            snap.docs.forEach(d => map.set(d.id, { id: d.id, ...d.data(), _docSnap: d }));
+            branches[i].done = snap.docs.length < pageSize;
+            if (snap.docs.length) branches[i].cursor = snap.docs[snap.docs.length - 1];
         });
 
         let arr = Array.from(map.values())
@@ -201,7 +283,7 @@ export const FinanceService = {
                 }
                 return true;
             })
-            .sort((a, b) => Number(b.timestamp || 0) - Number(a.timestamp || 0));
+            .sort((a, b) => Number(b.timestamp || 0) - Number(a.timestamp || 0) || String(a.id).localeCompare(String(b.id)));
 
         if (search) {
             const q = typeof window.normalizeVNForSearch === 'function'
@@ -216,14 +298,20 @@ export const FinanceService = {
             });
         }
 
-        // Return object compatible with processPage (has .docs) AND passes _mergedItems for direct use
+        // Until all three streams end, rows are explicitly a preview. The
+        // complete timestamp order is authoritative only after the last page.
         const _mergedItems = arr;
         const docs = arr.slice(0, pageSize + 1).map(t => t._docSnap || {
             id: t.id,
             data: () => t,
         });
 
-        return { docs, _mergedItems, _source: 'inclusive-month' };
+        return {
+            docs, _mergedItems, _source: 'inclusive-month',
+            _hasMore: branches.some(b => !b.done),
+            _complete: branches.every(b => b.done),
+            _monthState: { key, branches, items: Array.from(map.values()) },
+        };
     },
 
     /**
@@ -269,6 +357,59 @@ export const FinanceService = {
         constraints.push(limit(pageSize + 1));
 
         return getDocs(query(colRef, ...constraints));
+    },
+
+    /**
+     * H8R2 — Commit one logical financial write plan atomically.
+     * This is an extension of the EXISTING FinanceService writer authority,
+     * not a second writer. Primary transaction/profile writes share one batch.
+     * Secondary audit/telemetry stays outside this commit.
+     *
+     * plan.transactions: [{ id?, data }]
+     * plan.profileUpdates: [{ studentName, data }]
+     */
+    async commitAtomicWritePlan(plan = {}) {
+        const { writeBatch, doc, collection } = _sdk();
+        const db = _db();
+        const clubId = _clubId();
+        if (typeof writeBatch !== 'function' || typeof doc !== 'function') {
+            throw new Error('[FinanceService] Firestore atomic batch chưa sẵn sàng.');
+        }
+        const transactions = Array.isArray(plan.transactions) ? plan.transactions : [];
+        const profileUpdates = Array.isArray(plan.profileUpdates) ? plan.profileUpdates : [];
+        const operationCount = transactions.length + profileUpdates.length;
+        const SAFE_LIMIT = 400;
+        if (operationCount <= 0) return { committed: 0, txIds: [] };
+        if (operationCount > SAFE_LIMIT) {
+            const error = new Error('Thao tác vượt giới hạn an toàn, chưa có dữ liệu nào được ghi.');
+            error.code = 'finance/atomic-plan-too-large';
+            error.operationCount = operationCount;
+            error.safeLimit = SAFE_LIMIT;
+            throw error;
+        }
+
+        const batch = writeBatch(db);
+        const txCol = collection(db, 'clubs', clubId, 'transactions');
+        const txIds = [];
+        transactions.forEach((entry) => {
+            const input = entry && typeof entry === 'object' ? entry : {};
+            const ref = input.id
+                ? doc(db, 'clubs', clubId, 'transactions', String(input.id))
+                : doc(txCol);
+            const payload = typeof window.canonicalizeTransactionForWrite === 'function'
+                ? window.canonicalizeTransactionForWrite(input.data || {}, input.reason || 'finance-service-atomic-plan')
+                : (input.data || {});
+            batch.set(ref, payload);
+            txIds.push(ref.id);
+        });
+        profileUpdates.forEach((entry) => {
+            const name = String(entry?.studentName || '').trim();
+            if (!name) throw new Error('[FinanceService] Atomic plan thiếu profileKey.');
+            batch.update(doc(db, 'clubs', clubId, 'profiles', name), entry.data || {});
+        });
+
+        await batch.commit();
+        return { committed: operationCount, txIds };
     },
 
     // ── PROFILES (payment fields only) ──────────────────────────
@@ -323,8 +464,14 @@ export const FinanceService = {
      */
     async addFeeAuditSilent(data) {
         try {
-            await this.addFeeAudit(data);
-        } catch (_) { /* audit log không chặn */ }
+            const ref = await this.addFeeAudit(data);
+            return { ok: true, id: String(ref?.id || '') };
+        } catch (error) {
+            const details = { classification: 'fee-audit-write-failed', secondaryWrite: true, reconciliationNeeded: true, canonicalPaymentPreserved: true };
+            console.warn('[FinanceService]', details.classification, details, error || '');
+            try { window.recordRuntimeError?.('secondary-consistency:' + details.classification, error || new Error(details.classification), details); } catch (_) {}
+            return { ok: false, error };
+        }
     },
 
     // ── REPORTING QUERIES (executeExcelExport) ──────────────────
@@ -373,20 +520,25 @@ export const FinanceService = {
      * @returns {Array<{id, ...data}>}
      */
     async queryTxByPackageMonths(months = []) {
-        const { getDocs, query, where, limit } = _sdk();
+        const { getDocs, query, where, limit, startAfter } = _sdk();
         const colRef = _colRef();
-        if (!colRef || !Array.isArray(months) || !months.length) return [];
+        if (!colRef || !Array.isArray(months) || !months.length || !startAfter) {
+            throw new Error('[FinanceService] Không thể đọc đủ packageMonths.');
+        }
 
         const map = new Map();
         for (const m of months) {
-            try {
+            let cursor = null;
+            let complete = false;
+            for (let page = 0; page < 50; page++) {
                 const snap = await getDocs(
-                    query(colRef, where('packageMonths', 'array-contains', m), limit(2000))
+                    query(colRef, where('packageMonths', 'array-contains', m), ...(cursor ? [startAfter(cursor)] : []), limit(500))
                 );
                 snap.forEach(d => map.set(d.id, { id: d.id, ...d.data() }));
-            } catch (e) {
-                console.warn('[FinanceService] queryTxByPackageMonths partial fail for', m, ':', e && e.message);
+                if (snap.docs.length < 500) { complete = true; break; }
+                cursor = snap.docs[snap.docs.length - 1];
             }
+            if (!complete) throw new Error('[FinanceService] packageMonths chưa đọc hết: ' + m);
         }
         return Array.from(map.values());
     },

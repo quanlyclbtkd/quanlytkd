@@ -1,3 +1,4 @@
+// H8R2 compatibility marker: attendance.service.js?v=long-term-production-stability-20260917-v5u6h8r2
 /**
  * modules/attendance.js — Phase 2h (Đầy đủ)
  * ────────────────────────────────────────────────────────────────
@@ -15,7 +16,7 @@
  * ────────────────────────────────────────────────────────────────
  */
 
-import { AttendanceService } from '../services/attendance.service.js?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1';
+import { AttendanceService } from '../services/attendance.service.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1';
 import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
 import { escapeHtml } from '../utils/helpers.js';
 
@@ -159,29 +160,71 @@ function _authGeneration() {
     return Number(window.__verifiedAuthContextState?.generation || 0);
 }
 
+// RAM-only verified session identity. No new auth owner or persisted token.
 function _captureOfflineAttendanceSyncContext() {
-    const verified = window.__verifiedAuthContextState || {};
-    const clubId = String((verified.ready === true && verified.clubId) || _clubId() || '').trim();
+    const verified = window.__verifiedAuthContextState;
+    const role = _attendanceCanonicalRole(verified?.role);
+    const uid = String(verified?.uid || '').trim();
+    const generation = Number(verified?.generation);
+    const clubId = String(_clubId() || '').trim();
+    const verifiedClub = String(verified?.clubId || '').trim();
+    const coachBranch = role === 'coach' ? _canonicalAttendanceBranch(verified?.coachBranch, '') : '';
+    const uiRole = _attendanceCanonicalRole(window.userRole);
+    const storeRole = _attendanceCanonicalRole(window.__store?.userRole);
+    const currentUserUid = String(window.__store?.currentUser?.uid || '').trim();
+    const selectedClub = String(window.__store?.currentClubId || clubId).trim();
+    const currentClub = String(window.currentClubId || clubId).trim();
+    const mirrorBranch = _canonicalAttendanceBranch(window.coachBranch || '', '');
+    const storeBranch = _canonicalAttendanceBranch(window.__store?.coachBranch || '', '');
+    const valid = verified?.ready === true && !!uid &&
+        Number.isSafeInteger(generation) && generation > 0 && !!clubId &&
+        ['admin', 'super_admin', 'coach'].includes(role) &&
+        uiRole === role && storeRole === role &&
+        (!currentUserUid || currentUserUid === uid) &&
+        selectedClub === clubId && currentClub === clubId &&
+        (role === 'super_admin' || verifiedClub === clubId) &&
+        (role !== 'coach' || (!!coachBranch &&
+            (!mirrorBranch || _sameBranch(mirrorBranch, coachBranch)) &&
+            (!storeBranch || _sameBranch(storeBranch, coachBranch))));
     const context = Object.freeze({
-        clubId,
-        authGeneration: Number(verified.generation || 0),
-        uid: String(verified.uid || ''),
+        clubId: valid ? clubId : '', authGeneration: generation,
+        uid, role, coachBranch, verifiedClub,
     });
     _attendanceDebug().offlineSyncContextCaptured++;
     return context;
 }
 
 function _sameOfflineAttendanceSyncContext(left, right) {
-    return !!left && !!right &&
-        String(left.clubId || '') === String(right.clubId || '') &&
-        Number(left.authGeneration || 0) === Number(right.authGeneration || 0);
+    return !!left && !!right && !!left.clubId && !!right.clubId &&
+        String(left.clubId) === String(right.clubId) &&
+        String(left.uid || '') === String(right.uid || '') &&
+        String(left.role || '') === String(right.role || '') &&
+        String(left.coachBranch || '') === String(right.coachBranch || '') &&
+        Number(left.authGeneration) === Number(right.authGeneration);
 }
 
 function _isOfflineAttendanceSyncContextCurrent(context) {
-    const verified = window.__verifiedAuthContextState || {};
-    const currentClubId = String((verified.ready === true && verified.clubId) || _clubId() || '').trim();
-    return !!context && String(context.clubId || '') === currentClubId &&
-        Number(context.authGeneration || 0) === Number(verified.generation || 0);
+    if (!context?.clubId) return false;
+    // Same verified principal AND still-canonical UI/store/selected-club mirrors.
+    const verified = window.__verifiedAuthContextState;
+    if (verified?.ready !== true || String(verified.uid || '') !== String(context.uid || '') ||
+        _attendanceCanonicalRole(verified.role) !== context.role ||
+        Number(verified.generation) !== Number(context.authGeneration) ||
+        String(_clubId() || '') !== context.clubId ||
+        _attendanceCanonicalRole(window.userRole) !== context.role ||
+        _attendanceCanonicalRole(window.__store?.userRole) !== context.role ||
+        (window.__store?.currentUser?.uid && String(window.__store.currentUser.uid) !== context.uid)) return false;
+    if (context.role === 'super_admin') {
+        return String(window.__store?.currentClubId || context.clubId) === context.clubId &&
+            String(window.currentClubId || context.clubId) === context.clubId;
+    }
+    if (String(verified.clubId || '') !== context.clubId) return false;
+    if (context.role === 'coach') {
+        return _sameBranch(verified.coachBranch, context.coachBranch) &&
+            (!window.coachBranch || _sameBranch(window.coachBranch, context.coachBranch)) &&
+            (!window.__store?.coachBranch || _sameBranch(window.__store.coachBranch, context.coachBranch));
+    }
+    return true;
 }
 
 function _canonicalAttendanceBranch(value, fallback = '') {
@@ -213,7 +256,7 @@ function _captureAttendanceDailyContext() {
     const dateEl = document.getElementById('att_date');
     const branchEl = document.getElementById('att_branch');
     const shiftEl = document.getElementById('att_shift');
-    const role = String(window.userRole || window.__store?.userRole || 'viewer').toLowerCase();
+    const role = _attendanceCanonicalRole(window.userRole || window.__store?.userRole || 'viewer');
     const coachBranch = role === 'coach'
         ? _canonicalAttendanceBranch(window.coachBranch || window.__store?.coachBranch || '', '')
         : '';
@@ -573,7 +616,17 @@ function _getFilteredAttProfiles() {
     const beltEl    = document.getElementById('att_belt');
     const allProfs  = _profiles();
     let selBranch   = branchEl ? branchEl.value : 'all';
-    if (window.userRole === 'coach' && window.coachBranch) selBranch = window.coachBranch;
+    const verified = window.__verifiedAuthContextState;
+    if (_attendanceCanonicalRole(verified?.role) === 'coach') {
+        if (verified?.ready !== true ||
+            _attendanceCanonicalRole(window.userRole) !== 'coach' ||
+            _attendanceCanonicalRole(window.__store?.userRole) !== 'coach' ||
+            !String(verified.coachBranch || '').trim()) return [];
+        selBranch = _canonicalAttendanceBranch(verified.coachBranch, '');
+    } else if (_attendanceCanonicalRole(window.userRole) === 'coach') {
+        // Unknown/stale Coach principal must not use the DOM's `all` selector.
+        return [];
+    }
     const selBelt   = beltEl ? beltEl.value : 'all';
     const selDateVal = document.getElementById('att_date') ? document.getElementById('att_date').value : '';
     const dayOfWeek  = selDateVal ? new Date(selDateVal + 'T00:00:00').getDay() : -1;
@@ -612,19 +665,33 @@ function _renderAttCards() {
     const gridEl = document.getElementById('attendanceGrid');
     if (!gridEl) return;
     const allProfs = _profiles();
+    // B7: Coach roster currently uses status-filtered queries; a one-shot
+    // fallback is only provisional. Never present a partial "0 students" as a
+    // verified branch-wide count. This is presentation-only, no new reads.
+    const _coachRosterState = (_attendanceCanonicalRole(window.__verifiedAuthContextState?.role) === 'coach' ||
+        _attendanceCanonicalRole(window.userRole) === 'coach')
+        ? (window.getProfilesListenerMetrics?.().coachRosterReadiness || 'pending') : 'verified';
+    const _coachRosterWarning = _coachRosterState !== 'verified'
+        ? '<div role="status" aria-live="polite" style="grid-column:1/-1;padding:10px 12px;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;color:#9a3412;font-size:0.83rem;line-height:1.4;">⚠️ Danh sách võ sinh đang chờ xác minh đầy đủ theo cơ sở. Số lượng hiển thị chỉ là tạm thời; cần kiểm tra trước khi kết luận vắng mặt.</div>'
+        : '';
     if (_attCurrentProfiles.length === 0) {
-        gridEl.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:48px 16px;color:#94a3b8;font-style:italic;font-size:0.88rem;">Không có võ sinh nào phù hợp bộ lọc</div>';
+        gridEl.innerHTML = _coachRosterWarning + '<div style="grid-column:1/-1;text-align:center;padding:48px 16px;color:#94a3b8;font-style:italic;font-size:0.88rem;">' + (_coachRosterState === 'verified' ? 'Không có võ sinh nào phù hợp bộ lọc' : 'Chưa có dữ liệu võ sinh đã được xác minh đầy đủ') + '</div>';
         _updateAttSummary([0,0,0,0,0]);
         return;
     }
     const _attStripSuffix = (k) => k.replace(/\s*\([^)]*\)\s*$/, '').replace(/\s*\[[^\]]*\]\s*$/, '').trim().toLowerCase();
-    const _attDisplayName = (k) => k.replace(/\s*\([^)]*\)\s*$/, '').replace(/\s*\[[^\]]*\]\s*$/, '').trim();
+    const _attDisplayName = (profileKey, profile) => {
+        const raw = (window.ProfileCanonicalStore && typeof window.ProfileCanonicalStore.resolveDisplayName === 'function')
+            ? window.ProfileCanonicalStore.resolveDisplayName(profileKey, profile)
+            : String(profile?.displayName || profile?.name || profile?.fullName || profile?.studentName || profileKey || '').trim();
+        return raw.replace(/\s*\([^)]*\)\s*$/, '').replace(/\s*\[[^\]]*\]\s*$/, '').trim();
+    };
     const _attNCount = {};
     Object.keys(allProfs || {}).forEach(n => {
         const k = _attStripSuffix(n);
         _attNCount[k] = (_attNCount[k] || 0) + 1;
     });
-    let html = '';
+    let html = _coachRosterWarning;
     window.currentAttendanceData = {};
     _attCurrentProfiles.forEach(([name]) => {
         const docId = _currentShiftId ? name + '_' + _attCurrentDate + '_' + _currentShiftId : name + '_' + _attCurrentDate;
@@ -668,7 +735,7 @@ function _renderAttCards() {
             ? '<span style="font-size:0.58rem;background:#dcfce7;color:#15803d;border:1px solid #bbf7d0;border-radius:4px;padding:1px 4px;font-weight:900;margin-left:3px;vertical-align:middle;">MỚI</span>' : '';
         const _nickname = (p.nickname || '').trim();
         const _safeNameHtml = escapeHtml(name);
-        const _safeDisplayNameHtml = escapeHtml(_attDisplayName(name));
+        const _safeDisplayNameHtml = escapeHtml(_attDisplayName(name, p));
         const _safeNicknameHtml = escapeHtml(_nickname);
         const _safeBeltHtml = escapeHtml(beltShort);
         const _cardWarnClass = churnWarn3 ? 'att-card-warn-red' : churnWarn2 ? 'att-card-warn-yellow' : '';
@@ -1023,12 +1090,11 @@ function _renderShiftSelector() {
         const _ss = document.getElementById(sid);
         if (!_ss) return;
         const _curVal = _ss.value;
-        let _sh = '<option value="">-- Không chọn ca --</option>';
+        _ss.replaceChildren(new Option('-- Không chọn ca --', ''));
         _clubShifts.forEach(function(s) {
             const _t = (s.timeStart && s.timeEnd) ? ' (' + s.timeStart + '\u2013' + s.timeEnd + ')' : '';
-            _sh += '<option value="' + s.id + '">' + s.name + _t + '</option>';
+            _ss.add(new Option(String(s.name || '') + _t, String(s.id || '')));
         });
-        _ss.innerHTML = _sh;
         _ss.value = _clubShifts.some(function(s) { return s.id === _curVal; }) ? _curVal : '';
     });
 }
@@ -1046,10 +1112,11 @@ function _renderShiftListInModal() {
     }
     listEl.innerHTML = _clubShifts.map(s => {
         const time = s.timeStart && s.timeEnd ? s.timeStart + ' – ' + s.timeEnd : 'Chưa đặt giờ';
+        const token = encodeURIComponent(String(s.id || '')).replace(/'/g, '%27');
         return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:6px;">'
-            + '<div style="min-width:0;"><div style="font-size:0.85rem;font-weight:800;color:#1e293b;">' + s.name + '</div>'
-            + '<div style="font-size:0.72rem;color:#64748b;margin-top:1px;">🕐 ' + time + '</div></div>'
-            + '<button onclick="window.deleteShift(\'' + s.id + '\')" type="button"'
+            + '<div style="min-width:0;"><div style="font-size:0.85rem;font-weight:800;color:#1e293b;">' + escapeHtml(String(s.name || '')) + '</div>'
+            + '<div style="font-size:0.72rem;color:#64748b;margin-top:1px;">🕐 ' + escapeHtml(String(time)) + '</div></div>'
+            + '<button onclick="window.deleteShift(decodeURIComponent(\'' + token + '\'))" type="button"'
             + ' style="flex-shrink:0;padding:6px 11px;background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:8px;font-size:0.72rem;font-weight:800;cursor:pointer;">🗑️ Xóa</button>'
             + '</div>';
     }).join('');
@@ -1097,10 +1164,89 @@ function _recordAttendanceShiftReadBlocked(decision) {
     }
 }
 
+// R2: Coach roster proof is bound to the SAME verified auth principal and
+// active listener generation. Metrics are read-only output from existing owner.
+// This is not a new writer/reader or cache authority.
+// Read-only canonical role resolution from the existing security boundary.
+// Missing script/order is fail-closed; never create an alternate auth authority.
+function _attendanceCanonicalRole(value) {
+    return typeof window.RoleReadBoundary?.normalizeRole === 'function'
+        ? window.RoleReadBoundary.normalizeRole(value) : '';
+}
+
+function _coachAttendanceWriteAuthorized(context) {
+    const verified = window.__verifiedAuthContextState;
+    const role = _attendanceCanonicalRole(verified?.role);
+    const uiRole = _attendanceCanonicalRole(window.userRole);
+    const storeRole = _attendanceCanonicalRole(window.__store?.userRole);
+    const clickedRole = _attendanceCanonicalRole(context?.role);
+    const uid = String(verified?.uid || '').trim();
+    const generation = Number(verified?.generation);
+    const currentUserUid = String(window.__store?.currentUser?.uid || '').trim();
+    // A mismatched UI/store role must never inherit Admin or anonymous privileges.
+    if (!verified || verified.ready !== true || !uid ||
+        !Number.isSafeInteger(generation) || generation <= 0 ||
+        !['coach', 'admin', 'super_admin'].includes(role) ||
+        uiRole !== role || storeRole !== role || clickedRole !== role ||
+        Number(context?.authGeneration) !== generation ||
+        !String(context?.clubId || '').trim() ||
+        String(context.clubId) !== String(window.__store?.clubId || '') ||
+        (currentUserUid && currentUserUid !== uid)) return false;
+
+    if (role === 'super_admin') {
+        // Verified SuperAdmin may select a club; verified.clubId can be empty.
+        // The existing selected-club and shift authority remain compulsory.
+        const selectedMirror = String(window.__store?.currentClubId || '').trim();
+        const currentMirror = String(window.currentClubId || '').trim();
+        if ((selectedMirror && selectedMirror !== String(context.clubId)) ||
+            (currentMirror && currentMirror !== String(context.clubId))) return false;
+        return true;
+    }
+    if (String(context.clubId) !== String(verified.clubId || '')) return false;
+    if (role === 'admin') return true; // Existing Admin shift guard remains authoritative.
+
+    const coachBranch = _canonicalAttendanceBranch(verified.coachBranch, '');
+    if (!coachBranch ||
+        (!!context.coachBranch && !_sameBranch(context.coachBranch, coachBranch)) ||
+        (window.coachBranch && !_sameBranch(window.coachBranch, coachBranch)) ||
+        (window.__store?.coachBranch && !_sameBranch(window.__store.coachBranch, coachBranch))) return false;
+    const metrics = window.getProfilesListenerMetrics?.();
+    if (!metrics || String(metrics.activeOwnerUid || '') !== uid ||
+        Number(metrics.authoritySessionEpoch) !== generation ||
+        String(metrics.authorityClubId || metrics.clubId || '') !== String(context.clubId) ||
+        _attendanceCanonicalRole(metrics.role) !== 'coach' ||
+        !_sameBranch(metrics.coachBranch, coachBranch) ||
+        metrics.coachRosterReadiness !== 'verified' ||
+        metrics.activeListenerMounted !== true || metrics.coachPrimaryServerSeen !== true ||
+        metrics.coachPrimaryFailed === true || metrics.coachLegacyFailed === true ||
+        (coachBranch === 'CS1' &&
+          (metrics.coachLegacyServerSeen !== true || !metrics.coachLegacyListenerKey))) return false;
+    return String(metrics.activeListenerKey || '') ===
+        'students:profiles:active:' + String(context.clubId) + ':coach:' + coachBranch;
+}
+
 function _resolveAttendanceWriteGuard(reason) {
     const rawContext = _captureAttendanceDailyContext();
-    const decision = _resolveAttendanceShiftAuthority(rawContext);
-    const context = _normalizeAttendanceShiftDecision(rawContext, decision);
+    // Guard first: _normalizeAttendanceShiftDecision itself mutates selected
+    // shift state, so it MUST NOT run for an unverified Coach roster.
+    if (!_coachAttendanceWriteAuthorized(rawContext)) {
+        window.showToast?.('⚠️ Danh sách Điểm danh chưa được xác minh cho tài khoản/cơ sở này.', 3000);
+        return null;
+    }
+    // The write path uses the verified principal, not raw role/branch mirrors.
+    const verified = window.__verifiedAuthContextState;
+    const canonicalRole = _attendanceCanonicalRole(verified.role);
+    const coachBranch = canonicalRole === 'coach'
+        ? _canonicalAttendanceBranch(verified.coachBranch, '') : '';
+    const writeContext = Object.freeze({
+        ...rawContext, role: canonicalRole, coachBranch,
+        branch: canonicalRole === 'coach' ? coachBranch : rawContext.branch,
+        key: [rawContext.clubId, rawContext.date,
+            canonicalRole === 'coach' ? coachBranch : rawContext.branch,
+            rawContext.shiftId].join('|'),
+    });
+    const decision = _resolveAttendanceShiftAuthority(writeContext);
+    const context = _normalizeAttendanceShiftDecision(writeContext, decision);
     if (decision.allowed) {
         _currentShiftId = decision.shiftId;
         _attendanceShiftAuthority.selectedShiftId = decision.shiftId;
@@ -1205,36 +1351,34 @@ function _saveAttOffline(clubId, date, shiftDecision, changedRecords = []) {
                     _attendanceDebug().offlineJournalCoalesced++;
                 }
             } catch (_) {}
-            localStorage.setItem(key, JSON.stringify(record));
+            const raw = JSON.stringify(record);
+            localStorage.setItem(key, raw);
             _attendanceDebug().offlineJournalQueued++;
-            savedRecords.push(Object.freeze({ ...record }));
+            const queued = { ...record };
+            // RAM-only identity for guarded online ACK cleanup; not persisted.
+            Object.defineProperty(queued, '__queuedRaw', { value: raw, enumerable: false });
+            savedRecords.push(Object.freeze(queued));
         });
         return savedRecords;
     } catch (error) {
         _recordAttendanceOfflineIssue('unknown', error, { subtype: 'local-storage', stage: 'enqueue', clubId, date });
-        return [];
+        // Return precisely those entries whose setItem succeeded before the failure.
+        return savedRecords;
     }
 }
 
-function _removeAttOfflineMutation(record) {
-    if (!record?.clubId || !record?.date || !record?.docId) return false;
+function _removeAttOfflineMutation(record, expectedRaw = record?.__queuedRaw) {
+    if (!record?.clubId || !record?.date || !record?.docId ||
+        typeof expectedRaw !== 'string' || !expectedRaw) return false;
     const key = _attendanceOfflineMutationKey(record);
     try {
-        const currentRaw = localStorage.getItem(key);
-        if (!currentRaw) return false;
-        if (Number(record.revision || 0) > 0) {
-            let current = null;
-            try { current = JSON.parse(currentRaw); }
-            catch (error) {
-                _recordAttendanceOfflineIssue('malformed-payload', error, { stage: 'revision-cleanup-parse' });
-                _attendanceDebug().offlineSyncUncommittedChunkPreserved++;
-                return false;
-            }
-            if (Number(current?.revision || 0) !== Number(record.revision || 0)) {
-                _attendanceDebug().offlineSyncUncommittedChunkPreserved++;
-                return false;
-            }
+        // Revision equality is insufficient: two tabs can write different raw
+        // journal values with the same revision. Compare exact submitted bytes.
+        if (localStorage.getItem(key) !== expectedRaw) {
+            _attendanceDebug().offlineSyncUncommittedChunkPreserved++;
+            return false;
         }
+        // This is NOT an atomic compare-and-delete across tabs.
         localStorage.removeItem(key);
         _attendanceDebug().offlineScopedCleanup++;
         return true;
@@ -1264,18 +1408,64 @@ function _buildOfflineRecordForWrite({ clubId, date, shiftDecision, name, profil
 }
 
 function _isOfflineAttendanceRecordAllowed(record) {
-    if (!record || String(record.clubId || '') !== String(_clubId() || '')) return { allowed: false, reason: 'wrong-club' };
+    if (!record || typeof record !== 'object' || Array.isArray(record) ||
+        String(record.clubId || '') !== String(_clubId() || '')) return { allowed: false, reason: 'wrong-club' };
+    const name = String(record.name || '').trim();
+    const date = String(record.date || '');
+    const shiftId = String(record.shiftId || '').trim();
+    const status = Number(record.status);
+    const operation = String(record.operation || '').trim().toLowerCase();
+    if (!name || !_validAttendanceOfflineDate(date) ||
+        !Number.isInteger(status) || ![0, 1, 2, 3].includes(status) ||
+        (operation && operation !== 'set' && operation !== 'delete') ||
+        (operation === 'delete' && status !== 0) ||
+        (operation === 'set' && status === 0) ||
+        (record.docId && String(record.docId) !== getAttendanceDocId(name, date, shiftId || null)) ||
+        !_canonicalAttendanceBranch(record.branch || '', '')) {
+        return { allowed: false, reason: 'malformed-attendance-record' };
+    }
     if (_attendanceShiftAuthority.status !== 'ready' ||
         _attendanceShiftAuthority.clubId !== String(_clubId() || '') ||
         Number(_attendanceShiftAuthority.authGeneration || 0) !== _authGeneration()) {
         return { allowed: false, reason: 'shift-config-unavailable' };
     }
-    if (_attendanceShiftAuthority.configured === false) {
-        return record.shiftMode === 'legacy-no-shift' || !record.shiftId
-            ? { allowed: true, mode: 'legacy-no-shift' }
-            : { allowed: false, reason: 'invalid-shift' };
+    const principal = _captureOfflineAttendanceSyncContext();
+    if (!_isOfflineAttendanceSyncContextCurrent(principal) || principal.clubId !== String(record.clubId || '')) {
+        return { allowed: false, reason: 'unverified-sync-principal' };
     }
-    const role = String(window.userRole || window.__store?.userRole || 'viewer').toLowerCase();
+    const role = principal.role;
+    const verified = window.__verifiedAuthContextState;
+    const verifiedRole = _attendanceCanonicalRole(verified?.role);
+    // A V2 journal's claimed branch is NOT proof of the branch on the
+    // existing Firestore resource to be deleted. Preserve uncertain deletes.
+    if (role === 'coach' &&
+        (String(record.operation || '').toLowerCase() === 'delete' || Number(record.status) === 0)) {
+        return { allowed: false, reason: 'delete-target-needs-review' };
+    }
+    if (role === 'coach' || verifiedRole === 'coach') {
+        const coachBranch = _canonicalAttendanceBranch(verified?.coachBranch || '', '');
+        if (verified?.ready !== true || verifiedRole !== 'coach' || role !== 'coach' ||
+            _attendanceCanonicalRole(window.__store?.userRole) !== 'coach' ||
+            String(verified.clubId || '') !== String(record.clubId || '') ||
+            !coachBranch || !_sameBranch(record.branch, coachBranch)) {
+            return { allowed: false, reason: 'wrong-branch' };
+        }
+    }
+    // V2 persisted mode and identifier must describe the SAME authority.
+    // Never reclassify an explicit-shift entry without an ID as legacy.
+    // The V1 envelope validator derives the explicit mode independently.
+    if (typeof record.shiftId !== 'string' || record.shiftId !== shiftId ||
+        !['legacy-no-shift', 'explicit-shift'].includes(record.shiftMode)) {
+        return { allowed: false, reason: 'invalid-shift-contract' };
+    }
+    if (_attendanceShiftAuthority.configured === false) {
+        return record.shiftMode === 'legacy-no-shift' && shiftId === ''
+            ? { allowed: true, mode: 'legacy-no-shift' }
+            : { allowed: false, reason: 'invalid-shift-contract' };
+    }
+    if (record.shiftMode !== 'explicit-shift' || !shiftId) {
+        return { allowed: false, reason: 'invalid-shift-contract' };
+    }
     const coachBranch = role === 'coach'
         ? _canonicalAttendanceBranch(window.coachBranch || window.__store?.coachBranch || '', '')
         : '';
@@ -1289,25 +1479,66 @@ function _isOfflineAttendanceRecordAllowed(record) {
         shiftId: String(record.shiftId || ''),
     };
     const decision = _resolveAttendanceShiftAuthority(context);
-    return decision.mode === 'explicit-shift'
+    return decision.allowed === true && decision.mode === 'explicit-shift' && decision.shiftId === shiftId
         ? { allowed: true, mode: 'explicit-shift' }
         : { allowed: false, reason: 'invalid-shift' };
 }
 
+function _validAttendanceOfflineDate(value) {
+    const d = String(value || '');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return false;
+    const date = new Date(d + 'T00:00:00Z');
+    return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === d;
+}
+
 function _isOfflineAttendancePayloadAllowed(payload) {
-    if (!payload || String(payload.clubId || '') !== String(_clubId() || '')) return false;
+    // V1 envelope may provide date/clubId; an individual row need not repeat them.
+    if (!payload || !String(payload.clubId || '').trim() ||
+        String(payload.clubId) !== String(_clubId() || '') ||
+        !_validAttendanceOfflineDate(payload.date)) return false;
     if (_attendanceShiftAuthority.status !== 'ready' ||
         _attendanceShiftAuthority.clubId !== String(_clubId() || '') ||
         Number(_attendanceShiftAuthority.authGeneration || 0) !== _authGeneration()) return false;
-    const records = Object.values(payload.records || {});
-    if (_attendanceShiftAuthority.configured === false) return true;
-    if (!records.length) return false;
-    return records.every((record) => _isOfflineAttendanceRecordAllowed({
-        ...record,
-        version: 1,
-        clubId: payload.clubId,
-        shiftMode: record?.shiftId ? 'explicit-shift' : 'legacy-no-shift',
-    }).allowed === true);
+    const principal = _captureOfflineAttendanceSyncContext();
+    if (!_isOfflineAttendanceSyncContextCurrent(principal)) return false;
+    if (!payload.records || typeof payload.records !== 'object' || Array.isArray(payload.records)) return false;
+    const entries = Object.entries(payload.records);
+    if (entries.length === 0 || entries.length > _ATTENDANCE_OFFLINE_SYNC_CHUNK) return false;
+    return entries.every(([id, row]) => {
+        if (!row || typeof row !== 'object' || Array.isArray(row)) return false;
+        const name = String(row.name || '').trim();
+        const date = String(row.date || payload.date);
+        const shiftId = String(row.shiftId || '').trim();
+        const operation = String(row.operation || '').trim().toLowerCase();
+        const status = Number(row.status);
+        if (!name || !_validAttendanceOfflineDate(date) || date !== payload.date ||
+            (row.clubId && String(row.clubId) !== principal.clubId) ||
+            (row.month && String(row.month) !== date.slice(0, 7)) ||
+            !Number.isInteger(status) || ![0,1,2,3].includes(status) ||
+            (operation && operation !== 'set' && operation !== 'delete') ||
+            (operation === 'delete' && status !== 0) ||
+            (operation === 'set' && status === 0)) return false;
+        // The current V1 writer derives docId from name/date/shift. Never let
+        // caller-controlled docId target a different attendance document.
+        const expectedId = getAttendanceDocId(name, date, shiftId || null);
+        if (row.docId && String(row.docId) !== expectedId) return false;
+        const branch = _canonicalAttendanceBranch(row.branch || '', '');
+        if (!branch || branch === 'all') return false;
+        if (principal.role === 'coach') {
+            if (!_sameBranch(branch, principal.coachBranch)) return false;
+            // A V1 journal row is not proof of the existing resource's branch.
+            // Existing Firestore Rules check resource branch on delete; until an
+            // authoritative target is available, retain Coach deletes for review.
+            if (status === 0) return false;
+        }
+        if (_attendanceShiftAuthority.configured === false) {
+            if (shiftId || row.shiftMode === 'explicit-shift') return false;
+        } else if (!_isOfflineAttendanceRecordAllowed({
+            ...row, version: 1, clubId: principal.clubId, date,
+            shiftMode: shiftId ? 'explicit-shift' : 'legacy-no-shift', branch,
+        }).allowed) return false;
+        return true;
+    });
 }
 
 function _renderAttendanceDailyFromRam(context, reason = 'presentation-only') {
@@ -1418,6 +1649,7 @@ async function _requestAttendanceDailyRefresh(reason = 'compatibility-render', o
             branch: token.branch === 'all' ? '' : token.branch,
             shiftAuthorityMode: shiftDecision.mode,
             requireShift: shiftDecision.mode === 'explicit-shift',
+            isCurrent: () => _isAttendanceDailyTokenCurrent(token),
         });
         if (!_isAttendanceDailyTokenCurrent(token)) {
             _recordAttendanceDailyStale(token);
@@ -1443,6 +1675,9 @@ async function _requestAttendanceDailyRefresh(reason = 'compatibility-render', o
             return { stale: true, error: true, key: token.key };
         }
         console.warn('[Attendance] loadByDate failed:', error && error.message || error);
+        if (error?.code === 'attendance/daily-coverage-incomplete') {
+            window.showToast('⚠️ Dữ liệu điểm danh vượt giới hạn an toàn và chưa tải đủ. Hệ thống giữ dữ liệu cũ thay vì hiển thị thiếu.', 5000);
+        }
         _renderAttendanceDailyFromRam(token, reason + ':current-error-ram-preserved');
         return { error: true, key: token.key };
     }).finally(() => {
@@ -1521,7 +1756,7 @@ export function initAttendance() {
             const _safeBrName = escapeHtml(brName);
             const people = byBranch[br];
             html += '<div style="display:flex;align-items:baseline;flex-wrap:wrap;gap:4px;margin-bottom:3px;">';
-            if (!hideBranchLabel) html += '<span style="font-size:0.64rem;font-weight:900;background:#fcd34d;color:#78350f;padding:1px 7px;border-radius:99px;flex-shrink:0;">📍 ' + brName + '</span>';
+            if (!hideBranchLabel) html += '<span style="font-size:0.64rem;font-weight:900;background:#fcd34d;color:#78350f;padding:1px 7px;border-radius:99px;flex-shrink:0;">📍 ' + _safeBrName + '</span>';
             html += '<span style="font-size:0.78rem;font-weight:700;color:#92400e;">' + people.map(pr => escapeHtml(pr.name) + (pr.age ? ' (' + pr.age + ' tuổi)' : '')).join(', ') + '</span></div>';
         });
         html += '</div>';
@@ -1624,7 +1859,7 @@ export function initAttendance() {
             calHtml += '</div>';
             bodyEl.innerHTML =
                 '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">'
-                + '<div><div style="font-size:1rem;font-weight:900;color:#0033A0;">' + escapeHtml(name) + '</div>'
+                + '<div><div style="font-size:1rem;font-weight:900;color:#0033A0;">' + escapeHtml((window.ProfileCanonicalStore?.resolveDisplayName?.(name, p)) || p.displayName || p.name || p.fullName || p.studentName || name) + '</div>'
                 + '<div style="font-size:0.72rem;color:#64748b;margin-top:3px;">🥋 ' + escapeHtml(p.belt||'Đai Trắng') + '</div></div>'
                 + '<button onclick="document.getElementById(\'attHistModal\').style.display=\'none\'" style="background:#f1f5f9;border:none;border-radius:50%;width:32px;height:32px;font-size:1rem;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#475569;">✕</button>'
                 + '</div>' + scheduleHtml
@@ -1755,6 +1990,15 @@ export function initAttendance() {
             if (idx === -1) return;
             [name, p] = _attCurrentProfiles[idx];
         }
+        if (shiftGuard.context.role === 'coach') {
+            const current = _profiles()?.[name];
+            if (!current || !isActiveProfileForAttendance(current) ||
+                !_sameBranch(current.branch, shiftGuard.context.coachBranch) ||
+                !_getFilteredAttProfiles().some(([id]) => id === name)) {
+                window.showToast?.('⚠️ Danh sách võ sinh đã thay đổi. Vui lòng mở lại Điểm danh.', 3000);
+                return { blocked: true };
+            }
+        }
         const docId         = getAttendanceDocId(name, writeDate, writeShiftId);
         const currentStatus = window.currentAttendanceData[name] ?? 0;
         const newStatus     = (currentStatus + 1) % 4;
@@ -1767,9 +2011,22 @@ export function initAttendance() {
         const lblEl = document.getElementById('att_lbl_' + idx);
         if (lblEl) lblEl.textContent = cfg.icon + ' ' + cfg.label;
         _updateAttSummary(null);
+        const mutationOwner = _captureOfflineAttendanceSyncContext();
         const queuedMutations = _saveAttOffline(_clubId(), writeDate, shiftGuard.decision, [{ name, profile: p, status: newStatus, docId }]);
-        const pendingMutation = queuedMutations[0] || _buildOfflineRecordForWrite({ clubId: _clubId(), date: writeDate, shiftDecision: shiftGuard.decision, name, profile: p, status: newStatus, docId });
-        if (!navigator.onLine) { window.showToast('📴 Đã lưu offline – sẽ đồng bộ khi có mạng', 2500); return; }
+        const pendingMutation = queuedMutations[0];
+        if (!pendingMutation) {
+            if (_isOfflineAttendanceSyncContextCurrent(mutationOwner)) {
+                window.currentAttendanceData[name] = currentStatus;
+                _attendanceCache[docId] = currentStatus;
+                _markAttendanceDailyMutation('toggleAttendance-enqueue-failed');
+                _updateAttSummary(null);
+            }
+            window.showToast('⚠️ Không lưu được nhật ký điểm danh. Chưa gửi dữ liệu.', 3000);
+            return { blocked: true, reason: 'enqueue-failed' };
+        }
+        if (!navigator.onLine) {
+            window.showToast('📴 Đã lưu offline – sẽ đồng bộ khi có mạng', 2500); return;
+        }
         try {
             if (newStatus === 0) {
                 await AttendanceService.deleteRecord(docId);
@@ -1781,7 +2038,16 @@ export function initAttendance() {
                     ...(writeShiftId ? { shiftId: writeShiftId } : {})
                 });
             }
-            _removeAttOfflineMutation(pendingMutation);
+            if (!_isOfflineAttendanceSyncContextCurrent(mutationOwner) ||
+                window.currentAttendanceData[name] !== newStatus ||
+                _attendanceCache[docId] !== newStatus) {
+                // Canonical ACK belongs to old owner/intent: do not update a new
+                // club's derived member stats or UI. Reconciliation is separate.
+                _recordAttendanceOfflineIssue('committed-cleanup-deferred', null,
+                    { stage: 'toggle-after-ack-owner-or-intent', reconciliationNeeded: true });
+                return { committed: true, cleanupDeferred: true };
+            }
+            if (pendingMutation) _removeAttOfflineMutation(pendingMutation);
             const _pu = {};
             if (newStatus === 1 && currentStatus !== 1) { p.totalSessionsAttended = (p.totalSessionsAttended||0)+1; _pu.totalSessionsAttended = AttendanceService._increment(1); }
             else if (currentStatus === 1 && newStatus !== 1) { p.totalSessionsAttended = Math.max(0,(p.totalSessionsAttended||0)-1); _pu.totalSessionsAttended = AttendanceService._increment(-1); }
@@ -1825,6 +2091,12 @@ export function initAttendance() {
                 }
             }
         } catch(e) {
+            if (!_isOfflineAttendanceSyncContextCurrent(mutationOwner) ||
+                window.currentAttendanceData[name] !== newStatus) {
+                _recordAttendanceOfflineIssue('stale-online-callback', e,
+                    { stage: 'toggle-reject-owner-or-intent' });
+                return { stale: true };
+            }
             _markAttendanceDailyMutation('toggleAttendance-rollback');
             window.currentAttendanceData[name] = currentStatus; _attendanceCache[docId] = currentStatus;
             const cfgOld = _ATT_STATUS[currentStatus];
@@ -1845,17 +2117,50 @@ export function initAttendance() {
         _attCurrentDate = writeDate;
         _currentShiftId = writeShiftId;
         if (!writeDate) { window.showToast('⚠️ Vui lòng chọn ngày điểm danh!', 2500); return; }
+        if (shiftGuard.context.role === 'coach') {
+            const currentIds = new Set(_getFilteredAttProfiles().map(([id]) => id));
+            if (_attCurrentProfiles.some(([name,p]) => !currentIds.has(name) ||
+                !_profiles()?.[name] || !isActiveProfileForAttendance(_profiles()[name]) ||
+                !_sameBranch(_profiles()[name].branch, shiftGuard.context.coachBranch))) {
+                window.showToast?.('⚠️ Danh sách võ sinh đã thay đổi. Vui lòng mở lại Điểm danh.', 3000);
+                return { blocked: true };
+            }
+        }
         const unmarked = _attCurrentProfiles.filter(([name]) => (window.currentAttendanceData[name] ?? 0) === 0);
         if (unmarked.length === 0) { window.showToast('ℹ️ Tất cả võ sinh đã được điểm danh!', 2500); return; }
         _markAttendanceDailyMutation('bulkCheckIn');
         unmarked.forEach(([name]) => { window.currentAttendanceData[name] = 1; _attendanceCache[getAttendanceDocId(name, writeDate, writeShiftId)] = 1; });
         _renderAttCards();
         const btn = document.getElementById('att_bulk_btn');
+        const bulkOwner = _captureOfflineAttendanceSyncContext();
         const pendingBulkMutations = _saveAttOffline(_clubId(), writeDate, shiftGuard.decision, unmarked.map(([name, p]) => ({
             name, profile: p, status: 1, docId: getAttendanceDocId(name, writeDate, writeShiftId)
         })));
-        if (!navigator.onLine) { window.showToast('📴 Mất mạng! Đã lưu offline ' + unmarked.length + ' võ sinh – sẽ tự đồng bộ khi có kết nối.', 3500); return; }
+        if (pendingBulkMutations.length !== unmarked.length) {
+            // Some localStorage writes may already have succeeded. Keep their
+            // queued intent visible; revert ONLY the rows without a journal.
+            if (_isOfflineAttendanceSyncContextCurrent(bulkOwner)) {
+                const persistedIds = new Set(pendingBulkMutations.map(record => String(record.docId)));
+                unmarked.forEach(([name]) => {
+                    const id = getAttendanceDocId(name, writeDate, writeShiftId);
+                    if (!persistedIds.has(id)) {
+                        window.currentAttendanceData[name] = 0;
+                        _attendanceCache[id] = 0;
+                    }
+                });
+                _markAttendanceDailyMutation('bulkCheckIn-enqueue-incomplete');
+                _renderAttCards();
+            }
+            window.showToast('⚠️ Nhật ký chưa lưu đủ; chỉ các bản ghi đã lưu vẫn chờ đồng bộ.', 3500);
+            return { blocked: true, reason: 'partial-enqueue' };
+        }
+        if (!navigator.onLine) {
+            window.showToast('📴 Mất mạng! Đã lưu offline ' + unmarked.length + ' võ sinh – sẽ tự đồng bộ khi có kết nối.', 3500); return;
+        }
         if (btn) { btn.disabled = true; btn.textContent = '⏳ Đang lưu ' + unmarked.length + ' võ sinh...'; }
+        // ACKs emitted by the existing chunk callback are authoritative even
+        // when the final rejection does not supply e.committedIds.
+        const committedBulkIds = new Set();
         try {
             const bulkRecords = unmarked.map(([name, p]) => ({
                 docId: getAttendanceDocId(name, writeDate, writeShiftId),
@@ -1866,18 +2171,56 @@ export function initAttendance() {
                     timestamp: Date.now()
                 }
             }));
-            await AttendanceService.bulkSaveRecords(bulkRecords);
+            const result = await AttendanceService.bulkSaveRecords(bulkRecords, {
+                chunkSize: 400,
+                onChunkCommitted(chunk) {
+                    const committedIds = new Set(chunk.map(row => String(row.docId || '')));
+                    committedIds.forEach(id => committedBulkIds.add(id));
+                    if (!_isOfflineAttendanceSyncContextCurrent(bulkOwner)) {
+                        _recordAttendanceOfflineIssue('committed-cleanup-deferred', null,
+                            { stage: 'bulk-chunk-owner-switch', pendingCount: committedIds.size });
+                        return;
+                    }
+                    pendingBulkMutations.forEach(record => {
+                        if (committedIds.has(String(record.docId || '')))
+                            _removeAttOfflineMutation(record);
+                    });
+                }
+            });
 
-            pendingBulkMutations.forEach(_removeAttOfflineMutation);
+            if (!_isOfflineAttendanceSyncContextCurrent(bulkOwner)) return { committed: true, cleanupDeferred: true };
             window.__attendanceDebug.cacheCount = Object.keys(_attendanceCache).length;
-            window.showToast('✅ Đã điểm danh hàng loạt ' + unmarked.length + ' võ sinh!', 3000);
+            window.showToast('✅ Đã điểm danh hàng loạt ' + Number(result?.committed || unmarked.length) + ' võ sinh!', 3000);
         } catch(e) {
-            // [4J-6A] Rollback cache dùng đúng key theo ca tập
-            _markAttendanceDailyMutation('bulkCheckIn-rollback');
-            unmarked.forEach(([name]) => { window.currentAttendanceData[name]=0; _attendanceCache[getAttendanceDocId(name, writeDate, writeShiftId)]=0; });
-            _renderAttCards(); window.showToast('⚠️ Lỗi khi lưu điểm danh hàng loạt!', 3500);
+            if (!_isOfflineAttendanceSyncContextCurrent(bulkOwner)) {
+                _recordAttendanceOfflineIssue('stale-online-callback', e,
+                    { stage: 'bulk-failure-owner-switch' });
+                return { stale: true };
+            }
+            const committedIds = new Set([
+                ...committedBulkIds,
+                ...(Array.isArray(e?.committedIds) ? e.committedIds.map(String) : []),
+            ]);
+            const pendingRows = unmarked.filter(([name]) => !committedIds.has(getAttendanceDocId(name, writeDate, writeShiftId)));
+            // H8R2: only the uncommitted tail is rolled back; committed chunks stay
+            // canonical and their offline journal entries were already scoped-cleaned.
+            if (pendingRows.length > 0) {
+                _markAttendanceDailyMutation('bulkCheckIn-partial-rollback');
+                pendingRows.forEach(([name]) => { window.currentAttendanceData[name]=0; _attendanceCache[getAttendanceDocId(name, writeDate, writeShiftId)]=0; });
+                _renderAttCards();
+            }
+            const committed = Number(e?.committed || committedIds.size || 0);
+            const pending = Number(e?.pending || pendingRows.length || 0);
+            window.showToast(
+                committed > 0
+                    ? ('⚠️ Đã lưu ' + committed + ' võ sinh; còn ' + pending + ' bản ghi chưa lưu và vẫn đang chờ đồng bộ.')
+                    : '⚠️ Lỗi khi lưu điểm danh hàng loạt!',
+                4500
+            );
         } finally {
-            if (btn) { btn.disabled=false; btn.textContent='✅ Đánh dấu tất cả có mặt'; }
+            if (btn && _isOfflineAttendanceSyncContextCurrent(bulkOwner)) {
+                btn.disabled=false; btn.textContent='✅ Đánh dấu tất cả có mặt';
+            }
         }
     };
 
@@ -1900,23 +2243,36 @@ export function initAttendance() {
         const currentClub = String(syncContext.clubId || '');
         const v2Entries = [];
         const legacyEntries = [];
+        // R2R6: malformed/unclassifiable V2 entries are never evidence that a
+        // different date is safe. This is flight-local, not another authority.
+        let unclassifiableV2 = false;
         for (const key of keys) {
             let payload = null;
-            try { payload = JSON.parse(localStorage.getItem(key) || 'null'); }
+            let raw = null;
+            try { payload = JSON.parse((raw = localStorage.getItem(key)) || 'null'); }
             catch (error) {
+                if (key.startsWith(_ATTENDANCE_OFFLINE_V2_PREFIX)) unclassifiableV2 = true;
                 _recordAttendanceOfflineIssue('malformed-payload', error, { stage: 'parse' });
                 continue;
             }
             if (key.startsWith(_ATTENDANCE_OFFLINE_V2_PREFIX)) {
-                if (!payload || payload.version !== 2 || !payload.clubId || !payload.date || !payload.docId || !payload.name) {
-                    _recordAttendanceOfflineIssue('malformed-payload', new Error('Invalid V2 attendance journal record'), { stage: 'validate-v2' });
-                    continue;
-                }
-                if (String(payload.clubId) !== currentClub) {
+                // A foreign V2 record is ignored only when BOTH payload and
+                // key prove the same foreign scope. A current/unknown or
+                // contradictory scope must not silently disappear at scan.
+                const wellFormed = payload && payload.version === 2 &&
+                    payload.clubId && payload.date && payload.docId && payload.name;
+                const keyMatches = wellFormed && _attendanceOfflineMutationKey(payload) === key;
+                if (wellFormed && keyMatches && String(payload.clubId) !== currentClub) {
                     _recordAttendanceOfflineIssue('wrong-club', null, { stage: 'club-scope-v2' });
                     continue;
                 }
-                v2Entries.push({ key, record: payload });
+                if (!wellFormed || !keyMatches || String(payload.clubId) !== currentClub) {
+                    unclassifiableV2 = true;
+                    _recordAttendanceOfflineIssue('malformed-payload', null,
+                        { stage: wellFormed ? 'v2-key-or-club-mismatch' : 'validate-v2' });
+                    continue;
+                }
+                v2Entries.push({ key, raw, record: payload });
             } else {
                 if (!payload || !payload.records || !payload.clubId) {
                     _recordAttendanceOfflineIssue('malformed-payload', new Error('Invalid V1 attendance payload'), { stage: 'validate-v1' });
@@ -1926,7 +2282,7 @@ export function initAttendance() {
                     _recordAttendanceOfflineIssue('wrong-club', null, { stage: 'club-scope-v1', legacy: true });
                     continue;
                 }
-                legacyEntries.push({ key, payload });
+                legacyEntries.push({ key, payload, raw });
             }
         }
 
@@ -1958,53 +2314,183 @@ export function initAttendance() {
         window.showToast('🔄 Đang đồng bộ điểm danh offline...', 3000);
         let syncedCount = 0;
         let legacySynced = 0;
+        let legacyCleanupDeferred = 0;
+        let v2CleanupDeferred = 0;
         let staleStopped = false;
 
+        // Flight-local evidence only: a V1 rejected by its existing guard
+        // cannot contend with a V2 writer in THIS flight while its raw stays
+        // identical. Unknown or attempted V1 writes retain collision authority.
+        const v1Disposition = new Map();
         // V1 compatibility shares the same canonical AttendanceService writer.
         // The legacy key is deleted only after the batch commit is confirmed.
-        for (const { key, payload } of legacyEntries) {
+        for (const { key, payload, raw } of legacyEntries) {
             if (!_isOfflineAttendanceSyncContextCurrent(syncContext)) {
                 _attendanceDebug().offlineSyncContextStaleStops++;
                 _attendanceDebug().offlineSyncUncommittedChunkPreserved++;
                 staleStopped = true;
                 break;
             }
-            if (!_isOfflineAttendancePayloadAllowed(payload)) {
+            const sameV1RawAtGuard = localStorage.getItem(key) === raw;
+            const v1AuthorizedAtGuard = sameV1RawAtGuard && _isOfflineAttendancePayloadAllowed(payload);
+            if (!v1AuthorizedAtGuard) {
+                // A changed/unreadable snapshot is never a stable denial.
+                v1Disposition.set(key, sameV1RawAtGuard ? 'denied-stable' : 'changed');
                 _attendanceDebug().shiftRequiredBlockedWrites++;
                 _recordAttendanceOfflineIssue('invalid-shift', null, { legacy: true, stage: 'legacy-guard' });
                 continue;
             }
+            // Record attempt BEFORE await: rejected/unknown ACK is not proof
+            // that the canonical write did not reach the server.
+            v1Disposition.set(key, 'attempted');
             try {
                 await AttendanceService.bulkSyncOffline(syncContext.clubId, payload.date, payload.records);
-                localStorage.removeItem(key);
-                const count = Object.keys(payload.records || {}).length;
-                syncedCount += count;
-                legacySynced += count;
-                _attendanceDebug().offlineSyncLegacyV1 += count;
-                _attendanceDebug().offlineSyncCommittedChunkCleanup += count;
-                if (!_isOfflineAttendanceSyncContextCurrent(syncContext)) {
-                    _attendanceDebug().offlineSyncContextStaleStops++;
-                    staleStopped = true;
-                    break;
-                }
             } catch (error) {
-                _recordAttendanceOfflineIssue(_classifyAttendanceOfflineError(error, 'unknown'), error, { legacy: true, stage: 'legacy-commit' });
+                // Uncertain/failed server commit never authorizes journal deletion.
+                _recordAttendanceOfflineIssue(_classifyAttendanceOfflineError(error, 'unknown'), error,
+                    { legacy: true, stage: 'legacy-commit' });
+                continue;
+            }
+            const count = Object.keys(payload.records || {}).length;
+            // Commit resolved: distinguish SERVER ACK from safe journal cleanup.
+            // localStorage has no atomic compare-and-delete across browser tabs.
+            const stillOwner = _isOfflineAttendanceSyncContextCurrent(syncContext);
+            let cleaned = false;
+            if (stillOwner) {
+                try {
+                    if (localStorage.getItem(key) === raw) {
+                        localStorage.removeItem(key);
+                        cleaned = true;
+                    }
+                } catch (error) {
+                    _recordAttendanceOfflineIssue('unknown', error,
+                        { legacy: true, stage: 'committed-cleanup-deferred' });
+                }
+            }
+            if (cleaned) {
+                v1Disposition.set(key, 'attempted-cleaned');
+                _attendanceDebug().offlineSyncCommittedChunkCleanup += count;
+            } else {
+                legacyCleanupDeferred += count;
+                _attendanceDebug().offlineSyncUncommittedChunkPreserved += count;
+            }
+            syncedCount += count;
+            legacySynced += count;
+            _attendanceDebug().offlineSyncLegacyV1 += count;
+            if (!stillOwner) {
+                _attendanceDebug().offlineSyncContextStaleStops++;
+                staleStopped = true;
+                break;
             }
         }
 
         const validByDate = new Map();
+        const blockedDates = new Set();
+        let globalV2Abort = unclassifiableV2;
+        // Full-scan target identity proof, including bad entries and chunks.
+        // No V2 write begins until ALL current-club V2 entries are classified.
+        const v2Targets = new Map();
         if (!staleStopped) v2Entries.forEach((entry) => {
-            const verdict = _isOfflineAttendanceRecordAllowed(entry.record);
+            const record = entry.record;
+            const date = String(record.date || '');
+            const docId = String(record.docId || '');
+            const verdict = _isOfflineAttendanceRecordAllowed(record);
+            const principalCurrent = _isOfflineAttendanceSyncContextCurrent(syncContext);
+            const trustworthyTarget = principalCurrent && _validAttendanceOfflineDate(date) &&
+                docId && docId === getAttendanceDocId(String(record.name || ''), date,
+                    String(record.shiftId || '').trim() || null) &&
+                _attendanceOfflineMutationKey(record) === entry.key;
+            if (!trustworthyTarget) globalV2Abort = true;
+            if (v2Targets.has(docId)) {
+                // A shared target across dates cannot be isolated safely;
+                // within one date, block that whole day before any chunk.
+                const otherDate = v2Targets.get(docId);
+                if (otherDate !== date) globalV2Abort = true;
+                else blockedDates.add(date);
+            } else v2Targets.set(docId, date);
             if (!verdict.allowed) {
                 _attendanceDebug().shiftRequiredBlockedWrites++;
-                _recordAttendanceOfflineIssue(verdict.reason || 'invalid-shift', null, { stage: 'v2-guard' });
+                _recordAttendanceOfflineIssue(verdict.reason || 'invalid-shift', null,
+                    { stage: 'v2-guard', scope: 'preserved-pending' });
+                // Only record-local shift defects (or an unproven Coach delete
+                // with independently established target/branch scope) can
+                // safely block a single day. All role/club/branch/shift-config
+                // errors and unclassifiable identities stop the V2 flight.
+                const localShift = verdict.reason === 'invalid-shift-contract' || verdict.reason === 'invalid-shift';
+                const reviewDelete = verdict.reason === 'delete-target-needs-review' &&
+                    syncContext.role === 'coach' &&
+                    _sameBranch(record.branch, syncContext.coachBranch);
+                if (trustworthyTarget && (localShift || reviewDelete)) blockedDates.add(date);
+                else globalV2Abort = true;
                 return;
             }
-            const date = String(entry.record.date || '');
             if (!validByDate.has(date)) validByDate.set(date, []);
             validByDate.get(date).push(entry);
         });
-
+        // Existing V1 runs before V2. Do not allow a V2 target to collide with
+        // a V1 target in the same flight; do not alter V1 ordering or writer.
+        if (!staleStopped && v2Targets.size && legacyEntries.length) {
+            for (const { key, payload, raw } of legacyEntries) {
+                const disposition = v1Disposition.get(key);
+                if (disposition === 'denied-stable') {
+                    // Cannot infer safety from the original guard result after
+                    // another tab has replaced/deleted the same journal key.
+                    let currentRaw;
+                    try { currentRaw = localStorage.getItem(key); }
+                    catch (error) {
+                        _recordAttendanceOfflineIssue('unknown', error, { legacy: true, stage: 'v1-v2-preflight-storage' });
+                        globalV2Abort = true;
+                        break;
+                    }
+                    if (currentRaw !== raw) { globalV2Abort = true; break; }
+                    continue; // No V1 service call occurred in this flight.
+                }
+                if (disposition !== 'attempted' && disposition !== 'attempted-cleaned') {
+                    globalV2Abort = true; // changed, unreadable, or unclassified V1
+                    break;
+                }
+                if (disposition === 'attempted') {
+                    // An ACK-deferred/failed V1 key may have been replaced by
+                    // a new payload; identity cannot be proved without a read.
+                    let currentRaw;
+                    try { currentRaw = localStorage.getItem(key); }
+                    catch (error) {
+                        _recordAttendanceOfflineIssue('unknown', error, { legacy: true, stage: 'v1-v2-attempt-storage' });
+                        globalV2Abort = true;
+                        break;
+                    }
+                    if (currentRaw !== raw) { globalV2Abort = true; break; }
+                }
+                if (disposition === 'attempted-cleaned') {
+                    // The completed cleanup removed the original V1 key. A
+                    // new value at that key is outside this flight's proof.
+                    let currentRaw;
+                    try { currentRaw = localStorage.getItem(key); }
+                    catch (error) {
+                        _recordAttendanceOfflineIssue('unknown', error, { legacy: true, stage: 'v1-v2-cleaned-storage' });
+                        globalV2Abort = true;
+                        break;
+                    }
+                    if (currentRaw !== null) { globalV2Abort = true; break; }
+                }
+                if (!payload.records || typeof payload.records !== 'object' || Array.isArray(payload.records)) {
+                    globalV2Abort = true;
+                    break;
+                }
+                for (const row of Object.values(payload.records)) {
+                    if (!row || typeof row !== 'object' || !row.name) { globalV2Abort = true; break; }
+                    const target = getAttendanceDocId(String(row.name),
+                        String(row.date || payload.date || ''), String(row.shiftId || '').trim() || null);
+                    if (v2Targets.has(target)) { globalV2Abort = true; break; }
+                }
+                if (globalV2Abort) break;
+            }
+        }
+        if (globalV2Abort) {
+            _recordAttendanceOfflineIssue('malformed-payload', null,
+                { stage: 'v2-global-scope-preflight', pendingCount: v2Entries.length });
+            validByDate.clear();
+        } else for (const date of blockedDates) validByDate.delete(date);
         v2Dates:
         for (const [date, entries] of validByDate.entries()) {
             for (let offset = 0; offset < entries.length; offset += _ATTENDANCE_OFFLINE_SYNC_CHUNK) {
@@ -2015,20 +2501,61 @@ export function initAttendance() {
                     break v2Dates;
                 }
                 const chunk = entries.slice(offset, offset + _ATTENDANCE_OFFLINE_SYNC_CHUNK);
+                const docIds = new Set();
+                let conflict = '';
+                for (const entry of chunk) {
+                    const docId = String(entry.record.docId || '');
+                    if (docIds.has(docId)) { conflict = 'DUPLICATE_DOCID'; break; }
+                    docIds.add(docId);
+                    let rawNow;
+                    try { rawNow = localStorage.getItem(entry.key); }
+                    catch (error) {
+                        _recordAttendanceOfflineIssue('unknown', error, { stage: 'v2-pre-submit-storage' });
+                        conflict = 'STALE_PRE_SUBMIT'; break;
+                    }
+                    if (rawNow !== entry.raw ||
+                        _attendanceOfflineMutationKey(entry.record) !== entry.key ||
+                        !_isOfflineAttendanceRecordAllowed(entry.record)) {
+                        conflict = 'STALE_PRE_SUBMIT'; break;
+                    }
+                }
+                if (conflict) {
+                    _attendanceDebug().offlineSyncUncommittedChunkPreserved += chunk.length;
+                    _recordAttendanceOfflineIssue('malformed-payload', null,
+                        { stage: 'v2-pre-submit', classification: conflict, pendingCount: chunk.length });
+                    // Preserve entire chunk. No subset submission or parallel lane.
+                    break v2Dates;
+                }
+                if (!_isOfflineAttendanceSyncContextCurrent(syncContext)) {
+                    _attendanceDebug().offlineSyncContextStaleStops++;
+                    staleStopped = true;
+                    break v2Dates;
+                }
                 const records = {};
                 chunk.forEach(({ record }) => { records[record.docId] = record; });
                 try {
+                    // No await between final raw/owner check and the existing writer.
                     await AttendanceService.bulkSyncOffline(syncContext.clubId, date, records);
-                    let cleaned = 0;
-                    chunk.forEach(({ record }) => { if (_removeAttOfflineMutation(record)) cleaned++; });
-                    _attendanceDebug().offlineSyncCommittedChunkCleanup += cleaned;
-                    syncedCount += chunk.length;
+                    syncedCount += chunk.length; // ACK is distinct from cleanup.
                     if (!_isOfflineAttendanceSyncContextCurrent(syncContext)) {
                         _attendanceDebug().offlineSyncContextStaleStops++;
-                        const remaining = Math.max(0, entries.length - (offset + chunk.length));
-                        _attendanceDebug().offlineSyncUncommittedChunkPreserved += remaining;
+                        v2CleanupDeferred += chunk.length;
+                        _attendanceDebug().offlineSyncUncommittedChunkPreserved += chunk.length;
+                        _recordAttendanceOfflineIssue('committed-cleanup-deferred', null,
+                            { stage: 'v2-after-ack-owner-switch', pendingCount: chunk.length });
                         staleStopped = true;
                         break v2Dates;
+                    }
+                    let cleaned = 0;
+                    chunk.forEach(({ record, raw }) => {
+                        if (_removeAttOfflineMutation(record, raw)) cleaned++;
+                    });
+                    _attendanceDebug().offlineSyncCommittedChunkCleanup += cleaned;
+                    if (cleaned < chunk.length) {
+                        v2CleanupDeferred += chunk.length - cleaned;
+                        _attendanceDebug().offlineSyncUncommittedChunkPreserved += chunk.length - cleaned;
+                        _recordAttendanceOfflineIssue('committed-cleanup-deferred', null,
+                            { stage: 'v2-after-ack-raw-changed', pendingCount: chunk.length - cleaned });
                     }
                 } catch (error) {
                     _attendanceDebug().offlineSyncUncommittedChunkPreserved += chunk.length;
@@ -2041,9 +2568,36 @@ export function initAttendance() {
             }
         }
 
+        // R2R6R2: one existing device-wide journal count, AFTER ACK/guarded cleanup
+        // but BEFORE the completion message. Count keys, not students or records.
+        // A failed enumeration is UNKNOWN, never proof that the queue is empty.
+        let pending = null;
+        let countedPending = 0;
+        let pendingKnown = false;
+        try {
+            const currentLength = localStorage.length;
+            for (let i = 0; i < currentLength; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('offline_att_')) countedPending++;
+            }
+            pending = countedPending;
+            pendingKnown = true;
+        } catch (error) {
+            _recordAttendanceOfflineIssue('unknown', error, { stage: 'offline-sync-pending-count' });
+        }
         if (syncedCount > 0) {
             if (_isOfflineAttendanceSyncContextCurrent(syncContext)) {
-                window.showToast('✅ Đã đồng bộ ' + syncedCount + ' bản ghi điểm danh offline!', 3000);
+                // Pending is DEVICE-WIDE; foreign-club keys also count. Do not
+                // describe these keys as students or claim automatic replay.
+                const partial = !pendingKnown || pending > 0 ||
+                    legacyCleanupDeferred + v2CleanupDeferred > 0 ||
+                    blockedDates.size > 0 || globalV2Abort;
+                window.showToast(partial
+                    ? ('✅ Đã gửi ' + syncedCount + ' bản ghi; ' +
+                       (pendingKnown
+                           ? (pending + ' mục nhật ký trên thiết bị vẫn chờ đồng bộ hoặc kiểm tra.')
+                           : 'chưa xác minh được số mục nhật ký còn chờ đồng bộ hoặc kiểm tra.'))
+                    : '✅ Đã đồng bộ ' + syncedCount + ' bản ghi điểm danh offline!', 3000);
                 const dailyContext = _captureAttendanceDailyContext();
                 if (_attCurrentDate && String(dailyContext.clubId || '') === String(syncContext.clubId || '') &&
                     Number(dailyContext.authGeneration || 0) === Number(syncContext.authGeneration || 0)) {
@@ -2054,12 +2608,7 @@ export function initAttendance() {
                 _attendanceDebug().offlineSyncStaleUiRefreshDropped++;
             }
         }
-        let pending = 0;
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key && key.startsWith('offline_att_')) pending++;
-        }
-        return { synced: syncedCount, legacySynced, pending, staleStopped };
+        return { synced: syncedCount, legacySynced, pending, staleStopped, legacyCleanupDeferred, v2CleanupDeferred };
     };
 
     const _startOfflineAttendanceSyncFlight = (syncContext) => {
@@ -2160,7 +2709,12 @@ export function initAttendance() {
         };
         const selMonth = monthEl ? monthEl.value : '';
         let selBranch  = branchEl ? branchEl.value : 'all';
-        if (window.userRole === 'coach' && window.coachBranch) selBranch = window.coachBranch;
+        const monthlyOwner = _captureOfflineAttendanceSyncContext();
+        if (!_isOfflineAttendanceSyncContextCurrent(monthlyOwner)) {
+            _showMsg('⚠️ Phiên đăng nhập chưa được xác minh.', true);
+            return { blocked: 'unverified-owner' };
+        }
+        if (monthlyOwner.role === 'coach') selBranch = monthlyOwner.coachBranch;
         if (!selMonth) { _showMsg('Vui lòng chọn tháng để xem thống kê'); return; }
         _showMsg('⏳ Đang tải dữ liệu...');
         try {
@@ -2174,6 +2728,7 @@ export function initAttendance() {
                 }
             });
             if (!_isCurrentRequest()) return;
+            if (!_isOfflineAttendanceSyncContextCurrent(monthlyOwner)) return;
             const snap = { forEach: (fn) => monthRecords.forEach(item => fn({ data: () => item.data, id: item.id })) };
             const grouped = {};
             snap.forEach(d => {
@@ -2234,7 +2789,7 @@ export function initAttendance() {
                         : `<div style="margin-top:7px;padding-top:7px;border-top:1.5px dashed #e2e8f0;font-size:0.6rem;color:#94a3b8;font-style:italic;">📅 Chưa có lịch học để tính chuyên cần chuẩn</div>`;
                     cardsHtml+=`<div style="background:#fff;border-radius:14px;border:1px solid #e8edf5;padding:12px 14px;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,0.05);">
                         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:9px;">
-                            <div style="flex:1;min-width:0;overflow:hidden;"><span onclick="window.showAttMemberHistory(decodeURIComponent('${_nameToken}'),'${selMonth}')" style="font-weight:800;font-size:0.9rem;color:#0033A0;cursor:pointer;text-decoration:underline dotted;">${escapeHtml(r.name)}</span>${_mWarnHtml}</div>
+                            <div style="flex:1;min-width:0;overflow:hidden;"><span onclick="window.showAttMemberHistory(decodeURIComponent('${_nameToken}'),'${selMonth}')" style="font-weight:800;font-size:0.9rem;color:#0033A0;cursor:pointer;text-decoration:underline dotted;">${escapeHtml((window.ProfileCanonicalStore?.resolveDisplayName?.(r.name, _mProfile)) || _mProfile.displayName || _mProfile.name || _mProfile.fullName || _mProfile.studentName || r.name)}</span>${_mWarnHtml}</div>
                             <div style="flex-shrink:0;max-width:45%;">${_mkBeltBadge(r.belt)}</div>
                         </div>
                         <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:5px;margin-bottom:5px;">
@@ -2266,7 +2821,7 @@ export function initAttendance() {
                     const _cmpR2 = _acc2.completionRate !== null ? Math.round(_acc2.completionRate * 100) : null;
                     const _accHtml2 = _accR2 !== null ? `<span style="font-weight:900;font-size:0.85rem;color:${_rateColor(_accR2)};">${_accR2}%</span>` : `<span style="color:#94a3b8;font-size:0.72rem;">${_hasS ? '' : 'Chưa có lịch'}</span>`;
                     const _cmpHtml2 = _cmpR2 !== null ? `<span style="font-size:0.75rem;color:#475569;">${_cmpR2}%</span>` : `<span style="color:#cbd5e1;font-size:0.7rem;">—</span>`;
-                    html+=`<tr style="${rowBg}"><td><span onclick="window.showAttMemberHistory(decodeURIComponent('${_nameToken}'),'${selMonth}')" style="font-weight:700;color:#0033A0;cursor:pointer;text-decoration:underline dotted;">${escapeHtml(r.name)}</span>${_dtWarn}</td><td>${_mkBeltBadge(r.belt)}</td><td style="text-align:center;"><span style="font-weight:800;color:#16a34a;font-size:1rem;">${r.present}</span></td><td style="text-align:center;"><span style="font-weight:800;color:#2563eb;font-size:1rem;">${r.excused}</span></td><td style="text-align:center;"><span style="font-weight:800;color:#dc2626;font-size:1rem;">${r.absent}</span></td><td style="text-align:center;">${_rateHtml}</td><td style="text-align:center;">${_expHtml}</td><td style="text-align:center;">${_misHtml}</td><td style="text-align:center;">${_accHtml2}<br><span style="font-size:0.6rem;color:#94a3b8;">HT:${_cmpHtml2}</span></td><td style="text-align:center;"><button onclick="event.stopPropagation();window.copyAttReport(decodeURIComponent('${_nameToken}'),${r.present},${r.excused},${r.absent},'${monthDisplay}')" style="background:#0068FF;color:#fff;border:none;padding:5px 9px;border-radius:8px;font-size:0.7rem;font-weight:700;cursor:pointer;">📋 Zalo</button></td></tr>`;
+                    html+=`<tr style="${rowBg}"><td><span onclick="window.showAttMemberHistory(decodeURIComponent('${_nameToken}'),'${selMonth}')" style="font-weight:700;color:#0033A0;cursor:pointer;text-decoration:underline dotted;">${escapeHtml((window.ProfileCanonicalStore?.resolveDisplayName?.(r.name, _dtProfile)) || _dtProfile.displayName || _dtProfile.name || _dtProfile.fullName || _dtProfile.studentName || r.name)}</span>${_dtWarn}</td><td>${_mkBeltBadge(r.belt)}</td><td style="text-align:center;"><span style="font-weight:800;color:#16a34a;font-size:1rem;">${r.present}</span></td><td style="text-align:center;"><span style="font-weight:800;color:#2563eb;font-size:1rem;">${r.excused}</span></td><td style="text-align:center;"><span style="font-weight:800;color:#dc2626;font-size:1rem;">${r.absent}</span></td><td style="text-align:center;">${_rateHtml}</td><td style="text-align:center;">${_expHtml}</td><td style="text-align:center;">${_misHtml}</td><td style="text-align:center;">${_accHtml2}<br><span style="font-size:0.6rem;color:#94a3b8;">HT:${_cmpHtml2}</span></td><td style="text-align:center;"><button onclick="event.stopPropagation();window.copyAttReport(decodeURIComponent('${_nameToken}'),${r.present},${r.excused},${r.absent},'${monthDisplay}')" style="background:#0068FF;color:#fff;border:none;padding:5px 9px;border-radius:8px;font-size:0.7rem;font-weight:700;cursor:pointer;">📋 Zalo</button></td></tr>`;
                 });
                 tbody.innerHTML=html;
             }

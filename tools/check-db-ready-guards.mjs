@@ -134,9 +134,9 @@ if (pkgJson) {
     check('check:db-ready-guards script defined in package.json',
         !!(pkg.scripts && pkg.scripts['check:db-ready-guards']),
         'Thêm: "check:db-ready-guards": "node tools/check-db-ready-guards.mjs"');
-    check('check:all includes check-db-ready-guards',
-        !!(pkg.scripts && pkg.scripts['check:all'] && pkg.scripts['check:all'].includes('check:db-ready-guards')),
-        'Thêm node tools/check-db-ready-guards.mjs vào chuỗi check:all');
+    check('canonical check:release includes check:db-ready-guards',
+        !!(pkg.scripts && pkg.scripts['check:release']) && readFile('tools/check-release.mjs')?.includes("'check:db-ready-guards'"),
+        'H6 release authority must execute check:db-ready-guards through check:release');
 }
 
 console.log();

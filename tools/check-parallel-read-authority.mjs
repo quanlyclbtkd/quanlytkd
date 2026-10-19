@@ -5,7 +5,7 @@ c('Canonical transaction source remains one listener', (app.match(/const canonic
 c('Legacy transaction sources remain exactly three', ['const u1 = onSnapshot','const u2 = onSnapshot','const u3 = onSnapshot'].every(x=>app.includes(x)));
 c('Canonical/legacy branch remains mutually exclusive', /if \(_desiredTxReadMode === 'canonical'\)[\s\S]{0,900}return canonicalUnsub;[\s\S]{0,900}const u1 = onSnapshot/.test(app));
 c('Coach CS1 intentional dual listener remains documented', prof.includes("coachBranch === 'CS1'")&&prof.includes("branch', '==', 'Mặc định'"));
-c('Active-zero probe remains conditional first-empty only', prof.includes('activeCount === 0 && _state.activeSnapshotCount === 1'));
+c('Branch-complete Coach realtime removes obsolete active-zero probe', !prof.includes('profiles.activeZeroProbe') && prof.includes("_coachRosterReadiness() === 'verified'") && prof.includes("fbQuery(profRef, fbWhere('branch', '==', coachBranch))"));
 c('Full profiles fallback remains guarded', prof.includes('_state.fallbackInProgress')&&prof.includes('maxFallbackPerSession'));
 const auto=srv.slice(srv.indexOf('async function maybeAutoRefreshSuperAdminSummaries'),srv.indexOf('function getSuperAdminServerRefreshState'));
 c('Production policy selects one client stats writer', policy.includes("mode: 'client-only'") && policy.includes("statsWriter: 'client'") && policy.includes('superAdminServerRefresh: false'));

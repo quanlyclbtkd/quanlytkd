@@ -44,7 +44,7 @@ import {
 
 // Phase 4K-STUDENT-LIST: Classifier chung — không dùng p.status === 'quit' trực tiếp
 import { classifyProfileStatus } from '../../../data/profileStatusConfig.js';
-import { rankStudentNameSearchResults } from '../../../core/studentSearchIndex.js?v=student-given-name-priority-20260811-v5u3';
+import { rankStudentNameSearchResults } from '../../../core/studentSearchIndex.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1';
 import { escapeHtml } from '../../../utils/helpers.js';
 
 // ── Phase 4K-2B: Fallback blob builder (used when getProfileSearchBlob unavailable) ──
@@ -53,8 +53,8 @@ function _fallbackProfileBlob(name, p) {
     const pp = p || {};
     return [
         name,
-        pp.name, pp.nickname, pp.memberId, pp.studentCode,
-        pp.code, pp.belt, pp.notes, pp.phone,
+        pp.name, pp.nickname, pp.alias, pp.memberId, pp.studentCode,
+        pp.code, pp.searchCode, pp.searchNickname, pp.belt, pp.notes, pp.phone,
         pp.parentPhone, pp.contactPhone, pp.guardianPhone,
     ].filter(Boolean).map(v => _nvFn(String(v))).join(' ');
 }
@@ -138,9 +138,9 @@ const _disp  = (k) => k.replace(/\s*\([^)]*\)\s*$/, '').replace(/\s*\[[^\]]*\]\s
 function _profileDisplayName(id, p) {
     const data = p || {};
     const candidates = [
+        data.displayName,
         data.name,
         data.fullName,
-        data.displayName,
         data.studentName,
         data.hoTen,
         id,
@@ -162,7 +162,7 @@ function _getYrBadge(name, p, nameNCount) {
     let yr = dob.includes('/') ? dob.split('/')[2] : (dob.includes('-') ? dob.split('-')[0] : '');
     if (!yr) { const _m = (name || '').match(/\((\d{4})/); if (_m) yr = _m[1]; }
     return yr
-        ? `<sup style="font-size:0.55rem;color:#94a3b8;font-weight:700;vertical-align:super;line-height:0;margin-left:2px;">${yr}</sup>`
+        ? `<sup style="font-size:0.55rem;color:#94a3b8;font-weight:700;vertical-align:super;line-height:0;margin-left:2px;">${escapeHtml(String(yr))}</sup>`
         : '';
 }
 
@@ -178,6 +178,8 @@ const _cache = {
      *           activeLimit:number, debtLimit:number, quitLimit:number,
      *           pgStudentsActive:boolean } | null} */
     summary:     null,
+    summaryClubId: '',
+    summaryMonth: '',
     paramsKey:   null,
     dataVersion: -1,
     _version:    0,
@@ -223,6 +225,9 @@ export function invalidateStudentsRender(section) {
 }
 
 // ── Row renderers ─────────────────────────────────────────────────────────────
+// Inline calls are owned by the existing renderer. Only encoded data tokens enter JS source.
+const _actionToken = value => escapeHtml(encodeURIComponent(String(value ?? '')).replace(/'/g, '%27'));
+const _html = value => escapeHtml(String(value ?? ''));
 
 /**
  * Render a single active student row.
@@ -233,12 +238,12 @@ export function renderActiveRow(name, p, opts = {}) {
         beltHTML = '', branchTdHTML = '', yrBadge = '',
         newBadge = '', nickBadge = '', paidBadge = '', isAdmin = false,
     } = opts;
-    const safeNameEsc = name.replace(/'/g, "\\'");
-    const safeDisplay = escapeHtml(_disp(name));
-    const safeNotes = escapeHtml(p.notes || '');
-    const safeMemberId = escapeHtml(p.memberId || '-');
-    const safePhone = escapeHtml(p.phone || '');
-    return `<tr data-student-id="${escapeHtml(name)}"><td class="name-link text-[0.95rem]" onclick="openProfile('${safeNameEsc}')">${safeDisplay}${yrBadge}${newBadge}${p.notes ? ` <span title="${safeNotes}">📝</span>` : ''}${nickBadge}</td><td class="text-[0.7rem] font-bold text-slate-500">${safeMemberId}</td><td>${beltHTML}</td>${branchTdHTML}<td>${formatDate(p.dob)}</td><td>${paidBadge}</td><td class="font-medium text-slate-600">${safePhone}</td><td class="text-slate-500">${formatDate(p.createdAt)}</td><td><button type="button" class="btn-sm bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200" onclick="openProfile('${safeNameEsc}')">${isAdmin ? '✏️ Sửa' : '👁️ Xem'}</button></td></tr>`;
+    const nameToken = _actionToken(name);
+    const safeDisplay = escapeHtml(_disp(_profileDisplayName(name, p)));
+    const safeNotes = _html(p.notes || '');
+    const safeMemberId = _html(p.memberId || '-');
+    const safePhone = _html(p.phone || '');
+    return `<tr data-student-id="${_html(name)}"><td class="name-link text-[0.95rem]" onclick="openProfile(decodeURIComponent('${nameToken}'))">${safeDisplay}${yrBadge}${newBadge}${p.notes ? ` <span title="${safeNotes}">📝</span>` : ''}${nickBadge}</td><td class="text-[0.7rem] font-bold text-slate-500">${safeMemberId}</td><td>${beltHTML}</td>${branchTdHTML}<td>${_html(formatDate(p.dob))}</td><td>${paidBadge}</td><td class="font-medium text-slate-600">${safePhone}</td><td class="text-slate-500">${_html(formatDate(p.createdAt))}</td><td><button type="button" class="btn-sm bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200" onclick="openProfile(decodeURIComponent('${nameToken}'))">${isAdmin ? '✏️ Sửa' : '👁️ Xem'}</button></td></tr>`;
 }
 
 /**
@@ -250,17 +255,19 @@ export function renderDebtRow(name, p, opts = {}) {
         unpaidMonthsCount = 0, owedMonthsStr = '', branchTdHTML = '',
         isAdmin = false, selMonth = '', yrBadge = '',
     } = opts;
-    const safeNameEsc    = name.replace(/'/g, "\\'");
+    const nameToken      = _actionToken(name);
     const safeBranch     = p.branch || 'CS1';
     const isOverdue      = unpaidMonthsCount >= 2;
     const rowBg          = isOverdue ? 'style="background:#fff1f2;"' : '';
     const countBadgeCls  = isOverdue
         ? 'bg-rose-600 text-white border-rose-700'
         : 'bg-rose-50 text-rose-700 border border-rose-200';
-    const safeOwedMonths = owedMonthsStr.replace(/'/g, '');
+    const owedToken      = _actionToken(owedMonthsStr);
+    const branchToken    = _actionToken(safeBranch);
+    const phoneToken     = _actionToken(p.phone || '');
+    const monthToken     = _actionToken(selMonth);
     const totalDebtAmount = unpaidMonthsCount * (Number(p.tuitionFee) || 0);
-    const lastPaidLabel  = `<span class="font-bold text-primary text-[0.8rem]">${formatMonthCompact(owedMonthsStr)}</span>`;
-    return `<tr data-debt-id="${safeNameEsc}" ${rowBg}><td><span class="badge ${countBadgeCls}">${unpaidMonthsCount} Tháng</span></td><td>${lastPaidLabel}</td>${branchTdHTML}<td class="name-link text-[0.95rem]" onclick="openProfile('${safeNameEsc}')">${_disp(name)}${yrBadge}${isOverdue ? ' <span title="Nợ từ 2 tháng trở lên" class="text-rose-500">⚠️</span>' : ''}</td><td class="action-btns"><button type="button" class="btn-sm bg-indigo-50 text-indigo-700 border border-indigo-200" onclick="generateMultiMonthPaymentRequest('${safeNameEsc}', '${safeOwedMonths}', '${safeBranch}', '${totalDebtAmount}')">📱 QR</button>${isAdmin ? `<button type="button" class="btn-sm bg-emerald-600 text-white shadow-sm" onclick="openQuickPayModal('${safeNameEsc}', '${safeOwedMonths}', '${safeBranch}')">💰 Thu</button>` : ''}<button type="button" class="btn-sm bg-[#0068FF] text-white shadow-sm" onclick="copyAndOpenZalo('${safeNameEsc}', '${safeOwedMonths}', '${p.phone || ''}')">💬 Zalo</button>${isAdmin ? `<button type="button" class="btn-sm bg-rose-50 text-rose-700 border border-rose-200" title="Chuyển võ sinh sang Đã nghỉ" onclick="window.markStudentQuitFromDebt(event, '${safeNameEsc}', '${selMonth}')">🚫 Nghỉ</button><button type="button" class="btn-sm bg-amber-50 text-amber-700 border border-amber-200" title="Báo nghỉ / miễn học phí tháng này" onclick="window.skipDebtMonthFromDebt(event, '${safeNameEsc}', '${selMonth}')">⏸ Báo nghỉ</button>` : ''}</td></tr>`;
+    return `<tr data-debt-id="${_html(name)}" ${rowBg}><td><span class="badge ${countBadgeCls}">${Number(unpaidMonthsCount) || 0} Tháng</span></td><td><span class="font-bold text-primary text-[0.8rem]">${_html(formatMonthCompact(owedMonthsStr))}</span></td>${branchTdHTML}<td class="name-link text-[0.95rem]" onclick="openProfile(decodeURIComponent('${nameToken}'))">${_html(_disp(_profileDisplayName(name, p)))}${yrBadge}${isOverdue ? ' <span title="Nợ từ 2 tháng trở lên" class="text-rose-500">⚠️</span>' : ''}</td><td class="action-btns"><button type="button" class="btn-sm bg-indigo-50 text-indigo-700 border border-indigo-200" onclick="generateMultiMonthPaymentRequest(decodeURIComponent('${nameToken}'), decodeURIComponent('${owedToken}'), decodeURIComponent('${branchToken}'), ${Number.isFinite(totalDebtAmount) ? totalDebtAmount : 0})">📱 QR</button>${isAdmin ? `<button type="button" class="btn-sm bg-emerald-600 text-white shadow-sm" onclick="openQuickPayModal(decodeURIComponent('${nameToken}'), decodeURIComponent('${owedToken}'), decodeURIComponent('${branchToken}'))">💰 Thu</button>` : ''}<button type="button" class="btn-sm bg-[#0068FF] text-white shadow-sm" onclick="copyAndOpenZalo(decodeURIComponent('${nameToken}'), decodeURIComponent('${owedToken}'), decodeURIComponent('${phoneToken}'))">💬 Zalo</button>${isAdmin ? `<button type="button" class="btn-sm bg-rose-50 text-rose-700 border border-rose-200" title="Chuyển võ sinh sang Đã nghỉ" onclick="window.markStudentQuitFromDebt(event, decodeURIComponent('${nameToken}'), decodeURIComponent('${monthToken}'))">🚫 Nghỉ</button><button type="button" class="btn-sm bg-amber-50 text-amber-700 border border-amber-200" title="Báo nghỉ / miễn học phí tháng này" onclick="window.skipDebtMonthFromDebt(event, decodeURIComponent('${nameToken}'), decodeURIComponent('${monthToken}'))">⏸ Báo nghỉ</button>` : ''}</td></tr>`;
 }
 
 /**
@@ -269,10 +276,10 @@ export function renderDebtRow(name, p, opts = {}) {
  */
 export function renderQuitRow(name, p, opts = {}) {
     const { beltHTML = '', branchTdHTML = '', yrBadge = '', isAdmin = false } = opts;
-    const safeNameEsc = name.replace(/'/g, "\'");
+    const nameToken = _actionToken(name);
     const displayName = _profileDisplayName(name, p);
     const safeDisplayAttr = String(displayName || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    return `<tr data-quit-id="${safeNameEsc}" data-profile-name="${safeDisplayAttr}"><td class="name-link text-[0.95rem]" onclick="openProfile('${safeNameEsc}')">${_disp(displayName)}${yrBadge}</td><td class="text-[0.7rem] font-bold text-slate-500">${p.memberId || '-'}</td><td>${beltHTML}</td>${branchTdHTML}<td>${formatDate(p.dob)}</td><td>${formatDate(p.quitDate || p.ngayNghi || p.inactiveDate || p.stoppedDate || p.leftDate || p.nghiDate)}</td><td>${isAdmin ? `<button type="button" class="btn-sm bg-emerald-50 text-emerald-700 border border-emerald-200" onclick="openProfile('${safeNameEsc}')">🔄 Khôi phục</button>` : ''}</td></tr>`;
+    return `<tr data-quit-id="${_html(name)}" data-profile-name="${safeDisplayAttr}"><td class="name-link text-[0.95rem]" onclick="openProfile(decodeURIComponent('${nameToken}'))">${_html(_disp(displayName))}${yrBadge}</td><td class="text-[0.7rem] font-bold text-slate-500">${_html(p.memberId || '-')}</td><td>${beltHTML}</td>${branchTdHTML}<td>${_html(formatDate(p.dob))}</td><td>${_html(formatDate(p.quitDate || p.ngayNghi || p.inactiveDate || p.stoppedDate || p.leftDate || p.nghiDate))}</td><td>${isAdmin ? `<button type="button" class="btn-sm bg-emerald-50 text-emerald-700 border border-emerald-200" onclick="openProfile(decodeURIComponent('${nameToken}'))">🔄 Khôi phục</button>` : ''}</td></tr>`;
 }
 
 // ── Core computation ──────────────────────────────────────────────────────────
@@ -360,6 +367,28 @@ export function computeAndCacheStudents(allProfiles, params) {
     const buildActive = curTabId === 'active';
     const buildDebt   = curTabId === 'debt';
     const buildQuit   = curTabId === 'quit';
+
+    // D1C3B1: Debt is fail-closed. Only the canonical read boundary may decide
+    // whether the current club has complete authoritative profile coverage.
+    // Do this before any Debt rows/summary are computed so partial data can
+    // never overwrite a last-good authoritative cache.
+    const _debtBoundaryStatus = buildDebt && typeof window.getDebtProfileCoverageStatus === 'function'
+        ? window.getDebtProfileCoverageStatus()
+        : null;
+    if (buildDebt && _debtBoundaryStatus?.ready !== true) {
+        const _debtSourceQuality = {
+            profilesCount: Object.keys(allProfiles || {}).length,
+            paginationItems: pgStudents ? (pgStudents.currentItems ? pgStudents.currentItems.length : 0) : 0,
+            debtMayBePartial: true,
+            coverageReady: false,
+            source: _debtBoundaryStatus?.source || 'coverage-not-ready',
+        };
+        if (window.__store) window.__store._lastDebtSourceQuality = _debtSourceQuality;
+        console.warn('[debt-list] Authoritative profile coverage not ready; partial Debt computation blocked',
+            '(profiles:', _debtSourceQuality.profilesCount,
+            ', source:', _debtSourceQuality.source, ')');
+        return;
+    }
     // Phase 4K-6V5Q: one quit source/filter boundary for computation, search,
     // direct render and pagination. No shared active/search page can override it.
     const _quitBoundaryEntries = buildQuit && window.QuitProfileBoundary?.getEntries
@@ -374,7 +403,19 @@ export function computeAndCacheStudents(allProfiles, params) {
     // Phase 4K-5J-3: Khai báo trước PASS 1 để tránh TDZ ReferenceError
     // Biến này dùng trong vòng lặp PASS 1 — phải khai báo tại đây, không được ở sau PASS 2
     const fullProfilesCount = Object.keys(allProfiles || {}).length;
-    const useFullProfileActiveRender = buildActive && fullProfilesCount > 0 && !search;
+    // D1C3B3: after a same-club server-confirmed Admin full snapshot, use the
+    // already complete in-memory set for Active search and client load-more.
+    // A 50-row server/search page is NOT a completeness source for the renderer.
+    const _searchAuthority = typeof window.getProfilesListenerMetrics === 'function'
+        ? window.getProfilesListenerMetrics() : {};
+    const _searchAuth = window.__verifiedAuthContextState;
+    const _verifiedFullActiveSearch = buildActive && !!search && pgStudents?.searchSource === 'client-authoritative-full'
+        && _searchAuthority.fullAuthorityComplete === true
+        && _searchAuthority.authorityServerConfirmed === true && _searchAuthority.authorityFreshness === 'fresh'
+        && _searchAuthority.authorityClubId === String(window.__store?.clubId || '')
+        && (!_searchAuth || (_searchAuth.ready === true
+            && Number(_searchAuth.generation) === Number(_searchAuthority.authoritySessionEpoch)));
+    const useFullProfileActiveRender = buildActive && fullProfilesCount > 0 && (!search || _verifiedFullActiveSearch);
     // Phase 4K-6V4B2: Quit tab must prefer the full/lazy quit profile store.
     // Pagination currentItems can belong to the Active tab or only one server page;
     // using it here causes missing quit students even when allProfiles already has them.
@@ -441,7 +482,7 @@ export function computeAndCacheStudents(allProfiles, params) {
         const beltHTML    = getBeltBadge(p.belt);
         const branchTdHTML = isSingleBranch
             ? ''
-            : `<td><span class="badge bg-slate-100 text-slate-600 border border-slate-200">${_getBrN(safeBranch)}</span></td>`;
+            : `<td><span class="badge bg-slate-100 text-slate-600 border border-slate-200">${_html(_getBrN(safeBranch))}</span></td>`;
 
         if (isActive) {
             m_active_theo++;
@@ -449,7 +490,7 @@ export function computeAndCacheStudents(allProfiles, params) {
             activeCount++;
 
             const paidBadge = p.paidUntil
-                ? `<span class="badge bg-emerald-50 text-emerald-700 border border-emerald-200 text-[0.7rem]">${formatMonth(p.paidUntil)}</span>`
+                ? `<span class="badge bg-emerald-50 text-emerald-700 border border-emerald-200 text-[0.7rem]">${_html(formatMonth(p.paidUntil))}</span>`
                 : `<span class="badge bg-rose-50 text-rose-600 border border-rose-200 text-[0.7rem]">Chưa thu</span>`;
             // Phase 4K-6E-C: Badge MỚI dùng tháng thực tế hiện tại, không theo filterMonth
             const isCurrentNew = typeof window.isCurrentMonthNewStudent === 'function'
@@ -585,7 +626,7 @@ export function computeAndCacheStudents(allProfiles, params) {
             const beltHTML = getBeltBadge(p.belt);
             const branchTdHTML = isSingleBranch
                 ? ''
-                : `<td><span class="badge bg-slate-100 text-slate-600 border border-slate-200">${_getBrN(safeBranch)}</span></td>`;
+                : `<td><span class="badge bg-slate-100 text-slate-600 border border-slate-200">${_html(_getBrN(safeBranch))}</span></td>`;
             _quitRendered++;
             quitRows += renderQuitRow(name, p, { beltHTML, branchTdHTML, yrBadge, isAdmin });
         });
@@ -618,7 +659,7 @@ export function computeAndCacheStudents(allProfiles, params) {
             const beltHTML    = getBeltBadge(p.belt);
             const branchTdHTML = isSingleBranch
                 ? ''
-                : `<td><span class="badge bg-slate-100 text-slate-600 border border-slate-200">${_getBrN(safeBranch)}</span></td>`;
+                : `<td><span class="badge bg-slate-100 text-slate-600 border border-slate-200">${_html(_getBrN(safeBranch))}</span></td>`;
 
             if (isActive) {
                 let passFilter = true;
@@ -637,7 +678,7 @@ export function computeAndCacheStudents(allProfiles, params) {
                 if (passFilter) {
                     _activeTotalCount++;
                     const paidBadge = p.paidUntil
-                        ? `<span class="badge bg-emerald-50 text-emerald-700 border border-emerald-200 text-[0.7rem]">${formatMonth(p.paidUntil)}</span>`
+                        ? `<span class="badge bg-emerald-50 text-emerald-700 border border-emerald-200 text-[0.7rem]">${_html(formatMonth(p.paidUntil))}</span>`
                         : `<span class="badge bg-rose-50 text-rose-600 border border-rose-200 text-[0.7rem]">Chưa thu</span>`;
                     // Phase 4K-6E-C: Badge MỚI dùng tháng thực tế, không theo filterMonth (PASS 2)
                     const _p2IsCurrentNew = typeof window.isCurrentMonthNewStudent === 'function'
@@ -731,33 +772,17 @@ export function computeAndCacheStudents(allProfiles, params) {
         }
     }
 
-    // ── Phase 4K-6V3D: debt coverage quality from the canonical read boundary ──
-    const _boundaryStatus = typeof window.getDebtProfileCoverageStatus === 'function'
-        ? window.getDebtProfileCoverageStatus()
-        : null;
-    const _boundaryReady = !!(_boundaryStatus && (
-        _boundaryStatus.configVerified ||
-        _boundaryStatus.sessionVerified ||
-        String(_boundaryStatus.source || '').includes('full-fallback')
-    ));
-    const _legacyPartialSignal = Object.keys(allProfiles || {}).length <=
-        ((pgStudents && pgStudents.currentItems ? pgStudents.currentItems.length : 0));
+    // ── D1C3B1: authoritative Debt quality comes from one boundary.ready contract ──
+    const _boundaryStatus = buildDebt ? _debtBoundaryStatus : null;
+    const _boundaryReady = !buildDebt || _boundaryStatus?.ready === true;
     const _debtSourceQuality = {
         profilesCount:       Object.keys(allProfiles || {}).length,
         paginationItems:     pgStudents ? (pgStudents.currentItems ? pgStudents.currentItems.length : 0) : 0,
-        debtMayBePartial:    buildDebt && (_boundaryStatus ? !_boundaryReady : _legacyPartialSignal),
+        debtMayBePartial:    buildDebt && !_boundaryReady,
         coverageReady:       _boundaryReady,
-        source:              _boundaryStatus ? (_boundaryStatus.source || 'unknown') : 'legacy-diagnostic',
+        source:              _boundaryStatus ? (_boundaryStatus.source || 'unknown') : (buildDebt ? 'coverage-not-ready' : 'not-debt'),
     };
     if (window.__store) window.__store._lastDebtSourceQuality = _debtSourceQuality;
-    if (buildDebt && _debtSourceQuality.debtMayBePartial && _debtSourceQuality.profilesCount > 0) {
-        console.warn('[debt-list] Debt profile coverage is not verified yet',
-            '(profiles:', _debtSourceQuality.profilesCount,
-            ', source:', _debtSourceQuality.source, ')');
-        if (typeof window.ensureDebtProfilesReady === 'function') {
-            setTimeout(function() { window.ensureDebtProfilesReady('debt-partial-auto-trigger'); }, 800);
-        }
-    }
 
     // ── Store in module-local cache ──
     if (buildActive) _cache.activeRows = activeRows;
@@ -778,6 +803,8 @@ export function computeAndCacheStudents(allProfiles, params) {
         quitLimit:         _quitLimit,
         pgStudentsActive,
     };
+    _cache.summaryClubId = String(window.__store?.clubId || window.__store?.currentClubId || '');
+    _cache.summaryMonth = String(selMonth || '');
     _cache.paramsKey   = paramsKey;
     _cache.dataVersion = dataVersion;
 
@@ -825,6 +852,14 @@ export function computeAndCacheStudents(allProfiles, params) {
  * @returns {string}
  */
 export function getStudentsCachedHtml(section) {
+    if (section === 'debtRows') {
+        const status = typeof window.getDebtProfileCoverageStatus === 'function'
+            ? window.getDebtProfileCoverageStatus()
+            : null;
+        if (status?.ready !== true) {
+            return '<tr class="debt-syncing-row"><td colspan="7" style="text-align:center;padding:18px 12px;color:#64748b">Đang đồng bộ đầy đủ dữ liệu Báo nợ…</td></tr>';
+        }
+    }
     return _cache[section] || '';
 }
 
@@ -832,7 +867,20 @@ export function getStudentsCachedHtml(section) {
  * @returns {Object|null}
  */
 export function getStudentsSummary() {
-    return _cache.summary;
+    const coverage = typeof window.getDebtProfileCoverageStatus === 'function'
+        ? window.getDebtProfileCoverageStatus() : null;
+    const clubId = String(window.__store?.clubId || window.__store?.currentClubId || '');
+    const month = String(
+        (typeof document !== 'undefined' ? document.getElementById('filterMonth')?.value : '')
+        || window.__store?.selectedMonth || '');
+    const debtSummaryPending = !coverage || coverage.ready !== true || coverage.sameClub !== true
+        || (!!clubId && _cache.summaryClubId !== clubId)
+        || (!!month && _cache.summaryMonth !== month);
+    // Never return last-good debt count from a different club/month or from a
+    // demoted/pending authority as if it were a current, authoritative result.
+    if (debtSummaryPending) return { ...(_cache.summary || {}), debtCount: null,
+        totalDebtEst: null, debtSummaryPending: true };
+    return _cache.summary ? { ..._cache.summary, debtSummaryPending: false } : null;
 }
 
 /**

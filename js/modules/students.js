@@ -30,6 +30,8 @@
 import { getLocalToday, formatDate, formatMonth, formatMonthCompact, addMonthsToYYYYMM } from '../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
 import { escapeHtml } from '../utils/helpers.js';
 import { StudentService } from '../services/students.service.js?v=student-status-command-cutover-tx-delete-fix-20260722-v5u1';
+import { InventoryService } from '../services/inventory.service.js?v=long-term-production-stability-20260917-v5u6h8r2';
+import { FinanceService } from '../services/finance.service.js?v=long-term-production-stability-20260917-v5u6h8r2';
 
 // ════════════════════════════════════════════════════════════════
 // BRIDGE HELPERS — đọc state từ app.js qua window.__store
@@ -50,6 +52,20 @@ function _profiles() { return (window.__store || {}).profiles || {}; }
 function _config()   { return (window.__store || {}).clubConfig || {}; }
 /** @deprecated Phase 3.1 — Firebase calls đã chuyển sang StudentService */
 
+function _resolveDisplayName(profileKey, profile) {
+    try {
+        if (window.ProfileCanonicalStore && typeof window.ProfileCanonicalStore.resolveDisplayName === 'function') {
+            return window.ProfileCanonicalStore.resolveDisplayName(profileKey, profile);
+        }
+        if (typeof window.resolveProfileDisplayName === 'function') {
+            return window.resolveProfileDisplayName(profileKey, profile);
+        }
+    } catch (_) {}
+    const p = profile || {};
+    return String(p.displayName || p.name || p.fullName || p.studentName || profileKey || '').trim();
+}
+
+
 // Phase 4K-6V5U6G: secondary linkage failure remains observable without
 // retrying/duplicating the canonical admission transaction.
 const _recordStudentSecondaryFailure = (classification, error, extra = {}) => {
@@ -59,6 +75,21 @@ const _recordStudentSecondaryFailure = (classification, error, extra = {}) => {
         window.recordRuntimeError('students.secondary:' + classification, error || new Error(classification), details);
     }
 };
+
+function _admissionAmount(actualId, displayId) {
+    const actual = String(document.getElementById(actualId)?.value ?? '').trim();
+    const display = String(document.getElementById(displayId)?.value ?? '').trim();
+    const raw = actual || display;
+    if (!raw) return 0;
+    const digits = actual ? raw : raw.replace(/[.,\s₫]/g, '');
+    return /^\d+$/.test(digits) ? Number(digits) : NaN;
+}
+
+function _admissionDateValid(value) {
+    if (!/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(value)) return false;
+    const d = new Date(value + 'T00:00:00Z');
+    return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === value;
+}
 
 // ════════════════════════════════════════════════════════════════
 // MODULE-LEVEL STATE (thay thế closure vars trong app.js)
@@ -245,12 +276,11 @@ export function initStudents() {
         const _addShiftSel = document.getElementById('add_shift');
         if (_addShiftSel) {
             (window._ensureClubShiftsLoaded ? window._ensureClubShiftsLoaded() : Promise.resolve()).then(function () {
-                let _asHtml = '<option value="">-- Chọn ca tập --</option>';
+                _addShiftSel.replaceChildren(new Option('-- Chọn ca tập --', ''));
                 (window._getClubShifts ? window._getClubShifts() : []).forEach(function (s) {
                     const _t = (s.timeStart && s.timeEnd) ? ' (' + s.timeStart + '–' + s.timeEnd + ')' : '';
-                    _asHtml += '<option value="' + s.id + '">' + s.name + _t + '</option>';
+                    _addShiftSel.add(new Option(String(s.name || '') + _t, String(s.id || '')));
                 });
-                _addShiftSel.innerHTML = _asHtml;
                 _addShiftSel.value = '';
             });
         }
@@ -275,7 +305,7 @@ export function initStudents() {
      * Guard `_addStudentInProgress` ngăn double-submit.
      */
     window.addNewStudent = async () => {
-        if (window.userRole === 'viewer') return;
+        if (!['admin', 'super_admin'].includes(window.userRole)) return;
         if (_addStudentInProgress) return;
 
         const profiles = _profiles();
@@ -283,17 +313,14 @@ export function initStudents() {
 
         const name = document.getElementById('add_name').value.trim();
         const joinDate = document.getElementById('add_date').value;
-        const fee = Number(document.getElementById('add_fee_actual').value)
-            || Number((document.getElementById('add_fee_display').value || '').replace(/[^0-9]/g, ''))
-            || 0;
+        const fee = _admissionAmount('add_fee_actual', 'add_fee_display');
         const uniformSize = document.getElementById('add_uniform_size').value.trim();
-        const uniformFee  = Number(document.getElementById('add_uniform_actual').value)
-            || Number((document.getElementById('add_uniform_display').value || '').replace(/[^0-9]/g, ''))
-            || 0;
-        const packageCount   = parseInt(document.getElementById('add_package').value) || 1;
+        const uniformFee  = _admissionAmount('add_uniform_actual', 'add_uniform_display');
+        const packageCount = Number(document.getElementById('add_package').value);
         const isGift         = document.getElementById('add_uniform_gift').checked;
-        const isSingleBranch = (config.branchCount === 1);
-        const branch         = isSingleBranch ? 'CS1' : (window.BranchIdentity?.normalize?.(document.getElementById('add_branch').value, { fallback: 'CS1' }) || 'CS1');
+        const isSingleBranch = (Number(config.branchCount) === 1);
+        const rawBranch      = isSingleBranch ? 'CS1' : document.getElementById('add_branch').value;
+        const branch         = isSingleBranch ? 'CS1' : (window.BranchIdentity?.normalize?.(rawBranch, { fallback: '' }) || '');
         const memberId       = document.getElementById('add_memberId').value.trim().toUpperCase();
 
         // Validate
@@ -301,6 +328,22 @@ export function initStudents() {
             window.showToast('⚠️ Vui lòng nhập họ tên võ sinh!', 3000);
             const el = document.getElementById('add_name');
             if (el) { el.focus(); el.style.borderColor = '#ef4444'; setTimeout(() => { el.style.borderColor = ''; }, 3000); }
+            return;
+        }
+        const branchNumber = Number(String(branch).replace(/^CS/, ''));
+        const defaultFee = _admissionAmount('add_fee_default_actual', 'add_fee_default_display');
+        const discount = document.getElementById('add_discount')?.checked
+            ? Number(document.getElementById('add_discount_pct')?.value) : null;
+        if (!_admissionDateValid(joinDate) || ![1, 3, 6, 12].includes(packageCount)
+            || !Number.isSafeInteger(fee) || fee < 0 || !Number.isSafeInteger(uniformFee) || uniformFee < 0
+            || !Number.isSafeInteger(defaultFee) || defaultFee < 0
+            || (discount !== null && (!Number.isInteger(discount) || discount < 1 || discount > 99))
+            || !/^CS[1-9]\d*$/.test(branch) || !Number.isInteger(branchNumber)
+            || branchNumber > Number(config.branchCount || 1)
+            || (isGift && (uniformFee !== 0 || !uniformSize))
+            || (uniformSize && !isGift && uniformFee === 0)
+            || (uniformSize && !Array.from(document.getElementById('add_uniform_size').options || []).some(o => o.value === uniformSize))) {
+            window.showToast('⚠️ Dữ liệu nhập học không hợp lệ. Kiểm tra ngày, cơ sở, gói và số tiền.', 5000);
             return;
         }
         if (!isGift && uniformFee > 0 && !uniformSize) {
@@ -311,6 +354,8 @@ export function initStudents() {
         }
 
         _addStudentInProgress = true;
+        let primaryCommitted = false;
+        let committedTxId = '';
         try {
             // ── Xử lý trùng tên ───────────────────────────────────────────
             let _saveKey = name;
@@ -343,38 +388,49 @@ export function initStudents() {
             }
 
             // ── Tính gói học phí nhiều tháng (Phase 4K-4C: dùng helper chung) ──
-            const tuitionPkg = window.buildAdmissionTuitionPackage
-                ? window.buildAdmissionTuitionPackage(joinDate || getLocalToday(), packageCount)
-                : (function(jd,cnt){const sm=(jd||getLocalToday()).substring(0,7);const ms=[];let [y,m]=sm.split('-').map(Number);for(let i=0;i<cnt;i++){let cm=m+i,cy=y;while(cm>12){cm-=12;cy+=1;}ms.push(cy+'-'+String(cm).padStart(2,'0'));}return{packageCount:cnt,startMonth:sm,months:ms,lastMonth:ms[ms.length-1],monthsStr:ms.join(','),label:ms.join(', ')};})(joinDate,packageCount);
+            if (typeof window.buildAdmissionTuitionPackage !== 'function'
+                || typeof window.buildPaymentBundleTransaction !== 'function') {
+                throw new Error('Helper nhập học chưa sẵn sàng; chưa ghi dữ liệu.');
+            }
+            const tuitionPkg = window.buildAdmissionTuitionPackage(joinDate, packageCount);
+            if (tuitionPkg.packageCount !== packageCount || !Array.isArray(tuitionPkg.months)
+                || tuitionPkg.months.length !== packageCount || tuitionPkg.months.some(m => !/^\d{4}-(0[1-9]|1[0-2])$/.test(m))) {
+                throw new Error('Gói học phí nhập học không hợp lệ.');
+            }
             const startMonth     = tuitionPkg.startMonth;
             const monthsToRecord = tuitionPkg.months;
             const lastMonth      = tuitionPkg.lastMonth;
-            const newPaidUntil   = lastMonth;
+            const hasTuitionPayment = fee > 0;
+            const hasPaidUniform = !isGift && uniformFee > 0 && !!uniformSize;
+            const hasFinancialPayment = hasTuitionPayment || hasPaidUniform;
+            const newPaidUntil   = hasTuitionPayment ? lastMonth : '';
+            const paidMonths     = hasTuitionPayment ? monthsToRecord : [];
+            const paymentRefMonth = hasTuitionPayment ? lastMonth : startMonth;
+            const paymentReceiptType = hasTuitionPayment ? 'Thu nhập học' : 'Thu Võ phục';
 
             const trainingDays = Array.from(document.querySelectorAll('.add_trainingDay:checked')).map(cb => parseInt(cb.value));
+            if (trainingDays.some(d => !Number.isInteger(d) || d < 0 || d > 6)) throw new Error('Ngày tập không hợp lệ.');
             const _addNickEl   = document.getElementById('add_nickname');
             const _addNickVal  = _addNickEl ? _addNickEl.value.trim() : '';
 
             // V3A1: preflight bundle trước mọi Firestore write để tránh tạo hồ sơ/kho dở dang.
-            const _hasFinancialPayment = fee > 0 || (!isGift && uniformFee > 0 && uniformSize);
             const _admComponents = [];
-            if (fee > 0) {
+            if (hasTuitionPayment) {
                 const _tuitionLabel = tuitionPkg.packageCount > 1
                     ? 'Học phí gói ' + tuitionPkg.packageCount + ' tháng (' + tuitionPkg.label + ')'
                     : 'Học phí tháng ' + tuitionPkg.label;
                 _admComponents.push({ kind: 'tuition', type: 'Học phí', label: _tuitionLabel, amount: fee, month: lastMonth, packageMonths: monthsToRecord });
             }
-            if (!isGift && uniformFee > 0 && uniformSize) {
+            if (hasPaidUniform) {
                 _admComponents.push({ kind: 'inventory', type: 'Thu Võ phục', label: 'Võ phục ' + uniformSize, amount: uniformFee, category: 'Võ phục', size: uniformSize, qty: 1, relatedInvId: '' });
             }
-            if (_hasFinancialPayment) {
-                if (typeof window.buildPaymentBundleTransaction !== 'function') throw new Error('buildPaymentBundleTransaction missing; cannot safely create admission bundled payment');
-                const _preflightBundle = window.buildPaymentBundleTransaction({ studentName: _saveKey, branch, date: joinDate, refMonth: lastMonth, receiptType: 'Thu nhập học', components: _admComponents });
-                if (!_preflightBundle || !Array.isArray(_preflightBundle.components) || _preflightBundle.components.some(c => !c || !Number.isFinite(Number(c.amount)))) throw new Error('Dữ liệu khoản thu nhập học không hợp lệ.');
+            if (hasFinancialPayment) {
+                const _preflightBundle = window.buildPaymentBundleTransaction({ studentName: _saveKey, branch, date: joinDate, refMonth: paymentRefMonth, receiptType: paymentReceiptType, components: _admComponents });
+                if (!_preflightBundle || !Array.isArray(_preflightBundle.components) || _preflightBundle.components.length !== _admComponents.length
+                    || _preflightBundle.components.some(c => !c || !Number.isSafeInteger(Number(c.amount)) || Number(c.amount) <= 0)) throw new Error('Dữ liệu khoản thu nhập học không hợp lệ.');
             }
 
-            // ── Ghi profile ────────────────────────────────────────────────
-            await StudentService.createProfile(_saveKey, {
+            const profilePlan = StudentService.prepareProfileMutation(_saveKey, {
                 status:          'active',
                 memberId,
                 branch,
@@ -393,78 +449,110 @@ export function initStudents() {
                 joinedAt:        joinDate,
                 createdAt:       joinDate,
                 paidUntil:       newPaidUntil,
-                paidMonths:      monthsToRecord,
-                tuitionPackageCount:             tuitionPkg.packageCount,
-                lastAdmissionTuitionStartMonth:  startMonth,
-                lastAdmissionTuitionMonths:      monthsToRecord,
+                paidMonths,
+                ...(hasTuitionPayment ? {
+                    tuitionPackageCount:             tuitionPkg.packageCount,
+                    lastAdmissionTuitionStartMonth:  startMonth,
+                    lastAdmissionTuitionMonths:      monthsToRecord,
+                } : {}),
             });
 
-            // ── Phase 4K-5E: Xuất kho + tạo bundle transaction nhập học ────
-            let tuitionTx = null;
-            let _invId = '';
-
+            // Build all refs and payloads before the only primary commit.
+            const { writeBatch } = window._fb_init || {};
+            if (typeof writeBatch !== 'function') throw new Error('Firestore batch chưa sẵn sàng.');
+            let feePlan = null;
+            if (hasFinancialPayment) {
+                feePlan = FinanceService.prepareTransactionMutation(
+                    window.buildPaymentBundleTransaction({
+                        studentName: _saveKey, profileName: _saveKey, profileId: _saveKey,
+                        branch, date: joinDate, refMonth: paymentRefMonth,
+                        receiptType: paymentReceiptType, components: _admComponents,
+                    }), 'admission-bundle-atomic');
+            }
+            let inventoryPlan = null;
+            let giftPlan = null;
             if (uniformSize) {
-                _invId = await StudentService.addInventoryEntry({
+                inventoryPlan = InventoryService.prepareAddItemMutation({
                     category: 'Võ phục', size: uniformSize, type: 'Xuất bán', qty: 1,
-                    desc: _saveKey, amount: uniformFee, date: joinDate, timestamp: Date.now() + 2,
+                    desc: _saveKey, studentName: _saveKey, profileId: _saveKey, memberId,
+                    amount: uniformFee, date: joinDate, timestamp: Date.now() + 2,
+                    ...(hasPaidUniform ? { paymentBundleId: feePlan.ref.id, paidTxId: feePlan.ref.id } : {}),
                 });
+                const inventoryComponent = _admComponents.find(c => c.kind === 'inventory');
+                if (inventoryComponent) inventoryComponent.relatedInvId = inventoryPlan.itemRef.id;
                 if (isGift) {
-                    await StudentService.addUniformTransaction({
+                    giftPlan = FinanceService.prepareTransactionMutation({
                         branch: 'Chung', type: 'Tặng Võ phục',
                         description: `Tặng ${uniformSize} cho ${_saveKey}`,
-                        amount: 0, date: joinDate, timestamp: Date.now() + 1, relatedInvId: _invId,
-                    });
+                        amount: 0, date: joinDate, timestamp: Date.now() + 1,
+                        relatedInvId: inventoryPlan.itemRef.id,
+                    }, 'admission-uniform-gift-atomic');
                 }
             }
+            // Rebuild with the pre-generated inventory id, preserving canonical
+            // bundle fields while keeping the same transaction ref/receipt identity.
+            if (feePlan) {
+                feePlan.payload = FinanceService.prepareTransactionMutation(
+                    window.buildPaymentBundleTransaction({
+                        studentName: _saveKey, profileName: _saveKey, profileId: _saveKey,
+                        branch, date: joinDate, refMonth: paymentRefMonth,
+                        receiptType: paymentReceiptType, components: _admComponents,
+                    }), 'admission-bundle-atomic', feePlan.ref).payload;
+            }
+            const expectedPayment = fee + (isGift ? 0 : uniformFee);
+            const opCount = 1
+                + (inventoryPlan ? 1 + (Object.keys(inventoryPlan.summaryPatch || {}).length ? 1 : 0) : 0)
+                + (giftPlan ? 1 : 0)
+                + (feePlan ? 1 : 0);
+            if (opCount > 400 || !profilePlan.profileRef
+                || (feePlan && (!feePlan.ref || !Number.isSafeInteger(Number(feePlan.payload.amount))
+                    || Number(feePlan.payload.amount) !== expectedPayment))
+                || (!feePlan && expectedPayment !== 0)) {
+                throw new Error('Kế hoạch ghi nhập học không hợp lệ; chưa ghi dữ liệu.');
+            }
+            const batch = writeBatch(_db());
+            batch.set(profilePlan.profileRef, profilePlan.profilePayload);
+            if (inventoryPlan) {
+                batch.set(inventoryPlan.itemRef, inventoryPlan.payload);
+                if (Object.keys(inventoryPlan.summaryPatch || {}).length)
+                    batch.set(inventoryPlan.statsRef, inventoryPlan.summaryPatch, { merge: true });
+            }
+            if (giftPlan) batch.set(giftPlan.ref, giftPlan.payload);
+            if (feePlan) batch.set(feePlan.ref, feePlan.payload);
+            await batch.commit();
+            primaryCommitted = true;
+            committedTxId = feePlan ? feePlan.ref.id : '';
 
-            if (_hasFinancialPayment) {
-                const _inventoryComponent = _admComponents.find(c => c && c.kind === 'inventory');
-                if (_inventoryComponent) _inventoryComponent.relatedInvId = _invId;
-                if (_admComponents.length > 0) {
-                    const _bundleTx = window.buildPaymentBundleTransaction({
-                        studentName: _saveKey, branch, date: joinDate,
-                        refMonth: lastMonth, receiptType: 'Thu nhập học',
-                        components: _admComponents,
-                    });
-                    const _addFn = StudentService.addGenericTransaction
-                        ? StudentService.addGenericTransaction.bind(StudentService)
-                        : StudentService.addTuitionTransaction.bind(StudentService);
-                    tuitionTx = await _addFn(_bundleTx);
-                    if (_invId && !isGift) {
-                        try {
-                            await StudentService.updateInventoryDoc(_invId, {
-                                paymentBundleId: tuitionTx.id || '',
-                                paidTxId: tuitionTx.id || '',
-                            });
-                        } catch (_e) {
-                            _recordStudentSecondaryFailure('inventory-payment-link-reconcile-required', _e, {
-                                domain: 'inventory', inventoryId: _invId, paidTxId: tuitionTx.id || '', canonicalTransactionPreserved: true
-                            });
-                        }
-                    }
-                    if (typeof window.mergeTransactionIntoRuntimeStore === 'function') {
-                        window.mergeTransactionIntoRuntimeStore(tuitionTx, 'admission-bundle-created');
-                    }
+            // Primary write succeeded. UI/cache and receipt failures are secondary.
+            try {
+                if (window.__store) window.__store.profiles = { ..._profiles(), [_saveKey]: profilePlan.profilePayload };
+                if (inventoryPlan) {
+                    window.mergeInventoryIntoRuntimeStore?.(inventoryPlan.runtimeItem, 'admission-atomic-inventory');
+                    window.notifyInventoryMutation?.('admission-atomic-inventory', { writeThrough: true });
                 }
+                if (feePlan) {
+                    const tuitionTx = { id: feePlan.ref.id, ...feePlan.payload };
+                    window.mergeTransactionIntoRuntimeStore?.(tuitionTx, 'admission-bundle-created');
+                }
+                if (giftPlan) window.mergeTransactionIntoRuntimeStore?.(giftPlan.runtimeTx, 'admission-uniform-gift');
+            } catch (secondary) {
+                _recordStudentSecondaryFailure('admission-runtime-projection', secondary, { transactionId: committedTxId });
             }
 
-            window.closeAddModal();
-            window.showToast('🎉 Đã thêm võ sinh ' + _saveKey + ' thành công!', 3000);
-
-            // Phase 4K-6E-C: Refresh active new student badge + list after adding
-            if (typeof window.updateActiveNewStudentCountBadge === 'function') {
-                window.updateActiveNewStudentCountBadge();
-            }
-            if (typeof window.resetActiveRenderLimit === 'function') {
-                window.resetActiveRenderLimit('after-add-new-student');
-            }
-            if (typeof window.refreshListsComputation === 'function') {
-                window.refreshListsComputation(['students.activeList', 'dashboard.summary'], 'after-add-new-student');
-            }
-            if (typeof window.invalidateList === 'function') {
-                window.invalidateList('students.activeList', 'after-add-new-student');
-            } else if (typeof window.invalidateStudents === 'function') {
-                window.invalidateStudents('after-add-new-student');
+            try {
+                window.closeAddModal();
+                window.showToast(hasTuitionPayment
+                    ? '🎉 Đã thêm võ sinh ' + _saveKey + ' thành công!'
+                    : '✅ Đã thêm võ sinh ' + _saveKey + '. Học phí tháng nhập học chưa thu và đang được tính nợ.', 4000);
+                window.updateActiveNewStudentCountBadge?.();
+                window.resetActiveRenderLimit?.('after-add-new-student');
+                window.refreshListsComputation?.(['students.activeList', 'students.debtList', 'dashboard.summary'], 'after-add-new-student');
+                if (typeof window.invalidateList === 'function') {
+                    window.invalidateList('students.activeList', 'after-add-new-student');
+                    window.invalidateList('students.debtList', 'after-add-new-student');
+                } else window.invalidateStudents?.('after-add-new-student');
+            } catch (secondary) {
+                _recordStudentSecondaryFailure('admission-ui-refresh', secondary, { transactionId: committedTxId });
             }
 
             // ── Tạo biên lai nếu có thanh toán ────────────────────────────
@@ -480,25 +568,25 @@ export function initStudents() {
                     ? 'Học phí + Võ phục'
                     : (fee > 0 ? 'Học phí' : 'Võ phục');
 
-                // Đảm bảo profile có trong bridge trước khi tạo biên lai
-                // (onSnapshot chưa kịp đến sau setDoc)
-                const liveProfiles = _profiles();
-                if (!liveProfiles[_saveKey] && window.__store) {
-                    window.__store.profiles = {
-                        ...liveProfiles,
-                        [_saveKey]: {
-                            belt:       document.getElementById('add_belt').value,
-                            branch,
-                            tuitionFee: document.getElementById('add_fee_default_actual').value,
-                        },
-                    };
+                try {
+                    const receipt = await window.exportReceipt(
+                        _saveKey, totalPayment, receiptType, joinDate, hasTuitionPayment ? tuitionPkg.monthsStr : '',
+                        branch, '', 'BIÊN LAI THU TIỀN', breakdown.length > 0 ? breakdown : null
+                    );
+                    if (receipt && receipt.ok === false) throw receipt.error || new Error(receipt.reason || 'Không thể hiển thị biên lai.');
+                } catch (receiptError) {
+                    _recordStudentSecondaryFailure('admission-receipt', receiptError, { transactionId: committedTxId });
+                    window.showToast?.('✅ Đã ghi sổ. Chưa in được biên lai; in lại từ giao dịch ' + committedTxId + '.', 7000);
                 }
-                await window.exportReceipt(
-                    _saveKey, totalPayment, receiptType, joinDate, tuitionPkg.monthsStr,
-                    branch, '', 'BIÊN LAI THU TIỀN', breakdown.length > 0 ? breakdown : null
-                );
             }
         } catch (err) {
+            if (primaryCommitted) {
+                console.error('[students.addNewStudent] secondary failure after commit', err);
+                window.showToast?.(committedTxId
+                    ? '✅ Đã ghi sổ giao dịch ' + committedTxId + '. Vui lòng tải lại để xem/in biên lai.'
+                    : '✅ Hồ sơ đã được lưu. Học phí tháng nhập học chưa thu; vui lòng tải lại nếu giao diện chưa cập nhật.', 7000);
+                return;
+            }
             console.error('[students.addNewStudent]', err);
             if (typeof window.recordRuntimeError === 'function') window.recordRuntimeError('students.addNewStudent', err, { action: 'add-student' });
             const message = err && err.message ? err.message : String(err || 'Lỗi không xác định');
@@ -526,8 +614,9 @@ export function initStudents() {
         const p = _profiles()[name];
         if (!p) return;
 
-        document.getElementById('m_old_name').value    = name;
-        document.getElementById('m_name_input').value  = name;
+        const profileKey = name;
+        document.getElementById('m_old_name').value    = profileKey;
+        document.getElementById('m_name_input').value  = _resolveDisplayName(profileKey, p);
         document.getElementById('m_memberId').value    = p.memberId || '';
         document.getElementById('m_status').value      = p.status || 'active';
         document.getElementById('m_branch').value      = p.branch || 'CS1';
@@ -568,12 +657,11 @@ export function initStudents() {
         if (_mShiftSel) {
             const _savedShiftId = p.trainingShiftId || '';
             (window._ensureClubShiftsLoaded ? window._ensureClubShiftsLoaded() : Promise.resolve()).then(function () {
-                let _msHtml = '<option value="">-- Chọn ca tập --</option>';
+                _mShiftSel.replaceChildren(new Option('-- Chọn ca tập --', ''));
                 (window._getClubShifts ? window._getClubShifts() : []).forEach(function (s) {
                     const _t = (s.timeStart && s.timeEnd) ? ' (' + s.timeStart + '–' + s.timeEnd + ')' : '';
-                    _msHtml += '<option value="' + s.id + '">' + s.name + _t + '</option>';
+                    _mShiftSel.add(new Option(String(s.name || '') + _t, String(s.id || '')));
                 });
-                _mShiftSel.innerHTML = _msHtml;
                 _mShiftSel.value = _savedShiftId;
             });
         }
@@ -583,13 +671,10 @@ export function initStudents() {
     /**
      * Lưu thay đổi hồ sơ võ sinh vào Firestore.
      *
-     * Khi ĐỔI TÊN (oldName ≠ newName):
-     *   - writeBatch atomic: set doc mới + delete doc cũ
-     *   - Đồng bộ tên trong tất cả transactions liên quan
-     *   - Yêu cầu xác nhận trước khi thực hiện
-     *
-     * Khi SỬA (không đổi tên):
-     *   - setDoc merge để chỉ cập nhật các field thay đổi
+     * H8R1: profile document ID là immutable profileKey.
+     * Trường tên trong modal chỉ sửa `displayName`; mọi update tiếp tục ghi
+     * vào đúng document hiện hữu qua StudentStatusCommandBoundary.
+     * Không gọi renameWithBatch, không migrate Attendance/transactions.
      *
      * Logic trạng thái:
      *   active → quit  : ghi quitDate = hôm nay
@@ -602,18 +687,16 @@ export function initStudents() {
         const profiles = _profiles();
         const config   = _config();
 
-        const oldName  = document.getElementById('m_old_name').value.trim();
-        const newName  = document.getElementById('m_name_input').value.trim();
+        const profileKey = document.getElementById('m_old_name').value.trim();
+        const requestedDisplayName = document.getElementById('m_name_input').value.trim();
         const newStatus = document.getElementById('m_status').value;
         const isSingleBranch = (config.branchCount === 1);
 
-        if (!newName) return alert('Tên võ sinh không được để trống!');
-        if (oldName !== newName) {
-            alert('⚠️ Chưa thể đổi tên chính của võ sinh ở phiên bản này.\n\nTên hiện đang được dùng làm mã liên kết cho lịch sử Điểm danh và một số giao dịch. Để bảo vệ dữ liệu cũ, hệ thống đã chặn thao tác đổi tên.\n\nBạn vẫn có thể chỉnh sửa các thông tin khác của võ sinh.');
-            return;
-        }
+        if (!profileKey) return alert('Không xác định được mã hồ sơ võ sinh. Vui lòng đóng và mở lại hồ sơ!');
+        if (!requestedDisplayName) return alert('Tên võ sinh không được để trống!');
 
         let updateData = {
+            displayName:     requestedDisplayName,
             status:          newStatus,
             memberId:        document.getElementById('m_memberId').value.trim().toUpperCase(),
             branch:          isSingleBranch ? 'CS1' : (window.BranchIdentity?.normalize?.(document.getElementById('m_branch').value, { fallback: 'CS1' }) || 'CS1'),
@@ -635,11 +718,11 @@ export function initStudents() {
         if (updatedPaidUntil) updateData.paidUntil = updatedPaidUntil;
 
         // Xử lý chuyển trạng thái
-        if (newStatus === 'quit' && (profiles[oldName] || {}).status !== 'quit') {
+        if (newStatus === 'quit' && (profiles[profileKey] || {}).status !== 'quit') {
             updateData.quitDate = getLocalToday();
         } else if (newStatus === 'active') {
             updateData.quitDate = null;
-            if ((profiles[oldName] || {}).status === 'quit') {
+            if ((profiles[profileKey] || {}).status === 'quit') {
                 // Reset paidUntil về tháng trước để tính nợ đúng
                 const todayYYYYMM = getLocalToday().substring(0, 7);
                 let [ry, rm] = todayYYYYMM.split('-').map(Number);
@@ -653,44 +736,17 @@ export function initStudents() {
         // profile update command. Reuse the existing builder and current RAM profile;
         // no Firestore read and no second write are introduced.
         if (typeof window.buildStudentSearchIndex === 'function') {
-            const mergedProfile = { ...(profiles[oldName] || {}), ...updateData };
-            Object.assign(updateData, window.buildStudentSearchIndex(mergedProfile, oldName));
+            const mergedProfile = { ...(profiles[profileKey] || {}), ...updateData };
+            Object.assign(updateData, window.buildStudentSearchIndex(mergedProfile, profileKey));
         }
 
         try {
-            if (oldName !== newName) {
-                // Đổi tên — atomic batch
-                if (profiles[newName]) return alert('Tên võ sinh đã tồn tại!');
-                if (!confirm(`Bạn có chắc muốn đổi tên từ "${oldName}" thành "${newName}"?\nHệ thống sẽ tự động cập nhật tên mới trên tất cả hóa đơn.`)) return;
-
-                updateData.createdAt = (profiles[oldName] || {}).createdAt || getLocalToday();
-                if ((profiles[oldName] || {}).skippedMonths) updateData.skippedMonths = profiles[oldName].skippedMonths;
-                if ((profiles[oldName] || {}).paidUntil)     updateData.paidUntil     = profiles[oldName].paidUntil;
-
-                // Tìm tất cả transactions liên quan để đồng bộ tên
-                const oldTxDocs = await StudentService.findTransactionsByStudent(oldName);
-                const txUpdates = [];
-                oldTxDocs.forEach(({ id: txId, data: t }) => {
-                    let updatedDesc = t.description;
-                    if (t.description === oldName) {
-                        updatedDesc = newName;
-                    } else if (t.description && t.description.startsWith(oldName + ' (Thi lên')) {
-                        updatedDesc = t.description.replace(oldName, newName);
-                    } else if (t.description && t.description.includes(oldName)) {
-                        updatedDesc = t.description.replace(oldName, newName);
-                    }
-                    if (updatedDesc !== t.description) txUpdates.push({ txId, newDesc: updatedDesc });
-                });
-
-                await window.StudentStatusCommandBoundary.updateProfile({ oldName, newName, updateData, txUpdates });
-
-                // V5U-1: local-store commit/invalidation is owned by StudentStatusCommandBoundary.
-                window.showToast('✅ Đã cập nhật và đồng bộ tên mới thành công!');
-            } else {
-                // Chỉ sửa — không đổi tên
-                await window.StudentStatusCommandBoundary.updateProfile({ oldName, newName, updateData });
-                window.showToast('✅ Đã cập nhật hồ sơ!');
-            }
+            await window.StudentStatusCommandBoundary.updateProfile({
+                oldName: profileKey,
+                newName: profileKey,
+                updateData
+            });
+            window.showToast('✅ Đã cập nhật hồ sơ!');
             window.closeModal();
         } catch (error) {
             console.error('Lỗi cập nhật:', error);
@@ -1151,6 +1207,18 @@ export function initStudentPagination() {
                                 ? window.classifyProfileStatus(p)
                                 : (p.status === 'quit' || p.active === false || p.isActive === false ? 'quit' : 'active');
                             if (kind !== 'active') return false;
+                            // Client load-more must count only the same visible
+                            // Active search/branch set, not the whole club.
+                            const filterBranch = (document.getElementById('filterBranch') || {}).value || 'all';
+                            const normBr = b => /^(Mặc định|mac dinh|default)$/i.test(String(b || '').trim()) ? 'CS1' : String(b || '').trim();
+                            if (filterBranch !== 'all' && normBr(p.branch || 'CS1') !== normBr(filterBranch)) return false;
+                            const q = normalizeVNForSearch(_getCurrentSearch());
+                            if (q) {
+                                const searchable = [name,p.name,p.nickname,p.alias,p.memberId,p.studentCode,p.code,
+                                    p.searchCode,p.searchNickname,p.phone,p.parentPhone,p.contactPhone,p.guardianPhone]
+                                    .map(normalizeVNForSearch).join(' ');
+                                if (!searchable.includes(q)) return false;
+                            }
                             if (typeof window.shouldShowActiveStudentByNewFilter === 'function') {
                                 return window.shouldShowActiveStudentByNewFilter(name, p);
                             }
@@ -1499,29 +1567,66 @@ export function initStudentPagination() {
 
             // ── [GITHUB-FIX Task 2] Hydrate store.profiles từ pagination items ──
             // Đảm bảo computeAndCacheStudents không thấy profiles rỗng khi pagination đã có rows.
+            // D1C3B3: one snapshot of the existing verified auth owner; no new auth store.
+            function _paginationContext() {
+                const st = window.__store || store || {};
+                const auth = window.__verifiedAuthContextState;
+                const normRole = r => {
+                    const v = String(r || '').trim().toLowerCase().replace(/-/g, '_');
+                    return v === 'hlv' || v === 'trainer' ? 'coach' : (v === 'superadmin' ? 'super_admin' : v);
+                };
+                const normBranch = b => {
+                    const v = String(b || '').trim();
+                    return /^(Mặc định|mac dinh|default)$/i.test(v) ? 'CS1' : v;
+                };
+                const clubId = String(st.clubId || st.currentClubId || '').trim();
+                const role = normRole(st.userRole || window.userRole);
+                const branch = normBranch(st.coachBranch || window.coachBranch);
+                const valid = !!clubId && ['admin','super_admin','coach'].includes(role)
+                    && (!st.clubId || !st.currentClubId || st.clubId === st.currentClubId)
+                    && (!st.userRole || normRole(st.userRole) === role)
+                    && (!window.userRole || normRole(window.userRole) === role)
+                    && (role !== 'coach' || (!!branch && (!st.coachBranch || normBranch(st.coachBranch) === branch)
+                        && (!window.coachBranch || normBranch(window.coachBranch) === branch)))
+                    && (!auth || (auth.ready === true && (role === 'super_admin' || String(auth.clubId || '') === clubId)
+                        && normRole(auth.role) === role && (role !== 'coach' || normBranch(auth.coachBranch) === branch)));
+                return { valid, clubId, role, branch: role === 'coach' ? branch : '',
+                    epoch: auth ? Number(auth.generation) : null, uid: auth ? String(auth.uid || '') : '' };
+            }
+            function _samePaginationContext(start) {
+                const now = _paginationContext();
+                return !!start?.valid && now.valid && start.clubId === now.clubId && start.role === now.role
+                    && start.branch === now.branch && start.epoch === now.epoch && start.uid === now.uid;
+            }
             function _mergePaginationProfilesIntoStore(items, reason) {
                 if (!Array.isArray(items) || items.length === 0) return 0;
+                const ctx = _paginationContext();
+                if (!ctx.valid) return 0;
                 const st = window.__store || store;
-                if (!st) return 0;
-                if (!st.profiles || typeof st.profiles !== 'object') st.profiles = {};
-                let added = 0;
-                items.forEach(function(item) {
-                    const id = String(item.id || item.name || '').trim();
+                const metrics = typeof window.getProfilesListenerMetrics === 'function'
+                    ? window.getProfilesListenerMetrics() : {};
+                const normRole = r => {
+                    const v = String(r || '').trim().toLowerCase().replace(/-/g, '_');
+                    return v === 'hlv' || v === 'trainer' ? 'coach' : (v === 'superadmin' ? 'super_admin' : v);
+                };
+                // Pagination never establishes authority: it may enrich page PRESENTATION
+                // only from the already server-confirmed same-session Admin store.
+                const verified = ctx.role !== 'coach' && String(metrics.authorityClubId || '') === ctx.clubId
+                    && normRole(metrics.role) === ctx.role
+                    && (ctx.epoch === null || Number(metrics.authoritySessionEpoch) === ctx.epoch)
+                    && metrics.authorityServerConfirmed === true && metrics.authorityFreshness === 'fresh'
+                    && metrics.fullAuthorityComplete === true && metrics.lastProfilesMode === 'full-profiles-authoritative'
+                    && window.studentProfileStore?.quitComplete === true;
+                if (!verified) return 0;
+                items.forEach(item => {
+                    const id = String(item?.id || item?.name || '').trim();
                     if (!id) return;
-                    if (!st.profiles[id]) added++;
-                    st.profiles[id] = Object.assign({}, item);
-                    if (window.studentProfileStore && typeof window.studentProfileStore.mergeProfile === 'function') {
-                        try { window.studentProfileStore.mergeProfile(id, item, reason || 'pagination-profile-hydrate'); } catch (_) {}
-                    }
+                    const current = st.profiles?.[id];
+                    if (!current) return;
+                    Object.keys(item).forEach(key => { delete item[key]; });
+                    Object.assign(item, current, { id });
                 });
-                // V5Q: each pagination item was already merged above via mergeProfile().
-                // Never resync the whole st.profiles map here: it can be active-only or
-                // one search page and previously erased quitProfiles / marked quitLoaded.
-                if (window.__store) {
-                    window.__store._dataVersion = (window.__store._dataVersion || 0) + 1;
-                    window.__store._lastProfileHydrateReason = reason || 'pagination-profile-hydrate';
-                }
-                return added;
+                return 0; // no profile mutations/read/writer authority from a page
             }
 
             // ── Core: thực sự load một trang profiles ──────────────────
@@ -1540,11 +1645,19 @@ export function initStudentPagination() {
                 if (pgState.isLoading && _searchToken) {
                     console.debug('[students-pagination] new searchToken allowed while previous load is running', _searchToken);
                 }
+                const _loadContext = _paginationContext();
+                if (!_loadContext.valid) return { stale: true, items: [] };
+                const _loadOwner = (pgState._loadOwner || 0) + 1;
+                pgState._loadOwner = _loadOwner;
                 pgState.isLoading = true;
                 function _isStaleSearch() {
-                    return _searchToken > 0 &&
-                        window.__searchRuntimeState &&
-                        _searchToken !== window.__searchRuntimeState.currentSearchToken;
+                    return !_samePaginationContext(_loadContext) || pgState._loadOwner !== _loadOwner || (
+                        _searchToken > 0 && window.__searchRuntimeState &&
+                        _searchToken !== window.__searchRuntimeState.currentSearchToken);
+                }
+                function _dropStale() {
+                    if (pgState._loadOwner === _loadOwner) pgState.isLoading = false;
+                    return { stale: true, items: [] };
                 }
                 _injectControls(); // hiện spinner ngay
 
@@ -1556,8 +1669,7 @@ export function initStudentPagination() {
                 if (_getCurrentTabIdSafe() === 'quit' && window.QuitProfileBoundary) {
                     try { await window.QuitProfileBoundary.ensureComplete('students-pagination-quit'); } catch (_) {}
                     if (_isStaleSearch()) {
-                        pgState.isLoading = false;
-                        return { stale: true, items: [] };
+                        return _dropStale();
                     }
                     const entries = window.QuitProfileBoundary.getEntries({
                         search,
@@ -1619,17 +1731,29 @@ export function initStudentPagination() {
 
                         // Phase 4K-5F: pass statusFilter so search result matches current tab
                         const _curTabStatus = _getCurrentTabIdSafe() === 'quit' ? 'quit' : 'active';
-                        const _sr = await StudentService.searchProfilesServerSide(search, { pageSize: PAGE_SIZE, statusFilter: _curTabStatus });
+                        const _branchFilter = (document.getElementById('filterBranch') || {}).value || 'all';
+                        const _sameLocalSearch = direction === 'next' && pgState.searchQuery === search
+                            && pgState.searchSource === 'client-authoritative-full' && pgState._searchBranchFilter === _branchFilter;
+                        const _offset = _sameLocalSearch ? (pgState.currentItems || []).length : 0;
+                        const _sr = await StudentService.searchProfilesServerSide(search, { pageSize: PAGE_SIZE, statusFilter: _curTabStatus,
+                            branchFilter: _branchFilter, offset: _offset });
 
                         // Phase 4K-2B: Stale guard — chặn TRƯỚC khi mutate state
                         if (_isStaleSearch()) {
-                            pgState.isLoading = false;
                             console.debug('[students-pagination] stale search dropped before apply (server-side)', _searchToken);
-                            return { stale: true, items: [] };
+                            return _dropStale();
                         }
 
-                        pgState.currentItems = _sr.items || [];
-                        pgState.currentPage  = 1;
+                        if (_sameLocalSearch && _sr.source === 'client-authoritative-full') {
+                            const merged = new Map((pgState.currentItems || []).map(item => [String(item.id || ''), item]));
+                            (_sr.items || []).forEach(item => merged.set(String(item.id || ''), item));
+                            pgState.currentItems = [...merged.values()];
+                        } else {
+                            pgState.currentItems = _sr.items || [];
+                        }
+                        pgState.searchSource = _sr.source || '';
+                        pgState._searchBranchFilter = _branchFilter;
+                        pgState.currentPage  = _sameLocalSearch ? Math.ceil(pgState.currentItems.length / PAGE_SIZE) : 1;
                         pgState.totalLoaded  = pgState.currentItems.length;
                         pgState.hasNext      = _sr.hasMore || false;
                         pgState.hasPrevious  = false;
@@ -1645,9 +1769,11 @@ export function initStudentPagination() {
                         _lastCursorId = '';
 
                         if (_srEl && _showStudentSearchStatus) {
+                            const _verifiedSearch = _sr.source === 'client-authoritative-full';
                             _srEl.textContent = pgState.currentItems.length === 0
-                                ? 'Không tìm thấy võ sinh'
-                                : ('Tìm thấy ' + pgState.currentItems.length + (_sr.hasMore ? '+' : '') + ' kết quả');
+                                ? (_verifiedSearch ? 'Không tìm thấy võ sinh' : 'Đang đồng bộ — chưa thể xác nhận không tìm thấy')
+                                : ('Tìm thấy ' + pgState.currentItems.length + (_sr.hasMore ? '+' : '') + ' kết quả'
+                                    + (_verifiedSearch ? '' : ' (đang đồng bộ, có thể chưa đầy đủ)'));
                         }
 
                         // [PART 7 FIX] Reset failure flag khi search thành công
@@ -1665,9 +1791,8 @@ export function initStudentPagination() {
 
                         // Phase 4K-2B: Stale guard — chặn TRƯỚC khi mutate state
                         if (_isStaleSearch()) {
-                            pgState.isLoading = false;
                             console.debug('[students-pagination] stale search dropped before apply (page load)', _searchToken);
-                            return { stale: true, items: [] };
+                            return _dropStale();
                         }
 
                         const items = processPage(snap, pgState);
@@ -1728,7 +1853,7 @@ export function initStudentPagination() {
                     try {
                         const _profileCount = Object.keys((store && store.profiles) || {}).length;
                         const _pageCount = Array.isArray(pgState.currentItems) ? pgState.currentItems.length : 0;
-                        if (_pageCount > 0 && _profileCount < Math.min(10, Math.ceil(_pageCount * 0.3))) {
+                        if (!_isStaleSearch() && _loadContext.role !== 'coach' && _pageCount > 0 && _profileCount < Math.min(10, Math.ceil(_pageCount * 0.3))) {
                             if (typeof window.loadFullProfilesFallback === 'function') {
                                 try {
                                     await window.loadFullProfilesFallback('pagination-items-but-profiles-empty');
@@ -1739,6 +1864,7 @@ export function initStudentPagination() {
                         }
                     } catch (_) {}
 
+                    if (_isStaleSearch()) return _dropStale();
                     // Phase 4K-STUDENT-RENDER-OVERWRITE-FIX: tăng version counters
                     // để computeAndCacheStudents cache key bị invalidate ngay sau pagination load.
                     // _studentsPaginationVersion → paramsKey miss → cache rebuild với data mới.
@@ -1788,8 +1914,9 @@ export function initStudentPagination() {
                         setTimeout(() => _renderStudentsPageRowsFallback(pgState), 300);
                     }
                 } catch (err) {
+                    if (_isStaleSearch()) return _dropStale();
                     console.error('[pagination/students] Lỗi load trang:', err);
-                    pgState.isLoading = false;
+                    if (pgState._loadOwner === _loadOwner) pgState.isLoading = false;
                     // [PART 7 FIX] Đánh dấu failure để app.js legacy search có thể fallback
                     if (search && search.trim()) {
                         window.__studentSearchControllerFailed = true;
@@ -2502,32 +2629,33 @@ window.loadAllProfilesForDebt = async function loadAllProfilesForDebt(reason) {
     }
     const st = window.__store || {};
     const profilesCount = Object.keys(st.profiles || {}).length;
-    return { ok: profilesCount > 0, ready: profilesCount > 0, source: 'active-store-compat', profilesCount };
+    return { ok: false, ready: false, source: 'coverage-boundary-unavailable', profilesCount };
 };
 
 window.ensureDebtProfilesReady = async function ensureDebtProfilesReady(reason) {
     reason = typeof reason === 'string' ? reason : 'ensureDebtProfilesReady';
     const result = await window.loadAllProfilesForDebt(reason);
     const st = window.__store || {};
+    const wasReady = st._debtProfileCoverageReady === true;
 
     st._profilesFullLoadedForDebt = !!(result && result.fallback);
     st._debtProfileCoverageReady = !!(result && result.ready);
     st._debtProfileCoverageSource = (result && result.source) || 'unknown';
     st._debtProfileCoverageCheckedAt = Date.now();
 
-    if (typeof window.refreshListsComputation === 'function') {
-        window.refreshListsComputation(['students.activeList', 'students.debtList', 'dashboard.summary'], reason);
-    }
-    if (typeof window.updateSkippedMonthSection === 'function') {
-        try {
-            window.updateSkippedMonthSection(window.__store.profiles, month);
-        } catch (_) {}
-    }
-    if (typeof window.invalidateList === 'function') {
-        window.invalidateList('students.debtList', reason);
-        window.invalidateList('students.activeList', reason);
-    } else if (typeof window.invalidateStudents === 'function') {
-        window.invalidateStudents(reason);
+    if (result?.ready === true && !wasReady) {
+        if (typeof window.refreshListsComputation === 'function') {
+            window.refreshListsComputation(['students.debtList', 'dashboard.summary'], reason);
+        }
+        const selectedMonth = document.getElementById('filterMonth')?.value || st.selectedMonth || '';
+        if (selectedMonth && typeof window.updateSkippedMonthSection === 'function') {
+            try { window.updateSkippedMonthSection(st.profiles || {}, selectedMonth); } catch (_) {}
+        }
+        if (typeof window.invalidateList === 'function') {
+            window.invalidateList('students.debtList', reason);
+        } else if (typeof window.invalidateStudents === 'function') {
+            window.invalidateStudents(reason);
+        }
     }
 
     return {

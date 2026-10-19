@@ -1,0 +1,14 @@
+
+> taekwondo-club-app@1.0.0 check:startup-read-budget-freeze
+> node tools/check-startup-read-budget-freeze.mjs
+
+✅ getDoc runtime call sites do not increase (29 <= 33)
+✅ getDocs runtime call sites do not increase (51 <= 56)
+✅ onSnapshot runtime call sites do not increase (16 <= 17)
+✅ window assignments do not increase (532 <= 534)
+✅ duplicate globals do not increase (157 <= 159)
+✅ no polling added to tenant startup
+✅ notification startup one-shot removed
+✅ transaction startup still delegates existing owner
+Current static counts: { getDoc: 29, getDocs: 51, onSnapshot: 16 }
+PASS 8/8

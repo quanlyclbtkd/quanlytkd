@@ -129,9 +129,10 @@ if (svcJs) {
     check('finance.service.js: inclusive query returns _mergedItems',
         svcJs.includes('_mergedItems'),
         'getTransactionsForMonthInclusive must return { docs, _mergedItems, _source }');
-    check('finance.service.js: getTransactionsPage delegates to inclusive for first page with monthStr',
-        svcJs.includes('getTransactionsForMonthInclusive') && svcJs.includes("direction === 'first'"),
-        'getTransactionsPage: if monthStr && direction === "first" && !cursor → use getTransactionsForMonthInclusive');
+    check('finance.service.js: getTransactionsPage delegates all month pages to inclusive owner',
+        svcJs.includes('if (monthStr) {') && svcJs.includes('getTransactionsForMonthInclusive')
+          && svcJs.includes("direction === 'next' ? monthState : null"),
+        'Month first/next pages must retain all three sources and their cursors');
     check('finance.service.js: queryTxByPackageMonths defined for export',
         svcJs.includes('queryTxByPackageMonths'),
         'Add async queryTxByPackageMonths(months=[]) {...} for export/report use');

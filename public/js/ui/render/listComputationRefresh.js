@@ -1,4 +1,5 @@
-// V5U3 compatibility marker: studentsRenderer.js?v=student-given-name-priority-20260811-v5u3
+// H8R1 compatibility: studentsRenderer.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h
+// V5U3 compatibility marker: studentsRenderer.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
 /**
  * listComputationRefresh.js — Phase 3.5E List-Level Computation Refresh
  *
@@ -45,7 +46,7 @@ import {
 import {
     computeAndCacheStudents,
     getStudentsSummary,
-} from './computation/studentsRenderer.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
+} from './computation/studentsRenderer.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1';
 import {
     computeAndCacheInventory,
     getCachedUnpaidInvCount,
@@ -320,8 +321,9 @@ function _cacheAndApplyDashboardSummary(reason) {
     const txCount       = fin ? _num(fin.txCount)      : prev.txCount;
 
     const activeCount   = std ? _num(std.activeCount)    : _num(prev.activeCount);
-    const debtCount     = std ? _num(std.debtCount)      : _num(prev.debtCount);
-    const totalDebtEst  = std ? _num(std.totalDebtEst)   : _num(prev.totalDebtEst);
+    const debtSummaryPending = std?.debtSummaryPending !== false;
+    const debtCount     = debtSummaryPending ? null : _num(std.debtCount);
+    const totalDebtEst  = debtSummaryPending ? null : _num(std.totalDebtEst);
     const mActiveTheo   = std ? _num(std.m_active_theo)  : _num(prev.activeCount);
     const mNew          = std ? _num(std.m_new)          : 0;
     const mQuit         = std ? _num(std.m_quit)         : 0;
@@ -338,7 +340,7 @@ function _cacheAndApplyDashboardSummary(reason) {
     const summaryNumbers = {
         incTuition, incExam, incOther, incUniform,
         expTotal, expExamTotal, expUniform,
-        activeCount, debtCount, totalDebtEst, txCount,
+        activeCount, debtCount, totalDebtEst, debtSummaryPending, txCount,
         selMonth, unpaidInvCount,
     };
 

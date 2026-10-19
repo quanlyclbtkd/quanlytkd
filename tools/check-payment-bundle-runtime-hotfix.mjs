@@ -121,8 +121,9 @@ check('Modular addNewStudent still calls bundle builder', students.includes('bui
 check('Modular addNewStudent catches runtime errors', students.includes("recordRuntimeError('students.addNewStudent'"));
 check('Modular addNewStudent always releases submit lock', /finally\s*\{\s*_addStudentInProgress\s*=\s*false/.test(students));
 const preflightPos = students.indexOf('const _preflightBundle = window.buildPaymentBundleTransaction');
-const profileWritePos = students.indexOf('await StudentService.createProfile');
-check('Admission bundle preflight runs before profile write', preflightPos >= 0 && profileWritePos >= 0 && preflightPos < profileWritePos);
+const profileWritePos = students.indexOf('batch.set(profilePlan.profileRef');
+check('Admission bundle preflight runs before atomic profile write', preflightPos >= 0 && profileWritePos >= 0 && preflightPos < profileWritePos
+  && students.includes('await batch.commit();') && !students.includes('await StudentService.createProfile(_saveKey'));
 check('Admission preflight rejects malformed component arrays', students.includes('Dữ liệu khoản thu nhập học không hợp lệ.'));
 check('V3A canonical boundary remains active', app.includes('_canonicalTxPayload(transaction, \'payment-bundle-builder\')'));
 

@@ -44,7 +44,7 @@ check(attendance.includes('offlineSyncDifferentContextFollowups++') && attendanc
 check(!/new\s+Map\s*\([^)]*club/i.test(syncBlock) && !/Map\s*<.*Promise/.test(syncBlock), 'No per-club Promise map/parallel writer introduced');
 check(!/setInterval\s*\(/.test(syncBlock) && !/setTimeout\s*\(/.test(syncBlock), 'No polling or recursive timer retry added to offline sync');
 check(syncBlock.includes('_isOfflineAttendanceSyncContextCurrent(syncContext)') && syncBlock.includes('break v2Dates'), 'Stale context is checked before chunks and stops future chunks');
-check(syncBlock.includes('_removeAttOfflineMutation(record)') && attendance.includes('current?.revision') && attendance.includes('record.revision'), 'Committed cleanup is revision-scoped');
+check(syncBlock.includes('_removeAttOfflineMutation(record, raw)') && attendance.includes('localStorage.getItem(key) !== expectedRaw'), 'Committed cleanup requires ACK plus exact raw identity');
 
 // Static Firestore call-site freeze using the same runtime-file policy as V5U6A.
 function walk(dir, out = []) {
@@ -100,7 +100,9 @@ try {
   globalThis.__store = { db: {}, clubId: 'club-a', currentClubId: 'club-a', userRole: 'admin', coachBranch: '', profiles, clubConfig: {}, clubData: {} };
   globalThis.currentClubId = 'club-a'; globalThis.userRole = 'admin'; globalThis.coachBranch = '';
   globalThis.__verifiedAuthContextState = { ready: true, uid: 'uid-a', clubId: 'club-a', role: 'admin', coachBranch: '', generation: 100 };
-  globalThis.RoleReadBoundary = { isCoachAttendanceOnly: () => globalThis.userRole === 'coach', canMount: () => true };
+  const roleHolder = {};
+  (await import('node:vm')).runInNewContext(read('js/core/roleReadBoundary.js'), { window: roleHolder });
+  globalThis.RoleReadBoundary = { normalizeRole: roleHolder.RoleReadBoundary.normalizeRole, isCoachAttendanceOnly: () => globalThis.userRole === 'coach', canMount: () => true };
   const runtimeErrors = []; globalThis.recordRuntimeError = (source, err, extra) => runtimeErrors.push({ source, err, extra });
 
   // G1-G4: exercise the real canonical offline writer with fake writeBatch.
@@ -109,7 +111,7 @@ try {
     doc: (...parts) => ({ parts }),
     writeBatch: () => ({ set: (ref, payload) => writes.push({ ref, payload }), delete: ref => deletes.push(ref), commit: async () => {} }),
   };
-  const serviceUrl = pathToFileURL(path.join(root, 'js/services/attendance.service.js')).href + '?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1';
+  const serviceUrl = pathToFileURL(path.join(root, 'js/services/attendance.service.js')).href + '?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1';
   const { AttendanceService } = await import(serviceUrl);
   const realBulkSyncOffline = AttendanceService.bulkSyncOffline.bind(AttendanceService);
   const dirty = { version: 2, clubId: 'club-a', operation: 'set', shiftMode: 'explicit-shift', queuedAt: 100, lastUpdatedAt: 200, revision: 3, docId: 'Alice_2026-08-15_morning', journalKey: 'local', syncState: 'pending', retryCount: 9, profileId: 'p1', name: 'Alice', belt: 'Đai Đen', branch: 'CS1', date: '2026-08-15', month: '2026-08', shiftId: 'morning', status: 1 };
@@ -175,7 +177,7 @@ try {
   check(abB === abA && syncCalls.length === 1, 'G6 A→B queues B without starting a parallel writer');
   abLatch.resolve(); await abA; await waitFor(() => syncCalls.some(c => c.clubId === 'club-b'), 'G7 B follow-up'); await waitFor(() => !storage.has(bKey), 'G7 B cleanup');
   check(syncCalls.filter(c => c.clubId === 'club-b').length === 1, 'G7 A settle starts exactly one B follow-up flight');
-  check(!storage.has(aKey) && !storage.has(bKey), 'G7 committed A and follow-up B clean only their confirmed entries');
+  check(storage.has(aKey) && !storage.has(bKey), 'G7 A ACK after owner switch defers A cleanup; B follow-up cleans only B');
   check(Number(globalThis.__attendanceDebug?.offlineSyncStaleUiRefreshDropped || 0) > staleUiBefore, 'G9 late A completion cannot refresh Club B Attendance UI');
 
   // G8 A -> B -> C latest pending context wins.
@@ -194,7 +196,7 @@ try {
   const chunkFlight = globalThis.syncOfflineAttendance(); await waitFor(() => syncCalls.length === 1 && syncCalls[0].count === 400, 'G10 first 400 chunk');
   await switchContext({ club: 'club-b', shifts: [] }); chunkLatch.resolve(); await chunkFlight; await tick();
   check(syncCalls.length === 1, 'G10 stale old context starts zero chunk-2/chunk-3 network writes');
-  check(clubEntries('club-a').length === 450, 'G11/G12 only committed chunk-1 is cleaned; 450 uncommitted entries remain');
+  check(clubEntries('club-a').length === 850, 'G11/G12 stale owner preserves all 850 A journal items including 400 ACK-deferred; zero chunk-2 writes');
 
   // G13 revision guard: older commit must not delete a newer local mutation.
   await reset({ club: 'club-a', shifts: [], online: true });

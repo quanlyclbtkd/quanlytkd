@@ -1,0 +1,69 @@
+=== STARTUP READ BUDGET ===
+
+> taekwondo-club-app@1.0.0 check:startup-read-budget-freeze
+> node tools/check-startup-read-budget-freeze.mjs
+
+✅ getDoc runtime call sites do not increase (29 <= 33)
+✅ getDocs runtime call sites do not increase (51 <= 56)
+✅ onSnapshot runtime call sites do not increase (16 <= 17)
+✅ window assignments do not increase (532 <= 534)
+✅ duplicate globals do not increase (157 <= 159)
+✅ no polling added to tenant startup
+✅ notification startup one-shot removed
+✅ transaction startup still delegates existing owner
+Current static counts: { getDoc: 29, getDocs: 51, onSnapshot: 16 }
+PASS 8/8
+BUDGET_EXIT=0
+
+=== ROOT/PUBLIC PARITY (non-mutating recheck) ===
+
+> taekwondo-club-app@1.0.0 check:root-public-parity
+> node tools/check-root-public-parity.mjs
+
+{
+  "algorithm": "SHA-256",
+  "rootFileCount": 123,
+  "publicFileCount": 123,
+  "missingPublic": [],
+  "extraPublic": [],
+  "hashMismatches": [],
+  "status": "PASS"
+}
+PARITY_EXIT=0
+
+=== DEPLOY PACKAGE (non-mutating recheck) ===
+
+> taekwondo-club-app@1.0.0 check:deploy-package
+> node tools/check-deploy-package.mjs
+
+
+══════════════════════════════════════════════════════════
+  Deploy Package Structure Check
+══════════════════════════════════════════════════════════
+
+▸ Root files bắt buộc
+  ✅ index.html tồn tại
+  ✅ app.js tồn tại (legacy standalone mode)
+  ✅ style.css tồn tại
+  ✅ package.json tồn tại
+  ✅ .nojekyll tồn tại (GitHub Pages — ngăn Jekyll bỏ qua _prefix files)
+
+▸ Module JS files bắt buộc
+  ✅ js/main.js tồn tại (ES module entry point)
+  ✅ js/modules/superadmin.js tồn tại
+  ✅ js/modules/dashboard.js tồn tại
+  ✅ js/modules/students.js tồn tại
+
+▸ Thư mục bắt buộc
+  ✅ js/ thư mục tồn tại
+  ✅ js/modules/ thư mục tồn tại
+  ✅ js/services/ thư mục tồn tại
+
+══════════════════════════════════════════════════════════
+  Total: 12 checks | ✅ Pass: 12 | ❌ Fail: 0
+
+  🎉 Deploy package structure hợp lệ!
+  Tất cả file/thư mục bắt buộc đều có mặt — an toàn để đóng gói ZIP.
+══════════════════════════════════════════════════════════
+
+DEPLOY_PACKAGE_EXIT=0

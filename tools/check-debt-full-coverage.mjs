@@ -49,9 +49,12 @@ check('studentsRenderer warns when debtMayBePartial',
     studentsRenderer.includes('debtMayBePartial') &&
     (studentsRenderer.includes('console.warn') || studentsRenderer.includes('debt-list')));
 
-// 7. studentsRenderer triggers ensureDebtProfilesReady when partial
-check('studentsRenderer triggers ensureDebtProfilesReady when debt partial',
-    studentsRenderer.includes('ensureDebtProfilesReady'));
+// 7. Partial Debt must fail closed in the renderer; readiness is initiated by
+// the existing debt-tab lifecycle owner in main.js, not by a render timer.
+check('studentsRenderer fails closed instead of starting a partial-data retry loop',
+    studentsRenderer.includes('Authoritative profile coverage not ready') &&
+    studentsRenderer.includes('Đang đồng bộ đầy đủ dữ liệu Báo nợ') &&
+    !studentsRenderer.includes("ensureDebtProfilesReady('debt-partial-auto-trigger')"));
 
 // 8. debugDebtCoverage defined
 check('debugDebtCoverage defined in app.js',

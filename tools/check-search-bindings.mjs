@@ -91,18 +91,19 @@ if (eventsJs) {
 }
 console.log();
 
-// ── Section 3: Parent-club profile scan ──────────────────────────
-console.log('▸ Section 3: Parent-club profile scan');
+// ── Section 3: Parent Portal retirement boundary ─────────────────
+console.log('▸ Section 3: Parent Portal hard-disable boundary');
 if (appJs) {
-    const _parentScanSection = appJs.match(/parentClub[\s\S]{0,1500}?_foundDoc/);
-    const _hasServerSearch = appJs.includes("orderBy('searchName')") && appJs.includes('parent');
-    const _hasPlainLimit500 = /\bcollection.*profiles.*limit\(500\)/.test(appJs) && appJs.includes('parent-club-profile-scan');
-    check('Parent scan có server-side search (searchName index)',
-        _hasServerSearch || (appJs.includes('searchName') && appJs.includes('_profColRef')),
-        'Thêm getDocs(query(profColRef, orderBy("searchName"), startAt(norm), endAt(norm+\\uf8ff), limit(5))) trước fallback scan');
-    check('Parent scan dùng fetchQueryPages (không hard-cap 500 nữa)',
-        appJs.includes('parent-profile-scan') || appJs.includes('parent-club-profile-scan-paginated') || appJs.includes('fetchQueryPages'),
-        'Dùng fetchQueryPages paginated thay vì limit(500) scan cho parent profile lookup');
+    const _ppStart = appJs.indexOf('window.ppLookupLogin = async () => {');
+    const _ppEnd = appJs.indexOf('// ── Ghi nhận lịch sử đăng nhập', _ppStart);
+    const _ppBody = _ppStart >= 0 && _ppEnd > _ppStart ? appJs.slice(_ppStart, _ppEnd) : '';
+    check('Parent Portal compatibility no-op remains but reader is retired',
+        _ppBody.includes('Cổng Phụ huynh hiện không được cung cấp.') &&
+        !/\b(?:signInAnonymously|getDoc|getDocs|onSnapshot|collection|query|where|fetchQueryPages)\s*\(/.test(_ppBody),
+        'Parent Portal H2/H3 must remain fail-closed with zero Auth/Firestore lookup');
+    check('Active runtime has no parentCode search query',
+        !/where\(\s*['"]parentCode['"]/.test(appJs),
+        'Retired Parent Portal must not regain parentCode Firestore search');
 }
 console.log();
 
@@ -130,7 +131,7 @@ if (appJs && attendanceService && attendanceModule) {
         appJs.includes('attendanceDailyLimit') && attendanceService.includes('attendanceDailyLimit'),
         'Scale config ở app.js và canonical service phải cùng dùng attendanceDailyLimit');
     check('Attendance có server-side shift filter khi chọn ca',
-        attendanceService.includes("where('shiftId', '==', shiftId)") && attendanceModule.includes('shiftId: _currentShiftId'),
+        attendanceService.includes("if (shiftId) constraints.push(where('shiftId', '==', shiftId))") && attendanceModule.includes('shiftId: token.shiftId') && attendanceModule.includes("requireShift: shiftDecision.mode === 'explicit-shift'"),
         'Canonical module phải truyền shiftId và service phải lọc ở Firestore query');
     check('Attendance warning khi chạm limit có date + shift info',
         attendanceService.includes('hitLimit') && attendanceService.includes('shiftInfo') && attendanceService.includes('warnUnsafeLimit'),

@@ -1,0 +1,43 @@
+
+> taekwondo-club-app@1.0.0 check:club-listener-bootstrap-readiness
+> node tools/check-club-listener-bootstrap-readiness.mjs
+
+✅ Club Root keeps exactly one canonical onSnapshot call in mount helper
+✅ Root listener key remains global:club:${clubId}
+✅ Root listener registration remains safeRegisterSnapshot-only
+✅ No direct onSnapshot fallback exists
+✅ No getDoc/getDocs replacement in root mount helper
+✅ Readiness barrier exists in app.js
+✅ Readiness wait listens one-shot for ready event
+✅ Readiness wait listens one-shot for failure event
+✅ Readiness wait is bounded to 8–12 seconds
+✅ Club bootstrap helper has no setInterval polling
+✅ Club bootstrap helper has no recursive retry loop
+✅ Canonical flight is committed before async registry wait
+✅ Same uid/club/authGeneration reuses existing flight
+✅ Stale auth generation is rechecked after readiness wait
+✅ Registry timeout fails closed through registration failure path
+✅ Duplicate metadata is inspected before remount
+✅ Stale duplicate remount is bounded to one explicit retry
+✅ Listener diagnostics classify required failure modes
+✅ main.js exposes registry bridge before one-shot readiness signal
+✅ main.js readiness dispatch is guarded to one time
+✅ index main.js load error emits readiness failure signal
+✅ B1 normal registry-ready bootstrap mounts one listener and accepts
+✅ B2 restored session does not fail before registry becomes ready
+✅ B2 restored session resumes through registry and mounts exactly one listener
+✅ B3 slow main.js causes no premature blocked banner
+✅ B3 slow main.js continues after readiness
+✅ B4 main.js failure is bounded fail-closed with zero root network listener
+✅ Timeout fails closed without polling/fallback listener
+✅ B5 logout while waiting invalidates old flight and mounts no listener
+✅ B6 rapid relogin ignores old generation and mounts only new generation
+✅ B7 duplicate mount returns the same canonical flight object
+✅ B7 duplicate same-session mount creates one root listener
+✅ Stale duplicate removal/remount is bounded to one remove + two registration attempts
+✅ getDoc call-sites do not increase above H4
+✅ getDocs call-sites do not increase above H4
+✅ onSnapshot call-sites do not increase above H4
+Static counts: { getDoc: 29, getDocs: 51, onSnapshot: 16 }
+
+Club Listener Bootstrap Readiness: 36/36 PASS

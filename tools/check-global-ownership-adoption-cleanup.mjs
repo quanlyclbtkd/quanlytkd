@@ -108,17 +108,31 @@ check(pkg.scripts?.['check:all:critical']?.includes('check:global-ownership-adop
 const elements = new Map();
 function makeElement(id) {
   const classes = new Set();
+  const attributes = new Map();
+  const listeners = new Map();
   return {
     id,
     style: {},
     value: '',
     textContent: '',
     innerText: '',
+    hidden: false,
     classList: {
       add(name) { classes.add(name); },
       remove(name) { classes.delete(name); },
       contains(name) { return classes.has(name); },
     },
+    setAttribute(name, value) { attributes.set(String(name), String(value)); },
+    getAttribute(name) { return attributes.has(String(name)) ? attributes.get(String(name)) : null; },
+    removeAttribute(name) { attributes.delete(String(name)); },
+    querySelector() { return null; },
+    querySelectorAll() { return []; },
+    addEventListener(type, handler) {
+      const key = String(type);
+      if (!listeners.has(key)) listeners.set(key, new Set());
+      listeners.get(key).add(handler);
+    },
+    removeEventListener(type, handler) { listeners.get(String(type))?.delete(handler); },
   };
 }
 for (const id of [
@@ -126,14 +140,21 @@ for (const id of [
   'taxExportModal', 'comboModal', 'profileModal', 'otherModal',
   'excel_year', 'excel_periodType', 'excel_periodValue',
 ]) elements.set(id, makeElement(id));
+const mobileMenuTrigger = makeElement('mobileMenuTrigger');
+mobileMenuTrigger.setAttribute('aria-controls', 'mobileMenuSheet');
+mobileMenuTrigger.setAttribute('aria-expanded', 'false');
 
 const storage = new Map();
 globalThis.window = globalThis;
+const bodyElement = makeElement('body');
+bodyElement.appendChild = () => {};
+bodyElement.removeChild = () => {};
 globalThis.document = {
   getElementById: (id) => elements.get(id) || null,
-  querySelectorAll: () => [],
+  querySelector: (selector) => selector === '[aria-controls=\"mobileMenuSheet\"]' ? mobileMenuTrigger : null,
+  querySelectorAll: (selector) => selector === '[aria-controls=\"mobileMenuSheet\"]' ? [mobileMenuTrigger] : [],
   createElement: (id) => makeElement(id || 'created'),
-  body: { appendChild() {}, removeChild() {} },
+  body: bodyElement,
 };
 globalThis.localStorage = {
   get length() { return storage.size; },
@@ -198,6 +219,13 @@ try {
   check(globalThis.openComboModal() === true && elements.get('comboModal').style.display === 'flex', 'canonical openComboModal opens combo modal');
   check(globalThis.formatMonthCompact('2026-03,2026-01,2025-12') === 'T12/2025; T1, T3/2026', 'canonical formatter sorts month/year groups');
   check(globalThis.openMobileMenu() === true && elements.get('mobileMenuSheet').classList.contains('open'), 'mobile menu canonical owner works');
+  check(elements.get('mobileMenuSheet').getAttribute('aria-hidden') === 'false' && mobileMenuTrigger.getAttribute('aria-expanded') === 'true', 'mobile menu open preserves ARIA contract');
+  check(document.body.style.overflow === 'hidden', 'mobile menu open locks body scroll');
+  check(globalThis.openMobileMenu() === true && document.body.style.overflow === 'hidden', 'mobile menu open is idempotent');
+  check(globalThis.closeMobileMenu() === true && !elements.get('mobileMenuSheet').classList.contains('open'), 'mobile menu canonical close works');
+  check(elements.get('mobileMenuSheet').getAttribute('aria-hidden') === 'true' && mobileMenuTrigger.getAttribute('aria-expanded') === 'false', 'mobile menu close restores ARIA contract');
+  check(document.body.style.overflow === '', 'mobile menu close restores body scroll');
+  check(globalThis.closeMobileMenu() === true && document.body.style.overflow === '', 'mobile menu close is idempotent');
 
   const canonicalToast = globalThis.showToast;
   globalThis.showToast = function rogueToast() {};

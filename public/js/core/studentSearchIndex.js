@@ -161,7 +161,7 @@ function _pushUnique(arr, value) {
 }
 
 function _studentNameFromEntry(id, profile) {
-  return String((profile && (profile.name || profile.fullName || profile.studentName)) || id || '').trim();
+  return String((profile && (profile.displayName || profile.name || profile.fullName || profile.studentName)) || id || '').trim();
 }
 
 function _getVtfValue(profile) {
@@ -191,7 +191,7 @@ function _buildTokens(id, profile) {
   const name = _studentNameFromEntry(id, p);
   const parts = [];
   [
-    id, name, p.name, p.fullName, p.studentName, p.nickname,
+    id, name, p.displayName, p.name, p.fullName, p.studentName, p.nickname,
     p.gender, p.dob, p.birthDate,
     p.branch, p.branchName, p.base, p.facility,
     p.belt, p.currentBelt, p.rank,

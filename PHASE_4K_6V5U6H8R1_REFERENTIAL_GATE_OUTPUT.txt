@@ -1,0 +1,16 @@
+
+> taekwondo-club-app@1.0.0 check:profile-rename-referential-guard
+> node tools/check-profile-rename-referential-guard.mjs
+
+✅ displayName edit supported
+✅ profileKey remains immutable modal identity
+✅ canonical command receives oldName/newName as same profileKey
+✅ display edit has zero renameWithBatch call
+✅ display edit has zero transaction lookup
+✅ display edit has zero profile delete/create branch
+✅ legacy rename service retained only for compatibility
+✅ no Attendance historical migration added to profile edit flow
+✅ no historical transaction rewrite added to profile edit flow
+✅ Attendance identity primitives remain profile-key based
+✅ no startup/background rename repair added
+PASS 11/11

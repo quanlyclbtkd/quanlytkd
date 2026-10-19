@@ -55,6 +55,14 @@ import {
     addMonthsToYYYYMM,
 } from '../utils/format.js';
 
+const resolveReportDisplayName = function(profileKey, profile) {
+    const p = profile || {};
+    if (typeof window !== 'undefined' && window.ProfileCanonicalStore && typeof window.ProfileCanonicalStore.resolveDisplayName === 'function') {
+        return window.ProfileCanonicalStore.resolveDisplayName(profileKey, p);
+    }
+    return String(p.displayName || p.name || p.fullName || p.studentName || profileKey || '').trim();
+};
+
 // ════════════════════════════════════════════════════════════════
 // Phase 4K-6E-B: Belt ordering helpers for exam export sort
 // ════════════════════════════════════════════════════════════════
@@ -407,13 +415,14 @@ export function initReports() {
                         const _next = _mm === 12 ? (_my + 1) + '-01' : _my + '-' + String(_mm + 1).padStart(2, '0');
                         _mCursor = _next;
                     }
+                    if (_mCursor <= _endM) throw new Error('Kỳ xuất vượt giới hạn 36 tháng; chưa đọc đủ dữ liệu.');
                     if (window.FinanceService && typeof window.FinanceService.queryTxByPackageMonths === 'function') {
                         txByPackage = await window.FinanceService.queryTxByPackageMonths(_months);
                     } else if (typeof FinanceService !== 'undefined' && typeof FinanceService.queryTxByPackageMonths === 'function') {
                         txByPackage = await FinanceService.queryTxByPackageMonths(_months);
-                    }
+                    } else throw new Error('Thiếu nguồn giao dịch packageMonths.');
                 } catch (_pkgErr) {
-                    console.warn('[ExcelExport] packageMonths query failed (non-blocking):', _pkgErr && _pkgErr.message);
+                    throw _pkgErr;
                 }
                 txAll = window.dedupeDocsById([...txByDate, ...txByMonth, ...txByPackage]);
                 txAll.sort((a, b) => a.date > b.date ? 1 : -1);
@@ -425,21 +434,10 @@ export function initReports() {
                 });
                 invAll.sort((a, b) => a.date > b.date ? 1 : -1);
             } catch (_paginationErr) {
-                console.warn('[ExportPaginationFallback] Paginated helper lỗi, fallback legacy query (limit 2000/1000):', _paginationErr && _paginationErr.message);
-                if (typeof window.warnUnsafeLimit === 'function') window.warnUnsafeLimit('excel-export:fallback-legacy', 'paginated-helper-failed');
-                const _qs38d = window.__queryScaleMetrics;
-                if (_qs38d) _qs38d.exportPaginationFallbackCount = (_qs38d.exportPaginationFallbackCount || 0) + 1;
-                const _fbSnap = await getDocs(query(colRef, where("date", ">=", startStr), where("date", "<=", endStr), limit(2000))); // [ExportPaginationFallback]
-                txAll = _fbSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-                const _fbSnapM = await getDocs(query(colRef, where("txMonth", ">=", _startM), where("txMonth", "<=", _endM), limit(2000))); // [ExportPaginationFallback]
-                const _fbSeen = new Set(txAll.map(d => d.id));
-                _fbSnapM.docs.forEach(d => { if (!_fbSeen.has(d.id)) txAll.push({ id: d.id, ...d.data() }); });
-                txAll.sort((a, b) => a.date > b.date ? 1 : -1);
-                const _fbInvSnap = await getDocs(query(invRef, where("date", ">=", startStr), where("date", "<=", endStr), limit(1000))); // [ExportPaginationFallback]
-                invAll = _fbInvSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-                invAll.sort((a, b) => a.date > b.date ? 1 : -1);
+                throw _paginationErr;
+            } finally {
+                clearTimeout(_paginationToastTimer);
             }
-            clearTimeout(_paginationToastTimer);
 
             const wb       = XLSX.utils.book_new();
             const clubName = clubData.clubName || 'CLB';
@@ -654,8 +652,8 @@ export function initReports() {
                 const p = allProfiles[name];
                 if (p.status !== 'active') return;
                 const row = isSingle
-                    ? [nc(String(stt++)), bc(name), nc(p.memberId||'-'), nc(p.belt||''), nc(p.dob||''), nc(p.phone||''), nc(p.paidUntil ? formatMonth(p.paidUntil) : ''), nNum(p.tuitionFee||0)]
-                    : [nc(String(stt++)), bc(name), nc(p.memberId||'-'), nc(_branchName(p.branch)), nc(p.belt||''), nc(p.dob||''), nc(p.phone||''), nc(p.paidUntil ? formatMonth(p.paidUntil) : ''), nNum(p.tuitionFee||0)];
+                    ? [nc(String(stt++)), bc(resolveReportDisplayName(name, p)), nc(p.memberId||'-'), nc(p.belt||''), nc(p.dob||''), nc(p.phone||''), nc(p.paidUntil ? formatMonth(p.paidUntil) : ''), nNum(p.tuitionFee||0)]
+                    : [nc(String(stt++)), bc(resolveReportDisplayName(name, p)), nc(p.memberId||'-'), nc(_branchName(p.branch)), nc(p.belt||''), nc(p.dob||''), nc(p.phone||''), nc(p.paidUntil ? formatMonth(p.paidUntil) : ''), nNum(p.tuitionFee||0)];
                 stu_rows.push(row);
             });
             const ws_stu = XLSX.utils.aoa_to_sheet(stu_rows);
@@ -744,8 +742,8 @@ export function initReports() {
                 totalDebt += debt;
                 const monthsLabel = `${months} tháng` + (owedMonths.length ? ` (${formatMonthCompact(owedMonths.join(','))})` : '');
                 const row = isSingle
-                    ? [bc(name), nc(monthsLabel), nNum(p.tuitionFee||0), warnNum(debt)]
-                    : [bc(name), nc(_branchName(p.branch)), nc(monthsLabel), nNum(p.tuitionFee||0), warnNum(debt)];
+                    ? [bc(resolveReportDisplayName(name, p)), nc(monthsLabel), nNum(p.tuitionFee||0), warnNum(debt)]
+                    : [bc(resolveReportDisplayName(name, p)), nc(_branchName(p.branch)), nc(monthsLabel), nNum(p.tuitionFee||0), warnNum(debt)];
                 debt_rows.push(row);
             });
             const debtCols  = isSingle ? 4 : 5;
@@ -763,13 +761,18 @@ export function initReports() {
             let paidExamStudents = {};
             txAll.forEach(t => {
                 if (t.type === 'Lệ phí thi' || t.type === 'Học phí + Lệ phí thi') {
-                    const stuName = typeof window.extractExamStudentName === 'function'
-                        ? window.extractExamStudentName(t)
-                        : (function(tx) {
-                            const desc = String(tx.description || '').trim();
-                            const m = desc.match(/^(.*?)\s*\(Thi lên/i);
-                            return m ? m[1].trim() : desc.split(' (')[0].trim();
-                        })(t);
+                    const rawStuName = String(t.profileId || t.studentId || '').trim() || (
+                        typeof window.extractExamStudentName === 'function'
+                            ? window.extractExamStudentName(t)
+                            : (function(tx) {
+                                const desc = String(tx.description || '').trim();
+                                const m = desc.match(/^(.*?)\s*\(Thi lên/i);
+                                return m ? m[1].trim() : desc.split(' (')[0].trim();
+                            })(t)
+                    );
+                    const stuName = typeof window.getCanonicalStudentName === 'function'
+                        ? window.getCanonicalStudentName(rawStuName, allProfiles)
+                        : rawStuName;
                     if (!stuName) return;
                     const _ep = allProfiles[stuName] || {};
                     const belt = typeof window.getExamTargetBeltFromTx === 'function'
@@ -794,8 +797,8 @@ export function initReports() {
                 const paid = paidExamStudents[name];
                 const paidCell = { v:`Đã nộp (${Number(paid.amount||0).toLocaleString()} đ)`, t:'s', s:{ font:Object.assign({},boldFont,{color:{rgb:'166534'}}), fill:{patternType:'solid',fgColor:{rgb:'DCFCE7'}}, border:borderAll, alignment:leftAlign } };
                 const row = isSingle
-                    ? [nc(String(stt2++)), bc(name), nc(p.memberId||'-'), nc(p.belt||''), nc(paid.belt||''), paidCell]
-                    : [nc(String(stt2++)), bc(name), nc(p.memberId||'-'), nc(_branchName(p.branch)), nc(p.belt||''), nc(paid.belt||''), paidCell];
+                    ? [nc(String(stt2++)), bc(resolveReportDisplayName(name, p)), nc(p.memberId||'-'), nc(p.belt||''), nc(paid.belt||''), paidCell]
+                    : [nc(String(stt2++)), bc(resolveReportDisplayName(name, p)), nc(p.memberId||'-'), nc(_branchName(p.branch)), nc(p.belt||''), nc(paid.belt||''), paidCell];
                 exam_rows.push(row);
             });
             const ws_exam = XLSX.utils.aoa_to_sheet(exam_rows);
@@ -1084,7 +1087,7 @@ export function initReports() {
                     reason:     'exam-paid-export-txMonth',
                 });
                 _txMonthCount = _txByMonth.length;
-            }
+            } else throw new Error('Thiếu nguồn giao dịch txMonth.');
 
             // Source 2: query by date field (catches docs missing txMonth)
             if (typeof window.loadTransactionsForDateRange === 'function' && _startDate && _endDate) {
@@ -1095,7 +1098,7 @@ export function initReports() {
                     reason:    'exam-paid-export-date',
                 });
                 _dateCount = _txByDate.length;
-            }
+            } else throw new Error('Thiếu nguồn giao dịch theo ngày.');
 
             // Merge + dedupe by document id
             const _combined = [..._txByMonth, ..._txByDate];
@@ -1111,15 +1114,9 @@ export function initReports() {
             }
             console.debug('[ReportsModule] examPaidList load: txMonth=', _txMonthCount, 'date=', _dateCount, 'deduped=', allTransactions.length);
         } catch (_txErr) {
-            console.warn('[ReportsModule] exportExamPaidList paginated load failed, fallback:', _txErr && _txErr.message);
-            if (window.__reportsModuleMetrics)
-                window.__reportsModuleMetrics.examPaidFallbackTransactionsUsed++;
-            allTransactions = [];
-        }
-        if (!allTransactions || allTransactions.length === 0) {
-            allTransactions = _transactions();
-            if (window.__reportsModuleMetrics)
-                window.__reportsModuleMetrics.examPaidFallbackTransactionsUsed++;
+            console.error('[ReportsModule] exportExamPaidList incomplete:', _txErr);
+            window.showToast?.('⚠️ Chưa đọc đủ giao dịch. Không thể xuất danh sách thi.', 6000);
+            return;
         }
         const allProfiles = _profiles();
         const clubConfig  = _config();
@@ -1148,16 +1145,11 @@ export function initReports() {
         let paidData = {};
         try {
         if (typeof window.buildCanonicalExamPaymentLedger === 'function') {
-            // Inject loaded transactions tạm thời vào __store để ledger đọc được
-            const _prevTxs = (window.__store || {}).transactions;
-            if (!window.__store) window.__store = {};
-            window.__store.transactions = allTransactions;
-
-            const _ledger = window.buildCanonicalExamPaymentLedger({ month: selMonth });
-
-            // Restore transactions
-            if (_prevTxs !== undefined) window.__store.transactions = _prevTxs;
-            else delete window.__store.transactions;
+            // H6: export transaction subset is passed explicitly; never mutate canonical runtime store.
+            const _ledger = window.buildCanonicalExamPaymentLedger({
+                month: selMonth,
+                transactions: allTransactions
+            });
 
             _ledger.records.forEach(r => {
                 const profile = allProfiles[r.studentName] || {};
@@ -1296,7 +1288,7 @@ export function initReports() {
                     : mc('✖ Chưa nộp phí', fUnpaid, fillUnpaid, bAll, cCenter);
                 ws_data.push([
                     cc(stt++, alt),
-                    bc(name, alt),
+                    bc(resolveReportDisplayName(name, p), alt),
                     cc(p.gender || '', alt),
                     cc(p.dob || '', alt),
                     cc(p.memberId || '', alt),
@@ -1453,13 +1445,7 @@ export function initReports() {
                     _qs38d.taxExportPages = _mFetch ? _mFetch.pages : 1;
                 }
             } catch (_taxPaginationErr) {
-                console.warn('[ExportPaginationFallback] Tax export paginated helper lỗi, fallback legacy query (limit 2000):', _taxPaginationErr && _taxPaginationErr.message);
-                if (typeof window.warnUnsafeLimit === 'function') window.warnUnsafeLimit('tax-export:fallback-legacy', 'paginated-helper-failed');
-                const _qs38d = window.__queryScaleMetrics;
-                if (_qs38d) _qs38d.exportPaginationFallbackCount = (_qs38d.exportPaginationFallbackCount || 0) + 1;
-                const _qTxFb  = query(colRef, where("date", ">=", startStr), where("date", "<=", endStr));
-                const _fbSnap = await getDocs(query(_qTxFb, limit(2000))); // [ExportPaginationFallback]
-                _taxRawDocs = _fbSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+                throw _taxPaginationErr;
             }
 
             let filteredTx = _taxRawDocs.filter(t => {

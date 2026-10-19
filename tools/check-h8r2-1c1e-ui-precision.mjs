@@ -87,7 +87,7 @@ for (const f of runtime) {
   }
 }
 check('17. no new getDoc', counts.getDoc === 29, JSON.stringify(counts));
-check('18. no new getDocs', counts.getDocs === 45, JSON.stringify(counts));
+check('18. no new getDocs', counts.getDocs === 44, JSON.stringify(counts));
 check('19. no new onSnapshot', counts.onSnapshot === 16, JSON.stringify(counts));
 
 const parityRoots = ['index.html','app.js','style.css','.nojekyll','js','css'];

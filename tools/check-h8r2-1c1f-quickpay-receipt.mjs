@@ -32,7 +32,7 @@ function walk(dir,out=[]){for(const e of fs.readdirSync(dir,{withFileTypes:true}
 const runtime=['app.js',...walk('js')]; const pats={getDoc:/(?<![A-Za-z0-9_$])(?:getDoc|_getDoc|fbGetDoc)\s*\(/g,getDocs:/(?<![A-Za-z0-9_$])(?:getDocs|_getDocs|fbGetDocs|_pG4k)\s*\(/g,onSnapshot:/(?<![A-Za-z0-9_$])(?:onSnapshot|fbOnSnapshot)\s*\(/g}; const counts={getDoc:0,getDocs:0,onSnapshot:0};
 for(const f of runtime){for(const line of read(f).split('\n')){const t=line.trim();if(t.startsWith('//')||t.startsWith('*')||t.startsWith('/*'))continue;for(const[k,re]of Object.entries(pats)){re.lastIndex=0;if(re.test(line))counts[k]++}}}
 check('17. no new getDoc',counts.getDoc===29,JSON.stringify(counts));
-check('18. no new getDocs',counts.getDocs===45,JSON.stringify(counts));
+check('18. no new getDocs',counts.getDocs===44,JSON.stringify(counts));
 check('19. no new onSnapshot',counts.onSnapshot===16,JSON.stringify(counts));
 check('20. canonical filterBranch remains exactly one authority', (html.match(/id="filterBranch"/g)||[]).length===1 && !/mobileFilterBranch|filterBranchProxy/.test(html+finance+app));
 check('21. mobile direct branch presentation preserves month/debt filters', /\.ui-filter-toggle\s*\{\s*display:\s*none;/.test(css) && /\.input-branch #filterBranch/.test(css) && (html.match(/id="filterMonth"/g)||[]).length===1 && (html.match(/id="debtOverdueFilter"/g)||[]).length===1);

@@ -1,0 +1,100 @@
+\n$ firebase --version
+environment: line 4: firebase: command not found
+EXIT_CODE=127
+\n$ firebase login:list
+environment: line 4: firebase: command not found
+EXIT_CODE=127
+\n$ firebase projects:list
+environment: line 4: firebase: command not found
+EXIT_CODE=127
+\n$ firebase use
+environment: line 4: firebase: command not found
+EXIT_CODE=127
+\n$ firebase functions:list --project quanly-tst
+environment: line 4: firebase: command not found
+EXIT_CODE=127
+\n$ npm run check:rules:emulator
+
+> taekwondo-club-app@1.0.0 check:rules:emulator
+> firebase emulators:exec --only firestore --project demo-taekwondo-6v4b "node tools/firestore-rules-6v4b.test.mjs"
+
+sh: 1: firebase: not found
+EXIT_CODE=127
+
+=== local config ===
+.firebaserc: ABSENT
+{
+  "hosting": {
+    "public": "public",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ],
+    "headers": [
+      {
+        "source": "/index.html",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, no-store, must-revalidate"
+          },
+          {
+            "key": "Pragma",
+            "value": "no-cache"
+          },
+          {
+            "key": "Expires",
+            "value": "0"
+          }
+        ]
+      },
+      {
+        "source": "**/*.@(js|mjs)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=3600"
+          }
+        ]
+      },
+      {
+        "source": "**/*.css",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=3600"
+          }
+        ]
+      },
+      {
+        "source": "**/*.@(png|jpg|jpeg|gif|webp|svg|ico|woff|woff2|ttf|eot)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=86400"
+          }
+        ]
+      }
+    ]
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "emulators": {
+    "firestore": {
+      "host": "127.0.0.1",
+      "port": 8180
+    },
+    "ui": {
+      "enabled": false
+    }
+  }
+}

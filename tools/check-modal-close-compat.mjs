@@ -59,25 +59,32 @@ if (modalJs) {
     );
 }
 
-console.log('\n▸ Section 2: registerModalGlobals — legacy compatibility');
+console.log('\n▸ Section 2: registerModalGlobals — canonical ownership + legacy compatibility');
 if (modalJs) {
+    const closeOwnerRegistrations = (modalJs.match(/GlobalOwnershipRegistry\.register\(['\"]closeModal['\"]/g) || []).length;
     check(
-        'registerModalGlobals lưu legacyClose trước khi ghi đè',
-        modalJs.includes('legacyClose') || modalJs.includes('legacyClose = window.closeModal'),
-        "Thêm: const legacyClose = window.closeModal; trước khi gán window.closeModal"
+        'closeModal có đúng ONE canonical GlobalOwnershipRegistry owner',
+        closeOwnerRegistrations === 1 && modalJs.includes("owner: 'js/ui/modal.js'") && modalJs.includes("policy: 'module-primary'"),
+        'closeModal must have exactly one module-primary registry owner in js/ui/modal.js'
     );
 
     check(
-        'registerModalGlobals assign window.closeModalLegacy',
-        modalJs.includes('window.closeModalLegacy'),
-        "Thêm: window.closeModalLegacy = legacyClose;"
+        'Legacy closeModal fallback được lấy qua GlobalOwnershipRegistry',
+        modalJs.includes("GlobalOwnershipRegistry.getLegacyFallback('closeModal')") && modalJs.includes('window.closeModalLegacy'),
+        "Compatibility must reuse GlobalOwnershipRegistry.getLegacyFallback('closeModal'), not capture/overwrite window.closeModal directly"
     );
 
     check(
-        'window.closeModal trong registerModalGlobals xử lý cả có và không có arg',
-        modalJs.includes('window.closeModal = function(modalId)') ||
-        modalJs.includes("window.closeModal = function(modalId){"),
-        "window.closeModal phải: if (modalId) return closeModal(modalId); return closeModal('profileModal');"
+        'registerModalGlobals không tạo second window.closeModal owner',
+        !/window\.closeModal\s*=/.test(modalJs),
+        'Canonical window.closeModal is installed by GlobalOwnershipRegistry; modal.js must not assign a second owner'
+    );
+
+    check(
+        'Canonical closeModal hỗ trợ cả no-arg và explicit modalId',
+        (modalJs.includes("closeModal(modalId = 'profileModal')") || modalJs.includes('closeModal(modalId = "profileModal")')) &&
+        (modalJs.includes("modalId || 'profileModal'") || modalJs.includes('modalId || "profileModal"')),
+        'closeModal() must default to profileModal while closeModal(id) keeps explicit target support'
     );
 }
 

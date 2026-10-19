@@ -30,7 +30,7 @@ const runtime=[path.join(root,'app.js'),...walkJs(path.join(root,'js'))];
 const pats={getDoc:/(?<![A-Za-z0-9_$])(?:getDoc|_getDoc|fbGetDoc)\s*\(/g,getDocs:/(?<![A-Za-z0-9_$])(?:getDocs|_getDocs|fbGetDocs|_pG4k)\s*\(/g,onSnapshot:/(?<![A-Za-z0-9_$])(?:onSnapshot|fbOnSnapshot)\s*\(/g};
 const counts={getDoc:0,getDocs:0,onSnapshot:0}; for(const f of runtime){for(const line of fs.readFileSync(f,'utf8').split('\n')){const t=line.trim();if(t.startsWith('//')||t.startsWith('*')||t.startsWith('/*'))continue;for(const [k,re] of Object.entries(pats)){re.lastIndex=0;if(re.test(line))counts[k]++}}}
 check('8. getDoc unchanged', counts.getDoc===29, JSON.stringify(counts));
-check('9. getDocs unchanged', counts.getDocs===45, JSON.stringify(counts));
+check('9. getDocs unchanged', counts.getDocs===44, JSON.stringify(counts));
 check('10. onSnapshot unchanged', counts.onSnapshot===16, JSON.stringify(counts));
 check('11. mobile shell canonical owner unchanged', shell.includes("const owner = 'js/ui/legacyUiShell.js'") && shell.includes("['openMobileMenu', openMobileMenu") && shell.includes("['closeMobileMenu', closeMobileMenu"));
 const nav=(html.match(/<nav id="mobileBottomNav"[\s\S]*?<\/nav>/)||[''])[0];

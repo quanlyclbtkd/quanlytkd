@@ -38,7 +38,7 @@ check(pkg.scripts?.['check:all:critical']?.includes('check:student-search-index'
 const updateStart=students.indexOf('window.updateProfile = async () =>');
 const updateEnd=updateStart>=0 ? students.indexOf('window.deleteProfile = async () =>',updateStart) : -1;
 const updateBody=updateStart>=0 && updateEnd>updateStart ? students.slice(updateStart,updateEnd) : '';
-check(updateBody.includes("oldName !== newName") && updateBody.indexOf("oldName !== newName") < updateBody.indexOf('StudentStatusCommandBoundary.updateProfile'), 'profile rename remains fail-closed before canonical write');
+check(/oldName:\s*profileKey[\s\S]{0,100}newName:\s*profileKey/.test(updateBody) && !/renameWithBatch|findTransactionsByStudent/.test(updateBody), 'display-name edit uses same canonical profile key without rename flow');
 check(updateBody.includes('window.buildStudentSearchIndex') && updateBody.includes('mergedProfile') && updateBody.includes('Object.assign(updateData'), 'active updateProfile rebuilds search index from RAM + updateData');
 check(updateBody.indexOf('window.buildStudentSearchIndex') < updateBody.lastIndexOf('StudentStatusCommandBoundary.updateProfile'), 'search index is merged before canonical profile update write');
 check(!/getDoc\s*\(|getDocs\s*\(|onSnapshot\s*\(/.test(updateBody), 'search-index-on-edit adds zero Firestore reads/listeners');
@@ -55,6 +55,8 @@ if (helperStart>=0 && helperEnd>helperStart) {
   check(idxEdited.searchCode==='vs999', 'Edit memberId updates searchCode in same payload');
   check(idxEdited.searchNickname==='bao an', 'Edit nickname updates searchNickname in same payload');
   check(idxEdited.searchName==='nguyen van an' && Array.isArray(idxEdited.searchNameTokens) && idxEdited.searchNameTokens.includes('an'), 'Normal edit keeps canonical searchName/searchNameTokens');
+  const renamedDisplay=build({...edited,displayName:'Nguyễn Văn Anh'},'Nguyễn Văn A');
+  check(renamedDisplay.searchName==='nguyen van anh' && renamedDisplay.searchNameTokens.includes('anh'), 'displayName takes precedence over immutable profileKey in search fields');
 }
 // Guard: high-risk functions should remain in app.js unchanged by this phase.
 check(app.includes('window.processMultiItem') || app.includes('processMultiItem'), 'processMultiItem still present in app.js');
