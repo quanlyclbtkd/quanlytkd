@@ -1,0 +1,22 @@
+
+══════════════════════════════════════════════════════════
+  check:search-runtime-real-cache  (Phase 4K-2B/2C)
+══════════════════════════════════════════════════════════
+  ✅  [C1] _cacheKey uses domain prefix `${domain}:${tab}|`
+  ✅  [C2] invalidateSearchCache uses startsWith(domain+":") not k.includes("|")
+  ✅  [C3] studentsRenderer.js uses getProfileSearchBlob
+  ✅  [C4] financeRenderer.js uses getTransactionSearchBlob
+  ✅  [C5] inventoryRenderer.js uses getInventorySearchBlob
+  ✅  [C6] students.js runStudentSearchPagination accepts options/searchToken
+  ✅  [C7] students.js _doLoad has stale guard before pgState.currentItems mutation
+  ✅  [C8] profiles.listeners.js _invalidateAll is guarded (not default-called)
+  ✅  [C9] app.js renderApp no longer uses raw .toLowerCase().includes(search)
+  ✅  [C10] searchRuntime.js passes searchToken to runStudentSearchPagination
+  ✅  [C11] invalidateSearchCacheForCurrentTab uses domain:tab| prefix (not curTab+"|")
+  ✅  [C12] _applyCachedStudentResult accepts tab param and uses students.quitList
+  ✅  [C13] students.js _searchToken is extracted BEFORE the isLoading guard
+  ✅  [C14] app.js profile loop no longer has raw name/safeBelt/safeNotes toLowerCase().includes(search)
+──────────────────────────────────────────────────────────
+  Passed: 14/14    Failed: 0/14
+══════════════════════════════════════════════════════════
+

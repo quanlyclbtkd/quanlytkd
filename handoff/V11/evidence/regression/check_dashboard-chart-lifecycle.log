@@ -1,0 +1,14 @@
+
+🔍 Phase 4K-5N — check-dashboard-chart-lifecycle
+
+[32m✅ PASS[0m  dashboard.js readable
+[32m✅ PASS[0m  dashboard.js uses Chart.getChart (orphan detection)
+[32m✅ PASS[0m  dashboard.js destroys orphan before new Chart()
+[32m✅ PASS[0m  window.debugDashboardCharts được export
+[32m✅ PASS[0m  fetchHistoricalDashboardFallback không gọi renderDashboardCharts 2 lần trực tiếp
+[32m✅ PASS[0m  window.normalizeBranchCodeForStats được định nghĩa
+[32m✅ PASS[0m  window.getComponentAmountForSelectedMonth được định nghĩa
+[32m✅ PASS[0m  _destroyDashboardCharts clear cả store chart instances khi logout
+
+[32m✅ All dashboard chart lifecycle checks passed[0m
+

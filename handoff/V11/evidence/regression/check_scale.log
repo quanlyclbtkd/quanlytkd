@@ -1,0 +1,108 @@
+
+══════════════════════════════════════════════════════════
+  Phase 4J-8 — Firestore Read Scale Readiness Check
+══════════════════════════════════════════════════════════
+
+▸ Section 1: window.__scaleConfig (app.js)
+  ✅ app.js exists
+  ✅ __scaleConfig defined
+  ✅ profilesPageSize in config
+  ✅ transactionsPageSize in config
+  ✅ inventoryPageSize in config
+  ✅ attendanceDailyLimit in config
+  ✅ attendanceMonthlyLimit in config
+  ✅ txListenerLimit in config
+  ✅ legacyFallbackLimit in config
+  ✅ exportBatchSize in config
+  ✅ warnThresholdProfiles in config
+
+▸ Section 2: Read Metrics (app.js)
+  ✅ __readScaleMetrics defined
+  ✅ recordReadMetric() exposed
+  ✅ printReadScaleMetrics() exposed
+  ✅ printScaleReadiness() exposed
+
+▸ Section 3: Profiles Cursor Pagination (students.service.js)
+  ✅ students.service.js exists
+  ✅ getProfilesPage() defined
+  ✅ Uses cursor pagination (startAfter)
+  ✅ pageSize + 1 trick for hasNext
+  ✅ Search prefix support (startAt/endAt)
+
+▸ Section 4: Finance Cursor Pagination + fetchAllPagesForExport (finance.service.js + app.js)
+  ✅ finance.service.js exists
+  ✅ getTransactionsPage() defined
+  ✅ getTransactionsByDatePage() defined
+  ✅ TX page uses pageSize + 1
+  ✅ fetchAllPagesForExport() exposed
+
+▸ Section 5: Inventory Cursor Pagination (inventory.service.js)
+  ✅ inventory.service.js exists
+  ✅ getInventoryPage() defined
+  ✅ Inventory page uses pageSize + 1
+  ✅ Inventory page supports typeFilter
+  ✅ Inventory page supports date range
+
+▸ Section 6: Attendance Scale Safety (attendance.service.js)
+  ✅ attendance.service.js exists
+  ✅ Daily pagination covers all pages and rejects incomplete coverage
+  ✅ loadByDate limit bumped from 500
+  ✅ loadByMonth uses cursor pagination
+  ✅ loadByMonth has page-size config
+  ✅ loadByMonth fails instead of returning truncated data
+
+▸ Section 7: Transactions Real-time Listener (app.js)
+  ✅ TX listener uses txListenerLimit
+  ✅ TX listener bumped from 500
+  ✅ TX listener has canonical snapshot attribution
+
+▸ Section 8: Inventory Listener Metrics (app.js)
+  ✅ Inventory current authorities are attributed
+
+▸ Section 9: Legacy Fallback Scale Safety (app.js)
+  ✅ Legacy fallback uses legacyFallbackLimit
+  ✅ Legacy fallback not stuck at limit(500)
+
+▸ Section 10: Debug Globals in app.js
+  ✅ recordReadMetric wired to profiles listener
+
+▸ Section 11: Phase 4.0B-4J-8A — Search Index (app.js + students.service.js)
+  ✅ buildStudentSearchIndex() defined
+  ✅ normalizeSearchText() defined
+  ✅ normalizePhoneForSearch() defined
+  ✅ fetchQueryPages() defined
+  ✅ searchIndex written in addNewStudent
+  ✅ searchIndex written in active updateProfile
+  ✅ markLoginPerf exposed
+  ✅ markLoginPerf dataHydrated called
+  ✅ searchProfilesServerSide() defined
+  ✅ Search uses searchName field
+
+▸ Section 12: Phase 4.0B-4J-8A — limit(500) Cleanup (app.js)
+  ✅ deleteTx batch delete fixed (no warnUnsafeLimit)
+  ✅ rename tx scan fixed (no warnUnsafeLimit)
+  ✅ paidUntil recalc fixed (no warnUnsafeLimit)
+  ✅ Display edit keeps immutable profile identity and action tokens
+  ✅ tuition delete uses targeted student reconciliation
+
+▸ Section 13: Phase 4.0B — Mobile Login Performance (app.js)
+  ✅ __loginPerfMetrics defined
+  ✅ printLoginPerfMetrics() exposed
+  ✅ markLoginPerf loginStart called
+  ✅ markLoginPerf contextReady called
+  ✅ markLoginPerf shellShown called
+  ✅ app:shell-ready event dispatched
+
+▸ Section 14: Phase 4.0B — Backfill & Check Tools
+  ✅ backfill-student-search-index.mjs exists
+  ✅ check-login-performance.mjs exists
+  ✅ backfill:search-index script defined
+  ✅ check:login-performance script defined
+
+══════════════════════════════════════════════════════════
+  Total: 68 checks | ✅ Pass: 68 | ❌ Fail: 0
+
+  🎉 All scale readiness checks passed!
+  CLB 600–1000 võ sinh: safe to deploy without read cap issues.
+══════════════════════════════════════════════════════════
+

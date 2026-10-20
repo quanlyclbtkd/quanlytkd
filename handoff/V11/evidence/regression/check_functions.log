@@ -1,0 +1,23 @@
+[FunctionsCheck] Kiểm tra Cloud Functions source...
+
+[FunctionsCheck] PASS  functions/package.json tồn tại
+[FunctionsCheck] PASS  functions/index.js tồn tại
+[FunctionsCheck] PASS  functions/src/debtCalculation.js tồn tại
+[FunctionsCheck] PASS  functions/src/statsAggregation.js tồn tại
+[FunctionsCheck] PASS  functions/src/helpers.js tồn tại (optional)
+
+[FunctionsCheck] Kiểm tra syntax...
+[FunctionsCheck] PASS  syntax OK — functions/index.js
+[FunctionsCheck] PASS  syntax OK — functions/src/debtCalculation.js
+[FunctionsCheck] PASS  syntax OK — functions/src/statsAggregation.js
+
+[FunctionsCheck] Kiểm tra node_modules...
+[FunctionsCheck] WARN  functions/node_modules missing — chạy "cd functions && npm install" trước khi deploy functions.
+[FunctionsCheck] PASS  functions package.json "main": "index.js"
+[FunctionsCheck] PASS  functions Node.js target: 20
+
+[FunctionsCheck] NOTE: Tool này KHÔNG deploy. Để deploy functions, chạy:
+                       firebase deploy --only functions
+                       (sau khi đã cd functions && npm install)
+
+[FunctionsCheck] ✅ OK — Functions source hợp lệ (1 cảnh báo nhỏ).

@@ -1,0 +1,49 @@
+{
+  "projectId": "demo-v11-cas-cost",
+  "kind": "real-emulator-synthetic-documents",
+  "results": [
+    {
+      "name": "single confirmed intent",
+      "documentReads": 1,
+      "writes": 1,
+      "transactions": 1
+    },
+    {
+      "name": "lost ACK recovery for already committed UUID",
+      "documentReads": 1,
+      "writes": 0,
+      "transactions": 1
+    },
+    {
+      "name": "new status with expected version",
+      "documentReads": 1,
+      "writes": 1,
+      "transactions": 1
+    },
+    {
+      "name": "stale replay detected, no writes",
+      "documentReads": 1,
+      "writes": 0,
+      "transactions": 0
+    },
+    {
+      "name": "Coach bulk 41 intents in five serial chunks",
+      "documentReads": 41,
+      "writes": 41,
+      "transactions": 5
+    }
+  ],
+  "retry": {
+    "maxAttempts": 3,
+    "documentReadsPerIntentPerAttempt": 1,
+    "upperBoundPerIntentPerInvocation": 3
+  },
+  "newCostScopeApproval": "PENDING; not included in initial roster approval",
+  "excluded": "Dependent Rules reads, minimum query charges, index reads, reconnects, production usage and billing",
+  "sourceHashes": {
+    "firestore.rules": "c1803b367f264740758a776e3b30455a13c82e1a04b695a688da359d868b7b9a",
+    "js/services/attendance.service.js": "eb4a4f60d2b758625676852b52db02fd48264bbe1b038631c9e7249fb18faf92",
+    "js/modules/attendance.js": "9e72b67991406efdc0fe8d4f0483d6f36d05d0e9ee723208f80f929265112ac8",
+    "js/data/attendanceJournal.js": "f0d421f19c634976ff3de465f768eba3d1a130bd83c50c9214a1350f018a5cd8"
+  }
+}

@@ -1,0 +1,727 @@
+PASS A01 guard missing
+PASS A02 normalizer missing
+PASS A03 guard throws
+PASS A04 boolean false
+PASS A05 structured blocked
+PASS A06 malformed result
+[financial-intent-guard] blocked {
+  ok: false,
+  intentId: '4K-6N-nonexistent.action-1792516017621-tx0832',
+  action: 'nonexistent.action',
+  reasons: [ 'unknown-action' ],
+  clubId: 'club-A',
+  user: {
+    uid: 'u1',
+    email: 'qa@example.test',
+    role: 'admin',
+    coachBranch: ''
+  },
+  payload: { amount: 100000 },
+  time: '2026-10-20T17:06:57.621Z',
+  timestamp: 1792516017621,
+  soft: false
+}
+PASS A07 unknown action
+PASS A08 missing club actual handler
+PASS A09 unauthorized role actual handler
+PASS B06 invalid month 2026-13
+PASS B06b malformed month
+[financial-intent-guard] ok {
+  action: 'tuition.quickPay',
+  intentId: '4K-6N-tuition.quickPay-1792516017623-c8labz',
+  clubId: 'club-A',
+  role: 'admin'
+}
+[financial-intent-guard] ok {
+  action: 'tuition.quickPay',
+  intentId: '4K-6N-tuition.quickPay-1792516017625-cc3ipr',
+  clubId: 'club-A',
+  role: 'admin'
+}
+[financial-audit] {
+  action: 'tuition.quickPay',
+  stage: 'before',
+  intentId: '4K-6N-tuition.quickPay-1792516017625-cc3ipr'
+}
+[financial-audit] {
+  action: 'tuition.quickPay',
+  stage: 'after',
+  intentId: '4K-6N-tuition.quickPay-1792516017625-cc3ipr'
+}
+PASS B valid QuickPay one primary effect
+PASS B02 Thu khác zero is blocked
+PASS B03 Thu khác blank date is blocked
+PASS B08 mixed Tuition+Exam invalid component is blocked
+PASS B unknown type is blocked
+[financial-intent-guard] ok {
+  action: 'exam.collect',
+  intentId: '4K-6N-exam.collect-1792516017637-cyb63a',
+  clubId: 'club-A',
+  role: 'admin'
+}
+PASS C01 exam valid collects once and writes through
+PASS C03 immediate exam repeat before snapshot has zero new effects
+PASS C05 exam guard missing has zero effects
+[financial-intent-guard] ok {
+  action: 'exam.collect',
+  intentId: '4K-6N-exam.collect-1792516017638-tk8zew',
+  clubId: 'club-A',
+  role: 'admin'
+}
+PASS C02 rapid double click creates one effect
+[financial-intent-guard] ok {
+  action: 'exam.cancelPayment',
+  intentId: '4K-6N-exam.cancelPayment-1792516017640-9w5kra',
+  clubId: 'club-A',
+  role: 'admin'
+}
+[financial-audit] {
+  action: 'exam.cancelPayment',
+  stage: 'before',
+  intentId: '4K-6N-exam.cancelPayment-1792516017640-9w5kra'
+}
+[financial-audit] {
+  action: 'exam.cancelPayment',
+  stage: 'after',
+  intentId: '4K-6N-exam.cancelPayment-1792516017640-9w5kra'
+}
+PASS C08 pure cancel deletes and clears all local ledgers
+[financial-intent-guard] ok {
+  action: 'exam.cancelPayment',
+  intentId: '4K-6N-exam.cancelPayment-1792516017641-ibzyk1',
+  clubId: 'club-A',
+  role: 'admin'
+}
+[exam-cancel] transaction not found in runtime store: pure-1
+PASS C09 repeat cancel of removed tx has zero effects
+[financial-intent-guard] ok {
+  action: 'exam.cancelPayment',
+  intentId: '4K-6N-exam.cancelPayment-1792516017641-5nftyh',
+  clubId: 'club-A',
+  role: 'admin'
+}
+[financial-audit] {
+  action: 'exam.cancelPayment',
+  stage: 'before',
+  intentId: '4K-6N-exam.cancelPayment-1792516017641-5nftyh'
+}
+[financial-audit] {
+  action: 'exam.cancelPayment',
+  stage: 'after',
+  intentId: '4K-6N-exam.cancelPayment-1792516017641-5nftyh'
+}
+PASS C10 mixed cancel preserves Tuition and only updates exam fields
+[financial-intent-guard] ok {
+  action: 'exam.cancelPayment',
+  intentId: '4K-6N-exam.cancelPayment-1792516017642-gj9yi9',
+  clubId: 'club-A',
+  role: 'admin'
+}
+[financial-audit] {
+  action: 'exam.cancelPayment',
+  stage: 'before',
+  intentId: '4K-6N-exam.cancelPayment-1792516017642-gj9yi9'
+}
+[financial-audit] {
+  action: 'exam.cancelPayment',
+  stage: 'error',
+  intentId: '4K-6N-exam.cancelPayment-1792516017642-gj9yi9'
+}
+[exam-cancel] Firestore error: Error: rejected
+    at window._fb_init.deleteDoc (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c1-financial-entry.mjs:191:65)
+    at Object.deleteTransaction (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/js/services/finance.service.js?v=long-term-production-stability-20260917-v5u6h8r2:107:19)
+    at Object.cancelExamPayment (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/js/services/finance.service.js?v=long-term-production-stability-20260917-v5u6h8r2:124:24)
+    at window.cancelExamPayment (app.js:cancelExamPayment:40:47)
+    at file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c1-financial-entry.mjs:230:35
+    at test (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c1-financial-entry.mjs:61:15)
+    at file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c1-financial-entry.mjs:227:7
+PASS C11 rejected cancel leaves canonical local ledgers intact
+PASS E01 expense create: guard missing, zero amount, blank date have no effect
+[financial-intent-guard] ok {
+  action: 'expense.create',
+  intentId: '4K-6N-expense.create-1792516017643-bhvulh',
+  clubId: 'club-A',
+  role: 'admin'
+}
+[financial-intent-guard] ok {
+  action: 'expense.create',
+  intentId: '4K-6N-expense.create-1792516017644-nn1f3j',
+  clubId: 'club-A',
+  role: 'admin'
+}
+PASS E02 valid expense and exam expense each create one transaction
+PASS E03 invalid exam month and unauthorized role have no effect
+[financial-intent-guard] ok {
+  action: 'expense.create',
+  intentId: '4K-6N-expense.create-1792516017644-ma5feo',
+  clubId: 'club-A',
+  role: 'admin'
+}
+[finance.js] expense create failed: Error: rejected
+    at FinanceService.addTransaction (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c1-financial-entry.mjs:268:67)
+    at Object.createExpense (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/js/services/finance.service.js?v=long-term-production-stability-20260917-v5u6h8r2:76:21)
+    at form.onsubmit (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/js/modules/finance.js?v=long-term-production-stability-20260917-v5u6h8r2:631:38)
+    at expenseForm (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c1-financial-entry.mjs:242:15)
+    at file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c1-financial-entry.mjs:270:9
+    at test (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c1-financial-entry.mjs:61:15)
+    at file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c1-financial-entry.mjs:266:7
+[financial-intent-guard] ok {
+  action: 'expense.create',
+  intentId: '4K-6N-expense.create-1792516017645-bn9h4l',
+  clubId: 'club-A',
+  role: 'admin'
+}
+[finance.js] expense create failed: Error: rejected
+    at FinanceService.addTransaction (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c1-financial-entry.mjs:268:67)
+    at Object.createExpense (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/js/services/finance.service.js?v=long-term-production-stability-20260917-v5u6h8r2:76:21)
+    at form.onsubmit (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/js/modules/finance.js?v=long-term-production-stability-20260917-v5u6h8r2:631:38)
+    at expenseForm (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c1-financial-entry.mjs:242:15)
+    at file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c1-financial-entry.mjs:270:44
+    at async test (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c1-financial-entry.mjs:61:9)
+    at async file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c1-financial-entry.mjs:266:1
+PASS E04 rejected persistence leaves form intact and unlocks retry
+[financial-intent-guard] ok {
+  action: 'expense.create',
+  intentId: '4K-6N-expense.create-1792516017645-75plav',
+  clubId: 'club-A',
+  role: 'admin'
+}
+PASS E05 rapid double submit has one primary effect
+PASS E06 edit rejects unrelated tuition and stale edit identity
+[financial-intent-guard] ok {
+  action: 'expense.edit',
+  intentId: '4K-6N-expense.edit-1792516017645-7nxolz',
+  clubId: 'club-A',
+  role: 'admin'
+}
+PASS E07 expense edit allowlist, one persistence and local merge
+[financial-intent-guard] ok {
+  action: 'expense.edit',
+  intentId: '4K-6N-expense.edit-1792516017646-i13k3y',
+  clubId: 'club-A',
+  role: 'admin'
+}
+[finance.js] expense edit failed: Error: permission-denied
+    at window._fb_init.updateDoc (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c1-financial-entry.mjs:314:62)
+    at Object.updateExpenseTransaction (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/js/services/finance.service.js?v=long-term-production-stability-20260917-v5u6h8r2:92:15)
+    at window.saveEditExpense (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/js/modules/finance.js?v=long-term-production-stability-20260917-v5u6h8r2:614:34)
+    at file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c1-financial-entry.mjs:315:29
+    at test (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c1-financial-entry.mjs:61:15)
+    at file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c1-financial-entry.mjs:307:7
+[financial-intent-guard] ok {
+  action: 'expense.edit',
+  intentId: '4K-6N-expense.edit-1792516017646-xjehyp',
+  clubId: 'club-A',
+  role: 'admin'
+}
+[finance.js] expense edit failed: Error: permission-denied
+    at window._fb_init.updateDoc (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c1-financial-entry.mjs:314:62)
+    at Object.updateExpenseTransaction (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/js/services/finance.service.js?v=long-term-production-stability-20260917-v5u6h8r2:92:15)
+    at window.saveEditExpense (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/js/modules/finance.js?v=long-term-production-stability-20260917-v5u6h8r2:614:34)
+    at file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c1-financial-entry.mjs:316:29
+    at async test (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c1-financial-entry.mjs:61:9)
+    at async file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c1-financial-entry.mjs:307:1
+PASS E08 failed edit does not merge local state and allows retry
+D1C1 financial entry: 32 passed
+[financial-intent-guard] ok {
+  action: 'inventory.create',
+  intentId: '4K-6N-inventory.create-1792516017725-rn8pqb',
+  clubId: 'club-A',
+  role: 'admin'
+}
+[inventoryForm] Atomic write failed: TypeError: el.options is not iterable
+    at file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/js/modules/inventory.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1:118:28
+    at Array.forEach (<anonymous>)
+    at window.populateInvCategorySelects (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/js/modules/inventory.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1:113:60)
+    at _invFormEl.onsubmit (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/js/modules/inventory.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1:509:57)
+    at async file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c1-inventory-atomic.mjs:75:12
+    at async test (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c1-inventory-atomic.mjs:59:9)
+    at async file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c1-inventory-atomic.mjs:74:1
+PASS D03 paid sale: one commit writes inventory, stats, revenue
+[financial-intent-guard] ok {
+  action: 'inventory.create',
+  intentId: '4K-6N-inventory.create-1792516017729-4tw8hv',
+  clubId: 'club-A',
+  role: 'admin'
+}
+[inventoryForm] Atomic write failed: TypeError: el.options is not iterable
+    at file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/js/modules/inventory.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1:118:28
+    at Array.forEach (<anonymous>)
+    at window.populateInvCategorySelects (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/js/modules/inventory.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1:113:60)
+    at _invFormEl.onsubmit (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/js/modules/inventory.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1:509:57)
+    at async file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c1-inventory-atomic.mjs:82:45
+    at async test (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c1-inventory-atomic.mjs:59:9)
+    at async file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c1-inventory-atomic.mjs:81:1
+PASS D04 import plus expense: one commit
+[financial-intent-guard] ok {
+  action: 'inventory.create',
+  intentId: '4K-6N-inventory.create-1792516017729-jjxg1e',
+  clubId: 'club-A',
+  role: 'admin'
+}
+[inventoryForm] Atomic write failed: TypeError: el.options is not iterable
+    at file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/js/modules/inventory.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1:118:28
+    at Array.forEach (<anonymous>)
+    at window.populateInvCategorySelects (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/js/modules/inventory.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1:113:60)
+    at _invFormEl.onsubmit (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/js/modules/inventory.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1:509:57)
+    at async file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c1-inventory-atomic.mjs:86:43
+    at async test (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c1-inventory-atomic.mjs:59:9)
+    at async file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c1-inventory-atomic.mjs:85:1
+PASS D05 unpaid sale has no revenue document
+[financial-intent-guard] ok {
+  action: 'inventory.create',
+  intentId: '4K-6N-inventory.create-1792516017730-dy1x82',
+  clubId: 'club-A',
+  role: 'admin'
+}
+[inventoryForm] Atomic write failed: TypeError: el.options is not iterable
+    at file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/js/modules/inventory.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1:118:28
+    at Array.forEach (<anonymous>)
+    at window.populateInvCategorySelects (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/js/modules/inventory.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1:113:60)
+    at _invFormEl.onsubmit (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/js/modules/inventory.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1:509:57)
+    at async file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c1-inventory-atomic.mjs:92:45
+    at async test (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c1-inventory-atomic.mjs:59:9)
+    at async file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c1-inventory-atomic.mjs:91:1
+PASS D06 gift preserves zero-amount gift transaction
+PASS D01 missing guard blocks every primary effect
+PASS D02 invalid qty blocks every primary effect
+[financial-intent-guard] ok {
+  action: 'inventory.create',
+  intentId: '4K-6N-inventory.create-1792516017731-ocnoot',
+  clubId: 'club-A',
+  role: 'admin'
+}
+[inventoryForm] Atomic write failed: Error: injected rejection
+    at Object.commit (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c1-inventory-atomic.mjs:44:27)
+    at Object.commitPreparedAddItem (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/js/services/inventory.service.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1:301:21)
+    at _invFormEl.onsubmit (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/js/modules/inventory.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1:495:36)
+    at submit (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c1-inventory-atomic.mjs:73:40)
+    at file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c1-inventory-atomic.mjs:104:33
+    at test (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c1-inventory-atomic.mjs:59:15)
+    at file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c1-inventory-atomic.mjs:103:7
+PASS D07 rejected batch leaves persisted and local state empty
+[financial-intent-guard] ok {
+  action: 'inventory.markPaid',
+  intentId: '4K-6N-inventory.markPaid-1792516017731-xvcisy',
+  clubId: 'club-A',
+  role: 'admin'
+}
+[financial-audit] {
+  action: 'inventory.markPaid',
+  stage: 'before',
+  intentId: '4K-6N-inventory.markPaid-1792516017731-xvcisy'
+}
+[financial-audit] {
+  action: 'inventory.markPaid',
+  stage: 'after',
+  intentId: '4K-6N-inventory.markPaid-1792516017731-xvcisy'
+}
+[financial-intent-guard] ok {
+  action: 'inventory.markPaid',
+  intentId: '4K-6N-inventory.markPaid-1792516017733-4lywp7',
+  clubId: 'club-A',
+  role: 'admin'
+}
+[financial-audit] {
+  action: 'inventory.markPaid',
+  stage: 'before',
+  intentId: '4K-6N-inventory.markPaid-1792516017733-4lywp7'
+}
+[financial-audit] {
+  action: 'inventory.markPaid',
+  stage: 'after',
+  intentId: '4K-6N-inventory.markPaid-1792516017733-4lywp7'
+}
+PASS D08 markPaid adds revenue and paid state in one commit
+[financial-intent-guard] ok {
+  action: 'inventory.markPaid',
+  intentId: '4K-6N-inventory.markPaid-1792516017733-tl0ukr',
+  clubId: 'club-A',
+  role: 'admin'
+}
+[financial-audit] {
+  action: 'inventory.markPaid',
+  stage: 'before',
+  intentId: '4K-6N-inventory.markPaid-1792516017733-tl0ukr'
+}
+[financial-audit] {
+  action: 'inventory.markPaid',
+  stage: 'error',
+  intentId: '4K-6N-inventory.markPaid-1792516017733-tl0ukr'
+}
+[inventory.js] markInvPaid lỗi: Error: [InventoryService] Khoản nợ Kho không hợp lệ.
+    at Object.markPaid (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/js/services/inventory.service.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1:459:54)
+    at async window.markInvPaid (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/js/modules/inventory.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1:596:28)
+    at async file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c1-inventory-atomic.mjs:122:3
+    at async test (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c1-inventory-atomic.mjs:59:9)
+    at async file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c1-inventory-atomic.mjs:119:1
+PASS D10 amount zero may not be marked paid without revenue
+[financial-intent-guard] ok {
+  action: 'inventory.edit',
+  intentId: '4K-6N-inventory.edit-1792516017734-ylaea2',
+  clubId: 'club-A',
+  role: 'admin'
+}
+PASS D11 supported same-type quantity edit uses one atomic batch
+PASS D12 unsupported sale to import transition has no writes
+PASS D12b missing related transaction identity has no writes
+D1C1 Inventory: 12 passed
+✅ 1. ONE guard owner exposes structured-result normalizer
+✅ 2. Form canonical action registered
+✅ 3. Combo canonical action registered
+✅ 4. TCB no longer uses truthy/!==false guard interpretation
+✅ 5. Form validates finite positive amount/date/package before lane
+✅ 6. Combo has ONE validated intent builder
+✅ 7. Combo report/pay derive total from validated intents
+✅ 8. Combo pay invokes canonical guard
+✅ 9. Form invokes canonical guard
+✅ 10. secondary fee audit detached helper exists
+✅ 11. Form audit is detached
+✅ 12. Combo receipt occurs before detached audits
+✅ 13. legacy Form writer remains no-write bootstrap stub
+✅ 14. no new lane owner
+[financial-intent-guard] ok {
+  action: 'tuition.transactionForm',
+  intentId: '4K-6N-tuition.transactionForm-1792516017822-sdczbi',
+  clubId: 'clubA',
+  role: 'admin'
+}
+✅ 15. real guard {ok:true} allows
+✅ 16. structured {ok:false} blocks
+✅ 17. legacy boolean false blocks / true allows
+[financial-intent-guard] blocked {
+  ok: false,
+  intentId: '4K-6N-tuition.transactionForm-1792516017822-3qfqy8',
+  action: 'tuition.transactionForm',
+  reasons: [ 'role-not-allowed:viewer' ],
+  clubId: 'clubA',
+  user: {
+    uid: 'u1',
+    email: 'qa@example.test',
+    role: 'viewer',
+    coachBranch: ''
+  },
+  payload: { amount: 100000 },
+  time: '2026-10-20T17:06:57.822Z',
+  timestamp: 1792516017822,
+  soft: false
+}
+✅ 18. unauthorized role is blocked by real guard
+[financial-intent-guard] blocked {
+  ok: false,
+  intentId: '4K-6N-tuition.transactionForm-1792516017823-hqupd5',
+  action: 'tuition.transactionForm',
+  reasons: [ 'missing-clubId' ],
+  clubId: '',
+  user: {
+    uid: 'u1',
+    email: 'qa@example.test',
+    role: 'admin',
+    coachBranch: ''
+  },
+  payload: { amount: 100000 },
+  time: '2026-10-20T17:06:57.823Z',
+  timestamp: 1792516017823,
+  soft: false
+}
+✅ 19. missing club blocked by real guard
+[financial-intent-guard] blocked {
+  ok: false,
+  intentId: '4K-6N-tuition.transactionForm-1792516017823-7ti3cf',
+  action: 'tuition.transactionForm',
+  reasons: [ 'non-positive-amount' ],
+  clubId: 'clubA',
+  user: {
+    uid: 'u1',
+    email: 'qa@example.test',
+    role: 'admin',
+    coachBranch: ''
+  },
+  payload: { amount: 0 },
+  time: '2026-10-20T17:06:57.823Z',
+  timestamp: 1792516017823,
+  soft: false
+}
+✅ 20. payment amount zero blocked by real guard
+[financial-intent-guard] blocked {
+  ok: false,
+  intentId: '4K-6N-tuition.transactionForm-1792516017823-u24vws',
+  action: 'tuition.transactionForm',
+  reasons: [ 'invalid-amount' ],
+  clubId: 'clubA',
+  user: {
+    uid: 'u1',
+    email: 'qa@example.test',
+    role: 'admin',
+    coachBranch: ''
+  },
+  payload: { amount: Infinity },
+  time: '2026-10-20T17:06:57.823Z',
+  timestamp: 1792516017823,
+  soft: false
+}
+✅ 21. non-finite amount blocked by real guard
+✅ 22. FORM-INV01 amount 0 => zero write
+✅ 23. FORM-INV02 negative => zero write
+✅ 24. FORM-INV03 NaN => zero write
+✅ 25. FORM-INV04 blank date => zero write
+✅ 26. FORM-INV05 invalid date => zero write
+✅ 27. FORM-INV06 invalid package => zero write
+[financial-intent-guard] blocked {
+  ok: false,
+  intentId: '4K-6N-tuition.transactionForm-1792516017831-t9f2g8',
+  action: 'tuition.transactionForm',
+  reasons: [ 'role-not-allowed:viewer' ],
+  clubId: 'clubA',
+  user: {
+    uid: 'u1',
+    email: 'qa@example.test',
+    role: 'viewer',
+    coachBranch: ''
+  },
+  payload: {
+    amount: 100000,
+    studentName: 'A',
+    month: '2026-09',
+    packageCount: 1
+  },
+  time: '2026-10-20T17:06:57.831Z',
+  timestamp: 1792516017831,
+  soft: false
+}
+✅ 28. FORM-INV07 viewer guard => zero write
+[financial-intent-guard] blocked {
+  ok: false,
+  intentId: '4K-6N-tuition.transactionForm-1792516017831-brodd9',
+  action: 'tuition.transactionForm',
+  reasons: [ 'missing-clubId' ],
+  clubId: '',
+  user: {
+    uid: 'u1',
+    email: 'qa@example.test',
+    role: 'admin',
+    coachBranch: ''
+  },
+  payload: {
+    amount: 100000,
+    studentName: 'A',
+    month: '2026-09',
+    packageCount: 1
+  },
+  time: '2026-10-20T17:06:57.831Z',
+  timestamp: 1792516017831,
+  soft: false
+}
+✅ 29. FORM-INV08 missing club => zero write
+[financial-intent-guard] ok {
+  action: 'tuition.transactionForm',
+  intentId: '4K-6N-tuition.transactionForm-1792516017831-fkaylj',
+  clubId: 'clubA',
+  role: 'admin'
+}
+✅ 30. FORM-INV09 valid Form has one canonical primary effect
+✅ 31. COMBO-INV01 duplicate profile => zero write
+✅ 32. COMBO-INV02 partial amount/no student => zero write
+✅ 33. COMBO-INV03 blank month => zero write
+✅ 34. COMBO-INV04 invalid month => zero write
+✅ 35. COMBO-INV05 zero amount active row => zero write
+✅ 36. COMBO-INV06 negative amount => zero write
+[financial-intent-guard] blocked {
+  ok: false,
+  intentId: '4K-6N-tuition.familyCombo-1792516017834-y31o65',
+  action: 'tuition.familyCombo',
+  reasons: [ 'role-not-allowed:viewer' ],
+  clubId: 'clubA',
+  user: {
+    uid: 'u1',
+    email: 'qa@example.test',
+    role: 'viewer',
+    coachBranch: ''
+  },
+  payload: { total: 100000, studentNames: [ 'A' ], months: [ '2026-09' ] },
+  time: '2026-10-20T17:06:57.834Z',
+  timestamp: 1792516017834,
+  soft: false
+}
+✅ 37. COMBO-INV07 viewer => zero write
+[financial-intent-guard] blocked {
+  ok: false,
+  intentId: '4K-6N-tuition.familyCombo-1792516017834-kam5rr',
+  action: 'tuition.familyCombo',
+  reasons: [ 'missing-clubId' ],
+  clubId: '',
+  user: {
+    uid: 'u1',
+    email: 'qa@example.test',
+    role: 'admin',
+    coachBranch: ''
+  },
+  payload: { total: 100000, studentNames: [ 'A' ], months: [ '2026-09' ] },
+  time: '2026-10-20T17:06:57.834Z',
+  timestamp: 1792516017834,
+  soft: false
+}
+✅ 38. COMBO-INV08 missing club => zero write
+✅ 39. COMBO-INV09 report total derives validated intents
+[financial-intent-guard] ok {
+  action: 'tuition.familyCombo',
+  intentId: '4K-6N-tuition.familyCombo-1792516017834-bo8t4e',
+  clubId: 'clubA',
+  role: 'admin'
+}
+✅ 40. COMBO-INV10 pay total equals committed validated total
+✅ 41. COMBO-INV11 normal combo local commits all profiles
+[financial-intent-guard] ok {
+  action: 'tuition.transactionForm',
+  intentId: '4K-6N-tuition.transactionForm-1792516017835-sd5r9m',
+  clubId: 'clubA',
+  role: 'admin'
+}
+✅ 42. AUDIT01 slow Form audit does not block handler completion
+[financial-intent-guard] ok {
+  action: 'tuition.familyCombo',
+  intentId: '4K-6N-tuition.familyCombo-1792516017837-zn4hgl',
+  clubId: 'clubA',
+  role: 'admin'
+}
+✅ 43. AUDIT02 slow Combo audit does not block receipt
+[financial-intent-guard] ok {
+  action: 'tuition.transactionForm',
+  intentId: '4K-6N-tuition.transactionForm-1792516017840-eq20o4',
+  clubId: 'clubA',
+  role: 'admin'
+}
+[fee-audit] Error: audit fail
+    at FinanceService.addFeeAuditSilent (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c-final-production-correctness.mjs:29:366)
+    at _detachFeeAudit (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/js/modules/finance.js?d1c=2:70:69)
+    at _txFormEl.onsubmit (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/js/modules/finance.js?d1c=2:598:164)
+    at async file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c-final-production-correctness.mjs:55:68
+✅ 44. AUDIT03 audit rejection does not convert payment failure
+✅ 45. prior D1B actual handler/race gate remains PASS
+✅ 46. Firestore budget exactly 29/44/16
+✅ 47. root/public parity PASS
+✅ 48. release DAG contains D1C exactly once
+
+Firestore static budget: 29/44/16
+Total: 48 | PASS: 48 | FAIL: 0
+H8R2.1C1F1D1C final production correctness gate PASS.
+✅ getDoc runtime call sites do not increase (29 <= 33)
+✅ getDocs runtime call sites do not increase (44 <= 56)
+✅ onSnapshot runtime call sites do not increase (16 <= 17)
+✅ window assignments do not increase (525 <= 534)
+✅ duplicate globals do not increase (157 <= 159)
+✅ no polling added to tenant startup
+✅ notification startup one-shot removed
+✅ transaction startup still delegates existing owner
+Current static counts: { getDoc: 29, getDocs: 44, onSnapshot: 16 }
+PASS 8/8
+{
+  "algorithm": "SHA-256",
+  "rootFileCount": 128,
+  "publicFileCount": 128,
+  "missingPublic": [],
+  "extraPublic": [],
+  "hashMismatches": [],
+  "status": "PASS"
+}
+PASS report complete 0 rows (1 pages, 0 document reads)
+PASS report complete 50 rows (2 pages, 50 document reads)
+PASS report complete 250 rows (6 pages, 250 document reads)
+PASS report complete 251 rows (6 pages, 251 document reads)
+PASS report complete 2001 rows (41 pages, 2001 document reads)
+[paginatedQuery] fetchAllMatchingDocs error: permission-denied
+PASS report page 2 rejection cannot return page 1
+[paginatedQuery] fetchAllMatchingDocs error: Chưa chứng minh đã đọc hết dữ liệu (maxPages=2; ).
+PASS exact full maxPages is incomplete
+PASS date export >2000 rows
+PASS inventory export >1000 rows
+PASS month 0 rows (1 service pages, 3 requests, 0 mock document reads)
+PASS month 50 rows (2 service pages, 5 requests, 100 mock document reads)
+PASS month 250 rows (6 service pages, 13 requests, 500 mock document reads)
+PASS month 251 rows (6 service pages, 13 requests, 502 mock document reads)
+PASS month 251+ overlap/dedupe/cursors (6 clicks, 504 document reads)
+PASS search finds row 251 without reporting early empty as complete (6 clicks)
+PASS month switch rejects old cursor/buffer state
+PASS one of three month sources fails closed without changing last good cursor
+PASS packageMonths >2000 (2001 document reads)
+PASS partial page/list redraw, branch/month/search context, safe delete ID, no ledger hydration
+[reports.js] ✅ initReports() Phase 4K-6E-B — exam export belt-order sort
+Error: permission-denied
+    at window.loadTransactionsForDateRange (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-d1c2-export-failclosed.mjs:27:87)
+    at window.executeExcelExport (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/js/modules/reports.js:395:47)
+    at async excelFailure (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-d1c2-export-failclosed.mjs:31:3)
+    at async file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-d1c2-export-failclosed.mjs:35:60
+PASS Excel date incomplete: zero downloaded files
+Error: missing-index
+    at window.loadTransactionsForTxMonthRange (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-d1c2-export-failclosed.mjs:28:91)
+    at window.executeExcelExport (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/js/modules/reports.js:401:48)
+    at async excelFailure (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-d1c2-export-failclosed.mjs:31:3)
+    at async file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-d1c2-export-failclosed.mjs:35:60
+PASS Excel month incomplete: zero downloaded files
+Error: page-two-failed
+    at window.FinanceService.queryTxByPackageMonths (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-d1c2-export-failclosed.mjs:29:99)
+    at window.executeExcelExport (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/js/modules/reports.js:420:67)
+    at async excelFailure (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-d1c2-export-failclosed.mjs:31:3)
+    at async file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-d1c2-export-failclosed.mjs:35:60
+PASS Excel package incomplete: zero downloaded files
+Error: maxPages
+    at window.loadInventoryForDateRange (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-d1c2-export-failclosed.mjs:30:89)
+    at window.executeExcelExport (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/js/modules/reports.js:429:39)
+    at async excelFailure (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-d1c2-export-failclosed.mjs:31:3)
+    at async file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-d1c2-export-failclosed.mjs:35:60
+PASS Excel inventory incomplete: zero downloaded files
+Error: page-two-failed
+    at window.loadTransactionsForDateRange (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-d1c2-export-failclosed.mjs:37:59)
+    at window.executeTaxExport (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/js/modules/reports.js:1434:44)
+    at async file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-d1c2-export-failclosed.mjs:38:1
+PASS tax page-two failure: zero downloaded files
+PASS canonical debt: 74-month span, skip, paid, quit, exempt, bounded error
+PASS bootstrap: early/mid clicks create 0 writes; canonical module installs both final handlers
+PASS admission bootstrap: early click creates 0 writes; student module installs final coordinator
+PASS admission fee positive 1 month(s): one commit, matched profile and tx
+PASS admission fee positive 3 month(s): one commit, matched profile and tx
+PASS admission fee positive 6 month(s): one commit, matched profile and tx
+PASS admission fee positive 12 month(s): one commit, matched profile and tx
+PASS paid uniform and bundle use two-way IDs in one commit
+PASS gifted uniform item/stats/gift tx/tuition tx are atomic
+[students.addNewStudent] Error: batch rejected
+    at Object.commit (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-d1c2-admission-partial.mjs:26:25)
+    at window.addNewStudent (students.js:admission:233:25)
+    at file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-d1c2-admission-partial.mjs:100:14
+PASS batch rejection leaves zero primary documents
+PASS fee=0: profile committed unpaid, no finance tx/receipt, canonical debt includes admission month
+PASS receipt error after commit preserves one transaction and success state
+PASS invalid date/amount/package/discount/branch and Coach have zero primary writes
+PASS post-commit UI failure cannot turn a saved admission into a payment retry
+PASS same-runtime double click makes one commit
+PASS F01 — paid tuition package 1 month(s)
+PASS F02 — paid tuition package 3 month(s)
+PASS F03 — paid tuition package 6 month(s)
+PASS F04 — paid tuition package 12 month(s)
+PASS F05 — tuition + paid uniform atomic canonical bundle
+PASS F06 — tuition + gifted uniform atomic without fake paid inventory link
+PASS F07 — zero tuition profile-only commit remains canonical debt
+PASS F08 — zero tuition + paid uniform records only uniform income/receipt
+PASS F09 — zero tuition + gifted uniform keeps tuition debt and no payment receipt
+[students.addNewStudent] Error: batch rejected
+    at Object.commit (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c1-admission-atomic.mjs:57:33)
+    at window.addNewStudent (students.js:admission:233:25)
+    at file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c1-admission-atomic.mjs:296:14
+PASS F10 — paid admission batch rejection leaves zero primary docs
+[students.addNewStudent] Error: batch rejected
+    at Object.commit (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c1-admission-atomic.mjs:57:33)
+    at window.addNewStudent (students.js:admission:233:25)
+    at file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c1-admission-atomic.mjs:302:14
+PASS F11 — zero-fee profile-only batch rejection leaves zero primary docs
+[students.addNewStudent] Error: batch rejected
+    at Object.commit (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c1-admission-atomic.mjs:57:33)
+    at window.addNewStudent (students.js:admission:233:25)
+    at file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c1-admission-atomic.mjs:308:14
+PASS F12 — zero-fee + paid uniform rejection is atomic
+PASS F13 — receipt/runtime/UI-refresh secondary failures preserve committed primary state (F13A-F13D)
+PASS F14 — same-runtime paid double click commits once
+PASS F15 — same-runtime zero-fee double click commits once and remains debt
+PASS Z02 — empty fee remains unpaid admission debt
+PASS Z03 — string-zero fee remains unpaid admission debt
+ADMISSION F01-F15 PASS: 15/15 + D1C3B1 Z02/Z03
+D1C1 financial authority gate PASS.

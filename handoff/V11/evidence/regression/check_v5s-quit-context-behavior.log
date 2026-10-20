@@ -1,0 +1,11 @@
+✅ concurrent ensure calls share one loader
+✅ shared false result resolves safely
+✅ immediate retry is suppressed by backoff
+✅ quit authority loads from recovered runtime context
+✅ full snapshot classifies only quit profile into quit bucket
+✅ context recovery is measured, not warned repeatedly
+[StudentProfileStore] reset — v10-contract
+[ProfilesListener] reset — v10-contract-end
+✅ cache-only/pending snapshots cannot grant Quit authority
+
+PASS 7/7

@@ -1,0 +1,55 @@
+
+=== Phase 4K-6V5U6C2 — Dashboard Hydration/Mutation Guard + Dirty Backoff ===
+
+✅ cache schema remains v3 because hydration/backoff metadata is RAM-only
+✅ hydration state extends the existing freshness owner
+✅ hydration reconciliation performs no Firestore read
+✅ hydration API stays on the existing _moduleDashboard namespace
+✅ dirty backoff is timestamp-only and has no polling
+✅ all C2 metrics extend __sparkReadMetrics
+✅ transaction source recorder returns initial/source metadata
+✅ canonical transaction snapshot is hydration before mutation
+✅ legacy hydration requires all three initial sources
+✅ legacy callbacks pass source metadata into one merge owner
+✅ live transaction dirty requires post-hydration fingerprint change
+✅ legacy duplicate callbacks coalesce at the transaction owner
+✅ transaction dirty becomes visible before delayed Dashboard invalidation
+✅ profile snapshot #1 records member hydration evidence from full Admin authority
+✅ profile live dirty requires real docChanges
+✅ Coach is excluded from both profile reconciliation and dirty marks
+✅ logout resets Dashboard hydration identity
+✅ all targeted stats reads remain inside canonical loader
+✅ unresolved dirty skip is evaluated before monthsToFetch
+✅ new dirty revisions reset retry metadata
+✅ build marker is exact C2 marker
+[dashboard.js] ✅ Phase 4K-6V5U6C2 (hydration/mutation guard + unresolved dirty read backoff)
+✅ finance initial match establishes CLEAN hydration baseline
+✅ member initial match establishes CLEAN hydration baseline
+✅ Viewer opens Dashboard five times with matching cache and zero stats reads
+✅ matching hydration records no false dirty revision
+[dashboard.js] ✅ Phase 4K-6V5U6C2 (hydration/mutation guard + unresolved dirty read backoff)
+✅ initial finance mismatch marks dirty exactly once
+✅ unresolved finance dirty performs one targeted current-month read
+✅ unresolved finance dirty preserves RAM and sets retry eligibility
+✅ ten Dashboard triggers before retry deadline perform zero extra reads
+✅ next eligible trigger performs one targeted read
+✅ server catch-up resolves hydration dirty
+✅ real mutation after hydration increments one live dirty revision
+✅ new mutation resets the old retry cooldown
+✅ new revision is immediately eligible for one targeted read
+✅ RAM current-month authority remains protected during backoff
+[dashboard.js] ✅ Phase 4K-6V5U6C2 (hydration/mutation guard + unresolved dirty read backoff)
+✅ initial member mismatch marks dirty once
+✅ unresolved member mismatch costs one targeted read
+✅ member RAM authority protects selected chart point
+[dashboard.js] ✅ Phase 4K-6V5U6C2 (hydration/mutation guard + unresolved dirty read backoff)
+✅ hydration without canonical payload stays clean and pending
+✅ cold mismatch uses the normal six-read canonical flight only
+✅ cold canonical response detects mismatch and preserves dirty once
+[dashboard.js] ✅ Phase 4K-6V5U6C2 (hydration/mutation guard + unresolved dirty read backoff)
+✅ Coach hydration reconciliation is skipped with zero Dashboard dirty marks
+✅ Coach hydration reconciliation performs zero stats reads
+[dashboard.js] ✅ Phase 4K-6V5U6C2 (hydration/mutation guard + unresolved dirty read backoff)
+✅ club/auth switch clears Club A dirty and hydration state
+
+PASS 44/44

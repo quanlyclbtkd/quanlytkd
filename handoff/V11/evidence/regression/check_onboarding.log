@@ -1,0 +1,57 @@
+[OnboardingGate] Kiểm tra automated onboarding gate (Phase 4.0B-4I)...
+
+[OnboardingGate] INFO  app.js: 679552 ký tự
+
+[OnboardingGate] [1–3] Kiểm tra functions chính...
+[OnboardingGate] PASS  window.runOnboardingGate được định nghĩa
+[OnboardingGate] PASS  runOnboardingGate là async function
+[OnboardingGate] PASS  window.printOnboardingGate được định nghĩa
+[OnboardingGate] PASS  printOnboardingGate là async function
+[OnboardingGate] PASS  window.generateOnboardingReportText được định nghĩa
+[OnboardingGate] PASS  generateOnboardingReportText là async function
+
+[OnboardingGate] [4–8] Kiểm tra runOnboardingGate gọi diagnostics...
+[OnboardingGate] PASS  runOnboardingGate gọi resolveActiveDataSource()
+[OnboardingGate] PASS  runOnboardingGate gọi printDataHydrationStatus()
+[OnboardingGate] PASS  runOnboardingGate gọi printPilotTabReadiness()
+[OnboardingGate] PASS  runOnboardingGate gọi printOneClubPilotGate()
+[OnboardingGate] PASS  runOnboardingGate gọi printTenClubPilotReadiness()
+
+[OnboardingGate] [9–16] Kiểm tra blockers...
+[OnboardingGate] PASS  Có blockers.push() trong runOnboardingGate
+[OnboardingGate] PASS  Có kiểm tra clubId missing
+[OnboardingGate] PASS  Có kiểm tra activeDataSource unknown
+[OnboardingGate] PASS  Có kiểm tra profilesCount > 0
+[OnboardingGate] PASS  Có kiểm tra tuitionReady
+[OnboardingGate] PASS  Có kiểm tra debtReady
+[OnboardingGate] PASS  Có kiểm tra dashboardReady
+[OnboardingGate] PASS  Có kiểm tra permission-error từ Firestore
+[OnboardingGate] PASS  Có kiểm tra runtimeRecovery.error
+[OnboardingGate] PASS  Có kiểm tra critical runtime health missing
+
+[OnboardingGate] [17–18] Kiểm tra output fields...
+[OnboardingGate] PASS  Output có trường checkedAt
+[OnboardingGate] PASS  Output có trường warnings
+[OnboardingGate] PASS  Output có trường readyForInternalTest
+[OnboardingGate] PASS  Output có trường readyForOneClubPilot
+[OnboardingGate] PASS  Output có trường readyForTenClubPilot
+
+[OnboardingGate] [19] Kiểm tra generateOnboardingReportText...
+[OnboardingGate] PASS  generateOnboardingReportText trả markdown có heading
+[OnboardingGate] PASS  Report markdown có Profiles Count
+[OnboardingGate] PASS  Report markdown có Blockers
+[OnboardingGate] PASS  Report markdown có Checked At
+
+[OnboardingGate] [20] Kiểm tra không có Firestore write...
+[OnboardingGate] PASS  Không có Firestore write trong onboarding gate section
+[OnboardingGate] PASS  Không có migration tự động trong onboarding gate
+
+[OnboardingGate] [22] Kiểm tra Firestore rules...
+[OnboardingGate] PASS  Firestore rules không có catch-all public read
+
+[OnboardingGate] [23–24] Kiểm tra template files...
+[OnboardingGate] PASS  ONBOARDING_CHECKLIST_TEMPLATE.md tồn tại
+[OnboardingGate] PASS  ONBOARDING_REPORT_TEMPLATE.md tồn tại
+
+[OnboardingGate] Đã kiểm tra: 35 patterns
+[OnboardingGate] ✅ OK — Automated onboarding gate (Phase 4.0B-4I) đầy đủ.

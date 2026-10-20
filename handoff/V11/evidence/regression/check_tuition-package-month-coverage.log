@@ -1,0 +1,65 @@
+
+══════════════════════════════════════════════════════════
+  Phase 4K-4F — Tuition Package Month Coverage Check
+══════════════════════════════════════════════════════════
+
+▸ Section 1: .nojekyll deploy gate
+  ✅ .nojekyll exists at root
+
+▸ Section 2: window.txMatchesSelectedMonth shared helper
+  ✅ main.js: window.txMatchesSelectedMonth defined
+  ✅ main.js: txMatchesSelectedMonth checks tx.txMonth
+  ✅ main.js: txMatchesSelectedMonth checks tx.paymentMonth
+  ✅ main.js: txMatchesSelectedMonth checks tx.packageMonths array
+  ✅ main.js: txMatchesSelectedMonth checks tx.date startsWith
+
+▸ Section 3: app.js listenToData — 3rd query packageMonths
+  ✅ app.js: qByPackageMonth query defined
+  ✅ app.js: qByPackageMonth does NOT use orderBy (avoid composite index)
+  ✅ app.js: _byPackageMonth variable declared
+  ✅ app.js: _mergeAndRender merges _byPackageMonth
+  ✅ app.js: _mergeAndRender uses txMatchesSelectedMonth filter
+  ✅ app.js: safeRegisterSnapshot includes u3 for qByPackageMonth
+  ✅ app.js: combined unsub includes u3 cleanup
+
+▸ Section 4: FinanceService.getTransactionsForMonthInclusive
+  ✅ finance.service.js: getTransactionsForMonthInclusive defined
+  ✅ finance.service.js: inclusive query uses where("packageMonths","array-contains",monthStr)
+  ✅ finance.service.js: inclusive query returns _mergedItems
+  ✅ finance.service.js: getTransactionsPage delegates all month pages to inclusive owner
+  ✅ finance.service.js: queryTxByPackageMonths defined for export
+  ✅ finance.service.js: queryTxByPackageMonths uses array-contains per month
+
+▸ Section 5: finance.js _doLoad handles snap._mergedItems
+  ✅ finance.js: _doLoad checks snap._mergedItems
+  ✅ finance.js: _doLoad sets pgState.currentItems from _mergedItems
+
+▸ Section 6: financeRenderer.js txMatchesSelectedMonth guard
+  ✅ financeRenderer.js: reads _selectedMonth from filterMonth or store
+  ✅ financeRenderer.js: calls txMatchesSelectedMonth in forEach guard
+  ✅ financeRenderer.js: renderTxRow monthBadge shows package date range
+
+▸ Section 7: reports.js export merges packageMonths query
+  ✅ reports.js: export calls queryTxByPackageMonths or txByPackage
+  ✅ reports.js: txAll merge includes txByPackage
+
+▸ Section 8: debug helpers
+  ✅ main.js: window.debugTuitionPackageCoverage defined
+  ✅ debugTuitionPackageCoverage: checks packageMatchesCount
+  ✅ main.js: debugRuntimeSmokeTest calls debugTuitionPackageCoverage
+  ✅ main.js: debugRuntimeSmokeTest summary includes tuitionPackageCoverageOk
+
+▸ Section 9: package.json check script
+  ✅ package.json: check:tuition-package-month-coverage defined
+  ✅ package.json: check:all includes check:tuition-package-month-coverage
+
+▸ Section 10: check:deploy-package result
+  ✅ check:deploy-package exits 0 (all deploy checks pass)
+
+══════════════════════════════════════════════════════════
+  Total: 33 checks | ✅ Pass: 33 | ❌ Fail: 0
+
+  🎉 All tuition package month coverage checks passed!
+  Tháng giữa gói học phí (2026-07 trong gói 06-08) sẽ load đúng.
+══════════════════════════════════════════════════════════
+

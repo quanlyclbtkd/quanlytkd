@@ -1,0 +1,35 @@
+[TenClubPilot] Kiểm tra 10-CLB pilot readiness (Phase 4.0B-4G)...
+
+[TenClubPilot] INFO  app.js: 679552 ký tự
+
+[TenClubPilot] [1] Kiểm tra printTenClubPilotReadiness...
+[TenClubPilot] PASS  window.printTenClubPilotReadiness được định nghĩa trong app.js
+[TenClubPilot] PASS  printTenClubPilotReadiness là function assignment
+
+[TenClubPilot] [2] Kiểm tra readyForTenClubPilot không hard-code false...
+[TenClubPilot] PASS  readyForTenClubPilot không còn set cứng false
+[TenClubPilot] PASS  readyForTenClubPilot field vẫn tồn tại (dynamic)
+[TenClubPilot] PASS  readyForTenClubPilot được gán giá trị động (không phải literal false)
+
+[TenClubPilot] [3] Kiểm tra pilotBlockers và blockers...
+[TenClubPilot] PASS  pilotBlockers array tồn tại trong printPilotLaunchStatus
+[TenClubPilot] PASS  blockers.push() được dùng để ghi nhận blocker
+[TenClubPilot] PASS  readyForTenClubPilot = blockers.length === 0 (logic đúng)
+
+[TenClubPilot] [4] Kiểm tra tools/check-tenant-isolation.mjs...
+[TenClubPilot] PASS  tools/check-tenant-isolation.mjs tồn tại
+
+[TenClubPilot] [5] Kiểm tra PILOT_BACKUP_CHECKLIST.md...
+[TenClubPilot] PASS  PILOT_BACKUP_CHECKLIST.md tồn tại
+
+[TenClubPilot] [6] Kiểm tra PILOT_LAUNCH_REPORT_TEMPLATE.md...
+[TenClubPilot] PASS  PILOT_LAUNCH_REPORT_TEMPLATE.md tồn tại
+
+[TenClubPilot] [7] Kiểm tra không có Firestore write trong fallback...
+[TenClubPilot] PASS  Không có Firestore write trong activateLegacyRootFallback
+
+[TenClubPilot] [8] Kiểm tra Firestore rules không mở public...
+[TenClubPilot] PASS  firestore.rules không có catch-all public read
+
+[TenClubPilot] Đã kiểm tra: 13 patterns
+[TenClubPilot] ✅ OK — 10-CLB pilot hardening checks (Phase 4.0B-4G) đầy đủ.

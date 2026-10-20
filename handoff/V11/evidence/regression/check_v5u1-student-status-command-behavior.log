@@ -1,0 +1,17 @@
+✅ identical markQuit commands run one service write
+✅ markQuit commits local status
+✅ markQuit invalidates active/quit/debt/attendance
+✅ addSkippedMonth uses service once
+✅ addSkippedMonth updates local skippedMonths
+✅ removeSkippedMonth uses service once
+✅ removeSkippedMonth updates local skippedMonths
+✅ rename delegates once with tx updates
+✅ rename removes old and commits new local profile
+✅ rename updates canonical store buckets
+✅ delete delegates once
+✅ delete removes local profile
+✅ metrics record duplicate prevention
+✅ metrics have no failed commands
+✅ FinanceService preserves and annotates permission-denied
+
+V5U-1 student status command behavior check PASS.

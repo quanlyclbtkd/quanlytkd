@@ -1,0 +1,16 @@
+{
+  "decision": "approved",
+  "issuedBy": "system_owner",
+  "recordedBy": "assistant_from_explicit_user_instruction",
+  "approvedAt": "2026-10-20T22:17:24+07:00",
+  "scope": "Coach CS1 and Coach CS2; clubs with at most 1500 profiles; initial roster result documents and Rules canonical profile lookup for attendance writes",
+  "rulesSha256": "6c97941adc044509cb8095c461a41f3f3f7a80a092771bdbb25d03373478b622",
+  "sourceSha256": "bb5b3bda5ddb77b1dc935ea539b8ae2f8287f001dbf04d8619605e602d797af1",
+  "measurementSha256": "34e469fe97f995ee0826d1e7c77008dbc7e5449456a6280d481ae233fe1d0be5",
+  "maxIncrementalInitialDocs": 1500,
+  "profilesMeasured1000": true,
+  "profilesMeasured1500": true,
+  "attendanceCanonicalProfileLookupApproved": true,
+  "ownerStatement": "chấp thuận đề xuất tối đa +1.500 hồ sơ đọc thêm/lượt tải đầu của Coach trong phạm vi CLB ≤1.500 hồ sơ, cùng việc Rules tra hồ sơ gốc khi Coach ghi điểm danh",
+  "notes": "Explicit approval in this conversation. Timestamp is user-message submission time. This is a measured-scope approval, not a hard quota, total billing cap or production deployment approval."
+}

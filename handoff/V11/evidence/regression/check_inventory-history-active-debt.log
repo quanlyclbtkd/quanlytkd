@@ -1,0 +1,32 @@
+
+=== Phase 4K-6V2 — Inventory Pagination + Complete Active Debt ===
+
+✅ Build marker 4K-6V2 exists
+✅ Phase implementation block exists
+✅ Inventory history page size is 100
+✅ History uses date-desc cursor pagination
+✅ History is gated by active Inventory tab
+✅ Inventory tab explicitly starts lazy history load
+✅ Load-more control is rendered
+✅ Global 500-document inventory history listener is removed from Phase block
+✅ Complete debt query is unpaid == true with no limit
+✅ Debt listener has one club-scoped registry key
+✅ Debt mirror is reset on tenant switch/init
+✅ Debt snapshot is authoritative and indexed
+✅ Recent history publish never derives/overwrites complete debts
+✅ Debt listener failure marks incomplete coverage and blocks unsafe use
+✅ Debt identity index supports profileId, memberId and normalized name
+✅ New inventory writes enrich identity
+✅ Inventory edit preserves debt identity fields
+✅ Legacy/standalone complete-debt mirror is consumed by MultiItem safety
+✅ Inventory read metrics are exposed
+✅ Stock renderer overlays inventory_stats instead of trusting only first page
+✅ Dynamic: recent history page cannot overwrite authoritative debts
+✅ Dynamic: lookup prioritizes profileId
+✅ Dynamic: lookup falls back to memberId
+✅ Dynamic: lookup falls back to normalized name
+✅ Dynamic: completeness remains complete after history update
+
+Total: 25 | PASS: 25 | FAIL: 0
+Phase 4K-6V2 inventory pagination/complete-debt checks passed.
+

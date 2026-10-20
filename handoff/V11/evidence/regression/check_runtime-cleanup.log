@@ -1,0 +1,34 @@
+
+══════════════════════════════════════════════════════════
+  Phase 4K-RUNTIME-CLEANUP Overall Check
+══════════════════════════════════════════════════════════
+
+▸ Section 1: ensureModuleRuntimeReady fallback once-only
+  ✅ Fallback có __runtimeReadyFallbackWarned guard (log 1 lần)
+  ✅ __runtimeReadyFallbackWarned guard nằm trước bootstrap IIFE
+
+▸ Section 2: editProfile multi-candidate bridge
+  ✅ editProfile bridge dùng candidates array
+  ✅ Bridge forward đến candidate đầu tiên available
+
+▸ Section 3: Logout guard reset trong _patchResetStore
+  ✅ __studentPaginationInitialized reset khi logout
+  ✅ __transactionPaginationInitialized reset khi logout
+  ✅ __dbReadyEventDispatched reset khi logout
+  ✅ __runtimeReadyFallbackWarned reset khi logout
+
+▸ Section 4: printClubRuntimeDiagnostics
+  ✅ window.printClubRuntimeDiagnostics defined
+  ✅ printClubRuntimeDiagnostics là async function
+  ✅ printClubRuntimeDiagnostics dùng getCountFromServer
+  ✅ printClubRuntimeDiagnostics có permission-denied handler
+
+▸ Section 5: warnUnsafeLimit uiOnly trong listenToData
+  ✅ listenToData warnUnsafeLimit có uiOnly: true
+
+══════════════════════════════════════════════════════════
+  Total: 13 | ✅ 13 | ❌ 0
+
+  🎉 All Phase 4K-RUNTIME-CLEANUP checks passed!
+══════════════════════════════════════════════════════════
+

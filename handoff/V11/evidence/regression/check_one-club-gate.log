@@ -1,0 +1,48 @@
+[OneClubGate] Kiểm tra 1-CLB pilot gate (Phase 4.0B-4H)...
+
+[OneClubGate] INFO  app.js: 679552 ký tự
+
+[OneClubGate] [1–6] Kiểm tra window.generatePilotLaunchSnapshot...
+[OneClubGate] PASS  window.generatePilotLaunchSnapshot được định nghĩa
+[OneClubGate] PASS  generatePilotLaunchSnapshot là async function
+[OneClubGate] PASS  Snapshot gọi await resolveActiveDataSource()
+[OneClubGate] PASS  Snapshot gọi printDataHydrationStatus()
+[OneClubGate] PASS  Snapshot gọi printPilotTabReadiness()
+[OneClubGate] PASS  Snapshot gọi printPilotLaunchStatus()
+[OneClubGate] PASS  Snapshot gọi printTenClubPilotReadiness()
+[OneClubGate] PASS  Snapshot có snapshotAt timestamp
+
+[OneClubGate] [7] Kiểm tra window.printOneClubPilotGate...
+[OneClubGate] PASS  window.printOneClubPilotGate được định nghĩa
+[OneClubGate] PASS  printOneClubPilotGate là function assignment
+
+[OneClubGate] [8–13] Kiểm tra gate output fields...
+[OneClubGate] PASS  Gate trả về readyForInternalTest field
+[OneClubGate] PASS  Gate trả về readyForOneClubPilot field
+[OneClubGate] PASS  Gate trả về readyForTenClubPilot field
+[OneClubGate] PASS  Gate trả về blockers array
+[OneClubGate] PASS  Gate trả về profilesCount
+[OneClubGate] PASS  Gate trả về transactionsCount
+[OneClubGate] PASS  Gate trả về inventoryCount
+[OneClubGate] PASS  Gate trả về tuitionReady
+[OneClubGate] PASS  Gate trả về debtReady
+[OneClubGate] PASS  Gate trả về dashboardReady
+
+[OneClubGate] Kiểm tra gate blockers có message rõ ràng...
+[OneClubGate] PASS  Gate có blockers.push() ghi nhận blocker
+[OneClubGate] PASS  Gate check activeDataSource unknown
+[OneClubGate] PASS  Gate check profilesCount > 0
+[OneClubGate] PASS  Gate check tuitionReady condition
+[OneClubGate] PASS  Gate check debtReady condition
+
+[OneClubGate] [14] Kiểm tra ONE_CLUB_PILOT_RUNBOOK.md...
+[OneClubGate] PASS  ONE_CLUB_PILOT_RUNBOOK.md tồn tại
+
+[OneClubGate] [15] Kiểm tra PILOT_ISSUE_REPORT_TEMPLATE.md...
+[OneClubGate] PASS  PILOT_ISSUE_REPORT_TEMPLATE.md tồn tại
+
+[OneClubGate] [16] Kiểm tra không có Firestore write trong snapshot/gate...
+[OneClubGate] PASS  Không có Firestore write trong generatePilotLaunchSnapshot / printOneClubPilotGate
+
+[OneClubGate] Đã kiểm tra: 28 patterns
+[OneClubGate] ✅ OK — 1-CLB pilot gate (Phase 4.0B-4H) đầy đủ.

@@ -1,0 +1,55 @@
+
+══════════════════════════════════════════════════════════
+  check:search-runtime-performance
+══════════════════════════════════════════════════════════
+
+▸ Section 1: app.js — search handler không còn gọi refreshListsComputation rộng khi http-module
+  ✅ app.js searchInput.oninput có guard __RUNTIME_MODE==="http-module" && __searchRuntimeMounted
+  ✅ app.js legacy search handler được đánh dấu là legacy-fallback
+
+▸ Section 2: students.js — _bindSearchReset check __searchRuntimeMounted
+  ✅ students.js _bindSearchReset kiểm tra __searchRuntimeMounted trước khi bind
+  ✅ students.js expose window.runStudentSearchPagination
+  ✅ _doLoad nhận searchOverride = null
+  ✅ _doLoad dùng searchOverride nếu có
+
+▸ Section 3: financeRenderer.js — dùng normalizeVNForSearch
+  ✅ financeRenderer không còn cleanName.toLowerCase().includes(search)
+  ✅ financeRenderer dùng normalizeVNForSearch (window.normalizeVNForSearch)
+
+▸ Section 4: inventoryRenderer.js — dùng normalizeVNForSearch
+  ✅ inventoryRenderer không còn (t.desc||"").toLowerCase().includes(search)
+  ✅ inventoryRenderer dùng normalizeVNForSearch hoặc _nvFn
+
+▸ Section 5: profiles.listeners.js — loadFullProfilesFallback consolidated pipeline
+  ✅ loadFullProfilesFallback không còn gọi invalidateStudents riêng sau _invalidateAll
+  ✅ loadFullProfilesFallback không còn gọi window.invalidateDashboard riêng sau _invalidateAll
+  ✅ loadFullProfilesFallback gọi refreshListsComputation TRƯỚC _invalidateAll
+
+▸ Section 6: students.service.js — guard loadFullProfilesFallback call
+  ✅ searchProfilesServerSide kiểm tra store profile count trước khi gọi fallback
+  ✅ searchProfilesServerSide kiểm tra __searchFallbackCount
+  ✅ searchProfilesServerSide kiểm tra term length >= 2 trước fallback
+
+▸ Section 7: js/modules/searchRuntime.js — tồn tại và export đúng
+  ✅ searchRuntime.js export initGlobalSearchRuntime
+  ✅ searchRuntime.js export disposeGlobalSearchRuntime
+  ✅ searchRuntime.js export getSearchRuntimeState
+  ✅ searchRuntime.js có debounce server-safe/adaptive
+  ✅ searchRuntime.js check skip cùng term+tab
+  ✅ searchRuntime.js tab-aware dispatch: active/quit gọi runStudentSearchPagination
+  ✅ searchRuntime.js sets mounted flag for V1/V2 runtime
+
+▸ Section 8: main.js — import searchRuntime và flush pending queue
+  ✅ main.js import initGlobalSearchRuntime từ searchRuntime.js
+  ✅ main.js gọi initGlobalSearchRuntime() sau bootstrap
+  ✅ main.js flush __pendingDomainInvalidations sau init
+  ✅ main.js có window.debugSearchPerformance
+  ✅ main.js có window.__searchTextCache với profiles Map
+
+══════════════════════════════════════════════════════════
+  Total: 28 | ✅ 28 | ❌ 0
+
+  🎉 Search runtime performance checks passed!
+══════════════════════════════════════════════════════════
+

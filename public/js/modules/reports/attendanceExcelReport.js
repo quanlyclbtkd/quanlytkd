@@ -1,3 +1,4 @@
+import {HISTORY_AUTHORITY,attendanceVisibleRecord} from '../../core/attendanceContract.js';
 /**
  * Phase 4K-6U — Attendance Excel Report (lazy, read-only)
  *
@@ -28,13 +29,18 @@ export async function loadAttendanceMonthPaginated({ db, clubId, month, onProgre
             where('month', '==', month),
             orderBy(documentId()),
         ];
+        if (window.userRole === 'coach') {
+            const auth=window.__verifiedAuthContextState;
+            if (auth?.ready !== true || auth.role !== 'coach' || auth.clubId !== clubId || !auth.coachBranch) throw new Error('Phiên HLV chưa được xác minh.');
+            constraints.push(where('historyAuthority','==',HISTORY_AUTHORITY),auth.coachBranch==='CS1'?where('branch','in',['CS1','Mặc định']):where('branch','==',auth.coachBranch));
+        }
         if (cursor) constraints.push(startAfter(cursor));
         constraints.push(limit(PAGE_SIZE));
 
         const snap = await getDocs(query(ref, ...constraints));
         pages += 1;
         const docs = snap && Array.isArray(snap.docs) ? snap.docs : [];
-        for (const docSnap of docs) items.push({ id: docSnap.id, ...docSnap.data() });
+        for (const docSnap of docs) {const data=docSnap.data();if(attendanceVisibleRecord(data))items.push({ id: docSnap.id, ...data });}
 
         if (typeof onProgress === 'function') {
             try { onProgress({ pages, docs: items.length }); } catch (_) {}

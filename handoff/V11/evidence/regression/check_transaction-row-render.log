@@ -1,0 +1,9 @@
+✅ #txList target tồn tại trong finance.js
+✅ Pagination keeps page separate from ledger and dashboard
+✅ Transaction island renders the matching page
+✅ Page presentation shares the island owner
+✅ Direct row render có try/catch (non-blocking)
+✅ renderTxRow export từ financeRenderer.js
+✅ invalidateList cascade vẫn còn (tx.txList)
+
+✅ check-transaction-row-render: TẤT CẢ PASS

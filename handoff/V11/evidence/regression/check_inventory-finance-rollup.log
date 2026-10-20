@@ -1,0 +1,75 @@
+
+══════════════════════════════════════════════════════════
+  Phase 4K-4D — Inventory Finance Rollup Safety Check
+══════════════════════════════════════════════════════════
+
+▸ Section 1: Classify helper trong main.js
+  ✅ main.js exists
+  ✅ getInventoryCategoryNames defined in main.js
+  ✅ classifyInventoryFinanceTx defined in main.js
+  ✅ classifyInventoryFinanceTx handles custom categories (loop over cats)
+  ✅ classifyInventoryFinanceTx handles relatedInvId fallback
+  ✅ debugInventoryFinanceRollup defined in main.js
+
+▸ Section 2: financeRenderer.js dùng classifyInventoryFinanceTx
+  ✅ financeRenderer uses classifyInventoryFinanceTx
+  ✅ financeRenderer does NOT hardcode only "Thu Võ phục"
+  ✅ financeRenderer does NOT hardcode only "Chi Võ phục"
+  ✅ financeRenderer has _fallbackClassifyInvTx helper
+
+▸ Section 3: app.js legacy dùng _invClass thay vì hardcode
+  ✅ app.js has _invClass variable
+  ✅ app.js does NOT hardcode _INV_CATS.some for isUniformTx with Thu/Chi
+  ✅ app.js inc_uniform uses _invClass.direction
+  ✅ app.js exp_uniform uses _invClass.direction
+
+▸ Section 4: js/modules/reports.js dùng classifyInventoryFinanceTx
+  ✅ reports.js has _classifyInvTxForReport fallback
+  ✅ reports.js uses classifyInventoryFinanceTx or _classifyInvTxForReport
+  ✅ reports.js does NOT hardcode only "Thu Võ phục" in forEach
+  ✅ reports.js Sheet 2 filter uses isInventory, not hardcoded list
+
+▸ Section 5: js/modules/finance.js dùng classifyInventoryFinanceTx
+  ✅ finance.js has _classifyInvTxForFinance fallback
+  ✅ finance.js uses classifyInventoryFinanceTx or _classifyInvTxForFinance
+  ✅ finance.js Sheet 2 filter uses isInventory, not hardcoded list
+
+▸ Section 6: functions/src/helpers.js xử lý custom inventory types
+  ✅ helpers.js has classifyInventoryTxType function
+  ✅ helpers.js classifyInventoryTxType handles "Thu " + relatedInvId
+  ✅ helpers.js classifyInventoryTxType handles "Chi " + relatedInvId
+  ✅ helpers.js classifyInventoryTxType skips "Tặng " (returns null)
+  ✅ helpers.js classifyTx uses classifyInventoryTxType
+  ✅ helpers.js exports classifyInventoryTxType
+
+▸ Section 7: inventoryForm.onsubmit — Bán nợ không tạo tx ngay
+  ✅ inventory.js: Nhập kho creates Chi transaction
+  ✅ inventory.js: Xuất bán + isUnpaid does NOT create tx
+  ✅ inventory.js: inventoryDebtStatus set to "pending" for unpaid
+
+▸ Section 8: InventoryService.markPaid tạo/cập nhật transaction
+  ✅ inventory.service.js markPaid uses getDoc to load inventory
+  ✅ inventory.service.js markPaid checks alreadyPaid
+  ✅ inventory.service.js markPaid queries existing tx (relatedInvId)
+  ✅ inventory.service.js markPaid creates/updates transaction with date
+  ✅ inventory.service.js markPaid sets inventoryDebtStatus: "paid"
+  ✅ inventory.service.js markPaid returns { alreadyPaid, inv, txId }
+
+▸ Section 9: markInvPaid invalidates finance/inventory/dashboard
+  ✅ inventory.js markInvPaid shows alreadyPaid toast
+  ✅ inventory.js markInvPaid invalidates inventory
+  ✅ inventory.js markInvPaid invalidates finance
+  ✅ inventory.js markInvPaid invalidates dashboard
+
+▸ Section 10: loadInvCategories sync window.__store
+  ✅ loadInvCategories syncs __store.invCustomCategories
+  ✅ addInvCategory syncs __store.invCustomCategories
+  ✅ addInvCategory invalidates finance after save
+
+══════════════════════════════════════════════════════════
+  Total: 43 checks | ✅ Pass: 43 | ❌ Fail: 0
+
+  🎉 All inventory finance rollup checks passed!
+  Custom categories, bán nợ, Đã Thu đều hoạt động đúng.
+══════════════════════════════════════════════════════════
+

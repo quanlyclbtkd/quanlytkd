@@ -1,0 +1,23 @@
+
+── check:multiitem-inventory-hydration ─────────────────────────────────
+✅ PASS  1. js/core/multiItemInventorySafety.js exists
+✅ PASS  2. MultiItemInventorySafety exposed to window in main.js
+✅ PASS  3. ensureMultiItemInventoryReady defined in multiItemInventorySafety.js
+✅ PASS  4. resolveMultiItemInventoryDebts defined in multiItemInventorySafety.js
+✅ PASS  5. buildInventoryStockMapForMultiItem defined in multiItemInventorySafety.js
+✅ PASS  6. renderMultiItemInventoryDebtPanel defined in multiItemInventorySafety.js
+✅ PASS  7. _refreshMiHistoryBadges is async in app.js
+✅ PASS  8. _refreshMiHistoryBadges calls ensureMultiItemInventoryReady in app.js
+✅ PASS  9. _refreshMiHistoryBadges does not only call ensureInventoryForFeature synchronously before reading debts
+✅ PASS  10. resolveMultiItemInventoryDebts normalizes Vietnamese and checks multiple name fields
+✅ PASS  11. toggleMiInvCategory in app.js has fallback buildInventoryStockMapForMultiItem
+✅ PASS  12. toggleMiInvCategory in js/modules/inventory.js has fallback buildInventoryStockMapForMultiItem
+✅ PASS  13. app.js has auto-refresh multiItemModal when inventory snapshot arrives
+✅ PASS  14. debugMultiItemInventoryHydration exists in main.js or app.js
+✅ PASS  15. debugMultiItemInventoryDebtResolution exists in main.js or app.js
+✅ PASS  16. debugRuntimeSmokeTest includes debugMultiItemInventoryHydration
+
+Result: 16 passed, 0 failed
+
+✅ check:multiitem-inventory-hydration PASS (16/16)
+

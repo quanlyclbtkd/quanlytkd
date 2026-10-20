@@ -1,0 +1,14 @@
+✅ Coach attendance-only runtime role captured before settings mount
+✅ Coach branch completes settings-ready without main_config snapshot
+✅ main_config onSnapshot is only in non-Coach else path
+✅ settings-ready event lifecycle is preserved
+✅ Coach startup does not getDoc(settingsRef)
+✅ Rules deny Coach main_config and allow only shifts
+✅ Coach has no settings list permission
+✅ RoleReadBoundary still blocks Coach financial domain transactions.month
+✅ RoleReadBoundary still blocks Coach financial domain inventory.stats
+✅ RoleReadBoundary still blocks Coach financial domain inventory.history
+✅ RoleReadBoundary still blocks Coach financial domain debt.coverage
+✅ RoleReadBoundary still blocks Coach financial domain exam.settings
+✅ No attendance_public projection/source introduced
+PASS 13/13

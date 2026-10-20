@@ -1,0 +1,28 @@
+
+══════════════════════════════════════════════════════════
+  Pagination Version Invalidation Check — Phase 4K-STUDENT-RENDER-OVERWRITE-FIX
+══════════════════════════════════════════════════════════
+
+▸ Section 1: _doLoad() invalidation chain đầy đủ
+  ✅ _doLoad() tăng _studentsPaginationVersion sau load thành công
+  ✅ _doLoad() tăng _dataVersion sau load thành công
+  ✅ _doLoad() gọi invalidateStudents hoặc invalidateList sau load
+  ✅ _doLoad() gọi refreshListComputation sau load
+  ✅ _doLoad() có setTimeout fallback render
+
+▸ Section 2: computeAndCacheStudents cache key bao gồm pgVersion
+  ✅ computeAndCacheStudents đọc _studentsPaginationVersion cho cache key
+  ✅ cache paramsKey bao gồm pgv:${pgVersion}
+  ✅ cache paramsKey bao gồm pgc:${pgCount} — item count
+
+▸ Section 3: PASS 2 xử lý pgStudents.currentItems đúng
+  ✅ PASS 2 dùng allProfiles[name] || item — không bỏ sót items thiếu allProfiles
+  ✅ PASS 2 xây dựng activeRows từ pgStudents.currentItems khi pgStudentsActive
+
+══════════════════════════════════════════════════════════
+  Total: 10 | ✅ 10 | ❌ 0
+
+  🎉 Pagination version invalidation checks passed!
+  Invalidation chain đầy đủ — cache luôn miss sau pagination load.
+══════════════════════════════════════════════════════════
+

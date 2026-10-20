@@ -1,0 +1,15 @@
+✅ OK:   preserveScrollDuringListUpdate defined
+✅ OK:   loadMoreDebtRows is async + accepts event
+✅ OK:   loadMoreDebtRows calls event.preventDefault
+✅ OK:   loadMoreDebtRows increments __debtRenderLimit
+✅ OK:   loadMoreDebtRows calls both refreshListsComputation + invalidateList
+✅ OK:   studentsRenderer.js không còn _loadMore('debt')
+✅ OK:   studentsRenderer.js debt button calls window.loadMoreDebtRows(event)
+✅ OK:   loadMoreActiveStudents is async + uses preserveScrollDuringListUpdate
+✅ OK:   students.events.js calls preventDefault for pgNext_students_active
+✅ OK:   debugLoadMoreScrollState defined
+✅ OK:   loadMoreDebtRows has __loadMoreLock.debt guard
+✅ OK:   loadMoreActiveStudents has __loadMoreLock.active guard
+
+───────────────────────────────────────────────────────
+✅ check-loadmore-scroll-preservation: TẤT CẢ PASS

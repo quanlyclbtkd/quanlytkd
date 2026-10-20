@@ -1,0 +1,32 @@
+
+=== Phase 4K-6V2A — Inventory Consumer Hydration Hotfix ===
+
+✅ Runtime exposes Phase 4K-6V2A patch version
+✅ Cache bust deploys the V2A hotfix
+✅ Canonical stock builder reads inventory_stats
+✅ Stock builder preserves category and size metadata
+✅ Stock builder overlays inventory_stats over lazy history fallback
+✅ Admission readiness accepts hydrated inventory_stats
+✅ Admission size lookup force-builds stock map from inventory_stats
+✅ Admission modal preserves selected size during realtime stats refresh
+✅ Inventory stats listener refreshes open Add Student modal
+✅ Inventory stats listener refreshes open MultiItem stock selector
+✅ Club switch clears old stock map
+✅ MultiItem read-only UI rebuilds stock map before using _liveInvMap
+✅ Modern Inventory module force-refreshes MultiItem stock
+✅ MultiItem debt lookup accepts identity object
+✅ MultiItem autocomplete stores profileId/memberId
+✅ MultiItem debt lookup passes selected identity
+✅ Dynamic: stock loads with zero history documents
+✅ Dynamic: legacy uniform stats key maps to Võ phục size
+✅ Dynamic: balance-only + out reconstructs correct stock
+✅ Dynamic: custom category stats key maps correctly
+✅ Dynamic: _liveInvMap is hydrated without opening Inventory tab
+✅ Dynamic: debt resolves by profileId from complete listener index
+✅ Dynamic: normalized debt row preserves identity
+✅ Dynamic: MultiItem readiness succeeds from stats + debt listener
+✅ Dynamic: readiness performs no history hydration requirement
+
+Total: 25 | PASS: 25 | FAIL: 0
+Phase 4K-6V2A inventory consumer hydration hotfix checks passed.
+

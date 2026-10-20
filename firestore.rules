@@ -121,11 +121,15 @@ service cloud.firestore {
       return branchValue in ['CS1', 'Mặc định'];
     }
 
+    function sameBranchValue(left, right) {
+      return left == right || (isPrimaryBranchAlias(left) && isPrimaryBranchAlias(right));
+    }
+
     function branchMatchesAssigned(branchValue) {
-      return isCoach(myClubId()) && (
-        branchValue == myBranch()
-        || (isPrimaryBranchAlias(branchValue) && isPrimaryBranchAlias(myBranch()))
-      );
+      // Every allow-clause caller already requires isCoach(clubId).
+      // Repeating that authorization for each old/new/profile branch can
+      // exceed Firestore's expression limit on an otherwise valid update.
+      return sameBranchValue(branchValue, myBranch());
     }
 
     function resourceBranchMatchesCoach() {
@@ -136,6 +140,16 @@ service cloud.firestore {
     function requestBranchMatchesCoach() {
       return request.resource.data.keys().hasAll(['branch'])
         && branchMatchesAssigned(request.resource.data.branch);
+    }
+
+    // V9: the attendance payload's branch is not proof of profile ownership.
+    // Read the existing canonical same-club profile; never trust a client mirror.
+    // CS1/Mặc định keeps the explicit primary-branch compatibility above.
+    function coachAttendanceProfileMatches(clubId, data) {
+      let profileId = data.get('profileId', '');
+      return profileId is string && profileId.size() > 0
+        // A missing profile has no data and fails closed; one get() suffices.
+        && sameBranchValue(get(/databases/$(database)/documents/clubs/$(clubId)/profiles/$(profileId)).data.get('branch', ''), myBranch());
     }
 
     function coachOwnsResource() {
@@ -218,23 +232,42 @@ service cloud.firestore {
 
       // Điểm danh: Coach chỉ được thao tác trong cơ sở đã gán.
       match /attendance/{attendanceId} {
-        allow get, list: if isSuperAdmin()
-          || isAdminOrViewer(clubId)
-          || (isCoach(clubId) && resourceBranchMatchesCoach());
-
-        allow create: if isSuperAdmin()
-          || isClubAdmin(clubId)
-          || (isCoach(clubId) && requestBranchMatchesCoach());
-
-        allow update: if isSuperAdmin()
-          || isClubAdmin(clubId)
-          || (isCoach(clubId)
-              && resourceBranchMatchesCoach()
-              && requestBranchMatchesCoach());
-
-        allow delete: if isSuperAdmin()
-          || isClubAdmin(clubId)
-          || (isCoach(clubId) && resourceBranchMatchesCoach());
+        function historicalProof(data) {
+          return data.get('historyAuthority', '') == 'attendance-history-7c42f5e2-6d94-4e49-b8e5-98f876cbd90a';
+        }
+        function versionedWrite() {
+          return historicalProof(request.resource.data)
+            && request.resource.data.get('attendanceVersion', '') is string
+            && request.resource.data.get('attendanceVersion', '').size() >= 16
+            && request.resource.data.get('status', -1) in [0,1,2,3]
+            && request.resource.data.get('profileId','') is string
+            && request.resource.data.get('profileId','').size() > 0
+            && request.resource.data.get('name','') == request.resource.data.profileId
+            && request.resource.data.get('date','').matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+            && attendanceId == request.resource.data.profileId + '_' + request.resource.data.date
+              + (request.resource.data.get('shiftId','') == '' ? '' : '_' + request.resource.data.shiftId);
+        }
+        function nextVersion() {
+          return request.resource.data.get('attendancePreviousVersion', '') == resource.data.get('attendanceVersion', 'legacy')
+            && request.resource.data.attendanceVersion != resource.data.get('attendanceVersion', 'legacy');
+        }
+        allow get: if isSuperAdmin() || isAdminOrViewer(clubId)
+          || (isCoach(clubId) && (resource == null || (resourceBranchMatchesCoach() && historicalProof(resource.data))));
+        allow list: if isSuperAdmin() || isAdminOrViewer(clubId)
+          || (isCoach(clubId) && resourceBranchMatchesCoach() && historicalProof(resource.data));
+        allow create: if versionedWrite()
+          && (isSuperAdmin() || isClubAdmin(clubId)
+            || (isCoach(clubId) && requestBranchMatchesCoach()
+                && coachAttendanceProfileMatches(clubId, request.resource.data)));
+        allow update: if versionedWrite() && nextVersion()
+          && (isSuperAdmin() || isClubAdmin(clubId)
+            || (isCoach(clubId) && historicalProof(resource.data) && resourceBranchMatchesCoach() && requestBranchMatchesCoach()
+                && resource.data.get('profileId', '') == request.resource.data.get('profileId', '')
+                && resource.data.get('branch', '') == request.resource.data.get('branch', '')
+                && coachAttendanceProfileMatches(clubId, request.resource.data)));
+        // Canonical deletion is a status=0 versioned tombstone; a blind legacy
+        // delete has no expected revision and cannot be authorized safely.
+        allow delete: if false;
       }
 
       // Ghi chú buổi tập: Coach chỉ đọc/ghi ghi chú của chính mình và đúng cơ sở.

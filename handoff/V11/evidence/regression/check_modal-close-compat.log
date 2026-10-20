@@ -1,0 +1,26 @@
+
+══════════════════════════════════════════════════════════
+  check:modal-close-compat
+══════════════════════════════════════════════════════════
+
+▸ Section 1: modal.js — default parameter cho closeModal
+  ✅ closeModal có default profileModal
+  ✅ openModal có default profileModal
+  ✅ closeModal dùng fallback: const id = modalId || "profileModal"
+
+▸ Section 2: registerModalGlobals — canonical ownership + legacy compatibility
+  ✅ closeModal có đúng ONE canonical GlobalOwnershipRegistry owner
+  ✅ Legacy closeModal fallback được lấy qua GlobalOwnershipRegistry
+  ✅ registerModalGlobals không tạo second window.closeModal owner
+  ✅ Canonical closeModal hỗ trợ cả no-arg và explicit modalId
+
+▸ Section 3: index.html — không còn onclick="closeModal()" không arg cho profileModal
+  ✅ Không còn onclick="closeModal()" không có argument
+  ✅ Có onclick="closeModal('profileModal')" trong index.html
+
+══════════════════════════════════════════════════════════
+  Total: 9 | ✅ 9 | ❌ 0
+
+  🎉 Modal close compatibility checks passed!
+══════════════════════════════════════════════════════════
+

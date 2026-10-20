@@ -1,0 +1,40 @@
+
+🔍 Phase 4K-6E-C — Active New Students Filter Check
+
+[32m✅ PASS[0m  monthlyHelpers.js readable
+[32m✅ PASS[0m  students.js readable
+[32m✅ PASS[0m  studentsRenderer.js readable
+[32m✅ PASS[0m  searchRuntime.js readable
+[32m✅ PASS[0m  main.js readable
+[32m✅ PASS[0m  index.html readable
+[32m✅ PASS[0m  monthlyHelpers.js: getCurrentAdmissionMonth exported
+[32m✅ PASS[0m  monthlyHelpers.js: getStudentJoinMonth exported
+[32m✅ PASS[0m  monthlyHelpers.js: isCurrentMonthNewStudent exported
+[32m✅ PASS[0m  monthlyHelpers.js: sortActiveStudentEntries exported
+[32m✅ PASS[0m  initMonthlyHelpers đăng ký getCurrentAdmissionMonth lên window
+[32m✅ PASS[0m  initMonthlyHelpers đăng ký sortActiveStudentEntries lên window
+[32m✅ PASS[0m  index.html: activeNewStudentFilter select element
+[32m✅ PASS[0m  index.html: activeNewStudentCountBadge element
+[32m✅ PASS[0m  index.html: activeNewStudentFilterWrap div
+[32m✅ PASS[0m  students.js: window.__activeStudentNewFilter declared
+[32m✅ PASS[0m  students.js: shouldShowActiveStudentByNewFilter
+[32m✅ PASS[0m  students.js: countCurrentMonthNewActiveStudents
+[32m✅ PASS[0m  students.js: updateActiveNewStudentCountBadge
+[32m✅ PASS[0m  students.js: bindActiveNewStudentFilterUI
+[32m✅ PASS[0m  students.js: ensureFullProfilesForActiveNewFilter
+[32m✅ PASS[0m  students.js: debugActiveNewStudents
+[32m✅ PASS[0m  students.js: _injectControls dùng shouldShowActiveStudentByNewFilter trong remaining calc
+[32m✅ PASS[0m  students.js: filterStudentItemsForMode active branch dùng shouldShowActiveStudentByNewFilter
+[32m✅ PASS[0m  students.js: bindActiveNewStudentFilterUI gọi sau _injectControls() trong _doLoad
+[32m✅ PASS[0m  students.js: buildStudentsRowsFromPagination dùng sortActiveStudentEntries
+[32m✅ PASS[0m  studentsRenderer.js: paramsKey chứa anf: và adm:
+[32m✅ PASS[0m  studentsRenderer.js: PASS 1 sort dùng sortActiveStudentEntries
+[32m✅ PASS[0m  studentsRenderer.js: newBadge dùng isCurrentMonthNewStudent (không phải selMonth)
+[32m✅ PASS[0m  studentsRenderer.js: passFilter PASS 1 dùng shouldShowActiveStudentByNewFilter
+[32m✅ PASS[0m  main.js: APP_BUILD_VERSION Phase 4K-6E-C hoặc mới hơn
+[32m✅ PASS[0m  main.js: switchTab gọi bindActiveNewStudentFilterUI cho tab active
+[32m✅ PASS[0m  main.js: debugRuntimeSmokeTest gọi debugActiveNewStudents
+[32m✅ PASS[0m  index.html: cache bust Phase 4K-6E-C hoặc mới hơn
+
+[32m✅ Tất cả 30 kiểm tra PASS — Phase 4K-6E-C Active New Students Filter OK[0m
+

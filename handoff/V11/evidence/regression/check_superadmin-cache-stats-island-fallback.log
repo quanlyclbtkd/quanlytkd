@@ -1,0 +1,23 @@
+══════════════════════════════════════════════════════
+ check-superadmin-cache-stats-island-fallback — Phase 4K-6I-D
+══════════════════════════════════════════════════════
+
+  ✓ PASS: SuperAdmin reads revenue from stats docs robustly
+  ✓ PASS: SuperAdmin reads cached revenue from club doc fallback
+  ✓ PASS: SuperAdmin has cached student count readers
+  ✓ PASS: SuperAdmin top total students is cache-aware
+  ✓ PASS: SuperAdmin top revenue is cache/stats-aware
+  ✓ PASS: SuperAdmin UI explains cache-only -- fallback
+  ✓ PASS: SuperAdmin no longer sums missing active counts as 0
+  ✓ PASS: SuperAdmin no longer hides valid zero/missing revenue with old >0 check
+  ✓ PASS: debugStudentsPaginationIslandFallback defined
+  ✓ PASS: student pagination fallback tries island render before legacy fallback
+  ✓ PASS: fallback warning only after island timeout
+  ✓ PASS: runtime smoke includes student pagination island fallback debug
+  ✓ PASS: APP_BUILD_VERSION updated to 4K-6I-D/E/F
+  ✓ PASS: index.html cache bust updated to 4K-6I-D/E/F
+  ✓ PASS: package.json includes check:superadmin-cache-stats-island-fallback
+
+══════════════════════════════════════════════════════
+ ✓ check-superadmin-cache-stats-island-fallback PASSED
+══════════════════════════════════════════════════════

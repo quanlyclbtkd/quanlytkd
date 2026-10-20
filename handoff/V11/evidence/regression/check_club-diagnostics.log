@@ -1,0 +1,34 @@
+
+══════════════════════════════════════════════════════════
+  Club Runtime Diagnostics Check — Phase 4K-RUNTIME-CLEANUP
+══════════════════════════════════════════════════════════
+
+▸ Section 1: printClubRuntimeDiagnostics existence
+  ✅ window.printClubRuntimeDiagnostics defined on window
+  ✅ printClubRuntimeDiagnostics là async function
+
+▸ Section 2: diagnostic content
+  ✅ Log currentClubId
+  ✅ Log userRole
+  ✅ Log db ready status
+  ✅ Log __studentPaginationInitialized status
+
+▸ Section 3: safe count (getCountFromServer)
+  ✅ Dùng getCountFromServer thay vì getDocs full
+  ✅ Count active profiles riêng (where status active)
+
+▸ Section 4: error handling
+  ✅ Có permission-denied handler
+  ✅ Không crash khi thiếu clubId
+  ✅ Không crash khi thiếu db
+
+▸ Section 5: safety — không tự động chạy khi load
+  ✅ printClubRuntimeDiagnostics không tự động gọi khi load
+
+══════════════════════════════════════════════════════════
+  Total: 12 | ✅ 12 | ❌ 0
+
+  🎉 Club diagnostics checks passed!
+  Gọi window.printClubRuntimeDiagnostics() trong console để debug production.
+══════════════════════════════════════════════════════════
+

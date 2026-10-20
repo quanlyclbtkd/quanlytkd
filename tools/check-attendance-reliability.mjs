@@ -63,7 +63,7 @@ else
 
 // ─────────────────────────────────────────────────────────────────────────────
 section('4. bulkCheckIn — shiftId in data');
-if (/(?:_currentShiftId|writeShiftId)\s*\?\s*\{\s*shiftId\s*:\s*(?:_currentShiftId|writeShiftId)\s*\}/.test(bulkBlock.replace(/\s+/g,' ')))
+if (bulkBlock.includes('_saveAttOffline(owner.clubId,writeDate,shiftGuard.decision,') && att.includes("String(shiftDecision.shiftId || '')"))
     pass('bulkCheckIn data includes the same guarded shift captured by its docId');
 else
     fail('bulkCheckIn data MISSING shiftId field for shift records');

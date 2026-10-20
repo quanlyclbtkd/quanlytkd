@@ -1,0 +1,14 @@
+
+[check-component-accounting-authority] Phase 4K-5E
+
+  ✅  financeRenderer computeAndCacheFinance has bundle component branch
+  ✅  reports.js txAll.forEach has bundle component branch
+  ✅  financeRenderer bundle path allocates by component.amount (not raw tx.amount)
+  ✅  reports.js has bundle-aware accounting (component kind routing)
+  ✅  printTuitionReceiptByTxId reads tx.components for breakdown
+  ✅  getAccountingComponents defined in app.js
+  ✅  expandTransactionComponentsForAccounting present in app.js
+  ✅  No pattern where bundle full amount goes to incTuition directly
+
+  8 passed, 0 failed
+

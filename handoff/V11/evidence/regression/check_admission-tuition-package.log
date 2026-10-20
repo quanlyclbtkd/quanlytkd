@@ -1,0 +1,17 @@
+
+📦 Phase 4K-4C — Admission Tuition Package + Receipt Accuracy
+
+  ✅  index.html — add_package có option value="9" (9 Tháng)
+  ✅  app.js — có window.buildAdmissionTuitionPackage
+  ✅  app.js — addNewStudent dùng buildAdmissionTuitionPackage (không inline build)
+  ✅  js/modules/students.js — addNewStudent dùng buildAdmissionTuitionPackage (không inline build)
+  ✅  app.js — addNewStudent exportReceipt dùng tuitionPkg.monthsStr (không dùng startMonth cũ)
+  ✅  app.js — breakdown label dùng tuitionPkg.packageCount/label (không hardcode tháng 1)
+  ✅  app.js — tuition transaction lưu packageMonths, tuitionPackageCount, tuitionStartMonth, tuitionPaidUntil
+  ✅  app.js — profile mới lưu tuitionPackageCount, lastAdmissionTuitionStartMonth, lastAdmissionTuitionMonths
+  ✅  app.js — exportReceipt hiển thị breakdown khi length > 0 (không chỉ > 1)
+  ✅  app.js — có window.debugAdmissionTuitionPackage
+
+────────────────────────────────────────────────────────────
+Kết quả: 10 pass, 0 fail
+

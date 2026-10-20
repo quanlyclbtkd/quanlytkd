@@ -1,0 +1,27 @@
+
+══════════════════════════════════════════════════════════
+  Students Render Classifier Check — Phase 4K-STUDENT-LIST
+══════════════════════════════════════════════════════════
+
+▸ Section 1: Import classifyProfileStatus
+  ✅ studentsRenderer.js import classifyProfileStatus từ profileStatusConfig.js
+
+▸ Section 2: Không dùng p.status === 'quit' trực tiếp
+  ✅ studentsRenderer.js không dùng p.status === 'quit' trực tiếp trong compute logic (non-comment)
+
+▸ Section 3: Classifier dùng trong PASS 1
+  ✅ PASS 1 dùng classifyProfileStatus hoặc window.classifyProfileStatus
+
+▸ Section 4: Classifier dùng trong PASS 2
+  ✅ PASS 2 dùng classifyProfileStatus hoặc window.classifyProfileStatus
+
+▸ Section 5: isQuit / isActive được tính từ classifier output
+  ✅ isQuit được tính từ classifier === 'quit' (không phải direct status check)
+
+══════════════════════════════════════════════════════════
+  Total: 5 | ✅ 5 | ❌ 0
+
+  🎉 Students render classifier checks passed!
+  studentsRenderer dùng classifier chung — data cũ thiếu status được xử lý đúng.
+══════════════════════════════════════════════════════════
+

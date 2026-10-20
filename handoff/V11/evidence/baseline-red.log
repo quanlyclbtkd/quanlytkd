@@ -1,0 +1,42 @@
+i  emulators: Starting emulators: firestore
+i  emulators: Detected demo project ID "demo-v11-baseline", emulated services will use a demo configuration and attempts to access non-emulated services for this project will fail.
+i  firestore: Firestore Emulator logging to firestore-debug.log
+✔  firestore: Firestore Emulator was started in standard edition.
+✔  firestore: Firestore Emulator UI websocket is running on 9150.
+i  Running script: node tools/v10/diagnose-release-risks.mjs
+[attendance.js] ✅ Phase 4K-6V5U6G residual closure: explicit shift + V2 offline journal ready
+[ProfilesListener] reset — r2-test-reset
+[StudentProfileStore] reset — r2-test-reset
+[ProfilesListener] reset — r2-test-reset
+[StudentProfileStore] reset — r2-test-reset
+[AttendanceOffline] network {
+  classification: 'network',
+  attendanceOffline: true,
+  legacy: true,
+  stage: 'legacy-commit'
+} Error: simulated transport loss
+    at file:///workspace/scratch/8ad89e6da6fe/v11/baseline/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/v10/diagnose-release-risks.mjs:15:94
+    at Object.commit (file:///workspace/scratch/8ad89e6da6fe/v11/baseline/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/v10/runtime.mjs:51:415)
+    at Object.bulkSyncOffline (file:///workspace/scratch/8ad89e6da6fe/v11/baseline/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/js/services/attendance.service.js?v=qr-v9-attendance-rules-20261020:565:25)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async _runOfflineAttendanceSync (file:///workspace/scratch/8ad89e6da6fe/v11/baseline/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/js/modules/attendance.js:2353:17)
+    at async file:///workspace/scratch/8ad89e6da6fe/v11/baseline/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/v10/diagnose-release-risks.mjs:16:14 {
+  code: 'unavailable',
+  committed: 10,
+  total: 11,
+  pending: 1
+}
+[AttendanceOffline] malformed-payload {
+  classification: 'malformed-payload',
+  attendanceOffline: true,
+  stage: 'v2-global-scope-preflight',
+  pendingCount: 1
+} 
+[ProfilesListener] reset — r2-test-reset
+[StudentProfileStore] reset — r2-test-reset
+OPEN RELEASE RISKS REPRODUCED [{"id":"S01","status":"OPEN_REPRODUCED","kind":"server read authorization","forgedGetAllowed":true,"readers":[{"reader":"date","forgedReturned":true},{"reader":"month","forgedReturned":true},{"reader":"memberHistory","forgedReturned":true}]},{"id":"O01-replay","status":"OPEN_REPRODUCED","beforeNewerOnline":2,"afterRetry":1,"newerV2Pending":true},{"id":"O01-cross-tab","status":"OPEN_REPRODUCED","layer":"controlled localStorage interleaving, not physical multi-tab","newerJournalLost":true}]
+✔  Script exited successfully (code 0)
+i  emulators: Shutting down emulators.
+i  firestore: Stopping Firestore Emulator
+i  hub: Stopping emulator hub
+i  logging: Stopping Logging Emulator

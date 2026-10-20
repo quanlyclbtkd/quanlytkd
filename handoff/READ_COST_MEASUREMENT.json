@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "kind": "synthetic-real-emulator-result-documents",
+  "rulesSha256": "6c97941adc044509cb8095c461a41f3f3f7a80a092771bdbb25d03373478b622",
+  "sourceSha256": "d94c1b7a7f01b033112a01d45d93357dd2a7e5851bd67a3cfc0b171a149cf31f",
+  "profilesMeasured1000": true,
+  "profilesMeasured1500": true,
+  "rows": [
+    {
+      "population": 1000,
+      "scenario": "mixed",
+      "branch": "CS1",
+      "oldStatusFilteredDocs": 350,
+      "newBranchOnlyDocs": 750,
+      "incrementalInitialResultDocs": 400,
+      "listenerSlots": 2
+    },
+    {
+      "population": 1000,
+      "scenario": "mixed",
+      "branch": "CS2",
+      "oldStatusFilteredDocs": 100,
+      "newBranchOnlyDocs": 200,
+      "incrementalInitialResultDocs": 100,
+      "listenerSlots": 1
+    },
+    {
+      "population": 1000,
+      "scenario": "all-quit-CS1",
+      "branch": "CS1",
+      "oldStatusFilteredDocs": 0,
+      "newBranchOnlyDocs": 1000,
+      "incrementalInitialResultDocs": 1000,
+      "listenerSlots": 2
+    },
+    {
+      "population": 1500,
+      "scenario": "mixed",
+      "branch": "CS1",
+      "oldStatusFilteredDocs": 525,
+      "newBranchOnlyDocs": 1125,
+      "incrementalInitialResultDocs": 600,
+      "listenerSlots": 2
+    },
+    {
+      "population": 1500,
+      "scenario": "mixed",
+      "branch": "CS2",
+      "oldStatusFilteredDocs": 150,
+      "newBranchOnlyDocs": 300,
+      "incrementalInitialResultDocs": 150,
+      "listenerSlots": 1
+    },
+    {
+      "population": 1500,
+      "scenario": "all-quit-CS1",
+      "branch": "CS1",
+      "oldStatusFilteredDocs": 0,
+      "newBranchOnlyDocs": 1500,
+      "incrementalInitialResultDocs": 1500,
+      "listenerSlots": 2
+    }
+  ],
+  "maxIncrementalInitialDocs": 1500,
+  "limits": "Result documents only; excludes minimum query charges, dependent Rules reads, index reads, reconnects and ongoing updates. No production measurements."
+}

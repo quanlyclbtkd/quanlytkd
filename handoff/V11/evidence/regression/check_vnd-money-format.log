@@ -1,0 +1,12 @@
+
+=== check-vnd-money-format ===
+
+  PASS: window.parseVNDNumber defined
+  PASS: window.formatVNDNumber defined
+  PASS: window.formatVNDText defined
+  PASS: refreshExamFeeUI does not use bare String(fee) for examFeeInput
+  PASS: refreshExamFeeUI formats examFeeInput with VND format
+  PASS: VND input event formatter for examFeeInput exists
+  PASS: formatVNDText used for display in save/collect flow
+
+ALL CHECKS PASSED — VND money format is correct

@@ -1,0 +1,36 @@
+✅ 1. canonical TuitionCommandBoundary remains owner
+✅ 2. no new primary writer
+✅ 3. completed replay guard lives inside existing boundary
+✅ 4. canonical replay fingerprint contains club/profile/branch/months/amount
+✅ 5. completed replay reuses canonical result
+✅ 6. failed asset promise is reset
+✅ 7. asset loader has generation guard
+✅ 8. no automatic asset retry loop
+✅ 9. shared asset loader remains single-flight
+✅ 10. receipt queue remains serialized
+✅ 11. structured receipt failure reasons exist
+✅ 12. payment success is separated from receipt success
+✅ 13. receipt visibility contract validates computed DOM state
+✅ 14. preview dimensions are required before success
+✅ 15. receipt success explicitly reports rendered + preview + modal
+✅ 16. quickPay receipt uses canonical transaction date
+✅ 17. one canonical #filterBranch remains
+✅ 18. no new getDoc
+✅ 19. no new getDocs
+✅ 20. no new onSnapshot
+✅ 21. ID01 concurrent duplicate primary commit exactly once
+✅ 22. ID02 sequential completed replay adds zero primary commit
+✅ 23. ID03-ID05 legitimate different month/student/club are not deduped
+✅ 24. ID06-ID08 replay/rerender remains duplicate-safe after context reset
+✅ 25. AR01 already-loaded fast path creates no script
+✅ 26. AR02 first load succeeds
+✅ 27. AR03-AR04 terminal network failure resets promise and explicit retry succeeds
+✅ 28. AR05-AR06 timeout resets flight and explicit retry succeeds
+✅ 29. AR09 late old onload cannot corrupt new generation
+✅ 30. AR07 same loading flight stays single-script/single-promise
+✅ 31. AR08 two explicit retry callers share exactly one new flight
+✅ 32. root/public parity
+
+Firestore static budget: 29/44/16
+Total: 32 | PASS: 32 | FAIL: 0
+H8R2.1C1F1 idempotency/receipt recovery gate PASS.

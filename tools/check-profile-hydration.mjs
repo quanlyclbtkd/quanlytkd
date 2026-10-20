@@ -1,3 +1,4 @@
+import {contract, expression} from "./v10/contracts.mjs";
 /**
  * tools/check-profile-hydration.mjs — Profile Hydration Safety Check
  * ─────────────────────────────────────────────────────────────────────
@@ -118,11 +119,7 @@ if (mainJs) {
 console.log();
 console.log('▸ Section 5: canonical profile status compatibility');
 if (appJs && profilesListenerJs) {
-    check('Profile hydration uses canonical classifyProfileStatus compatibility',
-        profilesListenerJs.includes('classifyProfileStatus') &&
-        profilesListenerJs.includes("if (classifyProfileStatus(data) !== 'quit') activeMap[id] = data") &&
-        profilesListenerJs.includes("if (classifyProfileStatus(data) === 'quit') quitMap[id] = data"),
-        'Active/quit hydration must use classifyProfileStatus rather than narrowing to one legacy status field');
+    check("Profile hydration uses canonical classifyProfileStatus compatibility", await contract('hydrate'));
     check('app.js render paths retain classifyProfileStatus compatibility',
         appJs.includes('window.classifyProfileStatus'),
         'Runtime render/filter paths must reuse classifyProfileStatus compatibility');

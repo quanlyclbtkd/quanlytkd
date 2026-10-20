@@ -1,0 +1,35 @@
+
+🔍 Phase 4K-6K-E/6K-F — Unified Student Search Index Accuracy Gate Check
+
+✅ js/core/studentSearchIndex.js exists
+✅ Vietnamese normalization exists
+✅ VTF/memberId fields indexed
+✅ phone/digit search indexed
+✅ searchStudents + mode filter exists
+✅ debug globals exist
+✅ main imports initStudentSearchIndex
+✅ student index initializes before SearchRuntime
+✅ SearchRuntime imports StudentSearchIndex
+✅ SearchRuntime uses StudentSearchIndex.searchStudents
+✅ SearchRuntime records student index source/metrics
+✅ server fallback only after local profile availability check
+✅ cross-tab search replay preserved
+✅ adaptive debounce preserved
+✅ runtime smoke test includes student search index
+✅ student search index does not add Firestore reads
+✅ APP_BUILD_VERSION updated to 4K-6K-E/6K-F
+✅ index cache bust updated to 4K-6K-E/6K-F
+✅ package script check:student-search-index registered
+✅ check:all includes student search index check
+✅ check:all:critical includes student search index check
+✅ display-name edit uses same canonical profile key without rename flow
+✅ active updateProfile rebuilds search index from RAM + updateData
+✅ search index is merged before canonical profile update write
+✅ search-index-on-edit adds zero Firestore reads/listeners
+✅ Edit phone updates searchPhone in same payload
+✅ Edit memberId updates searchCode in same payload
+✅ Edit nickname updates searchNickname in same payload
+✅ Normal edit keeps canonical searchName/searchNameTokens
+✅ displayName takes precedence over immutable profileKey in search fields
+✅ processMultiItem still present in app.js
+✅ Excel import write flow still present

@@ -92,7 +92,7 @@ async function ensureReportsApi() {
 
 async function ensureAttendanceApi() {
   if (!attendanceModulePromise) {
-    attendanceModulePromise = import('./attendanceExcelReport.js?v=attendance-excel-documentid-sdk-fix-20260801-v5u2e')
+    attendanceModulePromise = import('./attendanceExcelReport.js?v=qr-v11-history-scope-20261020')
       .catch((error) => {
         attendanceModulePromise = null;
         throw error;

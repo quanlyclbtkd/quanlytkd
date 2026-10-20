@@ -1,0 +1,67 @@
+[SuperAdminAudit] Kiểm tra SuperAdmin multi-club audit (Phase 4.0B-4J)...
+
+[SuperAdminAudit] INFO  app.js: 679552 ký tự
+
+[SuperAdminAudit] [1–4] Kiểm tra functions chính...
+[SuperAdminAudit] PASS  window.runSuperAdminAudit được định nghĩa
+[SuperAdminAudit] PASS  runSuperAdminAudit là async function
+[SuperAdminAudit] PASS  probeClubDataReadOnly helper được định nghĩa
+[SuperAdminAudit] PASS  probeClubDataReadOnly là async function
+[SuperAdminAudit] PASS  window.printSuperAdminAudit được định nghĩa
+[SuperAdminAudit] PASS  printSuperAdminAudit là async function
+[SuperAdminAudit] PASS  window.generateSuperAdminAuditReportText được định nghĩa
+[SuperAdminAudit] PASS  generateSuperAdminAuditReportText là async function
+
+[SuperAdminAudit] [5–7] Kiểm tra options...
+[SuperAdminAudit] PASS  runSuperAdminAudit có option clubIds
+[SuperAdminAudit] PASS  runSuperAdminAudit có option limit
+[SuperAdminAudit] PASS  runSuperAdminAudit có option includeLegacyCheck
+
+[SuperAdminAudit] [8] Kiểm tra blockers handling...
+[SuperAdminAudit] PASS  runSuperAdminAudit có blockersSummary output
+[SuperAdminAudit] PASS  Có blockers.push() trong audit
+
+[SuperAdminAudit] [9] Kiểm tra permission-denied handling...
+[SuperAdminAudit] PASS  probeClubDataReadOnly xử lý permission-denied
+[SuperAdminAudit] PASS  Có regex check cho permission denied error
+[SuperAdminAudit] PASS  runSuperAdminAudit propagates permission-denied blocker
+
+[SuperAdminAudit] [10] Kiểm tra SuperAdmin role warning...
+[SuperAdminAudit] PASS  Có warning SuperAdmin role not confirmed
+[SuperAdminAudit] PASS  Có kiểm tra isSuperAdmin / superAdmin role
+
+[SuperAdminAudit] [11] Kiểm tra không có Firestore write...
+[SuperAdminAudit] PASS  Không có Firestore write trong SuperAdmin audit section
+[SuperAdminAudit] PASS  Không có migration tự động trong SuperAdmin audit
+
+[SuperAdminAudit] [13] Kiểm tra Firestore rules...
+[SuperAdminAudit] PASS  Firestore rules không có catch-all public read
+
+[SuperAdminAudit] [14] Kiểm tra probe dùng limit(1)...
+[SuperAdminAudit] PASS  probeClubDataReadOnly dùng limit(1)
+
+[SuperAdminAudit] [15] Kiểm tra không log PII...
+[SuperAdminAudit] PASS  Không log PII field trực tiếp trong probeClubDataReadOnly
+
+[SuperAdminAudit] [16–18] Kiểm tra output fields...
+[SuperAdminAudit] PASS  Output có clubs array
+[SuperAdminAudit] PASS  Output có readyForPilotCount
+[SuperAdminAudit] PASS  Output có blockedCount
+[SuperAdminAudit] PASS  Output có warningCount
+[SuperAdminAudit] PASS  Output có totalClubs
+[SuperAdminAudit] PASS  Output có checkedAt
+
+[SuperAdminAudit] [19] Kiểm tra printSuperAdminAudit...
+[SuperAdminAudit] PASS  printSuperAdminAudit dùng console.table
+
+[SuperAdminAudit] [20] Kiểm tra generateSuperAdminAuditReportText...
+[SuperAdminAudit] PASS  generateSuperAdminAuditReportText trả markdown heading
+[SuperAdminAudit] PASS  Report markdown có Summary section
+[SuperAdminAudit] PASS  Report markdown có Club Results section
+[SuperAdminAudit] PASS  Report markdown có Blockers Summary section
+
+[SuperAdminAudit] [21] Kiểm tra SUPERADMIN_AUDIT_REPORT_TEMPLATE.md...
+[SuperAdminAudit] PASS  SUPERADMIN_AUDIT_REPORT_TEMPLATE.md tồn tại
+
+[SuperAdminAudit] Đã kiểm tra: 35 patterns
+[SuperAdminAudit] ✅ OK — SuperAdmin multi-club audit (Phase 4.0B-4J) đầy đủ.

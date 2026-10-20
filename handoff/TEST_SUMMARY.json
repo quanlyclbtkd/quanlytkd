@@ -1,0 +1,62 @@
+{
+  "decision": "SOURCE_PATCHED / 3_OF_5_GATES_CLOSED / 2_OWNER_COST_DECISION_PENDING / LEGACY_TEST_DEBT_RECORDED / LIVE_PROVIDER_UNCONFIRMED / NO_DEPLOY",
+  "legacy148": {
+    "pass": 146,
+    "blocked": 2
+  },
+  "expandedUniqueCommands": {
+    "total": 265,
+    "pass": 253,
+    "failInherited": 12,
+    "scriptNames": 271
+  },
+  "qrHandlers": {
+    "pass": 109,
+    "fail": 0
+  },
+  "qrNetwork": {
+    "pass": 16,
+    "fail": 0
+  },
+  "svg": {
+    "pass": 25,
+    "fail": 0
+  },
+  "controlledBrowser": {
+    "pass": 22,
+    "fail": 0
+  },
+  "liveBrowser": {
+    "timeoutRuns": 2,
+    "multiitemReached": false
+  },
+  "rules": {
+    "pass": 108,
+    "fail": 0
+  },
+  "serviceBatches": {
+    "pass": 23,
+    "fail": 0
+  },
+  "approvalValidator": {
+    "pass": 16,
+    "fail": 0
+  },
+  "costScenarios": {
+    "pass": 6
+  },
+  "syntaxItems": 272,
+  "assets": 71,
+  "rootPublicPairs": 126,
+  "clientCallSites": {
+    "getDoc": 29,
+    "getDocs": 44,
+    "onSnapshot": 16
+  },
+  "allCriticalExit": 1,
+  "releaseExit": 1,
+  "remainingCompositeBlocker": "Owner-supplied document-read cost authorization",
+  "productionReadOrWrite": false,
+  "deployed": false,
+  "physicalIPhoneVerified": false
+}

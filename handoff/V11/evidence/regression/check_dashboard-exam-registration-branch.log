@@ -1,0 +1,20 @@
+
+🔍 Phase 4K-5P — check-dashboard-exam-registration-branch
+
+[32m✅ PASS[0m  app.js readable
+[32m✅ PASS[0m  dashboard.js readable
+[32m✅ PASS[0m  financeRenderer.js readable
+[32m✅ PASS[0m  js/main.js readable
+[32m✅ PASS[0m  buildCanonicalExamBranchLedger được định nghĩa trong app.js
+[32m✅ PASS[0m  buildCanonicalExamPaymentLedger hỗ trợ options.transactions
+[32m✅ PASS[0m  financeRenderer gọi buildCanonicalExamBranchLedger
+[32m✅ PASS[0m  refreshDashboardBranchStatsFullMonth gọi buildCanonicalExamBranchLedger
+[32m✅ PASS[0m  renderBranchStats hiển thị examRegisteredCount
+[32m✅ PASS[0m  debugExamBranchRegistrationMismatch được định nghĩa trong app.js
+[32m✅ PASS[0m  debugRuntimeSmokeTest gọi debugExamBranchRegistrationMismatch
+[32m✅ PASS[0m  financeRenderer có canonical exam branch override (không chỉ dùng transaction loop)
+[32m✅ PASS[0m  financeRenderer set examRegisteredNames trong bStats branch
+[32m✅ PASS[0m  dashboard.js refreshDashboardBranchStatsFullMonth set examRegisteredNames
+
+[32m✅ All checks passed — Phase 4K-5P Dashboard Exam Registration Branch[0m
+

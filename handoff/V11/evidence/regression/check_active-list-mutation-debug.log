@@ -1,0 +1,26 @@
+
+══════════════════════════════════════════════════════════
+  Active List Mutation Debug Check — Phase 4K-STUDENT-RENDER-OVERWRITE-FIX
+══════════════════════════════════════════════════════════
+
+▸ Section 1: window.debugStudentListHydration() đầy đủ
+  ✅ debugStudentListHydration in pgState.currentPage
+  ✅ debugStudentListHydration in pgState.enabled
+  ✅ debugStudentListHydration in _studentsPaginationVersion
+  ✅ debugStudentListHydration in activeRows cache length (via getStudentsCacheMetrics)
+  ✅ debugStudentListHydration in #activeList innerHTML.length
+
+▸ Section 2: window.watchActiveListMutations()
+  ✅ window.watchActiveListMutations được định nghĩa trong main.js
+  ✅ watchActiveListMutations dùng MutationObserver
+  ✅ watchActiveListMutations log rows count + htmlLength + stack trace
+  ✅ watchActiveListMutations KHÔNG tự động gọi khi page load
+  ✅ watchActiveListMutations lưu observer vào window.__activeListMutationObserver
+
+══════════════════════════════════════════════════════════
+  Total: 10 | ✅ 10 | ❌ 0
+
+  🎉 Active list mutation debug checks passed!
+  Debug helpers đầy đủ để trace DOM mutation trên production.
+══════════════════════════════════════════════════════════
+

@@ -1,0 +1,17 @@
+
+[check-student-pagination-status-filter] Phase 4K-5F
+
+  ✅  filterStudentItemsForMode defined
+  ✅  _renderStudentsPageRowsFallback uses filterStudentItemsForMode
+  ✅  buildStudentsRowsFromPagination uses filterStudentItemsForMode
+  ✅  _renderStudentsPageRowsFallback targets _listId (not hardcoded activeList)
+  ✅  renderActiveIsland uses filterStudentItemsForMode(items, 'active')
+  ✅  renderQuitIsland uses filterStudentItemsForMode(items, 'quit')
+  ✅  searchProfilesServerSide accepts statusFilter option
+  ✅  searchProfilesServerSide applies mode filter on results
+  ✅  students.js search call passes statusFilter
+  ✅  syncStudentStatusLocal removes #activeList DOM row on quit
+  ✅  debugActiveQuitLeak defined
+
+  11 passed, 0 failed
+

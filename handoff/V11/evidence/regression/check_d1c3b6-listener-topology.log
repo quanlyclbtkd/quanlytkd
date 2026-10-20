@@ -1,0 +1,18 @@
+[ProfilesListener] reset — D1C3B6-reset
+[StudentProfileStore] reset — D1C3B6-reset
+PASS L01-01 missing CS1 legacy listener is re-registered only in its existing slot
+[ProfilesListener] reset — D1C3B6-reset
+[StudentProfileStore] reset — D1C3B6-reset
+PASS L01-02 missing primary listener is restored without replacing healthy legacy
+[ProfilesListener] reset — D1C3B6-reset
+[StudentProfileStore] reset — D1C3B6-reset
+PASS L01-03 ten duplicate mounts preserve two active Coach CS1 listeners
+[ProfilesListener] reset — D1C3B6-reset
+[StudentProfileStore] reset — D1C3B6-reset
+PASS L01-05 repaired legacy slot must consume first server snapshot even when docChanges empty
+[ProfilesListener] reset — D1C3B6-reset
+[StudentProfileStore] reset — D1C3B6-reset
+[ProfilesListener] reset — verified-owner-changed-on-same-key
+[ProfilesListener] owner takeover blocked: unsubscribe failed
+PASS L01-04 cleanup unsubscribe failure must fail closed without opening new listener
+D1C3B6 ACTUAL HANDLERS 5 PASS 0 FAIL

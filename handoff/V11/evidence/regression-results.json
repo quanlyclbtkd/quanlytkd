@@ -1,0 +1,2411 @@
+[
+  {
+    "command": "node tools/check-syntax.mjs",
+    "aliases": [
+      "check:syntax"
+    ],
+    "exit": 0,
+    "seconds": 4.33,
+    "log": "check_syntax.log"
+  },
+  {
+    "command": "node tools/check-assets.mjs",
+    "aliases": [
+      "check:assets"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_assets.log"
+  },
+  {
+    "command": "node tools/check-deploy-contract.mjs",
+    "aliases": [
+      "check:deploy"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_deploy.log"
+  },
+  {
+    "command": "node tools/check-functions.mjs",
+    "aliases": [
+      "check:functions"
+    ],
+    "exit": 0,
+    "seconds": 0.47,
+    "log": "check_functions.log"
+  },
+  {
+    "command": "node tools/check-runtime-bootstrap.mjs",
+    "aliases": [
+      "check:runtime-bootstrap"
+    ],
+    "exit": 0,
+    "seconds": 0.22,
+    "log": "check_runtime-bootstrap.log"
+  },
+  {
+    "command": "node tools/check-data-hydration.mjs",
+    "aliases": [
+      "check:data-hydration"
+    ],
+    "exit": 0,
+    "seconds": 0.27,
+    "log": "check_data-hydration.log"
+  },
+  {
+    "command": "node tools/check-pilot-readiness.mjs",
+    "aliases": [
+      "check:pilot"
+    ],
+    "exit": 0,
+    "seconds": 0.22,
+    "log": "check_pilot.log"
+  },
+  {
+    "command": "node tools/check-tenant-isolation.mjs",
+    "aliases": [
+      "check:tenant"
+    ],
+    "exit": 0,
+    "seconds": 0.27,
+    "log": "check_tenant.log"
+  },
+  {
+    "command": "node tools/check-ten-club-pilot.mjs",
+    "aliases": [
+      "check:ten-club"
+    ],
+    "exit": 0,
+    "seconds": 0.18,
+    "log": "check_ten-club.log"
+  },
+  {
+    "command": "node tools/check-one-club-pilot-gate.mjs",
+    "aliases": [
+      "check:one-club-gate"
+    ],
+    "exit": 0,
+    "seconds": 0.21,
+    "log": "check_one-club-gate.log"
+  },
+  {
+    "command": "node tools/check-onboarding-gate.mjs",
+    "aliases": [
+      "check:onboarding"
+    ],
+    "exit": 0,
+    "seconds": 0.23,
+    "log": "check_onboarding.log"
+  },
+  {
+    "command": "node tools/check-superadmin-audit.mjs",
+    "aliases": [
+      "check:superadmin-audit"
+    ],
+    "exit": 0,
+    "seconds": 0.22,
+    "log": "check_superadmin-audit.log"
+  },
+  {
+    "command": "node tools/check-scale-readiness-write-safety.mjs",
+    "aliases": [
+      "check:scale-readiness-write-safety",
+      "check:transaction-delete-integrity"
+    ],
+    "exit": 0,
+    "seconds": 0.32,
+    "log": "check_scale-readiness-write-safety.log"
+  },
+  {
+    "command": "node tools/check-legacy-render-entrypoints.mjs",
+    "aliases": [
+      "check:legacy-render-entrypoints"
+    ],
+    "exit": 0,
+    "seconds": 0.37,
+    "log": "check_legacy-render-entrypoints.log"
+  },
+  {
+    "command": "node tools/check-multiitem-inventory-hydration.mjs",
+    "aliases": [
+      "check:multiitem-inventory-hydration"
+    ],
+    "exit": 0,
+    "seconds": 0.23,
+    "log": "check_multiitem-inventory-hydration.log"
+  },
+  {
+    "command": "node tools/check-legacy-diagnostics-extraction.mjs",
+    "aliases": [
+      "check:legacy-diagnostics-extraction"
+    ],
+    "exit": 0,
+    "seconds": 0.22,
+    "log": "check_legacy-diagnostics-extraction.log"
+  },
+  {
+    "command": "node tools/check-legacy-app-reduction-readiness.mjs",
+    "aliases": [
+      "check:legacy-app-reduction-readiness"
+    ],
+    "exit": 0,
+    "seconds": 0.29,
+    "log": "check_legacy-app-reduction-readiness.log"
+  },
+  {
+    "command": "node tools/check-active-new-students-filter.mjs",
+    "aliases": [
+      "check:active-new-students-filter"
+    ],
+    "exit": 0,
+    "seconds": 0.13,
+    "log": "check_active-new-students-filter.log"
+  },
+  {
+    "command": "node tools/check-payment-accounts.mjs",
+    "aliases": [
+      "check:payment-accounts"
+    ],
+    "exit": 0,
+    "seconds": 3.21,
+    "log": "check_payment-accounts.log"
+  },
+  {
+    "command": "node tools/check-attendance-reliability.mjs",
+    "aliases": [
+      "check:attendance",
+      "check:attendance-reliability"
+    ],
+    "exit": 0,
+    "seconds": 0.27,
+    "log": "check_attendance.log"
+  },
+  {
+    "command": "node tools/check-attendance-scheduled-accuracy.mjs",
+    "aliases": [
+      "check:attendance-schedule",
+      "check:attendance-scheduled-accuracy"
+    ],
+    "exit": 0,
+    "seconds": 0.17,
+    "log": "check_attendance-schedule.log"
+  },
+  {
+    "command": "node tools/check-attendance-offline-shift.mjs",
+    "aliases": [
+      "check:attendance-offline-shift"
+    ],
+    "exit": 0,
+    "seconds": 0.18,
+    "log": "check_attendance-offline-shift.log"
+  },
+  {
+    "command": "node tools/check-attendance-explicit-shift-authority.mjs",
+    "aliases": [
+      "check:attendance-explicit-shift-authority"
+    ],
+    "exit": 0,
+    "seconds": 0.35,
+    "log": "check_attendance-explicit-shift-authority.log"
+  },
+  {
+    "command": "node tools/check-attendance-daily-single-refresh-authority.mjs",
+    "aliases": [
+      "check:attendance-daily-single-refresh-authority"
+    ],
+    "exit": 0,
+    "seconds": 0.47,
+    "log": "check_attendance-daily-single-refresh-authority.log"
+  },
+  {
+    "command": "node tools/check-production-authority-closure.mjs",
+    "aliases": [
+      "check:production-authority-closure"
+    ],
+    "exit": 0,
+    "seconds": 0.22,
+    "log": "check_production-authority-closure.log"
+  },
+  {
+    "command": "node tools/check-ui-modernization.mjs",
+    "aliases": [
+      "check:ui"
+    ],
+    "exit": 0,
+    "seconds": 0.23,
+    "log": "check_ui.log"
+  },
+  {
+    "command": "node tools/check-scale-readiness.mjs",
+    "aliases": [
+      "check:scale"
+    ],
+    "exit": 0,
+    "seconds": 0.28,
+    "log": "check_scale.log"
+  },
+  {
+    "command": "node tools/check-login-performance.mjs",
+    "aliases": [
+      "check:login-performance"
+    ],
+    "exit": 0,
+    "seconds": 0.23,
+    "log": "check_login-performance.log"
+  },
+  {
+    "command": "node tools/check-firestore-indexes.mjs",
+    "aliases": [
+      "check:firestore-indexes"
+    ],
+    "exit": 0,
+    "seconds": 0.22,
+    "log": "check_firestore-indexes.log"
+  },
+  {
+    "command": "node tools/check-search-bindings.mjs",
+    "aliases": [
+      "check:search-bindings"
+    ],
+    "exit": 0,
+    "seconds": 0.28,
+    "log": "check_search-bindings.log"
+  },
+  {
+    "command": "node tools/check-attendance-shift-filter.mjs",
+    "aliases": [
+      "check:attendance-shift-filter"
+    ],
+    "exit": 0,
+    "seconds": 0.33,
+    "log": "check_attendance-shift-filter.log"
+  },
+  {
+    "command": "node tools/check-transaction-realtime.mjs",
+    "aliases": [
+      "check:transaction-realtime"
+    ],
+    "exit": 0,
+    "seconds": 0.23,
+    "log": "check_transaction-realtime.log"
+  },
+  {
+    "command": "node tools/check-stats-aggregation.mjs",
+    "aliases": [
+      "check:stats-aggregation"
+    ],
+    "exit": 0,
+    "seconds": 0.18,
+    "log": "check_stats-aggregation.log"
+  },
+  {
+    "command": "node tools/check-superadmin-counts.mjs",
+    "aliases": [
+      "check:superadmin-counts"
+    ],
+    "exit": 0,
+    "seconds": 0.24,
+    "log": "check_superadmin-counts.log"
+  },
+  {
+    "command": "node tools/check-dashboard-stats.mjs",
+    "aliases": [
+      "check:dashboard-stats"
+    ],
+    "exit": 0,
+    "seconds": 0.23,
+    "log": "check_dashboard-stats.log"
+  },
+  {
+    "command": "node tools/check-superadmin-hotfix.mjs",
+    "aliases": [
+      "check:superadmin-hotfix"
+    ],
+    "exit": 0,
+    "seconds": 0.18,
+    "log": "check_superadmin-hotfix.log"
+  },
+  {
+    "command": "node tools/check-github-pages-paths.mjs",
+    "aliases": [
+      "check:github-pages-paths"
+    ],
+    "exit": 0,
+    "seconds": 0.34,
+    "log": "check_github-pages-paths.log"
+  },
+  {
+    "command": "node tools/check-deploy-package.mjs",
+    "aliases": [
+      "check:deploy-package"
+    ],
+    "exit": 0,
+    "seconds": 0.17,
+    "log": "check_deploy-package.log"
+  },
+  {
+    "command": "node tools/check-debt-search-filter.mjs",
+    "aliases": [
+      "check:debt-search-filter"
+    ],
+    "exit": 0,
+    "seconds": 0.23,
+    "log": "check_debt-search-filter.log"
+  },
+  {
+    "command": "node tools/check-superadmin-monthstats.mjs",
+    "aliases": [
+      "check:superadmin-monthstats"
+    ],
+    "exit": 0,
+    "seconds": 0.17,
+    "log": "check_superadmin-monthstats.log"
+  },
+  {
+    "command": "node tools/check-db-ready-guards.mjs",
+    "aliases": [
+      "check:db-ready-guards"
+    ],
+    "exit": 0,
+    "seconds": 0.22,
+    "log": "check_db-ready-guards.log"
+  },
+  {
+    "command": "node tools/check-runtime-init.mjs",
+    "aliases": [
+      "check:runtime-init"
+    ],
+    "exit": 0,
+    "seconds": 0.21,
+    "log": "check_runtime-init.log"
+  },
+  {
+    "command": "node tools/check-legacy-bridge.mjs",
+    "aliases": [
+      "check:legacy-bridge"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_legacy-bridge.log"
+  },
+  {
+    "command": "node tools/check-unsafe-transaction-calculation.mjs",
+    "aliases": [
+      "check:unsafe-transaction-calculation"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_unsafe-transaction-calculation.log"
+  },
+  {
+    "command": "node tools/check-runtime-cleanup.mjs",
+    "aliases": [
+      "check:runtime-cleanup"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_runtime-cleanup.log"
+  },
+  {
+    "command": "node tools/check-editprofile-bridge.mjs",
+    "aliases": [
+      "check:editprofile-bridge"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_editprofile-bridge.log"
+  },
+  {
+    "command": "node tools/check-profile-hydration.mjs",
+    "aliases": [
+      "check:profile-hydration"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_profile-hydration.log"
+  },
+  {
+    "command": "node tools/check-club-diagnostics.mjs",
+    "aliases": [
+      "check:club-diagnostics"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_club-diagnostics.log"
+  },
+  {
+    "command": "node tools/check-unsafe-transaction-preview.mjs",
+    "aliases": [
+      "check:unsafe-transaction-preview"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_unsafe-transaction-preview.log"
+  },
+  {
+    "command": "node tools/check-finance-indexes.mjs",
+    "aliases": [
+      "check:finance-indexes"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_finance-indexes.log"
+  },
+  {
+    "command": "node tools/check-finance-index-errors.mjs",
+    "aliases": [
+      "check:finance-index-errors"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_finance-index-errors.log"
+  },
+  {
+    "command": "node tools/check-diagnostic-permissions.mjs",
+    "aliases": [
+      "check:diagnostic-permissions"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_diagnostic-permissions.log"
+  },
+  {
+    "command": "node tools/check-render-invalidation-usage.mjs",
+    "aliases": [
+      "check:render-invalidation"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_render-invalidation.log"
+  },
+  {
+    "command": "node tools/check-club-context-ready.mjs",
+    "aliases": [
+      "check:club-context-ready"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_club-context-ready.log"
+  },
+  {
+    "command": "node tools/check-legacy-schedule-render.mjs",
+    "aliases": [
+      "check:legacy-schedule-render"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_legacy-schedule-render.log"
+  },
+  {
+    "command": "node tools/check-data-hydration-retry.mjs",
+    "aliases": [
+      "check:data-hydration-retry"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_data-hydration-retry.log"
+  },
+  {
+    "command": "node tools/check-transaction-row-render.mjs",
+    "aliases": [
+      "check:transaction-row-render"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_transaction-row-render.log"
+  },
+  {
+    "command": "node tools/check-profile-listener-mount.mjs",
+    "aliases": [
+      "check:profile-listener-mount"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_profile-listener-mount.log"
+  },
+  {
+    "command": "node tools/check-legacy-status-compat.mjs",
+    "aliases": [
+      "check:legacy-status-compat"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_legacy-status-compat.log"
+  },
+  {
+    "command": "node tools/check-active-zero-fallback.mjs",
+    "aliases": [
+      "check:active-zero-fallback"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_active-zero-fallback.log"
+  },
+  {
+    "command": "node tools/check-student-row-render-fallback.mjs",
+    "aliases": [
+      "check:student-row-render-fallback"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_student-row-render-fallback.log"
+  },
+  {
+    "command": "node tools/check-students-render-classifier.mjs",
+    "aliases": [
+      "check:students-render-classifier"
+    ],
+    "exit": 0,
+    "seconds": 0.06,
+    "log": "check_students-render-classifier.log"
+  },
+  {
+    "command": "node tools/check-student-render-cache-pagination.mjs",
+    "aliases": [
+      "check:student-render-cache-pagination"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_student-render-cache-pagination.log"
+  },
+  {
+    "command": "node tools/check-active-island-preserve-pagination.mjs",
+    "aliases": [
+      "check:active-island-preserve-pagination"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_active-island-preserve-pagination.log"
+  },
+  {
+    "command": "node tools/check-pagination-version-invalidation.mjs",
+    "aliases": [
+      "check:pagination-version-invalidation"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_pagination-version-invalidation.log"
+  },
+  {
+    "command": "node tools/check-active-list-mutation-debug.mjs",
+    "aliases": [
+      "check:active-list-mutation-debug"
+    ],
+    "exit": 0,
+    "seconds": 0.07,
+    "log": "check_active-list-mutation-debug.log"
+  },
+  {
+    "command": "node tools/check-dashboard-recompute-before-island.mjs",
+    "aliases": [
+      "check:dashboard-recompute-before-island"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_dashboard-recompute-before-island.log"
+  },
+  {
+    "command": "node tools/check-dashboard-history-fallback.mjs",
+    "aliases": [
+      "check:dashboard-history-fallback"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_dashboard-history-fallback.log"
+  },
+  {
+    "command": "node tools/check-student-pagination-controls-dom.mjs",
+    "aliases": [
+      "check:student-pagination-controls-dom"
+    ],
+    "exit": 0,
+    "seconds": 0.07,
+    "log": "check_student-pagination-controls-dom.log"
+  },
+  {
+    "command": "node tools/check-modal-close-compat.mjs",
+    "aliases": [
+      "check:modal-close-compat"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_modal-close-compat.log"
+  },
+  {
+    "command": "node tools/check-student-pagination-render-order.mjs",
+    "aliases": [
+      "check:student-pagination-render-order"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_student-pagination-render-order.log"
+  },
+  {
+    "command": "node tools/check-bootstrap-pagination-race.mjs",
+    "aliases": [
+      "check:bootstrap-pagination-race"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_bootstrap-pagination-race.log"
+  },
+  {
+    "command": "node tools/check-search-runtime-performance.mjs",
+    "aliases": [
+      "check:search-runtime-performance"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_search-runtime-performance.log"
+  },
+  {
+    "command": "node tools/check-search-runtime-real-cache.mjs",
+    "aliases": [
+      "check:search-runtime-real-cache"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_search-runtime-real-cache.log"
+  },
+  {
+    "command": "node tools/check-tuition-actions.mjs",
+    "aliases": [
+      "check:tuition-actions"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_tuition-actions.log"
+  },
+  {
+    "command": "node tools/check-admission-uniform-size.mjs",
+    "aliases": [
+      "check:admission-uniform-size"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_admission-uniform-size.log"
+  },
+  {
+    "command": "node tools/check-exam-fee-setting.mjs",
+    "aliases": [
+      "check:exam-fee-setting"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_exam-fee-setting.log"
+  },
+  {
+    "command": "node tools/check-runtime-smoke-test.mjs",
+    "aliases": [
+      "check:runtime-smoke-test"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_runtime-smoke-test.log"
+  },
+  {
+    "command": "node tools/check-admission-tuition-package.mjs",
+    "aliases": [
+      "check:admission-tuition-package"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_admission-tuition-package.log"
+  },
+  {
+    "command": "node tools/check-inventory-finance-rollup.mjs",
+    "aliases": [
+      "check:inventory-finance-rollup"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_inventory-finance-rollup.log"
+  },
+  {
+    "command": "node tools/check-reports-module-syntax.mjs",
+    "aliases": [
+      "check:reports-module-syntax"
+    ],
+    "exit": 0,
+    "seconds": 0.31,
+    "log": "check_reports-module-syntax.log"
+  },
+  {
+    "command": "node tools/check-runtime-month-admission-hydration.mjs",
+    "aliases": [
+      "check:runtime-month-admission-hydration"
+    ],
+    "exit": 0,
+    "seconds": 0.27,
+    "log": "check_runtime-month-admission-hydration.log"
+  },
+  {
+    "command": "node tools/check-tuition-package-month-coverage.mjs",
+    "aliases": [
+      "check:tuition-package-month-coverage"
+    ],
+    "exit": 0,
+    "seconds": 0.22,
+    "log": "check_tuition-package-month-coverage.log"
+  },
+  {
+    "command": "node tools/check-monthly-revenue-allocation.mjs",
+    "aliases": [
+      "check:monthly-revenue-allocation"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_monthly-revenue-allocation.log"
+  },
+  {
+    "command": "node tools/check-active-student-sort.mjs",
+    "aliases": [
+      "check:active-student-sort"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_active-student-sort.log"
+  },
+  {
+    "command": "node tools/check-exam-payment-identity.mjs",
+    "aliases": [
+      "check:exam-payment-identity"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_exam-payment-identity.log"
+  },
+  {
+    "command": "node tools/check-exam-cancel-fee.mjs",
+    "aliases": [
+      "check:exam-cancel-fee"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_exam-cancel-fee.log"
+  },
+  {
+    "command": "node tools/check-exam-fee-ui-cleanup.mjs",
+    "aliases": [
+      "check:exam-fee-ui-cleanup"
+    ],
+    "exit": 0,
+    "seconds": 0.17,
+    "log": "check_exam-fee-ui-cleanup.log"
+  },
+  {
+    "command": "node tools/check-exam-name-parser-hotfix.mjs",
+    "aliases": [
+      "check:exam-name-parser-hotfix"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_exam-name-parser-hotfix.log"
+  },
+  {
+    "command": "node tools/check-student-quit-separation.mjs",
+    "aliases": [
+      "check:student-quit-separation"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_student-quit-separation.log"
+  },
+  {
+    "command": "node tools/check-exam-registration-count.mjs",
+    "aliases": [
+      "check:exam-registration-count"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_exam-registration-count.log"
+  },
+  {
+    "command": "node tools/check-exam-canonical-ledger.mjs",
+    "aliases": [
+      "check:exam-canonical-ledger"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_exam-canonical-ledger.log"
+  },
+  {
+    "command": "node tools/check-student-quit-hard-separation.mjs",
+    "aliases": [
+      "check:student-quit-hard-separation"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_student-quit-hard-separation.log"
+  },
+  {
+    "command": "node tools/check-bundled-receipt-transactions.mjs",
+    "aliases": [
+      "check:bundled-receipt-transactions"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_bundled-receipt-transactions.log"
+  },
+  {
+    "command": "node tools/check-exam-fee-save-pipeline.mjs",
+    "aliases": [
+      "check:exam-fee-save-pipeline"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_exam-fee-save-pipeline.log"
+  },
+  {
+    "command": "node tools/check-vnd-money-format.mjs",
+    "aliases": [
+      "check:vnd-money-format"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_vnd-money-format.log"
+  },
+  {
+    "command": "node tools/check-dashboard-historical-authority.mjs",
+    "aliases": [
+      "check:dashboard-historical-authority"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_dashboard-historical-authority.log"
+  },
+  {
+    "command": "node tools/check-bundle-display-labels.mjs",
+    "aliases": [
+      "check:bundle-display-labels"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_bundle-display-labels.log"
+  },
+  {
+    "command": "node tools/check-admission-bundle-unification.mjs",
+    "aliases": [
+      "check:admission-bundle-unification"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_admission-bundle-unification.log"
+  },
+  {
+    "command": "node tools/check-component-accounting-authority.mjs",
+    "aliases": [
+      "check:component-accounting-authority"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_component-accounting-authority.log"
+  },
+  {
+    "command": "node tools/check-finance-mobile-bundle-row.mjs",
+    "aliases": [
+      "check:finance-mobile-bundle-row"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_finance-mobile-bundle-row.log"
+  },
+  {
+    "command": "node tools/check-student-pagination-status-filter.mjs",
+    "aliases": [
+      "check:student-pagination-status-filter"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_student-pagination-status-filter.log"
+  },
+  {
+    "command": "node tools/check-debt-full-coverage.mjs",
+    "aliases": [
+      "check:debt-full-coverage"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_debt-full-coverage.log"
+  },
+  {
+    "command": "node tools/check-tuition-table-layout.mjs",
+    "aliases": [
+      "check:tuition-table-layout"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_tuition-table-layout.log"
+  },
+  {
+    "command": "node tools/check-per-tab-load-more.mjs",
+    "aliases": [
+      "check:per-tab-load-more"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_per-tab-load-more.log"
+  },
+  {
+    "command": "node tools/check-exam-export-download.mjs",
+    "aliases": [
+      "check:exam-export-download"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_exam-export-download.log"
+  },
+  {
+    "command": "node tools/check-tuition-table-layout-real.mjs",
+    "aliases": [
+      "check:tuition-table-layout-real"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_tuition-table-layout-real.log"
+  },
+  {
+    "command": "node tools/check-real-load-more-wiring.mjs",
+    "aliases": [
+      "check:real-load-more-wiring"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_real-load-more-wiring.log"
+  },
+  {
+    "command": "node tools/check-loadmore-scroll-preservation.mjs",
+    "aliases": [
+      "check:loadmore-scroll-preservation"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_loadmore-scroll-preservation.log"
+  },
+  {
+    "command": "node tools/check-debt-loadmore-filter.mjs",
+    "aliases": [
+      "check:debt-loadmore-filter"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_debt-loadmore-filter.log"
+  },
+  {
+    "command": "node tools/check-active-render-tdz-order.mjs",
+    "aliases": [
+      "check:active-render-tdz-order"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_active-render-tdz-order.log"
+  },
+  {
+    "command": "node tools/check-runtime-pilot-verification.mjs",
+    "aliases": [
+      "check:runtime-pilot-verification"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_runtime-pilot-verification.log"
+  },
+  {
+    "command": "node tools/check-active-loadmore-newest-first.mjs",
+    "aliases": [
+      "check:active-loadmore-newest-first"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_active-loadmore-newest-first.log"
+  },
+  {
+    "command": "node tools/check-debt-actions-sync.mjs",
+    "aliases": [
+      "check:debt-actions-sync"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_debt-actions-sync.log"
+  },
+  {
+    "command": "node tools/check-debt-service-bridge.mjs",
+    "aliases": [
+      "check:debt-service-bridge"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_debt-service-bridge.log"
+  },
+  {
+    "command": "node tools/check-multiitem-skipped-months.mjs",
+    "aliases": [
+      "check:multiitem-skipped-months"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_multiitem-skipped-months.log"
+  },
+  {
+    "command": "node tools/check-dashboard-chart-lifecycle.mjs",
+    "aliases": [
+      "check:dashboard-chart-lifecycle"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_dashboard-chart-lifecycle.log"
+  },
+  {
+    "command": "node tools/check-dashboard-branch-components.mjs",
+    "aliases": [
+      "check:dashboard-branch-components"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_dashboard-branch-components.log"
+  },
+  {
+    "command": "node tools/check-runtime-stability-gate.mjs",
+    "aliases": [
+      "check:runtime-stability-gate"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_runtime-stability-gate.log"
+  },
+  {
+    "command": "node tools/check-dashboard-exam-registration-branch.mjs",
+    "aliases": [
+      "check:dashboard-exam-registration-branch"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_dashboard-exam-registration-branch.log"
+  },
+  {
+    "command": "node tools/check-mobile-superadmin-gate.mjs",
+    "aliases": [
+      "check:superadmin-gate",
+      "check:mobile-superadmin-gate"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_superadmin-gate.log"
+  },
+  {
+    "command": "node tools/check-search-runtime-v2.mjs",
+    "aliases": [
+      "check:search-v2",
+      "check:search-runtime-v2"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_search-v2.log"
+  },
+  {
+    "command": "node tools/check-active-loadmore-single-source.mjs",
+    "aliases": [
+      "check:loadmore",
+      "check:active-loadmore-single-source"
+    ],
+    "exit": 0,
+    "seconds": 0.07,
+    "log": "check_loadmore.log"
+  },
+  {
+    "command": "node tools/check-exam-auto-select-paid.mjs",
+    "aliases": [
+      "check:exam-auto-select-paid"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_exam-auto-select-paid.log"
+  },
+  {
+    "command": "node tools/check-performance-stability-gate.mjs",
+    "aliases": [
+      "check:performance-stability-gate"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_performance-stability-gate.log"
+  },
+  {
+    "command": "node tools/check-tab-render-recovery.mjs",
+    "aliases": [
+      "check:tab-render-recovery"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_tab-render-recovery.log"
+  },
+  {
+    "command": "node tools/check-financial-flow-guard-readiness.mjs",
+    "aliases": [
+      "check:financial-flow-guard-readiness"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_financial-flow-guard-readiness.log"
+  },
+  {
+    "command": "node tools/check-security-license-ip-protection.mjs",
+    "aliases": [
+      "check:security-license-ip-protection"
+    ],
+    "exit": 0,
+    "seconds": 0.27,
+    "log": "check_security-license-ip-protection.log"
+  },
+  {
+    "command": "node tools/check-exam-export-belt-sort.mjs",
+    "aliases": [
+      "check:exam-export-belt-sort"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_exam-export-belt-sort.log"
+  },
+  {
+    "command": "node tools/check-inline-handler-bridge.mjs",
+    "aliases": [
+      "check:inline-handler-bridge"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_inline-handler-bridge.log"
+  },
+  {
+    "command": "node tools/check-superadmin-quota-guard.mjs",
+    "aliases": [
+      "check:superadmin-quota-guard"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_superadmin-quota-guard.log"
+  },
+  {
+    "command": "node tools/check-legacy-runtime-fallback-fix.mjs",
+    "aliases": [
+      "check:legacy-runtime-fallback-fix"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_legacy-runtime-fallback-fix.log"
+  },
+  {
+    "command": "node tools/check-superadmin-aggregation-hard-stop.mjs",
+    "aliases": [
+      "check:superadmin-aggregation-hard-stop"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_superadmin-aggregation-hard-stop.log"
+  },
+  {
+    "command": "node tools/check-superadmin-cache-stats-island-fallback.mjs",
+    "aliases": [
+      "check:superadmin-cache-stats-island-fallback"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_superadmin-cache-stats-island-fallback.log"
+  },
+  {
+    "command": "node tools/check-superadmin-render-scope-fix.mjs",
+    "aliases": [
+      "check:superadmin-render-scope-fix"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_superadmin-render-scope-fix.log"
+  },
+  {
+    "command": "node tools/check-club-stats-auto-cache.mjs",
+    "aliases": [
+      "check:club-stats-auto-cache"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_club-stats-auto-cache.log"
+  },
+  {
+    "command": "node tools/check-superadmin-server-summary-cache.mjs",
+    "aliases": [
+      "check:superadmin-server-summary-cache"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_superadmin-server-summary-cache.log"
+  },
+  {
+    "command": "node tools/check-superadmin-safe-server-refresh.mjs",
+    "aliases": [
+      "check:superadmin-safe-server-refresh"
+    ],
+    "exit": 0,
+    "seconds": 0.07,
+    "log": "check_superadmin-safe-server-refresh.log"
+  },
+  {
+    "command": "node tools/check-excel-import-vtf-upsert.mjs",
+    "aliases": [
+      "check:excel-import-vtf-upsert"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_excel-import-vtf-upsert.log"
+  },
+  {
+    "command": "node tools/check-production-stability-gate.mjs",
+    "aliases": [
+      "check:production-stability-gate"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_production-stability-gate.log"
+  },
+  {
+    "command": "node tools/check-low-risk-helper-extraction.mjs",
+    "aliases": [
+      "check:low-risk-helper-extraction"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_low-risk-helper-extraction.log"
+  },
+  {
+    "command": "node tools/check-cross-tab-search-replay.mjs",
+    "aliases": [
+      "check:cross-tab-search-replay"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_cross-tab-search-replay.log"
+  },
+  {
+    "command": "node tools/check-search-latency-optimization.mjs",
+    "aliases": [
+      "check:search-latency-optimization"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_search-latency-optimization.log"
+  },
+  {
+    "command": "node tools/check-multiitem-tuition-package-fix.mjs",
+    "aliases": [
+      "check:multiitem-tuition-package-fix"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_multiitem-tuition-package-fix.log"
+  },
+  {
+    "command": "node tools/check-student-search-index.mjs",
+    "aliases": [
+      "check:student-search-index"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_student-search-index.log"
+  },
+  {
+    "command": "node tools/check-receipt-qr-helper-extraction.mjs",
+    "aliases": [
+      "check:receipt-qr-helper-extraction"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_receipt-qr-helper-extraction.log"
+  },
+  {
+    "command": "node tools/check-admission-tuition-type-normalization.mjs",
+    "aliases": [
+      "check:admission-tuition-type-normalization"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_admission-tuition-type-normalization.log"
+  },
+  {
+    "command": "node tools/check-inventory-multiitem-readonly-ui.mjs",
+    "aliases": [
+      "check:inventory-multiitem-readonly-ui"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_inventory-multiitem-readonly-ui.log"
+  },
+  {
+    "command": "node tools/check-listener-ownership-boundary.mjs",
+    "aliases": [
+      "check:listener-ownership-boundary"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_listener-ownership-boundary.log"
+  },
+  {
+    "command": "node tools/check-financial-action-audit-guard.mjs",
+    "aliases": [
+      "check:financial-action-audit-guard"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_financial-action-audit-guard.log"
+  },
+  {
+    "command": "node tools/check-mobile-startup-performance.mjs",
+    "aliases": [
+      "check:mobile-startup-performance"
+    ],
+    "exit": 0,
+    "seconds": 0.07,
+    "log": "check_mobile-startup-performance.log"
+  },
+  {
+    "command": "node tools/check-lazy-assets-loading.mjs",
+    "aliases": [
+      "check:lazy-assets-loading"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_lazy-assets-loading.log"
+  },
+  {
+    "command": "node tools/check-tailwind-static-css-build.mjs",
+    "aliases": [
+      "check:tailwind-static-css-build"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_tailwind-static-css-build.log"
+  },
+  {
+    "command": "node tools/check-mobile-filter-currency-stability.mjs",
+    "aliases": [
+      "check:mobile-filter-currency-stability"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_mobile-filter-currency-stability.log"
+  },
+  {
+    "command": "node tools/check-global-ownership-ui-extraction.mjs",
+    "aliases": [
+      "check:global-ownership-ui-extraction"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_global-ownership-ui-extraction.log"
+  },
+  {
+    "command": "node tools/check-global-ownership-adoption-cleanup.mjs",
+    "aliases": [
+      "check:global-ownership-adoption-cleanup"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_global-ownership-adoption-cleanup.log"
+  },
+  {
+    "command": "node tools/check-exam-upgrade-finance-separation.mjs",
+    "aliases": [
+      "check:exam-upgrade-finance-separation"
+    ],
+    "exit": 0,
+    "seconds": 0.07,
+    "log": "check_exam-upgrade-finance-separation.log"
+  },
+  {
+    "command": "node tools/check-diagnostics-tooling-isolation.mjs",
+    "aliases": [
+      "check:diagnostics-tooling-isolation"
+    ],
+    "exit": 0,
+    "seconds": 0.17,
+    "log": "check_diagnostics-tooling-isolation.log"
+  },
+  {
+    "command": "node tools/check-report-export-lazy-isolation.mjs",
+    "aliases": [
+      "check:report-export-lazy-isolation"
+    ],
+    "exit": 0,
+    "seconds": 3.14,
+    "log": "check_report-export-lazy-isolation.log"
+  },
+  {
+    "command": "node tools/check-attendance-canonical-ownership.mjs",
+    "aliases": [
+      "check:attendance-canonical-ownership"
+    ],
+    "exit": 0,
+    "seconds": 0.16,
+    "log": "check_attendance-canonical-ownership.log"
+  },
+  {
+    "command": "node tools/check-spark-read-cost-hardening.mjs",
+    "aliases": [
+      "check:spark-read-cost-hardening"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_spark-read-cost-hardening.log"
+  },
+  {
+    "command": "node tools/check-inventory-history-pagination-active-debt.mjs",
+    "aliases": [
+      "check:inventory-history-active-debt"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_inventory-history-active-debt.log"
+  },
+  {
+    "command": "node tools/check-inventory-consumer-hydration-hotfix.mjs",
+    "aliases": [
+      "check:inventory-consumer-hydration-hotfix"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_inventory-consumer-hydration-hotfix.log"
+  },
+  {
+    "command": "node tools/check-inventory-dynamic-size-catalog.mjs",
+    "aliases": [
+      "check:inventory-dynamic-size-catalog"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_inventory-dynamic-size-catalog.log"
+  },
+  {
+    "command": "node tools/check-inventory-ledger-reconciliation.mjs",
+    "aliases": [
+      "check:inventory-ledger-reconciliation"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_inventory-ledger-reconciliation.log"
+  },
+  {
+    "command": "node tools/check-firestore-read-attribution-canonical-tx-boundary.mjs",
+    "aliases": [
+      "check:firestore-read-attribution-canonical-tx-boundary"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_firestore-read-attribution-canonical-tx-boundary.log"
+  },
+  {
+    "command": "node tools/check-payment-bundle-runtime-hotfix.mjs",
+    "aliases": [
+      "check:payment-bundle-runtime-hotfix"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_payment-bundle-runtime-hotfix.log"
+  },
+  {
+    "command": "node tools/check-canonical-transaction-safe-cutover.mjs",
+    "aliases": [
+      "check:canonical-transaction-safe-cutover"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_canonical-transaction-safe-cutover.log"
+  },
+  {
+    "command": "node tools/check-debt-profile-read-boundary.mjs",
+    "aliases": [
+      "check:debt-profile-read-boundary"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_debt-profile-read-boundary.log"
+  },
+  {
+    "command": "node tools/check-coach-attendance-only-read-boundary.mjs",
+    "aliases": [
+      "check:coach-attendance-only-read-boundary"
+    ],
+    "exit": 0,
+    "seconds": 0.07,
+    "log": "check_coach-attendance-only-read-boundary.log"
+  },
+  {
+    "command": "node tools/check-security-coach-branch-boundary.mjs",
+    "aliases": [
+      "check:security-coach-branch-boundary"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_security-coach-branch-boundary.log"
+  },
+  {
+    "command": "node tools/check-coach-branch-runtime-repair.mjs",
+    "aliases": [
+      "check:coach-branch-runtime-repair"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_coach-branch-runtime-repair.log"
+  },
+  {
+    "command": "node tools/check-quit-tab-completeness.mjs",
+    "aliases": [
+      "check:quit-tab-completeness"
+    ],
+    "exit": 0,
+    "seconds": 0.06,
+    "log": "check_quit-tab-completeness.log"
+  },
+  {
+    "command": "node tools/check-quit-tab-authoritative-completeness.mjs",
+    "aliases": [
+      "check:quit-tab-authoritative-completeness"
+    ],
+    "exit": 0,
+    "seconds": 0.06,
+    "log": "check_quit-tab-authoritative-completeness.log"
+  },
+  {
+    "command": "node tools/check-quit-tab-mobile-parity.mjs",
+    "aliases": [
+      "check:quit-tab-mobile-parity"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_quit-tab-mobile-parity.log"
+  },
+  {
+    "command": "node tools/check-debt-authoritative-tuition-coverage.mjs",
+    "aliases": [
+      "check:debt-authoritative-tuition-coverage"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_debt-authoritative-tuition-coverage.log"
+  },
+  {
+    "command": "node tools/check-render-warning-coalescing-v4b12.mjs",
+    "aliases": [
+      "check:render-warning-coalescing"
+    ],
+    "exit": 0,
+    "seconds": 0.07,
+    "log": "check_render-warning-coalescing.log"
+  },
+  {
+    "command": "node tools/check-tuition-debt-source-of-truth-v4c.mjs",
+    "aliases": [
+      "check:tuition-debt-source-of-truth"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_tuition-debt-source-of-truth.log"
+  },
+  {
+    "command": "node tools/check-active-skipped-month-section-v4c2.mjs",
+    "aliases": [
+      "check:active-skipped-month-section"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_active-skipped-month-section.log"
+  },
+  {
+    "command": "node tools/check-profile-canonical-store-v4d1.mjs",
+    "aliases": [
+      "check:profile-canonical-store"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_profile-canonical-store.log"
+  },
+  {
+    "command": "node tools/check-v4d1a-runtime-recovery.mjs",
+    "aliases": [
+      "check:v4d1a-runtime-recovery"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_v4d1a-runtime-recovery.log"
+  },
+  {
+    "command": "node tools/check-v5q-quit-single-authoritative-pipeline.mjs",
+    "aliases": [
+      "check:v5q-quit-single-authoritative-pipeline"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_v5q-quit-single-authoritative-pipeline.log"
+  },
+  {
+    "command": "node tools/check-v5q-quit-store-behavior.mjs",
+    "aliases": [
+      "check:v5q-quit-store-behavior"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_v5q-quit-store-behavior.log"
+  },
+  {
+    "command": "node tools/check-v5r-quit-single-source-lock.mjs",
+    "aliases": [
+      "check:v5r-quit-single-source-lock"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_v5r-quit-single-source-lock.log"
+  },
+  {
+    "command": "node tools/check-v5r-quit-source-behavior.mjs",
+    "aliases": [
+      "check:v5r-quit-source-behavior"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_v5r-quit-source-behavior.log"
+  },
+  {
+    "command": "node tools/check-v5s-quit-context-render-loop-guard.mjs",
+    "aliases": [
+      "check:v5s-quit-context-render-loop-guard"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_v5s-quit-context-render-loop-guard.log"
+  },
+  {
+    "command": "node tools/check-v5s-quit-context-behavior.mjs",
+    "aliases": [
+      "check:v5s-quit-context-behavior"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_v5s-quit-context-behavior.log"
+  },
+  {
+    "command": "node tools/check-v5t-canonical-command-boundary-write-freeze.mjs",
+    "aliases": [
+      "check:v5t-command-boundary-write-freeze"
+    ],
+    "exit": 0,
+    "seconds": 0.16,
+    "log": "check_v5t-command-boundary-write-freeze.log"
+  },
+  {
+    "command": "node tools/check-v5t-command-boundary-behavior.mjs",
+    "aliases": [
+      "check:v5t-command-boundary-behavior"
+    ],
+    "exit": 0,
+    "seconds": 0.16,
+    "log": "check_v5t-command-boundary-behavior.log"
+  },
+  {
+    "command": "node tools/check-v5u1-student-status-command-cutover.mjs",
+    "aliases": [
+      "check:v5u1-student-status-command-cutover"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_v5u1-student-status-command-cutover.log"
+  },
+  {
+    "command": "node tools/check-v5u1-student-status-command-behavior.mjs",
+    "aliases": [
+      "check:v5u1-student-status-command-behavior"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_v5u1-student-status-command-behavior.log"
+  },
+  {
+    "command": "node tools/check-v5u2-tuition-command-cutover.mjs",
+    "aliases": [
+      "check:v5u2-tuition-command-cutover"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_v5u2-tuition-command-cutover.log"
+  },
+  {
+    "command": "node tools/check-v5u2-tuition-command-behavior.mjs",
+    "aliases": [
+      "check:v5u2-tuition-command-behavior"
+    ],
+    "exit": 0,
+    "seconds": 0.22,
+    "log": "check_v5u2-tuition-command-behavior.log"
+  },
+  {
+    "command": "node tools/check-v5u2e-attendance-excel-sdk-fix.mjs",
+    "aliases": [
+      "check:v5u2e-attendance-excel-sdk-fix"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_v5u2e-attendance-excel-sdk-fix.log"
+  },
+  {
+    "command": "node tools/check-student-name-search-priority.mjs",
+    "aliases": [
+      "check:student-name-search-priority"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_student-name-search-priority.log"
+  },
+  {
+    "command": "node tools/check-superadmin-auth-principal-alignment.mjs",
+    "aliases": [
+      "check:superadmin-auth-principal-alignment"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_superadmin-auth-principal-alignment.log"
+  },
+  {
+    "command": "node tools/check-admin-credential-single-source.mjs",
+    "aliases": [
+      "check:admin-credential-single-source"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_admin-credential-single-source.log"
+  },
+  {
+    "command": "node tools/check-auth-context-single-writer.mjs",
+    "aliases": [
+      "check:auth-context-single-writer"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_auth-context-single-writer.log"
+  },
+  {
+    "command": "node tools/check-legacy-global-freeze.mjs",
+    "aliases": [
+      "check:legacy-global-freeze"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_legacy-global-freeze.log"
+  },
+  {
+    "command": "node tools/check-notification-single-read-authority.mjs",
+    "aliases": [
+      "check:notification-single-read-authority"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_notification-single-read-authority.log"
+  },
+  {
+    "command": "node tools/check-superadmin-cache-first-read.mjs",
+    "aliases": [
+      "check:superadmin-cache-first-read"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_superadmin-cache-first-read.log"
+  },
+  {
+    "command": "node tools/check-parallel-read-authority.mjs",
+    "aliases": [
+      "check:parallel-read-authority"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_parallel-read-authority.log"
+  },
+  {
+    "command": "node tools/check-startup-read-budget-freeze.mjs",
+    "aliases": [
+      "check:startup-read-budget-freeze"
+    ],
+    "exit": 0,
+    "seconds": 0.17,
+    "log": "check_startup-read-budget-freeze.log"
+  },
+  {
+    "command": "node tools/check-club-bootstrap-single-read-authority.mjs",
+    "aliases": [
+      "check:club-bootstrap-single-read-authority"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_club-bootstrap-single-read-authority.log"
+  },
+  {
+    "command": "node tools/check-club-initial-snapshot-access-gate.mjs",
+    "aliases": [
+      "check:club-initial-snapshot-access-gate"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_club-initial-snapshot-access-gate.log"
+  },
+  {
+    "command": "node tools/check-dashboard-single-read-authority.mjs",
+    "aliases": [
+      "check:dashboard-single-read-authority"
+    ],
+    "exit": 0,
+    "seconds": 0.17,
+    "log": "check_dashboard-single-read-authority.log"
+  },
+  {
+    "command": "node tools/check-dashboard-cache-freshness-guard.mjs",
+    "aliases": [
+      "check:dashboard-cache-freshness-guard"
+    ],
+    "exit": 0,
+    "seconds": 1.77,
+    "log": "check_dashboard-cache-freshness-guard.log"
+  },
+  {
+    "command": "node tools/check-dashboard-hydration-mutation-guard.mjs",
+    "aliases": [
+      "check:dashboard-hydration-mutation-guard"
+    ],
+    "exit": 0,
+    "seconds": 0.17,
+    "log": "check_dashboard-hydration-mutation-guard.log"
+  },
+  {
+    "command": "node tools/check-production-residual-defect-closure.mjs",
+    "aliases": [
+      "check:production-residual-defect-closure"
+    ],
+    "exit": 0,
+    "seconds": 0.22,
+    "log": "check_production-residual-defect-closure.log"
+  },
+  {
+    "command": "node tools/check-attendance-offline-canonical-sync-guard.mjs",
+    "aliases": [
+      "check:attendance-offline-canonical-sync-guard"
+    ],
+    "exit": 0,
+    "seconds": 1.58,
+    "log": "check_attendance-offline-canonical-sync-guard.log"
+  },
+  {
+    "command": "node tools/check-club-root-field-authority.mjs",
+    "aliases": [
+      "check:club-root-field-authority"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_club-root-field-authority.log"
+  },
+  {
+    "command": "node tools/check-stored-xss-trust-boundary.mjs",
+    "aliases": [
+      "check:stored-xss-trust-boundary"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_stored-xss-trust-boundary.log"
+  },
+  {
+    "command": "node tools/check-coach-sensitive-config-closure.mjs",
+    "aliases": [
+      "check:coach-sensitive-config-closure"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_coach-sensitive-config-closure.log"
+  },
+  {
+    "command": "node tools/check-profile-rename-referential-guard.mjs",
+    "aliases": [
+      "check:profile-rename-referential-guard"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_profile-rename-referential-guard.log"
+  },
+  {
+    "command": "node tools/check-production-security-trust-boundary.mjs",
+    "aliases": [
+      "check:production-security-trust-boundary"
+    ],
+    "exit": 0,
+    "seconds": 0.57,
+    "log": "check_production-security-trust-boundary.log"
+  },
+  {
+    "command": "node tools/check-club-listener-bootstrap-readiness.mjs",
+    "aliases": [
+      "check:club-listener-bootstrap-readiness"
+    ],
+    "exit": 0,
+    "seconds": 0.27,
+    "log": "check_club-listener-bootstrap-readiness.log"
+  },
+  {
+    "command": "node tools/check-exam-export-full-roster.mjs",
+    "aliases": [
+      "check:exam-export-full-roster"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_exam-export-full-roster.log"
+  },
+  {
+    "command": "node tools/check-exam-export-state-purity.mjs",
+    "aliases": [
+      "check:exam-export-state-purity"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_exam-export-state-purity.log"
+  },
+  {
+    "command": "node tools/check-root-public-parity.mjs",
+    "aliases": [
+      "check:root-public-parity"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_root-public-parity.log"
+  },
+  {
+    "command": "node tools/check-profile-display-name-safe-edit.mjs",
+    "aliases": [
+      "check:profile-display-name-safe-edit"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_profile-display-name-safe-edit.log"
+  },
+  {
+    "command": "node tools/check-long-term-production-stability.mjs",
+    "aliases": [
+      "check:long-term-production-stability"
+    ],
+    "exit": 0,
+    "seconds": 0.22,
+    "log": "check_long-term-production-stability.log"
+  },
+  {
+    "command": "node tools/check-ui-mobile-app-shell.mjs",
+    "aliases": [
+      "check:ui-mobile-app-shell"
+    ],
+    "exit": 0,
+    "seconds": 0.21,
+    "log": "check_ui-mobile-app-shell.log"
+  },
+  {
+    "command": "node tools/check-h8r2-1c1d-regression-gate-runtime-readiness.mjs",
+    "aliases": [
+      "check:h8r2-1c1d"
+    ],
+    "exit": 0,
+    "seconds": 0.22,
+    "log": "check_h8r2-1c1d.log"
+  },
+  {
+    "command": "node tools/check-h8r2-1c1e-ui-precision.mjs",
+    "aliases": [
+      "check:h8r2-1c1e-ui"
+    ],
+    "exit": 0,
+    "seconds": 0.22,
+    "log": "check_h8r2-1c1e-ui.log"
+  },
+  {
+    "command": "node tools/check-h8r2-1c1f-quickpay-receipt.mjs",
+    "aliases": [
+      "check:h8r2-1c1f-quickpay"
+    ],
+    "exit": 0,
+    "seconds": 0.32,
+    "log": "check_h8r2-1c1f-quickpay.log"
+  },
+  {
+    "command": "node tools/check-h8r2-1c1f1-idempotency-receipt-recovery.mjs",
+    "aliases": [
+      "check:h8r2-1c1f1"
+    ],
+    "exit": 0,
+    "seconds": 0.32,
+    "log": "check_h8r2-1c1f1.log"
+  },
+  {
+    "command": "node tools/check-h8r2-1c1f1a-reversal-stale-duplicate.mjs",
+    "aliases": [
+      "check:h8r2-1c1f1a"
+    ],
+    "exit": 0,
+    "seconds": 0.37,
+    "log": "check_h8r2-1c1f1a.log"
+  },
+  {
+    "command": "node tools/check-h8r2-1c1f1b-tuition-serialization-gap-reversal.mjs",
+    "aliases": [
+      "check:h8r2-1c1f1b"
+    ],
+    "exit": 0,
+    "seconds": 0.37,
+    "log": "check_h8r2-1c1f1b.log"
+  },
+  {
+    "command": "node tools/check-h8r2-1c1f1c-lane-replay-legacy-gap.mjs",
+    "aliases": [
+      "check:h8r2-1c1f1c"
+    ],
+    "exit": 0,
+    "seconds": 0.32,
+    "log": "check_h8r2-1c1f1c.log"
+  },
+  {
+    "command": "node tools/check-h8r2-1c1f1d-mixed-bundle-lane-closure.mjs",
+    "aliases": [
+      "check:h8r2-1c1f1d"
+    ],
+    "exit": 0,
+    "seconds": 0.32,
+    "log": "check_h8r2-1c1f1d.log"
+  },
+  {
+    "command": "node tools/check-h8r2-1c1f1d1-multiitem-inventory-closure.mjs",
+    "aliases": [
+      "check:h8r2-1c1f1d1"
+    ],
+    "exit": 0,
+    "seconds": 0.27,
+    "log": "check_h8r2-1c1f1d1.log"
+  },
+  {
+    "command": "node tools/check-h8r2-1c1f1d1a-actual-runtime-authority-closure.mjs",
+    "aliases": [
+      "check:h8r2-1c1f1d1a"
+    ],
+    "exit": 0,
+    "seconds": 0.62,
+    "log": "check_h8r2-1c1f1d1a.log"
+  },
+  {
+    "command": "node tools/check-h8r2-1c1f1d1b-final-tuition-caller-convergence.mjs",
+    "aliases": [
+      "check:h8r2-1c1f1d1b"
+    ],
+    "exit": 0,
+    "seconds": 0.97,
+    "log": "check_h8r2-1c1f1d1b.log"
+  },
+  {
+    "command": "node tools/check-h8r2-1c1f1d1c-final-production-correctness.mjs",
+    "aliases": [
+      "check:h8r2-1c1f1d1c"
+    ],
+    "exit": 0,
+    "seconds": 1.28,
+    "log": "check_h8r2-1c1f1d1c.log"
+  },
+  {
+    "command": "node tools/check-h8r2-1c1f1d1c1-final-financial-authority.mjs",
+    "aliases": [
+      "check:h8r2-1c1f1d1c1"
+    ],
+    "exit": 0,
+    "seconds": 2.4,
+    "log": "check_h8r2-1c1f1d1c1.log"
+  },
+  {
+    "command": "node tools/check-d1c3b-debt-authoritative-profile-coverage.mjs",
+    "aliases": [
+      "check:d1c3b-debt-authoritative-profile-coverage"
+    ],
+    "exit": 0,
+    "seconds": 0.27,
+    "log": "check_d1c3b-debt-authoritative-profile-coverage.log"
+  },
+  {
+    "command": "node tools/check-d1c3b-tuition-mobile-compaction.mjs",
+    "aliases": [
+      "check:d1c3b-tuition-mobile-compaction"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_d1c3b-tuition-mobile-compaction.log"
+  },
+  {
+    "command": "node tools/check-d1c3b1-debt-runtime-closure.mjs",
+    "aliases": [
+      "check:d1c3b1-debt-runtime-closure"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_d1c3b1-debt-runtime-closure.log"
+  },
+  {
+    "command": "node tools/check-d1c3b2-authority-continuity.mjs",
+    "aliases": [
+      "check:d1c3b2-authority-continuity"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_d1c3b2-authority-continuity.log"
+  },
+  {
+    "command": "node tools/check-d1c3b3-profile-snapshot-context-closure.mjs",
+    "aliases": [
+      "check:d1c3b3-profile-snapshot-context-closure"
+    ],
+    "exit": 0,
+    "seconds": 1.59,
+    "log": "check_d1c3b3-profile-snapshot-context-closure.log"
+  },
+  {
+    "command": "node tools/check-d1c3b4-async-coach-closure.mjs",
+    "aliases": [
+      "check:d1c3b4-async-coach-closure"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_d1c3b4-async-coach-closure.log"
+  },
+  {
+    "command": "node tools/check-d1c3b5-coach-async-lifecycle.mjs",
+    "aliases": [
+      "check:d1c3b5-coach-async-lifecycle"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_d1c3b5-coach-async-lifecycle.log"
+  },
+  {
+    "command": "node tools/check-d1c3b5-coach-legacy-coverage.mjs",
+    "aliases": [
+      "check:d1c3b5-coach-legacy-coverage"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_d1c3b5-coach-legacy-coverage.log"
+  },
+  {
+    "command": "node tools/check-d1c3b6-coach-roster-authority.mjs",
+    "aliases": [
+      "check:d1c3b6-coach-roster-authority"
+    ],
+    "exit": 0,
+    "seconds": 0.22,
+    "log": "check_d1c3b6-coach-roster-authority.log"
+  },
+  {
+    "command": "D1C3B6_SCOPE=listener node tools/check-d1c3b6-actual-handlers.mjs",
+    "aliases": [
+      "check:d1c3b6-listener-topology"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_d1c3b6-listener-topology.log"
+  },
+  {
+    "command": "D1C3B6_SCOPE=metadata node tools/check-d1c3b6-actual-handlers.mjs",
+    "aliases": [
+      "check:d1c3b6-metadata-noop"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_d1c3b6-metadata-noop.log"
+  },
+  {
+    "command": "D1C3B7_SCOPE=provisional node tools/check-d1c3b7-provisional-coach.mjs",
+    "aliases": [
+      "check:d1c3b7-provisional-guard"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_d1c3b7-provisional-guard.log"
+  },
+  {
+    "command": "node tools/check-d1c3b7-provisional-coach.mjs",
+    "aliases": [
+      "check:d1c3b7-roster-closure"
+    ],
+    "exit": 0,
+    "seconds": 0.11,
+    "log": "check_d1c3b7-roster-closure.log"
+  },
+  {
+    "command": "node tools/check-d1c3b7r1-coach-roster-closure.mjs",
+    "aliases": [
+      "check:d1c3b7r1-coach-roster-closure"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_d1c3b7r1-coach-roster-closure.log"
+  },
+  {
+    "command": "node tools/check-d1c3b7r1-read-cost-fixture.mjs",
+    "aliases": [
+      "check:d1c3b7r1-read-cost-fixture"
+    ],
+    "exit": 0,
+    "seconds": 0.06,
+    "log": "check_d1c3b7r1-read-cost-fixture.log"
+  },
+  {
+    "command": "node tools/check-d1c3b7r2-mobile-css-runtime.mjs",
+    "aliases": [
+      "check:d1c3b7r2-mobile-css-runtime"
+    ],
+    "exit": 0,
+    "seconds": 2.06,
+    "log": "check_d1c3b7r2-mobile-css-runtime.log"
+  },
+  {
+    "command": "node tools/check-d1c3b7r2-attendance-roster-write-guard.mjs && node tools/check-d1c3b7r2-attendance-entrypoints.mjs",
+    "aliases": [
+      "check:d1c3b7r2-attendance-roster-write-guard"
+    ],
+    "exit": 0,
+    "seconds": 0.22,
+    "log": "check_d1c3b7r2-attendance-roster-write-guard.log"
+  },
+  {
+    "command": "node tools/check-d1c3b7r2r2-attendance-role-authority.mjs",
+    "aliases": [
+      "check:d1c3b7r2r2-attendance-role-authority"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_d1c3b7r2r2-attendance-role-authority.log"
+  },
+  {
+    "command": "node tools/check-d1c3b7r2r3-offline-session-integrity.mjs",
+    "aliases": [
+      "check:d1c3b7r2r3-offline-session-integrity"
+    ],
+    "exit": 0,
+    "seconds": 2.23,
+    "log": "check_d1c3b7r2r3-offline-session-integrity.log"
+  },
+  {
+    "command": "node tools/check-d1c3b7r2-coach-fallback-no-overlap.mjs",
+    "aliases": [
+      "check:d1c3b7r2-coach-fallback-no-overlap"
+    ],
+    "exit": 0,
+    "seconds": 0.17,
+    "log": "check_d1c3b7r2-coach-fallback-no-overlap.log"
+  },
+  {
+    "command": "node tools/check-d1c3b7r2r4-v2-journal-no-loss.mjs",
+    "aliases": [
+      "check:d1c3b7r2r4-v2-journal-no-loss"
+    ],
+    "exit": 0,
+    "seconds": 2.18,
+    "log": "check_d1c3b7r2r4-v2-journal-no-loss.log"
+  },
+  {
+    "command": "node tools/check-d1c3b7r2r5-shift-behavior.mjs && node tools/check-d1c3b7r2r5-css-runtime.mjs",
+    "aliases": [
+      "check:d1c3b7r2r5-shift-touch-closure"
+    ],
+    "exit": 0,
+    "seconds": 4.96,
+    "log": "check_d1c3b7r2r5-shift-touch-closure.log"
+  },
+  {
+    "command": "node tools/check-d1c3b7r2r6-v2-cross-date-isolation.mjs",
+    "aliases": [
+      "check:d1c3b7r2r6-v2-cross-date-isolation"
+    ],
+    "exit": 0,
+    "seconds": 2.14,
+    "log": "check_d1c3b7r2r6-v2-cross-date-isolation.log"
+  },
+  {
+    "command": "node tools/check-d1c3b7r2r6r1-v1-v2-collision-scope.mjs",
+    "aliases": [
+      "check:d1c3b7r2r6r1-v1-v2-collision-scope"
+    ],
+    "exit": 0,
+    "seconds": 2.03,
+    "log": "check_d1c3b7r2r6r1-v1-v2-collision-scope.log"
+  },
+  {
+    "command": "node tools/check-qr-report-render-payment-intent.mjs",
+    "aliases": [
+      "check:qr-report-render-payment-intent"
+    ],
+    "exit": 0,
+    "seconds": 1.63,
+    "log": "check_qr-report-render-payment-intent.log"
+  },
+  {
+    "command": "node tools/check-qr-v4-payment-account-authority.mjs",
+    "aliases": [
+      "check:qr-v4-payment-account-authority"
+    ],
+    "exit": 0,
+    "seconds": 3.46,
+    "log": "check_qr-v4-payment-account-authority.log"
+  },
+  {
+    "command": "node tools/check-qr-v7-actual-handlers.mjs",
+    "aliases": [
+      "check:qr-v8-actual-handlers"
+    ],
+    "exit": 0,
+    "seconds": 5.96,
+    "log": "check_qr-v8-actual-handlers.log"
+  },
+  {
+    "command": "node tools/check-qr-v8-network-safari.mjs",
+    "aliases": [
+      "check:qr-v8-network"
+    ],
+    "exit": 0,
+    "seconds": 0.77,
+    "log": "check_qr-v8-network.log"
+  },
+  {
+    "command": "node tools/check-qr-v9-attendance-batches.mjs",
+    "aliases": [
+      "check:qr-v9-attendance-batches"
+    ],
+    "exit": 0,
+    "seconds": 2.09,
+    "log": "check_qr-v9-attendance-batches.log"
+  },
+  {
+    "command": "node tools/check-qr-v9-cost-approval.mjs",
+    "aliases": [
+      "check:qr-v9-cost-approval"
+    ],
+    "exit": 0,
+    "seconds": 0.12,
+    "log": "check_qr-v9-cost-approval.log"
+  },
+  {
+    "command": "node tools/check-v10-legacy-mutations.mjs",
+    "aliases": [
+      "check:v10-legacy-mutations"
+    ],
+    "exit": 0,
+    "seconds": 0.37,
+    "log": "check_v10-legacy-mutations.log"
+  },
+  {
+    "command": "node tools/check-v10-offline-authority.mjs",
+    "aliases": [
+      "check:v10-offline-authority"
+    ],
+    "exit": 0,
+    "seconds": 0.17,
+    "log": "check_v10-offline-authority.log"
+  }
+]

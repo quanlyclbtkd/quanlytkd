@@ -1,0 +1,11 @@
+
+=== check-mobile-superadmin-gate ===
+
+  PASS: window.isSuperAdminRole defined
+  PASS: openMobileMenu uses isSuperAdminRole and excludes normal admin accounts
+  PASS: openNewClubModal has isSuperAdminRole guard
+  PASS: debugMobileSuperAdminGate defined in runtime diagnostics module
+  PASS: debugRuntimeSmokeTest includes debugMobileSuperAdminGate
+
+Result: ✅ ALL PASS
+

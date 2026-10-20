@@ -1,0 +1,13 @@
+[ProfilesListener] reset — D1C3B6-reset
+[StudentProfileStore] reset — D1C3B6-reset
+PASS E02-01 fallback legacy profile cannot silently disappear when partial primary arrives
+D1C3B6 ACTUAL HANDLERS 1 PASS 0 FAIL
+[B6 E02 fallback/realtime authority] exit=0
+[ProfilesListener] reset — E01-readonly
+E01 CANONICAL ACTIVE canonical,missing,vietnamese,training
+E01 STATUS-QUERY RESULTS canonical,missing,vietnamese,training
+E01 MISSING 
+E01 ACTIVE QUERY VALUES active,trial
+E01 source fixture complete — still REQUIRES real emulator and read-cost proof
+[B6 E01 indexed/legacy roster completeness] exit=0
+PASS Coach roster actual handlers

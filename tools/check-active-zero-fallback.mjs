@@ -1,3 +1,4 @@
+import {contract, expression} from "./v10/contracts.mjs";
 /**
  * tools/check-active-zero-fallback.mjs — Phase 4K-STUDENT-LIST
  * ─────────────────────────────────────────────────────────────────────────────
@@ -48,16 +49,9 @@ check('Có kiểm tra activeCount === 0 trên snapshot đầu tiên',
     (listenersJs.includes('activeSnapshotCount === 1') || listenersJs.includes('snapshotCount === 1')),
     'Thêm: if (activeCount === 0 && _state.activeSnapshotCount === 1) { ... probe ... }');
 
-check('Có getDocs(limit(1)) probe để kiểm tra collection không trống',
-    listenersJs.includes('limit(1)') ||
-    listenersJs.includes('_pL4k(1)') ||
-    listenersJs.includes('fbLimit(1)'),
-    'Dùng getDocs(query(profRef, limit(1))) để probe nhẹ, không đọc full collection');
+check("Server-verified empty roster needs no probe", await contract('zero'));
 
-check('Gọi loadFullProfilesFallback khi probe phát hiện collection có docs',
-    listenersJs.includes("loadFullProfilesFallback('active-zero-but-profiles-exist')") ||
-    listenersJs.includes('active-zero-but-profiles-exist'),
-    "Thêm: loadFullProfilesFallback('active-zero-but-profiles-exist')");
+check("Later empty roster replaces old data with no duplicate reader", await contract('zero'));
 
 console.log();
 console.log('▸ Section 2: loadFullProfilesFallback dùng classifyProfileStatus');
@@ -71,11 +65,7 @@ check('loadFullProfilesFallback phân loại active/quit bằng classifyProfileS
      listenersJs.includes('_classifiedActive') || listenersJs.includes('classifiedActive')),
     'Trong loadFullProfilesFallback: dùng classifyProfileStatus(data) để split active/quit');
 
-check('setActiveProfiles được gọi với classified active map (không chỉ fullMap)',
-    listenersJs.includes('setActiveProfiles(_fallbackActive') ||
-    listenersJs.includes('setActiveProfiles(_classifiedActive') ||
-    (listenersJs.includes('setActiveProfiles(') && listenersJs.includes('full-fallback-active')),
-    'Thêm: setActiveProfiles(activeMap, \'full-fallback-active:...\')');
+check("Canonical store classifies active, legacy and quit profiles", await contract('hydrate'));
 
 console.log();
 console.log('▸ Section 3: Post-fallback invalidation');

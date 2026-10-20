@@ -1,0 +1,55 @@
+[ProfilesListener] reset — test-reset
+[StudentProfileStore] reset — test-reset
+PASS R01-01 same-owner duplicate mount legacy error attributed once
+[ProfilesListener] reset — test-reset
+[StudentProfileStore] reset — test-reset
+PASS R01-02 same-owner legacy data remains eligible after duplicate mount
+[ProfilesListener] reset — test-reset
+[StudentProfileStore] reset — test-reset
+[ProfilesListener] reset — owner-switch
+[StudentProfileStore] reset — owner-switch
+PASS R01-03 stale legacy error after logout/club switch is ignored
+[ProfilesListener] reset — test-reset
+[StudentProfileStore] reset — test-reset
+[ProfilesListener] reset — verified-owner-changed-on-same-key
+PASS R01-04 same-key new UID/epoch must reown listener, stale callback denied
+[ProfilesListener] reset — test-reset
+[StudentProfileStore] reset — test-reset
+PASS R01-07 stale primary error after auth epoch change cannot start fallback
+[ProfilesListener] reset — test-reset
+[StudentProfileStore] reset — test-reset
+[ProfilesListener] reset — owner-switch
+[StudentProfileStore] reset — owner-switch
+PASS R02-01 empty primary followed by same-key new UID creates no zero-probe
+[ProfilesListener] reset — test-reset
+[StudentProfileStore] reset — test-reset
+[ProfilesListener] reset — owner-switch
+[StudentProfileStore] reset — owner-switch
+PASS R02-02 late empty from Club A cannot fallback into B
+[ProfilesListener] reset — test-reset
+[StudentProfileStore] reset — test-reset
+[ProfilesListener] reset — owner-switch
+[StudentProfileStore] reset — owner-switch
+PASS R02-03 old empty Coach snapshot after Admin/logout has zero reads
+[ProfilesListener] reset — test-reset
+[StudentProfileStore] reset — test-reset
+[ProfilesListener] reset — owner-switch
+[StudentProfileStore] reset — owner-switch
+PASS R02-04 CS1→CS2 old empty callback never probes other branch
+[ProfilesListener] reset — test-reset
+[StudentProfileStore] reset — test-reset
+PASS R02-05 legitimate empty branch is complete only after alias server and zero extra reads
+[ProfilesListener] reset — test-reset
+[StudentProfileStore] reset — test-reset
+PASS R02-06 repeated empty authoritative snapshots cause no read storm
+[ProfilesListener] reset — test-reset
+[StudentProfileStore] reset — test-reset
+[ProfilesListener] reset — owner-switch
+[StudentProfileStore] reset — owner-switch
+PASS R02-07 stale primary error after owner switch does not attribute or fallback
+[ProfilesListener] reset — test-reset
+[StudentProfileStore] reset — test-reset
+[ProfilesListener] reset — owner-switch
+[StudentProfileStore] reset — owner-switch
+PASS R02-08 stale fallback continuation cannot mutate new owner
+D1C3B5 R01/R02 ACTUAL HANDLERS: PASS 13, FAIL 0

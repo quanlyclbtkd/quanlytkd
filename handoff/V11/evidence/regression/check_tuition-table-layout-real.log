@@ -1,0 +1,17 @@
+✅ OK:   <table id="tbl_tx"> tồn tại
+✅ OK:   #tbl_tx có <colgroup>
+✅ OK:   <col class="tx-col-date"> tồn tại
+✅ OK:   <col class="tx-col-branch"> tồn tại
+✅ OK:   <col class="tx-col-action"> tồn tại
+✅ OK:   style.css có #tbl_tx th:nth-child(1)
+✅ OK:   style.css có #tbl_tx th:nth-child(2)
+✅ OK:   style.css có #tbl_tx th:nth-child(7)
+✅ OK:   style.css có table-layout: fixed !important
+✅ OK:   style.css dùng tx-col-date colgroup class
+✅ OK:   finance.js có _getTxControlsHost()
+✅ OK:   finance.js không còn chèn div vào trong table
+✅ OK:   finance.js có _mergedAllItems
+✅ OK:   students.js có debugTuitionTableLayout
+
+──────────────────────────────────────────────────
+✅ check-tuition-table-layout-real: TẤT CẢ PASS

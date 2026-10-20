@@ -1,0 +1,28 @@
+
+══════════════════════════════════════════════════════════
+  Student Render Cache-Pagination Check — Phase 4K-STUDENT-RENDER-OVERWRITE-FIX
+══════════════════════════════════════════════════════════
+
+▸ Section 1: Cache key có pagination version/count/page
+  ✅ paramsKey có pgv:${pgVersion} — pagination version
+  ✅ paramsKey có pgc:${pgCount} — pagination item count
+  ✅ paramsKey có pgp:${pgPage} — pagination page number
+  ✅ _studentsPaginationVersion được đọc trong computeAndCacheStudents
+
+▸ Section 2: _studentsPaginationVersion tăng sau _doLoad()
+  ✅ students.js tăng _studentsPaginationVersion sau load thành công
+  ✅ students.js tăng _dataVersion đồng thời với _studentsPaginationVersion
+
+▸ Section 3: getStudentsCacheMetrics() export + window expose
+  ✅ studentsRenderer.js export getStudentsCacheMetrics()
+  ✅ getStudentsCacheMetrics trả activeRowsLength (length của _cache.activeRows)
+  ✅ renderStudents.js import getStudentsCacheMetrics từ studentsRenderer
+  ✅ registerStudentsLegacyGlobals expose window.getStudentsCacheMetrics
+
+══════════════════════════════════════════════════════════
+  Total: 10 | ✅ 10 | ❌ 0
+
+  🎉 Student render cache-pagination checks passed!
+  Cache key sẽ invalidate đúng khi pagination load xong.
+══════════════════════════════════════════════════════════
+

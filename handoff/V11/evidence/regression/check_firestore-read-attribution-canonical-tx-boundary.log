@@ -1,0 +1,41 @@
+
+=== Phase 4K-6V3A — Firestore Read Attribution + Canonical Transaction Read Boundary ===
+
+✅ V3A patch marker is active in app and main
+✅ Canonical boundary script loads before app.js
+✅ Main module cache bust is V3A
+✅ Boundary exposes canonical create and patch helpers
+✅ Canonical months include date, txMonth, paymentMonth, packageMonths and components
+✅ Canonical schema fields are written
+✅ Boundary contains no realtime listener
+✅ Canonical parity query is manual and uses accountingMonths array-contains
+✅ Parity audit has in-memory TTL cache to avoid repeated reads
+✅ Legacy 3-query production authority remains present
+✅ Canonical query is not attached as production listener
+✅ Source-level transaction snapshots are attributed
+✅ Transaction overlap and canonical coverage are measured without extra reads
+✅ Same-month listener duplicate guard remains active
+✅ Direct app transaction creates all pass canonical boundary
+✅ Bundle builder returns canonical transaction
+✅ Finance service canonicalizes new transactions
+✅ Student service canonicalizes all transaction writers
+✅ Inventory service canonicalizes transaction create and related updates
+✅ Offline queued transaction writes are canonicalized
+✅ Month matching supports canonical accountingMonths first
+✅ Active, quit, fallback and debt profile reads are attributed
+✅ Inventory history and active-debt reads are attributed
+✅ Dashboard reads are attributed
+✅ Notification reads are attributed
+✅ Read audit warns that metrics are estimates, not billing truth
+✅ Dynamic: boundary initializes without any Firestore read
+✅ Dynamic: month union is normalized and complete
+✅ Dynamic: create writes schema fields and preserves source data
+✅ Dynamic: component months enter canonical boundary
+✅ Dynamic: attribution separates initial and changed documents
+✅ Dynamic: overlap detects duplicate source reads
+✅ Dynamic: manual parity audit compares canonical and legacy sets
+✅ Dynamic: repeated parity audit uses cache instead of another read
+
+Total: 34 | PASS: 34 | FAIL: 0
+Phase 4K-6V3A checks passed.
+

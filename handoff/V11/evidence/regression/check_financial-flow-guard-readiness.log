@@ -1,0 +1,28 @@
+
+🔍 Phase 4K-6C-A — check-financial-flow-guard-readiness
+
+  ✅ PASS — js/core/financialFlowMap.js tồn tại
+  ✅ PASS — window.FinancialFlowMap được expose trong main.js
+  ✅ PASS — window.validatePaymentComponentsContract được định nghĩa
+  ✅ PASS — window.debugPaymentFlowIntegrity được định nghĩa
+  ✅ PASS — window.getFinancialPostWriteRefreshPlan được định nghĩa
+  ✅ PASS — window.debugExamCancelRisk được định nghĩa
+  ✅ PASS — window.debugInventoryPaidRisk được định nghĩa
+  ✅ PASS — window.debugFinancialActionMap được định nghĩa
+  ✅ PASS — debugRuntimeSmokeTest include debugFinancialActionMap
+  ✅ PASS — debugRuntimeSmokeTest include debugPaymentFlowIntegrity
+  ✅ PASS — debugRuntimeSmokeTest include debugExamCancelRisk
+  ✅ PASS — debugRuntimeSmokeTest include debugInventoryPaidRisk
+  ✅ PASS — processMultiItem KHÔNG bị bọc runGuardedAction
+  ✅ PASS — quickPay KHÔNG bị bọc runGuardedAction
+  ✅ PASS — quickCollectExam KHÔNG bị bọc runGuardedAction
+  ✅ PASS — cancelExamPayment KHÔNG bị bọc runGuardedAction
+  ✅ PASS — markInvPaid KHÔNG bị bọc runGuardedAction
+  ✅ PASS — index.html có cache bust phase 4K- (flexible)
+  ✅ PASS — APP_BUILD_VERSION = '4K-...' (flexible)
+
+══════════════════════════════════════════════════════════
+  Total: 19 checks | ✅ Pass: 19 | ❌ Fail: 0
+
+  🎉 All financial flow guard readiness checks passed!
+

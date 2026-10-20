@@ -1,0 +1,15 @@
+[check-bundled-receipt-transactions] Phase 4K-5C static analysis...
+  ✅ hasBuildPaymentBundleTransaction: true
+  ✅ bundleTxCreatesComponents: true
+  ✅ bundleTxDetectsType: true
+  ✅ processMultiItemUsesBundleTx: true
+  ✅ processMultiItemHasFallback: true
+  ✅ addNewStudentUsesBundleTx: true
+  ✅ addNewStudentHasFallback: true
+  ✅ financeRendererHandlesBundles: true
+  ✅ financeRendererShowsGopBadge: true
+  ✅ financeRendererShowsComponentSummary: true
+  ✅ hasExpandComponents: true
+  ✅ hasDebugBundleTransactions: true
+
+✅ All bundled receipt transaction checks passed.

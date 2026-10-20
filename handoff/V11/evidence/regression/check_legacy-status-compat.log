@@ -1,0 +1,30 @@
+
+══════════════════════════════════════════════════════════
+  Legacy Status Compat Check — Phase 4K-STUDENT-LIST
+══════════════════════════════════════════════════════════
+
+▸ Section 1: classifyProfileStatus() export
+  ✅ classifyProfileStatus được export từ profileStatusConfig.js
+
+▸ Section 2: Missing status → active (không phải other)
+  ✅ Missing status không trả "other" (return other đã bị xóa/thay thế)
+  ✅ Missing status trả "active" (legacy compat)
+  ✅ Unknown status fallback là "active" (cuối hàm)
+
+▸ Section 3: Boolean quit signals
+  ✅ Kiểm tra quit === true hoặc stopped === true hoặc isQuit === true
+  ✅ Kiểm tra active === false hoặc isActive === false → quit
+
+▸ Section 4: Comment về legacy compat
+  ✅ Có comment về legacy profiles without status
+
+▸ Section 5: classifyProfileStatus được expose trên window (trong app.js hoặc main.js)
+  ✅ classifyProfileStatus referenced trong app.js hoặc main.js
+
+══════════════════════════════════════════════════════════
+  Total: 8 | ✅ 8 | ❌ 0
+
+  🎉 Legacy status compat checks passed!
+  classifyProfileStatus() xử lý đúng data cũ thiếu status.
+══════════════════════════════════════════════════════════
+

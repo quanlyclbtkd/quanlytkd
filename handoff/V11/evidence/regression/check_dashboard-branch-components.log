@@ -1,0 +1,18 @@
+
+🔍 Phase 4K-5N — check-dashboard-branch-components
+
+[32m✅ PASS[0m  dashboard.js readable
+[32m✅ PASS[0m  financeRenderer.js readable
+[32m✅ PASS[0m  js/main.js readable
+[32m✅ PASS[0m  window.normalizeBranchCodeForStats được định nghĩa trong dashboard.js
+[32m✅ PASS[0m  window.getComponentAmountForSelectedMonth được định nghĩa trong dashboard.js
+[32m✅ PASS[0m  financeRenderer branch stats dùng getAccountingComponents / expandTransactionComponentsForAccounting
+[32m✅ PASS[0m  financeRenderer branch stats có component path (không chỉ dùng t.type)
+[32m✅ PASS[0m  financeRenderer có !_usedCompBranch guard để tránh double count
+[32m✅ PASS[0m  financeRenderer dùng normalizeBranchCodeForStats để normalize branch
+[32m✅ PASS[0m  window.debugDashboardBranchRevenue được định nghĩa
+[32m✅ PASS[0m  debugRuntimeSmokeTest references debugDashboardBranchRevenue
+[32m✅ PASS[0m  financeRenderer component branch path cập nhật bExamStats
+
+[32m✅ All dashboard branch component checks passed[0m
+

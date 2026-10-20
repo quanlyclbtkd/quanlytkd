@@ -1,0 +1,19 @@
+
+▸ Section 1: style.css — #tbl_tx table-layout: fixed
+  ✅ #tbl_tx table-layout:fixed rule exists
+  ✅ #tbl_tx col.col-date width defined
+  ✅ #tbl_tx col.col-branch width defined
+  ✅ #tbl_tx col.col-action width defined
+
+▸ Section 2: financeRenderer.js — _formatDateCompactB và _formatDateCompact
+  ✅ _formatDateCompactB gọi formatDate(date)
+  ✅ _formatDateCompact gọi formatDate(date)
+  ✅ Không còn regex /^d{4}-d{2}-d{2}$/ (thiếu backslash)
+  ✅ Không còn regex /^\\d{4}-\\d{2}-\\d{2}$/ (double-escaped)
+
+▸ Section 3: index.html — cache version mới
+  ✅ main.js có query string version ?v=
+
+══════════════════════════════════════════════
+Kết quả: 9 ✅  0 ⚠️   0 ❌
+✅ check:tuition-table-layout PASSED

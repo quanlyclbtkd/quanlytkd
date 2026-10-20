@@ -1,0 +1,32 @@
+
+══════════════════════════════════════════════════════════
+  Phase 4K — Finance Pagination Index Check
+══════════════════════════════════════════════════════════
+
+▸ Section 1: firestore.indexes.json tồn tại và hợp lệ
+  ✅ firestore.indexes.json exists
+  ✅ File là valid JSON
+  ✅ indexes array tồn tại và không rỗng
+
+▸ Section 2: Index chính cho getTransactionsPage()
+  Query: where("txMonth", "==", ...) + orderBy("timestamp", "desc")
+  ✅ transactions: txMonth ASC + timestamp DESC  ← CRITICAL cho finance pagination
+
+▸ Section 3: Index phụ cho filter branch + txMonth
+  ✅ transactions: branch ASC + txMonth DESC + timestamp DESC
+  ✅ transactions: type ASC + txMonth DESC + timestamp DESC
+
+▸ Section 4: Index cho getTransactionsByDatePage()
+  ✅ transactions: date ASC + timestamp ASC  (date range queries)
+
+▸ Section 5: Xác nhận query thực tế trong finance.service.js
+  ✅ getTransactionsPage dùng where("txMonth") + orderBy("timestamp")
+  ✅ getTransactionsPage dùng cursor pagination (startAfter / startAt)
+
+══════════════════════════════════════════════════════════
+  Total: 9 | ✅ Pass: 9 | ❌ Fail: 0
+
+  🎉 Finance index checks passed!
+  → Deploy: firebase deploy --only firestore:indexes
+══════════════════════════════════════════════════════════
+

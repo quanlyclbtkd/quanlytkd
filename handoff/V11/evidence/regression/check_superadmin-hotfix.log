@@ -1,0 +1,51 @@
+
+══════════════════════════════════════════════════════════
+  Phase 4K SUPERADMIN HOTFIX — Race Condition & Fallback Check
+══════════════════════════════════════════════════════════
+
+▸ Section 1: index.html — window._fb_init Firebase exports
+  ✅ index.html exists
+  ✅ index.html imports startAfter from firebase-firestore.js
+  ✅ index.html imports startAt from firebase-firestore.js
+  ✅ index.html imports endAt from firebase-firestore.js
+  ✅ window._fb_init includes startAfter
+  ✅ window._fb_init includes startAt
+  ✅ window._fb_init includes endAt
+
+▸ Section 2: app.js — initSaaSDatabase() SA race condition fix
+  ✅ app.js exists
+  ✅ initSaaSDatabase SA branch does NOT call loadSuperAdminData() directly (race condition)
+  ✅ initSaaSDatabase SA branch has async retry pattern
+  ✅ initSaaSDatabase SA retry waits for ensureSuperAdminModule to exist
+  ✅ initSaaSDatabase SA branch shows error if module never loads
+
+▸ Section 3: app.js — window.loadSuperAdminData() fallback retry
+  ✅ loadSuperAdminData fallback has retry loop for ensureSuperAdminModule
+  ✅ loadSuperAdminData fallback shows error in #sysClubListMain on permanent failure
+  ✅ loadSuperAdminData fallback shows refresh button on failure
+
+▸ Section 4: main.js — retry loadSuperAdminData after initSuperAdmin()
+  ✅ main.js exists
+  ✅ main.js has __saInitialLoadRetried guard
+  ✅ main.js checks superAdminView visibility after initSuperAdmin
+  ✅ main.js retry checks if list is still in loading state
+  ✅ main.js retry uses SuperAdminModule.loadSuperAdminDashboard if available
+
+▸ Section 5: superadmin.js — Firestore permission-denied clarity
+  ✅ superadmin.js exists
+  ✅ loadSuperAdminData catch checks e.code === permission-denied
+  ✅ permission-denied message mentions super_admins/{uid} document
+  ✅ permission-denied message mentions custom claim role=super_admin
+  ✅ permission-denied message shows user UID for debugging
+
+▸ Section 6: package.json — check scripts registered
+  ✅ check:superadmin-hotfix script defined
+  ✅ check:all includes superadmin-hotfix
+
+══════════════════════════════════════════════════════════
+  Total: 27 checks | ✅ Pass: 27 | ❌ Fail: 0
+
+  🎉 All SuperAdmin HOTFIX checks passed!
+  Race condition đã fix. Danh sách CLB sẽ load đúng sau login.
+══════════════════════════════════════════════════════════
+

@@ -1,0 +1,11 @@
+{
+  "scope": "Archive content audit; excludes container SHA/size to avoid self-reference",
+  "crcBeforeDelivery": "PASS",
+  "independentExtraction": "PASS",
+  "fileHashes": "SOURCE_MANIFEST_V9.json (excludes itself)",
+  "rootPublicPairs": 126,
+  "unsafeNames": 0,
+  "caseCollisions": 0,
+  "symlinks": 0,
+  "notes": "Container bytes, SHA-256 and CRC are verified again after saving. All source, report, diff and text test evidence are consolidated in this one full archive."
+}

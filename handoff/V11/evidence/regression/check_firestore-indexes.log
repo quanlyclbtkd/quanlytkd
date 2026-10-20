@@ -1,0 +1,36 @@
+
+══════════════════════════════════════════════════════════
+  Phase 4J-9 — Firestore Indexes Readiness Check
+══════════════════════════════════════════════════════════
+
+▸ Section 1: firestore.indexes.json
+  ✅ firestore.indexes.json exists
+  ✅ File là valid JSON
+  ✅ indexes array tồn tại
+  ✅ indexes không rỗng (production-scale phase)
+  ✅ Có index cho transactions
+  ✅ Có index cho profiles
+  ✅ Có index cho attendance
+  ✅ Có index searchName hoặc searchPhone
+  ✅ Có index cho isOwed (debt query)
+  ✅ Có index transactions date range (SA revenue)
+
+▸ Section 2: FIRESTORE_INDEXES.md
+  ✅ FIRESTORE_INDEXES.md tồn tại
+
+▸ Section 3: firebase.json — Firestore indexes config
+  ✅ firebase.json có firestore.indexes config
+  ✅ firebase.json có firestore.rules config
+
+▸ Section 4: firebase.json — Cache Headers
+  ✅ JS không còn no-cache, must-revalidate toàn bộ
+  ✅ CSS không còn no-cache, must-revalidate toàn bộ
+  ✅ index.html vẫn giữ no-cache
+
+══════════════════════════════════════════════════════════
+  Total: 16 checks | ✅ Pass: 16 | ❌ Fail: 0
+
+  🎉 Firestore indexes deploy-ready!
+  Để deploy indexes: firebase deploy --only firestore:indexes
+══════════════════════════════════════════════════════════
+

@@ -1,0 +1,16 @@
+
+[check-debt-full-coverage] Phase 4K-5F
+
+  ✅  ensureDebtProfilesReady defined in app.js
+  ✅  ensureDebtProfilesReady calls loadFullProfilesFallback
+  ✅  ensureDebtProfilesReady calls refreshListsComputation
+  ✅  main.js switchTab calls ensureDebtProfilesReady on tabId === 'debt'
+  ✅  studentsRenderer stores _lastDebtSourceQuality
+  ✅  studentsRenderer warns when debtMayBePartial
+  ✅  studentsRenderer fails closed instead of starting a partial-data retry loop
+  ✅  debugDebtCoverage defined in app.js
+  ✅  debugDebtCoverage checks profilesCount + debtRowsDom
+  ✅  debugDebtCoverage returns estimatedDebtCount
+
+  10 passed, 0 failed
+

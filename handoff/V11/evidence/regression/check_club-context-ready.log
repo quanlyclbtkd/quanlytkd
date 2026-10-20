@@ -1,0 +1,41 @@
+
+══════════════════════════════════════════════════════════
+  Club Context Readiness Check — Phase 4K-PROFILE-HYDRATION
+══════════════════════════════════════════════════════════
+
+▸ Section 1: app.js — initSaaSDatabase context sync
+  ✅ Verified context owner commits club mirrors
+  ✅ __store.currentClubId được set trong initSaaSDatabase
+  ✅ __store.db được set trong initSaaSDatabase
+  ✅ __store.profRef được set trong initSaaSDatabase
+  ✅ __store.colRef được set trong initSaaSDatabase
+  ✅ __store.currentUser được set trong initSaaSDatabase
+
+▸ Section 2: app.js — app:context-ready và app:db-ready events
+  ✅ app:context-ready dispatch sau db + store ready
+  ✅ app:db-ready dispatch sau db sẵn sàng
+  ✅ __dbReadyEventDispatched guard chặn dispatch lặp
+  ✅ dispatchAppContextReady function tồn tại trong app.js
+
+▸ Section 3: app.js — profile listener mount SAU db + clubId ready
+  ✅ mountActiveProfilesListener được gọi trong initSaaSDatabase
+  ✅ Profile listener nhận profRef trong context (không null)
+  ✅ resetProfilesListeners được gọi khi logout (cleanup + re-init)
+
+▸ Section 4: app.js — currentClubId không bị ghi đè thành rỗng
+  ✅ Verified context owner resets club and readiness together
+
+▸ Section 5: main.js — legacy recovery isolation
+  ✅ main.js không tự chạy runtime recovery từ app:context-ready
+  ✅ main.js lắng nghe app:db-ready cho pagination init
+  ✅ printClubRuntimeDiagnostics log currentClubId + __store.currentClubId
+  ✅ printClubRuntimeDiagnostics log transactions count tháng hiện tại
+  ✅ printClubRuntimeDiagnostics log last Firestore error
+
+══════════════════════════════════════════════════════════
+  Total: 19 | ✅ 19 | ❌ 0
+
+  🎉 Club context readiness checks passed!
+  currentClubId và db được sync đúng — profiles sẽ hydrate bình thường.
+══════════════════════════════════════════════════════════
+

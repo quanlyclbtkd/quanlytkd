@@ -1,0 +1,33 @@
+{
+  "input": {
+    "name": "QR_V9_FULL_SOURCE_AUDITED_TEST_ONLY(1).zip",
+    "size": 7086883,
+    "files": 1255,
+    "sha256": "e103182b149bbfb2f170421353a8543162d4c937745b2db999ab28c303d8d74b"
+  },
+  "functional": {
+    "unique_commands": 267,
+    "exposed_script_names": 273,
+    "pass": 267,
+    "fail": 0,
+    "failures": []
+  },
+  "legacy148": "148/148 PASS",
+  "legacyFive": "5/5 PASS within legacy scope",
+  "legacyTwelve": "12/12 PASS with 12 caught mutations",
+  "mobile": "4 Chromium touch descriptors/branch combinations PASS including true browser offline and bulk36",
+  "physicalPhone": "NOT_AVAILABLE",
+  "webkitExecutable": "NOT_AVAILABLE",
+  "liveQR": "NOT_ACCEPTED; debt tunnel failure, multiitem aborted under blocked environment",
+  "aggregateFinal": {
+    "check:release": 1,
+    "check:all:critical": 1,
+    "failedGate": "check:v10-release-risk-boundary",
+    "reasons": [
+      "S01",
+      "O01-replay",
+      "O01-cross-tab"
+    ]
+  },
+  "productionDeployment": false
+}

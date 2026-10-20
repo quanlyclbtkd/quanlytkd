@@ -1,0 +1,32 @@
+PASS Coach pending must not mutate shift
+PASS Coach provisional must not mutate shift
+PASS Coach error must not mutate shift
+PASS Coach undefined metrics fail closed
+PASS Coach verified same UID/session allowed
+PASS Coach UID mismatch blocked
+PASS Coach branch mismatch blocked
+PASS Coach generation mismatch blocked
+PASS Admin existing shift behavior
+R2 ATTENDANCE ACTUAL GUARD: 9 PASS / 0 FAIL
+PASS pending coach coach toggle no mutations
+PASS pending coach coach alias no mutations
+PASS pending coach coach bulk no mutations
+PASS provisional coach coach toggle no mutations
+PASS provisional coach coach alias no mutations
+PASS provisional coach coach bulk no mutations
+PASS error coach coach toggle no mutations
+PASS error coach coach alias no mutations
+PASS error coach coach bulk no mutations
+PASS pending hlv coach toggle no mutations
+PASS pending hlv coach alias no mutations
+PASS pending hlv coach bulk no mutations
+PASS pending trainer coach toggle no mutations
+PASS pending trainer coach alias no mutations
+PASS pending trainer coach bulk no mutations
+PASS verified admin coach toggle no mutations
+PASS verified admin coach alias no mutations
+PASS verified admin coach bulk no mutations
+PASS verified coach admin toggle no mutations
+PASS verified coach admin alias no mutations
+PASS verified coach admin bulk no mutations
+R2 ATTENDANCE ENTRYPOINTS 21 PASS / 0 FAIL

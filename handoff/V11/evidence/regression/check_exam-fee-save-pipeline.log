@@ -1,0 +1,14 @@
+
+=== check-exam-fee-save-pipeline ===
+
+  PASS: quickCollectExam uses getClubExamFee as primary source
+  PASS: processBatchUpgrade is isolated from exam fee and revenue writes
+  PASS: refreshExamFeeUI syncs exam_fee_all_actual
+  PASS: refreshExamFeeUI formats examFeeInput with VND
+  PASS: Save button parses fee with parseVNDNumber
+  PASS: debugExamFeeCollectionSource exists
+  PASS: debugExamFeeSetting reports input value
+  PASS: debugExamFeeSetting reports hidden actual value
+  PASS: debugExamFeeSetting reports getClubExamFee source
+
+ALL CHECKS PASSED — exam fee save pipeline is correct

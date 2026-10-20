@@ -1,0 +1,43 @@
+
+=== Phase 4K-6V5U6C2 — Dashboard Single Read Authority + Freshness Freeze ===
+
+✅ render.js Dashboard section has zero Firestore getDoc/getDocs
+✅ render.js no longer calls legacy historical network owner
+✅ render.js no longer calls standalone current-month network owner
+✅ render.js consumes canonical RAM snapshot
+✅ legacy fetchAndRenderHistoricalCharts has no getDoc/getDocs
+✅ legacy fetchAndRenderHistoricalCharts is RAM compatibility only
+✅ tryApplyCurrentMonthStats has no standalone fetchMonthStats call
+✅ tryApplyCurrentMonthStats consumes canonical payload
+✅ canonical scheduler remains trigger aggregator
+✅ canonical loader owns six-month/targeted stats acquisition
+✅ canonical loader reuses existing TTL
+✅ canonical loader reuses one single-flight map
+✅ canonical loader uses immutable flight freshness token
+✅ dirty month revalidation remains inside canonical loader
+✅ hidden Dashboard remains zero-read via scheduler gate
+✅ compact transaction fallback remains txMonth/date/packageMonths
+✅ canonical payload includes monthStats/current month reuse
+✅ zero values use coverage, not truthiness, for authority
+✅ stale guard captures club/month/auth/request generation
+✅ stale result increments dedicated metric
+✅ canonical read attribution uses dashboard.canonicalStatsReads
+✅ transaction fallback docs metric exists
+✅ main APP_BUILD_VERSION is V5U6C2 marker
+✅ Dashboard recompute still routes network intent through scheduler
+✅ dynamic single-flight: 3 same-key calls perform exactly 6 stats reads
+✅ dynamic single-flight: coalesced metric increments
+✅ dynamic current-month stats authority overrides RAM totals
+✅ dynamic TTL: repeat call performs zero additional stats reads
+✅ dynamic TTL: cacheHit metric increments
+✅ dynamic force refresh still single-flights same key
+✅ dynamic zero semantics: zero-valued covered stats do not trigger transaction fallback
+✅ dynamic zero semantics: authoritative zero applies to current total
+✅ dynamic stale month: newer month B is applied
+✅ dynamic stale month: late month A is dropped
+✅ dynamic stale month: staleResultDropped increments
+✅ dynamic stale month: only B renders charts
+✅ dynamic stale club: late Club A result is dropped
+✅ dynamic stale club: canonical snapshot remains Club B
+
+PASS 38/38

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import {contract, expression} from "./v10/contracts.mjs";
 /** Phase 4K-6V4B1 — Coach Branch Assignment + Runtime Repair */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -73,9 +74,7 @@ check('No full-club profile fallback is introduced for Coach repair',
   profiles.includes("fbWhere('branch', '==', alias)") &&
   !app.includes('auth fallback clubs scan'));
 
-check('Profile listener query is server-scoped to assigned branch',
-  profiles.includes("fbQuery(profRef, statusConstraint, fbWhere('branch', '==', coachBranch))") &&
-  profiles.includes("':coach:' + coachBranch"));
+check("Profile listener query is server-scoped to assigned branch", await contract('coach'));
 check('Primary branch keeps scoped legacy Mặc định compatibility',
   profiles.includes("coachBranch === 'CS1'") &&
   profiles.includes("fbWhere('branch', '==', 'Mặc định')"));

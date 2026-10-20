@@ -1,0 +1,28 @@
+
+══════════════════════════════════════════════════════════
+  SuperAdmin monthStats Safety Check
+══════════════════════════════════════════════════════════
+
+▸ Section 1: _renderSAClubRows destructures monthStats và curMonth
+  ✅ _renderSAClubRows destructures monthStats từ clubDataList item
+  ✅ _renderSAClubRows destructures curMonth từ clubDataList item
+
+▸ Section 2: monthStats sử dụng an toàn với null check
+  ✅ monthStats dùng null-safe/derived guard trước template
+
+▸ Section 3: catch block — phân biệt lỗi runtime vs permission-denied
+  ✅ catch block kiểm tra permission-denied riêng biệt
+  ✅ catch block phân biệt ReferenceError/TypeError khỏi lỗi quyền
+  ✅ Không còn thông báo lỗi chung "Bạn cần quyền Super Admin!" cho mọi lỗi
+
+▸ Section 4: package.json có check:superadmin-monthstats
+  ✅ check:superadmin-monthstats script defined in package.json
+  ✅ check:all includes check-superadmin-monthstats
+
+══════════════════════════════════════════════════════════
+  Total: 8 checks | ✅ Pass: 8 | ❌ Fail: 0
+
+  🎉 All SuperAdmin monthStats checks passed!
+  _renderSAClubRows an toàn — monthStats được destructure và null-checked đúng.
+══════════════════════════════════════════════════════════
+

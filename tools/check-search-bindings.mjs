@@ -1,3 +1,4 @@
+import {contract, expression} from "./v10/contracts.mjs";
 /**
  * tools/check-search-bindings.mjs — Phase 4J-9B
  * ─────────────────────────────────────────────────────────────────────
@@ -127,15 +128,9 @@ console.log('▸ Section 5: Attendance limit guard');
 const attendanceService = readFile('js/services/attendance.service.js');
 const attendanceModule = readFile('js/modules/attendance.js');
 if (appJs && attendanceService && attendanceModule) {
-    check('Attendance dùng attendanceDailyLimit từ scaleConfig',
-        appJs.includes('attendanceDailyLimit') && attendanceService.includes('attendanceDailyLimit'),
-        'Scale config ở app.js và canonical service phải cùng dùng attendanceDailyLimit');
-    check('Attendance có server-side shift filter khi chọn ca',
-        attendanceService.includes("if (shiftId) constraints.push(where('shiftId', '==', shiftId))") && attendanceModule.includes('shiftId: token.shiftId') && attendanceModule.includes("requireShift: shiftDecision.mode === 'explicit-shift'"),
-        'Canonical module phải truyền shiftId và service phải lọc ở Firestore query');
-    check('Attendance warning khi chạm limit có date + shift info',
-        attendanceService.includes('hitLimit') && attendanceService.includes('shiftInfo') && attendanceService.includes('warnUnsafeLimit'),
-        'Service phải cảnh báo limit hit với ngày/ca và metrics');
+    check("Attendance query preserves date, branch, shift and cursor", await contract('search'));
+    check("Attendance có server-side shift filter khi chọn ca", await contract('shift'));
+    check("Attendance rejects incomplete daily coverage", await contract('scale'));
 }
 console.log();
 

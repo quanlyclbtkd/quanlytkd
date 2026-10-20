@@ -1,0 +1,20 @@
+// Local technical PASS cannot authorize new READS or assert phone/production QA.
+import fs from 'node:fs';import assert from 'node:assert/strict';import crypto from 'node:crypto';
+const sha=p=>crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');
+const approval=JSON.parse(fs.readFileSync(process.env.V11_TRANSACTION_APPROVAL_FILE||'handoff/V11/TRANSACTION_READS_DECISION.json','utf8'));
+assert.equal(approval.decision,'approved','RELEASE HOLD: the new transaction/version reads and V3 migration are outside the prior initial-roster approval.');
+assert.equal(approval.issuedBy,'system_owner','New-scope decision needs system-owner authority.');
+assert.equal(approval.rulesSha256,sha('firestore.rules'),'Approval Rules identity is stale.');
+assert.equal(approval.serviceSha256,sha('js/services/attendance.service.js'),'Approval writer identity is stale.');
+assert.equal(approval.journalSha256,sha('js/data/attendanceJournal.js'),'Approval journal identity is stale.');
+assert(approval.maxReadsPerIntentPerInvocation>=3,'Retry read bound is not covered.');
+assert(process.env.V11_RELEASE_ACCEPTANCE_FILE,'RELEASE HOLD: production identity, cutover and physical device acceptance have no supplied evidence.');
+const acceptance=JSON.parse(fs.readFileSync(process.env.V11_RELEASE_ACCEPTANCE_FILE,'utf8'));
+assert.equal(acceptance.rulesSha256,sha('firestore.rules'));
+assert.equal(acceptance.deployedRulesVerified,true);
+assert.equal(acceptance.deployedRuntimeVerified,true);
+assert.equal(acceptance.cohortVerifiedUnderCoachReadWriteDeny,true);
+assert.equal(acceptance.legacyReviewProcedureAccepted,true);
+assert.equal(acceptance.androidPhysicalAttendanceOfflinePassed,true);
+assert.equal(acceptance.iphoneSafariBothQRButtonsPassed,true);
+console.log('V11 supplied release-acceptance record matches candidate; no deployment is performed by this gate.');

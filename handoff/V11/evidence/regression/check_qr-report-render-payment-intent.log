@@ -1,0 +1,118 @@
+PASS CSS preserve 1:1 QR image
+PASS M01 QR-only endpoint, amount and encoded account
+PASS M01 lossless report and no taint
+PASS M01 report rendered, ACK-like render result, no write
+PASS M01 no preview/download discrepancy
+PASS M07 rejected provider must not render/download
+PASS M07 wrong MIME must be refused
+PASS M07 stale session cannot render receipt
+PASS M09 paid receipt keeps JPEG, no new pay QR
+PASS M05 mixed family bank accounts fail closed
+PASS M04 family same account one QR
+PASS M06 disabled assigned account must not fall back to bank1
+PASS M06 unmapped branch with multiple bank accounts denied
+PASS Amount invalid 0
+PASS Amount invalid -2
+PASS Amount invalid 350000.5
+PASS Amount invalid NaN
+PASS M04 family report handles render failure and keeps modal open
+PASS M04 family report waits for success and closes modal
+PASS M02 actual processMultiItem handler present
+PASS M02 actual checkbox OFF excludes stale 350000 tuition from QR amount
+PASS M02 actual breakdown sum equals exact report amount, no writes
+{
+  "result": {
+    "passes": 22,
+    "fails": 0
+  },
+  "outcomes": [
+    {
+      "case": "CSS preserve 1:1 QR image",
+      "result": "PASS"
+    },
+    {
+      "case": "M01 QR-only endpoint, amount and encoded account",
+      "result": "PASS"
+    },
+    {
+      "case": "M01 lossless report and no taint",
+      "result": "PASS"
+    },
+    {
+      "case": "M01 report rendered, ACK-like render result, no write",
+      "result": "PASS"
+    },
+    {
+      "case": "M01 no preview/download discrepancy",
+      "result": "PASS"
+    },
+    {
+      "case": "M07 rejected provider must not render/download",
+      "result": "PASS"
+    },
+    {
+      "case": "M07 wrong MIME must be refused",
+      "result": "PASS"
+    },
+    {
+      "case": "M07 stale session cannot render receipt",
+      "result": "PASS"
+    },
+    {
+      "case": "M09 paid receipt keeps JPEG, no new pay QR",
+      "result": "PASS"
+    },
+    {
+      "case": "M05 mixed family bank accounts fail closed",
+      "result": "PASS"
+    },
+    {
+      "case": "M04 family same account one QR",
+      "result": "PASS"
+    },
+    {
+      "case": "M06 disabled assigned account must not fall back to bank1",
+      "result": "PASS"
+    },
+    {
+      "case": "M06 unmapped branch with multiple bank accounts denied",
+      "result": "PASS"
+    },
+    {
+      "case": "Amount invalid 0",
+      "result": "PASS"
+    },
+    {
+      "case": "Amount invalid -2",
+      "result": "PASS"
+    },
+    {
+      "case": "Amount invalid 350000.5",
+      "result": "PASS"
+    },
+    {
+      "case": "Amount invalid NaN",
+      "result": "PASS"
+    },
+    {
+      "case": "M04 family report handles render failure and keeps modal open",
+      "result": "PASS"
+    },
+    {
+      "case": "M04 family report waits for success and closes modal",
+      "result": "PASS"
+    },
+    {
+      "case": "M02 actual processMultiItem handler present",
+      "result": "PASS"
+    },
+    {
+      "case": "M02 actual checkbox OFF excludes stale 350000 tuition from QR amount",
+      "result": "PASS"
+    },
+    {
+      "case": "M02 actual breakdown sum equals exact report amount, no writes",
+      "result": "PASS"
+    }
+  ]
+}

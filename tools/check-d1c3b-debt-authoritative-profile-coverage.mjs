@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { classifyProfileStatus } from '../js/data/profileStatusConfig.js';
 
 const listeners = fs.readFileSync('js/listeners/profiles.listeners.js','utf8');
@@ -46,7 +47,13 @@ console.log('PASS D1C3B-02 debt coverage readiness requires full same-club autho
 
 // Admin must reuse the one existing listener slot as an unfiltered full current-club source.
 assert.ok(listeners.includes('activeQuery = profRef;'), 'Admin reader is still status-filtered');
-assert.ok(/activeQuery\s*=\s*fbQuery\(profRef,\s*statusConstraint,\s*fbWhere\('branch'/.test(listeners), 'Coach must retain branch/status-scoped query');
+// R1 superseded the old status prefilter: it omitted legacy active profiles.
+// Execute production listener callbacks to prove branch isolation, legacy
+// coverage, server metadata, teardown and late-session protection together.
+const coachCoverage = spawnSync(process.execPath, ['tools/check-d1c3b7r1-coach-roster-closure.mjs'], { encoding: 'utf8', timeout: 30000 });
+process.stdout.write(coachCoverage.stdout || '');
+process.stderr.write(coachCoverage.stderr || '');
+assert.equal(coachCoverage.status, 0, 'Coach branch-only actual-handler coverage must pass');
 assert.ok(listeners.includes("syncLegacyAllProfiles(fullMap, 'full-profiles:admin-authority', { complete: true })"), 'Admin full snapshot must classify through canonical complete store');
 assert.ok(listeners.includes("lastProfilesMode      = 'full-profiles-authoritative'"), 'Admin authority mode metric missing');
 assert.ok(listeners.includes('fullAuthoritySnapshotSeen = true'), 'Admin authoritative snapshot readiness metric missing');

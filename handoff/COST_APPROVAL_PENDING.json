@@ -1,0 +1,14 @@
+{
+  "decision": "pending",
+  "issuedBy": null,
+  "approvedAt": null,
+  "scope": "Coach CS1 and Coach CS2; clubs with at most 1500 profiles; synthetic initial document-read budget and canonical profile lookup for attendance writes",
+  "rulesSha256": "6c97941adc044509cb8095c461a41f3f3f7a80a092771bdbb25d03373478b622",
+  "sourceSha256": "d94c1b7a7f01b033112a01d45d93357dd2a7e5851bd67a3cfc0b171a149cf31f",
+  "measurementSha256": "3012d1b8c21a1a3c22c323d2b8daa4ff53b5643c10e972878824f01644644329",
+  "maxIncrementalInitialDocs": 1500,
+  "profilesMeasured1000": true,
+  "profilesMeasured1500": true,
+  "attendanceCanonicalProfileLookupApproved": false,
+  "notes": "PROPOSAL ONLY. Owner decision is required. Budget is measured result documents, not an enforced quota or billed total. No production deployment is authorized by this proposal."
+}

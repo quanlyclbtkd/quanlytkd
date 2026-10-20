@@ -1,0 +1,65 @@
+
+[PaymentAccountsCheck] ── 1. paymentAccounts data model ──
+[PaymentAccountsCheck] PASS  paymentAccounts present in app.js
+[PaymentAccountsCheck] PASS  bank1 key present in app.js
+[PaymentAccountsCheck] PASS  bank2 key present in app.js
+
+[PaymentAccountsCheck] ── 2. branchPaymentAccountMap ──
+[PaymentAccountsCheck] PASS  branchPaymentAccountMap present in app.js
+
+[PaymentAccountsCheck] ── 3. normalizeBranchKeyForPayment (Phase 4J-4) ──
+[PaymentAccountsCheck] PASS  normalizeBranchKeyForPayment defined
+[PaymentAccountsCheck] PASS  CS\d+ match logic present
+[PaymentAccountsCheck] PASS  coSoMatch (Cơ sở N) normalization present
+[PaymentAccountsCheck] PASS  branchNameN lookup loop present in normalizeBranchKeyForPayment
+
+[PaymentAccountsCheck] ── 4. getPaymentAccountForBranch helper (Phase 4J-4 robust) ──
+[PaymentAccountsCheck] PASS  getPaymentAccountForBranch defined
+[PaymentAccountsCheck] PASS  getPaymentAccountForBranch uses normalizeBranchKeyForPayment
+[PaymentAccountsCheck] PASS  resolver checks all branch-map aliases and blocks conflicting mappings
+[PaymentAccountsCheck] PASS  resolver returns a complete selected tuple or denies disabled mapped account
+[PaymentAccountsCheck] PASS  unmapped multi-account configuration cannot silently select bank1 or bank2
+
+[PaymentAccountsCheck] ── 5. saveClubSettings — alias map for branch names ──
+[PaymentAccountsCheck] PASS  saveClubSettings stores branch name alias (_bName4j4)
+[PaymentAccountsCheck] PASS  saveClubSettings stores normalized branch name alias (_bNorm4j4)
+
+[PaymentAccountsCheck] ── 6. generateVietQR accepts branchOrAccount (Phase 4J-4) ──
+[PaymentAccountsCheck] PASS  generateVietQR signature includes branchOrAccount
+[PaymentAccountsCheck] PASS  generateVietQR handles account object passthrough
+[PaymentAccountsCheck] PASS  generateVietQR calls getPaymentAccountForBranch when branch string given
+
+[PaymentAccountsCheck] ── 7. exportReceipt resolves verified payment account before generateVietQR ──
+[PaymentAccountsCheck] PASS  report branch resolves verified account snapshot and passes it to qr_only generator
+
+[PaymentAccountsCheck] ── 8. Báo Nợ QR — canonical branch propagation ──
+[PaymentAccountsCheck] PASS  Debt QR passes canonical safeBranch into generateMultiMonthPaymentRequest
+[PaymentAccountsCheck] PASS  generateMultiMonthPaymentRequest passes branch into exportReceipt
+[PaymentAccountsCheck] PASS  No self-referencing _effBankId bug
+
+[PaymentAccountsCheck] ── 9. quickPay uses Tuition Command canonical branch for receipt ──
+[PaymentAccountsCheck] PASS  quickPay passes requested branch into TuitionCommandBoundary.collectTuition
+[PaymentAccountsCheck] PASS  quickPay receipt uses canonical result.branch returned by Tuition Command
+
+[PaymentAccountsCheck] ── 10. processCombo cross-bank safety in actual finance owner ──
+[PaymentAccountsCheck] PASS  family report submits both branches and QR owner rejects mixed accounts
+[PaymentAccountsCheck] PASS  actual-handler QR report payment account/branch negative matrix passes
+
+[PaymentAccountsCheck] ── 11. Debug helpers ──
+[PaymentAccountsCheck] PASS  testPaymentAccountForBranch defined
+[PaymentAccountsCheck] PASS  printPaymentAccountMapping preserved
+[PaymentAccountsCheck] PASS  maskAccountNumber helper present
+
+[PaymentAccountsCheck] ── 12. UI — bank account fields in HTML ──
+[PaymentAccountsCheck] PASS  cfg_bankId field present
+[PaymentAccountsCheck] PASS  cfg_bank2Enabled toggle present
+[PaymentAccountsCheck] PASS  cfg_branchBankMapBlock section present
+
+[PaymentAccountsCheck] ── 13. Backward compatibility ──
+[PaymentAccountsCheck] PASS  Legacy bankId/accountNo/accountName fields preserved
+
+[PaymentAccountsCheck] ── 14. Report file ──
+[PaymentAccountsCheck] PASS  PHASE_4B4J3_MULTI_BANK_ACCOUNT_REPORT.md exists
+
+[PaymentAccountsCheck] Checked: 34 items
+[PaymentAccountsCheck] ✅ OK — All payment-accounts checks passed (0 warning(s)).

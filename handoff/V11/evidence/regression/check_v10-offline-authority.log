@@ -1,0 +1,18 @@
+PASS online fresh
+PASS offline previously verified metadata-only demotion
+PASS navigator online with Firestore demotion may enqueue using same-session proof
+PASS offline cache-only initial
+PASS offline changed/pending data revokes proof
+PASS offline reject activeOwnerUid
+PASS offline reject authoritySessionEpoch
+PASS offline reject clubId
+PASS offline reject role
+PASS offline reject coachBranch
+PASS offline reject activeListenerKey
+PASS offline reject activeListenerMounted
+PASS offline reject coachPrimaryFailed
+PASS offline reject coachLegacyFailed
+PASS offline reject coachLegacyListenerKey
+[StudentProfileStore] reset — v10-contract
+[ProfilesListener] reset — v10-contract-end
+V10 OFFLINE AUTHORITY: 15 guard cases + actual listener metadata/revocation PASS

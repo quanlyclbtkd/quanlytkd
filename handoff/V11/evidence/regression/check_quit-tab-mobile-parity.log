@@ -1,0 +1,24 @@
+
+=== Phase 4K-6V4B8 — Quit Tab Mobile Parity ===
+
+✅ Index cache-busts app.js and main.js with current quit-safe build
+✅ Main cache-busts all quit render/profile modules with current quit-safe build
+✅ Nested render imports use current build so mobile cannot reuse stale computation cache
+✅ renderQuitIsland never falls back to shared server pagination after authoritative quit load
+✅ renderQuitIsland synchronizes the mobile control outside the table
+✅ Student pagination controls for quit use authoritative quitProfiles, not pgState
+✅ Student pagination fallback counts quit rows correctly
+✅ Student pagination fallback cannot overwrite authoritative quit list
+✅ Fallback/pagination quit rows use data-quit-id for DOM parity
+✅ Debug separation counts data-quit-id rows as well as legacy data-student-id
+✅ Authoritative mobile render never clears quitList from an empty cache
+✅ Mobile quit control is created outside the scrollable table when missing
+✅ Legacy renderApp quit rows also use data-quit-id and legacy quit date fields
+✅ Quit renderer uses legacy quit date fields in module row render as well
+✅ Mobile quit renderer ignores cached/paginated quitRows after authoritative load
+✅ Mobile quit row builder can force all rows instead of page-limited rows
+✅ Mobile quit external control reports all rows instead of showing load-more
+
+Total: 17 | PASS: 17 | FAIL: 0
+Phase 4K-6V4B8 mobile parity checks passed.
+

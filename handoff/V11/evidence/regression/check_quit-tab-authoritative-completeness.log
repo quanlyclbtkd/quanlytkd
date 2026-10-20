@@ -1,0 +1,14 @@
+
+=== Phase 4K-6V5Q — Quit Authoritative Completeness ===
+
+✅ Authority only short-circuits when same-club fresh reconciled + complete
+✅ One full snapshot sets all buckets as complete
+✅ Authority state exposes complete/error diagnostics
+✅ Store partial sync preserves existing quit data
+✅ Store has separate quitComplete flag
+✅ Quit search bypasses active-only profile index
+✅ Direct renderer uses same boundary and filters
+✅ Shared pagination is cleared after authority load
+✅ Full fallback also marks quit complete
+
+Total 9 | PASS 9 | FAIL 0

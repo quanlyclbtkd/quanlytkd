@@ -1,0 +1,14 @@
+✅ Exactly one canonical Exam ledger call remains in export
+✅ Canonical ledger receives export transactions explicitly
+✅ Export contains no assignment to window.__store.transactions
+✅ Export contains no delete of window.__store.transactions
+✅ Legacy _prevTxs temporary mutation token removed
+✅ No second Exam ledger implementation introduced in reports module
+✅ Exam export adds no direct Firestore profile reader/listener
+[reports.js] ✅ initReports() Phase 4K-6E-B — exam export belt-order sort
+[ReportsModule] examPaidList load: txMonth= 1 date= 0 deduped= 1
+[ReportsModule] exportExamPaidList paidData build error: H6 forced ledger failure
+✅ E6 ledger failure leaves window.__store.transactions reference unchanged
+✅ E6 ledger received loaded export subset without global mutation
+
+Exam Export State Purity: 9/9 PASS

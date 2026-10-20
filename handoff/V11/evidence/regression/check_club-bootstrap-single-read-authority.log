@@ -1,0 +1,22 @@
+✅ V5U6B bootstrap helper exists
+✅ normal tenant init has no clubs/{clubId} point getDoc
+✅ legacy clubDocForExpiry bootstrap read removed
+✅ root club has exactly one onSnapshot authority in app.js
+✅ root listener uses canonical key global:club:{clubId}
+✅ root listener registered through safeRegisterSnapshot
+✅ root listener has first snapshot promise
+✅ first snapshot promise settles at most once
+✅ registration failure settles first snapshot promise
+✅ duplicate registration has one stale-owner cleanup path
+✅ duplicate registration remount is bounded to one explicit retry
+✅ listener remains mounted after accepted first snapshot
+✅ blocked cleanup explicitly preserves root listener key
+✅ same root listener owns future access revalidation
+✅ listener error callback is part of same onSnapshot
+✅ no replacement club listener exists after access await
+✅ init awaits the root first snapshot before proceeding
+✅ first snapshot acceptance gates protected runtime
+✅ no getDocFromServer/getDocFromCache replacement introduced
+✅ no polling/retry interval in club bootstrap helper
+
+PASS 20/20

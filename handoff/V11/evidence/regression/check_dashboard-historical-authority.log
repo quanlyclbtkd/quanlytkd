@@ -1,0 +1,13 @@
+
+=== check-dashboard-historical-authority ===
+
+  PASS: render.js protects historical authority with canonical Dashboard snapshot guard
+  PASS: listComputationRefresh.js: no unguarded current-only overwrite
+  PASS: getDashboardHistoricalSnapshot exists
+  PASS: window.refreshDashboardHistory exists
+  PASS: fetchHistoricalDashboardFallback uses explicit stats coverage; zero values remain valid
+  PASS: debugDashboardHistory reports historicalSnapshot
+  PASS: debugRuntimeSmokeTest includes dashboard history
+  PASS: debugRuntimeSmokeTest includes monthly revenue allocation
+
+ALL CHECKS PASSED — dashboard historical authority is protected

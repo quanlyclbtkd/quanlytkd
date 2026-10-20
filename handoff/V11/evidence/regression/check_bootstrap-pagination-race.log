@@ -1,0 +1,27 @@
+
+══════════════════════════════════════════════════════════
+  check:bootstrap-pagination-race
+══════════════════════════════════════════════════════════
+
+▸ Section 1: Không còn setTimeout 500ms/1500ms init pagination sớm
+  ✅ Block setTimeout initStudentPagination sớm đã bị DISABLED
+  ✅ Block setTimeout initTransactionPagination sớm đã bị DISABLED
+
+▸ Section 2: _tryInitPaginationsOnDbReady dùng isClubRuntimeReady()
+  ✅ _tryInitPaginationsOnDbReady tồn tại trong main.js
+  ✅ _tryInitPaginationsOnDbReady check isClubRuntimeReady()
+  ✅ window.isClubRuntimeReady được define
+
+▸ Section 3: Guard per-club không double-init
+  ✅ __studentPaginationInitializedForClub guard tồn tại
+  ✅ Pagination trigger từ app:context-ready hoặc app:db-ready event
+
+▸ Section 4: Không còn warning "db chưa sẵn sàng sau 2s"
+  ✅ Warning "db chưa sẵn sàng sau 2s" không còn trong active code path
+
+══════════════════════════════════════════════════════════
+  Total: 8 | ✅ 8 | ❌ 0
+
+  🎉 Bootstrap pagination race condition checks passed!
+══════════════════════════════════════════════════════════
+

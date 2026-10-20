@@ -1,0 +1,46 @@
+
+=== check-exam-upgrade-finance-separation ===
+
+  PASS: processBatchUpgrade exists
+  PASS: upgrade source excludes getClubExamFee
+  PASS: upgrade source excludes exam_fee_all_actual
+  PASS: upgrade source excludes allTransactions
+  PASS: upgrade source excludes studentsToCharge
+  PASS: upgrade source excludes chargeAmount
+  PASS: upgrade source excludes newTxRef
+  PASS: upgrade source excludes type: 'Lệ phí thi'
+  PASS: upgrade source excludes type: "Lệ phí thi"
+  PASS: upgrade source excludes transactions",
+  PASS: upgrade source excludes transactions',
+  PASS: upgrade confirmation contains no fee/revenue wording
+  PASS: upgrade writes to profiles collection
+  PASS: upgrade uses merge writes
+  PASS: upgrade has in-flight guard
+  PASS: upgrade restores in-flight state in finally
+  PASS: upgrade button has stable id
+  PASS: upgrade button calls only processBatchUpgrade
+  PASS: standalone Thu phí action remains available
+  PASS: quickCollectExam still exists as separate payment action
+  PASS: legacy exam writer blocks until the canonical Finance owner loads
+  PASS: first click creates exactly one batch
+  PASS: button is disabled during commit
+  PASS: in-flight flag is set during commit
+  PASS: second click does not create a second batch
+  PASS: second click reports in-progress state
+  PASS: two selected students create two profile writes
+  PASS: every batch write targets clubs/{club}/profiles/{student}
+  PASS: profile payload contains only belt progression fields
+  PASS: all profile writes use merge:true
+  PASS: confirmation contains no fee language
+  PASS: existing transaction cache is unchanged before commit
+  PASS: transaction cache remains unchanged after commit
+  PASS: local profile cache is updated only after successful commit
+  PASS: store profile cache is synchronized
+  PASS: render runs once after commit
+  PASS: select-all checkbox is cleared
+  PASS: button is restored after commit
+  PASS: in-flight flag is cleared after commit
+  PASS: success toast reports only belt upgrade
+  PASS: no blocking alert occurred in valid scenario
+
+ALL CHECKS PASSED — 41 exam upgrade/finance separation checks

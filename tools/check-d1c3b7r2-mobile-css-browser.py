@@ -5,7 +5,7 @@ not a full application page-navigation or physical mobile test.
 """
 from pathlib import Path
 from html.parser import HTMLParser
-import json,sys
+import json,sys,os
 from playwright.sync_api import sync_playwright
 class InlineStyles(HTMLParser):
  def __init__(self):super().__init__();self.in_style=False;self.styles=[]
@@ -25,7 +25,9 @@ for rel in ['css/tailwind-static.css','css/ui-mobile-shell.css']:
 page_html='<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'+styles+'</head><body class="ui-mobile-shell"><main style="padding:8px"><section id="tab_tx" class="tab-content active" style="display:block"><div class="table-wrapper"><table id="tbl_tx"><tbody>'+rendered.read_text()+'</tbody></table></div></section></main></body></html>'
 results=[]
 with sync_playwright() as p:
- browser=p.chromium.launch(headless=True, executable_path='/usr/bin/chromium',args=['--no-sandbox'])
+ executable=os.environ.get('PLAYWRIGHT_CHROMIUM_EXECUTABLE')
+ if not executable and Path('/usr/bin/chromium').is_file():executable='/usr/bin/chromium'
+ browser=p.chromium.launch(headless=True, **({'executable_path':executable} if executable else {}),args=['--no-sandbox'])
  for w,h in [(320,568),(360,800),(390,844),(430,932),(768,1024),(568,320)]:
   page=browser.new_page(viewport={'width':w,'height':h},device_scale_factor=1)
   page.set_content(page_html,wait_until='load')

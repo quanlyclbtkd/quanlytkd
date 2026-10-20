@@ -1,0 +1,46 @@
+[ProfilesListener] reset — d1c3b3
+[StudentProfileStore] reset — d1c3b3
+PASS A01 cache-only 1/100 never becomes complete Debt
+[ProfilesListener] reset — d1c3b3
+[StudentProfileStore] reset — d1c3b3
+PASS A02 cache-only empty is not an authoritative zero
+[ProfilesListener] reset — d1c3b3
+[StudentProfileStore] reset — d1c3b3
+PASS A03 identical metadata cache→server promotes using one listener
+[ProfilesListener] reset — d1c3b3
+[StudentProfileStore] reset — d1c3b3
+PASS A04 pending writes never promote before server acknowledgement
+[ProfilesListener] reset — d1c3b3
+[StudentProfileStore] reset — d1c3b3
+PASS A05 last-good becomes stale offline without losing verified map
+[ProfilesListener] reset — d1c3b3
+[StudentProfileStore] reset — d1c3b3
+PASS A06 cache-only getDocs fallback cannot establish authority
+[ProfilesListener] reset — d1c3b3
+[StudentProfileStore] reset — d1c3b3
+PASS A07 server-confirmed empty is authoritative zero
+[ProfilesListener] reset — d1c3b3
+[StudentProfileStore] reset — d1c3b3
+PASS A08 disposed callback and new-session callback dropped
+[ProfilesListener] reset — d1c3b3
+[StudentProfileStore] reset — d1c3b3
+PASS A11 SuperAdmin verified session can select a different club without mixing authority
+[ProfilesListener] reset — d1c3b3
+[StudentProfileStore] reset — d1c3b3
+PASS A09 Firebase metadata-change overload is requested
+[ProfilesListener] reset — d1c3b3
+[StudentProfileStore] reset — d1c3b3
+PASS A10 one listener/read topology for Admin cache→server
+PASS B01 coach window vs stale admin store blocks sensitive projection
+PASS B02 admin window vs stale coach store blocks projection
+PASS B03 wrong club profile authority cannot enrich page
+PASS B04 coach branch mismatch blocks projection
+PASS B05 stable same-session Admin projection preserves canonical paid data
+PASS B06 blocked session never enriches
+PASS B09 SuperAdmin current-club projection accepts verified global super_admin principal
+PASS B07 projection has no Firebase calls or canonical mutation
+PASS B08 session epoch mismatch drops current profile projection
+PASS C01-C03 context token changes across club/branch/login switch
+PASS C04-C05 request owner and stale guard used after both await variants
+PASS D01 one indexed and one legacy unindexed Admin match
+PASS D02 Vietnamese accents and alias/code/phone searches

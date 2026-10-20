@@ -1,0 +1,24 @@
+
+=== Phase 4K-6V1 — Spark Read Cost Hardening ===
+
+✅ Build marker 4K-6V1 exists
+✅ Dashboard history has TTL cache
+✅ TTL is at least one hour
+✅ Dashboard history uses single-flight map
+✅ Hidden dashboard skips network history fetch
+✅ Dashboard history is explicitly scheduled on dashboard tab open
+✅ Dashboard recompute routes through scheduler
+✅ Legacy direct fetch fallback is visibility-gated
+✅ 6-month fallback uses one txMonth range loader
+✅ 6-month fallback uses one date range loader
+✅ 6-month package query uses array-contains-any
+✅ Old per-month dashboard transaction fallback removed
+✅ Read metrics are exposed
+✅ Same-month transaction listener re-subscribe guard exists
+✅ Transaction snapshots coalesce dashboard invalidation
+✅ Financial write flows remain present
+✅ No Cloud Functions dependency added to Spark dashboard path
+
+Total: 17 | PASS: 17 | FAIL: 0
+Spark read-cost hardening checks passed.
+

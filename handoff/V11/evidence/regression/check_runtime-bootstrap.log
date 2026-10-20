@@ -1,0 +1,87 @@
+[RuntimeBootstrapCheck] Kiểm tra runtime bootstrap guard (Phase 4B + 4C)...
+
+[RuntimeBootstrapCheck] INFO  js/main.js: 285836 ký tự
+
+[RuntimeBootstrapCheck] [main.js] Kiểm tra health registry...
+[RuntimeBootstrapCheck] PASS  runtime health registry (RUNTIME_HEALTH_CHECKS)
+[RuntimeBootstrapCheck] PASS  severity: 'critical' entry
+[RuntimeBootstrapCheck] PASS  severity: 'warning' entry
+[RuntimeBootstrapCheck] PASS  severity: 'info' entry
+[RuntimeBootstrapCheck] PASS  phase: 'bootstrap' entry
+[RuntimeBootstrapCheck] PASS  phase: 'after-login' entry
+
+[RuntimeBootstrapCheck] [main.js] Kiểm tra getRuntimeHealthStatus...
+[RuntimeBootstrapCheck] PASS  window.getRuntimeHealthStatus định nghĩa
+[RuntimeBootstrapCheck] PASS  criticalMissing field trong kết quả
+[RuntimeBootstrapCheck] PASS  checkedAt timestamp trong kết quả
+
+[RuntimeBootstrapCheck] [main.js] Kiểm tra printRuntimeHealth...
+[RuntimeBootstrapCheck] PASS  window.printRuntimeHealth định nghĩa
+[RuntimeBootstrapCheck] PASS  console.group trong printRuntimeHealth
+[RuntimeBootstrapCheck] PASS  console.table trong printRuntimeHealth
+
+[RuntimeBootstrapCheck] [main.js] Kiểm tra ensureModuleRuntimeReady...
+[RuntimeBootstrapCheck] PASS  window.ensureModuleRuntimeReady định nghĩa
+[RuntimeBootstrapCheck] PASS  gọi ensureModuleRuntimeReady cho 'finance'
+[RuntimeBootstrapCheck] PASS  gọi ensureModuleRuntimeReady cho 'inventory'
+[RuntimeBootstrapCheck] PASS  gọi ensureModuleRuntimeReady cho 'students'
+
+[RuntimeBootstrapCheck] [main.js] Kiểm tra ensureModuleRuntimeReady typeof guard (HOTFIX)...
+[RuntimeBootstrapCheck] PASS  typeof guard trước khi gọi ensureModuleRuntimeReady (tránh 'is not a function' crash)
+
+[RuntimeBootstrapCheck] [main.js] Kiểm tra db guard cho pagination inits...
+[RuntimeBootstrapCheck] PASS  initStudentPagination/initTransactionPagination có check window.__store.db
+
+[RuntimeBootstrapCheck] [main.js] Kiểm tra app:context-ready listener...
+[RuntimeBootstrapCheck] PASS  listener app:context-ready cho after-login health check
+[RuntimeBootstrapCheck] WARN  bootstrap health check phase filter  ← optional, không tìm thấy
+
+[RuntimeBootstrapCheck] [main.js] Kiểm tra bootstrap health check call...
+[RuntimeBootstrapCheck] PASS  bootstrap health check setTimeout call
+
+[RuntimeBootstrapCheck] [main.js] Kiểm tra không có throw trong health check...
+[RuntimeBootstrapCheck] PASS  Không có throw trong check() functions
+
+[RuntimeBootstrapCheck] [main.js] Kiểm tra health check cũ còn guard...
+[RuntimeBootstrapCheck] PASS  _runHealthCheck cũ vẫn được guard bởi _isDev (backward compat OK)
+
+══════════════════════════════════════════════
+[RuntimeBootstrapCheck] [app.js] Kiểm tra app context ready dispatch (Phase 4C)...
+══════════════════════════════════════════════
+[RuntimeBootstrapCheck] INFO  app.js: 679552 ký tự
+
+[RuntimeBootstrapCheck] [app.js] Kiểm tra dispatchAppContextReady helper...
+[RuntimeBootstrapCheck] PASS  hàm dispatchAppContextReady định nghĩa
+[RuntimeBootstrapCheck] PASS  window.dispatchAppContextReady exposed
+[RuntimeBootstrapCheck] PASS  __appContextReadyState state object
+[RuntimeBootstrapCheck] PASS  dispatch CustomEvent('app:context-ready')
+[RuntimeBootstrapCheck] PASS  generation counter trong state
+
+[RuntimeBootstrapCheck] [app.js] Kiểm tra initSaaSDatabase dispatch...
+[RuntimeBootstrapCheck] PASS  gọi dispatchAppContextReady sau sync store
+
+[RuntimeBootstrapCheck] [app.js] Kiểm tra canonical auth-context writer...
+[RuntimeBootstrapCheck] PASS  canonical commit writes module currentClubId
+[RuntimeBootstrapCheck] PASS  canonical commit writes window.currentClubId
+[RuntimeBootstrapCheck] PASS  canonical commit writes window.userRole
+[RuntimeBootstrapCheck] PASS  canonical commit writes window.coachBranch
+[RuntimeBootstrapCheck] PASS  canonical commit writes store.clubId
+[RuntimeBootstrapCheck] PASS  canonical commit writes store.currentClubId
+[RuntimeBootstrapCheck] PASS  canonical commit writes store.userRole
+[RuntimeBootstrapCheck] PASS  canonical commit writes store.coachBranch
+[RuntimeBootstrapCheck] PASS  canonical commit writes store.currentUser
+
+[RuntimeBootstrapCheck] [app.js] Kiểm tra logout reset qua canonical authority...
+[RuntimeBootstrapCheck] PASS  logout reset __appContextReadyState.reason = 'logout'
+[RuntimeBootstrapCheck] PASS  logout calls canonical _resetVerifiedAuthContext('logout')
+[RuntimeBootstrapCheck] PASS  canonical reset clears window.currentClubId
+[RuntimeBootstrapCheck] PASS  canonical reset clears store.currentClubId
+[RuntimeBootstrapCheck] PASS  canonical reset clears store.currentUser
+[RuntimeBootstrapCheck] PASS  initSaaSDatabase không giành lại quyền ghi Auth Context
+
+[RuntimeBootstrapCheck] [app.js] Kiểm tra idempotent guard...
+[RuntimeBootstrapCheck] PASS  guard idempotent: ready check
+[RuntimeBootstrapCheck] PASS  guard idempotent: clubId check
+
+[RuntimeBootstrapCheck] Đã kiểm tra: 46 patterns trong js/main.js + app.js
+[RuntimeBootstrapCheck] ✅ OK — Runtime bootstrap guard (4B + 4C) đầy đủ và đúng cấu trúc.

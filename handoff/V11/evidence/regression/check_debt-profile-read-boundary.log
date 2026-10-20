@@ -1,0 +1,30 @@
+
+=== D1C3B — Debt Profile Authoritative Coverage Guard ===
+
+✅ Boundary remains loaded before app.js
+✅ Debt tab compatibility loader contains no cursor full scan
+✅ app.js delegates debt readiness to the canonical module/boundary without independent recomputation
+✅ Automatic verification is scheduled only from settings/full authority lifecycle, not partial active proof
+✅ Partial active-cache trust marker is removed
+✅ Authority readiness requires same club + full snapshot + complete canonical store
+✅ Manual count audit remains force-gated diagnostics only
+✅ Automatic verification path contains no runCountAudit
+✅ Legacy normalization remains explicit/manual only
+✅ Resource-exhausted manual aggregation enters cooldown
+✅ Renderer consumes boundary coverage status
+✅ Club switch/logout reset debt boundary state
+✅ Admin normal reader is one unfiltered current-club source
+✅ Coach reader stays branch-scoped, no full-club or status prefilter
+✅ Emergency full fallback removes normal listener before getDocs
+✅ Dynamic: partial source is NOT authoritative ready
+✅ Dynamic: local audit cannot claim full coverage
+✅ Dynamic: full same-club authority makes Debt ready without extra read
+✅ Dynamic: full authority is the recorded source
+✅ Dynamic: mismatched authority club is NOT ready
+✅ Dynamic: non-admin Debt coverage fails closed with zero read/write
+✅ Dynamic: forced manual count audit performs exactly three aggregations
+✅ Dynamic: quota cooldown suppresses retry storm
+
+Total: 23 | PASS: 23 | FAIL: 0
+D1C3B debt profile boundary checks passed.
+

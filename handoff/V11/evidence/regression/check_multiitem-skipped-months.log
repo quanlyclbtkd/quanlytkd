@@ -1,0 +1,16 @@
+
+🔍 check:multiitem-skipped-months — Phase 4K-5M
+
+  ✅ PASS — window.getChargeableTuitionMonths is defined as a global helper in app.js
+  ✅ PASS — _refreshMiHistoryBadges calls window.getChargeableTuitionMonths (not raw while loop)
+  ✅ PASS — _refreshMiHistoryBadges has no bare while(cur <= today) loop without skippedMonths guard
+  ✅ PASS — _refreshMiHistoryBadges sets data-months attribute on pkgSelect with chargeable months
+  ✅ PASS — updateMultiItemAutoFee reads data-months attribute to compute pkg count
+  ✅ PASS — processMultiItem reads data-months attribute from mi_tuition_pkg select
+  ✅ PASS — processMultiItem filters skippedMonths in fallback packageMonths computation
+  ✅ PASS — breakdown and _tuitionLabel use window.formatTuitionMonthList for month formatting
+  ✅ PASS — window.debugMultiItemSkippedMonth debug helper is defined in app.js
+  ✅ PASS — studentsRenderer debt loop uses window.getChargeableTuitionMonths or an equivalent skippedMonths guard
+
+📊 Results: 10 passed, 0 failed
+

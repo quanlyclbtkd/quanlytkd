@@ -1,0 +1,10 @@
+PASS: profile trigger exists
+PASS: transaction trigger exists
+PASS: scheduled backfill exists
+PASS: callable refresh one club exists
+PASS: root cache fields written
+PASS: functions exported in index.js
+PASS: functions lint includes new file
+PASS: APP_BUILD_VERSION updated
+PASS: index cache bust updated
+PASS: deploy guide exists

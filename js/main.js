@@ -112,7 +112,7 @@ import { LegacyRenderEntrypoints }            from './core/legacyRenderEntrypoin
 import { InlineHandlerAudit }                from './core/inlineHandlerAudit.js';
 import { EventActionBridge, initEventActionBridge } from './ui/eventActionBridge.js';
 import { initLegacyUiShell }                  from './ui/legacyUiShell.js';
-import { registerReportExportFacade }         from './modules/reports/reportExportFacade.js?v=release-authority-exam-state-purity-firebase-final-verification-20260829-v5u6h6';
+import { registerReportExportFacade }         from './modules/reports/reportExportFacade.js?v=qr-v11-history-scope-20261020';
 import { store, resetStore }                  from './store.js';
 import { initFirebase }                        from './firebase/config.js';
 import { showToast, registerToastGlobal }      from './ui/toast.js';
@@ -293,7 +293,7 @@ import {
     getQuitStatusValues,
     getProfilesListenerMetrics,
     ensureAllProfilesForExport,
-} from './listeners/profiles.listeners.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1';
+} from './listeners/profiles.listeners.js?v=coach-roster-context-v10-20261020';
 // Compatibility marker: ./listeners/profiles.listeners.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d
 
 // H8R2.1 cache compatibility: ./listeners/profiles.listeners.js?v=long-term-production-stability-20260917-v5u6h8r2 ; ./modules/attendance.js?v=long-term-production-stability-20260917-v5u6h8r2 ; ./core/studentStatusCommandBoundary.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1 ; ./modules/inventory.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h
@@ -366,7 +366,7 @@ import {
 import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from './modules/finance.js?v=long-term-production-stability-20260917-v5u6h8r2';
 import { initInventory }                              from './modules/inventory.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1';
 // Compatibility marker: from './modules/attendance.js'
-import { initAttendance }                             from './modules/attendance.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1';
+import { initAttendance }                             from './modules/attendance.js?v=qr-v11-intent-20261020';
 // Compatibility marker: ./modules/attendance.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
 // V5U6G1 compatibility marker: ./modules/attendance.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
 import { initDashboard }                              from './modules/dashboard.js?v=dashboard-hydration-mutation-guard-20260812-v5u6c2';

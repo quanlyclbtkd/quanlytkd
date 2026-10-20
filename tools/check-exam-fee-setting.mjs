@@ -1,3 +1,4 @@
+import {contract, expression} from "./v10/contracts.mjs";
 /**
  * tools/check-exam-fee-setting.mjs — Phase 4K-4B
  *
@@ -222,17 +223,7 @@ check(
 // ═══════════════════════════════════════════════════════════════════
 
 // ── 21. finance.js quickCollectExam không còn pattern feeEl.value || 250000 ─
-const financeQuickCollectBlock = (() => {
-    // Search for the actual function definition, not the comment/migration-map
-    const idx = financeJs.indexOf('window.quickCollectExam =');
-    if (idx === -1) {
-        // Fallback: last occurrence of quickCollectExam
-        const last = financeJs.lastIndexOf('quickCollectExam');
-        if (last === -1) return '';
-        return financeJs.slice(last, last + 600);
-    }
-    return financeJs.slice(idx, idx + 600);
-})();
+const financeQuickCollectBlock = expression(financeJs, 'window.quickCollectExam =');
 
 check(
     'finance.js quickCollectExam không còn pattern bare "feeEl.value || 250000"',
@@ -243,11 +234,7 @@ check(
 );
 
 // ── 22. finance.js quickCollectExam phải gọi getClubExamFee ──────────────
-check(
-    'finance.js quickCollectExam dùng getClubExamFee làm fallback',
-    financeQuickCollectBlock.includes('getClubExamFee'),
-    'Thêm window.getClubExamFee fallback vào defaultFee trong quickCollectExam của finance.js'
-);
+check("finance.js quickCollectExam dùng getClubExamFee làm fallback", await contract('exam'));
 
 // ── 23. Không có count * 250000 trong app.js hoặc finance.js ─────────────
 check(

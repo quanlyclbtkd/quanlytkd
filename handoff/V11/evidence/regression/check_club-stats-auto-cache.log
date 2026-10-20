@@ -1,0 +1,12 @@
+✅ clubStatsAutoCache module exists
+✅ main imports initClubStatsAutoCache
+✅ main calls initClubStatsAutoCache
+✅ debugClubStatsAutoCache exposed
+✅ syncClubStatsCache exposed
+✅ SuperAdmin runtime guard exists
+✅ root club cached fields written
+✅ SuperAdmin reads automatic cache fields
+✅ runtime smoke includes debugClubStatsAutoCache
+✅ APP_BUILD_VERSION updated
+✅ index cache bust updated
+✅ check:club-stats-auto-cache PASS

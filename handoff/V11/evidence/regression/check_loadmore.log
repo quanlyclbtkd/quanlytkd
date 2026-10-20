@@ -1,0 +1,12 @@
+
+=== check-active-loadmore-single-source ===
+
+  PASS: studentsRenderer does NOT contain active load-more-row block
+  PASS: app.js legacy active load-more row is disabled (commented)
+  PASS: debugActiveLoadMoreSingleSource defined
+  PASS: _injectControls uses __activeRenderLimit for active load more
+  PASS: active load more calls loadMoreActiveStudents(event)
+  PASS: debugRuntimeSmokeTest includes debugActiveLoadMoreSingleSource
+
+Result: ✅ ALL PASS
+

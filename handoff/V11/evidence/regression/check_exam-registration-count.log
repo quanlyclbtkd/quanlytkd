@@ -1,0 +1,23 @@
+
+══════════════════════════════════════════════════════════════
+ check-exam-registration-count — Phase 4K-5A
+══════════════════════════════════════════════════════════════
+┌─────────┬───────────┬────────────────────────────────────────────────────────────────────────────────┬─────────────────────────────────────────────────────────┐
+│ (index) │ status    │ label                                                                          │ detail                                                  │
+├─────────┼───────────┼────────────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────────────────────────┤
+│ 0       │ '✅ PASS' │ "index.html: element id='exam_registered_count_tab' tồn tại"                   │ 'New exam registration count card in DOM'               │
+│ 1       │ '✅ PASS' │ 'index.html: grid-cols-4 thay vì grid-cols-3 trong exam finance section'       │ '4-column grid layout for exam finance cards'           │
+│ 2       │ '✅ PASS' │ "index.html: card 'Đã đăng ký thi' có text"                                    │ 'Card label text present'                               │
+│ 3       │ '✅ PASS' │ 'app.js: window.computeExamRegistrationStats được định nghĩa'                  │ 'Helper function for exam registration stats'           │
+│ 4       │ '✅ PASS' │ 'app.js: debugExamRegistrationCount được định nghĩa'                           │ 'Debug helper for exam registration count'              │
+│ 5       │ '✅ PASS' │ "app.js: computeExamRegistrationStats đếm 'Lệ phí thi' transactions"           │ 'Counts exam fee transactions'                          │
+│ 6       │ '✅ PASS' │ "app.js: computeExamRegistrationStats đếm 'Học phí + Lệ phí thi' transactions" │ 'Also counts combined tuition+exam fee transactions'    │
+│ 7       │ '✅ PASS' │ 'app.js renderExamList: gọi computeExamRegistrationStats và cập nhật DOM'      │ 'renderExamList updates the new card'                   │
+│ 8       │ '✅ PASS' │ 'main.js debugRuntimeSmokeTest: gọi debugExamRegistrationCount'                │ 'Smoke test includes exam registration count check'     │
+│ 9       │ '✅ PASS' │ 'main.js debugRuntimeSmokeTest: examRegistrationCountOk trong summary'         │ 'Summary includes examRegistrationCountOk'              │
+│ 10      │ '✅ PASS' │ "index.html: cache bust version chứa 'exam-count', '5A', hoặc '5B'"            │ 'main.js cache bust version updated for Phase 4K-5A/5B' │
+└─────────┴───────────┴────────────────────────────────────────────────────────────────────────────────┴─────────────────────────────────────────────────────────┘
+
+Kết quả: 11 PASS / 0 FAIL
+
+✅ Tất cả kiểm tra ĐẠT — exam registration count card OK.

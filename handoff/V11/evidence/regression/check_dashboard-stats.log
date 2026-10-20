@@ -1,0 +1,20 @@
+
+=== V5U6C Dashboard Current-Month Authority ===
+
+✅ tryApplyCurrentMonthStats remains compatibility API
+✅ compatibility API performs no standalone fetchMonthStats read
+✅ compatibility API reads canonical RAM snapshot
+✅ canonical payload carries selectedMonth + monthStats
+✅ current-month apply uses payload.monthStats[selectedMonth]
+✅ income authority supports flat income.total
+✅ income authority supports nested income.total
+✅ expense authority supports flat expense.total
+✅ zero is valid via coverage semantics
+✅ current-month apply updates totalIncomeDashboard
+✅ current-month apply updates totalExpenseDashboard
+✅ current-month apply updates totalProfitDashboard
+✅ render.js no longer calls standalone current-month network path
+✅ render.js consumes canonical Dashboard snapshot
+✅ normal current-month legacy read metric is not incremented by RAM apply
+
+PASS 15/15

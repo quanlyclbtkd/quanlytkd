@@ -1,0 +1,36 @@
+
+══════════════════════════════════════════════════════════
+  Phase 4K — Diagnostic Permission-Denied Handling Check
+══════════════════════════════════════════════════════════
+
+▸ Section 1: printClubRuntimeDiagnostics tồn tại
+  ✅ window.printClubRuntimeDiagnostics được định nghĩa
+  ✅ printClubRuntimeDiagnostics là async function
+
+▸ Section 2: Xử lý lỗi permission-denied
+  ✅ Có handler cho permission-denied trong profiles count
+  ✅ Không gán count = 0 trong catch block của diagnostic
+  ✅ Cảnh báo rõ khi bị permission-denied (không kết luận dữ liệu rỗng)
+
+▸ Section 3: Diagnostic dùng đúng path club-scoped
+  ✅ Diagnostic dùng profRef (club-scoped) thay vì collectionGroup trực tiếp
+  ✅ Diagnostic không dùng collectionGroup "profiles" toàn cục
+
+▸ Section 4: Không tự động chạy diagnostic khi load
+  ✅ printClubRuntimeDiagnostics không được gọi tự động tại top-level
+
+▸ Section 5: An toàn — dùng getCountFromServer
+  ✅ Diagnostic dùng getCountFromServer thay vì getDocs full collection
+  ✅ Kiểm tra getCountFromServer available trước khi gọi
+
+▸ Section 6: finance.js — lỗi index không kết luận dữ liệu = 0
+  ✅ finance.js bắt lỗi failed-precondition (index error) riêng
+  ✅ Khi lỗi index, finance.js không reset pgState.currentItems về []
+
+══════════════════════════════════════════════════════════
+  Total: 12 | ✅ Pass: 12 | ❌ Fail: 0
+
+  🎉 Diagnostic permission-denied handling checks passed!
+  Khi Firestore Rules chặn diagnostic, UI không bị set về 0.
+══════════════════════════════════════════════════════════
+

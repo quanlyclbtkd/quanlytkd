@@ -1,0 +1,30 @@
+✅ listenerOwnershipBoundary module exists
+✅ module declares 4K-6M phase
+✅ module exports ListenerOwnershipBoundary
+✅ module exports initListenerOwnershipBoundary
+✅ module has addOwnedEventListener
+✅ module has cleanupOwnedEventsByOwner
+✅ module has cleanupOwnedEventsByTabId
+✅ module has scheduleRender wrapper metrics
+✅ module exposes debugListenerOwnershipBoundary
+✅ module exposes debugEventBindingOwnership
+✅ module exposes debugRenderEventCleanup
+✅ module has no Firestore write calls
+✅ module does not own processMultiItem
+✅ main imports listener ownership boundary
+✅ main calls initListenerOwnershipBoundary
+✅ APP_BUILD_VERSION updated to 4K-6M
+✅ index cache bust updated to 4K-6M
+✅ debugRuntimeSmokeTest includes listener ownership debug
+✅ debugRuntimeSmokeTest includes event binding ownership debug
+✅ debugRuntimeSmokeTest includes render event cleanup debug
+✅ tabs.js notifies boundary on tab leave
+✅ tabs.js notifies boundary on tab enter
+✅ clubStatsAutoCache uses owned event boundary for window events
+✅ existing Firestore safeRegisterSnapshot registry still present
+✅ app.js scheduleRender still routes via LegacyRenderEntrypoints
+✅ app.js processMultiItem remains present
+✅ app.js quickPay remains present
+✅ package has check:listener-ownership-boundary
+
+check-listener-ownership-boundary PASS

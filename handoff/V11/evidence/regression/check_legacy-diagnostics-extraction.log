@@ -1,0 +1,17 @@
+
+── check:legacy-diagnostics-extraction ─────────────────────────────────
+✅ PASS  1. LegacyDiagnostics object exported from legacyDiagnostics.js
+✅ PASS  2. initLegacyDiagnostics exported from legacyDiagnostics.js
+✅ PASS  3. initLegacyDiagnostics assigns window.LegacyDiagnostics
+✅ PASS  4. initLegacyDiagnostics imported in main.js
+✅ PASS  5. legacyAppAudit.js getAppJsReductionPlan mentions 4K-6G MultiItem Inventory Hydration fix
+✅ PASS  6. processMultiItem still exists in app.js (not moved or deleted)
+✅ PASS  7. initSaaSDatabase still exists in app.js (not removed)
+✅ PASS  8. listenToData still exists in app.js (not removed)
+✅ PASS  9. renderApp still exists in app.js (not removed)
+✅ PASS  10. scheduleRender still exists in app.js (not removed)
+
+Result: 10 passed, 0 failed
+
+✅ check:legacy-diagnostics-extraction PASS (10/10)
+

@@ -1,0 +1,51 @@
+
+🔎 Phase 4K-6V5U3 — Student Given-Name Search Priority
+
+✅ CASE 1: search "an" giữ nguyên đủ 7 kết quả cũ
+✅ CASE 1: search "an" không thêm/mất hồ sơ
+✅ CASE 1: exact final-token "An" đứng đầu và giữ stable order
+✅ CASE 1: "Anh" đứng sau exact given-name "An"
+✅ CASE 1: exact token giữa tên đứng sau final-token startsWith
+✅ CASE 1: generic contains Hân đứng sau exact other-token
+✅ CASE 2: query "anh" ưu tiên Hoàng Bảo Anh
+✅ CASE 3: exact full name đứng đầu
+✅ CASE 3: exact full name = priority 1
+✅ Priority 3: exact multi-token suffix
+✅ Priority 4: final token startsWith query
+✅ Priority 5: exact non-final token
+✅ Priority 6: non-final token startsWith query
+✅ Priority 7: generic full-name contains
+✅ Priority 8: no name match / metadata-only
+✅ CASE 4: normalization tiếng Việt vẫn accent-insensitive
+✅ CASE 4: query có dấu vẫn ưu tiên exact given-name sau normalize
+✅ CASE 5: exact phone search hoạt động như trước
+✅ CASE 6: exact memberId/VTF code hoạt động như trước
+✅ CASE 7: blank search không re-rank danh sách mặc định
+✅ CASE 8: Debt ranking giữ nguyên debtCount/result count
+✅ CASE 8: Debt ranking giữ nguyên totalDebtEst
+✅ CASE 8: Debt presentation ưu tiên exact given-name An
+✅ CASE 9: Quit blank search giữ alphabetical behavior cũ
+✅ CASE 9: Quit search "an" ưu tiên exact final-token trước Anh/contains
+✅ CASE 9: Quit search giữ nguyên tập kết quả đã match
+✅ Architecture: SearchRuntime vẫn chỉ có một canonical input listener
+✅ Architecture: không tạo search controller/engine mới
+✅ Architecture: app.js legacy search guards vẫn còn
+✅ Architecture: students.events fallback guard vẫn còn
+✅ Architecture: IME + stale/latest-only protections giữ nguyên
+✅ Architecture: server fallback hiện hữu giữ nguyên
+✅ Firestore: core/Debt/Quit ranking không thêm Firestore read
+✅ Firestore: Finance/Inventory presentation ranking không thêm Firestore read
+✅ Debt safety: debtPassFilter tiếp tục = sharedPassFilter
+✅ Debt safety: chỉ collect ranking sau debt qualification/filter
+✅ Debt safety: totalDebtEst tính trước presentation ranking
+✅ Quit safety: authoritative source/completeness giữ nguyên, ranking chỉ khi search
+✅ Stable sort: original index được dùng làm tie-break
+✅ Cache-bust: index main runtime dùng V5U3 marker
+✅ Scope: không thêm fuzzy/Levenshtein/Soundex
+✅ Other tabs: Finance chỉ re-rank matched presentation rows
+✅ Other tabs: Inventory chỉ re-rank matched presentation rows
+
+──────────────────────────────────────────────────────────────────
+Kết quả V5U3: 43 PASS / 0 FAIL
+✅ Student Given-Name Search Priority regression gate PASS.
+

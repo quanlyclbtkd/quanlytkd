@@ -1,0 +1,39 @@
+
+🔍 Phase 4K-6D — check-security-license-ip-protection
+
+  ✅ PASS — js/core/securityPosture.js tồn tại
+  ✅ PASS — window.SecurityPosture được expose trong main.js
+  ✅ PASS — window.APP_COPYRIGHT_OWNER được định nghĩa
+  ✅ PASS — window.APP_PRODUCT_NAME được định nghĩa
+  ✅ PASS — window.APP_BUILD_FINGERPRINT được định nghĩa
+  ✅ PASS — window.debugBuildFingerprint được định nghĩa
+  ✅ PASS — window.debugSecurityPosture được định nghĩa
+  ✅ PASS — window.debugLicenseGuardReadiness được định nghĩa
+  ✅ PASS — window.debugAppCheckReadiness được định nghĩa
+  ✅ PASS — window.debugApiKeyDomainRestrictionChecklist được định nghĩa
+  ✅ PASS — window.debugSourceProtectionStatus được định nghĩa
+  ✅ PASS — window.debugPrivilegedClientActions được định nghĩa
+  ✅ PASS — window.debugFirestoreRulesReadiness được định nghĩa
+  ✅ PASS — debugRuntimeSmokeTest include debugBuildFingerprint
+  ✅ PASS — debugRuntimeSmokeTest include debugSecurityPosture
+  ✅ PASS — debugRuntimeSmokeTest include debugLicenseGuardReadiness
+  ✅ PASS — debugRuntimeSmokeTest include debugAppCheckReadiness
+  ✅ PASS — debugRuntimeSmokeTest include debugApiKeyDomainRestrictionChecklist
+  ✅ PASS — debugRuntimeSmokeTest include debugSourceProtectionStatus
+  ✅ PASS — debugRuntimeSmokeTest include debugPrivilegedClientActions
+  ✅ PASS — debugRuntimeSmokeTest include debugFirestoreRulesReadiness
+  ✅ PASS — Không có file *.map trong package
+  ✅ PASS — Không có file .env trong package
+  ✅ PASS — Không có file tên serviceAccount trong package
+  ✅ PASS — Không có file chứa private_key trong package
+  ✅ PASS — Không có file chứa client_secret trong package
+  ✅ PASS — index.html có cache bust 'security-license-ip-protection-readiness-20260605' hoặc phase mới hơn
+  ✅ PASS — APP_BUILD_VERSION = '4K-6D-...' hoặc phase mới hơn
+  ✅ PASS — Không có hard block license (shouldHardBlockNow phải false)
+  ✅ PASS — Không có obfuscator/minify mới trong phase này
+
+══════════════════════════════════════════════════════════
+  Total: 30 checks | ✅ Pass: 30 | ❌ Fail: 0
+
+  🎉 All security license IP protection checks passed!
+

@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+import {HISTORY_AUTHORITY} from '../js/core/attendanceContract.js';
 import { readFile } from 'node:fs/promises';
 import {
   initializeTestEnvironment,
@@ -166,13 +166,13 @@ try {
   });
 
   await test('Coach can create attendance in assigned branch', async () => {
-    await assertSucceeds(setDoc(doc(coach1, 'clubs/club-a/attendance/new-cs1'), {
-      profileId: 'p-cs1', branch: 'CS1', date: '2026-06-25', month: '2026-06', status: 1,
+    await assertSucceeds(setDoc(doc(coach1, 'clubs/club-a/attendance/p-cs1_2026-06-25'), {
+      profileId: 'p-cs1', name:'p-cs1', branch: 'CS1', date: '2026-06-25', month: '2026-06', status: 1, historyAuthority:HISTORY_AUTHORITY,attendanceVersion:'broad-create-cs1-v11',attendancePreviousVersion:'legacy',
     }));
   });
   await test('Coach cannot create attendance in another branch', async () => {
-    await assertFails(setDoc(doc(coach1, 'clubs/club-a/attendance/new-cs2'), {
-      profileId: 'p-cs2', branch: 'CS2', date: '2026-06-25', month: '2026-06', status: 1,
+    await assertFails(setDoc(doc(coach1, 'clubs/club-a/attendance/p-cs2_2026-06-25'), {
+      profileId: 'p-cs2', name:'p-cs2', branch: 'CS2', date: '2026-06-25', month: '2026-06', status: 1, historyAuthority:HISTORY_AUTHORITY,attendanceVersion:'broad-create-cs2-v11',attendancePreviousVersion:'legacy',
     }));
   });
   await test('Coach cannot move an attendance record to another branch', async () => {

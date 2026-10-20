@@ -1,0 +1,16 @@
+i  emulators: Starting emulators: firestore
+i  emulators: Detected demo project ID "demo-v11-cutover", emulated services will use a demo configuration and attempts to access non-emulated services for this project will fail.
+i  firestore: Firestore Emulator logging to firestore-debug.log
+✔  firestore: Firestore Emulator was started in standard edition.
+✔  firestore: Firestore Emulator UI websocket is running on 9150.
+i  Running script: node tools/v11/cutover.mjs
+[2026-10-20T17:09:40.195Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x725db871 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L238:34 for 'create' @ L238, false for 'create' @ L358, false for 'create' @ L511, evaluation error at L238:34 for 'update' @ L238, false for 'update' @ L358, false for 'update' @ L511, false for 'create' @ L238, false for 'create' @ L358, false for 'create' @ L511
+[2026-10-20T17:09:40.241Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x725db872 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L238:34 for 'update' @ L238, false for 'update' @ L358, false for 'update' @ L511, false for 'update' @ L238, false for 'update' @ L358, false for 'update' @ L511
+CUTOVER PASS: Coach get/list/create/update denied; Admin sees pre-existing cohort; activation rejected on nonzero cohort.
+✔  Script exited successfully (code 0)
+i  emulators: Shutting down emulators.
+i  firestore: Stopping Firestore Emulator
+i  hub: Stopping emulator hub
+i  logging: Stopping Logging Emulator

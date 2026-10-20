@@ -1,0 +1,26 @@
+
+══════════════════════════════════════════════════════════════
+ check-student-quit-separation — Phase 4K-5A
+══════════════════════════════════════════════════════════════
+┌─────────┬───────────┬───────────────────────────────────────────────────────────────────────────────────────────────┬─────────────────────────────────────────────────────────────────────┐
+│ (index) │ status    │ label                                                                                         │ detail                                                              │
+├─────────┼───────────┼───────────────────────────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────────┤
+│ 0       │ '✅ PASS' │ "students.service.js: không dùng where('status', '!=', 'quit')"                               │ 'Đã loại bỏ unsafe inequality filter'                               │
+│ 1       │ '✅ PASS' │ "students.service.js: dùng getActiveQueryValues hoặc 'in' query"                              │ "Thay thế bằng 'in' query hoặc client-side classify"                │
+│ 2       │ '✅ PASS' │ "profileStatusConfig.js: quitAliases có 'retired'"                                            │ 'retired alias added'                                               │
+│ 3       │ '✅ PASS' │ "profileStatusConfig.js: quitQueryValues có 'retired'"                                        │ 'quitQueryValues includes retired'                                  │
+│ 4       │ '✅ PASS' │ "profileStatusConfig.js: quitAliases có 'nghỉ tập'"                                           │ 'Vietnamese alias added'                                            │
+│ 5       │ '✅ PASS' │ 'students.js: window.syncStudentStatusLocal được định nghĩa'                                  │ 'Global helper for local store sync'                                │
+│ 6       │ '✅ PASS' │ 'students.js: debugStudentStatusSeparation được định nghĩa'                                   │ 'Debug helper for status separation check'                          │
+│ 7       │ '✅ PASS' │ 'students.js handleQuitOption: delegates quit to canonical status boundary'                   │ 'V5U-1 boundary owns Firestore write and local status commit'       │
+│ 8       │ '✅ PASS' │ 'students.js updateProfile: gọi syncStudentStatusLocal'                                       │ 'syncStudentStatusLocal called after updateProfile'                 │
+│ 9       │ '✅ PASS' │ "students.js openBulkZaloModal: không dùng p.status !== 'active' trực tiếp"                   │ 'classifyProfileStatus pattern used instead'                        │
+│ 10      │ '✅ PASS' │ "app.js: ít hơn 3 nơi dùng p.status === 'active' trực tiếp (không qua classifyProfileStatus)" │ "Tìm thấy 0 chỗ dùng p.status === 'active' trực tiếp"               │
+│ 11      │ '✅ PASS' │ "app.js: ít hơn 3 nơi dùng p.status !== 'active' trực tiếp (không qua classifyProfileStatus)" │ "Tìm thấy 0 chỗ dùng p.status !== 'active' trực tiếp"               │
+│ 12      │ '✅ PASS' │ 'app.js handleQuitOption: contains no direct status writer and delegates to boundary'         │ 'V5U-1 removes legacy writer while preserving canonical local sync' │
+│ 13      │ '✅ PASS' │ 'main.js debugRuntimeSmokeTest: gọi debugStudentStatusSeparation'                             │ 'smoke test includes student status separation check'               │
+└─────────┴───────────┴───────────────────────────────────────────────────────────────────────────────────────────────┴─────────────────────────────────────────────────────────────────────┘
+
+Kết quả: 14 PASS / 0 FAIL
+
+✅ Tất cả kiểm tra ĐẠT — student quit separation OK.

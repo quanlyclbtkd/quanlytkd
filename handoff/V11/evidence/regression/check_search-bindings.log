@@ -1,0 +1,51 @@
+
+══════════════════════════════════════════════════════════
+  Phase 4J-9B — Search Bindings & Stability Check
+══════════════════════════════════════════════════════════
+
+▸ Section 1: students.search.js
+  ✅ students.search.js exists
+  ✅ Không còn STATUS: Stub
+  ✅ Export normalizeSearchInput
+  ✅ Export initStudentSearchController
+  ✅ Export disposeStudentSearchController
+  ✅ Có quản lý __studentSearchControllerMounted
+
+▸ Section 2: Search binding guards
+  ✅ app.js oninput có guard __studentSearchControllerMounted
+  ✅ app.js destructure startAfter, startAt, endAt
+  ✅ students.js set __studentSearchControllerMounted = true
+  ✅ students.js có debounce search (350ms)
+  ✅ students.events.js guard __studentSearchControllerMounted
+  ✅ students.events.js fallback callback có runtime guard bên trong
+
+▸ Section 3: Parent Portal hard-disable boundary
+  ✅ Parent Portal compatibility no-op remains but reader is retired
+  ✅ Active runtime has no parentCode search query
+
+▸ Section 4: Transaction listener guard
+  ✅ listenToData có cleanupListenersByOwner
+  ✅ listenToData có safeRegisterSnapshot guard
+  ✅ Transaction listener key có clubId + monthStr
+
+▸ Section 5: Attendance limit guard
+  ✅ Attendance query preserves date, branch, shift and cursor
+  ✅ Attendance có server-side shift filter khi chọn ca
+  ✅ Attendance rejects incomplete daily coverage
+
+▸ Section 6: Business calculation limits
+  ✅ Không còn UNSAFE_LIMIT_FOR_CALCULATION cho nghiệp vụ tính toán tài chính
+  ✅ fetchQueryPages được dùng cho paginated business calculation
+  ✅ SA revenue không còn limit(1000) cứng
+
+▸ Section 7: searchNameTokens — mid-name search
+  ✅ searchProfilesServerSide có searchNameTokens array-contains
+  ✅ searchProfilesServerSide destructure where từ _sdk()
+  ✅ buildStudentSearchIndex tạo searchNameTokens
+
+══════════════════════════════════════════════════════════
+  Total: 26 checks | ✅ Pass: 26 | ❌ Fail: 0
+
+  🎉 Search bindings & stability — all clear!
+══════════════════════════════════════════════════════════
+

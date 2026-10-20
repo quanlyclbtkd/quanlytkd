@@ -1,0 +1,20 @@
+✅ V5R build marker active
+✅ complete mode is dedicated quit store only
+✅ legacy/canonical union is preview-only
+✅ boundary dedupes preview by stable identity
+✅ active bucket removes restored ids from quit bucket
+✅ quit bucket removes ids from active bucket
+✅ quit authority is club-scoped
+✅ quit authority is event-driven: no 60-second mandatory refresh or polling
+✅ quit authority keeps one existing authoritative getDocs flight
+✅ membership mutations preserve full Admin authority without duplicate Quit read
+✅ legacy dirty path remains only when full authority is unavailable
+✅ Coach fails closed before quit full-profile authority read
+✅ renderQuitIsland ignores cached quit HTML when boundary exists
+✅ legacy tab switch cannot restore cached quit HTML
+✅ profile rename updates canonical store immediately
+✅ public boundary mirror synced
+✅ V5R module performs no Firestore IO
+✅ package exposes V5R checks
+
+PASS 18/18

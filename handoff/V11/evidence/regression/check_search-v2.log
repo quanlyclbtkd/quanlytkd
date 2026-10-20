@@ -1,0 +1,16 @@
+
+=== check-search-runtime-v2 ===
+
+  PASS: __searchRuntimeV2Mounted set in searchRuntime.js
+  PASS: inputHandler reference saved in _state
+  PASS: disposeGlobalSearchRuntime uses removeEventListener
+  PASS: compositionstart/compositionend handlers present
+  PASS: debounceMs = 450 (>= 400)
+  PASS: queuedTerm (latest-only queue) present
+  PASS: Server search blocked for term < 2 chars
+  PASS: debugUnifiedSearchV2 defined
+  PASS: app.js legacy search guards __searchRuntimeV2Mounted
+  PASS: debugRuntimeSmokeTest includes debugUnifiedSearchV2
+
+Result: ✅ ALL PASS
+

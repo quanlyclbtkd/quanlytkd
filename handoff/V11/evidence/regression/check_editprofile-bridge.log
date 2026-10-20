@@ -1,0 +1,33 @@
+
+══════════════════════════════════════════════════════════
+  editProfile Bridge Check — Phase 4K-RUNTIME-CLEANUP
+══════════════════════════════════════════════════════════
+
+▸ Section 1: bridge existence and pattern
+  ✅ window.editProfile bridge dùng || (không ghi đè impl thật)
+  ✅ Bridge dùng ...args (rest params) thay vì chỉ (name)
+
+▸ Section 2: multi-candidate fallback
+  ✅ candidates array có __realEditProfile
+  ✅ candidates array có window.openProfile
+  ✅ candidates array có window.editStudent
+  ✅ candidates array có window.openEditProfile
+  ✅ candidates array có window.showStudentModal
+  ✅ .filter(fn => typeof fn === "function") để lọc available handlers
+  ✅ forward candidates[0](...args) khi có candidate
+
+▸ Section 3: safe fallback khi không có candidate
+  ✅ Bridge có console.warn khi không có candidate
+  ✅ Bridge có showToast fallback
+  ✅ Bridge return null khi không có candidate
+
+▸ Section 4: ordering
+  ✅ editProfile bridge gán SAU initStudents()
+
+══════════════════════════════════════════════════════════
+  Total: 13 | ✅ 13 | ❌ 0
+
+  🎉 editProfile bridge checks passed!
+  Nút sửa hồ sơ võ sinh sẽ hoạt động qua bridge nếu không có impl thật.
+══════════════════════════════════════════════════════════
+

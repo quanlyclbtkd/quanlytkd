@@ -1,0 +1,21 @@
+
+🔍 Phase 4K-6E-B — Exam Export Belt Sort Check
+
+[32m✅ PASS[0m  reports.js readable
+[32m✅ PASS[0m  main.js readable
+[32m✅ PASS[0m  buildSheet không còn Object.keys(subset).sort()
+[32m✅ PASS[0m  reports.js có EXAM_EXPORT_BELT_ORDER
+[32m✅ PASS[0m  reports.js có getExamExportBeltRank
+[32m✅ PASS[0m  getExamExportBeltRank có alias fallback cho cap X
+[32m✅ PASS[0m  reports.js có sortExamExportEntries
+[32m✅ PASS[0m  buildSheet gọi sortExamExportEntries
+[32m✅ PASS[0m  sortExamExportEntries đọc profile.belt hoặc currentBelt
+[32m✅ PASS[0m  sortExamExportEntries xét targetBelt
+[32m✅ PASS[0m  sortExamExportEntries xét branch
+[32m✅ PASS[0m  reports.js có debugExamExportSortPreview
+[32m✅ PASS[0m  debugRuntimeSmokeTest references debugExamExportSortPreview
+[32m✅ PASS[0m  index.html cache bust có 4K-6E-B hoặc mới hơn
+[32m✅ PASS[0m  main.js APP_BUILD_VERSION có 4K-6E-B
+
+[32m✅ All checks passed (13/13)[0m
+

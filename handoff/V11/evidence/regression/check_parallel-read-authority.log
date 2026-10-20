@@ -1,0 +1,49 @@
+✅ Auth users verification remains single-flight source
+✅ Notifications have no normal parallel GET
+✅ Canonical transaction source remains one listener
+✅ Legacy transaction sources remain exactly three
+✅ Canonical/legacy branch remains mutually exclusive
+✅ Coach CS1 intentional dual listener remains documented
+✅ Branch-complete Coach realtime removes obsolete active-zero probe
+✅ Full profiles fallback remains guarded
+✅ Production policy selects one client stats writer
+✅ SuperAdmin render has no automatic callable owner
+✅ Callable compatibility path fails closed before lookup
+✅ Stats writer requires same-club/month complete coverage
+✅ Incomplete RAM omits financial root and stats payload fields
+✅ Normal bootstrap has no automatic legacy recovery owner
+✅ runtime: automatic SuperAdmin refresh is policy-disabled
+✅ runtime: manual compatibility refresh is policy-disabled
+✅ runtime: policy-disabled paths make zero callable requests
+✅ Dashboard render has no direct stats Firestore reader
+✅ Dashboard render does not invoke legacy historical network owner
+✅ Dashboard render does not invoke standalone current stats network owner
+✅ Legacy historical API is RAM-only
+✅ Current-month compatibility API is RAM-only
+✅ Canonical Dashboard scheduler/loader remain the single normal authority
+✅ Dashboard mutation intent routes through existing module namespace
+✅ Dashboard hydration reconciliation performs no Firestore read
+✅ Dashboard hydration reconciliation creates no second network owner
+✅ Dashboard dirty backoff is eligibility-only with no polling owner
+✅ Dashboard dirty refresh does not create a second stats reader
+✅ Dashboard same freshness revision preserves single-flight ownership
+✅ Dashboard running flight token remains immutable across newer mutation revision
+✅ Attendance has one canonical daily orchestrator
+✅ Attendance module has exactly one loadByDate invocation
+✅ Attendance compatibility global delegates to canonical owner
+✅ Attendance daily coalescing is isolated by auth context
+✅ Profiles invalidation has no direct daily render owner
+✅ Legacy and module renderApp paths are RAM presentation only
+✅ Attendance pseudo-listener fallback is RAM presentation only
+✅ Attendance shifts have one same-club Promise latch
+✅ Attendance Day island blocks hidden monthly owner
+✅ Attendance Month island blocks hidden daily owner
+✅ Attendance RAM reconciliation performs no service/Firestore read
+✅ Attendance Firestore daily query remains service-owned
+✅ Attendance configured blank shift cannot create an all-shift reader
+✅ Attendance shift decision helper creates no network owner
+✅ Attendance toggle and bulk share the same shift write authority
+✅ Attendance shift retry stays on the existing Promise owner
+✅ Attendance offline different-context handoff cannot create a parallel writer
+✅ Attendance offline follow-up starts only after active flight is released
+PASS 48/48

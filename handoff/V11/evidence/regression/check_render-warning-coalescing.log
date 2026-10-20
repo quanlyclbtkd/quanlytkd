@@ -1,0 +1,21 @@
+
+=== Phase 4K-6V4B12 — Render Warning Coalescing ===
+
+✅ index cache-busts app.js/main.js to current render-safe build
+✅ main imports changed render/list/student modules with current cache-bust
+✅ nested render imports use current cache-bust
+✅ students slow warning threshold raised and gated for production
+✅ listComputationRefresh threshold raised from 16ms to severe 64ms
+✅ listComputationRefresh has same-tick domain refresh coalescing
+✅ refreshListComputation reuses a recent identical domain refresh
+✅ refreshListsComputation reuses recent batch refresh by domain
+✅ ListComputationSlow warning is gated in production
+✅ UI-only invalidations do not bump dataVersion again
+✅ search/filter/load-more are routed as list-only invalidations before domain invalidation
+✅ direct legacy invalidateStudents(search/filter) no longer clears whole students cache
+✅ LegacyRenderWarning remains for diagnostics but is production-gated
+✅ APP patch version updated to V4B12 or later
+
+Total: 14 | PASS: 14 | FAIL: 0
+Phase 4K-6V4B12 render warning coalescing checks passed.
+

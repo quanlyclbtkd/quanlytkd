@@ -1,0 +1,29 @@
+
+🔍 Phase 4K-3 — Tuition Action Check
+
+[32m✅ PASS[0m  financeRenderer.js — print button has data-action="print-tuition-receipt"
+[32m✅ PASS[0m  financeRenderer.js — print button has class js-print-tuition-receipt
+[32m✅ PASS[0m  financeRenderer.js — print button has data-tx-id
+[32m✅ PASS[0m  financeRenderer.js — print button has data-student-name
+[32m✅ PASS[0m  financeRenderer.js — student name has data-action="open-student-profile"
+[32m✅ PASS[0m  financeRenderer.js — student name has class js-open-student-profile
+[32m✅ PASS[0m  financeRenderer.js — month badge column present (formatMonth)
+[32m✅ PASS[0m  finance.events.js — event delegation for print-tuition-receipt
+[32m✅ PASS[0m  finance.events.js — event delegation for open-student-profile
+[32m✅ PASS[0m  finance.events.js — initFinanceActionEvents exported
+[32m✅ PASS[0m  finance.events.js — __financeActionEventsMounted guard
+[32m✅ PASS[0m  main.js — imports initFinanceActionEvents
+[32m✅ PASS[0m  main.js — window.printTuitionReceiptByTxId bridge
+[32m✅ PASS[0m  main.js — window.openStudentProfileByName bridge
+[32m✅ PASS[0m  main.js — calls initFinanceActionEvents()
+[32m✅ PASS[0m  main.js — _findTransactionById searches multiple store sources
+[32m✅ PASS[0m  main.js — window.debugTuitionActions helper
+[32m✅ PASS[0m  index.html — main.js version updated (post-tuition-fix)
+[32m✅ PASS[0m  main.js — printTuitionReceiptByTxId không fallback 0 đồng khi tx không tìm thấy
+[32m✅ PASS[0m  main.js — openStudentProfileByName có normalize fallback tiếng Việt
+[32m✅ PASS[0m  main.js — debugTuitionActions có firstPrintDataset
+[32m✅ PASS[0m  main.js — debugTuitionActions có sampleTxIds
+
+────────────────────────────────────────────────────────────
+[32m🎉 Tất cả kiểm tra PASSED — Phase 4K-3 + 4K-3B ready[0m
+

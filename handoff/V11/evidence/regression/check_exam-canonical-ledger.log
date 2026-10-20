@@ -1,0 +1,13 @@
+[check-exam-canonical-ledger] Phase 4K-5C static analysis...
+  ✅ hasBuildCanonicalExamPaymentLedger: true
+  ✅ hasDebugExamCanonicalLedger: true
+  ✅ renderExamListUsesLedger: true
+  ✅ computeExamStatsUsesLedger: true
+  ✅ dedupeLogicPresent: true
+  ✅ examPaidCancelledGuard: true
+  ✅ canonicalLedgerPhaseComment: true
+  ✅ exportExamPaidListUsesCanonicalLedger: true
+  ✅ smokeTestHasExamCanonicalLedger: true
+  ✅ smokeTestHasBundleTransactions: true
+
+✅ All canonical ledger checks passed.

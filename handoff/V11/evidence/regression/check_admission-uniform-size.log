@@ -1,0 +1,17 @@
+
+🔍 Phase 4K-3B — Admission Uniform Size Check
+
+[32m✅ PASS[0m  main.js — window.ensureInventoryReady bridge
+[32m✅ PASS[0m  main.js — window.getUniformSizesFromInventory bridge
+[32m✅ PASS[0m  main.js — window.renderAdmissionUniformSizeOptions bridge
+[32m✅ PASS[0m  finance.events.js — event delegation for choose-admission-uniform-size
+[32m✅ PASS[0m  finance.events.js — event delegation for select-admission-uniform-size
+[32m✅ PASS[0m  main.js — getUniformSizesFromInventory reads from window.__store.inventory
+[32m✅ PASS[0m  main.js — getUniformSizesFromInventory supports size/uniformSize/itemSize/variant fields
+[32m✅ PASS[0m  main.js — getUniformSizesFromInventory normalize Vietnamese (NFD / đ→d)
+[32m✅ PASS[0m  main.js — window.debugAdmissionUniformSize debug helper
+[32m✅ PASS[0m  main.js — _installAdmissionUniformSizeBridges() called in bootstrap
+
+────────────────────────────────────────────────────────────
+[32m🎉 Tất cả kiểm tra PASSED — Phase 4K-3B ready[0m
+

@@ -1,3 +1,4 @@
+import {contract, expression} from "./v10/contracts.mjs";
 /**
  * tools/check-scale-readiness.mjs — Phase 4J-8
  * ─────────────────────────────────────────────────────────────────────
@@ -116,7 +117,7 @@ console.log('▸ Section 6: Attendance Scale Safety (attendance.service.js)');
 const attService = readFile('js/services/attendance.service.js');
 check('attendance.service.js exists', !!attService, 'File not found');
 if (attService) {
-    check('loadByDate limit uses attendanceDailyLimit', attService.includes('attendanceDailyLimit'), 'Bump loadByDate limit to use __scaleConfig.attendanceDailyLimit');
+    check("Daily pagination covers all pages and rejects incomplete coverage", await contract('scale'));
     check('loadByDate limit bumped from 500', !attService.includes('[_lim(500)]'), 'Remove old limit(500) in loadByDate');
     check('loadByMonth uses cursor pagination', attService.includes('startAfter: _startAfter') && attService.includes('while (pages < maxPages)'), 'Monthly load must use startAfter cursor pagination');
     check('loadByMonth has page-size config', attService.includes('attendanceMonthlyPageSize'), 'Add attendanceMonthlyPageSize config');
@@ -189,7 +190,7 @@ if (appJs) {
     const renameEnd = renameStart >= 0 ? studentsModule.indexOf('window.deleteProfile = async () =>', renameStart) : -1;
     const renameBody = renameStart >= 0 && renameEnd > renameStart ? studentsModule.slice(renameStart, renameEnd) : '';
     const renameGuard = renameBody.indexOf('if (oldName !== newName)');
-    check('primary rename is fail-closed before lookup/write', renameGuard >= 0 && renameBody.indexOf('return;', renameGuard) >= 0 && renameGuard < renameBody.indexOf('StudentService.findTransactionsByStudent') && renameGuard < renameBody.indexOf('StudentStatusCommandBoundary.updateProfile'), 'Primary-name rename must remain blocked before transaction lookup/canonical write');
+    check("Display edit keeps immutable profile identity and action tokens", await contract('display'));
     check('tuition delete uses targeted student reconciliation', !!tuitionBoundary && tuitionBoundary.includes('deleteTuitionTransaction') && tuitionBoundary.includes('getStudentTuitionTxs(studentName)') && !!financeService && /where\(\s*['"]description['"]\s*,\s*['"]==['"]\s*,\s*studentName\s*\)/.test(financeService), 'Tuition delete must query only the target student description, not full transaction collection');
 }
 console.log();

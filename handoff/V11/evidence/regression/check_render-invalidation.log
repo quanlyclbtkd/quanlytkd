@@ -1,0 +1,46 @@
+
+══════════════════════════════════════════════════════════
+  Render Invalidation Usage Check — Phase 4K-PROFILE-HYDRATION
+══════════════════════════════════════════════════════════
+
+▸ Section 1: renderInvalidation.js — expose APIs đúng
+  ✅ window.invalidateCurrentTab exposed
+  ✅ window.invalidateTab exposed
+  ✅ window.invalidateByDomain exposed
+  ✅ window.invalidateFinance exposed
+  ✅ window.invalidateStudents exposed
+  ✅ window.invalidateDashboard exposed
+  ✅ [LegacyRenderWarning] throttled warning trong scheduleRender wrapper
+
+▸ Section 2: tabs.js — switchTab dùng invalidateCurrentTab
+  ✅ switchTab gọi invalidateCurrentTab (Phase 3.5C)
+  ✅ switchTab có fallback scheduleRender (không xóa backward compat)
+  ✅ switchTab KHÔNG gọi scheduleRender() trực tiếp (không có fallback guard)
+  ✅ tabs.js có _switchToDashboard dùng invalidateDashboard hoặc scheduleRender
+
+▸ Section 3: render.js — initRender expose scheduleRender an toàn
+  ✅ render.js expose window.scheduleRender nếu chưa set
+  ✅ render.js expose window._moduleRenderApp
+
+▸ Section 4: app.js — render path chính dùng domain invalidation
+  ✅ app.js có invalidateStudents (không chỉ scheduleRender) cho profiles
+  ✅ app.js có invalidateFinance hoặc invalidateByDomain cho finance
+  ✅ app.js scheduleRender còn lại đều có fallback comment/guard
+
+▸ Section 5: main.js — printClubRuntimeDiagnostics có metrics render
+  ✅ printClubRuntimeDiagnostics tồn tại
+  ✅ printClubRuntimeDiagnostics log __renderLegacyMetrics (scheduleRender calls)
+  ✅ printClubRuntimeDiagnostics log __lastFirestoreError
+
+▸ Section 6: main.js — retryDataHydration + isClubRuntimeReady (Phase 4K)
+  ✅ window.retryDataHydration tồn tại (manual retry helper)
+  ✅ window.isClubRuntimeReady tồn tại (db + clubId + user check)
+  ✅ printClubRuntimeDiagnostics in retryDataHydration available?
+
+══════════════════════════════════════════════════════════
+  Total: 22 | ✅ 22 | ❌ 0
+
+  🎉 Render invalidation checks passed!
+  switchTab dùng domain invalidation đúng — không spam scheduleRender.
+══════════════════════════════════════════════════════════
+

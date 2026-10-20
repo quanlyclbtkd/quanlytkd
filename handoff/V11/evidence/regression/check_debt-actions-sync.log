@@ -1,0 +1,25 @@
+
+🔍 check-debt-actions-sync.mjs — Phase 4K-5L
+
+  ✅ [1] syncStudentSkippedMonthLocal defined in students.js
+  ✅ [2] removeStudentFromDebtDom defined in students.js
+  ✅ [3] markStudentQuitFromDebt defined in students.js
+  ✅ [4] skipDebtMonthFromDebt defined in students.js
+  ✅ [5] V5U-1 skipMonth ownership moved out of app.js and boundary syncs skipped month
+  ✅ [6] syncStudentStatusLocal calls removeStudentFromDebtDom on quit
+  ✅ [7] renderDebtRow does NOT use onclick="handleQuitOption as action button
+  ✅ [8] renderDebtRow has markStudentQuitFromDebt button
+  ✅ [9] renderDebtRow has skipDebtMonthFromDebt button
+  ✅ [10] app.js has markStudentQuitFromDebt or removeStudentFromDebtDom wired (legacy bridge)
+  ✅ [11] debugDebtActionState defined in students.js
+  ✅ [12] debugRuntimeSmokeTest in main.js includes debtActionState
+  ✅ [A] students.js window.skipMonth delegates to StudentStatusCommandBoundary and boundary syncs local month
+  ✅ [B] V5U-1 boundary removes skipped student from Debt DOM after command success
+  ✅ [C] students.js window.removeSkip delegates and boundary syncs removal locally
+  ✅ [D] app.js legacy debt row không còn onclick="handleQuitOption( làm nút chính
+  ✅ [E] finance.js handleQuitOption delegates quit and boundary commits canonical local status
+
+Results: 17 passed, 0 failed
+
+✅ All debt-actions-sync checks passed.
+

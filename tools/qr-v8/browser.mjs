@@ -123,7 +123,9 @@ try {
   browser=await engine.launch({headless:true,...(executablePath?{executablePath}:{}),...(engineName==='chromium'?{args:['--no-sandbox','--no-zygote','--single-process','--disable-http2','--disable-quic']}:{}),...(proxy?{proxy}:{})});
   const context=await browser.newContext({acceptDownloads:true,ignoreHTTPSErrors:true,...(engineName==='webkit'?{...pw.devices['iPhone 13'],defaultBrowserType:undefined}:{})});
   const live=process.env.QR_BROWSER_SKIP_LIVE!=='1';
-  if(live)for(const entry of ['debt','multiitem'])await flow(context,entry,'live',390);
+  const liveEntries=['debt','multiitem'].filter(entry=>!process.env.QR_BROWSER_ENTRY||entry===process.env.QR_BROWSER_ENTRY);
+  assert(liveEntries.length>0,'Unknown QR_BROWSER_ENTRY');
+  if(live)for(const entry of liveEntries)await flow(context,entry,'live',390);
   if(baseline){for(const policy of ['redirect','direct'])for(const entry of ['debt','multiitem'])await flow(context,entry,policy,390);}
   else if(process.env.QR_BROWSER_LIVE_ONLY!=='1') {
     for(const width of [375,390,430,768,1366])for(const entry of ['debt','multiitem'])await flow(context,entry,'redirect',width);

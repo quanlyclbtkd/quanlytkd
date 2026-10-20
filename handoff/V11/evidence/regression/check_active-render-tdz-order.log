@@ -1,0 +1,8 @@
+✅ OK:   const useFullProfileActiveRender tìm thấy
+✅ OK:   Không có TDZ: khai báo (index 22005) trước lần dùng đầu tiên (index 22011)
+✅ OK:   Chỉ có 1 khai báo const useFullProfileActiveRender
+✅ OK:   PASS 2 guard: !useFullProfileActiveRender + !useFullProfileQuitRender có mặt
+✅ OK:   fullProfilesCount = Object.keys(allProfiles || {}).length có mặt
+
+────────────────────────────────────────────────────────────
+✅ check-active-render-tdz-order: TẤT CẢ PASS

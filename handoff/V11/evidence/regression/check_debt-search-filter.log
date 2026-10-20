@@ -1,0 +1,28 @@
+
+📋 check-debt-search-filter
+
+CHECK 1 — studentsRenderer.js: debtRows áp dụng passFilter/debtPassFilter
+  ✅ PASS  debtRows render nằm trong debtPassFilter guard
+
+CHECK 2 — students.js: _bindSearchReset() phải kiểm tra tab trước _doLoad()
+  ✅ PASS  _getCurrentTabIdSafe() helper tồn tại trong students.js
+  ✅ PASS  _doLoad() chỉ được gọi sau khi kiểm tra tab active/quit
+
+CHECK 3 — students.js: searchStatusMsg_students phải có _showStudentSearchStatus guard
+  ✅ PASS  _showStudentSearchStatus variable tồn tại
+  ✅ PASS  searchStatusMsg_students được set text có guard _showStudentSearchStatus
+  ✅ PASS  Không còn unguarded searchStatusMsg set text
+
+CHECK 4 — app.js: searchInput.oninput phải chỉ chặn legacy ở student tabs
+  ✅ PASS  app.js có _studentTabs check trong oninput handler
+  ✅ PASS  Legacy search guard chỉ kích hoạt khi _studentTabs === true
+  ✅ PASS  Không còn pattern cũ: if (mounted && !failed) return; không có tab check
+
+CHECK 5 — listComputationRefresh.js: _getSearch() không toLowerCase()
+  ✅ PASS  _getSearch() không còn toLowerCase() — giữ raw search value
+
+────────────────────────────────────────────────────────────
+Kết quả: 10 pass / 0 fail
+
+✅ Tất cả 10 kiểm tra ĐẠT — BÁO NỢ search filter đã được sửa đúng.
+

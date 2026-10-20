@@ -1,0 +1,45 @@
+
+🔍 Phase 4K-6F — Legacy App Kernel Boundary + Diagnostics Extraction Gate
+
+✅ PASS  app.js tồn tại
+✅ PASS  index.html vẫn load app.js
+✅ PASS  app.js chưa bị xóa (có nội dung)
+✅ PASS  js/core/legacyAppAudit.js tồn tại
+✅ PASS  js/diagnostics/legacyDiagnostics.js tồn tại
+✅ PASS  main.js import LegacyAppAudit
+✅ PASS  main.js import initLegacyDiagnostics
+✅ PASS  main.js gọi initLegacyDiagnostics()
+✅ PASS  main.js expose window.LegacyAppAudit
+✅ PASS  main.js có window.debugLegacyAppAudit
+✅ PASS  main.js có window.debugAppJsReductionPlan
+✅ PASS  debugRuntimeSmokeTest include debugLegacyAppAudit
+📊 app.js size      : 680.6 KB (0.66 MB)
+✅ PASS  app.js size measured: 680.6 KB
+📊 app.js lines     : 11,291
+✅ PASS  app.js line count measured: 11291
+📊 window.X = count : 525 in app.js
+✅ PASS  window assignment count measured: 525
+📊 duplicate globals: 159 between app.js and js/**/*.js
+   top duplicates   : userRole, debtBranchMatchesFilter, invCustomCategories, APP_PATCH_VERSION, __appLoaded, __store, canonicalizeTransactionForWrite, canonicalizeTransactionPatch, getAppContext, __pendingDomainInvalidations, scheduleRender, _activePage, _debtPage, _quitPage, normalizeTuitionMonth, getChargeableTuitionMonths, computeTuitionDebtCanonical, classifyProfileStatus, formatMonthCompact, openAddModal...
+✅ PASS  duplicate global count measured: 159
+✅ PASS  app.js size trong giới hạn <= 800KB
+✅ PASS  app.js lines trong giới hạn <= 13.000
+✅ PASS  duplicate globals trong giới hạn
+✅ PASS  app.js còn initSaaSDatabase
+✅ PASS  app.js còn listenToData
+✅ PASS  app.js còn onAuthStateChanged
+✅ PASS  app.js còn renderApp
+✅ PASS  app.js hoặc renderInvalidation còn scheduleRender
+✅ PASS  main.js APP_BUILD_VERSION có 4K-6F
+✅ PASS  index.html cache bust có 4K-6F hoặc legacy-app-kernel-boundary
+
+── App.js Reduction Summary ─────────────────────────────────────────────────
+   Size        : 680.6 KB
+   Lines       : 11291
+   window.X =  : 525 assignments
+   Duplicates  : 159 globals shared with js/**/*.js
+   Risk Level  : MEDIUM
+─────────────────────────────────────────────────────────────────────────────
+
+✅ Tất cả 26 kiểm tra PASS — Phase 4K-6F Legacy App Kernel Boundary OK
+

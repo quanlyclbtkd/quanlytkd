@@ -1,0 +1,18 @@
+══════════════════════════════════════════════════════
+ check-superadmin-render-scope-fix — Phase 4K-6I-E
+══════════════════════════════════════════════════════
+
+  ✓ PASS: module-level SuperAdmin revenue formatters exist
+  ✓ PASS: render scope fix marker is present
+  ✓ PASS: debugSuperAdminRenderScopeFix defined
+  ✓ PASS: _renderSAClubRows uses module-level formatters
+  ✓ PASS: _renderSAClubRows no longer calls scoped _fmtRevenueShort
+  ✓ PASS: _renderSAClubRows no longer calls scoped _fmtRevenueFull
+  ✓ PASS: debugRuntimeSmokeTest includes debugSuperAdminRenderScopeFix
+  ✓ PASS: APP_BUILD_VERSION updated to 4K-6I-E
+  ✓ PASS: index.html cache bust updated to 4K-6I-E/F
+  ✓ PASS: package.json includes check:superadmin-render-scope-fix
+
+══════════════════════════════════════════════════════
+ ✓ check-superadmin-render-scope-fix PASSED
+══════════════════════════════════════════════════════

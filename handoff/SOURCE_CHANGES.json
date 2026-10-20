@@ -1,0 +1,41 @@
+{
+  "baseZipSha256": "4868a5cafeb9cd8c7bd5b33719f2c498b3f9f50c574daa49c5922b2dcdabf6ad",
+  "changed": [
+    "firestore.rules",
+    "index.html",
+    "js/main.js",
+    "js/modules/attendance.js",
+    "js/services/attendance.service.js",
+    "package-lock.json",
+    "package.json",
+    "public/index.html",
+    "public/js/main.js",
+    "public/js/modules/attendance.js",
+    "public/js/services/attendance.service.js",
+    "tools/check-attendance-daily-single-refresh-authority.mjs",
+    "tools/check-attendance-explicit-shift-authority.mjs",
+    "tools/check-attendance-offline-canonical-sync-guard.mjs",
+    "tools/check-d1c3b-debt-authoritative-profile-coverage.mjs",
+    "tools/check-d1c3b7-security-release.mjs",
+    "tools/check-d1c3b7r2-mobile-css-browser.py",
+    "tools/check-d1c3b7r2-mobile-css-runtime.mjs",
+    "tools/check-d1c3b7r2r3-offline-session-integrity.mjs",
+    "tools/check-d1c3b7r2r4-v2-journal-no-loss.mjs",
+    "tools/check-d1c3b7r2r5-css-browser.py",
+    "tools/check-d1c3b7r2r5-css-runtime.mjs",
+    "tools/check-d1c3b7r2r5-shift-behavior.mjs",
+    "tools/check-d1c3b7r2r6-v2-cross-date-isolation.mjs",
+    "tools/check-d1c3b7r2r6r1-v1-v2-collision-scope.mjs",
+    "tools/check-production-residual-defect-closure.mjs"
+  ],
+  "added": [
+    "tools/check-d1c3b7r1-read-cost-emulator.mjs",
+    "tools/check-qr-v9-attendance-batches.mjs",
+    "tools/check-qr-v9-attendance-rules.mjs",
+    "tools/check-qr-v9-cost-approval.mjs",
+    "tools/qr-v9/cost-approval.mjs",
+    "tools/requirements-qa.txt"
+  ],
+  "deleted": [],
+  "rootPublicPairs": 126
+}

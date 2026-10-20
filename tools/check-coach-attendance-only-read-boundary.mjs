@@ -12,6 +12,7 @@ const main = read('js/main.js');
 const boundary = read('js/core/roleReadBoundary.js');
 const profiles = read('js/listeners/profiles.listeners.js');
 const attendanceService = read('js/services/attendance.service.js');
+const attendanceContract=await import('../js/core/attendanceContract.js');
 const attendanceModule = read('js/modules/attendance.js');
 const tabs = read('js/ui/tabs.js');
 const txBoundary = read('js/core/transactionCanonicalBoundary.js');
@@ -167,7 +168,8 @@ check('Required Firestore indexes are declared',
     }, console, Date, String, Number, Object, Array, Math, Error, Promise
   };
   vm.createContext(context);
-  vm.runInContext(attendanceService.replace('export const AttendanceService =','window.AttendanceService ='), context, {filename:'attendance.service.js'});
+  Object.assign(context,attendanceContract);
+  vm.runInContext(attendanceService.replace(/^import .*from .*;$/gm,'').replace('export const AttendanceService =','window.AttendanceService ='), context, {filename:'attendance.service.js'});
   await context.window.AttendanceService.loadByDate('2026-06-19',{shiftId:'shift-a'});
   const dailyWheres=calls[0].constraints.filter(x=>x.kind==='where');
   check('Dynamic: Coach daily Firestore query contains date + branch + shift',

@@ -1,0 +1,24 @@
+══════════════════════════════════════════════════════
+ check-superadmin-aggregation-hard-stop — Phase 4K-6I-C/D
+══════════════════════════════════════════════════════
+
+  ✓ PASS: debugSuperAdminAggregationHardStop defined
+  ✓ PASS: __saDisableBackgroundCountRefresh defaults true
+  ✓ PASS: __saAggregationHardStop defaults true
+  ✓ PASS: countDocs throws quota/resource-exhausted/429 errors
+  ✓ PASS: old countDocs return-null quota pattern removed
+  ✓ PASS: runThrottledCount treats null/{ok:false} as failure
+  ✓ PASS: quota circuit opens after first quota error for >=15 minutes
+  ✓ PASS: count refresh queue clears/stops when circuit opens
+  ✓ PASS: dashboard load does not directly refresh counts; auto queue guarded by disabled flag
+  ✓ PASS: manual per-club refresh function exists
+  ✓ PASS: no Promise.all aggregation storm
+  ✓ PASS: UI has -- / cached-only fallback for missing counts
+  ✓ PASS: debugRuntimeSmokeTest includes debugSuperAdminAggregationHardStop
+  ✓ PASS: APP_BUILD_VERSION updated to 4K-6I-C/D/E/F
+  ✓ PASS: index.html cache bust updated to 4K-6I-C/D/E/F
+  ✓ PASS: package.json includes check:superadmin-aggregation-hard-stop
+
+══════════════════════════════════════════════════════
+ ✓ check-superadmin-aggregation-hard-stop PASSED
+══════════════════════════════════════════════════════

@@ -1,0 +1,49 @@
+✅ 1. processMultiItem remains existing app.js owner
+✅ 2. processMultiItem is not rewritten into collectTuition writer
+✅ 3. tuition-bearing processMultiItem uses existing profile lane
+✅ 4. non-tuition branch executes primary without tuition lane
+✅ 5. profile is re-resolved inside critical lane task
+✅ 6. settlement is rechecked inside critical task
+✅ 7. paidUntil is recalculated inside critical task
+✅ 8. stale paidUntil max shortcut is not used for final in-lane state
+✅ 9. all-settled tuition-only becomes no-write
+✅ 10. stale mixed MultiItem fails closed
+✅ 11. partially settled package fails closed
+✅ 12. lane local-state commit uses existing TCB owner
+✅ 13. receipt runs after critical lane result
+✅ 14. existing __atomicInFlight preserved
+✅ 15. no second profile lane Map
+✅ 16. TransactionDeleteIntegrity remains inventory classifier owner
+✅ 17. NI01 top-level canonical inventory ref extracted
+✅ 18. NI02 nested inventory ref extracted without top-level ref
+✅ 19. UI relatedInvId is not sole authority
+✅ 20. conflicting top/nested inventory refs fail closed
+✅ 21. multiple nested refs fail closed
+✅ 22. payment linkage without actual inventory doc ref fails closed
+✅ 23. mixed Tuition+Inventory F1D fail-closed preserved
+✅ 24. finance pure-inventory execution consumes canonical refs
+✅ 25. missing canonical local inventory state fails before destructive write
+✅ 26. existing InventoryService owner is reused
+✅ 27. InventoryService can delete inventory + related tx in one existing batch
+✅ 28. no new Inventory writer authority
+✅ 29. no new Tuition writer authority
+✅ 30. MT04 QuickPay waits pending same-profile MultiItem lane
+✅ 31. MT04 serialized final paidUntil does not regress
+✅ 32. MT03 MultiItem waits pending same-profile QuickPay
+✅ 33. MT03 latest state preserves newer paidUntil
+✅ 34. MT05 stale same-month MultiItem performs no second tuition effect
+✅ 35. MT07 stale mixed/partial bundle fails closed
+✅ 36. MT08 different profiles remain parallel
+✅ 37. MT09 rejected lane task cleans up
+✅ 38. no nested-lane deadlock architecture: processMultiItem uses coordination API, not collectTuition
+✅ 39. F1C completed replay remains lane-aware
+✅ 40. F1C legacy gap reversal remains present
+✅ 41. receipt queue preserved
+✅ 42. fee_audit remains secondary
+✅ 43. no new getDoc
+✅ 44. no new getDocs
+✅ 45. no new onSnapshot / budget 29/44/16
+✅ 46. root/public parity PASS
+
+Total: 46 | PASS: 46 | FAIL: 0
+H8R2.1C1F1D1 multiitem/inventory closure gate PASS.

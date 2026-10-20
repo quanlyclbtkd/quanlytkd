@@ -1,11 +1,12 @@
+import {HISTORY_AUTHORITY, attendanceServerVersion, attendanceVisibleRecord} from '../core/attendanceContract.js';
 /**
  * js/services/attendance.service.js — Phase 3.1
  * ────────────────────────────────────────────────────────────────
  * Service Layer: Tất cả Firestore operations cho:
- *   - attendance collection (getDocs, setDoc, deleteDoc)
+ *   - attendance collection (scoped queries and versioned transactions)
  *   - attendanceNotes collection (getDocs)
  *   - settings/shifts doc (getDoc, setDoc)
- *   - members collection (updateDoc — chuyên cần thăng đai)
+ *   - no writes to derived members statistics
  *
  * Module attendance.js KHÔNG gọi Firebase trực tiếp nữa.
  * ────────────────────────────────────────────────────────────────
@@ -54,6 +55,25 @@ function _prepareWriteData(data) {
     return { ...source, branch: canonical };
 }
 
+// V9: Rules resolve one canonical profile for each Coach attendance write.
+// Ten distinct profiles leave room under the per-batch Rules access-call limit.
+// Guard every serial chunk against an account/club/role switch during an ACK.
+function _bulkWriteContextGuard(db, clubId) {
+    const principal = () => {
+        const a = window.__verifiedAuthContextState || {};
+        return JSON.stringify([a.uid, a.clubId, a.role, a.coachBranch, a.generation, a.ready,
+            window.userRole, window.coachBranch, window.__store?.userRole, window.__store?.coachBranch]);
+    };
+    const captured = principal();
+    return () => {
+        if (_db() !== db || _clubId() !== clubId || principal() !== captured) {
+            const error = new Error('[AttendanceService] Phiên điểm danh đã thay đổi; giữ lại dữ liệu chưa đồng bộ.');
+            error.code = 'attendance/stale-bulk-context';
+            throw error;
+        }
+    };
+}
+
 // V5U6G1: Offline journal metadata is orchestration-only. Build the canonical
 // Firestore Attendance document from an explicit business-field whitelist so
 // future journal fields cannot leak through a spread into persisted schema.
@@ -73,6 +93,80 @@ function _toCanonicalAttendanceWrite(record, fallbackDate = '') {
     const shiftId = String(rec.shiftId || '').trim();
     if (shiftId) payload.shiftId = shiftId;
     return _prepareWriteData(payload);
+}
+
+// All online/offline mutations enter this one transaction writer. A stale
+// expected version becomes a visible conflict, never an automatic rebase.
+async function _commitAttendanceIntents(intents, options = {}) {
+    const {runTransaction, doc} = _sdk(), db = _db(), clubId = _clubId();
+    if (typeof runTransaction !== 'function') throw Object.assign(new Error('Chưa tải được chức năng lưu điểm danh an toàn.'), {code:'attendance/transaction-unavailable'});
+    const ensureCurrent = _bulkWriteContextGuard(db, clubId);
+    const auth = window.__verifiedAuthContextState;
+    if (auth?.ready !== true || !auth.uid || !['admin','super_admin','coach'].includes(auth.role) ||
+        window.userRole !== auth.role || window.__store?.userRole !== auth.role ||
+        (window.__store?.currentUser?.uid && window.__store.currentUser.uid !== auth.uid) ||
+        (auth.role !== 'super_admin' && auth.clubId !== clubId)) throw Object.assign(new Error('Phiên điểm danh chưa được xác minh.'), {code:'attendance/unverified-writer'});
+    const rows = Array.isArray(intents) ? intents : [], maximumChunkSize = _isCoach() ? 10 : 400;
+    const chunkSize = Math.max(1,Math.min(maximumChunkSize,Math.floor(Number(options.chunkSize)||maximumChunkSize)));
+    const targets = new Set();
+    const acknowledgedIds = [], versions = {};
+    for (const row of rows) {
+        if (typeof row?.id !== 'string' || row.id.length < 16 || !row.record || row.record.clubId !== clubId || !row.record.docId ||
+            ![0,1,2,3].includes(Number(row.record.status)) || typeof row.baseVersion !== 'string' || row.baseVersion === 'unknown') {
+            throw Object.assign(new Error('Thao tác cần được đối soát trước khi gửi.'), {code:'attendance/intent-review-required'});
+        }
+        const r=row.record, date=String(r.date||''), shift=String(r.shiftId||'');
+        const parsed=new Date(date+'T00:00:00Z');
+        const expectedId=String(r.name||'')+'_'+date+(shift?'_'+shift:'');
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date)||Number.isNaN(parsed.getTime())||parsed.toISOString().slice(0,10)!==date||
+            r.month!==date.slice(0,7)||!r.name||!String(r.branch||'').trim()||r.branch==='all'||r.profileId!==r.name||r.docId!==expectedId||r.docId.includes('/')||targets.has(r.docId))
+            throw Object.assign(new Error('Bản ghi điểm danh không đúng định danh/ngày học.'),{code:'attendance/invalid-intent'});
+        targets.add(r.docId);
+    }
+    for (let offset = 0; offset < rows.length; offset += chunkSize) {
+        const chunk = rows.slice(offset,offset+chunkSize);
+        try {
+            ensureCurrent();
+            const ack = await runTransaction(db, async transaction => {
+                ensureCurrent();
+                const current = [];
+                // Firestore requires all transaction reads before its writes.
+                for (const intent of chunk) {
+                    const ref = doc(db,'clubs',clubId,'attendance',intent.record.docId);
+                    const snap = await transaction.get(ref);
+                    current.push({intent,ref,data:snap.exists()?snap.data():null});
+                    window.recordFirestoreReadAttribution?.('attendance.intent-version',1,{reason:'compare-and-set',initial:false});
+                }
+                ensureCurrent();
+                const conflicts = current.filter(({intent,data}) => data?.attendanceVersion !== intent.id && attendanceServerVersion(data) !== intent.baseVersion)
+                    .map(({intent,data})=>({id:intent.id,docId:intent.record.docId,serverVersion:attendanceServerVersion(data),serverStatus:Number(data?.status||0)}));
+                if (conflicts.length) throw Object.assign(new Error('Điểm danh trên máy chủ đã thay đổi. Dữ liệu trên thiết bị được giữ để đối soát.'), {code:'attendance/intent-conflict',conflicts});
+                for (const {intent,ref,data} of current) {
+                    const payload = _toCanonicalAttendanceWrite(intent.record, intent.record.date);
+                    if (data?.attendanceVersion === intent.id) {
+                        const fields=['profileId','name','branch','date','month','shiftId','status','belt'];
+                        if (!fields.every(key=>(data[key]??'')===(payload[key]??''))||data.historyAuthority!==HISTORY_AUTHORITY)
+                            throw Object.assign(new Error('Định danh thao tác đã có nội dung khác; cần đối soát.'),{code:'attendance/intent-reuse'});
+                        continue;
+                    }
+                    payload.historyAuthority = HISTORY_AUTHORITY;
+                    payload.attendancePreviousVersion = data?.attendanceVersion || 'legacy';
+                    payload.attendanceVersion = intent.id;
+                    // Status zero is an unmarked tombstone, retaining the CAS
+                    // version so a delayed set cannot resurrect a deleted mark.
+                    transaction.set(ref,payload);
+                }
+                return current.map(({intent})=>intent.id);
+            },{maxAttempts:3});
+            acknowledgedIds.push(...ack);
+            chunk.forEach(row=>{versions[row.record.docId]=row.id;});
+            options.onChunkCommitted?.(chunk,{committed:acknowledgedIds.length,total:rows.length});
+        } catch(error) {
+            error.committed = acknowledgedIds.length; error.acknowledgedIds = acknowledgedIds.slice();
+            error.total = rows.length; error.pending = rows.length-acknowledgedIds.length; throw error;
+        }
+    }
+    return {committed:acknowledgedIds.length,total:rows.length,pending:0,acknowledgedIds,versions};
 }
 
 export const AttendanceService = {
@@ -114,6 +208,7 @@ export const AttendanceService = {
         const pageSize = Math.max(100, Math.min(500, Number((window.__scaleConfig || {}).attendanceDailyPageSize) || 400));
         const safetyCeiling = Math.max(pageSize, Number((window.__scaleConfig || {}).attendanceDailySafetyCeiling) || 10000);
         const baseConstraints = [where('date', '==', date)];
+        if (isCoach) baseConstraints.push(where('historyAuthority','==',HISTORY_AUTHORITY));
         const branchConstraint = _branchConstraint(where, branch, isCoach);
         if (branchConstraint) baseConstraints.push(branchConstraint);
         if (shiftId) baseConstraints.push(where('shiftId', '==', shiftId));
@@ -124,6 +219,7 @@ export const AttendanceService = {
         let coverageComplete = true;
         let staleAborted = false;
         let lastPageSize = 0;
+        let serverConfirmed = true;
 
         while (true) {
             if (typeof options.isCurrent === 'function' && options.isCurrent() !== true) {
@@ -139,6 +235,7 @@ export const AttendanceService = {
                 collection(db, 'clubs', clubId, 'attendance'),
                 ...constraints
             ));
+            serverConfirmed = serverConfirmed && snap.metadata?.fromCache === false && snap.metadata?.hasPendingWrites === false;
             pageCount++;
             lastPageSize = Number(snap.size || 0);
             snap.forEach(d => {
@@ -199,6 +296,7 @@ export const AttendanceService = {
 
         Object.defineProperties(results, {
             coverageComplete: { value: coverageComplete, enumerable: false },
+            serverConfirmed: { value: serverConfirmed, enumerable: false },
             staleAborted: { value: staleAborted, enumerable: false },
             pageCount: { value: pageCount, enumerable: false },
         });
@@ -212,23 +310,15 @@ export const AttendanceService = {
      * @param {string} docId — composite ID: "tên_ngày" hoặc "tên_ngày_shiftId"
      * @param {Object} data  — { profileId, name, belt, branch, date, month, status, ... }
      */
-    async saveRecord(docId, data) {
-        const { doc, setDoc } = _sdk();
-        await setDoc(
-            doc(_db(), 'clubs', _clubId(), 'attendance', docId),
-            _prepareWriteData(data)
-        );
+    async saveRecord(docId, data, options = {}) {
+        if (!options.intent) throw Object.assign(new Error('Cần lưu qua nhật ký điểm danh.'),{code:'attendance/intent-required'});
+        if (options.intent.record?.docId !== docId) throw Object.assign(new Error('Định danh điểm danh không khớp.'),{code:'attendance/invalid-intent'});
+        return _commitAttendanceIntents([options.intent]);
     },
-
-    /**
-     * Xóa bản ghi điểm danh khi status trở về 0 (chưa điểm danh).
-     * @param {string} docId
-     */
-    async deleteRecord(docId) {
-        const { doc, deleteDoc } = _sdk();
-        await deleteDoc(
-            doc(_db(), 'clubs', _clubId(), 'attendance', docId)
-        );
+    async deleteRecord(docId, options = {}) {
+        if (!options.intent) throw Object.assign(new Error('Cần lưu qua nhật ký điểm danh.'),{code:'attendance/intent-required'});
+        if (options.intent.record?.docId !== docId) throw Object.assign(new Error('Định danh điểm danh không khớp.'),{code:'attendance/invalid-intent'});
+        return _commitAttendanceIntents([options.intent]);
     },
 
     // ── SHIFTS ──────────────────────────────────────────────────
@@ -280,6 +370,7 @@ export const AttendanceService = {
             where('profileId', '==', profileId),
             where('month', 'in', months)
         ];
+        if (isCoach) baseConstraints.push(where('historyAuthority','==',HISTORY_AUTHORITY));
         window.RoleReadBoundary?.canMount?.('attendance.member-history', { profileId, months, branch });
 
         // `month in [...]` cannot be combined portably with a second `branch in [...]`.
@@ -292,7 +383,7 @@ export const AttendanceService = {
         }));
         const byId = new Map();
         snapshots.forEach(snap => snap.forEach(d => byId.set(d.id, { id: d.id, data: d.data() })));
-        return Array.from(byId.values());
+        return Array.from(byId.values()).filter(row=>attendanceVisibleRecord(row.data));
     },
 
     // ── COACH NOTES ─────────────────────────────────────────────
@@ -382,6 +473,7 @@ export const AttendanceService = {
             while (pages < maxPages) {
                 throwIfAborted();
                 const constraints = [where('month', '==', month)];
+                if (isCoach) constraints.push(where('historyAuthority','==',HISTORY_AUTHORITY));
                 const branchConstraint = _branchConstraint(where, branch, isCoach);
                 if (branchConstraint) constraints.push(branchConstraint);
                 // Firestore's default ordering is document ID. A DocumentSnapshot
@@ -437,7 +529,7 @@ export const AttendanceService = {
                 aborted: false,
                 updatedAt: Date.now()
             };
-            return results;
+            return results.filter(row=>attendanceVisibleRecord(row.data));
         } catch (error) {
             window.__attendanceMonthlyPaginationMetrics = {
                 month,
@@ -464,81 +556,25 @@ export const AttendanceService = {
      * @param {Array<{docId, data}>} records — mảng records cần lưu
      */
     async bulkSaveRecords(records, options = {}) {
-        const { writeBatch, doc } = _sdk();
-        const db     = _db();
-        const clubId = _clubId();
-        const rows = Array.isArray(records) ? records : [];
-        const chunkSize = Math.max(1, Math.min(400, Number(options.chunkSize) || 400));
-        let committed = 0;
-        const committedIds = [];
-
-        for (let offset = 0; offset < rows.length; offset += chunkSize) {
-            const chunk = rows.slice(offset, offset + chunkSize);
-            const batch = writeBatch(db);
-            chunk.forEach(({ docId, data }) => {
-                batch.set(doc(db, 'clubs', clubId, 'attendance', docId), _prepareWriteData(data));
-            });
-            try {
-                await batch.commit();
-                committed += chunk.length;
-                chunk.forEach(row => committedIds.push(String(row.docId || '')));
-                if (typeof options.onChunkCommitted === 'function') {
-                    options.onChunkCommitted(chunk, { committed, total: rows.length, chunkSize });
-                }
-            } catch (error) {
-                error.code = error.code || 'attendance/bulk-partial-failure';
-                error.committed = committed;
-                error.total = rows.length;
-                error.pending = rows.length - committed;
-                error.committedIds = committedIds.slice();
-                throw error;
-            }
-        }
-        return { committed, total: rows.length, pending: 0, committedIds };
+        return _commitAttendanceIntents(records, options);
     },
-
-    /**
-     * Đồng bộ dữ liệu offline vào Firestore (writeBatch).
-     * @param {string}  clubId  — club ID
-     * @param {string}  date    — YYYY-MM-DD
-     * @param {Object}  records — { name: { name, status, belt, branch, date, month, profileId } }
-     */
     async bulkSyncOffline(clubId, date, records) {
-        const { writeBatch, doc } = _sdk();
-        const db    = _db();
-        const rows = Object.values(records || {});
-        if (rows.length > 400) {
-            const error = new Error('[AttendanceService] Offline sync chunk exceeds safe batch size (400).');
-            error.code = 'attendance/offline-chunk-too-large';
-            throw error;
-        }
-        const batch = writeBatch(db);
-        // [4J-6A] Helper shift-aware docId cho backward compat
-        function _getAttDocId(name, d, shiftId) {
-            return (shiftId && shiftId !== '') ? (name + '_' + d + '_' + shiftId) : (name + '_' + d);
-        }
-        rows.forEach(rec => {
-            const docId  = rec.docId || _getAttDocId(rec.name, rec.date || date, rec.shiftId || '');
-            const docRef = doc(db, 'clubs', clubId, 'attendance', docId);
-            const operation = String(rec.operation || '').toLowerCase();
-            if (operation === 'delete' || Number(rec.status || 0) === 0) {
-                batch.delete(docRef);
-            } else {
-                const writeData = _toCanonicalAttendanceWrite(rec, date);
-                const debug = window.__attendanceDebug;
-                if (debug) {
-                    debug.offlineCanonicalPayloadSanitized = Number(debug.offlineCanonicalPayloadSanitized || 0) + 1;
-                    const journalOnlyFields = ['version','clubId','operation','shiftMode','queuedAt','lastUpdatedAt','revision','docId','journalKey','syncState','retryCount'];
-                    debug.offlineJournalMetadataStripped = Number(debug.offlineJournalMetadataStripped || 0) + journalOnlyFields.reduce((n, key) => n + (Object.prototype.hasOwnProperty.call(rec || {}, key) ? 1 : 0), 0);
-                }
-                batch.set(docRef, writeData);
-            }
-        });
-        await batch.commit();
-        return { committed: rows.length, pending: 0 };
+        if (clubId !== _clubId()) throw Object.assign(new Error('CLB đã thay đổi.'),{code:'attendance/stale-bulk-context'});
+        return _commitAttendanceIntents(Array.isArray(records)?records:Object.values(records||{}));
     },
-
-    // ── MEMBER STATS (chuyên cần thăng đai) ─────────────────────
+    async inspectIntent(record) {
+        const {runTransaction,doc}=_sdk(), db=_db(), clubId=_clubId();
+        const ensureCurrent=_bulkWriteContextGuard(db,clubId);
+        if (record?.clubId !== clubId || !record.docId || record.docId.includes('/')) throw Object.assign(new Error('Bản ghi thuộc CLB khác.'),{code:'attendance/stale-bulk-context'});
+        return runTransaction(db,async tx=>{ensureCurrent();const snap=await tx.get(doc(db,'clubs',clubId,'attendance',record.docId));ensureCurrent();
+            window.recordFirestoreReadAttribution?.('attendance.intent-review',1,{reason:'explicit-user-review'});
+            const data=snap.exists()?snap.data():null;return {data,version:attendanceServerVersion(data)};},{maxAttempts:3});
+    },
+    async attestHistory(record, serverVersion) {
+        if (!['admin','super_admin'].includes(window.__verifiedAuthContextState?.role)||window.__verifiedAuthContextState?.ready!==true) throw Object.assign(new Error('Chỉ Admin xác minh lịch sử cũ.'),{code:'permission-denied'});
+        const {attendanceIntentId}=await import('../core/attendanceContract.js');
+        return _commitAttendanceIntents([{id:attendanceIntentId(),baseVersion:serverVersion,record:{...record,clubId:_clubId()}}]);
+    },
 
     /**
      * Cập nhật stats chuyên cần (totalSessionsAttended, consecutiveAbsences...).
@@ -549,12 +585,8 @@ export const AttendanceService = {
      * @param {string} name   — tên võ sinh
      * @param {Object} data   — FieldValue updates (increment, literal values)
      */
-    async updateMemberStats(name, data) {
-        const { doc, updateDoc } = _sdk();
-        await updateDoc(
-            doc(_db(), 'clubs', _clubId(), 'members', name),
-            data
-        );
+    async updateMemberStats() {
+        throw Object.assign(new Error('Chuyên cần được tính từ lịch sử điểm danh; không ghi thống kê phụ.'), {code:'attendance/derived-read-only'});
     },
 
     /**

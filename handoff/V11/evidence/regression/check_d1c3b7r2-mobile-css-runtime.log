@@ -1,0 +1,8 @@
+SOURCE PASS: actual financeRenderer HTML and /public linked loaded rules /tmp/d1c3b7r2-css-V5BMje
+PASS 320x568 computed amount: flex flex-end center touch: 44 overlap: False overflow: False
+PASS 360x800 computed amount: flex flex-end center touch: 44.0 overlap: False overflow: False
+PASS 390x844 computed amount: flex flex-end center touch: 44 overlap: False overflow: False
+PASS 430x932 computed amount: flex flex-end center touch: 44 overlap: False overflow: False
+PASS 768x1024 computed amount: table-cell normal normal touch: 28.0 overlap: False overflow: False
+PASS 568x320 computed amount: flex flex-end center touch: 44 overlap: False overflow: False
+SCOPE: Headless Chromium fixture with real production renderer rows and built /public CSS; app navigation and physical Safari/Android NOT VERIFIED

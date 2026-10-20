@@ -40,7 +40,7 @@ else
 
 // ─────────────────────────────────────────────────────────────────────────────
 section('3. bulkSyncOffline uses rec.docId (shift-aware)');
-if (/rec\.docId\s*\|\|/.test(svc))
+if (svc.includes('intent.record.docId'))
     pass('bulkSyncOffline prefers rec.docId before computing docId');
 else
     fail('bulkSyncOffline does not use rec.docId — offline sync will always use legacy name_date key');
@@ -62,7 +62,7 @@ else
 // ─────────────────────────────────────────────────────────────────────────────
 section('6. bulkSyncOffline canonical sanitizer excludes docId/journal metadata');
 const canonicalWriteStart = svc.indexOf('function _toCanonicalAttendanceWrite(');
-const canonicalWriteEnd = svc.indexOf('export const AttendanceService', canonicalWriteStart);
+const canonicalWriteEnd = svc.indexOf('// All online/offline mutations', canonicalWriteStart);
 const canonicalWriteBlock = svc.slice(canonicalWriteStart, canonicalWriteEnd);
 if (canonicalWriteStart >= 0 && !/\bdocId\s*:/.test(canonicalWriteBlock) && !canonicalWriteBlock.includes('...rec'))
     pass('bulkSyncOffline whitelist sanitizer excludes docId and journal metadata from Firestore data');
@@ -146,14 +146,11 @@ else
 
 // ─────────────────────────────────────────────────────────────────────────────
 section('17. Backward compatibility — legacy records without shiftId still work');
-// bulkSyncOffline should have fallback to name_date when no shiftId.
-// The helper returns name + '_' + d when shiftId is falsy.
-if (/rec\.docId\s*\|\|/.test(svc) && /_getAttDocId/.test(svc))
-    pass('bulkSyncOffline falls back to name_date key when no docId/shiftId (_getAttDocId backward compat)');
-else if (/rec\.docId\s*\|\|/.test(svc) && /name\s*\+\s*'_'\s*\+/.test(svc))
-    pass('bulkSyncOffline falls back to name_date concat when no docId/shiftId (backward compat)');
-else
-    fail('bulkSyncOffline missing backward compat fallback for legacy records without shiftId');
+// Unknown legacy envelopes are migrated to explicit review rather than replay.
+const journal=readFileSync(resolve(rootDir,'js/data/attendanceJournal.js'),'utf8');
+if (journal.includes("shiftMode:shiftId?'explicit-shift':'legacy-no-shift'") && journal.includes("docId:r.docId||(name+'_'+date") && journal.includes("baseVersion:'unknown',state:'needs-review'"))
+    pass('Legacy no-shift identity is preserved during review-only migration');
+else fail('Legacy identity/review contract is missing');
 
 // ─────────────────────────────────────────────────────────────────────────────
 section('18. No Firestore Rules opened as public');

@@ -1,0 +1,31 @@
+
+=== Phase 4K-6V5U4 — SuperAdmin Auth Principal Alignment ===
+
+✅ Rules define narrow bootstrap identity
+✅ Bootstrap is self-UID only
+✅ Bootstrap exact ROOT email is isolated to principal creation
+✅ Rules principal branch requires enabled == true
+✅ Canonical isSuperAdmin still supports custom claim + users role without email
+✅ Bootstrap can only get/create own principal
+✅ Principal create payload is strict
+✅ No broad authenticated write rule exists
+✅ login_history remains SuperAdmin-only for read/delete
+✅ Client defines canonical bootstrap helper
+✅ Client verifies/creates principal before canonical ROOT context commit
+✅ Bootstrap uses only one principal path
+✅ Client existing enabled:true principal passes
+✅ Client existing enabled:false principal fails closed
+✅ Client disabled principal is not rewritten enabled:true
+✅ Failed bootstrap fails closed through login error
+✅ Unsafe login_history Rules copy guide removed
+✅ SuperAdmin permission UI points to V5U4 principal
+✅ Functions authz requires principal enabled:true
+✅ App cache-bust keeps V5U4 compatibility and advances to V5U5
+✅ Package exposes this gate
+✅ Dynamic disabled principal throws canonical code
+✅ Dynamic disabled principal performs zero setDoc
+✅ Dynamic enabled principal returns true
+
+PASS 24/24
+V5U4 SuperAdmin auth principal alignment PASS.
+

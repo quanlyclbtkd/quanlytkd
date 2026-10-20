@@ -1,0 +1,34 @@
+
+══════════════════════════════════════════════════════════
+  Runtime Init Order Check — Phase 4K-RUNTIME-INIT-FIX
+══════════════════════════════════════════════════════════
+
+▸ Section 1: ensureModuleRuntimeReady early fallback
+  ✅ ensureModuleRuntimeReady early fallback tồn tại trong main.js
+  ✅ early fallback nằm TRƯỚC bootstrap IIFE
+  ✅ Fallback dùng pattern ||= (không ghi đè nếu đã có impl thật)
+
+▸ Section 2: Bootstrap typeof guard cho ensureModuleRuntimeReady
+  ✅ Bootstrap còn typeof guard (defense in depth)
+
+▸ Section 3: Pagination double-init guards
+  ✅ __studentPaginationInitialized guard tồn tại
+  ✅ __transactionPaginationInitialized guard tồn tại
+
+▸ Section 4: Pagination retry via event listener
+  ✅ app:context-ready listener cho pagination retry
+  ✅ app:db-ready listener cho pagination retry
+  ✅ __paginationDbReadyListenerRegistered guard ngăn duplicate listeners
+
+▸ Section 5: app.js dispatch app:db-ready event
+  ✅ app.js dispatch CustomEvent('app:db-ready')
+  ✅ __dbReadyEventDispatched guard ngăn dispatch lặp
+
+══════════════════════════════════════════════════════════
+  Total: 11 checks | ✅ Pass: 11 | ❌ Fail: 0
+
+  🎉 All runtime init order checks passed!
+  Bootstrap sẽ không còn log "ensureModuleRuntimeReady chưa sẵn sàng".
+  Pagination sẽ tự init khi db ready qua event listener.
+══════════════════════════════════════════════════════════
+

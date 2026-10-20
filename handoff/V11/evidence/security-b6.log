@@ -1,0 +1,322 @@
+[ProfilesListener] reset — D1C3B6-reset
+[StudentProfileStore] reset — D1C3B6-reset
+PASS E02-01 fallback legacy profile cannot silently disappear when partial primary arrives
+D1C3B6 ACTUAL HANDLERS 1 PASS 0 FAIL
+[B6 E02 fallback/realtime authority] exit=0
+[ProfilesListener] reset — E01-readonly
+E01 CANONICAL ACTIVE canonical,missing,vietnamese,training
+E01 STATUS-QUERY RESULTS canonical,missing,vietnamese,training
+E01 MISSING 
+E01 ACTIVE QUERY VALUES active,trial
+E01 source fixture complete — still REQUIRES real emulator and read-cost proof
+[B6 E01 indexed/legacy roster completeness] exit=0
+PASS Coach roster actual handlers
+[B6 RELEASE E01/E02 actual handler roster] exit=0
+[ProfilesListener] reset — B7-reset
+[StudentProfileStore] reset — B7-reset
+PASS E01-coverage-source: CS1 query must not pre-filter canonical-active status
+[ProfilesListener] reset — B7-reset
+[StudentProfileStore] reset — B7-reset
+PASS E02-provisional: fallback legacy must survive first partial primary snapshot
+[ProfilesListener] reset — B7-reset
+[StudentProfileStore] reset — B7-reset
+PASS E02-provisional: metadata cache/pending cannot mark Coach roster verified
+[ProfilesListener] reset — B7-reset
+[StudentProfileStore] reset — B7-reset
+PASS E02-authority: branch-only realtime becomes verified after two server slots
+D1C3B7 ACTUAL-HANDLER: 4 PASS / 0 FAIL; SDK calls=0
+[ProfilesListener] reset — r1-reset
+[StudentProfileStore] reset — r1-reset
+PASS E01 2 slots use branch-only, no status prefilter, includeMetadataChanges true
+PASS E01 canonical classifier + quit/flag/date + missing branch truth
+[ProfilesListener] reset — r1-reset
+[StudentProfileStore] reset — r1-reset
+PASS E02 wait for both CS1 verified alias slots and dedupe
+[ProfilesListener] reset — r1-reset
+[StudentProfileStore] reset — r1-reset
+PASS E02 alias first then primary, verified only second
+[ProfilesListener] reset — r1-reset
+[StudentProfileStore] reset — r1-reset
+PASS E02 cache→server metadata ack on both slots
+[ProfilesListener] reset — r1-reset
+[StudentProfileStore] reset — r1-reset
+PASS E02 pending writes never promote, even server origin
+[ProfilesListener] reset — r1-reset
+[StudentProfileStore] reset — r1-reset
+PASS E02 fallback remains provisional before full 2-slot server; later authoritative wins
+[ProfilesListener] reset — r1-reset
+[StudentProfileStore] reset — r1-reset
+PASS E02 delete/move/quit/revive do not resurrect fallback
+[ProfilesListener] reset — r1-reset
+[StudentProfileStore] reset — r1-reset
+PASS E02 empty verified roster must not zero-probe or refetch
+[ProfilesListener] reset — r1-reset
+[StudentProfileStore] reset — r1-reset
+PASS E02 CS2 single branch-only listener verified with legacy
+[ProfilesListener] reset — r1-reset
+[StudentProfileStore] reset — r1-reset
+PASS E02 repeated metadata-only no reenumeration or invalidation
+[ProfilesListener] reset — r1-reset
+[StudentProfileStore] reset — r1-reset
+[ProfilesListener] reset — verified-owner-changed-on-same-key
+PASS E02 late callbacks from different principal never mutate
+[ProfilesListener] reset — r1-reset
+[StudentProfileStore] reset — r1-reset
+PASS E02 legacy error demotes verified to error until alias server recovery
+[ProfilesListener] reset — r1-reset
+[StudentProfileStore] reset — r1-reset
+PASS E02 primary error remains error until same primary server recovers
+[ProfilesListener] reset — r1-reset
+[StudentProfileStore] reset — r1-reset
+PASS E02 pending/reconnect demotes verified and recovers on fresh server ack
+[ProfilesListener] reset — r1-reset
+[StudentProfileStore] reset — r1-reset
+PASS E02 late fallback request after realtime authority cannot overwrite
+[ProfilesListener] reset — r1-reset
+[StudentProfileStore] reset — r1-reset
+PASS E02 CS1 duplicate mount and ID precedence
+[ProfilesListener] reset — r1-reset
+[StudentProfileStore] reset — r1-reset
+[ProfilesListener] reset — verified-owner-changed-on-same-key
+PASS E02 terminal unsubscribe failure refuses new physical listener
+[ProfilesListener] reset — r1-reset
+[StudentProfileStore] reset — r1-reset
+PASS E02 metadata-only at scale (1000) does not traverse/invalidate
+D1C3B7R1 ACTUAL HANDLERS: 19 PASS / 0 FAIL; sdkGetDocs=0
+i  emulators: Starting emulators: firestore
+i  emulators: Detected demo project ID "demo-b7-coach-proof", emulated services will use a demo configuration and attempts to access non-emulated services for this project will fail.
+i  firestore: Firestore Emulator logging to firestore-debug.log
+✔  firestore: Firestore Emulator was started in standard edition.
+✔  firestore: Firestore Emulator UI websocket is running on 9150.
+i  Running script: node tools/check-d1c3b7-rules-principals.mjs && node tools/v11/emulator.mjs && node tools/firestore-rules-6v4b.test.mjs && node tools/check-d1c3b7r1-read-cost-emulator.mjs && node tools/v11/browser.mjs
+PASS B7_RULES Coach CS1 branch-only includes legacy statuses
+PASS B7_RULES Coach CS1 legacy alias branch-only
+PASS B7_RULES Coach CS2 assigned branch-only
+PASS B7_RULES CS1 cannot list CS2 branch
+PASS B7_RULES CS2 cannot list CS1 alias
+PASS B7_RULES Coach cross-club denied
+PASS B7_RULES Coach locked denied
+PASS B7_RULES Coach unassigned denied
+PASS B7_RULES Anonymous denied
+PASS B7_RULES Coach full collection denied
+PASS B7_RULES Admin full club query allowed
+PASS B7_RULES Coach cannot query missing branch
+B7_RULES_EMULATOR 12 PASS
+PASS S01: forged and unverified legacy get denied
+PASS S01: broad and legacy branch-only queries denied
+PASS S01: actual day/month/history queries omit unverified records on server
+PASS S01: untrusted history cannot be promoted by blind Coach update
+PASS S01: canonical-profile branch rejects forged create
+PASS S01: own canonical and CS1 legacy profiles accepted
+PASS S01: historical branch survives profile transfer, current branch cannot read old history
+PASS S01: historical branch immutable and old Coach cannot edit transferred profile
+PASS S01: new branch may create new-day history after transfer
+PASS S01: Admin audit uses same CAS writer; viewer cannot attest
+PASS O01: second commit fails, ACKs identify only first ten intents
+PASS O01: stale retry cannot overwrite newer status 2 with 1
+PASS O01: lost ACK retries same intent idempotently without write
+PASS O01: present/delete/reapply uses tombstone and blocks delayed resurrection
+PASS O01: unversioned legacy writer and invalid identity fail closed
+PASS P1: Coach members stats write remains denied and compatibility API rejects
+PASS O01: SDK stream-disable does not count as a failed server ACK
+PASS Cross-account, cross-club, viewer and stale context denied
+CAUGHT S01 historical proof removed
+CAUGHT S01 canonical profile check removed
+V11 EMULATOR PASS 20
+✅ Coach CS1 reads canonical profile in assigned branch
+✅ Coach CS1 reads legacy Mặc định profile as primary-branch alias
+✅ Coach CS1 cannot read CS2 profile
+✅ Coach cannot query all profiles without a branch constraint
+✅ Coach may query only assigned canonical branch
+✅ Coach may query legacy primary alias separately
+✅ Coach cannot read transactions
+✅ Coach cannot read inventory
+✅ Coach cannot read stats
+✅ Coach sensitive config closure: main_config denied, shifts allowed
+✅ Viewer retains existing main_config read behavior
+✅ Coach can create attendance in assigned branch
+✅ Coach cannot create attendance in another branch
+✅ Coach cannot move an attendance record to another branch
+✅ Coach cannot delete another branch attendance record
+✅ Coach reads own note but not another coach note
+✅ Coach can create own notification but cannot impersonate another coach
+✅ Coach cannot list admin notifications
+✅ Coach can read only their own exact Admin assignment mirror
+✅ Stale Coach may repair branch mirror only to the Admin-assigned branch
+✅ Coach missing users doc may create only an exact assignment mirror
+✅ Coach cannot invent branch mirror without a matching Admin assignment
+✅ User may update safe profile fields
+✅ User cannot self-promote role or change tenant/branch
+✅ Club Admin can provision same-club Coach with branch
+✅ Club Admin can repair a same-club legacy Coach missing branch
+✅ Club Admin cannot provision Coach with an invalid branch code
+✅ Club Admin cannot create Admin or cross-tenant Coach user
+✅ Club Admin cannot read another tenant
+✅ Viewer reads operational data but cannot write
+✅ Locked account cannot access its tenant
+✅ Unknown tenant subcollection is denied
+✅ SuperAdmin retains cross-tenant access
+✅ H unauthenticated actor cannot read club root
+✅ H Admin may update legitimate root cache fields
+✅ H2 Admin cannot update legacy parentCode
+✅ H2 legacy parentCode may remain while Admin updates allowed cache only
+✅ H2 mixed cache plus parentCode update is denied atomically
+✅ H Admin cannot extend expiryDate
+✅ H Admin cannot reactivate accountStatus
+✅ H Admin cannot mutate adminEmail
+✅ H Admin cannot mutate clubName
+✅ H Admin cannot mutate examEnabled
+✅ H Admin cannot create or replace plaintext adminPassword
+✅ H mixed cache plus privileged root update is denied atomically
+✅ H SuperAdmin retains privileged root metadata authority
+✅ H Viewer cannot update club root
+✅ H Coach cannot update club root
+✅ H other-tenant Admin cannot update club root
+✅ H3 LH1 Admin valid login_history audit is allowed
+✅ H3 LH2 Viewer valid login_history audit is allowed
+✅ H3 LH3 Coach valid login_history audit is allowed
+✅ H3 LH4 Admin cannot spoof super_admin role
+✅ H3 LH5 Admin cannot spoof another club
+✅ H3 LH6 login_history email must match auth token
+✅ H3 LH7 invalid deviceType is denied
+✅ H3 LH8 oversized deviceName is denied
+✅ H3 LH9 unknown login_history field is denied
+✅ H3 LH10 canonical SuperAdmin login_history audit is allowed
+✅ H3 SA1 enabled principal alone can list clubs
+✅ H3 SA2 enabled principal alone can read login_history
+✅ H3 SA3 disabled principal alone cannot list clubs
+✅ H3 SA4 disabled principal alone cannot read login_history
+✅ H3 SA5 ROOT can read own disabled principal but gains no club-list authority
+✅ V5U5 canonical SuperAdmin can list clubs
+✅ V5U5 Admin can read own club root
+✅ V5U5 legacy club may update an allowed cache field while old secret is unchanged
+✅ V5U5 Admin cannot replace legacy adminPassword with a new secret
+✅ V5U5 canonical SuperAdmin can remove old credential fields
+✅ V5U5 new club cannot be created with non-empty adminPassword
+✅ V5U5 normal Admin has no SuperAdmin list/login_history permission
+✅ V5U5 wrong email cannot bootstrap SuperAdmin principal
+✅ V5U5 exact ROOT email may bootstrap only own principal then use canonical access
+
+Rules Emulator total: 73 passed
+V9_COST_EVIDENCE {"schemaVersion":1,"kind":"synthetic-real-emulator-result-documents","rulesSha256":"c1803b367f264740758a776e3b30455a13c82e1a04b695a688da359d868b7b9a","sourceSha256":"bb5b3bda5ddb77b1dc935ea539b8ae2f8287f001dbf04d8619605e602d797af1","profilesMeasured1000":true,"profilesMeasured1500":true,"rows":[{"population":1000,"scenario":"mixed","branch":"CS1","oldStatusFilteredDocs":350,"newBranchOnlyDocs":750,"incrementalInitialResultDocs":400,"listenerSlots":2},{"population":1000,"scenario":"mixed","branch":"CS2","oldStatusFilteredDocs":100,"newBranchOnlyDocs":200,"incrementalInitialResultDocs":100,"listenerSlots":1},{"population":1000,"scenario":"all-quit-CS1","branch":"CS1","oldStatusFilteredDocs":0,"newBranchOnlyDocs":1000,"incrementalInitialResultDocs":1000,"listenerSlots":2},{"population":1500,"scenario":"mixed","branch":"CS1","oldStatusFilteredDocs":525,"newBranchOnlyDocs":1125,"incrementalInitialResultDocs":600,"listenerSlots":2},{"population":1500,"scenario":"mixed","branch":"CS2","oldStatusFilteredDocs":150,"newBranchOnlyDocs":300,"incrementalInitialResultDocs":150,"listenerSlots":1},{"population":1500,"scenario":"all-quit-CS1","branch":"CS1","oldStatusFilteredDocs":0,"newBranchOnlyDocs":1500,"incrementalInitialResultDocs":1500,"listenerSlots":2}],"maxIncrementalInitialDocs":1500,"limits":"Result documents only; excludes minimum query charges, dependent Rules reads, index reads, reconnects and ongoing updates. No production measurements."}
+V9 REAL EMULATOR READ COST: 6 scenarios PASS
+PASS Pixel 7 CS1: roster verified, stale members stats not presented
+PASS Pixel 7 CS1: single and bulk use one transaction owner, chunks <=10
+PASS Pixel 7 CS1: offline present/absent/delete intents persist and sync in order
+PASS Pixel 7 CS1: Firestore transport blocked while navigator.onLine=true retains journal
+PASS Pixel 7 CS1: lost ACK keeps intent; retry does no duplicate mutation
+PASS Pixel 7 CS1: secondary stats derive from canonical history; no members write
+PASS Native IndexedDB: two tabs concurrent enqueue and stale ACK preserve newer intent
+PASS Native IndexedDB: expired lease recovered, stale claim cannot ACK a newer claim
+PASS Legacy V1/V2 input: no automatic replay or removeItem across tabs
+PASS Persistent journal survives reload while Firestore unavailable; review UI retains legacy
+PASS Pixel 7 CS2: roster verified, stale members stats not presented
+PASS Pixel 7 CS2: single and bulk use one transaction owner, chunks <=10
+PASS Pixel 7 CS2: offline present/absent/delete intents persist and sync in order
+PASS Pixel 7 CS2: Firestore transport blocked while navigator.onLine=true retains journal
+PASS Pixel 7 CS2: lost ACK keeps intent; retry does no duplicate mutation
+PASS Pixel 7 CS2: secondary stats derive from canonical history; no members write
+PASS iPhone 13 CS1: roster verified, stale members stats not presented
+PASS iPhone 13 CS1: single and bulk use one transaction owner, chunks <=10
+PASS iPhone 13 CS1: offline present/absent/delete intents persist and sync in order
+PASS iPhone 13 CS1: Firestore transport blocked while navigator.onLine=true retains journal
+PASS iPhone 13 CS1: lost ACK keeps intent; retry does no duplicate mutation
+PASS iPhone 13 CS1: secondary stats derive from canonical history; no members write
+PASS iPhone 13 CS2: roster verified, stale members stats not presented
+PASS iPhone 13 CS2: single and bulk use one transaction owner, chunks <=10
+PASS iPhone 13 CS2: offline present/absent/delete intents persist and sync in order
+PASS iPhone 13 CS2: Firestore transport blocked while navigator.onLine=true retains journal
+PASS iPhone 13 CS2: lost ACK keeps intent; retry does no duplicate mutation
+PASS iPhone 13 CS2: secondary stats derive from canonical history; no members write
+V11 BROWSER PASS 28
+✔  Script exited successfully (code 0)
+i  emulators: Shutting down emulators.
+i  firestore: Stopping Firestore Emulator
+i  hub: Stopping emulator hub
+i  logging: Stopping Logging Emulator
+D1C3B7 SECURITY RELEASE CHECK PASS
+[ProfilesListener] Legacy primary branch query failed: permission-denied
+[ProfilesListener] Active query lỗi: permission-denied — fallback
+[ProfilesListener] owner takeover blocked: unsubscribe failed
+[2026-10-20T17:06:28.696Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x4c1b8de0 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L258:26 for 'create' @ L258, false for 'create' @ L389, false for 'create' @ L542, evaluation error at L262:26 for 'update' @ L262, false for 'update' @ L389, false for 'update' @ L542, false for 'update' @ L262, false for 'update' @ L389, false for 'update' @ L542
+[2026-10-20T17:06:29.097Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x4c1b8deb error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L258:26 for 'create' @ L258, false for 'create' @ L389, false for 'create' @ L542, evaluation error at L262:26 for 'update' @ L262, false for 'update' @ L389, false for 'update' @ L542, false for 'update' @ L262, false for 'update' @ L389, false for 'update' @ L542
+[2026-10-20T17:06:29.801Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x4c1b8e15 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+false for 'delete' @ L270, false for 'delete' @ L389, false for 'delete' @ L542
+[2026-10-20T17:06:29.809Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x4c1b8e16 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+false for 'delete' @ L270, false for 'delete' @ L389, false for 'delete' @ L542
+[2026-10-20T17:06:29.818Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x4c1b8e17 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+false for 'create' @ L258, false for 'create' @ L389, false for 'create' @ L542, false for 'update' @ L262, false for 'update' @ L389, false for 'update' @ L542
+[2026-10-20T17:06:29.829Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x4c1b8e18 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L372:42 for 'create' @ L372, false for 'create' @ L389, false for 'create' @ L542, evaluation error at L372:42 for 'update' @ L372, false for 'update' @ L389, false for 'update' @ L542, false for 'create' @ L372, false for 'create' @ L389, false for 'create' @ L542
+[2026-10-20T17:06:31.726Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x42dbda14 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L258:26 for 'create' @ L258, false for 'create' @ L389, false for 'create' @ L542, evaluation error at L262:26 for 'update' @ L262, false for 'update' @ L389, false for 'update' @ L542, false for 'create' @ L258, false for 'create' @ L389, false for 'create' @ L542
+[2026-10-20T17:06:31.742Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x42dbda15 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L262:26 for 'update' @ L262, false for 'update' @ L389, false for 'update' @ L542, false for 'update' @ L262, false for 'update' @ L389, false for 'update' @ L542
+[2026-10-20T17:06:31.754Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x42dbda16 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+false for 'delete' @ L270, false for 'delete' @ L389, false for 'delete' @ L542
+[2026-10-20T17:06:31.805Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x42dbda17 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L301:26 for 'create' @ L301, false for 'create' @ L389, false for 'create' @ L542, evaluation error at L305:26 for 'update' @ L305, false for 'update' @ L389, false for 'update' @ L542, false for 'create' @ L301, false for 'create' @ L389, false for 'create' @ L542
+[2026-10-20T17:06:31.879Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x42dbda18 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L460:24 for 'update' @ L460, evaluation error at L468:24 for 'update' @ L468, false for 'update' @ L542, false for 'update' @ L460, false for 'update' @ L468, false for 'update' @ L542
+[2026-10-20T17:06:31.958Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x42dbda1b error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L465:24 for 'create' @ L465, false for 'create' @ L542, evaluation error at L460:24 for 'update' @ L460, evaluation error at L468:24 for 'update' @ L468, false for 'update' @ L542, false for 'create' @ L465, false for 'create' @ L542
+[2026-10-20T17:06:31.985Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x42dbda1c error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L460:24 for 'update' @ L460, evaluation error at L468:24 for 'update' @ L468, false for 'update' @ L542, false for 'update' @ L460, false for 'update' @ L468, false for 'update' @ L542
+[2026-10-20T17:06:31.997Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x42dbda1d error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L460:24 for 'update' @ L460, evaluation error at L468:24 for 'update' @ L468, false for 'update' @ L542, false for 'update' @ L460, false for 'update' @ L468, false for 'update' @ L542
+[2026-10-20T17:06:32.014Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x42dbda1e error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L460:24 for 'update' @ L460, evaluation error at L468:24 for 'update' @ L468, false for 'update' @ L542, false for 'update' @ L460, false for 'update' @ L468, false for 'update' @ L542
+[2026-10-20T17:06:32.069Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x42dbda1f error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L465:24 for 'create' @ L465, false for 'create' @ L542, false for 'update' @ L460, evaluation error at L468:24 for 'update' @ L468, false for 'update' @ L542, false for 'create' @ L465, false for 'create' @ L542
+[2026-10-20T17:06:32.088Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x42dbda20 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L465:24 for 'create' @ L465, false for 'create' @ L542, false for 'update' @ L460, evaluation error at L468:24 for 'update' @ L468, false for 'update' @ L542, false for 'create' @ L465, false for 'create' @ L542
+[2026-10-20T17:06:32.104Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x42dbda21 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L465:24 for 'create' @ L465, false for 'create' @ L542, false for 'update' @ L460, evaluation error at L468:24 for 'update' @ L468, false for 'update' @ L542, false for 'create' @ L465, false for 'create' @ L542
+[2026-10-20T17:06:32.166Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x42dbda24 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L346:34 for 'update' @ L346, false for 'update' @ L389, false for 'update' @ L542, false for 'update' @ L346, false for 'update' @ L389, false for 'update' @ L542
+[2026-10-20T17:06:32.271Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x42dbda28 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L211:24 for 'update' @ L211, false for 'update' @ L542, false for 'update' @ L211, false for 'update' @ L542
+[2026-10-20T17:06:32.298Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x42dbda29 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L211:24 for 'update' @ L211, false for 'update' @ L542, false for 'update' @ L211, false for 'update' @ L542
+[2026-10-20T17:06:32.310Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x42dbda2a error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L211:24 for 'update' @ L211, false for 'update' @ L542, false for 'update' @ L211, false for 'update' @ L542
+[2026-10-20T17:06:32.322Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x42dbda2b error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L211:24 for 'update' @ L211, false for 'update' @ L542, false for 'update' @ L211, false for 'update' @ L542
+[2026-10-20T17:06:32.335Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x42dbda2c error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L211:24 for 'update' @ L211, false for 'update' @ L542, false for 'update' @ L211, false for 'update' @ L542
+[2026-10-20T17:06:32.345Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x42dbda2d error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L211:24 for 'update' @ L211, false for 'update' @ L542, false for 'update' @ L211, false for 'update' @ L542
+[2026-10-20T17:06:32.355Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x42dbda2e error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L211:24 for 'update' @ L211, false for 'update' @ L542, false for 'update' @ L211, false for 'update' @ L542
+[2026-10-20T17:06:32.365Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x42dbda2f error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L211:24 for 'update' @ L211, false for 'update' @ L542, false for 'update' @ L211, false for 'update' @ L542
+[2026-10-20T17:06:32.375Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x42dbda30 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L211:24 for 'update' @ L211, false for 'update' @ L542, false for 'update' @ L211, false for 'update' @ L542
+[2026-10-20T17:06:32.396Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x42dbda32 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L211:24 for 'update' @ L211, false for 'update' @ L542, false for 'update' @ L211, false for 'update' @ L542
+[2026-10-20T17:06:32.406Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x42dbda33 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L211:24 for 'update' @ L211, false for 'update' @ L542, false for 'update' @ L211, false for 'update' @ L542
+[2026-10-20T17:06:32.418Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x42dbda34 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L211:24 for 'update' @ L211, false for 'update' @ L542, false for 'update' @ L211, false for 'update' @ L542
+[2026-10-20T17:06:32.461Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x42dbda35 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L479:24 for 'create' @ L479, false for 'create' @ L542, false for 'update' @ L519, false for 'update' @ L542, false for 'create' @ L479, false for 'create' @ L542
+[2026-10-20T17:06:32.473Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x42dbda38 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L479:24 for 'create' @ L479, false for 'create' @ L542, false for 'update' @ L519, false for 'update' @ L542, false for 'create' @ L479, false for 'create' @ L542
+[2026-10-20T17:06:32.483Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x42dbda39 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+false for 'create' @ L479, false for 'create' @ L542, false for 'update' @ L519, false for 'update' @ L542
+[2026-10-20T17:06:32.493Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x42dbda3a error. Code: 7 Message: 7 PERMISSION_DENIED: 
+false for 'create' @ L479, false for 'create' @ L542, false for 'update' @ L519, false for 'update' @ L542
+[2026-10-20T17:06:32.502Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x42dbda3b error. Code: 7 Message: 7 PERMISSION_DENIED: 
+false for 'create' @ L479, false for 'create' @ L542, false for 'update' @ L519, false for 'update' @ L542
+[2026-10-20T17:06:32.511Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x42dbda3c error. Code: 7 Message: 7 PERMISSION_DENIED: 
+false for 'create' @ L479, false for 'create' @ L542, false for 'update' @ L519, false for 'update' @ L542
+[2026-10-20T17:06:32.659Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x42dbda40 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L211:24 for 'update' @ L211, false for 'update' @ L542, false for 'update' @ L211, false for 'update' @ L542
+[2026-10-20T17:06:32.673Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x42dbda31 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+false for 'create' @ L209, false for 'create' @ L542, evaluation error at L211:24 for 'update' @ L211, false for 'update' @ L542, false for 'create' @ L209, false for 'create' @ L542
+[2026-10-20T17:06:32.735Z]  @firebase/firestore: Firestore (12.15.0): GrpcConnection RPC 'Write' stream 0x42dbda42 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L529:24 for 'create' @ L529, false for 'create' @ L542, evaluation error at L537:32 for 'update' @ L537, false for 'update' @ L542, false for 'create' @ L529, false for 'create' @ L542
+[B6 RELEASE E01 real Rules / cost approval] exit=0
+B6 RELEASE security and roster gates PASS

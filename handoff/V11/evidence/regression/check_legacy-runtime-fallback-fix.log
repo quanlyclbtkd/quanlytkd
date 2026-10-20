@@ -1,0 +1,14 @@
+══════════════════════════════════════════════════════
+ check-legacy-runtime-fallback-fix — Phase 4K-6I-B
+══════════════════════════════════════════════════════
+
+  ✓ PASS: app.js _invCb: no bare scheduleRender() without reason
+  ✓ PASS: flushOrQueueDomainInvalidation defined (app.js or main.js)
+  ✓ PASS: main.js _flushPendingDomainInvalidations handles inventory domain
+  ✓ PASS: students.js: bare 300ms setTimeout fallback replaced or guarded
+  ✓ PASS: scheduleStudentsPaginationFallback defined
+  ✓ PASS: main.js has debugPendingDomainInvalidations
+
+══════════════════════════════════════════════════════
+ ✓ check-legacy-runtime-fallback-fix PASSED
+══════════════════════════════════════════════════════

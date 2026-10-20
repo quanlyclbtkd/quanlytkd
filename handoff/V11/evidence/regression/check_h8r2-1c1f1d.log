@@ -1,0 +1,46 @@
+✅ 1. canonical Tuition writer unchanged
+✅ 2. canonical Inventory owner unchanged
+✅ 3. canonical transaction owner unchanged
+✅ 4. TransactionDeleteIntegrity remains classifier authority
+✅ 5. finance consumes canonical isPureTuition
+✅ 6. one profile mutation lane Map
+✅ 7. external lane API reuses existing lane
+✅ 8. no global finance mutex introduced
+✅ 9. skipped-month mutations use Tuition profile lane
+✅ 10. tuition-affecting generic profile update is lane-aware
+✅ 11. transaction-form tuition uses existing lane
+✅ 12. family combo uses existing multi-profile lane
+✅ 13. generic tuition-affecting delete uses existing lane
+✅ 14. mixed unsafe branch occurs before confirm/destructive path
+✅ 15. receipt queue preserved
+✅ 16. one filterBranch preserved
+✅ MB01 classifier
+✅ MB02 classifier
+✅ MB03 classifier
+✅ MB04 classifier
+✅ MB05 classifier
+✅ MB06 classifier
+✅ 23. MB08 unsafe mixed delete fails closed
+✅ 24. MB08 unsafe mixed delete zero destructive writes
+✅ 25. pure tuition routes tuition delete only
+✅ 26. TM01 collect waits pending same-profile generic mutation
+✅ 27. TM01 collect proceeds after lane release
+✅ 28. TM02 generic delete waits pending same-profile collect
+✅ 29. TM02 delete enters after collect finishes
+✅ 30. TM03 different profiles remain parallel
+✅ 31. TM04 rejected lane operation does not poison lane
+✅ 32. TM05 pure tuition path does not wrap delete in external lane
+✅ 33. F1C completed replay remains lane-aware
+✅ 34. F1C legacy gap reversal preserved
+✅ 35. packageMonths fallback preserved
+✅ 36. txMonth fallback preserved
+✅ 37. fee_audit remains secondary
+✅ 38. no new getDoc
+✅ 39. no new getDocs
+✅ 40. no new onSnapshot
+✅ 41. Firestore budget 29/44/16
+✅ 42. root/public parity PASS
+
+Firestore static budget: 29/44/16
+Total: 42 | PASS: 42 | FAIL: 0
+H8R2.1C1F1D mixed-bundle / tuition mutation lane closure PASS.

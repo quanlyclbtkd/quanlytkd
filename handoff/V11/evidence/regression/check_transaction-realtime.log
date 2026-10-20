@@ -1,0 +1,78 @@
+
+══════════════════════════════════════════════════════════
+  Phase 4K — Transaction Realtime Listener Safety Check
+══════════════════════════════════════════════════════════
+
+▸ Section 1: __txListenerMetrics Infrastructure (app.js)
+  ✅ app.js exists
+  ✅ __txListenerMetrics defined
+  ✅ txListenerAttached tracked
+  ✅ txListenerDetached tracked
+  ✅ txListenerDuplicatePrevented tracked
+  ✅ printTxListenerMetrics exposed
+
+▸ Section 2: Duplicate Transaction Listener Guard (app.js)
+  ✅ safeRegisterSnapshot used for tx listener
+  ✅ cleanupListenersByOwner called before re-subscribe
+  ✅ currentTxUnsub cleanup before re-subscribe
+  ✅ qByDate inside safeRegisterSnapshot factory
+
+▸ Section 3: Logout TX Listener Cleanup (app.js)
+  ✅ currentTxUnsub cleaned on logout
+  ✅ activeListeners cleared on logout
+  ✅ cleanupListenersByOwner called on logout/month-change
+
+▸ Section 4: No Unsafe Fixed limit() for Revenue Calculation
+  ✅ No limit(1000) for revenue calculation
+  ✅ SuperAdmin does NOT scan transactions with large fixed limit for revenue
+
+▸ Section 5: Dashboard reads stats docs for historical data (dashboard.js)
+  ✅ dashboard.js exists
+  ✅ fetchAndRenderHistoricalCharts() uses stats docs
+  ✅ Dashboard reads stats via getDoc (not onSnapshot scan)
+  ✅ dashboardStatsRead metric tracked
+
+▸ Section 6: SuperAdmin reads stats docs for revenue (superadmin.js)
+  ✅ superadmin.js exists
+  ✅ SuperAdmin fetches monthly stats doc for each club
+  ✅ superAdminStatsRead metric tracked
+  ✅ SuperAdmin has fallback when stats doc missing
+
+▸ Section 7: Finance Listener Lifecycle (finance.listeners.js + app.js)
+  ✅ finance.listeners.js exists
+  ✅ getTxListenerKey() defined (key pattern consistent)
+  ✅ cleanupFinanceListeners() defined
+  ✅ hasTxListener() defined
+  ✅ listenToData() cleanup old listener before re-subscribe
+  ✅ Month change triggers listener swap (not duplicate)
+
+▸ Section 8: Transaction Listener Metrics Emission
+  ✅ txListenerAttached emitted in listenToData()
+  ✅ txListenerDetached emitted on logout
+  ✅ txListenerDuplicatePrevented emitted on duplicate attempt
+  ✅ txStatsRead or dashboardStatsRead metric exists
+
+▸ Section 9: Firestore Indexes for Transaction Queries
+  ✅ firestore.indexes.json exists
+  ✅ firestore.indexes.json not empty
+  ✅ firestore.indexes.json valid JSON
+  ✅ Has transactions indexes
+  ✅ Has txMonth + timestamp composite index
+  ✅ Has date + timestamp composite index
+
+▸ Section 10: Phase 4K Check Tools
+  ✅ check-transaction-realtime.mjs exists
+  ✅ check-stats-aggregation.mjs exists
+  ✅ rebuild-transaction-stats.mjs exists
+  ✅ check:transaction-realtime script defined
+  ✅ check:stats-aggregation script defined
+  ✅ check:all includes transaction-realtime
+  ✅ check:all includes stats-aggregation
+
+══════════════════════════════════════════════════════════
+  Total: 46 checks | ✅ Pass: 46 | ❌ Fail: 0
+
+  🎉 All transaction realtime checks passed!
+  Firestore transaction reads are safe for 20 CLB × 1000 võ sinh.
+══════════════════════════════════════════════════════════
+

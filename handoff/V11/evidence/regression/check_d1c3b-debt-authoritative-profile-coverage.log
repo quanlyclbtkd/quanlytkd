@@ -1,0 +1,69 @@
+PASS D1C3B-01 classifier proves active/trial query cannot cover B/C/D
+[StudentProfileStore] reset — d1c3b-fixture
+PASS D1C3B-01B full canonical store contains A/B/C/D active, E quit, Debt includes B/C/D
+PASS D1C3B-02 debt coverage readiness requires full same-club authority
+[ProfilesListener] reset — r1-reset
+[StudentProfileStore] reset — r1-reset
+PASS E01 2 slots use branch-only, no status prefilter, includeMetadataChanges true
+PASS E01 canonical classifier + quit/flag/date + missing branch truth
+[ProfilesListener] reset — r1-reset
+[StudentProfileStore] reset — r1-reset
+PASS E02 wait for both CS1 verified alias slots and dedupe
+[ProfilesListener] reset — r1-reset
+[StudentProfileStore] reset — r1-reset
+PASS E02 alias first then primary, verified only second
+[ProfilesListener] reset — r1-reset
+[StudentProfileStore] reset — r1-reset
+PASS E02 cache→server metadata ack on both slots
+[ProfilesListener] reset — r1-reset
+[StudentProfileStore] reset — r1-reset
+PASS E02 pending writes never promote, even server origin
+[ProfilesListener] reset — r1-reset
+[StudentProfileStore] reset — r1-reset
+PASS E02 fallback remains provisional before full 2-slot server; later authoritative wins
+[ProfilesListener] reset — r1-reset
+[StudentProfileStore] reset — r1-reset
+PASS E02 delete/move/quit/revive do not resurrect fallback
+[ProfilesListener] reset — r1-reset
+[StudentProfileStore] reset — r1-reset
+PASS E02 empty verified roster must not zero-probe or refetch
+[ProfilesListener] reset — r1-reset
+[StudentProfileStore] reset — r1-reset
+PASS E02 CS2 single branch-only listener verified with legacy
+[ProfilesListener] reset — r1-reset
+[StudentProfileStore] reset — r1-reset
+PASS E02 repeated metadata-only no reenumeration or invalidation
+[ProfilesListener] reset — r1-reset
+[StudentProfileStore] reset — r1-reset
+[ProfilesListener] reset — verified-owner-changed-on-same-key
+PASS E02 late callbacks from different principal never mutate
+[ProfilesListener] reset — r1-reset
+[StudentProfileStore] reset — r1-reset
+PASS E02 legacy error demotes verified to error until alias server recovery
+[ProfilesListener] reset — r1-reset
+[StudentProfileStore] reset — r1-reset
+PASS E02 primary error remains error until same primary server recovers
+[ProfilesListener] reset — r1-reset
+[StudentProfileStore] reset — r1-reset
+PASS E02 pending/reconnect demotes verified and recovers on fresh server ack
+[ProfilesListener] reset — r1-reset
+[StudentProfileStore] reset — r1-reset
+PASS E02 late fallback request after realtime authority cannot overwrite
+[ProfilesListener] reset — r1-reset
+[StudentProfileStore] reset — r1-reset
+PASS E02 CS1 duplicate mount and ID precedence
+[ProfilesListener] reset — r1-reset
+[StudentProfileStore] reset — r1-reset
+[ProfilesListener] reset — verified-owner-changed-on-same-key
+PASS E02 terminal unsubscribe failure refuses new physical listener
+[ProfilesListener] reset — r1-reset
+[StudentProfileStore] reset — r1-reset
+PASS E02 metadata-only at scale (1000) does not traverse/invalidate
+D1C3B7R1 ACTUAL HANDLERS: 19 PASS / 0 FAIL; sdkGetDocs=0
+[ProfilesListener] Legacy primary branch query failed: permission-denied
+[ProfilesListener] Active query lỗi: permission-denied — fallback
+[ProfilesListener] owner takeover blocked: unsubscribe failed
+PASS D1C3B-03 one existing Admin listener becomes full current-club authority
+PASS D1C3B-04 Quit reuses full authority and emergency fallback cannot overlap it
+PASS D1C3B-05 zero-fee admission refreshes Debt in same runtime
+D1C3B authoritative profile coverage gate PASS 6/6

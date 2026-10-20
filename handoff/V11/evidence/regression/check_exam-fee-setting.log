@@ -1,0 +1,35 @@
+
+🔍 Phase 4K-4B — Club Exam Fee Setting Check
+
+[32m✅ PASS[0m  mainJs readable
+[32m✅ PASS[0m  appJs readable
+[32m✅ PASS[0m  financeJs readable
+[32m✅ PASS[0m  indexHtml readable
+[32m✅ PASS[0m  main.js có window.getClubExamFee
+[32m✅ PASS[0m  main.js có window.saveClubExamFeeSetting
+[32m✅ PASS[0m  main.js có window.loadClubExamFeeSetting
+[32m✅ PASS[0m  main.js có window.debugExamFeeSetting
+[32m✅ PASS[0m  main.js có window.setClubExamFeeLocal
+[32m✅ PASS[0m  main.js có window.refreshExamFeeUI
+[32m✅ PASS[0m  main.js có window.initExamFeeSettingUI
+[32m✅ PASS[0m  index.html có examFeeInput
+[32m✅ PASS[0m  index.html có saveExamFeeBtn
+[32m✅ PASS[0m  index.html có examFeeStatus
+[32m✅ PASS[0m  saveClubExamFeeSetting dùng merge:true
+[32m✅ PASS[0m  saveClubExamFeeSetting lưu vào clubs/.../settings/general
+[32m✅ PASS[0m  main.js định nghĩa DEFAULT_EXAM_FEE = 250000
+[32m✅ PASS[0m  main.js có app:context-ready listener để load exam fee
+[32m✅ PASS[0m  main.js gọi _installExamFeeSettingBridges() trong bootstrap
+[32m✅ PASS[0m  app.js quickCollectExam dùng getClubExamFee thay vì hard-code 250000
+[32m✅ PASS[0m  refreshExamFeeUI cập nhật exam_fee_all_actual
+[32m✅ PASS[0m  main.js có replay context-ready cho GitHub Pages
+[32m✅ PASS[0m  main.js có hàm normalizeExamFee
+[32m✅ PASS[0m  index.html version đã cập nhật lên github-runtime-pilot-gate-examfee-hardening-20260603
+[32m✅ PASS[0m  finance.js quickCollectExam không còn pattern bare "feeEl.value || 250000"
+[32m✅ PASS[0m  finance.js quickCollectExam dùng getClubExamFee làm fallback
+[32m✅ PASS[0m  Không có "count * 250000" hoặc tương tự trong app.js
+[32m✅ PASS[0m  Không có "count * 250000" hoặc tương tự trong finance.js
+[32m✅ PASS[0m  main.js có xử lý reset examFee khi logout hoặc context-ready
+
+[32m✅ All checks passed (24/24)[0m
+

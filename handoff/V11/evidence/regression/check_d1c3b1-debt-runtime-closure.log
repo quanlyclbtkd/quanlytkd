@@ -1,0 +1,43 @@
+PASS R01 boundary exposes one canonical ready boolean
+PASS R02 boundary status exposes authorityClubId
+PASS R03 boundary status exposes sameClub
+PASS R04 boundary status exposes fullAuthoritySnapshotSeen
+PASS R05 boundary status exposes fullAuthorityComplete
+PASS R06 boundary status exposes storeComplete
+PASS R07 renderer asks canonical coverage.ready only
+PASS R08 renderer does not promote configVerified to authoritative Debt
+PASS R09 renderer does not promote sessionVerified/source strings independently
+PASS R10 renderer has neutral syncing state for not-ready Debt
+PASS R11 module ensureDebtProfilesReady guards recomputation on result.ready === true
+PASS R12 module compatibility fallback never treats profilesCount>0 as ready
+PASS R13 app compatibility owner delegates instead of independently recomputing Debt
+PASS R14 app compatibility fallback never treats profilesCount>0 as ready
+PASS R15 listener key is resolved before Admin authority reset
+PASS R16 duplicate listener guard runs before Admin authority reset
+PASS R17 duplicate mount preserves healthy authority and returns idempotently
+PASS R18 complete same-club realtime authority short-circuits fallback before getDocs
+PASS R19 fallback verifies listener teardown before full getDocs
+PASS R20 zero-fee admission refresh includes students.debtList
+PASS R21 zero-fee admission invalidates students.debtList
+PASS R22 release locks D1C3B authoritative coverage gate
+PASS R23 release locks D1C3B1 runtime closure gate
+PASS R24 critical gate includes D1C3B1 runtime closure
+[ProfilesListener] reset — d1c3b1-m01
+PASS M01 first Admin mount creates exactly one listener
+PASS M01 first snapshot establishes full authority even at zero profiles
+PASS M03 repeated duplicate mount keeps listener count one
+PASS F01 complete realtime authority makes fallback zero-read
+[ProfilesListener] reset — d1c3b1-m02
+PASS M02 pending duplicate mount preserves one pending listener without fallback
+PASS M02 original pending listener can still establish authority
+[ProfilesListener] reset — d1c3b1-f02
+[ProfilesListener] Active query lỗi: unavailable — fallback
+[ProfilesFallback] Loading full profiles — active-query-error:unavailable
+PASS F02 explicit listener error removes old owner before one full getDocs and recovers realtime
+[ProfilesListener] reset — d1c3b1-f03
+PASS F03 fallback fails closed when listener removal cannot be verified
+[ProfilesListener] reset — d1c3b1-f03-cleanup
+PASS S02 ready=false performs zero Debt recomputation/invalidation
+PASS S03 false→true performs exactly one authoritative refresh/invalidation
+PASS S04 repeated ready callbacks do not create a refresh storm
+D1C3B1 runtime closure: 35 passed, 0 failed.

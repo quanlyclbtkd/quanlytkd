@@ -1,0 +1,239 @@
+✅ 1. ONE guard owner exposes structured-result normalizer
+✅ 2. Form canonical action registered
+✅ 3. Combo canonical action registered
+✅ 4. TCB no longer uses truthy/!==false guard interpretation
+✅ 5. Form validates finite positive amount/date/package before lane
+✅ 6. Combo has ONE validated intent builder
+✅ 7. Combo report/pay derive total from validated intents
+✅ 8. Combo pay invokes canonical guard
+✅ 9. Form invokes canonical guard
+✅ 10. secondary fee audit detached helper exists
+✅ 11. Form audit is detached
+✅ 12. Combo receipt occurs before detached audits
+✅ 13. legacy Form writer remains no-write bootstrap stub
+✅ 14. no new lane owner
+[financial-intent-guard] ok {
+  action: 'tuition.transactionForm',
+  intentId: '4K-6N-tuition.transactionForm-1792516017525-8fvxuo',
+  clubId: 'clubA',
+  role: 'admin'
+}
+✅ 15. real guard {ok:true} allows
+✅ 16. structured {ok:false} blocks
+✅ 17. legacy boolean false blocks / true allows
+[financial-intent-guard] blocked {
+  ok: false,
+  intentId: '4K-6N-tuition.transactionForm-1792516017526-7c0g3n',
+  action: 'tuition.transactionForm',
+  reasons: [ 'role-not-allowed:viewer' ],
+  clubId: 'clubA',
+  user: {
+    uid: 'u1',
+    email: 'qa@example.test',
+    role: 'viewer',
+    coachBranch: ''
+  },
+  payload: { amount: 100000 },
+  time: '2026-10-20T17:06:57.526Z',
+  timestamp: 1792516017526,
+  soft: false
+}
+✅ 18. unauthorized role is blocked by real guard
+[financial-intent-guard] blocked {
+  ok: false,
+  intentId: '4K-6N-tuition.transactionForm-1792516017526-632tgk',
+  action: 'tuition.transactionForm',
+  reasons: [ 'missing-clubId' ],
+  clubId: '',
+  user: {
+    uid: 'u1',
+    email: 'qa@example.test',
+    role: 'admin',
+    coachBranch: ''
+  },
+  payload: { amount: 100000 },
+  time: '2026-10-20T17:06:57.526Z',
+  timestamp: 1792516017526,
+  soft: false
+}
+✅ 19. missing club blocked by real guard
+[financial-intent-guard] blocked {
+  ok: false,
+  intentId: '4K-6N-tuition.transactionForm-1792516017526-beud7a',
+  action: 'tuition.transactionForm',
+  reasons: [ 'non-positive-amount' ],
+  clubId: 'clubA',
+  user: {
+    uid: 'u1',
+    email: 'qa@example.test',
+    role: 'admin',
+    coachBranch: ''
+  },
+  payload: { amount: 0 },
+  time: '2026-10-20T17:06:57.526Z',
+  timestamp: 1792516017526,
+  soft: false
+}
+✅ 20. payment amount zero blocked by real guard
+[financial-intent-guard] blocked {
+  ok: false,
+  intentId: '4K-6N-tuition.transactionForm-1792516017527-e16duo',
+  action: 'tuition.transactionForm',
+  reasons: [ 'invalid-amount' ],
+  clubId: 'clubA',
+  user: {
+    uid: 'u1',
+    email: 'qa@example.test',
+    role: 'admin',
+    coachBranch: ''
+  },
+  payload: { amount: Infinity },
+  time: '2026-10-20T17:06:57.527Z',
+  timestamp: 1792516017527,
+  soft: false
+}
+✅ 21. non-finite amount blocked by real guard
+✅ 22. FORM-INV01 amount 0 => zero write
+✅ 23. FORM-INV02 negative => zero write
+✅ 24. FORM-INV03 NaN => zero write
+✅ 25. FORM-INV04 blank date => zero write
+✅ 26. FORM-INV05 invalid date => zero write
+✅ 27. FORM-INV06 invalid package => zero write
+[financial-intent-guard] blocked {
+  ok: false,
+  intentId: '4K-6N-tuition.transactionForm-1792516017535-a2xt0c',
+  action: 'tuition.transactionForm',
+  reasons: [ 'role-not-allowed:viewer' ],
+  clubId: 'clubA',
+  user: {
+    uid: 'u1',
+    email: 'qa@example.test',
+    role: 'viewer',
+    coachBranch: ''
+  },
+  payload: {
+    amount: 100000,
+    studentName: 'A',
+    month: '2026-09',
+    packageCount: 1
+  },
+  time: '2026-10-20T17:06:57.535Z',
+  timestamp: 1792516017535,
+  soft: false
+}
+✅ 28. FORM-INV07 viewer guard => zero write
+[financial-intent-guard] blocked {
+  ok: false,
+  intentId: '4K-6N-tuition.transactionForm-1792516017535-omzu1z',
+  action: 'tuition.transactionForm',
+  reasons: [ 'missing-clubId' ],
+  clubId: '',
+  user: {
+    uid: 'u1',
+    email: 'qa@example.test',
+    role: 'admin',
+    coachBranch: ''
+  },
+  payload: {
+    amount: 100000,
+    studentName: 'A',
+    month: '2026-09',
+    packageCount: 1
+  },
+  time: '2026-10-20T17:06:57.535Z',
+  timestamp: 1792516017535,
+  soft: false
+}
+✅ 29. FORM-INV08 missing club => zero write
+[financial-intent-guard] ok {
+  action: 'tuition.transactionForm',
+  intentId: '4K-6N-tuition.transactionForm-1792516017536-1mlu1l',
+  clubId: 'clubA',
+  role: 'admin'
+}
+✅ 30. FORM-INV09 valid Form has one canonical primary effect
+✅ 31. COMBO-INV01 duplicate profile => zero write
+✅ 32. COMBO-INV02 partial amount/no student => zero write
+✅ 33. COMBO-INV03 blank month => zero write
+✅ 34. COMBO-INV04 invalid month => zero write
+✅ 35. COMBO-INV05 zero amount active row => zero write
+✅ 36. COMBO-INV06 negative amount => zero write
+[financial-intent-guard] blocked {
+  ok: false,
+  intentId: '4K-6N-tuition.familyCombo-1792516017538-mqapxl',
+  action: 'tuition.familyCombo',
+  reasons: [ 'role-not-allowed:viewer' ],
+  clubId: 'clubA',
+  user: {
+    uid: 'u1',
+    email: 'qa@example.test',
+    role: 'viewer',
+    coachBranch: ''
+  },
+  payload: { total: 100000, studentNames: [ 'A' ], months: [ '2026-09' ] },
+  time: '2026-10-20T17:06:57.538Z',
+  timestamp: 1792516017538,
+  soft: false
+}
+✅ 37. COMBO-INV07 viewer => zero write
+[financial-intent-guard] blocked {
+  ok: false,
+  intentId: '4K-6N-tuition.familyCombo-1792516017539-kuha8v',
+  action: 'tuition.familyCombo',
+  reasons: [ 'missing-clubId' ],
+  clubId: '',
+  user: {
+    uid: 'u1',
+    email: 'qa@example.test',
+    role: 'admin',
+    coachBranch: ''
+  },
+  payload: { total: 100000, studentNames: [ 'A' ], months: [ '2026-09' ] },
+  time: '2026-10-20T17:06:57.539Z',
+  timestamp: 1792516017539,
+  soft: false
+}
+✅ 38. COMBO-INV08 missing club => zero write
+✅ 39. COMBO-INV09 report total derives validated intents
+[financial-intent-guard] ok {
+  action: 'tuition.familyCombo',
+  intentId: '4K-6N-tuition.familyCombo-1792516017539-i77124',
+  clubId: 'clubA',
+  role: 'admin'
+}
+✅ 40. COMBO-INV10 pay total equals committed validated total
+✅ 41. COMBO-INV11 normal combo local commits all profiles
+[financial-intent-guard] ok {
+  action: 'tuition.transactionForm',
+  intentId: '4K-6N-tuition.transactionForm-1792516017540-44wi9f',
+  clubId: 'clubA',
+  role: 'admin'
+}
+✅ 42. AUDIT01 slow Form audit does not block handler completion
+[financial-intent-guard] ok {
+  action: 'tuition.familyCombo',
+  intentId: '4K-6N-tuition.familyCombo-1792516017542-inwhra',
+  clubId: 'clubA',
+  role: 'admin'
+}
+✅ 43. AUDIT02 slow Combo audit does not block receipt
+[financial-intent-guard] ok {
+  action: 'tuition.transactionForm',
+  intentId: '4K-6N-tuition.transactionForm-1792516017545-vc7ozw',
+  clubId: 'clubA',
+  role: 'admin'
+}
+[fee-audit] Error: audit fail
+    at FinanceService.addFeeAuditSilent (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c-final-production-correctness.mjs:29:366)
+    at _detachFeeAudit (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/js/modules/finance.js?d1c=2:70:69)
+    at _txFormEl.onsubmit (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/js/modules/finance.js?d1c=2:598:164)
+    at async file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1c-final-production-correctness.mjs:55:68
+✅ 44. AUDIT03 audit rejection does not convert payment failure
+✅ 45. prior D1B actual handler/race gate remains PASS
+✅ 46. Firestore budget exactly 29/44/16
+✅ 47. root/public parity PASS
+✅ 48. release DAG contains D1C exactly once
+
+Firestore static budget: 29/44/16
+Total: 48 | PASS: 48 | FAIL: 0
+H8R2.1C1F1D1C final production correctness gate PASS.

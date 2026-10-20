@@ -1,0 +1,18 @@
+✅ provable current-month root cache helper exists
+✅ stats read is guarded by incomplete root cache and explicit coverage rejection
+✅ keyed monthly caches are checked
+✅ generic current-month revenue requires month marker
+✅ unknown revenue remains null/-- semantics
+✅ source cache completeness does not coerce null to zero
+✅ presentation count formatter preserves unknown as --
+✅ aggregate student count does not coerce unknown to zero
+✅ hasRevenueSource does not coerce null to zero
+✅ CASE A: all complete => stats reads 0
+✅ CASE B: one incomplete => stats reads 1
+✅ CASE C: stale month => fallback read 1
+✅ CASE D: missing revenue is not fabricated as zero
+✅ CASE E: keyed cache preserves equivalent numeric value
+✅ CASE F: empty root cache is incomplete, not zero-complete
+✅ CASE G: incomplete coverage rejects preserved legacy revenue as unknown
+✅ presentation summary helper is Firestore-free
+PASS 17/17

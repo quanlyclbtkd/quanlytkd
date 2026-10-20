@@ -13,6 +13,6 @@ assert.equal((markup.match(/js-print-tuition-receipt/g)||[]).length,3,'receipt a
 const temp=process.env.D1C3B7R2_BROWSER_OUTPUT||fs.mkdtempSync(path.join(os.tmpdir(),'d1c3b7r2-css-'));
 fs.mkdirSync(temp,{recursive:true});const rendered=path.join(temp,'real-rendered-tx-rows.html');fs.writeFileSync(rendered,markup);
 console.log('SOURCE PASS: actual financeRenderer HTML and /public linked loaded rules',temp);
-const py=spawnSync('python',[path.join(base,'tools/check-d1c3b7r2r5-css-browser.py'),pub,rendered,temp],{encoding:'utf8',timeout:60000});
+const py=spawnSync(process.env.PYTHON || process.env.CODEX_PRIMARY_RUNTIME_PYTHON || (process.platform === 'win32' ? 'python' : 'python3'),[path.join(base,'tools/check-d1c3b7r2r5-css-browser.py'),pub,rendered,temp],{encoding:'utf8',timeout:60000});
 process.stdout.write(py.stdout||'');process.stderr.write(py.stderr||'');
 if(py.error || py.status!==0){console.error('BROWSER NOT VERIFIED / FAIL: Chromium computed geometry required; exit',py.status??py.error?.message);process.exitCode=1}

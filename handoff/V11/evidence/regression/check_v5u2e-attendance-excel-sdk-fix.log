@@ -1,0 +1,29 @@
+
+🔎 Phase 4K-6V5U-2E — Attendance Excel Firebase SDK Dependency Fix
+
+✅ Firebase CDN import includes documentId
+✅ window._fb_init exposes documentId
+✅ public index exposes documentId identically
+✅ firebase/config exports documentId in shared sdk
+✅ attendance report requires stable documentId ordering
+✅ attendance report source/public mirrors match
+✅ report facade cache-busts attendance module
+✅ report facade source/public mirrors match
+✅ main cache-busts report facade
+✅ main source/public mirrors match for report import
+✅ index cache-busts app/main V5U-2E-or-later
+✅ public index cache-busts app/main V5U-2E-or-later
+✅ APP patch marker updated in app/main
+✅ public APP patch marker updated
+✅ report remains read-only
+✅ no second attendance export query path introduced
+✅ package exposes V5U-2E check
+✅ build:public keeps public as runtime-only output
+✅ behavior: documentId helper is invoked once
+✅ behavior: orderBy receives documentId sentinel
+✅ behavior: bounded query includes where/orderBy/limit
+✅ behavior: all mocked attendance docs returned
+
+Kết quả: 22 PASS, 0 FAIL.
+V5U-2E Attendance Excel SDK Fix PASS.
+

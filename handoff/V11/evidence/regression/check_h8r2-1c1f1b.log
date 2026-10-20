@@ -1,0 +1,69 @@
+✅ 1. one canonical tuition writer remains
+✅ 2. per-profile mutation lane exists in TuitionCommandBoundary
+✅ 3. lane key includes club/profile
+✅ 4. no global mutation lock
+✅ 5. collect is wrapped by profile lane
+✅ 6. delete/reversal is wrapped by same profile lane owner
+✅ 7. settlement is re-resolved inside lane
+✅ 8. correctness no longer depends on TTL
+✅ 9. explicit paidMonths after paidUntil are recognized
+✅ 10. skippedMonths has first precedence
+✅ 11. gap month can remain unpaid while later month is paid
+✅ 12. legacy paidUntil semantics remain
+✅ 13. packageMonths transaction fallback exists
+✅ 14. txMonth transaction fallback exists
+✅ 15. description is legacy identity fallback after stable identity
+✅ 16. deleted/reversed transaction evidence is rejected
+✅ 17. delete success immediately invalidates replay before reconciliation
+✅ 18. reconcile failure cannot restore deleted tx replay
+✅ 19. failed delete does not invalidate replay
+✅ 20. receipt reprint remains payment-write free
+✅ 21. asset recovery F1 preserved
+✅ 22. fee_audit remains secondary
+✅ 23. receipt render queue preserved
+✅ 24. one filterBranch authority remains
+✅ 25. main reversal helper delegates to canonical gap reconciler
+✅ 26. no new getDoc
+✅ 27. no new getDocs
+✅ 28. no new onSnapshot
+✅ 29. Firestore budget 29/44/16
+✅ 30. ML01 same-profile Sep+Oct serialize with +2 legitimate writes
+✅ 31. ML02 reverse invocation Oct+Sep does not regress paidUntil
+✅ 32. ML03 same month/same amount concurrent total +1
+✅ 33. ML04 same month/different amount rechecks settlement and total +1
+✅ 34. ML05 different profiles need not serialize
+✅ 35. ML06-07 failed mutation cleans lane and next mutation runs
+✅ 36. ML08 second mutation sees updated profile state
+✅ 37. ML09 completed replay coexists with profile lane
+✅ 38. ML10 profile lane cleanup returns to zero
+✅ 39. GS01 contiguous paidUntil Oct remains paid
+✅ 40. GS02 paidUntil Aug + paidMonths Oct => Oct paid
+✅ 41. GS03 paidUntil Aug + paidMonths Oct => Sep unpaid
+✅ 42. GS04 skipped month wins over paidUntil/paidMonths
+✅ 43. GS05 gap recollect advances contiguous paidUntil through later paid month
+✅ 44. GS06 legacy paidUntil only remains supported
+✅ 45. GS07 paidMonths-only evidence remains supported
+✅ 46. GS08 future paid month after gap remains paid
+✅ 47. GS09 multiple gaps keep only explicit future months paid
+✅ 48. GS10 normal contiguous payment reconciliation unchanged
+✅ 49. TF01 profileId + packageMonths fallback
+✅ 50. TF02 profileId + txMonth fallback
+✅ 51. TF03 legacy description + packageMonths fallback
+✅ 52. TF04 legacy description + txMonth fallback
+✅ 53. TF05 wrong stable student does not match same description
+✅ 54. TF06 non-tuition transaction does not match
+✅ 55. TF07 deleted transaction does not count
+✅ 56. TF08 later valid transaction after gap counts
+✅ 57. PR01 delete success + reconcile success invalidates exact replay
+✅ 58. PR02 failed delete does not falsely invalidate replay
+✅ 59. PR03 delete success + reconcile fail still invalidates deleted tx replay
+✅ 60. PR04 still-paid profile blocks write but never returns deleted txId
+✅ 61. PR05 later repaired unpaid profile recollects with new txId
+✅ 62. PR06 deleted transaction receipt reprint is not active-payment authority
+✅ 63. PR07 multi-month reversal preserves existing reconcile semantics
+✅ 64. PR08 txId invalidation is narrow and leaves unrelated replay entry
+✅ 65. root/public parity
+
+Firestore static budget: 29/44/16
+Total: 65 | PASS: 65 | FAIL: 0
+H8R2.1C1F1B tuition serialization/gap/reversal gate PASS.

@@ -1,0 +1,51 @@
+✅ 1. actual processMultiItem source is loaded from app.js
+✅ 2. processMultiItem profile binding is reassignable (P1 crash fix)
+✅ 3. Tuition MultiItem calls existing profile lane
+✅ 4. profile is re-resolved inside primary lane task
+✅ 5. settlement recheck occurs in actual handler
+✅ 6. paidUntil reconciliation uses canonical helper inside actual handler
+✅ 7. processMultiItem remains its existing batch writer
+✅ 8. receipt remains after lane result
+✅ 9. one profileMutationLanes Map definition
+✅ 10. one canonical settlement function definition
+✅ 11. TransactionDeleteIntegrity is relation classifier owner
+✅ 12. active renderer imports canonical TDI
+✅ 13. active renderer does not independently map tx.relatedInvId
+✅ 14. no renderer emits literal undefined transaction intent
+✅ 15. finance coordinator normalizes invalid tx identity before routing
+✅ 16. InventoryService remains mutation owner
+✅ 17. FinanceService retains transaction mutation owner
+✅ 18. no second inventory rollback service/owner introduced
+✅ 19. no second Tuition writer introduced
+✅ 20. finance.js remains within hard size ceiling
+✅ 21. app.js remains within line ceiling
+✅ 22. ACT01 actual Tuition-only handler no const reassignment crash
+✅ 23. ACT01 one primary batch + one Tuition lane
+✅ 24. ACT02 actual Tuition+Inventory handler preserves atomic primary commit
+✅ 25. ACT03 no-Tuition handler commits without Tuition mutation state
+✅ 26. ACT04 invalid input fails safely with zero writes
+✅ 27. actual MultiItem waits an earlier same-profile Tuition mutation
+✅ 28. stale MultiItem cannot regress newer paidUntil
+✅ 29. QuickPay-side mutation waits actual pending MultiItem critical lane
+✅ 30. reverse race final state is latest and lane releases
+✅ 31. same-month stale MultiItem waits lane
+✅ 32. same-month stale MultiItem creates zero duplicate Tuition write
+✅ 33. empty transaction impact fails closed
+✅ 34. nested relatedInvId extracted by canonical owner
+✅ 35. actual renderer maps nested inventory relation to real tx id
+✅ 36. no-Finance inventory row emits explicit blank-id intent, never undefined
+✅ 37. inventory row without Finance tx routes only to existing InventoryService
+✅ 38. unresolved protected Inventory linkage fails closed
+✅ 39. actual coordinator nested-linked pure Inventory uses canonical Inventory owner
+✅ 40. mixed Tuition+Inventory remains fail-closed before destructive write
+✅ 41. invalid transaction identity never reaches FinanceService
+✅ 42. F1D1 behavioral gate preserved
+✅ 43. F1C replay protection source preserved
+✅ 44. receipt queue preserved
+✅ 45. fee_audit remains secondary
+✅ 46. Firestore budget remains exactly 29/44/16
+✅ 47. root/public parity PASS
+✅ 48. F1D1A release wiring exactly once
+
+Total: 48 | PASS: 48 | FAIL: 0
+H8R2.1C1F1D1A actual runtime authority closure gate PASS.

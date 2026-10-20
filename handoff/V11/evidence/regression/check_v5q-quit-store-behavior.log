@@ -1,0 +1,8 @@
+[StudentProfileStore] reset — test
+✅ partial page preserves existing quit profile
+✅ partial page keeps quit completeness
+✅ partial page merges active item
+✅ full authority replaces old quit map
+✅ full authority remains complete
+
+PASS 5/5

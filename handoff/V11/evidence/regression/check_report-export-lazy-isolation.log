@@ -1,0 +1,122 @@
+
+🔎 Phase 4K-6U — Report/Excel Lazy Isolation
+
+[reports.js] ✅ initReports() Phase 4K-6E-B — exam export belt-order sort
+✅ eager report facade exists
+✅ lazy attendance export module exists
+✅ main eagerly imports only the small report facade
+✅ main registers report facade after ownership registry
+✅ ownership registry initializes before report facade
+✅ main no longer static-imports heavy reports.js
+✅ main no longer initializes heavy reports at startup
+✅ facade lazy-imports heavy reports.js
+✅ facade lazy-imports attendance export
+✅ facade shares one reports import promise
+✅ facade shares one attendance import promise
+✅ facade guards duplicate rapid export actions
+✅ facade restores canonical globals after reports module init
+✅ facade blocks viewer before lazy loading report code
+✅ ownership manifest includes openExcelExportModal
+✅ report ownership points to facade
+✅ classic rollback layer includes openExcelExportModal
+✅ app.js no longer assigns window.openExcelExportModal
+✅ ownership manifest includes updateExcelPeriodOptions
+✅ report ownership points to facade
+✅ classic rollback layer includes updateExcelPeriodOptions
+✅ app.js no longer assigns window.updateExcelPeriodOptions
+✅ ownership manifest includes exportToExcel
+✅ report ownership points to facade
+✅ classic rollback layer includes exportToExcel
+✅ app.js no longer assigns window.exportToExcel
+✅ ownership manifest includes executeExcelExport
+✅ report ownership points to facade
+✅ classic rollback layer includes executeExcelExport
+✅ app.js no longer assigns window.executeExcelExport
+✅ ownership manifest includes exportAchievementsExcel
+✅ report ownership points to facade
+✅ classic rollback layer includes exportAchievementsExcel
+✅ app.js no longer assigns window.exportAchievementsExcel
+✅ ownership manifest includes exportExamPaidList
+✅ report ownership points to facade
+✅ classic rollback layer includes exportExamPaidList
+✅ app.js no longer assigns window.exportExamPaidList
+✅ ownership manifest includes updateTaxPeriodOptions
+✅ report ownership points to facade
+✅ classic rollback layer includes updateTaxPeriodOptions
+✅ app.js no longer assigns window.updateTaxPeriodOptions
+✅ ownership manifest includes executeTaxExport
+✅ report ownership points to facade
+✅ classic rollback layer includes executeTaxExport
+✅ app.js no longer assigns window.executeTaxExport
+✅ ownership manifest includes exportAttendanceExcel
+✅ report ownership points to facade
+✅ classic rollback layer includes exportAttendanceExcel
+✅ app.js no longer assigns window.exportAttendanceExcel
+✅ ownership manifest includes copyAttReport
+✅ report ownership points to facade
+✅ classic rollback layer includes copyAttReport
+✅ app.js no longer assigns window.copyAttReport
+✅ finance.js no longer owns openExcelExportModal
+✅ finance.js no longer owns updateExcelPeriodOptions
+✅ finance.js no longer owns executeExcelExport
+✅ duplicate finance Excel implementation was removed
+✅ lazy reports implementation still loads XLSX on demand
+✅ exam export remains XLSX-lazy
+✅ tax export remains XLSX-lazy
+✅ achievement export remains XLSX-lazy
+✅ attendance Excel implementation removed from app.js
+✅ app.js no longer has the fixed 10,000 attendance export query
+✅ attendance module lazy-loads XLSX
+✅ attendance query remains scoped to selected month
+✅ attendance pagination uses stable document-id ordering
+✅ attendance pagination advances with cursor
+✅ attendance pagination uses bounded page size
+✅ attendance pagination has a high but finite safety ceiling
+✅ attendance export refuses silent truncation
+✅ attendance module removed fixed 10,000 cap
+✅ report facade has no write/listener API: setDoc(
+✅ attendance report has no write/listener API: setDoc(
+✅ report facade has no write/listener API: updateDoc(
+✅ attendance report has no write/listener API: updateDoc(
+✅ report facade has no write/listener API: addDoc(
+✅ attendance report has no write/listener API: addDoc(
+✅ report facade has no write/listener API: deleteDoc(
+✅ attendance report has no write/listener API: deleteDoc(
+✅ report facade has no write/listener API: writeBatch(
+✅ attendance report has no write/listener API: writeBatch(
+✅ report facade has no write/listener API: runTransaction(
+✅ attendance report has no write/listener API: runTransaction(
+✅ report facade has no write/listener API: onSnapshot(
+✅ attendance report has no write/listener API: onSnapshot(
+✅ app.js reduced to 696,906 bytes (target <= 735,000)
+✅ app.js reduced to 11,291 lines (target <= 11,700)
+✅ finance.js reduced to 68,793 bytes (target <= 72,000)
+✅ app.js cache bust is current and preserves 4K-6U report isolation
+✅ main.js cache bust is current and preserves 4K-6U report isolation
+✅ main retains the 4K-6U compatibility marker
+✅ active build version advances beyond 4K-6U
+✅ ownership diagnostics report the current phase while preserving report owners
+✅ package exposes 4K-6U checker
+✅ default check includes 4K-6U checker
+✅ full check includes 4K-6U checker
+✅ critical check includes 4K-6U checker
+✅ runtime facade registers all report globals
+✅ canonical facade opens Excel modal
+✅ Excel modal becomes visible
+✅ quarter selector renders four options
+✅ tax period selector updates
+✅ tax half-year options remain compatible
+✅ UI/copy actions do not load heavy reports
+✅ viewer export is blocked before heavy module import
+✅ heavy reports module initializes successfully on first demand
+✅ facade reports heavy module ready after lazy init
+✅ facade restores every canonical global after lazy module initialization
+✅ attendance pagination loads all 10,500 documents
+✅ attendance pagination completes after 11 pages without truncation
+✅ all ten report globals have canonical owners
+✅ all report owners remain installed
+✅ report ownership introduces no collision
+✅ all report rollback references are preserved
+
+✅ Phase 4K-6U check passed (115 assertions)
+

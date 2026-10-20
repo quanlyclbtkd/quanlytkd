@@ -1,0 +1,20 @@
+✅ OK:   __activeRenderLimit defined
+✅ OK:   resetActiveRenderLimit defined
+✅ OK:   loadMoreActiveStudents increments __activeRenderLimit
+✅ OK:   loadMoreActiveStudents calls refreshListsComputation
+✅ OK:   loadMoreActiveStudents calls invalidateList
+✅ OK:   studentsRenderer _activeLimit uses window.__activeRenderLimit
+✅ OK:   studentsRenderer paramsKey has arl:/drl: keys
+✅ OK:   studentsRenderer PASS 2 has useFullProfileActiveRender guard
+✅ OK:   active load more nằm ngoài if (!pgStudentsActive)
+✅ OK:   active load more button calls window.loadMoreActiveStudents(event)
+✅ OK:   getStudentJoinTimestamp has admissionDate + joinDate
+✅ OK:   addNewStudent saves admissionDate + joinDate
+✅ OK:   debugActiveLoadMoreAndSort defined
+✅ OK:   app.js renderExamList dùng extractExamStudentName
+✅ OK:   admissionDate ưu tiên trước createdAt trong getStudentJoinTimestamp candidates
+✅ OK:   joinDate ưu tiên trước createdAt trong getStudentJoinTimestamp candidates
+✅ OK:   useFullProfileActiveRender khai báo trước PASS 1 — không còn TDZ
+
+────────────────────────────────────────────────────────────
+✅ check-active-loadmore-newest-first: TẤT CẢ PASS

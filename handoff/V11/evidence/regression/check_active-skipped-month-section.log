@@ -1,0 +1,17 @@
+
+🔍 Phase 4K-6V4D1A — Active skipped-month section checks
+
+  ✅ index.html cache-busts app.js/main.js to V4D1A-or-later
+  ✅ main.js APP_PATCH_VERSION markers include V4D1 lineage
+  ✅ render.js exposes updateSkippedMonthSection global
+  ✅ render.js skipped section uses canonical helper, not raw status/includes
+  ✅ render.js handles tab/month-only render calls when dataVersion unchanged
+  ✅ studentsRenderer summary normalizes skippedMonths for m_skipped
+  ✅ legacy app.js uses _legacySkippedNamesForMonth for skipped section
+  ✅ legacy app.js m_skipped uses canonical month compare
+  ✅ syncStudentSkippedMonthLocal refreshes activeList and debtList
+  ✅ syncStudentSkippedMonthLocal updates skipped section immediately
+  ✅ package.json includes active skipped section gate in npm check
+
+📊 Results: 11 passed, 0 failed
+

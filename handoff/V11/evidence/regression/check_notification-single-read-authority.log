@@ -1,0 +1,18 @@
+✅ setupNotifListener remains canonical startup owner
+✅ normal startup does not call one-shot notification GET
+✅ fallback requires explicit fallback flag
+✅ fallback is single-flight
+✅ fallback once-key is scoped to verified auth generation
+✅ listener success marks first snapshot before rendering
+✅ listener error only falls back before first snapshot
+✅ registration failure has targeted fallback
+✅ no polling/retry interval added in notification block
+✅ notification UI renderer remains same owner
+✅ fallback GET remains bounded
+✅ no Coach notification read added
+✅ simulation: healthy first snapshot => fallback GET 0
+✅ simulation: pre-first error => fallback GET 1
+✅ simulation: registration failure => fallback GET max 1
+✅ simulation: duplicate setup same login keeps one fallback
+✅ simulation: logout/login generation permits one fresh fallback
+PASS 17/17

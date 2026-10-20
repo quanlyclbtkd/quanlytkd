@@ -1,0 +1,25 @@
+✅ V5Q/V5R cache bust active
+✅ main exposes boundary and completeness APIs
+✅ quit authority uses one full collection getDocs
+✅ old targeted query fan-out removed
+✅ loaded short-circuit requires same-club fresh completeness
+✅ authority marks store/listener complete only after full snapshot
+✅ authority clears shared pagination as source for quit
+✅ store tracks loaded vs complete separately
+✅ partial sync preserves existing quit profiles
+✅ partial sync does not mark quit complete
+[StudentProfileStore] reset — v10-contract
+[ProfilesListener] reset — v10-contract-end
+✅ Partial profile hydration preserves complete Quit store
+✅ quit pagination/search use local authority
+✅ SearchRuntime bypasses active-only index for quit
+✅ studentsRenderer gets quit rows from one boundary
+✅ direct quit renderer uses same boundary and shared filters
+✅ boundary uses legacy/canonical sources only for preview and dedicated store for complete mode
+✅ boundary centralizes branch and search filtering
+✅ boundary performs no Firestore reads/writes
+✅ legacy quit date/status aliases expanded
+✅ public boundary mirror synced
+✅ package exposes V5Q test
+
+PASS 21/21

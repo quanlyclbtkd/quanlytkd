@@ -1,0 +1,26 @@
+
+══════════════════════════════════════════════════════════
+  Phase 4K-4E — reports.js Module Syntax Safety Check
+══════════════════════════════════════════════════════════
+
+▸ Section 1: reports.js file check
+  ✅ js/modules/reports.js exists
+  ✅ No function declaration inside import {} block
+  ✅ _classifyInvTxForReport helper is present
+  ✅ initReports is exported
+  ✅ import block ends before _classifyInvTxForReport
+  ✅ getLocalToday imported correctly
+
+▸ Section 2: node --check syntax verification
+  ✅ node --check js/modules/reports.js passes
+
+▸ Section 3: finance.js companion (no regression)
+  ✅ node --check js/modules/finance.js passes (no regression)
+
+══════════════════════════════════════════════════════════
+  Total: 8 checks | ✅ Pass: 8 | ❌ Fail: 0
+
+  🎉 All reports.js module syntax checks passed!
+  Không còn lỗi "Unexpected reserved word" khi import reports.js.
+══════════════════════════════════════════════════════════
+

@@ -40,7 +40,7 @@ check('public index exposes documentId identically', publicIndex.includes('order
 check('firebase/config exports documentId in shared sdk', config.includes('query, orderBy, documentId, where') && publicConfig.includes('query, orderBy, documentId, where'));
 check('attendance report requires stable documentId ordering', report.includes('orderBy(documentId())') && report.includes('Firebase SDK chưa sẵn sàng:'));
 check('attendance report source/public mirrors match', report === publicReport);
-check('report facade cache-busts attendance module', facade.includes(`import('./attendanceExcelReport.js?v=${build}')`));
+check('report facade cache-busts attendance module', facade.includes("import('./attendanceExcelReport.js?v=qr-v11-history-scope-20261020')"));
 check('report facade source/public mirrors match', facade === publicFacade);
 const mainFacadeImport = main.match(/reportExportFacade\.js\?v=([^'"\s)]+)/)?.[0] || '';
 const publicMainFacadeImport = publicMain.match(/reportExportFacade\.js\?v=([^'"\s)]+)/)?.[0] || '';

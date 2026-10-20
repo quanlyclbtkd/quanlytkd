@@ -1,0 +1,22 @@
+
+▸ Section 1: reports.js — canonical ledger branch không dùng undefined t/curTs
+  ✅ Canonical ledger branch không dùng t.branch (undefined variable)
+  ✅ Canonical ledger branch không dùng t.id (undefined variable)
+  ✅ Canonical ledger branch không dùng curTs (undefined variable)
+  ✅ Canonical ledger branch dùng r.branch
+  ✅ Canonical ledger branch dùng r.txId
+  ✅ Canonical ledger branch dùng r.timestamp
+
+▸ Section 2: reports.js — try/catch bao quanh paidData build
+  ✅ try/catch trong exportExamPaidList bao paidData build
+
+▸ Section 3: reports.js — debugExamExportReadiness
+  ✅ window.debugExamExportReadiness defined in reports.js
+
+▸ Section 4: main.js — debugRuntimeSmokeTest tham chiếu examExportReadiness
+  ✅ debugRuntimeSmokeTest gọi debugExamExportReadiness
+  ✅ summary.examExportReadinessOk in summary
+
+══════════════════════════════════════════════
+Kết quả: 10 ✅  0 ⚠️   0 ❌
+✅ check:exam-export-download PASSED

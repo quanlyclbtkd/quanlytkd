@@ -90,6 +90,8 @@ const _state = {
     coachLegacyServerSeen: false,
     coachPrimaryFailed: false,
     coachLegacyFailed: false,
+    // Session-only proof for queuing while offline, never full/fresh authority.
+    coachRosterVerifiedInSession: false,
 
     // ── Quit load ─────────────────────────────────────────────────────────────
     quitLoaded:             false,
@@ -250,6 +252,7 @@ function _coachRosterReadiness() {
 // supply provisional display data but cannot be unioned with verified realtime.
 function _publishCoachRealtimeRoster(reason) {
     if (_coachRosterReadiness() !== 'verified') return false;
+    _state.coachRosterVerifiedInSession = true;
     const active = _mergedCoachActiveMap(); // primary ID wins over alias ID
     setActiveProfiles(active, 'coach-branch-authoritative:' + reason);
     _syncLegacy();
@@ -688,6 +691,7 @@ export function mountActiveProfilesListener(context) {
         _state.quitContextRetryCount = 0;
         _state.coachCanonicalActiveMap = {};
         _state.coachLegacyActiveMap = {};
+        _state.coachRosterVerifiedInSession = false;
         _state.coachPrimaryServerSeen = false;
         _state.coachLegacyServerSeen = false;
         _state.coachPrimaryFailed = false;
@@ -699,11 +703,13 @@ export function mountActiveProfilesListener(context) {
     // Restored slots have a fresh first snapshot even if the sibling is healthy.
     // Do not let the old slot's metadata latch skip that initial delivery.
     if (repairSameOwnerSlot && !primaryRegistered) {
+        _state.coachRosterVerifiedInSession = false;
         _state.coachPrimaryServerSeen = false;
         _state.coachCanonicalActiveMap = {};
         _state.coachPrimaryFailed = false;
     }
     if (repairSameOwnerSlot && !legacyRegistered) {
+        _state.coachRosterVerifiedInSession = false;
         _state.coachLegacyServerSeen = false;
         _state.coachLegacyActiveMap = {};
         _state.coachLegacyFailed = false;
@@ -838,6 +844,12 @@ export function mountActiveProfilesListener(context) {
                         return;
                     }
                     if (isCoach) _state.coachPrimaryServerSeen = stableServerEvent;
+                    // A network-only metadata demotion may reuse the last-good
+                    // roster for local queuing. Changed/pending data cannot.
+                    if (isCoach && !stableServerEvent &&
+                        (!noDocumentChanges || snap?.metadata?.hasPendingWrites !== false)) {
+                        _state.coachRosterVerifiedInSession = false;
+                    }
 
                     let snapshotMap = {};
                     snap.forEach(d => {
@@ -957,6 +969,7 @@ export function mountActiveProfilesListener(context) {
                         '— fallback'
                     );
                     if (isCoach) {
+                        _state.coachRosterVerifiedInSession = false;
                         _state.coachPrimaryServerSeen = false;
                         _state.coachPrimaryFailed = true;
                         _invalidateAll('coach-branch-primary-error');
@@ -1014,6 +1027,11 @@ export function mountActiveProfilesListener(context) {
                         _state.coachLegacyFailed = false;
                         _state.activeListenerFailed = _state.coachPrimaryFailed;
                         _state.coachLegacyServerSeen = stableServerEvent;
+                        if (!stableServerEvent &&
+                            (snap?.metadata?.hasPendingWrites !== false ||
+                             typeof snap?.docChanges !== 'function' || snap.docChanges().length !== 0)) {
+                            _state.coachRosterVerifiedInSession = false;
+                        }
                         const legacyMap = {};
                         snap.forEach(d => {
                             const id = d.id.trim();
@@ -1034,6 +1052,7 @@ export function mountActiveProfilesListener(context) {
                             !_currentVerifiedOwnerMatches(context, capturedAuthEpoch, capturedAuthUid)) return;
                         _state.activeQueryErrorCount++;
                         _state.coachLegacyServerSeen = false;
+                        _state.coachRosterVerifiedInSession = false;
                         _state.coachLegacyFailed = true;
                         _state.activeListenerFailed = true;
                         _invalidateAll('coach-branch-alias-error');
@@ -1072,6 +1091,7 @@ export function cleanupActiveProfilesListener(reason) {
     _state.coachLegacyListenerKey = null;
     _state.coachCanonicalActiveMap = {};
     _state.coachLegacyActiveMap = {};
+    _state.coachRosterVerifiedInSession = false;
     _state.coachPrimaryServerSeen = false;
     _state.coachLegacyServerSeen = false;
     _state.coachPrimaryFailed = false;
@@ -1822,6 +1842,7 @@ export function resetProfilesListeners(reason) {
     _state.coachLegacyListenerKey = null;
     _state.coachCanonicalActiveMap = {};
     _state.coachLegacyActiveMap = {};
+    _state.coachRosterVerifiedInSession = false;
     _state.coachPrimaryServerSeen = false;
     _state.coachLegacyServerSeen = false;
     _state.coachPrimaryFailed = false;
@@ -1888,6 +1909,9 @@ export function getProfilesListenerMetrics() {
 
     return {
         // Listener
+        // Scoped listener context; this does not grant full-club authority.
+        // Coach owns a branch roster, so authorityClubId stays Admin-only.
+        clubId:                            String(_ctx?.clubId || ''),
         activeListenerMounted:              _state.activeListenerMounted,
         activeSnapshotCount:                _state.activeSnapshotCount,
         activeQueryErrorCount:              _state.activeQueryErrorCount,
@@ -1909,6 +1933,7 @@ export function getProfilesListenerMetrics() {
         coachLegacyServerSeen:              _state.coachLegacyServerSeen,
         coachPrimaryFailed:                 _state.coachPrimaryFailed,
         coachLegacyFailed:                  _state.coachLegacyFailed,
+        coachOfflineRosterReady:            _state.coachRosterVerifiedInSession === true,
         role:                               _state.role,
         coachBranch:                        _state.coachBranch,
         coachBranchFallbackCount:           _state.coachBranchFallbackCount,

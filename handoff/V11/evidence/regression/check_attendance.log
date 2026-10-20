@@ -1,0 +1,47 @@
+
+[AttendanceReliabilityCheck] ── 1. AttendanceService.loadByDate — limit destructure ──
+[AttendanceReliabilityCheck] PASS  limit is destructured (or aliased) from SDK in loadByDate
+[AttendanceReliabilityCheck] PASS  Warning logged when limit() unavailable (graceful degradation)
+
+[AttendanceReliabilityCheck] ── 2. getAttendanceDocId helper ──
+[AttendanceReliabilityCheck] PASS  getAttendanceDocId defined in attendance.js
+[AttendanceReliabilityCheck] PASS  getAttendanceDocId returns shift-aware docId
+
+[AttendanceReliabilityCheck] ── 3. bulkCheckIn — shift-aware docId ──
+[AttendanceReliabilityCheck] PASS  bulkCheckIn uses getAttendanceDocId with its guarded shift capture
+
+[AttendanceReliabilityCheck] ── 4. bulkCheckIn — shiftId in data ──
+[AttendanceReliabilityCheck] PASS  bulkCheckIn data includes the same guarded shift captured by its docId
+
+[AttendanceReliabilityCheck] ── 5. _updateAttSummary — shift-aware key ──
+[AttendanceReliabilityCheck] PASS  _updateAttSummary uses getAttendanceDocId for cache key
+
+[AttendanceReliabilityCheck] ── 6. isActiveProfileForAttendance helper ──
+[AttendanceReliabilityCheck] PASS  isActiveProfileForAttendance defined
+[AttendanceReliabilityCheck] PASS  isActiveProfileForAttendance handles trial status
+[AttendanceReliabilityCheck] PASS  isActiveProfileForAttendance handles legacy missing status (returns true)
+
+[AttendanceReliabilityCheck] ── 7. renderAttMonthly — no direct p.status!==active ──
+[AttendanceReliabilityCheck] PASS  No direct p.status!=='active' in attendance.js — using helper
+
+[AttendanceReliabilityCheck] ── 8. firestore.rules — attendanceNotes rule ──
+[AttendanceReliabilityCheck] PASS  attendanceNotes rule present in firestore.rules
+[AttendanceReliabilityCheck] PASS  isCoach(clubId) used in rules for attendanceNotes/adminNotifications
+
+[AttendanceReliabilityCheck] ── 9. firestore.rules — adminNotifications rule ──
+[AttendanceReliabilityCheck] PASS  adminNotifications rule present in firestore.rules
+[AttendanceReliabilityCheck] PASS  adminNotifications delete restricted to admin (not coach)
+
+[AttendanceReliabilityCheck] ── 10. printAttendanceStatus debug function ──
+[AttendanceReliabilityCheck] PASS  printAttendanceStatus defined in attendance.js
+[AttendanceReliabilityCheck] PASS  __attendanceDebug populated in attendance.js
+[AttendanceReliabilityCheck] PASS  __attendanceDebug tracks currentDate and currentShiftId
+
+[AttendanceReliabilityCheck] ── 11. No PII logged in attendance debug ──
+[AttendanceReliabilityCheck] PASS  No student name logging in printAttendanceStatus (PII safe)
+
+[AttendanceReliabilityCheck] ── 12. Firestore rules — no public access opened ──
+[AttendanceReliabilityCheck] PASS  No public access in firestore.rules
+
+[AttendanceReliabilityCheck] Checked: 20 items
+[AttendanceReliabilityCheck] ✅ OK — All attendance reliability checks passed (0 warning(s)).

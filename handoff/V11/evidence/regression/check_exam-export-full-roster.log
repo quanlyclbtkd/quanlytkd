@@ -1,0 +1,42 @@
+✅ Compatibility public API exportExamPaidList remains one owner
+✅ Full roster builder reads canonical profiles RAM state
+✅ Export still joins through canonical exam payment ledger with explicit loaded transactions
+✅ Zero-paid abort was removed
+✅ Only true zero-active roster aborts export
+✅ Unpaid target belt uses existing BELT_NEXT authority
+✅ Per-row fee status has paid and unpaid variants
+✅ Summary includes total/paid/unpaid/collected amount
+✅ Branch sheets are built from full roster, not paid-only data
+✅ Existing belt sorter remains canonical buildSheet sorter
+✅ No direct profile Firestore reader added to exam export
+[reports.js] ✅ initReports() Phase 4K-6E-B — exam export belt-order sort
+[ReportsModule] examPaidList load: txMonth= 3 date= 0 deduped= 3
+✅ E1 10 active / 3 paid / 7 unpaid exports 10 rows
+[ReportsModule] examPaidList load: txMonth= 0 date= 0 deduped= 0
+✅ E2 10 active / 0 paid exports 10 unpaid rows with no abort
+[ReportsModule] examPaidList load: txMonth= 0 date= 0 deduped= 0
+✅ E3 8 active + 2 quit exports exactly 8 rows
+[ReportsModule] examPaidList load: txMonth= 1 date= 0 deduped= 1
+✅ E4 direct Lệ phí thi keeps 250000 canonical exam amount
+[ReportsModule] examPaidList load: txMonth= 1 date= 0 deduped= 1
+✅ E5 combo uses examAmount=250000 instead of total amount
+[ReportsModule] examPaidList load: txMonth= 1 date= 0 deduped= 1
+✅ E6 examPaidCancelled=true exports student as unpaid
+[ReportsModule] examPaidList load: txMonth= 1 date= 0 deduped= 1
+✅ E7 multi-branch exports DS_ToanBo=10, CS1=5, CS2=5
+[ReportsModule] examPaidList load: txMonth= 0 date= 0 deduped= 0
+✅ E8 unpaid target belt comes from existing BELT_NEXT
+✅ E9 full roster builder performs zero Firebase reads/listeners
+✅ E10 full roster buildSheet still routes through existing belt sorter
+[ReportsModule] exportExamPaidList incomplete: Error: permission-denied
+    at window.loadTransactionsForTxMonthRange (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-exam-export-full-roster.mjs:197:64)
+    at window.exportExamPaidList (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/js/modules/reports.js?h5=1792516016337:1083:43)
+    at async file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-exam-export-full-roster.mjs:199:3
+✅ E11 failed month source does not download an exam roster
+[ReportsModule] exportExamPaidList incomplete: Error: index-required
+    at window.loadTransactionsForDateRange (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-exam-export-full-roster.mjs:205:61)
+    at window.exportExamPaidList (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/js/modules/reports.js?h5=1792516016337:1094:42)
+    at async file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-exam-export-full-roster.mjs:206:3
+✅ E12 failed date source does not download an exam roster
+
+Exam Full Roster Export: 23/23 PASS

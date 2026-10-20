@@ -1,0 +1,41 @@
+
+══════════════════════════════════════════════════════════
+  Profile Hydration Safety Check — Phase 4K-RUNTIME-CLEANUP
+══════════════════════════════════════════════════════════
+
+▸ Section 1: app.js — profile listener init sau db ready
+  ✅ initSaaSDatabase trong app.js khởi tạo profile listener
+  ✅ Profile listener fallback an toàn (active + full fallback)
+  ✅ resetProfilesListeners được gọi khi logout trong app.js
+  ✅ resetStudentProfileStore được gọi khi logout
+
+▸ Section 2: app.js — app:context-ready và app:db-ready dispatch
+  ✅ app:context-ready dispatch sau db ready
+  ✅ app:db-ready dispatch sau db ready
+  ✅ __dbReadyEventDispatched guard ngăn dispatch lặp
+
+▸ Section 3: main.js — pagination hydration via event listener
+  ✅ app:context-ready listener cho pagination init
+  ✅ app:db-ready listener cho pagination init
+  ✅ __studentPaginationInitialized guard chống double-init
+  ✅ __transactionPaginationInitialized guard chống double-init
+
+▸ Section 4: main.js — logout reset guards để re-hydrate sau login lại
+  ✅ __studentPaginationInitialized reset = false khi logout
+  ✅ __transactionPaginationInitialized reset = false khi logout
+  ✅ __dbReadyEventDispatched reset = false khi logout
+
+▸ Section 5: canonical profile status compatibility
+[StudentProfileStore] reset — v10-contract
+[ProfilesListener] reset — v10-contract-end
+  ✅ Profile hydration uses canonical classifyProfileStatus compatibility
+  ✅ app.js render paths retain classifyProfileStatus compatibility
+  ✅ Profile mới tạo có status: 'active'
+
+══════════════════════════════════════════════════════════
+  Total: 17 | ✅ 17 | ❌ 0
+
+  🎉 Profile hydration checks passed!
+  Profile listener sẽ re-init đúng sau login lại.
+══════════════════════════════════════════════════════════
+

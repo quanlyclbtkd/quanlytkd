@@ -1,0 +1,39 @@
+
+=== Phase 4K-6V4B11 — Debt Authoritative Tuition Coverage ===
+
+✅ index/main/app cache-busted for current debt phase
+✅ app normalizeYYYYMM supports MM/YYYY, T numeric and Vietnamese month-word formats
+✅ utils normalizeYYYYMM mirrors month-word parser
+✅ global normalizeTuitionMonth exposed
+✅ getChargeableTuitionMonths normalizes selectedMonth, paidUntil, paidMonths and skippedMonths
+✅ legacy isOwed is only additive and cannot suppress canonical debt
+✅ legacy app debt render uses getChargeableTuitionMonths
+✅ studentsRenderer ignores stale isOwed false and uses canonical months
+✅ studentsRenderer debt rows are not hidden by Active new/returning filter
+✅ studentsRenderer debt branch filter uses canonical branch aliases
+✅ legacy render debt branch filter uses canonical branch aliases
+✅ studentsRenderer fallback normalizes paidUntil/paidMonths/skippedMonths
+✅ pagination fallback summary uses canonical months
+✅ bulk Zalo debt list uses canonical months
+✅ debt debug exposes normalized paid fields, filters and hidden reasons
+✅ debugDebtCoverage uses chargeable months instead of raw paidUntil string compare
+✅ Dynamic: paidUntil 05/2026 owes 2026-06
+✅ Dynamic: paidUntil T5/2026 owes 2026-06
+✅ Dynamic: paidUntil Tháng 5/2026 owes 2026-06
+✅ Dynamic: paidUntil Tháng năm 2026 owes June only
+✅ Dynamic: paidUntil Tháng Năm năm 2026 owes June only
+✅ Dynamic: paidUntil thang nam 2026 normalizes to 2026-05
+✅ Dynamic: numeric month variants normalize to the same month 2026-05
+✅ Dynamic: paidUntil Tháng tư 2026 owes May and June
+✅ Dynamic: paidUntil Tháng Tư năm 2026 owes 2 months for June
+✅ Dynamic: paidUntil thang muoi mot 2026 normalizes to 2026-11
+✅ Dynamic: stale isOwed false cannot hide June debt
+✅ Dynamic: paidUntil April with stale paidMonths June still owes May and June
+✅ Dynamic: paidUntil May with stale future paidMonths June still owes June
+✅ Dynamic: skipped month suppresses June debt
+✅ Dynamic: legacy isOwed true may add older owed month only as extra evidence
+✅ Report debt export uses canonical chargeable months, not raw paidUntil comparison
+
+Total: 32 | PASS: 32 | FAIL: 0
+Phase 4K-6V4B11 checks passed.
+

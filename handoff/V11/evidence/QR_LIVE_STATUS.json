@@ -1,0 +1,11 @@
+{
+  "status": "BLOCKED_BY_AUTO_REVIEW",
+  "action": "browser QR staging with external VietQR request",
+  "statedReason": "Potential disclosure of payment data to an unapproved destination; user QR testing authorization did not authorize this specific disclosure.",
+  "retryPerformed": false,
+  "physicalDevices": "NOT_AVAILABLE",
+  "safariEngine": "NOT_AVAILABLE",
+  "fixtureHandlerChecks": 109,
+  "fixtureResponseNetworkChecks": 16,
+  "note": "Fixture tests replace fetch and do not send requests. They do not establish live VietQR, Safari or phone acceptance."
+}

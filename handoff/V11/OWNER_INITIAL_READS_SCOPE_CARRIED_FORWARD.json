@@ -1,0 +1,23 @@
+{
+  "decision": "approved",
+  "issuedBy": "system_owner",
+  "recordedBy": "assistant_carrying_forward_existing_explicit_user_scope",
+  "approvedAt": "2026-10-20T22:17:24+07:00",
+  "scope": "Coach CS1 and Coach CS2; clubs with at most 1500 profiles; initial roster result documents and Rules canonical profile lookup for attendance writes",
+  "rulesSha256": "c1803b367f264740758a776e3b30455a13c82e1a04b695a688da359d868b7b9a",
+  "sourceSha256": "bb5b3bda5ddb77b1dc935ea539b8ae2f8287f001dbf04d8619605e602d797af1",
+  "measurementSha256": "1a141b0eb9472b1884198b5c2d5b7846945fa097b1413507ef6d6604243b1e1c",
+  "maxIncrementalInitialDocs": 1500,
+  "profilesMeasured1000": true,
+  "profilesMeasured1500": true,
+  "attendanceCanonicalProfileLookupApproved": true,
+  "ownerStatement": "chấp thuận đề xuất tối đa +1.500 hồ sơ đọc thêm/lượt tải đầu của Coach trong phạm vi CLB ≤1.500 hồ sơ, cùng việc Rules tra hồ sơ gốc khi Coach ghi điểm danh",
+  "notes": "Rebinds only the same measured initial-roster and canonical-profile-write-lookup scope already explicitly approved by the user. It does not create approval for new version reads or deploy. Original owner statement and approval record are preserved.",
+  "scopeUnchangedFromPriorApproval": true,
+  "newScopeExcluded": [
+    "CAS transaction/version reads",
+    "explicit review reads",
+    "V3 migration deployment",
+    "production deployment"
+  ]
+}

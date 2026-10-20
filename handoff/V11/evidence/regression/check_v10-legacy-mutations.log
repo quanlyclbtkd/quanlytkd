@@ -1,0 +1,29 @@
+[StudentProfileStore] reset — v10-contract
+[ProfilesListener] reset — v10-contract-end
+[StudentProfileStore] reset — v10-contract
+[ProfilesListener] reset — v10-contract-end
+[StudentProfileStore] reset — v10-contract
+[ProfilesListener] reset — v10-contract-end
+[StudentProfileStore] reset — v10-contract
+[ProfilesListener] reset — v10-contract-end
+CAUGHT scale
+CAUGHT search-bindings
+CAUGHT attendance-shift-filter
+CAUGHT finance-index-errors
+CAUGHT exam-fee-setting
+CAUGHT profile-display-name-safe-edit
+CAUGHT club-context-ready
+[StudentProfileStore] reset — v10-contract
+[ProfilesListener] reset — v10-contract-end
+CAUGHT profile-hydration
+[StudentProfileStore] reset — v10-contract
+[ProfilesListener] reset — v10-contract-end
+CAUGHT active-zero-fallback
+[StudentProfileStore] reset — v10-contract
+[ProfilesListener] reset — v10-contract-end
+CAUGHT coach-branch-runtime-repair
+CAUGHT v5q-quit-single-authoritative-pipeline
+[StudentProfileStore] reset — v10-contract
+[ProfilesListener] reset — v10-contract-end
+CAUGHT v5s-quit-context-behavior
+V10 LEGACY CONTRACTS: 11 PASS; MUTATIONS: 12/12 CAUGHT

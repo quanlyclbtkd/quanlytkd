@@ -1,0 +1,57 @@
+
+[AttOfflineShiftCheck] ── 1. _saveAttOffline stores shiftId ──
+[AttOfflineShiftCheck] PASS  _saveAttOffline stores shiftId from _currentShiftId
+
+[AttOfflineShiftCheck] ── 2. _saveAttOffline stores docId ──
+[AttOfflineShiftCheck] PASS  _saveAttOffline stores docId in each offline record
+
+[AttOfflineShiftCheck] ── 3. bulkSyncOffline uses rec.docId (shift-aware) ──
+[AttOfflineShiftCheck] PASS  bulkSyncOffline prefers rec.docId before computing docId
+
+[AttOfflineShiftCheck] ── 4. bulkSyncOffline has shift-aware docId helper ──
+[AttOfflineShiftCheck] PASS  bulkSyncOffline has shift-aware docId fallback (_getAttDocId or rec.shiftId)
+
+[AttOfflineShiftCheck] ── 5. bulkSyncOffline writes shiftId to Firestore document ──
+[AttOfflineShiftCheck] PASS  bulkSyncOffline includes shiftId in written document data
+
+[AttOfflineShiftCheck] ── 6. bulkSyncOffline canonical sanitizer excludes docId/journal metadata ──
+[AttOfflineShiftCheck] PASS  bulkSyncOffline whitelist sanitizer excludes docId and journal metadata from Firestore data
+
+[AttOfflineShiftCheck] ── 7. bulkCheckIn catch rollback uses getAttendanceDocId ──
+[AttOfflineShiftCheck] PASS  bulkCheckIn catch rollback uses getAttendanceDocId (shift-aware key)
+
+[AttOfflineShiftCheck] ── 8. printAttendanceBranchReport calls AttendanceService.loadByMonth ──
+[AttOfflineShiftCheck] PASS  printAttendanceBranchReport calls AttendanceService.loadByMonth for real data
+
+[AttOfflineShiftCheck] ── 9. printAttendanceBranchReport no longer calls computeMonthlyAttendanceAccuracy with empty map {} ──
+[AttOfflineShiftCheck] PASS  printAttendanceBranchReport no longer calls computeMonthlyAttendanceAccuracy with empty map
+
+[AttOfflineShiftCheck] ── 10. printAttendanceBranchReport is async (awaits loadByMonth) ──
+[AttOfflineShiftCheck] PASS  printAttendanceBranchReport is async function
+
+[AttOfflineShiftCheck] ── 11. computeMonthlyAttendanceAccuracy supports shiftId key lookup ──
+[AttOfflineShiftCheck] PASS  computeMonthlyAttendanceAccuracy uses shiftId-aware key when profileName provided
+
+[AttOfflineShiftCheck] ── 12. computeMonthlyAttendanceAccuracy handles object values from loadByMonth ──
+[AttOfflineShiftCheck] PASS  computeMonthlyAttendanceAccuracy handles object values (rec.status) from loadByMonth
+
+[AttOfflineShiftCheck] ── 13. printAttendanceStatus has offlineQueueCount ──
+[AttOfflineShiftCheck] PASS  printAttendanceStatus includes offlineQueueCount
+
+[AttOfflineShiftCheck] ── 14. printAttendanceStatus has offlineShiftRecordsCount ──
+[AttOfflineShiftCheck] PASS  printAttendanceStatus includes offlineShiftRecordsCount
+
+[AttOfflineShiftCheck] ── 15. No Firestore writes in new helpers (only bulkSyncOffline writes) ──
+[AttOfflineShiftCheck] PASS  _buildAttendanceMapForProfile and branch report do not write to Firestore
+
+[AttOfflineShiftCheck] ── 16. No PII logged in offline/shift helpers ──
+[AttOfflineShiftCheck] PASS  No PII (student name) logged in _buildAttendanceMapForProfile
+
+[AttOfflineShiftCheck] ── 17. Backward compatibility — legacy records without shiftId still work ──
+[AttOfflineShiftCheck] PASS  Legacy no-shift identity is preserved during review-only migration
+
+[AttOfflineShiftCheck] ── 18. No Firestore Rules opened as public ──
+[AttOfflineShiftCheck] PASS  No public access in firestore.rules
+
+[AttOfflineShiftCheck] Checked: 18 items
+[AttOfflineShiftCheck] ✅ OK — All offline shift checks passed (0 warning(s)).

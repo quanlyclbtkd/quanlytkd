@@ -1,0 +1,41 @@
+✅ event order: first snapshot wait precedes accepted gate
+✅ event order: accepted gate precedes app:context-ready
+✅ event order: context-ready precedes db-ready
+✅ event order: db-ready precedes shell-ready
+✅ event order: shell-ready precedes direct settings listener mount
+✅ event order: accepted gate precedes profile mount
+✅ event order: accepted gate precedes inventory debt source
+✅ tenant mainApp stays hidden before gate
+✅ active snapshot reveals tenant shell only after accepted gate
+✅ missing club snapshot blocks
+✅ accountStatus missing remains backward-compatible active
+✅ locked club blocks
+✅ legacy/missing expiry keeps current fallback policy
+✅ expired club blocks
+✅ <=30 day expiry warning remains non-blocking
+✅ cache snapshot source is recorded without second read
+✅ server snapshots are revalidated by same callback
+✅ ready -> blocked cleanup is idempotent
+✅ blocked -> ready auto-remount is prevented in same session
+✅ stale callback guard includes auth uid
+✅ stale callback guard includes clubId
+✅ stale callback guard includes auth generation
+✅ permission-denied before first snapshot fails closed
+✅ listener registration failure fails closed
+✅ logout resets bootstrap flight/state
+✅ Coach CS1 + Mặc định compatibility unchanged
+✅ Coach attendance first render is deferred until after ready events
+✅ simulation: active admin accepted
+✅ simulation: active viewer accepted
+✅ simulation: active coach accepted
+✅ simulation: coach CS1 access policy accepted
+✅ simulation: locked blocks
+✅ simulation: expired blocks
+✅ simulation: expiry warning <=30d accepted
+✅ simulation: missing document blocks
+✅ simulation: cache active can bootstrap compatibly
+✅ simulation: later server locked would block
+✅ simulation: stale Club A callback cannot activate Club B
+✅ simulation: old generation same uid/club cannot reactivate new login
+
+PASS 39/39

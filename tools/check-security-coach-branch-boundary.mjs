@@ -74,7 +74,7 @@ check('Attendance reads are branch-scoped and missing Coach branch fails closed'
 check('Attendance writes canonicalize branch at one service boundary',
   attendance.includes('function _prepareWriteData') &&
   attendance.includes("return { ...source, branch: canonical }") &&
-  (attendance.match(/_prepareWriteData\(/g) || []).length >= 4);
+  (attendance.match(/_prepareWriteData\(/g) || []).length === 2 && attendance.includes('transaction.set(ref,payload)'));
 
 check('Rules identify the 6V4B security phase', rules.includes('Phase 4K-6V4B'));
 check('Rules require an enabled user authorization document',
@@ -93,9 +93,11 @@ check('Club Admin may provision/repair only same-tenant Coach users with a valid
   rules.includes('isAllowedCoachBranch(assignedBranch(data))'));
 check('Coach profile reads are enforced by Firestore branch authorization',
   /match \/profiles\/\{profileId\}[\s\S]{0,350}isCoach\(clubId\)[\s\S]{0,120}resourceBranchMatchesCoach/.test(rules));
-check('Coach attendance create/update/delete are branch-scoped in Rules',
-  /match \/attendance\/\{attendanceId\}[\s\S]{0,900}requestBranchMatchesCoach/.test(rules) &&
-  /resourceBranchMatchesCoach\(\)[\s\S]{0,150}requestBranchMatchesCoach\(\)/.test(rules));
+const attendanceRules=rules.slice(rules.indexOf('match /attendance/{attendanceId}'),rules.indexOf('match /attendanceNotes/'));
+check('Coach versioned create/update are branch/profile-scoped; blind delete denied',
+  attendanceRules.includes('requestBranchMatchesCoach()') && attendanceRules.includes('resourceBranchMatchesCoach()') &&
+  attendanceRules.includes('coachAttendanceProfileMatches(clubId, request.resource.data)') && attendanceRules.includes('historicalProof(resource.data)') && attendanceRules.includes('allow delete: if false'));
+
 check('Coach notes and notifications are restricted to own coachId',
   rules.includes('coachOwnsResource()') && rules.includes('coachOwnsRequest()') &&
   /match \/attendanceNotes\//.test(rules) && /match \/adminNotifications\//.test(rules));

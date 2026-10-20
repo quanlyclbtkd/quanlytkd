@@ -1,0 +1,40 @@
+
+══════════════════════════════════════════════════════════
+  GitHub Pages Module Path Check
+══════════════════════════════════════════════════════════
+
+▸ Section 1: Required JS files exist
+  ✅ js/main.js exists
+  ✅ js/modules/superadmin.js exists
+  ✅ js/modules/dashboard.js exists
+  ✅ js/modules/students.js exists
+  ✅ index.html exists
+  ✅ .nojekyll exists (prevents Jekyll from processing files with _ prefix)
+
+▸ Section 2: index.html — module path safety
+  ✅ index.html has no absolute src="/js/..." script tags
+  ✅ index.html has no absolute import("/js/...") calls
+  ✅ index.html loads main.js with relative path (./js/main.js or js/main.js)
+  ✅ No <script type="module" src="/js/..."> with absolute path
+  ✅ main.js dynamic injection has onerror handler
+  ✅ index.html has file:// guard (prevents ES module load on file:// protocol)
+
+▸ Section 3: Runtime JS — no absolute /js/ paths in imports
+  ✅ No absolute /js/ paths in runtime ES module imports (121 files scanned)
+
+▸ Section 4: main.js — imports use relative paths
+  ✅ js/main.js exists (already verified)
+  ✅ main.js static imports do not use absolute /js/ paths
+  ✅ main.js dynamic import for superadmin uses relative path (./modules/superadmin.js)
+  ✅ main.js defines window.ensureSuperAdminModule
+
+▸ Section 5: app.js — no absolute /js/ paths
+  ✅ app.js has no absolute /js/ dynamic imports
+
+══════════════════════════════════════════════════════════
+  Total: 18 checks | ✅ Pass: 18 | ❌ Fail: 0
+
+  🎉 All GitHub Pages path checks passed!
+  Source có relative paths đúng — an toàn để deploy lên GitHub Pages.
+══════════════════════════════════════════════════════════
+

@@ -1,0 +1,51 @@
+[ProfilesListener] reset — test-reset
+[StudentProfileStore] reset — test-reset
+[ProfilesListener] reset — owner-switch
+[StudentProfileStore] reset — owner-switch
+PASS B4-01 stale legacy-primary snapshot cannot enter new club or role
+[ProfilesListener] reset — test-reset
+[StudentProfileStore] reset — test-reset
+[ProfilesListener] reset — owner-switch
+[StudentProfileStore] reset — owner-switch
+[ProfilesListener] reset — owner-switch
+[StudentProfileStore] reset — owner-switch
+PASS B4-02 stale legacy-primary same club/new uid, branch-switch, multi-switch ignored
+[ProfilesListener] reset — test-reset
+[StudentProfileStore] reset — test-reset
+PASS B4-03 live CS1 canonical and Mặc định aliases merge without duplicate
+[ProfilesListener] reset — test-reset
+[StudentProfileStore] reset — test-reset
+[ProfilesListener] reset — owner-switch
+[StudentProfileStore] reset — owner-switch
+PASS B4-04 pending Coach branch fallback from A does not mutate B session
+[ProfilesListener] reset — test-reset
+[StudentProfileStore] reset — test-reset
+[ProfilesListener] reset — owner-switch
+[StudentProfileStore] reset — owner-switch
+PASS B4-05 stale fallback finally cannot clear new-session fallback owner
+[ProfilesListener] reset — test-reset
+[StudentProfileStore] reset — test-reset
+PASS B4-06 partial aliases permission-denied never promote Coach fallback
+[ProfilesListener] reset — test-reset
+[StudentProfileStore] reset — test-reset
+PASS B4-07 Admin cached→server metadata-only hydrates Dashboard exactly once
+[ProfilesListener] reset — test-reset
+[StudentProfileStore] reset — test-reset
+[ProfilesListener] reset — owner-switch
+[StudentProfileStore] reset — owner-switch
+PASS B4-08 Admin server-first, cache repeated, doc mutation, reset hydration
+D1C3B4 actual handler: PASS 8, FAIL 0
+[ProfilesListener] reset — test-reset
+[StudentProfileStore] reset — test-reset
+PASS B4-09 Coach fallback rejects cache-only partial snapshots
+[ProfilesListener] reset — test-reset
+[StudentProfileStore] reset — test-reset
+[ProfilesListener] reset — owner-switch
+[StudentProfileStore] reset — owner-switch
+[StudentService.search] Không tìm thấy kết quả cho "van". Hồ sơ cũ có thể chưa có searchName index. Chạy backfill-student-search-index để backfill.
+PASS B4-10 Coach search service drops stale query result after auth switch
+D1C3B4 extended: PASS 10, FAIL 0
+[ProfilesListener] reset — test-reset
+[StudentProfileStore] reset — test-reset
+PASS B4-11 idempotent same-session Coach remount does not starve live legacy callback
+D1C3B4 TOTAL: PASS 11, FAIL 0

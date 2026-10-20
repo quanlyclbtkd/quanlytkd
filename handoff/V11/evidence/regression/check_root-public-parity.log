@@ -1,0 +1,9 @@
+{
+  "algorithm": "SHA-256",
+  "rootFileCount": 128,
+  "publicFileCount": 128,
+  "missingPublic": [],
+  "extraPublic": [],
+  "hashMismatches": [],
+  "status": "PASS"
+}

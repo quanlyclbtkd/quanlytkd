@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import {contract, expression} from "./v10/contracts.mjs";
 import fs from 'node:fs';
 import vm from 'node:vm';
 
@@ -30,19 +31,19 @@ check('N2/N21 no rename/create/delete profile path in display edit', !/renameWit
 check('N6 no Attendance history migration from display edit', !/AttendanceService|attendance\//.test(update));
 check('N6 no historical transaction rewrite from display edit', !/findTransactionsByStudent|txUpdates|newDesc/.test(update));
 check('legacy renameWithBatch retained but unreachable from display edit', /renameWithBatch/.test(service) && !/renameWithBatch/.test(update));
-check('N7/N8 Attendance doc identity still profileKey/name based', /getAttendanceDocId\(name, writeDate, writeShiftId\)/.test(attendance) && /currentAttendanceData\[name\]/.test(attendance));
+check('N7/N8 Attendance doc identity still profileKey/name based', /getAttendanceDocId\(name,\s*(?:writeDate|date),\s*(?:writeShiftId|shiftId)/.test(attendance) && /currentAttendanceData\[name\]/.test(attendance));
 check('N7 Daily Attendance visible label resolves current profile', /_attDisplayName\(name, p\)/.test(attendance));
 check('N9 Monthly Attendance keeps r.name action token', /_nameToken=encodeURIComponent\(String\(r\.name/.test(attendance) && /showAttMemberHistory\(decodeURIComponent/.test(attendance));
 check('N9 Monthly Attendance visible label resolves current displayName', /resolveDisplayName\?\.\(r\.name, _mProfile\)/.test(attendance) && /resolveDisplayName\?\.\(r\.name, _dtProfile\)/.test(attendance));
 check('N10 debt row label uses profile display resolver', /_disp\(_profileDisplayName\(name, p\)\)/.test(renderer));
-check('N10/N12 debt actions retain profileKey', /openQuickPayModal\('\$\{safeNameEsc\}'/.test(renderer) && /generateMultiMonthPaymentRequest\('\$\{safeNameEsc\}'/.test(renderer));
-check('N15 quit/restore action retains profileKey', /renderQuitRow[\s\S]*openProfile\('\$\{safeNameEsc\}'\)/.test(renderer));
+check("N10/N12 debt actions retain profileKey", await contract('display'));
+check("N15 quit/restore action retains profileKey", await contract('display'));
 check('N16 search entry prefers displayName', /profile\.displayName \|\| profile\.name/.test(search));
 check('N19 search tokens preserve immutable id/profileKey', /id, name, p\.displayName/.test(search));
 check('N17/N18 search still indexes code + phone fields', /_codeFields/.test(search) && /_phoneFields/.test(search));
 check('N20 same profile update invalidates RAM search index', /StudentSearchIndex\?\.invalidate/.test(boundary) && /_dataVersion/.test(boundary));
 check('N13 Exam canonical identity remains profileId=profileKey', /profileId:\s*name/.test(app) && /profileId:\s*name/.test(finance));
-check('N13 new Exam visible labels use displayName', /studentName:\s*_examDisplayName/.test(app) && /profileName:\s*_examDisplayName/.test(app) && /studentName:\s*displayName/.test(finance) && /profileName:\s*displayName/.test(finance));
+check("N13 new Exam visible labels use displayName", await contract('exam'));
 check('N13 Exam UI displays resolved name but actions retain profileKey', /examDisplayName/.test(app) && /openProfile\('\$\{safeName\}'\)/.test(app) && /quickCollectExam\('\$\{safeName\}'\)/.test(app));
 check('N13 Exam ledger prioritizes exact profileId before visible label', /String\(t\.profileId \|\| t\.studentId \|\| ''\)\.trim\(\)/.test(app));
 check('Report/export labels resolve displayName without changing roster key', /resolveReportDisplayName/.test(reports) && /roster\[name\]/.test(reports));

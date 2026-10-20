@@ -1,0 +1,47 @@
+
+🧭 Phase 4K-6V5U5 — Auth Context Single Writer Gate
+
+✅ PASS  Canonical _commitVerifiedAuthContext tồn tại
+✅ PASS  Commit normalize context trước khi ghi mirrors
+✅ PASS  Commit mirror: window.currentClubId = ctx.clubId
+✅ PASS  Commit mirror: window.userRole = ctx.role
+✅ PASS  Commit mirror: window.coachBranch = ctx.coachBranch
+✅ PASS  Commit mirror: window.__store.clubId = ctx.clubId
+✅ PASS  Commit mirror: window.__store.currentClubId = ctx.clubId
+✅ PASS  Commit mirror: window.__store.userRole = ctx.role
+✅ PASS  Commit mirror: window.__store.coachBranch = ctx.coachBranch
+✅ PASS  Commit mirror: window.__store.currentUser = user
+✅ PASS  Commit cập nhật RoleReadBoundary
+✅ PASS  Auth cache chỉ lưu sau canonical mirror commit
+✅ PASS  Verified diagnostics state không chứa token/password/student data
+✅ PASS  window.userRole chỉ có initial + commit + reset writers
+✅ PASS  window.coachBranch chỉ có initial + commit + reset writers
+✅ PASS  window.currentClubId chỉ có commit + reset writers
+✅ PASS  initSaaSDatabase có verified-context guard
+✅ PASS  initSaaSDatabase không còn ghi auth mirrors
+✅ PASS  users/{uid} verification dùng single-flight Promise
+✅ PASS  Auth flow reuse single-flight verifier
+✅ PASS  Auth flow không có direct getDoc users/{uid} thứ hai
+✅ PASS  Warm cache chỉ được đọc trước verification
+✅ PASS  Warm cache không ghi role/club/branch
+✅ PASS  Warm cache không mount initSaaSDatabase
+✅ PASS  Verified commit xảy ra sau users read
+✅ PASS  Protected init xảy ra sau verified commit
+✅ PASS  Disabled/locked/suspended guard xảy ra trước commit
+✅ PASS  Coach branch verify xảy ra trước commit
+✅ PASS  SuperAdmin principal READY trước canonical commit
+✅ PASS  SuperAdmin path không direct role assignment
+✅ PASS  Logout reset canonical auth context
+✅ PASS  Logout reset single-flight Promise
+✅ PASS  getAppContext ưu tiên committed verified context khi ready
+✅ PASS  CASE1 cache đúng: exactly one users read, commit rồi init A
+✅ PASS  CASE2 cache cũ: không init A, commit/init B sau verify
+✅ PASS  CASE3 stale role: không mount privileged Admin từ cache
+✅ PASS  CASE4 coach: branch verify trước commit
+✅ PASS  CASE5 disabled/locked: không commit/init
+✅ PASS  CASE6 SuperAdmin: principal trước commit
+✅ PASS  CASE7 logout implementation resets all compatibility mirrors
+
+📊 Kết quả: 40 PASS / 0 FAIL
+✅ Auth Context Single Writer Gate PASS.
+

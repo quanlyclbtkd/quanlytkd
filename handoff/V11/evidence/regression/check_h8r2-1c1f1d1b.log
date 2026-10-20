@@ -1,0 +1,73 @@
+✅ 1. canonical Form actual handler exists
+✅ 2. canonical Combo actual handler exists
+✅ 3. Form uses existing profile lane
+✅ 4. Combo uses existing multi-profile lanes
+✅ 5. latest Tuition decision is called inside Form lane task
+✅ 6. latest Tuition decisions are called inside Combo lane task
+✅ 7. Form final atomic plan is built inside lane task
+✅ 8. Combo final profileUpdates are built after latest decisions
+✅ 9. Form local canonical commit occurs after primary atomic success
+✅ 10. Combo local commits occur after primary atomic success
+✅ 11. Form stale settled state prevents primary plan
+✅ 12. Combo stale participant fails closed
+✅ 13. canonical settlement authority remains TuitionDebtCanonical
+✅ 14. exactly one profileMutationLanes Map definition
+✅ 15. legacy transaction form writer is hard-disabled no-write stub
+✅ 16. legacy processCombo writer is hard-disabled no-write stub
+✅ 17. no legacy window.saveTx writer is mounted
+✅ 18. Tuition delete owner analyzes canonical transaction impact itself
+✅ 19. Tuition delete owner rejects inventory/mixed impact
+✅ 20. no new tuition writer/service/lane names
+✅ 20b. fee_audit secondary failure stays observable without invalidating canonical payment
+✅ 21. pre-canonical legacy financial entrypoints perform zero writes
+✅ 22. post-bootstrap canonical processCombo replaces legacy/no-write owner
+✅ 23. post-bootstrap transaction form has exactly one canonical onsubmit business handler
+✅ 24. FORM01 actual Form normal Tuition produces one primary plan
+✅ 25. FORM01 local state is committed before next intent
+✅ 26. FORM02 actual Form waits earlier same-profile lane
+✅ 27. FORM02 stale Form never regresses paidUntil to Sep
+✅ 28. FORM03 Form same-month remains queued until prior mutation completes
+✅ 29. FORM03 same-month duplicate creates zero primary transaction/profile write
+✅ 30. FORM04 immediate QuickPay sees local committed paid state
+[finance.js] transactionForm atomic save failed: Error: mock primary failure
+    at FinanceService.commitAtomicWritePlan (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1b-final-tuition-caller-convergence.mjs:54:97)
+    at file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/js/modules/finance.js?d1b=3:597:488
+    at async _withProfileMutationLane (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/js/core/tuitionCommandBoundary.js?d1b=2:90:20)
+    at async _txFormEl.onsubmit (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/js/modules/finance.js?d1b=3:597:30)
+    at async file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1b-final-tuition-caller-convergence.mjs:91:88
+✅ 31. FORM05 primary failure leaves local profile unpaid and releases lane
+✅ 32. FORM07 different profiles can occupy independent tuition lanes concurrently
+✅ 33. COMBO01 actual Combo produces one atomic plan for two tx/two profiles
+✅ 34. COMBO01 local state committed for every affected profile
+✅ 35. Combo receipt executes after critical lanes release
+✅ 36. COMBO03 actual Combo waits overlapping profile lane
+✅ 37. COMBO03 stale participant fails closed with zero partial write
+✅ 38. COMBO04 newer paidUntil makes intended Sep already settled; no regression/duplicate write
+✅ 39. COMBO05 immediate QuickPay is blocked by local canonical commit
+✅ 40. COMBO06/07 reverse profile order does not enter conflicting task early
+✅ 41. COMBO06/07 deterministic lane ordering completes without deadlock
+[finance.js] processCombo lỗi: Error: mock primary failure
+    at FinanceService.commitAtomicWritePlan (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1b-final-tuition-caller-convergence.mjs:54:97)
+    at file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/js/modules/finance.js?d1b=3:561:51
+    at enter (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/js/core/tuitionCommandBoundary.js?d1b=2:550:9)
+    at file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/js/core/tuitionCommandBoundary.js?d1b=2:551:53
+    at async _withProfileMutationLane (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/js/core/tuitionCommandBoundary.js?d1b=2:90:20)
+    at async _withProfileMutationLane (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/js/core/tuitionCommandBoundary.js?d1b=2:90:20)
+    at async window.processCombo (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/js/modules/finance.js?d1b=3:556:26)
+    at async file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f1d1b-final-tuition-caller-convergence.mjs:112:132
+✅ 42. COMBO08 failed primary batch releases lanes and does not false-commit local state
+✅ 43. DEL01 pure Tuition is allowed by owner self-guard
+✅ 44. DEL02 nested Inventory is rejected by Tuition owner
+✅ 45. DEL03 mixed bundle is rejected by Tuition owner
+✅ 46. DEL04 requiresInventoryRollback transaction is rejected
+✅ 47. DEL05 empty/invalid transaction is rejected
+✅ 48. DEL06 bad caller impact cannot bypass owner canonical self-guard
+✅ 49. F1D1A actual-runtime closure remains PASS
+✅ 50. Firestore budget is exactly 29/44/16
+✅ 51. root/public parity PASS
+✅ 52. finance.js remains below hard 72KB ceiling
+✅ 53. app.js remains below hard line ceiling
+
+Firestore static budget: 29/44/16
+Total: 54 | PASS: 54 | FAIL: 0
+H8R2.1C1F1D1B final tuition caller convergence gate PASS.

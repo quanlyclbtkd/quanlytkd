@@ -1,0 +1,54 @@
+
+══════════════════════════════════════════════════════════
+  Phase 4.0B-4J-8A — Login Performance Check
+══════════════════════════════════════════════════════════
+
+  ✅ app.js exists
+▸ Section 1: Login Performance Metrics (app.js)
+  ✅ __loginPerfMetrics defined
+  ✅ printLoginPerfMetrics exposed
+  ✅ markLoginPerf helper defined
+  ✅ markLoginPerf exposed
+
+▸ Section 2: Login Performance Marks (app.js)
+  ✅ loginStart mark in handleLogin
+  ✅ shellShown mark dispatched
+  ✅ contextReady mark dispatched
+  ✅ dataHydrated mark dispatched
+  ✅ app:shell-ready event dispatched
+
+▸ Section 3: Defer Non-Critical Work (app.js)
+  ✅ requestIdleCallback or runIdle defined
+  ✅ Non-critical work deferred (heavyWorkDeferred mark)
+  ✅ Login loading text "Đang đăng nhập"
+
+▸ Section 4: Login Should Not Be Blocked By Heavy Work (app.js)
+  ✅ SuperAdmin audit not blocking normal admin login
+  ✅ recordReadMetric used in large queries
+
+▸ Section 5: Advanced Search Index (app.js)
+  ✅ normalizeSearchText defined
+  ✅ normalizePhoneForSearch defined
+  ✅ buildStudentSearchIndex defined
+  ✅ searchName written on add/edit
+  ✅ fetchQueryPages defined
+
+▸ Section 6: Server-side Search (students.service.js)
+  ✅ searchProfilesServerSide defined
+  ✅ Server search uses searchName field
+  ✅ Server search uses searchPhone field
+  ✅ Server search deduplicates by doc ID
+
+▸ Section 7: Backfill Tool
+  ✅ backfill-student-search-index.mjs exists
+  ✅ Backfill is dry-run by default
+  ✅ Backfill requires --confirm string
+  ✅ Backfill does not log PII
+
+══════════════════════════════════════════════════════════
+  Total: 28 checks | ✅ Pass: 28 | ❌ Fail: 0
+
+  🎉 Login performance checks passed!
+  Mobile login optimized for CLB 600–1000 võ sinh.
+══════════════════════════════════════════════════════════
+

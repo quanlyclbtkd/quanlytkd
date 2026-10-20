@@ -1,0 +1,24 @@
+✅ cache bust updated to V4D1A-or-later in index
+✅ main imports render.js with V4D1A-or-later cache bust
+✅ render.js has small UI refresh helper
+✅ render.js early return calls small UI refresh
+✅ render.js small UI refresh always renders birthday banner
+✅ render.js skipped section uses merged local profiles
+✅ render.js skipped section still canonical-normalizes skipped month
+✅ attendance birthday accepts birthDate
+✅ attendance birthday accepts birthday
+✅ attendance birthday accepts ngaySinh
+✅ renderStudents merges canonical quit store
+✅ renderStudents merges allProfiles quit fallback
+✅ renderStudents uses QuitProfileBoundary as the single source once available
+✅ renderStudents ignores cached quit rows when boundary is present
+✅ legacy app render early return refreshes small UI
+✅ legacy app has small UI refresh helper
+✅ legacy app small UI uses merged profiles
+✅ public render.js synced
+✅ public attendance synced
+✅ public renderStudents synced
+✅ no new Firestore reads in profile canonical store
+✅ V4D1A does not introduce writes in profile canonical store
+
+V4D1A Runtime Recovery: 22/22 PASS

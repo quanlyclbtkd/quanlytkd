@@ -1,0 +1,29 @@
+
+🔍 Phase 4K-4H — Exam Payment Identity Check
+
+[32m✅ PASS[0m  app.js readable
+[32m✅ PASS[0m  reports.js readable
+[32m✅ PASS[0m  financeJs readable
+[32m✅ PASS[0m  app.js có window.extractExamStudentName
+[32m✅ PASS[0m  app.js có window.getExamTargetBeltFromTx
+[32m✅ PASS[0m  processMultiItem lưu studentName trong giao dịch Lệ phí thi
+[32m✅ PASS[0m  processMultiItem giữ profileId=profileKey và profileName=displayName trong bundle
+[32m✅ PASS[0m  processMultiItem lưu examTargetBelt trong giao dịch Lệ phí thi
+[32m✅ PASS[0m  processMultiItem lưu currentBeltAtPayment trong giao dịch Lệ phí thi
+[32m✅ PASS[0m  app.js quickCollectExam is a fail-closed bootstrap stub
+[32m✅ PASS[0m  finance.js quickCollectExam lưu examTargetBelt
+[32m✅ PASS[0m  finance.js quickCollectExam giữ profileId=profileKey và studentName=displayName
+[32m✅ PASS[0m  reports.js exportExamPaidList dùng extractExamStudentName
+[32m✅ PASS[0m  reports.js exportExamPaidList dùng getExamTargetBeltFromTx
+[32m✅ PASS[0m  reports.js exportExamPaidList không còn "stuName = t.description ? t.description.trim()"
+[32m✅ PASS[0m  app.js renderExamList dùng extractExamStudentName
+[32m✅ PASS[0m  app.js có window.debugExamPaymentIdentity
+[32m✅ PASS[0m  H8R2.1A canonical quickCollectExam binds profile from local store
+[32m✅ PASS[0m  H8R2.1A quickCollectExam does not add Firestore profile reads
+[32m✅ PASS[0m  H8R2.1A quickCollectExam does not mutate/create profile
+[32m✅ PASS[0m  H8R2.1A dynamic quickCollectExam has no ReferenceError
+[32m✅ PASS[0m  H8R2.1A dynamic quickCollectExam writes exactly one canonical exam transaction
+[32m✅ PASS[0m  H8R2.1A dynamic quick exam preserves profileKey + displayName + branch + amount
+
+[32m✅ All checks passed (20/20)[0m
+

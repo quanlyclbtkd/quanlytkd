@@ -1,0 +1,40 @@
+
+🔎 Phase 4K-6V5U6G — Production Residual Defect Closure
+
+✅ Journal enqueue/claim/ACK use native transactions; legacy input is never removed 
+✅ Online/offline share one sync owner and exact intent ACK 
+✅ One CAS writer detects replay and preserves server version 
+✅ Admin true-zero hydration uses the full snapshot itself with zero probe/read 
+✅ Initial Admin full snapshot closes Dashboard members hydration as complete even at zero profiles 
+✅ Full authoritative evidence publishes active count availability and completeness 
+✅ Coach branch-complete server roster has no obsolete zero-probe and fallback stays within existing scoped owner 
+✅ Active profile owner recognizes the Admin emergency full fallback key 
+✅ Fallback is unsubscribed before active-module listener creation 
+✅ Fallback takeover verifies cleanup and fails closed if verification fails 
+✅ Coach can never enter the full-club profile fallback 
+✅ Admin emergency fallback remains registered in the existing listener registry for explicit takeover 
+✅ Coach does not write members projection 
+✅ Specialized attendance stats derive from canonical history 
+✅ Module admission links inventory and payment in one batch; legacy linkage failure stays observable 
+✅ Fee audit failure is observable and never invalidates successful payment 
+✅ Session-note notification projection failure is observable while note remains canonical 
+✅ Inventory debt/payment links commit in the same canonical multi-item batch, with no retry loop 
+✅ getDoc call-site budget unchanged (29 <= 31) 
+✅ getDocs call-site budget unchanged (44 <= 56) 
+✅ onSnapshot call-site budget unchanged (16 <= 16) 
+✅ legacy app window assignment budget does not increase (525 <= 534) 
+✅ H5 readiness barrier owns exactly two once:true registry event listeners (2) 
+✅ H5 readiness barrier owns exactly one bounded 10s timeout (1) 
+✅ H5 readiness barrier has no polling, Firestore wait, or recursive retry 
+✅ event/timer freeze allows only approved H5 readiness delta (total 117/1/83; outside 115/1/82) 
+✅ No generic global request manager was introduced 
+✅ Generic offline queue has no Attendance/business caller overlap 
+✅ Exact V5U6G1 build version is active while V5U6G boundaries remain frozen 
+✅ Only changed root runtime main.js receives the V5U6G1 cache-bust; unchanged app.js stays on V5U6G 
+✅ Changed modules are cache-busted only within the active phase scope 
+✅ package exposes the V5U6G master gate 
+✅ CAS identity/ACK/replay/context/status matrix 
+
+Total: 33 | PASS: 33 | FAIL: 0
+Phase 4K-6V5U6G residual defect closure gate passed.
+

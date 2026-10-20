@@ -1,0 +1,54 @@
+
+[UIModernCheck] ── 1. Design tokens --ui-* present in style.css ──
+[UIModernCheck] PASS  All --ui-* design tokens present
+
+[UIModernCheck] ── 2. Mobile modal optimisation ──
+[UIModernCheck] PASS  Modal mobile max-height: 92dvh/vh present
+[UIModernCheck] PASS  Modal overflow-x: hidden present
+
+[UIModernCheck] ── 3. Mobile tab optimisation ──
+[UIModernCheck] PASS  Tab nav scroll-snap-type: x present
+[UIModernCheck] PASS  Tab button scroll-snap-align: start present
+
+[UIModernCheck] ── 4. Touch target CSS (min-height >= 40px) ──
+[UIModernCheck] PASS  --ui-touch: 44px defined
+[UIModernCheck] PASS  min-height: var(--ui-touch) applied for touch targets
+
+[UIModernCheck] ── 5. prefers-reduced-motion ──
+[UIModernCheck] PASS  prefers-reduced-motion: reduce media query present
+[UIModernCheck] PASS  Animations disabled to 0.001ms under prefers-reduced-motion
+
+[UIModernCheck] ── 6. Empty state and skeleton classes ──
+[UIModernCheck] PASS  .ui-empty-state class defined
+[UIModernCheck] PASS  .ui-skeleton class defined
+[UIModernCheck] PASS  Skeleton shimmer keyframes defined
+
+[UIModernCheck] ── 7. Critical IDs not changed in HTML ──
+[UIModernCheck] PASS  All critical IDs present in index.html
+
+[UIModernCheck] ── 8. No .tab-content.active incorrectly hidden ──
+[UIModernCheck] PASS  .tab-content.active does not have display:none — correct
+
+[UIModernCheck] ── 9. No global overflow-x: scroll on body ──
+[UIModernCheck] PASS  No overflow-x: scroll on body
+
+[UIModernCheck] ── 10. No 100vw on modal-content ──
+[UIModernCheck] PASS  .modal-content does not use 100vw — uses 100% safely
+
+[UIModernCheck] ── 11. No new heavy framework libraries added to index.html ──
+[UIModernCheck] PASS  No heavy UI framework libraries added to index.html
+
+[UIModernCheck] ── 12. loading-soft utility class present ──
+[UIModernCheck] PASS  .loading-soft glass overlay utility present
+
+[UIModernCheck] ── 13. Tab active animation uses CSS keyframes ──
+[UIModernCheck] PASS  Tab animation keyframes (tabSlideIn or uiFadeIn) present
+
+[UIModernCheck] ── 14. content-visibility: auto for performance ──
+[UIModernCheck] PASS  content-visibility: auto applied for off-screen rendering performance
+
+[UIModernCheck] ── 15. uiFadeIn / uiSkeleton keyframes named properly ──
+[UIModernCheck] PASS  @keyframes uiFadeIn present
+
+[UIModernCheck] Checked: 21 items
+[UIModernCheck] ✅ OK — All UI modernization checks passed (0 warning(s)).

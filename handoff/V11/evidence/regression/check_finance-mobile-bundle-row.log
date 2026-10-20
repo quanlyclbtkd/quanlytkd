@@ -1,0 +1,20 @@
+
+[check-finance-mobile-bundle-row] Phase 4K-5F
+
+  ✅  getBundleDetailSummary defined in app.js
+  ✅  financeRenderer uses getBundleDetailSummary for subtitle line
+  ✅  tx-bundle-detail does NOT render getBundleSummaryLine directly as content
+  ✅  financeRenderer does NOT return _summaryNote secondary <tr>
+  ✅  financeRenderer uses tx-bundle-detail CSS class
+  ✅  financeRenderer uses tx-name-cell
+  ✅  financeRenderer uses tx-actions-cell
+  ✅  financeRenderer uses tx-date-cell
+  ✅  style.css has .tx-date-cell rule
+  ✅  style.css has .tx-branch-cell rule
+  ✅  style.css has .tx-actions-cell rule
+  ✅  style.css has .tx-bundle-detail responsive rules
+  ✅  debugBundleDisplay defined in app.js
+  ✅  financeRenderer has _formatDateCompact or compact date logic
+
+  14 passed, 0 failed
+

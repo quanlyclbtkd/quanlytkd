@@ -1,0 +1,22 @@
+✅ OK:   debugRuntimeSmokeTest gọi debugActiveLoadMoreAndSort
+✅ OK:   debugRuntimeSmokeTest gọi debugDebtLoadMoreAndFilter
+✅ OK:   debugRuntimeSmokeTest gọi debugDebtCoverage
+✅ OK:   debugRuntimeSmokeTest gọi debugActiveQuitLeak
+✅ OK:   debugRuntimeSmokeTest gọi debugTuitionTableLayout
+✅ OK:   debugRuntimeSmokeTest gọi debugExamExportReadiness
+✅ OK:   debugRuntimeSmokeTest gọi debugExamCanonicalLedger
+✅ OK:   summary có key: activeLoadMoreAndSortOk
+✅ OK:   summary có key: debtLoadMoreAndFilterOk
+✅ OK:   summary có key: debtCoverageOk
+✅ OK:   summary có key: activeQuitLeakOk
+✅ OK:   summary có key: tuitionTableLayoutOk
+✅ OK:   summary có key: examExportReadinessOk
+✅ OK:   summary có key: examCanonicalLedgerOk
+✅ OK:   check:all:critical gọi check:active-render-tdz-order đúng 1 lần (không trùng)
+✅ OK:   check:all:critical không dùng pnpm
+✅ OK:   check:runtime-pilot-verification có trong check:all:critical
+✅ OK:   Script check:runtime-pilot-verification được định nghĩa trong package.json
+✅ OK:   index.html có cache bust version trong main.js (?v=...)
+
+────────────────────────────────────────────────────────────
+✅ check-runtime-pilot-verification: TẤT CẢ PASS

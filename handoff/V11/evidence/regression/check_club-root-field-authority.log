@@ -1,0 +1,31 @@
+✅ clubAdminRootUpdateFieldsOnly helper exists
+✅ Admin root helper uses affectedKeys().hasOnly()
+✅ legitimate Admin root field remains whitelisted: cachedActiveCount
+✅ legitimate Admin root field remains whitelisted: cachedStudentCount
+✅ legitimate Admin root field remains whitelisted: activeStudentCount
+✅ legitimate Admin root field remains whitelisted: totalStudents
+✅ legitimate Admin root field remains whitelisted: cachedProfileCount
+✅ legitimate Admin root field remains whitelisted: cachedInvCount
+✅ legitimate Admin root field remains whitelisted: cachedCountUpdatedAt
+✅ legitimate Admin root field remains whitelisted: cacheCoverage
+✅ legitimate Admin root field remains whitelisted: cachedTxCount
+✅ legitimate Admin root field remains whitelisted: cachedCurrentMonthRevenue
+✅ legitimate Admin root field remains whitelisted: currentMonthRevenue
+✅ legitimate Admin root field remains whitelisted: cachedMonthlyRevenue
+✅ legitimate Admin root field remains whitelisted: revenueByMonth
+✅ legitimate Admin root field remains whitelisted: superAdminStats
+✅ legitimate Admin root field remains whitelisted: statsUpdatedAt
+✅ legitimate Admin root field remains whitelisted: statsSource
+✅ privileged field excluded from Admin root whitelist: parentCode
+✅ privileged field excluded from Admin root whitelist: expiryDate
+✅ privileged field excluded from Admin root whitelist: accountStatus
+✅ privileged field excluded from Admin root whitelist: adminEmail
+✅ privileged field excluded from Admin root whitelist: clubName
+✅ privileged field excluded from Admin root whitelist: examEnabled
+✅ privileged field excluded from Admin root whitelist: adminPassword
+✅ privileged field excluded from Admin root whitelist: passwordChangedAt
+✅ SuperAdmin root update authority preserved
+✅ Club Admin root update requires field whitelist
+✅ password transition guard remains part of root update
+✅ no public club root write
+PASS 30/30

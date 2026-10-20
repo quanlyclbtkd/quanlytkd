@@ -1,0 +1,28 @@
+
+🔍 Phase 4K-4G — Active Student Sort (Newest-First) Check
+
+▸ Section 1: js/ui/render/computation/studentsRenderer.js — PASS 1
+[32m✅ PASS[0m  PASS 1 không dùng Object.keys(allProfiles).sort() nữa
+[32m✅ PASS[0m  PASS 1 dùng Object.entries (lấy cả profile object)
+[32m✅ PASS[0m  PASS 1 sort dùng getStudentJoinTimestamp
+[32m✅ PASS[0m  PASS 1 sort theo thứ tự giảm dần (tb - ta = newest-first)
+[32m✅ PASS[0m  PASS 1 dùng localeCompare vi khi bằng timestamp
+
+▸ Section 2: js/utils/monthlyHelpers.js — getStudentJoinTimestamp
+[32m✅ PASS[0m  export function getStudentJoinTimestamp tồn tại
+[32m✅ PASS[0m  getStudentJoinTimestamp kiểm tra p.createdAt
+[32m✅ PASS[0m  getStudentJoinTimestamp xử lý Firestore Timestamp (toMillis)
+[32m✅ PASS[0m  getStudentJoinTimestamp xử lý numeric timestamp
+[32m✅ PASS[0m  export function isNewStudent tồn tại
+[32m✅ PASS[0m  export function debugActiveStudentSort tồn tại
+[32m✅ PASS[0m  initMonthlyHelpers đăng ký window.getStudentJoinTimestamp
+[32m✅ PASS[0m  initMonthlyHelpers đăng ký window.debugActiveStudentSort
+
+▸ Section 3: js/main.js — debugRuntimeSmokeTest
+[32m✅ PASS[0m  debugRuntimeSmokeTest tham chiếu debugActiveStudentSort
+[32m✅ PASS[0m  summary có activeStudentSortOk
+[32m✅ PASS[0m  main.js import initMonthlyHelpers
+[32m✅ PASS[0m  main.js gọi initMonthlyHelpers() trước initDashboard()
+
+[32m🎉 Tất cả 17 checks passed — Active Student Sort OK![0m
+

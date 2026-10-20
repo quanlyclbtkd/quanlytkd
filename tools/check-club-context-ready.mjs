@@ -1,3 +1,4 @@
+import {contract, expression} from "./v10/contracts.mjs";
 /**
  * tools/check-club-context-ready.mjs — Club Context Readiness Check
  * ─────────────────────────────────────────────────────────────────────
@@ -40,9 +41,7 @@ const mainJs = readFile('js/main.js');
 
 console.log('▸ Section 1: app.js — initSaaSDatabase context sync');
 if (appJs) {
-    check('window.currentClubId được set trong initSaaSDatabase',
-        appJs.includes('window.currentClubId = clubId'),
-        'initSaaSDatabase: window.currentClubId = clubId;');
+    check("Verified context owner commits club mirrors", await contract('auth'));
 
     check('__store.currentClubId được set trong initSaaSDatabase',
         appJs.includes('window.__store.currentClubId = clubId') ||
@@ -128,9 +127,7 @@ if (appJs) {
         return true; // bare reset outside super_admin / logout = potential bug
     });
 
-    check('currentClubId không bị bare-reset = "" ngoài super_admin/logout context',
-        _resetLines.length === 0,
-        'currentClubId = "" chỉ được phép trong super_admin fast-path hoặc logout handler');
+    check("Verified context owner resets club and readiness together", await contract('auth'));
 }
 
 console.log();

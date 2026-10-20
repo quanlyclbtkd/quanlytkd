@@ -1,0 +1,31 @@
+
+🔍 Phase 4K-6E — Scale Readiness 1500 + Firebase Write Safety Audit
+
+[32m✅ PASS[0m  js/core/transactionDeleteIntegrity.js tồn tại
+[32m✅ PASS[0m  transactionDeleteIntegrity.js export TransactionDeleteIntegrity
+[32m✅ PASS[0m  transactionDeleteIntegrity.js có extractTuitionMonthsFromTransaction
+[32m✅ PASS[0m  transactionDeleteIntegrity.js có analyzeTransactionDeleteImpact
+[32m✅ PASS[0m  main.js expose window.TransactionDeleteIntegrity
+[32m✅ PASS[0m  main.js import TransactionDeleteIntegrity
+[32m✅ PASS[0m  main.js có window.reconcileStudentTuitionAfterDeletedTransaction
+[32m✅ PASS[0m  main.js có window.isTuitionMonthStillPaidByAnotherTransaction
+[32m✅ PASS[0m  main.js có window.recalculatePaidUntilFromPaidMonths
+[32m✅ PASS[0m  app.js getChargeableTuitionMonths kiểm tra paidMonths
+[32m✅ PASS[0m  finance.js deleteTx gọi analyzeTransactionDeleteImpact
+[32m✅ PASS[0m  finance.js deleteTx gọi reconcileStudentTuitionAfterDeletedTransaction
+[32m✅ PASS[0m  finance.js deleteTx chặn unsafe inventory bundle delete
+[32m✅ PASS[0m  main.js có window.debugTransactionDeleteIntegrity
+[32m✅ PASS[0m  main.js có window.debugStudentTuitionPaymentSources
+[32m✅ PASS[0m  main.js có window.debugScaleReadiness1500
+[32m✅ PASS[0m  main.js có window.debugFirebaseWriteSafety
+[32m✅ PASS[0m  main.js debugRuntimeSmokeTest include debugTransactionDeleteIntegrity
+[32m✅ PASS[0m  main.js debugRuntimeSmokeTest include debugScaleReadiness1500
+[32m✅ PASS[0m  main.js debugRuntimeSmokeTest include debugFirebaseWriteSafety
+[32m✅ PASS[0m  main.js summary có transactionDeleteIntegrityOk
+[32m✅ PASS[0m  main.js summary có scaleReadiness1500Ok
+[32m✅ PASS[0m  main.js summary có firebaseWriteSafetyOk
+[32m✅ PASS[0m  index.html có cache bust Phase 4K-6E hoặc mới hơn
+[32m✅ PASS[0m  main.js APP_BUILD_VERSION có Phase 4K-6E hoặc mới hơn
+
+[32m✅ All checks passed (22/22)[0m
+

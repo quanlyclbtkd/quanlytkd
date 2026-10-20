@@ -1,0 +1,93 @@
+
+══════════════════════════════════════════════════════════
+  Phase 4K — Stats Aggregation Safety Check
+══════════════════════════════════════════════════════════
+
+▸ Section 1: Cloud Functions Aggregation Triggers (functions/)
+  ✅ functions/index.js exists
+  ✅ functions/src/statsAggregation.js exists
+  ✅ onTransactionCreate exported
+  ✅ onTransactionDelete exported
+  ✅ onTransactionUpdate exported
+  ✅ rebuildStatsForClub callable exported
+
+▸ Section 2: Stats Aggregation Trigger Implementation (functions/src/statsAggregation.js)
+  ✅ onCreate trigger defined
+  ✅ onDelete trigger defined
+  ✅ onUpdate trigger defined — trừ cũ, cộng mới
+  ✅ Firestore path correct (clubs/{clubId}/transactions/{txId})
+  ✅ Stats path correct (clubs/{clubId}/stats/{docId})
+  ✅ FieldValue.increment() used for atomic updates
+  ✅ set({ merge: true }) used for upsert
+  ✅ rebuildStatsForClub callable implemented
+  ✅ rebuildStatsForClub uses pagination or batching (not raw scan)
+  ✅ rebuildStatsForClub checks auth
+
+▸ Section 3: Transaction Classification (functions/src/helpers.js)
+  ✅ classifyTx() defined
+  ✅ getTxMonth() defined
+  ✅ Handles "Học phí" type
+  ✅ Handles "Lệ phí thi" type
+  ✅ Handles "Chi phí" type
+  ✅ Handles "Học phí + Lệ phí thi" combo type
+  ✅ Returns null for unknown/non-stats types (safe)
+  ✅ getTxMonth fallback to date field
+  ✅ Amount parsed safely (Number())
+  ✅ Phase 4K-4D: classifyInventoryTxType defined
+  ✅ Phase 4K-4D: "Thu " + relatedInvId handled → income.uniform
+  ✅ Phase 4K-4D: "Chi " + relatedInvId handled → expense.uniform
+  ✅ Phase 4K-4D: "Tặng " + relatedInvId returns null (not counted)
+  ✅ Phase 4K-4D: classifyTx calls classifyInventoryTxType
+
+▸ Section 4: Dashboard reads stats docs for historical charts (dashboard.js)
+  ✅ fetchAndRenderHistoricalCharts() defined
+  ✅ Reads from clubs/{clubId}/stats/ collection
+  ✅ Uses getDoc() not getDocs() for stats
+  ✅ Promise.all for parallel stats reads
+  ✅ income.total field read correctly
+  ✅ expense.total field read correctly
+  ✅ dashboardStatsRead metric tracked
+  ✅ Graceful skip if stats doc missing (snap.exists())
+
+▸ Section 5: SuperAdmin reads stats docs for revenue (superadmin.js)
+  ✅ SuperAdmin fetches monthly stats doc
+  ✅ monthStats or monthRevenue used in render
+  ✅ superAdminStatsRead metric tracked
+  ✅ SuperAdmin has graceful fallback when stats doc missing
+  ✅ SuperAdmin does NOT scan transactions with large fixed limit
+
+▸ Section 6: No unsafe fixed limit() for revenue calculation
+  ✅ app.js: no limit(1000+) for transaction revenue scan
+  ✅ superadmin.js: no limit(1000+) for transaction revenue scan
+  ✅ dashboard.js: no limit(1000+) for transaction revenue scan
+
+▸ Section 7: Stats doc schema completeness (statsAggregation.js)
+  ✅ Stats doc has income.tuition field
+  ✅ Stats doc has income.exam field
+  ✅ Stats doc has income.total field
+  ✅ Stats doc has expense.total field
+  ✅ Stats doc has profit field
+  ✅ Stats doc has txCount field
+  ✅ Stats doc has updatedAt field
+  ✅ Stats doc has month field
+
+▸ Section 8: Rebuild Stats Tool
+  ✅ tools/rebuild-transaction-stats.mjs exists
+  ✅ Rebuild tool documents clubId parameter
+  ✅ Rebuild tool documents month parameter
+  ✅ Rebuild tool has dry-run mode
+  ✅ Rebuild tool does not require deploy
+
+▸ Section 9: package.json Scripts
+  ✅ check:stats-aggregation script defined
+  ✅ check:transaction-realtime script defined
+  ✅ check:all includes check-stats-aggregation
+  ✅ check:all includes check-transaction-realtime
+
+══════════════════════════════════════════════════════════
+  Total: 63 checks | ✅ Pass: 63 | ❌ Fail: 0
+
+  🎉 All stats aggregation checks passed!
+  Dashboard và SuperAdmin đọc stats docs — không scan transactions lớn.
+══════════════════════════════════════════════════════════
+

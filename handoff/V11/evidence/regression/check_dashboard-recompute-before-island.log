@@ -1,0 +1,22 @@
+
+══════════════════════════════════════════════════════════
+  check:dashboard-recompute-before-island
+══════════════════════════════════════════════════════════
+
+▸ Section 1: _invalidateDashboardOnly calls refreshDashboardComputation
+  ✅ _invalidateDashboardOnly gọi window.refreshDashboardComputation trước khi run islands
+  ✅ invalidateDashboardCache("all") đứng TRƯỚC refreshDashboardComputation trong _invalidateDashboardOnly
+  ✅ _invalidateDashboardOnly không run islands từ empty cache (không skip recompute)
+
+▸ Section 2: refreshDashboardComputation tồn tại và được expose
+  ✅ export function refreshDashboardComputation tồn tại trong listComputationRefresh.js
+  ✅ refreshDashboardComputation được expose lên window
+  ✅ refreshDashboardComputation gọi _cacheAndApplyDashboardSummary
+  ✅ case dashboard trong refreshListComputation gọi refreshDashboardComputation (không còn ok=false)
+
+══════════════════════════════════════════════════════════
+  Total: 7 | ✅ 7 | ❌ 0
+
+  🎉 Dashboard recompute-before-island checks passed!
+══════════════════════════════════════════════════════════
+

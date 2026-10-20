@@ -1,0 +1,12 @@
+✅ OK:   debtOverdueFilter có trong index.html
+✅ OK:   getDebtOverdueFilterValue defined
+✅ OK:   bindDebtOverdueFilter defined
+✅ OK:   debt load more nằm ngoài if (!pgStudentsActive)
+✅ OK:   debt load more gọi window.loadMoreDebtRows(event)
+✅ OK:   loadMoreDebtRows increments __debtRenderLimit
+✅ OK:   loadMoreDebtRows gọi cả refreshListsComputation + invalidateList
+✅ OK:   debugDebtLoadMoreAndFilter defined
+✅ OK:   studentsRenderer.js áp dụng getDebtOverdueFilterValue
+
+───────────────────────────────────────────────────────
+✅ check-debt-loadmore-filter: TẤT CẢ PASS

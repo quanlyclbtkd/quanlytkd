@@ -1,0 +1,25 @@
+
+══════════════════════════════════════════════════════════
+  Legacy Bridge Check — Phase 4K-RUNTIME-INIT-FIX
+══════════════════════════════════════════════════════════
+
+▸ Section 1: editProfile legacy bridge trong main.js
+  ✅ window.editProfile bridge dùng || pattern (không ghi đè impl thật)
+  ✅ Bridge forward tới window.openProfile khi available
+  ✅ Bridge có safety fallback khi openProfile cũng chưa ready (toast hoặc warn)
+  ✅ editProfile bridge được gán SAU initStudents() — không bị override ngược
+
+▸ Section 2: students module — editProfile requirement
+  ✅ main.js health check / module guard yêu cầu editProfile
+  ✅ initStudents() KHÔNG expose window.editProfile trực tiếp (bridge là cần thiết)
+
+▸ Section 3: app.js — editProfile legacy
+  ✅ app.js không expose window.editProfile trực tiếp (legacy bridge là đúng hướng)
+
+══════════════════════════════════════════════════════════
+  Total: 7 checks | ✅ Pass: 7 | ❌ Fail: 0
+
+  🎉 All legacy bridge checks passed!
+  window.editProfile bridge tồn tại — nút sửa hồ sơ sẽ hoạt động.
+══════════════════════════════════════════════════════════
+

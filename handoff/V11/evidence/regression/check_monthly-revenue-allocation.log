@@ -1,0 +1,43 @@
+
+🔍 Phase 4K-4G — Monthly Revenue Allocation Check
+
+▸ Section 1: js/utils/monthlyHelpers.js
+[32m✅ PASS[0m  monthlyHelpers.js tồn tại
+[32m✅ PASS[0m  export getRecentMonths
+[32m✅ PASS[0m  export getTxAllocatedAmountForMonth
+[32m✅ PASS[0m  export loadTransactionsForMonthsInclusive
+[32m✅ PASS[0m  export computeMonthlyFinanceHistory
+[32m✅ PASS[0m  export getStudentJoinTimestamp
+[32m✅ PASS[0m  export debugMonthlyRevenueAllocation
+[32m✅ PASS[0m  export initMonthlyHelpers
+[32m✅ PASS[0m  initMonthlyHelpers đăng ký window.getRecentMonths
+[32m✅ PASS[0m  initMonthlyHelpers đăng ký window.getTxAllocatedAmountForMonth
+[32m✅ PASS[0m  getTxAllocatedAmountForMonth xử lý packageMonths
+
+▸ Section 2: js/main.js
+[32m✅ PASS[0m  main.js import initMonthlyHelpers từ monthlyHelpers.js
+[32m✅ PASS[0m  main.js gọi initMonthlyHelpers()
+[32m✅ PASS[0m  debugRuntimeSmokeTest tham chiếu debugMonthlyRevenueAllocation
+[32m✅ PASS[0m  summary có monthlyRevenueAllocationOk
+
+▸ Section 3: js/modules/dashboard.js
+[32m✅ PASS[0m  dashboard.js dùng window.getRecentMonths
+[32m✅ PASS[0m  dashboard.js dùng window.loadTransactionsForMonthsInclusive cho fallback
+[32m✅ PASS[0m  dashboard.js dùng window.computeMonthlyFinanceHistory
+[32m✅ PASS[0m  dashboard.js dùng window.formatMonthLabel
+
+▸ Section 4: js/modules/reports.js
+[32m✅ PASS[0m  reports.js phân bổ packageMonths khi tính incTuition
+[32m✅ PASS[0m  reports.js lọc tháng trong kỳ (_mInPeriod)
+
+▸ Section 5: functions/src/helpers.js
+[32m✅ PASS[0m  helpers.js có hàm allocateTuitionAmountForMonth
+[32m✅ PASS[0m  helpers.js export allocateTuitionAmountForMonth
+
+▸ Section 6: functions/src/statsAggregation.js
+[32m✅ PASS[0m  statsAggregation.js import allocateTuitionAmountForMonth
+[32m✅ PASS[0m  onTransactionCreate xử lý packageMonths
+[32m✅ PASS[0m  onTransactionDelete xử lý packageMonths
+
+[32m🎉 Tất cả 26 checks passed — Monthly Revenue Allocation OK![0m
+

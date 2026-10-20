@@ -1,0 +1,28 @@
+
+══════════════════════════════════════════════════════════
+  Student Row Render Fallback Check — Phase 4K-STUDENT-LIST
+══════════════════════════════════════════════════════════
+
+▸ Section 1: _doLoad() invalidation sau pagination load
+  ✅ _doLoad() gọi invalidateList("students.activeList") sau load
+  ✅ _doLoad() gọi refreshListComputation sau load
+
+▸ Section 2: Fallback render function
+  ✅ Có _renderStudentsPageRowsFallback hoặc tương đương
+  ✅ Fallback có guard tr[data-student-id] — không override island đã render
+  ✅ Fallback có try/catch (non-blocking)
+  ✅ setTimeout fallback để chờ island render (≥200ms)
+
+▸ Section 3: window.debugStudentListHydration trong main.js
+  ✅ window.debugStudentListHydration được định nghĩa trong main.js
+  ✅ debugStudentListHydration in pgState.currentItems.length
+  ✅ debugStudentListHydration in #activeList tr[data-student-id] count
+  ✅ debugStudentListHydration gọi retryDataHydration hoặc invalidateList khi DOM trống
+
+══════════════════════════════════════════════════════════
+  Total: 10 | ✅ 10 | ❌ 0
+
+  🎉 Student row render fallback checks passed!
+  _renderStudentsPageRowsFallback bảo vệ khi island miss.
+══════════════════════════════════════════════════════════
+

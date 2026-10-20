@@ -1,0 +1,20 @@
+
+🔍 Phase 4K-5R — check-exam-auto-select-paid
+
+  ✅ PASS  selectPaidStudents gọi buildCanonicalExamPaymentLedger
+  ✅ PASS  selectPaidStudents dùng canonical ledger làm nguồn chính (trước fallback allTransactions)
+  ✅ PASS  selectPaidStudents xử lý components trong fallback
+  ✅ PASS  selectPaidStudents xử lý paymentKind === 'bundle' trong fallback
+  ✅ PASS  selectPaidStudents kiểm tra examPaidCancelled
+  ✅ PASS  window.isNewlyUpgradedExamStudent được định nghĩa
+  ✅ PASS  selectPaidStudents loại trừ isNewlyUpgradedExamStudent
+  ✅ PASS  window.debugExamAutoSelectPaid được định nghĩa
+  ✅ PASS  debugExamAutoSelectPaid có paidButSkippedBecauseNewlyUpgraded
+  ✅ PASS  debugRuntimeSmokeTest trong main.js include debugExamAutoSelectPaid
+  ✅ PASS  isExamStudentPaidCanonical dùng buildCanonicalExamPaymentLedger
+
+══════════════════════════════════════════════════════════
+  Total: 11 checks | ✅ Pass: 11 | ❌ Fail: 0
+
+  🎉 All exam auto select paid checks passed!
+

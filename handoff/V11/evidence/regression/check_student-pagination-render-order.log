@@ -1,0 +1,22 @@
+
+══════════════════════════════════════════════════════════
+  check:student-pagination-render-order
+══════════════════════════════════════════════════════════
+
+▸ Section 1: Thứ tự refreshListComputation TRƯỚC invalidateStudents
+  ✅ refreshListsComputation hoặc refreshListComputation xuất hiện TRƯỚC invalidateStudents
+  ✅ Không còn invalidateStudents("students-pagination") là lệnh duy nhất invalidate
+
+▸ Section 2: refreshListsComputation có trong luồng _doLoad
+  ✅ window.refreshListsComputation hoặc refreshListComputation được gọi trong _doLoad
+  ✅ Gọi refresh với keys mảng bao gồm students.activeList và dashboard.summary
+
+▸ Section 3: Fallback setTimeout chỉ là fallback, không phải đường chính
+  ✅ _renderStudentsPageRowsFallback chỉ được gọi trong setTimeout (fallback)
+
+══════════════════════════════════════════════════════════
+  Total: 5 | ✅ 5 | ❌ 0
+
+  🎉 Student pagination render order checks passed!
+══════════════════════════════════════════════════════════
+

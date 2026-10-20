@@ -1,0 +1,40 @@
+✅ 1. quickPay uses canonical TuitionCommandBoundary
+✅ 2. primary payment remains one atomic transaction+profile plan
+✅ 3. no new primary writer in quickPay/boundary
+✅ 4. fee_audit cannot invalidate canonical success
+✅ 5. fee_audit does not block receipt/primary result
+✅ 6. existing fee_audit writer used exactly once by collectTuition
+✅ 7. html2canvas uses canonical lazy asset owner
+✅ 8. no direct duplicate html2canvas loader in app
+✅ 9. shared asset promise exists
+✅ 10. asset timeout exists
+✅ 11. exportReceipt exposes deterministic success/failure result
+✅ 12. quickPay inspects receipt result
+✅ 13. receipt failure cannot trigger payment retry
+✅ 14. receipt render concurrency is serialized without coalescing
+✅ 15. finance module remains canonical quickPay modal owner
+✅ 16. legacy bootstrap path fail-closed in http-module
+✅ 17. no new getDoc
+✅ 18. no new getDocs
+✅ 19. no new onSnapshot
+✅ 20. canonical filterBranch remains exactly one authority
+✅ 21. mobile direct branch presentation preserves month/debt filters
+✅ 22. dynamic slow fee_audit does not block canonical result
+[TuitionConsistency] fee-audit-reconcile-required {
+  classification: 'fee-audit-reconcile-required',
+  secondaryWrite: true,
+  reconciliationNeeded: true,
+  canonicalPaymentPreserved: true,
+  stage: 'fee_audit',
+  studentName: 'StudentA',
+  txId: 'tx-2',
+  paidUntil: '2026-03'
+} Error: audit-fail
+    at Object.addFeeAuditSilent (file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/tools/check-h8r2-1c1f-quickpay-receipt.mjs:45:228)
+    at file:///workspace/scratch/8ad89e6da6fe/v11/work/QR_V10_FULL_SOURCE_COACH_FIXED_TEST_ONLY/js/core/tuitionCommandBoundary.js?c1f-gate:384:25
+✅ 23. dynamic fee_audit failure preserves payment success
+✅ 24. dynamic identical double-submit primary commit exactly once
+
+Firestore static budget: 29/44/16
+Total: 24 | PASS: 24 | FAIL: 0
+H8R2.1C1F quickpay/receipt gate PASS.

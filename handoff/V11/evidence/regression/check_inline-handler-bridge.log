@@ -1,0 +1,41 @@
+
+══════════════════════════════════════════════════════
+ check-inline-handler-bridge — Phase 4K-6I
+══════════════════════════════════════════════════════
+
+  ✓ PASS: js/core/inlineHandlerAudit.js exists
+  ✓ PASS: js/ui/eventActionBridge.js exists
+  ✓ PASS: main.js imports EventActionBridge
+  ✓ PASS: main.js imports InlineHandlerAudit
+  ✓ PASS: main.js inits eventActionBridge
+  ✓ PASS: main.js has window.debugInlineHandlerAudit
+  ✓ PASS: main.js has window.debugEventActionBridge
+  ✓ PASS: main.js exposes window.EventActionBridge
+  ✓ PASS: main.js exposes window.InlineHandlerAudit
+  ✓ PASS: eventActionBridge.js has __eventActionBridgeBound idempotency guard
+  ✓ PASS: eventActionBridge.js has hasInlineHandler guard
+  ✓ PASS: eventActionBridge.js skips element with inline handler
+  ✓ PASS: eventActionBridge.js has risk metadata in actions
+  ✓ PASS: eventActionBridge.js registers close-modal-by-id
+  ✓ PASS: eventActionBridge.js registers close-self-on-backdrop
+  ✓ PASS: eventActionBridge.js registers select-branch-card
+  ✓ PASS: index.html has data-action="select-branch-card" (branch cards migrated)
+  ✓ PASS: index.html no longer has onclick="selectBranchCard(
+  ✓ PASS: index.html has data-action="close-modal-by-id" (close buttons migrated)
+  ✓ PASS: index.html has data-action="close-self-on-backdrop" (backdrops migrated)
+  ✓ PASS: index.html has no forbidden financial/write/auth/superadmin data-action
+  ✓ PASS: No element has both data-action and onclick/onchange/oninput/onsubmit (no double execution)
+  ✓ PASS: app.js still has processMultiItem (not deleted)
+  ✓ PASS: app.js still has renderApp (not deleted)
+  ✓ PASS: app.js still has scheduleRender (not deleted)
+  ✓ PASS: Phase 6I does NOT rewrite processMultiItem (guard: function signature intact)
+  ✓ PASS: debugRuntimeSmokeTest includes debugInlineHandlerAudit
+  ✓ PASS: debugRuntimeSmokeTest includes debugEventActionBridge
+  ✓ PASS: index.html cache bust has 4K-6I or inline-handler-bridge
+  ✓ PASS: main.js APP_BUILD_VERSION has 4K-6I
+  ⚠ WARN: onclick còn 113 — nên giảm xuống dưới 110
+
+══════════════════════════════════════════════════════
+ ✓ check-inline-handler-bridge PASSED (1 warning)
+══════════════════════════════════════════════════════
+

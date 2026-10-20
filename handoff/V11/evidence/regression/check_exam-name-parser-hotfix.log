@@ -1,0 +1,54 @@
+
+══════════════════════════════════════════════════
+  check-exam-name-parser-hotfix  (Phase 4K-5B)
+══════════════════════════════════════════════════
+
+[1] extractExamStudentName — regex phải có "(" trước "Thi"
+  ✅ PASS — extractExamStudentName tồn tại
+  ✅ PASS — extractExamStudentName có regex dạng /\(\s*Thi/ (dấu "(" trước "Thi")
+  ✅ PASS — extractExamStudentName KHÔNG dùng regex nguy hiểm /^(.*?)\s*(Thi lên/ (thiếu dấu "(")
+  ✅ PASS — extractExamStudentName KHÔNG dùng regex /^(.*?)\s*(Thi\s/ không có "(" (pattern cũ)
+
+[2] Simulation test — extractExamStudentName logic
+  ✅ PASS — extractExamStudentName("Dương Vũ An (Thi Quý 2/2026)") → "Dương Vũ An"
+  ✅ PASS — extractExamStudentName("Dương Vũ An (Thi lên Đai xanh lá - Cấp 6)") → "Dương Vũ An"
+  ✅ PASS — extractExamStudentName("Dương Vũ An (") → "Dương Vũ An"
+  ✅ PASS — extractExamStudentName("Nguyễn Văn B (Thi lên Đai vàng - Cấp 7)") → "Nguyễn Văn B"
+  ✅ PASS — extractExamStudentName("Trần Thị C (Thi Quý 1/2026)") → "Trần Thị C"
+  ✅ PASS — extractExamStudentName("Lê Văn D (Thi...)") → "Lê Văn D"
+  ✅ PASS — extractExamStudentName("Phạm Thị E (Thi lên Đai đỏ") → "Phạm Thị E"
+
+[3] getCanonicalStudentName
+  ✅ PASS — getCanonicalStudentName tồn tại trong app.js
+
+[4] renderExamList
+  ✅ PASS — renderExamList dùng getCanonicalStudentName
+
+[5] selectPaidStudents
+  ✅ PASS — selectPaidStudents dùng extractExamStudentName
+  ✅ PASS — selectPaidStudents dùng getCanonicalStudentName
+
+[6] computeExamRegistrationStats
+  ✅ PASS — computeExamRegistrationStats không còn paidNamesSet.add(t.description)
+  ✅ PASS — computeExamRegistrationStats dùng extractExamStudentName
+  ✅ PASS — computeExamRegistrationStats dùng getCanonicalStudentName
+
+[7] exportExamPaidList (reports.js)
+  ✅ PASS — exportExamPaidList dùng getCanonicalStudentName
+  ✅ PASS — exportExamPaidList bỏ examPaidCancelled === true
+  ✅ PASS — exportExamPaidList dedupe paidData theo canonical name (dùng curTs/oldTs hoặc !old)
+
+[10] debugExamDuplicatePayments
+  ✅ PASS — debugExamDuplicatePayments tồn tại trong app.js
+  ✅ PASS — debugExamDuplicatePayments dùng extractExamStudentName
+  ✅ PASS — debugExamDuplicatePayments dùng getCanonicalStudentName
+
+[11] debugRuntimeSmokeTest
+  ✅ PASS — debugRuntimeSmokeTest include out.examDuplicatePayments
+  ✅ PASS — debugRuntimeSmokeTest include examDuplicatePaymentsOk trong summary
+
+══════════════════════════════════════════════════
+  Kết quả: 26 pass / 26 tổng
+
+  ✅ Tất cả 26 kiểm tra PASS — Phase 4K-5B hotfix OK
+

@@ -1,0 +1,34 @@
+✅ 1. canonical payment owner unchanged
+✅ 2. no Firestore SDK import in TuitionCommandBoundary
+✅ 3. canonical settled resolver lives in TuitionDebtCanonical
+✅ 4. 30s TTL remains memory management, not sole correctness guard
+✅ 5. successful reversal has narrow replay invalidation
+✅ 6. failed reconciliation is not reported as successful reversal
+✅ 7. local reversal state only syncs after confirmed write
+✅ 8. receipt retry path remains separate from collect writer
+✅ 9. asset recovery F1 remains present
+✅ 10. receipt render queue remains serialized
+✅ 11. mobile branch authority remains singular
+✅ 12. Firestore budget unchanged 29/44/16
+✅ 13. ID01 concurrent duplicate total primary delta +1
+✅ 14. ID02 immediate sequential replay adds 0
+✅ 15. ID03 replay after >30s adds 0 primary writes
+✅ 16. ID09 stale collect after receipt failure cannot create second payment
+✅ 17. ID04 completed-map/context eviction still blocks paid command
+✅ 18. ID15 auth generation change clears old replay memory lazily
+✅ 19. ID05 empty completed map + canonical paid profile adds 0
+✅ 20. ID06 different unpaid month is allowed (+1)
+✅ 21. ID07 different student is allowed (+1)
+✅ 22. ID08 different club is allowed (+1)
+✅ 23. ID10 successful reversal invalidates matching replay after reconcile
+✅ 24. ID10 recollect after successful reversal is +1 with new txId
+✅ 25. ID11 failed delete does not invalidate replay and adds 0
+✅ 26. ID12 multi-month delete reopens affected months and recollect is +1
+✅ 27. ID13 skipped month is not misclassified as paid
+✅ 28. ID14 legacy paidUntil is handled by canonical helper
+✅ 29. ID16 receipt reprint path is payment-write free
+✅ 30. root/public parity
+
+Firestore static budget: 29/44/16
+Total: 30 | PASS: 30 | FAIL: 0
+H8R2.1C1F1A reversal/stale-duplicate gate PASS.

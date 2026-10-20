@@ -31,6 +31,7 @@ window = globalThis.window = {
   _fb_init: {
     getDocs: async () => ({
       size: 2,
+      metadata: {fromCache:false,hasPendingWrites:false},
       forEach(fn) {
         fn({id:'activeA', data:()=>({status:'active', name:'Active A'})});
         fn({id:'quitB', data:()=>({status:'quit', name:'Quit B'})});
@@ -50,4 +51,7 @@ check('quit authority loads from recovered runtime context', loaded===true && me
 check('full snapshot classifies only quit profile into quit bucket', metrics.quitAuthorityDocsRead===2 && metrics.quitCompletenessReconciled===true);
 check('context recovery is measured, not warned repeatedly', metrics.quitContextRecoveryCount>=1 && metrics.quitMissingContextCount===0);
 
+// Metadata negatives execute the current server-authority consumer.
+const {contract} = await import('./v10/contracts.mjs');
+check('cache-only/pending snapshots cannot grant Quit authority', await contract('hydrate'));
 console.log(`\nPASS ${pass}/${pass+fail}`); if(fail) process.exit(1);

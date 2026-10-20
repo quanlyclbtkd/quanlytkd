@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import {contract, expression} from "./v10/contracts.mjs";
 import fs from 'node:fs';
 const read = p => fs.readFileSync(p, 'utf8');
 let pass=0, fail=0;
@@ -29,7 +30,7 @@ check('authority clears shared pagination as source for quit', listener.includes
 check('store tracks loaded vs complete separately', store.includes('quitComplete') && store.includes('isQuitComplete') && store.includes('markQuitComplete'));
 check('partial sync preserves existing quit profiles', store.includes('Critical V5Q rule') && store.includes('Partial merge') && store.includes('delete _store.quitProfiles[id]'));
 check('partial sync does not mark quit complete', store.includes('if (complete)') && store.includes('_store.quitComplete      = true'));
-check('pagination no longer full-resyncs partial st.profiles', students.includes('Never resync the whole st.profiles map here') && !students.includes("window.syncProfilesToStudentStore(st.profiles, reason || 'pagination-profile-hydrate')"));
+check("Partial profile hydration preserves complete Quit store", await contract('partial'));
 check('quit pagination/search use local authority', students.includes("_getCurrentTabIdSafe() === 'quit' && window.QuitProfileBoundary") && students.includes("source: 'quit-authoritative-boundary'"));
 check('SearchRuntime bypasses active-only index for quit', search.includes("if (tab === 'quit' && window.QuitProfileBoundary)") && search.includes("source: 'quit-authoritative-boundary'"));
 check('studentsRenderer gets quit rows from one boundary', renderer.includes('const _quitBoundaryEntries') && renderer.includes('studentsRenderer.compute') && renderer.includes('if (_useQuitBoundary)'));

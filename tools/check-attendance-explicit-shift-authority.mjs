@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+import {orchestrationModule} from './v11/orchestration-harness.mjs';
 /**
  * Phase 4K-6V5U6F — Attendance Explicit Shift Authority
  * Static authority contracts plus isolated RAM/runtime races. No Firebase call
@@ -86,13 +86,12 @@ check(toggleGuard > toggleStart && toggleGuard < toggleMutation,
 check(bulkGuard > bulkStart && bulkGuard < bulkMutation,
     'bulk check-in uses the same guard before optimistic mutation');
 check(attendance.includes('function _saveAttOffline(clubId, date, shiftDecision') &&
-    attendance.includes('if (!shiftDecision || shiftDecision.allowed !== true'),
+    attendance.includes('if (!shiftDecision?.allowed || !changedRecords.length)'),
     'offline queue creation cannot bypass shift authority');
-check(attendance.includes('_isOfflineAttendanceRecordAllowed(entry.record)') &&
-    attendance.indexOf('_isOfflineAttendanceRecordAllowed(entry.record)') < attendance.indexOf('AttendanceService.bulkSyncOffline(syncContext.clubId, date, records)'),
+check(attendance.includes('_isOfflineAttendanceRecordAllowed(row.record)') &&
+    attendance.indexOf('_isOfflineAttendanceRecordAllowed(row.record)') < attendance.indexOf("AttendanceService.bulkSyncOffline(syncContext.clubId,'',claims)"),
     'offline synchronization validates queued shift evidence before write');
-check(attendance.includes('getAttendanceDocId(name, writeDate, writeShiftId)') &&
-    attendance.includes('...(writeShiftId ? { shiftId: writeShiftId } : {})'),
+check(attendance.includes('getAttendanceDocId(name,date,shiftId || null)') && attendance.includes("String(shiftDecision.shiftId || '')") && attendance.includes("status,\n            operation:"),
     'toggle/bulk doc identity and payload use the same captured shift');
 check(attendance.includes('invalidSelectedShiftCleared++') && attendance.includes("reason: 'selected-shift-not-eligible'"),
     'invalid branch/deleted selection is cleared without a query');
@@ -230,7 +229,7 @@ try {
     globalThis.RoleReadBoundary = { normalizeRole: roleHolder.RoleReadBoundary.normalizeRole };
     globalThis._fb_init = {};
 
-    const serviceUrl = pathToFileURL(path.join(root, 'js/services/attendance.service.js')).href + '?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1';
+    const serviceUrl = new URL(read('js/modules/attendance.js').match(/import \{ AttendanceService \} from '([^']+)'/)[1], pathToFileURL(path.join(root, 'js/modules/attendance.js'))).href;
     const { AttendanceService } = await import(serviceUrl);
     let dailyCalls = 0;
     let shiftCalls = 0;
@@ -260,7 +259,7 @@ try {
 
     const registry = await import(pathToFileURL(path.join(root, 'js/core/globalOwnershipRegistry.js')).href + `?v5u6f=${Date.now()}`);
     registry.initGlobalOwnershipRegistry();
-    const module = await import(pathToFileURL(path.join(root, 'js/modules/attendance.js')).href + `?v5u6f=${Date.now()}`);
+    const {module,rows:journalRows}=await orchestrationModule();
     const api = module.initAttendance();
 
     const reset = ({ club = 'club-a', branch = 'all', role = 'admin', auth = 1, online = true } = {}) => {
@@ -322,9 +321,8 @@ try {
     // Online write uses one immutable shift for doc id and document payload.
     const saveBefore = saveRecordCalls;
     await globalThis.toggleAttendance('Alice');
-    check(saveRecordCalls === saveBefore + 1 && lastSavedRecord?.[0] === 'Alice_2026-08-14_morning' &&
-        lastSavedRecord?.[1]?.shiftId === 'morning',
-        'runtime: explicit toggle writes matching shift-aware doc id and payload');
+    check(journalRows.at(-1)?.record.docId === 'Alice_2026-08-14_morning' && journalRows.at(-1)?.record.shiftId === 'morning' && saveRecordCalls === saveBefore,
+        'runtime: explicit toggle queues matching shift-aware identity without a parallel direct writer');
 
     // No configured shifts: legacy blank remains one normal daily query.
     reset({ club: 'club-legacy', auth: 11 });
@@ -494,17 +492,17 @@ try {
     shiftEl.value = 'morning';
     await globalThis.onShiftChange();
     await globalThis.toggleAttendance('Alice');
-    const offlineKey = Array.from(storage.keys()).find((key) => key.startsWith('offline_att_v2_'));
-    const offlinePayload = JSON.parse(storage.get(offlineKey) || 'null');
-    check(offlinePayload?.version === 2 && offlinePayload?.shiftId === 'morning' &&
+    const offlineKey = journalRows.length-1;
+    const offlinePayload = journalRows[offlineKey]?.record;
+    check(offlinePayload?.version === 3 && offlinePayload?.shiftId === 'morning' &&
         offlinePayload?.docId === 'Alice_2026-08-14_morning',
         'runtime: allowed offline record carries explicit shift identity');
-    const offlineBytesBeforeBlank = storage.get(offlineKey);
+    const offlineBytesBeforeBlank = JSON.stringify(journalRows);
     shiftEl.value = '';
     await globalThis.onShiftChange();
     await globalThis.toggleAttendance('Alice');
     await globalThis.bulkCheckIn();
-    check(storage.get(offlineKey) === offlineBytesBeforeBlank,
+    check(JSON.stringify(journalRows) === offlineBytesBeforeBlank,
         'runtime: configured blank cannot mutate offline queue');
 
     check(globalThis.__attendanceDebug.legacyNoShiftReads >= 1 &&

@@ -1,0 +1,17 @@
+
+🔍 Phase 4K-4H — Exam Fee UI Cleanup Check
+
+[32m✅ PASS[0m  index.html readable
+[32m✅ PASS[0m  main.js readable
+[32m✅ PASS[0m  app.js readable
+[32m✅ PASS[0m  index.html exam_fee_all_display có style display:none
+[32m✅ PASS[0m  index.html có exam_fee_all_actual (hidden input)
+[32m✅ PASS[0m  index.html có saveExamFeeBtn
+[32m✅ PASS[0m  index.html có examFeeInput (ô nhập chính)
+[32m✅ PASS[0m  Không đồng thời hiển thị exam_fee_all_display và examFeeInput
+[32m✅ PASS[0m  index.html có ghi chú "lưu riêng cho từng CLB"
+[32m✅ PASS[0m  main.js refreshExamFeeUI sync exam_fee_all_actual
+[32m✅ PASS[0m  finance.js quickCollectExam dùng getClubExamFee hoặc exam_fee_all_actual
+
+[32m✅ All checks passed (8/8)[0m
+

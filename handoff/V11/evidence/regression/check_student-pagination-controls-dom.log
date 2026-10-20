@@ -1,0 +1,42 @@
+
+══════════════════════════════════════════════════════════
+  check:student-pagination-controls-dom
+══════════════════════════════════════════════════════════
+
+▸ Section 1: _injectControls — DOM insertion an toàn ngoài TABLE
+  ✅ _injectControls dùng tbody.closest('table') để tìm table element
+  ✅ _injectControls insert ctrlEl SAU table/anchor, không inside tbody
+  ✅ Không còn tạo html với prefix "students" cho cả 2 lists (fixed to per-list prefix)
+  ✅ _injectControls dùng prefix students_active cho activeList
+  ✅ quitList ưu tiên authoritative quit dataset khi coverage complete
+  ✅ quitList mobile hiển thị full authoritative data; desktop dùng bounded load-more
+  ✅ quitList không ép shared server pagination khi authoritative coverage chưa ready
+
+▸ Section 2: Handler aliases cho unique prefix IDs
+  ✅ window._pgNext_students_active được define
+  ✅ window._pgPrev_students_active được define
+  ✅ window._pgNext_students_quit được define
+  ✅ window._pgPrev_students_quit được define
+
+▸ Section 3: debugStudentPagination tồn tại
+  ✅ window.debugStudentPagination được define
+  ✅ debugStudentPagination kiểm tra duplicateOldNextButtons
+  ✅ debugStudentPagination kiểm tra nextActiveBtnHTML (unique id)
+
+▸ Section 4: Debug state tracking sau processPage
+  ✅ _lastSnapSize được gán sau processPage
+  ✅ _lastHasNext được gán sau processPage
+  ✅ _lastCursorId được gán sau processPage
+
+▸ Section 5: PHẦN 5 FIX — Event delegation trong students.events.js lắng nghe ID mới
+  ✅ students.events.js lắng nghe #pgNext_students_active
+  ✅ students.events.js lắng nghe #pgPrev_students_active
+  ✅ students.events.js lắng nghe #pgNext_students_quit
+  ✅ students.events.js lắng nghe #pgPrev_students_quit
+
+══════════════════════════════════════════════════════════
+  Total: 21 | ✅ 21 | ❌ 0
+
+  🎉 Student pagination controls DOM checks passed!
+══════════════════════════════════════════════════════════
+

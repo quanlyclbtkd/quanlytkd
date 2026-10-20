@@ -1,0 +1,119 @@
+[PilotReadinessCheck] Kiểm tra pilot readiness (Phase 4.0B-4F)...
+
+[PilotReadinessCheck] INFO  app.js: 679552 ký tự
+[PilotReadinessCheck] INFO  js/main.js: 285836 ký tự
+
+[PilotReadinessCheck] [4E] Kiểm tra resolveActiveDataSource...
+[PilotReadinessCheck] PASS  window.resolveActiveDataSource định nghĩa
+[PilotReadinessCheck] PASS  source = 'primary' branch
+[PilotReadinessCheck] PASS  source = 'legacy-root' branch
+[PilotReadinessCheck] PASS  source = 'empty' branch
+[PilotReadinessCheck] PASS  source = 'permission-error' branch
+[PilotReadinessCheck] PASS  safeToRender field trong kết quả
+
+[PilotReadinessCheck] [4E] Kiểm tra activateLegacyRootFallback (legacy recovery)...
+[PilotReadinessCheck] PASS  window.activateLegacyRootFallback định nghĩa
+[PilotReadinessCheck] PASS  đọc tst_profiles trong fallback
+[PilotReadinessCheck] PASS  đọc tst_transactions trong fallback
+[PilotReadinessCheck] PASS  đọc tst_inventory trong fallback
+[PilotReadinessCheck] PASS  reason 'legacy-root-fallback' trong invalidate calls
+[PilotReadinessCheck] PASS  fallbackReason set đúng
+
+[PilotReadinessCheck] [4E] Kiểm tra __firestoreDataSourceMetrics...
+[PilotReadinessCheck] PASS  window.__firestoreDataSourceMetrics object
+[PilotReadinessCheck] PASS  fallbackUsed field
+[PilotReadinessCheck] PASS  fallbackReason field
+[PilotReadinessCheck] PASS  activeDataSource field
+
+[PilotReadinessCheck] [4E] Kiểm tra primary empty overwrite guard...
+[PilotReadinessCheck] PASS  [DataSourceLock] guard warning
+[PilotReadinessCheck] PASS  guard cho profiles/active
+[PilotReadinessCheck] PASS  guard cho profiles/fallback
+[PilotReadinessCheck] PASS  guard cho inventory
+[PilotReadinessCheck] PASS  inventory guard scope đúng legacy-root + primary empty + reset
+[PilotReadinessCheck] PASS  inventory primary-empty vẫn hoàn tất pagination state trước preserve guard
+[PilotReadinessCheck] PASS  I1 legacy-root + primary empty preserves legacy inventory
+[PilotReadinessCheck] PASS  I2 primary non-empty does not force legacy preserve
+[PilotReadinessCheck] PASS  I3 primary mode empty retains normal primary semantics
+[PilotReadinessCheck] PASS  guard cho transactions
+
+[PilotReadinessCheck] [4E] Kiểm tra printPilotTabReadiness...
+[PilotReadinessCheck] PASS  window.printPilotTabReadiness định nghĩa
+[PilotReadinessCheck] PASS  tuitionReady field
+[PilotReadinessCheck] PASS  debtReady field
+[PilotReadinessCheck] PASS  activeStudentsReady field
+[PilotReadinessCheck] PASS  quitStudentsReady field
+[PilotReadinessCheck] PASS  inventoryReady field
+[PilotReadinessCheck] PASS  dashboardReady field
+
+[PilotReadinessCheck] [4E] Kiểm tra _dataVersion bump trong fallback...
+[PilotReadinessCheck] PASS  _dataVersion bump sau legacy recovery
+
+[PilotReadinessCheck] [4E] Kiểm tra invalidate tabs sau recovery...
+[PilotReadinessCheck] PASS  invalidateStudents sau fallback
+[PilotReadinessCheck] PASS  invalidateFinance sau fallback
+[PilotReadinessCheck] PASS  invalidateInventory sau fallback
+[PilotReadinessCheck] PASS  invalidateDashboard sau fallback
+
+[PilotReadinessCheck] [4E] Kiểm tra printFirestorePathStatus extended...
+[PilotReadinessCheck] PASS  printFirestorePathStatus kiểm tra tst_profiles
+[PilotReadinessCheck] PASS  printFirestorePathStatus có recommendation field
+[PilotReadinessCheck] PASS  printFirestorePathStatus có result.primary
+[PilotReadinessCheck] PASS  printFirestorePathStatus có result.legacy
+
+[PilotReadinessCheck] [4E] Kiểm tra không có Firestore write trong fallback...
+[PilotReadinessCheck] PASS  Không có Firestore write (setDoc/updateDoc/addDoc/deleteDoc) trong activateLegacyRootFallback
+
+[PilotReadinessCheck] [4E] Kiểm tra không có migration tự động...
+[PilotReadinessCheck] PASS  Không có migration tự động trong recovery code
+
+[PilotReadinessCheck] [4E] Kiểm tra firestore.rules không mở public...
+[PilotReadinessCheck] PASS  firestore.rules không có catch-all public read
+
+[PilotReadinessCheck] [4E] Pre-flight checks...
+[PilotReadinessCheck] PASS  firestore.indexes.json tồn tại
+[PilotReadinessCheck] PASS  functions/package.json có script lint
+
+[PilotReadinessCheck] ══════════════════════════════════════════
+[PilotReadinessCheck] [4F] KIỂM TRA PHASE 4.0B-4F (MỚI)
+[PilotReadinessCheck] ══════════════════════════════════════════
+
+[PilotReadinessCheck] [4F] Kiểm tra window.runRuntimeDataRecovery...
+[PilotReadinessCheck] PASS  window.runRuntimeDataRecovery được định nghĩa trong app.js
+[PilotReadinessCheck] PASS  __runtimeRecoveryState.running guard
+[PilotReadinessCheck] PASS  __runtimeRecoveryState.completed guard
+[PilotReadinessCheck] PASS  activateLegacyRootFallback chỉ gọi với reason='manual-runtime-recovery'
+
+[PilotReadinessCheck] [4F] Kiểm tra __runtimeRecoveryState init...
+[PilotReadinessCheck] PASS  window.__runtimeRecoveryState được khởi tạo
+[PilotReadinessCheck] PASS  recoveryUsed field trong __runtimeRecoveryState
+[PilotReadinessCheck] PASS  completedAt field trong __runtimeRecoveryState
+
+[PilotReadinessCheck] [4F] Kiểm tra recovery không auto-run sau app:context-ready...
+[PilotReadinessCheck] PASS  addEventListener app:context-ready tồn tại (main.js hoặc app.js)
+[PilotReadinessCheck] PASS  runRuntimeDataRecovery yêu cầu explicit probe
+[PilotReadinessCheck] PASS  app:context-ready không còn sở hữu legacy recovery network
+
+[PilotReadinessCheck] [4F] Kiểm tra allProfiles sync trong activateLegacyRootFallback...
+[PilotReadinessCheck] PASS  allProfiles closure synced trong activateLegacyRootFallback
+[PilotReadinessCheck] PASS  allTransactions closure synced trong activateLegacyRootFallback
+[PilotReadinessCheck] PASS  allInventory closure synced trong activateLegacyRootFallback
+
+[PilotReadinessCheck] [4F] Kiểm tra bumpRuntimeDataVersion...
+[PilotReadinessCheck] PASS  bumpRuntimeDataVersion helper được định nghĩa
+[PilotReadinessCheck] PASS  _lastDataVersionReason field set trong bumpRuntimeDataVersion
+
+[PilotReadinessCheck] [4F] Kiểm tra scheduleRender hoặc renderApp sau recovery...
+[PilotReadinessCheck] PASS  scheduleRender hoặc renderApp được gọi sau legacy recovery
+
+[PilotReadinessCheck] [4F] Kiểm tra window.printPilotLaunchStatus...
+[PilotReadinessCheck] PASS  window.printPilotLaunchStatus được định nghĩa
+[PilotReadinessCheck] PASS  readyForInternalTest field trong printPilotLaunchStatus
+[PilotReadinessCheck] PASS  readyForOneClubPilot field trong printPilotLaunchStatus
+
+[PilotReadinessCheck] [4F] Kiểm tra logout reset __runtimeRecoveryState...
+[PilotReadinessCheck] PASS  __runtimeRecoveryState được reset trong logout block
+[PilotReadinessCheck] PASS  reason: 'logout' được set khi logout
+
+[PilotReadinessCheck] Đã kiểm tra: 68 patterns
+[PilotReadinessCheck] ✅ OK — Pilot readiness checks (Phase 4.0B-4F) đầy đủ và an toàn.

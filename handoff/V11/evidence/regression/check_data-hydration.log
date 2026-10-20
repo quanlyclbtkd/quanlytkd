@@ -1,0 +1,59 @@
+[DataHydrationCheck] Kiểm tra data hydration diagnostics trong app.js...
+
+[DataHydrationCheck] INFO  app.js: 679552 ký tự
+
+[DataHydrationCheck] Kiểm tra __dataHydrationMetrics...
+[DataHydrationCheck] PASS  window.__dataHydrationMetrics object
+[DataHydrationCheck] PASS  profilesSnapshotCount field
+[DataHydrationCheck] PASS  transactionsSnapshotCount field
+[DataHydrationCheck] PASS  inventorySnapshotCount field
+[DataHydrationCheck] PASS  profilesDocCount field
+[DataHydrationCheck] PASS  transactionsDocCount field
+[DataHydrationCheck] PASS  inventoryDocCount field
+[DataHydrationCheck] PASS  settingsLoaded field
+[DataHydrationCheck] PASS  clubLoaded field
+[DataHydrationCheck] PASS  _updateHydrationMetrics helper
+
+[DataHydrationCheck] Kiểm tra printDataHydrationStatus...
+[DataHydrationCheck] PASS  window.printDataHydrationStatus định nghĩa
+[DataHydrationCheck] PASS  storeProfilesCount trong result
+[DataHydrationCheck] PASS  storeTransactionsCount trong result
+[DataHydrationCheck] PASS  storeInventoryCount trong result
+
+[DataHydrationCheck] Kiểm tra printTabDataStatus...
+[DataHydrationCheck] PASS  window.printTabDataStatus định nghĩa
+[DataHydrationCheck] PASS  tuitionTabCanRender field
+[DataHydrationCheck] PASS  debtTabCanRender field
+[DataHydrationCheck] PASS  inventoryTabCanRender field
+[DataHydrationCheck] PASS  dashboardCanRender field
+[DataHydrationCheck] PASS  transactionsInSelectedMonth field
+
+[DataHydrationCheck] Kiểm tra printFirestorePathStatus...
+[DataHydrationCheck] PASS  window.printFirestorePathStatus định nghĩa
+[DataHydrationCheck] PASS  giới hạn limit(1) — không đọc toàn bộ collection
+[DataHydrationCheck] PASS  kiểm tra path clubs/{clubId}/profiles
+[DataHydrationCheck] PASS  kiểm tra path clubs/{clubId}/transactions
+[DataHydrationCheck] PASS  kiểm tra path clubs/{clubId}/inventory
+
+[DataHydrationCheck] Kiểm tra metrics update trong profiles listener...
+[DataHydrationCheck] PASS  update metrics trong profiles fallback listener
+[DataHydrationCheck] PASS  update metrics trong _syncAllProfilesLegacy (active path)
+
+[DataHydrationCheck] Kiểm tra metrics update trong transactions listener...
+[DataHydrationCheck] PASS  update metrics trong _mergeAndRender (transactions)
+
+[DataHydrationCheck] Kiểm tra metrics update trong inventory listener...
+[DataHydrationCheck] PASS  update metrics trong canonical inventory history publisher
+
+[DataHydrationCheck] Kiểm tra metrics update club/settings...
+[DataHydrationCheck] PASS  update clubLoaded trong _clubCb
+[DataHydrationCheck] PASS  update settingsLoaded trong _settingsCb
+
+[DataHydrationCheck] Kiểm tra không có Firestore write trong diagnostic...
+[DataHydrationCheck] PASS  Không có Firestore write (setDoc/updateDoc/addDoc/deleteDoc) trong diagnostic globals
+
+[DataHydrationCheck] Kiểm tra không log PII trong diagnostic...
+[DataHydrationCheck] PASS  Không log trực tiếp field PII (name/phone/email) trong diagnostic
+
+[DataHydrationCheck] Đã kiểm tra: 33 patterns trong app.js + runtimeReadinessDiagnostics.js
+[DataHydrationCheck] ✅ OK — Data hydration diagnostics đầy đủ và an toàn.

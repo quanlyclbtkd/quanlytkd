@@ -1,0 +1,10 @@
+✅ window.mountActiveProfilesListener exposed trong main.js
+✅ Profile listener mount có guard db/clubId trong app.js
+✅ window.mountActiveProfilesListenerIfNeeded tồn tại
+✅ retryDataHydration gọi mountActiveProfilesListenerIfNeeded
+✅ printClubRuntimeDiagnostics in profile listener field
+✅ profiles.listeners.js invalidate đủ 4 domains: students, tuition, debt, dashboard
+✅ profiles.listeners.js gọi invalidateFinance (Học Phí tab)
+✅ printClubRuntimeDiagnostics in tbody row count (querySelectorAll tbody tr)
+
+✅ check-profile-listener-mount: TẤT CẢ PASS

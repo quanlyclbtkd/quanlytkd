@@ -1,0 +1,48 @@
+
+🧊 Phase 4K-6V5U5 — Legacy Global Freeze Gate
+
+BEFORE: {
+  appSizeBytes: 663426,
+  appLines: 10739,
+  windowAssignments: 538,
+  duplicateGlobals: 159,
+  globalOwnershipRegistrySha256: '40ebfab400b3a575d1aac2daa6db73c246be731a84a2906674fcea3c211bd133',
+  legacyAppAuditSha256: '38c05474191672096370fda3bd677cb6894e4ce1bd85054ec99f0aa65baa8455',
+  baselineSource: 'Phase 4K-6V5U4 source before V5U5 changes'
+}
+AFTER : {
+  appSizeBytes: 696906,
+  appLines: 11291,
+  windowAssignments: 525,
+  duplicateGlobals: 159
+}
+✅ PASS  Baseline được ghi nhận từ Phase V5U4 source thật
+✅ PASS  window assignment count không tăng (525 <= 538)
+✅ PASS  duplicate global count không tăng (159 <= 159)
+✅ PASS  GlobalOwnershipRegistry không bị sửa trong phase
+✅ PASS  legacyAppAudit không bị sửa trong phase
+✅ PASS  Protected flow vẫn hiện diện trong app.js: renderApp
+✅ PASS  Protected flow vẫn hiện diện trong app.js: scheduleRender
+✅ PASS  Protected flow vẫn hiện diện trong app.js: switchTab
+✅ PASS  Protected flow vẫn hiện diện trong app.js: initSaaSDatabase
+✅ PASS  Protected flow vẫn hiện diện trong app.js: listenToData
+✅ PASS  Protected flow vẫn hiện diện trong app.js: processMultiItem
+✅ PASS  Protected flow vẫn hiện diện trong app.js: quickPay
+✅ PASS  Protected flow vẫn hiện diện trong app.js: deleteTx
+✅ PASS  Protected flow vẫn hiện diện trong app.js: markInvPaid
+✅ PASS  Protected flow vẫn hiện diện trong app.js: cancelExamPayment
+✅ PASS  Protected flow vẫn hiện diện trong app.js: getChargeableTuitionMonths
+✅ PASS  Protected flow vẫn hiện diện trong app.js: computeTuitionDebtCanonical
+✅ PASS  Maintenance API được gắn vào SuperAdminModule thay vì window global mới
+✅ PASS  Không Proxy toàn bộ window
+✅ PASS  Không thêm setInterval auth/recovery loop trong vùng V5U5
+
+📊 Metrics V5U5
+  app.js: 663426 -> 696906 bytes
+  lines: 10739 -> 11291
+  window assignments: 538 -> 525
+  duplicate globals: 159 -> 159
+
+📊 Kết quả: 20 PASS / 0 FAIL
+✅ Legacy Global Freeze Gate PASS.
+

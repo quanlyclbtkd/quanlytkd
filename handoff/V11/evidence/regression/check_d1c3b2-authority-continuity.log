@@ -1,0 +1,56 @@
+[StudentProfileStore] reset — test-reset
+PASS A01 stale pagination cannot overwrite settled authoritative profile
+[StudentProfileStore] reset — test-reset
+PASS A02 sparse page must preserve authoritative financial fields
+[StudentProfileStore] reset — test-reset
+PASS A03 actual later full snapshot overrides page data
+[StudentProfileStore] reset — test-reset
+PASS A04 authority from another club cannot authorize pagination overwrite
+[StudentProfileStore] reset — test-reset
+PASS A04B role switch cannot enrich Coach page from prior Admin authority
+PASS A05 search/load-more remains presentation data, no new readers
+[ProfilesListener] reset — case-reset
+PASS T01 registered pending listener cannot be replaced by timeout fallback
+PASS T01B boundary timeout must not request fallback for healthy pending listener
+[ProfilesListener] reset — case-reset
+[ProfilesListener] Active query lỗi: unavailable — fallback
+[ProfilesFallback] Loading full profiles — active-query-error:unavailable
+PASS T02 explicit first snapshot error has exclusive fallback and no overlap
+[ProfilesListener] reset — case-reset
+[ProfilesListener] Active query lỗi: unavailable — fallback
+[ProfilesFallback] Loading full profiles — active-query-error:unavailable
+PASS T03 emergency fallback recovers one realtime owner after one-shot
+[ProfilesListener] reset — case-reset
+[ProfilesListener] Active query lỗi: unavailable — fallback
+[ProfilesFallback] Loading full profiles — active-query-error:unavailable
+PASS T04 remote tuition settlement after recovery updates canonical store
+[ProfilesListener] reset — case-reset
+[ProfilesListener] Active query lỗi: unavailable — fallback
+[ProfilesFallback] Loading full profiles — active-query-error:unavailable
+[ProfilesListener] safeRegisterSnapshot chưa sẵn — fallback
+[ProfilesFallback] Loading full profiles — no-safeRegisterSnapshot
+[ProfilesListener] safeRegisterSnapshot chưa sẵn — fallback
+[ProfilesFallback] Loading full profiles — no-safeRegisterSnapshot
+PASS T03B one-shot fallback without registry recovery cannot be ready forever
+[ProfilesListener] reset — case-reset
+[ProfilesListener] Active query lỗi: unavailable — fallback
+[ProfilesFallback] Loading full profiles — active-query-error:unavailable
+[ProfilesListener] reset — club-switch
+[StudentProfileStore] reset — club-switch
+PASS T05B in-flight fallback after club switch never writes old snapshot
+[ProfilesListener] reset — case-reset
+[ProfilesListener] Active query lỗi: unavailable — fallback
+[ProfilesFallback] Loading full profiles — active-query-error:unavailable
+PASS T05C role switch during fallback prevents old Admin recovery
+[ProfilesListener] reset — case-reset
+[ProfilesListener] reset — logout
+PASS T05 context change/logout invalidates former authority
+[ProfilesListener] reset — case-reset
+[ProfilesListener] Active query lỗi: unavailable — fallback
+[ProfilesFallback] Loading full profiles — active-query-error:unavailable
+[ProfilesFallback] Full load thất bại: network-error
+PASS T06 fallback failure must not fabricate complete coverage
+PASS S01 summary from a former club or month is neutral
+PASS S02 dashboard badge shows syncing instead of fake zero
+PASS G01 release & critical preserve prior gates and lock D1C3B2
+D1C3B2 actual-handler closure: 19 passed, 0 failed.

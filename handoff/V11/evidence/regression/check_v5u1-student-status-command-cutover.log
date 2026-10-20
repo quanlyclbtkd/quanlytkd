@@ -1,0 +1,26 @@
+✅ V5U-1 boundary source/public mirrors are exact after build or H8R2.1 bounded pre-build local-invalidation state
+✅ V5U-1-or-later app/index/main markers active
+✅ V5U-1-or-later public app/index/main markers active
+✅ main imports and initializes StudentStatusCommandBoundary
+✅ StudentStatus boundary initializes after students and before finance
+✅ StudentStatus boundary owns reviewed status commands
+✅ StudentStatus boundary delegates to existing StudentService only
+✅ StudentStatus boundary centralizes affected domain invalidation
+✅ StudentStatus boundary has single-flight protection
+✅ students module writes status only through boundary
+✅ finance aliases write status only through boundary
+✅ students/finance public mirrors are exact after build or H3 students-only bounded pre-build state
+✅ legacy app student status writers are frozen to no-write stubs
+✅ legacy app no longer contains old direct status writer signatures
+✅ V5U-1 baseline remains an upper bound after later cutovers
+✅ V5U-1 per-op write baseline did not regress
+✅ app/public direct-write surfaces exact after build or explicit bounded pre-build source state
+✅ rename service chunks historical transaction updates
+✅ Firestore Rules allow only club Admin/SuperAdmin to delete own-club transactions
+✅ FinanceService annotates permission-denied delete failures
+✅ deleteTx catches permission errors and retains Tuition tab
+✅ clubStatsAutoCache is write-mounted only for admin/owner/root roles
+✅ package exposes V5U-1 checks
+✅ default pipelines include V5U-1 checks
+
+V5U-1 student status command cutover check PASS.

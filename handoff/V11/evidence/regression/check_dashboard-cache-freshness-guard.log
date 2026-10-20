@@ -1,0 +1,58 @@
+
+=== Phase 4K-6V5U6C2 — Dashboard Cache Freshness + Hydration/Backoff Freeze ===
+
+✅ cache schema version bumped to v3
+✅ single module-local mutation freshness state exists
+✅ canonical dirty API is exported once
+✅ dirty API performs no Firestore read/render
+✅ dirty API uses existing _moduleDashboard namespace, not new window global
+✅ transaction live mutation marks finance dirty after store commit
+✅ transaction mutation callback does not directly fetch Dashboard stats
+✅ initial transaction hydration is reconciled instead of unconditionally dirty
+✅ profile snapshot #1 reconciles and only real later docChanges mark dirty
+✅ render.js remains zero Dashboard Firestore reads
+✅ render.js keeps dirty current chart/report on RAM evidence
+✅ canonical loader reuses clean per-month cache and targets dirty months
+✅ canonical loader keeps one stats getDoc owner
+✅ flight token is immutable and old flight token is never relabeled
+✅ freshness revision participates in request stale guard
+✅ new revision during flight records one bounded follow-up intent
+✅ current stats rejects stats txCount behind local transaction evidence
+✅ updatedAt normalizer supports Timestamp/Date/seconds
+✅ member mutation cannot be falsely cleared by transaction count alone
+✅ Vietnam month helper avoids UTC ISO month authority
+✅ unresolved dirty revalidation is bounded without polling
+✅ main build marker is exact V5U6C2 marker
+✅ freshness metrics extend existing __sparkReadMetrics
+[dashboard.js] ✅ Phase 4K-6V5U6C2 (hydration/mutation guard + unresolved dirty read backoff)
+✅ dynamic cold Dashboard remains <= 6 stats reads
+✅ dynamic warm clean TTL hit performs zero stats reads
+✅ dynamic stale cache cannot overwrite newer payment RAM before revalidation
+✅ dynamic dirty current month revalidates exactly one stats doc
+✅ dynamic clean historical months are reused without reread
+✅ dynamic stats txCount behind local evidence preserves RAM total
+✅ dynamic stale stats rejection metrics increment
+✅ dynamic dirty remains unresolved while server stats are behind
+✅ dynamic server catch-up before retry deadline performs zero reads
+✅ dynamic dirty remains until an eligible trigger
+✅ dynamic server catch-up costs one targeted current-month stats read
+✅ dynamic server catch-up is accepted and dirty clears
+✅ dynamic server catch-up keeps authoritative current income
+✅ dynamic clean cache after catch-up returns to zero reads
+✅ dynamic Vietnam boundary 2026-09-01 00:30 => 2026-09
+✅ dynamic Vietnam year boundary 2027-01-01 00:15 => 2027-01
+[dashboard.js] ✅ Phase 4K-6V5U6C2 (hydration/mutation guard + unresolved dirty read backoff)
+✅ dynamic five invalidations coalesce to <= 1 targeted network read
+✅ dynamic burst targeted read metric increments once
+[dashboard.js] ✅ Phase 4K-6V5U6C2 (hydration/mutation guard + unresolved dirty read backoff)
+✅ dynamic hidden Dashboard mutation causes zero immediate stats reads
+✅ dynamic opening Dashboard after hidden dirty state performs one targeted read
+[dashboard.js] ✅ Phase 4K-6V5U6C2 (hydration/mutation guard + unresolved dirty read backoff)
+✅ dynamic newer revision reuses running same-key flight instead of parallel flight
+✅ dynamic old revision result is stale-dropped
+✅ dynamic stale old flight cannot clear newer dirty revision
+✅ dynamic mutation during flight schedules exactly one bounded follow-up read
+✅ dynamic bounded follow-up clears latest dirty revision after server catches up
+✅ dynamic latest RAM/current summary cannot be overwritten by old flight
+
+PASS 49/49

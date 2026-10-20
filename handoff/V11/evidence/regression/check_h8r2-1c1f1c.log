@@ -1,0 +1,50 @@
+✅ 1. one canonical Tuition writer remains
+✅ 2. one profile mutation lane owner remains
+✅ 3. collect completed replay is explicitly deferred until after lane entry
+✅ 4. exact in-flight lookup precedes non-lane completed replay lookup
+✅ 5. delete success invalidates replay before profile reconciliation
+✅ 6. deleted tx replay cannot be re-stored by deferred completed replay path
+✅ 7. future-gap reversal context is passed from main reconciliation
+✅ 8. canonical reversal helper consumes removedMonths context
+✅ 9. future-only removed months preserve previous paidUntil
+✅ 10. current/middle boundary removal regresses before earliest affected month
+✅ 11. skippedMonths semantics participate in reversal baseline
+✅ 12. explicit later paidMonths settlement remains supported
+✅ 13. packageMonths fallback remains aligned
+✅ 14. txMonth fallback remains aligned
+✅ 15. fee_audit remains secondary
+✅ 16. receipt queue remains serialized
+✅ 17. receipt asset recovery remains canonical
+✅ 18. one filterBranch authority remains
+✅ 19. no new getDoc
+✅ 20. no new getDocs
+✅ 21. no new onSnapshot
+✅ 22. Firestore budget is 29/44/16
+✅ 23. exact in-flight duplicate still coalesces
+✅ 24. exact in-flight duplicate returns one transaction result
+✅ 25. LR01 completed replay does not resolve ahead of pending delete
+✅ 26. LR01 delete success releases queued recollect to new tx
+✅ 27. LR02 collect waits for failing delete lane
+✅ 28. LR02 delete failure preserves valid active replay with zero extra write
+✅ 29. LR03 queued collect waits through delete/reconcile lane
+✅ 30. LR03 deleted txId is never returned after delete success/reconcile fail
+✅ 31. different profiles still run in parallel
+✅ 32. LB02 Aug + explicit Oct, delete Oct => Aug
+✅ 33. LB03 Aug + Oct/Nov, delete Nov => Aug baseline
+✅ 34. LB04 middle-gap Sep removal from Oct boundary => Aug
+✅ 35. LB05 delete current Oct boundary => Sep
+✅ 36. LB06 delete future Dec preserves Oct
+✅ 37. LB07 delete Sep regresses to Aug while future Dec can remain explicit
+✅ 38. LB08 skipped month precedence is preserved during boundary regression
+✅ 39. LB01 future-gap collect then delete restores legacy Aug baseline
+✅ 40. LB09 reconcile failure does not corrupt local legacy baseline
+✅ 41. LB10 future-gap recollect creates new tx and preserves legacy baseline
+✅ 42. F1B middle-gap settlement remains Sep unpaid / Oct paid
+✅ 43. F1B packageMonths fallback remains correct
+✅ 44. F1B txMonth fallback remains correct
+✅ 45. deleted transaction is excluded from fallback evidence
+✅ 46. root/public parity
+
+Firestore static budget: 29/44/16
+Total: 46 | PASS: 46 | FAIL: 0
+H8R2.1C1F1C lane-aware replay / legacy gap gate PASS.

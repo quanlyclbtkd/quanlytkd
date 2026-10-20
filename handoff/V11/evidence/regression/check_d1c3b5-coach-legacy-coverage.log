@@ -1,0 +1,6 @@
+[ProfilesListener] reset — E01-readonly
+E01 CANONICAL ACTIVE canonical,missing,vietnamese,training
+E01 STATUS-QUERY RESULTS canonical,missing,vietnamese,training
+E01 MISSING 
+E01 ACTIVE QUERY VALUES active,trial
+E01 source fixture complete — still REQUIRES real emulator and read-cost proof

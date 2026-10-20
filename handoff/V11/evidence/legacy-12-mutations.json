@@ -1,0 +1,53 @@
+{
+  "positiveContracts": 11,
+  "negativeControls": [
+    {
+      "gate": "scale",
+      "mutationCaught": true
+    },
+    {
+      "gate": "search-bindings",
+      "mutationCaught": true
+    },
+    {
+      "gate": "attendance-shift-filter",
+      "mutationCaught": true
+    },
+    {
+      "gate": "finance-index-errors",
+      "mutationCaught": true
+    },
+    {
+      "gate": "exam-fee-setting",
+      "mutationCaught": true
+    },
+    {
+      "gate": "profile-display-name-safe-edit",
+      "mutationCaught": true
+    },
+    {
+      "gate": "club-context-ready",
+      "mutationCaught": true
+    },
+    {
+      "gate": "profile-hydration",
+      "mutationCaught": true
+    },
+    {
+      "gate": "active-zero-fallback",
+      "mutationCaught": true
+    },
+    {
+      "gate": "coach-branch-runtime-repair",
+      "mutationCaught": true
+    },
+    {
+      "gate": "v5q-quit-single-authoritative-pipeline",
+      "mutationCaught": true
+    },
+    {
+      "gate": "v5s-quit-context-behavior",
+      "mutationCaught": true
+    }
+  ]
+}

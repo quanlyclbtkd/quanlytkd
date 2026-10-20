@@ -1,0 +1,49 @@
+
+[AttendanceScheduleCheck] ── 1. getScheduledTrainingDatesForProfile helper ──
+[AttendanceScheduleCheck] PASS  getScheduledTrainingDatesForProfile defined in attendance.js
+[AttendanceScheduleCheck] PASS  getScheduledTrainingDatesForProfile reads trainingDays/scheduleDays from profile
+[AttendanceScheduleCheck] PASS  getScheduledTrainingDatesForProfile includes expected:true flag in output
+[AttendanceScheduleCheck] PASS  getScheduledTrainingDatesForProfile returns [] when no schedule found (with warning)
+
+[AttendanceScheduleCheck] ── 2. computeMonthlyAttendanceAccuracy helper ──
+[AttendanceScheduleCheck] PASS  computeMonthlyAttendanceAccuracy defined in attendance.js
+[AttendanceScheduleCheck] PASS  expectedSessions computed in attendance.js
+[AttendanceScheduleCheck] PASS  missingAttendanceCount computed in attendance.js
+[AttendanceScheduleCheck] PASS  attendanceRate computed in attendance.js
+[AttendanceScheduleCheck] PASS  completionRate computed in attendance.js
+
+[AttendanceScheduleCheck] ── 3. expectedSessions — no division by zero ──
+[AttendanceScheduleCheck] PASS  Division-by-zero guard: expectedSessions > 0 check present
+
+[AttendanceScheduleCheck] ── 4. attendanceRate based on expectedSessions (not just marked records) ──
+[AttendanceScheduleCheck] PASS  attendanceRate = presentCount / expectedSessions (schedule-based)
+
+[AttendanceScheduleCheck] ── 5. completionRate — marked sessions / expected ──
+[AttendanceScheduleCheck] PASS  completionRate formula uses (present+absent+excused)/expectedSessions
+
+[AttendanceScheduleCheck] ── 6. printAttendanceSessionCompletion function ──
+[AttendanceScheduleCheck] PASS  printAttendanceSessionCompletion defined on window
+[AttendanceScheduleCheck] PASS  printAttendanceSessionCompletion computes missingCount and markedCount
+[AttendanceScheduleCheck] PASS  printAttendanceSessionCompletion warns when võ sinh not marked
+
+[AttendanceScheduleCheck] ── 7. printAttendanceBranchReport function ──
+[AttendanceScheduleCheck] PASS  printAttendanceBranchReport defined on window
+[AttendanceScheduleCheck] PASS  printAttendanceBranchReport groups output by branch
+
+[AttendanceScheduleCheck] ── 8. No Firestore writes in new helpers ──
+[AttendanceScheduleCheck] PASS  New helpers do not write to Firestore
+
+[AttendanceScheduleCheck] ── 9. No PII logging in new functions ──
+[AttendanceScheduleCheck] PASS  printAttendanceBranchReport does not log student names (PII safe)
+
+[AttendanceScheduleCheck] ── 10. Firestore rules — no public access opened ──
+[AttendanceScheduleCheck] PASS  No public access in firestore.rules
+
+[AttendanceScheduleCheck] ── 11. renderAttMonthly — dateMap tracked per profile ──
+[AttendanceScheduleCheck] PASS  dateMap tracked per profile in renderAttMonthly grouped object
+
+[AttendanceScheduleCheck] ── 12. UI — Chưa có lịch học message present ──
+[AttendanceScheduleCheck] PASS  UI shows "Chưa có lịch học để tính chuyên cần chuẩn" when no schedule
+
+[AttendanceScheduleCheck] Checked: 22 items
+[AttendanceScheduleCheck] ✅ OK — All scheduled accuracy checks passed (0 warning(s)).

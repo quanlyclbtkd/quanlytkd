@@ -1,0 +1,13 @@
+[ProfilesListener] reset — B7-reset
+[StudentProfileStore] reset — B7-reset
+PASS E01-coverage-source: CS1 query must not pre-filter canonical-active status
+[ProfilesListener] reset — B7-reset
+[StudentProfileStore] reset — B7-reset
+PASS E02-provisional: fallback legacy must survive first partial primary snapshot
+[ProfilesListener] reset — B7-reset
+[StudentProfileStore] reset — B7-reset
+PASS E02-provisional: metadata cache/pending cannot mark Coach roster verified
+[ProfilesListener] reset — B7-reset
+[StudentProfileStore] reset — B7-reset
+PASS E02-authority: branch-only realtime becomes verified after two server slots
+D1C3B7 ACTUAL-HANDLER: 4 PASS / 0 FAIL; SDK calls=0

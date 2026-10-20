@@ -1,0 +1,19 @@
+Phase 4K-6I-I Excel Import VTF Upsert Check
+✅ has debugExcelImportVtfUpsert
+✅ has normalized name matching
+✅ has memberId/VTF aliases
+✅ updates existing profile with merge
+✅ does not skip existing system names before update
+✅ protects paidUntil for existing students
+✅ prevents duplicate VTF in system
+✅ prevents duplicate VTF in file
+✅ supports batch chunking
+✅ reports updated count
+✅ refreshes students after excel upsert
+✅ has phase version in main
+✅ has cache bust in index
+✅ package script registered
+✅ check:all includes script
+✅ check:all:critical includes script
+
+PASS: 16/16 checks passed

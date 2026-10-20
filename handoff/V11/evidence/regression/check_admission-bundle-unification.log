@@ -1,0 +1,13 @@
+
+[check-admission-bundle-unification] Phase 4K-5E
+
+  ✅  students.js addNewStudent uses buildPaymentBundleTransaction
+  ✅  students.js addNewStudent has bundle guard (not raw double-transaction)
+  ✅  StudentService has addGenericTransaction method
+  ✅  StudentService.addTuitionTransaction returns canonical payload with id
+  ✅  app.js addNewStudent has throw guard for missing buildPaymentBundleTransaction
+  ✅  students.js calls mergeTransactionIntoRuntimeStore for bundle
+  ✅  students.js updates inventory doc with paidTxId/paymentBundleId
+
+  7 passed, 0 failed
+

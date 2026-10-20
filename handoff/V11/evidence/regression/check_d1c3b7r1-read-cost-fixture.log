@@ -1,0 +1,8 @@
+IN_MEMORY_FIXTURE {"population":1000,"slot":"CS1","oldStatusAndBranchDocs":250,"newBranchOnlyDocs":500,"incrementalInitialResultDocs":250,"incrementPercent":100,"legacyStatusDocs":175,"quitDocs":75}
+IN_MEMORY_FIXTURE {"population":1000,"slot":"Mặc định","oldStatusAndBranchDocs":100,"newBranchOnlyDocs":250,"incrementalInitialResultDocs":150,"incrementPercent":150,"legacyStatusDocs":75,"quitDocs":75}
+IN_MEMORY_FIXTURE {"population":1000,"slot":"CS2","oldStatusAndBranchDocs":100,"newBranchOnlyDocs":200,"incrementalInitialResultDocs":100,"incrementPercent":100,"legacyStatusDocs":50,"quitDocs":50}
+IN_MEMORY_FIXTURE_TOTAL {"population":1000,"oldResultDocs":450,"newResultDocs":950,"incrementalInitialDocs":500,"incrementPercent":111.11,"missingBranchNotReadable":50,"extremeAllQuitOld":0,"extremeAllQuitNew":950}
+IN_MEMORY_FIXTURE {"population":1500,"slot":"CS1","oldStatusAndBranchDocs":375,"newBranchOnlyDocs":750,"incrementalInitialResultDocs":375,"incrementPercent":100,"legacyStatusDocs":262,"quitDocs":113}
+IN_MEMORY_FIXTURE {"population":1500,"slot":"Mặc định","oldStatusAndBranchDocs":150,"newBranchOnlyDocs":375,"incrementalInitialResultDocs":225,"incrementPercent":150,"legacyStatusDocs":112,"quitDocs":113}
+IN_MEMORY_FIXTURE {"population":1500,"slot":"CS2","oldStatusAndBranchDocs":150,"newBranchOnlyDocs":300,"incrementalInitialResultDocs":150,"incrementPercent":100,"legacyStatusDocs":75,"quitDocs":75}
+IN_MEMORY_FIXTURE_TOTAL {"population":1500,"oldResultDocs":675,"newResultDocs":1425,"incrementalInitialDocs":750,"incrementPercent":111.11,"missingBranchNotReadable":75,"extremeAllQuitOld":0,"extremeAllQuitNew":1425}

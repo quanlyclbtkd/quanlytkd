@@ -1,0 +1,8 @@
+[SyntaxCheck] Scanning project JS files and index.html inline scripts...
+
+
+[SyntaxCheck] Checked: 276 items
+              JS files: 268
+              Inline scripts in index.html: 8
+
+[SyntaxCheck] OK — JS files and inline scripts are valid.

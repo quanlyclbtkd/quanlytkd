@@ -1,0 +1,554 @@
+PASS BANK AGRIBANK
+PASS BANK AGB
+PASS BANK 970405
+PASS BANK MB
+PASS BANK MB Bank
+PASS BANK VCB
+PASS BANK BIDV
+PASS BANK official full name/code/BIN 970436
+PASS BANK official full name/code/BIN 970418
+PASS BANK official full name/code/BIN 970407
+PASS BANK official full name/code/BIN 970422
+PASS BANK official full name/code/BIN 970415
+PASS BANK official full name/code/BIN 970405
+PASS BANK official full name/code/BIN 970432
+PASS BANK official full name/code/BIN 970423
+PASS BANK official full name/code/BIN 970437
+PASS BANK official full name/code/BIN 970403
+PASS BANK DENY {"bankId":"MB","bankBin":"970436"}
+PASS BANK DENY {"bankId":"970422","bankBin":"970436"}
+PASS BANK DENY {"bankId":"VCB","bankName":"BIDV"}
+PASS BANK DENY {"bankId":"970436","bankName":"BIDV"}
+PASS BANK DENY {"bankId":"999999"}
+PASS BANK DENY {"bankId":"97042"}
+PASS BANK DENY {"bankId":"UNLISTED"}
+PASS BRANCH CS1
+PASS BRANCH Mặc định
+PASS BRANCH Huỳnh Tấn Phát
+PASS BRANCH Huỳnh Tấn Phát
+PASS BRANCH Cơ sở: 1
+PASS BRANCH DENY unknown mapped branch
+PASS BRANCH DENY zero branchCount
+PASS BRANCH DENY missing branchCount
+PASS BRANCH DENY out-of-range branch
+PASS BRANCH DENY duplicate branch names
+PASS BRANCH DENY alias conflict
+PASS BRANCH DENY missing mapping
+PASS BRANCH DENY disabled account
+PASS AUTHORITY pre-hydration bootstrap blocked
+PASS AUTHORITY unverified {"fromCache":true,"hasPendingWrites":false}
+PASS AUTHORITY unverified {"fromCache":false,"hasPendingWrites":true}
+PASS AUTHORITY unverified {}
+PASS QUEUE PAID -> REPORT
+PASS QUEUE REPORT -> PAID
+PASS QUEUE REPORT -> REPORT
+PASS CALLER legacy awaits exact outcome
+PASS CALLER module awaits exact outcome
+PASS NETWORK HTTP reason propagates from actual owner
+PASS PAID title normalization never generates payable QR
+PASS MISSING native detector uses the production local pixel decoder
+PASS PIXELS deny wrong-bank.png
+PASS PIXELS deny wrong-account.png
+PASS PIXELS deny wrong-amount.png
+PASS PIXELS deny wrong-memo.png
+PASS PIXELS deny wrong-crc.png
+PASS PIXELS deny white.png
+PASS PIXELS deny cropped.png
+PASS PIXELS deny stretched.png
+PASS PIXELS deny blurred.png
+PASS PIXELS deny truncated.png
+PASS PIXELS provider and preview must contain identical intent
+PASS NETWORK cors
+PASS NETWORK redirect
+PASS NETWORK mime
+PASS NETWORK deadline covers unresolved provider, with actual timeout branch
+PASS STALE configuration callback blocks old download c=>c.branchCount=1
+PASS STALE configuration callback blocks old download c=>c.branchName1='New name'
+PASS STALE configuration callback blocks old download c=>c.paymentAccounts.bank1.enabled=false
+PASS STALE configuration callback blocks old download c=>c.paymentAccounts.bank1.accountNo='002222222222'
+PASS STALE configuration callback blocks old download c=>c.branchPaymentAccountMap.CS1='bank2'
+PASS STALE auth uid
+PASS STALE auth clubId
+PASS STALE auth generation
+PASS STALE auth role
+PASS STALE auth ready
+PASS STALE preview replacement cannot download a different image
+PASS MODAL closed callback cannot download stale receipt
+PASS QUEUE previous callback cannot clear newer preview
+PASS QUEUE failure then success returns separate results
+PASS UI success then invalid clears prior preview
+PASS UI success then http clears prior preview
+PASS UI HTTP failure then success recovers
+PASS AUTHORITY metadata-only transition cache to server promotes original callback
+PASS AUTHORITY server then unverified callback revokes old download
+PASS AUTHORITY bootstrap bank fields never fill missing server tuple
+PASS REGISTRY helper fallback is display-only and cannot authorize unknown branch
+PASS LEGACY verified one branch is preserved, no new fallback policy
+PASS FAMILY different bank tuples denied
+PASS FAMILY same assigned tuple allowed
+PASS DEBT canonical months forwarded 2026-10
+PASS DEBT canonical months forwarded 2026-09,2026-10
+PASS DEBT canonical months forwarded 2026-08,2026-09,2026-10
+PASS DEBT unverified canonical debt never generates payable QR
+PASS MEMO long names never silently truncate month references
+PASS MULTIITEM exact 500000 screenshot actual handler, zero SDK writes
+PASS MULTIITEM missing profile branch cannot inherit UI CS1
+PASS MULTIITEM breakdown and report write boundary {"tuition":false,"exam":true}
+PASS MULTIITEM breakdown and report write boundary {"tuition":false,"other":true}
+PASS MULTIITEM breakdown and report write boundary {"tuition":false,"inventory":true}
+PASS MULTIITEM breakdown and report write boundary {"tuition":false,"debt":true}
+PASS MULTIITEM breakdown and report write boundary {"tuition":true,"exam":true,"other":true,"inventory":true,"debt":true}
+PASS MULTIITEM failure reason survives caller and no misleading generic alert
+PASS SDK spy witness intercepts actual variable used by business handlers
+PASS MULTIITEM early invalid amount is serialized and clears prior successful preview
+PASS ACCOUNT unsafe numeric/scientific account denied 123456789
+PASS ACCOUNT unsafe numeric/scientific account denied 1e20
+PASS ACCOUNT unsafe numeric/scientific account denied 1e+20
+PASS DISCOUNT actual auto-fee owner applies ten percent only when ticked
+PASS AUTHORITY cross-club Admin cannot seal another club settings
+PASS LOGS do not disclose synthetic names, account or provider URL
+{
+  "sourceSha": "7b021ad26fa0e3bf737ac622ed57f95906e3d85f24f13033dc9e8c2101713768",
+  "testSha": "f1a8413dd9c952388a04e2397c11161cfe8f71d14ebefa732e9f731135d4ffd8",
+  "layer": "ACTUAL_SOURCE_HANDLERS / SDK SPIES / PIXEL DECODER TEST ADAPTER, not native Safari",
+  "pass": 109,
+  "fail": 0,
+  "outcomes": [
+    {
+      "name": "BANK AGRIBANK",
+      "status": "PASS"
+    },
+    {
+      "name": "BANK AGB",
+      "status": "PASS"
+    },
+    {
+      "name": "BANK 970405",
+      "status": "PASS"
+    },
+    {
+      "name": "BANK MB",
+      "status": "PASS"
+    },
+    {
+      "name": "BANK MB Bank",
+      "status": "PASS"
+    },
+    {
+      "name": "BANK VCB",
+      "status": "PASS"
+    },
+    {
+      "name": "BANK BIDV",
+      "status": "PASS"
+    },
+    {
+      "name": "BANK official full name/code/BIN 970436",
+      "status": "PASS"
+    },
+    {
+      "name": "BANK official full name/code/BIN 970418",
+      "status": "PASS"
+    },
+    {
+      "name": "BANK official full name/code/BIN 970407",
+      "status": "PASS"
+    },
+    {
+      "name": "BANK official full name/code/BIN 970422",
+      "status": "PASS"
+    },
+    {
+      "name": "BANK official full name/code/BIN 970415",
+      "status": "PASS"
+    },
+    {
+      "name": "BANK official full name/code/BIN 970405",
+      "status": "PASS"
+    },
+    {
+      "name": "BANK official full name/code/BIN 970432",
+      "status": "PASS"
+    },
+    {
+      "name": "BANK official full name/code/BIN 970423",
+      "status": "PASS"
+    },
+    {
+      "name": "BANK official full name/code/BIN 970437",
+      "status": "PASS"
+    },
+    {
+      "name": "BANK official full name/code/BIN 970403",
+      "status": "PASS"
+    },
+    {
+      "name": "BANK DENY {\"bankId\":\"MB\",\"bankBin\":\"970436\"}",
+      "status": "PASS"
+    },
+    {
+      "name": "BANK DENY {\"bankId\":\"970422\",\"bankBin\":\"970436\"}",
+      "status": "PASS"
+    },
+    {
+      "name": "BANK DENY {\"bankId\":\"VCB\",\"bankName\":\"BIDV\"}",
+      "status": "PASS"
+    },
+    {
+      "name": "BANK DENY {\"bankId\":\"970436\",\"bankName\":\"BIDV\"}",
+      "status": "PASS"
+    },
+    {
+      "name": "BANK DENY {\"bankId\":\"999999\"}",
+      "status": "PASS"
+    },
+    {
+      "name": "BANK DENY {\"bankId\":\"97042\"}",
+      "status": "PASS"
+    },
+    {
+      "name": "BANK DENY {\"bankId\":\"UNLISTED\"}",
+      "status": "PASS"
+    },
+    {
+      "name": "BRANCH CS1",
+      "status": "PASS"
+    },
+    {
+      "name": "BRANCH Mặc định",
+      "status": "PASS"
+    },
+    {
+      "name": "BRANCH Huỳnh Tấn Phát",
+      "status": "PASS"
+    },
+    {
+      "name": "BRANCH Huỳnh Tấn Phát",
+      "status": "PASS"
+    },
+    {
+      "name": "BRANCH Cơ sở: 1",
+      "status": "PASS"
+    },
+    {
+      "name": "BRANCH DENY unknown mapped branch",
+      "status": "PASS"
+    },
+    {
+      "name": "BRANCH DENY zero branchCount",
+      "status": "PASS"
+    },
+    {
+      "name": "BRANCH DENY missing branchCount",
+      "status": "PASS"
+    },
+    {
+      "name": "BRANCH DENY out-of-range branch",
+      "status": "PASS"
+    },
+    {
+      "name": "BRANCH DENY duplicate branch names",
+      "status": "PASS"
+    },
+    {
+      "name": "BRANCH DENY alias conflict",
+      "status": "PASS"
+    },
+    {
+      "name": "BRANCH DENY missing mapping",
+      "status": "PASS"
+    },
+    {
+      "name": "BRANCH DENY disabled account",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHORITY pre-hydration bootstrap blocked",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHORITY unverified {\"fromCache\":true,\"hasPendingWrites\":false}",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHORITY unverified {\"fromCache\":false,\"hasPendingWrites\":true}",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHORITY unverified {}",
+      "status": "PASS"
+    },
+    {
+      "name": "QUEUE PAID -> REPORT",
+      "status": "PASS"
+    },
+    {
+      "name": "QUEUE REPORT -> PAID",
+      "status": "PASS"
+    },
+    {
+      "name": "QUEUE REPORT -> REPORT",
+      "status": "PASS"
+    },
+    {
+      "name": "CALLER legacy awaits exact outcome",
+      "status": "PASS"
+    },
+    {
+      "name": "CALLER module awaits exact outcome",
+      "status": "PASS"
+    },
+    {
+      "name": "NETWORK HTTP reason propagates from actual owner",
+      "status": "PASS"
+    },
+    {
+      "name": "PAID title normalization never generates payable QR",
+      "status": "PASS"
+    },
+    {
+      "name": "MISSING native detector uses the production local pixel decoder",
+      "status": "PASS"
+    },
+    {
+      "name": "PIXELS deny wrong-bank.png",
+      "status": "PASS"
+    },
+    {
+      "name": "PIXELS deny wrong-account.png",
+      "status": "PASS"
+    },
+    {
+      "name": "PIXELS deny wrong-amount.png",
+      "status": "PASS"
+    },
+    {
+      "name": "PIXELS deny wrong-memo.png",
+      "status": "PASS"
+    },
+    {
+      "name": "PIXELS deny wrong-crc.png",
+      "status": "PASS"
+    },
+    {
+      "name": "PIXELS deny white.png",
+      "status": "PASS"
+    },
+    {
+      "name": "PIXELS deny cropped.png",
+      "status": "PASS"
+    },
+    {
+      "name": "PIXELS deny stretched.png",
+      "status": "PASS"
+    },
+    {
+      "name": "PIXELS deny blurred.png",
+      "status": "PASS"
+    },
+    {
+      "name": "PIXELS deny truncated.png",
+      "status": "PASS"
+    },
+    {
+      "name": "PIXELS provider and preview must contain identical intent",
+      "status": "PASS"
+    },
+    {
+      "name": "NETWORK cors",
+      "status": "PASS"
+    },
+    {
+      "name": "NETWORK redirect",
+      "status": "PASS"
+    },
+    {
+      "name": "NETWORK mime",
+      "status": "PASS"
+    },
+    {
+      "name": "NETWORK deadline covers unresolved provider, with actual timeout branch",
+      "status": "PASS"
+    },
+    {
+      "name": "STALE configuration callback blocks old download c=>c.branchCount=1",
+      "status": "PASS"
+    },
+    {
+      "name": "STALE configuration callback blocks old download c=>c.branchName1='New name'",
+      "status": "PASS"
+    },
+    {
+      "name": "STALE configuration callback blocks old download c=>c.paymentAccounts.bank1.enabled=false",
+      "status": "PASS"
+    },
+    {
+      "name": "STALE configuration callback blocks old download c=>c.paymentAccounts.bank1.accountNo='002222222222'",
+      "status": "PASS"
+    },
+    {
+      "name": "STALE configuration callback blocks old download c=>c.branchPaymentAccountMap.CS1='bank2'",
+      "status": "PASS"
+    },
+    {
+      "name": "STALE auth uid",
+      "status": "PASS"
+    },
+    {
+      "name": "STALE auth clubId",
+      "status": "PASS"
+    },
+    {
+      "name": "STALE auth generation",
+      "status": "PASS"
+    },
+    {
+      "name": "STALE auth role",
+      "status": "PASS"
+    },
+    {
+      "name": "STALE auth ready",
+      "status": "PASS"
+    },
+    {
+      "name": "STALE preview replacement cannot download a different image",
+      "status": "PASS"
+    },
+    {
+      "name": "MODAL closed callback cannot download stale receipt",
+      "status": "PASS"
+    },
+    {
+      "name": "QUEUE previous callback cannot clear newer preview",
+      "status": "PASS"
+    },
+    {
+      "name": "QUEUE failure then success returns separate results",
+      "status": "PASS"
+    },
+    {
+      "name": "UI success then invalid clears prior preview",
+      "status": "PASS"
+    },
+    {
+      "name": "UI success then http clears prior preview",
+      "status": "PASS"
+    },
+    {
+      "name": "UI HTTP failure then success recovers",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHORITY metadata-only transition cache to server promotes original callback",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHORITY server then unverified callback revokes old download",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHORITY bootstrap bank fields never fill missing server tuple",
+      "status": "PASS"
+    },
+    {
+      "name": "REGISTRY helper fallback is display-only and cannot authorize unknown branch",
+      "status": "PASS"
+    },
+    {
+      "name": "LEGACY verified one branch is preserved, no new fallback policy",
+      "status": "PASS"
+    },
+    {
+      "name": "FAMILY different bank tuples denied",
+      "status": "PASS"
+    },
+    {
+      "name": "FAMILY same assigned tuple allowed",
+      "status": "PASS"
+    },
+    {
+      "name": "DEBT canonical months forwarded 2026-10",
+      "status": "PASS"
+    },
+    {
+      "name": "DEBT canonical months forwarded 2026-09,2026-10",
+      "status": "PASS"
+    },
+    {
+      "name": "DEBT canonical months forwarded 2026-08,2026-09,2026-10",
+      "status": "PASS"
+    },
+    {
+      "name": "DEBT unverified canonical debt never generates payable QR",
+      "status": "PASS"
+    },
+    {
+      "name": "MEMO long names never silently truncate month references",
+      "status": "PASS"
+    },
+    {
+      "name": "MULTIITEM exact 500000 screenshot actual handler, zero SDK writes",
+      "status": "PASS"
+    },
+    {
+      "name": "MULTIITEM missing profile branch cannot inherit UI CS1",
+      "status": "PASS"
+    },
+    {
+      "name": "MULTIITEM breakdown and report write boundary {\"tuition\":false,\"exam\":true}",
+      "status": "PASS"
+    },
+    {
+      "name": "MULTIITEM breakdown and report write boundary {\"tuition\":false,\"other\":true}",
+      "status": "PASS"
+    },
+    {
+      "name": "MULTIITEM breakdown and report write boundary {\"tuition\":false,\"inventory\":true}",
+      "status": "PASS"
+    },
+    {
+      "name": "MULTIITEM breakdown and report write boundary {\"tuition\":false,\"debt\":true}",
+      "status": "PASS"
+    },
+    {
+      "name": "MULTIITEM breakdown and report write boundary {\"tuition\":true,\"exam\":true,\"other\":true,\"inventory\":true,\"debt\":true}",
+      "status": "PASS"
+    },
+    {
+      "name": "MULTIITEM failure reason survives caller and no misleading generic alert",
+      "status": "PASS"
+    },
+    {
+      "name": "SDK spy witness intercepts actual variable used by business handlers",
+      "status": "PASS"
+    },
+    {
+      "name": "MULTIITEM early invalid amount is serialized and clears prior successful preview",
+      "status": "PASS"
+    },
+    {
+      "name": "ACCOUNT unsafe numeric/scientific account denied 123456789",
+      "status": "PASS"
+    },
+    {
+      "name": "ACCOUNT unsafe numeric/scientific account denied 1e20",
+      "status": "PASS"
+    },
+    {
+      "name": "ACCOUNT unsafe numeric/scientific account denied 1e+20",
+      "status": "PASS"
+    },
+    {
+      "name": "DISCOUNT actual auto-fee owner applies ten percent only when ticked",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHORITY cross-club Admin cannot seal another club settings",
+      "status": "PASS"
+    },
+    {
+      "name": "LOGS do not disclose synthetic names, account or provider URL",
+      "status": "PASS"
+    }
+  ]
+}

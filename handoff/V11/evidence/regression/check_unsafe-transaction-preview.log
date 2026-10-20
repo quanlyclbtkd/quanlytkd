@@ -1,0 +1,31 @@
+
+══════════════════════════════════════════════════════════
+  Transaction Preview Safety Check — Phase 4K-RUNTIME-CLEANUP
+══════════════════════════════════════════════════════════
+
+▸ Section 1: paginatedQuery.js — warnUnsafeLimit hỗ trợ uiOnly
+  ✅ warnUnsafeLimit signature có options parameter
+  ✅ _recordWarn signature có options parameter
+  ✅ _recordWarn có nhánh uiOnly check
+  ✅ uiOnly path dùng console.info (không phải console.warn)
+  ✅ non-uiOnly path vẫn dùng console.warn
+  ✅ Message uiOnly nói rõ "UI preview only"
+
+▸ Section 2: app.js — listenToData có uiOnly: true
+  ✅ listenToData call warnUnsafeLimit với { uiOnly: true }
+  ✅ Comment giải thích listener chỉ phục vụ UI display
+  ✅ Dashboard totalRevenue đọc từ stats doc (_sd.totalRevenue)
+
+▸ Section 3: paginatedQuery.js — warnUnsafeLimit exports
+  ✅ warnUnsafeLimit được export từ paginatedQuery.js
+  ✅ main.js import warnUnsafeLimit từ paginatedQuery.js
+  ✅ window.warnUnsafeLimit exposed trên window
+
+══════════════════════════════════════════════════════════
+  Total: 12 | ✅ 12 | ❌ 0
+
+  🎉 Transaction preview safety checks passed!
+  listenToData: uiOnly=true → console.info thay vì console.warn.
+  Dashboard dùng stats docs — không dùng limited allTransactions[].
+══════════════════════════════════════════════════════════
+

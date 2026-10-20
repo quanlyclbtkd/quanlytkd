@@ -1,3 +1,4 @@
+import {contract, expression} from "./v10/contracts.mjs";
 /**
  * Phase 4K-6V — Attendance canonical shift-filter check.
  * Verifies the canonical module/service after the legacy duplicate was removed.
@@ -37,12 +38,9 @@ check('Module dùng logic đúng khi có ca',
   /if\s*\(\s*token\.shiftId\s*&&\s*docShift\s*!==\s*token\.shiftId\s*\)\s*return/.test(mod));
 check('Module vẫn nạp cache sau filter',
   /nextCache\[id\]\s*=\s*_mapLegacyStatus/.test(mod));
-check('Service lọc shiftId phía server khi có ca',
-  /if\s*\(shiftId\)\s*constraints\.push\(where\(['"]shiftId['"],\s*['"]==['"],\s*shiftId\)\)/.test(service));
-check('Service dùng attendanceDailyLimit tập trung',
-  service.includes('attendanceDailyLimit'));
-check('Service cảnh báo khi chạm daily limit',
-  service.includes('hitLimit') && service.includes('warnUnsafeLimit'));
+check("Service lọc shiftId phía server khi có ca", await contract('shift'));
+check("Service paginates daily coverage", await contract('scale'));
+check("Service fails closed at safety ceiling", await contract('scale'));
 check('Module truyền immutable token vào loadByDate',
   /loadByDate\(token\.date,\s*\{[\s\S]*?shiftId:\s*token\.shiftId[\s\S]*?branch:\s*token\.branch[\s\S]*?\}\)/.test(mod));
 

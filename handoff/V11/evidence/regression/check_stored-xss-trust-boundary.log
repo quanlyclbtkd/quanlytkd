@@ -1,0 +1,46 @@
+✅ escapeHtml fixture is inert: <img src=x onerror="wi
+✅ escapeHtml fixture is inert: "><svg onload="window.
+✅ escapeHtml fixture is inert: </div><img src=x onerr
+✅ escapeHtml fixture is inert: O'Brien
+✅ escapeHtml fixture is inert: "Test Club"
+✅ escapeHtml fixture is inert: <>&"'
+✅ escapeHtml preserves apostrophe as display-safe entity
+✅ escapeHtml escapes full HTML special set
+✅ SuperAdmin clubName display uses canonical escapeHtml
+✅ SuperAdmin adminEmail display uses canonical escapeHtml
+✅ SuperAdmin inline actions receive canonical club token, not clubName/email
+✅ SuperAdmin club token is URI-encoded for inline JS context
+✅ Attendance coach names escaped before branch-summary innerHTML
+✅ Attendance coach note escaped and pre-line preserved
+✅ Attendance card profile name/nickname/belt use canonical escapeHtml
+✅ Attendance monthly profile display name is escaped and inline JS keeps profileKey URI token
+✅ Admin session note renderer escapes coachName/note/branch
+✅ Admin notification renderer escapes notePreview
+✅ Transaction descriptions escaped at both canonical and legacy render boundaries
+✅ Inventory category display text escaped
+✅ Student debt display names escaped
+✅ Student active-row display/name metadata escaped
+✅ Student row actions carry encoded IDs through existing handlers
+✅ Debt actions encode phone, branch, month and owed months
+✅ Quit mobile row uses encoded handler ID and escaped display
+✅ Skipped-month badges escape text and encode action ID
+✅ Shift option labels use DOM Option and shift delete uses encoded token
+✅ Bootstrap shift selector also uses text Option
+✅ Transaction row dates, month, branch and action IDs escape their contexts
+✅ Belt badge text escapes canonical value
+✅ Exam profile name display escapes HTML
+✅ Known raw SuperAdmin P0 render patterns absent
+✅ Known raw Coach-note P0 pattern absent
+✅ login_history email is escaped before innerHTML
+✅ login_history clubId is escaped before innerHTML
+✅ login_history deviceName is escaped before innerHTML
+✅ login_history os is escaped before innerHTML
+✅ login_history browser is escaped before innerHTML
+✅ login_history filterClub is escaped before innerHTML
+✅ login_history error guide uses canonical escapeHtml for error/uid/email
+✅ login_history raw Firestore display interpolations are absent
+✅ SuperAdmin revenue clubName is escaped before innerHTML
+✅ SuperAdmin revenue clubId is escaped before innerHTML
+✅ SuperAdmin revenue error message is escaped before innerHTML
+✅ SuperAdmin revenue raw club/error HTML concatenations are absent
+PASS 45/45

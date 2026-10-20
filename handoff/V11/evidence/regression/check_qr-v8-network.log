@@ -1,0 +1,89 @@
+PASS Canonical SVG request, allowed png destination; native decoder true
+PASS Canonical SVG request, allowed svg destination; native decoder true
+PASS Direct PNG and actual pixel verification; native decoder true
+PASS Canonical SVG request, allowed png destination; native decoder false
+PASS Canonical SVG request, allowed svg destination; native decoder false
+PASS Direct PNG and actual pixel verification; native decoder false
+PASS Reject redirect other origin
+PASS Reject redirect non-HTTPS
+PASS Reject redirect different account
+PASS Reject redirect different bank
+PASS Reject redirect different amount
+PASS Reject redirect different memo
+PASS Reject redirect foreign credentials
+PASS Reject redirect unexpected path
+PASS Network rejection has accurate network reason, no unproven CORS diagnosis
+PASS Both debt and multiitem entry points retain the existing receipt owner
+{
+  "pass": 16,
+  "fail": 0,
+  "sourceSha": "7b021ad26fa0e3bf737ac622ed57f95906e3d85f24f13033dc9e8c2101713768",
+  "testSha": "712b2b143f96ddd751da0c044da963fb06deb532f4f04eebf2fa9fe94207a0fd",
+  "layer": "ACTUAL_SOURCE_HANDLERS / PIXELS / RESPONSE_FIXTURES",
+  "outcomes": [
+    {
+      "name": "Canonical SVG request, allowed png destination; native decoder true",
+      "status": "PASS"
+    },
+    {
+      "name": "Canonical SVG request, allowed svg destination; native decoder true",
+      "status": "PASS"
+    },
+    {
+      "name": "Direct PNG and actual pixel verification; native decoder true",
+      "status": "PASS"
+    },
+    {
+      "name": "Canonical SVG request, allowed png destination; native decoder false",
+      "status": "PASS"
+    },
+    {
+      "name": "Canonical SVG request, allowed svg destination; native decoder false",
+      "status": "PASS"
+    },
+    {
+      "name": "Direct PNG and actual pixel verification; native decoder false",
+      "status": "PASS"
+    },
+    {
+      "name": "Reject redirect other origin",
+      "status": "PASS"
+    },
+    {
+      "name": "Reject redirect non-HTTPS",
+      "status": "PASS"
+    },
+    {
+      "name": "Reject redirect different account",
+      "status": "PASS"
+    },
+    {
+      "name": "Reject redirect different bank",
+      "status": "PASS"
+    },
+    {
+      "name": "Reject redirect different amount",
+      "status": "PASS"
+    },
+    {
+      "name": "Reject redirect different memo",
+      "status": "PASS"
+    },
+    {
+      "name": "Reject redirect foreign credentials",
+      "status": "PASS"
+    },
+    {
+      "name": "Reject redirect unexpected path",
+      "status": "PASS"
+    },
+    {
+      "name": "Network rejection has accurate network reason, no unproven CORS diagnosis",
+      "status": "PASS"
+    },
+    {
+      "name": "Both debt and multiitem entry points retain the existing receipt owner",
+      "status": "PASS"
+    }
+  ]
+}

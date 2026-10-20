@@ -1,0 +1,27 @@
+┌─────────┬─────────────────────────────────────────────────────────────────────────────────────┬──────┬────────┐
+│ (index) │ name                                                                                │ ok   │ detail │
+├─────────┼─────────────────────────────────────────────────────────────────────────────────────┼──────┼────────┤
+│ 0       │ 'APP_BUILD_VERSION updated'                                                         │ true │ ''     │
+│ 1       │ 'index cache bust updated'                                                          │ true │ ''     │
+│ 2       │ 'normalizer exists'                                                                 │ true │ ''     │
+│ 3       │ 'Thu nhập học maps to Học phí'                                                      │ true │ ''     │
+│ 4       │ 'buildPaymentBundleTransaction no longer uses receiptType as accounting type first' │ true │ ''     │
+│ 5       │ 'buildPaymentBundleTransaction preserves receiptType field'                         │ true │ ''     │
+│ 6       │ 'buildPaymentBundleTransaction forces tuition components to Học phí'                │ true │ ''     │
+│ 7       │ 'financeRenderer uses normalized type'                                              │ true │ ''     │
+│ 8       │ 'monthly history uses normalized type'                                              │ true │ ''     │
+│ 9       │ 'monthly history uses component accounting'                                         │ true │ ''     │
+│ 10      │ 'canonical report export uses normalized/component accounting'                      │ true │ ''     │
+│ 11      │ 'reports export displays normalized type'                                           │ true │ ''     │
+│ 12      │ 'debugAdmissionTuitionTypeNormalization exists'                                     │ true │ ''     │
+│ 13      │ 'runtime smoke includes admission normalization'                                    │ true │ ''     │
+│ 14      │ 'functions normalize Thu nhập học as Học phí'                                       │ true │ ''     │
+│ 15      │ 'functions classify components as accounting authority'                             │ true │ ''     │
+│ 16      │ 'statsAggregation uses component-aware update expansion'                            │ true │ ''     │
+│ 17      │ 'statsAggregation no longer allocates whole bundle amount as tuition package'       │ true │ ''     │
+│ 18      │ 'statsAggregation rebuild uses getStatsUpdateItems'                                 │ true │ ''     │
+│ 19      │ 'processMultiItem not removed'                                                      │ true │ ''     │
+│ 20      │ 'buildPaymentBundleTransaction not removed'                                         │ true │ ''     │
+└─────────┴─────────────────────────────────────────────────────────────────────────────────────┴──────┴────────┘
+
+✅ check-admission-tuition-type-normalization passed (21/21)

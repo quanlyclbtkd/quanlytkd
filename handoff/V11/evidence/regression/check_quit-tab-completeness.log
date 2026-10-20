@@ -1,0 +1,15 @@
+
+=== Phase 4K-6V5Q — Quit Tab Completeness ===
+
+✅ Coach quit reads remain blocked
+✅ Admin quit loader uses one full authoritative collection read
+✅ Targeted multi-query fan-out is removed
+✅ Every full document is classified locally
+✅ Loaded and complete states are separate
+✅ Quit renderer uses the single boundary
+✅ Pagination cannot override boundary quit rows
+✅ Boundary unions legacy/canonical sources only during preview and locks dedicated source when complete
+✅ Boundary centralizes branch and search filters
+✅ Status classifier covers boolean/date legacy signals
+
+Total 10 | PASS 10 | FAIL 0

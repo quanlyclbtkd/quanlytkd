@@ -1,0 +1,34 @@
+
+🔎 Phase 4K-6R — Mobile Filter Cross-Browser Hardening + Currency Stability Check
+
+✅ index has 6R mobile filter hardening patch
+✅ style.css mirrors 6R mobile filter hardening patch
+✅ filter children can shrink and clip native overflow
+✅ filter controls are explicitly border-box and width constrained
+✅ all common portrait phones collapse filter to one column
+✅ medium mobile widths use two safe columns
+✅ desktop three-column layout is restored
+✅ obsolete 359px-only fallback is removed
+✅ default check includes mobile filter regression gate
+✅ check:all includes mobile filter regression gate
+✅ critical suite includes mobile filter regression gate
+✅ default tuition input requests numeric keyboard
+✅ default tuition input disables autocomplete
+✅ app has currency stability marker
+✅ currency formatting avoids Number/parseInt round-trip
+✅ currency binding has duplicate-listener guard
+✅ currency input preserves caret
+✅ currency input is composition-safe
+✅ patch version marker exists
+✅ currency helper block can be extracted
+✅ typing 300000 renders 300.000
+✅ hidden raw tuition stays 300000
+✅ caret remains at logical end
+✅ duplicate binding did not duplicate callback
+✅ middle edit keeps correct formatted value
+✅ middle edit does not jump caret to end
+✅ stored raw value initializes display safely
+✅ large digit strings format without floating-point conversion
+
+✅ Mobile filter hardening and currency stability checks passed.
+

@@ -1,0 +1,20 @@
+Versioned service/ACK/identity/context contracts PASS 12
+CAUGHT claim identity removed
+CAUGHT dependency guard removed
+CAUGHT unsafe legacy key removal restored
+CAUGHT legacy automatic replay restored
+CAUGHT principal guard removed
+CAUGHT conflict automatically pending again
+JOURNAL CONTROLS PASS 12
+Native journal migration contract PASS
+SOURCE PASS: actual financeRenderer HTML and /public linked loaded rules /tmp/d1c3b7r2-css-dK4B0T
+PASS 320x568 computed amount: flex flex-end center touch: 44 overlap: False overflow: False hit+focus: True
+PASS 360x800 computed amount: flex flex-end center touch: 44 overlap: False overflow: False hit+focus: True
+PASS 390x844 computed amount: flex flex-end center touch: 44 overlap: False overflow: False hit+focus: True
+PASS 430x932 computed amount: flex flex-end center touch: 44 overlap: False overflow: False hit+focus: True
+PASS 568x320 computed amount: flex flex-end center touch: 44 overlap: False overflow: False hit+focus: True
+PASS 768x1024 computed amount: table-cell normal normal touch: 44 overlap: False overflow: False hit+focus: True
+PASS 820x1180 computed amount: table-cell normal normal touch: 44 overlap: False overflow: False hit+focus: True
+PASS 1024x768 computed amount: table-cell normal normal touch: 44 overlap: False overflow: False hit+focus: True
+PASS 1024x768 fine-pointer desktop computed amount: n/a n/a n/a touch: 28 overlap: n/a overflow: n/a hit+focus: n/a
+SCOPE: Headless Chromium fixture with real production renderer rows and built /public CSS; app navigation and physical Safari/Android NOT VERIFIED

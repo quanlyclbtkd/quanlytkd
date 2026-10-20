@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+import {orchestrationModule} from './v11/orchestration-harness.mjs';
 /**
  * Phase 4K-6V5U6D — Attendance Daily Single Refresh Authority
  *
@@ -195,7 +195,7 @@ try {
     globalThis.RoleReadBoundary = { normalizeRole:roleHolder.RoleReadBoundary.normalizeRole };
     globalThis._fb_init = {};
 
-    const serviceUrl = pathToFileURL(path.join(root, 'js/services/attendance.service.js')).href + '?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1';
+    const serviceUrl = new URL(read('js/modules/attendance.js').match(/import \{ AttendanceService \} from '([^']+)'/)[1], pathToFileURL(path.join(root, 'js/modules/attendance.js'))).href;
     const { AttendanceService } = await import(serviceUrl);
     let dailyCalls = 0;
     let shiftCalls = 0;
@@ -218,7 +218,7 @@ try {
 
     const registryModule = await import(pathToFileURL(path.join(root, 'js/core/globalOwnershipRegistry.js')).href + `?v5u6d=${Date.now()}`);
     registryModule.initGlobalOwnershipRegistry();
-    const attendanceModule = await import(pathToFileURL(path.join(root, 'js/modules/attendance.js')).href + `?v5u6d=${Date.now()}`);
+    const {module:attendanceModule}=await orchestrationModule();
     const api = attendanceModule.initAttendance();
 
     const setDayVisible = (visible = true) => {

@@ -1,0 +1,29 @@
+
+══════════════════════════════════════════════════════
+ check-legacy-render-entrypoints — Phase 4K-6H
+══════════════════════════════════════════════════════
+
+  ✓ PASS: js/core/legacyRenderEntrypoints.js exists
+  ✓ PASS: main.js exposes window.LegacyRenderEntrypoints
+  ✓ PASS: main.js exposes window.debugLegacyRenderEntrypoints
+  ✓ PASS: app.js scheduleRender calls recordLegacyRenderCall
+  ✓ PASS: app.js scheduleRender gọi routeLegacyRenderReason
+  ✓ PASS: app.js renderApp() calls recordLegacyRenderCall
+  ✓ PASS: renderInvalidation.js vẫn có _moduleRenderApp
+  ✓ PASS: renderInvalidation.js _moduleRenderApp calls recordLegacyRenderCall
+  ✓ PASS: renderInvalidation.js vẫn giữ LegacyRenderWarning
+  ✓ PASS: legacyRenderEntrypoints.js có classifyRenderReason
+  ✓ PASS: legacyRenderEntrypoints.js có routeLegacyRenderReason
+  ✓ PASS: debugRuntimeSmokeTest includes debugLegacyRenderEntrypoints
+  ✓ PASS: renderApp() vẫn còn trong app.js (không bị xóa)
+  ✓ PASS: scheduleRender vẫn còn trong app.js (không bị xóa)
+  ✓ PASS: initSaaSDatabase vẫn còn trong app.js
+  ✓ PASS: listenToData vẫn còn trong app.js
+  ✓ PASS: processMultiItem vẫn còn trong app.js (không bị xóa/rewrite)
+  ✓ PASS: index.html có cache bust Phase 4K-6H hoặc mới hơn
+  ✓ PASS: APP_BUILD_VERSION đã cập nhật Phase 4K-6H
+
+══════════════════════════════════════════════════════
+ ✓ check-legacy-render-entrypoints PASSED (0 warnings)
+══════════════════════════════════════════════════════
+

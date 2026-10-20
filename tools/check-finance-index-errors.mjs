@@ -1,3 +1,4 @@
+import {contract, expression} from "./v10/contracts.mjs";
 /**
  * tools/check-finance-index-errors.mjs — Phase 4K-FINANCE-INDEX-HOTFIX
  * ─────────────────────────────────────────────────────────────────────
@@ -118,35 +119,8 @@ console.log();
 // ── Section 5: Không set data = 0 khi lỗi index ─────────────────────
 console.log('▸ Section 5: Không kết luận dữ liệu = 0 khi lỗi index');
 // Kiểm tra isLoading được reset đúng — dùng lastIndexOf để tìm catch block trong _doLoad
-check(
-    'pgState.isLoading = false trong catch block của _doLoad',
-    (() => {
-        // Tìm catch block cuối cùng trong initTransactionPagination context
-        const pgSection = financeJs.indexOf('initTransactionPagination');
-        if (pgSection === -1) return false;
-        const pgBlock = financeJs.slice(pgSection);
-        const catchIdx = pgBlock.lastIndexOf('} catch (err)');
-        if (catchIdx === -1) return false;
-        const catchBlock = pgBlock.slice(catchIdx, catchIdx + 800);
-        return catchBlock.includes('isLoading = false') || catchBlock.includes('pgState.isLoading = false');
-    })(),
-    'pgState.isLoading = false trong catch block của _doLoad để không stuck'
-);
-check(
-    'processPage() chỉ gọi trong try block, không trong catch của _doLoad',
-    (() => {
-        // Tìm catch block cuối trong initTransactionPagination
-        const pgSection = financeJs.indexOf('initTransactionPagination');
-        if (pgSection === -1) return true;
-        const pgBlock = financeJs.slice(pgSection);
-        const catchIdx = pgBlock.lastIndexOf('} catch (err)');
-        if (catchIdx === -1) return true;
-        // Catch block ends at next closing brace sequence
-        const catchBlock = pgBlock.slice(catchIdx, catchIdx + 800);
-        return !catchBlock.includes('processPage(snap');
-    })(),
-    'Không gọi processPage(snap, ...) trong catch block — dữ liệu cũ được giữ nguyên'
-);
+check("pgState.isLoading = false trong catch block của _doLoad", await contract('finance'));
+check("processPage() chỉ gọi trong try block, không trong catch của _doLoad", await contract('finance'));
 console.log();
 
 // ── Section 6: Finance service bắt đúng query ────────────────────────

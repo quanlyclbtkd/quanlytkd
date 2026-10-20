@@ -1,0 +1,19 @@
+
+══════════════════════════════════════════════════════════
+  Phase 4K-6V — Attendance Shift Filter Check
+══════════════════════════════════════════════════════════
+
+  ✅ app.js không còn implementation renderAttendanceList
+  ✅ app.js không còn implementation toggleAttendance
+  ✅ Module có canonical renderAttendanceList
+  ✅ Không còn ternary shift filter sai
+  ✅ Module dùng logic đúng khi có ca
+  ✅ Module vẫn nạp cache sau filter
+  ✅ Service lọc shiftId phía server khi có ca
+  ✅ Service paginates daily coverage
+  ✅ Service fails closed at safety ceiling
+  ✅ Module truyền immutable token vào loadByDate
+
+Total: 10 | Pass: 10 | Fail: 0
+✅ Attendance shift filtering is canonical and safe.
+

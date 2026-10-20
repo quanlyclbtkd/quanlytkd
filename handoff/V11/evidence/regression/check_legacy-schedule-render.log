@@ -1,0 +1,32 @@
+
+══════════════════════════════════════════════════════════
+  Legacy scheduleRender Usage Check — Phase 4K-PROFILE-HYDRATION
+══════════════════════════════════════════════════════════
+
+▸ Section 1: tabs.js — switchTab không gọi thẳng scheduleRender
+  ✅ switchTab dùng invalidateCurrentTab làm ưu tiên chính
+  ✅ scheduleRender trong switchTab chỉ là else-if fallback
+  ✅ tabs.js không có scheduleRender() gọi thẳng không qua guard
+
+▸ Section 2: renderInvalidation.js — scheduleRender wrapper có warning
+  ✅ renderInvalidation.js wrap window.scheduleRender với LegacyRenderWarning
+  ✅ scheduleRender wrapper gọi invalidateByDomain thay vì renderApp trực tiếp
+  ✅ __renderLegacyMetrics.scheduleRenderCalls counter tồn tại
+
+▸ Section 3: render.js — scheduleRender expose sơ bộ an toàn
+  ✅ render.js expose scheduleRender chỉ khi chưa set (Phase 3.5B guard)
+
+▸ Section 4: app.js — profiles/finance update dùng domain invalidation
+  ✅ app.js profiles snapshot trigger invalidateStudents (không dùng scheduleRender)
+  ✅ app.js scheduleRender() calls đều có invalidation guard xung quanh (≤ 3 raw)
+
+▸ Section 5: main.js — printClubRuntimeDiagnostics có render metrics
+  ✅ printClubRuntimeDiagnostics log scheduleRender call count
+
+══════════════════════════════════════════════════════════
+  Total: 10 | ✅ 10 | ❌ 0
+
+  🎉 Legacy scheduleRender checks passed!
+  scheduleRender() chỉ là fallback — domain invalidation hoạt động đúng.
+══════════════════════════════════════════════════════════
+

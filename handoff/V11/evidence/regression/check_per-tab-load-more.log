@@ -1,0 +1,32 @@
+
+▸ Section 1: students.js — renderLoadMoreRow global
+  ✅ window.renderLoadMoreRow defined
+
+▸ Section 2: finance.js — loadMoreTuitionTransactions
+  ✅ window.loadMoreTuitionTransactions defined
+  ✅ loadMoreTuitionTransactions gọi _pgNext_transactions
+  ✅ window.loadNextTransactionsPage alias
+
+▸ Section 3: students.js — loadMoreActiveStudents
+  ✅ window.loadMoreActiveStudents defined
+  ✅ loadMoreActiveStudents gọi _pgNext_students
+
+▸ Section 4: students.js — loadMoreDebtRows và __debtRenderLimit
+  ✅ window.__debtRenderLimit initialized
+  ✅ window.loadMoreDebtRows defined
+  ✅ loadMoreDebtRows tăng __debtRenderLimit
+  ✅ window.ensureDebtProfilesReady defined
+
+▸ Section 5: studentsRenderer.js — _debtLimit dùng window.__debtRenderLimit
+  ✅ studentsRenderer dùng window.__debtRenderLimit cho _debtLimit
+
+▸ Section 6: students.js — debugListPaginationCoverage
+  ✅ window.debugListPaginationCoverage defined
+
+▸ Section 7: main.js — debugRuntimeSmokeTest tham chiếu mới
+  ✅ debugRuntimeSmokeTest tham chiếu listPaginationCoverage
+  ✅ debugRuntimeSmokeTest tham chiếu examExportReadiness
+
+══════════════════════════════════════════════
+Kết quả: 14 ✅  0 ⚠️   0 ❌
+✅ check:per-tab-load-more PASSED

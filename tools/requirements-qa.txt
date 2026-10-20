@@ -1,0 +1,4 @@
+# Local QA only; not loaded by the application.
+playwright==1.56.0
+zxing-cpp==2.3.0
+Pillow==12.3.0

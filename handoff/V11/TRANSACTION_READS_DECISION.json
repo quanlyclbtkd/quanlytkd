@@ -1,0 +1,15 @@
+{
+  "decision": "pending",
+  "recordedBy": "assistant_reporting_unapproved_new_scope",
+  "scope": {
+    "newJournal": "IndexedDB V3 with review-only V1/V2 migration",
+    "newWriterContract": "CAS transaction and status=0 tombstone in existing AttendanceService",
+    "perIntentPerAttemptDocumentReads": 1,
+    "maxTransactionAttempts": 3,
+    "maxReadsPerIntentPerInvocation": 3,
+    "explicitReviewRead": "1 document per attempt, up to 3 attempts"
+  },
+  "existingApprovalPreserved": "Coach initial roster +1500 result documents within clubs <=1500 profiles, plus Rules canonical-profile lookup on writes",
+  "existingApprovalDoesNotCover": "new CAS version reads/retries, explicit review reads or production deployment",
+  "technicalCandidateOnly": true
+}

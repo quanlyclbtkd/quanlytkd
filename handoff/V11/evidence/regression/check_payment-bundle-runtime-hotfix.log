@@ -1,0 +1,22 @@
+✅ Builder is executable
+✅ Multi-item total is correct
+✅ Components contain no undefined entries
+✅ Every component has numeric amount
+✅ Tuition component is preserved
+✅ Inventory component is preserved
+✅ Canonical month is preserved
+✅ Admission bundle remains accounting type Học phí
+✅ Admission total is correct
+✅ Admission package months are preserved
+✅ Invalid/zero components are filtered safely
+✅ Non-array components fail with controlled error
+✅ Source map callback returns component object
+✅ Legacy addNewStudent still calls bundle builder
+✅ Modular addNewStudent still calls bundle builder
+✅ Modular addNewStudent catches runtime errors
+✅ Modular addNewStudent always releases submit lock
+✅ Admission bundle preflight runs before atomic profile write
+✅ Admission preflight rejects malformed component arrays
+✅ V3A canonical boundary remains active
+
+Payment bundle runtime hotfix: 20 passed, 0 failed.

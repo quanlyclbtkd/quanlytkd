@@ -1,0 +1,10 @@
+{
+  "inputSha256": "d4a1f8a56b513542ddc79e04d97845b0e0c636113fd4157a9fe01fe3e6449416",
+  "inputFiles": 1271,
+  "packageFiles": 1599,
+  "removedNonRuntimeFiles": [],
+  "root": "QR_V11_ATTENDANCE_TEST_ONLY",
+  "allOriginalRuntimeFilesPresent": true,
+  "nodeModulesIncluded": false,
+  "newBrowserScreenshotsIncluded": false
+}

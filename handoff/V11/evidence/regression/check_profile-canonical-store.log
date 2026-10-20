@@ -1,0 +1,32 @@
+
+🔍 Phase 4K-6V4D1 — Profile Canonical Store Read-only Audit checks
+
+✅ profileCanonicalStore.js exists
+✅ public mirror profileCanonicalStore.js exists
+✅ index loads profileCanonicalStore after tuitionDebtCanonical and before app.js
+✅ index cache-busts app.js and main.js to V4D1A-or-later
+✅ main.js retains V4D1 lineage marker
+✅ profile canonical store exports public debug/audit API
+✅ profile canonical store exposes getProfileCanonicalStoreStatus
+✅ profile canonical store exposes auditProfileCanonicalStore
+✅ profile canonical store exposes debugProfileCanonical
+✅ profile canonical store exposes debugProfileCanonicalById
+✅ profile canonical store creates status/branch/month/search indexes
+✅ profile canonical store uses already loaded profile sources only
+✅ profile canonical store is read-only: no Firestore read/write APIs
+✅ profile canonical store reports noRead/extraReads safety
+✅ public mirror matches source helper
+✅ package.json includes V4D1 gate in npm check
+✅ VM API initialized
+✅ VM store builds from local profile cache
+✅ canonical branch normalizes aliases
+✅ canonical status classifies active/trial/quit
+✅ canonical month normalizes paidUntil and skippedMonths
+✅ search index can find by Vietnamese name fragment
+✅ debug by id returns canonical row
+✅ getProfileCanonicalStoreStatus shape is stable
+✅ audit detects data warnings without writes
+✅ global debug functions exported
+
+📊 Results: 27 passed, 0 failed
+

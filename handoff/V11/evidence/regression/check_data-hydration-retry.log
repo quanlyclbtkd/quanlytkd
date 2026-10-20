@@ -1,0 +1,10 @@
+✅ isClubRuntimeReady helper tồn tại
+✅ _tryInitPaginationsOnDbReady dùng isClubRuntimeReady()
+✅ __studentPaginationInitializedForClub guard (clubId-specific) tồn tại
+✅ window.retryDataHydration tồn tại
+✅ __paginationDbReadyListenerRegistered reset trên logout
+✅ app:db-ready + app:context-ready listeners đăng ký retry
+✅ Post-bootstrap immediate check tồn tại
+✅ window.mountActiveProfilesListenerIfNeeded tồn tại
+
+✅ check-data-hydration-retry: TẤT CẢ PASS

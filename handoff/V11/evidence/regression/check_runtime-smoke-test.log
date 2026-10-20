@@ -1,0 +1,18 @@
+
+🔍 Phase 4K-4B — debugRuntimeSmokeTest Check
+
+[32m✅ PASS[0m  mainJs readable
+[32m✅ PASS[0m  main.js có window.debugRuntimeSmokeTest
+[32m✅ PASS[0m  debugRuntimeSmokeTest references debugExamFeeSetting
+[32m✅ PASS[0m  debugRuntimeSmokeTest references debugTuitionActions
+[32m✅ PASS[0m  debugRuntimeSmokeTest references debugAdmissionUniformSize
+[32m✅ PASS[0m  debugRuntimeSmokeTest references debugSearchPerformance
+[32m✅ PASS[0m  debugRuntimeSmokeTest references debugDashboardHistory
+[32m✅ PASS[0m  debugRuntimeSmokeTest references debugStudentPagination
+[32m✅ PASS[0m  debugRuntimeSmokeTest references debugProfileModalClose
+[32m✅ PASS[0m  debugRuntimeSmokeTest có safeCall (crash-safe)
+[32m✅ PASS[0m  debugRuntimeSmokeTest return { summary, detail }
+[32m✅ PASS[0m  debugRuntimeSmokeTest gọi console.table(summary)
+
+[32m✅ All checks passed (12/12)[0m
+

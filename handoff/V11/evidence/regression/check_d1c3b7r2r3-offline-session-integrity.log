@@ -1,0 +1,9 @@
+Versioned service/ACK/identity/context contracts PASS 12
+CAUGHT claim identity removed
+CAUGHT dependency guard removed
+CAUGHT unsafe legacy key removal restored
+CAUGHT legacy automatic replay restored
+CAUGHT principal guard removed
+CAUGHT conflict automatically pending again
+JOURNAL CONTROLS PASS 12
+Native journal migration contract PASS

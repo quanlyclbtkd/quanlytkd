@@ -1,0 +1,56 @@
+
+[1] performanceMonitor.js exists + exports
+  ✅ PASS — js/core/performanceMonitor.js tồn tại
+  ✅ PASS — PerformanceMonitor.markStart được định nghĩa
+  ✅ PASS — PerformanceMonitor.markEnd được định nghĩa
+  ✅ PASS — PerformanceMonitor.record được định nghĩa
+
+[2] window.PerformanceMonitor expose trong main.js
+  ✅ PASS — window.PerformanceMonitor expose trong main.js
+
+[3] ActionGuard + runGuardedAction
+  ✅ PASS — js/core/actionGuard.js tồn tại
+  ✅ PASS — ActionGuard.run được định nghĩa trong actionGuard.js
+  ✅ PASS — window.runGuardedAction được expose trong main.js
+
+[4] runGuardedAction có action lock logic
+  ✅ PASS — ActionGuard dùng __actionLocks để chống double click
+
+[5] window.__actionHistory
+  ✅ PASS — window.__actionHistory được khởi tạo
+
+[6] Debug functions trong main.js
+  ✅ PASS — debugPerformanceHealth trong main.js
+  ✅ PASS — debugActionGuardState trong main.js
+  ✅ PASS — debugDashboardCacheHealth trong main.js
+  ✅ PASS — debugLargeListHealth trong main.js
+
+[7] debugRuntimeSmokeTest include 4 debug mới
+  ✅ PASS — debugRuntimeSmokeTest include debugPerformanceHealth
+  ✅ PASS — debugRuntimeSmokeTest include debugActionGuardState
+  ✅ PASS — debugRuntimeSmokeTest include debugDashboardCacheHealth
+  ✅ PASS — debugRuntimeSmokeTest include debugLargeListHealth
+
+[8] 3 action đã được migrate sang runGuardedAction
+  ✅ PASS — markStudentQuitFromDebt dùng runGuardedAction
+  ✅ PASS — skipDebtMonthFromDebt dùng runGuardedAction
+  ✅ PASS — loadMoreActiveStudents dùng runGuardedAction
+
+[9] processMultiItem KHÔNG bị migrate trong phase này
+  ✅ PASS — processMultiItem KHÔNG dùng runGuardedAction (chưa migrate)
+
+[10] Search performance được đo
+  ✅ PASS — searchRuntime.js gọi PerformanceMonitor?.markStart('search:
+
+[11] Render performance được đo
+  ✅ PASS — studentsRenderer.js gọi PerformanceMonitor?.record('render:students
+  ✅ PASS — financeRenderer.js gọi PerformanceMonitor?.record('render:finance
+
+[12] Cache bust + APP_BUILD_VERSION
+  ✅ PASS — index.html có cache bust phase 4K- (flexible)
+  ✅ PASS — APP_BUILD_VERSION = '4K-6A-B-tab-render-recovery-exam-direct-render-20260605'
+
+══════════════════════════════════════════════════════════
+  Total: 27 checks | ✅ Pass: 27 | ❌ Fail: 0
+
+  🎉 All performance stability gate checks passed!

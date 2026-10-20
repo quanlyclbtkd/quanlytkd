@@ -1,0 +1,890 @@
+[
+  {
+    "gate": "check:production-authority-closure",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_production-authority-closure.log"
+  },
+  {
+    "gate": "check:attendance-explicit-shift-authority",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_attendance-explicit-shift-authority.log"
+  },
+  {
+    "gate": "check:attendance-daily-single-refresh-authority",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_attendance-daily-single-refresh-authority.log"
+  },
+  {
+    "gate": "check:production-security-trust-boundary",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_production-security-trust-boundary.log"
+  },
+  {
+    "gate": "check:qr-v4-payment-account-authority",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_qr-v4-payment-account-authority.log"
+  },
+  {
+    "gate": "check:d1c3b7r2r6r1-v1-v2-collision-scope",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_d1c3b7r2r6r1-v1-v2-collision-scope.log"
+  },
+  {
+    "gate": "check:d1c3b7r2r6-v2-cross-date-isolation",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_d1c3b7r2r6-v2-cross-date-isolation.log"
+  },
+  {
+    "gate": "check:d1c3b7r2r5-shift-touch-closure",
+    "v8Exit": 1,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_d1c3b7r2r5-shift-touch-closure.log"
+  },
+  {
+    "gate": "check:d1c3b7r2r4-v2-journal-no-loss",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_d1c3b7r2r4-v2-journal-no-loss.log"
+  },
+  {
+    "gate": "check:d1c3b7r2r3-offline-session-integrity",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_d1c3b7r2r3-offline-session-integrity.log"
+  },
+  {
+    "gate": "check:d1c3b7r2r2-attendance-role-authority",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_d1c3b7r2r2-attendance-role-authority.log"
+  },
+  {
+    "gate": "check:d1c3b7r2-mobile-css-runtime",
+    "v8Exit": 1,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_d1c3b7r2-mobile-css-runtime.log"
+  },
+  {
+    "gate": "check:d1c3b7r2-attendance-roster-write-guard",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_d1c3b7r2-attendance-roster-write-guard.log"
+  },
+  {
+    "gate": "check:d1c3b7r2-coach-fallback-no-overlap",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_d1c3b7r2-coach-fallback-no-overlap.log"
+  },
+  {
+    "gate": "check:d1c3b7r1-coach-roster-closure",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_d1c3b7r1-coach-roster-closure.log"
+  },
+  {
+    "gate": "check:d1c3b7-release-security",
+    "v8Exit": 1,
+    "v9Exit": 1,
+    "log": "evidence/security-gate-final.log"
+  },
+  {
+    "gate": "check:d1c3b6-release-blockers",
+    "v8Exit": 1,
+    "v9Exit": 1,
+    "log": "evidence/b6-gate-final.log"
+  },
+  {
+    "gate": "check:d1c3b6-coach-roster-authority",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_d1c3b6-coach-roster-authority.log"
+  },
+  {
+    "gate": "check:d1c3b6-listener-topology",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_d1c3b6-listener-topology.log"
+  },
+  {
+    "gate": "check:d1c3b6-metadata-noop",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_d1c3b6-metadata-noop.log"
+  },
+  {
+    "gate": "check:d1c3b5-coach-async-lifecycle",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_d1c3b5-coach-async-lifecycle.log"
+  },
+  {
+    "gate": "check:d1c3b5-coach-legacy-coverage",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_d1c3b5-coach-legacy-coverage.log"
+  },
+  {
+    "gate": "check:d1c3b-debt-authoritative-profile-coverage",
+    "v8Exit": 1,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_d1c3b-debt-authoritative-profile-coverage.log"
+  },
+  {
+    "gate": "check:d1c3b1-debt-runtime-closure",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_d1c3b1-debt-runtime-closure.log"
+  },
+  {
+    "gate": "check:d1c3b2-authority-continuity",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_d1c3b2-authority-continuity.log"
+  },
+  {
+    "gate": "check:d1c3b3-profile-snapshot-context-closure",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_d1c3b3-profile-snapshot-context-closure.log"
+  },
+  {
+    "gate": "check:d1c3b4-async-coach-closure",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_d1c3b4-async-coach-closure.log"
+  },
+  {
+    "gate": "check:monthly-revenue-allocation",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_monthly-revenue-allocation.log"
+  },
+  {
+    "gate": "check:mobile-startup-performance",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_mobile-startup-performance.log"
+  },
+  {
+    "gate": "check:lazy-assets-loading",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_lazy-assets-loading.log"
+  },
+  {
+    "gate": "check:tailwind-static-css-build",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_tailwind-static-css-build.log"
+  },
+  {
+    "gate": "check:mobile-filter-currency-stability",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_mobile-filter-currency-stability.log"
+  },
+  {
+    "gate": "check:low-risk-helper-extraction",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_low-risk-helper-extraction.log"
+  },
+  {
+    "gate": "check:receipt-qr-helper-extraction",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_receipt-qr-helper-extraction.log"
+  },
+  {
+    "gate": "check:active-student-sort",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_active-student-sort.log"
+  },
+  {
+    "gate": "check:runtime-smoke-test",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_runtime-smoke-test.log"
+  },
+  {
+    "gate": "check:dashboard-history-fallback",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_dashboard-history-fallback.log"
+  },
+  {
+    "gate": "check:stats-aggregation",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_stats-aggregation.log"
+  },
+  {
+    "gate": "check:exam-payment-identity",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_exam-payment-identity.log"
+  },
+  {
+    "gate": "check:exam-cancel-fee",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_exam-cancel-fee.log"
+  },
+  {
+    "gate": "check:exam-fee-ui-cleanup",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_exam-fee-ui-cleanup.log"
+  },
+  {
+    "gate": "check:exam-name-parser-hotfix",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_exam-name-parser-hotfix.log"
+  },
+  {
+    "gate": "check:exam-canonical-ledger",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_exam-canonical-ledger.log"
+  },
+  {
+    "gate": "check:student-quit-hard-separation",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_student-quit-hard-separation.log"
+  },
+  {
+    "gate": "check:bundled-receipt-transactions",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_bundled-receipt-transactions.log"
+  },
+  {
+    "gate": "check:exam-fee-save-pipeline",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_exam-fee-save-pipeline.log"
+  },
+  {
+    "gate": "check:vnd-money-format",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_vnd-money-format.log"
+  },
+  {
+    "gate": "check:dashboard-historical-authority",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_dashboard-historical-authority.log"
+  },
+  {
+    "gate": "check:bundle-display-labels",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_bundle-display-labels.log"
+  },
+  {
+    "gate": "check:admission-bundle-unification",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_admission-bundle-unification.log"
+  },
+  {
+    "gate": "check:component-accounting-authority",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_component-accounting-authority.log"
+  },
+  {
+    "gate": "check:finance-mobile-bundle-row",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_finance-mobile-bundle-row.log"
+  },
+  {
+    "gate": "check:student-pagination-status-filter",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_student-pagination-status-filter.log"
+  },
+  {
+    "gate": "check:debt-full-coverage",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_debt-full-coverage.log"
+  },
+  {
+    "gate": "check:debt-authoritative-tuition-coverage",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_debt-authoritative-tuition-coverage.log"
+  },
+  {
+    "gate": "check:tuition-table-layout",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_tuition-table-layout.log"
+  },
+  {
+    "gate": "check:per-tab-load-more",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_per-tab-load-more.log"
+  },
+  {
+    "gate": "check:exam-export-download",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_exam-export-download.log"
+  },
+  {
+    "gate": "check:tuition-table-layout-real",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_tuition-table-layout-real.log"
+  },
+  {
+    "gate": "check:real-load-more-wiring",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_real-load-more-wiring.log"
+  },
+  {
+    "gate": "check:loadmore-scroll-preservation",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_loadmore-scroll-preservation.log"
+  },
+  {
+    "gate": "check:debt-loadmore-filter",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_debt-loadmore-filter.log"
+  },
+  {
+    "gate": "check:active-render-tdz-order",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_active-render-tdz-order.log"
+  },
+  {
+    "gate": "check:active-loadmore-newest-first",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_active-loadmore-newest-first.log"
+  },
+  {
+    "gate": "check:runtime-pilot-verification",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_runtime-pilot-verification.log"
+  },
+  {
+    "gate": "check:debt-actions-sync",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_debt-actions-sync.log"
+  },
+  {
+    "gate": "check:debt-service-bridge",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_debt-service-bridge.log"
+  },
+  {
+    "gate": "check:multiitem-skipped-months",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_multiitem-skipped-months.log"
+  },
+  {
+    "gate": "check:dashboard-chart-lifecycle",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_dashboard-chart-lifecycle.log"
+  },
+  {
+    "gate": "check:dashboard-branch-components",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_dashboard-branch-components.log"
+  },
+  {
+    "gate": "check:runtime-stability-gate",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_runtime-stability-gate.log"
+  },
+  {
+    "gate": "check:dashboard-exam-registration-branch",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_dashboard-exam-registration-branch.log"
+  },
+  {
+    "gate": "check:mobile-superadmin-gate",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_superadmin-gate.log"
+  },
+  {
+    "gate": "check:search-runtime-v2",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_search-v2.log"
+  },
+  {
+    "gate": "check:search-latency-optimization",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_search-latency-optimization.log"
+  },
+  {
+    "gate": "check:student-search-index",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_student-search-index.log"
+  },
+  {
+    "gate": "check:cross-tab-search-replay",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_cross-tab-search-replay.log"
+  },
+  {
+    "gate": "check:active-loadmore-single-source",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_loadmore.log"
+  },
+  {
+    "gate": "check:exam-auto-select-paid",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_exam-auto-select-paid.log"
+  },
+  {
+    "gate": "check:exam-upgrade-finance-separation",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_exam-upgrade-finance-separation.log"
+  },
+  {
+    "gate": "check:performance-stability-gate",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_performance-stability-gate.log"
+  },
+  {
+    "gate": "check:tab-render-recovery",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_tab-render-recovery.log"
+  },
+  {
+    "gate": "check:financial-flow-guard-readiness",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_financial-flow-guard-readiness.log"
+  },
+  {
+    "gate": "check:security-license-ip-protection",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_security-license-ip-protection.log"
+  },
+  {
+    "gate": "check:scale-readiness-write-safety",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_scale-readiness-write-safety.log"
+  },
+  {
+    "gate": "check:legacy-app-reduction-readiness",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_legacy-app-reduction-readiness.log"
+  },
+  {
+    "gate": "check:multiitem-inventory-hydration",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_multiitem-inventory-hydration.log"
+  },
+  {
+    "gate": "check:legacy-diagnostics-extraction",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_legacy-diagnostics-extraction.log"
+  },
+  {
+    "gate": "check:legacy-render-entrypoints",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_legacy-render-entrypoints.log"
+  },
+  {
+    "gate": "check:inline-handler-bridge",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_inline-handler-bridge.log"
+  },
+  {
+    "gate": "check:superadmin-aggregation-hard-stop",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_superadmin-aggregation-hard-stop.log"
+  },
+  {
+    "gate": "check:superadmin-quota-guard",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_superadmin-quota-guard.log"
+  },
+  {
+    "gate": "check:legacy-runtime-fallback-fix",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_legacy-runtime-fallback-fix.log"
+  },
+  {
+    "gate": "check:superadmin-cache-stats-island-fallback",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_superadmin-cache-stats-island-fallback.log"
+  },
+  {
+    "gate": "check:superadmin-render-scope-fix",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_superadmin-render-scope-fix.log"
+  },
+  {
+    "gate": "check:club-stats-auto-cache",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_club-stats-auto-cache.log"
+  },
+  {
+    "gate": "check:superadmin-server-summary-cache",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_superadmin-server-summary-cache.log"
+  },
+  {
+    "gate": "check:superadmin-safe-server-refresh",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_superadmin-safe-server-refresh.log"
+  },
+  {
+    "gate": "check:excel-import-vtf-upsert",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_excel-import-vtf-upsert.log"
+  },
+  {
+    "gate": "check:production-stability-gate",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_production-stability-gate.log"
+  },
+  {
+    "gate": "check:multiitem-tuition-package-fix",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_multiitem-tuition-package-fix.log"
+  },
+  {
+    "gate": "check:admission-tuition-type-normalization",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_admission-tuition-type-normalization.log"
+  },
+  {
+    "gate": "check:inventory-multiitem-readonly-ui",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_inventory-multiitem-readonly-ui.log"
+  },
+  {
+    "gate": "check:listener-ownership-boundary",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_listener-ownership-boundary.log"
+  },
+  {
+    "gate": "check:financial-action-audit-guard",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_financial-action-audit-guard.log"
+  },
+  {
+    "gate": "check:global-ownership-adoption-cleanup",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_global-ownership-adoption-cleanup.log"
+  },
+  {
+    "gate": "check:diagnostics-tooling-isolation",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_diagnostics-tooling-isolation.log"
+  },
+  {
+    "gate": "check:report-export-lazy-isolation",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_report-export-lazy-isolation.log"
+  },
+  {
+    "gate": "check:attendance-canonical-ownership",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_attendance-canonical-ownership.log"
+  },
+  {
+    "gate": "check:spark-read-cost-hardening",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_spark-read-cost-hardening.log"
+  },
+  {
+    "gate": "check:inventory-ledger-reconciliation",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_inventory-ledger-reconciliation.log"
+  },
+  {
+    "gate": "check:coach-attendance-only-read-boundary",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_coach-attendance-only-read-boundary.log"
+  },
+  {
+    "gate": "check:security-coach-branch-boundary",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_security-coach-branch-boundary.log"
+  },
+  {
+    "gate": "check:quit-tab-completeness",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_quit-tab-completeness.log"
+  },
+  {
+    "gate": "check:quit-tab-authoritative-completeness",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_quit-tab-authoritative-completeness.log"
+  },
+  {
+    "gate": "check:quit-tab-mobile-parity",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_quit-tab-mobile-parity.log"
+  },
+  {
+    "gate": "check:render-warning-coalescing",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_render-warning-coalescing.log"
+  },
+  {
+    "gate": "check:tuition-debt-source-of-truth",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_tuition-debt-source-of-truth.log"
+  },
+  {
+    "gate": "check:active-skipped-month-section",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_active-skipped-month-section.log"
+  },
+  {
+    "gate": "check:profile-canonical-store",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_profile-canonical-store.log"
+  },
+  {
+    "gate": "check:v4d1a-runtime-recovery",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_v4d1a-runtime-recovery.log"
+  },
+  {
+    "gate": "check:v5u2e-attendance-excel-sdk-fix",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_v5u2e-attendance-excel-sdk-fix.log"
+  },
+  {
+    "gate": "check:student-name-search-priority",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_student-name-search-priority.log"
+  },
+  {
+    "gate": "check:superadmin-auth-principal-alignment",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_superadmin-auth-principal-alignment.log"
+  },
+  {
+    "gate": "check:admin-credential-single-source",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_admin-credential-single-source.log"
+  },
+  {
+    "gate": "check:auth-context-single-writer",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_auth-context-single-writer.log"
+  },
+  {
+    "gate": "check:legacy-global-freeze",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_legacy-global-freeze.log"
+  },
+  {
+    "gate": "check:dashboard-single-read-authority",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_dashboard-single-read-authority.log"
+  },
+  {
+    "gate": "check:dashboard-cache-freshness-guard",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_dashboard-cache-freshness-guard.log"
+  },
+  {
+    "gate": "check:dashboard-hydration-mutation-guard",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_dashboard-hydration-mutation-guard.log"
+  },
+  {
+    "gate": "check:h8r2-1c1d",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_h8r2-1c1d.log"
+  },
+  {
+    "gate": "check:h8r2-1c1e-ui",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_h8r2-1c1e-ui.log"
+  },
+  {
+    "gate": "check:h8r2-1c1f-quickpay",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_h8r2-1c1f-quickpay.log"
+  },
+  {
+    "gate": "check:h8r2-1c1f1",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_h8r2-1c1f1.log"
+  },
+  {
+    "gate": "check:h8r2-1c1f1a",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_h8r2-1c1f1a.log"
+  },
+  {
+    "gate": "check:h8r2-1c1f1b",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_h8r2-1c1f1b.log"
+  },
+  {
+    "gate": "check:h8r2-1c1f1c",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_h8r2-1c1f1c.log"
+  },
+  {
+    "gate": "check:h8r2-1c1f1d",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_h8r2-1c1f1d.log"
+  },
+  {
+    "gate": "check:h8r2-1c1f1d1",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_h8r2-1c1f1d1.log"
+  },
+  {
+    "gate": "check:h8r2-1c1f1d1a",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_h8r2-1c1f1d1a.log"
+  },
+  {
+    "gate": "check:h8r2-1c1f1d1b",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_h8r2-1c1f1d1b.log"
+  },
+  {
+    "gate": "check:h8r2-1c1f1d1c",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_h8r2-1c1f1d1c.log"
+  },
+  {
+    "gate": "check:h8r2-1c1f1d1c1",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_h8r2-1c1f1d1c1.log"
+  },
+  {
+    "gate": "check:qr-report-render-payment-intent",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_qr-report-render-payment-intent.log"
+  },
+  {
+    "gate": "check:payment-accounts",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_payment-accounts.log"
+  },
+  {
+    "gate": "check:startup-read-budget-freeze",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_startup-read-budget-freeze.log"
+  },
+  {
+    "gate": "check:syntax",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_syntax.log"
+  },
+  {
+    "gate": "check:root-public-parity",
+    "v8Exit": 0,
+    "v9Exit": 0,
+    "log": "evidence/all-gates/check_root-public-parity.log"
+  }
+]

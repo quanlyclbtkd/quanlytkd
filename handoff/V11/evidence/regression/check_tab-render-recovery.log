@@ -1,0 +1,20 @@
+
+🔍 Phase 4K-6A-B — check-tab-render-recovery
+
+  ✅ PASS — syncStudentStatusLocal không còn gọi scheduleRender
+  ✅ PASS — window.ensureStudentTabRendered được định nghĩa
+  ✅ PASS — markStudentQuitFromDebt gọi ensureStudentTabRendered('debt')
+  ✅ PASS — skipDebtMonthFromDebt gọi ensureStudentTabRendered('debt')
+  ✅ PASS — tabs.js gọi ensureStudentTabRendered khi tab active/debt/quit
+  ✅ PASS — exam.listeners.js không gọi invalidateByDomain('exam')
+  ✅ PASS — _triggerExamRender gọi trực tiếp renderExamList
+  ✅ PASS — window.debugStudentTabRenderRecovery được định nghĩa
+  ✅ PASS — window.debugExamRenderRecovery được định nghĩa
+  ✅ PASS — debugRuntimeSmokeTest include debugStudentTabRenderRecovery
+  ✅ PASS — debugRuntimeSmokeTest include debugExamRenderRecovery
+
+══════════════════════════════════════════════════════════
+  Total: 11 checks | ✅ Pass: 11 | ❌ Fail: 0
+
+  🎉 All tab render recovery checks passed!
+

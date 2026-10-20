@@ -1,0 +1,14 @@
+
+🔍 Phase 4K-4H — Exam Cancel Fee Check
+
+[32m✅ PASS[0m  app.js readable
+[32m✅ PASS[0m  app.js có window.cancelExamPayment
+[32m✅ PASS[0m  renderExamList nút Hủy gọi cancelExamPayment thay vì deleteTx
+[32m✅ PASS[0m  cancelExamPayment chỉ xóa thu phí thi thuần qua FinanceService và DeleteIntegrity
+[32m✅ PASS[0m  cancelExamPayment chỉ cập nhật lệ phí thi trong giao dịch mixed
+[32m✅ PASS[0m  cancelExamPayment cập nhật cả ba ledger local ngay sau commit
+[32m✅ PASS[0m  cancelExamPayment gọi renderExamList sau khi hủy
+[32m✅ PASS[0m  app.js có window.debugExamCancelState
+
+[32m✅ All checks passed (7/7)[0m
+

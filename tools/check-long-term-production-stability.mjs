@@ -32,11 +32,10 @@ check(main.includes("ensureTransactionPaginationForActiveTab('switch-tab-tx')"),
 const loadDay = block(attendanceServiceSrc, 'async loadByDate(date, options = {})', '// ── SAVE / DELETE ATTENDANCE');
 check(loadDay.includes('while (true)') && loadDay.includes('startAfter(cursor)') && loadDay.includes('pageSize') && loadDay.includes('safetyCeiling'), '3. Attendance loadByDate owns bounded cursor pagination');
 check(!/limit\s*\(\s*1200\s*\)|_lim\s*\(\s*1200\s*\)/.test(loadDay) && loadDay.includes("error.code = 'attendance/daily-coverage-incomplete'") && loadDay.includes('coverageComplete = false'), '4. Attendance daily cannot silently truncate at legacy 1200 limit');
-const bulkSave = block(attendanceServiceSrc, 'async bulkSaveRecords(records, options = {})', '/**\n     * Đồng bộ dữ liệu offline');
-check(bulkSave.includes('Math.min(400') && bulkSave.includes('for (let offset = 0; offset < rows.length; offset += chunkSize)'), '5. Attendance bulk writer chunks at <=400 inside the existing writer');
-check(bulkSave.includes('onChunkCommitted') && bulkSave.includes('error.committedIds') && bulkSave.includes('error.pending'), '6. Attendance bulk exposes committed-chunk scoped cleanup/partial failure metadata');
-const bulkUi = block(attendanceModule, 'window.bulkCheckIn = async', '// ── Offline sync');
-check(bulkUi.includes('onChunkCommitted') && bulkUi.includes('_removeAttOfflineMutation') && !/finally\s*\{[^}]*removeItem/s.test(bulkUi), '6b. Attendance UI cleans only committed journal records, never the whole day in finally');
+const casWriter=block(attendanceServiceSrc,'async function _commitAttendanceIntents(', 'export const AttendanceService');
+check(casWriter.includes('maximumChunkSize = _isCoach() ? 10 : 400') && casWriter.includes('offset += chunkSize'), '5. Existing attendance writer preserves Coach10/Admin400 caps');
+check(casWriter.includes('onChunkCommitted') && casWriter.includes('error.acknowledgedIds') && casWriter.includes('error.pending'), '6. Exact committed intent ACK metadata is preserved on partial failure');
+check(attendanceModule.includes('AttendanceJournal.acknowledge(claims,') && !attendanceModule.includes('localStorage.removeItem('), '6b. Atomic intent ACK cannot remove newer device data');
 
 check(financeServiceSrc.includes('async commitAtomicWritePlan(plan = {})') && financeServiceSrc.includes('const SAFE_LIMIT = 400') && financeServiceSrc.includes('await batch.commit()'), '7. Existing FinanceService owns one safe atomic logical write plan');
 const txForm = block(financeModule, 'transactionForm.onsubmit', '// ──');
@@ -89,12 +88,9 @@ window._fb_init={
 const {AttendanceService}=await import(pathToFileURL(path.join(root,'js/services/attendance.service.js')).href+'?h8r2='+Date.now());
 const rows1501=await AttendanceService.loadByDate('2026-09-17',{branch:'CS1',shiftId:'morning',requireShift:true,isCurrent:()=>true});
 check(rows1501.length===1501 && rows1501.coverageComplete===true && pageCall===4, 'B6 dynamic: 1501 daily records load completely across 4 pages');
-let commits=0;
-window._fb_init.writeBatch=()=>{ const ops=[]; return {set(...a){ops.push(a);}, async commit(){commits++; if(commits===2) throw Object.assign(new Error('injected chunk2 failure'),{code:'unavailable'});}}; };
-const bulkRows=Array.from({length:1001},(_,i)=>({docId:'d'+i,data:{profileId:'p'+i,name:'p'+i,branch:'CS1',date:'2026-09-17',month:'2026-09',status:1}}));
-let partial=null;
-try { await AttendanceService.bulkSaveRecords(bulkRows,{chunkSize:400}); } catch(e){ partial=e; }
-check(partial && partial.committed===400 && partial.pending===601 && commits===2, 'B10 dynamic: injected chunk-2 failure reports 400 committed / 601 pending without false all-success');
+const {casContract}=await import('./v11/cas-contract.mjs');
+try {const result=await casContract();check(result.results.includes('second commit failure exposes exact ACK ids'),'B10 partial commit/ACK invariant is checked through actual versioned writer');}
+catch(error){check(false,'B10 versioned partial commit contract',error.message);}
 
 // H8R2.1 residual correctness assertions 28..39.
 const paidPatchBlock = block(inventoryService, 'prepareMarkPaidPatch(', '/**\n     * Thêm một bản ghi kho mới');

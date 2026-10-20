@@ -1,0 +1,37 @@
+
+══════════════════════════════════════════════════════════
+  Phase 4K — Finance Index Error Handling Check
+══════════════════════════════════════════════════════════
+
+▸ Section 1: Catch block trong _doLoad()
+  ✅ _doLoad có try/catch block
+  ✅ Lỗi load trang được log (console.error)
+
+▸ Section 2: Detect lỗi "failed-precondition / requires an index"
+  ✅ Bắt chuỗi "failed-precondition"
+  ✅ Bắt chuỗi "requires an index"
+  ✅ Bắt chuỗi "The query requires an index"
+
+▸ Section 3: Thông báo rõ trong UI (txList)
+  ✅ Tìm element txList để hiển thị lỗi
+  ✅ Thông báo tiếng Việt có ý nghĩa (không chỉ trống)
+  ✅ Hướng dẫn deploy firestore.indexes.json trong thông báo
+
+▸ Section 4: Log Firebase Console link khi có
+  ✅ Trích xuất link console.firebase.google.com từ error message
+
+▸ Section 5: Không kết luận dữ liệu = 0 khi lỗi index
+  ✅ pgState.isLoading = false trong catch block của _doLoad
+  ✅ processPage() chỉ gọi trong try block, không trong catch của _doLoad
+
+▸ Section 6: Finance service — query đúng
+  ✅ getTransactionsPage dùng where("txMonth") filter
+  ✅ getTransactionsPage dùng orderBy("timestamp", "desc")
+
+══════════════════════════════════════════════════════════
+  Total: 13 | ✅ Pass: 13 | ❌ Fail: 0
+
+  🎉 Finance index error handling checks passed!
+  Khi index thiếu: UI sẽ hiện thông báo rõ thay vì trống/0.
+══════════════════════════════════════════════════════════
+

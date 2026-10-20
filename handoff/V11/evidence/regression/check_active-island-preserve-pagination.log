@@ -1,0 +1,27 @@
+
+══════════════════════════════════════════════════════════
+  Active Island Preserve Pagination Check — Phase 4K-STUDENT-RENDER-OVERWRITE-FIX
+══════════════════════════════════════════════════════════
+
+▸ Section 1: renderActiveIsland() guard khi cache rỗng
+  ✅ renderActiveIsland() không gọi _applyHtml trực tiếp với getStudentsCachedHtml (đã có guard)
+  ✅ renderActiveIsland() kiểm tra pgState.enabled && currentItems.length > 0
+  ✅ renderActiveIsland() dùng buildStudentsRowsFromPagination khi cache rỗng
+  ✅ renderActiveIsland() return sớm (không clear DOM) khi pagination có items
+
+▸ Section 2: renderQuitIsland() guard tương tự
+  ✅ renderQuitIsland() có guard nguồn dữ liệu trước khi clear DOM
+
+▸ Section 3: window.buildStudentsRowsFromPagination trong students.js
+  ✅ students.js expose window.buildStudentsRowsFromPagination
+  ✅ buildStudentsRowsFromPagination tạo tr[data-student-id] rows
+  ✅ buildStudentsRowsFromPagination có try/catch (non-blocking)
+  ✅ buildStudentsRowsFromPagination có HTML escaping an toàn
+
+══════════════════════════════════════════════════════════
+  Total: 9 | ✅ 9 | ❌ 0
+
+  🎉 Active island preserve pagination checks passed!
+  renderActiveIsland() bảo toàn DOM khi cache rỗng nhưng pagination có items.
+══════════════════════════════════════════════════════════
+

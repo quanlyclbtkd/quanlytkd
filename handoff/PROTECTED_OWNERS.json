@@ -1,0 +1,52 @@
+[
+  {
+    "path": "app.js",
+    "sha256": "7b021ad26fa0e3bf737ac622ed57f95906e3d85f24f13033dc9e8c2101713768",
+    "unchangedFromV8": true
+  },
+  {
+    "path": "js/modules/finance.js",
+    "sha256": "6968e7d011ee37aff96b24026f9a18cc4bb62a5ebbb93173aac9aa5754447df8",
+    "unchangedFromV8": true
+  },
+  {
+    "path": "js/services/finance.service.js",
+    "sha256": "3d2b6fcfd4f5bb07e4f45fdbf1dfd63f5f1f68d2eed531a008e2b19f9bc10110",
+    "unchangedFromV8": true
+  },
+  {
+    "path": "js/modules/students.js",
+    "sha256": "f098eb60e7a75f9beaef85e927a3d6245411a1c20805e3018786b3962253b653",
+    "unchangedFromV8": true
+  },
+  {
+    "path": "js/modules/qrBankingHelpers.js",
+    "sha256": "fad0e8727b7e4017427a71b7d881006c9deee421ca6387abe343b46c0dfe2b27",
+    "unchangedFromV8": true
+  },
+  {
+    "path": "js/listeners/profiles.listeners.js",
+    "sha256": "d94c1b7a7f01b033112a01d45d93357dd2a7e5851bd67a3cfc0b171a149cf31f",
+    "unchangedFromV8": true
+  },
+  {
+    "path": "js/modules/inventory.js",
+    "sha256": "1d9203aaee1cb58ed59245df851ecc82296982ea6bd1b1bcae7302f79367fc7c",
+    "unchangedFromV8": true
+  },
+  {
+    "path": "js/services/inventory.service.js",
+    "sha256": "be9308420fd1b97804e46eed64fa476abebba8df1471a1ecf13361a29c1430e6",
+    "unchangedFromV8": true
+  },
+  {
+    "path": "firebase.json",
+    "sha256": "5a7aa67432f9601838edfc7e162e06fb7f9a9916b0109e3330b575b8d3b55814",
+    "unchangedFromV8": true
+  },
+  {
+    "path": "firestore.indexes.json",
+    "sha256": "4dd8426ee475db6ee80abbdfdb6c1d415878514200ca5d22714b4e5cb49683df",
+    "unchangedFromV8": true
+  }
+]

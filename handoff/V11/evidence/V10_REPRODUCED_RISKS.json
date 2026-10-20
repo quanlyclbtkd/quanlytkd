@@ -1,0 +1,41 @@
+{
+  "rulesSha256": "6c97941adc044509cb8095c461a41f3f3f7a80a092771bdbb25d03373478b622",
+  "attendanceSha256": "ff9f9d251207222bccd98516ff8b58c0643937af531f5eb2ef1cdff5f98c13b7",
+  "serviceSha256": "11e00227b894989f1bd7f1f0380f37e8322d0d5deacfa9888bc3427ceb1135ec",
+  "safetyDecision": "BLOCK_PRODUCTION_RELEASE",
+  "results": [
+    {
+      "id": "S01",
+      "status": "OPEN_REPRODUCED",
+      "kind": "server read authorization",
+      "forgedGetAllowed": true,
+      "readers": [
+        {
+          "reader": "date",
+          "forgedReturned": true
+        },
+        {
+          "reader": "month",
+          "forgedReturned": true
+        },
+        {
+          "reader": "memberHistory",
+          "forgedReturned": true
+        }
+      ]
+    },
+    {
+      "id": "O01-replay",
+      "status": "OPEN_REPRODUCED",
+      "beforeNewerOnline": 2,
+      "afterRetry": 1,
+      "newerV2Pending": true
+    },
+    {
+      "id": "O01-cross-tab",
+      "status": "OPEN_REPRODUCED",
+      "layer": "controlled localStorage interleaving, not physical multi-tab",
+      "newerJournalLost": true
+    }
+  ]
+}

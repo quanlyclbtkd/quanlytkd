@@ -1,0 +1,45 @@
+[TenantIsolation] Kiểm tra multi-tenant isolation (Phase 4.0B-4G)...
+
+[TenantIsolation] INFO  app.js: 679552 ký tự
+
+[TenantIsolation] [1] Kiểm tra primary data path dùng clubs/{clubId}...
+[TenantIsolation] PASS  Primary path dùng clubs/{clubId} dynamic pattern (template hoặc concat)
+[TenantIsolation] PASS  clubs/... được xây dựng dynamic (không hard-code)
+
+[TenantIsolation] [2] Kiểm tra không hard-code clubId...
+[TenantIsolation] PASS  Không có hard-coded clubId trong string literal clubs/...
+
+[TenantIsolation] [3] Kiểm tra legacy fallback tst_* read-only...
+[TenantIsolation] PASS  Không có Firestore write trong activateLegacyRootFallback (read-only safe)
+
+[TenantIsolation] [4] Kiểm tra legacy fallback có guard — không áp dụng cho mọi CLB...
+[TenantIsolation] PASS  Guard: fallback chỉ kích hoạt khi source = 'legacy-root'
+[TenantIsolation] PASS  Fallback chỉ được gọi với reason='manual-runtime-recovery'
+[TenantIsolation] PASS  Không còn legacy fallback tự động trong production runtime
+
+[TenantIsolation] [5] Kiểm tra Firestore rules không có public catch-all read...
+[TenantIsolation] PASS  Firestore rules không có catch-all public read
+[TenantIsolation] PASS  Deny-by-default rule (allow read, write: if false) tồn tại
+
+[TenantIsolation] [6] Kiểm tra Firestore rules có clubId / role guard...
+[TenantIsolation] PASS  Rules có hàm kiểm tra clubId membership (isClubMember/myClubId/isClubAdmin)
+[TenantIsolation] PASS  Rules có hàm isSuperAdmin
+[TenantIsolation] PASS  Rules có match /clubs/{clubId} với dynamic clubId
+
+[TenantIsolation] [7] Kiểm tra không có anonymous read clubs...
+[TenantIsolation] PASS  Không có allow read: if true trong clubs block
+[TenantIsolation] PASS  Không có signInAnonymously kết hợp với clubs/ path trong app.js
+
+[TenantIsolation] [8] Kiểm tra không có migration tự động trong recovery...
+[TenantIsolation] PASS  Không có migration/copy functions trong recovery code
+
+[TenantIsolation] [9] Kiểm tra SuperAdmin guard...
+[TenantIsolation] PASS  super_admins collection có match rule riêng biệt
+[TenantIsolation] PASS  super_admins get chỉ có canonical SuperAdmin hoặc narrow self-bootstrap
+[TenantIsolation] PASS  super_admins list chỉ cho canonical SuperAdmin
+[TenantIsolation] PASS  super_admins bootstrap create có identity + payload whitelist hẹp
+[TenantIsolation] PASS  super_admins không mở cho Club Admin/Viewer/public
+[TenantIsolation] PASS  SuperAdmin check tồn tại trong app.js
+
+[TenantIsolation] Đã kiểm tra: 21 patterns
+[TenantIsolation] ✅ OK — Multi-tenant isolation checks (Phase 4.0B-4G) an toàn.

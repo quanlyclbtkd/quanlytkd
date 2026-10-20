@@ -1,0 +1,70 @@
+
+══════════════════════════════════════════════════════════
+  Phase 4K-4E — Runtime Month + Admission Hydration Check
+══════════════════════════════════════════════════════════
+
+▸ Section 1: reports.js syntax — no function inside import block
+  ✅ reports.js: no function inside import {} block
+  ✅ reports.js: node --check passes
+
+▸ Section 2: package.json scripts
+  ✅ package.json: check:reports-module-syntax defined
+  ✅ package.json: check:runtime-month-admission-hydration defined
+  ✅ package.json: ONE canonical check:release defined
+  ✅ check:release includes reports syntax validation
+  ✅ check:release includes runtime month/admission validation
+
+▸ Section 3: main.js Month Change Controller
+  ✅ main.js: window.handleFilterMonthChange defined
+  ✅ main.js: handleFilterMonthChange calls listenToData
+  ✅ main.js: handleFilterMonthChange invalidates finance
+  ✅ main.js: window.onFilterMonthChange alias defined
+  ✅ main.js: window.initFilterMonthController defined
+  ✅ main.js: initFilterMonthController uses __filterMonthControllerBound guard
+
+▸ Section 4: app.js filterMonth binding bridges http-module mode
+  ✅ app.js: filterMonth onchange bridges handleFilterMonthChange in http-module
+  ✅ app.js: filterMonth onchange still calls listenToData as fallback
+
+▸ Section 5: StudentService canonical transaction writers return { id, ...data }
+  ✅ students.service.js: addTuitionTransaction returns docRef.id
+  ✅ students.service.js: addUniformTransaction returns docRef.id
+  ✅ students.service.js: canonical addGenericTransaction returns docRef.id
+
+▸ Section 6: main.js mergeTransactionIntoRuntimeStore helper
+  ✅ main.js: window.mergeTransactionIntoRuntimeStore defined
+  ✅ mergeTransactionIntoRuntimeStore: uses Map to avoid duplicates
+  ✅ mergeTransactionIntoRuntimeStore: checks packageMonths when matching selected month
+  ✅ mergeTransactionIntoRuntimeStore: calls invalidateFinance or refreshListsComputation
+
+▸ Section 7: js/modules/students.js canonical admission bundle hydration
+  ✅ students.js: admission uses existing buildPaymentBundleTransaction authority
+  ✅ students.js: admission prepares canonical Finance bundle in same batch
+  ✅ students.js: hydrates the exact committed bundle transaction identity
+
+▸ Section 8: app.js legacy-compatible admission bundle hydration
+  ✅ app.js: legacy path prefers existing payment bundle authority
+  ✅ app.js: legacy bundle captures created id and hydrates same transaction
+  ✅ app.js: old direct tuition path remains compatibility fallback only
+
+▸ Section 9: debug helpers
+  ✅ main.js: window.debugMonthRuntime defined
+  ✅ main.js: debugMonthRuntime checks filterMonthValue
+  ✅ main.js: window.debugAdmissionTxHydration defined
+  ✅ main.js: debugAdmissionTxHydration checks packageMonths match
+  ✅ main.js: debugRuntimeSmokeTest includes monthRuntime
+  ✅ main.js: debugRuntimeSmokeTest includes admissionTxHydration
+
+▸ Section 10: lazy reports / SuperAdmin isolation
+  ✅ main.js: registers lightweight reportExportFacade rather than eager reports.js
+  ✅ reportExportFacade: dynamically imports reports.js only on report action
+  ✅ reportExportFacade: initializes loaded reports implementation after lazy import
+  ✅ main.js: initSuperAdmin remains isolated by try/catch
+
+══════════════════════════════════════════════════════════
+  Total: 38 checks | ✅ Pass: 38 | ❌ Fail: 0
+
+  🎉 All runtime month + admission hydration checks passed!
+  reports.js syntax OK, month controller ready, tx hydration ready.
+══════════════════════════════════════════════════════════
+

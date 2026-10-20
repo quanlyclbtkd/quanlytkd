@@ -1,0 +1,79 @@
+[AssetCheck] Kiểm tra static assets và module imports...
+
+[AssetCheck] PASS  index.html
+[AssetCheck] PASS  style.css
+[AssetCheck] PASS  app.js
+[AssetCheck] PASS  js/main.js
+[AssetCheck] PASS  js/modules/superadmin.js
+[AssetCheck] PASS  js/modules/reports.js
+[AssetCheck] PASS  js/modules/students.js
+[AssetCheck] PASS  js/modules/finance.js
+[AssetCheck] PASS  js/modules/inventory.js
+[AssetCheck] PASS  js/modules/attendance.js
+[AssetCheck] PASS  js/modules/dashboard.js
+
+[AssetCheck] Phân tích import trong js/main.js...
+
+[AssetCheck] PASS  js/core/superAdminQuotaGuard.js  (import in main.js)
+[AssetCheck] PASS  js/core/productionAuthorityPolicy.js  (import in main.js)
+[AssetCheck] PASS  js/core/clubStatsAutoCache.js  (import in main.js)
+[AssetCheck] PASS  js/core/superAdminServerRefresh.js  (import in main.js)
+[AssetCheck] PASS  js/core/productionStabilityGate.js  (import in main.js)
+[AssetCheck] PASS  js/core/studentSearchIndex.js  (import in main.js)
+[AssetCheck] PASS  js/core/listenerOwnershipBoundary.js  (import in main.js)
+[AssetCheck] PASS  js/core/financialActionAuditGuard.js  (import in main.js)
+[AssetCheck] PASS  js/core/mobileStartupPerformance.js  (import in main.js)
+[AssetCheck] PASS  js/core/staticCssBuildHealth.js  (import in main.js)
+[AssetCheck] PASS  js/core/globalOwnershipRegistry.js  (import in main.js)
+[AssetCheck] PASS  js/core/legacyRenderEntrypoints.js  (import in main.js)
+[AssetCheck] PASS  js/core/inlineHandlerAudit.js  (import in main.js)
+[AssetCheck] PASS  js/ui/eventActionBridge.js  (import in main.js)
+[AssetCheck] PASS  js/ui/legacyUiShell.js  (import in main.js)
+[AssetCheck] PASS  js/modules/reports/reportExportFacade.js  (import in main.js)
+[AssetCheck] PASS  js/store.js  (import in main.js)
+[AssetCheck] PASS  js/firebase/config.js  (import in main.js)
+[AssetCheck] PASS  js/ui/toast.js  (import in main.js)
+[AssetCheck] PASS  js/ui/modal.js  (import in main.js)
+[AssetCheck] PASS  js/ui/tabs.js  (import in main.js)
+[AssetCheck] PASS  js/ui/render.js  (import in main.js)
+[AssetCheck] PASS  js/ui/render/renderFinance.js  (import in main.js)
+[AssetCheck] PASS  js/ui/render/renderStudents.js  (import in main.js)
+[AssetCheck] PASS  js/ui/render/renderInventory.js  (import in main.js)
+[AssetCheck] PASS  js/ui/render/renderAttendance.js  (import in main.js)
+[AssetCheck] PASS  js/ui/render/renderDashboard.js  (import in main.js)
+[AssetCheck] PASS  js/ui/render/renderInvalidation.js  (import in main.js)
+[AssetCheck] PASS  js/ui/loading.js  (import in main.js)
+[AssetCheck] PASS  js/utils/helpers.js  (import in main.js)
+[AssetCheck] PASS  js/utils/formatters.js  (import in main.js)
+[AssetCheck] PASS  js/modules/receiptHelpers.js  (import in main.js)
+[AssetCheck] PASS  js/modules/qrBankingHelpers.js  (import in main.js)
+[AssetCheck] PASS  js/utils/monthlyHelpers.js  (import in main.js)
+[AssetCheck] PASS  js/utils/constants.js  (import in main.js)
+[AssetCheck] PASS  js/utils/event-guard.js  (import in main.js)
+[AssetCheck] PASS  js/core/performanceMonitor.js  (import in main.js)
+[AssetCheck] PASS  js/core/financialFlowMap.js  (import in main.js)
+[AssetCheck] PASS  js/core/securityPosture.js  (import in main.js)
+[AssetCheck] PASS  js/core/actionGuard.js  (import in main.js)
+[AssetCheck] PASS  js/core/canonicalDomainCommandBoundary.js  (import in main.js)
+[AssetCheck] PASS  js/core/studentStatusCommandBoundary.js  (import in main.js)
+[AssetCheck] PASS  js/core/tuitionCommandBoundary.js  (import in main.js)
+[AssetCheck] PASS  js/core/transactionDeleteIntegrity.js  (import in main.js)
+[AssetCheck] PASS  js/core/legacyAppAudit.js  (import in main.js)
+[AssetCheck] PASS  js/diagnostics/legacyDiagnostics.js  (import in main.js)
+[AssetCheck] PASS  js/core/multiItemInventorySafety.js  (import in main.js)
+[AssetCheck] PASS  js/core/inventoryMultiItemReadOnlyUI.js  (import in main.js)
+[AssetCheck] PASS  js/utils/firestore-guard.js  (import in main.js)
+[AssetCheck] PASS  js/data/quitProfileBoundary.js  (import in main.js)
+[AssetCheck] PASS  js/modules/students.js  (import in main.js)
+[AssetCheck] PASS  js/modules/finance.js  (import in main.js)
+[AssetCheck] PASS  js/modules/inventory.js  (import in main.js)
+[AssetCheck] PASS  js/modules/attendance.js  (import in main.js)
+[AssetCheck] PASS  js/modules/dashboard.js  (import in main.js)
+[AssetCheck] PASS  js/modules/superadmin.js  (import in main.js)
+[AssetCheck] PASS  js/events/students.events.js  (import in main.js)
+[AssetCheck] PASS  js/events/finance.events.js  (import in main.js)
+[AssetCheck] PASS  js/events/attendance.events.js  (import in main.js)
+[AssetCheck] PASS  js/modules/exam.js  (import in main.js)
+
+[AssetCheck] Đã kiểm tra: 71 items
+[AssetCheck] ✅ OK — Tất cả assets và imports đều tồn tại.

@@ -1,0 +1,87 @@
+✅ immutable production authority policy exists
+✅ policy selects exactly the client stats writer
+✅ policy disables legacy runtime recovery
+✅ policy is exposed read-only
+✅ main installs policy before runtime writers
+✅ exact V5U6E build marker is active
+✅ transaction listener publishes one store coverage object
+✅ coverage carries club/month/readMode
+✅ canonical coverage requires canonical source seen
+✅ legacy coverage requires all three source snapshots
+✅ limit hit uses >= and never assumes exact limit complete
+✅ coverage resets on club switch
+✅ coverage resets on logout
+✅ coverage resets before month/read-mode listener attach
+✅ legacy root recovery explicitly resets finance coverage
+✅ stats writer requires same club and month
+✅ stats writer requires ready and complete true
+✅ stats writer fails closed without selected production policy
+✅ incomplete finance is represented by metadata, not zero
+✅ financial root payload is conditional
+✅ financial stats payload is conditional
+✅ member cache remains outside finance conditional
+✅ SuperAdmin auto callable dispatch is removed
+✅ server refresh compatibility API is policy guarded
+✅ default client does not load Firebase Functions SDK
+✅ default deployment config excludes Functions
+✅ Functions source has explicit archive-only config
+✅ SuperAdmin rejects explicitly incomplete root finance cache
+✅ incomplete root coverage suppresses targeted stats fallback
+✅ app-context-ready no longer auto-runs recovery
+✅ late main replay no longer auto-runs recovery
+✅ normal resolve call is zero-probe
+✅ manual source probes require explicit options
+✅ manual runtime recovery requires explicit probe
+✅ legacy activation requires explicit activateLegacy
+✅ Coach diagnostic probe is blocked before _hasDoc
+✅ parallel gate freezes no automatic source detector
+✅ tenant rules retain narrow bootstrap get
+✅ tenant rules retain SuperAdmin-only list
+✅ tenant rules do not grant Club Admin/Viewer/public access
+✅ dynamic canonical < limit is complete
+✅ dynamic canonical = limit is incomplete
+✅ dynamic legacy all sources < limit is complete
+✅ dynamic legacy one source = limit is incomplete
+✅ dynamic legacy hydration waits for all three sources
+✅ dynamic merged dedup count cannot hide a source limit hit
+[ClubStatsAutoCache] synced cache {
+  cid: 'club_A',
+  active: 1,
+  revenue: 'unknown',
+  financeComplete: false,
+  reason: 'v5u6e-dynamic'
+}
+✅ dynamic high-volume still allows member root cache update
+✅ dynamic high-volume root has financeComplete=false metadata
+✅ dynamic high-volume root writes zero financial fields
+✅ dynamic high-volume stats doc writes zero financial fields
+✅ dynamic high-volume member write does not advance finance updatedAt
+✅ dynamic high-volume result reports financial writes skipped
+✅ dynamic unknown finance is not fabricated as zero
+[ClubStatsAutoCache] synced cache {
+  cid: 'club_A',
+  active: 1,
+  revenue: 449500000,
+  financeComplete: true,
+  reason: 'v5u6e-dynamic'
+}
+✅ dynamic complete coverage authorizes root finance
+✅ dynamic complete coverage authorizes stats finance
+✅ dynamic complete coverage totals are exact
+[ClubStatsAutoCache] synced cache {
+  cid: 'club_A',
+  active: 1,
+  revenue: 'unknown',
+  financeComplete: false,
+  reason: 'v5u6e-dynamic'
+}
+✅ dynamic Club B coverage cannot authorize Club A finance
+✅ dynamic non-client policy blocks all client stats writes
+✅ dynamic installed policy is frozen
+✅ dynamic installed policy property is non-writable
+✅ dynamic SuperAdmin treats incomplete preserved revenue as unknown
+✅ dynamic SuperAdmin auto refresh is policy-disabled
+✅ dynamic SuperAdmin manual compatibility refresh is policy-disabled
+✅ dynamic client-only SuperAdmin makes zero callable requests
+
+Production Authority Closure: 64/64 PASS

@@ -1,0 +1,23 @@
+══════════════════════════════════════════════════════
+ check-superadmin-quota-guard — Phase 4K-6I-B
+══════════════════════════════════════════════════════
+
+  ✓ PASS: js/core/superAdminQuotaGuard.js exists
+  ✓ PASS: main.js exposes window.SuperAdminQuotaGuard
+  ✓ PASS: main.js has window.debugSuperAdminQuotaGuard
+  ✓ PASS: debugSuperAdminLoadState defined
+  ✓ PASS: loadSuperAdminData has single-flight/cooldown guard
+  ✓ PASS: main.js HOTFIX retry has __saDashboardLoadInFlight guard
+  ✓ PASS: superadmin.js: no Promise.all with 4 countDocs aggregation storm
+  ✓ PASS: superadmin.js: countDocs not called directly in render loop for all clubs
+  ✓ PASS: superAdminQuotaGuard.js has circuit breaker for quota errors
+  ✓ PASS: superadmin.js: cached counts write guarded (no null/undefined writes)
+  ✓ PASS: superadmin.js has background refresh queue
+  ✓ PASS: superadmin.js has UI fallback "--" for null counts
+  ✓ PASS: index.html cache bust has Phase 4K-6I-B
+  ✓ PASS: main.js APP_BUILD_VERSION has 4K-6I-B/6I-C
+  ✓ PASS: main.js imports/references SuperAdminQuotaGuard
+
+══════════════════════════════════════════════════════
+ ✓ check-superadmin-quota-guard PASSED
+══════════════════════════════════════════════════════

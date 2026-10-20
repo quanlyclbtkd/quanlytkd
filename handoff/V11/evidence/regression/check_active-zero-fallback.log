@@ -1,0 +1,33 @@
+
+══════════════════════════════════════════════════════════
+  Active-Zero Fallback Check — Phase 4K-STUDENT-LIST
+══════════════════════════════════════════════════════════
+
+▸ Section 1: Active-zero probe trong snapshot handler
+  ✅ Có kiểm tra activeCount === 0 trên snapshot đầu tiên
+[StudentProfileStore] reset — v10-contract
+[ProfilesListener] reset — v10-contract-end
+  ✅ Server-verified empty roster needs no probe
+  ✅ Later empty roster replaces old data with no duplicate reader
+
+▸ Section 2: loadFullProfilesFallback dùng classifyProfileStatus
+  ✅ loadFullProfilesFallback import classifyProfileStatus
+  ✅ loadFullProfilesFallback phân loại active/quit bằng classifyProfileStatus
+[StudentProfileStore] reset — v10-contract
+[ProfilesListener] reset — v10-contract-end
+  ✅ Canonical store classifies active, legacy and quit profiles
+
+▸ Section 3: Post-fallback invalidation
+  ✅ Sau fallback có invalidateList students.activeList
+
+▸ Section 4: Guard vô hạn fallback
+  ✅ Có maxFallbackPerSession guard
+  ✅ Có fallbackInProgress guard
+
+══════════════════════════════════════════════════════════
+  Total: 9 | ✅ 9 | ❌ 0
+
+  🎉 Active-zero fallback checks passed!
+  Listener tự phát hiện data cũ thiếu status và trigger full fallback.
+══════════════════════════════════════════════════════════
+

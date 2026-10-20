@@ -1,0 +1,21 @@
+[ProfilesListener] reset — D1C3B6-reset
+[StudentProfileStore] reset — D1C3B6-reset
+PASS P01-01 Admin metadata-only server snapshot visits zero documents
+[ProfilesListener] reset — D1C3B6-reset
+[StudentProfileStore] reset — D1C3B6-reset
+PASS P01-02 first server acknowledgment of cache-only snapshot is never skipped
+[ProfilesListener] reset — D1C3B6-reset
+[StudentProfileStore] reset — D1C3B6-reset
+PASS P02-01 Coach metadata-only server snapshot adds no invalidations
+[ProfilesListener] reset — D1C3B6-reset
+[StudentProfileStore] reset — D1C3B6-reset
+PASS P02-02 legacy Coach metadata-only server snapshot adds no invalidations
+[ProfilesListener] reset — D1C3B6-reset
+[StudentProfileStore] reset — D1C3B6-reset
+B6_NODE_BENCH {"profiles":1000,"firstMs":3.598,"metadataNoopMs":0.032,"metadataDocumentVisits":0,"heapUsedMB":11.41,"sdkReads":0}
+PASS P01-03 1000 profiles baseline/metadata traversal and timing
+[ProfilesListener] reset — D1C3B6-reset
+[StudentProfileStore] reset — D1C3B6-reset
+B6_NODE_BENCH {"profiles":1500,"firstMs":6.33,"metadataNoopMs":0.464,"metadataDocumentVisits":0,"heapUsedMB":11.26,"sdkReads":0}
+PASS P01-03 1500 profiles baseline/metadata traversal and timing
+D1C3B6 ACTUAL HANDLERS 6 PASS 0 FAIL

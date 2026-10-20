@@ -1,0 +1,35 @@
+PASS R01 Coach pending blocks
+PASS R02 UI hlv/store Coach/Auth Coach pending blocks
+PASS R02 UI trainer/store Coach/Auth Coach pending blocks
+PASS R02 UI hlv verified allows canonical Coach branch
+PASS R02 UI trainer verified allows canonical Coach branch
+PASS R03 UI admin/store Coach/Auth Coach blocks
+PASS R03 UI viewer/store Coach/Auth Coach blocks
+PASS R03 UI unknown/store Coach/Auth Coach blocks
+PASS R04 UI coach/store admin/Auth Coach blocks
+PASS R04 canonical alias mirrors accept
+PASS R05 auth not ready blocks
+PASS R05 missing UID blocks
+PASS R05 auth generation zero blocks
+PASS R05 noninteger generation blocks
+PASS R05 stale captured generation is denied
+PASS R05 matching currentUser allows
+PASS R05 currentUser UID different blocked
+PASS R06 verified Admin valid shift
+PASS R06 verified SuperAdmin selected club
+PASS R06 superadmin invalid club mirrors blocked
+PASS R07 Coach wrong branch denied
+PASS R07 Coach cache unverified denied
+PASS R07 Coach alias missing denied
+PASS R07 owner epoch mismatched denied
+PASS R07 CS2 single-slot verified allows
+PASS R05 UI coach branch mirror stale blocked
+PASS R05 Store coach branch mirror stale blocked
+PASS R05 no canonical RoleReadBoundary normalizer blocks
+PASS R10 actual capture canonicalizes hlv and limits branch
+PASS R10 actual capture canonicalizes trainer and limits branch
+PASS R10 UI hlv branch=all filtered to CS1
+PASS R10 UI trainer branch=all filtered to CS1
+PASS R13 Trainer pending roster warning is visible in existing grid
+PASS R11 offline record wrong branch alias blocked
+D1C3B7R2R2 ATTENDANCE ROLE AUTHORITY: 34 PASS / 0 FAIL

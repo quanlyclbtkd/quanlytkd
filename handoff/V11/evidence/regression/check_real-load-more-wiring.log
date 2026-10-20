@@ -1,0 +1,12 @@
+✅ OK:   finance.js không còn chèn div vào trong <table>
+✅ OK:   finance.js có _mergedAllItems
+✅ OK:   _pgNext_transactions có _mergedAllItems append mode
+✅ OK:   finance.js label đã đổi thành "Tải thêm giao dịch"
+✅ OK:   students.js _pgNext_students có _pendingAppendOldItems logic
+✅ OK:   students.js đã đổi label thành "Tải thêm võ sinh"
+✅ OK:   students.js có loadAllProfilesForDebt
+✅ OK:   ensureDebtProfilesReady gọi loadAllProfilesForDebt
+✅ OK:   debugListPaginationCoverage có hasControlDom
+
+──────────────────────────────────────────────────
+✅ check-real-load-more-wiring: TẤT CẢ PASS

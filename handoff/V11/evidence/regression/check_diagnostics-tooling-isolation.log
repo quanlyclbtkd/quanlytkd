@@ -1,0 +1,1022 @@
+
+🔎 Phase 4K-6T — Diagnostics / Pilot / Audit Tooling Isolation
+
+[debugDiagnosticsToolingIsolation] {
+  ok: true,
+  phase: '4K-6T-legacy-diagnostics-pilot-audit-tooling-isolation',
+  runtimeGlobalCount: 9,
+  lazyGlobalCount: 6,
+  onboardingLoaded: false,
+  superAdminAuditLoaded: false,
+  ownership: [
+    {
+      name: 'debugMobileSuperAdminGate',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printDataHydrationStatus',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printTabDataStatus',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printFirestorePathStatus',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printPilotTabReadiness',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printPilotLaunchStatus',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printTenClubPilotReadiness',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'generatePilotLaunchSnapshot',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printOneClubPilotGate',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'runOnboardingGate',
+      owner: 'js/diagnostics/legacyDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printOnboardingGate',
+      owner: 'js/diagnostics/legacyDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'generateOnboardingReportText',
+      owner: 'js/diagnostics/legacyDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'runSuperAdminAudit',
+      owner: 'js/diagnostics/legacyDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printSuperAdminAudit',
+      owner: 'js/diagnostics/legacyDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'generateSuperAdminAuditReportText',
+      owner: 'js/diagnostics/legacyDiagnostics.js',
+      installed: true
+    }
+  ]
+}
+┌─────────┬─────────────────────────────────────┬─────────────────────────────────────────────────┬───────────┐
+│ (index) │ name                                │ owner                                           │ installed │
+├─────────┼─────────────────────────────────────┼─────────────────────────────────────────────────┼───────────┤
+│ 0       │ 'debugMobileSuperAdminGate'         │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 1       │ 'printDataHydrationStatus'          │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 2       │ 'printTabDataStatus'                │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 3       │ 'printFirestorePathStatus'          │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 4       │ 'printPilotTabReadiness'            │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 5       │ 'printPilotLaunchStatus'            │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 6       │ 'printTenClubPilotReadiness'        │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 7       │ 'generatePilotLaunchSnapshot'       │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 8       │ 'printOneClubPilotGate'             │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 9       │ 'runOnboardingGate'                 │ 'js/diagnostics/legacyDiagnostics.js'           │ true      │
+│ 10      │ 'printOnboardingGate'               │ 'js/diagnostics/legacyDiagnostics.js'           │ true      │
+│ 11      │ 'generateOnboardingReportText'      │ 'js/diagnostics/legacyDiagnostics.js'           │ true      │
+│ 12      │ 'runSuperAdminAudit'                │ 'js/diagnostics/legacyDiagnostics.js'           │ true      │
+│ 13      │ 'printSuperAdminAudit'              │ 'js/diagnostics/legacyDiagnostics.js'           │ true      │
+│ 14      │ 'generateSuperAdminAuditReportText' │ 'js/diagnostics/legacyDiagnostics.js'           │ true      │
+└─────────┴─────────────────────────────────────┴─────────────────────────────────────────────────┴───────────┘
+┌────────────────────────┬─────────────────────┐
+│ (index)                │ Values              │
+├────────────────────────┼─────────────────────┤
+│ clubId                 │ 'club-test'         │
+│ appContextReady        │ true                │
+│ profilesDocCount       │ 2                   │
+│ transactionsDocCount   │ 1                   │
+│ inventoryDocCount      │ 1                   │
+│ storeProfilesCount     │ 2                   │
+│ storeTransactionsCount │ 1                   │
+│ storeInventoryCount    │ 1                   │
+│ settingsLoaded         │ true                │
+│ clubLoaded             │ true                │
+│ lastReason             │ 'phase-4k-6t-check' │
+└────────────────────────┴─────────────────────┘
+┌─────────────────────────────┬───────────┐
+│ (index)                     │ Values    │
+├─────────────────────────────┼───────────┤
+│ currentTab                  │ 'tuition' │
+│ selectedMonth               │ '2026-06' │
+│ profilesCount               │ 2         │
+│ transactionsCount           │ 1         │
+│ transactionsInSelectedMonth │ 1         │
+│ inventoryCount              │ 1         │
+│ tuitionTabCanRender         │ true      │
+│ debtTabCanRender            │ true      │
+│ inventoryTabCanRender       │ true      │
+│ dashboardCanRender          │ true      │
+└─────────────────────────────┴───────────┘
+┌────────────────────────┬─────────────────────┐
+│ (index)                │ Values              │
+├────────────────────────┼─────────────────────┤
+│ clubId                 │ 'club-test'         │
+│ appContextReady        │ true                │
+│ profilesDocCount       │ 2                   │
+│ transactionsDocCount   │ 1                   │
+│ inventoryDocCount      │ 1                   │
+│ storeProfilesCount     │ 2                   │
+│ storeTransactionsCount │ 1                   │
+│ storeInventoryCount    │ 1                   │
+│ settingsLoaded         │ true                │
+│ clubLoaded             │ true                │
+│ lastReason             │ 'phase-4k-6t-check' │
+└────────────────────────┴─────────────────────┘
+┌─────────────────────────────┬───────────┐
+│ (index)                     │ Values    │
+├─────────────────────────────┼───────────┤
+│ currentTab                  │ 'tuition' │
+│ selectedMonth               │ '2026-06' │
+│ profilesCount               │ 2         │
+│ transactionsCount           │ 1         │
+│ transactionsInSelectedMonth │ 1         │
+│ inventoryCount              │ 1         │
+│ tuitionTabCanRender         │ true      │
+│ debtTabCanRender            │ true      │
+│ inventoryTabCanRender       │ true      │
+│ dashboardCanRender          │ true      │
+└─────────────────────────────┴───────────┘
+┌─────────────────────┬───────────┐
+│ (index)             │ Values    │
+├─────────────────────┼───────────┤
+│ activeDataSource    │ 'primary' │
+│ profilesCount       │ 2         │
+│ transactionsCount   │ 1         │
+│ inventoryCount      │ 1         │
+│ tuitionReady        │ true      │
+│ debtReady           │ true      │
+│ activeStudentsReady │ true      │
+│ quitStudentsReady   │ true      │
+│ inventoryReady      │ true      │
+│ dashboardReady      │ true      │
+│ warnings            │ 'none'    │
+└─────────────────────┴───────────┘
+[PilotReadiness] ✅ Tất cả tabs sẵn sàng cho pilot!
+┌─────────────────────┬───────────┐
+│ (index)             │ Values    │
+├─────────────────────┼───────────┤
+│ activeDataSource    │ 'primary' │
+│ profilesCount       │ 2         │
+│ transactionsCount   │ 1         │
+│ inventoryCount      │ 1         │
+│ tuitionReady        │ true      │
+│ debtReady           │ true      │
+│ activeStudentsReady │ true      │
+│ quitStudentsReady   │ true      │
+│ inventoryReady      │ true      │
+│ dashboardReady      │ true      │
+│ warnings            │ 'none'    │
+└─────────────────────┴───────────┘
+[PilotReadiness] ✅ Tất cả tabs sẵn sàng cho pilot!
+┌─────────────────────┬───────────┐
+│ (index)             │ Values    │
+├─────────────────────┼───────────┤
+│ activeDataSource    │ 'primary' │
+│ profilesCount       │ 2         │
+│ transactionsCount   │ 1         │
+│ inventoryCount      │ 1         │
+│ tuitionReady        │ true      │
+│ debtReady           │ true      │
+│ activeStudentsReady │ true      │
+│ quitStudentsReady   │ true      │
+│ inventoryReady      │ true      │
+│ dashboardReady      │ true      │
+│ warnings            │ 'none'    │
+└─────────────────────┴───────────┘
+[PilotReadiness] ✅ Tất cả tabs sẵn sàng cho pilot!
+┌──────────────────────┬───────────┐
+│ (index)              │ Values    │
+├──────────────────────┼───────────┤
+│ runtimeRecovery      │           │
+│ activeDataSource     │ 'primary' │
+│ profilesCount        │ 2         │
+│ transactionsCount    │ 1         │
+│ inventoryCount       │ 1         │
+│ tuitionReady         │ true      │
+│ debtReady            │ true      │
+│ inventoryReady       │ true      │
+│ dashboardReady       │ true      │
+│ readyForInternalTest │ true      │
+│ readyForOneClubPilot │ true      │
+│ readyForTenClubPilot │ true      │
+│ pilotBlockers        │           │
+└──────────────────────┴───────────┘
+┌─────────────────────┬───────────┐
+│ (index)             │ Values    │
+├─────────────────────┼───────────┤
+│ activeDataSource    │ 'primary' │
+│ profilesCount       │ 2         │
+│ transactionsCount   │ 1         │
+│ inventoryCount      │ 1         │
+│ tuitionReady        │ true      │
+│ debtReady           │ true      │
+│ activeStudentsReady │ true      │
+│ quitStudentsReady   │ true      │
+│ inventoryReady      │ true      │
+│ dashboardReady      │ true      │
+│ warnings            │ 'none'    │
+└─────────────────────┴───────────┘
+[PilotReadiness] ✅ Tất cả tabs sẵn sàng cho pilot!
+┌──────────────────────┬───────────┐
+│ (index)              │ Values    │
+├──────────────────────┼───────────┤
+│ runtimeRecovery      │           │
+│ activeDataSource     │ 'primary' │
+│ profilesCount        │ 2         │
+│ transactionsCount    │ 1         │
+│ inventoryCount       │ 1         │
+│ tuitionReady         │ true      │
+│ debtReady            │ true      │
+│ inventoryReady       │ true      │
+│ dashboardReady       │ true      │
+│ readyForInternalTest │ true      │
+│ readyForOneClubPilot │ true      │
+│ readyForTenClubPilot │ true      │
+│ pilotBlockers        │           │
+└──────────────────────┴───────────┘
+┌────────────────────────┬─────────────────────┐
+│ (index)                │ Values              │
+├────────────────────────┼─────────────────────┤
+│ clubId                 │ 'club-test'         │
+│ appContextReady        │ true                │
+│ profilesDocCount       │ 2                   │
+│ transactionsDocCount   │ 1                   │
+│ inventoryDocCount      │ 1                   │
+│ storeProfilesCount     │ 2                   │
+│ storeTransactionsCount │ 1                   │
+│ storeInventoryCount    │ 1                   │
+│ settingsLoaded         │ true                │
+│ clubLoaded             │ true                │
+│ lastReason             │ 'phase-4k-6t-check' │
+└────────────────────────┴─────────────────────┘
+┌─────────────────────┬───────────┐
+│ (index)             │ Values    │
+├─────────────────────┼───────────┤
+│ activeDataSource    │ 'primary' │
+│ profilesCount       │ 2         │
+│ transactionsCount   │ 1         │
+│ inventoryCount      │ 1         │
+│ tuitionReady        │ true      │
+│ debtReady           │ true      │
+│ activeStudentsReady │ true      │
+│ quitStudentsReady   │ true      │
+│ inventoryReady      │ true      │
+│ dashboardReady      │ true      │
+│ warnings            │ 'none'    │
+└─────────────────────┴───────────┘
+[PilotReadiness] ✅ Tất cả tabs sẵn sàng cho pilot!
+┌──────────────────────┬───────────┐
+│ (index)              │ Values    │
+├──────────────────────┼───────────┤
+│ activeDataSource     │ 'primary' │
+│ profilesCount        │ 2         │
+│ transactionsCount    │ 1         │
+│ inventoryCount       │ 1         │
+│ readyForOneClubPilot │ true      │
+│ readyForTenClubPilot │ true      │
+│ blockers             │           │
+└──────────────────────┴───────────┘
+┌──────────────────────┬───────────┐
+│ (index)              │ Values    │
+├──────────────────────┼───────────┤
+│ readyForInternalTest │ true      │
+│ readyForOneClubPilot │ true      │
+│ readyForTenClubPilot │ true      │
+│ activeDataSource     │ 'primary' │
+│ profilesCount        │ 2         │
+│ transactionsCount    │ 1         │
+│ inventoryCount       │ 1         │
+│ tuitionReady         │ true      │
+│ debtReady            │ true      │
+│ dashboardReady       │ true      │
+│ inventoryReady       │ true      │
+│ blockers             │           │
+└──────────────────────┴───────────┘
+[printOneClubPilotGate] ✅ GO — sẵn sàng pilot 1 CLB.
+┌─────────────────────┬───────────┐
+│ (index)             │ Values    │
+├─────────────────────┼───────────┤
+│ activeDataSource    │ 'primary' │
+│ profilesCount       │ 2         │
+│ transactionsCount   │ 1         │
+│ inventoryCount      │ 1         │
+│ tuitionReady        │ true      │
+│ debtReady           │ true      │
+│ activeStudentsReady │ true      │
+│ quitStudentsReady   │ true      │
+│ inventoryReady      │ true      │
+│ dashboardReady      │ true      │
+│ warnings            │ 'none'    │
+└─────────────────────┴───────────┘
+[PilotReadiness] ✅ Tất cả tabs sẵn sàng cho pilot!
+┌──────────────────────┬───────────┐
+│ (index)              │ Values    │
+├──────────────────────┼───────────┤
+│ runtimeRecovery      │           │
+│ activeDataSource     │ 'primary' │
+│ profilesCount        │ 2         │
+│ transactionsCount    │ 1         │
+│ inventoryCount       │ 1         │
+│ tuitionReady         │ true      │
+│ debtReady            │ true      │
+│ inventoryReady       │ true      │
+│ dashboardReady       │ true      │
+│ readyForInternalTest │ true      │
+│ readyForOneClubPilot │ true      │
+│ readyForTenClubPilot │ true      │
+│ pilotBlockers        │           │
+└──────────────────────┴───────────┘
+┌────────────────────────┬─────────────────────┐
+│ (index)                │ Values              │
+├────────────────────────┼─────────────────────┤
+│ clubId                 │ 'club-test'         │
+│ appContextReady        │ true                │
+│ profilesDocCount       │ 2                   │
+│ transactionsDocCount   │ 1                   │
+│ inventoryDocCount      │ 1                   │
+│ storeProfilesCount     │ 2                   │
+│ storeTransactionsCount │ 1                   │
+│ storeInventoryCount    │ 1                   │
+│ settingsLoaded         │ true                │
+│ clubLoaded             │ true                │
+│ lastReason             │ 'phase-4k-6t-check' │
+└────────────────────────┴─────────────────────┘
+┌─────────────────────┬───────────┐
+│ (index)             │ Values    │
+├─────────────────────┼───────────┤
+│ activeDataSource    │ 'primary' │
+│ profilesCount       │ 2         │
+│ transactionsCount   │ 1         │
+│ inventoryCount      │ 1         │
+│ tuitionReady        │ true      │
+│ debtReady           │ true      │
+│ activeStudentsReady │ true      │
+│ quitStudentsReady   │ true      │
+│ inventoryReady      │ true      │
+│ dashboardReady      │ true      │
+│ warnings            │ 'none'    │
+└─────────────────────┴───────────┘
+[PilotReadiness] ✅ Tất cả tabs sẵn sàng cho pilot!
+┌──────────────────────┬───────────┐
+│ (index)              │ Values    │
+├──────────────────────┼───────────┤
+│ activeDataSource     │ 'primary' │
+│ profilesCount        │ 2         │
+│ transactionsCount    │ 1         │
+│ inventoryCount       │ 1         │
+│ readyForOneClubPilot │ true      │
+│ readyForTenClubPilot │ true      │
+│ blockers             │           │
+└──────────────────────┴───────────┘
+[runOnboardingGate] ✅ PASS — clubId: club-test — 2026-10-20T17:06:53.081Z
+  ┌──────────────────────┬─────────────┐
+  │ (index)              │ Values      │
+  ├──────────────────────┼─────────────┤
+  │ clubId               │ 'club-test' │
+  │ activeDataSource     │ 'primary'   │
+  │ readyForOneClubPilot │ true        │
+  │ readyForTenClubPilot │ true        │
+  │ profilesCount        │ 2           │
+  │ transactionsCount    │ 1           │
+  │ inventoryCount       │ 1           │
+  │ tuitionReady         │ true        │
+  │ debtReady            │ true        │
+  │ dashboardReady       │ true        │
+  │ blockers             │ 'none'      │
+  │ warnings             │ 'none'      │
+  └──────────────────────┴─────────────┘
+[debugDiagnosticsToolingIsolation] {
+  ok: true,
+  phase: '4K-6T-legacy-diagnostics-pilot-audit-tooling-isolation',
+  runtimeGlobalCount: 9,
+  lazyGlobalCount: 6,
+  onboardingLoaded: true,
+  superAdminAuditLoaded: false,
+  ownership: [
+    {
+      name: 'debugMobileSuperAdminGate',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printDataHydrationStatus',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printTabDataStatus',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printFirestorePathStatus',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printPilotTabReadiness',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printPilotLaunchStatus',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printTenClubPilotReadiness',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'generatePilotLaunchSnapshot',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printOneClubPilotGate',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'runOnboardingGate',
+      owner: 'js/diagnostics/legacyDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printOnboardingGate',
+      owner: 'js/diagnostics/legacyDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'generateOnboardingReportText',
+      owner: 'js/diagnostics/legacyDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'runSuperAdminAudit',
+      owner: 'js/diagnostics/legacyDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printSuperAdminAudit',
+      owner: 'js/diagnostics/legacyDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'generateSuperAdminAuditReportText',
+      owner: 'js/diagnostics/legacyDiagnostics.js',
+      installed: true
+    }
+  ]
+}
+┌─────────┬─────────────────────────────────────┬─────────────────────────────────────────────────┬───────────┐
+│ (index) │ name                                │ owner                                           │ installed │
+├─────────┼─────────────────────────────────────┼─────────────────────────────────────────────────┼───────────┤
+│ 0       │ 'debugMobileSuperAdminGate'         │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 1       │ 'printDataHydrationStatus'          │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 2       │ 'printTabDataStatus'                │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 3       │ 'printFirestorePathStatus'          │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 4       │ 'printPilotTabReadiness'            │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 5       │ 'printPilotLaunchStatus'            │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 6       │ 'printTenClubPilotReadiness'        │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 7       │ 'generatePilotLaunchSnapshot'       │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 8       │ 'printOneClubPilotGate'             │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 9       │ 'runOnboardingGate'                 │ 'js/diagnostics/legacyDiagnostics.js'           │ true      │
+│ 10      │ 'printOnboardingGate'               │ 'js/diagnostics/legacyDiagnostics.js'           │ true      │
+│ 11      │ 'generateOnboardingReportText'      │ 'js/diagnostics/legacyDiagnostics.js'           │ true      │
+│ 12      │ 'runSuperAdminAudit'                │ 'js/diagnostics/legacyDiagnostics.js'           │ true      │
+│ 13      │ 'printSuperAdminAudit'              │ 'js/diagnostics/legacyDiagnostics.js'           │ true      │
+│ 14      │ 'generateSuperAdminAuditReportText' │ 'js/diagnostics/legacyDiagnostics.js'           │ true      │
+└─────────┴─────────────────────────────────────┴─────────────────────────────────────────────────┴───────────┘
+┌────────────────────────┬─────────────────────┐
+│ (index)                │ Values              │
+├────────────────────────┼─────────────────────┤
+│ clubId                 │ 'club-test'         │
+│ appContextReady        │ true                │
+│ profilesDocCount       │ 2                   │
+│ transactionsDocCount   │ 1                   │
+│ inventoryDocCount      │ 1                   │
+│ storeProfilesCount     │ 2                   │
+│ storeTransactionsCount │ 1                   │
+│ storeInventoryCount    │ 1                   │
+│ settingsLoaded         │ true                │
+│ clubLoaded             │ true                │
+│ lastReason             │ 'phase-4k-6t-check' │
+└────────────────────────┴─────────────────────┘
+┌─────────────────────────────┬───────────┐
+│ (index)                     │ Values    │
+├─────────────────────────────┼───────────┤
+│ currentTab                  │ 'tuition' │
+│ selectedMonth               │ '2026-06' │
+│ profilesCount               │ 2         │
+│ transactionsCount           │ 1         │
+│ transactionsInSelectedMonth │ 1         │
+│ inventoryCount              │ 1         │
+│ tuitionTabCanRender         │ true      │
+│ debtTabCanRender            │ true      │
+│ inventoryTabCanRender       │ true      │
+│ dashboardCanRender          │ true      │
+└─────────────────────────────┴───────────┘
+┌─────────────────────┬───────────┐
+│ (index)             │ Values    │
+├─────────────────────┼───────────┤
+│ activeDataSource    │ 'primary' │
+│ profilesCount       │ 2         │
+│ transactionsCount   │ 1         │
+│ inventoryCount      │ 1         │
+│ tuitionReady        │ true      │
+│ debtReady           │ true      │
+│ activeStudentsReady │ true      │
+│ quitStudentsReady   │ true      │
+│ inventoryReady      │ true      │
+│ dashboardReady      │ true      │
+│ warnings            │ 'none'    │
+└─────────────────────┴───────────┘
+[PilotReadiness] ✅ Tất cả tabs sẵn sàng cho pilot!
+┌─────────────────────┬───────────┐
+│ (index)             │ Values    │
+├─────────────────────┼───────────┤
+│ activeDataSource    │ 'primary' │
+│ profilesCount       │ 2         │
+│ transactionsCount   │ 1         │
+│ inventoryCount      │ 1         │
+│ tuitionReady        │ true      │
+│ debtReady           │ true      │
+│ activeStudentsReady │ true      │
+│ quitStudentsReady   │ true      │
+│ inventoryReady      │ true      │
+│ dashboardReady      │ true      │
+│ warnings            │ 'none'    │
+└─────────────────────┴───────────┘
+[PilotReadiness] ✅ Tất cả tabs sẵn sàng cho pilot!
+┌─────────────────────┬───────────┐
+│ (index)             │ Values    │
+├─────────────────────┼───────────┤
+│ activeDataSource    │ 'primary' │
+│ profilesCount       │ 2         │
+│ transactionsCount   │ 1         │
+│ inventoryCount      │ 1         │
+│ tuitionReady        │ true      │
+│ debtReady           │ true      │
+│ activeStudentsReady │ true      │
+│ quitStudentsReady   │ true      │
+│ inventoryReady      │ true      │
+│ dashboardReady      │ true      │
+│ warnings            │ 'none'    │
+└─────────────────────┴───────────┘
+[PilotReadiness] ✅ Tất cả tabs sẵn sàng cho pilot!
+┌──────────────────────┬───────────┐
+│ (index)              │ Values    │
+├──────────────────────┼───────────┤
+│ runtimeRecovery      │           │
+│ activeDataSource     │ 'primary' │
+│ profilesCount        │ 2         │
+│ transactionsCount    │ 1         │
+│ inventoryCount       │ 1         │
+│ tuitionReady         │ true      │
+│ debtReady            │ true      │
+│ inventoryReady       │ true      │
+│ dashboardReady       │ true      │
+│ readyForInternalTest │ true      │
+│ readyForOneClubPilot │ true      │
+│ readyForTenClubPilot │ true      │
+│ pilotBlockers        │           │
+└──────────────────────┴───────────┘
+┌─────────────────────┬───────────┐
+│ (index)             │ Values    │
+├─────────────────────┼───────────┤
+│ activeDataSource    │ 'primary' │
+│ profilesCount       │ 2         │
+│ transactionsCount   │ 1         │
+│ inventoryCount      │ 1         │
+│ tuitionReady        │ true      │
+│ debtReady           │ true      │
+│ activeStudentsReady │ true      │
+│ quitStudentsReady   │ true      │
+│ inventoryReady      │ true      │
+│ dashboardReady      │ true      │
+│ warnings            │ 'none'    │
+└─────────────────────┴───────────┘
+[PilotReadiness] ✅ Tất cả tabs sẵn sàng cho pilot!
+┌──────────────────────┬───────────┐
+│ (index)              │ Values    │
+├──────────────────────┼───────────┤
+│ runtimeRecovery      │           │
+│ activeDataSource     │ 'primary' │
+│ profilesCount        │ 2         │
+│ transactionsCount    │ 1         │
+│ inventoryCount       │ 1         │
+│ tuitionReady         │ true      │
+│ debtReady            │ true      │
+│ inventoryReady       │ true      │
+│ dashboardReady       │ true      │
+│ readyForInternalTest │ true      │
+│ readyForOneClubPilot │ true      │
+│ readyForTenClubPilot │ true      │
+│ pilotBlockers        │           │
+└──────────────────────┴───────────┘
+┌────────────────────────┬─────────────────────┐
+│ (index)                │ Values              │
+├────────────────────────┼─────────────────────┤
+│ clubId                 │ 'club-test'         │
+│ appContextReady        │ true                │
+│ profilesDocCount       │ 2                   │
+│ transactionsDocCount   │ 1                   │
+│ inventoryDocCount      │ 1                   │
+│ storeProfilesCount     │ 2                   │
+│ storeTransactionsCount │ 1                   │
+│ storeInventoryCount    │ 1                   │
+│ settingsLoaded         │ true                │
+│ clubLoaded             │ true                │
+│ lastReason             │ 'phase-4k-6t-check' │
+└────────────────────────┴─────────────────────┘
+┌─────────────────────┬───────────┐
+│ (index)             │ Values    │
+├─────────────────────┼───────────┤
+│ activeDataSource    │ 'primary' │
+│ profilesCount       │ 2         │
+│ transactionsCount   │ 1         │
+│ inventoryCount      │ 1         │
+│ tuitionReady        │ true      │
+│ debtReady           │ true      │
+│ activeStudentsReady │ true      │
+│ quitStudentsReady   │ true      │
+│ inventoryReady      │ true      │
+│ dashboardReady      │ true      │
+│ warnings            │ 'none'    │
+└─────────────────────┴───────────┘
+[PilotReadiness] ✅ Tất cả tabs sẵn sàng cho pilot!
+┌──────────────────────┬───────────┐
+│ (index)              │ Values    │
+├──────────────────────┼───────────┤
+│ activeDataSource     │ 'primary' │
+│ profilesCount        │ 2         │
+│ transactionsCount    │ 1         │
+│ inventoryCount       │ 1         │
+│ readyForOneClubPilot │ true      │
+│ readyForTenClubPilot │ true      │
+│ blockers             │           │
+└──────────────────────┴───────────┘
+┌──────────────────────┬───────────┐
+│ (index)              │ Values    │
+├──────────────────────┼───────────┤
+│ readyForInternalTest │ true      │
+│ readyForOneClubPilot │ true      │
+│ readyForTenClubPilot │ true      │
+│ activeDataSource     │ 'primary' │
+│ profilesCount        │ 2         │
+│ transactionsCount    │ 1         │
+│ inventoryCount       │ 1         │
+│ tuitionReady         │ true      │
+│ debtReady            │ true      │
+│ dashboardReady       │ true      │
+│ inventoryReady       │ true      │
+│ blockers             │           │
+└──────────────────────┴───────────┘
+[printOneClubPilotGate] ✅ GO — sẵn sàng pilot 1 CLB.
+┌─────────────────────┬───────────┐
+│ (index)             │ Values    │
+├─────────────────────┼───────────┤
+│ activeDataSource    │ 'primary' │
+│ profilesCount       │ 2         │
+│ transactionsCount   │ 1         │
+│ inventoryCount      │ 1         │
+│ tuitionReady        │ true      │
+│ debtReady           │ true      │
+│ activeStudentsReady │ true      │
+│ quitStudentsReady   │ true      │
+│ inventoryReady      │ true      │
+│ dashboardReady      │ true      │
+│ warnings            │ 'none'    │
+└─────────────────────┴───────────┘
+[PilotReadiness] ✅ Tất cả tabs sẵn sàng cho pilot!
+┌──────────────────────┬───────────┐
+│ (index)              │ Values    │
+├──────────────────────┼───────────┤
+│ runtimeRecovery      │           │
+│ activeDataSource     │ 'primary' │
+│ profilesCount        │ 2         │
+│ transactionsCount    │ 1         │
+│ inventoryCount       │ 1         │
+│ tuitionReady         │ true      │
+│ debtReady            │ true      │
+│ inventoryReady       │ true      │
+│ dashboardReady       │ true      │
+│ readyForInternalTest │ true      │
+│ readyForOneClubPilot │ true      │
+│ readyForTenClubPilot │ true      │
+│ pilotBlockers        │           │
+└──────────────────────┴───────────┘
+┌────────────────────────┬─────────────────────┐
+│ (index)                │ Values              │
+├────────────────────────┼─────────────────────┤
+│ clubId                 │ 'club-test'         │
+│ appContextReady        │ true                │
+│ profilesDocCount       │ 2                   │
+│ transactionsDocCount   │ 1                   │
+│ inventoryDocCount      │ 1                   │
+│ storeProfilesCount     │ 2                   │
+│ storeTransactionsCount │ 1                   │
+│ storeInventoryCount    │ 1                   │
+│ settingsLoaded         │ true                │
+│ clubLoaded             │ true                │
+│ lastReason             │ 'phase-4k-6t-check' │
+└────────────────────────┴─────────────────────┘
+┌─────────────────────┬───────────┐
+│ (index)             │ Values    │
+├─────────────────────┼───────────┤
+│ activeDataSource    │ 'primary' │
+│ profilesCount       │ 2         │
+│ transactionsCount   │ 1         │
+│ inventoryCount      │ 1         │
+│ tuitionReady        │ true      │
+│ debtReady           │ true      │
+│ activeStudentsReady │ true      │
+│ quitStudentsReady   │ true      │
+│ inventoryReady      │ true      │
+│ dashboardReady      │ true      │
+│ warnings            │ 'none'    │
+└─────────────────────┴───────────┘
+[PilotReadiness] ✅ Tất cả tabs sẵn sàng cho pilot!
+┌──────────────────────┬───────────┐
+│ (index)              │ Values    │
+├──────────────────────┼───────────┤
+│ activeDataSource     │ 'primary' │
+│ profilesCount        │ 2         │
+│ transactionsCount    │ 1         │
+│ inventoryCount       │ 1         │
+│ readyForOneClubPilot │ true      │
+│ readyForTenClubPilot │ true      │
+│ blockers             │           │
+└──────────────────────┴───────────┘
+[runOnboardingGate] ✅ PASS — clubId: club-test — 2026-10-20T17:06:53.085Z
+  ┌──────────────────────┬─────────────┐
+  │ (index)              │ Values      │
+  ├──────────────────────┼─────────────┤
+  │ clubId               │ 'club-test' │
+  │ activeDataSource     │ 'primary'   │
+  │ readyForOneClubPilot │ true        │
+  │ readyForTenClubPilot │ true        │
+  │ profilesCount        │ 2           │
+  │ transactionsCount    │ 1           │
+  │ inventoryCount       │ 1           │
+  │ tuitionReady         │ true        │
+  │ debtReady            │ true        │
+  │ dashboardReady       │ true        │
+  │ blockers             │ 'none'      │
+  │ warnings             │ 'none'      │
+  └──────────────────────┴─────────────┘
+[runSuperAdminAudit] Audit — pilot — 2026-10-20T17:06:53.085Z
+  totalClubs: 1
+  readyForPilotCount: 0
+  blockedCount: 1
+  blockersSummary: [ 'No profiles loaded' ]
+[debugDiagnosticsToolingIsolation] {
+  ok: true,
+  phase: '4K-6T-legacy-diagnostics-pilot-audit-tooling-isolation',
+  runtimeGlobalCount: 9,
+  lazyGlobalCount: 6,
+  onboardingLoaded: true,
+  superAdminAuditLoaded: true,
+  ownership: [
+    {
+      name: 'debugMobileSuperAdminGate',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printDataHydrationStatus',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printTabDataStatus',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printFirestorePathStatus',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printPilotTabReadiness',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printPilotLaunchStatus',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printTenClubPilotReadiness',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'generatePilotLaunchSnapshot',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printOneClubPilotGate',
+      owner: 'js/diagnostics/runtimeReadinessDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'runOnboardingGate',
+      owner: 'js/diagnostics/legacyDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printOnboardingGate',
+      owner: 'js/diagnostics/legacyDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'generateOnboardingReportText',
+      owner: 'js/diagnostics/legacyDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'runSuperAdminAudit',
+      owner: 'js/diagnostics/legacyDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'printSuperAdminAudit',
+      owner: 'js/diagnostics/legacyDiagnostics.js',
+      installed: true
+    },
+    {
+      name: 'generateSuperAdminAuditReportText',
+      owner: 'js/diagnostics/legacyDiagnostics.js',
+      installed: true
+    }
+  ]
+}
+┌─────────┬─────────────────────────────────────┬─────────────────────────────────────────────────┬───────────┐
+│ (index) │ name                                │ owner                                           │ installed │
+├─────────┼─────────────────────────────────────┼─────────────────────────────────────────────────┼───────────┤
+│ 0       │ 'debugMobileSuperAdminGate'         │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 1       │ 'printDataHydrationStatus'          │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 2       │ 'printTabDataStatus'                │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 3       │ 'printFirestorePathStatus'          │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 4       │ 'printPilotTabReadiness'            │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 5       │ 'printPilotLaunchStatus'            │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 6       │ 'printTenClubPilotReadiness'        │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 7       │ 'generatePilotLaunchSnapshot'       │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 8       │ 'printOneClubPilotGate'             │ 'js/diagnostics/runtimeReadinessDiagnostics.js' │ true      │
+│ 9       │ 'runOnboardingGate'                 │ 'js/diagnostics/legacyDiagnostics.js'           │ true      │
+│ 10      │ 'printOnboardingGate'               │ 'js/diagnostics/legacyDiagnostics.js'           │ true      │
+│ 11      │ 'generateOnboardingReportText'      │ 'js/diagnostics/legacyDiagnostics.js'           │ true      │
+│ 12      │ 'runSuperAdminAudit'                │ 'js/diagnostics/legacyDiagnostics.js'           │ true      │
+│ 13      │ 'printSuperAdminAudit'              │ 'js/diagnostics/legacyDiagnostics.js'           │ true      │
+│ 14      │ 'generateSuperAdminAuditReportText' │ 'js/diagnostics/legacyDiagnostics.js'           │ true      │
+└─────────┴─────────────────────────────────────┴─────────────────────────────────────────────────┴───────────┘
+✅ js/diagnostics/runtimeReadinessDiagnostics.js exists
+✅ js/diagnostics/onboardingDiagnostics.js exists
+✅ js/diagnostics/superAdminAuditDiagnostics.js exists
+✅ js/diagnostics/legacyDiagnostics.js exists
+✅ onboarding diagnostics are lazy-loaded
+✅ SuperAdmin audit diagnostics are lazy-loaded
+✅ main.js does not eagerly import onboarding diagnostics
+✅ main.js does not eagerly import SuperAdmin audit diagnostics
+✅ main.js retains compatibility facade entrypoint
+✅ ownership registry initializes before diagnostics ownership
+✅ diagnostics contain no setDoc() call
+✅ diagnostics contain no updateDoc() call
+✅ diagnostics contain no addDoc() call
+✅ diagnostics contain no deleteDoc() call
+✅ diagnostics contain no writeBatch() call
+✅ diagnostics contain no runTransaction() call
+✅ diagnostics contain no onSnapshot() call
+✅ diagnostics contain no increment() call
+✅ diagnostics contain no arrayUnion() call
+✅ diagnostics contain no arrayRemove() call
+✅ runtime Firestore path diagnostics use limit(1)
+✅ SuperAdmin audit probes use limit(1)
+✅ runtime diagnostics do not issue unbounded compat get()
+✅ compat SuperAdmin probe remains bounded to one document
+✅ app.js no longer assigns window.debugMobileSuperAdminGate
+✅ app.js no longer defines debugMobileSuperAdminGate()
+✅ ownership manifest includes debugMobileSuperAdminGate
+✅ app.js no longer assigns window.printDataHydrationStatus
+✅ app.js no longer defines printDataHydrationStatus()
+✅ ownership manifest includes printDataHydrationStatus
+✅ app.js no longer assigns window.printTabDataStatus
+✅ app.js no longer defines printTabDataStatus()
+✅ ownership manifest includes printTabDataStatus
+✅ app.js no longer assigns window.printFirestorePathStatus
+✅ app.js no longer defines printFirestorePathStatus()
+✅ ownership manifest includes printFirestorePathStatus
+✅ app.js no longer assigns window.printPilotTabReadiness
+✅ app.js no longer defines printPilotTabReadiness()
+✅ ownership manifest includes printPilotTabReadiness
+✅ app.js no longer assigns window.printPilotLaunchStatus
+✅ app.js no longer defines printPilotLaunchStatus()
+✅ ownership manifest includes printPilotLaunchStatus
+✅ app.js no longer assigns window.printTenClubPilotReadiness
+✅ app.js no longer defines printTenClubPilotReadiness()
+✅ ownership manifest includes printTenClubPilotReadiness
+✅ app.js no longer assigns window.generatePilotLaunchSnapshot
+✅ app.js no longer defines generatePilotLaunchSnapshot()
+✅ ownership manifest includes generatePilotLaunchSnapshot
+✅ app.js no longer assigns window.printOneClubPilotGate
+✅ app.js no longer defines printOneClubPilotGate()
+✅ ownership manifest includes printOneClubPilotGate
+✅ app.js no longer assigns window.runOnboardingGate
+✅ app.js no longer defines runOnboardingGate()
+✅ ownership manifest includes runOnboardingGate
+✅ app.js no longer assigns window.printOnboardingGate
+✅ app.js no longer defines printOnboardingGate()
+✅ ownership manifest includes printOnboardingGate
+✅ app.js no longer assigns window.generateOnboardingReportText
+✅ app.js no longer defines generateOnboardingReportText()
+✅ ownership manifest includes generateOnboardingReportText
+✅ app.js no longer assigns window.runSuperAdminAudit
+✅ app.js no longer defines runSuperAdminAudit()
+✅ ownership manifest includes runSuperAdminAudit
+✅ app.js no longer assigns window.printSuperAdminAudit
+✅ app.js no longer defines printSuperAdminAudit()
+✅ ownership manifest includes printSuperAdminAudit
+✅ app.js no longer assigns window.generateSuperAdminAuditReportText
+✅ app.js no longer defines generateSuperAdminAuditReportText()
+✅ ownership manifest includes generateSuperAdminAuditReportText
+✅ app.js no longer contains probeClubDataReadOnly implementation
+✅ protected runtime kernel remains in app.js: bumpRuntimeDataVersion
+✅ diagnostics do not take ownership of bumpRuntimeDataVersion
+✅ protected runtime kernel remains in app.js: activateLegacyRootFallback
+✅ diagnostics do not take ownership of activateLegacyRootFallback
+✅ protected runtime kernel remains in app.js: runRuntimeDataRecovery
+✅ diagnostics do not take ownership of runRuntimeDataRecovery
+✅ protected runtime kernel remains in app.js: renderApp
+✅ diagnostics do not take ownership of renderApp
+✅ protected runtime kernel remains in app.js: scheduleRender
+✅ diagnostics do not take ownership of scheduleRender
+✅ protected runtime kernel remains in app.js: initSaaSDatabase
+✅ diagnostics do not take ownership of initSaaSDatabase
+✅ protected runtime kernel remains in app.js: listenToData
+✅ diagnostics do not take ownership of listenToData
+✅ app.js reduced to 696,906 bytes (target <= 760,000)
+✅ app.js reduced to 11,291 lines (target <= 12,200)
+✅ obsolete embedded Firestore rules comment was removed from app.js
+✅ firestore.rules remains the rules source of truth
+✅ registry reports current phase while retaining 4K-6T diagnostics ownership
+✅ main.js retains Phase 4K-6T compatibility marker
+✅ active build version is Phase 4K-6V or a later compatible phase
+✅ app.js cache-bust advances beyond Phase 4K-6T
+✅ main.js cache-bust advances beyond Phase 4K-6T
+✅ main initializes extracted diagnostics facade
+✅ package exposes Phase 4K-6T checker
+✅ default check includes Phase 4K-6T
+✅ check:all includes Phase 4K-6T
+✅ critical suite includes Phase 4K-6T
+✅ diagnostics facade installs every extracted global
+✅ nine runtime diagnostics are eager
+✅ six diagnostics are lazy wrappers
+✅ onboarding implementation is not loaded during startup
+✅ SuperAdmin audit implementation is not loaded during startup
+✅ all 15 extracted diagnostics have canonical owners
+✅ all diagnostic canonical globals remain installed
+✅ registered diagnostic ownership references are healthy
+✅ hydration diagnostics read the shared store correctly
+✅ tab diagnostics preserve month/readiness contract
+✅ lazy onboarding gate returns its structured contract
+✅ onboarding module loads only after first use
+✅ SuperAdmin audit remains unloaded after onboarding use
+✅ lazy SuperAdmin audit returns its structured contract
+✅ SuperAdmin audit module loads only after first use
+✅ diagnostic ownership creates no collision
+
+✅ Phase 4K-6T check passed (114 assertions)
+

@@ -1,0 +1,32 @@
+
+══════════════════════════════════════════════════════════
+  Phase 4K-FIX — SuperAdmin Count Cost Check
+══════════════════════════════════════════════════════════
+
+▸ Section 1: countDocs() Implementation (superadmin.js)
+  ✅ superadmin.js exists
+  ✅ countDocs does NOT use getDocs().size
+  ✅ No unbounded getDocs on transactions collection
+  ✅ No unbounded getDocs on profiles collection
+  ✅ Uses getCountFromServer for O(1) count
+  ✅ Has cached count logic (cachedActiveCount)
+  ✅ Handles null counts gracefully (displays -- or n/a)
+
+▸ Section 2: loadSARevenue reads income.total (app.js)
+  ✅ app.js exists
+  ✅ loadSARevenue reads income?.total nested
+  ✅ loadSARevenue reads 'income.total' flat key
+  ✅ loadSARevenue reads totalRevenue fallback
+  ✅ loadSARevenue has fallback warning log
+  ✅ loadSARevenue does NOT use old limited typeof check
+
+▸ Section 3: Null-safe count usage in SuperAdmin
+  ✅ estimatedKB calculated safely with null-safe counts
+
+══════════════════════════════════════════════════════════
+  Total: 14 checks | ✅ Pass: 14 | ❌ Fail: 0
+
+  🎉 All SuperAdmin count checks passed!
+  SuperAdmin không scan full collection chỉ để đếm.
+══════════════════════════════════════════════════════════
+
