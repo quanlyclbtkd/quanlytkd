@@ -1,3 +1,4 @@
+import {syntheticForUrl,asData,publishExistingSettingsFixture} from './qr-v7/harness.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
@@ -19,14 +20,15 @@ const previewHelper=extract(app,'const _waitReceiptPreviewReady = async','const 
 async function receiptRun({report=true,acct=bankCfg,branch='CS1',amount=350000, badNetwork=false, encoded='png', stale=false, errorOnImage=false, caption='PHIẾU BÁO HỌC PHÍ', name='MOCK ALICE',breakdown=null, authReady=true}={}){
  const doc=domMock();let fetchCalls=[], canvasArgs=[],canvasType=null,notice=[], qrSrcAfter='',writes=0,downloads=0; doc.createElement=()=>({click(){downloads++}});
  const auth={uid:'test-admin',clubId:'club-a',generation:1,ready:authReady};
- const responseBytes=Buffer.concat([Buffer.from([137,80,78,71,13,10,26,10]),Buffer.alloc(240,1)]);
+ let responseBytes=Buffer.concat([Buffer.from([137,80,78,71,13,10,26,10]),Buffer.alloc(240,1)]);
  class FileReader{readAsDataURL(b){this.result='data:image/png;base64,'+responseBytes.toString('base64');this.onload?.()}}
- const src={window:{showToast:(...x)=>notice.push(x),__verifiedAuthContextState:auth,getBranchNameDisplay:x=>x,formatMonthCompact:x=>x, html2canvas:async(node,opts)=>{canvasArgs.push(opts);return{toDataURL:(mime)=>{canvasType=mime;return 'data:'+mime+';base64,ZmFrZQ=='}}}},document:doc,clubConfig:acct,logoCanvasData:null,allProfiles:{},currentClubId:'club-a',formatDate:x=>x,docTienVND:x=>String(x),removeVietnameseTonesForQR:s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,''),getLocalToday:()=> '2026-10-20',formatMonth:x=>x,fetch:async(url,opts)=>{fetchCalls.push(String(url)); if (stale) auth.uid='test-new';if(badNetwork)throw Error('network-down');return {ok:true,headers:{get:()=>encoded==='png'?'image/png':'text/html'},arrayBuffer:async()=>responseBytes}}, FileReader,Blob,AbortController,URL,Buffer,setTimeout:process.env.QR_BASELINE_FAST ? ((fn,delay)=>setImmediate(fn)) : setTimeout,clearTimeout,requestAnimationFrame:f=>f(),getComputedStyle:()=>({display:'flex',visibility:'visible',opacity:'1',zIndex:'10001'}), console:{error(){}},Promise, Number, Date,Math,Object,String};
+ const src={window:{showToast:(...x)=>notice.push(x),__verifiedAuthContextState:auth,getBranchNameDisplay:x=>x,formatMonthCompact:x=>x, html2canvas:async(node,opts)=>{canvasArgs.push(opts);return{toDataURL:(mime)=>{canvasType=mime;return mime==='image/png'?asData(responseBytes):'data:'+mime+';base64,ZmFrZQ=='}}}},document:doc,clubConfig:acct,logoCanvasData:null,allProfiles:{},currentClubId:'club-a',formatDate:x=>x,docTienVND:x=>String(x),removeVietnameseTonesForQR:s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/Đ/g,'D'),getLocalToday:()=> '2026-10-20',formatMonth:x=>x,fetch:async(url,opts)=>{fetchCalls.push(String(url)); if (stale) auth.uid='test-new';if(badNetwork)throw Error('network-down');responseBytes=syntheticForUrl(url);return {ok:true,headers:{get:()=>encoded==='png'?'image/png':'text/html'},arrayBuffer:async()=>responseBytes}}, FileReader,Blob,AbortController,URL,Buffer,setTimeout:process.env.QR_BASELINE_FAST ? ((fn,delay)=>setImmediate(fn)) : setTimeout,clearTimeout,requestAnimationFrame:f=>f(),getComputedStyle:()=>({display:'flex',visibility:'visible',opacity:'1',zIndex:'10001'}), console:{error(){}},Promise, Number, Date,Math,Object,String};
  doc.getElementById('receiptModal').getBoundingClientRect=()=>({right:400,bottom:800,left:0,top:0,width:400,height:800});
  src.window.innerWidth=390;src.window.innerHeight=840;
  src._waitReceiptPaint=async()=>{};
  src._inspectReceiptModalVisibility=()=>({visible:true,aboveFixedUi:true});
  vm.createContext(src); vm.runInContext(helper+'\n'+qrFunction+'\n'+previewHelper+'\n'+receiptFunction,src,{timeout:6000});
+ publishExistingSettingsFixture(src,acct);
  const result=await src.window.exportReceipt(name,amount,'Học phí','2026-10-20','2026-10',branch,'',caption,breakdown);
  return {result,fetchCalls,canvasArgs,canvasType,doc,notice,writes,qrSrcAfter:doc.getElementById('qrCodeImg').src,
     downloadCount:()=>downloads, failNextFetch:()=>{src.fetch=async()=>{throw Error('provider-down')}}, runAgain:(amt)=>src.window.exportReceipt('MOCK B',amt,'Học phí','2026-10-20','2026-10',branch,'',caption,breakdown),

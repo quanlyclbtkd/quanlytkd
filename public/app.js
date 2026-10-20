@@ -2157,6 +2157,7 @@ window.invCustomCategories = [];
         if (typeof window.resetDebtProfileReadBoundary === 'function') window.resetDebtProfileReadBoundary('club-switch');
         // Phase 4K-6V3B/C: a new club must wait for its own settings snapshot before choosing tx read mode.
         window.__settingsSnapshotReady = false;
+        window.__receiptSettingsAuthority = null;
         if (window.__canonicalTxSettingsWait?.timer) clearTimeout(window.__canonicalTxSettingsWait.timer);
         window.__canonicalTxSettingsWait = null;
         // Phase 4K-6V3A: isolate read attribution per club.
@@ -2207,12 +2208,14 @@ window.invCustomCategories = [];
             if (!skipped && window.RoleReadBoundary?.isCoachAttendanceOnly?.() !== true && typeof window.scheduleAutomaticDebtProfileCoverage === 'function') window.scheduleAutomaticDebtProfileCoverage('settings-ready');
             try { window.dispatchEvent(new CustomEvent('app:settings-ready', { detail: { clubId: clubId, ...(skipped ? { skipped: true, reason } : {}) } })); } catch (_) {}
         };
+        const _settingsOwnerAtMount = _receiptPrincipalFingerprint();
         const _settingsCb = (docSnap) => {
             if (window.markListenerSnapshot) window.markListenerSnapshot(_settingsKey);
             if(docSnap.exists()) {
                 clubConfig = { ...clubConfig, ...docSnap.data() };
                 // [Phase 2d] Sync clubConfig → bridge để modules/students.js đọc được
                 if (window.__store) window.__store.clubConfig = clubConfig;
+                _acceptReceiptSettingsSnapshot(docSnap, clubId, _settingsOwnerAtMount);
                 const _coachAttendanceOnly = window.RoleReadBoundary?.isCoachAttendanceOnly?.() === true;
                 if (!_coachAttendanceOnly && typeof window.syncCanonicalTransactionReadModeFromConfig === 'function') {
                     setTimeout(() => window.syncCanonicalTransactionReadModeFromConfig('settings-snapshot'), 0);
@@ -2236,16 +2239,17 @@ window.invCustomCategories = [];
                     window.loadInvCategories().catch(e => console.warn('loadInvCategories error:', e));
                 }
             }
+            if (!docSnap.exists()) _acceptReceiptSettingsSnapshot(docSnap, clubId, _settingsOwnerAtMount);
             _completeSettingsReady();
         };
         if (_coachAttendanceOnlyRuntime) {
             _updateHydrationMetrics({ settingsLoaded: true, lastReason: 'coach-main-config-skipped' });
             _completeSettingsReady({ skipped: true, reason: 'coach-attendance-only' });
         } else if (window.safeRegisterSnapshot) {
-            window.safeRegisterSnapshot(_settingsKey, () => onSnapshot(settingsRef, _settingsCb),
+            window.safeRegisterSnapshot(_settingsKey, () => onSnapshot(settingsRef, {includeMetadataChanges:true}, _settingsCb),
                 { owner: 'settings', scope: 'global', clubId: clubId, reason: 'init-settings' });
         } else {
-            const _u_settings = onSnapshot(settingsRef, _settingsCb);
+            const _u_settings = onSnapshot(settingsRef, {includeMetadataChanges:true}, _settingsCb);
             activeListeners.push(_u_settings);
             if (window.registerListener) window.registerListener(_settingsKey, _u_settings, { owner: 'settings', scope: 'global', reason: 'init-settings' });
         }
@@ -4800,67 +4804,151 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
     // ── Phase 4.0B-4J-4: normalizeBranchKeyForPayment ────────────────────────
     function normalizeBranchKeyForPayment(branchInput, settings) {
         const cfg = settings || window.__store?.settings || clubConfig || {};
-        const raw = String(branchInput || '').trim();
-        if (!raw) return 'CS1';
+        const raw = String(branchInput ?? '').normalize('NFC').trim();
+        const branchCount = Number(cfg.branchCount);
+        if (!raw || !/^[1-9]\d*$/.test(String(cfg.branchCount ?? '')) || !Number.isInteger(branchCount) || branchCount > 10) return '';
         const upper = raw.toUpperCase();
-        // CS1 / CS2 / CS 2 …
-        const csMatch = upper.match(/^CS\s*(\d+)$/);
-        if (csMatch) return 'CS' + csMatch[1];
-        // Cơ sở 2, Co so 2, Cơ sở: 2
-        const noTone = removeVietnameseTonesForQR(raw).toLowerCase();
-        const coSoMatch = noTone.match(/co\s*so\s*:?\s*(\d+)/);
-        if (coSoMatch) return 'CS' + coSoMatch[1];
-        // Match against branchName1..branchName10 in settings
-        const branchCount = Number(cfg.branchCount || 10);
+        const noTone = _paymentAlias(raw);
+        const csMatch = upper.match(/^CS\s*0*([1-9]\d*)$/);
+        const coSoMatch = noTone.match(/^co\s*so\s*:?\s*0*([1-9]\d*)$/);
+        const matches = new Set();
+        if (csMatch || coSoMatch) matches.add('CS' + Number((csMatch || coSoMatch)[1]));
+        if (noTone === 'mac dinh') matches.add('CS1');
+        const names = new Map();
         for (let i = 1; i <= branchCount; i++) {
-            const name = String(cfg['branchName' + i] || '').trim();
+            const name = _paymentAlias(cfg['branchName' + i]);
             if (!name) continue;
-            const nameNorm = removeVietnameseTonesForQR(name).toLowerCase().trim();
-            const rawNorm  = removeVietnameseTonesForQR(raw).toLowerCase().trim();
-            if (raw === name || rawNorm === nameNorm) return 'CS' + i;
+            if (names.has(name)) return ''; // Duplicate configured names are not authority.
+            names.set(name, i);
+            if (name === noTone) matches.add('CS' + i);
         }
-        return raw; // return as-is so old map keys still work
+        const key = [...matches][0];
+        return matches.size === 1 && Number(key.slice(2)) <= branchCount ? key : '';
+    }
+    function _paymentAlias(value) { return removeVietnameseTonesForQR(String(value ?? '').normalize('NFC')).toLowerCase().replace(/\s+/g, ' ').trim(); }
+    function _receiptError(code, stage = '') { const e = new Error(code); e.code = code; e.stage = stage; return e; }
+    function _receiptPrincipalFingerprint() {
+        const a = window.__verifiedAuthContextState;
+        return a ? JSON.stringify([a.uid, a.clubId, a.generation, a.role, a.coachBranch, a.ready]) : '';
+    }
+    function _receiptConfigFingerprint(cfg = {}) {
+        const sorted = value => Array.isArray(value) ? value.map(sorted) : value && typeof value === 'object'
+            ? Object.fromEntries(Object.keys(value).sort().map(k => [k, sorted(value[k])])) : value;
+        const projection = {policy:'qr-v7-1',branchCount:cfg.branchCount,branchPaymentAccountMap:cfg.branchPaymentAccountMap,paymentAccounts:cfg.paymentAccounts};
+        ['bankId','bankBin','bin','bankShort','bankCode','bankName','bank','accountNo','accountName','enabled'].forEach(k => {projection[k]=cfg[k];});
+        for (let i=1;i<=10;i++) projection['branchName'+i]=cfg['branchName'+i];
+        return JSON.stringify(sorted(projection));
     }
 
+    // A provenance seal from the EXISTING settings callback, never from bootstrap
+    // defaults. No new Firestore reader, listener or settings writer.
+    function _acceptReceiptSettingsSnapshot(snap, clubId, principalAtMount) {
+        const a=window.__verifiedAuthContextState;
+        if (clubId !== currentClubId || !a?.ready || (a.clubId !== clubId && a.role !== 'super_admin') || principalAtMount !== _receiptPrincipalFingerprint()) return false;
+        const verified=snap?.exists?.() === true && snap.metadata?.fromCache === false && snap.metadata?.hasPendingWrites === false;
+        window.__receiptSettingsAuthority={ready:verified,clubId,principal:principalAtMount,
+            reason:verified ? '' : 'ACCOUNT_SETTINGS_UNVERIFIED',
+            config:verified ? JSON.parse(JSON.stringify(snap.data())) : null,
+            runtimeFingerprint:_receiptConfigFingerprint(clubConfig)};
+        return verified;
+    }
+    function _receiptAuthorityConfig() {
+        const a=window.__verifiedAuthContextState, seal=window.__receiptSettingsAuthority;
+        if (!a?.ready || !a.uid || (a.clubId !== currentClubId && a.role !== 'super_admin') || !Number.isSafeInteger(a.generation) || a.generation < 1) throw _receiptError('AUTH_STALE','authority');
+        if (!window.__settingsSnapshotReady || !seal) throw _receiptError('ACCOUNT_SETTINGS_NOT_READY','authority');
+        if (seal.clubId !== currentClubId || seal.principal !== _receiptPrincipalFingerprint()) throw _receiptError('AUTH_STALE','authority');
+        if (!seal.ready || !seal.config) throw _receiptError('ACCOUNT_SETTINGS_UNVERIFIED','authority');
+        if (seal.runtimeFingerprint !== _receiptConfigFingerprint(clubConfig)) throw _receiptError('CONFIG_STALE','authority');
+        return seal.config;
+    }
+    function _receiptKindFromTitle(title = 'BIÊN LAI THU TIỀN') {
+        const label=_paymentAlias(title);
+        if (/^bien lai(?: thu tien)?$/.test(label)) return 'PAID';
+        if (/^phieu bao(?:\s|$)/.test(label)) return 'REPORT';
+        throw _receiptError('RECEIPT_KIND_UNKNOWN','request');
+    }
+    function _receiptPaymentMemo(name, detail) {
+        // Preserve all reference digits. The provider removes punctuation; make
+        // that canonicalization explicit, visible on the receipt, and never truncate.
+        const memo=removeVietnameseTonesForQR(`${name} ${detail}`).replace(/[^A-Za-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+        if (!memo || memo.length > 48) throw _receiptError('MEMO_TOO_LONG','intent');
+        return memo;
+    }
+    function _receiptDecodeEMV(raw) {
+        const fail=() => {throw _receiptError('QR_EMV_MISMATCH','pixels');};
+        const tlv=text => {const out={};let i=0;while(i<text.length){if(!/^\d{4}/.test(text.slice(i,i+4)))fail();const tag=text.slice(i,i+2),len=Number(text.slice(i+2,i+4));i+=4;if(i+len>text.length || Object.prototype.hasOwnProperty.call(out,tag))fail();out[tag]=text.slice(i,i+len);i+=len;}return out;};
+        if (typeof raw !== 'string' || !/^[\x20-\x7e]+$/.test(raw) || !/6304[0-9a-f]{4}$/i.test(raw)) fail();
+        let crc=0xffff;for(const char of raw.slice(0,-4)){crc^=char.charCodeAt(0)<<8;for(let i=0;i<8;i++)crc=(crc&0x8000)?((crc<<1)^0x1021)&0xffff:(crc<<1)&0xffff;}
+        if (crc.toString(16).padStart(4,'0').toUpperCase() !== raw.slice(-4).toUpperCase()) fail();
+        const top=tlv(raw),merchant=tlv(top['38'] || ''),beneficiary=tlv(merchant['01'] || ''),additional=tlv(top['62'] || '');
+        if (top['00'] !== '01' || top['53'] !== '704' || top['58'] !== 'VN' || merchant['00'] !== 'A000000727' || merchant['02'] !== 'QRIBFTTA' || !/^\d+$/.test(top['54'] || '')) fail();
+        return {bankBin:beneficiary['00'],accountNo:beneficiary['01'],amount:Number(top['54']),memo:additional['08']};
+    }
+    async function _verifyReceiptQrPixels(image, intent, stage) {
+        if (typeof window.BarcodeDetector !== 'function') throw _receiptError('QR_VERIFICATION_UNAVAILABLE',stage);
+        let codes;
+        try { codes=await new window.BarcodeDetector({formats:['qr_code']}).detect(image); }
+        catch (_) { throw _receiptError('QR_DECODE_FAILED',stage); }
+        if (codes?.length !== 1) throw _receiptError('QR_DECODE_FAILED',stage);
+        const box=codes[0].boundingBox,w=image.naturalWidth || image.width,h=image.naturalHeight || image.height;
+        if (!box || !(box.width>0 && box.height>0) || Math.abs(box.width/box.height-1)>0.04 ||
+            Math.min(box.x,box.y,w-box.x-box.width,h-box.y-box.height)<4) throw _receiptError('QR_MEDIA_INVALID',stage);
+        let decoded;try {decoded=_receiptDecodeEMV(codes[0].rawValue);}catch(_){throw _receiptError('QR_EMV_MISMATCH',stage);}
+        if (decoded.bankBin!==intent.bankBin || decoded.accountNo!==intent.accountNo || decoded.amount!==intent.amount || decoded.memo!==intent.memo) throw _receiptError('QR_EMV_MISMATCH',stage);
+        return true;
+    }
+    function _receiptFailureMessage(reason) {
+        const messages={ACCOUNT_SETTINGS_NOT_READY:'Đợi tải xong Cài đặt CLB rồi tạo lại phiếu.',ACCOUNT_SETTINGS_UNVERIFIED:'Cài đặt nhận tiền chưa được máy chủ xác nhận. Kết nối mạng và mở lại CLB.',
+            ACCOUNT_BRANCH_UNKNOWN:'Kiểm tra cơ sở trong hồ sơ và số cơ sở trong Cài đặt.',ACCOUNT_MAPPING_MISSING:'Admin cần gán tài khoản nhận tiền cho cơ sở trong Cài đặt.',ACCOUNT_ALIAS_CONFLICT:'Tên hoặc ánh xạ cơ sở bị trùng/mâu thuẫn. Admin cần kiểm tra Cài đặt.',
+            ACCOUNT_DISABLED:'Tài khoản được gán đã tắt hoặc không tồn tại. Admin cần kiểm tra Cài đặt.',ACCOUNT_INCOMPLETE:'Bổ sung mã ngân hàng, số tài khoản dạng chữ và tên chủ tài khoản trong Cài đặt.',
+            BANK_CODE_UNRECOGNIZED:'Mã ngân hàng chưa có trong danh mục đã xác minh.',BANK_IDENTITY_CONFLICT:'Các mã/tên ngân hàng trong cùng tài khoản đang mâu thuẫn.',BANK_BIN_INVALID:'Mã BIN ngân hàng không hợp lệ.',
+            INVALID_AMOUNT:'Số tiền hoặc tổng các dòng chi tiết không hợp lệ.',AUTH_STALE:'Phiên đăng nhập hoặc CLB đã đổi. Mở lại CLB và tạo phiếu mới.',CONFIG_STALE:'Cấu hình nhận tiền đã đổi. Tạo lại phiếu.',
+            QR_VERIFICATION_UNAVAILABLE:'Trình duyệt chưa có bộ giải mã QR được kiểm chứng. Chưa thể xuất phiếu an toàn trên thiết bị này.',MEMO_TOO_LONG:'Nội dung chuyển khoản vượt 48 ký tự. Cần thống nhất nội dung ngắn hơn, giữ đủ kỳ học phí.',
+            QR_FETCH_CORS:'Không tải được QR qua kết nối an toàn. Kiểm tra mạng; cần nhật ký mạng để phân biệt CORS và chuyển hướng.',QR_FETCH_REDIRECT:'Nhà cung cấp chuyển hướng tải QR. Chưa thể xác minh ảnh.',QR_FETCH_HTTP:'Nhà cung cấp QR trả lỗi. Thử tạo phiếu lại sau.',
+            QR_TIMEOUT:'Tải hoặc kiểm tra QR quá thời hạn. Thử lại khi mạng ổn định.',QR_EMV_MISMATCH:'Nội dung mã QR không khớp phiếu. Đã chặn tải ảnh.',QR_DECODE_FAILED:'Không đọc được mã QR trong ảnh. Đã chặn tải ảnh.',
+            QR_MIME:'Nhà cung cấp không trả ảnh PNG.',QR_BYTES_INVALID:'Dữ liệu ảnh QR không hợp lệ.',QR_MEDIA_INVALID:'Ảnh QR bị méo hoặc thiếu viền trắng.',CANVAS_EXPORT_FAILED:'Không xuất được ảnh phiếu. Kiểm tra trình duyệt.',PREVIEW_FAILED:'Không mở được ảnh xem trước.',MODAL_NOT_VISIBLE:'Khung xem phiếu chưa hiển thị.',DEBT_NOT_READY:'Báo nợ chưa có dữ liệu đã xác thực. Đợi tải xong rồi tạo lại.'};
+        return `Chưa tạo được phiếu báo [${reason}]. ${messages[reason] || 'Vui lòng mở lại phiếu và thử lại.'}`;
+    }
     function getPaymentAccountForBranch(branchCode, settings) {
         // One payment-account authority: never silently substitute another bank.
         // Empty/ambiguous branch or account configuration must not create a payable QR.
         const cfg = settings || window.__store?.settings || clubConfig || {};
         const rawBranch = String(branchCode || '').trim();
         const deny = reason => ({bankKey: '', bankId: '', accountNo: '', accountName: '', note: '', reason});
-        if (!rawBranch) return deny('branch-missing');
+        if (!rawBranch) return deny('ACCOUNT_BRANCH_UNKNOWN');
         const normalizedKey = normalizeBranchKeyForPayment(rawBranch, cfg);
-        const aliases = [normalizedKey, rawBranch, removeVietnameseTonesForQR(rawBranch).toLowerCase()];
-        if (normalizedKey === 'CS1' || /^(mặc định|mac dinh)$/i.test(rawBranch)) aliases.push('CS1', 'Mặc định', 'mac dinh');
+        if (!normalizedKey) return deny('ACCOUNT_BRANCH_UNKNOWN');
         const map = cfg.branchPaymentAccountMap || {};
-        const selectedKeys = [...new Set(aliases)].filter(key => Object.prototype.hasOwnProperty.call(map, key));
+        if (Object.keys(map).some(k => !normalizeBranchKeyForPayment(k,cfg))) return deny('ACCOUNT_ALIAS_CONFLICT');
+        const aliases = Object.keys(map).filter(k => normalizeBranchKeyForPayment(k,cfg) === normalizedKey);
+        const selectedKeys = aliases;
         const selectedValues = [...new Set(selectedKeys.map(key => String(map[key] ?? '').trim()))];
-        if (selectedValues.length > 1) return deny('branch-map-conflict');
+        if (selectedValues.length > 1) return deny('ACCOUNT_ALIAS_CONFLICT');
         if (selectedKeys.length > 0) {
             const bankKey = selectedValues[0];
-            if (!bankKey) return deny('branch-map-empty');
+            if (!bankKey) return deny('ACCOUNT_MAPPING_MISSING');
             const account = cfg.paymentAccounts?.[bankKey];
-            if (!account || account.enabled === false) return deny('mapped-account-disabled-or-missing');
-            const bankId = String(account.bankId ?? '').trim();
-            const accountNo = String(account.accountNo ?? '').trim();
-            const accountName = String(account.accountName ?? '').trim();
-            if (!bankId || !accountNo || !accountName) return deny('mapped-account-incomplete');
-            return {bankKey, bankId, accountNo, accountName, note: String(account.note || '')};
+            if (!account || account.enabled !== true) return deny('ACCOUNT_DISABLED');
+            try {
+                if (!window.QRBankingHelpers?.normalizeBankAccountStrict) return deny('BANK_REGISTRY_NOT_READY');
+                const {bankId,bankBin,accountNo,accountName}=window.QRBankingHelpers.normalizeBankAccountStrict(account);
+                return {bankKey, bankId, accountNo, accountName, bankBin, branchKey:normalizedKey, note:String(account.note || '')};
+            } catch(e) {return deny(e.code || 'ACCOUNT_INCOMPLETE');}
         }
         // A multi-account installation needs an explicit branch mapping. An active
         // bank2 must never be chosen automatically over a disabled bank1 (or vice versa).
         const accounts = cfg.paymentAccounts || {};
-        if (Object.keys(accounts).length > 0) return deny('branch-unmapped');
+        if (Object.keys(accounts).length > 0) return deny('ACCOUNT_MAPPING_MISSING');
         // Legacy single-account configuration, only for an unambiguous CS1 club.
         // This is not an implicit fallback from a disabled paymentAccounts entry.
         const legacyBranch = normalizedKey === 'CS1' || /^(mặc định|mac dinh)$/i.test(rawBranch);
         const singleBranch = Number(cfg.branchCount) === 1;
-        if (!legacyBranch || !singleBranch) return deny('legacy-branch-not-authorized');
-        const bankId = String(cfg.bankId ?? '').trim();
-        const accountNo = String(cfg.accountNo ?? '').trim();
-        const accountName = String(cfg.accountName ?? '').trim();
-        if (!bankId || !accountNo || !accountName) return deny('legacy-account-incomplete');
-        return {bankKey:'legacy', bankId, accountNo, accountName, note: String(cfg.bankNote || '')};
+        if (!legacyBranch || !singleBranch) return deny('ACCOUNT_MAPPING_MISSING');
+        if (cfg.enabled === false) return deny('ACCOUNT_DISABLED');
+        try {
+            if (!window.QRBankingHelpers?.normalizeBankAccountStrict) return deny('BANK_REGISTRY_NOT_READY');
+            return {...window.QRBankingHelpers.normalizeBankAccountStrict(cfg),bankKey:'legacy',branchKey:normalizedKey,note:String(cfg.bankNote || '')};
+        } catch(e) {return deny(e.code || 'ACCOUNT_INCOMPLETE');}
     }
 
     function maskAccountNumber(num) {
@@ -4908,9 +4996,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
 
     // ── Phase 4.0B-4J-4: generateVietQR accepts optional branchOrAccount ─────
     function generateVietQR(amount, studentName, detailDesc, branchOrAccount, qrTemplate = 'compact2') {
-        const cName = removeVietnameseTonesForQR(studentName);
-        const cDesc = removeVietnameseTonesForQR(detailDesc).replace(/\//g, '-');
-        const addInfoText = `${cName} ${cDesc}`.trim().substring(0, 48);
+        const addInfoText = _receiptPaymentMemo(studentName,detailDesc);
         let _qrAcct = null;
         if (branchOrAccount && typeof branchOrAccount === 'object' && branchOrAccount.accountNo) {
             _qrAcct = branchOrAccount;
@@ -4919,12 +5005,11 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         }
         // Snapshot must be complete; never splice fields from clubConfig into a
         // selected bank or fall back after a disabled/unmapped account.
-        const _bankId   = String(_qrAcct?.bankId ?? '');
-        const _acctNo   = String(_qrAcct?.accountNo ?? '');
-        const _acctName = removeVietnameseTonesForQR(String(_qrAcct?.accountName ?? ''));
+        if (!window.QRBankingHelpers?.normalizeBankAccountStrict) throw _receiptError('BANK_REGISTRY_NOT_READY','intent');
+        const normalized=window.QRBankingHelpers.normalizeBankAccountStrict(_qrAcct || {});
+        const _bankId=normalized.bankBin,_acctNo=normalized.accountNo,_acctName=removeVietnameseTonesForQR(normalized.accountName);
         // The report QR must be a square QR-only provider image. Never stretch compact2 (a poster).
-        if (!Number.isSafeInteger(amount) || amount <= 0 || amount > 9999999999999) throw new Error('Số tiền QR phải là số nguyên VND hợp lệ.');
-        if (!/^[0-9]{6,12}$/.test(String(_bankId)) || !/^[0-9A-Za-z]{3,32}$/.test(String(_acctNo))) throw new Error('Tài khoản nhận tiền chưa được cấu hình hợp lệ.');
+        if (!Number.isSafeInteger(amount) || amount <= 0 || amount > 9999999999999) throw _receiptError('INVALID_AMOUNT','intent');
         if (!['compact2', 'qr_only'].includes(qrTemplate)) throw new Error('Mẫu QR không hợp lệ.');
         return `https://img.vietqr.io/image/${encodeURIComponent(String(_bankId))}-${encodeURIComponent(String(_acctNo))}-${qrTemplate}.png?amount=${amount}&addInfo=${encodeURIComponent(addInfoText)}&accountName=${encodeURIComponent(_acctName)}`;
     }
@@ -5065,7 +5150,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
     // js/utils/format.js becomes the canonical module owner after bootstrap.
 
     window.generateMultiMonthPaymentRequest = (name, monthsStr, branch, amount) => {
-        window.exportReceipt(name, Number(amount), 'Học phí', getLocalToday(), monthsStr, branch, '', 'PHIẾU BÁO HỌC PHÍ');
+        return window.exportReceipt(name, Number(amount), 'Học phí', getLocalToday(), monthsStr, branch, '', 'PHIẾU BÁO HỌC PHÍ');
     };
 
     window.copyAndOpenZalo = (name, monthsStr, phone) => {
@@ -6562,15 +6647,23 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         if (qr) qr.removeAttribute('src');
     };
     let _receiptRequestEpoch = 0;
+    let _receiptActiveJobId = 0;
     const _exportReceiptNow = async (name, amount, type, date, txMonth, branch, extraDesc = '', receiptTitle = 'BIÊN LAI THU TIỀN', breakdown = null, isReceiptRequestCurrent = () => true) => {
         window.showToast("⏳ Đang tạo hóa đơn, vui lòng đợi...", 10000, true); let _rendered = false, _previewReady = false, _modalVisible = false, _previewNaturalWidth = 0, _previewNaturalHeight = 0;
+        let _stage='request';
+        const _kind=isReceiptRequestCurrent.kind || _receiptKindFromTitle(receiptTitle);
+        const _assertCurrent=() => {if (!isReceiptRequestCurrent()) throw _receiptError(isReceiptRequestCurrent.failureReason?.() || 'AUTH_STALE',_stage);};
         try {
             _clearReceiptPreview();
-            if (!isReceiptRequestCurrent()) throw new Error('Yêu cầu phiếu báo đã hết hiệu lực.');
+            _assertCurrent();
             const node = document.getElementById('receiptTemplate'); const cleanName = name.trim();
-            // Report amount 0 may produce a NO-QR notice; invalid VND amounts may not be exported.
-            if (receiptTitle !== 'BIÊN LAI THU TIỀN' && (!Number.isSafeInteger(amount) || amount <= 0 || amount > 9999999999999)) {
-                const e = new Error('Số tiền phiếu báo không hợp lệ.'); e.code = 'qr-not-ready'; throw e;
+            if (_kind === 'REPORT' && (!Number.isSafeInteger(amount) || amount <= 0 || amount > 9999999999999)) {
+                throw _receiptError('INVALID_AMOUNT','intent');
+            }
+            const _paymentSettings=_kind === 'REPORT' ? _receiptAuthorityConfig() : clubConfig;
+            if (_kind === 'REPORT' && type === 'Học phí') {
+                const status=window.getDebtProfileCoverageStatus?.();
+                if (!status?.ready || status.clubId !== currentClubId) throw _receiptError('DEBT_NOT_READY','debt-authority');
             }
             // One receipt queue; transient preview was invalidated before validation.
             const _qrOwnerAtStart = window.__verifiedAuthContextState
@@ -6604,39 +6697,42 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
 
             const qrImgEl = document.getElementById('qrCodeImg');
             qrImgEl.removeAttribute('src');
-            const _isReportQR = amount > 0 && receiptTitle !== 'BIÊN LAI THU TIỀN';
+            const _isReportQR = amount > 0 && _kind === 'REPORT';
             // Do not render a QR if any reported line differs from the chosen VND total.
             if (_isReportQR && Array.isArray(breakdown) && breakdown.length && (
                 breakdown.some(row => !Number.isSafeInteger(row.amount) || row.amount < 0) ||
                 breakdown.reduce((sum,row) => sum + row.amount, 0) !== amount
-            )) throw new Error('Tổng khoản trên phiếu không khớp số tiền QR.');
+            )) throw _receiptError('INVALID_AMOUNT','intent');
             let _qrCfgFingerprint = null;
-            const _paymentConfigFingerprint = () => JSON.stringify({
-                bankId: clubConfig.bankId, accountNo: clubConfig.accountNo, accountName: clubConfig.accountName,
-                paymentAccounts: clubConfig.paymentAccounts, branchPaymentAccountMap: clubConfig.branchPaymentAccountMap
-            });
+            const _paymentConfigFingerprint = () => _receiptConfigFingerprint(clubConfig);
+            let _intent=null;
             if (_isReportQR) {
                 // Branch/account proof is resolved from the same club config as the payment URL.
                 // An explicit disabled/missing mapping MUST NOT silently fall back to bank1.
                 _qrCfgFingerprint = _paymentConfigFingerprint();
                 const _branches = Array.isArray(branch) ? branch : [branch];
-                if (_branches.length < 1 || _branches.some(b => !String(b || '').trim())) throw new Error('Chưa xác định được cơ sở nhận tiền.');
+                _stage='account';
+                if (_branches.length < 1 || _branches.some(b => !String(b || '').trim())) throw _receiptError('ACCOUNT_BRANCH_UNKNOWN',_stage);
                 const _accounts = _branches.map(b => {
-                    const acc = getPaymentAccountForBranch(b, clubConfig);
+                    const acc = getPaymentAccountForBranch(b, _paymentSettings);
                     if (acc.reason || !acc.bankId || !acc.accountNo || !acc.accountName) {
-                        throw new Error('Không xác định được tài khoản nhận tiền đã được gán cho cơ sở: ' + (acc.reason || 'incomplete'));
+                        throw _receiptError(acc.reason || 'ACCOUNT_INCOMPLETE',_stage);
                     }
-                    return Object.freeze({bankKey:acc.bankKey,bankId:acc.bankId,accountNo:acc.accountNo,accountName:acc.accountName,note:acc.note});
+                    return Object.freeze({...acc});
                 });
-                if (_accounts.some(acc => acc.bankId !== _accounts[0].bankId || acc.accountNo !== _accounts[0].accountNo || acc.accountName !== _accounts[0].accountName)) throw new Error('Không thể tạo một QR cho các cơ sở dùng tài khoản nhận tiền khác nhau.');
+                if (_accounts.some(acc => acc.bankId !== _accounts[0].bankId || acc.accountNo !== _accounts[0].accountNo || acc.accountName !== _accounts[0].accountName)) throw _receiptError('ACCOUNT_ALIAS_CONFLICT',_stage);
                 const _showQRDetails = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
                 _showQRDetails('r_qr_bankId', _accounts[0].bankId);
                 _showQRDetails('r_qr_accountNo', _accounts[0].accountNo);
                 _showQRDetails('r_qr_accountName', _accounts[0].accountName || 'Chưa cập nhật tên chủ tài khoản');
                 _showQRDetails('r_qr_amount_display', amount.toLocaleString('vi-VN') + ' ₫');
-                let paymentContent = type === 'Học phí' && txMonth ? (extraDesc ? removeVietnameseTonesForQR(extraDesc) : `Hoc Phi Thang ${formatMonth(txMonth)}`) : qrDesc;
+                const _memoMonths=String(txMonth || '').includes(',') ? window.formatMonthCompact(txMonth) : formatMonth(txMonth);
+                let paymentContent = type === 'Học phí' && txMonth ? `${extraDesc ? removeVietnameseTonesForQR(extraDesc)+' ' : ''}Hoc Phi Thang ${_memoMonths}` : `${qrDesc}${txMonth ? ' '+_memoMonths : ''}`;
                 let qrName = cleanName.includes('&') ? cleanName.replace(/ & /g, " - ") : cleanName;
+                _stage='intent';
                 const _qrUrl = generateVietQR(amount, qrName, paymentContent, _accounts[0], 'qr_only');
+                _intent=Object.freeze({clubId:currentClubId,branchKey:_accounts.map(a=>a.branchKey).join(','),bankKey:_accounts.map(a=>a.bankKey).join(','),bankBin:_accounts[0].bankBin,accountNo:_accounts[0].accountNo,accountName:_accounts[0].accountName,amount,memo:_receiptPaymentMemo(qrName,paymentContent),intentKind:_kind});
+                document.getElementById('r_type').innerText += '\nNội dung CK: '+_intent.memo;
                 const _abortQR = new AbortController();
                 let _qrTimeout, _qrExpired = false;
                 document.getElementById('r_qr_wrap').style.display = 'block';
@@ -6644,30 +6740,39 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                     // Covers fetch headers, response bytes, FileReader, image decoding and owner checks.
                     await Promise.race([
                         (async () => {
-                            const res = await fetch(_qrUrl, { signal: _abortQR.signal, redirect: 'error', mode: 'cors', cache: 'no-store' });
-                            if (!res.ok || !String(res.headers.get('content-type') || '').toLowerCase().startsWith('image/png')) throw new Error('QR provider không trả PNG hợp lệ.');
+                            _stage='fetch';
+                            let res;try {res=await fetch(_qrUrl, { signal: _abortQR.signal, redirect: 'error', mode: 'cors', cache: 'no-store' });}
+                            catch (_) {throw _receiptError(_qrExpired ? 'QR_TIMEOUT' : 'QR_FETCH_CORS',_stage);}
+                            if (res.redirected || res.type === 'opaqueredirect') throw _receiptError('QR_FETCH_REDIRECT',_stage);
+                            if (!res.ok) throw _receiptError('QR_FETCH_HTTP',_stage);
+                            if (!/^image\/png(?:\s*;|$)/i.test(String(res.headers.get('content-type') || ''))) throw _receiptError('QR_MIME','bytes');
+                            _stage='bytes';
                             const bytes = new Uint8Array(await res.arrayBuffer());
-                            if (bytes.length < 128 || ![137,80,78,71,13,10,26,10].every((v,i) => bytes[i] === v)) throw new Error('Ảnh QR PNG trống hoặc không hợp lệ.');
+                            if (bytes.length < 128 || bytes.length > 5000000 || ![137,80,78,71,13,10,26,10].every((v,i) => bytes[i] === v)) throw _receiptError('QR_BYTES_INVALID',_stage);
                             const dataURI = await new Promise((resolve, reject) => {
                                 const reader = new FileReader();
                                 reader.onload = () => resolve(reader.result);
-                                reader.onerror = () => reject(new Error('Không đọc được ảnh QR.'));
+                                reader.onerror = () => reject(_receiptError('QR_BYTES_INVALID','bytes'));
                                 reader.readAsDataURL(new Blob([bytes], {type:'image/png'}));
                             });
-                            if (_qrExpired || !_isCurrentReceiptOwner()) throw new Error('Phiên tạo QR đã hết hạn.');
+                            if (_qrExpired) throw _receiptError('QR_TIMEOUT','decode');
+                            _assertCurrent();
                             qrImgEl.src = dataURI;
-                            if (typeof qrImgEl.decode === 'function') await qrImgEl.decode();
-                            else await new Promise((resolve,reject) => { qrImgEl.onload=resolve; qrImgEl.onerror=()=>reject(new Error('QR image load failed')); });
-                            if (qrImgEl.naturalWidth < 100 || qrImgEl.naturalHeight < 100 || Math.abs(qrImgEl.naturalWidth / qrImgEl.naturalHeight - 1) > 0.02) throw new Error('Ảnh QR không vuông hoặc không decode được.');
-                            if (_qrExpired || !_isCurrentReceiptOwner() || _qrCfgFingerprint !== _paymentConfigFingerprint()) throw new Error('Phiên hoặc cấu hình nhận tiền đã thay đổi khi tạo phiếu.');
+                            _stage='decode';
+                            try {if (typeof qrImgEl.decode === 'function') await qrImgEl.decode();
+                            else await new Promise((resolve,reject) => { qrImgEl.onload=resolve; qrImgEl.onerror=reject; });}
+                            catch (_) {throw _receiptError('QR_DECODE_FAILED',_stage);}
+                            if (qrImgEl.naturalWidth < 100 || qrImgEl.naturalHeight < 100 || Math.abs(qrImgEl.naturalWidth / qrImgEl.naturalHeight - 1) > 0.02) throw _receiptError('QR_MEDIA_INVALID',_stage);
+                            _stage='provider-pixels';await _verifyReceiptQrPixels(qrImgEl,_intent,_stage);
+                            if (_qrExpired) throw _receiptError('QR_TIMEOUT',_stage);
+                            _assertCurrent();
+                            if (_qrCfgFingerprint !== _paymentConfigFingerprint()) throw _receiptError('CONFIG_STALE',_stage);
                         })(),
-                        new Promise((_,reject) => { _qrTimeout=setTimeout(() => { _qrExpired = true; _abortQR.abort(); reject(new Error('QR tải quá thời hạn.')); }, 9000); })
+                        new Promise((_,reject) => { _qrTimeout=setTimeout(() => { _qrExpired = true; _abortQR.abort(); reject(_receiptError('QR_TIMEOUT',_stage)); }, 9000); })
                     ]);
                 } catch(err) {
                     _qrExpired = true;
-                    const error = new Error('Không thể tạo QR an toàn: '+err.message);
-                    error.code = 'qr-not-ready';
-                    throw error;
+                    throw err?.code ? err : _receiptError('QR_BYTES_INVALID',_stage);
                 } finally { clearTimeout(_qrTimeout); }
             } else { document.getElementById('r_qr_wrap').style.display = 'none'; }
 
@@ -6688,7 +6793,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             const sigImg = document.getElementById('r_signature_img');
             const trainerNameEl = document.getElementById('r_trainer_name');
             const sigBlock = document.getElementById('r_signature_block');
-            const isBienLai = receiptTitle === 'BIÊN LAI THU TIỀN';
+            const isBienLai = _kind === 'PAID';
             if(isBienLai && (clubConfig.signatureBase64 || clubConfig.trainerName)) {
                 if(sigBlock) sigBlock.style.display = 'flex';
                 if(trainerNameEl) trainerNameEl.innerText = clubConfig.trainerName || '';
@@ -6707,59 +6812,82 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                 }
                 _html2canvasFn = await window.ensureHtml2CanvasReady('receipt-export');
             }
-            // useCORS: false — tắt CORS fetch để tránh hàng trăm lỗi khi chạy từ file://
-            // allowTaint: true — vẫn render được ảnh cross-origin (QR, logo) vào canvas
-            if (!_isCurrentReceiptOwner() || (_isReportQR && _qrCfgFingerprint !== _paymentConfigFingerprint())) throw new Error('Phiên/CLB hoặc cấu hình tài khoản đã thay đổi trước khi xuất phiếu.');
+            // QR is a verified data URI. Never permit cross-origin canvas taint.
+            _assertCurrent();
+            if (!_isCurrentReceiptOwner() || (_isReportQR && _qrCfgFingerprint !== _paymentConfigFingerprint())) throw _receiptError('CONFIG_STALE','canvas');
+            _stage='canvas';
             const canvas = await _html2canvasFn(node, { scale: 2, backgroundColor: '#ffffff', useCORS: false, allowTaint: false, logging: false, imageTimeout: 0 }); _rendered = true;
             const _receiptImage = canvas.toDataURL(_isReportQR ? 'image/png' : 'image/jpeg', 0.82);
-            if (!_receiptImage.startsWith(_isReportQR ? 'data:image/png;base64,' : 'data:image/jpeg;base64,')) throw new Error('Không xuất được ảnh phiếu hợp lệ.');
+            if (!_receiptImage.startsWith(_isReportQR ? 'data:image/png;base64,' : 'data:image/jpeg;base64,')) throw _receiptError('CANVAS_EXPORT_FAILED',_stage);
+            _stage='preview';
             const _previewEl = document.getElementById('receiptPreviewImg'), _previewMeta = await _waitReceiptPreviewReady(_previewEl, _receiptImage); _previewReady = true; _previewNaturalWidth = _previewMeta.naturalWidth; _previewNaturalHeight = _previewMeta.naturalHeight;
-            if (!_isCurrentReceiptOwner() || (_isReportQR && _qrCfgFingerprint !== _paymentConfigFingerprint())) throw new Error('Phiên/CLB hoặc cấu hình tài khoản đã thay đổi trước khi hiển thị phiếu.');
-            document.getElementById('btnDownloadReceipt').onclick = () => { if (!_isCurrentReceiptOwner() || (_isReportQR && _qrCfgFingerprint !== _paymentConfigFingerprint())) { _clearReceiptPreview(); window.showToast('⚠️ Phiếu báo đã hết hiệu lực; vui lòng tạo lại.'); return; } const link = document.createElement('a'); link.download = `Hoa_Don_${cleanName.replace(/\s/g, '_').replace(/&/g, 'va')}.${_isReportQR ? 'png' : 'jpg'}`; link.href = _receiptImage; link.click(); }; document.getElementById('toastMessage').classList.remove("show");
-            const _receiptModal = document.getElementById('receiptModal'); if (!_receiptModal) { const e = new Error('receipt modal missing'); e.code = 'modal-not-visible'; throw e; } _receiptModal.dataset.receiptOpenedAt = String(Date.now()); _receiptModal.style.display = 'flex'; await _waitReceiptPaint();
+            if (_isReportQR) {_stage='preview-pixels';await _verifyReceiptQrPixels(_previewEl,_intent,_stage);}
+            _assertCurrent();
+            if (!_isCurrentReceiptOwner() || (_isReportQR && _qrCfgFingerprint !== _paymentConfigFingerprint())) throw _receiptError('CONFIG_STALE',_stage);
+            document.getElementById('btnDownloadReceipt').onclick = () => {
+                if (isReceiptRequestCurrent.isPreviewCurrent && !isReceiptRequestCurrent.isPreviewCurrent()) return;
+                if (!isReceiptRequestCurrent() || !_isCurrentReceiptOwner() || _previewEl.src !== _receiptImage || document.getElementById('receiptModal')?.style.display === 'none' || (_isReportQR && _qrCfgFingerprint !== _paymentConfigFingerprint())) { _clearReceiptPreview(); window.showToast('⚠️ Phiếu đã hết hiệu lực; vui lòng tạo lại.'); return; }
+                const link=document.createElement('a');link.download=`Hoa_Don_${cleanName.replace(/\s/g,'_').replace(/&/g,'va')}.${_isReportQR?'png':'jpg'}`;link.href=_receiptImage;link.click();
+            }; document.getElementById('toastMessage').classList.remove("show");
+            _stage='modal';
+            const _receiptModal = document.getElementById('receiptModal'); if (!_receiptModal) { const e = new Error('receipt modal missing'); e.code = 'modal-not-visible'; throw e; } _receiptModal.dataset.receiptOpenedAt = String(Date.now()); _receiptModal.style.display = 'flex';
+            _receiptModal.scrollTop=0;const _receiptScrollBox=_receiptModal.querySelector?.('.modal-content');if(_receiptScrollBox)_receiptScrollBox.scrollTop=0;await _waitReceiptPaint();
             const _visibility = _inspectReceiptModalVisibility(_receiptModal);
             if (!_visibility.visible) { const e = new Error('receipt modal not visible after open'); e.code = _receiptModal.style.display === 'none' ? 'modal-closed-before-display' : 'modal-not-visible'; e.receiptVisibility = _visibility; throw e; }
             if (!_visibility.aboveFixedUi) { const e = new Error('receipt modal is below fixed application UI'); e.code = 'modal-not-visible'; e.receiptVisibility = _visibility; throw e; }
             _modalVisible = true; return { ok: true, receiptJpeg: _receiptImage, receiptImage: _receiptImage, rendered: true, previewReady: true, modalVisible: true, previewOpened: true, previewNaturalWidth: _previewNaturalWidth, previewNaturalHeight: _previewNaturalHeight, visibility: _visibility };
         } catch (error) {
-            console.error(error); const _code = String(error?.code || ''), _reason = _code === 'asset-load-timeout' ? 'asset-timeout' : (_code === 'asset-load-failed' || _code === 'asset-load-invalid') ? 'asset-load-failed' : _code === 'image-failed' ? 'image-failed' : _code === 'preview-failed' ? 'preview-failed' : _code === 'modal-closed-before-display' ? 'modal-closed-before-display' : _code === 'modal-not-visible' ? 'modal-not-visible' : _code === 'qr-not-ready' ? 'qr-not-ready' : 'render-failed';
-            window.showToast(receiptTitle !== 'BIÊN LAI THU TIỀN' ? '❌ Không tạo được phiếu báo/QR an toàn. Vui lòng kiểm tra mạng, cơ sở và cấu hình tài khoản.' : '❌ Lỗi tạo hình biên lai, không thực hiện thu tiền lại.'); return { ok: false, reason: _reason, error };
+            const _code=String(error?.code || '');
+            const _paidReasons={'asset-load-timeout':'asset-timeout','asset-load-failed':'asset-load-failed','asset-load-invalid':'asset-load-failed','image-failed':'image-failed','preview-failed':'preview-failed','modal-closed-before-display':'modal-closed-before-display','modal-not-visible':'modal-not-visible'};
+            const _reason=_kind==='PAID' ? (_paidReasons[_code] || 'render-failed') : /^[A-Z_]+$/.test(_code) ? _code : _stage==='canvas' ? 'CANVAS_EXPORT_FAILED' : _stage==='modal' ? 'MODAL_NOT_VISIBLE' : _stage.startsWith('preview') ? 'PREVIEW_FAILED' : 'RENDER_FAILED';
+            _clearReceiptPreview();
+            const safeError=_receiptError(_reason,error?.stage || _stage);
+            console.error('[Receipt]',{stage:safeError.stage,reason:_reason,jobId:isReceiptRequestCurrent.jobId,kind:_kind});
+            window.showToast(_kind==='REPORT' ? _receiptFailureMessage(_reason) : '❌ Lỗi tạo hình biên lai, không thực hiện thu tiền lại.');
+            // Retain the established receipt result contract; the queue attaches job metadata.
+            error=safeError;return { ok: false, reason: _reason, error };
         } finally {
             const _receiptNode = document.getElementById('receiptTemplate');
             if (_receiptNode) _receiptNode.style.cssText = 'position:absolute;left:-9999px;visibility:hidden;';
         }
     };
     let _receiptRenderQueue = Promise.resolve();
-    window.exportReceipt = (...args) => {
-        // Invalidate previous clickable preview at ENQUEUE time, even when the
-        // queued request fails before entering _exportReceiptNow.
+    window.exportReceipt = (...inputArgs) => {
+        // Job identity is independent of preview identity. B does not cancel A.
         const requestId = ++_receiptRequestEpoch;
-        _clearReceiptPreview();
-        // Capture at ENQUEUE time, not only after a previous receipt finishes rendering.
         const _clubAtRequest = currentClubId;
-        const _principal = window.__verifiedAuthContextState;
-        const _ownerAtRequest = _principal ? {uid:_principal.uid,clubId:_principal.clubId,generation:_principal.generation,role:_principal.role,coachBranch:_principal.coachBranch,ready:_principal.ready} : null;
-        const _settingsAtRequest = JSON.stringify({bankId:clubConfig.bankId,accountNo:clubConfig.accountNo,accountName:clubConfig.accountName,paymentAccounts:clubConfig.paymentAccounts,branchPaymentAccountMap:clubConfig.branchPaymentAccountMap});
-        const _runRequestedReceipt = () => {
-            const now = window.__verifiedAuthContextState;
-            const cfgNow = JSON.stringify({bankId:clubConfig.bankId,accountNo:clubConfig.accountNo,accountName:clubConfig.accountName,paymentAccounts:clubConfig.paymentAccounts,branchPaymentAccountMap:clubConfig.branchPaymentAccountMap});
-            if (requestId !== _receiptRequestEpoch || _clubAtRequest !== currentClubId ||
-                (args[7] !== 'BIÊN LAI THU TIỀN' && (!_ownerAtRequest || _ownerAtRequest.ready !== true || !_ownerAtRequest.uid || !Number.isSafeInteger(_ownerAtRequest.generation) || _ownerAtRequest.generation < 1)) ||
-                (_ownerAtRequest && (!now || now.uid !== _ownerAtRequest.uid || now.clubId !== _ownerAtRequest.clubId || now.generation !== _ownerAtRequest.generation || now.role !== _ownerAtRequest.role || now.coachBranch !== _ownerAtRequest.coachBranch || now.ready !== _ownerAtRequest.ready)) || (args[7] !== 'BIÊN LAI THU TIỀN' && _settingsAtRequest !== cfgNow)) {
-                _clearReceiptPreview();
-                window.showToast('⚠️ Phiếu báo đã hết hiệu lực do thay đổi CLB, tài khoản hoặc phiên đăng nhập.');
-                return {ok:false,reason:'stale-receipt-context'};
+        const _ownerAtRequest = _receiptPrincipalFingerprint();
+        const _settingsAtRequest = _receiptConfigFingerprint(clubConfig);
+        let kind='UNKNOWN', requestError=null;
+        try {kind=_receiptKindFromTitle(inputArgs[7]);} catch(e) {requestError=e;}
+        const args=Array.from({length:9},(_,i)=>inputArgs[i]);
+        if (Array.isArray(args[5])) args[5]=Object.freeze(args[5].slice());
+        if (Array.isArray(args[8])) args[8]=Object.freeze(args[8].map(row=>Object.freeze({...row})));
+        const failureReason=() => {
+            if (_clubAtRequest !== currentClubId || _ownerAtRequest !== _receiptPrincipalFingerprint()) return 'AUTH_STALE';
+            const principal=window.__verifiedAuthContextState;
+            if (!principal?.ready || !principal.uid || !Number.isSafeInteger(principal.generation) || principal.generation<1) return 'AUTH_STALE';
+            if (kind==='REPORT') {
+                if (_settingsAtRequest !== _receiptConfigFingerprint(clubConfig)) return 'CONFIG_STALE';
+                try {_receiptAuthorityConfig();}catch(e){return e.code || 'ACCOUNT_SETTINGS_UNVERIFIED';}
             }
-            const sameRequest = () => requestId === _receiptRequestEpoch && _clubAtRequest === currentClubId &&
-                (!_ownerAtRequest || (window.__verifiedAuthContextState &&
-                  window.__verifiedAuthContextState.uid === _ownerAtRequest.uid &&
-                  window.__verifiedAuthContextState.clubId === _ownerAtRequest.clubId &&
-                  window.__verifiedAuthContextState.generation === _ownerAtRequest.generation &&
-                  window.__verifiedAuthContextState.role === _ownerAtRequest.role &&
-                  window.__verifiedAuthContextState.coachBranch === _ownerAtRequest.coachBranch &&
-                  window.__verifiedAuthContextState.ready === _ownerAtRequest.ready)) &&
-                (args[7] === 'BIÊN LAI THU TIỀN' || _settingsAtRequest === JSON.stringify({bankId:clubConfig.bankId,accountNo:clubConfig.accountNo,accountName:clubConfig.accountName,paymentAccounts:clubConfig.paymentAccounts,branchPaymentAccountMap:clubConfig.branchPaymentAccountMap}));
-            return _exportReceiptNow(...[...args, ...Array(Math.max(0, 9 - args.length)).fill(undefined)], sameRequest);
+            return '';
+        };
+        const sameRequest=() => !failureReason();
+        sameRequest.failureReason=failureReason;sameRequest.jobId=requestId;sameRequest.kind=kind;
+        sameRequest.isPreviewCurrent=() => _receiptActiveJobId===requestId;
+        args.push(sameRequest);
+        const _runRequestedReceipt = () => {
+            _receiptActiveJobId=requestId;
+            _clearReceiptPreview();
+            const reason=requestError?.code || failureReason();
+            if (reason) {
+                const error=_receiptError(reason,'authority');
+                console.error('[Receipt]',{stage:error.stage,reason,jobId:requestId,kind});
+                window.showToast(_receiptFailureMessage(reason));
+                return {ok:false,reason,error,stage:error.stage,jobId:requestId,kind};
+            }
+            return _exportReceiptNow(...args).then(result => ({...result,stage:result.error?.stage || (result.ok?'complete':'render'),jobId:requestId,kind}));
         };
         const run = _receiptRenderQueue.then(_runRequestedReceipt, _runRequestedReceipt);
         _receiptRenderQueue = run.then(() => undefined, () => undefined);
@@ -9249,10 +9377,11 @@ window.processMultiItem = async (action) => {
     // profile map. Never turn raw text input into a create-if-missing profile.
     let profile = allProfiles[name];
     if(!profile) return alert('Không tìm thấy hồ sơ võ sinh hợp lệ. Vui lòng chọn võ sinh từ danh sách.');
-    const branch = profile.branch || document.getElementById('branch').value || 'CS1';
+    const branch = action === 'report' ? String(profile.branch || '').trim() : (profile.branch || document.getElementById('branch').value || 'CS1');
     const tuitionMonth = document.getElementById('mi_tuition_month').value;
     const pkg = Number(document.getElementById('mi_tuition_pkg').value) || 1;
     const tuition = Number(document.getElementById('mi_tuition_actual').value) || 0;
+    const _miRejectInvalidAmount = value => window.exportReceipt(name,value,'Khoản thu',getLocalToday(),tuitionMonth,branch,'','PHIẾU BÁO HỌC PHÍ');
     const hasExam = document.getElementById('mi_exam_toggle').checked;
     const examTitle = hasExam ? (document.getElementById('mi_exam_title').value.trim() || 'Lệ phí thi') : '';
     const examFee = hasExam ? (Number(document.getElementById('mi_exam_actual').value) || 0) : 0;
@@ -9280,12 +9409,12 @@ window.processMultiItem = async (action) => {
     const isTuitionEnabled = tuitionEnabledEl ? tuitionEnabledEl.checked : true;
 
     // Chỉ validate học phí khi "Thu học phí" được bật
-    if(isTuitionEnabled && tuition <= 0) return alert('Vui lòng nhập số tiền học phí!');
+    if(isTuitionEnabled && tuition <= 0) return action === 'report' ? _miRejectInvalidAmount(tuition) : alert('Vui lòng nhập số tiền học phí!');
     if(isTuitionEnabled && !tuitionMonth) return alert('Vui lòng chọn tháng học phí!');
 
     // Đảm bảo tổng tiền > 0 để có ít nhất một khoản thu hợp lệ
     const total = (isTuitionEnabled ? tuition : 0) + examFee + otherFee + invTotal + invDebtTotal;
-    if(total <= 0) return alert('Vui lòng nhập ít nhất một khoản thu!');
+    if(total <= 0) return action === 'report' ? _miRejectInvalidAmount(total) : alert('Vui lòng nhập ít nhất một khoản thu!');
 
     // Tháng tham chiếu dùng cho các giao dịch không phải học phí (thi đai, kho đồ, khoản khác).
     // Nếu học phí bị tắt và không có tuitionMonth, dùng tháng hiện tại làm fallback.
@@ -9543,8 +9672,9 @@ window.processMultiItem = async (action) => {
         const receiptTitle = action === 'report' ? 'PHIẾU BÁO HỌC PHÍ' : 'BIÊN LAI THU TIỀN';
         // Truyền refMonth thay vì tuitionMonth để tránh lỗi khi học phí bị tắt.
         const _miReceiptResult = await window.exportReceipt(name, total, receiptTypeLabel, getLocalToday(), refMonth, branch, examTitle, receiptTitle, breakdown);
-        if (action === 'report' && !_miReceiptResult?.ok) throw new Error('Phiếu báo chưa tạo được. Chưa có khoản thu nào được ghi.');
+        if (action === 'report' && !_miReceiptResult?.ok) return _miReceiptResult;
         document.getElementById('multiItemModal').style.display = 'none';
+        if (action === 'report') return _miReceiptResult;
     } catch(err) {
         if (action === 'pay' && typeof window.recordFinancialActionAudit === 'function') window.recordFinancialActionAudit('multiitem.pay', 'error', Object.assign({}, _miAuditPayload, { error: err && err.message || String(err) }));
         console.error(err); alert('Lỗi: ' + err.message);

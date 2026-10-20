@@ -9,16 +9,16 @@
 import { Formatters } from '../utils/formatters.js';
 
 const DEFAULT_BANKS = Object.freeze([
-  { n:'Vietcombank', s:'VCB',  bin:'970436', sc:'vietcombank', pkg:'com.VCB', ios:'895961699', dl:true },
-  { n:'BIDV',        s:'BIDV', bin:'970418', sc:'bidv', pkg:'com.bidv.smartbanking', ios:'839817922', dl:true },
-  { n:'Techcombank', s:'TCB',  bin:'970407', sc:'techcombank', pkg:'vn.techcombank.mobile', ios:'1090449508', dl:true },
-  { n:'MB Bank',     s:'MB',   bin:'970422', sc:'mbmobile', pkg:'com.mbmobile', ios:'671882567', dl:true },
-  { n:'VietinBank',  s:'CTG',  bin:'970415', sc:'vietinbank', pkg:'com.vietinbank.imobilev2', ios:'938057985', dl:false },
-  { n:'Agribank',    s:'AGB',  bin:'970405', sc:'agribank', pkg:'vn.agribank.mobilebanking', ios:'1028248820', dl:false },
-  { n:'VPBank',      s:'VPB',  bin:'970432', sc:'vpbank', pkg:'com.vpbank.vpbankmobile', ios:'940344289', dl:true },
-  { n:'TPBank',      s:'TPB',  bin:'970423', sc:'tpbank', pkg:'vn.tpb.mobilebanking', ios:'1281082726', dl:true },
-  { n:'HDBank',      s:'HDB',  bin:'970437', sc:'hdbank', pkg:'vn.hdbank.mobilebanking', ios:'884122768', dl:true },
-  { n:'Sacombank',   s:'STB',  bin:'970403', sc:'sacombank', pkg:'vn.com.sacombank.mobilebanking', ios:'1085226588', dl:false },
+  { n:'Vietcombank', s:'VCB',  bin:'970436', aliases:["VCB","Ngân hàng TMCP Ngoại Thương Việt Nam","Vietcombank"], sc:'vietcombank', pkg:'com.VCB', ios:'895961699', dl:true },
+  { n:'BIDV',        s:'BIDV', bin:'970418', aliases:["BIDV","Ngân hàng TMCP Đầu tư và Phát triển Việt Nam","BIDV"], sc:'bidv', pkg:'com.bidv.smartbanking', ios:'839817922', dl:true },
+  { n:'Techcombank', s:'TCB',  bin:'970407', aliases:["TCB","Ngân hàng TMCP Kỹ thương Việt Nam","Techcombank"], sc:'techcombank', pkg:'vn.techcombank.mobile', ios:'1090449508', dl:true },
+  { n:'MB Bank',     s:'MB',   bin:'970422', aliases:["MB","Ngân hàng TMCP Quân đội","MBBank"], sc:'mbmobile', pkg:'com.mbmobile', ios:'671882567', dl:true },
+  { n:'VietinBank',  s:'CTG',  bin:'970415', aliases:["ICB","Ngân hàng TMCP Công thương Việt Nam","VietinBank"], sc:'vietinbank', pkg:'com.vietinbank.imobilev2', ios:'938057985', dl:false },
+  { n:'Agribank',    s:'AGB',  bin:'970405', aliases:["VBA","Ngân hàng Nông nghiệp và Phát triển Nông thôn Việt Nam","Agribank"], sc:'agribank', pkg:'vn.agribank.mobilebanking', ios:'1028248820', dl:false },
+  { n:'VPBank',      s:'VPB',  bin:'970432', aliases:["VPB","Ngân hàng TMCP Việt Nam Thịnh Vượng","VPBank"], sc:'vpbank', pkg:'com.vpbank.vpbankmobile', ios:'940344289', dl:true },
+  { n:'TPBank',      s:'TPB',  bin:'970423', aliases:["TPB","Ngân hàng TMCP Tiên Phong","TPBank"], sc:'tpbank', pkg:'vn.tpb.mobilebanking', ios:'1281082726', dl:true },
+  { n:'HDBank',      s:'HDB',  bin:'970437', aliases:["HDB","Ngân hàng TMCP Phát triển Thành phố Hồ Chí Minh","HDBank"], sc:'hdbank', pkg:'vn.hdbank.mobilebanking', ios:'884122768', dl:true },
+  { n:'Sacombank',   s:'STB',  bin:'970403', aliases:["STB","Ngân hàng TMCP Sài Gòn Tài Lộc","Sacombank"], sc:'sacombank', pkg:'vn.com.sacombank.mobilebanking', ios:'1085226588', dl:false },
 ]);
 
 function cleanText(value) {
@@ -38,12 +38,29 @@ function getBankList() {
 }
 
 function findBank(bankIdOrBin = '') {
-  const key = String(bankIdOrBin || '').toUpperCase().trim();
-  return getBankList().find(b =>
-    String(b.bin || '').toUpperCase() === key ||
-    String(b.s || '').toUpperCase() === key ||
-    String(b.n || '').toUpperCase() === key
-  ) || null;
+  const normalize = x => cleanText(x).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/gi, 'd').toUpperCase().replace(/\s/g, '');
+  const key = normalize(bankIdOrBin);
+  if (!key) return null;
+  const matches = getBankList().filter(b => [b.bin, b.s, b.n, ...(b.aliases || [])].some(x => normalize(x) === key));
+  return matches.length === 1 ? matches[0] : null;
+}
+
+// V7: registry lookup only. The canonical branch resolver in app.js chooses
+// the beneficiary. All supplied identities must refer to the same bank.
+function normalizeBankAccountStrict(account = {}) {
+  const fail = code => { const e = new Error(code); e.code = code; throw e; };
+  const identities = ['bankId', 'bankBin', 'bin', 'bankShort', 'bankCode', 'bankName', 'bank']
+    .map(k => cleanText(account[k])).filter(Boolean);
+  if (!identities.length) fail('ACCOUNT_INCOMPLETE');
+  const banks = identities.map(token => {
+    const bank = findBank(token);
+    if (!bank) fail(/^\d+$/.test(token) && !/^\d{6}$/.test(token) ? 'BANK_BIN_INVALID' : 'BANK_CODE_UNRECOGNIZED');
+    return bank;
+  });
+  if (banks.some(b => b.bin !== banks[0].bin)) fail('BANK_IDENTITY_CONFLICT');
+  // Numeric account numbers have already lost leading-zero information.
+  if (typeof account.accountNo !== 'string' || !/^[0-9A-Za-z]{3,32}$/.test(account.accountNo.trim()) || /^\d+(?:\.\d+)?e[+-]?\d+$/i.test(account.accountNo.trim()) || !cleanText(account.accountName)) fail('ACCOUNT_INCOMPLETE');
+  return Object.freeze({bankId:banks[0].bin,bankBin:banks[0].bin,accountNo:account.accountNo.trim(),accountName:cleanText(account.accountName)});
 }
 
 function normalizeBankAccount(account = {}) {
@@ -132,6 +149,7 @@ export const QRBankingHelpers = Object.freeze({
   getBankList,
   findBank,
   normalizeBankAccount,
+  normalizeBankAccountStrict,
   resolveBankAccountForBranch,
   buildTransferNote,
   buildVietQrImageUrl,

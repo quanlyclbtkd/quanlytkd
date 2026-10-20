@@ -1048,7 +1048,7 @@ export function initStudents() {
      * @param {number|string} amount    — tổng tiền
      */
     window.generateMultiMonthPaymentRequest = (name, monthsStr, branch, amount) => {
-        window.exportReceipt(
+        return window.exportReceipt(
             name, Number(amount), 'Học phí', getLocalToday(),
             monthsStr, branch, '', 'PHIẾU BÁO HỌC PHÍ'
         );

@@ -70,10 +70,10 @@ else
 if (/selectedKeys\s*=.*aliases/.test(appJs.replace(/\s+/g,' ')) && /selectedValues\.length > 1/.test(appJs))
     pass('resolver checks all branch-map aliases and blocks conflicting mappings');
 else fail('resolver does not prove conflict-safe branch map selection');
-if (/return \{bankKey, bankId, accountNo, accountName/.test(appJs) && /return deny\('mapped-account-disabled-or-missing'\)/.test(appJs))
+if (/return \{bankKey, bankId, accountNo, accountName/.test(appJs) && /return deny\('ACCOUNT_DISABLED'\)/.test(appJs))
     pass('resolver returns a complete selected tuple or denies disabled mapped account');
 else fail('resolver can return a mixed/incomplete/disabled account');
-if (/Object\.keys\(accounts\)\.length > 0\) return deny\('branch-unmapped'\)/.test(appJs))
+if (/Object\.keys\(accounts\)\.length > 0\) return deny\('ACCOUNT_MAPPING_MISSING'\)/.test(appJs))
     pass('unmapped multi-account configuration cannot silently select bank1 or bank2');
 else fail('unmapped account can silently use another bank');
 
@@ -109,7 +109,7 @@ else
 // ─────────────────────────────────────────────────────────────────────────────
 section('7. exportReceipt resolves verified payment account before generateVietQR');
 const _qrRoute = appJs.replace(/\s+/g,' ');
-if (/const _accounts = _branches\.map/.test(_qrRoute) && /getPaymentAccountForBranch\(b, clubConfig\)/.test(_qrRoute) && /generateVietQR\(amount, qrName, paymentContent, _accounts\[0\], 'qr_only'\)/.test(_qrRoute))
+if (/const _accounts = _branches\.map/.test(_qrRoute) && /getPaymentAccountForBranch\(b, _paymentSettings\)/.test(_qrRoute) && /generateVietQR\(amount, qrName, paymentContent, _accounts\[0\], 'qr_only'\)/.test(_qrRoute))
     pass('report branch resolves verified account snapshot and passes it to qr_only generator');
 else
     fail('report branch did not demonstrate canonical account resolver to QR');
