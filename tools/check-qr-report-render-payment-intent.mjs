@@ -1,4 +1,4 @@
-import {syntheticForUrl,asData,publishExistingSettingsFixture} from './qr-v7/harness.mjs';
+import {syntheticForUrl,asData,publishExistingSettingsFixture,mockDocument} from './qr-v7/harness.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
@@ -11,7 +11,7 @@ const finance=fs.readFileSync(path.join(root,'js/modules/finance.js'),'utf8');
 let pass=0, fail=0; const outcomes=[];
 function check(name,fn){try{fn();console.log('PASS',name);pass++;outcomes.push({case:name,result:'PASS'});}catch(e){console.error('FAIL',name, e.message);fail++;outcomes.push({case:name,result:'FAIL',reason:e.message});}}
 const bankCfg={bankId:'970415', accountNo:'001234567890',accountName:'MOCK OWNER',paymentAccounts:{bank1:{bankId:'970415',accountNo:'001234567890',accountName:'MOCK OWNER',enabled:true},bank2:{bankId:'970436',accountNo:'009988776655',accountName:'TEST ALT',enabled:true}},branchPaymentAccountMap:{CS1:'bank1',CS2:'bank2'},branchCount:2};
-function domMock(){const els=new Map();return {els, getElementById(id){if(!els.has(id)){const x={id,value:'',checked:false,style:{},dataset:{},classList:{remove(){}},innerText:'',textContent:'',innerHTML:'',complete:true,naturalWidth:480,naturalHeight:480, onclick:null,src:'',removeAttribute(prop){delete this[prop]},decode:async function(){if(this.src){this.naturalWidth=480;this.naturalHeight=480;}else throw Error('no image')} };els.set(id,x)}return els.get(id)},querySelectorAll(){return[]},createElement(){return{click(){}}}}}
+function domMock(){return mockDocument();}
 const extract=(source,a,b)=>{let i=source.indexOf(a);if(i<0)throw Error('missing '+a);let e=source.indexOf(b,i);if(e<0)throw Error('end '+b);return source.slice(i,e)};
 const helper=extract(app,'function normalizeBranchKeyForPayment','function maskAccountNumber');
 const qrFunction=extract(app,'function generateVietQR','document.getElementById(\'transactionForm\')');
@@ -22,7 +22,7 @@ async function receiptRun({report=true,acct=bankCfg,branch='CS1',amount=350000, 
  const auth={uid:'test-admin',clubId:'club-a',generation:1,ready:true};
  let responseBytes=Buffer.concat([Buffer.from([137,80,78,71,13,10,26,10]),Buffer.alloc(240,1)]);
  class FileReader{readAsDataURL(b){this.result='data:image/png;base64,'+responseBytes.toString('base64');this.onload?.()}}
- const src={window:{showToast:(...x)=>notice.push(x),__verifiedAuthContextState:auth,getBranchNameDisplay:x=>x,formatMonthCompact:x=>x, html2canvas:async(node,opts)=>{canvasArgs.push(opts);return{toDataURL:(mime)=>{canvasType=mime;return mime==='image/png'?asData(responseBytes):'data:'+mime+';base64,ZmFrZQ=='}}}},document:doc,clubConfig:acct,logoCanvasData:null,allProfiles:{},currentClubId:'club-a',formatDate:x=>x,docTienVND:x=>String(x),removeVietnameseTonesForQR:s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/Đ/g,'D'),getLocalToday:()=> '2026-10-20',formatMonth:x=>x,fetch:async(url,opts)=>{fetchCalls.push(String(url)); if (stale) auth.uid='test-new';if(badNetwork)throw Error('network-down');responseBytes=syntheticForUrl(url);return {ok:true,headers:{get:()=>encoded==='png'?'image/png':'text/html'},arrayBuffer:async()=>responseBytes}}, FileReader,Blob,AbortController,URL,Buffer,setTimeout:process.env.QR_BASELINE_FAST ? ((fn,delay)=>setImmediate(fn)) : setTimeout,clearTimeout,requestAnimationFrame:f=>f(),getComputedStyle:()=>({display:'flex',visibility:'visible',opacity:'1',zIndex:'10001'}), console:{error(){}},Promise, Number, Date,Math,Object,String};
+ const src={window:{showToast:(...x)=>notice.push(x),__verifiedAuthContextState:auth,getBranchNameDisplay:x=>x,formatMonthCompact:x=>x, html2canvas:async(node,opts)=>{canvasArgs.push(opts);return{toDataURL:(mime)=>{canvasType=mime;return mime==='image/png'?asData(responseBytes):'data:'+mime+';base64,ZmFrZQ=='}}}},document:doc,clubConfig:acct,logoCanvasData:null,allProfiles:{},currentClubId:'club-a',formatDate:x=>x,docTienVND:x=>String(x),removeVietnameseTonesForQR:s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/Đ/g,'D'),getLocalToday:()=> '2026-10-20',formatMonth:x=>x,fetch:async(url,opts)=>{fetchCalls.push(String(url)); if (stale) auth.uid='test-new';if(badNetwork)throw Error('network-down');responseBytes=syntheticForUrl(url);return {url:String(url),ok:true,headers:{get:()=>encoded==='png'?'image/png':'text/html'},arrayBuffer:async()=>responseBytes}}, FileReader,Blob,AbortController,URL,Buffer,setTimeout:process.env.QR_BASELINE_FAST ? ((fn,delay)=>setImmediate(fn)) : setTimeout,clearTimeout,requestAnimationFrame:f=>f(),getComputedStyle:()=>({display:'flex',visibility:'visible',opacity:'1',zIndex:'10001'}), console:{error(){}},Promise, Number, Date,Math,Object,String};
  doc.getElementById('receiptModal').getBoundingClientRect=()=>({right:400,bottom:800,left:0,top:0,width:400,height:800});
  src.window.innerWidth=390;src.window.innerHeight=840;
  
@@ -36,7 +36,7 @@ async function receiptRun({report=true,acct=bankCfg,branch='CS1',amount=350000, 
 async function main(){
  const expected=(name,cond)=>check(name,()=>assert.ok(cond,name));
  check('CSS preserve 1:1 QR image',()=>{let m=html.match(/id="qrCodeImg"[^>]+/);assert.ok(m);assert.match(m[0],/object-fit:\s*contain/);assert.match(m[0],/width:\s*280px; height:\s*280px/)});
- const good=await receiptRun(); expected('M01 QR-only endpoint, amount and encoded account',good.fetchCalls[0]?.includes('970415-001234567890-qr_only.png?amount=350000'));
+ const good=await receiptRun(); expected('M01 QR-only endpoint, amount and encoded account',good.fetchCalls[0]?.includes('970415-001234567890-qr_only.svg?amount=350000'));
  expected('M01 lossless report and no taint',good.canvasType==='image/png'&&good.canvasArgs[0].allowTaint===false);
  expected('M01 report rendered, ACK-like render result, no write',good.result.ok===true&&good.writes===0);
  expected('M01 no preview/download discrepancy',good.doc.getElementById('btnDownloadReceipt').onclick!==null && good.result.receiptImage===good.doc.getElementById('receiptPreviewImg').src || good.result.ok===true);

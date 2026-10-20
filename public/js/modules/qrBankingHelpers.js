@@ -105,6 +105,179 @@ function buildVietQrOnlyUrl(input = {}) {
   return buildVietQrImageUrl(input, { template: 'qr_only' });
 }
 
+function qrImageError(code) {
+  const error = new Error(code);
+  error.code = code;
+  return error;
+}
+
+// Quicklink now redirects .png to .svg. Accept that exact destination only;
+// the image bytes and decoded transfer intent are still verified by the owner.
+function validateReceiptQrResponseUrl(responseUrl, requestUrl) {
+  try {
+    const requested = new URL(requestUrl);
+    const landed = new URL(responseUrl);
+    const query = url => JSON.stringify([...url.searchParams].sort(([ak,av],[bk,bv]) => ak.localeCompare(bk) || av.localeCompare(bv)));
+    const allowedPaths = [requested.pathname.replace(/\.(?:png|svg)$/, '.png'), requested.pathname.replace(/\.(?:png|svg)$/, '.svg')];
+    if (requested.origin !== 'https://img.vietqr.io' || !/^\/image\/[0-9]{6}-[0-9A-Za-z]+-qr_only\.(?:png|svg)$/.test(requested.pathname) ||
+        landed.origin !== requested.origin || landed.username || landed.password || landed.hash ||
+        !allowedPaths.includes(landed.pathname) || query(landed) !== query(requested)) throw qrImageError('QR_FETCH_REDIRECT');
+    return true;
+  } catch (_) {
+    throw qrImageError('QR_FETCH_REDIRECT');
+  }
+}
+
+function pngBytesValid(bytes) {
+  if (bytes.length < 128 || bytes.length > 5000000 || ![137,80,78,71,13,10,26,10].every((v,i) => bytes[i] === v)) return false;
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const width = view.getUint32(16), height = view.getUint32(20);
+  return width > 0 && height > 0 && width <= 4096 && height <= 4096 && width * height <= 12000000;
+}
+function bytesDataUrl(bytes, mime) {
+  let binary = '';
+  for (let i=0; i<bytes.length; i+=16384) binary += String.fromCharCode(...bytes.subarray(i,i+16384));
+  return 'data:'+mime+';base64,'+btoa(binary);
+}
+function jpegBytesValid(bytes) {
+  if (bytes.length < 128 || bytes.length > 1000000 || bytes[0] !== 255 || bytes[1] !== 216 || bytes[bytes.length-2] !== 255 || bytes[bytes.length-1] !== 217) return false;
+  let offset = 2;
+  while (offset + 4 < bytes.length) {
+    if (bytes[offset++] !== 255) return false;
+    while (bytes[offset] === 255) offset++;
+    const marker = bytes[offset++];
+    if (marker === 218 || marker === 217) return false;
+    const length = (bytes[offset] << 8) | bytes[offset+1];
+    if (length < 2 || offset + length > bytes.length) return false;
+    if ([192,193,194].includes(marker)) {
+      if (length < 8) return false;
+      const height = (bytes[offset+3] << 8) | bytes[offset+4], width = (bytes[offset+5] << 8) | bytes[offset+6];
+      return width > 0 && height > 0 && width <= 4096 && height <= 4096 && width * height <= 12000000;
+    }
+    offset += length;
+  }
+  return false;
+}
+
+// SVG is parsed as inert XML, checked against a small graphics allowlist, then
+// rendered privately to PNG. No scripts, foreign content, CSS or external URLs.
+async function prepareReceiptQrImage(bytes, contentType, document) {
+  const mime = String(contentType || '').split(';')[0].trim().toLowerCase();
+  if (mime === 'image/png') {
+    if (!pngBytesValid(bytes)) throw qrImageError('QR_BYTES_INVALID');
+    return bytesDataUrl(bytes, 'image/png');
+  }
+  if (mime !== 'image/svg+xml') throw qrImageError('QR_MIME');
+  if (!bytes.length || bytes.length > 2000000) throw qrImageError('QR_BYTES_INVALID');
+  const fail = () => {throw qrImageError('QR_SVG_UNSAFE');};
+  let text;
+  try {text = new TextDecoder('utf-8',{fatal:true}).decode(bytes);} catch (_) {fail();}
+  if (/<!DOCTYPE|<!ENTITY|<\?/i.test(text)) fail();
+  const doc = document || globalThis.document;
+  const view = doc?.defaultView || globalThis;
+  const xml = new view.DOMParser().parseFromString(text, 'image/svg+xml');
+  const svg = xml.documentElement;
+  if (xml.doctype || xml.querySelector('parsererror') || svg?.localName !== 'svg' || svg.namespaceURI !== 'http://www.w3.org/2000/svg') fail();
+  const attrs = {
+    svg:['xmlns','width','height','viewBox','role','version','preserveAspectRatio'],
+    title:[],desc:[],g:['transform','fill'],
+    rect:['x','y','width','height','rx','ry','fill'],
+    path:['d','fill','fill-rule','shape-rendering','transform'],
+    image:['x','y','width','height','href','id','preserveAspectRatio'],
+  };
+  const nodes = [...svg.querySelectorAll('*')];
+  if (nodes.length > 10000) fail();
+  for (const node of [svg,...nodes]) {
+    const tag = node.localName;
+    if (node.namespaceURI !== svg.namespaceURI || !Object.prototype.hasOwnProperty.call(attrs,tag) || (node !== svg && tag === 'svg')) fail();
+    for (const attr of [...node.attributes]) {
+      const key = attr.name, value = attr.value;
+      if (!attrs[tag].includes(key) || (attr.namespaceURI && !(key === 'xmlns' && node === svg))) fail();
+      if (key === 'xmlns' && value !== 'http://www.w3.org/2000/svg') fail();
+      if (key === 'fill' && !/^(?:#[0-9a-f]{3,8}|white|black|none)$/i.test(value)) fail();
+      if (key === 'd' && (value.length > 300000 || !/^[MmZzLlHhVvCcSsQqTtAa0-9eE.,+\-\s]+$/.test(value))) fail();
+      if (key === 'transform' && !/^(?:\s*(?:matrix|translate|scale|rotate|skewX|skewY)\([-+0-9eE.,\s]+\)\s*)+$/.test(value)) fail();
+      if (['x','y','width','height','rx','ry'].includes(key) && (!/^-?(?:\d+\.?\d*|\.\d+)$/.test(value) || Math.abs(Number(value)) > 100000)) fail();
+      if (key === 'preserveAspectRatio' && !/^(?:none|x(?:Min|Mid|Max)Y(?:Min|Mid|Max)(?:\s+(?:meet|slice))?)$/.test(value)) fail();
+      if (key === 'shape-rendering' && !/^(?:crispEdges|geometricPrecision|auto)$/.test(value)) fail();
+      if (key === 'fill-rule' && !/^(?:nonzero|evenodd)$/.test(value)) fail();
+      if (key === 'href') {
+        if (!/^data:image\/(?:png|jpeg);base64,[A-Za-z0-9+/]+={0,2}$/.test(value) || value.length > 1500000) fail();
+        let embedded;
+        try {embedded = Uint8Array.from(atob(value.slice(value.indexOf(',')+1)), c => c.charCodeAt(0));} catch (_) {fail();}
+        if (!(value.startsWith('data:image/png;') ? pngBytesValid(embedded) : jpegBytesValid(embedded))) fail();
+      }
+    }
+    for (const child of [...node.childNodes]) if (![1,3,4,8].includes(child.nodeType)) fail();
+  }
+  const box = String(svg.getAttribute('viewBox') || '').trim().split(/[\s,]+/).map(Number);
+  if (box.length !== 4 || box.some(n => !Number.isFinite(n)) || box[0] !== 0 || box[1] !== 0 || box[2] <= 0 || box[2] > 4096 || box[2] !== box[3]) fail();
+  const size = Math.max(512, Math.min(1024, Math.ceil(box[2])));
+  svg.setAttribute('width',String(size));svg.setAttribute('height',String(size));
+  const safe = new view.XMLSerializer().serializeToString(svg);
+  const image = doc.createElement('img');
+  const loaded = new Promise((resolve,reject) => {image.onload=resolve;image.onerror=()=>reject(qrImageError('QR_DECODE_FAILED'));});
+  loaded.catch(()=>{});
+  image.src = bytesDataUrl(new TextEncoder().encode(safe), 'image/svg+xml');
+  try {if (typeof image.decode === 'function') await image.decode(); else await loaded;}
+  catch (_) {throw qrImageError('QR_DECODE_FAILED');}
+  // Four modules of white even for the smallest 21-module QR symbol.
+  const quiet = Math.ceil(size*4/21);
+  const canvas = doc.createElement('canvas');canvas.width=size+quiet*2;canvas.height=size+quiet*2;
+  const context = canvas.getContext('2d');
+  if (!context) throw qrImageError('QR_DECODE_FAILED');
+  context.fillStyle='#ffffff';context.fillRect(0,0,canvas.width,canvas.height);context.drawImage(image,quiet,quiet,size,size);
+  return canvas.toDataURL('image/png');
+}
+
+// One local decoder for both source and preview pixels on all browsers.
+// Loaded only during receipt QR verification; never installs a window polyfill.
+let receiptDecoderPromise = null;
+async function decodeReceiptQrImage(image) {
+  let decode;
+  try {
+    if (!receiptDecoderPromise) receiptDecoderPromise = import('../vendor/jsqr-1.4.0.esm.js').then(module => {
+      if (typeof module.default !== 'function') throw qrImageError('QR_VERIFICATION_UNAVAILABLE');
+      return module.default;
+    });
+    decode = await receiptDecoderPromise;
+  } catch (_) {
+    receiptDecoderPromise = null;
+    throw qrImageError('QR_VERIFICATION_UNAVAILABLE');
+  }
+  const width = image?.naturalWidth || image?.width;
+  const height = image?.naturalHeight || image?.height;
+  if (!Number.isSafeInteger(width) || !Number.isSafeInteger(height) || width < 100 || height < 100 || width * height > 12000000) throw qrImageError('QR_MEDIA_INVALID');
+  try {
+    const canvas = (image.ownerDocument || globalThis.document).createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext('2d', {willReadFrequently:true});
+    if (!context) throw qrImageError('QR_DECODE_FAILED');
+    context.drawImage(image, 0, 0, width, height);
+    const pixels = context.getImageData(0, 0, width, height);
+    const first = decode(pixels.data, width, height, {inversionAttempts:'dontInvert'});
+    if (!first) return [];
+    const result = code => {
+      const points = ['topLeftCorner','topRightCorner','bottomRightCorner','bottomLeftCorner'].map(key => code.location[key]);
+      const x = Math.min(...points.map(p => p.x)), y = Math.min(...points.map(p => p.y));
+      return {rawValue:code.data,boundingBox:{x,y,width:Math.max(...points.map(p => p.x))-x,height:Math.max(...points.map(p => p.y))-y}};
+    };
+    const found = [result(first)];
+    // Preserve the single-QR contract: remove the first symbol from this private
+    // pixel buffer and reject a second symbol rather than choosing one silently.
+    const box = found[0].boundingBox;
+    const left = Math.max(0, Math.floor(box.x)-4), right = Math.min(width, Math.ceil(box.x+box.width)+4);
+    const top = Math.max(0, Math.floor(box.y)-4), bottom = Math.min(height, Math.ceil(box.y+box.height)+4);
+    for (let row = top; row < bottom; row++) pixels.data.fill(255, (row*width+left)*4, (row*width+right)*4);
+    const second = decode(pixels.data, width, height, {inversionAttempts:'dontInvert'});
+    if (second) found.push(result(second));
+    return found;
+  } catch (error) {
+    throw qrImageError(error?.code === 'QR_MEDIA_INVALID' ? error.code : 'QR_DECODE_FAILED');
+  }
+}
+
 function buildVietQrDeepLink(input = {}) {
   const account = normalizeBankAccount(input);
   const amount = parseAmount(input.amount || input.total || 0);
@@ -150,6 +323,10 @@ export const QRBankingHelpers = Object.freeze({
   findBank,
   normalizeBankAccount,
   normalizeBankAccountStrict,
+  validateReceiptQrResponseUrl,
+  decodeReceiptQrImage,
+  prepareReceiptQrImage,
+  receiptQrVersion: 'qr-v8-redirect-safari-20261020',
   resolveBankAccountForBranch,
   buildTransferNote,
   buildVietQrImageUrl,

@@ -51,10 +51,25 @@ export function syntheticForUrl(url) {
 }
 export function mockDocument() {
   const elements=new Map();
-  return {elements,documentElement:{clientWidth:390,clientHeight:840},getElementById(id){
-    if(!elements.has(id)) elements.set(id,{id,value:'',checked:false,style:{},dataset:{},innerHTML:'',innerText:'',textContent:'',src:'',onclick:null,complete:true,naturalWidth:490,naturalHeight:490,classList:{remove(){},add(){}},removeAttribute(p){this[p]='';},getBoundingClientRect(){return{left:0,top:0,right:390,bottom:840,width:390,height:840};},async decode(){if(!this.src)throw Error('missing image');try{const p=PNG.sync.read(Buffer.from(this.src.split(',')[1],'base64'));this.naturalWidth=p.width;this.naturalHeight=p.height;}catch(e){throw Error('invalid image pixels');}}});
-    return elements.get(id);
-  },querySelectorAll(){return[];},createElement(){return{click(){}};}};
+  const document = {elements,documentElement:{clientWidth:390,clientHeight:840},getElementById(id){
+    if(!elements.has(id)) elements.set(id,{id,ownerDocument:document,value:'',checked:false,style:{},dataset:{},innerHTML:'',innerText:'',textContent:'',src:'',onclick:null,complete:true,naturalWidth:490,naturalHeight:490,classList:{remove(){},add(){}},removeAttribute(p){this[p]='';},getBoundingClientRect(){return{left:0,top:0,right:390,bottom:840,width:390,height:840};},async decode(){if(!this.src)throw Error('missing image');try{const p=PNG.sync.read(Buffer.from(this.src.split(',')[1],'base64'));this.naturalWidth=p.width;this.naturalHeight=p.height;}catch(e){throw Error('invalid image pixels');}}});
+    const element=elements.get(id);
+    if(!Object.getOwnPropertyDescriptor(element,'src')?.get) {
+      Object.defineProperty(element,'src',{configurable:true,get(){return this._imageSrc||'';},set(value){
+        this._imageSrc=value;
+        if(String(value).startsWith('data:image/jpeg;')){this.complete=true;return;}
+        if(!String(value).startsWith('data:image/png;'))return;
+        try{const p=PNG.sync.read(Buffer.from(String(value).split(',')[1],'base64'));this.naturalWidth=p.width;this.naturalHeight=p.height;this.complete=true;}
+        catch(_){this.complete=false;}
+      }});
+    }
+    return element;
+  },querySelectorAll(){return[];},createElement(tag){
+    if(tag!=='canvas')return{click(){}};
+    let rgba;
+    return {getContext(){return{drawImage(image){const p=PNG.sync.read(Buffer.from(image.src.split(',')[1],'base64'));rgba=new Uint8ClampedArray(p.data);},getImageData(){return{data:rgba};}};}};
+  }};
+  return document;
 }
 export async function createHarness({config=bankConfig(), hydrate=true,metadata={fromCache:false,hasPendingWrites:false},providerBytes,previewBytes,network='ok',nativeDecoder=true}={}) {
   const document=mockDocument(), events=[],writes=[],fetches=[],downloads=[],renders=[];
@@ -80,11 +95,12 @@ export async function createHarness({config=bankConfig(), hydrate=true,metadata=
     TuitionCommandBoundary:{collectTuition:failWrite},FinanceService:{commitAtomicWritePlan:failWrite},InventoryService:{addItem:failWrite},
   };
   if(nativeDecoder) w.BarcodeDetector=PixelDetector;
-  document.createElement=()=>({click(){downloads.push(this.href);}});
+  const createElement=document.createElement.bind(document);
+  document.createElement=tag=>tag==='canvas'?createElement(tag):({click(){downloads.push(this.href);}});
   const c={window:w,document,clubConfig:config,currentClubId:'club-a',allProfiles:{'TEST VDV':{branch:'CS1',tuitionFee:500000,paidUntil:'2026-09'}},logoCanvasData:null,
     getLocalToday:()=> '2026-10-20',formatDate:x=>x,formatMonth:x=>x?x.split('-').reverse().join('/'):'',docTienVND:x=>String(x),normalizeYYYYMM:x=>x,
     removeVietnameseTonesForQR:s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/Đ/g,'D'),
-    fetch:async(url,opts)=>{fetches.push({url:String(url),opts});if(net==='cors')throw new TypeError('Failed to fetch');if(net==='redirect')return{redirected:true,ok:true,type:'cors',headers:{get:()=> 'image/png'}};if(typeof providerBytes==='function')bytes=await providerBytes(url);return{ok:net!=='http',status:net==='http'?503:200,redirected:false,type:'cors',headers:{get:()=>net==='mime'?'text/html':'image/png'},arrayBuffer:async()=>bytes};},
+    fetch:async(url,opts)=>{fetches.push({url:String(url),opts});if(net==='cors')throw new TypeError('Failed to fetch');if(net==='redirect')return{url:'https://other.invalid/qr.png',redirected:true,ok:true,type:'cors',headers:{get:()=> 'image/png'}};if(typeof providerBytes==='function')bytes=await providerBytes(url);return{url:String(url),ok:net!=='http',status:net==='http'?503:200,redirected:false,type:'cors',headers:{get:()=>net==='mime'?'text/html':'image/png'},arrayBuffer:async()=>bytes};},
     Blob,FileReader,AbortController,URL,Uint8Array,Uint8ClampedArray,TextEncoder,TextDecoder,
     console:{error:(...a)=>events.push(a),warn:(...a)=>events.push(a),log(){}},setTimeout,clearTimeout,Date,Math,Number,Promise,
     requestAnimationFrame:f=>f(),getComputedStyle:()=>({display:'flex',visibility:'visible',opacity:'1',zIndex:'10001'}),

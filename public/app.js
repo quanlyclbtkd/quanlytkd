@@ -4885,10 +4885,10 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         return {bankBin:beneficiary['00'],accountNo:beneficiary['01'],amount:Number(top['54']),memo:additional['08']};
     }
     async function _verifyReceiptQrPixels(image, intent, stage) {
-        if (typeof window.BarcodeDetector !== 'function') throw _receiptError('QR_VERIFICATION_UNAVAILABLE',stage);
+        if (typeof window.QRBankingHelpers?.decodeReceiptQrImage !== 'function') throw _receiptError('QR_VERIFICATION_UNAVAILABLE',stage);
         let codes;
-        try { codes=await new window.BarcodeDetector({formats:['qr_code']}).detect(image); }
-        catch (_) { throw _receiptError('QR_DECODE_FAILED',stage); }
+        try { codes=await window.QRBankingHelpers.decodeReceiptQrImage(image); }
+        catch (error) { throw _receiptError(error?.code === 'QR_VERIFICATION_UNAVAILABLE' ? error.code : error?.code === 'QR_MEDIA_INVALID' ? error.code : 'QR_DECODE_FAILED',stage); }
         if (codes?.length !== 1) throw _receiptError('QR_DECODE_FAILED',stage);
         const box=codes[0].boundingBox,w=image.naturalWidth || image.width,h=image.naturalHeight || image.height;
         if (!box || !(box.width>0 && box.height>0) || Math.abs(box.width/box.height-1)>0.04 ||
@@ -4904,9 +4904,9 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             BANK_CODE_UNRECOGNIZED:'Mã ngân hàng chưa có trong danh mục đã xác minh.',BANK_IDENTITY_CONFLICT:'Các mã/tên ngân hàng trong cùng tài khoản đang mâu thuẫn.',BANK_BIN_INVALID:'Mã BIN ngân hàng không hợp lệ.',
             INVALID_AMOUNT:'Số tiền hoặc tổng các dòng chi tiết không hợp lệ.',AUTH_STALE:'Phiên đăng nhập hoặc CLB đã đổi. Mở lại CLB và tạo phiếu mới.',CONFIG_STALE:'Cấu hình nhận tiền đã đổi. Tạo lại phiếu.',
             QR_VERIFICATION_UNAVAILABLE:'Trình duyệt chưa có bộ giải mã QR được kiểm chứng. Chưa thể xuất phiếu an toàn trên thiết bị này.',MEMO_TOO_LONG:'Nội dung chuyển khoản vượt 48 ký tự. Cần thống nhất nội dung ngắn hơn, giữ đủ kỳ học phí.',
-            QR_FETCH_CORS:'Không tải được QR qua kết nối an toàn. Kiểm tra mạng; cần nhật ký mạng để phân biệt CORS và chuyển hướng.',QR_FETCH_REDIRECT:'Nhà cung cấp chuyển hướng tải QR. Chưa thể xác minh ảnh.',QR_FETCH_HTTP:'Nhà cung cấp QR trả lỗi. Thử tạo phiếu lại sau.',
+            QR_FETCH_NETWORK:'Không tải được mã QR. Kiểm tra kết nối rồi thử lại.',QR_FETCH_REDIRECT:'Địa chỉ ảnh QR chuyển hướng ngoài nguồn được phép. Đã chặn tải.',QR_FETCH_HTTP:'Nhà cung cấp QR trả lỗi. Thử tạo phiếu lại sau.',
             QR_TIMEOUT:'Tải hoặc kiểm tra QR quá thời hạn. Thử lại khi mạng ổn định.',QR_EMV_MISMATCH:'Nội dung mã QR không khớp phiếu. Đã chặn tải ảnh.',QR_DECODE_FAILED:'Không đọc được mã QR trong ảnh. Đã chặn tải ảnh.',
-            QR_MIME:'Nhà cung cấp không trả ảnh PNG.',QR_BYTES_INVALID:'Dữ liệu ảnh QR không hợp lệ.',QR_MEDIA_INVALID:'Ảnh QR bị méo hoặc thiếu viền trắng.',CANVAS_EXPORT_FAILED:'Không xuất được ảnh phiếu. Kiểm tra trình duyệt.',PREVIEW_FAILED:'Không mở được ảnh xem trước.',MODAL_NOT_VISIBLE:'Khung xem phiếu chưa hiển thị.',DEBT_NOT_READY:'Báo nợ chưa có dữ liệu đã xác thực. Đợi tải xong rồi tạo lại.'};
+            QR_MIME:'Định dạng ảnh QR không được hỗ trợ.',QR_SVG_UNSAFE:'Ảnh QR có nội dung không được phép. Đã chặn tạo phiếu.',QR_BYTES_INVALID:'Dữ liệu ảnh QR không hợp lệ.',QR_MEDIA_INVALID:'Ảnh QR bị méo hoặc thiếu viền trắng.',CANVAS_EXPORT_FAILED:'Không xuất được ảnh phiếu. Kiểm tra trình duyệt.',PREVIEW_FAILED:'Không mở được ảnh xem trước.',MODAL_NOT_VISIBLE:'Khung xem phiếu chưa hiển thị.',DEBT_NOT_READY:'Báo nợ chưa có dữ liệu đã xác thực. Đợi tải xong rồi tạo lại.'};
         return `Chưa tạo được phiếu báo [${reason}]. ${messages[reason] || 'Vui lòng mở lại phiếu và thử lại.'}`;
     }
     function getPaymentAccountForBranch(branchCode, settings) {
@@ -5011,7 +5011,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         // The report QR must be a square QR-only provider image. Never stretch compact2 (a poster).
         if (!Number.isSafeInteger(amount) || amount <= 0 || amount > 9999999999999) throw _receiptError('INVALID_AMOUNT','intent');
         if (!['compact2', 'qr_only'].includes(qrTemplate)) throw new Error('Mẫu QR không hợp lệ.');
-        return `https://img.vietqr.io/image/${encodeURIComponent(String(_bankId))}-${encodeURIComponent(String(_acctNo))}-${qrTemplate}.png?amount=${amount}&addInfo=${encodeURIComponent(addInfoText)}&accountName=${encodeURIComponent(_acctName)}`;
+        return `https://img.vietqr.io/image/${encodeURIComponent(String(_bankId))}-${encodeURIComponent(String(_acctNo))}-${qrTemplate}.${qrTemplate === 'qr_only' ? 'svg' : 'png'}?amount=${amount}&addInfo=${encodeURIComponent(addInfoText)}&accountName=${encodeURIComponent(_acctName)}`;
     }
 
     document.getElementById('transactionForm').onsubmit = async (e) => {
@@ -6741,20 +6741,14 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                     await Promise.race([
                         (async () => {
                             _stage='fetch';
-                            let res;try {res=await fetch(_qrUrl, { signal: _abortQR.signal, redirect: 'error', mode: 'cors', cache: 'no-store' });}
-                            catch (_) {throw _receiptError(_qrExpired ? 'QR_TIMEOUT' : 'QR_FETCH_CORS',_stage);}
-                            if (res.redirected || res.type === 'opaqueredirect') throw _receiptError('QR_FETCH_REDIRECT',_stage);
+                            let res;try {res=await fetch(_qrUrl, { signal: _abortQR.signal, redirect: 'follow', mode: 'cors', credentials:'omit', referrerPolicy:'no-referrer', headers:{Accept:'image/svg+xml,image/png;q=0.9'}, cache: 'no-store' });}
+                            catch (_) {throw _receiptError(_qrExpired ? 'QR_TIMEOUT' : 'QR_FETCH_NETWORK',_stage);}
+                            if (res.type === 'opaqueredirect' || res.type === 'opaque') throw _receiptError('QR_FETCH_REDIRECT',_stage);
+                            window.QRBankingHelpers.validateReceiptQrResponseUrl(res.url,_qrUrl);
                             if (!res.ok) throw _receiptError('QR_FETCH_HTTP',_stage);
-                            if (!/^image\/png(?:\s*;|$)/i.test(String(res.headers.get('content-type') || ''))) throw _receiptError('QR_MIME','bytes');
                             _stage='bytes';
                             const bytes = new Uint8Array(await res.arrayBuffer());
-                            if (bytes.length < 128 || bytes.length > 5000000 || ![137,80,78,71,13,10,26,10].every((v,i) => bytes[i] === v)) throw _receiptError('QR_BYTES_INVALID',_stage);
-                            const dataURI = await new Promise((resolve, reject) => {
-                                const reader = new FileReader();
-                                reader.onload = () => resolve(reader.result);
-                                reader.onerror = () => reject(_receiptError('QR_BYTES_INVALID','bytes'));
-                                reader.readAsDataURL(new Blob([bytes], {type:'image/png'}));
-                            });
+                            const dataURI = await window.QRBankingHelpers.prepareReceiptQrImage(bytes,res.headers.get('content-type'),qrImgEl.ownerDocument);
                             if (_qrExpired) throw _receiptError('QR_TIMEOUT','decode');
                             _assertCurrent();
                             qrImgEl.src = dataURI;
@@ -6768,7 +6762,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                             _assertCurrent();
                             if (_qrCfgFingerprint !== _paymentConfigFingerprint()) throw _receiptError('CONFIG_STALE',_stage);
                         })(),
-                        new Promise((_,reject) => { _qrTimeout=setTimeout(() => { _qrExpired = true; _abortQR.abort(); reject(_receiptError('QR_TIMEOUT',_stage)); }, 9000); })
+                        new Promise((_,reject) => { _qrTimeout=setTimeout(() => { _qrExpired = true; _abortQR.abort(); reject(_receiptError('QR_TIMEOUT',_stage)); }, 15000); })
                     ]);
                 } catch(err) {
                     _qrExpired = true;

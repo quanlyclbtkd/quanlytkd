@@ -137,7 +137,7 @@ import {
 import { escapeForAttr, escapeHtml, formatVND, parseVND } from './utils/helpers.js';
 import { Formatters, initFormatters } from './utils/formatters.js';
 import { ReceiptHelpers, initReceiptHelpers } from './modules/receiptHelpers.js';
-import { QRBankingHelpers, initQRBankingHelpers } from './modules/qrBankingHelpers.js';
+import { QRBankingHelpers, initQRBankingHelpers } from './modules/qrBankingHelpers.js?v=qr-v8-redirect-safari-20261020';
 
 // Phase 4K-6V5U6E: install the immutable authority policy before any runtime
 // writer, SuperAdmin module, or diagnostic helper can initialize.

@@ -1,0 +1,22 @@
+{
+  "dependency": "jsQR",
+  "version": "1.4.0",
+  "license": "Apache-2.0",
+  "upstream_bundle_sha256": "bc40c8a15196236b2314db0856f72ca0b49980cd5413b8c852a7349f5fee0859",
+  "production_esm_sha256": "0c1f462afd313d07b47756c492145659d59c68f03aa340ec26fe668d062ca401",
+  "upstream_bundle_bytes": 256885,
+  "production_esm_bytes": 257064,
+  "transformation": "Prefix private CommonJS module/exports values; append ESM default export. Upstream UMD bundle bytes unchanged. No window globals or BarcodeDetector polyfill.",
+  "source": "https://github.com/cozmo/jsQR/tree/v1.4.0",
+  "original_vendor_provenance": "tools/qr-v7/vendor/jsQR.js from the V7 input package; independently compared to pinned npm package in this run",
+  "upstream_verification": {
+    "name": "jsqr",
+    "version": "1.4.0",
+    "integrity_verified": true,
+    "tarball_sha256": "b5299b37917a1fe7a8cab9dd5cc6b8accf82663add80abe5bf7761a921cc6602",
+    "bundle_sha256": "bc40c8a15196236b2314db0856f72ca0b49980cd5413b8c852a7349f5fee0859",
+    "bundle_exact_match_to_v7_vendor": true,
+    "license": "Apache-2.0",
+    "tarball_source": "https://registry.npmjs.org/jsqr/-/jsqr-1.4.0.tgz"
+  }
+}
