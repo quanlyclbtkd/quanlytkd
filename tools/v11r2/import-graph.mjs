@@ -83,6 +83,8 @@ export function buildImportGraph(root, overrides = {}) {
 }
 export const AUTHORITY_SEEDS = Object.freeze([
  'app.js','js/firebase/config.js','js/core/attendanceContract.js','js/data/attendanceJournal.js',
+ 'js/core/coachBranchRuntimeRepair.js','js/core/roleReadBoundary.js',
+ 'js/listeners/profiles.listeners.js','js/services/students.service.js','js/events/attendance.events.js',
  'js/modules/attendance.js','js/services/attendance.service.js',
  'js/modules/reports/reportExportFacade.js','js/modules/reports/attendanceExcelReport.js'
 ]);
@@ -133,6 +135,7 @@ export function rewriteCacheGraph(root, initialOverrides, tag) {
   let next = text;
   for (const replacement of replacements.sort((a,b) => b.start - a.start)) next = next.slice(0,replacement.start) + replacement.value + next.slice(replacement.end);
   if (next !== fs.readFileSync(path.join(root,file),'utf8')) overrides[file] = next;
+  else delete overrides[file]; // Drop an input override when the derived bytes already equal disk.
  }
  const after = buildImportGraph(root,overrides);
  assertCacheGraph(after,scope,tag);

@@ -49,9 +49,8 @@ service cloud.firestore {
     }
 
     function assignedBranch(data) {
-      return data.get('branch', '') != ''
-        ? data.get('branch', '')
-        : data.get('coachBranch', '');
+      let value = data.get('branch','');
+      return value != '' ? value : data.get('coachBranch','');
     }
 
     function myBranch() {
@@ -106,10 +105,63 @@ service cloud.firestore {
       ];
     }
 
+    function canonicalCoachBranch(value) {
+      return value == 'Mặc định' ? 'CS1' : value;
+    }
+    function branchOrdinal(value) {
+      return {'CS1':1,'CS2':2,'CS3':3,'CS4':4,'CS5':5,'CS6':6,'CS7':7,'CS8':8,'CS9':9,'CS10':10}.get(value,0);
+    }
+    function assignedBranches(data) {
+      return data.keys().hasAny(['allowedBranches']) ? data.allowedBranches : [canonicalCoachBranch(assignedBranch(data))];
+    }
+    function orderedCoachBranches(values) {
+      // One bounded RE2 expression preserves numeric order and uniqueness
+      // without repeatedly expanding nine ordinal comparisons per batch write.
+      return values.size() == 0 || (values.join(',') + ',').matches(
+        '^(CS1,)?(CS2,)?(CS3,)?(CS4,)?(CS5,)?(CS6,)?(CS7,)?(CS8,)?(CS9,)?(CS10,)?$');
+    }
+    function validCoachACL(data, clubId) {
+      let values = assignedBranches(data);
+      let configured = get(/databases/$(database)/documents/clubs/$(clubId)/settings/main_config).data.get('branchCount', 0);
+      let primary = canonicalCoachBranch(assignedBranch(data));
+      return values is list && values.size() <= 10 && configured is int && configured >= 1 && configured <= 10
+        && values.toSet().size() == values.size()
+        && values.toSet().difference(['CS1','CS2','CS3','CS4','CS5','CS6','CS7','CS8','CS9','CS10'].toSet()).size() == 0
+        && orderedCoachBranches(values)
+        && (values.size() == 0 ? (data.get('allowedBranches', null) == [] && primary == '') : (primary in values))
+        && (values.size() == 0 || branchOrdinal(values[values.size()-1]) <= configured)
+        && canonicalCoachBranch(data.get('coachBranch', assignedBranch(data))) == primary
+        && canonicalCoachBranch(data.get('defaultBranch', assignedBranch(data))) == primary;
+    }
+    function sameCoachACL(left, right) {
+      return left.get('role', '') == 'coach' && right.get('role', '') == 'coach'
+        && left.get('clubId', '') == right.get('clubId', '')
+        && assignedBranches(left) == assignedBranches(right)
+        && canonicalCoachBranch(assignedBranch(left)) == canonicalCoachBranch(assignedBranch(right))
+        && left.get('status','active') == right.get('status','active');
+    }
+    function assignmentVersionMatches(left,right) {
+      return left.get('assignmentVersion','legacy') == right.get('assignmentVersion','legacy');
+    }
+    function assignmentVersionedWrite() {
+      return request.resource.data.get('assignmentVersion','') is string
+        && request.resource.data.get('assignmentVersion','').size() >= 16;
+    }
+    function coachAssignmentMatches(user,clubId) {
+      let assignment = get(/databases/$(database)/documents/clubs/$(clubId)/coaches/$(request.auth.uid)).data;
+      let branches = assignedBranches(user);
+      return assignment.role == 'coach' && assignment.clubId == clubId
+        && assignment.get('status','active') == user.get('status','active')
+        && branches is list && branches.size() > 0 && branches.size() <= 10
+        && branches == assignedBranches(assignment)
+        && canonicalCoachBranch(assignedBranch(user)) == canonicalCoachBranch(assignedBranch(assignment))
+        && user.get('assignmentVersion','legacy') == assignment.get('assignmentVersion','legacy');
+    }
     function isCoach(clubId) {
-      return isClubMember(clubId)
-        && myRole() == 'coach'
-        && isAllowedCoachBranch(myBranch());
+      let user = currentUser();
+      return user.role == 'coach' && user.clubId == clubId
+        && !(user.get('status','active') in ['locked','disabled','suspended'])
+        && coachAssignmentMatches(user,clubId);
     }
 
     function isAdminOrViewer(clubId) {
@@ -129,7 +181,12 @@ service cloud.firestore {
       // Every allow-clause caller already requires isCoach(clubId).
       // Repeating that authorization for each old/new/profile branch can
       // exceed Firestore's expression limit on an otherwise valid update.
-      return sameBranchValue(branchValue, myBranch());
+      let user = currentUser();
+      let club = user.get('clubId','');
+      let canonical = canonicalCoachBranch(branchValue);
+      let ordinal = branchOrdinal(canonical);
+      let count = get(/databases/$(database)/documents/clubs/$(club)/settings/main_config).data.get('branchCount',0);
+      return ordinal > 0 && ordinal <= count && canonical in assignedBranches(user);
     }
 
     function resourceBranchMatchesCoach() {
@@ -149,7 +206,7 @@ service cloud.firestore {
       let profileId = data.get('profileId', '');
       return profileId is string && profileId.size() > 0
         // A missing profile has no data and fails closed; one get() suffices.
-        && sameBranchValue(get(/databases/$(database)/documents/clubs/$(clubId)/profiles/$(profileId)).data.get('branch', ''), myBranch());
+        && sameBranchValue(get(/databases/$(database)/documents/clubs/$(clubId)/profiles/$(profileId)).data.get('branch', ''), data.get('branch',''));
     }
 
     function coachOwnsResource() {
@@ -184,6 +241,7 @@ service cloud.firestore {
         .diff(resource.data)
         .affectedKeys()
         .hasOnly([
+          'coachAclEpoch',
           'cachedActiveCount',
           'cachedStudentCount',
           'activeStudentCount',
@@ -268,7 +326,7 @@ service cloud.firestore {
           && (isSuperAdmin() || isClubAdmin(clubId)
             || (isCoach(clubId) && coachAttendanceCutoverOpen() && historicalProof(resource.data) && resourceBranchMatchesCoach() && requestBranchMatchesCoach()
                 && resource.data.get('profileId', '') == request.resource.data.get('profileId', '')
-                && resource.data.get('branch', '') == request.resource.data.get('branch', '')
+                && sameBranchValue(resource.data.get('branch', ''), request.resource.data.get('branch', ''))
                 && coachAttendanceProfileMatches(clubId, request.resource.data)));
         // Canonical deletion is a status=0 versioned tombstone; a blind legacy
         // delete has no expected revision and cannot be authorized safely.
@@ -342,7 +400,17 @@ service cloud.firestore {
               && resource.data.get('role', '') == 'coach'
               && resource.data.get('clubId', '') == clubId);
         allow list: if isSuperAdmin() || isClubAdmin(clubId);
-        allow create, update, delete: if isSuperAdmin() || isClubAdmin(clubId);
+        allow create, update: if (isSuperAdmin() || isClubAdmin(clubId))
+          && request.resource.data.get('clubId','') == clubId
+          && validCoachACL(request.resource.data, clubId)
+          && sameCoachACL(request.resource.data, getAfter(/databases/$(database)/documents/users/$(coachUid)).data)
+          && assignmentVersionMatches(request.resource.data,getAfter(/databases/$(database)/documents/users/$(coachUid)).data)
+          && assignmentVersionedWrite()
+          && getAfter(/databases/$(database)/documents/clubs/$(clubId)).data.get('coachAclEpoch',0) == get(/databases/$(database)/documents/clubs/$(clubId)).data.get('coachAclEpoch',0) + 1
+          && (resource == null ? request.resource.data.get('assignmentPreviousVersion','') == 'absent' :
+            (request.resource.data.get('assignmentPreviousVersion','') == resource.data.get('assignmentVersion','legacy')
+              && request.resource.data.assignmentVersion != resource.data.get('assignmentVersion','legacy')));
+        allow delete: if isSuperAdmin() || isClubAdmin(clubId);
       }
 
       // Dữ liệu tài chính / kho / báo cáo — Coach không có quyền đọc.
@@ -414,42 +482,16 @@ service cloud.firestore {
     }
 
     function targetIsValidCoachInMyClub(data) {
-      return existingCoachBelongsToMyClub(data)
-        && isAllowedCoachBranch(assignedBranch(data));
+      return existingCoachBelongsToMyClub(data);
     }
-
-    // Coach assignment do Admin ghi tại clubs/{clubId}/coaches/{uid}.
-    // Client HLV chỉ được tạo/sửa users/{uid} mirror khi role, clubId và branch
-    // khớp tuyệt đối với assignment đó; không thể tự chọn cơ sở hoặc nâng quyền.
-    function selfCoachMirrorMatches(uid, data) {
-      let clubId = data.get('clubId', '');
-      return signedIn()
-        && request.auth.uid == uid
-        && data.get('role', '') == 'coach'
-        && clubId != ''
-        && isAllowedCoachBranch(assignedBranch(data))
-        && exists(/databases/$(database)/documents/clubs/$(clubId)/coaches/$(uid))
-        && get(/databases/$(database)/documents/clubs/$(clubId)/coaches/$(uid)).data.get('role', '') == 'coach'
-        && get(/databases/$(database)/documents/clubs/$(clubId)/coaches/$(uid)).data.get('clubId', '') == clubId
-        && assignedBranch(get(/databases/$(database)/documents/clubs/$(clubId)/coaches/$(uid)).data) == assignedBranch(data);
-    }
-
-    function safeSelfCoachMirrorCreate(uid) {
-      return selfCoachMirrorMatches(uid, request.resource.data)
-        && request.resource.data.keys().hasOnly([
-          'role', 'clubId', 'branch', 'coachBranch', 'email', 'displayName',
-          'photoURL', 'phone', 'preferences', 'createdAt', 'updatedAt'
-        ]);
-    }
-
-    function safeSelfCoachMirrorUpdate(uid) {
-      return resource.data.get('role', '') == 'coach'
-        && request.resource.data.get('role', '') == resource.data.get('role', '')
-        && request.resource.data.get('clubId', '') == resource.data.get('clubId', '')
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'branch', 'coachBranch', 'email', 'updatedAt'
-        ])
-        && selfCoachMirrorMatches(uid, request.resource.data);
+    function coachUserPairAfter(uid, data) {
+      let clubId = data.get('clubId','');
+      let assignment = getAfter(/databases/$(database)/documents/clubs/$(clubId)/coaches/$(uid)).data;
+      // The changed canonical assignment runs validCoachACL in its own write
+      // rule. This mirror cannot update ACL against an unchanged assignment.
+      return sameCoachACL(data,assignment) && assignmentVersionMatches(data,assignment)
+        && (!exists(/databases/$(database)/documents/clubs/$(clubId)/coaches/$(uid)) ||
+          assignment.get('assignmentVersion','legacy') != get(/databases/$(database)/documents/clubs/$(clubId)/coaches/$(uid)).data.get('assignmentVersion','legacy'));
     }
 
     match /users/{uid} {
@@ -457,22 +499,24 @@ service cloud.firestore {
         request.auth.uid == uid
         || isSuperAdmin()
         || existingCoachBelongsToMyClub(resource.data)
+        || (resource == null && isClubAdmin(myClubId())
+            && get(/databases/$(database)/documents/clubs/$(myClubId())/coaches/$(uid)).data.get('role','') == 'coach')
       );
       allow list: if isSuperAdmin();
 
       // User tự cập nhật duy nhất các trường hồ sơ không liên quan phân quyền,
       // hoặc tự sửa branch mirror theo assignment đã được Admin ghi sẵn.
       allow update: if signedIn() && request.auth.uid == uid
-        && (safeSelfUserFieldsOnly() || safeSelfCoachMirrorUpdate(uid));
+        && safeSelfUserFieldsOnly();
 
       // SuperAdmin quản lý mọi user; Club Admin quản lý Coach cùng CLB.
       // HLV chỉ được tự tạo mirror khi payload khớp assignment Admin đã cấp.
-      allow create: if isSuperAdmin()
-        || targetIsValidCoachInMyClub(request.resource.data)
-        || safeSelfCoachMirrorCreate(uid);
-      allow update: if isSuperAdmin() || (
-        existingCoachBelongsToMyClub(resource.data)
-        && targetIsValidCoachInMyClub(request.resource.data)
+      allow create: if (isSuperAdmin() && request.resource.data.get('role','') != 'coach')
+        || ((isSuperAdmin() || targetIsValidCoachInMyClub(request.resource.data))
+            && request.resource.data.get('role','') == 'coach' && coachUserPairAfter(uid,request.resource.data));
+      allow update: if (isSuperAdmin() && resource.data.get('role','') != 'coach' && request.resource.data.get('role','') != 'coach') || (
+        (isSuperAdmin() || (existingCoachBelongsToMyClub(resource.data) && targetIsValidCoachInMyClub(request.resource.data)))
+        && request.resource.data.get('role','') == 'coach' && coachUserPairAfter(uid,request.resource.data)
       );
       allow delete: if isSuperAdmin() || existingCoachBelongsToMyClub(resource.data);
     }

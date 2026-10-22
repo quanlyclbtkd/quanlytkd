@@ -183,6 +183,8 @@ function _currentVerifiedOwnerMatches(context, capturedEpoch, capturedUid) {
     }
     if (expectedRole === 'coach') {
         const expectedBranch = _coachBranch(context);
+        if (auth && (auth.branchSelectionPending === true ||
+            (Object.prototype.hasOwnProperty.call(auth,'allowedBranches') && (!Array.isArray(auth.allowedBranches) || !auth.allowedBranches.includes(expectedBranch))))) return false;
         for (const value of [auth?.coachBranch, st.coachBranch, window.coachBranch]) {
             if (value && _normalizeBranchForAuthority(value) !== expectedBranch) return false;
         }
@@ -622,7 +624,7 @@ export function mountActiveProfilesListener(context) {
     const isCoach = _isCoachContext(context);
     const coachBranch = _coachBranch(context);
 
-    if (isCoach && !coachBranch) {
+    if (isCoach && (!coachBranch || window.RoleReadBoundary?.hasCoachBranch?.(coachBranch) === false)) {
         console.error('[ProfilesListener] Coach missing branch — fail closed, no profiles query');
         setActiveProfiles({}, 'coach-missing-branch');
         setQuitProfiles({}, 'coach-missing-branch');
@@ -974,6 +976,7 @@ export function mountActiveProfilesListener(context) {
                         _state.coachPrimaryFailed = true;
                         _invalidateAll('coach-branch-primary-error');
                         _updateWindowMetrics();
+                        if (err?.code === 'permission-denied') window.invalidateCoachBranchAuthority?.(err.code);
                         if (err?.code !== 'permission-denied') loadCoachBranchProfilesFallback('active-query-error:' + (err.code || 'unknown'));
                     } else loadFullProfilesFallback('active-query-error:' + (err.code || 'unknown'));
                 }
@@ -1058,6 +1061,7 @@ export function mountActiveProfilesListener(context) {
                         _invalidateAll('coach-branch-alias-error');
                         _updateWindowMetrics();
                         console.warn('[ProfilesListener] Legacy primary branch query failed:', err.code || err.message);
+                        if(err?.code==='permission-denied')window.invalidateCoachBranchAuthority?.(err.code);
                     }
                 );
             },

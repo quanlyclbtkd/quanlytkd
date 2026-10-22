@@ -1,3 +1,4 @@
+// A6 retires duplicate legacy Coach account readers; preserve the original read caps.
 import fs from 'fs';import path from 'path';import {pathToFileURL} from 'url';import vm from 'vm';import {spawnSync} from 'child_process';
 const read=f=>fs.readFileSync(f,'utf8');let pass=0,fail=0,seq=0;const check=(n,o,d='')=>{if(o){pass++;console.log('✅',n)}else{fail++;console.error('❌',n,d)}};const tick=()=>new Promise(r=>setTimeout(r,0));
 const guardSrc=read('js/core/financialActionAuditGuard.js'),fin=read('js/modules/finance.js'),tcb=read('js/core/tuitionCommandBoundary.js'),app=read('app.js');
@@ -56,7 +57,7 @@ reset();setProfiles({A:profile('A')});setForm();auditMode='reject';await submit(
 
 const d1b=spawnSync(process.execPath,['tools/check-h8r2-1c1f1d1b-final-tuition-caller-convergence.mjs'],{encoding:'utf8'});check('45. prior D1B actual handler/race gate remains PASS',d1b.status===0,(d1b.stderr||d1b.stdout||'').slice(-700));
 function walk(d,o=[]){for(const e of fs.readdirSync(d,{withFileTypes:true})){const f=path.join(d,e.name);if(e.isDirectory()){if(!['migrations','diagnostics'].includes(e.name))walk(f,o)}else if(e.name.endsWith('.js'))o.push(f)}return o}const runtime=['app.js',...walk('js')],pats={getDoc:/(?<![A-Za-z0-9_$])(?:getDoc|_getDoc|fbGetDoc)\s*\(/g,getDocs:/(?<![A-Za-z0-9_$])(?:getDocs|_getDocs|fbGetDocs|_pG4k)\s*\(/g,onSnapshot:/(?<![A-Za-z0-9_$])(?:onSnapshot|fbOnSnapshot)\s*\(/g},counts={getDoc:0,getDocs:0,onSnapshot:0};for(const f of runtime)for(const line of read(f).split('\n')){const t=line.trim();if(t.startsWith('//')||t.startsWith('*')||t.startsWith('/*'))continue;for(const[k,re]of Object.entries(pats)){re.lastIndex=0;if(re.test(line))counts[k]++}}
-check('46. Firestore budget exactly 29/44/16',counts.getDoc===29&&counts.getDocs===44&&counts.onSnapshot===16,JSON.stringify(counts));
+check('46. Firestore budget within original 29/44/16 caps',counts.getDoc<=29&&counts.getDocs<=44&&counts.onSnapshot===16,JSON.stringify(counts));
 const parity=spawnSync(process.execPath,['tools/check-root-public-parity.mjs'],{encoding:'utf8'});check('47. root/public parity PASS',parity.status===0,(parity.stderr||parity.stdout||'').slice(-500));
 const pkg=JSON.parse(read('package.json')),release=String(pkg.scripts?.['check:release']||''),commands=release.split(/\s*&&\s*/);check('48. release DAG contains D1C exactly once',commands.filter(x=>x==='npm run check:h8r2-1c1f1d1c').length===1&&release.indexOf('check:h8r2-1c1f1d1b')<release.indexOf('check:h8r2-1c1f1d1c'));
 console.log(`\nFirestore static budget: ${counts.getDoc}/${counts.getDocs}/${counts.onSnapshot}`);console.log(`Total: ${pass+fail} | PASS: ${pass} | FAIL: ${fail}`);if(fail)process.exit(1);console.log('H8R2.1C1F1D1C final production correctness gate PASS.');

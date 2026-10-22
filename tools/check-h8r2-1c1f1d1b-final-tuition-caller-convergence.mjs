@@ -1,3 +1,4 @@
+// A6 retires duplicate legacy Coach account readers; preserve the original read caps.
 import fs from 'fs';
 import path from 'path';
 import vm from 'vm';
@@ -123,7 +124,7 @@ const fakeImpact={valid:true,hasTuition:true,isPureTuition:true,hasInventory:fal
 
 // Existing closure gates / budgets / parity.
 const d1a=spawnSync(process.execPath,['tools/check-h8r2-1c1f1d1a-actual-runtime-authority-closure.mjs'],{encoding:'utf8'});check('49. F1D1A actual-runtime closure remains PASS',d1a.status===0,(d1a.stderr||d1a.stdout||'').slice(-500));
-function walk(d,o=[]){for(const e of fs.readdirSync(d,{withFileTypes:true})){const f=path.join(d,e.name);if(e.isDirectory()){if(!['migrations','diagnostics'].includes(e.name))walk(f,o)}else if(e.name.endsWith('.js'))o.push(f)}return o}const runtime=['app.js',...walk('js')],pats={getDoc:/(?<![A-Za-z0-9_$])(?:getDoc|_getDoc|fbGetDoc)\s*\(/g,getDocs:/(?<![A-Za-z0-9_$])(?:getDocs|_getDocs|fbGetDocs|_pG4k)\s*\(/g,onSnapshot:/(?<![A-Za-z0-9_$])(?:onSnapshot|fbOnSnapshot)\s*\(/g},counts={getDoc:0,getDocs:0,onSnapshot:0};for(const f of runtime)for(const line of read(f).split('\n')){const t=line.trim();if(t.startsWith('//')||t.startsWith('*')||t.startsWith('/*'))continue;for(const[k,re]of Object.entries(pats)){re.lastIndex=0;if(re.test(line))counts[k]++}}check('50. Firestore budget is exactly 29/44/16',counts.getDoc===29&&counts.getDocs===44&&counts.onSnapshot===16,JSON.stringify(counts));
+function walk(d,o=[]){for(const e of fs.readdirSync(d,{withFileTypes:true})){const f=path.join(d,e.name);if(e.isDirectory()){if(!['migrations','diagnostics'].includes(e.name))walk(f,o)}else if(e.name.endsWith('.js'))o.push(f)}return o}const runtime=['app.js',...walk('js')],pats={getDoc:/(?<![A-Za-z0-9_$])(?:getDoc|_getDoc|fbGetDoc)\s*\(/g,getDocs:/(?<![A-Za-z0-9_$])(?:getDocs|_getDocs|fbGetDocs|_pG4k)\s*\(/g,onSnapshot:/(?<![A-Za-z0-9_$])(?:onSnapshot|fbOnSnapshot)\s*\(/g},counts={getDoc:0,getDocs:0,onSnapshot:0};for(const f of runtime)for(const line of read(f).split('\n')){const t=line.trim();if(t.startsWith('//')||t.startsWith('*')||t.startsWith('/*'))continue;for(const[k,re]of Object.entries(pats)){re.lastIndex=0;if(re.test(line))counts[k]++}}check('50. Firestore budget is within original 29/44/16 caps',counts.getDoc<=29&&counts.getDocs<=44&&counts.onSnapshot===16,JSON.stringify(counts));
 const parity=spawnSync(process.execPath,['tools/check-root-public-parity.mjs'],{encoding:'utf8'});check('51. root/public parity PASS',parity.status===0,(parity.stderr||parity.stdout||'').slice(-500));
 check('52. finance.js remains below hard 72KB ceiling',Buffer.byteLength(fin)<=72000,String(Buffer.byteLength(fin)));check('53. app.js remains below hard line ceiling',app.split('\n').length<=11300,String(app.split('\n').length));
 

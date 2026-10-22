@@ -3,7 +3,7 @@ import fs from 'node:fs';import path from 'node:path';import crypto from 'node:c
 import {requireStagingHistory} from '../v11r3/history-audit.mjs';
 import {firebaseProjectInSource,rebindFirebaseConfig,demoFirebaseConfig} from '../v11r3/staging-source.mjs';
 import {verifySourceIdentity} from './source-identity.mjs';
-import {rewriteCacheGraph} from './import-graph.mjs';
+import {rewriteCacheGraph,buildImportGraph,affectedModules} from './import-graph.mjs';
 import {isolatedOutputPaths,claimNewOutput,assertNewOutputClaim,assertOwnedOutput,cleanupOwnedOutput,ownedFilePath,writeNewOwnedFile} from './isolated-output.mjs';
 export const canonical=value=>JSON.stringify(value&&typeof value==='object'?Array.isArray(value)?value.map(v=>JSON.parse(canonical(v))):Object.fromEntries(Object.keys(value).sort().map(k=>[k,JSON.parse(canonical(value[k]))])):value);
 export const digest=value=>crypto.createHash('sha256').update(typeof value==='string'?value:canonical(value)).digest('hex');
@@ -64,7 +64,8 @@ function writeActive(bundle,evidence,proof,claim,sourceRoot){
  ensure(fs.readdirSync(claim.output).length===0,'NEW_OUTPUT_NOT_EMPTY');
  ensure(proof?.planSHA256===digest(bundle.plan)&&['DEMO_VERIFIED_NOT_RELEASE','STAGING_CANDIDATE_VERIFIED_NOT_DEPLOYED'].includes(proof.status),'VALIDATED_PROOF_REQUIRED');
  // Validate all paths before the first write. Journal only changes its contract URL.
- for(const file of Object.keys(bundle.runtimeOverrides))ensure(['app.js','js/firebase/config.js','index.html','js/main.js','js/modules/attendance.js','js/services/attendance.service.js','js/modules/reports/reportExportFacade.js','js/modules/reports/attendanceExcelReport.js','js/core/attendanceContract.js','js/data/attendanceJournal.js'].includes(file),'OVERRIDE_OUTSIDE_SCOPE');
+ const reviewedScope=new Set(affectedModules(buildImportGraph(sourceRoot)));
+ for(const file of Object.keys(bundle.runtimeOverrides))ensure(reviewedScope.has(file),'OVERRIDE_OUTSIDE_SCOPE');
  // Populate a new candidate; no target file is ever opened with truncation.
  for(const file of runtimeFiles(sourceRoot))writeNewOwnedFile(claim,file,Object.hasOwn(bundle.runtimeOverrides,file)?bundle.runtimeOverrides[file]:fs.readFileSync(path.join(sourceRoot,file)));
  writeNewOwnedFile(claim,'firestore.rules',bundle.activeRules);

@@ -1,4 +1,4 @@
-# Quản lý CLB Taekwondo — mã nguồn V11R6 A5
+# Quản lý CLB Taekwondo — mã nguồn V11R6 A6 (TEST ONLY)
 
 Ứng dụng Vanilla JavaScript và Firebase. Bản nguồn giữ profile **maintenance**; Điểm danh HLV chỉ mở bằng quy trình cutover đã được phê duyệt. Upload mã nguồn lên GitHub không phải phê duyệt phát hành active.
 
@@ -36,3 +36,15 @@ Nếu refresh bị ngắt hoặc hai tệp proof không khớp, dừng candidate
 Các JSON trong `handoff/` đi kèm là manifest khóa danh tính source hoặc cấu hình quyết định còn hiệu lực cho công cụ. Giữ nguyên các quyết định `pending`. Mẫu trống phục vụ vận hành và hướng dẫn index đi kèm cho các contract hiện hữu. Không có báo cáo kiểm toán, log kiểm thử, ảnh chụp người dùng, dữ liệu Firestore, dependency đã cài hoặc binary Emulator/Chromium trong gói.
 
 S01, phê duyệt chi phí READS/CAS, đối soát journal V1/V2, giao dịch học phí thật, client cũ và nghiệm thu Android/iPhone phải được hoàn tất trên đúng môi trường trước khi xét phát hành. Không thu lại hoặc tạo giao dịch bù khi chưa đối soát nguyên nhân.
+
+## Gán và chọn cơ sở HLV
+
+Admin mở **Quản lý tài khoản HLV**, chọn các checkbox cơ sở hoạt động của CLB (tối đa theo cấu hình 1–10), chỉ định cơ sở mặc định trong tập đã chọn rồi lưu. Danh sách được lưu nguyên tử vào hồ sơ HLV và mirror người dùng; tín hiệu thay đổi dùng listener gốc CLB hiện hữu. Chỉ coi thành công khi máy chủ xác nhận cả hai hồ sơ cùng phiên bản. Có thể bỏ một cơ sở mà không xóa tài khoản. Bỏ hết checkbox là thu hồi toàn bộ quyền và cần xác nhận riêng. Không sửa trực tiếp mirror để tự cấp quyền.
+
+HLV chỉ thấy những cơ sở đã xác minh. Chọn một cơ sở tại tab Điểm danh; chờ danh sách và ca của cơ sở đó xác minh xong rồi thao tác. Cơ sở mặc định do Admin gán khác với cơ sở đang chọn trong phiên. Chuyển cơ sở, thu hồi quyền và đăng xuất giữ nguyên journal chưa đồng bộ để đối soát. Nếu thông báo quyền chưa đồng bộ, Admin kiểm tra assignment/mirror; HLV dùng **Xác minh lại quyền** sau khi quyền đã được sửa. Không tự gán CS1 để vượt lỗi xác minh.
+
+Chức năng migration chỉ dành Admin, có bước xuất backup và xác nhận; luôn kiểm tra từng tài khoản, trạng thái khóa và cấu hình CLB trước khi thực hiện. Không phát lại V1/V2 tự động. Nếu tạo Auth thành công nhưng lưu hồ sơ thất bại, giữ UID được báo và thử lại từ cùng phiên; sau tải lại trang cần Admin đối soát UID trước khi tạo lại.
+
+Phân quyền nhiều cơ sở đã được triển khai để thử nghiệm. Bản GitHub này vẫn giữ **ACTIVE HOLD**: HLV có thể xác minh cơ sở/roster hợp lệ nhưng đọc/ghi Attendance vẫn bị khóa maintenance. Không bật hai cờ maintenance bằng tay.
+
+Các bài `qa:a6-coach-rules`, `qa:a6-coach-browser` và `node tools/v11r1/cas-idb.mjs --active-local-fixture` yêu cầu Emulator localhost. Profile active của QA chỉ tồn tại trong bộ nhớ, dùng dữ liệu giả và marker riêng; không phải phê duyệt staging/production. Báo nợ và Thu gộp dùng một owner phiếu báo, chỉ xuất QR khi dữ liệu tài khoản nhận tiền đã được máy chủ xác minh. Không thu lại khi thiếu bằng chứng giao dịch.

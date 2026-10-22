@@ -1,4 +1,4 @@
-import {HISTORY_AUTHORITY, attendanceServerVersion, attendanceVisibleRecord} from '../core/attendanceContract.js?v=qr-v11r6-attendance-a5-20261022';
+import {HISTORY_AUTHORITY, attendanceServerVersion, attendanceVisibleRecord} from '../core/attendanceContract.js?v=qr-v11r6-a6-coach-qr-20261022';
 /**
  * js/services/attendance.service.js — Phase 3.1
  * ────────────────────────────────────────────────────────────────
@@ -31,7 +31,10 @@ function _branchAliases(value) {
 function _scopedBranch(options = {}) {
     const coach = _isCoach();
     const branch = _canonicalBranch(coach ? window.coachBranch : options.branch, coach ? '' : String(options.branch || '').trim());
-    if (coach && !branch) {
+    const auth = window.__verifiedAuthContextState;
+    const allowed = auth && Object.prototype.hasOwnProperty.call(auth,'allowedBranches') ? auth.allowedBranches : [auth?.coachBranch || branch];
+    if (coach && (!branch || (auth && (auth.ready!==true || auth.branchSelectionPending===true || !Array.isArray(allowed) || !allowed.includes(branch) || _canonicalBranch(auth.activeBranch||auth.coachBranch)!==branch)) ||
+        (options.branch && _canonicalBranch(options.branch)!==branch))) {
         const error = new Error('[AttendanceService] Coach chưa được gán cơ sở — chặn query/write toàn CLB.');
         error.code = 'attendance/coach-branch-required';
         throw error;
@@ -61,7 +64,7 @@ function _prepareWriteData(data) {
 function _bulkWriteContextGuard(db, clubId) {
     const principal = () => {
         const a = window.__verifiedAuthContextState || {};
-        return JSON.stringify([a.uid, a.clubId, a.role, a.coachBranch, a.generation, a.ready,
+        return JSON.stringify([a.uid, a.clubId, a.role, a.coachBranch, a.generation, a.ready, a.branchGeneration, a.branchSelectionPending, a.allowedBranches,
             window.userRole, window.coachBranch, window.__store?.userRole, window.__store?.coachBranch,
             window.__store?.currentUser?.uid || a.uid,
             window.__store?.currentClubId || clubId, window.currentClubId || clubId]);
@@ -589,7 +592,7 @@ export const AttendanceService = {
     },
     async attestHistory(record, serverVersion) {
         if (!['admin','super_admin'].includes(window.__verifiedAuthContextState?.role)||window.__verifiedAuthContextState?.ready!==true) throw Object.assign(new Error('Chỉ Admin xác minh lịch sử cũ.'),{code:'permission-denied'});
-        const {attendanceIntentId}=await import('../core/attendanceContract.js?v=qr-v11r6-attendance-a5-20261022');
+        const {attendanceIntentId}=await import('../core/attendanceContract.js?v=qr-v11r6-a6-coach-qr-20261022');
         return _commitAttendanceIntents([{id:attendanceIntentId(),baseVersion:serverVersion,record:{...record,clubId:_clubId()}}]);
     },
 

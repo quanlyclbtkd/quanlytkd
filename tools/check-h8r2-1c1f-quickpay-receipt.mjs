@@ -1,7 +1,9 @@
 #!/usr/bin/env node
+// A6 retires duplicate legacy Coach account readers; preserve the original read caps.
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import {parse} from './v11r2/vendor/acorn.mjs';
 const read=p=>fs.readFileSync(p,'utf8');
 const finance=read('js/modules/finance.js');
 const boundary=read('js/core/tuitionCommandBoundary.js');
@@ -22,7 +24,11 @@ check('7. html2canvas uses canonical lazy asset owner', /ensureHtml2CanvasReady/
 check('8. no direct duplicate html2canvas loader in app', !/html2canvas\.min\.js/.test(app) && !/createElement\(['"]script['"]\)[\s\S]{0,220}html2canvas/.test(app));
 check('9. shared asset promise exists', /if \(asset\.promise\)/.test(lazy) && /return asset\.promise/.test(lazy));
 check('10. asset timeout exists', /setTimeout\(function \(\) \{[\s\S]*lazy load timeout[\s\S]*\}, 20000\)/.test(lazy));
-check('11. exportReceipt exposes deterministic success/failure result', /return \{ ok: true, receiptJpeg:/.test(app) && /return \{ ok: false, reason: _reason, error \}/.test(app));
+// Inspect actual return properties; additional safe diagnostics do not change this API.
+const exportNode=parse(app,{ecmaVersion:'latest',sourceType:'script'}).body.find(n=>n.type==='VariableDeclaration'&&n.declarations.some(d=>d.id.name==='_exportReceiptNow'));
+const receiptReturns=[];function visitReturn(n){if(!n||typeof n!=='object')return;if(n.type==='ReturnStatement'&&n.argument?.type==='ObjectExpression')receiptReturns.push(n.argument.properties);for(const child of Object.values(n))if(Array.isArray(child))child.forEach(visitReturn);else if(child&&typeof child==='object')visitReturn(child)}visitReturn(exportNode);
+const resultWith=(ok,keys)=>receiptReturns.some(props=>props.some(p=>p.key?.name==='ok'&&p.value?.value===ok)&&keys.every(key=>props.some(p=>p.key?.name===key)));
+check('11. exportReceipt exposes deterministic success/failure result',resultWith(true,['receiptJpeg','rendered','previewReady','modalVisible'])&&resultWith(false,['reason','error']));
 check('12. quickPay inspects receipt result', /receiptResult && receiptResult\.ok === false/.test(finance));
 check('13. receipt failure cannot trigger payment retry', /Không thu lại khoản tiền này/.test(finance) && !/receiptResult[\s\S]{0,600}collectTuition/.test(finance));
 check('14. receipt render concurrency is serialized without coalescing', /let _receiptRenderQueue = Promise\.resolve\(\)/.test(app) && /const run = _receiptRenderQueue\.then\(_runRequestedReceipt, _runRequestedReceipt\)/.test(app) && /return _exportReceiptNow\(\.\.\.args\)/.test(app) && /_receiptRenderQueue = run\.then\(\(\) => undefined, \(\) => undefined\)/.test(app));
@@ -31,8 +37,8 @@ check('16. legacy bootstrap path fail-closed in http-module', /window\.__RUNTIME
 function walk(dir,out=[]){for(const e of fs.readdirSync(dir,{withFileTypes:true})){const f=path.join(dir,e.name);e.isDirectory()?(!['migrations','diagnostics'].includes(e.name)&&walk(f,out)):e.name.endsWith('.js')&&out.push(f)}return out}
 const runtime=['app.js',...walk('js')]; const pats={getDoc:/(?<![A-Za-z0-9_$])(?:getDoc|_getDoc|fbGetDoc)\s*\(/g,getDocs:/(?<![A-Za-z0-9_$])(?:getDocs|_getDocs|fbGetDocs|_pG4k)\s*\(/g,onSnapshot:/(?<![A-Za-z0-9_$])(?:onSnapshot|fbOnSnapshot)\s*\(/g}; const counts={getDoc:0,getDocs:0,onSnapshot:0};
 for(const f of runtime){for(const line of read(f).split('\n')){const t=line.trim();if(t.startsWith('//')||t.startsWith('*')||t.startsWith('/*'))continue;for(const[k,re]of Object.entries(pats)){re.lastIndex=0;if(re.test(line))counts[k]++}}}
-check('17. no new getDoc',counts.getDoc===29,JSON.stringify(counts));
-check('18. no new getDocs',counts.getDocs===44,JSON.stringify(counts));
+check('17. no new getDoc',counts.getDoc<=29,JSON.stringify(counts));
+check('18. no new getDocs',counts.getDocs<=44,JSON.stringify(counts));
 check('19. no new onSnapshot',counts.onSnapshot===16,JSON.stringify(counts));
 check('20. canonical filterBranch remains exactly one authority', (html.match(/id="filterBranch"/g)||[]).length===1 && !/mobileFilterBranch|filterBranchProxy/.test(html+finance+app));
 check('21. mobile direct branch presentation preserves month/debt filters', /\.ui-filter-toggle\s*\{\s*display:\s*none;/.test(css) && /\.input-branch #filterBranch/.test(css) && (html.match(/id="filterMonth"/g)||[]).length===1 && (html.match(/id="debtOverdueFilter"/g)||[]).length===1);

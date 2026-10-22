@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// A6 retires duplicate legacy Coach account readers; preserve the original read caps.
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -40,10 +41,10 @@ const runtime=['app.js',...walk('js')];
 const pats={getDoc:/(?<![A-Za-z0-9_$])(?:getDoc|_getDoc|fbGetDoc)\s*\(/g,getDocs:/(?<![A-Za-z0-9_$])(?:getDocs|_getDocs|fbGetDocs|_pG4k)\s*\(/g,onSnapshot:/(?<![A-Za-z0-9_$])(?:onSnapshot|fbOnSnapshot)\s*\(/g};
 const counts={getDoc:0,getDocs:0,onSnapshot:0};
 for(const f of runtime) for(const line of read(f).split('\n')) { const t=line.trim(); if(t.startsWith('//')||t.startsWith('*')||t.startsWith('/*')) continue; for(const[k,re]of Object.entries(pats)){re.lastIndex=0;if(re.test(line))counts[k]++;} }
-check('19. no new getDoc', counts.getDoc===29, JSON.stringify(counts));
-check('20. no new getDocs', counts.getDocs===44, JSON.stringify(counts));
+check('19. no new getDoc', counts.getDoc<=29, JSON.stringify(counts));
+check('20. no new getDocs', counts.getDocs<=44, JSON.stringify(counts));
 check('21. no new onSnapshot', counts.onSnapshot===16, JSON.stringify(counts));
-check('22. Firestore budget is 29/44/16', counts.getDoc===29&&counts.getDocs===44&&counts.onSnapshot===16, JSON.stringify(counts));
+check('22. Firestore budget is at most 29/44/16', counts.getDoc<=29&&counts.getDocs<=44&&counts.onSnapshot===16, JSON.stringify(counts));
 
 let seq=0;
 const tick=()=>new Promise(r=>setTimeout(r,0));

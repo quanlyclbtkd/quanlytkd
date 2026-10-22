@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// A6 retires duplicate legacy Coach account readers; preserve the original read caps.
 import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
@@ -86,8 +87,8 @@ for (const f of runtime) {
     for (const [k, re] of Object.entries(pats)) { re.lastIndex = 0; if (re.test(line)) counts[k] += 1; }
   }
 }
-check('17. no new getDoc', counts.getDoc === 29, JSON.stringify(counts));
-check('18. no new getDocs', counts.getDocs === 44, JSON.stringify(counts));
+check('17. no new getDoc', counts.getDoc <=29, JSON.stringify(counts));
+check('18. no new getDocs', counts.getDocs <=44, JSON.stringify(counts));
 check('19. no new onSnapshot', counts.onSnapshot === 16, JSON.stringify(counts));
 
 const parityRoots = ['index.html','app.js','style.css','.nojekyll','js','css'];

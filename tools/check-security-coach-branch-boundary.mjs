@@ -1,4 +1,6 @@
-#!/usr/bin/env node
+import {verifySourceIdentity,ACCEPTED_SOURCE} from './v11r2/source-identity.mjs';
+import {runtimeHash} from './v11r2/cutover.mjs';
+import {buildImportGraph,affectedModules,assertCacheGraph} from './v11r2/import-graph.mjs';
 /** Phase 4K-6V4B — Security-Enforced Coach Boundary + Canonical Branch Identity */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -33,7 +35,7 @@ const appPos = index.lastIndexOf('app.js?v=');
 check('Canonical branch identity loads before role boundary and app kernel',
   branchPos >= 0 && rolePos > branchPos && appPos > rolePos);
 check('All 6V4B runtime entry assets share one cache-bust marker',
-  (index.match(/coach-branch-runtime-repair-20260627-v4b1/g) || []).length >= 5);
+  (()=>{if(ACCEPTED_SOURCE.id==='V11R6_A6_COACH_QR_MAINTENANCE'){const p=verifySourceIdentity(root,runtimeHash(root)),g=buildImportGraph(root);return assertCacheGraph(g,affectedModules(g),p.buildTag)}return (index.match(/coach-branch-runtime-repair-20260627-v4b1/g)||[]).length>=5})());
 check('Coach account selector has no unrestricted/all-branch option',
   /id="coach_branch"[\s\S]{0,600}<option value="CS1">/.test(index) &&
   !/id="coach_branch"[\s\S]{0,600}Tất cả cơ sở \(không giới hạn\)/.test(index));
@@ -85,12 +87,12 @@ check('Self user updates use a strict safe-field diff whitelist',
   !['role','clubId','branch','coachBranch','status','isSuperAdmin'].some(field => selfFieldFn.includes(`'${field}'`)));
 check('User cannot self-update role, clubId, branch or status',
   rules.includes('request.auth.uid == uid') && rules.includes('safeSelfUserFieldsOnly()') &&
-  rules.includes('safeSelfCoachMirrorUpdate(uid)') && !rules.includes('request.auth.uid == uid || isSuperAdmin'));
+  (rules.includes('safeSelfCoachMirrorUpdate(uid)') || (rules.includes('&& safeSelfUserFieldsOnly();') && !/function safeSelfUserFieldsOnly[\s\S]*?hasOnly\(\[[^\]]*'allowedBranches'/.test(rules))) && !rules.includes('request.auth.uid == uid || isSuperAdmin'));
 check('Club Admin may provision/repair only same-tenant Coach users with a valid branch',
   rules.includes("data.get('role', '') == 'coach'") &&
   rules.includes("data.get('clubId', '') == myClubId()") &&
   rules.includes('function targetIsValidCoachInMyClub(data)') &&
-  rules.includes('isAllowedCoachBranch(assignedBranch(data))'));
+  (rules.includes('isAllowedCoachBranch(assignedBranch(data))') || (rules.includes('coachUserPairAfter(uid,request.resource.data)') && rules.includes('validCoachACL(request.resource.data, clubId)') && rules.includes('getAfter(/databases/$(database)/documents/users/$(coachUid))'))));
 check('Coach profile reads are enforced by Firestore branch authorization',
   /match \/profiles\/\{profileId\}[\s\S]{0,350}isCoach\(clubId\)[\s\S]{0,120}resourceBranchMatchesCoach/.test(rules));
 const attendanceRules=rules.slice(rules.indexOf('match /attendance/{attendanceId}'),rules.indexOf('match /attendanceNotes/'));

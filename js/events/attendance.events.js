@@ -40,6 +40,7 @@ export function initAttendanceEvents() {
         if (el && !el.dataset.evtBound) {
             el.addEventListener('change', () => {
                 if (id === 'att_branch') {
+                    if (window.userRole === 'coach') { window.selectCoachBranch?.(el.value); return; }
                     window.AttendanceModule?.requestDailyRefresh?.('branch-change', { force: true });
                 } else {
                     window.AttendanceModule?.renderDailyFromRam?.('belt-filter-change');
@@ -48,6 +49,9 @@ export function initAttendanceEvents() {
             el.dataset.evtBound = '1';
         }
     });
+
+    const monthBranch=document.getElementById('att_month_branch');
+    if(monthBranch&&window.userRole==='coach')monthBranch.onchange=async()=>{const result=await window.selectCoachBranch?.(monthBranch.value);if(result?.ok)window.renderAttMonthly?.();};
 
     // ── 3. att_shift change ───────────────────────────────────────
     const attShift = document.getElementById('att_shift');

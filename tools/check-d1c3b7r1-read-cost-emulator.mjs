@@ -39,7 +39,8 @@ try {
     assert.equal(population.length,size);
     await env.withSecurityRulesDisabled(async context=>{
       const db=context.firestore();
-      for(const branch of ['CS1','CS2'])await setDoc(doc(db,`users/${club}-${branch}`),{clubId:club,role:'coach',branch,status:'active'});
+      for(const branch of ['CS1','CS2']){const data={clubId:club,role:'coach',branch,status:'active'};await setDoc(doc(db,`users/${club}-${branch}`),data);await setDoc(doc(db,`clubs/${club}/coaches/${club}-${branch}`),data);}
+      await setDoc(doc(db,`clubs/${club}/settings/main_config`),{branchCount:2});
       for(let offset=0;offset<population.length;offset+=400) {
         const batch=writeBatch(db);
         for(const {id,...data} of population.slice(offset,offset+400))batch.set(doc(db,`clubs/${club}/profiles/${id}`),data);

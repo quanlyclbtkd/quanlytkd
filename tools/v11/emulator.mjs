@@ -28,7 +28,7 @@ const check=async(name,fn)=>{await fn();results.push({name,status:'PASS'});conso
 try {
  await env.withSecurityRulesDisabled(async c=>{
   const db=c.firestore(),b=sdk.writeBatch(db);
-  for(const [uid,role,branch] of [['c1','coach','CS1'],['c2','coach','CS2'],['admin','admin',''],['viewer','viewer','']])b.set(sdk.doc(db,'users',uid),{clubId:club,role,branch,status:'active'});
+  b.set(sdk.doc(db,'clubs',club),{clubName:'QA'});b.set(sdk.doc(db,'clubs',club,'settings','main_config'),{branchCount:2});for(const [uid,role,branch] of [['c1','coach','CS1'],['c2','coach','CS2'],['admin','admin',''],['viewer','viewer','']]){const d={clubId:club,role,branch,status:'active'};b.set(sdk.doc(db,'users',uid),d);if(role==='coach')b.set(sdk.doc(db,'clubs',club,'coaches',uid),d);}
   for(let i=0;i<30;i++)b.set(sdk.doc(db,'clubs',club,'profiles','P'+i),{name:'P'+i,branch:'CS1',status:'active'});
   b.set(sdk.doc(db,'clubs',club,'profiles','Foreign'),{branch:'CS2',status:'active'});b.set(sdk.doc(db,'clubs',club,'profiles','Legacy'),{branch:'Mặc định',status:'paused'});
   b.set(ref(db,'forged'),row('Foreign'));b.set(ref(db,'P29_'+date),row('P29'));await b.commit();
@@ -116,7 +116,7 @@ try {
   const control=await initializeTestEnvironment({projectId:'demo-v11-negative-'+kind,firestore:{host,port:Number(port),rules:mutated}});
   await control.clearFirestore(); // isolated demo negative control, including repeated aggregate runs
   try {
-   await control.withSecurityRulesDisabled(async c=>{const d=c.firestore();await sdk.setDoc(sdk.doc(d,'users','control'),{clubId:club,role:'coach',branch:'CS1'});await sdk.setDoc(sdk.doc(d,'clubs',club,'profiles','Foreign'),{branch:'CS2'});await sdk.setDoc(ref(d,'forged'),row('Foreign'));});
+   await control.withSecurityRulesDisabled(async c=>{const d=c.firestore();await sdk.setDoc(sdk.doc(d,'users','control'),{clubId:club,role:'coach',branch:'CS1'});await sdk.setDoc(sdk.doc(d,'clubs',club,'coaches','control'),{clubId:club,role:'coach',branch:'CS1'});await sdk.setDoc(sdk.doc(d,'clubs',club,'settings','main_config'),{branchCount:2});await sdk.setDoc(sdk.doc(d,'clubs',club,'profiles','Foreign'),{branch:'CS2'});await sdk.setDoc(ref(d,'forged'),row('Foreign'));});
    const d=control.authenticatedContext('control').firestore();
    if(kind==='read')await assert.rejects(()=>assertFails(sdk.getDoc(ref(d,'forged'))));
    else {const data={...row('Foreign'),historyAuthority:HISTORY_AUTHORITY,attendanceVersion:id(),attendancePreviousVersion:'legacy'};delete data.clubId;delete data.docId;await assert.rejects(()=>assertFails(sdk.setDoc(ref(d,'Foreign_'+date),data)));}

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// A6 retires duplicate legacy Coach account readers; preserve the original read caps.
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -71,6 +72,6 @@ check('35. packageMonths fallback preserved',/Array\.isArray\(tx\.packageMonths\
 check('37. fee_audit remains secondary',/void _service\(\)\.addFeeAuditSilent/.test(tcbSrc)&&!/await _service\(\)\.addFeeAuditSilent/.test(tcbSrc));
 
 function walk(d,o=[]){for(const e of fs.readdirSync(d,{withFileTypes:true})){const f=path.join(d,e.name);if(e.isDirectory()){if(!['migrations','diagnostics'].includes(e.name))walk(f,o)}else if(e.name.endsWith('.js'))o.push(f)}return o}const runtime=['app.js',...walk('js')], pats={getDoc:/(?<![A-Za-z0-9_$])(?:getDoc|_getDoc|fbGetDoc)\s*\(/g,getDocs:/(?<![A-Za-z0-9_$])(?:getDocs|_getDocs|fbGetDocs|_pG4k)\s*\(/g,onSnapshot:/(?<![A-Za-z0-9_$])(?:onSnapshot|fbOnSnapshot)\s*\(/g},counts={getDoc:0,getDocs:0,onSnapshot:0};for(const f of runtime)for(const line of read(f).split('\n')){const t=line.trim();if(t.startsWith('//')||t.startsWith('*')||t.startsWith('/*'))continue;for(const[k,re]of Object.entries(pats)){re.lastIndex=0;if(re.test(line))counts[k]++}}
-check('38. no new getDoc',counts.getDoc===29,JSON.stringify(counts));check('39. no new getDocs',counts.getDocs===44,JSON.stringify(counts));check('40. no new onSnapshot',counts.onSnapshot===16,JSON.stringify(counts));check('41. Firestore budget 29/44/16',counts.getDoc===29&&counts.getDocs===44&&counts.onSnapshot===16,JSON.stringify(counts));
+check('38. no new getDoc',counts.getDoc<=29,JSON.stringify(counts));check('39. no new getDocs',counts.getDocs<=44,JSON.stringify(counts));check('40. no new onSnapshot',counts.onSnapshot===16,JSON.stringify(counts));check('41. Firestore budget 29/44/16',counts.getDoc<=29&&counts.getDocs<=44&&counts.onSnapshot===16,JSON.stringify(counts));
 const parity=spawnSync(process.execPath,['tools/check-root-public-parity.mjs'],{encoding:'utf8'});check('42. root/public parity PASS',parity.status===0,(parity.stderr||parity.stdout||'').slice(-400));
 console.log(`\nFirestore static budget: ${counts.getDoc}/${counts.getDocs}/${counts.onSnapshot}`);console.log(`Total: ${pass+fail} | PASS: ${pass} | FAIL: ${fail}`);if(fail)process.exit(1);console.log('H8R2.1C1F1D mixed-bundle / tuition mutation lane closure PASS.');

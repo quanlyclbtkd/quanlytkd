@@ -1,4 +1,13 @@
 #!/usr/bin/env node
+import {verifySourceIdentity,ACCEPTED_SOURCE} from './v11r2/source-identity.mjs';
+import {runtimeHash} from './v11r2/cutover.mjs';
+import {buildImportGraph,affectedModules,assertCacheGraph} from './v11r2/import-graph.mjs';
+import {spawnSync} from 'node:child_process';
+if(ACCEPTED_SOURCE.id==='V11R6_A6_COACH_QR_MAINTENANCE'){
+ const p=verifySourceIdentity(process.cwd(),runtimeHash(process.cwd()));const g=buildImportGraph(process.cwd());assertCacheGraph(g,affectedModules(g),p.buildTag);
+ for(const test of ['tools/a6/coach-assignment.test.mjs','tools/a6/admin-assignment.test.mjs']){const r=spawnSync(process.execPath,[test],{stdio:'inherit'});if(r.status!==0)process.exit(r.status||1)}
+ console.log('A6 canonical assignment + Admin atomic owner PASS; real Rules/browser run separately');process.exit(0);
+}
 import {contract, expression} from "./v10/contracts.mjs";
 /** Phase 4K-6V4B1 — Coach Branch Assignment + Runtime Repair */
 import fs from 'node:fs';

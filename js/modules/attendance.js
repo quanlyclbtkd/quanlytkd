@@ -16,11 +16,11 @@
  * ────────────────────────────────────────────────────────────────
  */
 
-import { AttendanceService } from '../services/attendance.service.js?v=qr-v11r6-attendance-a5-20261022';
+import { AttendanceService } from '../services/attendance.service.js?v=qr-v11r6-a6-coach-qr-20261022';
 import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
 import { escapeHtml } from '../utils/helpers.js';
-import { AttendanceJournal } from '../data/attendanceJournal.js?v=qr-v11r6-attendance-a5-20261022';
-import { HISTORY_AUTHORITY, HISTORY_COACH_ACCESS, attendanceServerVersion, attendanceIntentId } from '../core/attendanceContract.js?v=qr-v11r6-attendance-a5-20261022';
+import { AttendanceJournal } from '../data/attendanceJournal.js?v=qr-v11r6-a6-coach-qr-20261022';
+import { HISTORY_AUTHORITY, HISTORY_COACH_ACCESS, attendanceServerVersion, attendanceIntentId } from '../core/attendanceContract.js?v=qr-v11r6-a6-coach-qr-20261022';
 
 const ATTENDANCE_OWNER = 'js/modules/attendance.js';
 const ATTENDANCE_OWNED_GLOBALS = Object.freeze([
@@ -192,19 +192,20 @@ function _captureOfflineAttendanceSyncContext() {
     const currentClub = String(window.currentClubId || clubId).trim();
     const mirrorBranch = _canonicalAttendanceBranch(window.coachBranch || '', '');
     const storeBranch = _canonicalAttendanceBranch(window.__store?.coachBranch || '', '');
-    const valid = verified?.ready === true && !!uid &&
+    const allowed = verified && Object.prototype.hasOwnProperty.call(verified,'allowedBranches') ? verified.allowedBranches : [coachBranch];
+    const valid = verified?.branchSelectionPending !== true && verified?.ready === true && !!uid &&
         Number.isSafeInteger(generation) && generation > 0 && !!clubId &&
         ['admin', 'super_admin', 'coach'].includes(role) &&
         uiRole === role && storeRole === role &&
         (!currentUserUid || currentUserUid === uid) &&
         selectedClub === clubId && currentClub === clubId &&
         (role === 'super_admin' || verifiedClub === clubId) &&
-        (role !== 'coach' || (!!coachBranch &&
+        (role !== 'coach' || (!!coachBranch && Array.isArray(allowed) && allowed.includes(coachBranch) &&
             (!mirrorBranch || _sameBranch(mirrorBranch, coachBranch)) &&
             (!storeBranch || _sameBranch(storeBranch, coachBranch))));
     const context = Object.freeze({
         clubId: valid ? clubId : '', authGeneration: generation,
-        uid, role, coachBranch, verifiedClub,
+        uid, role, coachBranch, branchGeneration:Number(verified?.branchGeneration||0), verifiedClub,
     });
     _attendanceDebug().offlineSyncContextCaptured++;
     return context;
@@ -216,6 +217,7 @@ function _sameOfflineAttendanceSyncContext(left, right) {
         String(left.uid || '') === String(right.uid || '') &&
         String(left.role || '') === String(right.role || '') &&
         String(left.coachBranch || '') === String(right.coachBranch || '') &&
+        Number(left.branchGeneration||0) === Number(right.branchGeneration||0) &&
         Number(left.authGeneration) === Number(right.authGeneration);
 }
 
@@ -223,7 +225,7 @@ function _isOfflineAttendanceSyncContextCurrent(context) {
     if (!context?.clubId) return false;
     // Same verified principal AND still-canonical UI/store/selected-club mirrors.
     const verified = window.__verifiedAuthContextState;
-    if (verified?.ready !== true || String(verified.uid || '') !== String(context.uid || '') ||
+    if (verified?.branchSelectionPending === true || Number(verified?.branchGeneration||0)!==Number(context.branchGeneration||0) || verified?.ready !== true || String(verified.uid || '') !== String(context.uid || '') ||
         _attendanceCanonicalRole(verified.role) !== context.role ||
         Number(verified.generation) !== Number(context.authGeneration) ||
         String(_clubId() || '') !== context.clubId ||
@@ -236,7 +238,7 @@ function _isOfflineAttendanceSyncContextCurrent(context) {
     }
     if (String(verified.clubId || '') !== context.clubId) return false;
     if (context.role === 'coach') {
-        return _sameBranch(verified.coachBranch, context.coachBranch) &&
+        return (!Object.prototype.hasOwnProperty.call(verified,'allowedBranches') || (Array.isArray(verified.allowedBranches) && verified.allowedBranches.includes(context.coachBranch))) && _sameBranch(verified.coachBranch, context.coachBranch) &&
             (!window.coachBranch || _sameBranch(window.coachBranch, context.coachBranch)) &&
             (!window.__store?.coachBranch || _sameBranch(window.__store.coachBranch, context.coachBranch));
     }

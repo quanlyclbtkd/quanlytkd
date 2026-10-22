@@ -98,7 +98,7 @@
 
         const context = readContext();
         const allowed = COACH_ALLOWED_SOURCES.has(name) &&
-            (name !== 'profiles.active' || !!context.coachBranch);
+            hasCoachBranch(context.coachBranch);
         record(allowed ? 'allowed' : 'blocked', name, details);
         if (!allowed && global.console && typeof global.console.info === 'function') {
             global.console.info('[RoleReadBoundary] Coach read blocked:', name, details || '');
@@ -123,10 +123,18 @@
         return prefix + ':' + (ctx.role || 'unknown') + ':' + (ctx.clubId || 'missing-club') + (details ? ':' + String(details) : '');
     }
 
+    function hasCoachBranch(value) {
+        const v=global.__verifiedAuthContextState;
+        const selected=normalizeBranch(value, '');
+        if(!v) return !!selected;
+        const allowed=Object.prototype.hasOwnProperty.call(v,'allowedBranches') ? v.allowedBranches : [normalizeBranch(v.coachBranch,'')];
+        return v.ready===true && v.role==='coach' && v.branchSelectionPending!==true &&
+            Array.isArray(allowed) && allowed.includes(selected) && normalizeBranch(v.activeBranch||v.coachBranch,'')===selected;
+    }
     function requireCoachBranch(source) {
         if (!isCoachAttendanceOnly()) return true;
         const branch = readContext().coachBranch;
-        const ok = !!branch;
+        const ok = hasCoachBranch(branch);
         if (!ok) record('blocked', source || 'coach.branch', { reason: 'missing-coach-branch' });
         return ok;
     }
@@ -201,6 +209,7 @@
         enforceTab,
         scopeKey,
         requireCoachBranch,
+        hasCoachBranch,
         reset,
         diagnostics,
         printDiagnostics,

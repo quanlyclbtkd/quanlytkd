@@ -12,8 +12,8 @@ const baseline = JSON.parse(fs.readFileSync('handoff/V11R4/SOURCE_HASHES_AND_DIF
 const hash = p => createHash('sha256').update(fs.readFileSync(p)).digest('hex');
 run('default Coach contract remains maintenance', () => assert.equal(HISTORY_COACH_ACCESS, false));
 run('Rules Coach cutover remains closed', () => assert.match(rules, /function coachAttendanceCutoverOpen\(\)\s*\{\s*return false;/));
-run('Rules and indexes are byte-identical to R4', () => { assert.equal(hash('firestore.rules'), baseline.rulesSHA); assert.equal(hash('firestore.indexes.json'), baseline.indexSHA); });
-run('Attendance owners match the pinned A5 maintenance source', () => {
+run('Rules match the pinned A6 ACL policy; indexes remain unchanged', () => { assert.equal(hash('firestore.rules'), ACCEPTED_SOURCE.rulesSHA256); assert.equal(hash('firestore.indexes.json'), baseline.indexSHA); });
+run('Attendance owners match the pinned A6 maintenance source', () => {
  const identity=verifySourceIdentity(process.cwd(),runtimeHash(process.cwd()));assert.equal(identity.id,ACCEPTED_SOURCE.id);
  const manifest=JSON.parse(fs.readFileSync(ACCEPTED_SOURCE.manifest));
  for(const p of ['js/data/attendanceJournal.js','js/services/attendance.service.js','js/modules/attendance.js','js/core/attendanceContract.js'])assert.equal(hash(p),manifest.canonicalRuntimeFiles[p]);

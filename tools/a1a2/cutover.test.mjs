@@ -8,6 +8,7 @@ import {demoDecision} from '../v11r2/decision-fixture.mjs';
 import {ACCEPTED_SOURCE} from '../v11r2/source-identity.mjs';
 import {buildImportGraph,assertCacheGraph,cacheToken,buildTag} from '../v11r2/import-graph.mjs';
 import {attendanceCacheChain} from '../v11r2/cache-contract.mjs';
+import {protectedSyntax} from '../a5/owner-boundary.test.mjs';
 const root=process.cwd(),out='handoff/A1A2/evidence/green',results=[];
 const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'a12-cutover-'));
 const candidate=path.join(tmp,'candidate'),altered=path.join(tmp,'altered');
@@ -46,7 +47,8 @@ try {
   const afterEdges=b.cacheGraph.after.edges.filter(e=>!scope.has(e.to)).map(({from,to,url,kind})=>({from,to,url,kind}));
   assert.deepEqual(afterEdges,beforeEdges);
   assert(Object.keys(b.runtimeOverrides).every(file=>scope.has(file)));
-  assert(!Object.hasOwn(b.runtimeOverrides,'js/modules/finance.js'));assert(!Object.hasOwn(b.runtimeOverrides,'js/services/finance.service.js'));
+  // Finance imports StudentService: A6 refreshes that existing dependency edge only.
+  for(const file of ['js/modules/finance.js','js/services/finance.service.js'])if(Object.hasOwn(b.runtimeOverrides,file))assert.equal(protectedSyntax(b.runtimeOverrides[file]),protectedSyntax(fs.readFileSync(file,'utf8')),'Financial logic changed during cache rewrite');
  });
  test('all override bytes and graph are hashed into the signed plan',()=>{
   assert.equal(digest(b.cacheGraph),b.plan.cacheGraphSHA256);

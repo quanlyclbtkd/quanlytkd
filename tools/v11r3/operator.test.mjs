@@ -3,6 +3,14 @@ const out='handoff/V11R3/evidence',results=[],qa=path.resolve(process.cwd(),'../
 try{
  const before=runtimeHash(process.cwd()),projectId='test-only-staging-operator',cfg={apiKey:'TEST-NOT-A-REAL-KEY',authDomain:projectId+'.firebaseapp.com',projectId,storageBucket:projectId+'.firebasestorage.app',messagingSenderId:'111111111111',appId:'1:111111111111:web:0000000000000000000000'};prepareStagingSource(process.cwd(),cfg,target);const bundle=prepare(target,{projectId,clubIds:['A']}),draft=pendingAuditRequest(target,bundle,{});
  await check('offline operator preparation produces a pending, unsigned, hash-bound request',()=>{assert.equal(draft.grant.payload.decision,'pending');assert.equal(draft.grant.payload.authority,null);assert.equal(draft.grant.signature,null);assert.equal(draft.request.maxReturnedDocuments,null);assert.equal(draft.request.globalAttendanceInventory,true);assert.equal(draft.grant.payload.requestSHA256,sha(draft.request));assert.equal(runtimeHash(process.cwd()),before)});
+ for(const [name,file,mutate]of [
+  ['business code','js/services/attendance.service.js',s=>s+'\n// tampered'],
+  ['build identity','js/main.js',s=>s.replace('window.APP_BUILD_VERSION','window.UNREVIEWED_BUILD_VERSION')],
+  ['Rules','firestore.rules',s=>s+'\n// unreviewed'],
+  ['indexes','firestore.indexes.json',s=>s+' '],
+  ['original proof','STAGING_SOURCE_ONLY.json',s=>{const d=JSON.parse(s);d.originals['app.js']+='\n// forged';return JSON.stringify(d)}],
+  ['cache edge','js/modules/attendance.js',s=>s.replace(/\?v=[^'"\s)]+/,'?v=unreviewed')]
+ ])await check('derived staging rejects tampered '+name,()=>{const p=path.join(target,file),saved=fs.readFileSync(p,'utf8');try{const changed=mutate(saved);assert.notEqual(changed,saved);fs.writeFileSync(p,changed);assert.throws(()=>prepare(target,{projectId,clubIds:['A']}))}finally{fs.writeFileSync(p,saved)}});
  await check('signing helper refuses to promote or sign a pending decision',()=>assert.throws(()=>signApprovedPayload(draft.grant.payload,'not-even-a-key'),e=>e.code==='OWNER_MUST_DECIDE_FIRST'));
  const keys=crypto.generateKeyPairSync('ed25519'),publicKey=keys.publicKey.export({type:'spki',format:'pem'}),trustedKeySHA256=sha(keys.publicKey.export({type:'spki',format:'der'}));
  await check('pending request cannot issue even one HTTP read',async()=>{let calls=0;await assert.rejects(()=>collectServerSnapshot(draft.request,draft.grant,{publicKey,trustedKeySHA256,fetcher:async()=>{calls++;throw Error('SHOULD_NOT_CALL')}}),e=>e.code==='OWNER_DECISION_PENDING_OR_WRONG_PURPOSE');assert.equal(calls,0)});

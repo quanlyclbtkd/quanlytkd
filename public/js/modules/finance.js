@@ -9,7 +9,7 @@ import {
     formatMonthCompact,
 } from '../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
 import { FinanceService } from '../services/finance.service.js?v=qr-v11r5-ack-20261021';
-import { StudentService } from '../services/students.service.js?v=tuition-command-cutover-20260730-v5u2';
+import { StudentService } from '../services/students.service.js?v=qr-v11r6-a6-coach-qr-20261022';
 import { attachTransactionPageProjection } from './finance/finance.pagination.js?v=qr-v11r6-review-20261021';
 import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
 

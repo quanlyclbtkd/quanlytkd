@@ -15,7 +15,8 @@ const test=async(name,fn)=>{await fn();results.push({name,status:'PASS'});consol
 try {
  await env.withSecurityRulesDisabled(async context=>{
   const db=context.firestore(),batch=sdk.writeBatch(db);
-  for(const [uid,role,branch]of [['coach1','coach','CS1'],['coach2','coach','CS2'],['admin','admin','CS1']])batch.set(sdk.doc(db,'users',uid),{role,clubId:club,branch});
+  for(const [uid,role,branch]of [['coach1','coach','CS1'],['coach2','coach','CS2'],['admin','admin','CS1']]){batch.set(sdk.doc(db,'users',uid),{role,clubId:club,branch});if(role==='coach')batch.set(sdk.doc(db,'clubs',club,'coaches',uid),{role,clubId:club,branch});}
+  batch.set(sdk.doc(db,'clubs',club,'settings','main_config'),{branchCount:2});
   for(const [id,branch]of [['Own','CS1'],['Foreign','CS2']])batch.set(sdk.doc(db,'clubs',club,'profiles',id),{branch,status:'active'});
   batch.set(sdk.doc(db,'clubs',club,'settings','shifts'),{list:[]});
   batch.set(ref(db,'Own_'+date),record('Own','CS1'));batch.set(ref(db,'forged-current-marker'),record('Foreign','CS1'));

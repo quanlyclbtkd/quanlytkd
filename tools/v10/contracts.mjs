@@ -141,7 +141,11 @@ export async function listenerContract(kind='hydrate',change=x=>x){
 
 export async function authContract(change=x=>x){
   const app=change(read('app.js')),commit=expression(app,'const _commitVerifiedAuthContext ='),reset=expression(app,'const _resetVerifiedAuthContext =');
-  const box={currentClubId:'',window:{__store:{},__verifiedAuthContextState:{generation:1}},_normalizeAuthContext:x=>x,_saveAuthCache(){}};vm.createContext(box);
+  const box={currentClubId:'',window:{__appLoaded:true,__store:{},__verifiedAuthContextState:{generation:1}},document:{getElementById:()=>null},_saveAuthCache(){}};vm.createContext(box);
+  vm.runInContext(read('js/core/branchIdentity.js'),box);vm.runInContext(read('js/core/coachBranchRuntimeRepair.js'),box);
+  box._canonicalBranch=(value,fallback='')=>box.window.BranchIdentity.normalize(value,{fallback});
+  box._normalizeAuthRole=vm.runInContext(expression(app,'const _normalizeAuthRole ='),box);
+  box._normalizeAuthContext=vm.runInContext(expression(app,'const _normalizeAuthContext ='),box);
   const f=vm.runInContext(commit,box),r=vm.runInContext(reset,box);
   f({uid:'u'},{role:'coach',clubId:'A',coachBranch:'CS1'});assert.equal(box.window.currentClubId,'A');assert.equal(box.window.__store.clubId,'A');assert.equal(box.window.__verifiedAuthContextState.ready,true);
   assert.throws(()=>f({uid:'u'},{role:'coach',clubId:'A',coachBranch:''}));

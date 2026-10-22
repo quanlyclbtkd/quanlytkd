@@ -1,4 +1,4 @@
-import {HISTORY_AUTHORITY,attendanceVisibleRecord} from '../../core/attendanceContract.js?v=qr-v11r6-attendance-a5-20261022';
+import {HISTORY_AUTHORITY,attendanceVisibleRecord} from '../../core/attendanceContract.js?v=qr-v11r6-a6-coach-qr-20261022';
 /**
  * Phase 4K-6U — Attendance Excel Report (lazy, read-only)
  *
@@ -10,6 +10,18 @@ import {HISTORY_AUTHORITY,attendanceVisibleRecord} from '../../core/attendanceCo
 const PAGE_SIZE = 1000;
 const MAX_PAGES = 200;
 
+function _attendanceExportOwner() {
+    const a=window.__verifiedAuthContextState;
+    const coach=window.userRole==='coach';
+    const allowed=a&&Object.prototype.hasOwnProperty.call(a,'allowedBranches')?a.allowedBranches:[a?.coachBranch];
+    if(coach&&(a?.ready!==true||a.role!=='coach'||a.branchSelectionPending===true||!Array.isArray(allowed)||!allowed.includes(a.activeBranch||a.coachBranch)))throw new Error('Phiên HLV/cơ sở chưa được xác minh.');
+    const key=JSON.stringify([window.userRole,a?.uid,a?.clubId,a?.generation,a?.branchGeneration,a?.ready,a?.coachBranch,a?.allowedBranches]);
+    return {key,branch:coach?a.coachBranch:'',clubId:a?.clubId,coach};
+}
+function _requireAttendanceExportOwner(owner) {
+    if(_attendanceExportOwner().key!==owner.key)throw new Error('Phiên/cơ sở đã thay đổi. Dừng xuất dữ liệu cũ.');
+}
+
 export async function loadAttendanceMonthPaginated({ db, clubId, month, onProgress }) {
     // V5U-2E: documentId is supplied by the shared Firebase CDN bootstrap.
     // Keep cursor ordering explicit and deterministic; do not introduce a second query path.
@@ -19,12 +31,15 @@ export async function loadAttendanceMonthPaginated({ db, clubId, month, onProgre
     const missing = Object.entries(required).filter(([, value]) => typeof value !== 'function').map(([name]) => name);
     if (missing.length) throw new Error('Firebase SDK chưa sẵn sàng: ' + missing.join(', '));
 
+    const owner=_attendanceExportOwner();
+    if(owner.coach&&owner.clubId!==clubId)throw new Error('Sai CLB khi xuất Điểm danh.');
     const ref = collection(db, 'clubs', clubId, 'attendance');
     const items = [];
     let cursor = null;
     let pages = 0;
 
     while (pages < MAX_PAGES) {
+        _requireAttendanceExportOwner(owner);
         const constraints = [
             where('month', '==', month),
             orderBy(documentId()),
@@ -38,6 +53,7 @@ export async function loadAttendanceMonthPaginated({ db, clubId, month, onProgre
         constraints.push(limit(PAGE_SIZE));
 
         const snap = await getDocs(query(ref, ...constraints));
+        _requireAttendanceExportOwner(owner);
         pages += 1;
         const docs = snap && Array.isArray(snap.docs) ? snap.docs : [];
         for (const docSnap of docs) {const data=docSnap.data();if(attendanceVisibleRecord(data))items.push({ id: docSnap.id, ...data });}
@@ -79,7 +95,9 @@ export async function exportAttendanceExcel() {
         else alert(msg);
         return;
     }
+    const exportOwner=_attendanceExportOwner();
     await window.ensureXlsxReady?.('export-attendance-excel');
+    _requireAttendanceExportOwner(exportOwner);
     const XLSX = window.XLSX;
     if (!XLSX || !XLSX.utils || typeof XLSX.writeFile !== 'function') {
         throw new Error('Thư viện XLSX chưa sẵn sàng.');
@@ -117,6 +135,7 @@ export async function exportAttendanceExcel() {
                     }
                 },
             });
+            _requireAttendanceExportOwner(exportOwner);
             const attendanceDocs = attendanceResult.items;
 
             // Gom nhóm theo tên võ sinh — đếm số buổi có mặt, nghỉ CP, nghỉ KP
@@ -133,6 +152,8 @@ export async function exportAttendanceExcel() {
 
             // Bổ sung võ sinh đang tập chưa có dữ liệu điểm danh tháng này
             Object.entries(allProfiles || {}).forEach(([pid, p]) => {
+                const branch=String(p.branch||'CS1')==='Mặc định'?'CS1':String(p.branch||'CS1');
+                if(exportOwner.coach&&branch!==exportOwner.branch)return;
                 if ((typeof window.classifyProfileStatus === 'function' ? window.classifyProfileStatus(p) : p.status) !== 'active') return;
                 if (!grouped[pid]) {
                     grouped[pid] = { name: pid, belt: p.belt || '', branch: p.branch || 'CS1', present: 0, excused: 0, absent: 0 };
@@ -391,6 +412,7 @@ export async function exportAttendanceExcel() {
 
             // ── Xuất file ───────────────────────────────────────────────────────
             const fileName = `DiemDanh_${monthDisplay.replace('/','_')}_${clubName.replace(/\s+/g,'_')}.xlsx`;
+            _requireAttendanceExportOwner(exportOwner);
             XLSX.writeFile(wb, fileName);
             document.getElementById('toastMessage')?.classList.remove('show');
             window.showToast(`✅ Đã xuất: ${fileName}`);

@@ -1,3 +1,4 @@
+import {randomUUID} from 'node:crypto';
 import {HISTORY_AUTHORITY,HISTORY_COACH_ACCESS} from '../js/core/attendanceContract.js';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
@@ -17,7 +18,7 @@ import {
   setDoc,
   updateDoc,
   where,
-} from 'firebase/firestore';
+  writeBatch, increment } from 'firebase/firestore';
 
 const projectId = process.env.GCLOUD_PROJECT || process.env.FIREBASE_PROJECT || 'demo-taekwondo-6v4b';
 const host = process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8080';
@@ -208,17 +209,17 @@ try {
     await assertSucceeds(getDoc(doc(coach1, 'clubs/club-a/coaches/coach-a1')));
     await assertFails(getDoc(doc(coach1, 'clubs/club-a/coaches/coach-a2')));
   });
-  await test('Stale Coach may repair branch mirror only to the Admin-assigned branch', async () => {
-    await assertSucceeds(updateDoc(doc(coachStale, 'users/coach-stale'), {
+  await test('Stale Coach cannot self-repair ACL; same-club Admin must atomically repair', async () => {
+    await assertFails(updateDoc(doc(coachStale, 'users/coach-stale'), {
       branch: 'CS1', coachBranch: 'CS1', email: 'stale@example.com', updatedAt: '2026-06-27',
     }));
     await assertFails(updateDoc(doc(coachStale, 'users/coach-stale'), {
       branch: 'CS2', coachBranch: 'CS2', email: 'stale@example.com', updatedAt: '2026-06-27b',
     }));
   });
-  await test('Coach missing users doc may create only an exact assignment mirror', async () => {
+  await test('Coach missing users doc cannot create authorization even with an assignment', async () => {
     await assertSucceeds(getDoc(doc(coachMissing, 'clubs/club-a/coaches/coach-missing')));
-    await assertSucceeds(setDoc(doc(coachMissing, 'users/coach-missing'), {
+    await assertFails(setDoc(doc(coachMissing, 'users/coach-missing'), {
       role: 'coach', clubId: 'club-a', branch: 'CS2', coachBranch: 'CS2', email: 'missing@example.com', updatedAt: '2026-06-27',
     }));
   });
@@ -237,14 +238,12 @@ try {
     await assertFails(updateDoc(doc(coach1, 'users/coach-a1'), { branch: 'CS2' }));
   });
 
-  await test('Club Admin can provision same-club Coach with branch', async () => {
-    await assertSucceeds(setDoc(doc(adminA, 'users/new-coach'), {
-      role: 'coach', clubId: 'club-a', branch: 'CS2', email: 'coach@example.com',
-    }));
-  });
-  await test('Club Admin can repair a same-club legacy Coach missing branch', async () => {
-    await assertSucceeds(updateDoc(doc(adminA, 'users/coach-legacy'), { branch: 'CS1' }));
-  });
+  async function adminPair(uid,branch,previous='absent') {
+    const data={role:'coach',clubId:'club-a',branch,coachBranch:branch,defaultBranch:branch,allowedBranches:[branch],assignmentVersion:randomUUID(),assignmentPreviousVersion:previous};
+    const b=writeBatch(adminA);b.set(doc(adminA,'clubs/club-a/coaches/'+uid),data,{merge:true});b.set(doc(adminA,'users/'+uid),data,{merge:true});b.set(doc(adminA,'clubs/club-a'),{coachAclEpoch:increment(1)},{merge:true});return b.commit();
+  }
+  await test('Club Admin provisions a same-club Coach through the atomic canonical pair', async()=>{await assertSucceeds(adminPair('new-coach','CS2'));});
+  await test('Club Admin repairs missing legacy assignment through a canonical pair', async()=>{await assertSucceeds(adminPair('coach-legacy','CS1'));});
   await test('Club Admin cannot provision Coach with an invalid branch code', async () => {
     await assertFails(setDoc(doc(adminA, 'users/new-coach-invalid'), {
       role: 'coach', clubId: 'club-a', branch: 'ALL', email: 'invalid@example.com',

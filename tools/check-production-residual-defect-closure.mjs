@@ -193,6 +193,7 @@ const v10CoachContextCacheScope =
     /from '\.\/listeners\/profiles\.listeners\.js\?v=coach-roster-context-v10-20261020'/.test(main) &&
     /import \{ initAttendance \}\s+from '\.\/modules\/attendance\.js\?v=coach-roster-context-v10-20261020'/.test(main) &&
     /import \{ AttendanceService \} from '\.\.\/services\/attendance\.service\.js\?v=qr-v9-attendance-rules-20261020'/.test(attendance);
+const a6Scope = (()=>{try{const p=verifySourceIdentity(root,runtimeHash(root));return p.id==='V11R6_A6_COACH_QR_MAINTENANCE'&&assertCacheGraph(buildImportGraph(root),affectedModules(buildImportGraph(root)),p.buildTag)}catch{return false}})();
 const v11CacheScope = index.includes("s.src  = './js/main.js?v=qr-v11-intent-20261020'") && main.includes("from './modules/attendance.js?v=qr-v11-intent-20261020'") && attendance.includes("attendance.service.js?v=qr-v11-intent-20261020");
 const v11r4CacheScope =
     /s\.src\s*=\s*'\.\/js\/main\.js\?v=qr-v11r4-tuition-20261021'/.test(index) &&
@@ -216,7 +217,7 @@ const a5MaintenanceCacheScope=(()=>{try{
  if(identity.id!=='V11R6_A5_ATTENDANCE_MAINTENANCE'||identity.buildTag!==ACCEPTED_SOURCE.buildTag)return false;
  const graph=buildImportGraph(root);return assertCacheGraph(graph,affectedModules(graph),identity.buildTag);
 }catch{return false}})();
-check(a5MaintenanceCacheScope || attendanceCacheChain() || v11CacheScope || v11r4CacheScope || v11r5CacheScope || v11r6CacheScope || v5u6gFrozenCacheScope || h8r1DisplayNameCacheScope || h8r2StabilityCacheScope || h8r21ResidualCacheScope || v9AttendanceCacheScope || v10CoachContextCacheScope, 'Changed modules are cache-busted only within the active phase scope');
+check(a6Scope || a5MaintenanceCacheScope || attendanceCacheChain() || v11CacheScope || v11r4CacheScope || v11r5CacheScope || v11r6CacheScope || v5u6gFrozenCacheScope || h8r1DisplayNameCacheScope || h8r2StabilityCacheScope || h8r21ResidualCacheScope || v9AttendanceCacheScope || v10CoachContextCacheScope, 'Changed modules are cache-busted only within the active phase scope');
 check(pkg.scripts?.['check:production-residual-defect-closure'] === 'node tools/check-production-residual-defect-closure.mjs', 'package exposes the V5U6G master gate');
 
 // Execute the new production service contract; native journal/Emulator suites

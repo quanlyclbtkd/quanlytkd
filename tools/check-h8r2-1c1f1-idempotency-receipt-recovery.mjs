@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// A6 retires duplicate legacy Coach account readers; preserve the original read caps.
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
@@ -42,8 +43,8 @@ const runtime=['app.js', ...walk('js')];
 const pats={getDoc:/(?<![A-Za-z0-9_$])(?:getDoc|_getDoc|fbGetDoc)\s*\(/g,getDocs:/(?<![A-Za-z0-9_$])(?:getDocs|_getDocs|fbGetDocs|_pG4k)\s*\(/g,onSnapshot:/(?<![A-Za-z0-9_$])(?:onSnapshot|fbOnSnapshot)\s*\(/g};
 const counts={getDoc:0,getDocs:0,onSnapshot:0};
 for (const f of runtime) for (const line of read(f).split('\n')) { const t=line.trim(); if (t.startsWith('//')||t.startsWith('*')||t.startsWith('/*')) continue; for (const [k,re] of Object.entries(pats)) { re.lastIndex=0; if (re.test(line)) counts[k]++; } }
-check('18. no new getDoc', counts.getDoc===29, JSON.stringify(counts));
-check('19. no new getDocs', counts.getDocs===44, JSON.stringify(counts));
+check('18. no new getDoc', counts.getDoc<=29, JSON.stringify(counts));
+check('19. no new getDocs', counts.getDocs<=44, JSON.stringify(counts));
 check('20. no new onSnapshot', counts.onSnapshot===16, JSON.stringify(counts));
 
 // Dynamic completed replay tests: ID01-ID08 core semantics.

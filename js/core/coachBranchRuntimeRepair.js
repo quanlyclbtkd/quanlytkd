@@ -1,187 +1,188 @@
-/**
- * Phase 4K-6V4B1 — Coach Branch Assignment + Runtime Mirror Repair
- * Owns the Coach authorization repair workflow outside legacy app.js.
- */
+/** Existing Coach assignment/login owner. A6: server-authorized branches. */
 (function initCoachBranchRuntimeRepair(global) {
   'use strict';
-  if (global.CoachBranchRuntimeRepair?.version === '4K-6V4B1') return;
-
+  if (global.CoachBranchRuntimeRepair?.version === 'A6') return;
   const canonical = (value, fallback = '') => {
-    if (global.BranchIdentity?.normalize) return global.BranchIdentity.normalize(value, { fallback });
-    const raw = String(value || '').trim();
-    if (!raw) return fallback;
-    if (/^(mặc định|mac dinh|default)$/i.test(raw)) return 'CS1';
-    const match = raw.match(/^CS0*([1-9]|10)$/i);
-    return match ? `CS${Number(match[1])}` : fallback;
+    if (global.BranchIdentity?.normalize) return global.BranchIdentity.normalize(value, {fallback});
+    const s=String(value||'').trim();if (/^(Mặc định|mac dinh|default)$/i.test(s)) return 'CS1';
+    return /^CS(?:[1-9]|10)$/.test(s)?s:fallback;
   };
-  const esc = value => String(value ?? '').replace(/[&<>'"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]));
-  const sdk = () => global._fb_init || {};
-  const db = () => global.__store?.db || null;
-  const clubId = () => String(global.__store?.clubId || '').trim();
-  const toast = (message, duration = 3500) => global.showToast ? global.showToast(message, duration) : alert(message);
-  const assertAdmin = () => {
-    if (!['admin', 'owner', 'super_admin'].includes(global.userRole)) throw new Error('Chỉ Admin/Owner mới có quyền quản lý HLV.');
-    if (!db() || !clubId()) throw new Error('Dữ liệu CLB chưa sẵn sàng. Vui lòng tải lại trang.');
-  };
-  const branchName = code => global.getBranchNameDisplay ? global.getBranchNameDisplay(code) : code;
-  const branchCount = () => Math.max(1, Math.min(10, Number(global.__store?.clubConfig?.branchCount) || 1));
-  const selectId = uid => `coach_assigned_branch_${String(uid || '').replace(/[^A-Za-z0-9_-]/g, '_')}`;
-  const options = selectedValue => {
-    const selected = canonical(selectedValue);
-    let html = '<option value="">⚠️ Chọn cơ sở phụ trách</option>';
-    for (let i = 1; i <= branchCount(); i++) {
-      const code = `CS${i}`;
-      html += `<option value="${code}"${selected === code ? ' selected' : ''}>📍 ${esc(branchName(code))}</option>`;
+  const error=(code,message)=>Object.assign(new Error(message),{code});
+  const esc=value=>String(value??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+  const sdk=()=>global._fb_init||{},db=()=>global.__store?.db,clubId=()=>String(global.__store?.clubId||'');
+  const toast=message=>global.showToast?global.showToast(message,4500):global.alert(message);
+  const disabled=data=>['locked','disabled','suspended'].includes(String(data?.status||'active').toLowerCase());
+  // Explicit arrays are strict. Malformed arrays never fall back to a scalar.
+  function normalizeAssignment(data={},options={}) {
+    const primary=canonical(data.primaryCoachBranch||data.defaultBranch||data.branch||data.coachBranch);
+    const explicit=Object.prototype.hasOwnProperty.call(data,'allowedBranches');
+    const values=explicit?data.allowedBranches:[primary];
+    if(Array.isArray(values)&&values.length===0&&options.allowRevoked)return {primary:'',branches:[]};
+    if(!primary||!Array.isArray(values)||values.length<1||values.length>10||
+      values.some(b=>typeof b!=='string'||!/^CS(?:[1-9]|10)$/.test(b))||
+      new Set(values).size!==values.length||!values.includes(primary)||
+      (data.branch&&canonical(data.branch)!==primary)||
+      (!data.primaryCoachBranch&&data.coachBranch&&canonical(data.coachBranch)!==primary))
+      throw error('auth/coach-assignment-invalid','Phân công HLV không hợp lệ: cần cơ sở hợp lệ trong cấu hình CLB; cơ sở mặc định phải nằm trong danh sách.');
+    return {primary,branches:values.slice().sort((a,b)=>Number(a.slice(2))-Number(b.slice(2)))};
+  }
+  const same=(a,b)=>a.primary===b.primary&&JSON.stringify(a.branches)===JSON.stringify(b.branches);
+  function verifiedSnapshot(snap){
+    if(snap?.metadata?.fromCache!==false||snap.metadata.hasPendingWrites!==false)
+      throw error('auth/coach-assignment-unverified','Chưa xác minh được phân công từ máy chủ. Kiểm tra kết nối và thử lại.');
+    return snap;
+  }
+  async function readVerified(firestore,...segments){return verifiedSnapshot(await sdk().getDoc(sdk().doc(firestore,...segments)));}
+  async function resolveAuthContext({user,context,db:firestore}) {
+    const role=String(context?.role||'').toLowerCase().replace(/^(hlv|trainer)$/,'coach');
+    const result={...context,uid:String(user?.uid||context?.uid||''),role,clubId:String(context?.clubId||'')};
+    if(role!=='coach')return result;
+    const {doc,getDoc}=sdk();
+    if(!result.uid||!result.clubId||!firestore)throw error('auth/coach-assignment-missing','Thiếu hồ sơ tài khoản hoặc CLB. Admin cần kiểm tra.');
+    const snap=await readVerified(firestore,'clubs',result.clubId,'coaches',result.uid);
+    if(!snap.exists())throw error('auth/coach-assignment-missing','Không có hồ sơ phân công HLV. Admin cần khôi phục hồ sơ, không tạo lại tài khoản Auth.');
+    const assigned=snap.data()||{};
+    if(assigned.role!=='coach'||assigned.clubId!==result.clubId||disabled(assigned))
+      throw error('auth/coach-assignment-invalid','Phân công HLV sai vai trò, CLB hoặc đã bị khóa.');
+    if(Array.isArray(assigned.allowedBranches)&&assigned.allowedBranches.length===0)throw error('auth/coach-assignment-revoked','HLV đã được thu hồi toàn bộ cơ sở. Nhật ký chưa đồng bộ được giữ nguyên.');
+    if(disabled(context))throw error('auth/coach-assignment-invalid','Hồ sơ tài khoản HLV đã bị khóa.');
+    const a=normalizeAssignment(assigned),mirror=normalizeAssignment(context);
+    if(!same(a,mirror)||(assigned.assignmentVersion||'legacy')!==(context.assignmentVersion||'legacy'))throw error('auth/coach-assignment-mismatch','Phân công HLV và users/{uid} chưa khớp. Admin cần lưu lại cơ sở hoặc đồng bộ tài khoản HLV cũ.');
+    return {...result,coachBranch:a.primary,primaryCoachBranch:a.primary,allowedBranches:Object.freeze(a.branches.slice()),activeBranch:a.primary};
+  }
+  function allowedBranches(context=global.__verifiedAuthContextState){
+    if(context?.ready!==true||context.role!=='coach')return [];
+    try{return normalizeAssignment(context).branches}catch{return []}
+  }
+  function renderCoachBranchSelectors(){
+    const state=global.__verifiedAuthContextState,branches=allowedBranches(state);
+    if(global.userRole!=='coach')return;
+    for(const id of ['att_branch','att_month_branch']){
+      const el=document.getElementById(id);if(!el)continue;
+      el.innerHTML=branches.map(b=>'<option value="'+b+'">📍 '+esc(global.getBranchNameDisplay?.(b)||b)+'</option>').join('');
+      el.value=branches.includes(state.coachBranch)?state.coachBranch:'';el.disabled=branches.length<2;
     }
-    return html;
-  };
-
-  async function resolveAuthContext({ user, context, db: firestore }) {
-    const role = String(context?.role || '').trim().toLowerCase().replace(/-/g, '_').replace(/^(hlv|trainer)$/, 'coach');
-    const result = {
-      uid: String(user?.uid || context?.uid || '').trim(), role,
-      clubId: String(context?.clubId || '').trim(),
-      coachBranch: role === 'coach' ? canonical(context?.coachBranch || context?.branch || '') : ''
-    };
-    if (result.role !== 'coach' || !result.clubId || !result.uid || !firestore) return result;
-    const { doc, getDoc, setDoc } = sdk();
-    let snap;
-    try { snap = await getDoc(doc(firestore, 'clubs', result.clubId, 'coaches', result.uid)); }
-    catch (error) { console.warn('[CoachBranchRepair] assignment read failed:', error.code || error.message); return result; }
-    if (!snap.exists()) return result;
-    const assigned = snap.data() || {};
-    const assignedBranch = canonical(assigned.branch || assigned.coachBranch || '');
-    if (!assignedBranch || result.coachBranch === assignedBranch) return { ...result, coachBranch: assignedBranch || result.coachBranch };
-    try {
-      await setDoc(doc(firestore, 'users', result.uid), {
-        role: 'coach', clubId: result.clubId, branch: assignedBranch, coachBranch: assignedBranch,
-        email: user?.email || assigned.email || '', updatedAt: new Date().toISOString()
-      }, { merge: true });
-    } catch (cause) {
-      const error = new Error('Cơ sở HLV chưa đồng bộ. Admin cần chọn đúng cơ sở, bấm “Lưu cơ sở” rồi chạy “Đồng bộ tài khoản HLV cũ”.');
-      error.code = 'auth/coach-branch-mirror-sync-failed'; error.cause = cause; throw error;
-    }
-    return { ...result, coachBranch: assignedBranch };
+    if(state?.ready!==true){const info=document.getElementById('coach_att_info');if(info){info.textContent='Quyền cơ sở chưa được xác minh. Nhật ký được giữ nguyên. ';const retry=document.createElement('button');retry.type='button';retry.textContent='Xác minh lại quyền';retry.onclick=()=>global.selectCoachBranch(state.coachBranch,{revalidate:true});info.appendChild(retry);}}
   }
-
-  async function loadCoachAccounts() {
-    const list = document.getElementById('coachAccountsList');
-    if (!list) return;
-    list.innerHTML = '<div style="text-align:center;padding:20px;color:#94a3b8;font-size:.85rem">Đang tải...</div>';
-    try {
-      assertAdmin();
-      const { collection, getDocs, query, limit } = sdk();
-      const snap = await getDocs(query(collection(db(), 'clubs', clubId(), 'coaches'), limit(200)));
-      if (snap.empty) { list.innerHTML = '<div style="text-align:center;padding:24px;color:#94a3b8;font-size:.85rem">Chưa có tài khoản HLV nào</div>'; return; }
-      let html = '';
-      snap.forEach(item => {
-        const data = item.data() || {};
-        const branch = canonical(data.branch || data.coachBranch || '');
-        const label = branch ? branchName(branch) : '⚠️ Chưa gán cơ sở — HLV sẽ không tải dữ liệu';
-        html += `<div style="padding:12px;background:#f8fafc;border-radius:10px;border:1px solid ${branch ? '#e2e8f0' : '#f59e0b'};margin-bottom:8px">
-          <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><div style="min-width:0;flex:1">
-          <div style="font-weight:700;font-size:.88rem;color:#1e293b">${esc(data.displayName || data.email || 'HLV')}</div>
-          <div style="font-size:.72rem;color:#64748b;overflow-wrap:anywhere">${esc(data.email || '')}</div>
-          <div style="font-size:.68rem;color:${branch ? '#0369a1' : '#b45309'};margin-top:3px;font-weight:700">📍 ${esc(label)}</div></div>
-          <div style="display:flex;gap:6px"><button data-coach-reset="${esc(data.email || '')}" style="background:#f0f9ff;color:#0369a1;border:1px solid #bae6fd;padding:5px 9px;border-radius:8px;font-size:.7rem;font-weight:700">🔑 Đặt lại MK</button>
-          <button data-coach-delete="${esc(item.id)}" data-coach-email="${esc(data.email || '')}" style="background:#fee2e2;color:#dc2626;border:0;padding:5px 9px;border-radius:8px;font-size:.7rem;font-weight:700">🗑️ Xóa</button></div></div>
-          <div style="display:flex;gap:7px;margin-top:9px"><select id="${selectId(item.id)}" style="flex:1;min-width:0;padding:8px 9px;border:1.5px solid #cbd5e1;border-radius:9px;background:#fff;font-size:.76rem;font-weight:700">${options(branch)}</select>
-          <button data-coach-save="${esc(item.id)}" style="background:#0f766e;color:#fff;border:0;padding:9px 11px;border-radius:9px;font-size:.72rem;font-weight:800;white-space:nowrap">💾 Lưu cơ sở</button></div></div>`;
-      });
-      list.innerHTML = html;
-      list.querySelectorAll('[data-coach-save]').forEach(btn => btn.addEventListener('click', () => updateCoachBranch(btn.dataset.coachSave)));
-      list.querySelectorAll('[data-coach-reset]').forEach(btn => btn.addEventListener('click', () => global.resetCoachPassword(btn.dataset.coachReset)));
-      list.querySelectorAll('[data-coach-delete]').forEach(btn => btn.addEventListener('click', () => global.deleteCoachAccount(btn.dataset.coachDelete, btn.dataset.coachEmail)));
-    } catch (error) { list.innerHTML = `<div style="color:#dc2626;font-size:.82rem;padding:12px">Lỗi tải danh sách: ${esc(error.message || error)}</div>`; }
+  const branchName=b=>global.getBranchNameDisplay?.(b)||b;
+  const branchCount=()=>Math.max(0,Math.min(10,Number(global.__store?.clubConfig?.branchCount)||0));
+  const selectId=uid=>'coach_assigned_branch_'+String(uid||'').replace(/[^A-Za-z0-9_-]/g,'_');
+  function choices(id,values=[]){
+    let html='<fieldset id="'+id+'" style="display:flex;flex-wrap:wrap;gap:8px;padding:8px;border:1px solid #cbd5e1;border-radius:9px"><legend>Chọn cơ sở được phép</legend>';
+    for(let i=1;i<=branchCount();i++){const b='CS'+i;html+='<label style="display:flex;align-items:center;gap:6px;min-height:40px;padding:4px 8px"><input type="checkbox" value="'+b+'"'+(values.includes(b)?' checked':'')+' style="width:20px;height:20px">'+esc(branchName(b))+'</label>'}
+    return html+'</fieldset><label>Cơ sở mặc định <select id="'+id+'_primary" style="padding:8px">'+values.map(b=>'<option value="'+b+'">'+esc(branchName(b))+'</option>').join('')+'</select></label>';
   }
-
-  async function updateCoachBranch(uid) {
-    try {
-      assertAdmin();
-      const select = document.getElementById(selectId(uid));
-      const branch = canonical(select?.value || '');
-      if (!branch) return alert('Vui lòng chọn một cơ sở cụ thể cho HLV.');
-      if (select) select.disabled = true;
-      const { doc, getDoc, writeBatch } = sdk();
-      const coachRef = doc(db(), 'clubs', clubId(), 'coaches', uid);
-      const coachSnap = await getDoc(coachRef);
-      if (!coachSnap.exists()) throw new Error('Không tìm thấy hồ sơ HLV trong CLB.');
-      const data = coachSnap.data() || {}, now = new Date().toISOString(), batch = writeBatch(db());
-      batch.set(coachRef, { role:'coach', clubId:clubId(), branch, coachBranch:branch, updatedAt:now }, { merge:true });
-      batch.set(doc(db(), 'users', uid), { role:'coach', clubId:clubId(), branch, coachBranch:branch, email:data.email || '', updatedAt:now }, { merge:true });
-      await batch.commit();
-      toast(`✅ Đã giao ${branchName(branch)} cho HLV. HLV cần đăng nhập lại.`, 4000);
-      await loadCoachAccounts();
-    } catch (error) { console.error('[CoachBranchRepair] save failed:', error); alert(`Không thể lưu cơ sở HLV: ${error.message || error}`); }
-    finally { const el = document.getElementById(selectId(uid)); if (el) el.disabled = false; }
+  function renderCreateBranchChoices(){
+    const wrap=document.getElementById('coach_branch_choices');if(!wrap)return;
+    const previous=Array.from(wrap.querySelectorAll('input:checked')).map(el=>el.value),primary=document.getElementById('coach_create_branches_primary')?.value;
+    wrap.innerHTML=choices('coach_create_branches',previous);bindChoices('coach_create_branches');if(previous.includes(primary))document.getElementById('coach_create_branches_primary').value=primary;
   }
-
-  async function createCoachAccount() {
-    const email = (document.getElementById('coach_email')?.value || '').trim();
-    const pass = (document.getElementById('coach_pass')?.value || '').trim();
-    const name = (document.getElementById('coach_name')?.value || '').trim();
-    const branchEl = document.getElementById('coach_branch');
-    const branch = canonical(branchEl?.value || '');
-    if (!name || !email || !branch || pass.length < 6) return alert(!branch ? 'Vui lòng chọn một cơ sở phụ trách cho HLV!' : 'Vui lòng nhập đủ tên, email và mật khẩu tối thiểu 6 ký tự.');
-    const btn = document.getElementById('btnCreateCoach');
-    if (btn) { btn.disabled = true; btn.textContent = 'Đang tạo...'; }
-    try {
-      assertAdmin();
-      const { createUserWithEmailAndPassword, signOut, doc, setDoc } = sdk();
-      const cred = await createUserWithEmailAndPassword(global._secondaryAuth, email, pass);
-      const uid = cred.user.uid; try { await signOut(global._secondaryAuth); } catch (_) {}
-      const base = { email, displayName:name, role:'coach', clubId:clubId(), branch, coachBranch:branch, uid, createdAt:new Date().toISOString() };
-      await setDoc(doc(db(), 'clubs', clubId(), 'coaches', uid), base);
-      let mirrorError = null;
-      try { await setDoc(doc(db(), 'users', uid), { role:'coach', clubId:clubId(), branch, coachBranch:branch, email }); }
-      catch (error) { mirrorError = error; }
-      alert(mirrorError
-        ? `⚠️ Auth và hồ sơ HLV đã tạo nhưng users/{uid} chưa ghi được.\n\nKHÔNG tạo lại để tránh trùng email. Hãy deploy Rules V4B1 rồi chạy đồng bộ.\n\nTên: ${name}\nEmail: ${email}\nCơ sở: ${branchName(branch)}`
-        : `✅ Tạo tài khoản HLV thành công!\n\nTên: ${name}\nEmail: ${email}\nMật khẩu: ${pass}\nCơ sở: ${branchName(branch)}`);
-      ['coach_email','coach_pass','coach_name'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
-      if (branchEl) branchEl.value = 'CS1';
-      await loadCoachAccounts();
-    } catch (error) { alert(error.code === 'auth/email-already-in-use' ? 'Email này đã được sử dụng bởi tài khoản khác!' : `Lỗi tạo tài khoản: ${error.message || error.code}`); }
-    finally { if (btn) { btn.disabled = false; btn.textContent = '➕ Tạo tài khoản'; } }
+  function bindChoices(id){
+    const box=document.getElementById(id),primary=document.getElementById(id+'_primary');if(!box||!primary)return;
+    box.onchange=()=>{const selected=Array.from(box.querySelectorAll('input:checked')).map(el=>el.value),old=primary.value;primary.innerHTML=selected.map(b=>'<option value="'+b+'">'+esc(branchName(b))+'</option>').join('');if(selected.includes(old))primary.value=old;};
   }
-
-  async function migrateCoachAccounts() {
-    const btn = document.getElementById('btnMigrateCoaches');
-    if (btn) { btn.disabled = true; btn.textContent = '⏳ Đang xử lý...'; }
-    try {
-      assertAdmin();
-      const { collection, query, limit, getDocs, doc, getDoc, writeBatch } = sdk();
-      const snap = await getDocs(query(collection(db(), 'clubs', clubId(), 'coaches'), limit(200)));
-      let fixed=0, synced=0, skipped=0, needsAssignment=0, failed=0;
-      for (const coach of snap.docs) {
-        try {
-          const data=coach.data() || {}, uid=coach.id, userRef=doc(db(),'users',uid), userSnap=await getDoc(userRef), old=userSnap.exists()?userSnap.data():{};
-          const branch=canonical(data.branch || data.coachBranch || old.branch || old.coachBranch || '');
-          if (!branch) { needsAssignment++; continue; }
-          const coachFix=data.role!=='coach'||data.clubId!==clubId()||data.branch!==branch||data.coachBranch!==branch;
-          const userFix=!userSnap.exists()||old.role!=='coach'||old.clubId!==clubId()||old.branch!==branch||old.coachBranch!==branch||(data.email&&old.email!==data.email);
-          if (!coachFix && !userFix) { skipped++; continue; }
-          const now=new Date().toISOString(), batch=writeBatch(db());
-          if (coachFix) { batch.set(doc(db(),'clubs',clubId(),'coaches',uid), { uid,role:'coach',clubId:clubId(),branch,coachBranch:branch,email:data.email||old.email||'',displayName:data.displayName||data.email||old.email||'',updatedAt:now }, {merge:true}); fixed++; }
-          if (userFix) { batch.set(userRef,{role:'coach',clubId:clubId(),branch,coachBranch:branch,email:data.email||old.email||'',updatedAt:now},{merge:true}); synced++; }
-          await batch.commit();
-        } catch (error) { failed++; console.warn('[CoachBranchRepair] sync failed:', coach.id, error.code || error.message); }
+  function chosen(id,legacyId){
+    const container=document.getElementById(id);
+    const values=container?Array.from(container.querySelectorAll('input:checked')).map(el=>el.value):[document.getElementById(legacyId)?.value||''];
+    return normalizeAssignment({branch:document.getElementById(id+'_primary')?.value||values[0],allowedBranches:values},{allowRevoked:true});
+  }
+  function adminContext(){
+    const v=global.__verifiedAuthContextState,s=global.__store;
+    if(v?.ready!==true||!['admin','owner','super_admin'].includes(v.role)||global.userRole!==v.role||s?.userRole!==v.role||!v.uid||s?.currentUser?.uid!==v.uid||!db()||!clubId()||
+      (v.role!=='super_admin'&&v.clubId!==clubId()))throw error('permission-denied','Chỉ Admin/SuperAdmin đã xác minh được quản lý HLV.');
+    const captured=JSON.stringify([v.uid,v.role,v.generation,clubId()]),firestore=db(),club=clubId();
+    return {club,firestore,ensure(){const now=global.__verifiedAuthContextState;if(now?.ready!==true||db()!==firestore||JSON.stringify([now.uid,now.role,now.generation,clubId()])!==captured||global.userRole!==now.role||global.__store?.currentUser?.uid!==now.uid)throw error('auth/context-changed','Phiên quản trị đã thay đổi; dừng lưu phân công.')}};
+  }
+  // Reuse the existing assignment batch owner. Auth creation is not a Firestore transaction.
+  async function savePair(uid,assignment,data,owner,{creating=false}={}){
+    owner.ensure();const {doc,getDoc,writeBatch,increment}=sdk(),{club,firestore}=owner;
+    const config=await readVerified(firestore,'clubs',club,'settings','main_config');owner.ensure();
+    const count=Number(config.exists()?config.data().branchCount:0);
+    if(!Number.isInteger(count)||count<1||count>10||assignment.branches.some(b=>Number(b.slice(2))>count))throw error('auth/coach-branch-inactive','Cơ sở đã chọn không nằm trong cấu hình hiện hành của CLB. Tải lại cấu hình và chọn lại.');
+    const previousVersion=data.assignmentVersion||(creating?'absent':'legacy');
+    const assignmentVersion=global.crypto.randomUUID?.()||Array.from(global.crypto.getRandomValues(new Uint8Array(24)),b=>b.toString(16).padStart(2,'0')).join('');
+    const fields={assignmentVersion,assignmentPreviousVersion:previousVersion,status:data.status||'active',role:'coach',clubId:club,branch:assignment.primary,coachBranch:assignment.primary,allowedBranches:assignment.branches,defaultBranch:assignment.primary,email:data.email||'',updatedAt:new Date().toISOString()};
+    const coachRef=doc(firestore,'clubs',club,'coaches',uid),userRef=doc(firestore,'users',uid),batch=writeBatch(firestore);
+    batch.set(coachRef,{...data,...fields,uid},{merge:true});batch.set(userRef,fields,{merge:true});batch.set(doc(firestore,'clubs',club),{coachAclEpoch:increment(1)},{merge:true});owner.ensure();let commitError;try{await batch.commit()}catch(e){commitError=e}owner.ensure();
+    const coach=await readVerified(firestore,'clubs',club,'coaches',uid);owner.ensure();const mirror=await readVerified(firestore,'users',uid);owner.ensure();
+    if(!coach.exists()||!mirror.exists()||![coach.data(),mirror.data()].every(d=>d.role==='coach'&&d.clubId===club&&d.assignmentVersion===assignmentVersion&&same(normalizeAssignment(d,{allowRevoked:true}),assignment)))throw commitError||error('auth/coach-assignment-mismatch','Đã gửi thao tác nhưng chưa xác minh được hai hồ sơ cùng khớp. Không tạo lại tài khoản; tải lại danh sách và kiểm tra.');
+    return true;
+  }
+  async function loadCoachAccounts(){
+    const list=document.getElementById('coachAccountsList');if(!list)return;
+    list.textContent='Đang tải...';
+    try{
+      const owner=adminContext(),{collection,getDocs,query,limit}=sdk();
+      const snap=await getDocs(query(collection(owner.firestore,'clubs',owner.club,'coaches'),limit(200)));owner.ensure();
+      if(snap.empty){list.textContent='Chưa có tài khoản HLV nào';return}
+      let html='';snap.forEach(item=>{const data=item.data()||{};let assigned=null;try{assigned=normalizeAssignment(data)}catch{}
+        html+='<section style="padding:12px;border:1px solid #cbd5e1;border-radius:10px;margin:8px 0"><strong>'+esc(data.displayName||data.email||'HLV')+'</strong><div>'+esc(data.email||'')+'</div><div>'+esc(assigned?assigned.branches.map(branchName).join(' · '):'Chưa có phân công hợp lệ — cần Admin chọn lại')+'</div>'+choices(selectId(item.id),assigned?.branches||[])+'<button type="button" data-coach-save="'+esc(item.id)+'" style="padding:10px">💾 Lưu cơ sở</button><button type="button" data-coach-status="'+esc(item.id)+'">'+(disabled(data)?'Mở khóa':'Khóa HLV')+'</button><button type="button" data-coach-reset="'+esc(data.email||'')+'">Đặt lại MK</button><button type="button" data-coach-delete="'+esc(item.id)+'" data-coach-email="'+esc(data.email||'')+'">Xóa HLV</button></section>';
+      });list.innerHTML=html;
+      snap.forEach(item=>{bindChoices(selectId(item.id));const box=document.getElementById(selectId(item.id));if(box)box.dataset.assignmentVersion=item.data().assignmentVersion||'legacy';try{document.getElementById(selectId(item.id)+'_primary').value=normalizeAssignment(item.data()).primary}catch{}});
+      list.querySelectorAll('[data-coach-status]').forEach(b=>b.onclick=()=>updateCoachStatus(b.dataset.coachStatus));
+      list.querySelectorAll('[data-coach-save]').forEach(b=>b.onclick=()=>updateCoachBranch(b.dataset.coachSave));
+      list.querySelectorAll('[data-coach-reset]').forEach(b=>b.onclick=()=>global.resetCoachPassword(b.dataset.coachReset));
+      list.querySelectorAll('[data-coach-delete]').forEach(b=>b.onclick=()=>global.deleteCoachAccount(b.dataset.coachDelete,b.dataset.coachEmail));
+    }catch(e){list.textContent='Lỗi tải phân công: '+e.message}
+  }
+  async function updateCoachBranch(uid){
+    const el=document.getElementById(selectId(uid));if(el)el.disabled=true;
+    try{
+      const owner=adminContext(),assignment=chosen(selectId(uid)),{doc,getDoc}=sdk();
+      if(!assignment.branches.length&&!global.confirm('Thu hồi toàn bộ cơ sở của HLV? Dữ liệu chờ đồng bộ vẫn được giữ để đối soát.'))return;
+      const snap=await readVerified(owner.firestore,'clubs',owner.club,'coaches',uid);owner.ensure();
+      if(!snap.exists())throw error('auth/coach-assignment-missing','Không tìm thấy hồ sơ HLV trong CLB.');
+      if(el?.dataset.assignmentVersion !== (snap.data().assignmentVersion||'legacy'))throw error('auth/coach-assignment-stale','Phân công đã được Admin khác thay đổi. Tải lại danh sách trước khi lưu; không ghi đè quyền vừa thu hồi.');
+      await savePair(uid,assignment,snap.data(),owner);toast('Đã lưu và xác minh '+assignment.branches.map(branchName).join(' · ')+'. HLV cần đăng nhập lại hoặc chọn cơ sở để xác minh quyền mới.');await loadCoachAccounts();
+    }catch(e){global.alert('Không thể lưu cơ sở HLV: '+e.message)}finally{if(el)el.disabled=false}
+  }
+  async function updateCoachStatus(uid){
+    try{
+      const owner=adminContext(),{doc,getDoc}=sdk(),snap=await readVerified(owner.firestore,'clubs',owner.club,'coaches',uid);owner.ensure();
+      if(!snap.exists())throw Error('Không tìm thấy HLV.');
+      const box=document.getElementById(selectId(uid)),data=snap.data();
+      if(box?.dataset.assignmentVersion!==(data.assignmentVersion||'legacy'))throw Error('Phân công đã thay đổi. Tải lại danh sách trước khi khóa/mở khóa.');
+      const status=disabled(data)?'active':'locked';if(!global.confirm(status==='locked'?'Khóa quyền HLV và giữ journal để đối soát?':'Mở khóa HLV theo đúng phân công hiện hành?'))return;
+      await savePair(uid,normalizeAssignment(data,{allowRevoked:true}),{...data,status},owner);toast('Đã cập nhật và xác minh trạng thái HLV.');await loadCoachAccounts();
+    }catch(e){global.alert('Chưa cập nhật được trạng thái HLV: '+e.message)}
+  }
+  let pendingCreated=null;
+  async function createCoachAccount(){
+    const btn=document.getElementById('btnCreateCoach');if(btn)btn.disabled=true;
+    try{
+      const owner=adminContext(),email=(document.getElementById('coach_email')?.value||'').trim(),pass=(document.getElementById('coach_pass')?.value||'').trim(),name=(document.getElementById('coach_name')?.value||'').trim();
+      const assignment=chosen('coach_create_branches','coach_branch');
+      if(!assignment.branches.length||!email||!name||(!pendingCreated&&pass.length<6))throw Error('Nhập tên, email, mật khẩu tối thiểu 6 ký tự và chọn cơ sở được phép.');
+      const {createUserWithEmailAndPassword,signOut}=sdk();
+      if(pendingCreated&&(pendingCreated.email!==email||pendingCreated.club!==owner.club))throw Error('Cần hoàn tất hồ sơ Auth đã tạo UID '+pendingCreated.uid+' trước khi tạo tài khoản khác.');
+      if(!pendingCreated){const cred=await createUserWithEmailAndPassword(global._secondaryAuth,email,pass);pendingCreated={uid:cred.user.uid,email,club:owner.club};}
+      owner.ensure();await savePair(pendingCreated.uid,assignment,{email,displayName:name,createdAt:new Date().toISOString()},owner,{creating:true});pendingCreated=null;
+      try{await signOut(global._secondaryAuth)}catch{}
+      global.alert('Đã tạo và xác minh hồ sơ HLV: '+email+' — '+assignment.branches.map(branchName).join(' · '));
+      ['coach_email','coach_pass','coach_name'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});await loadCoachAccounts();
+    }catch(e){global.alert((pendingCreated?'Auth đã tạo UID '+pendingCreated.uid+'. Chưa hoàn tất hồ sơ; giữ form và bấm Tạo tài khoản để thử lưu lại, không tạo Auth lần hai. ':'')+e.message)}
+    finally{try{await sdk().signOut(global._secondaryAuth)}catch{}if(btn)btn.disabled=false}
+  }
+  async function migrateCoachAccounts(){
+    const btn=document.getElementById('btnMigrateCoaches');if(btn)btn.disabled=true;
+    try{
+      const owner=adminContext(),{collection,query,limit,getDocs}=sdk();const snap=await getDocs(query(collection(owner.firestore,'clubs',owner.club,'coaches'),limit(200)));owner.ensure();let saved=0,review=0;
+      if(!global.confirm('Kiểm tra và tải backup phân công hiện tại trước khi đồng bộ tối đa 200 HLV? Không tự cấp thêm cơ sở.'))return;
+      const backup=[];
+      for(const coach of snap.docs){
+        const user=await readVerified(owner.firestore,'users',coach.id);owner.ensure();
+        backup.push({uid:coach.id,assignment:coach.data(),mirror:user.exists()?user.data():null});
       }
-      const incomplete=failed>0||needsAssignment>0;
-      alert(`${incomplete?'⚠️ Đồng bộ chưa hoàn tất!':'✅ Đồng bộ hoàn tất!'}\n\n• Chuẩn hóa hồ sơ HLV: ${fixed}\n• Đồng bộ users/{uid}: ${synced}\n• Đã đúng: ${skipped}\n• Chưa được Admin gán cơ sở: ${needsAssignment}\n• Không đồng bộ được: ${failed}\n\n${incomplete?'Chọn đúng cơ sở cho từng tài khoản cảnh báo, bấm “Lưu cơ sở”, rồi chạy lại đến khi hai chỉ số cuối bằng 0.':'HLV đã có branch đồng nhất và chỉ tải đúng cơ sở.'}`);
-      await loadCoachAccounts();
-    } catch (error) { alert(`Lỗi đồng bộ: ${error.message || error}`); }
-    finally { if (btn) { btn.disabled=false; btn.textContent='🔄 Đồng bộ tài khoản HLV cũ'; } }
+      const blob=new Blob([JSON.stringify({clubId:owner.club,createdAt:new Date().toISOString(),records:backup},null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='coach-acl-backup.json';link.click();URL.revokeObjectURL(url);
+      if(!global.confirm('Chỉ tiếp tục khi đã giữ được backup. Đồng bộ các quyền đang được Admin cấp, không thêm cơ sở?'))return;
+      for(const row of backup){try{const data={...row.assignment,status:disabled(row.assignment)||disabled(row.mirror)?'locked':row.assignment.status||'active'};await savePair(row.uid,normalizeAssignment(data,{allowRevoked:true}),data,owner);saved++}catch(e){review++;console.warn('[CoachAssignment]',row.uid,e.code||e.message)}owner.ensure();}
+      global.alert('Đã xác minh '+saved+' hồ sơ; cần Admin kiểm tra '+review+'. Phạm vi lần này tối đa 200 hồ sơ, không tự mở thêm cơ sở.');await loadCoachAccounts();
+    }catch(e){global.alert('Đồng bộ chưa hoàn tất: '+e.message)}finally{if(btn)btn.disabled=false}
   }
-
-  function installAdminOverrides() {
-    if (!global.__appLoaded) return setTimeout(installAdminOverrides, 25);
-    global.loadCoachAccounts = loadCoachAccounts;
-    global.updateCoachBranch = updateCoachBranch;
-    global.createCoachAccount = createCoachAccount;
-    global.migrateCoachAccounts = migrateCoachAccounts;
+  function installAdminOverrides(){
+    if(!global.__appLoaded)return setTimeout(installAdminOverrides,25);
+    Object.assign(global,{loadCoachAccounts,updateCoachBranch,createCoachAccount,migrateCoachAccounts});
   }
-
-  global.CoachBranchRuntimeRepair = Object.freeze({ version:'4K-6V4B1', resolveAuthContext, installAdminOverrides });
+  global.CoachBranchRuntimeRepair=Object.freeze({version:'A6',loadCoachAccounts,createCoachAccount,migrateCoachAccounts,resolveAuthContext,normalizeAssignment,allowedBranches,renderCoachBranchSelectors,renderCreateBranchChoices,installAdminOverrides});
   installAdminOverrides();
 })(window);

@@ -407,6 +407,7 @@ export const StudentService = {
         // D1C3B4: the caller can switch principal/club/branch while an indexed
         // query is pending. The service must never return the old principal's rows.
         const searchEpoch = auth?.generation ?? null;
+        const searchBranchEpoch = Number(auth?.branchGeneration||0);
         const searchUid = String(auth?.uid || '');
         const branchKey = v => /^(Mặc định|mac dinh|default)$/i.test(String(v || '').trim()) ? 'CS1' : String(v || '').trim();
         const isCurrentSearchOwner = () => {
@@ -419,7 +420,8 @@ export const StudentService = {
                 String(currentAuth.uid || '') !== searchUid || normRole(currentAuth.role) !== runtimeRole ||
                 (runtimeRole !== 'super_admin' && String(currentAuth.clubId || '') !== clubId))) return false;
             if (coach) {
-                if (!coachBranch || branchKey(current.coachBranch) !== branchKey(coachBranch) ||
+                if (currentAuth?.branchSelectionPending === true || Number(currentAuth?.branchGeneration||0)!==searchBranchEpoch ||
+                    (currentAuth && Object.prototype.hasOwnProperty.call(currentAuth,'allowedBranches') && (!Array.isArray(currentAuth.allowedBranches)||!currentAuth.allowedBranches.includes(coachBranch))) || !coachBranch || branchKey(current.coachBranch) !== branchKey(coachBranch) ||
                     (window.coachBranch && branchKey(window.coachBranch) !== branchKey(coachBranch)) ||
                     (currentAuth && branchKey(currentAuth.coachBranch) !== branchKey(coachBranch))) return false;
             }

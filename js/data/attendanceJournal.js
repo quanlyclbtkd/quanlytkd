@@ -1,6 +1,6 @@
 // Storage component of the existing attendance owner. No SDK, timer or writer.
 // IndexedDB transactions serialize enqueue/claim/ACK across real browser tabs.
-import {JOURNAL_DATABASE,attendanceIntentId,attendanceIntentTarget} from '../core/attendanceContract.js?v=qr-v11r6-attendance-a5-20261022';
+import {JOURNAL_DATABASE,attendanceIntentId,attendanceIntentTarget} from '../core/attendanceContract.js?v=qr-v11r6-a6-coach-qr-20261022';
 let databasePromise;
 const active = item => ['pending','inflight','conflict','needs-review'].includes(item.state);
 const maxSequence=rows=>rows.reduce((max,row)=>Math.max(max,Number(row.sequence)||0),0);
@@ -11,24 +11,26 @@ function currentContext() {
     const v=globalThis.__verifiedAuthContextState,s=globalThis.__store;
     const role=String(v?.role||''),uid=String(v?.uid||''),clubId=String(s?.clubId||globalThis.currentClubId||''),generation=Number(v?.generation);
     const coachBranch=role==='coach'?branch(v?.coachBranch):'';
-    if(v?.ready!==true||!uid||!clubId||!['coach','admin','super_admin'].includes(role)||!Number.isSafeInteger(generation)||generation<=0||
+    const allowed=v&&Object.prototype.hasOwnProperty.call(v,'allowedBranches')?v.allowedBranches:[coachBranch];
+    if(v?.branchSelectionPending===true||v?.ready!==true||!uid||!clubId||!['coach','admin','super_admin'].includes(role)||!Number.isSafeInteger(generation)||generation<=0||
         globalThis.userRole!==role||s?.userRole!==role||(s?.currentUser?.uid&&s.currentUser.uid!==uid)||
         String(s?.currentClubId||clubId)!==clubId||String(globalThis.currentClubId||clubId)!==clubId||
         (role!=='super_admin'&&String(v.clubId||'')!==clubId)||
-        (role==='coach'&&(!coachBranch||(globalThis.coachBranch&&branch(globalThis.coachBranch)!==coachBranch)||(s?.coachBranch&&branch(s.coachBranch)!==coachBranch))))throw contextError();
-    return Object.freeze({uid,role,clubId,coachBranch,authGeneration:generation,verifiedClub:String(v.clubId||'')});
+        (role==='coach'&&(!coachBranch||!Array.isArray(allowed)||!allowed.includes(coachBranch)||branch(v.activeBranch||v.coachBranch)!==coachBranch||(globalThis.coachBranch&&branch(globalThis.coachBranch)!==coachBranch)||(s?.coachBranch&&branch(s.coachBranch)!==coachBranch))))throw contextError();
+    return Object.freeze({uid,role,clubId,coachBranch,branchGeneration:Number(v.branchGeneration||0),authGeneration:generation,verifiedClub:String(v.clubId||'')});
 }
 function captureContext(input) {
     const scope=currentContext();
     if(input&&(input.uid!==scope.uid||input.role!==scope.role||input.clubId!==scope.clubId||
         (scope.role==='coach'&&branch(input.coachBranch)!==scope.coachBranch)||
+        (input.branchGeneration!==undefined&&Number(input.branchGeneration)!==scope.branchGeneration)||
         (input.authGeneration!==undefined&&Number(input.authGeneration)!==scope.authGeneration)||
         (input.generation!==undefined&&Number(input.generation)!==scope.authGeneration)))throw contextError();
     return scope;
 }
 function assertCurrent(scope) {
     const now=currentContext();
-    if(['uid','role','clubId','coachBranch','authGeneration','verifiedClub'].some(key=>now[key]!==scope[key]))throw contextError();
+    if(['uid','role','clubId','coachBranch','branchGeneration','authGeneration','verifiedClub'].some(key=>now[key]!==scope[key]))throw contextError();
 }
 const recordMatches=(record,scope)=>record?.clubId===scope.clubId&&(scope.role!=='coach'||branch(record.branch)===scope.coachBranch);
 // One ownership predicate for every V3 read and mutation, including ACK/cleanup.

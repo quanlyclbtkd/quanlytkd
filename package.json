@@ -300,7 +300,12 @@
     "check:v10-release-risk-boundary": "node tools/check-v10-release-risk-boundary.mjs",
     "check:cutover-output-safety": "node tools/a4/activation-safety.test.mjs",
     "check:a5-attendance-lifecycle": "node tools/a5/attendance-lifecycle.browser.mjs",
-    "check:a5-owner-boundary": "node tools/a5/owner-boundary.test.mjs"
+    "check:a5-owner-boundary": "node tools/a5/owner-boundary.test.mjs",
+    "check:a6-coach-assignment": "node tools/a6/coach-assignment.test.mjs",
+    "check:a6-qr-job-races": "node tools/a6/qr-job-races.test.mjs",
+    "check:a6-qr-browser": "node tools/a6/qr-browser.mjs",
+    "qa:a6-coach-rules": "node tools/a6/coach-rules.test.mjs",
+    "qa:a6-coach-browser": "node tools/a6/coach-browser.mjs"
   },
   "engines": {
     "node": ">=18.0.0"
