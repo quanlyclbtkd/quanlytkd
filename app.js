@@ -4976,6 +4976,12 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         if (!memo || memo.length > 48) throw _receiptError('MEMO_TOO_LONG','intent');
         return memo;
     }
+    function _receiptQrMismatch(stage, failure, details = {}) {
+        const e=_receiptError('QR_EMV_MISMATCH',stage);
+        // Safe for diagnostics: no raw QR, student name, account number or amount.
+        e.qrPixelAudit=Object.freeze({failure,...details});
+        return e;
+    }
     function _receiptDecodeEMV(raw) {
         const fail=() => {throw _receiptError('QR_EMV_MISMATCH','pixels');};
         const tlv=text => {const out={};let i=0;while(i<text.length){if(!/^\d{4}/.test(text.slice(i,i+4)))fail();const tag=text.slice(i,i+2),len=Number(text.slice(i+2,i+4));i+=4;if(i+len>text.length || Object.prototype.hasOwnProperty.call(out,tag))fail();out[tag]=text.slice(i,i+len);i+=len;}return out;};
@@ -4995,8 +5001,9 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         const box=codes[0].boundingBox,w=image.naturalWidth || image.width,h=image.naturalHeight || image.height;
         if (!box || !(box.width>0 && box.height>0) || Math.abs(box.width/box.height-1)>0.04 ||
             Math.min(box.x,box.y,w-box.x-box.width,h-box.y-box.height)<4) throw _receiptError('QR_MEDIA_INVALID',stage);
-        let decoded;try {decoded=_receiptDecodeEMV(codes[0].rawValue);}catch(_){throw _receiptError('QR_EMV_MISMATCH',stage);}
-        if (decoded.bankBin!==intent.bankBin || decoded.accountNo!==intent.accountNo || decoded.amount!==intent.amount || decoded.memo!==intent.memo) throw _receiptError('QR_EMV_MISMATCH',stage);
+        let decoded;try {decoded=_receiptDecodeEMV(codes[0].rawValue);}catch(_){throw _receiptQrMismatch(stage,'EMV_PARSE_OR_CRC_FAIL');}
+        const fieldsMatch={bankBin:decoded.bankBin===intent.bankBin,accountNo:decoded.accountNo===intent.accountNo,amount:decoded.amount===intent.amount,memo:decoded.memo===intent.memo};
+        if(Object.values(fieldsMatch).some(match=>!match)) throw _receiptQrMismatch(stage,'INTENT_FIELD_MISMATCH',{fieldsMatch,expectedMemoLength:String(intent.memo??'').length,qrMemoLength:String(decoded.memo??'').length});
         return true;
     }
     function _receiptFailureMessage(reason) {
@@ -6952,10 +6959,11 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             const _reason=_kind==='PAID' ? (_paidReasons[_code] || 'render-failed') : /^[A-Z_]+$/.test(_code) ? _code : _stage==='canvas' ? 'CANVAS_EXPORT_FAILED' : _stage==='modal' ? 'MODAL_NOT_VISIBLE' : _stage.startsWith('preview') ? 'PREVIEW_FAILED' : 'RENDER_FAILED';
             _clearReceiptPreview();
             const safeError=_receiptError(_reason,error?.stage || _stage);
-            console.error('[Receipt]',{stage:safeError.stage,reason:_reason,jobId:isReceiptRequestCurrent.jobId,kind:_kind,..._diagnostics()});
+            const _safeQrPixelAudit=error?.qrPixelAudit||null;
+            console.error('[Receipt]',{stage:safeError.stage,reason:_reason,jobId:isReceiptRequestCurrent.jobId,kind:_kind,..._diagnostics(),...(_safeQrPixelAudit?{qrPixelAudit:_safeQrPixelAudit}:{})});
             window.showToast(_kind==='REPORT' ? _receiptFailureMessage(_reason) : '❌ Lỗi tạo hình biên lai, không thực hiện thu tiền lại.');
             // Retain the established receipt result contract; the queue attaches job metadata.
-            error=safeError;return { ok: false, reason: _reason, error, diagnostics:_diagnostics() };
+            error=safeError;return { ok: false, reason: _reason, error, diagnostics:{..._diagnostics(),...(_safeQrPixelAudit?{qrPixelAudit:_safeQrPixelAudit}:{})} };
         } finally {
             const _receiptNode = document.getElementById('receiptTemplate');
             if (_receiptNode) _receiptNode.style.cssText = 'position:absolute;left:-9999px;visibility:hidden;';
@@ -9819,7 +9827,10 @@ window.processMultiItem = async (action) => {
 
     //  COACH ACCOUNT MANAGEMENT
     window.openCoachAccountsModal = () => {
-        if (window.userRole !== 'admin' && window.userRole !== 'super_admin') return alert('Chỉ Admin mới có quyền quản lý tài khoản HLV!');
+        if (!['admin','owner','super_admin'].includes(window.userRole) || window.__verifiedAuthContextState?.ready !== true || window.__verifiedAuthContextState?.role !== window.userRole || window.__verifiedAuthContextState?.uid !== window.__store?.currentUser?.uid) return alert('Chỉ quản trị viên đã xác minh mới được quản lý tài khoản HLV!');
+        // Rebuild branch controls when this modal is actually opened (including
+        // mobile). This uses the existing UI owner, not a new rights writer.
+        window.CoachBranchRuntimeRepair?.renderCreateBranchChoices?.();
         document.getElementById('coachAccountsModal').style.display = 'flex';
         window.loadCoachAccounts();
     };

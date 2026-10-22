@@ -44,6 +44,12 @@ export function openMobileMenu() {
         : 'none';
   }
 
+  const coachAction = _getElement('mmsCoachAccountsAction');
+  if (coachAction) {
+    const v = window.__verifiedAuthContextState;
+    coachAction.style.display = v?.ready === true && ['admin','owner','super_admin'].includes(v.role)
+      && window.userRole === v.role && window.__store?.currentUser?.uid === v.uid ? 'flex' : 'none';
+  }
   sheet.classList.add('open');
   sheet.setAttribute('aria-hidden', 'false');
   document.querySelectorAll('[aria-controls="mobileMenuSheet"]').forEach((trigger) => {

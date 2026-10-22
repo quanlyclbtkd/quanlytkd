@@ -97,11 +97,17 @@
   async function savePair(uid,assignment,data,owner,{creating=false}={}){
     owner.ensure();const {doc,getDoc,writeBatch,increment}=sdk(),{club,firestore}=owner;
     const config=await readVerified(firestore,'clubs',club,'settings','main_config');owner.ensure();
-    const count=Number(config.exists()?config.data().branchCount:0);
+    const rawCount=config.exists()?config.data().branchCount:null;
+    const count=Number(rawCount);
+    // The Rules contract requires an integer, not a numeric string; fail locally
+    // with the actual config problem rather than an opaque batch permission-denied.
+    if(typeof rawCount!=='number'||!Number.isInteger(rawCount)) throw error('auth/coach-config-invalid','Cài đặt main_config.branchCount trên máy chủ phải là số nguyên. Admin cần sửa cấu hình CLB trước khi cấp quyền HLV.');
     if(!Number.isInteger(count)||count<1||count>10||assignment.branches.some(b=>Number(b.slice(2))>count))throw error('auth/coach-branch-inactive','Cơ sở đã chọn không nằm trong cấu hình hiện hành của CLB. Tải lại cấu hình và chọn lại.');
     const previousVersion=data.assignmentVersion||(creating?'absent':'legacy');
     const assignmentVersion=global.crypto.randomUUID?.()||Array.from(global.crypto.getRandomValues(new Uint8Array(24)),b=>b.toString(16).padStart(2,'0')).join('');
-    const fields={assignmentVersion,assignmentPreviousVersion:previousVersion,status:data.status||'active',role:'coach',clubId:club,branch:assignment.primary,coachBranch:assignment.primary,allowedBranches:assignment.branches,defaultBranch:assignment.primary,email:data.email||'',updatedAt:new Date().toISOString()};
+    // Keep all existing primary aliases in sync. Older Coach records can retain
+    // primaryCoachBranch; a partial update otherwise makes login reject a valid ACL.
+    const fields={assignmentVersion,assignmentPreviousVersion:previousVersion,status:data.status||'active',role:'coach',clubId:club,branch:assignment.primary,coachBranch:assignment.primary,primaryCoachBranch:assignment.primary,allowedBranches:assignment.branches,defaultBranch:assignment.primary,email:data.email||'',updatedAt:new Date().toISOString()};
     const coachRef=doc(firestore,'clubs',club,'coaches',uid),userRef=doc(firestore,'users',uid),batch=writeBatch(firestore);
     batch.set(coachRef,{...data,...fields,uid},{merge:true});batch.set(userRef,fields,{merge:true});batch.set(doc(firestore,'clubs',club),{coachAclEpoch:increment(1)},{merge:true});owner.ensure();let commitError;try{await batch.commit()}catch(e){commitError=e}owner.ensure();
     const coach=await readVerified(firestore,'clubs',club,'coaches',uid);owner.ensure();const mirror=await readVerified(firestore,'users',uid);owner.ensure();
@@ -126,7 +132,9 @@
     }catch(e){list.textContent='Lỗi tải phân công: '+e.message}
   }
   async function updateCoachBranch(uid){
-    const el=document.getElementById(selectId(uid));if(el)el.disabled=true;
+    const el=document.getElementById(selectId(uid));
+    // Disable the whole edit surface while the single owner is committing.
+    if(el)el.querySelectorAll?.('input,select,button')?.forEach(node=>node.disabled=true);
     try{
       const owner=adminContext(),assignment=chosen(selectId(uid)),{doc,getDoc}=sdk();
       if(!assignment.branches.length&&!global.confirm('Thu hồi toàn bộ cơ sở của HLV? Dữ liệu chờ đồng bộ vẫn được giữ để đối soát.'))return;
@@ -134,7 +142,7 @@
       if(!snap.exists())throw error('auth/coach-assignment-missing','Không tìm thấy hồ sơ HLV trong CLB.');
       if(el?.dataset.assignmentVersion !== (snap.data().assignmentVersion||'legacy'))throw error('auth/coach-assignment-stale','Phân công đã được Admin khác thay đổi. Tải lại danh sách trước khi lưu; không ghi đè quyền vừa thu hồi.');
       await savePair(uid,assignment,snap.data(),owner);toast('Đã lưu và xác minh '+assignment.branches.map(branchName).join(' · ')+'. HLV cần đăng nhập lại hoặc chọn cơ sở để xác minh quyền mới.');await loadCoachAccounts();
-    }catch(e){global.alert('Không thể lưu cơ sở HLV: '+e.message)}finally{if(el)el.disabled=false}
+    }catch(e){global.alert('Không thể lưu cơ sở HLV: '+(e?.code==='permission-denied'||e?.code==='firestore/permission-denied'?'Firestore từ chối batch phân quyền. Kiểm tra Rules phiên bản đang triển khai, quyền Admin, main_config.branchCount, users/coach mirror, assignmentVersion và coachAclEpoch; chưa có thao tác nào được xác nhận.':e.message))}finally{if(el)el.querySelectorAll?.('input,select,button')?.forEach(node=>node.disabled=false)}
   }
   async function updateCoachStatus(uid){
     try{

@@ -74,6 +74,12 @@
           ? 'block'
           : 'none';
     }
+    var coachAction = getElement('mmsCoachAccountsAction');
+    if (coachAction) {
+      var v = global.__verifiedAuthContextState;
+      coachAction.style.display = v && v.ready === true && ['admin','owner','super_admin'].includes(v.role)
+        && global.userRole === v.role && global.__store && global.__store.currentUser && global.__store.currentUser.uid === v.uid ? 'flex' : 'none';
+    }
     if (sheet.classList) sheet.classList.add('open');
     if (typeof sheet.setAttribute === 'function') sheet.setAttribute('aria-hidden', 'false');
     if (global.document && typeof global.document.querySelectorAll === 'function') {

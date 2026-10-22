@@ -1,0 +1,26 @@
+{
+  "baselineSourceSha256": "4603e3eb5a9d546e5ea489fe75e933340323e7f9cce711bd41ab4bc5f859b403",
+  "changed": [
+    "app.js",
+    "index.html",
+    "js/core/coachBranchRuntimeRepair.js",
+    "js/legacy/legacyUiFallbacks.js",
+    "js/ui/legacyUiShell.js",
+    "public/app.js",
+    "public/index.html",
+    "public/js/core/coachBranchRuntimeRepair.js",
+    "public/js/legacy/legacyUiFallbacks.js",
+    "public/js/ui/legacyUiShell.js",
+    "tools/a6/admin-assignment.test.mjs"
+  ],
+  "added": [
+    "handoff/A7/KET_QUA_KIEM_TOAN_SUA_HAN_HEP_20261022.md",
+    "handoff/A7/qr-pixels-test.json",
+    "tools/a7/mobile-coach-menu.test.mjs",
+    "tools/a7/qr-pixels-sanitized.test.mjs"
+  ],
+  "runtimeParity": 128,
+  "release": "HOLD",
+  "deploy": "NO_DEPLOY",
+  "financialWrites": 0
+}
