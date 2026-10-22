@@ -1,6 +1,7 @@
 // One persisted attendance contract. Keep this authority ID stable after deploy.
-// Rules must be installed before the client/audit process can attest history.
+// Default TEST ONLY build stays in maintenance until the signed cutover gate is satisfied.
 export const HISTORY_AUTHORITY = 'attendance-history-7c42f5e2-6d94-4e49-b8e5-98f876cbd90a';
+export const HISTORY_COACH_ACCESS = false;
 export const JOURNAL_DATABASE = 'tst-attendance-journal-v3';
 export const ABSENT_VERSION = 'absent';
 export function attendanceServerVersion(data) {

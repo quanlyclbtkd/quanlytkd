@@ -23,6 +23,26 @@ function _sdk()    { return window._fb_init || {}; }
 function _db()     { const db = (window.__store || {}).db; if (!db) throw new Error('[FinanceService] db chưa sẵn sàng'); return db; }
 function _clubId() { const id = (window.__store || {}).clubId; if (!id) throw new Error('[FinanceService] clubId chưa sẵn sàng'); return id; }
 function _colRef() { return (window.__store || {}).colRef; }
+function _projectionScope() {
+    const st = window.__store || {};
+    return [st.clubId || '', st.auth?.currentUser?.uid || st.currentUser?.uid || '', window.userRole || st.userRole || '', Number(window.__verifiedAuthContextState?.generation || 0)].join('|');
+}
+function _projectCommitted(rows, removedIds, scope, reason) {
+    if (scope !== _projectionScope()) return;
+    // Projection failures are secondary to the already confirmed financial write.
+    for (const tx of rows) {
+        try { window.mergeTransactionIntoRuntimeStore?.(tx, reason); }
+        catch (error) { console.warn('[FinanceService] committed transaction projection failed:', error); }
+    }
+    if (removedIds.length) {
+        const st = window.__store || {};
+        const removed = new Set(removedIds.map(String));
+        if (Array.isArray(st.transactions)) st.transactions = st.transactions.filter(tx => !removed.has(String(tx.id)));
+        try { st.pagination?.transactions?.reconcile?.({ removedIds }); }
+        catch (error) { console.warn('[FinanceService] committed delete projection failed:', error); }
+        window.invalidateList?.('tx.txList', reason);
+    }
+}
 function _expenseDateValid(value) {
     const s = String(value || '');
     if (!/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(s)) return false;
@@ -65,8 +85,9 @@ export const FinanceService = {
         const payload = typeof window.canonicalizeTransactionForWrite === 'function'
             ? window.canonicalizeTransactionForWrite(data, 'finance-service-add')
             : data;
+        const scope = _projectionScope();
         const docRef = await addDoc(colRef, payload);
-        try { window.mergeTransactionIntoRuntimeStore?.({ id: docRef.id, ...payload }, 'finance-service-add'); }
+        try { _projectCommitted([{ ...payload, id: docRef.id }], [], scope, 'finance-service-add'); }
         catch (error) { console.warn('[FinanceService] local transaction projection failed after commit:', error); try { window.recordRuntimeError?.('finance.local-projection-after-commit', error, { transactionId: docRef.id }); } catch (_) {} }
         return docRef.id;
     },
@@ -89,8 +110,9 @@ export const FinanceService = {
         const patch = typeof window.canonicalizeTransactionPatch === 'function'
             ? window.canonicalizeTransactionPatch(changes, original, 'finance-expense-edit') : { ...changes };
         const { doc, updateDoc } = _sdk();
+        const scope = _projectionScope();
         await updateDoc(doc(_db(), 'clubs', _clubId(), 'transactions', id), patch);
-        try { window.mergeTransactionIntoRuntimeStore?.({ ...original, ...patch, id }, 'finance-expense-edit'); }
+        try { _projectCommitted([{ ...original, ...patch, id }], [], scope, 'finance-expense-edit'); }
         catch (error) { console.warn('[FinanceService] local expense projection failed after commit:', error); try { window.recordRuntimeError?.('finance.expense-local-projection-after-commit', error, { transactionId: id }); } catch (_) {} }
         return id;
     },
@@ -103,6 +125,7 @@ export const FinanceService = {
         const id = String(txId || '').trim();
         if (!id || id === 'undefined' || id === 'null') throw new Error('[FinanceService] transaction id không hợp lệ');
         const { doc, deleteDoc } = _sdk();
+        const scope = _projectionScope();
         try {
             await deleteDoc(doc(_db(), 'clubs', _clubId(), 'transactions', id));
         } catch (error) {
@@ -111,6 +134,8 @@ export const FinanceService = {
             }
             throw error;
         }
+        try { _projectCommitted([], [id], scope, 'finance-delete'); }
+        catch (error) { console.warn('[FinanceService] committed delete projection failed:', error); }
     },
 
     /** Narrow exam cancellation; identity/amount fields cannot be caller patched. */
@@ -372,6 +397,7 @@ export const FinanceService = {
         const { writeBatch, doc, collection } = _sdk();
         const db = _db();
         const clubId = _clubId();
+        const scope = _projectionScope();
         if (typeof writeBatch !== 'function' || typeof doc !== 'function') {
             throw new Error('[FinanceService] Firestore atomic batch chưa sẵn sàng.');
         }
@@ -391,6 +417,7 @@ export const FinanceService = {
         const batch = writeBatch(db);
         const txCol = collection(db, 'clubs', clubId, 'transactions');
         const txIds = [];
+        const runtimeRows = [];
         transactions.forEach((entry) => {
             const input = entry && typeof entry === 'object' ? entry : {};
             const ref = input.id
@@ -401,6 +428,7 @@ export const FinanceService = {
                 : (input.data || {});
             batch.set(ref, payload);
             txIds.push(ref.id);
+            runtimeRows.push({ ...payload, id: ref.id });
         });
         profileUpdates.forEach((entry) => {
             const name = String(entry?.studentName || '').trim();
@@ -409,6 +437,7 @@ export const FinanceService = {
         });
 
         await batch.commit();
+        _projectCommitted(runtimeRows, [], scope, 'finance-service-atomic-plan');
         return { committed: operationCount, txIds };
     },
 

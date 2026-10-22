@@ -1,0 +1,15 @@
+{
+  "decision": "pending",
+  "issuedBy": null,
+  "recordedBy": "assistant_preparing_reviewable_scope_only",
+  "oldApprovalPreserved": "Coach initial roster <=1500 additional result documents within club <=1500 profiles, plus canonical-profile lookup in Rules on attendance writes",
+  "newScopeRequiresSeparateSignature": ["CAS version reads/retries/review", "Rules-dependent and reconnect/index operating budget", "historical branch policy and maintenance/cutover", "legacy recovery ownership/backup/rollback"],
+  "trustedOwnerPublicKeyFingerprint": null,
+  "actualStagingWorkloadFor20Clubs": "not provided",
+  "cohortScanUnderMaintenance": "not provided",
+  "indexReadyExport": "not provided",
+  "maintenanceWindow": null,
+  "monitoringThresholds": null,
+  "noDeploy": true,
+  "productionWrites": 0
+}

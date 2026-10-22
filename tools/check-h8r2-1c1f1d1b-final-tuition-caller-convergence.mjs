@@ -48,7 +48,7 @@ const toasts=[],receipts=[];window.showToast=m=>toasts.push(String(m));window.ex
 window._fb_init={arrayUnion:(...items)=>({__arrayUnion:items})};window.__store={clubId:'clubA',profiles:{},transactions:[],inventory:[],clubConfig:{branchCount:2},colRef:{},db:{}};window.allProfiles=window.__store.profiles;window.allTransactions=window.__store.transactions;
 vm.runInThisContext(tdcSrc,{filename:'tuitionDebtCanonical.js'});
 const {TransactionDeleteIntegrity}=await import(pathToFileURL(path.resolve('js/core/transactionDeleteIntegrity.js')).href+`?d1b=${++seq}`);window.TransactionDeleteIntegrity=TransactionDeleteIntegrity;
-const {FinanceService}=await import(pathToFileURL(path.resolve('js/services/finance.service.js')).href+'?v=long-term-production-stability-20260917-v5u6h8r2');window.FinanceService=FinanceService;
+const {FinanceService}=await import(pathToFileURL(path.resolve('js/services/finance.service.js')).href+'?v=qr-v11r5-ack-20261021');window.FinanceService=FinanceService;
 const {TuitionCommandBoundary,initTuitionCommandBoundary}=await import(pathToFileURL(path.resolve('js/core/tuitionCommandBoundary.js')).href+`?d1b=${++seq}`);initTuitionCommandBoundary();
 let commits=[],auditCalls=0,addTxCalls=0,deleteCalls=0,failNextCommit=false,commitGate=null;
 FinanceService.commitAtomicWritePlan=async plan=>{if(failNextCommit){failNextCommit=false;throw new Error('mock primary failure')}if(commitGate)await commitGate.promise;commits.push(plan);return{committed:(plan.transactions?.length||0)+(plan.profileUpdates?.length||0),txIds:(plan.transactions||[]).map((_,i)=>`TX-${commits.length}-${i}`)}};

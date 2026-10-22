@@ -16,11 +16,11 @@
  * ────────────────────────────────────────────────────────────────
  */
 
-import { AttendanceService } from '../services/attendance.service.js?v=qr-v11-intent-20261020';
+import { AttendanceService } from '../services/attendance.service.js?v=qr-v11r6-attendance-a5-20261022';
 import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
 import { escapeHtml } from '../utils/helpers.js';
-import { AttendanceJournal } from '../data/attendanceJournal.js';
-import { HISTORY_AUTHORITY, attendanceServerVersion, attendanceIntentId } from '../core/attendanceContract.js';
+import { AttendanceJournal } from '../data/attendanceJournal.js?v=qr-v11r6-attendance-a5-20261022';
+import { HISTORY_AUTHORITY, HISTORY_COACH_ACCESS, attendanceServerVersion, attendanceIntentId } from '../core/attendanceContract.js?v=qr-v11r6-attendance-a5-20261022';
 
 const ATTENDANCE_OWNER = 'js/modules/attendance.js';
 const ATTENDANCE_OWNED_GLOBALS = Object.freeze([
@@ -57,16 +57,24 @@ let _attCurrentDate     = '';
 let _attendanceCache    = {};
 let _attendanceServerVersions = {};
 let _attendanceServerContext = '';
+// Owned intents actually shown in this view. Their IDs express causality;
+// pending/inflight entries never imply a server ACK.
 let _attendanceIntentStates = new Map();
 const _attendanceDerivedStats = new Map();
+// Short-lived presentation of writes still awaiting the existing IDB owner.
+// Never treated as a persisted intent or server ACK.
+const _attendanceSavingEdits = new Map();
+let _memberHistoryRequestId = 0;
 const _attendanceSyncOwner = attendanceIntentId();
 let _attendanceSyncRequested = false;
 let _clubShifts         = [];
 let _clubShiftsLoadedClubId = '';
 let _clubShiftsLoadPromise = null;
+let _attendanceShiftRefreshRequested = false;
 let _currentShiftId     = '';
 let _attendanceInitialized = false;
 let _attendanceInitializedClubId = '';
+let _attendanceInitializedPrincipal = '';
 let _onlineListenerBound = false;
 let _offlineAttendanceSyncPromise = null;
 let _offlineAttendanceActiveContext = null;
@@ -410,6 +418,10 @@ function _markAttendanceDailyMutation(reason) {
 }
 
 function _resetAttendanceModuleState(nextClubId) {
+    _memberHistoryRequestId++;
+    document.getElementById('attHistModal')?.remove();
+    document.getElementById('attendanceReviewSheet')?.remove();
+    document.getElementById('attendanceJournalControls')?.remove();
     _attCurrentProfiles = [];
     _attCurrentDate = '';
     _attendanceCache = {};
@@ -417,9 +429,11 @@ function _resetAttendanceModuleState(nextClubId) {
     _attendanceServerContext = '';
     _attendanceIntentStates.clear();
     _attendanceDerivedStats.clear();
+    _attendanceSavingEdits.clear();
     _clubShifts = [];
     _clubShiftsLoadedClubId = '';
     _clubShiftsLoadPromise = null;
+    _attendanceShiftRefreshRequested = false;
     _currentShiftId = '';
     Object.assign(_attendanceShiftAuthority, {
         clubId: nextClubId || '',
@@ -704,10 +718,12 @@ function _renderAttCards() {
         _attNCount[k] = (_attNCount[k] || 0) + 1;
     });
     let html = _coachRosterWarning;
+    const savingProjection = _attendanceSavingProjection();
     window.currentAttendanceData = {};
     _attCurrentProfiles.forEach(([name]) => {
         const docId = _currentShiftId ? name + '_' + _attCurrentDate + '_' + _currentShiftId : name + '_' + _attCurrentDate;
-        window.currentAttendanceData[name] = _mapLegacyStatus(_attendanceCache[docId] || 0);
+        const saving = savingProjection.get(docId);
+        window.currentAttendanceData[name] = _mapLegacyStatus(saving ? saving.status : (_attendanceCache[docId] || 0));
     });
     const _attCurMonth = _attCurrentDate ? _attCurrentDate.substring(0, 7) : '';
     const summary = [0, 0, 0, 0];
@@ -715,8 +731,9 @@ function _renderAttCards() {
         const docId   = _currentShiftId ? name + '_' + _attCurrentDate + '_' + _currentShiftId : name + '_' + _attCurrentDate;
         const status  = window.currentAttendanceData[name] ?? 0;
         const cfg     = _ATT_STATUS[status];
-        const journalState = _attendanceIntentStates.get(docId);
-        const journalLabel = journalState ? (['pending','inflight'].includes(journalState) ? 'Chờ máy chủ xác nhận' : 'Cần đối soát') : '';
+        const saving = savingProjection.get(docId);
+        const journalState = _attendanceIntentStates.get(docId)?.state;
+        const journalLabel = saving ? 'Đang lưu trên thiết bị' : journalState ? (['pending','inflight'].includes(journalState) ? 'Chờ máy chủ xác nhận' : 'Cần đối soát') : '';
         const beltShort = (p.belt || 'Đai Trắng')
             .replace(/\s*\(Cấp \d+\)/g, '').replace('Đai ', '').replace(' - cấp', '').trim();
         summary[status]++;
@@ -1272,6 +1289,11 @@ function _resolveAttendanceWriteGuard(reason) {
     const decision = _resolveAttendanceShiftAuthority(writeContext);
     const context = _normalizeAttendanceShiftDecision(writeContext, decision);
     if (decision.allowed) {
+        if (!_attendanceDailyState.cacheReady || _attendanceDailyState.currentSnapshotKey !== context.key ||
+            Number(_attendanceDailyState.currentSnapshotAuthGeneration) !== Number(context.authGeneration)) {
+            window.showToast?.('Danh sách ngày/cơ sở/ca này chưa tải xong. Hãy chờ danh sách hiển thị rồi điểm danh.',3000);
+            return null;
+        }
         _currentShiftId = decision.shiftId;
         _attendanceShiftAuthority.selectedShiftId = decision.shiftId;
         return { context, decision };
@@ -1335,6 +1357,57 @@ function _recordAttendanceSecondaryFailure(classification, error, extra = {}) {
     }
 }
 
+function _beginAttendanceSaving(context, principal, records) {
+    return records.map(record => {
+        const key = JSON.stringify([principal.clubId,record.docId]);
+        let group = _attendanceSavingEdits.get(key);
+        if (!group || !_sameOfflineAttendanceSyncContext(group.principal,principal) ||
+            !_sameAttendanceContext(group.context,context)) {
+            group = {key,principal,context,docId:record.docId,edits:[]};
+            _attendanceSavingEdits.set(key,group);
+        }
+        const edit = {status:Number(record.status),state:'saving'};
+        group.edits.push(edit);return {group,edit};
+    });
+}
+
+function _attendanceSavingProjection() {
+    const projection = new Map();
+    if (!_attendanceSavingEdits.size) return projection;
+    const context = _captureAttendanceDailyContext();
+    for (const group of _attendanceSavingEdits.values()) {
+        if (!_isOfflineAttendanceSyncContextCurrent(group.principal) || !_sameAttendanceContext(group.context,context)) continue;
+        const visible = group.edits.filter(edit=>edit.state!=='failed');
+        const latest = visible[visible.length-1];
+        if (latest) projection.set(group.docId,{status:latest.status});
+    }
+    return projection;
+}
+
+function _finishAttendanceSaving(tokens,saved) {
+    const persisted = new Set(saved.map(row=>row.record.docId));
+    const groups = new Set();
+    for (const {group,edit} of tokens) {
+        edit.state = persisted.has(group.docId) ? 'saved' : 'failed';groups.add(group);
+    }
+    let render = false;
+    for (const group of groups) {
+        if (_attendanceSavingEdits.get(group.key)!==group) continue;
+        const current = _isOfflineAttendanceSyncContextCurrent(group.principal) &&
+            _sameAttendanceContext(group.context,_captureAttendanceDailyContext());
+        // Commit only durable local state to the normal RAM cache. Failed taps
+        // never become the rollback baseline for a later tap.
+        if (current) {
+            const durable = group.edits.filter(edit=>edit.state==='saved');
+            const lastSaved = durable[durable.length-1];
+            if (lastSaved) _attendanceCache[group.docId] = lastSaved.status;
+            render = true;
+        }
+        if (!group.edits.some(edit=>edit.state==='saving')) _attendanceSavingEdits.delete(group.key);
+    }
+    if (render) _renderAttCards();
+}
+
 async function _saveAttOffline(clubId, date, shiftDecision, changedRecords = []) {
     if (!shiftDecision?.allowed || !changedRecords.length) return [];
     const principal = _captureOfflineAttendanceSyncContext();
@@ -1344,16 +1417,18 @@ async function _saveAttOffline(clubId, date, shiftDecision, changedRecords = [])
     const records = changedRecords.map(entry => {
         const name = String(entry.name || ''), profile = entry.profile || {}, shiftId = String(shiftDecision.shiftId || '');
         const docId = getAttendanceDocId(name,date,shiftId || null), status = Number(entry.status);
+        const visibleIntent = _attendanceIntentStates.get(docId);
+        const visibleVersion = ['pending','inflight'].includes(visibleIntent?.state) ? visibleIntent.id : '';
         return {version:3, clubId, date, month:date.slice(0,7), name, profileId:name,
             branch:profile.branch || entry.branch || '', belt:profile.belt || '', shiftId,
             shiftMode:shiftId ? 'explicit-shift' : 'legacy-no-shift', docId, status,
             operation:status === 0 ? 'delete' : 'set',
-            baseVersion:_attendanceServerContext === serverKey
-                ? (_attendanceServerVersions[docId] || 'absent') : 'unknown'};
+            baseVersion:visibleVersion || (_attendanceServerContext === serverKey
+                ? (_attendanceServerVersions[docId] || 'absent') : 'unknown')};
     });
     try {
         const saved = await AttendanceJournal.enqueue(records,principal);
-        if (_isOfflineAttendanceSyncContextCurrent(principal)) {saved.forEach(row=>_attendanceIntentStates.set(row.record.docId,row.state));_renderAttCards();}
+        if (_isOfflineAttendanceSyncContextCurrent(principal)) saved.forEach(row=>_attendanceIntentStates.set(row.record.docId,{state:row.state,id:row.id}));
         _attendanceDebug().offlineJournalQueued += saved.length;
         _attendanceSyncRequested = true;
         return saved;
@@ -1533,6 +1608,10 @@ function _recordAttendanceDailyStale(token) {
 }
 
 async function _requestAttendanceDailyRefresh(reason = 'compatibility-render', options = {}) {
+    if (_attendanceCanonicalRole(window.__verifiedAuthContextState?.role)==='coach' && !HISTORY_COACH_ACCESS) {
+        const grid=document.getElementById('attendanceGrid');if(grid)grid.textContent='Điểm danh đang bảo trì để xác minh lịch sử. Nhật ký trên thiết bị được giữ nguyên.';
+        _renderAttendanceJournalControls();return {blocked:true,reason:'attendance-maintenance'};
+    }
     if (!_isAttendanceDaySubtabActive()) {
         _attendanceDebug().monthSubtabDailyReadPrevented++;
         return { skipped: 'day-subtab-hidden' };
@@ -1611,19 +1690,24 @@ async function _requestAttendanceDailyRefresh(reason = 'compatibility-render', o
             if (token.shiftId && docShift !== token.shiftId) return;
             nextCache[id] = _mapLegacyStatus(data.status || 0);
         });
-        if (attList.serverConfirmed === true) {
-            _attendanceServerVersions = Object.fromEntries(attList.map(({id,data}) => [id,attendanceServerVersion(data)]));
-            _attendanceServerContext = token.key + '|' + token.authGeneration;
-        }
+        const nextServerVersions = attList.serverConfirmed === true
+            ? Object.fromEntries(attList.map(({id,data}) => [id,attendanceServerVersion(data)])) : null;
         // Overlay unresolved durable intents; never present a pending mark as ACK.
         let pending=[];
         try {pending=await AttendanceJournal.list(_captureOfflineAttendanceSyncContext());}
         catch(error) {_attendanceDebug().journalStorageUnavailable=true;}
         if (!_isAttendanceDailyTokenCurrent(token)) return {stale:true,key:token.key};
-        _attendanceIntentStates = new Map(pending.filter(row=>['pending','inflight','conflict','needs-review'].includes(row.state) && row.record.date===token.date && row.record.shiftId===token.shiftId).map(row=>[row.record.docId,row.state]));
+        _attendanceIntentStates = new Map(pending.filter(row=>['pending','inflight','conflict','needs-review'].includes(row.state) && row.record.date===token.date && row.record.shiftId===token.shiftId).map(row=>[row.record.docId,{state:row.state,id:row.id}]));
         pending.filter(row => ['pending','inflight'].includes(row.state) &&
             row.record.date === token.date && row.record.shiftId === token.shiftId)
             .forEach(row => {nextCache[row.record.docId] = Number(row.record.status);});
+        // Publish the snapshot's values and CAS bases together, after the last
+        // await and current-token check. Hidden query results are not authority
+        // for a user action still based on the previously displayed view.
+        if (nextServerVersions) {
+            _attendanceServerVersions = nextServerVersions;
+            _attendanceServerContext = token.key + '|' + token.authGeneration;
+        }
         _attendanceCache = nextCache;
         _attendanceDailyState.currentSnapshotKey = token.key;
         _attendanceDailyState.currentSnapshotAuthGeneration = token.authGeneration;
@@ -1667,21 +1751,25 @@ function _renderAttendanceJournalControls() {
     bar.replaceChildren();
     const info=document.createElement('div');info.id='attendanceJournalStatus';info.setAttribute('role','status');
     info.textContent='Nhật ký trên thiết bị: đang kiểm tra…';bar.append(info);
+    if (principal.role==='coach' && !HISTORY_COACH_ACCESS) {
+        const maintenance=document.createElement('p');maintenance.dataset.attendanceMaintenance='true';
+        maintenance.textContent='Điểm danh đang bảo trì để xác minh lịch sử. HLV tạm dừng đọc/ghi và đồng bộ; nhật ký trên thiết bị được giữ nguyên.';bar.append(maintenance);
+    }
     const explanation=document.createElement('div');explanation.textContent='Trạng thái có nhãn chờ xác nhận hoặc cần đối soát chưa được máy chủ xác nhận; số lượng trên màn hình là tạm tính.';bar.append(explanation);
     const button=(label,handler)=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.style.cssText='margin:6px 8px 0 0;padding:8px';b.onclick=handler;bar.append(b);};
     button('Đồng bộ lại',()=>window.syncOfflineAttendance?.().catch(error=>window.showToast?.(error.message,4000)));
     button('Kiểm tra nhật ký',()=>_openAttendancePendingReview().catch(error=>window.showToast?.(error.message,4000)));
-    if (['admin','super_admin'].includes(principal.role))
+    if (HISTORY_COACH_ACCESS && ['admin','super_admin'].includes(principal.role))
         button('Đối soát lịch sử cũ',()=>_openAttendanceHistoryAudit().catch(error=>window.showToast?.(error.message,4000)));
     else if (principal.role==='coach') {
         const note=document.createElement('div');note.textContent='HLV chỉ xem lịch sử đã xác minh theo cơ sở lúc điểm danh. Lịch sử cũ chưa xác minh cần Admin đối soát.';bar.append(note);
     }
-    AttendanceJournal.list(principal).then(rows=>{
+    Promise.all([AttendanceJournal.list(principal),AttendanceJournal.legacyReviewSummary(principal)]).then(([rows,legacy])=>{
         if (!_isOfflineAttendanceSyncContextCurrent(principal)||!info.isConnected) return;
         const pending=rows.filter(x=>['pending','inflight'].includes(x.state)).length;
         const review=rows.filter(x=>['conflict','needs-review'].includes(x.state)).length;
-        info.textContent=pending+' bản ghi chờ gửi · '+review+' bản ghi cần đối soát';
-    }).catch(()=>{info.textContent='Chưa đọc được nhật ký trên thiết bị. Chưa thể xác nhận đã đồng bộ.';});
+        info.textContent=pending+' bản ghi chờ gửi · '+review+' bản ghi cần đối soát'+(legacy.count?' · '+legacy.count+' mục cũ chưa xác minh chủ dữ liệu (chỉ đối soát)':'');
+    }).catch(()=>{if (_isOfflineAttendanceSyncContextCurrent(principal)&&info.isConnected) info.textContent='Chưa đọc được nhật ký trên thiết bị. Chưa thể xác nhận đã đồng bộ.';});
 }
 
 function _attendanceReviewSheet(title) {
@@ -1690,7 +1778,9 @@ function _attendanceReviewSheet(title) {
     overlay.style.cssText='position:fixed;inset:0;background:#0f172a99;z-index:10030;display:flex;align-items:flex-end;justify-content:center';
     const body=document.createElement('div');body.style.cssText='background:white;border-radius:16px 16px 0 0;padding:18px;width:100%;max-width:680px;max-height:85vh;overflow:auto;box-sizing:border-box;color:#0f172a';
     const close=document.createElement('button');close.type='button';close.textContent='Đóng';close.onclick=()=>overlay.remove();body.append(close);
-    const heading=document.createElement('h3');heading.textContent=title;body.append(heading);overlay.append(body);document.body.append(overlay);
+    const heading=document.createElement('h3');heading.textContent=title;body.append(heading);overlay.append(body);
+    // Inherit the attendance pane's auth/tab visibility instead of outliving logout.
+    (document.getElementById('tab_attendance')||document.body).append(overlay);
     return {overlay,body};
 }
 const _attendanceStatusLabel=status=>['Chưa điểm danh','Có mặt','Vắng','Có phép'][Number(status)]||'Chưa có bản ghi';
@@ -1700,18 +1790,24 @@ async function _openAttendancePendingReview() {
     if (!_isOfflineAttendanceSyncContextCurrent(principal)) throw new Error('Phiên điểm danh chưa được xác minh.');
     await AttendanceJournal.importLegacy(principal);
     const rows=(await AttendanceJournal.list(principal)).filter(x=>['pending','inflight','conflict','needs-review'].includes(x.state));
+    const legacy=await AttendanceJournal.legacyReviewSummary(principal);
     if (!_isOfflineAttendanceSyncContextCurrent(principal)) return;
     const {body,overlay}=_attendanceReviewSheet('Nhật ký điểm danh trên thiết bị');
-    const intro=document.createElement('p');intro.textContent='Bản ghi chưa rõ xác nhận hoặc bị xung đột được giữ lại. Nhật ký cũ cần chọn rõ giữ máy chủ hay áp dụng lại. Mỗi lần chỉ hiện tối đa 100 mục.';body.append(intro);
+    const intro=document.createElement('p');intro.textContent='Các thao tác của tài khoản này chưa rõ xác nhận hoặc bị xung đột được giữ lại. Mỗi lần chỉ hiện tối đa 100 mục.';body.append(intro);
+    if (legacy.count) {
+        const quarantine=document.createElement('p');quarantine.dataset.legacyReview='true';
+        quarantine.textContent=legacy.count+' mục nhật ký cũ/chưa rõ chủ dữ liệu đang được bảo toàn trên thiết bị. Chưa được gửi hoặc gán cho tài khoản hiện tại. Cần xác minh chủ dữ liệu và phê duyệt phương án phục hồi riêng.';body.append(quarantine);
+    }
     if (!rows.length) {intro.textContent='Không có bản ghi chờ gửi hoặc đối soát trong tài khoản/cơ sở này.';return;}
     for (const row of rows.slice(0,100)) {
         const item=document.createElement('section');item.style.cssText='padding:12px 0;border-top:1px solid #cbd5e1';
         const text=document.createElement('p');text.textContent=row.record.name+' · '+row.record.date+' · '+(row.record.branch||'Chưa rõ cơ sở')+' · trên thiết bị: '+_attendanceStatusLabel(row.record.status);item.append(text);
         const status=document.createElement('div');status.textContent=row.state==='inflight'?'Đang chờ xác nhận; hãy đồng bộ lại sau một phút nếu phiên cũ đã đóng.':row.state==='pending'?'Đang chờ gửi.':'Cần đối soát trước khi gửi.';item.append(status);
+        let inspectedVersion = '';
         const button=(label,fn)=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.style.cssText='padding:8px;margin:6px 8px 0 0';b.onclick=async()=>{
             b.disabled=true;
-            try {if (!_isOfflineAttendanceSyncContextCurrent(principal)) throw new Error('Tài khoản/cơ sở đã thay đổi. Hãy mở lại nhật ký.');await fn();}
-            catch(error){status.textContent=error.code==='permission-denied'?'Không đủ quyền xem bản ghi này. Cần Admin đối soát lịch sử cũ.':error.message;}
+            try {if (!_isOfflineAttendanceSyncContextCurrent(principal)) {overlay.remove();throw new Error('Tài khoản/cơ sở đã thay đổi. Hãy mở lại nhật ký.');}await fn();}
+            catch(error){if (!_isOfflineAttendanceSyncContextCurrent(principal)) overlay.remove();status.textContent=error.code==='permission-denied'?'Không đủ quyền xem bản ghi này. Cần Admin đối soát lịch sử cũ.':error.message;}
             finally{b.disabled=false;}
         };item.append(b);return b;};
         if (row.state!=='inflight') {
@@ -1721,18 +1817,24 @@ async function _openAttendancePendingReview() {
                 _markAttendanceDailyMutation('review-keep-server');await _requestAttendanceDailyRefresh('review-keep-server',{force:true});
             });
             button('Xem máy chủ để đối soát',async()=>{
+                inspectedVersion = '';
+                const previousApply = item.querySelector('[data-reapply]');
+                if (previousApply) previousApply.disabled = true;
                 const current=await AttendanceService.inspectIntent(row.record);
                 if (!_isOfflineAttendanceSyncContextCurrent(principal)||!overlay.isConnected) return;
+                inspectedVersion = current.version;
                 status.textContent='Máy chủ: '+_attendanceStatusLabel(current.data?.status)+'; thiết bị: '+_attendanceStatusLabel(row.record.status)+'.';
                 if (!item.querySelector('[data-reapply]')) {
                     const apply=button('Áp dụng trạng thái trên thiết bị',async()=>{
+                        if (!inspectedVersion) throw new Error('Cần xem lại dữ liệu máy chủ trước khi áp dụng.');
                         const verdict=_isOfflineAttendanceRecordAllowed(row.record);
                         if (!verdict.allowed) throw new Error('Thông tin võ sinh/ca tập đã thay đổi; cần Admin kiểm tra.');
                         if (!window.confirm('Áp dụng '+_attendanceStatusLabel(row.record.status)+' cho '+row.record.name+' ngày '+row.record.date+'? Nếu máy chủ thay đổi tiếp, hệ thống sẽ yêu cầu đối soát lại.')) return;
-                        await AttendanceJournal.rebase(row.id,current.version,principal);item.remove();
+                        await AttendanceJournal.rebase(row.id,inspectedVersion,principal);item.remove();
                         await window.syncOfflineAttendance();_renderAttendanceJournalControls();
                     });apply.dataset.reapply='true';
                 }
+                item.querySelector('[data-reapply]').disabled = false;
             });
         }
         body.append(item);
@@ -1740,6 +1842,7 @@ async function _openAttendancePendingReview() {
 }
 
 async function _openAttendanceHistoryAudit() {
+    if (!HISTORY_COACH_ACCESS) throw new Error('Đối soát lịch sử chỉ mở sau khi chủ hệ thống duyệt cutover. Dữ liệu cũ chưa được gắn marker mới.');
     const principal=_captureOfflineAttendanceSyncContext();
     if (!_isOfflineAttendanceSyncContextCurrent(principal)||!['admin','super_admin'].includes(principal.role)) throw new Error('Chỉ Admin được xác minh lịch sử cũ.');
     const {body,overlay}=_attendanceReviewSheet('Đối soát cơ sở tại ngày điểm danh');
@@ -1784,13 +1887,16 @@ async function _openAttendanceHistoryAudit() {
 // ════════════════════════════════════════════════════════════════
 export function initAttendance() {
     const activeClubId = _clubId();
+    const principal=_captureOfflineAttendanceSyncContext();
+    const principalKey=JSON.stringify([principal.uid,principal.role,principal.clubId,principal.coachBranch,principal.authGeneration]);
     const legacyFallbacksAtInit = Object.fromEntries(
         ATTENDANCE_OWNED_GLOBALS.map((name) => [name, window[name]])
     );
     if (_attendanceInitialized) {
-        if (activeClubId !== _attendanceInitializedClubId) {
+        if (activeClubId !== _attendanceInitializedClubId || principalKey !== _attendanceInitializedPrincipal) {
             _resetAttendanceModuleState(activeClubId);
         }
+        _attendanceInitializedPrincipal=principalKey;
         _restoreAttendanceOwnership();
         if (typeof window.syncOfflineAttendance === 'function') {
             Promise.resolve(window.syncOfflineAttendance()).catch(() => {});
@@ -1799,6 +1905,7 @@ export function initAttendance() {
     }
     _attendanceInitialized = true;
     _attendanceInitializedClubId = activeClubId;
+    _attendanceInitializedPrincipal=principalKey;
 
     // Expose getters cho các module khác (students.js dùng khi openAddModal)
     window._getClubShifts = function() { return _clubShifts; };
@@ -1856,6 +1963,7 @@ export function initAttendance() {
 
     // ── Render lịch sử điểm danh 1 thành viên ──────────────────
     window.showAttMemberHistory = async (idxOrName, overrideMonth) => {
+        if (_attendanceCanonicalRole(window.__verifiedAuthContextState?.role)==='coach' && !HISTORY_COACH_ACCESS) {window.showToast?.('Lịch sử Điểm danh đang bảo trì để xác minh dữ liệu.',4000);return {blocked:true,reason:'attendance-maintenance'};}
         let name, p;
         if (typeof idxOrName === 'number') {
             const entry = _attCurrentProfiles[idxOrName];
@@ -1866,6 +1974,7 @@ export function initAttendance() {
             p = (_profiles() || {})[name] || {};
         }
         const historyOwner = _captureOfflineAttendanceSyncContext();
+        const requestId = ++_memberHistoryRequestId;
         const month = overrideMonth || _attCurrentDate.substring(0, 7);
         const [yr, mo] = month.split('-').map(Number);
         const monthDisplay = String(mo).padStart(2,'0') + '/' + yr;
@@ -1876,9 +1985,12 @@ export function initAttendance() {
             modalEl.style.cssText = 'display:flex;position:fixed;inset:0;background:rgba(15,23,42,0.65);z-index:10010;backdrop-filter:blur(4px);align-items:flex-end;justify-content:center;';
             modalEl.innerHTML = '<div id="attHistContent" style="background:#fff;width:100%;max-width:640px;border-radius:20px 20px 0 0;padding:20px 18px;box-shadow:0 -10px 40px rgba(0,0,0,0.18);max-height:82vh;overflow-y:auto;padding-bottom:calc(20px + env(safe-area-inset-bottom));animation:slideUpSheet 0.3s cubic-bezier(0.16,1,0.3,1);"><div id="attHistBody"></div></div>';
             modalEl.addEventListener('click', (e) => { if (e.target === modalEl) modalEl.style.display = 'none'; });
-            document.body.appendChild(modalEl);
+            (document.getElementById('tab_attendance') || document.body).appendChild(modalEl);
         } else { modalEl.style.display = 'flex'; }
         const bodyEl = document.getElementById('attHistBody');
+        const isCurrent = () => requestId === _memberHistoryRequestId &&
+            _isOfflineAttendanceSyncContextCurrent(historyOwner) && modalEl.isConnected &&
+            modalEl.style.display !== 'none';
         bodyEl.innerHTML = '<div style="text-align:center;padding:32px;color:#94a3b8;">⏳ Đang tải dữ liệu tháng ' + monthDisplay + '...</div>';
         try {
             const quarterNum = Math.ceil(mo / 3);
@@ -1887,7 +1999,7 @@ export function initAttendance() {
             for (let qi = 0; qi < 3; qi++) quarterMonths.push(yr + '-' + String(quarterStartMo + qi).padStart(2, '0'));
             const quarterLabel = 'Quý ' + quarterNum + '/' + yr + ' (T' + quarterStartMo + '–T' + (quarterStartMo + 2) + ')';
             const histList = await AttendanceService.loadMemberHistory(name, quarterMonths);
-            if (!_isOfflineAttendanceSyncContextCurrent(historyOwner)) return;
+            if (!isCurrent()) return;
             const snapQ = { forEach: (fn) => histList.forEach(item => fn({ data: () => item.data, id: item.id })) };
             const dayMap = {};
             let present = 0, excused = 0, absent = 0, qPresent = 0, qExcused = 0, qAbsent = 0;
@@ -1976,6 +2088,7 @@ export function initAttendance() {
                 + (_hasSched ? '<span style="background:#f0f9ff;padding:1px 5px;border-radius:4px;color:#93c5fd;">· Ngày có lịch</span>' : '')
                 + '<span style="background:#f3e8ff;padding:1px 5px;border-radius:4px;color:#7c3aed;">🔄 Học bù</span></div>';
         } catch(e) {
+            if (!isCurrent()) return;
             bodyEl.innerHTML = '<div style="text-align:center;padding:32px;color:#dc2626;font-size:0.88rem;">⚠️ Lỗi tải dữ liệu. Vui lòng thử lại.</div>';
         }
     };
@@ -2071,6 +2184,7 @@ export function initAttendance() {
 
     // ── Toggle điểm danh (xoay vòng 4 trạng thái) ──────────────
     window.toggleAttendance = async (idxOrName) => {
+        if (_attendanceCanonicalRole(window.__verifiedAuthContextState?.role)==='coach' && !HISTORY_COACH_ACCESS) {window.showToast?.('Điểm danh đang bảo trì để xác minh lịch sử; nhật ký được giữ nguyên.',4000);return {blocked:true,reason:'attendance-maintenance'};}
         const guard = _resolveAttendanceWriteGuard('toggleAttendance');
         if (!guard) return {blocked:true};
         const entry = typeof idxOrName === 'number' ? _attCurrentProfiles[idxOrName] : _attCurrentProfiles.find(([n])=>n===idxOrName);
@@ -2086,12 +2200,11 @@ export function initAttendance() {
         const status = (oldStatus+1)%4;
         _attCurrentDate=date; _currentShiftId=shiftId;
         _markAttendanceDailyMutation('toggleAttendance');
-        window.currentAttendanceData[name]=status; _attendanceCache[id]=status; _renderAttCards();
+        const saving = _beginAttendanceSaving(guard.context,owner,[{docId:id,status}]);
+        _renderAttCards();
         const saved = await _saveAttOffline(owner.clubId,date,guard.decision,[{name,profile:p,status,docId:id}]);
+        _finishAttendanceSaving(saving,saved);
         if (!saved.length) {
-            if (_isOfflineAttendanceSyncContextCurrent(owner)) {
-                window.currentAttendanceData[name]=oldStatus; _attendanceCache[id]=oldStatus; _renderAttCards();
-            }
             window.showToast?.('⚠️ Không lưu được nhật ký trên thiết bị. Hãy thử lại.',3500);
             return {blocked:true,reason:'enqueue-failed'};
         }
@@ -2107,6 +2220,7 @@ export function initAttendance() {
 
     // ── Điểm danh hàng loạt ────────────────────────────────────
     window.bulkCheckIn = async () => {
+        if (_attendanceCanonicalRole(window.__verifiedAuthContextState?.role)==='coach' && !HISTORY_COACH_ACCESS) {window.showToast?.('Điểm danh đang bảo trì để xác minh lịch sử; nhật ký được giữ nguyên.',4000);return {blocked:true,reason:'attendance-maintenance'};}
         const shiftGuard = _resolveAttendanceWriteGuard('bulkCheckIn');
         if (!shiftGuard) return { blocked: true };
         const writeDate = shiftGuard.context.date;
@@ -2127,15 +2241,13 @@ export function initAttendance() {
         if (unmarked.length === 0) { window.showToast('ℹ️ Tất cả võ sinh đã được điểm danh!', 2500); return; }
         const owner = _captureOfflineAttendanceSyncContext();
         _markAttendanceDailyMutation('bulkCheckIn');
-        unmarked.forEach(([name])=>{window.currentAttendanceData[name]=1;_attendanceCache[getAttendanceDocId(name,writeDate,writeShiftId)]=1;});
+        const saving = _beginAttendanceSaving(shiftGuard.context,owner,
+            unmarked.map(([name])=>({docId:getAttendanceDocId(name,writeDate,writeShiftId),status:1})));
         _renderAttCards();
         const saved = await _saveAttOffline(owner.clubId,writeDate,shiftGuard.decision,
             unmarked.map(([name,p])=>({name,profile:p,status:1})));
+        _finishAttendanceSaving(saving,saved);
         if (saved.length !== unmarked.length) {
-            if (_isOfflineAttendanceSyncContextCurrent(owner)) {
-                unmarked.forEach(([name])=>{window.currentAttendanceData[name]=0;_attendanceCache[getAttendanceDocId(name,writeDate,writeShiftId)]=0;});
-                _renderAttCards();
-            }
             window.showToast?.('⚠️ Không lưu được nhật ký hàng loạt trên thiết bị. Hãy thử lại.',3500);
             return {blocked:true,reason:'enqueue-failed'};
         }
@@ -2151,22 +2263,38 @@ export function initAttendance() {
     // ── Offline sync ────────────────────────────────────────────
     const _runOfflineAttendanceSync = async (syncContext) => {
         if (!_isOfflineAttendanceSyncContextCurrent(syncContext)) return {skipped:'stale-context'};
+        // Pause before import/claim: no lease/ACK/raw changes during maintenance.
+        if (syncContext.role==='coach' && !HISTORY_COACH_ACCESS) return {skipped:'attendance-maintenance'};
         try {await AttendanceJournal.importLegacy(syncContext);}
         catch(error) {_recordAttendanceOfflineIssue('journal-unavailable',error,{stage:'open-journal'});return {error:'attendance/journal-unavailable'};}
         if (navigator.onLine === false) return {skipped:'offline'};
-        try {await _loadClubShifts();} catch(error) {return {skipped:'shift-config-unavailable'};}
+        const refreshShifts = async () => {
+            const force = _attendanceShiftRefreshRequested;
+            await _loadClubShifts({force});
+            if (force) _attendanceShiftRefreshRequested = false;
+        };
+        try {await refreshShifts();} catch(error) {
+            if (_isOfflineAttendanceSyncContextCurrent(syncContext)) window.showToast?.(
+                'Chưa xác minh được ca tập; nhật ký trên thiết bị được giữ nguyên. Khi kết nối ổn định, chọn Đồng bộ lại.',4500);
+            return {skipped:'shift-config-unavailable',error:error?.code||'attendance/shift-config-unavailable'};
+        }
         let synced=0, lastError=null;
         const acknowledged = new Map();
         do {
             _attendanceSyncRequested=false;
             while (_isOfflineAttendanceSyncContextCurrent(syncContext)) {
-                const claims=await AttendanceJournal.claim(syncContext,_attendanceSyncOwner,syncContext.role==='coach'?10:400);
+                if (_attendanceShiftRefreshRequested) {
+                    try {await refreshShifts();} catch(error) {return {synced,skipped:'shift-config-unavailable'};}
+                }
+                let claims=await AttendanceJournal.claim(syncContext,_attendanceSyncOwner,syncContext.role==='coach'?10:400);
                 if (!claims.length) break;
                 const invalid=claims.filter(row=>!_isOfflineAttendanceRecordAllowed(row.record).allowed);
                 if (invalid.length) {
-                    await AttendanceJournal.release(claims,{code:'attendance/validation-review',reviewIds:invalid.map(x=>x.id)});
+                    await AttendanceJournal.release(invalid,{code:'attendance/validation-review',reviewIds:invalid.map(x=>x.id)});
                     lastError={code:'attendance/validation-review'};
-                    break;
+                    const rejected = new Set(invalid.map(row=>row.id));
+                    claims = claims.filter(row=>!rejected.has(row.id));
+                    if (!claims.length) continue;
                 }
                 try {
                     const result=await AttendanceService.bulkSyncOffline(syncContext.clubId,'',claims);
@@ -2198,7 +2326,7 @@ export function initAttendance() {
             const context=_captureAttendanceDailyContext();
             const currentRows=rows.filter(row=>row.record.date===context.date && row.record.shiftId===context.shiftId &&
                 (context.branch==='all'||_sameBranch(row.record.branch,context.branch)));
-            _attendanceIntentStates=new Map(currentRows.filter(row=>['pending','inflight','conflict','needs-review'].includes(row.state)).map(row=>[row.record.docId,row.state]));
+            _attendanceIntentStates=new Map(currentRows.filter(row=>['pending','inflight','conflict','needs-review'].includes(row.state)).map(row=>[row.record.docId,{state:row.state,id:row.id}]));
             if (synced) {
                 _markAttendanceDailyMutation('intent-ack');
                 // The CAS ACK is authoritative for these exact documents.
@@ -2259,7 +2387,14 @@ export function initAttendance() {
         return _startOfflineAttendanceSyncFlight(requestedContext);
     };
     if (!_onlineListenerBound) {
-        window.addEventListener('online', window.syncOfflineAttendance);
+        // Connectivity alone is not settings authority. Reuse the same shift
+        // loader and serial sync flight; native events must contain rejection.
+        const onReconnect = () => {
+            _attendanceShiftRefreshRequested = true;
+            window.syncOfflineAttendance().catch(error=>_recordAttendanceOfflineIssue(
+                _classifyAttendanceOfflineError(error,'unknown'),error,{stage:'online-sync'}));
+        };
+        window.addEventListener('online', onReconnect);
         _onlineListenerBound = true;
     }
     window.syncOfflineAttendance().catch((error) => {
@@ -2292,6 +2427,7 @@ export function initAttendance() {
 
     // ── Thống kê tháng ─────────────────────────────────────────
     window.renderAttMonthly = async () => {
+        if (_attendanceCanonicalRole(window.__verifiedAuthContextState?.role)==='coach' && !HISTORY_COACH_ACCESS) {window.showToast?.('Lịch sử Điểm danh đang bảo trì để xác minh dữ liệu.',4000);return {blocked:true,reason:'attendance-maintenance'};}
         if (!_isAttendanceMonthSubtabActive()) {
             _attendanceDebug().daySubtabMonthlyReadPrevented++;
             return { skipped: 'month-subtab-hidden' };

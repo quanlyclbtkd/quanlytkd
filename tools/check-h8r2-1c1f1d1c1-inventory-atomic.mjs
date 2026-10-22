@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { initFinancialActionAuditGuard } from '../js/core/financialActionAuditGuard.js';
-import { FinanceService } from '../js/services/finance.service.js?v=long-term-production-stability-20260917-v5u6h8r2';
+import { FinanceService } from '../js/services/finance.service.js?v=qr-v11r5-ack-20261021';
 import { InventoryService } from '../js/services/inventory.service.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1';
 import { initInventory } from '../js/modules/inventory.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1';
 

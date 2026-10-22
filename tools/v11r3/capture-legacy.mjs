@@ -1,0 +1,29 @@
+// One-off, explicitly approved backup tool. Not imported by the SPA. No storage writes.
+const canonical=v=>JSON.stringify(v&&typeof v==='object'?Array.isArray(v)?v.map(x=>JSON.parse(canonical(x))):Object.fromEntries(Object.keys(v).sort().map(k=>[k,JSON.parse(canonical(v[k]))])):v);
+const need=(ok,code)=>{if(!ok)throw Object.assign(Error('BACKUP_BLOCKED: '+code),{code})};
+const bytes=s=>Uint8Array.from(atob(s),x=>x.charCodeAt(0));
+const sha=async s=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',typeof s==='string'?new TextEncoder().encode(s):s)),x=>x.toString(16).padStart(2,'0')).join('');
+function context(){const v=globalThis.__verifiedAuthContextState,s=globalThis.__store;need(v?.ready===true&&['admin','super_admin'].includes(v.role)&&v.uid&&Number.isSafeInteger(v.generation)&&v.generation>0&&s?.currentUser?.uid===v.uid&&s.userRole===v.role&&globalThis.userRole===v.role,'ADMIN_CONTEXT_NOT_VERIFIED');const clubId=s.clubId,projectId=s.db?.app?.options?.projectId;need(clubId&&projectId&&(v.role==='super_admin'||v.clubId===clubId)&&(s.currentClubId||clubId)===clubId&&(globalThis.currentClubId||clubId)===clubId,'SESSION_SCOPE_NOT_VERIFIED');return {uid:v.uid,role:v.role,clubId,projectId,origin:location.origin,generation:v.generation};}
+export async function captureLegacyBackup(request,grant,{publicKeySPKIBase64,trustedOwnerKeySHA256}){
+ const start=context(),assertCurrent=()=>need(canonical(context())===canonical(start),'AUTH_CONTEXT_CHANGED');
+ need(request.projectId===start.projectId&&request.clubId===start.clubId&&request.origin===start.origin&&request.actor?.uid===start.uid&&request.actor.role===start.role,'REQUEST_CONTEXT_MISMATCH');
+ need(request.includeUnownedLegacyRaw===true&&request.includeOwnV3===true,'BACKUP_SCOPE_NOT_EXPLICIT');
+ const sourceOnly=request.environment==='source-device-readonly';need(sourceOnly?request.readOnlySourceBackup===true:request.environment==='demo'?start.projectId.startsWith('demo-'):request.environment==='staging'&&!start.projectId.startsWith('demo-')&&start.projectId!=='quanly-tst','TARGET_ENVIRONMENT_INVALID');
+ const p=grant?.payload;need(p?.decision==='approved'&&p.authority==='system_owner'&&p.purpose==='legacy-device-backup'&&p.projectId===request.projectId&&p.clubId===request.clubId&&p.environment===request.environment&&p.requestSHA256===await sha(canonical(request)),'BACKUP_NOT_APPROVED');
+ need(p.unownedLegacyRawBackupApproved===true&&(sourceOnly?p.evidenceScope==='SOURCE_DEVICE_READONLY':p.environment==='demo'?p.evidenceScope==='DEMO_ONLY':p.evidenceScope==='STAGING_VERIFIED'),'UNOWNED_BACKUP_SCOPE_NOT_APPROVED');
+ need(p.environment==='demo'||p.fixture!==true,'TEST_FIXTURE_NOT_REAL_BACKUP_AUTHORITY');
+ const keyBytes=bytes(publicKeySPKIBase64);need(await sha(keyBytes)===trustedOwnerKeySHA256,'OWNER_KEY_NOT_PINNED');
+ const key=await crypto.subtle.importKey('spki',keyBytes,{name:'Ed25519'},false,['verify']);need(await crypto.subtle.verify({name:'Ed25519'},key,bytes(grant.signature),new TextEncoder().encode(canonical(p))),'OWNER_SIGNATURE_INVALID');
+ need(Date.parse(p.notBefore)<=Date.now()&&Date.parse(p.expiresAt)>Date.now(),'BACKUP_DECISION_EXPIRED');assertCurrent();
+ function readRaw(){const rows=[],unscoped=[];for(let i=0;i<localStorage.length;i++){const key=localStorage.key(i);if(!key?.startsWith('offline_att_'))continue;const raw=localStorage.getItem(key);let club;try{club=JSON.parse(raw)?.clubId}catch{}const keyMatches=key.startsWith('offline_att_'+request.clubId+'_')||key.startsWith('offline_att_v2_'+encodeURIComponent(request.clubId)+'~');if(club===request.clubId||(!club&&keyMatches))rows.push({key,raw});else if(!club)unscoped.push(key);}rows.sort((a,b)=>a.key<b.key?-1:a.key>b.key?1:0);return {rows,unscopedCount:unscoped.length};}
+ const before=readRaw();need(typeof indexedDB.databases==='function','DATABASE_INVENTORY_NOT_SUPPORTED');const names=await indexedDB.databases();assertCurrent();let stored={rows:[],meta:[]};
+ if(names.some(x=>x.name==='tst-attendance-journal-v3'))stored=await new Promise((resolve,reject)=>{
+  const open=indexedDB.open('tst-attendance-journal-v3');open.onupgradeneeded=()=>open.transaction.abort();open.onerror=()=>reject(Object.assign(Error('BACKUP_BLOCKED'),{code:'DATABASE_MISSING_OR_CHANGED'}));
+  open.onsuccess=()=>{const db=open.result;try{assertCurrent();const tx=db.transaction(['intents','meta'],'readonly'),rows=tx.objectStore('intents').getAll(),meta=tx.objectStore('meta').getAll();tx.oncomplete=()=>{db.close();try{assertCurrent();resolve({rows:rows.result,meta:meta.result})}catch(e){reject(e)}};tx.onabort=tx.onerror=()=>{db.close();reject(tx.error||Error('BACKUP_READ_FAILED'))};}catch(e){db.close();reject(e)}};
+ });
+ assertCurrent();const after=readRaw();need(canonical(before)===canonical(after),'LEGACY_CHANGED_DURING_BACKUP');
+ const own=r=>r.principal?.uid===start.uid&&r.principal.role===start.role&&r.principal.clubId===start.clubId;
+ const rows=stored.rows.filter(r=>own(r)||(!r.principal&&r.legacySource&&r.record?.clubId===start.clubId));const ids=new Set(rows.map(r=>r.id));
+ const content={kind:'SCOPED_DEVICE_LEGACY_BACKUP',environment:request.environment,origin:start.origin,projectId:start.projectId,clubId:start.clubId,actor:{uid:start.uid,role:start.role},capturedAt:new Date().toISOString(),localStorage:before.rows,journalRows:rows,meta:stored.meta.filter(m=>ids.has(m.id)),unscopedLegacyCount:before.unscopedCount,excludedForeignV3Count:stored.rows.filter(r=>r.principal&&!own(r)).length,consistency:'one readonly IDB snapshot; stable localStorage double-read; not atomic across stores',ownershipInferred:false,rawDeleted:false,versionSchemaChanged:false};
+ const backupSHA256=await sha(canonical(content)),rawDigests=await Promise.all(before.rows.map(async r=>({key:r.key,sha256:await sha(r.raw)})));assertCurrent();return {content,backupSHA256,rawDigests,storageWrites:0};
+}

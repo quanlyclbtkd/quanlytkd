@@ -9,6 +9,8 @@ if(!host) throw new Error('NOT EXECUTED: FIRESTORE_EMULATOR_HOST absent');
 const [h,p]=host.split(':');
 const rules=await readFile(new URL('../firestore.rules',import.meta.url),'utf8');
 const env=await initializeTestEnvironment({projectId:process.env.GCLOUD_PROJECT||'demo-b7-coach-proof',firestore:{host:h,port:Number(p),rules}});
+assert.equal(h,'127.0.0.1');assert((process.env.GCLOUD_PROJECT||'demo-b7-coach-proof').startsWith('demo-'));
+await env.clearFirestore();
 let passed=0;
 async function verify(label,operation){await operation();console.log('PASS B7_RULES',label);passed++}
 const seed=[['users/c1',{role:'coach',clubId:'A',branch:'CS1',status:'active'}],['users/c2',{role:'coach',clubId:'A',branch:'CS2',status:'active'}],['users/locked',{role:'coach',clubId:'A',branch:'CS1',status:'locked'}],['users/admin',{role:'admin',clubId:'A',status:'active'}],['users/cross',{role:'coach',clubId:'B',branch:'CS1',status:'active'}],['users/no-branch',{role:'coach',clubId:'A',status:'active'}],['clubs/A',{name:'A'}],['clubs/B',{name:'B'}],['clubs/A/profiles/active',{branch:'CS1',status:'active'}],['clubs/A/profiles/missing',{branch:'CS1'}],['clubs/A/profiles/vietnamese',{branch:'CS1',status:'Đang tập'}],['clubs/A/profiles/legacy',{branch:'Mặc định',status:'training'}],['clubs/A/profiles/quit',{branch:'CS1',status:'quit'}],['clubs/A/profiles/cs2',{branch:'CS2',status:'active'}],['clubs/A/profiles/no-branch',{status:'active'}],['clubs/B/profiles/b',{branch:'CS1',status:'active'}]];

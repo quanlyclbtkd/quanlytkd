@@ -1,0 +1,23 @@
+{
+  "decision": "pending",
+  "policy": "quarantine-no-auto-replay",
+  "recoveryExecuted": false,
+  "backupExecutedAgainstRealDevice": false,
+  "tool": "tools/v11r2/legacy-recovery.mjs",
+  "toolMode": "read-only plan from supplied snapshot; zero Firebase/network/browser storage writes",
+  "requirements": [
+    "exact immutable V1/V2 bytes and imported IDB snapshots with digest/backup",
+    "verify owner from independent evidence, never infer same club/branch",
+    "resolve contradictory snapshots and attendance date/shift/identity",
+    "server-confirmed version and branch-at-attendance evidence",
+    "separate owner policy/decision before any restoration through existing owner",
+    "manual review must not overwrite newer status/version or destroy orphan raw"
+  ],
+  "createdV3Intents": 0,
+  "rawDeleted": false,
+  "principalAutoAssigned": false,
+  "newWriter": false,
+  "rollback": "preserve raw + V3 database + CAS versions; maintenance deny; no blind restore",
+  "realRecoveryStatus": "BLOCKED_PENDING_OWNER_AND_PER_ITEM_EVIDENCE",
+  "noDeploy": true
+}

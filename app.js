@@ -3862,14 +3862,14 @@ window.invCustomCategories = [];
     window.listenToData = (monthStr) => {
         if (window.RoleReadBoundary?.canMount?.('transactions.month', { month: monthStr, reason: 'listenToData' }) === false) return false;
         if (!monthStr || !colRef) return false;
-        const _cid = (window.__store && window.__store.clubId) || '';
+        const _cid = (window.__store && window.__store.clubId) || ''; const _txPrincipal = () => [window.__store?.auth?.currentUser?.uid || window.__store?.currentUser?.uid || '', window.userRole || window.__store?.userRole || '', Number(window.__verifiedAuthContextState?.generation || 0)].join('|');
         const _txKey = 'finance:tx:' + _cid + ':' + monthStr;
         const _desiredTxReadMode = typeof window.getCanonicalTransactionReadMode === 'function' ? window.getCanonicalTransactionReadMode(_cid, monthStr) : 'legacy';
 
         // Phase 4K-6V1 Spark Read Cost Hardening:
         // Do not tear down and recreate the same 3 Firestore listeners for the same month.
         // Recreating a listener bills a fresh initial query result.
-        if (window.__store && window.__store._activeTxListenerMonth === monthStr && String(window.__store._activeTxReadMode || 'legacy') === _desiredTxReadMode && window.hasListener && window.hasListener(_txKey)) {
+        if (window.__store && window.__store._activeTxListenerMonth === monthStr && String(window.__store._activeTxReadMode || 'legacy') === _desiredTxReadMode && window.__store._activeTxProjectionEpoch?.principal === _txPrincipal() && window.hasListener && window.hasListener(_txKey)) {
             window.__sparkReadMetrics = window.__sparkReadMetrics || {};
             window.__sparkReadMetrics.txSameMonthResubscribeSkipped =
                 (window.__sparkReadMetrics.txSameMonthResubscribeSkipped || 0) + 1;
@@ -3917,22 +3917,23 @@ window.invCustomCategories = [];
             });
         }
 
-        // [FIX MẤT GIAO DỊCH] Dùng 2 query song song:
-        // 1. Theo date (giao dịch được nhập đúng tháng)
-        // 2. Theo txMonth (giao dịch thu bù tháng cũ — date có thể khác tháng)
-        // Sau đó merge + dedup theo id để không hiện trùng.
+        // Three existing sources cover collection date, tuition month and package months.
         let _byDate = [], _byTxMonth = [], _byPackageMonth = []; // Phase 4K-4F: packageMonths array-contains query
-        const _txSourceSnapshotSeen = { byDate: false, byTxMonth: false, byPackageMonth: false, canonical: false };
+        const _txSourceSnapshotSeen = { byDate: false, byTxMonth: false, byPackageMonth: false, canonical: false, principal: _txPrincipal() }; window.__store._activeTxProjectionEpoch = _txSourceSnapshotSeen;
+        const _txSourceServerVerified = { byDate: false, byTxMonth: false, byPackageMonth: false, canonical: false };
         const _recordTxSourceSnapshot = (sourceKey, snap) => {
             const initial = !_txSourceSnapshotSeen[sourceKey];
+            let metadataOnly = false;
+            try { metadataOnly = !initial && typeof snap.docChanges === 'function' && snap.docChanges({ includeMetadataChanges: false }).length === 0; } catch (_) { /* Unknown transport: use the full data path. */ }
             _txSourceSnapshotSeen[sourceKey] = true;
+            _txSourceServerVerified[sourceKey] = { trusted: snap.metadata?.fromCache === false && snap.metadata?.hasPendingWrites === false, revision: (_txSourceServerVerified[sourceKey]?.revision || 0) + 1 };
             if (typeof window.recordFirestoreSnapshotAttribution === 'function') {
                 window.recordFirestoreSnapshotAttribution('transactions.listener.' + sourceKey, snap, {
                     initial,
                     reason: 'month=' + monthStr
                 });
             }
-            return { initial, sourceKey };
+            return { initial, sourceKey, metadataOnly };
         };
         const _isTxInitialHydrationComplete = () => _desiredTxReadMode === 'canonical'
             ? _txSourceSnapshotSeen.canonical
@@ -3946,7 +3947,7 @@ window.invCustomCategories = [];
         let _dashboardInvalidateTimer = null;
         const _isCurrentTxListenerContext = () => {
             const st = window.__store || {};
-            return String(st.clubId || '') === String(_cid || '') &&
+            return st._activeTxProjectionEpoch === _txSourceSnapshotSeen && _txSourceSnapshotSeen.principal === _txPrincipal() && String(st.clubId || '') === String(_cid || '') &&
                 String(st._activeTxListenerMonth || '') === String(monthStr || '') &&
                 String(st._activeTxReadMode || 'legacy') === String(_desiredTxReadMode || 'legacy');
         };
@@ -3969,6 +3970,9 @@ window.invCustomCategories = [];
                 mergedCount: allTransactions.length,
                 reason: reason || 'transactions-snapshot',
             });
+            coverage.pageEvidence = { epoch: _txSourceSnapshotSeen, mode: _desiredTxReadMode, meta: { ..._txSourceServerVerified }, rows: { byDate: _byDate, byTxMonth: _byTxMonth, byPackageMonth: _byPackageMonth, canonical: _byDate }, limit: _txListLim };
+            coverage.pageServerComplete = coverage.complete && (_desiredTxReadMode === 'canonical' ? _txSourceServerVerified.canonical?.trusted
+                : ['byDate', 'byTxMonth', 'byPackageMonth'].every(key => _txSourceServerVerified[key]?.trusted));
             window.__store.transactionCoverage = coverage;
             return coverage;
         };
@@ -3981,6 +3985,16 @@ window.invCustomCategories = [];
         };
         const _mergeAndRender = (snapshotMeta = {}) => {
             if (!_isCurrentTxListenerContext()) return;
+            if (snapshotMeta.metadataOnly === true) {
+                // Metadata updates evidence; unchanged data needs no domain render.
+                _publishTransactionCoverage('transactions-metadata');
+                try {
+                    const page = window.__store?.pagination?.transactions, revision = page?.projectionRevision;
+                    page?.reconcile?.({ rows: allTransactions, month: monthStr, complete: window.__store.transactionCoverage?.pageServerComplete === true, source: 'snapshot', evidence: window.__store.transactionCoverage?.pageEvidence, metadataOnly: true });
+                    if (page?.projectionRevision !== revision && window.invalidateFinance) window.invalidateFinance('transactions-reconciliation');
+                } catch (error) { console.warn('[finance] metadata projection failed; ledger preserved:', error); }
+                if (window.markListenerSnapshot) window.markListenerSnapshot(_txKey); return;
+            }
             const seen = new Set();
             // Phase 4K-4F: merge 3 queries (date + txMonth + packageMonths)
             allTransactions = [..._byDate, ..._byTxMonth, ..._byPackageMonth].filter(t => {
@@ -4005,6 +4019,10 @@ window.invCustomCategories = [];
             _publishTransactionCoverage(snapshotMeta.initial === true
                 ? 'transactions-initial-hydration'
                 : 'transactions-live-snapshot');
+            try {
+                const page = window.__store?.pagination?.transactions;
+                page?.reconcile?.({ rows: allTransactions, month: monthStr, complete: window.__store.transactionCoverage?.pageServerComplete === true, source: 'snapshot', evidence: window.__store.transactionCoverage?.pageEvidence });
+            } catch (error) { console.warn('[finance] page projection failed; ledger snapshot preserved:', error); }
             // V5U6C2: the full initial source set establishes a hydration baseline.
             // Only a later merged-RAM change is a live mutation. The fingerprint
             // coalesces one legacy transaction delivered by 2/3 source callbacks.
@@ -4079,21 +4097,12 @@ window.invCustomCategories = [];
         };
 
         // [PERF] Giữ 2 query song song (byDate + byTxMonth) để không mất giao dịch bù tháng cũ.
-        // Giảm limit từ 1000 → 500 mỗi query: tổng tối đa 500 giao dịch/tháng sau dedup,
-        // đủ cho CLB trên 300 võ sinh. Tháng có trên 500 giao dịch thực tế cực kỳ hiếm.
-        // OK_UI_DISPLAY_LIMIT — TX listener giới hạn hiển thị tháng hiện tại (scale config txListenerLimit 1200).
-        // CLB 1.000+ võ sinh: CLB có > 1200 giao dịch/tháng rất hiếm trong thực tế.
-        // Export/báo cáo dùng loadTransactionsForDateRange/loadTransactionsForTxMonthRange (không bị limit này).
-        // Phase 4J-9B: Đã reclassify marker cũ → OK_UI_DISPLAY_LIMIT (chỉ phục vụ hiển thị tab Thu Chi).
-        // TODO Phase 3.9: tăng limit hoặc chuyển sang aggregation server-side cho dashboard.
+        // OK_UI_DISPLAY_LIMIT — includes package-month source; exports use paginated readers.
         if (typeof window.warnUnsafeLimit === 'function') {
             // uiOnly: true — listener này chỉ phục vụ hiển thị tab Thu Chi,
             // KHÔNG dùng cho tính toán dashboard/doanh thu (Phase 4K stats docs đảm nhận).
             window.warnUnsafeLimit('transactions:byDate+byTxMonth:' + monthStr, 'listenToData:init', { uiOnly: true });
         }
-        // OK_UI_DISPLAY_LIMIT [3.8D-Phase6] — finance realtime listener chỉ hiển thị giao dịch tháng hiện tại.
-        // Export/report dùng loadTransactionsForDateRange / loadTransactionsForTxMonthRange (không bị limit này).
-        // [4J-8] Bumped from 500 → txListenerLimit (1200) để hỗ trợ CLB 1000 võ sinh.
         const qByDate    = query(colRef, where("date", ">=", start), where("date", "<=", end), orderBy("date", "desc"), limit(_txListLim));
         const qByTxMonth = query(colRef, where("txMonth", "==", monthStr), limit(_txListLim));
         // Phase 4K-4F: 3rd query — giao dịch gói nhiều tháng có tháng giữa (2026-07 trong gói 06-08)
@@ -4104,12 +4113,12 @@ window.invCustomCategories = [];
 
         const _attachTxSnapshots = () => {
             if (_desiredTxReadMode === 'canonical') {
-                const canonicalUnsub = onSnapshot(qCanonical, (snap) => { const meta = _recordTxSourceSnapshot('canonical', snap); _byDate = snap.docs.map(d => ({id: d.id, ...d.data()})); _byTxMonth = []; _byPackageMonth = []; _mergeAndRender(meta); });
+                const canonicalUnsub = onSnapshot(qCanonical, { includeMetadataChanges: true }, (snap) => { const meta = _recordTxSourceSnapshot('canonical', snap); if (!meta.metadataOnly) _byDate = snap.docs.map(d => ({id: d.id, ...d.data()})); _byTxMonth = []; _byPackageMonth = []; _mergeAndRender(meta); });
                 currentTxUnsub = canonicalUnsub; return canonicalUnsub;
             }
-            const u1 = onSnapshot(qByDate, (snap) => { const meta = _recordTxSourceSnapshot('byDate', snap); _byDate = snap.docs.map(d => ({id: d.id, ...d.data()})); _mergeAndRender(meta); });
-            const u2 = onSnapshot(qByTxMonth, (snap) => { const meta = _recordTxSourceSnapshot('byTxMonth', snap); _byTxMonth = snap.docs.map(d => ({id: d.id, ...d.data()})); _mergeAndRender(meta); });
-            const u3 = onSnapshot(qByPackageMonth, (snap) => { const meta = _recordTxSourceSnapshot('byPackageMonth', snap); _byPackageMonth = snap.docs.map(d => ({id: d.id, ...d.data()})); _mergeAndRender(meta); });
+            const u1 = onSnapshot(qByDate, { includeMetadataChanges: true }, (snap) => { const meta = _recordTxSourceSnapshot('byDate', snap); if (!meta.metadataOnly) _byDate = snap.docs.map(d => ({id: d.id, ...d.data()})); _mergeAndRender(meta); });
+            const u2 = onSnapshot(qByTxMonth, { includeMetadataChanges: true }, (snap) => { const meta = _recordTxSourceSnapshot('byTxMonth', snap); if (!meta.metadataOnly) _byTxMonth = snap.docs.map(d => ({id: d.id, ...d.data()})); _mergeAndRender(meta); });
+            const u3 = onSnapshot(qByPackageMonth, { includeMetadataChanges: true }, (snap) => { const meta = _recordTxSourceSnapshot('byPackageMonth', snap); if (!meta.metadataOnly) _byPackageMonth = snap.docs.map(d => ({id: d.id, ...d.data()})); _mergeAndRender(meta); });
             const combinedUnsub = () => { try { u1(); } catch(_) {} try { u2(); } catch(_) {} try { u3(); } catch(_) {} };
             currentTxUnsub = combinedUnsub;
             return combinedUnsub;

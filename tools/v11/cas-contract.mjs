@@ -36,6 +36,13 @@ export async function casContract(change=x=>x){
    }
   });
   await check('members projection has no writer',()=>assert.rejects(service.updateMemberStats('P0',{totalSessionsAttended:1}),e=>e.code==='attendance/derived-read-only'));
+  await check('same verified principal may adopt initially missing UI mirrors',async()=>{
+   const previousUser=window.__store.currentUser,previousSelected=window.__store.currentClubId,previousCurrent=window.currentClubId;
+   delete window.__store.currentUser;delete window.__store.currentClubId;delete window.currentClubId;
+   hook=stage=>{if(stage==='before'){window.__store.currentUser={uid:auth.uid};window.__store.currentClubId=club;window.currentClubId=club}};
+   try{const row=intent(950);await service.bulkSaveRecords([row]);assert.equal(read(row).attendanceVersion,row.id)}
+   finally{window.__store.currentUser=previousUser;window.__store.currentClubId=previousSelected;window.currentClubId=previousCurrent;hook=null}
+  });
  }finally{globalThis.window=originalWindow}
  return {results};
 }

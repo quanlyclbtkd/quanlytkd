@@ -1,0 +1,7 @@
+// Emit an operator-run console snippet for the existing origin; no deployment or app globals.
+import fs from 'node:fs';import path from 'node:path';import {pathToFileURL} from 'node:url';
+export function deviceBackupSnippet(input){
+ const moduleSource=fs.readFileSync(new URL('./capture-legacy.mjs',import.meta.url),'utf8');
+ return '(async()=>{const moduleURL=URL.createObjectURL(new Blob(['+JSON.stringify(moduleSource)+'],{type:"text/javascript"}));try{const {captureLegacyBackup}=await import(moduleURL);const input='+JSON.stringify(input)+';const result=await captureLegacyBackup(input.request,input.grant,input.options);const fileURL=URL.createObjectURL(new Blob([JSON.stringify(result,null,2)],{type:"application/json"}));const link=document.createElement("a");link.href=fileURL;link.download="attendance-legacy-backup-"+result.backupSHA256.slice(0,12)+".json";link.click();setTimeout(()=>URL.revokeObjectURL(fileURL),30000);return {backupSHA256:result.backupSHA256,rawKeys:result.content.localStorage.length,unscopedLegacyCount:result.content.unscopedLegacyCount,storageWrites:result.storageWrites};}finally{URL.revokeObjectURL(moduleURL)}})();\n';
+}
+if(process.argv[1]&&import.meta.url===pathToFileURL(path.resolve(process.argv[1])).href){try{const [input,output]=process.argv.slice(2);fs.writeFileSync(output,deviceBackupSnippet(JSON.parse(fs.readFileSync(input))),{flag:'wx',mode:0o600});console.log('OPERATOR_SNIPPET_ONLY: has not accessed a browser, storage or Firestore');}catch(e){console.error(e.message);process.exitCode=1}}

@@ -13,6 +13,7 @@ assert.ok(projectId.startsWith('demo-'),'Demo project required');
 const [hostname,port]=host.split(':');
 const sha=p=>crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');
 const env=await initializeTestEnvironment({projectId,firestore:{host:hostname,port:Number(port),rules:fs.readFileSync('firestore.rules','utf8')}});
+await env.clearFirestore(); // synthetic per-invocation fixture, no production endpoint
 const fixtures={
   1000:{CS1:[200,50,175,75],'Mặc định':[75,25,75,75],CS2:[80,20,50,50],missing:50},
   1500:{CS1:[300,75,262,113],'Mặc định':[112,38,112,113],CS2:[120,30,75,75],missing:75}

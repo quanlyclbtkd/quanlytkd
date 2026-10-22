@@ -1,0 +1,12 @@
+node_modules/
+functions/node_modules/
+__pycache__/
+*.pyc
+*.log
+.firebase/
+.cache/
+handoff/**/evidence/
+CUTOVER_PROOF.json
+DEMO_ACTIVE_ONLY.json
+test-results/
+playwright-report/

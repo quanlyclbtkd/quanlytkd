@@ -1,4 +1,4 @@
-import {HISTORY_AUTHORITY, attendanceServerVersion, attendanceVisibleRecord} from '../core/attendanceContract.js';
+import {HISTORY_AUTHORITY, attendanceServerVersion, attendanceVisibleRecord} from '../core/attendanceContract.js?v=qr-v11r6-attendance-a5-20261022';
 /**
  * js/services/attendance.service.js — Phase 3.1
  * ────────────────────────────────────────────────────────────────
@@ -62,7 +62,9 @@ function _bulkWriteContextGuard(db, clubId) {
     const principal = () => {
         const a = window.__verifiedAuthContextState || {};
         return JSON.stringify([a.uid, a.clubId, a.role, a.coachBranch, a.generation, a.ready,
-            window.userRole, window.coachBranch, window.__store?.userRole, window.__store?.coachBranch]);
+            window.userRole, window.coachBranch, window.__store?.userRole, window.__store?.coachBranch,
+            window.__store?.currentUser?.uid || a.uid,
+            window.__store?.currentClubId || clubId, window.currentClubId || clubId]);
     };
     const captured = principal();
     return () => {
@@ -329,8 +331,9 @@ export const AttendanceService = {
      */
     async loadShifts() {
         const { doc, getDoc } = _sdk();
+        const db = _db(), clubId = _clubId(), ensureCurrent = _bulkWriteContextGuard(db, clubId);
         const snap = await getDoc(
-            doc(_db(), 'clubs', _clubId(), 'settings', 'shifts')
+            doc(db, 'clubs', clubId, 'settings', 'shifts')
         );
         if (typeof window.recordFirestoreReadAttribution === 'function') {
             window.recordFirestoreReadAttribution('attendance.shifts', 1, {
@@ -338,7 +341,21 @@ export const AttendanceService = {
                 reason: 'attendance-shifts-single-flight',
             });
         }
-        return snap.exists() ? (snap.data().list || []) : [];
+        ensureCurrent();
+        // Only a committed server response can establish that this club has no
+        // shifts. A cache miss or local pending settings must stay unavailable.
+        if (snap.metadata?.fromCache !== false || snap.metadata?.hasPendingWrites !== false) {
+            throw Object.assign(new Error('Chưa xác minh được cấu hình ca tập từ máy chủ. Giữ nguyên nhật ký và thử lại khi có mạng.'), {code:'attendance/shift-config-unverified'});
+        }
+        const shifts = snap.exists() ? snap.data()?.list : [];
+        const ids = new Set();
+        if (!Array.isArray(shifts) || shifts.some(shift => {
+            if (!shift || typeof shift !== 'object' || Array.isArray(shift) ||
+                typeof shift.id !== 'string' || !shift.id || shift.id.trim() !== shift.id ||
+                shift.id.includes('/') || ids.has(shift.id)) return true;
+            ids.add(shift.id);return false;
+        })) throw Object.assign(new Error('Cấu hình ca tập không hợp lệ. Cần Admin kiểm tra; chưa chuyển sang điểm danh không có ca.'), {code:'attendance/shift-config-invalid'});
+        return shifts;
     },
 
     /**
@@ -572,7 +589,7 @@ export const AttendanceService = {
     },
     async attestHistory(record, serverVersion) {
         if (!['admin','super_admin'].includes(window.__verifiedAuthContextState?.role)||window.__verifiedAuthContextState?.ready!==true) throw Object.assign(new Error('Chỉ Admin xác minh lịch sử cũ.'),{code:'permission-denied'});
-        const {attendanceIntentId}=await import('../core/attendanceContract.js');
+        const {attendanceIntentId}=await import('../core/attendanceContract.js?v=qr-v11r6-attendance-a5-20261022');
         return _commitAttendanceIntents([{id:attendanceIntentId(),baseVersion:serverVersion,record:{...record,clubId:_clubId()}}]);
     },
 

@@ -68,7 +68,10 @@ check(attendance.includes('await _loadAcceptedAttendanceAuxiliary(token)') && at
 check(app.includes('let _sessionNoteLoadSeq = 0'), 'session note loader has stale-response sequence guard');
 check(app.includes('requestSeq !== _sessionNoteLoadSeq'), 'stale session-note response cannot overwrite current date');
 check(attendance.includes('if (!_onlineListenerBound)'), 'online synchronization listener is bind-once');
-check(attendance.includes("window.addEventListener('online', window.syncOfflineAttendance)"), 'online synchronization listener remains installed');
+check(attendance.includes("window.addEventListener('online', onReconnect)") &&
+    attendance.includes('window.syncOfflineAttendance().catch(') &&
+    (attendance.match(/window\.addEventListener\('online',/g)||[]).length===1,
+    'one online adapter reuses the canonical sync owner and contains rejection');
 check(attendance.includes('if (token.shiftId && docShift !== token.shiftId) return;'), 'attendance cache applies captured selected-shift filter');
 check(attendance.includes('AttendanceService.loadByDate(token.date, {') && attendance.includes('shiftId: token.shiftId') && attendance.includes("branch: token.branch === 'all' ? '' : token.branch"), 'daily read passes immutable date, shift and branch token to service');
 check(service.includes("baseConstraints.push(where('shiftId', '==', shiftId))"), 'daily query filters selected shift server-side');

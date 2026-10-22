@@ -1,4 +1,4 @@
-import {HISTORY_AUTHORITY,attendanceVisibleRecord} from '../../core/attendanceContract.js';
+import {HISTORY_AUTHORITY,attendanceVisibleRecord} from '../../core/attendanceContract.js?v=qr-v11r6-attendance-a5-20261022';
 /**
  * Phase 4K-6U — Attendance Excel Report (lazy, read-only)
  *

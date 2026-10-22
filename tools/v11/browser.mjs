@@ -1,10 +1,12 @@
+import {loadPlaywright,browserExecutable} from '../test-runtime.mjs';
 // Actual Chromium tabs, native IndexedDB, real SPA DOM/modules and Emulator.
 import fs from 'node:fs';import path from 'node:path';import http from 'node:http';import assert from 'node:assert/strict';import {createRequire} from 'node:module';
 import {initializeTestEnvironment} from '@firebase/rules-unit-testing';import * as sdk from 'firebase/firestore';
 const out=path.resolve(process.env.V11_BROWSER_OUTPUT||'../../evidence/browser');fs.mkdirSync(out,{recursive:true});
-const require=createRequire(process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES+'/../package.json'),pw=require('playwright');
+const pw=loadPlaywright();
 const [host,port]=(process.env.FIRESTORE_EMULATOR_HOST||'').split(':'),projectId='demo-v11-browser';assert(host&&port);
 const env=await initializeTestEnvironment({projectId,firestore:{host,port:Number(port),rules:fs.readFileSync('firestore.rules','utf8')}});
+assert.equal(host,'127.0.0.1');await env.clearFirestore();
 const root=process.cwd(),imports={};for(const name of ['@firebase/app','@firebase/firestore','@firebase/util','@firebase/component','@firebase/logger','idb','re2js']){const p=JSON.parse(fs.readFileSync('node_modules/'+name+'/package.json'));imports[name]='/vendor/'+name+'/'+p.module.replace(/^\.\//,'');}
 for(const n of ['bloom','webchannel'])imports['@firebase/webchannel-wrapper/'+n+'-blob']='/vendor/@firebase/webchannel-wrapper/dist/'+n+'-blob/esm/'+n+'_blob_es2018.js';
 const html=fs.readFileSync('index.html','utf8').replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'').replace(/<link\b[^>]*https:[^>]*>/gi,'').replace('</head>','<script type="importmap">'+JSON.stringify({imports})+'</script></head>');
@@ -49,7 +51,7 @@ async function drained(page){await untilPage(page,async()=>!(await window.__stag
 async function check(name,fn){await fn();results.push({name,status:'PASS'});console.log('PASS',name)}
 try{
  await env.withSecurityRulesDisabled(async c=>{const db=c.firestore(),b=sdk.writeBatch(db);for(const branch of ['CS1','CS2']){const club='browser-'+branch;b.set(sdk.doc(db,'users',club),{role:'coach',branch,clubId:club,status:'active'});b.set(sdk.doc(db,'clubs',club,'settings','shifts'),{list:[{id:'S1',name:'Ca chiều',timeStart:'17:30',timeEnd:'19:00'}]});for(let i=0;i<36;i++)b.set(sdk.doc(db,'clubs',club,'profiles','VDV'+i),{branch:branch==='CS1'&&i%2?'Mặc định':branch,status:'active',displayName:'VĐV thử nghiệm '+i,trainingDays:[],belt:'Trắng',totalSessionsAttended:999,consecutiveAbsences:99});}await b.commit();});
- browser=await pw.chromium.launch({headless:true,executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE,args:['--no-sandbox']});
+ browser=await pw.chromium.launch({headless:true,executablePath:browserExecutable(),args:['--no-sandbox']});
  for(const device of ['Pixel 7','iPhone 13'])for(const branch of ['CS1','CS2']){
   await env.withSecurityRulesDisabled(async c=>{const db=c.firestore(),rows=await sdk.getDocs(sdk.collection(db,'clubs','browser-'+branch,'attendance')),b=sdk.writeBatch(db);rows.forEach(d=>b.delete(d.ref));await b.commit();});
   const context=await browser.newContext({...pw.devices[device],defaultBrowserType:undefined});let transportBlocked=false;
@@ -124,7 +126,7 @@ try{
     await page.evaluate(()=>window.__staging.journal.importLegacy(window.__verifiedAuthContextState));
     await second.evaluate(({key,raw})=>localStorage.setItem(key,raw),{key,raw:raw(2)});
     await page.evaluate(()=>window.syncOfflineAttendance());assert.equal(await second.evaluate(key=>localStorage.getItem(key),key),raw(2));
-    const rows=await second.evaluate(()=>window.__staging.journal.list(window.__verifiedAuthContextState));assert.equal(rows.filter(x=>x.legacySource?.key===key).length,2);assert(rows.filter(x=>x.legacySource?.key===key).every(x=>x.state==='needs-review'));
+    const summary=await second.evaluate(()=>window.__staging.journal.legacyReviewSummary(window.__verifiedAuthContextState));assert.equal(summary.count,2);const rows=await second.evaluate(()=>window.__staging.journal.list(window.__verifiedAuthContextState));assert(rows.every(x=>!x.legacySource),'legacy payload must be outside owned V3 list');
     await second.close();
    });
    await check('Persistent journal survives reload while Firestore unavailable; review UI retains legacy',async()=>{
@@ -135,9 +137,13 @@ try{
     transportBlocked=true;await context.setOffline(false);
     // New page can read the same native database without requiring Firestore proof.
     const reload=await context.newPage();await reload.goto(origin,{waitUntil:'domcontentloaded'});
-    const after=await reload.evaluate(async scope=>(await (await import('/js/data/attendanceJournal.js')).AttendanceJournal.list(scope)).map(x=>x.id),{...await page.evaluate(()=>window.__verifiedAuthContextState)});
-    assert(before.every(id=>after.includes(id)));await reload.close();transportBlocked=false;await page.evaluate(()=>window.syncOfflineAttendance());await drained(page);
-    await page.evaluate(()=>window.__staging.api.openPendingReview());assert(await page.locator('#attendanceReviewSheet').textContent().then(x=>x.includes('Giữ dữ liệu máy chủ')));await page.screenshot({path:path.join(out,'two-tab-review.png')});await page.locator('#attendanceReviewSheet').evaluate(el=>el.remove());
+    const after=await reload.evaluate(async scope=>{window.__verifiedAuthContextState={...scope};window.userRole=scope.role;window.coachBranch=scope.coachBranch;window.currentClubId=scope.clubId;window.__store={clubId:scope.clubId,currentClubId:scope.clubId,userRole:scope.role,coachBranch:scope.coachBranch,currentUser:{uid:scope.uid}};return (await (await import('/js/data/attendanceJournal.js')).AttendanceJournal.list(scope)).map(x=>x.id)},{...await page.evaluate(()=>window.__verifiedAuthContextState)});
+    assert(before.every(id=>after.includes(id)));await reload.close();transportBlocked=false;
+    // Resume the actual SPA after proving native-IDB persistence above. A
+    // restored route alone is not proof that an old SDK watch has recovered.
+    await page.reload({waitUntil:'domcontentloaded'});await setup(page,branch);
+    await page.evaluate(()=>window.syncOfflineAttendance());await drained(page);
+    await page.evaluate(()=>window.__staging.api.openPendingReview());assert(await page.locator('#attendanceReviewSheet [data-legacy-review]').textContent().then(x=>x.includes('xác minh chủ dữ liệu')));assert.equal(await page.locator('#attendanceReviewSheet section').count(),0,'orphans have no mutable action row');await page.screenshot({path:path.join(out,'two-tab-review.png')});await page.locator('#attendanceReviewSheet').evaluate(el=>el.remove());
    });
   }
   await page.screenshot({path:path.join(out,device.replaceAll(' ','-')+'-'+branch+'-complete.png')});await context.close();

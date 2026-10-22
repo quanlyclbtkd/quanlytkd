@@ -232,6 +232,11 @@ service cloud.firestore {
 
       // Điểm danh: Coach chỉ được thao tác trong cơ sở đã gán.
       match /attendance/{attendanceId} {
+        // V11R2 default maintenance profile. The offline cutover gate alone
+        // may generate an active candidate after owner approval + zero cohort.
+        function coachAttendanceCutoverOpen() {
+          return false;
+        }
         function historicalProof(data) {
           return data.get('historyAuthority', '') == 'attendance-history-7c42f5e2-6d94-4e49-b8e5-98f876cbd90a';
         }
@@ -252,16 +257,16 @@ service cloud.firestore {
             && request.resource.data.attendanceVersion != resource.data.get('attendanceVersion', 'legacy');
         }
         allow get: if isSuperAdmin() || isAdminOrViewer(clubId)
-          || (isCoach(clubId) && (resource == null || (resourceBranchMatchesCoach() && historicalProof(resource.data))));
+          || (isCoach(clubId) && coachAttendanceCutoverOpen() && (resource == null || (resourceBranchMatchesCoach() && historicalProof(resource.data))));
         allow list: if isSuperAdmin() || isAdminOrViewer(clubId)
-          || (isCoach(clubId) && resourceBranchMatchesCoach() && historicalProof(resource.data));
+          || (isCoach(clubId) && coachAttendanceCutoverOpen() && resourceBranchMatchesCoach() && historicalProof(resource.data));
         allow create: if versionedWrite()
           && (isSuperAdmin() || isClubAdmin(clubId)
-            || (isCoach(clubId) && requestBranchMatchesCoach()
+            || (isCoach(clubId) && coachAttendanceCutoverOpen() && requestBranchMatchesCoach()
                 && coachAttendanceProfileMatches(clubId, request.resource.data)));
         allow update: if versionedWrite() && nextVersion()
           && (isSuperAdmin() || isClubAdmin(clubId)
-            || (isCoach(clubId) && historicalProof(resource.data) && resourceBranchMatchesCoach() && requestBranchMatchesCoach()
+            || (isCoach(clubId) && coachAttendanceCutoverOpen() && historicalProof(resource.data) && resourceBranchMatchesCoach() && requestBranchMatchesCoach()
                 && resource.data.get('profileId', '') == request.resource.data.get('profileId', '')
                 && resource.data.get('branch', '') == request.resource.data.get('branch', '')
                 && coachAttendanceProfileMatches(clubId, request.resource.data)));

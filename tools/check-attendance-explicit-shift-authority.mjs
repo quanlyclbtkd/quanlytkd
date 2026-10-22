@@ -1,4 +1,5 @@
 import {orchestrationModule} from './v11/orchestration-harness.mjs';
+import { HISTORY_COACH_ACCESS } from '../js/core/attendanceContract.js';
 /**
  * Phase 4K-6V5U6F — Attendance Explicit Shift Authority
  * Static authority contracts plus isolated RAM/runtime races. No Firebase call
@@ -450,8 +451,14 @@ try {
     const coachIds = api.getEligibleShifts().map((shift) => shift.id).sort();
     check(coachBlank?.blocked === true && dailyCalls === coachDailyBefore,
         'runtime: Coach configured blank performs zero daily reads');
-    check(coachIds.join(',') === 'cs1-a,global' && !coachIds.includes('cs2-b'),
-        'runtime: Coach eligible shifts are assigned branch plus global only');
+    if (HISTORY_COACH_ACCESS) {
+        check(coachIds.join(',') === 'cs1-a,global' && !coachIds.includes('cs2-b'),
+            'ACTIVE runtime: Coach eligible shifts are assigned branch plus global only');
+    } else {
+        check(coachBlank?.reason === 'attendance-maintenance' && coachIds.length === 0,
+            'MAINTENANCE runtime: Coach stays blocked before shift discovery');
+        console.log('ACTIVE Coach shift acceptance: NOT_RUN on maintenance source');
+    }
 
     // Delete selected shift while another remains: shift-required, zero all-shift read.
     reset({ club: 'club-delete', branch: 'all', auth: 17 });

@@ -16,7 +16,7 @@ for(const scenario of [
  {state:'verified',ui:'admin'}, {state:'verified',store:'admin'}
 ]){
  const {state,ui='coach',store='coach'}=scenario;
- const sandbox={toast:0,mutations:0,writes:0,journal:0,_currentShiftId:'ORIGINAL',_attendanceShiftAuthority:{selectedShiftId:'ORIGINAL'},
+ const sandbox={HISTORY_COACH_ACCESS:true,toast:0,mutations:0,writes:0,journal:0,_currentShiftId:'ORIGINAL',_attendanceShiftAuthority:{selectedShiftId:'ORIGINAL'},
  window:{userRole:ui,currentClubId:'A',__store:{userRole:store,clubId:'A',currentClubId:'A',coachBranch:'CS1',currentUser:{uid:'u1'}},__verifiedAuthContextState:{ready:true,uid:'u1',clubId:'A',role:'coach',coachBranch:'CS1',generation:3},showToast:()=>{sandbox.toast++},getProfilesListenerMetrics:()=>({role:'coach',authorityClubId:'A',coachBranch:'CS1',authoritySessionEpoch:3,activeOwnerUid:'u1',coachRosterReadiness:state,coachPrimaryServerSeen:true,coachLegacyServerSeen:true,coachLegacyListenerKey:'key:alias',activeListenerKey:'students:profiles:active:A:coach:CS1',activeListenerMounted:true}),currentAttendanceData:{student:2}},
  _captureAttendanceDailyContext:()=>({clubId:'A',role:ui,coachBranch:'CS1',shiftId:'SHIFT',authGeneration:3,date:'2026-10-14'}),_resolveAttendanceShiftAuthority:()=>({allowed:true,shiftId:'SHIFT',mode:'explicit-shift'}),_normalizeAttendanceShiftDecision:(c,d)=>{sandbox._currentShiftId=d.shiftId;sandbox._attendanceShiftAuthority.selectedShiftId=d.shiftId;return c},
  _sameBranch:(a,b)=>a===b,_canonicalAttendanceBranch:(v)=>v};

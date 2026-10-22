@@ -1,0 +1,17 @@
+import fs from 'node:fs';import assert from 'node:assert/strict';import {checkIndexes,workloadModel} from './staging-evidence.mjs';import {digest} from './cutover.mjs';
+const definitions=JSON.parse(fs.readFileSync('firestore.indexes.json')),projectId='demo-staging-export',observed=definitions.indexes.filter(x=>x.collectionGroup==='attendance').map((x,i)=>({...x,name:'projects/'+projectId+'/databases/(default)/collectionGroups/attendance/indexes/'+i,state:'READY',fields:[...x.fields,{fieldPath:'__name__',order:'ASCENDING'}]})),results=[];
+function check(name,fn){fn();results.push({name,status:'PASS'});console.log('PASS',name)}
+try{
+ check('all required definitions plus exported READY state accepted as export only',()=>assert.equal(checkIndexes(definitions,observed,projectId).status,'PASS_EXPORTED_STATE'));
+ check('a string READY alone does not establish a ready index',()=>assert.notEqual(checkIndexes(definitions,[{state:'READY'}],projectId).status,'PASS_EXPORTED_STATE'));
+ check('CREATING index blocks',()=>{const x=structuredClone(observed);x[0].state='CREATING';assert.notEqual(checkIndexes(definitions,x,projectId).status,'PASS_EXPORTED_STATE')});
+ check('other project export blocks',()=>assert.notEqual(checkIndexes(definitions,observed,'demo-other').status,'PASS_EXPORTED_STATE'));
+ check('REST-shaped export derives collection group from resource name',()=>{const x=structuredClone(observed);for(const i of x)delete i.collectionGroup;assert.equal(checkIndexes(definitions,x,projectId).status,'PASS_EXPORTED_STATE')});
+ check('other database in same project blocks',()=>{const x=structuredClone(observed);for(const i of x)i.name=i.name.replace('/databases/(default)/','/databases/other/');assert.notEqual(checkIndexes(definitions,x,projectId).status,'PASS_EXPORTED_STATE')});
+ check('missing required definitions cannot vacuously pass',()=>assert.notEqual(checkIndexes({indexes:[]},observed,projectId).status,'PASS_EXPORTED_STATE'));
+ check('missing one field blocks',()=>{const x=structuredClone(observed);x[0].fields.shift();assert.notEqual(checkIndexes(definitions,x,projectId).status,'PASS_EXPORTED_STATE')});
+ check('missing actual workload remains unknown',()=>{const x=workloadModel([]);assert.equal(x.twentyClubInputsComplete,false);assert.equal(x.rulesReadsVerified,false)});
+ check('20 declared workloads never become billing proof',()=>{const x=workloadModel(Array.from({length:20},(_,i)=>({clubId:'C'+i,initialRosterAdditionalDocuments:1500,attendanceResultDocuments:100,intentAttempts:11,casReplayAttempts:1,manualReviewReads:2,reconnectDeliveredDocuments:1500,evidenceKind:'staging-observed',evidenceRef:'export-claimed-by-input'})));assert.equal(x.twentyClubInputsComplete,true);assert.equal(x.actualWorkloadIndependentlyVerified,false);assert.equal(x.reconnectBillingVerified,false);assert.equal(x.status,'HOLD_UNVERIFIED_BILLING_AND_OWNER_APPROVAL')});
+ check('negative or non-integer workload rejected',()=>assert.throws(()=>workloadModel([{initialRosterAdditionalDocuments:-1}]),/WORKLOAD_INVALID/));
+}catch(e){results.push({name:'failure',status:'FAIL',actual:e.stack});throw e}finally{fs.writeFileSync('handoff/V11R2/evidence/staging-evidence-gates.json',JSON.stringify({command:process.argv.join(' '),sourceSHA256:digest(fs.readFileSync('tools/v11r2/staging-evidence.mjs','utf8')),results,realStagingAccess:false},null,2))}
+console.log('STAGING EVIDENCE GATES PASS',results.length);

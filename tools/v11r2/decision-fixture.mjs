@@ -1,0 +1,13 @@
+// DEMO ONLY fixtures. Never a real system-owner decision or measured staging bill.
+import crypto from 'node:crypto';import {canonical,digest,prepare} from './cutover.mjs';
+export function demoDecision(root,options={}){
+ const now=options.now||Date.now(),bundle=prepare(root,{projectId:'demo-v11r2-cutover',clubIds:['A'],now:now-3000,...options});
+ if(!bundle.plan.projectId.startsWith('demo-'))throw Error('DEMO_FIXTURE_CANNOT_APPROVE_REAL_PROJECT');
+ const {publicKey,privateKey}=crypto.generateKeyPairSync('ed25519'),ownerPublicKey=publicKey.export({type:'spki',format:'pem'}),trustedOwnerKeySHA256=crypto.createHash('sha256').update(publicKey.export({type:'spki',format:'der'})).digest('hex');
+ const scan={projectId:bundle.plan.projectId,clubIds:bundle.plan.clubIds,authority:bundle.plan.authority,maintenanceRulesSHA256:bundle.plan.maintenanceRulesSHA256,maintenanceObservedAt:new Date(now-4000).toISOString(),startedAt:new Date(now-2000).toISOString(),finishedAt:new Date(now-1000).toISOString(),oldClientsQuiesced:true,inflightWritesSettled:true,complete:true,serverConfirmed:true,pendingWrites:false,lastPageEmpty:true,finalCursor:null,cohorts:bundle.plan.clubIds.map(clubId=>({clubId,count:0,complete:true})),backupSHA256:digest('demo backup of unchanged raw history/journal')};
+ scan.databaseId='(default)';
+ const indexes={projectId:bundle.plan.projectId,databaseId:'(default)',indexesSHA256:bundle.plan.indexesSHA256,entries:bundle.plan.requiredAttendanceIndexes.map(definitionSHA256=>({definitionSHA256,state:'READY'})),evidenceScope:'DEMO_FIXTURE_NOT_ACTUAL_INDEX_SERVICE'};
+ const approval={decision:'approved',authority:'system_owner',evidenceScope:'DEMO_ONLY',fixture:true,projectId:bundle.plan.projectId,clubIds:bundle.plan.clubIds,planSHA256:digest(bundle.plan),scanSHA256:digest(scan),indexProofSHA256:digest(indexes),backupSHA256:scan.backupSHA256,historyPolicy:'branch-at-attendance',newCASVersionReadsApproved:true,maxTransactionAttempts:3,maxCASDocumentGetsPerIntentPerInvocation:3,rulesRetryReconnectBudgetApproved:true,legacyRecoveryPolicy:'quarantine-no-auto-replay',approvedAt:new Date(now-500).toISOString(),validUntil:new Date(now+600000).toISOString(),maxScanAgeSeconds:300,rollback:'maintenance-deny-preserve-raw-and-versions',monitoring:{maxReadDocumentsPerDay:10000,maxConflictCountPerHour:5,action:'pause-coach-attendance-and-investigate'}};
+ const sign=approval=>crypto.sign(null,Buffer.from(canonical(approval)),privateKey).toString('base64');
+ return {bundle,evidence:{scan,indexes,approval,signature:sign(approval),ownerPublicKey,trustedOwnerKeySHA256,now},sign,privateKey};
+}

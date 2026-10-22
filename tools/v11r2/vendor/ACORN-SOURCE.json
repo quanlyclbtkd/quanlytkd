@@ -1,0 +1,8 @@
+{
+  "package": "acorn",
+  "version": "8.15.0",
+  "registryTarball": "https://registry.npmjs.org/acorn/-/acorn-8.15.0.tgz",
+  "integrity": "sha512-NZyJarBfL7nWwIq+FDL6Zp/yHEhePMNnnJ0y3qfieCrmNvYct8uvtiV41UvlSe6apAfk0fY1FbWx+NwfmpvtTg==",
+  "tarballSHA256": "e46eae89bd9761f16d1d25563b837b55b4b78f3ece06ee0b9789cb2644f523b3",
+  "toolingOnly": true
+}

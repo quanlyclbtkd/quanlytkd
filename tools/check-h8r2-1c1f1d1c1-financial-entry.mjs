@@ -45,7 +45,7 @@ let receipts = 0;
 window.exportReceipt = async () => { receipts++; return { ok: true }; };
 window.toggleTxFormType = () => {};
 vm.runInThisContext(fs.readFileSync('js/core/tuitionDebtCanonical.js', 'utf8'), { filename: 'tuitionDebtCanonical.js' });
-const { FinanceService } = await import('../js/services/finance.service.js?v=long-term-production-stability-20260917-v5u6h8r2');
+const { FinanceService } = await import('../js/services/finance.service.js?v=qr-v11r5-ack-20261021');
 window.FinanceService = FinanceService;
 FinanceService.addTransaction = async () => { primary++; return 'tx-1'; };
 FinanceService.commitAtomicWritePlan = async () => { primary++; return { txIds: ['tx-1'] }; };
@@ -103,7 +103,7 @@ await test('B valid QuickPay one primary effect', async () => {
   assert.equal(primary, 1);
 });
 
-const { initFinance } = await import('../js/modules/finance.js?v=long-term-production-stability-20260917-v5u6h8r2');
+const { initFinance } = await import('../js/modules/finance.js?v=qr-v11r4-tuition-20261021');
 initFinance();
 async function form(type, amount, date, examAmount = '', examTitle = '') {
   elements.type.value = type; elements.description.value = 'A';

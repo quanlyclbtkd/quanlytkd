@@ -1,4 +1,8 @@
 #!/usr/bin/env node
+import {attendanceCacheChain} from './v11r2/cache-contract.mjs';
+import {verifySourceIdentity,ACCEPTED_SOURCE} from './v11r2/source-identity.mjs';
+import {runtimeHash} from './v11r2/cutover.mjs';
+import {buildImportGraph,affectedModules,assertCacheGraph} from './v11r2/import-graph.mjs';
 /**
  * Phase 4K-6V5U6G — Production Stability Sweep + Residual Runtime Defect Closure
  *
@@ -190,13 +194,37 @@ const v10CoachContextCacheScope =
     /import \{ initAttendance \}\s+from '\.\/modules\/attendance\.js\?v=coach-roster-context-v10-20261020'/.test(main) &&
     /import \{ AttendanceService \} from '\.\.\/services\/attendance\.service\.js\?v=qr-v9-attendance-rules-20261020'/.test(attendance);
 const v11CacheScope = index.includes("s.src  = './js/main.js?v=qr-v11-intent-20261020'") && main.includes("from './modules/attendance.js?v=qr-v11-intent-20261020'") && attendance.includes("attendance.service.js?v=qr-v11-intent-20261020");
-check(v11CacheScope || v5u6gFrozenCacheScope || h8r1DisplayNameCacheScope || h8r2StabilityCacheScope || h8r21ResidualCacheScope || v9AttendanceCacheScope || v10CoachContextCacheScope, 'Changed modules are cache-busted only within the active phase scope');
+const v11r4CacheScope =
+    /s\.src\s*=\s*'\.\/js\/main\.js\?v=qr-v11r4-tuition-20261021'/.test(index) &&
+    index.includes('src="app.js?v=qr-v11r4-tuition-20261021"') &&
+    main.includes("from './modules/finance.js?v=qr-v11r4-tuition-20261021'") &&
+    main.includes("from './ui/render/renderFinance.js?v=qr-v11r4-tuition-20261021'") &&
+    main.includes("from './core/tuitionCommandBoundary.js?v=qr-v11r4-tuition-20261021'") &&
+    financeModule.includes("../services/finance.service.js?v=qr-v11r4-tuition-20261021") &&
+    main.includes("from './modules/attendance.js?v=qr-v11r2-cutover-20261021'");
+const v11r5CacheScope = index.includes("s.src  = './js/main.js?v=qr-v11r5-ack-20261021'") && index.includes('src="app.js?v=qr-v11r5-ack-20261021"') &&
+    main.includes("from './modules/finance.js?v=qr-v11r5-ack-20261021'") && main.includes("from './core/tuitionCommandBoundary.js?v=qr-v11r5-ack-20261021'") &&
+    financeModule.includes("../services/finance.service.js?v=qr-v11r5-ack-20261021") && financeModule.includes("./finance/finance.pagination.js?v=qr-v11r5-ack-20261021") &&
+    main.includes("from './modules/attendance.js?v=qr-v11r2-cutover-20261021'");
+const v11r6CacheScope = index.includes("s.src  = './js/main.js?v=qr-v11r6-review-20261021'") && index.includes('src="app.js?v=qr-v11r6-review-20261021"') &&
+    main.includes("from './modules/finance.js?v=qr-v11r6-review-20261021'") && main.includes("from './ui/render/renderFinance.js?v=qr-v11r6-review-20261021'") &&
+    financeModule.includes("./finance/finance.pagination.js?v=qr-v11r6-review-20261021") && financeModule.includes("../ui/render/renderFinance.js?v=qr-v11r6-review-20261021") &&
+    main.includes("from './core/tuitionCommandBoundary.js?v=qr-v11r5-ack-20261021'") && financeModule.includes("../services/finance.service.js?v=qr-v11r5-ack-20261021") &&
+    main.includes("from './modules/attendance.js?v=qr-v11r2-cutover-20261021'");
+const a5MaintenanceCacheScope=(()=>{try{
+ const identity=verifySourceIdentity(root,runtimeHash(root));
+ if(identity.id!=='V11R6_A5_ATTENDANCE_MAINTENANCE'||identity.buildTag!==ACCEPTED_SOURCE.buildTag)return false;
+ const graph=buildImportGraph(root);return assertCacheGraph(graph,affectedModules(graph),identity.buildTag);
+}catch{return false}})();
+check(a5MaintenanceCacheScope || attendanceCacheChain() || v11CacheScope || v11r4CacheScope || v11r5CacheScope || v11r6CacheScope || v5u6gFrozenCacheScope || h8r1DisplayNameCacheScope || h8r2StabilityCacheScope || h8r21ResidualCacheScope || v9AttendanceCacheScope || v10CoachContextCacheScope, 'Changed modules are cache-busted only within the active phase scope');
 check(pkg.scripts?.['check:production-residual-defect-closure'] === 'node tools/check-production-residual-defect-closure.mjs', 'package exposes the V5U6G master gate');
 
 // Execute the new production service contract; native journal/Emulator suites
 // are separate mandatory checks. Unrelated finance/read-owner checks above stay.
 const {casContract}=await import('./v11/cas-contract.mjs');
-try {const result=await casContract();check(result.results.length===12,'CAS identity/ACK/replay/context/status matrix');}
+try {const result=await casContract();check(result.results.length===13 &&
+    result.results.includes('same verified principal may adopt initially missing UI mirrors'),
+    'CAS identity/ACK/replay/context/status matrix plus verified mirror adoption');}
 catch(error){check(false,'CAS matrix',error.stack);}
 
 console.log(`\nTotal: ${passes.length + failures.length} | PASS: ${passes.length} | FAIL: ${failures.length}`);

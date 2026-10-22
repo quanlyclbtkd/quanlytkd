@@ -11,7 +11,7 @@
  *   - no inventory, family-pay, multi-item, admission or exam-fee ownership;
  *   - one single-flight key, one local commit and one invalidation map per success.
  */
-import { FinanceService } from '../services/finance.service.js?v=long-term-production-stability-20260917-v5u6h8r2';
+import { FinanceService } from '../services/finance.service.js?v=qr-v11r5-ack-20261021';
 import { getLocalToday, normalizeYYYYMM, formatMonthCompact } from '../utils/format.js';
 
 const BUILD = 'tuition-command-cutover-20260730-v5u2';

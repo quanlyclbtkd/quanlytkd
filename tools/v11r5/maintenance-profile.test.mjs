@@ -1,0 +1,24 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import { createHash } from 'node:crypto';
+import { spawnSync } from 'node:child_process';
+import { HISTORY_COACH_ACCESS } from '../../js/core/attendanceContract.js';
+import {verifySourceIdentity,ACCEPTED_SOURCE} from '../v11r2/source-identity.mjs';
+import {runtimeHash} from '../v11r2/cutover.mjs';
+const checks = [];
+const run = (name, fn) => { fn(); checks.push({ name, status: 'PASS' }); console.log('PASS ' + name); };
+const rules = fs.readFileSync('firestore.rules', 'utf8');
+const baseline = JSON.parse(fs.readFileSync('handoff/V11R4/SOURCE_HASHES_AND_DIFF.json'));
+const hash = p => createHash('sha256').update(fs.readFileSync(p)).digest('hex');
+run('default Coach contract remains maintenance', () => assert.equal(HISTORY_COACH_ACCESS, false));
+run('Rules Coach cutover remains closed', () => assert.match(rules, /function coachAttendanceCutoverOpen\(\)\s*\{\s*return false;/));
+run('Rules and indexes are byte-identical to R4', () => { assert.equal(hash('firestore.rules'), baseline.rulesSHA); assert.equal(hash('firestore.indexes.json'), baseline.indexSHA); });
+run('Attendance owners match the pinned A5 maintenance source', () => {
+ const identity=verifySourceIdentity(process.cwd(),runtimeHash(process.cwd()));assert.equal(identity.id,ACCEPTED_SOURCE.id);
+ const manifest=JSON.parse(fs.readFileSync(ACCEPTED_SOURCE.manifest));
+ for(const p of ['js/data/attendanceJournal.js','js/services/attendance.service.js','js/modules/attendance.js','js/core/attendanceContract.js'])assert.equal(hash(p),manifest.canonicalRuntimeFiles[p]);
+ assert.equal(hash('js/core/attendanceContract.js'),baseline.canonicalRuntimeFiles['js/core/attendanceContract.js']);
+});
+run('maintenance release gate still fails closed', () => { const r = spawnSync('node', ['tools/v11r2/release-gate.mjs'], { encoding: 'utf8' }); assert.equal(r.status, 1); assert.match(r.stdout + r.stderr, /RELEASE_HOLD: default build is maintenance/); });
+fs.mkdirSync('handoff/V11R5/evidence', { recursive: true });
+fs.writeFileSync('handoff/V11R5/evidence/maintenance-profile.json', JSON.stringify({ command: ['node', 'tools/v11r5/maintenance-profile.test.mjs'], expectedExit: 0, actualExit: 0, status: 'PASS', activeCoachAcceptance: 'NOT_RUN; no approved active source/cutover/device evidence', tests: checks }, null, 2));

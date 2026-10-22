@@ -8,8 +8,9 @@ import {
     normalizeYYYYMM,
     formatMonthCompact,
 } from '../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
-import { FinanceService } from '../services/finance.service.js?v=long-term-production-stability-20260917-v5u6h8r2';
+import { FinanceService } from '../services/finance.service.js?v=qr-v11r5-ack-20261021';
 import { StudentService } from '../services/students.service.js?v=tuition-command-cutover-20260730-v5u2';
+import { attachTransactionPageProjection } from './finance/finance.pagination.js?v=qr-v11r6-review-20261021';
 import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
 
 function _classifyInvTxForFinance(tx, cats) {
@@ -685,7 +686,7 @@ export function initTransactionPagination() {
         prepareNextPage, preparePreviousPage,
         renderPaginationControls, PAGE_SIZE,
     }) => {
-        import('../services/finance.service.js?v=long-term-production-stability-20260917-v5u6h8r2').then(({ FinanceService }) => {
+        import('../services/finance.service.js?v=qr-v11r5-ack-20261021').then(({ FinanceService }) => {
 
             const store = window.__store;
             if (!store) { console.warn('[pagination/transactions] __store chưa sẵn sàng'); return; }
@@ -694,7 +695,10 @@ export function initTransactionPagination() {
             if (!store.pagination) store.pagination = {};
             store.pagination.transactions = createPaginationState(PAGE_SIZE);
             const pgState = store.pagination.transactions;
-
+            const { ensureLiveContext: _ensureLiveContext, projectPage: _projectPage, seedListenerProjection: _seedListenerProjection } = attachTransactionPageProjection({
+                store, pgState, pageSize: PAGE_SIZE, getMonth: _getCurrentMonth,
+                getSearch: _getCurrentSearch, getContext: _currentPaginationContextKey, renderControls: _injectControls
+            });
             function _getCurrentMonth() {
                 const el = document.getElementById('filterMonth');
                 return el ? el.value : '';
@@ -757,6 +761,11 @@ export function initTransactionPagination() {
                 if (pgState._loadError) {
                     html += '<div role="alert" class="text-xs text-red-700">Chưa đọc đủ giao dịch. Hãy thử tải lại; không dùng danh sách này để đối soát.</div>';
                 }
+                if (pgState.reconciliation?.awaitingServer?.length || pgState.reconciliation?.needsReview?.length) {
+                    const reviewCount = pgState.reconciliation.needsReview.length;
+                    const awaitingCount = pgState.reconciliation.awaitingServer.filter(id => !pgState.reconciliation.needsReview.includes(id)).length;
+                    html += '<div role="status" class="text-xs text-amber-700">Có ' + awaitingCount + ' giao dịch chờ đối soát và ' + reviewCount + ' giao dịch cần Admin kiểm tra. Mở trạng thái dưới tên để xem mã giao dịch và nguồn chưa khớp. Không thu lại các khoản này.</div>';
+                }
 
                 // Phase 4K-5H: host nằm NGOÀI table (không chèn div vào trong <table>)
                 const host = _getTxControlsHost();
@@ -774,8 +783,10 @@ export function initTransactionPagination() {
             }
 
             async function _doLoad(cursor, direction) {
-                if (pgState.isLoading) return;
+                if (!pgState.isCurrentContext()) return { stale: true };
+                if (pgState._requestPending) return;
                 pgState.isLoading = true;
+                pgState._requestPending = true;
                 const requestSeq = pgState._requestSeq = (pgState._requestSeq || 0) + 1;
                 _injectControls(); // hiện spinner ngay
 
@@ -792,7 +803,7 @@ export function initTransactionPagination() {
                         search,
                         monthState: direction === 'next' ? pgState._monthQueryState : null,
                     });
-                    if (requestSeq !== pgState._requestSeq || contextKey !== _currentPaginationContextKey()) return { stale: true };
+                    if (!pgState.isCurrentContext() || requestSeq !== pgState._requestSeq || contextKey !== _currentPaginationContextKey()) return { stale: true };
 
                     // Phase 4K-4F: If snap has _mergedItems (from getTransactionsForMonthInclusive),
                     // use them directly to include packageMonths middle-month transactions
@@ -810,9 +821,9 @@ export function initTransactionPagination() {
                         pgState._loadError = false;
                         pgState._mergedPageSize  = PAGE_SIZE;
 
-                        const visibleCount = direction === 'next'
+                        pgState._visibleCount = direction === 'next'
                             ? (pgState.currentItems || []).length + PAGE_SIZE : PAGE_SIZE;
-                        const firstSlice = rawItems.slice(0, visibleCount);
+                        const firstSlice = rawItems.slice(0, pgState._visibleCount);
                         pgState.currentPage  = Math.max(1, Math.ceil(firstSlice.length / PAGE_SIZE));
                         pgState.currentItems = firstSlice;
                         pgState.totalLoaded  = firstSlice.length;
@@ -824,10 +835,14 @@ export function initTransactionPagination() {
                         items = pgState.currentItems;
                     } else {
                         items = processPage(snap, pgState);
+                        pgState._serverHasMore = pgState.hasNext;
                     }
                     pgState.enabled     = true;
                     pgState.searchQuery = search;
                     pgState._displayContextKey = contextKey;
+                    _ensureLiveContext();
+                    _seedListenerProjection();
+                    _projectPage();
 
                     // The list renderer reads this state directly. A page, including a
                     // fully fetched but search-filtered page, never becomes the ledger.
@@ -851,8 +866,8 @@ export function initTransactionPagination() {
                     // renderTxIsland owns the same page presentation on later redraws.
                     try {
                         if (contextKey === _currentPaginationContextKey()) {
-                            const { renderTxIsland } = await import('../ui/render/renderFinance.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h');
-                            if (requestSeq === pgState._requestSeq && contextKey === _currentPaginationContextKey()) {
+                            const { renderTxIsland } = await import('../ui/render/renderFinance.js?v=qr-v11r6-review-20261021');
+                            if (pgState.isCurrentContext() && requestSeq === pgState._requestSeq && contextKey === _currentPaginationContextKey()) {
                                 renderTxIsland();
                             }
                         }
@@ -860,7 +875,7 @@ export function initTransactionPagination() {
                         console.warn('[pagination/transactions] Direct row render lỗi (non-blocking):', _rowErr && _rowErr.message);
                     }
                 } catch (err) {
-                    if (requestSeq !== pgState._requestSeq || contextKey !== _currentPaginationContextKey()) return { stale: true };
+                    if (!pgState.isCurrentContext() || requestSeq !== pgState._requestSeq || contextKey !== _currentPaginationContextKey()) return { stale: true };
                     pgState.isLoading = false;
                     pgState._loadError = true;
                     pgState._monthComplete = false;
@@ -886,6 +901,11 @@ export function initTransactionPagination() {
                     }
                     _injectControls();
                     return { failed: true };
+                } finally {
+                    if (requestSeq === pgState._requestSeq) {
+                        pgState._requestPending = false;
+                        pgState.isLoading = false;
+                    }
                 }
 
                 _injectControls();
@@ -893,11 +913,15 @@ export function initTransactionPagination() {
             }
 
             async function loadFirstPage() {
+                if (!pgState.isCurrentContext()) return { stale: true };
                 if (!_isTransactionTabActuallyActive()) {
                     pgState._contextDirty = true;
                     return { skipped: 'transaction-tab-hidden' };
                 }
                 resetPagination(pgState);
+                pgState._requestPending = false;
+                pgState._visibleCount = PAGE_SIZE;
+                _ensureLiveContext();
                 pgState._mergedAllItems = null;
                 pgState._monthQueryState = null;
                 pgState._monthComplete = null;
@@ -911,6 +935,7 @@ export function initTransactionPagination() {
             }
 
             async function _ensureActiveTransactionPage(reason) {
+                if (!pgState.isCurrentContext()) return { stale: true };
                 if (!_isTransactionTabActuallyActive()) return { skipped: 'transaction-tab-hidden', reason };
                 const contextKey = _currentPaginationContextKey();
                 const needsLoad = pgState._contextDirty === true ||
@@ -923,6 +948,8 @@ export function initTransactionPagination() {
             window.ensureTransactionPaginationForActiveTab = _ensureActiveTransactionPage;
 
             window._pgNext_transactions = async function () {
+                if (!pgState.isCurrentContext() || pgState.isLoading) return;
+                pgState._visibleCount += PAGE_SIZE;
                 // Phase 4K-5H: nếu tháng dùng _mergedAllItems thì append client-side
                 if (Array.isArray(pgState._mergedAllItems)) {
                     const currentLen = Array.isArray(pgState.currentItems) ? pgState.currentItems.length : 0;
@@ -953,7 +980,7 @@ export function initTransactionPagination() {
                     }
 
                     try {
-                        const { renderTxIsland } = await import('../ui/render/renderFinance.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h');
+                        const { renderTxIsland } = await import('../ui/render/renderFinance.js?v=qr-v11r6-review-20261021');
                         if (pgState._displayContextKey === _currentPaginationContextKey()) renderTxIsland();
                     } catch (err) { console.warn('[pagination/transactions] Direct row render lỗi:', err); }
                     _injectControls();
@@ -966,6 +993,7 @@ export function initTransactionPagination() {
             };
 
             window._pgPrev_transactions = async function () {
+                if (!pgState.isCurrentContext()) return { stale: true };
                 const cursor = preparePreviousPage(pgState);
                 if (cursor === null && !pgState.hasPrevious) return;
                 if (cursor === null) {

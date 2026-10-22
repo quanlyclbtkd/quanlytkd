@@ -31,7 +31,7 @@ import { getLocalToday, formatDate, formatMonth, formatMonthCompact, addMonthsTo
 import { escapeHtml } from '../utils/helpers.js';
 import { StudentService } from '../services/students.service.js?v=student-status-command-cutover-tx-delete-fix-20260722-v5u1';
 import { InventoryService } from '../services/inventory.service.js?v=long-term-production-stability-20260917-v5u6h8r2';
-import { FinanceService } from '../services/finance.service.js?v=long-term-production-stability-20260917-v5u6h8r2';
+import { FinanceService } from '../services/finance.service.js?v=qr-v11r5-ack-20261021';
 
 // ════════════════════════════════════════════════════════════════
 // BRIDGE HELPERS — đọc state từ app.js qua window.__store

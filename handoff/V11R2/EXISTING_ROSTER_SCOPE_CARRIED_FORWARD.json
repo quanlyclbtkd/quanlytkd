@@ -1,0 +1,24 @@
+{
+  "decision": "approved",
+  "issuedBy": "system_owner",
+  "recordedBy": "assistant_preserving_existing_explicit_user_roster_scope",
+  "approvedAt": "2026-10-20T22:17:24+07:00",
+  "scope": "Coach CS1 and Coach CS2; clubs with at most 1500 profiles; initial roster result documents and Rules canonical profile lookup for attendance writes",
+  "rulesSha256": "83a28bf80e10f1cec7a73e52cea20d87f3b5d85af95bdcfc9b47e324e271afe4",
+  "sourceSha256": "bb5b3bda5ddb77b1dc935ea539b8ae2f8287f001dbf04d8619605e602d797af1",
+  "measurementSha256": "6b64160823946b26798e55092a39e23605184757df22ac6b9572c0e995cdd788",
+  "maxIncrementalInitialDocs": 1500,
+  "profilesMeasured1000": true,
+  "profilesMeasured1500": true,
+  "attendanceCanonicalProfileLookupApproved": true,
+  "ownerStatement": "chấp thuận đề xuất tối đa +1.500 hồ sơ đọc thêm/lượt tải đầu của Coach trong phạm vi CLB ≤1.500 hồ sơ, cùng việc Rules tra hồ sơ gốc khi Coach ghi điểm danh",
+  "notes": "Same original scope only. Does not authorize CAS/version/retry/reconnect, legacy recovery, cutover or deployment.",
+  "scopeUnchangedFromPriorApproval": true,
+  "newScopeExcluded": [
+    "CAS transaction/version reads",
+    "explicit review reads",
+    "V3 migration deployment",
+    "production deployment"
+  ],
+  "carriedFrom": "original user statement: <=1500 additional Coach initial roster documents within club <=1500 plus Rules canonical-profile write lookup"
+}

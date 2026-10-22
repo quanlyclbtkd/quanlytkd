@@ -49,12 +49,19 @@ export async function dailyContract(change=x=>x){
 export async function financeContract(change=x=>x){
   const code=change(read('js/modules/finance.js'));
   const fn=expression(code,'async function _doLoad',true);
-  for(const message of ['failed-precondition: The query requires an index https://console.firebase.google.com/test','permission-denied']){
-    const tx={innerHTML:'OLD'}, state={isLoading:false,currentItems:[{id:'old'}]};let processed=0;
-    const sandbox={pgState:state,_injectControls:()=>{},_getCurrentMonth:()=> '2026-10',_getCurrentSearch:()=>'',_currentPaginationContextKey:()=> 'A|2026-10',PAGE_SIZE:30,
-      FinanceService:{getTransactionsPage:async()=>{throw Error(message)}},processPage:()=>{processed++;},document:{getElementById:()=>tx},console:{error(){},info(){},warn(){}},window:{},store:{pagination:{}}};
-    vm.createContext(sandbox); const f=vm.runInContext(fn,sandbox);await f(null,'first');
-    assert.equal(state.isLoading,false);assert.equal(state._loadError,true);assert.equal(processed,0);assert.equal(state.currentItems[0].id,'old');
+  const projection=expression(read('js/modules/finance/finance.pagination.js'),'function attachTransactionPageProjection',true);
+  for(const message of ['failed-precondition: The query requires an index https://console.firebase.google.com/test','permission-denied','unavailable','stale-context']){
+    const tx={innerHTML:'OLD'}, state={isLoading:false,currentItems:[{id:'old'}],_displayContextKey:'2026-10|',_loadError:false};let processed=0;
+    const store={clubId:'A',auth:{currentUser:{uid:'admin-A'}},userRole:'admin',pagination:{transactions:state}};
+    const window={__store:store,userRole:'admin',__verifiedAuthContextState:{generation:1}};
+    const sandbox={pgState:state,_injectControls:()=>{},_getCurrentMonth:()=> '2026-10',_getCurrentSearch:()=>'',_currentPaginationContextKey:()=> '2026-10|',PAGE_SIZE:30,
+      FinanceService:{getTransactionsPage:async()=>{if(message==='stale-context')store.auth.currentUser.uid='admin-B';throw Error(message)}},processPage:()=>{processed++;},document:{getElementById:id=>id==='txList'?tx:null},console:{error(){},info(){},warn(){}},window,store};
+    vm.createContext(sandbox);
+    vm.runInContext(projection,sandbox)({store,pgState:state,pageSize:30,getMonth:()=> '2026-10',getSearch:()=>'',getContext:()=> '2026-10|',renderControls:()=>{}});
+    const f=vm.runInContext(fn,sandbox);const result=await f(null,'first');
+    assert.equal(state.isLoading,false);assert.equal(state._requestPending,false);assert.equal(state._requestSeq,1);assert.equal(processed,0);assert.equal(state.currentItems[0].id,'old');
+    if(message==='stale-context'){assert.equal(result.stale,true);assert.equal(state._loadError,false);assert.equal(tx.innerHTML,'OLD');}
+    else {assert.equal(result.failed,true);assert.equal(state._loadError,true);}
     if(message.startsWith('failed'))assert.match(tx.innerHTML,/index|chỉ mục/i);
   }
   return true;

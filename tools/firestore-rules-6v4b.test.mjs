@@ -1,4 +1,5 @@
-import {HISTORY_AUTHORITY} from '../js/core/attendanceContract.js';
+import {HISTORY_AUTHORITY,HISTORY_COACH_ACCESS} from '../js/core/attendanceContract.js';
+import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import {
   initializeTestEnvironment,
@@ -23,11 +24,16 @@ const host = process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8080';
 const [firestoreHost, firestorePortRaw] = host.split(':');
 const firestorePort = Number(firestorePortRaw || 8080);
 const rules = await readFile(new URL('../firestore.rules', import.meta.url), 'utf8');
+const rulesOpen=rules.match(/function coachAttendanceCutoverOpen\(\)\s*\{\s*return (true|false);\s*\}/)?.[1];
+assert.equal(rulesOpen,HISTORY_COACH_ACCESS?'true':'false','Client/Rules attendance profiles must match');
 
 const env = await initializeTestEnvironment({
   projectId,
   firestore: { host: firestoreHost, port: firestorePort, rules },
 });
+
+if(!projectId.startsWith('demo-')||!['127.0.0.1','localhost'].includes(firestoreHost))throw Error('Local demo fixture only');
+await env.clearFirestore();
 
 let passed = 0;
 async function test(name, fn) {
@@ -165,8 +171,8 @@ try {
     await assertSucceeds(getDoc(doc(viewerA, 'clubs/club-a/settings/main_config')));
   });
 
-  await test('Coach can create attendance in assigned branch', async () => {
-    await assertSucceeds(setDoc(doc(coach1, 'clubs/club-a/attendance/p-cs1_2026-06-25'), {
+  await test(HISTORY_COACH_ACCESS?'ACTIVE: Coach can create attendance in assigned branch':'MAINTENANCE: Coach cannot create attendance even in assigned branch', async () => {
+    await (HISTORY_COACH_ACCESS?assertSucceeds:assertFails)(setDoc(doc(coach1, 'clubs/club-a/attendance/p-cs1_2026-06-25'), {
       profileId: 'p-cs1', name:'p-cs1', branch: 'CS1', date: '2026-06-25', month: '2026-06', status: 1, historyAuthority:HISTORY_AUTHORITY,attendanceVersion:'broad-create-cs1-v11',attendancePreviousVersion:'legacy',
     }));
   });

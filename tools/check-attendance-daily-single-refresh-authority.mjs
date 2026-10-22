@@ -1,4 +1,5 @@
 import {orchestrationModule} from './v11/orchestration-harness.mjs';
+import { HISTORY_COACH_ACCESS } from '../js/core/attendanceContract.js';
 /**
  * Phase 4K-6V5U6D — Attendance Daily Single Refresh Authority
  *
@@ -487,10 +488,16 @@ try {
     const coachDailyBefore = dailyCalls;
     const coachShiftBefore = shiftCalls;
     const coachSessionBefore = sessionNoteCalls;
-    await api.requestDailyRefresh('coach-cold', { force: true });
-    check(coachDailyOptions?.branch === 'CS1', 'runtime: Coach daily request remains server-scoped to canonical assigned branch');
+    const coachResult = await api.requestDailyRefresh('coach-cold', { force: true });
+    if (HISTORY_COACH_ACCESS) {
+        check(coachDailyOptions?.branch === 'CS1', 'ACTIVE runtime: Coach daily request remains server-scoped to canonical assigned branch');
+        check(shiftCalls === coachShiftBefore + 1 && dailyCalls === coachDailyBefore + 1 && sessionNoteCalls === coachSessionBefore + 1, 'ACTIVE runtime: Coach cold daily shape is shifts 1 / daily 1 / sessionNote 1');
+    } else {
+        check(coachResult?.blocked === true && coachResult.reason === 'attendance-maintenance', 'MAINTENANCE runtime: Coach daily request is explicitly blocked');
+        check(shiftCalls === coachShiftBefore && dailyCalls === coachDailyBefore && sessionNoteCalls === coachSessionBefore, 'MAINTENANCE runtime: Coach performs zero shift/daily/session-note reads');
+        console.log('ACTIVE Coach daily acceptance: NOT_RUN on maintenance source');
+    }
     check(coachNoteCalls === coachNotesBeforeCoach, 'runtime: Coach daily lifecycle never loads admin coach-notes summary');
-    check(shiftCalls === coachShiftBefore + 1 && dailyCalls === coachDailyBefore + 1 && sessionNoteCalls === coachSessionBefore + 1, 'runtime: Coach cold daily shape is shifts 1 / daily 1 / sessionNote 1');
 } catch (error) {
     failures.push(`runtime simulation failed: ${error?.stack || error}`);
 }

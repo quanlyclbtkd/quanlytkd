@@ -32,7 +32,7 @@ check('all C2 metrics extend __sparkReadMetrics', [
   'dashboardLiveMutationDirty', 'dashboardDirtyReadBackoffSkipped',
   'dashboardDirtyRevalidationAttempts', 'dashboardDirtyResolved',
 ].every(key => dashboard.includes(key)) && !dashboard.includes('window.__dashboardHydrationMetrics'));
-check('transaction source recorder returns initial/source metadata', app.includes('return { initial, sourceKey };'));
+check('transaction source recorder returns initial/source metadata', /return \{ initial, sourceKey(?:, metadataOnly)? \};/.test(app));
 check('canonical transaction snapshot is hydration before mutation', app.includes("_desiredTxReadMode === 'canonical'") && app.includes('_txSourceSnapshotSeen.canonical') && app.includes("'transactions-canonical-initial-hydration'"));
 check('legacy hydration requires all three initial sources', app.includes('_txSourceSnapshotSeen.byDate && _txSourceSnapshotSeen.byTxMonth && _txSourceSnapshotSeen.byPackageMonth'));
 check('legacy callbacks pass source metadata into one merge owner', ['_mergeAndRender(meta); }).\n', "_recordTxSourceSnapshot('byDate'", "_recordTxSourceSnapshot('byTxMonth'", "_recordTxSourceSnapshot('byPackageMonth'"].slice(1).every(token => app.includes(token)) && (app.match(/_mergeAndRender\(meta\)/g) || []).length === 4);

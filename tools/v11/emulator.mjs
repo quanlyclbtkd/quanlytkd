@@ -4,7 +4,10 @@ import {initializeTestEnvironment,assertFails,assertSucceeds} from '@firebase/ru
 import {HISTORY_AUTHORITY,attendanceServerVersion} from '../../js/core/attendanceContract.js';
 const out=path.resolve(process.env.V11_OUTPUT||'../../evidence/emulator');fs.mkdirSync(out,{recursive:true});
 const [host,port]=(process.env.FIRESTORE_EMULATOR_HOST||'').split(':');assert(host&&port,'Run with firebase emulators:exec');
+assert.equal(host,'127.0.0.1','Local-only synthetic fixture reset');
 const env=await initializeTestEnvironment({projectId:'demo-v11-contract',firestore:{host,port:Number(port),rules:fs.readFileSync('firestore.rules','utf8')}});
+// Each invocation owns an isolated demo fixture, including B6 after B7.
+await env.clearFirestore();
 const club='v11-club',date='2026-10-20',results=[],id=()=>crypto.randomUUID();let transactionHook=null,attempt=0,reads=0,writes=0;
 const row=(name,status=1,branch='CS1',day=date)=>({clubId:club,docId:name+'_'+day,profileId:name,name,branch,date:day,month:day.slice(0,7),status,shiftId:'',shiftMode:'legacy-no-shift',operation:status===0?'delete':'set'});
 const intent=(record,baseVersion='absent',intentId=id())=>({id:intentId,record,baseVersion});
@@ -111,6 +114,7 @@ try {
  ]) {
   const original=fs.readFileSync('firestore.rules','utf8'),mutated=change(original);assert.notEqual(mutated,original);
   const control=await initializeTestEnvironment({projectId:'demo-v11-negative-'+kind,firestore:{host,port:Number(port),rules:mutated}});
+  await control.clearFirestore(); // isolated demo negative control, including repeated aggregate runs
   try {
    await control.withSecurityRulesDisabled(async c=>{const d=c.firestore();await sdk.setDoc(sdk.doc(d,'users','control'),{clubId:club,role:'coach',branch:'CS1'});await sdk.setDoc(sdk.doc(d,'clubs',club,'profiles','Foreign'),{branch:'CS2'});await sdk.setDoc(ref(d,'forged'),row('Foreign'));});
    const d=control.authenticatedContext('control').firestore();

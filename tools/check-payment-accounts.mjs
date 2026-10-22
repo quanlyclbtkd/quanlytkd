@@ -155,10 +155,19 @@ if (/branches=intents\.map/.test(financeJs) && /await window\.exportReceipt/.tes
     pass('family report submits both branches and QR owner rejects mixed accounts');
 else
     fail('family cross-account branch validation missing');
+// The independent audit measured this complete multi-case matrix at 32.54s.
+// Bound the child process at 60s; each QR's 15s runtime deadline is unchanged.
+const qrMatrixProcessBudgetMs = 60000;
+const qrMatrixStart = Date.now();
 try {
-    execFileSync(process.execPath, [resolve(rootDir, 'tools/check-qr-report-render-payment-intent.mjs')], { cwd: rootDir, timeout: 15000, stdio: 'pipe' });
+    execFileSync(process.execPath, [resolve(rootDir, 'tools/check-qr-report-render-payment-intent.mjs')], { cwd: rootDir, timeout: qrMatrixProcessBudgetMs, stdio: 'pipe' });
+    console.log(`${TAG} QR child completed in ${Date.now() - qrMatrixStart}ms (process budget ${qrMatrixProcessBudgetMs}ms)`);
     pass('actual-handler QR report payment account/branch negative matrix passes');
-} catch (e) { fail('actual-handler QR payment account/branch matrix failed: '+String(e.message).slice(0,160)); }
+} catch (e) {
+    fail('actual-handler QR payment account/branch matrix failed: ' + (e.code === 'ETIMEDOUT' ? 'CHILD_TIMEOUT' : 'CHILD_FAILURE') + ` after ${Date.now() - qrMatrixStart}ms; ` + String(e.message).slice(0,160));
+    if (e.stdout) console.error(String(e.stdout).slice(-2000));
+    if (e.stderr) console.error(String(e.stderr).slice(-2000));
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 section('11. Debug helpers');
