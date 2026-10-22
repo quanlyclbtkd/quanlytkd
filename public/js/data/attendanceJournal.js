@@ -1,6 +1,6 @@
 // Storage component of the existing attendance owner. No SDK, timer or writer.
 // IndexedDB transactions serialize enqueue/claim/ACK across real browser tabs.
-import {JOURNAL_DATABASE,attendanceIntentId,attendanceIntentTarget} from '../core/attendanceContract.js?v=qr-v11r6-a6-coach-qr-20261022';
+import {JOURNAL_DATABASE,attendanceIntentId,attendanceIntentTarget} from '../core/attendanceContract.js?v=qr-v11r6-a8-v2-coach-acl-qr-20261023';
 let databasePromise;
 const active = item => ['pending','inflight','conflict','needs-review'].includes(item.state);
 const maxSequence=rows=>rows.reduce((max,row)=>Math.max(max,Number(row.sequence)||0),0);

@@ -103,16 +103,49 @@
     // with the actual config problem rather than an opaque batch permission-denied.
     if(typeof rawCount!=='number'||!Number.isInteger(rawCount)) throw error('auth/coach-config-invalid','Cài đặt main_config.branchCount trên máy chủ phải là số nguyên. Admin cần sửa cấu hình CLB trước khi cấp quyền HLV.');
     if(!Number.isInteger(count)||count<1||count>10||assignment.branches.some(b=>Number(b.slice(2))>count))throw error('auth/coach-branch-inactive','Cơ sở đã chọn không nằm trong cấu hình hiện hành của CLB. Tải lại cấu hình và chọn lại.');
+    // Admin-only, server-confirmed preflight. No extra listener and no writes.
+    // An old non-integer epoch causes Firestore increment / Rules to reject.
+    const rootSnap=await readVerified(firestore,'clubs',club);owner.ensure();
+    if(!rootSnap.exists())throw error('auth/coach-root-missing','Thiếu tài liệu gốc CLB, không thể tăng coachAclEpoch an toàn.');
+    const epoch=rootSnap.data()?.coachAclEpoch;
+    if(epoch!==undefined&&(!Number.isSafeInteger(epoch)||epoch<0))
+      throw error('auth/coach-epoch-invalid','coachAclEpoch trên máy chủ không phải số nguyên không âm; phải đối soát bản sao lưu trước khi cấp quyền.');
+    const userSnap=await readVerified(firestore,'users',uid);owner.ensure();
+    if(userSnap.exists()){
+      const oldUser=userSnap.data()||{};
+      if(!['coach','hlv','trainer'].includes(oldUser.role)||oldUser.clubId!==club)
+        throw error('auth/coach-mirror-unsafe','Hồ sơ users hiện hữu không thuộc vai trò HLV hợp lệ cùng CLB. Dừng cập nhật để tránh chiếm quyền tài khoản.');
+      // Do not let a stale client overwrite a newer user mirror after another Admin.
+      if(oldUser.assignmentVersion&&oldUser.assignmentVersion!==(data.assignmentVersion||'legacy'))
+        throw error('auth/coach-mirror-stale','Phiên bản user mirror khác canonical HLV. Dừng lưu, cần đối soát trước khi thay đổi.');
+    }
     const previousVersion=data.assignmentVersion||(creating?'absent':'legacy');
     const assignmentVersion=global.crypto.randomUUID?.()||Array.from(global.crypto.getRandomValues(new Uint8Array(24)),b=>b.toString(16).padStart(2,'0')).join('');
     // Keep all existing primary aliases in sync. Older Coach records can retain
     // primaryCoachBranch; a partial update otherwise makes login reject a valid ACL.
     const fields={assignmentVersion,assignmentPreviousVersion:previousVersion,status:data.status||'active',role:'coach',clubId:club,branch:assignment.primary,coachBranch:assignment.primary,primaryCoachBranch:assignment.primary,allowedBranches:assignment.branches,defaultBranch:assignment.primary,email:data.email||'',updatedAt:new Date().toISOString()};
     const coachRef=doc(firestore,'clubs',club,'coaches',uid),userRef=doc(firestore,'users',uid),batch=writeBatch(firestore);
-    batch.set(coachRef,{...data,...fields,uid},{merge:true});batch.set(userRef,fields,{merge:true});batch.set(doc(firestore,'clubs',club),{coachAclEpoch:increment(1)},{merge:true});owner.ensure();let commitError;try{await batch.commit()}catch(e){commitError=e}owner.ensure();
-    const coach=await readVerified(firestore,'clubs',club,'coaches',uid);owner.ensure();const mirror=await readVerified(firestore,'users',uid);owner.ensure();
-    if(!coach.exists()||!mirror.exists()||![coach.data(),mirror.data()].every(d=>d.role==='coach'&&d.clubId===club&&d.assignmentVersion===assignmentVersion&&same(normalizeAssignment(d,{allowRevoked:true}),assignment)))throw commitError||error('auth/coach-assignment-mismatch','Đã gửi thao tác nhưng chưa xác minh được hai hồ sơ cùng khớp. Không tạo lại tài khoản; tải lại danh sách và kiểm tra.');
-    return true;
+    batch.set(coachRef,{...data,...fields,uid},{merge:true});batch.set(userRef,fields,{merge:true});batch.set(doc(firestore,'clubs',club),{coachAclEpoch:increment(1)},{merge:true});owner.ensure();
+    let commitError=null;
+    try{await batch.commit()}catch(e){commitError=e}
+    owner.ensure();
+    let coach,mirror;
+    try{
+      coach=await readVerified(firestore,'clubs',club,'coaches',uid);owner.ensure();
+      mirror=await readVerified(firestore,'users',uid);owner.ensure();
+    }catch(e){
+      const uncertain=error('COMMIT_OUTCOME_UNVERIFIED','Không thể xác minh kết quả batch từ máy chủ. Không bấm lưu lặp lại; tải lại hai hồ sơ và epoch khi có mạng.');
+      uncertain.originalCode=String(commitError?.code||commitError?.name||'NONE').slice(0,80);
+      uncertain.readbackCode=String(e?.code||e?.name||'READBACK_FAILED').slice(0,80);
+      throw uncertain;
+    }
+    let paired=false;
+    try{paired=coach.exists()&&mirror.exists()&&[coach.data(),mirror.data()].every(d=>d.role==='coach'&&d.clubId===club&&d.assignmentVersion===assignmentVersion&&same(normalizeAssignment(d,{allowRevoked:true}),assignment));}catch{}
+    if(!paired){
+      if(commitError)throw commitError; // preserve actual SDK error code/name.
+      throw error('COMMIT_OUTCOME_UNVERIFIED','Batch đã gửi nhưng readback không khớp. Không được tự động thử lại vì kết quả có thể đã thay đổi.');
+    }
+    return true; // Lost ACK: accept only exact authoritative readback.
   }
   async function loadCoachAccounts(){
     const list=document.getElementById('coachAccountsList');if(!list)return;
@@ -142,7 +175,7 @@
       if(!snap.exists())throw error('auth/coach-assignment-missing','Không tìm thấy hồ sơ HLV trong CLB.');
       if(el?.dataset.assignmentVersion !== (snap.data().assignmentVersion||'legacy'))throw error('auth/coach-assignment-stale','Phân công đã được Admin khác thay đổi. Tải lại danh sách trước khi lưu; không ghi đè quyền vừa thu hồi.');
       await savePair(uid,assignment,snap.data(),owner);toast('Đã lưu và xác minh '+assignment.branches.map(branchName).join(' · ')+'. HLV cần đăng nhập lại hoặc chọn cơ sở để xác minh quyền mới.');await loadCoachAccounts();
-    }catch(e){global.alert('Không thể lưu cơ sở HLV: '+(e?.code==='permission-denied'||e?.code==='firestore/permission-denied'?'Firestore từ chối batch phân quyền. Kiểm tra Rules phiên bản đang triển khai, quyền Admin, main_config.branchCount, users/coach mirror, assignmentVersion và coachAclEpoch; chưa có thao tác nào được xác nhận.':e.message))}finally{if(el)el.querySelectorAll?.('input,select,button')?.forEach(node=>node.disabled=false)}
+    }catch(e){global.alert('Không thể lưu cơ sở HLV: '+((e?.code==='permission-denied'||e?.code==='firestore/permission-denied')?'Firestore từ chối batch phân quyền. Chưa có readback xác minh thành công; cần đối chiếu Rules cùng phiên bản, quyền Admin và 3 document.':e.message))}finally{if(el)el.querySelectorAll?.('input,select,button')?.forEach(node=>node.disabled=false)}
   }
   async function updateCoachStatus(uid){
     try{
@@ -183,7 +216,7 @@
       }
       const blob=new Blob([JSON.stringify({clubId:owner.club,createdAt:new Date().toISOString(),records:backup},null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='coach-acl-backup.json';link.click();URL.revokeObjectURL(url);
       if(!global.confirm('Chỉ tiếp tục khi đã giữ được backup. Đồng bộ các quyền đang được Admin cấp, không thêm cơ sở?'))return;
-      for(const row of backup){try{const data={...row.assignment,status:disabled(row.assignment)||disabled(row.mirror)?'locked':row.assignment.status||'active'};await savePair(row.uid,normalizeAssignment(data,{allowRevoked:true}),data,owner);saved++}catch(e){review++;console.warn('[CoachAssignment]',row.uid,e.code||e.message)}owner.ensure();}
+      for(const row of backup){try{const data={...row.assignment,status:disabled(row.assignment)||disabled(row.mirror)?'locked':row.assignment.status||'active'};await savePair(row.uid,normalizeAssignment(data,{allowRevoked:true}),data,owner);saved++}catch(e){review++;console.warn('[CoachAssignment] record failed (UID redacted)',String(e?.code||'UNKNOWN').slice(0,60))}owner.ensure();}
       global.alert('Đã xác minh '+saved+' hồ sơ; cần Admin kiểm tra '+review+'. Phạm vi lần này tối đa 200 hồ sơ, không tự mở thêm cơ sở.');await loadCoachAccounts();
     }catch(e){global.alert('Đồng bộ chưa hoàn tất: '+e.message)}finally{if(btn)btn.disabled=false}
   }

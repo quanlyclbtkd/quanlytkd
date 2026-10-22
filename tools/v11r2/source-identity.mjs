@@ -36,8 +36,20 @@ export const ACCEPTED_SOURCE = Object.freeze({
  "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
  "buildTag": "qr-v11r6-a6-coach-qr-20261022"
 });
+// A8 V2 is a separate pinned, test-only descendant of exact A7 source.
+// Existing A6/A5/legacy pins remain immutable; verification still authenticates all 128 runtime files.
+const A8_ACCEPTED_SOURCE = Object.freeze({
+  "id": "V11R6_A8_V2_TEST_ONLY_MAINTENANCE",
+  "inputZIP_SHA256": "604dd9cf428ac957cb7c65c87c61738be385267587e505b72b0878c9d3ca8517",
+  "manifest": "tools/v11r2/manifests/V11R6_A8_V2_MAINTENANCE.json",
+  "manifestSHA256": "fa771b5a54569539cfc4c68a0161fbf30a8ff17100b8d6eddac10b67f8a37ae9",
+  "runtimeSHA256": "e560304479fcebb996cf4c7ad841fa99523658c74f6bbdd9eaf85b46c2697f83",
+  "rulesSHA256": "4800a5e196342fee35be81d3cc08a03e5c7f4b062481fe7fe0be9b0e4c92c362",
+  "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+  "buildTag": "qr-v11r6-a8-v2-coach-acl-qr-20261023"
+});
 export function verifySourceIdentity(root, actualRuntimeSHA256) {
- const pinned=[ACCEPTED_SOURCE,A5_ACCEPTED_SOURCE,LEGACY_ACCEPTED_SOURCE];
+ const pinned=[A8_ACCEPTED_SOURCE,ACCEPTED_SOURCE,A5_ACCEPTED_SOURCE,LEGACY_ACCEPTED_SOURCE];
  const exact=pinned.find(p=>p.runtimeSHA256===actualRuntimeSHA256);
  if(!exact&&fs.existsSync(path.join(root,'STAGING_SOURCE_ONLY.json')))return verifyDerivedStaging(root,actualRuntimeSHA256,pinned);
  const p = exact||ACCEPTED_SOURCE, manifestPath = path.join(root,p.manifest);

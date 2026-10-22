@@ -476,8 +476,11 @@ service cloud.firestore {
     }
 
     function existingCoachBelongsToMyClub(data) {
+      // Strict same-club legacy alias migration, never an arbitrary user update.
+      // Target must still become canonical coach and match the new atomic
+      // assignment version in coachUserPairAfter().
       return isClubAdmin(myClubId())
-        && data.get('role', '') == 'coach'
+        && canonicalRole(data.get('role', '')) == 'coach'
         && data.get('clubId', '') == myClubId();
     }
 
