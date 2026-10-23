@@ -66,7 +66,11 @@ check(events.includes("requestDailyRefresh?.('date-change', { force: true })") &
 check(!profiles.includes('window.renderAttendanceList()'), 'profile snapshots do not invoke a second direct daily render path');
 check(attendanceListeners.includes('AttendanceModule?.renderDailyFromRam') && attendanceListeners.includes('presentationOnly: true'), 'attendance pseudo-listener fallback is presentation-only');
 check(app.includes("renderDailyFromRam('legacy-renderApp-profile-presentation')") && read('js/ui/render.js').includes("renderDailyFromRam('module-renderApp-profile-presentation')"), 'legacy and module renderApp paths reuse daily RAM');
-check(main.includes('initAttendanceEvents()') && (/attendance\.events\.js\?v=qr-v11r6-a6-coach-qr-20261022/.test(main) || main.includes('attendance.events.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d')), 'canonical attendance event layer is mounted once by main');
+// Identity-only assertion: later releases carry a different query cache key.
+// Preserve the single imported event owner and guarded one-time init contract;
+// never pin runtime backwards to A6/V5U6D merely to satisfy a retired tag.
+const attendanceEventImports = Array.from(main.matchAll(/import\s*\{\s*initAttendanceEvents\s*\}\s*from\s*['"]\.\/events\/attendance\.events\.js\?v=([a-z0-9-]+)['"]/g));
+check(attendanceEventImports.length === 1 && count(main, /if\s*\(guardOnce\('initAttendanceEvents'\)\)\s*initAttendanceEvents\(\)/g) === 1, 'canonical attendance event layer is mounted once by main');
 check(main.includes("./ui/render.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d") && main.includes("./ui/tabs.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d") && read('js/ui/tabs.js').includes("attendance.listeners.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d"), 'every changed nested runtime module has the V5U6D cache key');
 check(!/id="(?:att_date|att_branch|att_belt|att_shift|chk_show_all_att)"[^>]*onchange=/.test(index), 'attendance filter controls have no duplicate inline onchange owner');
 check(main.includes("window.APP_BUILD_VERSION = '4K-6V5U6D-attendance-daily-single-refresh-authority-20260813'"), 'runtime build version is exactly V5U6D');

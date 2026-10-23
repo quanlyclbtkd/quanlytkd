@@ -1,0 +1,10 @@
+{
+  "kind": "A9R7_S01_ADVERSARIAL_RESULT",
+  "demoCasesReported": 14,
+  "demoCasesPass": 14,
+  "s01TestExecuted": true,
+  "preCutoverForgedMarkerReadRisk": "CONFIRMED_BY_DEMO_TEST",
+  "realServerSnapshotProvided": false,
+  "status": "S01_RELEASE_BLOCKED",
+  "releaseApproved": false
+}

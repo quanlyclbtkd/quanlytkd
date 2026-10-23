@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import {classify} from './qr-evidence-analyzer.mjs';
+const base={stage:'provider-pixels',kind:'REPORT',reason:'QR_EMV_MISMATCH',httpStatus:200,qrPixelAudit:{failure:'INTENT_FIELD_MISMATCH',fieldsMatch:{bankBin:true,accountNo:true,amount:true,memo:false},expectedMemoLength:42,qrMemoLength:40,memoTransform:{sameIgnoringSpaces:true}}};
+let count=0;
+assert.equal(classify(base).classification,'MEMO_WHITESPACE_CHANGE_CANDIDATE');count++;
+assert.equal(classify({...base,qrPixelAudit:{...base.qrPixelAudit,memoTransform:{}}}).classification,'MEMO_CHANGE_UNDETERMINED');count++;
+assert.equal(classify({...base,qrPixelAudit:{...base.qrPixelAudit,memoTransform:{looksLikeTailTruncation:true}}}).classification,'MEMO_TAIL_TRUNCATION_CANDIDATE');count++;
+assert.equal(classify({...base,qrPixelAudit:{...base.qrPixelAudit,memoTransform:{looksLikeHeadTruncation:true}}}).classification,'MEMO_HEAD_TRUNCATION_CANDIDATE');count++;
+assert.equal(classify({...base,qrPixelAudit:{...base.qrPixelAudit,fieldsMatch:{...base.qrPixelAudit.fieldsMatch,amount:false}}}).classification,'CRITICAL_IDENTITY_OR_AMOUNT_MISMATCH');count++;
+assert.equal(classify(base).qrAccepted,false);count++;
+assert(!JSON.stringify(classify(base)).includes('accountNoValue'));count++;
+console.log(`A9R6 sanitized QR classifier ${count}/${count} PASS. Provider-real acceptance NOT tested.`);

@@ -1,0 +1,9 @@
+{
+  "projectId": "tst-staging-2026",
+  "stagingBaseURL": "https://YOUR-STAGING-HOSTING.example/",
+  "devices": [
+    {"deviceId":"desktop-admin-01","platform":"desktop","clubId":"CLUB_ID_STAGING"},
+    {"deviceId":"android-coach-01","platform":"android","clubId":"CLUB_ID_STAGING"},
+    {"deviceId":"ios-coach-01","platform":"ios","clubId":"CLUB_ID_STAGING"}
+  ]
+}

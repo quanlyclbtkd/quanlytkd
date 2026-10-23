@@ -487,6 +487,18 @@ service cloud.firestore {
     function targetIsValidCoachInMyClub(data) {
       return existingCoachBelongsToMyClub(data);
     }
+    // A9R3: Mirror optimistic-version precondition on the *document being written*.
+    // Canonical and mirror may legitimately have different prior versions during
+    // Admin-reviewed repair. After-state version parity is checked separately.
+    function coachMirrorVersionedWrite() {
+      let next = request.resource.data.get('assignmentVersion','');
+      let previous = request.resource.data.get('assignmentPreviousVersion','');
+      return next is string && next.size() >= 16
+        && (resource == null
+          ? previous == 'absent'
+          : (previous == resource.data.get('assignmentVersion','legacy')
+            && next != resource.data.get('assignmentVersion','legacy')));
+    }
     function coachUserPairAfter(uid, data) {
       let clubId = data.get('clubId','');
       let assignment = getAfter(/databases/$(database)/documents/clubs/$(clubId)/coaches/$(uid)).data;
@@ -516,10 +528,12 @@ service cloud.firestore {
       // HLV chỉ được tự tạo mirror khi payload khớp assignment Admin đã cấp.
       allow create: if (isSuperAdmin() && request.resource.data.get('role','') != 'coach')
         || ((isSuperAdmin() || targetIsValidCoachInMyClub(request.resource.data))
-            && request.resource.data.get('role','') == 'coach' && coachUserPairAfter(uid,request.resource.data));
+            && request.resource.data.get('role','') == 'coach'
+            && coachMirrorVersionedWrite() && coachUserPairAfter(uid,request.resource.data));
       allow update: if (isSuperAdmin() && resource.data.get('role','') != 'coach' && request.resource.data.get('role','') != 'coach') || (
         (isSuperAdmin() || (existingCoachBelongsToMyClub(resource.data) && targetIsValidCoachInMyClub(request.resource.data)))
-        && request.resource.data.get('role','') == 'coach' && coachUserPairAfter(uid,request.resource.data)
+        && request.resource.data.get('role','') == 'coach'
+        && coachMirrorVersionedWrite() && coachUserPairAfter(uid,request.resource.data)
       );
       allow delete: if isSuperAdmin() || existingCoachBelongsToMyClub(resource.data);
     }

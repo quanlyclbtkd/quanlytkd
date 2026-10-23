@@ -1610,8 +1610,16 @@ function _recordAttendanceDailyStale(token) {
 }
 
 async function _requestAttendanceDailyRefresh(reason = 'compatibility-render', options = {}) {
-    if (_attendanceCanonicalRole(window.__verifiedAuthContextState?.role)==='coach' && !HISTORY_COACH_ACCESS) {
-        const grid=document.getElementById('attendanceGrid');if(grid)grid.textContent='Điểm danh đang bảo trì để xác minh lịch sử. Nhật ký trên thiết bị được giữ nguyên.';
+    const coachMaintenance=_attendanceCanonicalRole(window.__verifiedAuthContextState?.role)==='coach' && !HISTORY_COACH_ACCESS;
+    // A9R4: visual controls must reflect the deliberate cutover lock.
+    // This changes presentation only: no shift/roster read, listener or write.
+    for(const id of ['att_shift','att_bulk_btn','att_date','att_belt','att_sub_btn_month']){
+        const el=document.getElementById(id);if(!el)continue;
+        if(coachMaintenance){el.disabled=true;el.dataset.coachMaintenance='1';if(id==='att_bulk_btn')el.style.display='none';}
+        else if(el.dataset.coachMaintenance==='1'){el.disabled=false;delete el.dataset.coachMaintenance;if(id==='att_bulk_btn')el.style.display='';}
+    }
+    if (coachMaintenance) {
+        const grid=document.getElementById('attendanceGrid');if(grid)grid.textContent='Điểm danh HLV đang bảo trì để xác minh lịch sử S01 và Journal. Chưa tải Ca tập hoặc danh sách võ sinh; không có thao tác điểm danh được thực hiện. Nhật ký trên thiết bị được giữ nguyên.';
         _renderAttendanceJournalControls();return {blocked:true,reason:'attendance-maintenance'};
     }
     if (!_isAttendanceDaySubtabActive()) {

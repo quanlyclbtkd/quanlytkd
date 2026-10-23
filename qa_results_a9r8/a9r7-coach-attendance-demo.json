@@ -1,0 +1,74 @@
+{
+  "kind": "DEMO_ACTIVE_ONLY_NOT_RELEASE",
+  "projectId": "demo-v11r2-cutover",
+  "authority": "attendance-history-62d662c0-0519-4e6f-8f53-c2e50e4b8bd5",
+  "sourceRulesSHA256": "682126d69310da3184fbb3392d07000cd6202908a78f0ebb261efe50a6735aaf",
+  "total": 14,
+  "pass": 14,
+  "fail": 0,
+  "results": [
+    {
+      "title": "Coach may read only authorized shift settings",
+      "result": "PASS"
+    },
+    {
+      "title": "Coach may read own CS1 and CS2 profiles",
+      "result": "PASS"
+    },
+    {
+      "title": "Coach creates attendance for CS1 and CS2 using canonical profile",
+      "result": "PASS"
+    },
+    {
+      "title": "Coach reads own current-authority attendance",
+      "result": "PASS"
+    },
+    {
+      "title": "Coach cannot read untrusted legacy record",
+      "result": "PASS"
+    },
+    {
+      "title": "Coach cannot invent branch to write foreign profile",
+      "result": "PASS"
+    },
+    {
+      "title": "Coach update with correct CAS advances version",
+      "result": "PASS"
+    },
+    {
+      "title": "Stale CAS and wrong marker cannot overwrite",
+      "result": "PASS"
+    },
+    {
+      "title": "Coach cannot update pre-cutover legacy record",
+      "result": "PASS"
+    },
+    {
+      "title": "Cross-club Coach cannot read or write",
+      "result": "PASS"
+    },
+    {
+      "title": "Coach cannot read financial data",
+      "result": "PASS"
+    },
+    {
+      "title": "Coach cannot delete attendance",
+      "result": "PASS"
+    },
+    {
+      "title": "Admin historical reads retained",
+      "result": "PASS"
+    },
+    {
+      "title": "S01 proof: forged pre-cutover marker remains a release blocker",
+      "result": "PASS"
+    }
+  ],
+  "notMeasured": [
+    "physical iOS/Android",
+    "Journal V1/V2 legacy recovery",
+    "real historical provenance",
+    "production rules/index identities",
+    "reads budget approval"
+  ]
+}

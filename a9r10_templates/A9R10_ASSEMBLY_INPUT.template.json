@@ -1,0 +1,16 @@
+{
+  "cutoverProposalFile": "D:\\A9R10\\staging-source\\a9r10_operator\\cutover-proposal.json",
+  "serverSnapshotFile": "D:\\A9R10\\evidence\\server-snapshot.json",
+  "signedReadGrantFile": "D:\\A9R10\\staging-source\\a9r10_operator\\signed-read-grant.json",
+  "signedProvenanceFile": "D:\\A9R10\\evidence\\signed-history-provenance.json",
+  "signedRosterFile": "D:\\A9R10\\evidence\\signed-device-roster.json",
+  "indexFile": "D:\\A9R10\\staging-source\\firestore.indexes.json",
+  "documentaryEvidenceFiles": [],
+  "devices": [
+    {
+      "deviceId": "android-coach-01",
+      "backupFile": "D:\\A9R10\\evidence\\android-coach-01.backup.json",
+      "queueInventoryFile": "D:\\A9R10\\evidence\\android-coach-01.queue.json"
+    }
+  ]
+}

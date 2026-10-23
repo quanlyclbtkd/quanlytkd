@@ -1,0 +1,15 @@
+{
+  "source_file": "A9R5R1_RESULTS.zip/isolated-auth-firestore.json",
+  "scope": "Firebase Auth + Firestore demo emulators on user Windows D drive",
+  "pass": 5,
+  "fail": 4,
+  "total": 9,
+  "failed_cases": [
+    {"case":"New Coach Auth and 3-doc creation","code":"invalid-argument","stage":"UI completion message"},
+    {"case":"Revoke CS2","code":"ERR_ASSERTION","observed_branches":["CS1","CS2"],"expected_branches":["CS1"]},
+    {"case":"Mirror CAS repair","code":"ERR_ASSERTION","observed_previous_version":"baseline-repair-version-000001","expected_previous_version":"DEMO_STALE_MIRROR_VERSION_2026"},
+    {"case":"Orphan Auth recovery","code":"invalid-argument","stage":"authoritative readback"}
+  ],
+  "old_rules_sha256": "23aae5fcb7f0376e4dd14ac324942233dc1bf2690304f4b7521e86c878cc7dad",
+  "verdict": "NOT ACCEPTED, R2 must rerun 9 integration tests"
+}

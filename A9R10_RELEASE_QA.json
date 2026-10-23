@@ -1,0 +1,37 @@
+{
+  "phase": "A9R10",
+  "status": "TEST_ONLY_STAGING_WORKFLOW_READY",
+  "runtimeChangedFromA9R9": false,
+  "firestoreRulesChangedFromA9R9": false,
+  "attendanceWriterChangedFromA9R9": false,
+  "tests": {
+    "a9r10Core": {"pass":10,"fail":0},
+    "a9r10CurrentPrincipalDeviceEvidence": {"pass":6,"fail":0},
+    "a9r9EvidenceRegression": {"pass":22,"fail":0},
+    "attendanceEntrypoints": {"pass":21,"fail":0},
+    "attendanceWriteGuard": {"pass":9,"fail":0},
+    "javascriptSyntax": "PASS",
+    "rootPublicParity": "PASS",
+    "stagingSourceDerivationSynthetic": "PASS",
+    "ownerReadGrantSignSynthetic": "PASS",
+    "cutoverReviewDraftSynthetic": "PASS",
+    "rollbackCandidateSynthetic": "PASS"
+  },
+  "sourceIdentity": {
+    "canonicalRuntimeFileCount": 128,
+    "runtimeSHA256": "5126e8b074be4b171139ecdf7fbbbe988ccfcf2fde35738ab19549ba17d8037d",
+    "rulesSHA256": "23aae5fcb7f0376e4dd14ac324942233dc1bf2690304f4b7521e86c878cc7dad",
+    "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2"
+  },
+  "pendingRealEvidence": [
+    "real Firebase staging project/web config/hosting",
+    "signed bounded S01 server snapshot",
+    "owner-reviewed history provenance",
+    "complete signed device fleet evidence",
+    "Journal ACK to server attendanceVersion reconciliation",
+    "validated active staging cutover candidate",
+    "Coach UI acceptance 18/18 on real staging devices"
+  ],
+  "inheritedKnownGate": {"appJsBytes":703656,"sizeThreshold":700000,"status":"FAIL_INHERITED_NOT_BYPASSED"},
+  "productionReleaseApproved": false
+}

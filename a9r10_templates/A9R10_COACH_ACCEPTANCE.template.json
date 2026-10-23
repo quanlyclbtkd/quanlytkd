@@ -1,0 +1,30 @@
+{
+  "environment": "staging",
+  "projectId": "tst-staging-2026",
+  "stagingBaseURL": "https://YOUR-STAGING-HOSTING.example/",
+  "evidenceClosureStatus": "STAGING_EVIDENCE_REVIEW_COMPLETE_NOT_RELEASE",
+  "coachAlias": "coach-fixture-01",
+  "productionWrites": 0,
+  "financeWrites": 0,
+  "attendanceWriterCount": 1,
+  "cases": [
+    {"id":"coach_login","status":"PENDING","evidenceSHA256":[]},
+    {"id":"select_cs1","status":"PENDING","evidenceSHA256":[]},
+    {"id":"shifts_cs1","status":"PENDING","evidenceSHA256":[]},
+    {"id":"roster_cs1_scoped","status":"PENDING","evidenceSHA256":[]},
+    {"id":"attendance_create_cs1","status":"PENDING","evidenceSHA256":[]},
+    {"id":"sync_ack_cs1","status":"PENDING","evidenceSHA256":[]},
+    {"id":"relogin_verify_cs1","status":"PENDING","evidenceSHA256":[]},
+    {"id":"select_cs2","status":"PENDING","evidenceSHA256":[]},
+    {"id":"shifts_cs2","status":"PENDING","evidenceSHA256":[]},
+    {"id":"roster_cs2_scoped","status":"PENDING","evidenceSHA256":[]},
+    {"id":"attendance_create_cs2","status":"PENDING","evidenceSHA256":[]},
+    {"id":"sync_ack_cs2","status":"PENDING","evidenceSHA256":[]},
+    {"id":"relogin_verify_cs2","status":"PENDING","evidenceSHA256":[]},
+    {"id":"deny_unassigned_branch","status":"PENDING","evidenceSHA256":[]},
+    {"id":"deny_finance","status":"PENDING","evidenceSHA256":[]},
+    {"id":"duplicate_intent_no_duplicate","status":"PENDING","evidenceSHA256":[]},
+    {"id":"offline_online_recovery","status":"PENDING","evidenceSHA256":[]},
+    {"id":"no_critical_console_errors","status":"PENDING","evidenceSHA256":[]}
+  ]
+}

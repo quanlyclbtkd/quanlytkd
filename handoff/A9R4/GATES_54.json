@@ -1,0 +1,326 @@
+[
+  {
+    "index": 1,
+    "command": "npm run check:syntax",
+    "status": "PASS",
+    "excerpt": "\n> taekwondo-club-app@1.0.0 check:syntax\n> node tools/check-syntax.mjs\n\n[SyntaxCheck] Scanning project JS files and index.html inline scripts...\n\n\n[SyntaxCheck] Checked: 276 items\n              JS files: 268\n              Inline scripts in index.html: 8\n\n[SyntaxCheck] OK — JS files and inline scripts are valid.\n"
+  },
+  {
+    "index": 2,
+    "command": "npm run check:mobile-startup-performance",
+    "status": "PASS",
+    "excerpt": "\n> taekwondo-club-app@1.0.0 check:mobile-startup-performance\n> node tools/check-mobile-startup-performance.mjs\n\n✅ check-mobile-startup-performance passed\n"
+  },
+  {
+    "index": 3,
+    "command": "npm run check:lazy-assets-loading",
+    "status": "PASS",
+    "excerpt": "\n> taekwondo-club-app@1.0.0 check:lazy-assets-loading\n> node tools/check-lazy-assets-loading.mjs\n\n✅ check-lazy-assets-loading passed\n"
+  },
+  {
+    "index": 4,
+    "command": "npm run check:tailwind-static-css-build",
+    "status": "PASS",
+    "excerpt": "\n> taekwondo-club-app@1.0.0 check:tailwind-static-css-build\n> node tools/check-tailwind-static-css-build.mjs\n\n✅ check-tailwind-static-css-build passed\n"
+  },
+  {
+    "index": 5,
+    "command": "npm run check:mobile-filter-currency-stability",
+    "status": "PASS",
+    "excerpt": "ists\n✅ currency helper block can be extracted\n✅ typing 300000 renders 300.000\n✅ hidden raw tuition stays 300000\n✅ caret remains at logical end\n✅ duplicate binding did not duplicate callback\n✅ middle edit keeps correct formatted value\n✅ middle edit does not jump caret to end\n✅ stored raw value initializes display safely\n✅ large digit strings format without floating-point conversion\n\n✅ Mobile filter hardening and currency stability checks passed.\n\n"
+  },
+  {
+    "index": 6,
+    "command": "npm run check:exam-upgrade-finance-separation",
+    "status": "PASS",
+    "excerpt": "er commit\n  PASS: local profile cache is updated only after successful commit\n  PASS: store profile cache is synchronized\n  PASS: render runs once after commit\n  PASS: select-all checkbox is cleared\n  PASS: button is restored after commit\n  PASS: in-flight flag is cleared after commit\n  PASS: success toast reports only belt upgrade\n  PASS: no blocking alert occurred in valid scenario\n\nALL CHECKS PASSED — 41 exam upgrade/finance separation checks\n"
+  },
+  {
+    "index": 7,
+    "command": "npm run check:global-ownership-adoption-cleanup",
+    "status": "PASS",
+    "excerpt": " ARIA contract\n✅ mobile menu close restores body scroll\n✅ mobile menu close is idempotent\n✅ registry detects later global replacement\n✅ registry explicitly restores replaced canonical global\n✅ restored showToast reference matches canonical implementation\n✅ global ownership diagnostics are healthy after recovery\n✅ classic rollback-layer diagnostics are healthy\n✅ legacy UI shell diagnostics are healthy\n\n✅ Phase 4K-6S check passed (112 assertions)\n\n"
+  },
+  {
+    "index": 8,
+    "command": "npm run check:listener-ownership-boundary",
+    "status": "PASS",
+    "excerpt": "up debug\n✅ tabs.js notifies boundary on tab leave\n✅ tabs.js notifies boundary on tab enter\n✅ clubStatsAutoCache uses owned event boundary for window events\n✅ existing Firestore safeRegisterSnapshot registry still present\n✅ app.js scheduleRender still routes via LegacyRenderEntrypoints\n✅ app.js processMultiItem remains present\n✅ app.js quickPay remains present\n✅ package has check:listener-ownership-boundary\n\ncheck-listener-ownership-boundary PASS\n"
+  },
+  {
+    "index": 9,
+    "command": "npm run check:inventory-multiitem-readonly-ui",
+    "status": "PASS",
+    "excerpt": "ocessMultiItem still uses buildMultiItemTuitionPackageMonths\n✅ processMultiItem preserves monotonic paidUntil semantics T1-T4\n✅ processMultiItem profile write uses monotonic result + packageMonths\n✅ processMultiItem keeps canonical tuition bundle write\n✅ Debt boundary consumes final profile paidUntil\n✅ debugRuntimeSmokeTest includes read-only UI debug\n✅ package has check:inventory-multiitem-readonly-ui\n\ncheck-inventory-multiitem-readonly-ui PASS\n"
+  },
+  {
+    "index": 10,
+    "command": "npm run check:financial-action-audit-guard",
+    "status": "PASS",
+    "excerpt": " tại\n✅ processMultiItem giữ paidUntil monotonic/paidMonths trong cùng atomic batch và fail-closed nếu profile biến mất\n✅ quickPay UI adapter vẫn tồn tại\n✅ deleteTx UI adapter vẫn tồn tại\n✅ markInvPaid vẫn tồn tại\n✅ cancelExamPayment vẫn tồn tại\n✅ package.json có check:financial-action-audit-guard\n✅ check:all include financial-action-audit-guard\n✅ check:all:critical include financial-action-audit-guard\n\n✅ Financial Action Audit Guard check PASSED\n"
+  },
+  {
+    "index": 11,
+    "command": "npm run check:diagnostics-tooling-isolation",
+    "status": "PASS",
+    "excerpt": "nostics read the shared store correctly\n✅ tab diagnostics preserve month/readiness contract\n✅ lazy onboarding gate returns its structured contract\n✅ onboarding module loads only after first use\n✅ SuperAdmin audit remains unloaded after onboarding use\n✅ lazy SuperAdmin audit returns its structured contract\n✅ SuperAdmin audit module loads only after first use\n✅ diagnostic ownership creates no collision\n\n✅ Phase 4K-6T check passed (114 assertions)\n\n"
+  },
+  {
+    "index": 12,
+    "command": "npm run check:report-export-lazy-isolation",
+    "status": "PASS",
+    "excerpt": "s heavy module ready after lazy init\n✅ facade restores every canonical global after lazy module initialization\n✅ attendance pagination loads all 10,500 documents\n✅ attendance pagination completes after 11 pages without truncation\n✅ all ten report globals have canonical owners\n✅ all report owners remain installed\n✅ report ownership introduces no collision\n✅ all report rollback references are preserved\n\n✅ Phase 4K-6U check passed (115 assertions)\n\n"
+  },
+  {
+    "index": 13,
+    "command": "npm run check:attendance-canonical-ownership",
+    "status": "FAIL",
+    "excerpt": "nce online listener binds once during first init\n✅ repeated attendance init does not duplicate online listener\n✅ attendance canonical references remain healthy after repeated init\n✅ club switch resets attendance cache/state\n✅ attendance metrics track the active club after reset\n✅ club switch still does not duplicate online listener\n\n❌ Phase 4K-6V check failed (1)\nFAIL: app.js meets Phase 4K-6V4B8 compatible size target (701,232 <= 700,000 bytes)\n"
+  },
+  {
+    "index": 14,
+    "command": "npm run check:spark-read-cost-hardening",
+    "status": "PASS",
+    "excerpt": "k uses one date range loader\n✅ 6-month package query uses array-contains-any\n✅ Old per-month dashboard transaction fallback removed\n✅ Read metrics are exposed\n✅ Same-month transaction listener re-subscribe guard exists\n✅ Transaction snapshots coalesce dashboard invalidation\n✅ Financial write flows remain present\n✅ No Cloud Functions dependency added to Spark dashboard path\n\nTotal: 17 | PASS: 17 | FAIL: 0\nSpark read-cost hardening checks passed.\n\n"
+  },
+  {
+    "index": 15,
+    "command": "npm run check:inventory-history-active-debt",
+    "status": "PASS",
+    "excerpt": "rics are exposed\n✅ Stock renderer overlays inventory_stats instead of trusting only first page\n✅ Dynamic: recent history page cannot overwrite authoritative debts\n✅ Dynamic: lookup prioritizes profileId\n✅ Dynamic: lookup falls back to memberId\n✅ Dynamic: lookup falls back to normalized name\n✅ Dynamic: completeness remains complete after history update\n\nTotal: 25 | PASS: 25 | FAIL: 0\nPhase 4K-6V2 inventory pagination/complete-debt checks passed.\n\n"
+  },
+  {
+    "index": 16,
+    "command": "npm run check:inventory-consumer-hydration-hotfix",
+    "status": "PASS",
+    "excerpt": "ustom category stats key maps correctly\n✅ Dynamic: _liveInvMap is hydrated without opening Inventory tab\n✅ Dynamic: debt resolves by profileId from complete listener index\n✅ Dynamic: normalized debt row preserves identity\n✅ Dynamic: MultiItem readiness succeeds from stats + debt listener\n✅ Dynamic: readiness performs no history hydration requirement\n\nTotal: 25 | PASS: 25 | FAIL: 0\nPhase 4K-6V2A inventory consumer hydration hotfix checks passed.\n\n"
+  },
+  {
+    "index": 17,
+    "command": "npm run check:inventory-dynamic-size-catalog",
+    "status": "PASS",
+    "excerpt": "ormalized alias\n✅ Dynamic: data-backed size appears even without category size config\n✅ Dynamic: configured sizes are preserved\n✅ Dynamic: stock-only size is appended to configured sizes\n✅ Dynamic: category casing aliases resolve correctly\n✅ Dynamic: Thu gộp UI receives complete configured + live size list\n✅ Dynamic: positive stock option remains enabled\n\nTotal: 29 | PASS: 29 | FAIL: 0\nPhase 4K-6V2B dynamic inventory size catalog checks passed.\n\n"
+  },
+  {
+    "index": 18,
+    "command": "npm run check:inventory-ledger-reconciliation",
+    "status": "PASS",
+    "excerpt": "ms no document read\n✅ Dynamic: delete reverses stock and removes history row\n✅ Dynamic: rebuild performs one full collection read\n✅ Dynamic: rebuild repairs missing temporal fields\n✅ Dynamic: rebuilt summary includes legacy input\n✅ Dynamic: normal mutations required no full collection reads\n✅ Dynamic: inventory and summary were committed through batches\n\nTotal: 33 | PASS: 33 | FAIL: 0\nPhase 4K-6V2C inventory ledger reconciliation checks passed.\n\n"
+  },
+  {
+    "index": 19,
+    "command": "npm run check:firestore-read-attribution-canonical-tx-boundary",
+    "status": "PASS",
+    "excerpt": "ormalized and complete\n✅ Dynamic: create writes schema fields and preserves source data\n✅ Dynamic: component months enter canonical boundary\n✅ Dynamic: attribution separates initial and changed documents\n✅ Dynamic: overlap detects duplicate source reads\n✅ Dynamic: manual parity audit compares canonical and legacy sets\n✅ Dynamic: repeated parity audit uses cache instead of another read\n\nTotal: 34 | PASS: 34 | FAIL: 0\nPhase 4K-6V3A checks passed.\n\n"
+  },
+  {
+    "index": 20,
+    "command": "npm run check:payment-bundle-runtime-hotfix",
+    "status": "PASS",
+    "excerpt": "map callback returns component object\n✅ Legacy addNewStudent still calls bundle builder\n✅ Modular addNewStudent still calls bundle builder\n✅ Modular addNewStudent catches runtime errors\n✅ Modular addNewStudent always releases submit lock\n✅ Admission bundle preflight runs before atomic profile write\n✅ Admission preflight rejects malformed component arrays\n✅ V3A canonical boundary remains active\n\nPayment bundle runtime hotfix: 20 passed, 0 failed.\n"
+  },
+  {
+    "index": 21,
+    "command": "npm run check:canonical-transaction-safe-cutover",
+    "status": "PASS",
+    "excerpt": "r-club config is persisted after parity\n✅ Dynamic: listener lifecycle ends in canonical mode\n✅ Dynamic: automatic status records durable success\n✅ Dynamic: all migrated documents contain selected accounting month\n✅ Dynamic: emergency rollback returns to legacy mode\n✅ Dynamic: viewer account cannot auto-schedule migration writes\n✅ Dynamic: source limit blocks unsafe automatic cutover\n\nTotal: 27 | PASS: 27 | FAIL: 0\nPhase 4K-6V3BC1 checks passed.\n\n"
+  },
+  {
+    "index": 22,
+    "command": "npm run check:debt-profile-read-boundary",
+    "status": "PASS",
+    "excerpt": "ll coverage\n✅ Dynamic: full same-club authority makes Debt ready without extra read\n✅ Dynamic: full authority is the recorded source\n✅ Dynamic: mismatched authority club is NOT ready\n✅ Dynamic: non-admin Debt coverage fails closed with zero read/write\n✅ Dynamic: forced manual count audit performs exactly three aggregations\n✅ Dynamic: quota cooldown suppresses retry storm\n\nTotal: 23 | PASS: 23 | FAIL: 0\nD1C3B debt profile boundary checks passed.\n\n"
+  },
+  {
+    "index": 23,
+    "command": "npm run check:debt-authoritative-tuition-coverage",
+    "status": "PASS",
+    "excerpt": "se cannot hide June debt\n✅ Dynamic: paidUntil April with stale paidMonths June still owes May and June\n✅ Dynamic: paidUntil May with stale future paidMonths June still owes June\n✅ Dynamic: skipped month suppresses June debt\n✅ Dynamic: legacy isOwed true may add older owed month only as extra evidence\n✅ Report debt export uses canonical chargeable months, not raw paidUntil comparison\n\nTotal: 32 | PASS: 32 | FAIL: 0\nPhase 4K-6V4B11 checks passed.\n\n"
+  },
+  {
+    "index": 24,
+    "command": "npm run check:coach-attendance-only-read-boundary",
+    "status": "PASS",
+    "excerpt": " profile listener requires an assigned branch\n✅ Dynamic: Admin financial/Kho sources remain allowed\n✅ Dynamic: Coach daily Firestore query contains date + branch + shift\n✅ Dynamic: Coach monthly Firestore query contains month + branch\n✅ Dynamic: Coach member history contains profileId + month + branch\n✅ Dynamic: Missing Coach branch causes zero-query fail-closed behavior\n\nTotal: 30 | PASS: 30 | FAIL: 0\nPhase 4K-6V4A compatibility checks passed.\n\n"
+  },
+  {
+    "index": 25,
+    "command": "npm run check:security-coach-branch-boundary",
+    "status": "PASS",
+    "excerpt": "✅ No callable keeps the legacy hard-coded superadmin email check\n✅ Dynamic: Mặc định/CS01/Cơ sở 2 normalize to canonical codes\n✅ Dynamic: empty branch remains invalid when fallback is empty\n✅ Dynamic: primary branch aliases are exactly CS1 and Mặc định\n✅ Dynamic: legacy Coach branch becomes CS1 before authorization\n✅ Dynamic: missing Coach branch blocks active profiles\n\nTotal: 35 | PASS: 35 | FAIL: 0\nPhase 4K-6V4B security/branch checks passed.\n\n"
+  },
+  {
+    "index": 26,
+    "command": "npm run check:coach-branch-runtime-repair",
+    "status": "PASS",
+    "excerpt": "ng missing User\nPASS normal Auth creation failure keeps UID in memory not logs\nPASS orphan recovery proves Firebase Auth identity and uses same batch\nPASS recovery refuses UID different from authenticated UID\nPASS recovery refuses existing canonical Coach\nPASS existing User mirror never overwritten by create mode\nA9R4 COACH NEW AUTH SOURCE 6/6 - MOCKS ONLY\nCanonical Coach owner source regressions PASS; Firestore Rules/real device remain separate\n"
+  },
+  {
+    "index": 27,
+    "command": "npm run check:quit-tab-completeness",
+    "status": "PASS",
+    "excerpt": "rgeted multi-query fan-out is removed\n✅ Every full document is classified locally\n✅ Loaded and complete states are separate\n✅ Quit renderer uses the single boundary\n✅ Pagination cannot override boundary quit rows\n✅ Boundary unions legacy/canonical sources only during preview and locks dedicated source when complete\n✅ Boundary centralizes branch and search filters\n✅ Status classifier covers boolean/date legacy signals\n\nTotal 10 | PASS 10 | FAIL 0\n"
+  },
+  {
+    "index": 28,
+    "command": "npm run check:quit-tab-authoritative-completeness",
+    "status": "PASS",
+    "excerpt": "en same-club fresh reconciled + complete\n✅ One full snapshot sets all buckets as complete\n✅ Authority state exposes complete/error diagnostics\n✅ Store partial sync preserves existing quit data\n✅ Store has separate quitComplete flag\n✅ Quit search bypasses active-only profile index\n✅ Direct renderer uses same boundary and filters\n✅ Shared pagination is cleared after authority load\n✅ Full fallback also marks quit complete\n\nTotal 9 | PASS 9 | FAIL 0\n"
+  },
+  {
+    "index": 29,
+    "command": "npm run check:quit-tab-mobile-parity",
+    "status": "PASS",
+    "excerpt": "erApp quit rows also use data-quit-id and legacy quit date fields\n✅ Quit renderer uses legacy quit date fields in module row render as well\n✅ Mobile quit renderer ignores cached/paginated quitRows after authoritative load\n✅ Mobile quit row builder can force all rows instead of page-limited rows\n✅ Mobile quit external control reports all rows instead of showing load-more\n\nTotal: 17 | PASS: 17 | FAIL: 0\nPhase 4K-6V4B8 mobile parity checks passed.\n\n"
+  },
+  {
+    "index": 30,
+    "command": "npm run check:render-warning-coalescing",
+    "status": "PASS",
+    "excerpt": "production\n✅ UI-only invalidations do not bump dataVersion again\n✅ search/filter/load-more are routed as list-only invalidations before domain invalidation\n✅ direct legacy invalidateStudents(search/filter) no longer clears whole students cache\n✅ LegacyRenderWarning remains for diagnostics but is production-gated\n✅ APP patch version updated to V4B12 or later\n\nTotal: 14 | PASS: 14 | FAIL: 0\nPhase 4K-6V4B12 render warning coalescing checks passed.\n\n"
+  },
+  {
+    "index": 31,
+    "command": "npm run check:tuition-debt-source-of-truth",
+    "status": "PASS",
+    "excerpt": "sses debt only through canonical skippedMonths\n✅ feeExempt suppresses debt with explicit hidden reason\n✅ quit profile suppresses debt through statusCanonical\n✅ audit counts total profiles\n✅ audit detects debt profiles after preserving explicit future paid month\n✅ audit detects paidMonths after paidUntil\n✅ audit exposes readyForCanonicalCutover flag\n✅ no write/migration APIs in canonical helper\n\nTuition Debt Source of Truth V4C: all checks passed\n"
+  },
+  {
+    "index": 32,
+    "command": "npm run check:active-skipped-month-section",
+    "status": "PASS",
+    "excerpt": "Version unchanged\n  ✅ studentsRenderer summary normalizes skippedMonths for m_skipped\n  ✅ legacy app.js uses _legacySkippedNamesForMonth for skipped section\n  ✅ legacy app.js m_skipped uses canonical month compare\n  ✅ syncStudentSkippedMonthLocal refreshes activeList and debtList\n  ✅ syncStudentSkippedMonthLocal updates skipped section immediately\n  ✅ package.json includes active skipped section gate in npm check\n\n📊 Results: 11 passed, 0 failed\n\n"
+  },
+  {
+    "index": 33,
+    "command": "npm run check:profile-canonical-store",
+    "status": "PASS",
+    "excerpt": "PI initialized\n✅ VM store builds from local profile cache\n✅ canonical branch normalizes aliases\n✅ canonical status classifies active/trial/quit\n✅ canonical month normalizes paidUntil and skippedMonths\n✅ search index can find by Vietnamese name fragment\n✅ debug by id returns canonical row\n✅ getProfileCanonicalStoreStatus shape is stable\n✅ audit detects data warnings without writes\n✅ global debug functions exported\n\n📊 Results: 27 passed, 0 failed\n\n"
+  },
+  {
+    "index": 34,
+    "command": "npm run check:v4d1a-runtime-recovery",
+    "status": "PASS",
+    "excerpt": "nce available\n✅ renderStudents ignores cached quit rows when boundary is present\n✅ legacy app render early return refreshes small UI\n✅ legacy app has small UI refresh helper\n✅ legacy app small UI uses merged profiles\n✅ public render.js synced\n✅ public attendance synced\n✅ public renderStudents synced\n✅ no new Firestore reads in profile canonical store\n✅ V4D1A does not introduce writes in profile canonical store\n\nV4D1A Runtime Recovery: 22/22 PASS\n"
+  },
+  {
+    "index": 35,
+    "command": "npm run check:v5q-quit-single-authoritative-pipeline",
+    "status": "PASS",
+    "excerpt": "es active-only index for quit\n✅ studentsRenderer gets quit rows from one boundary\n✅ direct quit renderer uses same boundary and shared filters\n✅ boundary uses legacy/canonical sources only for preview and dedicated store for complete mode\n✅ boundary centralizes branch and search filtering\n✅ boundary performs no Firestore reads/writes\n✅ legacy quit date/status aliases expanded\n✅ public boundary mirror synced\n✅ package exposes V5Q test\n\nPASS 21/21\n"
+  },
+  {
+    "index": 36,
+    "command": "npm run check:v5r-quit-single-source-lock",
+    "status": "PASS",
+    "excerpt": "n authority without duplicate Quit read\n✅ legacy dirty path remains only when full authority is unavailable\n✅ Coach fails closed before quit full-profile authority read\n✅ renderQuitIsland ignores cached quit HTML when boundary exists\n✅ legacy tab switch cannot restore cached quit HTML\n✅ profile rename updates canonical store immediately\n✅ public boundary mirror synced\n✅ V5R module performs no Firestore IO\n✅ package exposes V5R checks\n\nPASS 18/18\n"
+  },
+  {
+    "index": 37,
+    "command": "npm run check:v5r-quit-source-behavior",
+    "status": "PASS",
+    "excerpt": "\n> taekwondo-club-app@1.0.0 check:v5r-quit-source-behavior\n> node tools/check-v5r-quit-source-behavior.mjs\n\n[StudentProfileStore] reset — v5r-test\n✅ active listener restore removes id from quit bucket\n✅ quit update removes id from active bucket\n✅ complete boundary ignores stale broad sources\n✅ incomplete boundary may show preview union while loading\n✅ boundary mode reports preview vs complete\n\nPASS 5/5\n"
+  },
+  {
+    "index": 38,
+    "command": "npm run check:v5s-quit-context-render-loop-guard",
+    "status": "PASS",
+    "excerpt": "recovery on active mount\n✅ boundary has single-flight ensure and retry backoff\n✅ render island no longer invalidates itself after ensure(false)\n✅ render retry requires ok=true and complete=true\n✅ legacy tab switch renders only after true completeness\n✅ login_history permission denial is session-coalesced\n✅ login_history Firestore rule is private and self-attributed\n✅ public source mirrors are synchronized\n✅ package exposes V5S checks\n\nPASS 16/16\n"
+  },
+  {
+    "index": 39,
+    "command": "npm run check:v5s-quit-context-behavior",
+    "status": "PASS",
+    "excerpt": "✅ concurrent ensure calls share one loader\n✅ shared false result resolves safely\n✅ immediate retry is suppressed by backoff\n✅ quit authority loads from recovered runtime context\n✅ full snapshot classifies only quit profile into quit bucket\n✅ context recovery is measured, not warned repeatedly\n[StudentProfileStore] reset — v10-contract\n[ProfilesListener] reset — v10-contract-end\n✅ cache-only/pending snapshots cannot grant Quit authority\n\nPASS 7/7\n"
+  },
+  {
+    "index": 40,
+    "command": "npm run check:v5t-command-boundary-write-freeze",
+    "status": "PASS",
+    "excerpt": ".js per-operation write counts did not increase\n✅ legacy app.js has no new direct-write call signature\n✅ app.js/public write surface exact after build or explicit bounded pre-build source state\n✅ baseline is explicitly V5T/V5S freeze inventory\n✅ package exposes V5T static and behavior checks\n✅ build:public keeps public as runtime-only output\n✅ default check pipeline includes both V5T gates\n\nV5T canonical command boundary/write-freeze check PASS.\n"
+  },
+  {
+    "index": 41,
+    "command": "npm run check:v5t-command-boundary-behavior",
+    "status": "PASS",
+    "excerpt": "al handler result\n✅ legacy error propagates unchanged through compat wrapper\n✅ underlying delete handler called exactly once\n✅ duplicate identical delete is still protected by compatibility boundary\n✅ normalized command API returns canonical result envelope\n✅ compat wrapper keeps raw legacy return contract\n✅ command wrapper integrity holds\n✅ duplicate prevention metric recorded\n✅ no ownership collisions\n\nV5T command boundary behavior check PASS.\n"
+  },
+  {
+    "index": 42,
+    "command": "npm run check:v5u1-student-status-command-cutover",
+    "status": "PASS",
+    "excerpt": "rename service chunks historical transaction updates\n✅ Firestore Rules allow only club Admin/SuperAdmin to delete own-club transactions\n✅ FinanceService annotates permission-denied delete failures\n✅ deleteTx catches permission errors and retains Tuition tab\n✅ clubStatsAutoCache is write-mounted only for admin/owner/root roles\n✅ package exposes V5U-1 checks\n✅ default pipelines include V5U-1 checks\n\nV5U-1 student status command cutover check PASS.\n"
+  },
+  {
+    "index": 43,
+    "command": "npm run check:v5u1-student-status-command-behavior",
+    "status": "PASS",
+    "excerpt": "eSkippedMonth uses service once\n✅ removeSkippedMonth updates local skippedMonths\n✅ rename delegates once with tx updates\n✅ rename removes old and commits new local profile\n✅ rename updates canonical store buckets\n✅ delete delegates once\n✅ delete removes local profile\n✅ metrics record duplicate prevention\n✅ metrics have no failed commands\n✅ FinanceService preserves and annotates permission-denied\n\nV5U-1 student status command behavior check PASS.\n"
+  },
+  {
+    "index": 44,
+    "command": "npm run check:v5u2-tuition-command-cutover",
+    "status": "PASS",
+    "excerpt": " contains quickPay/delete direct-write signatures\n✅ V5U-2 baseline remains a total-write ceiling after later security hardening\n✅ V5U-2 business-write baseline not regressed; one V5U4 principal setDoc is isolated\n✅ app/public direct-write surfaces exact after build or explicit bounded pre-build source state\n✅ V5T no longer wraps quickPay over the new tuition owner\n✅ package exposes and runs V5U-2 checks\n\nV5U-2 tuition command cutover check PASS.\n"
+  },
+  {
+    "index": 45,
+    "command": "npm run check:v5u2-tuition-command-behavior",
+    "status": "PASS",
+    "excerpt": "l state\n✅ delete partial state removes stale local transaction row\n✅ delete partial state forces tuition/debt refresh\n✅ atomic commit failure is surfaced without partial-write marker\n✅ atomic failure does not commit paidUntil locally\n✅ atomic failure does not synthesize a transaction/profile divergence\n✅ tuition command metrics record duplicate prevention and only genuine delete-reconcile partial write\n\nV5U-2 tuition command behavior check PASS.\n"
+  },
+  {
+    "index": 46,
+    "command": "npm run check:v5u2e-attendance-excel-sdk-fix",
+    "status": "PASS",
+    "excerpt": "APP patch marker updated\n✅ report remains read-only\n✅ no second attendance export query path introduced\n✅ package exposes V5U-2E check\n✅ build:public keeps public as runtime-only output\n✅ behavior: documentId helper is invoked once\n✅ behavior: orderBy receives documentId sentinel\n✅ behavior: bounded query includes where/orderBy/limit\n✅ behavior: all mocked attendance docs returned\n\nKết quả: 22 PASS, 0 FAIL.\nV5U-2E Attendance Excel SDK Fix PASS.\n\n"
+  },
+  {
+    "index": 47,
+    "command": "npm run check:student-name-search-priority",
+    "status": "PASS",
+    "excerpt": "ing chỉ khi search\n✅ Stable sort: original index được dùng làm tie-break\n✅ Cache-bust: index main runtime dùng V5U3 marker\n✅ Scope: không thêm fuzzy/Levenshtein/Soundex\n✅ Other tabs: Finance chỉ re-rank matched presentation rows\n✅ Other tabs: Inventory chỉ re-rank matched presentation rows\n\n──────────────────────────────────────────────────────────────────\nKết quả V5U3: 43 PASS / 0 FAIL\n✅ Student Given-Name Search Priority regression gate PASS.\n\n"
+  },
+  {
+    "index": 48,
+    "command": "npm run check:superadmin-auth-principal-alignment",
+    "status": "PASS",
+    "excerpt": " error\n✅ Unsafe login_history Rules copy guide removed\n✅ SuperAdmin permission UI points to V5U4 principal\n✅ Functions authz requires principal enabled:true\n✅ App cache-bust keeps V5U4 compatibility and advances to V5U5\n✅ Package exposes this gate\n✅ Dynamic disabled principal throws canonical code\n✅ Dynamic disabled principal performs zero setDoc\n✅ Dynamic enabled principal returns true\n\nPASS 24/24\nV5U4 SuperAdmin auth principal alignment PASS.\n\n"
+  },
+  {
+    "index": 49,
+    "command": "npm run check:admin-credential-single-source",
+    "status": "PASS",
+    "excerpt": "ssword\n✅ PASS  Legacy secret unchanged vẫn được transition helper cho phép\n✅ PASS  Chỉ SuperAdmin được phép chuyển secret về empty/removal\n✅ PASS  Club update áp dụng password transition guard\n✅ PASS  index.html expose deleteField trong Firebase bridge\n✅ PASS  js/firebase/config.js expose deleteField\n✅ PASS  Không còn runtime password Firestore copy ngoài maintenance/rules\n\n📊 Kết quả: 33 PASS / 0 FAIL\n✅ Admin Credential Single Source Gate PASS.\n\n"
+  },
+  {
+    "index": 50,
+    "command": "npm run check:auth-context-single-writer",
+    "status": "PASS",
+    "excerpt": "tly one users read, commit rồi init A\n✅ PASS  CASE2 cache cũ: không init A, commit/init B sau verify\n✅ PASS  CASE3 stale role: không mount privileged Admin từ cache\n✅ PASS  CASE4 coach: branch verify trước commit\n✅ PASS  CASE5 disabled/locked: không commit/init\n✅ PASS  CASE6 SuperAdmin: principal trước commit\n✅ PASS  CASE7 logout implementation resets all compatibility mirrors\n\n📊 Kết quả: 40 PASS / 0 FAIL\n✅ Auth Context Single Writer Gate PASS.\n\n"
+  },
+  {
+    "index": 51,
+    "command": "npm run check:legacy-global-freeze",
+    "status": "PASS",
+    "excerpt": "ected flow vẫn hiện diện trong app.js: computeTuitionDebtCanonical\n✅ PASS  Maintenance API được gắn vào SuperAdminModule thay vì window global mới\n✅ PASS  Không Proxy toàn bộ window\n✅ PASS  Không thêm setInterval auth/recovery loop trong vùng V5U5\n\n📊 Metrics V5U5\n  app.js: 663426 -> 701232 bytes\n  lines: 10739 -> 11286\n  window assignments: 538 -> 528\n  duplicate globals: 159 -> 159\n\n📊 Kết quả: 20 PASS / 0 FAIL\n✅ Legacy Global Freeze Gate PASS.\n\n"
+  },
+  {
+    "index": 52,
+    "command": "npm run check:dashboard-single-read-authority",
+    "status": "PASS",
+    "excerpt": "ics: zero-valued covered stats do not trigger transaction fallback\n✅ dynamic zero semantics: authoritative zero applies to current total\n✅ dynamic stale month: newer month B is applied\n✅ dynamic stale month: late month A is dropped\n✅ dynamic stale month: staleResultDropped increments\n✅ dynamic stale month: only B renders charts\n✅ dynamic stale club: late Club A result is dropped\n✅ dynamic stale club: canonical snapshot remains Club B\n\nPASS 38/38\n"
+  },
+  {
+    "index": 53,
+    "command": "npm run check:dashboard-cache-freshness-guard",
+    "status": "PASS",
+    "excerpt": " read backoff)\n✅ dynamic newer revision reuses running same-key flight instead of parallel flight\n✅ dynamic old revision result is stale-dropped\n✅ dynamic stale old flight cannot clear newer dirty revision\n✅ dynamic mutation during flight schedules exactly one bounded follow-up read\n✅ dynamic bounded follow-up clears latest dirty revision after server catches up\n✅ dynamic latest RAM/current summary cannot be overwritten by old flight\n\nPASS 49/49\n"
+  },
+  {
+    "index": 54,
+    "command": "npm run check:dashboard-hydration-mutation-guard",
+    "status": "PASS",
+    "excerpt": "onical response detects mismatch and preserves dirty once\n[dashboard.js] ✅ Phase 4K-6V5U6C2 (hydration/mutation guard + unresolved dirty read backoff)\n✅ Coach hydration reconciliation is skipped with zero Dashboard dirty marks\n✅ Coach hydration reconciliation performs zero stats reads\n[dashboard.js] ✅ Phase 4K-6V5U6C2 (hydration/mutation guard + unresolved dirty read backoff)\n✅ club/auth switch clears Club A dirty and hydration state\n\nPASS 44/44\n"
+  }
+]

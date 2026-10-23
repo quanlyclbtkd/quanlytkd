@@ -1,0 +1,6 @@
+{
+  "cutoverProposalFile": "D:\\A9R10\\staging-source\\a9r10_operator\\cutover-proposal.json",
+  "cutoverReviewFile": "D:\\A9R10\\evidence\\cutover-review.json",
+  "signedCutoverApprovalFile": "D:\\A9R10\\evidence\\signed-cutover-approval.json",
+  "evidencePackageFile": "D:\\A9R10\\evidence\\a9r10-package.json"
+}

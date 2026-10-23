@@ -45,9 +45,13 @@ const openDatabase=()=>{
     if (!databasePromise) databasePromise=new Promise((resolve,reject)=>{
         const request=indexedDB.open(JOURNAL_DATABASE,1);
         request.onupgradeneeded=()=>{const db=request.result;db.createObjectStore('intents',{keyPath:'id'});db.createObjectStore('meta',{keyPath:'key'});};
-        request.onsuccess=()=>{const db=request.result;db.onversionchange=()=>{db.close();databasePromise=null;};resolve(db);};
-        request.onerror=()=>{databasePromise=null;reject(request.error);};
-        request.onblocked=()=>reject(Object.assign(new Error('Cần đóng phiên cũ để mở nhật ký điểm danh.'),{code:'attendance/journal-blocked'}));
+        // A blocked version/open request can later succeed after another tab closes.
+        // Its original promise has already rejected: close that late connection
+        // and let a subsequent explicit attempt make a fresh request.
+        let blocked=false;
+        request.onsuccess=()=>{const db=request.result;if(blocked){db.close();return;}db.onversionchange=()=>{db.close();databasePromise=null;};resolve(db);};
+        request.onerror=()=>{if(!blocked)databasePromise=null;reject(request.error);};
+        request.onblocked=()=>{blocked=true;databasePromise=null;reject(Object.assign(new Error('Cần đóng phiên cũ để mở nhật ký điểm danh.'),{code:'attendance/journal-blocked'}));};
     });return databasePromise;
 };
 async function atomic(scope,operation) {

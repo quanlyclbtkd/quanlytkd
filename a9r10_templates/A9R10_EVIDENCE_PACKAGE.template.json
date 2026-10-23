@@ -1,0 +1,13 @@
+{
+  "plan": {
+    "projectId": "tst-staging-2026",
+    "clubIds": ["CLUB_ID_STAGING"],
+    "sourceRuntimeSHA256": "FROM_SIGNED_STAGING_PLAN",
+    "maintenanceRulesSHA256": "FROM_DEPLOYED_STAGING_MAINTENANCE_RULES",
+    "indexesSHA256": "FROM_STAGING_INDEX_PROOF",
+    "createdAt": "FROM_APPROVED_PLAN"
+  },
+  "historyEvidence": null,
+  "roster": null,
+  "devices": []
+}

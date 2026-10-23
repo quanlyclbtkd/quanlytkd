@@ -48,8 +48,82 @@ const A8_ACCEPTED_SOURCE = Object.freeze({
   "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
   "buildTag": "qr-v11r6-a8-v2-coach-acl-qr-20261023"
 });
+// A9R1 is a narrow post-audit UI wiring correction on pinned A9. The prior
+// lineage entries remain immutable. This pin is not an approval to deploy.
+const A9R1_ACCEPTED_SOURCE = Object.freeze({
+  id:'V11R6_A9R1_COACH_REPAIR_UI_TEST_ONLY',
+  inputZIP_SHA256:'bee77d013cf5c1e48b8d3c242cb3807dcf8229f3eb33857f7cf52731788cb525',
+  manifest:'tools/v11r2/manifests/V11R6_A9R1_TEST_ONLY.json',
+  manifestSHA256:'bb4a3a26aad101e10b9b121f5a3b382d88600e89876ff68b103dc387eaee409f',
+  runtimeSHA256:'3dd0d01ac85833c19ba37ce1349c6222bf64802a7ac9625370d8646ae5acf3a0',
+  rulesSHA256:'4800a5e196342fee35be81d3cc08a03e5c7f4b062481fe7fe0be9b0e4c92c362',
+  indexesSHA256:'72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2',
+  buildTag:'qr-v11r6-a8-v2-coach-acl-qr-20261023'
+});
+// A9R4 retains exact A9R3 Rules and Mirror CAS; TEST ONLY, never deploy proof.
+const A9R4_ACCEPTED_SOURCE = Object.freeze({
+  id:'V11R6_A9R4_COACH_ONBOARDING_QR_DIAGNOSTICS_TEST_ONLY',
+  inputZIP_SHA256:'e37a67e4c6ea97890fa0ee8734ecceb07fec0831800ea46c34df652d2c5e87b8',
+  manifest:'tools/v11r2/manifests/V11R6_A9R4_TEST_ONLY.json',
+  manifestSHA256:'f260820d8c3aae1de6d3fa1bf7f88d400a2d8198a21c51bc730da517ebd58214',
+  runtimeSHA256:'0adb9ef9719a233bf165d5b8f6cc64e0303abd026506e63b36f858a1d2a08735',
+  rulesSHA256:'23aae5fcb7f0376e4dd14ac324942233dc1bf2690304f4b7521e86c878cc7dad',
+  indexesSHA256:'72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2',
+  buildTag:'qr-v11r6-a8-v2-coach-acl-qr-20261023'
+});
+// A9R3 is a separate pinned TEST-ONLY child of A9R2 (not deployment clearance).
+const A9R3_ACCEPTED_SOURCE = Object.freeze({
+  id:'V11R6_A9R3_MIRROR_VERSION_CAS_TEST_ONLY',
+  inputZIP_SHA256:'e4df57f7b928afadc4d307f300ca98ec65aabc51f3e1b42f835d4e17f9f897ec',
+  manifest:'tools/v11r2/manifests/V11R6_A9R3_TEST_ONLY.json',
+  manifestSHA256:'28689b1b7a2ff7a9acc6e763dacc298f59d7dc61fb1210582b33bbd9d0fd5b0d',
+  runtimeSHA256:'ca24b73bb9625d5bef4edbbe252fe1b02adc6989ef7a36975e315ca262296be5',
+  rulesSHA256:'23aae5fcb7f0376e4dd14ac324942233dc1bf2690304f4b7521e86c878cc7dad',
+  indexesSHA256:'72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2',
+  buildTag:'qr-v11r6-a8-v2-coach-acl-qr-20261023'
+});
+// A9 extends the reviewed source allowlist; previous A8/A6/A5 pins are intact.
+// This verifies artifact lineage, NOT Emulator clearance or production approval.
+const A9_ACCEPTED_SOURCE = Object.freeze({
+  id:'V11R6_A9_AUTH_ACL_RECOVERY_TEST_ONLY',
+  inputZIP_SHA256:'19cb8d8e4d0b438823d11f404c81462dda5e9eeda443654f3c9ed3f6ff1713dd',
+  manifest:'tools/v11r2/manifests/V11R6_A9_TEST_ONLY.json',
+  manifestSHA256:'cea894a5b97e27471f18376f9a449bd7870bd4dcf912c77cfb048b91491a2b99',
+  runtimeSHA256:'88aefc699326942791840b464fa916e4a65cd08e7c401e055187d314cf7d68c6',
+  rulesSHA256:'4800a5e196342fee35be81d3cc08a03e5c7f4b062481fe7fe0be9b0e4c92c362',
+  indexesSHA256:'72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2',
+  buildTag:'qr-v11r6-a8-v2-coach-acl-qr-20261023'
+});
+// A9R6 exact source pin for an isolated DEMO cutover candidate only.
+// Not owner approval, staging evidence, activation, or production permission.
+const A9R6_ATTENDANCE_DEMO_ONLY = Object.freeze({
+  id:'V11R6_A9R6_COACH_ATTENDANCE_PRE_CUTOVER_TEST_ONLY',
+  inputZIP_SHA256:'b57558d9bb516dc1d580b263ba0e9322b473f06c07619ecb2a94f1a5b5e2ccdf',
+  manifest:'tools/v11r2/manifests/V11R6_A9R6_PIN_FOR_ATTENDANCE_DEMO_TEST_ONLY.json',
+  manifestSHA256:'74cd0338854af1d56364fa5642706799cd208abbe91091a138f0e5bd45767149',
+  runtimeSHA256:'0b0bec51e19cf02f38c7695cfdc22fbdae76181503f0516fb5cfdfcf9746d7a5',
+  rulesSHA256:'23aae5fcb7f0376e4dd14ac324942233dc1bf2690304f4b7521e86c878cc7dad',
+  indexesSHA256:'72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2',
+  buildTag:'qr-v11r6-a8-v2-coach-acl-qr-20261023'
+});
+
+
+// A9R10 tooling-only staging preparation pin. Runtime bytes are exactly A9R9/A9R8;
+// this pin authorizes source identity verification for an isolated staging derivative only.
+// It is not deployment approval and does not open Coach attendance.
+const A9R10_STAGING_BASE_TEST_ONLY = Object.freeze({
+  id:'V11R6_A9R10_STAGING_BASE_TEST_ONLY',
+  inputZIP_SHA256:'bf42a5bc6bc1cd1512cef781ed0bd4746af32ae8e2401e6c43d2241310848961',
+  manifest:'tools/v11r2/manifests/V11R6_A9R10_STAGING_BASE_TEST_ONLY.json',
+  manifestSHA256:'e1853ff9f86fbb59e07836d51af83a8e313eb3497be6d6e6070a0b5ec9bb2c96',
+  runtimeSHA256:'5126e8b074be4b171139ecdf7fbbbe988ccfcf2fde35738ab19549ba17d8037d',
+  rulesSHA256:'23aae5fcb7f0376e4dd14ac324942233dc1bf2690304f4b7521e86c878cc7dad',
+  indexesSHA256:'72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2',
+  buildTag:'qr-v11r6-a8-v2-coach-acl-qr-20261023'
+});
+
 export function verifySourceIdentity(root, actualRuntimeSHA256) {
- const pinned=[A8_ACCEPTED_SOURCE,ACCEPTED_SOURCE,A5_ACCEPTED_SOURCE,LEGACY_ACCEPTED_SOURCE];
+ const pinned=[A9R10_STAGING_BASE_TEST_ONLY,A9R6_ATTENDANCE_DEMO_ONLY,A9R4_ACCEPTED_SOURCE,A9R3_ACCEPTED_SOURCE,A9R1_ACCEPTED_SOURCE,A9_ACCEPTED_SOURCE,A8_ACCEPTED_SOURCE,ACCEPTED_SOURCE,A5_ACCEPTED_SOURCE,LEGACY_ACCEPTED_SOURCE];
  const exact=pinned.find(p=>p.runtimeSHA256===actualRuntimeSHA256);
  if(!exact&&fs.existsSync(path.join(root,'STAGING_SOURCE_ONLY.json')))return verifyDerivedStaging(root,actualRuntimeSHA256,pinned);
  const p = exact||ACCEPTED_SOURCE, manifestPath = path.join(root,p.manifest);

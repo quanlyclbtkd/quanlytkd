@@ -1,0 +1,83 @@
+{
+  "phase": "A9R6",
+  "baselineZipSHA256": "e8ee883bf6bcbd9972f83cfce131bab687b40d628b4b7d8d61d5549ff2938c27",
+  "status": "RELEASE_HOLD_NO_DEPLOY",
+  "componentSHA256": {
+    "app.js": {
+      "before": "a7d4a6f7358def4e115aacab1063064e1a0b5d8b9534fd64fd2c6589bb2a2e43",
+      "after": "16d1a946d58c80c4d7b21ad527e7688138bd301b71be9f839c28d60a161ebca8",
+      "unchanged": false
+    },
+    "js/core/coachBranchRuntimeRepair.js": {
+      "before": "3c5d5d7a95390ce8438552d48947b293a2878dd480c399c4964effce82012068",
+      "after": "3c5d5d7a95390ce8438552d48947b293a2878dd480c399c4964effce82012068",
+      "unchanged": true
+    },
+    "firestore.rules": {
+      "before": "23aae5fcb7f0376e4dd14ac324942233dc1bf2690304f4b7521e86c878cc7dad",
+      "after": "23aae5fcb7f0376e4dd14ac324942233dc1bf2690304f4b7521e86c878cc7dad",
+      "unchanged": true
+    },
+    "js/core/attendanceContract.js": {
+      "before": "d3f5de89bdcac160b19df2b3c518389e0df1769ac1fa18c751045e408b7e1dca",
+      "after": "d3f5de89bdcac160b19df2b3c518389e0df1769ac1fa18c751045e408b7e1dca",
+      "unchanged": true
+    },
+    "js/modules/attendance.js": {
+      "before": "6d735ba491e2d0855e558f437c04111c6342af1f13a48e88c33c7a9514c88525",
+      "after": "6d735ba491e2d0855e558f437c04111c6342af1f13a48e88c33c7a9514c88525",
+      "unchanged": true
+    },
+    "js/data/attendanceJournal.js": {
+      "before": "04c4a7af47239a5a632c071e2f06f97d89f56f417fda095ea37f0e950866a3d9",
+      "after": "04c4a7af47239a5a632c071e2f06f97d89f56f417fda095ea37f0e950866a3d9",
+      "unchanged": true
+    }
+  },
+  "testResults": {
+    "memoPure": {
+      "pass": 12,
+      "fail": 0
+    },
+    "receiptSynthetic": {
+      "pass": 2,
+      "fail": 0
+    },
+    "qrV7": {
+      "pass": 109,
+      "fail": 0
+    },
+    "qrV8": {
+      "pass": 16,
+      "fail": 0
+    },
+    "qrRender": {
+      "pass": 22,
+      "fail": 0
+    },
+    "diagnosticClassifier": {
+      "pass": 7,
+      "fail": 0
+    },
+    "securityPreservation": {
+      "pass": 8,
+      "fail": 0
+    },
+    "syntax": {
+      "pass": 276,
+      "fail": 0
+    },
+    "authFirestorePriorEvidence": {
+      "pass": 9,
+      "fail": 0,
+      "newRun": false
+    }
+  },
+  "knownGates": {
+    "providerReal": "BLOCKED",
+    "attendanceS01Journal": "HOLD",
+    "appSize": "FAIL_INHERITED",
+    "sourceIdentityPin": "HOLD",
+    "production": "NO_DEPLOY"
+  }
+}

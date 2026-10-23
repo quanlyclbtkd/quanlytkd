@@ -1,0 +1,12 @@
+{
+  "phase": "A9R9",
+  "status": "RELEASE_HOLD_EVIDENCE_INCOMPLETE",
+  "s01RealStagingSnapshotVerified": false,
+  "journalAllDevicesReconciled": false,
+  "attendanceProductionOpen": false,
+  "newAppReaders": 0,
+  "newAppWriters": 0,
+  "changedFirestoreRules": false,
+  "releaseApproved": false,
+  "productionWrites": 0
+}

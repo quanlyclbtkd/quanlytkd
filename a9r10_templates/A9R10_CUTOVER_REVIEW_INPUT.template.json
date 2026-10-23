@@ -1,0 +1,9 @@
+{
+  "cutoverProposalFile": "D:\\A9R10\\staging-source\\a9r10_operator\\cutover-proposal.json",
+  "evidenceReportFile": "D:\\A9R10\\evidence\\a9r10-evidence-report.json",
+  "maintenanceDeployRecordFile": "D:\\A9R10\\staging-source\\A9R10_MAINTENANCE_DEPLOYED.json",
+  "oldClientsQuiesced": true,
+  "inflightWritesSettled": true,
+  "maxReadDocumentsPerDay": 10000,
+  "maxConflictCountPerHour": 5
+}

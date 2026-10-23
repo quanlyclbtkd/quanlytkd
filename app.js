@@ -3850,7 +3850,11 @@ window.invCustomCategories = [];
                     clubId: _ud.clubId,
                     branch: _ud.branch || _ud.coachBranch || '',
                     ...('allowedBranches' in _ud ? {allowedBranches:_ud.allowedBranches} : {}),
-                    defaultBranch: _ud.defaultBranch || '' 
+                    defaultBranch: _ud.defaultBranch || '',
+                    // A9: keep the server-confirmed Coach mirror authority in the
+                    // actual login path before it reaches canonical comparison.
+                    primaryCoachBranch: _ud.primaryCoachBranch || '',
+                    assignmentVersion: _ud.assignmentVersion || 'legacy'
                 });
                 if (_freshContext.role === 'coach') {
                     _freshContext = await _resolveCoachBranchContext(user, _freshContext);
@@ -4969,12 +4973,35 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         if (/^phieu bao(?:\s|$)/.test(label)) return 'REPORT';
         throw _receiptError('RECEIPT_KIND_UNKNOWN','request');
     }
-    function _receiptPaymentMemo(name, detail) {
+    function _receiptPaymentMemo(name, detail, maxMemoLength = 48) {
         // Preserve all reference digits. The provider removes punctuation; make
         // that canonicalization explicit, visible on the receipt, and never truncate.
         const memo=removeVietnameseTonesForQR(`${name} ${detail}`).replace(/[^A-Za-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
-        if (!memo || memo.length > 48) throw _receiptError('MEMO_TOO_LONG','intent');
+        if (!memo || memo.length > maxMemoLength) throw _receiptError('MEMO_TOO_LONG','intent');
         return memo;
+    }
+    function _receiptTuitionMemo(name, monthsStr, verboseMemo) {
+        // A9R6: only shorten a verbose tuition memo when it exceeds 40 ASCII
+        // characters. 40 is a conservative local trigger, NOT a claimed VietQR
+        // provider limit (Quick Link documents up to 50). Do not truncate names,
+        // months or account references. The decoded final QR must still match.
+        if (verboseMemo.length <= 40) return verboseMemo;
+        const months=String(monthsStr||'').split(',').map(s=>s.trim());
+        if (!months.length || months.some(m=>!/^20\d{2}-(0[1-9]|1[0-2])$/.test(m)) ||
+            new Set(months).size !== months.length) throw _receiptError('MEMO_PERIOD_INVALID','intent');
+        const groups=new Map();
+        for (const m of months) {
+            const year=m.slice(0,4), month=String(Number(m.slice(5)));
+            if (!groups.has(year)) groups.set(year,[]);
+            groups.get(year).push(month);
+        }
+        const periods=Array.from(groups).sort(([a],[b])=>a.localeCompare(b))
+            .map(([year,list])=>'Y'+year+list.map(m=>'M'+m).join('')).join(' ');
+        const compact=_receiptPaymentMemo(name,'HP '+periods);
+        // Refuse excessive descriptions rather than losing student name or
+        // calendar months. Do not silently accept a provider-modified QR.
+        if (compact.length > 40) throw _receiptError('MEMO_TOO_LONG','intent');
+        return compact;
     }
     function _receiptQrMismatch(stage, failure, details = {}) {
         const e=_receiptError('QR_EMV_MISMATCH',stage);
@@ -5003,7 +5030,21 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             Math.min(box.x,box.y,w-box.x-box.width,h-box.y-box.height)<4) throw _receiptError('QR_MEDIA_INVALID',stage);
         let decoded;try {decoded=_receiptDecodeEMV(codes[0].rawValue);}catch(_){throw _receiptQrMismatch(stage,'EMV_PARSE_OR_CRC_FAIL');}
         const fieldsMatch={bankBin:decoded.bankBin===intent.bankBin,accountNo:decoded.accountNo===intent.accountNo,amount:decoded.amount===intent.amount,memo:decoded.memo===intent.memo};
-        if(Object.values(fieldsMatch).some(match=>!match)) throw _receiptQrMismatch(stage,'INTENT_FIELD_MISMATCH',{fieldsMatch,expectedMemoLength:String(intent.memo??'').length,qrMemoLength:String(decoded.memo??'').length});
+        if(Object.values(fieldsMatch).some(match=>!match)) {
+            // A9R4: exact byte/character evidence stays private; emit only safe
+            // transform classifications. Do NOT accept an approximate match.
+            const expected=String(intent.memo??''),actual=String(decoded.memo??'');
+            const memoTransform={
+                sameIgnoringCase:expected.toUpperCase()===actual.toUpperCase(),
+                sameIgnoringSpaces:expected.replace(/\s/g,'')===actual.replace(/\s/g,''),
+                sameIgnoringPunctuation:expected.replace(/[^A-Za-z0-9]/g,'')===actual.replace(/[^A-Za-z0-9]/g,''),
+                sameTrimmed:expected.trim()===actual.trim(),
+                looksLikeTailTruncation:actual.length<expected.length && expected.startsWith(actual),
+                looksLikeHeadTruncation:actual.length<expected.length && expected.endsWith(actual),
+                lengthDelta:actual.length-expected.length
+            };
+            throw _receiptQrMismatch(stage,'INTENT_FIELD_MISMATCH',{fieldsMatch,expectedMemoLength:expected.length,qrMemoLength:actual.length,memoTransform});
+        }
         return true;
     }
     function _receiptFailureMessage(reason) {
@@ -5012,7 +5053,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             ACCOUNT_DISABLED:'Tài khoản được gán đã tắt hoặc không tồn tại. Admin cần kiểm tra Cài đặt.',ACCOUNT_INCOMPLETE:'Bổ sung mã ngân hàng, số tài khoản dạng chữ và tên chủ tài khoản trong Cài đặt.',
             BANK_CODE_UNRECOGNIZED:'Mã ngân hàng chưa có trong danh mục đã xác minh.',BANK_IDENTITY_CONFLICT:'Các mã/tên ngân hàng trong cùng tài khoản đang mâu thuẫn.',BANK_BIN_INVALID:'Mã BIN ngân hàng không hợp lệ.',
             INVALID_AMOUNT:'Số tiền hoặc tổng các dòng chi tiết không hợp lệ.',AUTH_STALE:'Phiên đăng nhập hoặc CLB đã đổi. Mở lại CLB và tạo phiếu mới.',CONFIG_STALE:'Cấu hình nhận tiền đã đổi. Tạo lại phiếu.',
-            QR_VERIFICATION_UNAVAILABLE:'Trình duyệt chưa có bộ giải mã QR được kiểm chứng. Chưa thể xuất phiếu an toàn trên thiết bị này.',MEMO_TOO_LONG:'Nội dung chuyển khoản vượt 48 ký tự. Cần thống nhất nội dung ngắn hơn, giữ đủ kỳ học phí.',
+            QR_VERIFICATION_UNAVAILABLE:'Trình duyệt chưa có bộ giải mã QR được kiểm chứng. Chưa thể xuất phiếu an toàn trên thiết bị này.',MEMO_TOO_LONG:'Nội dung chuyển khoản vẫn quá dài dù đã rút gọn mã kỳ học phí; không được cắt tên hoặc các tháng.',MEMO_PERIOD_INVALID:'Kỳ học phí của phiếu báo không đúng định dạng hoặc có tháng trùng. Cần kiểm tra dữ liệu nợ.',
             QR_FETCH_NETWORK:'Không tải được mã QR. Kiểm tra kết nối rồi thử lại.',QR_FETCH_REDIRECT:'Địa chỉ ảnh QR chuyển hướng ngoài nguồn được phép. Đã chặn tải.',QR_FETCH_HTTP:'Nhà cung cấp QR trả lỗi. Thử tạo phiếu lại sau.',
             QR_TIMEOUT:'Tải hoặc kiểm tra QR quá thời hạn. Thử lại khi mạng ổn định.',QR_EMV_MISMATCH:'Nội dung mã QR không khớp phiếu. Đã chặn tải ảnh.',QR_DECODE_FAILED:'Không đọc được mã QR trong ảnh. Đã chặn tải ảnh.',
             QR_MIME:'Định dạng ảnh QR không được hỗ trợ.',QR_SVG_UNSAFE:'Ảnh QR có nội dung không được phép. Đã chặn tạo phiếu.',QR_BYTES_INVALID:'Dữ liệu ảnh QR không hợp lệ.',QR_MEDIA_INVALID:'Ảnh QR bị méo hoặc thiếu viền trắng.',CANVAS_EXPORT_FAILED:'Không xuất được ảnh phiếu. Kiểm tra trình duyệt.',PREVIEW_FAILED:'Không mở được ảnh xem trước.',MODAL_NOT_VISIBLE:'Khung xem phiếu chưa hiển thị.',DEBT_NOT_READY:'Báo nợ chưa có dữ liệu đã xác thực. Đợi tải xong rồi tạo lại.'};
@@ -5104,8 +5145,11 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
 
 
     // ── Phase 4.0B-4J-4: generateVietQR accepts optional branchOrAccount ─────
-    function generateVietQR(amount, studentName, detailDesc, branchOrAccount, qrTemplate = 'compact2') {
-        const addInfoText = _receiptPaymentMemo(studentName,detailDesc);
+    function generateVietQR(amount, studentName, detailDesc, branchOrAccount, qrTemplate = 'compact2', memoOverride = null) {
+        const addInfoText = memoOverride === null ? _receiptPaymentMemo(studentName,detailDesc) : memoOverride;
+        // The receipt owner supplies the same frozen memo for both URL and EMV audit.
+        if (typeof addInfoText !== 'string' || !addInfoText || addInfoText.length > 48 ||
+            !/^[A-Za-z0-9 ]+$/.test(addInfoText)) throw _receiptError('MEMO_TOO_LONG','intent');
         let _qrAcct = null;
         if (branchOrAccount && typeof branchOrAccount === 'object' && branchOrAccount.accountNo) {
             _qrAcct = branchOrAccount;
@@ -6761,12 +6805,13 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
     const _exportReceiptNow = async (name, amount, type, date, txMonth, branch, extraDesc = '', receiptTitle = 'BIÊN LAI THU TIỀN', breakdown = null, isReceiptRequestCurrent = () => true) => {
         window.showToast("⏳ Đang tạo hóa đơn, vui lòng đợi...", 10000, true); let _rendered = false, _previewReady = false, _modalVisible = false, _previewNaturalWidth = 0, _previewNaturalHeight = 0;
         let _stage='request';
-        const _startedAt=Date.now(),_timings={};let _stageAt=_startedAt,_httpStatus=null;
+        const _startedAt=Date.now(),_timings={};let _stageAt=_startedAt,_httpStatus=null,_expectedMemoLength=null,_providerEndpoint=null,_providerRedirected=null;
         const _setStage=next=>{const now=Date.now();_timings[_stage]=(_timings[_stage]||0)+Math.max(0,now-_stageAt);_stage=next;_stageAt=now;};
         const _diagnostics=()=>{
             const ua=String(window.navigator?.userAgent||'');
             return {at:new Date(_startedAt).toISOString(),elapsedMs:Math.max(0,Date.now()-_startedAt),
                 timings:{..._timings,[_stage]:(_timings[_stage]||0)+Math.max(0,Date.now()-_stageAt)},httpStatus:_httpStatus,
+                expectedMemoLength:_expectedMemoLength,providerEndpoint:_providerEndpoint,providerRedirected:_providerRedirected,
                 online:typeof window.navigator?.onLine==='boolean'?window.navigator.onLine:null,
                 browser:/CriOS|Chrome|Chromium/.test(ua)?'Chromium':/Firefox/.test(ua)?'Firefox':/Safari/.test(ua)?'Safari':'unknown',
                 os:/iPad|iPhone|iPod/.test(ua)?'iOS':/Android/.test(ua)?'Android':ua?'desktop':'unknown'};
@@ -6850,8 +6895,12 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                 let paymentContent = type === 'Học phí' && txMonth ? `${extraDesc ? removeVietnameseTonesForQR(extraDesc)+' ' : ''}Hoc Phi Thang ${_memoMonths}` : `${qrDesc}${txMonth ? ' '+_memoMonths : ''}`;
                 let qrName = cleanName.includes('&') ? cleanName.replace(/ & /g, " - ") : cleanName;
                 _setStage('intent');
-                const _qrUrl = generateVietQR(amount, qrName, paymentContent, _accounts[0], 'qr_only');
-                _intent=Object.freeze({clubId:currentClubId,branchKey:_accounts.map(a=>a.branchKey).join(','),bankKey:_accounts.map(a=>a.bankKey).join(','),bankBin:_accounts[0].bankBin,accountNo:_accounts[0].accountNo,accountName:_accounts[0].accountName,amount,memo:_receiptPaymentMemo(qrName,paymentContent),intentKind:_kind});
+                const _verboseMemo=_receiptPaymentMemo(qrName,paymentContent,type === 'Học phí' && txMonth ? 512 : 48);
+                const _canonicalMemo=type === 'Học phí' && txMonth
+                    ? _receiptTuitionMemo(qrName,txMonth,_verboseMemo) : _verboseMemo;
+                const _qrUrl = generateVietQR(amount, qrName, paymentContent, _accounts[0], 'qr_only', _canonicalMemo);
+                _intent=Object.freeze({clubId:currentClubId,branchKey:_accounts.map(a=>a.branchKey).join(','),bankKey:_accounts.map(a=>a.bankKey).join(','),bankBin:_accounts[0].bankBin,accountNo:_accounts[0].accountNo,accountName:_accounts[0].accountName,amount,memo:_canonicalMemo,intentKind:_kind});
+                _expectedMemoLength=_intent.memo.length;_providerEndpoint='vietqr-qr-only-svg';
                 document.getElementById('r_type').innerText += '\nNội dung CK: '+_intent.memo;
                 const _abortQR = new AbortController();
                 let _qrTimeout, _qrExpired = false;
@@ -6865,6 +6914,8 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                             catch (_) {throw _receiptError(_qrExpired ? 'QR_TIMEOUT' : 'QR_FETCH_NETWORK',_stage);}
                             if (res.type === 'opaqueredirect' || res.type === 'opaque') throw _receiptError('QR_FETCH_REDIRECT',_stage);
                             window.QRBankingHelpers.validateReceiptQrResponseUrl(res.url,_qrUrl);
+                            // Boolean redirect signal only: never log provider URL, which contains bank/account and memo.
+                            _providerRedirected=Boolean(res.redirected);
                             _httpStatus=Number.isInteger(res.status)?res.status:null;
                             if (!res.ok) throw _receiptError('QR_FETCH_HTTP',_stage);
                             _setStage('bytes');

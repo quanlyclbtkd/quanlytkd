@@ -1,0 +1,56 @@
+{
+  "status": "PASS",
+  "total": 11,
+  "results": [
+    {
+      "name": "A9R6 128 canonical runtime files are independently pinned",
+      "status": "PASS"
+    },
+    {
+      "name": "Default Coach attendance server-side access remains denied",
+      "status": "PASS"
+    },
+    {
+      "name": "Default Coach client-side access remains locked",
+      "status": "PASS"
+    },
+    {
+      "name": "Coach profiles, shifts reads already authorized without attendance cutover",
+      "status": "PASS"
+    },
+    {
+      "name": "Client stops before shifts and attendance reads during maintenance",
+      "status": "PASS"
+    },
+    {
+      "name": "Demo activation binds a new separate history authority",
+      "status": "PASS"
+    },
+    {
+      "name": "Demo rules and contract have matching enabled gates",
+      "status": "PASS"
+    },
+    {
+      "name": "Demo config overrides both Firebase owners, never production project",
+      "status": "PASS"
+    },
+    {
+      "name": "No new writer; existing CAS owner and journal unchanged in default source",
+      "status": "PASS"
+    },
+    {
+      "name": "Rollback re-closes Coach and preserves Journal V3",
+      "status": "PASS"
+    },
+    {
+      "name": "Source maintenance unchanged after demo preparation",
+      "status": "PASS"
+    }
+  ],
+  "scope": "SOURCE READINESS + DEMO PREPARATION; NOT LIVE RELEASE APPROVAL",
+  "sourceRuntimeSHA256": "0b0bec51e19cf02f38c7695cfdc22fbdae76181503f0516fb5cfdfcf9746d7a5",
+  "baseRulesSHA256": "23aae5fcb7f0376e4dd14ac324942233dc1bf2690304f4b7521e86c878cc7dad",
+  "preparedRulesSHA256": "bd59d05836fbd8d605f304e1036c34f7d8990f22956760021eb7aa58a7abc6f9",
+  "approval": "NOT PROVIDED",
+  "historicalS01Scan": "NOT PROVIDED"
+}

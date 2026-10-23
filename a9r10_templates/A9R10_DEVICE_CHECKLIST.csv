@@ -1,0 +1,4 @@
+deviceId,platform,clubId,stagingOrigin,adminOrCoach,legacyLocalStorageCaptured,v3JournalCaptured,legacyIndexedDBInventory,queueState,rowCount,backupSHA256,queueInventorySHA256,manualReview,status,notes
+desktop-admin-01,desktop,CLUB_ID_STAGING,https://YOUR-STAGING-HOSTING.example/,admin,NO,NO,NO,UNKNOWN,,PENDING,PENDING,NO,PENDING,
+android-coach-01,android,CLUB_ID_STAGING,https://YOUR-STAGING-HOSTING.example/,coach,NO,NO,NO,UNKNOWN,,PENDING,PENDING,NO,PENDING,
+ios-coach-01,ios,CLUB_ID_STAGING,https://YOUR-STAGING-HOSTING.example/,coach,NO,NO,NO,UNKNOWN,,PENDING,PENDING,NO,PENDING,

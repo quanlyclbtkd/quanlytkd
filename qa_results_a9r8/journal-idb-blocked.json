@@ -1,0 +1,7 @@
+{
+  "pass": 3,
+  "fail": 0,
+  "opens": 3,
+  "lateClosed": 1,
+  "scope": "Mock IndexedDB lifecycle only; not end-to-end browser evidence"
+}

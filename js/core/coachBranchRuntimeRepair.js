@@ -94,7 +94,7 @@
     return {club,firestore,ensure(){const now=global.__verifiedAuthContextState;if(now?.ready!==true||db()!==firestore||JSON.stringify([now.uid,now.role,now.generation,clubId()])!==captured||global.userRole!==now.role||global.__store?.currentUser?.uid!==now.uid)throw error('auth/context-changed','Phiên quản trị đã thay đổi; dừng lưu phân công.')}};
   }
   // Reuse the existing assignment batch owner. Auth creation is not a Firestore transaction.
-  async function savePair(uid,assignment,data,owner,{creating=false}={}){
+  async function savePair(uid,assignment,data,owner,{creating=false,repair=false}={}){
     owner.ensure();const {doc,getDoc,writeBatch,increment}=sdk(),{club,firestore}=owner;
     const config=await readVerified(firestore,'clubs',club,'settings','main_config');owner.ensure();
     const rawCount=config.exists()?config.data().branchCount:null;
@@ -110,29 +110,107 @@
     const epoch=rootSnap.data()?.coachAclEpoch;
     if(epoch!==undefined&&(!Number.isSafeInteger(epoch)||epoch<0))
       throw error('auth/coach-epoch-invalid','coachAclEpoch trên máy chủ không phải số nguyên không âm; phải đối soát bản sao lưu trước khi cấp quyền.');
-    const userSnap=await readVerified(firestore,'users',uid);owner.ensure();
+    // A9R4: A fresh Auth UID has no User mirror yet. Admin's get() permission
+    // for /users/{uid} deliberately requires an existing same-club Coach;
+    // reading the missing document here denied the whole creation after Auth
+    // already succeeded. Do not widen Rules: skip only this PRE-WRITE read.
+    // The A9R3 Rules MUST still authorize all three writes atomically and
+    // reject a pre-existing User/Coach via the 'absent' version precondition.
+    const userSnap=creating ? {exists:()=>false} : await readVerified(firestore,'users',uid);owner.ensure();
     if(userSnap.exists()){
       const oldUser=userSnap.data()||{};
       if(!['coach','hlv','trainer'].includes(oldUser.role)||oldUser.clubId!==club)
         throw error('auth/coach-mirror-unsafe','Hồ sơ users hiện hữu không thuộc vai trò HLV hợp lệ cùng CLB. Dừng cập nhật để tránh chiếm quyền tài khoản.');
       // Do not let a stale client overwrite a newer user mirror after another Admin.
-      if(oldUser.assignmentVersion&&oldUser.assignmentVersion!==(data.assignmentVersion||'legacy'))
+      if(!repair&&oldUser.assignmentVersion&&oldUser.assignmentVersion!==(data.assignmentVersion||'legacy'))
         throw error('auth/coach-mirror-stale','Phiên bản user mirror khác canonical HLV. Dừng lưu, cần đối soát trước khi thay đổi.');
     }
-    const previousVersion=data.assignmentVersion||(creating?'absent':'legacy');
+    // A9: The ordinary write is unchanged. A mismatched mirror may ONLY be
+    // restored through this one canonical owner after explicit Admin review.
+    // A Web SDK writeBatch cannot CAS a separate document read earlier. The
+    // repair path therefore uses a single atomic Firestore transaction over
+    // exactly the same three documents, with four authoritative reads and
+    // optimistic concurrency checking *both* previous versions + root epoch.
+    let repairBaseline=null;
+    if(repair){
+      if(creating||!userSnap.exists())
+        throw error('auth/coach-repair-review','Không đủ dữ liệu canonical/mirror để sửa có điều kiện; cần Admin review.');
+      const mirror=userSnap.data()||{};
+      const baseline=await readVerified(firestore,'clubs',club,'coaches',uid);owner.ensure();
+      if(!baseline.exists()||baseline.data()?.assignmentVersion!==data.assignmentVersion)
+        throw error('auth/coach-assignment-stale','Canonical đã thay đổi, không thể khôi phục từ dữ liệu cũ.');
+      const oldCoach=baseline.data();
+      if(oldCoach.role!=='coach'||oldCoach.clubId!==club||!['coach','hlv','trainer'].includes(mirror.role)||mirror.clubId!==club)
+        throw error('auth/coach-mirror-unsafe','Role/club không thể xác minh cùng CLB; khóa repair.');
+      // Reject incoherent alias fields instead of guessing which legacy value wins.
+      const coherent=(d,a)=>[d.branch,d.coachBranch,d.primaryCoachBranch,d.defaultBranch]
+        .every(value=>value==null||value===''||canonical(value)===a.primary);
+      const acl=normalizeAssignment(oldCoach,{allowRevoked:true});
+      const mirrorAcl=normalizeAssignment(mirror,{allowRevoked:true});
+      if(!coherent(oldCoach,acl)||!coherent(mirror,mirrorAcl))
+        throw error('auth/coach-repair-review','Các trường branch/coachBranch/primary/default mâu thuẫn; cần Admin review trước repair.');
+      if(!same(acl,assignment))throw error('auth/coach-repair-review','Chỉ khôi phục đúng quyền canonical hiện tại; không đồng thời thay đổi cơ sở.');
+      if(disabled(oldCoach)!==disabled(mirror)||String(oldCoach.status||'active')!==String(mirror.status||'active'))
+        throw error('auth/coach-repair-review','Trạng thái khóa giữa hai hồ sơ khác nhau; không được tự mở khóa. Cần đối soát riêng.');
+      const oldMirrorACL=mirrorAcl;
+      if((mirror.assignmentVersion||'legacy')===(oldCoach.assignmentVersion||'legacy')&&same(oldMirrorACL,acl))
+        throw error('auth/coach-repair-unneeded','Hai hồ sơ đang khớp; dùng thao tác Lưu thông thường.');
+      // The review surface never exposes UID/email or unrestricted user data.
+      const comparison='Canonical: '+acl.branches.join(',')+' | cơ sở mặc định '+(acl.primary||'ĐÃ THU HỒI')
+        +'\nMirror: '+oldMirrorACL.branches.join(',')+' | cơ sở mặc định '+(oldMirrorACL.primary||'ĐÃ THU HỒI')
+        +'\nPhiên bản canonical/mirror: '+(oldCoach.assignmentVersion||'legacy').length+'/'+(mirror.assignmentVersion||'legacy').length+' ký tự';
+      if(!global.confirm('Đối soát phân quyền HLV cùng CLB (không tăng cơ sở):\n'+comparison+'\n\nChọn CANONICAL làm nguồn thẩm quyền và khôi phục mirror?'))
+        throw error('auth/coach-repair-cancelled','Đã hủy repair trước khi ghi.');
+      if(typeof global.prompt!=='function'||global.prompt('Nhập chính xác KHOI PHUC để xác nhận cập nhật nguyên tử:', '')!=='KHOI PHUC')
+        throw error('auth/coach-repair-cancelled','Chưa xác nhận repair bằng từ khóa; không ghi dữ liệu.');
+      repairBaseline={coach:oldCoach,mirror,canonicalVersion:oldCoach.assignmentVersion||'legacy',mirrorVersion:mirror.assignmentVersion||'legacy',epoch:epoch??0,branchCount:count};
+    }
+    // A9R3: each document claims its *own* version before this atomic write.
+    // In a reviewed repair canonicalVersion != mirrorVersion is allowed; the new
+    // assignmentVersion must match after the write. Rules CAS validates both.
+    const canonicalPreviousVersion=repair?repairBaseline.canonicalVersion:(data.assignmentVersion||(creating?'absent':'legacy'));
+    const mirrorPreviousVersion=repair?repairBaseline.mirrorVersion:(userSnap.exists()?(userSnap.data()?.assignmentVersion||'legacy'):'absent');
     const assignmentVersion=global.crypto.randomUUID?.()||Array.from(global.crypto.getRandomValues(new Uint8Array(24)),b=>b.toString(16).padStart(2,'0')).join('');
     // Keep all existing primary aliases in sync. Older Coach records can retain
     // primaryCoachBranch; a partial update otherwise makes login reject a valid ACL.
-    const fields={assignmentVersion,assignmentPreviousVersion:previousVersion,status:data.status||'active',role:'coach',clubId:club,branch:assignment.primary,coachBranch:assignment.primary,primaryCoachBranch:assignment.primary,allowedBranches:assignment.branches,defaultBranch:assignment.primary,email:data.email||'',updatedAt:new Date().toISOString()};
-    const coachRef=doc(firestore,'clubs',club,'coaches',uid),userRef=doc(firestore,'users',uid),batch=writeBatch(firestore);
-    batch.set(coachRef,{...data,...fields,uid},{merge:true});batch.set(userRef,fields,{merge:true});batch.set(doc(firestore,'clubs',club),{coachAclEpoch:increment(1)},{merge:true});owner.ensure();
+    const fields={assignmentVersion,status:data.status||'active',role:'coach',clubId:club,branch:assignment.primary,coachBranch:assignment.primary,primaryCoachBranch:assignment.primary,allowedBranches:assignment.branches,defaultBranch:assignment.primary,email:data.email||'',updatedAt:new Date().toISOString()};
+    const coachFields={...fields,assignmentPreviousVersion:canonicalPreviousVersion};
+    const userFields={...fields,assignmentPreviousVersion:mirrorPreviousVersion};
+    const coachRef=doc(firestore,'clubs',club,'coaches',uid),userRef=doc(firestore,'users',uid),rootRef=doc(firestore,'clubs',club);
     let commitError=null;
-    try{await batch.commit()}catch(e){commitError=e}
+    if(repair){
+      const {runTransaction}=sdk();
+      if(typeof runTransaction!=='function')throw error('auth/coach-repair-cas-unavailable','Không có Firestore transaction/CAS; tuyệt đối không fallback sang batch thường.');
+      const expected=repairBaseline;
+      const identity=d=>JSON.stringify({role:d?.role,clubId:d?.clubId,status:d?.status||'active',branch:d?.branch||'',coachBranch:d?.coachBranch||'',primaryCoachBranch:d?.primaryCoachBranch||'',defaultBranch:d?.defaultBranch||'',allowedBranches:d?.allowedBranches||[],assignmentVersion:d?.assignmentVersion||'legacy'});
+      const settingsRef=doc(firestore,'clubs',club,'settings','main_config');
+      try{
+        await runTransaction(firestore,async txn=>{
+          owner.ensure();
+          // Transaction reads must precede all writes; SDK rechecks every read
+          // version at commit, including mirror, which writeBatch cannot do.
+          const [c,u,r,setting]=await Promise.all([txn.get(coachRef),txn.get(userRef),txn.get(rootRef),txn.get(settingsRef)]);
+          owner.ensure();
+          if(!c.exists()||!u.exists()||!r.exists()||!setting.exists()||
+            identity(c.data())!==identity(expected.coach)||identity(u.data())!==identity(expected.mirror)||
+            (r.data()?.coachAclEpoch??0)!==expected.epoch||setting.data()?.branchCount!==expected.branchCount)
+            throw error('auth/coach-repair-cas-conflict','Canonical/mirror/epoch/cấu hình đã đổi sau preflight. Dừng, không overwrite.');
+          txn.set(coachRef,{...data,...coachFields,uid},{merge:true});
+          txn.set(userRef,userFields,{merge:true});
+          txn.set(rootRef,{coachAclEpoch:increment(1)},{merge:true});
+        },{maxAttempts:3});
+      }catch(e){commitError=e}
+    }else{
+      const batch=writeBatch(firestore);
+      batch.set(coachRef,{...data,...coachFields,uid},{merge:true});batch.set(userRef,userFields,{merge:true});batch.set(rootRef,{coachAclEpoch:increment(1)},{merge:true});owner.ensure();
+      try{await batch.commit()}catch(e){commitError=e}
+    }
     owner.ensure();
-    let coach,mirror;
+    let coach,mirror,rootAfter;
     try{
       coach=await readVerified(firestore,'clubs',club,'coaches',uid);owner.ensure();
       mirror=await readVerified(firestore,'users',uid);owner.ensure();
+      rootAfter=await readVerified(firestore,'clubs',club);owner.ensure();
     }catch(e){
       const uncertain=error('COMMIT_OUTCOME_UNVERIFIED','Không thể xác minh kết quả batch từ máy chủ. Không bấm lưu lặp lại; tải lại hai hồ sơ và epoch khi có mạng.');
       uncertain.originalCode=String(commitError?.code||commitError?.name||'NONE').slice(0,80);
@@ -140,7 +218,7 @@
       throw uncertain;
     }
     let paired=false;
-    try{paired=coach.exists()&&mirror.exists()&&[coach.data(),mirror.data()].every(d=>d.role==='coach'&&d.clubId===club&&d.assignmentVersion===assignmentVersion&&same(normalizeAssignment(d,{allowRevoked:true}),assignment));}catch{}
+    try{paired=coach.exists()&&mirror.exists()&&rootAfter.exists()&&rootAfter.data().coachAclEpoch===(epoch??0)+1&&coach.data().assignmentPreviousVersion===canonicalPreviousVersion&&mirror.data().assignmentPreviousVersion===mirrorPreviousVersion&&[coach.data(),mirror.data()].every(d=>d.role==='coach'&&d.clubId===club&&d.assignmentVersion===assignmentVersion&&d.status===fields.status&&same(normalizeAssignment(d,{allowRevoked:true}),assignment));}catch{}
     if(!paired){
       if(commitError)throw commitError; // preserve actual SDK error code/name.
       throw error('COMMIT_OUTCOME_UNVERIFIED','Batch đã gửi nhưng readback không khớp. Không được tự động thử lại vì kết quả có thể đã thay đổi.');
@@ -155,9 +233,10 @@
       const snap=await getDocs(query(collection(owner.firestore,'clubs',owner.club,'coaches'),limit(200)));owner.ensure();
       if(snap.empty){list.textContent='Chưa có tài khoản HLV nào';return}
       let html='';snap.forEach(item=>{const data=item.data()||{};let assigned=null;try{assigned=normalizeAssignment(data)}catch{}
-        html+='<section style="padding:12px;border:1px solid #cbd5e1;border-radius:10px;margin:8px 0"><strong>'+esc(data.displayName||data.email||'HLV')+'</strong><div>'+esc(data.email||'')+'</div><div>'+esc(assigned?assigned.branches.map(branchName).join(' · '):'Chưa có phân công hợp lệ — cần Admin chọn lại')+'</div>'+choices(selectId(item.id),assigned?.branches||[])+'<button type="button" data-coach-save="'+esc(item.id)+'" style="padding:10px">💾 Lưu cơ sở</button><button type="button" data-coach-status="'+esc(item.id)+'">'+(disabled(data)?'Mở khóa':'Khóa HLV')+'</button><button type="button" data-coach-reset="'+esc(data.email||'')+'">Đặt lại MK</button><button type="button" data-coach-delete="'+esc(item.id)+'" data-coach-email="'+esc(data.email||'')+'">Xóa HLV</button></section>';
+        html+='<section style="padding:12px;border:1px solid #cbd5e1;border-radius:10px;margin:8px 0"><strong>'+esc(data.displayName||data.email||'HLV')+'</strong><div>'+esc(data.email||'')+'</div><div>'+esc(assigned?assigned.branches.map(branchName).join(' · '):'Chưa có phân công hợp lệ — cần Admin chọn lại')+'</div>'+choices(selectId(item.id),assigned?.branches||[])+'<button type="button" data-coach-save="'+esc(item.id)+'" style="padding:10px">💾 Lưu cơ sở</button><button type="button" data-coach-repair="'+esc(item.id)+'" style="padding:10px" title="Chỉ dành cho hồ sơ canonical/mirror bị lệch; yêu cầu xác nhận và CAS">🛠 Khôi phục mirror</button><button type="button" data-coach-status="'+esc(item.id)+'">'+(disabled(data)?'Mở khóa':'Khóa HLV')+'</button><button type="button" data-coach-reset="'+esc(data.email||'')+'">Đặt lại MK</button><button type="button" data-coach-delete="'+esc(item.id)+'" data-coach-email="'+esc(data.email||'')+'">Xóa HLV</button></section>';
       });list.innerHTML=html;
       snap.forEach(item=>{bindChoices(selectId(item.id));const box=document.getElementById(selectId(item.id));if(box)box.dataset.assignmentVersion=item.data().assignmentVersion||'legacy';try{document.getElementById(selectId(item.id)+'_primary').value=normalizeAssignment(item.data()).primary}catch{}});
+      list.querySelectorAll('[data-coach-repair]').forEach(b=>b.onclick=()=>repairCoachMirror(b.dataset.coachRepair));
       list.querySelectorAll('[data-coach-status]').forEach(b=>b.onclick=()=>updateCoachStatus(b.dataset.coachStatus));
       list.querySelectorAll('[data-coach-save]').forEach(b=>b.onclick=()=>updateCoachBranch(b.dataset.coachSave));
       list.querySelectorAll('[data-coach-reset]').forEach(b=>b.onclick=()=>global.resetCoachPassword(b.dataset.coachReset));
@@ -177,6 +256,22 @@
       await savePair(uid,assignment,snap.data(),owner);toast('Đã lưu và xác minh '+assignment.branches.map(branchName).join(' · ')+'. HLV cần đăng nhập lại hoặc chọn cơ sở để xác minh quyền mới.');await loadCoachAccounts();
     }catch(e){global.alert('Không thể lưu cơ sở HLV: '+((e?.code==='permission-denied'||e?.code==='firestore/permission-denied')?'Firestore từ chối batch phân quyền. Chưa có readback xác minh thành công; cần đối chiếu Rules cùng phiên bản, quyền Admin và 3 document.':e.message))}finally{if(el)el.querySelectorAll?.('input,select,button')?.forEach(node=>node.disabled=false)}
   }
+  async function repairCoachMirror(uid){
+    const el=document.getElementById(selectId(uid));
+    if(el)el.querySelectorAll?.('input,select,button')?.forEach(node=>node.disabled=true);
+    try{
+      const owner=adminContext();
+      const coach=await readVerified(owner.firestore,'clubs',owner.club,'coaches',uid);owner.ensure();
+      if(!coach.exists())throw error('auth/coach-assignment-missing','Canonical Coach không tồn tại; dừng repair.');
+      if(el?.dataset.assignmentVersion!==(coach.data().assignmentVersion||'legacy'))
+        throw error('auth/coach-assignment-stale','Admin cần tải lại trước khi repair.');
+      // Never grant a new branch during ACL recovery. Normal editing uses savePair
+      // without repair and retains its strict stale-mirror guard.
+      await savePair(uid,normalizeAssignment(coach.data(),{allowRevoked:true}),coach.data(),owner,{repair:true});
+      toast('Đã xác minh khôi phục cặp HLV từ server.');await loadCoachAccounts();
+    }catch(e){global.alert('Chưa khôi phục ACL HLV: '+String(e?.message||e?.code||'UNKNOWN'))}
+    finally{if(el)el.querySelectorAll?.('input,select,button')?.forEach(node=>node.disabled=false)}
+  }
   async function updateCoachStatus(uid){
     try{
       const owner=adminContext(),{doc,getDoc}=sdk(),snap=await readVerified(owner.firestore,'clubs',owner.club,'coaches',uid);owner.ensure();
@@ -195,14 +290,58 @@
       const assignment=chosen('coach_create_branches','coach_branch');
       if(!assignment.branches.length||!email||!name||(!pendingCreated&&pass.length<6))throw Error('Nhập tên, email, mật khẩu tối thiểu 6 ký tự và chọn cơ sở được phép.');
       const {createUserWithEmailAndPassword,signOut}=sdk();
-      if(pendingCreated&&(pendingCreated.email!==email||pendingCreated.club!==owner.club))throw Error('Cần hoàn tất hồ sơ Auth đã tạo UID '+pendingCreated.uid+' trước khi tạo tài khoản khác.');
+      if(pendingCreated&&(pendingCreated.email!==email||pendingCreated.club!==owner.club))throw error('auth/coach-create-pending','Tài khoản Auth trước chưa hoàn tất; xử lý hồ sơ cũ trước khi tạo tài khoản khác.');
       if(!pendingCreated){const cred=await createUserWithEmailAndPassword(global._secondaryAuth,email,pass);pendingCreated={uid:cred.user.uid,email,club:owner.club};}
       owner.ensure();await savePair(pendingCreated.uid,assignment,{email,displayName:name,createdAt:new Date().toISOString()},owner,{creating:true});pendingCreated=null;
       try{await signOut(global._secondaryAuth)}catch{}
       global.alert('Đã tạo và xác minh hồ sơ HLV: '+email+' — '+assignment.branches.map(branchName).join(' · '));
       ['coach_email','coach_pass','coach_name'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});await loadCoachAccounts();
-    }catch(e){global.alert((pendingCreated?'Auth đã tạo UID '+pendingCreated.uid+'. Chưa hoàn tất hồ sơ; giữ form và bấm Tạo tài khoản để thử lưu lại, không tạo Auth lần hai. ':'')+e.message)}
+    }catch(e){
+      // Never expose credentials or UID in logs/dialogs. A lost ACK MUST NOT
+      // trigger automatic Auth creation or an unverified second ACL write.
+      const prefix=pendingCreated?'Auth đã tạo nhưng hồ sơ chưa xác minh. Không tạo Auth lần hai; kiểm tra Rules/deployment và trạng thái UID. ':'';
+      const detail=e?.code==='auth/email-already-in-use'?'Email đã có trong Firebase Auth. Dùng khôi phục có xác minh UID nếu đây là hồ sơ tạo dở; không tạo email khác. ':'';
+      global.alert(prefix+detail+String(e?.code||e?.message||'UNKNOWN'));
+    }
     finally{try{await sdk().signOut(global._secondaryAuth)}catch{}if(btn)btn.disabled=false}
+  }
+  // A9R4: Manual recovery of an orphaned Auth identity, never lookup-by-email
+  // and never a second ACL writer. Only the matching Auth credentials + UID
+  // entered from Firebase Console can establish the identity. This requires
+  // Admin review and the ORIGINAL three-document savePair(creating:true).
+  async function recoverCreatedCoachAccount(){
+    const btn=document.getElementById('btnRecoverCoach');if(btn)btn.disabled=true;
+    try{
+      const owner=adminContext(),email=String(document.getElementById('coach_email')?.value||'').trim(),
+        password=String(document.getElementById('coach_pass')?.value||''),
+        name=String(document.getElementById('coach_name')?.value||'').trim(),
+        assignment=chosen('coach_create_branches','coach_branch');
+      if(!email||!name||password.length<6||!assignment.branches.length)
+        throw error('auth/coach-recovery-input','Cần tên, email, mật khẩu đúng của Auth hiện có và cơ sở được phép.');
+      if(pendingCreated)throw error('auth/coach-recovery-pending','Phiên hiện tại đang có Auth vừa tạo; chỉ dùng Tạo tài khoản để hoàn tất hồ sơ đó.');
+      if(!global.confirm('Chỉ dùng chức năng này cho UID Auth đã tạo dở và chưa có cả canonical Coach lẫn User mirror.\nĐã kiểm tra UID ở Firebase Console và sao lưu trạng thái?'))return;
+      const uid=String(global.prompt?.('Nhập UID Auth đã kiểm tra trong Firebase Console (không nhập email):','')||'').trim();
+      if(!/^[A-Za-z0-9_-]{6,128}$/.test(uid))throw error('auth/coach-recovery-uid','UID không hợp lệ hoặc chưa được cung cấp.');
+      const {signInWithEmailAndPassword,signOut}=sdk();
+      if(typeof signInWithEmailAndPassword!=='function'||!global._secondaryAuth)
+        throw error('auth/coach-recovery-auth-unavailable','Không có secondary Firebase Auth. Không được dùng primary session.');
+      // Identity must be proven by Firebase Auth, not by a caller-supplied UID.
+      const identity=await signInWithEmailAndPassword(global._secondaryAuth,email,password);
+      owner.ensure();
+      if(identity?.user?.uid!==uid||String(identity?.user?.email||'').toLowerCase()!==email.toLowerCase())
+        throw error('auth/coach-recovery-identity-mismatch','UID/email đã xác minh bằng Auth không trùng UID Admin kiểm tra; dừng khôi phục.');
+      const coach=await readVerified(owner.firestore,'clubs',owner.club,'coaches',uid);owner.ensure();
+      if(coach.exists())throw error('auth/coach-recovery-review','Đã có canonical Coach. Không được tạo ghi đè; dùng đối soát ACL/repair hiện hữu.');
+      // A9R3 Rules prevent creating a mirror on an existing user document:
+      // its assignmentPreviousVersion='absent' is DENIED for UPDATE.
+      // Do not read a nonexistent user before write (the root of A9R3 bug).
+      if(!global.confirm('Đã xác minh đúng Auth UID và canonical Coach chưa tồn tại.\nChỉ ghi cặp hồ sơ khi cả Coach/User mirror chưa có, không thay quyền của hồ sơ hiện hữu. Xác nhận tiếp tục?'))return;
+      await savePair(uid,assignment,{email,displayName:name,createdAt:new Date().toISOString()},owner,{creating:true});
+      global.alert('Đã khôi phục và đọc lại hồ sơ HLV từ server. Hãy đặt lại mật khẩu lộ trong ảnh nếu có.');
+      for(const id of ['coach_email','coach_pass','coach_name']){const el=document.getElementById(id);if(el)el.value='';}
+      await loadCoachAccounts();
+    }catch(e){global.alert('Không thể khôi phục Auth tạo dở: '+String(e?.code||e?.message||'UNKNOWN')+'. Không thử tạo Auth lần nữa và không chỉnh UID thủ công.');}
+    finally{try{await sdk().signOut?.(global._secondaryAuth)}catch{}if(btn)btn.disabled=false;}
   }
   async function migrateCoachAccounts(){
     const btn=document.getElementById('btnMigrateCoaches');if(btn)btn.disabled=true;
@@ -222,8 +361,8 @@
   }
   function installAdminOverrides(){
     if(!global.__appLoaded)return setTimeout(installAdminOverrides,25);
-    Object.assign(global,{loadCoachAccounts,updateCoachBranch,createCoachAccount,migrateCoachAccounts});
+    Object.assign(global,{loadCoachAccounts,updateCoachBranch,createCoachAccount,recoverCreatedCoachAccount,migrateCoachAccounts});
   }
-  global.CoachBranchRuntimeRepair=Object.freeze({version:'A6',loadCoachAccounts,createCoachAccount,migrateCoachAccounts,resolveAuthContext,normalizeAssignment,allowedBranches,renderCoachBranchSelectors,renderCreateBranchChoices,installAdminOverrides});
+  global.CoachBranchRuntimeRepair=Object.freeze({version:'A6',loadCoachAccounts,createCoachAccount,recoverCreatedCoachAccount,migrateCoachAccounts,resolveAuthContext,normalizeAssignment,allowedBranches,renderCoachBranchSelectors,renderCreateBranchChoices,installAdminOverrides});
   installAdminOverrides();
 })(window);

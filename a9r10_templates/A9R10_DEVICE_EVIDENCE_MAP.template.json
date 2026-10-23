@@ -1,0 +1,13 @@
+{
+  "projectId": "tst-staging-2026",
+  "stagingBaseURL": "https://YOUR-STAGING-HOSTING.example/",
+  "clubIds": ["CLUB_ID_STAGING"],
+  "devices": [
+    {
+      "deviceId": "android-coach-01",
+      "clubId": "CLUB_ID_STAGING",
+      "backupFile": "D:\\A9R10\\evidence\\android-coach-01.backup.json",
+      "queueInventoryFile": "D:\\A9R10\\evidence\\android-coach-01.queue.json"
+    }
+  ]
+}

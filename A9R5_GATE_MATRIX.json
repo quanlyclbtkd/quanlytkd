@@ -1,0 +1,92 @@
+[
+  {
+    "gate": "baseline_A9R4_zip",
+    "state": "PASS",
+    "evidence": "SHA-256 13079e3ec4230370f98c56209e1835ba175b230daa72e3cb16718d400a5dbce2"
+  },
+  {
+    "gate": "source_rules_sha",
+    "state": "PASS",
+    "evidence": "23aae5fcb7f0376e4dd14ac324942233dc1bf2690304f4b7521e86c878cc7dad"
+  },
+  {
+    "gate": "runtime_owner_unchanged",
+    "state": "PASS",
+    "evidence": "No runtime app.js, coach owner or Firestore Rules modifications"
+  },
+  {
+    "gate": "auth_existing_login_path",
+    "state": "PASS",
+    "evidence": "tools/a9/login-path-source.test.mjs 10/10"
+  },
+  {
+    "gate": "coach_CAS",
+    "state": "PASS",
+    "evidence": "tools/a9/repair-cas-source.test.mjs 14/14"
+  },
+  {
+    "gate": "coach_assignment",
+    "state": "PASS",
+    "evidence": "tools/a6/coach-assignment.test.mjs 16/16"
+  },
+  {
+    "gate": "auth_orphan_mock",
+    "state": "PASS",
+    "evidence": "tools/a9r4/coach-create-orphan-source.test.mjs 6/6 mock only"
+  },
+  {
+    "gate": "QR_memo_synthetic",
+    "state": "PASS",
+    "evidence": "tools/a8/qr-source-memo-matrix.test.mjs 9/9 synthetic only"
+  },
+  {
+    "gate": "QR_pixel_synthetic",
+    "state": "PASS",
+    "evidence": "tools/a7/qr-pixels-sanitized.test.mjs 6/6 synthetic only"
+  },
+  {
+    "gate": "QR_source_diagnostics",
+    "state": "PASS",
+    "evidence": "tools/a9r4/qr-provider-mismatch.test.mjs 3/3 synthetic only"
+  },
+  {
+    "gate": "QR_A9R5_sanitized_classifier",
+    "state": "PASS",
+    "evidence": "tools/a9r5/qr-evidence-synthetic.test.mjs 5/5 synthetic only"
+  },
+  {
+    "gate": "JS_syntax",
+    "state": "PASS",
+    "evidence": "tools/check-syntax.mjs 276 items"
+  },
+  {
+    "gate": "root_public_parity",
+    "state": "PASS",
+    "evidence": "tools/check-root-public-parity.mjs 128/128"
+  },
+  {
+    "gate": "attendance_size_budget",
+    "state": "FAIL_TEST_GATE",
+    "evidence": "app.js 701232 bytes >700000; inherited A9R4, not changed"
+  },
+  {
+    "gate": "A9R5_Auth_Firestore_actual_emulator",
+    "state": "ENV_BLOCKED",
+    "evidence": "Local npm Firebase SDK unavailable (ERR_MODULE_NOT_FOUND); Windows QA runner provided; no PASS claim"
+  },
+  {
+    "gate": "QR_provider_real_pass_fail",
+    "state": "RELEASE_BLOCKED",
+    "evidence": "Needs safe fieldsMatch + memoTransform from actual rendered QR PASS/FAIL"
+  },
+  {
+    "gate": "attendance_cutover",
+    "state": "RELEASE_BLOCKED",
+    "evidence": "HISTORY_COACH_ACCESS=false and coachAttendanceCutoverOpen() false, S01/Journal/CAS/READS pending"
+  },
+  {
+    "gate": "production",
+    "state": "RELEASE_BLOCKED",
+    "evidence": "NO_DEPLOY"
+  }
+]

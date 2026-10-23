@@ -1,0 +1,23 @@
+{
+  "total": 15,
+  "pass": 15,
+  "fail": 0,
+  "checks": [
+    "empty backup is never promoted to S01 or Journal release approval",
+    "old indexedDB offline queue is explicitly outside legacy backup coverage",
+    "legacy V1/V2 remains review only",
+    "malformed legacy raw is preserved but flagged",
+    "pending, inflight, conflict, needs-review all block close",
+    "acked intent still needs server idempotency cross-check",
+    "missing chain parent is reported",
+    "multiple active intents on same target identified",
+    "quarantined unowned V3 remains quarantined",
+    "foreign excluded V3 prevents presumed device coverage",
+    "backup hash mismatch rejected",
+    "scope mismatch rejected",
+    "duplicate journal IDs rejected",
+    "S01 proof PASS still means RELEASE_BLOCKED",
+    "missing adversarial proof is invalid"
+  ],
+  "scope": "OFFLINE ONLY; no server, no device enumeration, no owner signature, no release approval"
+}

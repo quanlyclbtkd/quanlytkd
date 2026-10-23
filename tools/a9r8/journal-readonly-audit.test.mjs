@@ -1,0 +1,26 @@
+import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
+import fs from 'node:fs';
+import {reviewDeviceBackup,reviewA9R7Demo} from './journal-readonly-audit.mjs';
+const c=v=>JSON.stringify(v&&typeof v==='object'?(Array.isArray(v)?v.map(x=>JSON.parse(c(x))):Object.fromEntries(Object.keys(v).sort().map(k=>[k,JSON.parse(c(v[k]))]))):v);
+const hash=x=>crypto.createHash('sha256').update(x).digest('hex');
+const mk=(rows=[],legacy=[],overrides={})=>{const content={kind:'SCOPED_DEVICE_LEGACY_BACKUP',projectId:'demo-a9r8',clubId:'C',origin:'http://localhost',actor:{uid:'A',role:'admin'},capturedAt:'2026-10-23T00:00:00Z',localStorage:legacy,journalRows:rows,meta:[],unscopedLegacyCount:0,excludedForeignV3Count:0,consistency:'one readonly IDB snapshot; stable localStorage double-read; not atomic across stores',ownershipInferred:false,rawDeleted:false,versionSchemaChanged:false,...overrides};return {content,backupSHA256:hash(c(content)),rawDigests:legacy.map(r=>({key:r.key,sha256:hash(r.raw)}))};};
+const row=(id,state='pending')=>({id,state,record:{clubId:'C',docId:'P_2026-10-23'},target:'["C","P_2026-10-23"]',principal:{uid:'A',role:'admin',clubId:'C'}});
+const checks=[];function test(name,fn){fn();checks.push(name);console.log('PASS',name);}
+test('empty backup is never promoted to S01 or Journal release approval',()=>{const x=reviewDeviceBackup(mk());assert.equal(x.releaseApproved,false);assert.equal(x.status,'RELEASE_HOLD_EVIDENCE_INCOMPLETE')});
+test('old indexedDB offline queue is explicitly outside legacy backup coverage',()=>{const x=reviewDeviceBackup(mk());assert(x.issues.some(v=>v.code==='LEGACY_INDEXEDDB_OFFLINE_QUEUE_NOT_IN_DEVICE_BACKUP'))});
+test('legacy V1/V2 remains review only',()=>{const x=reviewDeviceBackup(mk([],[{key:'offline_att_C_2026-10-23',raw:'{"clubId":"C"}'}]));assert.equal(x.counts.legacyV1V2,1);assert(x.issues.some(v=>v.code==='LEGACY_V1_V2_QUARANTINE_REQUIRED'))});
+test('malformed legacy raw is preserved but flagged',()=>{const x=reviewDeviceBackup(mk([],[{key:'offline_att_C_BAD',raw:'{oops'}]));assert.equal(x.counts.legacyMalformed,1)});
+test('pending, inflight, conflict, needs-review all block close',()=>{const x=reviewDeviceBackup(mk(['pending','inflight','conflict','needs-review'].map((s,i)=>row('id'+i,s))));assert.equal(x.counts.v3Pending,1);assert.equal(x.counts.v3Inflight,1);assert.equal(x.counts.v3Conflict,1);assert.equal(x.counts.v3NeedsReview,1)});
+test('acked intent still needs server idempotency cross-check',()=>{const x=reviewDeviceBackup(mk([row('ack','acked')]));assert(x.issues.some(v=>v.code==='ACK_REQUIRES_SERVER_VERSION_RECONCILIATION'))});
+test('missing chain parent is reported',()=>{const x=reviewDeviceBackup(mk([{...row('child'),dependsOn:'unknown-parent'}]));assert.equal(x.counts.missingParent,1)});
+test('multiple active intents on same target identified',()=>{const x=reviewDeviceBackup(mk([row('a'),row('b')]));assert.equal(x.counts.overlappingActiveTarget,1)});
+test('quarantined unowned V3 remains quarantined',()=>{const x=reviewDeviceBackup(mk([{...row('legacy'),principal:null,legacySource:{key:'old'}}]));assert.equal(x.counts.v3LegacyUnowned,1)});
+test('foreign excluded V3 prevents presumed device coverage',()=>{const x=reviewDeviceBackup(mk([],[],{excludedForeignV3Count:2}));assert(x.issues.some(v=>v.code==='FOREIGN_PRINCIPAL_DEVICE_ROWS_NEED_SEPARATE_AUDIT'))});
+test('backup hash mismatch rejected',()=>{const b=mk();b.backupSHA256='0'.repeat(64);assert.throws(()=>reviewDeviceBackup(b),e=>e.code==='BACKUP_HASH_MISMATCH')});
+test('scope mismatch rejected',()=>assert.throws(()=>reviewDeviceBackup(mk(),{projectId:'another'}),e=>e.code==='BACKUP_SCOPE_MISMATCH'));
+test('duplicate journal IDs rejected',()=>assert.throws(()=>reviewDeviceBackup(mk([row('dup'),row('dup')])),e=>e.code==='DUPLICATE_INTENT_ID'));
+test('S01 proof PASS still means RELEASE_BLOCKED',()=>{const x=reviewA9R7Demo({kind:'DEMO_ACTIVE_ONLY_NOT_RELEASE',projectId:'demo-a9r7',results:[{title:'S01 proof: forged pre-cutover marker remains a release blocker',result:'PASS'}],pass:14,total:14});assert.equal(x.status,'S01_RELEASE_BLOCKED')});
+test('missing adversarial proof is invalid',()=>assert.throws(()=>reviewA9R7Demo({kind:'DEMO_ACTIVE_ONLY_NOT_RELEASE',projectId:'demo-a9r7',results:[]}),e=>e.code==='S01_ADVERSARIAL_TEST_MISSING'));
+fs.mkdirSync('qa_results_a9r8',{recursive:true});fs.writeFileSync('qa_results_a9r8/journal-audit-offline.json',JSON.stringify({total:checks.length,pass:checks.length,fail:0,checks,scope:'OFFLINE ONLY; no server, no device enumeration, no owner signature, no release approval'},null,2));
+console.log('A9R8 JOURNAL AUDIT',checks.length,'PASS');

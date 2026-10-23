@@ -1,0 +1,14 @@
+{
+  "projectId": "tst-staging-2026",
+  "stagingBaseURL": "https://YOUR-STAGING-HOSTING.example/",
+  "clubIds": ["CLUB_ID_STAGING"],
+  "webConfig": {
+    "apiKey": "STAGING_WEB_API_KEY",
+    "authDomain": "tst-staging-2026.firebaseapp.com",
+    "projectId": "tst-staging-2026",
+    "storageBucket": "tst-staging-2026.firebasestorage.app",
+    "messagingSenderId": "STAGING_SENDER_ID",
+    "appId": "STAGING_APP_ID",
+    "measurementId": "STAGING_MEASUREMENT_ID_OPTIONAL"
+  }
+}

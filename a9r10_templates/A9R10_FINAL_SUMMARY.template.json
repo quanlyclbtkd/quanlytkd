@@ -1,0 +1,6 @@
+{
+  "evidence": {"status":"REPLACE_WITH_A9R9_EVIDENCE_REPORT_STATUS"},
+  "acceptance": {"status":"REPLACE_WITH_A9R10_ACCEPTANCE_STATUS"},
+  "sourceIdentity": {"status":"PASS_OR_FAIL"},
+  "rollback": {"status":"PASS_OR_FAIL"}
+}

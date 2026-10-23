@@ -1,0 +1,13 @@
+{
+  "plan": {
+    "projectId": "a9r9-staging",
+    "clubIds": ["club-demo-01"],
+    "sourceRuntimeSHA256": "PENDING_SIGNED_STAGING_PLAN",
+    "maintenanceRulesSHA256": "PENDING_DEPLOYED_STAGING_RULES_SHA256",
+    "indexesSHA256": "PENDING_STAGING_INDEXES_SHA256",
+    "createdAt": "PENDING_APPROVED_TIME"
+  },
+  "historyEvidence": null,
+  "roster": null,
+  "devices": []
+}

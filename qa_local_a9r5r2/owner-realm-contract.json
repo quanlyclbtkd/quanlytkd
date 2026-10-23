@@ -1,0 +1,35 @@
+{
+  "scope": "OFFLINE SDK-shaped mock, not Firebase Emulator",
+  "pass": 7,
+  "fail": 0,
+  "results": [
+    {
+      "test": "RED: foreign VM object is incompatible with strict Firestore DocumentData",
+      "result": "PASS"
+    },
+    {
+      "test": "RED: original vm.runInNewContext owner creates invalid-argument after Auth",
+      "result": "PASS"
+    },
+    {
+      "test": "GREEN: exact source owner creates Auth and 3 documents with valid realm values",
+      "result": "PASS"
+    },
+    {
+      "test": "GREEN: Admin revoke CS2 through unchanged savePair normal owner",
+      "result": "PASS"
+    },
+    {
+      "test": "GREEN: mirror CAS repair keeps independent previous versions",
+      "result": "PASS"
+    },
+    {
+      "test": "GREEN: orphan Auth recover completes using existing 3-doc savePair",
+      "result": "PASS"
+    },
+    {
+      "test": "GUARD: Rules SHA-256 unchanged and Coach attendance remains locked",
+      "result": "PASS"
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "phase": "A9R8",
+  "kind": "TEST_ONLY_AUDIT_AND_NARROW_JOURNAL_FIX",
+  "baseline": "A9R7",
+  "critical": [
+    {
+      "file": "app.js",
+      "changed": false,
+      "sha256": "16d1a946d58c80c4d7b21ad527e7688138bd301b71be9f839c28d60a161ebca8"
+    },
+    {
+      "file": "firestore.rules",
+      "changed": false,
+      "sha256": "23aae5fcb7f0376e4dd14ac324942233dc1bf2690304f4b7521e86c878cc7dad"
+    },
+    {
+      "file": "js/core/attendanceContract.js",
+      "changed": false,
+      "sha256": "d3f5de89bdcac160b19df2b3c518389e0df1769ac1fa18c751045e408b7e1dca"
+    },
+    {
+      "file": "js/modules/attendance.js",
+      "changed": false,
+      "sha256": "6d735ba491e2d0855e558f437c04111c6342af1f13a48e88c33c7a9514c88525"
+    },
+    {
+      "file": "js/services/attendance.service.js",
+      "changed": false,
+      "sha256": "bcec87b00681799e232d14579c0d1b83cc6f069f56d021bbfb733909683f71ef"
+    },
+    {
+      "file": "js/core/coachBranchRuntimeRepair.js",
+      "changed": false,
+      "sha256": "3c5d5d7a95390ce8438552d48947b293a2878dd480c399c4964effce82012068"
+    },
+    {
+      "file": "js/data/attendanceJournal.js",
+      "changed": true,
+      "sha256": "5993e1d276946fd2e734331b832b8c9c933cb4ee1515bb05c4dbea01a9fdf26c"
+    }
+  ],
+  "defaultCoachGateClosed": true,
+  "realServerEvidenceProvided": false,
+  "realDevicesInventoried": false,
+  "releaseApproved": false
+}

@@ -193,6 +193,41 @@ const v10CoachContextCacheScope =
     /from '\.\/listeners\/profiles\.listeners\.js\?v=coach-roster-context-v10-20261020'/.test(main) &&
     /import \{ initAttendance \}\s+from '\.\/modules\/attendance\.js\?v=coach-roster-context-v10-20261020'/.test(main) &&
     /import \{ AttendanceService \} from '\.\.\/services\/attendance\.service\.js\?v=qr-v9-attendance-rules-20261020'/.test(attendance);
+const a9Scope = (()=>{try{
+ const p=verifySourceIdentity(root,runtimeHash(root));
+ return p.id==='V11R6_A9_AUTH_ACL_RECOVERY_TEST_ONLY'
+   && index.includes('src="app.js?v=qr-v11r6-a9-auth-acl-20261023"')
+   && index.includes('src="./js/core/coachBranchRuntimeRepair.js?v=qr-v11r6-a9-auth-acl-20261023"')
+   && buildImportGraph(root).edges.some(e=>e.to==='app.js' && e.url.includes('qr-v11r6-a9-auth-acl-20261023'))
+   && buildImportGraph(root).edges.some(e=>e.to==='js/core/coachBranchRuntimeRepair.js' && e.url.includes('qr-v11r6-a9-auth-acl-20261023'));
+}catch{return false}})();
+const a9r1Scope = (()=>{try{
+ const p=verifySourceIdentity(root,runtimeHash(root));
+ const graph=buildImportGraph(root);
+ return p.id==='V11R6_A9R1_COACH_REPAIR_UI_TEST_ONLY'
+   && index.includes('src="app.js?v=qr-v11r6-a9-auth-acl-20261023"')
+   && index.includes('src="./js/core/coachBranchRuntimeRepair.js?v=qr-v11r6-a9r1-coach-repair-ui-20261023"')
+   && graph.edges.some(e=>e.to==='app.js'&&e.url.includes('qr-v11r6-a9-auth-acl-20261023'))
+   && graph.edges.some(e=>e.to==='js/core/coachBranchRuntimeRepair.js'&&e.url.includes('qr-v11r6-a9r1-coach-repair-ui-20261023'));
+}catch{return false}})();
+const a9r4Scope = (()=>{try{
+ const p=verifySourceIdentity(root,runtimeHash(root));
+ const graph=buildImportGraph(root);
+ return p.id==='V11R6_A9R4_COACH_ONBOARDING_QR_DIAGNOSTICS_TEST_ONLY'
+   && index.includes('src="app.js?v=qr-v11r6-a9-auth-acl-20261023"')
+   && index.includes('src="./js/core/coachBranchRuntimeRepair.js?v=qr-v11r6-a9r4-coach-orphan-20261023"')
+   && graph.edges.some(e=>e.to==='app.js'&&e.url.includes('qr-v11r6-a9-auth-acl-20261023'))
+   && graph.edges.some(e=>e.to==='js/core/coachBranchRuntimeRepair.js'&&e.url.includes('qr-v11r6-a9r4-coach-orphan-20261023'));
+}catch{return false}})();
+const a9r3Scope = (()=>{try{
+ const p=verifySourceIdentity(root,runtimeHash(root));
+ const graph=buildImportGraph(root);
+ return p.id==='V11R6_A9R3_MIRROR_VERSION_CAS_TEST_ONLY'
+   && index.includes('src="app.js?v=qr-v11r6-a9-auth-acl-20261023"')
+   && index.includes('src="./js/core/coachBranchRuntimeRepair.js?v=qr-v11r6-a9r3-mirror-cas-20261023"')
+   && graph.edges.some(e=>e.to==='app.js'&&e.url.includes('qr-v11r6-a9-auth-acl-20261023'))
+   && graph.edges.some(e=>e.to==='js/core/coachBranchRuntimeRepair.js'&&e.url.includes('qr-v11r6-a9r3-mirror-cas-20261023'));
+}catch{return false}})();
 const a6Scope = (()=>{try{const p=verifySourceIdentity(root,runtimeHash(root));return p.id==='V11R6_A6_COACH_QR_MAINTENANCE'&&assertCacheGraph(buildImportGraph(root),affectedModules(buildImportGraph(root)),p.buildTag)}catch{return false}})();
 const v11CacheScope = index.includes("s.src  = './js/main.js?v=qr-v11-intent-20261020'") && main.includes("from './modules/attendance.js?v=qr-v11-intent-20261020'") && attendance.includes("attendance.service.js?v=qr-v11-intent-20261020");
 const v11r4CacheScope =
@@ -217,7 +252,7 @@ const a5MaintenanceCacheScope=(()=>{try{
  if(identity.id!=='V11R6_A5_ATTENDANCE_MAINTENANCE'||identity.buildTag!==ACCEPTED_SOURCE.buildTag)return false;
  const graph=buildImportGraph(root);return assertCacheGraph(graph,affectedModules(graph),identity.buildTag);
 }catch{return false}})();
-check(a6Scope || a5MaintenanceCacheScope || attendanceCacheChain() || v11CacheScope || v11r4CacheScope || v11r5CacheScope || v11r6CacheScope || v5u6gFrozenCacheScope || h8r1DisplayNameCacheScope || h8r2StabilityCacheScope || h8r21ResidualCacheScope || v9AttendanceCacheScope || v10CoachContextCacheScope, 'Changed modules are cache-busted only within the active phase scope');
+check(a9r4Scope || a9r3Scope || a9r1Scope || a9Scope || a6Scope || a5MaintenanceCacheScope || attendanceCacheChain() || v11CacheScope || v11r4CacheScope || v11r5CacheScope || v11r6CacheScope || v5u6gFrozenCacheScope || h8r1DisplayNameCacheScope || h8r2StabilityCacheScope || h8r21ResidualCacheScope || v9AttendanceCacheScope || v10CoachContextCacheScope, 'Changed modules are cache-busted only within the active phase scope');
 check(pkg.scripts?.['check:production-residual-defect-closure'] === 'node tools/check-production-residual-defect-closure.mjs', 'package exposes the V5U6G master gate');
 
 // Execute the new production service contract; native journal/Emulator suites

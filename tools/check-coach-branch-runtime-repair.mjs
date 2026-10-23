@@ -3,10 +3,15 @@ import {verifySourceIdentity,ACCEPTED_SOURCE} from './v11r2/source-identity.mjs'
 import {runtimeHash} from './v11r2/cutover.mjs';
 import {buildImportGraph,affectedModules,assertCacheGraph} from './v11r2/import-graph.mjs';
 import {spawnSync} from 'node:child_process';
-if(ACCEPTED_SOURCE.id==='V11R6_A6_COACH_QR_MAINTENANCE'){
- const p=verifySourceIdentity(process.cwd(),runtimeHash(process.cwd()));const g=buildImportGraph(process.cwd());assertCacheGraph(g,affectedModules(g),p.buildTag);
- for(const test of ['tools/a6/coach-assignment.test.mjs','tools/a6/admin-assignment.test.mjs']){const r=spawnSync(process.execPath,[test],{stdio:'inherit'});if(r.status!==0)process.exit(r.status||1)}
- console.log('A6 canonical assignment + Admin atomic owner PASS; real Rules/browser run separately');process.exit(0);
+import {assertReviewedA9R1CacheScope} from './a9/reviewed-cache-scope.mjs';
+const reviewedIdentity=verifySourceIdentity(process.cwd(),runtimeHash(process.cwd()));
+if(['V11R6_A6_COACH_QR_MAINTENANCE','V11R6_A9R1_COACH_REPAIR_UI_TEST_ONLY','V11R6_A9R3_MIRROR_VERSION_CAS_TEST_ONLY','V11R6_A9R4_COACH_ONBOARDING_QR_DIAGNOSTICS_TEST_ONLY'].includes(reviewedIdentity.id)){
+ if(['V11R6_A9R1_COACH_REPAIR_UI_TEST_ONLY','V11R6_A9R3_MIRROR_VERSION_CAS_TEST_ONLY','V11R6_A9R4_COACH_ONBOARDING_QR_DIAGNOSTICS_TEST_ONLY'].includes(reviewedIdentity.id))assertReviewedA9R1CacheScope(process.cwd());
+ else {const g=buildImportGraph(process.cwd());assertCacheGraph(g,affectedModules(g),reviewedIdentity.buildTag)}
+ const tests=['tools/a6/coach-assignment.test.mjs','tools/a6/admin-assignment.test.mjs'];
+ if(['V11R6_A9R1_COACH_REPAIR_UI_TEST_ONLY','V11R6_A9R3_MIRROR_VERSION_CAS_TEST_ONLY','V11R6_A9R4_COACH_ONBOARDING_QR_DIAGNOSTICS_TEST_ONLY'].includes(reviewedIdentity.id))tests.push('tools/a8/acl-preflight-and-ack.test.mjs','tools/a9/login-path-source.test.mjs','tools/a9/repair-cas-source.test.mjs','tools/a9/coach-repair-ui.test.mjs');if(reviewedIdentity.id==='V11R6_A9R4_COACH_ONBOARDING_QR_DIAGNOSTICS_TEST_ONLY')tests.push('tools/a9r4/coach-create-orphan-source.test.mjs');
+ for(const test of tests){const r=spawnSync(process.execPath,[test],{stdio:'inherit'});if(r.status!==0)process.exit(r.status||1)}
+ console.log('Canonical Coach owner source regressions PASS; Firestore Rules/real device remain separate');process.exit(0);
 }
 import {contract, expression} from "./v10/contracts.mjs";
 /** Phase 4K-6V4B1 — Coach Branch Assignment + Runtime Repair */
