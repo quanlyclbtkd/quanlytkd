@@ -1,4 +1,4 @@
-import {HISTORY_AUTHORITY, attendanceServerVersion, attendanceVisibleRecord} from "../core/attendanceContract.js?v=qr-v11r6-a9r12-coach-attendance-query-closure-20261024";
+import {HISTORY_AUTHORITY, ABSENT_VERSION, attendanceServerVersion, attendanceVisibleRecord} from "../core/attendanceContract.js?v=qr-v11r6-a9r13-coach-attendance-tx-history-closure-20261024";
 /**
  * js/services/attendance.service.js — Phase 3.1
  * ────────────────────────────────────────────────────────────────
@@ -149,11 +149,19 @@ async function _commitAttendanceIntents(intents, options = {}) {
             const ack = await runTransaction(db, async transaction => {
                 ensureCurrent();
                 const current = [];
-                // Firestore requires all transaction reads before its writes.
+                // A9R13: a daily server snapshot already proves a new target is
+                // absent when baseVersion === ABSENT_VERSION.  Do not issue a
+                // BatchGet for that missing document: production Rules can deny
+                // the missing-doc read before the create rule is evaluated.
+                // Existing rows still use the exact same transaction read + CAS.
                 for (const intent of chunk) {
                     const ref = doc(db,'clubs',clubId,'attendance',intent.record.docId);
+                    if (intent.baseVersion === ABSENT_VERSION) {
+                        current.push({intent,ref,data:null,createWithoutRead:true});
+                        continue;
+                    }
                     const snap = await transaction.get(ref);
-                    current.push({intent,ref,data:snap.exists()?snap.data():null});
+                    current.push({intent,ref,data:snap.exists()?snap.data():null,createWithoutRead:false});
                     window.recordFirestoreReadAttribution?.('attendance.intent-version',1,{reason:'compare-and-set',initial:false});
                 }
                 ensureCurrent();
@@ -169,7 +177,7 @@ async function _commitAttendanceIntents(intents, options = {}) {
                         continue;
                     }
                     payload.historyAuthority = HISTORY_AUTHORITY;
-                    payload.attendancePreviousVersion = data?.attendanceVersion || 'legacy';
+                    payload.attendancePreviousVersion = data?.attendanceVersion || (intent.baseVersion === ABSENT_VERSION ? ABSENT_VERSION : 'legacy');
                     payload.attendanceVersion = intent.id;
                     // Status zero is an unmarked tombstone, retaining the CAS
                     // version so a delayed set cannot resurrect a deleted mark.
@@ -407,9 +415,14 @@ export const AttendanceService = {
         if (isCoach) baseConstraints.push(where('historyAuthority','==',HISTORY_AUTHORITY));
         window.RoleReadBoundary?.canMount?.('attendance.member-history', { profileId, months, branch });
 
-        // `month in [...]` cannot be combined portably with a second `branch in [...]`.
-        // Run one branch-equality query per legacy alias and de-duplicate by document id.
-        const aliases = (branch && branch !== 'all') ? (isCoach ? _branchAliases(branch) : [branch]) : [''];
+        // A9R13: current-authority Coach history is canonical-branch only,
+        // exactly like daily/monthly attendance.  A CS1 Coach must NOT issue a
+        // second legacy `branch == "Mặc định"` query because A9R12 Rules prove
+        // only canonical allowedBranches and Firestore rejects the entire
+        // Promise.all when that legacy query is denied.
+        const aliases = (branch && branch !== 'all')
+            ? (isCoach ? [_canonicalBranch(branch, '')] : [branch])
+            : [''];
         const snapshots = await Promise.all(aliases.map(alias => {
             const constraints = baseConstraints.slice();
             if (alias) constraints.push(where('branch', '==', alias));
@@ -606,7 +619,7 @@ export const AttendanceService = {
     },
     async attestHistory(record, serverVersion) {
         if (!['admin','super_admin'].includes(window.__verifiedAuthContextState?.role)||window.__verifiedAuthContextState?.ready!==true) throw Object.assign(new Error('Chỉ Admin xác minh lịch sử cũ.'),{code:'permission-denied'});
-        const {attendanceIntentId}=await import("../core/attendanceContract.js?v=qr-v11r6-a9r12-coach-attendance-query-closure-20261024");
+        const {attendanceIntentId}=await import("../core/attendanceContract.js?v=qr-v11r6-a9r13-coach-attendance-tx-history-closure-20261024");
         return _commitAttendanceIntents([{id:attendanceIntentId(),baseVersion:serverVersion,record:{...record,clubId:_clubId()}}]);
     },
 

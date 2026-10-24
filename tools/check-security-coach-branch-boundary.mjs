@@ -36,7 +36,7 @@ const appPos = index.lastIndexOf('app.js?v=');
 check('Canonical branch identity loads before role boundary and app kernel',
   branchPos >= 0 && rolePos > branchPos && appPos > rolePos);
 check('All 6V4B runtime entry assets share one cache-bust marker',
-  (()=>{const p=verifySourceIdentity(root,runtimeHash(root));if(['V11R6_A9R1_COACH_REPAIR_UI_TEST_ONLY','V11R6_A9R3_MIRROR_VERSION_CAS_TEST_ONLY','V11R6_A9R4_COACH_ONBOARDING_QR_DIAGNOSTICS_TEST_ONLY'].includes(p.id))return assertReviewedA9R1CacheScope(root);if(['V11R6_A6_COACH_QR_MAINTENANCE','V11R6_A9R11_COACH_ATTENDANCE_OPERATIONAL_TEST_ONLY'].includes(p.id)){const g=buildImportGraph(root);return assertCacheGraph(g,affectedModules(g),p.buildTag)}return (index.match(/coach-branch-runtime-repair-20260627-v4b1/g)||[]).length>=5})());
+  (()=>{const p=verifySourceIdentity(root,runtimeHash(root));if(['V11R6_A9R1_COACH_REPAIR_UI_TEST_ONLY','V11R6_A9R3_MIRROR_VERSION_CAS_TEST_ONLY','V11R6_A9R4_COACH_ONBOARDING_QR_DIAGNOSTICS_TEST_ONLY'].includes(p.id))return assertReviewedA9R1CacheScope(root);if(['V11R6_A6_COACH_QR_MAINTENANCE','V11R6_A9R11_COACH_ATTENDANCE_OPERATIONAL_TEST_ONLY','V11R6_A9R12_COACH_ATTENDANCE_QUERY_CLOSURE_TEST_ONLY','V11R6_A9R13_COACH_ATTENDANCE_TX_HISTORY_CLOSURE_TEST_ONLY'].includes(p.id)){const g=buildImportGraph(root);return assertCacheGraph(g,affectedModules(g),p.buildTag)}return (index.match(/coach-branch-runtime-repair-20260627-v4b1/g)||[]).length>=5})());
 check('Coach account selector has no unrestricted/all-branch option',
   /id="coach_branch"[\s\S]{0,600}<option value="CS1">/.test(index) &&
   !/id="coach_branch"[\s\S]{0,600}Tất cả cơ sở \(không giới hạn\)/.test(index));
@@ -98,7 +98,8 @@ check('Coach profile reads are enforced by Firestore branch authorization',
   /match \/profiles\/\{profileId\}[\s\S]{0,350}isCoach\(clubId\)[\s\S]{0,120}resourceBranchMatchesCoach/.test(rules));
 const attendanceRules=rules.slice(rules.indexOf('match /attendance/{attendanceId}'),rules.indexOf('match /attendanceNotes/'));
 check('Coach versioned create/update are branch/profile-scoped; blind delete denied',
-  attendanceRules.includes('requestBranchMatchesCoach()') && attendanceRules.includes('resourceBranchMatchesCoach()') &&
+  (attendanceRules.includes('requestBranchMatchesCoach()') || attendanceRules.includes('coachAttendanceRequestBranchMatches()')) &&
+  (attendanceRules.includes('resourceBranchMatchesCoach()') || attendanceRules.includes('coachAttendanceResourceBranchMatches()')) &&
   attendanceRules.includes('coachAttendanceProfileMatches(clubId, request.resource.data)') && attendanceRules.includes('historicalProof(resource.data)') && attendanceRules.includes('allow delete: if false'));
 
 check('Coach notes and notifications are restricted to own coachId',

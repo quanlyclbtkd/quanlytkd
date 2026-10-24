@@ -1,6 +1,6 @@
 // Storage component of the existing attendance owner. No SDK, timer or writer.
 // IndexedDB transactions serialize enqueue/claim/ACK across real browser tabs.
-import {JOURNAL_DATABASE,attendanceIntentId,attendanceIntentTarget} from "../core/attendanceContract.js?v=qr-v11r6-a9r11-coach-attendance-operational-20261024";
+import {JOURNAL_DATABASE,attendanceIntentId,attendanceIntentTarget} from "../core/attendanceContract.js?v=qr-v11r6-a9r13-coach-attendance-tx-history-closure-20261024";
 let databasePromise;
 const active = item => ['pending','inflight','conflict','needs-review'].includes(item.state);
 const maxSequence=rows=>rows.reduce((max,row)=>Math.max(max,Number(row.sequence)||0),0);
@@ -86,6 +86,27 @@ export const AttendanceJournal=Object.freeze({
         });
     },
     async list(input) {const scope=captureContext(input);return atomic(scope,({rows})=>rows.filter(x=>scopeMatches(x,scope)).sort((a,b)=>a.sequence-b.sequence));},
+    // A9R13 one-time recovery for the exact A9R12 failure where a new
+    // attendance intent (server base = absent) was moved to needs-review only
+    // because transaction.get() on the missing target was permission-denied.
+    // No server state is changed here.  The recovered chain is replayed through
+    // the same canonical writer/CAS; a real conflict or ACL denial returns to
+    // needs-review and this marker prevents an automatic loop.
+    async recoverPermissionDeniedAbsent(input, marker='a9r13-absent-read-fix') {
+        const scope=captureContext(input);
+        return atomic(scope,({intents,rows})=>{
+            let recovered=0;
+            const scoped=rows.filter(row=>scopeMatches(row,scope)).sort((a,b)=>a.sequence-b.sequence);
+            const roots=new Set(scoped.filter(row=>row.state==='needs-review' && row.lastError==='permission-denied' &&
+                String(row.originalBaseVersion||row.baseVersion||'')==='absent' && row.a9r13RecoveryMarker!==marker).map(row=>row.id));
+            if(!roots.size)return 0;
+            const recoverable=new Set(roots);
+            let changed=true;
+            while(changed){changed=false;for(const row of scoped){if(row.state==='needs-review'&&row.dependsOn&&recoverable.has(row.dependsOn)&&!recoverable.has(row.id)){recoverable.add(row.id);changed=true;}}}
+            for(const row of scoped){if(!recoverable.has(row.id))continue;row.state='pending';row.a9r13RecoveryMarker=marker;row.a9r13RecoveredAt=Date.now();delete row.lastError;delete row.serverConflict;intents.put(row);recovered++;}
+            return recovered;
+        });
+    },
     async claim(input,ownerId,count=10,now=Date.now()) {
         const scope=captureContext(input);
         return atomic(scope,({intents,rows})=>{

@@ -16,11 +16,11 @@
  * ────────────────────────────────────────────────────────────────
  */
 
-import { AttendanceService } from "../services/attendance.service.js?v=qr-v11r6-a9r12-coach-attendance-query-closure-20261024";
+import { AttendanceService } from "../services/attendance.service.js?v=qr-v11r6-a9r13-coach-attendance-tx-history-closure-20261024";
 import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
 import { escapeHtml } from '../utils/helpers.js';
-import { AttendanceJournal } from "../data/attendanceJournal.js?v=qr-v11r6-a9r12-coach-attendance-query-closure-20261024";
-import { HISTORY_AUTHORITY, HISTORY_COACH_ACCESS, attendanceServerVersion, attendanceIntentId } from "../core/attendanceContract.js?v=qr-v11r6-a9r12-coach-attendance-query-closure-20261024";
+import { AttendanceJournal } from "../data/attendanceJournal.js?v=qr-v11r6-a9r13-coach-attendance-tx-history-closure-20261024";
+import { HISTORY_AUTHORITY, HISTORY_COACH_ACCESS, attendanceServerVersion, attendanceIntentId } from "../core/attendanceContract.js?v=qr-v11r6-a9r13-coach-attendance-tx-history-closure-20261024";
 
 const ATTENDANCE_OWNER = 'js/modules/attendance.js';
 const ATTENDANCE_OWNED_GLOBALS = Object.freeze([
@@ -2280,7 +2280,13 @@ export function initAttendance() {
         if (!_isOfflineAttendanceSyncContextCurrent(syncContext)) return {skipped:'stale-context'};
         // Pause before import/claim: no lease/ACK/raw changes during maintenance.
         if (syncContext.role==='coach' && !HISTORY_COACH_ACCESS) return {skipped:'attendance-maintenance'};
-        try {await AttendanceJournal.importLegacy(syncContext);}
+        try {
+            await AttendanceJournal.importLegacy(syncContext);
+            const recovered = await AttendanceJournal.recoverPermissionDeniedAbsent?.(syncContext);
+            if (recovered) {
+                console.info('[AttendanceOffline] A9R13 recovered '+recovered+' A9R12 permission-denied create intent(s) for canonical retry.');
+            }
+        }
         catch(error) {_recordAttendanceOfflineIssue('journal-unavailable',error,{stage:'open-journal'});return {error:'attendance/journal-unavailable'};}
         if (navigator.onLine === false) return {skipped:'offline'};
         const refreshShifts = async () => {
