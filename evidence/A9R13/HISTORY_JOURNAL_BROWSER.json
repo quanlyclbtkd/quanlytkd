@@ -1,0 +1,32 @@
+{
+  "scope": "Actual UI/service/native IndexedDB, SDK failure injection; no live project or physical device",
+  "pass": 6,
+  "fail": 0,
+  "total": 6,
+  "results": [
+    {
+      "name": "Name click opens Coach history once and never queues a mark",
+      "status": "PASS"
+    },
+    {
+      "name": "Permission failure in a history request is reported without a mark",
+      "status": "PASS"
+    },
+    {
+      "name": "Denied version read preserves native Journal intent and shows a permission label",
+      "status": "PASS"
+    },
+    {
+      "name": "Repeated sync cannot silently replay a permission-blocked intent",
+      "status": "PASS"
+    },
+    {
+      "name": "Admin exact-ID audit uses one inspector read and no month scan or write",
+      "status": "PASS"
+    },
+    {
+      "name": "After Admin verification explicit user review can safely rebase and ACK",
+      "status": "PASS"
+    }
+  ]
+}

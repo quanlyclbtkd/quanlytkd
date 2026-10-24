@@ -1,0 +1,24 @@
+{
+  "kind": "A9R13_OFFLINE_INVARIANTS",
+  "sourceIdentity": "V11R6_A9R13_MEMBER_HISTORY_DIAGNOSTICS",
+  "canonicalFileCount": 128,
+  "rootPublicParity": "128/128",
+  "rulesUnchanged": true,
+  "authorityUnchanged": true,
+  "journalUnchanged": true,
+  "cas": [
+    "Coach 41 intents serial chunks 10/10/10/10/1",
+    "explicit smaller chunks respected",
+    "Admin 401 intents keeps 400/1 policy",
+    "second commit failure exposes exact ACK ids",
+    "lost ACK recovery is read-only and validates same UUID content",
+    "newer intent survives stale set/delete/reapply",
+    "whitelist strips all journal identity and metadata",
+    "legacy no-shift identity remains name_date after explicit review",
+    "unknown/V1 direct input never auto-replayed",
+    "wrong club/identity/date and duplicate targets fail before SDK",
+    "role/db/branch/uid/generation changes stop following chunk after ACK",
+    "members projection has no writer",
+    "same verified principal may adopt initially missing UI mirrors"
+  ]
+}

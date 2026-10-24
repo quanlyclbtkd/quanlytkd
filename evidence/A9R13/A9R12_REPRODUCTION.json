@@ -1,0 +1,39 @@
+{
+  "rulesPath": "../a9r12_baseline/firestore.rules",
+  "results": [
+    {
+      "title": "getDoc absent attendance",
+      "result": "SUCCESS",
+      "details": {
+        "exists": false
+      }
+    },
+    {
+      "title": "actual service transaction create after absent read",
+      "result": "SUCCESS",
+      "details": {
+        "committed": 1,
+        "total": 1,
+        "pending": 0,
+        "acknowledgedIds": [
+          "fresh-intent-a9r13-00001"
+        ],
+        "versions": {
+          "Fresh_2026-10-24_S1": "fresh-intent-a9r13-00001"
+        }
+      }
+    },
+    {
+      "title": "actual service member history CS1",
+      "result": "ERROR",
+      "code": "permission-denied",
+      "message": "\nevaluation error at L332:24 for 'list' @ L332, false for 'list' @ L475, false for 'list' @ L621, evaluation error at L332:24 for 'list' @ L332, false for 'list' @ L475, false for 'list' @ L621, evaluation error at L332:24 for 'list' @ L332, false for 'list' @ L475, false for 'list' @ L621, false for 'list' @ L332, false for 'list' @ L475, false for 'list' @ L621"
+    },
+    {
+      "title": "actual service transaction on hidden legacy collision",
+      "result": "ERROR",
+      "code": "permission-denied",
+      "message": "7 PERMISSION_DENIED: \nevaluation error at L330:23 for 'get' @ L330, false for 'get' @ L475, false for 'get' @ L621, false for 'get' @ L330, false for 'get' @ L475, false for 'get' @ L621"
+    }
+  ]
+}

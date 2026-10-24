@@ -1,0 +1,355 @@
+{
+  "total": 58,
+  "pass": 53,
+  "fail": 5,
+  "results": [
+    {
+      "gate": "check:production-authority-closure",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.32
+    },
+    {
+      "gate": "check:attendance-explicit-shift-authority",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.26
+    },
+    {
+      "gate": "check:attendance-daily-single-refresh-authority",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.26
+    },
+    {
+      "gate": "check:production-security-trust-boundary",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.52
+    },
+    {
+      "gate": "check:syntax",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 2.96
+    },
+    {
+      "gate": "check:mobile-startup-performance",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "gate": "check:lazy-assets-loading",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "gate": "check:tailwind-static-css-build",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "gate": "check:mobile-filter-currency-stability",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "gate": "check:exam-upgrade-finance-separation",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.26
+    },
+    {
+      "gate": "check:global-ownership-adoption-cleanup",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.32
+    },
+    {
+      "gate": "check:listener-ownership-boundary",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.32
+    },
+    {
+      "gate": "check:inventory-multiitem-readonly-ui",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.27
+    },
+    {
+      "gate": "check:financial-action-audit-guard",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.32
+    },
+    {
+      "gate": "check:diagnostics-tooling-isolation",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.37
+    },
+    {
+      "gate": "check:report-export-lazy-isolation",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 3.38
+    },
+    {
+      "gate": "check:attendance-canonical-ownership",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.26
+    },
+    {
+      "gate": "check:spark-read-cost-hardening",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.22
+    },
+    {
+      "gate": "check:inventory-history-active-debt",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.27
+    },
+    {
+      "gate": "check:inventory-consumer-hydration-hotfix",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.27
+    },
+    {
+      "gate": "check:inventory-dynamic-size-catalog",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.27
+    },
+    {
+      "gate": "check:inventory-ledger-reconciliation",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.27
+    },
+    {
+      "gate": "check:firestore-read-attribution-canonical-tx-boundary",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.22
+    },
+    {
+      "gate": "check:payment-bundle-runtime-hotfix",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.22
+    },
+    {
+      "gate": "check:canonical-transaction-safe-cutover",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "gate": "check:debt-profile-read-boundary",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.22
+    },
+    {
+      "gate": "check:debt-authoritative-tuition-coverage",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "gate": "check:coach-attendance-only-read-boundary",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.21
+    },
+    {
+      "gate": "check:security-coach-branch-boundary",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.37
+    },
+    {
+      "gate": "check:coach-branch-runtime-repair",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.31
+    },
+    {
+      "gate": "check:quit-tab-completeness",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "gate": "check:quit-tab-authoritative-completeness",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "gate": "check:quit-tab-mobile-parity",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.22
+    },
+    {
+      "gate": "check:render-warning-coalescing",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "gate": "check:tuition-debt-source-of-truth",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.22
+    },
+    {
+      "gate": "check:active-skipped-month-section",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "gate": "check:profile-canonical-store",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.22
+    },
+    {
+      "gate": "check:v4d1a-runtime-recovery",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.26
+    },
+    {
+      "gate": "check:v5q-quit-single-authoritative-pipeline",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "gate": "check:v5r-quit-single-source-lock",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "gate": "check:v5r-quit-source-behavior",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.22
+    },
+    {
+      "gate": "check:v5s-quit-context-render-loop-guard",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.26
+    },
+    {
+      "gate": "check:v5s-quit-context-behavior",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "gate": "check:v5t-command-boundary-write-freeze",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.27
+    },
+    {
+      "gate": "check:v5t-command-boundary-behavior",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.31
+    },
+    {
+      "gate": "check:v5u1-student-status-command-cutover",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "gate": "check:v5u1-student-status-command-behavior",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "gate": "check:v5u2-tuition-command-cutover",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "gate": "check:v5u2-tuition-command-behavior",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.26
+    },
+    {
+      "gate": "check:v5u2e-attendance-excel-sdk-fix",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.27
+    },
+    {
+      "gate": "check:student-name-search-priority",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "gate": "check:superadmin-auth-principal-alignment",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.22
+    },
+    {
+      "gate": "check:admin-credential-single-source",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "gate": "check:auth-context-single-writer",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "gate": "check:legacy-global-freeze",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "gate": "check:dashboard-single-read-authority",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.26
+    },
+    {
+      "gate": "check:dashboard-cache-freshness-guard",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 1.87
+    },
+    {
+      "gate": "check:dashboard-hydration-mutation-guard",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.27
+    }
+  ]
+}

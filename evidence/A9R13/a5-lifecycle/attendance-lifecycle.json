@@ -1,0 +1,97 @@
+{
+  "scope": "Actual maintenance Admin UI, native IDB, controlled SDK/storage failures; no live or physical-device acceptance",
+  "results": [
+    {
+      "name": "cached empty shifts cannot authorize legacy writes",
+      "status": "PASS"
+    },
+    {
+      "name": "pending shifts cannot authorize legacy writes",
+      "status": "PASS"
+    },
+    {
+      "name": "malformed shifts cannot silently become an empty list",
+      "status": "PASS"
+    },
+    {
+      "name": "duplicate shift identities are rejected",
+      "status": "PASS"
+    },
+    {
+      "name": "confirmed absent settings still support the legacy no-shift club",
+      "status": "PASS"
+    },
+    {
+      "name": "late enqueue failure cannot roll back a different date",
+      "status": "PASS"
+    },
+    {
+      "name": "two failed rapid taps leave no phantom attendance",
+      "status": "PASS"
+    },
+    {
+      "name": "older successful save survives a newer failed tap",
+      "status": "PASS"
+    },
+    {
+      "name": "two successful rapid taps keep journal causality and final server status",
+      "status": "PASS"
+    },
+    {
+      "name": "another tab ACK cannot sever causality of a locally displayed intent",
+      "status": "PASS"
+    },
+    {
+      "name": "a server version is not promoted before its matching view is accepted",
+      "status": "PASS"
+    },
+    {
+      "name": "a new branch view cannot write the roster left from the previous branch",
+      "status": "PASS"
+    },
+    {
+      "name": "failed first tap cannot become the base of a successful newer tap",
+      "status": "PASS"
+    },
+    {
+      "name": "failed bulk enqueue cannot erase a newer single-student edit",
+      "status": "PASS"
+    },
+    {
+      "name": "same-session verified shifts remain available offline without extra reads",
+      "status": "PASS"
+    },
+    {
+      "name": "reconnect revalidates changed shifts before claiming offline intents",
+      "status": "PASS"
+    },
+    {
+      "name": "old history success cannot replace the latest selected student",
+      "status": "PASS"
+    },
+    {
+      "name": "old history error cannot replace a newer successful history",
+      "status": "PASS"
+    },
+    {
+      "name": "principal reset removes the history modal and its previous content",
+      "status": "PASS"
+    },
+    {
+      "name": "late history after principal reset cannot recreate prior-user content",
+      "status": "PASS"
+    },
+    {
+      "name": "repeated server inspection rebases against the latest displayed version",
+      "status": "PASS"
+    },
+    {
+      "name": "invalid queued record does not block independent valid intents",
+      "status": "PASS"
+    },
+    {
+      "name": "store principal changing during a CAS read cannot authorize a write",
+      "status": "PASS"
+    }
+  ]
+}

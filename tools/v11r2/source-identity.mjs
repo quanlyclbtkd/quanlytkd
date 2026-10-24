@@ -152,25 +152,20 @@ const A9R12_COACH_ATTENDANCE_QUERY_CLOSURE_TEST_ONLY = Object.freeze({
   buildTag:'qr-v11r6-a9r12-coach-attendance-query-closure-20261024'
 });
 
-
-// A9R13 closes two Coach Attendance production failures discovered on the real UI:
-// (1) a new attendance intent no longer BatchGets a known-absent target before create;
-// (2) Coach member-history uses canonical branch equality only, matching A9R12 Rules.
-// Journal V4 keeps the same authority and performs a one-time local retry only for
-// A9R12 needs-review rows whose original server base was explicitly absent.
-const A9R13_COACH_ATTENDANCE_TX_HISTORY_CLOSURE_TEST_ONLY = Object.freeze({
-  id:'V11R6_A9R13_COACH_ATTENDANCE_TX_HISTORY_CLOSURE_TEST_ONLY',
-  inputZIP_SHA256:'fb3e45ff8839cebf1e2fbef9d337db8b9b571eb49f98d9130e0f8567a776a737',
-  manifest:'tools/v11r2/manifests/V11R6_A9R13_COACH_ATTENDANCE_TX_HISTORY_CLOSURE_TEST_ONLY.json',
-  manifestSHA256:'bb0f504ee3589f4985dcd82a94cf865352339d5f5c7ff01f40f57b9ab961b769',
-  runtimeSHA256:'b4b922546a204d4342f7f5155e768341ca2f2b16906fe1e923e49dcba73d8848',
-  rulesSHA256:'1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3',
-  indexesSHA256:'72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2',
-  buildTag:'qr-v11r6-a9r13-coach-attendance-tx-history-closure-20261024'
+// A9R13 fixes member-history query scope and read-stage diagnostics. Rules and history authority are unchanged.
+const A9R13_MEMBER_HISTORY_DIAGNOSTICS = Object.freeze({
+  "id": "V11R6_A9R13_MEMBER_HISTORY_DIAGNOSTICS",
+  "inputZIP_SHA256": "fb3e45ff8839cebf1e2fbef9d337db8b9b571eb49f98d9130e0f8567a776a737",
+  "manifest": "tools/v11r2/manifests/V11R6_A9R13_MEMBER_HISTORY_DIAGNOSTICS.json",
+  "manifestSHA256": "bd910723a417bfe62463ab87d142acb2a4c353ebf5eadec404bf2129351e72e7",
+  "runtimeSHA256": "84b301af04677175011ff8b84079fa5922c66314345998c3e9c5862a1b13e861",
+  "rulesSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+  "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+  "buildTag": "qr-v11r6-a9r13-member-history-diagnostics-20261024"
 });
 
 export function verifySourceIdentity(root, actualRuntimeSHA256) {
- const pinned=[A9R13_COACH_ATTENDANCE_TX_HISTORY_CLOSURE_TEST_ONLY,A9R12_COACH_ATTENDANCE_QUERY_CLOSURE_TEST_ONLY,A9R11_COACH_ATTENDANCE_OPERATIONAL_TEST_ONLY,A9R10_STAGING_BASE_TEST_ONLY,A9R6_ATTENDANCE_DEMO_ONLY,A9R4_ACCEPTED_SOURCE,A9R3_ACCEPTED_SOURCE,A9R1_ACCEPTED_SOURCE,A9_ACCEPTED_SOURCE,A8_ACCEPTED_SOURCE,ACCEPTED_SOURCE,A5_ACCEPTED_SOURCE,LEGACY_ACCEPTED_SOURCE];
+ const pinned=[A9R13_MEMBER_HISTORY_DIAGNOSTICS,A9R12_COACH_ATTENDANCE_QUERY_CLOSURE_TEST_ONLY,A9R11_COACH_ATTENDANCE_OPERATIONAL_TEST_ONLY,A9R10_STAGING_BASE_TEST_ONLY,A9R6_ATTENDANCE_DEMO_ONLY,A9R4_ACCEPTED_SOURCE,A9R3_ACCEPTED_SOURCE,A9R1_ACCEPTED_SOURCE,A9_ACCEPTED_SOURCE,A8_ACCEPTED_SOURCE,ACCEPTED_SOURCE,A5_ACCEPTED_SOURCE,LEGACY_ACCEPTED_SOURCE];
  const exact=pinned.find(p=>p.runtimeSHA256===actualRuntimeSHA256);
  if(!exact&&fs.existsSync(path.join(root,'STAGING_SOURCE_ONLY.json')))return verifyDerivedStaging(root,actualRuntimeSHA256,pinned);
  const p = exact||ACCEPTED_SOURCE, manifestPath = path.join(root,p.manifest);

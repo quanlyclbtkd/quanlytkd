@@ -110,7 +110,12 @@ check('Attendance daily query supports branch and fails closed when Coach branch
 check('Attendance monthly and member-history queries support branch scope',
   attendanceService.includes("canMount?.('attendance.monthly'") &&
   attendanceService.includes("canMount?.('attendance.member-history'") &&
-  attendanceService.includes("constraints.push(where('branch', '==', alias))"));
+  (() => {
+    const history=attendanceService.slice(attendanceService.indexOf('async loadMemberHistory('),attendanceService.indexOf('// ── COACH NOTES'));
+    const monthly=attendanceService.slice(attendanceService.indexOf('async loadByMonth('));
+    return [history,monthly].every(body=>body.includes('_attendanceBranchConstraint(where, branch, isCoach)')) &&
+      history.includes('baseConstraints.push(branchConstraint)') && monthly.includes('constraints.push(branchConstraint)');
+  })());
 check('Attendance UI passes selected/assigned branch into daily and monthly services',
   attendanceModule.includes("branch: token.branch === 'all' ? '' : token.branch") &&
   attendanceModule.includes("branch: selBranch === 'all' ? '' : selBranch"));

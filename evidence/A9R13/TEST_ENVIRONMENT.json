@@ -1,0 +1,10 @@
+{
+  "firestoreEmulatorVersion": "1.19.8",
+  "javaVersion": 17,
+  "nodeSdkVersion": "12.15.0",
+  "browserSdkVersion": "10.7.1",
+  "browser": "Chrome for Testing 156.0.8078.47 headless shell",
+  "liveProjectRead": false,
+  "liveProjectWrite": false,
+  "deployPerformed": false
+}

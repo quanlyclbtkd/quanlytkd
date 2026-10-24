@@ -16,11 +16,11 @@
  * ────────────────────────────────────────────────────────────────
  */
 
-import { AttendanceService } from "../services/attendance.service.js?v=qr-v11r6-a9r13-coach-attendance-tx-history-closure-20261024";
+import { AttendanceService } from "../services/attendance.service.js?v=qr-v11r6-a9r13-member-history-diagnostics-20261024";
 import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
 import { escapeHtml } from '../utils/helpers.js';
-import { AttendanceJournal } from "../data/attendanceJournal.js?v=qr-v11r6-a9r13-coach-attendance-tx-history-closure-20261024";
-import { HISTORY_AUTHORITY, HISTORY_COACH_ACCESS, attendanceServerVersion, attendanceIntentId } from "../core/attendanceContract.js?v=qr-v11r6-a9r13-coach-attendance-tx-history-closure-20261024";
+import { AttendanceJournal } from "../data/attendanceJournal.js?v=qr-v11r6-a9r13-member-history-diagnostics-20261024";
+import { HISTORY_AUTHORITY, HISTORY_COACH_ACCESS, attendanceServerVersion, attendanceIntentId } from "../core/attendanceContract.js?v=qr-v11r6-a9r13-member-history-diagnostics-20261024";
 
 const ATTENDANCE_OWNER = 'js/modules/attendance.js';
 const ATTENDANCE_OWNED_GLOBALS = Object.freeze([
@@ -735,7 +735,8 @@ function _renderAttCards() {
         const cfg     = _ATT_STATUS[status];
         const saving = savingProjection.get(docId);
         const journalState = _attendanceIntentStates.get(docId)?.state;
-        const journalLabel = saving ? 'Đang lưu trên thiết bị' : journalState ? (['pending','inflight'].includes(journalState) ? 'Chờ máy chủ xác nhận' : 'Cần đối soát') : '';
+        const permissionBlocked = String(_attendanceIntentStates.get(docId)?.lastError || '').includes('permission-denied');
+        const journalLabel = saving ? 'Đang lưu trên thiết bị' : journalState ? (['pending','inflight'].includes(journalState) ? 'Chờ máy chủ xác nhận' : permissionBlocked ? 'Bị chặn quyền lưu' : 'Cần đối soát') : '';
         const beltShort = (p.belt || 'Đai Trắng')
             .replace(/\s*\(Cấp \d+\)/g, '').replace('Đai ', '').replace(' - cấp', '').trim();
         summary[status]++;
@@ -1341,7 +1342,7 @@ function _recordAttendanceOfflineIssue(kind, error, extra = {}) {
     if (resolved === 'wrong-club') debug.offlineSyncCrossClubBlocked++;
     if (resolved === 'invalid-shift') debug.offlineSyncInvalidShiftBlocked++;
     if (resolved === 'malformed-payload') debug.offlineSyncMalformedBlocked++;
-    const details = { classification: resolved, attendanceOffline: true, ...extra };
+    const details = { classification: resolved, attendanceOffline: true, ...extra, ...error?.attendanceDiagnostic };
     console.warn('[AttendanceOffline]', resolved, details, error || '');
     // Guard outcomes are expected and remain pending; actual failures are also recorded
     // in the existing runtime error store. No second diagnostics authority is created.
@@ -1707,7 +1708,7 @@ async function _requestAttendanceDailyRefresh(reason = 'compatibility-render', o
         try {pending=await AttendanceJournal.list(_captureOfflineAttendanceSyncContext());}
         catch(error) {_attendanceDebug().journalStorageUnavailable=true;}
         if (!_isAttendanceDailyTokenCurrent(token)) return {stale:true,key:token.key};
-        _attendanceIntentStates = new Map(pending.filter(row=>['pending','inflight','conflict','needs-review'].includes(row.state) && row.record.date===token.date && row.record.shiftId===token.shiftId).map(row=>[row.record.docId,{state:row.state,id:row.id}]));
+        _attendanceIntentStates = new Map(pending.filter(row=>['pending','inflight','conflict','needs-review'].includes(row.state) && row.record.date===token.date && row.record.shiftId===token.shiftId).map(row=>[row.record.docId,{state:row.state,id:row.id,lastError:row.lastError}]));
         pending.filter(row => ['pending','inflight'].includes(row.state) &&
             row.record.date === token.date && row.record.shiftId === token.shiftId)
             .forEach(row => {nextCache[row.record.docId] = Number(row.record.status);});
@@ -1817,7 +1818,9 @@ async function _openAttendancePendingReview() {
     for (const row of rows.slice(0,100)) {
         const item=document.createElement('section');item.style.cssText='padding:12px 0;border-top:1px solid #cbd5e1';
         const text=document.createElement('p');text.textContent=row.record.name+' · '+row.record.date+' · '+(row.record.branch||'Chưa rõ cơ sở')+' · trên thiết bị: '+_attendanceStatusLabel(row.record.status);item.append(text);
-        const status=document.createElement('div');status.textContent=row.state==='inflight'?'Đang chờ xác nhận; hãy đồng bộ lại sau một phút nếu phiên cũ đã đóng.':row.state==='pending'?'Đang chờ gửi.':'Cần đối soát trước khi gửi.';item.append(status);
+        const status=document.createElement('div');status.textContent=String(row.lastError||'').includes('permission-denied')
+            ? 'Máy chủ chặn quyền đọc/lưu bản ghi. Có thể trùng lịch sử cũ bị khóa hoặc Rules chưa đồng bộ; cần Admin kiểm tra. Thao tác trên thiết bị được giữ nguyên.'
+            : row.state==='inflight'?'Đang chờ xác nhận; hãy đồng bộ lại sau một phút nếu phiên cũ đã đóng.':row.state==='pending'?'Đang chờ gửi.':'Cần đối soát trước khi gửi.';item.append(status);
         let inspectedVersion = '';
         const button=(label,fn)=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.style.cssText='padding:8px;margin:6px 8px 0 0';b.onclick=async()=>{
             b.disabled=true;
@@ -1863,16 +1866,30 @@ async function _openAttendanceHistoryAudit() {
     const {body,overlay}=_attendanceReviewSheet('Đối soát cơ sở tại ngày điểm danh');
     const intro=document.createElement('p');intro.textContent='Đối chiếu chứng từ hoặc lịch học gốc cho từng bản ghi. Cơ sở hiện tại của võ sinh chỉ là thông tin tham khảo; không tự xác minh hàng loạt.';body.append(intro);
     const month=document.createElement('input');month.type='month';month.value=document.getElementById('att_month')?.value||document.getElementById('att_date')?.value?.slice(0,7)||_getLocalToday().slice(0,7);body.append(month);
+    const exactId=document.createElement('input');exactId.type='text';exactId.placeholder='Dán mã bản ghi trong Console để kiểm tra đúng một mục';exactId.setAttribute('aria-label','Mã bản ghi điểm danh cần kiểm tra');exactId.style.cssText='display:block;width:100%;box-sizing:border-box;margin-top:8px;padding:8px';body.append(exactId);
     const load=document.createElement('button');load.textContent='Tải tháng để đối soát';load.type='button';load.style.cssText='padding:8px;margin:8px';body.append(load);
     const content=document.createElement('div');body.append(content);
     load.onclick=async()=>{
         load.disabled=true;content.textContent='Đang tải…';
         try {
             if (!_isOfflineAttendanceSyncContextCurrent(principal)) throw new Error('Phiên đã thay đổi.');
-            const rows=await AttendanceService.loadByMonth(month.value);
+            const target=exactId.value.trim();
+            let rows;
+            if (target) {
+                // Reuse the existing read-only CAS inspector. A precise lookup
+                // avoids loading a whole month to diagnose one denied slot.
+                const inspected=await AttendanceService.inspectIntent({clubId:principal.clubId,docId:target});
+                rows=inspected.data?[{id:target,data:inspected.data}]:[];
+            } else rows=await AttendanceService.loadByMonth(month.value);
             if (!_isOfflineAttendanceSyncContextCurrent(principal)||!overlay.isConnected) return;
             const old=rows.filter(x=>x.data.historyAuthority!==HISTORY_AUTHORITY);content.replaceChildren();
-            if (!old.length) {content.textContent='Không có bản ghi cũ chưa xác minh trong tháng này.';return;}
+            if (!old.length) {
+                content.textContent=target
+                    ? rows.length ? 'Bản ghi đã được xác minh: '+(rows[0].data.name||rows[0].data.profileId||'')+' · '+(rows[0].data.date||'')+' · cơ sở '+(rows[0].data.branch||'chưa rõ')+'. Nếu HLV vẫn bị chặn, kiểm tra cơ sở được cấp và Rules trên máy chủ.'
+                        : 'Không tìm thấy bản ghi này. Nếu HLV vẫn bị chặn, kiểm tra phiên đăng nhập, cơ sở được cấp và Rules trên máy chủ.'
+                    : 'Không có bản ghi cũ chưa xác minh trong tháng này.';
+                return;
+            }
             const summary=document.createElement('p');summary.textContent=old.length+' bản ghi cần đối soát; hiện tối đa 100 mục. Tải lại để xem tiếp.';content.append(summary);
             for (const entry of old.slice(0,100)) {
                 const record={...entry.data,clubId:principal.clubId,docId:entry.id},item=document.createElement('section');item.style.cssText='border-top:1px solid #cbd5e1;padding:12px 0';
@@ -2104,7 +2121,11 @@ export function initAttendance() {
                 + '<span style="background:#f3e8ff;padding:1px 5px;border-radius:4px;color:#7c3aed;">🔄 Học bù</span></div>';
         } catch(e) {
             if (!isCurrent()) return;
-            bodyEl.innerHTML = '<div style="text-align:center;padding:32px;color:#dc2626;font-size:0.88rem;">⚠️ Lỗi tải dữ liệu. Vui lòng thử lại.</div>';
+            const permissionDenied = _classifyAttendanceOfflineError(e) === 'permission-denied';
+            bodyEl.textContent = permissionDenied
+                ? 'Không đủ quyền tải lịch sử Điểm danh. Cần Admin kiểm tra cơ sở được cấp và Rules trên máy chủ.'
+                : 'Lỗi tải dữ liệu. Vui lòng thử lại.';
+            window.recordRuntimeError?.('attendance.member-history',e,{stage:'member-history-read',branch:historyOwner.coachBranch||'',month});
         }
     };
 
@@ -2280,13 +2301,7 @@ export function initAttendance() {
         if (!_isOfflineAttendanceSyncContextCurrent(syncContext)) return {skipped:'stale-context'};
         // Pause before import/claim: no lease/ACK/raw changes during maintenance.
         if (syncContext.role==='coach' && !HISTORY_COACH_ACCESS) return {skipped:'attendance-maintenance'};
-        try {
-            await AttendanceJournal.importLegacy(syncContext);
-            const recovered = await AttendanceJournal.recoverPermissionDeniedAbsent?.(syncContext);
-            if (recovered) {
-                console.info('[AttendanceOffline] A9R13 recovered '+recovered+' A9R12 permission-denied create intent(s) for canonical retry.');
-            }
-        }
+        try {await AttendanceJournal.importLegacy(syncContext);}
         catch(error) {_recordAttendanceOfflineIssue('journal-unavailable',error,{stage:'open-journal'});return {error:'attendance/journal-unavailable'};}
         if (navigator.onLine === false) return {skipped:'offline'};
         const refreshShifts = async () => {
@@ -2347,7 +2362,7 @@ export function initAttendance() {
             const context=_captureAttendanceDailyContext();
             const currentRows=rows.filter(row=>row.record.date===context.date && row.record.shiftId===context.shiftId &&
                 (context.branch==='all'||_sameBranch(row.record.branch,context.branch)));
-            _attendanceIntentStates=new Map(currentRows.filter(row=>['pending','inflight','conflict','needs-review'].includes(row.state)).map(row=>[row.record.docId,{state:row.state,id:row.id}]));
+            _attendanceIntentStates=new Map(currentRows.filter(row=>['pending','inflight','conflict','needs-review'].includes(row.state)).map(row=>[row.record.docId,{state:row.state,id:row.id,lastError:row.lastError}]));
             if (synced) {
                 _markAttendanceDailyMutation('intent-ack');
                 // The CAS ACK is authoritative for these exact documents.
@@ -2359,7 +2374,9 @@ export function initAttendance() {
                 }
             }
             _renderAttendanceDailyFromRam(context,'intent-result');
-            if (synced||pending||review) window.showToast?.(
+            if (_classifyAttendanceOfflineError(lastError) === 'permission-denied') {
+                window.showToast?.('Máy chủ chặn quyền đọc/lưu Điểm danh. Nhật ký được giữ trên thiết bị; cần Admin kiểm tra bản ghi lịch sử cũ và Rules.',6000);
+            } else if (synced||pending||review) window.showToast?.(
                 'Đã xác nhận '+synced+'; còn '+pending+' chờ gửi, '+review+' cần đối soát.',4000);
             _renderAttendanceJournalControls();
         }
