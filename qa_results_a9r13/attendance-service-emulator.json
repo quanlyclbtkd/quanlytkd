@@ -1,0 +1,23 @@
+{
+  "kind": "A9R13_ATTENDANCE_SERVICE_EMULATOR_TEST_ONLY",
+  "projectId": "demo-a9r13-coach-attendance",
+  "authority": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55",
+  "rulesSha256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+  "total": 3,
+  "pass": 3,
+  "fail": 0,
+  "results": [
+    {
+      "title": "real service creates known-absent Coach attendance without transaction BatchGet",
+      "result": "PASS"
+    },
+    {
+      "title": "real service update retains one transaction read and CAS",
+      "result": "PASS"
+    },
+    {
+      "title": "real Coach member-history query is canonical branch only and succeeds",
+      "result": "PASS"
+    }
+  ]
+}

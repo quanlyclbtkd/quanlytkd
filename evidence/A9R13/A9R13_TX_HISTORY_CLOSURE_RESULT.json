@@ -1,0 +1,33 @@
+{
+  "kind": "A9R13_ATTENDANCE_TX_HISTORY_CLOSURE",
+  "pass": 6,
+  "fail": 0,
+  "total": 6,
+  "serviceSha256": "f2cf4034b3745878f91cd7b5e0699031adc079b4c70226a9dd9b1b7fb877674c",
+  "results": [
+    {
+      "title": "A9R13 imports ABSENT_VERSION and skips missing-doc transaction read",
+      "result": "PASS"
+    },
+    {
+      "title": "Existing attendance still uses transaction.get CAS path",
+      "result": "PASS"
+    },
+    {
+      "title": "Coach member history no longer issues legacy branch alias query",
+      "result": "PASS"
+    },
+    {
+      "title": "A9R13 recovers only known A9R12 permission-denied absent Journal roots once",
+      "result": "PASS"
+    },
+    {
+      "title": "A9R13 does not change forward-only authority or Journal database",
+      "result": "PASS"
+    },
+    {
+      "title": "Root/public mirrors match for changed runtime files",
+      "result": "PASS"
+    }
+  ]
+}
