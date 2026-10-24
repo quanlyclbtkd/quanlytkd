@@ -1,0 +1,2 @@
+1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3  firestore.rules
+3b580a1ae181a00b0381502c8ae8887d2c90998ac3fbaa91e862022cfea48e5b  firestore.rules.a9r12-emergency-lock

@@ -1,4 +1,4 @@
-import {HISTORY_AUTHORITY, attendanceServerVersion, attendanceVisibleRecord} from "../core/attendanceContract.js?v=qr-v11r6-a9r11-coach-attendance-operational-20261024";
+import {HISTORY_AUTHORITY, attendanceServerVersion, attendanceVisibleRecord} from "../core/attendanceContract.js?v=qr-v11r6-a9r12-coach-attendance-query-closure-20261024";
 /**
  * js/services/attendance.service.js — Phase 3.1
  * ────────────────────────────────────────────────────────────────
@@ -45,6 +45,20 @@ function _branchConstraint(where, branch, coach) {
     if (!branch || branch === 'all') return null;
     const aliases = coach ? _branchAliases(branch) : [branch];
     return aliases.length > 1 ? where('branch', 'in', aliases) : where('branch', '==', aliases[0]);
+}
+// A9R12: Current-authority attendance rows are always written with canonical
+// branch codes (CS1..CS10). Coach daily/monthly queries therefore use one
+// equality predicate instead of the legacy CS1/Mặc định alias `in` query.
+// This makes the Firestore list query directly provable by the Coach rule and
+// avoids rendering a roster while the daily attendance snapshot is denied.
+function _attendanceBranchConstraint(where, branch, coach) {
+    if (!branch || branch === 'all') return null;
+    if (coach) {
+        const canonical = _canonicalBranch(branch, '');
+        if (!canonical) return null;
+        return where('branch', '==', canonical);
+    }
+    return where('branch', '==', branch);
 }
 function _prepareWriteData(data) {
     const source = data && typeof data === 'object' ? data : {};
@@ -214,7 +228,7 @@ export const AttendanceService = {
         const safetyCeiling = Math.max(pageSize, Number((window.__scaleConfig || {}).attendanceDailySafetyCeiling) || 10000);
         const baseConstraints = [where('date', '==', date)];
         if (isCoach) baseConstraints.push(where('historyAuthority','==',HISTORY_AUTHORITY));
-        const branchConstraint = _branchConstraint(where, branch, isCoach);
+        const branchConstraint = _attendanceBranchConstraint(where, branch, isCoach);
         if (branchConstraint) baseConstraints.push(branchConstraint);
         if (shiftId) baseConstraints.push(where('shiftId', '==', shiftId));
 
@@ -494,7 +508,7 @@ export const AttendanceService = {
                 throwIfAborted();
                 const constraints = [where('month', '==', month)];
                 if (isCoach) constraints.push(where('historyAuthority','==',HISTORY_AUTHORITY));
-                const branchConstraint = _branchConstraint(where, branch, isCoach);
+                const branchConstraint = _attendanceBranchConstraint(where, branch, isCoach);
                 if (branchConstraint) constraints.push(branchConstraint);
                 // Firestore's default ordering is document ID. A DocumentSnapshot
                 // cursor preserves that deterministic order without requiring a new
@@ -592,7 +606,7 @@ export const AttendanceService = {
     },
     async attestHistory(record, serverVersion) {
         if (!['admin','super_admin'].includes(window.__verifiedAuthContextState?.role)||window.__verifiedAuthContextState?.ready!==true) throw Object.assign(new Error('Chỉ Admin xác minh lịch sử cũ.'),{code:'permission-denied'});
-        const {attendanceIntentId}=await import("../core/attendanceContract.js?v=qr-v11r6-a9r11-coach-attendance-operational-20261024");
+        const {attendanceIntentId}=await import("../core/attendanceContract.js?v=qr-v11r6-a9r12-coach-attendance-query-closure-20261024");
         return _commitAttendanceIntents([{id:attendanceIntentId(),baseVersion:serverVersion,record:{...record,clubId:_clubId()}}]);
     },
 

@@ -1,0 +1,79 @@
+{
+  "kind": "A9R11_COACH_ATTENDANCE_OPERATIONAL_EMULATOR_TEST_ONLY",
+  "projectId": "demo-a9r11-coach-attendance",
+  "authority": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55",
+  "rulesSha256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+  "total": 17,
+  "pass": 17,
+  "fail": 0,
+  "results": [
+    {
+      "title": "Coach reads shift settings but not main_config",
+      "result": "PASS"
+    },
+    {
+      "title": "Coach reads assigned CS1 and CS2 profiles",
+      "result": "PASS"
+    },
+    {
+      "title": "Coach cannot read unassigned CS3 profile",
+      "result": "PASS"
+    },
+    {
+      "title": "Coach creates CS1 attendance with current authority",
+      "result": "PASS"
+    },
+    {
+      "title": "Coach creates CS2 attendance with current authority",
+      "result": "PASS"
+    },
+    {
+      "title": "Coach reads newly-created current-authority attendance",
+      "result": "PASS"
+    },
+    {
+      "title": "Coach daily list query succeeds for assigned CS1",
+      "result": "PASS"
+    },
+    {
+      "title": "Coach daily list query succeeds for assigned CS2",
+      "result": "PASS"
+    },
+    {
+      "title": "Coach daily list query is denied for unassigned CS3",
+      "result": "PASS"
+    },
+    {
+      "title": "Coach cannot read legacy pre-A9R11 attendance",
+      "result": "PASS"
+    },
+    {
+      "title": "Coach cannot promote legacy attendance to new authority",
+      "result": "PASS"
+    },
+    {
+      "title": "Coach update succeeds only with correct CAS",
+      "result": "PASS"
+    },
+    {
+      "title": "Coach cannot spoof branch against canonical profile",
+      "result": "PASS"
+    },
+    {
+      "title": "Cross-club Coach denied",
+      "result": "PASS"
+    },
+    {
+      "title": "Coach finance boundary remains denied",
+      "result": "PASS"
+    },
+    {
+      "title": "Coach cannot delete attendance",
+      "result": "PASS"
+    },
+    {
+      "title": "Admin retains access to legacy attendance",
+      "result": "PASS"
+    }
+  ]
+}

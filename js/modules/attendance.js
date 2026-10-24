@@ -16,11 +16,11 @@
  * ────────────────────────────────────────────────────────────────
  */
 
-import { AttendanceService } from "../services/attendance.service.js?v=qr-v11r6-a9r11-coach-attendance-operational-20261024";
+import { AttendanceService } from "../services/attendance.service.js?v=qr-v11r6-a9r12-coach-attendance-query-closure-20261024";
 import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
 import { escapeHtml } from '../utils/helpers.js';
-import { AttendanceJournal } from "../data/attendanceJournal.js?v=qr-v11r6-a9r11-coach-attendance-operational-20261024";
-import { HISTORY_AUTHORITY, HISTORY_COACH_ACCESS, attendanceServerVersion, attendanceIntentId } from "../core/attendanceContract.js?v=qr-v11r6-a9r11-coach-attendance-operational-20261024";
+import { AttendanceJournal } from "../data/attendanceJournal.js?v=qr-v11r6-a9r12-coach-attendance-query-closure-20261024";
+import { HISTORY_AUTHORITY, HISTORY_COACH_ACCESS, attendanceServerVersion, attendanceIntentId } from "../core/attendanceContract.js?v=qr-v11r6-a9r12-coach-attendance-query-closure-20261024";
 
 const ATTENDANCE_OWNER = 'js/modules/attendance.js';
 const ATTENDANCE_OWNED_GLOBALS = Object.freeze([
@@ -1732,6 +1732,11 @@ async function _requestAttendanceDailyRefresh(reason = 'compatibility-render', o
             return { stale: true, error: true, key: token.key };
         }
         console.warn('[Attendance] loadByDate failed:', error && error.message || error);
+        const deniedCode = String(error?.code || '');
+        const coachRole = _attendanceCanonicalRole(window.__verifiedAuthContextState?.role) === 'coach';
+        if (coachRole && (deniedCode === 'permission-denied' || deniedCode === 'firestore/permission-denied')) {
+            window.showToast?.('⚠️ Firestore chưa cho phép tải trạng thái Điểm danh HLV cho cơ sở/ca này. Cần đồng bộ Rules A9R12 rồi đăng nhập lại.', 5000);
+        }
         if (error?.code === 'attendance/daily-coverage-incomplete') {
             window.showToast('⚠️ Dữ liệu điểm danh vượt giới hạn an toàn và chưa tải đủ. Hệ thống giữ dữ liệu cũ thay vì hiển thị thiếu.', 5000);
         }

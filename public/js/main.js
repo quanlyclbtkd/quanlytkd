@@ -366,7 +366,7 @@ import {
 import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from "./modules/finance.js?v=qr-v11r6-a9r11-coach-attendance-operational-20261024";
 import { initInventory }                              from './modules/inventory.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1';
 // Compatibility marker: from './modules/attendance.js'
-import { initAttendance }                             from "./modules/attendance.js?v=qr-v11r6-a9r11-coach-attendance-operational-20261024";
+import { initAttendance }                             from "./modules/attendance.js?v=qr-v11r6-a9r12-coach-attendance-query-closure-20261024";
 // Compatibility marker: ./modules/attendance.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
 // V5U6G1 compatibility marker: ./modules/attendance.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
 import { initDashboard }                              from './modules/dashboard.js?v=dashboard-hydration-mutation-guard-20260812-v5u6c2';
@@ -382,7 +382,7 @@ import { initSuperAdmin }                             from './modules/superadmin
 // ── Phase 3.1: Event layer ──────────────────────────────────────
 import { initStudentsEvents }                         from './events/students.events.js';
 import { initFinanceEvents, initFinanceActionEvents } from './events/finance.events.js';
-import { initAttendanceEvents }                       from "./events/attendance.events.js?v=qr-v11r6-a9r11-coach-attendance-operational-20261024";
+import { initAttendanceEvents }                       from "./events/attendance.events.js?v=qr-v11r6-a9r12-coach-attendance-query-closure-20261024";
 
 // ────────────────────────────────────────────────────────────────
 // Phase 3.3G: GLOBAL ERROR HANDLERS
@@ -3226,7 +3226,7 @@ window.debugProfileModalClose = function() {
 // PHẦN 1 — APP BUILD VERSION
 // H5 compatibility build marker: APP_BUILD_VERSION = '4K-6V5U6H5-club-root-listener-bootstrap-readiness-exam-full-roster-export-20260827'
 // Previous build: 4K-6V5U6H6-release-authority-exam-state-purity-firebase-final-verification-20260829
-window.APP_BUILD_VERSION = "qr-v11r6-a9r11-coach-attendance-operational-20261024";
+window.APP_BUILD_VERSION = "qr-v11r6-a9r12-coach-attendance-query-closure-20261024";
 // Compatibility marker only: window.APP_BUILD_VERSION = '4K-6V5U6H3-residual-security-data-integrity-release-verification-20260818';
 // Compatibility marker only: window.APP_BUILD_VERSION = '4K-6V5U6H2-parent-portal-hard-disable-release-verification-20260818'
 // Compatibility marker only: window.APP_BUILD_VERSION = '4K-6V5U6H-production-security-trust-boundary-release-assurance-20260816'

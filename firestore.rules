@@ -298,6 +298,18 @@ service cloud.firestore {
         function historicalProof(data) {
           return data.get('historyAuthority', '') == 'attendance-history-1aedda93-9437-4132-9694-35c2e6234d55';
         }
+        // A9R12: current-authority Attendance is canonical-branch only.  Coach
+        // list queries use branch == CSn, so Rules can prove the query directly
+        // from the user's server-authoritative allowedBranches assignment.  Do
+        // not reuse the legacy alias/main_config branch helper for this collection.
+        function coachAttendanceResourceBranchMatches() {
+          return resource.data.keys().hasAll(['branch'])
+            && resource.data.branch in assignedBranches(currentUser());
+        }
+        function coachAttendanceRequestBranchMatches() {
+          return request.resource.data.keys().hasAll(['branch'])
+            && request.resource.data.branch in assignedBranches(currentUser());
+        }
         function versionedWrite() {
           return historicalProof(request.resource.data)
             && request.resource.data.get('attendanceVersion', '') is string
@@ -306,6 +318,7 @@ service cloud.firestore {
             && request.resource.data.get('profileId','') is string
             && request.resource.data.get('profileId','').size() > 0
             && request.resource.data.get('name','') == request.resource.data.profileId
+            && request.resource.data.get('branch','') in ['CS1','CS2','CS3','CS4','CS5','CS6','CS7','CS8','CS9','CS10']
             && request.resource.data.get('date','').matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
             && attendanceId == request.resource.data.profileId + '_' + request.resource.data.date
               + (request.resource.data.get('shiftId','') == '' ? '' : '_' + request.resource.data.shiftId);
@@ -315,16 +328,16 @@ service cloud.firestore {
             && request.resource.data.attendanceVersion != resource.data.get('attendanceVersion', 'legacy');
         }
         allow get: if isSuperAdmin() || isAdminOrViewer(clubId)
-          || (isCoach(clubId) && coachAttendanceCutoverOpen() && (resource == null || (resourceBranchMatchesCoach() && historicalProof(resource.data))));
+          || (isCoach(clubId) && coachAttendanceCutoverOpen() && (resource == null || (coachAttendanceResourceBranchMatches() && historicalProof(resource.data))));
         allow list: if isSuperAdmin() || isAdminOrViewer(clubId)
-          || (isCoach(clubId) && coachAttendanceCutoverOpen() && resourceBranchMatchesCoach() && historicalProof(resource.data));
+          || (isCoach(clubId) && coachAttendanceCutoverOpen() && coachAttendanceResourceBranchMatches() && historicalProof(resource.data));
         allow create: if versionedWrite()
           && (isSuperAdmin() || isClubAdmin(clubId)
-            || (isCoach(clubId) && coachAttendanceCutoverOpen() && requestBranchMatchesCoach()
+            || (isCoach(clubId) && coachAttendanceCutoverOpen() && coachAttendanceRequestBranchMatches()
                 && coachAttendanceProfileMatches(clubId, request.resource.data)));
         allow update: if versionedWrite() && nextVersion()
           && (isSuperAdmin() || isClubAdmin(clubId)
-            || (isCoach(clubId) && coachAttendanceCutoverOpen() && historicalProof(resource.data) && resourceBranchMatchesCoach() && requestBranchMatchesCoach()
+            || (isCoach(clubId) && coachAttendanceCutoverOpen() && historicalProof(resource.data) && coachAttendanceResourceBranchMatches() && coachAttendanceRequestBranchMatches()
                 && resource.data.get('profileId', '') == request.resource.data.get('profileId', '')
                 && sameBranchValue(resource.data.get('branch', ''), request.resource.data.get('branch', ''))
                 && coachAttendanceProfileMatches(clubId, request.resource.data)));

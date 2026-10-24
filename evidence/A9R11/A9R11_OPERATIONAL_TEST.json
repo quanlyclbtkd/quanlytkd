@@ -1,7 +1,7 @@
 {
   "total": 12,
-  "pass": 12,
-  "fail": 0,
+  "pass": 9,
+  "fail": 3,
   "authority": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55",
   "journal": "tst-attendance-journal-v4",
   "results": [
@@ -27,7 +27,8 @@
     },
     {
       "name": "Old attendance cannot be promoted by Coach update",
-      "status": "PASS"
+      "status": "FAIL",
+      "message": "The expression evaluated to a falsy value:\n\n  assert(rules.includes('historicalProof(resource.data) && resourceBranchMatchesCoach()'))\n"
     },
     {
       "name": "Journal V4 isolates all old V3 pending intents",
@@ -47,11 +48,13 @@
     },
     {
       "name": "Canonical writer and CAS body are unchanged apart from cache token imports",
-      "status": "PASS"
+      "status": "FAIL",
+      "message": "js/services/attendance.service.js business bytes changed\n+ actual - expected\n\n+ 'f70670cfb87fa520b65d1d7a1fef9e75469a9204083014ae103081ff528d2dfc'\n- '69a9b9521284b4e9f8b4f870dbaa4eb36352fc4bbbb1d19b85a0a4a1eb7a6f07'\n"
     },
     {
       "name": "Rules change is restricted to Coach attendance gate/authority/comments",
-      "status": "PASS"
+      "status": "FAIL",
+      "message": "firestore.rules changed outside approved Coach attendance gate/authority/comments\n+ actual - expected\n\n+ 'dc8435a5528f2dc8f818ea689ad2fb78f463b40ca3c7a81d6d6a87219f477d12'\n- 'be413c3fb42c806e8b398855b4ecfd412570552d1a6442edd5a6d6c3eaacb5f1'\n"
     }
   ]
 }

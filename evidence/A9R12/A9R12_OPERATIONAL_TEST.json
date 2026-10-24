@@ -1,0 +1,57 @@
+{
+  "kind": "A9R12_COACH_ATTENDANCE_OPERATIONAL",
+  "total": 12,
+  "pass": 12,
+  "fail": 0,
+  "authority": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55",
+  "results": [
+    {
+      "name": "fresh forward-only authority remains enabled",
+      "status": "PASS"
+    },
+    {
+      "name": "Rules gate is enabled and bound to same authority",
+      "status": "PASS"
+    },
+    {
+      "name": "Coach Attendance list/read proof uses direct assigned canonical branch",
+      "status": "PASS"
+    },
+    {
+      "name": "Coach Attendance writes remain canonical-profile and allowedBranches scoped",
+      "status": "PASS"
+    },
+    {
+      "name": "Coach finance boundary stays denied",
+      "status": "PASS"
+    },
+    {
+      "name": "Current authority is mandatory for Coach reads and writes",
+      "status": "PASS"
+    },
+    {
+      "name": "Old attendance cannot be promoted by Coach update",
+      "status": "PASS"
+    },
+    {
+      "name": "Journal V4 isolates old V3 pending intents",
+      "status": "PASS"
+    },
+    {
+      "name": "Legacy V1/V2 imports remain quarantine-only",
+      "status": "PASS"
+    },
+    {
+      "name": "Normal multi-branch Coach selection remains server-authoritative",
+      "status": "PASS"
+    },
+    {
+      "name": "Canonical transaction writer/CAS body is byte-identical to A9R11",
+      "status": "PASS"
+    },
+    {
+      "name": "A9R12 Rules are pinned exactly",
+      "status": "PASS"
+    }
+  ]
+}

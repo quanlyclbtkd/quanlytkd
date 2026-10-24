@@ -1,0 +1,624 @@
+rules_version = '2';
+// ══════════════════════════════════════════════════════════════════════════════
+// Firestore Security Rules — Taekwondo Club Management SaaS
+// Phase 4K-6V4B1 — Coach Branch Assignment + Runtime Mirror Repair
+//
+// Mục tiêu:
+//   • Client UI không còn là lớp bảo vệ duy nhất.
+//   • Coach chỉ đọc/ghi dữ liệu điểm danh thuộc cơ sở được gán.
+//   • User không thể tự đổi role, clubId, branch hoặc trạng thái tài khoản.
+//   • Không còn catch-all cho phép mọi thành viên CLB đọc mọi collection.
+//
+// Tương thích dữ liệu cũ:
+//   • CS1 và "Mặc định" được xem là cùng cơ sở chính trong giai đoạn chuyển tiếp.
+//   • Dữ liệu mới phải ghi branch chuẩn CS1…CS10.
+//
+// BẮT BUỘC: chạy Firebase Rules Emulator trước khi deploy production.
+// ══════════════════════════════════════════════════════════════════════════════
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Authentication / authorization helpers ───────────────────────────────
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function hasUserDoc() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function currentUser() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function myClubId() {
+      return hasUserDoc() ? currentUser().get('clubId', '') : '';
+    }
+
+    function myRole() {
+      return hasUserDoc() ? currentUser().get('role', '') : '';
+    }
+
+    function canonicalRole(roleValue) {
+      return roleValue in ['hlv', 'trainer']
+        ? 'coach'
+        : (roleValue == 'superadmin' ? 'super_admin' : roleValue);
+    }
+
+    function assignedBranch(data) {
+      let value = data.get('branch','');
+      return value != '' ? value : data.get('coachBranch','');
+    }
+
+    function myBranch() {
+      return hasUserDoc() ? assignedBranch(currentUser()) : '';
+    }
+
+    function userEnabled() {
+      return hasUserDoc()
+        && !(currentUser().get('status', 'active') in ['disabled', 'locked', 'suspended']);
+    }
+
+    // Phase 4K-6V5U4 — one-time bootstrap identity for the designated ROOT account.
+    // This does NOT grant access to club data by email. It only allows that exact
+    // authenticated account to create/read its own super_admins/{uid} principal doc.
+    function isBootstrapSuperAdminIdentity(uid) {
+      return signedIn()
+        && request.auth.uid == uid
+        && request.auth.token.get('email', '') == 'admin@tstquynhon.com';
+    }
+
+    function hasEnabledSuperAdminPrincipal() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/super_admins/$(request.auth.uid))
+        && get(/databases/$(database)/documents/super_admins/$(request.auth.uid)).data.get('enabled', false) == true;
+    }
+
+    function isSuperAdmin() {
+      return signedIn() && (
+        request.auth.token.get('role', '') == 'super_admin'
+        || (hasUserDoc() && myRole() == 'super_admin')
+        || hasEnabledSuperAdminPrincipal()
+      );
+    }
+
+    function isClubMember(clubId) {
+      return userEnabled() && myClubId() == clubId;
+    }
+
+    function isClubAdmin(clubId) {
+      return isClubMember(clubId) && myRole() in ['admin', 'owner'];
+    }
+
+    function isClubViewer(clubId) {
+      return isClubMember(clubId) && myRole() == 'viewer';
+    }
+
+    function isAllowedCoachBranch(branchValue) {
+      return branchValue in [
+        'CS1', 'CS2', 'CS3', 'CS4', 'CS5',
+        'CS6', 'CS7', 'CS8', 'CS9', 'CS10',
+        'Mặc định'
+      ];
+    }
+
+    function canonicalCoachBranch(value) {
+      return value == 'Mặc định' ? 'CS1' : value;
+    }
+    function branchOrdinal(value) {
+      return {'CS1':1,'CS2':2,'CS3':3,'CS4':4,'CS5':5,'CS6':6,'CS7':7,'CS8':8,'CS9':9,'CS10':10}.get(value,0);
+    }
+    function assignedBranches(data) {
+      return data.keys().hasAny(['allowedBranches']) ? data.allowedBranches : [canonicalCoachBranch(assignedBranch(data))];
+    }
+    function orderedCoachBranches(values) {
+      // One bounded RE2 expression preserves numeric order and uniqueness
+      // without repeatedly expanding nine ordinal comparisons per batch write.
+      return values.size() == 0 || (values.join(',') + ',').matches(
+        '^(CS1,)?(CS2,)?(CS3,)?(CS4,)?(CS5,)?(CS6,)?(CS7,)?(CS8,)?(CS9,)?(CS10,)?$');
+    }
+    function validCoachACL(data, clubId) {
+      let values = assignedBranches(data);
+      let configured = get(/databases/$(database)/documents/clubs/$(clubId)/settings/main_config).data.get('branchCount', 0);
+      let primary = canonicalCoachBranch(assignedBranch(data));
+      return values is list && values.size() <= 10 && configured is int && configured >= 1 && configured <= 10
+        && values.toSet().size() == values.size()
+        && values.toSet().difference(['CS1','CS2','CS3','CS4','CS5','CS6','CS7','CS8','CS9','CS10'].toSet()).size() == 0
+        && orderedCoachBranches(values)
+        && (values.size() == 0 ? (data.get('allowedBranches', null) == [] && primary == '') : (primary in values))
+        && (values.size() == 0 || branchOrdinal(values[values.size()-1]) <= configured)
+        && canonicalCoachBranch(data.get('coachBranch', assignedBranch(data))) == primary
+        && canonicalCoachBranch(data.get('defaultBranch', assignedBranch(data))) == primary;
+    }
+    function sameCoachACL(left, right) {
+      return left.get('role', '') == 'coach' && right.get('role', '') == 'coach'
+        && left.get('clubId', '') == right.get('clubId', '')
+        && assignedBranches(left) == assignedBranches(right)
+        && canonicalCoachBranch(assignedBranch(left)) == canonicalCoachBranch(assignedBranch(right))
+        && left.get('status','active') == right.get('status','active');
+    }
+    function assignmentVersionMatches(left,right) {
+      return left.get('assignmentVersion','legacy') == right.get('assignmentVersion','legacy');
+    }
+    function assignmentVersionedWrite() {
+      return request.resource.data.get('assignmentVersion','') is string
+        && request.resource.data.get('assignmentVersion','').size() >= 16;
+    }
+    function coachAssignmentMatches(user,clubId) {
+      let assignment = get(/databases/$(database)/documents/clubs/$(clubId)/coaches/$(request.auth.uid)).data;
+      let branches = assignedBranches(user);
+      return assignment.role == 'coach' && assignment.clubId == clubId
+        && assignment.get('status','active') == user.get('status','active')
+        && branches is list && branches.size() > 0 && branches.size() <= 10
+        && branches == assignedBranches(assignment)
+        && canonicalCoachBranch(assignedBranch(user)) == canonicalCoachBranch(assignedBranch(assignment))
+        && user.get('assignmentVersion','legacy') == assignment.get('assignmentVersion','legacy');
+    }
+    function isCoach(clubId) {
+      let user = currentUser();
+      return user.role == 'coach' && user.clubId == clubId
+        && !(user.get('status','active') in ['locked','disabled','suspended'])
+        && coachAssignmentMatches(user,clubId);
+    }
+
+    function isAdminOrViewer(clubId) {
+      return isClubAdmin(clubId) || isClubViewer(clubId);
+    }
+
+    // CS1 và dữ liệu legacy "Mặc định" là cùng cơ sở chính trong Phase 6V4B.
+    function isPrimaryBranchAlias(branchValue) {
+      return branchValue in ['CS1', 'Mặc định'];
+    }
+
+    function sameBranchValue(left, right) {
+      return left == right || (isPrimaryBranchAlias(left) && isPrimaryBranchAlias(right));
+    }
+
+    function branchMatchesAssigned(branchValue) {
+      // Every allow-clause caller already requires isCoach(clubId).
+      // Repeating that authorization for each old/new/profile branch can
+      // exceed Firestore's expression limit on an otherwise valid update.
+      let user = currentUser();
+      let club = user.get('clubId','');
+      let canonical = canonicalCoachBranch(branchValue);
+      let ordinal = branchOrdinal(canonical);
+      let count = get(/databases/$(database)/documents/clubs/$(club)/settings/main_config).data.get('branchCount',0);
+      return ordinal > 0 && ordinal <= count && canonical in assignedBranches(user);
+    }
+
+    function resourceBranchMatchesCoach() {
+      return resource.data.keys().hasAll(['branch'])
+        && branchMatchesAssigned(resource.data.branch);
+    }
+
+    function requestBranchMatchesCoach() {
+      return request.resource.data.keys().hasAll(['branch'])
+        && branchMatchesAssigned(request.resource.data.branch);
+    }
+
+    // V9: the attendance payload's branch is not proof of profile ownership.
+    // Read the existing canonical same-club profile; never trust a client mirror.
+    // CS1/Mặc định keeps the explicit primary-branch compatibility above.
+    function coachAttendanceProfileMatches(clubId, data) {
+      let profileId = data.get('profileId', '');
+      return profileId is string && profileId.size() > 0
+        // A missing profile has no data and fails closed; one get() suffices.
+        && sameBranchValue(get(/databases/$(database)/documents/clubs/$(clubId)/profiles/$(profileId)).data.get('branch', ''), data.get('branch',''));
+    }
+
+    function coachOwnsResource() {
+      return resource.data.get('coachId', '') == request.auth.uid;
+    }
+
+    function coachOwnsRequest() {
+      return request.resource.data.get('coachId', '') == request.auth.uid;
+    }
+
+    // ── Club root and tenant collections ─────────────────────────────────────
+
+    // Phase 4K-6V5U5 — safe transition away from plaintext adminPassword.
+    // Legacy docs may temporarily keep the exact old value during unrelated updates.
+    // Only a canonical SuperAdmin may remove it; no writer may create/replace it with
+    // a new non-empty secret. This keeps old clubs operable until explicit cleanup.
+    function clubCreateHasNoAdminPasswordSecret() {
+      return request.resource.data.get('adminPassword', '') == '';
+    }
+
+    function clubAdminPasswordTransitionSafe() {
+      let oldSecret = resource.data.get('adminPassword', '');
+      let newSecret = request.resource.data.get('adminPassword', '');
+      return newSecret == oldSecret || (isSuperAdmin() && newSecret == '');
+    }
+
+    // Phase 4K-6V5U6H — tenant Admins may update only root fields owned by
+    // existing client cache/settings writers. Subscription/account metadata is
+    // SuperAdmin-only even when a caller bypasses the UI.
+    function clubAdminRootUpdateFieldsOnly() {
+      return request.resource.data
+        .diff(resource.data)
+        .affectedKeys()
+        .hasOnly([
+          'coachAclEpoch',
+          'cachedActiveCount',
+          'cachedStudentCount',
+          'activeStudentCount',
+          'totalStudents',
+          'cachedProfileCount',
+          'cachedInvCount',
+          'cachedCountUpdatedAt',
+          'cacheCoverage',
+          'cachedTxCount',
+          'cachedCurrentMonthRevenue',
+          'currentMonthRevenue',
+          'cachedMonthlyRevenue',
+          'revenueByMonth',
+          'superAdminStats',
+          'statsUpdatedAt',
+          'statsSource'
+        ]);
+    }
+
+    match /clubs/{clubId} {
+      allow get: if isSuperAdmin() || isClubMember(clubId);
+      allow list: if isSuperAdmin();
+      allow create: if isSuperAdmin() && clubCreateHasNoAdminPasswordSecret();
+      // V5U5 compatibility assertion: allow update: if (isSuperAdmin() || isClubAdmin(clubId)) && clubAdminPasswordTransitionSafe()
+      allow update: if (isSuperAdmin() && clubAdminPasswordTransitionSafe())
+        || (isClubAdmin(clubId)
+            && clubAdminPasswordTransitionSafe()
+            && clubAdminRootUpdateFieldsOnly());
+      allow delete: if isSuperAdmin();
+
+      // Hồ sơ võ sinh thực tế của ứng dụng.
+      match /profiles/{profileId} {
+        allow get, list: if isSuperAdmin()
+          || isAdminOrViewer(clubId)
+          || (isCoach(clubId) && resourceBranchMatchesCoach());
+        allow create, update, delete: if isSuperAdmin() || isClubAdmin(clubId);
+      }
+
+      // Collection legacy; giữ cùng chính sách với profiles.
+      match /students/{studentId} {
+        allow get, list: if isSuperAdmin()
+          || isAdminOrViewer(clubId)
+          || (isCoach(clubId) && resourceBranchMatchesCoach());
+        allow create, update, delete: if isSuperAdmin() || isClubAdmin(clubId);
+      }
+
+      // Điểm danh: Coach chỉ được thao tác trong cơ sở đã gán.
+      match /attendance/{attendanceId} {
+        // A9R11 forward-only Coach Attendance activation. Old authority rows remain
+        // outside Coach visibility; only rows written with the new authority are mutable by Coach.
+        function coachAttendanceCutoverOpen() {
+          return false;
+        }
+        function historicalProof(data) {
+          return data.get('historyAuthority', '') == 'attendance-history-1aedda93-9437-4132-9694-35c2e6234d55';
+        }
+        // A9R12: current-authority Attendance is canonical-branch only.  Coach
+        // list queries use branch == CSn, so Rules can prove the query directly
+        // from the user's server-authoritative allowedBranches assignment.  Do
+        // not reuse the legacy alias/main_config branch helper for this collection.
+        function coachAttendanceResourceBranchMatches() {
+          return resource.data.keys().hasAll(['branch'])
+            && resource.data.branch in assignedBranches(currentUser());
+        }
+        function coachAttendanceRequestBranchMatches() {
+          return request.resource.data.keys().hasAll(['branch'])
+            && request.resource.data.branch in assignedBranches(currentUser());
+        }
+        function versionedWrite() {
+          return historicalProof(request.resource.data)
+            && request.resource.data.get('attendanceVersion', '') is string
+            && request.resource.data.get('attendanceVersion', '').size() >= 16
+            && request.resource.data.get('status', -1) in [0,1,2,3]
+            && request.resource.data.get('profileId','') is string
+            && request.resource.data.get('profileId','').size() > 0
+            && request.resource.data.get('name','') == request.resource.data.profileId
+            && request.resource.data.get('branch','') in ['CS1','CS2','CS3','CS4','CS5','CS6','CS7','CS8','CS9','CS10']
+            && request.resource.data.get('date','').matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+            && attendanceId == request.resource.data.profileId + '_' + request.resource.data.date
+              + (request.resource.data.get('shiftId','') == '' ? '' : '_' + request.resource.data.shiftId);
+        }
+        function nextVersion() {
+          return request.resource.data.get('attendancePreviousVersion', '') == resource.data.get('attendanceVersion', 'legacy')
+            && request.resource.data.attendanceVersion != resource.data.get('attendanceVersion', 'legacy');
+        }
+        allow get: if isSuperAdmin() || isAdminOrViewer(clubId)
+          || (isCoach(clubId) && coachAttendanceCutoverOpen() && (resource == null || (coachAttendanceResourceBranchMatches() && historicalProof(resource.data))));
+        allow list: if isSuperAdmin() || isAdminOrViewer(clubId)
+          || (isCoach(clubId) && coachAttendanceCutoverOpen() && coachAttendanceResourceBranchMatches() && historicalProof(resource.data));
+        allow create: if versionedWrite()
+          && (isSuperAdmin() || isClubAdmin(clubId)
+            || (isCoach(clubId) && coachAttendanceCutoverOpen() && coachAttendanceRequestBranchMatches()
+                && coachAttendanceProfileMatches(clubId, request.resource.data)));
+        allow update: if versionedWrite() && nextVersion()
+          && (isSuperAdmin() || isClubAdmin(clubId)
+            || (isCoach(clubId) && coachAttendanceCutoverOpen() && historicalProof(resource.data) && coachAttendanceResourceBranchMatches() && coachAttendanceRequestBranchMatches()
+                && resource.data.get('profileId', '') == request.resource.data.get('profileId', '')
+                && sameBranchValue(resource.data.get('branch', ''), request.resource.data.get('branch', ''))
+                && coachAttendanceProfileMatches(clubId, request.resource.data)));
+        // Canonical deletion is a status=0 versioned tombstone; a blind legacy
+        // delete has no expected revision and cannot be authorized safely.
+        allow delete: if false;
+      }
+
+      // Ghi chú buổi tập: Coach chỉ đọc/ghi ghi chú của chính mình và đúng cơ sở.
+      match /attendanceNotes/{noteId} {
+        allow get, list: if isSuperAdmin()
+          || isAdminOrViewer(clubId)
+          || (isCoach(clubId) && resourceBranchMatchesCoach() && coachOwnsResource());
+
+        allow create: if isSuperAdmin()
+          || isClubAdmin(clubId)
+          || (isCoach(clubId) && requestBranchMatchesCoach() && coachOwnsRequest());
+
+        allow update: if isSuperAdmin()
+          || isClubAdmin(clubId)
+          || (isCoach(clubId)
+              && resourceBranchMatchesCoach()
+              && requestBranchMatchesCoach()
+              && coachOwnsResource()
+              && coachOwnsRequest());
+
+        allow delete: if isSuperAdmin()
+          || isClubAdmin(clubId)
+          || (isCoach(clubId) && resourceBranchMatchesCoach() && coachOwnsResource());
+      }
+
+      // Coach có thể tạo/cập nhật/xóa notification do chính mình tạo.
+      // Chỉ Admin/SuperAdmin được đọc danh sách notification.
+      match /adminNotifications/{notificationId} {
+        allow get, list: if isSuperAdmin() || isClubAdmin(clubId);
+
+        allow create: if isSuperAdmin()
+          || isClubAdmin(clubId)
+          || (isCoach(clubId) && requestBranchMatchesCoach() && coachOwnsRequest());
+
+        allow update: if isSuperAdmin()
+          || isClubAdmin(clubId)
+          || (isCoach(clubId)
+              && resourceBranchMatchesCoach()
+              && requestBranchMatchesCoach()
+              && coachOwnsResource()
+              && coachOwnsRequest());
+
+        allow delete: if isSuperAdmin()
+          || isClubAdmin(clubId)
+          || (isCoach(clubId) && resourceBranchMatchesCoach() && coachOwnsResource());
+      }
+
+      // Phase 4K-6V5U6H — Coach may read only the dedicated Attendance shift
+      // document. Firestore cannot hide fields inside main_config, so Coach must
+      // not download that sensitive settings document at all.
+      match /settings/{settingId} {
+        allow get: if isSuperAdmin()
+          || isAdminOrViewer(clubId)
+          || (isCoach(clubId) && settingId == 'shifts');
+        allow list: if isSuperAdmin() || isAdminOrViewer(clubId);
+        allow create, update, delete: if isSuperAdmin() || isClubAdmin(clubId);
+      }
+
+      // HLV account mirror trong tenant.
+      match /coaches/{coachUid} {
+        allow get: if isSuperAdmin()
+          || isClubAdmin(clubId)
+          || (isCoach(clubId) && request.auth.uid == coachUid)
+          // Cho chính HLV đọc assignment mirror của mình ngay cả khi users/{uid}
+          // đang thiếu/sai branch, để runtime có thể sửa authorization mirror an toàn.
+          || (signedIn() && request.auth.uid == coachUid
+              && resource.data.get('role', '') == 'coach'
+              && resource.data.get('clubId', '') == clubId);
+        allow list: if isSuperAdmin() || isClubAdmin(clubId);
+        allow create, update: if (isSuperAdmin() || isClubAdmin(clubId))
+          && request.resource.data.get('clubId','') == clubId
+          && validCoachACL(request.resource.data, clubId)
+          && sameCoachACL(request.resource.data, getAfter(/databases/$(database)/documents/users/$(coachUid)).data)
+          && assignmentVersionMatches(request.resource.data,getAfter(/databases/$(database)/documents/users/$(coachUid)).data)
+          && assignmentVersionedWrite()
+          && getAfter(/databases/$(database)/documents/clubs/$(clubId)).data.get('coachAclEpoch',0) == get(/databases/$(database)/documents/clubs/$(clubId)).data.get('coachAclEpoch',0) + 1
+          && (resource == null ? request.resource.data.get('assignmentPreviousVersion','') == 'absent' :
+            (request.resource.data.get('assignmentPreviousVersion','') == resource.data.get('assignmentVersion','legacy')
+              && request.resource.data.assignmentVersion != resource.data.get('assignmentVersion','legacy')));
+        allow delete: if isSuperAdmin() || isClubAdmin(clubId);
+      }
+
+      // Dữ liệu tài chính / kho / báo cáo — Coach không có quyền đọc.
+      match /transactions/{transactionId} {
+        allow get, list: if isSuperAdmin() || isAdminOrViewer(clubId);
+        allow create, update: if isSuperAdmin() || isClubAdmin(clubId);
+        allow delete: if isSuperAdmin() || isClubAdmin(clubId);
+      }
+
+      match /inventory/{inventoryId} {
+        allow get, list: if isSuperAdmin() || isAdminOrViewer(clubId);
+        allow create, update, delete: if isSuperAdmin() || isClubAdmin(clubId);
+      }
+
+      match /stats/{statsId} {
+        allow get, list: if isSuperAdmin() || isAdminOrViewer(clubId);
+        allow create, update, delete: if isSuperAdmin() || isClubAdmin(clubId);
+      }
+
+      match /exams/{examId} {
+        allow get, list: if isSuperAdmin() || isAdminOrViewer(clubId);
+        allow create, update, delete: if isSuperAdmin() || isClubAdmin(clubId);
+      }
+
+      match /config/{configId} {
+        allow get, list: if isSuperAdmin() || isAdminOrViewer(clubId);
+        allow create, update, delete: if isSuperAdmin() || isClubAdmin(clubId);
+      }
+
+      match /members/{memberId} {
+        allow get, list: if isSuperAdmin() || isAdminOrViewer(clubId);
+        allow create, update, delete: if isSuperAdmin() || isClubAdmin(clubId);
+      }
+
+      match /fee_audit/{auditId} {
+        allow get, list: if isSuperAdmin() || isClubAdmin(clubId);
+        allow create: if isSuperAdmin() || isClubAdmin(clubId);
+        allow update, delete: if false;
+      }
+
+      match /financial_audit/{auditId} {
+        allow get, list: if isSuperAdmin() || isClubAdmin(clubId);
+        allow create: if isSuperAdmin() || isClubAdmin(clubId);
+        allow update, delete: if false;
+      }
+
+      // Không cho collection mới vô tình thừa hưởng quyền đọc toàn tenant.
+      match /{subcollection}/{documentId} {
+        allow read, write: if false;
+      }
+    }
+
+    // ── User authorization documents ─────────────────────────────────────────
+
+    function safeSelfUserFieldsOnly() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        'displayName',
+        'photoURL',
+        'phone',
+        'preferences',
+        'updatedAt'
+      ]);
+    }
+
+    function existingCoachBelongsToMyClub(data) {
+      // Strict same-club legacy alias migration, never an arbitrary user update.
+      // Target must still become canonical coach and match the new atomic
+      // assignment version in coachUserPairAfter().
+      return isClubAdmin(myClubId())
+        && canonicalRole(data.get('role', '')) == 'coach'
+        && data.get('clubId', '') == myClubId();
+    }
+
+    function targetIsValidCoachInMyClub(data) {
+      return existingCoachBelongsToMyClub(data);
+    }
+    // A9R3: Mirror optimistic-version precondition on the *document being written*.
+    // Canonical and mirror may legitimately have different prior versions during
+    // Admin-reviewed repair. After-state version parity is checked separately.
+    function coachMirrorVersionedWrite() {
+      let next = request.resource.data.get('assignmentVersion','');
+      let previous = request.resource.data.get('assignmentPreviousVersion','');
+      return next is string && next.size() >= 16
+        && (resource == null
+          ? previous == 'absent'
+          : (previous == resource.data.get('assignmentVersion','legacy')
+            && next != resource.data.get('assignmentVersion','legacy')));
+    }
+    function coachUserPairAfter(uid, data) {
+      let clubId = data.get('clubId','');
+      let assignment = getAfter(/databases/$(database)/documents/clubs/$(clubId)/coaches/$(uid)).data;
+      // The changed canonical assignment runs validCoachACL in its own write
+      // rule. This mirror cannot update ACL against an unchanged assignment.
+      return sameCoachACL(data,assignment) && assignmentVersionMatches(data,assignment)
+        && (!exists(/databases/$(database)/documents/clubs/$(clubId)/coaches/$(uid)) ||
+          assignment.get('assignmentVersion','legacy') != get(/databases/$(database)/documents/clubs/$(clubId)/coaches/$(uid)).data.get('assignmentVersion','legacy'));
+    }
+
+    match /users/{uid} {
+      allow get: if signedIn() && (
+        request.auth.uid == uid
+        || isSuperAdmin()
+        || existingCoachBelongsToMyClub(resource.data)
+        || (resource == null && isClubAdmin(myClubId())
+            && get(/databases/$(database)/documents/clubs/$(myClubId())/coaches/$(uid)).data.get('role','') == 'coach')
+      );
+      allow list: if isSuperAdmin();
+
+      // User tự cập nhật duy nhất các trường hồ sơ không liên quan phân quyền,
+      // hoặc tự sửa branch mirror theo assignment đã được Admin ghi sẵn.
+      allow update: if signedIn() && request.auth.uid == uid
+        && safeSelfUserFieldsOnly();
+
+      // SuperAdmin quản lý mọi user; Club Admin quản lý Coach cùng CLB.
+      // HLV chỉ được tự tạo mirror khi payload khớp assignment Admin đã cấp.
+      allow create: if (isSuperAdmin() && request.resource.data.get('role','') != 'coach')
+        || ((isSuperAdmin() || targetIsValidCoachInMyClub(request.resource.data))
+            && request.resource.data.get('role','') == 'coach'
+            && coachMirrorVersionedWrite() && coachUserPairAfter(uid,request.resource.data));
+      allow update: if (isSuperAdmin() && resource.data.get('role','') != 'coach' && request.resource.data.get('role','') != 'coach') || (
+        (isSuperAdmin() || (existingCoachBelongsToMyClub(resource.data) && targetIsValidCoachInMyClub(request.resource.data)))
+        && request.resource.data.get('role','') == 'coach'
+        && coachMirrorVersionedWrite() && coachUserPairAfter(uid,request.resource.data)
+      );
+      allow delete: if isSuperAdmin() || existingCoachBelongsToMyClub(resource.data);
+    }
+
+    // Optional login audit. Each authenticated user may create only a
+    // self-attributed record; only SuperAdmin can read/delete the history.
+    // This is intentionally NOT public and does not affect club/profile rules.
+    match /login_history/{docId} {
+      allow create: if signedIn()
+        && request.resource.data.keys().hasAll([
+          'email', 'clubId', 'role', 'loginAt', 'timestamp',
+          'browser', 'os', 'deviceType', 'deviceName'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'email', 'clubId', 'role', 'loginAt', 'timestamp',
+          'browser', 'os', 'deviceType', 'deviceName'
+        ])
+        && request.resource.data.email is string
+        && request.resource.data.clubId is string
+        && request.resource.data.role is string
+        && request.resource.data.loginAt is string
+        && request.resource.data.timestamp is int
+        && request.resource.data.browser is string
+        && request.resource.data.os is string
+        && request.resource.data.deviceType is string
+        && request.resource.data.deviceName is string
+        && request.resource.data.email.size() <= 254
+        && request.resource.data.clubId.size() <= 128
+        && request.resource.data.role.size() <= 32
+        && request.resource.data.loginAt.size() <= 64
+        && request.resource.data.browser.size() <= 32
+        && request.resource.data.os.size() <= 64
+        && request.resource.data.deviceType.size() <= 16
+        && request.resource.data.deviceName.size() <= 160
+        && request.resource.data.browser in ['Chrome', 'Firefox', 'Safari', 'Edge', 'Khác']
+        && request.resource.data.os in ['Windows', 'macOS', 'Android', 'iOS', 'Linux', 'Khác']
+        && request.resource.data.deviceType in ['Mobile', 'Desktop']
+        && request.resource.data.email == request.auth.token.get('email', '')
+        && (
+          (isSuperAdmin()
+            && request.resource.data.role == 'super_admin'
+            && request.resource.data.clubId == '')
+          || (userEnabled()
+            && myClubId() != ''
+            && request.resource.data.role == canonicalRole(myRole())
+            && request.resource.data.clubId == myClubId())
+        );
+      allow get, list, delete: if isSuperAdmin();
+      allow update: if false;
+    }
+
+    // Canonical SuperAdmin principal.
+    // Normal authorization is still isSuperAdmin(). The designated ROOT email gets
+    // only a narrow self-bootstrap create/get path so the legacy email fast-path can
+    // converge to this server-authoritative document without public Rules/Functions.
+    match /super_admins/{uid} {
+      allow get: if isSuperAdmin() || isBootstrapSuperAdminIdentity(uid);
+      allow list: if isSuperAdmin();
+      allow create: if isSuperAdmin() || (
+        isBootstrapSuperAdminIdentity(uid)
+        && request.resource.data.keys().hasOnly(['enabled', 'email', 'createdAt', 'source'])
+        && request.resource.data.get('enabled', false) == true
+        && request.resource.data.get('email', '') == request.auth.token.get('email', '')
+        && request.resource.data.get('createdAt', 0) is int
+        && request.resource.data.get('source', '') == 'bootstrap-email-v1'
+      );
+      allow update, delete: if isSuperAdmin();
+    }
+
+    // Deny by default for every top-level path not explicitly declared.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

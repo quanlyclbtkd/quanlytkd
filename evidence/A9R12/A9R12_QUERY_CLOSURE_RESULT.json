@@ -1,0 +1,41 @@
+{
+  "kind": "A9R12_ATTENDANCE_QUERY_CLOSURE",
+  "pass": 8,
+  "fail": 0,
+  "total": 8,
+  "rulesSha256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+  "results": [
+    {
+      "title": "Coach current-authority daily/monthly queries use canonical branch equality",
+      "result": "PASS"
+    },
+    {
+      "title": "Legacy alias helper remains available outside current-authority attendance query",
+      "result": "PASS"
+    },
+    {
+      "title": "Coach daily query still requires date authority branch and shift",
+      "result": "PASS"
+    },
+    {
+      "title": "Rules list branch proof is direct allowedBranches membership",
+      "result": "PASS"
+    },
+    {
+      "title": "Rules writes require canonical CS branch and server-authoritative assignment",
+      "result": "PASS"
+    },
+    {
+      "title": "Permission denial produces actionable Coach diagnostic without bypassing readiness guard",
+      "result": "PASS"
+    },
+    {
+      "title": "A9R11 authority and Journal V4 remain unchanged",
+      "result": "PASS"
+    },
+    {
+      "title": "Root and public attendance runtime mirrors are identical",
+      "result": "PASS"
+    }
+  ]
+}

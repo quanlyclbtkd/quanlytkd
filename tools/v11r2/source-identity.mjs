@@ -138,8 +138,22 @@ const A9R11_COACH_ATTENDANCE_OPERATIONAL_TEST_ONLY = Object.freeze({
   buildTag:'qr-v11r6-a9r11-coach-attendance-operational-20261024'
 });
 
+// A9R12 closes the real Coach daily-list permission gap found on the UI path.
+// Current-authority Attendance is canonical-branch only; Coach list queries use
+// branch equality and Rules prove direct membership in server-authoritative allowedBranches.
+const A9R12_COACH_ATTENDANCE_QUERY_CLOSURE_TEST_ONLY = Object.freeze({
+  id:'V11R6_A9R12_COACH_ATTENDANCE_QUERY_CLOSURE_TEST_ONLY',
+  inputZIP_SHA256:'aee11c8340c18c13e1ffbca08617e29c480d5c7f3017d504fcf870ab341c7b62',
+  manifest:'tools/v11r2/manifests/V11R6_A9R12_COACH_ATTENDANCE_QUERY_CLOSURE_TEST_ONLY.json',
+  manifestSHA256:'bfa589a7bfc0af682f2a4f3bfa46683d5197191fa870e2deb1bce0c6ef5b9651',
+  runtimeSHA256:'ed4480c6ddcdda330d0acd0a960be5047a223641bfb34124b35890d0d82e5273',
+  rulesSHA256:'1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3',
+  indexesSHA256:'72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2',
+  buildTag:'qr-v11r6-a9r12-coach-attendance-query-closure-20261024'
+});
+
 export function verifySourceIdentity(root, actualRuntimeSHA256) {
- const pinned=[A9R11_COACH_ATTENDANCE_OPERATIONAL_TEST_ONLY,A9R10_STAGING_BASE_TEST_ONLY,A9R6_ATTENDANCE_DEMO_ONLY,A9R4_ACCEPTED_SOURCE,A9R3_ACCEPTED_SOURCE,A9R1_ACCEPTED_SOURCE,A9_ACCEPTED_SOURCE,A8_ACCEPTED_SOURCE,ACCEPTED_SOURCE,A5_ACCEPTED_SOURCE,LEGACY_ACCEPTED_SOURCE];
+ const pinned=[A9R12_COACH_ATTENDANCE_QUERY_CLOSURE_TEST_ONLY,A9R11_COACH_ATTENDANCE_OPERATIONAL_TEST_ONLY,A9R10_STAGING_BASE_TEST_ONLY,A9R6_ATTENDANCE_DEMO_ONLY,A9R4_ACCEPTED_SOURCE,A9R3_ACCEPTED_SOURCE,A9R1_ACCEPTED_SOURCE,A9_ACCEPTED_SOURCE,A8_ACCEPTED_SOURCE,ACCEPTED_SOURCE,A5_ACCEPTED_SOURCE,LEGACY_ACCEPTED_SOURCE];
  const exact=pinned.find(p=>p.runtimeSHA256===actualRuntimeSHA256);
  if(!exact&&fs.existsSync(path.join(root,'STAGING_SOURCE_ONLY.json')))return verifyDerivedStaging(root,actualRuntimeSHA256,pinned);
  const p = exact||ACCEPTED_SOURCE, manifestPath = path.join(root,p.manifest);
