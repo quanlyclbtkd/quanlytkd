@@ -122,8 +122,24 @@ const A9R10_STAGING_BASE_TEST_ONLY = Object.freeze({
   buildTag:'qr-v11r6-a8-v2-coach-acl-qr-20261023'
 });
 
+
+// A9R11 enables forward-only Coach Attendance on the reviewed A9R10R2 runtime.
+// Fresh historyAuthority prevents legacy attendance from entering Coach scope;
+// Journal V4 isolates all pre-cutover V3 pending rows from automatic replay.
+// This is TEST ONLY source identity, not deployment approval.
+const A9R11_COACH_ATTENDANCE_OPERATIONAL_TEST_ONLY = Object.freeze({
+  id:'V11R6_A9R11_COACH_ATTENDANCE_OPERATIONAL_TEST_ONLY',
+  inputZIP_SHA256:'80540cd8099f625f742f06d1038c3c01fc6bb56a58e0316bd950861dbe7420c3',
+  manifest:'tools/v11r2/manifests/V11R6_A9R11_COACH_ATTENDANCE_OPERATIONAL_TEST_ONLY.json',
+  manifestSHA256:'1f85302a1b3e3bace0ae71c727e163fdcd52552b32e3250e1a47a866eee86229',
+  runtimeSHA256:'d9a39ba5e961863b90b37885f298f7a0f486d541abde618019ffca1c7149adb1',
+  rulesSHA256:'63af4b507ad3356966a2e843c198a2cd690dd5e7f309450c13bcaca7a0ceb089',
+  indexesSHA256:'72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2',
+  buildTag:'qr-v11r6-a9r11-coach-attendance-operational-20261024'
+});
+
 export function verifySourceIdentity(root, actualRuntimeSHA256) {
- const pinned=[A9R10_STAGING_BASE_TEST_ONLY,A9R6_ATTENDANCE_DEMO_ONLY,A9R4_ACCEPTED_SOURCE,A9R3_ACCEPTED_SOURCE,A9R1_ACCEPTED_SOURCE,A9_ACCEPTED_SOURCE,A8_ACCEPTED_SOURCE,ACCEPTED_SOURCE,A5_ACCEPTED_SOURCE,LEGACY_ACCEPTED_SOURCE];
+ const pinned=[A9R11_COACH_ATTENDANCE_OPERATIONAL_TEST_ONLY,A9R10_STAGING_BASE_TEST_ONLY,A9R6_ATTENDANCE_DEMO_ONLY,A9R4_ACCEPTED_SOURCE,A9R3_ACCEPTED_SOURCE,A9R1_ACCEPTED_SOURCE,A9_ACCEPTED_SOURCE,A8_ACCEPTED_SOURCE,ACCEPTED_SOURCE,A5_ACCEPTED_SOURCE,LEGACY_ACCEPTED_SOURCE];
  const exact=pinned.find(p=>p.runtimeSHA256===actualRuntimeSHA256);
  if(!exact&&fs.existsSync(path.join(root,'STAGING_SOURCE_ONLY.json')))return verifyDerivedStaging(root,actualRuntimeSHA256,pinned);
  const p = exact||ACCEPTED_SOURCE, manifestPath = path.join(root,p.manifest);

@@ -1,5 +1,5 @@
 // Manual staging UI acceptance evaluator. Never logs in, clicks, writes Firestore or changes release state.
-import fs from 'node:fs';import path from 'node:path';import {pathToFileURL} from 'node:url';import {safeStagingProject,safeBaseURL,need,simple,sha} from './common.mjs';
+import fs from 'node:fs';import path from 'node:path';import {pathToFileURL} from 'node:url';import {safeStagingProject,safeBaseURL,need,simple,sha,readJsonFile} from './common.mjs';
 export const REQUIRED_CASES=[
  'coach_login','select_cs1','shifts_cs1','roster_cs1_scoped','attendance_create_cs1','sync_ack_cs1','relogin_verify_cs1',
  'select_cs2','shifts_cs2','roster_cs2_scoped','attendance_create_cs2','sync_ack_cs2','relogin_verify_cs2',
@@ -15,4 +15,4 @@ export function evaluate(input){
  if(input?.productionWrites!==0)add('PRODUCTION_WRITE_NOT_ZERO');if(input?.financeWrites!==0)add('FINANCE_WRITE_NOT_ZERO');if(input?.attendanceWriterCount!==1)add('ATTENDANCE_WRITER_COUNT_NOT_ONE');
  const unique=[...new Set(issues)];const report={phase:'A9R10',kind:'COACH_STAGING_ACCEPTANCE',projectId:projectId||null,status:unique.length?'STAGING_ACCEPTANCE_HOLD':'STAGING_COACH_ACCEPTANCE_PASS_NOT_RELEASE',releaseApproved:false,productionDeployApproved:false,requiredCaseCount:REQUIRED_CASES.length,issues:unique,reviewedAt:new Date().toISOString(),inputSHA256:sha(input)};return report;
 }
-if(import.meta.url===pathToFileURL(path.resolve(process.argv[1]||'')).href){try{const [inFile,outFile]=process.argv.slice(2);if(!inFile||!outFile)throw Error('USAGE: node tools/a9r10/acceptance-evaluator.mjs input.json output.json');const report=evaluate(JSON.parse(fs.readFileSync(inFile)));fs.writeFileSync(outFile,JSON.stringify(report,null,2)+'\n',{flag:'wx',mode:0o600});console.log(report.status,JSON.stringify(report.issues));if(report.status!=='STAGING_COACH_ACCEPTANCE_PASS_NOT_RELEASE')process.exitCode=2;}catch(e){console.error(e.code||e.message);process.exitCode=1}}
+if(import.meta.url===pathToFileURL(path.resolve(process.argv[1]||'')).href){try{const [inFile,outFile]=process.argv.slice(2);if(!inFile||!outFile)throw Error('USAGE: node tools/a9r10/acceptance-evaluator.mjs input.json output.json');const report=evaluate(readJsonFile(inFile));fs.writeFileSync(outFile,JSON.stringify(report,null,2)+'\n',{flag:'wx',mode:0o600});console.log(report.status,JSON.stringify(report.issues));if(report.status!=='STAGING_COACH_ACCEPTANCE_PASS_NOT_RELEASE')process.exitCode=2;}catch(e){console.error(e.code||e.message);process.exitCode=1}}

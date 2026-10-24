@@ -290,13 +290,13 @@ service cloud.firestore {
 
       // Điểm danh: Coach chỉ được thao tác trong cơ sở đã gán.
       match /attendance/{attendanceId} {
-        // V11R2 default maintenance profile. The offline cutover gate alone
-        // may generate an active candidate after owner approval + zero cohort.
+        // A9R11 forward-only Coach Attendance activation. Old authority rows remain
+        // outside Coach visibility; only rows written with the new authority are mutable by Coach.
         function coachAttendanceCutoverOpen() {
-          return false;
+          return true;
         }
         function historicalProof(data) {
-          return data.get('historyAuthority', '') == 'attendance-history-7c42f5e2-6d94-4e49-b8e5-98f876cbd90a';
+          return data.get('historyAuthority', '') == 'attendance-history-1aedda93-9437-4132-9694-35c2e6234d55';
         }
         function versionedWrite() {
           return historicalProof(request.resource.data)

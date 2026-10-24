@@ -1,4 +1,4 @@
-param(
+﻿param(
  [Parameter(Mandatory=$true)][string]$StagingSource,
  [Parameter(Mandatory=$true)][string]$CutoverDecisionInput,
  [Parameter(Mandatory=$true)][string]$OwnerPublicKey,

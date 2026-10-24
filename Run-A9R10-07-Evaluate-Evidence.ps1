@@ -1,4 +1,4 @@
-param(
+﻿param(
  [Parameter(Mandatory=$true)][string]$EvidencePackage,
  [Parameter(Mandatory=$true)][string]$OutputReport,
  [Parameter(Mandatory=$true)][string]$OwnerPublicKey,

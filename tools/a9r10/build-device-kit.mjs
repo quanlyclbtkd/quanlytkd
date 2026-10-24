@@ -1,5 +1,5 @@
 // Generates local capture instructions/snippets only. Does not access devices, Firebase, storage or network.
-import fs from 'node:fs';import path from 'node:path';import {pathToFileURL} from 'node:url';import {generate as generateQueue} from '../a9r9/generate-device-snippet.mjs';import {generate as generatePrincipal} from './generate-current-principal-snippet.mjs';import {safeStagingProject,safeBaseURL,need,simple,sha} from './common.mjs';
+import fs from 'node:fs';import path from 'node:path';import {pathToFileURL} from 'node:url';import {generate as generateQueue} from '../a9r9/generate-device-snippet.mjs';import {generate as generatePrincipal} from './generate-current-principal-snippet.mjs';import {safeStagingProject,safeBaseURL,need,simple,sha,readJsonFile} from './common.mjs';
 export function build(input,outDir){
  const projectId=safeStagingProject(input?.projectId);const origin=new URL(safeBaseURL(input.stagingBaseURL)).origin;
  need(Array.isArray(input.devices)&&input.devices.length>0,'DEVICE_FLEET_REQUIRED');need(new Set(input.devices.map(x=>x.deviceId)).size===input.devices.length,'DUPLICATE_DEVICE_ID');
@@ -9,4 +9,4 @@ export function build(input,outDir){
  }
  const manifest={phase:'A9R10',kind:'DEVICE_CAPTURE_KIT_NOT_EXECUTED',projectId,stagingBaseURL:input.stagingBaseURL,devices:rows,createdAt:new Date().toISOString(),noNetwork:true,noWrites:true};fs.writeFileSync(path.join(outDir,'device-capture-manifest.json'),JSON.stringify(manifest,null,2)+'\n',{flag:'wx',mode:0o600});return manifest;
 }
-if(import.meta.url===pathToFileURL(path.resolve(process.argv[1]||'')).href){try{const [inputFile,outDir]=process.argv.slice(2);if(!inputFile||!outDir)throw Error('USAGE: node tools/a9r10/build-device-kit.mjs fleet.json output-dir');console.log(JSON.stringify(build(JSON.parse(fs.readFileSync(inputFile)),outDir)));}catch(e){console.error(e.code||e.message);process.exitCode=1}}
+if(import.meta.url===pathToFileURL(path.resolve(process.argv[1]||'')).href){try{const [inputFile,outDir]=process.argv.slice(2);if(!inputFile||!outDir)throw Error('USAGE: node tools/a9r10/build-device-kit.mjs fleet.json output-dir');console.log(JSON.stringify(build(readJsonFile(inputFile),outDir)));}catch(e){console.error(e.code||e.message);process.exitCode=1}}

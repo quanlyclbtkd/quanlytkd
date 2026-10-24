@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$OutputDirectory)
+﻿param([Parameter(Mandatory=$true)][string]$OutputDirectory)
 $ErrorActionPreference='Stop'
 Set-Location $PSScriptRoot
 node tools/a9r10/new-owner-key.mjs $OutputDirectory

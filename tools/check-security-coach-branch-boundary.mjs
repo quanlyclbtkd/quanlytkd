@@ -36,7 +36,7 @@ const appPos = index.lastIndexOf('app.js?v=');
 check('Canonical branch identity loads before role boundary and app kernel',
   branchPos >= 0 && rolePos > branchPos && appPos > rolePos);
 check('All 6V4B runtime entry assets share one cache-bust marker',
-  (()=>{const p=verifySourceIdentity(root,runtimeHash(root));if(['V11R6_A9R1_COACH_REPAIR_UI_TEST_ONLY','V11R6_A9R3_MIRROR_VERSION_CAS_TEST_ONLY','V11R6_A9R4_COACH_ONBOARDING_QR_DIAGNOSTICS_TEST_ONLY'].includes(p.id))return assertReviewedA9R1CacheScope(root);if(p.id==='V11R6_A6_COACH_QR_MAINTENANCE'){const g=buildImportGraph(root);return assertCacheGraph(g,affectedModules(g),p.buildTag)}return (index.match(/coach-branch-runtime-repair-20260627-v4b1/g)||[]).length>=5})());
+  (()=>{const p=verifySourceIdentity(root,runtimeHash(root));if(['V11R6_A9R1_COACH_REPAIR_UI_TEST_ONLY','V11R6_A9R3_MIRROR_VERSION_CAS_TEST_ONLY','V11R6_A9R4_COACH_ONBOARDING_QR_DIAGNOSTICS_TEST_ONLY'].includes(p.id))return assertReviewedA9R1CacheScope(root);if(['V11R6_A6_COACH_QR_MAINTENANCE','V11R6_A9R11_COACH_ATTENDANCE_OPERATIONAL_TEST_ONLY'].includes(p.id)){const g=buildImportGraph(root);return assertCacheGraph(g,affectedModules(g),p.buildTag)}return (index.match(/coach-branch-runtime-repair-20260627-v4b1/g)||[]).length>=5})());
 check('Coach account selector has no unrestricted/all-branch option',
   /id="coach_branch"[\s\S]{0,600}<option value="CS1">/.test(index) &&
   !/id="coach_branch"[\s\S]{0,600}Tất cả cơ sở \(không giới hạn\)/.test(index));

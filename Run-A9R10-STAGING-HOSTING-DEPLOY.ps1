@@ -1,9 +1,10 @@
-param(
+﻿param(
  [Parameter(Mandatory=$true)][string]$StagingSource,
  [Parameter(Mandatory=$true)][string]$ProjectId,
  [switch]$ConfirmStagingDeploy
 )
 $ErrorActionPreference='Stop'
+$Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 if(-not $ConfirmStagingDeploy){throw 'Phải thêm -ConfirmStagingDeploy để deploy staging.'}
 if($ProjectId -eq 'quanly-tst' -or $ProjectId -like 'demo-*'){throw 'CẤM production/demo. Chỉ staging project riêng.'}
 Push-Location $StagingSource
@@ -16,5 +17,6 @@ try{
  if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}
 } finally {Pop-Location}
 $record=@{kind='A9R10_STAGING_MAINTENANCE_DEPLOY_RECORD';projectId=$ProjectId;deployedAt=(Get-Date).ToUniversalTime().ToString('o');status='PASS';scope='hosting+maintenance-rules+indexes';production=$false}
-$record | ConvertTo-Json -Depth 6 | Set-Content -Encoding UTF8 (Join-Path $StagingSource 'A9R10_MAINTENANCE_DEPLOYED.json')
+$recordJson = $record | ConvertTo-Json -Depth 6
+[System.IO.File]::WriteAllText((Join-Path $StagingSource 'A9R10_MAINTENANCE_DEPLOYED.json'), $recordJson, $Utf8NoBom)
 Write-Host 'STAGING MAINTENANCE HOSTING/RULES/INDEXES DEPLOYED. Đây không phải production.' -ForegroundColor Green

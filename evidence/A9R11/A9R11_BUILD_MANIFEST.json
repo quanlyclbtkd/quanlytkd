@@ -1,0 +1,39 @@
+{
+  "authority": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55",
+  "oldAuthority": "attendance-history-7c42f5e2-6d94-4e49-b8e5-98f876cbd90a",
+  "journal": "tst-attendance-journal-v4",
+  "tag": "qr-v11r6-a9r11-coach-attendance-operational-20261024",
+  "changedRuntimeFiles": [
+    "index.html",
+    "js/core/attendanceContract.js",
+    "js/core/studentStatusCommandBoundary.js",
+    "js/data/attendanceJournal.js",
+    "js/main.js",
+    "js/modules/attendance.js",
+    "js/modules/finance.js",
+    "js/modules/reports/attendanceExcelReport.js",
+    "js/modules/reports/reportExportFacade.js",
+    "js/modules/students.js",
+    "js/services/attendance.service.js"
+  ],
+  "cacheScope": [
+    "app.js",
+    "index.html",
+    "js/core/attendanceContract.js",
+    "js/core/coachBranchRuntimeRepair.js",
+    "js/core/roleReadBoundary.js",
+    "js/core/studentStatusCommandBoundary.js",
+    "js/data/attendanceJournal.js",
+    "js/events/attendance.events.js",
+    "js/firebase/config.js",
+    "js/listeners/profiles.listeners.js",
+    "js/main.js",
+    "js/modules/attendance.js",
+    "js/modules/finance.js",
+    "js/modules/reports/attendanceExcelReport.js",
+    "js/modules/reports/reportExportFacade.js",
+    "js/modules/students.js",
+    "js/services/attendance.service.js",
+    "js/services/students.service.js"
+  ]
+}

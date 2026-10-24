@@ -1,0 +1,5 @@
+{
+  "phase":"A9R10R2",
+  "status":"PASS",
+  "tests":{"windowsInterop":"4/4","a9r10Core":"10/10","deviceEvidence":"6/6","a9r9Evidence":"22/22","attendanceEntrypoints":"21/21","attendanceWriteGuard":"9/9","syntax":"PASS","rootPublicParity":"128/128"}
+}

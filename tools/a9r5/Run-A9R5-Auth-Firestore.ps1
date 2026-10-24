@@ -1,4 +1,4 @@
-# Firestore + Firebase Auth EMULATOR ONLY; localhost loopback; no production data.
+﻿# Firestore + Firebase Auth EMULATOR ONLY; localhost loopback; no production data.
 $ErrorActionPreference = 'Stop'
 Set-Location (Resolve-Path (Join-Path $PSScriptRoot '..\..'))
 $expected = (Get-Content '.\tools\a9r4\a9r3-original-rules.sha256' -Raw).Trim().ToLower()

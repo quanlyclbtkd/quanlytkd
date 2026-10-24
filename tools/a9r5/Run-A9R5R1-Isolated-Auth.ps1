@@ -1,4 +1,4 @@
-# A9R5R1: Auth + Firestore EMULATOR ONLY, isolated acceptance. No production.
+﻿# A9R5R1: Auth + Firestore EMULATOR ONLY, isolated acceptance. No production.
 $ErrorActionPreference = 'Stop'
 Set-Location (Resolve-Path (Join-Path $PSScriptRoot '..\..'))
 $expected = (Get-Content '.\tools\a9r4\a9r3-original-rules.sha256' -Raw).Trim().ToLower()

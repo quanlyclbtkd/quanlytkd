@@ -1,0 +1,57 @@
+{
+  "total": 12,
+  "pass": 12,
+  "fail": 0,
+  "authority": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55",
+  "journal": "tst-attendance-journal-v4",
+  "results": [
+    {
+      "name": "fresh forward-only authority is enabled on client",
+      "status": "PASS"
+    },
+    {
+      "name": "Rules gate is enabled and bound to exact same authority",
+      "status": "PASS"
+    },
+    {
+      "name": "Coach attendance remains assigned-branch and canonical-profile scoped",
+      "status": "PASS"
+    },
+    {
+      "name": "Coach finance boundary stays denied",
+      "status": "PASS"
+    },
+    {
+      "name": "Current authority is mandatory for Coach reads and writes",
+      "status": "PASS"
+    },
+    {
+      "name": "Old attendance cannot be promoted by Coach update",
+      "status": "PASS"
+    },
+    {
+      "name": "Journal V4 isolates all old V3 pending intents",
+      "status": "PASS"
+    },
+    {
+      "name": "Legacy V1/V2 imports remain quarantine-only, not auto replay",
+      "status": "PASS"
+    },
+    {
+      "name": "Normal multi-branch Coach selection remains verified and server-authoritative",
+      "status": "PASS"
+    },
+    {
+      "name": "Attendance maintenance guards become non-blocking only through the contract constant",
+      "status": "PASS"
+    },
+    {
+      "name": "Canonical writer and CAS body are unchanged apart from cache token imports",
+      "status": "PASS"
+    },
+    {
+      "name": "Rules change is restricted to Coach attendance gate/authority/comments",
+      "status": "PASS"
+    }
+  ]
+}

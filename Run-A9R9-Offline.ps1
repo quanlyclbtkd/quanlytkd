@@ -1,4 +1,4 @@
-# A9R9 independent source and evidence readiness checks. No Firebase connection.
+﻿# A9R9 independent source and evidence readiness checks. No Firebase connection.
 $ErrorActionPreference='Stop'
 Set-Location $PSScriptRoot
 New-Item -ItemType Directory -Force -Path '.\qa_results_a9r9' | Out-Null

@@ -1,4 +1,4 @@
-$ErrorActionPreference='Stop'
+﻿$ErrorActionPreference='Stop'
 Set-Location $PSScriptRoot
 $expected=(Get-Content 'tools/a9r4/a9r3-original-rules.sha256' -Raw).Trim().ToUpperInvariant()
 $actual=(Get-FileHash '.\firestore.rules' -Algorithm SHA256).Hash

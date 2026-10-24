@@ -1,4 +1,4 @@
-# A9R8 read-only/local QA. NEVER authenticates to Firebase or deploys.
+﻿# A9R8 read-only/local QA. NEVER authenticates to Firebase or deploys.
 $ErrorActionPreference = 'Stop'
 Set-Location $PSScriptRoot
 New-Item -ItemType Directory -Force -Path '.\qa_results_a9r8' | Out-Null

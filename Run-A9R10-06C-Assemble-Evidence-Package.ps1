@@ -1,4 +1,4 @@
-param(
+﻿param(
  [Parameter(Mandatory=$true)][string]$AssemblyInputJson,
  [Parameter(Mandatory=$true)][string]$OutputPackage
 )

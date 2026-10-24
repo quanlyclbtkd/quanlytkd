@@ -1,6 +1,10 @@
-# PHASE A9R10 — Windows Runbook
+# PHASE A9R10R2 — Windows Runbook (Staging Attendance Acceptance)
 
 > Mục tiêu: đóng S01 + Journal trên **Firebase staging riêng**, tạo active candidate bằng cutover đã có, rồi nghiệm thu HLV end-to-end. Không dùng project `quanly-tst`. Không replay queue, không tạo writer mới, không mở production.
+
+
+### Lưu ý Windows PowerShell 5.1
+A9R10R2 đã sửa lỗi tương thích UTF-8: file `.ps1` dùng UTF-8 BOM để PowerShell 5.1 đọc tiếng Việt đúng, còn JSON trung gian được ghi UTF-8 **không BOM** để Node/Firebase CLI đọc ổn định. Không đổi lại các script sang ANSI.
 
 ## Bước 0 — Offline preflight
 Giải nén vào `D:\A9R10\source`:
@@ -44,6 +48,22 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Run-A9R10-STAGING-HOST
 
 Sau PASS sẽ có `D:\A9R10\staging-source\A9R10_MAINTENANCE_DEPLOYED.json` chứa thời điểm maintenance được quan sát/deploy.
 
+
+## Bước 3B — Chuẩn bị dữ liệu staging tối thiểu để HLV có thể test thật
+
+Thực hiện **chỉ trên project staging** sau khi maintenance deploy đã PASS. Dùng giao diện Admin/SuperAdmin hiện hữu; không tạo writer Điểm danh mới. Khuyến nghị dùng dữ liệu giả hoàn toàn:
+
+- Tạo 1 CLB staging riêng.
+- Tạo ít nhất 2 Ca tập trong `settings/shifts`, một ca CS1 và một ca CS2.
+- Tạo ít nhất 4 võ sinh giả: 2 thuộc CS1, 2 thuộc CS2.
+- Tạo 1 HLV giả bằng luồng `createCoachAccount()` hiện hữu và cấp **CS1 + CS2**.
+- Đăng nhập thử HLV khi maintenance còn khóa: xác thực phải thành công nhưng Điểm danh phải vẫn hiển thị trạng thái bảo trì.
+- **Không tạo bất kỳ attendance document nào trước snapshot S01.** Với staging mới, mục tiêu tốt nhất là collection `attendance` bằng 0 trước cutover.
+- Không tạo giao dịch Học phí/Báo nợ/Kho cho tài khoản HLV test; acceptance sẽ chỉ xác minh Coach bị từ chối tài chính theo policy.
+- Trên Android/iOS/desktop dùng **browser profile staging riêng** để tránh mang Journal/IndexedDB cũ từ production sang staging.
+
+Nếu staging đã có attendance lịch sử, không xóa để làm PASS. Bắt buộc đi qua History Provenance ở Bước 7.
+
 ## Bước 4 — Tạo bounded server-read request
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Run-A9R10-03-Create-Server-Read-Request.ps1 `
@@ -69,11 +89,14 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Run-A9R10-04-Owner-App
 Phải tự gõ `APPROVE_STAGING_READ` sau khi kiểm tra project, club và read caps.
 
 ## Bước 6 — Thu snapshot server read-only
-Đặt token staging chỉ trong phiên PowerShell local, không ghi vào file/chat:
+Đặt token staging chỉ trong phiên PowerShell local, không ghi vào file/chat. Hai token **khác loại**:
+
+- `V11R3_AUDIT_DATA_TOKEN`: Firebase ID token của tài khoản **staging SuperAdmin** (khuyến nghị), vì snapshot có collection-group inventory toàn bộ `attendance` trong scope. Admin thường có thể bị Rules từ chối ở truy vấn global inventory.
+- `V11R3_METADATA_ACCESS_TOKEN`: Google OAuth access token có quyền **đọc Firebase Rules release/ruleset và Firestore index metadata** của project staging. Đây không phải mật khẩu và không phải Firebase ID token.
 
 ```powershell
-$env:V11R3_AUDIT_DATA_TOKEN = '<STAGING_FIREBASE_ID_TOKEN>'
-$env:V11R3_METADATA_ACCESS_TOKEN = '<STAGING_METADATA_ACCESS_TOKEN>'
+$env:V11R3_AUDIT_DATA_TOKEN = '<STAGING_FIREBASE_ID_TOKEN_SUPERADMIN>'
+$env:V11R3_METADATA_ACCESS_TOKEN = '<STAGING_GOOGLE_OAUTH_ACCESS_TOKEN>'
 
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Run-A9R10-05-Collect-Server-Snapshot.ps1 `
   -StagingSource D:\A9R10\staging-source `

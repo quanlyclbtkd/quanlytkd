@@ -1,0 +1,90 @@
+{
+  "phase": "A9R11",
+  "kind": "COACH_ATTENDANCE_OPERATIONAL_TEST_ONLY",
+  "createdAtUtc": "2026-10-24T01:46:21.212187+00:00",
+  "authority": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55",
+  "journalDatabase": "tst-attendance-journal-v4",
+  "runtimeSHA256": "d9a39ba5e961863b90b37885f298f7a0f486d541abde618019ffca1c7149adb1",
+  "rulesSHA256": "63af4b507ad3356966a2e843c198a2cd690dd5e7f309450c13bcaca7a0ceb089",
+  "rollbackRulesSHA256": "ed798d494a0a79bd8d423e07118d1e563df14a090bfb62b907c70aafff31811d",
+  "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+  "buildTag": "qr-v11r6-a9r11-coach-attendance-operational-20261024",
+  "tests": [
+    {
+      "name": "A9R11 operational contract",
+      "result": "PASS",
+      "count": "12/12"
+    },
+    {
+      "name": "Coach read boundary",
+      "result": "PASS",
+      "count": "30/30"
+    },
+    {
+      "name": "Security/branch boundary",
+      "result": "PASS",
+      "count": "35/35"
+    },
+    {
+      "name": "Coach assignment",
+      "result": "PASS",
+      "count": "16/16"
+    },
+    {
+      "name": "Attendance role authority",
+      "result": "PASS",
+      "count": "34/34"
+    },
+    {
+      "name": "Attendance entrypoints",
+      "result": "PASS",
+      "count": "21/21"
+    },
+    {
+      "name": "Attendance write guard",
+      "result": "PASS",
+      "count": "9/9"
+    },
+    {
+      "name": "Explicit shift authority",
+      "result": "PASS",
+      "count": "60/60"
+    },
+    {
+      "name": "Daily single refresh authority",
+      "result": "PASS",
+      "count": "73/73"
+    },
+    {
+      "name": "Journal IndexedDB blocked retry",
+      "result": "PASS",
+      "count": "3/3"
+    },
+    {
+      "name": "Evidence closure classifier",
+      "result": "PASS",
+      "count": "22/22"
+    },
+    {
+      "name": "Syntax",
+      "result": "PASS",
+      "count": "276/276"
+    },
+    {
+      "name": "Root/Public parity",
+      "result": "PASS",
+      "count": "128/128"
+    },
+    {
+      "name": "Full npm check",
+      "result": "FAIL",
+      "reason": "legacy app.js size/line ceiling only: 703656 > 700000 bytes; 11317 > 11300 lines"
+    },
+    {
+      "name": "A9R11 Firestore Emulator",
+      "result": "NOT_RUN_HERE",
+      "reason": "@firebase/rules-unit-testing dependency unavailable in this container; Windows runner included"
+    }
+  ],
+  "release": "TEST_ONLY_NO_DEPLOY"
+}

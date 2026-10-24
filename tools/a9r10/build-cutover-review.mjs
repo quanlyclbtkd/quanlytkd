@@ -1,7 +1,7 @@
 // Build scan/index proof and a pending owner approval from already-closed A9R10 evidence.
 // No network, no signing, no activation.
-import fs from 'node:fs';import path from 'node:path';import {pathToFileURL} from 'node:url';import {digest} from '../v11r2/cutover.mjs';import {need,safeStagingProject} from './common.mjs';
-const readj=f=>JSON.parse(fs.readFileSync(f));
+import fs from 'node:fs';import path from 'node:path';import {pathToFileURL} from 'node:url';import {digest} from '../v11r2/cutover.mjs';import {need,safeStagingProject,readJsonFile} from './common.mjs';
+const readj=f=>readJsonFile(f);
 export function build(input){
  const proposal=readj(input.cutoverProposalFile),p=proposal?.plan,report=readj(input.evidenceReportFile),deploy=readj(input.maintenanceDeployRecordFile);
  safeStagingProject(p?.projectId);need(report.status==='STAGING_EVIDENCE_REVIEW_COMPLETE_NOT_RELEASE'&&report.projectId===p.projectId,'DATA_EVIDENCE_NOT_CLOSED');need(Array.isArray(report.s01Cohorts)&&report.s01Cohorts.length===p.clubIds.length&&report.s01Cohorts.every(x=>x.count===0&&x.complete===true),'S01_COHORT_NOT_ZERO');need(/^[0-9a-f]{64}$/.test(report.serverBackupSHA256||'')&&/^[0-9a-f]{64}$/.test(report.historyAuditSHA256||''),'HISTORY_AUDIT_HASH_MISSING');need(deploy?.kind==='A9R10_STAGING_MAINTENANCE_DEPLOY_RECORD'&&deploy.projectId===p.projectId&&deploy.status==='PASS','MAINTENANCE_DEPLOY_RECORD_INVALID');need(input.oldClientsQuiesced===true&&input.inflightWritesSettled===true,'STAGING_CLIENTS_NOT_QUIESCED');

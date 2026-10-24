@@ -1,4 +1,4 @@
-param(
+﻿param(
  [Parameter(Mandatory=$true)][string]$StagingSource,
  [Parameter(Mandatory=$true)][string]$ServerSnapshot,
  [Parameter(Mandatory=$true)][string]$OutputDraft

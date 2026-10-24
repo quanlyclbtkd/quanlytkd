@@ -1,8 +1,8 @@
-// One persisted attendance contract. Keep this authority ID stable after deploy.
-// Default TEST ONLY build stays in maintenance until the signed cutover gate is satisfied.
-export const HISTORY_AUTHORITY = 'attendance-history-7c42f5e2-6d94-4e49-b8e5-98f876cbd90a';
-export const HISTORY_COACH_ACCESS = false;
-export const JOURNAL_DATABASE = 'tst-attendance-journal-v3';
+// A9R11 forward-only Coach Attendance authority. Keep this ID stable after deployment.
+// Historical rows from earlier builds remain Admin-visible but are not promoted into Coach authority.
+export const HISTORY_AUTHORITY = 'attendance-history-1aedda93-9437-4132-9694-35c2e6234d55';
+export const HISTORY_COACH_ACCESS = true;
+export const JOURNAL_DATABASE = 'tst-attendance-journal-v4';
 export const ABSENT_VERSION = 'absent';
 export function attendanceServerVersion(data) {
     if (!data) return ABSENT_VERSION;

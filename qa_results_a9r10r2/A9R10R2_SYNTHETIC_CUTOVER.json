@@ -1,0 +1,12 @@
+{
+  "project":"tst-staging-r2qa",
+  "authority":"attendance-history-22222222-2222-4222-8222-222222222222",
+  "clientOpen":true,
+  "clientNewAuthority":true,
+  "rulesOpen":true,
+  "rulesNewAuthority":true,
+  "maintenanceRulesSHA256":"23aae5fcb7f0376e4dd14ac324942233dc1bf2690304f4b7521e86c878cc7dad",
+  "activeRulesSHA256":"aaa1e025d2ea98c00db422edcc854adf1a0c643dc551f7e9d5ccf4716c7da4c1",
+  "runtimeOverrideCount":11,
+  "status":"PASS_SYNTHETIC_NOT_DEPLOYED"
+}

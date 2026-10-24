@@ -6,6 +6,7 @@ import {pathToFileURL} from 'node:url';
 import {sha,canonical,signedPayload,safeProject} from '../v11r3/proof.mjs';
 import {auditHistoryEvidence} from '../v11r3/history-audit.mjs';
 import {reviewDeviceBackup} from '../a9r8/journal-readonly-audit.mjs';
+import {readJsonFile} from './common.mjs';
 
 const VALID_EMPTY = new Set(['DB_ABSENT','STORE_ABSENT','EMPTY']);
 const active = new Set(['pending','inflight','conflict','needs-review']);
@@ -106,5 +107,5 @@ export function evaluateEvidencePackage(pack,{publicKey,trustedKeySHA256,now=Dat
 }
 
 if(import.meta.url===pathToFileURL(process.argv[1]||'').href){
- try{const [inFile,outFile,pubKeyFile,pin]=process.argv.slice(2);if(!inFile||!outFile||!pubKeyFile||!pin)throw Error('USAGE: node tools/a9r10/evidence-closure.mjs input.json output.json owner-public.pem trusted-key-sha256');const report=evaluateEvidencePackage(JSON.parse(fs.readFileSync(inFile)),{publicKey:fs.readFileSync(pubKeyFile,'utf8'),trustedKeySHA256:pin});fs.writeFileSync(outFile,JSON.stringify(report,null,2)+'\n',{flag:'wx',mode:0o600});console.log(report.status,JSON.stringify(report.issues));if(report.status!=='STAGING_EVIDENCE_REVIEW_COMPLETE_NOT_RELEASE')process.exitCode=2;}catch(e){console.error(e.code||e.message);process.exitCode=1;}
+ try{const [inFile,outFile,pubKeyFile,pin]=process.argv.slice(2);if(!inFile||!outFile||!pubKeyFile||!pin)throw Error('USAGE: node tools/a9r10/evidence-closure.mjs input.json output.json owner-public.pem trusted-key-sha256');const report=evaluateEvidencePackage(readJsonFile(inFile),{publicKey:fs.readFileSync(pubKeyFile,'utf8'),trustedKeySHA256:pin});fs.writeFileSync(outFile,JSON.stringify(report,null,2)+'\n',{flag:'wx',mode:0o600});console.log(report.status,JSON.stringify(report.issues));if(report.status!=='STAGING_EVIDENCE_REVIEW_COMPLETE_NOT_RELEASE')process.exitCode=2;}catch(e){console.error(e.code||e.message);process.exitCode=1;}
 }

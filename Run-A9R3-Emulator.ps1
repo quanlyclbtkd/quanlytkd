@@ -1,4 +1,4 @@
-# A9R3 Firestore Rules security audit, local Windows PowerShell 5.1 or 7.
+﻿# A9R3 Firestore Rules security audit, local Windows PowerShell 5.1 or 7.
 # DEMO project only. NEVER firebase login/deploy. Never touches production.
 $ErrorActionPreference='Stop'
 Set-Location $PSScriptRoot

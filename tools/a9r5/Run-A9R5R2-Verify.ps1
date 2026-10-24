@@ -1,4 +1,4 @@
-# A9R5R2 — TEST ONLY. Both Firebase emulators use demo-a9r5-coach-auth.
+﻿# A9R5R2 — TEST ONLY. Both Firebase emulators use demo-a9r5-coach-auth.
 # This wrapper never starts the club website or writes production.
 $ErrorActionPreference='Stop'
 $root=Resolve-Path (Join-Path $PSScriptRoot '..\..')

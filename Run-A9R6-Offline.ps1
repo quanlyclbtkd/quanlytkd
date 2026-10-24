@@ -1,4 +1,4 @@
-# A9R6 QA only. Executes no Firebase client, Firestore write, or VietQR provider request.
+﻿# A9R6 QA only. Executes no Firebase client, Firestore write, or VietQR provider request.
 $ErrorActionPreference='Stop'
 Set-Location $PSScriptRoot
 $resultsDir=Join-Path $PSScriptRoot 'qa_results_a9r6'

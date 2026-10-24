@@ -1,4 +1,4 @@
-# TEST ONLY. Writes ONLY to a separate local DEMO project via Firestore Emulator.
+﻿# TEST ONLY. Writes ONLY to a separate local DEMO project via Firestore Emulator.
 $ErrorActionPreference = 'Stop'
 Set-Location $PSScriptRoot
 if (!(Test-Path '.\node_modules\.bin\firebase.cmd')) {

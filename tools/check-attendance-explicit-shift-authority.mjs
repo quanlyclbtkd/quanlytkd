@@ -230,7 +230,7 @@ try {
     globalThis.RoleReadBoundary = { normalizeRole: roleHolder.RoleReadBoundary.normalizeRole };
     globalThis._fb_init = {};
 
-    const serviceUrl = new URL(read('js/modules/attendance.js').match(/import \{ AttendanceService \} from '([^']+)'/)[1], pathToFileURL(path.join(root, 'js/modules/attendance.js'))).href;
+    const serviceUrl = new URL(read('js/modules/attendance.js').match(/import \{ AttendanceService \} from [\"']([^\"']+)[\"']/)[1], pathToFileURL(path.join(root, 'js/modules/attendance.js'))).href;
     const { AttendanceService } = await import(serviceUrl);
     let dailyCalls = 0;
     let shiftCalls = 0;
