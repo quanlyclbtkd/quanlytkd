@@ -1,0 +1,173 @@
+{
+  "classification": "PASS",
+  "scope": "Authorized current-authority history on controlled local fixtures; not production/lifetime coverage",
+  "runtimeSHA256": "f112c0aea086cb3e7684d03ddfe1897d82bcb159086b0a8fd895c71e9208fb67",
+  "authority": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55",
+  "branchScope": "One active authorized branch per modal; server-authoritative allowedBranches; no merged club query",
+  "dateCoverageTested": "2020-02-29 through 2026-10-25; no hard-coded historical start date in runtime",
+  "pagination": {
+    "orderBy": "documentId ASC",
+    "pageLimit": 40,
+    "cursorScope": [
+      "clubId",
+      "profileId",
+      "branch",
+      "historyAuthority",
+      "pageSize",
+      "uid",
+      "generation",
+      "branchGeneration",
+      "assignmentVersion",
+      "allowedBranches",
+      "activeBranch"
+    ],
+    "rawTombstoneCursor": true,
+    "doubleClickSingleFlight": true,
+    "crossModalCache": false
+  },
+  "completion": "AUTHORIZED_CURRENT_HISTORY_COMPLETE",
+  "legacyStatus": "LEGACY_HISTORY_REQUIRES_ADMIN_ATTESTATION",
+  "rawLegacyStatus": "LEGACY_HISTORY_NOT_COACH_VISIBLE",
+  "allLifetimeHistoryComplete": false,
+  "productionCoverageVerified": false,
+  "cases": [
+    {
+      "case": 1,
+      "title": "Coach CS1 đọc current authority CS1",
+      "classification": "PASS",
+      "evidence": "exact runtime Emulator"
+    },
+    {
+      "case": 2,
+      "title": "Coach CS1 không đọc CS2",
+      "classification": "PASS",
+      "evidence": "server ACL, forged local branch denied"
+    },
+    {
+      "case": 3,
+      "title": "Coach CS1+CS2 đọc CS1",
+      "classification": "PASS",
+      "evidence": "exact runtime pagination"
+    },
+    {
+      "case": 4,
+      "title": "Chọn CS2 đọc phần CS2",
+      "classification": "PASS",
+      "evidence": "same immutable profile, branch-at-attendance"
+    },
+    {
+      "case": 5,
+      "title": "Response CS1 đến trễ sau switch CS2 bị DROP",
+      "classification": "PASS",
+      "evidence": "real browser UI + service context guard"
+    },
+    {
+      "case": 6,
+      "title": "First bounded page",
+      "classification": "PASS",
+      "evidence": "Emulator + real browser SDK 10.7.1"
+    },
+    {
+      "case": 7,
+      "title": "Next page",
+      "classification": "PASS",
+      "evidence": "all current-authority years"
+    },
+    {
+      "case": 8,
+      "title": "Không duplicate",
+      "classification": "PASS",
+      "evidence": "exact unique IDs"
+    },
+    {
+      "case": 9,
+      "title": "Không mất boundary, kể cả trang toàn tombstone",
+      "classification": "PASS",
+      "evidence": "raw cursor, separate final empty page"
+    },
+    {
+      "case": 10,
+      "title": "Tháng 12/1 và leap year",
+      "classification": "PASS",
+      "evidence": "2020-02-29, 2023-12-31, 2024-01-01, 2024-02-29; same-day S1/S2"
+    },
+    {
+      "case": 11,
+      "title": "Empty history",
+      "classification": "PASS",
+      "evidence": "empty current-authority scope ends successfully"
+    },
+    {
+      "case": 12,
+      "title": "Current authority hiển thị",
+      "classification": "PASS",
+      "evidence": "authority equality in query and Rules"
+    },
+    {
+      "case": 13,
+      "title": "Raw legacy không hiển thị",
+      "classification": "PASS",
+      "evidence": "server DENY old authority query"
+    },
+    {
+      "case": 14,
+      "title": "Admin audit legacy",
+      "classification": "PASS",
+      "evidence": "existing exact-document inspect/explicit attestation + CAS, no automatic migration"
+    },
+    {
+      "case": 15,
+      "title": "Profile chuyển CS1 -> CS2 giữ branch lịch sử",
+      "classification": "PASS",
+      "evidence": "current profile CS2, old verified rows remain CS1"
+    },
+    {
+      "case": 16,
+      "title": "Revoke branch khi đang load",
+      "classification": "PASS",
+      "evidence": "server revoked ACL DENY + local changed-authority response DROP"
+    },
+    {
+      "case": 17,
+      "title": "Hai tabs khác branch",
+      "classification": "PASS",
+      "evidence": "same-origin independent presentation; no history cache shared"
+    },
+    {
+      "case": 18,
+      "title": "Reload/relogin",
+      "classification": "PASS",
+      "evidence": "generation-scoped cursor rejected; presentation reset"
+    },
+    {
+      "case": 19,
+      "title": "Android physical device",
+      "classification": "ENV_BLOCKED",
+      "evidence": "Chromium mobile viewports passed; no physical Android supplied"
+    },
+    {
+      "case": 20,
+      "title": "Desktop",
+      "classification": "PASS",
+      "evidence": "1024px actual DOM"
+    },
+    {
+      "case": 21,
+      "title": "Không Finance reads",
+      "classification": "PASS",
+      "evidence": "instrumented history flow + Emulator Finance DENY"
+    },
+    {
+      "case": 22,
+      "title": "Không new history listener",
+      "classification": "PASS",
+      "evidence": "0 measured onSnapshot; total static onSnapshot remains 35"
+    }
+  ],
+  "evidenceCounts": {
+    "runtimeEmulator": 22,
+    "sdk10_7_1": 10,
+    "browserUI": 27,
+    "nativeIDBAndWriter": 28
+  }
+}

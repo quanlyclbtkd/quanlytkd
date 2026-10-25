@@ -46,11 +46,11 @@
       "path": "/google.firestore.v1.Firestore/Listen/channel"
     },
     {
-      "method": "GET",
+      "method": "POST",
       "path": "/google.firestore.v1.Firestore/Listen/channel"
     },
     {
-      "method": "POST",
+      "method": "GET",
       "path": "/google.firestore.v1.Firestore/Listen/channel"
     },
     {

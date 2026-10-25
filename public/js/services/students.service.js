@@ -15,6 +15,8 @@
  * ────────────────────────────────────────────────────────────────
  */
 
+import { validateTrainingMutation } from "../core/trainingRegistration.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+
 // ── Internal helpers (không export) ──────────────────────────────
 
 /** Lấy Firebase SDK functions từ CDN bridge */
@@ -150,6 +152,7 @@ export const StudentService = {
         if (!String(key || '').trim() || !data || typeof data !== 'object') {
             throw new Error('[StudentService] Hồ sơ nhập học không hợp lệ.');
         }
+        validateTrainingMutation(key, data, true);
         return { profileRef: _profRef(key), profilePayload: { ...data } };
     },
 
@@ -159,6 +162,7 @@ export const StudentService = {
      * @param {Object} data — profile data
      */
     async createProfile(key, data) {
+        validateTrainingMutation(key, data, true);
         const { setDoc } = _sdk();
         await setDoc(_profRef(key), data);
     },
@@ -171,6 +175,7 @@ export const StudentService = {
      * @param {Object} data — object chứa chỉ các fields cần update
      */
     async updateProfile(name, data) {
+        validateTrainingMutation(name, data);
         const { setDoc } = _sdk();
         await setDoc(_profRef(name), data, { merge: true });
     },
@@ -181,6 +186,7 @@ export const StudentService = {
      * @param {Object} data — update object (có thể chứa FieldValue)
      */
     async patchProfile(name, data) {
+        validateTrainingMutation(name, data);
         const { updateDoc } = _sdk();
         await updateDoc(_profRef(name), data);
     },

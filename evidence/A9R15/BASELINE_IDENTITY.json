@@ -1,0 +1,811 @@
+{
+  "zipSHA256": "a81478cb6fb50eeed23ece4d0e106c949d73397010d52ead8adff6841bbc5c8a",
+  "runtimeSHA256": "91dbd8a9866552c2317b7ee676ff019c285e2338febebe59c7d9376b4f956fe4",
+  "appSHA256": "d0fd29acc5e298e461763daea31d89228052fe08b6f2ba323aa0ae9bf2f77463",
+  "rulesSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+  "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+  "buildTag": "qr-v11r6-a9r14-qa-mobile-20261025",
+  "historyAuthority": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55",
+  "journal": [
+    "export const JOURNAL_DATABASE = 'tst-attendance-journal-v4'"
+  ],
+  "canonicalFileCount": 128,
+  "rootPublicMatch": 128,
+  "sdkStaticCounts": {
+    "getDoc": 24,
+    "getDocs": 57,
+    "onSnapshot": 35
+  },
+  "profile": {
+    "identity": {
+      "id": "V11R6_A9R14_QA_MOBILE",
+      "coachAssignmentContract": "server-verified-multi-branch-v1",
+      "inputZIP_SHA256": "31030b29f44c171c7f3c4e891ff05c4ce393877fd63db7d3daccd59baa3be88f",
+      "manifest": "tools/v11r2/manifests/V11R6_A9R14_QA_MOBILE.json",
+      "manifestSHA256": "42ff81582d3a136ffc2fb09d57838f7844036b0c0f16007a30389461154cc0e4",
+      "runtimeSHA256": "91dbd8a9866552c2317b7ee676ff019c285e2338febebe59c7d9376b4f956fe4",
+      "rulesSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+      "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+      "buildTag": "qr-v11r6-a9r14-qa-mobile-20261025",
+      "canonicalFileCount": 128
+    },
+    "authority": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55",
+    "coachAccess": true,
+    "scope": "source-integrity-and-sdk-compatibility-only"
+  },
+  "parity": [
+    {
+      "file": ".nojekyll",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "publicSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "match": true
+    },
+    {
+      "file": "app.js",
+      "sha256": "d0fd29acc5e298e461763daea31d89228052fe08b6f2ba323aa0ae9bf2f77463",
+      "publicSHA256": "d0fd29acc5e298e461763daea31d89228052fe08b6f2ba323aa0ae9bf2f77463",
+      "match": true
+    },
+    {
+      "file": "css/tailwind-static.css",
+      "sha256": "7e8aa3849956a0a1bcf758fbb8528b2fe5ddeda39290aad9971f30256b30699c",
+      "publicSHA256": "7e8aa3849956a0a1bcf758fbb8528b2fe5ddeda39290aad9971f30256b30699c",
+      "match": true
+    },
+    {
+      "file": "css/ui-mobile-shell.css",
+      "sha256": "296727cc05af49acf8acab2cc7b21388a944e0deeff0412b8d4d06390aa315c2",
+      "publicSHA256": "296727cc05af49acf8acab2cc7b21388a944e0deeff0412b8d4d06390aa315c2",
+      "match": true
+    },
+    {
+      "file": "index.html",
+      "sha256": "70db7b01b3ba9db0f398872064e2e9563ae17395047331beafd114481e3f3ed8",
+      "publicSHA256": "70db7b01b3ba9db0f398872064e2e9563ae17395047331beafd114481e3f3ed8",
+      "match": true
+    },
+    {
+      "file": "js/core/actionGuard.js",
+      "sha256": "7c95650fc992cbf01b0ca5526e1656cfbf55d5f22bc1e9fe67351bc3a916178c",
+      "publicSHA256": "7c95650fc992cbf01b0ca5526e1656cfbf55d5f22bc1e9fe67351bc3a916178c",
+      "match": true
+    },
+    {
+      "file": "js/core/attendanceContract.js",
+      "sha256": "b96b04eccda4738b190b5cbb3e1d05664d422dff17b84a64cfd66bccbbc68239",
+      "publicSHA256": "b96b04eccda4738b190b5cbb3e1d05664d422dff17b84a64cfd66bccbbc68239",
+      "match": true
+    },
+    {
+      "file": "js/core/branchIdentity.js",
+      "sha256": "db050656a9adaac5873887f2e9a3e80482e3e3982e5252635621f494ed020337",
+      "publicSHA256": "db050656a9adaac5873887f2e9a3e80482e3e3982e5252635621f494ed020337",
+      "match": true
+    },
+    {
+      "file": "js/core/canonicalDomainCommandBoundary.js",
+      "sha256": "32f7d040519a84e84eb76467d65ce8c93f5551e7d6b1e9deba4eac17692a9689",
+      "publicSHA256": "32f7d040519a84e84eb76467d65ce8c93f5551e7d6b1e9deba4eac17692a9689",
+      "match": true
+    },
+    {
+      "file": "js/core/clubStatsAutoCache.js",
+      "sha256": "76028d2d1bf02f41b41a21271eb44f056e58f191317e998be028722f56477299",
+      "publicSHA256": "76028d2d1bf02f41b41a21271eb44f056e58f191317e998be028722f56477299",
+      "match": true
+    },
+    {
+      "file": "js/core/coachBranchRuntimeRepair.js",
+      "sha256": "3c5d5d7a95390ce8438552d48947b293a2878dd480c399c4964effce82012068",
+      "publicSHA256": "3c5d5d7a95390ce8438552d48947b293a2878dd480c399c4964effce82012068",
+      "match": true
+    },
+    {
+      "file": "js/core/debtProfileReadBoundary.js",
+      "sha256": "12c6de80511f16613af5f7e4e9390fb356f9cbbfd166f3466ff613f2543be71e",
+      "publicSHA256": "12c6de80511f16613af5f7e4e9390fb356f9cbbfd166f3466ff613f2543be71e",
+      "match": true
+    },
+    {
+      "file": "js/core/financialActionAuditGuard.js",
+      "sha256": "97680a8717f02e1b9776a24c808d97b64b413031a1ad06a8a0696038771dd82c",
+      "publicSHA256": "97680a8717f02e1b9776a24c808d97b64b413031a1ad06a8a0696038771dd82c",
+      "match": true
+    },
+    {
+      "file": "js/core/financialFlowMap.js",
+      "sha256": "10c9cb1e754aa4253505617b7e81c24ee09e9b2d5dc7b6550dcb0652e33b8568",
+      "publicSHA256": "10c9cb1e754aa4253505617b7e81c24ee09e9b2d5dc7b6550dcb0652e33b8568",
+      "match": true
+    },
+    {
+      "file": "js/core/globalOwnershipRegistry.js",
+      "sha256": "40ebfab400b3a575d1aac2daa6db73c246be731a84a2906674fcea3c211bd133",
+      "publicSHA256": "40ebfab400b3a575d1aac2daa6db73c246be731a84a2906674fcea3c211bd133",
+      "match": true
+    },
+    {
+      "file": "js/core/inlineHandlerAudit.js",
+      "sha256": "4a9edc949162cb146638fb326a3eeda428c1443ab8bfa99787723a37d70ff193",
+      "publicSHA256": "4a9edc949162cb146638fb326a3eeda428c1443ab8bfa99787723a37d70ff193",
+      "match": true
+    },
+    {
+      "file": "js/core/inventoryMultiItemReadOnlyUI.js",
+      "sha256": "c6a50375859d78d8e732436a454fa6d157c62bafa5a9729e3986798401dd893b",
+      "publicSHA256": "c6a50375859d78d8e732436a454fa6d157c62bafa5a9729e3986798401dd893b",
+      "match": true
+    },
+    {
+      "file": "js/core/lazyAssetsBootstrap.js",
+      "sha256": "b60af66ef280f3ee0d806b94d351cfd7f75cd49641f847ff9546f1cb7e5cab4c",
+      "publicSHA256": "b60af66ef280f3ee0d806b94d351cfd7f75cd49641f847ff9546f1cb7e5cab4c",
+      "match": true
+    },
+    {
+      "file": "js/core/legacyAppAudit.js",
+      "sha256": "38c05474191672096370fda3bd677cb6894e4ce1bd85054ec99f0aa65baa8455",
+      "publicSHA256": "38c05474191672096370fda3bd677cb6894e4ce1bd85054ec99f0aa65baa8455",
+      "match": true
+    },
+    {
+      "file": "js/core/legacyRenderEntrypoints.js",
+      "sha256": "5ae877bc1b7ff96d5c78136f408f2390e09944412cea545bdb71617a7081e1ec",
+      "publicSHA256": "5ae877bc1b7ff96d5c78136f408f2390e09944412cea545bdb71617a7081e1ec",
+      "match": true
+    },
+    {
+      "file": "js/core/listenerOwnershipBoundary.js",
+      "sha256": "7425a0a3be681f6f905955b0bff834763a0af367cad942e1419c59304adfa5b3",
+      "publicSHA256": "7425a0a3be681f6f905955b0bff834763a0af367cad942e1419c59304adfa5b3",
+      "match": true
+    },
+    {
+      "file": "js/core/mobileStartupPerformance.js",
+      "sha256": "e730e61a6fb8ffd87abd18522e96ea2ca9f9a95002e60d1d4636f115b09cf284",
+      "publicSHA256": "e730e61a6fb8ffd87abd18522e96ea2ca9f9a95002e60d1d4636f115b09cf284",
+      "match": true
+    },
+    {
+      "file": "js/core/multiItemInventorySafety.js",
+      "sha256": "295ce786e25fed3c4337e4e9af164b6b63b18da9d09e241fa977262eb3b6038f",
+      "publicSHA256": "295ce786e25fed3c4337e4e9af164b6b63b18da9d09e241fa977262eb3b6038f",
+      "match": true
+    },
+    {
+      "file": "js/core/performanceMonitor.js",
+      "sha256": "8cec791af4edc1b48502156044eddde66d0c915b5af1ba927b18b7a508968cce",
+      "publicSHA256": "8cec791af4edc1b48502156044eddde66d0c915b5af1ba927b18b7a508968cce",
+      "match": true
+    },
+    {
+      "file": "js/core/productionAuthorityPolicy.js",
+      "sha256": "4a202b36ce75ce611815d97b38c71d49fe8846fa551f5dce82865b28db97b6bd",
+      "publicSHA256": "4a202b36ce75ce611815d97b38c71d49fe8846fa551f5dce82865b28db97b6bd",
+      "match": true
+    },
+    {
+      "file": "js/core/productionStabilityGate.js",
+      "sha256": "7f54d756de6ee26a39e80953df3b2fc092cb3039db2a18d73d23281128ceac40",
+      "publicSHA256": "7f54d756de6ee26a39e80953df3b2fc092cb3039db2a18d73d23281128ceac40",
+      "match": true
+    },
+    {
+      "file": "js/core/profileCanonicalStore.js",
+      "sha256": "195e10c0f9aa28d43193130597e3a73b833be5e628409c2f1633d76358005a41",
+      "publicSHA256": "195e10c0f9aa28d43193130597e3a73b833be5e628409c2f1633d76358005a41",
+      "match": true
+    },
+    {
+      "file": "js/core/roleReadBoundary.js",
+      "sha256": "47f789c19b72d126c2a6e8245d39ddaff2d6a23c8bb66bd9513ee2c793e7c67e",
+      "publicSHA256": "47f789c19b72d126c2a6e8245d39ddaff2d6a23c8bb66bd9513ee2c793e7c67e",
+      "match": true
+    },
+    {
+      "file": "js/core/securityPosture.js",
+      "sha256": "3ce6fe7b516f138205635dbef81208c0a0dcf6621170c989ef648706772dd6d7",
+      "publicSHA256": "3ce6fe7b516f138205635dbef81208c0a0dcf6621170c989ef648706772dd6d7",
+      "match": true
+    },
+    {
+      "file": "js/core/staticCssBuildHealth.js",
+      "sha256": "e0e87c489e5bb1548c2a060bb5a82f23b64c3806c00a410731e61bcf500ffc3e",
+      "publicSHA256": "e0e87c489e5bb1548c2a060bb5a82f23b64c3806c00a410731e61bcf500ffc3e",
+      "match": true
+    },
+    {
+      "file": "js/core/studentSearchIndex.js",
+      "sha256": "5d22ee419d8f56394ef6a04909ff073be390f14aee057d56940ece743a7ef29a",
+      "publicSHA256": "5d22ee419d8f56394ef6a04909ff073be390f14aee057d56940ece743a7ef29a",
+      "match": true
+    },
+    {
+      "file": "js/core/studentStatusCommandBoundary.js",
+      "sha256": "bb72c5d2e1fab0543369b85938cb7bef6cb3b222fe708c0ee735b98e001d79ea",
+      "publicSHA256": "bb72c5d2e1fab0543369b85938cb7bef6cb3b222fe708c0ee735b98e001d79ea",
+      "match": true
+    },
+    {
+      "file": "js/core/superAdminQuotaGuard.js",
+      "sha256": "5640900910f77d231620683c9417b55305f3741250ab85807b2afd0ba8ef86e6",
+      "publicSHA256": "5640900910f77d231620683c9417b55305f3741250ab85807b2afd0ba8ef86e6",
+      "match": true
+    },
+    {
+      "file": "js/core/superAdminServerRefresh.js",
+      "sha256": "bf4896cf108fd4420456b577b81e203cd117ddfc2f636b4d2342a657e9c0f366",
+      "publicSHA256": "bf4896cf108fd4420456b577b81e203cd117ddfc2f636b4d2342a657e9c0f366",
+      "match": true
+    },
+    {
+      "file": "js/core/transactionCanonicalBoundary.js",
+      "sha256": "f291dab3cc01820aee0ce948bee8d9ad97111da3887a006713b8f427911e94cc",
+      "publicSHA256": "f291dab3cc01820aee0ce948bee8d9ad97111da3887a006713b8f427911e94cc",
+      "match": true
+    },
+    {
+      "file": "js/core/transactionDeleteIntegrity.js",
+      "sha256": "32bad07e037860da4543c3aa064fcf1eb99fb8869dc2a6451a75bf1d97510a4f",
+      "publicSHA256": "32bad07e037860da4543c3aa064fcf1eb99fb8869dc2a6451a75bf1d97510a4f",
+      "match": true
+    },
+    {
+      "file": "js/core/tuitionCommandBoundary.js",
+      "sha256": "586b322d86601ad6c1fcd6835bb50121b095ef58e2152870e89587752b3458d2",
+      "publicSHA256": "586b322d86601ad6c1fcd6835bb50121b095ef58e2152870e89587752b3458d2",
+      "match": true
+    },
+    {
+      "file": "js/core/tuitionDebtCanonical.js",
+      "sha256": "15c564d9b7672af7285c10e52ec5f18537d0086eba3569309eeb422ce1b03d09",
+      "publicSHA256": "15c564d9b7672af7285c10e52ec5f18537d0086eba3569309eeb422ce1b03d09",
+      "match": true
+    },
+    {
+      "file": "js/data/attendanceJournal.js",
+      "sha256": "a16a2c2b85a0555e288c95217bdbf414bb3f427e55cead4fee83fe3e6a4af5d7",
+      "publicSHA256": "a16a2c2b85a0555e288c95217bdbf414bb3f427e55cead4fee83fe3e6a4af5d7",
+      "match": true
+    },
+    {
+      "file": "js/data/inventoryStore.js",
+      "sha256": "39c1008f1803d62ba353ac04f079118ba4ec62112e2c7ffbecd50742fd910390",
+      "publicSHA256": "39c1008f1803d62ba353ac04f079118ba4ec62112e2c7ffbecd50742fd910390",
+      "match": true
+    },
+    {
+      "file": "js/data/profileStatusConfig.js",
+      "sha256": "108a09f6811bb749c7ca2bc9170e769ee94378debfe3d276f7352fb7dcdfa934",
+      "publicSHA256": "108a09f6811bb749c7ca2bc9170e769ee94378debfe3d276f7352fb7dcdfa934",
+      "match": true
+    },
+    {
+      "file": "js/data/quitProfileBoundary.js",
+      "sha256": "a1f83492ae482ca3c7d0c0eedc736823aae051d335f9224fa1835fd7a5401097",
+      "publicSHA256": "a1f83492ae482ca3c7d0c0eedc736823aae051d335f9224fa1835fd7a5401097",
+      "match": true
+    },
+    {
+      "file": "js/data/studentProfileStore.js",
+      "sha256": "83cd8875463085d67d73966284b6c65ba1a7887adee788f90380eb4c23a6aa61",
+      "publicSHA256": "83cd8875463085d67d73966284b6c65ba1a7887adee788f90380eb4c23a6aa61",
+      "match": true
+    },
+    {
+      "file": "js/diagnostics/legacyDiagnostics.js",
+      "sha256": "dcc6d26c51efe1777268f46820a9efa2809319bd43f099bb8ddd9b652d012689",
+      "publicSHA256": "dcc6d26c51efe1777268f46820a9efa2809319bd43f099bb8ddd9b652d012689",
+      "match": true
+    },
+    {
+      "file": "js/diagnostics/onboardingDiagnostics.js",
+      "sha256": "4a09db1ccc93e1005075c696f477bbf68ae8d71ee6fa2241169ca3427f5c3724",
+      "publicSHA256": "4a09db1ccc93e1005075c696f477bbf68ae8d71ee6fa2241169ca3427f5c3724",
+      "match": true
+    },
+    {
+      "file": "js/diagnostics/runtimeReadinessDiagnostics.js",
+      "sha256": "0ade23e3657bfddde45cbefa598127b490664b0a1ccfb94e2cf378c78169e56b",
+      "publicSHA256": "0ade23e3657bfddde45cbefa598127b490664b0a1ccfb94e2cf378c78169e56b",
+      "match": true
+    },
+    {
+      "file": "js/diagnostics/superAdminAuditDiagnostics.js",
+      "sha256": "d09987a65275422c4bc1b3f2db0eaf7fa893b3ce8a6fc882c8435a5ca9b48657",
+      "publicSHA256": "d09987a65275422c4bc1b3f2db0eaf7fa893b3ce8a6fc882c8435a5ca9b48657",
+      "match": true
+    },
+    {
+      "file": "js/events/attendance.events.js",
+      "sha256": "e94081b5f5def17db437098ae3a33808cb15c4243416feebd9b18460a294b6b3",
+      "publicSHA256": "e94081b5f5def17db437098ae3a33808cb15c4243416feebd9b18460a294b6b3",
+      "match": true
+    },
+    {
+      "file": "js/events/finance.events.js",
+      "sha256": "d6d18e8400529a865112894c23e03963f016c665db4307b284d12c0349399e81",
+      "publicSHA256": "d6d18e8400529a865112894c23e03963f016c665db4307b284d12c0349399e81",
+      "match": true
+    },
+    {
+      "file": "js/events/inventory.events.js",
+      "sha256": "f8f079375fe733d7fef915ed3db41b761bf0a2a6a2dcaf25248b25ff1b7cda7b",
+      "publicSHA256": "f8f079375fe733d7fef915ed3db41b761bf0a2a6a2dcaf25248b25ff1b7cda7b",
+      "match": true
+    },
+    {
+      "file": "js/events/students.events.js",
+      "sha256": "d83cc9582b1c5c9e4107685578a2a7bbbd6a0ac85de960d41dd7e5163a53ef59",
+      "publicSHA256": "d83cc9582b1c5c9e4107685578a2a7bbbd6a0ac85de960d41dd7e5163a53ef59",
+      "match": true
+    },
+    {
+      "file": "js/firebase/config.js",
+      "sha256": "745a895328c557b6d2a863c8f71dfbdb0bb44b9adecf70740e94921a63d8a876",
+      "publicSHA256": "745a895328c557b6d2a863c8f71dfbdb0bb44b9adecf70740e94921a63d8a876",
+      "match": true
+    },
+    {
+      "file": "js/firebase/paginatedQuery.js",
+      "sha256": "6895e483951509528983fa7429db79bcf12c8b06dc206e492bbec3091abfcae9",
+      "publicSHA256": "6895e483951509528983fa7429db79bcf12c8b06dc206e492bbec3091abfcae9",
+      "match": true
+    },
+    {
+      "file": "js/legacy/legacyAttendanceFallbacks.js",
+      "sha256": "622cab7f9a2453fa2a78a0685429b21fdc277b6d3cb8cb072c9b0c2cff9f1b15",
+      "publicSHA256": "622cab7f9a2453fa2a78a0685429b21fdc277b6d3cb8cb072c9b0c2cff9f1b15",
+      "match": true
+    },
+    {
+      "file": "js/legacy/legacyUiFallbacks.js",
+      "sha256": "4a1773ae305467bbf057cabc0ffda7e36cccc0d6525520f96416ee3b695fc852",
+      "publicSHA256": "4a1773ae305467bbf057cabc0ffda7e36cccc0d6525520f96416ee3b695fc852",
+      "match": true
+    },
+    {
+      "file": "js/listeners/attendance.listeners.js",
+      "sha256": "f9fc2834a0f34ab2c59f8a714b3de89e961e5c2d8fdca6e127d3f769dfa5b3d6",
+      "publicSHA256": "f9fc2834a0f34ab2c59f8a714b3de89e961e5c2d8fdca6e127d3f769dfa5b3d6",
+      "match": true
+    },
+    {
+      "file": "js/listeners/dashboard.listeners.js",
+      "sha256": "b46a70d81b3abafc680dfe096e2a0e93c923bcde359af59e4f35ab86a4d221bb",
+      "publicSHA256": "b46a70d81b3abafc680dfe096e2a0e93c923bcde359af59e4f35ab86a4d221bb",
+      "match": true
+    },
+    {
+      "file": "js/listeners/exam.listeners.js",
+      "sha256": "9d987048c307a33ac30d221b033b0030d97413afd55b54dd0c9e129848c574e0",
+      "publicSHA256": "9d987048c307a33ac30d221b033b0030d97413afd55b54dd0c9e129848c574e0",
+      "match": true
+    },
+    {
+      "file": "js/listeners/finance.listeners.js",
+      "sha256": "d06f1ab4773c3b9b861ee92a304bde7a760ae9d7db65998424aab12f58d59ac5",
+      "publicSHA256": "d06f1ab4773c3b9b861ee92a304bde7a760ae9d7db65998424aab12f58d59ac5",
+      "match": true
+    },
+    {
+      "file": "js/listeners/global.listeners.js",
+      "sha256": "8bcabd108fddeb6da9a58bedf1c7086aeec2665156883b6bc37e75673711d974",
+      "publicSHA256": "8bcabd108fddeb6da9a58bedf1c7086aeec2665156883b6bc37e75673711d974",
+      "match": true
+    },
+    {
+      "file": "js/listeners/inventory.listeners.js",
+      "sha256": "1b733bd5f3423b0ab6b5e85396bc936211d92a7e012d8ca65d0a06c0a312e154",
+      "publicSHA256": "1b733bd5f3423b0ab6b5e85396bc936211d92a7e012d8ca65d0a06c0a312e154",
+      "match": true
+    },
+    {
+      "file": "js/listeners/profiles.listeners.js",
+      "sha256": "2a90198e3b56be9750695e16989ca7489b96ae70742e2d953aa800b7d09aafce",
+      "publicSHA256": "2a90198e3b56be9750695e16989ca7489b96ae70742e2d953aa800b7d09aafce",
+      "match": true
+    },
+    {
+      "file": "js/listeners/students.listeners.js",
+      "sha256": "a3d8f8c286a48d8e2a37fe7043c520ee46d32d2d295676873771394a2cecf231",
+      "publicSHA256": "a3d8f8c286a48d8e2a37fe7043c520ee46d32d2d295676873771394a2cecf231",
+      "match": true
+    },
+    {
+      "file": "js/main.js",
+      "sha256": "9d4511afd0657aede83d9993e1eaf112a7a1872a102e896ff9540f6d89300ce9",
+      "publicSHA256": "9d4511afd0657aede83d9993e1eaf112a7a1872a102e896ff9540f6d89300ce9",
+      "match": true
+    },
+    {
+      "file": "js/migrations/migrate-legacy-to-primary.js",
+      "sha256": "a5ac866f3cad2a893300e733c82b68ea73bafbda7709ba5031f5cbb8184974d1",
+      "publicSHA256": "a5ac866f3cad2a893300e733c82b68ea73bafbda7709ba5031f5cbb8184974d1",
+      "match": true
+    },
+    {
+      "file": "js/modules/attendance.js",
+      "sha256": "a55590d87ef8672d67937579d846c592d71b1308e9467489f0831b544199ae61",
+      "publicSHA256": "a55590d87ef8672d67937579d846c592d71b1308e9467489f0831b544199ae61",
+      "match": true
+    },
+    {
+      "file": "js/modules/dashboard.js",
+      "sha256": "02d959b48ef1fa18947b4e0ae6acf16437e453ee5d81444e27f62c4fe078adc1",
+      "publicSHA256": "02d959b48ef1fa18947b4e0ae6acf16437e453ee5d81444e27f62c4fe078adc1",
+      "match": true
+    },
+    {
+      "file": "js/modules/exam.js",
+      "sha256": "51c0ce63b52ada9884062714b9ff8ed6bf6b748f51b4238543c19452dcbcc8ed",
+      "publicSHA256": "51c0ce63b52ada9884062714b9ff8ed6bf6b748f51b4238543c19452dcbcc8ed",
+      "match": true
+    },
+    {
+      "file": "js/modules/finance.js",
+      "sha256": "50d297a0cdbeb0efbf26bc6808f201de9a674b749af3682e16a2abf250bd93e6",
+      "publicSHA256": "50d297a0cdbeb0efbf26bc6808f201de9a674b749af3682e16a2abf250bd93e6",
+      "match": true
+    },
+    {
+      "file": "js/modules/finance/finance.controller.js",
+      "sha256": "7fe2ba28150942c264ae85fe871635c8b61dc23a2c7a1d1e2054a5d1b5192b71",
+      "publicSHA256": "7fe2ba28150942c264ae85fe871635c8b61dc23a2c7a1d1e2054a5d1b5192b71",
+      "match": true
+    },
+    {
+      "file": "js/modules/finance/finance.excel.js",
+      "sha256": "e4a4a23af165decaa1f422dcbb5939e5f06b35027c7ee928716d851c654d130e",
+      "publicSHA256": "e4a4a23af165decaa1f422dcbb5939e5f06b35027c7ee928716d851c654d130e",
+      "match": true
+    },
+    {
+      "file": "js/modules/finance/finance.pagination.js",
+      "sha256": "e59354cf8db07e149f4a779a3d5484ecce9f731caa693f807f174abb03608736",
+      "publicSHA256": "e59354cf8db07e149f4a779a3d5484ecce9f731caa693f807f174abb03608736",
+      "match": true
+    },
+    {
+      "file": "js/modules/finance/finance.receipt.js",
+      "sha256": "a18ebf9ebdf6cba177788c4cdd078ae51c8f41318a476446d91c08435f3ec5f8",
+      "publicSHA256": "a18ebf9ebdf6cba177788c4cdd078ae51c8f41318a476446d91c08435f3ec5f8",
+      "match": true
+    },
+    {
+      "file": "js/modules/finance/index.js",
+      "sha256": "caac08ba927c7d7b941f738cc1875f62fb3445b6aef301bdbec9754e4551c54d",
+      "publicSHA256": "caac08ba927c7d7b941f738cc1875f62fb3445b6aef301bdbec9754e4551c54d",
+      "match": true
+    },
+    {
+      "file": "js/modules/inventory.js",
+      "sha256": "1d9203aaee1cb58ed59245df851ecc82296982ea6bd1b1bcae7302f79367fc7c",
+      "publicSHA256": "1d9203aaee1cb58ed59245df851ecc82296982ea6bd1b1bcae7302f79367fc7c",
+      "match": true
+    },
+    {
+      "file": "js/modules/qrBankingHelpers.js",
+      "sha256": "fad0e8727b7e4017427a71b7d881006c9deee421ca6387abe343b46c0dfe2b27",
+      "publicSHA256": "fad0e8727b7e4017427a71b7d881006c9deee421ca6387abe343b46c0dfe2b27",
+      "match": true
+    },
+    {
+      "file": "js/modules/receiptHelpers.js",
+      "sha256": "1bca3bb33fa4f3999f3a77b69f63842d61385577aa359bb87b5b5db8416ebf44",
+      "publicSHA256": "1bca3bb33fa4f3999f3a77b69f63842d61385577aa359bb87b5b5db8416ebf44",
+      "match": true
+    },
+    {
+      "file": "js/modules/reports.js",
+      "sha256": "7c193d2735c6e4c5a5bed32a069f0e21a18f76a400501fe5cd3b62a590976e9d",
+      "publicSHA256": "7c193d2735c6e4c5a5bed32a069f0e21a18f76a400501fe5cd3b62a590976e9d",
+      "match": true
+    },
+    {
+      "file": "js/modules/reports/attendanceExcelReport.js",
+      "sha256": "bb9e1039db63bbf2bfa7aed9b2fbc6c89bf7f55cc48a3674fb032642e9790656",
+      "publicSHA256": "bb9e1039db63bbf2bfa7aed9b2fbc6c89bf7f55cc48a3674fb032642e9790656",
+      "match": true
+    },
+    {
+      "file": "js/modules/reports/reportExportFacade.js",
+      "sha256": "bbe018a7626a7c39351b9d68af5feab9fc48f52bf2043bb3bfc4c15b44fa1a35",
+      "publicSHA256": "bbe018a7626a7c39351b9d68af5feab9fc48f52bf2043bb3bfc4c15b44fa1a35",
+      "match": true
+    },
+    {
+      "file": "js/modules/searchRuntime.js",
+      "sha256": "de38c9dffbf5cac03838e543719f1acca1b30793496407f17324b7535223d33c",
+      "publicSHA256": "de38c9dffbf5cac03838e543719f1acca1b30793496407f17324b7535223d33c",
+      "match": true
+    },
+    {
+      "file": "js/modules/students.js",
+      "sha256": "3d24b381e96f0bb6b144e7f46014a100e2842fddc701e3a5a502666700ab4c20",
+      "publicSHA256": "3d24b381e96f0bb6b144e7f46014a100e2842fddc701e3a5a502666700ab4c20",
+      "match": true
+    },
+    {
+      "file": "js/modules/students/index.js",
+      "sha256": "b5523fc5c3f52a357d2436ab09cf4a32b85085ae95b5c083cfb794498ef93be0",
+      "publicSHA256": "b5523fc5c3f52a357d2436ab09cf4a32b85085ae95b5c083cfb794498ef93be0",
+      "match": true
+    },
+    {
+      "file": "js/modules/students/students.controller.js",
+      "sha256": "499f7b0acb3bc6e5ed950c904406352fc7c9f370742611440366aebc3a41a266",
+      "publicSHA256": "499f7b0acb3bc6e5ed950c904406352fc7c9f370742611440366aebc3a41a266",
+      "match": true
+    },
+    {
+      "file": "js/modules/students/students.modal.js",
+      "sha256": "a09e9a1dfe84916b28d5849311996871f593c83ff069c6fa4d721db9410c50d7",
+      "publicSHA256": "a09e9a1dfe84916b28d5849311996871f593c83ff069c6fa4d721db9410c50d7",
+      "match": true
+    },
+    {
+      "file": "js/modules/students/students.pagination.js",
+      "sha256": "e848769cddd3c3213c9c5459c5269724d9ceeebdd38c89ed41a89238469c61d6",
+      "publicSHA256": "e848769cddd3c3213c9c5459c5269724d9ceeebdd38c89ed41a89238469c61d6",
+      "match": true
+    },
+    {
+      "file": "js/modules/students/students.render.js",
+      "sha256": "4a345e0b5983794c68f6ac5b9521c0235f9d302081ca6fd2cb6503d2dd09c233",
+      "publicSHA256": "4a345e0b5983794c68f6ac5b9521c0235f9d302081ca6fd2cb6503d2dd09c233",
+      "match": true
+    },
+    {
+      "file": "js/modules/students/students.search.js",
+      "sha256": "2cae282651e695cc3ab4f4cea9e827f5337cf12ad9544e20f23ef1a6a386f867",
+      "publicSHA256": "2cae282651e695cc3ab4f4cea9e827f5337cf12ad9544e20f23ef1a6a386f867",
+      "match": true
+    },
+    {
+      "file": "js/modules/superadmin.js",
+      "sha256": "2c039e8e972ca2312095e3431ba02ff767a4efe146ba2caf8ec947c8a4ea8111",
+      "publicSHA256": "2c039e8e972ca2312095e3431ba02ff767a4efe146ba2caf8ec947c8a4ea8111",
+      "match": true
+    },
+    {
+      "file": "js/services/attendance.service.js",
+      "sha256": "bedded5a6a964c2b1ed35efa77e1ff7fad07bbe15017566f679dc58983a1b180",
+      "publicSHA256": "bedded5a6a964c2b1ed35efa77e1ff7fad07bbe15017566f679dc58983a1b180",
+      "match": true
+    },
+    {
+      "file": "js/services/finance.service.js",
+      "sha256": "b9055ff5ad883b4922b24168c25f08e48ccdc9bafcf0571f237bd1325856d505",
+      "publicSHA256": "b9055ff5ad883b4922b24168c25f08e48ccdc9bafcf0571f237bd1325856d505",
+      "match": true
+    },
+    {
+      "file": "js/services/inventory.service.js",
+      "sha256": "be9308420fd1b97804e46eed64fa476abebba8df1471a1ecf13361a29c1430e6",
+      "publicSHA256": "be9308420fd1b97804e46eed64fa476abebba8df1471a1ecf13361a29c1430e6",
+      "match": true
+    },
+    {
+      "file": "js/services/students.service.js",
+      "sha256": "54111d43e6f8aca7899191ee19fa6d85a9872ececc4bb060299e49c96d3c5e7b",
+      "publicSHA256": "54111d43e6f8aca7899191ee19fa6d85a9872ececc4bb060299e49c96d3c5e7b",
+      "match": true
+    },
+    {
+      "file": "js/store.js",
+      "sha256": "5c31601adab80c3b1cff69eed3f7b545ac141137c9cf045a8bb3b8d6ce6df31a",
+      "publicSHA256": "5c31601adab80c3b1cff69eed3f7b545ac141137c9cf045a8bb3b8d6ce6df31a",
+      "match": true
+    },
+    {
+      "file": "js/ui/eventActionBridge.js",
+      "sha256": "15e4c01c17daee5677c8ba766f73ff17807265fba7204103e2e248040cbe2416",
+      "publicSHA256": "15e4c01c17daee5677c8ba766f73ff17807265fba7204103e2e248040cbe2416",
+      "match": true
+    },
+    {
+      "file": "js/ui/legacyUiShell.js",
+      "sha256": "0f5dfcc8e11ce115bd7c123b0fe9d37766ba786e50cd49787cfea902522cd2df",
+      "publicSHA256": "0f5dfcc8e11ce115bd7c123b0fe9d37766ba786e50cd49787cfea902522cd2df",
+      "match": true
+    },
+    {
+      "file": "js/ui/loading.js",
+      "sha256": "8ec3655bd2579a73dd31a4553c7793f439a57c872b103fc63b0152468a169e5a",
+      "publicSHA256": "8ec3655bd2579a73dd31a4553c7793f439a57c872b103fc63b0152468a169e5a",
+      "match": true
+    },
+    {
+      "file": "js/ui/modal.js",
+      "sha256": "16f9978a2780c78f93a91a53411e18fe6961ea892bd3613839a597705dc6e0ec",
+      "publicSHA256": "16f9978a2780c78f93a91a53411e18fe6961ea892bd3613839a597705dc6e0ec",
+      "match": true
+    },
+    {
+      "file": "js/ui/render.js",
+      "sha256": "64b53255274cfb8b6d98d8f9cbcab0459e97b87d0c393fa24f830baba3425cab",
+      "publicSHA256": "64b53255274cfb8b6d98d8f9cbcab0459e97b87d0c393fa24f830baba3425cab",
+      "match": true
+    },
+    {
+      "file": "js/ui/render/computation/dashboardRenderer.js",
+      "sha256": "300e022bd05eca1c4277903c7d45527240ef41d3ec3ce56baa938be2ce089c3c",
+      "publicSHA256": "300e022bd05eca1c4277903c7d45527240ef41d3ec3ce56baa938be2ce089c3c",
+      "match": true
+    },
+    {
+      "file": "js/ui/render/computation/financeRenderer.js",
+      "sha256": "9347831bc036ee3967e67fe97f9a5fbbba7e629a1553d3e4b316b73a77bfe15a",
+      "publicSHA256": "9347831bc036ee3967e67fe97f9a5fbbba7e629a1553d3e4b316b73a77bfe15a",
+      "match": true
+    },
+    {
+      "file": "js/ui/render/computation/inventoryRenderer.js",
+      "sha256": "19a5a34ed3e2a43ddba9e3e4b031b96517b3022a12dbe66d6a229b4200ef0490",
+      "publicSHA256": "19a5a34ed3e2a43ddba9e3e4b031b96517b3022a12dbe66d6a229b4200ef0490",
+      "match": true
+    },
+    {
+      "file": "js/ui/render/computation/studentsRenderer.js",
+      "sha256": "956bbf463205d6a896e90feeeb6331521406c349c6ea369803fec8be81f039fd",
+      "publicSHA256": "956bbf463205d6a896e90feeeb6331521406c349c6ea369803fec8be81f039fd",
+      "match": true
+    },
+    {
+      "file": "js/ui/render/listComputationRefresh.js",
+      "sha256": "15d888ed83081a9d6b1b8464e437197b1a1f833f8f44f62d8c2dcabae614c0f1",
+      "publicSHA256": "15d888ed83081a9d6b1b8464e437197b1a1f833f8f44f62d8c2dcabae614c0f1",
+      "match": true
+    },
+    {
+      "file": "js/ui/render/renderAttendance.js",
+      "sha256": "30cac7c5f41fffc6f137d76fbde76f8ebf58283101a5b9577b23097c22b424a1",
+      "publicSHA256": "30cac7c5f41fffc6f137d76fbde76f8ebf58283101a5b9577b23097c22b424a1",
+      "match": true
+    },
+    {
+      "file": "js/ui/render/renderDashboard.js",
+      "sha256": "722d03135dedd70113a85c11ecf3b9538ca78724e4307225f8f955d44637da6b",
+      "publicSHA256": "722d03135dedd70113a85c11ecf3b9538ca78724e4307225f8f955d44637da6b",
+      "match": true
+    },
+    {
+      "file": "js/ui/render/renderFinance.js",
+      "sha256": "dbc700e3c2f05244609f04e8186b435c7f8ee62dc3de21f77dbdb4b625acb4a2",
+      "publicSHA256": "dbc700e3c2f05244609f04e8186b435c7f8ee62dc3de21f77dbdb4b625acb4a2",
+      "match": true
+    },
+    {
+      "file": "js/ui/render/renderInvalidation.js",
+      "sha256": "b0bf28b850d9bc660de0459b8a2409b98fe1a2a7ab2dc13fe1a5bd8e5eba4648",
+      "publicSHA256": "b0bf28b850d9bc660de0459b8a2409b98fe1a2a7ab2dc13fe1a5bd8e5eba4648",
+      "match": true
+    },
+    {
+      "file": "js/ui/render/renderInventory.js",
+      "sha256": "67edeaf3b87ff6b8e55abd73d920b53cd4b0ad71c2659b1d4043f38205e92245",
+      "publicSHA256": "67edeaf3b87ff6b8e55abd73d920b53cd4b0ad71c2659b1d4043f38205e92245",
+      "match": true
+    },
+    {
+      "file": "js/ui/render/renderRegistry.js",
+      "sha256": "fd90c79f3fc0d95ddf195e0204b1e16b577454139d82170b1aa2e24d034a7cac",
+      "publicSHA256": "fd90c79f3fc0d95ddf195e0204b1e16b577454139d82170b1aa2e24d034a7cac",
+      "match": true
+    },
+    {
+      "file": "js/ui/render/renderScheduler.js",
+      "sha256": "775d8b58ce34e8b9352d7d6b0ad77125bdf5fd22275169218176cba0b0af7e60",
+      "publicSHA256": "775d8b58ce34e8b9352d7d6b0ad77125bdf5fd22275169218176cba0b0af7e60",
+      "match": true
+    },
+    {
+      "file": "js/ui/render/renderStudents.js",
+      "sha256": "856c2e5371651100932176dde208814149ca1fe84f94eaadabec3f5f2d54886b",
+      "publicSHA256": "856c2e5371651100932176dde208814149ca1fe84f94eaadabec3f5f2d54886b",
+      "match": true
+    },
+    {
+      "file": "js/ui/tabs.js",
+      "sha256": "4fb02c5413581e77ba6e22f0fb9af9dfaa6d75ba66bb42cf822102919a71d0e3",
+      "publicSHA256": "4fb02c5413581e77ba6e22f0fb9af9dfaa6d75ba66bb42cf822102919a71d0e3",
+      "match": true
+    },
+    {
+      "file": "js/ui/toast.js",
+      "sha256": "0371bb50b96f4e6b52c73901cdc401f0cb05d644d5754cf464292e9232678b76",
+      "publicSHA256": "0371bb50b96f4e6b52c73901cdc401f0cb05d644d5754cf464292e9232678b76",
+      "match": true
+    },
+    {
+      "file": "js/utils/constants.js",
+      "sha256": "908b51067faf4ddcee93290f476e16c2ac37a2b2599a4ea36085843b737eb481",
+      "publicSHA256": "908b51067faf4ddcee93290f476e16c2ac37a2b2599a4ea36085843b737eb481",
+      "match": true
+    },
+    {
+      "file": "js/utils/event-guard.js",
+      "sha256": "6300daf65b516b9957148f0bd38f52c261078b31c860bbe3dac83fca98f3ced7",
+      "publicSHA256": "6300daf65b516b9957148f0bd38f52c261078b31c860bbe3dac83fca98f3ced7",
+      "match": true
+    },
+    {
+      "file": "js/utils/firestore-guard.js",
+      "sha256": "8dcf5507d5d03fa05241a1c5e9db6c93212610ea3256390f6bc46f5114a4c74f",
+      "publicSHA256": "8dcf5507d5d03fa05241a1c5e9db6c93212610ea3256390f6bc46f5114a4c74f",
+      "match": true
+    },
+    {
+      "file": "js/utils/format.js",
+      "sha256": "0e0112247c55f0436d64f7e1d0d3584dd388b39bdf761b4e6c0b598c1ecbb3ca",
+      "publicSHA256": "0e0112247c55f0436d64f7e1d0d3584dd388b39bdf761b4e6c0b598c1ecbb3ca",
+      "match": true
+    },
+    {
+      "file": "js/utils/formatters.js",
+      "sha256": "3a4a5ad56fdf7cfc39b5ce0db6213b58d099902e923551dee05962a32bd710e9",
+      "publicSHA256": "3a4a5ad56fdf7cfc39b5ce0db6213b58d099902e923551dee05962a32bd710e9",
+      "match": true
+    },
+    {
+      "file": "js/utils/helpers.js",
+      "sha256": "846f33061619280d7525013b355afbadb4a1584b0b6befdf3eeee7a9a37533c8",
+      "publicSHA256": "846f33061619280d7525013b355afbadb4a1584b0b6befdf3eeee7a9a37533c8",
+      "match": true
+    },
+    {
+      "file": "js/utils/idb-cache.js",
+      "sha256": "b0570146b42c8268a48578b1640890a9eb58922fda5dd9302eaf4dbe31616409",
+      "publicSHA256": "b0570146b42c8268a48578b1640890a9eb58922fda5dd9302eaf4dbe31616409",
+      "match": true
+    },
+    {
+      "file": "js/utils/listeners.js",
+      "sha256": "bd572fda452100e79b3eb1ead383efaeb9a48b460db44f75d1d9926e5fffb4cb",
+      "publicSHA256": "bd572fda452100e79b3eb1ead383efaeb9a48b460db44f75d1d9926e5fffb4cb",
+      "match": true
+    },
+    {
+      "file": "js/utils/monthlyHelpers.js",
+      "sha256": "c918eed1780a14c40fd3708c8e3e187fcb10a5d8fb8aa797e86d467867c1a358",
+      "publicSHA256": "c918eed1780a14c40fd3708c8e3e187fcb10a5d8fb8aa797e86d467867c1a358",
+      "match": true
+    },
+    {
+      "file": "js/utils/offline-queue.js",
+      "sha256": "8e58ab4ea60f237d7b0698e44ff8a7e9cfb0857b9d45a31f59a9a2c7e25f1d5e",
+      "publicSHA256": "8e58ab4ea60f237d7b0698e44ff8a7e9cfb0857b9d45a31f59a9a2c7e25f1d5e",
+      "match": true
+    },
+    {
+      "file": "js/utils/pagination.js",
+      "sha256": "ccf55c82f00805d9e8ab27075e06adbe40fc7debd980431402bfa2b381c2e003",
+      "publicSHA256": "ccf55c82f00805d9e8ab27075e06adbe40fc7debd980431402bfa2b381c2e003",
+      "match": true
+    },
+    {
+      "file": "js/vendor/jsqr-1.4.0.esm.js",
+      "sha256": "0c1f462afd313d07b47756c492145659d59c68f03aa340ec26fe668d062ca401",
+      "publicSHA256": "0c1f462afd313d07b47756c492145659d59c68f03aa340ec26fe668d062ca401",
+      "match": true
+    },
+    {
+      "file": "js/vendor/jsqr-LICENSE.txt",
+      "sha256": "c6596eb7be8581c18be736c846fb9173b69eccf6ef94c5135893ec56bd92ba08",
+      "publicSHA256": "c6596eb7be8581c18be736c846fb9173b69eccf6ef94c5135893ec56bd92ba08",
+      "match": true
+    },
+    {
+      "file": "style.css",
+      "sha256": "beec70a87ceef2a5691c85ec4631138a1766f966f60cc8535438fc5c7def4bb8",
+      "publicSHA256": "beec70a87ceef2a5691c85ec4631138a1766f966f60cc8535438fc5c7def4bb8",
+      "match": true
+    }
+  ],
+  "journalContract": {
+    "database": "tst-attendance-journal-v4",
+    "indexedDBSchemaVersion": 1,
+    "legacyAutoPromotion": false
+  }
+}

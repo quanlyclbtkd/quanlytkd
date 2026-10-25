@@ -45,7 +45,7 @@ import {
     normalizeYYYYMM,
     addMonthsToYYYYMM,
     getBeltBadge,
-} from '../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
+} from "../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h";
 
 // Phase 3.4: Render island scheduler + registry
 import { runRender } from './render/renderRegistry.js';
@@ -55,18 +55,18 @@ import {
     computeAndCacheFinance,
     getFinanceSummary,
     getFinanceCachedHtml,
-} from './render/computation/financeRenderer.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
+} from "./render/computation/financeRenderer.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
 import {
     computeAndCacheStudents,
     getStudentsSummary,
     getStudentsCachedHtml,
-} from './render/computation/studentsRenderer.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1';
+} from "./render/computation/studentsRenderer.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
 import {
     computeAndCacheInventory,
     getCachedLiveInvMap,
     getInventoryCachedHtml,
     getCachedUnpaidInvCount,
-} from './render/computation/inventoryRenderer.js?v=student-given-name-priority-20260811-v5u3';
+} from "./render/computation/inventoryRenderer.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
 
 // Phase 3.5B: Dashboard computation cache
 import { cacheDashboardData } from './render/computation/dashboardRenderer.js';

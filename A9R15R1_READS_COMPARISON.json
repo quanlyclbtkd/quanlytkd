@@ -1,0 +1,444 @@
+{
+  "phase": "A9R15R1",
+  "runtimeDeltaClassification": "PASS",
+  "releaseClassification": "RELEASE_BLOCKED",
+  "scope": "Controlled runtime owner measurement; not a complete live Auth/bootstrap measurement or production billed-read telemetry",
+  "measurements": [
+    {
+      "flow": "registration.open-edit",
+      "A9R15": {
+        "getDoc": 1,
+        "getDocs": 0,
+        "onSnapshot": 0,
+        "documents": 0,
+        "finance": 0
+      },
+      "A9R15R1": {
+        "getDoc": 1,
+        "getDocs": 0,
+        "onSnapshot": 0,
+        "documents": 0,
+        "finance": 0
+      },
+      "change": {
+        "getDoc": 0,
+        "getDocs": 0,
+        "onSnapshot": 0,
+        "documents": 0,
+        "finance": 0
+      },
+      "classification": "PASS"
+    },
+    {
+      "flow": "registration.save-valid",
+      "A9R15": {
+        "getDoc": 1,
+        "getDocs": 0,
+        "onSnapshot": 0,
+        "documents": 0,
+        "finance": 0
+      },
+      "A9R15R1": {
+        "getDoc": 1,
+        "getDocs": 0,
+        "onSnapshot": 0,
+        "documents": 0,
+        "finance": 0
+      },
+      "change": {
+        "getDoc": 0,
+        "getDocs": 0,
+        "onSnapshot": 0,
+        "documents": 0,
+        "finance": 0
+      },
+      "classification": "PASS"
+    },
+    {
+      "flow": "1.open-attendance-tab",
+      "A9R15": {
+        "getDoc": 0,
+        "getDocs": 2,
+        "onSnapshot": 0,
+        "documents": 2,
+        "finance": 0
+      },
+      "A9R15R1": {
+        "getDoc": 0,
+        "getDocs": 2,
+        "onSnapshot": 0,
+        "documents": 2,
+        "finance": 0
+      },
+      "change": {
+        "getDoc": 0,
+        "getDocs": 0,
+        "onSnapshot": 0,
+        "documents": 0,
+        "finance": 0
+      },
+      "classification": "PASS"
+    },
+    {
+      "flow": "2.select-CS1",
+      "A9R15": {
+        "getDoc": 1,
+        "getDocs": 1,
+        "onSnapshot": 0,
+        "documents": 1,
+        "finance": 0
+      },
+      "A9R15R1": {
+        "getDoc": 1,
+        "getDocs": 1,
+        "onSnapshot": 0,
+        "documents": 1,
+        "finance": 0
+      },
+      "change": {
+        "getDoc": 0,
+        "getDocs": 0,
+        "onSnapshot": 0,
+        "documents": 0,
+        "finance": 0
+      },
+      "classification": "PASS"
+    },
+    {
+      "flow": "3.open-member-summary",
+      "A9R15": {
+        "getDoc": 0,
+        "getDocs": 1,
+        "onSnapshot": 0,
+        "documents": 1,
+        "finance": 0
+      },
+      "A9R15R1": {
+        "getDoc": 0,
+        "getDocs": 1,
+        "onSnapshot": 0,
+        "documents": 1,
+        "finance": 0
+      },
+      "change": {
+        "getDoc": 0,
+        "getDocs": 0,
+        "onSnapshot": 0,
+        "documents": 0,
+        "finance": 0
+      },
+      "classification": "PASS"
+    },
+    {
+      "flow": "4.first-verified-page",
+      "A9R15": {
+        "getDoc": 0,
+        "getDocs": 1,
+        "onSnapshot": 0,
+        "documents": 40,
+        "finance": 0
+      },
+      "A9R15R1": {
+        "getDoc": 0,
+        "getDocs": 1,
+        "onSnapshot": 0,
+        "documents": 40,
+        "finance": 0
+      },
+      "change": {
+        "getDoc": 0,
+        "getDocs": 0,
+        "onSnapshot": 0,
+        "documents": 0,
+        "finance": 0
+      },
+      "classification": "PASS"
+    },
+    {
+      "flow": "5.next-verified-page",
+      "A9R15": {
+        "getDoc": 0,
+        "getDocs": 1,
+        "onSnapshot": 0,
+        "documents": 40,
+        "finance": 0
+      },
+      "A9R15R1": {
+        "getDoc": 0,
+        "getDocs": 1,
+        "onSnapshot": 0,
+        "documents": 40,
+        "finance": 0
+      },
+      "change": {
+        "getDoc": 0,
+        "getDocs": 0,
+        "onSnapshot": 0,
+        "documents": 0,
+        "finance": 0
+      },
+      "classification": "PASS"
+    },
+    {
+      "flow": "6.close-reopen-same-member",
+      "A9R15": {
+        "getDoc": 0,
+        "getDocs": 1,
+        "onSnapshot": 0,
+        "documents": 1,
+        "finance": 0
+      },
+      "A9R15R1": {
+        "getDoc": 0,
+        "getDocs": 1,
+        "onSnapshot": 0,
+        "documents": 1,
+        "finance": 0
+      },
+      "change": {
+        "getDoc": 0,
+        "getDocs": 0,
+        "onSnapshot": 0,
+        "documents": 0,
+        "finance": 0
+      },
+      "classification": "PASS"
+    },
+    {
+      "flow": "7.switch-CS1-to-CS2",
+      "A9R15": {
+        "getDoc": 1,
+        "getDocs": 1,
+        "onSnapshot": 0,
+        "documents": 1,
+        "finance": 0
+      },
+      "A9R15R1": {
+        "getDoc": 1,
+        "getDocs": 1,
+        "onSnapshot": 0,
+        "documents": 1,
+        "finance": 0
+      },
+      "change": {
+        "getDoc": 0,
+        "getDocs": 0,
+        "onSnapshot": 0,
+        "documents": 0,
+        "finance": 0
+      },
+      "classification": "PASS"
+    },
+    {
+      "flow": "8.open-same-profile-in-CS2",
+      "A9R15": {
+        "getDoc": 0,
+        "getDocs": 1,
+        "onSnapshot": 0,
+        "documents": 1,
+        "finance": 0
+      },
+      "A9R15R1": {
+        "getDoc": 0,
+        "getDocs": 1,
+        "onSnapshot": 0,
+        "documents": 1,
+        "finance": 0
+      },
+      "change": {
+        "getDoc": 0,
+        "getDocs": 0,
+        "onSnapshot": 0,
+        "documents": 0,
+        "finance": 0
+      },
+      "classification": "PASS"
+    },
+    {
+      "flow": "9.reload-relogin",
+      "A9R15": {
+        "getDoc": 2,
+        "getDocs": 1,
+        "onSnapshot": 0,
+        "documents": 1,
+        "finance": 0
+      },
+      "A9R15R1": {
+        "getDoc": 2,
+        "getDocs": 1,
+        "onSnapshot": 0,
+        "documents": 1,
+        "finance": 0
+      },
+      "change": {
+        "getDoc": 0,
+        "getDocs": 0,
+        "onSnapshot": 0,
+        "documents": 0,
+        "finance": 0
+      },
+      "classification": "PASS"
+    }
+  ],
+  "loginCoachVerificationSlice": {
+    "classification": "PASS",
+    "scope": "Actual app.js auth verification slice with SDK port; not full Firebase Auth login/bootstrap/roster or billed telemetry",
+    "liveFullLogin": "LIVE_NOT_VERIFIED",
+    "rows": [
+      {
+        "before": {
+          "counts": {
+            "getDoc": 2,
+            "getDocs": 0,
+            "onSnapshot": 0
+          },
+          "calls": [
+            "users/C",
+            "clubs/QA_CLUB/coaches/C"
+          ],
+          "concurrentUsersReadCoalesced": true,
+          "primary": "CS1",
+          "allowedBranches": [
+            "CS1"
+          ]
+        },
+        "after": {
+          "counts": {
+            "getDoc": 2,
+            "getDocs": 0,
+            "onSnapshot": 0
+          },
+          "calls": [
+            "users/C",
+            "clubs/QA_CLUB/coaches/C"
+          ],
+          "concurrentUsersReadCoalesced": true,
+          "primary": "CS1",
+          "allowedBranches": [
+            "CS1"
+          ]
+        },
+        "delta": {
+          "getDoc": 0,
+          "getDocs": 0,
+          "onSnapshot": 0
+        }
+      },
+      {
+        "before": {
+          "counts": {
+            "getDoc": 2,
+            "getDocs": 0,
+            "onSnapshot": 0
+          },
+          "calls": [
+            "users/C",
+            "clubs/QA_CLUB/coaches/C"
+          ],
+          "concurrentUsersReadCoalesced": true,
+          "primary": "CS2",
+          "allowedBranches": [
+            "CS2"
+          ]
+        },
+        "after": {
+          "counts": {
+            "getDoc": 2,
+            "getDocs": 0,
+            "onSnapshot": 0
+          },
+          "calls": [
+            "users/C",
+            "clubs/QA_CLUB/coaches/C"
+          ],
+          "concurrentUsersReadCoalesced": true,
+          "primary": "CS2",
+          "allowedBranches": [
+            "CS2"
+          ]
+        },
+        "delta": {
+          "getDoc": 0,
+          "getDocs": 0,
+          "onSnapshot": 0
+        }
+      },
+      {
+        "before": {
+          "counts": {
+            "getDoc": 2,
+            "getDocs": 0,
+            "onSnapshot": 0
+          },
+          "calls": [
+            "users/C",
+            "clubs/QA_CLUB/coaches/C"
+          ],
+          "concurrentUsersReadCoalesced": true,
+          "primary": "CS1",
+          "allowedBranches": [
+            "CS1",
+            "CS2"
+          ]
+        },
+        "after": {
+          "counts": {
+            "getDoc": 2,
+            "getDocs": 0,
+            "onSnapshot": 0
+          },
+          "calls": [
+            "users/C",
+            "clubs/QA_CLUB/coaches/C"
+          ],
+          "concurrentUsersReadCoalesced": true,
+          "primary": "CS1",
+          "allowedBranches": [
+            "CS1",
+            "CS2"
+          ]
+        },
+        "delta": {
+          "getDoc": 0,
+          "getDocs": 0,
+          "onSnapshot": 0
+        }
+      }
+    ]
+  },
+  "sdkStaticCallSites": {
+    "A9R15": {
+      "getDoc": 24,
+      "getDocs": 58,
+      "onSnapshot": 35
+    },
+    "A9R15R1": {
+      "getDoc": 24,
+      "getDocs": 58,
+      "onSnapshot": 35
+    },
+    "delta": {
+      "getDoc": 0,
+      "getDocs": 0,
+      "onSnapshot": 0
+    }
+  },
+  "newHistoryListeners": 0,
+  "financeReadsInRegistrationHistoryFlows": 0,
+  "historyPageBudget": {
+    "getDoc": 0,
+    "getDocs": 1,
+    "onSnapshot": 0,
+    "documentLimit": 40,
+    "note": "An exactly-full final page requires one final empty query; tombstones consume raw page slots; returned documents are not an invoice"
+  },
+  "fullLiveLogin": "LIVE_NOT_VERIFIED",
+  "productionBilledReads": "LIVE_NOT_VERIFIED",
+  "readCostApproval": "RELEASE_BLOCKED: owner-supplied document-read cost authorization absent",
+  "rawEvidence": [
+    "READS_A9R15_RAW.json",
+    "READS_A9R15R1_RAW.json",
+    "LOGIN_READ_COUNTS.json"
+  ],
+  "regressionCostTests": "Existing Emulator cost scenarios at 1000/1500 fixture scale passed; approval remains pending"
+}

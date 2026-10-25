@@ -1,0 +1,13 @@
+{
+  "node": "24.22.1",
+  "java": "17.0.20",
+  "emulator": "1.19.8",
+  "emulatorJarSHA256": "9d43599ed6151199e8d604dc87fac51218e49e5f3a48519b1ae560bbe5e3382d",
+  "browser": "Chrome Headless Shell 156.0.8078.47",
+  "nodeSDK": "12.15.0",
+  "browserSDK": "10.7.1 (production-matching vendor fixture)",
+  "rulesSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+  "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+  "productionRequests": 0,
+  "physicalDevice": false
+}

@@ -1,0 +1,30 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import {rewriteCacheGraph} from '../v11r2/import-graph.mjs';
+import {runtimeHash} from '../v11r2/cutover.mjs';
+const root=process.cwd(),sha=value=>crypto.createHash('sha256').update(value).digest('hex');
+const tag='qr-v11r6-a9r15-training-history-closure-20261025';
+const parentZIP='a81478cb6fb50eeed23ece4d0e106c949d73397010d52ead8adff6841bbc5c8a';
+const {overrides,graph}=rewriteCacheGraph(root,{},tag);
+for(const [file,text] of Object.entries(overrides))fs.writeFileSync(file,text);
+const parent=JSON.parse(fs.readFileSync('tools/v11r2/manifests/V11R6_A9R14_QA_MOBILE.json','utf8'));
+const canonicalRuntimeFiles=Object.fromEntries([...Object.keys(parent.canonicalRuntimeFiles),'js/core/trainingRegistration.js'].sort().map(file=>[file,sha(fs.readFileSync(file))]));
+for(const file of Object.keys(canonicalRuntimeFiles)) {
+ const mirror=path.join('public',file);
+ fs.mkdirSync(path.dirname(mirror),{recursive:true});fs.copyFileSync(file,mirror);
+}
+const manifestPath='tools/v11r2/manifests/V11R6_A9R15_TRAINING_HISTORY.json';
+const manifest={kind:'A9R15_SOURCE_IDENTITY_NOT_LIVE_ACCEPTANCE',parentZIP_SHA256:parentZIP,buildTag:tag,runtimeSHA256:runtimeHash(root),rulesSHA256:sha(fs.readFileSync('firestore.rules')),indexesSHA256:sha(fs.readFileSync('firestore.indexes.json')),canonicalRuntimeFiles};
+fs.writeFileSync(manifestPath,JSON.stringify(manifest,null,2)+'\n');
+const pin={id:'V11R6_A9R15_TRAINING_HISTORY',canonicalFileCount:Object.keys(canonicalRuntimeFiles).length,coachAssignmentContract:'server-verified-multi-branch-v1',inputZIP_SHA256:parentZIP,manifest:manifestPath,manifestSHA256:sha(fs.readFileSync(manifestPath)),runtimeSHA256:manifest.runtimeSHA256,rulesSHA256:manifest.rulesSHA256,indexesSHA256:manifest.indexesSHA256,buildTag:tag};
+const identity='tools/v11r2/source-identity.mjs';
+let text=fs.readFileSync(identity,'utf8');
+text=text.replace(/\/\/ A9R15 registration consistency and authorized history[^\n]*\nconst A9R15_TRAINING_HISTORY = Object.freeze\([\s\S]*?\);\n\n/,'');
+text=text.replace('const pinned=[A9R15_TRAINING_HISTORY,','const pinned=[');
+text=text.replace('export function verifySourceIdentity(root, actualRuntimeSHA256) {','// A9R15 registration consistency and authorized history; source identity only, no release approval.\nconst A9R15_TRAINING_HISTORY = Object.freeze('+JSON.stringify(pin,null,2)+');\n\nexport function verifySourceIdentity(root, actualRuntimeSHA256) {');
+text=text.replace('const pinned=[','const pinned=[A9R15_TRAINING_HISTORY,');
+fs.writeFileSync(identity,text);
+fs.mkdirSync('evidence/A9R15',{recursive:true});
+fs.writeFileSync('evidence/A9R15/BUILD_IDENTITY.json',JSON.stringify({...pin,canonicalFileCount:Object.keys(canonicalRuntimeFiles).length,cacheScope:graph.scope},null,2)+'\n');
+console.log(JSON.stringify({buildTag:tag,canonicalFileCount:Object.keys(canonicalRuntimeFiles).length,rulesUnchanged:manifest.rulesSHA256==='1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3'}));

@@ -1,0 +1,126 @@
+{
+  "classification": "PASS",
+  "scope": "Actual app.js auth verification slice with SDK port; not full Firebase Auth login/bootstrap/roster or billed telemetry",
+  "liveFullLogin": "LIVE_NOT_VERIFIED",
+  "rows": [
+    {
+      "before": {
+        "counts": {
+          "getDoc": 2,
+          "getDocs": 0,
+          "onSnapshot": 0
+        },
+        "calls": [
+          "users/C",
+          "clubs/QA_CLUB/coaches/C"
+        ],
+        "concurrentUsersReadCoalesced": true,
+        "primary": "CS1",
+        "allowedBranches": [
+          "CS1"
+        ]
+      },
+      "after": {
+        "counts": {
+          "getDoc": 2,
+          "getDocs": 0,
+          "onSnapshot": 0
+        },
+        "calls": [
+          "users/C",
+          "clubs/QA_CLUB/coaches/C"
+        ],
+        "concurrentUsersReadCoalesced": true,
+        "primary": "CS1",
+        "allowedBranches": [
+          "CS1"
+        ]
+      },
+      "delta": {
+        "getDoc": 0,
+        "getDocs": 0,
+        "onSnapshot": 0
+      }
+    },
+    {
+      "before": {
+        "counts": {
+          "getDoc": 2,
+          "getDocs": 0,
+          "onSnapshot": 0
+        },
+        "calls": [
+          "users/C",
+          "clubs/QA_CLUB/coaches/C"
+        ],
+        "concurrentUsersReadCoalesced": true,
+        "primary": "CS2",
+        "allowedBranches": [
+          "CS2"
+        ]
+      },
+      "after": {
+        "counts": {
+          "getDoc": 2,
+          "getDocs": 0,
+          "onSnapshot": 0
+        },
+        "calls": [
+          "users/C",
+          "clubs/QA_CLUB/coaches/C"
+        ],
+        "concurrentUsersReadCoalesced": true,
+        "primary": "CS2",
+        "allowedBranches": [
+          "CS2"
+        ]
+      },
+      "delta": {
+        "getDoc": 0,
+        "getDocs": 0,
+        "onSnapshot": 0
+      }
+    },
+    {
+      "before": {
+        "counts": {
+          "getDoc": 2,
+          "getDocs": 0,
+          "onSnapshot": 0
+        },
+        "calls": [
+          "users/C",
+          "clubs/QA_CLUB/coaches/C"
+        ],
+        "concurrentUsersReadCoalesced": true,
+        "primary": "CS1",
+        "allowedBranches": [
+          "CS1",
+          "CS2"
+        ]
+      },
+      "after": {
+        "counts": {
+          "getDoc": 2,
+          "getDocs": 0,
+          "onSnapshot": 0
+        },
+        "calls": [
+          "users/C",
+          "clubs/QA_CLUB/coaches/C"
+        ],
+        "concurrentUsersReadCoalesced": true,
+        "primary": "CS1",
+        "allowedBranches": [
+          "CS1",
+          "CS2"
+        ]
+      },
+      "delta": {
+        "getDoc": 0,
+        "getDocs": 0,
+        "onSnapshot": 0
+      }
+    }
+  ]
+}

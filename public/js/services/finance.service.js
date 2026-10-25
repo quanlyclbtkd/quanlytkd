@@ -17,7 +17,7 @@
  * ────────────────────────────────────────────────────────────────
  */
 
-import { InventoryService } from './inventory.service.js?v=long-term-production-stability-20260917-v5u6h8r2';
+import { InventoryService } from "./inventory.service.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1";
 
 function _sdk()    { return window._fb_init || {}; }
 function _db()     { const db = (window.__store || {}).db; if (!db) throw new Error('[FinanceService] db chưa sẵn sàng'); return db; }

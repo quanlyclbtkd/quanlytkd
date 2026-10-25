@@ -1,0 +1,72 @@
+{
+  "nativeIndexedDB": true,
+  "sourceSha256": "a16a2c2b85a0555e288c95217bdbf414bb3f427e55cead4fee83fe3e6a4af5d7",
+  "results": [
+    {
+      "kind": "ack",
+      "type": "positive",
+      "status": "PASS"
+    },
+    {
+      "kind": "causal",
+      "type": "positive",
+      "status": "PASS"
+    },
+    {
+      "kind": "legacy",
+      "type": "positive",
+      "status": "PASS"
+    },
+    {
+      "kind": "scope",
+      "type": "positive",
+      "status": "PASS"
+    },
+    {
+      "kind": "review",
+      "type": "positive",
+      "status": "PASS"
+    },
+    {
+      "kind": "date",
+      "type": "positive",
+      "status": "PASS"
+    },
+    {
+      "kind": "ack",
+      "mutation": "claim identity removed",
+      "type": "negative",
+      "status": "CAUGHT"
+    },
+    {
+      "kind": "causal",
+      "mutation": "dependency guard removed",
+      "type": "negative",
+      "status": "CAUGHT"
+    },
+    {
+      "kind": "legacy",
+      "mutation": "unsafe legacy key removal restored",
+      "type": "negative",
+      "status": "CAUGHT"
+    },
+    {
+      "kind": "legacy",
+      "mutation": "legacy automatic replay restored",
+      "type": "negative",
+      "status": "CAUGHT"
+    },
+    {
+      "kind": "scope",
+      "mutation": "principal guard removed",
+      "type": "negative",
+      "status": "CAUGHT"
+    },
+    {
+      "kind": "review",
+      "mutation": "conflict automatically pending again",
+      "type": "negative",
+      "status": "CAUGHT"
+    }
+  ]
+}

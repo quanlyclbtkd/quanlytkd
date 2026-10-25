@@ -1,3 +1,4 @@
+import {fixtureElement, TestElement as FakeElement, installOption} from './a9r15r1/dom-harness.mjs';
 import {orchestrationModule} from './v11/orchestration-harness.mjs';
 import { HISTORY_COACH_ACCESS } from '../js/core/attendanceContract.js';
 /**
@@ -113,29 +114,6 @@ check(pkg.scripts?.['check:attendance-explicit-shift-authority'] === 'node tools
     'package exposes the V5U6F gate');
 
 // ── Runtime simulation ──────────────────────────────────────────────
-class FakeClassList {
-    constructor(...names) { this.names = new Set(names); }
-    contains(name) { return this.names.has(name); }
-    add(...names) { names.forEach((name) => this.names.add(name)); }
-    remove(...names) { names.forEach((name) => this.names.delete(name)); }
-}
-class FakeElement {
-    constructor(id) {
-        this.id = id;
-        this.value = '';
-        this.checked = false;
-        this.hidden = false;
-        this.disabled = false;
-        this.innerHTML = '';
-        this.textContent = '';
-        this.dataset = {};
-        this.style = { display: '', removeProperty(name) { delete this[name]; } };
-        this.classList = new FakeClassList();
-    }
-    addEventListener() {}
-    querySelector() { return null; }
-    closest() { return null; }
-}
 const deferred = () => {
     let resolve;
     let reject;
@@ -154,7 +132,7 @@ async function waitFor(predicate, label) {
 try {
     const elements = new Map();
     const addEl = (id, value = '') => {
-        const el = new FakeElement(id);
+        const el = fixtureElement(id);
         el.value = value;
         elements.set(id, el);
         return el;
@@ -178,8 +156,10 @@ try {
     const shiftNameEl = addEl('shift_name');
     addEl('shift_start');
     addEl('shift_end');
+    const shiftBranchEl = addEl('shift_branch');
 
     globalThis.window = globalThis;
+    installOption(globalThis);
     globalThis.document = {
         getElementById: (id) => elements.get(id) || null,
         querySelector: (selector) => selector === '.tab-content.active' && tab.classList.contains('active') ? tab : null,
@@ -263,7 +243,7 @@ try {
     const {module,rows:journalRows}=await orchestrationModule();
     const api = module.initAttendance();
 
-    const reset = ({ club = 'club-a', branch = 'all', role = 'admin', auth = 1, online = true } = {}) => {
+    const reset = ({ club = 'club-a', branch = 'all', role = 'admin', auth = 1, online = true, assignments = {Alice:'morning',Bob:'evening'} } = {}) => {
         globalThis.__store.clubId = club;
         globalThis.__store.currentClubId = club;
         globalThis.__store.userRole = role;
@@ -282,6 +262,7 @@ try {
         tab.classList.add('active');
         daySubtab.style.display = '';
         monthSubtab.style.display = 'none';
+        for (const [key,id] of Object.entries(assignments)) profiles[key].trainingShiftId=id;
         api.resetForClub(club);
     };
     const record = (name, status, shiftId = '') => ({
@@ -292,8 +273,8 @@ try {
     // Configured + blank: no daily query and no stale presentation.
     reset({ club: 'club-configured', auth: 10 });
     shiftImpl = async () => [
-        { id: 'morning', name: 'Ca sáng' },
-        { id: 'evening', name: 'Ca chiều' },
+        { id: 'morning', name: 'Ca sáng', branch: 'CS1' },
+        { id: 'evening', name: 'Ca chiều', branch: 'CS2' },
     ];
     const configuredBlankBefore = dailyCalls;
     const configuredBlank = await api.requestDailyRefresh('configured-blank', { force: true });
@@ -326,7 +307,7 @@ try {
         'runtime: explicit toggle queues matching shift-aware identity without a parallel direct writer');
 
     // No configured shifts: legacy blank remains one normal daily query.
-    reset({ club: 'club-legacy', auth: 11 });
+    reset({ club: 'club-legacy', auth: 11, assignments:{Alice:'',Bob:''} });
     shiftImpl = async () => [];
     dailyImpl = async () => [record('Alice', 1)];
     const legacyBefore = dailyCalls;
@@ -365,7 +346,7 @@ try {
 
     // Blank cannot create a duplicate beside an existing shift record.
     reset({ club: 'club-duplicate', auth: 13, online: true });
-    shiftImpl = async () => [{ id: 'morning', name: 'Ca sáng' }];
+    shiftImpl = async () => [{ id: 'morning', name: 'Ca sáng', branch: 'CS1' }];
     dailyImpl = async () => [record('Alice', 1, 'morning')];
     await api.requestDailyRefresh('duplicate-blank', { force: true });
     const duplicateWritesBefore = saveRecordCalls + deleteRecordCalls + bulkSaveCalls;
@@ -377,8 +358,8 @@ try {
     // Shift A -> blank while A is running: blank intent wins and A is dropped.
     reset({ club: 'club-a-blank', auth: 14 });
     shiftImpl = async () => [
-        { id: 'morning', name: 'Ca sáng' },
-        { id: 'evening', name: 'Ca chiều' },
+        { id: 'morning', name: 'Ca sáng', branch: 'CS1' },
+        { id: 'evening', name: 'Ca chiều', branch: 'CS2' },
     ];
     await api.requestDailyRefresh('a-blank-config', { force: true });
     const lateA = deferred();
@@ -416,7 +397,7 @@ try {
         'runtime: A→B latest-wins remains intact');
 
     // Branch change clears an ineligible selected shift before any query.
-    reset({ club: 'club-branch', branch: 'CS1', auth: 15 });
+    reset({ club: 'club-branch', branch: 'CS1', auth: 15, assignments:{Alice:'cs1-a',Bob:'cs2-b'} });
     shiftImpl = async () => [
         { id: 'cs1-a', name: 'CS1 A', branch: 'CS1' },
         { id: 'cs2-b', name: 'CS2 B', branch: 'CS2' },
@@ -439,8 +420,9 @@ try {
     check(dailyCalls === branchReadBefore + 1 && lastDailyOptions?.shiftId === 'cs2-b',
         'runtime: selecting eligible Branch B shift performs one read');
 
-    // Coach sees assigned/global shifts only and blank remains blocked.
-    reset({ club: 'club-coach', role: 'coach', branch: 'CS1', auth: 16 });
+    // A9R15 protected contract: missing branch is unresolved, never global.
+    // This intentionally replaces the retired pre-A9R15 global-shift assumption.
+    reset({ club: 'club-coach', role: 'coach', branch: 'CS1', auth: 16, assignments:{Alice:'cs1-a',Bob:'cs2-b'} });
     shiftImpl = async () => [
         { id: 'cs1-a', name: 'CS1 A', branch: 'CS1' },
         { id: 'cs2-b', name: 'CS2 B', branch: 'CS2' },
@@ -452,8 +434,9 @@ try {
     check(coachBlank?.blocked === true && dailyCalls === coachDailyBefore,
         'runtime: Coach configured blank performs zero daily reads');
     if (HISTORY_COACH_ACCESS) {
-        check(coachIds.join(',') === 'cs1-a,global' && !coachIds.includes('cs2-b'),
-            'ACTIVE runtime: Coach eligible shifts are assigned branch plus global only');
+        check(coachIds.join(',') === 'cs1-a' && !coachIds.includes('cs2-b'),
+            'ACTIVE runtime: Coach eligible shifts have explicit assigned branch authority');
+        check(!coachIds.includes('global'), 'A9R15: unresolved branch cannot acquire global authority');
     } else {
         check(coachBlank?.reason === 'attendance-maintenance' && coachIds.length === 0,
             'MAINTENANCE runtime: Coach stays blocked before shift discovery');
@@ -463,8 +446,8 @@ try {
     // Delete selected shift while another remains: shift-required, zero all-shift read.
     reset({ club: 'club-delete', branch: 'all', auth: 17 });
     shiftImpl = async () => [
-        { id: 'morning', name: 'Ca sáng' },
-        { id: 'evening', name: 'Ca chiều' },
+        { id: 'morning', name: 'Ca sáng', branch: 'CS1' },
+        { id: 'evening', name: 'Ca chiều', branch: 'CS2' },
     ];
     dailyImpl = async () => [];
     await api.requestDailyRefresh('delete-config', { force: true });
@@ -477,12 +460,13 @@ try {
         'runtime: deleting selected shift leaves configured blank blocked with zero daily reads');
 
     // Creating the first shift closes legacy blank mode immediately.
-    reset({ club: 'club-first-shift', auth: 18 });
+    reset({ club: 'club-first-shift', auth: 18, assignments:{Alice:'',Bob:''} });
     shiftImpl = async () => [];
     dailyImpl = async () => [];
     await api.requestDailyRefresh('first-shift-legacy', { force: true });
     const firstShiftDailyBefore = dailyCalls;
     shiftNameEl.value = 'Ca đầu tiên';
+    shiftBranchEl.value = 'CS1';
     await globalThis.addShift();
     check(api.getShiftAuthority().configured === true && dailyCalls === firstShiftDailyBefore,
         'runtime: first saved shift immediately converts blank to blocked authority');
@@ -493,7 +477,7 @@ try {
 
     // Offline explicit write carries shift; switching blank cannot enqueue more.
     reset({ club: 'club-offline', auth: 19, online: false });
-    shiftImpl = async () => [{ id: 'morning', name: 'Ca sáng' }];
+    shiftImpl = async () => [{ id: 'morning', name: 'Ca sáng', branch: 'CS1' }];
     dailyImpl = async () => [record('Alice', 0, 'morning')];
     await api.requestDailyRefresh('offline-config', { force: true });
     shiftEl.value = 'morning';

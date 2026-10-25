@@ -16,11 +16,12 @@
  * ────────────────────────────────────────────────────────────────
  */
 
-import { AttendanceService } from "../services/attendance.service.js?v=qr-v11r6-a9r13-member-history-diagnostics-20261024";
+import { AttendanceService } from "../services/attendance.service.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
 import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
 import { escapeHtml } from '../utils/helpers.js';
-import { AttendanceJournal } from "../data/attendanceJournal.js?v=qr-v11r6-a9r13-member-history-diagnostics-20261024";
-import { HISTORY_AUTHORITY, HISTORY_COACH_ACCESS, attendanceServerVersion, attendanceIntentId } from "../core/attendanceContract.js?v=qr-v11r6-a9r13-member-history-diagnostics-20261024";
+import { AttendanceJournal } from "../data/attendanceJournal.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+import { HISTORY_AUTHORITY, HISTORY_COACH_ACCESS, attendanceServerVersion, attendanceIntentId } from "../core/attendanceContract.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+import { shiftAuthority, inspectTrainingRegistration } from "../core/trainingRegistration.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
 
 const ATTENDANCE_OWNER = 'js/modules/attendance.js';
 const ATTENDANCE_OWNED_GLOBALS = Object.freeze([
@@ -65,6 +66,11 @@ const _attendanceDerivedStats = new Map();
 // Never treated as a persisted intent or server ACK.
 const _attendanceSavingEdits = new Map();
 let _memberHistoryRequestId = 0;
+function _memberHistoryAuthoritySnapshot() {
+    const auth = window.__verifiedAuthContextState || {};
+    return JSON.stringify([_clubId(),auth.uid,auth.role,auth.generation,auth.branchGeneration,auth.assignmentVersion,
+        auth.allowedBranches,auth.activeBranch,auth.coachBranch,auth.ready,auth.branchSelectionPending,HISTORY_AUTHORITY]);
+}
 const _attendanceSyncOwner = attendanceIntentId();
 let _attendanceSyncRequested = false;
 let _clubShifts         = [];
@@ -307,7 +313,7 @@ function _getEligibleAttendanceShifts(context) {
         : _canonicalAttendanceBranch(ctx.branch || '', ctx.branch === 'all' ? 'all' : '');
     return _clubShifts.filter((shift) => {
         const shiftBranch = String(shift?.branch || '').trim();
-        if (!shiftBranch) return true;
+        if (!shiftAuthority(shift).resolved) return false;
         if (role === 'coach') return !!branch && _sameBranch(shiftBranch, branch);
         if (branch && branch !== 'all') return _sameBranch(shiftBranch, branch);
         return true;
@@ -664,6 +670,7 @@ function _getFilteredAttProfiles() {
     return Object.entries(allProfs)
         .filter(([, p]) => isActiveProfileForAttendance(p))
         .filter(([, p]) => selBranch === 'all' || _sameBranch(p.branch, selBranch))
+        .filter(([, p]) => inspectTrainingRegistration(p, _clubShifts).issues.length === 0)
         .filter(([, p]) => {
             if (selBelt === 'all') return true;
             return (p.belt || '').toLowerCase().includes(selBelt.toLowerCase());
@@ -770,6 +777,7 @@ function _renderAttCards() {
             ? '<span style="font-size:0.58rem;background:#dcfce7;color:#15803d;border:1px solid #bbf7d0;border-radius:4px;padding:1px 4px;font-weight:900;margin-left:3px;vertical-align:middle;">MỚI</span>' : '';
         const _nickname = (p.nickname || '').trim();
         const _safeNameHtml = escapeHtml(name);
+        const _historyProfileToken = encodeURIComponent(name).replace(/'/g,'%27');
         const _safeDisplayNameHtml = escapeHtml(_attDisplayName(name, p));
         const _safeNicknameHtml = escapeHtml(_nickname);
         const _safeBeltHtml = escapeHtml(beltShort);
@@ -781,7 +789,7 @@ function _renderAttCards() {
             + ' onpointerdown="this.style.transform=\'scale(0.94)\'" onpointerup="this.style.transform=\'\'" onpointercancel="this.style.transform=\'\'">'
             + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px;">'
             + '<div style="flex:1;min-width:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">'
-            + '<span data-hidx="' + idx + '" onclick="event.stopPropagation();window.showAttMemberHistory(' + idx + ')" title="' + _safeNameHtml + ' — Xem lịch sử" style="font-weight:800;font-size:clamp(0.83rem,3.8vw,0.97rem);line-height:1.25;word-break:break-word;text-decoration:underline dotted;text-underline-offset:2px;cursor:pointer;">'
+            + '<span data-hidx="' + idx + '" onclick="event.stopPropagation();window.showAttMemberHistory(decodeURIComponent(\'' + _historyProfileToken + '\'))" title="' + _safeNameHtml + ' — Xem lịch sử" style="font-weight:800;font-size:clamp(0.83rem,3.8vw,0.97rem);line-height:1.25;word-break:break-word;text-decoration:underline dotted;text-underline-offset:2px;cursor:pointer;">'
             + _safeDisplayNameHtml + attYearBadge + attNewBadge + tuitionBadge + churnBadge
             + '</span></div>'
             + '<div style="font-size:1.15rem;flex-shrink:0;line-height:1;margin-top:1px;">' + cfg.icon + '</div>'
@@ -1107,12 +1115,11 @@ function _renderShiftSelector() {
     sel.disabled = false;
     const context = _captureAttendanceDailyContext();
     const shifts = _getEligibleAttendanceShifts(context);
-    let html = '<option value="">⏰ -- Chọn ca tập --</option>';
+    sel.replaceChildren(new Option('⏰ -- Chọn ca tập --',''));
     shifts.forEach(s => {
-        const time = s.timeStart && s.timeEnd ? ' (' + s.timeStart + '–' + s.timeEnd + ')' : '';
-        html += '<option value="' + s.id + '">' + s.name + time + '</option>';
+        const _t = s.timeStart && s.timeEnd ? ' (' + s.timeStart + '–' + s.timeEnd + ')' : '';
+        sel.add(new Option(String(s.name || '') + _t, String(s.id || '')));
     });
-    sel.innerHTML = html;
     const selected = String(_currentShiftId || context.shiftId || '');
     if (selected && shifts.some(s => String(s.id || '') === selected)) {
         sel.value = selected;
@@ -1127,13 +1134,8 @@ function _renderShiftSelector() {
     ['add_shift', 'm_shift'].forEach(function(sid) {
         const _ss = document.getElementById(sid);
         if (!_ss) return;
-        const _curVal = _ss.value;
-        _ss.replaceChildren(new Option('-- Không chọn ca --', ''));
-        _clubShifts.forEach(function(s) {
-            const _t = (s.timeStart && s.timeEnd) ? ' (' + s.timeStart + '\u2013' + s.timeEnd + ')' : '';
-            _ss.add(new Option(String(s.name || '') + _t, String(s.id || '')));
-        });
-        _ss.value = _clubShifts.some(function(s) { return s.id === _curVal; }) ? _curVal : '';
+        // Registration controls belong to the student editor, not the day selector.
+        _ss.dispatchEvent?.(new Event('training-shifts-changed'));
     });
 }
 
@@ -1150,10 +1152,13 @@ function _renderShiftListInModal() {
     }
     listEl.innerHTML = _clubShifts.map(s => {
         const time = s.timeStart && s.timeEnd ? s.timeStart + ' – ' + s.timeEnd : 'Chưa đặt giờ';
+        const authority = shiftAuthority(s);
+        const branchLabel = authority.resolved ? 'Cơ sở ' + authority.branch.slice(2) : 'SHIFT_AUTHORITY_UNRESOLVED — Cần Admin xác minh cơ sở';
         const token = encodeURIComponent(String(s.id || '')).replace(/'/g, '%27');
         return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:6px;">'
             + '<div style="min-width:0;"><div style="font-size:0.85rem;font-weight:800;color:#1e293b;">' + escapeHtml(String(s.name || '')) + '</div>'
-            + '<div style="font-size:0.72rem;color:#64748b;margin-top:1px;">🕐 ' + escapeHtml(String(time)) + '</div></div>'
+            + '<div style="font-size:0.72rem;color:#64748b;margin-top:1px;">🕐 ' + escapeHtml(String(time)) + '</div>'
+            + '<div style="font-size:0.78rem;color:#92400e;margin-top:4px;">' + escapeHtml(branchLabel) + '</div></div>'
             + '<button onclick="window.deleteShift(decodeURIComponent(\'' + token + '\'))" type="button"'
             + ' style="flex-shrink:0;padding:6px 11px;background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:8px;font-size:0.72rem;font-weight:800;cursor:pointer;">🗑️ Xóa</button>'
             + '</div>';
@@ -1179,7 +1184,9 @@ function _renderAttendanceShiftBlocked(context, decision) {
             const noEligible = decision.reason === 'no-eligible-shift-for-branch';
             gridEl.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px 16px;color:#475569;font-size:0.86rem;font-weight:700;">'
                 + (noEligible
-                    ? '⏰ Chưa có ca tập phù hợp với cơ sở này.'
+                    ? (_clubShifts.some(shift => !shiftAuthority(shift).resolved)
+                        ? 'Có ca tập chưa xác minh cơ sở. Admin cần kiểm tra ca tập và đăng ký của võ sinh.'
+                        : '⏰ Chưa có ca tập phù hợp với cơ sở này.')
                     : '⏰ Vui lòng chọn ca tập để điểm danh.')
                 + '</div>';
         }
@@ -1941,8 +1948,8 @@ export function initAttendance() {
 
     // Expose getters cho các module khác (students.js dùng khi openAddModal)
     window._getClubShifts = function() { return _clubShifts; };
-    window._ensureClubShiftsLoaded = async function() {
-        return _loadClubShifts();
+    window._ensureClubShiftsLoaded = async function(options = {}) {
+        return _loadClubShifts(options);
     };
     window.currentAttendanceData = {};
 
@@ -2006,6 +2013,10 @@ export function initAttendance() {
             p = (_profiles() || {})[name] || {};
         }
         const historyOwner = _captureOfflineAttendanceSyncContext();
+        const historyAuthoritySnapshot = _memberHistoryAuthoritySnapshot();
+        const historyBranchSelector = document.getElementById(overrideMonth ? 'att_month_branch' : 'att_branch');
+        const historyBranch = historyOwner.role === 'coach' ? historyOwner.coachBranch
+            : _canonicalAttendanceBranch(historyBranchSelector?.value === 'all' ? p.branch : historyBranchSelector?.value, _canonicalAttendanceBranch(p.branch,''));
         const requestId = ++_memberHistoryRequestId;
         const month = overrideMonth || _attCurrentDate.substring(0, 7);
         const [yr, mo] = month.split('-').map(Number);
@@ -2021,6 +2032,7 @@ export function initAttendance() {
         } else { modalEl.style.display = 'flex'; }
         const bodyEl = document.getElementById('attHistBody');
         const isCurrent = () => requestId === _memberHistoryRequestId &&
+            historyAuthoritySnapshot === _memberHistoryAuthoritySnapshot() &&
             _isOfflineAttendanceSyncContextCurrent(historyOwner) && modalEl.isConnected &&
             modalEl.style.display !== 'none';
         bodyEl.innerHTML = '<div style="text-align:center;padding:32px;color:#94a3b8;">⏳ Đang tải dữ liệu tháng ' + monthDisplay + '...</div>';
@@ -2074,7 +2086,7 @@ export function initAttendance() {
                 scheduleHtml = '<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:9px 12px;margin-bottom:12px;">'
                     + '<div style="font-size:0.65rem;font-weight:900;color:#1d4ed8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">📅 Lịch học đã đăng ký</div>'
                     + '<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:4px;">' + _dayNames.join('') + '</div>'
-                    + (_p_shift_name ? '<div style="margin-top:4px;"><span style="font-size:0.68rem;background:#e0f2fe;color:#0369a1;padding:2px 8px;border-radius:99px;font-weight:700;">⏰ ' + _p_shift_name + '</span></div>' : '')
+                    + (_p_shift_name ? '<div style="margin-top:4px;"><span style="font-size:0.68rem;background:#e0f2fe;color:#0369a1;padding:2px 8px;border-radius:99px;font-weight:700;">⏰ ' + escapeHtml(_p_shift_name) + '</span></div>' : '')
                     + '<div style="font-size:0.61rem;color:#64748b;">🔄 Ô tím trong lịch = ngày <b>học bù</b></div></div>';
             }
             let calHtml = '<div style="font-size:0.72rem;font-weight:800;color:#334155;margin-bottom:8px;">📅 Lịch tháng ' + monthDisplay + '</div>';
@@ -2119,6 +2131,50 @@ export function initAttendance() {
                 + '<span>⬜ Chưa ĐD</span>'
                 + (_hasSched ? '<span style="background:#f0f9ff;padding:1px 5px;border-radius:4px;color:#93c5fd;">· Ngày có lịch</span>' : '')
                 + '<span style="background:#f3e8ff;padding:1px 5px;border-radius:4px;color:#7c3aed;">🔄 Học bù</span></div>';
+            const historySection = document.createElement('section');
+            historySection.style.cssText = 'margin-top:18px;border-top:1px solid #cbd5e1;padding-top:14px;min-width:0;';
+            const title = document.createElement('h3');title.textContent = 'Lịch sử Điểm danh đã xác minh';
+            title.style.cssText = 'font-size:16px;font-weight:800;line-height:1.4;';historySection.append(title);
+            const coverage = document.createElement('p');
+            coverage.textContent = 'Cơ sở: ' + (window.getBranchNameDisplay?.(historyBranch) || historyBranch || 'chưa chọn') + '. Duyệt các năm theo trang, từ cũ đến mới; tối đa 40 bản ghi/trang. Dữ liệu cũ chưa xác minh cần Admin đối soát.';
+            coverage.style.cssText = 'font-size:13px;color:#475569;line-height:1.5;margin:8px 0;';historySection.append(coverage);
+            const rowsEl = document.createElement('div');rowsEl.id = 'attVerifiedHistoryRows';historySection.append(rowsEl);
+            const statusEl = document.createElement('p');statusEl.setAttribute('role','status');statusEl.style.cssText = 'font-size:13px;line-height:1.5;margin:8px 0;';historySection.append(statusEl);
+            const more = document.createElement('button');more.id = 'attHistoryLoadMore';more.type = 'button';more.textContent = 'Mở lịch sử đã xác minh';
+            more.style.cssText = 'font-size:16px;min-height:44px;padding:10px 14px;max-width:100%;border:1px solid #93c5fd;border-radius:10px;color:#1e40af;background:#eff6ff;cursor:pointer;';historySection.append(more);
+            bodyEl.append(historySection);
+            let cursor = null,loading = false,done = false,pageCount = 0;
+            const seen = new Set(); // Presentation only; discarded when modal/session closes.
+            more.disabled = !/^CS(?:[1-9]|10)$/.test(historyBranch || '');
+            more.onclick = async () => {
+                if (loading || done || !isCurrent()) return;
+                loading = true;more.disabled = true;statusEl.textContent = 'Đang tải trang lịch sử từ máy chủ…';
+                try {
+                    const page = await AttendanceService.loadMemberHistory(name,null,{page:true,branch:historyBranch,cursor});
+                    if (!isCurrent()) return;
+                    for (const row of page.rows) {
+                        if (seen.has(row.id)) continue;seen.add(row.id);
+                        const item = document.createElement('article');item.dataset.historyId = row.id;
+                        item.style.cssText = 'border:1px solid #e2e8f0;border-radius:10px;padding:10px;margin:8px 0;font-size:14px;line-height:1.6;overflow-wrap:anywhere;';
+                        const data = row.data,shift = _clubShifts.find(value => value.id === data.shiftId);
+                        const date = document.createElement('strong');date.textContent = data.date + ' · ' + ({1:'Có mặt',2:'Vắng',3:'Có phép'}[Number(data.status)] || 'Chưa điểm danh');
+                        const detail = document.createElement('div');detail.textContent = 'Tháng ' + data.month + ' · Ca: ' + (shift?.name || data.shiftId || 'Không gán ca') + ' · ' + (window.getBranchNameDisplay?.(data.branch) || data.branch);
+                        item.append(date,detail);rowsEl.append(item);
+                    }
+                    cursor = page.cursor;done = page.complete;pageCount++;
+                    statusEl.textContent = done ? (seen.size ? 'Đã duyệt hết lịch sử đã xác minh của cơ sở này (' + seen.size + ' buổi).' : 'Chưa có lịch sử đã xác minh tại cơ sở này.')
+                        : 'Đã tải trang ' + pageCount + ' (' + seen.size + ' buổi đã ghi nhận).';
+                    more.textContent = done ? 'Đã hết lịch sử đã xác minh' : 'Tải thêm lịch sử';
+                } catch (error) {
+                    if (!isCurrent()) return;
+                    statusEl.textContent = error.code === 'permission-denied' ? 'Quyền xem lịch sử đã thay đổi. Vui lòng xác minh lại cơ sở.' : error.message;
+                    window.recordRuntimeError?.('attendance.member-history.page',error,{branch:historyBranch,stage:'member-history-page'});
+                    if (error.code === 'permission-denied') {rowsEl.replaceChildren();seen.clear();done = true;window.invalidateCoachBranchAuthority?.('history-page-denied');}
+                    more.textContent = 'Thử tải lại lịch sử';
+                } finally {
+                    loading = false;if (isCurrent()) more.disabled = done;
+                }
+            };
         } catch(e) {
             if (!isCurrent()) return;
             const permissionDenied = _classifyAttendanceOfflineError(e) === 'permission-denied';
@@ -2148,6 +2204,13 @@ export function initAttendance() {
         if (!modal) return;
         modal.style.display = 'flex';
         ['shift_name','shift_start','shift_end'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+        const branchSelect = document.getElementById('shift_branch');
+        if (branchSelect) {
+            const source = document.getElementById('att_branch');
+            branchSelect.replaceChildren(new Option('-- Chọn cơ sở --',''));
+            for (const option of Array.from(source?.options || [])) if (/^CS(?:[1-9]|10)$/.test(option.value)) branchSelect.add(new Option(option.textContent,option.value));
+            branchSelect.value = ''; // Require an explicit authority; blank is never global.
+        }
         try { await _loadClubShifts(); } catch (_) {}
         _renderShiftListInModal();
     };
@@ -2167,11 +2230,13 @@ export function initAttendance() {
         const endEl   = document.getElementById('shift_end');
         const sName = nameEl ? nameEl.value.trim() : '';
         if (!sName) { window.showToast('⚠️ Vui lòng nhập tên ca tập!', 2000); return; }
+        const shiftBranch = document.getElementById('shift_branch')?.value || '';
+        if (!shiftAuthority({branch:shiftBranch}).resolved) {window.showToast('Vui lòng chọn Cơ sở của ca tập.',3000);return {blocked:true,reason:'SHIFT_AUTHORITY_UNRESOLVED'};}
         const newShift = {
             id: 'shift_' + Date.now(), name: sName,
             timeStart: startEl ? startEl.value : '',
             timeEnd:   endEl   ? endEl.value   : '',
-            branch: (window.userRole === 'coach' && window.coachBranch) ? window.coachBranch : ''
+            branch: shiftBranch
         };
         _clubShifts.push(newShift);
         try {

@@ -1,3 +1,4 @@
+import {fixtureElement, TestElement as FakeElement, installOption} from './a9r15r1/dom-harness.mjs';
 import {orchestrationModule} from './v11/orchestration-harness.mjs';
 import { HISTORY_COACH_ACCESS } from '../js/core/attendanceContract.js';
 /**
@@ -9,6 +10,7 @@ import { HISTORY_COACH_ACCESS } from '../js/core/attendanceContract.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { verifyRuntimeProfile } from './v11r2/runtime-profile.mjs';
 
 const root = process.cwd();
 const read = (rel) => fs.readFileSync(path.join(root, rel), 'utf8');
@@ -71,7 +73,10 @@ check(app.includes("renderDailyFromRam('legacy-renderApp-profile-presentation')"
 // never pin runtime backwards to A6/V5U6D merely to satisfy a retired tag.
 const attendanceEventImports = Array.from(main.matchAll(/import\s*\{\s*initAttendanceEvents\s*\}\s*from\s*['"]\.\/events\/attendance\.events\.js\?v=([a-z0-9-]+)['"]/g));
 check(attendanceEventImports.length === 1 && count(main, /if\s*\(guardOnce\('initAttendanceEvents'\)\)\s*initAttendanceEvents\(\)/g) === 1, 'canonical attendance event layer is mounted once by main');
-check(main.includes("./ui/render.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d") && main.includes("./ui/tabs.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d") && read('js/ui/tabs.js').includes("attendance.listeners.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d"), 'every changed nested runtime module has the V5U6D cache key');
+const sourceIdentity = verifyRuntimeProfile(root).identity;
+const nestedImporterToken = sourceIdentity.id === 'V11R6_A9R16A_R2_SEQUENTIAL'
+    ? sourceIdentity.buildTag : 'attendance-daily-single-refresh-authority-20260813-v5u6d';
+check(main.includes(`./ui/render.js?v=${nestedImporterToken}`) && main.includes(`./ui/tabs.js?v=${nestedImporterToken}`) && read('js/ui/tabs.js').includes("attendance.listeners.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d"), 'nested importer cache keys match the exact accepted source lineage; unchanged listener keeps its existing identity');
 check(!/id="(?:att_date|att_branch|att_belt|att_shift|chk_show_all_att)"[^>]*onchange=/.test(index), 'attendance filter controls have no duplicate inline onchange owner');
 check(main.includes("window.APP_BUILD_VERSION = '4K-6V5U6D-attendance-daily-single-refresh-authority-20260813'"), 'runtime build version is exactly V5U6D');
 check(pkg.scripts?.['check:attendance-daily-single-refresh-authority'] === 'node tools/check-attendance-daily-single-refresh-authority.mjs', 'package exposes the V5U6D gate');
@@ -79,29 +84,6 @@ check(pkg.scripts?.precheck?.includes('check:attendance-daily-single-refresh-aut
 check(count(attendance, /\bgetDoc(?:s)?\s*\(/g) === 0, 'orchestrator/reconciliation module introduces no Firestore read owner');
 
 // ── Runtime simulation helpers ───────────────────────────────────────
-class FakeClassList {
-    constructor(...names) { this.names = new Set(names); }
-    contains(name) { return this.names.has(name); }
-    add(...names) { names.forEach((name) => this.names.add(name)); }
-    remove(...names) { names.forEach((name) => this.names.delete(name)); }
-}
-class FakeElement {
-    constructor(id) {
-        this.id = id;
-        this.value = '';
-        this.checked = false;
-        this.hidden = false;
-        this.disabled = false;
-        this.innerHTML = '';
-        this.textContent = '';
-        this.dataset = {};
-        this.style = { display: '', removeProperty(name) { delete this[name]; } };
-        this.classList = new FakeClassList();
-    }
-    addEventListener() {}
-    querySelector() { return null; }
-    closest() { return null; }
-}
 const deferred = () => {
     let resolve;
     let reject;
@@ -120,7 +102,7 @@ async function waitFor(predicate, label) {
 try {
     const elements = new Map();
     const addEl = (id, value = '') => {
-        const el = new FakeElement(id);
+        const el = fixtureElement(id);
         el.value = value;
         elements.set(id, el);
         return el;
@@ -151,6 +133,7 @@ try {
     addEl('att_monthly_table_wrap');
 
     globalThis.window = globalThis;
+    installOption(globalThis);
     globalThis.document = {
         getElementById: (id) => elements.get(id) || null,
         querySelector: (selector) => selector === '.tab-content.active' && tab.classList.contains('active') ? tab : null,
@@ -186,9 +169,11 @@ try {
         aliases(value) { return String(value) === 'CS1' ? ['CS1', 'Mặc định'] : [String(value)]; },
         isSameBranch(left, right) { return this.normalize(left, { fallback: '' }) === this.normalize(right, { fallback: '' }); },
     };
+    // Daily orchestration starts with valid optional/unassigned registrations.
+    // Assigned/missing/foreign shifts are covered independently by registration QA.
     const profileMap = {
-        Alice: { status: 'active', branch: 'CS1', belt: 'Đai Đen', trainingShiftId: 'shift-a', trainingDays: [] },
-        Bob: { status: 'active', branch: 'CS2', belt: 'Đai Xanh', trainingShiftId: 'shift-b', trainingDays: [] },
+        Alice: { status: 'active', branch: 'CS1', belt: 'Đai Đen', trainingShiftId: '', trainingDays: [] },
+        Bob: { status: 'active', branch: 'CS2', belt: 'Đai Xanh', trainingShiftId: '', trainingDays: [] },
     };
     globalThis.__store = { db: {}, clubId: 'club-a', currentClubId: 'club-a', userRole: 'viewer', profiles: profileMap, clubConfig: {}, clubData: {} };
     globalThis.currentClubId = 'club-a';
@@ -316,12 +301,14 @@ try {
     // Shift A -> B. onShiftChange captures the selected shift before loading.
     reset();
     shiftImpl = async () => [
-        { id: 'shift-a', name: 'Ca A' },
-        { id: 'shift-b', name: 'Ca B' },
+        { id: 'shift-a', name: 'Ca A', branch: 'CS1' },
+        { id: 'shift-b', name: 'Ca B', branch: 'CS2' },
     ];
     const shiftA = deferred();
     const shiftB = deferred();
     dailyImpl = (_date, options) => options.shiftId === 'shift-a' ? shiftA.promise : shiftB.promise;
+    // Native selects cannot select an option that has not been mounted yet.
+    await api.ensureShiftsLoaded();
     const dailyShiftStart = dailyCalls;
     shiftEl.value = 'shift-a';
     const requestShiftA = globalThis.onShiftChange();
@@ -433,7 +420,7 @@ try {
         globalThis.openShiftModal(),
     ];
     await waitFor(() => shiftCalls === shiftReadBefore + 1, 'single shifts flight');
-    shiftSettings.resolve([{ id: 'shift-a', name: 'Ca A' }]);
+    shiftSettings.resolve([{ id: 'shift-a', name: 'Ca A', branch: 'CS1' }]);
     await Promise.all(shiftConsumers);
     check(shiftCalls === shiftReadBefore + 1, 'runtime: daily/ensure/modal share exactly one shifts read');
     check(globalThis.__attendanceDebug.shiftsCoalesced - shiftCoalescedBefore >= 2, 'runtime: concurrent shifts consumers are diagnosed as coalesced');

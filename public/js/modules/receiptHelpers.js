@@ -7,7 +7,7 @@
  * update, or delete Firestore documents and must not become the owner of
  * financial write flows. Legacy globals remain compatible.
  */
-import { Formatters } from '../utils/formatters.js';
+import { Formatters } from "../utils/formatters.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
 
 function _fmtMoney(value) {
   const fn = window?.Formatters?.formatCurrency || Formatters.formatCurrency;

@@ -40,7 +40,7 @@ import {
     normalizeYYYYMM,
     addMonthsToYYYYMM,
     getBeltBadge,
-} from '../../../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
+} from "../../../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h";
 
 // Phase 4K-STUDENT-LIST: Classifier chung — không dùng p.status === 'quit' trực tiếp
 import { classifyProfileStatus } from '../../../data/profileStatusConfig.js';

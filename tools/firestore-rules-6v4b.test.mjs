@@ -238,12 +238,13 @@ try {
     await assertFails(updateDoc(doc(coach1, 'users/coach-a1'), { branch: 'CS2' }));
   });
 
-  async function adminPair(uid,branch,previous='absent') {
+  async function adminPair(uid,branch,previous='absent',mirrorPrevious=previous) {
     const data={role:'coach',clubId:'club-a',branch,coachBranch:branch,defaultBranch:branch,allowedBranches:[branch],assignmentVersion:randomUUID(),assignmentPreviousVersion:previous};
-    const b=writeBatch(adminA);b.set(doc(adminA,'clubs/club-a/coaches/'+uid),data,{merge:true});b.set(doc(adminA,'users/'+uid),data,{merge:true});b.set(doc(adminA,'clubs/club-a'),{coachAclEpoch:increment(1)},{merge:true});return b.commit();
+    const b=writeBatch(adminA);b.set(doc(adminA,'clubs/club-a/coaches/'+uid),data,{merge:true});b.set(doc(adminA,'users/'+uid),{...data,assignmentPreviousVersion:mirrorPrevious},{merge:true});b.set(doc(adminA,'clubs/club-a'),{coachAclEpoch:increment(1)},{merge:true});return b.commit();
   }
   await test('Club Admin provisions a same-club Coach through the atomic canonical pair', async()=>{await assertSucceeds(adminPair('new-coach','CS2'));});
-  await test('Club Admin repairs missing legacy assignment through a canonical pair', async()=>{await assertSucceeds(adminPair('coach-legacy','CS1'));});
+  await test('Club Admin cannot use absent CAS for an existing legacy User mirror', async()=>{await assertFails(adminPair('coach-legacy','CS1'));});
+  await test('Club Admin repairs missing legacy assignment with distinct canonical/User previous versions', async()=>{await assertSucceeds(adminPair('coach-legacy','CS1','absent','legacy'));});
   await test('Club Admin cannot provision Coach with an invalid branch code', async () => {
     await assertFails(setDoc(doc(adminA, 'users/new-coach-invalid'), {
       role: 'coach', clubId: 'club-a', branch: 'ALL', email: 'invalid@example.com',

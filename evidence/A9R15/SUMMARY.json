@@ -1,0 +1,78 @@
+{
+  "releaseClassification": "RELEASE_BLOCKED",
+  "noDeployment": true,
+  "noProductionDataAccess": true,
+  "inputZIP_SHA256": "a81478cb6fb50eeed23ece4d0e106c949d73397010d52ead8adff6841bbc5c8a",
+  "runtimeSHA256": "f112c0aea086cb3e7684d03ddfe1897d82bcb159086b0a8fd895c71e9208fb67",
+  "buildTag": "qr-v11r6-a9r15-training-history-closure-20261025",
+  "gates": [
+    {
+      "gate": "TRAINING_REGISTRATION_CONSISTENCY",
+      "classification": "ENV_BLOCKED",
+      "detail": "Canonical Add/Edit/service validation PASS; production orphan audit not supplied/complete"
+    },
+    {
+      "gate": "COACH_AUTHORIZED_FULL_HISTORY",
+      "classification": "PASS",
+      "detail": "Exact bounded runtime queries and UI across years/branches/session boundaries on local fixtures"
+    },
+    {
+      "gate": "LEGACY_HISTORY_PROVENANCE",
+      "classification": "ENV_BLOCKED",
+      "detail": "Raw legacy remains excluded; existing explicit Admin mechanism preserved; production attestation/provenance coverage not verified"
+    },
+    {
+      "gate": "COACH_ATTENDANCE_WRITE",
+      "classification": "PASS",
+      "detail": "Canonical CAS writer unchanged; 22 service tests, SDK10 and native writer/Journal tests passed"
+    },
+    {
+      "gate": "COACH_BRANCH_ISOLATION",
+      "classification": "PASS",
+      "detail": "Same Rules, server assignment, active-branch query; revoked/cross-club/forged writes denied"
+    },
+    {
+      "gate": "JOURNAL_V4",
+      "classification": "PASS",
+      "detail": "V4 database, IndexedDB schema 1; native migration/quarantine controls passed; no implementation change"
+    },
+    {
+      "gate": "FINANCE_SECURITY",
+      "classification": "PASS",
+      "detail": "Rules byte-identical; Coach Finance DENY; no Finance reads in new history flow"
+    },
+    {
+      "gate": "READS",
+      "classification": "ENV_BLOCKED",
+      "detail": "9 controlled owner scenarios measured, pages +1 getDocs/max40; production/bootstrap/billing and owner cost approval missing"
+    },
+    {
+      "gate": "MOBILE",
+      "classification": "ENV_BLOCKED",
+      "detail": "Browser mobile/desktop and A9R14 layout/search passed; physical phone acceptance absent"
+    },
+    {
+      "gate": "ROOT_PUBLIC",
+      "classification": "PASS",
+      "detail": "129/129 exact pinned assets; one added pure contract module"
+    }
+  ],
+  "regression": {
+    "PASS": 154,
+    "FAIL_RUNTIME": 0,
+    "FAIL_TEST_HARNESS": 2,
+    "ENV_BLOCKED": 0,
+    "RELEASE_BLOCKED": 3
+  },
+  "npmCheck": "FAIL_TEST_HARNESS",
+  "npmCheckAll": "FAIL_TEST_HARNESS",
+  "localEvidence": {
+    "registrationTests": 25,
+    "browserUI": 27,
+    "historyEmulator": 22,
+    "SDK10": 10,
+    "nativeBrowser": 28,
+    "profileNegativeControls": 10,
+    "architecture": 9
+  }
+}

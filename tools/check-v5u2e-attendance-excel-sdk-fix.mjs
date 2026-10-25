@@ -1,8 +1,5 @@
 #!/usr/bin/env node
-import {attendanceCacheChain} from './v11r2/cache-contract.mjs';
-import {runtimeHash,fileDigest} from './v11r2/cutover.mjs';
-import {verifySourceIdentity} from './v11r2/source-identity.mjs';
-import {buildTag} from './v11r2/import-graph.mjs';
+import {verifyRuntimeProfile} from './v11r2/runtime-profile.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -46,29 +43,15 @@ check('public index exposes documentId identically', publicIndex.includes('order
 check('firebase/config exports documentId in shared sdk', config.includes('query, orderBy, documentId, where') && publicConfig.includes('query, orderBy, documentId, where'));
 check('attendance report requires stable documentId ordering', report.includes('orderBy(documentId())') && report.includes('Firebase SDK chưa sẵn sàng:'));
 check('attendance report source/public mirrors match', report === publicReport);
-// The default source is intentionally maintenance. Active cache consistency is
-// required only for an exact active candidate; maintenance must never claim it.
+// SDK compatibility checks require a pinned runtime, matching client/Rules
+// gates and a complete cache graph. Deployment/cutover authorization is owned
+// by release-gate.mjs; a historical CUTOVER_PROOF is not an SDK dependency.
 function attendanceProfileMatches() {
   try {
-    if (runtimeHash(root) !== runtimeHash(path.join(root,'public'))) return false;
-    const closedClient = attendanceContract.includes('export const HISTORY_COACH_ACCESS = false;');
-    const closedRules = /function coachAttendanceCutoverOpen\(\)\s*\{\s*return false;\s*\}/.test(rules);
-    if (closedClient && closedRules) {
-      const identity = verifySourceIdentity(root,runtimeHash(root));
-      return identity.buildTag === buildTag(main).tag && attendanceCacheChain(root) === false;
-    }
-    if (!attendanceContract.includes('export const HISTORY_COACH_ACCESS = true;') ||
-        !/function coachAttendanceCutoverOpen\(\)\s*\{\s*return true;\s*\}/.test(rules)) return false;
-    const proof=JSON.parse(read('CUTOVER_PROOF.json')),p=proof.plan;
-    return ['DEMO_VERIFIED_NOT_RELEASE','STAGING_CANDIDATE_VERIFIED_NOT_DEPLOYED'].includes(proof.status) &&
-      buildTag(main).tag === p.activeBuildTag && runtimeHash(root) === p.activeRuntimeSHA256 &&
-      fileDigest(path.join(root,'firestore.rules')) === p.activeRulesSHA256 &&
-      fileDigest(path.join(root,'firestore.indexes.json')) === p.indexesSHA256 &&
-      fileDigest(path.join(root,'js/core/attendanceContract.js')) === p.activeContractSHA256 &&
-      attendanceCacheChain(root) === true;
+    return !!verifyRuntimeProfile(root);
   } catch { return false; }
 }
-check('attendance profile: verified maintenance DENY or exact active cache graph', attendanceProfileMatches());
+check('attendance SDK profile: pinned source, gate alignment and exact cache graph', attendanceProfileMatches());
 check('report facade source/public mirrors match', facade === publicFacade);
 const mainFacadeImport = main.match(/reportExportFacade\.js\?v=([^'"\s)]+)/)?.[0] || '';
 const publicMainFacadeImport = publicMain.match(/reportExportFacade\.js\?v=([^'"\s)]+)/)?.[0] || '';

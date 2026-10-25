@@ -1,0 +1,188 @@
+{
+  "scope": "Actual DOM/CSS, controller and index with synthetic in-memory data; no live account",
+  "total": 7,
+  "pass": 7,
+  "fail": 0,
+  "geometry": [
+    {
+      "month": {
+        "x": 24,
+        "y": 195.984375,
+        "width": 272,
+        "height": 44,
+        "fontSize": "16px"
+      },
+      "search": {
+        "x": 24,
+        "y": 247.984375,
+        "width": 272,
+        "height": 44,
+        "fontSize": "16px"
+      },
+      "branch": {
+        "x": 184,
+        "y": 247.984375,
+        "width": 112,
+        "height": 44,
+        "fontSize": "16px"
+      },
+      "viewport": 320,
+      "scrollWidth": 320,
+      "counts": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "month": {
+        "x": 24,
+        "y": 195.984375,
+        "width": 312,
+        "height": 44,
+        "fontSize": "16px"
+      },
+      "search": {
+        "x": 24,
+        "y": 247.984375,
+        "width": 312,
+        "height": 44,
+        "fontSize": "16px"
+      },
+      "branch": {
+        "x": 223.40625,
+        "y": 247.984375,
+        "width": 112.59375,
+        "height": 44,
+        "fontSize": "16px"
+      },
+      "viewport": 360,
+      "scrollWidth": 360,
+      "counts": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "month": {
+        "x": 24,
+        "y": 195.984375,
+        "width": 342,
+        "height": 44,
+        "fontSize": "16px"
+      },
+      "search": {
+        "x": 24,
+        "y": 247.984375,
+        "width": 342,
+        "height": 44,
+        "fontSize": "16px"
+      },
+      "branch": {
+        "x": 242.28125,
+        "y": 247.984375,
+        "width": 123.71875,
+        "height": 44,
+        "fontSize": "16px"
+      },
+      "viewport": 390,
+      "scrollWidth": 390,
+      "counts": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "month": {
+        "x": 24,
+        "y": 195.984375,
+        "width": 381.984375,
+        "height": 44,
+        "fontSize": "16px"
+      },
+      "search": {
+        "x": 24,
+        "y": 247.984375,
+        "width": 381.984375,
+        "height": 44,
+        "fontSize": "16px"
+      },
+      "branch": {
+        "x": 267.46875,
+        "y": 247.984375,
+        "width": 138.515625,
+        "height": 44,
+        "fontSize": "16px"
+      },
+      "viewport": 430,
+      "scrollWidth": 430,
+      "counts": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "month": {
+        "x": 24,
+        "y": 195.984375,
+        "width": 719,
+        "height": 44,
+        "fontSize": "16px"
+      },
+      "search": {
+        "x": 24,
+        "y": 247.984375,
+        "width": 447.65625,
+        "height": 44,
+        "fontSize": "16px"
+      },
+      "branch": {
+        "x": 479.65625,
+        "y": 247.984375,
+        "width": 263.34375,
+        "height": 44,
+        "fontSize": "16px"
+      },
+      "viewport": 767,
+      "scrollWidth": 767,
+      "counts": [
+        1,
+        1,
+        1
+      ]
+    }
+  ],
+  "results": [
+    {
+      "title": "Mobile 320px: month precedes search, inputs fit and stay readable",
+      "result": "PASS"
+    },
+    {
+      "title": "Mobile 360px: month precedes search, inputs fit and stay readable",
+      "result": "PASS"
+    },
+    {
+      "title": "Mobile 390px: month precedes search, inputs fit and stay readable",
+      "result": "PASS"
+    },
+    {
+      "title": "Mobile 430px: month precedes search, inputs fit and stay readable",
+      "result": "PASS"
+    },
+    {
+      "title": "Mobile 767px: month precedes search, inputs fit and stay readable",
+      "result": "PASS"
+    },
+    {
+      "title": "Desktop geometry at 1024px stays equal to A9R13",
+      "result": "PASS"
+    },
+    {
+      "title": "Real search still matches Vietnamese names, phone and belt with no server calls",
+      "result": "PASS"
+    }
+  ]
+}

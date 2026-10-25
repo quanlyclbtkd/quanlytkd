@@ -126,6 +126,12 @@ window.refreshListsComputation = (keys, reason) => refreshCalls.push({ keys:[...
 window.invalidateList = (key, reason) => invalidateCalls.push({ key, reason });
 
 vm.createContext(sandbox);
+// Include the actual registration owner now required by the admission handler.
+// Empty shifts + blank selection is the existing optional-shift fixture.
+Object.assign(sandbox, await import('../js/core/trainingRegistration.js'));
+window._getClubShifts = () => [];
+window._ensureClubShiftsLoaded = async () => window._getClubShifts();
+vm.runInContext(studentsSrc.slice(studentsSrc.indexOf('const _registrationForms ='), studentsSrc.indexOf('// ════════════════════════════════════════════════════════════════\n// BRIDGE HELPERS')), sandbox, { filename:'students.js:registration' });
 vm.runInContext(bundleBuilder, sandbox, { filename:'app.js:buildPaymentBundleTransaction' });
 vm.runInContext(helpers + '\nlet _addStudentInProgress = false;\n' + studentsSrc.slice(start, end), sandbox, { filename:'students.js:admission' });
 

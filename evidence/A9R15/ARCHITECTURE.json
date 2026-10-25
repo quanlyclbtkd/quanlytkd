@@ -1,0 +1,49 @@
+{
+  "classification": "PASS",
+  "runtimeSHA256": "f112c0aea086cb3e7684d03ddfe1897d82bcb159086b0a8fd895c71e9208fb67",
+  "buildTag": "qr-v11r6-a9r15-training-history-closure-20261025",
+  "canonicalFileCount": 129,
+  "results": [
+    {
+      "title": "All 129 pinned runtime assets match root/public",
+      "classification": "PASS"
+    },
+    {
+      "title": "Rules and indexes are byte-identical to the required A9R14 baseline",
+      "classification": "PASS"
+    },
+    {
+      "title": "History authority, Coach gate and Journal V4 contract are byte-identical after token normalization",
+      "classification": "PASS"
+    },
+    {
+      "title": "Journal owner has no executable change",
+      "classification": "PASS"
+    },
+    {
+      "title": "Finance, QR, SuperAdmin, assignment, CAS command owners and all unrelated runtime files are unchanged except cache URLs",
+      "classification": "PASS"
+    },
+    {
+      "title": "app.js remains within original ceilings and byte-identical",
+      "classification": "PASS"
+    },
+    {
+      "title": "All JavaScript assets parse",
+      "classification": "PASS"
+    },
+    {
+      "title": "No parallel Attendance service/writer or history listener",
+      "classification": "PASS"
+    },
+    {
+      "title": "Static getDoc/listener counts do not increase; one bounded getDocs call is added inside the existing owner",
+      "classification": "PASS"
+    }
+  ],
+  "sdkStaticCounts": {
+    "getDoc": 24,
+    "getDocs": 58,
+    "onSnapshot": 35
+  }
+}

@@ -42,20 +42,20 @@
 import {
     computeAndCacheFinance,
     getFinanceSummary,
-} from './computation/financeRenderer.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
+} from "./computation/financeRenderer.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
 import {
     computeAndCacheStudents,
     getStudentsSummary,
-} from './computation/studentsRenderer.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1';
+} from "./computation/studentsRenderer.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
 import {
     computeAndCacheInventory,
     getCachedUnpaidInvCount,
-} from './computation/inventoryRenderer.js?v=student-given-name-priority-20260811-v5u3';
+} from "./computation/inventoryRenderer.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
 import {
     invalidateDashboardCache,
     cacheDashboardData,
 } from './computation/dashboardRenderer.js';
-import { formatMonth } from '../../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
+import { formatMonth } from "../../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h";
 
 // ── List key → computation domain mapping ─────────────────────────────────────
 //

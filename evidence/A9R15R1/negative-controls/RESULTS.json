@@ -1,0 +1,62 @@
+{
+  "classification": "PASS",
+  "runtimeSHA256": "f112c0aea086cb3e7684d03ddfe1897d82bcb159086b0a8fd895c71e9208fb67",
+  "scope": "Five independent behavioral mutations in disposable copies, not production/runtime changes",
+  "results": [
+    {
+      "id": "NC1",
+      "name": "Remove Coach shift branch filtering",
+      "classification": "PASS",
+      "mutantTestExitCode": 1,
+      "behavioralFailureMatched": true,
+      "mutatedFile": "js/modules/attendance.js",
+      "originalSHA256": "616591dc7e06008a0263d0d98794f0283a1df0bfc44e621b06b4c1f7f2a2bbb1",
+      "mutantSHA256": "405b5f493c5a4fcb510362f02492c075086338ab22b35b47cf53c7e0fbc61805",
+      "originalRuntimeUntouched": true
+    },
+    {
+      "id": "NC2",
+      "name": "Coach CS1 runtime query uses CS2",
+      "classification": "PASS",
+      "mutantTestExitCode": 1,
+      "behavioralFailureMatched": true,
+      "mutatedFile": "js/services/attendance.service.js",
+      "originalSHA256": "62f71d688288a468bbfc32a10fe7a80d5fd7ecb5e4b37b3d41a97f208e9c2e7f",
+      "mutantSHA256": "8b1ecbc7bd8c13c1119276d93d3ee99e278d0e1451ec2b8da84677d323cc4e8f",
+      "originalRuntimeUntouched": true
+    },
+    {
+      "id": "NC3",
+      "name": "Remove current authority from history page query",
+      "classification": "PASS",
+      "mutantTestExitCode": 1,
+      "behavioralFailureMatched": true,
+      "mutatedFile": "js/services/attendance.service.js",
+      "originalSHA256": "62f71d688288a468bbfc32a10fe7a80d5fd7ecb5e4b37b3d41a97f208e9c2e7f",
+      "mutantSHA256": "c07b60c61c2d86af6b08f838c437d84af501140c316ef6be883c2e318e9b035d",
+      "originalRuntimeUntouched": true
+    },
+    {
+      "id": "NC4",
+      "name": "Remove history page stale-session defenses",
+      "classification": "PASS",
+      "mutantTestExitCode": 1,
+      "behavioralFailureMatched": true,
+      "mutatedFile": "js/services/attendance.service.js",
+      "originalSHA256": "62f71d688288a468bbfc32a10fe7a80d5fd7ecb5e4b37b3d41a97f208e9c2e7f",
+      "mutantSHA256": "0687f5805408729fe0c6e4cceacbef94253f94c86fa4528f33b067a86d367841",
+      "originalRuntimeUntouched": true
+    },
+    {
+      "id": "NC5",
+      "name": "Grant Coach Finance read in mutant Rules",
+      "classification": "PASS",
+      "mutantTestExitCode": 1,
+      "behavioralFailureMatched": true,
+      "mutatedFile": "firestore.rules",
+      "originalSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+      "mutantSHA256": "7409ea5ccad8fd2dbcbffdf7cc9b58e55c11dfd0a0246341dbe3047042ac55c0",
+      "originalRuntimeUntouched": true
+    }
+  ]
+}

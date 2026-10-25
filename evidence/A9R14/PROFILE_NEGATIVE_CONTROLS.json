@@ -1,0 +1,48 @@
+{
+  "scope": "QA negative controls; no deployment authorization",
+  "total": 10,
+  "pass": 10,
+  "fail": 0,
+  "results": [
+    {
+      "title": "Exact operational source passes without any CUTOVER_PROOF file",
+      "result": "PASS"
+    },
+    {
+      "title": "a stale authority import is rejected",
+      "result": "PASS"
+    },
+    {
+      "title": "a changed public mirror is rejected",
+      "result": "PASS"
+    },
+    {
+      "title": "Rules with broader access are rejected",
+      "result": "PASS"
+    },
+    {
+      "title": "changed indexes are rejected",
+      "result": "PASS"
+    },
+    {
+      "title": "a mismatched client attendance gate is rejected",
+      "result": "PASS"
+    },
+    {
+      "title": "a tampered pinned manifest is rejected",
+      "result": "PASS"
+    },
+    {
+      "title": "A self-declared cutover proof cannot bless changed source bytes",
+      "result": "PASS"
+    },
+    {
+      "title": "Original app.js ceilings pass with an unchanged executable AST",
+      "result": "PASS"
+    },
+    {
+      "title": "Release verification still refuses missing signed evidence",
+      "result": "PASS"
+    }
+  ]
+}

@@ -1,0 +1,193 @@
+{
+  "kind": "A9R15_REAL_BROWSER_FIREBASE_10_7_1",
+  "projectId": "demo-a9r15-sdk10",
+  "sdkVersion": "10.7.1",
+  "rulesSha256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+  "total": 10,
+  "pass": 10,
+  "fail": 0,
+  "results": [
+    {
+      "title": "Browser runs the same Firebase SDK 10.7.1 as production",
+      "result": "PASS"
+    },
+    {
+      "title": "Real SDK10 individual history CS1 succeeds",
+      "result": "PASS"
+    },
+    {
+      "title": "Real SDK10 bounded pages exhaust 85 records over multiple years without duplicates",
+      "result": "PASS"
+    },
+    {
+      "title": "Real SDK10 cached offline page is not presented as server-verified history",
+      "result": "PASS"
+    },
+    {
+      "title": "Real SDK10 reconnect permits a fresh verified page",
+      "result": "PASS"
+    },
+    {
+      "title": "Real SDK10 BatchGet transaction creates an absent mark",
+      "result": "PASS"
+    },
+    {
+      "title": "Real SDK10 replay of the same intent is idempotent",
+      "result": "PASS"
+    },
+    {
+      "title": "Real SDK10 CAS updates and rejects a stale intent",
+      "result": "PASS"
+    },
+    {
+      "title": "Real SDK10 legacy collision reproduces denied BatchGet without any ACK",
+      "result": "PASS"
+    },
+    {
+      "title": "Real SDK10 Coach finance reads remain denied",
+      "result": "PASS"
+    }
+  ],
+  "network": [
+    {
+      "method": "POST",
+      "path": "/google.firestore.v1.Firestore/Listen/channel"
+    },
+    {
+      "method": "GET",
+      "path": "/google.firestore.v1.Firestore/Listen/channel"
+    },
+    {
+      "method": "GET",
+      "path": "/google.firestore.v1.Firestore/Listen/channel"
+    },
+    {
+      "method": "POST",
+      "path": "/google.firestore.v1.Firestore/Listen/channel"
+    },
+    {
+      "method": "GET",
+      "path": "/google.firestore.v1.Firestore/Listen/channel"
+    },
+    {
+      "method": "POST",
+      "path": "/google.firestore.v1.Firestore/Listen/channel"
+    },
+    {
+      "method": "GET",
+      "path": "/google.firestore.v1.Firestore/Listen/channel"
+    },
+    {
+      "method": "GET",
+      "path": "/google.firestore.v1.Firestore/Listen/channel"
+    },
+    {
+      "method": "POST",
+      "path": "/google.firestore.v1.Firestore/Listen/channel"
+    },
+    {
+      "method": "GET",
+      "path": "/google.firestore.v1.Firestore/Listen/channel"
+    },
+    {
+      "method": "POST",
+      "path": "/google.firestore.v1.Firestore/Listen/channel"
+    },
+    {
+      "method": "GET",
+      "path": "/google.firestore.v1.Firestore/Listen/channel"
+    },
+    {
+      "method": "GET",
+      "path": "/google.firestore.v1.Firestore/Listen/channel"
+    },
+    {
+      "method": "POST",
+      "path": "/google.firestore.v1.Firestore/Listen/channel"
+    },
+    {
+      "method": "GET",
+      "path": "/google.firestore.v1.Firestore/Listen/channel"
+    },
+    {
+      "method": "POST",
+      "path": "/google.firestore.v1.Firestore/Listen/channel"
+    },
+    {
+      "method": "GET",
+      "path": "/google.firestore.v1.Firestore/Listen/channel"
+    },
+    {
+      "method": "POST",
+      "path": "/google.firestore.v1.Firestore/Listen/channel"
+    },
+    {
+      "method": "POST",
+      "path": "/google.firestore.v1.Firestore/Listen/channel"
+    },
+    {
+      "method": "POST",
+      "path": "/google.firestore.v1.Firestore/Listen/channel"
+    },
+    {
+      "method": "GET",
+      "path": "/google.firestore.v1.Firestore/Listen/channel"
+    },
+    {
+      "method": "GET",
+      "path": "/google.firestore.v1.Firestore/Listen/channel"
+    },
+    {
+      "method": "POST",
+      "path": "/google.firestore.v1.Firestore/Listen/channel"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/projects/demo-a9r15-sdk10/databases/(default)/documents:batchGet"
+    },
+    {
+      "method": "GET",
+      "path": "/google.firestore.v1.Firestore/Listen/channel"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/projects/demo-a9r15-sdk10/databases/(default)/documents:commit"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/projects/demo-a9r15-sdk10/databases/(default)/documents:batchGet"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/projects/demo-a9r15-sdk10/databases/(default)/documents:commit"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/projects/demo-a9r15-sdk10/databases/(default)/documents:batchGet"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/projects/demo-a9r15-sdk10/databases/(default)/documents:commit"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/projects/demo-a9r15-sdk10/databases/(default)/documents:batchGet"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/projects/demo-a9r15-sdk10/databases/(default)/documents:batchGet"
+    },
+    {
+      "method": "POST",
+      "path": "/google.firestore.v1.Firestore/Listen/channel"
+    },
+    {
+      "method": "GET",
+      "path": "/google.firestore.v1.Firestore/Listen/channel"
+    },
+    {
+      "method": "GET",
+      "path": "/google.firestore.v1.Firestore/Listen/channel"
+    }
+  ]
+}

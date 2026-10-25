@@ -1,0 +1,218 @@
+{
+  "kind": "A9R15_REAL_BROWSER_OWNERS_SYNTHETIC_SDK_TRANSPORT",
+  "classification": "PASS",
+  "physicalDeviceAcceptance": "ENV_BLOCKED: viewport emulation is not physical Android acceptance",
+  "results": [
+    {
+      "title": "Mobile Edit: branch then shift then weekdays; only branch-compatible shifts",
+      "classification": "PASS"
+    },
+    {
+      "title": "CS1 -> CS2 invalidates old shift, does not auto-select or auto-save",
+      "classification": "PASS"
+    },
+    {
+      "title": "Explicit CS2 shift saves through the same canonical update coordinator/service",
+      "classification": "PASS"
+    },
+    {
+      "title": "Forged dropdown option CS1/CS2 mismatch is blocked immediately before writer",
+      "classification": "PASS"
+    },
+    {
+      "title": "Deleted shift and invalid legacy days warn immediately and cannot silently clear on Save",
+      "classification": "PASS"
+    },
+    {
+      "title": "Add selector is branch-scoped and valid zero-fee admission uses the original batch",
+      "classification": "PASS"
+    },
+    {
+      "title": "Add branch change requires explicit re-selection; blank shift stays optional",
+      "classification": "PASS"
+    },
+    {
+      "title": "Same names, list reorder and reopening edit keep immutable profile registration",
+      "classification": "PASS"
+    },
+    {
+      "title": "Deleting a referenced shift immediately warns in the existing Edit form without changing profile",
+      "classification": "PASS"
+    },
+    {
+      "title": "A remote shift deletion between form open and Save is refreshed and blocks the original writer",
+      "classification": "PASS"
+    },
+    {
+      "title": "Read-only Admin audit is pseudonymous and emits zero SDK reads/writes",
+      "classification": "PASS"
+    },
+    {
+      "title": "Actual roster respects registration day, branch, shift, active and skipped month",
+      "classification": "PASS"
+    },
+    {
+      "title": "Coach summary remains monthly/quarterly and does not prefetch full history",
+      "classification": "PASS"
+    },
+    {
+      "title": "First bounded page and rapid double-click cause exactly one query",
+      "classification": "PASS"
+    },
+    {
+      "title": "Second/final pages append all years once without duplicates or legacy",
+      "classification": "PASS"
+    },
+    {
+      "title": "Final page completes at 85 unique current-authority records",
+      "classification": "PASS"
+    },
+    {
+      "title": "Closing/reopening discards pages and requests only current summary",
+      "classification": "PASS"
+    },
+    {
+      "title": "Late CS1 page is dropped after CS2 switch; CS2 renders its own profile history",
+      "classification": "PASS"
+    },
+    {
+      "title": "Revoke branch during page flight prevents stale response from populating UI",
+      "classification": "PASS"
+    },
+    {
+      "title": "Relogin generation drops an in-flight page and next open starts fresh",
+      "classification": "PASS"
+    },
+    {
+      "title": "Native Journal V4 stays V4 and old V3 rows are never promoted",
+      "classification": "PASS"
+    },
+    {
+      "title": "History adds zero listeners and no Finance reads",
+      "classification": "PASS"
+    },
+    {
+      "title": "Registration/history layout fits 320px",
+      "classification": "PASS"
+    },
+    {
+      "title": "Registration/history layout fits 390px",
+      "classification": "PASS"
+    },
+    {
+      "title": "Registration/history layout fits 767px",
+      "classification": "PASS"
+    },
+    {
+      "title": "Registration/history layout fits 1024px",
+      "classification": "PASS"
+    },
+    {
+      "title": "Another browser tab has independent branch/session presentation, with no cross-tab cache",
+      "classification": "PASS"
+    }
+  ],
+  "geometry": [
+    {
+      "branch": {
+        "x": 27,
+        "y": 1862.46875,
+        "width": 336,
+        "font": "16px"
+      },
+      "shift": {
+        "x": 105.671875,
+        "y": 1920.46875,
+        "width": 248.328125,
+        "font": "16px"
+      },
+      "dayY": 2016.71875,
+      "options": [
+        "",
+        "S1"
+      ]
+    }
+  ],
+  "reads": [
+    {
+      "label": "after-tab-and-CS1-setup",
+      "counts": {
+        "getDoc": 17,
+        "getDocs": 2,
+        "onSnapshot": 0,
+        "documents": 2,
+        "finance": 0
+      }
+    },
+    {
+      "label": "CS1-selected",
+      "counts": {
+        "getDoc": 18,
+        "getDocs": 2,
+        "onSnapshot": 0,
+        "documents": 2,
+        "finance": 0
+      }
+    },
+    {
+      "label": "open-member-summary",
+      "counts": {
+        "getDoc": 18,
+        "getDocs": 3,
+        "onSnapshot": 0,
+        "documents": 3,
+        "finance": 0
+      }
+    },
+    {
+      "label": "first-page",
+      "counts": {
+        "getDoc": 18,
+        "getDocs": 4,
+        "onSnapshot": 0,
+        "documents": 43,
+        "finance": 0
+      }
+    },
+    {
+      "label": "next-page",
+      "counts": {
+        "getDoc": 18,
+        "getDocs": 5,
+        "onSnapshot": 0,
+        "documents": 83,
+        "finance": 0
+      }
+    },
+    {
+      "label": "reopen-same-profile",
+      "counts": {
+        "getDoc": 18,
+        "getDocs": 7,
+        "onSnapshot": 0,
+        "documents": 89,
+        "finance": 0
+      }
+    },
+    {
+      "label": "CS2-switch-and-same-profile",
+      "counts": {
+        "getDoc": 19,
+        "getDocs": 10,
+        "onSnapshot": 0,
+        "documents": 131,
+        "finance": 0
+      }
+    },
+    {
+      "label": "relogin-fresh-open",
+      "counts": {
+        "getDoc": 22,
+        "getDocs": 15,
+        "onSnapshot": 0,
+        "documents": 214,
+        "finance": 0
+      }
+    }
+  ]
+}

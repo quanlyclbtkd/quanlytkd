@@ -1,0 +1,33 @@
+{
+  "id": "V11R6_A9R15_TRAINING_HISTORY",
+  "canonicalFileCount": 129,
+  "coachAssignmentContract": "server-verified-multi-branch-v1",
+  "inputZIP_SHA256": "a81478cb6fb50eeed23ece4d0e106c949d73397010d52ead8adff6841bbc5c8a",
+  "manifest": "tools/v11r2/manifests/V11R6_A9R15_TRAINING_HISTORY.json",
+  "manifestSHA256": "4aa1e25c77048c10c25fdd3ecea1f5b198f3f5e23e89d37b79d5b4851f3deffd",
+  "runtimeSHA256": "f112c0aea086cb3e7684d03ddfe1897d82bcb159086b0a8fd895c71e9208fb67",
+  "rulesSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+  "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+  "buildTag": "qr-v11r6-a9r15-training-history-closure-20261025",
+  "cacheScope": [
+    "app.js",
+    "index.html",
+    "js/core/attendanceContract.js",
+    "js/core/coachBranchRuntimeRepair.js",
+    "js/core/roleReadBoundary.js",
+    "js/core/studentStatusCommandBoundary.js",
+    "js/core/trainingRegistration.js",
+    "js/data/attendanceJournal.js",
+    "js/events/attendance.events.js",
+    "js/firebase/config.js",
+    "js/listeners/profiles.listeners.js",
+    "js/main.js",
+    "js/modules/attendance.js",
+    "js/modules/finance.js",
+    "js/modules/reports/attendanceExcelReport.js",
+    "js/modules/reports/reportExportFacade.js",
+    "js/modules/students.js",
+    "js/services/attendance.service.js",
+    "js/services/students.service.js"
+  ]
+}

@@ -1,0 +1,85 @@
+{
+  "classification": "PASS",
+  "transport": "Instrumented SDK transport; actual runtime owners and DOM; separate Emulator proves Rules",
+  "checks": [
+    {
+      "title": "Pre-save race deleted",
+      "classification": "PASS",
+      "expected": "SHIFT_NOT_FOUND",
+      "actual": "SHIFT_NOT_FOUND",
+      "apiError": "SHIFT_NOT_FOUND",
+      "writes": 0
+    },
+    {
+      "title": "Pre-save race moved",
+      "classification": "PASS",
+      "expected": "SHIFT_BRANCH_MISMATCH",
+      "actual": "SHIFT_BRANCH_MISMATCH",
+      "apiError": "TRAINING_SHIFT_BRANCH_MISMATCH",
+      "writes": 0
+    },
+    {
+      "title": "Pre-save race unresolved",
+      "classification": "PASS",
+      "expected": "SHIFT_AUTHORITY_UNRESOLVED",
+      "actual": "SHIFT_AUTHORITY_UNRESOLVED",
+      "apiError": "SHIFT_AUTHORITY_UNRESOLVED",
+      "writes": 0
+    },
+    {
+      "title": "Pagination exact boundary 0",
+      "classification": "PASS",
+      "size": 0,
+      "clicks": 1,
+      "uniqueRecords": 0
+    },
+    {
+      "title": "Pagination exact boundary 1",
+      "classification": "PASS",
+      "size": 1,
+      "clicks": 1,
+      "uniqueRecords": 1
+    },
+    {
+      "title": "Pagination exact boundary 40",
+      "classification": "PASS",
+      "size": 40,
+      "clicks": 2,
+      "uniqueRecords": 40
+    },
+    {
+      "title": "Pagination exact boundary 41",
+      "classification": "PASS",
+      "size": 41,
+      "clicks": 2,
+      "uniqueRecords": 41
+    },
+    {
+      "title": "Pagination exact boundary 80",
+      "classification": "PASS",
+      "size": 80,
+      "clicks": 3,
+      "uniqueRecords": 80
+    },
+    {
+      "title": "Network retry repeats the same cursor and keeps pages unique",
+      "classification": "PASS",
+      "uniqueRecords": 80,
+      "sameCursorOnRetry": true
+    },
+    {
+      "title": "CS1 -> CS2 -> CS1 returns the correct branch without old page cache",
+      "classification": "PASS",
+      "branches": [
+        "CS1",
+        "CS2",
+        "CS1"
+      ],
+      "firstPageCounts": [
+        40,
+        1,
+        40
+      ]
+    }
+  ]
+}

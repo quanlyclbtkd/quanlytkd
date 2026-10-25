@@ -15,7 +15,7 @@ import {
   normalizeYYYYMM,
   formatMonthCompact as _formatMonthCompact,
   getBeltBadge,
-} from './format.js';
+} from "./format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h";
 
 import {
   escapeForAttr,

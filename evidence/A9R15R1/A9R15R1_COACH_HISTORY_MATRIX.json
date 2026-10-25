@@ -1,0 +1,511 @@
+{
+  "phase": "A9R15R1",
+  "runtimeClassification": "PASS",
+  "liveClassification": "LIVE_NOT_VERIFIED",
+  "definition": "AUTHORIZED_CURRENT_HISTORY_COMPLETE in verified fixture scope; not raw lifetime history",
+  "historyAuthority": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55",
+  "defaultPageLimit": 40,
+  "ordering": "documentId ASC; next startAfter(last raw ID)",
+  "timeRangeTested": {
+    "node": "2020-02-29 through 2025-03-22 visible CS1; 2026 tombstone still advances raw cursor",
+    "browserSDK": "85-record multi-year fixture; no artificial quarter-only history limit"
+  },
+  "cache": "Modal pages discarded on close/reset; scoped cursor includes club, uid, profile, branch, authority, session, allowedBranches and request context",
+  "cases": [
+    {
+      "id": "H01",
+      "case": "Coach CS1 reads CS1",
+      "role": "coach",
+      "allowedBranches": [
+        "CS1"
+      ],
+      "activeBranch": "CS1",
+      "profileBranch": "CS2",
+      "historyAuthority": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55",
+      "expected": "Current authority, profile P001, branch CS1 only",
+      "actual": "7 raw records; all authority/profile/branch predicates verified",
+      "classification": "PASS",
+      "evidence": "EXACT_RUNTIME_QUERY.json: results[0]"
+    },
+    {
+      "id": "H02",
+      "case": "Coach CS1 attempts CS2",
+      "role": "coach",
+      "allowedBranches": [
+        "CS1"
+      ],
+      "activeBranch": "CS2",
+      "profileBranch": "CS2",
+      "historyAuthority": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55",
+      "expected": "Server DENY even if client claims CS2",
+      "actual": "permission-denied",
+      "classification": "PASS",
+      "evidence": "EXACT_RUNTIME_QUERY.json: results[1]",
+      "clientAllowedBranches": [
+        "CS1",
+        "CS2"
+      ]
+    },
+    {
+      "id": "H03",
+      "case": "Multi-branch Coach reads CS1",
+      "role": "coach",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "activeBranch": "CS1",
+      "profileBranch": "CS2",
+      "historyAuthority": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55",
+      "expected": "All verified CS1 years via bounded pages",
+      "actual": "86 unique visible records / 87 raw documents / 13 pages of at most 7",
+      "classification": "PASS",
+      "evidence": "EXACT_RUNTIME_QUERY.json: results[2]"
+    },
+    {
+      "id": "H04",
+      "case": "Multi-branch switch to CS2",
+      "role": "coach",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "activeBranch": "CS2",
+      "profileBranch": "CS2",
+      "historyAuthority": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55",
+      "expected": "Only historical CS2 portion",
+      "actual": "1 CS2 record, complete",
+      "classification": "PASS",
+      "evidence": "EXACT_RUNTIME_QUERY.json: results[3]"
+    },
+    {
+      "id": "H05",
+      "case": "CS1 -> CS2 -> CS1",
+      "role": "coach",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "activeBranch": "CS1",
+      "profileBranch": "CS1",
+      "historyAuthority": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55",
+      "expected": "Reset presentation and use correct branch each time",
+      "actual": "First-page counts 40 -> 1 -> 40; no shared page cache",
+      "classification": "PASS",
+      "evidence": "EXTRA_BROWSER_MATRIX.json"
+    },
+    {
+      "id": "H06",
+      "case": "Late CS1 response after branch switch",
+      "role": "coach",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "activeBranch": "CS1 -> CS2",
+      "profileBranch": "CS1",
+      "historyAuthority": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55",
+      "expected": "DROP",
+      "actual": "No stale CS1 DOM rows; runtime stale-context error",
+      "classification": "PASS",
+      "evidence": "BROWSER_CORE.json: results[17]; EXACT_RUNTIME_QUERY.json: results[20]"
+    },
+    {
+      "id": "H07",
+      "case": "Revoked active branch during request",
+      "role": "coach",
+      "allowedBranches": [
+        "CS1"
+      ],
+      "activeBranch": "CS2",
+      "profileBranch": "CS2",
+      "historyAuthority": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55",
+      "expected": "DROP / server DENY",
+      "actual": "UI remains clear; stale client mirror gets permission-denied after server assignment revocation",
+      "classification": "PASS",
+      "evidence": "BROWSER_CORE.json: results[18]; EXACT_RUNTIME_QUERY.json: results[21]",
+      "clientAllowedBranches": [
+        "CS1",
+        "CS2"
+      ]
+    },
+    {
+      "id": "H08",
+      "case": "Current authority cohort",
+      "role": "coach",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "activeBranch": "CS1",
+      "profileBranch": "CS2",
+      "historyAuthority": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55",
+      "expected": "Visible through authorized query",
+      "actual": "Correct cohort exhausts; other authority excluded",
+      "classification": "PASS",
+      "evidence": "SDK10_BROWSER.json; EXACT_RUNTIME_QUERY.json"
+    },
+    {
+      "id": "H09",
+      "case": "Raw legacy history",
+      "role": "coach",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "activeBranch": "CS1",
+      "profileBranch": "CS2",
+      "historyAuthority": "old-untrusted",
+      "expected": "DENY / exclude",
+      "actual": "Old authority query permission-denied; no raw legacy in UI",
+      "classification": "PASS",
+      "evidence": "EXACT_RUNTIME_QUERY.json: results[13]"
+    },
+    {
+      "id": "H10",
+      "case": "Admin legacy audit",
+      "role": "admin",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "activeBranch": "CS1",
+      "profileBranch": "CS2",
+      "historyAuthority": "old-untrusted and current",
+      "expected": "Existing direct read retained",
+      "actual": "Admin reads old-untrusted physical record; current pagination still works",
+      "classification": "PASS",
+      "evidence": "EXACT_RUNTIME_QUERY.json: results[14]"
+    },
+    {
+      "id": "H11",
+      "case": "First bounded page",
+      "role": "coach",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "activeBranch": "CS1",
+      "profileBranch": "CS1",
+      "historyAuthority": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55",
+      "expected": "One query, <=40 documents",
+      "actual": "40 records, rapid double-click shares one query",
+      "classification": "PASS",
+      "evidence": "BROWSER_CORE.json: results[13]"
+    },
+    {
+      "id": "H12",
+      "case": "Next page",
+      "role": "coach",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "activeBranch": "CS1",
+      "profileBranch": "CS1",
+      "historyAuthority": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55",
+      "expected": "Continue raw cursor without duplicate",
+      "actual": "Second page appends next 40 records",
+      "classification": "PASS",
+      "evidence": "BROWSER_CORE.json: results[14]"
+    },
+    {
+      "id": "H13",
+      "case": "Final page",
+      "role": "coach",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "activeBranch": "CS1",
+      "profileBranch": "CS1",
+      "historyAuthority": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55",
+      "expected": "Terminate deterministically",
+      "actual": "85-record UI dataset completes in three pages; no fourth automatic fetch",
+      "classification": "PASS",
+      "evidence": "BROWSER_CORE.json: results[15]"
+    },
+    {
+      "id": "H14",
+      "case": "Empty page",
+      "role": "coach",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "activeBranch": "CS1",
+      "profileBranch": null,
+      "historyAuthority": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55",
+      "expected": "Empty state and complete",
+      "actual": "0 rows and null cursor, no club-wide search",
+      "classification": "PASS",
+      "evidence": "EXACT_RUNTIME_QUERY.json: results[6]"
+    },
+    {
+      "id": "H15",
+      "case": "No duplicate or missing boundary records",
+      "role": "coach",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "activeBranch": "CS1",
+      "profileBranch": "CS2",
+      "historyAuthority": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55",
+      "expected": "Each document ID once",
+      "actual": "Full result exactly equals independently seeded expected ID set, 86 unique",
+      "classification": "PASS",
+      "evidence": "EXACT_RUNTIME_QUERY.json: paginationEvidence"
+    },
+    {
+      "id": "H16",
+      "case": "December -> January",
+      "role": "coach",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "activeBranch": "CS1",
+      "profileBranch": "CS2",
+      "historyAuthority": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55",
+      "expected": "Both boundary dates retained",
+      "actual": "2023-12-31 and 2024-01-01 both present",
+      "classification": "PASS",
+      "evidence": "EXACT_RUNTIME_QUERY.json: results[2]"
+    },
+    {
+      "id": "H17",
+      "case": "Leap years",
+      "role": "coach",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "activeBranch": "CS1",
+      "profileBranch": "CS2",
+      "historyAuthority": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55",
+      "expected": "Correct dates retained",
+      "actual": "2020-02-29 and 2024-02-29 present",
+      "classification": "PASS",
+      "evidence": "EXACT_RUNTIME_QUERY.json: results[2]"
+    },
+    {
+      "id": "H18",
+      "case": "Same day, multiple shifts",
+      "role": "coach",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "activeBranch": "CS1",
+      "profileBranch": "CS2",
+      "historyAuthority": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55",
+      "expected": "Distinct physical records",
+      "actual": "S1 and S2 on 2023-12-31 both present once",
+      "classification": "PASS",
+      "evidence": "EXACT_RUNTIME_QUERY.json: results[2]"
+    },
+    {
+      "id": "H19",
+      "case": "Reload",
+      "role": "coach",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "activeBranch": "CS1",
+      "profileBranch": "CS1",
+      "historyAuthority": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55",
+      "expected": "No stale session cache",
+      "actual": "Reload measurements equal baseline; persisted Journal remains V4",
+      "classification": "PASS",
+      "evidence": "READS_A9R15R1_RAW.json; NATIVE_BROWSER.json"
+    },
+    {
+      "id": "H20",
+      "case": "Relogin generation",
+      "role": "coach",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "activeBranch": "CS1",
+      "profileBranch": "CS1",
+      "historyAuthority": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55",
+      "expected": "In-flight old generation dropped",
+      "actual": "No stale render; next modal opens fresh summary",
+      "classification": "PASS",
+      "evidence": "BROWSER_CORE.json: results[19]"
+    },
+    {
+      "id": "H21",
+      "case": "Two tabs",
+      "role": "coach",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "activeBranch": "CS1 / CS2",
+      "profileBranch": "CS1",
+      "historyAuthority": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55",
+      "expected": "Independent branch/session state",
+      "actual": "Separate Chromium tabs cannot reuse branch presentation/cache",
+      "classification": "PASS",
+      "evidence": "BROWSER_CORE.json: results[26]"
+    },
+    {
+      "id": "H22",
+      "case": "Finance reads in history flow",
+      "role": "coach",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "activeBranch": "CS1",
+      "profileBranch": "CS2",
+      "historyAuthority": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55",
+      "expected": "0",
+      "actual": "0; deliberate Finance probe DENY in separate security test",
+      "classification": "PASS",
+      "evidence": "BROWSER_CORE.json: results[21]; EXACT_RUNTIME_QUERY.json: results[16]"
+    },
+    {
+      "id": "H23",
+      "case": "New history listeners",
+      "role": "coach",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "activeBranch": "CS1",
+      "profileBranch": "CS2",
+      "historyAuthority": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55",
+      "expected": "0",
+      "actual": "onSnapshot delta 0",
+      "classification": "PASS",
+      "evidence": "EXACT_RUNTIME_QUERY.json; A9R15R1_READS_COMPARISON.json"
+    },
+    {
+      "id": "H24",
+      "case": "Exact page sizes 0,1,40,41,80",
+      "role": "coach",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "activeBranch": "CS1",
+      "profileBranch": "CS1",
+      "historyAuthority": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55",
+      "expected": "No omission, duplicate or infinite loop",
+      "actual": "All five sizes terminate with unique record count equal input size",
+      "classification": "PASS",
+      "evidence": "EXTRA_BROWSER_MATRIX.json"
+    },
+    {
+      "id": "H25",
+      "case": "All-tombstone page",
+      "role": "coach",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "activeBranch": "CS1",
+      "profileBranch": null,
+      "historyAuthority": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55",
+      "expected": "Advance raw cursor to following visible page",
+      "actual": "Raw 2 with visible 0, then visible 2, then empty final page",
+      "classification": "PASS",
+      "evidence": "EXACT_RUNTIME_QUERY.json: results[7]"
+    },
+    {
+      "id": "H26",
+      "case": "Network retry with same cursor",
+      "role": "coach",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "activeBranch": "CS1",
+      "profileBranch": "CS1",
+      "historyAuthority": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55",
+      "expected": "Keep prior rows and retry same boundary",
+      "actual": "Retry uses same cursor, 80 unique rows, failed query does not advance",
+      "classification": "PASS",
+      "evidence": "EXTRA_BROWSER_MATRIX.json"
+    },
+    {
+      "id": "H27",
+      "case": "Cursor scope",
+      "role": "coach",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "activeBranch": "CS1",
+      "profileBranch": "CS2",
+      "historyAuthority": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55",
+      "expected": "Reject branch/session mismatch before query",
+      "actual": "attendance/history-cursor-scope; authority bound inside runtime scope",
+      "classification": "PASS",
+      "evidence": "EXACT_RUNTIME_QUERY.json: results[5]"
+    },
+    {
+      "id": "H28",
+      "case": "Student transfer",
+      "role": "coach",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "activeBranch": "CS1",
+      "profileBranch": "CS2",
+      "historyAuthority": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55",
+      "expected": "Historical branch remains original",
+      "actual": "CS1 history stays CS1 while current profile is CS2",
+      "classification": "PASS",
+      "evidence": "EXACT_RUNTIME_QUERY.json: results[4]"
+    },
+    {
+      "id": "H29",
+      "case": "Same display names",
+      "role": "coach",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "activeBranch": "CS1",
+      "profileBranch": "CS2",
+      "historyAuthority": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55",
+      "expected": "Use immutable profile ID",
+      "actual": "P001 and P002 never merge",
+      "classification": "PASS",
+      "evidence": "EXACT_RUNTIME_QUERY.json: results[8]"
+    },
+    {
+      "id": "H30",
+      "case": "Mobile/desktop history layout",
+      "role": "coach",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "activeBranch": "CS1",
+      "profileBranch": "CS1",
+      "historyAuthority": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55",
+      "expected": "Readable without horizontal overflow",
+      "actual": "320,390,767,1024px pass",
+      "classification": "PASS",
+      "evidence": "BROWSER_CORE.json: results[22..25]"
+    }
+  ],
+  "legacy": {
+    "policyClassification": "PASS",
+    "realCohortAttestation": "LIVE_NOT_VERIFIED",
+    "state": "LEGACY_HISTORY_REQUIRES_ADMIN_ATTESTATION",
+    "allLifetimeHistoryComplete": false,
+    "noAutomaticMigration": true
+  },
+  "cloudIndexReadiness": "ENV_BLOCKED",
+  "readsComparison": "A9R15R1_READS_COMPARISON.json",
+  "scopeCaution": "Node Emulator 86 visible rows and browser/SDK 85 visible rows are separate independently seeded fixtures, not real club counts"
+}

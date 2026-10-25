@@ -1,3 +1,4 @@
+import {canonicalDependency} from './a9r16/canonical-test-import.mjs';
 // A6 retires duplicate legacy Coach account readers; preserve the original read caps.
 import fs from 'fs';import path from 'path';import {pathToFileURL} from 'url';import vm from 'vm';import {spawnSync} from 'child_process';
 const read=f=>fs.readFileSync(f,'utf8');let pass=0,fail=0,seq=0;const check=(n,o,d='')=>{if(o){pass++;console.log('✅',n)}else{fail++;console.error('❌',n,d)}};const tick=()=>new Promise(r=>setTimeout(r,0));
@@ -26,7 +27,7 @@ window.userRole='viewer';r=window.guardFinancialWriteIntent('tuition.transaction
 r=window.guardFinancialWriteIntent('tuition.transactionForm',{amount:0});check('20. payment amount zero blocked by real guard',r.ok===false);r=window.guardFinancialWriteIntent('tuition.transactionForm',{amount:Infinity});check('21. non-finite amount blocked by real guard',r.ok===false);
 
 vm.runInThisContext(read('js/core/tuitionDebtCanonical.js'),{filename:'tuitionDebtCanonical.js'});
-const {FinanceService}=await import(pathToFileURL(path.resolve('js/services/finance.service.js')).href+'?v=qr-v11r5-ack-20261021');window.FinanceService=FinanceService;
+const {FinanceService}=await import(canonicalDependency('js/modules/finance.js','FinanceService'));window.FinanceService=FinanceService;
 let commits=0,addTx=0,localCommits=0,audits=0,auditMode='fast';FinanceService.commitAtomicWritePlan=async plan=>{commits++;return{committed:1,txIds:['TX1']}};FinanceService.addTransaction=async()=>{addTx++;return'TX'};FinanceService.addFeeAuditSilent=(data)=>{audits++;if(auditMode==='never')return new Promise(()=>{});if(auditMode==='reject')return Promise.reject(new Error('audit fail'));return Promise.resolve({ok:true})};
 window.TuitionCommandBoundary={runInProfileTuitionMutationLane:async(_o,fn)=>fn(),runInProfileTuitionMutationLanes:async(_o,fn)=>fn(),commitLocalTuitionPaymentState({studentName,paidUntil,paidMonths}){localCommits++;const p=window.__store.profiles[studentName]||{};window.__store.profiles[studentName]={...p,paidUntil,paidMonths:Array.from(new Set([...(p.paidMonths||[]),...paidMonths]))}}};
 const Finance=await import(pathToFileURL(path.resolve('js/modules/finance.js')).href+`?d1c=${++seq}`);Finance.initFinance();

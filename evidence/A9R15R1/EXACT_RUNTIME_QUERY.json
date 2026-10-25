@@ -1,0 +1,1450 @@
+{
+  "kind": "A9R15_EXACT_RUNTIME_QUERY_EMULATOR",
+  "classification": "PASS",
+  "projectId": "demo-a9r15-history",
+  "rulesSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+  "historyAuthority": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55",
+  "queryShape": {
+    "path": "clubs/{clubId}/attendance",
+    "where": [
+      "profileId == immutableProfileId",
+      "historyAuthority == currentAuthority",
+      "branch == activeAuthorizedBranch"
+    ],
+    "orderBy": "__name__ ASC",
+    "limit": "1..40",
+    "cursor": "scoped startAfter(documentId)"
+  },
+  "indexValidation": "No index error from Emulator; production index readiness is not established by Emulator",
+  "results": [
+    {
+      "title": "CS1-only Coach: exact runtime first page has current authority, profile and branch",
+      "classification": "PASS"
+    },
+    {
+      "title": "CS1-only Coach cannot forge CS2 locally to pass server ACL",
+      "classification": "PASS"
+    },
+    {
+      "title": "Multi-branch Coach exhausts all verified years without gaps or duplicate boundaries",
+      "classification": "PASS"
+    },
+    {
+      "title": "CS2 switch reads only historical CS2 portion of the same immutable profile",
+      "classification": "PASS"
+    },
+    {
+      "title": "History branch at attendance remains CS1 after current profile moves to CS2",
+      "classification": "PASS"
+    },
+    {
+      "title": "Cursor cannot cross branch, authority or session generation",
+      "classification": "PASS"
+    },
+    {
+      "title": "Empty profile history ends successfully without searching the club",
+      "classification": "PASS"
+    },
+    {
+      "title": "An all-tombstone page advances by raw cursor without hiding the following visible page",
+      "classification": "PASS"
+    },
+    {
+      "title": "Same display names never merge P001 and P002 identities",
+      "classification": "PASS"
+    },
+    {
+      "title": "Page size above 40 or missing branch is rejected before any query",
+      "classification": "PASS"
+    },
+    {
+      "title": "History cannot omit or forge a profile path scope before querying",
+      "classification": "PASS"
+    },
+    {
+      "title": "Query without current historyAuthority is DENY, even with profile and branch",
+      "classification": "PASS"
+    },
+    {
+      "title": "Query without branch is DENY, even with profile and authority",
+      "classification": "PASS"
+    },
+    {
+      "title": "Raw legacy history query remains DENY for Coach",
+      "classification": "PASS"
+    },
+    {
+      "title": "Admin retains exact legacy inspection and current-authority pagination",
+      "classification": "PASS"
+    },
+    {
+      "title": "Cross-club Coach runtime query is DENY",
+      "classification": "PASS"
+    },
+    {
+      "title": "Coach Finance read remains DENY",
+      "classification": "PASS"
+    },
+    {
+      "title": "Coach physical Attendance delete remains DENY",
+      "classification": "PASS"
+    },
+    {
+      "title": "Forged branch/profile write is DENY by canonical profile guard",
+      "classification": "PASS"
+    },
+    {
+      "title": "A late response is rejected after allowedBranches changes in place",
+      "classification": "PASS"
+    },
+    {
+      "title": "A late response is rejected after CS1 to CS2 switch",
+      "classification": "PASS"
+    },
+    {
+      "title": "Server-revoked assignment denies the same runtime query despite stale client mirror",
+      "classification": "PASS"
+    }
+  ],
+  "queries": [
+    {
+      "case": "CS1-only Coach: exact runtime first page has current authority, profile and branch",
+      "query": {
+        "path": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+        "constraints": [
+          {
+            "type": "where",
+            "field": "profileId",
+            "op": "==",
+            "value": "P001"
+          },
+          {
+            "type": "where",
+            "field": "historyAuthority",
+            "op": "==",
+            "value": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+          },
+          {
+            "type": "where",
+            "field": "branch",
+            "op": "==",
+            "value": "CS1"
+          },
+          {
+            "type": "orderBy",
+            "field": "__name__",
+            "direction": "asc"
+          },
+          {
+            "type": "limit",
+            "value": 7
+          }
+        ]
+      },
+      "role": "coach",
+      "uid": "one",
+      "activeBranch": "CS1",
+      "allowedBranches": [
+        "CS1"
+      ],
+      "sdkVersion": "12.15.0",
+      "documents": 7,
+      "success": true
+    },
+    {
+      "case": "CS1-only Coach cannot forge CS2 locally to pass server ACL",
+      "query": {
+        "path": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+        "constraints": [
+          {
+            "type": "where",
+            "field": "profileId",
+            "op": "==",
+            "value": "P001"
+          },
+          {
+            "type": "where",
+            "field": "historyAuthority",
+            "op": "==",
+            "value": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+          },
+          {
+            "type": "where",
+            "field": "branch",
+            "op": "==",
+            "value": "CS2"
+          },
+          {
+            "type": "orderBy",
+            "field": "__name__",
+            "direction": "asc"
+          },
+          {
+            "type": "limit",
+            "value": 7
+          }
+        ]
+      },
+      "role": "coach",
+      "uid": "one",
+      "activeBranch": "CS2",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "sdkVersion": "12.15.0",
+      "success": false,
+      "errorCode": "permission-denied"
+    },
+    {
+      "case": "Multi-branch Coach exhausts all verified years without gaps or duplicate boundaries",
+      "query": {
+        "path": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+        "constraints": [
+          {
+            "type": "where",
+            "field": "profileId",
+            "op": "==",
+            "value": "P001"
+          },
+          {
+            "type": "where",
+            "field": "historyAuthority",
+            "op": "==",
+            "value": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+          },
+          {
+            "type": "where",
+            "field": "branch",
+            "op": "==",
+            "value": "CS1"
+          },
+          {
+            "type": "orderBy",
+            "field": "__name__",
+            "direction": "asc"
+          },
+          {
+            "type": "limit",
+            "value": 7
+          }
+        ]
+      },
+      "role": "coach",
+      "uid": "multi",
+      "activeBranch": "CS1",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "sdkVersion": "12.15.0",
+      "documents": 7,
+      "success": true
+    },
+    {
+      "case": "Multi-branch Coach exhausts all verified years without gaps or duplicate boundaries",
+      "query": {
+        "path": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+        "constraints": [
+          {
+            "type": "where",
+            "field": "profileId",
+            "op": "==",
+            "value": "P001"
+          },
+          {
+            "type": "where",
+            "field": "historyAuthority",
+            "op": "==",
+            "value": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+          },
+          {
+            "type": "where",
+            "field": "branch",
+            "op": "==",
+            "value": "CS1"
+          },
+          {
+            "type": "orderBy",
+            "field": "__name__",
+            "direction": "asc"
+          },
+          {
+            "type": "limit",
+            "value": 7
+          },
+          {
+            "type": "startAfter",
+            "value": "P001_2025-01-02_S1"
+          }
+        ]
+      },
+      "role": "coach",
+      "uid": "multi",
+      "activeBranch": "CS1",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "sdkVersion": "12.15.0",
+      "documents": 7,
+      "success": true
+    },
+    {
+      "case": "Multi-branch Coach exhausts all verified years without gaps or duplicate boundaries",
+      "query": {
+        "path": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+        "constraints": [
+          {
+            "type": "where",
+            "field": "profileId",
+            "op": "==",
+            "value": "P001"
+          },
+          {
+            "type": "where",
+            "field": "historyAuthority",
+            "op": "==",
+            "value": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+          },
+          {
+            "type": "where",
+            "field": "branch",
+            "op": "==",
+            "value": "CS1"
+          },
+          {
+            "type": "orderBy",
+            "field": "__name__",
+            "direction": "asc"
+          },
+          {
+            "type": "limit",
+            "value": 7
+          },
+          {
+            "type": "startAfter",
+            "value": "P001_2025-01-09_S1"
+          }
+        ]
+      },
+      "role": "coach",
+      "uid": "multi",
+      "activeBranch": "CS1",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "sdkVersion": "12.15.0",
+      "documents": 7,
+      "success": true
+    },
+    {
+      "case": "Multi-branch Coach exhausts all verified years without gaps or duplicate boundaries",
+      "query": {
+        "path": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+        "constraints": [
+          {
+            "type": "where",
+            "field": "profileId",
+            "op": "==",
+            "value": "P001"
+          },
+          {
+            "type": "where",
+            "field": "historyAuthority",
+            "op": "==",
+            "value": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+          },
+          {
+            "type": "where",
+            "field": "branch",
+            "op": "==",
+            "value": "CS1"
+          },
+          {
+            "type": "orderBy",
+            "field": "__name__",
+            "direction": "asc"
+          },
+          {
+            "type": "limit",
+            "value": 7
+          },
+          {
+            "type": "startAfter",
+            "value": "P001_2025-01-16_S1"
+          }
+        ]
+      },
+      "role": "coach",
+      "uid": "multi",
+      "activeBranch": "CS1",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "sdkVersion": "12.15.0",
+      "documents": 7,
+      "success": true
+    },
+    {
+      "case": "Multi-branch Coach exhausts all verified years without gaps or duplicate boundaries",
+      "query": {
+        "path": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+        "constraints": [
+          {
+            "type": "where",
+            "field": "profileId",
+            "op": "==",
+            "value": "P001"
+          },
+          {
+            "type": "where",
+            "field": "historyAuthority",
+            "op": "==",
+            "value": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+          },
+          {
+            "type": "where",
+            "field": "branch",
+            "op": "==",
+            "value": "CS1"
+          },
+          {
+            "type": "orderBy",
+            "field": "__name__",
+            "direction": "asc"
+          },
+          {
+            "type": "limit",
+            "value": 7
+          },
+          {
+            "type": "startAfter",
+            "value": "P001_2025-01-23_S1"
+          }
+        ]
+      },
+      "role": "coach",
+      "uid": "multi",
+      "activeBranch": "CS1",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "sdkVersion": "12.15.0",
+      "documents": 7,
+      "success": true
+    },
+    {
+      "case": "Multi-branch Coach exhausts all verified years without gaps or duplicate boundaries",
+      "query": {
+        "path": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+        "constraints": [
+          {
+            "type": "where",
+            "field": "profileId",
+            "op": "==",
+            "value": "P001"
+          },
+          {
+            "type": "where",
+            "field": "historyAuthority",
+            "op": "==",
+            "value": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+          },
+          {
+            "type": "where",
+            "field": "branch",
+            "op": "==",
+            "value": "CS1"
+          },
+          {
+            "type": "orderBy",
+            "field": "__name__",
+            "direction": "asc"
+          },
+          {
+            "type": "limit",
+            "value": 7
+          },
+          {
+            "type": "startAfter",
+            "value": "P001_2025-01-30_S1"
+          }
+        ]
+      },
+      "role": "coach",
+      "uid": "multi",
+      "activeBranch": "CS1",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "sdkVersion": "12.15.0",
+      "documents": 7,
+      "success": true
+    },
+    {
+      "case": "Multi-branch Coach exhausts all verified years without gaps or duplicate boundaries",
+      "query": {
+        "path": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+        "constraints": [
+          {
+            "type": "where",
+            "field": "profileId",
+            "op": "==",
+            "value": "P001"
+          },
+          {
+            "type": "where",
+            "field": "historyAuthority",
+            "op": "==",
+            "value": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+          },
+          {
+            "type": "where",
+            "field": "branch",
+            "op": "==",
+            "value": "CS1"
+          },
+          {
+            "type": "orderBy",
+            "field": "__name__",
+            "direction": "asc"
+          },
+          {
+            "type": "limit",
+            "value": 7
+          },
+          {
+            "type": "startAfter",
+            "value": "P001_2025-02-06_S1"
+          }
+        ]
+      },
+      "role": "coach",
+      "uid": "multi",
+      "activeBranch": "CS1",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "sdkVersion": "12.15.0",
+      "documents": 7,
+      "success": true
+    },
+    {
+      "case": "Multi-branch Coach exhausts all verified years without gaps or duplicate boundaries",
+      "query": {
+        "path": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+        "constraints": [
+          {
+            "type": "where",
+            "field": "profileId",
+            "op": "==",
+            "value": "P001"
+          },
+          {
+            "type": "where",
+            "field": "historyAuthority",
+            "op": "==",
+            "value": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+          },
+          {
+            "type": "where",
+            "field": "branch",
+            "op": "==",
+            "value": "CS1"
+          },
+          {
+            "type": "orderBy",
+            "field": "__name__",
+            "direction": "asc"
+          },
+          {
+            "type": "limit",
+            "value": 7
+          },
+          {
+            "type": "startAfter",
+            "value": "P001_2025-02-13_S1"
+          }
+        ]
+      },
+      "role": "coach",
+      "uid": "multi",
+      "activeBranch": "CS1",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "sdkVersion": "12.15.0",
+      "documents": 7,
+      "success": true
+    },
+    {
+      "case": "Multi-branch Coach exhausts all verified years without gaps or duplicate boundaries",
+      "query": {
+        "path": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+        "constraints": [
+          {
+            "type": "where",
+            "field": "profileId",
+            "op": "==",
+            "value": "P001"
+          },
+          {
+            "type": "where",
+            "field": "historyAuthority",
+            "op": "==",
+            "value": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+          },
+          {
+            "type": "where",
+            "field": "branch",
+            "op": "==",
+            "value": "CS1"
+          },
+          {
+            "type": "orderBy",
+            "field": "__name__",
+            "direction": "asc"
+          },
+          {
+            "type": "limit",
+            "value": 7
+          },
+          {
+            "type": "startAfter",
+            "value": "P001_2025-02-20_S1"
+          }
+        ]
+      },
+      "role": "coach",
+      "uid": "multi",
+      "activeBranch": "CS1",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "sdkVersion": "12.15.0",
+      "documents": 7,
+      "success": true
+    },
+    {
+      "case": "Multi-branch Coach exhausts all verified years without gaps or duplicate boundaries",
+      "query": {
+        "path": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+        "constraints": [
+          {
+            "type": "where",
+            "field": "profileId",
+            "op": "==",
+            "value": "P001"
+          },
+          {
+            "type": "where",
+            "field": "historyAuthority",
+            "op": "==",
+            "value": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+          },
+          {
+            "type": "where",
+            "field": "branch",
+            "op": "==",
+            "value": "CS1"
+          },
+          {
+            "type": "orderBy",
+            "field": "__name__",
+            "direction": "asc"
+          },
+          {
+            "type": "limit",
+            "value": 7
+          },
+          {
+            "type": "startAfter",
+            "value": "P001_2025-02-27_S1"
+          }
+        ]
+      },
+      "role": "coach",
+      "uid": "multi",
+      "activeBranch": "CS1",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "sdkVersion": "12.15.0",
+      "documents": 7,
+      "success": true
+    },
+    {
+      "case": "Multi-branch Coach exhausts all verified years without gaps or duplicate boundaries",
+      "query": {
+        "path": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+        "constraints": [
+          {
+            "type": "where",
+            "field": "profileId",
+            "op": "==",
+            "value": "P001"
+          },
+          {
+            "type": "where",
+            "field": "historyAuthority",
+            "op": "==",
+            "value": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+          },
+          {
+            "type": "where",
+            "field": "branch",
+            "op": "==",
+            "value": "CS1"
+          },
+          {
+            "type": "orderBy",
+            "field": "__name__",
+            "direction": "asc"
+          },
+          {
+            "type": "limit",
+            "value": 7
+          },
+          {
+            "type": "startAfter",
+            "value": "P001_2025-03-06_S1"
+          }
+        ]
+      },
+      "role": "coach",
+      "uid": "multi",
+      "activeBranch": "CS1",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "sdkVersion": "12.15.0",
+      "documents": 7,
+      "success": true
+    },
+    {
+      "case": "Multi-branch Coach exhausts all verified years without gaps or duplicate boundaries",
+      "query": {
+        "path": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+        "constraints": [
+          {
+            "type": "where",
+            "field": "profileId",
+            "op": "==",
+            "value": "P001"
+          },
+          {
+            "type": "where",
+            "field": "historyAuthority",
+            "op": "==",
+            "value": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+          },
+          {
+            "type": "where",
+            "field": "branch",
+            "op": "==",
+            "value": "CS1"
+          },
+          {
+            "type": "orderBy",
+            "field": "__name__",
+            "direction": "asc"
+          },
+          {
+            "type": "limit",
+            "value": 7
+          },
+          {
+            "type": "startAfter",
+            "value": "P001_2025-03-13_S1"
+          }
+        ]
+      },
+      "role": "coach",
+      "uid": "multi",
+      "activeBranch": "CS1",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "sdkVersion": "12.15.0",
+      "documents": 7,
+      "success": true
+    },
+    {
+      "case": "Multi-branch Coach exhausts all verified years without gaps or duplicate boundaries",
+      "query": {
+        "path": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+        "constraints": [
+          {
+            "type": "where",
+            "field": "profileId",
+            "op": "==",
+            "value": "P001"
+          },
+          {
+            "type": "where",
+            "field": "historyAuthority",
+            "op": "==",
+            "value": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+          },
+          {
+            "type": "where",
+            "field": "branch",
+            "op": "==",
+            "value": "CS1"
+          },
+          {
+            "type": "orderBy",
+            "field": "__name__",
+            "direction": "asc"
+          },
+          {
+            "type": "limit",
+            "value": 7
+          },
+          {
+            "type": "startAfter",
+            "value": "P001_2025-03-20_S1"
+          }
+        ]
+      },
+      "role": "coach",
+      "uid": "multi",
+      "activeBranch": "CS1",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "sdkVersion": "12.15.0",
+      "documents": 3,
+      "success": true
+    },
+    {
+      "case": "CS2 switch reads only historical CS2 portion of the same immutable profile",
+      "query": {
+        "path": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+        "constraints": [
+          {
+            "type": "where",
+            "field": "profileId",
+            "op": "==",
+            "value": "P001"
+          },
+          {
+            "type": "where",
+            "field": "historyAuthority",
+            "op": "==",
+            "value": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+          },
+          {
+            "type": "where",
+            "field": "branch",
+            "op": "==",
+            "value": "CS2"
+          },
+          {
+            "type": "orderBy",
+            "field": "__name__",
+            "direction": "asc"
+          },
+          {
+            "type": "limit",
+            "value": 7
+          }
+        ]
+      },
+      "role": "coach",
+      "uid": "multi",
+      "activeBranch": "CS2",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "sdkVersion": "12.15.0",
+      "documents": 1,
+      "success": true
+    },
+    {
+      "case": "History branch at attendance remains CS1 after current profile moves to CS2",
+      "query": {
+        "path": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+        "constraints": [
+          {
+            "type": "where",
+            "field": "profileId",
+            "op": "==",
+            "value": "P001"
+          },
+          {
+            "type": "where",
+            "field": "historyAuthority",
+            "op": "==",
+            "value": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+          },
+          {
+            "type": "where",
+            "field": "branch",
+            "op": "==",
+            "value": "CS1"
+          },
+          {
+            "type": "orderBy",
+            "field": "__name__",
+            "direction": "asc"
+          },
+          {
+            "type": "limit",
+            "value": 7
+          }
+        ]
+      },
+      "role": "coach",
+      "uid": "multi",
+      "activeBranch": "CS1",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "sdkVersion": "12.15.0",
+      "documents": 7,
+      "success": true
+    },
+    {
+      "case": "Cursor cannot cross branch, authority or session generation",
+      "query": {
+        "path": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+        "constraints": [
+          {
+            "type": "where",
+            "field": "profileId",
+            "op": "==",
+            "value": "P001"
+          },
+          {
+            "type": "where",
+            "field": "historyAuthority",
+            "op": "==",
+            "value": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+          },
+          {
+            "type": "where",
+            "field": "branch",
+            "op": "==",
+            "value": "CS1"
+          },
+          {
+            "type": "orderBy",
+            "field": "__name__",
+            "direction": "asc"
+          },
+          {
+            "type": "limit",
+            "value": 7
+          }
+        ]
+      },
+      "role": "coach",
+      "uid": "multi",
+      "activeBranch": "CS1",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "sdkVersion": "12.15.0",
+      "documents": 7,
+      "success": true
+    },
+    {
+      "case": "Empty profile history ends successfully without searching the club",
+      "query": {
+        "path": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+        "constraints": [
+          {
+            "type": "where",
+            "field": "profileId",
+            "op": "==",
+            "value": "EMPTY"
+          },
+          {
+            "type": "where",
+            "field": "historyAuthority",
+            "op": "==",
+            "value": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+          },
+          {
+            "type": "where",
+            "field": "branch",
+            "op": "==",
+            "value": "CS1"
+          },
+          {
+            "type": "orderBy",
+            "field": "__name__",
+            "direction": "asc"
+          },
+          {
+            "type": "limit",
+            "value": 40
+          }
+        ]
+      },
+      "role": "coach",
+      "uid": "multi",
+      "activeBranch": "CS1",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "sdkVersion": "12.15.0",
+      "documents": 0,
+      "success": true
+    },
+    {
+      "case": "An all-tombstone page advances by raw cursor without hiding the following visible page",
+      "query": {
+        "path": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+        "constraints": [
+          {
+            "type": "where",
+            "field": "profileId",
+            "op": "==",
+            "value": "TOMBSTONES"
+          },
+          {
+            "type": "where",
+            "field": "historyAuthority",
+            "op": "==",
+            "value": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+          },
+          {
+            "type": "where",
+            "field": "branch",
+            "op": "==",
+            "value": "CS1"
+          },
+          {
+            "type": "orderBy",
+            "field": "__name__",
+            "direction": "asc"
+          },
+          {
+            "type": "limit",
+            "value": 2
+          }
+        ]
+      },
+      "role": "coach",
+      "uid": "multi",
+      "activeBranch": "CS1",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "sdkVersion": "12.15.0",
+      "documents": 2,
+      "success": true
+    },
+    {
+      "case": "An all-tombstone page advances by raw cursor without hiding the following visible page",
+      "query": {
+        "path": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+        "constraints": [
+          {
+            "type": "where",
+            "field": "profileId",
+            "op": "==",
+            "value": "TOMBSTONES"
+          },
+          {
+            "type": "where",
+            "field": "historyAuthority",
+            "op": "==",
+            "value": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+          },
+          {
+            "type": "where",
+            "field": "branch",
+            "op": "==",
+            "value": "CS1"
+          },
+          {
+            "type": "orderBy",
+            "field": "__name__",
+            "direction": "asc"
+          },
+          {
+            "type": "limit",
+            "value": 2
+          },
+          {
+            "type": "startAfter",
+            "value": "TOMBSTONES_2024-01-02_S1"
+          }
+        ]
+      },
+      "role": "coach",
+      "uid": "multi",
+      "activeBranch": "CS1",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "sdkVersion": "12.15.0",
+      "documents": 2,
+      "success": true
+    },
+    {
+      "case": "An all-tombstone page advances by raw cursor without hiding the following visible page",
+      "query": {
+        "path": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+        "constraints": [
+          {
+            "type": "where",
+            "field": "profileId",
+            "op": "==",
+            "value": "TOMBSTONES"
+          },
+          {
+            "type": "where",
+            "field": "historyAuthority",
+            "op": "==",
+            "value": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+          },
+          {
+            "type": "where",
+            "field": "branch",
+            "op": "==",
+            "value": "CS1"
+          },
+          {
+            "type": "orderBy",
+            "field": "__name__",
+            "direction": "asc"
+          },
+          {
+            "type": "limit",
+            "value": 2
+          },
+          {
+            "type": "startAfter",
+            "value": "TOMBSTONES_2024-01-04_S1"
+          }
+        ]
+      },
+      "role": "coach",
+      "uid": "multi",
+      "activeBranch": "CS1",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "sdkVersion": "12.15.0",
+      "documents": 0,
+      "success": true
+    },
+    {
+      "case": "Same display names never merge P001 and P002 identities",
+      "query": {
+        "path": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+        "constraints": [
+          {
+            "type": "where",
+            "field": "profileId",
+            "op": "==",
+            "value": "P002"
+          },
+          {
+            "type": "where",
+            "field": "historyAuthority",
+            "op": "==",
+            "value": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+          },
+          {
+            "type": "where",
+            "field": "branch",
+            "op": "==",
+            "value": "CS1"
+          },
+          {
+            "type": "orderBy",
+            "field": "__name__",
+            "direction": "asc"
+          },
+          {
+            "type": "limit",
+            "value": 40
+          }
+        ]
+      },
+      "role": "coach",
+      "uid": "multi",
+      "activeBranch": "CS1",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "sdkVersion": "12.15.0",
+      "documents": 1,
+      "success": true
+    },
+    {
+      "case": "Admin retains exact legacy inspection and current-authority pagination",
+      "query": {
+        "path": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+        "constraints": [
+          {
+            "type": "where",
+            "field": "profileId",
+            "op": "==",
+            "value": "P001"
+          },
+          {
+            "type": "where",
+            "field": "historyAuthority",
+            "op": "==",
+            "value": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+          },
+          {
+            "type": "where",
+            "field": "branch",
+            "op": "==",
+            "value": "CS1"
+          },
+          {
+            "type": "orderBy",
+            "field": "__name__",
+            "direction": "asc"
+          },
+          {
+            "type": "limit",
+            "value": 7
+          }
+        ]
+      },
+      "role": "admin",
+      "uid": "admin",
+      "activeBranch": "CS1",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "sdkVersion": "12.15.0",
+      "documents": 7,
+      "success": true
+    },
+    {
+      "case": "Cross-club Coach runtime query is DENY",
+      "query": {
+        "path": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+        "constraints": [
+          {
+            "type": "where",
+            "field": "profileId",
+            "op": "==",
+            "value": "P001"
+          },
+          {
+            "type": "where",
+            "field": "historyAuthority",
+            "op": "==",
+            "value": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+          },
+          {
+            "type": "where",
+            "field": "branch",
+            "op": "==",
+            "value": "CS1"
+          },
+          {
+            "type": "orderBy",
+            "field": "__name__",
+            "direction": "asc"
+          },
+          {
+            "type": "limit",
+            "value": 7
+          }
+        ]
+      },
+      "role": "coach",
+      "uid": "outsider",
+      "activeBranch": "CS1",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "sdkVersion": "12.15.0",
+      "success": false,
+      "errorCode": "permission-denied"
+    },
+    {
+      "case": "A late response is rejected after allowedBranches changes in place",
+      "query": {
+        "path": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+        "constraints": [
+          {
+            "type": "where",
+            "field": "profileId",
+            "op": "==",
+            "value": "P001"
+          },
+          {
+            "type": "where",
+            "field": "historyAuthority",
+            "op": "==",
+            "value": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+          },
+          {
+            "type": "where",
+            "field": "branch",
+            "op": "==",
+            "value": "CS1"
+          },
+          {
+            "type": "orderBy",
+            "field": "__name__",
+            "direction": "asc"
+          },
+          {
+            "type": "limit",
+            "value": 7
+          }
+        ]
+      },
+      "role": "coach",
+      "uid": "multi",
+      "activeBranch": "CS1",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "sdkVersion": "12.15.0",
+      "documents": 7,
+      "success": true
+    },
+    {
+      "case": "A late response is rejected after CS1 to CS2 switch",
+      "query": {
+        "path": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+        "constraints": [
+          {
+            "type": "where",
+            "field": "profileId",
+            "op": "==",
+            "value": "P001"
+          },
+          {
+            "type": "where",
+            "field": "historyAuthority",
+            "op": "==",
+            "value": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+          },
+          {
+            "type": "where",
+            "field": "branch",
+            "op": "==",
+            "value": "CS1"
+          },
+          {
+            "type": "orderBy",
+            "field": "__name__",
+            "direction": "asc"
+          },
+          {
+            "type": "limit",
+            "value": 7
+          }
+        ]
+      },
+      "role": "coach",
+      "uid": "multi",
+      "activeBranch": "CS1",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "sdkVersion": "12.15.0",
+      "documents": 7,
+      "success": true
+    },
+    {
+      "case": "Server-revoked assignment denies the same runtime query despite stale client mirror",
+      "query": {
+        "path": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+        "constraints": [
+          {
+            "type": "where",
+            "field": "profileId",
+            "op": "==",
+            "value": "P001"
+          },
+          {
+            "type": "where",
+            "field": "historyAuthority",
+            "op": "==",
+            "value": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+          },
+          {
+            "type": "where",
+            "field": "branch",
+            "op": "==",
+            "value": "CS2"
+          },
+          {
+            "type": "orderBy",
+            "field": "__name__",
+            "direction": "asc"
+          },
+          {
+            "type": "limit",
+            "value": 7
+          }
+        ]
+      },
+      "role": "coach",
+      "uid": "multi",
+      "activeBranch": "CS2",
+      "allowedBranches": [
+        "CS1",
+        "CS2"
+      ],
+      "sdkVersion": "12.15.0",
+      "success": false,
+      "errorCode": "permission-denied"
+    }
+  ],
+  "paginationEvidence": {
+    "visibleRecords": 86,
+    "rawPageSizes": [
+      7,
+      7,
+      7,
+      7,
+      7,
+      7,
+      7,
+      7,
+      7,
+      7,
+      7,
+      7,
+      3
+    ],
+    "pages": 13,
+    "uniqueRecords": 86,
+    "firstId": "P001_2020-02-29_S1",
+    "lastId": "P001_2025-03-22_S1"
+  },
+  "attributedDocumentReads": 123,
+  "onSnapshotDelta": 0
+}

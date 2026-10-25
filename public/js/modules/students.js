@@ -27,11 +27,110 @@
  * ────────────────────────────────────────────────────────────────
  */
 
-import { getLocalToday, formatDate, formatMonth, formatMonthCompact, addMonthsToYYYYMM } from '../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
+import { getLocalToday, formatDate, formatMonth, formatMonthCompact, addMonthsToYYYYMM } from "../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h";
 import { escapeHtml } from '../utils/helpers.js';
-import { StudentService } from "../services/students.service.js?v=qr-v11r6-a9r13-member-history-diagnostics-20261024";
-import { InventoryService } from '../services/inventory.service.js?v=long-term-production-stability-20260917-v5u6h8r2';
-import { FinanceService } from '../services/finance.service.js?v=qr-v11r5-ack-20261021';
+import { StudentService } from "../services/students.service.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+import { InventoryService } from "../services/inventory.service.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1";
+import { FinanceService } from "../services/finance.service.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+import { trainingBranch, trainingDaysValid, shiftAuthority, inspectTrainingRegistration, registrationMessage, assertTrainingRegistration, auditTrainingRegistrations } from "../core/trainingRegistration.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+
+const _registrationForms = new Map();
+const _registrationContext = () => JSON.stringify([window.__store?.clubId,window.__verifiedAuthContextState?.uid,window.__verifiedAuthContextState?.generation]);
+function _registrationValue(prefix) {
+    const state = _registrationForms.get(prefix);
+    return {branch:document.getElementById(prefix + '_branch')?.value,
+        trainingShiftId:document.getElementById(prefix + '_shift')?.value || '',
+        trainingDays:state?.daysInvalid ? state.original.trainingDays : Array.from(document.querySelectorAll('.' + prefix + '_trainingDay:checked')).map(cb => Number(cb.value))};
+}
+function _registrationWarning(prefix, message) {
+    const el = document.getElementById(prefix + '_registration_warning');
+    if (el) {el.textContent = message;el.hidden = !message;}
+}
+function _renderRegistrationShifts(prefix, selectedId) {
+    const state = _registrationForms.get(prefix),select = document.getElementById(prefix + '_shift');
+    if (!state || !select) return;
+    const shifts = window._getClubShifts?.() || [],branch = trainingBranch(document.getElementById(prefix + '_branch')?.value);
+    const result = inspectTrainingRegistration({branch,trainingShiftId:selectedId},shifts);
+    state.pending = !!result.issues.length;
+    state.invalidShiftId = state.pending ? selectedId : null;
+    state.pendingResult = result;
+    select.replaceChildren(new Option('-- Không gán ca (tùy chọn) --',''));
+    for (const s of shifts) if (shiftAuthority(s).resolved && shiftAuthority(s).branch === branch) {
+        const _t = s.timeStart && s.timeEnd ? ' (' + s.timeStart + '–' + s.timeEnd + ')' : '';
+        select.add(new Option(String(s.name || '') + _t,String(s.id || '')));
+    }
+    if (state.pending) {
+        const invalid = new Option('-- Ca cũ không hợp lệ: chọn lại --','__invalid_registration__');
+        invalid.disabled = true;select.add(invalid);select.value = invalid.value;
+    } else select.value = selectedId || '';
+    _registrationWarning(prefix,state.pending ? registrationMessage(result) : (state.daysInvalid ? registrationMessage({result:'TRAINING_DAYS_INVALID'}) : ''));
+}
+function _openRegistrationForm(prefix, profile = {}) {
+    const state = {original:profile,context:_registrationContext(),ready:false,pending:false,daysInvalid:!trainingDaysValid(profile.trainingDays)};
+    _registrationForms.set(prefix,state);
+    const branch = document.getElementById(prefix + '_branch'),select = document.getElementById(prefix + '_shift');
+    if (!branch || !select) return;
+    select.replaceChildren(new Option('Đang xác minh ca tập…',''));select.disabled = true;
+    _registrationWarning(prefix,state.daysInvalid ? registrationMessage({result:'TRAINING_DAYS_INVALID'}) : '');
+    if (!branch.dataset.trainingRegistrationBound) {
+        branch.dataset.trainingRegistrationBound = '1';
+        branch.addEventListener('change',() => {
+            const current = _registrationForms.get(prefix);
+            if (!current?.ready) return;
+            const selected = current.pending ? current.invalidShiftId : select.value;
+            _renderRegistrationShifts(prefix,selected);
+        });
+        select.addEventListener('change',() => {
+            const current = _registrationForms.get(prefix);if (!current) return;
+            current.pending = false;_renderRegistrationShifts(prefix,select.value);
+        });
+        select.addEventListener('training-shifts-changed',() => {
+            const current = _registrationForms.get(prefix);
+            if (current?.ready) _renderRegistrationShifts(prefix,current.pending ? current.invalidShiftId : select.value);
+        });
+        document.querySelectorAll('.' + prefix + '_trainingDay').forEach(cb => cb.addEventListener('change',() => {
+            const current = _registrationForms.get(prefix);if (current) current.daysInvalid = false;
+            _renderRegistrationShifts(prefix,select.value === '__invalid_registration__' ? current?.invalidShiftId : select.value);
+        }));
+        document.getElementById(prefix + '_registration_clear_days')?.addEventListener('click',() => {
+            const current = _registrationForms.get(prefix);if (current) current.daysInvalid = false;
+            document.querySelectorAll('.' + prefix + '_trainingDay').forEach(cb => {cb.checked = false;});
+            _renderRegistrationShifts(prefix,select.value === '__invalid_registration__' ? current?.invalidShiftId : select.value);
+        });
+    }
+    Promise.resolve().then(() => {
+        if (!window._ensureClubShiftsLoaded) throw Error('Chưa có owner cấu hình ca tập.');
+        return window._ensureClubShiftsLoaded({force:true});
+    }).then(() => {
+        if (_registrationForms.get(prefix) !== state || state.context !== _registrationContext()) return;
+        state.ready = true;select.disabled = false;_renderRegistrationShifts(prefix,profile.trainingShiftId || '');
+    }).catch(error => {
+        if (_registrationForms.get(prefix) === state) _registrationWarning(prefix,'Không xác minh được ca tập. Vui lòng mở lại form khi có mạng. ' + error.message);
+    });
+}
+function _validateRegistrationForm(prefix) {
+    const state = _registrationForms.get(prefix);
+    if (state && (state.context !== _registrationContext() || !state.ready)) throw Object.assign(Error('Chưa xác minh được ca tập. Vui lòng mở lại form.'),{code:'SHIFT_AUTHORITY_UNRESOLVED'});
+    if (state?.pending) throw Object.assign(Error(registrationMessage(state.pendingResult)),{
+        code:state.pendingResult.result === 'SHIFT_BRANCH_MISMATCH' ? 'TRAINING_SHIFT_BRANCH_MISMATCH' : state.pendingResult.result
+    });
+    return assertTrainingRegistration(_registrationValue(prefix),window._getClubShifts?.() || []);
+}
+async function _prepareRegistrationSave(prefix) {
+    _validateRegistrationForm(prefix);
+    const state = _registrationForms.get(prefix),before = JSON.stringify(_registrationValue(prefix));
+    const key = document.getElementById(prefix === 'add' ? 'add_name' : 'm_old_name')?.value;
+    if (!window._ensureClubShiftsLoaded) throw Object.assign(Error('Chưa có cấu hình ca tập được xác minh.'),{code:'SHIFT_AUTHORITY_UNRESOLVED'});
+    // Reuse the sole settings reader. Remote delete/branch edits must be observed
+    // before a registration save; a cached snapshot is not a fresh pre-save check.
+    await window._ensureClubShiftsLoaded({force:true});
+    _validateRegistrationForm(prefix);
+    if (_registrationForms.get(prefix) !== state || before !== JSON.stringify(_registrationValue(prefix)) ||
+        key !== document.getElementById(prefix === 'add' ? 'add_name' : 'm_old_name')?.value) {
+        throw Object.assign(Error('Đăng ký hoặc cấu hình ca tập vừa thay đổi. Vui lòng kiểm tra và bấm Lưu lại.'),{code:'TRAINING_REGISTRATION_CHANGED'});
+    }
+    return _validateRegistrationForm(prefix);
+}
 
 // ════════════════════════════════════════════════════════════════
 // BRIDGE HELPERS — đọc state từ app.js qua window.__store
@@ -224,6 +323,17 @@ function _renderBulkZaloList() {
  *   - Phase 3: thay _sdk() bằng import trực tiếp từ 'firebase/firestore'
  */
 export function initStudents() {
+    window.auditTrainingRegistrations = (outputId) => {
+        if (String(window.userRole).toLowerCase() !== 'admin') throw Error('Chỉ Admin được kiểm toán đăng ký tập.');
+        const authority = window.AttendanceModule?.getShiftAuthority?.();
+        if (authority?.status !== 'ready' || authority.clubId !== _clubId() || Number(authority.authGeneration) !== Number(window.__verifiedAuthContextState?.generation || 0)) throw Error('Chưa xác minh cấu hình ca tập.');
+        const coverage = window.ProfileCanonicalStore?.getCoverage?.();
+        const report = {kind:'READ_ONLY_LOADED_PROFILE_AUDIT',scope:'loaded-canonical-RAM-only',complete:false,coverage:coverage || null,rows:auditTrainingRegistrations(_profiles(),window._getClubShifts?.() || [])};
+        const output = outputId && document.getElementById(outputId);
+        if (output) {output.hidden = false;output.textContent = JSON.stringify(report,null,2);}
+        return report;
+    };
+
 
     // Phase 4K-5L-C: Expose StudentService lên window ngay đầu initStudents()
     // để finance.js và các module khác dùng được qua window.StudentService
@@ -272,18 +382,7 @@ export function initStudents() {
         document.getElementById('add_uniform_display').disabled = false;
         document.querySelectorAll('.add_trainingDay').forEach(cb => cb.checked = false);
 
-        // Load ca tập bất đồng bộ (tránh chặn render modal)
-        const _addShiftSel = document.getElementById('add_shift');
-        if (_addShiftSel) {
-            (window._ensureClubShiftsLoaded ? window._ensureClubShiftsLoaded() : Promise.resolve()).then(function () {
-                _addShiftSel.replaceChildren(new Option('-- Chọn ca tập --', ''));
-                (window._getClubShifts ? window._getClubShifts() : []).forEach(function (s) {
-                    const _t = (s.timeStart && s.timeEnd) ? ' (' + s.timeStart + '–' + s.timeEnd + ')' : '';
-                    _addShiftSel.add(new Option(String(s.name || '') + _t, String(s.id || '')));
-                });
-                _addShiftSel.value = '';
-            });
-        }
+        _openRegistrationForm('add');
     };
 
     /** Đóng modal thêm võ sinh */
@@ -430,6 +529,7 @@ export function initStudents() {
                     || _preflightBundle.components.some(c => !c || !Number.isSafeInteger(Number(c.amount)) || Number(c.amount) <= 0)) throw new Error('Dữ liệu khoản thu nhập học không hợp lệ.');
             }
 
+            await _prepareRegistrationSave('add');
             const profilePlan = StudentService.prepareProfileMutation(_saveKey, {
                 status:          'active',
                 memberId,
@@ -619,7 +719,7 @@ export function initStudents() {
         document.getElementById('m_name_input').value  = _resolveDisplayName(profileKey, p);
         document.getElementById('m_memberId').value    = p.memberId || '';
         document.getElementById('m_status').value      = p.status || 'active';
-        document.getElementById('m_branch').value      = p.branch || 'CS1';
+        document.getElementById('m_branch').value      = window.BranchIdentity?.normalize?.(p.branch,{fallback:'CS1'}) || p.branch || 'CS1';
         document.getElementById('m_belt').value        = p.belt || 'Đai trắng - Cấp 10';
         document.getElementById('m_dob').value         = p.dob || '';
         document.getElementById('m_gender').value      = p.gender || '';
@@ -652,19 +752,7 @@ export function initStudents() {
         }
         document.getElementById('m_skipped').innerHTML = skippedHtml;
 
-        // Ca tập (bất đồng bộ)
-        const _mShiftSel = document.getElementById('m_shift');
-        if (_mShiftSel) {
-            const _savedShiftId = p.trainingShiftId || '';
-            (window._ensureClubShiftsLoaded ? window._ensureClubShiftsLoaded() : Promise.resolve()).then(function () {
-                _mShiftSel.replaceChildren(new Option('-- Chọn ca tập --', ''));
-                (window._getClubShifts ? window._getClubShifts() : []).forEach(function (s) {
-                    const _t = (s.timeStart && s.timeEnd) ? ' (' + s.timeStart + '–' + s.timeEnd + ')' : '';
-                    _mShiftSel.add(new Option(String(s.name || '') + _t, String(s.id || '')));
-                });
-                _mShiftSel.value = _savedShiftId;
-            });
-        }
+        _openRegistrationForm('m',p);
         document.getElementById('profileModal').style.display = 'flex';
     };
 
@@ -741,6 +829,7 @@ export function initStudents() {
         }
 
         try {
+            await _prepareRegistrationSave('m');
             await window.StudentStatusCommandBoundary.updateProfile({
                 oldName: profileKey,
                 newName: profileKey,
@@ -750,7 +839,8 @@ export function initStudents() {
             window.closeModal();
         } catch (error) {
             console.error('Lỗi cập nhật:', error);
-            alert('Đã xảy ra lỗi hệ thống khi lưu thay đổi!');
+            _registrationWarning('m',error.message);
+            alert(error.code ? error.code + ': ' + error.message : 'Đã xảy ra lỗi hệ thống khi lưu thay đổi!');
         }
     };
 
@@ -1098,8 +1188,8 @@ export function initStudentPagination() {
         prepareNextPage, preparePreviousPage,
         renderPaginationControls, PAGE_SIZE,
     }) => {
-        import("./students.js?v=qr-v11r6-a9r13-member-history-diagnostics-20261024").then(() => {}); // no-op — chỉ để IDE không warn
-        import("../services/students.service.js?v=qr-v11r6-a9r13-member-history-diagnostics-20261024").then(({ StudentService }) => {
+        import("./students.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025").then(() => {}); // no-op — chỉ để IDE không warn
+        import("../services/students.service.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025").then(({ StudentService }) => {
 
             const store = window.__store;
             if (!store) { console.warn('[pagination/students] __store chưa sẵn sàng'); return; }

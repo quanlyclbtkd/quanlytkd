@@ -17,7 +17,7 @@
  */
 
 import { registerRender } from './renderRegistry.js';
-import { getInventoryCachedHtml } from './computation/inventoryRenderer.js?v=student-given-name-priority-20260811-v5u3';
+import { getInventoryCachedHtml } from "./computation/inventoryRenderer.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
 
 // ─── Core DOM helper ────────────────────────────────────────────────────────
 

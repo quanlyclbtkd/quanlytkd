@@ -1,4 +1,4 @@
-import {HISTORY_AUTHORITY, attendanceServerVersion, attendanceVisibleRecord} from "../core/attendanceContract.js?v=qr-v11r6-a9r13-member-history-diagnostics-20261024";
+import {HISTORY_AUTHORITY, attendanceServerVersion, attendanceVisibleRecord} from "../core/attendanceContract.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
 /**
  * js/services/attendance.service.js — Phase 3.1
  * ────────────────────────────────────────────────────────────────
@@ -411,10 +411,41 @@ export const AttendanceService = {
      * @returns {Array<{id, data}>}
      */
     async loadMemberHistory(profileId, months, options = {}) {
-        const { getDocs, query, where, collection } = _sdk();
+        const { getDocs, query, where, collection, orderBy, documentId, limit, startAfter } = _sdk();
         const db     = _db();
         const clubId = _clubId();
         const { coach: isCoach, branch } = _scopedBranch(options);
+        if (options.page === true) {
+            const auth = window.__verifiedAuthContextState;
+            if (auth?.ready !== true || !auth.uid || (auth.role !== 'super_admin' && auth.clubId !== clubId) ||
+                !/^CS(?:[1-9]|10)$/.test(branch || '') || typeof profileId !== 'string' || !profileId || profileId.includes('/')) {
+                throw Object.assign(new Error('Chưa xác minh phạm vi lịch sử.'),{code:'attendance/history-scope-required'});
+            }
+            const pageSize = options.pageSize ?? 40;
+            if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > 40) throw Object.assign(Error('Giới hạn lịch sử không hợp lệ.'),{code:'attendance/history-page-size'});
+            const ensureCurrent = _bulkWriteContextGuard(db,clubId);
+            const context = () => JSON.stringify([_clubId(),auth.uid,auth.role,auth.generation,auth.branchGeneration,auth.assignmentVersion,
+                auth.allowedBranches,auth.activeBranch,auth.coachBranch,auth.ready,auth.branchSelectionPending]);
+            const scope = JSON.stringify([clubId,profileId,branch,HISTORY_AUTHORITY,pageSize,context()]);
+            const cursor = options.cursor;
+            if (cursor && (cursor.scope !== scope || typeof cursor.afterId !== 'string' || !cursor.afterId || cursor.afterId.includes('/'))) {
+                throw Object.assign(Error('Trang lịch sử thuộc phiên hoặc cơ sở khác. Vui lòng mở lại.'),{code:'attendance/history-cursor-scope'});
+            }
+            const constraints = [where('profileId','==',profileId),where('historyAuthority','==',HISTORY_AUTHORITY),where('branch','==',branch),orderBy(documentId(),'asc'),limit(pageSize)];
+            if (cursor) constraints.push(startAfter(cursor.afterId));
+            window.RoleReadBoundary?.canMount?.('attendance.member-history',{profileId,branch,pageSize});
+            const snap = await getDocs(query(collection(db,'clubs',clubId,'attendance'),...constraints));
+            ensureCurrent();
+            if (scope !== JSON.stringify([clubId,profileId,branch,HISTORY_AUTHORITY,pageSize,context()])) throw Object.assign(Error('Phiên lịch sử đã thay đổi.'),{code:'attendance/stale-history-context'});
+            if (snap.metadata?.fromCache !== false || snap.metadata?.hasPendingWrites !== false) throw Object.assign(Error('Chưa xác minh được trang lịch sử từ máy chủ. Vui lòng thử lại khi có mạng.'),{code:'attendance/history-server-required'});
+            const raw = [];
+            snap.forEach(doc => raw.push({id:doc.id,data:doc.data()}));
+            if (raw.some(row => row.data.profileId !== profileId || row.data.branch !== branch || row.data.historyAuthority !== HISTORY_AUTHORITY)) throw Object.assign(Error('Lịch sử trả về sai phạm vi.'),{code:'attendance/history-scope-mismatch'});
+            window.recordFirestoreReadAttribution?.('attendance.member-history.page',Math.max(1,raw.length),{pageSize,branch,empty:raw.length === 0});
+            return {rows:raw.filter(row => attendanceVisibleRecord(row.data)),rawCount:raw.length,pageSize,
+                cursor:raw.length === pageSize ? {scope,afterId:raw[raw.length - 1].id} : null,
+                complete:raw.length < pageSize,authority:HISTORY_AUTHORITY,branch};
+        }
         const baseConstraints = [
             where('profileId', '==', profileId),
             where('month', 'in', months)
@@ -619,7 +650,7 @@ export const AttendanceService = {
     },
     async attestHistory(record, serverVersion) {
         if (!['admin','super_admin'].includes(window.__verifiedAuthContextState?.role)||window.__verifiedAuthContextState?.ready!==true) throw Object.assign(new Error('Chỉ Admin xác minh lịch sử cũ.'),{code:'permission-denied'});
-        const {attendanceIntentId}=await import("../core/attendanceContract.js?v=qr-v11r6-a9r13-member-history-diagnostics-20261024");
+        const {attendanceIntentId}=await import("../core/attendanceContract.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025");
         return _commitAttendanceIntents([{id:attendanceIntentId(),baseVersion:serverVersion,record:{...record,clubId:_clubId()}}]);
     },
 

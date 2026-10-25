@@ -6,7 +6,7 @@
  * Read-only VietQR/banking display helpers. No Firestore writes, no transaction
  * mutations, no payment status changes. Legacy globals remain compatible.
  */
-import { Formatters } from '../utils/formatters.js';
+import { Formatters } from "../utils/formatters.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
 
 const DEFAULT_BANKS = Object.freeze([
   { n:'Vietcombank', s:'VCB',  bin:'970436', aliases:["VCB","Ngân hàng TMCP Ngoại Thương Việt Nam","Vietcombank"], sc:'vietcombank', pkg:'com.VCB', ios:'895961699', dl:true },

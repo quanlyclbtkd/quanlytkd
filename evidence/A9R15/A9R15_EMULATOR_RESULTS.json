@@ -1,0 +1,213 @@
+{
+  "kind": "A9R15_EXACT_RUNTIME_QUERY_EMULATOR",
+  "classification": "PASS",
+  "projectId": "demo-a9r15-history",
+  "rulesSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+  "historyAuthority": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55",
+  "queryShape": {
+    "path": "clubs/{clubId}/attendance",
+    "where": [
+      "profileId == immutableProfileId",
+      "historyAuthority == currentAuthority",
+      "branch == activeAuthorizedBranch"
+    ],
+    "orderBy": "__name__ ASC",
+    "limit": "1..40",
+    "cursor": "scoped startAfter(documentId)"
+  },
+  "indexValidation": "No index error from Emulator; production index readiness is not established by Emulator",
+  "results": [
+    {
+      "title": "CS1-only Coach: exact runtime first page has current authority, profile and branch",
+      "classification": "PASS"
+    },
+    {
+      "title": "CS1-only Coach cannot forge CS2 locally to pass server ACL",
+      "classification": "PASS"
+    },
+    {
+      "title": "Multi-branch Coach exhausts all verified years without gaps or duplicate boundaries",
+      "classification": "PASS"
+    },
+    {
+      "title": "CS2 switch reads only historical CS2 portion of the same immutable profile",
+      "classification": "PASS"
+    },
+    {
+      "title": "History branch at attendance remains CS1 after current profile moves to CS2",
+      "classification": "PASS"
+    },
+    {
+      "title": "Cursor cannot cross branch, authority or session generation",
+      "classification": "PASS"
+    },
+    {
+      "title": "Empty profile history ends successfully without searching the club",
+      "classification": "PASS"
+    },
+    {
+      "title": "An all-tombstone page advances by raw cursor without hiding the following visible page",
+      "classification": "PASS"
+    },
+    {
+      "title": "Same display names never merge P001 and P002 identities",
+      "classification": "PASS"
+    },
+    {
+      "title": "Page size above 40 or missing branch is rejected before any query",
+      "classification": "PASS"
+    },
+    {
+      "title": "History cannot omit or forge a profile path scope before querying",
+      "classification": "PASS"
+    },
+    {
+      "title": "Query without current historyAuthority is DENY, even with profile and branch",
+      "classification": "PASS"
+    },
+    {
+      "title": "Query without branch is DENY, even with profile and authority",
+      "classification": "PASS"
+    },
+    {
+      "title": "Raw legacy history query remains DENY for Coach",
+      "classification": "PASS"
+    },
+    {
+      "title": "Admin retains exact legacy inspection and current-authority pagination",
+      "classification": "PASS"
+    },
+    {
+      "title": "Cross-club Coach runtime query is DENY",
+      "classification": "PASS"
+    },
+    {
+      "title": "Coach Finance read remains DENY",
+      "classification": "PASS"
+    },
+    {
+      "title": "Coach physical Attendance delete remains DENY",
+      "classification": "PASS"
+    },
+    {
+      "title": "Forged branch/profile write is DENY by canonical profile guard",
+      "classification": "PASS"
+    },
+    {
+      "title": "A late response is rejected after allowedBranches changes in place",
+      "classification": "PASS"
+    },
+    {
+      "title": "A late response is rejected after CS1 to CS2 switch",
+      "classification": "PASS"
+    },
+    {
+      "title": "Server-revoked assignment denies the same runtime query despite stale client mirror",
+      "classification": "PASS"
+    }
+  ],
+  "queries": [
+    {
+      "query": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+      "documents": 7
+    },
+    {
+      "query": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+      "documents": 7
+    },
+    {
+      "query": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+      "documents": 7
+    },
+    {
+      "query": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+      "documents": 7
+    },
+    {
+      "query": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+      "documents": 7
+    },
+    {
+      "query": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+      "documents": 7
+    },
+    {
+      "query": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+      "documents": 7
+    },
+    {
+      "query": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+      "documents": 7
+    },
+    {
+      "query": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+      "documents": 7
+    },
+    {
+      "query": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+      "documents": 7
+    },
+    {
+      "query": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+      "documents": 7
+    },
+    {
+      "query": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+      "documents": 7
+    },
+    {
+      "query": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+      "documents": 7
+    },
+    {
+      "query": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+      "documents": 3
+    },
+    {
+      "query": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+      "documents": 1
+    },
+    {
+      "query": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+      "documents": 7
+    },
+    {
+      "query": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+      "documents": 7
+    },
+    {
+      "query": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+      "documents": 0
+    },
+    {
+      "query": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+      "documents": 2
+    },
+    {
+      "query": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+      "documents": 2
+    },
+    {
+      "query": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+      "documents": 0
+    },
+    {
+      "query": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+      "documents": 1
+    },
+    {
+      "query": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+      "documents": 7
+    },
+    {
+      "query": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+      "documents": 7
+    },
+    {
+      "query": "clubs/REGISTRATION_HISTORY_TEST/attendance",
+      "documents": 7
+    }
+  ],
+  "attributedDocumentReads": 123,
+  "onSnapshotDelta": 0
+}

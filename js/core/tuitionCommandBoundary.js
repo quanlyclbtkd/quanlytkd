@@ -11,8 +11,8 @@
  *   - no inventory, family-pay, multi-item, admission or exam-fee ownership;
  *   - one single-flight key, one local commit and one invalidation map per success.
  */
-import { FinanceService } from '../services/finance.service.js?v=qr-v11r5-ack-20261021';
-import { getLocalToday, normalizeYYYYMM, formatMonthCompact } from '../utils/format.js';
+import { FinanceService } from "../services/finance.service.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+import { getLocalToday, normalizeYYYYMM, formatMonthCompact } from "../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h";
 
 const BUILD = 'tuition-command-cutover-20260730-v5u2';
 const PHASE = '4K-6V5U-2';

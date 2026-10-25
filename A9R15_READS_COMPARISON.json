@@ -1,0 +1,693 @@
+{
+  "classification": "ENV_BLOCKED",
+  "measuredOwnerBudget": "PASS",
+  "scope": "Actual Attendance UI/reader owners on synthetic SDK transport; comparison uses the exact A9R14 ZIP source and A9R15 source. Excludes production auth/bootstrap/profile listener, dependent Rules reads, index scans, reconnects and billing.",
+  "productionBudget": "ENV_BLOCKED: no production telemetry or owner cost approval supplied",
+  "historyPageLimit": 40,
+  "emptyQueryMinimumDocuments": 1,
+  "historyNewOnSnapshot": 0,
+  "noHistoryPrefetch": true,
+  "historyCache": "None across modal close/session; page presentation only",
+  "registrationRefreshBudget": {
+    "openAddOrEdit": "One fresh getDoc using existing single-flight shift loader",
+    "saveValidRegistration": "One fresh getDoc using same loader; known-invalid form blocks before read",
+    "canonicalProfileWriter": "Existing writer; no extra profile write"
+  },
+  "scenarios": [
+    {
+      "scenario": "1.open-attendance-tab",
+      "baselineSupported": true,
+      "candidateSupported": true,
+      "baseline": {
+        "getDoc": 0,
+        "getDocs": 2,
+        "onSnapshot": 0,
+        "documents": 2,
+        "finance": 0
+      },
+      "candidate": {
+        "getDoc": 0,
+        "getDocs": 2,
+        "onSnapshot": 0,
+        "documents": 2,
+        "finance": 0
+      },
+      "increase": {
+        "getDoc": 0,
+        "getDocs": 0,
+        "onSnapshot": 0,
+        "documents": 0
+      }
+    },
+    {
+      "scenario": "2.select-CS1",
+      "baselineSupported": true,
+      "candidateSupported": true,
+      "baseline": {
+        "getDoc": 1,
+        "getDocs": 1,
+        "onSnapshot": 0,
+        "documents": 1,
+        "finance": 0
+      },
+      "candidate": {
+        "getDoc": 1,
+        "getDocs": 1,
+        "onSnapshot": 0,
+        "documents": 1,
+        "finance": 0
+      },
+      "increase": {
+        "getDoc": 0,
+        "getDocs": 0,
+        "onSnapshot": 0,
+        "documents": 0
+      }
+    },
+    {
+      "scenario": "3.open-member-summary",
+      "baselineSupported": true,
+      "candidateSupported": true,
+      "baseline": {
+        "getDoc": 0,
+        "getDocs": 1,
+        "onSnapshot": 0,
+        "documents": 1,
+        "finance": 0
+      },
+      "candidate": {
+        "getDoc": 0,
+        "getDocs": 1,
+        "onSnapshot": 0,
+        "documents": 1,
+        "finance": 0
+      },
+      "increase": {
+        "getDoc": 0,
+        "getDocs": 0,
+        "onSnapshot": 0,
+        "documents": 0
+      }
+    },
+    {
+      "scenario": "4.first-verified-page",
+      "baselineSupported": false,
+      "candidateSupported": true,
+      "baseline": {
+        "getDoc": 0,
+        "getDocs": 0,
+        "onSnapshot": 0,
+        "documents": 0,
+        "finance": 0
+      },
+      "candidate": {
+        "getDoc": 0,
+        "getDocs": 1,
+        "onSnapshot": 0,
+        "documents": 40,
+        "finance": 0
+      },
+      "increase": {
+        "getDoc": 0,
+        "getDocs": 1,
+        "onSnapshot": 0,
+        "documents": 40
+      }
+    },
+    {
+      "scenario": "5.next-verified-page",
+      "baselineSupported": false,
+      "candidateSupported": true,
+      "baseline": {
+        "getDoc": 0,
+        "getDocs": 0,
+        "onSnapshot": 0,
+        "documents": 0,
+        "finance": 0
+      },
+      "candidate": {
+        "getDoc": 0,
+        "getDocs": 1,
+        "onSnapshot": 0,
+        "documents": 40,
+        "finance": 0
+      },
+      "increase": {
+        "getDoc": 0,
+        "getDocs": 1,
+        "onSnapshot": 0,
+        "documents": 40
+      }
+    },
+    {
+      "scenario": "6.close-reopen-same-member",
+      "baselineSupported": true,
+      "candidateSupported": true,
+      "baseline": {
+        "getDoc": 0,
+        "getDocs": 1,
+        "onSnapshot": 0,
+        "documents": 1,
+        "finance": 0
+      },
+      "candidate": {
+        "getDoc": 0,
+        "getDocs": 1,
+        "onSnapshot": 0,
+        "documents": 1,
+        "finance": 0
+      },
+      "increase": {
+        "getDoc": 0,
+        "getDocs": 0,
+        "onSnapshot": 0,
+        "documents": 0
+      }
+    },
+    {
+      "scenario": "7.switch-CS1-to-CS2",
+      "baselineSupported": true,
+      "candidateSupported": true,
+      "baseline": {
+        "getDoc": 1,
+        "getDocs": 1,
+        "onSnapshot": 0,
+        "documents": 1,
+        "finance": 0
+      },
+      "candidate": {
+        "getDoc": 1,
+        "getDocs": 1,
+        "onSnapshot": 0,
+        "documents": 1,
+        "finance": 0
+      },
+      "increase": {
+        "getDoc": 0,
+        "getDocs": 0,
+        "onSnapshot": 0,
+        "documents": 0
+      }
+    },
+    {
+      "scenario": "8.open-same-profile-in-CS2",
+      "baselineSupported": true,
+      "candidateSupported": true,
+      "baseline": {
+        "getDoc": 0,
+        "getDocs": 1,
+        "onSnapshot": 0,
+        "documents": 1,
+        "finance": 0
+      },
+      "candidate": {
+        "getDoc": 0,
+        "getDocs": 1,
+        "onSnapshot": 0,
+        "documents": 1,
+        "finance": 0
+      },
+      "increase": {
+        "getDoc": 0,
+        "getDocs": 0,
+        "onSnapshot": 0,
+        "documents": 0
+      }
+    },
+    {
+      "scenario": "9.reload-relogin",
+      "baselineSupported": true,
+      "candidateSupported": true,
+      "baseline": {
+        "getDoc": 2,
+        "getDocs": 1,
+        "onSnapshot": 0,
+        "documents": 1,
+        "finance": 0
+      },
+      "candidate": {
+        "getDoc": 2,
+        "getDocs": 1,
+        "onSnapshot": 0,
+        "documents": 1,
+        "finance": 0
+      },
+      "increase": {
+        "getDoc": 0,
+        "getDocs": 0,
+        "onSnapshot": 0,
+        "documents": 0
+      }
+    }
+  ],
+  "baselineRaw": {
+    "scope": "actual attendance UI/reader owners with synthetic SDK transport; auth/roster bootstrap reads not measured here",
+    "sourceRoot": "a9r14_baseline",
+    "historyListenersAdded": 0,
+    "measurements": [
+      {
+        "label": "1.open-attendance-tab",
+        "supported": true,
+        "before": {
+          "getDoc": 1,
+          "getDocs": 0,
+          "onSnapshot": 0,
+          "documents": 0,
+          "finance": 0
+        },
+        "after": {
+          "getDoc": 1,
+          "getDocs": 2,
+          "onSnapshot": 0,
+          "documents": 2,
+          "finance": 0
+        },
+        "delta": {
+          "getDoc": 0,
+          "getDocs": 2,
+          "onSnapshot": 0,
+          "documents": 2,
+          "finance": 0
+        }
+      },
+      {
+        "label": "2.select-CS1",
+        "supported": true,
+        "before": {
+          "getDoc": 1,
+          "getDocs": 2,
+          "onSnapshot": 0,
+          "documents": 2,
+          "finance": 0
+        },
+        "after": {
+          "getDoc": 2,
+          "getDocs": 3,
+          "onSnapshot": 0,
+          "documents": 3,
+          "finance": 0
+        },
+        "delta": {
+          "getDoc": 1,
+          "getDocs": 1,
+          "onSnapshot": 0,
+          "documents": 1,
+          "finance": 0
+        }
+      },
+      {
+        "label": "3.open-member-summary",
+        "supported": true,
+        "before": {
+          "getDoc": 2,
+          "getDocs": 3,
+          "onSnapshot": 0,
+          "documents": 3,
+          "finance": 0
+        },
+        "after": {
+          "getDoc": 2,
+          "getDocs": 4,
+          "onSnapshot": 0,
+          "documents": 4,
+          "finance": 0
+        },
+        "delta": {
+          "getDoc": 0,
+          "getDocs": 1,
+          "onSnapshot": 0,
+          "documents": 1,
+          "finance": 0
+        }
+      },
+      {
+        "label": "4.first-verified-page",
+        "supported": false,
+        "before": {
+          "getDoc": 2,
+          "getDocs": 4,
+          "onSnapshot": 0,
+          "documents": 4,
+          "finance": 0
+        },
+        "after": {
+          "getDoc": 2,
+          "getDocs": 4,
+          "onSnapshot": 0,
+          "documents": 4,
+          "finance": 0
+        },
+        "delta": {
+          "getDoc": 0,
+          "getDocs": 0,
+          "onSnapshot": 0,
+          "documents": 0,
+          "finance": 0
+        }
+      },
+      {
+        "label": "5.next-verified-page",
+        "supported": false,
+        "before": {
+          "getDoc": 2,
+          "getDocs": 4,
+          "onSnapshot": 0,
+          "documents": 4,
+          "finance": 0
+        },
+        "after": {
+          "getDoc": 2,
+          "getDocs": 4,
+          "onSnapshot": 0,
+          "documents": 4,
+          "finance": 0
+        },
+        "delta": {
+          "getDoc": 0,
+          "getDocs": 0,
+          "onSnapshot": 0,
+          "documents": 0,
+          "finance": 0
+        }
+      },
+      {
+        "label": "6.close-reopen-same-member",
+        "supported": true,
+        "before": {
+          "getDoc": 2,
+          "getDocs": 4,
+          "onSnapshot": 0,
+          "documents": 4,
+          "finance": 0
+        },
+        "after": {
+          "getDoc": 2,
+          "getDocs": 5,
+          "onSnapshot": 0,
+          "documents": 5,
+          "finance": 0
+        },
+        "delta": {
+          "getDoc": 0,
+          "getDocs": 1,
+          "onSnapshot": 0,
+          "documents": 1,
+          "finance": 0
+        }
+      },
+      {
+        "label": "7.switch-CS1-to-CS2",
+        "supported": true,
+        "before": {
+          "getDoc": 2,
+          "getDocs": 5,
+          "onSnapshot": 0,
+          "documents": 5,
+          "finance": 0
+        },
+        "after": {
+          "getDoc": 3,
+          "getDocs": 6,
+          "onSnapshot": 0,
+          "documents": 6,
+          "finance": 0
+        },
+        "delta": {
+          "getDoc": 1,
+          "getDocs": 1,
+          "onSnapshot": 0,
+          "documents": 1,
+          "finance": 0
+        }
+      },
+      {
+        "label": "8.open-same-profile-in-CS2",
+        "supported": true,
+        "before": {
+          "getDoc": 3,
+          "getDocs": 6,
+          "onSnapshot": 0,
+          "documents": 6,
+          "finance": 0
+        },
+        "after": {
+          "getDoc": 3,
+          "getDocs": 7,
+          "onSnapshot": 0,
+          "documents": 7,
+          "finance": 0
+        },
+        "delta": {
+          "getDoc": 0,
+          "getDocs": 1,
+          "onSnapshot": 0,
+          "documents": 1,
+          "finance": 0
+        }
+      },
+      {
+        "label": "9.reload-relogin",
+        "supported": true,
+        "oldDocumentCounts": {
+          "getDoc": 3,
+          "getDocs": 7,
+          "onSnapshot": 0,
+          "documents": 7,
+          "finance": 0
+        },
+        "delta": {
+          "getDoc": 2,
+          "getDocs": 1,
+          "onSnapshot": 0,
+          "documents": 1,
+          "finance": 0
+        }
+      }
+    ]
+  },
+  "candidateRaw": {
+    "scope": "actual attendance UI/reader owners with synthetic SDK transport; auth/roster bootstrap reads not measured here",
+    "sourceRoot": "a9r15_source",
+    "historyListenersAdded": 0,
+    "measurements": [
+      {
+        "label": "1.open-attendance-tab",
+        "supported": true,
+        "before": {
+          "getDoc": 1,
+          "getDocs": 0,
+          "onSnapshot": 0,
+          "documents": 0,
+          "finance": 0
+        },
+        "after": {
+          "getDoc": 1,
+          "getDocs": 2,
+          "onSnapshot": 0,
+          "documents": 2,
+          "finance": 0
+        },
+        "delta": {
+          "getDoc": 0,
+          "getDocs": 2,
+          "onSnapshot": 0,
+          "documents": 2,
+          "finance": 0
+        }
+      },
+      {
+        "label": "2.select-CS1",
+        "supported": true,
+        "before": {
+          "getDoc": 1,
+          "getDocs": 2,
+          "onSnapshot": 0,
+          "documents": 2,
+          "finance": 0
+        },
+        "after": {
+          "getDoc": 2,
+          "getDocs": 3,
+          "onSnapshot": 0,
+          "documents": 3,
+          "finance": 0
+        },
+        "delta": {
+          "getDoc": 1,
+          "getDocs": 1,
+          "onSnapshot": 0,
+          "documents": 1,
+          "finance": 0
+        }
+      },
+      {
+        "label": "3.open-member-summary",
+        "supported": true,
+        "before": {
+          "getDoc": 2,
+          "getDocs": 3,
+          "onSnapshot": 0,
+          "documents": 3,
+          "finance": 0
+        },
+        "after": {
+          "getDoc": 2,
+          "getDocs": 4,
+          "onSnapshot": 0,
+          "documents": 4,
+          "finance": 0
+        },
+        "delta": {
+          "getDoc": 0,
+          "getDocs": 1,
+          "onSnapshot": 0,
+          "documents": 1,
+          "finance": 0
+        }
+      },
+      {
+        "label": "4.first-verified-page",
+        "supported": true,
+        "before": {
+          "getDoc": 2,
+          "getDocs": 4,
+          "onSnapshot": 0,
+          "documents": 4,
+          "finance": 0
+        },
+        "after": {
+          "getDoc": 2,
+          "getDocs": 5,
+          "onSnapshot": 0,
+          "documents": 44,
+          "finance": 0
+        },
+        "delta": {
+          "getDoc": 0,
+          "getDocs": 1,
+          "onSnapshot": 0,
+          "documents": 40,
+          "finance": 0
+        }
+      },
+      {
+        "label": "5.next-verified-page",
+        "supported": true,
+        "before": {
+          "getDoc": 2,
+          "getDocs": 5,
+          "onSnapshot": 0,
+          "documents": 44,
+          "finance": 0
+        },
+        "after": {
+          "getDoc": 2,
+          "getDocs": 6,
+          "onSnapshot": 0,
+          "documents": 84,
+          "finance": 0
+        },
+        "delta": {
+          "getDoc": 0,
+          "getDocs": 1,
+          "onSnapshot": 0,
+          "documents": 40,
+          "finance": 0
+        }
+      },
+      {
+        "label": "6.close-reopen-same-member",
+        "supported": true,
+        "before": {
+          "getDoc": 2,
+          "getDocs": 6,
+          "onSnapshot": 0,
+          "documents": 84,
+          "finance": 0
+        },
+        "after": {
+          "getDoc": 2,
+          "getDocs": 7,
+          "onSnapshot": 0,
+          "documents": 85,
+          "finance": 0
+        },
+        "delta": {
+          "getDoc": 0,
+          "getDocs": 1,
+          "onSnapshot": 0,
+          "documents": 1,
+          "finance": 0
+        }
+      },
+      {
+        "label": "7.switch-CS1-to-CS2",
+        "supported": true,
+        "before": {
+          "getDoc": 2,
+          "getDocs": 7,
+          "onSnapshot": 0,
+          "documents": 85,
+          "finance": 0
+        },
+        "after": {
+          "getDoc": 3,
+          "getDocs": 8,
+          "onSnapshot": 0,
+          "documents": 86,
+          "finance": 0
+        },
+        "delta": {
+          "getDoc": 1,
+          "getDocs": 1,
+          "onSnapshot": 0,
+          "documents": 1,
+          "finance": 0
+        }
+      },
+      {
+        "label": "8.open-same-profile-in-CS2",
+        "supported": true,
+        "before": {
+          "getDoc": 3,
+          "getDocs": 8,
+          "onSnapshot": 0,
+          "documents": 86,
+          "finance": 0
+        },
+        "after": {
+          "getDoc": 3,
+          "getDocs": 9,
+          "onSnapshot": 0,
+          "documents": 87,
+          "finance": 0
+        },
+        "delta": {
+          "getDoc": 0,
+          "getDocs": 1,
+          "onSnapshot": 0,
+          "documents": 1,
+          "finance": 0
+        }
+      },
+      {
+        "label": "9.reload-relogin",
+        "supported": true,
+        "oldDocumentCounts": {
+          "getDoc": 3,
+          "getDocs": 9,
+          "onSnapshot": 0,
+          "documents": 87,
+          "finance": 0
+        },
+        "delta": {
+          "getDoc": 2,
+          "getDocs": 1,
+          "onSnapshot": 0,
+          "documents": 1,
+          "finance": 0
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,100 @@
+{
+  "kind": "A9R13_ACTUAL_SERVICE_EMULATOR",
+  "projectId": "demo-a9r13-attendance",
+  "emulatorHost": "127.0.0.1:8188",
+  "authority": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55",
+  "rulesSha256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+  "total": 22,
+  "pass": 22,
+  "fail": 0,
+  "results": [
+    {
+      "title": "Coach CS1 individual quarter history succeeds in one real query",
+      "result": "PASS"
+    },
+    {
+      "title": "Coach CS2 individual history succeeds after branch selection",
+      "result": "PASS"
+    },
+    {
+      "title": "Coach with legacy primary alias reads canonical CS1 history once",
+      "result": "PASS"
+    },
+    {
+      "title": "Empty member history is a successful empty result",
+      "result": "PASS"
+    },
+    {
+      "title": "Coach history rejects a mismatched requested branch before any query",
+      "result": "PASS"
+    },
+    {
+      "title": "Direct legacy alias history query is denied even with no matching rows",
+      "result": "PASS"
+    },
+    {
+      "title": "Coach daily reader succeeds and hides old-authority collision",
+      "result": "PASS"
+    },
+    {
+      "title": "Coach monthly reader succeeds for selected canonical branch",
+      "result": "PASS"
+    },
+    {
+      "title": "Transaction get on an absent document is permitted by unchanged Rules",
+      "result": "PASS"
+    },
+    {
+      "title": "Actual single writer creates a fresh CS1 mark using transaction.get",
+      "result": "PASS"
+    },
+    {
+      "title": "Actual single writer creates a fresh CS2 mark",
+      "result": "PASS"
+    },
+    {
+      "title": "Retry after a lost ACK remains idempotent",
+      "result": "PASS"
+    },
+    {
+      "title": "Correct CAS updates and stale CAS conflicts without overwrite",
+      "result": "PASS"
+    },
+    {
+      "title": "Legacy collision produces precise read-stage diagnostic and zero ACK",
+      "result": "PASS"
+    },
+    {
+      "title": "Coach still cannot directly promote old history or inspect its contents",
+      "result": "PASS"
+    },
+    {
+      "title": "Admin reads the exact legacy document using the existing review service",
+      "result": "PASS"
+    },
+    {
+      "title": "Existing Admin attestation resolves the same document with CAS",
+      "result": "PASS"
+    },
+    {
+      "title": "After explicit Admin verification Coach can inspect and update that exact slot",
+      "result": "PASS"
+    },
+    {
+      "title": "Coach cannot spoof a CS1 branch for a CS2 canonical profile",
+      "result": "PASS"
+    },
+    {
+      "title": "Cross-club Coach is still denied",
+      "result": "PASS"
+    },
+    {
+      "title": "Coach cannot delete attendance or access finance",
+      "result": "PASS"
+    },
+    {
+      "title": "Admin quarter history retains unfiltered authority access",
+      "result": "PASS"
+    }
+  ]
+}

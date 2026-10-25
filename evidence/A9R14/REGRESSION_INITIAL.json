@@ -1,0 +1,1138 @@
+{
+  "total": 159,
+  "pass": 150,
+  "fail": 9,
+  "groups": {
+    "precheck": {
+      "total": 4,
+      "pass": 4
+    },
+    "check": {
+      "total": 54,
+      "pass": 54
+    },
+    "check:all": {
+      "total": 97,
+      "pass": 97
+    },
+    "check:all:critical": {
+      "total": 127,
+      "pass": 118
+    }
+  },
+  "results": [
+    {
+      "command": "npm run check:production-authority-closure",
+      "gate": "check:production-authority-closure",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.27
+    },
+    {
+      "command": "npm run check:attendance-explicit-shift-authority",
+      "gate": "check:attendance-explicit-shift-authority",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.32
+    },
+    {
+      "command": "npm run check:attendance-daily-single-refresh-authority",
+      "gate": "check:attendance-daily-single-refresh-authority",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.31
+    },
+    {
+      "command": "npm run check:production-security-trust-boundary",
+      "gate": "check:production-security-trust-boundary",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.57
+    },
+    {
+      "command": "npm run check:syntax",
+      "gate": "check:syntax",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 3.25
+    },
+    {
+      "command": "npm run check:mobile-startup-performance",
+      "gate": "check:mobile-startup-performance",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:lazy-assets-loading",
+      "gate": "check:lazy-assets-loading",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:tailwind-static-css-build",
+      "gate": "check:tailwind-static-css-build",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.22
+    },
+    {
+      "command": "npm run check:mobile-filter-currency-stability",
+      "gate": "check:mobile-filter-currency-stability",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:exam-upgrade-finance-separation",
+      "gate": "check:exam-upgrade-finance-separation",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:global-ownership-adoption-cleanup",
+      "gate": "check:global-ownership-adoption-cleanup",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.26
+    },
+    {
+      "command": "npm run check:listener-ownership-boundary",
+      "gate": "check:listener-ownership-boundary",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.22
+    },
+    {
+      "command": "npm run check:inventory-multiitem-readonly-ui",
+      "gate": "check:inventory-multiitem-readonly-ui",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:financial-action-audit-guard",
+      "gate": "check:financial-action-audit-guard",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:diagnostics-tooling-isolation",
+      "gate": "check:diagnostics-tooling-isolation",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.26
+    },
+    {
+      "command": "npm run check:report-export-lazy-isolation",
+      "gate": "check:report-export-lazy-isolation",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 3.23
+    },
+    {
+      "command": "npm run check:attendance-canonical-ownership",
+      "gate": "check:attendance-canonical-ownership",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.26
+    },
+    {
+      "command": "npm run check:spark-read-cost-hardening",
+      "gate": "check:spark-read-cost-hardening",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:inventory-history-active-debt",
+      "gate": "check:inventory-history-active-debt",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:inventory-consumer-hydration-hotfix",
+      "gate": "check:inventory-consumer-hydration-hotfix",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:inventory-dynamic-size-catalog",
+      "gate": "check:inventory-dynamic-size-catalog",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.26
+    },
+    {
+      "command": "npm run check:inventory-ledger-reconciliation",
+      "gate": "check:inventory-ledger-reconciliation",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.26
+    },
+    {
+      "command": "npm run check:firestore-read-attribution-canonical-tx-boundary",
+      "gate": "check:firestore-read-attribution-canonical-tx-boundary",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.22
+    },
+    {
+      "command": "npm run check:payment-bundle-runtime-hotfix",
+      "gate": "check:payment-bundle-runtime-hotfix",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:canonical-transaction-safe-cutover",
+      "gate": "check:canonical-transaction-safe-cutover",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:debt-profile-read-boundary",
+      "gate": "check:debt-profile-read-boundary",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:debt-authoritative-tuition-coverage",
+      "gate": "check:debt-authoritative-tuition-coverage",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:coach-attendance-only-read-boundary",
+      "gate": "check:coach-attendance-only-read-boundary",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.26
+    },
+    {
+      "command": "npm run check:security-coach-branch-boundary",
+      "gate": "check:security-coach-branch-boundary",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.87
+    },
+    {
+      "command": "npm run check:coach-branch-runtime-repair",
+      "gate": "check:coach-branch-runtime-repair",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 1.92
+    },
+    {
+      "command": "npm run check:quit-tab-completeness",
+      "gate": "check:quit-tab-completeness",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:quit-tab-authoritative-completeness",
+      "gate": "check:quit-tab-authoritative-completeness",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:quit-tab-mobile-parity",
+      "gate": "check:quit-tab-mobile-parity",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:render-warning-coalescing",
+      "gate": "check:render-warning-coalescing",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:tuition-debt-source-of-truth",
+      "gate": "check:tuition-debt-source-of-truth",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.22
+    },
+    {
+      "command": "npm run check:active-skipped-month-section",
+      "gate": "check:active-skipped-month-section",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:profile-canonical-store",
+      "gate": "check:profile-canonical-store",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:v4d1a-runtime-recovery",
+      "gate": "check:v4d1a-runtime-recovery",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:v5q-quit-single-authoritative-pipeline",
+      "gate": "check:v5q-quit-single-authoritative-pipeline",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:v5r-quit-single-source-lock",
+      "gate": "check:v5r-quit-single-source-lock",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:v5r-quit-source-behavior",
+      "gate": "check:v5r-quit-source-behavior",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.27
+    },
+    {
+      "command": "npm run check:v5s-quit-context-render-loop-guard",
+      "gate": "check:v5s-quit-context-render-loop-guard",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:v5s-quit-context-behavior",
+      "gate": "check:v5s-quit-context-behavior",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:v5t-command-boundary-write-freeze",
+      "gate": "check:v5t-command-boundary-write-freeze",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.27
+    },
+    {
+      "command": "npm run check:v5t-command-boundary-behavior",
+      "gate": "check:v5t-command-boundary-behavior",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.31
+    },
+    {
+      "command": "npm run check:v5u1-student-status-command-cutover",
+      "gate": "check:v5u1-student-status-command-cutover",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:v5u1-student-status-command-behavior",
+      "gate": "check:v5u1-student-status-command-behavior",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.27
+    },
+    {
+      "command": "npm run check:v5u2-tuition-command-cutover",
+      "gate": "check:v5u2-tuition-command-cutover",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:v5u2-tuition-command-behavior",
+      "gate": "check:v5u2-tuition-command-behavior",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.32
+    },
+    {
+      "command": "npm run check:v5u2e-attendance-excel-sdk-fix",
+      "gate": "check:v5u2e-attendance-excel-sdk-fix",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.82
+    },
+    {
+      "command": "npm run check:student-name-search-priority",
+      "gate": "check:student-name-search-priority",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:superadmin-auth-principal-alignment",
+      "gate": "check:superadmin-auth-principal-alignment",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:admin-credential-single-source",
+      "gate": "check:admin-credential-single-source",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:auth-context-single-writer",
+      "gate": "check:auth-context-single-writer",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:legacy-global-freeze",
+      "gate": "check:legacy-global-freeze",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.26
+    },
+    {
+      "command": "npm run check:dashboard-single-read-authority",
+      "gate": "check:dashboard-single-read-authority",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.26
+    },
+    {
+      "command": "npm run check:dashboard-cache-freshness-guard",
+      "gate": "check:dashboard-cache-freshness-guard",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 1.87
+    },
+    {
+      "command": "npm run check:dashboard-hydration-mutation-guard",
+      "gate": "check:dashboard-hydration-mutation-guard",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.26
+    },
+    {
+      "command": "npm run check:low-risk-helper-extraction",
+      "gate": "check:low-risk-helper-extraction",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:receipt-qr-helper-extraction",
+      "gate": "check:receipt-qr-helper-extraction",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:transaction-realtime",
+      "gate": "check:transaction-realtime",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:stats-aggregation",
+      "gate": "check:stats-aggregation",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:runtime-smoke-test",
+      "gate": "check:runtime-smoke-test",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:deploy-package",
+      "gate": "check:deploy-package",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:github-pages-paths",
+      "gate": "check:github-pages-paths",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.26
+    },
+    {
+      "command": "npm run check:runtime-stability-gate",
+      "gate": "check:runtime-stability-gate",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:dashboard-exam-registration-branch",
+      "gate": "check:dashboard-exam-registration-branch",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:dashboard-branch-components",
+      "gate": "check:dashboard-branch-components",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.22
+    },
+    {
+      "command": "npm run check:dashboard-chart-lifecycle",
+      "gate": "check:dashboard-chart-lifecycle",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.22
+    },
+    {
+      "command": "npm run check:debt-service-bridge",
+      "gate": "check:debt-service-bridge",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:debt-actions-sync",
+      "gate": "check:debt-actions-sync",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:multiitem-skipped-months",
+      "gate": "check:multiitem-skipped-months",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:active-loadmore-newest-first",
+      "gate": "check:active-loadmore-newest-first",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:mobile-superadmin-gate",
+      "gate": "check:mobile-superadmin-gate",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:search-runtime-v2",
+      "gate": "check:search-runtime-v2",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:search-latency-optimization",
+      "gate": "check:search-latency-optimization",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:student-search-index",
+      "gate": "check:student-search-index",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.22
+    },
+    {
+      "command": "npm run check:cross-tab-search-replay",
+      "gate": "check:cross-tab-search-replay",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:active-loadmore-single-source",
+      "gate": "check:active-loadmore-single-source",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.26
+    },
+    {
+      "command": "npm run check:exam-auto-select-paid",
+      "gate": "check:exam-auto-select-paid",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:performance-stability-gate",
+      "gate": "check:performance-stability-gate",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:tab-render-recovery",
+      "gate": "check:tab-render-recovery",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:financial-flow-guard-readiness",
+      "gate": "check:financial-flow-guard-readiness",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:security-license-ip-protection",
+      "gate": "check:security-license-ip-protection",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.26
+    },
+    {
+      "command": "npm run check:scale-readiness-write-safety",
+      "gate": "check:scale-readiness-write-safety",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:exam-export-belt-sort",
+      "gate": "check:exam-export-belt-sort",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:active-new-students-filter",
+      "gate": "check:active-new-students-filter",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:legacy-app-reduction-readiness",
+      "gate": "check:legacy-app-reduction-readiness",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.26
+    },
+    {
+      "command": "npm run check:multiitem-inventory-hydration",
+      "gate": "check:multiitem-inventory-hydration",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.22
+    },
+    {
+      "command": "npm run check:legacy-diagnostics-extraction",
+      "gate": "check:legacy-diagnostics-extraction",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.22
+    },
+    {
+      "command": "npm run check:legacy-render-entrypoints",
+      "gate": "check:legacy-render-entrypoints",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.27
+    },
+    {
+      "command": "npm run check:inline-handler-bridge",
+      "gate": "check:inline-handler-bridge",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:superadmin-aggregation-hard-stop",
+      "gate": "check:superadmin-aggregation-hard-stop",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:superadmin-quota-guard",
+      "gate": "check:superadmin-quota-guard",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:legacy-runtime-fallback-fix",
+      "gate": "check:legacy-runtime-fallback-fix",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:superadmin-cache-stats-island-fallback",
+      "gate": "check:superadmin-cache-stats-island-fallback",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:superadmin-render-scope-fix",
+      "gate": "check:superadmin-render-scope-fix",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:club-stats-auto-cache",
+      "gate": "check:club-stats-auto-cache",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:superadmin-server-summary-cache",
+      "gate": "check:superadmin-server-summary-cache",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:superadmin-safe-server-refresh",
+      "gate": "check:superadmin-safe-server-refresh",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:excel-import-vtf-upsert",
+      "gate": "check:excel-import-vtf-upsert",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.22
+    },
+    {
+      "command": "npm run check:production-stability-gate",
+      "gate": "check:production-stability-gate",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:multiitem-tuition-package-fix",
+      "gate": "check:multiitem-tuition-package-fix",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:admission-tuition-type-normalization",
+      "gate": "check:admission-tuition-type-normalization",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:tuition-package-month-coverage",
+      "gate": "check:tuition-package-month-coverage",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.26
+    },
+    {
+      "command": "npm run check:superadmin-monthstats",
+      "gate": "check:superadmin-monthstats",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:superadmin-hotfix",
+      "gate": "check:superadmin-hotfix",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:qr-v4-payment-account-authority",
+      "gate": "check:qr-v4-payment-account-authority",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 2.57
+    },
+    {
+      "command": "npm run check:d1c3b7r2r6r1-v1-v2-collision-scope",
+      "gate": "check:d1c3b7r2r6r1-v1-v2-collision-scope",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 45.31
+    },
+    {
+      "command": "npm run check:d1c3b7r2r6-v2-cross-date-isolation",
+      "gate": "check:d1c3b7r2r6-v2-cross-date-isolation",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 45.32
+    },
+    {
+      "command": "npm run check:d1c3b7r2r5-shift-touch-closure",
+      "gate": "check:d1c3b7r2r5-shift-touch-closure",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 45.33
+    },
+    {
+      "command": "npm run check:d1c3b7r2r4-v2-journal-no-loss",
+      "gate": "check:d1c3b7r2r4-v2-journal-no-loss",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 45.26
+    },
+    {
+      "command": "npm run check:d1c3b7r2r3-offline-session-integrity",
+      "gate": "check:d1c3b7r2r3-offline-session-integrity",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 45.34
+    },
+    {
+      "command": "npm run check:d1c3b7r2r2-attendance-role-authority",
+      "gate": "check:d1c3b7r2r2-attendance-role-authority",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.26
+    },
+    {
+      "command": "npm run check:d1c3b7r2-mobile-css-runtime",
+      "gate": "check:d1c3b7r2-mobile-css-runtime",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.26
+    },
+    {
+      "command": "npm run check:d1c3b7r2-attendance-roster-write-guard",
+      "gate": "check:d1c3b7r2-attendance-roster-write-guard",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.32
+    },
+    {
+      "command": "npm run check:d1c3b7r2-coach-fallback-no-overlap",
+      "gate": "check:d1c3b7r2-coach-fallback-no-overlap",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.26
+    },
+    {
+      "command": "npm run check:d1c3b7r1-coach-roster-closure",
+      "gate": "check:d1c3b7r1-coach-roster-closure",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.26
+    },
+    {
+      "command": "npm run check:d1c3b7-release-security",
+      "gate": "check:d1c3b7-release-security",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.37
+    },
+    {
+      "command": "npm run check:d1c3b6-release-blockers",
+      "gate": "check:d1c3b6-release-blockers",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.62
+    },
+    {
+      "command": "npm run check:d1c3b6-coach-roster-authority",
+      "gate": "check:d1c3b6-coach-roster-authority",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.37
+    },
+    {
+      "command": "npm run check:d1c3b6-listener-topology",
+      "gate": "check:d1c3b6-listener-topology",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.22
+    },
+    {
+      "command": "npm run check:d1c3b6-metadata-noop",
+      "gate": "check:d1c3b6-metadata-noop",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.27
+    },
+    {
+      "command": "npm run check:d1c3b5-coach-async-lifecycle",
+      "gate": "check:d1c3b5-coach-async-lifecycle",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:d1c3b5-coach-legacy-coverage",
+      "gate": "check:d1c3b5-coach-legacy-coverage",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:d1c3b-debt-authoritative-profile-coverage",
+      "gate": "check:d1c3b-debt-authoritative-profile-coverage",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.31
+    },
+    {
+      "command": "npm run check:d1c3b1-debt-runtime-closure",
+      "gate": "check:d1c3b1-debt-runtime-closure",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:d1c3b2-authority-continuity",
+      "gate": "check:d1c3b2-authority-continuity",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:d1c3b3-profile-snapshot-context-closure",
+      "gate": "check:d1c3b3-profile-snapshot-context-closure",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 1.72
+    },
+    {
+      "command": "npm run check:d1c3b4-async-coach-closure",
+      "gate": "check:d1c3b4-async-coach-closure",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:monthly-revenue-allocation",
+      "gate": "check:monthly-revenue-allocation",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:active-student-sort",
+      "gate": "check:active-student-sort",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:dashboard-history-fallback",
+      "gate": "check:dashboard-history-fallback",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:exam-payment-identity",
+      "gate": "check:exam-payment-identity",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:exam-cancel-fee",
+      "gate": "check:exam-cancel-fee",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:exam-fee-ui-cleanup",
+      "gate": "check:exam-fee-ui-cleanup",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:exam-name-parser-hotfix",
+      "gate": "check:exam-name-parser-hotfix",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:exam-canonical-ledger",
+      "gate": "check:exam-canonical-ledger",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:student-quit-hard-separation",
+      "gate": "check:student-quit-hard-separation",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:bundled-receipt-transactions",
+      "gate": "check:bundled-receipt-transactions",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:exam-fee-save-pipeline",
+      "gate": "check:exam-fee-save-pipeline",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.22
+    },
+    {
+      "command": "npm run check:vnd-money-format",
+      "gate": "check:vnd-money-format",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:dashboard-historical-authority",
+      "gate": "check:dashboard-historical-authority",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:bundle-display-labels",
+      "gate": "check:bundle-display-labels",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:admission-bundle-unification",
+      "gate": "check:admission-bundle-unification",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:component-accounting-authority",
+      "gate": "check:component-accounting-authority",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:finance-mobile-bundle-row",
+      "gate": "check:finance-mobile-bundle-row",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.22
+    },
+    {
+      "command": "npm run check:student-pagination-status-filter",
+      "gate": "check:student-pagination-status-filter",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:debt-full-coverage",
+      "gate": "check:debt-full-coverage",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:tuition-table-layout",
+      "gate": "check:tuition-table-layout",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.22
+    },
+    {
+      "command": "npm run check:per-tab-load-more",
+      "gate": "check:per-tab-load-more",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.22
+    },
+    {
+      "command": "npm run check:exam-export-download",
+      "gate": "check:exam-export-download",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.22
+    },
+    {
+      "command": "npm run check:tuition-table-layout-real",
+      "gate": "check:tuition-table-layout-real",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:real-load-more-wiring",
+      "gate": "check:real-load-more-wiring",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:loadmore-scroll-preservation",
+      "gate": "check:loadmore-scroll-preservation",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:debt-loadmore-filter",
+      "gate": "check:debt-loadmore-filter",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:active-render-tdz-order",
+      "gate": "check:active-render-tdz-order",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:runtime-pilot-verification",
+      "gate": "check:runtime-pilot-verification",
+      "exitCode": 0,
+      "status": "PASS",
+      "seconds": 0.21
+    },
+    {
+      "command": "npm run check:v10-release-risk-boundary",
+      "gate": "check:v10-release-risk-boundary",
+      "exitCode": 1,
+      "status": "FAIL",
+      "seconds": 0.21
+    }
+  ]
+}

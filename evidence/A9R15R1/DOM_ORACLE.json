@@ -1,0 +1,432 @@
+{
+  "classification": "PASS",
+  "oracle": "Actual Chromium native Option/HTMLSelectElement; expectations are not generated from the shim",
+  "results": [
+    {
+      "case": "constructor omitted value",
+      "classification": "PASS",
+      "native": {
+        "label": "constructor omitted value",
+        "text": "plain text",
+        "value": "plain text",
+        "defaultSelected": false,
+        "selected": false
+      },
+      "shim": {
+        "label": "constructor omitted value",
+        "text": "plain text",
+        "value": "plain text",
+        "defaultSelected": false,
+        "selected": false
+      }
+    },
+    {
+      "case": "constructor explicit flags/literal",
+      "classification": "PASS",
+      "native": {
+        "label": "constructor explicit flags/literal",
+        "text": "<b>literal</b>",
+        "value": "KEY",
+        "defaultSelected": true,
+        "selected": true
+      },
+      "shim": {
+        "label": "constructor explicit flags/literal",
+        "text": "<b>literal</b>",
+        "value": "KEY",
+        "defaultSelected": true,
+        "selected": true
+      }
+    },
+    {
+      "case": "insert options selects first",
+      "classification": "PASS",
+      "native": {
+        "label": "insert options selects first",
+        "value": "",
+        "selectedIndex": 0,
+        "options": [
+          {
+            "text": "Choose",
+            "value": "",
+            "defaultSelected": false,
+            "selected": true
+          },
+          {
+            "text": "One",
+            "value": "ID1",
+            "defaultSelected": false,
+            "selected": false
+          }
+        ]
+      },
+      "shim": {
+        "label": "insert options selects first",
+        "value": "",
+        "selectedIndex": 0,
+        "options": [
+          {
+            "text": "Choose",
+            "value": "",
+            "defaultSelected": false,
+            "selected": true
+          },
+          {
+            "text": "One",
+            "value": "ID1",
+            "defaultSelected": false,
+            "selected": false
+          }
+        ]
+      }
+    },
+    {
+      "case": "select by immutable value",
+      "classification": "PASS",
+      "native": {
+        "label": "select by immutable value",
+        "value": "ID1",
+        "selectedIndex": 1,
+        "options": [
+          {
+            "text": "Choose",
+            "value": "",
+            "defaultSelected": false,
+            "selected": false
+          },
+          {
+            "text": "One",
+            "value": "ID1",
+            "defaultSelected": false,
+            "selected": true
+          }
+        ]
+      },
+      "shim": {
+        "label": "select by immutable value",
+        "value": "ID1",
+        "selectedIndex": 1,
+        "options": [
+          {
+            "text": "Choose",
+            "value": "",
+            "defaultSelected": false,
+            "selected": false
+          },
+          {
+            "text": "One",
+            "value": "ID1",
+            "defaultSelected": false,
+            "selected": true
+          }
+        ]
+      }
+    },
+    {
+      "case": "missing value clears selection",
+      "classification": "PASS",
+      "native": {
+        "label": "missing value clears selection",
+        "value": "",
+        "selectedIndex": -1,
+        "options": [
+          {
+            "text": "Choose",
+            "value": "",
+            "defaultSelected": false,
+            "selected": false
+          },
+          {
+            "text": "One",
+            "value": "ID1",
+            "defaultSelected": false,
+            "selected": false
+          }
+        ]
+      },
+      "shim": {
+        "label": "missing value clears selection",
+        "value": "",
+        "selectedIndex": -1,
+        "options": [
+          {
+            "text": "Choose",
+            "value": "",
+            "defaultSelected": false,
+            "selected": false
+          },
+          {
+            "text": "One",
+            "value": "ID1",
+            "defaultSelected": false,
+            "selected": false
+          }
+        ]
+      }
+    },
+    {
+      "case": "selectedIndex",
+      "classification": "PASS",
+      "native": {
+        "label": "selectedIndex",
+        "value": "ID1",
+        "selectedIndex": 1,
+        "options": [
+          {
+            "text": "Choose",
+            "value": "",
+            "defaultSelected": false,
+            "selected": false
+          },
+          {
+            "text": "One",
+            "value": "ID1",
+            "defaultSelected": false,
+            "selected": true
+          }
+        ]
+      },
+      "shim": {
+        "label": "selectedIndex",
+        "value": "ID1",
+        "selectedIndex": 1,
+        "options": [
+          {
+            "text": "Choose",
+            "value": "",
+            "defaultSelected": false,
+            "selected": false
+          },
+          {
+            "text": "One",
+            "value": "ID1",
+            "defaultSelected": false,
+            "selected": true
+          }
+        ]
+      }
+    },
+    {
+      "case": "insert before preserves selected option",
+      "classification": "PASS",
+      "native": {
+        "label": "insert before preserves selected option",
+        "value": "ID1",
+        "selectedIndex": 2,
+        "options": [
+          {
+            "text": "Before",
+            "value": "ID0",
+            "defaultSelected": false,
+            "selected": false
+          },
+          {
+            "text": "Choose",
+            "value": "",
+            "defaultSelected": false,
+            "selected": false
+          },
+          {
+            "text": "One",
+            "value": "ID1",
+            "defaultSelected": false,
+            "selected": true
+          }
+        ]
+      },
+      "shim": {
+        "label": "insert before preserves selected option",
+        "value": "ID1",
+        "selectedIndex": 2,
+        "options": [
+          {
+            "text": "Before",
+            "value": "ID0",
+            "defaultSelected": false,
+            "selected": false
+          },
+          {
+            "text": "Choose",
+            "value": "",
+            "defaultSelected": false,
+            "selected": false
+          },
+          {
+            "text": "One",
+            "value": "ID1",
+            "defaultSelected": false,
+            "selected": true
+          }
+        ]
+      }
+    },
+    {
+      "case": "replaceChildren with selected option",
+      "classification": "PASS",
+      "native": {
+        "label": "replaceChildren with selected option",
+        "value": "B",
+        "selectedIndex": 1,
+        "options": [
+          {
+            "text": "A",
+            "value": "A",
+            "defaultSelected": false,
+            "selected": false
+          },
+          {
+            "text": "B",
+            "value": "B",
+            "defaultSelected": true,
+            "selected": true
+          }
+        ]
+      },
+      "shim": {
+        "label": "replaceChildren with selected option",
+        "value": "B",
+        "selectedIndex": 1,
+        "options": [
+          {
+            "text": "A",
+            "value": "A",
+            "defaultSelected": false,
+            "selected": false
+          },
+          {
+            "text": "B",
+            "value": "B",
+            "defaultSelected": true,
+            "selected": true
+          }
+        ]
+      }
+    },
+    {
+      "case": "option selected is exclusive",
+      "classification": "PASS",
+      "native": {
+        "label": "option selected is exclusive",
+        "value": "A",
+        "selectedIndex": 0,
+        "options": [
+          {
+            "text": "A",
+            "value": "A",
+            "defaultSelected": false,
+            "selected": true
+          },
+          {
+            "text": "B",
+            "value": "B",
+            "defaultSelected": true,
+            "selected": false
+          }
+        ]
+      },
+      "shim": {
+        "label": "option selected is exclusive",
+        "value": "A",
+        "selectedIndex": 0,
+        "options": [
+          {
+            "text": "A",
+            "value": "A",
+            "defaultSelected": false,
+            "selected": true
+          },
+          {
+            "text": "B",
+            "value": "B",
+            "defaultSelected": true,
+            "selected": false
+          }
+        ]
+      }
+    },
+    {
+      "case": "label does not remap ID",
+      "classification": "PASS",
+      "native": {
+        "label": "label does not remap ID",
+        "value": "A",
+        "selectedIndex": 0,
+        "options": [
+          {
+            "text": "New label",
+            "value": "A",
+            "defaultSelected": false,
+            "selected": true
+          },
+          {
+            "text": "B",
+            "value": "B",
+            "defaultSelected": true,
+            "selected": false
+          }
+        ]
+      },
+      "shim": {
+        "label": "label does not remap ID",
+        "value": "A",
+        "selectedIndex": 0,
+        "options": [
+          {
+            "text": "New label",
+            "value": "A",
+            "defaultSelected": false,
+            "selected": true
+          },
+          {
+            "text": "B",
+            "value": "B",
+            "defaultSelected": true,
+            "selected": false
+          }
+        ]
+      }
+    },
+    {
+      "case": "value tracks selected option identity",
+      "classification": "PASS",
+      "native": {
+        "label": "value tracks selected option identity",
+        "value": "A2",
+        "selectedIndex": 0,
+        "options": [
+          {
+            "text": "New label",
+            "value": "A2",
+            "defaultSelected": false,
+            "selected": true
+          },
+          {
+            "text": "B",
+            "value": "B",
+            "defaultSelected": true,
+            "selected": false
+          }
+        ]
+      },
+      "shim": {
+        "label": "value tracks selected option identity",
+        "value": "A2",
+        "selectedIndex": 0,
+        "options": [
+          {
+            "text": "New label",
+            "value": "A2",
+            "defaultSelected": false,
+            "selected": true
+          },
+          {
+            "text": "B",
+            "value": "B",
+            "defaultSelected": true,
+            "selected": false
+          }
+        ]
+      }
+    }
+  ]
+}

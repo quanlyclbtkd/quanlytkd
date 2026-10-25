@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
 import assert from 'node:assert/strict';
+import { canonicalDependency } from './a9r16/canonical-test-import.mjs';
 
 // Actual production handlers and canonical settlement, with primary I/O mocked.
 globalThis.window = globalThis;
@@ -45,7 +46,7 @@ let receipts = 0;
 window.exportReceipt = async () => { receipts++; return { ok: true }; };
 window.toggleTxFormType = () => {};
 vm.runInThisContext(fs.readFileSync('js/core/tuitionDebtCanonical.js', 'utf8'), { filename: 'tuitionDebtCanonical.js' });
-const { FinanceService } = await import('../js/services/finance.service.js?v=qr-v11r5-ack-20261021');
+const { FinanceService } = await import(canonicalDependency('js/modules/finance.js','FinanceService'));
 window.FinanceService = FinanceService;
 FinanceService.addTransaction = async () => { primary++; return 'tx-1'; };
 FinanceService.commitAtomicWritePlan = async () => { primary++; return { txIds: ['tx-1'] }; };

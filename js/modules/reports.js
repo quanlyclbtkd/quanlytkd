@@ -53,7 +53,7 @@ import {
     formatMonthCompact,
     normalizeYYYYMM,
     addMonthsToYYYYMM,
-} from '../utils/format.js';
+} from "../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h";
 
 const resolveReportDisplayName = function(profileKey, profile) {
     const p = profile || {};

@@ -21,7 +21,7 @@
  */
 
 import { registerRender } from './renderRegistry.js';
-import { getFinanceCachedHtml, renderTxRow } from './computation/financeRenderer.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
+import { getFinanceCachedHtml, renderTxRow } from "./computation/financeRenderer.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
 
 // ─── Core DOM helper ────────────────────────────────────────────────────────
 

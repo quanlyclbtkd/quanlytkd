@@ -26,7 +26,7 @@
  *   can key on it without re-scanning table structure.
  */
 
-import { formatDate, formatMonth } from '../../../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
+import { formatDate, formatMonth } from "../../../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h";
 import { rankStudentNameSearchResults } from '../../../core/studentSearchIndex.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1';
 
 // ── Phase 4K-4D: Fallback classify (nếu window.classifyInventoryFinanceTx chưa load) ──

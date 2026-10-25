@@ -1,0 +1,142 @@
+{
+  "phase": "A9R15R1",
+  "timestamp": "2026-10-25T05:13:27.779595+00:00",
+  "decision": "RELEASE_BLOCKED",
+  "runtimePatchRequired": false,
+  "noDeploy": true,
+  "noProductionWrites": true,
+  "gates": [
+    {
+      "gate": "SOURCE_IDENTITY",
+      "classification": "PASS",
+      "finding": "Exact parent ZIP SHA + CRC; 0 changed runtime assets",
+      "evidence": "baseline/INPUT_IDENTITY.json; A9R15R1_SHA256_MANIFEST.json"
+    },
+    {
+      "gate": "QA_HARNESS",
+      "classification": "PASS",
+      "finding": "Original harnesses 61/61 and 73/73, native DOM oracle 11/11, NC1–NC5 detected",
+      "evidence": "A9R15R1_HARNESS_CLOSURE.json"
+    },
+    {
+      "gate": "TRAINING_REGISTRATION_RUNTIME",
+      "classification": "PASS",
+      "finding": "25 registration assertions + 27 browser cases + three pre-save races blocked with zero writes",
+      "evidence": "EXTRA_BROWSER_MATRIX.json; BROWSER_CORE.json"
+    },
+    {
+      "gate": "TRAINING_REGISTRATION_REAL_DATA",
+      "classification": "ENV_BLOCKED",
+      "finding": "No authorized actual profile/shift dataset; all real counts null, never inferred zero",
+      "evidence": "A9R15R1_TRAINING_REGISTRATION_AUDIT.json"
+    },
+    {
+      "gate": "COACH_AUTHORIZED_HISTORY_RUNTIME",
+      "classification": "PASS",
+      "finding": "Exact bounded query, multi-year/branch pagination, offline/server verification, stale drop",
+      "evidence": "A9R15R1_COACH_HISTORY_MATRIX.json"
+    },
+    {
+      "gate": "COACH_HISTORY_INDEX_READINESS",
+      "classification": "ENV_BLOCKED",
+      "finding": "INDEX_ENV_BLOCKED; Emulator cannot prove compound index readiness on Cloud",
+      "evidence": "A9R15R1_FIRESTORE_QUERY_INDEX_RESULT.json"
+    },
+    {
+      "gate": "COACH_BRANCH_ISOLATION",
+      "classification": "PASS",
+      "finding": "Server-authoritative assignment blocks forged local branch, cross-club and revoked assignment",
+      "evidence": "EXACT_RUNTIME_QUERY.json; Emulator raw log"
+    },
+    {
+      "gate": "LEGACY_HISTORY_PROVENANCE",
+      "classification": "LIVE_NOT_VERIFIED",
+      "finding": "Raw legacy DENY tested; actual legacy cohort/Admin attestation completion unknown",
+      "evidence": "A9R15R1_COACH_HISTORY_MATRIX.json"
+    },
+    {
+      "gate": "CAS",
+      "classification": "PASS",
+      "finding": "Absent create, update, stale CAS DENY, idempotency and physical legacy collision remain",
+      "evidence": "CAS_COLLISION.log; SDK10_BROWSER.json"
+    },
+    {
+      "gate": "JOURNAL_V4",
+      "classification": "PASS",
+      "finding": "Native IndexedDB, two tabs, legacy quarantine and pending intent preservation pass; no V3 promotion",
+      "evidence": "JOURNAL_NATIVE.json; NATIVE_BROWSER.json"
+    },
+    {
+      "gate": "FIRESTORE_RULES",
+      "classification": "PASS",
+      "finding": "Byte-identical rules hash; 74 broad Rules cases and exact history query tests",
+      "evidence": "A9R15R1_EMULATOR_RESULTS.json"
+    },
+    {
+      "gate": "FIRESTORE_INDEXES",
+      "classification": "PASS",
+      "finding": "File identity only: unchanged SHA; Cloud readiness is a separate ENV_BLOCKED gate",
+      "evidence": "A9R15R1_SHA256_MANIFEST.json"
+    },
+    {
+      "gate": "FINANCE_SECURITY",
+      "classification": "PASS",
+      "finding": "Tuition/Debt/Inventory runtime bytes unchanged; Coach Finance/Inventory DENY gates remain",
+      "evidence": "regression/RESULTS.json; RUNTIME_PRESERVATION.log"
+    },
+    {
+      "gate": "READS",
+      "classification": "RELEASE_BLOCKED",
+      "finding": "Measured R1–A15 delta 0, but required owner document-read cost approval absent; live billed reads unknown",
+      "evidence": "A9R15R1_READS_COMPARISON.json; B7 raw log"
+    },
+    {
+      "gate": "LISTENER_BUDGET",
+      "classification": "PASS",
+      "finding": "0 new history onSnapshot; total static 35 unchanged",
+      "evidence": "A9R15R1_READS_COMPARISON.json"
+    },
+    {
+      "gate": "MOBILE",
+      "classification": "PASS",
+      "finding": "Actual Chromium mobile-sized DOM/layout + native IndexedDB pass; physical Android/Safari not accepted",
+      "evidence": "BROWSER_CORE.json; NATIVE_BROWSER.json; A9R14_MOBILE.log"
+    },
+    {
+      "gate": "ROOT_PUBLIC",
+      "classification": "PASS",
+      "finding": "129/129; missing 0, extras 0, mismatch 0; all match parent bytes",
+      "evidence": "A9R15R1_ROOT_PUBLIC_PARITY.json"
+    },
+    {
+      "gate": "FULL_REGRESSION",
+      "classification": "PASS",
+      "finding": "npm check/check:all exit 0; 156 technical leaves PASS; 3 intentional release-policy leaves remain blocked",
+      "evidence": "REGRESSION_SUMMARY.json; regression/RESULTS.json"
+    },
+    {
+      "gate": "PRODUCTION_ACCEPTANCE",
+      "classification": "RELEASE_BLOCKED",
+      "finding": "Real data, Cloud index, actual provenance, READS approval, physical devices and release owner approval incomplete",
+      "evidence": "A9R15R1_RELEASE_LEDGER.json"
+    }
+  ],
+  "remaining": {
+    "FAIL_RUNTIME": [],
+    "FAIL_TEST_HARNESS": [],
+    "ENV_BLOCKED": [
+      "Actual scoped registration dataset not supplied",
+      "Authorized real Firestore query/index environment not supplied"
+    ],
+    "LIVE_NOT_VERIFIED": [
+      "Actual legacy attestation completeness",
+      "Complete live Auth/bootstrap READS and billed telemetry"
+    ],
+    "RELEASE_BLOCKED": [
+      "Owner document-read cost approval absent",
+      "Existing V11 decision remains pending",
+      "Physical device and production-specific acceptance absent",
+      "Release owner approval absent"
+    ]
+  }
+}

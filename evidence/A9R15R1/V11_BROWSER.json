@@ -1,0 +1,120 @@
+{
+  "environment": "actual Chromium tabs + native IndexedDB + Emulator + actual DOM/owners",
+  "physicalPhone": false,
+  "Safari": false,
+  "results": [
+    {
+      "name": "Pixel 7 CS1: roster verified, stale members stats not presented",
+      "status": "PASS"
+    },
+    {
+      "name": "Pixel 7 CS1: single and bulk use one transaction owner, chunks <=10",
+      "status": "PASS"
+    },
+    {
+      "name": "Pixel 7 CS1: offline present/absent/delete intents persist and sync in order",
+      "status": "PASS"
+    },
+    {
+      "name": "Pixel 7 CS1: Firestore transport blocked while navigator.onLine=true retains journal",
+      "status": "PASS"
+    },
+    {
+      "name": "Pixel 7 CS1: lost ACK keeps intent; retry does no duplicate mutation",
+      "status": "PASS"
+    },
+    {
+      "name": "Pixel 7 CS1: secondary stats derive from canonical history; no members write",
+      "status": "PASS"
+    },
+    {
+      "name": "Native IndexedDB: two tabs concurrent enqueue and stale ACK preserve newer intent",
+      "status": "PASS"
+    },
+    {
+      "name": "Native IndexedDB: expired lease recovered, stale claim cannot ACK a newer claim",
+      "status": "PASS"
+    },
+    {
+      "name": "Legacy V1/V2 input: no automatic replay or removeItem across tabs",
+      "status": "PASS"
+    },
+    {
+      "name": "Persistent journal survives reload while Firestore unavailable; review UI retains legacy",
+      "status": "PASS"
+    },
+    {
+      "name": "Pixel 7 CS2: roster verified, stale members stats not presented",
+      "status": "PASS"
+    },
+    {
+      "name": "Pixel 7 CS2: single and bulk use one transaction owner, chunks <=10",
+      "status": "PASS"
+    },
+    {
+      "name": "Pixel 7 CS2: offline present/absent/delete intents persist and sync in order",
+      "status": "PASS"
+    },
+    {
+      "name": "Pixel 7 CS2: Firestore transport blocked while navigator.onLine=true retains journal",
+      "status": "PASS"
+    },
+    {
+      "name": "Pixel 7 CS2: lost ACK keeps intent; retry does no duplicate mutation",
+      "status": "PASS"
+    },
+    {
+      "name": "Pixel 7 CS2: secondary stats derive from canonical history; no members write",
+      "status": "PASS"
+    },
+    {
+      "name": "iPhone 13 CS1: roster verified, stale members stats not presented",
+      "status": "PASS"
+    },
+    {
+      "name": "iPhone 13 CS1: single and bulk use one transaction owner, chunks <=10",
+      "status": "PASS"
+    },
+    {
+      "name": "iPhone 13 CS1: offline present/absent/delete intents persist and sync in order",
+      "status": "PASS"
+    },
+    {
+      "name": "iPhone 13 CS1: Firestore transport blocked while navigator.onLine=true retains journal",
+      "status": "PASS"
+    },
+    {
+      "name": "iPhone 13 CS1: lost ACK keeps intent; retry does no duplicate mutation",
+      "status": "PASS"
+    },
+    {
+      "name": "iPhone 13 CS1: secondary stats derive from canonical history; no members write",
+      "status": "PASS"
+    },
+    {
+      "name": "iPhone 13 CS2: roster verified, stale members stats not presented",
+      "status": "PASS"
+    },
+    {
+      "name": "iPhone 13 CS2: single and bulk use one transaction owner, chunks <=10",
+      "status": "PASS"
+    },
+    {
+      "name": "iPhone 13 CS2: offline present/absent/delete intents persist and sync in order",
+      "status": "PASS"
+    },
+    {
+      "name": "iPhone 13 CS2: Firestore transport blocked while navigator.onLine=true retains journal",
+      "status": "PASS"
+    },
+    {
+      "name": "iPhone 13 CS2: lost ACK keeps intent; retry does no duplicate mutation",
+      "status": "PASS"
+    },
+    {
+      "name": "iPhone 13 CS2: secondary stats derive from canonical history; no members write",
+      "status": "PASS"
+    }
+  ],
+  "errors": []
+}

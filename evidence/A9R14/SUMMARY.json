@@ -1,0 +1,37 @@
+{
+  "release": "A9R14",
+  "buildTag": "qr-v11r6-a9r14-qa-mobile-20261025",
+  "sourceZipBaselineSha256": "31030b29f44c171c7f3c4e891ff05c4ce393877fd63db7d3daccd59baa3be88f",
+  "fourRequestedGates": {
+    "attendance-canonical-ownership": "141/141 PASS",
+    "security-coach-branch-boundary": "35/35 PASS",
+    "coach-branch-runtime-repair": "7 current contract suites / 77 cases PASS",
+    "v5u2e-attendance-excel-sdk-fix": "22/22 PASS"
+  },
+  "app": {
+    "bytes": 698720,
+    "lines": 11211,
+    "ceilingsUnchanged": true,
+    "executableAstUnchanged": true
+  },
+  "defaultChecks": "58/58 PASS",
+  "checkAll": "97/97 PASS",
+  "criticalChecks": "124/127 PASS; 3 release gates HOLD",
+  "uniqueGateCommands": 159,
+  "technicalPassCommands": 156,
+  "releaseHoldCommands": 3,
+  "mobileBrowser": "7/7 PASS",
+  "profileNegativeControls": "10/10 PASS",
+  "currentAttendanceServiceEmulator": "22/22 PASS",
+  "realBrowserFirebase1071": "7/7 PASS",
+  "broaderRulesEmulator": "74/74 PASS",
+  "v11Emulator": "20 verified cases including 2 caught mutations",
+  "journal": "12 verified cases including 6 caught mutations",
+  "v11Browser": "28/28 PASS; emulated viewports",
+  "readCostFixture": "6/6 synthetic scenarios PASS; not production billing",
+  "runtimeJsAstCompared": 122,
+  "searchFilesByteIdentical": 5,
+  "rootPublicParity": "128/128 PASS",
+  "liveProjectWrites": false,
+  "deployed": false
+}

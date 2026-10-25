@@ -71,9 +71,9 @@ import {
     invalidateTabRenders,
 } from './renderRegistry.js';
 
-import { invalidateFinanceRender }   from './computation/financeRenderer.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
-import { invalidateStudentsRender }  from './computation/studentsRenderer.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1';
-import { invalidateInventoryRender } from './computation/inventoryRenderer.js?v=student-given-name-priority-20260811-v5u3';
+import { invalidateFinanceRender }   from "./computation/financeRenderer.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+import { invalidateStudentsRender }  from "./computation/studentsRenderer.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+import { invalidateInventoryRender } from "./computation/inventoryRenderer.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
 import { invalidateDashboardCache }  from './computation/dashboardRenderer.js';
 
 // [3.5E] List-level computation refresh — đảm bảo island không đọc HTML cũ
@@ -81,7 +81,7 @@ import {
     refreshListComputation,
     refreshListsComputation,
     getComputationDomainForList,
-} from './listComputationRefresh.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
+} from "./listComputationRefresh.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
 
 // ── Dev helper ────────────────────────────────────────────────────────────────
 function _isDev() {

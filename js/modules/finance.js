@@ -7,9 +7,9 @@ import {
     formatMonth,
     normalizeYYYYMM,
     formatMonthCompact,
-} from '../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
-import { FinanceService } from '../services/finance.service.js?v=qr-v11r5-ack-20261021';
-import { StudentService } from "../services/students.service.js?v=qr-v11r6-a9r13-member-history-diagnostics-20261024";
+} from "../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h";
+import { FinanceService } from "../services/finance.service.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+import { StudentService } from "../services/students.service.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
 import { attachTransactionPageProjection } from './finance/finance.pagination.js?v=qr-v11r6-review-20261021';
 import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
 
@@ -686,7 +686,7 @@ export function initTransactionPagination() {
         prepareNextPage, preparePreviousPage,
         renderPaginationControls, PAGE_SIZE,
     }) => {
-        import('../services/finance.service.js?v=qr-v11r5-ack-20261021').then(({ FinanceService }) => {
+        import("../services/finance.service.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025").then(({ FinanceService }) => {
 
             const store = window.__store;
             if (!store) { console.warn('[pagination/transactions] __store chưa sẵn sàng'); return; }
@@ -866,7 +866,7 @@ export function initTransactionPagination() {
                     // renderTxIsland owns the same page presentation on later redraws.
                     try {
                         if (contextKey === _currentPaginationContextKey()) {
-                            const { renderTxIsland } = await import('../ui/render/renderFinance.js?v=qr-v11r6-review-20261021');
+                            const { renderTxIsland } = await import("../ui/render/renderFinance.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025");
                             if (pgState.isCurrentContext() && requestSeq === pgState._requestSeq && contextKey === _currentPaginationContextKey()) {
                                 renderTxIsland();
                             }
@@ -980,7 +980,7 @@ export function initTransactionPagination() {
                     }
 
                     try {
-                        const { renderTxIsland } = await import('../ui/render/renderFinance.js?v=qr-v11r6-review-20261021');
+                        const { renderTxIsland } = await import("../ui/render/renderFinance.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025");
                         if (pgState._displayContextKey === _currentPaginationContextKey()) renderTxIsland();
                     } catch (err) { console.warn('[pagination/transactions] Direct row render lỗi:', err); }
                     _injectControls();

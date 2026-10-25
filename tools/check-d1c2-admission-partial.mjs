@@ -69,6 +69,12 @@ window.exportReceipt = async () => { receiptCalls++; return receiptMode === 'rej
 window.mergeInventoryIntoRuntimeStore = () => {};
 window.mergeTransactionIntoRuntimeStore = () => {};
 vm.createContext(sandbox);
+// Run the production registration validators; only the settings read transport
+// supplies the fixture (blank shift remains optional, never a bypassed guard).
+Object.assign(sandbox, await import('../js/core/trainingRegistration.js'));
+window._getClubShifts = () => [];
+window._ensureClubShiftsLoaded = async () => window._getClubShifts();
+vm.runInContext(src.slice(src.indexOf('const _registrationForms ='), src.indexOf('// ════════════════════════════════════════════════════════════════\n// BRIDGE HELPERS')), sandbox, { filename:'students.js:registration' });
 vm.runInContext(helpers + '\nlet _addStudentInProgress = false;\n' + src.slice(start,end), sandbox, { filename:'students.js:admission' });
 function clear() { primary.clear(); commits=0; reject=false; defer=null; secondary.length=0; toasts.length=0; receiptCalls=0; window.__store.profiles={}; }
 function set(id, value) { elements[id].value=String(value); }

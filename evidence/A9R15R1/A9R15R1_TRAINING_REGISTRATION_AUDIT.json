@@ -1,0 +1,142 @@
+{
+  "fixtureAudit": {
+    "classification": "PASS",
+    "kind": "fixture",
+    "scope": "supplied dataset only",
+    "clubId": "SYNTHETIC",
+    "inputSHA256": null,
+    "totalProfiles": 6,
+    "TRAINING_REGISTRATION_OK": 1,
+    "NO_SHIFT_ASSIGNED": 1,
+    "SHIFT_NOT_FOUND": 1,
+    "SHIFT_BRANCH_MISMATCH": 1,
+    "SHIFT_AUTHORITY_UNRESOLVED": 1,
+    "TRAINING_DAYS_INVALID": 1,
+    "reviewList": [
+      {
+        "profileId": "P00002",
+        "profileBranch": "CS1",
+        "trainingShiftId": "S2",
+        "shiftBranch": "CS2",
+        "result": "SHIFT_BRANCH_MISMATCH",
+        "issues": [
+          "SHIFT_BRANCH_MISMATCH"
+        ]
+      },
+      {
+        "profileId": "P00003",
+        "profileBranch": "CS2",
+        "trainingShiftId": "DELETED",
+        "shiftBranch": null,
+        "result": "SHIFT_NOT_FOUND",
+        "issues": [
+          "SHIFT_NOT_FOUND"
+        ]
+      },
+      {
+        "profileId": "P00004",
+        "profileBranch": "CS1",
+        "trainingShiftId": "U",
+        "shiftBranch": null,
+        "result": "SHIFT_AUTHORITY_UNRESOLVED",
+        "issues": [
+          "SHIFT_AUTHORITY_UNRESOLVED"
+        ]
+      },
+      {
+        "profileId": "P00005",
+        "profileBranch": "CS1",
+        "trainingShiftId": "",
+        "shiftBranch": null,
+        "result": "TRAINING_DAYS_INVALID",
+        "issues": [
+          "TRAINING_DAYS_INVALID"
+        ]
+      }
+    ],
+    "rows": [
+      {
+        "profileId": "P00001",
+        "profileBranch": "CS1",
+        "trainingShiftId": "S1",
+        "shiftBranch": "CS1",
+        "result": "TRAINING_REGISTRATION_OK",
+        "issues": []
+      },
+      {
+        "profileId": "P00002",
+        "profileBranch": "CS1",
+        "trainingShiftId": "S2",
+        "shiftBranch": "CS2",
+        "result": "SHIFT_BRANCH_MISMATCH",
+        "issues": [
+          "SHIFT_BRANCH_MISMATCH"
+        ]
+      },
+      {
+        "profileId": "P00003",
+        "profileBranch": "CS2",
+        "trainingShiftId": "DELETED",
+        "shiftBranch": null,
+        "result": "SHIFT_NOT_FOUND",
+        "issues": [
+          "SHIFT_NOT_FOUND"
+        ]
+      },
+      {
+        "profileId": "P00004",
+        "profileBranch": "CS1",
+        "trainingShiftId": "U",
+        "shiftBranch": null,
+        "result": "SHIFT_AUTHORITY_UNRESOLVED",
+        "issues": [
+          "SHIFT_AUTHORITY_UNRESOLVED"
+        ]
+      },
+      {
+        "profileId": "P00005",
+        "profileBranch": "CS1",
+        "trainingShiftId": "",
+        "shiftBranch": null,
+        "result": "TRAINING_DAYS_INVALID",
+        "issues": [
+          "TRAINING_DAYS_INVALID"
+        ]
+      },
+      {
+        "profileId": "P00006",
+        "profileBranch": "CS2",
+        "trainingShiftId": "",
+        "shiftBranch": null,
+        "result": "NO_SHIFT_ASSIGNED",
+        "issues": []
+      }
+    ],
+    "completeness": {
+      "declaredComplete": true,
+      "liveServerVerified": false,
+      "allExistingProfilesClean": false
+    },
+    "noDatabaseWrites": true,
+    "noNormalization": true,
+    "noAutomaticRepair": true
+  },
+  "realDataAudit": {
+    "classification": "ENV_BLOCKED",
+    "reason": "REAL_DATA_NOT_VERIFIED",
+    "scope": null,
+    "inputSHA256": null,
+    "totalProfiles": null,
+    "TRAINING_REGISTRATION_OK": null,
+    "NO_SHIFT_ASSIGNED": null,
+    "SHIFT_NOT_FOUND": null,
+    "SHIFT_BRANCH_MISMATCH": null,
+    "SHIFT_AUTHORITY_UNRESOLVED": null,
+    "TRAINING_DAYS_INVALID": null,
+    "reviewList": [],
+    "allExistingProfilesClean": null,
+    "noDatabaseWrites": true,
+    "requiredInput": "Owner-authorized current profile + canonical shifts export with club scope and completeness evidence"
+  },
+  "newWriteProtection": "Tested separately in runtime/service/browser matrices; not inferred from data cleanliness"
+}

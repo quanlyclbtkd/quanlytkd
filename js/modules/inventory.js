@@ -38,9 +38,9 @@
  * ────────────────────────────────────────────────────────────────
  */
 
-import { getLocalToday } from '../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h';
+import { getLocalToday } from "../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h";
 import { escapeHtml } from '../utils/helpers.js';
-import { InventoryService } from '../services/inventory.service.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1';
+import { InventoryService } from "../services/inventory.service.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1";
 
 // ════════════════════════════════════════════════════════════════
 // BRIDGE HELPERS — đọc state từ window.__store tại call-time

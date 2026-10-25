@@ -1,0 +1,11 @@
+{
+  "completed": 159,
+  "total": 159,
+  "latest": {
+    "command": "npm run check:v10-release-risk-boundary",
+    "gate": "check:v10-release-risk-boundary",
+    "exitCode": 1,
+    "status": "FAIL",
+    "seconds": 0.21
+  }
+}

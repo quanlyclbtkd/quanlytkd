@@ -1,0 +1,36 @@
+{
+  "classification": "PASS",
+  "bulkInspectAttestTailIdenticalAfterCacheTokenNormalization": true,
+  "functions": [
+    {
+      "name": "_scopedBranch",
+      "beforeSHA256": "2f32a96f7fbb16df7e6de6f8f591a0aa0ab06749a7d98828d1edf57e3f72fae3",
+      "afterSHA256": "2f32a96f7fbb16df7e6de6f8f591a0aa0ab06749a7d98828d1edf57e3f72fae3",
+      "byteIdentical": true
+    },
+    {
+      "name": "_prepareWriteData",
+      "beforeSHA256": "73632f1517445faeb2d78b7cb48a77594c09dba00389411c0021f5de0f6f5829",
+      "afterSHA256": "73632f1517445faeb2d78b7cb48a77594c09dba00389411c0021f5de0f6f5829",
+      "byteIdentical": true
+    },
+    {
+      "name": "_bulkWriteContextGuard",
+      "beforeSHA256": "8bff511fa6709f16543197f22bad2fcb5a4eeb1cc16ae1baa5df47bd3acedbd7",
+      "afterSHA256": "8bff511fa6709f16543197f22bad2fcb5a4eeb1cc16ae1baa5df47bd3acedbd7",
+      "byteIdentical": true
+    },
+    {
+      "name": "_toCanonicalAttendanceWrite",
+      "beforeSHA256": "813dca29f24b37fb22f46449d7890c0c3f660878baa52123d65ae60c69872669",
+      "afterSHA256": "813dca29f24b37fb22f46449d7890c0c3f660878baa52123d65ae60c69872669",
+      "byteIdentical": true
+    },
+    {
+      "name": "_commitAttendanceIntents",
+      "beforeSHA256": "0fbda5228b26e14a7a3e0b85ee7bc5b03cc7872604f0ba99605f36546d0098a6",
+      "afterSHA256": "0fbda5228b26e14a7a3e0b85ee7bc5b03cc7872604f0ba99605f36546d0098a6",
+      "byteIdentical": true
+    }
+  ]
+}

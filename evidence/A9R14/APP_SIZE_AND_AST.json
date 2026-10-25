@@ -1,0 +1,13 @@
+{
+  "baseline": {
+    "bytes": 703656,
+    "lines": 11317
+  },
+  "current": {
+    "bytes": 698720,
+    "lines": 11211
+  },
+  "movedJSDocBlocks": 14,
+  "executableASTUnchanged": true,
+  "astSha256": "b356e44a3dc312b4d152a5f7edbfd5c41a5fc8700ad3c9a95c23c8228618171f"
+}

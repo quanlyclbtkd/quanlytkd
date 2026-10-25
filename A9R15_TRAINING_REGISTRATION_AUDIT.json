@@ -1,0 +1,179 @@
+{
+  "kind": "A9R15_TRAINING_REGISTRATION_AUDIT",
+  "classification": "PASS",
+  "scope": "synthetic fixtures + runtime RAM audit tool; no production profile export supplied",
+  "productionAudit": {
+    "classification": "ENV_BLOCKED",
+    "reason": "No authorized production export/current profile dataset supplied; no production reads or writes performed",
+    "complete": false
+  },
+  "contract": {
+    "profiles": "clubs/{clubId}/profiles/{immutableProfileId}",
+    "shifts": "clubs/{clubId}/settings/shifts.list",
+    "identity": "shift.id",
+    "weekdayNumbering": "0=Sunday,1..6=Monday..Saturday",
+    "optionalShift": true,
+    "blankDays": "unrestricted days, inherited",
+    "sharedShiftSchema": false
+  },
+  "rows": [
+    {
+      "profileId": "P00001",
+      "profileBranch": "CS1",
+      "trainingShiftId": "S01",
+      "shiftBranch": "CS1",
+      "result": "TRAINING_REGISTRATION_OK",
+      "issues": []
+    },
+    {
+      "profileId": "P00002",
+      "profileBranch": "CS1",
+      "trainingShiftId": "S02",
+      "shiftBranch": "CS2",
+      "result": "SHIFT_BRANCH_MISMATCH",
+      "issues": [
+        "SHIFT_BRANCH_MISMATCH"
+      ]
+    },
+    {
+      "profileId": "P00003",
+      "profileBranch": "CS2",
+      "trainingShiftId": "OLD99",
+      "shiftBranch": null,
+      "result": "SHIFT_NOT_FOUND",
+      "issues": [
+        "SHIFT_NOT_FOUND"
+      ]
+    },
+    {
+      "profileId": "P00004",
+      "profileBranch": "CS1",
+      "trainingShiftId": "U01",
+      "shiftBranch": null,
+      "result": "SHIFT_AUTHORITY_UNRESOLVED",
+      "issues": [
+        "SHIFT_AUTHORITY_UNRESOLVED"
+      ]
+    },
+    {
+      "profileId": "P00005",
+      "profileBranch": "CS1",
+      "trainingShiftId": "",
+      "shiftBranch": null,
+      "result": "TRAINING_DAYS_INVALID",
+      "issues": [
+        "TRAINING_DAYS_INVALID"
+      ]
+    },
+    {
+      "profileId": "P00006",
+      "profileBranch": "CS2",
+      "trainingShiftId": "",
+      "shiftBranch": null,
+      "result": "NO_SHIFT_ASSIGNED",
+      "issues": []
+    }
+  ],
+  "results": [
+    {
+      "title": "CS1 + CS1 stable shift ID passes",
+      "classification": "PASS"
+    },
+    {
+      "title": "CS1 + CS2 blocks with exact error code and useful branch message",
+      "classification": "PASS"
+    },
+    {
+      "title": "CS2 + CS2 passes",
+      "classification": "PASS"
+    },
+    {
+      "title": "Canonical branch compatibility is identical for CS1 through CS10",
+      "classification": "PASS"
+    },
+    {
+      "title": "Missing/deleted shift is SHIFT_NOT_FOUND",
+      "classification": "PASS"
+    },
+    {
+      "title": "Changed shift branch is a mismatch without rewriting profile",
+      "classification": "PASS"
+    },
+    {
+      "title": "Forged ID never matches a label",
+      "classification": "PASS"
+    },
+    {
+      "title": "Missing, blank or null branch is unresolved, never global/CS1",
+      "classification": "PASS"
+    },
+    {
+      "title": "No-shift optional contract remains for empty/null/missing values",
+      "classification": "PASS"
+    },
+    {
+      "title": "Non-string shift ID cannot coerce into another registration",
+      "classification": "PASS"
+    },
+    {
+      "title": "Weekday 2/4/6, 3/5/7, one/multiple days, Sunday and blank keep JS 0..6 numbering",
+      "classification": "PASS"
+    },
+    {
+      "title": "Legacy string days, string array items and out-of-range days block",
+      "classification": "PASS"
+    },
+    {
+      "title": "Shift has no explicit days schema: no invented compatibility policy",
+      "classification": "PASS"
+    },
+    {
+      "title": "Reordering shifts never changes the mapping",
+      "classification": "PASS"
+    },
+    {
+      "title": "Duplicate shift IDs are unresolved, no first match fallback",
+      "classification": "PASS"
+    },
+    {
+      "title": "Canonical admission service blocks mismatch before preparing a write",
+      "classification": "PASS"
+    },
+    {
+      "title": "Direct patch guard validates merged canonical RAM profile",
+      "classification": "PASS"
+    },
+    {
+      "title": "A partial branch edit cannot assume absent registration when canonical profile is not loaded",
+      "classification": "PASS"
+    },
+    {
+      "title": "Unrelated tuition/contact-only service patches are not newly blocked by audit",
+      "classification": "PASS"
+    },
+    {
+      "title": "Stale shift authority cannot be used for a registration mutation",
+      "classification": "PASS"
+    },
+    {
+      "title": "Existing updateProfile rejects invalid registration before SDK write",
+      "classification": "PASS"
+    },
+    {
+      "title": "Existing patchProfile rejects invalid registration before SDK write",
+      "classification": "PASS"
+    },
+    {
+      "title": "Existing createProfile rejects invalid registration before SDK write",
+      "classification": "PASS"
+    },
+    {
+      "title": "All invalid direct writer paths emitted zero writes",
+      "classification": "PASS"
+    },
+    {
+      "title": "Read-only pseudonymous audit classifies all six outcomes",
+      "classification": "PASS"
+    }
+  ]
+}

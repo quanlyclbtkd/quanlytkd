@@ -95,17 +95,21 @@ body:has(#tab_debt.active):not(:has(#superAdminView[style*="display: block"])):n
   #mainTabsWrapper { display: none; }
 
   /* CONTEXT / SEARCH. Existing controls and IDs are physically reused; only presentation changes. */
-  #filterArea.ui-context-bar { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(112px, 1fr); gap: 8px; position: relative; margin: 0 0 12px; padding: 0; background: transparent; border: 0; }
-  .ui-context-search { grid-column: 1; grid-row: 1; display: block; min-width: 0; position: relative; }
+  #filterArea.ui-context-bar { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(112px, 1fr) !important; gap: 8px; position: relative; margin: 0 0 12px; padding: 0; background: transparent; border: 0; }
+  .ui-context-search { grid-column: 1; grid-row: 2; display: block; min-width: 0; position: relative; }
   .ui-search-icon { color: #64748b; }
   .ui-search-input { min-height: var(--ui-touch-min); padding: 10px 12px 10px 40px; border-radius: 14px; background: #fff; box-shadow: var(--ui-shadow-sm); border: 1px solid #dbe3ef; font-size: 16px; }
   .ui-filter-toggle { display: none; }
   .ui-filter-controls, #filterArea.mobile-filter-open .ui-filter-controls { display: contents; }
   #filterArea.mobile-filter-open::before { content: none; }
-  .ui-filter-controls .input-branch { grid-column: 2; grid-row: 1; min-width: 0; align-self: stretch; }
+  .ui-filter-controls .input-branch { grid-column: 2; grid-row: 2; min-width: 0; align-self: stretch; }
   .ui-filter-controls .input-branch label { display: none; }
   .ui-filter-controls .input-branch #filterBranch { min-width: 0; height: 100%; min-height: var(--ui-touch-min); padding: 8px 30px 8px 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; box-shadow: var(--ui-shadow-sm); border-radius: 14px; }
-  .ui-filter-controls > .ui-filter-field:not(.input-branch) { grid-column: 1 / -1; grid-row: 2; min-width: 0; }
+  .ui-filter-controls > .ui-filter-field:not(.input-branch) { grid-column: 1 / -1; grid-row: 1; min-width: 0; }
+  /* A9R14: presentation only; the existing inputs, IDs and events stay in place. */
+  #filterArea .ui-filter-field > label { font-size: 0.75rem; font-weight: 700; line-height: 1.35; }
+  #filterArea #filterMonth, #filterArea #filterBranch, #filterArea #searchInput { font-size: 16px !important; line-height: 1.25; min-height: var(--ui-touch-min); }
+  #filterArea #searchInput::placeholder { font-size: 0.875rem; }
   .ui-filter-sheet-head, .ui-filter-done { display: none; }
   .ui-filter-field label { display: block; margin-bottom: 5px; color: #475569; font-size: 0.78rem; font-weight: 800; }
   .ui-filter-control { min-height: 46px; font-size: 16px; }
@@ -208,3 +212,11 @@ body:has(#tab_debt.active):not(:has(#superAdminView[style*="display: block"])):n
 @media (prefers-reduced-motion: reduce) {
   .ui-mobile-shell *, .ui-mobile-shell *::before, .ui-mobile-shell *::after { scroll-behavior: auto; animation-duration: 0.01ms; animation-iteration-count: 1; transition-duration: 0.01ms; }
 }
+/* A9R15: existing registration controls, ordered branch -> shift -> weekdays. */
+.training-registration { display:flex; flex-direction:column; gap:10px; min-width:0; padding:12px; border:1px solid #bfdbfe; border-radius:12px; background:#f8fafc; }
+.training-registration > div { margin:0 !important; }
+.training-registration select { font-size:16px !important; min-height:44px; max-width:100%; }
+.training-registration label, .training-registration > div > span { font-size:13px !important; }
+.training-registration [role="alert"] { color:#9f1239; font-size:13px; line-height:1.5; overflow-wrap:anywhere; }
+.training-registration button { font-size:13px; min-height:44px; border:1px solid #cbd5e1; border-radius:8px; background:white; padding:8px; }
+.training-registration pre { white-space:pre-wrap; overflow-wrap:anywhere; max-height:240px; overflow:auto; font-size:12px; }

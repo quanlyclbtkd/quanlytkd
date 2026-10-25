@@ -1,0 +1,12 @@
+{
+  "allRuntimeJSFilesCompared": 122,
+  "allExecutableASTsUnchangedAfterCacheTagNormalization": true,
+  "unchangedSearchFiles": [
+    "js/modules/searchRuntime.js",
+    "js/core/studentSearchIndex.js",
+    "js/modules/students/students.search.js",
+    "js/events/students.events.js",
+    "js/events/finance.events.js"
+  ],
+  "rulesIndexesAndReleaseGateUnchanged": true
+}

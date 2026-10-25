@@ -1,0 +1,94 @@
+{
+  "project": "demo-v11-contract",
+  "results": [
+    {
+      "name": "S01: forged and unverified legacy get denied",
+      "status": "PASS"
+    },
+    {
+      "name": "S01: broad and legacy branch-only queries denied",
+      "status": "PASS"
+    },
+    {
+      "name": "S01: actual day/month/history queries omit unverified records on server",
+      "status": "PASS"
+    },
+    {
+      "name": "S01: untrusted history cannot be promoted by blind Coach update",
+      "status": "PASS"
+    },
+    {
+      "name": "S01: canonical-profile branch rejects forged create",
+      "status": "PASS"
+    },
+    {
+      "name": "S01: own canonical and CS1 legacy profiles accepted",
+      "status": "PASS"
+    },
+    {
+      "name": "S01: historical branch survives profile transfer, current branch cannot read old history",
+      "status": "PASS"
+    },
+    {
+      "name": "S01: historical branch immutable and old Coach cannot edit transferred profile",
+      "status": "PASS"
+    },
+    {
+      "name": "S01: new branch may create new-day history after transfer",
+      "status": "PASS"
+    },
+    {
+      "name": "S01: Admin audit uses same CAS writer; viewer cannot attest",
+      "status": "PASS"
+    },
+    {
+      "name": "O01: second commit fails, ACKs identify only first ten intents",
+      "status": "PASS"
+    },
+    {
+      "name": "O01: stale retry cannot overwrite newer status 2 with 1",
+      "status": "PASS"
+    },
+    {
+      "name": "O01: lost ACK retries same intent idempotently without write",
+      "status": "PASS"
+    },
+    {
+      "name": "O01: present/delete/reapply uses tombstone and blocks delayed resurrection",
+      "status": "PASS"
+    },
+    {
+      "name": "O01: unversioned legacy writer and invalid identity fail closed",
+      "status": "PASS"
+    },
+    {
+      "name": "P1: Coach members stats write remains denied and compatibility API rejects",
+      "status": "PASS"
+    },
+    {
+      "name": "O01: SDK stream-disable does not count as a failed server ACK",
+      "status": "PASS"
+    },
+    {
+      "name": "Cross-account, cross-club, viewer and stale context denied",
+      "status": "PASS"
+    },
+    {
+      "name": "S01 historical proof removed",
+      "status": "CAUGHT",
+      "type": "negative-control"
+    },
+    {
+      "name": "S01 canonical profile check removed",
+      "status": "CAUGHT",
+      "type": "negative-control"
+    }
+  ],
+  "transactionReads": 36,
+  "transactionWritesAttempted": 23,
+  "sourceHashes": {
+    "firestore.rules": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+    "js/services/attendance.service.js": "62f71d688288a468bbfc32a10fe7a80d5fd7ecb5e4b37b3d41a97f208e9c2e7f",
+    "js/core/attendanceContract.js": "b96b04eccda4738b190b5cbb3e1d05664d422dff17b84a64cfd66bccbbc68239"
+  }
+}

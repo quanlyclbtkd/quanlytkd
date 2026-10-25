@@ -26,7 +26,7 @@
  *   so app.js (openProfile uniform size selector) continues to work unchanged.
  */
 
-import { formatDate } from '../../../utils/format.js';
+import { formatDate } from "../../../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h";
 import { rankStudentNameSearchResults } from '../../../core/studentSearchIndex.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1';
 import { TransactionDeleteIntegrity } from '../../../core/transactionDeleteIntegrity.js';
 

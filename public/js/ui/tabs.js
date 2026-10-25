@@ -46,7 +46,7 @@
  */
 
 import { TAB_LISTS }    from '../utils/constants.js';
-import { getLocalToday } from '../utils/format.js';
+import { getLocalToday } from "../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h";
 
 // Phase 3.4: Render island lifecycle — tab-aware scheduling
 import { runTabRenders, cleanupTabRenders, flushDirtyRenders } from './render/renderRegistry.js';

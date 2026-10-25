@@ -1,0 +1,1600 @@
+{
+  "groups": {
+    "precheck": [
+      "check:production-authority-closure",
+      "check:attendance-explicit-shift-authority",
+      "check:attendance-daily-single-refresh-authority",
+      "check:production-security-trust-boundary"
+    ],
+    "check": [
+      "check:syntax",
+      "check:mobile-startup-performance",
+      "check:lazy-assets-loading",
+      "check:tailwind-static-css-build",
+      "check:mobile-filter-currency-stability",
+      "check:exam-upgrade-finance-separation",
+      "check:global-ownership-adoption-cleanup",
+      "check:listener-ownership-boundary",
+      "check:inventory-multiitem-readonly-ui",
+      "check:financial-action-audit-guard",
+      "check:diagnostics-tooling-isolation",
+      "check:report-export-lazy-isolation",
+      "check:attendance-canonical-ownership",
+      "check:spark-read-cost-hardening",
+      "check:inventory-history-active-debt",
+      "check:inventory-consumer-hydration-hotfix",
+      "check:inventory-dynamic-size-catalog",
+      "check:inventory-ledger-reconciliation",
+      "check:firestore-read-attribution-canonical-tx-boundary",
+      "check:payment-bundle-runtime-hotfix",
+      "check:canonical-transaction-safe-cutover",
+      "check:debt-profile-read-boundary",
+      "check:debt-authoritative-tuition-coverage",
+      "check:coach-attendance-only-read-boundary",
+      "check:security-coach-branch-boundary",
+      "check:coach-branch-runtime-repair",
+      "check:quit-tab-completeness",
+      "check:quit-tab-authoritative-completeness",
+      "check:quit-tab-mobile-parity",
+      "check:render-warning-coalescing",
+      "check:tuition-debt-source-of-truth",
+      "check:active-skipped-month-section",
+      "check:profile-canonical-store",
+      "check:v4d1a-runtime-recovery",
+      "check:v5q-quit-single-authoritative-pipeline",
+      "check:v5r-quit-single-source-lock",
+      "check:v5r-quit-source-behavior",
+      "check:v5s-quit-context-render-loop-guard",
+      "check:v5s-quit-context-behavior",
+      "check:v5t-command-boundary-write-freeze",
+      "check:v5t-command-boundary-behavior",
+      "check:v5u1-student-status-command-cutover",
+      "check:v5u1-student-status-command-behavior",
+      "check:v5u2-tuition-command-cutover",
+      "check:v5u2-tuition-command-behavior",
+      "check:v5u2e-attendance-excel-sdk-fix",
+      "check:student-name-search-priority",
+      "check:superadmin-auth-principal-alignment",
+      "check:admin-credential-single-source",
+      "check:auth-context-single-writer",
+      "check:legacy-global-freeze",
+      "check:dashboard-single-read-authority",
+      "check:dashboard-cache-freshness-guard",
+      "check:dashboard-hydration-mutation-guard"
+    ],
+    "check:all": [
+      "check:syntax",
+      "check:mobile-startup-performance",
+      "check:lazy-assets-loading",
+      "check:tailwind-static-css-build",
+      "check:mobile-filter-currency-stability",
+      "check:low-risk-helper-extraction",
+      "check:receipt-qr-helper-extraction",
+      "check:transaction-realtime",
+      "check:stats-aggregation",
+      "check:runtime-smoke-test",
+      "check:deploy-package",
+      "check:github-pages-paths",
+      "check:runtime-stability-gate",
+      "check:dashboard-exam-registration-branch",
+      "check:dashboard-branch-components",
+      "check:dashboard-chart-lifecycle",
+      "check:debt-service-bridge",
+      "check:debt-actions-sync",
+      "check:multiitem-skipped-months",
+      "check:active-loadmore-newest-first",
+      "check:mobile-superadmin-gate",
+      "check:search-runtime-v2",
+      "check:search-latency-optimization",
+      "check:student-search-index",
+      "check:cross-tab-search-replay",
+      "check:active-loadmore-single-source",
+      "check:exam-auto-select-paid",
+      "check:exam-upgrade-finance-separation",
+      "check:performance-stability-gate",
+      "check:tab-render-recovery",
+      "check:financial-flow-guard-readiness",
+      "check:security-license-ip-protection",
+      "check:scale-readiness-write-safety",
+      "check:exam-export-belt-sort",
+      "check:active-new-students-filter",
+      "check:legacy-app-reduction-readiness",
+      "check:multiitem-inventory-hydration",
+      "check:legacy-diagnostics-extraction",
+      "check:legacy-render-entrypoints",
+      "check:inline-handler-bridge",
+      "check:superadmin-aggregation-hard-stop",
+      "check:superadmin-quota-guard",
+      "check:legacy-runtime-fallback-fix",
+      "check:superadmin-cache-stats-island-fallback",
+      "check:superadmin-render-scope-fix",
+      "check:club-stats-auto-cache",
+      "check:superadmin-server-summary-cache",
+      "check:superadmin-safe-server-refresh",
+      "check:excel-import-vtf-upsert",
+      "check:production-stability-gate",
+      "check:multiitem-tuition-package-fix",
+      "check:admission-tuition-type-normalization",
+      "check:inventory-multiitem-readonly-ui",
+      "check:listener-ownership-boundary",
+      "check:financial-action-audit-guard",
+      "check:global-ownership-adoption-cleanup",
+      "check:diagnostics-tooling-isolation",
+      "check:report-export-lazy-isolation",
+      "check:attendance-canonical-ownership",
+      "check:spark-read-cost-hardening",
+      "check:inventory-history-active-debt",
+      "check:inventory-consumer-hydration-hotfix",
+      "check:inventory-dynamic-size-catalog",
+      "check:inventory-ledger-reconciliation",
+      "check:firestore-read-attribution-canonical-tx-boundary",
+      "check:payment-bundle-runtime-hotfix",
+      "check:canonical-transaction-safe-cutover",
+      "check:debt-profile-read-boundary",
+      "check:debt-authoritative-tuition-coverage",
+      "check:tuition-package-month-coverage",
+      "check:coach-attendance-only-read-boundary",
+      "check:security-coach-branch-boundary",
+      "check:coach-branch-runtime-repair",
+      "check:quit-tab-completeness",
+      "check:quit-tab-authoritative-completeness",
+      "check:quit-tab-mobile-parity",
+      "check:superadmin-monthstats",
+      "check:v5r-quit-single-source-lock",
+      "check:v5r-quit-source-behavior",
+      "check:v5s-quit-context-render-loop-guard",
+      "check:v5s-quit-context-behavior",
+      "check:superadmin-hotfix",
+      "check:v5t-command-boundary-write-freeze",
+      "check:v5t-command-boundary-behavior",
+      "check:v5u1-student-status-command-cutover",
+      "check:v5u1-student-status-command-behavior",
+      "check:v5u2-tuition-command-cutover",
+      "check:v5u2-tuition-command-behavior",
+      "check:v5u2e-attendance-excel-sdk-fix",
+      "check:student-name-search-priority",
+      "check:superadmin-auth-principal-alignment",
+      "check:admin-credential-single-source",
+      "check:auth-context-single-writer",
+      "check:legacy-global-freeze",
+      "check:dashboard-single-read-authority",
+      "check:dashboard-cache-freshness-guard",
+      "check:dashboard-hydration-mutation-guard"
+    ],
+    "check:all:critical": [
+      "check:qr-v4-payment-account-authority",
+      "check:d1c3b7r2r6r1-v1-v2-collision-scope",
+      "check:d1c3b7r2r6-v2-cross-date-isolation",
+      "check:d1c3b7r2r5-shift-touch-closure",
+      "check:d1c3b7r2r4-v2-journal-no-loss",
+      "check:d1c3b7r2r3-offline-session-integrity",
+      "check:d1c3b7r2r2-attendance-role-authority",
+      "check:d1c3b7r2-mobile-css-runtime",
+      "check:d1c3b7r2-attendance-roster-write-guard",
+      "check:d1c3b7r2-coach-fallback-no-overlap",
+      "check:d1c3b7r1-coach-roster-closure",
+      "check:d1c3b7-release-security",
+      "check:d1c3b6-release-blockers",
+      "check:d1c3b6-coach-roster-authority",
+      "check:d1c3b6-listener-topology",
+      "check:d1c3b6-metadata-noop",
+      "check:d1c3b5-coach-async-lifecycle",
+      "check:d1c3b5-coach-legacy-coverage",
+      "check:d1c3b-debt-authoritative-profile-coverage",
+      "check:d1c3b1-debt-runtime-closure",
+      "check:d1c3b2-authority-continuity",
+      "check:d1c3b3-profile-snapshot-context-closure",
+      "check:d1c3b4-async-coach-closure",
+      "check:monthly-revenue-allocation",
+      "check:mobile-startup-performance",
+      "check:lazy-assets-loading",
+      "check:tailwind-static-css-build",
+      "check:mobile-filter-currency-stability",
+      "check:low-risk-helper-extraction",
+      "check:receipt-qr-helper-extraction",
+      "check:active-student-sort",
+      "check:runtime-smoke-test",
+      "check:dashboard-history-fallback",
+      "check:stats-aggregation",
+      "check:exam-payment-identity",
+      "check:exam-cancel-fee",
+      "check:exam-fee-ui-cleanup",
+      "check:exam-name-parser-hotfix",
+      "check:exam-canonical-ledger",
+      "check:student-quit-hard-separation",
+      "check:bundled-receipt-transactions",
+      "check:exam-fee-save-pipeline",
+      "check:vnd-money-format",
+      "check:dashboard-historical-authority",
+      "check:bundle-display-labels",
+      "check:admission-bundle-unification",
+      "check:component-accounting-authority",
+      "check:finance-mobile-bundle-row",
+      "check:student-pagination-status-filter",
+      "check:debt-full-coverage",
+      "check:debt-authoritative-tuition-coverage",
+      "check:tuition-table-layout",
+      "check:per-tab-load-more",
+      "check:exam-export-download",
+      "check:tuition-table-layout-real",
+      "check:real-load-more-wiring",
+      "check:loadmore-scroll-preservation",
+      "check:debt-loadmore-filter",
+      "check:active-render-tdz-order",
+      "check:active-loadmore-newest-first",
+      "check:runtime-pilot-verification",
+      "check:debt-actions-sync",
+      "check:debt-service-bridge",
+      "check:multiitem-skipped-months",
+      "check:dashboard-chart-lifecycle",
+      "check:dashboard-branch-components",
+      "check:runtime-stability-gate",
+      "check:dashboard-exam-registration-branch",
+      "check:mobile-superadmin-gate",
+      "check:search-runtime-v2",
+      "check:search-latency-optimization",
+      "check:student-search-index",
+      "check:cross-tab-search-replay",
+      "check:active-loadmore-single-source",
+      "check:exam-auto-select-paid",
+      "check:exam-upgrade-finance-separation",
+      "check:performance-stability-gate",
+      "check:tab-render-recovery",
+      "check:financial-flow-guard-readiness",
+      "check:security-license-ip-protection",
+      "check:scale-readiness-write-safety",
+      "check:legacy-app-reduction-readiness",
+      "check:multiitem-inventory-hydration",
+      "check:legacy-diagnostics-extraction",
+      "check:legacy-render-entrypoints",
+      "check:inline-handler-bridge",
+      "check:superadmin-aggregation-hard-stop",
+      "check:superadmin-quota-guard",
+      "check:legacy-runtime-fallback-fix",
+      "check:superadmin-cache-stats-island-fallback",
+      "check:superadmin-render-scope-fix",
+      "check:club-stats-auto-cache",
+      "check:superadmin-server-summary-cache",
+      "check:superadmin-safe-server-refresh",
+      "check:excel-import-vtf-upsert",
+      "check:production-stability-gate",
+      "check:multiitem-tuition-package-fix",
+      "check:admission-tuition-type-normalization",
+      "check:inventory-multiitem-readonly-ui",
+      "check:listener-ownership-boundary",
+      "check:financial-action-audit-guard",
+      "check:global-ownership-adoption-cleanup",
+      "check:diagnostics-tooling-isolation",
+      "check:report-export-lazy-isolation",
+      "check:attendance-canonical-ownership",
+      "check:spark-read-cost-hardening",
+      "check:inventory-ledger-reconciliation",
+      "check:coach-attendance-only-read-boundary",
+      "check:security-coach-branch-boundary",
+      "check:quit-tab-completeness",
+      "check:quit-tab-authoritative-completeness",
+      "check:quit-tab-mobile-parity",
+      "check:render-warning-coalescing",
+      "check:tuition-debt-source-of-truth",
+      "check:active-skipped-month-section",
+      "check:profile-canonical-store",
+      "check:v4d1a-runtime-recovery",
+      "check:v5u2e-attendance-excel-sdk-fix",
+      "check:student-name-search-priority",
+      "check:superadmin-auth-principal-alignment",
+      "check:admin-credential-single-source",
+      "check:auth-context-single-writer",
+      "check:legacy-global-freeze",
+      "check:dashboard-single-read-authority",
+      "check:dashboard-cache-freshness-guard",
+      "check:dashboard-hydration-mutation-guard",
+      "check:v10-release-risk-boundary"
+    ]
+  },
+  "results": [
+    {
+      "key": "check:production-authority-closure",
+      "command": "node tools/check-production-authority-closure.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_production-authority-closure.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:attendance-explicit-shift-authority",
+      "command": "node tools/check-attendance-explicit-shift-authority.mjs",
+      "exitCode": 1,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_attendance-explicit-shift-authority.log",
+      "classification": "FAIL_TEST_HARNESS"
+    },
+    {
+      "key": "check:attendance-daily-single-refresh-authority",
+      "command": "node tools/check-attendance-daily-single-refresh-authority.mjs",
+      "exitCode": 1,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_attendance-daily-single-refresh-authority.log",
+      "classification": "FAIL_TEST_HARNESS"
+    },
+    {
+      "key": "check:production-security-trust-boundary",
+      "command": "node tools/check-production-security-trust-boundary.mjs",
+      "exitCode": 0,
+      "seconds": 0.47,
+      "log": "evidence_a9r15/regression_final/check_production-security-trust-boundary.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:syntax",
+      "command": "node tools/check-syntax.mjs",
+      "exitCode": 0,
+      "seconds": 2.85,
+      "log": "evidence_a9r15/regression_final/check_syntax.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:mobile-startup-performance",
+      "command": "node tools/check-mobile-startup-performance.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_mobile-startup-performance.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:lazy-assets-loading",
+      "command": "node tools/check-lazy-assets-loading.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_lazy-assets-loading.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:tailwind-static-css-build",
+      "command": "node tools/check-tailwind-static-css-build.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_tailwind-static-css-build.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:mobile-filter-currency-stability",
+      "command": "node tools/check-mobile-filter-currency-stability.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_mobile-filter-currency-stability.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:exam-upgrade-finance-separation",
+      "command": "node tools/check-exam-upgrade-finance-separation.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_exam-upgrade-finance-separation.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:global-ownership-adoption-cleanup",
+      "command": "node tools/check-global-ownership-adoption-cleanup.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_global-ownership-adoption-cleanup.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:listener-ownership-boundary",
+      "command": "node tools/check-listener-ownership-boundary.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_listener-ownership-boundary.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:inventory-multiitem-readonly-ui",
+      "command": "node tools/check-inventory-multiitem-readonly-ui.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_inventory-multiitem-readonly-ui.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:financial-action-audit-guard",
+      "command": "node tools/check-financial-action-audit-guard.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_financial-action-audit-guard.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:diagnostics-tooling-isolation",
+      "command": "node tools/check-diagnostics-tooling-isolation.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_diagnostics-tooling-isolation.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:report-export-lazy-isolation",
+      "command": "node tools/check-report-export-lazy-isolation.mjs",
+      "exitCode": 0,
+      "seconds": 3.12,
+      "log": "evidence_a9r15/regression_final/check_report-export-lazy-isolation.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:attendance-canonical-ownership",
+      "command": "node tools/check-attendance-canonical-ownership.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_attendance-canonical-ownership.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:spark-read-cost-hardening",
+      "command": "node tools/check-spark-read-cost-hardening.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_spark-read-cost-hardening.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:inventory-history-active-debt",
+      "command": "node tools/check-inventory-history-pagination-active-debt.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_inventory-history-active-debt.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:inventory-consumer-hydration-hotfix",
+      "command": "node tools/check-inventory-consumer-hydration-hotfix.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_inventory-consumer-hydration-hotfix.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:inventory-dynamic-size-catalog",
+      "command": "node tools/check-inventory-dynamic-size-catalog.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_inventory-dynamic-size-catalog.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:inventory-ledger-reconciliation",
+      "command": "node tools/check-inventory-ledger-reconciliation.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_inventory-ledger-reconciliation.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:firestore-read-attribution-canonical-tx-boundary",
+      "command": "node tools/check-firestore-read-attribution-canonical-tx-boundary.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_firestore-read-attribution-canonical-tx-boundary.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:payment-bundle-runtime-hotfix",
+      "command": "node tools/check-payment-bundle-runtime-hotfix.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_payment-bundle-runtime-hotfix.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:canonical-transaction-safe-cutover",
+      "command": "node tools/check-canonical-transaction-safe-cutover.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_canonical-transaction-safe-cutover.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:debt-profile-read-boundary",
+      "command": "node tools/check-debt-profile-read-boundary.mjs",
+      "exitCode": 0,
+      "seconds": 0.12,
+      "log": "evidence_a9r15/regression_final/check_debt-profile-read-boundary.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:debt-authoritative-tuition-coverage",
+      "command": "node tools/check-debt-authoritative-tuition-coverage.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_debt-authoritative-tuition-coverage.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:coach-attendance-only-read-boundary",
+      "command": "node tools/check-coach-attendance-only-read-boundary.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_coach-attendance-only-read-boundary.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:security-coach-branch-boundary",
+      "command": "node tools/check-security-coach-branch-boundary.mjs",
+      "exitCode": 0,
+      "seconds": 0.72,
+      "log": "evidence_a9r15/regression_final/check_security-coach-branch-boundary.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:coach-branch-runtime-repair",
+      "command": "node tools/check-coach-branch-runtime-repair.mjs",
+      "exitCode": 0,
+      "seconds": 1.72,
+      "log": "evidence_a9r15/regression_final/check_coach-branch-runtime-repair.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:quit-tab-completeness",
+      "command": "node tools/check-quit-tab-completeness.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_quit-tab-completeness.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:quit-tab-authoritative-completeness",
+      "command": "node tools/check-quit-tab-authoritative-completeness.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_quit-tab-authoritative-completeness.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:quit-tab-mobile-parity",
+      "command": "node tools/check-quit-tab-mobile-parity.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_quit-tab-mobile-parity.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:render-warning-coalescing",
+      "command": "node tools/check-render-warning-coalescing-v4b12.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_render-warning-coalescing.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:tuition-debt-source-of-truth",
+      "command": "node tools/check-tuition-debt-source-of-truth-v4c.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_tuition-debt-source-of-truth.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:active-skipped-month-section",
+      "command": "node tools/check-active-skipped-month-section-v4c2.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_active-skipped-month-section.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:profile-canonical-store",
+      "command": "node tools/check-profile-canonical-store-v4d1.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_profile-canonical-store.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:v4d1a-runtime-recovery",
+      "command": "node tools/check-v4d1a-runtime-recovery.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_v4d1a-runtime-recovery.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:v5q-quit-single-authoritative-pipeline",
+      "command": "node tools/check-v5q-quit-single-authoritative-pipeline.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_v5q-quit-single-authoritative-pipeline.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:v5r-quit-single-source-lock",
+      "command": "node tools/check-v5r-quit-single-source-lock.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_v5r-quit-single-source-lock.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:v5r-quit-source-behavior",
+      "command": "node tools/check-v5r-quit-source-behavior.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_v5r-quit-source-behavior.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:v5s-quit-context-render-loop-guard",
+      "command": "node tools/check-v5s-quit-context-render-loop-guard.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_v5s-quit-context-render-loop-guard.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:v5s-quit-context-behavior",
+      "command": "node tools/check-v5s-quit-context-behavior.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_v5s-quit-context-behavior.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:v5t-command-boundary-write-freeze",
+      "command": "node tools/check-v5t-canonical-command-boundary-write-freeze.mjs",
+      "exitCode": 0,
+      "seconds": 0.16,
+      "log": "evidence_a9r15/regression_final/check_v5t-command-boundary-write-freeze.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:v5t-command-boundary-behavior",
+      "command": "node tools/check-v5t-command-boundary-behavior.mjs",
+      "exitCode": 0,
+      "seconds": 0.16,
+      "log": "evidence_a9r15/regression_final/check_v5t-command-boundary-behavior.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:v5u1-student-status-command-cutover",
+      "command": "node tools/check-v5u1-student-status-command-cutover.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_v5u1-student-status-command-cutover.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:v5u1-student-status-command-behavior",
+      "command": "node tools/check-v5u1-student-status-command-behavior.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_v5u1-student-status-command-behavior.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:v5u2-tuition-command-cutover",
+      "command": "node tools/check-v5u2-tuition-command-cutover.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_v5u2-tuition-command-cutover.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:v5u2-tuition-command-behavior",
+      "command": "node tools/check-v5u2-tuition-command-behavior.mjs",
+      "exitCode": 0,
+      "seconds": 0.16,
+      "log": "evidence_a9r15/regression_final/check_v5u2-tuition-command-behavior.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:v5u2e-attendance-excel-sdk-fix",
+      "command": "node tools/check-v5u2e-attendance-excel-sdk-fix.mjs",
+      "exitCode": 0,
+      "seconds": 0.62,
+      "log": "evidence_a9r15/regression_final/check_v5u2e-attendance-excel-sdk-fix.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:student-name-search-priority",
+      "command": "node tools/check-student-name-search-priority.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_student-name-search-priority.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:superadmin-auth-principal-alignment",
+      "command": "node tools/check-superadmin-auth-principal-alignment.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_superadmin-auth-principal-alignment.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:admin-credential-single-source",
+      "command": "node tools/check-admin-credential-single-source.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_admin-credential-single-source.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:auth-context-single-writer",
+      "command": "node tools/check-auth-context-single-writer.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_auth-context-single-writer.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:legacy-global-freeze",
+      "command": "node tools/check-legacy-global-freeze.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_legacy-global-freeze.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:dashboard-single-read-authority",
+      "command": "node tools/check-dashboard-single-read-authority.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_dashboard-single-read-authority.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:dashboard-cache-freshness-guard",
+      "command": "node tools/check-dashboard-cache-freshness-guard.mjs",
+      "exitCode": 0,
+      "seconds": 1.77,
+      "log": "evidence_a9r15/regression_final/check_dashboard-cache-freshness-guard.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:dashboard-hydration-mutation-guard",
+      "command": "node tools/check-dashboard-hydration-mutation-guard.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_dashboard-hydration-mutation-guard.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:low-risk-helper-extraction",
+      "command": "node tools/check-low-risk-helper-extraction.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_low-risk-helper-extraction.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:receipt-qr-helper-extraction",
+      "command": "node tools/check-receipt-qr-helper-extraction.mjs",
+      "exitCode": 0,
+      "seconds": 0.07,
+      "log": "evidence_a9r15/regression_final/check_receipt-qr-helper-extraction.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:transaction-realtime",
+      "command": "node tools/check-transaction-realtime.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_transaction-realtime.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:stats-aggregation",
+      "command": "node tools/check-stats-aggregation.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_stats-aggregation.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:runtime-smoke-test",
+      "command": "node tools/check-runtime-smoke-test.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_runtime-smoke-test.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:deploy-package",
+      "command": "node tools/check-deploy-package.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_deploy-package.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:github-pages-paths",
+      "command": "node tools/check-github-pages-paths.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_github-pages-paths.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:runtime-stability-gate",
+      "command": "node tools/check-runtime-stability-gate.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_runtime-stability-gate.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:dashboard-exam-registration-branch",
+      "command": "node tools/check-dashboard-exam-registration-branch.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_dashboard-exam-registration-branch.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:dashboard-branch-components",
+      "command": "node tools/check-dashboard-branch-components.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_dashboard-branch-components.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:dashboard-chart-lifecycle",
+      "command": "node tools/check-dashboard-chart-lifecycle.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_dashboard-chart-lifecycle.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:debt-service-bridge",
+      "command": "node tools/check-debt-service-bridge.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_debt-service-bridge.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:debt-actions-sync",
+      "command": "node tools/check-debt-actions-sync.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_debt-actions-sync.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:multiitem-skipped-months",
+      "command": "node tools/check-multiitem-skipped-months.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_multiitem-skipped-months.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:active-loadmore-newest-first",
+      "command": "node tools/check-active-loadmore-newest-first.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_active-loadmore-newest-first.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:mobile-superadmin-gate",
+      "command": "node tools/check-mobile-superadmin-gate.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_mobile-superadmin-gate.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:search-runtime-v2",
+      "command": "node tools/check-search-runtime-v2.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_search-runtime-v2.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:search-latency-optimization",
+      "command": "node tools/check-search-latency-optimization.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_search-latency-optimization.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:student-search-index",
+      "command": "node tools/check-student-search-index.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_student-search-index.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:cross-tab-search-replay",
+      "command": "node tools/check-cross-tab-search-replay.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_cross-tab-search-replay.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:active-loadmore-single-source",
+      "command": "node tools/check-active-loadmore-single-source.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_active-loadmore-single-source.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:exam-auto-select-paid",
+      "command": "node tools/check-exam-auto-select-paid.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_exam-auto-select-paid.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:performance-stability-gate",
+      "command": "node tools/check-performance-stability-gate.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_performance-stability-gate.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:tab-render-recovery",
+      "command": "node tools/check-tab-render-recovery.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_tab-render-recovery.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:financial-flow-guard-readiness",
+      "command": "node tools/check-financial-flow-guard-readiness.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_financial-flow-guard-readiness.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:security-license-ip-protection",
+      "command": "node tools/check-security-license-ip-protection.mjs",
+      "exitCode": 0,
+      "seconds": 0.16,
+      "log": "evidence_a9r15/regression_final/check_security-license-ip-protection.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:scale-readiness-write-safety",
+      "command": "node tools/check-scale-readiness-write-safety.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_scale-readiness-write-safety.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:exam-export-belt-sort",
+      "command": "node tools/check-exam-export-belt-sort.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_exam-export-belt-sort.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:active-new-students-filter",
+      "command": "node tools/check-active-new-students-filter.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_active-new-students-filter.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:legacy-app-reduction-readiness",
+      "command": "node tools/check-legacy-app-reduction-readiness.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_legacy-app-reduction-readiness.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:multiitem-inventory-hydration",
+      "command": "node tools/check-multiitem-inventory-hydration.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_multiitem-inventory-hydration.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:legacy-diagnostics-extraction",
+      "command": "node tools/check-legacy-diagnostics-extraction.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_legacy-diagnostics-extraction.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:legacy-render-entrypoints",
+      "command": "node tools/check-legacy-render-entrypoints.mjs",
+      "exitCode": 0,
+      "seconds": 0.12,
+      "log": "evidence_a9r15/regression_final/check_legacy-render-entrypoints.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:inline-handler-bridge",
+      "command": "node tools/check-inline-handler-bridge.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_inline-handler-bridge.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:superadmin-aggregation-hard-stop",
+      "command": "node tools/check-superadmin-aggregation-hard-stop.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_superadmin-aggregation-hard-stop.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:superadmin-quota-guard",
+      "command": "node tools/check-superadmin-quota-guard.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_superadmin-quota-guard.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:legacy-runtime-fallback-fix",
+      "command": "node tools/check-legacy-runtime-fallback-fix.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_legacy-runtime-fallback-fix.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:superadmin-cache-stats-island-fallback",
+      "command": "node tools/check-superadmin-cache-stats-island-fallback.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_superadmin-cache-stats-island-fallback.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:superadmin-render-scope-fix",
+      "command": "node tools/check-superadmin-render-scope-fix.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_superadmin-render-scope-fix.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:club-stats-auto-cache",
+      "command": "node tools/check-club-stats-auto-cache.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_club-stats-auto-cache.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:superadmin-server-summary-cache",
+      "command": "node tools/check-superadmin-server-summary-cache.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_superadmin-server-summary-cache.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:superadmin-safe-server-refresh",
+      "command": "node tools/check-superadmin-safe-server-refresh.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_superadmin-safe-server-refresh.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:excel-import-vtf-upsert",
+      "command": "node tools/check-excel-import-vtf-upsert.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_excel-import-vtf-upsert.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:production-stability-gate",
+      "command": "node tools/check-production-stability-gate.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_production-stability-gate.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:multiitem-tuition-package-fix",
+      "command": "node tools/check-multiitem-tuition-package-fix.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_multiitem-tuition-package-fix.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:admission-tuition-type-normalization",
+      "command": "node tools/check-admission-tuition-type-normalization.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_admission-tuition-type-normalization.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:tuition-package-month-coverage",
+      "command": "node tools/check-tuition-package-month-coverage.mjs",
+      "exitCode": 0,
+      "seconds": 0.16,
+      "log": "evidence_a9r15/regression_final/check_tuition-package-month-coverage.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:superadmin-monthstats",
+      "command": "node tools/check-superadmin-monthstats.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_superadmin-monthstats.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:superadmin-hotfix",
+      "command": "node tools/check-superadmin-hotfix.mjs",
+      "exitCode": 0,
+      "seconds": 0.07,
+      "log": "evidence_a9r15/regression_final/check_superadmin-hotfix.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:qr-v4-payment-account-authority",
+      "command": "node tools/check-qr-v4-payment-account-authority.mjs",
+      "exitCode": 0,
+      "seconds": 2.32,
+      "log": "evidence_a9r15/regression_final/check_qr-v4-payment-account-authority.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:d1c3b7r2r6r1-v1-v2-collision-scope",
+      "command": "node tools/check-d1c3b7r2r6r1-v1-v2-collision-scope.mjs",
+      "exitCode": 0,
+      "seconds": 1.17,
+      "log": "evidence_a9r15/regression_final/check_d1c3b7r2r6r1-v1-v2-collision-scope.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:d1c3b7r2r6-v2-cross-date-isolation",
+      "command": "node tools/check-d1c3b7r2r6-v2-cross-date-isolation.mjs",
+      "exitCode": 0,
+      "seconds": 1.17,
+      "log": "evidence_a9r15/regression_final/check_d1c3b7r2r6-v2-cross-date-isolation.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:d1c3b7r2r5-shift-touch-closure",
+      "command": "node tools/check-d1c3b7r2r5-shift-behavior.mjs && node tools/check-d1c3b7r2r5-css-runtime.mjs",
+      "exitCode": 0,
+      "seconds": 2.57,
+      "log": "evidence_a9r15/regression_final/check_d1c3b7r2r5-shift-touch-closure.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:d1c3b7r2r4-v2-journal-no-loss",
+      "command": "node tools/check-d1c3b7r2r4-v2-journal-no-loss.mjs",
+      "exitCode": 0,
+      "seconds": 1.22,
+      "log": "evidence_a9r15/regression_final/check_d1c3b7r2r4-v2-journal-no-loss.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:d1c3b7r2r3-offline-session-integrity",
+      "command": "node tools/check-d1c3b7r2r3-offline-session-integrity.mjs",
+      "exitCode": 0,
+      "seconds": 1.42,
+      "log": "evidence_a9r15/regression_final/check_d1c3b7r2r3-offline-session-integrity.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:d1c3b7r2r2-attendance-role-authority",
+      "command": "node tools/check-d1c3b7r2r2-attendance-role-authority.mjs",
+      "exitCode": 0,
+      "seconds": 0.16,
+      "log": "evidence_a9r15/regression_final/check_d1c3b7r2r2-attendance-role-authority.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:d1c3b7r2-mobile-css-runtime",
+      "command": "node tools/check-d1c3b7r2-mobile-css-runtime.mjs",
+      "exitCode": 0,
+      "seconds": 1.37,
+      "log": "evidence_a9r15/regression_final/check_d1c3b7r2-mobile-css-runtime.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:d1c3b7r2-attendance-roster-write-guard",
+      "command": "node tools/check-d1c3b7r2-attendance-roster-write-guard.mjs && node tools/check-d1c3b7r2-attendance-entrypoints.mjs",
+      "exitCode": 0,
+      "seconds": 0.17,
+      "log": "evidence_a9r15/regression_final/check_d1c3b7r2-attendance-roster-write-guard.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:d1c3b7r2-coach-fallback-no-overlap",
+      "command": "node tools/check-d1c3b7r2-coach-fallback-no-overlap.mjs",
+      "exitCode": 0,
+      "seconds": 0.12,
+      "log": "evidence_a9r15/regression_final/check_d1c3b7r2-coach-fallback-no-overlap.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:d1c3b7r1-coach-roster-closure",
+      "command": "node tools/check-d1c3b7r1-coach-roster-closure.mjs",
+      "exitCode": 0,
+      "seconds": 0.12,
+      "log": "evidence_a9r15/regression_final/check_d1c3b7r1-coach-roster-closure.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:d1c3b7-release-security",
+      "command": "node tools/check-d1c3b7-security-release.mjs",
+      "exitCode": 1,
+      "seconds": 31.77,
+      "log": "evidence_a9r15/regression_final/check_d1c3b7-release-security.log",
+      "classification": "RELEASE_BLOCKED"
+    },
+    {
+      "key": "check:d1c3b6-release-blockers",
+      "command": "node tools/check-d1c3b6-release-blockers.mjs",
+      "exitCode": 1,
+      "seconds": 29.54,
+      "log": "evidence_a9r15/regression_final/check_d1c3b6-release-blockers.log",
+      "classification": "RELEASE_BLOCKED"
+    },
+    {
+      "key": "check:d1c3b6-coach-roster-authority",
+      "command": "node tools/check-d1c3b6-coach-roster-authority.mjs",
+      "exitCode": 0,
+      "seconds": 0.22,
+      "log": "evidence_a9r15/regression_final/check_d1c3b6-coach-roster-authority.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:d1c3b6-listener-topology",
+      "command": "D1C3B6_SCOPE=listener node tools/check-d1c3b6-actual-handlers.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_d1c3b6-listener-topology.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:d1c3b6-metadata-noop",
+      "command": "D1C3B6_SCOPE=metadata node tools/check-d1c3b6-actual-handlers.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_d1c3b6-metadata-noop.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:d1c3b5-coach-async-lifecycle",
+      "command": "node tools/check-d1c3b5-coach-async-lifecycle.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_d1c3b5-coach-async-lifecycle.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:d1c3b5-coach-legacy-coverage",
+      "command": "node tools/check-d1c3b5-coach-legacy-coverage.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_d1c3b5-coach-legacy-coverage.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:d1c3b-debt-authoritative-profile-coverage",
+      "command": "node tools/check-d1c3b-debt-authoritative-profile-coverage.mjs",
+      "exitCode": 0,
+      "seconds": 0.16,
+      "log": "evidence_a9r15/regression_final/check_d1c3b-debt-authoritative-profile-coverage.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:d1c3b1-debt-runtime-closure",
+      "command": "node tools/check-d1c3b1-debt-runtime-closure.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_d1c3b1-debt-runtime-closure.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:d1c3b2-authority-continuity",
+      "command": "node tools/check-d1c3b2-authority-continuity.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_d1c3b2-authority-continuity.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:d1c3b3-profile-snapshot-context-closure",
+      "command": "node tools/check-d1c3b3-profile-snapshot-context-closure.mjs",
+      "exitCode": 0,
+      "seconds": 1.57,
+      "log": "evidence_a9r15/regression_final/check_d1c3b3-profile-snapshot-context-closure.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:d1c3b4-async-coach-closure",
+      "command": "node tools/check-d1c3b4-async-coach-closure.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_d1c3b4-async-coach-closure.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:monthly-revenue-allocation",
+      "command": "node tools/check-monthly-revenue-allocation.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_monthly-revenue-allocation.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:active-student-sort",
+      "command": "node tools/check-active-student-sort.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_active-student-sort.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:dashboard-history-fallback",
+      "command": "node tools/check-dashboard-history-fallback.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_dashboard-history-fallback.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:exam-payment-identity",
+      "command": "node tools/check-exam-payment-identity.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_exam-payment-identity.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:exam-cancel-fee",
+      "command": "node tools/check-exam-cancel-fee.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_exam-cancel-fee.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:exam-fee-ui-cleanup",
+      "command": "node tools/check-exam-fee-ui-cleanup.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_exam-fee-ui-cleanup.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:exam-name-parser-hotfix",
+      "command": "node tools/check-exam-name-parser-hotfix.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_exam-name-parser-hotfix.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:exam-canonical-ledger",
+      "command": "node tools/check-exam-canonical-ledger.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_exam-canonical-ledger.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:student-quit-hard-separation",
+      "command": "node tools/check-student-quit-hard-separation.mjs",
+      "exitCode": 0,
+      "seconds": 0.07,
+      "log": "evidence_a9r15/regression_final/check_student-quit-hard-separation.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:bundled-receipt-transactions",
+      "command": "node tools/check-bundled-receipt-transactions.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_bundled-receipt-transactions.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:exam-fee-save-pipeline",
+      "command": "node tools/check-exam-fee-save-pipeline.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_exam-fee-save-pipeline.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:vnd-money-format",
+      "command": "node tools/check-vnd-money-format.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_vnd-money-format.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:dashboard-historical-authority",
+      "command": "node tools/check-dashboard-historical-authority.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_dashboard-historical-authority.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:bundle-display-labels",
+      "command": "node tools/check-bundle-display-labels.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_bundle-display-labels.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:admission-bundle-unification",
+      "command": "node tools/check-admission-bundle-unification.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_admission-bundle-unification.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:component-accounting-authority",
+      "command": "node tools/check-component-accounting-authority.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_component-accounting-authority.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:finance-mobile-bundle-row",
+      "command": "node tools/check-finance-mobile-bundle-row.mjs",
+      "exitCode": 0,
+      "seconds": 0.07,
+      "log": "evidence_a9r15/regression_final/check_finance-mobile-bundle-row.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:student-pagination-status-filter",
+      "command": "node tools/check-student-pagination-status-filter.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_student-pagination-status-filter.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:debt-full-coverage",
+      "command": "node tools/check-debt-full-coverage.mjs",
+      "exitCode": 0,
+      "seconds": 0.07,
+      "log": "evidence_a9r15/regression_final/check_debt-full-coverage.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:tuition-table-layout",
+      "command": "node tools/check-tuition-table-layout.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_tuition-table-layout.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:per-tab-load-more",
+      "command": "node tools/check-per-tab-load-more.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_per-tab-load-more.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:exam-export-download",
+      "command": "node tools/check-exam-export-download.mjs",
+      "exitCode": 0,
+      "seconds": 0.07,
+      "log": "evidence_a9r15/regression_final/check_exam-export-download.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:tuition-table-layout-real",
+      "command": "node tools/check-tuition-table-layout-real.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_tuition-table-layout-real.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:real-load-more-wiring",
+      "command": "node tools/check-real-load-more-wiring.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_real-load-more-wiring.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:loadmore-scroll-preservation",
+      "command": "node tools/check-loadmore-scroll-preservation.mjs",
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "evidence_a9r15/regression_final/check_loadmore-scroll-preservation.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:debt-loadmore-filter",
+      "command": "node tools/check-debt-loadmore-filter.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_debt-loadmore-filter.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:active-render-tdz-order",
+      "command": "node tools/check-active-render-tdz-order.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_active-render-tdz-order.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:runtime-pilot-verification",
+      "command": "node tools/check-runtime-pilot-verification.mjs",
+      "exitCode": 0,
+      "seconds": 0.06,
+      "log": "evidence_a9r15/regression_final/check_runtime-pilot-verification.log",
+      "classification": "PASS"
+    },
+    {
+      "key": "check:v10-release-risk-boundary",
+      "command": "node tools/check-v10-release-risk-boundary.mjs",
+      "exitCode": 1,
+      "log": "evidence_a9r15/regression_final/check_v10-release-risk-boundary.log",
+      "independentFinalRerun": true,
+      "classification": "RELEASE_BLOCKED"
+    }
+  ],
+  "runtimeSHA256": "f112c0aea086cb3e7684d03ddfe1897d82bcb159086b0a8fd895c71e9208fb67",
+  "sourceIdentityStart": {
+    "id": "V11R6_A9R15_TRAINING_HISTORY",
+    "canonicalFileCount": 129,
+    "coachAssignmentContract": "server-verified-multi-branch-v1",
+    "inputZIP_SHA256": "a81478cb6fb50eeed23ece4d0e106c949d73397010d52ead8adff6841bbc5c8a",
+    "manifest": "tools/v11r2/manifests/V11R6_A9R15_TRAINING_HISTORY.json",
+    "manifestSHA256": "4aa1e25c77048c10c25fdd3ecea1f5b198f3f5e23e89d37b79d5b4851f3deffd",
+    "runtimeSHA256": "f112c0aea086cb3e7684d03ddfe1897d82bcb159086b0a8fd895c71e9208fb67",
+    "rulesSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+    "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+    "buildTag": "qr-v11r6-a9r15-training-history-closure-20261025"
+  },
+  "sourceIdentityEnd": {
+    "id": "V11R6_A9R15_TRAINING_HISTORY",
+    "canonicalFileCount": 129,
+    "coachAssignmentContract": "server-verified-multi-branch-v1",
+    "inputZIP_SHA256": "a81478cb6fb50eeed23ece4d0e106c949d73397010d52ead8adff6841bbc5c8a",
+    "manifest": "tools/v11r2/manifests/V11R6_A9R15_TRAINING_HISTORY.json",
+    "manifestSHA256": "4aa1e25c77048c10c25fdd3ecea1f5b198f3f5e23e89d37b79d5b4851f3deffd",
+    "runtimeSHA256": "f112c0aea086cb3e7684d03ddfe1897d82bcb159086b0a8fd895c71e9208fb67",
+    "rulesSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+    "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+    "buildTag": "qr-v11r6-a9r15-training-history-closure-20261025"
+  },
+  "summary": {
+    "PASS": 154,
+    "FAIL_RUNTIME": 0,
+    "FAIL_TEST_HARNESS": 2,
+    "ENV_BLOCKED": 0,
+    "RELEASE_BLOCKED": 3
+  }
+}

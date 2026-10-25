@@ -1,0 +1,65 @@
+{
+  "phase": "A9R15R1",
+  "technicalClassification": "PASS",
+  "releaseClassification": "RELEASE_BLOCKED",
+  "leafCount": 159,
+  "passed": 156,
+  "technicalFailures": 0,
+  "intentionalReleaseHolds": [
+    {
+      "key": "check:d1c3b7-release-security",
+      "command": "node tools/check-d1c3b7-security-release.mjs",
+      "exitCode": 1,
+      "seconds": 39.88
+    },
+    {
+      "key": "check:d1c3b6-release-blockers",
+      "command": "node tools/check-d1c3b6-release-blockers.mjs",
+      "exitCode": 1,
+      "seconds": 32.56
+    },
+    {
+      "key": "check:v10-release-risk-boundary",
+      "command": "node tools/check-v10-release-risk-boundary.mjs",
+      "exitCode": 1,
+      "seconds": 0.11
+    }
+  ],
+  "groups": {
+    "precheck": {
+      "leafCount": 4,
+      "passed": 4,
+      "nonzero": []
+    },
+    "check": {
+      "leafCount": 54,
+      "passed": 54,
+      "nonzero": []
+    },
+    "check:all": {
+      "leafCount": 97,
+      "passed": 97,
+      "nonzero": []
+    },
+    "check:all:critical": {
+      "leafCount": 127,
+      "passed": 124,
+      "nonzero": [
+        "check:d1c3b7-release-security",
+        "check:d1c3b6-release-blockers",
+        "check:v10-release-risk-boundary"
+      ]
+    }
+  },
+  "npmCheck": {
+    "exitCode": 0,
+    "includesPrecheck": true
+  },
+  "npmCheckAll": {
+    "exitCode": 0
+  },
+  "execution": "All 159 unique leaf commands in the original script union were run independently so earlier intentional release holds did not hide later results; no script deletion/change",
+  "runtimeStartSha256": "f112c0aea086cb3e7684d03ddfe1897d82bcb159086b0a8fd895c71e9208fb67",
+  "runtimeEndSha256": "f112c0aea086cb3e7684d03ddfe1897d82bcb159086b0a8fd895c71e9208fb67",
+  "rawResults": "regression/RESULTS.json"
+}
