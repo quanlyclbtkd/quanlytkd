@@ -3,11 +3,18 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import assert from 'node:assert/strict';
 import {webcrypto} from 'node:crypto';
+import {verifySourceIdentity} from '../v11r2/source-identity.mjs';
+import {runtimeHash} from '../v11r2/cutover.mjs';
+import {verifyRuntimeProfile} from '../v11r2/runtime-profile.mjs';
 const source=fs.readFileSync('js/core/coachBranchRuntimeRepair.js','utf8');
 const rules=fs.readFileSync('firestore.rules','utf8');
 const baseRules=fs.readFileSync('tools/a9r4/a9r3-original-rules.sha256','utf8').trim();
 import crypto from 'node:crypto';
-assert.equal(crypto.createHash('sha256').update(rules).digest('hex'),baseRules,'Must not change A9R3 Rules');
+const identity=verifySourceIdentity(process.cwd(),runtimeHash(process.cwd()));
+if(identity.coachAssignmentContract==='server-verified-multi-branch-v1') {
+ verifyRuntimeProfile(process.cwd());
+ assert.equal(crypto.createHash('sha256').update(rules).digest('hex'),identity.rulesSHA256,'Exact pinned Rules for the current assignment contract');
+} else assert.equal(crypto.createHash('sha256').update(rules).digest('hex'),baseRules,'Must not change A9R3 Rules');
 assert(source.includes('const userSnap=creating ? {exists:()=>false} : await readVerified'));
 const acl={primary:'CS1',branches:['CS1','CS2']};
 function context({existingUser=null,existingCoach=null,recovery=false,wrongUid=false,permissionFailure=false}={}){

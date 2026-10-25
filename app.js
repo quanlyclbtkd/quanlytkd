@@ -343,12 +343,7 @@ window.invCustomCategories = [];
         console.table(window.__txListenerMetrics);
         return window.__txListenerMetrics;
     };
-    /**
-     * Ghi một read event vào __readScaleMetrics.
-     * @param {string} collection — tên collection
-     * @param {number} docCount   — số docs đã đọc
-     * @param {string} reason     — ngữ cảnh (listener name, export, v.v.)
-     */
+    /* API details: docs/APP_API_NOTES.md. */
     window.recordReadMetric = function(collection, docCount, reason) {
         const _m = window.__readScaleMetrics;
         if (!_m) return;
@@ -406,18 +401,7 @@ window.invCustomCategories = [];
         console.groupEnd();
         return { config: _cfg, recentReads: _latest };
     };
-    /**
-     * Đọc toàn bộ một collection lớn qua cursor pagination (dùng cho export/báo cáo).
-     * Tránh limit(500) hard cap — lấy TẤT CẢ docs qua nhiều trang nhỏ.
-     *
-     * @param {Function} fetchPage — async (opts) => QuerySnapshot
-     *   opts: { pageSize, cursor, direction: 'first'|'next' }
-     * @param {Object}   options
-     *   options.pageSize    — docs per page (default exportBatchSize)
-     *   options.maxPages    — giới hạn vòng lặp an toàn (default 50)
-     *   options.collection  — tên collection (cho metrics)
-     * @returns {Array<{id, ...data}>}
-     */
+    /* API details: docs/APP_API_NOTES.md. */
     window.fetchAllPagesForExport = async function(fetchPage, options) {
         const _opts       = options || {};
         const _batchSize  = _opts.pageSize || ((window.__scaleConfig || {}).exportBatchSize) || 200;
@@ -4814,12 +4798,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
     function removeVietnameseTonesForQR(str) { return str ? str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D') : ""; }
 
     // ── Phase 4.0B-4J-8A: Search Normalization + Index Helpers ───────────────
-    /**
-     * Bỏ dấu tiếng Việt + lowercase + trim để tạo search key nhất quán.
-     * Đồng bộ với normalize helper trong students.service.js (searchProfilesServerSide).
-     * @param {string} value — raw text
-     * @returns {string} normalized text (no diacritics, lowercase, single-space)
-     */
+    /* API details: docs/APP_API_NOTES.md. */
     function normalizeSearchText(value) {
         const raw = String(value || '').trim();
         const noTone = raw
@@ -4839,14 +4818,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         return String(value || '').replace(/\D/g, '');
     }
 
-    /**
-     * Xây dựng search index fields cho hồ sơ võ sinh.
-     * Ghi cùng lúc với setDoc/update để search luôn nhất quán.
-     *
-     * @param {Object} profile — {phone, memberId, nickname, …}
-     * @param {string} name    — tên võ sinh (doc ID)
-     * @returns {{searchName, searchNameTokens, searchPhone, searchCode, searchNickname}}
-     */
+    /* API details: docs/APP_API_NOTES.md. */
     function buildStudentSearchIndex(profile, name) {
         const fullName   = String((profile || {}).displayName || (profile || {}).name || (profile || {}).fullName || (profile || {}).studentName || name || '').trim();
         const phone      = String((profile || {}).phone || (profile || {}).parentPhone || (profile || {}).contactPhone || (profile || {}).guardianPhone || '');
@@ -4863,18 +4835,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
     }
     window.buildStudentSearchIndex = window.buildStudentSearchIndex || buildStudentSearchIndex;
 
-    /**
-     * Lấy tất cả trang của một query Firestore theo cursor pagination.
-     * Dùng để thay thế getDocs với limit(500) hard-cap.
-     *
-     * @param {Function} makeQuery — (opts: {cursor, pageSize}) => Firestore Query
-     * @param {Object}   options
-     * @param {number}   options.pageSize — số docs mỗi trang (default 200)
-     * @param {string}   options.reason   — ghi vào readMetric (optional)
-     * @param {string}   options.domain   — collection name cho metric (optional)
-     * @param {number}   options.maxPages — số trang tối đa (default 50 → 10.000 docs)
-     * @returns {Promise<Array>} — mảng tất cả docs (DocumentSnapshot)
-     */
+    /* API details: docs/APP_API_NOTES.md. */
     async function fetchQueryPages(makeQuery, options) {
         const _opts     = options || {};
         const pageSize  = _opts.pageSize || 200;
@@ -4995,9 +4956,13 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             if (!groups.has(year)) groups.set(year,[]);
             groups.get(year).push(month);
         }
-        const periods=Array.from(groups).sort(([a],[b])=>a.localeCompare(b))
-            .map(([year,list])=>'Y'+year+list.map(m=>'M'+m).join('')).join(' ');
-        const compact=_receiptPaymentMemo(name,'HP '+periods);
+        const ordered=Array.from(groups).sort(([a],[b])=>a.localeCompare(b));
+        const periods=ordered.map(([year,list])=>list.map(m=>'T'+m).join(' ')+' '+year).join(' ');
+        const readable=_receiptPaymentMemo(name,'HP '+periods,512);
+        if (readable.length<=40) return readable;
+        // Retain full name and every month/year when spacing alone exceeds the existing cap.
+        const tight=ordered.map(([year,list])=>list.map(m=>'T'+m).join('')+' '+year).join(' ');
+        const compact=_receiptPaymentMemo(name,'HP '+tight);
         // Refuse excessive descriptions rather than losing student name or
         // calendar months. Do not silently accept a provider-modified QR.
         if (compact.length > 40) throw _receiptError('MEMO_TOO_LONG','intent');
@@ -10555,13 +10520,7 @@ window.processMultiItem = async (action) => {
         window.__store._lastDataVersionReason = reason || '';
     }
 
-    /**
-     * activateLegacyRootFallback() — Phase 4.0B-4F (updated from 4E).
-     * Read-only. Không ghi Firestore. Không migration.
-     * Sync vào: window.__store + closure allProfiles/allTransactions/allInventory
-     *           + studentProfileStore + inventoryStore nếu có.
-     * Bump dataVersion + invalidate tabs + scheduleRender.
-     */
+    /* API details: docs/APP_API_NOTES.md. */
     window.activateLegacyRootFallback = async function activateLegacyRootFallback(reason) {
         const _db = db;
         if (!_db) {
@@ -10769,59 +10728,19 @@ window.processMultiItem = async (action) => {
 
     // PHASE 4.0B-4H — Browser Runtime Verification + 1-Club Pilot Launch Gate
 
-    /**
-     * generatePilotLaunchSnapshot() — Phase 4.0B-4H.
-     * Gom kết quả tất cả diagnostic functions thành một snapshot duy nhất.
-     * Dùng để chụp trạng thái đầy đủ tại một thời điểm. Không log PII.
-     *
-     * Cách dùng:
-     *   const snap = await window.generatePilotLaunchSnapshot();
-     *   console.log(JSON.stringify(snap, null, 2));
-     */
+    /* API details: docs/APP_API_NOTES.md. */
 
-    /**
-     * printOneClubPilotGate() — Phase 4.0B-4H.
-     * Tổng hợp go/no-go gate cho 1-CLB pilot. Không log PII.
-     *
-     * Cách dùng:
-     *   const gate = window.printOneClubPilotGate();
-     *   // gate.readyForOneClubPilot === true  →  GO
-     *   // gate.blockers.length > 0            →  NO-GO, xem gate.blockers
-     */
+    /* API details: docs/APP_API_NOTES.md. */
 
     // ── End Phase 4.0B-4H ─────────────────────────────────────────────────────
 
     // PHASE 4.0B-4I — Automated Onboarding Checklist for New Clubs
 
-    /**
-     * runOnboardingGate(clubIdOrOptions) — Phase 4.0B-4I.
-     * Chạy kiểm tra tự động cho một CLB mới trước khi bàn giao.
-     * Read-only. Không ghi Firestore. Không migration. Không log PII.
-     *
-     * Cách dùng:
-     *   await window.runOnboardingGate()
-     *   await window.runOnboardingGate('clubId123')
-     *   await window.runOnboardingGate({ clubId: 'clubId123', mode: 'pilot' })
-     */
+    /* API details: docs/APP_API_NOTES.md. */
 
-    /**
-     * printOnboardingGate(clubIdOrOptions) — Phase 4.0B-4I.
-     * Wrapper hiển thị kết quả bằng console.table. Read-only. Không log PII.
-     *
-     * Cách dùng:
-     *   await window.printOnboardingGate()
-     *   await window.printOnboardingGate({ clubId: window.__store?.clubId })
-     */
+    /* API details: docs/APP_API_NOTES.md. */
 
-    /**
-     * generateOnboardingReportText(options) — Phase 4.0B-4I.
-     * Tạo markdown text để người dùng copy vào ONBOARDING_REPORT_TEMPLATE.
-     * Không tự download. Không ghi Firestore. Chỉ return string.
-     *
-     * Cách dùng:
-     *   const text = await window.generateOnboardingReportText({ clubId: '...' });
-     *   console.log(text);
-     */
+    /* API details: docs/APP_API_NOTES.md. */
 
     // ── End Phase 4.0B-4I ─────────────────────────────────────────────────────
 
@@ -10834,15 +10753,7 @@ window.processMultiItem = async (action) => {
      */
 
 
-    /**
-     * runSuperAdminAudit(options) — Phase 4.0B-4J.
-     * Audit read-only nhiều CLB cùng lúc. Chỉ dành cho SuperAdmin.
-     * Không ghi Firestore. Không đổi context. Không log PII.
-     *
-     * Cách dùng:
-     *   await window.runSuperAdminAudit({ limit: 5 })
-     *   await window.runSuperAdminAudit({ clubIds: ['clb1','clb2'] })
-     */
+    /* API details: docs/APP_API_NOTES.md. */
 
     /**
      * printSuperAdminAudit(options) — Phase 4.0B-4J.
@@ -10852,14 +10763,7 @@ window.processMultiItem = async (action) => {
      *   await window.printSuperAdminAudit({ limit: 10 })
      */
 
-    /**
-     * generateSuperAdminAuditReportText(options) — Phase 4.0B-4J.
-     * Tạo markdown text báo cáo audit để SuperAdmin copy. Không ghi Firestore.
-     *
-     * Cách dùng:
-     *   const text = await window.generateSuperAdminAuditReportText({ limit: 10 });
-     *   console.log(text);
-     */
+    /* API details: docs/APP_API_NOTES.md. */
 
 // Phase 4K-5C — CANONICAL EXAM PAYMENT LEDGER (Phase 1)
 window.buildCanonicalExamPaymentLedger = function(options) {
@@ -11190,13 +11094,7 @@ window.debugExamCanonicalLedger = function() {
 };
 
     // ── Phase 4K-5A: computeExamRegistrationStats ────────────────────────────
-    /**
-     * Tính số lượng võ sinh đã đăng ký thi (đã nộp lệ phí) trong kỳ thi hiện tại.
-     * Đếm unique student names từ transactions type='Lệ phí thi' hoặc 'Học phí + Lệ phí thi'
-     * đã có examAmount > 0 và chưa bị cancel.
-     *
-     * @returns {{ registeredCount: number, paidNames: string[] }}
-     */
+    /* API details: docs/APP_API_NOTES.md. */
     // Phase 4K-5C: Dùng canonical ledger — count + amount luôn nhất quán
     window.computeExamRegistrationStats = function computeExamRegistrationStats() {
         try {

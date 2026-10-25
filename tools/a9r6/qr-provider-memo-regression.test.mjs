@@ -35,7 +35,7 @@ verify('A9R6 real case verbose 42 chars',()=>assert.equal(verbose.length,42));
 const compact=call(`_receiptTuitionMemo(${JSON.stringify(name)},'2026-09,2026-10',${JSON.stringify(verbose)})`);
 verify('A9R6 shortens tuition period but keeps entire name and both months',()=>{
  assert(compact.startsWith('Le Dao Dinh Khoi HP '));
- assert(compact.includes('Y2026M9M10'));
+ assert(compact.includes('T9 T10 2026'));
  assert(compact.length<=40);
  assert.match(compact,/^[A-Za-z0-9 ]+$/);
 });

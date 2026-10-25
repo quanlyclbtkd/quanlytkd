@@ -62,9 +62,9 @@ function resolveTarget(from, url) {
  need(target && !target.split('/').includes('..') && !target.includes('\\'), 'IMPORT_OUTSIDE_ROOT');
  return target;
 }
-export function buildImportGraph(root, overrides = {}) {
+export function buildImportGraph(root, overrides = {}, additionalEntries = []) {
  const read = file => Object.hasOwn(overrides, file) ? overrides[file] : fs.readFileSync(path.join(root,file), 'utf8');
- const queue = ['index.html'], visited = new Set(), edges = [];
+ const queue = ['index.html', ...additionalEntries], visited = new Set(), edges = [];
  while (queue.length) {
   const file = queue.shift();
   if (visited.has(file)) continue;
@@ -85,11 +85,11 @@ export const AUTHORITY_SEEDS = Object.freeze([
  'app.js','js/firebase/config.js','js/core/attendanceContract.js','js/data/attendanceJournal.js',
  'js/core/coachBranchRuntimeRepair.js','js/core/roleReadBoundary.js',
  'js/listeners/profiles.listeners.js','js/services/students.service.js','js/events/attendance.events.js',
- 'js/modules/attendance.js','js/services/attendance.service.js',
+ 'js/modules/attendance.js','js/services/attendance.service.js','js/core/trainingRegistration.js',
  'js/modules/reports/reportExportFacade.js','js/modules/reports/attendanceExcelReport.js'
 ]);
-export function affectedModules(graph) {
- const scope = new Set(AUTHORITY_SEEDS);
+export function affectedModules(graph, changedModules = []) {
+ const scope = new Set([...AUTHORITY_SEEDS, ...changedModules]);
  need(AUTHORITY_SEEDS.every(file => graph.files.includes(file)), 'AUTHORITY_MODULE_UNREACHABLE');
  let changed;
  do {
@@ -118,7 +118,7 @@ export function buildTag(text) {
  return {tag:literal(matches[0]), start:matches[0].start, end:matches[0].end};
 }
 export function rewriteCacheGraph(root, initialOverrides, tag) {
- const before = buildImportGraph(root), scope = affectedModules(before), scoped = new Set(scope);
+ const before = buildImportGraph(root), scope = affectedModules(before, Object.keys(initialOverrides).filter(file => before.files.includes(file))), scoped = new Set(scope);
  const overrides = {...initialOverrides};
  // Re-parse after config/contract edits so every replacement uses current offsets.
  const working = buildImportGraph(root,overrides);

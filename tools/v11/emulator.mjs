@@ -2,7 +2,7 @@
 import fs from 'node:fs';import path from 'node:path';import assert from 'node:assert/strict';import crypto from 'node:crypto';
 import {initializeTestEnvironment,assertFails,assertSucceeds} from '@firebase/rules-unit-testing';import * as sdk from 'firebase/firestore';
 import {HISTORY_AUTHORITY,attendanceServerVersion} from '../../js/core/attendanceContract.js';
-const out=path.resolve(process.env.V11_OUTPUT||'../../evidence/emulator');fs.mkdirSync(out,{recursive:true});
+const out=path.resolve(process.env.V11_OUTPUT||'evidence/emulator');fs.mkdirSync(out,{recursive:true});
 const [host,port]=(process.env.FIRESTORE_EMULATOR_HOST||'').split(':');assert(host&&port,'Run with firebase emulators:exec');
 assert.equal(host,'127.0.0.1','Local-only synthetic fixture reset');
 const env=await initializeTestEnvironment({projectId:'demo-v11-contract',firestore:{host,port:Number(port),rules:fs.readFileSync('firestore.rules','utf8')}});
@@ -109,7 +109,7 @@ try {
  });
  // Negative controls mutate only in-memory Rules in separate demo projects.
  for (const [label,change,kind] of [
-  ['S01 historical proof removed',s=>s.replace('resourceBranchMatchesCoach() && historicalProof(resource.data)','resourceBranchMatchesCoach()'),'read'],
+  ['S01 historical proof removed',s=>s.replace(/((?:coachAttendanceResourceBranchMatches|resourceBranchMatchesCoach)\(\)) && historicalProof\(resource\.data\)/g,'$1'),'read'],
   ['S01 canonical profile check removed',s=>s.replaceAll('&& coachAttendanceProfileMatches(clubId, request.resource.data)',''),'write']
  ]) {
   const original=fs.readFileSync('firestore.rules','utf8'),mutated=change(original);assert.notEqual(mutated,original);

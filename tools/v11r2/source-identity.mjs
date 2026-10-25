@@ -164,8 +164,49 @@ const A9R13_MEMBER_HISTORY_DIAGNOSTICS = Object.freeze({
   "buildTag": "qr-v11r6-a9r13-member-history-diagnostics-20261024"
 });
 
+// A9R14 fixes legacy QA contracts and mobile layout and read-stage diagnostics. Rules, assignment policy and history authority are unchanged.
+const A9R14_QA_MOBILE = Object.freeze({
+  "id": "V11R6_A9R14_QA_MOBILE",
+  "coachAssignmentContract": "server-verified-multi-branch-v1",
+  "inputZIP_SHA256": "31030b29f44c171c7f3c4e891ff05c4ce393877fd63db7d3daccd59baa3be88f",
+  "manifest": "tools/v11r2/manifests/V11R6_A9R14_QA_MOBILE.json",
+  "manifestSHA256": "42ff81582d3a136ffc2fb09d57838f7844036b0c0f16007a30389461154cc0e4",
+  "runtimeSHA256": "91dbd8a9866552c2317b7ee676ff019c285e2338febebe59c7d9376b4f956fe4",
+  "rulesSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+  "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+  "buildTag": "qr-v11r6-a9r14-qa-mobile-20261025"
+});
+
+// A9R15 registration consistency and authorized history; source identity only, no release approval.
+const A9R15_TRAINING_HISTORY = Object.freeze({
+  "id": "V11R6_A9R15_TRAINING_HISTORY",
+  "canonicalFileCount": 129,
+  "coachAssignmentContract": "server-verified-multi-branch-v1",
+  "inputZIP_SHA256": "a81478cb6fb50eeed23ece4d0e106c949d73397010d52ead8adff6841bbc5c8a",
+  "manifest": "tools/v11r2/manifests/V11R6_A9R15_TRAINING_HISTORY.json",
+  "manifestSHA256": "4aa1e25c77048c10c25fdd3ecea1f5b198f3f5e23e89d37b79d5b4851f3deffd",
+  "runtimeSHA256": "f112c0aea086cb3e7684d03ddfe1897d82bcb159086b0a8fd895c71e9208fb67",
+  "rulesSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+  "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+  "buildTag": "qr-v11r6-a9r15-training-history-closure-20261025"
+});
+
+// Isolated R2 source lineage only; this does not grant deployment or data authority.
+const A9R16A_R2_SEQUENTIAL = Object.freeze({
+  "id": "V11R6_A9R16A_R2_SEQUENTIAL",
+  "canonicalFileCount": 129,
+  "coachAssignmentContract": "server-verified-multi-branch-v1",
+  "inputZIP_SHA256": "f5f40c35d8347036e0fc3490865ea50444b123815df10df785529334334d07d5",
+  "manifest": "tools/v11r2/manifests/V11R6_A9R16A_R2_SEQUENTIAL.json",
+  "manifestSHA256": "797fe5ed033324491f5b9e8257a114fa78018a5d20f818c79466e919fb10c48d",
+  "runtimeSHA256": "93030b1d396b5c257b60d11a2c8a12f981cd967639fcc67603c90131c763e5fa",
+  "rulesSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+  "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+  "buildTag": "qr-v11r6-a9r16a-r2-sequential-closure-20261025"
+});
+
 export function verifySourceIdentity(root, actualRuntimeSHA256) {
- const pinned=[A9R13_MEMBER_HISTORY_DIAGNOSTICS,A9R12_COACH_ATTENDANCE_QUERY_CLOSURE_TEST_ONLY,A9R11_COACH_ATTENDANCE_OPERATIONAL_TEST_ONLY,A9R10_STAGING_BASE_TEST_ONLY,A9R6_ATTENDANCE_DEMO_ONLY,A9R4_ACCEPTED_SOURCE,A9R3_ACCEPTED_SOURCE,A9R1_ACCEPTED_SOURCE,A9_ACCEPTED_SOURCE,A8_ACCEPTED_SOURCE,ACCEPTED_SOURCE,A5_ACCEPTED_SOURCE,LEGACY_ACCEPTED_SOURCE];
+ const pinned=[A9R16A_R2_SEQUENTIAL,A9R15_TRAINING_HISTORY,A9R14_QA_MOBILE,A9R13_MEMBER_HISTORY_DIAGNOSTICS,A9R12_COACH_ATTENDANCE_QUERY_CLOSURE_TEST_ONLY,A9R11_COACH_ATTENDANCE_OPERATIONAL_TEST_ONLY,A9R10_STAGING_BASE_TEST_ONLY,A9R6_ATTENDANCE_DEMO_ONLY,A9R4_ACCEPTED_SOURCE,A9R3_ACCEPTED_SOURCE,A9R1_ACCEPTED_SOURCE,A9_ACCEPTED_SOURCE,A8_ACCEPTED_SOURCE,ACCEPTED_SOURCE,A5_ACCEPTED_SOURCE,LEGACY_ACCEPTED_SOURCE];
  const exact=pinned.find(p=>p.runtimeSHA256===actualRuntimeSHA256);
  if(!exact&&fs.existsSync(path.join(root,'STAGING_SOURCE_ONLY.json')))return verifyDerivedStaging(root,actualRuntimeSHA256,pinned);
  const p = exact||ACCEPTED_SOURCE, manifestPath = path.join(root,p.manifest);
@@ -175,7 +216,7 @@ export function verifySourceIdentity(root, actualRuntimeSHA256) {
  need(sha(fs.readFileSync(path.join(root,'firestore.rules'))) === p.rulesSHA256,'SOURCE_RULES_NOT_ACCEPTED');
  need(sha(fs.readFileSync(path.join(root,'firestore.indexes.json'))) === p.indexesSHA256,'SOURCE_INDEXES_NOT_ACCEPTED');
  const files = Object.entries(manifest.canonicalRuntimeFiles || {});
- need(files.length === 128 && files.every(([file,hash]) => !path.isAbsolute(file) && !file.split('/').includes('..') &&
+ need(files.length === (p.canonicalFileCount || 128) && files.every(([file,hash]) => !path.isAbsolute(file) && !file.split('/').includes('..') &&
   fs.existsSync(path.join(root,file)) && sha(fs.readFileSync(path.join(root,file))) === hash),'SOURCE_MANIFEST_FILE_MISMATCH');
  // The pinned manifest authenticates js/main.js before its build identity is read.
  const actualBuild = buildTag(fs.readFileSync(path.join(root,'js/main.js'),'utf8')).tag;
@@ -188,7 +229,7 @@ function verifyDerivedStaging(root,actualRuntimeSHA256,pinned){
  const base=pinned.find(p=>p.runtimeSHA256===descriptor.baseRuntimeSHA256);need(base,'STAGING_BASE_NOT_ACCEPTED');
  const manifestPath=path.join(root,base.manifest);need(fs.existsSync(manifestPath)&&sha(fs.readFileSync(manifestPath))===base.manifestSHA256,'SOURCE_MANIFEST_NOT_ACCEPTED');
  const files=JSON.parse(fs.readFileSync(manifestPath,'utf8')).canonicalRuntimeFiles,originals=descriptor.originals;
- need(files&&Object.keys(files).length===128&&originals&&typeof originals==='object'&&!Array.isArray(originals),'STAGING_ORIGINALS_INVALID');
+ need(files&&Object.keys(files).length===(base.canonicalFileCount||128)&&originals&&typeof originals==='object'&&!Array.isArray(originals),'STAGING_ORIGINALS_INVALID');
  need(Object.entries(originals).every(([file,text])=>Object.hasOwn(files,file)&&typeof text==='string'&&sha(text)===files[file]),'STAGING_ORIGINALS_NOT_PINNED');
  // Validate the entire reconstructed base, including modules not changed by configuration/cache.
  need(Object.entries(files).every(([file,hash])=>sha(Object.hasOwn(originals,file)?originals[file]:fs.readFileSync(path.join(root,file)))===hash),'STAGING_BASE_FILE_MISMATCH');
@@ -198,5 +239,5 @@ function verifyDerivedStaging(root,actualRuntimeSHA256,pinned){
  need(sha(JSON.stringify(entries))===actualRuntimeSHA256,'STAGING_RUNTIME_NOT_DERIVED');
  need(sha(fs.readFileSync(path.join(root,'firestore.rules')))===base.rulesSHA256,'SOURCE_RULES_NOT_ACCEPTED');
  need(sha(fs.readFileSync(path.join(root,'firestore.indexes.json')))===base.indexesSHA256,'SOURCE_INDEXES_NOT_ACCEPTED');
- return {...base,id:base.id+'_STAGING_DERIVED',runtimeSHA256:actualRuntimeSHA256,buildTag:expected.tag,canonicalFileCount:128,derivedFrom:base.runtimeSHA256,projectId:descriptor.projectId};
+ return {...base,id:base.id+'_STAGING_DERIVED',runtimeSHA256:actualRuntimeSHA256,buildTag:expected.tag,canonicalFileCount:base.canonicalFileCount||128,derivedFrom:base.runtimeSHA256,projectId:descriptor.projectId};
 }
