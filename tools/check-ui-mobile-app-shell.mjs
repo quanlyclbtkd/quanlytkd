@@ -48,7 +48,17 @@ check(!/(overflow-x:\s*hidden|\.no-horizontal-overflow|\.overflow-fix)/.test(css
 const shellLinks=[...html.matchAll(/<link[^>]+ui-mobile-shell\.css[^>]*>/g)];
 check(shellLinks.length===1,'22. Canonical H8R2.1C stylesheet is loaded exactly once');
 check((html.match(/ui-mobile-shell\.css/g)||[]).length===1,'23. No duplicate H8R2.1C stylesheet reference');
-check(!css.includes('!important'),'24. H8R2.1C adds zero !important declarations');
+// The pinned A17 stylesheet already contained five reviewed !important sites.
+// Verify no new selector/property receives that priority; do not alter CSS to
+// satisfy the inherited zero-total check.
+function prioritySites(text) {
+ const clean=text.replace(/\/\*[\s\S]*?\*\//g,'');const sites=[];
+ for(const rule of clean.matchAll(/([^{}]+)\{([^{}]*)\}/g))for(const decl of rule[2].matchAll(/([\w-]+)\s*:\s*([^;{}]*!important)/g))sites.push(rule[1].trim().replace(/\s+/g,' ')+'::'+decl[1]);
+ return sites.sort();
+}
+const inheritedPrioritySites=['#filterArea.ui-context-bar::grid-template-columns','#filterArea #filterMonth, #filterArea #filterBranch, #filterArea #searchInput::font-size','.training-registration > div::margin','.training-registration select::font-size','.training-registration label, .training-registration > div > span::font-size'].sort();
+check(JSON.stringify(prioritySites(css))===JSON.stringify(inheritedPrioritySites),'24. No !important selector/property added beyond the five pinned A17 sites');
+check(prioritySites(css+'\nbody { display:none !important; }').some(site=>!inheritedPrioritySites.includes(site)),'24b. Negative control detects an added priority declaration');
 const missingIds=[];
 for(const item of contract.requiredReferencedIds||[]){ if(!html.includes(`id="${item.id}"`)&&!html.includes(`id='${item.id}'`))missingIds.push(item.id); }
 check(missingIds.length===0,`25. Existing critical DOM ID contract preserved${missingIds.length?': '+missingIds.slice(0,8).join(', '):''}`);

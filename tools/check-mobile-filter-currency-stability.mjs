@@ -24,7 +24,11 @@ check('filter children can shrink and clip native overflow', /#filterArea\s*>\s*
 check('filter controls are explicitly border-box and width constrained', /#filterArea input,[\s\S]*#filterArea select\s*\{[^}]*box-sizing:\s*border-box[^}]*width:\s*100%[^}]*inline-size:\s*100%[^}]*min-width:\s*0[^}]*max-width:\s*100%/s.test(index));
 check('legacy portrait stacking excludes the canonical context bar', /@media\s*\(max-width:\s*519px\)[\s\S]*?#filterArea:not\(\.ui-context-bar\)\s*>\s*div\s*\{[^}]*grid-column:\s*1\s*\/\s*-1/s.test(index));
 const mobileShell=readFileSync('css/ui-mobile-shell.css','utf8');
-check('canonical context bar keeps month and branch above full-row search', /#filterArea\.ui-context-bar\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1\.2fr\)\s+minmax\(0,\s*1fr\)/.test(mobileShell)&&/\.ui-context-search\s*\{[^}]*grid-column:\s*1\s*\/\s*-1;\s*grid-row:\s*2/.test(mobileShell)&&/\.ui-filter-controls \.input-branch\s*\{[^}]*grid-column:\s*2;\s*grid-row:\s*1/.test(mobileShell));
+// D1 accepted presentation contract: bounded nested controls wrap above search.
+// Currency/business assertions below remain byte-for-byte unchanged.
+check('canonical context bar keeps the full-width search after the filter group', /#filterArea\.ui-context-bar\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/.test(mobileShell)&&/\.ui-context-search\s*\{[^}]*grid-column:\s*1\s*\/\s*-1;\s*grid-row:\s*2/.test(mobileShell));
+check('filter group adapts to available width rather than squeezing two controls', /\.ui-filter-controls[^{}]*\{[^}]*display:\s*grid[^}]*grid-template-columns:\s*repeat\(auto-fit,\s*minmax\(min\(100%,\s*14rem\),\s*1fr\)\)/.test(mobileShell));
+check('both filter fields use auto placement when the nested grid wraps', /\.ui-filter-controls \.input-branch\s*\{[^}]*grid-column:\s*auto;\s*grid-row:\s*auto/.test(mobileShell)&&/\.ui-filter-controls > \.ui-filter-field:not\(\.input-branch\)\s*\{[^}]*grid-column:\s*auto;\s*grid-row:\s*auto/.test(mobileShell));
 check('medium mobile widths use two safe columns', /@media\s*\(min-width:\s*520px\)\s*and\s*\(max-width:\s*767px\)[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1fr\)\s+minmax\(0,\s*1fr\)/s.test(index));
 check('desktop three-column layout is restored', /@media\s*\(min-width:\s*768px\)[\s\S]*?grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/s.test(index));
 check('obsolete 359px-only fallback is removed', !/@media\s*\(max-width:\s*359px\)[\s\S]*?#filterArea/s.test(index));
