@@ -1,0 +1,75 @@
+{
+  "classification": "RELEASE_BLOCKED",
+  "A9R16B_READY": false,
+  "issues": {
+    "ISSUE1": "PASS",
+    "ISSUE2": "PASS"
+  },
+  "gates": {
+    "SOURCE_IDENTITY": "PASS",
+    "LEGACY_GLOBAL_SHIFT_COMPATIBILITY": "PASS",
+    "STRICT_NEW_SHIFT_AUTHORITY": "PASS",
+    "ADMIN_SHIFT_SELECTION": "PASS",
+    "COACH_SHIFT_SELECTION": "PASS",
+    "COACH_BRANCH_ISOLATION": "PASS",
+    "ATTENDANCE_ROSTER": "PASS",
+    "REGISTERED_SHIFT_TIME": "PASS",
+    "MEMBER_HISTORY_SCROLL_LIFECYCLE": "PASS",
+    "MEMBER_HISTORY_DISCOVERABILITY": "PASS",
+    "AUTHORIZED_FULL_HISTORY": "PASS",
+    "ATTENDANCE_CAS": "PASS",
+    "JOURNAL_V4": "PASS",
+    "FINANCE_SECURITY": "PASS",
+    "READS": "PASS",
+    "LISTENERS": "PASS",
+    "RULES": "PASS",
+    "INDEXES": "PASS",
+    "ROOT_PUBLIC": "PASS",
+    "FULL_REGRESSION": "FAIL_TEST_HARNESS"
+  },
+  "requiredRegression": {
+    "classification": "PASS",
+    "npmCheck": 0,
+    "npmCheckAll": 0,
+    "registrationCases": 26,
+    "shiftPureCases": 15,
+    "shiftBrowserCases": 14,
+    "historyMobileCases": 51,
+    "historyEmulatorCases": 22,
+    "browserSDK10Cases": 10,
+    "nativeJournalCases": 28,
+    "startupCompletenessRuns": 10,
+    "patchRollbackChecks": 15
+  },
+  "knownDebt": {
+    "classification": "FAIL_TEST_HARNESS",
+    "label": "PRE_EXISTING_QA_DEBT",
+    "gate": "tools/check-ui-mobile-app-shell.mjs",
+    "baseline": "79/80; only assertion24 zero !important fails",
+    "after": "79/80; identical failure",
+    "cssChanged": false,
+    "evidence": [
+      "baseline/PRE_EXISTING_QA_DEBT-mobile-shell.log",
+      "final/PRE_EXISTING_QA_DEBT-mobile-shell.log"
+    ]
+  },
+  "scope": {
+    "mobile": "Actual Chromium 390x844,360x800,1280x900; not physical-device acceptance",
+    "reads": "Local SDK RPC counters and document limits; not production billed telemetry",
+    "scopeAudit": "Read-only synthetic shift/profile fixtures; not a production dataset audit"
+  },
+  "remaining": {
+    "ENV_BLOCKED": [
+      "Physical iPhone/Safari and physical Android acceptance not performed",
+      "Authorized live dataset/settings export not supplied; actual time-field completeness not certified",
+      "Cloud index readiness and live/billed Auth/bootstrap READS not proved by Emulator/local fixtures"
+    ],
+    "RELEASE_BLOCKED": [
+      "Existing V11/release-owner decision remains pending",
+      "Real legacy attestation completeness and read-cost approval remain unproved",
+      "R3 does not authorize A9R16B or production deployment"
+    ]
+  },
+  "noDeploy": true,
+  "noProductionDataAccessOrWrite": true
+}

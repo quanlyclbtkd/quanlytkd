@@ -1,8 +1,8 @@
 import fs from 'node:fs';import assert from 'node:assert/strict';
 import {inspectTrainingRegistration as inspect,assertTrainingRegistration as validate,auditTrainingRegistrations,validateTrainingMutation} from '../../js/core/trainingRegistration.js';
 import {StudentService} from '../../js/services/students.service.js';
-const shifts=[{id:'S01',name:'Same label',branch:'CS1'},{id:'S02',name:'Same label',branch:'CS2'},{id:'U01',branch:''}];
-const results=[],profiles={P001:{branch:'CS1',trainingShiftId:'S01',trainingDays:[1,3,5]},P002:{branch:'CS1',trainingShiftId:'S02',trainingDays:[2,4,6]},P003:{branch:'CS2',trainingShiftId:'OLD99'},P004:{branch:'CS1',trainingShiftId:'U01'},P005:{branch:'CS1',trainingDays:'2/4/6'},P006:{branch:'CS2',trainingShiftId:null,trainingDays:[]}};
+const shifts=[{id:'S01',name:'Same label',branch:'CS1'},{id:'S02',name:'Same label',branch:'CS2'},{id:'U01',branch:''},{id:'BAD01',branch:'ABC'}];
+const results=[],profiles={P001:{branch:'CS1',trainingShiftId:'S01',trainingDays:[1,3,5]},P002:{branch:'CS1',trainingShiftId:'S02',trainingDays:[2,4,6]},P003:{branch:'CS2',trainingShiftId:'OLD99'},P004:{branch:'CS1',trainingShiftId:'U01'},P005:{branch:'CS1',trainingDays:'2/4/6'},P006:{branch:'CS2',trainingShiftId:null,trainingDays:[]},P007:{branch:'CS1',trainingShiftId:'BAD01'}};
 const p=(extra={})=>({...profiles.P001,...extra});
 function check(title,fn){try{fn();results.push({title,classification:'PASS'});console.log('PASS',title);}catch(e){results.push({title,classification:'FAIL_RUNTIME',message:e.stack});console.error('FAIL',title,e);}}
 check('CS1 + CS1 stable shift ID passes',()=>assert.equal(validate(p(),shifts).result,'TRAINING_REGISTRATION_OK'));
@@ -12,7 +12,8 @@ check('Canonical branch compatibility is identical for CS1 through CS10',()=>{fo
 check('Missing/deleted shift is SHIFT_NOT_FOUND',()=>assert.equal(inspect(p(),[]).result,'SHIFT_NOT_FOUND'));
 check('Changed shift branch is a mismatch without rewriting profile',()=>{const data=p();assert.equal(inspect(data,[{id:'S01',branch:'CS2'}]).result,'SHIFT_BRANCH_MISMATCH');assert.equal(data.trainingShiftId,'S01');assert.equal(data.branch,'CS1');});
 check('Forged ID never matches a label',()=>assert.throws(()=>validate(p({trainingShiftId:'Same label'}),shifts),e=>e.code==='SHIFT_NOT_FOUND'));
-check('Missing, blank or null branch is unresolved, never global/CS1',()=>{for(const branch of [undefined,'',null])assert.equal(inspect(p({trainingShiftId:'U01'}),[{id:'U01',branch}]).result,'SHIFT_AUTHORITY_UNRESOLVED');});
+check('R3 restores stored A9R14 missing/blank/null legacy-global read contract',()=>{for(const branch of [undefined,'',null])assert.equal(inspect(p({trainingShiftId:'U01'}),[{id:'U01',branch}]).result,'TRAINING_REGISTRATION_OK');});
+check('Non-empty invalid shift branch remains unresolved',()=>{for(const branch of ['ABC','CS99','unknown'])assert.equal(inspect(p({trainingShiftId:'BAD01'}),[{id:'BAD01',branch}]).result,'SHIFT_AUTHORITY_UNRESOLVED');});
 check('No-shift optional contract remains for empty/null/missing values',()=>{for(const trainingShiftId of ['',null,undefined])assert.equal(validate(p({trainingShiftId}),shifts).result,'NO_SHIFT_ASSIGNED');});
 check('Non-string shift ID cannot coerce into another registration',()=>assert.throws(()=>validate(p({trainingShiftId:1}),shifts),e=>e.code==='SHIFT_NOT_FOUND'));
 check('Weekday 2/4/6, 3/5/7, one/multiple days, Sunday and blank keep JS 0..6 numbering',()=>{for(const trainingDays of [[1,3,5],[2,4,6],[3],[0,1,6],[],null,undefined])validate(p({trainingDays}),shifts);});

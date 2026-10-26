@@ -112,12 +112,12 @@ import { LegacyRenderEntrypoints }            from './core/legacyRenderEntrypoin
 import { InlineHandlerAudit }                from './core/inlineHandlerAudit.js';
 import { EventActionBridge, initEventActionBridge } from './ui/eventActionBridge.js';
 import { initLegacyUiShell }                  from './ui/legacyUiShell.js';
-import { registerReportExportFacade }         from "./modules/reports/reportExportFacade.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+import { registerReportExportFacade }         from "./modules/reports/reportExportFacade.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
 import { store, resetStore }                  from './store.js';
-import { initFirebase }                        from "./firebase/config.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+import { initFirebase }                        from "./firebase/config.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
 import { showToast, registerToastGlobal }      from './ui/toast.js';
 import { registerModalGlobals }                from './ui/modal.js';
-import { switchTab, registerTabGlobals }       from "./ui/tabs.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+import { switchTab, registerTabGlobals }       from "./ui/tabs.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
 import { initRender }                          from "./ui/render.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
 // V5U6D compatibility marker: ./ui/render.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d
 // Phase 3.4: Render Isolation Architecture — island initialisers + legacy shims
@@ -248,7 +248,7 @@ import { FinancialFlowMap }   from './core/financialFlowMap.js';
 import { SecurityPosture }   from './core/securityPosture.js';
 import { ActionGuard }        from './core/actionGuard.js';
 import { initCanonicalDomainCommandBoundary } from './core/canonicalDomainCommandBoundary.js?v=tuition-command-cutover-20260730-v5u2';
-import { initStudentStatusCommandBoundary } from "./core/studentStatusCommandBoundary.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+import { initStudentStatusCommandBoundary } from "./core/studentStatusCommandBoundary.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
 import { initTuitionCommandBoundary } from "./core/tuitionCommandBoundary.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
 // Phase 4K-6E: Transaction Delete Integrity
 import { TransactionDeleteIntegrity } from './core/transactionDeleteIntegrity.js';
@@ -293,7 +293,7 @@ import {
     getQuitStatusValues,
     getProfilesListenerMetrics,
     ensureAllProfilesForExport,
-} from "./listeners/profiles.listeners.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+} from "./listeners/profiles.listeners.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
 // Compatibility marker: ./listeners/profiles.listeners.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d
 
 // H8R2.1 cache compatibility: ./listeners/profiles.listeners.js?v=long-term-production-stability-20260917-v5u6h8r2 ; ./modules/attendance.js?v=long-term-production-stability-20260917-v5u6h8r2 ; ./core/studentStatusCommandBoundary.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1 ; ./modules/inventory.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h
@@ -351,7 +351,7 @@ import {
 } from './firebase/paginatedQuery.js';
 
 // ── Phase 2d–3.2A: Business modules (eager — cần khi login) ────
-import { initStudents, initStudentPagination }        from "./modules/students.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+import { initStudents, initStudentPagination }        from "./modules/students.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
 // V5U6G compatibility marker: ./modules/students.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
 // Compatibility marker: ./modules/students.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
 // PHẦN 1 FIX + Phase 4K-2: Unified Search Controller — real cache + SearchBlob + stale guard
@@ -363,10 +363,10 @@ import {
     debugSearchPerformance,
 } from './modules/searchRuntime.js?v=student-given-name-priority-20260811-v5u3';
 // Compatibility marker: ./modules/finance.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h
-import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from "./modules/finance.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from "./modules/finance.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
 import { initInventory }                              from "./modules/inventory.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
 // Compatibility marker: from './modules/attendance.js'
-import { initAttendance }                             from "./modules/attendance.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+import { initAttendance }                             from "./modules/attendance.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
 // Compatibility marker: ./modules/attendance.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
 // V5U6G1 compatibility marker: ./modules/attendance.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
 import { initDashboard }                              from './modules/dashboard.js?v=dashboard-hydration-mutation-guard-20260812-v5u6c2';
@@ -382,7 +382,7 @@ import { initSuperAdmin }                             from './modules/superadmin
 // ── Phase 3.1: Event layer ──────────────────────────────────────
 import { initStudentsEvents }                         from './events/students.events.js';
 import { initFinanceEvents, initFinanceActionEvents } from './events/finance.events.js';
-import { initAttendanceEvents }                       from "./events/attendance.events.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+import { initAttendanceEvents }                       from "./events/attendance.events.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
 
 // ────────────────────────────────────────────────────────────────
 // Phase 3.3G: GLOBAL ERROR HANDLERS
@@ -2485,7 +2485,7 @@ function _loadLegacyApp() {
     if (window.__appLoaded) return Promise.resolve();
     return new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = "app.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+        script.src = "app.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
         script.onload  = () => resolve();
         script.onerror = (err) => reject(new Error('[main.js] Không load được app.js: ' + err));
         document.head.appendChild(script);
@@ -3233,7 +3233,7 @@ window.debugProfileModalClose = function() {
 // PHẦN 1 — APP BUILD VERSION
 // H5 compatibility build marker: APP_BUILD_VERSION = '4K-6V5U6H5-club-root-listener-bootstrap-readiness-exam-full-roster-export-20260827'
 // Previous build: 4K-6V5U6H6-release-authority-exam-state-purity-firebase-final-verification-20260829
-window.APP_BUILD_VERSION = "qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+window.APP_BUILD_VERSION = "qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
 // Compatibility marker only: window.APP_BUILD_VERSION = '4K-6V5U6H3-residual-security-data-integrity-release-verification-20260818';
 // Compatibility marker only: window.APP_BUILD_VERSION = '4K-6V5U6H2-parent-portal-hard-disable-release-verification-20260818'
 // Compatibility marker only: window.APP_BUILD_VERSION = '4K-6V5U6H-production-security-trust-boundary-release-assurance-20260816'

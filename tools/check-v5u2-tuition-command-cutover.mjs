@@ -20,7 +20,12 @@ const v5u6cPatch = '4K-6V5U6C1-dashboard-mutation-aware-cache-freshness-20260812
 const searchBuild = 'student-given-name-priority-20260811-v5u3';
 const h8r2Build = 'qr-v11r5-ack-20261021';
 const identity=verifyRuntimeProfile(process.cwd()).identity;
+// R3 does not change the tuition/finance owner identity. Read the exact pinned
+// dependency tokens instead of assuming every module uses the top-level tag.
+const r3URLs=JSON.parse(read(identity.manifest)).canonicalModuleURLs||null;
 const canonicalCacheBuild=identity.id==='V11R6_A9R16A_R2_SEQUENTIAL'?identity.buildTag:h8r2Build;
+const boundaryCacheBuild=r3URLs?new URL(r3URLs['js/core/tuitionCommandBoundary.js'],'https://qa/').searchParams.get('v'):canonicalCacheBuild;
+const financeCacheBuild=r3URLs?new URL(r3URLs['js/services/finance.service.js'],'https://qa/').searchParams.get('v'):canonicalCacheBuild;
 const boundary = read('js/core/tuitionCommandBoundary.js');
 const boundaryPublic = read('public/js/core/tuitionCommandBoundary.js');
 const finance = read('js/modules/finance.js');
@@ -39,9 +44,9 @@ check('V5U-2 source/public boundary mirrors are exact', boundary === boundaryPub
 check('V5U-2 finance source/public mirrors are exact', finance === financePublic);
 check('V5U-2 app/index/main markers active', (app.includes(patch) || app.includes(compatiblePatch) || app.includes(v5u5Patch)) && (main.includes(patch) || main.includes(compatiblePatch) || main.includes(v5u5Patch) || main.includes(v5u6cPatch)) && (index.includes(`app.js?v=${build}`) || index.includes(`app.js?v=${compatibleBuild}`) || index.includes(`app.js?v=${v5u5Build}`)) && (index.includes(`./js/main.js?v=${searchBuild}`) || index.includes(`./js/main.js?v=${build}`) || index.includes(`./js/main.js?v=${compatibleBuild}`) || index.includes(`./js/main.js?v=${v5u5Build}`) || index.includes(`./js/main.js?v=${v5u6cBuild}`)));
 check('V5U-2 public app/index/main markers active', (appPublic.includes(patch) || appPublic.includes(compatiblePatch) || appPublic.includes(v5u5Patch)) && (mainPublic.includes(patch) || mainPublic.includes(compatiblePatch) || mainPublic.includes(v5u5Patch) || mainPublic.includes(v5u6cPatch)) && (indexPublic.includes(`app.js?v=${build}`) || indexPublic.includes(`app.js?v=${compatibleBuild}`) || indexPublic.includes(`app.js?v=${v5u5Build}`)) && (indexPublic.includes(`./js/main.js?v=${searchBuild}`) || indexPublic.includes(`./js/main.js?v=${build}`) || indexPublic.includes(`./js/main.js?v=${compatibleBuild}`) || indexPublic.includes(`./js/main.js?v=${v5u5Build}`) || indexPublic.includes(`./js/main.js?v=${v5u6cBuild}`)));
-check('main imports and initializes tuition boundary before finance UI adapter', (main.includes(`./core/tuitionCommandBoundary.js?v=${build}`) || main.includes(`./core/tuitionCommandBoundary.js?v=${canonicalCacheBuild}`)) && main.indexOf('initTuitionCommandBoundary();') < main.indexOf('initFinance();'));
+check('main imports and initializes tuition boundary before finance UI adapter', (main.includes(`./core/tuitionCommandBoundary.js?v=${build}`) || main.includes(`./core/tuitionCommandBoundary.js?v=${boundaryCacheBuild}`)) && main.indexOf('initTuitionCommandBoundary();') < main.indexOf('initFinance();'));
 check('tuition boundary owns quickPay and tuition delete only', boundary.includes('async collectTuition') && boundary.includes('async deleteTuitionTransaction') && !boundary.includes('processCombo') && !boundary.includes('processMultiItem') && !boundary.includes('markInvPaid'));
-check('tuition boundary delegates through existing FinanceService', (boundary.includes("../services/finance.service.js?v=" + build) || boundary.includes("../services/finance.service.js?v=" + canonicalCacheBuild)) && boundary.includes('_service().commitAtomicWritePlan') && boundary.includes('_service().deleteTransaction'));
+check('tuition boundary delegates through existing FinanceService', (boundary.includes("../services/finance.service.js?v=" + build) || boundary.includes("../services/finance.service.js?v=" + financeCacheBuild)) && boundary.includes('_service().commitAtomicWritePlan') && boundary.includes('_service().deleteTransaction'));
 check('tuition boundary has no Firestore direct writer/import', !/\b(addDoc|setDoc|updateDoc|deleteDoc|writeBatch|runTransaction)\s*\(/.test(boundary));
 check('tuition boundary preserves existing transaction schema fields', ['type: \'Học phí\'','description: name','txMonth: lastMonth','packageMonths: paidMonths','timestamp: Date.now()'].every(x => boundary.includes(x)));
 check('tuition boundary centralizes local commit and invalidation', boundary.includes('_commitProfilePayment') && boundary.includes('_removeLocalTransaction') && boundary.includes('_invalidateTuition') && ['tx.txList','students.debtList','students.activeList','dashboard.summary'].every(x => boundary.includes(x)));

@@ -2,9 +2,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import {buildImportGraph,rewriteCacheGraph,buildTag} from '../v11r2/import-graph.mjs';
+import {runtimeHash} from '../v11r2/cutover.mjs';
+import {verifySourceIdentity} from '../v11r2/source-identity.mjs';
 export const root=path.resolve(process.env.A9R16_SOURCE_ROOT||process.cwd());
-export const tag='qr-v11r6-a9r16a-r2-sequential-closure-20261025';
-export const canonicalJS=Object.keys(JSON.parse(fs.readFileSync(path.join(root,'tools/v11r2/manifests/V11R6_A9R15_TRAINING_HISTORY.json'),'utf8')).canonicalRuntimeFiles).filter(f=>f.endsWith('.js'));
+export const sourceIdentity=verifySourceIdentity(root,runtimeHash(root));
+export const tag=sourceIdentity.buildTag;
+export const canonicalJS=Object.keys(JSON.parse(fs.readFileSync(path.join(root,sourceIdentity.manifest),'utf8')).canonicalRuntimeFiles).filter(f=>f.endsWith('.js'));
 export function fullGraph(){return buildImportGraph(root,{},canonicalJS);}
 export function inventory(graph=fullGraph()){
  const groups=new Map();

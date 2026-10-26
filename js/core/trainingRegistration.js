@@ -10,25 +10,45 @@ export function trainingDaysValid(value) {
 }
 export function shiftAuthority(shift) {
     const branch = trainingBranch(shift?.branch);
-    // No explicit shared/global schema exists in A9R14. Missing branch is unresolved.
+    // Strict authority for new shift writes. Legacy read/use scope is separate.
     return /^CS(?:[1-9]|10)$/.test(branch) ? {resolved:true,branch} : {resolved:false,branch:''};
+}
+export function classifyShiftScope(shift) {
+    const authority = shiftAuthority(shift);
+    if (authority.resolved) return {...authority,scope:'EXPLICIT_BRANCH'};
+    // A9R14 stored Admin-created shifts with a blank branch and read them as
+    // global. Preserve that stored-data contract without admitting new writes.
+    if (shift && typeof shift === 'object' && (shift.branch == null ||
+        (typeof shift.branch === 'string' && shift.branch.trim() === ''))) {
+        return {resolved:true,branch:'',scope:'LEGACY_GLOBAL'};
+    }
+    return {...authority,scope:'INVALID'};
+}
+export function resolveTrainingShift(id, shifts = []) {
+    if (typeof id !== 'string' || !id) return null;
+    const matches = Array.isArray(shifts) ? shifts.filter(shift => shift?.id === id) : [];
+    return matches.length === 1 ? matches[0] : null;
+}
+export function isShiftEligibleForBranch(shift, branch) {
+    const canonicalBranch = trainingBranch(branch),scope = classifyShiftScope(shift);
+    if (!/^CS(?:[1-9]|10)$/.test(canonicalBranch)) return false;
+    return scope.scope === 'LEGACY_GLOBAL' || (scope.resolved && scope.branch === canonicalBranch);
 }
 export function inspectTrainingRegistration(profile = {}, shifts = []) {
     const profileBranch = trainingBranch(profile.branch);
     const id = profile.trainingShiftId;
     const trainingShiftId = typeof id === 'string' ? id : '';
-    const matches = Array.isArray(shifts) ? shifts.filter(shift => shift?.id === trainingShiftId) : [];
-    const shift = matches.length === 1 ? matches[0] : null;
-    const authority = shiftAuthority(shift);
+    const shift = resolveTrainingShift(trainingShiftId,shifts);
+    const authority = classifyShiftScope(shift);
     const issues = [];
     if (!trainingDaysValid(profile.trainingDays)) issues.push('TRAINING_DAYS_INVALID');
     if (id != null && typeof id !== 'string') issues.push('SHIFT_NOT_FOUND');
     else if (trainingShiftId) {
         if (!shift) issues.push('SHIFT_NOT_FOUND');
         else if (!authority.resolved) issues.push('SHIFT_AUTHORITY_UNRESOLVED');
-        else if (authority.branch !== profileBranch) issues.push('SHIFT_BRANCH_MISMATCH');
+        else if (!isShiftEligibleForBranch(shift,profileBranch)) issues.push('SHIFT_BRANCH_MISMATCH');
     }
-    return {profileBranch,trainingShiftId,shiftBranch:authority.branch || null,
+    return {profileBranch,trainingShiftId,shiftBranch:authority.branch || null,shiftScope:authority.scope,
         result:issues[0] || (trainingShiftId ? 'TRAINING_REGISTRATION_OK' : 'NO_SHIFT_ASSIGNED'),issues};
 }
 export function registrationMessage(result) {

@@ -1,0 +1,1190 @@
+diff --git a/app.js b/app.js
+--- a/app.js
++++ b/app.js
+@@ -3602,6 +3602,7 @@
+     };
+ 
+     const _resetVerifiedAuthContext = (reason = 'reset') => {
++        window.AttendanceModule?.closeMemberHistory?.();
+         currentClubId = '';
+         window.currentClubId = '';
+         window.userRole = 'viewer';
+diff --git a/index.html b/index.html
+--- a/index.html
++++ b/index.html
+@@ -586,7 +586,7 @@
+ <!-- V5U6C2 lineage only: app.js?v=dashboard-hydration-mutation-guard-20260812-v5u6c2; ./js/main.js?v=dashboard-hydration-mutation-guard-20260812-v5u6c2 -->
+ <!-- Phase 4K-6V3BC1 automatic per-club optimization: automatic-canonical-transaction-optimization-20260616-v3bc1 -->
+ <!-- Phase 4K-6V3D debt profile coverage boundary: debt-profile-read-boundary-20260616-v3d -->
+-<!-- Phase 4K-6V4B1 Coach Branch Assignment + Runtime Repair: coach-branch-runtime-repair-20260627-v4b1 --><!-- Phase 4K-6V4B2 Quit Tab Completeness: quit-tab-completeness-20260627-v4b2 --><!-- Phase 4K-6V4B3 Quit Tab Authoritative Completeness: quit-tab-authoritative-completeness-20260627-v4b3 --><script defer src="./js/core/branchIdentity.js?v=coach-branch-runtime-repair-20260627-v4b1"></script><script defer src="./js/core/coachBranchRuntimeRepair.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025"></script><script defer src="./js/core/roleReadBoundary.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025"></script><script defer src="./js/core/transactionCanonicalBoundary.js?v=coach-branch-runtime-repair-20260627-v4b1"></script><script defer src="./js/core/debtProfileReadBoundary.js?v=quit-context-render-loop-guard-20260722-v5s"></script><script defer src="./js/core/tuitionDebtCanonical.js?v=quit-context-render-loop-guard-20260722-v5s"></script><script defer src="./js/core/profileCanonicalStore.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1"></script><!-- V5U4 compatibility marker retained for regression: app.js?v=attendance-excel-documentid-sdk-fix-20260801-v5u2e&p=superadmin-auth-principal-20260811-v5u4 --><!-- V5U6C1 lineage only: app.js?v=canonical-security-truth-20260811-v5u5&p=dashboard-mutation-aware-cache-freshness-20260812-v5u6c1 ; ./js/main.js?v=dashboard-mutation-aware-cache-freshness-20260812-v5u6c1 --><!-- V5U6D lineage only: app.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d --><!-- V5U6F runtime: ./js/main.js?v=attendance-explicit-shift-authority-20260814-v5u6f --><!-- V5U6G1 runtime: ./js/main.js?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1 --><!-- V5U6G compatibility marker: app.js?v=production-stability-residual-defect-closure-20260814-v5u6g --><!-- V5U2E debt/cache compatibility marker: main.js?v=attendance-excel-documentid-sdk-fix-20260801-v5u2e --><!-- V5U6H runtime compatibility: production-security-trust-boundary-release-assurance-20260816-v5u6h --><!-- V5U6H2 runtime compatibility: parent-portal-hard-disable-release-verification-20260818-v5u6h2 --><!-- V5U6H3 runtime: residual-security-data-integrity-release-verification-20260818-v5u6h3 --><!-- V5U6H5 runtime compatibility: club-root-listener-bootstrap-readiness-exam-full-roster-export-20260827-v5u6h5 --><!-- V5U6H6 runtime: release-authority-exam-state-purity-firebase-final-verification-20260829-v5u6h6 --><!-- H8R2 compatibility marker: app.js?v=long-term-production-stability-20260917-v5u6h8r2 ; ./js/main.js?v=long-term-production-stability-20260917-v5u6h8r2 --><script defer src="app.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025"></script><!-- Compatibility marker: app.js?v=production-authority-closure-20260814-v5u6e --><script>
++<!-- Phase 4K-6V4B1 Coach Branch Assignment + Runtime Repair: coach-branch-runtime-repair-20260627-v4b1 --><!-- Phase 4K-6V4B2 Quit Tab Completeness: quit-tab-completeness-20260627-v4b2 --><!-- Phase 4K-6V4B3 Quit Tab Authoritative Completeness: quit-tab-authoritative-completeness-20260627-v4b3 --><script defer src="./js/core/branchIdentity.js?v=coach-branch-runtime-repair-20260627-v4b1"></script><script defer src="./js/core/coachBranchRuntimeRepair.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026"></script><script defer src="./js/core/roleReadBoundary.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026"></script><script defer src="./js/core/transactionCanonicalBoundary.js?v=coach-branch-runtime-repair-20260627-v4b1"></script><script defer src="./js/core/debtProfileReadBoundary.js?v=quit-context-render-loop-guard-20260722-v5s"></script><script defer src="./js/core/tuitionDebtCanonical.js?v=quit-context-render-loop-guard-20260722-v5s"></script><script defer src="./js/core/profileCanonicalStore.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1"></script><!-- V5U4 compatibility marker retained for regression: app.js?v=attendance-excel-documentid-sdk-fix-20260801-v5u2e&p=superadmin-auth-principal-20260811-v5u4 --><!-- V5U6C1 lineage only: app.js?v=canonical-security-truth-20260811-v5u5&p=dashboard-mutation-aware-cache-freshness-20260812-v5u6c1 ; ./js/main.js?v=dashboard-mutation-aware-cache-freshness-20260812-v5u6c1 --><!-- V5U6D lineage only: app.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d --><!-- V5U6F runtime: ./js/main.js?v=attendance-explicit-shift-authority-20260814-v5u6f --><!-- V5U6G1 runtime: ./js/main.js?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1 --><!-- V5U6G compatibility marker: app.js?v=production-stability-residual-defect-closure-20260814-v5u6g --><!-- V5U2E debt/cache compatibility marker: main.js?v=attendance-excel-documentid-sdk-fix-20260801-v5u2e --><!-- V5U6H runtime compatibility: production-security-trust-boundary-release-assurance-20260816-v5u6h --><!-- V5U6H2 runtime compatibility: parent-portal-hard-disable-release-verification-20260818-v5u6h2 --><!-- V5U6H3 runtime: residual-security-data-integrity-release-verification-20260818-v5u6h3 --><!-- V5U6H5 runtime compatibility: club-root-listener-bootstrap-readiness-exam-full-roster-export-20260827-v5u6h5 --><!-- V5U6H6 runtime: release-authority-exam-state-purity-firebase-final-verification-20260829-v5u6h6 --><!-- H8R2 compatibility marker: app.js?v=long-term-production-stability-20260917-v5u6h8r2 ; ./js/main.js?v=long-term-production-stability-20260917-v5u6h8r2 --><script defer src="app.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026"></script><!-- Compatibility marker: app.js?v=production-authority-closure-20260814-v5u6e --><script>
+ /* Phase 3.3A FIX: ES modules require HTTP — skip on file:// to prevent CORS error.
+    app.js still loads via <script defer> so ALL business logic works regardless.
+    Module enhancements (loading.js, event-guard, lazy tabs) activate on HTTP only.
+@@ -676,7 +676,7 @@
+     var s = document.createElement('script');
+     s.type = 'module';
+     // Compatibility marker retained: student-given-name-priority-20260811-v5u3
+-    s.src  = "./js/main.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025"; // Compatibility: ./js/main.js?v=attendance-explicit-shift-authority-20260814-v5u6f
++    s.src  = "./js/main.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026"; // Compatibility: ./js/main.js?v=attendance-explicit-shift-authority-20260814-v5u6f
+     s.onload = function() {
+       window.MAIN_JS_LOADED = true;
+       console.log('[BOOT] main.js loaded after legacy app.js ready');
+diff --git a/js/core/studentStatusCommandBoundary.js b/js/core/studentStatusCommandBoundary.js
+--- a/js/core/studentStatusCommandBoundary.js
++++ b/js/core/studentStatusCommandBoundary.js
+@@ -8,7 +8,7 @@
+  *   - Commits local stores and invalidates affected domains once after success.
+  *   - Finance / inventory / multi-item writes are intentionally out of scope.
+  */
+-import { StudentService } from "../services/students.service.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
++import { StudentService } from "../services/students.service.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+ 
+ const BUILD = 'student-status-command-cutover-20260722-v5u1';
+ const PHASE = '4K-6V5U-1';
+diff --git a/js/data/attendanceJournal.js b/js/data/attendanceJournal.js
+--- a/js/data/attendanceJournal.js
++++ b/js/data/attendanceJournal.js
+@@ -1,6 +1,6 @@
+ // Storage component of the existing attendance owner. No SDK, timer or writer.
+ // IndexedDB transactions serialize enqueue/claim/ACK across real browser tabs.
+-import {JOURNAL_DATABASE,attendanceIntentId,attendanceIntentTarget} from "../core/attendanceContract.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
++import {JOURNAL_DATABASE,attendanceIntentId,attendanceIntentTarget} from "../core/attendanceContract.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+ let databasePromise;
+ const active = item => ['pending','inflight','conflict','needs-review'].includes(item.state);
+ const maxSequence=rows=>rows.reduce((max,row)=>Math.max(max,Number(row.sequence)||0),0);
+diff --git a/js/main.js b/js/main.js
+--- a/js/main.js
++++ b/js/main.js
+@@ -112,12 +112,12 @@
+ import { InlineHandlerAudit }                from './core/inlineHandlerAudit.js';
+ import { EventActionBridge, initEventActionBridge } from './ui/eventActionBridge.js';
+ import { initLegacyUiShell }                  from './ui/legacyUiShell.js';
+-import { registerReportExportFacade }         from "./modules/reports/reportExportFacade.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
++import { registerReportExportFacade }         from "./modules/reports/reportExportFacade.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+ import { store, resetStore }                  from './store.js';
+-import { initFirebase }                        from "./firebase/config.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
++import { initFirebase }                        from "./firebase/config.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+ import { showToast, registerToastGlobal }      from './ui/toast.js';
+ import { registerModalGlobals }                from './ui/modal.js';
+-import { switchTab, registerTabGlobals }       from "./ui/tabs.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++import { switchTab, registerTabGlobals }       from "./ui/tabs.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+ import { initRender }                          from "./ui/render.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+ // V5U6D compatibility marker: ./ui/render.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d
+ // Phase 3.4: Render Isolation Architecture — island initialisers + legacy shims
+@@ -248,7 +248,7 @@
+ import { SecurityPosture }   from './core/securityPosture.js';
+ import { ActionGuard }        from './core/actionGuard.js';
+ import { initCanonicalDomainCommandBoundary } from './core/canonicalDomainCommandBoundary.js?v=tuition-command-cutover-20260730-v5u2';
+-import { initStudentStatusCommandBoundary } from "./core/studentStatusCommandBoundary.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
++import { initStudentStatusCommandBoundary } from "./core/studentStatusCommandBoundary.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+ import { initTuitionCommandBoundary } from "./core/tuitionCommandBoundary.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+ // Phase 4K-6E: Transaction Delete Integrity
+ import { TransactionDeleteIntegrity } from './core/transactionDeleteIntegrity.js';
+@@ -293,7 +293,7 @@
+     getQuitStatusValues,
+     getProfilesListenerMetrics,
+     ensureAllProfilesForExport,
+-} from "./listeners/profiles.listeners.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
++} from "./listeners/profiles.listeners.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+ // Compatibility marker: ./listeners/profiles.listeners.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d
+ 
+ // H8R2.1 cache compatibility: ./listeners/profiles.listeners.js?v=long-term-production-stability-20260917-v5u6h8r2 ; ./modules/attendance.js?v=long-term-production-stability-20260917-v5u6h8r2 ; ./core/studentStatusCommandBoundary.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1 ; ./modules/inventory.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h
+@@ -351,7 +351,7 @@
+ } from './firebase/paginatedQuery.js';
+ 
+ // ── Phase 2d–3.2A: Business modules (eager — cần khi login) ────
+-import { initStudents, initStudentPagination }        from "./modules/students.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
++import { initStudents, initStudentPagination }        from "./modules/students.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+ // V5U6G compatibility marker: ./modules/students.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
+ // Compatibility marker: ./modules/students.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
+ // PHẦN 1 FIX + Phase 4K-2: Unified Search Controller — real cache + SearchBlob + stale guard
+@@ -363,10 +363,10 @@
+     debugSearchPerformance,
+ } from './modules/searchRuntime.js?v=student-given-name-priority-20260811-v5u3';
+ // Compatibility marker: ./modules/finance.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h
+-import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from "./modules/finance.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
++import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from "./modules/finance.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+ import { initInventory }                              from "./modules/inventory.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+ // Compatibility marker: from './modules/attendance.js'
+-import { initAttendance }                             from "./modules/attendance.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
++import { initAttendance }                             from "./modules/attendance.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+ // Compatibility marker: ./modules/attendance.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
+ // V5U6G1 compatibility marker: ./modules/attendance.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
+ import { initDashboard }                              from './modules/dashboard.js?v=dashboard-hydration-mutation-guard-20260812-v5u6c2';
+@@ -382,7 +382,7 @@
+ // ── Phase 3.1: Event layer ──────────────────────────────────────
+ import { initStudentsEvents }                         from './events/students.events.js';
+ import { initFinanceEvents, initFinanceActionEvents } from './events/finance.events.js';
+-import { initAttendanceEvents }                       from "./events/attendance.events.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
++import { initAttendanceEvents }                       from "./events/attendance.events.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+ 
+ // ────────────────────────────────────────────────────────────────
+ // Phase 3.3G: GLOBAL ERROR HANDLERS
+@@ -2485,7 +2485,7 @@
+     if (window.__appLoaded) return Promise.resolve();
+     return new Promise((resolve, reject) => {
+         const script = document.createElement('script');
+-        script.src = "app.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
++        script.src = "app.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+         script.onload  = () => resolve();
+         script.onerror = (err) => reject(new Error('[main.js] Không load được app.js: ' + err));
+         document.head.appendChild(script);
+@@ -3233,7 +3233,7 @@
+ // PHẦN 1 — APP BUILD VERSION
+ // H5 compatibility build marker: APP_BUILD_VERSION = '4K-6V5U6H5-club-root-listener-bootstrap-readiness-exam-full-roster-export-20260827'
+ // Previous build: 4K-6V5U6H6-release-authority-exam-state-purity-firebase-final-verification-20260829
+-window.APP_BUILD_VERSION = "qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
++window.APP_BUILD_VERSION = "qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+ // Compatibility marker only: window.APP_BUILD_VERSION = '4K-6V5U6H3-residual-security-data-integrity-release-verification-20260818';
+ // Compatibility marker only: window.APP_BUILD_VERSION = '4K-6V5U6H2-parent-portal-hard-disable-release-verification-20260818'
+ // Compatibility marker only: window.APP_BUILD_VERSION = '4K-6V5U6H-production-security-trust-boundary-release-assurance-20260816'
+diff --git a/js/modules/attendance.js b/js/modules/attendance.js
+--- a/js/modules/attendance.js
++++ b/js/modules/attendance.js
+@@ -16,12 +16,12 @@
+  * ────────────────────────────────────────────────────────────────
+  */
+ 
+-import { AttendanceService } from "../services/attendance.service.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
++import { AttendanceService } from "../services/attendance.service.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+ import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
+ import { escapeHtml } from '../utils/helpers.js';
+-import { AttendanceJournal } from "../data/attendanceJournal.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
+-import { HISTORY_AUTHORITY, HISTORY_COACH_ACCESS, attendanceServerVersion, attendanceIntentId } from "../core/attendanceContract.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
+-import { shiftAuthority, classifyShiftScope, resolveTrainingShift, isShiftEligibleForBranch, inspectTrainingRegistration } from "../core/trainingRegistration.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
++import { AttendanceJournal } from "../data/attendanceJournal.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
++import { HISTORY_AUTHORITY, HISTORY_COACH_ACCESS, attendanceServerVersion, attendanceIntentId } from "../core/attendanceContract.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
++import { shiftAuthority, classifyShiftScope, resolveTrainingShift, isShiftEligibleForBranch, inspectTrainingRegistration } from "../core/trainingRegistration.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+ 
+ const ATTENDANCE_OWNER = 'js/modules/attendance.js';
+ const ATTENDANCE_OWNED_GLOBALS = Object.freeze([
+@@ -424,9 +424,20 @@
+     return _attendanceDailyState.mutationRevision;
+ }
+ 
++function _closeMemberHistory(remove = false) {
++    _memberHistoryRequestId++;
++    const modal = document.getElementById('attHistModal');
++    if (!modal) return false;
++    if (remove) modal.remove();
++    else {
++        modal.style.display = 'none';
++        modal.querySelector('#attHistBody')?.replaceChildren();
++    }
++    return true;
++}
++
+ function _resetAttendanceModuleState(nextClubId) {
+-    _memberHistoryRequestId++;
+-    document.getElementById('attHistModal')?.remove();
++    _closeMemberHistory(true);
+     document.getElementById('attendanceReviewSheet')?.remove();
+     document.getElementById('attendanceJournalControls')?.remove();
+     _attCurrentProfiles = [];
+@@ -2027,9 +2038,9 @@
+             modalEl.id = 'attHistModal';
+             modalEl.style.cssText = 'display:flex;position:fixed;inset:0;background:rgba(15,23,42,0.65);z-index:10010;backdrop-filter:blur(4px);align-items:flex-end;justify-content:center;';
+             modalEl.innerHTML = '<div id="attHistSheet" style="position:relative;background:#fff;width:100%;max-width:640px;border-radius:20px 20px 0 0;box-shadow:0 -10px 40px rgba(0,0,0,0.18);">'
+-                + '<button type="button" aria-label="Đóng lịch sử điểm danh" onclick="document.getElementById(\'attHistModal\').style.display=\'none\'" style="position:absolute;top:10px;right:12px;z-index:1;background:#f1f5f9;border:none;border-radius:50%;width:44px;height:44px;font-size:1rem;cursor:pointer;color:#475569;">✕</button>'
++                + '<button type="button" aria-label="Đóng lịch sử điểm danh" onclick="window.AttendanceModule?.closeMemberHistory?.()" style="position:absolute;top:10px;right:12px;z-index:1;background:#f1f5f9;border:none;border-radius:50%;width:44px;height:44px;font-size:1rem;cursor:pointer;color:#475569;">✕</button>'
+                 + '<div id="attHistContent" style="width:100%;border-radius:20px 20px 0 0;padding:20px 18px;max-height:82vh;overflow-y:auto;overscroll-behavior:contain;padding-bottom:calc(20px + env(safe-area-inset-bottom));animation:slideUpSheet 0.3s cubic-bezier(0.16,1,0.3,1);"><div id="attHistBody"></div></div></div>';
+-            modalEl.addEventListener('click', (e) => { if (e.target === modalEl) modalEl.style.display = 'none'; });
++            modalEl.addEventListener('click', (e) => { if (e.target === modalEl) _closeMemberHistory(); });
+             // The tab has layout containment; a fixed child is positioned at
+             // the bottom of the full roster instead of the viewport.
+             document.body.appendChild(modalEl);
+@@ -2922,6 +2933,9 @@
+             _resetAttendanceModuleState(clubId || _clubId());
+             return true;
+         },
++        closeMemberHistory() {
++            return _closeMemberHistory();
++        },
+         getMetrics() {
+             return {
+                 phase: '4K-6V5U6G-production-stability-residual-defect-closure',
+diff --git a/js/modules/finance.js b/js/modules/finance.js
+--- a/js/modules/finance.js
++++ b/js/modules/finance.js
+@@ -9,7 +9,7 @@
+     formatMonthCompact,
+ } from "../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h";
+ import { FinanceService } from "../services/finance.service.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+-import { StudentService } from "../services/students.service.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
++import { StudentService } from "../services/students.service.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+ import { attachTransactionPageProjection } from './finance/finance.pagination.js?v=qr-v11r6-review-20261021';
+ import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
+ 
+diff --git a/js/modules/finance/index.js b/js/modules/finance/index.js
+--- a/js/modules/finance/index.js
++++ b/js/modules/finance/index.js
+@@ -29,4 +29,4 @@
+  * ────────────────────────────────────────────────────────────────
+  */
+ 
+-export { initFinance, initTransactionPagination } from "../finance.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
++export { initFinance, initTransactionPagination } from "../finance.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+diff --git a/js/modules/reports/attendanceExcelReport.js b/js/modules/reports/attendanceExcelReport.js
+--- a/js/modules/reports/attendanceExcelReport.js
++++ b/js/modules/reports/attendanceExcelReport.js
+@@ -1,4 +1,4 @@
+-import {HISTORY_AUTHORITY,attendanceVisibleRecord} from "../../core/attendanceContract.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
++import {HISTORY_AUTHORITY,attendanceVisibleRecord} from "../../core/attendanceContract.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+ /**
+  * Phase 4K-6U — Attendance Excel Report (lazy, read-only)
+  *
+diff --git a/js/modules/reports/reportExportFacade.js b/js/modules/reports/reportExportFacade.js
+--- a/js/modules/reports/reportExportFacade.js
++++ b/js/modules/reports/reportExportFacade.js
+@@ -92,7 +92,7 @@
+ 
+ async function ensureAttendanceApi() {
+   if (!attendanceModulePromise) {
+-    attendanceModulePromise = import("./attendanceExcelReport.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025")
++    attendanceModulePromise = import("./attendanceExcelReport.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026")
+       .catch((error) => {
+         attendanceModulePromise = null;
+         throw error;
+diff --git a/js/modules/students.js b/js/modules/students.js
+--- a/js/modules/students.js
++++ b/js/modules/students.js
+@@ -29,10 +29,10 @@
+ 
+ import { getLocalToday, formatDate, formatMonth, formatMonthCompact, addMonthsToYYYYMM } from "../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h";
+ import { escapeHtml } from '../utils/helpers.js';
+-import { StudentService } from "../services/students.service.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
++import { StudentService } from "../services/students.service.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+ import { InventoryService } from "../services/inventory.service.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1";
+ import { FinanceService } from "../services/finance.service.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+-import { trainingBranch, trainingDaysValid, isShiftEligibleForBranch, resolveTrainingShift, inspectTrainingRegistration, registrationMessage, assertTrainingRegistration, auditTrainingRegistrations } from "../core/trainingRegistration.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
++import { trainingBranch, trainingDaysValid, isShiftEligibleForBranch, resolveTrainingShift, inspectTrainingRegistration, registrationMessage, assertTrainingRegistration, auditTrainingRegistrations } from "../core/trainingRegistration.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+ 
+ const _registrationForms = new Map();
+ const _registrationContext = () => JSON.stringify([window.__store?.clubId,window.__verifiedAuthContextState?.uid,window.__verifiedAuthContextState?.generation]);
+@@ -1188,8 +1188,8 @@
+         prepareNextPage, preparePreviousPage,
+         renderPaginationControls, PAGE_SIZE,
+     }) => {
+-        import("./students.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025").then(() => {}); // no-op — chỉ để IDE không warn
+-        import("../services/students.service.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025").then(({ StudentService }) => {
++        import("./students.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026").then(() => {}); // no-op — chỉ để IDE không warn
++        import("../services/students.service.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026").then(({ StudentService }) => {
+ 
+             const store = window.__store;
+             if (!store) { console.warn('[pagination/students] __store chưa sẵn sàng'); return; }
+diff --git a/js/modules/students/index.js b/js/modules/students/index.js
+--- a/js/modules/students/index.js
++++ b/js/modules/students/index.js
+@@ -30,4 +30,4 @@
+  */
+ 
+ // Re-export tất cả từ file gốc để backward-compatible
+-export { initStudents, initStudentPagination } from "../students.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
++export { initStudents, initStudentPagination } from "../students.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+diff --git a/js/services/attendance.service.js b/js/services/attendance.service.js
+--- a/js/services/attendance.service.js
++++ b/js/services/attendance.service.js
+@@ -1,4 +1,4 @@
+-import {HISTORY_AUTHORITY, attendanceServerVersion, attendanceVisibleRecord} from "../core/attendanceContract.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
++import {HISTORY_AUTHORITY, attendanceServerVersion, attendanceVisibleRecord} from "../core/attendanceContract.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+ /**
+  * js/services/attendance.service.js — Phase 3.1
+  * ────────────────────────────────────────────────────────────────
+@@ -650,7 +650,7 @@
+     },
+     async attestHistory(record, serverVersion) {
+         if (!['admin','super_admin'].includes(window.__verifiedAuthContextState?.role)||window.__verifiedAuthContextState?.ready!==true) throw Object.assign(new Error('Chỉ Admin xác minh lịch sử cũ.'),{code:'permission-denied'});
+-        const {attendanceIntentId}=await import("../core/attendanceContract.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025");
++        const {attendanceIntentId}=await import("../core/attendanceContract.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026");
+         return _commitAttendanceIntents([{id:attendanceIntentId(),baseVersion:serverVersion,record:{...record,clubId:_clubId()}}]);
+     },
+ 
+diff --git a/js/services/students.service.js b/js/services/students.service.js
+--- a/js/services/students.service.js
++++ b/js/services/students.service.js
+@@ -15,7 +15,7 @@
+  * ────────────────────────────────────────────────────────────────
+  */
+ 
+-import { validateTrainingMutation } from "../core/trainingRegistration.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
++import { validateTrainingMutation } from "../core/trainingRegistration.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+ 
+ // ── Internal helpers (không export) ──────────────────────────────
+ 
+diff --git a/js/ui/tabs.js b/js/ui/tabs.js
+--- a/js/ui/tabs.js
++++ b/js/ui/tabs.js
+@@ -53,7 +53,7 @@
+ 
+ // Phase 3.6: Listener Ownership Isolation — tab-scoped mount/cleanup
+ import { cleanupListenersByTabId } from '../utils/listeners.js';
+-import { mountAttendanceListeners, cleanupAttendanceListeners } from '../listeners/attendance.listeners.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d';
++import { mountAttendanceListeners, cleanupAttendanceListeners } from "../listeners/attendance.listeners.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+ import { mountExamListeners, cleanupExamListeners } from '../listeners/exam.listeners.js';
+ 
+ // ────────────────────────────────────────────────────────────────
+@@ -80,6 +80,9 @@
+  */
+ export function switchTab(tabId) {
+     tabId = window.enforceRoleTab ? window.enforceRoleTab(tabId) : tabId;
++    // Body-mounted attendance history must leave with its tab, including the
++    // early legacy/cache-not-ready and dashboard paths below.
++    if (tabId !== 'attendance') window.AttendanceModule?.closeMemberHistory?.();
+     // Recovery contract: ensureStudentTabRendered for ['active', 'debt', 'quit']; implementation runs after tab activation.
+     const store = getBridgeStore();
+     const cache = store ? store.tabHtmlCache : null;
+diff --git a/public/app.js b/public/app.js
+--- a/public/app.js
++++ b/public/app.js
+@@ -3602,6 +3602,7 @@
+     };
+ 
+     const _resetVerifiedAuthContext = (reason = 'reset') => {
++        window.AttendanceModule?.closeMemberHistory?.();
+         currentClubId = '';
+         window.currentClubId = '';
+         window.userRole = 'viewer';
+diff --git a/public/index.html b/public/index.html
+--- a/public/index.html
++++ b/public/index.html
+@@ -586,7 +586,7 @@
+ <!-- V5U6C2 lineage only: app.js?v=dashboard-hydration-mutation-guard-20260812-v5u6c2; ./js/main.js?v=dashboard-hydration-mutation-guard-20260812-v5u6c2 -->
+ <!-- Phase 4K-6V3BC1 automatic per-club optimization: automatic-canonical-transaction-optimization-20260616-v3bc1 -->
+ <!-- Phase 4K-6V3D debt profile coverage boundary: debt-profile-read-boundary-20260616-v3d -->
+-<!-- Phase 4K-6V4B1 Coach Branch Assignment + Runtime Repair: coach-branch-runtime-repair-20260627-v4b1 --><!-- Phase 4K-6V4B2 Quit Tab Completeness: quit-tab-completeness-20260627-v4b2 --><!-- Phase 4K-6V4B3 Quit Tab Authoritative Completeness: quit-tab-authoritative-completeness-20260627-v4b3 --><script defer src="./js/core/branchIdentity.js?v=coach-branch-runtime-repair-20260627-v4b1"></script><script defer src="./js/core/coachBranchRuntimeRepair.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025"></script><script defer src="./js/core/roleReadBoundary.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025"></script><script defer src="./js/core/transactionCanonicalBoundary.js?v=coach-branch-runtime-repair-20260627-v4b1"></script><script defer src="./js/core/debtProfileReadBoundary.js?v=quit-context-render-loop-guard-20260722-v5s"></script><script defer src="./js/core/tuitionDebtCanonical.js?v=quit-context-render-loop-guard-20260722-v5s"></script><script defer src="./js/core/profileCanonicalStore.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1"></script><!-- V5U4 compatibility marker retained for regression: app.js?v=attendance-excel-documentid-sdk-fix-20260801-v5u2e&p=superadmin-auth-principal-20260811-v5u4 --><!-- V5U6C1 lineage only: app.js?v=canonical-security-truth-20260811-v5u5&p=dashboard-mutation-aware-cache-freshness-20260812-v5u6c1 ; ./js/main.js?v=dashboard-mutation-aware-cache-freshness-20260812-v5u6c1 --><!-- V5U6D lineage only: app.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d --><!-- V5U6F runtime: ./js/main.js?v=attendance-explicit-shift-authority-20260814-v5u6f --><!-- V5U6G1 runtime: ./js/main.js?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1 --><!-- V5U6G compatibility marker: app.js?v=production-stability-residual-defect-closure-20260814-v5u6g --><!-- V5U2E debt/cache compatibility marker: main.js?v=attendance-excel-documentid-sdk-fix-20260801-v5u2e --><!-- V5U6H runtime compatibility: production-security-trust-boundary-release-assurance-20260816-v5u6h --><!-- V5U6H2 runtime compatibility: parent-portal-hard-disable-release-verification-20260818-v5u6h2 --><!-- V5U6H3 runtime: residual-security-data-integrity-release-verification-20260818-v5u6h3 --><!-- V5U6H5 runtime compatibility: club-root-listener-bootstrap-readiness-exam-full-roster-export-20260827-v5u6h5 --><!-- V5U6H6 runtime: release-authority-exam-state-purity-firebase-final-verification-20260829-v5u6h6 --><!-- H8R2 compatibility marker: app.js?v=long-term-production-stability-20260917-v5u6h8r2 ; ./js/main.js?v=long-term-production-stability-20260917-v5u6h8r2 --><script defer src="app.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025"></script><!-- Compatibility marker: app.js?v=production-authority-closure-20260814-v5u6e --><script>
++<!-- Phase 4K-6V4B1 Coach Branch Assignment + Runtime Repair: coach-branch-runtime-repair-20260627-v4b1 --><!-- Phase 4K-6V4B2 Quit Tab Completeness: quit-tab-completeness-20260627-v4b2 --><!-- Phase 4K-6V4B3 Quit Tab Authoritative Completeness: quit-tab-authoritative-completeness-20260627-v4b3 --><script defer src="./js/core/branchIdentity.js?v=coach-branch-runtime-repair-20260627-v4b1"></script><script defer src="./js/core/coachBranchRuntimeRepair.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026"></script><script defer src="./js/core/roleReadBoundary.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026"></script><script defer src="./js/core/transactionCanonicalBoundary.js?v=coach-branch-runtime-repair-20260627-v4b1"></script><script defer src="./js/core/debtProfileReadBoundary.js?v=quit-context-render-loop-guard-20260722-v5s"></script><script defer src="./js/core/tuitionDebtCanonical.js?v=quit-context-render-loop-guard-20260722-v5s"></script><script defer src="./js/core/profileCanonicalStore.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1"></script><!-- V5U4 compatibility marker retained for regression: app.js?v=attendance-excel-documentid-sdk-fix-20260801-v5u2e&p=superadmin-auth-principal-20260811-v5u4 --><!-- V5U6C1 lineage only: app.js?v=canonical-security-truth-20260811-v5u5&p=dashboard-mutation-aware-cache-freshness-20260812-v5u6c1 ; ./js/main.js?v=dashboard-mutation-aware-cache-freshness-20260812-v5u6c1 --><!-- V5U6D lineage only: app.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d --><!-- V5U6F runtime: ./js/main.js?v=attendance-explicit-shift-authority-20260814-v5u6f --><!-- V5U6G1 runtime: ./js/main.js?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1 --><!-- V5U6G compatibility marker: app.js?v=production-stability-residual-defect-closure-20260814-v5u6g --><!-- V5U2E debt/cache compatibility marker: main.js?v=attendance-excel-documentid-sdk-fix-20260801-v5u2e --><!-- V5U6H runtime compatibility: production-security-trust-boundary-release-assurance-20260816-v5u6h --><!-- V5U6H2 runtime compatibility: parent-portal-hard-disable-release-verification-20260818-v5u6h2 --><!-- V5U6H3 runtime: residual-security-data-integrity-release-verification-20260818-v5u6h3 --><!-- V5U6H5 runtime compatibility: club-root-listener-bootstrap-readiness-exam-full-roster-export-20260827-v5u6h5 --><!-- V5U6H6 runtime: release-authority-exam-state-purity-firebase-final-verification-20260829-v5u6h6 --><!-- H8R2 compatibility marker: app.js?v=long-term-production-stability-20260917-v5u6h8r2 ; ./js/main.js?v=long-term-production-stability-20260917-v5u6h8r2 --><script defer src="app.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026"></script><!-- Compatibility marker: app.js?v=production-authority-closure-20260814-v5u6e --><script>
+ /* Phase 3.3A FIX: ES modules require HTTP — skip on file:// to prevent CORS error.
+    app.js still loads via <script defer> so ALL business logic works regardless.
+    Module enhancements (loading.js, event-guard, lazy tabs) activate on HTTP only.
+@@ -676,7 +676,7 @@
+     var s = document.createElement('script');
+     s.type = 'module';
+     // Compatibility marker retained: student-given-name-priority-20260811-v5u3
+-    s.src  = "./js/main.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025"; // Compatibility: ./js/main.js?v=attendance-explicit-shift-authority-20260814-v5u6f
++    s.src  = "./js/main.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026"; // Compatibility: ./js/main.js?v=attendance-explicit-shift-authority-20260814-v5u6f
+     s.onload = function() {
+       window.MAIN_JS_LOADED = true;
+       console.log('[BOOT] main.js loaded after legacy app.js ready');
+diff --git a/public/js/core/studentStatusCommandBoundary.js b/public/js/core/studentStatusCommandBoundary.js
+--- a/public/js/core/studentStatusCommandBoundary.js
++++ b/public/js/core/studentStatusCommandBoundary.js
+@@ -8,7 +8,7 @@
+  *   - Commits local stores and invalidates affected domains once after success.
+  *   - Finance / inventory / multi-item writes are intentionally out of scope.
+  */
+-import { StudentService } from "../services/students.service.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
++import { StudentService } from "../services/students.service.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+ 
+ const BUILD = 'student-status-command-cutover-20260722-v5u1';
+ const PHASE = '4K-6V5U-1';
+diff --git a/public/js/data/attendanceJournal.js b/public/js/data/attendanceJournal.js
+--- a/public/js/data/attendanceJournal.js
++++ b/public/js/data/attendanceJournal.js
+@@ -1,6 +1,6 @@
+ // Storage component of the existing attendance owner. No SDK, timer or writer.
+ // IndexedDB transactions serialize enqueue/claim/ACK across real browser tabs.
+-import {JOURNAL_DATABASE,attendanceIntentId,attendanceIntentTarget} from "../core/attendanceContract.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
++import {JOURNAL_DATABASE,attendanceIntentId,attendanceIntentTarget} from "../core/attendanceContract.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+ let databasePromise;
+ const active = item => ['pending','inflight','conflict','needs-review'].includes(item.state);
+ const maxSequence=rows=>rows.reduce((max,row)=>Math.max(max,Number(row.sequence)||0),0);
+diff --git a/public/js/main.js b/public/js/main.js
+--- a/public/js/main.js
++++ b/public/js/main.js
+@@ -112,12 +112,12 @@
+ import { InlineHandlerAudit }                from './core/inlineHandlerAudit.js';
+ import { EventActionBridge, initEventActionBridge } from './ui/eventActionBridge.js';
+ import { initLegacyUiShell }                  from './ui/legacyUiShell.js';
+-import { registerReportExportFacade }         from "./modules/reports/reportExportFacade.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
++import { registerReportExportFacade }         from "./modules/reports/reportExportFacade.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+ import { store, resetStore }                  from './store.js';
+-import { initFirebase }                        from "./firebase/config.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
++import { initFirebase }                        from "./firebase/config.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+ import { showToast, registerToastGlobal }      from './ui/toast.js';
+ import { registerModalGlobals }                from './ui/modal.js';
+-import { switchTab, registerTabGlobals }       from "./ui/tabs.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++import { switchTab, registerTabGlobals }       from "./ui/tabs.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+ import { initRender }                          from "./ui/render.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+ // V5U6D compatibility marker: ./ui/render.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d
+ // Phase 3.4: Render Isolation Architecture — island initialisers + legacy shims
+@@ -248,7 +248,7 @@
+ import { SecurityPosture }   from './core/securityPosture.js';
+ import { ActionGuard }        from './core/actionGuard.js';
+ import { initCanonicalDomainCommandBoundary } from './core/canonicalDomainCommandBoundary.js?v=tuition-command-cutover-20260730-v5u2';
+-import { initStudentStatusCommandBoundary } from "./core/studentStatusCommandBoundary.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
++import { initStudentStatusCommandBoundary } from "./core/studentStatusCommandBoundary.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+ import { initTuitionCommandBoundary } from "./core/tuitionCommandBoundary.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+ // Phase 4K-6E: Transaction Delete Integrity
+ import { TransactionDeleteIntegrity } from './core/transactionDeleteIntegrity.js';
+@@ -293,7 +293,7 @@
+     getQuitStatusValues,
+     getProfilesListenerMetrics,
+     ensureAllProfilesForExport,
+-} from "./listeners/profiles.listeners.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
++} from "./listeners/profiles.listeners.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+ // Compatibility marker: ./listeners/profiles.listeners.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d
+ 
+ // H8R2.1 cache compatibility: ./listeners/profiles.listeners.js?v=long-term-production-stability-20260917-v5u6h8r2 ; ./modules/attendance.js?v=long-term-production-stability-20260917-v5u6h8r2 ; ./core/studentStatusCommandBoundary.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1 ; ./modules/inventory.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h
+@@ -351,7 +351,7 @@
+ } from './firebase/paginatedQuery.js';
+ 
+ // ── Phase 2d–3.2A: Business modules (eager — cần khi login) ────
+-import { initStudents, initStudentPagination }        from "./modules/students.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
++import { initStudents, initStudentPagination }        from "./modules/students.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+ // V5U6G compatibility marker: ./modules/students.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
+ // Compatibility marker: ./modules/students.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
+ // PHẦN 1 FIX + Phase 4K-2: Unified Search Controller — real cache + SearchBlob + stale guard
+@@ -363,10 +363,10 @@
+     debugSearchPerformance,
+ } from './modules/searchRuntime.js?v=student-given-name-priority-20260811-v5u3';
+ // Compatibility marker: ./modules/finance.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h
+-import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from "./modules/finance.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
++import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from "./modules/finance.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+ import { initInventory }                              from "./modules/inventory.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+ // Compatibility marker: from './modules/attendance.js'
+-import { initAttendance }                             from "./modules/attendance.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
++import { initAttendance }                             from "./modules/attendance.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+ // Compatibility marker: ./modules/attendance.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
+ // V5U6G1 compatibility marker: ./modules/attendance.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
+ import { initDashboard }                              from './modules/dashboard.js?v=dashboard-hydration-mutation-guard-20260812-v5u6c2';
+@@ -382,7 +382,7 @@
+ // ── Phase 3.1: Event layer ──────────────────────────────────────
+ import { initStudentsEvents }                         from './events/students.events.js';
+ import { initFinanceEvents, initFinanceActionEvents } from './events/finance.events.js';
+-import { initAttendanceEvents }                       from "./events/attendance.events.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
++import { initAttendanceEvents }                       from "./events/attendance.events.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+ 
+ // ────────────────────────────────────────────────────────────────
+ // Phase 3.3G: GLOBAL ERROR HANDLERS
+@@ -2485,7 +2485,7 @@
+     if (window.__appLoaded) return Promise.resolve();
+     return new Promise((resolve, reject) => {
+         const script = document.createElement('script');
+-        script.src = "app.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
++        script.src = "app.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+         script.onload  = () => resolve();
+         script.onerror = (err) => reject(new Error('[main.js] Không load được app.js: ' + err));
+         document.head.appendChild(script);
+@@ -3233,7 +3233,7 @@
+ // PHẦN 1 — APP BUILD VERSION
+ // H5 compatibility build marker: APP_BUILD_VERSION = '4K-6V5U6H5-club-root-listener-bootstrap-readiness-exam-full-roster-export-20260827'
+ // Previous build: 4K-6V5U6H6-release-authority-exam-state-purity-firebase-final-verification-20260829
+-window.APP_BUILD_VERSION = "qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
++window.APP_BUILD_VERSION = "qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+ // Compatibility marker only: window.APP_BUILD_VERSION = '4K-6V5U6H3-residual-security-data-integrity-release-verification-20260818';
+ // Compatibility marker only: window.APP_BUILD_VERSION = '4K-6V5U6H2-parent-portal-hard-disable-release-verification-20260818'
+ // Compatibility marker only: window.APP_BUILD_VERSION = '4K-6V5U6H-production-security-trust-boundary-release-assurance-20260816'
+diff --git a/public/js/modules/attendance.js b/public/js/modules/attendance.js
+--- a/public/js/modules/attendance.js
++++ b/public/js/modules/attendance.js
+@@ -16,12 +16,12 @@
+  * ────────────────────────────────────────────────────────────────
+  */
+ 
+-import { AttendanceService } from "../services/attendance.service.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
++import { AttendanceService } from "../services/attendance.service.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+ import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
+ import { escapeHtml } from '../utils/helpers.js';
+-import { AttendanceJournal } from "../data/attendanceJournal.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
+-import { HISTORY_AUTHORITY, HISTORY_COACH_ACCESS, attendanceServerVersion, attendanceIntentId } from "../core/attendanceContract.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
+-import { shiftAuthority, classifyShiftScope, resolveTrainingShift, isShiftEligibleForBranch, inspectTrainingRegistration } from "../core/trainingRegistration.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
++import { AttendanceJournal } from "../data/attendanceJournal.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
++import { HISTORY_AUTHORITY, HISTORY_COACH_ACCESS, attendanceServerVersion, attendanceIntentId } from "../core/attendanceContract.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
++import { shiftAuthority, classifyShiftScope, resolveTrainingShift, isShiftEligibleForBranch, inspectTrainingRegistration } from "../core/trainingRegistration.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+ 
+ const ATTENDANCE_OWNER = 'js/modules/attendance.js';
+ const ATTENDANCE_OWNED_GLOBALS = Object.freeze([
+@@ -424,9 +424,20 @@
+     return _attendanceDailyState.mutationRevision;
+ }
+ 
++function _closeMemberHistory(remove = false) {
++    _memberHistoryRequestId++;
++    const modal = document.getElementById('attHistModal');
++    if (!modal) return false;
++    if (remove) modal.remove();
++    else {
++        modal.style.display = 'none';
++        modal.querySelector('#attHistBody')?.replaceChildren();
++    }
++    return true;
++}
++
+ function _resetAttendanceModuleState(nextClubId) {
+-    _memberHistoryRequestId++;
+-    document.getElementById('attHistModal')?.remove();
++    _closeMemberHistory(true);
+     document.getElementById('attendanceReviewSheet')?.remove();
+     document.getElementById('attendanceJournalControls')?.remove();
+     _attCurrentProfiles = [];
+@@ -2027,9 +2038,9 @@
+             modalEl.id = 'attHistModal';
+             modalEl.style.cssText = 'display:flex;position:fixed;inset:0;background:rgba(15,23,42,0.65);z-index:10010;backdrop-filter:blur(4px);align-items:flex-end;justify-content:center;';
+             modalEl.innerHTML = '<div id="attHistSheet" style="position:relative;background:#fff;width:100%;max-width:640px;border-radius:20px 20px 0 0;box-shadow:0 -10px 40px rgba(0,0,0,0.18);">'
+-                + '<button type="button" aria-label="Đóng lịch sử điểm danh" onclick="document.getElementById(\'attHistModal\').style.display=\'none\'" style="position:absolute;top:10px;right:12px;z-index:1;background:#f1f5f9;border:none;border-radius:50%;width:44px;height:44px;font-size:1rem;cursor:pointer;color:#475569;">✕</button>'
++                + '<button type="button" aria-label="Đóng lịch sử điểm danh" onclick="window.AttendanceModule?.closeMemberHistory?.()" style="position:absolute;top:10px;right:12px;z-index:1;background:#f1f5f9;border:none;border-radius:50%;width:44px;height:44px;font-size:1rem;cursor:pointer;color:#475569;">✕</button>'
+                 + '<div id="attHistContent" style="width:100%;border-radius:20px 20px 0 0;padding:20px 18px;max-height:82vh;overflow-y:auto;overscroll-behavior:contain;padding-bottom:calc(20px + env(safe-area-inset-bottom));animation:slideUpSheet 0.3s cubic-bezier(0.16,1,0.3,1);"><div id="attHistBody"></div></div></div>';
+-            modalEl.addEventListener('click', (e) => { if (e.target === modalEl) modalEl.style.display = 'none'; });
++            modalEl.addEventListener('click', (e) => { if (e.target === modalEl) _closeMemberHistory(); });
+             // The tab has layout containment; a fixed child is positioned at
+             // the bottom of the full roster instead of the viewport.
+             document.body.appendChild(modalEl);
+@@ -2922,6 +2933,9 @@
+             _resetAttendanceModuleState(clubId || _clubId());
+             return true;
+         },
++        closeMemberHistory() {
++            return _closeMemberHistory();
++        },
+         getMetrics() {
+             return {
+                 phase: '4K-6V5U6G-production-stability-residual-defect-closure',
+diff --git a/public/js/modules/finance.js b/public/js/modules/finance.js
+--- a/public/js/modules/finance.js
++++ b/public/js/modules/finance.js
+@@ -9,7 +9,7 @@
+     formatMonthCompact,
+ } from "../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h";
+ import { FinanceService } from "../services/finance.service.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+-import { StudentService } from "../services/students.service.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
++import { StudentService } from "../services/students.service.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+ import { attachTransactionPageProjection } from './finance/finance.pagination.js?v=qr-v11r6-review-20261021';
+ import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
+ 
+diff --git a/public/js/modules/finance/index.js b/public/js/modules/finance/index.js
+--- a/public/js/modules/finance/index.js
++++ b/public/js/modules/finance/index.js
+@@ -29,4 +29,4 @@
+  * ────────────────────────────────────────────────────────────────
+  */
+ 
+-export { initFinance, initTransactionPagination } from "../finance.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
++export { initFinance, initTransactionPagination } from "../finance.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+diff --git a/public/js/modules/reports/attendanceExcelReport.js b/public/js/modules/reports/attendanceExcelReport.js
+--- a/public/js/modules/reports/attendanceExcelReport.js
++++ b/public/js/modules/reports/attendanceExcelReport.js
+@@ -1,4 +1,4 @@
+-import {HISTORY_AUTHORITY,attendanceVisibleRecord} from "../../core/attendanceContract.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
++import {HISTORY_AUTHORITY,attendanceVisibleRecord} from "../../core/attendanceContract.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+ /**
+  * Phase 4K-6U — Attendance Excel Report (lazy, read-only)
+  *
+diff --git a/public/js/modules/reports/reportExportFacade.js b/public/js/modules/reports/reportExportFacade.js
+--- a/public/js/modules/reports/reportExportFacade.js
++++ b/public/js/modules/reports/reportExportFacade.js
+@@ -92,7 +92,7 @@
+ 
+ async function ensureAttendanceApi() {
+   if (!attendanceModulePromise) {
+-    attendanceModulePromise = import("./attendanceExcelReport.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025")
++    attendanceModulePromise = import("./attendanceExcelReport.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026")
+       .catch((error) => {
+         attendanceModulePromise = null;
+         throw error;
+diff --git a/public/js/modules/students.js b/public/js/modules/students.js
+--- a/public/js/modules/students.js
++++ b/public/js/modules/students.js
+@@ -29,10 +29,10 @@
+ 
+ import { getLocalToday, formatDate, formatMonth, formatMonthCompact, addMonthsToYYYYMM } from "../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h";
+ import { escapeHtml } from '../utils/helpers.js';
+-import { StudentService } from "../services/students.service.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
++import { StudentService } from "../services/students.service.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+ import { InventoryService } from "../services/inventory.service.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1";
+ import { FinanceService } from "../services/finance.service.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+-import { trainingBranch, trainingDaysValid, isShiftEligibleForBranch, resolveTrainingShift, inspectTrainingRegistration, registrationMessage, assertTrainingRegistration, auditTrainingRegistrations } from "../core/trainingRegistration.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
++import { trainingBranch, trainingDaysValid, isShiftEligibleForBranch, resolveTrainingShift, inspectTrainingRegistration, registrationMessage, assertTrainingRegistration, auditTrainingRegistrations } from "../core/trainingRegistration.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+ 
+ const _registrationForms = new Map();
+ const _registrationContext = () => JSON.stringify([window.__store?.clubId,window.__verifiedAuthContextState?.uid,window.__verifiedAuthContextState?.generation]);
+@@ -1188,8 +1188,8 @@
+         prepareNextPage, preparePreviousPage,
+         renderPaginationControls, PAGE_SIZE,
+     }) => {
+-        import("./students.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025").then(() => {}); // no-op — chỉ để IDE không warn
+-        import("../services/students.service.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025").then(({ StudentService }) => {
++        import("./students.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026").then(() => {}); // no-op — chỉ để IDE không warn
++        import("../services/students.service.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026").then(({ StudentService }) => {
+ 
+             const store = window.__store;
+             if (!store) { console.warn('[pagination/students] __store chưa sẵn sàng'); return; }
+diff --git a/public/js/modules/students/index.js b/public/js/modules/students/index.js
+--- a/public/js/modules/students/index.js
++++ b/public/js/modules/students/index.js
+@@ -30,4 +30,4 @@
+  */
+ 
+ // Re-export tất cả từ file gốc để backward-compatible
+-export { initStudents, initStudentPagination } from "../students.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
++export { initStudents, initStudentPagination } from "../students.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+diff --git a/public/js/services/attendance.service.js b/public/js/services/attendance.service.js
+--- a/public/js/services/attendance.service.js
++++ b/public/js/services/attendance.service.js
+@@ -1,4 +1,4 @@
+-import {HISTORY_AUTHORITY, attendanceServerVersion, attendanceVisibleRecord} from "../core/attendanceContract.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
++import {HISTORY_AUTHORITY, attendanceServerVersion, attendanceVisibleRecord} from "../core/attendanceContract.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+ /**
+  * js/services/attendance.service.js — Phase 3.1
+  * ────────────────────────────────────────────────────────────────
+@@ -650,7 +650,7 @@
+     },
+     async attestHistory(record, serverVersion) {
+         if (!['admin','super_admin'].includes(window.__verifiedAuthContextState?.role)||window.__verifiedAuthContextState?.ready!==true) throw Object.assign(new Error('Chỉ Admin xác minh lịch sử cũ.'),{code:'permission-denied'});
+-        const {attendanceIntentId}=await import("../core/attendanceContract.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025");
++        const {attendanceIntentId}=await import("../core/attendanceContract.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026");
+         return _commitAttendanceIntents([{id:attendanceIntentId(),baseVersion:serverVersion,record:{...record,clubId:_clubId()}}]);
+     },
+ 
+diff --git a/public/js/services/students.service.js b/public/js/services/students.service.js
+--- a/public/js/services/students.service.js
++++ b/public/js/services/students.service.js
+@@ -15,7 +15,7 @@
+  * ────────────────────────────────────────────────────────────────
+  */
+ 
+-import { validateTrainingMutation } from "../core/trainingRegistration.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
++import { validateTrainingMutation } from "../core/trainingRegistration.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+ 
+ // ── Internal helpers (không export) ──────────────────────────────
+ 
+diff --git a/public/js/ui/tabs.js b/public/js/ui/tabs.js
+--- a/public/js/ui/tabs.js
++++ b/public/js/ui/tabs.js
+@@ -53,7 +53,7 @@
+ 
+ // Phase 3.6: Listener Ownership Isolation — tab-scoped mount/cleanup
+ import { cleanupListenersByTabId } from '../utils/listeners.js';
+-import { mountAttendanceListeners, cleanupAttendanceListeners } from '../listeners/attendance.listeners.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d';
++import { mountAttendanceListeners, cleanupAttendanceListeners } from "../listeners/attendance.listeners.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+ import { mountExamListeners, cleanupExamListeners } from '../listeners/exam.listeners.js';
+ 
+ // ────────────────────────────────────────────────────────────────
+@@ -80,6 +80,9 @@
+  */
+ export function switchTab(tabId) {
+     tabId = window.enforceRoleTab ? window.enforceRoleTab(tabId) : tabId;
++    // Body-mounted attendance history must leave with its tab, including the
++    // early legacy/cache-not-ready and dashboard paths below.
++    if (tabId !== 'attendance') window.AttendanceModule?.closeMemberHistory?.();
+     // Recovery contract: ensureStudentTabRendered for ['active', 'debt', 'quit']; implementation runs after tab activation.
+     const store = getBridgeStore();
+     const cache = store ? store.tabHtmlCache : null;
+diff --git a/tools/a9r16r3r1/build.mjs b/tools/a9r16r3r1/build.mjs
+new file mode 100644
+--- /dev/null
++++ b/tools/a9r16r3r1/build.mjs
+@@ -0,0 +1,35 @@
++// Uses the existing canonical cache builder and immutable source-pin mechanism.
++// Local candidate preparation only. Never deploys or contacts Firebase.
++import fs from 'node:fs';import path from 'node:path';import crypto from 'node:crypto';
++import assert from 'node:assert/strict';
++import {rewriteCacheGraph,buildImportGraph} from '../v11r2/import-graph.mjs';
++import {runtimeHash} from '../v11r2/cutover.mjs';
++const root=process.cwd(),sha=x=>crypto.createHash('sha256').update(x).digest('hex');
++export const tag='qr-v11r6-a9r16a-r3r1-reviewed-history-20261026';
++const read=f=>fs.readFileSync(path.join(root,f));
++const parent=JSON.parse(read('tools/v11r2/manifests/V11R6_A9R16A_R3_SHIFT_HISTORY.json'));
++const files=Object.keys(parent.canonicalRuntimeFiles).sort(),canonicalJS=files.filter(f=>f.endsWith('.js'));
++const owners=['app.js','js/modules/attendance.js','js/ui/tabs.js'];
++const initial=Object.fromEntries(owners.map(f=>[f,read(f).toString()]));
++const result=rewriteCacheGraph(root,initial,tag,canonicalJS);
++for(const [file,text] of Object.entries(result.overrides))fs.writeFileSync(path.join(root,file),text);
++for(const file of files){fs.mkdirSync(path.dirname(path.join(root,'public',file)),{recursive:true});fs.copyFileSync(path.join(root,file),path.join(root,'public',file));}
++const graph=buildImportGraph(root,{},canonicalJS),urls={};
++for(const edge of graph.edges.filter(e=>e.to)){
++ const u=new URL(edge.url,new URL(edge.kind==='script-loader'?'index.html':edge.from,'https://qa/'));
++ const url=u.pathname+u.search+u.hash;
++ if(urls[edge.to])assert.equal(urls[edge.to],url,'Canonical module identity '+edge.to);
++ urls[edge.to]=url;
++}
++const manifest={kind:'A9R16A_R3R1_SOURCE_IDENTITY_NOT_RELEASE_APPROVAL',parentOuterZIP_SHA256:'da9aad90e3b70d50203f153832012016a66f27452f8b023a7b0a4b849ab58624',parentRuntimeSHA256:parent.runtimeSHA256,buildTag:tag,runtimeSHA256:runtimeHash(root),rulesSHA256:sha(read('firestore.rules')),indexesSHA256:sha(read('firestore.indexes.json')),canonicalRuntimeFiles:Object.fromEntries(files.map(f=>[f,sha(read(f))])),canonicalModuleURLs:urls};
++assert.equal(manifest.rulesSHA256,parent.rulesSHA256);assert.equal(manifest.indexesSHA256,parent.indexesSHA256);
++const manifestFile='tools/v11r2/manifests/V11R6_A9R16A_R3R1_REVIEW.json';
++const manifestText=JSON.stringify(manifest,null,2)+'\n';fs.writeFileSync(manifestFile,manifestText);
++const pin={id:'V11R6_A9R16A_R3R1_REVIEW',canonicalFileCount:files.length,coachAssignmentContract:'server-verified-multi-branch-v1',inputZIP_SHA256:manifest.parentOuterZIP_SHA256,manifest:manifestFile,manifestSHA256:sha(manifestText),runtimeSHA256:manifest.runtimeSHA256,rulesSHA256:manifest.rulesSHA256,indexesSHA256:manifest.indexesSHA256,buildTag:tag};
++const identityFile='tools/v11r2/source-identity.mjs';let identity=read(identityFile).toString();
++const marker='// R3R1 review lineage; source identity only, never release approval.';
++const entry=marker+'\nconst A9R16A_R3R1_REVIEW = Object.freeze('+JSON.stringify(pin,null,2)+');\n\n';
++if(identity.includes(marker))identity=identity.replace(/\/\/ R3R1 review lineage; source identity only, never release approval\.[\s\S]*?\n\n(?=export function verifySourceIdentity)/,entry);
++else identity=identity.replace('export function verifySourceIdentity',entry+'export function verifySourceIdentity').replace('const pinned=[','const pinned=[A9R16A_R3R1_REVIEW,');
++fs.writeFileSync(identityFile,identity);
++console.log(JSON.stringify({status:'PASS',runtimeSHA256:manifest.runtimeSHA256,canonicalFiles:files.length,moduleCount:Object.keys(urls).length,metadataChanged:Object.keys(result.overrides)},null,2));
+diff --git a/tools/a9r16r3r1/lifecycle.browser.emulator.mjs b/tools/a9r16r3r1/lifecycle.browser.emulator.mjs
+new file mode 100644
+--- /dev/null
++++ b/tools/a9r16r3r1/lifecycle.browser.emulator.mjs
+@@ -0,0 +1,144 @@
++// Review adds post-bootstrap lifecycle assertions to the existing actual-app SDK10 Emulator harness; runtime and fixture contracts unchanged.
++// Full production HTML + unmodified app/main assets, actual SDK10 + local Rules.
++// Only CDN delivery and Auth provider transport are substituted for isolated QA.
++import fs from 'node:fs';import path from 'node:path';import http from 'node:http';import zlib from 'node:zlib';import crypto from 'node:crypto';import assert from 'node:assert/strict';
++import {initializeTestEnvironment} from '@firebase/rules-unit-testing';import * as sdk from 'firebase/firestore';
++import {loadPlaywright,browserExecutable} from '../test-runtime.mjs';
++const root=path.resolve(process.env.A9R16_SOURCE_ROOT||process.cwd()),out=path.resolve(process.env.A9R16_EVIDENCE_ROOT||'evidence/A9R16/performance');fs.mkdirSync(out,{recursive:true});
++const runs=Number(process.env.A9R16_RUNS||5),roles=(process.env.A9R16_ROLES||'coach,admin,super_admin').split(','),profiles=(process.env.A9R16_NETWORKS||'fast,moderate').split(',');
++assert(runs>=1);const endpoint=process.env.FIRESTORE_EMULATOR_HOST;assert.match(endpoint||'',/^127\.0\.0\.1:\d+$/);
++const [host,portText]=endpoint.split(':'),port=Number(portText),projectId='demo-a9r16-performance',club='PERF_CLUB',count=1500;
++const rules=fs.readFileSync(path.join(root,'firestore.rules'),'utf8');
++const env=await initializeTestEnvironment({projectId,firestore:{host,port,rules}});
++const fixture={projectId,clubId:club,profiles:count,branchProfiles:750,allowedBranches:['CS1','CS2'],activeBranch:'CS1',coachUid:'coach',adminUid:'admin',superAdminUid:'super',firstShift:'S1',historyAuthority:'attendance-history-1aedda93-9437-4132-9694-35c2e6234d55'};
++const authModule=`const auth={currentUser:null},secondary={currentUser:null},listeners=new Set();
++export const getAuth=(app)=>app&&app.name==='SecondaryApp'?secondary:auth;
++export function onAuthStateChanged(a,fn){listeners.add(fn);setTimeout(()=>{if(!auth.currentUser){auth.currentUser={uid:window.__QA.uid,email:'qa@example.invalid',getIdToken:async()=>''};window.markLoginPerf?.('loginStart');}fn(auth.currentUser)},0);return()=>listeners.delete(fn);}
++export async function signInWithEmailAndPassword(){for(const f of listeners)f(auth.currentUser);return {user:auth.currentUser};}
++export async function signOut(){auth.currentUser=null;for(const f of listeners)f(null);}
++export const createUserWithEmailAndPassword=async()=>{throw Error('QA Auth create is disabled')};
++export const sendPasswordResetEmail=async()=>{};export const updatePassword=async()=>{};export const reauthenticateWithCredential=async()=>{};export const signInAnonymously=async()=>({user:auth.currentUser});export const EmailAuthProvider={credential:()=>({})};`;
++const sdkApp=`import * as sdk from '/__qa/vendor/firebase-app.js';export * from '/__qa/vendor/firebase-app.js';export const initializeApp=(config,name)=>sdk.initializeApp({...config,projectId:${JSON.stringify(projectId)}},name);`;
++const sdkFirestore=`import * as sdk from '/__qa/vendor/firebase-firestore.js';export * from '/__qa/vendor/firebase-firestore.js';const dbs=new WeakMap();
++export function getFirestore(app){if(dbs.has(app))return dbs.get(app);const db=sdk.initializeFirestore(app,{useFetchStreams:${!!process.env.A9R16_QA_FETCH_STREAMS}});${process.env.A9R16_DIAGNOSTIC_STREAM ? "sdk.setLogLevel('debug');" : ''}sdk.connectFirestoreEmulator(db,'127.0.0.1',${port},{mockUserToken:{sub:window.__QA.uid,user_id:window.__QA.uid}});dbs.set(app,db);return db;}
++const size=s=>typeof s.size==='number'?s.size:s.exists()?1:0;
++export async function getDoc(...args){window.__QA.reads.getDoc++;const s=await sdk.getDoc(...args);window.__QA.reads.documents+=size(s);return s;}
++export async function getDocs(...args){window.__QA.reads.getDocs++;const s=await sdk.getDocs(...args);window.__QA.reads.documents+=size(s);return s;}
++export function onSnapshot(...args){window.__QA.reads.onSnapshot++;window.__QA.reads.activeListeners++;const event={path:args[0]?.path||args[0]?._query?.path?.canonicalString?.(),queryShape:{limit:args[0]?._query?.limit??null,filters:args[0]?._query?.filters?.map(x=>({field:x.field?.canonicalString?.(),op:x.op,value:x.value})),databaseId:args[0]?.firestore?._databaseId?.projectId},snapshots:[],stack:new Error().stack.slice(0,1200)};window.__QA.subscriptions.push(event);let at=args.findIndex(x=>typeof x==='function');if(at>=0){const cb=args[at];args[at]=s=>{window.__QA.reads.snapshotDocuments+=size(s);event.snapshots.push({size:size(s),fromCache:s.metadata.fromCache,pending:s.metadata.hasPendingWrites,first:s.docs?.[0]?.id,last:s.docs?.at(-1)?.id});return cb(s)}}const un=sdk.onSnapshot(...args);let active=true;return()=>{if(active){active=false;window.__QA.reads.activeListeners--;}un()};}`;
++const cache=new Map();
++const server=http.createServer((req,res)=>{
++ const u=new URL(req.url,'http://qa');let content,type='text/javascript';
++ try{
++  if(u.pathname==='/'&&u.searchParams.has('sdkonly')){content='<!doctype html><html><body>SDK transport probe</body></html>';type='text/html';}
++  else if(u.pathname==='/'){content=fs.readFileSync(path.join(root,'index.html'),'utf8').replaceAll('https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js','/__qa/app.js').replaceAll('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js','/__qa/firestore.js').replaceAll('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js','/__qa/auth.js');type='text/html';}
++  else if(u.pathname==='/__qa/app.js')content=sdkApp;
++  else if(u.pathname==='/__qa/firestore.js')content=sdkFirestore;
++  else if(u.pathname==='/__qa/auth.js')content=authModule;
++  else if(u.pathname.startsWith('/__qa/vendor/')){const name=path.basename(u.pathname);content=fs.readFileSync(path.join(root,'tools/a9r13/vendor/firebase-10.7.1',name),'utf8').replaceAll('https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js','/__qa/vendor/firebase-app.js');}
++  else {const file=path.resolve(root,'.'+u.pathname);if(!file.startsWith(root+path.sep)){res.writeHead(403);res.end();return;}content=fs.readFileSync(file);type=file.endsWith('.css')?'text/css':file.endsWith('.png')?'image/png':file.endsWith('.json')?'application/json':'text/javascript';}
++  if(process.env.A9R16_MODULE_IDENTITY_PROBE&&['/js/utils/format.js','/js/services/inventory.service.js','/js/modules/students.js','/js/modules/finance.js'].includes(u.pathname))content=String(content)+'\nwindow.__QA.moduleEvaluations ||= {};window.__QA.moduleEvaluations['+JSON.stringify(u.pathname)+']=(window.__QA.moduleEvaluations['+JSON.stringify(u.pathname)+']||0)+1;';
++  const key=u.pathname+u.search;if(!cache.has(key))cache.set(key,zlib.gzipSync(content));const body=cache.get(key);
++  if(!res.destroyed&&!res.writableEnded&&!res.headersSent)res.writeHead(200,{'Content-Type':type,'Content-Encoding':'gzip','Content-Length':body.length,'Cache-Control':u.pathname==='/'?'no-store':'public,max-age=3600'});res.end(body);
++ }catch(error){if(!res.headersSent)res.writeHead(404);res.end('QA missing asset');}
++});
++await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin='http://127.0.0.1:'+server.address().port;
++const pw=loadPlaywright(),browser=await pw.chromium.launch({headless:true,executablePath:browserExecutable(),args:['--no-sandbox']});
++const results=[],lifecycleCases=[];
++const recordLifecycle=(name,evidence,ok)=>{const item={name,evidence,classification:ok?'PASS':'FAIL_RUNTIME'};lifecycleCases.push(item);fs.writeFileSync(path.join(out,'LIFECYCLE.json'),JSON.stringify({classification:lifecycleCases.some(x=>x.classification!=='PASS')?'FAIL_RUNTIME':'PASS',cases:lifecycleCases},null,2));console.log('LIFECYCLE',JSON.stringify(item));};
++try{
++ await env.clearFirestore();await env.withSecurityRulesDisabled(async context=>{
++  const db=context.firestore();let batch=sdk.writeBatch(db),n=0;const put=async(ref,data)=>{batch.set(ref,data);if(++n===450){await batch.commit();batch=sdk.writeBatch(db);n=0;}};
++  const acl={role:'coach',clubId:club,status:'active',branch:'CS1',coachBranch:'CS1',primaryCoachBranch:'CS1',defaultBranch:'CS1',allowedBranches:['CS1','CS2'],assignmentVersion:'a9r16-fixture-assignment-v1'};
++  await put(sdk.doc(db,'users','coach'),acl);await put(sdk.doc(db,'clubs',club,'coaches','coach'),acl);
++  await put(sdk.doc(db,'users','admin'),{role:'admin',clubId:club,status:'active'});await put(sdk.doc(db,'users','super'),{role:'super_admin',clubId:'',status:'active'});await put(sdk.doc(db,'super_admins','super'),{active:true,status:'active',role:'super_admin'});
++  await put(sdk.doc(db,'clubs',club),{clubName:'Synthetic Performance Club',expiryDate:'2030-12-31',accountStatus:'active',coachAclEpoch:1});
++  await put(sdk.doc(db,'clubs',club,'settings','main_config'),{branchCount:2});await put(sdk.doc(db,'clubs',club,'settings','shifts'),{list:[{id:'S1',name:'Shift 1',branch:'CS1'},{id:'S2',name:'Shift 2',branch:'CS2'}]});
++  for(let i=0;i<count;i++)await put(sdk.doc(db,'clubs',club,'profiles','P'+String(i).padStart(5,'0')),{profileId:'P'+String(i).padStart(5,'0'),displayName:'Synthetic Student '+i,status:'active',branch:i%2?'CS2':'CS1',trainingShiftId:i%2?'S2':'S1',trainingDays:[],belt:'Đai trắng',joinDate:'2025-01-01'});
++  if(n)await batch.commit();
++ });
++ let storedCounts;await env.withSecurityRulesDisabled(async c=>{const q=await sdk.getDocs(sdk.collection(c.firestore(),'clubs',club,'profiles'));storedCounts={total:q.size,CS1:q.docs.filter(d=>d.data().branch==='CS1').length,CS2:q.docs.filter(d=>d.data().branch==='CS2').length,fromCache:q.metadata.fromCache};});assert.equal(storedCounts.total,1500);assert.equal(storedCounts.CS1,750);assert.equal(storedCounts.CS2,750);
++ const seeded=await sdk.getDocs(sdk.query(sdk.collection(env.authenticatedContext('coach').firestore(),'clubs',club,'profiles'),sdk.where('branch','==','CS1')));assert.equal(seeded.size,750);fs.writeFileSync(path.join(out,'FIXTURE_PROOF.json'),JSON.stringify({totalProfiles:1500,storedCounts,coachBranchProfiles:seeded.size,serverVerified:seeded.metadata.fromCache===false,role:'coach',branch:'CS1'},null,2));
++ if(process.env.A9R16_TRANSPORT_ONLY){
++  const nodeStart=performance.now(),nodeRows=await sdk.getDocs(sdk.query(sdk.collection(env.authenticatedContext('coach').firestore(),'clubs',club,'profiles'),sdk.where('branch','==','CS1')));console.log('NODE_BRANCH_QUERY',nodeRows.size,performance.now()-nodeStart);
++  for(const throttled of [false,true]){const context=await browser.newContext(),p=await context.newPage(),c=await context.newCDPSession(p);await context.addInitScript(()=>{window.__QA={uid:'coach',reads:{getDoc:0,getDocs:0,onSnapshot:0,documents:0,snapshotDocuments:0,activeListeners:0},subscriptions:[]}});
++   if(throttled){await c.send('Network.enable');await c.send('Network.emulateNetworkConditions',{offline:false,latency:10,downloadThroughput:30e6/8,uploadThroughput:10e6/8});}
++   await p.goto(origin+'?sdkonly=1');
++   const probe=await p.evaluate(async({projectId,club})=>{const t=performance.now(),a=await import('/__qa/app.js'),f=await import('/__qa/firestore.js'),db=f.getFirestore(a.initializeApp({projectId,apiKey:'demo',appId:'demo'}));let un;const unClub=f.onSnapshot(f.doc(db,'clubs',club),()=>{}),unLegacy=f.onSnapshot(f.query(f.collection(db,'clubs',club,'profiles'),f.where('branch','==','Mặc định')),()=>{});f.addDoc(f.collection(db,'login_history'),{clubId:club,role:'coach'}).catch(()=>{});const response=await Promise.race([new Promise((resolve,reject)=>{un=f.onSnapshot(f.query(f.collection(db,'clubs',club,'profiles'),f.where('branch','==','CS1')),{includeMetadataChanges:true},s=>{if(!s.metadata.fromCache)resolve({rows:s.size,ms:performance.now()-t})},e=>reject(e))}),new Promise(resolve=>setTimeout(()=>resolve({timeout:true,ms:performance.now()-t}),45000))]);un?.();unClub();unLegacy();return {response,qa:window.__QA}}, {projectId,club});
++   fs.writeFileSync(path.join(out,'TRANSPORT_'+throttled+'.json'),JSON.stringify({throttled,nodeRows:nodeRows.size,nodeMs:performance.now()-nodeStart,...probe},null,2));console.log('SDK10_TRANSPORT',throttled,JSON.stringify(probe.response));await context.close();
++  }
++ }
++ else for(const role of roles)for(const network of profiles)for(let index=0;index<runs;index++){
++  const context=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:1,isMobile:true,hasTouch:true});
++  const page=await context.newPage(),cdp=await context.newCDPSession(page),errors=[],sdkStreamMessages=[];
++  if(process.env.A9R16_DIAGNOSTIC_STREAM)page.on('console',async m=>{if(m.text().includes("stream")&&m.text().includes('received:'))sdkStreamMessages.push(await Promise.all(m.args().map(a=>a.jsonValue().catch(()=>null))));});
++  page.on('pageerror',e=>errors.push({kind:'pageerror',message:e.message}));page.on('console',m=>{if(['error','warning','warn'].includes(m.type()))errors.push({kind:m.type(),message:m.text().slice(0,1500)});});
++  const cpu=network==='moderate'?4:1,net=network==='moderate'?{offline:false,latency:120,downloadThroughput:1.6e6/8,uploadThroughput:.75e6/8}:{offline:false,latency:10,downloadThroughput:30e6/8,uploadThroughput:10e6/8};
++  await cdp.send('Network.emulateNetworkConditions',net);await cdp.send('Emulation.setCPUThrottlingRate',{rate:cpu});await cdp.send('Network.enable');await cdp.send('Performance.enable');await cdp.send('Network.setBlockedURLs',{urls:['https://*']});
++  await context.addInitScript(({uid})=>{
++   window.__QA={uid,reads:{getDoc:0,getDocs:0,onSnapshot:0,documents:0,snapshotDocuments:0,activeListeners:0},tasks:[],observed:{},subscriptions:[]};
++   try{new PerformanceObserver(list=>window.__QA.tasks.push(...list.getEntries().map(x=>({start:x.startTime,duration:x.duration,attribution:x.attribution.map(a=>({name:a.name,containerSrc:a.containerSrc}))})))).observe({type:'longtask',buffered:true});}catch{}
++  },{uid:role==='super_admin'?'super':role});
++  for(const mode of ['cold','warm']){
++   const row={role,networkProfile:network,cpuSlowdown:cpu,network:net,networkDriver:'Chromium CDP native network throttling for assets and direct SDK10 WebChannel; no HTTP byte proxy',cacheMode:mode,run:index+1,fixtureSha256:crypto.createHash('sha256').update(JSON.stringify(fixture)).digest('hex'),authState:'Returning signed-in fixture; Auth provider transport port; actual app.js server authorization and real Rules',sourceRoot:path.basename(root)};
++   try{
++    if(mode==='cold')await page.goto(origin,{waitUntil:'domcontentloaded',timeout:60000});else await page.reload({waitUntil:'domcontentloaded',timeout:60000});
++    await page.waitForFunction(role=>window.__verifiedAuthContextState?.ready===true&&window.__verifiedAuthContextState.role===role&&document.getElementById('mainApp')?.style.display!=='none',role,{timeout:30000});
++    row.shellUsefulObservedAt=await page.evaluate(()=>performance.now());
++    if(role==='coach'){
++     await page.waitForFunction(()=>window.AttendanceModule&&Array.from(document.getElementById('att_shift')?.options||[]).some(x=>x.value==='S1'),{},{timeout:30000});
++     row.explicitShiftSelectionAt=await page.evaluate(()=>performance.now());await page.selectOption('#att_shift','S1');
++     await page.waitForFunction(()=>{const d=window.AttendanceModule?.getDailyState?.(),p=window.getProfilesListenerMetrics?.();return d?.cacheReady===true&&d.serverConfirmedContext&&d.inFlightKeys.length===0&&p?.coachRosterReadiness==='verified'&&p.activeProfileCount===750&&Object.keys(window.currentAttendanceData||{}).length===750;},{},{timeout:30000});
++    }else if(role==='admin'){
++     await page.waitForFunction(()=>{const p=window.getProfilesListenerMetrics?.();return p?.fullAuthorityComplete===true&&p?.authorityServerConfirmed===true&&window.__store?.transactionCoverage?.ready===true;},{},{timeout:30000});
++    }else await page.waitForFunction(()=>window.__saDashboardLoadedAt>0,{},{timeout:30000});
++    Object.assign(row,await page.evaluate(()=>({classification:'PASS',authoritativeReadyObservedAt:performance.now(),marks:window.__loginPerfMetrics,hydration:window.__dataHydrationMetrics,
++      activeTab:document.querySelector('.tab-content.active')?.id,verifiedContext:{...window.__verifiedAuthContextState},reads:window.__QA.reads,moduleEvaluations:window.__QA.moduleEvaluations,
++      subscriptions:window.__QA.subscriptions,canonicalProfiles:Object.keys(window.studentProfileStore?.getAllProfilesCompat?.()||window.__store?.profiles||{}).length,filteredRoster:Object.keys(window.currentAttendanceData||{}).length,renderedRows:document.querySelectorAll('#attendanceGrid [id^="att_card_"]').length,profileMetrics:window.getProfilesListenerMetrics?.(),attendance:window.AttendanceModule?.getDailyState?.(),domNodes:document.querySelectorAll('*').length,
++      resources:performance.getEntriesByType('resource').map(x=>({url:x.name,type:x.initiatorType,startTime:x.startTime,duration:x.duration,transferSize:x.transferSize,encodedBodySize:x.encodedBodySize,decodedBodySize:x.decodedBodySize})),longTasks:window.__QA.tasks,mainLoaded:window.MAIN_JS_LOADED})));row.cdpMetrics=await cdp.send('Performance.getMetrics');row.errors=errors.slice();
++   }catch(error){Object.assign(row,{classification:'ENV_BLOCKED',message:error.message,errors:errors.slice(),debug:await page.evaluate(()=>({fb:!!window._fb_init,app:window.__appLoaded,main:window.MAIN_JS_LOADED,mainFailed:window.__MAIN_JS_LOAD_FAILED,context:window.__verifiedAuthContextState,perf:window.__loginPerfMetrics,clubAccess:window.__clubAccessBootstrapState,shift:window.AttendanceModule?.getShiftAuthority?.(),daily:window.AttendanceModule?.getDailyState?.(),debug:window.__attendanceDebug,profiles:window.getProfilesListenerMetrics?.(),qa:window.__QA,listenerMetrics:window.getListenerMetrics?.(),store:{clubId:window.__store?.clubId,role:window.__store?.userRole,currentUser:window.__store?.currentUser?.uid,coachBranch:window.__store?.coachBranch},loginError:document.getElementById('loginError')?.textContent})).catch(()=>null)});}
++   if(row.classification==='PASS'&&role==='coach')try{
++    // Diagnostic query is deliberately AFTER timing/read counters were captured.
++    // It uses the same authenticated SDK and branch predicate, never fixture data.
++    row.browserDirect=await page.evaluate(async()=>{const s=await import('/__qa/firestore.js');const q=await Promise.race([s.getDocsFromServer(s.query(s.collection(window.__store.db,'clubs','PERF_CLUB','profiles'),s.where('branch','==','CS1'))),new Promise((_,reject)=>setTimeout(()=>reject(Error('Browser direct server query timed out')),10000))]);return {count:q.size,fromCache:q.metadata.fromCache,first:q.docs[0]?.id,last:q.docs.at(-1)?.id};});
++    const nodeCheck=await sdk.getDocsFromServer(sdk.query(sdk.collection(env.authenticatedContext('coach').firestore(),'clubs',club,'profiles'),sdk.where('branch','==','CS1')));
++    row.completeness={seeded:count,stored:storedCounts.total,nodeBranch:nodeCheck.size,browserDirect:row.browserDirect.count,listener:row.subscriptions.find(q=>q.path==='clubs/PERF_CLUB/profiles'&&q.queryShape.filters?.some(f=>f.field==='branch'&&f.value.stringValue==='CS1'))?.snapshots.at(-1)?.size,canonicalStore:row.canonicalProfiles,filteredRoster:row.filteredRoster,renderedRows:row.renderedRows};
++    for(const k of ['nodeBranch','browserDirect','listener','canonicalStore','filteredRoster','renderedRows'])assert.equal(row.completeness[k],750,'Incomplete '+k);
++   }catch(e){row.classification='ENV_BLOCKED';row.message=e.message;}
++   if(process.env.A9R16_MODULE_IDENTITY_PROBE&&row.classification==='PASS'){await page.evaluate(async()=>{await import('/js/modules/students/index.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025');await import('/js/modules/finance/index.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025');});row.moduleEvaluations=await page.evaluate(()=>window.__QA.moduleEvaluations);row.resources=await page.evaluate(()=>performance.getEntriesByType('resource').map(x=>({url:x.name,type:x.initiatorType,startTime:x.startTime,duration:x.duration,transferSize:x.transferSize,encodedBodySize:x.encodedBodySize,decodedBodySize:x.decodedBodySize})));}
++   if(row.classification==='PASS') {
++    try {
++     if(role==='admin') {
++      await page.evaluate(()=>window.switchTab('attendance'));
++      await page.waitForFunction(()=>window.AttendanceModule&&window.showAttMemberHistory);
++      const evidence=await page.evaluate(async()=>{
++       await window._ensureClubShiftsLoaded();
++       await window.showAttMemberHistory('P00000','2026-10');
++       const modal=document.getElementById('attHistModal');
++       const before={visible:getComputedStyle(modal).display!=='none',connected:modal.isConnected,parent:modal.parentElement.tagName};
++       await window.switchTab('active');
++       const after=document.getElementById('attHistModal');
++       return {before,activeTab:document.querySelector('.tab-content.active')?.id,after:{connected:!!after?.isConnected,visible:!!after&&getComputedStyle(after).display!=='none'}};
++      });
++      recordLifecycle(role+' '+mode+' actual tab leave',evidence,evidence.before.visible&&evidence.activeTab==='tab_active'&&!evidence.after.visible);
++      await page.evaluate(()=>window.switchTab('attendance'));
++     }
++     await page.waitForFunction(()=>window.AttendanceModule&&window.showAttMemberHistory);
++     await page.evaluate(()=>window.showAttMemberHistory('P00000','2026-10'));
++     await page.evaluate(()=>window._fb_init.signOut(window._fb_init.getAuth()));
++     await page.waitForFunction(()=>window.__verifiedAuthContextState?.ready===false&&document.getElementById('mainApp').style.display==='none');
++     const evidence=await page.evaluate(()=>{const m=document.getElementById('attHistModal');return{uid:__verifiedAuthContextState.uid,ready:__verifiedAuthContextState.ready,mainDisplay:document.getElementById('mainApp').style.display,loginDisplay:document.getElementById('loginOverlay').style.display,modalConnected:!!m?.isConnected,modalVisible:!!m&&getComputedStyle(m).display!=='none',oldNameVisible:!!m&&getComputedStyle(m).display!=='none'&&m.textContent.includes('Synthetic Student 0')};});
++     recordLifecycle(role+' '+mode+' actual Auth null/reset',evidence,!evidence.modalVisible&&!evidence.oldNameVisible);
++    } catch(error) {recordLifecycle(role+' '+mode+' lifecycle test error',{message:error.stack},false);}
++   }
++   if(process.env.A9R16_DIAGNOSTIC_STREAM)row.sdkStreamMessages=sdkStreamMessages;row.qaNativeXHR=!process.env.A9R16_QA_FETCH_STREAMS;
++   row.harnessSha256=crypto.createHash('sha256').update(fs.readFileSync(new URL(import.meta.url))).digest('hex');row.directFirestore=true;row.resources ||=await page.evaluate(()=>performance.getEntriesByType('resource').map(x=>({url:x.name,type:x.initiatorType,startTime:x.startTime,duration:x.duration,transferSize:x.transferSize,decodedBodySize:x.decodedBodySize}))).catch(()=>[]);
++   if(row.classification!=='PASS')row.diagnosticSameQuery=await page.evaluate(async()=>{const s=window._fb_init,db=window.__store?.db;if(!s||!db)return null;const t=performance.now();try{return await Promise.race([s.getDocs(s.query(s.collection(db,'clubs','PERF_CLUB','profiles'),s.where('branch','==','CS1'))).then(q=>({count:q.size,fromCache:q.metadata.fromCache,ms:performance.now()-t,first:q.docs[0]?.id,last:q.docs.at(-1)?.id})),new Promise(resolve=>setTimeout(()=>resolve({timeout:true,ms:performance.now()-t}),5000))])}catch(e){return {code:e.code,message:e.message}}}).catch(e=>({message:e.message}));
++   results.push(row);fs.writeFileSync(path.join(out,'RUNS.json'),JSON.stringify({fixture,physicalMobile:'ENV_BLOCKED',sdk:'10.7.1',browser:browser.version(),results},null,2)+'\n');
++   console.log(JSON.stringify({role,network,mode,index:index+1,status:row.classification,shell:row.shellUsefulObservedAt,ready:row.authoritativeReadyObservedAt,message:row.message?.slice(0,150)}));
++   if(row.classification!=='PASS'){await context.close();throw Error('BASELINE_NOT_MEASURABLE; see RUNS.json');}
++  }
++  await context.close();
++ }
++}finally{await browser.close();await new Promise(r=>server.close(r));await env.cleanup();}
++
++if(lifecycleCases.some(x=>x.classification!=='PASS'))process.exitCode=1;
+diff --git a/tools/a9r16r3r1/optional-days.browser.mjs b/tools/a9r16r3r1/optional-days.browser.mjs
+new file mode 100644
+--- /dev/null
++++ b/tools/a9r16r3r1/optional-days.browser.mjs
+@@ -0,0 +1,13 @@
++import fs from 'node:fs';import path from 'node:path';
++import {createUI} from '../a9r16r3/ui-harness.mjs';
++const out=path.resolve(process.env.R3_REVIEW_EVIDENCE||'evidence/R3R1');fs.mkdirSync(out,{recursive:true});
++const ui=await createUI(),rows=[];
++try{for(const days of [[],null,undefined,[1,3,5]]){
++ const{page,context}=await ui.page(390,844);
++ try{
++  await page.evaluate(async days=>{await __setPrincipal('CS1');if(days===undefined)delete __store.profiles.P_A.trainingDays;else __store.profiles.P_A.trainingDays=days;await showAttMemberHistory('P_A','2026-10');},days);
++  const evidence=await page.evaluate(()=>({text:document.getElementById('attHistBody').textContent,counts:__qa.counts}));
++  const visible=evidence.text.includes('Ca Chiều (17:15–18:45)');rows.push({days:days===undefined?'missing':days,evidence:{registeredShiftVisible:visible,counts:evidence.counts},classification:visible?'PASS':'FAIL_RUNTIME'});
++  console.log(visible?'PASS':'FAIL','registered shift/time, optional days',JSON.stringify(days));
++ }finally{await context.close();}
++}}finally{await ui.close();fs.writeFileSync(path.join(out,'OPTIONAL_DAYS.json'),JSON.stringify({classification:rows.every(x=>x.classification==='PASS')?'PASS':'FAIL_RUNTIME',rows},null,2));if(rows.some(x=>x.classification!=='PASS'))process.exitCode=1;}
+diff --git a/tools/check-attendance-daily-single-refresh-authority.mjs b/tools/check-attendance-daily-single-refresh-authority.mjs
+--- a/tools/check-attendance-daily-single-refresh-authority.mjs
++++ b/tools/check-attendance-daily-single-refresh-authority.mjs
+@@ -74,11 +74,15 @@
+ const attendanceEventImports = Array.from(main.matchAll(/import\s*\{\s*initAttendanceEvents\s*\}\s*from\s*['"]\.\/events\/attendance\.events\.js\?v=([a-z0-9-]+)['"]/g));
+ check(attendanceEventImports.length === 1 && count(main, /if\s*\(guardOnce\('initAttendanceEvents'\)\)\s*initAttendanceEvents\(\)/g) === 1, 'canonical attendance event layer is mounted once by main');
+ const sourceIdentity = verifyRuntimeProfile(root).identity;
+-const nestedImporterToken = sourceIdentity.id === 'V11R6_A9R16A_R3_SHIFT_HISTORY'
++const scopedModuleURLs = ['V11R6_A9R16A_R3_SHIFT_HISTORY','V11R6_A9R16A_R3R1_REVIEW'].includes(sourceIdentity.id)
++    ? JSON.parse(read(sourceIdentity.manifest)).canonicalModuleURLs : null;
++const nestedImporterToken = scopedModuleURLs
+     ? new URL(JSON.parse(read(sourceIdentity.manifest)).canonicalModuleURLs['js/ui/render.js'],'https://qa/').searchParams.get('v')
+     : sourceIdentity.id === 'V11R6_A9R16A_R2_SEQUENTIAL'
+     ? sourceIdentity.buildTag : 'attendance-daily-single-refresh-authority-20260813-v5u6d';
+-check(main.includes(`./ui/render.js?v=${nestedImporterToken}`) && main.includes(`./ui/tabs.js?v=${nestedImporterToken}`) && read('js/ui/tabs.js').includes("attendance.listeners.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d"), 'nested importer cache keys match the exact accepted source lineage; unchanged listener keeps its existing identity');
++const tabsToken = scopedModuleURLs ? new URL(scopedModuleURLs['js/ui/tabs.js'],'https://qa/').searchParams.get('v') : nestedImporterToken;
++const listenerToken = scopedModuleURLs ? new URL(scopedModuleURLs['js/listeners/attendance.listeners.js'],'https://qa/').searchParams.get('v') : 'attendance-daily-single-refresh-authority-20260813-v5u6d';
++check(main.includes(`./ui/render.js?v=${nestedImporterToken}`) && main.includes(`./ui/tabs.js?v=${tabsToken}`) && read('js/ui/tabs.js').includes(`attendance.listeners.js?v=${listenerToken}`), 'nested importer cache keys match each dependency in the exact accepted source lineage');
+ check(!/id="(?:att_date|att_branch|att_belt|att_shift|chk_show_all_att)"[^>]*onchange=/.test(index), 'attendance filter controls have no duplicate inline onchange owner');
+ check(main.includes("window.APP_BUILD_VERSION = '4K-6V5U6D-attendance-daily-single-refresh-authority-20260813'"), 'runtime build version is exactly V5U6D');
+ check(pkg.scripts?.['check:attendance-daily-single-refresh-authority'] === 'node tools/check-attendance-daily-single-refresh-authority.mjs', 'package exposes the V5U6D gate');
+diff --git a/tools/check-v5u2-tuition-command-cutover.mjs b/tools/check-v5u2-tuition-command-cutover.mjs
+--- a/tools/check-v5u2-tuition-command-cutover.mjs
++++ b/tools/check-v5u2-tuition-command-cutover.mjs
+@@ -22,7 +22,7 @@
+ const identity=verifyRuntimeProfile(process.cwd()).identity;
+ // R3 does not change the tuition/finance owner identity. Read the exact pinned
+ // dependency tokens instead of assuming every module uses the top-level tag.
+-const r3URLs=identity.id==='V11R6_A9R16A_R3_SHIFT_HISTORY'?JSON.parse(read(identity.manifest)).canonicalModuleURLs:null;
++const r3URLs=['V11R6_A9R16A_R3_SHIFT_HISTORY','V11R6_A9R16A_R3R1_REVIEW'].includes(identity.id)?JSON.parse(read(identity.manifest)).canonicalModuleURLs:null;
+ const canonicalCacheBuild=identity.id==='V11R6_A9R16A_R2_SEQUENTIAL'?identity.buildTag:h8r2Build;
+ const boundaryCacheBuild=r3URLs?new URL(r3URLs['js/core/tuitionCommandBoundary.js'],'https://qa/').searchParams.get('v'):canonicalCacheBuild;
+ const financeCacheBuild=r3URLs?new URL(r3URLs['js/services/finance.service.js'],'https://qa/').searchParams.get('v'):canonicalCacheBuild;
+diff --git a/tools/v11r2/manifests/V11R6_A9R16A_R3R1_REVIEW.json b/tools/v11r2/manifests/V11R6_A9R16A_R3R1_REVIEW.json
+new file mode 100644
+--- /dev/null
++++ b/tools/v11r2/manifests/V11R6_A9R16A_R3R1_REVIEW.json
+@@ -0,0 +1,246 @@
++{
++  "kind": "A9R16A_R3R1_SOURCE_IDENTITY_NOT_RELEASE_APPROVAL",
++  "parentOuterZIP_SHA256": "da9aad90e3b70d50203f153832012016a66f27452f8b023a7b0a4b849ab58624",
++  "parentRuntimeSHA256": "950dde369575bd099170b86d6923063bf11ddf4f9ae6376c759a2ec680d1ea2d",
++  "buildTag": "qr-v11r6-a9r16a-r3r1-reviewed-history-20261026",
++  "runtimeSHA256": "e9e3cf37550e360d4e6914dafeab1d85ffed09c8370699e510390a221077cb06",
++  "rulesSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
++  "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
++  "canonicalRuntimeFiles": {
++    ".nojekyll": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
++    "app.js": "8aed1b4f6579e4fb1272452c73a297a3e0f0d594494ab1be97049cb46d267166",
++    "css/tailwind-static.css": "7e8aa3849956a0a1bcf758fbb8528b2fe5ddeda39290aad9971f30256b30699c",
++    "css/ui-mobile-shell.css": "d64e5600421548d70b4f9510d2069de371c7199c0781061b575e0a262014601e",
++    "index.html": "e31585e5e0dcf3bc3555dd5b4864a47fc75562567e846a61b0883912e621362a",
++    "js/core/actionGuard.js": "7c95650fc992cbf01b0ca5526e1656cfbf55d5f22bc1e9fe67351bc3a916178c",
++    "js/core/attendanceContract.js": "b96b04eccda4738b190b5cbb3e1d05664d422dff17b84a64cfd66bccbbc68239",
++    "js/core/branchIdentity.js": "db050656a9adaac5873887f2e9a3e80482e3e3982e5252635621f494ed020337",
++    "js/core/canonicalDomainCommandBoundary.js": "32f7d040519a84e84eb76467d65ce8c93f5551e7d6b1e9deba4eac17692a9689",
++    "js/core/clubStatsAutoCache.js": "76028d2d1bf02f41b41a21271eb44f056e58f191317e998be028722f56477299",
++    "js/core/coachBranchRuntimeRepair.js": "3c5d5d7a95390ce8438552d48947b293a2878dd480c399c4964effce82012068",
++    "js/core/debtProfileReadBoundary.js": "12c6de80511f16613af5f7e4e9390fb356f9cbbfd166f3466ff613f2543be71e",
++    "js/core/financialActionAuditGuard.js": "97680a8717f02e1b9776a24c808d97b64b413031a1ad06a8a0696038771dd82c",
++    "js/core/financialFlowMap.js": "10c9cb1e754aa4253505617b7e81c24ee09e9b2d5dc7b6550dcb0652e33b8568",
++    "js/core/globalOwnershipRegistry.js": "40ebfab400b3a575d1aac2daa6db73c246be731a84a2906674fcea3c211bd133",
++    "js/core/inlineHandlerAudit.js": "4a9edc949162cb146638fb326a3eeda428c1443ab8bfa99787723a37d70ff193",
++    "js/core/inventoryMultiItemReadOnlyUI.js": "c6a50375859d78d8e732436a454fa6d157c62bafa5a9729e3986798401dd893b",
++    "js/core/lazyAssetsBootstrap.js": "b60af66ef280f3ee0d806b94d351cfd7f75cd49641f847ff9546f1cb7e5cab4c",
++    "js/core/legacyAppAudit.js": "38c05474191672096370fda3bd677cb6894e4ce1bd85054ec99f0aa65baa8455",
++    "js/core/legacyRenderEntrypoints.js": "5ae877bc1b7ff96d5c78136f408f2390e09944412cea545bdb71617a7081e1ec",
++    "js/core/listenerOwnershipBoundary.js": "7425a0a3be681f6f905955b0bff834763a0af367cad942e1419c59304adfa5b3",
++    "js/core/mobileStartupPerformance.js": "e730e61a6fb8ffd87abd18522e96ea2ca9f9a95002e60d1d4636f115b09cf284",
++    "js/core/multiItemInventorySafety.js": "295ce786e25fed3c4337e4e9af164b6b63b18da9d09e241fa977262eb3b6038f",
++    "js/core/performanceMonitor.js": "8cec791af4edc1b48502156044eddde66d0c915b5af1ba927b18b7a508968cce",
++    "js/core/productionAuthorityPolicy.js": "4a202b36ce75ce611815d97b38c71d49fe8846fa551f5dce82865b28db97b6bd",
++    "js/core/productionStabilityGate.js": "7f54d756de6ee26a39e80953df3b2fc092cb3039db2a18d73d23281128ceac40",
++    "js/core/profileCanonicalStore.js": "195e10c0f9aa28d43193130597e3a73b833be5e628409c2f1633d76358005a41",
++    "js/core/roleReadBoundary.js": "47f789c19b72d126c2a6e8245d39ddaff2d6a23c8bb66bd9513ee2c793e7c67e",
++    "js/core/securityPosture.js": "3ce6fe7b516f138205635dbef81208c0a0dcf6621170c989ef648706772dd6d7",
++    "js/core/staticCssBuildHealth.js": "e0e87c489e5bb1548c2a060bb5a82f23b64c3806c00a410731e61bcf500ffc3e",
++    "js/core/studentSearchIndex.js": "5d22ee419d8f56394ef6a04909ff073be390f14aee057d56940ece743a7ef29a",
++    "js/core/studentStatusCommandBoundary.js": "3eb67c6a9a7cafd1811e585dbfba6752e39df03c0cba4fd906f2c5e517a4d295",
++    "js/core/superAdminQuotaGuard.js": "5640900910f77d231620683c9417b55305f3741250ab85807b2afd0ba8ef86e6",
++    "js/core/superAdminServerRefresh.js": "bf4896cf108fd4420456b577b81e203cd117ddfc2f636b4d2342a657e9c0f366",
++    "js/core/trainingRegistration.js": "61756f420172b06e7ff640c7c2fdc36533e1653a680c2676f0661278a7536df4",
++    "js/core/transactionCanonicalBoundary.js": "f291dab3cc01820aee0ce948bee8d9ad97111da3887a006713b8f427911e94cc",
++    "js/core/transactionDeleteIntegrity.js": "32bad07e037860da4543c3aa064fcf1eb99fb8869dc2a6451a75bf1d97510a4f",
++    "js/core/tuitionCommandBoundary.js": "84eff88379ae3d82b15a6f14f431882ea9839c45cf73f16fc7340aa9f8c8be8d",
++    "js/core/tuitionDebtCanonical.js": "15c564d9b7672af7285c10e52ec5f18537d0086eba3569309eeb422ce1b03d09",
++    "js/data/attendanceJournal.js": "a795f0a9d8351b642f027d31107060396f41bd950ac183c76f4795fb176a94ef",
++    "js/data/inventoryStore.js": "39c1008f1803d62ba353ac04f079118ba4ec62112e2c7ffbecd50742fd910390",
++    "js/data/profileStatusConfig.js": "108a09f6811bb749c7ca2bc9170e769ee94378debfe3d276f7352fb7dcdfa934",
++    "js/data/quitProfileBoundary.js": "a1f83492ae482ca3c7d0c0eedc736823aae051d335f9224fa1835fd7a5401097",
++    "js/data/studentProfileStore.js": "83cd8875463085d67d73966284b6c65ba1a7887adee788f90380eb4c23a6aa61",
++    "js/diagnostics/legacyDiagnostics.js": "dcc6d26c51efe1777268f46820a9efa2809319bd43f099bb8ddd9b652d012689",
++    "js/diagnostics/onboardingDiagnostics.js": "4a09db1ccc93e1005075c696f477bbf68ae8d71ee6fa2241169ca3427f5c3724",
++    "js/diagnostics/runtimeReadinessDiagnostics.js": "0ade23e3657bfddde45cbefa598127b490664b0a1ccfb94e2cf378c78169e56b",
++    "js/diagnostics/superAdminAuditDiagnostics.js": "d09987a65275422c4bc1b3f2db0eaf7fa893b3ce8a6fc882c8435a5ca9b48657",
++    "js/events/attendance.events.js": "e94081b5f5def17db437098ae3a33808cb15c4243416feebd9b18460a294b6b3",
++    "js/events/finance.events.js": "d6d18e8400529a865112894c23e03963f016c665db4307b284d12c0349399e81",
++    "js/events/inventory.events.js": "f8f079375fe733d7fef915ed3db41b761bf0a2a6a2dcaf25248b25ff1b7cda7b",
++    "js/events/students.events.js": "d83cc9582b1c5c9e4107685578a2a7bbbd6a0ac85de960d41dd7e5163a53ef59",
++    "js/firebase/config.js": "745a895328c557b6d2a863c8f71dfbdb0bb44b9adecf70740e94921a63d8a876",
++    "js/firebase/paginatedQuery.js": "6895e483951509528983fa7429db79bcf12c8b06dc206e492bbec3091abfcae9",
++    "js/legacy/legacyAttendanceFallbacks.js": "622cab7f9a2453fa2a78a0685429b21fdc277b6d3cb8cb072c9b0c2cff9f1b15",
++    "js/legacy/legacyUiFallbacks.js": "4a1773ae305467bbf057cabc0ffda7e36cccc0d6525520f96416ee3b695fc852",
++    "js/listeners/attendance.listeners.js": "f9fc2834a0f34ab2c59f8a714b3de89e961e5c2d8fdca6e127d3f769dfa5b3d6",
++    "js/listeners/dashboard.listeners.js": "b46a70d81b3abafc680dfe096e2a0e93c923bcde359af59e4f35ab86a4d221bb",
++    "js/listeners/exam.listeners.js": "9d987048c307a33ac30d221b033b0030d97413afd55b54dd0c9e129848c574e0",
++    "js/listeners/finance.listeners.js": "d06f1ab4773c3b9b861ee92a304bde7a760ae9d7db65998424aab12f58d59ac5",
++    "js/listeners/global.listeners.js": "8bcabd108fddeb6da9a58bedf1c7086aeec2665156883b6bc37e75673711d974",
++    "js/listeners/inventory.listeners.js": "1b733bd5f3423b0ab6b5e85396bc936211d92a7e012d8ca65d0a06c0a312e154",
++    "js/listeners/profiles.listeners.js": "2a90198e3b56be9750695e16989ca7489b96ae70742e2d953aa800b7d09aafce",
++    "js/listeners/students.listeners.js": "a3d8f8c286a48d8e2a37fe7043c520ee46d32d2d295676873771394a2cecf231",
++    "js/main.js": "33d2e23dddac755a8070f1fc8a9b691d75dacbd188598ac14a35e05bb3bdd034",
++    "js/migrations/migrate-legacy-to-primary.js": "a5ac866f3cad2a893300e733c82b68ea73bafbda7709ba5031f5cbb8184974d1",
++    "js/modules/attendance.js": "88e91db9cbfb41a16a4986d8154f4996182820456d0397e938461158e17fdda2",
++    "js/modules/dashboard.js": "02d959b48ef1fa18947b4e0ae6acf16437e453ee5d81444e27f62c4fe078adc1",
++    "js/modules/exam.js": "51c0ce63b52ada9884062714b9ff8ed6bf6b748f51b4238543c19452dcbcc8ed",
++    "js/modules/finance.js": "2991367d4eea571a456c704315b5704a552cbc8eedd04417c1f8dc0fd8157a17",
++    "js/modules/finance/finance.controller.js": "7fe2ba28150942c264ae85fe871635c8b61dc23a2c7a1d1e2054a5d1b5192b71",
++    "js/modules/finance/finance.excel.js": "e4a4a23af165decaa1f422dcbb5939e5f06b35027c7ee928716d851c654d130e",
++    "js/modules/finance/finance.pagination.js": "e59354cf8db07e149f4a779a3d5484ecce9f731caa693f807f174abb03608736",
++    "js/modules/finance/finance.receipt.js": "a18ebf9ebdf6cba177788c4cdd078ae51c8f41318a476446d91c08435f3ec5f8",
++    "js/modules/finance/index.js": "94193d4c8ad489209f74c9dbea483602bcb875c735ecc66112bc99baf24c0210",
++    "js/modules/inventory.js": "7cfea5adf37801c3195cf0c6f50e16c9833246dba9db790839ad9414f2ad974c",
++    "js/modules/qrBankingHelpers.js": "8fa10f05f306f5fe6384ef2898d77ad8f9c8e200cb50c9af126173dc2d935a0c",
++    "js/modules/receiptHelpers.js": "6bacdd03b470f5f67eae820184acacdace3033f74ab2aa19e4256ab6e9e5b8b5",
++    "js/modules/reports.js": "b2ade459e917bb88b600f342f365700e334564f00f67a533ca2631d68e47eb99",
++    "js/modules/reports/attendanceExcelReport.js": "46975c88b8a6951e5fdb35b0e000d6d35bcb23a0f3eb990176feb8bc540ae487",
++    "js/modules/reports/reportExportFacade.js": "df177a327a960f3b6f63ef129a5731d8d64f32508311b570927981450a77eb63",
++    "js/modules/searchRuntime.js": "de38c9dffbf5cac03838e543719f1acca1b30793496407f17324b7535223d33c",
++    "js/modules/students.js": "95df794c17dedc84925f0443945866eb448d6778974a4091c7d24fcc0689326f",
++    "js/modules/students/index.js": "1e4ae5ce77086c69a16830258d9ce3f3ea5d1e9c40d04e789e364c4376044a67",
++    "js/modules/students/students.controller.js": "499f7b0acb3bc6e5ed950c904406352fc7c9f370742611440366aebc3a41a266",
++    "js/modules/students/students.modal.js": "a09e9a1dfe84916b28d5849311996871f593c83ff069c6fa4d721db9410c50d7",
++    "js/modules/students/students.pagination.js": "e848769cddd3c3213c9c5459c5269724d9ceeebdd38c89ed41a89238469c61d6",
++    "js/modules/students/students.render.js": "4a345e0b5983794c68f6ac5b9521c0235f9d302081ca6fd2cb6503d2dd09c233",
++    "js/modules/students/students.search.js": "2cae282651e695cc3ab4f4cea9e827f5337cf12ad9544e20f23ef1a6a386f867",
++    "js/modules/superadmin.js": "2c039e8e972ca2312095e3431ba02ff767a4efe146ba2caf8ec947c8a4ea8111",
++    "js/services/attendance.service.js": "13ed66f5ebb94b7289b0d395090ef009d579db5fa5c1d3be5823f714c90b8ceb",
++    "js/services/finance.service.js": "2868b09d2c01fc2306893f3dc7c4865b6f460bacc080f12717349205af8c9a4c",
++    "js/services/inventory.service.js": "be9308420fd1b97804e46eed64fa476abebba8df1471a1ecf13361a29c1430e6",
++    "js/services/students.service.js": "53de0189f5878c6a0c575ae6db29d38334be9105ab54f3aec41c68a9af600cfa",
++    "js/store.js": "5c31601adab80c3b1cff69eed3f7b545ac141137c9cf045a8bb3b8d6ce6df31a",
++    "js/ui/eventActionBridge.js": "15e4c01c17daee5677c8ba766f73ff17807265fba7204103e2e248040cbe2416",
++    "js/ui/legacyUiShell.js": "0f5dfcc8e11ce115bd7c123b0fe9d37766ba786e50cd49787cfea902522cd2df",
++    "js/ui/loading.js": "8ec3655bd2579a73dd31a4553c7793f439a57c872b103fc63b0152468a169e5a",
++    "js/ui/modal.js": "16f9978a2780c78f93a91a53411e18fe6961ea892bd3613839a597705dc6e0ec",
++    "js/ui/render.js": "1c311283ee69e8efa89bbc6ff5276716a2e902d691ea0e10e299e5c2505e3d9c",
++    "js/ui/render/computation/dashboardRenderer.js": "300e022bd05eca1c4277903c7d45527240ef41d3ec3ce56baa938be2ce089c3c",
++    "js/ui/render/computation/financeRenderer.js": "52f0f858f09f8c6f351fce702a71cfa2fa7ec76e11cbb72eb8863c9b81d9a36b",
++    "js/ui/render/computation/inventoryRenderer.js": "fc4c3edec4bd65516d572cbe8dea339a67e66d698d4bcbf09a207545b2013a95",
++    "js/ui/render/computation/studentsRenderer.js": "f5de0b9dc6316099b3e2d866447b9bfb8876d3b2a9157afe8b1fbb03ee1acc55",
++    "js/ui/render/listComputationRefresh.js": "e9062ce781e5affd89f2e16c6f44678708d935c5cb6b7c503dc0640f8484d5d6",
++    "js/ui/render/renderAttendance.js": "30cac7c5f41fffc6f137d76fbde76f8ebf58283101a5b9577b23097c22b424a1",
++    "js/ui/render/renderDashboard.js": "722d03135dedd70113a85c11ecf3b9538ca78724e4307225f8f955d44637da6b",
++    "js/ui/render/renderFinance.js": "492f01b7a45661c5f91acc30932d77e039d24c76bfa6a5a4464bd474ccc8994c",
++    "js/ui/render/renderInvalidation.js": "b30364b1001c421cff4e195eef39e405959b4d0e342177228a48bda0185614d5",
++    "js/ui/render/renderInventory.js": "d0a1039752004b58144884a6200e024952c22e28f169dd87860c66863cf3193c",
++    "js/ui/render/renderRegistry.js": "fd90c79f3fc0d95ddf195e0204b1e16b577454139d82170b1aa2e24d034a7cac",
++    "js/ui/render/renderScheduler.js": "775d8b58ce34e8b9352d7d6b0ad77125bdf5fd22275169218176cba0b0af7e60",
++    "js/ui/render/renderStudents.js": "e13fcaf542978be8672f95ff3eea9625be1ba9f58d7c727e831d457fcb036b50",
++    "js/ui/tabs.js": "5169ef4af12a6bc314f1dfd7f3a30a03fc62defcb89462099a3859dd98b515ed",
++    "js/ui/toast.js": "0371bb50b96f4e6b52c73901cdc401f0cb05d644d5754cf464292e9232678b76",
++    "js/utils/constants.js": "908b51067faf4ddcee93290f476e16c2ac37a2b2599a4ea36085843b737eb481",
++    "js/utils/event-guard.js": "6300daf65b516b9957148f0bd38f52c261078b31c860bbe3dac83fca98f3ced7",
++    "js/utils/firestore-guard.js": "8dcf5507d5d03fa05241a1c5e9db6c93212610ea3256390f6bc46f5114a4c74f",
++    "js/utils/format.js": "0e0112247c55f0436d64f7e1d0d3584dd388b39bdf761b4e6c0b598c1ecbb3ca",
++    "js/utils/formatters.js": "a8fa8fb6a4724bf821018959a074b6fcbd5a82fd521bc1029ccbc7a011e72271",
++    "js/utils/helpers.js": "846f33061619280d7525013b355afbadb4a1584b0b6befdf3eeee7a9a37533c8",
++    "js/utils/idb-cache.js": "b0570146b42c8268a48578b1640890a9eb58922fda5dd9302eaf4dbe31616409",
++    "js/utils/listeners.js": "bd572fda452100e79b3eb1ead383efaeb9a48b460db44f75d1d9926e5fffb4cb",
++    "js/utils/monthlyHelpers.js": "c918eed1780a14c40fd3708c8e3e187fcb10a5d8fb8aa797e86d467867c1a358",
++    "js/utils/offline-queue.js": "8e58ab4ea60f237d7b0698e44ff8a7e9cfb0857b9d45a31f59a9a2c7e25f1d5e",
++    "js/utils/pagination.js": "ccf55c82f00805d9e8ab27075e06adbe40fc7debd980431402bfa2b381c2e003",
++    "js/vendor/jsqr-1.4.0.esm.js": "0c1f462afd313d07b47756c492145659d59c68f03aa340ec26fe668d062ca401",
++    "js/vendor/jsqr-LICENSE.txt": "c6596eb7be8581c18be736c846fb9173b69eccf6ef94c5135893ec56bd92ba08",
++    "style.css": "beec70a87ceef2a5691c85ec4631138a1766f966f60cc8535438fc5c7def4bb8"
++  },
++  "canonicalModuleURLs": {
++    "js/legacy/legacyUiFallbacks.js": "/js/legacy/legacyUiFallbacks.js?v=global-ownership-adoption-cleanup-20260615",
++    "js/legacy/legacyAttendanceFallbacks.js": "/js/legacy/legacyAttendanceFallbacks.js?v=attendance-canonical-ownership-20260616",
++    "js/core/lazyAssetsBootstrap.js": "/js/core/lazyAssetsBootstrap.js?v=tailwind-static-build-20260608",
++    "js/core/branchIdentity.js": "/js/core/branchIdentity.js?v=coach-branch-runtime-repair-20260627-v4b1",
++    "js/core/coachBranchRuntimeRepair.js": "/js/core/coachBranchRuntimeRepair.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026",
++    "js/core/roleReadBoundary.js": "/js/core/roleReadBoundary.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026",
++    "js/core/transactionCanonicalBoundary.js": "/js/core/transactionCanonicalBoundary.js?v=coach-branch-runtime-repair-20260627-v4b1",
++    "js/core/debtProfileReadBoundary.js": "/js/core/debtProfileReadBoundary.js?v=quit-context-render-loop-guard-20260722-v5s",
++    "js/core/tuitionDebtCanonical.js": "/js/core/tuitionDebtCanonical.js?v=quit-context-render-loop-guard-20260722-v5s",
++    "js/core/profileCanonicalStore.js": "/js/core/profileCanonicalStore.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1",
++    "app.js": "/app.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026",
++    "js/main.js": "/js/main.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026",
++    "js/core/performanceMonitor.js": "/js/core/performanceMonitor.js",
++    "js/services/students.service.js": "/js/services/students.service.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026",
++    "js/services/finance.service.js": "/js/services/finance.service.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025",
++    "js/utils/format.js": "/js/utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h",
++    "js/core/attendanceContract.js": "/js/core/attendanceContract.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026",
++    "js/data/profileStatusConfig.js": "/js/data/profileStatusConfig.js",
++    "js/core/studentSearchIndex.js": "/js/core/studentSearchIndex.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1",
++    "js/diagnostics/runtimeReadinessDiagnostics.js": "/js/diagnostics/runtimeReadinessDiagnostics.js",
++    "js/diagnostics/onboardingDiagnostics.js": "/js/diagnostics/onboardingDiagnostics.js",
++    "js/diagnostics/superAdminAuditDiagnostics.js": "/js/diagnostics/superAdminAuditDiagnostics.js",
++    "js/store.js": "/js/store.js",
++    "js/utils/listeners.js": "/js/utils/listeners.js",
++    "js/data/studentProfileStore.js": "/js/data/studentProfileStore.js",
++    "js/core/superAdminQuotaGuard.js": "/js/core/superAdminQuotaGuard.js",
++    "js/core/productionAuthorityPolicy.js": "/js/core/productionAuthorityPolicy.js?v=production-authority-closure-20260814-v5u6e",
++    "js/core/clubStatsAutoCache.js": "/js/core/clubStatsAutoCache.js?v=production-authority-closure-20260814-v5u6e",
++    "js/core/superAdminServerRefresh.js": "/js/core/superAdminServerRefresh.js?v=production-authority-closure-20260814-v5u6e",
++    "js/core/productionStabilityGate.js": "/js/core/productionStabilityGate.js?v=production-authority-closure-20260814-v5u6e",
++    "js/core/listenerOwnershipBoundary.js": "/js/core/listenerOwnershipBoundary.js",
++    "js/core/financialActionAuditGuard.js": "/js/core/financialActionAuditGuard.js",
++    "js/core/mobileStartupPerformance.js": "/js/core/mobileStartupPerformance.js",
++    "js/core/staticCssBuildHealth.js": "/js/core/staticCssBuildHealth.js",
++    "js/core/globalOwnershipRegistry.js": "/js/core/globalOwnershipRegistry.js",
++    "js/core/legacyRenderEntrypoints.js": "/js/core/legacyRenderEntrypoints.js",
++    "js/core/inlineHandlerAudit.js": "/js/core/inlineHandlerAudit.js",
++    "js/ui/eventActionBridge.js": "/js/ui/eventActionBridge.js",
++    "js/ui/legacyUiShell.js": "/js/ui/legacyUiShell.js",
++    "js/modules/reports/reportExportFacade.js": "/js/modules/reports/reportExportFacade.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026",
++    "js/firebase/config.js": "/js/firebase/config.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026",
++    "js/ui/toast.js": "/js/ui/toast.js",
++    "js/ui/modal.js": "/js/ui/modal.js",
++    "js/ui/tabs.js": "/js/ui/tabs.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026",
++    "js/ui/render.js": "/js/ui/render.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025",
++    "js/ui/render/renderFinance.js": "/js/ui/render/renderFinance.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025",
++    "js/ui/render/renderStudents.js": "/js/ui/render/renderStudents.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025",
++    "js/ui/render/renderInventory.js": "/js/ui/render/renderInventory.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025",
++    "js/ui/render/renderAttendance.js": "/js/ui/render/renderAttendance.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d",
++    "js/ui/render/renderDashboard.js": "/js/ui/render/renderDashboard.js",
++    "js/ui/render/renderInvalidation.js": "/js/ui/render/renderInvalidation.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025",
++    "js/ui/loading.js": "/js/ui/loading.js",
++    "js/utils/helpers.js": "/js/utils/helpers.js",
++    "js/utils/formatters.js": "/js/utils/formatters.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025",
++    "js/modules/receiptHelpers.js": "/js/modules/receiptHelpers.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025",
++    "js/modules/qrBankingHelpers.js": "/js/modules/qrBankingHelpers.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025",
++    "js/utils/monthlyHelpers.js": "/js/utils/monthlyHelpers.js",
++    "js/utils/constants.js": "/js/utils/constants.js",
++    "js/utils/event-guard.js": "/js/utils/event-guard.js",
++    "js/core/financialFlowMap.js": "/js/core/financialFlowMap.js",
++    "js/core/securityPosture.js": "/js/core/securityPosture.js",
++    "js/core/actionGuard.js": "/js/core/actionGuard.js",
++    "js/core/canonicalDomainCommandBoundary.js": "/js/core/canonicalDomainCommandBoundary.js?v=tuition-command-cutover-20260730-v5u2",
++    "js/core/studentStatusCommandBoundary.js": "/js/core/studentStatusCommandBoundary.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026",
++    "js/core/tuitionCommandBoundary.js": "/js/core/tuitionCommandBoundary.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025",
++    "js/core/transactionDeleteIntegrity.js": "/js/core/transactionDeleteIntegrity.js",
++    "js/core/legacyAppAudit.js": "/js/core/legacyAppAudit.js",
++    "js/diagnostics/legacyDiagnostics.js": "/js/diagnostics/legacyDiagnostics.js",
++    "js/core/multiItemInventorySafety.js": "/js/core/multiItemInventorySafety.js?v=inventory-ledger-reconciliation-20260616-v2c",
++    "js/core/inventoryMultiItemReadOnlyUI.js": "/js/core/inventoryMultiItemReadOnlyUI.js?v=inventory-ledger-reconciliation-20260616-v2c",
++    "js/utils/firestore-guard.js": "/js/utils/firestore-guard.js",
++    "js/listeners/profiles.listeners.js": "/js/listeners/profiles.listeners.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026",
++    "js/data/quitProfileBoundary.js": "/js/data/quitProfileBoundary.js?v=student-given-name-priority-20260811-v5u3",
++    "js/data/inventoryStore.js": "/js/data/inventoryStore.js",
++    "js/firebase/paginatedQuery.js": "/js/firebase/paginatedQuery.js",
++    "js/modules/students.js": "/js/modules/students.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026",
++    "js/modules/searchRuntime.js": "/js/modules/searchRuntime.js?v=student-given-name-priority-20260811-v5u3",
++    "js/modules/finance.js": "/js/modules/finance.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026",
++    "js/modules/inventory.js": "/js/modules/inventory.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025",
++    "js/modules/attendance.js": "/js/modules/attendance.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026",
++    "js/modules/dashboard.js": "/js/modules/dashboard.js?v=dashboard-hydration-mutation-guard-20260812-v5u6c2",
++    "js/modules/superadmin.js": "/js/modules/superadmin.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h",
++    "js/events/students.events.js": "/js/events/students.events.js",
++    "js/events/finance.events.js": "/js/events/finance.events.js",
++    "js/events/attendance.events.js": "/js/events/attendance.events.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026",
++    "js/modules/exam.js": "/js/modules/exam.js",
++    "js/services/attendance.service.js": "/js/services/attendance.service.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026",
++    "js/data/attendanceJournal.js": "/js/data/attendanceJournal.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026",
++    "js/core/trainingRegistration.js": "/js/core/trainingRegistration.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026",
++    "js/modules/finance/finance.pagination.js": "/js/modules/finance/finance.pagination.js?v=qr-v11r6-review-20261021",
++    "js/utils/pagination.js": "/js/utils/pagination.js",
++    "js/services/inventory.service.js": "/js/services/inventory.service.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1",
++    "js/vendor/jsqr-1.4.0.esm.js": "/js/vendor/jsqr-1.4.0.esm.js",
++    "js/modules/reports.js": "/js/modules/reports.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025",
++    "js/modules/reports/attendanceExcelReport.js": "/js/modules/reports/attendanceExcelReport.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026",
++    "js/ui/render/renderRegistry.js": "/js/ui/render/renderRegistry.js",
++    "js/ui/render/computation/financeRenderer.js": "/js/ui/render/computation/financeRenderer.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025",
++    "js/ui/render/computation/studentsRenderer.js": "/js/ui/render/computation/studentsRenderer.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025",
++    "js/ui/render/computation/inventoryRenderer.js": "/js/ui/render/computation/inventoryRenderer.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025",
++    "js/ui/render/computation/dashboardRenderer.js": "/js/ui/render/computation/dashboardRenderer.js",
++    "js/ui/render/listComputationRefresh.js": "/js/ui/render/listComputationRefresh.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025",
++    "js/ui/render/renderScheduler.js": "/js/ui/render/renderScheduler.js",
++    "js/listeners/attendance.listeners.js": "/js/listeners/attendance.listeners.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026",
++    "js/listeners/exam.listeners.js": "/js/listeners/exam.listeners.js"
++  }
++}
+diff --git a/tools/v11r2/source-identity.mjs b/tools/v11r2/source-identity.mjs
+--- a/tools/v11r2/source-identity.mjs
++++ b/tools/v11r2/source-identity.mjs
+@@ -219,8 +219,22 @@
+   "buildTag": "qr-v11r6-a9r16a-r3-shift-history-mobile-20261025"
+ });
+ 
++// R3R1 review lineage; source identity only, never release approval.
++const A9R16A_R3R1_REVIEW = Object.freeze({
++  "id": "V11R6_A9R16A_R3R1_REVIEW",
++  "canonicalFileCount": 129,
++  "coachAssignmentContract": "server-verified-multi-branch-v1",
++  "inputZIP_SHA256": "da9aad90e3b70d50203f153832012016a66f27452f8b023a7b0a4b849ab58624",
++  "manifest": "tools/v11r2/manifests/V11R6_A9R16A_R3R1_REVIEW.json",
++  "manifestSHA256": "da38a0ab65f0fe2eb408d16aef5cb1214029ea0f08f35062280bbb2d8b72de5b",
++  "runtimeSHA256": "e9e3cf37550e360d4e6914dafeab1d85ffed09c8370699e510390a221077cb06",
++  "rulesSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
++  "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
++  "buildTag": "qr-v11r6-a9r16a-r3r1-reviewed-history-20261026"
++});
++
+ export function verifySourceIdentity(root, actualRuntimeSHA256) {
+- const pinned=[A9R16A_R3_SHIFT_HISTORY,A9R16A_R2_SEQUENTIAL,A9R15_TRAINING_HISTORY,A9R14_QA_MOBILE,A9R13_MEMBER_HISTORY_DIAGNOSTICS,A9R12_COACH_ATTENDANCE_QUERY_CLOSURE_TEST_ONLY,A9R11_COACH_ATTENDANCE_OPERATIONAL_TEST_ONLY,A9R10_STAGING_BASE_TEST_ONLY,A9R6_ATTENDANCE_DEMO_ONLY,A9R4_ACCEPTED_SOURCE,A9R3_ACCEPTED_SOURCE,A9R1_ACCEPTED_SOURCE,A9_ACCEPTED_SOURCE,A8_ACCEPTED_SOURCE,ACCEPTED_SOURCE,A5_ACCEPTED_SOURCE,LEGACY_ACCEPTED_SOURCE];
++ const pinned=[A9R16A_R3R1_REVIEW,A9R16A_R3_SHIFT_HISTORY,A9R16A_R2_SEQUENTIAL,A9R15_TRAINING_HISTORY,A9R14_QA_MOBILE,A9R13_MEMBER_HISTORY_DIAGNOSTICS,A9R12_COACH_ATTENDANCE_QUERY_CLOSURE_TEST_ONLY,A9R11_COACH_ATTENDANCE_OPERATIONAL_TEST_ONLY,A9R10_STAGING_BASE_TEST_ONLY,A9R6_ATTENDANCE_DEMO_ONLY,A9R4_ACCEPTED_SOURCE,A9R3_ACCEPTED_SOURCE,A9R1_ACCEPTED_SOURCE,A9_ACCEPTED_SOURCE,A8_ACCEPTED_SOURCE,ACCEPTED_SOURCE,A5_ACCEPTED_SOURCE,LEGACY_ACCEPTED_SOURCE];
+  const exact=pinned.find(p=>p.runtimeSHA256===actualRuntimeSHA256);
+  if(!exact&&fs.existsSync(path.join(root,'STAGING_SOURCE_ONLY.json')))return verifyDerivedStaging(root,actualRuntimeSHA256,pinned);
+  const p = exact||ACCEPTED_SOURCE, manifestPath = path.join(root,p.manifest);

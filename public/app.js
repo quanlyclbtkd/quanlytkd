@@ -1700,6 +1700,7 @@ window.invCustomCategories = [];
     };
 
     const _hideClubProtectedUI = () => {
+        window.AttendanceModule?.closeMemberHistory?.();
         ['mainTabsWrapper','filterArea','btnSettings','exportTaxBtn','exportBtn'].forEach(id => {
             const el = document.getElementById(id); if (el) el.style.display = 'none';
         });
@@ -3602,6 +3603,7 @@ window.invCustomCategories = [];
     };
 
     const _resetVerifiedAuthContext = (reason = 'reset') => {
+        window.AttendanceModule?.closeMemberHistory?.();
         currentClubId = '';
         window.currentClubId = '';
         window.userRole = 'viewer';

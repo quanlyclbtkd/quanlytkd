@@ -1,0 +1,1554 @@
+--- a/index.html
++++ b/index.html
+@@ -586,7 +586,7 @@
+ <!-- V5U6C2 lineage only: app.js?v=dashboard-hydration-mutation-guard-20260812-v5u6c2; ./js/main.js?v=dashboard-hydration-mutation-guard-20260812-v5u6c2 -->
+ <!-- Phase 4K-6V3BC1 automatic per-club optimization: automatic-canonical-transaction-optimization-20260616-v3bc1 -->
+ <!-- Phase 4K-6V3D debt profile coverage boundary: debt-profile-read-boundary-20260616-v3d -->
+-<!-- Phase 4K-6V4B1 Coach Branch Assignment + Runtime Repair: coach-branch-runtime-repair-20260627-v4b1 --><!-- Phase 4K-6V4B2 Quit Tab Completeness: quit-tab-completeness-20260627-v4b2 --><!-- Phase 4K-6V4B3 Quit Tab Authoritative Completeness: quit-tab-authoritative-completeness-20260627-v4b3 --><script defer src="./js/core/branchIdentity.js?v=coach-branch-runtime-repair-20260627-v4b1"></script><script defer src="./js/core/coachBranchRuntimeRepair.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025"></script><script defer src="./js/core/roleReadBoundary.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025"></script><script defer src="./js/core/transactionCanonicalBoundary.js?v=coach-branch-runtime-repair-20260627-v4b1"></script><script defer src="./js/core/debtProfileReadBoundary.js?v=quit-context-render-loop-guard-20260722-v5s"></script><script defer src="./js/core/tuitionDebtCanonical.js?v=quit-context-render-loop-guard-20260722-v5s"></script><script defer src="./js/core/profileCanonicalStore.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1"></script><!-- V5U4 compatibility marker retained for regression: app.js?v=attendance-excel-documentid-sdk-fix-20260801-v5u2e&p=superadmin-auth-principal-20260811-v5u4 --><!-- V5U6C1 lineage only: app.js?v=canonical-security-truth-20260811-v5u5&p=dashboard-mutation-aware-cache-freshness-20260812-v5u6c1 ; ./js/main.js?v=dashboard-mutation-aware-cache-freshness-20260812-v5u6c1 --><!-- V5U6D lineage only: app.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d --><!-- V5U6F runtime: ./js/main.js?v=attendance-explicit-shift-authority-20260814-v5u6f --><!-- V5U6G1 runtime: ./js/main.js?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1 --><!-- V5U6G compatibility marker: app.js?v=production-stability-residual-defect-closure-20260814-v5u6g --><!-- V5U2E debt/cache compatibility marker: main.js?v=attendance-excel-documentid-sdk-fix-20260801-v5u2e --><!-- V5U6H runtime compatibility: production-security-trust-boundary-release-assurance-20260816-v5u6h --><!-- V5U6H2 runtime compatibility: parent-portal-hard-disable-release-verification-20260818-v5u6h2 --><!-- V5U6H3 runtime: residual-security-data-integrity-release-verification-20260818-v5u6h3 --><!-- V5U6H5 runtime compatibility: club-root-listener-bootstrap-readiness-exam-full-roster-export-20260827-v5u6h5 --><!-- V5U6H6 runtime: release-authority-exam-state-purity-firebase-final-verification-20260829-v5u6h6 --><!-- H8R2 compatibility marker: app.js?v=long-term-production-stability-20260917-v5u6h8r2 ; ./js/main.js?v=long-term-production-stability-20260917-v5u6h8r2 --><script defer src="app.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025"></script><!-- Compatibility marker: app.js?v=production-authority-closure-20260814-v5u6e --><script>
++<!-- Phase 4K-6V4B1 Coach Branch Assignment + Runtime Repair: coach-branch-runtime-repair-20260627-v4b1 --><!-- Phase 4K-6V4B2 Quit Tab Completeness: quit-tab-completeness-20260627-v4b2 --><!-- Phase 4K-6V4B3 Quit Tab Authoritative Completeness: quit-tab-authoritative-completeness-20260627-v4b3 --><script defer src="./js/core/branchIdentity.js?v=coach-branch-runtime-repair-20260627-v4b1"></script><script defer src="./js/core/coachBranchRuntimeRepair.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025"></script><script defer src="./js/core/roleReadBoundary.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025"></script><script defer src="./js/core/transactionCanonicalBoundary.js?v=coach-branch-runtime-repair-20260627-v4b1"></script><script defer src="./js/core/debtProfileReadBoundary.js?v=quit-context-render-loop-guard-20260722-v5s"></script><script defer src="./js/core/tuitionDebtCanonical.js?v=quit-context-render-loop-guard-20260722-v5s"></script><script defer src="./js/core/profileCanonicalStore.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1"></script><!-- V5U4 compatibility marker retained for regression: app.js?v=attendance-excel-documentid-sdk-fix-20260801-v5u2e&p=superadmin-auth-principal-20260811-v5u4 --><!-- V5U6C1 lineage only: app.js?v=canonical-security-truth-20260811-v5u5&p=dashboard-mutation-aware-cache-freshness-20260812-v5u6c1 ; ./js/main.js?v=dashboard-mutation-aware-cache-freshness-20260812-v5u6c1 --><!-- V5U6D lineage only: app.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d --><!-- V5U6F runtime: ./js/main.js?v=attendance-explicit-shift-authority-20260814-v5u6f --><!-- V5U6G1 runtime: ./js/main.js?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1 --><!-- V5U6G compatibility marker: app.js?v=production-stability-residual-defect-closure-20260814-v5u6g --><!-- V5U2E debt/cache compatibility marker: main.js?v=attendance-excel-documentid-sdk-fix-20260801-v5u2e --><!-- V5U6H runtime compatibility: production-security-trust-boundary-release-assurance-20260816-v5u6h --><!-- V5U6H2 runtime compatibility: parent-portal-hard-disable-release-verification-20260818-v5u6h2 --><!-- V5U6H3 runtime: residual-security-data-integrity-release-verification-20260818-v5u6h3 --><!-- V5U6H5 runtime compatibility: club-root-listener-bootstrap-readiness-exam-full-roster-export-20260827-v5u6h5 --><!-- V5U6H6 runtime: release-authority-exam-state-purity-firebase-final-verification-20260829-v5u6h6 --><!-- H8R2 compatibility marker: app.js?v=long-term-production-stability-20260917-v5u6h8r2 ; ./js/main.js?v=long-term-production-stability-20260917-v5u6h8r2 --><script defer src="app.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025"></script><!-- Compatibility marker: app.js?v=production-authority-closure-20260814-v5u6e --><script>
+ /* Phase 3.3A FIX: ES modules require HTTP — skip on file:// to prevent CORS error.
+    app.js still loads via <script defer> so ALL business logic works regardless.
+    Module enhancements (loading.js, event-guard, lazy tabs) activate on HTTP only.
+@@ -676,7 +676,7 @@
+     var s = document.createElement('script');
+     s.type = 'module';
+     // Compatibility marker retained: student-given-name-priority-20260811-v5u3
+-    s.src  = "./js/main.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025"; // Compatibility: ./js/main.js?v=attendance-explicit-shift-authority-20260814-v5u6f
++    s.src  = "./js/main.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025"; // Compatibility: ./js/main.js?v=attendance-explicit-shift-authority-20260814-v5u6f
+     s.onload = function() {
+       window.MAIN_JS_LOADED = true;
+       console.log('[BOOT] main.js loaded after legacy app.js ready');
+--- a/js/core/studentStatusCommandBoundary.js
++++ b/js/core/studentStatusCommandBoundary.js
+@@ -8,7 +8,7 @@
+  *   - Commits local stores and invalidates affected domains once after success.
+  *   - Finance / inventory / multi-item writes are intentionally out of scope.
+  */
+-import { StudentService } from "../services/students.service.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++import { StudentService } from "../services/students.service.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
+ 
+ const BUILD = 'student-status-command-cutover-20260722-v5u1';
+ const PHASE = '4K-6V5U-1';
+--- a/js/core/trainingRegistration.js
++++ b/js/core/trainingRegistration.js
+@@ -10,25 +10,45 @@
+ }
+ export function shiftAuthority(shift) {
+     const branch = trainingBranch(shift?.branch);
+-    // No explicit shared/global schema exists in A9R14. Missing branch is unresolved.
++    // Strict authority for new shift writes. Legacy read/use scope is separate.
+     return /^CS(?:[1-9]|10)$/.test(branch) ? {resolved:true,branch} : {resolved:false,branch:''};
++}
++export function classifyShiftScope(shift) {
++    const authority = shiftAuthority(shift);
++    if (authority.resolved) return {...authority,scope:'EXPLICIT_BRANCH'};
++    // A9R14 stored Admin-created shifts with a blank branch and read them as
++    // global. Preserve that stored-data contract without admitting new writes.
++    if (shift && typeof shift === 'object' && (shift.branch == null ||
++        (typeof shift.branch === 'string' && shift.branch.trim() === ''))) {
++        return {resolved:true,branch:'',scope:'LEGACY_GLOBAL'};
++    }
++    return {...authority,scope:'INVALID'};
++}
++export function resolveTrainingShift(id, shifts = []) {
++    if (typeof id !== 'string' || !id) return null;
++    const matches = Array.isArray(shifts) ? shifts.filter(shift => shift?.id === id) : [];
++    return matches.length === 1 ? matches[0] : null;
++}
++export function isShiftEligibleForBranch(shift, branch) {
++    const canonicalBranch = trainingBranch(branch),scope = classifyShiftScope(shift);
++    if (!/^CS(?:[1-9]|10)$/.test(canonicalBranch)) return false;
++    return scope.scope === 'LEGACY_GLOBAL' || (scope.resolved && scope.branch === canonicalBranch);
+ }
+ export function inspectTrainingRegistration(profile = {}, shifts = []) {
+     const profileBranch = trainingBranch(profile.branch);
+     const id = profile.trainingShiftId;
+     const trainingShiftId = typeof id === 'string' ? id : '';
+-    const matches = Array.isArray(shifts) ? shifts.filter(shift => shift?.id === trainingShiftId) : [];
+-    const shift = matches.length === 1 ? matches[0] : null;
+-    const authority = shiftAuthority(shift);
++    const shift = resolveTrainingShift(trainingShiftId,shifts);
++    const authority = classifyShiftScope(shift);
+     const issues = [];
+     if (!trainingDaysValid(profile.trainingDays)) issues.push('TRAINING_DAYS_INVALID');
+     if (id != null && typeof id !== 'string') issues.push('SHIFT_NOT_FOUND');
+     else if (trainingShiftId) {
+         if (!shift) issues.push('SHIFT_NOT_FOUND');
+         else if (!authority.resolved) issues.push('SHIFT_AUTHORITY_UNRESOLVED');
+-        else if (authority.branch !== profileBranch) issues.push('SHIFT_BRANCH_MISMATCH');
++        else if (!isShiftEligibleForBranch(shift,profileBranch)) issues.push('SHIFT_BRANCH_MISMATCH');
+     }
+-    return {profileBranch,trainingShiftId,shiftBranch:authority.branch || null,
++    return {profileBranch,trainingShiftId,shiftBranch:authority.branch || null,shiftScope:authority.scope,
+         result:issues[0] || (trainingShiftId ? 'TRAINING_REGISTRATION_OK' : 'NO_SHIFT_ASSIGNED'),issues};
+ }
+ export function registrationMessage(result) {
+--- a/js/data/attendanceJournal.js
++++ b/js/data/attendanceJournal.js
+@@ -1,6 +1,6 @@
+ // Storage component of the existing attendance owner. No SDK, timer or writer.
+ // IndexedDB transactions serialize enqueue/claim/ACK across real browser tabs.
+-import {JOURNAL_DATABASE,attendanceIntentId,attendanceIntentTarget} from "../core/attendanceContract.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++import {JOURNAL_DATABASE,attendanceIntentId,attendanceIntentTarget} from "../core/attendanceContract.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
+ let databasePromise;
+ const active = item => ['pending','inflight','conflict','needs-review'].includes(item.state);
+ const maxSequence=rows=>rows.reduce((max,row)=>Math.max(max,Number(row.sequence)||0),0);
+--- a/js/main.js
++++ b/js/main.js
+@@ -112,9 +112,9 @@
+ import { InlineHandlerAudit }                from './core/inlineHandlerAudit.js';
+ import { EventActionBridge, initEventActionBridge } from './ui/eventActionBridge.js';
+ import { initLegacyUiShell }                  from './ui/legacyUiShell.js';
+-import { registerReportExportFacade }         from "./modules/reports/reportExportFacade.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++import { registerReportExportFacade }         from "./modules/reports/reportExportFacade.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
+ import { store, resetStore }                  from './store.js';
+-import { initFirebase }                        from "./firebase/config.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++import { initFirebase }                        from "./firebase/config.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
+ import { showToast, registerToastGlobal }      from './ui/toast.js';
+ import { registerModalGlobals }                from './ui/modal.js';
+ import { switchTab, registerTabGlobals }       from "./ui/tabs.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+@@ -248,7 +248,7 @@
+ import { SecurityPosture }   from './core/securityPosture.js';
+ import { ActionGuard }        from './core/actionGuard.js';
+ import { initCanonicalDomainCommandBoundary } from './core/canonicalDomainCommandBoundary.js?v=tuition-command-cutover-20260730-v5u2';
+-import { initStudentStatusCommandBoundary } from "./core/studentStatusCommandBoundary.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++import { initStudentStatusCommandBoundary } from "./core/studentStatusCommandBoundary.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
+ import { initTuitionCommandBoundary } from "./core/tuitionCommandBoundary.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+ // Phase 4K-6E: Transaction Delete Integrity
+ import { TransactionDeleteIntegrity } from './core/transactionDeleteIntegrity.js';
+@@ -293,7 +293,7 @@
+     getQuitStatusValues,
+     getProfilesListenerMetrics,
+     ensureAllProfilesForExport,
+-} from "./listeners/profiles.listeners.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++} from "./listeners/profiles.listeners.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
+ // Compatibility marker: ./listeners/profiles.listeners.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d
+ 
+ // H8R2.1 cache compatibility: ./listeners/profiles.listeners.js?v=long-term-production-stability-20260917-v5u6h8r2 ; ./modules/attendance.js?v=long-term-production-stability-20260917-v5u6h8r2 ; ./core/studentStatusCommandBoundary.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1 ; ./modules/inventory.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h
+@@ -351,7 +351,7 @@
+ } from './firebase/paginatedQuery.js';
+ 
+ // ── Phase 2d–3.2A: Business modules (eager — cần khi login) ────
+-import { initStudents, initStudentPagination }        from "./modules/students.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++import { initStudents, initStudentPagination }        from "./modules/students.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
+ // V5U6G compatibility marker: ./modules/students.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
+ // Compatibility marker: ./modules/students.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
+ // PHẦN 1 FIX + Phase 4K-2: Unified Search Controller — real cache + SearchBlob + stale guard
+@@ -363,10 +363,10 @@
+     debugSearchPerformance,
+ } from './modules/searchRuntime.js?v=student-given-name-priority-20260811-v5u3';
+ // Compatibility marker: ./modules/finance.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h
+-import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from "./modules/finance.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from "./modules/finance.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
+ import { initInventory }                              from "./modules/inventory.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+ // Compatibility marker: from './modules/attendance.js'
+-import { initAttendance }                             from "./modules/attendance.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++import { initAttendance }                             from "./modules/attendance.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
+ // Compatibility marker: ./modules/attendance.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
+ // V5U6G1 compatibility marker: ./modules/attendance.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
+ import { initDashboard }                              from './modules/dashboard.js?v=dashboard-hydration-mutation-guard-20260812-v5u6c2';
+@@ -382,7 +382,7 @@
+ // ── Phase 3.1: Event layer ──────────────────────────────────────
+ import { initStudentsEvents }                         from './events/students.events.js';
+ import { initFinanceEvents, initFinanceActionEvents } from './events/finance.events.js';
+-import { initAttendanceEvents }                       from "./events/attendance.events.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++import { initAttendanceEvents }                       from "./events/attendance.events.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
+ 
+ // ────────────────────────────────────────────────────────────────
+ // Phase 3.3G: GLOBAL ERROR HANDLERS
+@@ -2485,7 +2485,7 @@
+     if (window.__appLoaded) return Promise.resolve();
+     return new Promise((resolve, reject) => {
+         const script = document.createElement('script');
+-        script.src = "app.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++        script.src = "app.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
+         script.onload  = () => resolve();
+         script.onerror = (err) => reject(new Error('[main.js] Không load được app.js: ' + err));
+         document.head.appendChild(script);
+@@ -3233,7 +3233,7 @@
+ // PHẦN 1 — APP BUILD VERSION
+ // H5 compatibility build marker: APP_BUILD_VERSION = '4K-6V5U6H5-club-root-listener-bootstrap-readiness-exam-full-roster-export-20260827'
+ // Previous build: 4K-6V5U6H6-release-authority-exam-state-purity-firebase-final-verification-20260829
+-window.APP_BUILD_VERSION = "qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++window.APP_BUILD_VERSION = "qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
+ // Compatibility marker only: window.APP_BUILD_VERSION = '4K-6V5U6H3-residual-security-data-integrity-release-verification-20260818';
+ // Compatibility marker only: window.APP_BUILD_VERSION = '4K-6V5U6H2-parent-portal-hard-disable-release-verification-20260818'
+ // Compatibility marker only: window.APP_BUILD_VERSION = '4K-6V5U6H-production-security-trust-boundary-release-assurance-20260816'
+--- a/js/modules/attendance.js
++++ b/js/modules/attendance.js
+@@ -16,12 +16,12 @@
+  * ────────────────────────────────────────────────────────────────
+  */
+ 
+-import { AttendanceService } from "../services/attendance.service.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++import { AttendanceService } from "../services/attendance.service.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
+ import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
+ import { escapeHtml } from '../utils/helpers.js';
+-import { AttendanceJournal } from "../data/attendanceJournal.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+-import { HISTORY_AUTHORITY, HISTORY_COACH_ACCESS, attendanceServerVersion, attendanceIntentId } from "../core/attendanceContract.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+-import { shiftAuthority, inspectTrainingRegistration } from "../core/trainingRegistration.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++import { AttendanceJournal } from "../data/attendanceJournal.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
++import { HISTORY_AUTHORITY, HISTORY_COACH_ACCESS, attendanceServerVersion, attendanceIntentId } from "../core/attendanceContract.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
++import { shiftAuthority, classifyShiftScope, resolveTrainingShift, isShiftEligibleForBranch, inspectTrainingRegistration } from "../core/trainingRegistration.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
+ 
+ const ATTENDANCE_OWNER = 'js/modules/attendance.js';
+ const ATTENDANCE_OWNED_GLOBALS = Object.freeze([
+@@ -312,10 +312,9 @@
+         ? _canonicalAttendanceBranch(ctx.coachBranch || ctx.branch || '', '')
+         : _canonicalAttendanceBranch(ctx.branch || '', ctx.branch === 'all' ? 'all' : '');
+     return _clubShifts.filter((shift) => {
+-        const shiftBranch = String(shift?.branch || '').trim();
+-        if (!shiftAuthority(shift).resolved) return false;
+-        if (role === 'coach') return !!branch && _sameBranch(shiftBranch, branch);
+-        if (branch && branch !== 'all') return _sameBranch(shiftBranch, branch);
++        if (resolveTrainingShift(shift?.id,_clubShifts) !== shift || !classifyShiftScope(shift).resolved) return false;
++        if (role === 'coach') return !!branch && isShiftEligibleForBranch(shift,branch);
++        if (branch && branch !== 'all') return isShiftEligibleForBranch(shift,branch);
+         return true;
+     });
+ }
+@@ -1152,8 +1151,9 @@
+     }
+     listEl.innerHTML = _clubShifts.map(s => {
+         const time = s.timeStart && s.timeEnd ? s.timeStart + ' – ' + s.timeEnd : 'Chưa đặt giờ';
+-        const authority = shiftAuthority(s);
+-        const branchLabel = authority.resolved ? 'Cơ sở ' + authority.branch.slice(2) : 'SHIFT_AUTHORITY_UNRESOLVED — Cần Admin xác minh cơ sở';
++        const authority = classifyShiftScope(s);
++        const branchLabel = authority.scope === 'LEGACY_GLOBAL' ? 'Ca dùng chung cũ'
++            : authority.resolved ? 'Cơ sở ' + authority.branch.slice(2) : 'SHIFT_AUTHORITY_UNRESOLVED — Cần Admin xác minh cơ sở';
+         const token = encodeURIComponent(String(s.id || '')).replace(/'/g, '%27');
+         return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:6px;">'
+             + '<div style="min-width:0;"><div style="font-size:0.85rem;font-weight:800;color:#1e293b;">' + escapeHtml(String(s.name || '')) + '</div>'
+@@ -1184,7 +1184,7 @@
+             const noEligible = decision.reason === 'no-eligible-shift-for-branch';
+             gridEl.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px 16px;color:#475569;font-size:0.86rem;font-weight:700;">'
+                 + (noEligible
+-                    ? (_clubShifts.some(shift => !shiftAuthority(shift).resolved)
++                    ? (_clubShifts.some(shift => !classifyShiftScope(shift).resolved)
+                         ? 'Có ca tập chưa xác minh cơ sở. Admin cần kiểm tra ca tập và đăng ký của võ sinh.'
+                         : '⏰ Chưa có ca tập phù hợp với cơ sở này.')
+                     : '⏰ Vui lòng chọn ca tập để điểm danh.')
+@@ -2026,9 +2026,13 @@
+             modalEl = document.createElement('div');
+             modalEl.id = 'attHistModal';
+             modalEl.style.cssText = 'display:flex;position:fixed;inset:0;background:rgba(15,23,42,0.65);z-index:10010;backdrop-filter:blur(4px);align-items:flex-end;justify-content:center;';
+-            modalEl.innerHTML = '<div id="attHistContent" style="background:#fff;width:100%;max-width:640px;border-radius:20px 20px 0 0;padding:20px 18px;box-shadow:0 -10px 40px rgba(0,0,0,0.18);max-height:82vh;overflow-y:auto;padding-bottom:calc(20px + env(safe-area-inset-bottom));animation:slideUpSheet 0.3s cubic-bezier(0.16,1,0.3,1);"><div id="attHistBody"></div></div>';
++            modalEl.innerHTML = '<div id="attHistSheet" style="position:relative;background:#fff;width:100%;max-width:640px;border-radius:20px 20px 0 0;box-shadow:0 -10px 40px rgba(0,0,0,0.18);">'
++                + '<button type="button" aria-label="Đóng lịch sử điểm danh" onclick="document.getElementById(\'attHistModal\').style.display=\'none\'" style="position:absolute;top:10px;right:12px;z-index:1;background:#f1f5f9;border:none;border-radius:50%;width:44px;height:44px;font-size:1rem;cursor:pointer;color:#475569;">✕</button>'
++                + '<div id="attHistContent" style="width:100%;border-radius:20px 20px 0 0;padding:20px 18px;max-height:82vh;overflow-y:auto;overscroll-behavior:contain;padding-bottom:calc(20px + env(safe-area-inset-bottom));animation:slideUpSheet 0.3s cubic-bezier(0.16,1,0.3,1);"><div id="attHistBody"></div></div></div>';
+             modalEl.addEventListener('click', (e) => { if (e.target === modalEl) modalEl.style.display = 'none'; });
+-            (document.getElementById('tab_attendance') || document.body).appendChild(modalEl);
++            // The tab has layout containment; a fixed child is positioned at
++            // the bottom of the full roster instead of the viewport.
++            document.body.appendChild(modalEl);
+         } else { modalEl.style.display = 'flex'; }
+         const bodyEl = document.getElementById('attHistBody');
+         const isCurrent = () => requestId === _memberHistoryRequestId &&
+@@ -2036,6 +2040,10 @@
+             _isOfflineAttendanceSyncContextCurrent(historyOwner) && modalEl.isConnected &&
+             modalEl.style.display !== 'none';
+         bodyEl.innerHTML = '<div style="text-align:center;padding:32px;color:#94a3b8;">⏳ Đang tải dữ liệu tháng ' + monthDisplay + '...</div>';
++        // A fast response may replace the placeholder before layout clamps the
++        // old scroll offset. Reset once for this open, before awaiting data;
++        // never move the user's scroll on a primary/page response.
++        document.getElementById('attHistContent').scrollTop = 0;
+         try {
+             const quarterNum = Math.ceil(mo / 3);
+             const quarterStartMo = (quarterNum - 1) * 3 + 1;
+@@ -2078,7 +2086,7 @@
+             const firstDow    = new Date(yr, mo - 1, 1).getDay();
+             const DOW = ['CN','T2','T3','T4','T5','T6','T7'];
+             const _hasSched = Array.isArray(p.trainingDays) && p.trainingDays.length > 0;
+-            const _p_shift_obj = (_clubShifts || []).find(s => s.id === p.trainingShiftId);
++            const _p_shift_obj = resolveTrainingShift(p.trainingShiftId,_clubShifts);
+             const _p_shift_name = _p_shift_obj ? (_p_shift_obj.name + (_p_shift_obj.timeStart && _p_shift_obj.timeEnd ? ' (' + _p_shift_obj.timeStart + '–' + _p_shift_obj.timeEnd + ')' : '')) : '';
+             let scheduleHtml = '';
+             if (_hasSched) {
+@@ -2111,10 +2119,9 @@
+             }
+             calHtml += '</div>';
+             bodyEl.innerHTML =
+-                '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">'
++                '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;padding-right:44px;">'
+                 + '<div><div style="font-size:1rem;font-weight:900;color:#0033A0;">' + escapeHtml((window.ProfileCanonicalStore?.resolveDisplayName?.(name, p)) || p.displayName || p.name || p.fullName || p.studentName || name) + '</div>'
+                 + '<div style="font-size:0.72rem;color:#64748b;margin-top:3px;">🥋 ' + escapeHtml(p.belt||'Đai Trắng') + '</div></div>'
+-                + '<button onclick="document.getElementById(\'attHistModal\').style.display=\'none\'" style="background:#f1f5f9;border:none;border-radius:50%;width:32px;height:32px;font-size:1rem;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#475569;">✕</button>'
+                 + '</div>' + scheduleHtml
+                 + '<div style="display:flex;gap:7px;margin-bottom:12px;flex-wrap:wrap;">'
+                 + '<span style="background:#dcfce7;color:#166534;padding:5px 12px;border-radius:99px;font-size:0.75rem;font-weight:800;">✅ ' + present + ' buổi</span>'
+@@ -2126,7 +2133,7 @@
+                 + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
+                 + rateBox(mRate,present,mTotal,'Tháng '+monthDisplay)
+                 + rateBox(qRate,qPresent,qTotal,quarterLabel)
+-                + '</div></div>' + calHtml
++                + '</div></div><div id="attHistoryActionSlot" style="margin:12px 0;"></div><div id="attHistoryCalendar">' + calHtml + '</div>'
+                 + '<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;font-size:0.62rem;color:#64748b;">'
+                 + '<span>⬜ Chưa ĐD</span>'
+                 + (_hasSched ? '<span style="background:#f0f9ff;padding:1px 5px;border-radius:4px;color:#93c5fd;">· Ngày có lịch</span>' : '')
+@@ -2134,14 +2141,15 @@
+             const historySection = document.createElement('section');
+             historySection.style.cssText = 'margin-top:18px;border-top:1px solid #cbd5e1;padding-top:14px;min-width:0;';
+             const title = document.createElement('h3');title.textContent = 'Lịch sử Điểm danh đã xác minh';
+-            title.style.cssText = 'font-size:16px;font-weight:800;line-height:1.4;';historySection.append(title);
++            const actionSlot = document.getElementById('attHistoryActionSlot');
++            title.style.cssText = 'font-size:16px;font-weight:800;line-height:1.4;margin:0;';actionSlot.append(title);
+             const coverage = document.createElement('p');
+             coverage.textContent = 'Cơ sở: ' + (window.getBranchNameDisplay?.(historyBranch) || historyBranch || 'chưa chọn') + '. Duyệt các năm theo trang, từ cũ đến mới; tối đa 40 bản ghi/trang. Dữ liệu cũ chưa xác minh cần Admin đối soát.';
+-            coverage.style.cssText = 'font-size:13px;color:#475569;line-height:1.5;margin:8px 0;';historySection.append(coverage);
++            coverage.style.cssText = 'font-size:13px;color:#475569;line-height:1.5;margin:8px 0;';actionSlot.append(coverage);
+             const rowsEl = document.createElement('div');rowsEl.id = 'attVerifiedHistoryRows';historySection.append(rowsEl);
+             const statusEl = document.createElement('p');statusEl.setAttribute('role','status');statusEl.style.cssText = 'font-size:13px;line-height:1.5;margin:8px 0;';historySection.append(statusEl);
+             const more = document.createElement('button');more.id = 'attHistoryLoadMore';more.type = 'button';more.textContent = 'Mở lịch sử đã xác minh';
+-            more.style.cssText = 'font-size:16px;min-height:44px;padding:10px 14px;max-width:100%;border:1px solid #93c5fd;border-radius:10px;color:#1e40af;background:#eff6ff;cursor:pointer;';historySection.append(more);
++            more.style.cssText = 'font-size:16px;min-height:44px;padding:10px 14px;max-width:100%;border:1px solid #93c5fd;border-radius:10px;color:#1e40af;background:#eff6ff;cursor:pointer;';actionSlot.append(more);
+             bodyEl.append(historySection);
+             let cursor = null,loading = false,done = false,pageCount = 0;
+             const seen = new Set(); // Presentation only; discarded when modal/session closes.
+@@ -2156,12 +2164,13 @@
+                         if (seen.has(row.id)) continue;seen.add(row.id);
+                         const item = document.createElement('article');item.dataset.historyId = row.id;
+                         item.style.cssText = 'border:1px solid #e2e8f0;border-radius:10px;padding:10px;margin:8px 0;font-size:14px;line-height:1.6;overflow-wrap:anywhere;';
+-                        const data = row.data,shift = _clubShifts.find(value => value.id === data.shiftId);
++                        const data = row.data,shift = resolveTrainingShift(data.shiftId,_clubShifts);
+                         const date = document.createElement('strong');date.textContent = data.date + ' · ' + ({1:'Có mặt',2:'Vắng',3:'Có phép'}[Number(data.status)] || 'Chưa điểm danh');
+                         const detail = document.createElement('div');detail.textContent = 'Tháng ' + data.month + ' · Ca: ' + (shift?.name || data.shiftId || 'Không gán ca') + ' · ' + (window.getBranchNameDisplay?.(data.branch) || data.branch);
+                         item.append(date,detail);rowsEl.append(item);
+                     }
+                     cursor = page.cursor;done = page.complete;pageCount++;
++                    historySection.append(more); // Same control follows the loaded rows; no second CTA/handler.
+                     statusEl.textContent = done ? (seen.size ? 'Đã duyệt hết lịch sử đã xác minh của cơ sở này (' + seen.size + ' buổi).' : 'Chưa có lịch sử đã xác minh tại cơ sở này.')
+                         : 'Đã tải trang ' + pageCount + ' (' + seen.size + ' buổi đã ghi nhận).';
+                     more.textContent = done ? 'Đã hết lịch sử đã xác minh' : 'Tải thêm lịch sử';
+--- a/js/modules/finance.js
++++ b/js/modules/finance.js
+@@ -9,7 +9,7 @@
+     formatMonthCompact,
+ } from "../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h";
+ import { FinanceService } from "../services/finance.service.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+-import { StudentService } from "../services/students.service.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++import { StudentService } from "../services/students.service.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
+ import { attachTransactionPageProjection } from './finance/finance.pagination.js?v=qr-v11r6-review-20261021';
+ import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
+ 
+--- a/js/modules/finance/index.js
++++ b/js/modules/finance/index.js
+@@ -29,4 +29,4 @@
+  * ────────────────────────────────────────────────────────────────
+  */
+ 
+-export { initFinance, initTransactionPagination } from "../finance.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++export { initFinance, initTransactionPagination } from "../finance.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
+--- a/js/modules/reports/attendanceExcelReport.js
++++ b/js/modules/reports/attendanceExcelReport.js
+@@ -1,4 +1,4 @@
+-import {HISTORY_AUTHORITY,attendanceVisibleRecord} from "../../core/attendanceContract.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++import {HISTORY_AUTHORITY,attendanceVisibleRecord} from "../../core/attendanceContract.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
+ /**
+  * Phase 4K-6U — Attendance Excel Report (lazy, read-only)
+  *
+--- a/js/modules/reports/reportExportFacade.js
++++ b/js/modules/reports/reportExportFacade.js
+@@ -92,7 +92,7 @@
+ 
+ async function ensureAttendanceApi() {
+   if (!attendanceModulePromise) {
+-    attendanceModulePromise = import("./attendanceExcelReport.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025")
++    attendanceModulePromise = import("./attendanceExcelReport.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025")
+       .catch((error) => {
+         attendanceModulePromise = null;
+         throw error;
+--- a/js/modules/students.js
++++ b/js/modules/students.js
+@@ -29,10 +29,10 @@
+ 
+ import { getLocalToday, formatDate, formatMonth, formatMonthCompact, addMonthsToYYYYMM } from "../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h";
+ import { escapeHtml } from '../utils/helpers.js';
+-import { StudentService } from "../services/students.service.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++import { StudentService } from "../services/students.service.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
+ import { InventoryService } from "../services/inventory.service.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1";
+ import { FinanceService } from "../services/finance.service.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+-import { trainingBranch, trainingDaysValid, shiftAuthority, inspectTrainingRegistration, registrationMessage, assertTrainingRegistration, auditTrainingRegistrations } from "../core/trainingRegistration.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++import { trainingBranch, trainingDaysValid, isShiftEligibleForBranch, resolveTrainingShift, inspectTrainingRegistration, registrationMessage, assertTrainingRegistration, auditTrainingRegistrations } from "../core/trainingRegistration.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
+ 
+ const _registrationForms = new Map();
+ const _registrationContext = () => JSON.stringify([window.__store?.clubId,window.__verifiedAuthContextState?.uid,window.__verifiedAuthContextState?.generation]);
+@@ -55,7 +55,7 @@
+     state.invalidShiftId = state.pending ? selectedId : null;
+     state.pendingResult = result;
+     select.replaceChildren(new Option('-- Không gán ca (tùy chọn) --',''));
+-    for (const s of shifts) if (shiftAuthority(s).resolved && shiftAuthority(s).branch === branch) {
++    for (const s of shifts) if (resolveTrainingShift(s.id,shifts) === s && isShiftEligibleForBranch(s,branch)) {
+         const _t = s.timeStart && s.timeEnd ? ' (' + s.timeStart + '–' + s.timeEnd + ')' : '';
+         select.add(new Option(String(s.name || '') + _t,String(s.id || '')));
+     }
+@@ -1188,8 +1188,8 @@
+         prepareNextPage, preparePreviousPage,
+         renderPaginationControls, PAGE_SIZE,
+     }) => {
+-        import("./students.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025").then(() => {}); // no-op — chỉ để IDE không warn
+-        import("../services/students.service.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025").then(({ StudentService }) => {
++        import("./students.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025").then(() => {}); // no-op — chỉ để IDE không warn
++        import("../services/students.service.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025").then(({ StudentService }) => {
+ 
+             const store = window.__store;
+             if (!store) { console.warn('[pagination/students] __store chưa sẵn sàng'); return; }
+--- a/js/modules/students/index.js
++++ b/js/modules/students/index.js
+@@ -30,4 +30,4 @@
+  */
+ 
+ // Re-export tất cả từ file gốc để backward-compatible
+-export { initStudents, initStudentPagination } from "../students.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++export { initStudents, initStudentPagination } from "../students.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
+--- a/js/services/attendance.service.js
++++ b/js/services/attendance.service.js
+@@ -1,4 +1,4 @@
+-import {HISTORY_AUTHORITY, attendanceServerVersion, attendanceVisibleRecord} from "../core/attendanceContract.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++import {HISTORY_AUTHORITY, attendanceServerVersion, attendanceVisibleRecord} from "../core/attendanceContract.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
+ /**
+  * js/services/attendance.service.js — Phase 3.1
+  * ────────────────────────────────────────────────────────────────
+@@ -650,7 +650,7 @@
+     },
+     async attestHistory(record, serverVersion) {
+         if (!['admin','super_admin'].includes(window.__verifiedAuthContextState?.role)||window.__verifiedAuthContextState?.ready!==true) throw Object.assign(new Error('Chỉ Admin xác minh lịch sử cũ.'),{code:'permission-denied'});
+-        const {attendanceIntentId}=await import("../core/attendanceContract.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025");
++        const {attendanceIntentId}=await import("../core/attendanceContract.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025");
+         return _commitAttendanceIntents([{id:attendanceIntentId(),baseVersion:serverVersion,record:{...record,clubId:_clubId()}}]);
+     },
+ 
+--- a/js/services/students.service.js
++++ b/js/services/students.service.js
+@@ -15,7 +15,7 @@
+  * ────────────────────────────────────────────────────────────────
+  */
+ 
+-import { validateTrainingMutation } from "../core/trainingRegistration.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++import { validateTrainingMutation } from "../core/trainingRegistration.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
+ 
+ // ── Internal helpers (không export) ──────────────────────────────
+ 
+--- a/public/index.html
++++ b/public/index.html
+@@ -586,7 +586,7 @@
+ <!-- V5U6C2 lineage only: app.js?v=dashboard-hydration-mutation-guard-20260812-v5u6c2; ./js/main.js?v=dashboard-hydration-mutation-guard-20260812-v5u6c2 -->
+ <!-- Phase 4K-6V3BC1 automatic per-club optimization: automatic-canonical-transaction-optimization-20260616-v3bc1 -->
+ <!-- Phase 4K-6V3D debt profile coverage boundary: debt-profile-read-boundary-20260616-v3d -->
+-<!-- Phase 4K-6V4B1 Coach Branch Assignment + Runtime Repair: coach-branch-runtime-repair-20260627-v4b1 --><!-- Phase 4K-6V4B2 Quit Tab Completeness: quit-tab-completeness-20260627-v4b2 --><!-- Phase 4K-6V4B3 Quit Tab Authoritative Completeness: quit-tab-authoritative-completeness-20260627-v4b3 --><script defer src="./js/core/branchIdentity.js?v=coach-branch-runtime-repair-20260627-v4b1"></script><script defer src="./js/core/coachBranchRuntimeRepair.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025"></script><script defer src="./js/core/roleReadBoundary.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025"></script><script defer src="./js/core/transactionCanonicalBoundary.js?v=coach-branch-runtime-repair-20260627-v4b1"></script><script defer src="./js/core/debtProfileReadBoundary.js?v=quit-context-render-loop-guard-20260722-v5s"></script><script defer src="./js/core/tuitionDebtCanonical.js?v=quit-context-render-loop-guard-20260722-v5s"></script><script defer src="./js/core/profileCanonicalStore.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1"></script><!-- V5U4 compatibility marker retained for regression: app.js?v=attendance-excel-documentid-sdk-fix-20260801-v5u2e&p=superadmin-auth-principal-20260811-v5u4 --><!-- V5U6C1 lineage only: app.js?v=canonical-security-truth-20260811-v5u5&p=dashboard-mutation-aware-cache-freshness-20260812-v5u6c1 ; ./js/main.js?v=dashboard-mutation-aware-cache-freshness-20260812-v5u6c1 --><!-- V5U6D lineage only: app.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d --><!-- V5U6F runtime: ./js/main.js?v=attendance-explicit-shift-authority-20260814-v5u6f --><!-- V5U6G1 runtime: ./js/main.js?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1 --><!-- V5U6G compatibility marker: app.js?v=production-stability-residual-defect-closure-20260814-v5u6g --><!-- V5U2E debt/cache compatibility marker: main.js?v=attendance-excel-documentid-sdk-fix-20260801-v5u2e --><!-- V5U6H runtime compatibility: production-security-trust-boundary-release-assurance-20260816-v5u6h --><!-- V5U6H2 runtime compatibility: parent-portal-hard-disable-release-verification-20260818-v5u6h2 --><!-- V5U6H3 runtime: residual-security-data-integrity-release-verification-20260818-v5u6h3 --><!-- V5U6H5 runtime compatibility: club-root-listener-bootstrap-readiness-exam-full-roster-export-20260827-v5u6h5 --><!-- V5U6H6 runtime: release-authority-exam-state-purity-firebase-final-verification-20260829-v5u6h6 --><!-- H8R2 compatibility marker: app.js?v=long-term-production-stability-20260917-v5u6h8r2 ; ./js/main.js?v=long-term-production-stability-20260917-v5u6h8r2 --><script defer src="app.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025"></script><!-- Compatibility marker: app.js?v=production-authority-closure-20260814-v5u6e --><script>
++<!-- Phase 4K-6V4B1 Coach Branch Assignment + Runtime Repair: coach-branch-runtime-repair-20260627-v4b1 --><!-- Phase 4K-6V4B2 Quit Tab Completeness: quit-tab-completeness-20260627-v4b2 --><!-- Phase 4K-6V4B3 Quit Tab Authoritative Completeness: quit-tab-authoritative-completeness-20260627-v4b3 --><script defer src="./js/core/branchIdentity.js?v=coach-branch-runtime-repair-20260627-v4b1"></script><script defer src="./js/core/coachBranchRuntimeRepair.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025"></script><script defer src="./js/core/roleReadBoundary.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025"></script><script defer src="./js/core/transactionCanonicalBoundary.js?v=coach-branch-runtime-repair-20260627-v4b1"></script><script defer src="./js/core/debtProfileReadBoundary.js?v=quit-context-render-loop-guard-20260722-v5s"></script><script defer src="./js/core/tuitionDebtCanonical.js?v=quit-context-render-loop-guard-20260722-v5s"></script><script defer src="./js/core/profileCanonicalStore.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1"></script><!-- V5U4 compatibility marker retained for regression: app.js?v=attendance-excel-documentid-sdk-fix-20260801-v5u2e&p=superadmin-auth-principal-20260811-v5u4 --><!-- V5U6C1 lineage only: app.js?v=canonical-security-truth-20260811-v5u5&p=dashboard-mutation-aware-cache-freshness-20260812-v5u6c1 ; ./js/main.js?v=dashboard-mutation-aware-cache-freshness-20260812-v5u6c1 --><!-- V5U6D lineage only: app.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d --><!-- V5U6F runtime: ./js/main.js?v=attendance-explicit-shift-authority-20260814-v5u6f --><!-- V5U6G1 runtime: ./js/main.js?v=attendance-offline-canonical-sync-closure-20260815-v5u6g1 --><!-- V5U6G compatibility marker: app.js?v=production-stability-residual-defect-closure-20260814-v5u6g --><!-- V5U2E debt/cache compatibility marker: main.js?v=attendance-excel-documentid-sdk-fix-20260801-v5u2e --><!-- V5U6H runtime compatibility: production-security-trust-boundary-release-assurance-20260816-v5u6h --><!-- V5U6H2 runtime compatibility: parent-portal-hard-disable-release-verification-20260818-v5u6h2 --><!-- V5U6H3 runtime: residual-security-data-integrity-release-verification-20260818-v5u6h3 --><!-- V5U6H5 runtime compatibility: club-root-listener-bootstrap-readiness-exam-full-roster-export-20260827-v5u6h5 --><!-- V5U6H6 runtime: release-authority-exam-state-purity-firebase-final-verification-20260829-v5u6h6 --><!-- H8R2 compatibility marker: app.js?v=long-term-production-stability-20260917-v5u6h8r2 ; ./js/main.js?v=long-term-production-stability-20260917-v5u6h8r2 --><script defer src="app.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025"></script><!-- Compatibility marker: app.js?v=production-authority-closure-20260814-v5u6e --><script>
+ /* Phase 3.3A FIX: ES modules require HTTP — skip on file:// to prevent CORS error.
+    app.js still loads via <script defer> so ALL business logic works regardless.
+    Module enhancements (loading.js, event-guard, lazy tabs) activate on HTTP only.
+@@ -676,7 +676,7 @@
+     var s = document.createElement('script');
+     s.type = 'module';
+     // Compatibility marker retained: student-given-name-priority-20260811-v5u3
+-    s.src  = "./js/main.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025"; // Compatibility: ./js/main.js?v=attendance-explicit-shift-authority-20260814-v5u6f
++    s.src  = "./js/main.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025"; // Compatibility: ./js/main.js?v=attendance-explicit-shift-authority-20260814-v5u6f
+     s.onload = function() {
+       window.MAIN_JS_LOADED = true;
+       console.log('[BOOT] main.js loaded after legacy app.js ready');
+--- a/public/js/core/studentStatusCommandBoundary.js
++++ b/public/js/core/studentStatusCommandBoundary.js
+@@ -8,7 +8,7 @@
+  *   - Commits local stores and invalidates affected domains once after success.
+  *   - Finance / inventory / multi-item writes are intentionally out of scope.
+  */
+-import { StudentService } from "../services/students.service.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++import { StudentService } from "../services/students.service.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
+ 
+ const BUILD = 'student-status-command-cutover-20260722-v5u1';
+ const PHASE = '4K-6V5U-1';
+--- a/public/js/core/trainingRegistration.js
++++ b/public/js/core/trainingRegistration.js
+@@ -10,25 +10,45 @@
+ }
+ export function shiftAuthority(shift) {
+     const branch = trainingBranch(shift?.branch);
+-    // No explicit shared/global schema exists in A9R14. Missing branch is unresolved.
++    // Strict authority for new shift writes. Legacy read/use scope is separate.
+     return /^CS(?:[1-9]|10)$/.test(branch) ? {resolved:true,branch} : {resolved:false,branch:''};
++}
++export function classifyShiftScope(shift) {
++    const authority = shiftAuthority(shift);
++    if (authority.resolved) return {...authority,scope:'EXPLICIT_BRANCH'};
++    // A9R14 stored Admin-created shifts with a blank branch and read them as
++    // global. Preserve that stored-data contract without admitting new writes.
++    if (shift && typeof shift === 'object' && (shift.branch == null ||
++        (typeof shift.branch === 'string' && shift.branch.trim() === ''))) {
++        return {resolved:true,branch:'',scope:'LEGACY_GLOBAL'};
++    }
++    return {...authority,scope:'INVALID'};
++}
++export function resolveTrainingShift(id, shifts = []) {
++    if (typeof id !== 'string' || !id) return null;
++    const matches = Array.isArray(shifts) ? shifts.filter(shift => shift?.id === id) : [];
++    return matches.length === 1 ? matches[0] : null;
++}
++export function isShiftEligibleForBranch(shift, branch) {
++    const canonicalBranch = trainingBranch(branch),scope = classifyShiftScope(shift);
++    if (!/^CS(?:[1-9]|10)$/.test(canonicalBranch)) return false;
++    return scope.scope === 'LEGACY_GLOBAL' || (scope.resolved && scope.branch === canonicalBranch);
+ }
+ export function inspectTrainingRegistration(profile = {}, shifts = []) {
+     const profileBranch = trainingBranch(profile.branch);
+     const id = profile.trainingShiftId;
+     const trainingShiftId = typeof id === 'string' ? id : '';
+-    const matches = Array.isArray(shifts) ? shifts.filter(shift => shift?.id === trainingShiftId) : [];
+-    const shift = matches.length === 1 ? matches[0] : null;
+-    const authority = shiftAuthority(shift);
++    const shift = resolveTrainingShift(trainingShiftId,shifts);
++    const authority = classifyShiftScope(shift);
+     const issues = [];
+     if (!trainingDaysValid(profile.trainingDays)) issues.push('TRAINING_DAYS_INVALID');
+     if (id != null && typeof id !== 'string') issues.push('SHIFT_NOT_FOUND');
+     else if (trainingShiftId) {
+         if (!shift) issues.push('SHIFT_NOT_FOUND');
+         else if (!authority.resolved) issues.push('SHIFT_AUTHORITY_UNRESOLVED');
+-        else if (authority.branch !== profileBranch) issues.push('SHIFT_BRANCH_MISMATCH');
++        else if (!isShiftEligibleForBranch(shift,profileBranch)) issues.push('SHIFT_BRANCH_MISMATCH');
+     }
+-    return {profileBranch,trainingShiftId,shiftBranch:authority.branch || null,
++    return {profileBranch,trainingShiftId,shiftBranch:authority.branch || null,shiftScope:authority.scope,
+         result:issues[0] || (trainingShiftId ? 'TRAINING_REGISTRATION_OK' : 'NO_SHIFT_ASSIGNED'),issues};
+ }
+ export function registrationMessage(result) {
+--- a/public/js/data/attendanceJournal.js
++++ b/public/js/data/attendanceJournal.js
+@@ -1,6 +1,6 @@
+ // Storage component of the existing attendance owner. No SDK, timer or writer.
+ // IndexedDB transactions serialize enqueue/claim/ACK across real browser tabs.
+-import {JOURNAL_DATABASE,attendanceIntentId,attendanceIntentTarget} from "../core/attendanceContract.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++import {JOURNAL_DATABASE,attendanceIntentId,attendanceIntentTarget} from "../core/attendanceContract.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
+ let databasePromise;
+ const active = item => ['pending','inflight','conflict','needs-review'].includes(item.state);
+ const maxSequence=rows=>rows.reduce((max,row)=>Math.max(max,Number(row.sequence)||0),0);
+--- a/public/js/main.js
++++ b/public/js/main.js
+@@ -112,9 +112,9 @@
+ import { InlineHandlerAudit }                from './core/inlineHandlerAudit.js';
+ import { EventActionBridge, initEventActionBridge } from './ui/eventActionBridge.js';
+ import { initLegacyUiShell }                  from './ui/legacyUiShell.js';
+-import { registerReportExportFacade }         from "./modules/reports/reportExportFacade.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++import { registerReportExportFacade }         from "./modules/reports/reportExportFacade.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
+ import { store, resetStore }                  from './store.js';
+-import { initFirebase }                        from "./firebase/config.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++import { initFirebase }                        from "./firebase/config.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
+ import { showToast, registerToastGlobal }      from './ui/toast.js';
+ import { registerModalGlobals }                from './ui/modal.js';
+ import { switchTab, registerTabGlobals }       from "./ui/tabs.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+@@ -248,7 +248,7 @@
+ import { SecurityPosture }   from './core/securityPosture.js';
+ import { ActionGuard }        from './core/actionGuard.js';
+ import { initCanonicalDomainCommandBoundary } from './core/canonicalDomainCommandBoundary.js?v=tuition-command-cutover-20260730-v5u2';
+-import { initStudentStatusCommandBoundary } from "./core/studentStatusCommandBoundary.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++import { initStudentStatusCommandBoundary } from "./core/studentStatusCommandBoundary.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
+ import { initTuitionCommandBoundary } from "./core/tuitionCommandBoundary.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+ // Phase 4K-6E: Transaction Delete Integrity
+ import { TransactionDeleteIntegrity } from './core/transactionDeleteIntegrity.js';
+@@ -293,7 +293,7 @@
+     getQuitStatusValues,
+     getProfilesListenerMetrics,
+     ensureAllProfilesForExport,
+-} from "./listeners/profiles.listeners.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++} from "./listeners/profiles.listeners.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
+ // Compatibility marker: ./listeners/profiles.listeners.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d
+ 
+ // H8R2.1 cache compatibility: ./listeners/profiles.listeners.js?v=long-term-production-stability-20260917-v5u6h8r2 ; ./modules/attendance.js?v=long-term-production-stability-20260917-v5u6h8r2 ; ./core/studentStatusCommandBoundary.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1 ; ./modules/inventory.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h
+@@ -351,7 +351,7 @@
+ } from './firebase/paginatedQuery.js';
+ 
+ // ── Phase 2d–3.2A: Business modules (eager — cần khi login) ────
+-import { initStudents, initStudentPagination }        from "./modules/students.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++import { initStudents, initStudentPagination }        from "./modules/students.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
+ // V5U6G compatibility marker: ./modules/students.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
+ // Compatibility marker: ./modules/students.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
+ // PHẦN 1 FIX + Phase 4K-2: Unified Search Controller — real cache + SearchBlob + stale guard
+@@ -363,10 +363,10 @@
+     debugSearchPerformance,
+ } from './modules/searchRuntime.js?v=student-given-name-priority-20260811-v5u3';
+ // Compatibility marker: ./modules/finance.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h
+-import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from "./modules/finance.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++import { initFinance, initTransactionPagination, registerFinanceUiGlobals } from "./modules/finance.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
+ import { initInventory }                              from "./modules/inventory.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+ // Compatibility marker: from './modules/attendance.js'
+-import { initAttendance }                             from "./modules/attendance.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++import { initAttendance }                             from "./modules/attendance.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
+ // Compatibility marker: ./modules/attendance.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
+ // V5U6G1 compatibility marker: ./modules/attendance.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1
+ import { initDashboard }                              from './modules/dashboard.js?v=dashboard-hydration-mutation-guard-20260812-v5u6c2';
+@@ -382,7 +382,7 @@
+ // ── Phase 3.1: Event layer ──────────────────────────────────────
+ import { initStudentsEvents }                         from './events/students.events.js';
+ import { initFinanceEvents, initFinanceActionEvents } from './events/finance.events.js';
+-import { initAttendanceEvents }                       from "./events/attendance.events.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++import { initAttendanceEvents }                       from "./events/attendance.events.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
+ 
+ // ────────────────────────────────────────────────────────────────
+ // Phase 3.3G: GLOBAL ERROR HANDLERS
+@@ -2485,7 +2485,7 @@
+     if (window.__appLoaded) return Promise.resolve();
+     return new Promise((resolve, reject) => {
+         const script = document.createElement('script');
+-        script.src = "app.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++        script.src = "app.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
+         script.onload  = () => resolve();
+         script.onerror = (err) => reject(new Error('[main.js] Không load được app.js: ' + err));
+         document.head.appendChild(script);
+@@ -3233,7 +3233,7 @@
+ // PHẦN 1 — APP BUILD VERSION
+ // H5 compatibility build marker: APP_BUILD_VERSION = '4K-6V5U6H5-club-root-listener-bootstrap-readiness-exam-full-roster-export-20260827'
+ // Previous build: 4K-6V5U6H6-release-authority-exam-state-purity-firebase-final-verification-20260829
+-window.APP_BUILD_VERSION = "qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++window.APP_BUILD_VERSION = "qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
+ // Compatibility marker only: window.APP_BUILD_VERSION = '4K-6V5U6H3-residual-security-data-integrity-release-verification-20260818';
+ // Compatibility marker only: window.APP_BUILD_VERSION = '4K-6V5U6H2-parent-portal-hard-disable-release-verification-20260818'
+ // Compatibility marker only: window.APP_BUILD_VERSION = '4K-6V5U6H-production-security-trust-boundary-release-assurance-20260816'
+--- a/public/js/modules/attendance.js
++++ b/public/js/modules/attendance.js
+@@ -16,12 +16,12 @@
+  * ────────────────────────────────────────────────────────────────
+  */
+ 
+-import { AttendanceService } from "../services/attendance.service.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++import { AttendanceService } from "../services/attendance.service.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
+ import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
+ import { escapeHtml } from '../utils/helpers.js';
+-import { AttendanceJournal } from "../data/attendanceJournal.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+-import { HISTORY_AUTHORITY, HISTORY_COACH_ACCESS, attendanceServerVersion, attendanceIntentId } from "../core/attendanceContract.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+-import { shiftAuthority, inspectTrainingRegistration } from "../core/trainingRegistration.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++import { AttendanceJournal } from "../data/attendanceJournal.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
++import { HISTORY_AUTHORITY, HISTORY_COACH_ACCESS, attendanceServerVersion, attendanceIntentId } from "../core/attendanceContract.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
++import { shiftAuthority, classifyShiftScope, resolveTrainingShift, isShiftEligibleForBranch, inspectTrainingRegistration } from "../core/trainingRegistration.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
+ 
+ const ATTENDANCE_OWNER = 'js/modules/attendance.js';
+ const ATTENDANCE_OWNED_GLOBALS = Object.freeze([
+@@ -312,10 +312,9 @@
+         ? _canonicalAttendanceBranch(ctx.coachBranch || ctx.branch || '', '')
+         : _canonicalAttendanceBranch(ctx.branch || '', ctx.branch === 'all' ? 'all' : '');
+     return _clubShifts.filter((shift) => {
+-        const shiftBranch = String(shift?.branch || '').trim();
+-        if (!shiftAuthority(shift).resolved) return false;
+-        if (role === 'coach') return !!branch && _sameBranch(shiftBranch, branch);
+-        if (branch && branch !== 'all') return _sameBranch(shiftBranch, branch);
++        if (resolveTrainingShift(shift?.id,_clubShifts) !== shift || !classifyShiftScope(shift).resolved) return false;
++        if (role === 'coach') return !!branch && isShiftEligibleForBranch(shift,branch);
++        if (branch && branch !== 'all') return isShiftEligibleForBranch(shift,branch);
+         return true;
+     });
+ }
+@@ -1152,8 +1151,9 @@
+     }
+     listEl.innerHTML = _clubShifts.map(s => {
+         const time = s.timeStart && s.timeEnd ? s.timeStart + ' – ' + s.timeEnd : 'Chưa đặt giờ';
+-        const authority = shiftAuthority(s);
+-        const branchLabel = authority.resolved ? 'Cơ sở ' + authority.branch.slice(2) : 'SHIFT_AUTHORITY_UNRESOLVED — Cần Admin xác minh cơ sở';
++        const authority = classifyShiftScope(s);
++        const branchLabel = authority.scope === 'LEGACY_GLOBAL' ? 'Ca dùng chung cũ'
++            : authority.resolved ? 'Cơ sở ' + authority.branch.slice(2) : 'SHIFT_AUTHORITY_UNRESOLVED — Cần Admin xác minh cơ sở';
+         const token = encodeURIComponent(String(s.id || '')).replace(/'/g, '%27');
+         return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:6px;">'
+             + '<div style="min-width:0;"><div style="font-size:0.85rem;font-weight:800;color:#1e293b;">' + escapeHtml(String(s.name || '')) + '</div>'
+@@ -1184,7 +1184,7 @@
+             const noEligible = decision.reason === 'no-eligible-shift-for-branch';
+             gridEl.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px 16px;color:#475569;font-size:0.86rem;font-weight:700;">'
+                 + (noEligible
+-                    ? (_clubShifts.some(shift => !shiftAuthority(shift).resolved)
++                    ? (_clubShifts.some(shift => !classifyShiftScope(shift).resolved)
+                         ? 'Có ca tập chưa xác minh cơ sở. Admin cần kiểm tra ca tập và đăng ký của võ sinh.'
+                         : '⏰ Chưa có ca tập phù hợp với cơ sở này.')
+                     : '⏰ Vui lòng chọn ca tập để điểm danh.')
+@@ -2026,9 +2026,13 @@
+             modalEl = document.createElement('div');
+             modalEl.id = 'attHistModal';
+             modalEl.style.cssText = 'display:flex;position:fixed;inset:0;background:rgba(15,23,42,0.65);z-index:10010;backdrop-filter:blur(4px);align-items:flex-end;justify-content:center;';
+-            modalEl.innerHTML = '<div id="attHistContent" style="background:#fff;width:100%;max-width:640px;border-radius:20px 20px 0 0;padding:20px 18px;box-shadow:0 -10px 40px rgba(0,0,0,0.18);max-height:82vh;overflow-y:auto;padding-bottom:calc(20px + env(safe-area-inset-bottom));animation:slideUpSheet 0.3s cubic-bezier(0.16,1,0.3,1);"><div id="attHistBody"></div></div>';
++            modalEl.innerHTML = '<div id="attHistSheet" style="position:relative;background:#fff;width:100%;max-width:640px;border-radius:20px 20px 0 0;box-shadow:0 -10px 40px rgba(0,0,0,0.18);">'
++                + '<button type="button" aria-label="Đóng lịch sử điểm danh" onclick="document.getElementById(\'attHistModal\').style.display=\'none\'" style="position:absolute;top:10px;right:12px;z-index:1;background:#f1f5f9;border:none;border-radius:50%;width:44px;height:44px;font-size:1rem;cursor:pointer;color:#475569;">✕</button>'
++                + '<div id="attHistContent" style="width:100%;border-radius:20px 20px 0 0;padding:20px 18px;max-height:82vh;overflow-y:auto;overscroll-behavior:contain;padding-bottom:calc(20px + env(safe-area-inset-bottom));animation:slideUpSheet 0.3s cubic-bezier(0.16,1,0.3,1);"><div id="attHistBody"></div></div></div>';
+             modalEl.addEventListener('click', (e) => { if (e.target === modalEl) modalEl.style.display = 'none'; });
+-            (document.getElementById('tab_attendance') || document.body).appendChild(modalEl);
++            // The tab has layout containment; a fixed child is positioned at
++            // the bottom of the full roster instead of the viewport.
++            document.body.appendChild(modalEl);
+         } else { modalEl.style.display = 'flex'; }
+         const bodyEl = document.getElementById('attHistBody');
+         const isCurrent = () => requestId === _memberHistoryRequestId &&
+@@ -2036,6 +2040,10 @@
+             _isOfflineAttendanceSyncContextCurrent(historyOwner) && modalEl.isConnected &&
+             modalEl.style.display !== 'none';
+         bodyEl.innerHTML = '<div style="text-align:center;padding:32px;color:#94a3b8;">⏳ Đang tải dữ liệu tháng ' + monthDisplay + '...</div>';
++        // A fast response may replace the placeholder before layout clamps the
++        // old scroll offset. Reset once for this open, before awaiting data;
++        // never move the user's scroll on a primary/page response.
++        document.getElementById('attHistContent').scrollTop = 0;
+         try {
+             const quarterNum = Math.ceil(mo / 3);
+             const quarterStartMo = (quarterNum - 1) * 3 + 1;
+@@ -2078,7 +2086,7 @@
+             const firstDow    = new Date(yr, mo - 1, 1).getDay();
+             const DOW = ['CN','T2','T3','T4','T5','T6','T7'];
+             const _hasSched = Array.isArray(p.trainingDays) && p.trainingDays.length > 0;
+-            const _p_shift_obj = (_clubShifts || []).find(s => s.id === p.trainingShiftId);
++            const _p_shift_obj = resolveTrainingShift(p.trainingShiftId,_clubShifts);
+             const _p_shift_name = _p_shift_obj ? (_p_shift_obj.name + (_p_shift_obj.timeStart && _p_shift_obj.timeEnd ? ' (' + _p_shift_obj.timeStart + '–' + _p_shift_obj.timeEnd + ')' : '')) : '';
+             let scheduleHtml = '';
+             if (_hasSched) {
+@@ -2111,10 +2119,9 @@
+             }
+             calHtml += '</div>';
+             bodyEl.innerHTML =
+-                '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">'
++                '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;padding-right:44px;">'
+                 + '<div><div style="font-size:1rem;font-weight:900;color:#0033A0;">' + escapeHtml((window.ProfileCanonicalStore?.resolveDisplayName?.(name, p)) || p.displayName || p.name || p.fullName || p.studentName || name) + '</div>'
+                 + '<div style="font-size:0.72rem;color:#64748b;margin-top:3px;">🥋 ' + escapeHtml(p.belt||'Đai Trắng') + '</div></div>'
+-                + '<button onclick="document.getElementById(\'attHistModal\').style.display=\'none\'" style="background:#f1f5f9;border:none;border-radius:50%;width:32px;height:32px;font-size:1rem;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#475569;">✕</button>'
+                 + '</div>' + scheduleHtml
+                 + '<div style="display:flex;gap:7px;margin-bottom:12px;flex-wrap:wrap;">'
+                 + '<span style="background:#dcfce7;color:#166534;padding:5px 12px;border-radius:99px;font-size:0.75rem;font-weight:800;">✅ ' + present + ' buổi</span>'
+@@ -2126,7 +2133,7 @@
+                 + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
+                 + rateBox(mRate,present,mTotal,'Tháng '+monthDisplay)
+                 + rateBox(qRate,qPresent,qTotal,quarterLabel)
+-                + '</div></div>' + calHtml
++                + '</div></div><div id="attHistoryActionSlot" style="margin:12px 0;"></div><div id="attHistoryCalendar">' + calHtml + '</div>'
+                 + '<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;font-size:0.62rem;color:#64748b;">'
+                 + '<span>⬜ Chưa ĐD</span>'
+                 + (_hasSched ? '<span style="background:#f0f9ff;padding:1px 5px;border-radius:4px;color:#93c5fd;">· Ngày có lịch</span>' : '')
+@@ -2134,14 +2141,15 @@
+             const historySection = document.createElement('section');
+             historySection.style.cssText = 'margin-top:18px;border-top:1px solid #cbd5e1;padding-top:14px;min-width:0;';
+             const title = document.createElement('h3');title.textContent = 'Lịch sử Điểm danh đã xác minh';
+-            title.style.cssText = 'font-size:16px;font-weight:800;line-height:1.4;';historySection.append(title);
++            const actionSlot = document.getElementById('attHistoryActionSlot');
++            title.style.cssText = 'font-size:16px;font-weight:800;line-height:1.4;margin:0;';actionSlot.append(title);
+             const coverage = document.createElement('p');
+             coverage.textContent = 'Cơ sở: ' + (window.getBranchNameDisplay?.(historyBranch) || historyBranch || 'chưa chọn') + '. Duyệt các năm theo trang, từ cũ đến mới; tối đa 40 bản ghi/trang. Dữ liệu cũ chưa xác minh cần Admin đối soát.';
+-            coverage.style.cssText = 'font-size:13px;color:#475569;line-height:1.5;margin:8px 0;';historySection.append(coverage);
++            coverage.style.cssText = 'font-size:13px;color:#475569;line-height:1.5;margin:8px 0;';actionSlot.append(coverage);
+             const rowsEl = document.createElement('div');rowsEl.id = 'attVerifiedHistoryRows';historySection.append(rowsEl);
+             const statusEl = document.createElement('p');statusEl.setAttribute('role','status');statusEl.style.cssText = 'font-size:13px;line-height:1.5;margin:8px 0;';historySection.append(statusEl);
+             const more = document.createElement('button');more.id = 'attHistoryLoadMore';more.type = 'button';more.textContent = 'Mở lịch sử đã xác minh';
+-            more.style.cssText = 'font-size:16px;min-height:44px;padding:10px 14px;max-width:100%;border:1px solid #93c5fd;border-radius:10px;color:#1e40af;background:#eff6ff;cursor:pointer;';historySection.append(more);
++            more.style.cssText = 'font-size:16px;min-height:44px;padding:10px 14px;max-width:100%;border:1px solid #93c5fd;border-radius:10px;color:#1e40af;background:#eff6ff;cursor:pointer;';actionSlot.append(more);
+             bodyEl.append(historySection);
+             let cursor = null,loading = false,done = false,pageCount = 0;
+             const seen = new Set(); // Presentation only; discarded when modal/session closes.
+@@ -2156,12 +2164,13 @@
+                         if (seen.has(row.id)) continue;seen.add(row.id);
+                         const item = document.createElement('article');item.dataset.historyId = row.id;
+                         item.style.cssText = 'border:1px solid #e2e8f0;border-radius:10px;padding:10px;margin:8px 0;font-size:14px;line-height:1.6;overflow-wrap:anywhere;';
+-                        const data = row.data,shift = _clubShifts.find(value => value.id === data.shiftId);
++                        const data = row.data,shift = resolveTrainingShift(data.shiftId,_clubShifts);
+                         const date = document.createElement('strong');date.textContent = data.date + ' · ' + ({1:'Có mặt',2:'Vắng',3:'Có phép'}[Number(data.status)] || 'Chưa điểm danh');
+                         const detail = document.createElement('div');detail.textContent = 'Tháng ' + data.month + ' · Ca: ' + (shift?.name || data.shiftId || 'Không gán ca') + ' · ' + (window.getBranchNameDisplay?.(data.branch) || data.branch);
+                         item.append(date,detail);rowsEl.append(item);
+                     }
+                     cursor = page.cursor;done = page.complete;pageCount++;
++                    historySection.append(more); // Same control follows the loaded rows; no second CTA/handler.
+                     statusEl.textContent = done ? (seen.size ? 'Đã duyệt hết lịch sử đã xác minh của cơ sở này (' + seen.size + ' buổi).' : 'Chưa có lịch sử đã xác minh tại cơ sở này.')
+                         : 'Đã tải trang ' + pageCount + ' (' + seen.size + ' buổi đã ghi nhận).';
+                     more.textContent = done ? 'Đã hết lịch sử đã xác minh' : 'Tải thêm lịch sử';
+--- a/public/js/modules/finance.js
++++ b/public/js/modules/finance.js
+@@ -9,7 +9,7 @@
+     formatMonthCompact,
+ } from "../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h";
+ import { FinanceService } from "../services/finance.service.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+-import { StudentService } from "../services/students.service.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++import { StudentService } from "../services/students.service.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
+ import { attachTransactionPageProjection } from './finance/finance.pagination.js?v=qr-v11r6-review-20261021';
+ import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
+ 
+--- a/public/js/modules/finance/index.js
++++ b/public/js/modules/finance/index.js
+@@ -29,4 +29,4 @@
+  * ────────────────────────────────────────────────────────────────
+  */
+ 
+-export { initFinance, initTransactionPagination } from "../finance.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++export { initFinance, initTransactionPagination } from "../finance.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
+--- a/public/js/modules/reports/attendanceExcelReport.js
++++ b/public/js/modules/reports/attendanceExcelReport.js
+@@ -1,4 +1,4 @@
+-import {HISTORY_AUTHORITY,attendanceVisibleRecord} from "../../core/attendanceContract.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++import {HISTORY_AUTHORITY,attendanceVisibleRecord} from "../../core/attendanceContract.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
+ /**
+  * Phase 4K-6U — Attendance Excel Report (lazy, read-only)
+  *
+--- a/public/js/modules/reports/reportExportFacade.js
++++ b/public/js/modules/reports/reportExportFacade.js
+@@ -92,7 +92,7 @@
+ 
+ async function ensureAttendanceApi() {
+   if (!attendanceModulePromise) {
+-    attendanceModulePromise = import("./attendanceExcelReport.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025")
++    attendanceModulePromise = import("./attendanceExcelReport.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025")
+       .catch((error) => {
+         attendanceModulePromise = null;
+         throw error;
+--- a/public/js/modules/students.js
++++ b/public/js/modules/students.js
+@@ -29,10 +29,10 @@
+ 
+ import { getLocalToday, formatDate, formatMonth, formatMonthCompact, addMonthsToYYYYMM } from "../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h";
+ import { escapeHtml } from '../utils/helpers.js';
+-import { StudentService } from "../services/students.service.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++import { StudentService } from "../services/students.service.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
+ import { InventoryService } from "../services/inventory.service.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1";
+ import { FinanceService } from "../services/finance.service.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+-import { trainingBranch, trainingDaysValid, shiftAuthority, inspectTrainingRegistration, registrationMessage, assertTrainingRegistration, auditTrainingRegistrations } from "../core/trainingRegistration.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++import { trainingBranch, trainingDaysValid, isShiftEligibleForBranch, resolveTrainingShift, inspectTrainingRegistration, registrationMessage, assertTrainingRegistration, auditTrainingRegistrations } from "../core/trainingRegistration.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
+ 
+ const _registrationForms = new Map();
+ const _registrationContext = () => JSON.stringify([window.__store?.clubId,window.__verifiedAuthContextState?.uid,window.__verifiedAuthContextState?.generation]);
+@@ -55,7 +55,7 @@
+     state.invalidShiftId = state.pending ? selectedId : null;
+     state.pendingResult = result;
+     select.replaceChildren(new Option('-- Không gán ca (tùy chọn) --',''));
+-    for (const s of shifts) if (shiftAuthority(s).resolved && shiftAuthority(s).branch === branch) {
++    for (const s of shifts) if (resolveTrainingShift(s.id,shifts) === s && isShiftEligibleForBranch(s,branch)) {
+         const _t = s.timeStart && s.timeEnd ? ' (' + s.timeStart + '–' + s.timeEnd + ')' : '';
+         select.add(new Option(String(s.name || '') + _t,String(s.id || '')));
+     }
+@@ -1188,8 +1188,8 @@
+         prepareNextPage, preparePreviousPage,
+         renderPaginationControls, PAGE_SIZE,
+     }) => {
+-        import("./students.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025").then(() => {}); // no-op — chỉ để IDE không warn
+-        import("../services/students.service.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025").then(({ StudentService }) => {
++        import("./students.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025").then(() => {}); // no-op — chỉ để IDE không warn
++        import("../services/students.service.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025").then(({ StudentService }) => {
+ 
+             const store = window.__store;
+             if (!store) { console.warn('[pagination/students] __store chưa sẵn sàng'); return; }
+--- a/public/js/modules/students/index.js
++++ b/public/js/modules/students/index.js
+@@ -30,4 +30,4 @@
+  */
+ 
+ // Re-export tất cả từ file gốc để backward-compatible
+-export { initStudents, initStudentPagination } from "../students.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++export { initStudents, initStudentPagination } from "../students.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
+--- a/public/js/services/attendance.service.js
++++ b/public/js/services/attendance.service.js
+@@ -1,4 +1,4 @@
+-import {HISTORY_AUTHORITY, attendanceServerVersion, attendanceVisibleRecord} from "../core/attendanceContract.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++import {HISTORY_AUTHORITY, attendanceServerVersion, attendanceVisibleRecord} from "../core/attendanceContract.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
+ /**
+  * js/services/attendance.service.js — Phase 3.1
+  * ────────────────────────────────────────────────────────────────
+@@ -650,7 +650,7 @@
+     },
+     async attestHistory(record, serverVersion) {
+         if (!['admin','super_admin'].includes(window.__verifiedAuthContextState?.role)||window.__verifiedAuthContextState?.ready!==true) throw Object.assign(new Error('Chỉ Admin xác minh lịch sử cũ.'),{code:'permission-denied'});
+-        const {attendanceIntentId}=await import("../core/attendanceContract.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025");
++        const {attendanceIntentId}=await import("../core/attendanceContract.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025");
+         return _commitAttendanceIntents([{id:attendanceIntentId(),baseVersion:serverVersion,record:{...record,clubId:_clubId()}}]);
+     },
+ 
+--- a/public/js/services/students.service.js
++++ b/public/js/services/students.service.js
+@@ -15,7 +15,7 @@
+  * ────────────────────────────────────────────────────────────────
+  */
+ 
+-import { validateTrainingMutation } from "../core/trainingRegistration.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
++import { validateTrainingMutation } from "../core/trainingRegistration.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025";
+ 
+ // ── Internal helpers (không export) ──────────────────────────────
+ 
+--- a/tools/a9r15/registration.test.mjs
++++ b/tools/a9r15/registration.test.mjs
+@@ -1,8 +1,8 @@
+ import fs from 'node:fs';import assert from 'node:assert/strict';
+ import {inspectTrainingRegistration as inspect,assertTrainingRegistration as validate,auditTrainingRegistrations,validateTrainingMutation} from '../../js/core/trainingRegistration.js';
+ import {StudentService} from '../../js/services/students.service.js';
+-const shifts=[{id:'S01',name:'Same label',branch:'CS1'},{id:'S02',name:'Same label',branch:'CS2'},{id:'U01',branch:''}];
+-const results=[],profiles={P001:{branch:'CS1',trainingShiftId:'S01',trainingDays:[1,3,5]},P002:{branch:'CS1',trainingShiftId:'S02',trainingDays:[2,4,6]},P003:{branch:'CS2',trainingShiftId:'OLD99'},P004:{branch:'CS1',trainingShiftId:'U01'},P005:{branch:'CS1',trainingDays:'2/4/6'},P006:{branch:'CS2',trainingShiftId:null,trainingDays:[]}};
++const shifts=[{id:'S01',name:'Same label',branch:'CS1'},{id:'S02',name:'Same label',branch:'CS2'},{id:'U01',branch:''},{id:'BAD01',branch:'ABC'}];
++const results=[],profiles={P001:{branch:'CS1',trainingShiftId:'S01',trainingDays:[1,3,5]},P002:{branch:'CS1',trainingShiftId:'S02',trainingDays:[2,4,6]},P003:{branch:'CS2',trainingShiftId:'OLD99'},P004:{branch:'CS1',trainingShiftId:'U01'},P005:{branch:'CS1',trainingDays:'2/4/6'},P006:{branch:'CS2',trainingShiftId:null,trainingDays:[]},P007:{branch:'CS1',trainingShiftId:'BAD01'}};
+ const p=(extra={})=>({...profiles.P001,...extra});
+ function check(title,fn){try{fn();results.push({title,classification:'PASS'});console.log('PASS',title);}catch(e){results.push({title,classification:'FAIL_RUNTIME',message:e.stack});console.error('FAIL',title,e);}}
+ check('CS1 + CS1 stable shift ID passes',()=>assert.equal(validate(p(),shifts).result,'TRAINING_REGISTRATION_OK'));
+@@ -12,7 +12,8 @@
+ check('Missing/deleted shift is SHIFT_NOT_FOUND',()=>assert.equal(inspect(p(),[]).result,'SHIFT_NOT_FOUND'));
+ check('Changed shift branch is a mismatch without rewriting profile',()=>{const data=p();assert.equal(inspect(data,[{id:'S01',branch:'CS2'}]).result,'SHIFT_BRANCH_MISMATCH');assert.equal(data.trainingShiftId,'S01');assert.equal(data.branch,'CS1');});
+ check('Forged ID never matches a label',()=>assert.throws(()=>validate(p({trainingShiftId:'Same label'}),shifts),e=>e.code==='SHIFT_NOT_FOUND'));
+-check('Missing, blank or null branch is unresolved, never global/CS1',()=>{for(const branch of [undefined,'',null])assert.equal(inspect(p({trainingShiftId:'U01'}),[{id:'U01',branch}]).result,'SHIFT_AUTHORITY_UNRESOLVED');});
++check('R3 restores stored A9R14 missing/blank/null legacy-global read contract',()=>{for(const branch of [undefined,'',null])assert.equal(inspect(p({trainingShiftId:'U01'}),[{id:'U01',branch}]).result,'TRAINING_REGISTRATION_OK');});
++check('Non-empty invalid shift branch remains unresolved',()=>{for(const branch of ['ABC','CS99','unknown'])assert.equal(inspect(p({trainingShiftId:'BAD01'}),[{id:'BAD01',branch}]).result,'SHIFT_AUTHORITY_UNRESOLVED');});
+ check('No-shift optional contract remains for empty/null/missing values',()=>{for(const trainingShiftId of ['',null,undefined])assert.equal(validate(p({trainingShiftId}),shifts).result,'NO_SHIFT_ASSIGNED');});
+ check('Non-string shift ID cannot coerce into another registration',()=>assert.throws(()=>validate(p({trainingShiftId:1}),shifts),e=>e.code==='SHIFT_NOT_FOUND'));
+ check('Weekday 2/4/6, 3/5/7, one/multiple days, Sunday and blank keep JS 0..6 numbering',()=>{for(const trainingDays of [[1,3,5],[2,4,6],[3],[0,1,6],[],null,undefined])validate(p({trainingDays}),shifts);});
+--- /dev/null
++++ b/tools/a9r16r3/build.mjs
+@@ -0,0 +1,35 @@
++// Uses the existing canonical cache builder and immutable source-pin mechanism.
++// Local candidate preparation only. Never deploys or contacts Firebase.
++import fs from 'node:fs';import path from 'node:path';import crypto from 'node:crypto';
++import assert from 'node:assert/strict';
++import {rewriteCacheGraph,buildImportGraph} from '../v11r2/import-graph.mjs';
++import {runtimeHash} from '../v11r2/cutover.mjs';
++const root=process.cwd(),sha=x=>crypto.createHash('sha256').update(x).digest('hex');
++export const tag='qr-v11r6-a9r16a-r3-shift-history-mobile-20261025';
++const read=f=>fs.readFileSync(path.join(root,f));
++const parent=JSON.parse(read('tools/v11r2/manifests/V11R6_A9R16A_R2_SEQUENTIAL.json'));
++const files=Object.keys(parent.canonicalRuntimeFiles).sort(),canonicalJS=files.filter(f=>f.endsWith('.js'));
++const owners=['js/core/trainingRegistration.js','js/modules/students.js','js/modules/attendance.js'];
++const initial=Object.fromEntries(owners.map(f=>[f,read(f).toString()]));
++const result=rewriteCacheGraph(root,initial,tag,canonicalJS);
++for(const [file,text] of Object.entries(result.overrides))fs.writeFileSync(path.join(root,file),text);
++for(const file of files){fs.mkdirSync(path.dirname(path.join(root,'public',file)),{recursive:true});fs.copyFileSync(path.join(root,file),path.join(root,'public',file));}
++const graph=buildImportGraph(root,{},canonicalJS),urls={};
++for(const edge of graph.edges.filter(e=>e.to)){
++ const u=new URL(edge.url,new URL(edge.kind==='script-loader'?'index.html':edge.from,'https://qa/'));
++ const url=u.pathname+u.search+u.hash;
++ if(urls[edge.to])assert.equal(urls[edge.to],url,'Canonical module identity '+edge.to);
++ urls[edge.to]=url;
++}
++const manifest={kind:'A9R16A_R3_SOURCE_IDENTITY_NOT_RELEASE_APPROVAL',parentOuterZIP_SHA256:'b96b7e5fc9a77b119a8e696babddd5bbd87f0dda59bbaf8c1a0baf86f4699804',parentRuntimeSHA256:parent.runtimeSHA256,buildTag:tag,runtimeSHA256:runtimeHash(root),rulesSHA256:sha(read('firestore.rules')),indexesSHA256:sha(read('firestore.indexes.json')),canonicalRuntimeFiles:Object.fromEntries(files.map(f=>[f,sha(read(f))])),canonicalModuleURLs:urls};
++assert.equal(manifest.rulesSHA256,parent.rulesSHA256);assert.equal(manifest.indexesSHA256,parent.indexesSHA256);
++const manifestFile='tools/v11r2/manifests/V11R6_A9R16A_R3_SHIFT_HISTORY.json';
++const manifestText=JSON.stringify(manifest,null,2)+'\n';fs.writeFileSync(manifestFile,manifestText);
++const pin={id:'V11R6_A9R16A_R3_SHIFT_HISTORY',canonicalFileCount:files.length,coachAssignmentContract:'server-verified-multi-branch-v1',inputZIP_SHA256:manifest.parentOuterZIP_SHA256,manifest:manifestFile,manifestSHA256:sha(manifestText),runtimeSHA256:manifest.runtimeSHA256,rulesSHA256:manifest.rulesSHA256,indexesSHA256:manifest.indexesSHA256,buildTag:tag};
++const identityFile='tools/v11r2/source-identity.mjs';let identity=read(identityFile).toString();
++const marker='// R3 candidate lineage; source identity only, never release approval.';
++const entry=marker+'\nconst A9R16A_R3_SHIFT_HISTORY = Object.freeze('+JSON.stringify(pin,null,2)+');\n\n';
++if(identity.includes(marker))identity=identity.replace(/\/\/ R3 candidate lineage; source identity only, never release approval\.[\s\S]*?\n\n(?=export function verifySourceIdentity)/,entry);
++else identity=identity.replace('export function verifySourceIdentity',entry+'export function verifySourceIdentity').replace('const pinned=[','const pinned=[A9R16A_R3_SHIFT_HISTORY,');
++fs.writeFileSync(identityFile,identity);
++console.log(JSON.stringify({status:'PASS',runtimeSHA256:manifest.runtimeSHA256,canonicalFiles:files.length,moduleCount:Object.keys(urls).length,metadataChanged:Object.keys(result.overrides)},null,2));
+--- /dev/null
++++ b/tools/a9r16r3/history-red.browser.mjs
+@@ -0,0 +1,33 @@
++import fs from 'node:fs';import path from 'node:path';
++import {createUI} from './ui-harness.mjs';
++const out=path.resolve(process.env.R3_EVIDENCE_ROOT||'evidence/R3/history-red');fs.mkdirSync(out,{recursive:true});
++const ui=await createUI(),runs=[];
++try{for(const [device,w,h] of [['iPhone',390,844],['Android',360,800],['Desktop',1280,900]]){
++ const {page,context}=await ui.page(w,h);
++ await page.evaluate(async()=>{
++  for(let i=0;i<50;i++)__store.profiles['P_LONG_'+i]={...__store.profiles.P_A,profileId:'P_LONG_'+i,displayName:'Võ sinh mẫu '+i};
++  await __setPrincipal('CS1');document.getElementById('att_shift').value='G1';await onShiftChange();window.scrollTo(0,0);
++  window.__trace=[];window.__traceArmed=false;
++  window.__measure=stage=>{
++   const c=document.getElementById('attHistContent'),m=document.getElementById('attHistModal'),cta=document.querySelector('#attHistoryLoadMore'),cal=Array.from(document.querySelectorAll('#attHistBody [title]')).at(-1);
++   const rect=e=>{if(!e)return null;const r=e.getBoundingClientRect();return{x:r.x,y:r.y,width:r.width,height:r.height,bottom:r.bottom};};
++   const nav=document.querySelector('.ui-bottom-nav');const parents=[];
++   for(let e=m?.parentElement;e;e=e.parentElement){const s=getComputedStyle(e);parents.push({id:e.id,tag:e.tagName,contain:s.contain,transform:s.transform,position:s.position,zIndex:s.zIndex,rect:rect(e)});}
++   const hit=c?document.elementFromPoint(Math.min(innerWidth-1,Math.max(0,c.getBoundingClientRect().x+20)),Math.min(innerHeight-1,Math.max(0,c.getBoundingClientRect().bottom-20))):null;
++   return {stage,scrollTop:c?.scrollTop??null,scrollHeight:c?.scrollHeight??null,clientHeight:c?.clientHeight??null,modal:rect(m),content:rect(c),CTAoffsetTop:cta?.offsetTop??null,CTA:rect(cta),calendarBottom:cal?cal.getBoundingClientRect().bottom-(c?.getBoundingClientRect().top||0)+(c?.scrollTop||0):null,nav:rect(nav),bottomHit:hit?.id||hit?.className||hit?.tagName,windowScrollY:scrollY,viewport:{width:innerWidth,height:innerHeight},parents};
++  };
++  const get=document.getElementById.bind(document);document.getElementById=function(id){const e=get(id);if(id==='attHistBody'&&__traceArmed){__traceArmed=false;__trace.push(__measure('after-modal-show'));}return e;};
++  const d=Object.getOwnPropertyDescriptor(Element.prototype,'innerHTML');Object.defineProperty(Element.prototype,'innerHTML',{...d,set(value){d.set.call(this,value);if(this.id==='attHistBody')__trace.push(__measure(String(value).includes('Đang tải dữ liệu tháng')?'after-loading-placeholder':'after-primary-body-setter'));}});
++ });
++ for(const [scenario,profile] of [['fresh','P_A'],['same-reopen','P_A'],['member-switch','P_LONG_0']]){
++  await page.evaluate(({scenario,profile})=>{__trace.push(__measure('before-open:'+scenario));__traceArmed=true;window.__pendingHistory=showAttMemberHistory(profile,'2026-10');},{scenario,profile});
++  await page.evaluate(()=>__pendingHistory);
++  await page.evaluate(async()=>{await Promise.all(document.getAnimations().filter(a=>a.effect.getTiming().iterations!==Infinity).map(a=>a.finished.catch(()=>{})));});
++  const measured=await page.evaluate(()=>{const r=__measure('after-body-render');__trace.push(r);return r;});
++  runs.push({device,scenario,measured,trace:await page.evaluate(()=>__trace.splice(0))});
++  // DOM scroll is deliberate: modal may be offscreen precisely because of the defect.
++  await page.evaluate(()=>{const c=document.getElementById('attHistContent');c.scrollTop=c.scrollHeight;__trace.push(__measure('scrolled-bottom'));document.getElementById('attHistModal').style.display='none';});
++ }
++ await context.close();
++}}finally{await ui.close();fs.writeFileSync(path.join(out,'HISTORY_RED_TRACE.json'),JSON.stringify({scope:'Actual HTML/CSS and owners, 52-row roster. Native DOM observers only; no production connection.',runs},null,2));}
++console.log(JSON.stringify(runs.map(r=>({device:r.device,scenario:r.scenario,content:r.measured.content,scrollTop:r.measured.scrollTop,CTA:r.measured.CTA,calendarBottom:r.measured.calendarBottom,parents:r.measured.parents.filter(p=>p.contain!=='none'||p.transform!=='none')})),null,2));
+--- /dev/null
++++ b/tools/a9r16r3/history.browser.mjs
+@@ -0,0 +1,58 @@
++import fs from 'node:fs';import path from 'node:path';import assert from 'node:assert/strict';
++import {createUI} from './ui-harness.mjs';
++const out=path.resolve(process.env.R3_EVIDENCE_ROOT||'evidence/R3/history');fs.mkdirSync(out,{recursive:true});
++const ui=await createUI(),rows=[],reads=[];
++const check=async(device,id,title,fn)=>{try{rows.push({device,id,title,status:'PASS',evidence:await fn()});console.log('PASS',device,id,title);}catch(e){rows.push({device,id,title,status:'FAIL_RUNTIME',message:e.stack});console.error('FAIL',device,id,title,e.message);}};
++try{for(const [device,w,h] of [['iPhone-viewport',390,844],['Android-viewport',360,800],['Desktop',1280,900]]){
++ const {page,context}=await ui.page(w,h);
++ await page.evaluate(async()=>{for(let i=0;i<50;i++)__store.profiles['P_LONG_'+i]={...__store.profiles.P_A,profileId:'P_LONG_'+i,displayName:'Võ sinh có họ tên dài mẫu '+i};await __setPrincipal('CS1');document.getElementById('att_shift').value='G1';await onShiftChange();window.scrollTo(0,0);});
++ const settle=()=>page.evaluate(()=>Promise.all(document.getAnimations().filter(a=>a.effect.getTiming().iterations!==Infinity).map(a=>a.finished.catch(()=>{}))));
++ const open=async(id='P_A',month='2026-10')=>{await page.evaluate(async({id,month})=>showAttMemberHistory(id,month),{id,month});await settle();};
++ const primary=async()=>page.evaluate(()=>{
++  const c=document.getElementById('attHistContent'),m=document.getElementById('attHistModal'),b=document.getElementById('attHistoryLoadMore'),close=m.querySelector('[aria-label="Đóng lịch sử điểm danh"]');
++  const rect=e=>{const r=e.getBoundingClientRect();return {x:r.x,y:r.y,bottom:r.bottom,right:r.right,width:r.width,height:r.height};};
++  const cr=rect(close),br=rect(b),hit=document.elementFromPoint(cr.x+cr.width/2,cr.y+cr.height/2);
++  return {scrollTop:c.scrollTop,content:rect(c),CTA:br,CTAcount:document.querySelectorAll('#attHistoryLoadMore').length,parent:m.parentElement.tagName,text:document.getElementById('attHistBody').innerText,closeReachable:hit===close,noHorizontalOverflow:c.scrollWidth<=c.clientWidth,viewport:{width:innerWidth,height:innerHeight}};
++ });
++ await check(device,'H01','Actual roster name opens a viewport-contained modal at top',async()=>{
++  await page.locator('[data-hidx]').first().click();await page.waitForSelector('#attHistoryLoadMore');await settle();const x=await primary();assert.equal(x.scrollTop,0);assert.equal(x.parent,'BODY');assert(x.content.y>=0&&x.content.bottom<=h+1);assert(x.closeReachable);assert(x.noHorizontalOverflow);return x;
++ });
++ await check(device,'H04','Name and belt readable in primary content',async()=>{const x=await primary();assert(x.text.includes('Võ sinh A'));assert(x.text.includes('Đai Trắng'));return {name:'Võ sinh A',belt:'Đai Trắng'};});
++ await check(device,'H05','Registered training days preserved',async()=>{const x=await primary();for(const d of ['T2','T4','T6'])assert(x.text.includes(d));return {days:['T2','T4','T6']};});
++ await check(device,'H06','Canonical registered shift and stored time preserved',async()=>{assert((await primary()).text.includes('Ca Chiều (17:15–18:45)'));return {shift:'G1',label:'Ca Chiều (17:15–18:45)'};});
++ await check(device,'H07','Month counts/rates and complete primary calendar preserved',async()=>{const x=await primary();assert(x.text.includes('1 buổi'));assert(x.text.includes('100%'));assert(x.text.includes('Tháng 10/2026'));assert.equal(await page.locator('#attHistoryCalendar [title]').count(),31);return {month:'2026-10',days:31,present:1,rate:100};});
++ await check(device,'H08','One initial Full History CTA is visible near summary',async()=>{const x=await primary();assert.equal(x.CTAcount,1);assert(x.CTA.y>=x.content.y&&x.CTA.bottom<=x.content.bottom);assert(x.CTA.height>=44);assert(x.text.includes('Dữ liệu cũ chưa xác minh cần Admin đối soát'));return {CTA:x.CTA,content:x.content};});
++ await check(device,'H09','Fresh/reopen loads quarter only, zero automatic history pages',async()=>{
++  const evidence=await page.evaluate(async()=>{const before={...__qa.counts},q=__qa.queries.length;await showAttMemberHistory('P_A','2026-10');return {delta:Object.fromEntries(Object.entries(__qa.counts).map(([k,v])=>[k,v-before[k]])),queries:__qa.queries.slice(q)};});
++  assert.equal(evidence.delta.getDocs,1);assert.equal(evidence.delta.getDoc,0);assert.equal(evidence.delta.onSnapshot,0);assert.equal(evidence.queries.filter(q=>q.constraints.some(c=>c.type==='limit')).length,0);reads.push({device,action:'open',...evidence});return evidence;
++ });
++ await check(device,'H10','First CTA emits exactly one bounded page; rapid duplicate click coalesces',async()=>{
++  const result=await page.evaluate(async()=>{const n=__qa.counts.getDocs,q=__qa.queries.length;__qa.hold=new Promise(r=>window.__releasePage=r);const b=document.getElementById('attHistoryLoadMore');window.__pageFlight=b.onclick();b.onclick();const pending={delta:__qa.counts.getDocs-n,disabled:b.disabled};__releasePage();await __pageFlight;return {pending,delta:__qa.counts.getDocs-n,queries:__qa.queries.slice(q),rows:Array.from(document.querySelectorAll('[data-history-id]')).map(e=>e.dataset.historyId)};});
++  assert.equal(result.pending.delta,1);assert(result.pending.disabled);assert.equal(result.delta,1);assert.equal(result.rows.length,40);assert(result.queries[0].constraints.some(c=>c.type==='limit'&&c.value[0]===40));reads.push({device,action:'first-page',getDocs:result.delta});return result;
++ });
++ await check(device,'H11','Load more preserves scroll, deterministic 40/40/2 pages without duplicates',async()=>{
++  const result=await page.evaluate(async()=>{const c=document.getElementById('attHistContent');c.scrollTop=120;const before=c.scrollTop,n=__qa.counts.getDocs;await document.getElementById('attHistoryLoadMore').onclick();const after=c.scrollTop,count2=document.querySelectorAll('[data-history-id]').length;await document.getElementById('attHistoryLoadMore').onclick();const ids=Array.from(document.querySelectorAll('[data-history-id]')).map(e=>e.dataset.historyId);return {before,after,count2,ids,delta:__qa.counts.getDocs-n,done:document.getElementById('attHistoryLoadMore').disabled,calendarCount:document.querySelectorAll('#attHistoryCalendar [title]').length};});
++  assert.equal(result.before,result.after);assert.equal(result.count2,80);assert.equal(result.ids.length,82);assert.equal(new Set(result.ids).size,82);assert(result.done);assert.equal(result.delta,2);assert.equal(result.calendarCount,31);reads.push({device,action:'next-final-pages',getDocs:2});return result;
++ });
++ await check(device,'H02','Scroll to bottom, close and reopen same member begins at top',async()=>{
++  await page.evaluate(()=>{const c=document.getElementById('attHistContent');c.scrollTop=c.scrollHeight;});assert((await primary()).closeReachable);await page.getByRole('button',{name:'Đóng lịch sử điểm danh',exact:true}).click();await open();const x=await primary();assert.equal(x.scrollTop,0);assert(x.text.startsWith('Võ sinh A'));return {scrollTop:x.scrollTop,closeReachable:x.closeReachable};
++ });
++ await check(device,'H03','Member/month switch begins at top with the correct primary identity',async()=>{
++  await page.evaluate(()=>{document.getElementById('attHistContent').scrollTop=300;});await open('P_LONG_0','2026-02');const x=await primary();assert.equal(x.scrollTop,0);assert(x.text.startsWith('Võ sinh có họ tên dài mẫu 0'));assert.equal(await page.locator('#attHistoryCalendar [title]').count(),28);return {scrollTop:x.scrollTop,month:'2026-02',days:28};
++ });
++ await check(device,'H12','Close remains available during pending primary and page responses; no reopen',async()=>{
++  await page.evaluate(()=>{__qa.hold=new Promise(r=>window.__releasePrimary=r);window.__primaryFlight=showAttMemberHistory('P_A','2026-10');});await page.getByRole('button',{name:'Đóng lịch sử điểm danh',exact:true}).click();await page.evaluate(async()=>{__releasePrimary();await __primaryFlight;});assert.equal(await page.locator('#attHistModal').evaluate(e=>e.style.display),'none');
++  await open();await page.evaluate(()=>{__qa.hold=new Promise(r=>window.__releasePage=r);window.__pageFlight=document.getElementById('attHistoryLoadMore').onclick();});await page.getByRole('button',{name:'Đóng lịch sử điểm danh',exact:true}).click();await page.evaluate(async()=>{__releasePage();await __pageFlight;});assert.equal(await page.locator('#attHistModal').evaluate(e=>e.style.display),'none');assert.equal(await page.locator('[data-history-id]').count(),0);return {primaryClosed:true,pageClosed:true,lateRows:0};
++ });
++ await check(device,'H13','Late member A primary response cannot overwrite member B',async()=>{
++  await page.evaluate(()=>{__qa.hold=new Promise(r=>window.__releaseA=r);window.__aFlight=showAttMemberHistory('P_A','2026-10');});await open('P_LONG_0');await page.evaluate(async()=>{__releaseA();await __aFlight;});const x=await primary();assert(x.text.startsWith('Võ sinh có họ tên dài mẫu 0'));return {lateA:'DROP'};
++ });
++ await check(device,'H14','Coach branch switch/revocation drops stale requests and scopes new pages',async()=>{
++  await page.evaluate(()=>{__qa.hold=new Promise(r=>window.__releaseA=r);window.__aFlight=showAttMemberHistory('P_A','2026-10');});await page.evaluate(()=>__setPrincipal('CS2','coach',['CS1','CS2']));await open('P_B');await page.evaluate(async()=>{__releaseA();await __aFlight;await document.getElementById('attHistoryLoadMore').onclick();});assert((await primary()).text.startsWith('Võ sinh B'));const ids=await page.locator('[data-history-id]').evaluateAll(xs=>xs.map(x=>x.dataset.historyId));assert(ids.every(x=>x.startsWith('P_B_')));
++  await page.evaluate(()=>{__qa.hold=new Promise(r=>window.__releaseRevoked=r);window.__revokedFlight=document.getElementById('attHistoryLoadMore').onclick();__verifiedAuthContextState.allowedBranches=['CS1'];__verifiedAuthContextState.branchGeneration++;__verifiedAuthContextState.assignmentVersion='revoked';});await page.evaluate(async()=>{__releaseRevoked();await __revokedFlight;});assert.equal(await page.locator('[data-history-id]').count(),40);return {branch:'CS2',rows:40,lateCS1:'DROP',revokedNextPage:'DROP'};
++ });
++ await check(device,'H15','Admin existing primary history remains readable',async()=>{await page.evaluate(()=>__setPrincipal('CS1','admin'));await open();assert((await primary()).text.startsWith('Võ sinh A'));return {role:'admin'};});
++ await check(device,device.startsWith('iPhone')?'H16':device.startsWith('Android')?'H17':'H18','Viewport layout, close target and backdrop remain usable',async()=>{const x=await primary();assert(x.closeReachable&&x.noHorizontalOverflow);assert(x.content.bottom<=h+1);await page.mouse.click(4,20);assert.equal(await page.locator('#attHistModal').evaluate(e=>e.style.display),'none');return {viewport:x.viewport,closeTarget:44,scope:'Chromium viewport simulation; no physical iOS/Android certification'};});
++ await check(device,'H19','No Finance reads, new listener, migration writer or automatic history reader',async()=>{const x=await page.evaluate(()=>({listeners:__qa.counts.onSnapshot,writes:__qa.writes.length,finance:__qa.queries.filter(q=>/finance|transactions|inventory/.test(q.ref.path)).length}));assert.deepEqual(x,{listeners:0,writes:0,finance:0});return x;});
++ await context.close();
++}}finally{await ui.close();const report={status:rows.every(x=>x.status==='PASS')?'PASS':'FAIL_RUNTIME',scope:'Actual canonical owners and original HTML/CSS; synthetic SDK ports, native browser DOM/IndexedDB. Rules and SDK checked independently.',rows};fs.writeFileSync(path.join(out,'HISTORY_MOBILE_MATRIX.json'),JSON.stringify(report,null,2));fs.writeFileSync(path.join(out,'HISTORY_READ_DELTA.json'),JSON.stringify({status:report.status,rows:reads,historyOnSnapshot:0,newReaderOwners:0},null,2));if(report.status!=='PASS')process.exitCode=1;}
+--- /dev/null
++++ b/tools/a9r16r3/shift-compatibility.test.mjs
+@@ -0,0 +1,25 @@
++import fs from 'node:fs';import path from 'node:path';import crypto from 'node:crypto';import assert from 'node:assert/strict';
++import {classifyShiftScope,shiftAuthority,resolveTrainingShift,isShiftEligibleForBranch,inspectTrainingRegistration,auditTrainingRegistrations} from '../../js/core/trainingRegistration.js';
++const rows=[],shifts=[{id:'G1',branch:'',name:'Ca Chiều',timeStart:'17:15',timeEnd:'18:45'},{id:'S1',branch:'CS1'},{id:'S2',branch:'CS2'}];
++function check(id,title,fn){fn();rows.push({id,title,status:'PASS'});console.log('PASS',id,title);}
++check('S09','Stored legacy-global registration valid across CS1..CS10',()=>{for(let n=1;n<=10;n++)assert.equal(inspectTrainingRegistration({branch:'CS'+n,trainingShiftId:'G1',trainingDays:[1,3,5]},shifts).result,'TRAINING_REGISTRATION_OK');});
++check('S10','Explicit cross-branch registration stays mismatched',()=>assert.equal(inspectTrainingRegistration({branch:'CS1',trainingShiftId:'S2'},shifts).result,'SHIFT_BRANCH_MISMATCH'));
++check('S11','Invalid non-empty branch is never global',()=>{for(const branch of ['ABC','CS99','unknown',0,false]){assert.equal(classifyShiftScope({id:'BAD',branch}).resolved,false);assert.equal(inspectTrainingRegistration({branch:'CS1',trainingShiftId:'BAD'},[{id:'BAD',branch}]).result,'SHIFT_AUTHORITY_UNRESOLVED');}});
++check('S12','Strict new-write branch authority remains false for blank/missing/null',()=>{for(const branch of ['',undefined,null,' '])assert.equal(shiftAuthority({branch}).resolved,false);});
++check('S13','Strict new-write branch authority accepts CS1..CS10',()=>{for(let n=1;n<=10;n++)assert.equal(shiftAuthority({branch:'CS'+n}).resolved,true);});
++check('S09-missing','Historical missing/null/whitespace branch is read-compatible',()=>{for(const branch of [undefined,null,' '])assert.equal(classifyShiftScope({id:'G1',branch}).scope,'LEGACY_GLOBAL');});
++check('S07-unknown','Missing Coach/profile branch cannot use global as an ACL fallback',()=>{for(const branch of ['',null,'ABC','CS99'])assert.equal(isShiftEligibleForBranch(shifts[0],branch),false);});
++check('ID01','Duplicate IDs never resolve by array order',()=>{const dup=[...shifts,{id:'G1',branch:'CS2'}];assert.equal(resolveTrainingShift('G1',dup),null);assert.equal(inspectTrainingRegistration({branch:'CS1',trainingShiftId:'G1'},dup).result,'SHIFT_NOT_FOUND');});
++check('ID02','No label/index/number coercion into shift identity',()=>{for(const id of ['Ca Chiều','0',0])assert.equal(resolveTrainingShift(id,shifts),null);});
++check('ID03','Reordering does not remap a registration',()=>assert.deepEqual(inspectTrainingRegistration({branch:'CS1',trainingShiftId:'G1'},shifts),inspectTrainingRegistration({branch:'CS1',trainingShiftId:'G1'},[...shifts].reverse())));
++check('DAYS','All existing day/optional-shift policies remain',()=>{assert.equal(inspectTrainingRegistration({branch:'CS1',trainingShiftId:'G1',trainingDays:'2/4/6'},shifts).result,'TRAINING_DAYS_INVALID');assert.equal(inspectTrainingRegistration({branch:'CS1',trainingShiftId:null,trainingDays:[]},shifts).result,'NO_SHIFT_ASSIGNED');});
++check('S15','Read-only scope/audit never rewrites stored shifts',()=>{const before=JSON.stringify(shifts);auditTrainingRegistrations({P_A:{branch:'CS1',trainingShiftId:'G1'},P_B:{branch:'CS2',trainingShiftId:'G1'}},shifts);assert.equal(JSON.stringify(shifts),before);});
++const sha=f=>crypto.createHash('sha256').update(fs.readFileSync(f)).digest('hex');
++check('S18','Rules and indexes exactly match the required hashes',()=>{assert.equal(sha('firestore.rules'),'1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3');assert.equal(sha('firestore.indexes.json'),'72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2');});
++const root=process.cwd(),parent=process.env.R3_PARENT_ROOT||path.resolve('../baseline'),files=Object.keys(JSON.parse(fs.readFileSync('tools/v11r2/manifests/V11R6_A9R16A_R2_SEQUENTIAL.json')).canonicalRuntimeFiles).filter(f=>f.endsWith('.js'));
++const count=base=>Object.fromEntries(['getDoc','getDocs','onSnapshot'].map(name=>[name,files.reduce((n,f)=>n+(fs.readFileSync(path.join(base,f),'utf8').match(new RegExp('\\b'+name+'\\s*\\(','g'))||[]).length,0)]));
++check('S16','No added runtime reader call sites',()=>{const a=count(parent),b=count(root);assert.equal(a.getDoc,b.getDoc);assert.equal(a.getDocs,b.getDocs);});
++check('S17','No added runtime listener call sites',()=>assert.equal(count(root).onSnapshot,count(parent).onSnapshot));
++const report={status:'PASS',rows,staticBefore:count(parent),staticAfter:count(root),scopeAudit:shifts.map(s=>({shiftId:s.id,...classifyShiftScope(s)}))};
++if(process.env.R3_EVIDENCE_ROOT){fs.mkdirSync(process.env.R3_EVIDENCE_ROOT,{recursive:true});fs.writeFileSync(path.join(process.env.R3_EVIDENCE_ROOT,'SHIFT_PURE_MATRIX.json'),JSON.stringify(report,null,2));}
++console.log(JSON.stringify(report,null,2));
+--- /dev/null
++++ b/tools/a9r16r3/shift.browser.mjs
+@@ -0,0 +1,55 @@
++import fs from 'node:fs';import path from 'node:path';import assert from 'node:assert/strict';
++import {createUI} from './ui-harness.mjs';
++const out=path.resolve(process.env.R3_EVIDENCE_ROOT||'evidence/R3/shift');fs.mkdirSync(out,{recursive:true});
++const ui=await createUI(),rows=[];const {page,context}=await ui.page();
++const check=async(id,title,fn)=>{try{const evidence=await fn();rows.push({id,title,status:'PASS',evidence});console.log('PASS',id,title);}catch(e){rows.push({id,title,status:'FAIL_RUNTIME',message:e.message});console.error('FAIL',id,title,e.message);}};
++try{
++ for(const [id,role,branch]of [['S01','admin','CS1'],['S02','admin','CS2'],['S03','coach','CS1'],['S04','coach','CS2']])await check(id,'Legacy global visible for '+role+' '+branch,async()=>{
++  await page.evaluate(async({role,branch})=>__setPrincipal(branch,role),{role,branch});
++  const options=await page.locator('#att_shift option').evaluateAll(xs=>xs.map(x=>({id:x.value,label:x.textContent})));assert(options.some(x=>x.id==='G1'));return options;
++ });
++ for(const [id,branch,profile]of [['S05','CS1','P_A'],['S06','CS2','P_B']])await check(id,'Global shift roster keeps '+branch+' boundary',async()=>{
++  await page.evaluate(async b=>{await __setPrincipal(b);document.getElementById('att_shift').value='G1';await onShiftChange();},branch);
++  const ids=await page.evaluate(()=>Object.keys(currentAttendanceData));assert.deepEqual(ids,[profile]);return {profileIds:ids,counts:await page.evaluate(()=>__qa.counts)};
++ });
++ for(const [id,branch,excluded]of [['S07','CS2','S1'],['S08','CS1','S2']])await check(id,'Explicit opposite-branch shift hidden',async()=>{
++  await page.evaluate(b=>__setPrincipal(b),branch);const ids=await page.locator('#att_shift option').evaluateAll(xs=>xs.map(x=>x.value));assert(!ids.includes(excluded));return ids;
++ });
++ await check('S09','Legacy profile edit keeps registration and time label',async()=>{
++  await page.evaluate(async()=>{await __setPrincipal('CS1','admin');window.openProfile('P_A');});await page.waitForFunction(()=>!document.getElementById('m_shift').disabled);
++  const state=await page.evaluate(()=>({value:document.getElementById('m_shift').value,label:document.getElementById('m_shift').selectedOptions[0]?.textContent,warning:document.getElementById('m_registration_warning').textContent}));assert.equal(state.value,'G1');assert.equal(state.label,'Ca Chiều (17:15–18:45)');assert.equal(state.warning,'');return state;
++ });
++ await check('S12','New blank-branch shift remains blocked',async()=>{
++  await page.evaluate(async()=>{document.getElementById('profileModal').style.display='none';await openShiftModal();document.getElementById('shift_name').value='New blank';document.getElementById('shift_branch').value='';});
++  const before=await page.evaluate(()=>({writes:__qa.writes.length,shifts:JSON.stringify(_getClubShifts())}));const result=await page.evaluate(()=>addShift());assert.equal(result.blocked,true);assert.equal(await page.evaluate(()=>__qa.writes.length),before.writes);assert.equal(await page.evaluate(()=>JSON.stringify(_getClubShifts())),before.shifts);return result;
++ });
++ await check('S13','New explicit CS1 uses the existing settings writer',async()=>{
++  const before=await page.evaluate(()=>__qa.writes.length);await page.evaluate(async()=>{document.getElementById('shift_name').value='New CS1';document.getElementById('shift_branch').value='CS1';await addShift();});
++  const writes=await page.evaluate(n=>__qa.writes.slice(n),before);assert.equal(writes.length,1);assert(writes[0].path.endsWith('/settings/shifts'));assert.equal(writes[0].data.list.at(-1).branch,'CS1');return {writes:1,path:writes[0].path};
++ });
++ await check('S14','Registered shift name and real time display in primary history',async()=>{
++  await page.evaluate(async()=>{await __setPrincipal('CS1');await showAttMemberHistory('P_A','2026-10');});const text=await page.locator('#attHistBody').innerText();assert(text.includes('Ca Chiều (17:15–18:45)'));return {expected:'Ca Chiều (17:15–18:45)'};
++ });
++ await check('S15','Loading/selecting existing shifts performs no migration write',async()=>{
++  const before=await page.evaluate(()=>__qa.writes.length);await page.evaluate(async()=>{await __setPrincipal('CS1');document.getElementById('att_shift').value='S1';await onShiftChange();});assert.equal(await page.evaluate(()=>__qa.writes.length),before);return {writes:0};
++ });
++ await check('ROSTER','Existing day/status/shift/month exclusions survive legacy compatibility',async()=>{
++  const ids=await page.evaluate(async()=>{
++   const original=structuredClone(__store.profiles),p=original.P_A;
++   Object.assign(__store.profiles,{
++    P_OTHER_DAY:{...p,profileId:'P_OTHER_DAY',trainingDays:[2,4,6]},
++    P_INACTIVE:{...p,profileId:'P_INACTIVE',status:'quit'},
++    P_OTHER_SHIFT:{...p,profileId:'P_OTHER_SHIFT',trainingShiftId:'S1'},
++    P_SKIP:{...p,profileId:'P_SKIP',skippedMonths:['2026-10']},
++    P_BAD_DAYS:{...p,profileId:'P_BAD_DAYS',trainingDays:['1']},
++    P_BLANK_DAYS:{...p,profileId:'P_BLANK_DAYS',trainingDays:[]},
++    P_NO_SHIFT:{...p,profileId:'P_NO_SHIFT',trainingShiftId:''},
++   });
++   await __setPrincipal('CS1');document.getElementById('att_shift').value='G1';await onShiftChange();
++   const ids=Object.keys(currentAttendanceData).sort();__store.profiles=original;return ids;
++  });
++  assert.deepEqual(ids,['P_A','P_BLANK_DAYS','P_NO_SHIFT']);return {profileIds:ids,optionalPolicy:'Empty days and blank profile shift preserve existing roster behavior'};
++ });
++}finally{
++ const report={status:rows.every(r=>r.status==='PASS')?'PASS':'FAIL_RUNTIME',scope:'Actual UI/owners; synthetic SDK ports; real Rules/SDK verified separately',rows};fs.writeFileSync(path.join(out,'SHIFT_BROWSER_MATRIX.json'),JSON.stringify(report,null,2));await context.close();await ui.close();if(report.status!=='PASS')process.exitCode=1;
++}
+--- /dev/null
++++ b/tools/a9r16r3/ui-harness.mjs
+@@ -0,0 +1,71 @@
++// Actual HTML/CSS and canonical owners. Synthetic SDK I/O only; no production
++// connections. Real Rules/SDK coverage runs separately against the Emulator.
++import fs from 'node:fs';import path from 'node:path';import http from 'node:http';
++import assert from 'node:assert/strict';
++import {loadPlaywright,browserExecutable} from '../test-runtime.mjs';
++import {buildImportGraph} from '../v11r2/import-graph.mjs';
++export const root=path.resolve(process.env.R3_SOURCE_ROOT||process.cwd());
++const canonical=Object.keys(JSON.parse(fs.readFileSync(path.join(root,'tools/v11r2/manifests/V11R6_A9R15_TRAINING_HISTORY.json'))).canonicalRuntimeFiles).filter(f=>f.endsWith('.js'));
++const graph=buildImportGraph(root,{},canonical),urls={};
++for(const edge of graph.edges.filter(e=>e.to)){
++ const u=new URL(edge.url,new URL(edge.kind==='script-loader'?'index.html':edge.from,'http://qa/'));
++ const url=u.pathname+u.search+u.hash;
++ if(urls[edge.to])assert.equal(urls[edge.to],url,'Canonical module identity '+edge.to);
++ urls[edge.to]=url;
++}
++export async function createUI(){
++ const html=fs.readFileSync(path.join(root,'index.html'),'utf8').replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'');
++ const server=http.createServer((req,res)=>{
++  const pathname=new URL(req.url,'http://qa').pathname;
++  if(pathname==='/'){res.setHeader('content-type','text/html');res.end(html);return;}
++  const file=path.resolve(root,'.'+pathname);if(!file.startsWith(root+path.sep)){res.writeHead(403);res.end();return;}
++  try{res.setHeader('content-type',file.endsWith('.css')?'text/css':'text/javascript');res.end(fs.readFileSync(file));}catch{res.writeHead(404);res.end();}
++ });
++ await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin='http://127.0.0.1:'+server.address().port;
++ const browser=await loadPlaywright().chromium.launch({headless:true,executablePath:browserExecutable(),args:['--no-sandbox']});
++ async function page(width=390,height=844){
++  const context=await browser.newContext({viewport:{width,height},isMobile:width<768,hasTouch:width<768});const p=await context.newPage();p.setDefaultTimeout(10000);
++  await p.route('**/*',r=>new URL(r.request().url()).origin===origin?r.continue():r.abort());
++  p.on('dialog',d=>d.dismiss());
++  await p.goto(origin,{waitUntil:'networkidle'});
++  await p.evaluate(async urls=>{
++   document.body.classList.add('ui-mobile-shell');document.getElementById('mainApp').style.display='block';document.getElementById('loginOverlay').style.display='none';document.getElementById('superAdminView').style.display='none';
++   document.querySelectorAll('.tab-content').forEach(el=>el.classList.toggle('active',el.id==='tab_attendance'));
++   window.__qa={counts:{getDoc:0,getDocs:0,onSnapshot:0},writes:[],queries:[],records:[],toasts:[],hold:null,
++    shifts:[{id:'G1',branch:'',name:'Ca Chiều',timeStart:'17:15',timeEnd:'18:45'},{id:'S1',branch:'CS1',name:'Ca CS1',timeStart:'07:00',timeEnd:'08:00'},{id:'S2',branch:'CS2',name:'Ca CS2',timeStart:'08:00',timeEnd:'09:00'}]};
++   window.showToast=(...x)=>__qa.toasts.push(x);window.recordRuntimeError=()=>{};window.alert=x=>__qa.toasts.push([x]);
++   window.getLocalToday=()=> '2026-10-26';window.classifyProfileStatus=p=>p.status||'active';window.getBranchNameDisplay=b=>b;
++   window.__store={db:{},clubId:'R3_QA',currentClubId:'R3_QA',currentUser:{uid:'admin'},userRole:'admin',coachBranch:'',clubConfig:{branchCount:2},clubData:{},profiles:{
++    P_A:{profileId:'P_A',displayName:'Võ sinh A',branch:'CS1',status:'active',belt:'Đai Trắng',trainingShiftId:'G1',trainingDays:[1,3,5]},
++    P_B:{profileId:'P_B',displayName:'Võ sinh B',branch:'CS2',status:'active',belt:'Đai Trắng',trainingShiftId:'G1',trainingDays:[1,3,5]}}};
++   window.currentClubId='R3_QA';window.userRole='admin';window.coachBranch='';
++   window.__verifiedAuthContextState={uid:'admin',clubId:'R3_QA',role:'admin',ready:true,generation:1,allowedBranches:[],coachBranch:'',activeBranch:''};
++   for(const id of ['att_branch','att_month_branch']){const s=document.getElementById(id);for(const b of ['CS1','CS2'])if(!Array.from(s.options).some(o=>o.value===b))s.add(new Option(b,b));s.value='CS1';}
++   const clause=(type,...value)=>({type,value}),snap=rows=>({size:rows.length,metadata:{fromCache:false,hasPendingWrites:false},forEach:fn=>rows.forEach(r=>fn({id:r.id,data:()=>r.data})),docs:rows.map(r=>({id:r.id,data:()=>r.data}))});
++   window._fb_init={doc:(db,...p)=>({path:p.join('/'),id:p.at(-1)}),collection:(db,...p)=>({path:p.join('/')}),where:(...p)=>clause('where',...p),query:(ref,...constraints)=>({ref,constraints}),orderBy:(...p)=>clause('orderBy',...p),documentId:()=> '__name__',limit:n=>clause('limit',n),startAfter:id=>clause('startAfter',id),
++    getDoc:async ref=>{__qa.counts.getDoc++;return {exists:()=>true,data:()=>({list:__qa.shifts}),metadata:{fromCache:false,hasPendingWrites:false}};},
++    getDocs:async q=>{__qa.counts.getDocs++;if(/transactions|inventory|finance/.test(q.ref.path))throw Error('Unexpected Finance read');__qa.queries.push(q);const hold=__qa.hold;if(hold){__qa.hold=null;await hold;}
++     let rows=__qa.records.slice();for(const c of q.constraints)if(c.type==='where'){const [field,op,value]=c.value;rows=rows.filter(r=>op==='in'?value.includes(r.data[field]):op==='=='?r.data[field]===value:op==='>='?r.data[field]>=value:op==='<='?r.data[field]<=value:false);}
++     rows.sort((a,b)=>a.id.localeCompare(b.id,'en'));for(const c of q.constraints)if(c.type==='startAfter')rows=rows.filter(r=>r.id>c.value[0]);for(const c of q.constraints)if(c.type==='limit')rows=rows.slice(0,c.value[0]);return snap(rows);},
++    onSnapshot:()=>{__qa.counts.onSnapshot++;throw Error('Unexpected new listener');},setDoc:async(ref,data)=>__qa.writes.push({path:ref.path,data:structuredClone(data)}),updateDoc:async(ref,data)=>__qa.writes.push({path:ref.path,data:structuredClone(data)}),
++    writeBatch:()=>{const rows=[];return {set:(ref,data)=>rows.push({path:ref.path,data}),commit:async()=>__qa.writes.push(...rows)};}};
++   await import(urls['js/core/branchIdentity.js']);await import(urls['js/core/roleReadBoundary.js']);
++   const registry=await import(urls['js/core/globalOwnershipRegistry.js']);registry.initGlobalOwnershipRegistry();
++   const students=await import(urls['js/modules/students.js']);students.initStudents();
++   const status=await import(urls['js/core/studentStatusCommandBoundary.js']);window.StudentStatusCommandBoundary=status.StudentStatusCommandBoundary;
++   const attendance=await import(urls['js/modules/attendance.js']);attendance.initAttendance();await _ensureClubShiftsLoaded();
++   window.__setPrincipal=async(branch='CS1',role='coach',allowed=[branch])=>{
++    const uid=role==='coach'?'coach':'admin',generation=__verifiedAuthContextState.generation+1;
++    window.userRole=role;window.coachBranch=role==='coach'?branch:'';__store.userRole=role;__store.coachBranch=window.coachBranch;__store.currentUser={uid};
++    window.__verifiedAuthContextState={uid,clubId:'R3_QA',role,ready:true,generation,branchGeneration:generation,assignmentVersion:'R3-'+generation,allowedBranches:role==='coach'?allowed:[],coachBranch:role==='coach'?branch:'',activeBranch:branch};
++    document.getElementById('att_branch').value=branch;document.getElementById('att_month_branch').value=branch;
++    AttendanceModule.resetForClub('R3_QA');await _ensureClubShiftsLoaded();document.getElementById('att_date').value='2026-10-26';
++   };
++   const {HISTORY_AUTHORITY}=await import(urls['js/core/attendanceContract.js']);
++   for(const profile of ['P_A','P_B'])for(let i=0;i<81;i++){const date=new Date(Date.UTC(2020,0,1+i*24)).toISOString().slice(0,10);__qa.records.push({id:profile+'_'+date+'_G1',data:{profileId:profile,branch:profile==='P_A'?'CS1':'CS2',date,month:date.slice(0,7),shiftId:'G1',status:i%3+1,historyAuthority:HISTORY_AUTHORITY}});}
++   __qa.records.push({id:'P_A_2026-10-26_G1',data:{profileId:'P_A',branch:'CS1',date:'2026-10-26',month:'2026-10',shiftId:'G1',status:1,historyAuthority:HISTORY_AUTHORITY}});
++  },urls);
++  return {page:p,context};
++ }
++ return {page,close:async()=>{await browser.close();await new Promise(r=>server.close(r));},origin};
++}
+--- a/tools/check-attendance-daily-single-refresh-authority.mjs
++++ b/tools/check-attendance-daily-single-refresh-authority.mjs
+@@ -74,7 +74,9 @@
+ const attendanceEventImports = Array.from(main.matchAll(/import\s*\{\s*initAttendanceEvents\s*\}\s*from\s*['"]\.\/events\/attendance\.events\.js\?v=([a-z0-9-]+)['"]/g));
+ check(attendanceEventImports.length === 1 && count(main, /if\s*\(guardOnce\('initAttendanceEvents'\)\)\s*initAttendanceEvents\(\)/g) === 1, 'canonical attendance event layer is mounted once by main');
+ const sourceIdentity = verifyRuntimeProfile(root).identity;
+-const nestedImporterToken = sourceIdentity.id === 'V11R6_A9R16A_R2_SEQUENTIAL'
++const nestedImporterToken = sourceIdentity.id === 'V11R6_A9R16A_R3_SHIFT_HISTORY'
++    ? new URL(JSON.parse(read(sourceIdentity.manifest)).canonicalModuleURLs['js/ui/render.js'],'https://qa/').searchParams.get('v')
++    : sourceIdentity.id === 'V11R6_A9R16A_R2_SEQUENTIAL'
+     ? sourceIdentity.buildTag : 'attendance-daily-single-refresh-authority-20260813-v5u6d';
+ check(main.includes(`./ui/render.js?v=${nestedImporterToken}`) && main.includes(`./ui/tabs.js?v=${nestedImporterToken}`) && read('js/ui/tabs.js').includes("attendance.listeners.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d"), 'nested importer cache keys match the exact accepted source lineage; unchanged listener keeps its existing identity');
+ check(!/id="(?:att_date|att_branch|att_belt|att_shift|chk_show_all_att)"[^>]*onchange=/.test(index), 'attendance filter controls have no duplicate inline onchange owner');
+--- a/tools/check-attendance-explicit-shift-authority.mjs
++++ b/tools/check-attendance-explicit-shift-authority.mjs
+@@ -58,7 +58,7 @@
+ check(!/AttendanceService\.|\bgetDoc(?:s)?\s*\(|\bonSnapshot\s*\(|\bsetTimeout\s*\(|\bsetInterval\s*\(|innerHTML/.test(resolver),
+     'shift decision helper has no network/render/timer owner');
+ check(attendance.includes('function _getEligibleAttendanceShifts(context)') &&
+-    attendance.includes("if (role === 'coach')") && attendance.includes('_sameBranch(shiftBranch, branch)'),
++    attendance.includes("if (role === 'coach')") && /isShiftEligibleForBranch\(shift,\s*branch\)/.test(attendance),
+     'eligible shifts reuse canonical branch identity and Coach scope');
+ check(!attendance.includes('eligibleShifts[0]') && !attendance.includes('_clubShifts[0]'),
+     'no implicit first-shift auto selection exists');
+@@ -420,8 +420,8 @@
+     check(dailyCalls === branchReadBefore + 1 && lastDailyOptions?.shiftId === 'cs2-b',
+         'runtime: selecting eligible Branch B shift performs one read');
+ 
+-    // A9R15 protected contract: missing branch is unresolved, never global.
+-    // This intentionally replaces the retired pre-A9R15 global-shift assumption.
++    // R3 approved read compatibility: stored missing branch is legacy-global.
++    // New-write validation remains explicit; Coach/profile ACL is independent.
+     reset({ club: 'club-coach', role: 'coach', branch: 'CS1', auth: 16, assignments:{Alice:'cs1-a',Bob:'cs2-b'} });
+     shiftImpl = async () => [
+         { id: 'cs1-a', name: 'CS1 A', branch: 'CS1' },
+@@ -434,9 +434,9 @@
+     check(coachBlank?.blocked === true && dailyCalls === coachDailyBefore,
+         'runtime: Coach configured blank performs zero daily reads');
+     if (HISTORY_COACH_ACCESS) {
+-        check(coachIds.join(',') === 'cs1-a' && !coachIds.includes('cs2-b'),
+-            'ACTIVE runtime: Coach eligible shifts have explicit assigned branch authority');
+-        check(!coachIds.includes('global'), 'A9R15: unresolved branch cannot acquire global authority');
++        check(coachIds.join(',') === 'cs1-a,global' && !coachIds.includes('cs2-b'),
++            'ACTIVE runtime: Coach eligible shifts preserve assigned branch authority plus stored legacy-global');
++        check(coachIds.includes('global'), 'R3: stored legacy-global is read-compatible within verified Coach branch');
+     } else {
+         check(coachBlank?.reason === 'attendance-maintenance' && coachIds.length === 0,
+             'MAINTENANCE runtime: Coach stays blocked before shift discovery');
+--- a/tools/check-v5u2-tuition-command-cutover.mjs
++++ b/tools/check-v5u2-tuition-command-cutover.mjs
+@@ -20,7 +20,12 @@
+ const searchBuild = 'student-given-name-priority-20260811-v5u3';
+ const h8r2Build = 'qr-v11r5-ack-20261021';
+ const identity=verifyRuntimeProfile(process.cwd()).identity;
++// R3 does not change the tuition/finance owner identity. Read the exact pinned
++// dependency tokens instead of assuming every module uses the top-level tag.
++const r3URLs=identity.id==='V11R6_A9R16A_R3_SHIFT_HISTORY'?JSON.parse(read(identity.manifest)).canonicalModuleURLs:null;
+ const canonicalCacheBuild=identity.id==='V11R6_A9R16A_R2_SEQUENTIAL'?identity.buildTag:h8r2Build;
++const boundaryCacheBuild=r3URLs?new URL(r3URLs['js/core/tuitionCommandBoundary.js'],'https://qa/').searchParams.get('v'):canonicalCacheBuild;
++const financeCacheBuild=r3URLs?new URL(r3URLs['js/services/finance.service.js'],'https://qa/').searchParams.get('v'):canonicalCacheBuild;
+ const boundary = read('js/core/tuitionCommandBoundary.js');
+ const boundaryPublic = read('public/js/core/tuitionCommandBoundary.js');
+ const finance = read('js/modules/finance.js');
+@@ -39,9 +44,9 @@
+ check('V5U-2 finance source/public mirrors are exact', finance === financePublic);
+ check('V5U-2 app/index/main markers active', (app.includes(patch) || app.includes(compatiblePatch) || app.includes(v5u5Patch)) && (main.includes(patch) || main.includes(compatiblePatch) || main.includes(v5u5Patch) || main.includes(v5u6cPatch)) && (index.includes(`app.js?v=${build}`) || index.includes(`app.js?v=${compatibleBuild}`) || index.includes(`app.js?v=${v5u5Build}`)) && (index.includes(`./js/main.js?v=${searchBuild}`) || index.includes(`./js/main.js?v=${build}`) || index.includes(`./js/main.js?v=${compatibleBuild}`) || index.includes(`./js/main.js?v=${v5u5Build}`) || index.includes(`./js/main.js?v=${v5u6cBuild}`)));
+ check('V5U-2 public app/index/main markers active', (appPublic.includes(patch) || appPublic.includes(compatiblePatch) || appPublic.includes(v5u5Patch)) && (mainPublic.includes(patch) || mainPublic.includes(compatiblePatch) || mainPublic.includes(v5u5Patch) || mainPublic.includes(v5u6cPatch)) && (indexPublic.includes(`app.js?v=${build}`) || indexPublic.includes(`app.js?v=${compatibleBuild}`) || indexPublic.includes(`app.js?v=${v5u5Build}`)) && (indexPublic.includes(`./js/main.js?v=${searchBuild}`) || indexPublic.includes(`./js/main.js?v=${build}`) || indexPublic.includes(`./js/main.js?v=${compatibleBuild}`) || indexPublic.includes(`./js/main.js?v=${v5u5Build}`) || indexPublic.includes(`./js/main.js?v=${v5u6cBuild}`)));
+-check('main imports and initializes tuition boundary before finance UI adapter', (main.includes(`./core/tuitionCommandBoundary.js?v=${build}`) || main.includes(`./core/tuitionCommandBoundary.js?v=${canonicalCacheBuild}`)) && main.indexOf('initTuitionCommandBoundary();') < main.indexOf('initFinance();'));
++check('main imports and initializes tuition boundary before finance UI adapter', (main.includes(`./core/tuitionCommandBoundary.js?v=${build}`) || main.includes(`./core/tuitionCommandBoundary.js?v=${boundaryCacheBuild}`)) && main.indexOf('initTuitionCommandBoundary();') < main.indexOf('initFinance();'));
+ check('tuition boundary owns quickPay and tuition delete only', boundary.includes('async collectTuition') && boundary.includes('async deleteTuitionTransaction') && !boundary.includes('processCombo') && !boundary.includes('processMultiItem') && !boundary.includes('markInvPaid'));
+-check('tuition boundary delegates through existing FinanceService', (boundary.includes("../services/finance.service.js?v=" + build) || boundary.includes("../services/finance.service.js?v=" + canonicalCacheBuild)) && boundary.includes('_service().commitAtomicWritePlan') && boundary.includes('_service().deleteTransaction'));
++check('tuition boundary delegates through existing FinanceService', (boundary.includes("../services/finance.service.js?v=" + build) || boundary.includes("../services/finance.service.js?v=" + financeCacheBuild)) && boundary.includes('_service().commitAtomicWritePlan') && boundary.includes('_service().deleteTransaction'));
+ check('tuition boundary has no Firestore direct writer/import', !/\b(addDoc|setDoc|updateDoc|deleteDoc|writeBatch|runTransaction)\s*\(/.test(boundary));
+ check('tuition boundary preserves existing transaction schema fields', ['type: \'Học phí\'','description: name','txMonth: lastMonth','packageMonths: paidMonths','timestamp: Date.now()'].every(x => boundary.includes(x)));
+ check('tuition boundary centralizes local commit and invalidation', boundary.includes('_commitProfilePayment') && boundary.includes('_removeLocalTransaction') && boundary.includes('_invalidateTuition') && ['tx.txList','students.debtList','students.activeList','dashboard.summary'].every(x => boundary.includes(x)));
+--- a/tools/v11r2/import-graph.mjs
++++ b/tools/v11r2/import-graph.mjs
+@@ -117,11 +117,11 @@
+  need(matches.length === 1 && literal(matches[0]), 'SOURCE_BUILD_TAG_INVALID');
+  return {tag:literal(matches[0]), start:matches[0].start, end:matches[0].end};
+ }
+-export function rewriteCacheGraph(root, initialOverrides, tag) {
+- const before = buildImportGraph(root), scope = affectedModules(before, Object.keys(initialOverrides).filter(file => before.files.includes(file))), scoped = new Set(scope);
++export function rewriteCacheGraph(root, initialOverrides, tag, additionalEntries = []) {
++ const before = buildImportGraph(root, {}, additionalEntries), scope = affectedModules(before, Object.keys(initialOverrides).filter(file => before.files.includes(file))), scoped = new Set(scope);
+  const overrides = {...initialOverrides};
+  // Re-parse after config/contract edits so every replacement uses current offsets.
+- const working = buildImportGraph(root,overrides);
++ const working = buildImportGraph(root,overrides,additionalEntries);
+  for (const file of scope) {
+   const text = Object.hasOwn(overrides,file) ? overrides[file] : fs.readFileSync(path.join(root,file),'utf8');
+   const replacements = working.edges.filter(edge => edge.from === file && scoped.has(edge.to)).map(edge => ({
+@@ -137,7 +137,7 @@
+   if (next !== fs.readFileSync(path.join(root,file),'utf8')) overrides[file] = next;
+   else delete overrides[file]; // Drop an input override when the derived bytes already equal disk.
+  }
+- const after = buildImportGraph(root,overrides);
++ const after = buildImportGraph(root,overrides,additionalEntries);
+  assertCacheGraph(after,scope,tag);
+  return {overrides,graph:{before,after,scope,token:tag}};
+ }
+--- /dev/null
++++ b/tools/v11r2/manifests/V11R6_A9R16A_R3_SHIFT_HISTORY.json
+@@ -0,0 +1,246 @@
++{
++  "kind": "A9R16A_R3_SOURCE_IDENTITY_NOT_RELEASE_APPROVAL",
++  "parentOuterZIP_SHA256": "b96b7e5fc9a77b119a8e696babddd5bbd87f0dda59bbaf8c1a0baf86f4699804",
++  "parentRuntimeSHA256": "93030b1d396b5c257b60d11a2c8a12f981cd967639fcc67603c90131c763e5fa",
++  "buildTag": "qr-v11r6-a9r16a-r3-shift-history-mobile-20261025",
++  "runtimeSHA256": "950dde369575bd099170b86d6923063bf11ddf4f9ae6376c759a2ec680d1ea2d",
++  "rulesSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
++  "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
++  "canonicalRuntimeFiles": {
++    ".nojekyll": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
++    "app.js": "bf24c4f265ec09d2daa0ace3cb8a4227daecff04e875e8312e3b608e75212469",
++    "css/tailwind-static.css": "7e8aa3849956a0a1bcf758fbb8528b2fe5ddeda39290aad9971f30256b30699c",
++    "css/ui-mobile-shell.css": "d64e5600421548d70b4f9510d2069de371c7199c0781061b575e0a262014601e",
++    "index.html": "4f440daed1e29dd5a51bfe16a83b9aa48ec96e4d5e6ba8ac57c13ef325940c23",
++    "js/core/actionGuard.js": "7c95650fc992cbf01b0ca5526e1656cfbf55d5f22bc1e9fe67351bc3a916178c",
++    "js/core/attendanceContract.js": "b96b04eccda4738b190b5cbb3e1d05664d422dff17b84a64cfd66bccbbc68239",
++    "js/core/branchIdentity.js": "db050656a9adaac5873887f2e9a3e80482e3e3982e5252635621f494ed020337",
++    "js/core/canonicalDomainCommandBoundary.js": "32f7d040519a84e84eb76467d65ce8c93f5551e7d6b1e9deba4eac17692a9689",
++    "js/core/clubStatsAutoCache.js": "76028d2d1bf02f41b41a21271eb44f056e58f191317e998be028722f56477299",
++    "js/core/coachBranchRuntimeRepair.js": "3c5d5d7a95390ce8438552d48947b293a2878dd480c399c4964effce82012068",
++    "js/core/debtProfileReadBoundary.js": "12c6de80511f16613af5f7e4e9390fb356f9cbbfd166f3466ff613f2543be71e",
++    "js/core/financialActionAuditGuard.js": "97680a8717f02e1b9776a24c808d97b64b413031a1ad06a8a0696038771dd82c",
++    "js/core/financialFlowMap.js": "10c9cb1e754aa4253505617b7e81c24ee09e9b2d5dc7b6550dcb0652e33b8568",
++    "js/core/globalOwnershipRegistry.js": "40ebfab400b3a575d1aac2daa6db73c246be731a84a2906674fcea3c211bd133",
++    "js/core/inlineHandlerAudit.js": "4a9edc949162cb146638fb326a3eeda428c1443ab8bfa99787723a37d70ff193",
++    "js/core/inventoryMultiItemReadOnlyUI.js": "c6a50375859d78d8e732436a454fa6d157c62bafa5a9729e3986798401dd893b",
++    "js/core/lazyAssetsBootstrap.js": "b60af66ef280f3ee0d806b94d351cfd7f75cd49641f847ff9546f1cb7e5cab4c",
++    "js/core/legacyAppAudit.js": "38c05474191672096370fda3bd677cb6894e4ce1bd85054ec99f0aa65baa8455",
++    "js/core/legacyRenderEntrypoints.js": "5ae877bc1b7ff96d5c78136f408f2390e09944412cea545bdb71617a7081e1ec",
++    "js/core/listenerOwnershipBoundary.js": "7425a0a3be681f6f905955b0bff834763a0af367cad942e1419c59304adfa5b3",
++    "js/core/mobileStartupPerformance.js": "e730e61a6fb8ffd87abd18522e96ea2ca9f9a95002e60d1d4636f115b09cf284",
++    "js/core/multiItemInventorySafety.js": "295ce786e25fed3c4337e4e9af164b6b63b18da9d09e241fa977262eb3b6038f",
++    "js/core/performanceMonitor.js": "8cec791af4edc1b48502156044eddde66d0c915b5af1ba927b18b7a508968cce",
++    "js/core/productionAuthorityPolicy.js": "4a202b36ce75ce611815d97b38c71d49fe8846fa551f5dce82865b28db97b6bd",
++    "js/core/productionStabilityGate.js": "7f54d756de6ee26a39e80953df3b2fc092cb3039db2a18d73d23281128ceac40",
++    "js/core/profileCanonicalStore.js": "195e10c0f9aa28d43193130597e3a73b833be5e628409c2f1633d76358005a41",
++    "js/core/roleReadBoundary.js": "47f789c19b72d126c2a6e8245d39ddaff2d6a23c8bb66bd9513ee2c793e7c67e",
++    "js/core/securityPosture.js": "3ce6fe7b516f138205635dbef81208c0a0dcf6621170c989ef648706772dd6d7",
++    "js/core/staticCssBuildHealth.js": "e0e87c489e5bb1548c2a060bb5a82f23b64c3806c00a410731e61bcf500ffc3e",
++    "js/core/studentSearchIndex.js": "5d22ee419d8f56394ef6a04909ff073be390f14aee057d56940ece743a7ef29a",
++    "js/core/studentStatusCommandBoundary.js": "8870ad5d6013e13746320d443168e2554e1ef9328c1a86ab45fa8a2800f0f0aa",
++    "js/core/superAdminQuotaGuard.js": "5640900910f77d231620683c9417b55305f3741250ab85807b2afd0ba8ef86e6",
++    "js/core/superAdminServerRefresh.js": "bf4896cf108fd4420456b577b81e203cd117ddfc2f636b4d2342a657e9c0f366",
++    "js/core/trainingRegistration.js": "61756f420172b06e7ff640c7c2fdc36533e1653a680c2676f0661278a7536df4",
++    "js/core/transactionCanonicalBoundary.js": "f291dab3cc01820aee0ce948bee8d9ad97111da3887a006713b8f427911e94cc",
++    "js/core/transactionDeleteIntegrity.js": "32bad07e037860da4543c3aa064fcf1eb99fb8869dc2a6451a75bf1d97510a4f",
++    "js/core/tuitionCommandBoundary.js": "84eff88379ae3d82b15a6f14f431882ea9839c45cf73f16fc7340aa9f8c8be8d",
++    "js/core/tuitionDebtCanonical.js": "15c564d9b7672af7285c10e52ec5f18537d0086eba3569309eeb422ce1b03d09",
++    "js/data/attendanceJournal.js": "fd3c0baa8d427f4821dbde3675dac461b94bb179f717109a8fbc0586c0f66cb0",
++    "js/data/inventoryStore.js": "39c1008f1803d62ba353ac04f079118ba4ec62112e2c7ffbecd50742fd910390",
++    "js/data/profileStatusConfig.js": "108a09f6811bb749c7ca2bc9170e769ee94378debfe3d276f7352fb7dcdfa934",
++    "js/data/quitProfileBoundary.js": "a1f83492ae482ca3c7d0c0eedc736823aae051d335f9224fa1835fd7a5401097",
++    "js/data/studentProfileStore.js": "83cd8875463085d67d73966284b6c65ba1a7887adee788f90380eb4c23a6aa61",
++    "js/diagnostics/legacyDiagnostics.js": "dcc6d26c51efe1777268f46820a9efa2809319bd43f099bb8ddd9b652d012689",
++    "js/diagnostics/onboardingDiagnostics.js": "4a09db1ccc93e1005075c696f477bbf68ae8d71ee6fa2241169ca3427f5c3724",
++    "js/diagnostics/runtimeReadinessDiagnostics.js": "0ade23e3657bfddde45cbefa598127b490664b0a1ccfb94e2cf378c78169e56b",
++    "js/diagnostics/superAdminAuditDiagnostics.js": "d09987a65275422c4bc1b3f2db0eaf7fa893b3ce8a6fc882c8435a5ca9b48657",
++    "js/events/attendance.events.js": "e94081b5f5def17db437098ae3a33808cb15c4243416feebd9b18460a294b6b3",
++    "js/events/finance.events.js": "d6d18e8400529a865112894c23e03963f016c665db4307b284d12c0349399e81",
++    "js/events/inventory.events.js": "f8f079375fe733d7fef915ed3db41b761bf0a2a6a2dcaf25248b25ff1b7cda7b",
++    "js/events/students.events.js": "d83cc9582b1c5c9e4107685578a2a7bbbd6a0ac85de960d41dd7e5163a53ef59",
++    "js/firebase/config.js": "745a895328c557b6d2a863c8f71dfbdb0bb44b9adecf70740e94921a63d8a876",
++    "js/firebase/paginatedQuery.js": "6895e483951509528983fa7429db79bcf12c8b06dc206e492bbec3091abfcae9",
++    "js/legacy/legacyAttendanceFallbacks.js": "622cab7f9a2453fa2a78a0685429b21fdc277b6d3cb8cb072c9b0c2cff9f1b15",
++    "js/legacy/legacyUiFallbacks.js": "4a1773ae305467bbf057cabc0ffda7e36cccc0d6525520f96416ee3b695fc852",
++    "js/listeners/attendance.listeners.js": "f9fc2834a0f34ab2c59f8a714b3de89e961e5c2d8fdca6e127d3f769dfa5b3d6",
++    "js/listeners/dashboard.listeners.js": "b46a70d81b3abafc680dfe096e2a0e93c923bcde359af59e4f35ab86a4d221bb",
++    "js/listeners/exam.listeners.js": "9d987048c307a33ac30d221b033b0030d97413afd55b54dd0c9e129848c574e0",
++    "js/listeners/finance.listeners.js": "d06f1ab4773c3b9b861ee92a304bde7a760ae9d7db65998424aab12f58d59ac5",
++    "js/listeners/global.listeners.js": "8bcabd108fddeb6da9a58bedf1c7086aeec2665156883b6bc37e75673711d974",
++    "js/listeners/inventory.listeners.js": "1b733bd5f3423b0ab6b5e85396bc936211d92a7e012d8ca65d0a06c0a312e154",
++    "js/listeners/profiles.listeners.js": "2a90198e3b56be9750695e16989ca7489b96ae70742e2d953aa800b7d09aafce",
++    "js/listeners/students.listeners.js": "a3d8f8c286a48d8e2a37fe7043c520ee46d32d2d295676873771394a2cecf231",
++    "js/main.js": "7b4f9dfe76e59ead0207cf5808cf0890317ad46a625faee49ddcc90db6b08811",
++    "js/migrations/migrate-legacy-to-primary.js": "a5ac866f3cad2a893300e733c82b68ea73bafbda7709ba5031f5cbb8184974d1",
++    "js/modules/attendance.js": "4b1e4ec67953516cc5ba85e641d3b3d616527c4af897a382bcdba0649cfbf373",
++    "js/modules/dashboard.js": "02d959b48ef1fa18947b4e0ae6acf16437e453ee5d81444e27f62c4fe078adc1",
++    "js/modules/exam.js": "51c0ce63b52ada9884062714b9ff8ed6bf6b748f51b4238543c19452dcbcc8ed",
++    "js/modules/finance.js": "0e0c26ca688d5da1f7cf6332f66d6bc4aee166b478928a7b51d38797a625c144",
++    "js/modules/finance/finance.controller.js": "7fe2ba28150942c264ae85fe871635c8b61dc23a2c7a1d1e2054a5d1b5192b71",
++    "js/modules/finance/finance.excel.js": "e4a4a23af165decaa1f422dcbb5939e5f06b35027c7ee928716d851c654d130e",
++    "js/modules/finance/finance.pagination.js": "e59354cf8db07e149f4a779a3d5484ecce9f731caa693f807f174abb03608736",
++    "js/modules/finance/finance.receipt.js": "a18ebf9ebdf6cba177788c4cdd078ae51c8f41318a476446d91c08435f3ec5f8",
++    "js/modules/finance/index.js": "8c23eb439a40c2d6f9d8fdf64befc3fc14a8f41949629a170dece48cfdffc4c2",
++    "js/modules/inventory.js": "7cfea5adf37801c3195cf0c6f50e16c9833246dba9db790839ad9414f2ad974c",
++    "js/modules/qrBankingHelpers.js": "8fa10f05f306f5fe6384ef2898d77ad8f9c8e200cb50c9af126173dc2d935a0c",
++    "js/modules/receiptHelpers.js": "6bacdd03b470f5f67eae820184acacdace3033f74ab2aa19e4256ab6e9e5b8b5",
++    "js/modules/reports.js": "b2ade459e917bb88b600f342f365700e334564f00f67a533ca2631d68e47eb99",
++    "js/modules/reports/attendanceExcelReport.js": "a74d5f2e752f20230a72a3924540cb6032105384ceaec5141f6fbbefbcb93e80",
++    "js/modules/reports/reportExportFacade.js": "8a640abb700173589bb7c7c8f84ab3667ccc5bd788f29c02a00acc1e2bb00442",
++    "js/modules/searchRuntime.js": "de38c9dffbf5cac03838e543719f1acca1b30793496407f17324b7535223d33c",
++    "js/modules/students.js": "327e0efed401da731445742025fc88b6421b193150dc69d243aff88e6e2c6b38",
++    "js/modules/students/index.js": "237e6f71f08d4f405d9e85f0211389895aaecc9e0d9aa08e2724ebf9a039029d",
++    "js/modules/students/students.controller.js": "499f7b0acb3bc6e5ed950c904406352fc7c9f370742611440366aebc3a41a266",
++    "js/modules/students/students.modal.js": "a09e9a1dfe84916b28d5849311996871f593c83ff069c6fa4d721db9410c50d7",
++    "js/modules/students/students.pagination.js": "e848769cddd3c3213c9c5459c5269724d9ceeebdd38c89ed41a89238469c61d6",
++    "js/modules/students/students.render.js": "4a345e0b5983794c68f6ac5b9521c0235f9d302081ca6fd2cb6503d2dd09c233",
++    "js/modules/students/students.search.js": "2cae282651e695cc3ab4f4cea9e827f5337cf12ad9544e20f23ef1a6a386f867",
++    "js/modules/superadmin.js": "2c039e8e972ca2312095e3431ba02ff767a4efe146ba2caf8ec947c8a4ea8111",
++    "js/services/attendance.service.js": "56c5c4eb15cf59f437e651d0ffb56060eb844c9e77d1501552b8ef8f5ffdfc59",
++    "js/services/finance.service.js": "2868b09d2c01fc2306893f3dc7c4865b6f460bacc080f12717349205af8c9a4c",
++    "js/services/inventory.service.js": "be9308420fd1b97804e46eed64fa476abebba8df1471a1ecf13361a29c1430e6",
++    "js/services/students.service.js": "90ff2f3c85f7dc74f1ebaf3631d56675ad6b961612ce393ea13616601edaa4d4",
++    "js/store.js": "5c31601adab80c3b1cff69eed3f7b545ac141137c9cf045a8bb3b8d6ce6df31a",
++    "js/ui/eventActionBridge.js": "15e4c01c17daee5677c8ba766f73ff17807265fba7204103e2e248040cbe2416",
++    "js/ui/legacyUiShell.js": "0f5dfcc8e11ce115bd7c123b0fe9d37766ba786e50cd49787cfea902522cd2df",
++    "js/ui/loading.js": "8ec3655bd2579a73dd31a4553c7793f439a57c872b103fc63b0152468a169e5a",
++    "js/ui/modal.js": "16f9978a2780c78f93a91a53411e18fe6961ea892bd3613839a597705dc6e0ec",
++    "js/ui/render.js": "1c311283ee69e8efa89bbc6ff5276716a2e902d691ea0e10e299e5c2505e3d9c",
++    "js/ui/render/computation/dashboardRenderer.js": "300e022bd05eca1c4277903c7d45527240ef41d3ec3ce56baa938be2ce089c3c",
++    "js/ui/render/computation/financeRenderer.js": "52f0f858f09f8c6f351fce702a71cfa2fa7ec76e11cbb72eb8863c9b81d9a36b",
++    "js/ui/render/computation/inventoryRenderer.js": "fc4c3edec4bd65516d572cbe8dea339a67e66d698d4bcbf09a207545b2013a95",
++    "js/ui/render/computation/studentsRenderer.js": "f5de0b9dc6316099b3e2d866447b9bfb8876d3b2a9157afe8b1fbb03ee1acc55",
++    "js/ui/render/listComputationRefresh.js": "e9062ce781e5affd89f2e16c6f44678708d935c5cb6b7c503dc0640f8484d5d6",
++    "js/ui/render/renderAttendance.js": "30cac7c5f41fffc6f137d76fbde76f8ebf58283101a5b9577b23097c22b424a1",
++    "js/ui/render/renderDashboard.js": "722d03135dedd70113a85c11ecf3b9538ca78724e4307225f8f955d44637da6b",
++    "js/ui/render/renderFinance.js": "492f01b7a45661c5f91acc30932d77e039d24c76bfa6a5a4464bd474ccc8994c",
++    "js/ui/render/renderInvalidation.js": "b30364b1001c421cff4e195eef39e405959b4d0e342177228a48bda0185614d5",
++    "js/ui/render/renderInventory.js": "d0a1039752004b58144884a6200e024952c22e28f169dd87860c66863cf3193c",
++    "js/ui/render/renderRegistry.js": "fd90c79f3fc0d95ddf195e0204b1e16b577454139d82170b1aa2e24d034a7cac",
++    "js/ui/render/renderScheduler.js": "775d8b58ce34e8b9352d7d6b0ad77125bdf5fd22275169218176cba0b0af7e60",
++    "js/ui/render/renderStudents.js": "e13fcaf542978be8672f95ff3eea9625be1ba9f58d7c727e831d457fcb036b50",
++    "js/ui/tabs.js": "40b3f63ea808be9561b8350f31e54dffc6bee29a50b5754f479bee3e0aee3191",
++    "js/ui/toast.js": "0371bb50b96f4e6b52c73901cdc401f0cb05d644d5754cf464292e9232678b76",
++    "js/utils/constants.js": "908b51067faf4ddcee93290f476e16c2ac37a2b2599a4ea36085843b737eb481",
++    "js/utils/event-guard.js": "6300daf65b516b9957148f0bd38f52c261078b31c860bbe3dac83fca98f3ced7",
++    "js/utils/firestore-guard.js": "8dcf5507d5d03fa05241a1c5e9db6c93212610ea3256390f6bc46f5114a4c74f",
++    "js/utils/format.js": "0e0112247c55f0436d64f7e1d0d3584dd388b39bdf761b4e6c0b598c1ecbb3ca",
++    "js/utils/formatters.js": "a8fa8fb6a4724bf821018959a074b6fcbd5a82fd521bc1029ccbc7a011e72271",
++    "js/utils/helpers.js": "846f33061619280d7525013b355afbadb4a1584b0b6befdf3eeee7a9a37533c8",
++    "js/utils/idb-cache.js": "b0570146b42c8268a48578b1640890a9eb58922fda5dd9302eaf4dbe31616409",
++    "js/utils/listeners.js": "bd572fda452100e79b3eb1ead383efaeb9a48b460db44f75d1d9926e5fffb4cb",
++    "js/utils/monthlyHelpers.js": "c918eed1780a14c40fd3708c8e3e187fcb10a5d8fb8aa797e86d467867c1a358",
++    "js/utils/offline-queue.js": "8e58ab4ea60f237d7b0698e44ff8a7e9cfb0857b9d45a31f59a9a2c7e25f1d5e",
++    "js/utils/pagination.js": "ccf55c82f00805d9e8ab27075e06adbe40fc7debd980431402bfa2b381c2e003",
++    "js/vendor/jsqr-1.4.0.esm.js": "0c1f462afd313d07b47756c492145659d59c68f03aa340ec26fe668d062ca401",
++    "js/vendor/jsqr-LICENSE.txt": "c6596eb7be8581c18be736c846fb9173b69eccf6ef94c5135893ec56bd92ba08",
++    "style.css": "beec70a87ceef2a5691c85ec4631138a1766f966f60cc8535438fc5c7def4bb8"
++  },
++  "canonicalModuleURLs": {
++    "js/legacy/legacyUiFallbacks.js": "/js/legacy/legacyUiFallbacks.js?v=global-ownership-adoption-cleanup-20260615",
++    "js/legacy/legacyAttendanceFallbacks.js": "/js/legacy/legacyAttendanceFallbacks.js?v=attendance-canonical-ownership-20260616",
++    "js/core/lazyAssetsBootstrap.js": "/js/core/lazyAssetsBootstrap.js?v=tailwind-static-build-20260608",
++    "js/core/branchIdentity.js": "/js/core/branchIdentity.js?v=coach-branch-runtime-repair-20260627-v4b1",
++    "js/core/coachBranchRuntimeRepair.js": "/js/core/coachBranchRuntimeRepair.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025",
++    "js/core/roleReadBoundary.js": "/js/core/roleReadBoundary.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025",
++    "js/core/transactionCanonicalBoundary.js": "/js/core/transactionCanonicalBoundary.js?v=coach-branch-runtime-repair-20260627-v4b1",
++    "js/core/debtProfileReadBoundary.js": "/js/core/debtProfileReadBoundary.js?v=quit-context-render-loop-guard-20260722-v5s",
++    "js/core/tuitionDebtCanonical.js": "/js/core/tuitionDebtCanonical.js?v=quit-context-render-loop-guard-20260722-v5s",
++    "js/core/profileCanonicalStore.js": "/js/core/profileCanonicalStore.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1",
++    "app.js": "/app.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025",
++    "js/main.js": "/js/main.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025",
++    "js/core/performanceMonitor.js": "/js/core/performanceMonitor.js",
++    "js/services/students.service.js": "/js/services/students.service.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025",
++    "js/services/finance.service.js": "/js/services/finance.service.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025",
++    "js/utils/format.js": "/js/utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h",
++    "js/core/attendanceContract.js": "/js/core/attendanceContract.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025",
++    "js/data/profileStatusConfig.js": "/js/data/profileStatusConfig.js",
++    "js/core/studentSearchIndex.js": "/js/core/studentSearchIndex.js?v=profile-display-name-safe-edit-20260916-v5u6h8r1",
++    "js/diagnostics/runtimeReadinessDiagnostics.js": "/js/diagnostics/runtimeReadinessDiagnostics.js",
++    "js/diagnostics/onboardingDiagnostics.js": "/js/diagnostics/onboardingDiagnostics.js",
++    "js/diagnostics/superAdminAuditDiagnostics.js": "/js/diagnostics/superAdminAuditDiagnostics.js",
++    "js/store.js": "/js/store.js",
++    "js/utils/listeners.js": "/js/utils/listeners.js",
++    "js/data/studentProfileStore.js": "/js/data/studentProfileStore.js",
++    "js/core/superAdminQuotaGuard.js": "/js/core/superAdminQuotaGuard.js",
++    "js/core/productionAuthorityPolicy.js": "/js/core/productionAuthorityPolicy.js?v=production-authority-closure-20260814-v5u6e",
++    "js/core/clubStatsAutoCache.js": "/js/core/clubStatsAutoCache.js?v=production-authority-closure-20260814-v5u6e",
++    "js/core/superAdminServerRefresh.js": "/js/core/superAdminServerRefresh.js?v=production-authority-closure-20260814-v5u6e",
++    "js/core/productionStabilityGate.js": "/js/core/productionStabilityGate.js?v=production-authority-closure-20260814-v5u6e",
++    "js/core/listenerOwnershipBoundary.js": "/js/core/listenerOwnershipBoundary.js",
++    "js/core/financialActionAuditGuard.js": "/js/core/financialActionAuditGuard.js",
++    "js/core/mobileStartupPerformance.js": "/js/core/mobileStartupPerformance.js",
++    "js/core/staticCssBuildHealth.js": "/js/core/staticCssBuildHealth.js",
++    "js/core/globalOwnershipRegistry.js": "/js/core/globalOwnershipRegistry.js",
++    "js/core/legacyRenderEntrypoints.js": "/js/core/legacyRenderEntrypoints.js",
++    "js/core/inlineHandlerAudit.js": "/js/core/inlineHandlerAudit.js",
++    "js/ui/eventActionBridge.js": "/js/ui/eventActionBridge.js",
++    "js/ui/legacyUiShell.js": "/js/ui/legacyUiShell.js",
++    "js/modules/reports/reportExportFacade.js": "/js/modules/reports/reportExportFacade.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025",
++    "js/firebase/config.js": "/js/firebase/config.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025",
++    "js/ui/toast.js": "/js/ui/toast.js",
++    "js/ui/modal.js": "/js/ui/modal.js",
++    "js/ui/tabs.js": "/js/ui/tabs.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025",
++    "js/ui/render.js": "/js/ui/render.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025",
++    "js/ui/render/renderFinance.js": "/js/ui/render/renderFinance.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025",
++    "js/ui/render/renderStudents.js": "/js/ui/render/renderStudents.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025",
++    "js/ui/render/renderInventory.js": "/js/ui/render/renderInventory.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025",
++    "js/ui/render/renderAttendance.js": "/js/ui/render/renderAttendance.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d",
++    "js/ui/render/renderDashboard.js": "/js/ui/render/renderDashboard.js",
++    "js/ui/render/renderInvalidation.js": "/js/ui/render/renderInvalidation.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025",
++    "js/ui/loading.js": "/js/ui/loading.js",
++    "js/utils/helpers.js": "/js/utils/helpers.js",
++    "js/utils/formatters.js": "/js/utils/formatters.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025",
++    "js/modules/receiptHelpers.js": "/js/modules/receiptHelpers.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025",
++    "js/modules/qrBankingHelpers.js": "/js/modules/qrBankingHelpers.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025",
++    "js/utils/monthlyHelpers.js": "/js/utils/monthlyHelpers.js",
++    "js/utils/constants.js": "/js/utils/constants.js",
++    "js/utils/event-guard.js": "/js/utils/event-guard.js",
++    "js/core/financialFlowMap.js": "/js/core/financialFlowMap.js",
++    "js/core/securityPosture.js": "/js/core/securityPosture.js",
++    "js/core/actionGuard.js": "/js/core/actionGuard.js",
++    "js/core/canonicalDomainCommandBoundary.js": "/js/core/canonicalDomainCommandBoundary.js?v=tuition-command-cutover-20260730-v5u2",
++    "js/core/studentStatusCommandBoundary.js": "/js/core/studentStatusCommandBoundary.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025",
++    "js/core/tuitionCommandBoundary.js": "/js/core/tuitionCommandBoundary.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025",
++    "js/core/transactionDeleteIntegrity.js": "/js/core/transactionDeleteIntegrity.js",
++    "js/core/legacyAppAudit.js": "/js/core/legacyAppAudit.js",
++    "js/diagnostics/legacyDiagnostics.js": "/js/diagnostics/legacyDiagnostics.js",
++    "js/core/multiItemInventorySafety.js": "/js/core/multiItemInventorySafety.js?v=inventory-ledger-reconciliation-20260616-v2c",
++    "js/core/inventoryMultiItemReadOnlyUI.js": "/js/core/inventoryMultiItemReadOnlyUI.js?v=inventory-ledger-reconciliation-20260616-v2c",
++    "js/utils/firestore-guard.js": "/js/utils/firestore-guard.js",
++    "js/listeners/profiles.listeners.js": "/js/listeners/profiles.listeners.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025",
++    "js/data/quitProfileBoundary.js": "/js/data/quitProfileBoundary.js?v=student-given-name-priority-20260811-v5u3",
++    "js/data/inventoryStore.js": "/js/data/inventoryStore.js",
++    "js/firebase/paginatedQuery.js": "/js/firebase/paginatedQuery.js",
++    "js/modules/students.js": "/js/modules/students.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025",
++    "js/modules/searchRuntime.js": "/js/modules/searchRuntime.js?v=student-given-name-priority-20260811-v5u3",
++    "js/modules/finance.js": "/js/modules/finance.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025",
++    "js/modules/inventory.js": "/js/modules/inventory.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025",
++    "js/modules/attendance.js": "/js/modules/attendance.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025",
++    "js/modules/dashboard.js": "/js/modules/dashboard.js?v=dashboard-hydration-mutation-guard-20260812-v5u6c2",
++    "js/modules/superadmin.js": "/js/modules/superadmin.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h",
++    "js/events/students.events.js": "/js/events/students.events.js",
++    "js/events/finance.events.js": "/js/events/finance.events.js",
++    "js/events/attendance.events.js": "/js/events/attendance.events.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025",
++    "js/modules/exam.js": "/js/modules/exam.js",
++    "js/services/attendance.service.js": "/js/services/attendance.service.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025",
++    "js/data/attendanceJournal.js": "/js/data/attendanceJournal.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025",
++    "js/core/trainingRegistration.js": "/js/core/trainingRegistration.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025",
++    "js/modules/finance/finance.pagination.js": "/js/modules/finance/finance.pagination.js?v=qr-v11r6-review-20261021",
++    "js/utils/pagination.js": "/js/utils/pagination.js",
++    "js/services/inventory.service.js": "/js/services/inventory.service.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1",
++    "js/vendor/jsqr-1.4.0.esm.js": "/js/vendor/jsqr-1.4.0.esm.js",
++    "js/modules/reports.js": "/js/modules/reports.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025",
++    "js/modules/reports/attendanceExcelReport.js": "/js/modules/reports/attendanceExcelReport.js?v=qr-v11r6-a9r16a-r3-shift-history-mobile-20261025",
++    "js/ui/render/renderRegistry.js": "/js/ui/render/renderRegistry.js",
++    "js/ui/render/computation/financeRenderer.js": "/js/ui/render/computation/financeRenderer.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025",
++    "js/ui/render/computation/studentsRenderer.js": "/js/ui/render/computation/studentsRenderer.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025",
++    "js/ui/render/computation/inventoryRenderer.js": "/js/ui/render/computation/inventoryRenderer.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025",
++    "js/ui/render/computation/dashboardRenderer.js": "/js/ui/render/computation/dashboardRenderer.js",
++    "js/ui/render/listComputationRefresh.js": "/js/ui/render/listComputationRefresh.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025",
++    "js/ui/render/renderScheduler.js": "/js/ui/render/renderScheduler.js",
++    "js/listeners/attendance.listeners.js": "/js/listeners/attendance.listeners.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d",
++    "js/listeners/exam.listeners.js": "/js/listeners/exam.listeners.js"
++  }
++}
+--- a/tools/v11r2/source-identity.mjs
++++ b/tools/v11r2/source-identity.mjs
+@@ -205,8 +205,22 @@
+   "buildTag": "qr-v11r6-a9r16a-r2-sequential-closure-20261025"
+ });
+ 
++// R3 candidate lineage; source identity only, never release approval.
++const A9R16A_R3_SHIFT_HISTORY = Object.freeze({
++  "id": "V11R6_A9R16A_R3_SHIFT_HISTORY",
++  "canonicalFileCount": 129,
++  "coachAssignmentContract": "server-verified-multi-branch-v1",
++  "inputZIP_SHA256": "b96b7e5fc9a77b119a8e696babddd5bbd87f0dda59bbaf8c1a0baf86f4699804",
++  "manifest": "tools/v11r2/manifests/V11R6_A9R16A_R3_SHIFT_HISTORY.json",
++  "manifestSHA256": "599f30aa4e289846d610de50684e53fdfd14fcd104273228551a76bd79bbf7f1",
++  "runtimeSHA256": "950dde369575bd099170b86d6923063bf11ddf4f9ae6376c759a2ec680d1ea2d",
++  "rulesSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
++  "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
++  "buildTag": "qr-v11r6-a9r16a-r3-shift-history-mobile-20261025"
++});
++
+ export function verifySourceIdentity(root, actualRuntimeSHA256) {
+- const pinned=[A9R16A_R2_SEQUENTIAL,A9R15_TRAINING_HISTORY,A9R14_QA_MOBILE,A9R13_MEMBER_HISTORY_DIAGNOSTICS,A9R12_COACH_ATTENDANCE_QUERY_CLOSURE_TEST_ONLY,A9R11_COACH_ATTENDANCE_OPERATIONAL_TEST_ONLY,A9R10_STAGING_BASE_TEST_ONLY,A9R6_ATTENDANCE_DEMO_ONLY,A9R4_ACCEPTED_SOURCE,A9R3_ACCEPTED_SOURCE,A9R1_ACCEPTED_SOURCE,A9_ACCEPTED_SOURCE,A8_ACCEPTED_SOURCE,ACCEPTED_SOURCE,A5_ACCEPTED_SOURCE,LEGACY_ACCEPTED_SOURCE];
++ const pinned=[A9R16A_R3_SHIFT_HISTORY,A9R16A_R2_SEQUENTIAL,A9R15_TRAINING_HISTORY,A9R14_QA_MOBILE,A9R13_MEMBER_HISTORY_DIAGNOSTICS,A9R12_COACH_ATTENDANCE_QUERY_CLOSURE_TEST_ONLY,A9R11_COACH_ATTENDANCE_OPERATIONAL_TEST_ONLY,A9R10_STAGING_BASE_TEST_ONLY,A9R6_ATTENDANCE_DEMO_ONLY,A9R4_ACCEPTED_SOURCE,A9R3_ACCEPTED_SOURCE,A9R1_ACCEPTED_SOURCE,A9_ACCEPTED_SOURCE,A8_ACCEPTED_SOURCE,ACCEPTED_SOURCE,A5_ACCEPTED_SOURCE,LEGACY_ACCEPTED_SOURCE];
+  const exact=pinned.find(p=>p.runtimeSHA256===actualRuntimeSHA256);
+  if(!exact&&fs.existsSync(path.join(root,'STAGING_SOURCE_ONLY.json')))return verifyDerivedStaging(root,actualRuntimeSHA256,pinned);
+  const p = exact||ACCEPTED_SOURCE, manifestPath = path.join(root,p.manifest);

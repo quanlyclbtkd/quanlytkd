@@ -16,12 +16,12 @@
  * ────────────────────────────────────────────────────────────────
  */
 
-import { AttendanceService } from "../services/attendance.service.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+import { AttendanceService } from "../services/attendance.service.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
 import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
 import { escapeHtml } from '../utils/helpers.js';
-import { AttendanceJournal } from "../data/attendanceJournal.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
-import { HISTORY_AUTHORITY, HISTORY_COACH_ACCESS, attendanceServerVersion, attendanceIntentId } from "../core/attendanceContract.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
-import { shiftAuthority, inspectTrainingRegistration } from "../core/trainingRegistration.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+import { AttendanceJournal } from "../data/attendanceJournal.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+import { HISTORY_AUTHORITY, HISTORY_COACH_ACCESS, attendanceServerVersion, attendanceIntentId } from "../core/attendanceContract.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
+import { shiftAuthority, classifyShiftScope, resolveTrainingShift, isShiftEligibleForBranch, inspectTrainingRegistration } from "../core/trainingRegistration.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
 
 const ATTENDANCE_OWNER = 'js/modules/attendance.js';
 const ATTENDANCE_OWNED_GLOBALS = Object.freeze([
@@ -312,10 +312,9 @@ function _getEligibleAttendanceShifts(context) {
         ? _canonicalAttendanceBranch(ctx.coachBranch || ctx.branch || '', '')
         : _canonicalAttendanceBranch(ctx.branch || '', ctx.branch === 'all' ? 'all' : '');
     return _clubShifts.filter((shift) => {
-        const shiftBranch = String(shift?.branch || '').trim();
-        if (!shiftAuthority(shift).resolved) return false;
-        if (role === 'coach') return !!branch && _sameBranch(shiftBranch, branch);
-        if (branch && branch !== 'all') return _sameBranch(shiftBranch, branch);
+        if (resolveTrainingShift(shift?.id,_clubShifts) !== shift || !classifyShiftScope(shift).resolved) return false;
+        if (role === 'coach') return !!branch && isShiftEligibleForBranch(shift,branch);
+        if (branch && branch !== 'all') return isShiftEligibleForBranch(shift,branch);
         return true;
     });
 }
@@ -425,9 +424,20 @@ function _markAttendanceDailyMutation(reason) {
     return _attendanceDailyState.mutationRevision;
 }
 
-function _resetAttendanceModuleState(nextClubId) {
+function _closeMemberHistory(remove = false) {
     _memberHistoryRequestId++;
-    document.getElementById('attHistModal')?.remove();
+    const modal = document.getElementById('attHistModal');
+    if (!modal) return false;
+    if (remove) modal.remove();
+    else {
+        modal.style.display = 'none';
+        modal.querySelector('#attHistBody')?.replaceChildren();
+    }
+    return true;
+}
+
+function _resetAttendanceModuleState(nextClubId) {
+    _closeMemberHistory(true);
     document.getElementById('attendanceReviewSheet')?.remove();
     document.getElementById('attendanceJournalControls')?.remove();
     _attCurrentProfiles = [];
@@ -1152,8 +1162,9 @@ function _renderShiftListInModal() {
     }
     listEl.innerHTML = _clubShifts.map(s => {
         const time = s.timeStart && s.timeEnd ? s.timeStart + ' – ' + s.timeEnd : 'Chưa đặt giờ';
-        const authority = shiftAuthority(s);
-        const branchLabel = authority.resolved ? 'Cơ sở ' + authority.branch.slice(2) : 'SHIFT_AUTHORITY_UNRESOLVED — Cần Admin xác minh cơ sở';
+        const authority = classifyShiftScope(s);
+        const branchLabel = authority.scope === 'LEGACY_GLOBAL' ? 'Ca dùng chung cũ'
+            : authority.resolved ? 'Cơ sở ' + authority.branch.slice(2) : 'SHIFT_AUTHORITY_UNRESOLVED — Cần Admin xác minh cơ sở';
         const token = encodeURIComponent(String(s.id || '')).replace(/'/g, '%27');
         return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:6px;">'
             + '<div style="min-width:0;"><div style="font-size:0.85rem;font-weight:800;color:#1e293b;">' + escapeHtml(String(s.name || '')) + '</div>'
@@ -1184,7 +1195,7 @@ function _renderAttendanceShiftBlocked(context, decision) {
             const noEligible = decision.reason === 'no-eligible-shift-for-branch';
             gridEl.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px 16px;color:#475569;font-size:0.86rem;font-weight:700;">'
                 + (noEligible
-                    ? (_clubShifts.some(shift => !shiftAuthority(shift).resolved)
+                    ? (_clubShifts.some(shift => !classifyShiftScope(shift).resolved)
                         ? 'Có ca tập chưa xác minh cơ sở. Admin cần kiểm tra ca tập và đăng ký của võ sinh.'
                         : '⏰ Chưa có ca tập phù hợp với cơ sở này.')
                     : '⏰ Vui lòng chọn ca tập để điểm danh.')
@@ -2026,9 +2037,13 @@ export function initAttendance() {
             modalEl = document.createElement('div');
             modalEl.id = 'attHistModal';
             modalEl.style.cssText = 'display:flex;position:fixed;inset:0;background:rgba(15,23,42,0.65);z-index:10010;backdrop-filter:blur(4px);align-items:flex-end;justify-content:center;';
-            modalEl.innerHTML = '<div id="attHistContent" style="background:#fff;width:100%;max-width:640px;border-radius:20px 20px 0 0;padding:20px 18px;box-shadow:0 -10px 40px rgba(0,0,0,0.18);max-height:82vh;overflow-y:auto;padding-bottom:calc(20px + env(safe-area-inset-bottom));animation:slideUpSheet 0.3s cubic-bezier(0.16,1,0.3,1);"><div id="attHistBody"></div></div>';
-            modalEl.addEventListener('click', (e) => { if (e.target === modalEl) modalEl.style.display = 'none'; });
-            (document.getElementById('tab_attendance') || document.body).appendChild(modalEl);
+            modalEl.innerHTML = '<div id="attHistSheet" style="position:relative;background:#fff;width:100%;max-width:640px;border-radius:20px 20px 0 0;box-shadow:0 -10px 40px rgba(0,0,0,0.18);">'
+                + '<button type="button" aria-label="Đóng lịch sử điểm danh" onclick="window.AttendanceModule?.closeMemberHistory?.()" style="position:absolute;top:10px;right:12px;z-index:1;background:#f1f5f9;border:none;border-radius:50%;width:44px;height:44px;font-size:1rem;cursor:pointer;color:#475569;">✕</button>'
+                + '<div id="attHistContent" style="width:100%;border-radius:20px 20px 0 0;padding:20px 18px;max-height:82vh;overflow-y:auto;overscroll-behavior:contain;padding-bottom:calc(20px + env(safe-area-inset-bottom));animation:slideUpSheet 0.3s cubic-bezier(0.16,1,0.3,1);"><div id="attHistBody"></div></div></div>';
+            modalEl.addEventListener('click', (e) => { if (e.target === modalEl) _closeMemberHistory(); });
+            // The tab has layout containment; a fixed child is positioned at
+            // the bottom of the full roster instead of the viewport.
+            document.body.appendChild(modalEl);
         } else { modalEl.style.display = 'flex'; }
         const bodyEl = document.getElementById('attHistBody');
         const isCurrent = () => requestId === _memberHistoryRequestId &&
@@ -2036,6 +2051,10 @@ export function initAttendance() {
             _isOfflineAttendanceSyncContextCurrent(historyOwner) && modalEl.isConnected &&
             modalEl.style.display !== 'none';
         bodyEl.innerHTML = '<div style="text-align:center;padding:32px;color:#94a3b8;">⏳ Đang tải dữ liệu tháng ' + monthDisplay + '...</div>';
+        // A fast response may replace the placeholder before layout clamps the
+        // old scroll offset. Reset once for this open, before awaiting data;
+        // never move the user's scroll on a primary/page response.
+        document.getElementById('attHistContent').scrollTop = 0;
         try {
             const quarterNum = Math.ceil(mo / 3);
             const quarterStartMo = (quarterNum - 1) * 3 + 1;
@@ -2078,14 +2097,14 @@ export function initAttendance() {
             const firstDow    = new Date(yr, mo - 1, 1).getDay();
             const DOW = ['CN','T2','T3','T4','T5','T6','T7'];
             const _hasSched = Array.isArray(p.trainingDays) && p.trainingDays.length > 0;
-            const _p_shift_obj = (_clubShifts || []).find(s => s.id === p.trainingShiftId);
+            const _p_shift_obj = resolveTrainingShift(p.trainingShiftId,_clubShifts);
             const _p_shift_name = _p_shift_obj ? (_p_shift_obj.name + (_p_shift_obj.timeStart && _p_shift_obj.timeEnd ? ' (' + _p_shift_obj.timeStart + '–' + _p_shift_obj.timeEnd + ')' : '')) : '';
             let scheduleHtml = '';
-            if (_hasSched) {
-                const _dayNames = [...p.trainingDays].sort((a,b)=>a-b).map(d => '<span style="font-size:0.74rem;background:#dbeafe;color:#1e40af;padding:3px 9px;border-radius:99px;font-weight:800;">' + (DOW[d]||d) + '</span>');
+            if (_hasSched || _p_shift_obj) {
+                const _dayNames = (_hasSched ? [...p.trainingDays] : []).sort((a,b)=>a-b).map(d => '<span style="font-size:0.74rem;background:#dbeafe;color:#1e40af;padding:3px 9px;border-radius:99px;font-weight:800;">' + (DOW[d]||d) + '</span>');
                 scheduleHtml = '<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:9px 12px;margin-bottom:12px;">'
                     + '<div style="font-size:0.65rem;font-weight:900;color:#1d4ed8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">📅 Lịch học đã đăng ký</div>'
-                    + '<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:4px;">' + _dayNames.join('') + '</div>'
+                    + '<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:4px;">' + (_hasSched ? _dayNames.join('') : '<span style="font-size:0.74rem;color:#475569;">Chưa chọn ngày tập cụ thể.</span>') + '</div>'
                     + (_p_shift_name ? '<div style="margin-top:4px;"><span style="font-size:0.68rem;background:#e0f2fe;color:#0369a1;padding:2px 8px;border-radius:99px;font-weight:700;">⏰ ' + escapeHtml(_p_shift_name) + '</span></div>' : '')
                     + '<div style="font-size:0.61rem;color:#64748b;">🔄 Ô tím trong lịch = ngày <b>học bù</b></div></div>';
             }
@@ -2111,10 +2130,9 @@ export function initAttendance() {
             }
             calHtml += '</div>';
             bodyEl.innerHTML =
-                '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">'
+                '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;padding-right:44px;">'
                 + '<div><div style="font-size:1rem;font-weight:900;color:#0033A0;">' + escapeHtml((window.ProfileCanonicalStore?.resolveDisplayName?.(name, p)) || p.displayName || p.name || p.fullName || p.studentName || name) + '</div>'
                 + '<div style="font-size:0.72rem;color:#64748b;margin-top:3px;">🥋 ' + escapeHtml(p.belt||'Đai Trắng') + '</div></div>'
-                + '<button onclick="document.getElementById(\'attHistModal\').style.display=\'none\'" style="background:#f1f5f9;border:none;border-radius:50%;width:32px;height:32px;font-size:1rem;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#475569;">✕</button>'
                 + '</div>' + scheduleHtml
                 + '<div style="display:flex;gap:7px;margin-bottom:12px;flex-wrap:wrap;">'
                 + '<span style="background:#dcfce7;color:#166534;padding:5px 12px;border-radius:99px;font-size:0.75rem;font-weight:800;">✅ ' + present + ' buổi</span>'
@@ -2126,7 +2144,7 @@ export function initAttendance() {
                 + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
                 + rateBox(mRate,present,mTotal,'Tháng '+monthDisplay)
                 + rateBox(qRate,qPresent,qTotal,quarterLabel)
-                + '</div></div>' + calHtml
+                + '</div></div><div id="attHistoryActionSlot" style="margin:12px 0;"></div><div id="attHistoryCalendar">' + calHtml + '</div>'
                 + '<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;font-size:0.62rem;color:#64748b;">'
                 + '<span>⬜ Chưa ĐD</span>'
                 + (_hasSched ? '<span style="background:#f0f9ff;padding:1px 5px;border-radius:4px;color:#93c5fd;">· Ngày có lịch</span>' : '')
@@ -2134,14 +2152,15 @@ export function initAttendance() {
             const historySection = document.createElement('section');
             historySection.style.cssText = 'margin-top:18px;border-top:1px solid #cbd5e1;padding-top:14px;min-width:0;';
             const title = document.createElement('h3');title.textContent = 'Lịch sử Điểm danh đã xác minh';
-            title.style.cssText = 'font-size:16px;font-weight:800;line-height:1.4;';historySection.append(title);
+            const actionSlot = document.getElementById('attHistoryActionSlot');
+            title.style.cssText = 'font-size:16px;font-weight:800;line-height:1.4;margin:0;';actionSlot.append(title);
             const coverage = document.createElement('p');
             coverage.textContent = 'Cơ sở: ' + (window.getBranchNameDisplay?.(historyBranch) || historyBranch || 'chưa chọn') + '. Duyệt các năm theo trang, từ cũ đến mới; tối đa 40 bản ghi/trang. Dữ liệu cũ chưa xác minh cần Admin đối soát.';
-            coverage.style.cssText = 'font-size:13px;color:#475569;line-height:1.5;margin:8px 0;';historySection.append(coverage);
+            coverage.style.cssText = 'font-size:13px;color:#475569;line-height:1.5;margin:8px 0;';actionSlot.append(coverage);
             const rowsEl = document.createElement('div');rowsEl.id = 'attVerifiedHistoryRows';historySection.append(rowsEl);
             const statusEl = document.createElement('p');statusEl.setAttribute('role','status');statusEl.style.cssText = 'font-size:13px;line-height:1.5;margin:8px 0;';historySection.append(statusEl);
             const more = document.createElement('button');more.id = 'attHistoryLoadMore';more.type = 'button';more.textContent = 'Mở lịch sử đã xác minh';
-            more.style.cssText = 'font-size:16px;min-height:44px;padding:10px 14px;max-width:100%;border:1px solid #93c5fd;border-radius:10px;color:#1e40af;background:#eff6ff;cursor:pointer;';historySection.append(more);
+            more.style.cssText = 'font-size:16px;min-height:44px;padding:10px 14px;max-width:100%;border:1px solid #93c5fd;border-radius:10px;color:#1e40af;background:#eff6ff;cursor:pointer;';actionSlot.append(more);
             bodyEl.append(historySection);
             let cursor = null,loading = false,done = false,pageCount = 0;
             const seen = new Set(); // Presentation only; discarded when modal/session closes.
@@ -2156,12 +2175,13 @@ export function initAttendance() {
                         if (seen.has(row.id)) continue;seen.add(row.id);
                         const item = document.createElement('article');item.dataset.historyId = row.id;
                         item.style.cssText = 'border:1px solid #e2e8f0;border-radius:10px;padding:10px;margin:8px 0;font-size:14px;line-height:1.6;overflow-wrap:anywhere;';
-                        const data = row.data,shift = _clubShifts.find(value => value.id === data.shiftId);
+                        const data = row.data,shift = resolveTrainingShift(data.shiftId,_clubShifts);
                         const date = document.createElement('strong');date.textContent = data.date + ' · ' + ({1:'Có mặt',2:'Vắng',3:'Có phép'}[Number(data.status)] || 'Chưa điểm danh');
                         const detail = document.createElement('div');detail.textContent = 'Tháng ' + data.month + ' · Ca: ' + (shift?.name || data.shiftId || 'Không gán ca') + ' · ' + (window.getBranchNameDisplay?.(data.branch) || data.branch);
                         item.append(date,detail);rowsEl.append(item);
                     }
                     cursor = page.cursor;done = page.complete;pageCount++;
+                    historySection.append(more); // Same control follows the loaded rows; no second CTA/handler.
                     statusEl.textContent = done ? (seen.size ? 'Đã duyệt hết lịch sử đã xác minh của cơ sở này (' + seen.size + ' buổi).' : 'Chưa có lịch sử đã xác minh tại cơ sở này.')
                         : 'Đã tải trang ' + pageCount + ' (' + seen.size + ' buổi đã ghi nhận).';
                     more.textContent = done ? 'Đã hết lịch sử đã xác minh' : 'Tải thêm lịch sử';
@@ -2912,6 +2932,9 @@ export function initAttendance() {
         resetForClub(clubId) {
             _resetAttendanceModuleState(clubId || _clubId());
             return true;
+        },
+        closeMemberHistory() {
+            return _closeMemberHistory();
         },
         getMetrics() {
             return {

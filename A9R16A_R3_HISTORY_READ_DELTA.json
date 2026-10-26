@@ -1,0 +1,837 @@
+{
+  "status": "PASS",
+  "scope": "Equivalent local canonical-owner query counts, not production billed telemetry",
+  "before": {
+    "rows": [
+      {
+        "action": "open-primary",
+        "delta": {
+          "getDoc": 0,
+          "getDocs": 1,
+          "onSnapshot": 0
+        },
+        "queries": [
+          {
+            "ref": {
+              "path": "clubs/R3_QA/attendance"
+            },
+            "constraints": [
+              {
+                "type": "where",
+                "value": [
+                  "profileId",
+                  "==",
+                  "P_A"
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "month",
+                  "in",
+                  [
+                    "2026-10",
+                    "2026-11",
+                    "2026-12"
+                  ]
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "historyAuthority",
+                  "==",
+                  "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "branch",
+                  "==",
+                  "CS1"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "action": "first-page",
+        "delta": {
+          "getDoc": 0,
+          "getDocs": 1,
+          "onSnapshot": 0
+        },
+        "queries": [
+          {
+            "ref": {
+              "path": "clubs/R3_QA/attendance"
+            },
+            "constraints": [
+              {
+                "type": "where",
+                "value": [
+                  "profileId",
+                  "==",
+                  "P_A"
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "historyAuthority",
+                  "==",
+                  "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "branch",
+                  "==",
+                  "CS1"
+                ]
+              },
+              {
+                "type": "orderBy",
+                "value": [
+                  "__name__",
+                  "asc"
+                ]
+              },
+              {
+                "type": "limit",
+                "value": [
+                  40
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "action": "next-page",
+        "delta": {
+          "getDoc": 0,
+          "getDocs": 1,
+          "onSnapshot": 0
+        },
+        "queries": [
+          {
+            "ref": {
+              "path": "clubs/R3_QA/attendance"
+            },
+            "constraints": [
+              {
+                "type": "where",
+                "value": [
+                  "profileId",
+                  "==",
+                  "P_A"
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "historyAuthority",
+                  "==",
+                  "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "branch",
+                  "==",
+                  "CS1"
+                ]
+              },
+              {
+                "type": "orderBy",
+                "value": [
+                  "__name__",
+                  "asc"
+                ]
+              },
+              {
+                "type": "limit",
+                "value": [
+                  40
+                ]
+              },
+              {
+                "type": "startAfter",
+                "value": [
+                  "P_A_2022-07-25_G1"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "action": "reopen",
+        "delta": {
+          "getDoc": 0,
+          "getDocs": 1,
+          "onSnapshot": 0
+        },
+        "queries": [
+          {
+            "ref": {
+              "path": "clubs/R3_QA/attendance"
+            },
+            "constraints": [
+              {
+                "type": "where",
+                "value": [
+                  "profileId",
+                  "==",
+                  "P_A"
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "month",
+                  "in",
+                  [
+                    "2026-10",
+                    "2026-11",
+                    "2026-12"
+                  ]
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "historyAuthority",
+                  "==",
+                  "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "branch",
+                  "==",
+                  "CS1"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "action": "switch-principal-CS2",
+        "delta": {
+          "getDoc": 1,
+          "getDocs": 0,
+          "onSnapshot": 0
+        },
+        "queries": []
+      },
+      {
+        "action": "open-CS2",
+        "delta": {
+          "getDoc": 0,
+          "getDocs": 1,
+          "onSnapshot": 0
+        },
+        "queries": [
+          {
+            "ref": {
+              "path": "clubs/R3_QA/attendance"
+            },
+            "constraints": [
+              {
+                "type": "where",
+                "value": [
+                  "profileId",
+                  "==",
+                  "P_B"
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "month",
+                  "in",
+                  [
+                    "2026-10",
+                    "2026-11",
+                    "2026-12"
+                  ]
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "historyAuthority",
+                  "==",
+                  "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "branch",
+                  "==",
+                  "CS2"
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "scope": "Equivalent actual owner calls, synthetic SDK counters; current authority/branch constraints captured; not billed production telemetry"
+  },
+  "after": {
+    "rows": [
+      {
+        "action": "open-primary",
+        "delta": {
+          "getDoc": 0,
+          "getDocs": 1,
+          "onSnapshot": 0
+        },
+        "queries": [
+          {
+            "ref": {
+              "path": "clubs/R3_QA/attendance"
+            },
+            "constraints": [
+              {
+                "type": "where",
+                "value": [
+                  "profileId",
+                  "==",
+                  "P_A"
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "month",
+                  "in",
+                  [
+                    "2026-10",
+                    "2026-11",
+                    "2026-12"
+                  ]
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "historyAuthority",
+                  "==",
+                  "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "branch",
+                  "==",
+                  "CS1"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "action": "first-page",
+        "delta": {
+          "getDoc": 0,
+          "getDocs": 1,
+          "onSnapshot": 0
+        },
+        "queries": [
+          {
+            "ref": {
+              "path": "clubs/R3_QA/attendance"
+            },
+            "constraints": [
+              {
+                "type": "where",
+                "value": [
+                  "profileId",
+                  "==",
+                  "P_A"
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "historyAuthority",
+                  "==",
+                  "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "branch",
+                  "==",
+                  "CS1"
+                ]
+              },
+              {
+                "type": "orderBy",
+                "value": [
+                  "__name__",
+                  "asc"
+                ]
+              },
+              {
+                "type": "limit",
+                "value": [
+                  40
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "action": "next-page",
+        "delta": {
+          "getDoc": 0,
+          "getDocs": 1,
+          "onSnapshot": 0
+        },
+        "queries": [
+          {
+            "ref": {
+              "path": "clubs/R3_QA/attendance"
+            },
+            "constraints": [
+              {
+                "type": "where",
+                "value": [
+                  "profileId",
+                  "==",
+                  "P_A"
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "historyAuthority",
+                  "==",
+                  "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "branch",
+                  "==",
+                  "CS1"
+                ]
+              },
+              {
+                "type": "orderBy",
+                "value": [
+                  "__name__",
+                  "asc"
+                ]
+              },
+              {
+                "type": "limit",
+                "value": [
+                  40
+                ]
+              },
+              {
+                "type": "startAfter",
+                "value": [
+                  "P_A_2022-07-25_G1"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "action": "reopen",
+        "delta": {
+          "getDoc": 0,
+          "getDocs": 1,
+          "onSnapshot": 0
+        },
+        "queries": [
+          {
+            "ref": {
+              "path": "clubs/R3_QA/attendance"
+            },
+            "constraints": [
+              {
+                "type": "where",
+                "value": [
+                  "profileId",
+                  "==",
+                  "P_A"
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "month",
+                  "in",
+                  [
+                    "2026-10",
+                    "2026-11",
+                    "2026-12"
+                  ]
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "historyAuthority",
+                  "==",
+                  "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "branch",
+                  "==",
+                  "CS1"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "action": "switch-principal-CS2",
+        "delta": {
+          "getDoc": 1,
+          "getDocs": 0,
+          "onSnapshot": 0
+        },
+        "queries": []
+      },
+      {
+        "action": "open-CS2",
+        "delta": {
+          "getDoc": 0,
+          "getDocs": 1,
+          "onSnapshot": 0
+        },
+        "queries": [
+          {
+            "ref": {
+              "path": "clubs/R3_QA/attendance"
+            },
+            "constraints": [
+              {
+                "type": "where",
+                "value": [
+                  "profileId",
+                  "==",
+                  "P_B"
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "month",
+                  "in",
+                  [
+                    "2026-10",
+                    "2026-11",
+                    "2026-12"
+                  ]
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "historyAuthority",
+                  "==",
+                  "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "branch",
+                  "==",
+                  "CS2"
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "scope": "Equivalent actual owner calls, synthetic SDK counters; current authority/branch constraints captured; not billed production telemetry"
+  },
+  "pageMatrix": {
+    "status": "PASS",
+    "rows": [
+      {
+        "device": "iPhone-viewport",
+        "action": "open",
+        "delta": {
+          "getDoc": 0,
+          "getDocs": 1,
+          "onSnapshot": 0
+        },
+        "queries": [
+          {
+            "ref": {
+              "path": "clubs/R3_QA/attendance"
+            },
+            "constraints": [
+              {
+                "type": "where",
+                "value": [
+                  "profileId",
+                  "==",
+                  "P_A"
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "month",
+                  "in",
+                  [
+                    "2026-10",
+                    "2026-11",
+                    "2026-12"
+                  ]
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "historyAuthority",
+                  "==",
+                  "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "branch",
+                  "==",
+                  "CS1"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "device": "iPhone-viewport",
+        "action": "first-page",
+        "getDocs": 1
+      },
+      {
+        "device": "iPhone-viewport",
+        "action": "next-final-pages",
+        "getDocs": 2
+      },
+      {
+        "device": "Android-viewport",
+        "action": "open",
+        "delta": {
+          "getDoc": 0,
+          "getDocs": 1,
+          "onSnapshot": 0
+        },
+        "queries": [
+          {
+            "ref": {
+              "path": "clubs/R3_QA/attendance"
+            },
+            "constraints": [
+              {
+                "type": "where",
+                "value": [
+                  "profileId",
+                  "==",
+                  "P_A"
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "month",
+                  "in",
+                  [
+                    "2026-10",
+                    "2026-11",
+                    "2026-12"
+                  ]
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "historyAuthority",
+                  "==",
+                  "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "branch",
+                  "==",
+                  "CS1"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "device": "Android-viewport",
+        "action": "first-page",
+        "getDocs": 1
+      },
+      {
+        "device": "Android-viewport",
+        "action": "next-final-pages",
+        "getDocs": 2
+      },
+      {
+        "device": "Desktop",
+        "action": "open",
+        "delta": {
+          "getDoc": 0,
+          "getDocs": 1,
+          "onSnapshot": 0
+        },
+        "queries": [
+          {
+            "ref": {
+              "path": "clubs/R3_QA/attendance"
+            },
+            "constraints": [
+              {
+                "type": "where",
+                "value": [
+                  "profileId",
+                  "==",
+                  "P_A"
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "month",
+                  "in",
+                  [
+                    "2026-10",
+                    "2026-11",
+                    "2026-12"
+                  ]
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "historyAuthority",
+                  "==",
+                  "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "branch",
+                  "==",
+                  "CS1"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "device": "Desktop",
+        "action": "first-page",
+        "getDocs": 1
+      },
+      {
+        "device": "Desktop",
+        "action": "next-final-pages",
+        "getDocs": 2
+      }
+    ],
+    "historyOnSnapshot": 0,
+    "newReaderOwners": 0
+  },
+  "newReaderOwners": 0,
+  "newHistoryListeners": 0,
+  "automaticHistoryPageReads": 0,
+  "quarterSummaryPerOpen": 1,
+  "firstPagePerCTA": 1,
+  "nextPagePerCTA": 1,
+  "dailyCompatibility": {
+    "before": {
+      "rows": [
+        {
+          "shiftId": "S1",
+          "actualSelected": "S1",
+          "delta": {
+            "getDoc": 0,
+            "getDocs": 1,
+            "onSnapshot": 0
+          },
+          "writes": 0
+        },
+        {
+          "shiftId": "G1",
+          "actualSelected": "",
+          "delta": {
+            "getDoc": 0,
+            "getDocs": 0,
+            "onSnapshot": 0
+          },
+          "writes": 0
+        }
+      ],
+      "scope": "Actual owners, equivalent valid explicit path + broken/restored legacy path, synthetic SDK counters"
+    },
+    "after": {
+      "rows": [
+        {
+          "shiftId": "S1",
+          "actualSelected": "S1",
+          "delta": {
+            "getDoc": 0,
+            "getDocs": 1,
+            "onSnapshot": 0
+          },
+          "writes": 0
+        },
+        {
+          "shiftId": "G1",
+          "actualSelected": "G1",
+          "delta": {
+            "getDoc": 0,
+            "getDocs": 1,
+            "onSnapshot": 0
+          },
+          "writes": 0
+        }
+      ],
+      "scope": "Actual owners, equivalent valid explicit path + broken/restored legacy path, synthetic SDK counters"
+    },
+    "note": "Functional explicit path stays1 daily query. Broken legacy path was0; recovered legacy path uses the existing daily query1. This is not claimed as a raw0-to0 delta."
+  },
+  "productionBillingTelemetry": "ENV_BLOCKED"
+}

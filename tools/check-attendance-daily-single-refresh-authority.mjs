@@ -74,9 +74,14 @@ check(app.includes("renderDailyFromRam('legacy-renderApp-profile-presentation')"
 const attendanceEventImports = Array.from(main.matchAll(/import\s*\{\s*initAttendanceEvents\s*\}\s*from\s*['"]\.\/events\/attendance\.events\.js\?v=([a-z0-9-]+)['"]/g));
 check(attendanceEventImports.length === 1 && count(main, /if\s*\(guardOnce\('initAttendanceEvents'\)\)\s*initAttendanceEvents\(\)/g) === 1, 'canonical attendance event layer is mounted once by main');
 const sourceIdentity = verifyRuntimeProfile(root).identity;
-const nestedImporterToken = sourceIdentity.id === 'V11R6_A9R16A_R2_SEQUENTIAL'
+const scopedModuleURLs = JSON.parse(read(sourceIdentity.manifest)).canonicalModuleURLs || null;
+const nestedImporterToken = scopedModuleURLs
+    ? new URL(JSON.parse(read(sourceIdentity.manifest)).canonicalModuleURLs['js/ui/render.js'],'https://qa/').searchParams.get('v')
+    : sourceIdentity.id === 'V11R6_A9R16A_R2_SEQUENTIAL'
     ? sourceIdentity.buildTag : 'attendance-daily-single-refresh-authority-20260813-v5u6d';
-check(main.includes(`./ui/render.js?v=${nestedImporterToken}`) && main.includes(`./ui/tabs.js?v=${nestedImporterToken}`) && read('js/ui/tabs.js').includes("attendance.listeners.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d"), 'nested importer cache keys match the exact accepted source lineage; unchanged listener keeps its existing identity');
+const tabsToken = scopedModuleURLs ? new URL(scopedModuleURLs['js/ui/tabs.js'],'https://qa/').searchParams.get('v') : nestedImporterToken;
+const listenerToken = scopedModuleURLs ? new URL(scopedModuleURLs['js/listeners/attendance.listeners.js'],'https://qa/').searchParams.get('v') : 'attendance-daily-single-refresh-authority-20260813-v5u6d';
+check(main.includes(`./ui/render.js?v=${nestedImporterToken}`) && main.includes(`./ui/tabs.js?v=${tabsToken}`) && read('js/ui/tabs.js').includes(`attendance.listeners.js?v=${listenerToken}`), 'nested importer cache keys match each dependency in the exact accepted source lineage');
 check(!/id="(?:att_date|att_branch|att_belt|att_shift|chk_show_all_att)"[^>]*onchange=/.test(index), 'attendance filter controls have no duplicate inline onchange owner');
 check(main.includes("window.APP_BUILD_VERSION = '4K-6V5U6D-attendance-daily-single-refresh-authority-20260813'"), 'runtime build version is exactly V5U6D');
 check(pkg.scripts?.['check:attendance-daily-single-refresh-authority'] === 'node tools/check-attendance-daily-single-refresh-authority.mjs', 'package exposes the V5U6D gate');

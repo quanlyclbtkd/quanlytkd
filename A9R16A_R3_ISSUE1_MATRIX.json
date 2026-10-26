@@ -1,0 +1,394 @@
+{
+  "status": "PASS",
+  "scope": "Synthetic browser/owner + pure regression; no production profile/settings export supplied",
+  "rows": [
+    {
+      "id": "S01",
+      "status": "PASS",
+      "evidence": [
+        {
+          "id": "S01",
+          "title": "Legacy global visible for admin CS1",
+          "status": "PASS",
+          "evidence": [
+            {
+              "id": "",
+              "label": "⏰ -- Chọn ca tập --"
+            },
+            {
+              "id": "G1",
+              "label": "Ca Chiều (17:15–18:45)"
+            },
+            {
+              "id": "S1",
+              "label": "Ca CS1 (07:00–08:00)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S02",
+      "status": "PASS",
+      "evidence": [
+        {
+          "id": "S02",
+          "title": "Legacy global visible for admin CS2",
+          "status": "PASS",
+          "evidence": [
+            {
+              "id": "",
+              "label": "⏰ -- Chọn ca tập --"
+            },
+            {
+              "id": "G1",
+              "label": "Ca Chiều (17:15–18:45)"
+            },
+            {
+              "id": "S2",
+              "label": "Ca CS2 (08:00–09:00)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S03",
+      "status": "PASS",
+      "evidence": [
+        {
+          "id": "S03",
+          "title": "Legacy global visible for coach CS1",
+          "status": "PASS",
+          "evidence": [
+            {
+              "id": "",
+              "label": "⏰ -- Chọn ca tập --"
+            },
+            {
+              "id": "G1",
+              "label": "Ca Chiều (17:15–18:45)"
+            },
+            {
+              "id": "S1",
+              "label": "Ca CS1 (07:00–08:00)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S04",
+      "status": "PASS",
+      "evidence": [
+        {
+          "id": "S04",
+          "title": "Legacy global visible for coach CS2",
+          "status": "PASS",
+          "evidence": [
+            {
+              "id": "",
+              "label": "⏰ -- Chọn ca tập --"
+            },
+            {
+              "id": "G1",
+              "label": "Ca Chiều (17:15–18:45)"
+            },
+            {
+              "id": "S2",
+              "label": "Ca CS2 (08:00–09:00)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S05",
+      "status": "PASS",
+      "evidence": [
+        {
+          "id": "S05",
+          "title": "Global shift roster keeps CS1 boundary",
+          "status": "PASS",
+          "evidence": {
+            "profileIds": [
+              "P_A"
+            ],
+            "counts": {
+              "getDoc": 6,
+              "getDocs": 1,
+              "onSnapshot": 0
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "S06",
+      "status": "PASS",
+      "evidence": [
+        {
+          "id": "S06",
+          "title": "Global shift roster keeps CS2 boundary",
+          "status": "PASS",
+          "evidence": {
+            "profileIds": [
+              "P_B"
+            ],
+            "counts": {
+              "getDoc": 7,
+              "getDocs": 2,
+              "onSnapshot": 0
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "S07",
+      "status": "PASS",
+      "evidence": [
+        {
+          "id": "S07",
+          "title": "Explicit opposite-branch shift hidden",
+          "status": "PASS",
+          "evidence": [
+            "",
+            "G1",
+            "S2"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S08",
+      "status": "PASS",
+      "evidence": [
+        {
+          "id": "S08",
+          "title": "Explicit opposite-branch shift hidden",
+          "status": "PASS",
+          "evidence": [
+            "",
+            "G1",
+            "S1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S09",
+      "status": "PASS",
+      "evidence": [
+        {
+          "id": "S09",
+          "title": "Legacy profile edit keeps registration and time label",
+          "status": "PASS",
+          "evidence": {
+            "value": "G1",
+            "label": "Ca Chiều (17:15–18:45)",
+            "warning": ""
+          }
+        },
+        {
+          "id": "S09",
+          "title": "Stored legacy-global registration valid across CS1..CS10",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "S10",
+      "status": "PASS",
+      "evidence": [
+        {
+          "id": "S10",
+          "title": "Explicit cross-branch registration stays mismatched",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "S11",
+      "status": "PASS",
+      "evidence": [
+        {
+          "id": "S11",
+          "title": "Invalid non-empty branch is never global",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "S12",
+      "status": "PASS",
+      "evidence": [
+        {
+          "id": "S12",
+          "title": "New blank-branch shift remains blocked",
+          "status": "PASS",
+          "evidence": {
+            "blocked": true,
+            "reason": "SHIFT_AUTHORITY_UNRESOLVED"
+          }
+        },
+        {
+          "id": "S12",
+          "title": "Strict new-write branch authority remains false for blank/missing/null",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "S13",
+      "status": "PASS",
+      "evidence": [
+        {
+          "id": "S13",
+          "title": "New explicit CS1 uses the existing settings writer",
+          "status": "PASS",
+          "evidence": {
+            "writes": 1,
+            "path": "clubs/R3_QA/settings/shifts"
+          }
+        },
+        {
+          "id": "S13",
+          "title": "Strict new-write branch authority accepts CS1..CS10",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "S14",
+      "status": "PASS",
+      "evidence": [
+        {
+          "id": "S14",
+          "title": "Registered shift name and real time display in primary history",
+          "status": "PASS",
+          "evidence": {
+            "expected": "Ca Chiều (17:15–18:45)"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S15",
+      "status": "PASS",
+      "evidence": [
+        {
+          "id": "S15",
+          "title": "Loading/selecting existing shifts performs no migration write",
+          "status": "PASS",
+          "evidence": {
+            "writes": 0
+          }
+        },
+        {
+          "id": "S15",
+          "title": "Read-only scope/audit never rewrites stored shifts",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "S16",
+      "status": "PASS",
+      "evidence": [
+        {
+          "id": "S16",
+          "title": "No added runtime reader call sites",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "S17",
+      "status": "PASS",
+      "evidence": [
+        {
+          "id": "S17",
+          "title": "No added runtime listener call sites",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "S18",
+      "status": "PASS",
+      "evidence": [
+        {
+          "id": "S18",
+          "title": "Rules and indexes exactly match the required hashes",
+          "status": "PASS"
+        }
+      ]
+    }
+  ],
+  "additional": [
+    {
+      "id": "ROSTER",
+      "title": "Existing day/status/shift/month exclusions survive legacy compatibility",
+      "status": "PASS",
+      "evidence": {
+        "profileIds": [
+          "P_A",
+          "P_BLANK_DAYS",
+          "P_NO_SHIFT"
+        ],
+        "optionalPolicy": "Empty days and blank profile shift preserve existing roster behavior"
+      }
+    },
+    {
+      "id": "S09-missing",
+      "title": "Historical missing/null/whitespace branch is read-compatible",
+      "status": "PASS"
+    },
+    {
+      "id": "S07-unknown",
+      "title": "Missing Coach/profile branch cannot use global as an ACL fallback",
+      "status": "PASS"
+    },
+    {
+      "id": "ID01",
+      "title": "Duplicate IDs never resolve by array order",
+      "status": "PASS"
+    },
+    {
+      "id": "ID02",
+      "title": "No label/index/number coercion into shift identity",
+      "status": "PASS"
+    },
+    {
+      "id": "ID03",
+      "title": "Reordering does not remap a registration",
+      "status": "PASS"
+    },
+    {
+      "id": "DAYS",
+      "title": "All existing day/optional-shift policies remain",
+      "status": "PASS"
+    }
+  ],
+  "reads": {
+    "equivalentValidExplicitBefore": {
+      "getDoc": 0,
+      "getDocs": 1,
+      "onSnapshot": 0
+    },
+    "equivalentValidExplicitAfter": {
+      "getDoc": 0,
+      "getDocs": 1,
+      "onSnapshot": 0
+    },
+    "legacyBrokenBefore": {
+      "getDocs": 0
+    },
+    "legacyRecoveredAfter": {
+      "getDocs": 1
+    },
+    "newReaderOwners": 0,
+    "note": "Recovered legacy flow reuses the one existing normal daily query. Broken 0 reads is not misreported as equal to working 1 read."
+  }
+}

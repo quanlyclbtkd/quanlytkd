@@ -1,0 +1,112 @@
+diff --git a/js/modules/attendance.js b/js/modules/attendance.js
+--- a/js/modules/attendance.js
++++ b/js/modules/attendance.js
+@@ -2100,11 +2100,11 @@
+             const _p_shift_obj = resolveTrainingShift(p.trainingShiftId,_clubShifts);
+             const _p_shift_name = _p_shift_obj ? (_p_shift_obj.name + (_p_shift_obj.timeStart && _p_shift_obj.timeEnd ? ' (' + _p_shift_obj.timeStart + '–' + _p_shift_obj.timeEnd + ')' : '')) : '';
+             let scheduleHtml = '';
+-            if (_hasSched) {
+-                const _dayNames = [...p.trainingDays].sort((a,b)=>a-b).map(d => '<span style="font-size:0.74rem;background:#dbeafe;color:#1e40af;padding:3px 9px;border-radius:99px;font-weight:800;">' + (DOW[d]||d) + '</span>');
++            if (_hasSched || _p_shift_obj) {
++                const _dayNames = (_hasSched ? [...p.trainingDays] : []).sort((a,b)=>a-b).map(d => '<span style="font-size:0.74rem;background:#dbeafe;color:#1e40af;padding:3px 9px;border-radius:99px;font-weight:800;">' + (DOW[d]||d) + '</span>');
+                 scheduleHtml = '<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:9px 12px;margin-bottom:12px;">'
+                     + '<div style="font-size:0.65rem;font-weight:900;color:#1d4ed8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">📅 Lịch học đã đăng ký</div>'
+-                    + '<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:4px;">' + _dayNames.join('') + '</div>'
++                    + '<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:4px;">' + (_hasSched ? _dayNames.join('') : '<span style="font-size:0.74rem;color:#475569;">Chưa chọn ngày tập cụ thể.</span>') + '</div>'
+                     + (_p_shift_name ? '<div style="margin-top:4px;"><span style="font-size:0.68rem;background:#e0f2fe;color:#0369a1;padding:2px 8px;border-radius:99px;font-weight:700;">⏰ ' + escapeHtml(_p_shift_name) + '</span></div>' : '')
+                     + '<div style="font-size:0.61rem;color:#64748b;">🔄 Ô tím trong lịch = ngày <b>học bù</b></div></div>';
+             }
+diff --git a/public/js/modules/attendance.js b/public/js/modules/attendance.js
+--- a/public/js/modules/attendance.js
++++ b/public/js/modules/attendance.js
+@@ -2100,11 +2100,11 @@
+             const _p_shift_obj = resolveTrainingShift(p.trainingShiftId,_clubShifts);
+             const _p_shift_name = _p_shift_obj ? (_p_shift_obj.name + (_p_shift_obj.timeStart && _p_shift_obj.timeEnd ? ' (' + _p_shift_obj.timeStart + '–' + _p_shift_obj.timeEnd + ')' : '')) : '';
+             let scheduleHtml = '';
+-            if (_hasSched) {
+-                const _dayNames = [...p.trainingDays].sort((a,b)=>a-b).map(d => '<span style="font-size:0.74rem;background:#dbeafe;color:#1e40af;padding:3px 9px;border-radius:99px;font-weight:800;">' + (DOW[d]||d) + '</span>');
++            if (_hasSched || _p_shift_obj) {
++                const _dayNames = (_hasSched ? [...p.trainingDays] : []).sort((a,b)=>a-b).map(d => '<span style="font-size:0.74rem;background:#dbeafe;color:#1e40af;padding:3px 9px;border-radius:99px;font-weight:800;">' + (DOW[d]||d) + '</span>');
+                 scheduleHtml = '<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:9px 12px;margin-bottom:12px;">'
+                     + '<div style="font-size:0.65rem;font-weight:900;color:#1d4ed8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">📅 Lịch học đã đăng ký</div>'
+-                    + '<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:4px;">' + _dayNames.join('') + '</div>'
++                    + '<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:4px;">' + (_hasSched ? _dayNames.join('') : '<span style="font-size:0.74rem;color:#475569;">Chưa chọn ngày tập cụ thể.</span>') + '</div>'
+                     + (_p_shift_name ? '<div style="margin-top:4px;"><span style="font-size:0.68rem;background:#e0f2fe;color:#0369a1;padding:2px 8px;border-radius:99px;font-weight:700;">⏰ ' + escapeHtml(_p_shift_name) + '</span></div>' : '')
+                     + '<div style="font-size:0.61rem;color:#64748b;">🔄 Ô tím trong lịch = ngày <b>học bù</b></div></div>';
+             }
+diff --git a/tools/a9r16r3r1/lifecycle.browser.emulator.mjs b/tools/a9r16r3r1/lifecycle.browser.emulator.mjs
+--- a/tools/a9r16r3r1/lifecycle.browser.emulator.mjs
++++ b/tools/a9r16r3r1/lifecycle.browser.emulator.mjs
+@@ -117,17 +117,33 @@
+        const before={visible:getComputedStyle(modal).display!=='none',connected:modal.isConnected,parent:modal.parentElement.tagName};
+        await window.switchTab('active');
+        const after=document.getElementById('attHistModal');
+-       return {before,activeTab:document.querySelector('.tab-content.active')?.id,after:{connected:!!after?.isConnected,visible:!!after&&getComputedStyle(after).display!=='none'}};
++       return {before,activeTab:document.querySelector('.tab-content.active')?.id,after:{connected:!!after?.isConnected,visible:!!after&&getComputedStyle(after).display!=='none',bodyLength:after?.querySelector('#attHistBody')?.textContent.length||0}};
+       });
+-      recordLifecycle(role+' '+mode+' actual tab leave',evidence,evidence.before.visible&&evidence.activeTab==='tab_active'&&!evidence.after.visible);
++      recordLifecycle(role+' '+mode+' actual tab leave',evidence,evidence.before.visible&&evidence.activeTab==='tab_active'&&!evidence.after.visible&&evidence.after.bodyLength===0);
+       await page.evaluate(()=>window.switchTab('attendance'));
+      }
+      await page.waitForFunction(()=>window.AttendanceModule&&window.showAttMemberHistory);
++     if(role==='admin') {
++      await page.evaluate(()=>window.showAttMemberHistory('P00000','2026-10'));
++      try {
++       await env.withSecurityRulesDisabled(ctx=>sdk.updateDoc(sdk.doc(ctx.firestore(),'clubs',club),{accountStatus:'locked'}));
++       await page.waitForFunction(()=>!!document.getElementById('clubAccessBlockBanner'));
++       const locked=await page.evaluate(()=>{const m=document.getElementById('attHistModal');return{blockedReason:window.__clubAccessBootstrapState?.blockedReason,tabDisplay:document.getElementById('tab_attendance').style.display,historyVisible:!!m&&getComputedStyle(m).display!=='none',historyBodyLength:m?.querySelector('#attHistBody')?.textContent.length||0};});
++       recordLifecycle(role+' '+mode+' server club lock clears history',locked,locked.tabDisplay==='none'&&!locked.historyVisible&&locked.historyBodyLength===0);
++      } finally {await env.withSecurityRulesDisabled(ctx=>sdk.updateDoc(sdk.doc(ctx.firestore(),'clubs',club),{accountStatus:'active'}));}
++      await page.reload({waitUntil:'domcontentloaded'});
++      await page.waitForFunction(()=>window.__verifiedAuthContextState?.ready===true&&window.__verifiedAuthContextState.role==='admin'&&window.getProfilesListenerMetrics?.().fullAuthorityComplete===true&&document.getElementById('mainApp').style.display!=='none');
++      await page.evaluate(()=>window.switchTab('attendance'));
++     }
+      await page.evaluate(()=>window.showAttMemberHistory('P00000','2026-10'));
++     if(role==='coach') {
++      const guard=await page.evaluate(async()=>{await window.switchTab('debt');const m=document.getElementById('attHistModal');return{activeTab:document.querySelector('.tab-content.active')?.id,historyVisible:!!m&&getComputedStyle(m).display!=='none',role:__verifiedAuthContextState.role};});
++      recordLifecycle(role+' '+mode+' denied Finance navigation stays in Attendance',guard,guard.activeTab==='tab_attendance'&&guard.historyVisible&&guard.role==='coach');
++     }
+      await page.evaluate(()=>window._fb_init.signOut(window._fb_init.getAuth()));
+      await page.waitForFunction(()=>window.__verifiedAuthContextState?.ready===false&&document.getElementById('mainApp').style.display==='none');
+-     const evidence=await page.evaluate(()=>{const m=document.getElementById('attHistModal');return{uid:__verifiedAuthContextState.uid,ready:__verifiedAuthContextState.ready,mainDisplay:document.getElementById('mainApp').style.display,loginDisplay:document.getElementById('loginOverlay').style.display,modalConnected:!!m?.isConnected,modalVisible:!!m&&getComputedStyle(m).display!=='none',oldNameVisible:!!m&&getComputedStyle(m).display!=='none'&&m.textContent.includes('Synthetic Student 0')};});
+-     recordLifecycle(role+' '+mode+' actual Auth null/reset',evidence,!evidence.modalVisible&&!evidence.oldNameVisible);
++     const evidence=await page.evaluate(()=>{const m=document.getElementById('attHistModal');return{uid:__verifiedAuthContextState.uid,ready:__verifiedAuthContextState.ready,mainDisplay:document.getElementById('mainApp').style.display,loginDisplay:document.getElementById('loginOverlay').style.display,historyBodyLength:m?.querySelector('#attHistBody')?.textContent.length||0,modalConnected:!!m?.isConnected,modalVisible:!!m&&getComputedStyle(m).display!=='none',oldNameVisible:!!m&&getComputedStyle(m).display!=='none'&&m.textContent.includes('Synthetic Student 0')};});
++     recordLifecycle(role+' '+mode+' actual Auth null/reset',evidence,!evidence.modalVisible&&!evidence.oldNameVisible&&evidence.historyBodyLength===0);
+     } catch(error) {recordLifecycle(role+' '+mode+' lifecycle test error',{message:error.stack},false);}
+    }
+    if(process.env.A9R16_DIAGNOSTIC_STREAM)row.sdkStreamMessages=sdkStreamMessages;row.qaNativeXHR=!process.env.A9R16_QA_FETCH_STREAMS;
+diff --git a/tools/v11r2/manifests/V11R6_A9R16A_R3R1_REVIEW.json b/tools/v11r2/manifests/V11R6_A9R16A_R3R1_REVIEW.json
+--- a/tools/v11r2/manifests/V11R6_A9R16A_R3R1_REVIEW.json
++++ b/tools/v11r2/manifests/V11R6_A9R16A_R3R1_REVIEW.json
+@@ -3,7 +3,7 @@
+   "parentOuterZIP_SHA256": "da9aad90e3b70d50203f153832012016a66f27452f8b023a7b0a4b849ab58624",
+   "parentRuntimeSHA256": "950dde369575bd099170b86d6923063bf11ddf4f9ae6376c759a2ec680d1ea2d",
+   "buildTag": "qr-v11r6-a9r16a-r3r1-reviewed-history-20261026",
+-  "runtimeSHA256": "e9e3cf37550e360d4e6914dafeab1d85ffed09c8370699e510390a221077cb06",
++  "runtimeSHA256": "a0aee3010f4bdcca9f8f47aefe3ff72dcec4cd7a45e61b06d6864e8cbd01f0ac",
+   "rulesSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+   "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+   "canonicalRuntimeFiles": {
+@@ -73,7 +73,7 @@
+     "js/listeners/students.listeners.js": "a3d8f8c286a48d8e2a37fe7043c520ee46d32d2d295676873771394a2cecf231",
+     "js/main.js": "33d2e23dddac755a8070f1fc8a9b691d75dacbd188598ac14a35e05bb3bdd034",
+     "js/migrations/migrate-legacy-to-primary.js": "a5ac866f3cad2a893300e733c82b68ea73bafbda7709ba5031f5cbb8184974d1",
+-    "js/modules/attendance.js": "88e91db9cbfb41a16a4986d8154f4996182820456d0397e938461158e17fdda2",
++    "js/modules/attendance.js": "c7136f2b0bf718f99b3ae4ba3643ce1c76147134ad0e6e477929b428483901ef",
+     "js/modules/dashboard.js": "02d959b48ef1fa18947b4e0ae6acf16437e453ee5d81444e27f62c4fe078adc1",
+     "js/modules/exam.js": "51c0ce63b52ada9884062714b9ff8ed6bf6b748f51b4238543c19452dcbcc8ed",
+     "js/modules/finance.js": "2991367d4eea571a456c704315b5704a552cbc8eedd04417c1f8dc0fd8157a17",
+diff --git a/tools/v11r2/source-identity.mjs b/tools/v11r2/source-identity.mjs
+--- a/tools/v11r2/source-identity.mjs
++++ b/tools/v11r2/source-identity.mjs
+@@ -226,8 +226,8 @@
+   "coachAssignmentContract": "server-verified-multi-branch-v1",
+   "inputZIP_SHA256": "da9aad90e3b70d50203f153832012016a66f27452f8b023a7b0a4b849ab58624",
+   "manifest": "tools/v11r2/manifests/V11R6_A9R16A_R3R1_REVIEW.json",
+-  "manifestSHA256": "da38a0ab65f0fe2eb408d16aef5cb1214029ea0f08f35062280bbb2d8b72de5b",
+-  "runtimeSHA256": "e9e3cf37550e360d4e6914dafeab1d85ffed09c8370699e510390a221077cb06",
++  "manifestSHA256": "e9d8ddee0c8336cb6015ea0a6aabd471e7875307c124092f9f6a88299c7e71e7",
++  "runtimeSHA256": "a0aee3010f4bdcca9f8f47aefe3ff72dcec4cd7a45e61b06d6864e8cbd01f0ac",
+   "rulesSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+   "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+   "buildTag": "qr-v11r6-a9r16a-r3r1-reviewed-history-20261026"

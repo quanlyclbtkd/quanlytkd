@@ -58,7 +58,7 @@ check(resolverStart >= 0 && resolver.includes("mode: 'legacy-no-shift'") &&
 check(!/AttendanceService\.|\bgetDoc(?:s)?\s*\(|\bonSnapshot\s*\(|\bsetTimeout\s*\(|\bsetInterval\s*\(|innerHTML/.test(resolver),
     'shift decision helper has no network/render/timer owner');
 check(attendance.includes('function _getEligibleAttendanceShifts(context)') &&
-    attendance.includes("if (role === 'coach')") && attendance.includes('_sameBranch(shiftBranch, branch)'),
+    attendance.includes("if (role === 'coach')") && /isShiftEligibleForBranch\(shift,\s*branch\)/.test(attendance),
     'eligible shifts reuse canonical branch identity and Coach scope');
 check(!attendance.includes('eligibleShifts[0]') && !attendance.includes('_clubShifts[0]'),
     'no implicit first-shift auto selection exists');
@@ -420,8 +420,8 @@ try {
     check(dailyCalls === branchReadBefore + 1 && lastDailyOptions?.shiftId === 'cs2-b',
         'runtime: selecting eligible Branch B shift performs one read');
 
-    // A9R15 protected contract: missing branch is unresolved, never global.
-    // This intentionally replaces the retired pre-A9R15 global-shift assumption.
+    // R3 approved read compatibility: stored missing branch is legacy-global.
+    // New-write validation remains explicit; Coach/profile ACL is independent.
     reset({ club: 'club-coach', role: 'coach', branch: 'CS1', auth: 16, assignments:{Alice:'cs1-a',Bob:'cs2-b'} });
     shiftImpl = async () => [
         { id: 'cs1-a', name: 'CS1 A', branch: 'CS1' },
@@ -434,9 +434,9 @@ try {
     check(coachBlank?.blocked === true && dailyCalls === coachDailyBefore,
         'runtime: Coach configured blank performs zero daily reads');
     if (HISTORY_COACH_ACCESS) {
-        check(coachIds.join(',') === 'cs1-a' && !coachIds.includes('cs2-b'),
-            'ACTIVE runtime: Coach eligible shifts have explicit assigned branch authority');
-        check(!coachIds.includes('global'), 'A9R15: unresolved branch cannot acquire global authority');
+        check(coachIds.join(',') === 'cs1-a,global' && !coachIds.includes('cs2-b'),
+            'ACTIVE runtime: Coach eligible shifts preserve assigned branch authority plus stored legacy-global');
+        check(coachIds.includes('global'), 'R3: stored legacy-global is read-compatible within verified Coach branch');
     } else {
         check(coachBlank?.reason === 'attendance-maintenance' && coachIds.length === 0,
             'MAINTENANCE runtime: Coach stays blocked before shift discovery');

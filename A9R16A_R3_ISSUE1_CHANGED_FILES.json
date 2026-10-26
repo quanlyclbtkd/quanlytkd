@@ -1,0 +1,200 @@
+{
+  "status": "PASS",
+  "changed": [
+    {
+      "path": "index.html",
+      "before": "fa058f05f30d56a323b3aa7c6ef473dc8cdc61e95cedc980bc03e68fc8db1932",
+      "after": "4f440daed1e29dd5a51bfe16a83b9aa48ec96e4d5e6ba8ac57c13ef325940c23"
+    },
+    {
+      "path": "js/core/studentStatusCommandBoundary.js",
+      "before": "b15da5967f79cf1f3ec21692c8c25a9dbd527d069e7eab064d54bde724a15aad",
+      "after": "8870ad5d6013e13746320d443168e2554e1ef9328c1a86ab45fa8a2800f0f0aa"
+    },
+    {
+      "path": "js/core/trainingRegistration.js",
+      "before": "e691e8bf09039ca43262eb830a1286993948cfa149557b8e907f6147964867d6",
+      "after": "61756f420172b06e7ff640c7c2fdc36533e1653a680c2676f0661278a7536df4"
+    },
+    {
+      "path": "js/data/attendanceJournal.js",
+      "before": "de08c5ec802de029df1e0fe384f7e1640e46622fa3c0af3670e08307c7f66dfe",
+      "after": "fd3c0baa8d427f4821dbde3675dac461b94bb179f717109a8fbc0586c0f66cb0"
+    },
+    {
+      "path": "js/main.js",
+      "before": "cf9afef3a130a62d8b70cef9258864d231322190738c46a52384859e9c57820b",
+      "after": "7b4f9dfe76e59ead0207cf5808cf0890317ad46a625faee49ddcc90db6b08811"
+    },
+    {
+      "path": "js/modules/attendance.js",
+      "before": "e08c5b7d617d99eb5e4f5182261e7075f9a149ca6e97652bd7343ecf334b474b",
+      "after": "8785fb30672c63dba1df766a9810c9eb8badc216f06de0de1ceb6ba1ff6d1c08"
+    },
+    {
+      "path": "js/modules/finance.js",
+      "before": "41047a40b4c25fbd6fd11c5658e9441a0817dab9704bda673700cbcfcec441ef",
+      "after": "0e0c26ca688d5da1f7cf6332f66d6bc4aee166b478928a7b51d38797a625c144"
+    },
+    {
+      "path": "js/modules/finance/index.js",
+      "before": "f08f8b3248ccab8db4f70393d71e7a43a4055220049366ccecb8c5ba9eaa4128",
+      "after": "8c23eb439a40c2d6f9d8fdf64befc3fc14a8f41949629a170dece48cfdffc4c2"
+    },
+    {
+      "path": "js/modules/reports/attendanceExcelReport.js",
+      "before": "f7a52e1dbd54e8cc8fe0d397a9cc7a974796dbb9d00566b1f2c37221614f54b6",
+      "after": "a74d5f2e752f20230a72a3924540cb6032105384ceaec5141f6fbbefbcb93e80"
+    },
+    {
+      "path": "js/modules/reports/reportExportFacade.js",
+      "before": "cc1e20fb7506557400de92d3fdb749cd0851ce7701ad3614dee707c667ecd060",
+      "after": "8a640abb700173589bb7c7c8f84ab3667ccc5bd788f29c02a00acc1e2bb00442"
+    },
+    {
+      "path": "js/modules/students.js",
+      "before": "ef4d01c45a3cddf5c9bf90c53306e3635505c38e3f4a32409607be4e7617c756",
+      "after": "327e0efed401da731445742025fc88b6421b193150dc69d243aff88e6e2c6b38"
+    },
+    {
+      "path": "js/modules/students/index.js",
+      "before": "7453e8a04cc65d31f61ec8361bc1b0ff75b39d7f9d6123a41c68de74e2c4150a",
+      "after": "237e6f71f08d4f405d9e85f0211389895aaecc9e0d9aa08e2724ebf9a039029d"
+    },
+    {
+      "path": "js/services/attendance.service.js",
+      "before": "2f14bc2da29681e8435a8dc8e000b2e132e93812444ee7d114c28588e52f225b",
+      "after": "56c5c4eb15cf59f437e651d0ffb56060eb844c9e77d1501552b8ef8f5ffdfc59"
+    },
+    {
+      "path": "js/services/students.service.js",
+      "before": "6e0be117f4055b92168369fec92577857a7a7d95bdaeedc858b487a8eb96df5d",
+      "after": "90ff2f3c85f7dc74f1ebaf3631d56675ad6b961612ce393ea13616601edaa4d4"
+    },
+    {
+      "path": "public/index.html",
+      "before": "fa058f05f30d56a323b3aa7c6ef473dc8cdc61e95cedc980bc03e68fc8db1932",
+      "after": "4f440daed1e29dd5a51bfe16a83b9aa48ec96e4d5e6ba8ac57c13ef325940c23"
+    },
+    {
+      "path": "public/js/core/studentStatusCommandBoundary.js",
+      "before": "b15da5967f79cf1f3ec21692c8c25a9dbd527d069e7eab064d54bde724a15aad",
+      "after": "8870ad5d6013e13746320d443168e2554e1ef9328c1a86ab45fa8a2800f0f0aa"
+    },
+    {
+      "path": "public/js/core/trainingRegistration.js",
+      "before": "e691e8bf09039ca43262eb830a1286993948cfa149557b8e907f6147964867d6",
+      "after": "61756f420172b06e7ff640c7c2fdc36533e1653a680c2676f0661278a7536df4"
+    },
+    {
+      "path": "public/js/data/attendanceJournal.js",
+      "before": "de08c5ec802de029df1e0fe384f7e1640e46622fa3c0af3670e08307c7f66dfe",
+      "after": "fd3c0baa8d427f4821dbde3675dac461b94bb179f717109a8fbc0586c0f66cb0"
+    },
+    {
+      "path": "public/js/main.js",
+      "before": "cf9afef3a130a62d8b70cef9258864d231322190738c46a52384859e9c57820b",
+      "after": "7b4f9dfe76e59ead0207cf5808cf0890317ad46a625faee49ddcc90db6b08811"
+    },
+    {
+      "path": "public/js/modules/attendance.js",
+      "before": "e08c5b7d617d99eb5e4f5182261e7075f9a149ca6e97652bd7343ecf334b474b",
+      "after": "8785fb30672c63dba1df766a9810c9eb8badc216f06de0de1ceb6ba1ff6d1c08"
+    },
+    {
+      "path": "public/js/modules/finance.js",
+      "before": "41047a40b4c25fbd6fd11c5658e9441a0817dab9704bda673700cbcfcec441ef",
+      "after": "0e0c26ca688d5da1f7cf6332f66d6bc4aee166b478928a7b51d38797a625c144"
+    },
+    {
+      "path": "public/js/modules/finance/index.js",
+      "before": "f08f8b3248ccab8db4f70393d71e7a43a4055220049366ccecb8c5ba9eaa4128",
+      "after": "8c23eb439a40c2d6f9d8fdf64befc3fc14a8f41949629a170dece48cfdffc4c2"
+    },
+    {
+      "path": "public/js/modules/reports/attendanceExcelReport.js",
+      "before": "f7a52e1dbd54e8cc8fe0d397a9cc7a974796dbb9d00566b1f2c37221614f54b6",
+      "after": "a74d5f2e752f20230a72a3924540cb6032105384ceaec5141f6fbbefbcb93e80"
+    },
+    {
+      "path": "public/js/modules/reports/reportExportFacade.js",
+      "before": "cc1e20fb7506557400de92d3fdb749cd0851ce7701ad3614dee707c667ecd060",
+      "after": "8a640abb700173589bb7c7c8f84ab3667ccc5bd788f29c02a00acc1e2bb00442"
+    },
+    {
+      "path": "public/js/modules/students.js",
+      "before": "ef4d01c45a3cddf5c9bf90c53306e3635505c38e3f4a32409607be4e7617c756",
+      "after": "327e0efed401da731445742025fc88b6421b193150dc69d243aff88e6e2c6b38"
+    },
+    {
+      "path": "public/js/modules/students/index.js",
+      "before": "7453e8a04cc65d31f61ec8361bc1b0ff75b39d7f9d6123a41c68de74e2c4150a",
+      "after": "237e6f71f08d4f405d9e85f0211389895aaecc9e0d9aa08e2724ebf9a039029d"
+    },
+    {
+      "path": "public/js/services/attendance.service.js",
+      "before": "2f14bc2da29681e8435a8dc8e000b2e132e93812444ee7d114c28588e52f225b",
+      "after": "56c5c4eb15cf59f437e651d0ffb56060eb844c9e77d1501552b8ef8f5ffdfc59"
+    },
+    {
+      "path": "public/js/services/students.service.js",
+      "before": "6e0be117f4055b92168369fec92577857a7a7d95bdaeedc858b487a8eb96df5d",
+      "after": "90ff2f3c85f7dc74f1ebaf3631d56675ad6b961612ce393ea13616601edaa4d4"
+    },
+    {
+      "path": "tools/a9r15/registration.test.mjs",
+      "before": "a3c300c6f8c2589b00c90cdc1ca66d0ac84c219dfc30af6761f70b5bd2aac453",
+      "after": "777b611742a52b7294a024f0788f779641b07f5c73156483c98c945d28c92737"
+    },
+    {
+      "path": "tools/a9r16r3/build.mjs",
+      "before": null,
+      "after": "9ee454a236f96a47737f7625dfb693c763e5552419df7e882575062c8476824d"
+    },
+    {
+      "path": "tools/a9r16r3/shift-compatibility.test.mjs",
+      "before": null,
+      "after": "e20eed3fb6cd59e57c78d12789507e2fd8b0d254142a4b638ea4b28a727edccc"
+    },
+    {
+      "path": "tools/a9r16r3/shift.browser.mjs",
+      "before": null,
+      "after": "dbfd61d867955009739f6f3fd3b6e544e33a90727df4129e6ecf0b517270af9b"
+    },
+    {
+      "path": "tools/a9r16r3/ui-harness.mjs",
+      "before": null,
+      "after": "170bbc42e5898b9dd7e528455015741747d3ffc9d02abc35fb0f7f9ba3cf4ed7"
+    },
+    {
+      "path": "tools/check-attendance-daily-single-refresh-authority.mjs",
+      "before": "e3262bd3e9c852efb43b7dbf28feb257efc54c7cb50139f48f0e4e05680fbad2",
+      "after": "633f674003eab5dbe144b8c56aeb2814d7cfa31b6ea484056ae79d308b96155e"
+    },
+    {
+      "path": "tools/check-attendance-explicit-shift-authority.mjs",
+      "before": "3fa731bd4b0e0453a4124a6dd9ef2f5a7ab7f3278d7ad85742b60a23be1c6a24",
+      "after": "a21914ce1b905286ace4249c5865f734b5d1ec48edef88e76532ec8b8597c2f9"
+    },
+    {
+      "path": "tools/check-v5u2-tuition-command-cutover.mjs",
+      "before": "3f542e21f066451ca98513b9fc8ec0de60d8fdb8ad04fd40e4b24ca8cc69b2a6",
+      "after": "a588d592c637871cef7809b4e2c17b8ea228f2d578e7ebbdf57fbe97d0e1539f"
+    },
+    {
+      "path": "tools/v11r2/import-graph.mjs",
+      "before": "c88911a9652b9982fd8b7d4fd0a3f1e9711acb4b5d4646d127ceb4a6f81ffe15",
+      "after": "1901e1cd235659963dc5882404428f2d8283c28e6c7db24ffe07314b1705da24"
+    },
+    {
+      "path": "tools/v11r2/manifests/V11R6_A9R16A_R3_SHIFT_HISTORY.json",
+      "before": null,
+      "after": "ff907b1be3614701b33455e9413069dbe7d5bf2d6354e153a335d55ee90ddccd"
+    },
+    {
+      "path": "tools/v11r2/source-identity.mjs",
+      "before": "bc3fe5fb84e25b870b0e327a48c48b6e303ffbd49454835f932bb2f498029dc4",
+      "after": "0399a0d3cc3fe711f7c9ec674996dae41898b00c2b2ced52fcb393907c612e1e"
+    }
+  ]
+}

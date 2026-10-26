@@ -1,0 +1,135 @@
+{
+  "classification": "PASS",
+  "before": {
+    "classification": "PASS",
+    "scope": "Same canonical owner calls, synthetic SDK counters; not production billed telemetry. Exact Rules/SDK campaign is separate.",
+    "rows": [
+      {
+        "action": "open-primary",
+        "delta": {
+          "getDoc": 0,
+          "getDocs": 1,
+          "onSnapshot": 0
+        },
+        "writes": 0
+      },
+      {
+        "action": "first-page",
+        "delta": {
+          "getDoc": 0,
+          "getDocs": 1,
+          "onSnapshot": 0
+        },
+        "writes": 0
+      },
+      {
+        "action": "next-page",
+        "delta": {
+          "getDoc": 0,
+          "getDocs": 1,
+          "onSnapshot": 0
+        },
+        "writes": 0
+      },
+      {
+        "action": "close",
+        "delta": {
+          "getDoc": 0,
+          "getDocs": 0,
+          "onSnapshot": 0
+        },
+        "writes": 0
+      },
+      {
+        "action": "old-handler-after-close",
+        "delta": {
+          "getDoc": 0,
+          "getDocs": 0,
+          "onSnapshot": 0
+        },
+        "writes": 0
+      },
+      {
+        "action": "reopen",
+        "delta": {
+          "getDoc": 0,
+          "getDocs": 1,
+          "onSnapshot": 0
+        },
+        "writes": 0
+      }
+    ]
+  },
+  "after": {
+    "classification": "PASS",
+    "scope": "Same canonical owner calls, synthetic SDK counters; not production billed telemetry. Exact Rules/SDK campaign is separate.",
+    "rows": [
+      {
+        "action": "open-primary",
+        "delta": {
+          "getDoc": 0,
+          "getDocs": 1,
+          "onSnapshot": 0
+        },
+        "writes": 0
+      },
+      {
+        "action": "first-page",
+        "delta": {
+          "getDoc": 0,
+          "getDocs": 1,
+          "onSnapshot": 0
+        },
+        "writes": 0
+      },
+      {
+        "action": "next-page",
+        "delta": {
+          "getDoc": 0,
+          "getDocs": 1,
+          "onSnapshot": 0
+        },
+        "writes": 0
+      },
+      {
+        "action": "close",
+        "delta": {
+          "getDoc": 0,
+          "getDocs": 0,
+          "onSnapshot": 0
+        },
+        "writes": 0
+      },
+      {
+        "action": "old-handler-after-close",
+        "delta": {
+          "getDoc": 0,
+          "getDocs": 0,
+          "onSnapshot": 0
+        },
+        "writes": 0
+      },
+      {
+        "action": "reopen",
+        "delta": {
+          "getDoc": 0,
+          "getDocs": 1,
+          "onSnapshot": 0
+        },
+        "writes": 0
+      }
+    ]
+  },
+  "staticCallSitesBefore": {
+    "getDoc": 24,
+    "getDocs": 58,
+    "onSnapshot": 35
+  },
+  "staticCallSitesAfter": {
+    "getDoc": 24,
+    "getDocs": 58,
+    "onSnapshot": 35
+  },
+  "newHistoryOnSnapshot": 0,
+  "liveBilledTelemetry": "ENV_BLOCKED"
+}

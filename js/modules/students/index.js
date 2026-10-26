@@ -30,4 +30,4 @@
  */
 
 // Re-export tất cả từ file gốc để backward-compatible
-export { initStudents, initStudentPagination } from "../students.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+export { initStudents, initStudentPagination } from "../students.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";

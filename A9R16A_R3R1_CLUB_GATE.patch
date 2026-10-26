@@ -1,0 +1,65 @@
+diff --git a/app.js b/app.js
+--- a/app.js
++++ b/app.js
+@@ -1700,6 +1700,7 @@
+     };
+ 
+     const _hideClubProtectedUI = () => {
++        window.AttendanceModule?.closeMemberHistory?.();
+         ['mainTabsWrapper','filterArea','btnSettings','exportTaxBtn','exportBtn'].forEach(id => {
+             const el = document.getElementById(id); if (el) el.style.display = 'none';
+         });
+diff --git a/public/app.js b/public/app.js
+--- a/public/app.js
++++ b/public/app.js
+@@ -1700,6 +1700,7 @@
+     };
+ 
+     const _hideClubProtectedUI = () => {
++        window.AttendanceModule?.closeMemberHistory?.();
+         ['mainTabsWrapper','filterArea','btnSettings','exportTaxBtn','exportBtn'].forEach(id => {
+             const el = document.getElementById(id); if (el) el.style.display = 'none';
+         });
+diff --git a/tools/a9r16r3r1/reads.browser.mjs b/tools/a9r16r3r1/reads.browser.mjs
+new file mode 100644
+--- /dev/null
++++ b/tools/a9r16r3r1/reads.browser.mjs
+@@ -0,0 +1,6 @@
++import fs from 'node:fs';import path from 'node:path';import assert from 'node:assert/strict';import{createUI}from'../a9r16r3/ui-harness.mjs';
++const out=path.resolve(process.env.REVIEW_READS_OUTPUT||'evidence/R3R1/READS.json');fs.mkdirSync(path.dirname(out),{recursive:true});
++const ui=await createUI(),{page,context}=await ui.page();
++try{const rows=await page.evaluate(async()=>{await __setPrincipal('CS1');const rows=[];async function step(action,fn){const old={...__qa.counts},writes=__qa.writes.length;await fn();rows.push({action,delta:Object.fromEntries(Object.entries(__qa.counts).map(([k,v])=>[k,v-old[k]])),writes:__qa.writes.length-writes});}
++await step('open-primary',()=>showAttMemberHistory('P_A','2026-10'));await step('first-page',()=>document.getElementById('attHistoryLoadMore').onclick());await step('next-page',()=>document.getElementById('attHistoryLoadMore').onclick());const oldButton=document.getElementById('attHistoryLoadMore');await step('close',()=>document.querySelector('#attHistSheet [aria-label]').click());await step('old-handler-after-close',()=>oldButton.onclick());await step('reopen',()=>showAttMemberHistory('P_A','2026-10'));return rows;});
++assert.deepEqual(rows.map(x=>x.delta.getDocs),[1,1,1,0,0,1]);assert(rows.every(x=>x.delta.getDoc===0&&x.delta.onSnapshot===0&&x.writes===0));fs.writeFileSync(out,JSON.stringify({classification:'PASS',scope:'Same canonical owner calls, synthetic SDK counters; not production billed telemetry. Exact Rules/SDK campaign is separate.',rows},null,2));console.log('PASS equivalent history/close RPC counts and zero writes/listeners');}finally{await context.close();await ui.close();}
+diff --git a/tools/v11r2/manifests/V11R6_A9R16A_R3R1_REVIEW.json b/tools/v11r2/manifests/V11R6_A9R16A_R3R1_REVIEW.json
+--- a/tools/v11r2/manifests/V11R6_A9R16A_R3R1_REVIEW.json
++++ b/tools/v11r2/manifests/V11R6_A9R16A_R3R1_REVIEW.json
+@@ -3,12 +3,12 @@
+   "parentOuterZIP_SHA256": "da9aad90e3b70d50203f153832012016a66f27452f8b023a7b0a4b849ab58624",
+   "parentRuntimeSHA256": "950dde369575bd099170b86d6923063bf11ddf4f9ae6376c759a2ec680d1ea2d",
+   "buildTag": "qr-v11r6-a9r16a-r3r1-reviewed-history-20261026",
+-  "runtimeSHA256": "a0aee3010f4bdcca9f8f47aefe3ff72dcec4cd7a45e61b06d6864e8cbd01f0ac",
++  "runtimeSHA256": "3b5f042637f7449c07fd3efdf69980d2d15d60071d12f673bda3d8387b50ed84",
+   "rulesSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+   "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+   "canonicalRuntimeFiles": {
+     ".nojekyll": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+-    "app.js": "8aed1b4f6579e4fb1272452c73a297a3e0f0d594494ab1be97049cb46d267166",
++    "app.js": "caa2e6763b5793d00ea185843c51c12633db51958680e950a3d6ae3551ff3412",
+     "css/tailwind-static.css": "7e8aa3849956a0a1bcf758fbb8528b2fe5ddeda39290aad9971f30256b30699c",
+     "css/ui-mobile-shell.css": "d64e5600421548d70b4f9510d2069de371c7199c0781061b575e0a262014601e",
+     "index.html": "e31585e5e0dcf3bc3555dd5b4864a47fc75562567e846a61b0883912e621362a",
+diff --git a/tools/v11r2/source-identity.mjs b/tools/v11r2/source-identity.mjs
+--- a/tools/v11r2/source-identity.mjs
++++ b/tools/v11r2/source-identity.mjs
+@@ -226,8 +226,8 @@
+   "coachAssignmentContract": "server-verified-multi-branch-v1",
+   "inputZIP_SHA256": "da9aad90e3b70d50203f153832012016a66f27452f8b023a7b0a4b849ab58624",
+   "manifest": "tools/v11r2/manifests/V11R6_A9R16A_R3R1_REVIEW.json",
+-  "manifestSHA256": "e9d8ddee0c8336cb6015ea0a6aabd471e7875307c124092f9f6a88299c7e71e7",
+-  "runtimeSHA256": "a0aee3010f4bdcca9f8f47aefe3ff72dcec4cd7a45e61b06d6864e8cbd01f0ac",
++  "manifestSHA256": "4d1b1f424dde96ef8881e21daf1699469ff6e4e9d7479c99c7edbf3accd08d3f",
++  "runtimeSHA256": "3b5f042637f7449c07fd3efdf69980d2d15d60071d12f673bda3d8387b50ed84",
+   "rulesSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+   "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+   "buildTag": "qr-v11r6-a9r16a-r3r1-reviewed-history-20261026"

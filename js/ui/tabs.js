@@ -53,7 +53,7 @@ import { runTabRenders, cleanupTabRenders, flushDirtyRenders } from './render/re
 
 // Phase 3.6: Listener Ownership Isolation — tab-scoped mount/cleanup
 import { cleanupListenersByTabId } from '../utils/listeners.js';
-import { mountAttendanceListeners, cleanupAttendanceListeners } from '../listeners/attendance.listeners.js?v=attendance-daily-single-refresh-authority-20260813-v5u6d';
+import { mountAttendanceListeners, cleanupAttendanceListeners } from "../listeners/attendance.listeners.js?v=qr-v11r6-a9r16a-r3r1-reviewed-history-20261026";
 import { mountExamListeners, cleanupExamListeners } from '../listeners/exam.listeners.js';
 
 // ────────────────────────────────────────────────────────────────
@@ -80,6 +80,9 @@ function getBridgeStore() {
  */
 export function switchTab(tabId) {
     tabId = window.enforceRoleTab ? window.enforceRoleTab(tabId) : tabId;
+    // Body-mounted attendance history must leave with its tab, including the
+    // early legacy/cache-not-ready and dashboard paths below.
+    if (tabId !== 'attendance') window.AttendanceModule?.closeMemberHistory?.();
     // Recovery contract: ensureStudentTabRendered for ['active', 'debt', 'quit']; implementation runs after tab activation.
     const store = getBridgeStore();
     const cache = store ? store.tabHtmlCache : null;

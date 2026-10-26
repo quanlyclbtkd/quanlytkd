@@ -117,11 +117,11 @@ export function buildTag(text) {
  need(matches.length === 1 && literal(matches[0]), 'SOURCE_BUILD_TAG_INVALID');
  return {tag:literal(matches[0]), start:matches[0].start, end:matches[0].end};
 }
-export function rewriteCacheGraph(root, initialOverrides, tag) {
- const before = buildImportGraph(root), scope = affectedModules(before, Object.keys(initialOverrides).filter(file => before.files.includes(file))), scoped = new Set(scope);
+export function rewriteCacheGraph(root, initialOverrides, tag, additionalEntries = []) {
+ const before = buildImportGraph(root, {}, additionalEntries), scope = affectedModules(before, Object.keys(initialOverrides).filter(file => before.files.includes(file))), scoped = new Set(scope);
  const overrides = {...initialOverrides};
  // Re-parse after config/contract edits so every replacement uses current offsets.
- const working = buildImportGraph(root,overrides);
+ const working = buildImportGraph(root,overrides,additionalEntries);
  for (const file of scope) {
   const text = Object.hasOwn(overrides,file) ? overrides[file] : fs.readFileSync(path.join(root,file),'utf8');
   const replacements = working.edges.filter(edge => edge.from === file && scoped.has(edge.to)).map(edge => ({
@@ -137,7 +137,7 @@ export function rewriteCacheGraph(root, initialOverrides, tag) {
   if (next !== fs.readFileSync(path.join(root,file),'utf8')) overrides[file] = next;
   else delete overrides[file]; // Drop an input override when the derived bytes already equal disk.
  }
- const after = buildImportGraph(root,overrides);
+ const after = buildImportGraph(root,overrides,additionalEntries);
  assertCacheGraph(after,scope,tag);
  return {overrides,graph:{before,after,scope,token:tag}};
 }

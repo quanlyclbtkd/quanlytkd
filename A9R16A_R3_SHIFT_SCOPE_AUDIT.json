@@ -1,0 +1,29 @@
+{
+  "status": "PASS",
+  "readOnly": true,
+  "scope": "Synthetic canonical shift fixtures; not a production data audit",
+  "schemaEvidence": "A9R14 blank/missing branch read-global; R2 explicit CS1..CS10 new-write guard retained byte-identical",
+  "fixtures": [
+    {
+      "shiftId": "G1",
+      "resolved": true,
+      "branch": "",
+      "scope": "LEGACY_GLOBAL"
+    },
+    {
+      "shiftId": "S1",
+      "resolved": true,
+      "branch": "CS1",
+      "scope": "EXPLICIT_BRANCH"
+    },
+    {
+      "shiftId": "S2",
+      "resolved": true,
+      "branch": "CS2",
+      "scope": "EXPLICIT_BRANCH"
+    }
+  ],
+  "migrationWrites": 0,
+  "invalidNonempty": "SHIFT_AUTHORITY_UNRESOLVED",
+  "duplicateID": "SHIFT_NOT_FOUND"
+}

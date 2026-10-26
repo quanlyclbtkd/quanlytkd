@@ -1,0 +1,1349 @@
+{
+  "status": "PASS",
+  "scope": "Actual canonical owners and original HTML/CSS; synthetic SDK ports, native browser DOM/IndexedDB. Rules and SDK checked independently.",
+  "rows": [
+    {
+      "device": "iPhone-viewport",
+      "id": "H01",
+      "title": "Actual roster name opens a viewport-contained modal at top",
+      "status": "PASS",
+      "evidence": {
+        "scrollTop": 0,
+        "content": {
+          "x": 0,
+          "y": 151.921875,
+          "bottom": 844,
+          "right": 390,
+          "width": 390,
+          "height": 692.078125
+        },
+        "CTA": {
+          "x": 18,
+          "y": 652.5,
+          "bottom": 698.5,
+          "right": 231.671875,
+          "width": 213.671875,
+          "height": 46
+        },
+        "CTAcount": 1,
+        "parent": "BODY",
+        "text": "Võ sinh A\n🥋 Đai Trắng\n📅 LỊCH HỌC ĐÃ ĐĂNG KÝ\nT2\nT4\nT6\n⏰ Ca Chiều (17:15–18:45)\n🔄 Ô tím trong lịch = ngày học bù\n✅ 1 buổi\n📝 0 phép\n❌ 0 vắng\n📊 TỶ LỆ CHUYÊN CẦN\nTháng 10/2026\n🟢 100%\n1/1 buổi có mặt\nQuý 4/2026 (T10–T12)\n🟢 100%\n1/1 buổi có mặt\nLịch sử Điểm danh đã xác minh\n\nCơ sở: CS1. Duyệt các năm theo trang, từ cũ đến mới; tối đa 40 bản ghi/trang. Dữ liệu cũ chưa xác minh cần Admin đối soát.\n\nMở lịch sử đã xác minh\n📅 Lịch tháng 10/2026\nCN\nT2\nT3\nT4\nT5\nT6\nT7\n1\n2\n·\n3\n4\n5\n·\n6\n7\n·\n8\n9\n·\n10\n11\n12\n·\n13\n14\n·\n15\n16\n·\n17\n18\n19\n·\n20\n21\n·\n22\n23\n·\n24\n25\n26\n✅\n27\n28\n·\n29\n30\n·\n31\n⬜ Chưa ĐD\n· Ngày có lịch\n🔄 Học bù",
+        "closeReachable": true,
+        "noHorizontalOverflow": true,
+        "viewport": {
+          "width": 390,
+          "height": 844
+        }
+      }
+    },
+    {
+      "device": "iPhone-viewport",
+      "id": "H04",
+      "title": "Name and belt readable in primary content",
+      "status": "PASS",
+      "evidence": {
+        "name": "Võ sinh A",
+        "belt": "Đai Trắng"
+      }
+    },
+    {
+      "device": "iPhone-viewport",
+      "id": "H05",
+      "title": "Registered training days preserved",
+      "status": "PASS",
+      "evidence": {
+        "days": [
+          "T2",
+          "T4",
+          "T6"
+        ]
+      }
+    },
+    {
+      "device": "iPhone-viewport",
+      "id": "H06",
+      "title": "Canonical registered shift and stored time preserved",
+      "status": "PASS",
+      "evidence": {
+        "shift": "G1",
+        "label": "Ca Chiều (17:15–18:45)"
+      }
+    },
+    {
+      "device": "iPhone-viewport",
+      "id": "H07",
+      "title": "Month counts/rates and complete primary calendar preserved",
+      "status": "PASS",
+      "evidence": {
+        "month": "2026-10",
+        "days": 31,
+        "present": 1,
+        "rate": 100
+      }
+    },
+    {
+      "device": "iPhone-viewport",
+      "id": "H08",
+      "title": "One initial Full History CTA is visible near summary",
+      "status": "PASS",
+      "evidence": {
+        "CTA": {
+          "x": 18,
+          "y": 652.5,
+          "bottom": 698.5,
+          "right": 231.671875,
+          "width": 213.671875,
+          "height": 46
+        },
+        "content": {
+          "x": 0,
+          "y": 151.921875,
+          "bottom": 844,
+          "right": 390,
+          "width": 390,
+          "height": 692.078125
+        }
+      }
+    },
+    {
+      "device": "iPhone-viewport",
+      "id": "H09",
+      "title": "Fresh/reopen loads quarter only, zero automatic history pages",
+      "status": "PASS",
+      "evidence": {
+        "delta": {
+          "getDoc": 0,
+          "getDocs": 1,
+          "onSnapshot": 0
+        },
+        "queries": [
+          {
+            "ref": {
+              "path": "clubs/R3_QA/attendance"
+            },
+            "constraints": [
+              {
+                "type": "where",
+                "value": [
+                  "profileId",
+                  "==",
+                  "P_A"
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "month",
+                  "in",
+                  [
+                    "2026-10",
+                    "2026-11",
+                    "2026-12"
+                  ]
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "historyAuthority",
+                  "==",
+                  "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "branch",
+                  "==",
+                  "CS1"
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "device": "iPhone-viewport",
+      "id": "H10",
+      "title": "First CTA emits exactly one bounded page; rapid duplicate click coalesces",
+      "status": "PASS",
+      "evidence": {
+        "pending": {
+          "delta": 1,
+          "disabled": true
+        },
+        "delta": 1,
+        "queries": [
+          {
+            "ref": {
+              "path": "clubs/R3_QA/attendance"
+            },
+            "constraints": [
+              {
+                "type": "where",
+                "value": [
+                  "profileId",
+                  "==",
+                  "P_A"
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "historyAuthority",
+                  "==",
+                  "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "branch",
+                  "==",
+                  "CS1"
+                ]
+              },
+              {
+                "type": "orderBy",
+                "value": [
+                  "__name__",
+                  "asc"
+                ]
+              },
+              {
+                "type": "limit",
+                "value": [
+                  40
+                ]
+              }
+            ]
+          }
+        ],
+        "rows": [
+          "P_A_2020-01-01_G1",
+          "P_A_2020-01-25_G1",
+          "P_A_2020-02-18_G1",
+          "P_A_2020-03-13_G1",
+          "P_A_2020-04-06_G1",
+          "P_A_2020-04-30_G1",
+          "P_A_2020-05-24_G1",
+          "P_A_2020-06-17_G1",
+          "P_A_2020-07-11_G1",
+          "P_A_2020-08-04_G1",
+          "P_A_2020-08-28_G1",
+          "P_A_2020-09-21_G1",
+          "P_A_2020-10-15_G1",
+          "P_A_2020-11-08_G1",
+          "P_A_2020-12-02_G1",
+          "P_A_2020-12-26_G1",
+          "P_A_2021-01-19_G1",
+          "P_A_2021-02-12_G1",
+          "P_A_2021-03-08_G1",
+          "P_A_2021-04-01_G1",
+          "P_A_2021-04-25_G1",
+          "P_A_2021-05-19_G1",
+          "P_A_2021-06-12_G1",
+          "P_A_2021-07-06_G1",
+          "P_A_2021-07-30_G1",
+          "P_A_2021-08-23_G1",
+          "P_A_2021-09-16_G1",
+          "P_A_2021-10-10_G1",
+          "P_A_2021-11-03_G1",
+          "P_A_2021-11-27_G1",
+          "P_A_2021-12-21_G1",
+          "P_A_2022-01-14_G1",
+          "P_A_2022-02-07_G1",
+          "P_A_2022-03-03_G1",
+          "P_A_2022-03-27_G1",
+          "P_A_2022-04-20_G1",
+          "P_A_2022-05-14_G1",
+          "P_A_2022-06-07_G1",
+          "P_A_2022-07-01_G1",
+          "P_A_2022-07-25_G1"
+        ]
+      }
+    },
+    {
+      "device": "iPhone-viewport",
+      "id": "H11",
+      "title": "Load more preserves scroll, deterministic 40/40/2 pages without duplicates",
+      "status": "PASS",
+      "evidence": {
+        "before": 120,
+        "after": 120,
+        "count2": 80,
+        "ids": [
+          "P_A_2020-01-01_G1",
+          "P_A_2020-01-25_G1",
+          "P_A_2020-02-18_G1",
+          "P_A_2020-03-13_G1",
+          "P_A_2020-04-06_G1",
+          "P_A_2020-04-30_G1",
+          "P_A_2020-05-24_G1",
+          "P_A_2020-06-17_G1",
+          "P_A_2020-07-11_G1",
+          "P_A_2020-08-04_G1",
+          "P_A_2020-08-28_G1",
+          "P_A_2020-09-21_G1",
+          "P_A_2020-10-15_G1",
+          "P_A_2020-11-08_G1",
+          "P_A_2020-12-02_G1",
+          "P_A_2020-12-26_G1",
+          "P_A_2021-01-19_G1",
+          "P_A_2021-02-12_G1",
+          "P_A_2021-03-08_G1",
+          "P_A_2021-04-01_G1",
+          "P_A_2021-04-25_G1",
+          "P_A_2021-05-19_G1",
+          "P_A_2021-06-12_G1",
+          "P_A_2021-07-06_G1",
+          "P_A_2021-07-30_G1",
+          "P_A_2021-08-23_G1",
+          "P_A_2021-09-16_G1",
+          "P_A_2021-10-10_G1",
+          "P_A_2021-11-03_G1",
+          "P_A_2021-11-27_G1",
+          "P_A_2021-12-21_G1",
+          "P_A_2022-01-14_G1",
+          "P_A_2022-02-07_G1",
+          "P_A_2022-03-03_G1",
+          "P_A_2022-03-27_G1",
+          "P_A_2022-04-20_G1",
+          "P_A_2022-05-14_G1",
+          "P_A_2022-06-07_G1",
+          "P_A_2022-07-01_G1",
+          "P_A_2022-07-25_G1",
+          "P_A_2022-08-18_G1",
+          "P_A_2022-09-11_G1",
+          "P_A_2022-10-05_G1",
+          "P_A_2022-10-29_G1",
+          "P_A_2022-11-22_G1",
+          "P_A_2022-12-16_G1",
+          "P_A_2023-01-09_G1",
+          "P_A_2023-02-02_G1",
+          "P_A_2023-02-26_G1",
+          "P_A_2023-03-22_G1",
+          "P_A_2023-04-15_G1",
+          "P_A_2023-05-09_G1",
+          "P_A_2023-06-02_G1",
+          "P_A_2023-06-26_G1",
+          "P_A_2023-07-20_G1",
+          "P_A_2023-08-13_G1",
+          "P_A_2023-09-06_G1",
+          "P_A_2023-09-30_G1",
+          "P_A_2023-10-24_G1",
+          "P_A_2023-11-17_G1",
+          "P_A_2023-12-11_G1",
+          "P_A_2024-01-04_G1",
+          "P_A_2024-01-28_G1",
+          "P_A_2024-02-21_G1",
+          "P_A_2024-03-16_G1",
+          "P_A_2024-04-09_G1",
+          "P_A_2024-05-03_G1",
+          "P_A_2024-05-27_G1",
+          "P_A_2024-06-20_G1",
+          "P_A_2024-07-14_G1",
+          "P_A_2024-08-07_G1",
+          "P_A_2024-08-31_G1",
+          "P_A_2024-09-24_G1",
+          "P_A_2024-10-18_G1",
+          "P_A_2024-11-11_G1",
+          "P_A_2024-12-05_G1",
+          "P_A_2024-12-29_G1",
+          "P_A_2025-01-22_G1",
+          "P_A_2025-02-15_G1",
+          "P_A_2025-03-11_G1",
+          "P_A_2025-04-04_G1",
+          "P_A_2026-10-26_G1"
+        ],
+        "delta": 2,
+        "done": true,
+        "calendarCount": 31
+      }
+    },
+    {
+      "device": "iPhone-viewport",
+      "id": "H02",
+      "title": "Scroll to bottom, close and reopen same member begins at top",
+      "status": "PASS",
+      "evidence": {
+        "scrollTop": 0,
+        "closeReachable": true
+      }
+    },
+    {
+      "device": "iPhone-viewport",
+      "id": "H03",
+      "title": "Member/month switch begins at top with the correct primary identity",
+      "status": "PASS",
+      "evidence": {
+        "scrollTop": 0,
+        "month": "2026-02",
+        "days": 28
+      }
+    },
+    {
+      "device": "iPhone-viewport",
+      "id": "H12",
+      "title": "Close remains available during pending primary and page responses; no reopen",
+      "status": "PASS",
+      "evidence": {
+        "primaryClosed": true,
+        "pageClosed": true,
+        "lateRows": 0
+      }
+    },
+    {
+      "device": "iPhone-viewport",
+      "id": "H13",
+      "title": "Late member A primary response cannot overwrite member B",
+      "status": "PASS",
+      "evidence": {
+        "lateA": "DROP"
+      }
+    },
+    {
+      "device": "iPhone-viewport",
+      "id": "H14",
+      "title": "Coach branch switch/revocation drops stale requests and scopes new pages",
+      "status": "PASS",
+      "evidence": {
+        "branch": "CS2",
+        "rows": 40,
+        "lateCS1": "DROP",
+        "revokedNextPage": "DROP"
+      }
+    },
+    {
+      "device": "iPhone-viewport",
+      "id": "H15",
+      "title": "Admin existing primary history remains readable",
+      "status": "PASS",
+      "evidence": {
+        "role": "admin"
+      }
+    },
+    {
+      "device": "iPhone-viewport",
+      "id": "H16",
+      "title": "Viewport layout, close target and backdrop remain usable",
+      "status": "PASS",
+      "evidence": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "closeTarget": 44,
+        "scope": "Chromium viewport simulation; no physical iOS/Android certification"
+      }
+    },
+    {
+      "device": "iPhone-viewport",
+      "id": "H19",
+      "title": "No Finance reads, new listener, migration writer or automatic history reader",
+      "status": "PASS",
+      "evidence": {
+        "listeners": 0,
+        "writes": 0,
+        "finance": 0
+      }
+    },
+    {
+      "device": "Android-viewport",
+      "id": "H01",
+      "title": "Actual roster name opens a viewport-contained modal at top",
+      "status": "PASS",
+      "evidence": {
+        "scrollTop": 0,
+        "content": {
+          "x": 0,
+          "y": 144,
+          "bottom": 800,
+          "right": 360,
+          "width": 360,
+          "height": 656
+        },
+        "CTA": {
+          "x": 18,
+          "y": 660.1875,
+          "bottom": 706.1875,
+          "right": 231.671875,
+          "width": 213.671875,
+          "height": 46
+        },
+        "CTAcount": 1,
+        "parent": "BODY",
+        "text": "Võ sinh A\n🥋 Đai Trắng\n📅 LỊCH HỌC ĐÃ ĐĂNG KÝ\nT2\nT4\nT6\n⏰ Ca Chiều (17:15–18:45)\n🔄 Ô tím trong lịch = ngày học bù\n✅ 1 buổi\n📝 0 phép\n❌ 0 vắng\n📊 TỶ LỆ CHUYÊN CẦN\nTháng 10/2026\n🟢 100%\n1/1 buổi có mặt\nQuý 4/2026 (T10–T12)\n🟢 100%\n1/1 buổi có mặt\nLịch sử Điểm danh đã xác minh\n\nCơ sở: CS1. Duyệt các năm theo trang, từ cũ đến mới; tối đa 40 bản ghi/trang. Dữ liệu cũ chưa xác minh cần Admin đối soát.\n\nMở lịch sử đã xác minh\n📅 Lịch tháng 10/2026\nCN\nT2\nT3\nT4\nT5\nT6\nT7\n1\n2\n·\n3\n4\n5\n·\n6\n7\n·\n8\n9\n·\n10\n11\n12\n·\n13\n14\n·\n15\n16\n·\n17\n18\n19\n·\n20\n21\n·\n22\n23\n·\n24\n25\n26\n✅\n27\n28\n·\n29\n30\n·\n31\n⬜ Chưa ĐD\n· Ngày có lịch\n🔄 Học bù",
+        "closeReachable": true,
+        "noHorizontalOverflow": true,
+        "viewport": {
+          "width": 360,
+          "height": 800
+        }
+      }
+    },
+    {
+      "device": "Android-viewport",
+      "id": "H04",
+      "title": "Name and belt readable in primary content",
+      "status": "PASS",
+      "evidence": {
+        "name": "Võ sinh A",
+        "belt": "Đai Trắng"
+      }
+    },
+    {
+      "device": "Android-viewport",
+      "id": "H05",
+      "title": "Registered training days preserved",
+      "status": "PASS",
+      "evidence": {
+        "days": [
+          "T2",
+          "T4",
+          "T6"
+        ]
+      }
+    },
+    {
+      "device": "Android-viewport",
+      "id": "H06",
+      "title": "Canonical registered shift and stored time preserved",
+      "status": "PASS",
+      "evidence": {
+        "shift": "G1",
+        "label": "Ca Chiều (17:15–18:45)"
+      }
+    },
+    {
+      "device": "Android-viewport",
+      "id": "H07",
+      "title": "Month counts/rates and complete primary calendar preserved",
+      "status": "PASS",
+      "evidence": {
+        "month": "2026-10",
+        "days": 31,
+        "present": 1,
+        "rate": 100
+      }
+    },
+    {
+      "device": "Android-viewport",
+      "id": "H08",
+      "title": "One initial Full History CTA is visible near summary",
+      "status": "PASS",
+      "evidence": {
+        "CTA": {
+          "x": 18,
+          "y": 660.1875,
+          "bottom": 706.1875,
+          "right": 231.671875,
+          "width": 213.671875,
+          "height": 46
+        },
+        "content": {
+          "x": 0,
+          "y": 144,
+          "bottom": 800,
+          "right": 360,
+          "width": 360,
+          "height": 656
+        }
+      }
+    },
+    {
+      "device": "Android-viewport",
+      "id": "H09",
+      "title": "Fresh/reopen loads quarter only, zero automatic history pages",
+      "status": "PASS",
+      "evidence": {
+        "delta": {
+          "getDoc": 0,
+          "getDocs": 1,
+          "onSnapshot": 0
+        },
+        "queries": [
+          {
+            "ref": {
+              "path": "clubs/R3_QA/attendance"
+            },
+            "constraints": [
+              {
+                "type": "where",
+                "value": [
+                  "profileId",
+                  "==",
+                  "P_A"
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "month",
+                  "in",
+                  [
+                    "2026-10",
+                    "2026-11",
+                    "2026-12"
+                  ]
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "historyAuthority",
+                  "==",
+                  "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "branch",
+                  "==",
+                  "CS1"
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "device": "Android-viewport",
+      "id": "H10",
+      "title": "First CTA emits exactly one bounded page; rapid duplicate click coalesces",
+      "status": "PASS",
+      "evidence": {
+        "pending": {
+          "delta": 1,
+          "disabled": true
+        },
+        "delta": 1,
+        "queries": [
+          {
+            "ref": {
+              "path": "clubs/R3_QA/attendance"
+            },
+            "constraints": [
+              {
+                "type": "where",
+                "value": [
+                  "profileId",
+                  "==",
+                  "P_A"
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "historyAuthority",
+                  "==",
+                  "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "branch",
+                  "==",
+                  "CS1"
+                ]
+              },
+              {
+                "type": "orderBy",
+                "value": [
+                  "__name__",
+                  "asc"
+                ]
+              },
+              {
+                "type": "limit",
+                "value": [
+                  40
+                ]
+              }
+            ]
+          }
+        ],
+        "rows": [
+          "P_A_2020-01-01_G1",
+          "P_A_2020-01-25_G1",
+          "P_A_2020-02-18_G1",
+          "P_A_2020-03-13_G1",
+          "P_A_2020-04-06_G1",
+          "P_A_2020-04-30_G1",
+          "P_A_2020-05-24_G1",
+          "P_A_2020-06-17_G1",
+          "P_A_2020-07-11_G1",
+          "P_A_2020-08-04_G1",
+          "P_A_2020-08-28_G1",
+          "P_A_2020-09-21_G1",
+          "P_A_2020-10-15_G1",
+          "P_A_2020-11-08_G1",
+          "P_A_2020-12-02_G1",
+          "P_A_2020-12-26_G1",
+          "P_A_2021-01-19_G1",
+          "P_A_2021-02-12_G1",
+          "P_A_2021-03-08_G1",
+          "P_A_2021-04-01_G1",
+          "P_A_2021-04-25_G1",
+          "P_A_2021-05-19_G1",
+          "P_A_2021-06-12_G1",
+          "P_A_2021-07-06_G1",
+          "P_A_2021-07-30_G1",
+          "P_A_2021-08-23_G1",
+          "P_A_2021-09-16_G1",
+          "P_A_2021-10-10_G1",
+          "P_A_2021-11-03_G1",
+          "P_A_2021-11-27_G1",
+          "P_A_2021-12-21_G1",
+          "P_A_2022-01-14_G1",
+          "P_A_2022-02-07_G1",
+          "P_A_2022-03-03_G1",
+          "P_A_2022-03-27_G1",
+          "P_A_2022-04-20_G1",
+          "P_A_2022-05-14_G1",
+          "P_A_2022-06-07_G1",
+          "P_A_2022-07-01_G1",
+          "P_A_2022-07-25_G1"
+        ]
+      }
+    },
+    {
+      "device": "Android-viewport",
+      "id": "H11",
+      "title": "Load more preserves scroll, deterministic 40/40/2 pages without duplicates",
+      "status": "PASS",
+      "evidence": {
+        "before": 120,
+        "after": 120,
+        "count2": 80,
+        "ids": [
+          "P_A_2020-01-01_G1",
+          "P_A_2020-01-25_G1",
+          "P_A_2020-02-18_G1",
+          "P_A_2020-03-13_G1",
+          "P_A_2020-04-06_G1",
+          "P_A_2020-04-30_G1",
+          "P_A_2020-05-24_G1",
+          "P_A_2020-06-17_G1",
+          "P_A_2020-07-11_G1",
+          "P_A_2020-08-04_G1",
+          "P_A_2020-08-28_G1",
+          "P_A_2020-09-21_G1",
+          "P_A_2020-10-15_G1",
+          "P_A_2020-11-08_G1",
+          "P_A_2020-12-02_G1",
+          "P_A_2020-12-26_G1",
+          "P_A_2021-01-19_G1",
+          "P_A_2021-02-12_G1",
+          "P_A_2021-03-08_G1",
+          "P_A_2021-04-01_G1",
+          "P_A_2021-04-25_G1",
+          "P_A_2021-05-19_G1",
+          "P_A_2021-06-12_G1",
+          "P_A_2021-07-06_G1",
+          "P_A_2021-07-30_G1",
+          "P_A_2021-08-23_G1",
+          "P_A_2021-09-16_G1",
+          "P_A_2021-10-10_G1",
+          "P_A_2021-11-03_G1",
+          "P_A_2021-11-27_G1",
+          "P_A_2021-12-21_G1",
+          "P_A_2022-01-14_G1",
+          "P_A_2022-02-07_G1",
+          "P_A_2022-03-03_G1",
+          "P_A_2022-03-27_G1",
+          "P_A_2022-04-20_G1",
+          "P_A_2022-05-14_G1",
+          "P_A_2022-06-07_G1",
+          "P_A_2022-07-01_G1",
+          "P_A_2022-07-25_G1",
+          "P_A_2022-08-18_G1",
+          "P_A_2022-09-11_G1",
+          "P_A_2022-10-05_G1",
+          "P_A_2022-10-29_G1",
+          "P_A_2022-11-22_G1",
+          "P_A_2022-12-16_G1",
+          "P_A_2023-01-09_G1",
+          "P_A_2023-02-02_G1",
+          "P_A_2023-02-26_G1",
+          "P_A_2023-03-22_G1",
+          "P_A_2023-04-15_G1",
+          "P_A_2023-05-09_G1",
+          "P_A_2023-06-02_G1",
+          "P_A_2023-06-26_G1",
+          "P_A_2023-07-20_G1",
+          "P_A_2023-08-13_G1",
+          "P_A_2023-09-06_G1",
+          "P_A_2023-09-30_G1",
+          "P_A_2023-10-24_G1",
+          "P_A_2023-11-17_G1",
+          "P_A_2023-12-11_G1",
+          "P_A_2024-01-04_G1",
+          "P_A_2024-01-28_G1",
+          "P_A_2024-02-21_G1",
+          "P_A_2024-03-16_G1",
+          "P_A_2024-04-09_G1",
+          "P_A_2024-05-03_G1",
+          "P_A_2024-05-27_G1",
+          "P_A_2024-06-20_G1",
+          "P_A_2024-07-14_G1",
+          "P_A_2024-08-07_G1",
+          "P_A_2024-08-31_G1",
+          "P_A_2024-09-24_G1",
+          "P_A_2024-10-18_G1",
+          "P_A_2024-11-11_G1",
+          "P_A_2024-12-05_G1",
+          "P_A_2024-12-29_G1",
+          "P_A_2025-01-22_G1",
+          "P_A_2025-02-15_G1",
+          "P_A_2025-03-11_G1",
+          "P_A_2025-04-04_G1",
+          "P_A_2026-10-26_G1"
+        ],
+        "delta": 2,
+        "done": true,
+        "calendarCount": 31
+      }
+    },
+    {
+      "device": "Android-viewport",
+      "id": "H02",
+      "title": "Scroll to bottom, close and reopen same member begins at top",
+      "status": "PASS",
+      "evidence": {
+        "scrollTop": 0,
+        "closeReachable": true
+      }
+    },
+    {
+      "device": "Android-viewport",
+      "id": "H03",
+      "title": "Member/month switch begins at top with the correct primary identity",
+      "status": "PASS",
+      "evidence": {
+        "scrollTop": 0,
+        "month": "2026-02",
+        "days": 28
+      }
+    },
+    {
+      "device": "Android-viewport",
+      "id": "H12",
+      "title": "Close remains available during pending primary and page responses; no reopen",
+      "status": "PASS",
+      "evidence": {
+        "primaryClosed": true,
+        "pageClosed": true,
+        "lateRows": 0
+      }
+    },
+    {
+      "device": "Android-viewport",
+      "id": "H13",
+      "title": "Late member A primary response cannot overwrite member B",
+      "status": "PASS",
+      "evidence": {
+        "lateA": "DROP"
+      }
+    },
+    {
+      "device": "Android-viewport",
+      "id": "H14",
+      "title": "Coach branch switch/revocation drops stale requests and scopes new pages",
+      "status": "PASS",
+      "evidence": {
+        "branch": "CS2",
+        "rows": 40,
+        "lateCS1": "DROP",
+        "revokedNextPage": "DROP"
+      }
+    },
+    {
+      "device": "Android-viewport",
+      "id": "H15",
+      "title": "Admin existing primary history remains readable",
+      "status": "PASS",
+      "evidence": {
+        "role": "admin"
+      }
+    },
+    {
+      "device": "Android-viewport",
+      "id": "H17",
+      "title": "Viewport layout, close target and backdrop remain usable",
+      "status": "PASS",
+      "evidence": {
+        "viewport": {
+          "width": 360,
+          "height": 800
+        },
+        "closeTarget": 44,
+        "scope": "Chromium viewport simulation; no physical iOS/Android certification"
+      }
+    },
+    {
+      "device": "Android-viewport",
+      "id": "H19",
+      "title": "No Finance reads, new listener, migration writer or automatic history reader",
+      "status": "PASS",
+      "evidence": {
+        "listeners": 0,
+        "writes": 0,
+        "finance": 0
+      }
+    },
+    {
+      "device": "Desktop",
+      "id": "H01",
+      "title": "Actual roster name opens a viewport-contained modal at top",
+      "status": "PASS",
+      "evidence": {
+        "scrollTop": 0,
+        "content": {
+          "x": 320,
+          "y": 162,
+          "bottom": 900,
+          "right": 960,
+          "width": 640,
+          "height": 738
+        },
+        "CTA": {
+          "x": 338,
+          "y": 646.078125,
+          "bottom": 692.078125,
+          "right": 551.671875,
+          "width": 213.671875,
+          "height": 46
+        },
+        "CTAcount": 1,
+        "parent": "BODY",
+        "text": "Võ sinh A\n🥋 Đai Trắng\n📅 LỊCH HỌC ĐÃ ĐĂNG KÝ\nT2\nT4\nT6\n⏰ Ca Chiều (17:15–18:45)\n🔄 Ô tím trong lịch = ngày học bù\n✅ 1 buổi\n📝 0 phép\n❌ 0 vắng\n📊 TỶ LỆ CHUYÊN CẦN\nTháng 10/2026\n🟢 100%\n1/1 buổi có mặt\nQuý 4/2026 (T10–T12)\n🟢 100%\n1/1 buổi có mặt\nLịch sử Điểm danh đã xác minh\n\nCơ sở: CS1. Duyệt các năm theo trang, từ cũ đến mới; tối đa 40 bản ghi/trang. Dữ liệu cũ chưa xác minh cần Admin đối soát.\n\nMở lịch sử đã xác minh\n📅 Lịch tháng 10/2026\nCN\nT2\nT3\nT4\nT5\nT6\nT7\n1\n2\n·\n3\n4\n5\n·\n6\n7\n·\n8\n9\n·\n10\n11\n12\n·\n13\n14\n·\n15\n16\n·\n17\n18\n19\n·\n20\n21\n·\n22\n23\n·\n24\n25\n26\n✅\n27\n28\n·\n29\n30\n·\n31\n⬜ Chưa ĐD\n· Ngày có lịch\n🔄 Học bù",
+        "closeReachable": true,
+        "noHorizontalOverflow": true,
+        "viewport": {
+          "width": 1280,
+          "height": 900
+        }
+      }
+    },
+    {
+      "device": "Desktop",
+      "id": "H04",
+      "title": "Name and belt readable in primary content",
+      "status": "PASS",
+      "evidence": {
+        "name": "Võ sinh A",
+        "belt": "Đai Trắng"
+      }
+    },
+    {
+      "device": "Desktop",
+      "id": "H05",
+      "title": "Registered training days preserved",
+      "status": "PASS",
+      "evidence": {
+        "days": [
+          "T2",
+          "T4",
+          "T6"
+        ]
+      }
+    },
+    {
+      "device": "Desktop",
+      "id": "H06",
+      "title": "Canonical registered shift and stored time preserved",
+      "status": "PASS",
+      "evidence": {
+        "shift": "G1",
+        "label": "Ca Chiều (17:15–18:45)"
+      }
+    },
+    {
+      "device": "Desktop",
+      "id": "H07",
+      "title": "Month counts/rates and complete primary calendar preserved",
+      "status": "PASS",
+      "evidence": {
+        "month": "2026-10",
+        "days": 31,
+        "present": 1,
+        "rate": 100
+      }
+    },
+    {
+      "device": "Desktop",
+      "id": "H08",
+      "title": "One initial Full History CTA is visible near summary",
+      "status": "PASS",
+      "evidence": {
+        "CTA": {
+          "x": 338,
+          "y": 646.078125,
+          "bottom": 692.078125,
+          "right": 551.671875,
+          "width": 213.671875,
+          "height": 46
+        },
+        "content": {
+          "x": 320,
+          "y": 162,
+          "bottom": 900,
+          "right": 960,
+          "width": 640,
+          "height": 738
+        }
+      }
+    },
+    {
+      "device": "Desktop",
+      "id": "H09",
+      "title": "Fresh/reopen loads quarter only, zero automatic history pages",
+      "status": "PASS",
+      "evidence": {
+        "delta": {
+          "getDoc": 0,
+          "getDocs": 1,
+          "onSnapshot": 0
+        },
+        "queries": [
+          {
+            "ref": {
+              "path": "clubs/R3_QA/attendance"
+            },
+            "constraints": [
+              {
+                "type": "where",
+                "value": [
+                  "profileId",
+                  "==",
+                  "P_A"
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "month",
+                  "in",
+                  [
+                    "2026-10",
+                    "2026-11",
+                    "2026-12"
+                  ]
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "historyAuthority",
+                  "==",
+                  "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "branch",
+                  "==",
+                  "CS1"
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "device": "Desktop",
+      "id": "H10",
+      "title": "First CTA emits exactly one bounded page; rapid duplicate click coalesces",
+      "status": "PASS",
+      "evidence": {
+        "pending": {
+          "delta": 1,
+          "disabled": true
+        },
+        "delta": 1,
+        "queries": [
+          {
+            "ref": {
+              "path": "clubs/R3_QA/attendance"
+            },
+            "constraints": [
+              {
+                "type": "where",
+                "value": [
+                  "profileId",
+                  "==",
+                  "P_A"
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "historyAuthority",
+                  "==",
+                  "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+                ]
+              },
+              {
+                "type": "where",
+                "value": [
+                  "branch",
+                  "==",
+                  "CS1"
+                ]
+              },
+              {
+                "type": "orderBy",
+                "value": [
+                  "__name__",
+                  "asc"
+                ]
+              },
+              {
+                "type": "limit",
+                "value": [
+                  40
+                ]
+              }
+            ]
+          }
+        ],
+        "rows": [
+          "P_A_2020-01-01_G1",
+          "P_A_2020-01-25_G1",
+          "P_A_2020-02-18_G1",
+          "P_A_2020-03-13_G1",
+          "P_A_2020-04-06_G1",
+          "P_A_2020-04-30_G1",
+          "P_A_2020-05-24_G1",
+          "P_A_2020-06-17_G1",
+          "P_A_2020-07-11_G1",
+          "P_A_2020-08-04_G1",
+          "P_A_2020-08-28_G1",
+          "P_A_2020-09-21_G1",
+          "P_A_2020-10-15_G1",
+          "P_A_2020-11-08_G1",
+          "P_A_2020-12-02_G1",
+          "P_A_2020-12-26_G1",
+          "P_A_2021-01-19_G1",
+          "P_A_2021-02-12_G1",
+          "P_A_2021-03-08_G1",
+          "P_A_2021-04-01_G1",
+          "P_A_2021-04-25_G1",
+          "P_A_2021-05-19_G1",
+          "P_A_2021-06-12_G1",
+          "P_A_2021-07-06_G1",
+          "P_A_2021-07-30_G1",
+          "P_A_2021-08-23_G1",
+          "P_A_2021-09-16_G1",
+          "P_A_2021-10-10_G1",
+          "P_A_2021-11-03_G1",
+          "P_A_2021-11-27_G1",
+          "P_A_2021-12-21_G1",
+          "P_A_2022-01-14_G1",
+          "P_A_2022-02-07_G1",
+          "P_A_2022-03-03_G1",
+          "P_A_2022-03-27_G1",
+          "P_A_2022-04-20_G1",
+          "P_A_2022-05-14_G1",
+          "P_A_2022-06-07_G1",
+          "P_A_2022-07-01_G1",
+          "P_A_2022-07-25_G1"
+        ]
+      }
+    },
+    {
+      "device": "Desktop",
+      "id": "H11",
+      "title": "Load more preserves scroll, deterministic 40/40/2 pages without duplicates",
+      "status": "PASS",
+      "evidence": {
+        "before": 120,
+        "after": 120,
+        "count2": 80,
+        "ids": [
+          "P_A_2020-01-01_G1",
+          "P_A_2020-01-25_G1",
+          "P_A_2020-02-18_G1",
+          "P_A_2020-03-13_G1",
+          "P_A_2020-04-06_G1",
+          "P_A_2020-04-30_G1",
+          "P_A_2020-05-24_G1",
+          "P_A_2020-06-17_G1",
+          "P_A_2020-07-11_G1",
+          "P_A_2020-08-04_G1",
+          "P_A_2020-08-28_G1",
+          "P_A_2020-09-21_G1",
+          "P_A_2020-10-15_G1",
+          "P_A_2020-11-08_G1",
+          "P_A_2020-12-02_G1",
+          "P_A_2020-12-26_G1",
+          "P_A_2021-01-19_G1",
+          "P_A_2021-02-12_G1",
+          "P_A_2021-03-08_G1",
+          "P_A_2021-04-01_G1",
+          "P_A_2021-04-25_G1",
+          "P_A_2021-05-19_G1",
+          "P_A_2021-06-12_G1",
+          "P_A_2021-07-06_G1",
+          "P_A_2021-07-30_G1",
+          "P_A_2021-08-23_G1",
+          "P_A_2021-09-16_G1",
+          "P_A_2021-10-10_G1",
+          "P_A_2021-11-03_G1",
+          "P_A_2021-11-27_G1",
+          "P_A_2021-12-21_G1",
+          "P_A_2022-01-14_G1",
+          "P_A_2022-02-07_G1",
+          "P_A_2022-03-03_G1",
+          "P_A_2022-03-27_G1",
+          "P_A_2022-04-20_G1",
+          "P_A_2022-05-14_G1",
+          "P_A_2022-06-07_G1",
+          "P_A_2022-07-01_G1",
+          "P_A_2022-07-25_G1",
+          "P_A_2022-08-18_G1",
+          "P_A_2022-09-11_G1",
+          "P_A_2022-10-05_G1",
+          "P_A_2022-10-29_G1",
+          "P_A_2022-11-22_G1",
+          "P_A_2022-12-16_G1",
+          "P_A_2023-01-09_G1",
+          "P_A_2023-02-02_G1",
+          "P_A_2023-02-26_G1",
+          "P_A_2023-03-22_G1",
+          "P_A_2023-04-15_G1",
+          "P_A_2023-05-09_G1",
+          "P_A_2023-06-02_G1",
+          "P_A_2023-06-26_G1",
+          "P_A_2023-07-20_G1",
+          "P_A_2023-08-13_G1",
+          "P_A_2023-09-06_G1",
+          "P_A_2023-09-30_G1",
+          "P_A_2023-10-24_G1",
+          "P_A_2023-11-17_G1",
+          "P_A_2023-12-11_G1",
+          "P_A_2024-01-04_G1",
+          "P_A_2024-01-28_G1",
+          "P_A_2024-02-21_G1",
+          "P_A_2024-03-16_G1",
+          "P_A_2024-04-09_G1",
+          "P_A_2024-05-03_G1",
+          "P_A_2024-05-27_G1",
+          "P_A_2024-06-20_G1",
+          "P_A_2024-07-14_G1",
+          "P_A_2024-08-07_G1",
+          "P_A_2024-08-31_G1",
+          "P_A_2024-09-24_G1",
+          "P_A_2024-10-18_G1",
+          "P_A_2024-11-11_G1",
+          "P_A_2024-12-05_G1",
+          "P_A_2024-12-29_G1",
+          "P_A_2025-01-22_G1",
+          "P_A_2025-02-15_G1",
+          "P_A_2025-03-11_G1",
+          "P_A_2025-04-04_G1",
+          "P_A_2026-10-26_G1"
+        ],
+        "delta": 2,
+        "done": true,
+        "calendarCount": 31
+      }
+    },
+    {
+      "device": "Desktop",
+      "id": "H02",
+      "title": "Scroll to bottom, close and reopen same member begins at top",
+      "status": "PASS",
+      "evidence": {
+        "scrollTop": 0,
+        "closeReachable": true
+      }
+    },
+    {
+      "device": "Desktop",
+      "id": "H03",
+      "title": "Member/month switch begins at top with the correct primary identity",
+      "status": "PASS",
+      "evidence": {
+        "scrollTop": 0,
+        "month": "2026-02",
+        "days": 28
+      }
+    },
+    {
+      "device": "Desktop",
+      "id": "H12",
+      "title": "Close remains available during pending primary and page responses; no reopen",
+      "status": "PASS",
+      "evidence": {
+        "primaryClosed": true,
+        "pageClosed": true,
+        "lateRows": 0
+      }
+    },
+    {
+      "device": "Desktop",
+      "id": "H13",
+      "title": "Late member A primary response cannot overwrite member B",
+      "status": "PASS",
+      "evidence": {
+        "lateA": "DROP"
+      }
+    },
+    {
+      "device": "Desktop",
+      "id": "H14",
+      "title": "Coach branch switch/revocation drops stale requests and scopes new pages",
+      "status": "PASS",
+      "evidence": {
+        "branch": "CS2",
+        "rows": 40,
+        "lateCS1": "DROP",
+        "revokedNextPage": "DROP"
+      }
+    },
+    {
+      "device": "Desktop",
+      "id": "H15",
+      "title": "Admin existing primary history remains readable",
+      "status": "PASS",
+      "evidence": {
+        "role": "admin"
+      }
+    },
+    {
+      "device": "Desktop",
+      "id": "H18",
+      "title": "Viewport layout, close target and backdrop remain usable",
+      "status": "PASS",
+      "evidence": {
+        "viewport": {
+          "width": 1280,
+          "height": 900
+        },
+        "closeTarget": 44,
+        "scope": "Chromium viewport simulation; no physical iOS/Android certification"
+      }
+    },
+    {
+      "device": "Desktop",
+      "id": "H19",
+      "title": "No Finance reads, new listener, migration writer or automatic history reader",
+      "status": "PASS",
+      "evidence": {
+        "listeners": 0,
+        "writes": 0,
+        "finance": 0
+      }
+    }
+  ],
+  "physicalDevices": "ENV_BLOCKED",
+  "physicalDeviceNote": "Chromium viewport simulation is not physical Android/iPhone/Safari acceptance."
+}

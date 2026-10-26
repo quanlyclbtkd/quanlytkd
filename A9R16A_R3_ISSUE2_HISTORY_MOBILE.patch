@@ -1,0 +1,284 @@
+--- a/js/modules/attendance.js
++++ b/js/modules/attendance.js
+@@ -2026,9 +2026,13 @@
+             modalEl = document.createElement('div');
+             modalEl.id = 'attHistModal';
+             modalEl.style.cssText = 'display:flex;position:fixed;inset:0;background:rgba(15,23,42,0.65);z-index:10010;backdrop-filter:blur(4px);align-items:flex-end;justify-content:center;';
+-            modalEl.innerHTML = '<div id="attHistContent" style="background:#fff;width:100%;max-width:640px;border-radius:20px 20px 0 0;padding:20px 18px;box-shadow:0 -10px 40px rgba(0,0,0,0.18);max-height:82vh;overflow-y:auto;padding-bottom:calc(20px + env(safe-area-inset-bottom));animation:slideUpSheet 0.3s cubic-bezier(0.16,1,0.3,1);"><div id="attHistBody"></div></div>';
++            modalEl.innerHTML = '<div id="attHistSheet" style="position:relative;background:#fff;width:100%;max-width:640px;border-radius:20px 20px 0 0;box-shadow:0 -10px 40px rgba(0,0,0,0.18);">'
++                + '<button type="button" aria-label="Đóng lịch sử điểm danh" onclick="document.getElementById(\'attHistModal\').style.display=\'none\'" style="position:absolute;top:10px;right:12px;z-index:1;background:#f1f5f9;border:none;border-radius:50%;width:44px;height:44px;font-size:1rem;cursor:pointer;color:#475569;">✕</button>'
++                + '<div id="attHistContent" style="width:100%;border-radius:20px 20px 0 0;padding:20px 18px;max-height:82vh;overflow-y:auto;overscroll-behavior:contain;padding-bottom:calc(20px + env(safe-area-inset-bottom));animation:slideUpSheet 0.3s cubic-bezier(0.16,1,0.3,1);"><div id="attHistBody"></div></div></div>';
+             modalEl.addEventListener('click', (e) => { if (e.target === modalEl) modalEl.style.display = 'none'; });
+-            (document.getElementById('tab_attendance') || document.body).appendChild(modalEl);
++            // The tab has layout containment; a fixed child is positioned at
++            // the bottom of the full roster instead of the viewport.
++            document.body.appendChild(modalEl);
+         } else { modalEl.style.display = 'flex'; }
+         const bodyEl = document.getElementById('attHistBody');
+         const isCurrent = () => requestId === _memberHistoryRequestId &&
+@@ -2036,6 +2040,10 @@
+             _isOfflineAttendanceSyncContextCurrent(historyOwner) && modalEl.isConnected &&
+             modalEl.style.display !== 'none';
+         bodyEl.innerHTML = '<div style="text-align:center;padding:32px;color:#94a3b8;">⏳ Đang tải dữ liệu tháng ' + monthDisplay + '...</div>';
++        // A fast response may replace the placeholder before layout clamps the
++        // old scroll offset. Reset once for this open, before awaiting data;
++        // never move the user's scroll on a primary/page response.
++        document.getElementById('attHistContent').scrollTop = 0;
+         try {
+             const quarterNum = Math.ceil(mo / 3);
+             const quarterStartMo = (quarterNum - 1) * 3 + 1;
+@@ -2111,10 +2119,9 @@
+             }
+             calHtml += '</div>';
+             bodyEl.innerHTML =
+-                '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">'
++                '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;padding-right:44px;">'
+                 + '<div><div style="font-size:1rem;font-weight:900;color:#0033A0;">' + escapeHtml((window.ProfileCanonicalStore?.resolveDisplayName?.(name, p)) || p.displayName || p.name || p.fullName || p.studentName || name) + '</div>'
+                 + '<div style="font-size:0.72rem;color:#64748b;margin-top:3px;">🥋 ' + escapeHtml(p.belt||'Đai Trắng') + '</div></div>'
+-                + '<button onclick="document.getElementById(\'attHistModal\').style.display=\'none\'" style="background:#f1f5f9;border:none;border-radius:50%;width:32px;height:32px;font-size:1rem;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#475569;">✕</button>'
+                 + '</div>' + scheduleHtml
+                 + '<div style="display:flex;gap:7px;margin-bottom:12px;flex-wrap:wrap;">'
+                 + '<span style="background:#dcfce7;color:#166534;padding:5px 12px;border-radius:99px;font-size:0.75rem;font-weight:800;">✅ ' + present + ' buổi</span>'
+@@ -2126,7 +2133,7 @@
+                 + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
+                 + rateBox(mRate,present,mTotal,'Tháng '+monthDisplay)
+                 + rateBox(qRate,qPresent,qTotal,quarterLabel)
+-                + '</div></div>' + calHtml
++                + '</div></div><div id="attHistoryActionSlot" style="margin:12px 0;"></div><div id="attHistoryCalendar">' + calHtml + '</div>'
+                 + '<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;font-size:0.62rem;color:#64748b;">'
+                 + '<span>⬜ Chưa ĐD</span>'
+                 + (_hasSched ? '<span style="background:#f0f9ff;padding:1px 5px;border-radius:4px;color:#93c5fd;">· Ngày có lịch</span>' : '')
+@@ -2134,14 +2141,15 @@
+             const historySection = document.createElement('section');
+             historySection.style.cssText = 'margin-top:18px;border-top:1px solid #cbd5e1;padding-top:14px;min-width:0;';
+             const title = document.createElement('h3');title.textContent = 'Lịch sử Điểm danh đã xác minh';
+-            title.style.cssText = 'font-size:16px;font-weight:800;line-height:1.4;';historySection.append(title);
++            const actionSlot = document.getElementById('attHistoryActionSlot');
++            title.style.cssText = 'font-size:16px;font-weight:800;line-height:1.4;margin:0;';actionSlot.append(title);
+             const coverage = document.createElement('p');
+             coverage.textContent = 'Cơ sở: ' + (window.getBranchNameDisplay?.(historyBranch) || historyBranch || 'chưa chọn') + '. Duyệt các năm theo trang, từ cũ đến mới; tối đa 40 bản ghi/trang. Dữ liệu cũ chưa xác minh cần Admin đối soát.';
+-            coverage.style.cssText = 'font-size:13px;color:#475569;line-height:1.5;margin:8px 0;';historySection.append(coverage);
++            coverage.style.cssText = 'font-size:13px;color:#475569;line-height:1.5;margin:8px 0;';actionSlot.append(coverage);
+             const rowsEl = document.createElement('div');rowsEl.id = 'attVerifiedHistoryRows';historySection.append(rowsEl);
+             const statusEl = document.createElement('p');statusEl.setAttribute('role','status');statusEl.style.cssText = 'font-size:13px;line-height:1.5;margin:8px 0;';historySection.append(statusEl);
+             const more = document.createElement('button');more.id = 'attHistoryLoadMore';more.type = 'button';more.textContent = 'Mở lịch sử đã xác minh';
+-            more.style.cssText = 'font-size:16px;min-height:44px;padding:10px 14px;max-width:100%;border:1px solid #93c5fd;border-radius:10px;color:#1e40af;background:#eff6ff;cursor:pointer;';historySection.append(more);
++            more.style.cssText = 'font-size:16px;min-height:44px;padding:10px 14px;max-width:100%;border:1px solid #93c5fd;border-radius:10px;color:#1e40af;background:#eff6ff;cursor:pointer;';actionSlot.append(more);
+             bodyEl.append(historySection);
+             let cursor = null,loading = false,done = false,pageCount = 0;
+             const seen = new Set(); // Presentation only; discarded when modal/session closes.
+@@ -2162,6 +2170,7 @@
+                         item.append(date,detail);rowsEl.append(item);
+                     }
+                     cursor = page.cursor;done = page.complete;pageCount++;
++                    historySection.append(more); // Same control follows the loaded rows; no second CTA/handler.
+                     statusEl.textContent = done ? (seen.size ? 'Đã duyệt hết lịch sử đã xác minh của cơ sở này (' + seen.size + ' buổi).' : 'Chưa có lịch sử đã xác minh tại cơ sở này.')
+                         : 'Đã tải trang ' + pageCount + ' (' + seen.size + ' buổi đã ghi nhận).';
+                     more.textContent = done ? 'Đã hết lịch sử đã xác minh' : 'Tải thêm lịch sử';
+--- a/public/js/modules/attendance.js
++++ b/public/js/modules/attendance.js
+@@ -2026,9 +2026,13 @@
+             modalEl = document.createElement('div');
+             modalEl.id = 'attHistModal';
+             modalEl.style.cssText = 'display:flex;position:fixed;inset:0;background:rgba(15,23,42,0.65);z-index:10010;backdrop-filter:blur(4px);align-items:flex-end;justify-content:center;';
+-            modalEl.innerHTML = '<div id="attHistContent" style="background:#fff;width:100%;max-width:640px;border-radius:20px 20px 0 0;padding:20px 18px;box-shadow:0 -10px 40px rgba(0,0,0,0.18);max-height:82vh;overflow-y:auto;padding-bottom:calc(20px + env(safe-area-inset-bottom));animation:slideUpSheet 0.3s cubic-bezier(0.16,1,0.3,1);"><div id="attHistBody"></div></div>';
++            modalEl.innerHTML = '<div id="attHistSheet" style="position:relative;background:#fff;width:100%;max-width:640px;border-radius:20px 20px 0 0;box-shadow:0 -10px 40px rgba(0,0,0,0.18);">'
++                + '<button type="button" aria-label="Đóng lịch sử điểm danh" onclick="document.getElementById(\'attHistModal\').style.display=\'none\'" style="position:absolute;top:10px;right:12px;z-index:1;background:#f1f5f9;border:none;border-radius:50%;width:44px;height:44px;font-size:1rem;cursor:pointer;color:#475569;">✕</button>'
++                + '<div id="attHistContent" style="width:100%;border-radius:20px 20px 0 0;padding:20px 18px;max-height:82vh;overflow-y:auto;overscroll-behavior:contain;padding-bottom:calc(20px + env(safe-area-inset-bottom));animation:slideUpSheet 0.3s cubic-bezier(0.16,1,0.3,1);"><div id="attHistBody"></div></div></div>';
+             modalEl.addEventListener('click', (e) => { if (e.target === modalEl) modalEl.style.display = 'none'; });
+-            (document.getElementById('tab_attendance') || document.body).appendChild(modalEl);
++            // The tab has layout containment; a fixed child is positioned at
++            // the bottom of the full roster instead of the viewport.
++            document.body.appendChild(modalEl);
+         } else { modalEl.style.display = 'flex'; }
+         const bodyEl = document.getElementById('attHistBody');
+         const isCurrent = () => requestId === _memberHistoryRequestId &&
+@@ -2036,6 +2040,10 @@
+             _isOfflineAttendanceSyncContextCurrent(historyOwner) && modalEl.isConnected &&
+             modalEl.style.display !== 'none';
+         bodyEl.innerHTML = '<div style="text-align:center;padding:32px;color:#94a3b8;">⏳ Đang tải dữ liệu tháng ' + monthDisplay + '...</div>';
++        // A fast response may replace the placeholder before layout clamps the
++        // old scroll offset. Reset once for this open, before awaiting data;
++        // never move the user's scroll on a primary/page response.
++        document.getElementById('attHistContent').scrollTop = 0;
+         try {
+             const quarterNum = Math.ceil(mo / 3);
+             const quarterStartMo = (quarterNum - 1) * 3 + 1;
+@@ -2111,10 +2119,9 @@
+             }
+             calHtml += '</div>';
+             bodyEl.innerHTML =
+-                '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">'
++                '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;padding-right:44px;">'
+                 + '<div><div style="font-size:1rem;font-weight:900;color:#0033A0;">' + escapeHtml((window.ProfileCanonicalStore?.resolveDisplayName?.(name, p)) || p.displayName || p.name || p.fullName || p.studentName || name) + '</div>'
+                 + '<div style="font-size:0.72rem;color:#64748b;margin-top:3px;">🥋 ' + escapeHtml(p.belt||'Đai Trắng') + '</div></div>'
+-                + '<button onclick="document.getElementById(\'attHistModal\').style.display=\'none\'" style="background:#f1f5f9;border:none;border-radius:50%;width:32px;height:32px;font-size:1rem;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#475569;">✕</button>'
+                 + '</div>' + scheduleHtml
+                 + '<div style="display:flex;gap:7px;margin-bottom:12px;flex-wrap:wrap;">'
+                 + '<span style="background:#dcfce7;color:#166534;padding:5px 12px;border-radius:99px;font-size:0.75rem;font-weight:800;">✅ ' + present + ' buổi</span>'
+@@ -2126,7 +2133,7 @@
+                 + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
+                 + rateBox(mRate,present,mTotal,'Tháng '+monthDisplay)
+                 + rateBox(qRate,qPresent,qTotal,quarterLabel)
+-                + '</div></div>' + calHtml
++                + '</div></div><div id="attHistoryActionSlot" style="margin:12px 0;"></div><div id="attHistoryCalendar">' + calHtml + '</div>'
+                 + '<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;font-size:0.62rem;color:#64748b;">'
+                 + '<span>⬜ Chưa ĐD</span>'
+                 + (_hasSched ? '<span style="background:#f0f9ff;padding:1px 5px;border-radius:4px;color:#93c5fd;">· Ngày có lịch</span>' : '')
+@@ -2134,14 +2141,15 @@
+             const historySection = document.createElement('section');
+             historySection.style.cssText = 'margin-top:18px;border-top:1px solid #cbd5e1;padding-top:14px;min-width:0;';
+             const title = document.createElement('h3');title.textContent = 'Lịch sử Điểm danh đã xác minh';
+-            title.style.cssText = 'font-size:16px;font-weight:800;line-height:1.4;';historySection.append(title);
++            const actionSlot = document.getElementById('attHistoryActionSlot');
++            title.style.cssText = 'font-size:16px;font-weight:800;line-height:1.4;margin:0;';actionSlot.append(title);
+             const coverage = document.createElement('p');
+             coverage.textContent = 'Cơ sở: ' + (window.getBranchNameDisplay?.(historyBranch) || historyBranch || 'chưa chọn') + '. Duyệt các năm theo trang, từ cũ đến mới; tối đa 40 bản ghi/trang. Dữ liệu cũ chưa xác minh cần Admin đối soát.';
+-            coverage.style.cssText = 'font-size:13px;color:#475569;line-height:1.5;margin:8px 0;';historySection.append(coverage);
++            coverage.style.cssText = 'font-size:13px;color:#475569;line-height:1.5;margin:8px 0;';actionSlot.append(coverage);
+             const rowsEl = document.createElement('div');rowsEl.id = 'attVerifiedHistoryRows';historySection.append(rowsEl);
+             const statusEl = document.createElement('p');statusEl.setAttribute('role','status');statusEl.style.cssText = 'font-size:13px;line-height:1.5;margin:8px 0;';historySection.append(statusEl);
+             const more = document.createElement('button');more.id = 'attHistoryLoadMore';more.type = 'button';more.textContent = 'Mở lịch sử đã xác minh';
+-            more.style.cssText = 'font-size:16px;min-height:44px;padding:10px 14px;max-width:100%;border:1px solid #93c5fd;border-radius:10px;color:#1e40af;background:#eff6ff;cursor:pointer;';historySection.append(more);
++            more.style.cssText = 'font-size:16px;min-height:44px;padding:10px 14px;max-width:100%;border:1px solid #93c5fd;border-radius:10px;color:#1e40af;background:#eff6ff;cursor:pointer;';actionSlot.append(more);
+             bodyEl.append(historySection);
+             let cursor = null,loading = false,done = false,pageCount = 0;
+             const seen = new Set(); // Presentation only; discarded when modal/session closes.
+@@ -2162,6 +2170,7 @@
+                         item.append(date,detail);rowsEl.append(item);
+                     }
+                     cursor = page.cursor;done = page.complete;pageCount++;
++                    historySection.append(more); // Same control follows the loaded rows; no second CTA/handler.
+                     statusEl.textContent = done ? (seen.size ? 'Đã duyệt hết lịch sử đã xác minh của cơ sở này (' + seen.size + ' buổi).' : 'Chưa có lịch sử đã xác minh tại cơ sở này.')
+                         : 'Đã tải trang ' + pageCount + ' (' + seen.size + ' buổi đã ghi nhận).';
+                     more.textContent = done ? 'Đã hết lịch sử đã xác minh' : 'Tải thêm lịch sử';
+--- /dev/null
++++ b/tools/a9r16r3/history-red.browser.mjs
+@@ -0,0 +1,33 @@
++import fs from 'node:fs';import path from 'node:path';
++import {createUI} from './ui-harness.mjs';
++const out=path.resolve(process.env.R3_EVIDENCE_ROOT||'evidence/R3/history-red');fs.mkdirSync(out,{recursive:true});
++const ui=await createUI(),runs=[];
++try{for(const [device,w,h] of [['iPhone',390,844],['Android',360,800],['Desktop',1280,900]]){
++ const {page,context}=await ui.page(w,h);
++ await page.evaluate(async()=>{
++  for(let i=0;i<50;i++)__store.profiles['P_LONG_'+i]={...__store.profiles.P_A,profileId:'P_LONG_'+i,displayName:'Võ sinh mẫu '+i};
++  await __setPrincipal('CS1');document.getElementById('att_shift').value='G1';await onShiftChange();window.scrollTo(0,0);
++  window.__trace=[];window.__traceArmed=false;
++  window.__measure=stage=>{
++   const c=document.getElementById('attHistContent'),m=document.getElementById('attHistModal'),cta=document.querySelector('#attHistoryLoadMore'),cal=Array.from(document.querySelectorAll('#attHistBody [title]')).at(-1);
++   const rect=e=>{if(!e)return null;const r=e.getBoundingClientRect();return{x:r.x,y:r.y,width:r.width,height:r.height,bottom:r.bottom};};
++   const nav=document.querySelector('.ui-bottom-nav');const parents=[];
++   for(let e=m?.parentElement;e;e=e.parentElement){const s=getComputedStyle(e);parents.push({id:e.id,tag:e.tagName,contain:s.contain,transform:s.transform,position:s.position,zIndex:s.zIndex,rect:rect(e)});}
++   const hit=c?document.elementFromPoint(Math.min(innerWidth-1,Math.max(0,c.getBoundingClientRect().x+20)),Math.min(innerHeight-1,Math.max(0,c.getBoundingClientRect().bottom-20))):null;
++   return {stage,scrollTop:c?.scrollTop??null,scrollHeight:c?.scrollHeight??null,clientHeight:c?.clientHeight??null,modal:rect(m),content:rect(c),CTAoffsetTop:cta?.offsetTop??null,CTA:rect(cta),calendarBottom:cal?cal.getBoundingClientRect().bottom-(c?.getBoundingClientRect().top||0)+(c?.scrollTop||0):null,nav:rect(nav),bottomHit:hit?.id||hit?.className||hit?.tagName,windowScrollY:scrollY,viewport:{width:innerWidth,height:innerHeight},parents};
++  };
++  const get=document.getElementById.bind(document);document.getElementById=function(id){const e=get(id);if(id==='attHistBody'&&__traceArmed){__traceArmed=false;__trace.push(__measure('after-modal-show'));}return e;};
++  const d=Object.getOwnPropertyDescriptor(Element.prototype,'innerHTML');Object.defineProperty(Element.prototype,'innerHTML',{...d,set(value){d.set.call(this,value);if(this.id==='attHistBody')__trace.push(__measure(String(value).includes('Đang tải dữ liệu tháng')?'after-loading-placeholder':'after-primary-body-setter'));}});
++ });
++ for(const [scenario,profile] of [['fresh','P_A'],['same-reopen','P_A'],['member-switch','P_LONG_0']]){
++  await page.evaluate(({scenario,profile})=>{__trace.push(__measure('before-open:'+scenario));__traceArmed=true;window.__pendingHistory=showAttMemberHistory(profile,'2026-10');},{scenario,profile});
++  await page.evaluate(()=>__pendingHistory);
++  await page.evaluate(async()=>{await Promise.all(document.getAnimations().filter(a=>a.effect.getTiming().iterations!==Infinity).map(a=>a.finished.catch(()=>{})));});
++  const measured=await page.evaluate(()=>{const r=__measure('after-body-render');__trace.push(r);return r;});
++  runs.push({device,scenario,measured,trace:await page.evaluate(()=>__trace.splice(0))});
++  // DOM scroll is deliberate: modal may be offscreen precisely because of the defect.
++  await page.evaluate(()=>{const c=document.getElementById('attHistContent');c.scrollTop=c.scrollHeight;__trace.push(__measure('scrolled-bottom'));document.getElementById('attHistModal').style.display='none';});
++ }
++ await context.close();
++}}finally{await ui.close();fs.writeFileSync(path.join(out,'HISTORY_RED_TRACE.json'),JSON.stringify({scope:'Actual HTML/CSS and owners, 52-row roster. Native DOM observers only; no production connection.',runs},null,2));}
++console.log(JSON.stringify(runs.map(r=>({device:r.device,scenario:r.scenario,content:r.measured.content,scrollTop:r.measured.scrollTop,CTA:r.measured.CTA,calendarBottom:r.measured.calendarBottom,parents:r.measured.parents.filter(p=>p.contain!=='none'||p.transform!=='none')})),null,2));
+--- /dev/null
++++ b/tools/a9r16r3/history.browser.mjs
+@@ -0,0 +1,58 @@
++import fs from 'node:fs';import path from 'node:path';import assert from 'node:assert/strict';
++import {createUI} from './ui-harness.mjs';
++const out=path.resolve(process.env.R3_EVIDENCE_ROOT||'evidence/R3/history');fs.mkdirSync(out,{recursive:true});
++const ui=await createUI(),rows=[],reads=[];
++const check=async(device,id,title,fn)=>{try{rows.push({device,id,title,status:'PASS',evidence:await fn()});console.log('PASS',device,id,title);}catch(e){rows.push({device,id,title,status:'FAIL_RUNTIME',message:e.stack});console.error('FAIL',device,id,title,e.message);}};
++try{for(const [device,w,h] of [['iPhone-viewport',390,844],['Android-viewport',360,800],['Desktop',1280,900]]){
++ const {page,context}=await ui.page(w,h);
++ await page.evaluate(async()=>{for(let i=0;i<50;i++)__store.profiles['P_LONG_'+i]={...__store.profiles.P_A,profileId:'P_LONG_'+i,displayName:'Võ sinh có họ tên dài mẫu '+i};await __setPrincipal('CS1');document.getElementById('att_shift').value='G1';await onShiftChange();window.scrollTo(0,0);});
++ const settle=()=>page.evaluate(()=>Promise.all(document.getAnimations().filter(a=>a.effect.getTiming().iterations!==Infinity).map(a=>a.finished.catch(()=>{}))));
++ const open=async(id='P_A',month='2026-10')=>{await page.evaluate(async({id,month})=>showAttMemberHistory(id,month),{id,month});await settle();};
++ const primary=async()=>page.evaluate(()=>{
++  const c=document.getElementById('attHistContent'),m=document.getElementById('attHistModal'),b=document.getElementById('attHistoryLoadMore'),close=m.querySelector('[aria-label="Đóng lịch sử điểm danh"]');
++  const rect=e=>{const r=e.getBoundingClientRect();return {x:r.x,y:r.y,bottom:r.bottom,right:r.right,width:r.width,height:r.height};};
++  const cr=rect(close),br=rect(b),hit=document.elementFromPoint(cr.x+cr.width/2,cr.y+cr.height/2);
++  return {scrollTop:c.scrollTop,content:rect(c),CTA:br,CTAcount:document.querySelectorAll('#attHistoryLoadMore').length,parent:m.parentElement.tagName,text:document.getElementById('attHistBody').innerText,closeReachable:hit===close,noHorizontalOverflow:c.scrollWidth<=c.clientWidth,viewport:{width:innerWidth,height:innerHeight}};
++ });
++ await check(device,'H01','Actual roster name opens a viewport-contained modal at top',async()=>{
++  await page.locator('[data-hidx]').first().click();await page.waitForSelector('#attHistoryLoadMore');await settle();const x=await primary();assert.equal(x.scrollTop,0);assert.equal(x.parent,'BODY');assert(x.content.y>=0&&x.content.bottom<=h+1);assert(x.closeReachable);assert(x.noHorizontalOverflow);return x;
++ });
++ await check(device,'H04','Name and belt readable in primary content',async()=>{const x=await primary();assert(x.text.includes('Võ sinh A'));assert(x.text.includes('Đai Trắng'));return {name:'Võ sinh A',belt:'Đai Trắng'};});
++ await check(device,'H05','Registered training days preserved',async()=>{const x=await primary();for(const d of ['T2','T4','T6'])assert(x.text.includes(d));return {days:['T2','T4','T6']};});
++ await check(device,'H06','Canonical registered shift and stored time preserved',async()=>{assert((await primary()).text.includes('Ca Chiều (17:15–18:45)'));return {shift:'G1',label:'Ca Chiều (17:15–18:45)'};});
++ await check(device,'H07','Month counts/rates and complete primary calendar preserved',async()=>{const x=await primary();assert(x.text.includes('1 buổi'));assert(x.text.includes('100%'));assert(x.text.includes('Tháng 10/2026'));assert.equal(await page.locator('#attHistoryCalendar [title]').count(),31);return {month:'2026-10',days:31,present:1,rate:100};});
++ await check(device,'H08','One initial Full History CTA is visible near summary',async()=>{const x=await primary();assert.equal(x.CTAcount,1);assert(x.CTA.y>=x.content.y&&x.CTA.bottom<=x.content.bottom);assert(x.CTA.height>=44);assert(x.text.includes('Dữ liệu cũ chưa xác minh cần Admin đối soát'));return {CTA:x.CTA,content:x.content};});
++ await check(device,'H09','Fresh/reopen loads quarter only, zero automatic history pages',async()=>{
++  const evidence=await page.evaluate(async()=>{const before={...__qa.counts},q=__qa.queries.length;await showAttMemberHistory('P_A','2026-10');return {delta:Object.fromEntries(Object.entries(__qa.counts).map(([k,v])=>[k,v-before[k]])),queries:__qa.queries.slice(q)};});
++  assert.equal(evidence.delta.getDocs,1);assert.equal(evidence.delta.getDoc,0);assert.equal(evidence.delta.onSnapshot,0);assert.equal(evidence.queries.filter(q=>q.constraints.some(c=>c.type==='limit')).length,0);reads.push({device,action:'open',...evidence});return evidence;
++ });
++ await check(device,'H10','First CTA emits exactly one bounded page; rapid duplicate click coalesces',async()=>{
++  const result=await page.evaluate(async()=>{const n=__qa.counts.getDocs,q=__qa.queries.length;__qa.hold=new Promise(r=>window.__releasePage=r);const b=document.getElementById('attHistoryLoadMore');window.__pageFlight=b.onclick();b.onclick();const pending={delta:__qa.counts.getDocs-n,disabled:b.disabled};__releasePage();await __pageFlight;return {pending,delta:__qa.counts.getDocs-n,queries:__qa.queries.slice(q),rows:Array.from(document.querySelectorAll('[data-history-id]')).map(e=>e.dataset.historyId)};});
++  assert.equal(result.pending.delta,1);assert(result.pending.disabled);assert.equal(result.delta,1);assert.equal(result.rows.length,40);assert(result.queries[0].constraints.some(c=>c.type==='limit'&&c.value[0]===40));reads.push({device,action:'first-page',getDocs:result.delta});return result;
++ });
++ await check(device,'H11','Load more preserves scroll, deterministic 40/40/2 pages without duplicates',async()=>{
++  const result=await page.evaluate(async()=>{const c=document.getElementById('attHistContent');c.scrollTop=120;const before=c.scrollTop,n=__qa.counts.getDocs;await document.getElementById('attHistoryLoadMore').onclick();const after=c.scrollTop,count2=document.querySelectorAll('[data-history-id]').length;await document.getElementById('attHistoryLoadMore').onclick();const ids=Array.from(document.querySelectorAll('[data-history-id]')).map(e=>e.dataset.historyId);return {before,after,count2,ids,delta:__qa.counts.getDocs-n,done:document.getElementById('attHistoryLoadMore').disabled,calendarCount:document.querySelectorAll('#attHistoryCalendar [title]').length};});
++  assert.equal(result.before,result.after);assert.equal(result.count2,80);assert.equal(result.ids.length,82);assert.equal(new Set(result.ids).size,82);assert(result.done);assert.equal(result.delta,2);assert.equal(result.calendarCount,31);reads.push({device,action:'next-final-pages',getDocs:2});return result;
++ });
++ await check(device,'H02','Scroll to bottom, close and reopen same member begins at top',async()=>{
++  await page.evaluate(()=>{const c=document.getElementById('attHistContent');c.scrollTop=c.scrollHeight;});assert((await primary()).closeReachable);await page.getByRole('button',{name:'Đóng lịch sử điểm danh',exact:true}).click();await open();const x=await primary();assert.equal(x.scrollTop,0);assert(x.text.startsWith('Võ sinh A'));return {scrollTop:x.scrollTop,closeReachable:x.closeReachable};
++ });
++ await check(device,'H03','Member/month switch begins at top with the correct primary identity',async()=>{
++  await page.evaluate(()=>{document.getElementById('attHistContent').scrollTop=300;});await open('P_LONG_0','2026-02');const x=await primary();assert.equal(x.scrollTop,0);assert(x.text.startsWith('Võ sinh có họ tên dài mẫu 0'));assert.equal(await page.locator('#attHistoryCalendar [title]').count(),28);return {scrollTop:x.scrollTop,month:'2026-02',days:28};
++ });
++ await check(device,'H12','Close remains available during pending primary and page responses; no reopen',async()=>{
++  await page.evaluate(()=>{__qa.hold=new Promise(r=>window.__releasePrimary=r);window.__primaryFlight=showAttMemberHistory('P_A','2026-10');});await page.getByRole('button',{name:'Đóng lịch sử điểm danh',exact:true}).click();await page.evaluate(async()=>{__releasePrimary();await __primaryFlight;});assert.equal(await page.locator('#attHistModal').evaluate(e=>e.style.display),'none');
++  await open();await page.evaluate(()=>{__qa.hold=new Promise(r=>window.__releasePage=r);window.__pageFlight=document.getElementById('attHistoryLoadMore').onclick();});await page.getByRole('button',{name:'Đóng lịch sử điểm danh',exact:true}).click();await page.evaluate(async()=>{__releasePage();await __pageFlight;});assert.equal(await page.locator('#attHistModal').evaluate(e=>e.style.display),'none');assert.equal(await page.locator('[data-history-id]').count(),0);return {primaryClosed:true,pageClosed:true,lateRows:0};
++ });
++ await check(device,'H13','Late member A primary response cannot overwrite member B',async()=>{
++  await page.evaluate(()=>{__qa.hold=new Promise(r=>window.__releaseA=r);window.__aFlight=showAttMemberHistory('P_A','2026-10');});await open('P_LONG_0');await page.evaluate(async()=>{__releaseA();await __aFlight;});const x=await primary();assert(x.text.startsWith('Võ sinh có họ tên dài mẫu 0'));return {lateA:'DROP'};
++ });
++ await check(device,'H14','Coach branch switch/revocation drops stale requests and scopes new pages',async()=>{
++  await page.evaluate(()=>{__qa.hold=new Promise(r=>window.__releaseA=r);window.__aFlight=showAttMemberHistory('P_A','2026-10');});await page.evaluate(()=>__setPrincipal('CS2','coach',['CS1','CS2']));await open('P_B');await page.evaluate(async()=>{__releaseA();await __aFlight;await document.getElementById('attHistoryLoadMore').onclick();});assert((await primary()).text.startsWith('Võ sinh B'));const ids=await page.locator('[data-history-id]').evaluateAll(xs=>xs.map(x=>x.dataset.historyId));assert(ids.every(x=>x.startsWith('P_B_')));
++  await page.evaluate(()=>{__qa.hold=new Promise(r=>window.__releaseRevoked=r);window.__revokedFlight=document.getElementById('attHistoryLoadMore').onclick();__verifiedAuthContextState.allowedBranches=['CS1'];__verifiedAuthContextState.branchGeneration++;__verifiedAuthContextState.assignmentVersion='revoked';});await page.evaluate(async()=>{__releaseRevoked();await __revokedFlight;});assert.equal(await page.locator('[data-history-id]').count(),40);return {branch:'CS2',rows:40,lateCS1:'DROP',revokedNextPage:'DROP'};
++ });
++ await check(device,'H15','Admin existing primary history remains readable',async()=>{await page.evaluate(()=>__setPrincipal('CS1','admin'));await open();assert((await primary()).text.startsWith('Võ sinh A'));return {role:'admin'};});
++ await check(device,device.startsWith('iPhone')?'H16':device.startsWith('Android')?'H17':'H18','Viewport layout, close target and backdrop remain usable',async()=>{const x=await primary();assert(x.closeReachable&&x.noHorizontalOverflow);assert(x.content.bottom<=h+1);await page.mouse.click(4,20);assert.equal(await page.locator('#attHistModal').evaluate(e=>e.style.display),'none');return {viewport:x.viewport,closeTarget:44,scope:'Chromium viewport simulation; no physical iOS/Android certification'};});
++ await check(device,'H19','No Finance reads, new listener, migration writer or automatic history reader',async()=>{const x=await page.evaluate(()=>({listeners:__qa.counts.onSnapshot,writes:__qa.writes.length,finance:__qa.queries.filter(q=>/finance|transactions|inventory/.test(q.ref.path)).length}));assert.deepEqual(x,{listeners:0,writes:0,finance:0});return x;});
++ await context.close();
++}}finally{await ui.close();const report={status:rows.every(x=>x.status==='PASS')?'PASS':'FAIL_RUNTIME',scope:'Actual canonical owners and original HTML/CSS; synthetic SDK ports, native browser DOM/IndexedDB. Rules and SDK checked independently.',rows};fs.writeFileSync(path.join(out,'HISTORY_MOBILE_MATRIX.json'),JSON.stringify(report,null,2));fs.writeFileSync(path.join(out,'HISTORY_READ_DELTA.json'),JSON.stringify({status:report.status,rows:reads,historyOnSnapshot:0,newReaderOwners:0},null,2));if(report.status!=='PASS')process.exitCode=1;}
+--- a/tools/v11r2/manifests/V11R6_A9R16A_R3_SHIFT_HISTORY.json
++++ b/tools/v11r2/manifests/V11R6_A9R16A_R3_SHIFT_HISTORY.json
+@@ -3,7 +3,7 @@
+   "parentOuterZIP_SHA256": "b96b7e5fc9a77b119a8e696babddd5bbd87f0dda59bbaf8c1a0baf86f4699804",
+   "parentRuntimeSHA256": "93030b1d396b5c257b60d11a2c8a12f981cd967639fcc67603c90131c763e5fa",
+   "buildTag": "qr-v11r6-a9r16a-r3-shift-history-mobile-20261025",
+-  "runtimeSHA256": "aad301052815eb7968164fc2b2923e376580e0f39104dc48d45c8d99a45f417b",
++  "runtimeSHA256": "950dde369575bd099170b86d6923063bf11ddf4f9ae6376c759a2ec680d1ea2d",
+   "rulesSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+   "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+   "canonicalRuntimeFiles": {
+@@ -73,7 +73,7 @@
+     "js/listeners/students.listeners.js": "a3d8f8c286a48d8e2a37fe7043c520ee46d32d2d295676873771394a2cecf231",
+     "js/main.js": "7b4f9dfe76e59ead0207cf5808cf0890317ad46a625faee49ddcc90db6b08811",
+     "js/migrations/migrate-legacy-to-primary.js": "a5ac866f3cad2a893300e733c82b68ea73bafbda7709ba5031f5cbb8184974d1",
+-    "js/modules/attendance.js": "8785fb30672c63dba1df766a9810c9eb8badc216f06de0de1ceb6ba1ff6d1c08",
++    "js/modules/attendance.js": "4b1e4ec67953516cc5ba85e641d3b3d616527c4af897a382bcdba0649cfbf373",
+     "js/modules/dashboard.js": "02d959b48ef1fa18947b4e0ae6acf16437e453ee5d81444e27f62c4fe078adc1",
+     "js/modules/exam.js": "51c0ce63b52ada9884062714b9ff8ed6bf6b748f51b4238543c19452dcbcc8ed",
+     "js/modules/finance.js": "0e0c26ca688d5da1f7cf6332f66d6bc4aee166b478928a7b51d38797a625c144",
+--- a/tools/v11r2/source-identity.mjs
++++ b/tools/v11r2/source-identity.mjs
+@@ -212,8 +212,8 @@
+   "coachAssignmentContract": "server-verified-multi-branch-v1",
+   "inputZIP_SHA256": "b96b7e5fc9a77b119a8e696babddd5bbd87f0dda59bbaf8c1a0baf86f4699804",
+   "manifest": "tools/v11r2/manifests/V11R6_A9R16A_R3_SHIFT_HISTORY.json",
+-  "manifestSHA256": "ff907b1be3614701b33455e9413069dbe7d5bf2d6354e153a335d55ee90ddccd",
+-  "runtimeSHA256": "aad301052815eb7968164fc2b2923e376580e0f39104dc48d45c8d99a45f417b",
++  "manifestSHA256": "599f30aa4e289846d610de50684e53fdfd14fcd104273228551a76bd79bbf7f1",
++  "runtimeSHA256": "950dde369575bd099170b86d6923063bf11ddf4f9ae6376c759a2ec680d1ea2d",
+   "rulesSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+   "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+   "buildTag": "qr-v11r6-a9r16a-r3-shift-history-mobile-20261025"

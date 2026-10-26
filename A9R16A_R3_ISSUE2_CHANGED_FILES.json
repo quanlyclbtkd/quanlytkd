@@ -1,0 +1,35 @@
+{
+  "status": "PASS",
+  "changed": [
+    {
+      "path": "js/modules/attendance.js",
+      "before": "8785fb30672c63dba1df766a9810c9eb8badc216f06de0de1ceb6ba1ff6d1c08",
+      "after": "4b1e4ec67953516cc5ba85e641d3b3d616527c4af897a382bcdba0649cfbf373"
+    },
+    {
+      "path": "public/js/modules/attendance.js",
+      "before": "8785fb30672c63dba1df766a9810c9eb8badc216f06de0de1ceb6ba1ff6d1c08",
+      "after": "4b1e4ec67953516cc5ba85e641d3b3d616527c4af897a382bcdba0649cfbf373"
+    },
+    {
+      "path": "tools/a9r16r3/history-red.browser.mjs",
+      "before": null,
+      "after": "3965b60d4c89636a58daaabdba62e81702987e3a4b7df66802febf87e3eddaf5"
+    },
+    {
+      "path": "tools/a9r16r3/history.browser.mjs",
+      "before": null,
+      "after": "66fd3470079e061f3e6ccd329243b2850bd38c1169167fff412c3af0836732b6"
+    },
+    {
+      "path": "tools/v11r2/manifests/V11R6_A9R16A_R3_SHIFT_HISTORY.json",
+      "before": "ff907b1be3614701b33455e9413069dbe7d5bf2d6354e153a335d55ee90ddccd",
+      "after": "599f30aa4e289846d610de50684e53fdfd14fcd104273228551a76bd79bbf7f1"
+    },
+    {
+      "path": "tools/v11r2/source-identity.mjs",
+      "before": "0399a0d3cc3fe711f7c9ec674996dae41898b00c2b2ced52fcb393907c612e1e",
+      "after": "a2a8f9f5647087997c4e485881746a06651b0da90411b1985fe6cbc330cad724"
+    }
+  ]
+}

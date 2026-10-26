@@ -1,0 +1,47 @@
+{
+  "classification": "RELEASE_BLOCKED",
+  "A9R16B_READY": false,
+  "gates": {
+    "SOURCE_IDENTITY": "PASS",
+    "LEGACY_GLOBAL_SHIFT_COMPATIBILITY": "PASS",
+    "STRICT_NEW_SHIFT_AUTHORITY": "PASS",
+    "COACH_BRANCH_ISOLATION": "PASS",
+    "ATTENDANCE_ROSTER": "PASS",
+    "REGISTERED_SHIFT_TIME": "PASS",
+    "OPTIONAL_DAYS_SHIFT_DISPLAY": "PASS",
+    "MODAL_AUTH_TAB_CLEANUP": "PASS",
+    "MODAL_CLUB_BLOCK_CLEANUP": "PASS",
+    "MEMBER_HISTORY_SCROLL_LIFECYCLE": "PASS",
+    "MEMBER_HISTORY_DISCOVERABILITY": "PASS",
+    "AUTHORIZED_CURRENT_HISTORY": "PASS",
+    "ATTENDANCE_CAS": "PASS",
+    "JOURNAL_V4": "PASS",
+    "FINANCE_SECURITY": "PASS",
+    "REQUIRED_NPM_REGRESSION": "PASS",
+    "READS": "PASS",
+    "LISTENERS": "PASS",
+    "RULES": "PASS",
+    "INDEXES": "PASS",
+    "ROOT_PUBLIC": "PASS",
+    "PATCH_ROLLBACK_IDENTITY": "PASS",
+    "SUPPLEMENTAL_MOBILE_SHELL": "FAIL_TEST_HARNESS",
+    "FULL_REGRESSION": "FAIL_TEST_HARNESS",
+    "PHYSICAL_MOBILE": "ENV_BLOCKED",
+    "CLOUD_INDEX_LIVE_DATA_BILLED_READS": "ENV_BLOCKED"
+  },
+  "knownDebt": {
+    "label": "PRE_EXISTING_QA_DEBT",
+    "baseline": "79/80",
+    "candidate": "79/80",
+    "failingAssertion": 24,
+    "reason": "Legacy supplemental gate requires zero !important; inherited accepted CSS remains unchanged. No expectation was weakened."
+  },
+  "remaining": [
+    "Physical Android/iPhone/Safari acceptance absent",
+    "Actual profile/shift export and legacy-attestation audit not supplied",
+    "Cloud-index readiness, live/billed READS and cost approval unproved",
+    "Existing V11/release-owner decision remains pending"
+  ],
+  "deployed": false,
+  "productionAccessOrWrite": false
+}

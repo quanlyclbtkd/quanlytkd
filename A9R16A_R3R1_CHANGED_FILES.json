@@ -1,0 +1,201 @@
+{
+  "classification": "PASS",
+  "changed": [
+    {
+      "path": "app.js",
+      "before": "bf24c4f265ec09d2daa0ace3cb8a4227daecff04e875e8312e3b608e75212469",
+      "after": "caa2e6763b5793d00ea185843c51c12633db51958680e950a3d6ae3551ff3412"
+    },
+    {
+      "path": "index.html",
+      "before": "4f440daed1e29dd5a51bfe16a83b9aa48ec96e4d5e6ba8ac57c13ef325940c23",
+      "after": "e31585e5e0dcf3bc3555dd5b4864a47fc75562567e846a61b0883912e621362a"
+    },
+    {
+      "path": "js/core/studentStatusCommandBoundary.js",
+      "before": "8870ad5d6013e13746320d443168e2554e1ef9328c1a86ab45fa8a2800f0f0aa",
+      "after": "3eb67c6a9a7cafd1811e585dbfba6752e39df03c0cba4fd906f2c5e517a4d295"
+    },
+    {
+      "path": "js/data/attendanceJournal.js",
+      "before": "fd3c0baa8d427f4821dbde3675dac461b94bb179f717109a8fbc0586c0f66cb0",
+      "after": "a795f0a9d8351b642f027d31107060396f41bd950ac183c76f4795fb176a94ef"
+    },
+    {
+      "path": "js/main.js",
+      "before": "7b4f9dfe76e59ead0207cf5808cf0890317ad46a625faee49ddcc90db6b08811",
+      "after": "33d2e23dddac755a8070f1fc8a9b691d75dacbd188598ac14a35e05bb3bdd034"
+    },
+    {
+      "path": "js/modules/attendance.js",
+      "before": "4b1e4ec67953516cc5ba85e641d3b3d616527c4af897a382bcdba0649cfbf373",
+      "after": "c7136f2b0bf718f99b3ae4ba3643ce1c76147134ad0e6e477929b428483901ef"
+    },
+    {
+      "path": "js/modules/finance.js",
+      "before": "0e0c26ca688d5da1f7cf6332f66d6bc4aee166b478928a7b51d38797a625c144",
+      "after": "2991367d4eea571a456c704315b5704a552cbc8eedd04417c1f8dc0fd8157a17"
+    },
+    {
+      "path": "js/modules/finance/index.js",
+      "before": "8c23eb439a40c2d6f9d8fdf64befc3fc14a8f41949629a170dece48cfdffc4c2",
+      "after": "94193d4c8ad489209f74c9dbea483602bcb875c735ecc66112bc99baf24c0210"
+    },
+    {
+      "path": "js/modules/reports/attendanceExcelReport.js",
+      "before": "a74d5f2e752f20230a72a3924540cb6032105384ceaec5141f6fbbefbcb93e80",
+      "after": "46975c88b8a6951e5fdb35b0e000d6d35bcb23a0f3eb990176feb8bc540ae487"
+    },
+    {
+      "path": "js/modules/reports/reportExportFacade.js",
+      "before": "8a640abb700173589bb7c7c8f84ab3667ccc5bd788f29c02a00acc1e2bb00442",
+      "after": "df177a327a960f3b6f63ef129a5731d8d64f32508311b570927981450a77eb63"
+    },
+    {
+      "path": "js/modules/students.js",
+      "before": "327e0efed401da731445742025fc88b6421b193150dc69d243aff88e6e2c6b38",
+      "after": "95df794c17dedc84925f0443945866eb448d6778974a4091c7d24fcc0689326f"
+    },
+    {
+      "path": "js/modules/students/index.js",
+      "before": "237e6f71f08d4f405d9e85f0211389895aaecc9e0d9aa08e2724ebf9a039029d",
+      "after": "1e4ae5ce77086c69a16830258d9ce3f3ea5d1e9c40d04e789e364c4376044a67"
+    },
+    {
+      "path": "js/services/attendance.service.js",
+      "before": "56c5c4eb15cf59f437e651d0ffb56060eb844c9e77d1501552b8ef8f5ffdfc59",
+      "after": "13ed66f5ebb94b7289b0d395090ef009d579db5fa5c1d3be5823f714c90b8ceb"
+    },
+    {
+      "path": "js/services/students.service.js",
+      "before": "90ff2f3c85f7dc74f1ebaf3631d56675ad6b961612ce393ea13616601edaa4d4",
+      "after": "53de0189f5878c6a0c575ae6db29d38334be9105ab54f3aec41c68a9af600cfa"
+    },
+    {
+      "path": "js/ui/tabs.js",
+      "before": "40b3f63ea808be9561b8350f31e54dffc6bee29a50b5754f479bee3e0aee3191",
+      "after": "5169ef4af12a6bc314f1dfd7f3a30a03fc62defcb89462099a3859dd98b515ed"
+    },
+    {
+      "path": "public/app.js",
+      "before": "bf24c4f265ec09d2daa0ace3cb8a4227daecff04e875e8312e3b608e75212469",
+      "after": "caa2e6763b5793d00ea185843c51c12633db51958680e950a3d6ae3551ff3412"
+    },
+    {
+      "path": "public/index.html",
+      "before": "4f440daed1e29dd5a51bfe16a83b9aa48ec96e4d5e6ba8ac57c13ef325940c23",
+      "after": "e31585e5e0dcf3bc3555dd5b4864a47fc75562567e846a61b0883912e621362a"
+    },
+    {
+      "path": "public/js/core/studentStatusCommandBoundary.js",
+      "before": "8870ad5d6013e13746320d443168e2554e1ef9328c1a86ab45fa8a2800f0f0aa",
+      "after": "3eb67c6a9a7cafd1811e585dbfba6752e39df03c0cba4fd906f2c5e517a4d295"
+    },
+    {
+      "path": "public/js/data/attendanceJournal.js",
+      "before": "fd3c0baa8d427f4821dbde3675dac461b94bb179f717109a8fbc0586c0f66cb0",
+      "after": "a795f0a9d8351b642f027d31107060396f41bd950ac183c76f4795fb176a94ef"
+    },
+    {
+      "path": "public/js/main.js",
+      "before": "7b4f9dfe76e59ead0207cf5808cf0890317ad46a625faee49ddcc90db6b08811",
+      "after": "33d2e23dddac755a8070f1fc8a9b691d75dacbd188598ac14a35e05bb3bdd034"
+    },
+    {
+      "path": "public/js/modules/attendance.js",
+      "before": "4b1e4ec67953516cc5ba85e641d3b3d616527c4af897a382bcdba0649cfbf373",
+      "after": "c7136f2b0bf718f99b3ae4ba3643ce1c76147134ad0e6e477929b428483901ef"
+    },
+    {
+      "path": "public/js/modules/finance.js",
+      "before": "0e0c26ca688d5da1f7cf6332f66d6bc4aee166b478928a7b51d38797a625c144",
+      "after": "2991367d4eea571a456c704315b5704a552cbc8eedd04417c1f8dc0fd8157a17"
+    },
+    {
+      "path": "public/js/modules/finance/index.js",
+      "before": "8c23eb439a40c2d6f9d8fdf64befc3fc14a8f41949629a170dece48cfdffc4c2",
+      "after": "94193d4c8ad489209f74c9dbea483602bcb875c735ecc66112bc99baf24c0210"
+    },
+    {
+      "path": "public/js/modules/reports/attendanceExcelReport.js",
+      "before": "a74d5f2e752f20230a72a3924540cb6032105384ceaec5141f6fbbefbcb93e80",
+      "after": "46975c88b8a6951e5fdb35b0e000d6d35bcb23a0f3eb990176feb8bc540ae487"
+    },
+    {
+      "path": "public/js/modules/reports/reportExportFacade.js",
+      "before": "8a640abb700173589bb7c7c8f84ab3667ccc5bd788f29c02a00acc1e2bb00442",
+      "after": "df177a327a960f3b6f63ef129a5731d8d64f32508311b570927981450a77eb63"
+    },
+    {
+      "path": "public/js/modules/students.js",
+      "before": "327e0efed401da731445742025fc88b6421b193150dc69d243aff88e6e2c6b38",
+      "after": "95df794c17dedc84925f0443945866eb448d6778974a4091c7d24fcc0689326f"
+    },
+    {
+      "path": "public/js/modules/students/index.js",
+      "before": "237e6f71f08d4f405d9e85f0211389895aaecc9e0d9aa08e2724ebf9a039029d",
+      "after": "1e4ae5ce77086c69a16830258d9ce3f3ea5d1e9c40d04e789e364c4376044a67"
+    },
+    {
+      "path": "public/js/services/attendance.service.js",
+      "before": "56c5c4eb15cf59f437e651d0ffb56060eb844c9e77d1501552b8ef8f5ffdfc59",
+      "after": "13ed66f5ebb94b7289b0d395090ef009d579db5fa5c1d3be5823f714c90b8ceb"
+    },
+    {
+      "path": "public/js/services/students.service.js",
+      "before": "90ff2f3c85f7dc74f1ebaf3631d56675ad6b961612ce393ea13616601edaa4d4",
+      "after": "53de0189f5878c6a0c575ae6db29d38334be9105ab54f3aec41c68a9af600cfa"
+    },
+    {
+      "path": "public/js/ui/tabs.js",
+      "before": "40b3f63ea808be9561b8350f31e54dffc6bee29a50b5754f479bee3e0aee3191",
+      "after": "5169ef4af12a6bc314f1dfd7f3a30a03fc62defcb89462099a3859dd98b515ed"
+    },
+    {
+      "path": "tools/a9r16r3r1/build.mjs",
+      "before": null,
+      "after": "5b3ecc9145a5e46996a227b0273e69eabd7d18ac0d6bbb9be20b8c3410698323"
+    },
+    {
+      "path": "tools/a9r16r3r1/lifecycle.browser.emulator.mjs",
+      "before": null,
+      "after": "ed636150506fc80fd5216c349eda4f6040f1bdca16e647bc5c5baa2d1bea6d96"
+    },
+    {
+      "path": "tools/a9r16r3r1/optional-days.browser.mjs",
+      "before": null,
+      "after": "ad08c73446f68e088e42ac4575138e1da0d4bdeb0d0d637376d713ce39925e4c"
+    },
+    {
+      "path": "tools/a9r16r3r1/reads.browser.mjs",
+      "before": null,
+      "after": "e09a8f5887c9ad6593a70309b311596130a878cb20947e2c97391a8eb1254bf9"
+    },
+    {
+      "path": "tools/check-attendance-daily-single-refresh-authority.mjs",
+      "before": "633f674003eab5dbe144b8c56aeb2814d7cfa31b6ea484056ae79d308b96155e",
+      "after": "f718a611b3034ee08610873406891d4deeba3fd80f8401e0c5c63b22a34e1ea2"
+    },
+    {
+      "path": "tools/check-v5u2-tuition-command-cutover.mjs",
+      "before": "a588d592c637871cef7809b4e2c17b8ea228f2d578e7ebbdf57fbe97d0e1539f",
+      "after": "d081a3f49db95432aa85a7e66dfdc2b85f56e006246a6fc93839cb023074cc17"
+    },
+    {
+      "path": "tools/v11r2/manifests/V11R6_A9R16A_R3R1_REVIEW.json",
+      "before": null,
+      "after": "4d1b1f424dde96ef8881e21daf1699469ff6e4e9d7479c99c7edbf3accd08d3f"
+    },
+    {
+      "path": "tools/v11r2/source-identity.mjs",
+      "before": "a2a8f9f5647087997c4e485881746a06651b0da90411b1985fe6cbc330cad724",
+      "after": "fd7fcfcd9c10bbd2226cc046e7b1049206166d6ff49f0ddf7679370ae8ee008b"
+    }
+  ],
+  "semanticRuntimeFiles": [
+    "app.js",
+    "js/modules/attendance.js",
+    "js/ui/tabs.js"
+  ],
+  "frozenRulesIndexesTrainingContract": true
+}
