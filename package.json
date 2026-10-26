@@ -311,6 +311,8 @@
     "check:a9r15-source": "node tools/a9r15/architecture.test.mjs && node tools/a9r15/profile-negative-controls.mjs",
     "check:a9r15-registration": "node tools/a9r15/registration.test.mjs",
     "qa:a9r15-ui": "node tools/a9r15/runtime.browser.mjs",
+    "check:a9r17": "node tools/a9r17/receipt.test.mjs",
+    "qa:a9r17-layout": "node tools/a9r14/mobile-layout-search.browser.mjs",
     "test:a9r15-emulator": "node tools/a9r15/history.emulator.mjs && node tools/a9r15/sdk10.browser.emulator.mjs && node tools/a9r15/attendance.browser.emulator.mjs"
   },
   "engines": {

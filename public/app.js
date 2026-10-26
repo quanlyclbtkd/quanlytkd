@@ -6771,12 +6771,12 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
     let _receiptActiveJobKind = 'UNKNOWN';
     const _exportReceiptNow = async (name, amount, type, date, txMonth, branch, extraDesc = '', receiptTitle = 'BIÊN LAI THU TIỀN', breakdown = null, isReceiptRequestCurrent = () => true) => {
         window.showToast("⏳ Đang tạo hóa đơn, vui lòng đợi...", 10000, true); let _rendered = false, _previewReady = false, _modalVisible = false, _previewNaturalWidth = 0, _previewNaturalHeight = 0;
-        let _stage='request';
+        let _stage='request',_canvasFlight=null;
         const _startedAt=Date.now(),_timings={};let _stageAt=_startedAt,_httpStatus=null,_expectedMemoLength=null,_providerEndpoint=null,_providerRedirected=null;
         const _setStage=next=>{const now=Date.now();_timings[_stage]=(_timings[_stage]||0)+Math.max(0,now-_stageAt);_stage=next;_stageAt=now;};
         const _diagnostics=()=>{
             const ua=String(window.navigator?.userAgent||'');
-            return {at:new Date(_startedAt).toISOString(),elapsedMs:Math.max(0,Date.now()-_startedAt),
+            return {at:new Date(_startedAt).toISOString(),elapsedMs:Math.max(0,Date.now()-_startedAt),queueWaitMs:_startedAt-(isReceiptRequestCurrent.queuedAt||_startedAt),
                 timings:{..._timings,[_stage]:(_timings[_stage]||0)+Math.max(0,Date.now()-_stageAt)},httpStatus:_httpStatus,
                 expectedMemoLength:_expectedMemoLength,providerEndpoint:_providerEndpoint,providerRedirected:_providerRedirected,
                 online:typeof window.navigator?.onLine==='boolean'?window.navigator.onLine:null,
@@ -6868,12 +6868,13 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                 const _qrUrl = generateVietQR(amount, qrName, paymentContent, _accounts[0], 'qr_only', _canonicalMemo);
                 _intent=Object.freeze({clubId:currentClubId,branchKey:_accounts.map(a=>a.branchKey).join(','),bankKey:_accounts.map(a=>a.bankKey).join(','),bankBin:_accounts[0].bankBin,accountNo:_accounts[0].accountNo,accountName:_accounts[0].accountName,amount,memo:_canonicalMemo,intentKind:_kind});
                 _expectedMemoLength=_intent.memo.length;_providerEndpoint='vietqr-qr-only-svg';
+                const _loadCanvas=window.ensureHtml2CanvasReady;
+                if(!window.html2canvas && typeof _loadCanvas==='function') _canvasFlight=Promise.resolve().then(()=>_loadCanvas('receipt-export')).then(fn=>({fn}),error=>({error}));
                 document.getElementById('r_type').innerText += '\nNội dung CK: '+_intent.memo;
                 const _abortQR = new AbortController();
                 let _qrTimeout, _qrExpired = false;
                 document.getElementById('r_qr_wrap').style.display = 'block';
                 try {
-                    // Covers fetch headers, response bytes, FileReader, image decoding and owner checks.
                     await Promise.race([
                         (async () => {
                             _setStage('fetch');
@@ -6887,6 +6888,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                             if (!res.ok) throw _receiptError('QR_FETCH_HTTP',_stage);
                             _setStage('bytes');
                             const bytes = new Uint8Array(await res.arrayBuffer());
+                            _setStage('qr-media');
                             const dataURI = await window.QRBankingHelpers.prepareReceiptQrImage(bytes,res.headers.get('content-type'),qrImgEl.ownerDocument);
                             if (_qrExpired) throw _receiptError('QR_TIMEOUT','decode');
                             _assertCurrent();
@@ -6909,7 +6911,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
                 } finally { clearTimeout(_qrTimeout); }
             } else { document.getElementById('r_qr_wrap').style.display = 'none'; }
 
-            // Render breakdown table if provided
+            _setStage('template');
             const bdWrap = document.getElementById('r_breakdown_wrap');
             const bdTable = document.getElementById('r_breakdown_table');
             if(breakdown && breakdown.length > 0 && bdWrap && bdTable) {
@@ -6936,7 +6938,9 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             }
             const logoEl = document.getElementById('receiptLogo'); if (logoCanvasData) { logoEl.src = logoCanvasData; }
             node.style.position = 'absolute'; node.style.visibility = 'visible';
+            _setStage('canvas-asset');
             let _html2canvasFn = window.html2canvas;
+            if(_canvasFlight){const asset=await _canvasFlight;if(asset.error)throw asset.error;_html2canvasFn=asset.fn;}
             if (!_html2canvasFn) {
                 if (typeof window.ensureHtml2CanvasReady !== 'function') {
                     const _assetErr = new Error('html2canvas lazy owner unavailable');
@@ -6950,6 +6954,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             if (!_isCurrentReceiptOwner() || (_isReportQR && _qrCfgFingerprint !== _paymentConfigFingerprint())) throw _receiptError('CONFIG_STALE','canvas');
             _setStage('canvas');
             const canvas = await _html2canvasFn(node, { scale: 2, backgroundColor: '#ffffff', useCORS: false, allowTaint: false, logging: false, imageTimeout: 0 }); _rendered = true;
+            _setStage('encode');
             const _receiptImage = canvas.toDataURL(_isReportQR ? 'image/png' : 'image/jpeg', 0.82);
             if (!_receiptImage.startsWith(_isReportQR ? 'data:image/png;base64,' : 'data:image/jpeg;base64,')) throw _receiptError('CANVAS_EXPORT_FAILED',_stage);
             _setStage('preview');
@@ -6974,7 +6979,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         } catch (error) {
             const _code=String(error?.code || '');
             const _paidReasons={'asset-load-timeout':'asset-timeout','asset-load-failed':'asset-load-failed','asset-load-invalid':'asset-load-failed','image-failed':'image-failed','preview-failed':'preview-failed','modal-closed-before-display':'modal-closed-before-display','modal-not-visible':'modal-not-visible'};
-            const _reason=_kind==='PAID' ? (_paidReasons[_code] || 'render-failed') : /^[A-Z_]+$/.test(_code) ? _code : _stage==='canvas' ? 'CANVAS_EXPORT_FAILED' : _stage==='modal' ? 'MODAL_NOT_VISIBLE' : _stage.startsWith('preview') ? 'PREVIEW_FAILED' : 'RENDER_FAILED';
+            const _reason=_kind==='PAID' ? (_paidReasons[_code] || 'render-failed') : /^[A-Z_]+$/.test(_code) ? _code : ['canvas','encode'].includes(_stage) ? 'CANVAS_EXPORT_FAILED' : _stage==='modal' ? 'MODAL_NOT_VISIBLE' : _stage.startsWith('preview') ? 'PREVIEW_FAILED' : 'RENDER_FAILED';
             _clearReceiptPreview();
             const safeError=_receiptError(_reason,error?.stage || _stage);
             const _safeQrPixelAudit=error?.qrPixelAudit||null;
@@ -6990,7 +6995,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
     let _receiptRenderQueue = Promise.resolve();
     window.exportReceipt = (...inputArgs) => {
         // Job identity is independent of preview identity. B does not cancel A.
-        const requestId = ++_receiptRequestEpoch;
+        const requestId = ++_receiptRequestEpoch,queuedAt=Date.now();
         const _clubAtRequest = currentClubId;
         const _ownerAtRequest = _receiptPrincipalFingerprint();
         const _settingsAtRequest = _receiptConfigFingerprint(clubConfig);
@@ -7010,7 +7015,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
             return '';
         };
         const sameRequest=() => _receiptActiveJobId===requestId && !failureReason();
-        sameRequest.failureReason=failureReason;sameRequest.jobId=requestId;sameRequest.kind=kind;
+        sameRequest.failureReason=failureReason;sameRequest.jobId=requestId;sameRequest.kind=kind;sameRequest.queuedAt=queuedAt;
         sameRequest.isPreviewCurrent=() => _receiptActiveJobId===requestId;
         args.push(sameRequest);
         const _runRequestedReceipt = () => {
@@ -7519,7 +7524,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
 
                     // [PERF] Debt list pagination — đếm tổng nợ vẫn chính xác
                     _debtTotalCount++;
-                    if(_curTabId === 'debt' && _debtRendered < _debtLimit) { _debtRendered++; debtHtml += `<tr ${rowBg}><td><span class="badge ${countBadgeClass}">${unpaidMonthsCount} Tháng</span></td><td>${lastPaidLabel}</td>${branchTdHTML}<td class="name-link text-[0.95rem]" onclick="openProfile('${safeNameEscaped}')">${_displayName(name)}${_listYrBadge}${isOverdue ? ' <span title="Nợ từ 2 tháng trở lên" class="text-rose-500">⚠️</span>' : ''}</td><td class="action-btns"><button type="button" class="btn-sm bg-indigo-50 text-indigo-700 border border-indigo-200" onclick="generateMultiMonthPaymentRequest('${safeNameEscaped}', '${safeOwedMonths}', '${safeBranch}', '${totalDebtAmount}')">📱 QR</button>${window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-emerald-600 text-white shadow-sm" onclick="openQuickPayModal('${safeNameEscaped}', '${safeOwedMonths}', '${safeBranch}')">💰 Thu</button>` : ''}<button type="button" class="btn-sm bg-[#0068FF] text-white shadow-sm" onclick="copyAndOpenZalo('${safeNameEscaped}', '${safeOwedMonths}', '${safePhone}')">💬 Zalo</button>${window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-rose-50 text-rose-700 border border-rose-200" title="Chuyển võ sinh sang Đã nghỉ" onclick="window.markStudentQuitFromDebt(event, '${safeNameEscaped}', '${selMonth}')">🚫 Nghỉ</button><button type="button" class="btn-sm bg-amber-50 text-amber-700 border border-amber-200" title="Báo nghỉ / miễn học phí tháng này" onclick="window.skipDebtMonthFromDebt(event, '${safeNameEscaped}', '${selMonth}')">⏸ Báo nghỉ</button>` : ''}</td></tr>`; }
+                    if(_curTabId === 'debt' && _debtRendered < _debtLimit) { _debtRendered++; debtHtml += `<tr ${rowBg}><td><span class="badge ${countBadgeClass}">${unpaidMonthsCount} Tháng</span></td><td>${lastPaidLabel}</td>${branchTdHTML}<td class="name-link text-[0.95rem]" onclick="openProfile('${safeNameEscaped}')">${_displayName(name)}${_listYrBadge}${isOverdue ? ' <span title="Nợ từ 2 tháng trở lên" class="text-rose-500">⚠️</span>' : ''}</td><td class="action-btns"><button type="button" class="btn-sm bg-indigo-50 text-indigo-700 border border-indigo-200" onclick="ReceiptHelpers.withPendingReportButton(this,()=>generateMultiMonthPaymentRequest('${safeNameEscaped}', '${safeOwedMonths}', '${safeBranch}', '${totalDebtAmount}'))">📱 QR</button>${window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-emerald-600 text-white shadow-sm" onclick="openQuickPayModal('${safeNameEscaped}', '${safeOwedMonths}', '${safeBranch}')">💰 Thu</button>` : ''}<button type="button" class="btn-sm bg-[#0068FF] text-white shadow-sm" onclick="copyAndOpenZalo('${safeNameEscaped}', '${safeOwedMonths}', '${safePhone}')">💬 Zalo</button>${window.userRole === 'admin' ? `<button type="button" class="btn-sm bg-rose-50 text-rose-700 border border-rose-200" title="Chuyển võ sinh sang Đã nghỉ" onclick="window.markStudentQuitFromDebt(event, '${safeNameEscaped}', '${selMonth}')">🚫 Nghỉ</button><button type="button" class="btn-sm bg-amber-50 text-amber-700 border border-amber-200" title="Báo nghỉ / miễn học phí tháng này" onclick="window.skipDebtMonthFromDebt(event, '${safeNameEscaped}', '${selMonth}')">⏸ Báo nghỉ</button>` : ''}</td></tr>`; }
                 }
             } else {
                 // [PERF] Quit list pagination

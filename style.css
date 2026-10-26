@@ -1497,7 +1497,7 @@ button, a, [role="button"] {
   #filterArea {
     grid-template-columns: minmax(0, 1fr) !important;
   }
-  #filterArea > div {
+  #filterArea:not(.ui-context-bar) > div {
     grid-column: 1 / -1 !important;
     width: 100%;
     min-width: 0;

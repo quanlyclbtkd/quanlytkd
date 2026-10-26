@@ -72,7 +72,7 @@ import {
 } from './renderRegistry.js';
 
 import { invalidateFinanceRender }   from "./computation/financeRenderer.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
-import { invalidateStudentsRender }  from "./computation/studentsRenderer.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+import { invalidateStudentsRender }  from "./computation/studentsRenderer.js?v=qr-v11r6-a9r17-mobile-layout-qr-20261026";
 import { invalidateInventoryRender } from "./computation/inventoryRenderer.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
 import { invalidateDashboardCache }  from './computation/dashboardRenderer.js';
 
@@ -81,7 +81,7 @@ import {
     refreshListComputation,
     refreshListsComputation,
     getComputationDomainForList,
-} from "./listComputationRefresh.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+} from "./listComputationRefresh.js?v=qr-v11r6-a9r17-mobile-layout-qr-20261026";
 
 // ── Dev helper ────────────────────────────────────────────────────────────────
 function _isDev() {

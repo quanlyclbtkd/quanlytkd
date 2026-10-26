@@ -21,7 +21,7 @@
  */
 
 import { registerRender } from './renderRegistry.js';
-import { getStudentsCachedHtml, getStudentsCacheMetrics } from "./computation/studentsRenderer.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+import { getStudentsCachedHtml, getStudentsCacheMetrics } from "./computation/studentsRenderer.js?v=qr-v11r6-a9r17-mobile-layout-qr-20261026";
 
 // Phase 4K-6V5S: single-flight authority request for the Đã nghỉ render island.
 // A failed/missing-context ensure must never invalidate the same list again,

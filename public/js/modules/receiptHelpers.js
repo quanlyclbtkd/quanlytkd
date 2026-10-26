@@ -156,7 +156,29 @@ function copyReceiptText(data = {}) {
   return text;
 }
 
+// UI lock for report buttons only. The canonical receipt queue keeps every
+// programmatic job; financial actions and their arguments remain untouched.
+const pendingReportButtons = new WeakMap();
+function withPendingReportButton(button, action) {
+  if (!button || button.tagName !== 'BUTTON') return action();
+  const pending = pendingReportButtons.get(button);
+  if (pending) return pending;
+  const disabled = button.disabled, busy = button.getAttribute('aria-busy');
+  button.disabled = true;
+  button.setAttribute('aria-busy', 'true');
+  const flight = Promise.resolve().then(action).finally(() => {
+    if (pendingReportButtons.get(button) !== flight) return;
+    pendingReportButtons.delete(button);
+    button.disabled = disabled;
+    if (busy === null) button.removeAttribute('aria-busy');
+    else button.setAttribute('aria-busy', busy);
+  });
+  pendingReportButtons.set(button, flight);
+  return flight;
+}
+
 export const ReceiptHelpers = Object.freeze({
+  withPendingReportButton,
   normalizeReceiptLine,
   buildReceiptLinesHtml,
   calculateReceiptTotal,

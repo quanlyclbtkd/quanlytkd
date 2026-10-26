@@ -32,16 +32,20 @@ async function measure(page){return page.evaluate(()=>{
 });}
 async function check(title,fn){try{await fn();results.push({title,result:'PASS'});console.log('PASS',title);}catch(error){results.push({title,result:'FAIL',message:error.stack});console.error('FAIL',title,error.message);}}
 try {
- for(const width of [320,360,390,430,767])await check('Mobile '+width+'px: month precedes search, inputs fit and stay readable',async()=>{
+ for(const width of [320,360,375,390,414,430,519,520,767])await check('Mobile '+width+'px: month/branch above full-width search; controls are readable and clickable',async()=>{
   const {page,context}=await open(width);try{
    const dimensions=await measure(page);geometry.push(dimensions);
-   assert(dimensions.month.y+dimensions.month.height<=dimensions.search.y);assert.equal(dimensions.search.y,dimensions.branch.y);
-   assert(Math.abs(dimensions.month.width-(dimensions.branch.x+dimensions.branch.width-dimensions.search.x))<1,'Month fills the first row');
+   assert.equal(dimensions.month.y,dimensions.branch.y);
+   assert(dimensions.search.y>=Math.max(dimensions.month.y+dimensions.month.height,dimensions.branch.y+dimensions.branch.height));
+   assert(dimensions.month.x+dimensions.month.width<=dimensions.branch.x);
+   assert(Math.abs(dimensions.search.width-(dimensions.branch.x+dimensions.branch.width-dimensions.month.x))<1,'Search fills the second row');
+   assert.equal(await page.evaluate(()=>{const e=document.getElementById('filterBranch'),r=e.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.id;}),'filterBranch','Branch must receive the tap, not search');
+   assert.equal(await page.locator('label[for="filterBranch"]').isVisible(),true);
    assert.deepEqual(dimensions.counts,[1,1,1]);for(const key of ['month','search','branch']){assert(dimensions[key].height>=44);assert.equal(dimensions[key].fontSize,'16px');assert(dimensions[key].x>=0&&dimensions[key].x+dimensions[key].width<=width);}
    if(width===390&&process.env.A9R14_SCREENSHOTS){fs.mkdirSync(process.env.A9R14_SCREENSHOTS,{recursive:true});await page.locator('#filterArea').screenshot({path:path.join(process.env.A9R14_SCREENSHOTS,'mobile-390-after.png')});}
   }finally{await context.close();}
  });
- if(baseline)await check('Desktop geometry at 1024px stays equal to A9R13',async()=>{
+ if(baseline)await check('Desktop geometry at 1024px stays equal to the supplied parent baseline',async()=>{
   const old=await open(1024,'baseline'),current=await open(1024);try{
    const a=await measure(old.page),b=await measure(current.page);
    for(const key of ['month','search','branch'])for(const field of ['x','y','width','height'])assert(Math.abs(a[key][field]-b[key][field])<1,key+' '+field);

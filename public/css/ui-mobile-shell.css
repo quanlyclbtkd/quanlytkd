@@ -95,17 +95,17 @@ body:has(#tab_debt.active):not(:has(#superAdminView[style*="display: block"])):n
   #mainTabsWrapper { display: none; }
 
   /* CONTEXT / SEARCH. Existing controls and IDs are physically reused; only presentation changes. */
-  #filterArea.ui-context-bar { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(112px, 1fr) !important; gap: 8px; position: relative; margin: 0 0 12px; padding: 0; background: transparent; border: 0; }
-  .ui-context-search { grid-column: 1; grid-row: 2; display: block; min-width: 0; position: relative; }
+  #filterArea.ui-context-bar { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) !important; align-items: start; gap: 8px; position: relative; margin: 0 0 12px; padding: 0; background: transparent; border: 0; }
+  .ui-context-search { grid-column: 1 / -1; grid-row: 2; display: block; min-width: 0; position: relative; }
   .ui-search-icon { color: #64748b; }
   .ui-search-input { min-height: var(--ui-touch-min); padding: 10px 12px 10px 40px; border-radius: 14px; background: #fff; box-shadow: var(--ui-shadow-sm); border: 1px solid #dbe3ef; font-size: 16px; }
   .ui-filter-toggle { display: none; }
   .ui-filter-controls, #filterArea.mobile-filter-open .ui-filter-controls { display: contents; }
   #filterArea.mobile-filter-open::before { content: none; }
-  .ui-filter-controls .input-branch { grid-column: 2; grid-row: 2; min-width: 0; align-self: stretch; }
-  .ui-filter-controls .input-branch label { display: none; }
-  .ui-filter-controls .input-branch #filterBranch { min-width: 0; height: 100%; min-height: var(--ui-touch-min); padding: 8px 30px 8px 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; box-shadow: var(--ui-shadow-sm); border-radius: 14px; }
-  .ui-filter-controls > .ui-filter-field:not(.input-branch) { grid-column: 1 / -1; grid-row: 1; min-width: 0; }
+  .ui-filter-controls .input-branch { grid-column: 2; grid-row: 1; min-width: 0; align-self: start; }
+  .ui-filter-controls .input-branch label { display: block; }
+  .ui-filter-controls .input-branch #filterBranch { min-width: 0; height: auto; min-height: var(--ui-touch-min); padding: 8px 30px 8px 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; box-shadow: var(--ui-shadow-sm); border-radius: 14px; }
+  .ui-filter-controls > .ui-filter-field:not(.input-branch) { grid-column: 1; grid-row: 1; min-width: 0; }
   /* A9R14: presentation only; the existing inputs, IDs and events stay in place. */
   #filterArea .ui-filter-field > label { font-size: 0.75rem; font-weight: 700; line-height: 1.35; }
   #filterArea #filterMonth, #filterArea #filterBranch, #filterArea #searchInput { font-size: 16px !important; line-height: 1.25; min-height: var(--ui-touch-min); }

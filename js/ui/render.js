@@ -60,7 +60,7 @@ import {
     computeAndCacheStudents,
     getStudentsSummary,
     getStudentsCachedHtml,
-} from "./render/computation/studentsRenderer.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+} from "./render/computation/studentsRenderer.js?v=qr-v11r6-a9r17-mobile-layout-qr-20261026";
 import {
     computeAndCacheInventory,
     getCachedLiveInvMap,

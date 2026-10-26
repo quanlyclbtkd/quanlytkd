@@ -76,6 +76,7 @@ async function prepare(page,policy,width){
   await page.goto(origin,{waitUntil:'domcontentloaded'});
   await page.addStyleTag({content:'.app-container{display:block!important}#loginOverlay{display:none!important}.tab-content{display:none!important}#tab_debt{display:block!important}'});
   await page.evaluate(async()=>{const h=await import('/js/modules/qrBankingHelpers.js?v=qr-v8-redirect-safari-20261020');h.initQRBankingHelpers();const f=await import('/js/utils/format.js');window.formatMonthCompact=f.formatMonthCompact;window.formatTuitionMonthList=xs=>f.formatMonthCompact(xs.join(','));});
+  await page.evaluate(async()=>{const h=await import('/js/modules/receiptHelpers.js');h.initReceiptHelpers();});
   await page.addScriptTag({url:origin+'/test-vendor/html2canvas.min.js'});
   await page.addScriptTag({content:code});
   return page.evaluate(async()=>{
@@ -131,6 +132,20 @@ try {
     for(const width of [375,390,430,768,1366])for(const entry of ['debt','multiitem'])await flow(context,entry,'redirect',width);
     if(svgFixture)for(const width of [375,390,430,768,1366])for(const entry of ['debt','multiitem'])await flow(context,entry,'svg',width);
     for(const entry of ['debt','multiitem'])await flow(context,entry,'network-down',390);
+  }
+  for(const entry of ['debt','multiitem']) {
+    const page=await context.newPage();
+    try {
+      await prepare(page,'redirect',390);
+      if(entry==='multiitem')await page.evaluate(()=>{document.getElementById('multiItemModal').style.display='flex';for(const[k,v]of Object.entries({mi_name:'TEST VDV',mi_tuition_month:'2026-10',mi_tuition_pkg:'1',mi_tuition_actual:'500000',mi_exam_actual:'0',mi_other_actual:'0',mi_inv_qty:'1'}))document.getElementById(k).value=v;document.getElementById('mi_tuition_enabled').checked=true;for(const id of ['mi_exam_toggle','mi_other_toggle','mi_inv_toggle'])document.getElementById(id).checked=false;});
+      const immediate=await page.evaluate(entry=>{const owner=window.exportReceipt;window.__tapCalls=0;window.exportReceipt=(...args)=>{window.__tapCalls++;return owner(...args);};const b=entry==='debt'?document.querySelector('#debtList button'):Array.from(document.querySelectorAll('#multiItemModal button')).find(b=>b.textContent.includes('TẠO PHIẾU BÁO'));window.__tapButton=b;b.click();b.click();return{disabled:b.disabled,busy:b.getAttribute('aria-busy')};},entry);
+      assert.equal(immediate.disabled,true);assert.equal(immediate.busy,'true');
+      await page.waitForFunction(()=>window.__pendingReceipt);
+      const r=await page.evaluate(async()=>{const r=await window.__pendingReceipt;return{ok:r.ok,calls:window.__tapCalls,writes:window.__writes.length}});
+      assert(r.ok);assert.equal(r.calls,1);assert.equal(r.writes,0);await page.waitForFunction(()=>window.__tapButton.disabled===false);
+      assert.equal(await page.evaluate(()=>window.__tapButton.getAttribute('aria-busy')),null);
+      results.push({entry,policy:'native-double-tap',width:390,status:'PASS_NATIVE_UI_ONE_REPORT_JOB',writes:0,reportCalls:1});
+    }finally{await page.close();}
   }
   await context.close();
 } catch(e){results.push({status:'FAIL',reason:e.stack});console.error(e.stack);process.exitCode=1;}

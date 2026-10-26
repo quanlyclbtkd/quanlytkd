@@ -1,0 +1,31 @@
+import fs from'node:fs';import path from'node:path';import crypto from'node:crypto';import assert from'node:assert/strict';
+import{parse}from'../v11r2/vendor/acorn.mjs';import{buildImportGraph}from'../v11r2/import-graph.mjs';import{runtimeHash}from'../v11r2/cutover.mjs';
+const before=path.resolve(process.env.A9R17_BASELINE_ROOT||'../baseline'),after=process.cwd(),out=path.resolve(process.env.A9R17_EVIDENCE||'evidence/A9R17');fs.mkdirSync(out,{recursive:true});
+const read=(root,f)=>fs.readFileSync(path.join(root,f),'utf8'),sha=t=>crypto.createHash('sha256').update(t).digest('hex');
+const parent=JSON.parse(read(before,'tools/v11r2/manifests/V11R6_A9R16A_R3R1_REVIEW.json')),files=Object.keys(parent.canonicalRuntimeFiles),js=files.filter(f=>f.endsWith('.js'));
+const clean=n=>!n||typeof n!=='object'?n:Array.isArray(n)?n.map(clean):Object.fromEntries(Object.entries(n).filter(([k])=>!['start','end','loc','raw'].includes(k)).map(([k,v])=>[k,clean(v)]));
+function walk(n,fn){if(!n||typeof n!=='object')return;if(n.type)fn(n);for(const[k,v]of Object.entries(n)){if(['start','end','loc'].includes(k))continue;if(Array.isArray(v))v.forEach(x=>walk(x,fn));else if(v&&typeof v==='object')walk(v,fn)}}
+function cacheURL(url){const h=url.indexOf('#'),hash=h<0?'':url.slice(h),base=h<0?url:url.slice(0,h),q=base.indexOf('?');if(q<0)return url;const p=new URLSearchParams(base.slice(q+1));p.delete('v');return base.slice(0,q)+(p.size?'?'+p.toString():'')+hash}
+const graphs=new Map([[before,buildImportGraph(before,{},js)],[after,buildImportGraph(after,{},js)]]);
+function normalize(root,file){let s=read(root,file);for(const e of graphs.get(root).edges.filter(e=>e.from===file&&e.to).sort((a,b)=>b.start-a.start))s=s.slice(0,e.start)+(e.quoted?JSON.stringify(cacheURL(e.url)):cacheURL(e.url))+s.slice(e.end);return s;}
+function ast(s){const n=parse(s,{ecmaVersion:'latest',sourceType:'module'});walk(n,x=>{if(x.type==='AssignmentExpression'&&x.left.type==='MemberExpression'&&x.left.object.name==='window'&&x.left.property.name==='APP_BUILD_VERSION')x.right.value='<BUILD_ID>'});return clean(n)}
+const ui=s=>s.replace(/ReceiptHelpers\.withPendingReportButton\(this,\(\)=>(generateMultiMonthPaymentRequest\([^"\n]+\))\)/g,'$1');
+const rows=[];
+for(const f of js){let a=normalize(before,f),b=normalize(after,f);
+ if(f==='app.js'){const strip=s=>{s=ui(s);const i=s.indexOf('const _waitReceiptPreviewReady = async'),j=s.indexOf('// Phase 4K-2B:',i);assert(i>0&&j>i);return s.slice(0,i)+s.slice(j)};a=strip(a);b=strip(b);}
+ if(f==='js/modules/receiptHelpers.js'){const i=b.indexOf('// UI lock for report buttons only.'),j=b.indexOf('export const ReceiptHelpers',i);assert(i>0&&j>i);b=(b.slice(0,i)+b.slice(j)).replace('  withPendingReportButton,\n','');}
+ if(f==='js/ui/render/computation/studentsRenderer.js'){a=ui(a);b=ui(b);}
+ const same=JSON.stringify(ast(a))===JSON.stringify(ast(b));rows.push({file:f,semanticUnchangedOutsideDeclaredReceiptUI:same});assert(same,f);
+}
+const guardNames=['normalizeBranchKeyForPayment','_receiptPrincipalFingerprint','_receiptConfigFingerprint','_acceptReceiptSettingsSnapshot','_receiptAuthorityConfig','_receiptPaymentMemo','_receiptTuitionMemo','_receiptDecodeEMV','_verifyReceiptQrPixels','getPaymentAccountForBranch','generateVietQR','_clearReceiptPreview','_waitReceiptPreviewReady','_waitReceiptPaint','_inspectReceiptModalVisibility','_receiptKindFromTitle','_receiptFailureMessage','_assertCurrent','_isCurrentReceiptOwner','failureReason','sameRequest'];
+function guards(root){const found={};walk(parse(read(root,'app.js'),{ecmaVersion:'latest',sourceType:'module'}),n=>{const name=n.type==='FunctionDeclaration'?n.id?.name:n.type==='VariableDeclarator'&&['ArrowFunctionExpression','FunctionExpression'].includes(n.init?.type)?n.id?.name:null;if(guardNames.includes(name)){assert(!found[name],name);found[name]=clean(n.type==='VariableDeclarator'?n.init:n)}});return found;}
+const a=guards(before),b=guards(after);const guardsProof=guardNames.map(name=>{assert(a[name]&&b[name],name);assert.deepEqual(a[name],b[name],name);return{name,classification:'PASS',sha256:sha(JSON.stringify(a[name]))}});
+const htmlA=read(before,'index.html'),htmlB=read(after,'index.html'),filter=s=>s.slice(s.indexOf('<div id="filterArea"'),s.indexOf('<div id="home_birthday_banner"'));
+assert.equal(filter(htmlA),filter(htmlB),'Filter nodes/options/handlers must stay byte-identical');
+const ids=s=>[...s.matchAll(/\bid=["']([^"']+)["']/g)].map(x=>x[1]).sort();assert.deepEqual(ids(htmlA),ids(htmlB));
+for(const f of['firestore.rules','firestore.indexes.json'])assert.equal(read(before,f),read(after,f),f);
+const counts=root=>Object.fromEntries(['getDoc','getDocs','onSnapshot'].map(name=>[name,js.reduce((n,f)=>n+(read(root,f).match(new RegExp('\\b'+name+'\\s*\\(','g'))||[]).length,0)]));assert.deepEqual(counts(before),counts(after));
+const pin=JSON.parse(read(after,'tools/v11r2/manifests/V11R6_A9R17_MOBILE_LAYOUT_QR.json'));for(const[f,h]of Object.entries(pin.canonicalRuntimeFiles)){assert.equal(sha(read(after,f)),h);assert.equal(sha(read(after,'public/'+f)),h)}
+assert(fs.statSync(path.join(after,'app.js')).size<=700000);
+const result={classification:'PASS',beforeRuntimeSHA256:runtimeHash(before),afterRuntimeSHA256:runtimeHash(after),declaredSemanticOwners:['app.js receipt render/timing + report button markup','index.html mobile legacy scope + report button markup','style.css mobile legacy scope','css/ui-mobile-shell.css filter layout','js/modules/receiptHelpers.js report button UI lock','js/ui/render/computation/studentsRenderer.js report button markup'],js:rows,guards:guardsProof,filterDOMByteIdentical:true,allHTMLIDsUnchanged:true,rulesByteIdentical:true,indexesByteIdentical:true,staticSDKCallsBefore:counts(before),staticSDKCallsAfter:counts(after),rootPublicMatched:Object.keys(pin.canonicalRuntimeFiles).length,appBytes:fs.statSync(path.join(after,'app.js')).size};
+fs.writeFileSync(path.join(out,'PROTECTED_CORE.json'),JSON.stringify(result,null,2)+'\n');console.log(JSON.stringify({classification:result.classification,jsFiles:rows.length,guards:guardsProof.length,rootPublic:result.rootPublicMatched,staticSDKCalls:result.staticSDKCallsAfter,appBytes:result.appBytes}));
