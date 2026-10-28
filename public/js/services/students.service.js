@@ -15,7 +15,7 @@
  * ────────────────────────────────────────────────────────────────
  */
 
-import { validateTrainingMutation } from "../core/trainingRegistration.js?v=qr-v11r6-a9r17-mobile-layout-qr-20261026";
+import { validateTrainingMutation } from "../core/trainingRegistration.js?v=qr-v11r6-a9r18-mobile-perf-r2-p4s-20261028";
 
 // ── Internal helpers (không export) ──────────────────────────────
 

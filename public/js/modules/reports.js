@@ -262,6 +262,15 @@ function _sdk()          { return window._fb_init || {}; }
 /** SheetJS global từ CDN */
 function _XLSX()         { return window.XLSX; }
 
+function _reportExportGuard(controlIds) {
+    const context=()=>{const a=window.__verifiedAuthContextState||{},s=window.__store||{};return JSON.stringify([a.uid,a.role,a.clubId,a.ready,a.generation,a.branchGeneration,a.assignmentVersion,a.allowedBranches,a.activeBranch,a.coachBranch,a.branchSelectionPending,a.sessionEpoch,a.authGeneration,window.userRole,s.currentUser?.uid,s.clubId,controlIds.map(id=>document.getElementById(id)?.value)]);};
+    const a=window.__verifiedAuthContextState,s=window.__store||{},db=s.db;
+    if(a?.ready!==true||!a.uid||!['admin','owner','super_admin'].includes(a.role)||a.role!==window.userRole||a.branchSelectionPending===true||(a.role!=='super_admin'&&a.clubId!==s.clubId))throw Object.assign(Error('Chưa xác minh quyền xuất báo cáo.'),{code:'reports/authority-required'});
+    const captured=context();
+    const ensure=()=>{if(context()!==captured||window.__store?.db!==db)throw Object.assign(Error('Phiên hoặc phạm vi báo cáo đã thay đổi.'),{code:'reports/stale-context'});};
+    return{ensure,async wait(producer){ensure();const value=await producer();ensure();return value;}};
+}
+
 /** Tên cơ sở theo mã code */
 function _branchName(code) {
     if (typeof window.getBranchNameDisplay === 'function') return window.getBranchNameDisplay(code);
@@ -339,7 +348,8 @@ export function initReports() {
     // ════════════════════════════════════════════════════════════
 
     window.executeExcelExport = async () => {
-        await window.ensureXlsxReady?.('reports-excel-export');
+        const _exportGuard=_reportExportGuard(["excel_year","excel_periodType","excel_periodValue","filterMonth"]);
+        await _exportGuard.wait(()=>(window.ensureXlsxReady?.('reports-excel-export')));
         if (window.userRole === 'viewer') return;
 
         const year   = parseInt(document.getElementById('excel_year').value);
@@ -364,10 +374,10 @@ export function initReports() {
         const periodTitle = `${pLabel} năm ${year}`;
 
         if (typeof window.ensureAllProfilesForExport === 'function') {
-            await window.ensureAllProfilesForExport('excel-export');
+            await _exportGuard.wait(()=>(window.ensureAllProfilesForExport('excel-export')));
         }
         // Phase 4.0A-2: Inventory export guard
-        await window.ensureInventoryForFeature?.('export', 'excel-export');
+        await _exportGuard.wait(()=>(window.ensureInventoryForFeature?.('export', 'excel-export')));
         // Phase 4.0A-2: Metrics tracking
         const _excelStartMs = Date.now();
         window.__reportsModuleMetrics.excelExportCalls++;
@@ -392,18 +402,18 @@ export function initReports() {
             }, 2000);
 
             try {
-                const txByDate = await window.loadTransactionsForDateRange({
+                const txByDate = await _exportGuard.wait(()=>(window.loadTransactionsForDateRange({
                     colRef,
                     startDate: startStr,
                     endDate:   endStr,
                     reason:    'excel-export-date-range',
-                });
-                const txByMonth = await window.loadTransactionsForTxMonthRange({
+                })));
+                const txByMonth = await _exportGuard.wait(()=>(window.loadTransactionsForTxMonthRange({
                     colRef,
                     startMonth: _startM,
                     endMonth:   _endM,
                     reason:     'excel-export-txMonth-range',
-                });
+                })));
                 // Phase 4K-4F: Merge packageMonths query for middle-month coverage
                 let txByPackage = [];
                 try {
@@ -417,23 +427,25 @@ export function initReports() {
                     }
                     if (_mCursor <= _endM) throw new Error('Kỳ xuất vượt giới hạn 36 tháng; chưa đọc đủ dữ liệu.');
                     if (window.FinanceService && typeof window.FinanceService.queryTxByPackageMonths === 'function') {
-                        txByPackage = await window.FinanceService.queryTxByPackageMonths(_months);
+                        txByPackage = await _exportGuard.wait(()=>(window.FinanceService.queryTxByPackageMonths(_months)));
                     } else if (typeof FinanceService !== 'undefined' && typeof FinanceService.queryTxByPackageMonths === 'function') {
-                        txByPackage = await FinanceService.queryTxByPackageMonths(_months);
+                        txByPackage = await _exportGuard.wait(()=>(FinanceService.queryTxByPackageMonths(_months)));
                     } else throw new Error('Thiếu nguồn giao dịch packageMonths.');
                 } catch (_pkgErr) {
+            _exportGuard.ensure();
                     throw _pkgErr;
                 }
                 txAll = window.dedupeDocsById([...txByDate, ...txByMonth, ...txByPackage]);
                 txAll.sort((a, b) => a.date > b.date ? 1 : -1);
-                invAll = await window.loadInventoryForDateRange({
+                invAll = await _exportGuard.wait(()=>(window.loadInventoryForDateRange({
                     invRef,
                     startDate: startStr,
                     endDate:   endStr,
                     reason:    'excel-export-inventory-range',
-                });
+                })));
                 invAll.sort((a, b) => a.date > b.date ? 1 : -1);
             } catch (_paginationErr) {
+            _exportGuard.ensure();
                 throw _paginationErr;
             } finally {
                 clearTimeout(_paginationToastTimer);
@@ -808,6 +820,7 @@ export function initReports() {
             XLSX.utils.book_append_sheet(wb, ws_exam, '6. Ket Qua Thi Dai');
 
             const fileName = `BaoCao_${clubName.replace(/\s/g,'_')}_${pLabel.replace(/\s/g,'_')}_${year}.xlsx`;
+            _exportGuard.ensure();
             XLSX.writeFile(wb, fileName);
             document.getElementById('toastMessage').classList.remove('show');
             window.showToast(`✅ Đã xuất file: ${fileName}`);
@@ -816,6 +829,7 @@ export function initReports() {
             window.__reportsModuleMetrics.lastError = null;
             document.getElementById('excelExportModal').style.display = 'none';
         } catch (err) {
+            _exportGuard.ensure();
             console.error(err);
             // Phase 4.0A-2: Record error
             window.__reportsModuleMetrics.lastError = err ? err.message : 'unknown';
@@ -830,15 +844,16 @@ export function initReports() {
     // ════════════════════════════════════════════════════════════
 
     window.exportAchievementsExcel = async () => {
-        await window.ensureXlsxReady?.('reports-achievements-export');
+        const _exportGuard=_reportExportGuard([]);
+        const _achStartMs = Date.now();
+        await _exportGuard.wait(()=>(window.ensureXlsxReady?.('reports-achievements-export')));
         if (typeof window.ensureAllProfilesForExport === 'function') {
-            await window.ensureAllProfilesForExport('export-achievements');
+            await _exportGuard.wait(()=>(window.ensureAllProfilesForExport('export-achievements')));
         } else if (typeof window.loadQuitProfilesIfNeeded === 'function') {
         // Phase 4.0A-2: Metrics
-        const _achStartMs = Date.now();
         window.__reportsModuleMetrics.achievementExportCalls++;
         window.__reportsModuleMetrics.lastExportType = 'achievement';
-            await window.loadQuitProfilesIfNeeded('export-achievements-needs-quit');
+            await _exportGuard.wait(()=>(window.loadQuitProfilesIfNeeded('export-achievements-needs-quit')));
         }
         const allProfiles = _profiles();
         const clubConfig  = _config();
@@ -1034,7 +1049,8 @@ export function initReports() {
         });
 
         const fileName = `ThanhTich_${clubName.replace(/\s/g,'_')}_${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}.xlsx`;
-        XLSX.writeFile(wb, fileName);
+        _exportGuard.ensure();
+            XLSX.writeFile(wb, fileName);
         window.showToast(`✅ Đã xuất: ${fileName}  🥇${totalHCV} HCV  🥈${totalHCB} HCB  🥉${totalHCĐ} HCĐ`);
         // Phase 4.0A-2: Record duration
         window.__reportsModuleMetrics.lastExportDurationMs = Date.now() - _achStartMs;
@@ -1046,7 +1062,8 @@ export function initReports() {
     // ════════════════════════════════════════════════════════════
 
     window.exportExamPaidList = async () => {
-        await window.ensureXlsxReady?.('reports-export-exam-paid-list');
+        const _exportGuard=_reportExportGuard(["filterMonth"]);
+        await _exportGuard.wait(()=>(window.ensureXlsxReady?.('reports-export-exam-paid-list')));
         // Phase 4.0A-2: Metrics
         const _examStartMs = Date.now();
         window.__reportsModuleMetrics.examPaidExportCalls++;
@@ -1080,23 +1097,23 @@ export function initReports() {
 
             // Source 1: query by txMonth field
             if (typeof window.loadTransactionsForTxMonthRange === 'function') {
-                _txByMonth = await window.loadTransactionsForTxMonthRange({
+                _txByMonth = await _exportGuard.wait(()=>(window.loadTransactionsForTxMonthRange({
                     colRef:     _txColRef,
                     startMonth: selMonth,
                     endMonth:   selMonth,
                     reason:     'exam-paid-export-txMonth',
-                });
+                })));
                 _txMonthCount = _txByMonth.length;
             } else throw new Error('Thiếu nguồn giao dịch txMonth.');
 
             // Source 2: query by date field (catches docs missing txMonth)
             if (typeof window.loadTransactionsForDateRange === 'function' && _startDate && _endDate) {
-                _txByDate = await window.loadTransactionsForDateRange({
+                _txByDate = await _exportGuard.wait(()=>(window.loadTransactionsForDateRange({
                     colRef:    _txColRef,
                     startDate: _startDate,
                     endDate:   _endDate,
                     reason:    'exam-paid-export-date',
-                });
+                })));
                 _dateCount = _txByDate.length;
             } else throw new Error('Thiếu nguồn giao dịch theo ngày.');
 
@@ -1114,6 +1131,7 @@ export function initReports() {
             }
             console.debug('[ReportsModule] examPaidList load: txMonth=', _txMonthCount, 'date=', _dateCount, 'deduped=', allTransactions.length);
         } catch (_txErr) {
+            _exportGuard.ensure();
             console.error('[ReportsModule] exportExamPaidList incomplete:', _txErr);
             window.showToast?.('⚠️ Chưa đọc đủ giao dịch. Không thể xuất danh sách thi.', 6000);
             return;
@@ -1192,6 +1210,7 @@ export function initReports() {
             });
         }
         } catch (_paidDataErr) {
+            _exportGuard.ensure();
             console.error('[ReportsModule] exportExamPaidList paidData build error:', _paidDataErr && _paidDataErr.message);
             if (window.__reportsModuleMetrics) window.__reportsModuleMetrics.lastError = String(_paidDataErr && _paidDataErr.message);
         }
@@ -1365,7 +1384,8 @@ export function initReports() {
             }
         }
 
-        XLSX.writeFile(wb, `DS_DangKyThi_${selMonth}_${clubName.replace(/\s/g,'_')}.xlsx`);
+        _exportGuard.ensure();
+            XLSX.writeFile(wb, `DS_DangKyThi_${selMonth}_${clubName.replace(/\s/g,'_')}.xlsx`);
         // Phase 4.0A-2: Record duration
         window.__reportsModuleMetrics.lastExportDurationMs = Date.now() - _examStartMs;
         window.__reportsModuleMetrics.lastError = null;
@@ -1386,7 +1406,8 @@ export function initReports() {
     };
 
     window.executeTaxExport = async () => {
-        await window.ensureXlsxReady?.('reports-tax-export');
+        const _exportGuard=_reportExportGuard(["taxYear","taxPeriodType","taxPeriodValue"]);
+        await _exportGuard.wait(()=>(window.ensureXlsxReady?.('reports-tax-export')));
         if (window.userRole === 'viewer') return alert("Tài khoản khách không thể thao tác!");
 
         const year    = document.getElementById('taxYear').value;
@@ -1414,7 +1435,7 @@ export function initReports() {
         }
 
         if (typeof window.ensureAllProfilesForExport === 'function') {
-            await window.ensureAllProfilesForExport('tax-export');
+            await _exportGuard.wait(()=>(window.ensureAllProfilesForExport('tax-export')));
         }
         // Phase 4.0A-2: Metrics
         const _taxStartMs = Date.now();
@@ -1431,12 +1452,12 @@ export function initReports() {
             // === Phase 3.8D: Thay limit(2000) bằng paginated fetch cho tax export ===
             let _taxRawDocs = [];
             try {
-                _taxRawDocs = await window.loadTransactionsForDateRange({
+                _taxRawDocs = await _exportGuard.wait(()=>(window.loadTransactionsForDateRange({
                     colRef,
                     startDate: startStr,
                     endDate:   endStr,
                     reason:    'tax-export-date-range',
-                });
+                })));
                 const _qs38d = window.__queryScaleMetrics;
                 if (_qs38d) {
                     const _mKey   = `export-tx-date:${startStr}~${endStr}`;
@@ -1445,6 +1466,7 @@ export function initReports() {
                     _qs38d.taxExportPages = _mFetch ? _mFetch.pages : 1;
                 }
             } catch (_taxPaginationErr) {
+            _exportGuard.ensure();
                 throw _taxPaginationErr;
             }
 
@@ -1571,6 +1593,7 @@ export function initReports() {
 
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "So_S1a_HKD");
+            _exportGuard.ensure();
             XLSX.writeFile(wb, `So_Thue_S1a_${valStr.replace(/\s/g, '_')}_${year}.xlsx`);
             document.getElementById('toastMessage').classList.remove('show');
             if (typeof window.closeTaxModal === 'function') window.closeTaxModal();
@@ -1578,6 +1601,7 @@ export function initReports() {
             window.__reportsModuleMetrics.lastExportDurationMs = Date.now() - _taxStartMs;
             window.__reportsModuleMetrics.lastError = null;
         } catch (error) {
+            _exportGuard.ensure();
             console.error(error);
             // Phase 4.0A-2: Record error
             window.__reportsModuleMetrics.lastError = error ? error.message : 'unknown';

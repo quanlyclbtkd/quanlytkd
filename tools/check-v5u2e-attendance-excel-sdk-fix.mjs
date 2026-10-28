@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import {verifyRuntimeProfile} from './v11r2/runtime-profile.mjs';
+import {buildImportGraph} from './v11r2/import-graph.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -20,6 +21,7 @@ const publicIndex = read('public/index.html');
 const config = read('js/firebase/config.js');
 const publicConfig = read('public/js/firebase/config.js');
 const report = read('js/modules/reports/attendanceExcelReport.js');
+const service = read('js/services/attendance.service.js');
 const publicReport = read('public/js/modules/reports/attendanceExcelReport.js');
 const facade = read('js/modules/reports/reportExportFacade.js');
 const publicFacade = read('public/js/modules/reports/reportExportFacade.js');
@@ -41,7 +43,7 @@ check('Firebase CDN import includes documentId', /import \{[^}]*\bdocumentId\b[^
 check('window._fb_init exposes documentId', /window\._fb_init = \{[^}]*\bdocumentId\b[^}]*\}/.test(index));
 check('public index exposes documentId identically', publicIndex.includes('orderBy, documentId, where') && publicIndex.includes('query, orderBy, documentId, where'));
 check('firebase/config exports documentId in shared sdk', config.includes('query, orderBy, documentId, where') && publicConfig.includes('query, orderBy, documentId, where'));
-check('attendance report requires stable documentId ordering', report.includes('orderBy(documentId())') && report.includes('Firebase SDK chưa sẵn sàng:'));
+check('attendance report requires stable documentId ordering', report.includes('documentOrder:true') && service.includes('orderBy(documentId())') && service.includes('attendance/monthly-pagination-unavailable'));
 check('attendance report source/public mirrors match', report === publicReport);
 // SDK compatibility checks require a pinned runtime, matching client/Rules
 // gates and a complete cache graph. Deployment/cutover authorization is owned
@@ -57,23 +59,30 @@ const mainFacadeImport = main.match(/reportExportFacade\.js\?v=([^'"\s)]+)/)?.[0
 const publicMainFacadeImport = publicMain.match(/reportExportFacade\.js\?v=([^'"\s)]+)/)?.[0] || '';
 check('main cache-busts report facade', /^reportExportFacade\.js\?v=.+/.test(mainFacadeImport));
 check('main source/public mirrors match for report import', mainFacadeImport !== '' && publicMainFacadeImport === mainFacadeImport);
-check('index cache-busts app/main V5U-2E-or-later', (index.includes(`app.js?v=${build}`) || index.includes(`app.js?v=${v5u5Build}`)) && (index.includes(`./js/main.js?v=${dashboardBuild}`) || index.includes(`./js/main.js?v=${searchBuild}`) || index.includes(`./js/main.js?v=${build}`) || index.includes(`./js/main.js?v=${v5u5Build}`)));
-check('public index cache-busts app/main V5U-2E-or-later', (publicIndex.includes(`app.js?v=${build}`) || publicIndex.includes(`app.js?v=${v5u5Build}`)) && (publicIndex.includes(`./js/main.js?v=${dashboardBuild}`) || publicIndex.includes(`./js/main.js?v=${searchBuild}`) || publicIndex.includes(`./js/main.js?v=${build}`) || publicIndex.includes(`./js/main.js?v=${v5u5Build}`)));
+function coherentEntryHTML(html){try{const profile=verifyRuntimeProfile(root),m=JSON.parse(read(profile.identity.manifest)),g=buildImportGraph(root);return ['app.js','js/main.js'].every(f=>g.edges.some(e=>{if(e.from!=='index.html'||e.to!==f||!html.includes(e.url))return false;const u=new URL(e.url,'https://qa/');return u.pathname+u.search+u.hash===m.canonicalModuleURLs[f];}));}catch{return false;}}
+check('index cache-busts app/main with current pinned coherent lineage',coherentEntryHTML(index));
+check('public index cache-busts app/main with current pinned coherent lineage',coherentEntryHTML(publicIndex));
+const activeProfile=verifyRuntimeProfile(root);
+check('stale entrypoint token is rejected by coherence check',!coherentEntryHTML(index.replaceAll(activeProfile.identity.buildTag,'STALE_TEST_BUILD')));
 check('APP patch marker updated in app/main', app.includes(patch) && main.includes(patch));
 check('public APP patch marker updated', publicApp.includes(patch) && publicMain.includes(patch));
 check('report remains read-only', !/(?:setDoc|updateDoc|addDoc|deleteDoc|writeBatch|runTransaction|onSnapshot)\s*\(/.test(report));
-check('no second attendance export query path introduced', (report.match(/loadAttendanceMonthPaginated\(/g) || []).length === 2 && (report.match(/getDocs\(/g) || []).length === 1);
+check('no second attendance export query path introduced', (report.match(/loadAttendanceMonthPaginated\(/g) || []).length === 2 && (report.match(/getDocs\(/g) || []).length === 0 && ((report.match(/AttendanceService\.loadByMonth\(/g) || []).length + (report.match(/owner\.readMonth\(/g) || []).length) === 1);
 check('package exposes V5U-2E check', pkg.scripts?.['check:v5u2e-attendance-excel-sdk-fix'] === 'node tools/check-v5u2e-attendance-excel-sdk-fix.mjs');
 check('build:public keeps public as runtime-only output', !publicPkgExists);
 
 // Lightweight behavior test: verifies documentId is used and cursor pagination returns all mocked docs.
 globalThis.window = globalThis;
+const {HISTORY_AUTHORITY}=await import(pathToFileURL(path.join(root,'js/core/attendanceContract.js')).href);
+const serviceModule=await import(pathToFileURL(path.join(root,'js/services/attendance.service.js')).href);
+window.APP_BUILD_VERSION=verifyRuntimeProfile(root).identity.buildTag;window.AttendanceModule={getHistoryReadOwner:()=>serviceModule.AttendanceHistoryReadOwner};
+const testDb={};window.userRole='admin';window.__store={db:testDb,clubId:'club-a',currentClubId:'club-a',userRole:'admin',currentUser:{uid:'sdk-test'}};window.__verifiedAuthContextState={uid:'sdk-test',role:'admin',clubId:'club-a',ready:true,generation:1};
 let documentIdCalls = 0;
 let orderByArg = null;
 let queryConstraints = [];
 const pageDocs = [
-  { id: 'att_001', data: () => ({ month: '2026-08', status: 1 }) },
-  { id: 'att_002', data: () => ({ month: '2026-08', status: 2 }) },
+  { id: 'att_001', data: () => ({ month: '2026-08', status: 1,profileId:'P1',branch:'CS1',historyAuthority:HISTORY_AUTHORITY,id:'FORGED_DATA_ID' }) },
+  { id: 'att_002', data: () => ({ month: '2026-08', status: 2,profileId:'P2',branch:'CS1',historyAuthority:HISTORY_AUTHORITY }) },
 ];
 window._fb_init = {
   collection: (...args) => ({ type: 'collection', args }),
@@ -83,11 +92,11 @@ window._fb_init = {
   documentId: () => { documentIdCalls++; return '__DOCUMENT_ID__'; },
   limit: (n) => ({ type: 'limit', n }),
   startAfter: (cursor) => ({ type: 'startAfter', cursor }),
-  getDocs: async () => ({ docs: pageDocs }),
+  getDocs: async () => ({ docs: pageDocs,metadata:{fromCache:false,hasPendingWrites:false} }),
 };
 try {
   const mod = await import(pathToFileURL(path.join(root, 'js/modules/reports/attendanceExcelReport.js')).href + `?test=${Date.now()}`);
-  const result = await mod.loadAttendanceMonthPaginated({ db: {}, clubId: 'club-a', month: '2026-08' });
+  const result = await mod.loadAttendanceMonthPaginated({ db: testDb, clubId: 'club-a', month: '2026-08',branch:'CS1' });
   check('behavior: documentId helper is invoked once', documentIdCalls === 1);
   check('behavior: orderBy receives documentId sentinel', orderByArg === '__DOCUMENT_ID__');
   check('behavior: bounded query includes where/orderBy/limit', queryConstraints.some(x => x.type === 'where') && queryConstraints.some(x => x.type === 'orderBy') && queryConstraints.some(x => x.type === 'limit'));

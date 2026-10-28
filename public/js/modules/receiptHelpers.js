@@ -161,19 +161,23 @@ function copyReceiptText(data = {}) {
 const pendingReportButtons = new WeakMap();
 function withPendingReportButton(button, action) {
   if (!button || button.tagName !== 'BUTTON') return action();
+  const context=()=>{const a=globalThis.window?.__verifiedAuthContextState||{},m=button.closest?.('#multiItemModal');return JSON.stringify([a.uid,a.role,a.clubId,a.ready,a.generation,a.branchGeneration,a.assignmentVersion,a.activeBranch,a.sessionEpoch,a.authGeneration,button.isConnected,m?[m.style.display,m.dataset?.reportEpoch,...Array.from(m.querySelectorAll('input,select,textarea'),e=>[e.id,e.value,e.checked,{...e.dataset}])]:null]);};
+  const key=context();
   const pending = pendingReportButtons.get(button);
-  if (pending) return pending;
-  const disabled = button.disabled, busy = button.getAttribute('aria-busy');
+  if (pending?.key===key) return pending.promise;
+  const disabled = pending?pending.disabled:button.disabled, busy = pending?pending.busy:button.getAttribute('aria-busy');
   button.disabled = true;
   button.setAttribute('aria-busy', 'true');
-  const flight = Promise.resolve().then(action).finally(() => {
-    if (pendingReportButtons.get(button) !== flight) return;
+  const entry={key,disabled,busy,promise:null};
+  const flight = Promise.resolve().then(()=>context()===key?action():{ok:false,reason:'JOB_STALE'}).finally(() => {
+    if (pendingReportButtons.get(button) !== entry) return;
     pendingReportButtons.delete(button);
     button.disabled = disabled;
     if (busy === null) button.removeAttribute('aria-busy');
     else button.setAttribute('aria-busy', busy);
   });
-  pendingReportButtons.set(button, flight);
+  entry.promise=flight;
+  pendingReportButtons.set(button, entry);
   return flight;
 }
 

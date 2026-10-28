@@ -9,11 +9,13 @@ import { join, relative, extname, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { spawn } from 'child_process';
 import { tmpdir } from 'os';
+import { randomUUID } from 'node:crypto';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dir, '..');
 const VERBOSE = process.argv.includes('--verbose');
 const TMP = tmpdir();
+const TEMP_RUN_ID = randomUUID();
 const CONCURRENCY = Math.max(2, Math.min(24, Number(process.env.SYNTAX_CHECK_CONCURRENCY || 12)));
 const SKIP_DIRS = new Set(['node_modules','dist','build','.git']);
 const SKIP_FIRST_SEGS = new Set(['functions','.git']);
@@ -72,7 +74,7 @@ function extractInlineScripts(htmlPath) {
 
 let tmpIdx=0;
 async function checkInlineCode(code,isModule) {
-  const path=join(TMP,`_syntax_check_${process.pid}_${++tmpIdx}.js`);
+  const path=join(TMP,`_syntax_check_${TEMP_RUN_ID}_${++tmpIdx}.js`);
   const src=isModule?code:`(function(){\n${code}\n})();`;
   try { writeFileSync(path,src,'utf8'); return await runNodeCheck(path); }
   finally { try { unlinkSync(path); } catch {} }

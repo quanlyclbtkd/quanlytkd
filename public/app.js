@@ -6993,48 +6993,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
         }
     };
     let _receiptRenderQueue = Promise.resolve();
-    window.exportReceipt = (...inputArgs) => {
-        // Job identity is independent of preview identity. B does not cancel A.
-        const requestId = ++_receiptRequestEpoch,queuedAt=Date.now();
-        const _clubAtRequest = currentClubId;
-        const _ownerAtRequest = _receiptPrincipalFingerprint();
-        const _settingsAtRequest = _receiptConfigFingerprint(clubConfig);
-        let kind='UNKNOWN', requestError=null;
-        try {kind=_receiptKindFromTitle(inputArgs[7]);} catch(e) {requestError=e;}
-        const args=Array.from({length:9},(_,i)=>inputArgs[i]);
-        if (Array.isArray(args[5])) args[5]=Object.freeze(args[5].slice());
-        if (Array.isArray(args[8])) args[8]=Object.freeze(args[8].map(row=>Object.freeze({...row})));
-        const failureReason=() => {
-            if (_clubAtRequest !== currentClubId || _ownerAtRequest !== _receiptPrincipalFingerprint()) return 'AUTH_STALE';
-            const principal=window.__verifiedAuthContextState;
-            if (!principal?.ready || !principal.uid || !Number.isSafeInteger(principal.generation) || principal.generation<1) return 'AUTH_STALE';
-            if (kind==='REPORT') {
-                if (_settingsAtRequest !== _receiptConfigFingerprint(clubConfig)) return 'CONFIG_STALE';
-                try {_receiptAuthorityConfig();}catch(e){return e.code || 'ACCOUNT_SETTINGS_UNVERIFIED';}
-            }
-            return '';
-        };
-        const sameRequest=() => _receiptActiveJobId===requestId && !failureReason();
-        sameRequest.failureReason=failureReason;sameRequest.jobId=requestId;sameRequest.kind=kind;sameRequest.queuedAt=queuedAt;
-        sameRequest.isPreviewCurrent=() => _receiptActiveJobId===requestId;
-        args.push(sameRequest);
-        const _runRequestedReceipt = () => {
-            _receiptActiveJobId=requestId;
-            _receiptActiveJobKind=kind;
-            _clearReceiptPreview();
-            const reason=requestError?.code || failureReason();
-            if (reason) {
-                const error=_receiptError(reason,'authority');
-                console.error('[Receipt]',{stage:error.stage,reason,jobId:requestId,kind});
-                window.showToast(_receiptFailureMessage(reason));
-                return {ok:false,reason,error,stage:error.stage,jobId:requestId,kind};
-            }
-            return _exportReceiptNow(...args).then(result => ({...result,stage:result.error?.stage || (result.ok?'complete':'render'),jobId:requestId,kind}));
-        };
-        const run = _receiptRenderQueue.then(_runRequestedReceipt, _runRequestedReceipt);
-        _receiptRenderQueue = run.then(() => undefined, () => undefined);
-        return run;
-    };
+    window.exportReceipt = (...inputArgs) => {const requestId=++_receiptRequestEpoch,queuedAt=Date.now();const _clubAtRequest=currentClubId;const _ownerAtRequest=_receiptPrincipalFingerprint();const _settingsAtRequest=_receiptConfigFingerprint(clubConfig);let kind='UNKNOWN',requestError=null;try{kind=_receiptKindFromTitle(inputArgs[7]);}catch(e){requestError=e;}const args=Array.from({length:9},(_,i)=>inputArgs[i]);if(Array.isArray(args[5]))args[5]=Object.freeze(args[5].slice());if(Array.isArray(args[8]))args[8]=Object.freeze(args[8].map(row=>Object.freeze({...row})));const o=kind==='REPORT'&&inputArgs[9]==='multiItemModal'?document.getElementById('multiItemModal'):null;const ctx=()=>{const a=window.__verifiedAuthContextState||{},c=window.__clubAccessBootstrapState;return[a.sessionEpoch,a.branchGeneration,a.assignmentVersion,a.activeBranch,c?.ready,c?.status,kind==='REPORT'?window.getCurrentActiveTabId?.():null,o?[o.isConnected,o.style.display,o.dataset?.reportEpoch,...Array.from(o.querySelectorAll?.('input,select,textarea')||[],e=>[e.id,e.value,e.checked,{...e.dataset}])]:null];};const stamp=ctx();let done=false;const snap=x=>JSON.stringify(done?x.slice(0,-1):x);const failureReason=()=>{if(_clubAtRequest!==currentClubId||_ownerAtRequest!==_receiptPrincipalFingerprint())return'AUTH_STALE';const principal=window.__verifiedAuthContextState;if(!principal?.ready||!principal.uid||!Number.isSafeInteger(principal.generation)||principal.generation<1)return'AUTH_STALE';if(snap(ctx())!==snap(stamp)||(!done&&o?.style.display==='none'))return'JOB_STALE';if(kind==='REPORT'){if(_settingsAtRequest!==_receiptConfigFingerprint(clubConfig))return'CONFIG_STALE';try{_receiptAuthorityConfig();}catch(e){return e.code||'ACCOUNT_SETTINGS_UNVERIFIED';}}return'';};const sameRequest=()=>_receiptActiveJobId===requestId&&!failureReason();sameRequest.failureReason=failureReason;sameRequest.jobId=requestId;sameRequest.kind=kind;sameRequest.queuedAt=queuedAt;sameRequest.isPreviewCurrent=()=>_receiptActiveJobId===requestId;args.push(sameRequest);const _runRequestedReceipt=()=>{_receiptActiveJobId=requestId;_receiptActiveJobKind=kind;_clearReceiptPreview();const reason=requestError?.code||failureReason();if(reason){const error=_receiptError(reason,'authority');console.error('[Receipt]',{stage:error.stage,reason,jobId:requestId,kind});window.showToast(_receiptFailureMessage(reason));return{ok:false,reason,error,stage:error.stage,jobId:requestId,kind};}return _exportReceiptNow(...args).then(result=>{done=!!result.ok;return{...result,stage:result.error?.stage||(result.ok?'complete':'render'),jobId:requestId,kind};});};const run=_receiptRenderQueue.then(_runRequestedReceipt,_runRequestedReceipt);_receiptRenderQueue=run.then(()=>undefined,()=>undefined);return run;};
 
     // Phase 4K-2B: Legacy renderApp search normalize — strips Vietnamese diacritics for correct matching
     function _legacyNormalizeSearch(value) {
@@ -8292,46 +8251,7 @@ Các giao dịch đã nhập với danh mục này vẫn giữ nguyên, chỉ x�
 
 // ═══ THU GỘP NHIỀU KHOẢN (Multi-Item Receipt) ═══════════════
 
-window.openMultiItemModal = () => {
-    window.resetMultiItemTuitionPackageManualState && window.resetMultiItemTuitionPackageManualState('open-modal');
-    document.getElementById('multiItemModal').style.display = 'flex';
-    const fm = document.getElementById('filterMonth');
-    if(fm && fm.value) document.getElementById('mi_tuition_month').value = fm.value;
-    document.getElementById('mi_name').value = '';
-    delete document.getElementById('mi_name').dataset.profileId;
-    delete document.getElementById('mi_name').dataset.memberId;
-    document.getElementById('mi_profile_info').style.display = 'none';
-    document.getElementById('mi_history_panel').style.display = 'none';
-    document.getElementById('mi_history_body').style.display = 'none';
-    document.getElementById('mi_history_toggle_icon').textContent = '▼';
-    document.getElementById('mi_history_list').innerHTML = '';
-    document.getElementById('mi_tuition_discount').checked = false;
-    document.getElementById('mi_discount_pct').value = '10';
-    document.getElementById('mi_discount_saved').style.display = 'none';
-    document.getElementById('mi_tuition_actual').value = '';
-    document.getElementById('mi_tuition_display').value = '';
-    document.getElementById('mi_exam_toggle').checked = false;
-    document.getElementById('mi_other_toggle').checked = false;
-    document.getElementById('mi_exam_section').style.display = 'none';
-    document.getElementById('mi_other_section').style.display = 'none';
-    document.getElementById('mi_inv_toggle').checked = false;
-    document.getElementById('mi_inv_section').style.display = 'none';
-    document.getElementById('mi_inv_total_actual').value = '0';
-    document.getElementById('mi_inv_price_actual').value = '';
-    document.getElementById('mi_inv_price_display').value = '';
-    document.getElementById('mi_inv_qty').value = '1';
-    document.getElementById('mi_inv_size_text').value = '';
-    document.getElementById('mi_inv_total_display').value = '';
-    document.getElementById('mi_inv_debt_panel').style.display = 'none';
-    document.getElementById('mi_inv_debt_list').innerHTML = '';
-    document.getElementById('mi_inv_debt_total_actual').value = '0';
-    document.getElementById('mi_inv_debt_total_display').textContent = '0 ₫';
-    const prevDebtOpt = document.getElementById('mi_tuition_pkg').querySelector('option[data-debt="true"]');
-    if(prevDebtOpt) prevDebtOpt.remove();
-    document.getElementById('mi_tuition_pkg').value = '1';
-    if(window._setupMiAutocomplete) window._setupMiAutocomplete();
-    updateMultiItemTotal();
-};
+window.openMultiItemModal = () => {window.resetMultiItemTuitionPackageManualState&&window.resetMultiItemTuitionPackageManualState('open-modal');const m=document.getElementById('multiItemModal');m.dataset.reportEpoch=+(m.dataset.reportEpoch||0)+1;document.getElementById('multiItemModal').style.display='flex';const fm=document.getElementById('filterMonth');if(fm&&fm.value)document.getElementById('mi_tuition_month').value=fm.value;document.getElementById('mi_name').value='';delete document.getElementById('mi_name').dataset.profileId;delete document.getElementById('mi_name').dataset.memberId;document.getElementById('mi_profile_info').style.display='none';document.getElementById('mi_history_panel').style.display='none';document.getElementById('mi_history_body').style.display='none';document.getElementById('mi_history_toggle_icon').textContent='▼';document.getElementById('mi_history_list').innerHTML='';document.getElementById('mi_tuition_discount').checked=false;document.getElementById('mi_discount_pct').value='10';document.getElementById('mi_discount_saved').style.display='none';document.getElementById('mi_tuition_actual').value='';document.getElementById('mi_tuition_display').value='';document.getElementById('mi_exam_toggle').checked=false;document.getElementById('mi_other_toggle').checked=false;document.getElementById('mi_exam_section').style.display='none';document.getElementById('mi_other_section').style.display='none';document.getElementById('mi_inv_toggle').checked=false;document.getElementById('mi_inv_section').style.display='none';document.getElementById('mi_inv_total_actual').value='0';document.getElementById('mi_inv_price_actual').value='';document.getElementById('mi_inv_price_display').value='';document.getElementById('mi_inv_qty').value='1';document.getElementById('mi_inv_size_text').value='';document.getElementById('mi_inv_total_display').value='';document.getElementById('mi_inv_debt_panel').style.display='none';document.getElementById('mi_inv_debt_list').innerHTML='';document.getElementById('mi_inv_debt_total_actual').value='0';document.getElementById('mi_inv_debt_total_display').textContent='0 ₫';const prevDebtOpt=document.getElementById('mi_tuition_pkg').querySelector('option[data-debt="true"]');if(prevDebtOpt)prevDebtOpt.remove();document.getElementById('mi_tuition_pkg').value='1';if(window._setupMiAutocomplete)window._setupMiAutocomplete();updateMultiItemTotal();};
 
 window.toggleMultiItemExam = () => {
     const on = document.getElementById('mi_exam_toggle').checked;
@@ -9813,7 +9733,7 @@ window.processMultiItem = async (action) => {
         }
         const receiptTitle = action === 'report' ? 'PHIẾU BÁO HỌC PHÍ' : 'BIÊN LAI THU TIỀN';
         // Truyền refMonth thay vì tuitionMonth để tránh lỗi khi học phí bị tắt.
-        const _miReceiptResult = await window.exportReceipt(name, total, receiptTypeLabel, getLocalToday(), refMonth, branch, examTitle, receiptTitle, breakdown);
+        const _miReceiptResult = await window.exportReceipt(name, total, receiptTypeLabel, getLocalToday(), refMonth, branch, examTitle, receiptTitle, breakdown, action === 'report' ? 'multiItemModal' : undefined);
         if (action === 'report' && !_miReceiptResult?.ok) return _miReceiptResult;
         document.getElementById('multiItemModal').style.display = 'none';
         if (action === 'report') return _miReceiptResult;

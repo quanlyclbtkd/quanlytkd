@@ -37,16 +37,24 @@ function guardViewer() {
   return true;
 }
 
-function runActionOnce(key, executor) {
-  if (actionPromises.has(key)) return actionPromises.get(key);
-  const promise = Promise.resolve()
-    .then(executor)
-    .finally(() => actionPromises.delete(key));
-  actionPromises.set(key, promise);
-  return promise;
+function _reportActionContext(method) {
+  const a=window.__verifiedAuthContextState||{},s=window.__store||{};
+  const controls=method==='exportAttendanceExcel'?['att_month','att_month_branch']:method==='executeExcelExport'?['excel_year','excel_periodType','excel_periodValue','filterMonth']:method==='executeTaxExport'?['taxYear','taxPeriodType','taxPeriodValue']:method==='exportExamPaidList'?['filterMonth']:[];
+  return JSON.stringify([a.uid,a.role,a.clubId,a.ready,a.generation,a.branchGeneration,a.assignmentVersion,a.allowedBranches,a.activeBranch,a.coachBranch,a.branchSelectionPending,a.sessionEpoch,a.authGeneration,window.userRole,s.currentUser?.uid,s.clubId,controls.map(id=>getEl(id)?.value)]);
+}
+function runActionOnce(key,executor) {
+  const owner=_reportActionContext(key),scopedKey=JSON.stringify([key,owner]);
+  for(const pendingKey of actionPromises.keys()){const[method,context]=JSON.parse(pendingKey);if(_reportActionContext(method)!==context)actionPromises.delete(pendingKey);}
+  if(actionPromises.has(scopedKey))return actionPromises.get(scopedKey);
+  const ensureCurrent=()=>{if(_reportActionContext(key)!==owner)throw Object.assign(Error('Phiên hoặc phạm vi báo cáo đã thay đổi.'),{code:'reports/stale-context'});};
+  const promise=Promise.resolve().then(()=>{ensureCurrent();return executor(ensureCurrent);}).then(value=>{ensureCurrent();return value;})
+    .catch(error=>{if(error?.code==='reports/stale-context')return{skipped:'stale-context'};throw error;})
+    .finally(()=>{if(actionPromises.get(scopedKey)===promise)actionPromises.delete(scopedKey);});
+  actionPromises.set(scopedKey,promise);return promise;
 }
 
 function showModuleError(label, error) {
+  if(error?.code==='reports/stale-context')return;
   console.error(`[4K-6U] ${label} lazy module failed:`, error);
   const message = `❌ Không thể tải mô-đun ${label}. Vui lòng kiểm tra mạng và thử lại.`;
   if (typeof window.showToast === 'function') window.showToast(message, 5000);
@@ -66,7 +74,7 @@ async function ensureReportsApi() {
   if (reportsApi) return reportsApi;
   if (!reportsModulePromise) {
     // Compatibility marker: ../reports.js?v=release-authority-exam-state-purity-firebase-final-verification-20260829-v5u6h6
-    reportsModulePromise = import("../reports.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025")
+    reportsModulePromise = import("../reports.js?v=qr-v11r6-a9r18-mobile-perf-r2-h0-20261028")
       .then((mod) => {
         if (typeof mod.initReports !== 'function') {
           throw new Error('reports.js không export initReports()');
@@ -92,7 +100,7 @@ async function ensureReportsApi() {
 
 async function ensureAttendanceApi() {
   if (!attendanceModulePromise) {
-    attendanceModulePromise = import("./attendanceExcelReport.js?v=qr-v11r6-a9r17-mobile-layout-qr-20261026")
+    attendanceModulePromise = import("./attendanceExcelReport.js?v=qr-v11r6-a9r18-mobile-perf-r2-p4s-20261028")
       .catch((error) => {
         attendanceModulePromise = null;
         throw error;
@@ -151,9 +159,11 @@ export function updateTaxPeriodOptions() {
 
 async function callReports(method, args, label) {
   if (guardViewer()) return undefined;
-  return runActionOnce(method, async () => {
+  if(window.RoleReadBoundary?.isCoachAttendanceOnly?.()===true||window.__verifiedAuthContextState?.role==='coach'){window.showToast?.('HLV chỉ được xuất báo cáo Điểm danh.');return undefined;}
+  return runActionOnce(method, async (ensureCurrent) => {
     try {
       const api = await ensureReportsApi();
+      ensureCurrent();
       const fn = api && api[method];
       if (typeof fn !== 'function') throw new Error(`ReportsModule.${method} không tồn tại`);
       return await fn(...args);
@@ -182,9 +192,10 @@ export function executeTaxExport(...args) {
 
 export async function exportAttendanceExcel(...args) {
   if (guardViewer()) return undefined;
-  return runActionOnce('exportAttendanceExcel', async () => {
+  return runActionOnce('exportAttendanceExcel', async (ensureCurrent) => {
     try {
       const mod = await ensureAttendanceApi();
+      ensureCurrent();
       if (typeof mod.exportAttendanceExcel !== 'function') {
         throw new Error('attendanceExcelReport.js không export exportAttendanceExcel()');
       }
@@ -260,7 +271,7 @@ export function registerReportExportFacade() {
         reportsModuleRequested: !!reportsModulePromise,
         reportsModuleReady: !!reportsApi,
         attendanceModuleRequested: !!attendanceModulePromise,
-        activeActions: Array.from(actionPromises.keys()),
+        activeActions: Array.from(actionPromises.keys()).map(key=>JSON.parse(key)[0]),
         ownedGlobals: OWNED_GLOBALS.slice(),
       };
     },

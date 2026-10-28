@@ -89,7 +89,7 @@ if(process.env.A9R15R1_EXTRA_OUTPUT){
  for(const [label,expected,mutation] of [['deleted','SHIFT_NOT_FOUND','delete'],['moved','SHIFT_BRANCH_MISMATCH','move'],['unresolved','SHIFT_AUTHORITY_UNRESOLVED','unresolved']])await verify('Pre-save race '+label,async()=>{
   await page.evaluate(shifts=>{__qa.shiftList=structuredClone(shifts);window.openProfile('P_A');},originalShifts);await waitForm('m');
   const before=await page.evaluate(()=>({profile:JSON.stringify(__store.profiles.P_A),writes:__qa.writes.length}));
-  await page.evaluate(mode=>{if(mode==='delete')__qa.shiftList=__qa.shiftList.filter(shift=>shift.id!=='S1');else __qa.shiftList=__qa.shiftList.map(shift=>shift.id==='S1'?{...shift,branch:mode==='move'?'CS2':''}:shift);},mutation);
+  await page.evaluate(mode=>{if(mode==='delete')__qa.shiftList=__qa.shiftList.filter(shift=>shift.id!=='S1');else __qa.shiftList=__qa.shiftList.map(shift=>shift.id==='S1'?{...shift,branch:mode==='move'?'CS2':'CS99'}:shift);},mutation);
   await page.evaluate(()=>window.updateProfile());
   const actual=await page.evaluate(async()=>{const {inspectTrainingRegistration}=await import('/js/core/trainingRegistration.js');return {category:inspectTrainingRegistration(__store.profiles.P_A,_getClubShifts()).result,alert:__qa.alerts.at(-1),profile:JSON.stringify(__store.profiles.P_A),writes:__qa.writes.length};});
   assert.equal(actual.category,expected);assert.equal(actual.profile,before.profile);assert.equal(actual.writes,before.writes);
@@ -145,7 +145,7 @@ if(process.env.A9R15_READS_ONLY){
 }
 try{
  await check('Mobile Edit: branch then shift then weekdays; only branch-compatible shifts',async()=>{
-  await openEdit();const g=await page.evaluate(()=>{const box=id=>{const r=document.getElementById(id).getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,font:getComputedStyle(document.getElementById(id)).fontSize};};return {branch:box('m_branch'),shift:box('m_shift'),dayY:document.querySelector('.m_trainingDay').getBoundingClientRect().y,options:Array.from(document.getElementById('m_shift').options).map(o=>o.value)};});geometry.push(g);assert(g.branch.y<g.shift.y&&g.shift.y<g.dayY);assert.equal(g.shift.font,'16px');assert.deepEqual(g.options,['','S1']);
+  await openEdit();const g=await page.evaluate(()=>{const box=id=>{const r=document.getElementById(id).getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,font:getComputedStyle(document.getElementById(id)).fontSize};};return {branch:box('m_branch'),shift:box('m_shift'),dayY:document.querySelector('.m_trainingDay').getBoundingClientRect().y,options:Array.from(document.getElementById('m_shift').options).map(o=>o.value)};});geometry.push(g);assert(g.branch.y<g.shift.y&&g.shift.y<g.dayY);assert.equal(g.shift.font,'16px');assert.deepEqual(g.options,['','S1','UNRESOLVED']);
  });
  await check('CS1 -> CS2 invalidates old shift, does not auto-select or auto-save',async()=>{
   const before=await page.evaluate(()=>__qa.writes.length);await page.selectOption('#m_branch','CS2');
@@ -166,7 +166,7 @@ try{
   await page.locator('#m_registration_clear_days').click();await page.evaluate(()=>window.updateProfile());assert.equal(await page.evaluate(()=>__qa.writes.length),n+1);
  });
  await check('Add selector is branch-scoped and valid zero-fee admission uses the original batch',async()=>{
-  await page.evaluate(()=>{document.getElementById('add_branch').value='CS1';window.openAddModal();});await waitForm('add');assert.deepEqual(await page.locator('#add_shift option').evaluateAll(options=>options.map(o=>o.value)),['','S1']);
+  await page.evaluate(()=>{document.getElementById('add_branch').value='CS1';window.openAddModal();});await waitForm('add');assert.deepEqual(await page.locator('#add_shift option').evaluateAll(options=>options.map(o=>o.value)),['','S1','UNRESOLVED']);
   await page.locator('#add_name').fill('NEW_PROFILE_ID');await page.selectOption('#add_shift','S1');await page.locator('.add_trainingDay[value="0"]').check();
   const n=await page.evaluate(()=>__qa.writes.length);await page.evaluate(()=>window.addNewStudent());
   const writes=await page.evaluate(()=>__qa.writes);assert.equal(writes.length,n+1);assert.match(writes.at(-1).path,/profiles\/NEW_PROFILE_ID$/);assert.equal(writes.at(-1).data.trainingShiftId,'S1');assert.deepEqual(writes.at(-1).data.trainingDays,[0]);

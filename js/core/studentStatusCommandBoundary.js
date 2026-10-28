@@ -8,7 +8,7 @@
  *   - Commits local stores and invalidates affected domains once after success.
  *   - Finance / inventory / multi-item writes are intentionally out of scope.
  */
-import { StudentService } from "../services/students.service.js?v=qr-v11r6-a9r17-mobile-layout-qr-20261026";
+import { StudentService } from "../services/students.service.js?v=qr-v11r6-a9r18-mobile-perf-r2-p4s-20261028";
 
 const BUILD = 'student-status-command-cutover-20260722-v5u1';
 const PHASE = '4K-6V5U-1';

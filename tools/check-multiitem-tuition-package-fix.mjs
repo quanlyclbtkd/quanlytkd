@@ -26,7 +26,7 @@ if (!paidUntilSemantics.transactionKeepsPackageMonths || !paidUntilSemantics.can
 if (!paidUntilSemantics.debtConsumesProfilePaidUntil || !paidUntilSemantics.debtStartsAfterPaidUntil) fails.push('Debt boundary no longer consumes final profile paidUntil');
 if (!paidUntilSemantics.oldLiteralAbsent) fails.push('stale paidUntil:lastMonth write still present in processMultiItem');
 has(app, "packageMonths: packageMonths", 'bundle packageMonths missing');
-has(app, "window.resetMultiItemTuitionPackageManualState && window.resetMultiItemTuitionPackageManualState('open-modal')", 'modal reset missing');
+if (!/window\.resetMultiItemTuitionPackageManualState\s*&&\s*window\.resetMultiItemTuitionPackageManualState\(\s*['"]open-modal['"]\s*\)/.test(app)) fails.push('modal reset missing');
 if(app.includes("const rawMonths = pkgSelect ? pkgSelect.getAttribute('data-months') : '';\n        chargeMonths")) fails.push('updateMultiItemAutoFee still reads data-months without debt-option guard');
 if(app.includes("pkgSelect.value = '1';\n        }\n    } else {\n        paidUntilBadge.textContent") || app.includes("pkgSelect.value = '1';\n    }\n    // Phase 4K-5M")) fails.push('refresh badges may still reset package to 1 without manual guard');
 if(!(main.includes("4K-6K-D-multiitem-tuition-package-fix-20260608") || main.includes("4K-6K-E-unified-student-search-index-20260608") || main.includes("4K-6K-F-receipt-qr-helper-extraction-20260608") || main.includes("4K-6K-G-admission-tuition-type-normalization-20260608"))) fails.push('main version missing');

@@ -174,7 +174,9 @@ check('Required Firestore indexes are declared',
   };
   vm.createContext(context);
   Object.assign(context,attendanceContract);
-  vm.runInContext(attendanceService.replace(/^import .*from .*;$/gm,'').replace('export const AttendanceService =','window.AttendanceService ='), context, {filename:'attendance.service.js'});
+  // VM transport removes ESM syntax and keeps the real const bindings.
+  // All SDK/query assertions below still execute the canonical service body.
+  vm.runInContext(attendanceService.replace(/^import .*from .*;$/gm,'').replace(/^export const /gm,'const ')+'\nwindow.AttendanceService = AttendanceService;', context, {filename:'attendance.service.js'});
   await context.window.AttendanceService.loadByDate('2026-06-19',{shiftId:'shift-a'});
   const dailyWheres=calls[0].constraints.filter(x=>x.kind==='where');
   check('Dynamic: Coach daily Firestore query contains date + branch + shift',

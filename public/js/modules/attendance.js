@@ -16,12 +16,12 @@
  * ────────────────────────────────────────────────────────────────
  */
 
-import { AttendanceService } from "../services/attendance.service.js?v=qr-v11r6-a9r17-mobile-layout-qr-20261026";
+import { AttendanceService, AttendanceHistoryReadOwner } from "../services/attendance.service.js?v=qr-v11r6-a9r18-mobile-perf-r2-p4s-20261028";
 import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
 import { escapeHtml } from '../utils/helpers.js';
-import { AttendanceJournal } from "../data/attendanceJournal.js?v=qr-v11r6-a9r17-mobile-layout-qr-20261026";
-import { HISTORY_AUTHORITY, HISTORY_COACH_ACCESS, attendanceServerVersion, attendanceIntentId } from "../core/attendanceContract.js?v=qr-v11r6-a9r17-mobile-layout-qr-20261026";
-import { shiftAuthority, classifyShiftScope, resolveTrainingShift, isShiftEligibleForBranch, inspectTrainingRegistration } from "../core/trainingRegistration.js?v=qr-v11r6-a9r17-mobile-layout-qr-20261026";
+import { AttendanceJournal } from "../data/attendanceJournal.js?v=qr-v11r6-a9r18-mobile-perf-r2-p4s-20261028";
+import { HISTORY_AUTHORITY, HISTORY_COACH_ACCESS, attendanceServerVersion, attendanceIntentId } from "../core/attendanceContract.js?v=qr-v11r6-a9r18-mobile-perf-r2-p4s-20261028";
+import { shiftAuthority, classifyShiftScope, resolveTrainingShift, isShiftEligibleForBranch, inspectTrainingRegistration } from "../core/trainingRegistration.js?v=qr-v11r6-a9r18-mobile-perf-r2-p4s-20261028";
 
 const ATTENDANCE_OWNER = 'js/modules/attendance.js';
 const ATTENDANCE_OWNED_GLOBALS = Object.freeze([
@@ -69,7 +69,7 @@ let _memberHistoryRequestId = 0;
 function _memberHistoryAuthoritySnapshot() {
     const auth = window.__verifiedAuthContextState || {};
     return JSON.stringify([_clubId(),auth.uid,auth.role,auth.generation,auth.branchGeneration,auth.assignmentVersion,
-        auth.allowedBranches,auth.activeBranch,auth.coachBranch,auth.ready,auth.branchSelectionPending,HISTORY_AUTHORITY]);
+        auth.allowedBranches,auth.activeBranch,auth.coachBranch,auth.ready,auth.branchSelectionPending,auth.sessionEpoch,auth.authGeneration,HISTORY_AUTHORITY]);
 }
 const _attendanceSyncOwner = attendanceIntentId();
 let _attendanceSyncRequested = false;
@@ -89,6 +89,7 @@ const _ATTENDANCE_OFFLINE_V2_PREFIX = 'offline_att_v2_';
 const _ATTENDANCE_OFFLINE_SYNC_CHUNK = 400;
 let _monthlyRenderRequestId = 0;
 let _monthlyAbortController = null;
+let _monthlyRenderFlight = null;
 let _ownedAttendanceImplementations = null;
 
 const _ATTENDANCE_DAILY_CACHE_TTL_MS = 20 * 1000;
@@ -480,6 +481,7 @@ function _resetAttendanceModuleState(nextClubId) {
         _monthlyAbortController = null;
     }
     _monthlyRenderRequestId++;
+    _monthlyRenderFlight=null;
 }
 
 async function _loadSessionNoteAfterAttendanceRender(context) {
@@ -2012,7 +2014,7 @@ export function initAttendance() {
     };
 
     // ── Render lịch sử điểm danh 1 thành viên ──────────────────
-    window.showAttMemberHistory = async (idxOrName, overrideMonth) => {
+    window.showAttMemberHistory = async (idxOrName, overrideMonth, overrideBranch) => {
         if (_attendanceCanonicalRole(window.__verifiedAuthContextState?.role)==='coach' && !HISTORY_COACH_ACCESS) {window.showToast?.('Lịch sử Điểm danh đang bảo trì để xác minh dữ liệu.',4000);return {blocked:true,reason:'attendance-maintenance'};}
         let name, p;
         if (typeof idxOrName === 'number') {
@@ -2027,7 +2029,7 @@ export function initAttendance() {
         const historyAuthoritySnapshot = _memberHistoryAuthoritySnapshot();
         const historyBranchSelector = document.getElementById(overrideMonth ? 'att_month_branch' : 'att_branch');
         const historyBranch = historyOwner.role === 'coach' ? historyOwner.coachBranch
-            : _canonicalAttendanceBranch(historyBranchSelector?.value === 'all' ? p.branch : historyBranchSelector?.value, _canonicalAttendanceBranch(p.branch,''));
+            : _canonicalAttendanceBranch(overrideBranch || (historyBranchSelector?.value === 'all' ? p.branch : historyBranchSelector?.value), _canonicalAttendanceBranch(p.branch,''));
         const requestId = ++_memberHistoryRequestId;
         const month = overrideMonth || _attCurrentDate.substring(0, 7);
         const [yr, mo] = month.split('-').map(Number);
@@ -2061,7 +2063,7 @@ export function initAttendance() {
             const quarterMonths = [];
             for (let qi = 0; qi < 3; qi++) quarterMonths.push(yr + '-' + String(quarterStartMo + qi).padStart(2, '0'));
             const quarterLabel = 'Quý ' + quarterNum + '/' + yr + ' (T' + quarterStartMo + '–T' + (quarterStartMo + 2) + ')';
-            const histList = await AttendanceService.loadMemberHistory(name, quarterMonths);
+            const histList = await AttendanceService.loadMemberHistory(name, quarterMonths, {verified:true,branch:historyBranch});
             if (!isCurrent()) return;
             const snapQ = { forEach: (fn) => histList.forEach(item => fn({ data: () => item.data, id: item.id })) };
             const dayMap = {};
@@ -2096,14 +2098,15 @@ export function initAttendance() {
             const daysInMonth = new Date(yr, mo, 0).getDate();
             const firstDow    = new Date(yr, mo - 1, 1).getDay();
             const DOW = ['CN','T2','T3','T4','T5','T6','T7'];
-            const _hasSched = Array.isArray(p.trainingDays) && p.trainingDays.length > 0;
-            const _p_shift_obj = resolveTrainingShift(p.trainingShiftId,_clubShifts);
+            const _registrationInScope = isActiveProfileForAttendance(p) && _sameBranch(p.branch,historyBranch);
+            const _hasSched = _registrationInScope && Array.isArray(p.trainingDays) && p.trainingDays.length > 0;
+            const _p_shift_obj = _registrationInScope ? resolveTrainingShift(p.trainingShiftId,_clubShifts) : null;
             const _p_shift_name = _p_shift_obj ? (_p_shift_obj.name + (_p_shift_obj.timeStart && _p_shift_obj.timeEnd ? ' (' + _p_shift_obj.timeStart + '–' + _p_shift_obj.timeEnd + ')' : '')) : '';
             let scheduleHtml = '';
             if (_hasSched || _p_shift_obj) {
                 const _dayNames = (_hasSched ? [...p.trainingDays] : []).sort((a,b)=>a-b).map(d => '<span style="font-size:0.74rem;background:#dbeafe;color:#1e40af;padding:3px 9px;border-radius:99px;font-weight:800;">' + (DOW[d]||d) + '</span>');
                 scheduleHtml = '<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:9px 12px;margin-bottom:12px;">'
-                    + '<div style="font-size:0.65rem;font-weight:900;color:#1d4ed8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">📅 Lịch học đã đăng ký</div>'
+                    + '<div style="font-size:0.65rem;font-weight:900;color:#1d4ed8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">📅 Lịch đăng ký hiện tại</div>'
                     + '<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:4px;">' + (_hasSched ? _dayNames.join('') : '<span style="font-size:0.74rem;color:#475569;">Chưa chọn ngày tập cụ thể.</span>') + '</div>'
                     + (_p_shift_name ? '<div style="margin-top:4px;"><span style="font-size:0.68rem;background:#e0f2fe;color:#0369a1;padding:2px 8px;border-radius:99px;font-weight:700;">⏰ ' + escapeHtml(_p_shift_name) + '</span></div>' : '')
                     + '<div style="font-size:0.61rem;color:#64748b;">🔄 Ô tím trong lịch = ngày <b>học bù</b></div></div>';
@@ -2132,7 +2135,7 @@ export function initAttendance() {
             bodyEl.innerHTML =
                 '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;padding-right:44px;">'
                 + '<div><div style="font-size:1rem;font-weight:900;color:#0033A0;">' + escapeHtml((window.ProfileCanonicalStore?.resolveDisplayName?.(name, p)) || p.displayName || p.name || p.fullName || p.studentName || name) + '</div>'
-                + '<div style="font-size:0.72rem;color:#64748b;margin-top:3px;">🥋 ' + escapeHtml(p.belt||'Đai Trắng') + '</div></div>'
+                + '<div style="font-size:0.72rem;color:#64748b;margin-top:3px;">🥋 ' + escapeHtml(p.belt||'Đai Trắng') + ' · ' + escapeHtml(window.getBranchNameDisplay?.(historyBranch) || historyBranch) + '</div></div>'
                 + '</div>' + scheduleHtml
                 + '<div style="display:flex;gap:7px;margin-bottom:12px;flex-wrap:wrap;">'
                 + '<span style="background:#dcfce7;color:#166534;padding:5px 12px;border-radius:99px;font-size:0.75rem;font-weight:800;">✅ ' + present + ' buổi</span>'
@@ -2140,7 +2143,7 @@ export function initAttendance() {
                 + '<span style="background:#fee2e2;color:#991b1b;padding:5px 12px;border-radius:99px;font-size:0.75rem;font-weight:800;">❌ ' + absent + ' vắng</span>'
                 + '</div>'
                 + '<div style="background:#f8fafc;border-radius:12px;padding:12px;margin-bottom:14px;border:1px solid #e2e8f0;">'
-                + '<div style="font-size:0.65rem;font-weight:900;color:#475569;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">📊 Tỷ lệ chuyên cần</div>'
+                + '<div style="font-size:0.65rem;font-weight:900;color:#475569;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">📊 Tỷ lệ chuyên cần đã xác minh</div>'
                 + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
                 + rateBox(mRate,present,mTotal,'Tháng '+monthDisplay)
                 + rateBox(qRate,qPresent,qTotal,quarterLabel)
@@ -2148,7 +2151,8 @@ export function initAttendance() {
                 + '<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;font-size:0.62rem;color:#64748b;">'
                 + '<span>⬜ Chưa ĐD</span>'
                 + (_hasSched ? '<span style="background:#f0f9ff;padding:1px 5px;border-radius:4px;color:#93c5fd;">· Ngày có lịch</span>' : '')
-                + '<span style="background:#f3e8ff;padding:1px 5px;border-radius:4px;color:#7c3aed;">🔄 Học bù</span></div>';
+                + '<span style="background:#f3e8ff;padding:1px 5px;border-radius:4px;color:#7c3aed;">🔄 Học bù</span></div>'
+                + '<p style="font-size:0.72rem;line-height:1.5;color:#64748b;">Tỷ lệ tính trên các buổi đã ghi nhận. Ngày có lịch chưa điểm danh không được tính là vắng.</p>';
             const historySection = document.createElement('section');
             historySection.style.cssText = 'margin-top:18px;border-top:1px solid #cbd5e1;padding-top:14px;min-width:0;';
             const title = document.createElement('h3');title.textContent = 'Lịch sử Điểm danh đã xác minh';
@@ -2538,6 +2542,7 @@ export function initAttendance() {
             try { _monthlyAbortController.abort(); } catch (_) {}
             _monthlyAbortController = null;
             _monthlyRenderRequestId++;
+            _monthlyRenderFlight=null;
         }
         if (isDay) {
             _requestAttendanceDailyRefresh('attendance-subtab-day', { allowInitialLoad: true }).catch(() => {});
@@ -2555,6 +2560,11 @@ export function initAttendance() {
             _attendanceDebug().daySubtabMonthlyReadPrevented++;
             return { skipped: 'month-subtab-hidden' };
         }
+        const currentKey=()=>JSON.stringify([_memberHistoryAuthoritySnapshot(),document.getElementById('att_month')?.value,document.getElementById('att_month_branch')?.value,_attendanceDailyState.mutationRevision]);
+        const key=currentKey();
+        if(_monthlyRenderFlight?.key===key&&!_monthlyAbortController?.signal.aborted)return _monthlyRenderFlight.promise;
+        const execute=async()=>{
+        if(key!==currentKey()||!_isAttendanceMonthSubtabActive())return{skipped:'stale-month-scope'};
         const monthEl  = document.getElementById('att_month');
         const branchEl = document.getElementById('att_month_branch');
         const tbody    = document.getElementById('att_monthly_body');
@@ -2565,7 +2575,7 @@ export function initAttendance() {
         }
         _monthlyAbortController = typeof AbortController === 'function' ? new AbortController() : null;
         const requestSignal = _monthlyAbortController ? _monthlyAbortController.signal : null;
-        const _isCurrentRequest = () => requestId === _monthlyRenderRequestId && !(requestSignal && requestSignal.aborted);
+        const _isCurrentRequest = () => requestId === _monthlyRenderRequestId && key===currentKey() && !(requestSignal && requestSignal.aborted);
         const _isMobile = window.innerWidth <= 639;
         const _cardsEl  = document.getElementById('att_monthly_cards');
         const _tableWrap= document.getElementById('att_monthly_table_wrap');
@@ -2586,7 +2596,7 @@ export function initAttendance() {
         _showMsg('⏳ Đang tải dữ liệu...');
         try {
             const monthRecords = await AttendanceService.loadByMonth(selMonth, {
-                branch: selBranch === 'all' ? '' : selBranch,
+                branch: selBranch === 'all' ? '' : selBranch, verified:true,
                 signal: requestSignal,
                 onPage: ({ totalDocs, page }) => {
                     if (_isCurrentRequest() && page > 1) {
@@ -2599,22 +2609,27 @@ export function initAttendance() {
             const snap = { forEach: (fn) => monthRecords.forEach(item => fn({ data: () => item.data, id: item.id })) };
             const grouped = {};
             snap.forEach(d => {
-                const data=d.data(), pid=data.profileId||data.name||d.id.split('_')[0];
-                if (!grouped[pid]) grouped[pid]={name:pid,belt:data.belt||'',branch:data.branch||'',present:0,excused:0,absent:0,dateMap:{}};
-                if (data.status===1) grouped[pid].present++;
-                if (data.status===2) grouped[pid].absent++;
-                if (data.status===3) grouped[pid].excused++;
-                if (data.date) grouped[pid].dateMap[data.date] = data.status; // [4J-6] per-date map để tính chuyên cần lịch
+                const data=d.data(), pid=data.profileId, key=JSON.stringify([pid,data.branch]);
+                if (!grouped[key]) grouped[key]={name:pid,belt:data.belt||'',branch:data.branch||'',present:0,excused:0,absent:0,dateMap:{}};
+                if (data.status===1) grouped[key].present++;
+                if (data.status===2) grouped[key].absent++;
+                if (data.status===3) grouped[key].excused++;
+                if (data.date) grouped[key].dateMap[data.date] = data.status; // [4J-6] per-date map để tính chuyên cần lịch
             });
             let rows = Object.values(grouped).filter(r => selBranch === 'all' || _sameBranch(r.branch, selBranch));
             Object.entries(_profiles()||{}).forEach(([pid,p]) => {
                 if (!isActiveProfileForAttendance(p)) return;
                 if (selBranch !== 'all' && !_sameBranch(p.branch, selBranch)) return;
-                if (!grouped[pid]) rows.push({name:pid,belt:p.belt||'',branch:p.branch||'',present:0,excused:0,absent:0});
+                const branch=_canonicalAttendanceBranch(p.branch,''),key=JSON.stringify([pid,branch]);
+                if (!/^CS(?:[1-9]|10)$/.test(branch)) return;
+                if (!grouped[key]) rows.push({name:pid,belt:p.belt||'',branch,present:0,excused:0,absent:0});
             });
             rows.sort((a,b)=>a.name.localeCompare(b.name,'vi'));
             if (rows.length===0) { _showMsg('Không có dữ liệu điểm danh trong tháng này'); return; }
             const monthDisplay = selMonth.split('-').reverse().join('/');
+            let scopeEl=document.getElementById('attMonthlyScope');
+            if(!scopeEl){scopeEl=document.createElement('p');scopeEl.id='attMonthlyScope';scopeEl.style.cssText='font-size:0.78rem;line-height:1.5;color:#475569;margin:8px 0;';const target=document.getElementById('att_monthly_cards')||tbody.closest('table');target?.parentNode.insertBefore(scopeEl,target);}
+            scopeEl.textContent='Điểm danh đã xác minh · '+monthDisplay+' · '+(selBranch==='all'?'Tất cả cơ sở':(window.getBranchNameDisplay?.(selBranch)||selBranch))+'. CC: trên buổi đã ghi nhận; CC lịch: lịch đăng ký hiện tại, không xác nhận lịch sử đăng ký.';
             const _mkBeltBadge = (belt) => window.getBeltBadge ? window.getBeltBadge(belt||'Trắng') : `<span class="badge" style="background:#f0f4ff;color:#0033A0;">${escapeHtml((belt||'Trắng').replace(/^Đai /i,''))}</span>`;
             const _rateColor = (r) => r>=80?'#16a34a':r>=60?'#d97706':'#dc2626';
             const _rateBg    = (r) => r>=80?'#f0fdf4':r>=60?'#fefce8':'#fff1f2';
@@ -2631,7 +2646,7 @@ export function initAttendance() {
                     const _mProfile=(_profiles()||{})[r.name]||{}, _mConsAbs=_mProfile.consecutiveAbsences||0;
                     const _mWarnHtml=_mConsAbs>=3?'<span class="abs-warn-red" style="margin-left:5px;font-size:0.75rem;">🔴</span>':_mConsAbs===2?'<span class="abs-warn-yellow" style="margin-left:5px;font-size:0.75rem;">🟡</span>':'';
                     // [4J-6] Tính thống kê lịch học chuẩn
-                    const _acc = computeMonthlyAttendanceAccuracy(_mProfile, selMonth, r.dateMap || {});
+                    const _acc = computeMonthlyAttendanceAccuracy(isActiveProfileForAttendance(_mProfile)&&_sameBranch(_mProfile.branch,r.branch)?_mProfile:{}, selMonth, r.dateMap || {});
                     const _hasSchedule = _acc.expectedSessions > 0;
                     const _accRate = _acc.attendanceRate !== null ? Math.round(_acc.attendanceRate * 100) : null;
                     const _compRate = _acc.completionRate !== null ? Math.round(_acc.completionRate * 100) : null;
@@ -2656,7 +2671,7 @@ export function initAttendance() {
                         : `<div style="margin-top:7px;padding-top:7px;border-top:1.5px dashed #e2e8f0;font-size:0.6rem;color:#94a3b8;font-style:italic;">📅 Chưa có lịch học để tính chuyên cần chuẩn</div>`;
                     cardsHtml+=`<div style="background:#fff;border-radius:14px;border:1px solid #e8edf5;padding:12px 14px;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,0.05);">
                         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:9px;">
-                            <div style="flex:1;min-width:0;overflow:hidden;"><span onclick="window.showAttMemberHistory(decodeURIComponent('${_nameToken}'),'${selMonth}')" style="font-weight:800;font-size:0.9rem;color:#0033A0;cursor:pointer;text-decoration:underline dotted;">${escapeHtml((window.ProfileCanonicalStore?.resolveDisplayName?.(r.name, _mProfile)) || _mProfile.displayName || _mProfile.name || _mProfile.fullName || _mProfile.studentName || r.name)}</span>${_mWarnHtml}</div>
+                            <div style="flex:1;min-width:0;overflow:hidden;"><span onclick="window.showAttMemberHistory(decodeURIComponent('${_nameToken}'),'${selMonth}','${r.branch}')" style="font-weight:800;font-size:0.9rem;color:#0033A0;cursor:pointer;text-decoration:underline dotted;">${escapeHtml((window.ProfileCanonicalStore?.resolveDisplayName?.(r.name, _mProfile)) || _mProfile.displayName || _mProfile.name || _mProfile.fullName || _mProfile.studentName || r.name)}</span>${_mWarnHtml}<div style="font-size:0.68rem;color:#64748b;">${escapeHtml(window.getBranchNameDisplay?.(r.branch)||r.branch)}</div></div>
                             <div style="flex-shrink:0;max-width:45%;">${_mkBeltBadge(r.belt)}</div>
                         </div>
                         <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:5px;margin-bottom:5px;">
@@ -2680,7 +2695,7 @@ export function initAttendance() {
                     const _dtProfile=(_profiles()||{})[r.name]||{}, _dtConsAbs=_dtProfile.consecutiveAbsences||0;
                     const _dtWarn=_dtConsAbs>=3?'<span class="abs-warn-red" style="margin-left:4px;font-size:0.72rem;">🔴</span>':_dtConsAbs===2?'<span class="abs-warn-yellow" style="margin-left:4px;font-size:0.72rem;">🟡</span>':'';
                     // [4J-6] Tính chuyên cần theo lịch học
-                    const _acc2 = computeMonthlyAttendanceAccuracy(_dtProfile, selMonth, r.dateMap || {});
+                    const _acc2 = computeMonthlyAttendanceAccuracy(isActiveProfileForAttendance(_dtProfile)&&_sameBranch(_dtProfile.branch,r.branch)?_dtProfile:{}, selMonth, r.dateMap || {});
                     const _hasS = _acc2.expectedSessions > 0;
                     const _expHtml = _hasS ? `<span style="font-weight:800;color:#0369a1;">${_acc2.expectedSessions}</span>` : `<span style="color:#cbd5e1;font-size:0.7rem;">—</span>`;
                     const _misHtml = _hasS ? (_acc2.missingAttendanceCount > 0 ? `<span style="font-weight:800;color:#ea580c;">${_acc2.missingAttendanceCount}</span>` : `<span style="font-weight:800;color:#16a34a;">0</span>`) : `<span style="color:#cbd5e1;font-size:0.7rem;">—</span>`;
@@ -2688,7 +2703,7 @@ export function initAttendance() {
                     const _cmpR2 = _acc2.completionRate !== null ? Math.round(_acc2.completionRate * 100) : null;
                     const _accHtml2 = _accR2 !== null ? `<span style="font-weight:900;font-size:0.85rem;color:${_rateColor(_accR2)};">${_accR2}%</span>` : `<span style="color:#94a3b8;font-size:0.72rem;">${_hasS ? '' : 'Chưa có lịch'}</span>`;
                     const _cmpHtml2 = _cmpR2 !== null ? `<span style="font-size:0.75rem;color:#475569;">${_cmpR2}%</span>` : `<span style="color:#cbd5e1;font-size:0.7rem;">—</span>`;
-                    html+=`<tr style="${rowBg}"><td><span onclick="window.showAttMemberHistory(decodeURIComponent('${_nameToken}'),'${selMonth}')" style="font-weight:700;color:#0033A0;cursor:pointer;text-decoration:underline dotted;">${escapeHtml((window.ProfileCanonicalStore?.resolveDisplayName?.(r.name, _dtProfile)) || _dtProfile.displayName || _dtProfile.name || _dtProfile.fullName || _dtProfile.studentName || r.name)}</span>${_dtWarn}</td><td>${_mkBeltBadge(r.belt)}</td><td style="text-align:center;"><span style="font-weight:800;color:#16a34a;font-size:1rem;">${r.present}</span></td><td style="text-align:center;"><span style="font-weight:800;color:#2563eb;font-size:1rem;">${r.excused}</span></td><td style="text-align:center;"><span style="font-weight:800;color:#dc2626;font-size:1rem;">${r.absent}</span></td><td style="text-align:center;">${_rateHtml}</td><td style="text-align:center;">${_expHtml}</td><td style="text-align:center;">${_misHtml}</td><td style="text-align:center;">${_accHtml2}<br><span style="font-size:0.6rem;color:#94a3b8;">HT:${_cmpHtml2}</span></td><td style="text-align:center;"><button onclick="event.stopPropagation();window.copyAttReport(decodeURIComponent('${_nameToken}'),${r.present},${r.excused},${r.absent},'${monthDisplay}')" style="background:#0068FF;color:#fff;border:none;padding:5px 9px;border-radius:8px;font-size:0.7rem;font-weight:700;cursor:pointer;">📋 Zalo</button></td></tr>`;
+                    html+=`<tr style="${rowBg}"><td><span onclick="window.showAttMemberHistory(decodeURIComponent('${_nameToken}'),'${selMonth}','${r.branch}')" style="font-weight:700;color:#0033A0;cursor:pointer;text-decoration:underline dotted;">${escapeHtml((window.ProfileCanonicalStore?.resolveDisplayName?.(r.name, _dtProfile)) || _dtProfile.displayName || _dtProfile.name || _dtProfile.fullName || _dtProfile.studentName || r.name)}</span>${_dtWarn}<div style="font-size:0.68rem;color:#64748b;">${escapeHtml(window.getBranchNameDisplay?.(r.branch)||r.branch)}</div></td><td>${_mkBeltBadge(r.belt)}</td><td style="text-align:center;"><span style="font-weight:800;color:#16a34a;font-size:1rem;">${r.present}</span></td><td style="text-align:center;"><span style="font-weight:800;color:#2563eb;font-size:1rem;">${r.excused}</span></td><td style="text-align:center;"><span style="font-weight:800;color:#dc2626;font-size:1rem;">${r.absent}</span></td><td style="text-align:center;">${_rateHtml}</td><td style="text-align:center;">${_expHtml}</td><td style="text-align:center;">${_misHtml}</td><td style="text-align:center;">${_accHtml2}<br><span style="font-size:0.6rem;color:#94a3b8;">HT:${_cmpHtml2}</span></td><td style="text-align:center;"><button onclick="event.stopPropagation();window.copyAttReport(decodeURIComponent('${_nameToken}'),${r.present},${r.excused},${r.absent},'${monthDisplay}')" style="background:#0068FF;color:#fff;border:none;padding:5px 9px;border-radius:8px;font-size:0.7rem;font-weight:700;cursor:pointer;">📋 Zalo</button></td></tr>`;
                 });
                 tbody.innerHTML=html;
             }
@@ -2707,6 +2722,10 @@ export function initAttendance() {
         } finally {
             if (requestId === _monthlyRenderRequestId) _monthlyAbortController = null;
         }
+        };
+        const flight={key,promise:null};
+        flight.promise=Promise.resolve().then(execute).finally(()=>{if(_monthlyRenderFlight===flight)_monthlyRenderFlight=null;});
+        _monthlyRenderFlight=flight;return flight.promise;
     };
 
     // exportAttendanceExcel vẫn dùng app.js (phụ thuộc xlsx-js-style context)
@@ -2796,12 +2815,12 @@ export function initAttendance() {
      * @returns {Object} report theo branch/shiftId
      */
     // [4J-6A] Hàm helper: xây map attendanceMap cho một võ sinh từ mảng records loadByMonth
-    function _buildAttendanceMapForProfile(monthRecords, profileName) {
+    function _buildAttendanceMapForProfile(monthRecords, profileName, branch) {
         const map = {};
         monthRecords.forEach(function(rec) {
             // rec là { id, data } từ AttendanceService.loadByMonth
             const d = rec.data || rec;
-            if (!d || d.name !== profileName) return;
+            if (!d || d.profileId !== profileName || (branch && d.branch !== branch)) return;
             const date    = d.date || '';
             const shiftId = d.shiftId || '';
             if (!date) return;
@@ -2822,17 +2841,22 @@ export function initAttendance() {
         }
         const allProfs = _profiles() || {};
         const branchStats = {};
+        const owner=_captureOfflineAttendanceSyncContext();
+        const branch=owner.role==='coach'?owner.coachBranch:(document.getElementById('att_month_branch')?.value||'all');
 
         // [4J-6A] Load dữ liệu điểm danh tháng thật từ Firestore
         let monthRecords = [];
         try {
-            monthRecords = await AttendanceService.loadByMonth(monthStr);
+            monthRecords = await AttendanceService.loadByMonth(monthStr,{branch:branch==='all'?'':branch,verified:true});
+            if(!_isOfflineAttendanceSyncContextCurrent(owner))throw Error('Phiên báo cáo đã thay đổi.');
         } catch(e) {
-            console.warn('[BranchReport] Không thể load dữ liệu tháng ' + monthStr + '. Báo cáo dùng schedule-only.');
+            console.warn('[BranchReport] Dừng báo cáo vì dữ liệu tháng chưa được xác minh.',e);
+            throw e;
         }
 
         Object.entries(allProfs).forEach(([name, p]) => {
             if (!isActiveProfileForAttendance(p)) return;
+            if(branch!=='all'&&!_sameBranch(p.branch,branch))return;
             const br  = p.branch || 'Chung';
             const sid = p.trainingShiftId || '';
             const key = sid ? br + '::' + sid : br;
@@ -2845,7 +2869,7 @@ export function initAttendance() {
                 };
             }
             // [4J-6A] Dùng map thật thay vì {} rỗng
-            const attendanceMap = _buildAttendanceMapForProfile(monthRecords, name);
+            const attendanceMap = _buildAttendanceMapForProfile(monthRecords, name,_canonicalAttendanceBranch(p.branch,''));
             const acc = computeMonthlyAttendanceAccuracy(p, monthStr, attendanceMap, { profileName: name });
             branchStats[key].expectedSessions      += acc.expectedSessions;
             branchStats[key].presentCount          += acc.presentCount;
@@ -2861,7 +2885,7 @@ export function initAttendance() {
                 : null;
         });
 
-        const report = { month: monthStr, byBranch: branchStats };
+        const report = {month:monthStr,branch,view:'VERIFIED BUSINESS VIEW',metric:'CURRENT_REGISTRATION_SCHEDULE_ACCURACY',coverage:'Lịch đăng ký hiện tại; không xác nhận lịch sử đăng ký.',byBranch:branchStats};
         console.log('[BranchReport] Tháng ' + monthStr + ' (dữ liệu thật: ' + monthRecords.length + ' bản ghi)');
         Object.entries(branchStats).forEach(([key, s]) => {
             console.log(
@@ -2884,6 +2908,7 @@ export function initAttendance() {
 
     window.AttendanceModule = Object.freeze({
         ..._ownedAttendanceImplementations,
+        getHistoryReadOwner() { return AttendanceHistoryReadOwner; },
         openPendingReview: _openAttendancePendingReview,
         openHistoryAudit: _openAttendanceHistoryAudit,
         requestDailyRefresh(reason, options = {}) {

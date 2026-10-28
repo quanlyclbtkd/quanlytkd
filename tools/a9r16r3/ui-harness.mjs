@@ -3,7 +3,7 @@
 import fs from 'node:fs';import path from 'node:path';import http from 'node:http';
 import assert from 'node:assert/strict';
 import {loadPlaywright,browserExecutable} from '../test-runtime.mjs';
-import {buildImportGraph} from '../v11r2/import-graph.mjs';
+import {buildImportGraph,buildTag} from '../v11r2/import-graph.mjs';
 export const root=path.resolve(process.env.R3_SOURCE_ROOT||process.cwd());
 const canonical=Object.keys(JSON.parse(fs.readFileSync(path.join(root,'tools/v11r2/manifests/V11R6_A9R15_TRAINING_HISTORY.json'))).canonicalRuntimeFiles).filter(f=>f.endsWith('.js'));
 const graph=buildImportGraph(root,{},canonical),urls={};
@@ -13,6 +13,7 @@ for(const edge of graph.edges.filter(e=>e.to)){
  if(urls[edge.to])assert.equal(urls[edge.to],url,'Canonical module identity '+edge.to);
  urls[edge.to]=url;
 }
+urls.__buildTag=buildTag(fs.readFileSync(path.join(root,'js/main.js'),'utf8')).tag;
 export async function createUI(){
  const html=fs.readFileSync(path.join(root,'index.html'),'utf8').replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'');
  const server=http.createServer((req,res)=>{
@@ -29,6 +30,7 @@ export async function createUI(){
   p.on('dialog',d=>d.dismiss());
   await p.goto(origin,{waitUntil:'networkidle'});
   await p.evaluate(async urls=>{
+   window.APP_BUILD_VERSION=urls.__buildTag;
    document.body.classList.add('ui-mobile-shell');document.getElementById('mainApp').style.display='block';document.getElementById('loginOverlay').style.display='none';document.getElementById('superAdminView').style.display='none';
    document.querySelectorAll('.tab-content').forEach(el=>el.classList.toggle('active',el.id==='tab_attendance'));
    window.__qa={counts:{getDoc:0,getDocs:0,onSnapshot:0},writes:[],queries:[],records:[],toasts:[],hold:null,

@@ -7,6 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
 import { pathToFileURL } from 'node:url';
+import {verifyRuntimeProfile} from './v11r2/runtime-profile.mjs';
 
 const root = process.cwd();
 const read = (rel) => fs.readFileSync(path.join(root, rel), 'utf8');
@@ -25,6 +26,7 @@ const facadePath = 'js/modules/reports/reportExportFacade.js';
 const attendancePath = 'js/modules/reports/attendanceExcelReport.js';
 const facade = read(facadePath);
 const attendance = read(attendancePath);
+const attendanceService = read('js/services/attendance.service.js');
 const index = read('index.html');
 const pkg = JSON.parse(read('package.json'));
 
@@ -70,12 +72,12 @@ check(reports.includes("ensureXlsxReady?.('reports-achievements-export')"), 'ach
 check(!app.includes('XUẤT EXCEL BÁO CÁO ĐIỂM DANH THÁNG'), 'attendance Excel implementation removed from app.js');
 check(!app.includes('limit: monthly att export'), 'app.js no longer has the fixed 10,000 attendance export query');
 check(attendance.includes("ensureXlsxReady?.('export-attendance-excel')"), 'attendance module lazy-loads XLSX');
-check(attendance.includes("where('month', '==', month)"), 'attendance query remains scoped to selected month');
-check(attendance.includes('orderBy(documentId())'), 'attendance pagination uses stable document-id ordering');
-check(attendance.includes('startAfter(cursor)'), 'attendance pagination advances with cursor');
-check(attendance.includes('limit(PAGE_SIZE)'), 'attendance pagination uses bounded page size');
+check(attendanceService.includes("where('month', '==', month)"), 'attendance query remains scoped to selected month');
+check(attendanceService.includes('orderBy(documentId())'), 'attendance pagination uses stable document-id ordering');
+check(attendanceService.includes('_startAfter(cursor)'), 'attendance pagination advances with cursor');
+check(attendance.includes('pageSize:PAGE_SIZE') && attendanceService.includes('_limit(pageSize)'), 'attendance pagination uses bounded page size');
 check(attendance.includes('MAX_PAGES = 200'), 'attendance pagination has a high but finite safety ceiling');
-check(attendance.includes('không xuất file thiếu dữ liệu'), 'attendance export refuses silent truncation');
+check(attendanceService.includes("error.code = 'attendance/monthly-max-pages'"), 'attendance export refuses silent truncation');
 check(!attendance.includes('limit(10000)'), 'attendance module removed fixed 10,000 cap');
 
 for (const bad of ['setDoc(', 'updateDoc(', 'addDoc(', 'deleteDoc(', 'writeBatch(', 'runTransaction(', 'onSnapshot(']) {
@@ -163,31 +165,33 @@ try {
 
   // Simulate 10,500 monthly attendance documents to prove the old 10,000 cap
   // is gone and cursor pagination returns every document.
-  let attendancePage = 0;
-  const attendanceTotal = 10500;
-  globalThis._fb_init = {
-    collection: (...args) => ({ kind: 'collection', args }),
-    query: (ref, ...constraints) => ({ ref, constraints }),
-    where: (...args) => ({ kind: 'where', args }),
-    orderBy: (...args) => ({ kind: 'orderBy', args }),
-    documentId: () => '__name__',
-    limit: (size) => ({ kind: 'limit', size }),
-    startAfter: (cursor) => ({ kind: 'startAfter', cursor }),
-    getDocs: async () => {
-      const start = attendancePage * 1000;
-      const end = Math.min(start + 1000, attendanceTotal);
-      attendancePage += 1;
-      const docs = Array.from({ length: Math.max(0, end - start) }, (_, index) => {
-        const id = `att-${start + index}`;
-        return { id, data: () => ({ month: '2026-06', profileId: `p-${start + index}`, status: 1 }) };
-      });
-      return { empty: docs.length === 0, docs };
-    },
+  const {HISTORY_AUTHORITY}=await import(pathToFileURL(path.join(root,'js/core/attendanceContract.js')).href);
+  const serviceModule=await import(pathToFileURL(path.join(root,'js/services/attendance.service.js')).href);
+  globalThis.APP_BUILD_VERSION=verifyRuntimeProfile(root).identity.buildTag;
+  globalThis.AttendanceModule={getHistoryReadOwner:()=>serviceModule.AttendanceHistoryReadOwner};
+  const testDb={},attendanceTotal=10500,pageQueries=[];
+  globalThis.__store={db:testDb,clubId:'club-test',currentClubId:'club-test',userRole:'admin',currentUser:{uid:'test-admin'}};
+  globalThis.__verifiedAuthContextState={uid:'test-admin',role:'admin',clubId:'club-test',ready:true,generation:1};
+  const allDocs=Array.from({length:attendanceTotal},(_,i)=>({id:'att-'+String(i).padStart(5,'0'),data:()=>({month:'2026-06',profileId:'p-'+i,status:1,branch:'CS1',historyAuthority:HISTORY_AUTHORITY})}));
+  globalThis._fb_init={
+    collection:(...args)=>({args}),query:(ref,...constraints)=>({ref,constraints}),where:(...args)=>({kind:'where',args}),
+    orderBy:(...args)=>({kind:'orderBy',args}),documentId:()=>'__name__',limit:size=>({kind:'limit',size}),startAfter:cursor=>({kind:'startAfter',cursor}),
+    getDocs:async q=>{pageQueries.push(q);let docs=allDocs.filter(d=>q.constraints.filter(c=>c.kind==='where').every(c=>d.data()[c.args[0]]===c.args[2]));const cursor=q.constraints.find(c=>c.kind==='startAfter');if(cursor)docs=docs.filter(d=>d.id>cursor.cursor.id);const cap=q.constraints.find(c=>c.kind==='limit');if(cap)docs=docs.slice(0,cap.size);return{docs,metadata:{fromCache:false,hasPendingWrites:false}};}
   };
-  const attendanceModule = await import(pathToFileURL(path.join(root, attendancePath)).href);
-  const paginatedAttendance = await attendanceModule.loadAttendanceMonthPaginated({ db: {}, clubId: 'club-test', month: '2026-06' });
-  check(paginatedAttendance.items.length === attendanceTotal, 'attendance pagination loads all 10,500 documents');
-  check(paginatedAttendance.pages === 11 && paginatedAttendance.truncated === false, 'attendance pagination completes after 11 pages without truncation');
+  const attendanceModule=await import(pathToFileURL(path.join(root,attendancePath)).href);
+  const paginatedAttendance=await attendanceModule.loadAttendanceMonthPaginated({db:testDb,clubId:'club-test',month:'2026-06',branch:'CS1'});
+  check(paginatedAttendance.items.length===attendanceTotal,'attendance pagination loads all 10,500 documents');
+  check(paginatedAttendance.pages===11&&paginatedAttendance.truncated===false,'attendance pagination completes after 11 pages without truncation');
+  check(new Set(paginatedAttendance.items.map(d=>d.id)).size===attendanceTotal,'10,500 physical document IDs have no duplicates');
+  check(pageQueries.every(q=>q.constraints.some(c=>c.kind==='orderBy'&&c.args[0]==='__name__')&&q.constraints.some(c=>c.kind==='limit'&&c.size===1000)&&q.constraints.some(c=>c.kind==='where'&&c.args[0]==='historyAuthority'&&c.args[2]===HISTORY_AUTHORITY)&&q.constraints.some(c=>c.kind==='where'&&c.args[0]==='branch'&&c.args[2]==='CS1')),'all pages preserve authority/branch/order/1000-row bound');
+  check(pageQueries.slice(1).every(q=>q.constraints.some(c=>c.kind==='startAfter'&&typeof c.cursor?.id==='string')),'all later pages use a physical document cursor');
+  const normalGetDocs=_fb_init.getDocs;
+  for(const metadata of[{fromCache:true,hasPendingWrites:false},{fromCache:false,hasPendingWrites:true}]){
+    _fb_init.getDocs=async()=>({docs:[],metadata});let denied=false;
+    try{await attendanceModule.loadAttendanceMonthPaginated({db:testDb,clubId:'club-test',month:'2026-06',branch:'CS1'});}catch(e){denied=e.code==='attendance/history-server-required';}
+    check(denied,'unverified export metadata rejected: '+JSON.stringify(metadata));
+  }
+  _fb_init.getDocs=normalGetDocs;
 
   const snapshot = globalThis.GlobalOwnershipRegistry.getSnapshot();
   const owned = snapshot.registered.filter((item) => reportGlobals.includes(item.name));
