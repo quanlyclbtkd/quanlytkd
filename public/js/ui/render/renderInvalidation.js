@@ -71,17 +71,23 @@ import {
     invalidateTabRenders,
 } from './renderRegistry.js';
 
-import { invalidateFinanceRender }   from "./computation/financeRenderer.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
-import { invalidateStudentsRender }  from "./computation/studentsRenderer.js?v=qr-v11r6-a9r17-mobile-layout-qr-20261026";
+import { invalidateFinanceRender, isFinanceSemanticSourceFresh } from "./computation/financeRenderer.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
+import { invalidateStudentsRender, isStudentsSemanticSourceFresh }  from "./computation/studentsRenderer.js?v=qr-v11r6-a9r17-mobile-layout-qr-20261026";
 import { invalidateInventoryRender } from "./computation/inventoryRenderer.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
-import { invalidateDashboardCache }  from './computation/dashboardRenderer.js';
+import {
+    invalidateDashboardCache,
+    markDashboardCacheDirty,
+} from './computation/dashboardRenderer.js';
 
 // [3.5E] List-level computation refresh — đảm bảo island không đọc HTML cũ
 import {
     refreshListComputation,
     refreshListsComputation,
+    requestListComputation,
+    requestListsComputation,
+    refreshDashboardComputation,
     getComputationDomainForList,
-} from "./listComputationRefresh.js?v=qr-v11r6-a9r17-mobile-layout-qr-20261026";
+} from "./listComputationRefresh.js?v=qr-v11r6-a9r18-usability-perf-r2-rcache-20261028";
 
 // ── Dev helper ────────────────────────────────────────────────────────────────
 function _isDev() {
@@ -183,18 +189,19 @@ function _bumpStoreDataVersion(reason) {
 function _refreshThenSchedule(keys, reason) {
     _bumpStoreDataVersion(reason);
     try {
-        if (typeof refreshListsComputation === 'function') {
-            refreshListsComputation(keys, reason || 'domain-invalidate');
+        if (typeof requestListsComputation === 'function') {
+            requestListsComputation(keys, reason || 'domain-invalidate').then(() => {
+                try { _scheduleIslands(keys); }
+                catch (e) { console.warn('[renderInvalidation] _scheduleIslands failed:', e); }
+            });
+            return;
         }
+        refreshListsComputation(keys, reason || 'domain-invalidate');
     } catch (e) {
-        console.warn('[renderInvalidation] refreshListsComputation failed:', e);
+        console.warn('[renderInvalidation] computation refresh failed:', e);
     }
-
-    try {
-        _scheduleIslands(keys);
-    } catch (e) {
-        console.warn('[renderInvalidation] _scheduleIslands failed:', e);
-    }
+    try { _scheduleIslands(keys); }
+    catch (e) { console.warn('[renderInvalidation] _scheduleIslands failed:', e); }
 }
 
 // ── Phase 3.5C: Tab → Domain mapping ─────────────────────────────────────────
@@ -542,14 +549,9 @@ export function invalidateByDomain(domain, reason) {
             invalidateFinanceRender('all');
             invalidateStudentsRender('all');
             invalidateInventoryRender('all');
-            invalidateDashboardCache('all');
-            _scheduleIslands([
-                ..._FINANCE_KEYS,
-                ..._STUDENTS_KEYS,
-                ..._INVENTORY_KEYS,
-                ..._DASHBOARD_KEYS,
-                ..._ATTENDANCE_KEYS,
-            ]);
+            _refreshThenSchedule([ ..._FINANCE_KEYS, ..._STUDENTS_KEYS, ..._INVENTORY_KEYS ], reason || 'all-domain-invalidate');
+            _scheduleIslands(_ATTENDANCE_KEYS);
+            _invalidateDashboardOnly(reason || 'all-domain-invalidate');
             break;
         default:
             if (_isDev()) console.warn(`[renderInvalidation] Unknown domain: "${domain}"`);
@@ -570,6 +572,10 @@ export function invalidateByDomain(domain, reason) {
  */
 export function invalidateFinance(reason) {
     _checkStorm('finance');
+
+    // R2R5: duplicate/metadata transaction notifications do not clear a cache
+    // whose semantic transaction/settings vector is still current.
+    if (String(reason || '').includes('transactions-snapshot') && isFinanceSemanticSourceFresh()) return;
 
     // 1. Xóa finance computation cache
     invalidateFinanceRender('all');
@@ -610,6 +616,9 @@ export function invalidateStudents(reason) {
 
     _checkStorm('students');
 
+    // R2R5: a pure Finance transaction must not evict tuition Debt/Students.
+    if (String(reason || '').includes('transactions-affect-debt') && isStudentsSemanticSourceFresh()) return;
+
     // 1. Xóa students computation cache
     invalidateStudentsRender('all');
 
@@ -644,12 +653,11 @@ export function invalidateInventory(reason) {
     //    Tránh island đọc cache rỗng sau khi vừa clear cache
     _refreshThenSchedule(_INVENTORY_KEYS, reason || 'inventory-domain');
 
-    // 3. [Cross-domain] Kho đồ ghi nợ → finance tx list (uniformTx cross-reference)
-    //    Refresh computation cache cho tx list trước khi render
-    invalidateFinanceRender('txTable');
-    _refreshThenSchedule(['tx.txList'], 'inventory-affect-finance');
+    // 3. R2R5: Inventory source changes do not automatically invalidate Finance.
+    //    When an inventory action also creates/changes a finance transaction, the
+    //    canonical transaction owner emits the Finance/Inventory semantic effects.
 
-    // 4. [Cross-domain] Inventory thay đổi → dashboard summary
+    // 4. Inventory composition can affect dashboard inventory badges/summary.
     _invalidateDashboardOnly('inventory-change');
 }
 
@@ -680,23 +688,25 @@ export function invalidateDashboard(reason) {
  * @param {string} [reason]
  */
 function _invalidateDashboardOnly(reason) {
-    // [Part 1 FIX] Correct order: clear → recompute → render
-    // Islands MUST NOT render from an empty cache.
+    const active = (() => {
+        try { return document.querySelector('.tab-content.active')?.id === 'tab_dashboard'; }
+        catch (_) { return false; }
+    })();
 
-    // 1. Clear stale dashboard cache
-    invalidateDashboardCache('all');
-
-    // 2. Recompute dashboard data BEFORE scheduling islands so they read fresh cache
-    if (typeof window.refreshDashboardComputation === 'function') {
-        try {
-            window.refreshDashboardComputation(reason || 'dashboard-invalidate');
-        } catch (e) {
-            console.warn('[renderInvalidation] dashboard recompute before render failed:', e);
-        }
+    // R2R5: hidden dashboard keeps the last valid composition. Mark dirty only;
+    // do not synchronously pull Finance + Students + Inventory CPU for an unseen tab.
+    if (!active) {
+        markDashboardCacheDirty(reason || 'dashboard-hidden-dirty');
+        _DASHBOARD_KEYS.forEach(key => invalidateRender(key));
+        return;
     }
 
-    // 3. Mark dirty + schedule — islands now read freshly rebuilt cache
-    //    runRender(): tab active → schedule immediately; hidden → mark dirty, flush on show
+    // Visible dashboard: preserve the established fresh-before-render contract.
+    invalidateDashboardCache('all');
+    if (typeof window.refreshDashboardComputation === 'function') {
+        try { window.refreshDashboardComputation(reason || 'dashboard-invalidate'); }
+        catch (e) { console.warn('[renderInvalidation] dashboard recompute before render failed:', e); }
+    }
     _DASHBOARD_KEYS.forEach(key => {
         invalidateRender(key);
         runRender(key);

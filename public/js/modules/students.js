@@ -29,10 +29,10 @@
 
 import { getLocalToday, formatDate, formatMonth, formatMonthCompact, addMonthsToYYYYMM } from "../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h";
 import { escapeHtml } from '../utils/helpers.js';
-import { StudentService } from "../services/students.service.js?v=qr-v11r6-a9r18-mobile-perf-r2-p4s-20261028";
+import { StudentService } from "../services/students.service.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";
 import { InventoryService } from "../services/inventory.service.js?v=residual-financial-cache-correctness-20260917-v5u6h8r2_1";
 import { FinanceService } from "../services/finance.service.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
-import { trainingBranch, trainingDaysValid, isShiftEligibleForBranch, resolveTrainingShift, inspectTrainingRegistration, registrationMessage, assertTrainingRegistration, auditTrainingRegistrations } from "../core/trainingRegistration.js?v=qr-v11r6-a9r18-mobile-perf-r2-p4s-20261028";
+import { trainingBranch, trainingDaysValid, isShiftEligibleForBranch, resolveTrainingShift, inspectTrainingRegistration, registrationMessage, assertTrainingRegistration, auditTrainingRegistrations } from "../core/trainingRegistration.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";
 
 const _registrationForms = new Map();
 const _registrationContext = () => JSON.stringify([window.__store?.clubId,window.__verifiedAuthContextState?.uid,window.__verifiedAuthContextState?.generation]);
@@ -1188,8 +1188,8 @@ export function initStudentPagination() {
         prepareNextPage, preparePreviousPage,
         renderPaginationControls, PAGE_SIZE,
     }) => {
-        import("./students.js?v=qr-v11r6-a9r18-mobile-perf-r2-p4s-20261028").then(() => {}); // no-op — chỉ để IDE không warn
-        import("../services/students.service.js?v=qr-v11r6-a9r18-mobile-perf-r2-p4s-20261028").then(({ StudentService }) => {
+        import("./students.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029").then(() => {}); // no-op — chỉ để IDE không warn
+        import("../services/students.service.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029").then(({ StudentService }) => {
 
             const store = window.__store;
             if (!store) { console.warn('[pagination/students] __store chưa sẵn sàng'); return; }

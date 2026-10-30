@@ -16,12 +16,12 @@
  * ────────────────────────────────────────────────────────────────
  */
 
-import { AttendanceService, AttendanceHistoryReadOwner } from "../services/attendance.service.js?v=qr-v11r6-a9r18-mobile-perf-r2-p4s-20261028";
+import { AttendanceService, AttendanceHistoryReadOwner } from "../services/attendance.service.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";
 import { GlobalOwnershipRegistry } from '../core/globalOwnershipRegistry.js';
 import { escapeHtml } from '../utils/helpers.js';
-import { AttendanceJournal } from "../data/attendanceJournal.js?v=qr-v11r6-a9r18-mobile-perf-r2-p4s-20261028";
-import { HISTORY_AUTHORITY, HISTORY_COACH_ACCESS, attendanceServerVersion, attendanceIntentId } from "../core/attendanceContract.js?v=qr-v11r6-a9r18-mobile-perf-r2-p4s-20261028";
-import { shiftAuthority, classifyShiftScope, resolveTrainingShift, isShiftEligibleForBranch, inspectTrainingRegistration } from "../core/trainingRegistration.js?v=qr-v11r6-a9r18-mobile-perf-r2-p4s-20261028";
+import { AttendanceJournal } from "../data/attendanceJournal.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";
+import { HISTORY_AUTHORITY, HISTORY_COACH_ACCESS, attendanceServerVersion, attendanceIntentId } from "../core/attendanceContract.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";
+import { shiftAuthority, classifyShiftScope, resolveTrainingShift, isShiftEligibleForBranch, inspectTrainingRegistration } from "../core/trainingRegistration.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";
 
 const ATTENDANCE_OWNER = 'js/modules/attendance.js';
 const ATTENDANCE_OWNED_GLOBALS = Object.freeze([

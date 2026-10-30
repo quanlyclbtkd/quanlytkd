@@ -35,7 +35,7 @@ import {
     renderExamBranchFees,
     updateSummaryNumbers,
     getDashboardCanonicalStatsSnapshot,
-} from '../modules/dashboard.js?v=dashboard-hydration-mutation-guard-20260812-v5u6c2';
+} from "../modules/dashboard.js?v=qr-v11r6-a9r18-usability-perf-r2r4-finance5-20261029";
 
 import { store } from '../store.js';
 import {

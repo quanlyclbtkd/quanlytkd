@@ -75,7 +75,9 @@ function _transactionFinanceCoverage(monthKey, clubId) {
   const coverage = window.__store?.transactionCoverage;
   const sameClub = !!coverage && String(coverage.clubId || '') === String(clubId || '');
   const sameMonth = !!coverage && String(coverage.month || '') === String(monthKey || '');
-  const financeComplete = sameClub && sameMonth && coverage.ready === true && coverage.complete === true;
+  const financeComplete = sameClub && sameMonth && coverage.ready === true && coverage.complete === true &&
+    coverage.pageServerComplete === true && coverage.pageEvidence?.epoch === window.__store?._activeTxProjectionEpoch &&
+    String(coverage.readMode || '') === String(window.__store?._activeTxReadMode || '');
   return {
     month: monthKey,
     financeComplete,
@@ -191,7 +193,7 @@ function computeClubStatsCache(monthKey = getCurrentMonthVN()) {
     financeComplete: transactionCoverage.financeComplete,
     source: 'admin-client-auto-cache',
     computedAt: Date.now(),
-    ready: profileEntries.length > 0 || txs.length > 0 || inv.length > 0,
+    ready: transactionCoverage.financeComplete || profileEntries.length > 0 || txs.length > 0 || inv.length > 0,
   };
 }
 
@@ -199,23 +201,213 @@ function _fingerprint(stats) {
   return [stats.month, stats.activeCount, stats.profileCount, stats.txCount, stats.inventoryCount, stats.monthlyIncome, stats.monthlyExpense, stats.monthlyTxCount, stats.financeComplete, stats.transactionCoverage?.transactionReadMode, stats.transactionCoverage?.transactionHitLimit].join('|');
 }
 
-async function syncClubStatsCache(reason = 'manual') {
-  if (window.RoleReadBoundary?.canMount?.('club.stats-cache', { reason }) === false) {
-    return { ok: false, skipped: true, reason: 'coach-attendance-only' };
+// Inserted into the existing clubStatsAutoCache owner; no independent writer.
+let _pendingRequiredState = null;
+let _financeTransition = null;
+let _publishedFinancialScope = '';
+const _hydratedFinanceScopes = new Set();
+
+function _financeContext(month) {
+  const auth = window.__verifiedAuthContextState || {}, c = _ctx('finance-cache-authority');
+  const clubId = String(_clubId() || '');
+  if (auth.ready !== true || !auth.uid || !['admin', 'owner'].includes(String(auth.role || '')) ||
+      String(auth.clubId || '') !== clubId || !_clientStatsWriterAllowed() ||
+      window.RoleReadBoundary?.canMount?.('club.stats-cache', { reason: 'finance-cache-authority' }) === false) return null;
+  return { uid: auth.uid, role: auth.role, clubId, month: String(month || getCurrentMonthVN()),
+    generation: auth.generation, sessionEpoch: auth.sessionEpoch, authGeneration: auth.authGeneration,
+    db: c.db || window.__store?.db };
+}
+function _financeIdentity(c) {
+  return c ? JSON.stringify([c.uid,c.role,c.clubId,c.month,c.generation,c.sessionEpoch,c.authGeneration]) : '';
+}
+function _financeContextCurrent(c) { return !!c && _financeIdentity(c) === _financeIdentity(_financeContext(c.month)) && _financeSelectedMonth() === c.month; }
+function _financeSelectedMonth() {
+  return String(window.__store?._activeTxListenerMonth || window.__store?.transactionCoverage?.month || '');
+}
+function _financeScope(c, mode) { return _financeIdentity(c) + '|' + String(mode || 'unknown'); }
+function _transitionCurrent(t) {
+  return !!t && _financeTransition === t && _financeContextCurrent(t.context) &&
+    _financeSelectedMonth() === t.context.month && (!t.targetEpoch ||
+      (window.__store?._activeTxProjectionEpoch === t.targetEpoch && window.__store?._activeTxReadMode === t.toMode));
+}
+function _deferredFinanceBarrier() { let resolve; const promise = new Promise(r => { resolve = r; }); return { promise, resolve }; }
+function _markFinanceTransitionDirty(t) {
+  if (!t.dirtyMarked && typeof window._moduleDashboard?.markStatsDirty === 'function') {
+    window._moduleDashboard.markStatsDirty(t.context.month, 'finance-authority-transition', 'finance');
+    t.dirtyMarked = true;
   }
+}
+function _replaceFinanceTransition(t) {
+  if (_financeTransition && _financeTransition !== t) {
+    _financeTransition.barrier.resolve({ ok: false, stale: true, reason: 'DROP_STALE' });
+  }
+  if (t) {
+    _hydratedFinanceScopes.delete(_financeScope(t.context, t.fromMode));
+    _hydratedFinanceScopes.delete(_financeScope(t.context, t.toMode));
+  }
+  _financeTransition = t;
+}
+function _newFinanceTransition(context, fromMode, toMode) {
+  return { context, fromMode, toMode, sourceEpoch: window.__store?._activeTxProjectionEpoch,
+    targetEpoch: null, phase: 'barrier', barrierAck: false, ready: false, completeQueued: false,
+    barrier: _deferredFinanceBarrier(), dirtyMarked: false };
+}
+function _queueFinanceComplete(t) {
+  if (!_transitionCurrent(t) || !t.barrierAck || !t.ready || t.completeQueued || t.phase === 'complete') return;
+  t.completeQueued = true;
+  _enqueueClubStatsState({ kind: 'complete', token: t, context: t.context, reason: 'finance-target-server-complete' });
+}
+function _acceptFinanceBarrier(t, result) {
+  t.barrierAck = result.ok === true;
+  if (result.ok) _publishedFinancialScope = '';
+  if (_transitionCurrent(t)) {
+    t.phase = result.ok ? 'waiting-target' : 'failed';
+    t.barrier.resolve({ ...result, isCurrent: () => _transitionCurrent(t) && t.barrierAck });
+    if (result.ok) _queueFinanceComplete(t);
+  } else {
+    t.barrier.resolve({ ok: false, stale: true, reason: 'DROP_STALE' });
+    const next = _financeTransition;
+    // Same authority rehydration may adopt an already-sent incomplete ACK.
+    // It has its own token/epoch; no old COMPLETE or local result is adopted.
+    if (next?.inheritedBarrier === t && _transitionCurrent(next)) _acceptFinanceBarrier(next, result);
+  }
+}
+function _enqueueClubStatsState(request) {
+  const pending = _pendingRequiredState;
+  if (!(request.kind === 'regular' && pending && pending.kind !== 'regular')) _pendingRequiredState = request;
   if (_syncInFlight) return _syncInFlight;
-  _syncInFlight = (async () => {
-    const cid = _clubId();
+  let resolveFlight;
+  _syncInFlight = new Promise(r => { resolveFlight = r; });
+  const flight = _syncInFlight;
+  (async () => {
+    while (_pendingRequiredState) {
+      const req = _pendingRequiredState; _pendingRequiredState = null;
+      let result;
+      if (!_financeContextCurrent(req.context) || (req.token && !_transitionCurrent(req.token))) {
+        result = { ok: false, stale: true, reason: 'DROP_STALE' };
+      } else {
+        try { result = await _writeClubStatsState(req); }
+        catch (error) { result = { ok: false, reason: error?.code || error?.message || 'cache-write-failed' }; }
+      }
+      _lastResult = result;
+      if (req.kind === 'barrier') _acceptFinanceBarrier(req.token, result);
+      if (req.kind === 'complete') {
+        req.token.completeQueued = false;
+        if (_transitionCurrent(req.token) && result.ok) {
+          req.token.phase = 'complete';
+          _markFinanceTransitionDirty(req.token);
+          window.invalidateDashboard?.('finance-authority-complete');
+        }
+      }
+    }
+    // Clear synchronously with the final queue check: no finally/microtask gap
+    // may swallow a request which joined the previous flight.
+    _syncInFlight = null; resolveFlight(_lastResult);
+  })().catch(error => {
+    _syncInFlight = null; resolveFlight({ ok: false, reason: error?.message || 'cache-queue-failed' });
+  });
+  return flight;
+}
+function beginFinanceTransition(input = {}) {
+  const context = _financeContext(input.month), fromMode = String(input.fromMode || ''), toMode = String(input.toMode || '');
+  if (!context || (input.clubId && input.clubId !== context.clubId) || !/^[0-9]{4}-(0[1-9]|1[0-2])$/.test(context.month) ||
+      !['legacy','canonical'].includes(fromMode) || !['legacy','canonical'].includes(toMode)) {
+    return Promise.resolve({ ok: false, reason: 'finance-transition-context-unverified' });
+  }
+  if (fromMode === toMode) return Promise.resolve({ ok: true, skipped: true, reason: 'same-authority-mode' });
+  const old = _financeTransition;
+  if (old && _financeContextCurrent(old.context) && _financeIdentity(old.context) === _financeIdentity(context) &&
+      old.fromMode === fromMode && old.toMode === toMode && !['complete','failed'].includes(old.phase)) return old.barrier.promise;
+  const t = _newFinanceTransition(context, fromMode, toMode);
+  _replaceFinanceTransition(t); _markFinanceTransitionDirty(t);
+  _enqueueClubStatsState({ kind: 'barrier', token: t, context, reason: 'finance-authority-transition' });
+  return t.barrier.promise;
+}
+function bindFinanceContext(input = {}) {
+  const context = _financeContext(input.month);
+  if (!context || (input.clubId && input.clubId !== context.clubId)) return { ready: false, wait: Promise.resolve({ ok: false, reason: 'finance-context-unverified' }) };
+  let t = _financeTransition;
+  const sameScope = t && _financeIdentity(t.context) === _financeIdentity(context);
+  if (sameScope && (t.phase === 'failed' || (t.phase === 'complete' && t.toMode === input.toMode))) {
+    _replaceFinanceTransition(null); t = null;
+  }
+  if (t && sameScope && (t.toMode === input.toMode || t.barrierAck) && t.phase !== 'failed') {
+    if ((t.targetEpoch && t.targetEpoch !== input.epoch) || t.toMode !== input.toMode) {
+      const next = _newFinanceTransition(context, t.fromMode, input.toMode);
+      next.targetEpoch = input.epoch; next.inheritedBarrier = t; next.dirtyMarked = t.dirtyMarked;
+      next.barrierAck = t.barrierAck; next.phase = t.barrierAck ? 'waiting-target' : 'barrier';
+      _replaceFinanceTransition(next); t = next;
+      if (t.barrierAck) t.barrier.resolve({ ok: true, reason: 'same-authority-barrier-already-acked', isCurrent: () => _transitionCurrent(t) });
+    } else t.targetEpoch = input.epoch;
+    return { ready: t.barrierAck, wait: t.barrier.promise };
+  }
+  if (input.fromMode && input.fromMode !== input.toMode && ['legacy','canonical'].includes(input.fromMode)) {
+    const wait = beginFinanceTransition(input); t = _financeTransition;
+    if (t && _financeIdentity(t.context) === _financeIdentity(context)) t.targetEpoch = input.epoch;
+    return { ready: t?.barrierAck === true, wait };
+  }
+  return { ready: true, wait: Promise.resolve({ ok: true, reason: 'same-authority-context' }) };
+}
+function _financeSourcesServerSettled(coverage) {
+  const keys = coverage?.readMode === 'canonical' ? ['canonical'] : ['byDate','byTxMonth','byPackageMonth'];
+  return coverage?.ready === true && coverage.pageEvidence?.epoch === window.__store?._activeTxProjectionEpoch &&
+    keys.every(key => coverage.pageEvidence?.meta?.[key]?.trusted === true);
+}
+function notifyFinanceCoverage(coverage) {
+  if (!coverage || coverage !== window.__store?.transactionCoverage) return;
+  if (coverage.hitLimit === true && _financeSourcesServerSettled(coverage)) {
+    const context = _financeContext(coverage.month), old = _financeTransition;
+    if (context && (!_transitionCurrent(old) || old.phase === 'complete')) {
+      const t = _newFinanceTransition(context, coverage.readMode, coverage.readMode);
+      t.targetEpoch = window.__store._activeTxProjectionEpoch;
+      _replaceFinanceTransition(t); _markFinanceTransitionDirty(t);
+      _enqueueClubStatsState({ kind: 'barrier', token: t, context, reason: 'finance-server-coverage-hit-limit' });
+    }
+    return;
+  }
+  if (coverage.pageServerComplete !== true) return;
+  const context = _financeContext(coverage.month);
+  if (!context || !_transactionFinanceCoverage(context.month, context.clubId).financeComplete) return;
+  const t = _financeTransition;
+  if (_transitionCurrent(t) && t.toMode === coverage.readMode && t.phase !== 'complete') {
+    t.ready = true; _markFinanceTransitionDirty(t); _queueFinanceComplete(t); return;
+  }
+  const scope = _financeScope(context, coverage.readMode);
+  if (_hydratedFinanceScopes.has(scope)) return;
+  _hydratedFinanceScopes.add(scope);
+  if (_publishedFinancialScope !== scope) _enqueueClubStatsState({ kind: 'regular', context, reason: 'finance-initial-server-complete' });
+}
+function isFinanceTransitionPending(clubId, month) {
+  const t = _financeTransition;
+  return _transitionCurrent(t) && t.context.clubId === clubId && t.context.month === month && t.phase !== 'complete';
+}
+function syncClubStatsCache(reason = 'manual') {
+  if (window.RoleReadBoundary?.canMount?.('club.stats-cache', { reason }) === false) {
+    return Promise.resolve({ ok: false, skipped: true, reason: 'coach-attendance-only' });
+  }
+  if (!_clientStatsWriterAllowed()) return Promise.resolve({ ok: false, skipped: true, reason: 'production-policy-stats-writer-disabled' });
+  const coverage = window.__store?.transactionCoverage;
+  if (coverage?.hitLimit === true && _financeSourcesServerSettled(coverage)) notifyFinanceCoverage(coverage);
+  const context = _financeContext(getCurrentMonthVN());
+  if (!context) return Promise.resolve({ ok: false, skipped: true, reason: 'finance-cache-context-unverified' });
+  if (_transitionCurrent(_financeTransition) && _financeTransition.phase !== 'complete') {
+    return _syncInFlight || Promise.resolve({ ok: false, skipped: true, reason: 'finance-transition-pending' });
+  }
+  return _enqueueClubStatsState({ kind: 'regular', context, reason });
+}
+
+async function _writeClubStatsState(request) {
+    const reason = request.reason, cid = request.context.clubId;
     const fb = window._fb_init || {};
     const c = _ctx('club-stats-sync');
     const db = c.db || (window.__store && window.__store.db);
-    const setDoc = fb.setDoc;
+    const writeBatch = fb.writeBatch;
     const doc = fb.doc;
 
     const blockedReason = !_clientStatsWriterAllowed() ? 'production-policy-stats-writer-disabled' :
       !cid ? 'missing-club-id' :
       !db ? 'missing-db' :
-      !setDoc || !doc ? 'missing-firestore-helpers' :
+      !writeBatch || !doc ? 'missing-firestore-helpers' :
       _isSuperAdminRuntime() ? 'skip-superadmin-runtime' : '';
 
     if (blockedReason) {
@@ -223,35 +415,44 @@ async function syncClubStatsCache(reason = 'manual') {
       return _lastResult;
     }
 
-    const monthKey = getCurrentMonthVN();
+    const monthKey = request.context.month;
     const stats = computeClubStatsCache(monthKey);
-    if (!stats.ready) {
+    if (!stats.ready && request.kind !== 'barrier') {
       _lastResult = { ok: false, reason: 'data-not-ready', clubId: cid, stats, at: Date.now() };
       return _lastResult;
     }
 
-    const fp = _fingerprint(stats);
+    if (request.kind === 'complete' && (!request.token.barrierAck || !stats.financeComplete)) {
+      return { ok: false, skipped: true, reason: 'target-not-server-confirmed' };
+    }
+    if (request.kind === 'regular' && !stats.financeComplete &&
+        (stats.transactionCoverage.sameMonth || !window.__store?.transactionCoverage?.month)) {
+      return { ok: false, skipped: true, reason: 'finance-await-server' };
+    }
+    const memberMetrics = window.getProfilesListenerMetrics?.();
+    const membersKnown = memberMetrics ? memberMetrics.fullAuthorityComplete === true && memberMetrics.authorityServerConfirmed === true : stats.profileCount > 0;
+    const fp = _financeIdentity(request.context) + '|' + membersKnown + '|' + _fingerprint(stats);
     const now = Date.now();
-    if (fp === _lastFingerprint && now - _lastSyncAt < CACHE_TTL_MS) {
+    if (request.kind !== 'barrier' && fp === _lastFingerprint && now - _lastSyncAt < CACHE_TTL_MS) {
       _lastResult = { ok: true, skipped: true, reason: 'unchanged-ttl', clubId: cid, stats, at: now };
       return _lastResult;
     }
 
     const statsDocId = stats.statsDocId;
-    const financeComplete = stats.financeComplete === true;
+    const financeComplete = request.kind !== 'barrier' && stats.financeComplete === true;
     const coveragePayload = {
       month: monthKey,
       financeComplete,
-      transactionReadMode: stats.transactionCoverage.transactionReadMode,
+      transactionReadMode: request.kind === 'barrier' ? request.token.toMode : stats.transactionCoverage.transactionReadMode,
       transactionHitLimit: stats.transactionCoverage.transactionHitLimit,
-      transactionObservedCount: stats.transactionCoverage.transactionObservedCount,
-      transactionSourceCounts: stats.transactionCoverage.transactionSourceCounts,
+      transactionObservedCount: request.kind === 'barrier' ? 0 : stats.transactionCoverage.transactionObservedCount,
+      transactionSourceCounts: request.kind === 'barrier' ? {} : stats.transactionCoverage.transactionSourceCounts,
       transactionLimit: stats.transactionCoverage.transactionLimit,
       checkedAt: now,
     };
     // Member/root cache remains independently useful. Financial fields are added
     // only when the listener proves full coverage for this exact club + month.
-    const payload = {
+    const payload = membersKnown ? {
       cachedActiveCount: stats.activeCount,
       cachedStudentCount: stats.activeCount,
       activeStudentCount: stats.activeCount,
@@ -259,8 +460,8 @@ async function syncClubStatsCache(reason = 'manual') {
       cachedProfileCount: stats.profileCount,
       cachedInvCount: stats.inventoryCount,
       cachedCountUpdatedAt: now,
-      cacheCoverage: coveragePayload,
-    };
+    } : {};
+    if (financeComplete || request.kind === 'barrier') payload.cacheCoverage = coveragePayload;
     if (financeComplete) {
       Object.assign(payload, {
         cachedTxCount: stats.txCount,
@@ -292,14 +493,16 @@ async function syncClubStatsCache(reason = 'manual') {
       });
     }
 
-    const statsPayload = {
+    if (financeComplete && !membersKnown) { delete payload.superAdminStats.activeCount; delete payload.superAdminStats.profileCount; }
+
+    const statsPayload = membersKnown ? {
       month: monthKey,
       activeCount: stats.activeCount,
       profileCount: stats.profileCount,
       totalStudents: stats.profileCount,
-      cacheCoverage: coveragePayload,
       memberUpdatedAt: now,
-    };
+    } : { month: monthKey };
+    if (financeComplete || request.kind === 'barrier') statsPayload.cacheCoverage = coveragePayload;
     if (financeComplete) {
       Object.assign(statsPayload, {
         income: { total: stats.monthlyIncome },
@@ -311,29 +514,28 @@ async function syncClubStatsCache(reason = 'manual') {
       });
     }
 
-    let rootWriteOk = false;
-    let statsWriteOk = false;
-    try {
-      await setDoc(doc(db, 'clubs', cid), payload, { merge: true });
-      rootWriteOk = true;
-    } catch (e) {
-      console.warn('[ClubStatsAutoCache] root cache write failed:', e?.message || e);
+    if (!_financeContextCurrent(request.context) || (request.token && !_transitionCurrent(request.token))) {
+      return { ok: false, stale: true, reason: 'DROP_STALE' };
     }
-
-    // Optional stats doc mirror. Some rules may block client writes to stats; root cache above is enough for SuperAdmin.
+    // Both documents have active Finance consumers. One canonical batch avoids
+    // a root-incomplete / old-stats-complete window and preserves write order.
+    let rootWriteOk = false, statsWriteOk = false;
     try {
-      await setDoc(doc(db, 'clubs', cid, 'stats', statsDocId), statsPayload, { merge: true });
-      statsWriteOk = true;
-    } catch (_) {
-      // Stats collection may be Cloud Functions-only. Do not warn loudly.
+      const batch = writeBatch(db);
+      if (monthKey === getCurrentMonthVN()) batch.set(doc(db, 'clubs', cid), payload, { merge: true });
+      batch.set(doc(db, 'clubs', cid, 'stats', statsDocId), statsPayload, { merge: true });
+      await batch.commit();
+      rootWriteOk = monthKey === getCurrentMonthVN(); statsWriteOk = true;
+    } catch (error) {
+      console.warn('[ClubStatsAutoCache] atomic cache publication failed:', error?.message || error);
     }
-
-    if (rootWriteOk) {
-      _lastFingerprint = fp;
+    if (statsWriteOk && _financeContextCurrent(request.context)) {
+      _lastFingerprint = request.kind === 'barrier' ? '' : fp;
       _lastSyncAt = now;
+      if (financeComplete) _publishedFinancialScope = _financeScope(request.context, stats.transactionCoverage.transactionReadMode);
     }
     _lastResult = {
-      ok: rootWriteOk,
+      ok: statsWriteOk && _financeContextCurrent(request.context),
       rootWriteOk,
       statsWriteOk,
       financialRootWriteOk: rootWriteOk && financeComplete,
@@ -341,6 +543,7 @@ async function syncClubStatsCache(reason = 'manual') {
       financeWriteSkipped: !financeComplete,
       clubId: cid,
       reason,
+      publicationKind: request.kind,
       stats,
       at: now,
     };
@@ -352,8 +555,6 @@ async function syncClubStatsCache(reason = 'manual') {
       reason,
     });
     return _lastResult;
-  })().finally(() => { _syncInFlight = null; });
-  return _syncInFlight;
 }
 
 function scheduleClubStatsAutoCacheSync(reason = 'schedule') {
@@ -425,5 +626,18 @@ function initClubStatsAutoCache() {
     return result;
   };
 }
+
+
+// The existing writer API is available before bootstrap. Correctness never
+// depends on a role-timed init call or the incidental bootstrap timer.
+syncClubStatsCache.beginFinanceTransition = beginFinanceTransition;
+syncClubStatsCache.bindFinanceContext = bindFinanceContext;
+syncClubStatsCache.notifyFinanceCoverage = notifyFinanceCoverage;
+syncClubStatsCache.isFinanceTransitionPending = isFinanceTransitionPending;
+syncClubStatsCache.getFinanceTransitionState = () => ({ phase: _financeTransition?.phase || 'idle',
+  month: _financeTransition?.context.month || '', toMode: _financeTransition?.toMode || '',
+  barrierAck: _financeTransition?.barrierAck === true, targetReady: _financeTransition?.ready === true,
+  inFlight: !!_syncInFlight, pendingRequired: _pendingRequiredState?.kind || '' });
+if (typeof window !== 'undefined') window.syncClubStatsCache = syncClubStatsCache;
 
 export { initClubStatsAutoCache, syncClubStatsCache, computeClubStatsCache };

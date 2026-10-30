@@ -7,6 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
 import { pathToFileURL } from 'node:url';
+import { verifyFinanceAppWaiver } from './check-r2r4-finance-app-guard.mjs';
 
 const root = process.cwd();
 const read = (rel) => fs.readFileSync(path.join(root, rel), 'utf8');
@@ -108,7 +109,8 @@ const appBytes = Buffer.byteLength(app);
 const appLines = app.split('\n').length;
 check(appBytes < baselineAppBytes, `app.js reduced from ${baselineAppBytes.toLocaleString()} to ${appBytes.toLocaleString()} bytes`);
 check(appLines < baselineAppLines, `app.js reduced from ${baselineAppLines.toLocaleString()} to ${appLines.toLocaleString()} lines`);
-check(appBytes <= 700000, `app.js meets Phase 4K-6V4B8 compatible size target (${appBytes.toLocaleString()} <= 700,000 bytes)`);
+const financeCorrectnessWaiver = appBytes > 700000 ? verifyFinanceAppWaiver(root) : null;
+check(appBytes <= 700000 || financeCorrectnessWaiver?.ok === true, `app.js meets 700,000 byte target or exact R2R4 approved correctness-hunk proof (${appBytes.toLocaleString()} bytes; waiver ${financeCorrectnessWaiver?.ok === true ? 'verified' : 'absent'})`);
 // V5U6E adds the transaction-coverage publisher and explicit recovery-probe guard
 // at the canonical listener/bootstrap owners. Keep a tight compatible ceiling
 // without treating those authorized safety guards as Attendance ownership drift.

@@ -91,8 +91,9 @@ const _cache = {
      *           expUniform:number, txCount:number,
      *           bStats:Object, bExamStats:Object } | null} */
     summary:      null,
-    paramsKey:    null,   // serialised params — duplicate-prevention
-    dataVersion:  -1,     // mirrors window.__store._dataVersion at last compute
+    paramsKey:    null,   // serialised presentation context
+    sourceKey:    null,   // R2R5 semantic source vector (not global _dataVersion)
+    dataVersion:  -1,     // diagnostic-only legacy snapshot; NOT freshness authority
     _version:     0,      // increments on every invalidate()
 };
 
@@ -120,6 +121,7 @@ export function invalidateFinanceRender(section) {
     if (section === 'summary'      || section === 'all') _cache.summary     = null;
     if (section === 'all') {
         _cache.paramsKey   = null;
+        _cache.sourceKey   = null;
         _cache.dataVersion = -1;
     }
     _cache._version++;
@@ -317,6 +319,22 @@ export function renderExamExpRow(tx, opts = {}) {
  * @param {string[]} params.invCats        — inventory category names
  * @param {number}   params.bCount         — number of branches
  */
+function _currentFinanceSourceKey() {
+    const st = window.__store || {};
+    const coverage = st.transactionCoverage || {};
+    return [
+        'tx:' + Number(st._transactionsVersion || 0),
+        'settings:' + Number(st._settingsVersion || 0),
+        'invcat:' + Number(st._inventoryCategoryVersion || 0),
+        'coverage:' + String(coverage.complete === true) + ':' + String(coverage.pageServerComplete === true),
+        'club:' + String(st.clubId || st.currentClubId || ''),
+    ].join('|');
+}
+
+export function isFinanceSemanticSourceFresh() {
+    return _cache.summary !== null && _cache.sourceKey === _currentFinanceSourceKey();
+}
+
 export function computeAndCacheFinance(transactions, params) {
     const {
         curTabId      = 'tx',
@@ -328,13 +346,18 @@ export function computeAndCacheFinance(transactions, params) {
         bCount        = 1,
     } = params;
 
-    // ── Cache-hit detection ──
-    const paramsKey    = `${curTabId}|${selBranch}|${search}`;
-    const dataVersion  = (window.__store || {})._dataVersion || 0;
+    // ── R2R5 cache identity: semantic source vector + presentation context ──
+    const _st = window.__store || {};
+    const _selectedMonth =
+        (document.getElementById('filterMonth') && document.getElementById('filterMonth').value) ||
+        _st.selectedMonth || '';
+    const sourceKey = _currentFinanceSourceKey();
+    const paramsKey = `${curTabId}|${_selectedMonth}|${selBranch}|${search}|admin:${isAdmin ? 1 : 0}|single:${isSingleBranch ? 1 : 0}|bc:${bCount}`;
+    const dataVersion = Number(_st._dataVersion || 0); // diagnostics only
     if (
         _cache.summary !== null &&
-        _cache.paramsKey   === paramsKey &&
-        _cache.dataVersion === dataVersion
+        _cache.paramsKey === paramsKey &&
+        _cache.sourceKey === sourceKey
     ) {
         _metrics.cacheHits++;
         window.PerformanceMonitor?.record('render:finance.cacheHit', 0, { tab: curTabId });
@@ -374,12 +397,7 @@ export function computeAndCacheFinance(transactions, params) {
     const _txSearchCandidates = buildTxRows && String(search || '').trim() ? [] : null;
 
     // ── Single pass — mirrors renderApp() lines 249-324 exactly ──
-    // Phase 4K-4F: guard selectedMonth to avoid cross-month contamination when store
-    // may contain merged transactions from multiple months (packageMonths rollup)
-    const _selectedMonth =
-        (document.getElementById('filterMonth') && document.getElementById('filterMonth').value) ||
-        (window.__store || {}).selectedMonth ||
-        '';
+    // Phase 4K-4F: _selectedMonth is part of the R2R5 presentation context above.
 
     transactions.forEach(t => {
         // Phase 4K-4F: skip transactions not belonging to selected month
@@ -640,6 +658,7 @@ export function computeAndCacheFinance(transactions, params) {
         bStats, bExamStats,
     };
     _cache.paramsKey   = paramsKey;
+    _cache.sourceKey   = sourceKey;
     _cache.dataVersion = dataVersion;
 
     // ── Metrics ──

@@ -8,7 +8,7 @@
 
 const PAGE_SIZE = 1000;
 const MAX_PAGES = 200;
-const ATTENDANCE_READER_BUILD = 'qr-v11r6-a9r18-mobile-perf-r2-p4s-20261028';
+const ATTENDANCE_READER_BUILD = 'qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029';
 
 function _historyReadOwner() {
     const owner=window.AttendanceModule?.getHistoryReadOwner?.();

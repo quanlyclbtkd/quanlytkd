@@ -46,14 +46,17 @@ import {
 import {
     computeAndCacheStudents,
     getStudentsSummary,
+    getStudentsCacheMetrics,
 } from "./computation/studentsRenderer.js?v=qr-v11r6-a9r17-mobile-layout-qr-20261026";
 import {
     computeAndCacheInventory,
     getCachedUnpaidInvCount,
+    getCachedLiveInvMap,
 } from "./computation/inventoryRenderer.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
 import {
     invalidateDashboardCache,
     cacheDashboardData,
+    markDashboardCacheFresh,
 } from './computation/dashboardRenderer.js';
 import { formatMonth } from "../../utils/format.js?v=production-security-trust-boundary-release-assurance-20260816-v5u6h";
 
@@ -96,14 +99,20 @@ const _slowThrottle = {}; // { [domain]: lastWarnTimestamp }
 const _SLOW_THROTTLE_MS = 3000;
 
 
-// Phase 4K-6V4B12 — Same-tick refresh coalescing.
-// Many UI handlers call refreshListsComputation([...]) and then invalidateList() /
-// invalidateCurrentTab(), which used to recompute the same domain twice in the same
-// interaction. This helper reuses a just-refreshed domain when params + dataVersion
-// are unchanged, removing noisy repeated Slow computation warnings without hiding
-// real data changes.
+// R2R5 — pre-compute request owner. Compatible requests arriving in the same
+// JavaScript turn are merged BEFORE heavyweight computation begins. No time window
+// is a freshness authority; the renderer cache itself validates semantic source +
+// presentation context at flush time.
+const _pendingRefreshKeys = new Set();
+const _pendingRefreshReasons = new Set();
+let _pendingRefreshScheduled = false;
+let _pendingRefreshWaiters = [];
+let _refreshFlushRunning = false;
+
+// Legacy V4B12-compatible micro reuse remains only as an OPTIONAL second layer
+// after semantic source/context identity proof. Time alone is never freshness.
 const _RECENT_REFRESH_REUSE_MS = 250;
-const _recentRefreshByDomain = Object.create(null); // { [domain]: { signature, at, reason } }
+const _recentRefreshByDomain = Object.create(null);
 
 function _isDebugPerfEnabled() {
     try {
@@ -118,15 +127,31 @@ function _objLen(v) { try { return v && typeof v === 'object' ? Object.keys(v).l
 function _domainSignature(domain) {
     const st  = window.__store || {};
     const cfg = _getConfig() || {};
+    const auth = window.__verifiedAuthContextState || {};
+    const txCoverage = st.transactionCoverage || {};
+    const semanticSource = domain === 'finance'
+        ? `tx:${st._transactionsVersion || 0}|settings:${st._settingsVersion || 0}|invcat:${st._inventoryCategoryVersion || 0}|coverage:${txCoverage.complete === true}:${txCoverage.pageServerComplete === true}`
+        : domain === 'students'
+            ? `profiles:${window.studentProfileStore?.version ?? st._profileDataVersion ?? 0}|tuition:${st._tuitionEvidenceVersion || 0}|settings:${st._settingsVersion || 0}|coverage:${txCoverage.complete === true}:${txCoverage.pageServerComplete === true}`
+            : domain === 'inventory'
+                ? `inventory:${window.__inventoryStore?.version ?? st._inventoryDataVersion ?? 0}|inventoryTx:${st._inventoryTxVersion || 0}|invcat:${st._inventoryCategoryVersion || 0}|settings:${st._settingsVersion || 0}`
+                : `settings:${st._settingsVersion || 0}`;
+    const _now = new Date();
+    const effectiveDay = `${_now.getFullYear()}-${String(_now.getMonth() + 1).padStart(2, '0')}-${String(_now.getDate()).padStart(2, '0')}`;
     const base = [
         domain,
-        st._dataVersion || 0,
+        semanticSource,
+        effectiveDay,
         _getCurTabId(),
         _getSelMonth(),
         _getSelBranch(),
         _getSearch(),
         _getRole(),
         cfg.branchCount || 1,
+        JSON.stringify([auth.uid, auth.role, auth.clubId, auth.ready, auth.generation,
+            auth.branchGeneration, auth.assignmentVersion, auth.allowedBranches, auth.activeBranch,
+            auth.coachBranch, auth.branchSelectionPending, auth.sessionEpoch, auth.authGeneration,
+            st.currentUser?.uid, st.clubId, window.APP_BUILD_VERSION]),
     ];
     if (domain === 'students') {
         const pg = (st.pagination && st.pagination.students) || {};
@@ -156,11 +181,16 @@ function _domainSignature(domain) {
     return base.join('|');
 }
 
+
 function _canReuseRecentRefresh(domain, signature) {
     try {
         if (!domain || !signature) return false;
         const prev = _recentRefreshByDomain[domain];
         if (!prev || prev.signature !== signature) return false;
+        // Identity proof first: the underlying renderer cache must still exist.
+        if (domain === 'students' && !getStudentsCacheMetrics().paramsKey) return false;
+        if (domain === 'finance' && !getFinanceSummary()) return false;
+        if (domain === 'inventory' && !getCachedLiveInvMap()) return false;
         return (Date.now() - prev.at) <= _RECENT_REFRESH_REUSE_MS;
     } catch (_) { return false; }
 }
@@ -474,8 +504,7 @@ export function refreshListComputation(key, reason = 'list-refresh') {
     const signature = _domainSignature(domain);
     if (domain !== 'attendance' && _canReuseRecentRefresh(domain, signature)) {
         if (m) {
-            m.listComputationRefreshByDomain[domain] =
-                (m.listComputationRefreshByDomain[domain] || 0) + 1;
+            m.listComputationRefreshByDomain[domain] = (m.listComputationRefreshByDomain[domain] || 0) + 1;
             m.listRenderVersions[key] = { domain, version: Date.now(), reason, reused: true };
         }
         return true;
@@ -664,6 +693,65 @@ export function refreshListsComputation(keys, reason = 'list-refresh') {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// R2R5 pre-compute coalescing owner
+// ─────────────────────────────────────────────────────────────────────────────
+
+function _schedulePendingRefreshFlush() {
+    if (_pendingRefreshScheduled) return;
+    _pendingRefreshScheduled = true;
+    queueMicrotask(_flushPendingRefreshRequests);
+}
+
+function _flushPendingRefreshRequests() {
+    _pendingRefreshScheduled = false;
+    if (_refreshFlushRunning) {
+        _schedulePendingRefreshFlush();
+        return;
+    }
+    if (_pendingRefreshKeys.size === 0) return;
+    _refreshFlushRunning = true;
+    const keys = Array.from(_pendingRefreshKeys);
+    const reasons = Array.from(_pendingRefreshReasons);
+    const waiters = _pendingRefreshWaiters;
+    _pendingRefreshKeys.clear();
+    _pendingRefreshReasons.clear();
+    _pendingRefreshWaiters = [];
+    let result;
+    try {
+        // IMPORTANT: all source/context readers run now, at flush time. No stale
+        // arrays or branch/month/search values are captured by request callers.
+        result = refreshListsComputation(keys, reasons.join('+') || 'r2r5-coalesced-refresh');
+    } catch (error) {
+        result = { refreshed: [], fallback: keys.slice(), error };
+    } finally {
+        _refreshFlushRunning = false;
+    }
+    waiters.forEach(resolve => { try { resolve(result); } catch (_) {} });
+    // If a nested notification arrived while synchronous computation was running,
+    // schedule at most one latest follow-up flush.
+    if (_pendingRefreshKeys.size > 0) _schedulePendingRefreshFlush();
+}
+
+/**
+ * Merge compatible list/domain refresh requests before compute. Requests from a
+ * later browser task naturally form a new batch, so branch/month/search context
+ * cannot be incorrectly merged across user interactions.
+ */
+export function requestListsComputation(keys, reason = 'r2r5-request') {
+    const list = Array.isArray(keys) ? keys.filter(Boolean) : [];
+    if (!list.length) return Promise.resolve({ refreshed: [], fallback: [] });
+    list.forEach(key => _pendingRefreshKeys.add(key));
+    if (reason) _pendingRefreshReasons.add(String(reason));
+    const promise = new Promise(resolve => _pendingRefreshWaiters.push(resolve));
+    _schedulePendingRefreshFlush();
+    return promise;
+}
+
+export function requestListComputation(key, reason = 'r2r5-request') {
+    return requestListsComputation(key ? [key] : [], reason);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // refreshDashboardComputation — Part 2 FIX
 // Recompute ALL dashboard data (finance + students + inventory → summary/charts)
 // before rendering dashboard islands.  Always call this instead of rendering
@@ -685,6 +773,7 @@ export function refreshDashboardComputation(reason = 'dashboard-refresh') {
         try { _refreshInventory(); } catch (_) {}
 
         const summary = _cacheAndApplyDashboardSummary(reason);
+        markDashboardCacheFresh(reason);
 
         if (window.__store) {
             window.__store._lastDashboardRefreshReason = reason;
@@ -720,6 +809,8 @@ export function refreshDashboardComputation(reason = 'dashboard-refresh') {
 // Expose immediately so renderInvalidation.js can call it on first paint
 if (typeof window !== 'undefined') {
     window.refreshDashboardComputation = refreshDashboardComputation;
+    window.requestListsComputation = requestListsComputation;
+    window.requestListComputation = requestListComputation;
 }
 
 /**

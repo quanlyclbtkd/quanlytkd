@@ -163,7 +163,7 @@ try{
   await openEdit('P_BAD');assert.match(await page.locator('#m_registration_warning').innerText(),/không tồn tại|sai định dạng/);
   const n=await page.evaluate(()=>__qa.writes.length);await page.evaluate(()=>window.updateProfile());assert.equal(await page.evaluate(()=>__qa.writes.length),n);
   await page.selectOption('#m_shift','');await page.evaluate(()=>window.updateProfile());assert.equal(await page.evaluate(()=>__qa.writes.length),n);
-  await page.locator('#m_registration_clear_days').click();await page.evaluate(()=>window.updateProfile());assert.equal(await page.evaluate(()=>__qa.writes.length),n+1);
+  await page.locator('.m_trainingDay[value="1"]').check();await page.locator('.m_trainingDay[value="1"]').uncheck();await page.evaluate(()=>window.updateProfile());assert.equal(await page.evaluate(()=>__qa.writes.length),n+1);
  });
  await check('Add selector is branch-scoped and valid zero-fee admission uses the original batch',async()=>{
   await page.evaluate(()=>{document.getElementById('add_branch').value='CS1';window.openAddModal();});await waitForm('add');assert.deepEqual(await page.locator('#add_shift option').evaluateAll(options=>options.map(o=>o.value)),['','S1','UNRESOLVED']);

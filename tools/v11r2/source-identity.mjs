@@ -353,8 +353,164 @@ const V11R6_A9R18_MOBILE_PERF_R2_P4S = Object.freeze({
   "buildTag": "qr-v11r6-a9r18-mobile-perf-r2-p4s-20261028"
 });
 
+const V11R6_A9R18_USABILITY_SYNC_R1_U1 = Object.freeze({
+  "id": "V11R6_A9R18_USABILITY_SYNC_R1_U1",
+  "canonicalFileCount": 129,
+  "coachAssignmentContract": "server-verified-multi-branch-v1",
+  "inputZIP_SHA256": "0f0c85c3f9c8b1f0dc4aca2d4bb9e3fafd6dc828b59f2604efe9bc80e211203a",
+  "manifest": "tools/v11r2/manifests/V11R6_A9R18_USABILITY_SYNC_R1_U1.json",
+  "manifestSHA256": "6a6ed7d6b2a3dcff8a356c30d06fbba279cfe56fd30e8fab0a4dda44d0663af8",
+  "runtimeSHA256": "1d0be6fe86333b5b4e3b79e06bc169d69599d9206cb77e2858564838c50ae720",
+  "rulesSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+  "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+  "buildTag": "qr-v11r6-a9r18-usability-sync-r1-u1-20261028"
+});
+
+const V11R6_A9R18_USABILITY_SYNC_R1_U2 = Object.freeze({
+  "id": "V11R6_A9R18_USABILITY_SYNC_R1_U2",
+  "canonicalFileCount": 129,
+  "coachAssignmentContract": "server-verified-multi-branch-v1",
+  "inputZIP_SHA256": "0f0c85c3f9c8b1f0dc4aca2d4bb9e3fafd6dc828b59f2604efe9bc80e211203a",
+  "manifest": "tools/v11r2/manifests/V11R6_A9R18_USABILITY_SYNC_R1_U2.json",
+  "manifestSHA256": "de149f1630abece7789ced529ace1883c8e6cd44909e273a7f9cae5b953fbc8d",
+  "runtimeSHA256": "1a1d7da1a13ba49a220d39a8ad23128c0fee53c55a51bf025b1f77d8c386f52b",
+  "rulesSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+  "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+  "buildTag": "qr-v11r6-a9r18-usability-sync-r1-u2-20261028"
+});
+
+const V11R6_A9R18_USABILITY_PERF_R2_RCACHE = Object.freeze({
+  "id": "V11R6_A9R18_USABILITY_PERF_R2_RCACHE",
+  "canonicalFileCount": 129,
+  "coachAssignmentContract": "server-verified-multi-branch-v1",
+  "inputZIP_SHA256": "079dd3ca4edcb47ba0ed053f4eee6c3f02886812d4ee90f1f5138ce5a12ab0f3",
+  "manifest": "tools/v11r2/manifests/V11R6_A9R18_USABILITY_PERF_R2_RCACHE.json",
+  "manifestSHA256": "b31cb3a18661f42c9ca3dde7a86a1264ac18ccbdade698e5295c5b1ad02c5ebb",
+  "runtimeSHA256": "67b4b16f920e20c16f13b628b4844c7ca070b12ca999d4938f2b41b15df35302",
+  "rulesSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+  "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+  "buildTag": "qr-v11r6-a9r18-usability-perf-r2-rcache-20261028"
+});
+
+const V11R6_A9R18_USABILITY_PERF_R2R2_C1 = Object.freeze({
+  "id": "V11R6_A9R18_USABILITY_PERF_R2R2_C1",
+  "canonicalFileCount": 129,
+  "coachAssignmentContract": "server-verified-multi-branch-v1",
+  "inputZIP_SHA256": "c57b668606e1e84015fb0b1c2203ba86e9ba566afc9498f54a580876a19834af",
+  "manifest": "tools/v11r2/manifests/V11R6_A9R18_USABILITY_PERF_R2R2_C1.json",
+  "manifestSHA256": "72e2c7d6b7306df31db2402ab3ac8878a0ed804996eae72a0588c50b23184fee",
+  "runtimeSHA256": "de9e143d57b5d3d48be99a2008a46d9f470d4759f9204b71bba1b72034f08c3c",
+  "rulesSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+  "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+  "buildTag": "qr-v11r6-a9r18-usability-perf-r2r2-c1-20261029"
+});
+
+const V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE = Object.freeze({
+  "id": "V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE",
+  "canonicalFileCount": 129,
+  "coachAssignmentContract": "server-verified-multi-branch-v1",
+  "inputZIP_SHA256": "a0de0961851e21eb60c90a7195d9183c5d9326812d87ab32500f00d96df38725",
+  "manifest": "tools/v11r2/manifests/V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE.json",
+  "manifestSHA256": "ca892773486c0e794ffb7e0c22f589d22cc0e382348924a948865f74f31f818e",
+  "runtimeSHA256": "244ad3c7c1fce6f74df3350e42d066e8a4cead7f1c0bd27f9fb635034f209e70",
+  "rulesSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+  "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+  "buildTag": "qr-v11r6-a9r18-usability-perf-r2r4-finance-20261029"
+});
+
+const V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE_R1 = Object.freeze({
+  "id": "V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE_R1",
+  "canonicalFileCount": 129,
+  "coachAssignmentContract": "server-verified-multi-branch-v1",
+  "inputZIP_SHA256": "a0de0961851e21eb60c90a7195d9183c5d9326812d87ab32500f00d96df38725",
+  "manifest": "tools/v11r2/manifests/V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE_R1.json",
+  "manifestSHA256": "28a3e3be66ee30be867bc6f73a7684bd4d6e8dbbf635fb5fb4e002a27270d7fc",
+  "runtimeSHA256": "77383140f3be607e42d1f0c9ec3dcc0dc65be1be51b02833551cb68e139dbc1a",
+  "rulesSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+  "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+  "buildTag": "qr-v11r6-a9r18-usability-perf-r2r4-finance_r1-20261029"
+});
+
+const V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE2 = Object.freeze({
+  "id": "V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE2",
+  "canonicalFileCount": 129,
+  "coachAssignmentContract": "server-verified-multi-branch-v1",
+  "inputZIP_SHA256": "a0de0961851e21eb60c90a7195d9183c5d9326812d87ab32500f00d96df38725",
+  "manifest": "tools/v11r2/manifests/V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE2.json",
+  "manifestSHA256": "faae8e672bea9f38df7a5b3eabff5e72ea317e71c57fe7b27ffd694b3fc05f3b",
+  "runtimeSHA256": "6b4a7866f8d52d77f0e178186023ed3773c045fb02aaf1c1c953b09039ad1ea1",
+  "rulesSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+  "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+  "buildTag": "qr-v11r6-a9r18-usability-perf-r2r4-finance2-20261029"
+});
+
+const V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE3 = Object.freeze({
+  "id": "V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE3",
+  "canonicalFileCount": 129,
+  "coachAssignmentContract": "server-verified-multi-branch-v1",
+  "inputZIP_SHA256": "a0de0961851e21eb60c90a7195d9183c5d9326812d87ab32500f00d96df38725",
+  "manifest": "tools/v11r2/manifests/V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE3.json",
+  "manifestSHA256": "4aa0bc1ac06933f6bc04c57209f1d02155cd2d9f1dccd9a4adaf4774f4a91d09",
+  "runtimeSHA256": "e29c8f3398f4e65e6260094ca762d6de97f887ed627e0175a9900b49f8e25f72",
+  "rulesSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+  "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+  "buildTag": "qr-v11r6-a9r18-usability-perf-r2r4-finance3-20261029"
+});
+
+const V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE4 = Object.freeze({
+  "id": "V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE4",
+  "canonicalFileCount": 129,
+  "coachAssignmentContract": "server-verified-multi-branch-v1",
+  "inputZIP_SHA256": "a0de0961851e21eb60c90a7195d9183c5d9326812d87ab32500f00d96df38725",
+  "manifest": "tools/v11r2/manifests/V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE4.json",
+  "manifestSHA256": "b5493c6fb7a58717172a16f81c2cea8414a78d4d49ccbb48bb392351e8858b6c",
+  "runtimeSHA256": "883d0b81051c5603f12b1cad06c8c4302ab219219e5c06a0e82b7877ec829bc5",
+  "rulesSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+  "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+  "buildTag": "qr-v11r6-a9r18-usability-perf-r2r4-finance4-20261029"
+});
+
+const V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE5 = Object.freeze({
+  "id": "V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE5",
+  "canonicalFileCount": 129,
+  "coachAssignmentContract": "server-verified-multi-branch-v1",
+  "inputZIP_SHA256": "a0de0961851e21eb60c90a7195d9183c5d9326812d87ab32500f00d96df38725",
+  "manifest": "tools/v11r2/manifests/V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE5.json",
+  "manifestSHA256": "7345b550c5031595ba4b63dac403f86a346afd708c19fed1058ea25628553ae0",
+  "runtimeSHA256": "7e32492ba75b6019087afacdf216f1ab00275a2324d01b092ad8f486f18adaf1",
+  "rulesSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+  "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+  "buildTag": "qr-v11r6-a9r18-usability-perf-r2r4-finance5-20261029"
+});
+
+const V11R6_A9R18_USABILITY_PERF_R2R5 = Object.freeze({
+  "id": "V11R6_A9R18_USABILITY_PERF_R2R4_COMPAT_R2R5",
+  "canonicalFileCount": 129,
+  "coachAssignmentContract": "server-verified-multi-branch-v1",
+  "inputZIP_SHA256": "a7c46f0f6be5cbb7ace9487a9b94ef9938b5483adecd10de5a2fda90a40da8cf",
+  "manifest": "tools/v11r2/manifests/V11R6_A9R18_USABILITY_PERF_R2R5.json",
+  "manifestSHA256": "8fbbfeaaa2cc71c8384a9582197e95c44208a095a0542b859fd6074d9e1fa6fa",
+  "runtimeSHA256": "f8268fc588022705688739365d83acefc3b3846ea8e3293576185a4d3557c665",
+  "rulesSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+  "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+  "buildTag": "qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029"
+});
+
+const V11R6_A9R18_USABILITY_PERF_R2R4_R6 = Object.freeze({
+  "id": "V11R6_A9R18_USABILITY_PERF_R2R4_R6",
+  "canonicalFileCount": 129,
+  "coachAssignmentContract": "server-verified-multi-branch-v1",
+  "inputZIP_SHA256": "a0de0961851e21eb60c90a7195d9183c5d9326812d87ab32500f00d96df38725",
+  "manifest": "tools/v11r2/manifests/V11R6_A9R18_USABILITY_PERF_R2R4_R6.json",
+  "manifestSHA256": "9bc918ee8a5f6290e32dd0b2e850619b97f769195b3ddeb2f402c1bbad128efb",
+  "runtimeSHA256": "314b421f6e535f80e425a8b04e1dfd01b5a8dba673ea821c2687e7081b6eecc4",
+  "rulesSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+  "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+  "buildTag": "qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029"
+});
+
 export function verifySourceIdentity(root, actualRuntimeSHA256) {
- const pinned=[V11R6_A9R18_MOBILE_PERF_R2_P4S,V11R6_A9R18_MOBILE_PERF_R2_H0,V11R6_A9R18_STABILITY_R2_REDO_S10C,V11R6_A9R18_STABILITY_R2_REDO_S4,V11R6_A9R18_STABILITY_R2_REDO_S3,V11R6_A9R18_STABILITY_R2_REDO_S2,V11R6_A9R18_D3R1_HISTORY_PARITY,V11R6_A9R18_D1_CLOSURE,A9R17_MOBILE_LAYOUT_QR,A9R16A_R3R1_REVIEW,A9R16A_R3_SHIFT_HISTORY,A9R16A_R2_SEQUENTIAL,A9R15_TRAINING_HISTORY,A9R14_QA_MOBILE,A9R13_MEMBER_HISTORY_DIAGNOSTICS,A9R12_COACH_ATTENDANCE_QUERY_CLOSURE_TEST_ONLY,A9R11_COACH_ATTENDANCE_OPERATIONAL_TEST_ONLY,A9R10_STAGING_BASE_TEST_ONLY,A9R6_ATTENDANCE_DEMO_ONLY,A9R4_ACCEPTED_SOURCE,A9R3_ACCEPTED_SOURCE,A9R1_ACCEPTED_SOURCE,A9_ACCEPTED_SOURCE,A8_ACCEPTED_SOURCE,ACCEPTED_SOURCE,A5_ACCEPTED_SOURCE,LEGACY_ACCEPTED_SOURCE];
+ const pinned=[V11R6_A9R18_USABILITY_PERF_R2R5,V11R6_A9R18_USABILITY_PERF_R2R4_R6,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE5,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE4,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE3,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE2,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE_R1,V11R6_A9R18_USABILITY_PERF_R2R4_FINANCE,V11R6_A9R18_USABILITY_PERF_R2R2_C1,V11R6_A9R18_USABILITY_PERF_R2_RCACHE,V11R6_A9R18_USABILITY_SYNC_R1_U2,V11R6_A9R18_USABILITY_SYNC_R1_U1,V11R6_A9R18_MOBILE_PERF_R2_P4S,V11R6_A9R18_MOBILE_PERF_R2_H0,V11R6_A9R18_STABILITY_R2_REDO_S10C,V11R6_A9R18_STABILITY_R2_REDO_S4,V11R6_A9R18_STABILITY_R2_REDO_S3,V11R6_A9R18_STABILITY_R2_REDO_S2,V11R6_A9R18_D3R1_HISTORY_PARITY,V11R6_A9R18_D1_CLOSURE,A9R17_MOBILE_LAYOUT_QR,A9R16A_R3R1_REVIEW,A9R16A_R3_SHIFT_HISTORY,A9R16A_R2_SEQUENTIAL,A9R15_TRAINING_HISTORY,A9R14_QA_MOBILE,A9R13_MEMBER_HISTORY_DIAGNOSTICS,A9R12_COACH_ATTENDANCE_QUERY_CLOSURE_TEST_ONLY,A9R11_COACH_ATTENDANCE_OPERATIONAL_TEST_ONLY,A9R10_STAGING_BASE_TEST_ONLY,A9R6_ATTENDANCE_DEMO_ONLY,A9R4_ACCEPTED_SOURCE,A9R3_ACCEPTED_SOURCE,A9R1_ACCEPTED_SOURCE,A9_ACCEPTED_SOURCE,A8_ACCEPTED_SOURCE,ACCEPTED_SOURCE,A5_ACCEPTED_SOURCE,LEGACY_ACCEPTED_SOURCE];
  const exact=pinned.find(p=>p.runtimeSHA256===actualRuntimeSHA256);
  if(!exact&&fs.existsSync(path.join(root,'STAGING_SOURCE_ONLY.json')))return verifyDerivedStaging(root,actualRuntimeSHA256,pinned);
  const p = exact||ACCEPTED_SOURCE, manifestPath = path.join(root,p.manifest);

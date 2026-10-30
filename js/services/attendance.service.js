@@ -1,4 +1,4 @@
-import {HISTORY_AUTHORITY, attendanceServerVersion, attendanceVisibleRecord} from "../core/attendanceContract.js?v=qr-v11r6-a9r18-mobile-perf-r2-p4s-20261028";
+import {HISTORY_AUTHORITY, attendanceServerVersion, attendanceVisibleRecord} from "../core/attendanceContract.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";
 /**
  * js/services/attendance.service.js — Phase 3.1
  * ────────────────────────────────────────────────────────────────
@@ -711,7 +711,7 @@ export const AttendanceService = {
     },
     async attestHistory(record, serverVersion) {
         if (!['admin','super_admin'].includes(window.__verifiedAuthContextState?.role)||window.__verifiedAuthContextState?.ready!==true) throw Object.assign(new Error('Chỉ Admin xác minh lịch sử cũ.'),{code:'permission-denied'});
-        const {attendanceIntentId}=await import("../core/attendanceContract.js?v=qr-v11r6-a9r18-mobile-perf-r2-p4s-20261028");
+        const {attendanceIntentId}=await import("../core/attendanceContract.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029");
         return _commitAttendanceIntents([{id:attendanceIntentId(),baseVersion:serverVersion,record:{...record,clubId:_clubId()}}]);
     },
 
@@ -738,7 +738,7 @@ export const AttendanceService = {
 };
 
 // Readonly capability issued by the existing canonical reader. No data cache.
-const ATTENDANCE_READER_BUILD = 'qr-v11r6-a9r18-mobile-perf-r2-p4s-20261028';
+const ATTENDANCE_READER_BUILD = 'qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029';
 export const AttendanceHistoryReadOwner = Object.freeze({
     buildTag: ATTENDANCE_READER_BUILD,
     authority: HISTORY_AUTHORITY,

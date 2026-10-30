@@ -47,7 +47,8 @@ const _cache = {
     liveInvMap:      null,     // { [key]: { category, size, in, out } } | null
     unpaidInvCount:  0,
     paramsKey:       null,
-    dataVersion:     -1,
+    sourceKey:       null,   // R2R5 semantic source vector
+    dataVersion:     -1,     // diagnostic-only legacy snapshot
     _version:        0,
 };
 
@@ -71,6 +72,7 @@ export function invalidateInventoryRender(section) {
     if (section === 'liveMap'      || section === 'all') _cache.liveInvMap    = null;
     if (section === 'all') {
         _cache.paramsKey   = null;
+        _cache.sourceKey   = null;
         _cache.dataVersion = -1;
     }
     _cache._version++;
@@ -207,6 +209,23 @@ export function renderUniformTxRow(t, opts = {}) {
  * @param {string[]}   params.invCats
  * @param {Object}     params.catOrder    — { [catName]: sortPriority }
  */
+
+function _currentInventorySourceKey() {
+    const st = window.__store || {};
+    const inventoryStoreVersion = Number(window.__inventoryStore?.version ?? st._inventoryDataVersion ?? 0);
+    return [
+        'inventory:' + inventoryStoreVersion,
+        'inventoryTx:' + Number(st._inventoryTxVersion || 0),
+        'invcat:' + Number(st._inventoryCategoryVersion || 0),
+        'settings:' + Number(st._settingsVersion || 0),
+        'club:' + String(st.clubId || st.currentClubId || ''),
+    ].join('|');
+}
+
+export function isInventorySemanticSourceFresh() {
+    return _cache.liveInvMap !== null && _cache.sourceKey === _currentInventorySourceKey();
+}
+
 export function computeAndCacheInventory(allInventory, allTransactions, params) {
     const {
         curTabId  = 'inventory',
@@ -216,13 +235,19 @@ export function computeAndCacheInventory(allInventory, allTransactions, params) 
         catOrder  = {},
     } = params;
 
-    // ── Cache-hit detection ──
-    const paramsKey   = `${curTabId}|${search}`;
-    const dataVersion = (window.__store || {})._dataVersion || 0;
+    // ── R2R5 cache identity: inventory source epochs + presentation context ──
+    const _st = window.__store || {};
+    const sourceKey = _currentInventorySourceKey();
+    const _pg = typeof window.getInventoryHistoryPaginationState === 'function'
+        ? window.getInventoryHistoryPaginationState()
+        : null;
+    const _pgKey = _pg ? `${_pg.loadedCount || 0}:${_pg.hasMore ? 1 : 0}:${_pg.loading ? 1 : 0}:${_pg.error ? 1 : 0}` : 'none';
+    const paramsKey = `${curTabId}|${search}|admin:${isAdmin ? 1 : 0}|pg:${_pgKey}`;
+    const dataVersion = Number(_st._dataVersion || 0); // diagnostics only
     if (
         _cache.liveInvMap !== null &&
-        _cache.paramsKey   === paramsKey &&
-        _cache.dataVersion === dataVersion
+        _cache.paramsKey === paramsKey &&
+        _cache.sourceKey === sourceKey
     ) {
         _metrics.cacheHits++;
         return;
@@ -343,6 +368,7 @@ export function computeAndCacheInventory(allInventory, allTransactions, params) 
     _cache.uniformTxRows = uniformTxRows;
     _cache.unpaidInvCount = unpaidInvCount;
     _cache.paramsKey     = paramsKey;
+    _cache.sourceKey     = sourceKey;
     _cache.dataVersion   = dataVersion;
 
     const ms = performance.now() - t0;

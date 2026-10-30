@@ -29,4 +29,4 @@
  * ────────────────────────────────────────────────────────────────
  */
 
-export { initFinance, initTransactionPagination } from "../finance.js?v=qr-v11r6-a9r18-mobile-perf-r2-p4s-20261028";
+export { initFinance, initTransactionPagination } from "../finance.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";

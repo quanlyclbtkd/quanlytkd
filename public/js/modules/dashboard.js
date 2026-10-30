@@ -911,6 +911,7 @@ function _normalizeDashboardMonthStats(raw, exists = true) {
         };
     }
 
+    const financeRejected = !!raw.cacheCoverage && raw.cacheCoverage.financeComplete !== true;
     const income = _readStatsNumber(raw, 'income.total', 'income', 'total');
     const expense = _readStatsNumber(raw, 'expense.total', 'expense', 'total');
     const active = _readStatsNumber(raw, 'members.active', 'members', 'active');
@@ -921,8 +922,9 @@ function _normalizeDashboardMonthStats(raw, exists = true) {
     return {
         exists: true,
         source: 'stats-doc',
-        incomeTotal: income.value,
-        expenseTotal: expense.value,
+        financeRejected,
+        incomeTotal: financeRejected ? null : income.value,
+        expenseTotal: financeRejected ? null : expense.value,
         active: active.value,
         newMembers: mNew.value,
         quitMembers: mQuit.value,
@@ -930,8 +932,8 @@ function _normalizeDashboardMonthStats(raw, exists = true) {
         updatedAtMs: _normalizeStatsUpdatedAt(raw.updatedAt),
         fetchedAt: 0,
         coverage: {
-            income: income.present,
-            expense: expense.present,
+            income: !financeRejected && income.present,
+            expense: !financeRejected && expense.present,
             active: active.present,
             newMembers: mNew.present,
             quitMembers: mQuit.present,
@@ -1193,6 +1195,9 @@ export function reconcileDashboardHydrationEvidence({ domain, month = '', reason
 }
 
 function _shouldApplyCanonicalCurrentMonth(payload, context = {}) {
+    if (window.syncClubStatsCache?.isFinanceTransitionPending?.(payload?.clubId, payload?.selectedMonth) || payload?.monthStats?.[payload?.selectedMonth]?.financeRejected) {
+        return { accepted: false, reason: 'finance-authority-unverified', dirtyEntry: null, evidence: null };
+    }
     if (!payload || !payload.selectedMonth || !payload.monthStats) {
         return { accepted: false, reason: 'payload-missing', dirtyEntry: null, evidence: null };
     }
@@ -1287,6 +1292,7 @@ export function getDashboardCanonicalStatsSnapshot(expectedMonth = '') {
     const currentMonth = String(expectedMonth || _currentDashboardSelectedMonth() || '').slice(0, 7);
     const authGeneration = _currentDashboardAuthGeneration();
     const ready = !!(
+        !window.syncClubStatsCache?.isFinanceTransitionPending?.(currentClubId, currentMonth) &&
         snap.ready &&
         snap.clubId &&
         snap.clubId === currentClubId &&
@@ -1610,6 +1616,11 @@ export async function fetchHistoricalDashboardFallback(selMonth, reason, options
                 return { month, idx, stats };
             }
         }));
+
+        if (window.syncClubStatsCache?.isFinanceTransitionPending?.(clubId, selMonth) || statResults.some(row => row.stats.financeRejected)) {
+            if (_isDashboardHistoryTokenCurrent(flight.token)) _dashboardCanonicalStatsSnapshot.ready = false;
+            return { ready: false, financeRejected: true, clubId, selectedMonth: selMonth, source: 'finance-authority-unverified' };
+        }
 
         metrics.dashboardHistoryQueryGroups += statResults.length;
         metrics.dashboardCanonicalStatsReads += statResults.length;

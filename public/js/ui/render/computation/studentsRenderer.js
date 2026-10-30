@@ -181,7 +181,8 @@ const _cache = {
     summaryClubId: '',
     summaryMonth: '',
     paramsKey:   null,
-    dataVersion: -1,
+    sourceKey:   null,   // R2R5 semantic source vector
+    dataVersion: -1,     // diagnostic-only legacy snapshot
     _version:    0,
 };
 
@@ -219,6 +220,7 @@ export function invalidateStudentsRender(section) {
     if (section === 'summary'    || section === 'all') _cache.summary    = null;
     if (section === 'all') {
         _cache.paramsKey   = null;
+        _cache.sourceKey   = null;
         _cache.dataVersion = -1;
     }
     _cache._version++;
@@ -304,6 +306,23 @@ export function renderQuitRow(name, p, opts = {}) {
  * @param {number}   params.debtPage
  * @param {number}   params.quitPage
  */
+function _currentStudentsSourceKey() {
+    const st = window.__store || {};
+    const profileVersion = Number(window.studentProfileStore?.version ?? st._profileDataVersion ?? 0);
+    const coverage = st.transactionCoverage || {};
+    return [
+        'profiles:' + profileVersion,
+        'tuition:' + Number(st._tuitionEvidenceVersion || 0),
+        'settings:' + Number(st._settingsVersion || 0),
+        'txCoverage:' + String(coverage.complete === true) + ':' + String(coverage.pageServerComplete === true),
+        'club:' + String(st.clubId || st.currentClubId || ''),
+    ].join('|');
+}
+
+export function isStudentsSemanticSourceFresh() {
+    return _cache.summary !== null && _cache.sourceKey === _currentStudentsSourceKey();
+}
+
 export function computeAndCacheStudents(allProfiles, params) {
     const {
         curTabId        = 'active',
@@ -336,12 +355,18 @@ export function computeAndCacheStudents(allProfiles, params) {
     const admissionMonthKey = typeof window.getCurrentAdmissionMonth === 'function'
         ? window.getCurrentAdmissionMonth()
         : new Date().toISOString().slice(0, 7);
-    const paramsKey   = `${curTabId}|${selMonth}|${selBranch}|${search}|${activePage}|${debtPage}|${quitPage}|${pgStudentsActive ? '1' : '0'}|pgv:${pgVersion}|pgc:${pgCount}|pgp:${pgPage}|arl:${activeRenderLimitKey}|drl:${debtRenderLimitKey}|anf:${activeNewFilterKey}|adm:${admissionMonthKey}`;
-    const dataVersion = (window.__store || {})._dataVersion || 0;
+    const _st = window.__store || {};
+    const _effectiveDay = (() => {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    })();
+    const sourceKey = _currentStudentsSourceKey();
+    const paramsKey = `${curTabId}|${selMonth}|${selBranch}|${search}|${activePage}|${debtPage}|${quitPage}|${pgStudentsActive ? '1' : '0'}|pgv:${pgVersion}|pgc:${pgCount}|pgp:${pgPage}|arl:${activeRenderLimitKey}|drl:${debtRenderLimitKey}|anf:${activeNewFilterKey}|adm:${admissionMonthKey}|day:${_effectiveDay}|admin:${isAdmin ? 1 : 0}|single:${isSingleBranch ? 1 : 0}`;
+    const dataVersion = Number(_st._dataVersion || 0); // diagnostics only
     if (
         _cache.summary !== null &&
-        _cache.paramsKey   === paramsKey &&
-        _cache.dataVersion === dataVersion
+        _cache.paramsKey === paramsKey &&
+        _cache.sourceKey === sourceKey
     ) {
         _metrics.cacheHits++;
         window.PerformanceMonitor?.record('render:students.cacheHit', 0, { tab: curTabId });
@@ -806,6 +831,7 @@ export function computeAndCacheStudents(allProfiles, params) {
     _cache.summaryClubId = String(window.__store?.clubId || window.__store?.currentClubId || '');
     _cache.summaryMonth = String(selMonth || '');
     _cache.paramsKey   = paramsKey;
+    _cache.sourceKey   = sourceKey;
     _cache.dataVersion = dataVersion;
 
     const ms = performance.now() - t0;
@@ -901,6 +927,7 @@ export function getStudentsCacheMetrics() {
         debtRowsLength:   typeof _cache.debtRows   === 'string' ? _cache.debtRows.length   : -1,
         quitRowsLength:   typeof _cache.quitRows   === 'string' ? _cache.quitRows.length   : -1,
         paramsKey:        _cache.paramsKey   || null,
+        sourceKey:        _cache.sourceKey   || null,
         dataVersion:      _cache.dataVersion || 0,
     };
 }

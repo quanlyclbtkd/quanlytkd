@@ -144,6 +144,24 @@ export function switchTab(tabId) {
     else if (tabId === 'debt') window._debtPage   = 1;
     else if (tabId === 'quit') window._quitPage   = 1;
 
+    // R2R5: apply the target tab's existing search context before the first
+    // heavyweight student computation. The replay owner remains SearchRuntime;
+    // this hook only moves the existing replay ahead of ensure/render.
+    if (['active', 'debt', 'quit'].includes(tabId) && typeof window.replaySearchForTab === 'function') {
+        try {
+            const searchEl = document.getElementById('searchInput') || document.getElementById('search');
+            const raw = searchEl ? String(searchEl.value || '').trim() : '';
+            if (raw) {
+                window.__r2r5PreRenderSearchReplay = { tabId, raw, at: Date.now() };
+                Promise.resolve(window.replaySearchForTab(tabId, {
+                    reason: 'switch-tab-search-replay-prerender',
+                    force: true,
+                    raw
+                })).catch((e) => console.warn('[switchTab] pre-render search replay failed:', e));
+            }
+        } catch (_) {}
+    }
+
     // ── 2B. Phase 4K-6A-B: ensure student tab cache is built before render ──
     if (['active', 'debt', 'quit'].includes(tabId)) {
         if (typeof window.ensureStudentTabRendered === 'function') {

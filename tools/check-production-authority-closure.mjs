@@ -129,12 +129,17 @@ async function runWriterScenario({ coverageComplete, hitLimit, count, coverageCl
   }));
   const writes = [];
   const db = { name: 'mock-db' };
+  // R2R4: mirror the independently native-proven verified context and SDK batch.
+  const epoch = { principal: 'qa-admin|admin|1' };
+  const serverMeta = { canonical: { trusted: true, revision: 1 } };
   globalThis.window = {
     userRole: 'admin',
+    __verifiedAuthContextState: { ready: true, uid: 'qa-admin', role: 'admin', clubId: 'club_A', generation: 1 },
     ProductionAuthorityPolicy: Object.freeze({ mode: 'client-only', statsWriter: policyWriter, superAdminServerRefresh: false, legacyRuntimeRecovery: false }),
     RoleReadBoundary: { canMount: () => true },
     __store: {
       clubId: 'club_A', currentClubId: 'club_A', db,
+      _activeTxListenerMonth: month, _activeTxReadMode: 'canonical', _activeTxProjectionEpoch: epoch,
       profiles: { p1: { id: 'p1', name: 'Alice', status: 'active' } },
       transactions,
       inventory: [],
@@ -144,6 +149,8 @@ async function runWriterScenario({ coverageComplete, hitLimit, count, coverageCl
         readMode: 'canonical',
         ready: true,
         complete: coverageComplete,
+        pageServerComplete: coverageComplete && !hitLimit,
+        pageEvidence: { epoch, meta: serverMeta },
         hitLimit,
         mergedCount: count,
         sourceCounts: { canonical: count },
@@ -154,6 +161,11 @@ async function runWriterScenario({ coverageComplete, hitLimit, count, coverageCl
     _fb_init: {
       doc: (_db, ...segments) => ({ path: segments.join('/') }),
       setDoc: async (ref, payload, options) => { writes.push({ path: ref.path, payload, options }); },
+      writeBatch: () => {
+        const atomic = [];
+        return { set: (ref, payload, options) => atomic.push({ path: ref.path, payload, options }),
+          commit: async () => { writes.push(...atomic); } };
+      },
     },
   };
   try {
@@ -189,7 +201,7 @@ try {
 
   const wrongClub = await runWriterScenario({ coverageComplete: true, hitLimit: false, count: 3, coverageClub: 'club_B' });
   const wrongClubRoot = wrongClub.writes.find(w => w.path === 'clubs/club_A');
-  check('dynamic Club B coverage cannot authorize Club A finance', wrongClubRoot?.payload?.cacheCoverage?.financeComplete === false && !Object.prototype.hasOwnProperty.call(wrongClubRoot?.payload || {}, 'currentMonthRevenue'));
+  check('dynamic Club B coverage cannot authorize Club A finance', (wrongClub.writes.length === 0 || wrongClubRoot?.payload?.cacheCoverage?.financeComplete === false) && !Object.prototype.hasOwnProperty.call(wrongClubRoot?.payload || {}, 'currentMonthRevenue'));
 
   const policyDisabled = await runWriterScenario({ coverageComplete: true, hitLimit: false, count: 3, policyWriter: 'server' });
   check('dynamic non-client policy blocks all client stats writes', policyDisabled.writes.length === 0 && policyDisabled.result?.reason === 'production-policy-stats-writer-disabled');

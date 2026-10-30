@@ -30,4 +30,4 @@
  */
 
 // Re-export tất cả từ file gốc để backward-compatible
-export { initStudents, initStudentPagination } from "../students.js?v=qr-v11r6-a9r18-mobile-perf-r2-p4s-20261028";
+export { initStudents, initStudentPagination } from "../students.js?v=qr-v11r6-a9r18-usability-perf-r2r4-r6-20261029";

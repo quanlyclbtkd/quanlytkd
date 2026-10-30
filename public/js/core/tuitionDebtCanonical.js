@@ -202,10 +202,14 @@
     return !!(tx && (tx.tuition === true || tx.tuitionAmount || /hoc\s*phi|tuition/.test(text)));
   }
 
+  function _txStableProfileId(tx) {
+    return String((tx && (tx.profileId || tx.studentId || tx.memberId || tx.memberID)) || '').trim();
+  }
+
   function _txMatchesProfile(tx, profile, name) {
     var p = profile || {};
     var stableProfileId = _stableProfileId(p);
-    var txStableId = String((tx && (tx.profileId || tx.studentId || tx.memberId || tx.memberID)) || '').trim();
+    var txStableId = _txStableProfileId(tx);
     if (stableProfileId && txStableId) return txStableId === stableProfileId;
 
     var display = _fold(_displayName(name, p));
@@ -310,11 +314,14 @@
 
   function extractTuitionTransactionMonths(profile, name, options) {
     var out = [];
+    var hasStableProfileId = !!_stableProfileId(profile);
     _txArray(options).forEach(function (tx) {
       if (!tx || tx.deleted === true || tx.isDeleted === true) return;
       var status = _fold(tx.status || tx.state || '');
       if (status === 'deleted' || status === 'reversed' || status === 'void') return;
-      if (!_looksLikeTuitionTx(tx) || !_txMatchesProfile(tx, profile, name)) return;
+      var hasStablePair = hasStableProfileId && !!_txStableProfileId(tx);
+      if (hasStablePair && !_txMatchesProfile(tx, profile, name)) return;
+      if (!_looksLikeTuitionTx(tx) || (!hasStablePair && !_txMatchesProfile(tx, profile, name))) return;
       var candidates = [];
       if (Array.isArray(tx.packageMonths)) candidates = candidates.concat(tx.packageMonths);
       if (Array.isArray(tx.accountingMonths)) candidates = candidates.concat(tx.accountingMonths);

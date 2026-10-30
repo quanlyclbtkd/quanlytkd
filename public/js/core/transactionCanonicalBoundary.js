@@ -582,7 +582,13 @@
         store._activeTxReadMode = '';
     }
 
-    function reattachMonth(month, mode, reason) {
+    function _readModeContextStamp(month) {
+        const a = global.__verifiedAuthContextState || {};
+        return JSON.stringify([getContext().clubId, month, a.uid, a.role, a.generation, a.sessionEpoch, a.authGeneration, normalizeMonth(global.document?.getElementById('filterMonth')?.value)]);
+    }
+    function reattachMonth(month, mode, reason, expectedStamp) {
+        const selected = normalizeMonth(global.document?.getElementById('filterMonth')?.value);
+        if ((selected && selected !== month) || (expectedStamp && expectedStamp !== _readModeContextStamp(month))) return false;
         const store = getContext().store;
         store._activeTxListenerMonth = '';
         store._activeTxReadMode = '';
@@ -605,10 +611,16 @@
     }
 
     async function persistReadMode(month, enabled) {
+        const ownerStamp = _readModeContextStamp(month);
         const ctx = getContext();
         const sdk = ctx.sdk;
         if (!sdk.setDoc || !sdk.doc || !sdk.arrayUnion || !sdk.arrayRemove) {
             throw new Error('[V3B/C] Firebase SDK thiếu setDoc/doc/arrayUnion/arrayRemove.');
+        }
+        const fromMode = getReadMode(ctx.clubId, month), toMode = enabled ? 'canonical' : 'legacy';
+        if (fromMode !== toMode) {
+            const barrier = await global.syncClubStatsCache?.beginFinanceTransition?.({ clubId: ctx.clubId, month, fromMode, toMode });
+            if (!barrier || barrier.ok !== true || barrier.isCurrent?.() !== true) throw new Error('FINANCE_TRANSITION_BARRIER_NOT_ACKNOWLEDGED');
         }
         const value = enabled ? sdk.arrayUnion(month) : sdk.arrayRemove(month);
         await sdk.setDoc(
@@ -620,6 +632,7 @@
             },
             { merge: true }
         );
+        if (ownerStamp !== _readModeContextStamp(month)) throw new Error('DROP_STALE_FINANCE_READ_MODE');
         updateLocalConfiguredMonth(month, enabled);
     }
 
@@ -640,6 +653,7 @@
         if (!sdk.writeBatch || !sdk.doc || !sdk.setDoc || !sdk.getDocs) {
             throw new Error('[V3B/C] Firebase SDK chưa đủ cho cutover.');
         }
+        const ownerStamp = _readModeContextStamp(month);
         global.__canonicalTxCutoverInFlight = true;
         const frozenLegacy = (Array.isArray(ctx.store.transactions) ? ctx.store.transactions : []).map(function(tx) { return Object.assign({}, tx); });
         let patched = 0;
@@ -662,17 +676,17 @@
                 limit: (Number((global.__scaleConfig || {}).txListenerLimit) || 1200) + 1,
             });
             if (!parity.readyForCanonicalCutover || parity.truncatedRisk) {
-                reattachMonth(month, 'legacy', 'parity-failed');
+                reattachMonth(month, 'legacy', 'parity-failed', ownerStamp);
                 return { ok: false, cutoverEnabled: false, patchedCount: patched, plan: plan, parity: parity, rollbackApplied: true };
             }
             await persistReadMode(month, true);
-            reattachMonth(month, 'canonical', 'parity-passed');
+            reattachMonth(month, 'canonical', 'parity-passed', ownerStamp);
             const result = { ok: true, cutoverEnabled: true, patchedCount: patched, plan: plan, parity: parity, completedAt: Date.now() };
             ensureMetrics().canonicalCutover = ensureMetrics().canonicalCutover || {};
             ensureMetrics().canonicalCutover[month] = result;
             return result;
         } catch (error) {
-            try { reattachMonth(month, 'legacy', 'cutover-error'); } catch (_) {}
+            try { reattachMonth(month, 'legacy', 'cutover-error', ownerStamp); } catch (_) {}
             throw error;
         } finally {
             global.__canonicalTxCutoverInFlight = false;
@@ -685,9 +699,10 @@
         const month = normalizeMonth(monthInput || ((document.getElementById('filterMonth') || {}).value));
         if (!month) throw new Error('[V3B/C] Tháng rollback không hợp lệ.');
         if (!opts.allowNonAdmin && !isAdminRuntime()) throw new Error('[V3B/C] Chỉ Admin mới được rollback.');
+        const ownerStamp = _readModeContextStamp(month);
         detachFinanceListener('canonical-read-rollback');
         await persistReadMode(month, false);
-        reattachMonth(month, 'legacy', 'manual-rollback');
+        reattachMonth(month, 'legacy', 'manual-rollback', ownerStamp);
         refreshOptimizerButton();
         return { ok: true, month: month, readMode: 'legacy', rolledBackAt: Date.now() };
     }

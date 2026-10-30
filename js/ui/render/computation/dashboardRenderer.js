@@ -33,6 +33,8 @@ const _cache = {
     bStats:           null,   // { CS1: { income, active, debt, ... }, ... }
     bExamStats:       null,   // { CS1: number, ... }
     summaryNumbers:   null,   // { incTuition, incExam, activeCount, debtCount, ... }
+    dirty:            false,  // R2R5: hidden composition may be stale while last-valid data remains readable
+    dirtyReason:      '',
     _version:         0,
 };
 
@@ -50,7 +52,31 @@ export function invalidateDashboardCache(section) {
     if (section === 'branchStats'   || section === 'all') _cache.bStats         = null;
     if (section === 'examBranchFees'|| section === 'all') _cache.bExamStats     = null;
     if (section === 'summary'       || section === 'all') _cache.summaryNumbers = null;
+    _cache.dirty = true;
+    _cache.dirtyReason = 'cache-invalidated:' + String(section || 'all');
     _cache._version++;
+}
+
+/** Mark dashboard composition dirty without discarding the last valid cache. */
+export function markDashboardCacheDirty(reason = 'dashboard-hidden-dirty') {
+    _cache.dirty = true;
+    _cache.dirtyReason = String(reason || 'dashboard-hidden-dirty');
+    _cache._version++;
+}
+
+/** Mark composition coherent after the full dashboard owner has refreshed dependencies. */
+export function markDashboardCacheFresh(reason = 'dashboard-refresh') {
+    _cache.dirty = false;
+    _cache.dirtyReason = String(reason || 'dashboard-refresh');
+    _cache._version++;
+}
+
+export function isDashboardCacheDirty() {
+    return _cache.dirty === true;
+}
+
+export function getDashboardDirtyReason() {
+    return _cache.dirtyReason || '';
 }
 
 // ── Cache writer (gọi từ render.js sau mỗi renderApp cycle) ──────────────────

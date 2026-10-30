@@ -74,6 +74,14 @@ export const store = {
     // ── Render optimization ──────────────────────────────────────
     renderTimeout:        null,
     dataVersion:          0,
+    // R2R5: RAM-only semantic source epochs. These are freshness signals only;
+    // they are not business/security authority and reset with the session.
+    _transactionsVersion:       0,
+    _tuitionEvidenceVersion:    0,
+    _inventoryTxVersion:        0,
+    _examTxVersion:             0,
+    _settingsVersion:           0,
+    _inventoryCategoryVersion:  0,
     lastRenderedVersion:  -1,
     lastSizeSelectHtml:   '',
     tabHtmlCache:         {},
@@ -164,12 +172,145 @@ export function resetStore() {
     store.coachBranch         = '';
     store.tabHtmlCache        = {};
     store.lastSizeSelectHtml  = '';
-    store.dataVersion         = 0;
-    store.lastRenderedVersion = -1;
+    store.dataVersion                = 0;
+    store._transactionsVersion       = 0;
+    store._tuitionEvidenceVersion    = 0;
+    store._inventoryTxVersion        = 0;
+    store._examTxVersion             = 0;
+    store._settingsVersion           = 0;
+    store._inventoryCategoryVersion  = 0;
+    store.lastRenderedVersion        = -1;
 
     // 4. Reset pagination states (Phase 3.2A)
     store.pagination = {
         students:     null,
         transactions: null,
     };
+}
+
+
+/**
+ * R2R5 semantic freshness bridge for the legacy window.__store.
+ *
+ * The legacy app remains the canonical writer. This bridge only observes
+ * authoritative RAM assignments and advances RAM-only epochs. It never reads
+ * Firestore, writes business data, or decides authorization.
+ */
+export function installSemanticSourceEpochBridge(legacyStore, globalObject = window) {
+    const target = legacyStore && typeof legacyStore === 'object' ? legacyStore : null;
+    if (!target || target.__r2r5SemanticEpochBridgeInstalled) return target;
+
+    const epochKeys = [
+        '_transactionsVersion', '_tuitionEvidenceVersion', '_inventoryTxVersion',
+        '_examTxVersion', '_settingsVersion', '_inventoryCategoryVersion',
+    ];
+    const resetEpochs = (reason = 'reset') => {
+        epochKeys.forEach(key => { target[key] = 0; });
+        target._lastSemanticEpochResetReason = reason;
+        target._lastTransactionSemanticEffect = null;
+    };
+    epochKeys.forEach(key => { target[key] = Number(target[key] || 0); });
+
+    const rowId = (row, index) => String(row && (row.id || row.txId) || `__idx_${index}`);
+    const rowSignature = row => {
+        try { return JSON.stringify(row || {}); } catch (_) { return String(row || ''); }
+    };
+    const effectsFor = row => {
+        const tx = row || {};
+        let components = [];
+        try {
+            components = typeof globalObject.getAccountingComponents === 'function'
+                ? (globalObject.getAccountingComponents(tx) || [])
+                : [];
+        } catch (_) {}
+        let tuitionEvidence = components.some(c => c && c.kind === 'tuition');
+        if (typeof globalObject.isTuitionFinanceTransaction === 'function') {
+            try { tuitionEvidence = globalObject.isTuitionFinanceTransaction(tx) === true; } catch (_) {}
+        }
+        const exam = components.some(c => c && c.kind === 'exam');
+        let inventory = components.some(c => c && (c.kind === 'inventory' || c.kind === 'inventoryDebt'));
+        if (!inventory && typeof globalObject.classifyInventoryFinanceTx === 'function') {
+            try { inventory = globalObject.classifyInventoryFinanceTx(tx)?.isInventory === true; } catch (_) {}
+        }
+        return { tuitionEvidence: !!tuitionEvidence, inventory: !!inventory, exam: !!exam };
+    };
+    const diffTransactionEffects = (previousRows, nextRows) => {
+        const prev = Array.isArray(previousRows) ? previousRows : [];
+        const next = Array.isArray(nextRows) ? nextRows : [];
+        const a = new Map(prev.map((row, index) => [rowId(row, index), { row, sig: rowSignature(row) }]));
+        const b = new Map(next.map((row, index) => [rowId(row, index), { row, sig: rowSignature(row) }]));
+        const effects = { changed: false, finance: false, tuitionEvidence: false, inventory: false, exam: false };
+        new Set([...a.keys(), ...b.keys()]).forEach(id => {
+            const oldItem = a.get(id), newItem = b.get(id);
+            if (oldItem?.sig === newItem?.sig) return;
+            effects.changed = effects.finance = true;
+            for (const item of [oldItem, newItem]) {
+                if (!item) continue;
+                const e = effectsFor(item.row);
+                effects.tuitionEvidence ||= e.tuitionEvidence;
+                effects.inventory ||= e.inventory;
+                effects.exam ||= e.exam;
+            }
+        });
+        return effects;
+    };
+
+    let transactionsValue = Array.isArray(target.transactions) ? target.transactions : [];
+    Object.defineProperty(target, 'transactions', {
+        configurable: true,
+        enumerable: true,
+        get: () => transactionsValue,
+        set: value => {
+            const next = Array.isArray(value) ? value : value;
+            const effects = diffTransactionEffects(transactionsValue, next);
+            transactionsValue = next;
+            if (!effects.changed) return;
+            target._transactionsVersion += 1;
+            if (effects.tuitionEvidence) target._tuitionEvidenceVersion += 1;
+            if (effects.inventory) target._inventoryTxVersion += 1;
+            if (effects.exam) target._examTxVersion += 1;
+            target._lastTransactionSemanticEffect = { ...effects, at: Date.now() };
+        },
+    });
+
+    let clubConfigValue = target.clubConfig;
+    let clubConfigSignature = rowSignature(clubConfigValue);
+    Object.defineProperty(target, 'clubConfig', {
+        configurable: true,
+        enumerable: true,
+        get: () => clubConfigValue,
+        set: value => {
+            const nextSignature = rowSignature(value);
+            clubConfigValue = value;
+            if (nextSignature === clubConfigSignature) return;
+            clubConfigSignature = nextSignature;
+            target._settingsVersion += 1;
+        },
+    });
+
+    let categoriesValue = Array.isArray(globalObject.invCustomCategories) ? globalObject.invCustomCategories : [];
+    let categoriesSignature = rowSignature(categoriesValue);
+    Object.defineProperty(globalObject, 'invCustomCategories', {
+        configurable: true,
+        enumerable: true,
+        get: () => categoriesValue,
+        set: value => {
+            const nextSignature = rowSignature(value);
+            categoriesValue = value;
+            if (nextSignature === categoriesSignature) return;
+            categoriesSignature = nextSignature;
+            target._inventoryCategoryVersion += 1;
+        },
+    });
+
+    let contextClubId = String(target.clubId || target.currentClubId || '');
+    globalObject.addEventListener?.('app:context-ready', event => {
+        const nextClubId = String(event?.detail?.clubId || target.clubId || target.currentClubId || '');
+        if (contextClubId && nextClubId && contextClubId !== nextClubId) resetEpochs('club-switch');
+        contextClubId = nextClubId;
+    });
+
+    target.__r2r5SemanticEpochBridgeInstalled = true;
+    target.__r2r5ResetSemanticEpochs = resetEpochs;
+    return target;
 }

@@ -48,8 +48,8 @@ check('Legacy listeners are detached before backfill',
 check('Exact parity remains mandatory before config cutover',
   boundary.indexOf('if (!parity.readyForCanonicalCutover') < boundary.indexOf('await persistReadMode(month, true)'));
 check('Failure still reattaches legacy listener',
-  boundary.includes("reattachMonth(month, 'legacy', 'parity-failed')") &&
-  boundary.includes("reattachMonth(month, 'legacy', 'cutover-error')"));
+  boundary.includes("reattachMonth(month, 'legacy', 'parity-failed', ownerStamp)") &&
+  boundary.includes("reattachMonth(month, 'legacy', 'cutover-error', ownerStamp)"));
 check('Successful mode is persisted in each club main_config',
   boundary.includes("'clubs', ctx.clubId, 'settings', 'main_config'") &&
   boundary.includes('canonicalTransactionReadMonths'));
@@ -65,6 +65,7 @@ check('Emergency rollback API remains available without UI button',
 let getDocsCalls = 0;
 let setDocCalls = 0;
 let batchCommits = 0;
+let cacheBatchCommits = 0;
 let cleanupCalls = 0;
 let listenCalls = [];
 let timerId = 0;
@@ -96,6 +97,8 @@ const context = {
 context.window = {
   document: documentMock,
   userRole: 'admin',
+  __verifiedAuthContextState: { ready: true, uid: 'test-admin', role: 'admin', clubId: 'club-test', generation: 1 },
+  ProductionAuthorityPolicy: Object.freeze({ mode: 'client-only', statsWriter: 'client' }),
   currentClubId: 'club-test',
   navigator: { onLine: true },
   localStorage: {
@@ -107,6 +110,7 @@ context.window = {
   __store: {
     db: {}, clubId: 'club-test', userRole: 'admin',
     clubConfig: {},
+    transactionCoverage: { clubId: 'club-test', month: '2026-06', readMode: 'legacy', ready: true, complete: true },
     _activeTxListenerMonth: '2026-06',
     _activeTxReadMode: 'legacy',
     transactions: legacy.map(tx => ({ ...tx })),
@@ -124,6 +128,7 @@ context.window = {
       return {
         set(ref, patch) { writes.push({ ref, patch }); },
         async commit() {
+          if (writes.every(w => w.ref.path.startsWith('clubs/club-test/stats/'))) { cacheBatchCommits++; return; }
           batchCommits++;
           writes.forEach(({ ref, patch }) => {
             const id = ref.path.split('/').at(-1);
@@ -164,6 +169,8 @@ context.window = {
   showToast() {},
 };
 vm.createContext(context);
+// Execute the real canonical cache owner: no fake success barrier.
+vm.runInContext(read('js/core/clubStatsAutoCache.js').replace(/^export \{[^\n]+\};?\s*$/m, ''), context, { filename: 'clubStatsAutoCache.js' });
 vm.runInContext(boundary, context, { filename: 'transactionCanonicalBoundary.js' });
 const api = context.window.CanonicalTransactionBoundary;
 
@@ -187,6 +194,7 @@ check('Dynamic: all migrated documents contain selected accounting month', [...d
 
 await api.disableCanonicalRead('2026-06');
 check('Dynamic: emergency rollback returns to legacy mode', api.getReadMode('club-test', '2026-06') === 'legacy' && listenCalls.at(-1) === 'legacy');
+check('Dynamic: each actual switch awaits exactly one canonical cache barrier', cacheBatchCommits === 2);
 
 // Viewer must never schedule/write.
 api.resetAutomaticOptimization('viewer-test');

@@ -931,11 +931,13 @@ window.invCustomCategories = [];
         // Update filterBranch dropdown
         const fb = document.getElementById('filterBranch');
         if(fb) {
+            const a=window.__verifiedAuthContextState,k=JSON.stringify([currentClubId,a?.uid,a?.generation]),v=a?.ready&&fb.dataset.filterScope===k?fb.value:'all';
             let fbHtml = `<option value="all">🏢 Tất cả cơ sở</option>`;
             for(let _i = 1; _i <= branchCountVal; _i++) {
                 fbHtml += `<option value="CS${_i}">📍 ${_branchNames[_i-1]}</option>`;
             }
             fb.innerHTML = fbHtml;
+            fb.dataset.filterScope=k;if([...fb.options].some(o=>o.value===v))fb.value=v;
         }
         // Đồng bộ cơ sở cho tab Điểm danh (att_branch + att_month_branch)
         ['att_branch', 'att_month_branch'].forEach(function(selId) {
@@ -2961,6 +2963,8 @@ window.invCustomCategories = [];
                     const cid   = docSnap.id;
                     const cdata = docSnap.data();
                     const cname = cdata.clubName || cid;
+                    const _unknownRevenue = () => ({ cid, cname, total: null, txCount: null, source: 'finance-unverified' });
+                    if (String(cdata.cacheCoverage?.month || '').replace('_','-') === selMonth && cdata.cacheCoverage.financeComplete !== true) return _unknownRevenue();
                     try {
                         // Ưu tiên A: stats doc (O(1)) — tránh scan tx hoàn toàn
                         const _statsDocRef = doc(db, "clubs", cid, "stats", selMonth.replace('-', '_'));
@@ -2968,6 +2972,7 @@ window.invCustomCategories = [];
                         try { _statsSnap = await getDoc(_statsDocRef); } catch(_) { /* fallback */ }
                         if (_statsSnap && _statsSnap.exists()) {
                             const _sd = _statsSnap.data();
+                            if (_sd.cacheCoverage && _sd.cacheCoverage.financeComplete !== true) return _unknownRevenue();
                             // [Phase 4K-FIX Lỗi 1] _readStatsIncomeTotal — đọc tương thích nhiều format stats:
                             //   income.total nested (ghi bởi Cloud Functions FieldValue.increment),
                             //   'income.total' flat key, totalIncome, totalRevenue, revenue
@@ -2980,7 +2985,9 @@ window.invCustomCategories = [];
                                 0
                             );
                             const _hasTxCount = (_sd.txCount || 0) > 0;
-                            if (_tot > 0 || _hasTxCount) {
+                            const _hasIncome = [_sd?.income?.total, _sd?.['income.total'], _sd.totalIncome, _sd.totalRevenue, _sd.revenue].some(v => v !== null && v !== undefined && v !== '' && Number.isFinite(Number(v)));
+                            if (_sd.cacheCoverage?.financeComplete === true && !_hasIncome) return _unknownRevenue();
+                            if (_tot > 0 || _hasTxCount || (_tot === 0 && _hasIncome && _sd.cacheCoverage?.financeComplete === true)) {
                                 // stats doc có dữ liệu hợp lệ — không fallback sang scan tx
                                 if (_tot === 0 && _hasTxCount) {
                                     // CLB có GD nhưng toàn chi phí (totalRevenue = 0 là đúng)
@@ -3014,12 +3021,14 @@ window.invCustomCategories = [];
                             }
                         });
                         return { cid, cname, total, txCount: _allTxDocs.length, source: 'tx-scan' };
-                    } catch(e) { return { cid, cname, total: 0, txCount: 0, source: 'error' }; }
+                    } catch(e) { return { cid, cname, total: null, txCount: null, source: 'error' }; }
                 }));
                 revenueList.push(..._batchResults);
             }
             revenueList.sort((a, b) => b.total - a.total);
-            const grandTotal = revenueList.reduce((s, r) => s + r.total, 0);
+            const _unknownCount = revenueList.filter(r => r.total === null).length;
+            const grandTotal = revenueList.reduce((s, r) => s + (r.total === null ? 0 : r.total), 0);
+            const _totalDisplay = _unknownCount && _unknownCount === revenueList.length ? 'Chưa đủ dữ liệu' : (_unknownCount ? 'Đã xác minh (' + (revenueList.length - _unknownCount) + '/' + revenueList.length + ' CLB): ' : 'Tổng: ') + grandTotal.toLocaleString() + ' ₫';
             const maxRev = Math.max(...revenueList.map(r => r.total), 1);
             const monthLabel = 'Tháng ' + m + '/' + y;
             let rowsHtml = revenueList.map((r, i) => {
@@ -3033,18 +3042,18 @@ window.invCustomCategories = [];
                     + '<div>'
                     + '<div style="font-size:0.85rem;font-weight:800;color:#1e293b;">' + safeClubName + '</div>'
                     + '<div style="background:#e2e8f0;border-radius:99px;height:5px;margin-top:4px;overflow:hidden;"><div style="background:' + color + ';height:100%;width:' + pct + '%;border-radius:99px;"></div></div>'
-                    + '<div style="font-size:0.6rem;color:#94a3b8;margin-top:2px;font-family:monospace;">' + safeClubId + ' · ' + r.txCount + ' giao dịch</div>'
+                    + '<div style="font-size:0.6rem;color:#94a3b8;margin-top:2px;font-family:monospace;">' + safeClubId + ' · ' + (r.txCount === null ? 'chưa xác minh' : r.txCount + ' giao dịch') + '</div>'
                     + '</div>'
                     + '<div style="text-align:right;">'
                     // [SỬA ĐỒNG BỘ] Hiển thị "0" (màu vàng) thay vì "—" khi có giao dịch nhưng doanh thu = 0
                     // Giúp SuperAdmin phân biệt "không có dữ liệu" (—) với "có GD nhưng đều là chi phí" (0)
-                    + '<div style="font-size:0.9rem;font-weight:900;color:' + (r.total > 0 ? '#16a34a' : r.txCount > 0 ? '#f59e0b' : '#94a3b8') + ';">' + (r.total > 0 ? '+' + r.total.toLocaleString() : r.txCount > 0 ? '0' : '—') + '</div>'
+                    + '<div style="font-size:0.9rem;font-weight:900;color:' + (r.total > 0 ? '#16a34a' : r.txCount > 0 ? '#f59e0b' : '#94a3b8') + ';">' + (r.total === null ? '—' : r.total > 0 ? '+' + r.total.toLocaleString() : '0') + '</div>'
                     + '<div style="font-size:0.65rem;color:#94a3b8;">₫</div>'
                     + '</div></div>';
             }).join('');
             contentEl.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:6px;">'
                 + '<div style="font-size:0.78rem;font-weight:700;color:#475569;">' + monthLabel + ' — ' + revenueList.length + ' CLB</div>'
-                + '<div style="background:#dcfce7;border:1px solid #bbf7d0;border-radius:10px;padding:5px 14px;font-size:0.88rem;font-weight:900;color:#166534;">Tổng: ' + grandTotal.toLocaleString() + ' ₫</div>'
+                + '<div style="background:#dcfce7;border:1px solid #bbf7d0;border-radius:10px;padding:5px 14px;font-size:0.88rem;font-weight:900;color:#166534;">' + _totalDisplay + '</div>'
                 + '</div>'
                 + '<div>' + rowsHtml + '</div>'
                 + '<p style="font-size:0.65rem;color:#cbd5e1;text-align:center;margin-top:10px;font-style:italic;">* Chỉ tính các giao dịch THU trong ' + monthLabel + '</p>';
@@ -3940,12 +3949,19 @@ window.invCustomCategories = [];
 
     // Phase 4K-6V3A compatibility: 4K-6V3A-firestore-read-attribution-canonical-transaction-boundary
     // Phase 4K-6V3B/C: per-month safe cutover from 3 legacy listeners to 1 accountingMonths listener.
+    let _financeAttachFlight = null;
     window.listenToData = (monthStr) => {
         if (window.RoleReadBoundary?.canMount?.('transactions.month', { month: monthStr, reason: 'listenToData' }) === false) return false;
         if (!monthStr || !colRef) return false;
         const _cid = (window.__store && window.__store.clubId) || ''; const _txPrincipal = () => [window.__store?.auth?.currentUser?.uid || window.__store?.currentUser?.uid || '', window.userRole || window.__store?.userRole || '', Number(window.__verifiedAuthContextState?.generation || 0)].join('|');
         const _txKey = 'finance:tx:' + _cid + ':' + monthStr;
         const _desiredTxReadMode = typeof window.getCanonicalTransactionReadMode === 'function' ? window.getCanonicalTransactionReadMode(_cid, monthStr) : 'legacy';
+        const _previousCoverage = window.__store?.transactionCoverage;
+        const _attachScope = JSON.stringify([_cid, monthStr, _desiredTxReadMode, _txPrincipal()]);
+        if (_financeAttachFlight?.scope === _attachScope && _financeAttachFlight.epoch === window.__store?._activeTxProjectionEpoch) {
+            window.__store._activeTxListenerMonth = monthStr; window.__store._activeTxReadMode = _desiredTxReadMode;
+            return _financeAttachFlight.promise;
+        }
 
         // Phase 4K-6V1 Spark Read Cost Hardening:
         // Do not tear down and recreate the same 3 Firestore listeners for the same month.
@@ -4055,6 +4071,7 @@ window.invCustomCategories = [];
             coverage.pageServerComplete = coverage.complete && (_desiredTxReadMode === 'canonical' ? _txSourceServerVerified.canonical?.trusted
                 : ['byDate', 'byTxMonth', 'byPackageMonth'].every(key => _txSourceServerVerified[key]?.trusted));
             window.__store.transactionCoverage = coverage;
+            window.syncClubStatsCache?.notifyFinanceCoverage?.(coverage);
             return coverage;
         };
         const _invalidateDashboardCoalesced = (reason) => {
@@ -4207,11 +4224,25 @@ window.invCustomCategories = [];
 
         // [Phase 3.6C] safeRegisterSnapshot: one canonical or three legacy queries per configured month
         // Old key đã removed qua cleanupListenersByOwner → safeRegisterSnapshot sẽ proceed
+        const _mountFinanceContext = () => {
+            if (!_isCurrentTxListenerContext()) return false;
         if (window.safeRegisterSnapshot) window.safeRegisterSnapshot(_txKey, _attachTxSnapshots, { owner: 'finance', scope: 'global', clubId: _cid, reason: 'listenToData', readMode: _desiredTxReadMode });
         // qByDate, qByTxMonth and qByPackageMonth are mounted only inside _attachTxSnapshots; canonical mode mounts qCanonical only.
         else { const txUnsub = _attachTxSnapshots(); if (window.registerListener) window.registerListener(_txKey, txUnsub, { owner: 'finance', scope: 'global', reason: 'listenToData', readMode: _desiredTxReadMode }); }
         if (window.__store) { window.__store._activeTxListenerMonth = monthStr; window.__store._activeTxReadMode = _desiredTxReadMode; }
         if (typeof window.refreshCanonicalTransactionOptimizerButton === 'function') window.refreshCanonicalTransactionOptimizerButton();
+            return true;
+        };
+        const _fromMode = _previousCoverage?.clubId === _cid && _previousCoverage?.month === monthStr ? _previousCoverage.readMode : _desiredTxReadMode;
+        const _handoff = window.syncClubStatsCache?.bindFinanceContext?.({ clubId: _cid, month: monthStr, fromMode: _fromMode, toMode: _desiredTxReadMode, epoch: _txSourceSnapshotSeen });
+        if (_handoff?.ready === true || (!_handoff && _fromMode === _desiredTxReadMode)) return _mountFinanceContext();
+        const _flight = { scope: _attachScope, epoch: _txSourceSnapshotSeen, promise: null };
+        _flight.promise = Promise.resolve(_handoff?.wait).then(result => {
+            if (!result?.ok || !_isCurrentTxListenerContext()) return false;
+            return _mountFinanceContext();
+        }).finally(() => { if (_financeAttachFlight === _flight) _financeAttachFlight = null; });
+        _financeAttachFlight = _flight;
+        return _flight.promise;
     };
 
     const docTienVND = (so) => {
