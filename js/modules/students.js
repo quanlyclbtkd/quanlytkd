@@ -455,6 +455,7 @@ export function initStudents() {
         _addStudentInProgress = true;
         let primaryCommitted = false;
         let committedTxId = '';
+        let syncOperationId = '';
         try {
             // ── Xử lý trùng tên ───────────────────────────────────────────
             let _saveKey = name;
@@ -619,9 +620,19 @@ export function initStudents() {
             }
             if (giftPlan) batch.set(giftPlan.ref, giftPlan.payload);
             if (feePlan) batch.set(feePlan.ref, feePlan.payload);
+            try {
+                syncOperationId = window.DebtProfileReadBoundary?.beginSyncOperation?.({
+                    action: hasFinancialPayment ? 'student.addWithPayment' : 'student.add',
+                    profileId: _saveKey,
+                    affectsDebt: true,
+                    month: paymentRefMonth,
+                }) || '';
+                if (syncOperationId) window.DebtProfileReadBoundary?.markSyncStage?.(syncOperationId, 'primaryWriteStart');
+            } catch (_) {}
             await batch.commit();
             primaryCommitted = true;
             committedTxId = feePlan ? feePlan.ref.id : '';
+            try { if (syncOperationId) window.DebtProfileReadBoundary?.markSyncStage?.(syncOperationId, 'primaryWriteAckAt'); } catch (_) {}
 
             // Primary write succeeded. UI/cache and receipt failures are secondary.
             try {
@@ -646,11 +657,18 @@ export function initStudents() {
                     : '✅ Đã thêm võ sinh ' + _saveKey + '. Học phí tháng nhập học chưa thu và đang được tính nợ.', 4000);
                 window.updateActiveNewStudentCountBadge?.();
                 window.resetActiveRenderLimit?.('after-add-new-student');
-                window.refreshListsComputation?.(['students.activeList', 'students.debtList', 'dashboard.summary'], 'after-add-new-student');
-                if (typeof window.invalidateList === 'function') {
-                    window.invalidateList('students.activeList', 'after-add-new-student');
-                    window.invalidateList('students.debtList', 'after-add-new-student');
-                } else window.invalidateStudents?.('after-add-new-student');
+                const profileAckOwnsRefresh = !!syncOperationId
+                    && window.DebtProfileReadBoundary?.isProfileAckOwnedOperation?.(syncOperationId) === true;
+                if (!profileAckOwnsRefresh) {
+                    // Fallback only when the canonical full profiles listener cannot
+                    // own the acknowledgement. Normal runtime defers to its server-fresh
+                    // callback so add-student does not compute Students 2–3 times.
+                    window.refreshListsComputation?.(['students.activeList', 'students.debtList', 'dashboard.summary'], 'after-add-new-student');
+                    if (typeof window.invalidateList === 'function') {
+                        window.invalidateList('students.activeList', 'after-add-new-student');
+                        window.invalidateList('students.debtList', 'after-add-new-student');
+                    } else window.invalidateStudents?.('after-add-new-student');
+                }
             } catch (secondary) {
                 _recordStudentSecondaryFailure('admission-ui-refresh', secondary, { transactionId: committedTxId });
             }
@@ -680,6 +698,9 @@ export function initStudents() {
                 }
             }
         } catch (err) {
+            if (!primaryCommitted && syncOperationId) {
+                try { window.DebtProfileReadBoundary?.cancelSyncOperation?.(syncOperationId); } catch (_) {}
+            }
             if (primaryCommitted) {
                 console.error('[students.addNewStudent] secondary failure after commit', err);
                 window.showToast?.(committedTxId

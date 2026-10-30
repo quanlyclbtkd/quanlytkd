@@ -180,6 +180,13 @@ const _cache = {
     summary:     null,
     summaryClubId: '',
     summaryMonth: '',
+    summaryDebtContextKey: '',
+    lastVerifiedDebtRows: null,
+    lastVerifiedDebtRowsContextKey: '',
+    lastVerifiedDebtRowsAuthorityKey: '',
+    lastVerifiedDebtSummary: null,
+    lastVerifiedDebtSummaryContextKey: '',
+    lastVerifiedDebtSummaryAuthorityKey: '',
     paramsKey:   null,
     sourceKey:   null,   // R2R5 semantic source vector
     dataVersion: -1,     // diagnostic-only legacy snapshot
@@ -306,6 +313,54 @@ export function renderQuitRow(name, p, opts = {}) {
  * @param {number}   params.debtPage
  * @param {number}   params.quitPage
  */
+function _debtPresentationContextKey(params = null) {
+    const st = window.__store || {};
+    const fromParams = params && typeof params === 'object';
+    const read = (id, fallback = '') => {
+        try { return document.getElementById(id)?.value ?? fallback; } catch (_) { return fallback; }
+    };
+    const selMonth = String(fromParams ? (params.selMonth || '') : (read('filterMonth', st.selectedMonth || '') || ''));
+    const selBranch = String(fromParams ? (params.selBranch || 'all') : (read('filterBranch', 'all') || 'all'));
+    const search = String(fromParams ? (params.search || '') : (read('searchInput', '') || '')).trim();
+    const debtPage = Number(fromParams ? (params.debtPage || 1) : (window._debtPage || 1));
+    const overdue = typeof window.getDebtOverdueFilterValue === 'function'
+        ? Number(window.getDebtOverdueFilterValue() || 0) : Number(st._debtOverdueFilter || 0);
+    const d = new Date();
+    const effectiveDay = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    return [
+        String(st.clubId || st.currentClubId || ''), selMonth, selBranch, search,
+        `overdue:${overdue}`, `page:${debtPage}`, `limit:${Number(window.__debtRenderLimit || debtPage * 50)}`,
+        `day:${effectiveDay}`,
+    ].join('|');
+}
+
+function _debtAuthorityKey(status) {
+    const source = status?.activeSource || {};
+    const listener = source.listener || {};
+    return [
+        String(status?.clubId || source.currentClubId || ''),
+        String(source.authoritySessionEpoch ?? listener.authoritySessionEpoch ?? ''),
+        String(source.activeOwnerUid || listener.activeOwnerUid || ''),
+    ].join('|');
+}
+
+function _coveragePresentationState(status) {
+    if (status?.presentationState) return status.presentationState;
+    return status?.ready === true ? 'FRESH' : 'NOT_READY';
+}
+
+function _canReuseVerifiedDebtRows(status) {
+    return _cache.lastVerifiedDebtRows !== null
+        && _cache.lastVerifiedDebtRowsContextKey === _debtPresentationContextKey()
+        && _cache.lastVerifiedDebtRowsAuthorityKey === _debtAuthorityKey(status);
+}
+
+function _canReuseVerifiedDebtSummary(status) {
+    return _cache.lastVerifiedDebtSummary !== null
+        && _cache.lastVerifiedDebtSummaryContextKey === _debtPresentationContextKey()
+        && _cache.lastVerifiedDebtSummaryAuthorityKey === _debtAuthorityKey(status);
+}
+
 function _currentStudentsSourceKey() {
     const st = window.__store || {};
     const profileVersion = Number(window.studentProfileStore?.version ?? st._profileDataVersion ?? 0);
@@ -413,6 +468,9 @@ export function computeAndCacheStudents(allProfiles, params) {
             '(profiles:', _debtSourceQuality.profilesCount,
             ', source:', _debtSourceQuality.source, ')');
         return;
+    }
+    if (buildDebt && _debtBoundaryStatus?.ready === true) {
+        try { window.DebtProfileReadBoundary?.markActiveSyncStage?.('debtComputeStartAt', { clubId: _debtBoundaryStatus.clubId, onlyDebt: true }); } catch (_) {}
     }
     // Phase 4K-6V5Q: one quit source/filter boundary for computation, search,
     // direct render and pagination. No shared active/search page can override it.
@@ -830,10 +888,26 @@ export function computeAndCacheStudents(allProfiles, params) {
     };
     _cache.summaryClubId = String(window.__store?.clubId || window.__store?.currentClubId || '');
     _cache.summaryMonth = String(selMonth || '');
+    _cache.summaryDebtContextKey = _debtPresentationContextKey({ selMonth, selBranch, search, debtPage });
+    const _verifiedCoverage = typeof window.getDebtProfileCoverageStatus === 'function'
+        ? window.getDebtProfileCoverageStatus() : null;
+    if (_verifiedCoverage?.ready === true) {
+        _cache.lastVerifiedDebtSummary = { debtCount, totalDebtEst };
+        _cache.lastVerifiedDebtSummaryContextKey = _cache.summaryDebtContextKey;
+        _cache.lastVerifiedDebtSummaryAuthorityKey = _debtAuthorityKey(_verifiedCoverage);
+        if (buildDebt) {
+            _cache.lastVerifiedDebtRows = debtRows;
+            _cache.lastVerifiedDebtRowsContextKey = _cache.summaryDebtContextKey;
+            _cache.lastVerifiedDebtRowsAuthorityKey = _debtAuthorityKey(_verifiedCoverage);
+        }
+    }
     _cache.paramsKey   = paramsKey;
     _cache.sourceKey   = sourceKey;
     _cache.dataVersion = dataVersion;
 
+    if (buildDebt && _verifiedCoverage?.ready === true) {
+        try { window.DebtProfileReadBoundary?.markActiveSyncStage?.('debtComputeEndAt', { clubId: _verifiedCoverage.clubId, onlyDebt: true }); } catch (_) {}
+    }
     const ms = performance.now() - t0;
     _metrics.lastComputeMs = ms;
     if (_shouldWarnStudentCompute(ms)) {
@@ -882,9 +956,18 @@ export function getStudentsCachedHtml(section) {
         const status = typeof window.getDebtProfileCoverageStatus === 'function'
             ? window.getDebtProfileCoverageStatus()
             : null;
-        if (status?.ready !== true) {
+        const state = _coveragePresentationState(status);
+        if (state === 'TRANSIENT_LOCAL_WRITE' && _canReuseVerifiedDebtRows(status)) {
+            return '<tr class="debt-updating-row"><td colspan="7" style="text-align:center;padding:6px 12px;color:#64748b;font-size:.75rem">Đang cập nhật…</td></tr>'
+                + (_cache.lastVerifiedDebtRows || '');
+        }
+        if (state !== 'FRESH') {
             return '<tr class="debt-syncing-row"><td colspan="7" style="text-align:center;padding:18px 12px;color:#64748b">Đang đồng bộ đầy đủ dữ liệu Báo nợ…</td></tr>';
         }
+        try {
+            window.DebtProfileReadBoundary?.markActiveSyncStage?.('debtRenderAt', { clubId: status?.clubId, onlyDebt: true });
+            window.DebtProfileReadBoundary?.clearFreshSyncOperations?.({ clubId: status?.clubId });
+        } catch (_) {}
     }
     return _cache[section] || '';
 }
@@ -899,14 +982,25 @@ export function getStudentsSummary() {
     const month = String(
         (typeof document !== 'undefined' ? document.getElementById('filterMonth')?.value : '')
         || window.__store?.selectedMonth || '');
-    const debtSummaryPending = !coverage || coverage.ready !== true || coverage.sameClub !== true
-        || (!!clubId && _cache.summaryClubId !== clubId)
-        || (!!month && _cache.summaryMonth !== month);
-    // Never return last-good debt count from a different club/month or from a
-    // demoted/pending authority as if it were a current, authoritative result.
+    const currentContextKey = _debtPresentationContextKey();
+    const baseContextMismatch = (!!clubId && _cache.summaryClubId !== clubId)
+        || (!!month && _cache.summaryMonth !== month)
+        || (!!_cache.summaryDebtContextKey && _cache.summaryDebtContextKey !== currentContextKey);
+    const state = _coveragePresentationState(coverage);
+    if (state === 'TRANSIENT_LOCAL_WRITE' && !baseContextMismatch && _canReuseVerifiedDebtSummary(coverage)) {
+        return {
+            ...(_cache.summary || {}),
+            debtCount: Number(_cache.lastVerifiedDebtSummary?.debtCount || 0),
+            totalDebtEst: Number(_cache.lastVerifiedDebtSummary?.totalDebtEst || 0),
+            debtSummaryPending: false,
+            debtSummaryUpdating: true,
+            debtSummaryFresh: false,
+        };
+    }
+    const debtSummaryPending = !coverage || state !== 'FRESH' || coverage.sameClub !== true || baseContextMismatch;
     if (debtSummaryPending) return { ...(_cache.summary || {}), debtCount: null,
-        totalDebtEst: null, debtSummaryPending: true };
-    return _cache.summary ? { ..._cache.summary, debtSummaryPending: false } : null;
+        totalDebtEst: null, debtSummaryPending: true, debtSummaryUpdating: false, debtSummaryFresh: false };
+    return _cache.summary ? { ..._cache.summary, debtSummaryPending: false, debtSummaryUpdating: false, debtSummaryFresh: true } : null;
 }
 
 /**

@@ -395,30 +395,34 @@ function _syncLegacy() {
  * Báo Nợ (0) tự cập nhật khi profiles hydrate về sau login.
  * @private
  */
-function _invalidateAll(reason) {
+function _invalidateAll(reason, options = {}) {
     if (_isCoachContext()) {
         if (typeof window.invalidateByDomain === 'function') window.invalidateByDomain('attendance', reason);
         return;
     }
-    // [GITHUB-FIX] Task 5: Dùng invalidateLists cho tất cả student lists nếu có
-    // Đảm bảo BÁO NỢ, HỌC PHÍ, ĐANG TẬP, ĐÃ NGHỈ đều refresh khi profiles load xong
-    if (typeof window.invalidateLists === 'function') {
-        window.invalidateLists([
-            'students.activeList',
-            'students.debtList',
-            'students.quitList',
-        ], reason);
-    } else if (typeof window.invalidateStudents === 'function') {
-        window.invalidateStudents(reason);
+    // R2R5.1-SYNC: a tracked local mutation whose changed fields cannot affect
+    // Students/Debt presentation must not trigger an unrelated heavy Students pass.
+    // Untracked/external snapshots remain conservative and keep the old full route.
+    const syncPlan = options?.syncPlan || null;
+    const refreshStudents = !syncPlan?.tracked || syncPlan.affectsDebt === true;
+    if (refreshStudents) {
+        if (typeof window.invalidateLists === 'function') {
+            window.invalidateLists([
+                'students.activeList',
+                'students.debtList',
+                'students.quitList',
+            ], reason);
+        } else if (typeof window.invalidateStudents === 'function') {
+            window.invalidateStudents(reason);
+        }
+        if (typeof window.invalidateDashboard === 'function') window.invalidateDashboard(reason);
     }
-
-    if (typeof window.invalidateDashboard === 'function') window.invalidateDashboard(reason);
     if (typeof window.invalidateByDomain  === 'function') {
         window.invalidateByDomain('attendance', reason);
         window.invalidateByDomain('exam',       reason);
-        // Phase 4K-DATA-HYDRATION: tuition + debt cần re-calc khi profile count thay đổi
+        // Tuition compatibility route retained. Debt is already refreshed above
+        // by the canonical students.debtList owner; do not schedule it twice.
         window.invalidateByDomain('tuition',    reason);
-        window.invalidateByDomain('debt',       reason);
     }
     // Finance tab (Học Phí) — tính lại tóm tắt doanh thu + báo nợ khi profiles thay đổi
     if (typeof window.invalidateFinance === 'function') window.invalidateFinance(reason);
@@ -884,6 +888,7 @@ export function mountActiveProfilesListener(context) {
                     if (!serverVerified) {
                         _state.authorityFreshness = wasVerified ? 'stale' : 'pending';
                         _updateWindowMetrics();
+                        try { window.DebtProfileReadBoundary?.markActiveSyncStage?.('profilePendingSnapshotAt', { clubId }); } catch (_) {}
                         if (typeof window.invalidateByDomain === 'function') window.invalidateByDomain('debt', 'profiles-snapshot-unverified');
                         if (typeof window.invalidateDashboard === 'function') window.invalidateDashboard('profiles-snapshot-unverified');
                         return;
@@ -954,8 +959,17 @@ export function mountActiveProfilesListener(context) {
                         }
                     }
 
-                    _invalidateAll('full-profiles-authoritative-snapshot');
                     _updateWindowMetrics();
+                    let _syncPlan = null;
+                    try {
+                        _syncPlan = window.DebtProfileReadBoundary?.markActiveSyncStage?.('profileServerFreshAt', { clubId }) || null;
+                        if (_syncPlan?.affectsDebt) {
+                            window.DebtProfileReadBoundary?.markActiveSyncStage?.('debtRefreshRequestedAt', { clubId, onlyDebt: true });
+                        } else if (_syncPlan?.tracked) {
+                            window.DebtProfileReadBoundary?.clearFreshSyncOperations?.({ clubId });
+                        }
+                    } catch (_) {}
+                    _invalidateAll('full-profiles-authoritative-snapshot', { syncPlan: _syncPlan });
                     if (!isCoach && typeof window.scheduleAutomaticDebtProfileCoverage === 'function') {
                         window.scheduleAutomaticDebtProfileCoverage('full-profiles-authoritative-snapshot');
                     }

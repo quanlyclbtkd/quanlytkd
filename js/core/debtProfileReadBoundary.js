@@ -21,8 +21,6 @@
     const LOCK_TTL_MS = 5 * 60 * 1000;
     const RETRY_DELAY_MS = 30 * 1000;
     const COUNT_AUDIT_COOLDOWN_MS = 60 * 60 * 1000;
-    const WAIT_STEP_MS = 120;
-    const WAIT_TIMEOUT_MS = 8000;
     const BATCH_SIZE = 400;
 
     const _state = {
@@ -64,7 +62,6 @@
     };
 
     function now() { return Date.now(); }
-    function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
     function context() {
         const st = global.__store || {};
@@ -140,6 +137,12 @@
             sameSession,
             serverVerified,
             authorityFreshness: listener.authorityFreshness || 'pending',
+            authorityServerConfirmed: listener.authorityServerConfirmed === true,
+            authorityHasPendingWrites: listener.authorityHasPendingWrites === true,
+            authoritySessionEpoch: listener.authoritySessionEpoch,
+            activeOwnerUid: String(listener.activeOwnerUid || ''),
+            activeListenerMounted: listener.activeListenerMounted === true,
+            activeListenerFailed: listener.activeListenerFailed === true,
             fullAuthoritySnapshotSeen,
             fullAuthorityComplete: authorityComplete,
             storeComplete: completeStore,
@@ -149,14 +152,134 @@
         };
     }
 
-    async function waitForActiveSource() {
-        const started = now();
-        while (now() - started < WAIT_TIMEOUT_MS) {
-            const source = activeSourceReady();
-            if (source.ready) return source;
-            await sleep(WAIT_STEP_MS);
+    const COVERAGE_STATE = Object.freeze({
+        FRESH: 'FRESH',
+        TRANSIENT_LOCAL_WRITE: 'TRANSIENT_LOCAL_WRITE',
+        NOT_READY: 'NOT_READY',
+    });
+
+    function classifyCoverageState(source) {
+        const ctx = context();
+        if (source && source.ready === true) return COVERAGE_STATE.FRESH;
+        const listener = source?.listener || {};
+        const auth = global.__verifiedAuthContextState;
+        const sameOwner = !!auth && auth.ready === true
+            && !!String(auth.uid || '')
+            && String(listener.activeOwnerUid || '') === String(auth.uid || '')
+            && Number(listener.authoritySessionEpoch) === Number(auth.generation);
+        const transient = isAdminRole(ctx.role)
+            && source?.sameClub === true
+            && source?.sameSession === true
+            && sameOwner
+            && source?.activeListenerMounted === true
+            && source?.activeListenerFailed !== true
+            && source?.fullAuthoritySnapshotSeen === true
+            && source?.fullAuthorityComplete === true
+            && source?.completeStore === true
+            && source?.authorityServerConfirmed === true
+            && source?.authorityHasPendingWrites === true
+            && source?.authorityFreshness === 'stale'
+            && source?.authorityMode === 'full-profiles-authoritative';
+        return transient ? COVERAGE_STATE.TRANSIENT_LOCAL_WRITE : COVERAGE_STATE.NOT_READY;
+    }
+
+    // R2R5.1-SYNC diagnostics live inside the existing Debt coverage owner.
+    // They are RAM-only and deliberately store an anonymized profile token.
+    const _syncDiag = { seq: 0, active: new Map(), history: [] };
+    function _anonProfileId(value) {
+        const text = String(value || '');
+        let h = 2166136261;
+        for (let i = 0; i < text.length; i++) { h ^= text.charCodeAt(i); h = Math.imul(h, 16777619); }
+        return 'p#' + (h >>> 0).toString(16).padStart(8, '0');
+    }
+    function _selectedMonth() {
+        try { return String(global.document?.getElementById?.('filterMonth')?.value || global.__store?.selectedMonth || ''); }
+        catch (_) { return String(global.__store?.selectedMonth || ''); }
+    }
+    function beginSyncOperation(meta) {
+        const ctx = context();
+        const id = `sync-${now().toString(36)}-${++_syncDiag.seq}`;
+        const row = {
+            operationId: id,
+            action: String(meta?.action || 'profile-mutation'),
+            profileId: _anonProfileId(meta?.profileId),
+            club: String(ctx.clubId || ''),
+            month: String(meta?.month || _selectedMonth()),
+            affectsDebt: meta?.affectsDebt !== false,
+            actionStart: now(),
+            primaryWriteStart: null,
+            profilePendingSnapshotAt: null,
+            primaryWriteAckAt: null,
+            profileServerFreshAt: null,
+            debtRefreshRequestedAt: null,
+            debtComputeStartAt: null,
+            debtComputeEndAt: null,
+            debtRenderAt: null,
+            syncClearedAt: null,
+        };
+        _syncDiag.active.set(id, row);
+        return id;
+    }
+    function markSyncStage(operationId, stage) {
+        const id = String(operationId || '');
+        let row = _syncDiag.active.get(id);
+        if (!row) row = _syncDiag.history.find(item => item.operationId === id) || null;
+        if (!row || !Object.prototype.hasOwnProperty.call(row, stage)) return false;
+        if (row[stage] == null) row[stage] = now();
+        return true;
+    }
+    function markActiveSyncStage(stage, options) {
+        const clubId = String(options?.clubId || context().clubId || '');
+        const onlyDebt = options?.onlyDebt === true;
+        const rows = [];
+        for (const row of _syncDiag.active.values()) {
+            if (row.syncClearedAt != null || (clubId && row.club !== clubId) || (onlyDebt && row.affectsDebt !== true)) continue;
+            if (Object.prototype.hasOwnProperty.call(row, stage) && row[stage] == null) row[stage] = now();
+            rows.push(row);
         }
-        return activeSourceReady();
+        return {
+            tracked: rows.length > 0,
+            affectsDebt: rows.some(row => row.affectsDebt === true),
+            operationIds: rows.map(row => row.operationId),
+        };
+    }
+    function clearFreshSyncOperations(options) {
+        const clubId = String(options?.clubId || context().clubId || '');
+        const ts = now();
+        for (const [id, row] of _syncDiag.active.entries()) {
+            if (row.syncClearedAt != null || (clubId && row.club !== clubId)) continue;
+            if (row.affectsDebt === true && row.debtRenderAt == null) continue;
+            row.syncClearedAt = ts;
+            _syncDiag.history.push({ ...row });
+            _syncDiag.active.delete(id);
+        }
+        if (_syncDiag.history.length > 80) _syncDiag.history.splice(0, _syncDiag.history.length - 80);
+    }
+    function isProfileAckOwnedOperation(operationId) {
+        const id = String(operationId || '');
+        const row = _syncDiag.active.get(id);
+        if (!row) {
+            const completed = _syncDiag.history.find(item => item.operationId === id && item.cancelled !== true);
+            return !!completed && completed.profileServerFreshAt != null;
+        }
+        const source = activeSourceReady();
+        return source.sameClub === true && source.sameSession === true
+            && source.activeListenerMounted === true && source.activeListenerFailed !== true
+            && source.fullAuthoritySnapshotSeen === true && source.fullAuthorityComplete === true
+            && source.authorityMode === 'full-profiles-authoritative';
+    }
+    function cancelSyncOperation(operationId) {
+        const id = String(operationId || '');
+        const row = _syncDiag.active.get(id);
+        if (!row) return false;
+        row.syncClearedAt = row.syncClearedAt || now();
+        _syncDiag.history.push({ ...row, cancelled: true });
+        _syncDiag.active.delete(id);
+        if (_syncDiag.history.length > 80) _syncDiag.history.splice(0, _syncDiag.history.length - 80);
+        return true;
+    }
+    function getSyncDiagnostics() {
+        return { active: Array.from(_syncDiag.active.values(), row => ({ ...row })), history: _syncDiag.history.map(row => ({ ...row })) };
     }
 
     function queryForStatuses(ref, values, sdk) {
@@ -435,7 +558,7 @@
 
         let lock = null;
         try {
-            const source = await waitForActiveSource();
+            const source = activeSourceReady();
             if (!source.ready) return { ok: false, deferred: true, reason: 'active-source-not-ready' };
 
             const localAudit = runLocalCoverageAudit(reason || 'automatic-local');
@@ -476,7 +599,7 @@
             _state.lastSource = 'club-switch-waiting-authority';
         }
         _state.clubId = ctx.clubId || '';
-        const source = await waitForActiveSource();
+        const source = activeSourceReady();
 
         if (source.ready) {
             _state.sessionVerified = true;
@@ -496,7 +619,7 @@
 
         // D1C3B2: a registered Admin listener still awaiting its first snapshot
         // is not a failure. Return fail-closed loading instead of evicting it
-        // merely because WAIT_TIMEOUT_MS elapsed. Original callback stays live.
+        // normal pending coverage returns immediately; the original listener callback stays live.
         const pending = source.listener || {};
         if (pending.activeListenerKey && pending.activeListenerFailed !== true
             && source.authorityClubId === ctx.clubId
@@ -579,16 +702,20 @@
         _state.sessionVerified = false;
         _state.fullFallbackReady = false;
         _state.countAuditDisabledUntil = 0;
+        _syncDiag.active.clear();
         global.__debtProfileCoverageLocalLock = false;
     }
 
     function getStatus() {
         const ctx = context();
         const source = activeSourceReady();
+        const presentationState = classifyCoverageState(source);
         return {
             schemaVersion: SCHEMA_VERSION,
             clubId: ctx.clubId,
             ready: source.ready === true,
+            presentationState,
+            transientLocalWrite: presentationState === COVERAGE_STATE.TRANSIENT_LOCAL_WRITE,
             authorityClubId: source.authorityClubId,
             sameClub: source.sameClub === true,
             fullAuthoritySnapshotSeen: source.fullAuthoritySnapshotSeen === true,
@@ -645,6 +772,14 @@
         getStatus,
         printMetrics,
         reset,
+        beginSyncOperation,
+        markSyncStage,
+        markActiveSyncStage,
+        clearFreshSyncOperations,
+        isProfileAckOwnedOperation,
+        cancelSyncOperation,
+        getSyncDiagnostics,
+        coverageStates: COVERAGE_STATE,
     };
 
     global.DebtProfileReadBoundary = api;
@@ -652,6 +787,7 @@
     global.scheduleAutomaticDebtProfileCoverage = scheduleAutomaticVerification;
     global.runAutomaticDebtProfileCoverage = runAutomaticVerification;
     global.getDebtProfileCoverageStatus = getStatus;
+    global.getDebtSyncDiagnostics = getSyncDiagnostics;
     global.printDebtReadMetrics = printMetrics;
     global.resetDebtProfileReadBoundary = reset;
 })(window);

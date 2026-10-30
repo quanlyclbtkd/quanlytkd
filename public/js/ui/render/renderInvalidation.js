@@ -543,6 +543,19 @@ export function invalidateByDomain(domain, reason) {
         case 'inventory':  return invalidateInventory(reason);
         case 'dashboard':  return invalidateDashboard(reason);
         case 'attendance': return invalidateAttendance(reason);
+        case 'debt': {
+            // R2R5.1-SYNC: Debt is an existing Students list owner, not a new domain.
+            // A same-context local profile write only needs to repaint the island
+            // from the last server-verified cache; do not start heavyweight compute
+            // until the existing profiles listener supplies server-fresh authority.
+            const coverage = typeof window.getDebtProfileCoverageStatus === 'function'
+                ? window.getDebtProfileCoverageStatus() : null;
+            if (coverage?.presentationState === 'TRANSIENT_LOCAL_WRITE') {
+                try { runRender('students.debtList'); } catch (_) {}
+                return;
+            }
+            return invalidateList('students.debtList', reason || 'debt-domain');
+        }
         case 'all':
             // Invalidate tất cả — dùng khi data version thay đổi toàn cục
             // Không gọi đệ quy invalidateByDomain để tránh storm

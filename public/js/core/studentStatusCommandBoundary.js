@@ -81,6 +81,38 @@ function _getProfile(name) {
 }
 
 
+function _sameValue(a, b) {
+  if (Array.isArray(a) || Array.isArray(b)) {
+    try { return JSON.stringify(Array.isArray(a) ? a : []) === JSON.stringify(Array.isArray(b) ? b : []); } catch (_) { return false; }
+  }
+  if (a && b && typeof a === 'object' && typeof b === 'object') {
+    try { return JSON.stringify(a) === JSON.stringify(b); } catch (_) { return a === b; }
+  }
+  return a === b;
+}
+function _changedProfileFields(previous, patch) {
+  const prev = previous || {}, next = patch || {};
+  return Object.keys(next).filter(field => !_sameValue(prev[field], next[field]));
+}
+const _DEBT_PROFILE_FIELDS = new Set([
+  'status','branch','displayName','name','fullName','studentName','hoTen','nickname','alias',
+  'memberId','studentCode','code','searchCode','searchNickname','belt','notes','phone','parentPhone',
+  'contactPhone','guardianPhone','dob','tuitionFee','feeExempt','paidUntil','paidMonths','skippedMonths',
+  'admissionDate','joinDate','joinedAt','createdAt','enrollDate','isOwed','owedMonths','quitDate',
+  'ngayNghi','inactiveDate','stoppedDate','leftDate','nghiDate',
+]);
+function _fieldsAffectDebt(fields) { return (fields || []).some(field => _DEBT_PROFILE_FIELDS.has(field)); }
+function _beginDebtSyncOperation(action, profileId, affectsDebt) {
+  try { return window.DebtProfileReadBoundary?.beginSyncOperation?.({ action, profileId, affectsDebt }) || ''; }
+  catch (_) { return ''; }
+}
+function _markDebtSyncOperation(operationId, stage) {
+  try { if (operationId) window.DebtProfileReadBoundary?.markSyncStage?.(operationId, stage); } catch (_) {}
+}
+function _cancelDebtSyncOperation(operationId) {
+  try { if (operationId) window.DebtProfileReadBoundary?.cancelSyncOperation?.(operationId); } catch (_) {}
+}
+
 function _isQuitProfile(profile) {
   if (!profile || typeof profile !== 'object') return false;
   try {
@@ -167,22 +199,34 @@ export const StudentStatusCommandBoundary = Object.freeze({
     const newKey = String(newName || oldName || '').trim();
     if (!oldKey || !newKey) throw new Error('[StudentStatusCommandBoundary] Thiếu tên võ sinh.');
     return _run('student.updateProfile', `${oldKey}|${newKey}`, async () => {
+      const previous = _getProfile(oldKey);
+      const changedFields = _changedProfileFields(previous, updateData);
+      const debtAffecting = oldKey !== newKey || _fieldsAffectDebt(changedFields);
+      const syncOperationId = _beginDebtSyncOperation('student.updateProfile', oldKey, debtAffecting);
       const mutate = async () => {
         const svc = _service();
-        if (oldKey !== newKey) {
-          await svc.renameWithBatch(oldKey, newKey, updateData, txUpdates);
-          _commitRename(oldKey, newKey, updateData, 'v5u1-profile-rename');
-        } else {
-          await svc.updateProfile(oldKey, updateData);
-          _commitProfilePatch(oldKey, updateData, 'v5u1-profile-update');
+        try {
+          _markDebtSyncOperation(syncOperationId, 'primaryWriteStart');
+          if (oldKey !== newKey) {
+            await svc.renameWithBatch(oldKey, newKey, updateData, txUpdates);
+            _markDebtSyncOperation(syncOperationId, 'primaryWriteAckAt');
+            _commitRename(oldKey, newKey, updateData, 'v5u1-profile-rename');
+          } else {
+            await svc.updateProfile(oldKey, updateData);
+            _markDebtSyncOperation(syncOperationId, 'primaryWriteAckAt');
+            _commitProfilePatch(oldKey, updateData, 'v5u1-profile-update');
+          }
+          return { oldName: oldKey, newName: newKey, renamed: oldKey !== newKey, changedFields, debtAffecting };
+        } catch (error) {
+          _cancelDebtSyncOperation(syncOperationId);
+          throw error;
         }
-        return { oldName: oldKey, newName: newKey, renamed: oldKey !== newKey };
       };
-      const tuitionFields = ['paidUntil', 'paidMonths', 'skippedMonths'];
-      const tuitionAffecting = !!(updateData && tuitionFields.some((field) => Object.prototype.hasOwnProperty.call(updateData, field)));
+      const tuitionFields = ['paidUntil', 'paidMonths', 'skippedMonths', 'feeExempt', 'tuitionFee'];
+      const tuitionAffecting = changedFields.some(field => tuitionFields.includes(field));
       if (!tuitionAffecting) return mutate();
       const lane = window.TuitionCommandBoundary?.runInProfileTuitionMutationLane;
-      if (typeof lane !== 'function') throw new Error('[StudentStatusCommandBoundary] Tuition profile mutation lane chưa sẵn sàng.');
+      if (typeof lane !== 'function') { _cancelDebtSyncOperation(syncOperationId); throw new Error('[StudentStatusCommandBoundary] Tuition profile mutation lane chưa sẵn sàng.'); }
       return lane.call(window.TuitionCommandBoundary, { studentName: oldKey, reason: 'student.updateProfile-tuition-fields' }, mutate);
     });
   },
@@ -191,9 +235,14 @@ export const StudentStatusCommandBoundary = Object.freeze({
     const key = String(name || '').trim();
     if (!key) throw new Error('[StudentStatusCommandBoundary] Thiếu tên võ sinh cần xóa.');
     return _run('student.deleteProfile', key, async () => {
-      await _service().deleteProfile(key);
-      _commitDelete(key, 'v5u1-profile-delete');
-      return { name: key };
+      const syncOperationId = _beginDebtSyncOperation('student.deleteProfile', key, true);
+      try {
+        _markDebtSyncOperation(syncOperationId, 'primaryWriteStart');
+        await _service().deleteProfile(key);
+        _markDebtSyncOperation(syncOperationId, 'primaryWriteAckAt');
+        _commitDelete(key, 'v5u1-profile-delete');
+        return { name: key };
+      } catch (error) { _cancelDebtSyncOperation(syncOperationId); throw error; }
     });
   },
 
@@ -232,10 +281,15 @@ export const StudentStatusCommandBoundary = Object.freeze({
     const key = String(name || '').trim();
     const patch = { status: 'quit', quitDate: quitDate || new Date().toISOString().slice(0, 10) };
     return _run('student.markQuit', key, async () => {
-      await _service().updateProfile(key, patch);
-      _commitProfilePatch(key, patch, 'v5u1-mark-quit');
-      try { window.removeStudentFromDebtDom?.(key); } catch (_) {}
-      return { name: key, patch };
+      const syncOperationId = _beginDebtSyncOperation('student.markQuit', key, true);
+      try {
+        _markDebtSyncOperation(syncOperationId, 'primaryWriteStart');
+        await _service().updateProfile(key, patch);
+        _markDebtSyncOperation(syncOperationId, 'primaryWriteAckAt');
+        _commitProfilePatch(key, patch, 'v5u1-mark-quit');
+        try { window.removeStudentFromDebtDom?.(key); } catch (_) {}
+        return { name: key, patch };
+      } catch (error) { _cancelDebtSyncOperation(syncOperationId); throw error; }
     });
   },
 

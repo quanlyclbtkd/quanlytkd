@@ -268,15 +268,38 @@ function _removeLocalTransaction(txId) {
   } catch (_) {}
   try { if (Array.isArray(window.allTransactions)) window.allTransactions = filter(window.allTransactions); } catch (_) {}
 }
+function _beginDebtSyncOperation(action, profileId, affectsDebt = true) {
+  try { return window.DebtProfileReadBoundary?.beginSyncOperation?.({ action, profileId, affectsDebt }) || ''; }
+  catch (_) { return ''; }
+}
+function _markDebtSyncOperation(operationId, stage) {
+  try { if (operationId) window.DebtProfileReadBoundary?.markSyncStage?.(operationId, stage); } catch (_) {}
+}
+function _cancelDebtSyncOperation(operationId) {
+  try { if (operationId) window.DebtProfileReadBoundary?.cancelSyncOperation?.(operationId); } catch (_) {}
+}
+function _profileAckOwnsStudentsRefresh(operationId) {
+  try { return !!operationId && window.DebtProfileReadBoundary?.isProfileAckOwnedOperation?.(operationId) === true; }
+  catch (_) { return false; }
+}
+
 function _invalidateTuition(reason, options = {}) {
   if (typeof window === 'undefined') return;
-  const keys = ['tx.txList', 'students.debtList', 'students.activeList'];
+  const profileAckOwned = _profileAckOwnsStudentsRefresh(options.operationId);
+  const keys = profileAckOwned
+    ? ['tx.txList']
+    : ['tx.txList', 'students.debtList', 'students.activeList'];
   try {
     if (typeof window.invalidateLists === 'function') window.invalidateLists(keys, reason);
     else keys.forEach(key => window.invalidateList?.(key, reason));
   } catch (_) {}
-  try { window.refreshListsComputation?.(['students.activeList', 'students.debtList', 'dashboard.summary'], reason); } catch (_) {}
-  try { window.invalidateDashboard?.(reason); } catch (_) {}
+  // For a tracked tuition/profile atomic mutation, the existing full profiles
+  // listener is the sole Debt/Students post-ACK refresh owner. This removes the
+  // command-ACK race without weakening Finance transaction reconciliation.
+  if (!profileAckOwned) {
+    try { window.refreshListsComputation?.(['students.activeList', 'students.debtList', 'dashboard.summary'], reason); } catch (_) {}
+    try { window.invalidateDashboard?.(reason); } catch (_) {}
+  }
   if (options.examRefresh) {
     try { window.invalidateList?.('exam.list', reason); } catch (_) {}
     try { window.renderExamList?.(); } catch (_) {}
@@ -353,8 +376,10 @@ export const TuitionCommandBoundary = Object.freeze({
         timestamp: Date.now(),
       };
       let txId = '';
+      const syncOperationId = _beginDebtSyncOperation('tuition.collect', profileId || name, true);
       try {
         const paidUntil = _canonicalPaidUntilAfterPayment(latestProfile, paidMonths) || lastMonth;
+        _markDebtSyncOperation(syncOperationId, 'primaryWriteStart');
         const atomic = await _service().commitAtomicWritePlan({
           transactions: [{ data: txPayload, reason: 'tuition-command-collect' }],
           profileUpdates: [{
@@ -366,8 +391,9 @@ export const TuitionCommandBoundary = Object.freeze({
           }],
         });
         txId = String(atomic?.txIds?.[0] || '');
+        _markDebtSyncOperation(syncOperationId, 'primaryWriteAckAt');
         _commitProfilePayment(name, paidUntil, paidMonths, 'v5u2-tuition-collect');
-        _invalidateTuition('v5u2-tuition-collect');
+        _invalidateTuition('v5u2-tuition-collect', { operationId: syncOperationId });
         const result = {
           ok: true,
           txId,
@@ -403,6 +429,7 @@ export const TuitionCommandBoundary = Object.freeze({
         });
         return result;
       } catch (error) {
+        _cancelDebtSyncOperation(syncOperationId);
         _audit('tuition.quickPay', 'error', { ...auditPayload, txId, partialWrite: error?.partialWrite === true, error: error?.message || String(error) });
         // H8R2: transaction + profile are one atomic primary commit. A commit
         // failure leaves no half-paid state to refresh or reconcile.
