@@ -261,9 +261,9 @@ function _removeLocalTransaction(txId) {
   const filter = rows => Array.isArray(rows) ? rows.filter(row => String(row?.id || '') !== id) : rows;
   try {
     if (window.__store) {
+      // Canonical transactions assignment is the single semantic-epoch owner.
       window.__store.transactions = filter(window.__store.transactions);
       window.__store.allTransactions = filter(window.__store.allTransactions);
-      window.__store._transactionsVersion = (window.__store._transactionsVersion || 0) + 1;
     }
   } catch (_) {}
   try { if (Array.isArray(window.allTransactions)) window.allTransactions = filter(window.allTransactions); } catch (_) {}

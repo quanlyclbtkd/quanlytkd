@@ -190,7 +190,8 @@ function _refreshThenSchedule(keys, reason) {
     _bumpStoreDataVersion(reason);
     try {
         if (typeof requestListsComputation === 'function') {
-            requestListsComputation(keys, reason || 'domain-invalidate').then(() => {
+            requestListsComputation(keys, reason || 'domain-invalidate').then((result) => {
+                if (result && result.stale === true) return;
                 try { _scheduleIslands(keys); }
                 catch (e) { console.warn('[renderInvalidation] _scheduleIslands failed:', e); }
             });

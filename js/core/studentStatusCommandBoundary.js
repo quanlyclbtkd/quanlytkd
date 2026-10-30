@@ -102,9 +102,46 @@ const _DEBT_PROFILE_FIELDS = new Set([
   'ngayNghi','inactiveDate','stoppedDate','leftDate','nghiDate',
 ]);
 function _fieldsAffectDebt(fields) { return (fields || []).some(field => _DEBT_PROFILE_FIELDS.has(field)); }
-function _beginDebtSyncOperation(action, profileId, affectsDebt) {
-  try { return window.DebtProfileReadBoundary?.beginSyncOperation?.({ action, profileId, affectsDebt }) || ''; }
+function _beginDebtSyncOperation(action, profileId, affectsDebt, options = {}) {
+  try { return window.DebtProfileReadBoundary?.beginSyncOperation?.({ action, profileId, affectsDebt, ...options }) || ''; }
   catch (_) { return ''; }
+}
+function _stableProfileIdentity(profile) {
+  const p = profile || {};
+  return String(p.profileId || p.id || p.uid || p.memberId || p.memberID || p.studentId || '').trim();
+}
+function _stableTxIdentity(tx) {
+  return String(tx && (tx.profileId || tx.studentId || tx.memberId || tx.memberID) || '').trim();
+}
+function _canonicalTuitionEvidence(tx) {
+  try {
+    if (typeof globalThis.isTuitionFinanceTransaction === 'function') return globalThis.isTuitionFinanceTransaction(tx) === true;
+    if (typeof globalThis.getAccountingComponents === 'function') {
+      const components = globalThis.getAccountingComponents(tx) || [];
+      return components.some(component => component && component.kind === 'tuition');
+    }
+  } catch (_) {}
+  return null;
+}
+function _renameNeedsPrimaryCompletionForDebt(previous, txUpdates) {
+  const updates = Array.isArray(txUpdates) ? txUpdates : [];
+  if (!updates.length) return false;
+  // R6 only consumes transaction months as Debt evidence when paidUntil is absent.
+  if (String(previous?.paidUntil || '').trim()) return false;
+  const rows = Array.isArray(window.__store?.transactions) ? window.__store.transactions
+    : (Array.isArray(window.allTransactions) ? window.allTransactions : []);
+  const byId = new Map(rows.map(row => [String(row?.id || row?.txId || ''), row]));
+  const stableProfileId = _stableProfileIdentity(previous);
+  for (const update of updates) {
+    const tx = byId.get(String(update?.txId || ''));
+    if (!tx) return true; // unknown/mixed state: fail closed
+    const tuitionEvidence = _canonicalTuitionEvidence(tx);
+    if (tuitionEvidence === false) continue;
+    if (tuitionEvidence == null) return true;
+    const txStableId = _stableTxIdentity(tx);
+    if (!stableProfileId || !txStableId || txStableId !== stableProfileId) return true;
+  }
+  return false;
 }
 function _markDebtSyncOperation(operationId, stage) {
   try { if (operationId) window.DebtProfileReadBoundary?.markSyncStage?.(operationId, stage); } catch (_) {}
@@ -151,7 +188,7 @@ function _commitProfilePatch(name, patch, reason) {
   try { window.invalidateList?.('attendance.list', reason); } catch (_) {}
 }
 
-function _commitRename(oldName, newName, patch, reason) {
+function _commitRename(oldName, newName, patch, reason, options = {}) {
   if (typeof window === 'undefined') return;
   const previous = _getProfile(oldName);
   const next = { ...previous, ...(patch || {}) };
@@ -166,17 +203,38 @@ function _commitRename(oldName, newName, patch, reason) {
     window.__store._dataVersion = (window.__store._dataVersion || 0) + 1;
   } catch (_) {}
   try { window.invalidateSearchCache?.('students', reason); } catch (_) {}
-  try { window.refreshListsComputation?.(['students.activeList', 'students.quitList', 'students.debtList', 'dashboard.summary'], reason); } catch (_) {}
-  try { window.invalidateLists?.(['students.activeList', 'students.quitList', 'students.debtList', 'attendance.list'], reason); } catch (_) {
-    try { window.invalidateList?.('students.activeList', reason); } catch (_) {}
-    try { window.invalidateList?.('students.quitList', reason); } catch (_) {}
-    try { window.invalidateList?.('students.debtList', reason); } catch (_) {}
-    try { window.invalidateList?.('attendance.list', reason); } catch (_) {}
+  if (options.deferStudentsToAuthority !== true) {
+    try { window.refreshListsComputation?.(['students.activeList', 'students.quitList', 'students.debtList', 'dashboard.summary'], reason); } catch (_) {}
+    try { window.invalidateLists?.(['students.activeList', 'students.quitList', 'students.debtList'], reason); } catch (_) {
+      try { window.invalidateList?.('students.activeList', reason); } catch (_) {}
+      try { window.invalidateList?.('students.quitList', reason); } catch (_) {}
+      try { window.invalidateList?.('students.debtList', reason); } catch (_) {}
+    }
+    try { window.invalidateDashboard?.(reason); } catch (_) {}
   }
-  try { window.invalidateDashboard?.(reason); } catch (_) {}
+  try { window.invalidateList?.('attendance.list', reason); } catch (_) {}
 }
 
-function _commitDelete(name, reason) {
+function _completeReadyDebtRefresh(operationId, reason) {
+  try {
+    const plan = window.DebtProfileReadBoundary?.getOperationRefreshPlan?.(operationId);
+    if (!plan?.ready || !Array.isArray(plan.operationIds) || !plan.operationIds.length) return false;
+    let acceptedByOwner = false;
+    if (typeof window.invalidateLists === 'function') {
+      window.invalidateLists(['students.activeList', 'students.quitList', 'students.debtList'], reason);
+      acceptedByOwner = true;
+    } else if (typeof window.invalidateStudents === 'function') {
+      window.invalidateStudents(reason);
+      acceptedByOwner = true;
+    }
+    if (!acceptedByOwner) return false;
+    try { window.invalidateDashboard?.(reason); } catch (_) {}
+    window.DebtProfileReadBoundary?.acceptDebtRefreshOperations?.(plan.operationIds, { clubId: plan.clubId });
+    return true;
+  } catch (_) { return false; }
+}
+
+function _commitDelete(name, reason, options = {}) {
   if (typeof window === 'undefined') return;
   const key = String(name || '').trim();
   try { window.studentProfileStore?.removeProfile?.(key, reason); } catch (_) {}
@@ -185,9 +243,12 @@ function _commitDelete(name, reason) {
     if (window.__store) window.__store._dataVersion = (window.__store._dataVersion || 0) + 1;
   } catch (_) {}
   try { window.invalidateSearchCache?.('students', reason); } catch (_) {}
-  try { window.refreshListsComputation?.(['students.activeList', 'students.quitList', 'students.debtList', 'dashboard.summary'], reason); } catch (_) {}
-  try { window.invalidateLists?.(['students.activeList', 'students.quitList', 'students.debtList', 'attendance.list'], reason); } catch (_) {}
-  try { window.invalidateDashboard?.(reason); } catch (_) {}
+  if (options.deferStudentsToAuthority !== true) {
+    try { window.refreshListsComputation?.(['students.activeList', 'students.quitList', 'students.debtList', 'dashboard.summary'], reason); } catch (_) {}
+    try { window.invalidateLists?.(['students.activeList', 'students.quitList', 'students.debtList'], reason); } catch (_) {}
+    try { window.invalidateDashboard?.(reason); } catch (_) {}
+  }
+  try { window.invalidateList?.('attendance.list', reason); } catch (_) {}
 }
 
 export const StudentStatusCommandBoundary = Object.freeze({
@@ -202,7 +263,11 @@ export const StudentStatusCommandBoundary = Object.freeze({
       const previous = _getProfile(oldKey);
       const changedFields = _changedProfileFields(previous, updateData);
       const debtAffecting = oldKey !== newKey || _fieldsAffectDebt(changedFields);
-      const syncOperationId = _beginDebtSyncOperation('student.updateProfile', oldKey, debtAffecting);
+      const requiresPrimaryCompletionForDebtRefresh = oldKey !== newKey
+        && _renameNeedsPrimaryCompletionForDebt(previous, txUpdates);
+      const syncOperationId = _beginDebtSyncOperation('student.updateProfile', oldKey, debtAffecting, {
+        requiresPrimaryCompletionForDebtRefresh,
+      });
       const mutate = async () => {
         const svc = _service();
         try {
@@ -210,13 +275,17 @@ export const StudentStatusCommandBoundary = Object.freeze({
           if (oldKey !== newKey) {
             await svc.renameWithBatch(oldKey, newKey, updateData, txUpdates);
             _markDebtSyncOperation(syncOperationId, 'primaryWriteAckAt');
-            _commitRename(oldKey, newKey, updateData, 'v5u1-profile-rename');
+            const profileAckOwned = window.DebtProfileReadBoundary?.isProfileAckOwnedOperation?.(syncOperationId) === true;
+            _commitRename(oldKey, newKey, updateData, 'v5u1-profile-rename', { deferStudentsToAuthority: profileAckOwned });
+            if (profileAckOwned && requiresPrimaryCompletionForDebtRefresh) {
+              _completeReadyDebtRefresh(syncOperationId, 'v5u1-profile-rename-rendezvous');
+            }
           } else {
             await svc.updateProfile(oldKey, updateData);
             _markDebtSyncOperation(syncOperationId, 'primaryWriteAckAt');
             _commitProfilePatch(oldKey, updateData, 'v5u1-profile-update');
           }
-          return { oldName: oldKey, newName: newKey, renamed: oldKey !== newKey, changedFields, debtAffecting };
+          return { oldName: oldKey, newName: newKey, renamed: oldKey !== newKey, changedFields, debtAffecting, requiresPrimaryCompletionForDebtRefresh };
         } catch (error) {
           _cancelDebtSyncOperation(syncOperationId);
           throw error;
@@ -240,7 +309,8 @@ export const StudentStatusCommandBoundary = Object.freeze({
         _markDebtSyncOperation(syncOperationId, 'primaryWriteStart');
         await _service().deleteProfile(key);
         _markDebtSyncOperation(syncOperationId, 'primaryWriteAckAt');
-        _commitDelete(key, 'v5u1-profile-delete');
+        const profileAckOwned = window.DebtProfileReadBoundary?.isProfileAckOwnedOperation?.(syncOperationId) === true;
+        _commitDelete(key, 'v5u1-profile-delete', { deferStudentsToAuthority: profileAckOwned });
         return { name: key };
       } catch (error) { _cancelDebtSyncOperation(syncOperationId); throw error; }
     });

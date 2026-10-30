@@ -25,7 +25,8 @@
  *     → không có Firestore unsub thực
  *
  *   Snapshot invalidation:
- *     → khi allProfiles thay đổi → invalidateByDomain('exam') từ app.js
+ *     → khi Profiles authority server-fresh thay đổi và Exam đang active
+ *       → requestExamPresentationRefresh() dùng chính presentation owner này
  *     → khi transactions thay đổi → invalidateFinance() → exam cũng re-render
  *       vì examExpense dùng allTransactions
  *
@@ -61,6 +62,114 @@ function _examKey(clubId) {
 // ─────────────────────────────────────────────────────────────────
 // PUBLIC API
 // ─────────────────────────────────────────────────────────────────
+
+// R2R5.2B: Exam presentation đã có một scheduler rAF tại owner này. Dùng lại
+// chính scheduler đó cho Profile→Exam refresh để tab-entry + profile hydration
+// trong cùng turn chỉ tạo một render, không dựng Exam invalidator/scheduler V2.
+let _examRenderScheduled = false;
+let _pendingExamRenderReason = '';
+let _pendingProfileAuthorityToken = '';
+let _lastRenderedProfileAuthorityToken = '';
+
+function _isExamActive() {
+    return typeof window.getCurrentActiveTabId === 'function'
+        && window.getCurrentActiveTabId() === 'exam';
+}
+
+function _profileAuthorityToken(explicit = null) {
+    if (explicit && typeof explicit === 'object') {
+        const clubId = String(explicit.clubId || '');
+        const sessionEpoch = explicit.sessionEpoch ?? '';
+        const ownerUid = String(explicit.ownerUid || '');
+        const version = Number(explicit.version);
+        if (clubId && ownerUid && Number.isFinite(version)) {
+            return `${clubId}|${sessionEpoch}|${ownerUid}|${version}`;
+        }
+    }
+    try {
+        const m = typeof window.getProfilesListenerMetrics === 'function'
+            ? window.getProfilesListenerMetrics() : null;
+        if (!m) return '';
+        const clubId = String(m.authorityClubId || m.clubId || '');
+        const ownerUid = String(m.activeOwnerUid || '');
+        const version = Number(m.authoritySnapshotVersion);
+        if (!clubId || !ownerUid || !Number.isFinite(version)) return '';
+        return `${clubId}|${m.authoritySessionEpoch ?? ''}|${ownerUid}|${version}`;
+    } catch (_) {
+        return '';
+    }
+}
+
+function _triggerExamRender(reason, { dedupeProfileAuthority = false, profileAuthority = null } = {}) {
+    // Keep the canonical Exam owner explicit: inherited recovery gates and tab-entry
+    // semantics require _triggerExamRender itself to own the direct presentation call.
+    const _renderCurrentExam = () => {
+        if (typeof window.renderExamList === 'function') window.renderExamList();
+        if (typeof window.updateNextBeltPreview === 'function') window.updateNextBeltPreview();
+    };
+
+    if (!_isExamActive()) return { accepted: false, reason: 'exam-not-active' };
+
+    const token = _profileAuthorityToken(profileAuthority);
+    if (dedupeProfileAuthority && token && token === _lastRenderedProfileAuthorityToken && !_examRenderScheduled) {
+        return { accepted: true, deduped: true };
+    }
+
+    _pendingExamRenderReason = reason || 'exam-refresh';
+    if (token) _pendingProfileAuthorityToken = token;
+    if (_examRenderScheduled) return { accepted: true, coalesced: true };
+
+    _examRenderScheduled = true;
+    try {
+        requestAnimationFrame(function() {
+            _examRenderScheduled = false;
+            // Canonical active-tab authority is rechecked at execution time. If
+            // the user left Exam before paint, hidden Exam does zero DOM work;
+            // the normal tab-entry owner will render latest RAM when reopened.
+            if (!_isExamActive()) {
+                _pendingExamRenderReason = '';
+                _pendingProfileAuthorityToken = '';
+                return;
+            }
+
+            const renderReason = _pendingExamRenderReason || reason || 'exam-refresh';
+            const pendingToken = _pendingProfileAuthorityToken;
+            _pendingExamRenderReason = '';
+            _pendingProfileAuthorityToken = '';
+
+            _renderCurrentExam();
+
+            _lastRenderedProfileAuthorityToken = _profileAuthorityToken() || pendingToken || '';
+            if (window.__store) {
+                window.__store._lastExamRenderReason = renderReason;
+                window.__store._lastExamRenderAt = Date.now();
+                window.__store._lastExamProfileAuthorityToken = _lastRenderedProfileAuthorityToken;
+            }
+        });
+    } catch (e) {
+        _examRenderScheduled = false;
+        _pendingExamRenderReason = '';
+        _pendingProfileAuthorityToken = '';
+        console.warn('[exam.listeners] direct render failed:', e);
+        return { accepted: false, reason: 'schedule-failed' };
+    }
+    return { accepted: true };
+}
+
+/**
+ * Route một Profiles server-fresh authority change tới existing Exam
+ * presentation owner. Không đọc Firestore, không render khi Exam hidden.
+ *
+ * @param {string} reason
+ * @param {{clubId?:string,sessionEpoch?:number|string,ownerUid?:string,version?:number}} [profileAuthority]
+ * @returns {{accepted:boolean,coalesced?:boolean,deduped?:boolean,reason?:string}}
+ */
+export function requestExamPresentationRefresh(reason = 'profiles-server-fresh', profileAuthority = null) {
+    return _triggerExamRender(reason, {
+        dedupeProfileAuthority: true,
+        profileAuthority,
+    });
+}
 
 /**
  * Mount exam tab listeners.
@@ -108,34 +217,4 @@ export function mountExamListeners(context = {}) {
 export function cleanupExamListeners(reason = 'tab-leave') {
     const clubId = (window.__store && window.__store.clubId) || 'unknown';
     removeListener(_examKey(clubId), reason);
-}
-
-// ─────────────────────────────────────────────────────────────────
-// PRIVATE HELPERS
-// ─────────────────────────────────────────────────────────────────
-
-/**
- * Trigger render exam sau khi mount/remount.
- * @param {string} reason
- */
-function _triggerExamRender(reason) {
-    // Phase 4K-6A-B: call renderExamList directly — invalidateByDomain('exam') not supported
-    try {
-        requestAnimationFrame(function() {
-            if (typeof window.renderExamList === 'function') {
-                window.renderExamList();
-            }
-
-            if (typeof window.updateNextBeltPreview === 'function') {
-                window.updateNextBeltPreview();
-            }
-
-            if (window.__store) {
-                window.__store._lastExamRenderReason = reason || '';
-                window.__store._lastExamRenderAt = Date.now();
-            }
-        });
-    } catch (e) {
-        console.warn('[exam.listeners] direct render failed:', e);
-    }
 }

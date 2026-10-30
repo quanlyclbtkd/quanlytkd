@@ -140,7 +140,6 @@ export function initInventory() {
         // Phase 4K-4D: Sync vào __store để classifyInventoryFinanceTx đọc được
         if (!window.__store) window.__store = {};
         window.__store.invCustomCategories = window.invCustomCategories || [];
-        window.__store._inventoryCategoryVersion = (window.__store._inventoryCategoryVersion || 0) + 1;
         window.__store._dataVersion = (window.__store._dataVersion || 0) + 1;
         window.__store._lastDataVersionReason = 'loadInvCategories';
 
@@ -258,8 +257,7 @@ export function initInventory() {
             // Phase 4K-4D: Sync vào __store
             if (!window.__store) window.__store = {};
             window.__store.invCustomCategories = updatedList;
-            window.__store._inventoryCategoryVersion = (window.__store._inventoryCategoryVersion || 0) + 1;
-            window.__store._dataVersion = (window.__store._dataVersion || 0) + 1;
+                window.__store._dataVersion = (window.__store._dataVersion || 0) + 1;
             window.__store._lastDataVersionReason = 'addInvCategory';
             if (nameEl)  nameEl.value  = '';
             if (sizesEl) sizesEl.value = '';
@@ -298,8 +296,7 @@ export function initInventory() {
             // Phase 4K-4D: Sync vào __store
             if (!window.__store) window.__store = {};
             window.__store.invCustomCategories = updatedList;
-            window.__store._inventoryCategoryVersion = (window.__store._inventoryCategoryVersion || 0) + 1;
-            window.__store._dataVersion = (window.__store._dataVersion || 0) + 1;
+                window.__store._dataVersion = (window.__store._dataVersion || 0) + 1;
             window.__store._lastDataVersionReason = 'deleteInvCategory';
             window.populateInvCategorySelects();
             window.renderManageCatList();

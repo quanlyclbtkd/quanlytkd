@@ -46,6 +46,7 @@ import {
     classifyProfileStatus,
 } from '../data/profileStatusConfig.js';
 import { getListenerMetrics } from '../utils/listeners.js';
+import { requestExamPresentationRefresh } from './exam.listeners.js';
 
 // ── Backward compat aliases (Phase 3.7B callers dùng tên cũ) ──────────────
 export { getActiveQueryValues as getActiveStatusValues };
@@ -389,7 +390,7 @@ function _syncLegacy() {
 }
 
 /**
- * Invalidate students + dashboard + attendance + exam + tuition + debt render.
+ * Invalidate students + dashboard + attendance + tuition + debt render.
  *
  * Phase 4K-DATA-HYDRATION: Thêm tuition + debt + finance — đảm bảo Học Phí (0) /
  * Báo Nợ (0) tự cập nhật khi profiles hydrate về sau login.
@@ -398,13 +399,14 @@ function _syncLegacy() {
 function _invalidateAll(reason, options = {}) {
     if (_isCoachContext()) {
         if (typeof window.invalidateByDomain === 'function') window.invalidateByDomain('attendance', reason);
-        return;
+        return { studentsRefreshAccepted: false };
     }
     // R2R5.1-SYNC: a tracked local mutation whose changed fields cannot affect
     // Students/Debt presentation must not trigger an unrelated heavy Students pass.
     // Untracked/external snapshots remain conservative and keep the old full route.
     const syncPlan = options?.syncPlan || null;
     const refreshStudents = !syncPlan?.tracked || syncPlan.affectsDebt === true;
+    let studentsRefreshAccepted = false;
     if (refreshStudents) {
         if (typeof window.invalidateLists === 'function') {
             window.invalidateLists([
@@ -412,14 +414,15 @@ function _invalidateAll(reason, options = {}) {
                 'students.debtList',
                 'students.quitList',
             ], reason);
+            studentsRefreshAccepted = true;
         } else if (typeof window.invalidateStudents === 'function') {
             window.invalidateStudents(reason);
+            studentsRefreshAccepted = true;
         }
         if (typeof window.invalidateDashboard === 'function') window.invalidateDashboard(reason);
     }
     if (typeof window.invalidateByDomain  === 'function') {
         window.invalidateByDomain('attendance', reason);
-        window.invalidateByDomain('exam',       reason);
         // Tuition compatibility route retained. Debt is already refreshed above
         // by the canonical students.debtList owner; do not schedule it twice.
         window.invalidateByDomain('tuition',    reason);
@@ -430,6 +433,24 @@ function _invalidateAll(reason, options = {}) {
     if (typeof window.invalidateList === 'function' && typeof window.invalidateLists !== 'function') {
         window.invalidateList('students.activeList', reason);
     }
+    return { studentsRefreshAccepted };
+}
+
+/**
+ * R2R5.2B — Profile server authority → existing Exam presentation owner.
+ * This is presentation routing only: no Firestore read/listener/write and no
+ * Exam business calculation. requestExamPresentationRefresh() itself enforces
+ * canonical active-tab authority and coalesces tab-entry/hydration work.
+ * @private
+ */
+function _routeExamFromProfileAuthority(reason, clubId) {
+    if (_isCoachContext()) return { accepted: false, reason: 'coach-no-exam' };
+    return requestExamPresentationRefresh(reason || 'profiles-server-fresh', {
+        clubId: String(clubId || _state.authorityClubId || ''),
+        sessionEpoch: _state.authoritySessionEpoch,
+        ownerUid: String(_state.activeOwnerUid || ''),
+        version: _state.authoritySnapshotVersion,
+    });
 }
 
 /**
@@ -937,6 +958,12 @@ export function mountActiveProfilesListener(context) {
                     _state.activeListenerMounted = true;
                     _state.lastProfilesMode      = 'full-profiles-authoritative';
 
+                    // R2R5.2B: the old invalidateByDomain('exam') route is not a
+                    // supported Exam presentation handler. Route only confirmed
+                    // profile authority to the existing Exam presentation owner;
+                    // hidden Exam remains zero-DOM-work and tab-entry renders RAM.
+                    _routeExamFromProfileAuthority('full-profiles-authoritative-snapshot', clubId);
+
                     // Initial snapshot is complete even when the club has zero profiles.
                     if (!isCoach && _state.activeSnapshotCount === 1 && !_state.dashboardHydrationReconciled &&
                         typeof window._moduleDashboard?.reconcileHydrationEvidence === 'function') {
@@ -969,7 +996,12 @@ export function mountActiveProfilesListener(context) {
                             window.DebtProfileReadBoundary?.clearFreshSyncOperations?.({ clubId });
                         }
                     } catch (_) {}
-                    _invalidateAll('full-profiles-authoritative-snapshot', { syncPlan: _syncPlan });
+                    const _invalidateResult = _invalidateAll('full-profiles-authoritative-snapshot', { syncPlan: _syncPlan });
+                    if (_syncPlan?.affectsDebt && _invalidateResult?.studentsRefreshAccepted) {
+                        try {
+                            window.DebtProfileReadBoundary?.acceptDebtRefreshOperations?.(_syncPlan.operationIds, { clubId });
+                        } catch (_) {}
+                    }
                     if (!isCoach && typeof window.scheduleAutomaticDebtProfileCoverage === 'function') {
                         window.scheduleAutomaticDebtProfileCoverage('full-profiles-authoritative-snapshot');
                     }
@@ -1694,6 +1726,11 @@ export async function loadFullProfilesFallback(reason) {
         _state.quitAuthorityDirtyReason = '';
         _state.quitAuthorityDocsRead = snap.size || 0;
 
+        // R2R5.2B: emergency full server authority follows the same presentation
+        // route as realtime authority. Cache-only fallback returned above and can
+        // never call this path.
+        _routeExamFromProfileAuthority('full-profiles-fallback', clubId);
+
         // V5U6C2: if the initial status query needed its existing full fallback,
         // replace the provisional zero/incomplete hydration evidence with the
         // complete classified active set. This remains RAM-only for Dashboard.
@@ -1736,11 +1773,9 @@ export async function loadFullProfilesFallback(reason) {
             else if (_tab === 'dashboard') _keys = ['dashboard.summary'];
             else                           _keys = ['students.activeList', 'students.debtList', 'students.quitList'];
 
-            if (typeof window.refreshListsComputation === 'function') {
-                window.refreshListsComputation(_keys, 'full-profiles-fallback-tab-aware');
-            }
-
-            if (typeof window.invalidateList === 'function') {
+            if (typeof window.invalidateLists === 'function') {
+                window.invalidateLists(_keys, 'full-profiles-fallback-tab-aware');
+            } else if (typeof window.invalidateList === 'function') {
                 _keys.forEach(k => window.invalidateList(k, 'full-profiles-fallback-tab-aware'));
             } else if (typeof window.invalidateCurrentTab === 'function') {
                 window.invalidateCurrentTab('full-profiles-fallback-tab-aware');

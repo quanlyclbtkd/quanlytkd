@@ -1995,19 +1995,14 @@ export function initStudentPagination() {
                         _keys.push('students.quitList');
                     }
 
-                    // Bước 1: Refresh computation cache trước
-                    if (typeof window.refreshListsComputation === 'function') {
-                        window.refreshListsComputation(_keys, 'students-pagination-loaded');
-                    } else if (typeof window.refreshListComputation === 'function') {
-                        _keys.forEach(k => window.refreshListComputation(k, 'students-pagination-loaded'));
-                    }
-
-                    // Bước 2: Sau khi cache đã có, mới invalidate để render island dùng cache
-                    if (typeof window.invalidateList === 'function') {
-                        window.invalidateList('students.activeList', 'students-pagination-loaded');
-                        if (_curTabId === 'quit') {
-                            window.invalidateList('students.quitList', 'students-pagination-loaded');
-                        }
+                    // R2R5.2 B3: one existing batch owner computes the Students domain
+                    // synchronously, then renders every requested visible island.
+                    const _studentKeys = ['students.activeList'];
+                    if (_curTabId === 'quit') _studentKeys.push('students.quitList');
+                    if (typeof window.invalidateLists === 'function') {
+                        window.invalidateLists(_studentKeys, 'students-pagination-loaded');
+                    } else if (typeof window.invalidateList === 'function') {
+                        _studentKeys.forEach(k => window.invalidateList(k, 'students-pagination-loaded'));
                     } else if (typeof window.invalidateStudents === 'function') {
                         window.invalidateStudents('students-pagination-loaded');
                     } else if (typeof window.scheduleRender === 'function') {
@@ -2180,16 +2175,8 @@ export function initStudentPagination() {
                             return;
                         }
 
-                        if (typeof window.refreshListsComputation === 'function') {
-                            window.refreshListsComputation([
-                                'students.debtList',
-                                'tx.txList',
-                                'inventory.inventoryList',
-                                'inventory.uniformTxList',
-                                'dashboard.summary',
-                            ], 'global-search-change-non-student-tab-legacy');
-                        }
-
+                        // R2R5.2 B3: render only the active legacy tab; its canonical
+                        // invalidator owns the required computation for the new search context.
                         if (tab === 'debt' && typeof window.invalidateList === 'function') {
                             window.invalidateList('students.debtList', 'debt-search-change');
                         } else if (typeof window.invalidateCurrentTab === 'function') {
@@ -2430,9 +2417,6 @@ window.bindDebtOverdueFilter = function bindDebtOverdueFilter() {
             window.__store._debtOverdueFilter = el.value || 'all';
             window.__store._dataVersion = (window.__store._dataVersion || 0) + 1;
         }
-        if (typeof window.refreshListsComputation === 'function') {
-            window.refreshListsComputation(['students.debtList', 'dashboard.summary'], 'debt-overdue-filter-change');
-        }
         if (typeof window.invalidateList === 'function') {
             window.invalidateList('students.debtList', 'debt-overdue-filter-change');
         } else if (typeof window.invalidateStudents === 'function') {
@@ -2531,9 +2515,6 @@ window.bindActiveNewStudentFilterUI = function bindActiveNewStudentFilterUI(reas
             window.resetActiveRenderLimit('active-new-filter-change');
         } else if (typeof window.__activeRenderLimit !== 'undefined') {
             window.__activeRenderLimit = 50;
-        }
-        if (typeof window.refreshListsComputation === 'function') {
-            window.refreshListsComputation(['students.activeList', 'dashboard.summary'], 'active-new-filter-change');
         }
         if (typeof window.invalidateList === 'function') {
             window.invalidateList('students.activeList', 'active-new-filter-change');
@@ -2659,6 +2640,8 @@ window.loadMoreDebtRows = async function loadMoreDebtRows(event, step) {
                 window.__store._lastDebtLoadMoreLimit = window.__debtRenderLimit;
             }
 
+            // Legacy acceptance keeps an explicit same-stack pre-refresh here;
+            // invalidateList immediately reuses the fresh semantic signature.
             if (typeof window.refreshListsComputation === 'function') {
                 window.refreshListsComputation(['students.debtList'], 'load-more-debt-rows');
             }
@@ -2701,6 +2684,8 @@ window.loadMoreActiveStudents = async function loadMoreActiveStudents(event, ste
                             window.__store._lastActiveLoadMoreMode  = 'client-limit';
                             window.__store._dataVersion = (window.__store._dataVersion || 0) + 1;
                         }
+                        // Legacy acceptance keeps an explicit same-stack pre-refresh here;
+                        // invalidateList immediately reuses the fresh semantic signature.
                         if (typeof window.refreshListsComputation === 'function') {
                             window.refreshListsComputation(['students.activeList'], 'load-more-active-client-limit');
                         }
@@ -2755,9 +2740,6 @@ window.ensureDebtProfilesReady = async function ensureDebtProfilesReady(reason) 
     st._debtProfileCoverageCheckedAt = Date.now();
 
     if (result?.ready === true && !wasReady) {
-        if (typeof window.refreshListsComputation === 'function') {
-            window.refreshListsComputation(['students.debtList', 'dashboard.summary'], reason);
-        }
         const selectedMonth = document.getElementById('filterMonth')?.value || st.selectedMonth || '';
         if (selectedMonth && typeof window.updateSkippedMonthSection === 'function') {
             try { window.updateSkippedMonthSection(st.profiles || {}, selectedMonth); } catch (_) {}
@@ -2920,11 +2902,9 @@ window.syncStudentStatusLocal = function syncStudentStatusLocal(name, updateData
             window.invalidateSearchCache('students', reason);
         }
 
-        if (typeof window.refreshListsComputation === 'function') {
-            window.refreshListsComputation(['students.activeList', 'students.quitList', 'students.debtList', 'dashboard.summary'], reason);
-        }
-
-        if (typeof window.invalidateList === 'function') {
+        if (typeof window.invalidateLists === 'function') {
+            window.invalidateLists(['students.activeList', 'students.quitList', 'students.debtList'], reason);
+        } else if (typeof window.invalidateList === 'function') {
             window.invalidateList('students.activeList', reason);
             window.invalidateList('students.quitList', reason);
             window.invalidateList('students.debtList', reason);
@@ -2984,12 +2964,6 @@ window.ensureStudentTabRendered = function(tabId, reason) {
     if (!key) return false;
 
     try {
-        if (typeof window.refreshListComputation === 'function') {
-            window.refreshListComputation(key, reason + ':' + tabId);
-        } else if (typeof window.refreshListsComputation === 'function') {
-            window.refreshListsComputation([key], reason + ':' + tabId);
-        }
-
         if (typeof window.invalidateList === 'function') {
             window.invalidateList(key, reason + ':' + tabId);
         }
@@ -3113,15 +3087,14 @@ window.syncStudentSkippedMonthLocal = function(name, month, action, reason) {
     if (typeof window.invalidateSearchCache === 'function') {
         window.invalidateSearchCache('students', reason);
     }
-    if (typeof window.refreshListsComputation === 'function') {
-        window.refreshListsComputation(['students.activeList', 'students.debtList', 'dashboard.summary'], reason);
-    }
     if (typeof window.updateSkippedMonthSection === 'function') {
         try {
             window.updateSkippedMonthSection(window.__store.profiles, month);
         } catch (_) {}
     }
-    if (typeof window.invalidateList === 'function') {
+    if (typeof window.invalidateLists === 'function') {
+        window.invalidateLists(['students.activeList', 'students.debtList'], reason);
+    } else if (typeof window.invalidateList === 'function') {
         window.invalidateList('students.debtList', reason);
         window.invalidateList('students.activeList', reason);
     } else if (typeof window.invalidateStudents === 'function') {

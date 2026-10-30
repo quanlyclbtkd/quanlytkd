@@ -336,10 +336,6 @@ function _applyCachedStudentResult(cached, tab) {
 
         // Phase 4K-2C: Render the correct list based on current tab
         const listKey = tab === 'quit' ? 'students.quitList' : 'students.activeList';
-        const _keys = [listKey, 'dashboard.summary'];
-        if (typeof window.refreshListsComputation === 'function') {
-            window.refreshListsComputation(_keys, 'search-cache-hit');
-        }
         if (typeof window.invalidateList === 'function') {
             window.invalidateList(listKey, 'search-cache-hit');
         } else if (typeof window.invalidateStudents === 'function') {
@@ -425,21 +421,16 @@ async function _dispatchSearch(rawTerm) {
 function _applyInvalidateForTabOnly(tab) {
     const invalidateCurrentTab = typeof window.invalidateCurrentTab === 'function'
         ? window.invalidateCurrentTab : null;
-    const refreshKeys = typeof window.refreshListsComputation === 'function'
-        ? window.refreshListsComputation : null;
 
     if (tab === 'debt') {
-        if (refreshKeys) refreshKeys(['students.debtList'], 'search-cache-hit-debt');
         if (typeof window.invalidateList === 'function') window.invalidateList('students.debtList', 'search-cache-hit');
         return;
     }
     if (tab === 'tx' || tab === 'expense') {
-        if (refreshKeys) refreshKeys(['tx.txList'], 'search-cache-hit-tx');
         if (invalidateCurrentTab) invalidateCurrentTab('search-cache-hit-tx');
         return;
     }
     if (tab === 'inventory') {
-        if (refreshKeys) refreshKeys(['inventory.inventoryList', 'inventory.uniformTxList'], 'search-cache-hit-inv');
         if (invalidateCurrentTab) invalidateCurrentTab('search-cache-hit-inv');
         return;
     }
@@ -456,8 +447,6 @@ async function _applyInvalidateForTab(tab, term, token) {
         ? window.invalidateList : null;
     const invalidateCurrentTab = typeof window.invalidateCurrentTab === 'function'
         ? window.invalidateCurrentTab : null;
-    const refreshKeys = typeof window.refreshListsComputation === 'function'
-        ? window.refreshListsComputation : null;
 
     // Phase 4K-2: Student tabs — server-side pagination search
     if (tab === 'active' || tab === 'quit') {
@@ -483,25 +472,22 @@ async function _applyInvalidateForTab(tab, term, token) {
     }
 
     if (tab === 'debt') {
-        if (refreshKeys) refreshKeys(['students.debtList'], 'search-debt');
         if (invalidateList) invalidateList('students.debtList', 'search-debt');
         return {};
     }
 
     if (tab === 'tx' || tab === 'expense') {
-        if (refreshKeys) refreshKeys(['tx.txList'], 'search-tx');
         if (invalidateCurrentTab) invalidateCurrentTab('search-tx');
         return {};
     }
 
     if (tab === 'inventory') {
-        if (refreshKeys) refreshKeys(['inventory.inventoryList', 'inventory.uniformTxList'], 'search-inventory');
         if (invalidateCurrentTab) invalidateCurrentTab('search-inventory');
         return {};
     }
 
     if (tab === 'dashboard') {
-        if (refreshKeys) refreshKeys(['dashboard.summary'], 'search-dashboard');
+        if (invalidateCurrentTab) invalidateCurrentTab('search-dashboard');
         return {};
     }
 
@@ -602,20 +588,20 @@ function _runLocalOnlySearch(tab, term) {
         _state.localDebtRuns++;
         const st = window.__store || {};
         st._globalSearchTerm = term;
-        if (typeof window.refreshListsComputation === 'function')
-            window.refreshListsComputation(['students.debtList'], 'search-v2-local-debt');
+        if (typeof window.invalidateList === 'function')
+            window.invalidateList('students.debtList', 'search-v2-local-debt');
     } else if (tab === 'tx' || tab === 'expense') {
         _state.localNonStudentRuns++;
         const st = window.__store || {};
         st._globalSearchTerm = term;
-        if (typeof window.refreshListsComputation === 'function')
-            window.refreshListsComputation(['tx.txList'], 'search-v2-local-tx');
+        if (typeof window.invalidateCurrentTab === 'function')
+            window.invalidateCurrentTab('search-v2-local-tx');
     } else if (tab === 'inventory') {
         _state.localNonStudentRuns++;
         const st = window.__store || {};
         st._globalSearchTerm = term;
-        if (typeof window.refreshListsComputation === 'function')
-            window.refreshListsComputation(['inventory.inventoryList', 'inventory.uniformTxList'], 'search-v2-local-inv');
+        if (typeof window.invalidateCurrentTab === 'function')
+            window.invalidateCurrentTab('search-v2-local-inv');
     }
     // For active/quit with 1 char: skip, too broad
 }
@@ -636,17 +622,8 @@ function _clearSearchV2ForTab(tab) {
         window.resetActiveRenderLimit('search-clear');
     }
 
-    if (typeof window.refreshListsComputation === 'function') {
-        window.refreshListsComputation([
-            'students.activeList',
-            'students.quitList',
-            'students.debtList',
-            'tx.txList',
-            'inventory.inventoryList',
-            'inventory.uniformTxList'
-        ], 'search-v2-clear');
-    }
-
+    // R2R5.2 B3: search is presentation context. Refresh only the active tab;
+    // hidden domains will miss naturally on their next semantic context key.
     if (typeof window.invalidateCurrentTab === 'function') {
         window.invalidateCurrentTab('search-v2-clear');
     }
@@ -660,8 +637,6 @@ async function _dispatchSearchV2(term, tab, token) {
         _state.localDebtRuns++;
         const st = window.__store || {};
         st._globalSearchTerm = term;
-        if (typeof window.refreshListsComputation === 'function')
-            window.refreshListsComputation(['students.debtList'], 'search-v2-debt');
         if (typeof window.invalidateList === 'function')
             window.invalidateList('students.debtList', 'search-v2-debt');
         return {};
@@ -669,8 +644,6 @@ async function _dispatchSearchV2(term, tab, token) {
     if (tab === 'tx' || tab === 'expense') {
         const st = window.__store || {};
         st._globalSearchTerm = term;
-        if (typeof window.refreshListsComputation === 'function')
-            window.refreshListsComputation(['tx.txList'], 'search-v2-tx');
         if (typeof window.invalidateCurrentTab === 'function')
             window.invalidateCurrentTab('search-v2-tx');
         return {};
@@ -678,8 +651,6 @@ async function _dispatchSearchV2(term, tab, token) {
     if (tab === 'inventory') {
         const st = window.__store || {};
         st._globalSearchTerm = term;
-        if (typeof window.refreshListsComputation === 'function')
-            window.refreshListsComputation(['inventory.inventoryList', 'inventory.uniformTxList'], 'search-v2-inventory');
         if (typeof window.invalidateCurrentTab === 'function')
             window.invalidateCurrentTab('search-v2-inventory');
         return {};
@@ -728,9 +699,6 @@ async function _searchStudentsV2(term, tab, token) {
             term, tab, total: items.length, returned: items.length,
             source: 'quit-authoritative-boundary', at: Date.now()
         };
-        if (typeof window.refreshListsComputation === 'function') {
-            window.refreshListsComputation(['students.quitList'], 'search-v5q-quit-authority');
-        }
         if (typeof window.invalidateList === 'function') {
             window.invalidateList('students.quitList', 'search-v5q-quit-authority');
         }
@@ -835,8 +803,6 @@ async function _searchStudentsV2(term, tab, token) {
         }
 
         const listKey = tab === 'quit' ? 'students.quitList' : 'students.activeList';
-        if (typeof window.refreshListsComputation === 'function')
-            window.refreshListsComputation([listKey, 'dashboard.summary'], 'search-v2-students-index');
         if (typeof window.invalidateList === 'function')
             window.invalidateList(listKey, 'search-v2-students-index');
         else if (typeof window.invalidateStudents === 'function')
@@ -899,15 +865,6 @@ async function _replaySearchForTab(tabId, options = {}) {
                 window.__store._globalSearchTerm = term;
             }
             await _runSearchLatestOnly(raw, reason, { force, tab });
-            const listKey = _studentTabListKey(tab);
-            if (typeof window.refreshListsComputation === 'function') {
-                window.refreshListsComputation([listKey], reason + '-refresh');
-            }
-            if (typeof window.invalidateList === 'function') {
-                window.invalidateList(listKey, reason + '-invalidate');
-            } else if (typeof window.invalidateCurrentTab === 'function') {
-                window.invalidateCurrentTab(reason + '-invalidate-current');
-            }
             return { ok: true, tab, term, reason, force };
         }
 

@@ -42,11 +42,13 @@
 import {
     computeAndCacheFinance,
     getFinanceSummary,
+    isFinanceSemanticSourceFresh,
 } from "./computation/financeRenderer.js?v=qr-v11r6-a9r16a-r2-sequential-closure-20261025";
 import {
     computeAndCacheStudents,
     getStudentsSummary,
     getStudentsCacheMetrics,
+    isStudentsSemanticSourceFresh,
 } from "./computation/studentsRenderer.js?v=qr-v11r6-a9r17-mobile-layout-qr-20261026";
 import {
     computeAndCacheInventory,
@@ -107,6 +109,7 @@ const _pendingRefreshKeys = new Set();
 const _pendingRefreshReasons = new Set();
 let _pendingRefreshScheduled = false;
 let _pendingRefreshWaiters = [];
+let _pendingRefreshStamp = '';
 let _refreshFlushRunning = false;
 
 // Legacy V4B12-compatible micro reuse remains only as an OPTIONAL second layer
@@ -181,6 +184,39 @@ function _domainSignature(domain) {
     return base.join('|');
 }
 
+
+function _requestContextStamp() {
+    const st = window.__store || {};
+    const auth = window.__verifiedAuthContextState || {};
+    return JSON.stringify([
+        String(st.clubId || st.currentClubId || auth.clubId || ''),
+        String(auth.uid || st.currentUser?.uid || ''),
+        Number(auth.generation || 0),
+        Number(auth.sessionEpoch || 0),
+        Number(auth.authGeneration || 0),
+        _getCurTabId(), _getSelMonth(), _getSelBranch(), _getSearch(),
+        String(st._debtOverdueFilter || ''),
+        typeof window.getActiveStudentNewFilter === 'function'
+            ? window.getActiveStudentNewFilter() : String(window.__activeStudentNewFilter || 'all'),
+        Number(window.studentProfileStore?.version ?? st._profileDataVersion ?? 0),
+        Number(st._transactionsVersion || 0), Number(st._tuitionEvidenceVersion || 0),
+        Number(window.__inventoryStore?.version ?? st._inventoryDataVersion ?? 0),
+        Number(st._inventoryTxVersion || 0), Number(st._settingsVersion || 0),
+        Number(st._inventoryCategoryVersion || 0),
+    ]);
+}
+
+function _retirePendingRefreshAsStale(nextStamp) {
+    if (!_pendingRefreshWaiters.length || !_pendingRefreshStamp || _pendingRefreshStamp === nextStamp) return;
+    const waiters = _pendingRefreshWaiters;
+    _pendingRefreshKeys.clear();
+    _pendingRefreshReasons.clear();
+    _pendingRefreshWaiters = [];
+    const previousStamp = _pendingRefreshStamp;
+    waiters.forEach(resolve => {
+        try { resolve({ refreshed: [], fallback: [], stale: true, dropReason: 'context-changed-before-flush', previousStamp, nextStamp }); } catch (_) {}
+    });
+}
 
 function _canReuseRecentRefresh(domain, signature) {
     try {
@@ -337,32 +373,43 @@ function _refreshInventory() {
 function _cacheAndApplyDashboardSummary(reason) {
     const fin = getFinanceSummary();
     const std = getStudentsSummary();
-    const prev = (window.__store && window.__store._lastSummaryNumbers) || {};
+    const st = window.__store || {};
+    const summaryContextKey = JSON.stringify([
+        String(st.clubId || st.currentClubId || ''),
+        String(_getSelMonth() || ''),
+        String(_getSelBranch() || 'all'),
+        String(_getSearch() || ''),
+        String(st._debtOverdueFilter || ''),
+    ]);
+    const prev = st._lastSummaryNumbers || {};
+    const prevContextKey = String(st._lastSummaryContextKey || '');
+    const sameSummaryContext = !!prevContextKey && prevContextKey === summaryContextKey;
+    const prevForContext = sameSummaryContext ? prev : {};
 
     const _num = (v, fallback = 0) => Number(v ?? fallback) || 0;
 
-    const incTuition    = fin ? _num(fin.incTuition)   : _num(prev.incTuition);
-    const incExam       = fin ? _num(fin.incExam)      : _num(prev.incExam);
-    const incOther      = fin ? _num(fin.incOther)     : _num(prev.incOther);
-    const incUniform    = fin ? _num(fin.incUniform)   : _num(prev.incUniform);
-    const expTotal      = fin ? _num(fin.exp)          : _num(prev.expTotal);
-    const expExamTotal  = fin ? _num(fin.expExamTotal) : _num(prev.expExamTotal);
-    const expUniform    = fin ? _num(fin.expUniform)   : _num(prev.expUniform);
-    const txCount       = fin ? _num(fin.txCount)      : prev.txCount;
+    const incTuition    = fin ? _num(fin.incTuition)   : _num(prevForContext.incTuition);
+    const incExam       = fin ? _num(fin.incExam)      : _num(prevForContext.incExam);
+    const incOther      = fin ? _num(fin.incOther)     : _num(prevForContext.incOther);
+    const incUniform    = fin ? _num(fin.incUniform)   : _num(prevForContext.incUniform);
+    const expTotal      = fin ? _num(fin.exp)          : _num(prevForContext.expTotal);
+    const expExamTotal  = fin ? _num(fin.expExamTotal) : _num(prevForContext.expExamTotal);
+    const expUniform    = fin ? _num(fin.expUniform)   : _num(prevForContext.expUniform);
+    const txCount       = fin ? _num(fin.txCount)      : prevForContext.txCount;
 
-    const activeCount   = std ? _num(std.activeCount)    : _num(prev.activeCount);
+    const activeCount   = std ? _num(std.activeCount)    : _num(prevForContext.activeCount);
     const debtSummaryPending = std?.debtSummaryPending !== false;
     const debtCount     = debtSummaryPending ? null : _num(std.debtCount);
     const totalDebtEst  = debtSummaryPending ? null : _num(std.totalDebtEst);
-    const mActiveTheo   = std ? _num(std.m_active_theo)  : _num(prev.activeCount);
+    const mActiveTheo   = std ? _num(std.m_active_theo)  : _num(prevForContext.activeCount);
     const mNew          = std ? _num(std.m_new)          : 0;
     const mQuit         = std ? _num(std.m_quit)         : 0;
     const mSkipped      = std ? _num(std.m_skipped)      : 0;
     const unpaidInvCount = typeof getCachedUnpaidInvCount === 'function'
         ? _num(getCachedUnpaidInvCount())
-        : _num(prev.unpaidInvCount);
+        : _num(prevForContext.unpaidInvCount);
 
-    const selMonth = _getSelMonth() || prev.selMonth || '';
+    const selMonth = _getSelMonth() || prevForContext.selMonth || '';
     const tInc = incTuition + incOther + incExam + incUniform;
     const tExp = expTotal + expExamTotal + expUniform;
     const mActual = mActiveTheo - mSkipped;
@@ -419,20 +466,31 @@ function _cacheAndApplyDashboardSummary(reason) {
         summaryNumbers.incUniform  === 0;
 
     const prevLooksNonEmpty =
-        Number(prev.activeCount  || 0) > 0 ||
-        Number(prev.debtCount    || 0) > 0 ||
-        Number(prev.txCount      || 0) > 0 ||
-        Number(prev.incTuition   || 0) > 0 ||
-        Number(prev.incExam      || 0) > 0 ||
-        Number(prev.incOther     || 0) > 0 ||
-        Number(prev.incUniform   || 0) > 0;
+        Number(prevForContext.activeCount  || 0) > 0 ||
+        Number(prevForContext.debtCount    || 0) > 0 ||
+        Number(prevForContext.txCount      || 0) > 0 ||
+        Number(prevForContext.incTuition   || 0) > 0 ||
+        Number(prevForContext.incExam      || 0) > 0 ||
+        Number(prevForContext.incOther     || 0) > 0 ||
+        Number(prevForContext.incUniform   || 0) > 0;
 
-    if (incomingLooksEmpty && prevLooksNonEmpty && reason !== 'logout' && reason !== 'reset') {
-        console.warn('[DashboardSummary] Skip all-zero overwrite — keeping real previous data. reason:', reason);
-        return /** @type {any} */ (prev);
+    const txCoverage = st.transactionCoverage || {};
+    let debtCoverage = null;
+    try { debtCoverage = window.getDebtProfileCoverageStatus?.() || null; } catch (_) {}
+    const financeAuthorityComplete = txCoverage.complete === true && isFinanceSemanticSourceFresh();
+    const studentsAuthorityComplete = (debtCoverage?.presentationState === 'FRESH' || debtCoverage?.ready === true)
+        && isStudentsSemanticSourceFresh();
+    const authoritativeCurrentContext = financeAuthorityComplete && studentsAuthorityComplete;
+
+    if (incomingLooksEmpty && prevLooksNonEmpty && reason !== 'logout' && reason !== 'reset' &&
+        sameSummaryContext && !authoritativeCurrentContext) {
+        console.warn('[DashboardSummary] Incomplete all-zero ignored for same context. reason:', reason);
+        return /** @type {any} */ (prevForContext);
     }
+    // Verified true-zero is authoritative data. A previous context never authorizes
+    // or suppresses the current one, and cross-context fallback is forbidden above.
 
-    // Write to cache only after guard passes
+    // Write to cache only after authority/context guard passes
     cacheDashboardData({
         reportHtml,
         chartData,
@@ -443,6 +501,7 @@ function _cacheAndApplyDashboardSummary(reason) {
 
     if (window.__store) {
         window.__store._lastSummaryNumbers = summaryNumbers;
+        window.__store._lastSummaryContextKey = summaryContextKey;
         window.__store._lastBStats = bStats;
         window.__store._lastBExamStats = bExamStats;
         window.__store._lastIncExam = incExam;
@@ -716,6 +775,7 @@ function _flushPendingRefreshRequests() {
     _pendingRefreshKeys.clear();
     _pendingRefreshReasons.clear();
     _pendingRefreshWaiters = [];
+    _pendingRefreshStamp = '';
     let result;
     try {
         // IMPORTANT: all source/context readers run now, at flush time. No stale
@@ -740,6 +800,12 @@ function _flushPendingRefreshRequests() {
 export function requestListsComputation(keys, reason = 'r2r5-request') {
     const list = Array.isArray(keys) ? keys.filter(Boolean) : [];
     if (!list.length) return Promise.resolve({ refreshed: [], fallback: [] });
+    const stamp = _requestContextStamp();
+    // R2R5.2 B3: requests from different source/presentation contexts are never
+    // merged into one pre-compute batch. The obsolete pending request is retired
+    // before heavy computation; the latest request owns the next flush.
+    _retirePendingRefreshAsStale(stamp);
+    _pendingRefreshStamp = stamp;
     list.forEach(key => _pendingRefreshKeys.add(key));
     if (reason) _pendingRefreshReasons.add(String(reason));
     const promise = new Promise(resolve => _pendingRefreshWaiters.push(resolve));

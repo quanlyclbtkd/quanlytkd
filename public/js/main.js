@@ -4843,17 +4843,9 @@ window.handleFilterMonthChange = async function(month, reason) {
         catch (e) { console.warn('[month-change] reloadTransactionsPage failed:', e); }
     }
 
-    // 4. Refresh computation đúng domain
-    if (typeof window.refreshListsComputation === 'function') {
-        try {
-            window.refreshListsComputation([
-                'tx.txList', 'students.debtList',
-                'students.activeList', 'dashboard.summary',
-            ], 'filter-month-change');
-        } catch (e) { console.warn('[month-change] refreshListsComputation failed:', e); }
-    }
-
-    // 5. Invalidate finance/students/dashboard
+    // R2R5.2 B3: canonical invalidators below own computation scheduling.
+    // Do not pre-compute the same domains before invalidation.
+    // 4. Invalidate finance/students/dashboard
     if (typeof window.invalidateFinance   === 'function') window.invalidateFinance('filter-month-change');
     if (typeof window.invalidateStudents  === 'function') window.invalidateStudents('filter-month-change');
     if (typeof window.invalidateDashboard === 'function') {
@@ -4987,10 +4979,7 @@ window.mergeTransactionIntoRuntimeStore = function(tx, reason) {
     st._lastTransactionMergeReason = reason;
     st._lastTransactionMergeAt     = Date.now();
 
-    // Invalidate renders
-    if (typeof window.refreshListsComputation === 'function') {
-        window.refreshListsComputation(['tx.txList', 'dashboard.summary'], reason);
-    }
+    // R2R5.2 B3: invalidateList is the synchronous computation+render owner.
     if (typeof window.invalidateList === 'function') {
         window.invalidateList('tx.txList', reason);
     } else if (typeof window.invalidateFinance === 'function') {

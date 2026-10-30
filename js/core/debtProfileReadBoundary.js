@@ -185,7 +185,7 @@
 
     // R2R5.1-SYNC diagnostics live inside the existing Debt coverage owner.
     // They are RAM-only and deliberately store an anonymized profile token.
-    const _syncDiag = { seq: 0, active: new Map(), history: [] };
+    const _syncDiag = { seq: 0, active: new Map(), refreshPlanning: new Set(), history: [] };
     function _anonProfileId(value) {
         const text = String(value || '');
         let h = 2166136261;
@@ -195,6 +195,28 @@
     function _selectedMonth() {
         try { return String(global.document?.getElementById?.('filterMonth')?.value || global.__store?.selectedMonth || ''); }
         catch (_) { return String(global.__store?.selectedMonth || ''); }
+    }
+    function _debtContextKey() {
+        const st = global.__store || {};
+        const read = id => { try { return String(global.document?.getElementById?.(id)?.value || ''); } catch (_) { return ''; } };
+        let overdue = '';
+        try { overdue = String(global.getDebtOverdueFilterValue?.() ?? st._debtOverdueFilter ?? ''); } catch (_) { overdue = String(st._debtOverdueFilter || ''); }
+        return JSON.stringify([
+            String(context().clubId || ''),
+            _selectedMonth(),
+            read('filterBranch') || String(st.selectedBranch || 'all'),
+            read('searchInput') || String(st.search || ''),
+            overdue,
+        ]);
+    }
+    function _sameOperationAuthorityAndContext(row) {
+        const auth = global.__verifiedAuthContextState || {};
+        const ctx = context();
+        return !!row
+            && String(row.club || '') === String(ctx.clubId || '')
+            && Number(row.authGeneration || 0) === Number(auth.generation || 0)
+            && String(row.ownerUidToken || '') === _anonProfileId(auth.uid || '')
+            && String(row.debtContextKey || '') === _debtContextKey();
     }
     function beginSyncOperation(meta) {
         const ctx = context();
@@ -206,6 +228,14 @@
             club: String(ctx.clubId || ''),
             month: String(meta?.month || _selectedMonth()),
             affectsDebt: meta?.affectsDebt !== false,
+            requiresPrimaryCompletionForDebtRefresh: meta?.requiresPrimaryCompletionForDebtRefresh === true,
+            planningState: 'WAITING_FOR_REQUIRED_EVIDENCE',
+            canonicalRefreshAcceptedAt: null,
+            retiredFromPlanningAt: null,
+            planningRetireReason: '',
+            authGeneration: Number(global.__verifiedAuthContextState?.generation || 0),
+            ownerUidToken: _anonProfileId(global.__verifiedAuthContextState?.uid || ''),
+            debtContextKey: _debtContextKey(),
             actionStart: now(),
             primaryWriteStart: null,
             profilePendingSnapshotAt: null,
@@ -218,6 +248,7 @@
             syncClearedAt: null,
         };
         _syncDiag.active.set(id, row);
+        if (row.affectsDebt === true) _syncDiag.refreshPlanning.add(id);
         return id;
     }
     function markSyncStage(operationId, stage) {
@@ -231,17 +262,83 @@
     function markActiveSyncStage(stage, options) {
         const clubId = String(options?.clubId || context().clubId || '');
         const onlyDebt = options?.onlyDebt === true;
+        const diagnosticStage = stage === 'debtComputeStartAt' || stage === 'debtComputeEndAt' || stage === 'debtRenderAt';
         const rows = [];
-        for (const row of _syncDiag.active.values()) {
+        const eligible = [];
+        const ts = now();
+
+        if (diagnosticStage) {
+            const candidates = [
+                ..._syncDiag.active.values(),
+                ..._syncDiag.history.filter(row => row.canonicalRefreshAcceptedAt != null && row.syncClearedAt == null),
+            ];
+            for (const row of candidates) {
+                if ((clubId && row.club !== clubId) || (onlyDebt && row.affectsDebt !== true)) continue;
+                if (Object.prototype.hasOwnProperty.call(row, stage) && row[stage] == null) row[stage] = ts;
+                rows.push(row);
+            }
+            return { tracked: rows.length > 0, affectsDebt: rows.some(row => row.affectsDebt === true), operationIds: rows.map(row => row.operationId), waitingOperationIds: [] };
+        }
+
+        for (const [id, row] of Array.from(_syncDiag.active.entries())) {
             if (row.syncClearedAt != null || (clubId && row.club !== clubId) || (onlyDebt && row.affectsDebt !== true)) continue;
-            if (Object.prototype.hasOwnProperty.call(row, stage) && row[stage] == null) row[stage] = now();
+            const planningAuthoritative = row.affectsDebt !== true || _syncDiag.refreshPlanning.has(id);
+            if (!planningAuthoritative) continue;
+            if (row.affectsDebt === true && !_sameOperationAuthorityAndContext(row)) {
+                row.planningState = 'RETIRED_FROM_PLANNING';
+                row.retiredFromPlanningAt = ts;
+                row.planningRetireReason = 'authority-or-context-changed';
+                row.syncClearedAt = row.syncClearedAt || ts;
+                _syncDiag.refreshPlanning.delete(id);
+                _syncDiag.history.push({ ...row });
+                _syncDiag.active.delete(id);
+                continue;
+            }
+            if (Object.prototype.hasOwnProperty.call(row, stage) && row[stage] == null) row[stage] = ts;
+            if (row.affectsDebt === true && row.profileServerFreshAt != null &&
+                (!row.requiresPrimaryCompletionForDebtRefresh || row.primaryWriteAckAt != null)) {
+                row.planningState = 'READY_TO_REFRESH';
+                eligible.push(row);
+            }
             rows.push(row);
         }
+        if (_syncDiag.history.length > 80) _syncDiag.history.splice(0, _syncDiag.history.length - 80);
         return {
             tracked: rows.length > 0,
-            affectsDebt: rows.some(row => row.affectsDebt === true),
-            operationIds: rows.map(row => row.operationId),
+            affectsDebt: eligible.some(row => row.affectsDebt === true),
+            operationIds: eligible.map(row => row.operationId),
+            waitingOperationIds: rows.filter(row => row.affectsDebt === true && !eligible.includes(row)).map(row => row.operationId),
         };
+    }
+    function getOperationRefreshPlan(operationId) {
+        const id = String(operationId || '');
+        const row = _syncDiag.active.get(id);
+        if (!row || row.affectsDebt !== true || !_syncDiag.refreshPlanning.has(id) || !_sameOperationAuthorityAndContext(row)) return { ready: false, operationIds: [] };
+        const ready = row.profileServerFreshAt != null && (!row.requiresPrimaryCompletionForDebtRefresh || row.primaryWriteAckAt != null);
+        if (ready) row.planningState = 'READY_TO_REFRESH';
+        return { ready, clubId: row.club, operationIds: ready ? [id] : [], contextKey: row.debtContextKey };
+    }
+    function acceptDebtRefreshOperations(operationIds, options) {
+        const clubId = String(options?.clubId || context().clubId || '');
+        const ids = new Set(Array.isArray(operationIds) ? operationIds.map(String) : []);
+        const accepted = [];
+        const ts = now();
+        for (const id of ids) {
+            const row = _syncDiag.active.get(id);
+            if (!row || row.affectsDebt !== true || !_syncDiag.refreshPlanning.has(id) || (clubId && row.club !== clubId)) continue;
+            if (!_sameOperationAuthorityAndContext(row)) continue;
+            if (row.profileServerFreshAt == null || (row.requiresPrimaryCompletionForDebtRefresh && row.primaryWriteAckAt == null)) continue;
+            row.canonicalRefreshAcceptedAt = row.canonicalRefreshAcceptedAt || ts;
+            row.retiredFromPlanningAt = row.retiredFromPlanningAt || ts;
+            row.planningRetireReason = 'canonical-refresh-accepted';
+            row.planningState = 'RETIRED_FROM_PLANNING';
+            _syncDiag.refreshPlanning.delete(id);
+            _syncDiag.history.push({ ...row });
+            _syncDiag.active.delete(id);
+            accepted.push(id);
+        }
+        if (_syncDiag.history.length > 80) _syncDiag.history.splice(0, _syncDiag.history.length - 80);
+        return accepted;
     }
     function clearFreshSyncOperations(options) {
         const clubId = String(options?.clubId || context().clubId || '');
@@ -250,8 +347,13 @@
             if (row.syncClearedAt != null || (clubId && row.club !== clubId)) continue;
             if (row.affectsDebt === true && row.debtRenderAt == null) continue;
             row.syncClearedAt = ts;
+            _syncDiag.refreshPlanning.delete(id);
             _syncDiag.history.push({ ...row });
             _syncDiag.active.delete(id);
+        }
+        for (const row of _syncDiag.history) {
+            if (row.syncClearedAt != null || (clubId && row.club !== clubId)) continue;
+            if (row.canonicalRefreshAcceptedAt != null && row.debtRenderAt != null) row.syncClearedAt = ts;
         }
         if (_syncDiag.history.length > 80) _syncDiag.history.splice(0, _syncDiag.history.length - 80);
     }
@@ -273,13 +375,18 @@
         const row = _syncDiag.active.get(id);
         if (!row) return false;
         row.syncClearedAt = row.syncClearedAt || now();
+        _syncDiag.refreshPlanning.delete(id);
         _syncDiag.history.push({ ...row, cancelled: true });
         _syncDiag.active.delete(id);
         if (_syncDiag.history.length > 80) _syncDiag.history.splice(0, _syncDiag.history.length - 80);
         return true;
     }
     function getSyncDiagnostics() {
-        return { active: Array.from(_syncDiag.active.values(), row => ({ ...row })), history: _syncDiag.history.map(row => ({ ...row })) };
+        return {
+            active: Array.from(_syncDiag.active.values(), row => ({ ...row })),
+            refreshPlanningOperationIds: Array.from(_syncDiag.refreshPlanning),
+            history: _syncDiag.history.map(row => ({ ...row })),
+        };
     }
 
     function queryForStatuses(ref, values, sdk) {
@@ -703,6 +810,7 @@
         _state.fullFallbackReady = false;
         _state.countAuditDisabledUntil = 0;
         _syncDiag.active.clear();
+        _syncDiag.refreshPlanning.clear();
         global.__debtProfileCoverageLocalLock = false;
     }
 
@@ -775,6 +883,8 @@
         beginSyncOperation,
         markSyncStage,
         markActiveSyncStage,
+        getOperationRefreshPlan,
+        acceptDebtRefreshOperations,
         clearFreshSyncOperations,
         isProfileAckOwnedOperation,
         cancelSyncOperation,

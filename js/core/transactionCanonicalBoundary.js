@@ -606,7 +606,7 @@
             : [];
         const set = new Set(current);
         if (enabled) set.add(month); else set.delete(month);
-        store.clubConfig.canonicalTransactionReadMonths = Array.from(set).sort();
+        store.clubConfig = { ...(store.clubConfig || {}), canonicalTransactionReadMonths: Array.from(set).sort() };
         return store.clubConfig.canonicalTransactionReadMonths;
     }
 
