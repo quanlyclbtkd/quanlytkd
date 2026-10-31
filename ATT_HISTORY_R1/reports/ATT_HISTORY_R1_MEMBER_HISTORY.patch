@@ -1,0 +1,118 @@
+--- a/js/modules/attendance.js
++++ b/js/modules/attendance.js
+@@ -2028,8 +2028,10 @@
+         const historyOwner = _captureOfflineAttendanceSyncContext();
+         const historyAuthoritySnapshot = _memberHistoryAuthoritySnapshot();
+         const historyBranchSelector = document.getElementById(overrideMonth ? 'att_month_branch' : 'att_branch');
++        const requestedHistoryBranch = overrideBranch || historyBranchSelector?.value || '';
+         const historyBranch = historyOwner.role === 'coach' ? historyOwner.coachBranch
+-            : _canonicalAttendanceBranch(overrideBranch || (historyBranchSelector?.value === 'all' ? p.branch : historyBranchSelector?.value), _canonicalAttendanceBranch(p.branch,''));
++            : (requestedHistoryBranch && requestedHistoryBranch !== 'all' ? _canonicalAttendanceBranch(requestedHistoryBranch, '') : '');
++        const historyAuthorityScope = historyOwner.role === 'coach' ? 'current' : 'recorded';
+         const requestId = ++_memberHistoryRequestId;
+         const month = overrideMonth || _attCurrentDate.substring(0, 7);
+         const [yr, mo] = month.split('-').map(Number);
+@@ -2063,7 +2065,9 @@
+             const quarterMonths = [];
+             for (let qi = 0; qi < 3; qi++) quarterMonths.push(yr + '-' + String(quarterStartMo + qi).padStart(2, '0'));
+             const quarterLabel = 'Quý ' + quarterNum + '/' + yr + ' (T' + quarterStartMo + '–T' + (quarterStartMo + 2) + ')';
+-            const histList = await AttendanceService.loadMemberHistory(name, quarterMonths, {verified:true,branch:historyBranch});
++            const histList = await AttendanceService.loadMemberHistory(name, quarterMonths, {
++                consistency:'server', authorityScope:historyAuthorityScope, branch:historyBranch
++            });
+             if (!isCurrent()) return;
+             const snapQ = { forEach: (fn) => histList.forEach(item => fn({ data: () => item.data, id: item.id })) };
+             const dayMap = {};
+@@ -2098,7 +2102,7 @@
+             const daysInMonth = new Date(yr, mo, 0).getDate();
+             const firstDow    = new Date(yr, mo - 1, 1).getDay();
+             const DOW = ['CN','T2','T3','T4','T5','T6','T7'];
+-            const _registrationInScope = isActiveProfileForAttendance(p) && _sameBranch(p.branch,historyBranch);
++            const _registrationInScope = isActiveProfileForAttendance(p) && (!historyBranch || _sameBranch(p.branch,historyBranch));
+             const _hasSched = _registrationInScope && Array.isArray(p.trainingDays) && p.trainingDays.length > 0;
+             const _p_shift_obj = _registrationInScope ? resolveTrainingShift(p.trainingShiftId,_clubShifts) : null;
+             const _p_shift_name = _p_shift_obj ? (_p_shift_obj.name + (_p_shift_obj.timeStart && _p_shift_obj.timeEnd ? ' (' + _p_shift_obj.timeStart + '–' + _p_shift_obj.timeEnd + ')' : '')) : '';
+@@ -2135,7 +2139,7 @@
+             bodyEl.innerHTML =
+                 '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;padding-right:44px;">'
+                 + '<div><div style="font-size:1rem;font-weight:900;color:#0033A0;">' + escapeHtml((window.ProfileCanonicalStore?.resolveDisplayName?.(name, p)) || p.displayName || p.name || p.fullName || p.studentName || name) + '</div>'
+-                + '<div style="font-size:0.72rem;color:#64748b;margin-top:3px;">🥋 ' + escapeHtml(p.belt||'Đai Trắng') + ' · ' + escapeHtml(window.getBranchNameDisplay?.(historyBranch) || historyBranch) + '</div></div>'
++                + '<div style="font-size:0.72rem;color:#64748b;margin-top:3px;">🥋 ' + escapeHtml(p.belt||'Đai Trắng') + ' · ' + escapeHtml(historyBranch ? (window.getBranchNameDisplay?.(historyBranch) || historyBranch) : 'Tất cả cơ sở') + '</div></div>'
+                 + '</div>' + scheduleHtml
+                 + '<div style="display:flex;gap:7px;margin-bottom:12px;flex-wrap:wrap;">'
+                 + '<span style="background:#dcfce7;color:#166534;padding:5px 12px;border-radius:99px;font-size:0.75rem;font-weight:800;">✅ ' + present + ' buổi</span>'
+@@ -2168,12 +2172,13 @@
+             bodyEl.append(historySection);
+             let cursor = null,loading = false,done = false,pageCount = 0;
+             const seen = new Set(); // Presentation only; discarded when modal/session closes.
+-            more.disabled = !/^CS(?:[1-9]|10)$/.test(historyBranch || '');
++            more.disabled = historyOwner.role === 'coach' && !/^CS(?:[1-9]|10)$/.test(historyBranch || '');
+             more.onclick = async () => {
+                 if (loading || done || !isCurrent()) return;
+                 loading = true;more.disabled = true;statusEl.textContent = 'Đang tải trang lịch sử từ máy chủ…';
+                 try {
+-                    const page = await AttendanceService.loadMemberHistory(name,null,{page:true,branch:historyBranch,cursor});
++                    const page = await AttendanceService.loadMemberHistory(name,null,{page:true,branch:historyBranch,cursor,
++                        consistency:'server',authorityScope:historyAuthorityScope});
+                     if (!isCurrent()) return;
+                     for (const row of page.rows) {
+                         if (seen.has(row.id)) continue;seen.add(row.id);
+--- a/public/js/modules/attendance.js
++++ b/public/js/modules/attendance.js
+@@ -2028,8 +2028,10 @@
+         const historyOwner = _captureOfflineAttendanceSyncContext();
+         const historyAuthoritySnapshot = _memberHistoryAuthoritySnapshot();
+         const historyBranchSelector = document.getElementById(overrideMonth ? 'att_month_branch' : 'att_branch');
++        const requestedHistoryBranch = overrideBranch || historyBranchSelector?.value || '';
+         const historyBranch = historyOwner.role === 'coach' ? historyOwner.coachBranch
+-            : _canonicalAttendanceBranch(overrideBranch || (historyBranchSelector?.value === 'all' ? p.branch : historyBranchSelector?.value), _canonicalAttendanceBranch(p.branch,''));
++            : (requestedHistoryBranch && requestedHistoryBranch !== 'all' ? _canonicalAttendanceBranch(requestedHistoryBranch, '') : '');
++        const historyAuthorityScope = historyOwner.role === 'coach' ? 'current' : 'recorded';
+         const requestId = ++_memberHistoryRequestId;
+         const month = overrideMonth || _attCurrentDate.substring(0, 7);
+         const [yr, mo] = month.split('-').map(Number);
+@@ -2063,7 +2065,9 @@
+             const quarterMonths = [];
+             for (let qi = 0; qi < 3; qi++) quarterMonths.push(yr + '-' + String(quarterStartMo + qi).padStart(2, '0'));
+             const quarterLabel = 'Quý ' + quarterNum + '/' + yr + ' (T' + quarterStartMo + '–T' + (quarterStartMo + 2) + ')';
+-            const histList = await AttendanceService.loadMemberHistory(name, quarterMonths, {verified:true,branch:historyBranch});
++            const histList = await AttendanceService.loadMemberHistory(name, quarterMonths, {
++                consistency:'server', authorityScope:historyAuthorityScope, branch:historyBranch
++            });
+             if (!isCurrent()) return;
+             const snapQ = { forEach: (fn) => histList.forEach(item => fn({ data: () => item.data, id: item.id })) };
+             const dayMap = {};
+@@ -2098,7 +2102,7 @@
+             const daysInMonth = new Date(yr, mo, 0).getDate();
+             const firstDow    = new Date(yr, mo - 1, 1).getDay();
+             const DOW = ['CN','T2','T3','T4','T5','T6','T7'];
+-            const _registrationInScope = isActiveProfileForAttendance(p) && _sameBranch(p.branch,historyBranch);
++            const _registrationInScope = isActiveProfileForAttendance(p) && (!historyBranch || _sameBranch(p.branch,historyBranch));
+             const _hasSched = _registrationInScope && Array.isArray(p.trainingDays) && p.trainingDays.length > 0;
+             const _p_shift_obj = _registrationInScope ? resolveTrainingShift(p.trainingShiftId,_clubShifts) : null;
+             const _p_shift_name = _p_shift_obj ? (_p_shift_obj.name + (_p_shift_obj.timeStart && _p_shift_obj.timeEnd ? ' (' + _p_shift_obj.timeStart + '–' + _p_shift_obj.timeEnd + ')' : '')) : '';
+@@ -2135,7 +2139,7 @@
+             bodyEl.innerHTML =
+                 '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;padding-right:44px;">'
+                 + '<div><div style="font-size:1rem;font-weight:900;color:#0033A0;">' + escapeHtml((window.ProfileCanonicalStore?.resolveDisplayName?.(name, p)) || p.displayName || p.name || p.fullName || p.studentName || name) + '</div>'
+-                + '<div style="font-size:0.72rem;color:#64748b;margin-top:3px;">🥋 ' + escapeHtml(p.belt||'Đai Trắng') + ' · ' + escapeHtml(window.getBranchNameDisplay?.(historyBranch) || historyBranch) + '</div></div>'
++                + '<div style="font-size:0.72rem;color:#64748b;margin-top:3px;">🥋 ' + escapeHtml(p.belt||'Đai Trắng') + ' · ' + escapeHtml(historyBranch ? (window.getBranchNameDisplay?.(historyBranch) || historyBranch) : 'Tất cả cơ sở') + '</div></div>'
+                 + '</div>' + scheduleHtml
+                 + '<div style="display:flex;gap:7px;margin-bottom:12px;flex-wrap:wrap;">'
+                 + '<span style="background:#dcfce7;color:#166534;padding:5px 12px;border-radius:99px;font-size:0.75rem;font-weight:800;">✅ ' + present + ' buổi</span>'
+@@ -2168,12 +2172,13 @@
+             bodyEl.append(historySection);
+             let cursor = null,loading = false,done = false,pageCount = 0;
+             const seen = new Set(); // Presentation only; discarded when modal/session closes.
+-            more.disabled = !/^CS(?:[1-9]|10)$/.test(historyBranch || '');
++            more.disabled = historyOwner.role === 'coach' && !/^CS(?:[1-9]|10)$/.test(historyBranch || '');
+             more.onclick = async () => {
+                 if (loading || done || !isCurrent()) return;
+                 loading = true;more.disabled = true;statusEl.textContent = 'Đang tải trang lịch sử từ máy chủ…';
+                 try {
+-                    const page = await AttendanceService.loadMemberHistory(name,null,{page:true,branch:historyBranch,cursor});
++                    const page = await AttendanceService.loadMemberHistory(name,null,{page:true,branch:historyBranch,cursor,
++                        consistency:'server',authorityScope:historyAuthorityScope});
+                     if (!isCurrent()) return;
+                     for (const row of page.rows) {
+                         if (seen.has(row.id)) continue;seen.add(row.id);

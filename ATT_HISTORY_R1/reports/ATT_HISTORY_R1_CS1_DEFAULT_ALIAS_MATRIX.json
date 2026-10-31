@@ -1,0 +1,23 @@
+{
+  "contractConfirmed": true,
+  "adminHistoricalEquivalent": [
+    "CS1",
+    "Mặc định"
+  ],
+  "coachCurrentAuthorityAliasesPromoted": false,
+  "memberQuarter": {
+    "queryCount": 1,
+    "strategy": "broader profile+month-in; canonical post-filter"
+  },
+  "monthlyCS1": {
+    "queryCount": 1,
+    "strategy": "where month==... + branch in ['CS1','Mặc định']",
+    "existingIndex": "attendance(month, branch)"
+  },
+  "pastDayCS1": {
+    "queryCount": 1,
+    "strategy": "where date==... + branch in ['CS1','Mặc định']",
+    "existingIndex": "attendance(date, branch)"
+  },
+  "parallelQueries": false
+}

@@ -1,0 +1,68 @@
+{
+  "Daily Admin": {
+    "consistency": "existing operational",
+    "authorityScope": "RECORDED-like",
+    "branch": "exact current branch",
+    "legacy": "possible; CS1/Mặc định alias could be missed on past-day exact branch"
+  },
+  "Past-day Admin": {
+    "consistency": "not explicit server historical contract",
+    "authorityScope": "recorded-like",
+    "branch": "exact",
+    "legacy": "alias gap"
+  },
+  "Daily Coach": {
+    "consistency": "server/rules scoped",
+    "authorityScope": "CURRENT_AUTHORITY_ONLY",
+    "branch": "assigned",
+    "legacy": false
+  },
+  "Member Quarter Admin": {
+    "consistency": "SERVER_REQUIRED via verified:true",
+    "authorityScope": "CURRENT_AUTHORITY_ONLY implicitly",
+    "branch": "current branch",
+    "legacy": false
+  },
+  "Member All-Time Admin": {
+    "consistency": "SERVER_REQUIRED",
+    "authorityScope": "CURRENT_AUTHORITY_ONLY hard-coded",
+    "branch": "one selected branch",
+    "legacy": false
+  },
+  "Member Coach": {
+    "consistency": "SERVER_REQUIRED",
+    "authorityScope": "CURRENT_AUTHORITY_ONLY",
+    "branch": "assigned",
+    "legacy": false
+  },
+  "Monthly Admin": {
+    "consistency": "SERVER_REQUIRED via verified:true",
+    "authorityScope": "CURRENT_AUTHORITY_ONLY implicitly",
+    "branch": "selected",
+    "legacy": false
+  },
+  "Monthly Coach": {
+    "consistency": "SERVER_REQUIRED",
+    "authorityScope": "CURRENT_AUTHORITY_ONLY",
+    "branch": "assigned",
+    "legacy": false
+  },
+  "Excel Admin": {
+    "consistency": "SERVER_REQUIRED",
+    "authorityScope": "inherits Monthly current-only",
+    "branch": "selected",
+    "legacy": false
+  },
+  "Branch Report Admin": {
+    "consistency": "SERVER_REQUIRED",
+    "authorityScope": "inherits Monthly current-only",
+    "branch": "selected",
+    "legacy": false
+  },
+  "Admin Audit": {
+    "consistency": "not explicitly expressed at callsite",
+    "authorityScope": "RECORDED/raw visibility",
+    "branch": "month scope",
+    "legacy": true
+  }
+}

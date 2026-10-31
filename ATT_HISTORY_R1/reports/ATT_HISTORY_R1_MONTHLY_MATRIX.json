@@ -1,0 +1,31 @@
+{
+  "before": {
+    "Admin verified currentOnly": true,
+    "status0Counted": false
+  },
+  "after": {
+    "AdminRecorded": true,
+    "currentVisible": true,
+    "oldVisible": true,
+    "missingVisible": true,
+    "status0Counted": false,
+    "multiShiftCollapsed": false,
+    "CoachCurrentOnly": true
+  },
+  "fixtureCS1": {
+    "beforeVisible": [
+      "A",
+      "H1",
+      "H2"
+    ],
+    "afterVisible": [
+      "A",
+      "B",
+      "C",
+      "D",
+      "H1",
+      "H2",
+      "X1"
+    ]
+  }
+}

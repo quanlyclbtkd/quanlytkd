@@ -1,0 +1,150 @@
+--- a/js/modules/attendance.js
++++ b/js/modules/attendance.js
+@@ -2148,7 +2148,7 @@
+                 + '<span style="background:#fee2e2;color:#991b1b;padding:5px 12px;border-radius:99px;font-size:0.75rem;font-weight:800;">❌ ' + absent + ' vắng</span>'
+                 + '</div>'
+                 + '<div style="background:#f8fafc;border-radius:12px;padding:12px;margin-bottom:14px;border:1px solid #e2e8f0;">'
+-                + '<div style="font-size:0.65rem;font-weight:900;color:#475569;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">📊 Tỷ lệ chuyên cần đã xác minh</div>'
++                + '<div style="font-size:0.65rem;font-weight:900;color:#475569;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">📊 ' + (historyAuthorityScope==='recorded'?'Chuyên cần ghi nhận':'Chuyên cần đã xác minh') + '</div>'
+                 + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
+                 + rateBox(mRate,present,mTotal,'Tháng '+monthDisplay)
+                 + rateBox(qRate,qPresent,qTotal,quarterLabel)
+@@ -2160,19 +2160,23 @@
+                 + '<p style="font-size:0.72rem;line-height:1.5;color:#64748b;">Tỷ lệ tính trên các buổi đã ghi nhận. Ngày có lịch chưa điểm danh không được tính là vắng.</p>';
+             const historySection = document.createElement('section');
+             historySection.style.cssText = 'margin-top:18px;border-top:1px solid #cbd5e1;padding-top:14px;min-width:0;';
+-            const title = document.createElement('h3');title.textContent = 'Lịch sử Điểm danh đã xác minh';
++            const title = document.createElement('h3');title.textContent = historyAuthorityScope==='recorded' ? 'Lịch sử Điểm danh' : 'Lịch sử Điểm danh đã xác minh';
+             const actionSlot = document.getElementById('attHistoryActionSlot');
+             title.style.cssText = 'font-size:16px;font-weight:800;line-height:1.4;margin:0;';actionSlot.append(title);
+             const coverage = document.createElement('p');
+-            coverage.textContent = 'Cơ sở: ' + (window.getBranchNameDisplay?.(historyBranch) || historyBranch || 'chưa chọn') + '. Duyệt các năm theo trang, từ cũ đến mới; tối đa 40 bản ghi/trang. Dữ liệu cũ chưa xác minh cần Admin đối soát.';
++            const quarterTrust = histList.trustSummary || {total:histList.length,currentAuthority:histList.filter(x=>x.data.historyAuthority===HISTORY_AUTHORITY).length,legacyHistory:histList.filter(x=>x.data.historyAuthority!==HISTORY_AUTHORITY).length};
++            coverage.textContent = historyAuthorityScope==='recorded'
++                ? 'Cơ sở: ' + (historyBranch ? (window.getBranchNameDisplay?.(historyBranch) || historyBranch) : 'Tất cả cơ sở') + '. Tổng ghi nhận quý: ' + quarterTrust.total + ' · Đã xác minh: ' + quarterTrust.currentAuthority + ' · Dữ liệu lịch sử cũ: ' + quarterTrust.legacyHistory + '. Mở toàn bộ lịch sử để xem các năm trước.'
++                : 'Cơ sở: ' + (window.getBranchNameDisplay?.(historyBranch) || historyBranch || 'chưa chọn') + '. Chỉ hiển thị lịch sử thuộc authority hiện hành.';
+             coverage.style.cssText = 'font-size:13px;color:#475569;line-height:1.5;margin:8px 0;';actionSlot.append(coverage);
+             const rowsEl = document.createElement('div');rowsEl.id = 'attVerifiedHistoryRows';historySection.append(rowsEl);
+             const statusEl = document.createElement('p');statusEl.setAttribute('role','status');statusEl.style.cssText = 'font-size:13px;line-height:1.5;margin:8px 0;';historySection.append(statusEl);
+-            const more = document.createElement('button');more.id = 'attHistoryLoadMore';more.type = 'button';more.textContent = 'Mở lịch sử đã xác minh';
++            const more = document.createElement('button');more.id = 'attHistoryLoadMore';more.type = 'button';more.textContent = historyAuthorityScope==='recorded' ? 'Mở toàn bộ lịch sử' : 'Mở lịch sử đã xác minh';
+             more.style.cssText = 'font-size:16px;min-height:44px;padding:10px 14px;max-width:100%;border:1px solid #93c5fd;border-radius:10px;color:#1e40af;background:#eff6ff;cursor:pointer;';actionSlot.append(more);
+             bodyEl.append(historySection);
+             let cursor = null,loading = false,done = false,pageCount = 0;
+             const seen = new Set(); // Presentation only; discarded when modal/session closes.
++            let seenCurrent = 0, seenLegacy = 0;
+             more.disabled = historyOwner.role === 'coach' && !/^CS(?:[1-9]|10)$/.test(historyBranch || '');
+             more.onclick = async () => {
+                 if (loading || done || !isCurrent()) return;
+@@ -2187,14 +2191,20 @@
+                         item.style.cssText = 'border:1px solid #e2e8f0;border-radius:10px;padding:10px;margin:8px 0;font-size:14px;line-height:1.6;overflow-wrap:anywhere;';
+                         const data = row.data,shift = resolveTrainingShift(data.shiftId,_clubShifts);
+                         const date = document.createElement('strong');date.textContent = data.date + ' · ' + ({1:'Có mặt',2:'Vắng',3:'Có phép'}[Number(data.status)] || 'Chưa điểm danh');
+-                        const detail = document.createElement('div');detail.textContent = 'Tháng ' + data.month + ' · Ca: ' + (shift?.name || data.shiftId || 'Không gán ca') + ' · ' + (window.getBranchNameDisplay?.(data.branch) || data.branch);
++                        const trust = data.historyAuthority === HISTORY_AUTHORITY ? 'CURRENT_AUTHORITY' : 'LEGACY_HISTORY';
++                        if (trust === 'CURRENT_AUTHORITY') seenCurrent++; else seenLegacy++;
++                        const detail = document.createElement('div');detail.textContent = 'Tháng ' + data.month + ' · Ca: ' + (shift?.name || data.shiftId || 'Không gán ca') + ' · ' + (window.getBranchNameDisplay?.(data.branch) || data.branch)
++                            + (historyAuthorityScope==='recorded' && trust==='LEGACY_HISTORY' ? ' · Dữ liệu lịch sử cũ' : '');
+                         item.append(date,detail);rowsEl.append(item);
+                     }
+                     cursor = page.cursor;done = page.complete;pageCount++;
+                     historySection.append(more); // Same control follows the loaded rows; no second CTA/handler.
+-                    statusEl.textContent = done ? (seen.size ? 'Đã duyệt hết lịch sử đã xác minh của cơ sở này (' + seen.size + ' buổi).' : 'Chưa có lịch sử đã xác minh tại cơ sở này.')
+-                        : 'Đã tải trang ' + pageCount + ' (' + seen.size + ' buổi đã ghi nhận).';
+-                    more.textContent = done ? 'Đã hết lịch sử đã xác minh' : 'Tải thêm lịch sử';
++                    statusEl.textContent = historyAuthorityScope==='recorded'
++                        ? (done ? (seen.size ? 'Đã duyệt hết lịch sử: ' + seen.size + ' ghi nhận · Đã xác minh: ' + seenCurrent + ' · Dữ liệu lịch sử cũ: ' + seenLegacy + '.' : 'Chưa có lịch sử điểm danh.')
++                            : 'Đã tải trang ' + pageCount + ': ' + seen.size + ' ghi nhận · Đã xác minh: ' + seenCurrent + ' · Dữ liệu lịch sử cũ: ' + seenLegacy + '.')
++                        : (done ? (seen.size ? 'Đã duyệt hết lịch sử đã xác minh của cơ sở này (' + seen.size + ' buổi).' : 'Chưa có lịch sử đã xác minh tại cơ sở này.')
++                            : 'Đã tải trang ' + pageCount + ' (' + seen.size + ' buổi đã ghi nhận).');
++                    more.textContent = done ? (historyAuthorityScope==='recorded' ? 'Đã hết toàn bộ lịch sử' : 'Đã hết lịch sử đã xác minh') : 'Tải thêm lịch sử';
+                 } catch (error) {
+                     if (!isCurrent()) return;
+                     statusEl.textContent = error.code === 'permission-denied' ? 'Quyền xem lịch sử đã thay đổi. Vui lòng xác minh lại cơ sở.' : error.message;
+@@ -2636,7 +2646,10 @@
+             const monthDisplay = selMonth.split('-').reverse().join('/');
+             let scopeEl=document.getElementById('attMonthlyScope');
+             if(!scopeEl){scopeEl=document.createElement('p');scopeEl.id='attMonthlyScope';scopeEl.style.cssText='font-size:0.78rem;line-height:1.5;color:#475569;margin:8px 0;';const target=document.getElementById('att_monthly_cards')||tbody.closest('table');target?.parentNode.insertBefore(scopeEl,target);}
+-            scopeEl.textContent='Điểm danh đã xác minh · '+monthDisplay+' · '+(selBranch==='all'?'Tất cả cơ sở':(window.getBranchNameDisplay?.(selBranch)||selBranch))+'. CC: trên buổi đã ghi nhận; CC lịch: lịch đăng ký hiện tại, không xác nhận lịch sử đăng ký.';
++            const monthlyTrust = monthRecords.trustSummary || {total:monthRecords.length,currentAuthority:monthRecords.filter(x=>x.data.historyAuthority===HISTORY_AUTHORITY).length,legacyHistory:monthRecords.filter(x=>x.data.historyAuthority!==HISTORY_AUTHORITY).length};
++            scopeEl.textContent=(monthAuthorityScope==='recorded'?'Điểm danh ghi nhận':'Điểm danh đã xác minh')+' · '+monthDisplay+' · '+(selBranch==='all'?'Tất cả cơ sở':(window.getBranchNameDisplay?.(selBranch)||selBranch))
++                +(monthAuthorityScope==='recorded'?' · Tổng ghi nhận: '+monthlyTrust.total+' · Đã xác minh: '+monthlyTrust.currentAuthority+' · Dữ liệu lịch sử cũ: '+monthlyTrust.legacyHistory:'')
++                +'. CC: trên buổi đã ghi nhận; CC lịch: lịch đăng ký hiện tại, không xác nhận lịch sử đăng ký.';
+             const _mkBeltBadge = (belt) => window.getBeltBadge ? window.getBeltBadge(belt||'Trắng') : `<span class="badge" style="background:#f0f4ff;color:#0033A0;">${escapeHtml((belt||'Trắng').replace(/^Đai /i,''))}</span>`;
+             const _rateColor = (r) => r>=80?'#16a34a':r>=60?'#d97706':'#dc2626';
+             const _rateBg    = (r) => r>=80?'#f0fdf4':r>=60?'#fefce8':'#fff1f2';
+--- a/public/js/modules/attendance.js
++++ b/public/js/modules/attendance.js
+@@ -2148,7 +2148,7 @@
+                 + '<span style="background:#fee2e2;color:#991b1b;padding:5px 12px;border-radius:99px;font-size:0.75rem;font-weight:800;">❌ ' + absent + ' vắng</span>'
+                 + '</div>'
+                 + '<div style="background:#f8fafc;border-radius:12px;padding:12px;margin-bottom:14px;border:1px solid #e2e8f0;">'
+-                + '<div style="font-size:0.65rem;font-weight:900;color:#475569;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">📊 Tỷ lệ chuyên cần đã xác minh</div>'
++                + '<div style="font-size:0.65rem;font-weight:900;color:#475569;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">📊 ' + (historyAuthorityScope==='recorded'?'Chuyên cần ghi nhận':'Chuyên cần đã xác minh') + '</div>'
+                 + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
+                 + rateBox(mRate,present,mTotal,'Tháng '+monthDisplay)
+                 + rateBox(qRate,qPresent,qTotal,quarterLabel)
+@@ -2160,19 +2160,23 @@
+                 + '<p style="font-size:0.72rem;line-height:1.5;color:#64748b;">Tỷ lệ tính trên các buổi đã ghi nhận. Ngày có lịch chưa điểm danh không được tính là vắng.</p>';
+             const historySection = document.createElement('section');
+             historySection.style.cssText = 'margin-top:18px;border-top:1px solid #cbd5e1;padding-top:14px;min-width:0;';
+-            const title = document.createElement('h3');title.textContent = 'Lịch sử Điểm danh đã xác minh';
++            const title = document.createElement('h3');title.textContent = historyAuthorityScope==='recorded' ? 'Lịch sử Điểm danh' : 'Lịch sử Điểm danh đã xác minh';
+             const actionSlot = document.getElementById('attHistoryActionSlot');
+             title.style.cssText = 'font-size:16px;font-weight:800;line-height:1.4;margin:0;';actionSlot.append(title);
+             const coverage = document.createElement('p');
+-            coverage.textContent = 'Cơ sở: ' + (window.getBranchNameDisplay?.(historyBranch) || historyBranch || 'chưa chọn') + '. Duyệt các năm theo trang, từ cũ đến mới; tối đa 40 bản ghi/trang. Dữ liệu cũ chưa xác minh cần Admin đối soát.';
++            const quarterTrust = histList.trustSummary || {total:histList.length,currentAuthority:histList.filter(x=>x.data.historyAuthority===HISTORY_AUTHORITY).length,legacyHistory:histList.filter(x=>x.data.historyAuthority!==HISTORY_AUTHORITY).length};
++            coverage.textContent = historyAuthorityScope==='recorded'
++                ? 'Cơ sở: ' + (historyBranch ? (window.getBranchNameDisplay?.(historyBranch) || historyBranch) : 'Tất cả cơ sở') + '. Tổng ghi nhận quý: ' + quarterTrust.total + ' · Đã xác minh: ' + quarterTrust.currentAuthority + ' · Dữ liệu lịch sử cũ: ' + quarterTrust.legacyHistory + '. Mở toàn bộ lịch sử để xem các năm trước.'
++                : 'Cơ sở: ' + (window.getBranchNameDisplay?.(historyBranch) || historyBranch || 'chưa chọn') + '. Chỉ hiển thị lịch sử thuộc authority hiện hành.';
+             coverage.style.cssText = 'font-size:13px;color:#475569;line-height:1.5;margin:8px 0;';actionSlot.append(coverage);
+             const rowsEl = document.createElement('div');rowsEl.id = 'attVerifiedHistoryRows';historySection.append(rowsEl);
+             const statusEl = document.createElement('p');statusEl.setAttribute('role','status');statusEl.style.cssText = 'font-size:13px;line-height:1.5;margin:8px 0;';historySection.append(statusEl);
+-            const more = document.createElement('button');more.id = 'attHistoryLoadMore';more.type = 'button';more.textContent = 'Mở lịch sử đã xác minh';
++            const more = document.createElement('button');more.id = 'attHistoryLoadMore';more.type = 'button';more.textContent = historyAuthorityScope==='recorded' ? 'Mở toàn bộ lịch sử' : 'Mở lịch sử đã xác minh';
+             more.style.cssText = 'font-size:16px;min-height:44px;padding:10px 14px;max-width:100%;border:1px solid #93c5fd;border-radius:10px;color:#1e40af;background:#eff6ff;cursor:pointer;';actionSlot.append(more);
+             bodyEl.append(historySection);
+             let cursor = null,loading = false,done = false,pageCount = 0;
+             const seen = new Set(); // Presentation only; discarded when modal/session closes.
++            let seenCurrent = 0, seenLegacy = 0;
+             more.disabled = historyOwner.role === 'coach' && !/^CS(?:[1-9]|10)$/.test(historyBranch || '');
+             more.onclick = async () => {
+                 if (loading || done || !isCurrent()) return;
+@@ -2187,14 +2191,20 @@
+                         item.style.cssText = 'border:1px solid #e2e8f0;border-radius:10px;padding:10px;margin:8px 0;font-size:14px;line-height:1.6;overflow-wrap:anywhere;';
+                         const data = row.data,shift = resolveTrainingShift(data.shiftId,_clubShifts);
+                         const date = document.createElement('strong');date.textContent = data.date + ' · ' + ({1:'Có mặt',2:'Vắng',3:'Có phép'}[Number(data.status)] || 'Chưa điểm danh');
+-                        const detail = document.createElement('div');detail.textContent = 'Tháng ' + data.month + ' · Ca: ' + (shift?.name || data.shiftId || 'Không gán ca') + ' · ' + (window.getBranchNameDisplay?.(data.branch) || data.branch);
++                        const trust = data.historyAuthority === HISTORY_AUTHORITY ? 'CURRENT_AUTHORITY' : 'LEGACY_HISTORY';
++                        if (trust === 'CURRENT_AUTHORITY') seenCurrent++; else seenLegacy++;
++                        const detail = document.createElement('div');detail.textContent = 'Tháng ' + data.month + ' · Ca: ' + (shift?.name || data.shiftId || 'Không gán ca') + ' · ' + (window.getBranchNameDisplay?.(data.branch) || data.branch)
++                            + (historyAuthorityScope==='recorded' && trust==='LEGACY_HISTORY' ? ' · Dữ liệu lịch sử cũ' : '');
+                         item.append(date,detail);rowsEl.append(item);
+                     }
+                     cursor = page.cursor;done = page.complete;pageCount++;
+                     historySection.append(more); // Same control follows the loaded rows; no second CTA/handler.
+-                    statusEl.textContent = done ? (seen.size ? 'Đã duyệt hết lịch sử đã xác minh của cơ sở này (' + seen.size + ' buổi).' : 'Chưa có lịch sử đã xác minh tại cơ sở này.')
+-                        : 'Đã tải trang ' + pageCount + ' (' + seen.size + ' buổi đã ghi nhận).';
+-                    more.textContent = done ? 'Đã hết lịch sử đã xác minh' : 'Tải thêm lịch sử';
++                    statusEl.textContent = historyAuthorityScope==='recorded'
++                        ? (done ? (seen.size ? 'Đã duyệt hết lịch sử: ' + seen.size + ' ghi nhận · Đã xác minh: ' + seenCurrent + ' · Dữ liệu lịch sử cũ: ' + seenLegacy + '.' : 'Chưa có lịch sử điểm danh.')
++                            : 'Đã tải trang ' + pageCount + ': ' + seen.size + ' ghi nhận · Đã xác minh: ' + seenCurrent + ' · Dữ liệu lịch sử cũ: ' + seenLegacy + '.')
++                        : (done ? (seen.size ? 'Đã duyệt hết lịch sử đã xác minh của cơ sở này (' + seen.size + ' buổi).' : 'Chưa có lịch sử đã xác minh tại cơ sở này.')
++                            : 'Đã tải trang ' + pageCount + ' (' + seen.size + ' buổi đã ghi nhận).');
++                    more.textContent = done ? (historyAuthorityScope==='recorded' ? 'Đã hết toàn bộ lịch sử' : 'Đã hết lịch sử đã xác minh') : 'Tải thêm lịch sử';
+                 } catch (error) {
+                     if (!isCurrent()) return;
+                     statusEl.textContent = error.code === 'permission-denied' ? 'Quyền xem lịch sử đã thay đổi. Vui lòng xác minh lại cơ sở.' : error.message;
+@@ -2636,7 +2646,10 @@
+             const monthDisplay = selMonth.split('-').reverse().join('/');
+             let scopeEl=document.getElementById('attMonthlyScope');
+             if(!scopeEl){scopeEl=document.createElement('p');scopeEl.id='attMonthlyScope';scopeEl.style.cssText='font-size:0.78rem;line-height:1.5;color:#475569;margin:8px 0;';const target=document.getElementById('att_monthly_cards')||tbody.closest('table');target?.parentNode.insertBefore(scopeEl,target);}
+-            scopeEl.textContent='Điểm danh đã xác minh · '+monthDisplay+' · '+(selBranch==='all'?'Tất cả cơ sở':(window.getBranchNameDisplay?.(selBranch)||selBranch))+'. CC: trên buổi đã ghi nhận; CC lịch: lịch đăng ký hiện tại, không xác nhận lịch sử đăng ký.';
++            const monthlyTrust = monthRecords.trustSummary || {total:monthRecords.length,currentAuthority:monthRecords.filter(x=>x.data.historyAuthority===HISTORY_AUTHORITY).length,legacyHistory:monthRecords.filter(x=>x.data.historyAuthority!==HISTORY_AUTHORITY).length};
++            scopeEl.textContent=(monthAuthorityScope==='recorded'?'Điểm danh ghi nhận':'Điểm danh đã xác minh')+' · '+monthDisplay+' · '+(selBranch==='all'?'Tất cả cơ sở':(window.getBranchNameDisplay?.(selBranch)||selBranch))
++                +(monthAuthorityScope==='recorded'?' · Tổng ghi nhận: '+monthlyTrust.total+' · Đã xác minh: '+monthlyTrust.currentAuthority+' · Dữ liệu lịch sử cũ: '+monthlyTrust.legacyHistory:'')
++                +'. CC: trên buổi đã ghi nhận; CC lịch: lịch đăng ký hiện tại, không xác nhận lịch sử đăng ký.';
+             const _mkBeltBadge = (belt) => window.getBeltBadge ? window.getBeltBadge(belt||'Trắng') : `<span class="badge" style="background:#f0f4ff;color:#0033A0;">${escapeHtml((belt||'Trắng').replace(/^Đai /i,''))}</span>`;
+             const _rateColor = (r) => r>=80?'#16a34a':r>=60?'#d97706':'#dc2626';
+             const _rateBg    = (r) => r>=80?'#f0fdf4':r>=60?'#fefce8':'#fff1f2';

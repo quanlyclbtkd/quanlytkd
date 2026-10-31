@@ -1,0 +1,12 @@
+{
+  "commitWriterRegionBaselineSHA256": "03ec06d3ede9406c8773e8cae0727cedfc5207143a325e30b9a63aafa9d76596",
+  "commitWriterRegionCandidateSHA256": "03ec06d3ede9406c8773e8cae0727cedfc5207143a325e30b9a63aafa9d76596",
+  "byteIdentical": true,
+  "attendanceJournalSHA256": "0f493addd96591dce9776148b43c7625cdcf6abcd7962f1cccceb70f237646ee",
+  "journalUnchanged": true,
+  "attendanceListenerSHA256": "f9fc2834a0f34ab2c59f8a714b3de89e961e5c2d8fdca6e127d3f769dfa5b3d6",
+  "attendanceListenerUnchanged": true,
+  "physicalDeleteInAttendanceWritePath": false,
+  "statusZero": "versioned tombstone semantics preserved",
+  "browserJournalMutationGate": "ENV_BLOCKED: Node Playwright dependency missing; protected writer/Journal bytes unchanged and full check/check:all green."
+}

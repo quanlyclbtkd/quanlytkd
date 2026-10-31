@@ -1,0 +1,76 @@
+{
+  "baseline": {
+    "npm run check": "PASS exit 0",
+    "npm run check:all": "PASS exit 0"
+  },
+  "candidate": {
+    "npm run check": "PASS exit 0",
+    "npm run check:all": "PASS exit 0",
+    "check:attendance-history-r1": "PASS 45/45",
+    "root/public": "PASS 129/129",
+    "attendance-reliability": "PASS 20",
+    "attendance-scheduled-accuracy": "PASS 22",
+    "attendance-offline-shift": "PASS 18",
+    "attendance-explicit-shift-authority": "PASS 61/61",
+    "attendance-daily-single-refresh-authority": "PASS 73/73",
+    "coach-attendance-only-read-boundary": "PASS 30/30",
+    "security-coach-branch-boundary": "PASS 35/35",
+    "report-export-lazy-isolation": "PASS 120",
+    "ui-mobile-app-shell": "PASS 81",
+    "attendance-shift-filter": "PASS 10"
+  },
+  "environmentBlocked": {
+    "attendance-offline-canonical-sync-guard": "Node Playwright dependency missing after 13 service/ACK/identity contracts PASS",
+    "d1c3b7r2r4-v2-journal-no-loss": "same Node Playwright dependency blocker"
+  },
+  "mobileFixture": {
+    "scope": "Chromium fixture of exact R1 member-history inline layout/copy; physical Android/iOS not verified",
+    "results": [
+      {
+        "overflow": false,
+        "buttonVisible": true,
+        "coverageFont": 13,
+        "branchFont": 11.52,
+        "buttonText": "Mở toàn bộ lịch sử",
+        "coverageText": "Cơ sở: Tất cả cơ sở. Tổng ghi nhận quý: 132 · Đã xác minh: 96 · Dữ liệu lịch sử cũ: 36. Mở toàn bộ lịch sử để xem các năm trước.",
+        "viewport": "320x568",
+        "passed": true
+      },
+      {
+        "overflow": false,
+        "buttonVisible": true,
+        "coverageFont": 13,
+        "branchFont": 11.52,
+        "buttonText": "Mở toàn bộ lịch sử",
+        "coverageText": "Cơ sở: Tất cả cơ sở. Tổng ghi nhận quý: 132 · Đã xác minh: 96 · Dữ liệu lịch sử cũ: 36. Mở toàn bộ lịch sử để xem các năm trước.",
+        "viewport": "360x800",
+        "passed": true
+      },
+      {
+        "overflow": false,
+        "buttonVisible": true,
+        "coverageFont": 13,
+        "branchFont": 11.52,
+        "buttonText": "Mở toàn bộ lịch sử",
+        "coverageText": "Cơ sở: Tất cả cơ sở. Tổng ghi nhận quý: 132 · Đã xác minh: 96 · Dữ liệu lịch sử cũ: 36. Mở toàn bộ lịch sử để xem các năm trước.",
+        "viewport": "390x844",
+        "passed": true
+      },
+      {
+        "overflow": false,
+        "buttonVisible": true,
+        "coverageFont": 13,
+        "branchFont": 11.52,
+        "buttonText": "Mở toàn bộ lịch sử",
+        "coverageText": "Cơ sở: Tất cả cơ sở. Tổng ghi nhận quý: 132 · Đã xác minh: 96 · Dữ liệu lịch sử cũ: 36. Mở toàn bộ lịch sử để xem các năm trước.",
+        "viewport": "430x932",
+        "passed": true
+      }
+    ]
+  },
+  "expectedValuesModifiedToForcePass": false,
+  "testContractUpdates": [
+    "New R1 gate changed from broad-month expectation to indexed one-query branch-IN only after index audit confirmed month+branch/date+branch indexes, matching phase requirement.",
+    "Report-export test mock was taught Firestore 'in' semantics and expected one CS1/Mặc định alias query; production expected business data was not weakened."
+  ]
+}

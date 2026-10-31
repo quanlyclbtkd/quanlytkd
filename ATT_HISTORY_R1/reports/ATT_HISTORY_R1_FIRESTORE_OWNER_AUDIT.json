@@ -1,0 +1,28 @@
+{
+  "newReaderOwner": 0,
+  "newListenerOwner": 0,
+  "newWriterOwner": 0,
+  "baselineCounts": {
+    "getDoc": 26,
+    "getDocs": 58,
+    "onSnapshot": 33,
+    "setDoc": 26,
+    "updateDoc": 18,
+    "addDoc": 18,
+    "deleteDoc": 7,
+    "writeBatch": 30,
+    "runTransaction": 4
+  },
+  "candidateCounts": {
+    "getDoc": 26,
+    "getDocs": 58,
+    "onSnapshot": 33,
+    "setDoc": 26,
+    "updateDoc": 18,
+    "addDoc": 18,
+    "deleteDoc": 7,
+    "writeBatch": 30,
+    "runTransaction": 4
+  },
+  "allowedChange": "query shape inside existing AttendanceService owners only"
+}

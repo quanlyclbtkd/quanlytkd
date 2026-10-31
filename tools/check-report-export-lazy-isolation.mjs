@@ -176,14 +176,14 @@ try {
   globalThis._fb_init={
     collection:(...args)=>({args}),query:(ref,...constraints)=>({ref,constraints}),where:(...args)=>({kind:'where',args}),
     orderBy:(...args)=>({kind:'orderBy',args}),documentId:()=>'__name__',limit:size=>({kind:'limit',size}),startAfter:cursor=>({kind:'startAfter',cursor}),
-    getDocs:async q=>{pageQueries.push(q);let docs=allDocs.filter(d=>q.constraints.filter(c=>c.kind==='where').every(c=>d.data()[c.args[0]]===c.args[2]));const cursor=q.constraints.find(c=>c.kind==='startAfter');if(cursor)docs=docs.filter(d=>d.id>cursor.cursor.id);const cap=q.constraints.find(c=>c.kind==='limit');if(cap)docs=docs.slice(0,cap.size);return{docs,metadata:{fromCache:false,hasPendingWrites:false}};}
+    getDocs:async q=>{pageQueries.push(q);let docs=allDocs.filter(d=>q.constraints.filter(c=>c.kind==='where').every(c=>{const [field,op,value]=c.args;const actual=d.data()[field];return op==='in'?Array.isArray(value)&&value.includes(actual):actual===value;}));const cursor=q.constraints.find(c=>c.kind==='startAfter');if(cursor)docs=docs.filter(d=>d.id>cursor.cursor.id);const cap=q.constraints.find(c=>c.kind==='limit');if(cap)docs=docs.slice(0,cap.size);return{docs,metadata:{fromCache:false,hasPendingWrites:false}};}
   };
   const attendanceModule=await import(pathToFileURL(path.join(root,attendancePath)).href);
   const paginatedAttendance=await attendanceModule.loadAttendanceMonthPaginated({db:testDb,clubId:'club-test',month:'2026-06',branch:'CS1'});
   check(paginatedAttendance.items.length===attendanceTotal,'attendance pagination loads all 10,500 documents');
   check(paginatedAttendance.pages===11&&paginatedAttendance.truncated===false,'attendance pagination completes after 11 pages without truncation');
   check(new Set(paginatedAttendance.items.map(d=>d.id)).size===attendanceTotal,'10,500 physical document IDs have no duplicates');
-  check(pageQueries.every(q=>q.constraints.some(c=>c.kind==='orderBy'&&c.args[0]==='__name__')&&q.constraints.some(c=>c.kind==='limit'&&c.size===1000)&&q.constraints.some(c=>c.kind==='where'&&c.args[0]==='historyAuthority'&&c.args[2]===HISTORY_AUTHORITY)&&q.constraints.some(c=>c.kind==='where'&&c.args[0]==='branch'&&c.args[2]==='CS1')),'all pages preserve authority/branch/order/1000-row bound');
+  check(pageQueries.every(q=>q.constraints.some(c=>c.kind==='orderBy'&&c.args[0]==='__name__')&&q.constraints.some(c=>c.kind==='limit'&&c.size===1000)&&q.constraints.some(c=>c.kind==='where'&&c.args[0]==='month'&&c.args[2]==='2026-06')&&!q.constraints.some(c=>c.kind==='where'&&c.args[0]==='historyAuthority')&&q.constraints.some(c=>c.kind==='where'&&c.args[0]==='branch'&&c.args[1]==='in'&&Array.isArray(c.args[2])&&c.args[2].includes('CS1')&&c.args[2].includes('Mặc định')))&&paginatedAttendance.authorityScope==='recorded','Admin recorded export preserves server/order/1000-row bound with one indexed CS1/Mặc định alias query and no current-authority filter');
   check(pageQueries.slice(1).every(q=>q.constraints.some(c=>c.kind==='startAfter'&&typeof c.cursor?.id==='string')),'all later pages use a physical document cursor');
   const normalGetDocs=_fb_init.getDocs;
   for(const metadata of[{fromCache:true,hasPendingWrites:false},{fromCache:false,hasPendingWrites:true}]){

@@ -1,0 +1,11 @@
+{
+  "logout": "DROP_STALE PASS",
+  "clubSwitch": "DROP_STALE PASS",
+  "roleSwitch": "DROP_STALE PASS",
+  "coachBranchOrActiveBranchSwitch": "DROP_STALE PASS",
+  "assignmentVersion": "DROP_STALE PASS",
+  "sessionEpoch": "DROP_STALE PASS",
+  "authGeneration": "DROP_STALE PASS",
+  "cacheOnlyFinality": "REJECT PASS",
+  "pendingWritesFinality": "REJECT PASS"
+}

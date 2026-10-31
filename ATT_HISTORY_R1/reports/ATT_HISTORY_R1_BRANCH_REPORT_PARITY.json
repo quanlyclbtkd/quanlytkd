@@ -1,0 +1,7 @@
+{
+  "owner": "AttendanceService.loadByMonth",
+  "adminPolicy": "SERVER_REQUIRED + RECORDED",
+  "coachPolicy": "SERVER_REQUIRED + CURRENT_AUTHORITY_ONLY",
+  "branchEquivalence": "_sameBranch; CS1≈Mặc định for Admin history",
+  "eligibleRowSetParity": "PASS: same canonical monthly result; aggregation/presentation only differs"
+}

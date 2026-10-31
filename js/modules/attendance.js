@@ -1709,6 +1709,7 @@ async function _requestAttendanceDailyRefresh(reason = 'compatibility-render', o
             branch: token.branch === 'all' ? '' : token.branch,
             shiftAuthorityMode: shiftDecision.mode,
             requireShift: shiftDecision.mode === 'explicit-shift',
+            historicalReopen: token.date < _getLocalToday(),
             isCurrent: () => _isAttendanceDailyTokenCurrent(token),
         });
         if (!_isAttendanceDailyTokenCurrent(token)) {
@@ -1900,7 +1901,7 @@ async function _openAttendanceHistoryAudit() {
                 // avoids loading a whole month to diagnose one denied slot.
                 const inspected=await AttendanceService.inspectIntent({clubId:principal.clubId,docId:target});
                 rows=inspected.data?[{id:target,data:inspected.data}]:[];
-            } else rows=await AttendanceService.loadByMonth(month.value);
+            } else rows=await AttendanceService.loadByMonth(month.value,{consistency:'server',authorityScope:'recorded'});
             if (!_isOfflineAttendanceSyncContextCurrent(principal)||!overlay.isConnected) return;
             const old=rows.filter(x=>x.data.historyAuthority!==HISTORY_AUTHORITY);content.replaceChildren();
             if (!old.length) {
@@ -2028,8 +2029,10 @@ export function initAttendance() {
         const historyOwner = _captureOfflineAttendanceSyncContext();
         const historyAuthoritySnapshot = _memberHistoryAuthoritySnapshot();
         const historyBranchSelector = document.getElementById(overrideMonth ? 'att_month_branch' : 'att_branch');
+        const requestedHistoryBranch = overrideBranch || historyBranchSelector?.value || '';
         const historyBranch = historyOwner.role === 'coach' ? historyOwner.coachBranch
-            : _canonicalAttendanceBranch(overrideBranch || (historyBranchSelector?.value === 'all' ? p.branch : historyBranchSelector?.value), _canonicalAttendanceBranch(p.branch,''));
+            : (requestedHistoryBranch && requestedHistoryBranch !== 'all' ? _canonicalAttendanceBranch(requestedHistoryBranch, '') : '');
+        const historyAuthorityScope = historyOwner.role === 'coach' ? 'current' : 'recorded';
         const requestId = ++_memberHistoryRequestId;
         const month = overrideMonth || _attCurrentDate.substring(0, 7);
         const [yr, mo] = month.split('-').map(Number);
@@ -2063,7 +2066,9 @@ export function initAttendance() {
             const quarterMonths = [];
             for (let qi = 0; qi < 3; qi++) quarterMonths.push(yr + '-' + String(quarterStartMo + qi).padStart(2, '0'));
             const quarterLabel = 'Quý ' + quarterNum + '/' + yr + ' (T' + quarterStartMo + '–T' + (quarterStartMo + 2) + ')';
-            const histList = await AttendanceService.loadMemberHistory(name, quarterMonths, {verified:true,branch:historyBranch});
+            const histList = await AttendanceService.loadMemberHistory(name, quarterMonths, {
+                consistency:'server', authorityScope:historyAuthorityScope, branch:historyBranch
+            });
             if (!isCurrent()) return;
             const snapQ = { forEach: (fn) => histList.forEach(item => fn({ data: () => item.data, id: item.id })) };
             const dayMap = {};
@@ -2098,7 +2103,7 @@ export function initAttendance() {
             const daysInMonth = new Date(yr, mo, 0).getDate();
             const firstDow    = new Date(yr, mo - 1, 1).getDay();
             const DOW = ['CN','T2','T3','T4','T5','T6','T7'];
-            const _registrationInScope = isActiveProfileForAttendance(p) && _sameBranch(p.branch,historyBranch);
+            const _registrationInScope = isActiveProfileForAttendance(p) && (!historyBranch || _sameBranch(p.branch,historyBranch));
             const _hasSched = _registrationInScope && Array.isArray(p.trainingDays) && p.trainingDays.length > 0;
             const _p_shift_obj = _registrationInScope ? resolveTrainingShift(p.trainingShiftId,_clubShifts) : null;
             const _p_shift_name = _p_shift_obj ? (_p_shift_obj.name + (_p_shift_obj.timeStart && _p_shift_obj.timeEnd ? ' (' + _p_shift_obj.timeStart + '–' + _p_shift_obj.timeEnd + ')' : '')) : '';
@@ -2135,7 +2140,7 @@ export function initAttendance() {
             bodyEl.innerHTML =
                 '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;padding-right:44px;">'
                 + '<div><div style="font-size:1rem;font-weight:900;color:#0033A0;">' + escapeHtml((window.ProfileCanonicalStore?.resolveDisplayName?.(name, p)) || p.displayName || p.name || p.fullName || p.studentName || name) + '</div>'
-                + '<div style="font-size:0.72rem;color:#64748b;margin-top:3px;">🥋 ' + escapeHtml(p.belt||'Đai Trắng') + ' · ' + escapeHtml(window.getBranchNameDisplay?.(historyBranch) || historyBranch) + '</div></div>'
+                + '<div style="font-size:0.72rem;color:#64748b;margin-top:3px;">🥋 ' + escapeHtml(p.belt||'Đai Trắng') + ' · ' + escapeHtml(historyBranch ? (window.getBranchNameDisplay?.(historyBranch) || historyBranch) : 'Tất cả cơ sở') + '</div></div>'
                 + '</div>' + scheduleHtml
                 + '<div style="display:flex;gap:7px;margin-bottom:12px;flex-wrap:wrap;">'
                 + '<span style="background:#dcfce7;color:#166534;padding:5px 12px;border-radius:99px;font-size:0.75rem;font-weight:800;">✅ ' + present + ' buổi</span>'
@@ -2143,7 +2148,7 @@ export function initAttendance() {
                 + '<span style="background:#fee2e2;color:#991b1b;padding:5px 12px;border-radius:99px;font-size:0.75rem;font-weight:800;">❌ ' + absent + ' vắng</span>'
                 + '</div>'
                 + '<div style="background:#f8fafc;border-radius:12px;padding:12px;margin-bottom:14px;border:1px solid #e2e8f0;">'
-                + '<div style="font-size:0.65rem;font-weight:900;color:#475569;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">📊 Tỷ lệ chuyên cần đã xác minh</div>'
+                + '<div style="font-size:0.65rem;font-weight:900;color:#475569;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">📊 ' + (historyAuthorityScope==='recorded'?'Chuyên cần ghi nhận':'Chuyên cần đã xác minh') + '</div>'
                 + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
                 + rateBox(mRate,present,mTotal,'Tháng '+monthDisplay)
                 + rateBox(qRate,qPresent,qTotal,quarterLabel)
@@ -2155,25 +2160,30 @@ export function initAttendance() {
                 + '<p style="font-size:0.72rem;line-height:1.5;color:#64748b;">Tỷ lệ tính trên các buổi đã ghi nhận. Ngày có lịch chưa điểm danh không được tính là vắng.</p>';
             const historySection = document.createElement('section');
             historySection.style.cssText = 'margin-top:18px;border-top:1px solid #cbd5e1;padding-top:14px;min-width:0;';
-            const title = document.createElement('h3');title.textContent = 'Lịch sử Điểm danh đã xác minh';
+            const title = document.createElement('h3');title.textContent = historyAuthorityScope==='recorded' ? 'Lịch sử Điểm danh' : 'Lịch sử Điểm danh đã xác minh';
             const actionSlot = document.getElementById('attHistoryActionSlot');
             title.style.cssText = 'font-size:16px;font-weight:800;line-height:1.4;margin:0;';actionSlot.append(title);
             const coverage = document.createElement('p');
-            coverage.textContent = 'Cơ sở: ' + (window.getBranchNameDisplay?.(historyBranch) || historyBranch || 'chưa chọn') + '. Duyệt các năm theo trang, từ cũ đến mới; tối đa 40 bản ghi/trang. Dữ liệu cũ chưa xác minh cần Admin đối soát.';
+            const quarterTrust = histList.trustSummary || {total:histList.length,currentAuthority:histList.filter(x=>x.data.historyAuthority===HISTORY_AUTHORITY).length,legacyHistory:histList.filter(x=>x.data.historyAuthority!==HISTORY_AUTHORITY).length};
+            coverage.textContent = historyAuthorityScope==='recorded'
+                ? 'Cơ sở: ' + (historyBranch ? (window.getBranchNameDisplay?.(historyBranch) || historyBranch) : 'Tất cả cơ sở') + '. Tổng ghi nhận quý: ' + quarterTrust.total + ' · Đã xác minh: ' + quarterTrust.currentAuthority + ' · Dữ liệu lịch sử cũ: ' + quarterTrust.legacyHistory + '. Mở toàn bộ lịch sử để xem các năm trước.'
+                : 'Cơ sở: ' + (window.getBranchNameDisplay?.(historyBranch) || historyBranch || 'chưa chọn') + '. Chỉ hiển thị lịch sử thuộc authority hiện hành.';
             coverage.style.cssText = 'font-size:13px;color:#475569;line-height:1.5;margin:8px 0;';actionSlot.append(coverage);
             const rowsEl = document.createElement('div');rowsEl.id = 'attVerifiedHistoryRows';historySection.append(rowsEl);
             const statusEl = document.createElement('p');statusEl.setAttribute('role','status');statusEl.style.cssText = 'font-size:13px;line-height:1.5;margin:8px 0;';historySection.append(statusEl);
-            const more = document.createElement('button');more.id = 'attHistoryLoadMore';more.type = 'button';more.textContent = 'Mở lịch sử đã xác minh';
+            const more = document.createElement('button');more.id = 'attHistoryLoadMore';more.type = 'button';more.textContent = historyAuthorityScope==='recorded' ? 'Mở toàn bộ lịch sử' : 'Mở lịch sử đã xác minh';
             more.style.cssText = 'font-size:16px;min-height:44px;padding:10px 14px;max-width:100%;border:1px solid #93c5fd;border-radius:10px;color:#1e40af;background:#eff6ff;cursor:pointer;';actionSlot.append(more);
             bodyEl.append(historySection);
             let cursor = null,loading = false,done = false,pageCount = 0;
             const seen = new Set(); // Presentation only; discarded when modal/session closes.
-            more.disabled = !/^CS(?:[1-9]|10)$/.test(historyBranch || '');
+            let seenCurrent = 0, seenLegacy = 0;
+            more.disabled = historyOwner.role === 'coach' && !/^CS(?:[1-9]|10)$/.test(historyBranch || '');
             more.onclick = async () => {
                 if (loading || done || !isCurrent()) return;
                 loading = true;more.disabled = true;statusEl.textContent = 'Đang tải trang lịch sử từ máy chủ…';
                 try {
-                    const page = await AttendanceService.loadMemberHistory(name,null,{page:true,branch:historyBranch,cursor});
+                    const page = await AttendanceService.loadMemberHistory(name,null,{page:true,branch:historyBranch,cursor,
+                        consistency:'server',authorityScope:historyAuthorityScope});
                     if (!isCurrent()) return;
                     for (const row of page.rows) {
                         if (seen.has(row.id)) continue;seen.add(row.id);
@@ -2181,14 +2191,20 @@ export function initAttendance() {
                         item.style.cssText = 'border:1px solid #e2e8f0;border-radius:10px;padding:10px;margin:8px 0;font-size:14px;line-height:1.6;overflow-wrap:anywhere;';
                         const data = row.data,shift = resolveTrainingShift(data.shiftId,_clubShifts);
                         const date = document.createElement('strong');date.textContent = data.date + ' · ' + ({1:'Có mặt',2:'Vắng',3:'Có phép'}[Number(data.status)] || 'Chưa điểm danh');
-                        const detail = document.createElement('div');detail.textContent = 'Tháng ' + data.month + ' · Ca: ' + (shift?.name || data.shiftId || 'Không gán ca') + ' · ' + (window.getBranchNameDisplay?.(data.branch) || data.branch);
+                        const trust = data.historyAuthority === HISTORY_AUTHORITY ? 'CURRENT_AUTHORITY' : 'LEGACY_HISTORY';
+                        if (trust === 'CURRENT_AUTHORITY') seenCurrent++; else seenLegacy++;
+                        const detail = document.createElement('div');detail.textContent = 'Tháng ' + data.month + ' · Ca: ' + (shift?.name || data.shiftId || 'Không gán ca') + ' · ' + (window.getBranchNameDisplay?.(data.branch) || data.branch)
+                            + (historyAuthorityScope==='recorded' && trust==='LEGACY_HISTORY' ? ' · Dữ liệu lịch sử cũ' : '');
                         item.append(date,detail);rowsEl.append(item);
                     }
                     cursor = page.cursor;done = page.complete;pageCount++;
                     historySection.append(more); // Same control follows the loaded rows; no second CTA/handler.
-                    statusEl.textContent = done ? (seen.size ? 'Đã duyệt hết lịch sử đã xác minh của cơ sở này (' + seen.size + ' buổi).' : 'Chưa có lịch sử đã xác minh tại cơ sở này.')
-                        : 'Đã tải trang ' + pageCount + ' (' + seen.size + ' buổi đã ghi nhận).';
-                    more.textContent = done ? 'Đã hết lịch sử đã xác minh' : 'Tải thêm lịch sử';
+                    statusEl.textContent = historyAuthorityScope==='recorded'
+                        ? (done ? (seen.size ? 'Đã duyệt hết lịch sử: ' + seen.size + ' ghi nhận · Đã xác minh: ' + seenCurrent + ' · Dữ liệu lịch sử cũ: ' + seenLegacy + '.' : 'Chưa có lịch sử điểm danh.')
+                            : 'Đã tải trang ' + pageCount + ': ' + seen.size + ' ghi nhận · Đã xác minh: ' + seenCurrent + ' · Dữ liệu lịch sử cũ: ' + seenLegacy + '.')
+                        : (done ? (seen.size ? 'Đã duyệt hết lịch sử đã xác minh của cơ sở này (' + seen.size + ' buổi).' : 'Chưa có lịch sử đã xác minh tại cơ sở này.')
+                            : 'Đã tải trang ' + pageCount + ' (' + seen.size + ' buổi đã ghi nhận).');
+                    more.textContent = done ? (historyAuthorityScope==='recorded' ? 'Đã hết toàn bộ lịch sử' : 'Đã hết lịch sử đã xác minh') : 'Tải thêm lịch sử';
                 } catch (error) {
                     if (!isCurrent()) return;
                     statusEl.textContent = error.code === 'permission-denied' ? 'Quyền xem lịch sử đã thay đổi. Vui lòng xác minh lại cơ sở.' : error.message;
@@ -2595,8 +2611,9 @@ export function initAttendance() {
         if (!selMonth) { _showMsg('Vui lòng chọn tháng để xem thống kê'); return; }
         _showMsg('⏳ Đang tải dữ liệu...');
         try {
+            const monthAuthorityScope = monthlyOwner.role === 'coach' ? 'current' : 'recorded';
             const monthRecords = await AttendanceService.loadByMonth(selMonth, {
-                branch: selBranch === 'all' ? '' : selBranch, verified:true,
+                branch: selBranch === 'all' ? '' : selBranch, consistency:'server', authorityScope:monthAuthorityScope,
                 signal: requestSignal,
                 onPage: ({ totalDocs, page }) => {
                     if (_isCurrentRequest() && page > 1) {
@@ -2609,8 +2626,8 @@ export function initAttendance() {
             const snap = { forEach: (fn) => monthRecords.forEach(item => fn({ data: () => item.data, id: item.id })) };
             const grouped = {};
             snap.forEach(d => {
-                const data=d.data(), pid=data.profileId, key=JSON.stringify([pid,data.branch]);
-                if (!grouped[key]) grouped[key]={name:pid,belt:data.belt||'',branch:data.branch||'',present:0,excused:0,absent:0,dateMap:{}};
+                const data=d.data(), pid=data.profileId, canonicalBranch=_canonicalAttendanceBranch(data.branch,''), key=JSON.stringify([pid,canonicalBranch]);
+                if (!grouped[key]) grouped[key]={name:pid,belt:data.belt||'',branch:canonicalBranch||data.branch||'',present:0,excused:0,absent:0,dateMap:{}};
                 if (data.status===1) grouped[key].present++;
                 if (data.status===2) grouped[key].absent++;
                 if (data.status===3) grouped[key].excused++;
@@ -2629,7 +2646,10 @@ export function initAttendance() {
             const monthDisplay = selMonth.split('-').reverse().join('/');
             let scopeEl=document.getElementById('attMonthlyScope');
             if(!scopeEl){scopeEl=document.createElement('p');scopeEl.id='attMonthlyScope';scopeEl.style.cssText='font-size:0.78rem;line-height:1.5;color:#475569;margin:8px 0;';const target=document.getElementById('att_monthly_cards')||tbody.closest('table');target?.parentNode.insertBefore(scopeEl,target);}
-            scopeEl.textContent='Điểm danh đã xác minh · '+monthDisplay+' · '+(selBranch==='all'?'Tất cả cơ sở':(window.getBranchNameDisplay?.(selBranch)||selBranch))+'. CC: trên buổi đã ghi nhận; CC lịch: lịch đăng ký hiện tại, không xác nhận lịch sử đăng ký.';
+            const monthlyTrust = monthRecords.trustSummary || {total:monthRecords.length,currentAuthority:monthRecords.filter(x=>x.data.historyAuthority===HISTORY_AUTHORITY).length,legacyHistory:monthRecords.filter(x=>x.data.historyAuthority!==HISTORY_AUTHORITY).length};
+            scopeEl.textContent=(monthAuthorityScope==='recorded'?'Điểm danh ghi nhận':'Điểm danh đã xác minh')+' · '+monthDisplay+' · '+(selBranch==='all'?'Tất cả cơ sở':(window.getBranchNameDisplay?.(selBranch)||selBranch))
+                +(monthAuthorityScope==='recorded'?' · Tổng ghi nhận: '+monthlyTrust.total+' · Đã xác minh: '+monthlyTrust.currentAuthority+' · Dữ liệu lịch sử cũ: '+monthlyTrust.legacyHistory:'')
+                +'. CC: trên buổi đã ghi nhận; CC lịch: lịch đăng ký hiện tại, không xác nhận lịch sử đăng ký.';
             const _mkBeltBadge = (belt) => window.getBeltBadge ? window.getBeltBadge(belt||'Trắng') : `<span class="badge" style="background:#f0f4ff;color:#0033A0;">${escapeHtml((belt||'Trắng').replace(/^Đai /i,''))}</span>`;
             const _rateColor = (r) => r>=80?'#16a34a':r>=60?'#d97706':'#dc2626';
             const _rateBg    = (r) => r>=80?'#f0fdf4':r>=60?'#fefce8':'#fff1f2';
@@ -2820,7 +2840,7 @@ export function initAttendance() {
         monthRecords.forEach(function(rec) {
             // rec là { id, data } từ AttendanceService.loadByMonth
             const d = rec.data || rec;
-            if (!d || d.profileId !== profileName || (branch && d.branch !== branch)) return;
+            if (!d || d.profileId !== profileName || (branch && !_sameBranch(d.branch, branch))) return;
             const date    = d.date || '';
             const shiftId = d.shiftId || '';
             if (!date) return;
@@ -2847,7 +2867,8 @@ export function initAttendance() {
         // [4J-6A] Load dữ liệu điểm danh tháng thật từ Firestore
         let monthRecords = [];
         try {
-            monthRecords = await AttendanceService.loadByMonth(monthStr,{branch:branch==='all'?'':branch,verified:true});
+            monthRecords = await AttendanceService.loadByMonth(monthStr,{branch:branch==='all'?'':branch,
+                consistency:'server',authorityScope:owner.role==='coach'?'current':'recorded'});
             if(!_isOfflineAttendanceSyncContextCurrent(owner))throw Error('Phiên báo cáo đã thay đổi.');
         } catch(e) {
             console.warn('[BranchReport] Dừng báo cáo vì dữ liệu tháng chưa được xác minh.',e);
@@ -2885,7 +2906,7 @@ export function initAttendance() {
                 : null;
         });
 
-        const report = {month:monthStr,branch,view:'VERIFIED BUSINESS VIEW',metric:'CURRENT_REGISTRATION_SCHEDULE_ACCURACY',coverage:'Lịch đăng ký hiện tại; không xác nhận lịch sử đăng ký.',byBranch:branchStats};
+        const report = {month:monthStr,branch,view:owner.role==='coach'?'VERIFIED BUSINESS VIEW':'RECORDED BUSINESS VIEW',metric:'CURRENT_REGISTRATION_SCHEDULE_ACCURACY',coverage:'Lịch đăng ký hiện tại; không xác nhận lịch sử đăng ký.',attendanceTrust:monthRecords.trustSummary||null,byBranch:branchStats};
         console.log('[BranchReport] Tháng ' + monthStr + ' (dữ liệu thật: ' + monthRecords.length + ' bản ghi)');
         Object.entries(branchStats).forEach(([key, s]) => {
             console.log(

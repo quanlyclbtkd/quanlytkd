@@ -38,12 +38,14 @@ export async function loadAttendanceMonthPaginated({db,clubId,month,branch,onPro
     if(db!==store.db||clubId!==store.clubId||(authOwner.coach&&authOwner.clubId!==clubId))throw Error('Sai phạm vi CLB khi xuất Điểm danh.');
     if(authOwner.coach&&branch&&branch!==authOwner.branch)throw Error('Sai cơ sở HLV khi xuất Điểm danh.');
     const scopeBranch=authOwner.coach?authOwner.branch:(branch==='all'?'':branch||'');
-    const rows=await owner.readMonth(month,{branch:scopeBranch,verified:true,documentOrder:true,pageSize:PAGE_SIZE,maxPages:MAX_PAGES,
+    const authorityScope=authOwner.coach?'current':'recorded';
+    const rows=await owner.readMonth(month,{branch:scopeBranch,consistency:'server',authorityScope,documentOrder:true,pageSize:PAGE_SIZE,maxPages:MAX_PAGES,
         onPage:({page,totalDocs})=>{_requireAttendanceExportOwner(authOwner);if(typeof onProgress==='function')onProgress({pages:page,docs:totalDocs});}});
     _requireAttendanceExportOwner(authOwner);
     if (_historyReadOwner() !== owner) throw Object.assign(Error('Reader Điểm danh đã thay đổi. Vui lòng tải lại trang.'),{code:'attendance/reload-required'});
     return {items:rows.map(row=>({...row.data,id:row.id})),pages:rows.pageCount,truncated:false,
-        verified:true,scope:{clubId,month,branch:scopeBranch||'all',historyAuthority:owner.authority}};
+        serverVerified:true,authorityScope,trustSummary:rows.trustSummary||null,
+        scope:{clubId,month,branch:scopeBranch||'all',authorityScope}};
 }
 
 export async function exportAttendanceExcel() {
@@ -117,8 +119,9 @@ export async function exportAttendanceExcel() {
             const grouped = {};
             attendanceDocs.forEach(d => {
                 const data = d;
-                const pid=data.profileId,key=JSON.stringify([pid,data.branch]);
-                if(!grouped[key])grouped[key]={name:pid,belt:data.belt||'',branch:data.branch,present:0,excused:0,absent:0};
+                const canonicalBranch=String(data.branch||'')==='Mặc định'?'CS1':String(data.branch||'');
+                const pid=data.profileId,key=JSON.stringify([pid,canonicalBranch]);
+                if(!grouped[key])grouped[key]={name:pid,belt:data.belt||'',branch:canonicalBranch,present:0,excused:0,absent:0};
                 if(data.status===1)grouped[key].present++;
                 if(data.status===2)grouped[key].absent++;
                 if(data.status===3)grouped[key].excused++;

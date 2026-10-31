@@ -1,0 +1,200 @@
+--- a/js/modules/attendance.js
++++ b/js/modules/attendance.js
+@@ -1709,6 +1709,7 @@
+             branch: token.branch === 'all' ? '' : token.branch,
+             shiftAuthorityMode: shiftDecision.mode,
+             requireShift: shiftDecision.mode === 'explicit-shift',
++            historicalReopen: token.date < _getLocalToday(),
+             isCurrent: () => _isAttendanceDailyTokenCurrent(token),
+         });
+         if (!_isAttendanceDailyTokenCurrent(token)) {
+@@ -1900,7 +1901,7 @@
+                 // avoids loading a whole month to diagnose one denied slot.
+                 const inspected=await AttendanceService.inspectIntent({clubId:principal.clubId,docId:target});
+                 rows=inspected.data?[{id:target,data:inspected.data}]:[];
+-            } else rows=await AttendanceService.loadByMonth(month.value);
++            } else rows=await AttendanceService.loadByMonth(month.value,{consistency:'server',authorityScope:'recorded'});
+             if (!_isOfflineAttendanceSyncContextCurrent(principal)||!overlay.isConnected) return;
+             const old=rows.filter(x=>x.data.historyAuthority!==HISTORY_AUTHORITY);content.replaceChildren();
+             if (!old.length) {
+@@ -2600,8 +2601,9 @@
+         if (!selMonth) { _showMsg('Vui lòng chọn tháng để xem thống kê'); return; }
+         _showMsg('⏳ Đang tải dữ liệu...');
+         try {
++            const monthAuthorityScope = monthlyOwner.role === 'coach' ? 'current' : 'recorded';
+             const monthRecords = await AttendanceService.loadByMonth(selMonth, {
+-                branch: selBranch === 'all' ? '' : selBranch, verified:true,
++                branch: selBranch === 'all' ? '' : selBranch, consistency:'server', authorityScope:monthAuthorityScope,
+                 signal: requestSignal,
+                 onPage: ({ totalDocs, page }) => {
+                     if (_isCurrentRequest() && page > 1) {
+@@ -2614,8 +2616,8 @@
+             const snap = { forEach: (fn) => monthRecords.forEach(item => fn({ data: () => item.data, id: item.id })) };
+             const grouped = {};
+             snap.forEach(d => {
+-                const data=d.data(), pid=data.profileId, key=JSON.stringify([pid,data.branch]);
+-                if (!grouped[key]) grouped[key]={name:pid,belt:data.belt||'',branch:data.branch||'',present:0,excused:0,absent:0,dateMap:{}};
++                const data=d.data(), pid=data.profileId, canonicalBranch=_canonicalAttendanceBranch(data.branch,''), key=JSON.stringify([pid,canonicalBranch]);
++                if (!grouped[key]) grouped[key]={name:pid,belt:data.belt||'',branch:canonicalBranch||data.branch||'',present:0,excused:0,absent:0,dateMap:{}};
+                 if (data.status===1) grouped[key].present++;
+                 if (data.status===2) grouped[key].absent++;
+                 if (data.status===3) grouped[key].excused++;
+@@ -2825,7 +2827,7 @@
+         monthRecords.forEach(function(rec) {
+             // rec là { id, data } từ AttendanceService.loadByMonth
+             const d = rec.data || rec;
+-            if (!d || d.profileId !== profileName || (branch && d.branch !== branch)) return;
++            if (!d || d.profileId !== profileName || (branch && !_sameBranch(d.branch, branch))) return;
+             const date    = d.date || '';
+             const shiftId = d.shiftId || '';
+             if (!date) return;
+@@ -2852,7 +2854,8 @@
+         // [4J-6A] Load dữ liệu điểm danh tháng thật từ Firestore
+         let monthRecords = [];
+         try {
+-            monthRecords = await AttendanceService.loadByMonth(monthStr,{branch:branch==='all'?'':branch,verified:true});
++            monthRecords = await AttendanceService.loadByMonth(monthStr,{branch:branch==='all'?'':branch,
++                consistency:'server',authorityScope:owner.role==='coach'?'current':'recorded'});
+             if(!_isOfflineAttendanceSyncContextCurrent(owner))throw Error('Phiên báo cáo đã thay đổi.');
+         } catch(e) {
+             console.warn('[BranchReport] Dừng báo cáo vì dữ liệu tháng chưa được xác minh.',e);
+@@ -2890,7 +2893,7 @@
+                 : null;
+         });
+ 
+-        const report = {month:monthStr,branch,view:'VERIFIED BUSINESS VIEW',metric:'CURRENT_REGISTRATION_SCHEDULE_ACCURACY',coverage:'Lịch đăng ký hiện tại; không xác nhận lịch sử đăng ký.',byBranch:branchStats};
++        const report = {month:monthStr,branch,view:owner.role==='coach'?'VERIFIED BUSINESS VIEW':'RECORDED BUSINESS VIEW',metric:'CURRENT_REGISTRATION_SCHEDULE_ACCURACY',coverage:'Lịch đăng ký hiện tại; không xác nhận lịch sử đăng ký.',attendanceTrust:monthRecords.trustSummary||null,byBranch:branchStats};
+         console.log('[BranchReport] Tháng ' + monthStr + ' (dữ liệu thật: ' + monthRecords.length + ' bản ghi)');
+         Object.entries(branchStats).forEach(([key, s]) => {
+             console.log(
+--- a/public/js/modules/attendance.js
++++ b/public/js/modules/attendance.js
+@@ -1709,6 +1709,7 @@
+             branch: token.branch === 'all' ? '' : token.branch,
+             shiftAuthorityMode: shiftDecision.mode,
+             requireShift: shiftDecision.mode === 'explicit-shift',
++            historicalReopen: token.date < _getLocalToday(),
+             isCurrent: () => _isAttendanceDailyTokenCurrent(token),
+         });
+         if (!_isAttendanceDailyTokenCurrent(token)) {
+@@ -1900,7 +1901,7 @@
+                 // avoids loading a whole month to diagnose one denied slot.
+                 const inspected=await AttendanceService.inspectIntent({clubId:principal.clubId,docId:target});
+                 rows=inspected.data?[{id:target,data:inspected.data}]:[];
+-            } else rows=await AttendanceService.loadByMonth(month.value);
++            } else rows=await AttendanceService.loadByMonth(month.value,{consistency:'server',authorityScope:'recorded'});
+             if (!_isOfflineAttendanceSyncContextCurrent(principal)||!overlay.isConnected) return;
+             const old=rows.filter(x=>x.data.historyAuthority!==HISTORY_AUTHORITY);content.replaceChildren();
+             if (!old.length) {
+@@ -2600,8 +2601,9 @@
+         if (!selMonth) { _showMsg('Vui lòng chọn tháng để xem thống kê'); return; }
+         _showMsg('⏳ Đang tải dữ liệu...');
+         try {
++            const monthAuthorityScope = monthlyOwner.role === 'coach' ? 'current' : 'recorded';
+             const monthRecords = await AttendanceService.loadByMonth(selMonth, {
+-                branch: selBranch === 'all' ? '' : selBranch, verified:true,
++                branch: selBranch === 'all' ? '' : selBranch, consistency:'server', authorityScope:monthAuthorityScope,
+                 signal: requestSignal,
+                 onPage: ({ totalDocs, page }) => {
+                     if (_isCurrentRequest() && page > 1) {
+@@ -2614,8 +2616,8 @@
+             const snap = { forEach: (fn) => monthRecords.forEach(item => fn({ data: () => item.data, id: item.id })) };
+             const grouped = {};
+             snap.forEach(d => {
+-                const data=d.data(), pid=data.profileId, key=JSON.stringify([pid,data.branch]);
+-                if (!grouped[key]) grouped[key]={name:pid,belt:data.belt||'',branch:data.branch||'',present:0,excused:0,absent:0,dateMap:{}};
++                const data=d.data(), pid=data.profileId, canonicalBranch=_canonicalAttendanceBranch(data.branch,''), key=JSON.stringify([pid,canonicalBranch]);
++                if (!grouped[key]) grouped[key]={name:pid,belt:data.belt||'',branch:canonicalBranch||data.branch||'',present:0,excused:0,absent:0,dateMap:{}};
+                 if (data.status===1) grouped[key].present++;
+                 if (data.status===2) grouped[key].absent++;
+                 if (data.status===3) grouped[key].excused++;
+@@ -2825,7 +2827,7 @@
+         monthRecords.forEach(function(rec) {
+             // rec là { id, data } từ AttendanceService.loadByMonth
+             const d = rec.data || rec;
+-            if (!d || d.profileId !== profileName || (branch && d.branch !== branch)) return;
++            if (!d || d.profileId !== profileName || (branch && !_sameBranch(d.branch, branch))) return;
+             const date    = d.date || '';
+             const shiftId = d.shiftId || '';
+             if (!date) return;
+@@ -2852,7 +2854,8 @@
+         // [4J-6A] Load dữ liệu điểm danh tháng thật từ Firestore
+         let monthRecords = [];
+         try {
+-            monthRecords = await AttendanceService.loadByMonth(monthStr,{branch:branch==='all'?'':branch,verified:true});
++            monthRecords = await AttendanceService.loadByMonth(monthStr,{branch:branch==='all'?'':branch,
++                consistency:'server',authorityScope:owner.role==='coach'?'current':'recorded'});
+             if(!_isOfflineAttendanceSyncContextCurrent(owner))throw Error('Phiên báo cáo đã thay đổi.');
+         } catch(e) {
+             console.warn('[BranchReport] Dừng báo cáo vì dữ liệu tháng chưa được xác minh.',e);
+@@ -2890,7 +2893,7 @@
+                 : null;
+         });
+ 
+-        const report = {month:monthStr,branch,view:'VERIFIED BUSINESS VIEW',metric:'CURRENT_REGISTRATION_SCHEDULE_ACCURACY',coverage:'Lịch đăng ký hiện tại; không xác nhận lịch sử đăng ký.',byBranch:branchStats};
++        const report = {month:monthStr,branch,view:owner.role==='coach'?'VERIFIED BUSINESS VIEW':'RECORDED BUSINESS VIEW',metric:'CURRENT_REGISTRATION_SCHEDULE_ACCURACY',coverage:'Lịch đăng ký hiện tại; không xác nhận lịch sử đăng ký.',attendanceTrust:monthRecords.trustSummary||null,byBranch:branchStats};
+         console.log('[BranchReport] Tháng ' + monthStr + ' (dữ liệu thật: ' + monthRecords.length + ' bản ghi)');
+         Object.entries(branchStats).forEach(([key, s]) => {
+             console.log(
+--- a/js/modules/reports/attendanceExcelReport.js
++++ b/js/modules/reports/attendanceExcelReport.js
+@@ -38,12 +38,14 @@
+     if(db!==store.db||clubId!==store.clubId||(authOwner.coach&&authOwner.clubId!==clubId))throw Error('Sai phạm vi CLB khi xuất Điểm danh.');
+     if(authOwner.coach&&branch&&branch!==authOwner.branch)throw Error('Sai cơ sở HLV khi xuất Điểm danh.');
+     const scopeBranch=authOwner.coach?authOwner.branch:(branch==='all'?'':branch||'');
+-    const rows=await owner.readMonth(month,{branch:scopeBranch,verified:true,documentOrder:true,pageSize:PAGE_SIZE,maxPages:MAX_PAGES,
++    const authorityScope=authOwner.coach?'current':'recorded';
++    const rows=await owner.readMonth(month,{branch:scopeBranch,consistency:'server',authorityScope,documentOrder:true,pageSize:PAGE_SIZE,maxPages:MAX_PAGES,
+         onPage:({page,totalDocs})=>{_requireAttendanceExportOwner(authOwner);if(typeof onProgress==='function')onProgress({pages:page,docs:totalDocs});}});
+     _requireAttendanceExportOwner(authOwner);
+     if (_historyReadOwner() !== owner) throw Object.assign(Error('Reader Điểm danh đã thay đổi. Vui lòng tải lại trang.'),{code:'attendance/reload-required'});
+     return {items:rows.map(row=>({...row.data,id:row.id})),pages:rows.pageCount,truncated:false,
+-        verified:true,scope:{clubId,month,branch:scopeBranch||'all',historyAuthority:owner.authority}};
++        serverVerified:true,authorityScope,trustSummary:rows.trustSummary||null,
++        scope:{clubId,month,branch:scopeBranch||'all',authorityScope}};
+ }
+ 
+ export async function exportAttendanceExcel() {
+@@ -117,8 +119,9 @@
+             const grouped = {};
+             attendanceDocs.forEach(d => {
+                 const data = d;
+-                const pid=data.profileId,key=JSON.stringify([pid,data.branch]);
+-                if(!grouped[key])grouped[key]={name:pid,belt:data.belt||'',branch:data.branch,present:0,excused:0,absent:0};
++                const canonicalBranch=String(data.branch||'')==='Mặc định'?'CS1':String(data.branch||'');
++                const pid=data.profileId,key=JSON.stringify([pid,canonicalBranch]);
++                if(!grouped[key])grouped[key]={name:pid,belt:data.belt||'',branch:canonicalBranch,present:0,excused:0,absent:0};
+                 if(data.status===1)grouped[key].present++;
+                 if(data.status===2)grouped[key].absent++;
+                 if(data.status===3)grouped[key].excused++;
+--- a/public/js/modules/reports/attendanceExcelReport.js
++++ b/public/js/modules/reports/attendanceExcelReport.js
+@@ -38,12 +38,14 @@
+     if(db!==store.db||clubId!==store.clubId||(authOwner.coach&&authOwner.clubId!==clubId))throw Error('Sai phạm vi CLB khi xuất Điểm danh.');
+     if(authOwner.coach&&branch&&branch!==authOwner.branch)throw Error('Sai cơ sở HLV khi xuất Điểm danh.');
+     const scopeBranch=authOwner.coach?authOwner.branch:(branch==='all'?'':branch||'');
+-    const rows=await owner.readMonth(month,{branch:scopeBranch,verified:true,documentOrder:true,pageSize:PAGE_SIZE,maxPages:MAX_PAGES,
++    const authorityScope=authOwner.coach?'current':'recorded';
++    const rows=await owner.readMonth(month,{branch:scopeBranch,consistency:'server',authorityScope,documentOrder:true,pageSize:PAGE_SIZE,maxPages:MAX_PAGES,
+         onPage:({page,totalDocs})=>{_requireAttendanceExportOwner(authOwner);if(typeof onProgress==='function')onProgress({pages:page,docs:totalDocs});}});
+     _requireAttendanceExportOwner(authOwner);
+     if (_historyReadOwner() !== owner) throw Object.assign(Error('Reader Điểm danh đã thay đổi. Vui lòng tải lại trang.'),{code:'attendance/reload-required'});
+     return {items:rows.map(row=>({...row.data,id:row.id})),pages:rows.pageCount,truncated:false,
+-        verified:true,scope:{clubId,month,branch:scopeBranch||'all',historyAuthority:owner.authority}};
++        serverVerified:true,authorityScope,trustSummary:rows.trustSummary||null,
++        scope:{clubId,month,branch:scopeBranch||'all',authorityScope}};
+ }
+ 
+ export async function exportAttendanceExcel() {
+@@ -117,8 +119,9 @@
+             const grouped = {};
+             attendanceDocs.forEach(d => {
+                 const data = d;
+-                const pid=data.profileId,key=JSON.stringify([pid,data.branch]);
+-                if(!grouped[key])grouped[key]={name:pid,belt:data.belt||'',branch:data.branch,present:0,excused:0,absent:0};
++                const canonicalBranch=String(data.branch||'')==='Mặc định'?'CS1':String(data.branch||'');
++                const pid=data.profileId,key=JSON.stringify([pid,canonicalBranch]);
++                if(!grouped[key])grouped[key]={name:pid,belt:data.belt||'',branch:canonicalBranch,present:0,excused:0,absent:0};
+                 if(data.status===1)grouped[key].present++;
+                 if(data.status===2)grouped[key].absent++;
+                 if(data.status===3)grouped[key].excused++;

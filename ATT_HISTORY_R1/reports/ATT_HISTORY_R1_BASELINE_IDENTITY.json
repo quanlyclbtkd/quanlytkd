@@ -1,0 +1,15 @@
+{
+  "baselineZip": "A9R18_USABILITY_PERF_R2R5_2B_FULL_SOURCE_TEST_CANDIDATE.zip",
+  "zipSHA256": "a960b47e3a17c523bcdcfacb55e132153560e175f76b9332956c79abf477811c",
+  "runtimeSHA256": "d65e2c5a7f0736cbd220c1d25633f79348143e74409edcc1eb13a3c54deb2d6e",
+  "appJs": {
+    "bytes": 702900,
+    "sha256": "c3b240ac9c7e9fd28403926f09b8ab71043774d8b0ada7e886da6ce9adf4eb13"
+  },
+  "rulesSHA256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+  "indexesSHA256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+  "zipCrc": "PASS",
+  "baselineCheck": "PASS exit 0",
+  "baselineCheckAll": "PASS exit 0",
+  "patchAuthorized": true
+}

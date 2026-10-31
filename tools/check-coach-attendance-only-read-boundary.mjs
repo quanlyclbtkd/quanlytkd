@@ -113,8 +113,8 @@ check('Attendance monthly and member-history queries support branch scope',
   (() => {
     const history=attendanceService.slice(attendanceService.indexOf('async loadMemberHistory('),attendanceService.indexOf('// ── COACH NOTES'));
     const monthly=attendanceService.slice(attendanceService.indexOf('async loadByMonth('));
-    return [history,monthly].every(body=>body.includes('_attendanceBranchConstraint(where, branch, isCoach)')) &&
-      history.includes('baseConstraints.push(branchConstraint)') && monthly.includes('constraints.push(branchConstraint)');
+    return history.includes("if (policy.coach)") && history.includes("where('historyAuthority', '==', HISTORY_AUTHORITY)") && history.includes("where('branch', '==', policy.branch)") &&
+      monthly.includes("if (policy.coach)") && monthly.includes("where('historyAuthority', '==', HISTORY_AUTHORITY)") && monthly.includes("where('branch', '==', policy.branch)");
   })());
 check('Attendance UI passes selected/assigned branch into daily and monthly services',
   attendanceModule.includes("branch: token.branch === 'all' ? '' : token.branch") &&
@@ -156,11 +156,12 @@ check('Required Firestore indexes are declared',
 {
   const calls=[];
   let snapshots=[];
-  const fakeSnap = () => ({ size:0, empty:true, docs:[], forEach(){}, docChanges(){return[]} });
+  const fakeSnap = () => ({ size:0, empty:true, docs:[], metadata:{fromCache:false,hasPendingWrites:false}, forEach(){}, docChanges(){return[]} });
   const context={
     window: {
       userRole:'coach', coachBranch:'CS3',
-      __store:{db:{},clubId:'club-a'}, __scaleConfig:{},
+      __store:{db:{},clubId:'club-a',userRole:'coach',currentUser:{uid:'coach-a'}}, __scaleConfig:{},
+      __verifiedAuthContextState:{ready:true,uid:'coach-a',role:'coach',clubId:'club-a',generation:1,branchGeneration:1,assignmentVersion:'v1',allowedBranches:['CS3'],activeBranch:'CS3',coachBranch:'CS3',branchSelectionPending:false,sessionEpoch:1,authGeneration:1},
       RoleReadBoundary:{ isCoachAttendanceOnly(){return true}, canMount(){return true} },
       _fb_init:{
         collection(...parts){return {kind:'collection',parts}},

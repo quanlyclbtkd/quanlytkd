@@ -1,0 +1,30 @@
+{
+  "classification": "READ_FILTER_REGRESSION",
+  "reproduced": true,
+  "sourceContract": "Historical rows from earlier builds remain Admin-visible but are not promoted into Coach authority.",
+  "baselineCoupling": "if (isCoach || verified) add where('historyAuthority','==',HISTORY_AUTHORITY)",
+  "normalAdminUI": "passes verified:true",
+  "redFixture": {
+    "A": "current authority / CS1",
+    "B": "old authority / CS1",
+    "C": "missing authority / CS1"
+  },
+  "observed": {
+    "AdminDaily": [
+      "B"
+    ],
+    "AdminMemberVerified": [
+      "A"
+    ],
+    "AdminMonthlyVerified": [
+      "A"
+    ],
+    "AdminAudit": [
+      "A",
+      "B",
+      "C"
+    ]
+  },
+  "physicalDeletionEvidence": "NONE. Current write path uses status=0 versioned tombstone; production data was not read.",
+  "historicalEvidence": "A9R13 emulator explicitly asserted Admin quarter history retained unfiltered authority access; current R2R5.2B verified reads coupled verification to current authority."
+}

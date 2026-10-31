@@ -1,0 +1,12 @@
+{
+  "currentAuthorityAssignedBranch": true,
+  "legacyOldAuthority": false,
+  "missingMarker": false,
+  "otherBranch": false,
+  "otherClub": false,
+  "legacyDefaultPromoted": false,
+  "callerCanOverrideRecorded": false,
+  "serverRequired": true,
+  "historyAuthorityQueryFilterRetained": true,
+  "crossBranchTest": "PASS 35/35 security + 30/30 read boundary"
+}

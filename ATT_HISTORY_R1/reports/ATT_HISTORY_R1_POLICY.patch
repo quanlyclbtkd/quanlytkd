@@ -1,0 +1,980 @@
+--- a/js/services/attendance.service.js
++++ b/js/services/attendance.service.js
+@@ -102,6 +102,54 @@
+     return()=>{ensureOwner();if(scope()!==captured)throw Object.assign(Error('Phân quyền lịch sử đã thay đổi.'),{code:'attendance/stale-history-context'});};
+ }
+ 
++// Attendance History R1 — consistency and historical authority are independent.
++// `verified:true` remains a compatibility alias for SERVER_REQUIRED only.
++const ATT_HISTORY_CONSISTENCY_SERVER = 'server';
++const ATT_HISTORY_CONSISTENCY_CACHE_ALLOWED = 'cache-allowed';
++const ATT_HISTORY_SCOPE_RECORDED = 'recorded';
++const ATT_HISTORY_SCOPE_CURRENT = 'current';
++function _sameHistoricalBranch(left, right) {
++    if (!right || right === 'all') return true;
++    return _canonicalBranch(left, '') === _canonicalBranch(right, '');
++}
++function _resolveAttendanceHistoryReadPolicy(options = {}) {
++    const { coach, branch } = _scopedBranch(options);
++    const auth = window.__verifiedAuthContextState || {};
++    const role = String(auth.role || window.userRole || '').toLowerCase();
++    const serverRequired = coach || options.verified === true || options.consistency === ATT_HISTORY_CONSISTENCY_SERVER;
++    const requestedScope = String(options.authorityScope || '').toLowerCase();
++    const authorityScope = coach ? ATT_HISTORY_SCOPE_CURRENT
++        : requestedScope === ATT_HISTORY_SCOPE_CURRENT ? ATT_HISTORY_SCOPE_CURRENT : ATT_HISTORY_SCOPE_RECORDED;
++    return Object.freeze({
++        role, coach, branch,
++        consistency: serverRequired ? ATT_HISTORY_CONSISTENCY_SERVER : ATT_HISTORY_CONSISTENCY_CACHE_ALLOWED,
++        serverRequired,
++        authorityScope,
++        legacyVisible: authorityScope === ATT_HISTORY_SCOPE_RECORDED,
++    });
++}
++function _historyTrust(data) {
++    return data?.historyAuthority === HISTORY_AUTHORITY ? 'CURRENT_AUTHORITY' : 'LEGACY_HISTORY';
++}
++function _filterHistoricalRows(rows, policy) {
++    return rows.filter(row => {
++        const data = row?.data || {};
++        if (!attendanceVisibleRecord(data)) return false;
++        if (policy.authorityScope === ATT_HISTORY_SCOPE_CURRENT && data.historyAuthority !== HISTORY_AUTHORITY) return false;
++        if (policy.branch && policy.branch !== 'all' && !_sameHistoricalBranch(data.branch, policy.branch)) return false;
++        return true;
++    });
++}
++function _annotateHistoricalRows(rows, policy, rawCount = rows.length) {
++    let current = 0, legacy = 0;
++    for (const row of rows) (_historyTrust(row?.data) === 'CURRENT_AUTHORITY' ? current++ : legacy++);
++    Object.defineProperties(rows, {
++        historyPolicy: { value: policy, enumerable: false },
++        trustSummary: { value: Object.freeze({ total: rows.length, currentAuthority: current, legacyHistory: legacy, rawCount }), enumerable: false },
++    });
++    return rows;
++}
++
+ // V5U6G1: Offline journal metadata is orchestration-only. Build the canonical
+ // Firestore Attendance document from an explicit business-field whitelist so
+ // future journal fields cannot leak through a spread into persisted schema.
+@@ -243,6 +291,8 @@
+         }
+         const shiftAuthorityMode = String(options.shiftAuthorityMode || (shiftId ? 'explicit-shift' : 'legacy-no-shift'));
+         const { coach: isCoach, branch } = _scopedBranch(options);
++        const historicalReopen = options.historicalReopen === true && !isCoach;
++        const historicalEnsureCurrent = historicalReopen ? _verifiedAttendanceReadGuard(db, clubId) : null;
+         window.RoleReadBoundary?.canMount?.('attendance.daily', { date, branch, shiftId });
+ 
+         // H8R2: one canonical daily reader, internally cursor-paged. The former
+@@ -252,8 +302,13 @@
+         const safetyCeiling = Math.max(pageSize, Number((window.__scaleConfig || {}).attendanceDailySafetyCeiling) || 10000);
+         const baseConstraints = [where('date', '==', date)];
+         if (isCoach) baseConstraints.push(where('historyAuthority','==',HISTORY_AUTHORITY));
+-        const branchConstraint = _attendanceBranchConstraint(where, branch, isCoach);
++        const branchConstraint = historicalReopen ? null : _attendanceBranchConstraint(where, branch, isCoach);
+         if (branchConstraint) baseConstraints.push(branchConstraint);
++        else if (historicalReopen && branch && branch !== 'all') {
++            const canonicalBranch = _canonicalBranch(branch, '');
++            if (canonicalBranch === 'CS1') baseConstraints.push(where('branch', 'in', ['CS1', 'Mặc định']));
++            else if (canonicalBranch) baseConstraints.push(where('branch', '==', canonicalBranch));
++        }
+         if (shiftId) baseConstraints.push(where('shiftId', '==', shiftId));
+ 
+         const results = [];
+@@ -274,15 +329,23 @@
+             if (cursor) constraints.push(startAfter(cursor));
+             constraints.push(_lim(pageSize));
+ 
++            if (historicalEnsureCurrent) historicalEnsureCurrent();
+             const snap = await getDocs(query(
+                 collection(db, 'clubs', clubId, 'attendance'),
+                 ...constraints
+             ));
+             serverConfirmed = serverConfirmed && snap.metadata?.fromCache === false && snap.metadata?.hasPendingWrites === false;
++            if (historicalEnsureCurrent) {
++                historicalEnsureCurrent();
++                if (snap.metadata?.fromCache !== false || snap.metadata?.hasPendingWrites !== false)
++                    throw Object.assign(Error('Ngày điểm danh cũ chưa được xác minh từ máy chủ.'), { code: 'attendance/history-server-required' });
++            }
+             pageCount++;
+             lastPageSize = Number(snap.size || 0);
+             snap.forEach(d => {
+-                if (results.length < safetyCeiling) results.push({ id: d.id, data: d.data() });
++                const data = d.data();
++                if (historicalReopen && branch && branch !== 'all' && !_sameHistoricalBranch(data.branch, branch)) return;
++                if (results.length < safetyCeiling) results.push({ id: d.id, data });
+             });
+ 
+             if (typeof window.recordFirestoreReadAttribution === 'function') {
+@@ -421,81 +484,120 @@
+      */
+     async loadMemberHistory(profileId, months, options = {}) {
+         const { getDocs, query, where, collection, orderBy, documentId, limit, startAfter } = _sdk();
+-        const db     = _db();
++        const db = _db();
+         const clubId = _clubId();
+-        const { coach: isCoach, branch } = _scopedBranch(options);
+-        if (options.page === true) {
+-            const auth = window.__verifiedAuthContextState;
+-            if (auth?.ready !== true || !auth.uid || (auth.role !== 'super_admin' && auth.clubId !== clubId) ||
+-                !/^CS(?:[1-9]|10)$/.test(branch || '') || typeof profileId !== 'string' || !profileId || profileId.includes('/')) {
+-                throw Object.assign(new Error('Chưa xác minh phạm vi lịch sử.'),{code:'attendance/history-scope-required'});
++        const policy = _resolveAttendanceHistoryReadPolicy(options);
++        // All-time pages are historical business reads and therefore always
++        // require a committed server result. Coach scope is force-current.
++        const serverRequired = options.page === true ? true : policy.serverRequired;
++        const ensureCurrent = serverRequired ? _verifiedAttendanceReadGuard(db, clubId) : null;
++        const auth = window.__verifiedAuthContextState || {};
++
++        const validatePrincipal = () => {
++            if (!serverRequired) return;
++            if (auth.ready !== true || !auth.uid || !['admin','owner','super_admin','coach'].includes(String(auth.role || '')) ||
++                (auth.role !== 'super_admin' && auth.clubId !== clubId) ||
++                typeof profileId !== 'string' || !profileId || profileId.includes('/') ||
++                (policy.coach && !/^CS(?:[1-9]|10)$/.test(policy.branch || ''))) {
++                throw Object.assign(new Error('Chưa xác minh phạm vi lịch sử.'), { code: 'attendance/history-scope-required' });
+             }
++        };
++        validatePrincipal();
++
++        const context = () => {
++            const current = window.__verifiedAuthContextState || {};
++            return JSON.stringify([
++                _clubId(), current.uid, current.role, current.clubId, current.generation, current.branchGeneration,
++                current.assignmentVersion, current.allowedBranches, current.activeBranch, current.coachBranch,
++                current.ready, current.branchSelectionPending, current.sessionEpoch, current.authGeneration,
++                window.userRole, window.coachBranch, window.__store?.currentUser?.uid,
++            ]);
++        };
++
++        if (options.page === true) {
+             const pageSize = options.pageSize ?? 40;
+-            if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > 40) throw Object.assign(Error('Giới hạn lịch sử không hợp lệ.'),{code:'attendance/history-page-size'});
+-            const ensureCurrent = _verifiedAttendanceReadGuard(db,clubId);
+-            const context = () => {const current=window.__verifiedAuthContextState||{};return JSON.stringify([_clubId(),current.uid,current.role,current.generation,current.branchGeneration,current.assignmentVersion,
+-                current.allowedBranches,current.activeBranch,current.coachBranch,current.ready,current.branchSelectionPending]);};
+-            const scope = JSON.stringify([clubId,profileId,branch,HISTORY_AUTHORITY,pageSize,context()]);
++            if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > 40) throw Object.assign(Error('Giới hạn lịch sử không hợp lệ.'), { code: 'attendance/history-page-size' });
++            const scope = JSON.stringify([clubId, profileId, policy.branch || '', policy.authorityScope, pageSize, context()]);
+             const cursor = options.cursor;
+             if (cursor && (cursor.scope !== scope || typeof cursor.afterId !== 'string' || !cursor.afterId || cursor.afterId.includes('/'))) {
+-                throw Object.assign(Error('Trang lịch sử thuộc phiên hoặc cơ sở khác. Vui lòng mở lại.'),{code:'attendance/history-cursor-scope'});
++                throw Object.assign(Error('Trang lịch sử thuộc phiên hoặc cơ sở khác. Vui lòng mở lại.'), { code: 'attendance/history-cursor-scope' });
++            }
++            const constraints = [where('profileId', '==', profileId)];
++            // Preserve the exact Coach Rules-provable shape. Admin/SuperAdmin
++            // use one broader per-profile page and post-filter authority/branch.
++            if (policy.coach) {
++                constraints.push(where('historyAuthority', '==', HISTORY_AUTHORITY));
++                constraints.push(where('branch', '==', policy.branch));
+             }
+-            const constraints = [where('profileId','==',profileId),where('historyAuthority','==',HISTORY_AUTHORITY),where('branch','==',branch),orderBy(documentId(),'asc'),limit(pageSize)];
++            constraints.push(orderBy(documentId(), 'asc'), limit(pageSize));
+             if (cursor) constraints.push(startAfter(cursor.afterId));
+-            window.RoleReadBoundary?.canMount?.('attendance.member-history',{profileId,branch,pageSize});
+-            const snap = await getDocs(query(collection(db,'clubs',clubId,'attendance'),...constraints));
+-            ensureCurrent();
+-            if (scope !== JSON.stringify([clubId,profileId,branch,HISTORY_AUTHORITY,pageSize,context()])) throw Object.assign(Error('Phiên lịch sử đã thay đổi.'),{code:'attendance/stale-history-context'});
+-            if (snap.metadata?.fromCache !== false || snap.metadata?.hasPendingWrites !== false) throw Object.assign(Error('Chưa xác minh được trang lịch sử từ máy chủ. Vui lòng thử lại khi có mạng.'),{code:'attendance/history-server-required'});
++            window.RoleReadBoundary?.canMount?.('attendance.member-history', { profileId, branch: policy.branch, pageSize });
++            if (ensureCurrent) ensureCurrent();
++            const snap = await getDocs(query(collection(db, 'clubs', clubId, 'attendance'), ...constraints));
++            if (ensureCurrent) {
++                ensureCurrent();
++                if (scope !== JSON.stringify([clubId, profileId, policy.branch || '', policy.authorityScope, pageSize, context()]))
++                    throw Object.assign(Error('Phiên lịch sử đã thay đổi.'), { code: 'attendance/stale-history-context' });
++                if (snap.metadata?.fromCache !== false || snap.metadata?.hasPendingWrites !== false)
++                    throw Object.assign(Error('Chưa xác minh được trang lịch sử từ máy chủ. Vui lòng thử lại khi có mạng.'), { code: 'attendance/history-server-required' });
++            }
+             const raw = [];
+-            snap.forEach(doc => raw.push({id:doc.id,data:doc.data()}));
+-            if (raw.some(row => row.data.profileId !== profileId || row.data.branch !== branch || row.data.historyAuthority !== HISTORY_AUTHORITY)) throw Object.assign(Error('Lịch sử trả về sai phạm vi.'),{code:'attendance/history-scope-mismatch'});
+-            window.recordFirestoreReadAttribution?.('attendance.member-history.page',Math.max(1,raw.length),{pageSize,branch,empty:raw.length === 0});
+-            return {rows:raw.filter(row => attendanceVisibleRecord(row.data)),rawCount:raw.length,pageSize,
+-                cursor:raw.length === pageSize ? {scope,afterId:raw[raw.length - 1].id} : null,
+-                complete:raw.length < pageSize,authority:HISTORY_AUTHORITY,branch};
+-        }
+-        // The member modal uses one verified scope for every role. The Admin
+-        // audit owner remains separate and keeps its existing raw-history path.
+-        const verified = options.verified === true;
+-        const ensureCurrent = verified ? _verifiedAttendanceReadGuard(db,clubId) : null;
+-        if (verified) {
+-            const auth = window.__verifiedAuthContextState;
+-            if (auth?.ready !== true || !auth.uid || (auth.role !== 'super_admin' && auth.clubId !== clubId) ||
+-                !/^CS(?:[1-9]|10)$/.test(branch || '') || typeof profileId !== 'string' || !profileId || profileId.includes('/') ||
+-                !Array.isArray(months) || months.length < 1 || months.length > 10 ||
+-                months.some(month => !/^\d{4}-(?:0[1-9]|1[0-2])$/.test(month))) {
+-                throw Object.assign(new Error('Chưa xác minh phạm vi lịch sử.'),{code:'attendance/history-scope-required'});
+-            }
+-        }
+-        const baseConstraints = [
+-            where('profileId', '==', profileId),
+-            where('month', 'in', months)
+-        ];
+-        if (isCoach || verified) baseConstraints.push(where('historyAuthority','==',HISTORY_AUTHORITY));
+-        window.RoleReadBoundary?.canMount?.('attendance.member-history', { profileId, months, branch });
+-
+-        // Current-authority history follows the same canonical branch proof as
+-        // daily/monthly reads. An extra CS1 alias query is denied by A9R12 Rules
+-        // even when that query would return zero rows.
+-        const branchConstraint = _attendanceBranchConstraint(where, branch, isCoach);
+-        if (branchConstraint) baseConstraints.push(branchConstraint);
+-        const readScope=()=>{const a=window.__verifiedAuthContextState||{};return JSON.stringify([clubId,profileId,branch,HISTORY_AUTHORITY,months,a.uid,a.role,a.clubId,a.ready,a.generation,a.branchGeneration,a.assignmentVersion,a.allowedBranches,a.activeBranch,a.coachBranch,a.branchSelectionPending,a.sessionEpoch,a.authGeneration,window.coachBranch,window.__store?.currentUser?.uid]);};
+-        const flightKey=verified?readScope():'';
+-        const read=()=>{if(ensureCurrent)ensureCurrent();return getDocs(query(collection(db,'clubs',clubId,'attendance'),...baseConstraints));};
+-        const pending=flightKey&&_memberHistoryFlights.get(flightKey);
+-        let flight=pending&&pending.db===db?pending.promise:null;
+-        if(!flight){const entry={db,promise:null};flight=Promise.resolve().then(read).finally(()=>{if(flightKey&&_memberHistoryFlights.get(flightKey)===entry)_memberHistoryFlights.delete(flightKey);});entry.promise=flight;if(flightKey)_memberHistoryFlights.set(flightKey,entry);}
+-        const snap=await flight;
+-        if(verified&&readScope()!==flightKey)throw Object.assign(Error('Phiên lịch sử đã thay đổi.'),{code:'attendance/stale-history-context'});
++            snap.forEach(doc => raw.push({ id: doc.id, data: doc.data() }));
++            if (raw.some(row => row.data.profileId !== profileId))
++                throw Object.assign(Error('Lịch sử trả về sai võ sinh.'), { code: 'attendance/history-scope-mismatch' });
++            if (policy.coach && raw.some(row => row.data.branch !== policy.branch || row.data.historyAuthority !== HISTORY_AUTHORITY))
++                throw Object.assign(Error('Lịch sử HLV trả về sai phạm vi.'), { code: 'attendance/history-scope-mismatch' });
++            const visible = _annotateHistoricalRows(_filterHistoricalRows(raw, policy), policy, raw.length);
++            window.recordFirestoreReadAttribution?.('attendance.member-history.page', Math.max(1, raw.length), {
++                pageSize, branch: policy.branch, empty: raw.length === 0, authorityScope: policy.authorityScope,
++            });
++            return {
++                rows: visible, rawCount: raw.length, pageSize,
++                cursor: raw.length === pageSize ? { scope, afterId: raw[raw.length - 1].id } : null,
++                complete: raw.length < pageSize,
++                authority: HISTORY_AUTHORITY,
++                authorityScope: policy.authorityScope,
++                consistency: ATT_HISTORY_CONSISTENCY_SERVER,
++                branch: policy.branch,
++                trustSummary: visible.trustSummary,
++            };
++        }
++
++        if (!Array.isArray(months) || months.length < 1 || months.length > 10 ||
++            months.some(month => !/^\d{4}-(?:0[1-9]|1[0-2])$/.test(month))) {
++            throw Object.assign(new Error('Phạm vi tháng lịch sử không hợp lệ.'), { code: 'attendance/history-scope-required' });
++        }
++        const baseConstraints = [where('profileId', '==', profileId), where('month', 'in', months)];
++        if (policy.coach) {
++            baseConstraints.push(where('historyAuthority', '==', HISTORY_AUTHORITY));
++            baseConstraints.push(where('branch', '==', policy.branch));
++        }
++        window.RoleReadBoundary?.canMount?.('attendance.member-history', { profileId, months, branch: policy.branch });
++        const readScope = () => JSON.stringify([clubId, profileId, policy.branch || '', policy.authorityScope, months, context()]);
++        const flightKey = serverRequired ? readScope() : '';
++        const read = () => { if (ensureCurrent) ensureCurrent(); return getDocs(query(collection(db, 'clubs', clubId, 'attendance'), ...baseConstraints)); };
++        const pending = flightKey && _memberHistoryFlights.get(flightKey);
++        let flight = pending && pending.db === db ? pending.promise : null;
++        if (!flight) {
++            const entry = { db, promise: null };
++            flight = Promise.resolve().then(read).finally(() => { if (flightKey && _memberHistoryFlights.get(flightKey) === entry) _memberHistoryFlights.delete(flightKey); });
++            entry.promise = flight;
++            if (flightKey) _memberHistoryFlights.set(flightKey, entry);
++        }
++        const snap = await flight;
++        if (serverRequired && readScope() !== flightKey) throw Object.assign(Error('Phiên lịch sử đã thay đổi.'), { code: 'attendance/stale-history-context' });
+         if (ensureCurrent) {
+             ensureCurrent();
+-            if (snap.metadata?.fromCache !== false || snap.metadata?.hasPendingWrites !== false) throw Object.assign(Error('Chưa xác minh được lịch sử từ máy chủ. Vui lòng thử lại khi có mạng.'),{code:'attendance/history-server-required'});
++            if (snap.metadata?.fromCache !== false || snap.metadata?.hasPendingWrites !== false)
++                throw Object.assign(Error('Chưa xác minh được lịch sử từ máy chủ. Vui lòng thử lại khi có mạng.'), { code: 'attendance/history-server-required' });
+         }
+-        const rows = [];
+-        snap.forEach(d => rows.push({ id: d.id, data: d.data() }));
+-        if (verified && rows.some(row => row.data.profileId !== profileId || row.data.branch !== branch || row.data.historyAuthority !== HISTORY_AUTHORITY || !months.includes(row.data.month))) throw Object.assign(Error('Lịch sử trả về sai phạm vi.'),{code:'attendance/history-scope-mismatch'});
+-        return rows.filter(row=>attendanceVisibleRecord(row.data));
++        const raw = [];
++        snap.forEach(d => raw.push({ id: d.id, data: d.data() }));
++        if (raw.some(row => row.data.profileId !== profileId || !months.includes(row.data.month)))
++            throw Object.assign(Error('Lịch sử trả về sai phạm vi.'), { code: 'attendance/history-scope-mismatch' });
++        if (policy.coach && raw.some(row => row.data.branch !== policy.branch || row.data.historyAuthority !== HISTORY_AUTHORITY))
++            throw Object.assign(Error('Lịch sử HLV trả về sai phạm vi.'), { code: 'attendance/history-scope-mismatch' });
++        return _annotateHistoricalRows(_filterHistoricalRows(raw, policy), policy, raw.length);
+     },
+ 
+     // ── COACH NOTES ─────────────────────────────────────────────
+@@ -542,147 +644,107 @@
+      */
+     async loadByMonth(month, options = {}) {
+         const { getDocs, query, where, collection, limit: _limit, startAfter: _startAfter, orderBy, documentId } = _sdk();
+-        const db     = _db();
++        const db = _db();
+         const clubId = _clubId();
+-
+-        if (!month || !/^\d{4}-\d{2}$/.test(String(month))) {
+-            throw new Error('[AttendanceService] Tháng không hợp lệ. Cần định dạng YYYY-MM.');
+-        }
++        if (!month || !/^\d{4}-\d{2}$/.test(String(month))) throw new Error('[AttendanceService] Tháng không hợp lệ. Cần định dạng YYYY-MM.');
+         if (typeof _limit !== 'function' || typeof _startAfter !== 'function') {
+             const error = new Error('[AttendanceService] Firebase SDK thiếu limit/startAfter cho monthly pagination.');
+             error.code = 'attendance/monthly-pagination-unavailable';
+             throw error;
+         }
+ 
+-        const { coach: isCoach, branch } = _scopedBranch(options);
+-        const verified = options.verified === true;
+-        const ensureCurrent = verified ? _verifiedAttendanceReadGuard(db,clubId) : null;
+-        if (verified) {
+-            const a = window.__verifiedAuthContextState;
+-            if (a?.ready !== true || !a.uid || a.role !== window.userRole || !['admin','owner','super_admin','coach'].includes(a.role) ||
++        const policy = _resolveAttendanceHistoryReadPolicy(options);
++        const ensureCurrent = policy.serverRequired ? _verifiedAttendanceReadGuard(db, clubId) : null;
++        if (policy.serverRequired) {
++            const a = window.__verifiedAuthContextState || {};
++            if (a.ready !== true || !a.uid || a.role !== window.userRole || !['admin','owner','super_admin','coach'].includes(a.role) ||
+                 (a.role !== 'super_admin' && a.clubId !== clubId) ||
+-                (branch && branch !== 'all' && !/^CS(?:[1-9]|10)$/.test(branch)) ||
++                (policy.coach && !/^CS(?:[1-9]|10)$/.test(policy.branch || '')) ||
++                (policy.branch && policy.branch !== 'all' && !/^CS(?:[1-9]|10)$/.test(policy.branch)) ||
+                 !/^\d{4}-(?:0[1-9]|1[0-2])$/.test(String(month))) {
+-                throw Object.assign(Error('Chưa xác minh phạm vi thống kê Điểm danh.'),{code:'attendance/history-scope-required'});
++                throw Object.assign(Error('Chưa xác minh phạm vi thống kê Điểm danh.'), { code: 'attendance/history-scope-required' });
+             }
+         }
+-        if (options.documentOrder === true && (typeof orderBy !== 'function' || typeof documentId !== 'function')) throw Object.assign(Error('Thiếu thứ tự trang Điểm danh.'),{code:'attendance/monthly-pagination-unavailable'});
+-        window.RoleReadBoundary?.canMount?.('attendance.monthly', { month, branch });
++        if (options.documentOrder === true && (typeof orderBy !== 'function' || typeof documentId !== 'function'))
++            throw Object.assign(Error('Thiếu thứ tự trang Điểm danh.'), { code: 'attendance/monthly-pagination-unavailable' });
++        window.RoleReadBoundary?.canMount?.('attendance.monthly', { month, branch: policy.branch });
+ 
+-        const pageSize = Math.max(100, Math.min(
+-            Number(options.pageSize || (window.__scaleConfig || {}).attendanceMonthlyPageSize || 1000),
+-            2000
+-        ));
+-        const maxPages = Math.max(1, Math.min(
+-            Number(options.maxPages || (window.__scaleConfig || {}).attendanceMonthlyMaxPages || 200),
+-            500
+-        ));
++        const pageSize = Math.max(100, Math.min(Number(options.pageSize || (window.__scaleConfig || {}).attendanceMonthlyPageSize || 1000), 2000));
++        const maxPages = Math.max(1, Math.min(Number(options.maxPages || (window.__scaleConfig || {}).attendanceMonthlyMaxPages || 200), 500));
+         const signal = options.signal || null;
+         const onPage = typeof options.onPage === 'function' ? options.onPage : null;
+         const startedAt = Date.now();
+         const results = [];
+-        let cursor = null;
+-        let pages = 0;
+-        let completed = false;
+-
++        let cursor = null, pages = 0, completed = false, rawDocs = 0;
+         function throwIfAborted() {
+             if (!signal || !signal.aborted) return;
+             const error = new Error('Attendance monthly load aborted');
+-            error.name = 'AbortError';
+-            error.code = 'attendance/monthly-load-aborted';
+-            throw error;
++            error.name = 'AbortError'; error.code = 'attendance/monthly-load-aborted'; throw error;
+         }
+-
+         try {
+             while (pages < maxPages) {
+                 throwIfAborted();
+                 if (ensureCurrent) ensureCurrent();
+                 const constraints = [where('month', '==', month)];
+-                if (isCoach || verified) constraints.push(where('historyAuthority','==',HISTORY_AUTHORITY));
+-                const branchConstraint = _attendanceBranchConstraint(where, branch, isCoach);
+-                if (branchConstraint) constraints.push(branchConstraint);
++                // Coach keeps the exact Rules-provable current-authority query.
++                // Admin/SuperAdmin RECORDED uses one broader month query so old
++                // historyAuthority and the CS1/"Mặc định" alias remain visible.
++                if (policy.coach) {
++                    constraints.push(where('historyAuthority', '==', HISTORY_AUTHORITY));
++                    constraints.push(where('branch', '==', policy.branch));
++                } else if (policy.branch && policy.branch !== 'all') {
++                    const canonicalBranch = _canonicalBranch(policy.branch, '');
++                    if (canonicalBranch === 'CS1') constraints.push(where('branch', 'in', ['CS1', 'Mặc định']));
++                    else if (canonicalBranch) constraints.push(where('branch', '==', canonicalBranch));
++                }
+                 if (options.documentOrder === true) constraints.push(orderBy(documentId()));
+-                // Firestore's default ordering is document ID. A DocumentSnapshot
+-                // cursor preserves that deterministic order without requiring a new
+-                // composite index for month + date.
+                 if (cursor) constraints.push(_startAfter(cursor));
+                 constraints.push(_limit(pageSize));
+-
+-                const snap = await getDocs(query(
+-                    collection(db, 'clubs', clubId, 'attendance'),
+-                    ...constraints
+-                ));
++                const snap = await getDocs(query(collection(db, 'clubs', clubId, 'attendance'), ...constraints));
+                 throwIfAborted();
+                 if (ensureCurrent) {
+                     ensureCurrent();
+-                    if (snap.metadata?.fromCache !== false || snap.metadata?.hasPendingWrites !== false) throw Object.assign(Error('Thống kê chưa được xác minh từ máy chủ.'),{code:'attendance/history-server-required'});
++                    if (snap.metadata?.fromCache !== false || snap.metadata?.hasPendingWrites !== false)
++                        throw Object.assign(Error('Thống kê chưa được xác minh từ máy chủ.'), { code: 'attendance/history-server-required' });
+                 }
+-
+                 pages++;
+                 const docs = Array.isArray(snap.docs) ? snap.docs : [];
++                rawDocs += docs.length;
+                 docs.forEach(d => {
+                     const data = d.data();
+-                    if (verified && (typeof data.profileId !== 'string' || !data.profileId || data.profileId.includes('/') ||
+-                        !/^CS(?:[1-9]|10)$/.test(data.branch || '') || (branch && branch !== 'all' && data.branch !== branch) ||
+-                        data.historyAuthority !== HISTORY_AUTHORITY || data.month !== month)) throw Object.assign(Error('Thống kê trả về sai phạm vi.'),{code:'attendance/history-scope-mismatch'});
+-                    results.push({id:d.id,data});
++                    if (data.month !== month || (policy.serverRequired && (typeof data.profileId !== 'string' || !data.profileId || data.profileId.includes('/'))))
++                        throw Object.assign(Error('Thống kê trả về sai phạm vi.'), { code: 'attendance/history-scope-mismatch' });
++                    if (policy.coach && (data.branch !== policy.branch || data.historyAuthority !== HISTORY_AUTHORITY))
++                        throw Object.assign(Error('Thống kê HLV trả về sai phạm vi.'), { code: 'attendance/history-scope-mismatch' });
++                    results.push({ id: d.id, data });
+                 });
+-
+                 if (onPage) {
+-                    try {
+-                        onPage({ month, page: pages, pageDocs: docs.length, totalDocs: results.length, pageSize });
+-                    } catch (_) { /* progress callback must not break data loading */ }
+-                }
+-
+-                if (docs.length < pageSize) {
+-                    completed = true;
+-                    break;
++                    try { onPage({ month, page: pages, pageDocs: docs.length, totalDocs: results.length, pageSize }); } catch (_) {}
+                 }
++                if (docs.length < pageSize) { completed = true; break; }
+                 cursor = docs[docs.length - 1];
+             }
+-
+             if (!completed) {
+-                const error = new Error(
+-                    '[AttendanceService] Monthly pagination reached safety ceiling (' +
+-                    maxPages + ' pages / ' + results.length + ' documents). Export/render stopped to avoid incomplete data.'
+-                );
+-                error.code = 'attendance/monthly-max-pages';
+-                error.partialCount = results.length;
+-                error.pages = pages;
+-                throw error;
++                const error = new Error('[AttendanceService] Monthly pagination reached safety ceiling (' + maxPages + ' pages / ' + results.length + ' documents). Export/render stopped to avoid incomplete data.');
++                error.code = 'attendance/monthly-max-pages'; error.partialCount = results.length; error.pages = pages; throw error;
+             }
+-
++            const visible = _annotateHistoricalRows(_filterHistoricalRows(results, policy), policy, results.length);
+             window.__attendanceMonthlyPaginationMetrics = {
+-                month,
+-                branch,
+-                branchFiltered: !!branch && branch !== 'all',
+-                pages,
+-                docs: results.length,
+-                pageSize,
+-                maxPages,
+-                durationMs: Date.now() - startedAt,
+-                completed: true,
+-                aborted: false,
+-                updatedAt: Date.now()
++                month, branch: policy.branch, authorityScope: policy.authorityScope,
++                branchFiltered: !!policy.branch && policy.branch !== 'all', pages,
++                docs: results.length, visibleDocs: visible.length, postFilteredRows: results.length - visible.length,
++                pageSize, maxPages, durationMs: Date.now() - startedAt, completed: true, aborted: false, updatedAt: Date.now(),
+             };
+-            const visible = results.filter(row=>attendanceVisibleRecord(row.data));
+             if (ensureCurrent) ensureCurrent();
+-            Object.defineProperty(visible,'pageCount',{value:pages});
++            Object.defineProperty(visible, 'pageCount', { value: pages });
+             return visible;
+         } catch (error) {
+             window.__attendanceMonthlyPaginationMetrics = {
+-                month,
+-                branch,
+-                branchFiltered: !!branch && branch !== 'all',
+-                pages,
+-                docs: results.length,
+-                pageSize,
+-                maxPages,
+-                durationMs: Date.now() - startedAt,
+-                completed: false,
++                month, branch: policy.branch, authorityScope: policy.authorityScope,
++                branchFiltered: !!policy.branch && policy.branch !== 'all', pages, docs: results.length,
++                pageSize, maxPages, durationMs: Date.now() - startedAt, completed: false,
+                 aborted: error && (error.name === 'AbortError' || error.code === 'attendance/monthly-load-aborted'),
+-                errorCode: error && error.code || 'attendance/monthly-load-failed',
+-                updatedAt: Date.now()
++                errorCode: error && error.code || 'attendance/monthly-load-failed', updatedAt: Date.now(),
+             };
+             throw error;
+         }
+--- a/public/js/services/attendance.service.js
++++ b/public/js/services/attendance.service.js
+@@ -102,6 +102,54 @@
+     return()=>{ensureOwner();if(scope()!==captured)throw Object.assign(Error('Phân quyền lịch sử đã thay đổi.'),{code:'attendance/stale-history-context'});};
+ }
+ 
++// Attendance History R1 — consistency and historical authority are independent.
++// `verified:true` remains a compatibility alias for SERVER_REQUIRED only.
++const ATT_HISTORY_CONSISTENCY_SERVER = 'server';
++const ATT_HISTORY_CONSISTENCY_CACHE_ALLOWED = 'cache-allowed';
++const ATT_HISTORY_SCOPE_RECORDED = 'recorded';
++const ATT_HISTORY_SCOPE_CURRENT = 'current';
++function _sameHistoricalBranch(left, right) {
++    if (!right || right === 'all') return true;
++    return _canonicalBranch(left, '') === _canonicalBranch(right, '');
++}
++function _resolveAttendanceHistoryReadPolicy(options = {}) {
++    const { coach, branch } = _scopedBranch(options);
++    const auth = window.__verifiedAuthContextState || {};
++    const role = String(auth.role || window.userRole || '').toLowerCase();
++    const serverRequired = coach || options.verified === true || options.consistency === ATT_HISTORY_CONSISTENCY_SERVER;
++    const requestedScope = String(options.authorityScope || '').toLowerCase();
++    const authorityScope = coach ? ATT_HISTORY_SCOPE_CURRENT
++        : requestedScope === ATT_HISTORY_SCOPE_CURRENT ? ATT_HISTORY_SCOPE_CURRENT : ATT_HISTORY_SCOPE_RECORDED;
++    return Object.freeze({
++        role, coach, branch,
++        consistency: serverRequired ? ATT_HISTORY_CONSISTENCY_SERVER : ATT_HISTORY_CONSISTENCY_CACHE_ALLOWED,
++        serverRequired,
++        authorityScope,
++        legacyVisible: authorityScope === ATT_HISTORY_SCOPE_RECORDED,
++    });
++}
++function _historyTrust(data) {
++    return data?.historyAuthority === HISTORY_AUTHORITY ? 'CURRENT_AUTHORITY' : 'LEGACY_HISTORY';
++}
++function _filterHistoricalRows(rows, policy) {
++    return rows.filter(row => {
++        const data = row?.data || {};
++        if (!attendanceVisibleRecord(data)) return false;
++        if (policy.authorityScope === ATT_HISTORY_SCOPE_CURRENT && data.historyAuthority !== HISTORY_AUTHORITY) return false;
++        if (policy.branch && policy.branch !== 'all' && !_sameHistoricalBranch(data.branch, policy.branch)) return false;
++        return true;
++    });
++}
++function _annotateHistoricalRows(rows, policy, rawCount = rows.length) {
++    let current = 0, legacy = 0;
++    for (const row of rows) (_historyTrust(row?.data) === 'CURRENT_AUTHORITY' ? current++ : legacy++);
++    Object.defineProperties(rows, {
++        historyPolicy: { value: policy, enumerable: false },
++        trustSummary: { value: Object.freeze({ total: rows.length, currentAuthority: current, legacyHistory: legacy, rawCount }), enumerable: false },
++    });
++    return rows;
++}
++
+ // V5U6G1: Offline journal metadata is orchestration-only. Build the canonical
+ // Firestore Attendance document from an explicit business-field whitelist so
+ // future journal fields cannot leak through a spread into persisted schema.
+@@ -243,6 +291,8 @@
+         }
+         const shiftAuthorityMode = String(options.shiftAuthorityMode || (shiftId ? 'explicit-shift' : 'legacy-no-shift'));
+         const { coach: isCoach, branch } = _scopedBranch(options);
++        const historicalReopen = options.historicalReopen === true && !isCoach;
++        const historicalEnsureCurrent = historicalReopen ? _verifiedAttendanceReadGuard(db, clubId) : null;
+         window.RoleReadBoundary?.canMount?.('attendance.daily', { date, branch, shiftId });
+ 
+         // H8R2: one canonical daily reader, internally cursor-paged. The former
+@@ -252,8 +302,13 @@
+         const safetyCeiling = Math.max(pageSize, Number((window.__scaleConfig || {}).attendanceDailySafetyCeiling) || 10000);
+         const baseConstraints = [where('date', '==', date)];
+         if (isCoach) baseConstraints.push(where('historyAuthority','==',HISTORY_AUTHORITY));
+-        const branchConstraint = _attendanceBranchConstraint(where, branch, isCoach);
++        const branchConstraint = historicalReopen ? null : _attendanceBranchConstraint(where, branch, isCoach);
+         if (branchConstraint) baseConstraints.push(branchConstraint);
++        else if (historicalReopen && branch && branch !== 'all') {
++            const canonicalBranch = _canonicalBranch(branch, '');
++            if (canonicalBranch === 'CS1') baseConstraints.push(where('branch', 'in', ['CS1', 'Mặc định']));
++            else if (canonicalBranch) baseConstraints.push(where('branch', '==', canonicalBranch));
++        }
+         if (shiftId) baseConstraints.push(where('shiftId', '==', shiftId));
+ 
+         const results = [];
+@@ -274,15 +329,23 @@
+             if (cursor) constraints.push(startAfter(cursor));
+             constraints.push(_lim(pageSize));
+ 
++            if (historicalEnsureCurrent) historicalEnsureCurrent();
+             const snap = await getDocs(query(
+                 collection(db, 'clubs', clubId, 'attendance'),
+                 ...constraints
+             ));
+             serverConfirmed = serverConfirmed && snap.metadata?.fromCache === false && snap.metadata?.hasPendingWrites === false;
++            if (historicalEnsureCurrent) {
++                historicalEnsureCurrent();
++                if (snap.metadata?.fromCache !== false || snap.metadata?.hasPendingWrites !== false)
++                    throw Object.assign(Error('Ngày điểm danh cũ chưa được xác minh từ máy chủ.'), { code: 'attendance/history-server-required' });
++            }
+             pageCount++;
+             lastPageSize = Number(snap.size || 0);
+             snap.forEach(d => {
+-                if (results.length < safetyCeiling) results.push({ id: d.id, data: d.data() });
++                const data = d.data();
++                if (historicalReopen && branch && branch !== 'all' && !_sameHistoricalBranch(data.branch, branch)) return;
++                if (results.length < safetyCeiling) results.push({ id: d.id, data });
+             });
+ 
+             if (typeof window.recordFirestoreReadAttribution === 'function') {
+@@ -421,81 +484,120 @@
+      */
+     async loadMemberHistory(profileId, months, options = {}) {
+         const { getDocs, query, where, collection, orderBy, documentId, limit, startAfter } = _sdk();
+-        const db     = _db();
++        const db = _db();
+         const clubId = _clubId();
+-        const { coach: isCoach, branch } = _scopedBranch(options);
+-        if (options.page === true) {
+-            const auth = window.__verifiedAuthContextState;
+-            if (auth?.ready !== true || !auth.uid || (auth.role !== 'super_admin' && auth.clubId !== clubId) ||
+-                !/^CS(?:[1-9]|10)$/.test(branch || '') || typeof profileId !== 'string' || !profileId || profileId.includes('/')) {
+-                throw Object.assign(new Error('Chưa xác minh phạm vi lịch sử.'),{code:'attendance/history-scope-required'});
++        const policy = _resolveAttendanceHistoryReadPolicy(options);
++        // All-time pages are historical business reads and therefore always
++        // require a committed server result. Coach scope is force-current.
++        const serverRequired = options.page === true ? true : policy.serverRequired;
++        const ensureCurrent = serverRequired ? _verifiedAttendanceReadGuard(db, clubId) : null;
++        const auth = window.__verifiedAuthContextState || {};
++
++        const validatePrincipal = () => {
++            if (!serverRequired) return;
++            if (auth.ready !== true || !auth.uid || !['admin','owner','super_admin','coach'].includes(String(auth.role || '')) ||
++                (auth.role !== 'super_admin' && auth.clubId !== clubId) ||
++                typeof profileId !== 'string' || !profileId || profileId.includes('/') ||
++                (policy.coach && !/^CS(?:[1-9]|10)$/.test(policy.branch || ''))) {
++                throw Object.assign(new Error('Chưa xác minh phạm vi lịch sử.'), { code: 'attendance/history-scope-required' });
+             }
++        };
++        validatePrincipal();
++
++        const context = () => {
++            const current = window.__verifiedAuthContextState || {};
++            return JSON.stringify([
++                _clubId(), current.uid, current.role, current.clubId, current.generation, current.branchGeneration,
++                current.assignmentVersion, current.allowedBranches, current.activeBranch, current.coachBranch,
++                current.ready, current.branchSelectionPending, current.sessionEpoch, current.authGeneration,
++                window.userRole, window.coachBranch, window.__store?.currentUser?.uid,
++            ]);
++        };
++
++        if (options.page === true) {
+             const pageSize = options.pageSize ?? 40;
+-            if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > 40) throw Object.assign(Error('Giới hạn lịch sử không hợp lệ.'),{code:'attendance/history-page-size'});
+-            const ensureCurrent = _verifiedAttendanceReadGuard(db,clubId);
+-            const context = () => {const current=window.__verifiedAuthContextState||{};return JSON.stringify([_clubId(),current.uid,current.role,current.generation,current.branchGeneration,current.assignmentVersion,
+-                current.allowedBranches,current.activeBranch,current.coachBranch,current.ready,current.branchSelectionPending]);};
+-            const scope = JSON.stringify([clubId,profileId,branch,HISTORY_AUTHORITY,pageSize,context()]);
++            if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > 40) throw Object.assign(Error('Giới hạn lịch sử không hợp lệ.'), { code: 'attendance/history-page-size' });
++            const scope = JSON.stringify([clubId, profileId, policy.branch || '', policy.authorityScope, pageSize, context()]);
+             const cursor = options.cursor;
+             if (cursor && (cursor.scope !== scope || typeof cursor.afterId !== 'string' || !cursor.afterId || cursor.afterId.includes('/'))) {
+-                throw Object.assign(Error('Trang lịch sử thuộc phiên hoặc cơ sở khác. Vui lòng mở lại.'),{code:'attendance/history-cursor-scope'});
++                throw Object.assign(Error('Trang lịch sử thuộc phiên hoặc cơ sở khác. Vui lòng mở lại.'), { code: 'attendance/history-cursor-scope' });
++            }
++            const constraints = [where('profileId', '==', profileId)];
++            // Preserve the exact Coach Rules-provable shape. Admin/SuperAdmin
++            // use one broader per-profile page and post-filter authority/branch.
++            if (policy.coach) {
++                constraints.push(where('historyAuthority', '==', HISTORY_AUTHORITY));
++                constraints.push(where('branch', '==', policy.branch));
+             }
+-            const constraints = [where('profileId','==',profileId),where('historyAuthority','==',HISTORY_AUTHORITY),where('branch','==',branch),orderBy(documentId(),'asc'),limit(pageSize)];
++            constraints.push(orderBy(documentId(), 'asc'), limit(pageSize));
+             if (cursor) constraints.push(startAfter(cursor.afterId));
+-            window.RoleReadBoundary?.canMount?.('attendance.member-history',{profileId,branch,pageSize});
+-            const snap = await getDocs(query(collection(db,'clubs',clubId,'attendance'),...constraints));
+-            ensureCurrent();
+-            if (scope !== JSON.stringify([clubId,profileId,branch,HISTORY_AUTHORITY,pageSize,context()])) throw Object.assign(Error('Phiên lịch sử đã thay đổi.'),{code:'attendance/stale-history-context'});
+-            if (snap.metadata?.fromCache !== false || snap.metadata?.hasPendingWrites !== false) throw Object.assign(Error('Chưa xác minh được trang lịch sử từ máy chủ. Vui lòng thử lại khi có mạng.'),{code:'attendance/history-server-required'});
++            window.RoleReadBoundary?.canMount?.('attendance.member-history', { profileId, branch: policy.branch, pageSize });
++            if (ensureCurrent) ensureCurrent();
++            const snap = await getDocs(query(collection(db, 'clubs', clubId, 'attendance'), ...constraints));
++            if (ensureCurrent) {
++                ensureCurrent();
++                if (scope !== JSON.stringify([clubId, profileId, policy.branch || '', policy.authorityScope, pageSize, context()]))
++                    throw Object.assign(Error('Phiên lịch sử đã thay đổi.'), { code: 'attendance/stale-history-context' });
++                if (snap.metadata?.fromCache !== false || snap.metadata?.hasPendingWrites !== false)
++                    throw Object.assign(Error('Chưa xác minh được trang lịch sử từ máy chủ. Vui lòng thử lại khi có mạng.'), { code: 'attendance/history-server-required' });
++            }
+             const raw = [];
+-            snap.forEach(doc => raw.push({id:doc.id,data:doc.data()}));
+-            if (raw.some(row => row.data.profileId !== profileId || row.data.branch !== branch || row.data.historyAuthority !== HISTORY_AUTHORITY)) throw Object.assign(Error('Lịch sử trả về sai phạm vi.'),{code:'attendance/history-scope-mismatch'});
+-            window.recordFirestoreReadAttribution?.('attendance.member-history.page',Math.max(1,raw.length),{pageSize,branch,empty:raw.length === 0});
+-            return {rows:raw.filter(row => attendanceVisibleRecord(row.data)),rawCount:raw.length,pageSize,
+-                cursor:raw.length === pageSize ? {scope,afterId:raw[raw.length - 1].id} : null,
+-                complete:raw.length < pageSize,authority:HISTORY_AUTHORITY,branch};
+-        }
+-        // The member modal uses one verified scope for every role. The Admin
+-        // audit owner remains separate and keeps its existing raw-history path.
+-        const verified = options.verified === true;
+-        const ensureCurrent = verified ? _verifiedAttendanceReadGuard(db,clubId) : null;
+-        if (verified) {
+-            const auth = window.__verifiedAuthContextState;
+-            if (auth?.ready !== true || !auth.uid || (auth.role !== 'super_admin' && auth.clubId !== clubId) ||
+-                !/^CS(?:[1-9]|10)$/.test(branch || '') || typeof profileId !== 'string' || !profileId || profileId.includes('/') ||
+-                !Array.isArray(months) || months.length < 1 || months.length > 10 ||
+-                months.some(month => !/^\d{4}-(?:0[1-9]|1[0-2])$/.test(month))) {
+-                throw Object.assign(new Error('Chưa xác minh phạm vi lịch sử.'),{code:'attendance/history-scope-required'});
+-            }
+-        }
+-        const baseConstraints = [
+-            where('profileId', '==', profileId),
+-            where('month', 'in', months)
+-        ];
+-        if (isCoach || verified) baseConstraints.push(where('historyAuthority','==',HISTORY_AUTHORITY));
+-        window.RoleReadBoundary?.canMount?.('attendance.member-history', { profileId, months, branch });
+-
+-        // Current-authority history follows the same canonical branch proof as
+-        // daily/monthly reads. An extra CS1 alias query is denied by A9R12 Rules
+-        // even when that query would return zero rows.
+-        const branchConstraint = _attendanceBranchConstraint(where, branch, isCoach);
+-        if (branchConstraint) baseConstraints.push(branchConstraint);
+-        const readScope=()=>{const a=window.__verifiedAuthContextState||{};return JSON.stringify([clubId,profileId,branch,HISTORY_AUTHORITY,months,a.uid,a.role,a.clubId,a.ready,a.generation,a.branchGeneration,a.assignmentVersion,a.allowedBranches,a.activeBranch,a.coachBranch,a.branchSelectionPending,a.sessionEpoch,a.authGeneration,window.coachBranch,window.__store?.currentUser?.uid]);};
+-        const flightKey=verified?readScope():'';
+-        const read=()=>{if(ensureCurrent)ensureCurrent();return getDocs(query(collection(db,'clubs',clubId,'attendance'),...baseConstraints));};
+-        const pending=flightKey&&_memberHistoryFlights.get(flightKey);
+-        let flight=pending&&pending.db===db?pending.promise:null;
+-        if(!flight){const entry={db,promise:null};flight=Promise.resolve().then(read).finally(()=>{if(flightKey&&_memberHistoryFlights.get(flightKey)===entry)_memberHistoryFlights.delete(flightKey);});entry.promise=flight;if(flightKey)_memberHistoryFlights.set(flightKey,entry);}
+-        const snap=await flight;
+-        if(verified&&readScope()!==flightKey)throw Object.assign(Error('Phiên lịch sử đã thay đổi.'),{code:'attendance/stale-history-context'});
++            snap.forEach(doc => raw.push({ id: doc.id, data: doc.data() }));
++            if (raw.some(row => row.data.profileId !== profileId))
++                throw Object.assign(Error('Lịch sử trả về sai võ sinh.'), { code: 'attendance/history-scope-mismatch' });
++            if (policy.coach && raw.some(row => row.data.branch !== policy.branch || row.data.historyAuthority !== HISTORY_AUTHORITY))
++                throw Object.assign(Error('Lịch sử HLV trả về sai phạm vi.'), { code: 'attendance/history-scope-mismatch' });
++            const visible = _annotateHistoricalRows(_filterHistoricalRows(raw, policy), policy, raw.length);
++            window.recordFirestoreReadAttribution?.('attendance.member-history.page', Math.max(1, raw.length), {
++                pageSize, branch: policy.branch, empty: raw.length === 0, authorityScope: policy.authorityScope,
++            });
++            return {
++                rows: visible, rawCount: raw.length, pageSize,
++                cursor: raw.length === pageSize ? { scope, afterId: raw[raw.length - 1].id } : null,
++                complete: raw.length < pageSize,
++                authority: HISTORY_AUTHORITY,
++                authorityScope: policy.authorityScope,
++                consistency: ATT_HISTORY_CONSISTENCY_SERVER,
++                branch: policy.branch,
++                trustSummary: visible.trustSummary,
++            };
++        }
++
++        if (!Array.isArray(months) || months.length < 1 || months.length > 10 ||
++            months.some(month => !/^\d{4}-(?:0[1-9]|1[0-2])$/.test(month))) {
++            throw Object.assign(new Error('Phạm vi tháng lịch sử không hợp lệ.'), { code: 'attendance/history-scope-required' });
++        }
++        const baseConstraints = [where('profileId', '==', profileId), where('month', 'in', months)];
++        if (policy.coach) {
++            baseConstraints.push(where('historyAuthority', '==', HISTORY_AUTHORITY));
++            baseConstraints.push(where('branch', '==', policy.branch));
++        }
++        window.RoleReadBoundary?.canMount?.('attendance.member-history', { profileId, months, branch: policy.branch });
++        const readScope = () => JSON.stringify([clubId, profileId, policy.branch || '', policy.authorityScope, months, context()]);
++        const flightKey = serverRequired ? readScope() : '';
++        const read = () => { if (ensureCurrent) ensureCurrent(); return getDocs(query(collection(db, 'clubs', clubId, 'attendance'), ...baseConstraints)); };
++        const pending = flightKey && _memberHistoryFlights.get(flightKey);
++        let flight = pending && pending.db === db ? pending.promise : null;
++        if (!flight) {
++            const entry = { db, promise: null };
++            flight = Promise.resolve().then(read).finally(() => { if (flightKey && _memberHistoryFlights.get(flightKey) === entry) _memberHistoryFlights.delete(flightKey); });
++            entry.promise = flight;
++            if (flightKey) _memberHistoryFlights.set(flightKey, entry);
++        }
++        const snap = await flight;
++        if (serverRequired && readScope() !== flightKey) throw Object.assign(Error('Phiên lịch sử đã thay đổi.'), { code: 'attendance/stale-history-context' });
+         if (ensureCurrent) {
+             ensureCurrent();
+-            if (snap.metadata?.fromCache !== false || snap.metadata?.hasPendingWrites !== false) throw Object.assign(Error('Chưa xác minh được lịch sử từ máy chủ. Vui lòng thử lại khi có mạng.'),{code:'attendance/history-server-required'});
++            if (snap.metadata?.fromCache !== false || snap.metadata?.hasPendingWrites !== false)
++                throw Object.assign(Error('Chưa xác minh được lịch sử từ máy chủ. Vui lòng thử lại khi có mạng.'), { code: 'attendance/history-server-required' });
+         }
+-        const rows = [];
+-        snap.forEach(d => rows.push({ id: d.id, data: d.data() }));
+-        if (verified && rows.some(row => row.data.profileId !== profileId || row.data.branch !== branch || row.data.historyAuthority !== HISTORY_AUTHORITY || !months.includes(row.data.month))) throw Object.assign(Error('Lịch sử trả về sai phạm vi.'),{code:'attendance/history-scope-mismatch'});
+-        return rows.filter(row=>attendanceVisibleRecord(row.data));
++        const raw = [];
++        snap.forEach(d => raw.push({ id: d.id, data: d.data() }));
++        if (raw.some(row => row.data.profileId !== profileId || !months.includes(row.data.month)))
++            throw Object.assign(Error('Lịch sử trả về sai phạm vi.'), { code: 'attendance/history-scope-mismatch' });
++        if (policy.coach && raw.some(row => row.data.branch !== policy.branch || row.data.historyAuthority !== HISTORY_AUTHORITY))
++            throw Object.assign(Error('Lịch sử HLV trả về sai phạm vi.'), { code: 'attendance/history-scope-mismatch' });
++        return _annotateHistoricalRows(_filterHistoricalRows(raw, policy), policy, raw.length);
+     },
+ 
+     // ── COACH NOTES ─────────────────────────────────────────────
+@@ -542,147 +644,107 @@
+      */
+     async loadByMonth(month, options = {}) {
+         const { getDocs, query, where, collection, limit: _limit, startAfter: _startAfter, orderBy, documentId } = _sdk();
+-        const db     = _db();
++        const db = _db();
+         const clubId = _clubId();
+-
+-        if (!month || !/^\d{4}-\d{2}$/.test(String(month))) {
+-            throw new Error('[AttendanceService] Tháng không hợp lệ. Cần định dạng YYYY-MM.');
+-        }
++        if (!month || !/^\d{4}-\d{2}$/.test(String(month))) throw new Error('[AttendanceService] Tháng không hợp lệ. Cần định dạng YYYY-MM.');
+         if (typeof _limit !== 'function' || typeof _startAfter !== 'function') {
+             const error = new Error('[AttendanceService] Firebase SDK thiếu limit/startAfter cho monthly pagination.');
+             error.code = 'attendance/monthly-pagination-unavailable';
+             throw error;
+         }
+ 
+-        const { coach: isCoach, branch } = _scopedBranch(options);
+-        const verified = options.verified === true;
+-        const ensureCurrent = verified ? _verifiedAttendanceReadGuard(db,clubId) : null;
+-        if (verified) {
+-            const a = window.__verifiedAuthContextState;
+-            if (a?.ready !== true || !a.uid || a.role !== window.userRole || !['admin','owner','super_admin','coach'].includes(a.role) ||
++        const policy = _resolveAttendanceHistoryReadPolicy(options);
++        const ensureCurrent = policy.serverRequired ? _verifiedAttendanceReadGuard(db, clubId) : null;
++        if (policy.serverRequired) {
++            const a = window.__verifiedAuthContextState || {};
++            if (a.ready !== true || !a.uid || a.role !== window.userRole || !['admin','owner','super_admin','coach'].includes(a.role) ||
+                 (a.role !== 'super_admin' && a.clubId !== clubId) ||
+-                (branch && branch !== 'all' && !/^CS(?:[1-9]|10)$/.test(branch)) ||
++                (policy.coach && !/^CS(?:[1-9]|10)$/.test(policy.branch || '')) ||
++                (policy.branch && policy.branch !== 'all' && !/^CS(?:[1-9]|10)$/.test(policy.branch)) ||
+                 !/^\d{4}-(?:0[1-9]|1[0-2])$/.test(String(month))) {
+-                throw Object.assign(Error('Chưa xác minh phạm vi thống kê Điểm danh.'),{code:'attendance/history-scope-required'});
++                throw Object.assign(Error('Chưa xác minh phạm vi thống kê Điểm danh.'), { code: 'attendance/history-scope-required' });
+             }
+         }
+-        if (options.documentOrder === true && (typeof orderBy !== 'function' || typeof documentId !== 'function')) throw Object.assign(Error('Thiếu thứ tự trang Điểm danh.'),{code:'attendance/monthly-pagination-unavailable'});
+-        window.RoleReadBoundary?.canMount?.('attendance.monthly', { month, branch });
++        if (options.documentOrder === true && (typeof orderBy !== 'function' || typeof documentId !== 'function'))
++            throw Object.assign(Error('Thiếu thứ tự trang Điểm danh.'), { code: 'attendance/monthly-pagination-unavailable' });
++        window.RoleReadBoundary?.canMount?.('attendance.monthly', { month, branch: policy.branch });
+ 
+-        const pageSize = Math.max(100, Math.min(
+-            Number(options.pageSize || (window.__scaleConfig || {}).attendanceMonthlyPageSize || 1000),
+-            2000
+-        ));
+-        const maxPages = Math.max(1, Math.min(
+-            Number(options.maxPages || (window.__scaleConfig || {}).attendanceMonthlyMaxPages || 200),
+-            500
+-        ));
++        const pageSize = Math.max(100, Math.min(Number(options.pageSize || (window.__scaleConfig || {}).attendanceMonthlyPageSize || 1000), 2000));
++        const maxPages = Math.max(1, Math.min(Number(options.maxPages || (window.__scaleConfig || {}).attendanceMonthlyMaxPages || 200), 500));
+         const signal = options.signal || null;
+         const onPage = typeof options.onPage === 'function' ? options.onPage : null;
+         const startedAt = Date.now();
+         const results = [];
+-        let cursor = null;
+-        let pages = 0;
+-        let completed = false;
+-
++        let cursor = null, pages = 0, completed = false, rawDocs = 0;
+         function throwIfAborted() {
+             if (!signal || !signal.aborted) return;
+             const error = new Error('Attendance monthly load aborted');
+-            error.name = 'AbortError';
+-            error.code = 'attendance/monthly-load-aborted';
+-            throw error;
++            error.name = 'AbortError'; error.code = 'attendance/monthly-load-aborted'; throw error;
+         }
+-
+         try {
+             while (pages < maxPages) {
+                 throwIfAborted();
+                 if (ensureCurrent) ensureCurrent();
+                 const constraints = [where('month', '==', month)];
+-                if (isCoach || verified) constraints.push(where('historyAuthority','==',HISTORY_AUTHORITY));
+-                const branchConstraint = _attendanceBranchConstraint(where, branch, isCoach);
+-                if (branchConstraint) constraints.push(branchConstraint);
++                // Coach keeps the exact Rules-provable current-authority query.
++                // Admin/SuperAdmin RECORDED uses one broader month query so old
++                // historyAuthority and the CS1/"Mặc định" alias remain visible.
++                if (policy.coach) {
++                    constraints.push(where('historyAuthority', '==', HISTORY_AUTHORITY));
++                    constraints.push(where('branch', '==', policy.branch));
++                } else if (policy.branch && policy.branch !== 'all') {
++                    const canonicalBranch = _canonicalBranch(policy.branch, '');
++                    if (canonicalBranch === 'CS1') constraints.push(where('branch', 'in', ['CS1', 'Mặc định']));
++                    else if (canonicalBranch) constraints.push(where('branch', '==', canonicalBranch));
++                }
+                 if (options.documentOrder === true) constraints.push(orderBy(documentId()));
+-                // Firestore's default ordering is document ID. A DocumentSnapshot
+-                // cursor preserves that deterministic order without requiring a new
+-                // composite index for month + date.
+                 if (cursor) constraints.push(_startAfter(cursor));
+                 constraints.push(_limit(pageSize));
+-
+-                const snap = await getDocs(query(
+-                    collection(db, 'clubs', clubId, 'attendance'),
+-                    ...constraints
+-                ));
++                const snap = await getDocs(query(collection(db, 'clubs', clubId, 'attendance'), ...constraints));
+                 throwIfAborted();
+                 if (ensureCurrent) {
+                     ensureCurrent();
+-                    if (snap.metadata?.fromCache !== false || snap.metadata?.hasPendingWrites !== false) throw Object.assign(Error('Thống kê chưa được xác minh từ máy chủ.'),{code:'attendance/history-server-required'});
++                    if (snap.metadata?.fromCache !== false || snap.metadata?.hasPendingWrites !== false)
++                        throw Object.assign(Error('Thống kê chưa được xác minh từ máy chủ.'), { code: 'attendance/history-server-required' });
+                 }
+-
+                 pages++;
+                 const docs = Array.isArray(snap.docs) ? snap.docs : [];
++                rawDocs += docs.length;
+                 docs.forEach(d => {
+                     const data = d.data();
+-                    if (verified && (typeof data.profileId !== 'string' || !data.profileId || data.profileId.includes('/') ||
+-                        !/^CS(?:[1-9]|10)$/.test(data.branch || '') || (branch && branch !== 'all' && data.branch !== branch) ||
+-                        data.historyAuthority !== HISTORY_AUTHORITY || data.month !== month)) throw Object.assign(Error('Thống kê trả về sai phạm vi.'),{code:'attendance/history-scope-mismatch'});
+-                    results.push({id:d.id,data});
++                    if (data.month !== month || (policy.serverRequired && (typeof data.profileId !== 'string' || !data.profileId || data.profileId.includes('/'))))
++                        throw Object.assign(Error('Thống kê trả về sai phạm vi.'), { code: 'attendance/history-scope-mismatch' });
++                    if (policy.coach && (data.branch !== policy.branch || data.historyAuthority !== HISTORY_AUTHORITY))
++                        throw Object.assign(Error('Thống kê HLV trả về sai phạm vi.'), { code: 'attendance/history-scope-mismatch' });
++                    results.push({ id: d.id, data });
+                 });
+-
+                 if (onPage) {
+-                    try {
+-                        onPage({ month, page: pages, pageDocs: docs.length, totalDocs: results.length, pageSize });
+-                    } catch (_) { /* progress callback must not break data loading */ }
+-                }
+-
+-                if (docs.length < pageSize) {
+-                    completed = true;
+-                    break;
++                    try { onPage({ month, page: pages, pageDocs: docs.length, totalDocs: results.length, pageSize }); } catch (_) {}
+                 }
++                if (docs.length < pageSize) { completed = true; break; }
+                 cursor = docs[docs.length - 1];
+             }
+-
+             if (!completed) {
+-                const error = new Error(
+-                    '[AttendanceService] Monthly pagination reached safety ceiling (' +
+-                    maxPages + ' pages / ' + results.length + ' documents). Export/render stopped to avoid incomplete data.'
+-                );
+-                error.code = 'attendance/monthly-max-pages';
+-                error.partialCount = results.length;
+-                error.pages = pages;
+-                throw error;
++                const error = new Error('[AttendanceService] Monthly pagination reached safety ceiling (' + maxPages + ' pages / ' + results.length + ' documents). Export/render stopped to avoid incomplete data.');
++                error.code = 'attendance/monthly-max-pages'; error.partialCount = results.length; error.pages = pages; throw error;
+             }
+-
++            const visible = _annotateHistoricalRows(_filterHistoricalRows(results, policy), policy, results.length);
+             window.__attendanceMonthlyPaginationMetrics = {
+-                month,
+-                branch,
+-                branchFiltered: !!branch && branch !== 'all',
+-                pages,
+-                docs: results.length,
+-                pageSize,
+-                maxPages,
+-                durationMs: Date.now() - startedAt,
+-                completed: true,
+-                aborted: false,
+-                updatedAt: Date.now()
++                month, branch: policy.branch, authorityScope: policy.authorityScope,
++                branchFiltered: !!policy.branch && policy.branch !== 'all', pages,
++                docs: results.length, visibleDocs: visible.length, postFilteredRows: results.length - visible.length,
++                pageSize, maxPages, durationMs: Date.now() - startedAt, completed: true, aborted: false, updatedAt: Date.now(),
+             };
+-            const visible = results.filter(row=>attendanceVisibleRecord(row.data));
+             if (ensureCurrent) ensureCurrent();
+-            Object.defineProperty(visible,'pageCount',{value:pages});
++            Object.defineProperty(visible, 'pageCount', { value: pages });
+             return visible;
+         } catch (error) {
+             window.__attendanceMonthlyPaginationMetrics = {
+-                month,
+-                branch,
+-                branchFiltered: !!branch && branch !== 'all',
+-                pages,
+-                docs: results.length,
+-                pageSize,
+-                maxPages,
+-                durationMs: Date.now() - startedAt,
+-                completed: false,
++                month, branch: policy.branch, authorityScope: policy.authorityScope,
++                branchFiltered: !!policy.branch && policy.branch !== 'all', pages, docs: results.length,
++                pageSize, maxPages, durationMs: Date.now() - startedAt, completed: false,
+                 aborted: error && (error.name === 'AbortError' || error.code === 'attendance/monthly-load-aborted'),
+-                errorCode: error && error.code || 'attendance/monthly-load-failed',
+-                updatedAt: Date.now()
++                errorCode: error && error.code || 'attendance/monthly-load-failed', updatedAt: Date.now(),
+             };
+             throw error;
+         }

@@ -1,0 +1,19 @@
+{
+  "adminRecordedDefault": {
+    "current": true,
+    "old": true,
+    "missing": true
+  },
+  "adminExplicitCurrent": {
+    "current": true,
+    "old": false,
+    "missing": false
+  },
+  "coach": {
+    "currentAssignedBranch": true,
+    "old": false,
+    "missing": false,
+    "otherBranch": false
+  },
+  "verifiedCompatibilityMeaning": "SERVER_REQUIRED only"
+}

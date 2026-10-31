@@ -1,0 +1,45 @@
+{
+  "scope": "Chromium fixture of exact R1 member-history inline layout/copy; physical Android/iOS not verified",
+  "results": [
+    {
+      "overflow": false,
+      "buttonVisible": true,
+      "coverageFont": 13,
+      "branchFont": 11.52,
+      "buttonText": "Mở toàn bộ lịch sử",
+      "coverageText": "Cơ sở: Tất cả cơ sở. Tổng ghi nhận quý: 132 · Đã xác minh: 96 · Dữ liệu lịch sử cũ: 36. Mở toàn bộ lịch sử để xem các năm trước.",
+      "viewport": "320x568",
+      "passed": true
+    },
+    {
+      "overflow": false,
+      "buttonVisible": true,
+      "coverageFont": 13,
+      "branchFont": 11.52,
+      "buttonText": "Mở toàn bộ lịch sử",
+      "coverageText": "Cơ sở: Tất cả cơ sở. Tổng ghi nhận quý: 132 · Đã xác minh: 96 · Dữ liệu lịch sử cũ: 36. Mở toàn bộ lịch sử để xem các năm trước.",
+      "viewport": "360x800",
+      "passed": true
+    },
+    {
+      "overflow": false,
+      "buttonVisible": true,
+      "coverageFont": 13,
+      "branchFont": 11.52,
+      "buttonText": "Mở toàn bộ lịch sử",
+      "coverageText": "Cơ sở: Tất cả cơ sở. Tổng ghi nhận quý: 132 · Đã xác minh: 96 · Dữ liệu lịch sử cũ: 36. Mở toàn bộ lịch sử để xem các năm trước.",
+      "viewport": "390x844",
+      "passed": true
+    },
+    {
+      "overflow": false,
+      "buttonVisible": true,
+      "coverageFont": 13,
+      "branchFont": 11.52,
+      "buttonText": "Mở toàn bộ lịch sử",
+      "coverageText": "Cơ sở: Tất cả cơ sở. Tổng ghi nhận quý: 132 · Đã xác minh: 96 · Dữ liệu lịch sử cũ: 36. Mở toàn bộ lịch sử để xem các năm trước.",
+      "viewport": "430x932",
+      "passed": true
+    }
+  ]
+}

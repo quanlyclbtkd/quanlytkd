@@ -1,0 +1,60 @@
+{
+  "protectedFiles": {
+    "app.js": {
+      "sha256": "c3b240ac9c7e9fd28403926f09b8ab71043774d8b0ada7e886da6ce9adf4eb13",
+      "unchanged": true
+    },
+    "firestore.rules": {
+      "sha256": "1aa7fd38544142dcb82dbd8809f9ea65d6c77dc6427f60934e3333005062e6b3",
+      "unchanged": true
+    },
+    "firestore.indexes.json": {
+      "sha256": "72ac0a7baf139b2ad52934be5efaf62c81dab8345be3d91ddf35700c949914f2",
+      "unchanged": true
+    },
+    "js/core/attendanceContract.js": {
+      "sha256": "b96b04eccda4738b190b5cbb3e1d05664d422dff17b84a64cfd66bccbbc68239",
+      "unchanged": true
+    },
+    "js/data/attendanceJournal.js": {
+      "sha256": "0f493addd96591dce9776148b43c7625cdcf6abcd7962f1cccceb70f237646ee",
+      "unchanged": true
+    },
+    "js/listeners/attendance.listeners.js": {
+      "sha256": "f9fc2834a0f34ab2c59f8a714b3de89e961e5c2d8fdca6e127d3f769dfa5b3d6",
+      "unchanged": true
+    },
+    "js/listeners/profiles.listeners.js": {
+      "sha256": "a63cac438c0dbe94fee97e8f828baab8ee7abce0a5420eda593b043a14d8bac5",
+      "unchanged": true
+    },
+    "js/modules/finance.js": {
+      "sha256": "6f7c877eb9875544b0f4d744d04ef0e9c158e8beca6ffab3ebf39d20ba1a0194",
+      "unchanged": true
+    },
+    "js/services/finance.service.js": {
+      "sha256": "2868b09d2c01fc2306893f3dc7c4865b6f460bacc080f12717349205af8c9a4c",
+      "unchanged": true
+    },
+    "js/modules/inventory.js": {
+      "sha256": "84ccedf11100da8c5c55b0551bcfdd8d8d34a686d4045c467f09382ea25a6423",
+      "unchanged": true
+    },
+    "js/modules/exam.js": {
+      "sha256": "51c0ce63b52ada9884062714b9ff8ed6bf6b748f51b4238543c19452dcbcc8ed",
+      "unchanged": true
+    },
+    "js/modules/dashboard.js": {
+      "sha256": "704552ead6ff421d384c0d444f6f3bbfe29111c90da0fcdd48222e32ad4ba99f",
+      "unchanged": true
+    },
+    "js/modules/finance/finance.receipt.js": {
+      "sha256": "a18ebf9ebdf6cba177788c4cdd078ae51c8f41318a476446d91c08435f3ec5f8",
+      "unchanged": true
+    }
+  },
+  "rulesUnchanged": true,
+  "indexesUnchanged": true,
+  "R2R5_2BExamUnchanged": true,
+  "FinanceDebtR6Unchanged": true
+}

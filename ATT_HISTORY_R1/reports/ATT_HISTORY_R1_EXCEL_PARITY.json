@@ -1,0 +1,18 @@
+{
+  "owner": "AttendanceHistoryReadOwner.readMonth -> AttendanceService.loadByMonth",
+  "separateFirestoreQueryInExcelModule": false,
+  "adminPolicy": {
+    "consistency": "server",
+    "authorityScope": "recorded"
+  },
+  "coachPolicy": {
+    "consistency": "server",
+    "authorityScope": "current"
+  },
+  "eligibleRowSetParity": "PASS by same canonical monthly result before formatting",
+  "pagination10500Fixture": {
+    "items": 10500,
+    "pages": 11,
+    "truncated": false
+  }
+}

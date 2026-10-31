@@ -1,0 +1,42 @@
+{
+  "fixture": {
+    "A": "current CS1 status1",
+    "B": "old CS1 status1",
+    "C": "missing CS1 status2",
+    "D": "old Mặc định status3",
+    "G": "current CS1 status0",
+    "H1/H2": "same date two shifts"
+  },
+  "before": {
+    "visible": [
+      "A",
+      "H1",
+      "H2"
+    ],
+    "missing": [
+      "B",
+      "C",
+      "D"
+    ],
+    "queryCount": 1
+  },
+  "after": {
+    "visible": [
+      "A",
+      "B",
+      "C",
+      "D",
+      "H1",
+      "H2"
+    ],
+    "excluded": [
+      "G"
+    ],
+    "queryCount": 1,
+    "trust": {
+      "current": 3,
+      "legacy": 3
+    },
+    "multiShiftPreserved": true
+  }
+}

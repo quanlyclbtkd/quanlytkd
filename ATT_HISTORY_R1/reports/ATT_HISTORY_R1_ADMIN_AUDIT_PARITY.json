@@ -1,0 +1,7 @@
+{
+  "policy": "SERVER_REQUIRED + RECORDED",
+  "visibilityParityWithNormalAdminHistory": true,
+  "rawAuditStillSeparate": true,
+  "attestationSeparateExplicitAction": true,
+  "status0": "raw diagnostics may inspect; normal business views exclude"
+}

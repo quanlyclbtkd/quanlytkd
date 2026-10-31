@@ -1,0 +1,21 @@
+{
+  "case": "PMOVE CS1 Feb legacy -> CS2 May current",
+  "before": {
+    "selectedBranch": "CS2",
+    "visible": [
+      "F2"
+    ],
+    "queryPerPage": 1
+  },
+  "after": {
+    "normalAdminNoBranchLock": true,
+    "visible": [
+      "F1",
+      "F2"
+    ],
+    "queryPerPage": 1,
+    "pageSizeMax": 40,
+    "olderThanQuarterAccessible": true
+  },
+  "newReader": false
+}

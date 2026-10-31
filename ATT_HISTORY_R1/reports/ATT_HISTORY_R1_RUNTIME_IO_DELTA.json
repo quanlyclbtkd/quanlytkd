@@ -1,0 +1,504 @@
+{
+  "scope": "No production runtime was accessed. Counts below are static owner parity + deterministic fixture query/document evidence, not billable reads.",
+  "staticOwners": {
+    "getDoc": [
+      26,
+      26
+    ],
+    "getDocs": [
+      58,
+      58
+    ],
+    "onSnapshot": [
+      33,
+      33
+    ],
+    "setDoc": [
+      26,
+      26
+    ],
+    "updateDoc": [
+      18,
+      18
+    ],
+    "addDoc": [
+      18,
+      18
+    ],
+    "deleteDoc": [
+      7,
+      7
+    ],
+    "writeBatch": [
+      30,
+      30
+    ],
+    "runTransaction": [
+      4,
+      4
+    ]
+  },
+  "ownerDelta": {
+    "reader": 0,
+    "listener": 0,
+    "writer": 0
+  },
+  "fixture": {
+    "memberQuarterCS1": {
+      "before": {
+        "queries": 1,
+        "documentsReturned": 4,
+        "visibleRows": 3,
+        "ids": [
+          "A",
+          "H1",
+          "H2"
+        ],
+        "constraints": [
+          {
+            "constraints": [
+              {
+                "kind": "where",
+                "field": "profileId",
+                "op": "==",
+                "value": "P1"
+              },
+              {
+                "kind": "where",
+                "field": "month",
+                "op": "in",
+                "value": [
+                  "2026-10"
+                ]
+              },
+              {
+                "kind": "where",
+                "field": "historyAuthority",
+                "op": "==",
+                "value": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+              },
+              {
+                "kind": "where",
+                "field": "branch",
+                "op": "==",
+                "value": "CS1"
+              }
+            ],
+            "returned": 4
+          }
+        ]
+      },
+      "after": {
+        "queries": 1,
+        "documentsReturned": 8,
+        "visibleRows": 6,
+        "ids": [
+          "A",
+          "B",
+          "C",
+          "D",
+          "H1",
+          "H2"
+        ],
+        "constraints": [
+          {
+            "constraints": [
+              {
+                "kind": "where",
+                "field": "profileId",
+                "op": "==",
+                "value": "P1"
+              },
+              {
+                "kind": "where",
+                "field": "month",
+                "op": "in",
+                "value": [
+                  "2026-10"
+                ]
+              }
+            ],
+            "returned": 8
+          }
+        ]
+      },
+      "queryDelta": 0,
+      "documentDelta": 4
+    },
+    "memberAllTimePMOVE": {
+      "before": {
+        "queries": 1,
+        "documentsReturned": 1,
+        "visibleRows": 1,
+        "ids": [
+          "F2"
+        ],
+        "constraints": [
+          {
+            "constraints": [
+              {
+                "kind": "where",
+                "field": "profileId",
+                "op": "==",
+                "value": "PMOVE"
+              },
+              {
+                "kind": "where",
+                "field": "historyAuthority",
+                "op": "==",
+                "value": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+              },
+              {
+                "kind": "where",
+                "field": "branch",
+                "op": "==",
+                "value": "CS2"
+              },
+              {
+                "kind": "orderBy",
+                "field": "__name__"
+              },
+              {
+                "kind": "limit",
+                "n": 40
+              }
+            ],
+            "returned": 1
+          }
+        ]
+      },
+      "after": {
+        "queries": 1,
+        "documentsReturned": 2,
+        "visibleRows": 2,
+        "ids": [
+          "F1",
+          "F2"
+        ],
+        "constraints": [
+          {
+            "constraints": [
+              {
+                "kind": "where",
+                "field": "profileId",
+                "op": "==",
+                "value": "PMOVE"
+              },
+              {
+                "kind": "orderBy",
+                "field": "__name__"
+              },
+              {
+                "kind": "limit",
+                "n": 40
+              }
+            ],
+            "returned": 2
+          }
+        ]
+      },
+      "queryDelta": 0,
+      "documentDelta": 1
+    },
+    "monthlyAll": {
+      "before": {
+        "queries": 1,
+        "documentsReturned": 6,
+        "visibleRows": 5,
+        "ids": [
+          "A",
+          "E",
+          "H1",
+          "H2",
+          "X2"
+        ],
+        "constraints": [
+          {
+            "constraints": [
+              {
+                "kind": "where",
+                "field": "month",
+                "op": "==",
+                "value": "2026-10"
+              },
+              {
+                "kind": "where",
+                "field": "historyAuthority",
+                "op": "==",
+                "value": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+              },
+              {
+                "kind": "limit",
+                "n": 100
+              }
+            ],
+            "returned": 6
+          }
+        ]
+      },
+      "after": {
+        "queries": 1,
+        "documentsReturned": 10,
+        "visibleRows": 9,
+        "ids": [
+          "A",
+          "B",
+          "C",
+          "D",
+          "E",
+          "H1",
+          "H2",
+          "X1",
+          "X2"
+        ],
+        "constraints": [
+          {
+            "constraints": [
+              {
+                "kind": "where",
+                "field": "month",
+                "op": "==",
+                "value": "2026-10"
+              },
+              {
+                "kind": "limit",
+                "n": 100
+              }
+            ],
+            "returned": 10
+          }
+        ]
+      },
+      "queryDelta": 0,
+      "documentDelta": 4
+    },
+    "monthlyCS1": {
+      "before": {
+        "queries": 1,
+        "documentsReturned": 4,
+        "visibleRows": 3,
+        "ids": [
+          "A",
+          "H1",
+          "H2"
+        ],
+        "constraints": [
+          {
+            "constraints": [
+              {
+                "kind": "where",
+                "field": "month",
+                "op": "==",
+                "value": "2026-10"
+              },
+              {
+                "kind": "where",
+                "field": "historyAuthority",
+                "op": "==",
+                "value": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+              },
+              {
+                "kind": "where",
+                "field": "branch",
+                "op": "==",
+                "value": "CS1"
+              },
+              {
+                "kind": "limit",
+                "n": 100
+              }
+            ],
+            "returned": 4
+          }
+        ]
+      },
+      "after": {
+        "queries": 1,
+        "documentsReturned": 8,
+        "visibleRows": 7,
+        "ids": [
+          "A",
+          "B",
+          "C",
+          "D",
+          "H1",
+          "H2",
+          "X1"
+        ],
+        "constraints": [
+          {
+            "constraints": [
+              {
+                "kind": "where",
+                "field": "month",
+                "op": "==",
+                "value": "2026-10"
+              },
+              {
+                "kind": "where",
+                "field": "branch",
+                "op": "in",
+                "value": [
+                  "CS1",
+                  "Mặc định"
+                ]
+              },
+              {
+                "kind": "limit",
+                "n": 100
+              }
+            ],
+            "returned": 8
+          }
+        ]
+      },
+      "queryDelta": 0,
+      "documentDelta": 4
+    },
+    "monthlyCS2": {
+      "before": {
+        "queries": 1,
+        "documentsReturned": 2,
+        "visibleRows": 2,
+        "ids": [
+          "E",
+          "X2"
+        ],
+        "constraints": [
+          {
+            "constraints": [
+              {
+                "kind": "where",
+                "field": "month",
+                "op": "==",
+                "value": "2026-10"
+              },
+              {
+                "kind": "where",
+                "field": "historyAuthority",
+                "op": "==",
+                "value": "attendance-history-1aedda93-9437-4132-9694-35c2e6234d55"
+              },
+              {
+                "kind": "where",
+                "field": "branch",
+                "op": "==",
+                "value": "CS2"
+              },
+              {
+                "kind": "limit",
+                "n": 100
+              }
+            ],
+            "returned": 2
+          }
+        ]
+      },
+      "after": {
+        "queries": 1,
+        "documentsReturned": 2,
+        "visibleRows": 2,
+        "ids": [
+          "E",
+          "X2"
+        ],
+        "constraints": [
+          {
+            "constraints": [
+              {
+                "kind": "where",
+                "field": "month",
+                "op": "==",
+                "value": "2026-10"
+              },
+              {
+                "kind": "where",
+                "field": "branch",
+                "op": "==",
+                "value": "CS2"
+              },
+              {
+                "kind": "limit",
+                "n": 100
+              }
+            ],
+            "returned": 2
+          }
+        ]
+      },
+      "queryDelta": 0,
+      "documentDelta": 0
+    },
+    "adminAuditMonth": {
+      "before": {
+        "queries": 1,
+        "documentsReturned": 10,
+        "visibleRows": 9,
+        "ids": [
+          "A",
+          "B",
+          "C",
+          "D",
+          "E",
+          "H1",
+          "H2",
+          "X1",
+          "X2"
+        ],
+        "constraints": [
+          {
+            "constraints": [
+              {
+                "kind": "where",
+                "field": "month",
+                "op": "==",
+                "value": "2026-10"
+              },
+              {
+                "kind": "limit",
+                "n": 100
+              }
+            ],
+            "returned": 10
+          }
+        ]
+      },
+      "after": {
+        "queries": 1,
+        "documentsReturned": 10,
+        "visibleRows": 9,
+        "ids": [
+          "A",
+          "B",
+          "C",
+          "D",
+          "E",
+          "H1",
+          "H2",
+          "X1",
+          "X2"
+        ],
+        "constraints": [
+          {
+            "constraints": [
+              {
+                "kind": "where",
+                "field": "month",
+                "op": "==",
+                "value": "2026-10"
+              },
+              {
+                "kind": "limit",
+                "n": 100
+              }
+            ],
+            "returned": 10
+          }
+        ]
+      },
+      "queryDelta": 0,
+      "documentDelta": 0
+    }
+  },
+  "billingClaim": false
+}

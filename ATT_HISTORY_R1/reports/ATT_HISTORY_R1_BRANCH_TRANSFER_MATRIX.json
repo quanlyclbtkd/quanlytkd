@@ -1,0 +1,17 @@
+{
+  "profile": "PMOVE",
+  "history": [
+    {
+      "month": "2026-02",
+      "branch": "CS1",
+      "trust": "legacy"
+    },
+    {
+      "month": "2026-05",
+      "branch": "CS2",
+      "trust": "current"
+    }
+  ],
+  "adminAllTimeVisibleBoth": true,
+  "coachMergedAcrossBranches": false
+}

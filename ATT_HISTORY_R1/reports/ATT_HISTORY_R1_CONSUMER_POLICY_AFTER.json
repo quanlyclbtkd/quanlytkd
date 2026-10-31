@@ -1,0 +1,85 @@
+{
+  "Daily Admin": {
+    "consistency": "operational current-day unchanged",
+    "authorityScope": "unchanged operational",
+    "branch": "current context",
+    "legacy": "no automatic operational broadening"
+  },
+  "Past-day Admin": {
+    "consistency": "SERVER_REQUIRED",
+    "authorityScope": "RECORDED",
+    "branch": "selected; CS1 uses one indexed IN [CS1,Mặc định]",
+    "legacy": true
+  },
+  "Daily Coach": {
+    "consistency": "SERVER_REQUIRED/current contract unchanged",
+    "authorityScope": "CURRENT_AUTHORITY_ONLY",
+    "branch": "assigned exact",
+    "legacy": false
+  },
+  "Member Quarter Admin": {
+    "consistency": "SERVER_REQUIRED",
+    "authorityScope": "RECORDED",
+    "branch": "explicit branch or all historical branches",
+    "legacy": true
+  },
+  "Member All-Time Admin": {
+    "consistency": "SERVER_REQUIRED",
+    "authorityScope": "RECORDED",
+    "branch": "all historical branches unless explicit",
+    "legacy": true
+  },
+  "Member Coach": {
+    "consistency": "SERVER_REQUIRED",
+    "authorityScope": "CURRENT_AUTHORITY_ONLY forced",
+    "branch": "assigned exact",
+    "legacy": false
+  },
+  "Verified History Admin": {
+    "consistency": "SERVER_REQUIRED",
+    "authorityScope": "CURRENT_AUTHORITY_ONLY explicit",
+    "legacy": false
+  },
+  "Verified History Coach": {
+    "consistency": "SERVER_REQUIRED",
+    "authorityScope": "CURRENT_AUTHORITY_ONLY forced",
+    "legacy": false
+  },
+  "Monthly Admin": {
+    "consistency": "SERVER_REQUIRED",
+    "authorityScope": "RECORDED",
+    "branch": "all / exact / one CS1 alias-IN query",
+    "legacy": true
+  },
+  "Monthly Coach": {
+    "consistency": "SERVER_REQUIRED",
+    "authorityScope": "CURRENT_AUTHORITY_ONLY",
+    "branch": "assigned exact",
+    "legacy": false
+  },
+  "Excel Admin": {
+    "consistency": "SERVER_REQUIRED",
+    "authorityScope": "RECORDED through same monthly owner",
+    "legacy": true
+  },
+  "Excel Coach": {
+    "consistency": "SERVER_REQUIRED",
+    "authorityScope": "CURRENT_AUTHORITY_ONLY",
+    "legacy": false
+  },
+  "Branch Report Admin": {
+    "consistency": "SERVER_REQUIRED",
+    "authorityScope": "RECORDED through same monthly owner",
+    "legacy": true
+  },
+  "Branch Report Coach": {
+    "consistency": "SERVER_REQUIRED",
+    "authorityScope": "CURRENT_AUTHORITY_ONLY",
+    "legacy": false
+  },
+  "Admin Audit": {
+    "consistency": "SERVER_REQUIRED",
+    "authorityScope": "RECORDED",
+    "legacy": true
+  }
+}
